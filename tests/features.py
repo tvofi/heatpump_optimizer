@@ -29909,7 +29909,7 @@ from heatpump_optimizer.const import (  # noqa: E402
     PRICE_SOURCE_TIBBER as _PRICE_SOURCE_TIBBER,
 )
 
-# D10-07: a failed price fetch must FAIL the update. Every failure path used
+# D10-07: a failed price fetch with no covering prices must FAIL the update. Every failure path used
 # to return silently, so last_update_success never moved and the entities
 # stayed available forever behind stale prices. The stub's session getter
 # raises, which is exactly one such failure.
@@ -29958,54 +29958,104 @@ R.check(
 
 # Price outage with still-valid prices: the failed fetch is bridged (warning +
 # repair), the update does not fail; once the old prices no longer cover now
-# the update fails again, and a recovered fetch clears the repair.
+# the update fails again, and a recovered fetch clears the repair. Null
+# controls: a healthy fetch raises no repair, a refused token still fails.
+import logging as _logging_pf  # noqa: E402
+import sys as _sys_pf  # noqa: E402
 from homeassistant.util import dt as _dtu_pf  # noqa: E402
 
+_pf_mod = _sys_pf.modules[type(_tib).__module__]
+_pf_pull = _pf_mod.pull_prices
 _pf_now = _dtu_pf.now().replace(minute=0, second=0, microsecond=0)
+
+
+def _pf_rows(hours):
+    return [{"total": 0.3, "starts_at": (_pf_now + timedelta(hours=h)).isoformat()} for h in hours]
+
+
+def _pf_fetch(verdict=None, payload=None):
+    """One price fetch; ``verdict`` scripts ``pull_prices``, None keeps the stub's failure."""
+    if verdict is not None:
+        async def _scripted(*_a, **_k):
+            return verdict, payload
+        _pf_mod.pull_prices = _scripted
+    try:
+        _asyncio.run(_tib._fetch_tibber_prices())
+    except Exception as err:  # noqa: BLE001 - the class is the assertion
+        return err
+    finally:
+        _pf_mod.pull_prices = _pf_pull
+    return None
+
+
+class _PfLevels(_logging_pf.Handler):
+    def emit(self, record):
+        _pf_levels.append(record.levelname)
+
+
+_pf_levels: list = []
+_pf_handler = _PfLevels()
+_logging_pf.getLogger("heatpump_optimizer").addHandler(_pf_handler)
+_pf_issue_ids = lambda: [i[1] for i in getattr(_tib.hass, "issues", [])]  # noqa: E731
+
 _tib.hass.issues = []
 _tib._tibber_outage_cycles = 0
-_tib._prices = [
-    {"total": 0.3, "starts_at": (_pf_now + timedelta(hours=h)).isoformat()}
-    for h in (-1, 0, 1, 2)
-]
-_pf_raised = None
-try:
-    _asyncio.run(_tib._fetch_tibber_prices())
-except Exception as err:  # noqa: BLE001 - the absence is the assertion
-    _pf_raised = err
+_pf_raised = _pf_fetch("ok", _pf_rows((0, 1, 2)))
+R.check(
+    "null control: a healthy price fetch neither fails the update nor raises the price_feed_stale repair",
+    _pf_raised is None and _pf_issue_ids() == [] and _tib._tibber_outage_cycles == 0,
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_tib._prices = _pf_rows((-1, 0, 1, 2))
+_pf_levels.clear()
+_pf_raised = _pf_fetch()
 R.check(
     "a failed price fetch while the last prices still cover now does not fail the update",
     _pf_raised is None and _tib._tibber_outage_cycles == 1 and len(_tib._prices) == 4,
     f"raised {_pf_raised!r}, cycles {_tib._tibber_outage_cycles}",
 )
 R.check(
-    "…and raises the price_feed_stale repair",
-    [i[1] for i in _tib.hass.issues] == ["price_feed_stale"],
-    f"issues {[i[1] for i in _tib.hass.issues]}",
+    "...and raises the price_feed_stale repair, logging a WARNING and no ERROR",
+    _pf_issue_ids() == ["price_feed_stale"] and "WARNING" in _pf_levels and "ERROR" not in _pf_levels,
+    f"issues {_pf_issue_ids()}, levels {_pf_levels}",
 )
-_tib._tibber_fetch_recovered()
+_pf_raised = _pf_fetch("ok", _pf_rows((0, 1, 2)))
 R.check(
-    "a recovered fetch clears the repair",
-    not any(i[1] == "price_feed_stale" for i in _tib.hass.issues),
-    f"issues {_tib.hass.issues}",
+    "a recovered fetch clears the repair and the outage latch",
+    _pf_raised is None and _pf_issue_ids() == [] and _tib._tibber_outage_cycles == 0,
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_pf_fetch()  # bridged again: the repair is up when the prices run out below
+_tib._prices = _pf_rows((-5, -4, -3))
+_pf_levels.clear()
+_pf_raised = _pf_fetch()
+R.check(
+    "null control: prices that no longer cover now fail the update again, and the repair stays",
+    type(_pf_raised).__name__ == "UpdateFailed" and _pf_issue_ids() == ["price_feed_stale"],
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_tib._prices = []
+_pf_levels.clear()
+_pf_fetch()
+R.check(
+    "null control: an outage with no covering prices logs ERROR on its first cycle and raises no repair",
+    "ERROR" in _pf_levels and _pf_issue_ids() == [],
+    f"levels {_pf_levels}, issues {_pf_issue_ids()}",
 )
 _tib._tibber_outage_cycles = 0
-_asyncio.run(_tib._fetch_tibber_prices())
-_tib._prices = [
-    {"total": 0.3, "starts_at": (_pf_now - timedelta(hours=h)).isoformat()}
-    for h in (5, 4, 3)
-]
-_pf_raised = None
-try:
-    _asyncio.run(_tib._fetch_tibber_prices())
-except Exception as err:  # noqa: BLE001 - the class is the assertion
-    _pf_raised = err
+_tib._prices = _pf_rows((-1, 0, 1, 2))
+_pf_raised = _pf_fetch("reauth", "token refused")
 R.check(
-    "prices that no longer cover now fail the update again, and the repair stays",
-    type(_pf_raised).__name__ == "UpdateFailed"
-    and [i[1] for i in _tib.hass.issues] == ["price_feed_stale"],
-    f"raised {_pf_raised!r}, issues {[i[1] for i in _tib.hass.issues]}",
+    "null control: a refused token fails the update although prices still cover now, and raises no price_feed_stale repair",
+    type(_pf_raised).__name__ == "ConfigEntryAuthFailed" and "price_feed_stale" not in _pf_issue_ids(),
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
 )
+_logging_pf.getLogger("heatpump_optimizer").removeHandler(_pf_handler)
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_tib._tibber_reauth_started = False
 _tib._prices = []
 
 # #216 (round-2 D10-B): the latch must OWN the outage's logging. The four

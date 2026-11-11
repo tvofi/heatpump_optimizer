@@ -6028,7 +6028,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         try:
             await self._update_current_state()
 
-            # Raises UpdateFailed on any failure -- see _fetch_tibber_prices.
+            # Raises UpdateFailed once no published price covers now -- see _fetch_tibber_prices.
             await self._fetch_tibber_prices()
 
             # Fetch weather forecast (full 24h for solar, wind, rain, temp)
@@ -6923,9 +6923,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _fetch_tibber_prices(self) -> None:
         """Fetch electricity prices (Tibber or a price entity).
 
-        A failed fetch raises :class:`UpdateFailed` (D10-07). Entity
-        sources never start reauthentication. The outage latch (D10-09)
-        is unchanged.
+        A failed fetch raises :class:`UpdateFailed` (D10-07) only once the
+        last published prices no longer cover now; entity sources never
+        start reauthentication.
         """
         cfg = getattr(self, "_ctx", self)._config
         hass = self.hass
@@ -6955,14 +6955,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
 
     def _tibber_fetch_failed(self, reason: str, *, exc_info: bool = False, auth: bool = False) -> None:
-        """Record one failed price fetch: log once, raise as a failed update.
+        """Record one failed price fetch and raise it as a failed update.
 
-        D10-09: an outage lasting a day used to print the same ERROR on
-        every cycle. The first failure logs ERROR; the rest log DEBUG until
-        a fetch succeeds again, which logs the outage's length at INFO.
+        Last published prices still covering now bridge it instead: a warning
+        and the ``price_feed_stale`` repair; a refused token always fails.
+        Only an outage's first cycle logs above DEBUG (D10-09); a recovered
+        fetch logs the outage's length at INFO.
         """
-        # Last published prices still covering now bridge the failure: a
-        # warning and a repair, not a failed update. Auth failures still fail.
         bridged = not auth and bool(self._known_prices_for([plan_step_start(dt_util.now())]))
         issues.note_price_outage(self.hass, reason, bridged, not self._tibber_outage_cycles, exc_info)
         self._tibber_outage_cycles += 1
@@ -6977,7 +6976,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if self._tibber_outage_cycles:
             _LOGGER.info("Tibber prices recovered after %d failed cycle(s)",
                          self._tibber_outage_cycles)
-        issues.clear_issue(self.hass, "price_feed_stale")
+            issues.clear_issue(self.hass, "price_feed_stale")
         self._tibber_outage_cycles = 0
         # A later revocation of the (new) token deserves its own flow.
         self._tibber_reauth_started = False
