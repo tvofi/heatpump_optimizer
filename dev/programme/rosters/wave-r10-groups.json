@@ -21186,12 +21186,12 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Moved from R10-CLOSEOUT-INSTRUMENTS carry 3 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom triage batch 137 (triage: dev/programme/triage/s6-batch137.md#P453), queue line GC-LIVE-TRAIN-CHECKOUT, major and an audit class (five instances: the dispatch tools-wt, relay-tools twice, merge-s13-3290 twice, train 15780 at 03:55Z and train 95155 at 06:59Z on 11-08). worktree_gc.sh keeps a worktree only when a process's cwd is inside it; a run reaching a checkout by `git -C`, `--checkout` or a script path is not seen. Every removal arm also keeps a worktree named in a live process's argv or open files (lsof +D), or by a live train.pid or lock file. `--keep-dir` is the evidence destination, not a keep list: say so in its usage line, and give any real protect flag its own name. Failing test first: a detached clean worktree at origin/main used by a live process through `git -C`, with its cwd elsewhere, survives every arm. Null control: the same worktree with no live user is collected."
+    "Moved from R10-CLOSEOUT-INSTRUMENTS carry 3 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom triage batch 137 (triage: dev/programme/triage/s6-batch137.md#P453), queue line GC-LIVE-TRAIN-CHECKOUT, major and an audit class (five instances: the dispatch tools-wt, relay-tools twice, merge-s13-3290 twice, train 15780 at 03:55Z and train 95155 at 06:59Z on 11-08). worktree_gc.sh keeps a worktree only when a process's cwd is inside it; a run reaching a checkout by `git -C`, `--checkout` or a script path is not seen. Every removal arm also keeps a worktree named in a live process's argv or open files (lsof +D), or by a live train.pid or lock file. `--keep-dir` is the evidence destination, not a keep list: say so in its usage line, and give any real protect flag its own name. Failing test first: a detached clean worktree at origin/main used by a live process through `git -C`, with its cwd elsewhere, survives every arm. Null control: the same worktree with no live user is collected. [implemented: 0e28afd38b353ca8e66269d9ae4be8614fcf5cfb]"
    ],
    "architect_note": "",
    "brief": "P453: worktree_gc.sh removes a live train or relay checkout (five instances on 11-08); keep a worktree a live long-running process reads from, not only its cwd holder. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "pr": 3423,
     "commit": "0e28afd38b353ca8e66269d9ae4be8614fcf5cfb"
