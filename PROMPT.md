@@ -11,3 +11,7 @@ Outside pull request 3435 by Bankaifan, accepted into round 10 on the same rulin
 After: none
 
 Valid `Carry:` targets (live consumers of R10-OUTSIDE-LEARNER-ROBUSTNESS: groups after it or sharing its files): R10-COMBI-TANK, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK, R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START, R10-COMBI-TANK-PR-B, R10-CARD-COLLAPSE, R10-DUTY-SWITCH-RESTART-LEARNING, R10-OUTSIDE-DHW-CHARGE-SETTLE
+
+PIN EVIDENCE (triage P577, binding): for every mutation or pin claim, re-create the REVIEWER's own mutants exactly as a verdict would name them (a mutant_run.py --spec entry each, or by hand in a git-archive copy), show each KILLED at your handoff head and the NULL mutant surviving, and quote those lines in the body. mutant_run.py --diff is optional extra and is NOT pin evidence (it skips tests/, YAML, shell and expression conjuncts).
+
+ORDER OF PARTS (orchestrator ruling): coordinator.py has two pull requests in flight and three approved groups about to touch it (duty switch, advisor steady start, combi tank). Order the parts by seam with the counter-span fix (heat_energy.py and its tests) first, and the part that edits coordinator.py LAST, merged onto a fresh origin/main immediately before its handoff. Keep the coordinator.py edit to the lines the fix needs.
