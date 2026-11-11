@@ -412,8 +412,10 @@ PINNED_SOURCE = re.compile(r"^\$\{\{ (?:inputs\.restore_source|needs\.(?:prelude
 
 
 def _pinned_ok(val: str) -> bool:
-    return val in PINNED_OK or ("${{ " + PINNED_SOURCE.sub("", val, count=1)) in PINNED_OK and bool(
-        PINNED_SOURCE.match(val))
+    source = PINNED_SOURCE.match(val)
+    return val in PINNED_OK or bool(source) and "${{ " + val[source.end():] in PINNED_OK
+
+
 # A bare interpreter name, resolved on the job's PATH, which nothing admitted
 # can change; never a path (round 4: `tools/shim/python3`).
 INTERP = re.compile(r"^(?:python3?|node|bash|sh)$")
@@ -1025,6 +1027,12 @@ NULLS = [
         "PINNED: ${{ needs.prelude.outputs.restore_source || github.event.pull_request.base.sha"
         " || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base))"
         " || github.sha }}")),
+    ("PINNED from the gate's restore source, else the base", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ needs.gate.outputs.restore_source || github.event.pull_request.base.sha }}")),
+    ("PINNED from the step's resolved source, else the base", lambda jt: jt.replace(
+        "PINNED: ${{ github.event.pull_request.base.sha }}",
+        "PINNED: ${{ steps.source.outputs.sha || github.event.pull_request.base.sha }}")),
 ]
 
 
