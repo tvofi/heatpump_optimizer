@@ -336,6 +336,20 @@ if [ -n "${hit:-}" ]; then
     done
     if [ -n "$script" ] && [ -n "$gcpy" ]; then
       a=$(rp "$script") && b=$(rp "$gcpy") && [ "$a" = "$b" ] && ok=1
+      # Another tree's gh_comment.py (R10-GH-READ-RESIDUE, P449): the daemons' PATH carries one
+      # install, run from any checkout. Admitted by real path when it is the tracked
+      # tools/pr/gh_comment.py of a worktree git registers beside the baked tree's; a file
+      # merely so named, in a directory git does not list, stays refused.
+      if [ -z "$ok" ] && [ -n "$a" ]; then
+        case $a in */tools/pr/gh_comment.py)
+          troot=${a%/tools/pr/gh_comment.py} broot=${gcpy%/tools/pr/gh_comment.py}
+          if [ "$broot" != "$gcpy" ] && git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1; then
+            while IFS= read -r wl; do
+              [ "$wl" = "worktree $troot" ] && ok=1
+            done < <(git -C "$broot" worktree list --porcelain 2>/dev/null)
+          fi ;;
+        esac
+      fi
     fi ;;
   esac
   [ -n "$ok" ] || { echo "gh shim: a comment write on a record issue (#${trackers// /, #}) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused" >&2; exit 1; }
