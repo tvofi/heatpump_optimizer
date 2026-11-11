@@ -7,44 +7,8 @@ Never write to any branch except your return refs. Never work around a hook or a
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires; at most 5 inline search operations per prompt; never set FRUGAL_ALLOW_INLINE.
 
 Brief (snapshotted when this payload was rendered):
-# Reviewer, PR 3425 (carry-only re-issue at the live head)
+# Reviewer, PR 3425: re-push of your own refused verdict (same nonce, same head)
 
-The unposted draft on probe/rev-3425-5c9958ba is "Fix review: merge c6becb3175c5979f1c117755161b1950aee2d821" (pending-ci: gate; classify read WAIT, no concluded red). The head then moved to c93903f075212c86bdef7b011776d5570d776630 by ONE main merge commit; `python3 -I tools/audit/seat/review_carry.py c6becb3175c5979f1c117755161b1950aee2d821 c93903f075212c86bdef7b011776d5570d776630` answers CARRY, and the head classifies GREEN.
+Your verdict "Fix review: merge c93903f075212c86bdef7b011776d5570d776630" on probe/rev-3425-a7ac54c9 was refused at push-verdict: an evidence line begins with the word Carry followed by a colon, which carry_audit.py reads as a finding with no destination (UNROUTED review push-verdict item b6e4992b, ## Evidence). Re-push the same verdict to the same probe ref with that line reworded (for example "review_carry.py c6becb31 c93903f0 answers CARRY ..."). Run `python3 -I tools/audit/carry_audit.py check` on the verdict file before pushing. Change nothing else: same head c93903f075212c86bdef7b011776d5570d776630, same nonce a7ac54c9756a9e5d723e1db76fef9f01, same findings and verdict line. Never start a line with "Carry:" except a finding's destination marker.
 
-Your task: re-issue that verdict at c93903f0. First confirm yourself (1) the review_carry CARRY answer over that range and that the range is only the main merge, and (2) that the required contexts are green at c93903f0 (merge_train.py classify c93903f0 --pr 3425). If both hold, post "Fix review: merge c93903f075212c86bdef7b011776d5570d776630" with NO pending-ci line, quoting the draft below verbatim as the review it carries. If either fails, do a fresh review or return blocked as the evidence says.
-
-## The draft being carried (verbatim)
-
-Fix review: merge c6becb3175c5979f1c117755161b1950aee2d821
-
-bus-nonce: 5c9958bab47ef55c15a04971e28a69bc
-pending-ci: gate
-
-## Evidence
-
-- CI: `merge_train.py classify c6becb31 --pr 3425` printed `WAIT c6becb31... pending: gate red: none` on every poll from 03:58Z to 04:29Z (ev/classify.log). Because it still read WAIT after about 30 minutes, this verdict is returned with `pending-ci: gate`. There is no concluded red at this head, so the body's `## Red checks: none` has nothing yet to answer.
-- Round 2: a delta re-review of the repair since the blocked head 779c94324f7f15a17938526cc6e2c875170fabc0. `review_carry.py 779c9432 c6becb31` prints FRESH-REVIEW. The delta (ev/delta.diff) is one file: 18 added self-test lines in tools/audit/seat/orchestrator_tick.py, from 0613c67b62 merged as c6becb3175. It changes no production lines.
-- Head reviewed: c6becb3175c5979f1c117755161b1950aee2d821 (ev/HEAD.txt). The PR body's `## Head` names it and the authored head 0613c67b62 that it merges.
-- Roles: this checkout is origin/main (dbd1ab5b07), so the role pack I followed is main's fix-review.md. Since the branch's merge base, main changed roles/fix-review.md (4 lines) and roles/fixer.md (10 lines).
-- Merges with main: `git merge-tree --write-tree origin/main c6becb31` exits 0 with tree 50c8fb41e61329d40b0a287e53094abb8e5b2f8d, and `LEDGER-MERGE: resolved tests/closures.json` (ev/merge-tree.txt).
-- Self-test at head: `python3 tools/audit/seat/orchestrator_tick.py --self-test` gives `308 checks, 0 failed`. That matches the body's figure.
-- The previous block's survivors are now killed (ev/mutants-head.txt, ev/st-*.log). The figures match the body:
-  - M3 (delete the two one_pr lines that clear `_red[n]`): `308 checks, 1 failed`, `FAIL carry 9 one_pr: WAIT clears the red`.
-  - M4 (the `_classify_red` except-branch returns False): `308 checks, 1 failed`, `FAIL carry 9 one_pr: an unread classify keeps it`.
-- Additional mutants of my own, all killed:
-  - M5 (`_classify_red` returns True always): 2 failed.
-  - M8 (`not` dropped from the one_pr condition): 3 failed.
-  - M9 (the clear made unconditional on classify): 2 failed, `RED keeps it (null control)` and `an unread classify keeps it`.
-- The new pin is not vacuous:
-  - Its three arms want different `_red[77]` values: [] for WAIT, and ['gate'] for both RED and mt.Stop.
-  - The RED null control fails under M8 and M9, so it discriminates.
-  - The stub is restored in `finally`.
-- The body says "no RED-UNOWNED" for the WAIT arm, but the arm asserts `_red[77] == []`, not the absence of the printed line. This is equivalent: the red-unowned bucket is built from `self._red[n]`, at orchestrator_tick.py `"red {','.join(self._red[n])}, ... red-unowned"`.
-- The other three self-tests (beat_jobs, owed_unactioned, remerge_main_selftest) and their carries (13, 10, 15) are outside the delta. They carry from round 1, where they were killed and re-derived at 0 failed.
-- VERSION, the manifest and the release-notes heading are untouched; the delta touches one tool file. No golden fixture or claim file moved.
-- Finder's harness: none. This is a roster-carry group, and every instrument is the fixer's own self-test (as in round 1).
-- review_packet: no refusals; carry_audit: 1 routed, 0 unrouted; figure_lint: 4 resolved, 0 refused.
-
-## Findings
-
-none
+Your previous verdict file, verbatim, is on probe/rev-3425-a7ac54c9 (read it from that ref).
