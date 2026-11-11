@@ -594,10 +594,12 @@ def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
     state, pending, red = t.classify_at(sha, runs, req)
     line = f"{sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}"
     if pr is not None and not on_main:
-        intro = t.introduced(sha, runs)[0]
+        intro, how = t.introduced(sha, runs)
         if intro:  # a finding of the pull request: RED whatever the required set reads
             return 1, "\n".join([f"RED {line} introduced: {len(intro)}",
                                   *(f"INTRODUCED {n}" for n in intro)])
+        if intro is None and state == "green":  # its job still runs: a hang reads WAIT, never GREEN
+            return 3, f"WAIT {line} introduced: pending ({how})"
     why = approval_owed(t, pr, sha, runs, req) if state == "red" and pr is not None else None
     if why:
         return 4, f"APPROVAL-OWED {sha} {why}"
@@ -619,50 +621,94 @@ SELFTESTS_PUSH_ONLY = frozenset({"Refuse a self-test read set the committed tabl
 SELFTESTS_RUNS = "check-runs?check_name=governance%20%2F%20instrument-self-tests&per_page=100"
 
 
+#: A step or job conclusion that is red: review_packet.RED, the repository's one
+#: definition (its self-test pins the two equal). A hang the pull request makes
+#: concludes the job timed_out with its running step cancelled.
+RED_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out", "action_required", "startup_failure"})
+#: A SELFTESTS job conclusion read clean at no job read (skipped: the prelude
+#: scoped it out); one in SELFTESTS_STEP_READ is read step by step; any other
+#: (a job-level cancelled, startup_failure, action_required) has no reading.
+SELFTESTS_CLEAN = frozenset({"success", "skipped", "neutral"})
+SELFTESTS_STEP_READ = frozenset({"failure", "timed_out"})
+#: The INTRODUCED name of a head job that timed out where its base's did not: a
+#: hang behind a step already red at the base hides every step after it.
+JOB_TIMED_OUT = "(the job concluded timed_out)"
+
+
 def selftest_job(runs) -> "dict | None":
-    """The latest concluded SELFTESTS check run in a commit's check runs (an
-    Actions job's check-run id is its job id), else None: no run there."""
-    done = [r for r in runs or () if r.get("name") == SELFTESTS and r.get("status") == "completed"]
-    return max(done, key=lambda r: int(r["id"])) if done else None
+    """The latest SELFTESTS check run in a commit's check runs, concluded or not
+    (an Actions job's check-run id is its job id; a re-run's is higher), else None."""
+    mine = [r for r in runs or () if r.get("name") == SELFTESTS]
+    return max(mine, key=lambda r: int(r["id"])) if mine else None
+
+
+def _red_steps(steps) -> "set[str]":
+    return {s.get("name") for s in steps if s.get("conclusion") in RED_CONCLUSIONS}
 
 
 def introduced_reds(head_steps, base_steps) -> "list[str]":
-    """The SELFTESTS step names concluded `failure` at the head and not at the
-    base, less SELFTESTS_PUSH_ONLY; pure. `base_steps` None (no base run): every
-    head red is introduced. A step skipped by scoping concluded `skipped`, so it
-    is never red on either side."""
+    """The SELFTESTS step names concluded red (RED_CONCLUSIONS) at the head and
+    not at the base, less SELFTESTS_PUSH_ONLY; pure. `base_steps` None (no base
+    run): every head red is introduced. A step skipped by scoping concluded
+    `skipped`, so it is never red on either side."""
     def red(steps):
-        return {s.get("name") for s in steps if s.get("conclusion") == "failure"} - SELFTESTS_PUSH_ONLY
+        return _red_steps(steps) - SELFTESTS_PUSH_ONLY
     return sorted(red(head_steps) - (red(base_steps) if base_steps is not None else set()))
 
 
-def introduced_at(head_runs, base_runs, job_steps) -> "tuple[list[str], str]":
-    """(introduced step names, how read) from the head's and the base's check
-    runs; `job_steps(job id)` is the one job-step read, None when unreadable.
-    A head whose SELFTESTS job did not conclude failure costs no read. Any
-    unreadable input (base listing, either job) raises ValueError: fail closed,
-    never an empty list."""
+def _job_conclusion(job: dict) -> str:
+    return job.get("conclusion") if job.get("status") == "completed" else str(job.get("status"))
+
+
+def introduced_at(head_runs, base_runs, job_steps) -> "tuple[list[str] | None, str]":
+    """(introduced names, how read) from the head's check runs; `base_runs()`
+    reads the base's (None unreadable) and `job_steps(job id)` one job's steps
+    (None unreadable), each called only when the head's latest SELFTESTS job is
+    red. Names None: that job has not concluded (a wait). No run, or a clean
+    conclusion, is ([], ...) at no read. A job concluding timed_out where the
+    base's did not adds JOB_TIMED_OUT. Any input with no reading (unreadable, a
+    job-level cancelled, a red job with no red step) raises ValueError: fail
+    closed, never an empty list."""
     hj = selftest_job(head_runs)
-    if hj is None or hj.get("conclusion") != "failure":
-        return [], f"head {SELFTESTS}: {hj.get('conclusion') if hj else 'no concluded run'}"
+    if hj is None:
+        return [], f"head {SELFTESTS}: no run"
+    hc = _job_conclusion(hj)
+    if hj.get("status") != "completed":
+        return None, f"head {SELFTESTS} job {hj['id']}: {hc}"
+    if hc in SELFTESTS_CLEAN:
+        return [], f"head {SELFTESTS}: {hc}"
+    if hc not in SELFTESTS_STEP_READ:
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc}, which reads no step: re-run it")
     hs = job_steps(hj["id"])
     if hs is None:
         raise ValueError(f"the head's {SELFTESTS} job {hj['id']} is unreadable")
-    if base_runs is None:
+    if not _red_steps(hs):
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc} with no red step")
+    runs = base_runs()
+    if runs is None:
         raise ValueError("the base's check runs are unreadable")
-    bj = selftest_job(base_runs)
-    bs = None
+    bj = selftest_job(runs)
+    bs, bc = None, None
     if bj is not None:
+        bc = _job_conclusion(bj)
+        if bc not in SELFTESTS_CLEAN | SELFTESTS_STEP_READ:
+            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is {bc}, which reads no step")
         bs = job_steps(bj["id"])
         if bs is None:
             raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is unreadable")
-    return introduced_reds(hs, bs), f"head job {hj['id']} base job {bj['id'] if bj else 'none: every head red counts'}"
+    names = introduced_reds(hs, bs)
+    if hc == "timed_out" and bc != "timed_out":
+        names.insert(0, JOB_TIMED_OUT)
+    return names, (f"head job {hj['id']} {hc} base job "
+                   + (f"{bj['id']} {bc}" if bj else "none: every head red counts"))
 
 
 def introduced_cmd(t: "Train", head: str, base: "str | None") -> "tuple[int, str]":
     """The `introduced` subcommand: INTRODUCED <step> lines and a summary,
-    rc 1 when any, 0 when none; a Stop (unreadable) is rc 2."""
+    rc 1 when any, 0 when none, 3 while the head's job runs; a Stop (unreadable) is rc 2."""
     intro, against = t.introduced(head, None, base)
+    if intro is None:
+        return 3, f"introduced: pending at {head} {against}"
     return (1 if intro else 0), "\n".join([*(f"INTRODUCED {n}" for n in intro),
                                            f"introduced: {len(intro)} at {head} {against}"])
 
@@ -1926,26 +1972,29 @@ class Train:
             return None
         return steps if isinstance(steps, list) else None
 
-    def introduced(self, head: str, head_runs=None, base: "str | None" = None) -> "tuple[list[str], str]":
+    def introduced(self, head: str, head_runs=None, base: "str | None" = None) -> "tuple[list[str] | None, str]":
         """introduced_at at <head> against <base>, by default the merge base
-        `git merge-base origin/main <head>` (approval_owed's base); a read that
-        fails is a Stop, never an empty list. <head_runs> spares the head's
-        check-run read a caller already made. Returns (names, what was read)."""
+        `git merge-base origin/main <head>` (approval_owed's base), read only
+        when the head's job is red; a read that fails is a Stop, never an empty
+        list. <head_runs> spares the head's check-run read a caller already
+        made. Returns (names, what was read); names None while the job runs."""
         runs = self._check_runs(head) if head_runs is None else head_runs
         if runs is None:
             raise Stop("selftests", f"the check runs at {head[:12]} could not be read")
-        if not (selftest_job(runs) or {}).get("conclusion") == "failure":
-            return [], f"against {base or '-'}: the head's {SELFTESTS} did not conclude failure"
-        if base is None:
-            code, out = self.run(["git", "merge-base", "origin/main", head])
-            base = out.strip()
-            if code or not is_sha(base):
-                raise Stop("selftests", f"no merge base for {head[:12]}: {base[:120]}")
+        at = [base]
+
+        def base_runs():
+            if at[0] is None:
+                code, out = self.run(["git", "merge-base", "origin/main", head])
+                if code or not is_sha(out.strip()):
+                    raise ValueError(f"no merge base for {head[:12]}: {out.strip()[:120]}")
+                at[0] = out.strip()
+            return self._selftest_runs(at[0])
         try:
-            names, how = introduced_at(runs, self._selftest_runs(base), self._job_steps)
-            return names, f"against {base}: {how}"
+            names, how = introduced_at(runs, base_runs, self._job_steps)
         except ValueError as e:
             raise Stop("selftests", f"{e}: an introduced red cannot be ruled out (fail closed)")
+        return names, f"against {at[0] or '-'}: {how}"
 
     def _check_runs(self, h: str) -> "list[dict] | None":
         """One paginated read of the check runs at <h>, parsed; None on a failed
@@ -5777,7 +5826,7 @@ def _introduced_self_test(check) -> None:
     rc, out = introduced_cmd(t, H, None)
     check("introduced_cmd: rc 1, one INTRODUCED line per introduced step, base by git merge-base origin/main",
           rc == 1 and out.splitlines()[0] == "INTRODUCED new red" and len(out.splitlines()) == 2
-          and f"against {B}: head job 11 base job 21" in out
+          and f"against {B}: head job 11 failure base job 21 failure" in out
           and any(c.startswith("git merge-base origin/main") for c in calls))
     check("the cost: one job-step read per side, the base's SELFTESTS runs by one filtered read",
           sum("actions/jobs/" in c for c in calls) == 2 and sum(f"commits/{B}/" in c for c in calls) == 1
@@ -5808,6 +5857,54 @@ def _introduced_self_test(check) -> None:
         except Stop as s:
             closed = s.step == "selftests"
         check(f"fail closed: {why} unreadable is a Stop (rc 2), never an empty list", closed)
+
+    # Beyond a `failure` conclusion (the r1 verdict's class): a hang the pull
+    # request makes concludes timed_out with its running step cancelled, a
+    # cancelled step can sit in a failed job, a head can carry a re-run, a job
+    # can still be running, and a job-level cancelled reads nothing.
+    hang = [{"name": "hang", "conclusion": "cancelled"}, {"name": "after", "conclusion": "skipped"}]
+    green = [{"name": "hang", "conclusion": "success"}, {"name": "after", "conclusion": "success"}]
+    t, _ = world([fast, job(11, "timed_out")], [job(21, "success")], {11: hang, 21: green})
+    rc, line = classify_cmd(t, H, 7, False)
+    check("a hang the PR makes (job timed_out, its step cancelled) is RED under classify --pr, step and timeout INTRODUCED",
+          rc == 1 and f"\nINTRODUCED {JOB_TIMED_OUT}" in line and "\nINTRODUCED hang" in line)
+    t, _ = world([fast, job(11)], [job(21, "success")], {11: hang, 21: green})
+    check("a cancelled step inside a failed job is INTRODUCED",
+          introduced_cmd(t, H, None)[1].splitlines()[0] == "INTRODUCED hang")
+    inherited = [{"name": "hang", "conclusion": "failure"}, {"name": "after", "conclusion": "skipped"}]
+    t, _ = world([fast, job(11, "timed_out")], [job(21)], {11: hang, 21: inherited})
+    out = introduced_cmd(t, H, None)[1]
+    check("a hang behind a step already red at the base: the timeout alone is INTRODUCED",
+          out.splitlines()[0] == f"INTRODUCED {JOB_TIMED_OUT}" and out.count("INTRODUCED") == 1)
+    t, _ = world([fast, job(11, "timed_out")], [job(21, "timed_out")], {11: hang, 21: hang})
+    check("null: a timeout the base had too, on the same step, is inherited (GREEN, introduced rc 0)",
+          classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
+    t, _ = world([fast, job(11, "success"), job(12)], [job(21, "success")], {12: hang, 21: green})
+    check("a re-run at one head that went red: the latest run (highest id) is read, its red INTRODUCED",
+          introduced_cmd(t, H, None)[0] == 1)
+    t, calls = world([fast, job(11), job(12, "success")], [job(21, "success")], {11: hang, 21: green})
+    check("a re-run at one head that went green reads clean at no job read",
+          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c for c in calls))
+    running = {"name": SELFTESTS, "id": 12, "status": "in_progress", "conclusion": None}
+    t, calls = world([fast, job(11, "success"), running], [job(21, "success")], {})
+    rc, line = classify_cmd(t, H, 7, False)
+    check("a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN",
+          rc == 3 and line.startswith(f"WAIT {H}") and introduced_cmd(t, H, None)[0] == 3
+          and not any("actions/jobs" in c for c in calls))
+    t, _ = world([fast], [job(21, "success")], {})
+    check("null: a head with no instrument-self-tests run (the prelude skipped it) is GREEN",
+          classify_cmd(t, H, 7, False)[0] == 0)
+    for why, w in (("the head's job concluded cancelled", ([fast, job(11, "cancelled")], [job(21)], {11: hang, 21: green})),
+                   ("the head's job concluded startup_failure", ([fast, job(11, "startup_failure")], [job(21)], {})),
+                   ("the base's job concluded cancelled", ([fast, job(11)], [job(21, "cancelled")], {11: hang, 21: green})),
+                   ("a red head job with no red step", ([fast, job(11)], [job(21)], {11: green, 21: green}))):
+        t, _ = world(*w)
+        try:
+            classify_cmd(t, H, 7, False)
+            closed = False
+        except Stop as s:
+            closed = s.step == "selftests"
+        check(f"fail closed: {why} is a Stop (rc 2), never a clean read", closed)
 
 
 def _stale_verdict_self_test(check) -> None:
@@ -9548,7 +9645,7 @@ def _parser() -> argparse.ArgumentParser:
     c.add_argument("--pr", type=int, help="the pull request <sha> heads: lets a RED read as APPROVAL-OWED (rc 4)")
     i = sub.add_parser("introduced", parents=[common],
                        help=f"the {SELFTESTS} steps red at <sha> and not at its merge base (or --base): "
-                            "INTRODUCED lines, rc 1 when any, 0 none, 2 unreadable (fail closed)")
+                            "INTRODUCED lines, rc 1 when any, 0 none, 3 its job still runs, 2 unreadable (fail closed)")
     i.add_argument("sha")
     i.add_argument("--base", help="the base commit (default: git merge-base origin/main <sha>)")
     # The required set a `## Red checks` obligation is judged against
