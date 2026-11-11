@@ -13,6 +13,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 ```
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
+- R10-ARCH-DOCS (stage in-progress, branch `handoff/r10-arch-docs`): `git fetch origin handoff/r10-arch-docs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BODY-CONTRACT (stage in-progress, branch `handoff/r10-body-contract`): `git fetch origin handoff/r10-body-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DISPATCH-AT-HANDOFF (stage carries-open, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -38,8 +39,10 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-MAIN-SELFTESTS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-CARRY-SINK-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PREPR-READSET (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-DEPENDABOT-3414-COMPAT (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-RCA-DEPENDABOT-STALE-HASH (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARRY-SINK-BARRIER, R10-COMBI-TANK, R10-DEPENDABOT-3414-COMPAT, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-PREPR-READSET, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARRY-SINK-BARRIER, R10-COMBI-TANK, R10-DEPENDABOT-3414-COMPAT, R10-DISPATCH-AT-HANDOFF, R10-FIXER-MD-SPELLING-CORPUS, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-GH-READ-RESIDUE, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-DELTA-REVIEW, R10-HOTFIX-MAIN-SELFTESTS, R10-HOTFIX-NONREQUIRED-REDS-2, R10-HOTFIX-PREPR-READSET, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-DEPENDABOT-STALE-HASH, R10-REVIEW-ENUMERATE, R10-SAV-VALUATION-RESIDUE, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, R10-WATER-SETPOINT-FEEDBACK, R10-WORKTREE-GC-LIVE
 
 ## Resume steps
 
