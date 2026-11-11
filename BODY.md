@@ -1,6 +1,6 @@
 Residue of R10-PREPR-CAP and R10-FLY-CIPREDICT-RESTORING on the pre-open prediction seam. This head lands carry 4 (the `.gitignore` anchor, pinned by `tests/gitignore_config.py` with a root-level `config/` null control) and carry 6's reproduction attempt as a re-runnable harness. Brief carries are 0-based; `Carry N` below is 1-based, one more than the brief's number. Every carry other than the brief's 4 and 6 is not built in this part.
 
-Status by roster index (1-based): carry 5 landed in this head; carry 7 is dismissed below; not built in this part, and still owed by this group: carries 1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24.
+Status by roster index (1-based): carry 5 landed in this head; carry 7 is dismissed below; carries not touched in this part: 1, 2, 3, 4, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24.
 
 ## Head
 
