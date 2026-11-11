@@ -18,9 +18,16 @@ Carries 4, 5 and 6 on the roster entry are this body's own `Carry: R10-SAV-VALUA
 - Carry 5 is the residual's attribution in `## Forward-carry`.
 - Carry 6 is the hot-water LP's secant in `## Forward-carry`.
 
+Carries 7, 8 and 9 are the same three items folded again from round 2's body (items 7e4ae819, b955105e, 0cfcc337), not further work:
+- Carry 7 is the merge-base residual in `## Figures` (-3.90 % flat, -8.02 % varying).
+- Carry 8 is the residual's attribution in `## Forward-carry`.
+- Carry 9 is the hot-water LP's secant in `## Forward-carry`.
+
 ## Head
 
-61241004989d6a432faf2e4d8523b8a2883439e8 (round 2). It is cut from 9394a652, round 1's head, with `origin/main` cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf merged in at 56a5572a.
+611102f07624b45af9e434ec4359f6db3f8e5b14 (repair). It is `f1e49686bc911dff1a6e573c681524d4cbbcc792`, the PR head that merges round 2's 61241004, plus one commit: the `killed_by` row for `optimizer.py:2712 GUARD_OFF`. No production or test line changed. `origin/main` was at ee64358be on 2026-11-11 (UTC); `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged.
+
+Round 2's head, 61241004989d6a432faf2e4d8523b8a2883439e8, is cut from 9394a652, round 1's head, with `origin/main` cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf merged in at 56a5572a.
 
 That merge had one textual conflict, `tests/structure_budgets.json`'s `class_excess_loc`. The ledger merge driver resolved it (`17537 + both deltas = 17533`), and it was re-measured on the merged tree: `python3 tests/structure.py` prints `ok class_excess_loc 17533 <= 17533` and `STRUCTURE RATCHET PASSED`. No cap was raised. VERSION, the manifest and RELEASE_NOTES are untouched (`prepr.sh` `no version edit` ok).
 
@@ -102,6 +109,11 @@ Flat-price null (mandatory): the flat day's rows are printed beside the spread d
   - Every derated hot-water cell's published hot-water cost rose: flat 7.0145 to 7.8780, spread 8.0681 to 8.8053 (every draw at the floor, 1.500 kW).
   - The base LP publishes the true inverse of the energy it buys, so its secant is a valuation error, not a delivery one.
   - A convex-exact program cannot cost more in truth, so the chord model misprices. The segmentation was reverted.
+- **Repair: the 2712 pin**, at f1e49686 through `python3 tools/audit/seat/mutant_run.py --in-place --spec <spec> --cmd 'bash <killcmd>'`. The spec mutates `optimizer.py:2712` `if refill is not None:` to `if False:`; the command runs `PYTHONPATH=tests/hastub python3 tests/features.py` and fails only on `mutation_table.py`'s `killed()` rule against the measured baseline (rc != 0 and more `FAIL` lines than 1).
+  - Baseline, unmutated: `1 of 5240 FEATURE CHECKS FAILED`, rc=1, the inherited `combi_type_branch census`.
+  - `SURVIVED NULL` (rc=1 failed=1), `KILLED row_cost_split_refill_GUARD_OFF` (rc=1 failed=2); the added FAIL is `R10-SAV-VALUATION-RESIDUE: on a valved install, where the tank's deficit converts at its own flow-derated COP ...`. Run twice, the same both times.
+  - The default `--copy-tree` run printed `KILLED NULL` (rc 3): `tests/features.py` fails further checks in a `git archive` copy, so the proof runs in place under `mutant_guard`.
+  - After the pin, `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base $(git merge-base origin/main HEAD)` lists no `ADDED UNPINNED` site.
 - **Structure**, `python3 tests/structure.py`: `class_excess_loc` 17537 to 17536 at round 1 (re-recorded: the law and the shared refill price at module level). At round 2's merge, 17533 <= 17533.
 - **Gate, round 1**: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` (`tests/closure.py select --diff 32aea942`). `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` at 5c368ab: 26 scripts ok, and `tests/features.py` red on R9-F2.5's capture builder, which wrapped `_terminal_row_cost` at four arguments. The builder forwards the law at 7b60fb7, and `PYTHONPATH=tests/hastub python3 tests/features.py` there prints `ALL 5188 FEATURE CHECKS PASSED`.
 - **Gate, round 2**, at 61241004:
@@ -111,10 +123,10 @@ Flat-price null (mandatory): the flat day's rows are printed beside the spread d
 
 ## Red checks
 
-`tests / mutation` is red, as `prepr.sh` step 6d predicts.
-- At round 2 it names 11 added unpinned sites, which `tools/pr/ci_predict.py --base origin/main` lists. After the three triage rows, 8 remain.
-- Those 8 are owed to `mutation-autofix`; see `## Unpinned sites`.
-- Root-cause answer: the cheaper detector is step 6d itself. It predicted the red locally at no added standing cost, and none further exists to build.
+- `tests / mutation`: red at f1e49686 with `MUTATION TABLE REFUSED -- ... 1 of them added by this diff`. The one site is `optimizer.py:2712 GUARD_OFF` (`if refill is not None:` in `row_cost`'s split branch). `tests / mutation-autofix` did not pin it: `mutation_table.py --pin-killed` refuses to drive a red baseline, and `tests/features.py`'s baseline is red on the inherited census below. This head adds its `killed_by` row, measured under the same `killed()` rule (`## Figures`, repair).
+  - Root-cause answer: the cheaper detector exists and ran. `prepr.sh` step 6d (`tools/pr/ci_predict.py`) listed the site locally in seconds at no added standing cost, and `## Unpinned sites` gave it to the autofix lane. The lane's precondition, a green driver baseline, was broken by main's inherited red, not by this diff. No further detector to build: the autofix's refusal on a red baseline is the correct behaviour, and the inherited red has its own hotfix.
+- `tests / fast (3.14)`: red only on `tests/features.py`'s `combi_type_branch census` (`1 of 5240 FEATURE CHECKS FAILED`), inherited from main since #3398, not made by this PR; the hotfix `r10-hotfix-combi-census-main-red` is in flight. This diff touches no file the census reads.
+  - Root-cause answer: not this PR's defect; the cause and its detector are the hotfix's (#3398's red on main).
 
 ## Unpinned sites
 
@@ -125,7 +137,7 @@ Each site is on `custom_components/`, the lane `mutation-autofix` mutates. A kil
 - custom_components/heatpump_optimizer/optimizer.py:2644 GUARD_OFF: pinned by `mutation-autofix` (round 1, the derate guard, measured)
 - custom_components/heatpump_optimizer/optimizer.py:2647 RETURN_DEL: pinned by `mutation-autofix` (unmeasured)
 - custom_components/heatpump_optimizer/optimizer.py:2656 RETURN_DEL: pinned by `mutation-autofix` (unmeasured)
-- custom_components/heatpump_optimizer/optimizer.py:2712 GUARD_OFF: pinned by `mutation-autofix` (round 2 M7, measured)
+- custom_components/heatpump_optimizer/optimizer.py:2712 GUARD_OFF: pinned at the repair head, `killed_by/optimizer.py/_terminal_row_cost.row_cost.GUARD_OFF.9afb8da3.json` (round 2 M7, re-measured through `mutant_run.py`; `mutation-autofix` refused the red baseline)
 - custom_components/heatpump_optimizer/optimizer.py:2718 CLAMP_DROP: triage `survivor_triage/optimizer.py/_terminal_row_cost.row_cost.CLAMP_DROP.374beae5.json` (equivalent)
 - custom_components/heatpump_optimizer/optimizer.py:2719 CLAMP_DROP: triage `survivor_triage/optimizer.py/_terminal_row_cost.row_cost.CLAMP_DROP.bce793a5.json` (equivalent)
 - custom_components/heatpump_optimizer/optimizer.py:2722 GUARD_OFF: pinned by `mutation-autofix` (round 1, the single-sum guard, measured)
