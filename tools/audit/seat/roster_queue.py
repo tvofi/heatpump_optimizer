@@ -183,6 +183,19 @@ def parse_line(ln):
     return t[0], t[1], (rest[0] if rest else ""), rest[1:]
 
 
+def replay_unsafe(op, extra):
+    """Why a queue may not run `op`, or None. A queue line can run twice: a
+    pass killed after its push and before its record replays it
+    (R10-RCA-ROSTER-DRAIN-REPLAY: 18 carries dropped, 2026-11-10). A carry op
+    keyed by INDEX resolves again on the list its first run shifted, so a
+    replayed `drop-carry G 6` deletes a second entry; `--match TEXT` refuses
+    on replay instead. An index stays legitimate by hand, run once."""
+    if op in ("drop-carry", "mark-carry") and "--match" not in extra:
+        return (f"{op} by index is refused in a queue: a replay re-resolves the "
+                "index on the shifted carry list; key it --match TEXT")
+    return None
+
+
 def mark_line(queue, ln, tag):
     """Rewrite the first unmarked line equal to `ln` as `#<tag> <ln>`. The
     queue is re-read at write time, so a line another writer appended since
@@ -251,6 +264,12 @@ def run_queue(a, python=None):
         if not p:
             continue
         op, g, arg, extra = p
+        why = replay_unsafe(op, extra)
+        if why:
+            rep(f"roster: {op} {g} refused rc=2 {why}")
+            if mark:
+                mark_line(a.queue, ln, "refused")
+            continue
         try:
             ok = _run_op(a, sh, rep, py, editor, op, g, arg, extra)
         except Exception as e:  # noqa: BLE001 - every op attempted writes one line
@@ -270,7 +289,12 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
     items = []
     for ln in lines:
         p = parse_line(ln)
-        if p:
+        why = p and replay_unsafe(p[0], p[3])
+        if why:
+            rep(f"roster: {p[0]} {p[1]} refused rc=2 {why}")
+            if mark:
+                mark_line(a.queue, ln, "refused")
+        elif p:
             items.append((ln, p))
     if not items:
         return 0
@@ -845,6 +869,24 @@ def _self_test():
         got = (t / "q.txt").read_text().split("\n")
         ck("run --batch --mark: a malformed line is marked `#refused`",
            got[0] == "#refused 1 bogus-op G done", got)
+        # R10-RCA-ROSTER-DRAIN-REPLAY: a carry op keyed by index is refused unrun on both paths
+        fresh("1 drop-carry G 1\n2 mark-carry G 0 dismissed x\n3 drop-carry G --match one\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 3, "mark": True}),
+                  python=sys.executable)
+        rr, got = (t / "rep").read_text().split("\n"), (t / "q.txt").read_text().split("\n")
+        ck("run: drop-carry and mark-carry by index are refused and marked, never pushed",
+           rr[0].startswith("roster: drop-carry G refused rc=2 drop-carry by index")
+           and rr[1].startswith("roster: mark-carry G refused rc=2 mark-carry by index")
+           and got[:2] == ["#refused 1 drop-carry G 1", "#refused 2 mark-carry G 0 dismissed x"], rr)
+        ck("run: drop-carry --match still reaches the editor (null control)",
+           rr[2] == f"roster: drop-carry G pushed {sha[:9]}", rr)
+        fresh("1 drop-carry G 0\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True,
+                                        "mark": True, "editor": real_ed}), python=sys.executable)
+        rr = (t / "rep").read_text().split("\n")
+        ck("run --batch: drop-carry by index is refused before the batch, and marked",
+           rr[0].startswith("roster: drop-carry G refused rc=2 drop-carry by index")
+           and (t / "q.txt").read_text().startswith("#refused 1 drop-carry G 0"), rr)
         # release-held: a held carry waits for its batch file on origin/main
         (t / "q.txt").write_text(
             "#held append-carry G 'x dev/programme/triage/b.md#P1'\n"

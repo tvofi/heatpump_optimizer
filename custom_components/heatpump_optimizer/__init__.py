@@ -421,12 +421,18 @@ async def async_unload_entry(
             _plan_handovers(hass)[entry.entry_id] = coordinator.data
             _handover_stamps(hass)[entry.entry_id] = dt_util.now()
         await (await _async_lazy(hass, "debugger")).async_unload_debugger(coordinator)
+        # The off rule's unload half (tvofi, 2026-11-07): what the optimizer
+        # wrote is restored as it lets go, a Home Assistant stop included.
+        await (await _async_lazy(hass, "off_restore")).async_restore(
+            hass, entry, coordinator.effective_config, "unload"
+        )
         await coordinator.async_shutdown()
 
     return unload_ok
 
 
 async def async_remove_entry(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
-    """Drop a leftover reload handover when the entry is deleted."""
+    """Drop a leftover reload handover, and the off-restore record, when the entry is deleted."""
     _plan_handovers(hass).pop(entry.entry_id, None)
     _handover_stamps(hass).pop(entry.entry_id, None)
+    await (await _async_lazy(hass, "off_restore")).async_forget(hass, entry.entry_id)

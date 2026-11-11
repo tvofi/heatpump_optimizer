@@ -7,7 +7,9 @@
   second board carries it), `owed-check` (`owed_unactioned.py`, once per
   sweep), `roster-drain` (`roster_queue.py run` per pending line of
   `S/roster-drain.queue`, done or refused read from the exact line
-  `roster_queue.py --mark` rewrites, a refusal never retried, an op neither
+  `roster_queue.py --mark` rewrites and saved after each op, so a killed pass
+  replays at most the op it died in, no op started past `ROSTER_PASS_BUDGET_S`
+  into a pass, a refusal never retried, an op neither
   reported nor marked `UNRUN` and pending, a refusal by a worktree on no origin
   ref pending under one `CASCADE` line, `hold <tree-path> <op>` released once
   main carries the path and `HOLD-STALE` after 24 h), `plan-beat` (`replan.py`
@@ -19,7 +21,7 @@
   `disk` (`worktree_gc.sh` under the floor), `opener` (one `open_driver.py
   --board` pass, its refusals and `STUCK` forwarded) `head-watch`
   (`HEAD-MOVED` events) and `audit-dispatch` (one `DISPATCH: planted-defect-audit
-  arm=<arm> cut=<span>` line per sustained `would-trip` of a guardrail arm, never twice while the arm stays tripped; a failed run's `UNREADABLE` clears on the next readable run) and `outside-intake` (`outside_intake.py list` from the overlay's `intake_since`, with a cursor under `state/`: its `OUTSIDE` lines). Each writes only actionable lines to
+  arm=<arm> cut=<span>` line per sustained `would-trip` of a guardrail arm, never twice while the arm stays tripped; a failed run's `UNREADABLE` clears on the next readable run) and `outside-intake` (`outside_intake.py list` from the overlay's `intake_since`, with a cursor under `state/`: its `OUTSIDE` lines) and `bottleneck` (`bottleneck_check.py` with the beat checkout, the overlay's `train_log`, the `plan_slots` cap and `--memory state/bottleneck.json`: its `BOTTLENECK:` and `BOTTLENECK-UNREADABLE:` lines, each new once per trip; a failed run is `bottleneck: UNREADABLE`). `plan-beat` hands the overlay's `train_log` to `state_docs.py --train-log`. Each writes only actionable lines to
   `S/digest/jobs/<row>`; `fold` concatenates them into `S/digest/digest.txt`,
   diffs `new.txt` and `gone.txt`, and touches `new.stamp` only on a new line,
   so the orchestrator's one wake reads `new.stamp` and `events.txt`. A null

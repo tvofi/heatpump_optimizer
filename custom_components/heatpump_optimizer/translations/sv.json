@@ -391,7 +391,8 @@
       "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
       "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
       "flow_target_needs_two_zone": "\"Framledningstemperatur\" beräknas från tvåzonsmodellens egen flödeskurva, som denna anläggning inte har konfigurerad. Konfigurera tvåzonsmodellen först, eller lämna detta på \"Inomhustemperatur\".",
-      "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället."
+      "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället.",
+      "heat_curve_entity_in_use": "Entiteten för värmekurvans förskjutning skrivs redan av optimeraren för ett annat syfte (ett börvärde, ventilen, kompressorn eller driftläget). Välj en annan entitet för en av dem."
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad.",
@@ -538,7 +539,7 @@
           "learning_features": "Avancerade inlärningsfunktioner",
           "grid_connection": "Säkring och effekttak",
           "grid_fees": "Överföringsavgifter och avtal",
-          "heat_curve": "Värmekurvestyrning (ECL110)",
+          "heat_curve": "Värmekurvestyrning",
           "factory_reset": "Återställ till fabriksinställningar"
         }
       },
@@ -916,8 +917,8 @@
         }
       },
       "heat_curve": {
-        "title": "Värmekurvestyrning (ECL110)",
-        "description": "För Danfoss ECL110-regulatorer som styrs via MQTT. Optimeringen förskjuter värmekurvan uppåt under billiga timmar och nedåt under dyra. Lämna tomt om du inte har en sådan.",
+        "title": "Värmekurvestyrning",
+        "description": "Förskjuter värmekurvan uppåt under billiga timmar och nedåt under dyra, via en Danfoss ECL110 över MQTT, en nummerentitet som förskjuter styrningens kurva, eller båda. Lämna ämnena och entiteten tomma om du inte har någon av dem.",
         "data": {
           "ecl110_displace_set_topic": "Topic för förskjutningskommando",
           "ecl110_command_topic": "Äldre JSON-kommandotopic",
@@ -927,6 +928,12 @@
           "ecl110_displace_min": "Största nedåtförskjutning",
           "ecl110_displace_max": "Största uppåtförskjutning",
           "ecl110_pid_time_constant_hours": "Regulatorns svarstid",
+          "heat_curve_displace_entity": "Entitet för värmekurvans förskjutning",
+          "heat_curve_target_kind": "Vad entiteten är",
+          "heat_curve_offset_band_k": "Största förskjutning som skrivs till entiteten",
+          "heat_curve_persistent_band_k": "Största förskjutning av en lagrad parameter",
+          "heat_curve_persistent_writes_per_day": "Flest skrivningar per dygn till en lagrad parameter",
+          "heat_curve_persistent_min_dwell_minutes": "Minsta tid mellan skrivningar till en lagrad parameter",
           "after_save": "Efter sparande"
         },
         "data_description": {
@@ -938,6 +945,12 @@
           "ecl110_displace_min": "Hur långt ned värmekurvan får förskjutas under dyra timmar.",
           "ecl110_displace_max": "Hur långt upp värmekurvan får förskjutas när billig värme lagras.",
           "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa.",
+          "heat_curve_displace_entity": "En nummerentitet som förskjuter styrningens värmekurva. Typen förskjutning: en förskjutning av hela kurvan, där 0 betyder ingen förskjutning, som styrningen glömmer vid en omstart (till exempel en Luxtronik SHI-värmeförskjutning); när optimeraren stängs av eller avlastas skrivs 0. Typen beständig: en kurvinställning som styrningen lagrar; när optimeraren stängs av eller avlastas skrivs värdet tillbaka som den hade före den första skrivningen.",
+          "heat_curve_target_kind": "Förskjutning: en temperaturskillnad, 0 neutral, lagras inte av styrningen. Välj den där styrningen har en. Beständig: en kurvinställning som styrningen lagrar, förskjuten från sitt eget värde och återställd vid avstängning; varje skrivning sliter på styrningens minne, så skrivningarna begränsas per dygn.",
+          "heat_curve_offset_band_k": "Förskjutningen som skrivs till entiteten håller sig inom så här många kelvin åt båda hållen. 3 K är en uppskattning mellan en SG-Ready-höjning på +1 till +2 steg och Luxtronik egen korrigering på ±5 K.",
+          "heat_curve_persistent_band_k": "Den lagrade inställningen flyttas högst så här många kelvin åt båda hållen från värdet den hade före den första skrivningen. 3 K är en uppskattning mellan en SG-Ready-höjning på +1 till +2 steg och Luxtronik egen korrigering på ±5 K.",
+          "heat_curve_persistent_writes_per_day": "Skrivningar under ett lokalt dygn, återställningen vid avstängning inräknad; en hålls alltid kvar för den. 12 (sex förskjutningar med återgång) ligger under den enda dokumenterade tillverkarkvot som hittats (Daikin, 7000 per år); marginalen under den är en uppskattning. 0 eller 1 skriver ingenting. Över 19 överskrider kvoten.",
+          "heat_curve_persistent_min_dwell_minutes": "Efter en skrivning väntar nästa minst så här länge. 60 minuter är ungefär tre svarstider för ett radiatorsystem (en uppskattning från ett forum); ett trögt golv kan behöva 2 till 3 timmar.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
@@ -1180,6 +1193,9 @@
               "heat_pump_heat_energy_entity": "Värmemängdsmätare för värmepumpen (valfritt)",
               "heat_pump_power_entity": "Effektmätare för värmepumpen (valfritt)",
               "heat_pump_thermal_power_entity": "Värmeeffektmätare för värmepumpen (valfritt)",
+              "heat_pump_power_source": "Värmepumpens effektmätare: mätare eller uppskattning",
+              "heat_pump_thermal_power_source": "Värmepumpens värmeeffektmätare: mätare eller uppskattning",
+              "heat_meter_sees_dhw": "Värmeavläsningen omfattar varmvatten",
               "house_power_entity": "Effektmätare för hela huset (valfritt)"
             },
             "data_description": {
@@ -1187,6 +1203,9 @@
               "heat_pump_heat_energy_entity": "En ackumulerande kWh-mätare för värmen pumpen levererar, från en värmemätare. Den räknar värmen över varje timme, korta kompressorkörningar inräknade, så den används i stället för värmeeffektmätaren och givaren för vattenflöde när den är vald. Tillsammans med energimätaren blir verkningsgraden en mätning, och husets värmeförlustinlärning läser den värme som faktiskt levererades. En mätare som också räknar varmvatten delas upp med driftlägesentiteten, efter den tid pumpen värmde huset och tanken; utan en sådan, eller i ett kombinerat läge, räknas inte en timme som värmde tanken som husvärme.",
               "heat_pump_power_entity": "Faktisk elförbrukning. Utan den vet integrationen bara vad den bad pumpen om. Med den blir verkningsgraden mätbar, de beräknade kostnaderna får något att stämmas av mot, och en vedpanna kan upptäckas säkert. Både watt och kilowatt fungerar.",
               "heat_pump_thermal_power_entity": "Värmen pumpen levererar, från en värmemätare, i watt eller kilowatt. Tillsammans med effektmätaren blir verkningsgraden en mätning i stället för en slutsats, och husets värmeförlustinlärning och kapacitetskurvan läser den värme som faktiskt levererades. När den är vald används den i stället för givaren för vattenflöde.",
+              "heat_pump_power_source": "Om effektmätaren är en verklig mätare eller ett värde som pumpen eller dess integration uppskattar, till exempel en sensor för \"Estimated Power Draw\". All inlärning tränar på båda; bara uppmätt värme genom uppmätt effekt visas och betygsätts som uppmätt COP. Auto läser en entitet vars id innehåller \"estimat\" som en uppskattning.",
+              "heat_pump_thermal_power_source": "Om värmeeffektmätaren är en verklig värmemätare eller ett värde som pumpen eller dess integration uppskattar, till exempel en sensor för \"Estimated Heating Output\". En uppskattning tränar inlärningen men ger aldrig en uppmätt COP. Auto läser en entitet vars id innehåller \"estimat\" som en uppskattning.",
+              "heat_meter_sees_dhw": "Slå på bara om värmemängdsmätaren eller värmeeffektmätaren även mäter värmen till varmvattenberedaren, till exempel en mätare före växelventilen. Avstängd ger varmvattenkörningar ingen uppmätt COP.",
               "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga."
             }
           },
@@ -1557,7 +1576,11 @@
       "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
       "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
       "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället.",
-      "dhw_windows_day_selector": "Fältet namnger redan sin dag — skriv bara tider, t.ex. 06:00-08:30. Dagväljare som 'weekdays' hör hemma i fältet för de vanliga fönstren ovan."
+      "dhw_windows_day_selector": "Fältet namnger redan sin dag — skriv bara tider, t.ex. 06:00-08:30. Dagväljare som 'weekdays' hör hemma i fältet för de vanliga fönstren ovan.",
+      "heat_curve_not_offset": "Den entitetens eget intervall innehåller inte 0, så den är ingen förskjutning: den ser ut som en absolut kurvpunkt. Välj styrningens förskjutningsentitet.",
+      "heat_curve_unreadable": "Den entiteten har inget värde just nu, så värdet den skulle återställas till vid avstängning är okänt. Välj en entitet som rapporterar ett värde, eller spara igen när den gör det.",
+      "heat_curve_out_of_range": "Den entiteten visar ett värde utanför sitt eget angivna intervall, så den kan inte förskjutas säkert. Kontrollera entiteten i dess integration först.",
+      "heat_curve_entity_in_use": "Entiteten för värmekurvans förskjutning skrivs redan av optimeraren för ett annat syfte (ett börvärde, ventilen, kompressorn eller driftläget). Välj en annan entitet för en av dem."
     },
     "abort": {
       "factory_reset_done": "Återställningen är klar. Integrationen har laddats om och planerar igen. Kör åtgärden Återställ inlärd ögonblicksbild för att ångra återställningen.",
@@ -1649,6 +1672,13 @@
         "control": "Styra (slå på och av brytaren)"
       }
     },
+    "meter_source": {
+      "options": {
+        "auto": "Auto (ett id som anger en uppskattning är en)",
+        "meter": "Mätare (en mätning)",
+        "estimate": "Uppskattning (en tillverkarmodell)"
+      }
+    },
     "freq_control_mode": {
       "options": {
         "observe": "Observera (lär och rekommendera enbart)",
@@ -1706,6 +1736,12 @@
         "settings": "Inställningar",
         "learners": "Inlärda värden",
         "both": "Inställningar och inlärda värden"
+      }
+    },
+    "heat_curve_target_kind": {
+      "options": {
+        "offset": "Förskjutning (0 är neutral, flyktig)",
+        "persistent": "Beständig (lagras av styrningen, återställs vid avstängning)"
       }
     }
   },

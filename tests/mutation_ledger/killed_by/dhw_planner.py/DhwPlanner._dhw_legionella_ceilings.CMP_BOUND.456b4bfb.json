@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_legionella_ceilings CMP_BOUND 456b4bfb",
+  "killed_by": "tests/features.py",
+  "old": "            boost_top > float(store.charge_max_temp)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`boost_top >= float(store.charge_max_temp)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
