@@ -81578,6 +81578,13 @@ _ds_fell.decayed_at = _ds_day
 _ds_fell_moved = _ds_fell.decay(_ds_day + timedelta(days=28))
 _ds_fell.book(_ds_day + timedelta(days=28), True, None)
 _ds_ahead = _DS_D(k=3.0, kept_w=4.0, decayed_at=_ds_day + timedelta(days=1))
+_ds_fifth, _ds_fourth, _ds_diluted = _ds_dir(4.0, 4.0), _ds_dir(3.0, 3.0), _ds_dir(3.0, 10.0, True)
+_ds_fifth.book(_ds_day + timedelta(days=1), True, None)
+_ds_fourth.book(_ds_day + timedelta(days=1), True, None)
+_ds_diluted.book(_ds_day + timedelta(days=1), False, None)
+_ds_old = _ds_mod.DutySwitchLearner()
+_ds_old.directions["dhw_space"] = _DS_D(k=3.0, kept_w=4.0, decayed_at=_ds_day, stopped=3, kept=4)
+_ds_old_pub = [_ds_old.published(_ds_day + timedelta(days=days)) for days in (0, 14)]
 R.check(
     "decay halves n in 14 days and leaves p unchanged; a direction that fell under 2.5 does not switch on "
     "at one fresh episode; a stamp ahead of the clock decays nothing",
@@ -81585,6 +81592,18 @@ R.check(
     and _ds_fell_moved and not _ds_fell.usable and abs(_ds_fell.n - 2.5) < 1e-9
     and _ds_ahead.weights(_ds_day) == (3.0, 7.0),
     f"{_ds_aged} {_ds_fell}",
+)
+R.check(
+    "the latch is judged at the booking itself: the fifth stop switches a direction on, the fourth does not, "
+    "and a kept episode taking p under 0.3 switches one off",
+    (_ds_fifth.usable, _ds_fourth.usable, _ds_diluted.usable) == (True, False, False),
+    f"{_ds_fifth} {_ds_fourth} {_ds_diluted}",
+)
+R.check(
+    "the published k and n are aged to the reading's time, the tallies are not",
+    [(pub["duty_switch_dhw_space_k"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
+     for pub in _ds_old_pub] == [(3.0, 7.0, 3), (1.5, 3.5, 3)],
+    f"{_ds_old_pub}",
 )
 
 # Restart: the dict round trip, the strict load, the cap.
@@ -81643,6 +81662,15 @@ R.check(
 )
 
 
+def _ds_saturated_at(decayed_at):
+    """A learner usable in both directions at p = 1, its counts last aged at ``decayed_at``."""
+    l = _ds_mod.DutySwitchLearner()
+    for d in l.directions.values():
+        d.k, d.decayed_at = 40.0, decayed_at
+        d.first_day, d.last_day, d.usable, d.off_s = _ds_day.date(), _ds_day.date() + timedelta(days=5), True, [900.0] * 8
+    return l
+
+
 class _DsArb:
     """The arbiter's coordinator surface: a both step split hot water first, then a space step."""
 
@@ -81662,15 +81690,16 @@ class _DsArb:
         self.params = SimpleNamespace(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
         self.entry = SimpleNamespace(entry_id=entry_id or f"ds{id(self)}")
         self.passes = 0
+        self.mode, self.disinfecting, self.room_c = "auto", False, 20.0
 
     def arbiter_inputs(self):
         self.passes += 1
         return _sa_pa.ArbiterInputs(
-            hass=self.hass, config=self._config, mode="auto", plan=self.plan, plan_stale=False,
+            hass=self.hass, config=self._config, mode=self.mode, plan=self.plan, plan_stale=False,
             entry_released=False, state=SimpleNamespace(
-                outdoor_temperature=2.0, room_temperature=20.0, dhw_temperature=45.0),
+                outdoor_temperature=2.0, room_temperature=self.room_c, dhw_temperature=45.0),
             thermal=SimpleNamespace(params=self.params), params=self.params,
-            action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=False)
+            action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=self.disinfecting)
 
 
 def _ds_fire(c, value):
@@ -81680,9 +81709,11 @@ def _ds_fire(c, value):
             action(SimpleNamespace(data={"new_state": c.hass.states.get("sensor.freq")}))
 
 
-def _ds_episode(freq, extra=None, until=18, c=None, person=None):
+def _ds_episode(freq, extra=None, until=18, c=None, person=None, hook=None, every=60):
     """Drive a split step; ``freq`` maps a minute to a frequency state. Returns
-    (the dhw->space row, every service call, the coordinator)."""
+    (the dhw->space row, every service call, the coordinator). ``hook`` is
+    (second, what to do to the install then); a pass runs each ``every`` seconds
+    and the pump echoes every slot written."""
     c = c or _DsArb(extra)
 
     async def run():
@@ -81693,13 +81724,19 @@ def _ds_episode(freq, extra=None, until=18, c=None, person=None):
                 _ds_fire(c, freq[s / 60])
             if person is not None and s == person[0]:
                 c.hass.states.set("select.pump_mode", FakeState(person[1], attributes={"options": list(_DS_OPTS)}))
-            if s % 60 == 0:
+            if hook is not None and s == hook[0]:
+                hook[1](c, now)
+            if s % every == 0:
                 await _sa_pa.apply(c, now)
-                written = _sa_pa.state_for(c).written.get("mode")
-                if written:
+                written = _sa_pa.state_for(c).written
+                if "mode" in written:
                     c.hass.states.set("select.pump_mode", FakeState(
-                        next(o for o in _DS_OPTS if _sa_pa.pump_mode.resolve(o) == written[0]),
+                        next(o for o in _DS_OPTS if _sa_pa.pump_mode.resolve(o) == written["mode"][0]),
                         attributes={"options": list(_DS_OPTS)}))
+                for slot in ("dhw_setpoint", "space_setpoint"):
+                    if slot in written:
+                        c.hass.states.set(c._config[f"{slot}_entity"], FakeState(
+                            str(written[slot][0]), unit="°C", attributes={"min": 5.0, "max": 70.0, "step": 0.5}))
     try:
         _asyncio.run(run())
     finally:
@@ -81739,6 +81776,157 @@ R.check(
     _ds_resend == (0, 0, 1, 0, [])
     and [d["option"] for _dom, svc, d in _ds_resend_calls if svc == "select_option"].count("Heating") == 2,
     f"{_ds_resend} {_ds_resend_calls}",
+)
+# What the learner judges by is read by the arbiter, so each rule is driven
+# at the install: the reading that carries it is changed and the same stop
+# replayed. A cause appears at 00:08:30, after the write and the stop.
+_DS_STOP = {8.25: "0", 16.5: "35"}
+_DS_FLAGS = {"heat_pump_switch_entity": "switch.pump", "heat_pump_backup_heater_entity": "binary_sensor.backup",
+             "heat_pump_dhw_booster_entity": "binary_sensor.booster", "heat_pump_fault_entity": "binary_sensor.fault"}
+
+
+def _ds_reads(entity, word, **stamp):
+    return lambda c, now: c.hass.states.set(entity, FakeState(word, **{k: now - v for k, v in stamp.items()}))
+
+
+_DS_AT_INSTALL = {
+    "supply_off": _ds_reads("switch.pump", "off"),
+    "not_plan_control": lambda c, now: setattr(c, "mode", "comfort"),
+    "disinfection": lambda c, now: setattr(c, "disinfecting", True),
+    "boost": lambda c, now: _sa_boost.held_for(c).set(_sa_boost.CHANNEL_DHW, True, now),
+    "electric_heat (backup heater)": _ds_reads("binary_sensor.backup", "on"),
+    "electric_heat (hot-water booster)": _ds_reads("binary_sensor.booster", "on"),
+    "fault": _ds_reads("binary_sensor.fault", "on"),
+    # The loop's own record, as ``_feedback_sent`` leaves it once it moved the target.
+    "feedback_loop": lambda c, now: setattr(_sa_pa.state_for(c), "feedback", _sa_pa.FeedbackRun(now, 30.0, now, sent_c=31.0)),
+}
+_ds_at_install = {name: _ds_episode(_DS_STOP, _DS_FLAGS, hook=(510, do))[0] for name, do in _DS_AT_INSTALL.items()}
+_ds_flags_quiet = _ds_episode(_DS_STOP, _DS_FLAGS, hook=(510, lambda c, now: [
+    _ds_reads(e, "off")(c, now) for e in ("binary_sensor.backup", "binary_sensor.booster", "binary_sensor.fault")]))[0]
+_ds_flag_stale = _ds_episode(_DS_STOP, _DS_FLAGS, hook=(510, _ds_reads(
+    "binary_sensor.fault", "on", last_updated=timedelta(hours=2))))[0]
+R.check(
+    "through the arbiter, each reading that could stop the compressor by itself voids the stop: the supply "
+    "switch off, a mode the plan does not command, disinfection, a boost, either electric heater, a fault, "
+    "the feedback loop's moved target",
+    _ds_at_install == {name: (0, 0, 1, 0, []) for name in _DS_AT_INSTALL},
+    f"{_ds_at_install}",
+)
+R.check(
+    "null control: the same install with every flag reading off books the stop, and so does a fault flag "
+    "that reads on but stale",
+    _ds_flags_quiet == _ds_flag_stale == (1, 0, 0, 0, [495.0]),
+    f"{_ds_flags_quiet} {_ds_flag_stale}",
+)
+
+# The count gates' inputs, read at the mode write. With a return sensor the
+# heated test is the inlet over the command's space set-point (21 here), at
+# ``HEATED_MARGIN_K`` exactly; without one it is the age of the mode record
+# the write replaced, at ``SOURCE_LEG_MIN_S`` exactly.
+def _ds_plan(*steps):
+    """A plan of (start second, space kW, hot-water kW) steps."""
+    return SimpleNamespace(
+        timestamps=[_DS_T0 + timedelta(seconds=s) for s, _space, _dhw in steps],
+        power_schedule=[space for _s, space, _dhw in steps], dhw_power_schedule=[dhw for _s, _space, dhw in steps],
+        optimal_setpoints=[21.0] * len(steps))
+
+
+def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, **run):
+    """The dhw->space row of one stop on an install with set-point entities and, optionally, a return sensor."""
+    c = _DsArb({"space_setpoint_entity": "number.space", "dhw_setpoint_entity": "number.dhw",
+                **({"heat_pump_return_temp_entity": "sensor.ret"} if return_c is not None else {})})
+    c.plan, c.room_c = plan or c.plan, room_c
+    c.hass.states.set("sensor.ret", FakeState(str(return_c), unit="°C"))
+    for entity in ("number.space", "number.dhw"):
+        c.hass.states.set(entity, FakeState("30", unit="°C", attributes={"min": 5.0, "max": 70.0, "step": 0.5}))
+    return _ds_episode(freq, c=c, **run)[0]
+
+
+_DS_LEG_STOP = {2.25: "0", 9.0: "35"}
+_ds_gates = {
+    "the room at its planned set-point: no demand": _ds_gate(room_c=21.0),
+    "the plan leaves the target duty inside the stop window": _ds_gate(
+        plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0), (659, 0.0, 1.0)), every=30),
+    "a return 1.9 K over the set-point, after a seven-minute leg": _ds_gate(return_c=22.9),
+    "no return sensor and a 30 s leg": _ds_gate(_DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (90, 1.5, 0.0)), every=30),
+}
+_ds_gates_open = {
+    "the room under its planned set-point": _ds_gate(room_c=20.9),
+    "the plan stays one second past the window": _ds_gate(
+        plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0), (661, 0.0, 1.0), (720, 1.5, 0.0)), every=30),
+    "a return 2.0 K over the set-point": _ds_gate(return_c=23.0),
+    "no return sensor and a 60 s leg": _ds_gate(_DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (120, 1.5, 0.0)), every=30),
+}
+R.check(
+    "through the arbiter, a mode write opens no episode without demand on the target duty, when the plan "
+    "leaves that duty inside the stop window, on a return under the heated margin over the command's "
+    "set-point, or (no return sensor) on a replaced mode record younger than the least source leg",
+    _ds_gates == {name: (0, 0, 0, 0, []) for name in _ds_gates},
+    f"{_ds_gates}",
+)
+R.check(
+    "null control: each gate one step the other side of its bound books the stop",
+    [row[:3] for row in _ds_gates_open.values()] == [(1, 0, 0)] * 4,
+    f"{_ds_gates_open}",
+)
+# A later write of another slot, while the pump is off, costs the stop its off time.
+_ds_censor = _ds_gate(hook=(630, lambda c, now: setattr(c.params, "dhw_setpoint", 50.0)))
+R.check(
+    "through the arbiter, a set-point written between the stop and the restart censors the off time; "
+    "null control, the same install with no such write keeps it",
+    _ds_censor == (1, 0, 0, 1, []) and _ds_gate() == (1, 0, 0, 0, [495.0]),
+    f"{_ds_censor} {_ds_gate()}",
+)
+
+
+class _DsSaves:
+    """A store that counts its writes and keeps the last."""
+
+    def __init__(self):
+        self.saved = []
+
+    async def async_load(self):
+        return None
+
+    async def async_save(self, data):
+        self.saved.append(json.loads(json.dumps(data)))
+
+
+# The pass ages the latches: a usable direction left alone for sixty days is
+# switched off by the next pass, which saves that once and not again.
+_ds_idle = _DsArb()
+_ds_idle_rec = _ds_mod.record_for(_ds_idle)
+_ds_idle_rec.store = _DsSaves()
+_ds_idle_rec.learner, _ds_idle_rec.loaded = _ds_saturated_at(_DS_T0 - timedelta(days=60)), True
+for _ds_m in (1, 2, 3):
+    _asyncio.run(_sa_pa.apply(_ds_idle, _DS_T0 + timedelta(minutes=_ds_m)))
+_ds_idle_saved = _ds_idle_rec.store.saved
+_ds_fresh = _DsArb()
+_ds_fresh_rec = _ds_mod.record_for(_ds_fresh)
+_ds_fresh_rec.store = _DsSaves()
+_ds_fresh_rec.learner, _ds_fresh_rec.loaded = _ds_saturated_at(_DS_T0), True
+_asyncio.run(_sa_pa.apply(_ds_fresh, _DS_T0 + timedelta(minutes=1)))
+R.check(
+    "an arbiter pass switches off a usable direction whose evidence aged away, and saves the record once "
+    "for that change, not on every pass; null control, a direction aged one minute stays usable and saves nothing",
+    len(_ds_idle_saved) == 1 and not any(row["usable"] for row in _ds_idle_saved[0]["directions"].values())
+    and not _ds_idle_rec.dirty
+    and _ds_fresh_rec.store.saved == [] and all(d.usable for d in _ds_fresh_rec.learner.directions.values()),
+    f"{len(_ds_idle_saved)} {_ds_fresh_rec.store.saved}",
+)
+# Duty mode off with an episode open: the episode is dropped uncounted, not
+# left to be judged against a signal nobody listens to.
+_ds_open_row, _, _ds_open_c = _ds_episode({}, until=8)
+_ds_open_before = _ds_mod.record_for(_ds_open_c).learner.episode
+_ds_open_c._config = {**_ds_open_c._config, "pump_duty_mode": "off"}
+_asyncio.run(_sa_pa.apply(_ds_open_c, _DS_T0 + timedelta(minutes=9)))
+R.check(
+    "detaching with an episode open drops it uncounted and forgets the running class",
+    _ds_open_before is not None and _ds_open_before.direction == "dhw_space"
+    and _ds_mod.record_for(_ds_open_c).learner.episode is None
+    and _ds_mod.record_for(_ds_open_c).tracker == _ds_wear.EdgeTracker() and _ds_open_row == (0, 0, 0, 0, [])
+    and _ds_mod.record_for(_ds_open_c).learner.directions["dhw_space"].void == 0,
+    f"{_ds_open_before}",
 )
 _ds_reader = _sa_pa._running_signal(_ds_c.arbiter_inputs())
 _ds_words = []
@@ -81840,11 +82028,7 @@ R.check(
 # Null controls (design.md, evidence 5 and 6): nothing reads the estimate, so
 # an empty learner and one saturated at p = 1 give the same commands.
 def _ds_saturated():
-    l = _ds_mod.DutySwitchLearner()
-    for d in l.directions.values():
-        d.k = 40.0
-        d.first_day, d.last_day, d.usable, d.off_s = _ds_day.date(), _ds_day.date() + timedelta(days=5), True, [900.0] * 8
-    return l
+    return _ds_saturated_at(None)
 
 
 def _ds_commands(learner, freq, plan=None):
