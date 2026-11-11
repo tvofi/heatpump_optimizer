@@ -31,10 +31,14 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
   M-reap-stem   run_pass reads the raw topic's .rc: a slash topic's result is
                 never reaped (the reap side).
   M-reap-log    run_pass reads the raw topic's log: the RESULT reason is lost.
+  M-livetip     restores the SKIP moved on a board sha behind origin's live tip
+                (OPENER-LIVE-TIP, P603): the line at A no longer opens at B.
+  M-moved-gone  drops the SKIP moved on an absent handoff ref: the null control
+                (a gone ref still prints SKIP moved) fails.
 
     python3 dev/audit/harnesses/r10_open_driver_mutants.py
 
-EXPECTED RESULT mutants=22
+EXPECTED RESULT mutants=24
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -62,6 +66,9 @@ ROOT = repo_root(__file__)
 SEAT = "tools/audit/seat"
 TARGET = "open_driver.py"
 PLANTS = {
+    "M-livetip": ("            log(f\"RETIP {topic} {sha[:8]} -> {live_tip[:8]}\")\n            sha = live_tip\n",
+                  "            live_tip = None\n"),
+    "M-moved-gone": ("        elif live_tip is None:\n            skip(\"moved\")", "        elif False:\n            skip(\"moved\")"),
     "M-exact": ("    if up in groups:  # exact match always wins\n", "    if False:\n"),
     "M-body": (" and names_group(body_head, m.group(1).upper())", ""),
     "M-landed": ("        elif main and world.landed(main, sha):\n", "        elif False:\n"),
