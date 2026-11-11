@@ -74,7 +74,7 @@ import numpy as np
 sys.path.insert(0, "dev/audit/harnesses")
 import r10_advisor_degree as deg  # noqa: E402
 from profiles import DT, prices, solve_inputs, weather  # noqa: E402
-from heatpump_optimizer import price_tiles, sensor, topology  # noqa: E402
+from heatpump_optimizer import price_tiles, sensor, topology, whatif  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
 from heatpump_optimizer.ledger import SPOT_PRICE_META, MonthlyLedger  # noqa: E402
 from heatpump_optimizer.optimizer import SolveInputs  # noqa: E402
@@ -90,15 +90,33 @@ def _series(flat: bool) -> tuple[np.ndarray, list[np.ndarray]]:
     return deg._series(2, flat)
 
 
-def _solve(opt, j: int, room: float, slab: float, pr, wx, caps=None, held: bool = False):
+def _inputs(j: int, room: float, slab: float, pr, wx, caps=None):
     t = deg.START + timedelta(hours=j * DT)
     sl = slice(j, j + N)
-    inputs = solve_inputs(
+    return solve_inputs(
         initial_state=deg._state(room, slab, float(wx[0][j])), prices=pr[sl], outdoor_temps=wx[0][sl],
         wind_speeds=wx[1][sl], precipitation=wx[2][sl], solar_radiation=wx[3][sl], start_time=t,
         power_caps_extra=None if caps is None else np.full(N, caps))
+
+
+def _solve(opt, j: int, room: float, slab: float, pr, wx, caps=None, held: bool = False):
+    inputs = _inputs(j, room, slab, pr, wx, caps)
     # A tree before the held start (the merge base) has no such field.
     return opt.optimize(inputs=replace(inputs, held_start=True) if held else inputs)
+
+
+def _steady(opt, model, overrides, at: tuple, cap, live, sim, live_s) -> float:
+    """The answer's steady figure, by ``async_simulate``'s own branch: a
+    schedule ask is the thermostat's day energy on both sides
+    (``whatif.schedule_days``, ``price_tiles.schedule_figure``), any other the
+    pair solved from held starts. ``at`` is (step, room, slab, prices, weather)."""
+    hours = opt.config.horizon_hours
+    asked = _inputs(*at, cap)
+    days = whatif.schedule_days((_fresh(opt, model), _inputs(*at)), (deg._shadow(opt, model, overrides), asked))
+    if days is not None:
+        return price_tiles.schedule_figure(*days, float(np.mean(asked.forecast.prices)), 0.0, hours)[whatif.STEADY_KEY]
+    sim_s = _solve(deg._shadow(opt, model, overrides), *at, cap, held=True)
+    return price_tiles.monthly_deltas(live, sim, 0.0, hours, steady=(live_s, sim_s))[whatif.STEADY_KEY]
 
 
 def _fresh(opt, model):
@@ -130,10 +148,8 @@ def arm_whatif() -> bool:
                     shadow = deg._shadow(opt, model, overrides) if overrides else opt
                     sim = _solve(shadow, j, room, slab, pr, wx, caps.get(name))
                     if STEADY:
-                        sim_s = _solve(deg._shadow(opt, model, overrides), j, room, slab, pr, wx,
-                                       caps.get(name), held=True)
-                        steady[name].append(price_tiles.monthly_deltas(
-                            live, sim, 0.0, hours, steady=(live_s, sim_s))["monthly_steady_cost_delta"])
+                        steady[name].append(_steady(
+                            opt, model, overrides, (j, room, slab, pr, wx), caps.get(name), live, sim, live_s))
                     figs[name].append((
                         price_tiles.per_month(sim.predicted_cost - live.predicted_cost, hours),
                         price_tiles.per_month(sim.baseline_cost - live.baseline_cost, hours),
@@ -188,11 +204,12 @@ def arm_whatif() -> bool:
 def arm_steadysign() -> bool:
     """The steady figure's sign on the degree asks at every second start hour.
 
-    ``whatif`` reads three instants; a plan that rides its comfort floor under
-    either schedule differs between the two held starts mainly by the stored
-    heat each starts with, which the end settlement nets out only up to its
-    caps, so the sign can turn at an instant ``whatif`` does not read. Null
-    control: the held figure's sign, which never turns.
+    ``whatif`` reads three instants. Priced as two plans from held starts, a
+    degree turned sign at an instant ``whatif`` does not read (1 of these 48
+    rows, and 6 of 24 on the coordinator fixture): two plans that ride the
+    comfort floor differ mainly by the stored heat each starts with. The
+    figure is now the schedule estimate (``_steady``). Null control: the held
+    figure's sign, which never turns.
     """
     if not STEADY:
         print("RESULT steadysign absent: this tree has no SolveInputs.held_start")
@@ -210,9 +227,9 @@ def arm_steadysign() -> bool:
             live_s = _solve(_fresh(opt, model), j, room, slab, pr, wx, held=True)
             for (name, overrides), want in zip(asks, (-1.0, 1.0)):
                 sim = _solve(deg._shadow(opt, model, overrides), j, room, slab, pr, wx)
-                sim_s = _solve(deg._shadow(opt, model, overrides), j, room, slab, pr, wx, held=True)
-                figs = price_tiles.monthly_deltas(live, sim, 0.0, hours, steady=(live_s, sim_s))
-                steady, held = figs["monthly_steady_cost_delta"], figs["monthly_held_cost_delta"]
+                figs = price_tiles.monthly_deltas(live, sim, 0.0, hours)
+                steady = _steady(opt, model, overrides, (j, room, slab, pr, wx), None, live, sim, live_s)
+                held = figs["monthly_held_cost_delta"]
                 rows += 1
                 wrong += steady * want <= 0.0
                 held_wrong += held * want <= 0.0

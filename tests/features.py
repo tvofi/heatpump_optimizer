@@ -32252,14 +32252,16 @@ _st_tie_days = [_st_reference(max_kw=0.3, day=day)["day"] for day in (21.0, 21.5
 R.check(
     "#2257: with the pump's maximum under the held demand the day energy ties "
     "across two schedules whose setpoints differ (the pump's maximum, all day)",
-    _st_tie_days[0][0] != _st_tie_days[1][0] and _st_tie_days[0][1] == _st_tie_days[1][1] == 0.3 * 24.0,
+    _st_tie_days[0][0] != _st_tie_days[1][0] and _st_tie_days[0][1] == _st_tie_days[1][1]
+    and abs(_st_tie_days[0][1] - 0.3 * 24.0) < 1e-9,
     repr([d[1] for d in _st_tie_days]),
 )
 _st_tie_sides = [_st_ns(reference_day=lambda inputs, d=d: d) for d in _st_tie_days]
 R.check(
     "and the branch is taken on the setpoints, never the energies: the tie is a "
     "schedule ask, equal setpoints with unequal energies are not",
-    _st_whatif.schedule_days((_st_tie_sides[0], None), (_st_tie_sides[1], None)) == (0.3 * 24.0, 0.3 * 24.0)
+    _st_whatif.schedule_days((_st_tie_sides[0], None), (_st_tie_sides[1], None))
+    == (_st_tie_days[0][1], _st_tie_days[1][1])
     and _st_whatif.schedule_days(
         (_st_ns(reference_day=lambda inputs: ([21.0], 5.0)), None),
         (_st_ns(reference_day=lambda inputs: ([21.0], 6.0)), None)) is None
