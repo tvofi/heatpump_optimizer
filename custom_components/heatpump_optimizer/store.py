@@ -344,8 +344,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "measured_cop/curve_dhw": _FLAG, "measured_cop/dhw_temp": _N, "measured_cop/at": _AT0,
         # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
         "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
-        "cop_health_cusum/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
-        **{f"{k}_cusum/{f}": d for k in ("vent", "cop_health") for f, d in (
+        "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
+        **{f"{k}/{f}": d for k in ("vent_cusum", "cop_health_cusum_measured") for f, d in (
             ("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
         # The open-window detector's fit (#2241, Cusum._departure): None
         # until seeded; a cell no fit can hold drops the whole fit, which
@@ -353,8 +353,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "vent_cusum/reference": _ABSENT, "vent_cusum/reference/#": Domain("real", whole=_REFIT),
         "vent_cusum/reference_cov": _ABSENT, "vent_cusum/reference_cov/#": Domain(
             "real", -REFERENCE_PRIOR_COV, REFERENCE_PRIOR_COV, whole=_REFIT),
-        "cop_baseline/~": _TEXT, "cop_baseline/*/0": Domain("real", _POS),
-        "cop_baseline/*/1": Domain("int", 1),
+        "cop_baseline_measured/~": _TEXT, "cop_baseline_measured/*/0": Domain("real", _POS),
+        "cop_baseline_measured/*/1": Domain("int", 1),
         "immersion_events/#": _AT,
         "snow_accum_cm": _Z, "snow_accum_last": _AT0, "last_heavy_snow": _AT0,
         "capacity_envelope/~": Domain("int"), "capacity_envelope/*/0": Domain("real", _POS),

@@ -949,7 +949,7 @@
           "heat_curve_target_kind": "Verschiebung: eine Temperaturdifferenz, 0 neutral, vom Regler nicht gespeichert. Nimm sie, wo immer dein Regler eine hat. Beständig: eine Kurveneinstellung, die der Regler speichert, von ihrem eigenen Wert verschoben und beim Ausschalten zurückgeschrieben; jeder Schreibvorgang nutzt den Speicher des Reglers ab, daher sind die Schreibvorgänge pro Tag begrenzt.",
           "heat_curve_offset_band_k": "Der auf die Entität geschriebene Offset bleibt in beide Richtungen innerhalb so vieler Kelvin. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
           "heat_curve_persistent_band_k": "Die gespeicherte Einstellung wird höchstens so viele Kelvin in jede Richtung von dem Wert verschoben, den sie vor dem ersten Schreiben hatte. 3 K ist eine Schätzung zwischen einer SG-Ready-Anhebung um +1 bis +2 Stufen und Luxtroniks eigener Korrektur von ±5 K.",
-          "heat_curve_persistent_writes_per_day": "Schreibvorgänge an einem lokalen Tag, das Zurückschreiben beim Ausschalten eingeschlossen; einer wird dafür immer zurückgehalten. 12 (sechs Verschiebungen mit Rückkehr) liegt unter dem einzigen dokumentierten Herstellerkontingent, das gefunden wurde (Daikin, 7000 pro Jahr); der Abstand darunter ist eine Schätzung. 0 schreibt nichts. Über 19 überschreitet dieses Kontingent.",
+          "heat_curve_persistent_writes_per_day": "Schreibvorgänge an einem lokalen Tag, das Zurückschreiben beim Ausschalten eingeschlossen; einer wird dafür immer zurückgehalten. 12 (sechs Verschiebungen mit Rückkehr) liegt unter dem einzigen dokumentierten Herstellerkontingent, das gefunden wurde (Daikin, 7000 pro Jahr); der Abstand darunter ist eine Schätzung. 0 oder 1 schreibt nichts. Über 19 überschreitet dieses Kontingent.",
           "heat_curve_persistent_min_dwell_minutes": "Nach einem Schreibvorgang wartet der nächste mindestens so lange. 60 Minuten sind etwa drei Reaktionszeiten einer Heizkörperanlage (eine Schätzung aus einem Forum); eine träge Fußbodenheizung braucht eher 2 bis 3 Stunden.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
@@ -1193,6 +1193,9 @@
               "heat_pump_heat_energy_entity": "Wärmemengenzähler der Wärmepumpe (optional)",
               "heat_pump_power_entity": "Leistungsmesser der Wärmepumpe (optional)",
               "heat_pump_thermal_power_entity": "Thermischer Leistungsmesser der Wärmepumpe (optional)",
+              "heat_pump_power_source": "Leistungsmesser der Wärmepumpe: Messung oder Schätzung",
+              "heat_pump_thermal_power_source": "Thermischer Leistungsmesser der Wärmepumpe: Messung oder Schätzung",
+              "heat_meter_sees_dhw": "Der Wärmewert schließt Warmwasser ein",
               "house_power_entity": "Leistungsmesser des ganzen Hauses (optional)"
             },
             "data_description": {
@@ -1200,6 +1203,9 @@
               "heat_pump_heat_energy_entity": "Ein kumulativer kWh-Zähler für die von der Wärmepumpe abgegebene Wärme, von einem Wärmemengenzähler. Er zählt die Wärme jeder Stunde einschließlich kurzer Verdichterläufe und wird, falls gesetzt, anstelle des thermischen Leistungsmessers und des Durchflusssensors verwendet. Zusammen mit dem Energiezähler macht er die Effizienz zu einer Beobachtung, und der Lernalgorithmus für den Wärmeverlust des Hauses liest die tatsächlich abgegebene Wärme. Ein Zähler, der auch Warmwasser zählt, wird über die Entität des Betriebsmodus aufgeteilt, nach der Zeit, die die Wärmepumpe mit dem Heizen von Haus und Speicher verbracht hat; ohne diese oder in einem kombinierten Modus wird eine Stunde, in der der Speicher geheizt wurde, nicht als Raumheizung gewertet.",
               "heat_pump_power_entity": "Tatsächliche elektrische Aufnahme. Ohne sie weiß die Integration nur, was sie von der Wärmepumpe angefordert hat. Mit ihr wird die Effizienz messbar, vorhergesagte Kosten erhalten ein echtes Gegenstück zum Abgleich, und ein Holzofen lässt sich zuverlässig erkennen. Watt oder Kilowatt funktionieren beide.",
               "heat_pump_thermal_power_entity": "Die von der Wärmepumpe abgegebene Wärme, von einem Wärmemengenzähler, in Watt oder Kilowatt. Zusammen mit dem Leistungsmesser macht sie die Effizienz zu einer Beobachtung statt einer Schlussfolgerung, und der Lernalgorithmus für den Wärmeverlust des Hauses sowie die Leistungskurve lesen die tatsächlich abgegebene Wärme. Wenn gesetzt, wird sie anstelle des Durchflusssensors verwendet.",
+              "heat_pump_power_source": "Ob der Leistungsmesser ein echter Zähler ist oder ein Wert, den die Pumpe oder ihre Integration schätzt, etwa ein Sensor „Estimated Power Draw“. Alles Lernen trainiert mit beiden; nur gemessene Wärme über gemessener Leistung wird als gemessene COP angezeigt und bewertet. Auto liest eine Entität, deren ID „estimat“ enthält, als Schätzung.",
+              "heat_pump_thermal_power_source": "Ob der thermische Leistungsmesser ein echter Wärmemengenzähler ist oder ein Wert, den die Pumpe oder ihre Integration schätzt, etwa ein Sensor „Estimated Heating Output“. Eine Schätzung trainiert das Lernen, ergibt aber nie eine gemessene COP. Auto liest eine Entität, deren ID „estimat“ enthält, als Schätzung.",
+              "heat_meter_sees_dhw": "Nur einschalten, wenn der Wärmemengenzähler oder der thermische Leistungsmesser auch die Wärme für den Warmwasserspeicher erfasst, etwa ein Zähler vor dem Umschaltventil. Ausgeschaltet erhalten Warmwasserläufe keine gemessene COP.",
               "house_power_entity": "Gesamtverbrauch am Zähler. Ein Leistungstarif wird auf das ganze Haus berechnet, nicht nur auf die Wärmepumpe; ohne dies ist die Spitze, die der Optimierer vermeidet, nur ein Teil der echten."
             }
           },
@@ -1677,6 +1683,13 @@
       "options": {
         "observe": "Beobachten (nur lesen und anzeigen)",
         "control": "Steuern (Schalter ein- und ausschalten)"
+      }
+    },
+    "meter_source": {
+      "options": {
+        "auto": "Auto (eine ID, die eine Schätzung angibt, ist eine)",
+        "meter": "Zähler (eine Messung)",
+        "estimate": "Schätzung (ein Herstellermodell)"
       }
     },
     "freq_control_mode": {

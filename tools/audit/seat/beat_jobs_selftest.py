@@ -11,6 +11,7 @@ cases is reported failed, never killed.
 """
 from __future__ import annotations
 
+import collections
 import importlib.util
 import json
 import os
@@ -353,6 +354,56 @@ def cases(bj) -> dict[str, bool]:
     bj.roster_drain(c)
     res["roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"] = (
         shrank and f.ran("roster_queue.py") == 1 and "QUEUE-SHRANK" in digest(c))
+    # A pass beatd kills at timeout_s (SIGTERM mid-op) keeps the ops it applied before the kill.
+    class Killed(BaseException):
+        pass
+
+    ops = ("set-stage G1 done", "append-carry G2 @x", "drop-carry G3 1")
+    applied, kill, tick = collections.Counter(), {"at": 2}, {"t": 0.0, "step": 0.0}
+
+    def killable(argv):
+        tick["t"] += tick["step"]
+        if kill["at"] == sum(applied.values()) + 1:
+            raise Killed
+        applied[Path(argv[argv.index("--queue") + 1]).read_text().strip()] += 1
+        return roster("pushed 0123abcde")(argv)
+
+    def fresh_queue():
+        c, f = fresh(answers={"roster_queue.py": killable})
+        c.clock = lambda: tick["t"]
+        (c.state / "roster-drain.queue").write_text("".join(o + "\n" for o in ops))
+        return c, f
+    c, f = fresh_queue()
+    try:
+        bj.roster_drain(c)
+        died = False
+    except Killed:
+        died = applied == collections.Counter(ops[:1])
+    kill["at"] = 0
+    bj.roster_drain(c)
+    res["roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once"] = (
+        died and applied == collections.Counter(ops) and f.ran("roster_queue.py") == len(ops) + 1)
+    applied.clear()
+    c, f = fresh_queue()
+    bj.roster_drain(c)
+    bj.roster_drain(c)
+    res["roster-drain null: a pass that completes applies each op exactly once"] = (
+        applied == collections.Counter(ops) and f.ran("roster_queue.py") == len(ops))
+    # The pass starts no op past ROSTER_PASS_BUDGET_S, so beatd's timeout_s does not land mid-queue.
+    applied.clear()
+    budget = getattr(bj, "ROSTER_PASS_BUDGET_S", 0)  # 0 (absent) fails both budget cases, never crashes them
+    tick["step"] = budget / 2 + 1  # each op takes over half the budget
+    c, f = fresh_queue()
+    bj.roster_drain(c)
+    first = collections.Counter(applied)
+    bj.roster_drain(c)
+    res["roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes"] = (
+        first == collections.Counter(ops[:2]) and applied == collections.Counter(ops)
+        and f.ran("roster_queue.py") == len(ops))
+    tick["step"] = 0.0
+    row = [j for j in json.loads((HERE / "beatd.jobs.json").read_text())["jobs"] if j["name"] == "roster-drain"]
+    res["roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s"] = (
+        len(row) == 1 and 0 < 2 * budget <= row[0]["timeout_s"])
     c, f = fresh(answers={"roster_queue.py": roster("no op attempted: lint clone not provisioned")})
     (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
     bj.roster_drain(c)
@@ -885,6 +936,12 @@ MUTANTS = {
     "owed_rc1_dropped": ("    if rc == 1:\n", "    if rc == 9:\n", "owed-check: an UNACTIONED exit lands in new.txt"),
     "roster_no_mark": ("            done.add(key)  # applied", "            pass  # applied",
                        "roster-drain: a queue line drains once, is marked, and is not re-run"),
+    "roster_saved_at_pass_end": ("            holds.pop(key, None)\n            save()\n", "            holds.pop(key, None)\n",
+                                 "roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once"),
+    "roster_pass_unbounded": ("        if ctx.clock() - start >= ROSTER_PASS_BUDGET_S:", "        if False:",
+                              "roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes"),
+    "roster_budget_over_timeout": ("ROSTER_PASS_BUDGET_S = 450", "ROSTER_PASS_BUDGET_S = 451",
+                                   "roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s"),
     "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
     "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",

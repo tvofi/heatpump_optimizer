@@ -949,7 +949,7 @@
           "heat_curve_target_kind": "Förskjutning: en temperaturskillnad, 0 neutral, lagras inte av styrningen. Välj den där styrningen har en. Beständig: en kurvinställning som styrningen lagrar, förskjuten från sitt eget värde och återställd vid avstängning; varje skrivning sliter på styrningens minne, så skrivningarna begränsas per dygn.",
           "heat_curve_offset_band_k": "Förskjutningen som skrivs till entiteten håller sig inom så här många kelvin åt båda hållen. 3 K är en uppskattning mellan en SG-Ready-höjning på +1 till +2 steg och Luxtronik egen korrigering på ±5 K.",
           "heat_curve_persistent_band_k": "Den lagrade inställningen flyttas högst så här många kelvin åt båda hållen från värdet den hade före den första skrivningen. 3 K är en uppskattning mellan en SG-Ready-höjning på +1 till +2 steg och Luxtronik egen korrigering på ±5 K.",
-          "heat_curve_persistent_writes_per_day": "Skrivningar under ett lokalt dygn, återställningen vid avstängning inräknad; en hålls alltid kvar för den. 12 (sex förskjutningar med återgång) ligger under den enda dokumenterade tillverkarkvot som hittats (Daikin, 7000 per år); marginalen under den är en uppskattning. 0 skriver ingenting. Över 19 överskrider kvoten.",
+          "heat_curve_persistent_writes_per_day": "Skrivningar under ett lokalt dygn, återställningen vid avstängning inräknad; en hålls alltid kvar för den. 12 (sex förskjutningar med återgång) ligger under den enda dokumenterade tillverkarkvot som hittats (Daikin, 7000 per år); marginalen under den är en uppskattning. 0 eller 1 skriver ingenting. Över 19 överskrider kvoten.",
           "heat_curve_persistent_min_dwell_minutes": "Efter en skrivning väntar nästa minst så här länge. 60 minuter är ungefär tre svarstider för ett radiatorsystem (en uppskattning från ett forum); ett trögt golv kan behöva 2 till 3 timmar.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
@@ -1193,6 +1193,9 @@
               "heat_pump_heat_energy_entity": "Värmemängdsmätare för värmepumpen (valfritt)",
               "heat_pump_power_entity": "Effektmätare för värmepumpen (valfritt)",
               "heat_pump_thermal_power_entity": "Värmeeffektmätare för värmepumpen (valfritt)",
+              "heat_pump_power_source": "Värmepumpens effektmätare: mätare eller uppskattning",
+              "heat_pump_thermal_power_source": "Värmepumpens värmeeffektmätare: mätare eller uppskattning",
+              "heat_meter_sees_dhw": "Värmeavläsningen omfattar varmvatten",
               "house_power_entity": "Effektmätare för hela huset (valfritt)"
             },
             "data_description": {
@@ -1200,6 +1203,9 @@
               "heat_pump_heat_energy_entity": "En ackumulerande kWh-mätare för värmen pumpen levererar, från en värmemätare. Den räknar värmen över varje timme, korta kompressorkörningar inräknade, så den används i stället för värmeeffektmätaren och givaren för vattenflöde när den är vald. Tillsammans med energimätaren blir verkningsgraden en mätning, och husets värmeförlustinlärning läser den värme som faktiskt levererades. En mätare som också räknar varmvatten delas upp med driftlägesentiteten, efter den tid pumpen värmde huset och tanken; utan en sådan, eller i ett kombinerat läge, räknas inte en timme som värmde tanken som husvärme.",
               "heat_pump_power_entity": "Faktisk elförbrukning. Utan den vet integrationen bara vad den bad pumpen om. Med den blir verkningsgraden mätbar, de beräknade kostnaderna får något att stämmas av mot, och en vedpanna kan upptäckas säkert. Både watt och kilowatt fungerar.",
               "heat_pump_thermal_power_entity": "Värmen pumpen levererar, från en värmemätare, i watt eller kilowatt. Tillsammans med effektmätaren blir verkningsgraden en mätning i stället för en slutsats, och husets värmeförlustinlärning och kapacitetskurvan läser den värme som faktiskt levererades. När den är vald används den i stället för givaren för vattenflöde.",
+              "heat_pump_power_source": "Om effektmätaren är en verklig mätare eller ett värde som pumpen eller dess integration uppskattar, till exempel en sensor för \"Estimated Power Draw\". All inlärning tränar på båda; bara uppmätt värme genom uppmätt effekt visas och betygsätts som uppmätt COP. Auto läser en entitet vars id innehåller \"estimat\" som en uppskattning.",
+              "heat_pump_thermal_power_source": "Om värmeeffektmätaren är en verklig värmemätare eller ett värde som pumpen eller dess integration uppskattar, till exempel en sensor för \"Estimated Heating Output\". En uppskattning tränar inlärningen men ger aldrig en uppmätt COP. Auto läser en entitet vars id innehåller \"estimat\" som en uppskattning.",
+              "heat_meter_sees_dhw": "Slå på bara om värmemängdsmätaren eller värmeeffektmätaren även mäter värmen till varmvattenberedaren, till exempel en mätare före växelventilen. Avstängd ger varmvattenkörningar ingen uppmätt COP.",
               "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga."
             }
           },
@@ -1664,6 +1670,13 @@
       "options": {
         "observe": "Observera (läs och visa bara)",
         "control": "Styra (slå på och av brytaren)"
+      }
+    },
+    "meter_source": {
+      "options": {
+        "auto": "Auto (ett id som anger en uppskattning är en)",
+        "meter": "Mätare (en mätning)",
+        "estimate": "Uppskattning (en tillverkarmodell)"
       }
     },
     "freq_control_mode": {
