@@ -22627,7 +22627,9 @@
    "severity": "high",
    "size": "S",
    "wave": 7,
-   "issues": [],
+   "issues": [
+    3439
+   ],
    "fixes": [],
    "after": [
     "R10-ARBITER-OFF-RESTORE"
