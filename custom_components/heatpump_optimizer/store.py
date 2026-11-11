@@ -263,6 +263,9 @@ _COUNT, _FLAG, _TEXT = Domain("int", 0), Domain("flag"), Domain("text")
 _AT, _AT0 = Domain("instant"), Domain("instant", null=True)
 _DAY, _DAY0, _MONTH = Domain("day"), Domain("day", null=True), Domain("month")
 _ABSENT = Domain("choice", null=True)  # ``None`` only: the channel is left automatic
+#: ``DutySwitchLearner.from_record`` reads a record whole or not at all: a
+#: half-kept row would be evidence nobody observed.
+_DUTY_SWITCH = "one invalid field empties the duty-switch learner"
 _SHAPE = SHAPE_MAX / SHAPE_MIN
 _QUARTER = QUARTER_FACTOR_MAX / QUARTER_FACTOR_MIN
 _ROW = "the update path's cone repair clips and renormalises the whole row (observe_day)"
@@ -490,10 +493,18 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
             "night_start_hour", "night_start_minute", "night_end_hour", "night_end_minute",
         )},
     },
-    # duty_switch.py: the closed duty-switch episodes ``learned`` reads.
+    # duty_switch.py: per direction the decayed counts, latch, off times and tallies.
     "duty_switch": {
-        "episodes/#/at": _AT, "episodes/#/dir": Domain("choice", choices=("dhw_space", "space_dhw")),
-        "episodes/#/stopped": _FLAG, "episodes/#/off_min": Domain("real", 0.0, null=True),
+        f"directions/{d}/{leaf}": domain
+        for d in ("dhw_space", "space_dhw") for leaf, domain in {
+            "k": Domain("real", 0.0, 1e6, whole=_DUTY_SWITCH), "kept_w": Domain("real", 0.0, 1e6, whole=_DUTY_SWITCH),
+            "decayed_at": Domain("instant", null=True, whole=_DUTY_SWITCH),
+            "first_day": Domain("day", null=True, whole=_DUTY_SWITCH),
+            "last_day": Domain("day", null=True, whole=_DUTY_SWITCH),
+            "usable": Domain("flag", whole=_DUTY_SWITCH),
+            "off_s/#": Domain("real", 0.0, 86400.0, whole=_DUTY_SWITCH),
+            **{t: Domain("int", 0, 10**9, whole=_DUTY_SWITCH) for t in ("stopped", "kept", "void", "censored")},
+        }.items()
     },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},

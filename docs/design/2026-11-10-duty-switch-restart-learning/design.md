@@ -1,123 +1,109 @@
-# A duty switch can cost a compressor start: learn it per pump, then plan around it
+# R10-DUTY-SWITCH-RESTART-LEARNING, part A: observe, estimate, persist, publish
 
-## Summary
+Revision 1, answering `Design review: revise edf2ceb333956fa6797d6bb30d7c5b72f440123e`. Base: origin/main d08ed31049cd3636cde4d2fdeb3bd7cd4b3c842a. Every line cited below is at the predecessor's head 068074f0f2c2dfdb57fc1821ed39f3510bc913ed (pull request 3405, R10-WATER-SETPOINT-FEEDBACK), which this group builds after. The finding, install description and reasoning are Bankaifan's, pull request 3420, with thanks; their note is this ref's parent commit edf2ceb333 and stays unchanged on 3420. No finder harness: outside report, owner-routed.
 
-On some pumps a switch from hot water to space heating stops the compressor even though both duties are planned on: the controller judges the new heating request on a sensor the hot-water leg has just heated, sees no demand, stops, and restarts minutes later. Each such switch costs one compressor start and several minutes without delivery. On other pumps the same switch keeps the compressor running, so this has to be learned per install, not configured.
+## Finding (Bankaifan, 2026-11-10, alpha innotec LWDV 91-1/3, Luxtronik 2.1, select transport, 15 min steps)
 
-HPO does not see it today. The cycling penalty prices swings in the *combined* planned draw (`optimizer.cycling_penalty` over space + DHW), so a hot-water → space switch at constant total power costs nothing. No learner observes what a duty switch does to a running compressor.
+| Mode write | Direction | Source leg | Return at write / set-point | Compressor | Off time |
+|---|---|---|---|---|---|
+| 14:02:53 | hot water to space | 17 min | 44.2 / 32.0 °C | stopped after 19 s | 8.2 min |
+| 14:18:53 | hot water to space | 3 min | 43.6 / 32.0 °C | stopped after 12 s | censored: HPO wrote the mode before the restart |
+| 15:00:01 | hot water to space | 29 min | 51.0 / 32.0 °C | stopped after 12 s | 8.5 min |
+| 03:32:32, 13:45:53, 14:15:53 | space to hot water | n/a | n/a | ran on | n/a |
+| 13:29:53 | hot water to space, 14 s leg | 14 s | return not heated | ran on | n/a |
 
-Proposal: observe duty-switch episodes, learn per direction how often a switch while running ends in a stop and how long the pump then stays off. Then price planned transitions with that, and let the arbiter avoid the costly direction where it chooses the order itself. Behaviour is unchanged until an install has enough evidence and a learned probability above a threshold.
+`cycling_penalty_batch` (`optimizer.py:1546`) prices the swing of the combined series (`optimizer.py:4707`), so this switch costs nothing in the plan, and nothing observes it.
 
-## Install
+## Scope (revise point 6)
 
-alpha innotec LWDV 91-1/3 (air/water, inverter), Luxtronik 2.1, firmware V3.92.3, controlled through its Smart Home Interface (Modbus/TCP, integration Bankaifan/ha-luxtronik-shi). HPO v7.1.9, Pump duty control = Control, optimisation interval 15 min, `heat_pump_mode_entity` = a select with `heating` / `dhw_hot_water` / `heating_dhw`, `space_setpoint_unit: return`, `flow_heat_c` 32 °C, `compressor_freq_sensor` and `heat_pump_power_entity` configured. One 600 l combined tank (#3225). Controller heating hysteresis 0.5 K. The controller's return sensor sits in the shared condenser circuit, so it reads the hot-water leg's temperature while hot water is made.
+The reviewer's split is adopted. This group is **A only**: the learner exists, records, estimates, persists and publishes; **nothing reads the estimate to change a plan or a write**. B (arbiter order latch and minimum share), C (planner price), D (start counter fed from edges) and E (mode write ahead of the supply switch-on) are the orchestrator's to place; B waits on the owner's product call the verdict routed.
 
-Signals used below, all outside HPO: the controller's status (`hot_water` / `heating` / `no_request` / `defrost`), its compressor-running flag, its return sensor; plus HPO's own mode and return set-point writes and the compressor frequency.
+## Owning seam (points 1, 2, 3)
 
-## Measurements (2026-11-10, Home Assistant history, local time)
+**Owner of episodes, estimate and store: a new module, duty_switch.py, beside `wear.py`.** It holds a pure learner (no Home Assistant import, like `wear.py`), its own `QuarantiningStore` keyed per config entry (one entry is one pump) on the pattern of `dhw_learning.py:111`, and its per-entry registry on the pattern of `_STATES` (`pump_arbiter.py:374`). `ArbiterState` gains no field and `_persist` (`pump_arbiter.py:1699`) keeps saving only `written`.
 
-**Hot water → heating while the compressor runs: every case after a real hot-water leg stopped**
+**Owner of "the compressor runs" and its edges: `wear.py`**, which already owns the start counter. It gains a pure classifier and a debounced edge tracker. Signal order: the frequency from `freq_control.resolve_reading` (the existing owner of the Hz reading, used at `coordinator.py:10729`) above a named floor where one is configured and numeric; else metered power at or above `on_threshold_kw` (`thermal_model.py:1785`), the one threshold both existing readers already share; else no signal. Readers in this group: the new learner only. **Stays, start counter** (`coordinator.py:10446`, fed from `_record_accuracy` at `coordinator.py:9976`): moving it changes the counted starts that feed `_effective_cycling_cost` (`coordinator.py:10432`), a behaviour change this group's finding only reports; it is part D. **Stays, 3405's loop** (`_ran_kw`, `pump_arbiter.py:1204`, read at `:922` and `:1423`): it controls on the size of the draw error, so it needs kW and its own sample period, not an edge; it keeps the shared threshold.
 
-| Mode write (HPO) | Hot-water leg before | Return at write | Return set-point written | Status → `no_request`, 0 Hz | Next compressor start | Off |
-|---|---|---|---|---|---|---|
-| 14:02:53 | 17 min | 44.2 °C | 32.0 °C | 14:03:12 | 14:11:24, heating, return 28.6 °C | 8.2 min |
-| 14:18:53 | 3 min (return 28.4 °C → 43.6 °C) | 43.6 °C | 32.0 °C | 14:19:05 | 14:31:25, hot water, after HPO's next mode write | censored |
-| 15:00:01 | 29 min | 51.0 °C | 32.0 °C | 15:00:13 | 15:08:45, heating, return 28.4 °C | 8.5 min |
+**Owner of the listener: duty_switch.py.** It registers on the frequency sensor, else the power entity, and keeps its unsubscribe in its own registry. The arbiter attaches it from `_listen` (`pump_arbiter.py:1667`) and detaches it in `release_listeners` (`pump_arbiter.py:1661`). **`coordinator.py` gains zero lines and zero attributes**; `coordinator_attrs` and `coordinator_private_reach` do not move. The new module never imports `pump_arbiter.py` (`import_cycle_modules` is at zero): the arbiter hands it a reader callable at attach.
 
-The compressor stopped 12–19 s after each write. In both uncensored cases the return had been below set-point − hysteresis for several minutes before the restart, so the pump's own restart interlocks set the off time, not the cooling alone.
+## Shape
 
-**Heating → hot water while the compressor runs: no stop** (03:32:32, 13:45:53, 14:15:53; each ran on in hot water until HPO's next write or supply switch-off).
+```
+listener event --> reader() --> wear classifier --> edge tracker --(edge: when, running)--> learner
+_write, slot "mode" landed (pump_arbiter.py:1332) --(when, old option, new option, context)--> learner
+_arbitrate, each pass (pump_arbiter.py:1466) --(when, context)--> learner: void checks, close window, save if changed
+sensor.py:2776 extra_state_attributes <-- learner summary (counts, durations)
+```
 
-**Control case:** at 13:29:53 → 13:30:07 the select went to hot water and back within 14 s (status `hot_water` for 10 s). The return did not heat up, and the compressor ran on.
+Calls the arbiter makes, all into duty_switch.py: attach(hass, entry id, entities, reader), detach, note-mode-write, note-pass. Read API for B and C, unused in A: per direction, usable (bool), stop probability, median off seconds.
 
-The three stops are 3 of the 12 compressor starts the controller's compressor-running flag shows that day.
+Context (built by one arbiter helper from `ArbiterInputs`, `pump_arbiter.py:346`): supply on (`_pump_off`, `:1639`), defrosting, disinfecting, boost held, immersion active, inlet temperature (`_flow_inlet_c`, `:714`) and written space set-point, source-leg age (`dhw_since`, `:329`, or the mode record's age), target duty has demand (room under `_planned_room`, `:575`; tank under its set-point), plan keeps the target duty on, origin (share, lease, other).
 
-HPO was reloaded several times that day for software updates: its entity states or log show reloads at about 02:24, 13:09, 13:30, 14:47 and 15:35. The 13:30 control case coincides with one. None of the three stops lies within 10 min of a reload; the 15:00:01 write is 13 min after the 14:47 reload. The mechanism (a hot return judged against a 32 °C target) does not depend on a reload. A reload can only change *when* a re-solve schedules the switch.
+**Episode.** Opens on a landed mode write between the two single duties while the tracker says running, and counts only if the circuit was heated (inlet minus set-point at least 2 K; with no inlet entity, source leg at least 1 min), the target has demand and the plan stays on. Within 3 min: **stopped** on a stop edge, **kept** at expiry, **void** on supply off, any other write (a re-send by `hold`, `:1275`, included), defrost, boost, disinfection, immersion, a set-point below the open-loop base (3405's loop), or loss of signal. Off time runs to the next start edge, censored by any HPO write in between. One open episode at most.
 
-**Where the writes came from is not established.** Two of the three hot-water legs (3 min, and the 14:00 step's 2.9 min) are shorter than `SPLIT_MIN_MINUTES`, so they cannot be shares from `pump_arbiter._share`. They come from a step change, a re-solve or the hot-water lease (`_leased`). We could not tell which from history alone. The arbiter's step log in the diagnostics would show it, and attributing each episode is the first acceptance step below. The proposal therefore does not rely on `_share` being the cause.
+**Edge tracker.** An event whose class equals the settled class returns after one parse and compare. A changed class is confirmed after a named debounce, by the next event or by the arbiter's pass; the edge carries the first changed event's time. This replaces a time-spacing throttle (`power_guard.py:82`) deliberately: that throttle can drop the final event to zero, after which no event arrives and the stop is never seen. The listener never calls `apply` (`pump_arbiter.py:1449`).
 
-## Relation to #3405 (power feedback on the water set-point)
+**Estimate and its invariant (point 8).** Per direction, decayed counts k (stopped) and n (stopped plus kept), half-life 14 days. Decay scales both alike, so **p = k / n never moves with age; only n falls.** Usable switches **on** at n >= 5, evidence spanning two days, p >= 0.5; once on it stays on until n < 2.5 or p < 0.3. The latch is stored. One episode lifts n by at most 1, so a direction that fell under 2.5 cannot cross 5 on one episode: no toggle at the threshold. When B or C avoid a direction, n halves every 14 days, usable drops, the default runs and at least two fresh episodes re-test it: that bounded re-test is the relearn path, and its cost is those starts. Off time: median of a capped list (32, oldest dropped).
 
-#3405 does not cover this case, by our reading of its head:
+**Store.** Version 1: per direction k, n, last-decay instant, first and last episode day, latch, off-time list, void and censored counts. `from_dict` validates shape and bounds and returns an empty learner otherwise, as `wear.py:101` does. Loaded on the first pass; reports before load are dropped.
 
-- the target never exceeds the ceiling (`_feedback_bounds`: `highs = [_heat_ceiling_c, …]`, here 32 °C);
-- a run's first `FEEDBACK_START_HOLD` writes today's base;
-- `_note_stop` learns only stops the loop caused (`sent_c < base`).
+**Published** on the compressor-starts sensor's attributes, read from the learner in `sensor.py:2776`, never through the coordinator payload (`coordinator.py:10707`), which the goldens snapshot: per direction k, n, stopped, kept, void, censored, median off seconds, span days. Counts and durations only.
 
-With a 44–51 °C inlet after a hot-water leg, every write is below the inlet, and the stop is not attributed to anyone. The two are complementary. #3405 is also the precedent for what this proposes: `held.stop_gap_k` learns from an observed stop how the controller reacts, and bounds later writes by it.
+## Planner price (point 4): part C, not built here
 
-## Why this has to be learned, not configured
+Direction for C's own design round, not a commitment: the price belongs in the objective closure of `_solve_objectives` (`optimizer.py:4622`) beside `cycling(combined)`, because `_solve_space` (`:4230`) and `_co_optimize` (`:3200`) both score with it and both hold the hot-water and space series separately; the duty sequence comes from the rule `step_duty` (`pump_arbiter.py:466`) already uses; the off time enters as lost headroom at `optimizer.py:4246`; `OptimizationConfig` (`:2027`) gains the two learned values next to `cycling_cost` (`:2070`). An indicator of a duty change is not smooth, which is why C needs its round.
 
-Whether a switch stops the compressor depends on things HPO cannot read from a datasheet. That includes which sensor gates the heating request, whether it sits in the leg the diverter valve just used, the controller's hysteresis and restart interlocks, and the set-point unit HPO writes. A pump with a separate buffer sensor, or one that keeps the compressor running through a valve change, will never show it. The effect is observable from what HPO already holds: its own mode write and the compressor's running state.
+## Alternatives
 
-Scope: installs whose mode entity offers single duties (the select transport). On the set-point gate transport (no single-duty mode, `desired`'s `both` branch with a lowered gate), a duty change is a set-point change, and this learner sees nothing. That needs its own episode definition and is out of scope here.
+- **Record on `ArbiterState`, saved by `_persist`** (the contributor's): the pump-duty store holds only the ownership record that `_load` (`:1710`) and `_writable` (`:1731`) filter; a second meaning there puts learned state in the arbiter.
+- **Learner as a coordinator attribute**, like the hot-water learner (`coordinator.py:3731`): costs `coordinator_attrs`, which only moves down, and a line in the load list.
+- **No listener, sample per arbiter pass**: it would see an 8 min stop, but a void cause and a stop inside one tick lose their order, so the void rule cannot be applied; and D needs edges.
+- **Classifier in the new module**: D's reader, the start counter, would then import the switch learner for a signal `wear.py` already owns.
 
-## Proposal
+## Sibling sites (point 7)
 
-### 1. Observe: duty-switch episodes
+`git grep -n -E "select_option|await _command\(" -- 'custom_components/heatpump_optimizer/*.py'` prints the only mode write (`pump_arbiter.py:1324`, through `_write`) and its two callers (`:1486`, `:1658`). Observing at `_write` covers every origin:
 
-An episode opens where the arbiter writes a mode that changes the served single duty (`dhw` → `space` or `space` → `dhw`). That is in `_command`, when the mode slot is written. The episode is recorded on `ArbiterState` and persisted with it. It counts only if all of these hold at the write:
+| Path into space | Site | In A |
+|---|---|---|
+| split inside a "both" step, hot water first | `_share`, `:1494`, `:1513` | covered, origin share |
+| step change, re-solve, away return (arrives as a plan) | `_planned_duty`, `:1129`, `:1151` | covered, origin other |
+| lease cap | `_leased`, `:1217` | covered, origin lease |
+| re-send | `hold`, `:1275` | same option: opens nothing, voids an open episode |
+| boost end | `_without_block`, `:1162`; `:1477` | void while held, covered after |
+| disinfection | `:1094`, `:1502` | void while disinfecting; "both" to space is not a single-duty switch |
+| supply tick, supply off | `supply_tick`, `:1607`; `:1483` | writes no mode; voids |
+| unload | `release`, `:1651` | detach first, no episode |
+| set-point gate transport | `desired`, `:1083` | out of scope: no single-duty mode write exists there |
 
-- the compressor runs. Use `compressor_freq_sensor` above zero where configured, else the measured power at or above `thermal_model.on_threshold_kw`;
-- the source leg has heated the circuit. Where a return or flow entity is configured, require `return_at_write − target set-point ≥ hysteresis margin` (proposal: 2 K; the stopped cases here were 12–19 K, the 14-s control case near 0). Without one, require the source leg to have lasted at least `T_SRC`. 1 min is a guess, chosen between the 14-s control case and the 3-min stopped one;
-- the target duty has demand by HPO's own reading: for space, the room is below the plan's room temperature for the step (`_planned_room`); for hot water, the tank is below its set-point. This separates the sensor artefact from a genuine no-demand stop;
-- the plan keeps the pump on for the target duty for the whole window.
+## Evidence, by file (point 5)
 
-Outcome within `W_STOP` (proposal: 3 min; the stops here came after 12–19 s):
+All in `tests/features.py`, failing today because the module and the two `wear.py` symbols do not exist:
 
-- **stopped**: the running signal drops;
-- **kept**: still running at `W_STOP`;
-- **void**: anything else could explain a stop inside the window. That covers a supply switch-off, a gate set-point, another mode write, defrost, a fault, a boost, a manual change, a disinfection hold, an active immersion element (the meter then mixes compressor and resistive draw; `wear.StartCounter` freezes on it for the same reason), or an unavailable running signal.
+1. Observer replay of the table: three stopped, three kept, the 14 s row counts nothing, row 2 counts as stopped with no off sample; each void cause in turn turns a stopped episode void.
+2. Edge tracker: `unavailable`, `unknown`, non-numeric give no signal and void; a one-frame zero is no edge; a final zero with no later event is confirmed by the pass.
+3. Gates: below 5, or within two days, not usable; on at the thresholds; the 2.5 and 0.3 off conditions; decay leaves p unchanged; one episode after switch-off does not switch on.
+4. Restart: dict round trip keeps counts and latch; a malformed or out-of-bounds payload loads empty; the off list never exceeds its cap.
+5. **Null control, no stops**: an install whose every switch is kept, and
+6. **null control, flat prices**: scenario `tests/golden/flat_prices.json`; in both, the plan, the split order and every written command are byte-identical between an empty learner and one saturated at p = 1. This is the stronger control and it holds by construction in A.
+7. Attributes carry only the listed keys, all numeric.
 
-**Off time** of a stopped episode runs until the compressor runs again. It is censored, not used, if HPO wrote the mode, the supply or a set-point in between: row 2 above is censored.
+**No golden moves; neither claim file is touched.** A moving golden is a defect in the build. The new file goes into a measured closure in `tests/closures.json`. Mutation targets: the count conditions, each void rule, the four latch comparisons, the debounce comparison, and the report line in `_write`. Field check on the contributor's install after B or C; not an acceptance test of A.
 
-The running signal is read by its own edge listener: debounced, emitting only running → stopped and back. It must not go into the arbiter's `_listen`, which runs a full pass on every state change, while an inverter's frequency changes constantly. The peak guard's throttled meter listener is the pattern.
+## Hot files, position, carries
 
-### 2. Estimate
+After R10-WATER-SETPOINT-FEEDBACK. Hot: `pump_arbiter.py`, `wear.py`, `sensor.py`, `tests/features.py`, `tests/closures.json`, plus the new module. Not touched: `coordinator.py`, `optimizer.py`, `dhw_planner.py`, `const.py` (constants live in the new module; `const_modules_over_50` does not move).
 
-Per direction `d ∈ {dhw→space, space→dhw}`:
+## Notes for the fixer
 
-- `p_d = k_d / n_d` on exponentially time-decayed counts (proposal: half-life 14 days), so evidence fades by age, not only by new episodes. Once stage 3 avoids a costly direction, that direction produces fewer episodes. The decay lets `p_d` fall back under the threshold, the default behaviour runs again, and the next episodes re-test it. That is how a firmware or setting change gets relearned;
-- `p_d` is used only when the decayed `n_d ≥ N_MIN` (proposal: 5) and the episodes span at least two days. Below that, `p_d` counts as 0, which is today's behaviour;
-- `t_off,d` is the median of uncensored off times.
+- No signal is never "stopped"; it voids. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n1)
+- Class-equality early return and debounce, not a time-spacing throttle; never trigger a pass. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n2)
+- Off list capped at 32; counts are two floats per direction. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n3)
+- `QuarantiningStore` (`store.py:673`) scrubs poisoned leaves to a default and does not reject, so the learner's own `from_dict` must return empty on any invalid shape. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n4)
+- 3405's loop is on the void list by name. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n5)
+- 2 K, 1 min, 3 min, 14 days, 5, 2.5, 0.5, 0.3 are named constants from one day on one install, not measured thresholds. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n6)
+- Re-read every `pump_arbiter.py` anchor after 3405 merges. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n7)
+- The reviewer's `optimizer.py` lines were at another tree; here they are `:4707` and `:4246`. Carry: dismissed: corrected in this note (item n8)
+- The frequency floor: check what the sensor reports when stopped before fixing the constant. Carry: R10-DUTY-SWITCH-RESTART-LEARNING (item n9)
 
-Publish `p_d`, `n_d` and `t_off,d` as diagnostics, for example on the compressor-starts sensor, so a user can see what was learned.
-
-### 3. Use
-
-Every use is gated on `p_d ≥ P_ON` (proposal: 0.5). Below it, nothing changes.
-
-**a. Planner (origin-agnostic, the main lever).** The planner already models one circuit at a time: `_solve_space` gives space only the headroom `p_max − dhw_plan` a hot-water block leaves in its step. A "both" step is therefore a time share inside 15 minutes, which the arbiter executes as two legs. The switch between them is priced at zero, and on this install that is exactly where a stop comes from. Price every planned transition `d` while the pump runs at `p_d × effective cycling cost`. Treat `t_off,d` as a period without delivery in the planner's own simulation of that step. Hot water then moves next to planned stops, or before a space block instead of into it. This covers step changes and re-solves, which the arbiter cannot reorder. Where it belongs depends on how the hot-water schedule (`dhw_planner.py`) and the space schedule are coupled in the solve. That is your call.
-
-**b. Arbiter, where it picks the order itself (`_share`).** For a planned "both" step whose costly direction is `dhw→space` and whose other direction is not, serve space first, then hot water. The order is latched per step on `ArbiterState`, so the 1-min tick and a mid-step re-solve cannot flip it. This does not remove a `dhw→space` switch at the boundary to the next step, which only (a) can.
-
-**c. Arbiter, minimum share.** If the second share would enter the costly direction and is shorter than `t_off + SPLIT_MIN_MINUTES`, give the whole step to the first duty. With `t_off` of 8–9 min that is true for essentially every 15-min step. In effect this means "never split into the costly direction". The step's planned second share is then not delivered in this step, and the next re-solve sees and replans it. That is a comfort or tank trade-off the planner absorbs; it is not hidden.
-
-The lease (`_leased`) can also end a hot-water stretch into a space duty. Whether it should wait for a planned stop when `p_dhw→space ≥ P_ON` is worth considering, but it is not proposed here, because the lease protects comfort.
-
-**Considered and not proposed:** bridging the switch with a temporarily higher space set-point (above the hot inlet), so the controller keeps running. It would bypass `flow_heat_c`, which protects floor heating without a mixing valve. A general integration should not do that.
-
-### 4. Related: the start counter misses short cycles
-
-`wear.StartCounter` is fed once per optimisation interval (`coordinator._record_accuracy` → `_observe_compressor_start`; 15 min here, default 30) and needs `START_HYSTERESIS_SAMPLES = 2` consecutive samples past `on_threshold_kw`. Runs and pauses shorter than about two intervals are invisible. On 2026-11-10 it counted 5 starts against the 12 the controller's compressor flag shows. That feeds `wear_autotune_enabled` and the monthly receipt. The edge listener from step 1 could feed the counter instead. That is a separate fix on the same signal.
-
-### Side observation
-
-When HPO switches the supply on after an idle period, the mode follows 5–29 s later on this install (01:51:18 → 01:51:31, 03:00:03 → 03:00:08, 09:16:37 → 09:17:06, 10:56:52 → 10:57:07). Idle writes no mode (`desired`). The arbiter writes nothing while the switch reads off (`_pump_off`), and switching the supply on triggers no pass, so the mode waits for the next tick. Meanwhile the select still reads hot water only, and the controller raises a hot-water request (status `hot_water` for about 10 s) before the heating mode arrives. No compressor start resulted here, but a controller that starts faster would start in the wrong duty. Writing only the mode for the new step just before the supply goes on would avoid it, without lifting the reason `_pump_off` exists.
-
-## Acceptance (what we can verify on this install)
-
-1. Attribute each observed `dhw→space` episode to its origin (split, step change, re-solve, lease) from the arbiter's step log, and report how many of the stops (a), (b) and (c) would each have prevented.
-2. After `N_MIN` decayed episodes over at least two days, the learner publishes `p_dhw→space ≥ 0.5`, and `p_space→dhw` stays below 0.5.
-3. With the uses active, a day with comparable hot-water load shows fewer switch-caused stops (status `no_request` within `W_STOP` of an HPO mode write while running, outside the void cases). Compressor starts per day drop by that count.
-4. On an install below `N_MIN`, or with every `p_d < P_ON`, plan, split order and shares are identical to today's.
-5. With step 4: the start counter matches the controller's compressor flag within ±1 start per day.
-
-We can run this on the install above and report the same tables.
-
-## Implementation deviations
-
-- 3a (planner pricing) is not implemented: the space solve sees the hot-water plan only as a fixed operand and the hot-water planner places blocks on price alone, so a transition cost needs a term in both solves; carried forward.
-- The running signal's edge is noted by its own listener and confirmed by the arbiter's next one-minute pass once it held 30 s, so no timer is armed; the edge keeps the listener's time.
-- "Heated" reads `heat_pump_return_temp_entity` only; void reads the configured defrost, fault, backup-heater and booster flags, and a person's change through the record `hold()` drops; no gate set-point case, as the learner runs on the select transport only.
-- The learner lives in `duty_switch.py` with its own store; `t_off` is the median of the retained (last 200) uncensored off times, not decayed; the estimate is in the diagnostics download (`duty_switch`), not on the compressor-starts sensor.
+Seat tokens: subagents 75890, 49789 and 41294; the harness reports no figure for the main loop.

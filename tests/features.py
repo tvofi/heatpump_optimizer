@@ -69332,8 +69332,7 @@ def _r9egb9_make(entry_id, extra=None, anchor=None):
     hass = _R9EGB9Hass({
         "sensor.indoor": FakeState("21.0", unit="°C"),
         "sensor.outdoor": FakeState("-5.0", unit="°C"),
-        # Off: a supply found on is held for MIN_RUN after a restart (supply_hold).
-        "switch.heat_pump": FakeState("off"),
+        "switch.heat_pump": FakeState("on"),
     })
     coord = Coord(hass, _r9egb9_entry(data={
         "tibber_token": "x",
@@ -81042,151 +81041,326 @@ R.check(
 )
 
 
-R.section("supply switch: minimum run and pause, restart, the cycle's late write")
-# A re-solve, a cycle or a step tick inside a step must neither stop the
-# compressor minutes after the switch turned it on nor start it minutes after
-# the gate turned it off (``pump_arbiter.hold_supply``): the gate holds the
-# write back and the step tick writes it once MIN_RUN / MIN_PAUSE has passed.
-# The real coordinator writes; each tick fires every minute.
-
-
-async def _ms_run(duties, switch, events, until=20, off_at=None):
-    """Switch writes by minute from 06:00 for a plan of ``duties`` (``s`` on).
-
-    ``switch`` is the switch's state and since-minute at 06:00 (negative is
-    before); ``events`` maps a minute to the action the cycle adopts there;
-    at ``off_at`` the optimizer is switched off.
-    """
-    ticks = []
-    armed = _sa_pa.async_track_time_interval
-    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
-    hass = FakeHass({"switch.hp": FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
-    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
-    coord._mode = "auto"
-    coord._optimization_result = SimpleNamespace(
-        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
-        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
-        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties))
-    writes = []
-    try:
-        for m in range(until + 1):
-            now = _SA_T0 + timedelta(minutes=m)
-            _sa_dt.freeze(now)
-            coord._last_optimization = now
-            coord._mode = "off" if off_at is not None and m >= off_at else coord._mode
-            if m in events:
-                _sa_boost.adopt_plan(coord, {"heat_pump_on": events[m], "power": 1.5 * events[m]})
-                coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
-                await coord._apply_action()
-            for tick in ([] if m in events else list(ticks)):
-                await tick(now)
-            for domain, service, _data in hass.services.calls:
-                if domain == "switch":
-                    writes.append((m, service))
-                    hass.states.set("switch.hp", FakeState("on" if service == "turn_on" else "off", last_updated=now))
-            hass.services.calls.clear()
-    finally:
-        _sa_dt.freeze(None)
-        _sa_pa.async_track_time_interval = armed
-    return writes
-
-
-# The cycle at 06:00 switches on; a re-solve at 06:03 turns the step off.
-_ms_short = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
-_ms_long = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14))
-R.check(
-    "a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN",
-    _ms_short == [(0, "turn_on"), (10, "turn_off")],
-    f"{_ms_short}",
-)
-_ms_off = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, off_at=5))
-R.check(
-    "a write held back is not retried once the optimizer is switched off",
-    _ms_off == [(0, "turn_on")],
-    f"{_ms_off}",
-)
-R.check(
-    "null control: the same re-solve twelve minutes into the run switches it off at once",
-    _ms_long == [(0, "turn_on"), (12, "turn_off")],
-    f"{_ms_long}",
-)
-# A re-solve at 06:12 switches the run off; one at 06:15 turns the next step on.
-_ms_pause = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 15: True}, until=25))
-_ms_rest = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 23: True}, until=25))
-R.check(
-    "a re-solve three minutes into a pause the gate wrote does not switch the supply on; the step tick does at MIN_PAUSE",
-    _ms_pause == [(0, "turn_on"), (12, "turn_off"), (22, "turn_on")],
-    f"{_ms_pause}",
-)
-R.check(
-    "null control: the same re-solve eleven minutes into the pause switches it on at once",
-    _ms_rest == [(0, "turn_on"), (12, "turn_off"), (23, "turn_on")],
-    f"{_ms_rest}",
-)
-# A restart or a reload finds the switch on, an hour into its run: the first
-# cycle's OFF is held as a run that started then, and nothing is switched on
-# against the plan. The null control is the 06:00 pause case above: the same
-# first cycle on a switch reading on writes OFF at once once the record is
-# MIN_RUN old.
-_ms_boot = _asyncio.run(_ms_run("--", ("on", -60), {0: False}, until=12))
-R.check(
-    "the first cycle after a restart keeps a supply found on for MIN_RUN, then switches it off",
-    _ms_boot == [(10, "turn_off")],
-    f"{_ms_boot}",
-)
-# The cycle's write lands in the step after the one its action was cut for
-# (a reload's cold solve, the price tile, the fuse advisor before the write):
-# it writes the plan's command for the step it lands in, not the action's.
-# The null control is the same cycle inside the action's own step.
-async def _ms_stale(minute):
-    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
-    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
-    coord._mode = "auto"
-    coord._optimization_result = SimpleNamespace(
-        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=[1.5, 0.0],
-        dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
-    armed = _sa_pa.async_track_time_interval
-    _sa_pa.async_track_time_interval = lambda *_a: (lambda: None)
-    try:
-        _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
-        coord._last_optimization = _SA_T0
-        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
-        await coord._apply_action()
-    finally:
-        _sa_dt.freeze(None)
-        _sa_pa.async_track_time_interval = armed
-    return [s for d, s, _d in hass.services.calls if d == "switch"]
-
-
-_ms_late, _ms_own = _asyncio.run(_ms_stale(15.5)), _asyncio.run(_ms_stale(2))
-R.check(
-    "a cycle whose ON action was cut in the last step writes the OFF of the step it lands in",
-    _ms_late == ["turn_off"],
-    f"{_ms_late}",
-)
-R.check(
-    "null control: the same cycle inside the action's own step writes its ON",
-    _ms_own == ["turn_on"],
-    f"{_ms_own}",
-)
-
-
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
+from heatpump_optimizer import wear as _ds_wear  # noqa: E402
+from heatpump_optimizer import pump_mode as _ds_pm  # noqa: E402
 
-R.section("duty-switch restart learning (design duty-switch-restart-learning)")
-# A hot water -> heating mode write while the compressor runs stops it on
-# some pumps. The arbiter observes each such switch on a control install:
-# the select offers single duties, the frequency sensor is the running
-# signal and the plan's both step is split hot water first. Each check
-# drives ``pump_arbiter.apply`` and the frequency listener the arbiter arms.
+R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
+# A hot water -> heating mode write while the compressor runs stops it on some
+# pumps (Bankaifan, pull request 3420). Part A observes, estimates, persists
+# and publishes; nothing reads the estimate. The learner is driven directly
+# with the install's own table, then through ``pump_arbiter.apply`` and the
+# listener ``duty_switch`` arms.
 _DS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
 _DS_OPTS = ("Heating", "DHW (Hot Water)", "Heating + DHW")
+_DS_DHW, _DS_HEAT = _ds_pm.MODE_DHW, _ds_pm.MODE_HEAT
+
+
+def _ds_ctx(at, **over):
+    """A context that counts: heated return, demand, the plan stays, nothing else explains a stop."""
+    return _ds_mod.SwitchContext(**{
+        "mode_written_at": at, "last_write_at": at, "inlet_c": 44.2, "space_setpoint_c": 32.0,
+        "source_leg_s": 17 * 60.0, "target_demand": True, "plan_stays": True, **over})
+
+
+def _ds_switch(learner, at, stop_s=None, restart_s=None, old=_DS_DHW, new=_DS_HEAT, **over):
+    """One switch at ``at``: an optional stop and restart, seconds after it; passes every minute."""
+    ctx = _ds_ctx(at, **over)
+    learner.mode_write(at, old, new, True, ctx)
+    marks = sorted(m for m in {stop_s, restart_s, *range(60, 241, 60)} if m is not None)
+    for mark in marks:
+        when = at + timedelta(seconds=mark)
+        if mark == stop_s:
+            learner.edge(when, False)
+        elif mark == restart_s:
+            learner.edge(when, True)
+        else:
+            learner.note_pass(when, ctx, True, False)
+    return learner
+
+
+# The contributor's table, 2026-11-10 (design.md, "Finding").
+_ds_day = datetime(2026, 11, 10, tzinfo=UTC)
+_ds_tab = _ds_mod.DutySwitchLearner()
+_ds_switch(_ds_tab, _ds_day.replace(hour=14, minute=2, second=53), stop_s=19, restart_s=19 + 492)
+_ds_switch(_ds_tab, _ds_day.replace(hour=14, minute=18, second=53), stop_s=12, inlet_c=43.6, source_leg_s=180.0)
+# Row 2: the arbiter wrote the mode again before the restart.
+_ds_tab.mode_write(_ds_day.replace(hour=14, minute=30), _DS_HEAT, _DS_DHW, False,
+                   _ds_ctx(_ds_day.replace(hour=14, minute=30)))
+_ds_switch(_ds_tab, _ds_day.replace(hour=15, minute=0, second=1), stop_s=12, restart_s=12 + 510, inlet_c=51.0)
+for _ds_h, _ds_m in ((3, 32), (13, 45), (14, 15)):
+    # Into hot water the inlet is never over a set-point: the source leg's age gates it (verdict n10).
+    _ds_switch(_ds_tab, _ds_day.replace(hour=_ds_h, minute=_ds_m, second=40), old=_DS_HEAT, new=_DS_DHW,
+               inlet_c=24.0, space_setpoint_c=32.0, source_leg_s=600.0)
+# The 14 s leg: the return is not heated, and without a return sensor the leg is too short.
+_ds_switch(_ds_tab, _ds_day.replace(hour=13, minute=29, second=53), stop_s=19, inlet_c=33.0)
+_ds_switch(_ds_tab, _ds_day.replace(hour=13, minute=29, second=53), stop_s=19, inlet_c=None, source_leg_s=14.0)
+_ds_switch(_ds_tab, _ds_day.replace(hour=13, minute=29, second=53), old=_DS_HEAT, new=_DS_DHW, source_leg_s=14.0)
+_ds_d2s, _ds_s2d = _ds_tab.directions["dhw_space"], _ds_tab.directions["space_dhw"]
+R.check(
+    "the table replays as three stops (one censored, two off times) and three kept; the 14 s leg counts nothing",
+    (_ds_d2s.stopped, _ds_d2s.kept, _ds_d2s.censored, _ds_d2s.void, _ds_d2s.off_s) == (3, 0, 1, 0, [492.0, 510.0])
+    and (_ds_s2d.stopped, _ds_s2d.kept, _ds_s2d.void, _ds_s2d.off_s) == (0, 3, 0, [])
+    and abs(_ds_d2s.p - 1.0) < 1e-12 and _ds_s2d.p == 0.0 and _ds_d2s.median_off_s == 501.0
+    and _ds_tab.episode is None,
+    f"{_ds_d2s} {_ds_s2d}",
+)
+R.check(
+    "null control: the 14 s leg with a heated return, or a full leg without a return sensor, does count",
+    _ds_switch(_ds_mod.DutySwitchLearner(), _ds_day, stop_s=19, restart_s=500).directions["dhw_space"].stopped == 1
+    and _ds_switch(_ds_mod.DutySwitchLearner(), _ds_day, stop_s=19, restart_s=500, inlet_c=None,
+                   source_leg_s=60.0).directions["dhw_space"].stopped == 1
+    and _ds_switch(_ds_mod.DutySwitchLearner(), _ds_day, stop_s=19, restart_s=500,
+                   inlet_c=34.0).directions["dhw_space"].stopped == 1,
+)
+def _ds_opens(args, **over):
+    l = _ds_mod.DutySwitchLearner()
+    l.mode_write(_ds_day, *args, _ds_ctx(_ds_day, **over))
+    return l.episode is not None
+
+
+R.check(
+    "a switch opens an episode only between the two single duties, while running, with demand, on the "
+    "plan and with nothing else to explain a stop; a re-send opens nothing",
+    _ds_opens((_DS_DHW, _DS_HEAT, True)) and _ds_opens((_DS_HEAT, _DS_DHW, True))
+    and [_ds_opens(args, **over) for args, over in (
+        ((_DS_DHW, _DS_HEAT, True), {"target_demand": False}),
+        ((_DS_DHW, _DS_HEAT, True), {"plan_stays": False}),
+        ((_DS_DHW, _DS_HEAT, False), {}),
+        ((None, _DS_HEAT, True), {}),
+        ((_DS_HEAT, _DS_HEAT, True), {}),
+        ((_ds_pm.MODE_HEAT_DHW, _DS_HEAT, True), {}),
+        ((_DS_DHW, _ds_pm.MODE_HEAT_DHW, True), {}),
+        ((_DS_DHW, _DS_HEAT, True), {"defrosting": True}),
+    )] == [False] * 8,
+)
+
+
+def _ds_voided(cause):
+    """(void, stopped) after a switch that stops at 19 s, with ``cause`` applied."""
+    at = _ds_day
+    l = _ds_mod.DutySwitchLearner()
+    ctx = _ds_ctx(at)
+    l.mode_write(at, _DS_DHW, _DS_HEAT, True, ctx)
+    if cause == "before the stop":
+        l.note_pass(at + timedelta(seconds=10), _ds_ctx(at, defrosting=True), True, False)
+    if cause == "stopped before the write":
+        l.edge(at - timedelta(seconds=5), False)
+    l.edge(at + timedelta(seconds=19), False)
+    after = at + timedelta(seconds=60)
+    if cause == "signal lost":
+        l.edge(after, None)
+    elif cause == "another mode write":
+        pass
+    elif isinstance(cause, dict):
+        l.note_pass(after, _ds_ctx(at, **cause), True, False)
+    else:
+        l.note_pass(after, ctx, True, False)
+    if cause == "another mode write before the stop":
+        pass
+    l.edge(at + timedelta(seconds=500), True)
+    d = l.directions["dhw_space"]
+    return d.void, d.stopped
+
+
+_DS_CAUSES = (
+    {"supply_on": False}, {"plan_control": False}, {"defrosting": True}, {"disinfecting": True},
+    {"boost_held": True}, {"electric_heat": True}, {"fault": True}, {"loop_moved": True},
+    {"mode_written_at": None}, {"mode_written_at": _ds_day + timedelta(seconds=30)},
+    "signal lost", "before the stop", "stopped before the write",
+)
+_ds_voids = [_ds_voided(c) for c in _DS_CAUSES]
+R.check(
+    "each void cause in turn turns the stopped episode void: supply off, a non-plan mode, defrost, "
+    "disinfection, boost, an electric heater, a fault, 3405's loop, a person's change, a foreign write, a lost signal",
+    _ds_voids == [(1, 0)] * len(_DS_CAUSES) and _ds_mod.SwitchContext().void_cause() is None,
+    f"{list(zip(_DS_CAUSES, _ds_voids))}",
+)
+R.check(
+    "null control: the same switch with no cause books the stop",
+    _ds_voided(None) == (0, 1),
+    f"{_ds_voided(None)}",
+)
+
+
+def _ds_midway(step):
+    """A switch whose window or off time ``step`` cuts into; (void, stopped, kept, censored, off)."""
+    at, l = _ds_day, _ds_mod.DutySwitchLearner()
+    l.mode_write(at, _DS_DHW, _DS_HEAT, True, _ds_ctx(at))
+    step(l, at)
+    d = l.directions["dhw_space"]
+    return d.void, d.stopped, d.kept, d.censored, d.off_s
+
+
+def _ds_stopped_then(l, at, then):
+    l.edge(at + timedelta(seconds=19), False)
+    l.note_pass(at + timedelta(seconds=60), _ds_ctx(at), True, False)
+    then(l, at + timedelta(seconds=120))
+
+
+R.check(
+    "inside the window another mode write (a re-send included) voids; a stop past the window is kept; "
+    "a pending change holds the expiry back",
+    _ds_midway(lambda l, at: l.mode_write(at + timedelta(seconds=30), None, _DS_HEAT, True, _ds_ctx(at))) == (1, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.edge(at + timedelta(seconds=181), False)) == (0, 0, 1, 0, [])
+    and _ds_midway(lambda l, at: l.edge(at + timedelta(seconds=180), False)) == (0, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=179), _ds_ctx(at), True, False)) == (0, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=180), _ds_ctx(at), True, True)) == (0, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=180), _ds_ctx(at), True, False)) == (0, 0, 1, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=60), _ds_ctx(at), False, False)) == (1, 0, 0, 0, []),
+)
+R.check(
+    "an attributed stop keeps its count and loses its off time to a later write of any slot, "
+    "the supply switch or a lost signal",
+    all(_ds_midway(lambda l, at, then=then: _ds_stopped_then(l, at, then)) == (0, 1, 0, 1, []) for then in (
+        lambda l, t: l.note_pass(t, _ds_ctx(_ds_day, last_write_at=t - timedelta(seconds=30)), True, False),
+        lambda l, t: l.note_pass(t, _ds_ctx(_ds_day, supply_on=False), True, False),
+        lambda l, t: l.edge(t, None),
+        lambda l, t: l.mode_write(t, _DS_HEAT, _DS_DHW, False, _ds_ctx(t)),
+    ))
+    and _ds_midway(lambda l, at: _ds_stopped_then(
+        l, at, lambda l, t: (l.note_pass(t, _ds_ctx(_ds_day), True, False), l.edge(t, True)))) == (0, 1, 0, 0, [101.0]),
+)
+
+# The edge tracker and the classifier (``wear``).
+_ds_run = _ds_wear.compressor_running
+R.check(
+    "the running class: the frequency at its floor, else the meter at its threshold; an absent or "
+    "non-finite reading is no signal, never stopped, and the meter never stands in for the frequency",
+    [_ds_run(hz, None, None, True) for hz in (40.0, _ds_wear.RUNNING_FLOOR_HZ, 0.99, 0.0, None, float("nan"))]
+    == [True, True, False, False, None, None]
+    and [_ds_run(None, kw, 0.5, False) for kw in (0.5, 0.49, None, float("inf"))] == [True, False, None, None]
+    and _ds_run(None, 2.0, 0.5, True) is None and _ds_run(40.0, None, 0.5, False) is None
+    and _ds_run(None, 2.0, None, False) is None,
+)
+
+
+def _ds_tracker(*events, settled=True):
+    """The edges ``events`` of (seconds, class or ``"pass"``) confirm, and the settled class."""
+    tr = _ds_wear.EdgeTracker(settled=settled)
+    out = []
+    for s, what in events:
+        when = _DS_T0 + timedelta(seconds=s)
+        edge = tr.confirm(when) if what == "pass" else tr.note(when, what)
+        if edge is not None:
+            out.append((int((edge[0] - _DS_T0).total_seconds()), edge[1]))
+    return out, tr.settled
+
+
+R.check(
+    "a one-frame zero is no edge; a final zero no event follows is confirmed by the pass, at its own time",
+    _ds_tracker((0, False), (5, True), (60, "pass")) == ([], True)
+    and _ds_tracker((0, False), (29, "pass")) == ([], True)
+    and _ds_tracker((0, False), (30, "pass")) == ([(0, False)], False)
+    and _ds_tracker((0, False), (10, False), (31, False)) == ([(0, False)], False)
+    and _ds_tracker((0, False), (10, None), (35, "pass")) == ([], True)
+    and _ds_tracker((0, False), (10, None), (40, "pass")) == ([(10, None)], None)
+    and _ds_tracker((0, True), (30, "pass"), settled=None) == ([(0, True)], True),
+)
+
+# The gates and the latch.
+_DS_D = _ds_mod.Direction
+
+
+def _ds_dir(k, n, usable=False, days=2):
+    first = _ds_day.date()
+    return _DS_D(k=k, kept_w=n - k, first_day=first, last_day=first + timedelta(days=days - 1), usable=usable)
+
+
+def _ds_latched(d):
+    d.decay(_ds_day)
+    return d.usable
+
+
+R.check(
+    "usable switches on at n >= 5 spanning two days with p >= 0.5, and not below any of the three",
+    [_ds_latched(d) for d in (
+        _ds_dir(2.5, 5.0), _ds_dir(2.5, 4.99), _ds_dir(2.49, 5.0), _ds_dir(5.0, 5.0, days=1), _ds_dir(40.0, 40.0),
+    )] == [True, False, False, False, True],
+)
+R.check(
+    "once on it stays on until n < 2.5 or p < 0.3",
+    [_ds_latched(d) for d in (
+        _ds_dir(2.5, 2.5, True), _ds_dir(2.49, 2.49, True), _ds_dir(3.0, 10.0, True), _ds_dir(2.99, 10.0, True),
+        _ds_dir(2.0, 4.0, True),
+    )] == [True, False, True, False, True],
+)
+_ds_aged = _DS_D(k=3.0, kept_w=4.0, decayed_at=_ds_day, first_day=_ds_day.date(), last_day=_ds_day.date())
+_ds_aged.decay(_ds_day + timedelta(days=14))
+_ds_fell = _ds_dir(6.0, 6.0, True)
+_ds_fell.decayed_at = _ds_day
+_ds_fell_moved = _ds_fell.decay(_ds_day + timedelta(days=28))
+_ds_fell.book(_ds_day + timedelta(days=28), True, None)
+_ds_ahead = _DS_D(k=3.0, kept_w=4.0, decayed_at=_ds_day + timedelta(days=1))
+R.check(
+    "decay halves n in 14 days and leaves p unchanged; a direction that fell under 2.5 does not switch on "
+    "at one fresh episode; a stamp ahead of the clock decays nothing",
+    abs(_ds_aged.n - 3.5) < 1e-12 and abs(_ds_aged.p - 3.0 / 7.0) < 1e-12
+    and _ds_fell_moved and not _ds_fell.usable and abs(_ds_fell.n - 2.5) < 1e-9
+    and _ds_ahead.weights(_ds_day) == (3.0, 7.0),
+    f"{_ds_aged} {_ds_fell}",
+)
+
+# Restart: the dict round trip, the strict load, the cap.
+_ds_saved = _ds_tab.stored_record()
+_ds_tab.directions["dhw_space"].usable = True
+_ds_saved_on = _ds_tab.stored_record()
+_ds_back = _ds_mod.DutySwitchLearner.from_record(json.loads(json.dumps(_ds_saved_on)))
+
+
+def _ds_bad(path, value, drop=False):
+    doc = json.loads(json.dumps(_ds_saved_on))
+    node = doc
+    for key in path[:-1]:
+        node = node[key]
+    if drop:
+        del node[path[-1]]
+    else:
+        node[path[-1]] = value
+    return doc
+
+
+_DS_ROW = ("directions", "dhw_space")
+_DS_MALFORMED = [None, [], {}, {"directions": []}, _ds_bad(_DS_ROW, None, drop=True),
+                 _ds_bad(("directions", "both_space"), _ds_saved_on["directions"]["dhw_space"]),
+                 _ds_bad((*_DS_ROW, "extra"), 1), _ds_bad((*_DS_ROW, "k"), None, drop=True)] + [
+    _ds_bad((*_DS_ROW, leaf), value) for leaf, value in (
+        ("k", 1e7), ("k", -0.1), ("k", "3"), ("kept_w", float("nan")), ("kept_w", float("inf")), ("kept_w", 1e7),
+        ("kept_w", True), ("kept_w", -1.0),
+        ("off_s", [1.0] * 33), ("off_s", [-1.0]), ("off_s", [86401.0]), ("off_s", "x"), ("off_s", [None]),
+        ("stopped", True), ("void", -1), ("censored", 1.5), ("kept", 10**10), ("usable", 1), ("usable", None),
+        ("decayed_at", "yesterday"), ("decayed_at", 5), ("first_day", "2026-13-01"), ("first_day", None),
+        ("last_day", "2026-11-09"),
+    )]
+_ds_empty = _ds_mod.DutySwitchLearner()
+_ds_loads = [_ds_mod.DutySwitchLearner.from_record(doc) == _ds_empty for doc in _DS_MALFORMED]
+_ds_many = _ds_mod.DutySwitchLearner()
+for _ds_i in range(40):
+    _ds_switch(_ds_many, _ds_day + timedelta(minutes=20 * _ds_i), stop_s=12, restart_s=12 + 100 + _ds_i)
+R.check(
+    "a restart keeps counts, days, off times and the latch through the dict round trip",
+    _ds_back == _ds_tab and _ds_back.directions["dhw_space"].usable
+    and not _ds_mod.DutySwitchLearner.from_record(_ds_saved).directions["dhw_space"].usable
+    and _sa_store.off_domain("heatpump_optimizer_e_duty_switch", _ds_saved_on) == [],
+    f"{_ds_back}",
+)
+R.check(
+    f"each of {len(_DS_MALFORMED)} malformed or out-of-bounds payloads loads an empty learner, whole",
+    all(_ds_loads),
+    f"{[i for i, ok in enumerate(_ds_loads) if not ok]}",
+)
+R.check(
+    "the off list never exceeds its cap and drops the oldest",
+    _ds_many.directions["dhw_space"].off_s == [float(100 + i) for i in range(8, 40)]
+    and len(_ds_many.directions["dhw_space"].off_s) == _ds_mod.OFF_SAMPLES_MAX == 32
+    and _ds_many.directions["dhw_space"].stopped == 40,
+)
 
 
 class _DsArb:
-    """The arbiter's coordinator surface: a both step, then a space step."""
+    """The arbiter's coordinator surface: a both step split hot water first, then a space step."""
 
-    def __init__(self, extra=None):
+    def __init__(self, extra=None, entry_id=None):
         self.hass = FakeHass({
             "select.pump_mode": FakeState("Heating + DHW", attributes={"options": list(_DS_OPTS)}),
             "sensor.freq": FakeState("40"),
@@ -81200,9 +81374,11 @@ class _DsArb:
             timestamps=[_DS_T0, _DS_T0 + timedelta(minutes=15)], power_schedule=[1.0, 1.5],
             dhw_power_schedule=[1.0, 0.0], optimal_setpoints=[21.0, 21.0])
         self.params = SimpleNamespace(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
-        self.entry = SimpleNamespace(entry_id=f"ds{id(self)}")
+        self.entry = SimpleNamespace(entry_id=entry_id or f"ds{id(self)}")
+        self.passes = 0
 
     def arbiter_inputs(self):
+        self.passes += 1
         return _sa_pa.ArbiterInputs(
             hass=self.hass, config=self._config, mode="auto", plan=self.plan, plan_stale=False,
             entry_released=False, state=SimpleNamespace(
@@ -81211,19 +81387,26 @@ class _DsArb:
             action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=False)
 
 
-def _ds_episode(freq, extra=None, until=18):
-    """The closed episodes after a split step; ``freq`` maps a minute to a frequency."""
-    c = _DsArb(extra)
+def _ds_fire(c, value):
+    c.hass.states.set("sensor.freq", FakeState(value))
+    for ids, action in list(getattr(c.hass, "state_listeners", [])):
+        if "sensor.freq" in ids:
+            action(SimpleNamespace(data={"new_state": c.hass.states.get("sensor.freq")}))
+
+
+def _ds_episode(freq, extra=None, until=18, c=None, person=None):
+    """Drive a split step; ``freq`` maps a minute to a frequency state. Returns
+    (the dhw->space row, every service call, the coordinator)."""
+    c = c or _DsArb(extra)
 
     async def run():
         for s in range(60, until * 60 + 1, 15):
             now = _DS_T0 + timedelta(seconds=s)
             _sa_dt.freeze(now)
             if s / 60 in freq:
-                c.hass.states.set("sensor.freq", FakeState(freq[s / 60]))
-                for _ids, action in list(getattr(c.hass, "state_listeners", [])):
-                    if "sensor.freq" in _ids:
-                        action(SimpleNamespace(data={"new_state": c.hass.states.get("sensor.freq")}))
+                _ds_fire(c, freq[s / 60])
+            if person is not None and s == person[0]:
+                c.hass.states.set("select.pump_mode", FakeState(person[1], attributes={"options": list(_DS_OPTS)}))
             if s % 60 == 0:
                 await _sa_pa.apply(c, now)
                 written = _sa_pa.state_for(c).written.get("mode")
@@ -81235,97 +81418,202 @@ def _ds_episode(freq, extra=None, until=18):
         _asyncio.run(run())
     finally:
         _sa_dt.freeze(None)
-    return [(e["dir"], e["stopped"], e["off_min"]) for e in _ds_mod.state(_sa_pa.state_for(c)).episodes], c
+    d = _ds_mod.record_for(c).learner.directions["dhw_space"]
+    return (d.stopped, d.kept, d.void, d.censored, d.off_s), list(c.hass.services.calls), c
 
 
 # Hot water to 00:07:30, heating from the 00:08 pass; the compressor stops at
 # 00:08:15 and starts again at 00:16:30.
-_ds_stop, _ds_c = _ds_episode({8.25: "0", 16.5: "35"})
-_ds_kept, _ = _ds_episode({})
-_ds_void, _ = _ds_episode({8.25: "0", 16.5: "35"}, {"heat_pump_defrost_entity": "binary_sensor.defrost"})
+_ds_stop, _ds_stop_calls, _ds_c = _ds_episode({8.25: "0", 16.5: "35"})
+_ds_kept, _ds_kept_calls, _ds_kc = _ds_episode({})
+_ds_void, _, _ = _ds_episode({8.25: "0", 16.5: "35"}, {"heat_pump_defrost_entity": "binary_sensor.defrost"})
+_ds_lost, _, _ = _ds_episode({8.25: "unavailable", 16.5: "35"})
 R.check(
-    "a dhw->space mode write while running that stops the compressor within W_STOP books a stop and its off time",
-    _ds_stop == [("dhw_space", True, 8.25)],
+    "through the arbiter: a dhw->space mode write while running that stops the compressor inside the "
+    "window books a stop and its off time",
+    _ds_stop == (1, 0, 0, 0, [495.0]),
     f"{_ds_stop}",
 )
 R.check(
     "null control: the same write with the compressor running on books a kept episode",
-    _ds_kept == [("dhw_space", False, None)],
+    _ds_kept == (0, 1, 0, 0, []),
     f"{_ds_kept}",
 )
 R.check(
-    "a defrost on the pump voids the episode",
-    _ds_void == [],
-    f"{_ds_void}",
+    "a defrost flag on the pump opens nothing; an unavailable frequency voids the open episode",
+    _ds_void == (0, 0, 0, 0, []) and _ds_lost == (0, 0, 1, 0, []),
+    f"{_ds_void} {_ds_lost}",
 )
-_ds_back = _DsArb()
-_ds_back.hass, _ds_back.entry = _ds_c.hass, _ds_c.entry
-_asyncio.run(_ds_mod._load(_ds_back))
-_ds_back_state = _ds_mod.state(_sa_pa.state_for(_ds_back))
+# A person switches the pump back to hot water at 00:08:30; ``hold`` drops the
+# record at the 00:09 pass and the arbiter re-sends Heating: no record, so the
+# write passes ``_write``'s unchanged-value return and reaches the learner.
+_ds_resend, _ds_resend_calls, _ = _ds_episode({}, until=11, person=(8 * 60 + 30, "DHW (Hot Water)"))
 R.check(
-    "the episodes survive a restart in their own record, whose domain declares them; the diagnostics publish the estimate",
-    _ds_back_state.episodes == _ds_mod.state(_sa_pa.state_for(_ds_c)).episodes != []
-    and _sa_store.off_domain("heatpump_optimizer_e_duty_switch", {"episodes": [
-        {"at": _DS_T0.isoformat(), "dir": "dhw_space", "stopped": True, "off_min": 8.25}]}) == []
-    and set(_ds_mod.diagnostics_view(_ds_c)) == {"dhw_space", "space_dhw"},
-    f"{_ds_back_state.episodes}",
+    "a person's change and the re-send that answers it void the episode instead of booking it kept",
+    _ds_resend == (0, 0, 1, 0, [])
+    and [d["option"] for _dom, svc, d in _ds_resend_calls if svc == "select_option"].count("Heating") == 2,
+    f"{_ds_resend} {_ds_resend_calls}",
 )
-
-
-def _ds_held(rows):
-    """An arbiter record holding ``rows`` of (days ago, direction, stopped, off minutes)."""
-    held = _sa_pa.ArbiterState()
-    _ds_mod.state(held).episodes = [{"at": _DS_T0 - timedelta(days=d), "dir": k, "stopped": s, "off_min": o} for d, k, s, o in rows]
-    return held
-
-
-_ds_five = [(d, "dhw_space", True, 8.0) for d in (0, 0, 0, 1, 1, 1)]
-_ds_l = _ds_mod.learned(_ds_mod.state(_ds_held(_ds_five + [(0, "space_dhw", False, None)] * 6)), "dhw_space", _DS_T0)
+_ds_reader = _sa_pa._running_signal(_ds_c.arbiter_inputs())
+_ds_words = []
+for _ds_word in ("unavailable", "unknown", "abc", "", "0", "0.5", "1", "40"):
+    _ds_c.hass.states.set("sensor.freq", FakeState(_ds_word))
+    _ds_words.append(_ds_run(*_ds_reader[1]()))
+_ds_meter = _DsArb({"compressor_freq_sensor": None, "heat_pump_power_entity": "sensor.kw"})
+_ds_meter.hass.states.set("sensor.kw", FakeState("0.4", unit="kW"))
+_ds_meter_reader = _sa_pa._running_signal(_ds_meter.arbiter_inputs())
+_ds_meter_low = _ds_run(*_ds_meter_reader[1]())
+_ds_meter.hass.states.set("sensor.kw", FakeState("0.6", unit="kW"))
 R.check(
-    "six stops over two days, 5.85 decayed, are costly at their median off time",
-    _ds_l.costly and _ds_l.t_off_min == 8.0 and abs(_ds_l.n - (3 + 3 * 0.5 ** (1 / 14))) < 1e-9,
-    f"{_ds_l}",
+    "the arbiter's reader: unavailable, unknown and non-numeric frequency states are no signal; without a "
+    "frequency sensor the meter reads against on_threshold_kw; with neither nothing is listened to",
+    _ds_reader[0] == "sensor.freq" and _ds_words == [None, None, None, None, False, False, True, True]
+    and _ds_meter_reader[0] == "sensor.kw" and (_ds_meter_low, _ds_run(*_ds_meter_reader[1]())) == (False, True)
+    and _sa_pa._running_signal(_DsArb({"compressor_freq_sensor": None}).arbiter_inputs())[0] is None,
+    f"{_ds_words} {_ds_meter_low}",
 )
+_ds_quiet = _DsArb()
+_asyncio.run(_sa_pa.apply(_ds_quiet, _DS_T0 + timedelta(minutes=1)))
+_ds_quiet_passes = _ds_quiet.passes
+for _ds_word in ("0", "40", "0", "unavailable", "40"):
+    _ds_fire(_ds_quiet, _ds_word)
+_ds_quiet._config = {**_ds_quiet._config, "pump_duty_mode": "off"}
+_ds_armed = _ds_mod.record_for(_ds_quiet).unsub is not None
+_asyncio.run(_sa_pa.apply(_ds_quiet, _DS_T0 + timedelta(minutes=2)))
 R.check(
-    "below N_MIN, on one day, or under P_ON the same stops are not costly; decay ages them out",
-    not any(_ds_mod.learned(_ds_mod.state(_ds_held(rows)), "dhw_space", _DS_T0).costly for rows in (
-        _ds_five[:5],                                                             # 4.9 decayed
-        [(0, "dhw_space", True, 8.0)] * 6,                                        # one day
-        _ds_five + [(0, "dhw_space", False, None)] * 7,                           # p < 0.5
-        [(d + 20, k, s, o) for d, k, s, o in _ds_five + _ds_five],                # decayed below 5
-    )),
-    "",
+    "the listener is the learner's own and triggers no arbiter pass; duty mode off detaches it",
+    _ds_armed and _ds_quiet.passes == _ds_quiet_passes + 1 and _ds_mod.record_for(_ds_quiet).unsub is None
+    and not any("sensor.freq" in ids for ids, _a in getattr(_ds_quiet.hass, "state_listeners", [])),
+    f"{_ds_quiet.passes=} {_ds_quiet_passes=}",
+)
+def _ds_shape(learner):
+    """A learner's stored record less the decay stamp, the counts to three places."""
+    return {name: {**row, "decayed_at": None, "k": round(row["k"], 3), "kept_w": round(row["kept_w"], 3)}
+            for name, row in learner.stored_record()["directions"].items()}
+
+
+# Restart: a second coordinator on the same entry reads the record back on its first pass.
+_ds_again = _DsArb(entry_id=_ds_c.entry.entry_id)
+_asyncio.run(_sa_pa.apply(_ds_again, _DS_T0 + timedelta(minutes=19)))
+R.check(
+    "the learned state survives a restart in its own store, per config entry, and the arbiter's record holds none of it",
+    _ds_shape(_ds_mod.record_for(_ds_again).learner) == _ds_shape(_ds_mod.record_for(_ds_c).learner)
+    and _ds_mod.record_for(_ds_again).learner.directions["dhw_space"].off_s == [495.0]
+    and _ds_mod.record_for(_ds_kc).learner.directions["dhw_space"].stopped == 0
+    and not [f for f in _sa_pa.ArbiterState.__dataclass_fields__ if "duty_switch" in f or f in ("duty", "hold")],
 )
 
 
-def _ds_shares(held, flip_at=None):
-    """The duty ``_share`` serves at each minute of a both step, 7.5 min hot water."""
+# Null controls (design.md, evidence 5 and 6): nothing reads the estimate, so
+# an empty learner and one saturated at p = 1 give the same commands.
+def _ds_saturated():
+    l = _ds_mod.DutySwitchLearner()
+    for d in l.directions.values():
+        d.k = 40.0
+        d.first_day, d.last_day, d.usable, d.off_s = _ds_day.date(), _ds_day.date() + timedelta(days=5), True, [900.0] * 8
+    return l
+
+
+def _ds_commands(learner, freq, plan=None):
+    """Every service call of a run whose learner starts as ``learner``, and the duty per minute."""
     c = _DsArb()
-    _sa_pa._STATES[c] = held
-    out = []
-    for m in range(15):
-        if m == flip_at:
-            _ds_mod.state(held).episodes = []
-        out.append(_sa_pa._share(c, c.arbiter_inputs(), "both", _DS_T0 + timedelta(minutes=m))[0])
-    return "".join(out)
+    if plan is not None:
+        c.plan = plan
+    rec = _ds_mod.record_for(c)
+    rec.learner, rec.loaded = learner, True
+    split = "".join(
+        str(_sa_pa._share(c, c.arbiter_inputs(), "both", _DS_T0 + timedelta(minutes=m)))[0] for m in range(15))
+    _row, calls, _c = _ds_episode(freq, c=c)
+    return calls, split, rec.learner.directions["dhw_space"].usable
 
 
-_ds_costly = _ds_five + [(0, "space_dhw", False, None)] * 6
+_ds_plain = _ds_commands(_ds_mod.DutySwitchLearner(), {})
+_ds_full = _ds_commands(_ds_saturated(), {})
 R.check(
-    "a costly dhw->space serves space first for its share, latched across a mid-step change of the estimate",
-    _ds_shares(_ds_held(_ds_costly), flip_at=3) == "s" * 8 + "d" * 7,
-    f"{_ds_shares(_ds_held(_ds_costly), flip_at=3)}",
+    "null control, an install where no switch stops the compressor: the split order and every written "
+    "command are identical between an empty learner and one saturated at p = 1",
+    _ds_plain[:2] == _ds_full[:2] and _ds_plain[0] != [] and _ds_plain[1] == "d" * 8 + "s" * 7
+    and _ds_full[2] and not _ds_plain[2],
+    f"{_ds_plain[1]} {_ds_full[1]}",
 )
-_ds_both = _ds_five + [(d, "space_dhw", True, 8.0) for d in (0, 0, 0, 1, 1, 1)]
+_ds_plain_stop = _ds_commands(_ds_mod.DutySwitchLearner(), {8.25: "0", 16.5: "35"})
+_ds_full_stop = _ds_commands(_ds_saturated(), {8.25: "0", 16.5: "35"})
 R.check(
-    "with both directions costly a second share shorter than the off time plus SPLIT_MIN goes to the first duty",
-    _ds_shares(_ds_held(_ds_both)) == "d" * 15,
-    f"{_ds_shares(_ds_held(_ds_both))}",
+    "and so are they on the install whose switch does stop it: part A changes no write at either end of its evidence",
+    _ds_plain_stop[:2] == _ds_full_stop[:2] == _ds_plain[:2],
+    f"{_ds_plain_stop[1]} {_ds_full_stop[1]}",
 )
+# Flat prices: ``tests/golden/flat_prices.json``'s scenario is solved here
+# (its floats are not compared with the recording, which only a canonical BLAS
+# reproduces), and each of its first both steps is actuated under either learner.
+import ast as _ds_ast  # noqa: E402
+import golden as _ds_golden  # noqa: E402
+
+_ds_flat = _ds_golden.capture("flat_prices", dict(_ds_golden.SCENARIOS["flat_prices"]))
+_ds_flat_both = [i for i, (s, d) in enumerate(zip(_ds_flat["power_schedule"], _ds_flat["dhw_power_schedule"]))
+                 if s > 0 and d > 0][:4]
+
+
+def _ds_flat_plan(i):
+    return SimpleNamespace(
+        timestamps=[_DS_T0, _DS_T0 + timedelta(minutes=15)],
+        power_schedule=[_ds_flat["power_schedule"][i], 1.5], dhw_power_schedule=[_ds_flat["dhw_power_schedule"][i], 0.0],
+        optimal_setpoints=[21.0, 21.0])
+
+
+_ds_flat_runs = [[_ds_commands(l, {}, _ds_flat_plan(i))[:2] for i in _ds_flat_both]
+                 for l in (_ds_mod.DutySwitchLearner(), _ds_saturated())]
 R.check(
-    "null control: below the thresholds the split is today's, hot water first for its share",
-    _ds_shares(_ds_held(_ds_five[:5])) == _ds_shares(_sa_pa.ArbiterState()) == "d" * 8 + "s" * 7,
-    f"{_ds_shares(_ds_held(_ds_five[:5]))}",
+    "null control, a flat-price day: each both step of the flat scenario's plan is split and written "
+    "identically under an empty and a saturated learner",
+    len(set(_ds_flat["prices"])) == 1 and _ds_flat_both != [] and _ds_flat_runs[0] == _ds_flat_runs[1]
+    and all(calls != [] for calls, _split in _ds_flat_runs[0]),
+    f"{[split for _c, split in _ds_flat_runs[0]]} {[split for _c, split in _ds_flat_runs[1]]}",
+)
+# Both controls hold by construction: only the arbiter (which reports) and the
+# sensor (which publishes) name the module, and neither reads the estimate.
+_ds_pkg = Path("custom_components/heatpump_optimizer")
+_ds_readers = sorted(
+    p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
+        isinstance(n, _ds_ast.ImportFrom) and (n.module == "duty_switch" or any(a.name == "duty_switch" for a in n.names))
+        for n in _ds_ast.walk(_ds_ast.parse(p.read_text()))))
+_ds_uses = sorted({
+    n.attr for name in ("pump_arbiter.py", "sensor.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
+    if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch"})
+_ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
+           if isinstance(n, _ds_ast.ImportFrom) and n.level == 1} | {
+    a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
+    if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
+R.check(
+    "only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and "
+    "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
+    _ds_readers == ["pump_arbiter.py", "sensor.py"]
+    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "summary"]
+    and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
+    and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
+    f"{_ds_readers} {_ds_uses} {_ds_own}",
+)
+# Published on the compressor-starts sensor, beside the counter, off the payload.
+from heatpump_optimizer import sensor as _ds_sensor  # noqa: E402
+from harness import FakeCoordinator as _DsFakeCoord, FakeEntry as _DsFakeEntry  # noqa: E402
+
+_ds_pub = _DsFakeCoord({"insight": {"compressor_starts": {"lifetime": 412, "month": 31}}, "measured_power_available": True})
+_ds_attrs0 = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
+_ds_mod.record_for(_ds_pub).learner = _ds_tab
+_ds_attrs = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
+_DS_KEYS = {f"duty_switch_{d}_{k}" for d in _ds_mod.DIRECTIONS
+            for k in ("k", "n", "stopped", "kept", "void", "censored", "span_days")}
+R.check(
+    "the starts sensor's attributes carry the counter's keys and, per direction, only k, n, stopped, kept, "
+    "void, censored, span days and (once one exists) the median off seconds, all numeric",
+    set(_ds_attrs0) == {"lifetime", "month"} | _DS_KEYS
+    and set(_ds_attrs) == {"lifetime", "month"} | _DS_KEYS | {"duty_switch_dhw_space_median_off_s"}
+    and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in _ds_attrs.values())
+    and (_ds_attrs["duty_switch_dhw_space_stopped"], _ds_attrs["duty_switch_dhw_space_censored"],
+         _ds_attrs["duty_switch_dhw_space_median_off_s"], _ds_attrs["duty_switch_space_dhw_kept"],
+         _ds_attrs["duty_switch_dhw_space_span_days"]) == (3, 1, 501.0, 3, 1)
+    and "duty_switch" not in json.dumps(_ds_pub.data),
+    f"{_ds_attrs}",
 )
 
 

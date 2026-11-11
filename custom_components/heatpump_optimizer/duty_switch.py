@@ -1,362 +1,486 @@
 """Duty-switch restart learning: does a duty switch stop a running compressor?
 
-Design: ``docs/design/2026-11-10-duty-switch-restart-learning/design.md``. On some
-pumps a switch from hot water to heating while the compressor runs stops it:
-the controller judges the heating request on a return the hot-water leg has
-just heated. Whether it does is learned per install and per direction.
+Design: ``docs/design/2026-11-10-duty-switch-restart-learning/design.md``,
+part A. On some pumps a mode write from hot water to heating while the
+compressor runs stops it: the controller judges the heating request on a
+return the hot-water leg has just heated. Whether it does, and for how long
+the pump then stays off, is learned per install and per direction. **Nothing
+reads the estimate to change a plan or a write**; it is recorded, persisted
+and published on the compressor-starts sensor.
 
-**Observe.** An episode opens at the arbiter's mode write that changes the
-served single duty while the compressor runs (:func:`duty_opened`), when the
-source leg heated the circuit (the return :data:`HEATED_MARGIN_K` over the
-target's set-point, or without a return sensor a leg of :data:`T_SRC`), the
-target duty has demand by the plan's own reading and the plan keeps it on
-for :data:`W_STOP`. It closes stopped when the running signal drops inside
-:data:`W_STOP`, kept when it still runs then, and void when anything else
-could explain a stop: another mode write or a person's change (the record
-``pump_arbiter.hold`` drops), the supply switch, a non-plan or non-control
-mode, a boost, a disinfection hold, defrost, a fault, an electric heater, or
-an unavailable running signal. A stop's off time runs to the next start and
-is censored when the arbiter wrote, or the supply switch read off, in between.
+**Observe** (:class:`DutySwitchLearner`, no Home Assistant object). An
+episode opens at a landed mode write between the two single duties while the
+compressor runs (:meth:`DutySwitchLearner.mode_write`), when the source leg
+counts (:func:`_heated`), the target duty has demand and the plan keeps it
+on. Inside :data:`STOP_WINDOW_S` it closes **stopped** on a stop edge, **kept**
+at expiry, and **void** when anything else could explain a stop
+(:meth:`SwitchContext.void_cause`, another mode write, a person's change, a
+lost running signal). A stop's off time runs to the next start edge and is
+censored by any write of the arbiter, or the supply switch, in between.
 
-**The running signal** is the frequency sensor above zero, else the meter at
-``thermal_model.on_threshold_kw``, read by its own listener: not one of the
-arbiter's entities, which run a full pass on every change. The listener only
-notes a change of the running state; the arbiter's next pass confirms it once
-it held :data:`RUNNING_DEBOUNCE` (:func:`_on_running`), keeping the
-listener's time. A compressor found running when it arms counts as one that
-started then.
+**The running signal** is ``wear.compressor_running`` over the reading the
+arbiter's reader hands in, its edges ``wear.EdgeTracker``'s. This module's
+own listener (:func:`attach`) feeds the tracker and never triggers an arbiter
+pass; the pass (:func:`note_pass`) confirms a pending edge.
 
-**Estimate and use.** Per direction ``p`` is the share of stops over
-exponentially decayed counts (half-life :data:`HALF_LIFE_DAYS`), ``t_off`` the
-median of the retained uncensored off times (:func:`learned`). Only with at
-least :data:`N_MIN` decayed episodes over two local days and ``p`` at or above
-:data:`P_ON` is a direction costly, and only a costly direction changes
-anything: a both step is served space first where only hot water -> heating is
-costly, and a second share entering a costly direction needs that direction's
-off time on top of ``SPLIT_MIN_MINUTES`` or the first duty keeps the whole
-step (:func:`duty_split`). Below that the split is exactly the arbiter's own.
-The episodes persist in their own store; the estimate is in the diagnostics.
+**Estimate.** Per direction two decayed counts, ``k`` stops over ``n``
+episodes (stored as the stopped and the kept weight), half-life :data:`HALF_LIFE_DAYS`: decay scales both alike, so
+``p = k / n`` never moves with age and only ``n`` falls. ``usable`` latches on
+at :data:`N_ON` episodes spanning :data:`SPAN_DAYS_ON` days with ``p`` at
+:data:`P_ON`, and off under :data:`N_OFF` or :data:`P_OFF`. Every threshold
+here is a named constant from one day on one install, not a measurement.
 """
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict, dataclass, field
-from datetime import datetime, timedelta
-from typing import Any
+import math
+from dataclasses import dataclass, field
+from datetime import date, datetime
+from typing import Any, Callable
+from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from . import boost, pump_mode
-from .const import (
-    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
-    CONF_HEAT_PUMP_DEFROST_ENTITY,
-    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
-    CONF_HEAT_PUMP_FAULT_ENTITY,
-    CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
-    DOMAIN,
-    MODE_AUTO,
-    MODE_ECONOMY,
-    finite_float,
-)
+from . import pump_mode, wear
+from .const import DOMAIN
 from .drift import stored_instant, utc_elapsed_seconds
-from .entry_config import EntryConfig
-from .inputs import InputReader, state_power_kw
-from .pump_arbiter import (
-    DUTY_CONTROL,
-    SPLIT_MIN_MINUTES,
-    _pump_off,
-    ArbiterInputs,
-    ArbiterState,
-    PumpCommand,
-    bind_duty_switch,
-    duty_mode,
-    state_for,
-    step_duty,
-)
-from .store import QuarantiningStore, load_mapping
-from .thermal_model import on_threshold_kw
+from .store import QuarantiningStore
 
 _LOGGER = logging.getLogger(__name__)
 
 #: The learned directions: the single duty switched from, then to.
 DIRECTIONS = ("dhw_space", "space_dhw")
-W_STOP = timedelta(minutes=3)
-HALF_LIFE_DAYS = 14.0
-N_MIN = 5.0
-P_ON = 0.5
-HEATED_MARGIN_K = 2.0
-T_SRC = timedelta(minutes=1)
-RUNNING_DEBOUNCE = timedelta(seconds=30)
-EPISODES_MAX = 200
-_EPISODES_STORE_VERSION = 1
 _DIRECTION = {(pump_mode.MODE_DHW, pump_mode.MODE_HEAT): "dhw_space",
               (pump_mode.MODE_HEAT, pump_mode.MODE_DHW): "space_dhw"}
-_VOID_FLAGS = (CONF_HEAT_PUMP_DEFROST_ENTITY, CONF_HEAT_PUMP_FAULT_ENTITY,
-               CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY)
-
-
-@dataclass
-class DutySwitchState:
-    """Per arbiter record: the running signal, the open episode, the closed ones."""
-
-    #: The confirmed running state and since when; a change not yet confirmed.
-    running: tuple[bool, datetime] | None = None
-    edge: tuple[bool | None, datetime] | None = None
-    unsub: Any = None
-    loaded: bool = False
-    episode: dict[str, Any] | None = None
-    episodes: list[dict[str, Any]] = field(default_factory=list)
-    #: The both step's latched split: (step start, first, second, least minutes).
-    order: tuple[datetime, str, str, float] | None = None
-
-
-def state(held: ArbiterState) -> DutySwitchState:
-    held.duty = held.duty or DutySwitchState()
-    return held.duty
-
-
-def running_since(held: ArbiterState) -> datetime | None:
-    """When the compressor last started, while it runs; else ``None``."""
-    run = state(held).running
-    return run[1] if run and run[0] else None
+#: Seconds after the write inside which a stop is the switch's.
+STOP_WINDOW_S = 180.0
+#: Kelvin the inlet must sit over the space set-point for the hot-water leg
+#: to have heated the circuit; without an inlet reading, and into hot water
+#: (whose inlet is never over a set-point), the source leg's least seconds.
+HEATED_MARGIN_K = 2.0
+SOURCE_LEG_MIN_S = 60.0
+HALF_LIFE_DAYS = 14.0
+N_ON, N_OFF = 5.0, 2.5
+P_ON, P_OFF = 0.5, 0.3
+SPAN_DAYS_ON = 2
+OFF_SAMPLES_MAX = 32
+#: Load bounds: a count or an off time past these was not written here.
+_N_MAX = 1e6
+_OFF_MAX_S = 86400.0
+_TALLY_MAX = 10**9
+STORE_VERSION = 1
+_TALLIES = ("stopped", "kept", "void", "censored")
+_ROW_KEYS = frozenset(("k", "kept_w", "decayed_at", "first_day", "last_day", "usable", "off_s", *_TALLIES))
 
 
 @dataclass(frozen=True)
-class Learned:
-    """One direction's estimate; ``costly`` gates every use."""
+class SwitchContext:
+    """What the arbiter read on one pass or at one mode write.
 
-    p: float
-    n: float
-    t_off_min: float | None
-    costly: bool
+    The first block can explain a compressor stop without the switch; the
+    second says what the arbiter itself wrote; the third is read at a mode
+    write only and gates whether the switch counts.
+    """
 
+    supply_on: bool = True
+    #: Auto or Economy under duty control: the plan is what commands.
+    plan_control: bool = True
+    defrosting: bool = False
+    disinfecting: bool = False
+    boost_held: bool = False
+    #: A backup heater or the hot-water booster element reads on.
+    electric_heat: bool = False
+    fault: bool = False
+    #: The power-feedback loop moved the space target off today's open-loop one.
+    loop_moved: bool = False
 
-def learned(ds: DutySwitchState, direction: str, now: datetime) -> Learned:
-    """``p``, the decayed ``n`` and the median uncensored off time for ``direction``."""
-    rows = [e for e in ds.episodes if e["dir"] == direction]
-    weights = [0.5 ** (max(0.0, utc_elapsed_seconds(now, e["at"])) / (HALF_LIFE_DAYS * 86400.0)) for e in rows]
-    n = sum(weights)
-    p = sum(w for w, e in zip(weights, rows) if e["stopped"]) / n if n else 0.0
-    offs = sorted(e["off_min"] for e in rows if e["stopped"] and e["off_min"] is not None)
-    t_off = (offs[(len(offs) - 1) // 2] + offs[len(offs) // 2]) / 2.0 if offs else None
-    days = {dt_util.as_local(e["at"]).date() for e in rows}
-    return Learned(p, n, t_off, n >= N_MIN and len(days) >= 2 and p >= P_ON)
+    #: When the mode record was written (``None``: dropped, a person's change),
+    #: and the latest write over every slot.
+    mode_written_at: datetime | None = None
+    last_write_at: datetime | None = None
 
+    inlet_c: float | None = None
+    space_setpoint_c: float | None = None
+    source_leg_s: float | None = None
+    target_demand: bool = False
+    plan_stays: bool = False
 
-def duty_split(held: ArbiterState, start: datetime, now: datetime) -> tuple[str, str, float]:
-    """(first duty, second duty, the second share's least minutes) of the both
-    step at ``start``; latched per step, so neither the tick nor a mid-step
-    re-solve flips it."""
-    ds = state(held)
-    if ds.order is None or ds.order[0] != start:
-        est = {d: learned(ds, d, now) for d in DIRECTIONS}
-        space_first = est["dhw_space"].costly and not est["space_dhw"].costly
-        first, second = ("space", "dhw") if space_first else ("dhw", "space")
-        into = est[f"{first}_{second}"]
-        floor = SPLIT_MIN_MINUTES + ((into.t_off_min or 0.0) if into.costly else 0.0)
-        ds.order = (start, first, second, floor)
-    return ds.order[1], ds.order[2], ds.order[3]
-
-
-def _reading(state_: Any, freq: bool, threshold_kw: float) -> bool | None:
-    if freq:
-        raw = finite_float(getattr(state_, "state", None))
-        return None if raw is None else raw > 0.0
-    kw = state_power_kw(state_, "clamp")
-    return None if kw is None else kw >= threshold_kw
+    def void_cause(self) -> str | None:
+        """The first reading that could stop the compressor by itself."""
+        causes = (
+            ("supply_off", not self.supply_on), ("not_plan_control", not self.plan_control),
+            ("defrost", self.defrosting), ("disinfection", self.disinfecting),
+            ("boost", self.boost_held), ("electric_heat", self.electric_heat),
+            ("fault", self.fault), ("feedback_loop", self.loop_moved),
+        )
+        return next((name for name, on in causes if on), None)
 
 
-def _arm(ds: DutySwitchState, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> None:
-    """Arm the running signal's listener with the arbiter's own, once per arming."""
-    if ds.unsub is not None and ds.unsub in held.unsubs:
+def _heated(direction: str, ctx: SwitchContext) -> bool:
+    """Whether the source leg counts as having set the circuit up for a stop."""
+    if direction == "dhw_space" and ctx.inlet_c is not None:
+        return ctx.space_setpoint_c is not None and ctx.inlet_c - ctx.space_setpoint_c >= HEATED_MARGIN_K
+    return ctx.source_leg_s is not None and ctx.source_leg_s >= SOURCE_LEG_MIN_S
+
+
+@dataclass
+class Direction:
+    """One direction's decayed evidence, latch, off times and tallies."""
+
+    #: Decayed weight of the stopped and of the kept episodes. Two addends,
+    #: not ``k`` and ``n``: every stored pair is then a valid one.
+    k: float = 0.0
+    kept_w: float = 0.0
+    decayed_at: datetime | None = None
+    first_day: date | None = None
+    last_day: date | None = None
+    usable: bool = False
+    off_s: list[float] = field(default_factory=list)
+    stopped: int = 0
+    kept: int = 0
+    void: int = 0
+    censored: int = 0
+
+    @property
+    def n(self) -> float:
+        return self.k + self.kept_w
+
+    @property
+    def p(self) -> float:
+        return self.k / self.n if self.n > 0.0 else 0.0
+
+    @property
+    def span_days(self) -> int:
+        return 0 if self.first_day is None or self.last_day is None else (self.last_day - self.first_day).days + 1
+
+    @property
+    def median_off_s(self) -> float | None:
+        offs = sorted(self.off_s)
+        return (offs[(len(offs) - 1) // 2] + offs[len(offs) // 2]) / 2.0 if offs else None
+
+    def weights(self, when: datetime) -> tuple[float, float]:
+        """``(k, n)`` as of ``when``; a stamp ahead of ``when`` decays nothing."""
+        if self.decayed_at is None:
+            return self.k, self.n
+        age_s = max(0.0, utc_elapsed_seconds(when, self.decayed_at))
+        factor = 0.5 ** (age_s / (HALF_LIFE_DAYS * 86400.0))
+        return self.k * factor, self.n * factor
+
+    def decay(self, when: datetime) -> bool:
+        """Age the counts to ``when``; whether the latch moved."""
+        n = self.n
+        factor = self.weights(when)[1] / n if n > 0.0 else 1.0
+        self.k, self.kept_w = self.k * factor, self.kept_w * factor
+        if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) > 0.0:
+            self.decayed_at = when
+        return self._latch()
+
+    def _latch(self) -> bool:
+        was = self.usable
+        if was:
+            self.usable = not (self.n < N_OFF or self.p < P_OFF)
+        else:
+            self.usable = self.n >= N_ON and self.p >= P_ON and self.span_days >= SPAN_DAYS_ON
+        return self.usable != was
+
+    def book(self, when: datetime, stopped: bool, off_s: float | None) -> None:
+        self.decay(when)
+        self.k, self.kept_w = self.k + (1.0 if stopped else 0.0), self.kept_w + (0.0 if stopped else 1.0)
+        day = when.date()
+        self.first_day, self.last_day = self.first_day or day, max(self.last_day or day, day)
+        if not stopped:
+            self.kept += 1
+        else:
+            self.stopped += 1
+            if off_s is None:
+                self.censored += 1
+            else:
+                self.off_s = [*self.off_s, off_s][-OFF_SAMPLES_MAX:]
+        self._latch()
+
+    def stored_row(self) -> dict[str, Any]:
+        return {
+            "k": self.k, "kept_w": self.kept_w,
+            "decayed_at": None if self.decayed_at is None else self.decayed_at.isoformat(),
+            "first_day": None if self.first_day is None else self.first_day.isoformat(),
+            "last_day": None if self.last_day is None else self.last_day.isoformat(),
+            "usable": self.usable, "off_s": list(self.off_s),
+            **{name: getattr(self, name) for name in _TALLIES},
+        }
+
+    @classmethod
+    def from_row(cls, row: Any) -> "Direction":
+        """The stored row, or ``ValueError`` on any shape or bound it could not have written."""
+        if not isinstance(row, dict) or set(row) != _ROW_KEYS or not all(
+                check(row[key]) for key, check in _ROW_CHECKS.items()):
+            raise ValueError("row")
+        stamp = row["decayed_at"]
+        decayed_at = None if stamp is None else stored_instant(stamp)
+        first, last = (None if row[key] is None else date.fromisoformat(row[key])
+                       for key in ("first_day", "last_day"))
+        if (stamp is None) != (decayed_at is None) or (first is None) != (last is None) or (
+                first is not None and last is not None and first > last):
+            raise ValueError("stamps")
+        return cls(float(row["k"]), float(row["kept_w"]), decayed_at, first, last, row["usable"],
+                   [float(o) for o in row["off_s"]], *(row[t] for t in _TALLIES))
+
+
+def _real(value: Any, hi: float = math.inf) -> bool:
+    return (isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+            and 0.0 <= value <= hi)
+
+
+def _tally(value: Any) -> bool:
+    return isinstance(value, int) and _real(value, _TALLY_MAX)
+
+
+#: What each stored leaf must be before it is parsed; the stamps are parsed after.
+_ROW_CHECKS: dict[str, Callable[[Any], bool]] = {
+    "k": lambda v: _real(v, _N_MAX), "kept_w": lambda v: _real(v, _N_MAX),
+    "off_s": lambda v: isinstance(v, list) and len(v) <= OFF_SAMPLES_MAX and all(_real(o, _OFF_MAX_S) for o in v),
+    "usable": lambda v: isinstance(v, bool),
+    **{t: _tally for t in _TALLIES},
+}
+
+
+@dataclass
+class Episode:
+    at: datetime
+    direction: str
+    stop_at: datetime | None = None
+    #: The stop was void-checked on the pass after it.
+    checked: bool = False
+
+
+@dataclass
+class DutySwitchLearner:
+    """Episodes and estimate for one pump. Every method returns whether the
+    stored record changed."""
+
+    directions: dict[str, Direction] = field(default_factory=lambda: {d: Direction() for d in DIRECTIONS})
+    episode: Episode | None = None
+
+    def mode_write(self, when: datetime, old: Any, new: Any, running: bool, ctx: SwitchContext) -> bool:
+        """A mode write landed: it ends an open episode, and may open one.
+
+        A re-send (``old`` unknown or equal to ``new``) opens nothing.
+        """
+        changed = self._interrupt()
+        direction = _DIRECTION.get((old, new))
+        if (direction is not None and running and _heated(direction, ctx) and ctx.target_demand
+                and ctx.plan_stays and ctx.void_cause() is None):
+            self.episode = Episode(when, direction)
+        return changed
+
+    def _interrupt(self) -> bool:
+        ep = self.episode
+        if ep is None:
+            return False
+        return self._void(ep) if ep.stop_at is None else self._close(ep, True, None)
+
+    def edge(self, when: datetime, running: bool | None) -> bool:
+        """A confirmed edge of the running class, at the time it began."""
+        ep = self.episode
+        if ep is None:
+            return False
+        if running is None:
+            # No signal is never "stopped"; a stop already attributed keeps its count.
+            return self._close(ep, True, None) if ep.checked else self._void(ep)
+        if ep.stop_at is not None:
+            return self._close(ep, True, utc_elapsed_seconds(when, ep.stop_at)) if running else False
+        since_s = utc_elapsed_seconds(when, ep.at)
+        if running:
+            return False
+        if since_s < 0.0:
+            return self._void(ep)  # it had stopped before the write
+        if since_s > STOP_WINDOW_S:
+            return self._close(ep, False, None)
+        ep.stop_at = when
+        return False
+
+    def note_pass(self, when: datetime, ctx: SwitchContext, signal: bool, pending: bool) -> bool:
+        """One arbiter pass: age the latches, void, expire or censor the episode.
+
+        ``signal`` is whether the running class is known, ``pending`` whether
+        a change of it awaits its debounce.
+        """
+        changed = any([d.decay(when) for d in self.directions.values()])
+        ep = self.episode
+        if ep is None:
+            return changed
+        explained = ctx.void_cause() is not None or ctx.mode_written_at != ep.at
+        if ep.stop_at is None:
+            if explained or not signal:
+                return self._void(ep)
+            if not pending and utc_elapsed_seconds(when, ep.at) >= STOP_WINDOW_S:
+                return self._close(ep, False, None)
+            return changed
+        if not ep.checked:
+            ep.checked = True
+            if explained:
+                return self._void(ep)
+        wrote = ctx.last_write_at is not None and utc_elapsed_seconds(ctx.last_write_at, ep.stop_at) > 0.0
+        if wrote or explained:
+            return self._close(ep, True, None)
+        return changed
+
+    def _void(self, ep: Episode) -> bool:
+        self.episode = None
+        self.directions[ep.direction].void += 1
+        return True
+
+    def _close(self, ep: Episode, stopped: bool, off_s: float | None) -> bool:
+        self.episode = None
+        self.directions[ep.direction].book(ep.at, stopped, off_s)
+        return True
+
+    def published(self, when: datetime) -> dict[str, float]:
+        """Counts and durations per direction, flat and numeric; no off time
+        yet is no key."""
+        out: dict[str, float] = {}
+        for name, d in self.directions.items():
+            k, n = d.weights(when)
+            row: dict[str, float | None] = {
+                "k": round(k, 2), "n": round(n, 2), **{t: getattr(d, t) for t in _TALLIES},
+                "median_off_s": None if d.median_off_s is None else round(d.median_off_s, 1),
+                "span_days": d.span_days,
+            }
+            out.update({f"duty_switch_{name}_{key}": value for key, value in row.items() if value is not None})
+        return out
+
+    def stored_record(self) -> dict[str, Any]:
+        return {"directions": {name: d.stored_row() for name, d in self.directions.items()}}
+
+    @classmethod
+    def from_record(cls, data: Any) -> "DutySwitchLearner":
+        """The stored learner, or an empty one on any invalid shape or bound.
+
+        ``QuarantiningStore`` scrubs a poisoned leaf to a default and does not
+        reject, so a record is whole or it is not read: a half-kept row would
+        be evidence nobody observed.
+        """
+        try:
+            rows = data["directions"]
+            if not isinstance(rows, dict) or set(rows) != set(DIRECTIONS):
+                raise ValueError("directions")
+            return cls({name: Direction.from_row(rows[name]) for name in DIRECTIONS})
+        except (TypeError, KeyError, ValueError, OverflowError):
+            return cls()
+
+
+# -- the Home Assistant edge: listener, store, per-coordinator record ---------
+
+#: ``() -> (frequency Hz, power kW, threshold kW, by frequency)``, the
+#: arguments of ``wear.compressor_running``; built by the arbiter.
+Reader = Callable[[], tuple[float | None, float | None, float | None, bool]]
+
+
+@dataclass
+class _Record:
+    learner: DutySwitchLearner = field(default_factory=DutySwitchLearner)
+    tracker: wear.EdgeTracker = field(default_factory=wear.EdgeTracker)
+    reader: Reader | None = None
+    unsub: Callable[[], None] | None = None
+    loaded: bool = False
+    dirty: bool = False
+
+
+_RECORDS: WeakKeyDictionary[Any, _Record] = WeakKeyDictionary()
+
+
+def record_for(coord: Any) -> _Record:
+    rec = _RECORDS.get(coord)
+    if rec is None:
+        rec = _RECORDS[coord] = _Record()
+    return rec
+
+
+def attach(coord: Any, entity: str | None, reader: Reader) -> None:
+    """Listen on the running signal's ``entity``; idempotent, and a no-op without one."""
+    rec = record_for(coord)
+    if rec.unsub is not None or not entity:
         return
-    cfg = EntryConfig.from_mapping(inp.config)
-    entity = cfg.compressor_freq_sensor or cfg.heat_pump_power_entity
-    ds.unsub = None
-    if not entity or not held.unsubs:
-        return
-    freq, threshold = bool(cfg.compressor_freq_sensor), on_threshold_kw(inp.thermal.params)
-    first = _reading(inp.hass.states.get(entity), freq, threshold)
-    ds.running, ds.edge = (None if first is None else (first, now)), None
+    rec.reader = reader
 
     @callback
-    def _changed(event: Any) -> None:
-        reading = _reading(event.data.get("new_state"), freq, threshold)
-        if reading == (ds.running[0] if ds.running else None):
-            ds.edge = None
-        elif ds.edge is None or ds.edge[0] != reading:
-            ds.edge = (reading, dt_util.now())
+    def _changed(_event: Any) -> None:
+        note_signal(coord, dt_util.now())
 
-    ds.unsub = async_track_state_change_event(inp.hass, [entity], _changed)
-    held.unsubs.append(ds.unsub)
+    rec.unsub = async_track_state_change_event(coord.hass, [entity], _changed)
+    note_signal(coord, dt_util.now())
 
 
-def _on_running(ds: DutySwitchState, now: datetime) -> None:
-    """Confirm a running-state change that held :data:`RUNNING_DEBOUNCE`; feed the episode."""
-    edge = ds.edge
-    if edge is None or utc_elapsed_seconds(now, edge[1]) < RUNNING_DEBOUNCE.total_seconds():
+def detach(coord: Any) -> None:
+    """Stop listening; an open episode is dropped uncounted, the signal forgotten."""
+    rec = _RECORDS.get(coord)
+    if rec is None or rec.unsub is None:
         return
-    ds.edge, ds.running = None, None if edge[0] is None else (edge[0], edge[1])
-    ep = ds.episode
-    if ep is None:
+    rec.unsub()
+    rec.unsub, rec.reader, rec.tracker, rec.learner.episode = None, None, wear.EdgeTracker(), None
+
+
+def note_signal(coord: Any, when: datetime) -> None:
+    """One reading of the running signal; never triggers an arbiter pass."""
+    rec = record_for(coord)
+    if rec.reader is None:
         return
-    if edge[0] is None:
-        ds.episode = None  # an unavailable running signal voids the episode
-    elif not edge[0] and "stop" not in ep and utc_elapsed_seconds(edge[1], ep["at"]) <= W_STOP.total_seconds():
-        ep["stop"] = edge[1]
-    elif edge[0] and "stop" in ep:
-        _close(ds, ep, True, utc_elapsed_seconds(edge[1], ep["stop"]) / 60.0)
+    edge = rec.tracker.note(when, wear.compressor_running(*rec.reader()))
+    if edge is not None:
+        rec.dirty = rec.learner.edge(*edge) or rec.dirty
 
 
-def _close(ds: DutySwitchState, ep: dict[str, Any], stopped: bool, off_min: float | None) -> None:
-    ds.episode = None
-    ds.episodes = [*ds.episodes, {"at": ep["at"], "dir": ep["dir"], "stopped": stopped,
-                                  "off_min": off_min}][-EPISODES_MAX:]
-
-
-def _reader(inp: ArbiterInputs) -> InputReader:
-    cfg = EntryConfig.from_mapping(inp.config)
-    return InputReader(inp.hass, dict(inp.config or {}), enabled=cfg.staleness_watchdog_enabled,
-                       scale=cfg.staleness_max_age_scale)
-
-
-def _void(coord: Any, held: ArbiterState, inp: ArbiterInputs, ep: dict[str, Any], now: datetime) -> bool:
-    """Whether anything but the switch could explain a stop since ``ep`` opened."""
-    mode = held.written.get("mode")
-    return bool(
-        inp.mode not in (MODE_AUTO, MODE_ECONOMY) or duty_mode(inp.config) != DUTY_CONTROL
-        or inp.disinfecting or _pump_off(inp) or state(held).running is None
-        # A person's change drops the record (``pump_arbiter.hold``), as another write moves it.
-        or mode is None or mode[1] != ep["at"]
-        or any(boost.held_for(coord).active(c, now) for c in (boost.CHANNEL_SPACE, boost.CHANNEL_DHW))
-        or any(r.ok and r.flag for r in map(_reader(inp).read_bool, _VOID_FLAGS))
-    )
-
-
-def _demand(inp: ArbiterInputs, duty: str, now: datetime) -> bool:
-    """The target duty has demand by the plan's own reading."""
-    if duty == "space":
-        room = getattr(inp.state, "room_temperature", None)
-        i = _index(inp.plan, now)
-        planned = list(getattr(inp.plan, "optimal_setpoints", None) or [])
-        return room is not None and i is not None and i < len(planned) and float(room) < float(planned[i])
-    tank = getattr(inp.state, "dhw_temperature", None)
-    return tank is not None and float(tank) < float(inp.params.dhw_setpoint)
-
-
-def _index(plan: Any, now: datetime) -> int | None:
-    stamps = list(getattr(plan, "timestamps", None) or [])
-    i = sum(1 for t in stamps if t <= now) - 1
-    return i if i >= 0 else None
-
-
-def _heated(inp: ArbiterInputs, setpoint: float | None, since: datetime, now: datetime) -> bool:
-    inlet = _reader(inp).read(CONF_HEAT_PUMP_RETURN_TEMP_ENTITY)
-    if not inlet.ok:
-        return utc_elapsed_seconds(now, since) >= T_SRC.total_seconds()
-    return setpoint is not None and inlet.value - setpoint >= HEATED_MARGIN_K
-
-
-def duty_opened(coord: Any, held: ArbiterState, inp: ArbiterInputs, command: PumpCommand,
-                before: tuple[Any, datetime] | None, now: datetime) -> None:
-    """The arbiter's ``opened`` hook: a learner fault never aborts its pass."""
-    try:
-        _opened(coord, held, inp, command, before, now)
-    except Exception as err:  # noqa: BLE001 - the learner is advisory
-        _LOGGER.debug("Duty-switch learner skipped an episode: %s", err)
-
-
-def _opened(coord: Any, held: ArbiterState, inp: ArbiterInputs, command: PumpCommand,
-            before: tuple[Any, datetime] | None, now: datetime) -> None:
-    """Open an episode at a mode write that changed the served single duty while running."""
-    after, ds = held.written.get("mode"), state(held)
-    direction = _DIRECTION.get((before[0], after[0])) if before and after and after[1] == now else None
-    if direction is None or not (ds.running and ds.running[0]) or inp.plan is None:
+def note_mode_write(coord: Any, when: datetime, old: Any, new: Any, ctx: SwitchContext) -> None:
+    """The arbiter's mode write landed. A report before the load is dropped."""
+    rec = record_for(coord)
+    if not rec.loaded:
         return
-    target = direction.split("_")[1]
-    setpoint = command.space_setpoint if target == "space" else command.dhw_setpoint
-    planned = all(step_duty(inp.plan, t) in (target, "both") for t in (now, now + W_STOP))
-    ep = {"at": now, "dir": direction}
-    if (_heated(inp, setpoint, before[1], now) and planned and _demand(inp, target, now)
-            and not _void(coord, held, inp, ep, now)):
-        ds.episode = ep
+    running = rec.tracker.settled is True and rec.tracker.pending is None
+    rec.dirty = rec.learner.mode_write(when, old, new, running, ctx) or rec.dirty
 
 
-async def duty_follow(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> None:
-    """The arbiter's ``follow`` hook: a learner fault never aborts its pass."""
-    try:
-        await _follow(coord, held, inp, now)
-    except Exception as err:  # noqa: BLE001 - the learner is advisory
-        _LOGGER.debug("Duty-switch learner skipped a pass: %s", err)
-
-
-async def _follow(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> None:
-    """Each arbiter pass: load once, arm the listener, confirm an edge, close episodes."""
-    ds = state(held)
-    if not ds.loaded:
-        ds.loaded = True
-        await _load(coord)
-    _arm(ds, held, inp, now)
-    count = len(ds.episodes)
-    _on_running(ds, now)
-    _classify(coord, held, ds, inp, now)
-    if len(ds.episodes) != count:
+async def note_pass(coord: Any, when: datetime, ctx: SwitchContext) -> None:
+    """Each arbiter pass: load once, confirm a pending edge, judge the episode, save a change."""
+    rec = record_for(coord)
+    if not await _load(coord):
+        return
+    edge = rec.tracker.confirm(when)
+    if edge is not None:
+        rec.dirty = rec.learner.edge(*edge) or rec.dirty
+    rec.dirty = rec.learner.note_pass(
+        when, ctx, rec.tracker.settled is not None, rec.tracker.pending is not None) or rec.dirty
+    if rec.dirty:
         await _persist(coord)
 
 
-def _classify(coord: Any, held: ArbiterState, ds: DutySwitchState, inp: ArbiterInputs, now: datetime) -> None:
-    """A stop is void-checked once; a kept episode closes at :data:`W_STOP`; an
-    off time the arbiter or the supply switch wrote into is censored."""
-    ep = ds.episode
-    if ep is None:
-        return
-    if "stop" not in ep:
-        if ds.edge is None and utc_elapsed_seconds(now, ep["at"]) >= W_STOP.total_seconds():
-            if _void(coord, held, inp, ep, now):
-                ds.episode = None
-            else:
-                _close(ds, ep, False, None)
-        return
-    if not ep.get("checked"):
-        ep["checked"] = True
-        if _void(coord, held, inp, ep, now):
-            ds.episode = None
-            return
-    if any(at > ep["stop"] for _v, at in held.written.values()) or _pump_off(inp):
-        _close(ds, ep, True, None)
-
-
-def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
-    return QuarantiningStore(coord.hass, _EPISODES_STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch",
-                             naive_zone=dt_util.DEFAULT_TIME_ZONE)
+async def _load(coord: Any) -> bool:
+    """Read the stored learner once; a failed read is tried again on the next pass."""
+    rec = record_for(coord)
+    if not rec.loaded:
+        try:
+            raw = await _store(coord).async_load()
+        except Exception as err:  # noqa: BLE001
+            _LOGGER.debug("Could not load the duty-switch record: %s", err)
+            return False
+        rec.learner, rec.loaded = DutySwitchLearner.from_record(raw), True
+    return True
 
 
 async def _persist(coord: Any) -> None:
-    ds = state(state_for(coord))
+    rec = record_for(coord)
     try:
-        await _store(coord).async_save({"episodes": [{**e, "at": e["at"].isoformat()} for e in ds.episodes]})
-    except Exception:  # noqa: BLE001 - the next closed episode saves again
+        await _store(coord).async_save(rec.learner.stored_record())
+    except Exception as err:  # noqa: BLE001 - still dirty: saved on the next pass
+        _LOGGER.debug("Could not persist the duty-switch record: %s", err)
         return
+    rec.dirty = False
 
 
-async def _load(coord: Any) -> None:
-    ds = state(state_for(coord))
-    raw = await load_mapping(_store(coord), "the duty-switch record")
-    rows = (raw or {}).get("episodes")
-    for row in rows if isinstance(rows, list) else ():
-        at = stored_instant(row.get("at"), dt_util.DEFAULT_TIME_ZONE) if isinstance(row, dict) else None
-        if at is not None and row.get("dir") in DIRECTIONS:
-            off = finite_float(row.get("off_min"))
-            ds.episodes.append({"at": at, "dir": row["dir"], "stopped": row.get("stopped") is True,
-                                "off_min": off if off is not None and off >= 0.0 else None})
+def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
+    return QuarantiningStore(coord.hass, STORE_VERSION, f"{DOMAIN}_{coord.entry.entry_id}_duty_switch")
 
 
-def diagnostics_view(coord: Any) -> dict[str, Any]:
-    """Each direction's ``p``, decayed ``n``, ``t_off`` and whether it is in use."""
-    ds = state(state_for(coord))
-    return {d: asdict(learned(ds, d, dt_util.now())) for d in DIRECTIONS}
-
-
-bind_duty_switch(opened=duty_opened, follow=duty_follow, split=duty_split)
+def summary(coord: Any) -> dict[str, float]:
+    """The compressor-starts sensor's duty-switch attributes."""
+    return record_for(coord).learner.published(dt_util.now())

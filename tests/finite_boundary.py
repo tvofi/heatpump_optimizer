@@ -265,9 +265,8 @@ def _healthy_payloads() -> dict[str, dict]:
     except Exception as exc:  # pragma: no cover - diagnostic only
         print("note: pump_arbiter persist skipped: %r" % (exc,))
     from heatpump_optimizer import duty_switch
-    duty_switch.state(pump_arbiter.state_for(coord)).episodes = [{
-        "at": _dt.datetime(2026, 1, 1, 12, 0, 0, tzinfo=_dt.timezone.utc), "dir": "dhw_space",
-        "stopped": True, "off_min": 8.0}]
+    duty_switch.record_for(coord).learner.directions["dhw_space"].book(
+        _dt.datetime(2026, 1, 1, 12, 0, 0, tzinfo=_dt.timezone.utc), True, 480.0)
     run(duty_switch._persist(coord))
     from heatpump_optimizer import off_restore
     _off = run(off_restore._armed_record(coord.hass, coord.entry))
@@ -1139,8 +1138,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     arbiter.state_for(coord).written["dhw_setpoint"] = (55.0, t0)
     run(arbiter._persist(coord))
     duty = importlib.import_module("heatpump_optimizer.duty_switch")
-    duty.state(arbiter.state_for(coord)).episodes = [
-        {"at": t0, "dir": "dhw_space", "stopped": True, "off_min": 8.0}]
+    duty.record_for(coord).learner.directions["dhw_space"].book(t0, True, 480.0)
     run(duty._persist(coord))
     off = importlib.import_module("heatpump_optimizer.off_restore")
     held = run(off._armed_record(coord.hass, coord.entry))
