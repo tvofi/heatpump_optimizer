@@ -340,6 +340,10 @@ class ArbiterState:
     #: which a loop-lowered target stopped the compressor (:func:`_feedback`).
     feedback: FeedbackRun | None = None
     stop_gap_k: float | None = None
+    #: A supply write ``supply_hold`` held back; the step tick retries it.
+    supply_held: bool = False
+    #: ``supply_hold``'s own record, made on first use.
+    hold: Any = None
 
 
 @dataclass(frozen=True)
@@ -1616,16 +1620,15 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
     """
     now = now or dt_util.now()
     step = plan_step_start(now)
-    if held.supply is None or held.supply[0] == step:
+    if held.supply is None or (held.supply[0] == step and not held.supply_held):
         return
     inp = wiring.inputs()
-    if inp.entry_released:
-        return
-    on = step_supply(inp, wiring.boosts, now)
+    on = None if inp.entry_released else step_supply(inp, wiring.boosts, now)
     if on is None:
+        held.supply_held = False  # a held write dies with the plan's command
         return
     last, held.supply = held.supply[1], (step, on)
-    if on != last:
+    if on != last or held.supply_held:
         await wiring.write(on)
 
 
