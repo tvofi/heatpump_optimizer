@@ -22923,7 +22923,9 @@
    },
    "source": "outside",
    "findings": [],
-   "carry": [],
+   "carry": [
+    "From r10-duty-switch-restart-learning, body item 1b22f416: Parts B and C get no ready read API from part A: `Direction.usable`, `.p` and `.median_off_s` hold the three values, and the part that first reads them adds the module-level reader with its first caller. Control: a reader added with no caller turns `tests/structure.py`'s `dead_top_level_symbols` red. The published keys are conditional (a direction with no stopped, kept or void episode publishes none), so a reader takes an absent key as no observation, never as zero; control: the mutant `publish_only_observed` of this body's spec fails the section's attribute check. The loop void is wider than the design's and n has no ceiling but the load bound. Re-measure at the part's own merge base. Lands in `docs/design/2026-11-10-duty-switch-restart-learning/design.md`, section \"Part A as built\", and is owed to the group's brief on the round's roster. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B (items 1b22f416)"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": null,
