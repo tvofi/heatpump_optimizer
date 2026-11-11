@@ -708,6 +708,20 @@ def self_test() -> int:
           "--prs-cache file." and input_note("graphql", "x", 1, False).endswith(
               "size_durations.fetch (--via graphql)."))
 
+    # `run` reads through `reads[via]` and its provenance names that read.
+    roster, prs = _fixture()
+    with tempfile.TemporaryDirectory() as td:
+        rf, read_by = os.path.join(td, "roster.json"), []
+        Path(rf).write_text(json.dumps(roster), encoding="utf-8")
+        fakes = {v: (lambda o, s_, v=v: read_by.append(v) or prs) for v in READS}
+        ran = {v: run(td, None, "o/r", "2026-10-12", None, None, DEFAULT_PERCENTILE, v,
+                      reads=fakes, roster_file=rf)["sizes_provenance"] for v in ("rest", "graphql")}
+    check("run --via rest: the rest read builds the PR list", read_by == ["rest", "graphql"])
+    check("run --via rest: sizes_provenance ends naming fetch_rest",
+          ran["rest"].endswith(input_note("rest", "2026-10-12", len(prs), False)))
+    check("run --via graphql (null): sizes_provenance ends naming fetch",
+          ran["graphql"].endswith(input_note("graphql", "2026-10-12", len(prs), False)))
+
     roster, prs = _fixture()
     mapping = prs_of_groups(roster, prs, {})
     check("branch maps R9-A to #11", mapping.get("R9-A") == [11])
@@ -820,9 +834,11 @@ def self_test() -> int:
 
 def run(repo: str, roster_ref: str | None, repo_owner: str, since: str,
         cache: str | None, csv_path: str | None, percentile: float,
-        via: str = "graphql") -> dict:
-    roster, _, _ = replan.load_roster(repo, roster_ref)
-    prs, replayed = read_prs(READS, via, repo_owner, since, cache)
+        via: str = "graphql", reads: dict = READS, roster_file: str | None = None) -> dict:
+    """The size model over `reads[via]`'s PR list; `reads` and `roster_file`
+    (`replan.load_roster`'s `file`) are injected by the self-test."""
+    roster, _, _ = replan.load_roster(repo, roster_ref, file=roster_file)
+    prs, replayed = read_prs(reads, via, repo_owner, since, cache)
     rows, parts, held, _mapping = measure(repo, roster, prs)
     if csv_path:
         write_csv(rows, csv_path)
