@@ -171,7 +171,7 @@ def self_test():
         # a real gh (the CI runner does; a Mac does not).
         tools = w / "tools"
         tools.mkdir()
-        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh", "sed", "mkdir", "env", "python3", "chmod"):
+        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh", "sed", "mkdir", "env", "python3", "chmod", "git"):
             found = shutil.which(tool)
             if found:
                 (tools / tool).symlink_to(found)
@@ -575,6 +575,32 @@ def self_test():
             ("gh extension exec", ["extension", "exec", "x"]))
         for label, args in refused:
             check(f"{label} is refused", run(args).returncode == 1)
+        # R10-GH-READ-RESIDUE (P449): one install on the daemons' PATH, run from any checkout. The
+        # baked tree t1, a worktree t2 of it, a clone t3 git does not register beside it, and an
+        # untracked file t4 of the same name.
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@invalid"]
+        t1 = w / "t1"
+        (t1 / "tools" / "pr").mkdir(parents=True)
+        (t1 / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
+        subprocess.run([*git, "init", "-q", str(t1)], check=True)
+        subprocess.run([*git, "-C", str(t1), "add", "."], check=True)
+        subprocess.run([*git, "-C", str(t1), "commit", "-qm", "x"], check=True)
+        subprocess.run([*git, "-C", str(t1), "worktree", "add", "-q", str(w / "t2")], check=True)
+        subprocess.run([*git, "clone", "-q", str(t1), str(w / "t3")], check=True)
+        (w / "t4" / "tools" / "pr").mkdir(parents=True)
+        (w / "t4" / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
+        baked = good.replace("gcpy=@HPO_GH_COMMENT@\n", f"gcpy={t1}/tools/pr/gh_comment.py\n")
+        for label, tree, want_rc in (
+                ("the baked tree's own script", "t1", 7),
+                ("a second registered worktree's tracked script", "t2", 7),
+                ("null control: a clone git does not list beside the baked tree", "t3", 1),
+                ("null control: an untracked file of the same path and name", "t4", 1)):
+            check(f"second tree: {label}",
+                  run([], via=f"{py} -I {w / tree}/tools/pr/gh_comment.py {W}", shim_text=baked).returncode == want_rc)
+        guard_mut = baked.replace('[ "$wl" = "worktree $troot" ] && ok=1', 'ok=1')
+        check("mutant: the worktree registration dropped lets an unlisted clone through",
+              guard_mut != baked and run([], via=f"{py} -I {w / 't3'}/tools/pr/gh_comment.py {W}", shim_text=guard_mut).returncode == 7)
+        install(good)
         mut = good.replace("trackers='201 ", "trackers='0 ")
         check("mutant: the guard's issue number changed lets the planted post through",
               mut != good and run(planted, shim_text=mut).returncode == 7)
