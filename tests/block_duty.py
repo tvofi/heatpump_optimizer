@@ -572,6 +572,12 @@ def disinfection_checks() -> None:
         == ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=58.0).dhw_cycle_temp == 58.0,
     )
     check(
+        "a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's",
+        lambda: ThermalParameters(dhw_setpoint=62.0, dhw_legionella_temp=60.0).dhw_cycle_temp == 62.0
+        and ThermalParameters(dhw_setpoint=62.0, dhw_legionella_temp=60.0).dhw_hard_max_temp == 62.0
+        and ThermalParameters(dhw_setpoint=62.0, dhw_legionella_enabled=False).dhw_cycle_temp is None,
+    )
+    check(
         "an off-step disinfection temperature is written on the step above it, never below",
         lambda: written(_dhw_snap(disinfecting=True, disinfection=60.3), "dhw") == 61.0
         and written(_dhw_snap(disinfecting=True, disinfection=60.3,

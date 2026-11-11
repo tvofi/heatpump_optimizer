@@ -797,7 +797,7 @@ writes, at every 15-minute plan step:
   step is *Heating + DHW*, so the planned anti-legionella cycle can run. A
   heating-only mode the optimizer wrote does not stop the next plan from making
   hot water, and the "set-point below the disinfection temperature" notice does
-  not fire on the optimizer's own hot water gate.
+  not fire on the optimizer's own hot water gate (see below).
 - **Idle steps leave the mode alone.** The mode on the pump served the duty
   that just finished, whose thermostat the plan has just satisfied, so it is
   the least likely to start anything; *Heating + DHW* would arm both.
@@ -846,7 +846,12 @@ writes, at every 15-minute plan step:
 - **A disinfection cycle writes its own temperature.** While the plan's step
   runs the anti-legionella cycle, or the integration holds the pump's
   disinfection switch on, the hot water set-point written is the disinfection
-  temperature, not the everyday set-point.
+  temperature, or the everyday set-point where that is higher, on the
+  entity's step rounded up and never above the entity's maximum. Because the
+  optimizer writes the cycle's temperature itself, the "set-point below the
+  disinfection temperature" notice does not fire on any hot water set-point
+  the optimizer wrote; it still fires on a value set by anybody else, and,
+  with *Control* off, on the pump's own set-point.
 - **Its own mode is not a pump limit.** A mode the optimizer wrote does not
   stop the next plan from heating the house or making hot water, even when the
   pump has not shown it yet or after a restart; one set by anybody else
