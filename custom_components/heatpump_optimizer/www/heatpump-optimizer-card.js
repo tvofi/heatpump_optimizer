@@ -9790,14 +9790,12 @@ function whyNowParts(plan) {
   const why = plan.attrRaw("why_now", null);
   const drivers = knownCodes(why && why.drivers, "whynow.driver_");
   const mark = { run: "↑", idle: "↓" };
-  const valueOf = (d) => {
-    const w = Math.round(Number(d.weight) || 0);
-    return `${mark[d.direction] || "·"} ${L("whynow.weight", { sign: w > 0 ? "+" : w < 0 ? "−" : "", w: Math.abs(w) })}`;
-  };
-  const pushing = drivers.filter((d) => mark[d.direction]);
+  const weightOf = (d) => Math.round(Number(d.weight) || 0);
+  const valueOf = (d) => `${mark[d.direction] || "·"} ${L("whynow.weight", {
+    sign: weightOf(d) > 0 ? "+" : weightOf(d) < 0 ? "−" : "", w: Math.abs(weightOf(d)) })}`;
   // The folded line: the driver pushing hardest, else what the rows would say.
-  const lead = pushing.reduce((a, d) =>
-    (!a || Math.abs(Number(d.weight) || 0) > Math.abs(Number(a.weight) || 0) ? d : a), null);
+  const lead = drivers.filter((d) => mark[d.direction])
+    .reduce((a, d) => (!a || Math.abs(weightOf(d)) > Math.abs(weightOf(a)) ? d : a), null);
   const summary = !drivers.length ? L("whynow.no_data")
     : lead ? `${L(`whynow.driver_${lead.code}`)} ${valueOf(lead)}` : L("whynow.all_neutral");
   const rows = !drivers.length
@@ -9805,13 +9803,12 @@ function whyNowParts(plan) {
     : drivers.every((d) => d.direction === "neutral")
       ? `<div class="sb-text">${esc(L("whynow.all_neutral"))}</div>`
       : drivers.map((d) => {
-        const w = Math.round(Number(d.weight) || 0);
         const label = L(`whynow.driver_${d.code}`);
         const valueText = valueOf(d);
         const dir = L(`whynow.dir_${mark[d.direction] ? d.direction : "neutral"}`);
         return breakdownRow({
           key: d.code, label, valueText, muted: d.direction === "neutral",
-          barPct: Math.abs(w), sub: [["sb-text", dir]],
+          barPct: Math.abs(weightOf(d)), sub: [["sb-text", dir]],
           title: `${label}: ${dir}, ${valueText}\n${L(`whynow.explain_${d.code}`)}\n${L("whynow.metric")}`,
         });
       }).join("");
@@ -9836,20 +9833,6 @@ function foldHtml(key, title, summary, unfolded, body, hover) {
     (unfolded ? body : "") + `</div>`;
 }
 
-/** The narrative fold's summary: the rows' kWh and cost total when every
- * line pairs with a numeric item, else the first published line. */
-function narrativeSummary(plan, narrative, lines) {
-  const items = narrative && narrative.attributes && narrative.attributes.items;
-  if (!(Array.isArray(items) && items.length === lines.length)) return lines[0] || "";
-  let kwh = 0, sek = 0;
-  for (const it of items) {
-    const k = Number(it && it.kwh), c = Number(it && it.sek);
-    if (!Number.isFinite(k) || !Number.isFinite(c)) return lines[0] || "";
-    kwh += k; sek += c;
-  }
-  const unit = savingsUnit(plan, "_plan_predicted_savings");
-  return L("fold.narrative_total", { kwh: kwh.toFixed(1), cost: `${sek.toFixed(2)} ${unit}` });
-}
 
 /** One sub-score's hover: its grade or reason, its drivers or what it
  * waits on, and its metric in plain words -- the headline's line for it. */
@@ -9880,13 +9863,23 @@ function savingsUnit(plan, statKey) {
  * whole list when `items` is absent or does not pair one to one with
  * `lines` (the integration skips an item it has no sentence for, so a length
  * mismatch means the pairing is unknown) -- every line still shows (R9-UX-1).
+ *
+ * The summary is the folded section's one line (R10-CARD-COLLAPSE): the
+ * rows' kWh and cost total when every line pairs with a numeric item, else
+ * the first published line.
  */
-function narrativeRows(plan, narrative, lines) {
+function narrativeParts(plan, narrative, lines) {
   const items = narrative && narrative.attributes && narrative.attributes.items;
   const paired = Array.isArray(items) && items.length === lines.length;
   const unit = savingsUnit(plan, "_plan_predicted_savings");
   const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v).toFixed(d) : null);
-  return lines
+  const totals = paired && items.every((it) => it && num(it.kwh, 1) !== null && num(it.sek, 2) !== null)
+    ? items.reduce((t, it) => ({ kwh: t.kwh + Number(it.kwh), sek: t.sek + Number(it.sek) }), { kwh: 0, sek: 0 })
+    : null;
+  const summary = totals
+    ? L("fold.narrative_total", { kwh: totals.kwh.toFixed(1), cost: `${totals.sek.toFixed(2)} ${unit}` })
+    : lines[0] || "";
+  const rows = lines
     .map((line, i) => {
       const it = paired && items[i] ? items[i] : {};
       const key = REASON_LABELS[it.reason];
@@ -9904,6 +9897,7 @@ function narrativeRows(plan, narrative, lines) {
         `<span class="nl-num">${num2}</span></li>`;
     })
     .join("");
+  return { rows, summary };
 }
 
 /** The compact stats row under the header, or nothing at all.
@@ -9913,7 +9907,7 @@ function narrativeRows(plan, narrative, lines) {
  * between optimizer runs, and old integrations publish none of them. A row
  * with nothing to say renders no chrome rather than an empty strip.
  */
-function headlineHtml(plan, cfg, scoreOpen, folds = {}) {
+function headlineHtml(plan, cfg, shown = {}) {
   if (!cfg.show_stats) return "";
   const items = [];
 
@@ -9975,7 +9969,7 @@ function headlineHtml(plan, cfg, scoreOpen, folds = {}) {
   const lines = Array.isArray(published)
     ? published.filter((l) => typeof l === "string" && l)
     : [];
-  const rows = narrativeRows(plan, narrative, lines);
+  const { rows, summary } = narrativeParts(plan, narrative, lines);
   const why = whyNowParts(plan);
 
   if (!items.length && !lines.length) return "";
@@ -9997,10 +9991,10 @@ function headlineHtml(plan, cfg, scoreOpen, folds = {}) {
     .join("");
   return `<div class="headline">
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
-      ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
-      ${rows ? foldHtml("narrative", L("fold.narrative_title"), narrativeSummary(plan, narrative, lines),
-        !!folds.narrative, `<ul class="hl-narrative">${rows}</ul>`) : ""}
-      ${foldHtml("whynow", L("whynow.title"), why.summary, !!folds.whynow, why.body, L("whynow.metric"))}
+      ${shown.score && score !== null ? scoreBreakdownHtml(plan) : ""}
+      ${rows ? foldHtml("narrative", L("fold.narrative_title"), summary,
+        !!shown.narrative, `<ul class="hl-narrative">${rows}</ul>`) : ""}
+      ${foldHtml("whynow", L("whynow.title"), why.summary, !!shown.whynow, why.body, L("whynow.metric"))}
     </div>`;
 }
 
@@ -15561,7 +15555,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // dialog's plan page, which otherwise showed the chart without them.
     const stats =
       tilesHtml(this.plan, this._config, indoorState(this), Date.now()) +
-      headlineHtml(this.plan, this._config, this._scoreOpen, this._folds);
+      headlineHtml(this.plan, this._config, { score: this._scoreOpen, ...this._folds });
 
     // The dialog is a sibling of ha-card, not a child, so a click inside it
     // never bubbles into the card's own open-on-click handler. Rendered
