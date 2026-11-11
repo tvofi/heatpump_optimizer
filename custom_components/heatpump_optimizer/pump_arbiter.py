@@ -255,7 +255,7 @@ RUN_SETTLE = _TICK
 FEEDBACK_WINDOW = timedelta(minutes=3)
 #: How long a run writes today's target before the loop moves it: the
 #: controller's start programme (about 3 minutes at a fixed speed, measured
-#: on the reporting Luxtronik install) is not a response to the target.
+#: on the reporting install) is not a response to the target.
 FEEDBACK_START_HOLD = timedelta(minutes=5)
 #: How far the target moves per minute outside the deadband, K. Time-based,
 #: not per pass: passes come from the cycle, the tick and the listener.
@@ -1055,7 +1055,7 @@ def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: dat
     today's target, or any other reading (a person, a revert to the
     controller's default), is ``hold``'s as before and starts the run over.
 
-    On a Luxtronik the two limits are Smart Home Interface inputs 10104
+    On the reporting install the two limits are smart-home interface inputs 10104
     (parameter 979) and 10103 (parameter 87), which clamp register 10001
     (#3372 comment 6756915104). Where their sensors are configured the loop
     stays inside them (:func:`_setpoint_limits_c`) and no write is cut;
