@@ -7,6 +7,30 @@ Alternatives not taken. Storing the OWED line in the level file was rejected: th
 
 Carry numbers in this body are 0-based roster indexes, as the part-1 dispatch gives them: "This part: Carries 14, 22 (0-based roster indexes)". The rest of the group's roster carries are other parts' and are not touched here. `review_packet.py handoff` counts carries 1-based over the live roster, so the `Carry <N>: not built in this part; stays open on the roster for a later part` lines are added at the end of this body from what `body_push.sh` prints. The counting defect is already held on the roster as BRIEF-CARRIES-PART-SCOPE (Carry: dismissed: already carried as R10-REVIEW-DISPATCH-RESIDUE carry[25] on handoff/audit-r10-roster).
 
+Carry 1: not built in this part; stays open on the roster for a later part
+Carry 2: not built in this part; stays open on the roster for a later part
+Carry 3: not built in this part; stays open on the roster for a later part
+Carry 4: not built in this part; stays open on the roster for a later part
+Carry 5: not built in this part; stays open on the roster for a later part
+Carry 6: not built in this part; stays open on the roster for a later part
+Carry 7: not built in this part; stays open on the roster for a later part
+Carry 8: not built in this part; stays open on the roster for a later part
+Carry 9: not built in this part; stays open on the roster for a later part
+Carry 10: not built in this part; stays open on the roster for a later part
+Carry 11: not built in this part; stays open on the roster for a later part
+Carry 12: not built in this part; stays open on the roster for a later part
+Carry 13: not built in this part; stays open on the roster for a later part
+Carry 15: not built in this part; stays open on the roster for a later part
+Carry 16: not built in this part; stays open on the roster for a later part
+Carry 18: not built in this part; stays open on the roster for a later part
+Carry 19: not built in this part; stays open on the roster for a later part
+Carry 20: not built in this part; stays open on the roster for a later part
+Carry 21: not built in this part; stays open on the roster for a later part
+Carry 23: not built in this part; stays open on the roster for a later part
+Carry 24: not built in this part; stays open on the roster for a later part
+Carry 26: not built in this part; stays open on the roster for a later part
+Carry 27: not built in this part; stays open on the roster for a later part
+
 The cause of the observed wrong checkout is still unproven. The private ref removes the FETCH_HEAD candidate. The assertion turns any other cause into an OWED line that names both heads, where at the base the push went through from the wrong head.
 
 ## Head
@@ -65,29 +89,3 @@ none
 ## Friction
 
 none
-
-## Carries not built in this part
-
-Carry 1: not built in this part; stays open on the roster for a later part
-Carry 2: not built in this part; stays open on the roster for a later part
-Carry 3: not built in this part; stays open on the roster for a later part
-Carry 4: not built in this part; stays open on the roster for a later part
-Carry 5: not built in this part; stays open on the roster for a later part
-Carry 6: not built in this part; stays open on the roster for a later part
-Carry 7: not built in this part; stays open on the roster for a later part
-Carry 8: not built in this part; stays open on the roster for a later part
-Carry 9: not built in this part; stays open on the roster for a later part
-Carry 10: not built in this part; stays open on the roster for a later part
-Carry 11: not built in this part; stays open on the roster for a later part
-Carry 12: not built in this part; stays open on the roster for a later part
-Carry 13: not built in this part; stays open on the roster for a later part
-Carry 15: not built in this part; stays open on the roster for a later part
-Carry 16: not built in this part; stays open on the roster for a later part
-Carry 18: not built in this part; stays open on the roster for a later part
-Carry 19: not built in this part; stays open on the roster for a later part
-Carry 20: not built in this part; stays open on the roster for a later part
-Carry 21: not built in this part; stays open on the roster for a later part
-Carry 23: not built in this part; stays open on the roster for a later part
-Carry 24: not built in this part; stays open on the roster for a later part
-Carry 26: not built in this part; stays open on the roster for a later part
-Carry 27: not built in this part; stays open on the roster for a later part
