@@ -23100,6 +23100,54 @@
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER): triage s14-12 2026-11-11: P596 not-started sibling of R10-GH-READ-RESIDUE (p2 in flight), per orchestrator rule; triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c"
    }
+  },
+  {
+   "group": "R10-PRODUCT-PAGE-REDESIGN",
+   "lane": "UI",
+   "kind": "feature",
+   "class": "ux",
+   "severity": "medium",
+   "size": "L",
+   "wave": 7,
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "after": [],
+   "files": [
+    "docs/index.html",
+    "tests/doc_claims.py",
+    "tests/closure.py",
+    "tests/closures.json",
+    "dev/audit/harnesses"
+   ],
+   "hot_files": [
+    "docs/index.html"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "fixerModel": "fable",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "fable",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "design review of the note at design/R10-PRODUCT-PAGE-REDESIGN (size L, decision 0014); fixer only on Design review: approve; no predecessor",
+    "note": "feature triage f3 for the orchestrator, 2026-11-11: owner decision of 2026-11-11 routed as a new group, because no not-started group edits the page's layout; the dashboard card redesign is declined in the same decision and no card work is routed; overlap admitted (R10-USER-DOCS-VERIFY): feature triage f3 2026-11-11: owner decision 2026-11-11, product page redesign as a new fable group; shares only tests/doc_claims.py with R10-USER-DOCS-VERIFY, which is set to run after it",
+    "pr": null
+   },
+   "brief": "Owner decision (tvofi, 2026-11-11): \"I decide leave the card as is, and fold in the design update of the web page in the next group that touches the page, or a new fable group\". Two things follow. The dashboard card redesign is declined: the card stays as shipped and this group edits no file under custom_components/heatpump_optimizer/www/. The product page, docs/index.html, is rebuilt to the chosen design: the scroll story of one planned day in the How it works section, with the first-week timeline and the control-path chooser of the calmer direction grafted on. The design is the note on this group's design ref, written from prototypes that are not in the repository; the note carries every token, the new markup, CSS and script, the chart generator's whole text, the fallbacks and the acceptance checks, and the fixer builds from it alone. Read it whole before the first edit; a point the note leaves open is a question to the orchestrator, never a guess. Shape, in short. (1) docs/index.html stays one file with no third-party request; the section anchors, every outbound link and every sub-page link keep their base values, and nothing here touches .github/workflows/pages.yml or the plan page it stages beside the site. (2) The illustrative day is committed in the page as inline SVG, written between marker comments by a new generator beside tools/site/build_docs.mjs; the generator has a write mode, a check mode and a self-test, and tests/doc_claims.py gains one pin in check_product_page that fails when the page's chart is not the generator's output. (3) Every sentence of fact stays quoted from its README.md section under its source mark; the hour axis and the chooser's fourth label carry the copy mark, because site_findings refuses a digit or an unquoted sentence outside a claim. (4) The page works without script and with reduced motion as the note's fallback table says; no saving, percentage or currency figure appears in copy or can be read off the chart. (5) The new tracked files are classified in tests/closure.py or measured into tests/closures.json on Linux (gate-scoping.md), and tests/structure.py is measured before and after. Evidence: the failing test first is the new pin, red while the page carries no generated chart; the mutation proof targets that pin; the null control is the generator's check mode unchanged over two runs and red after one price in its preset changes; a browser harness under dev/audit/harnesses/ runs the note's acceptance list at the four widths in both themes, with script off and with reduced motion, and its output goes in the pull-request body with screenshots described, not attached. No finder harness: owner request. User-facing page: writing-for-agents.md does not govern its copy. Fixer model fable, by the owner's decision. Part of #201."
   }
  ]
 }
