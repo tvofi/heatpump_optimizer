@@ -23993,6 +23993,50 @@
     "next_step": "fixer (M, policy, merges on the mandate approval)",
     "note": "triage s14 batch 200 P626; RCA R10-RCA-PUSHER-CENSUS-ESCAPE C1, accepted under the mandate (policy scope); overlap admitted (R10-GATE-DEFER-BARRIER, R10-REVIEW-DISPATCH-RESIDUE, R10-GH-READ-RESIDUE-P3, R10-PROCESS-SLIM, R10-HOTFIX-RESTORE-BASE-SKEW): distinct seams; overlap admitted (R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3): triage s14 batch 200 P626 ACCEPT: RCA R10-RCA-PUSHER-CENSUS-ESCAPE C1 introduced-red barrier, under the mandate (policy scope)"
    }
+  },
+  {
+   "group": "R10-FLY-OPENER-STALE-ENV",
+   "kind": "instrument",
+   "class": "instrument",
+   "size": "S",
+   "effort": "medium",
+   "severity": "high",
+   "lane": "C",
+   "wave": 1,
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/open_driver.py",
+    "tools/audit/seat/open_driver_selftest.py",
+    "tools/audit/seat/instruments/open_driver.py.md"
+   ],
+   "hot_files": [
+    "tools/audit/seat/open_driver.py"
+   ],
+   "owner_gate": null,
+   "fixture": false,
+   "rca": [],
+   "findings": [],
+   "fixes": [],
+   "issues": [],
+   "brief": "triage: dev/programme/triage/s6-batch201.md#P627 at 51df6039fc\n\nInstrument fix, S. The opener driver (tools/audit/seat/open_driver.py) treats every rc 1 from open_pr as the branch's failure: backoff of 1800 s doubling to 7200 s, and stuck after MAX_TRIES. But open_pr's STALE CHECKOUT refusal is the environment's, and rotating the tools checkout cures it. Over 29 h of the driver log, STALE CHECKOUT is 14 of 22 failures (64%) across 11 topics, and one topic reached stuck. On 2026-11-11 it delayed the merge-stopping hotfix R10-HOTFIX-GATE-REDISPATCH-LOOP from 13:34:54Z to 13:54Z, after the checkout had already rotated at 13:44:40Z.\n\nItem: a STALE CHECKOUT result records the tools checkout HEAD it was refused at. It sets no backoff and does not count toward MAX_TRIES. The topic is retried on the first pass after that HEAD changes, and not before, so it cannot spin. This is the same rule merge_train applies to a [HOLDER] skip. All other rc 1 results (merge conflicts, push failures) keep the existing backoff and stuck rule unchanged. Update the instrument doc.\n\nAcceptance, in open_driver_selftest.py:\n- (i) A STALE CHECKOUT result with an unchanged HEAD is not retried, sets no backoff and does not count toward stuck.\n- (ii) After a HEAD change, it is retried on the next pass.\n- (iii) Null control: a merge-conflict rc 1 still backs off 1800 s and counts toward MAX_TRIES.\n- (iv) Mutation: treating every rc 1 as environmental turns (iii) red, and dropping the HEAD key turns (i) red.\n- (v) A replay of the three 13:34:54Z refusals against a HEAD change at 13:44:40Z retries them on the first pass after it.\n\nOut of scope: the beat's freshness arm. It is the orchestrator's session script, changed locally under P627 (b).\nOverlap admitted: R10-SEAT-IDENTITY-P5 (open_driver.py; its seam is the generation token and the opener stand-in, which is distinct).",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (S)",
+    "note": "triage s14 batch 201 P627; overlap admitted (R10-SEAT-IDENTITY-P5): distinct seam; overlap admitted (R10-SEAT-IDENTITY-P5): triage s14 batch 201 P627 ACCEPT narrowed (a): open_driver keys a STALE CHECKOUT refusal on the tools checkout HEAD, no backoff"
+   }
   }
  ]
 }
