@@ -1,0 +1,70 @@
+## M1 price 3.0->3.4
+ tools/site/day_chart.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+day_chart: self-test OK
+FAIL price: the page's markup is not the generator's
+FAIL price: the page's markup is not the generator's
+rc=1
+  FAIL the page's illustrative chart is its generator's output, and the generator's self-test holds  [day_chart: self-test OK; FAIL price: the page's markup is not the generator's; FAIL price: the page's markup is not the generator's; ]
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+1 of 316 checks FAILED
+day_chart: self-test OK
+day_chart: docs/index.html carries the generator's chart
+restored rc=0
+## M3 run: true
+496-        id: day-chart
+497-        if: steps.scope.outputs.day-chart == 'true'
+498:        run: node tools/site/day_chart.mjs --self-test
+499-
+500-      # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
+501-      # well-formed comment object (#541 comment 5625671141). The countermeasure
+ .github/workflows/governance.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  UNWIRED tools/site/day_chart.mjs: no workflow run line names its self-test
+selftest_wiring: 131 self-testing, 130 wired, 1 unwired
+## M4 drop day-chart row
+MODE: SCOPED -- 18 step(s) run
+  run policy-lint-mutants
+## re-record day-chart row (re-derivation)
+OK       0.1s day-chart
+OK       0.0s unread
+selftest_scope: recorded 1 step(s) into /tmp/claude-0/wt/tools/ci/selftest_closures.json; 0 failed [], 0 broken trace(s)
+(no diff = row re-derives identically)
+## M4 (retry, nested key removed)
+ tools/ci/selftest_closures.json | 17 +----------------
+ 1 file changed, 1 insertion(+), 16 deletions(-)
+MODE: FULL -- every step runs (the table is stale: its steps differ from the workflow's: missing ['day-chart'], extra [])
+(note: the first '## M4' header above recorded an unmutated run after a failed planting script; the retry below is the mutation)
+## M2 legend span deleted
+ docs/index.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL 7 sentences: every text node under a source mark at the base is on the page at the head  [124 marked nodes at the base; missing ["Control path"]]
+RESULT fails=1
+RESULT base=cbd23f1c8bf6
+## M5 reviewer: one hot-water run (L86)
+ tools/site/day_chart.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL self-test: exactly one hot-water run in span 1
+FAIL self-test: the hot-water run of span 1 ends before its demand window opens
+FAIL self-test: two hot-water runs in the day
+FAIL self-test: a flat price gives equal cost for both
+rc=1
+## M6 reviewer: planner picks the dearer span pair (L84)
+ tools/site/day_chart.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL self-test: space heating sits in the hours the design note names
+FAIL self-test: hot water sits in the hours the design note names
+FAIL self-test: stored heat by hour is the design note's
+rc=1
+## M7 reviewer: DHW hour also allowed to space-heat (L61 continue removed)
+ tools/site/day_chart.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+day_chart: self-test OK
+rc=0
+restored rc=0
+## M7 under --check and doc_claims
+day_chart: self-test OK
+day_chart: docs/index.html carries the generator's chart
+rc=0

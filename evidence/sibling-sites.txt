@@ -1,0 +1,42 @@
+.github/workflows/pages.yml:3:# The product page (docs/index.html) and the documentation sub-pages, served by
+.github/workflows/pages.yml:10:# * It publishes docs/index.html, docs/site/**, every tracked *.png and *.svg
+.github/workflows/pages.yml:134:          git ls-files -z -- docs/index.html 'docs/site/*' 'docs/*.png' 'docs/*.svg' |
+.github/workflows/pages.yml:141:          test -f _site/index.html
+.github/workflows/pages.yml:155:          if [ -f "$RUNNER_TEMP/plan-site/plan/index.html" ]; then
+.github/workflows/pages.yml:157:            cp "$RUNNER_TEMP/plan-site/plan/index.html" _site/plan/index.html
+.github/workflows/pages.yml:168:          test -f _site/index.html
+tests/closure.py:689:    "docs/index.html",
+tests/closure.py:706:    # a third-party @import or url() in it; the route docs/index.html took.
+tests/closures.json:1297:   "docs/index.html",
+tests/doc_claims.py:23:  * product page pin -- R9-WEB-1 (docs/index.html: every data-src claim is in
+tests/doc_claims.py:2239:# docs/index.html persuades, so it is where stale prose would live longest. Its
+tests/doc_claims.py:2257:SITE_PAGE = ROOT / "docs" / "index.html"
+tests/doc_claims.py:2260:# _SITE_REPO already names: pages.yml stages docs/index.html at the site root
+tests/doc_claims.py:2261:# (`cp docs/index.html _site/` -- the step tests/entities.py runs by name), and
+tests/doc_claims.py:2263:# A README link must use this form: repo-relative docs/index.html opens the raw
+tests/doc_claims.py:2415:        return [("anchor", "docs/index.html is absent")], st
+tests/doc_claims.py:2484:    rows = {"docs/index.html" if t.startswith(SITE_PUBLISHED) else os.path.normpath(t) for t in rows}
+tests/doc_claims.py:2522:            if href.split("#")[0] not in {*pages.values(), "index.html"}:
+tests/doc_claims.py:2553:    R.check("docs/index.html exists with claims, features and docs rows (anchor)",
+tests/doc_claims.py:3002:    R.check("the product page is one of the pages read (anchor)", "docs/index.html" in pages, repr(pages))
+tests/doc_claims.py:3477:def coffee_button_findings(readme: str, index_html: str, built: dict[str, str], tree: set[str],
+tests/doc_claims.py:3482:    2. docs/index.html's own <footer>, and 3. the shared footer of every page tools/site/build_docs.mjs renders: an
+tests/doc_claims.py:3494:    foot = re.search(r"<footer\b[^>]*>.*?</footer>", index_html, re.S)
+tests/doc_claims.py:3496:        out.append("docs/index.html: its <footer> has no button linking " + COFFEE)
+tests/doc_claims.py:3497:    if not re.search(r"\.bmc\s*\{[^}]*var\(--accent\)", index_html):
+tests/doc_claims.py:3498:        out.append("docs/index.html: no .bmc rule drawn from var(--accent)")
+tests/doc_claims.py:3772:        ("docs/index.html", (README, page.replace(f'href="{COFFEE}"', 'href="#"', 1), built)),
+tests/entities.py:41306:# `.github/workflows/pages.yml` publishes the product page (docs/index.html),
+tests/entities.py:41331:# (docs/index.html, docs/site/** less markdown, every tracked *.png and *.svg
+tests/entities.py:41336:    "docs/index.html": "<!doctype html>",
+tests/entities.py:41354:_PG_WANT = {"index.html", "site/docs.css", "site/fonts/a.woff2",
+tests/entities.py:41550:    "test -f _site/index.html")
+tests/entities.py:41552:    "rm -rf _site; mkdir -p _site; cp docs/index.html _site/", "true")
+tests/entities.py:41617:        page = Path(tmp) / "plan-site" / "plan" / "index.html"
+tests/entities.py:41620:        if _pg_run(str(add.get("run", "")), repo) != 0 or not (repo / "_site/plan/index.html").is_file():
+tests/entities.py:41621:            out.append("a staged page did not reach _site/plan/index.html")
+tests/layout.json:39:    "docs/index.html",
+tools/site/build_docs.mjs:12:// pages land beside the product page (docs/index.html), and the images they reference keep their docs/ paths. Pages
+tools/site/build_docs.mjs:46:// A row naming an .html file is the product page itself (docs/index.html): the site's front, not rendered from markdown.
+tools/site/build_docs.mjs:99:  if (target === 'docs/index.html') return { href: 'index.html' + (frag ? '#' + frag : '') }
+tools/site/build_
