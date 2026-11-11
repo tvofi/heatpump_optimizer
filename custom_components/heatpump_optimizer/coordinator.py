@@ -1110,11 +1110,9 @@ def _observe_heat_energy(coord: Any, reader: Any, at: datetime) -> None:
     How the meter reads them is :meth:`heat_energy.HeatEnergyMeter.observe_cycle`'s.
     """
     ctx = _ctx_of(coord)
-    meter = heat_energy.meter_of(coord)
-    heat = reader.read(CONF_HEAT_ENERGY_ENTITY)
-    meter.observe_cycle(
-        at, coord._pump_signals, heat, coord._measured_energy, ctx._config.optimization_interval,
-        HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params,
+    heat_energy.meter_of(coord).observe_cycle(
+        at, coord._pump_signals, reader.read(CONF_HEAT_ENERGY_ENTITY), coord._measured_energy,
+        ctx._config.optimization_interval, HOUSE_LOSS_SAMPLE_BOUNDS_H, ctx._thermal_params,
     )
 
 
@@ -1127,10 +1125,12 @@ def _replay_gate(
     :func:`heat_energy.replay_gate`'s, on the freeze without and with this
     run's measured heat and on whether the span folds the scale alone.
     """
-    cfg, heat_kw = _ctx_of(coord)._config, _interval_measured_heat_kw(coord)
+    cfg, heat_kw, meter = _ctx_of(coord)._config, _interval_measured_heat_kw(coord), heat_energy.meter_of(coord)
+    heater_on = coord._immersion_active or coord._pump_signals.electric_heat.resistive_heat
+    bridged = meter.bridges_hot_water(coord._commanded_split(), probe_install(cfg).heat_sees_dhw, heater_on)
     return heat_energy.replay_gate(
         span_heat_kw, interval, replay_freeze(raw, cfg, 0.0), replay_freeze(raw, cfg, heat_kw), heat_kw,
-        heat_energy.meter_of(coord).spans_own_scale)
+        meter.spans_own_scale, bridged)
 
 
 async def _async_earn_heat_basis(coord: Any, heat_kw: float | None) -> None:

@@ -80225,6 +80225,73 @@ R.check(
 )
 
 
+# A hot-water charge inside a counter span (the dwell saw it): the cycle has no
+# space interval, yet the span stays clean where the counter is declared to see
+# the hot water, because the charge's own steps are subtracted at the close.
+# Null controls: the counter declared blind to hot water, an immersion element
+# on, and a cycle the dwell saw on space, keep today's refusal.
+def _he_bridge(sees_dhw, duty=_he.DHW, immersion=False):
+    coord = _t2_house(**{_HE_KEY: "sensor.he", _fb_const.CONF_HEAT_METER_SEES_DHW: sees_dhw})
+    meter = _he.meter_of(coord)
+    meter.counter, meter.cycle = True, (NOW - timedelta(hours=0.5), NOW)
+    meter.dwell.observe(NOW - timedelta(hours=1), duty, None)
+    meter.dwell.observe(NOW, duty, None)
+    coord._immersion_active = immersion
+    return _he_cm._replay_gate(coord, None, None, None)[1]
+
+
+R.check(
+    "a counter span carries a hot-water cycle the dwell saw when the counter sees "
+    "the hot water; blind to it, with the immersion on, or on space it gates",
+    (_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True), _he_bridge(True, duty=_he.SPACE))
+    == (True, False, False, False),
+    f"{(_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True), _he_bridge(True, duty=_he.SPACE))}",
+)
+
+
+def _he_dhw_span(charge):
+    """Two half-hour cycles, 2 kWh on space; with ``charge`` the second is a 5 kWh hot-water charge."""
+    m, reads, duties = _he.HeatEnergyMeter(), (10.0, 12.0, 17.0 if charge else 14.0), (
+        pump_mode.MODE_HEAT, pump_mode.MODE_DHW if charge else pump_mode.MODE_HEAT, pump_mode.MODE_HEAT)
+    ev = None
+    for i, (kwh, duty) in enumerate(zip(reads, duties)):
+        at = NOW + timedelta(hours=0.5 * i)
+        changed = at - timedelta(hours=1) if i == 0 else (at if duty != duties[i - 1] else None)
+        m.observe_mode(at, duty, True, changed)
+        m.observe_counters(at, kwh, None, configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        ev = m.settle({"house": True, "lower": True}, (2.0, 0.0), ("s", at)) or ev
+    return ev
+
+
+_he_dhw_ev = _he_dhw_span(True)
+_he_dhw_heat = _he.span_heat(_he_dhw_ev, 3.0)
+_he_dry_heat = _he.span_heat(_he_dhw_span(False), 3.0)
+R.check(
+    "a span's hot water is the charge cycle's own counter step, not its share of "
+    "the hours: a 5 kWh charge in a 7 kWh hour leaves 2 kW of space heat, where a "
+    "time split reads 3.5 (null control: no charge reads all its heat as space)",
+    _he_dhw_ev is not None and abs(_he_dhw_ev.energy.dhw_kwh - 5.0) < 1e-9
+    and abs(_he_dhw_heat.space_kw - 2.0) < 1e-9
+    and abs(_he_dry_heat.space_kw - _he_dry_heat.heat_kw) < 1e-12,
+    f"{_he_dhw_ev} {_he_dhw_heat} {_he_dry_heat}",
+)
+R.check(
+    "null control: a span with no charge folds no hot water and reads all its heat as space, "
+    "and a fresh meter (no counter, no dwell) bridges no hot-water cycle",
+    _he_dhw_span(False).energy.dhw_kwh == 0.0
+    and not _he.HeatEnergyMeter().bridges_hot_water((0.0, 1.0), True, False),
+    f"{_he_dhw_span(False)}",
+)
+_he_odd = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=8.0))
+_he_blind = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=None))
+R.check(
+    "a span with more hot water than heat, or a charge whose steps went unaccounted, "
+    "reads no space figure rather than a guess",
+    _he.span_heat(_he_odd, 3.0).space_kw is None and _he.span_heat(_he_blind, 3.0).space_kw is None,
+    f"{_he.span_heat(_he_odd, 3.0)} {_he.span_heat(_he_blind, 3.0)}",
+)
+
+
 # The earned basis. A thermal-power install's first replay of a measured heat
 # earns ``measured_heat``: the void path resets the scale before that fold, the
 # basis is saved, and a later fold does not void again. Null controls: the
