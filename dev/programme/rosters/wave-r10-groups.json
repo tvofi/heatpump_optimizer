@@ -24067,7 +24067,8 @@
     "dev/programme/HANDOVER.md",
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_sync.py",
-    "tools/audit/seat/tick_loop.sh"
+    "tools/audit/seat/tick_loop.sh",
+    "tools/audit/seat/verdict_audit.py"
    ],
    "hot_files": [
     "tools/audit/seat/orchestrator_tick.py"
@@ -24121,7 +24122,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "fixer (L, carries are the items)",
-    "note": "orchestrator s14 2026-11-11 split of R10-TICK-RESIDUE unbuilt carries (triage s14-20 measurement: CP slack 0.72 h -> 34 h); overlap admitted (R10-SEAT-IDENTITY-P5): distinct seam; overlap admitted (R10-GATE-DEFER-BARRIER, R10-SEAT-IDENTITY-P5, R10-GH-READ-RESIDUE-P3): orchestrator s14 ruling 2026-11-11: split the 24 unbuilt R10-TICK-RESIDUE carries into a part with no after-edge (triage s14-20 replan: CP slack 0.72 h to 34 h)"
+    "note": "orchestrator s14 2026-11-11 split of R10-TICK-RESIDUE unbuilt carries (triage s14-20 measurement: CP slack 0.72 h -> 34 h); overlap admitted (R10-SEAT-IDENTITY-P5): distinct seam; overlap admitted (R10-GATE-DEFER-BARRIER, R10-SEAT-IDENTITY-P5, R10-GH-READ-RESIDUE-P3): orchestrator s14 ruling 2026-11-11: split the 24 unbuilt R10-TICK-RESIDUE carries into a part with no after-edge (triage s14-20 replan: CP slack 0.72 h to 34 h) | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/tick_loop.sh'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/tick_loop.sh', 'tools/audit/seat/verdict_audit.py']"
    }
   },
   {
