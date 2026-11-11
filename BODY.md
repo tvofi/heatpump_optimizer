@@ -9,6 +9,9 @@ The mutant harness `dev/audit/harnesses/r10_flow_dispatch_mutants.py` was stale 
 
 Not built in this part: Carry 1, Carry 4, Carry 5, Carry 6, Carry 7, Carry 10, Carry 11, Carry 12, Carry 14, Carry 15, Carry 16, Carry 17, Carry 18, Carry 19, Carry 20, Carry 21, Carry 22, Carry 23, Carry 24. Each belongs to another part of this group's split (triage P551, by file); part 3 answers none of them. Carry 0 is not listed here because the review packet does not hold it open.
 
+Carry 25: not built in this part; stays open on the roster for a later part
+Carry 26: not built in this part; stays open on the roster for a later part
+
 ## Head
 
 bd34f6b06b2b4a343cc8a0e80dc750d5c7d2995d, measured on a merge base equal to origin/main a7628041dc02e298c5399003d4c0576391dd5c4e (stamped 2026-11-11T06:58Z).
