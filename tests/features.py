@@ -83229,6 +83229,8 @@ _FB_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
 _FB_SET = "number.fb_return_set"
 _FB_RETURN = "sensor.fb_return"
 _FB_IDS = __import__("itertools").count()
+_FB_LIMIT_KEYS = ("space_setpoint_low_limit_entity", "space_setpoint_high_limit_entity")
+_FB_LIMITS = ("sensor.fb_low_limit", "sensor.fb_high_limit")
 
 
 class _FbCoord:
@@ -83236,7 +83238,7 @@ class _FbCoord:
     flag the simulation sets each pass."""
 
     def __init__(self, *, unit="return", power_entity=True, feedback=None, lift=0.5,
-                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None):
+                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None, limits=(None, None)):
         self.hass = FakeHass({
             _FB_SET: FakeState("26.0", attributes={"min": 15, "max": 45, "step": step}),
             _FB_RETURN: FakeState("25.9", unit="°C"),
@@ -83246,6 +83248,13 @@ class _FbCoord:
             "space_setpoint_unit": unit, "heat_pump_return_temp_entity": _FB_RETURN,
             "flow_min_lift_k": lift, "flow_heat_c": ceiling,
         }
+        # The controller's own limits on the set-point as sensors (a Luxtronik's
+        # inputs 10104 and 10103): a FakeState, or a state string, per side.
+        for key, entity, limit in zip(_FB_LIMIT_KEYS, _FB_LIMITS, limits):
+            if limit is not None:
+                config[key] = entity
+                self.hass.states.set(entity, limit if isinstance(limit, FakeState)
+                                     else FakeState(str(limit), unit="°C"))
         if power_entity:
             config["heat_pump_power_entity"] = "sensor.fb_power"
         if feedback is not None:
@@ -83446,6 +83455,102 @@ R.check(
     "the miss and the repair are today's",
     bool(_fb_basecut["issues"]),
     f"issues at {_fb_basecut['issues'][:3]}",
+)
+
+# Part 3 (#3372 comment 6756915104): the two limits as optional sensors. Read,
+# they bound the loop before it writes, so the controller never has to cut.
+_FB_STEP_UP = {"plan_kw": [0.53] * 8 + [1.2] * 16, "clamp": (10.0, 27.6)}
+_fb_limit_hi = _fb_sim(limits=(None, 27.6), **_FB_STEP_UP)
+_fb_run = _fb_limit_hi["held"].feedback
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3, return limit 27.6 degC read from its sensor: no "
+    "write passes it, so the controller cuts nothing, and no repair is raised",
+    bool(_fb_limit_hi["writes"]) and max(w[1] for w in _fb_limit_hi["writes"]) <= 27.6
+    and _fb_run is not None and _fb_run.cut_hi_c is None and not _fb_limit_hi["issues"],
+    f"highest write {max((w[1] for w in _fb_limit_hi['writes']), default=None)}, "
+    f"cut {None if _fb_run is None else _fb_run.cut_hi_c}, issues {_fb_limit_hi['issues'][:3]}",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 null control: the same block with no limit "
+    "sensor writes past 27.6 degC before the cut is read back",
+    max(w[1] for w in _fb_clamped["writes"]) > 27.6,
+    f"highest write {max(w[1] for w in _fb_clamped['writes'])}",
+)
+# The lower side: a block at 1.2 kW, then 0.53 kW, with a 28.0 degC minimum
+# return target that the wind-down from the start programme runs into.
+_FB_STEP_DOWN = {"plan_kw": [1.2] * 8 + [0.53] * 16, "ceiling": 40.0, "clamp": (28.0, 50.0)}
+_fb_floor_blind = _fb_sim(**_FB_STEP_DOWN)
+_fb_floor = _fb_sim(limits=(28.0, None), **_FB_STEP_DOWN)
+_fb_run = _fb_floor["held"].feedback
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3, minimum return target 28.0 degC read from its "
+    "sensor: no write goes below it and the controller cuts nothing",
+    bool(_fb_floor["writes"]) and min(w[1] for w in _fb_floor["writes"]) >= 28.0
+    and _fb_run is not None and _fb_run.cut_lo_c is None and not _fb_floor["issues"],
+    f"lowest write {min((w[1] for w in _fb_floor['writes']), default=None)}, "
+    f"cut {None if _fb_run is None else _fb_run.cut_lo_c}, issues {_fb_floor['issues'][:3]}",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 null control: the same block with no limit "
+    "sensor writes below 28.0 degC and is cut there",
+    min(w[1] for w in _fb_floor_blind["writes"]) < 28.0
+    and _fb_floor_blind["held"].feedback.cut_lo_c == 28.0,
+    f"lowest write {min(w[1] for w in _fb_floor_blind['writes'])}, "
+    f"cut {_fb_floor_blind['held'].feedback.cut_lo_c}",
+)
+# A limit that cannot be used is absent, never guessed: an unavailable or
+# non-numeric sensor, a fault code outside any water's range, and a pair
+# that is crossed (the two sensors swapped) write what no sensor writes.
+_fb_blind = _fb_clamped["writes"]
+_fb_unusable = {
+    label: _fb_sim(limits=limits, **_FB_STEP_UP)["writes"] == _fb_blind
+    for label, limits in (
+        ("unavailable", (None, "unavailable")),
+        ("not a number", (None, "limit")),
+        ("fault code", (None, 850.0)),
+        ("crossed", (27.6, 10.0)),
+        ("equal", (27.6, 27.6)),
+    )
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3: an unavailable, non-numeric or implausible limit "
+    "sensor, and a crossed or equal pair, write exactly what no limit sensor writes",
+    all(_fb_unusable.values()) and len(_fb_blind) > 10,
+    f"same as no sensor: {_fb_unusable}, {len(_fb_blind)} writes",
+)
+# A limit is a setting: its sensor reports on change only, so a reading days
+# old is still the limit (only ``unavailable`` says the source is gone).
+_fb_old = FakeState("27.6", unit="°C", last_updated=_FB_T0 - timedelta(days=30),
+                    last_reported=_FB_T0 - timedelta(days=30))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3: a limit last reported 30 days ago still bounds "
+    "the loop",
+    _fb_sim(limits=(None, _fb_old), **_FB_STEP_UP)["writes"] == _fb_limit_hi["writes"],
+)
+# The limits act on the loop alone (I1, I3): today's target is not moved by
+# them, so an install the loop does not act on writes the same with them.
+_fb_limit_cells = {
+    label: _fb_sim(minutes=60, limits=(27.0, 27.6), **kw)["writes"]
+    == _fb_sim(minutes=60, **kw)["writes"]
+    for label, kw in (
+        ("indoor", {"unit": "indoor"}),
+        ("no power entity", {"power_entity": False}),
+        ("option off", {"feedback": False}),
+    )
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: an indoor unit, no power entity or the option "
+    "off writes the same with both limit sensors as with neither",
+    all(_fb_limit_cells.values()),
+    f"same: {_fb_limit_cells}",
+)
+_fb_first = _fb_sim(minutes=20, limits=(27.0, None))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I3: the first write of a run is today's inlet "
+    "plus the lift, also below a read minimum (the controller's cut and the repair "
+    "are today's)",
+    bool(_fb_first["writes"]) and abs(_fb_first["writes"][0][1] - (25.9 + 0.5)) < 0.05,
+    f"first write {_fb_first['writes'][:1]}",
 )
 
 
