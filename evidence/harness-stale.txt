@@ -1,2 +1,0 @@
-STALE at b64fbe44: harness mutant part-topic-dropped pattern occurs 0 times in tools/audit/seat/cloud_dispatch.py (the drive aborts: rc 2)
-checked 57 patterns

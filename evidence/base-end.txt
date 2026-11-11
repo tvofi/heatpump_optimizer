@@ -1,0 +1,11 @@
+# at b64fbe44a49f1f4c8aa9aa53f8da6bea64ae6c43 (worktree ~/wt-base), base's own harness:
+$ python3 dev/audit/harnesses/r10_flow_dispatch_mutants.py part-topic-dropped part-coll-topic-off part-coll-self-off
+abort: part-topic-dropped's pattern occurs 0 times
+rc=2
+# head 8af19472's harness file run against b64fbe44's cloud_dispatch.py (failing-first for the new self-test arms):
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=part-topic-dropped failed=3 verdict=killed
+RESULT mutant=part-coll-topic-off failed=0 verdict=SURVIVED
+RESULT mutant=part-coll-id-off failed=1 verdict=killed
+RESULT mutant=part-coll-self-off failed=0 verdict=SURVIVED
+RESULT mutants=4 survived=2
