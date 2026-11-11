@@ -6,7 +6,7 @@ a056bdc8127525d226ca7c1df003176228e961e3, origin/main tip cbd23f1c8bf6185c3a6c10
 
 ## Mutation proof
 
-Predicate mutant: `--allow-escape-sequences` removed from `API_BOOL`; `python3 tools/audit/seat/gh_calls.py --self-test` then fails nothing by itself, so the self-test carries the mutant arm "mutant killed: --allow-escape-sequences dropped from API_BOOL (case 1 would fail)", which asserts the mutated shim refuses `api --allow-escape-sequences repos/o/r/actions/jobs/7/logs` (rc 1) where the real one passes (rc 7).
+Predicate mutant: `--allow-escape-sequences` removed from `API_BOOL`; `python3 tools/audit/seat/gh_calls.py --self-test` the self-test carries the mutant arm "mutant killed: --allow-escape-sequences dropped from API_BOOL (case 1 would fail)", which asserts the mutated shim refuses `api --allow-escape-sequences repos/o/r/actions/jobs/7/logs` (rc 1) where the real one passes (rc 7).
 
 ## Null control
 
