@@ -7,25 +7,4 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-Hotfix for a live defect on the released v7.1.11, reported by the owner (tvofi, 2026-11-11 about 21:27Z, verbatim: "Live bug on v7.1.11. All text in the "Health" Card tab is missing"). It is outside the open-PR cap, at outside-class priority, by the orchestrator's ruling (s14, 2026-11-11). It was not a cost/benefit question.
-
-Observed, from the owner's screenshot (own Home Assistant install, dark theme, card dialog "Heat pump plan", Health tab selected, header chip "1 input stale"):
-(a) Input tiles, 4 + 3 visible: each shows only its status chip ("Fresh", green dot). The input's name, and any value or age text above the chip, are absent.
-(b) The heading "What the model has learned" renders. Its five rows show only the value and bar ("197 W/K", "Window scale 1.00", "99 % of the settings' estimate", "0.7 °C per hour", and one row that is only an em dash). Every row label and explanatory sub-text is absent.
-(c) The "Download diagnostics" button renders with its text. One empty row or panel follows it.
-(d) The heading "First-plan checklist" renders. Its three rows show only the green tick, and every item text is absent.
-Rows keep their height. Headings, values, chips and button text render, and every per-row label or description string is blank.
-(e) The header says one input is stale, but every visible tile reads "Fresh". The view is scrolled, so an eighth tile may sit above the fold. Check whether the stale input is shown at all.
-Not known: light theme, v7.1.10, a fresh install, locale or language, browser, and whether other tabs are hit. v7.1.11 was stamped 2026-11-11T16:08Z. Product merges in v7.1.10..v7.1.11 include #3405 and #3433 (water set-point feedback), #3398 (combi tank; its branch merged the de catalogue and SHIPPED_LANGS into the card) and #3447 (diagnostics location redaction). These are leads only, not a cause.
-
-Work, in order:
-1. Reproduce first, with a failing card test through the browser rig (tests/card_browser.mjs and tests/card_rig.mjs) or tests/card.mjs. It renders the Health tab from a hass state that has inputs, learned-model rows and checklist rows, and asserts that each row's label text is non-empty. It also asserts that a stale input renders as stale, not "Fresh". It runs in every shipped language.
-2. Find the change, in v7.1.10..v7.1.11 or earlier, that blanked the labels. Say whether other tabs or languages are affected.
-3. Fix at the owning seam (the catalogue lookup, the key spelling or the render path that drops the string), not by patching strings in place.
-4. Mutation proof: reverting the fix turns the new test red. Null control: a tab not affected stays green.
-5. The body says why the existing card tests, browser tests and screenshots were green while every Health label was blank.
-Root cause is recorded beside this fix by R10-RCA-CARD-HEALTH-TEXT, never inside it.
-
-After: none
-
-Valid `Carry:` targets (live consumers of R10-HOTFIX-CARD-HEALTH-TEXT: groups after it or sharing its files): R10-CARD-COLLAPSE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P3
+CONTINUATION of R10-HOTFIX-CARD-HEALTH-TEXT (hotfix). Resume from refs/heads/handoff-wip/r10-hotfix-card-health-text at e83de0f05ac6ca086c5541178041778f60d13981 (its BLOCKED.md asked the owner which client showed blank Health-tab labels; its null result was 0 empty labels). REQUIRED READING before anything else: refs/heads/handoff-body/r10-rca-card-health-text at f00f4a0233031ab3dd6d38450d36e29d09bf8abf, file BODY.md (git fetch origin that sha; git show <sha>:BODY.md). The RCA answers the question: the labels are not empty, they are painted at 1.24:1 contrast (computed colour). Fix that, with a failing test first on the computed colour contrast, mutation proof and the null control, and follow the coordinator's ruling stated in your dispatch message. Do not wait for the owner's client details.
