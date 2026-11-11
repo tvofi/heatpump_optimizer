@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_switch_context BOOLOP e764bd7c",
+  "killed_by": "tests/features.py",
+  "old": "        loop_moved=held.feedback is not None and held.feedback.sent_c is not None,",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`loop_moved=held.feedback is not None or held.feedback.sent_c is not None,`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
