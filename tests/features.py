@@ -29966,6 +29966,7 @@ from homeassistant.util import dt as _dtu_pf  # noqa: E402
 
 _pf_mod = _sys_pf.modules[type(_tib).__module__]
 _pf_pull = _pf_mod.pull_prices
+_pf_session = _pf_mod.async_get_clientsession
 _pf_now = _dtu_pf.now().replace(minute=0, second=0, microsecond=0)
 
 
@@ -29979,12 +29980,14 @@ def _pf_fetch(verdict=None, payload=None):
         async def _scripted(*_a, **_k):
             return verdict, payload
         _pf_mod.pull_prices = _scripted
+        _pf_mod.async_get_clientsession = lambda _hass: None
     try:
         _asyncio.run(_tib._fetch_tibber_prices())
     except Exception as err:  # noqa: BLE001 - the class is the assertion
         return err
     finally:
         _pf_mod.pull_prices = _pf_pull
+        _pf_mod.async_get_clientsession = _pf_session
     return None
 
 
