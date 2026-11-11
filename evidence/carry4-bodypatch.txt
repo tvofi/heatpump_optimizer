@@ -1,0 +1,6 @@
+ok   a Dependabot pull request is patched
+ok   policy_lint gets the PR's commit list as --commits-file (Dependabot arm)
+ok   REFUSE: a commit list that cannot be read is no list (never an empty file)
+ok   null control: a non-Dependabot pull request is given no --commits-file
+ok   MUTANT --commits-file dropped: the Dependabot arm no longer passes the list (the dep arm catches it)
+ok   MUTANT commit-list read check deleted: an unreadable list now patches
