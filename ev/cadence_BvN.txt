@@ -1,0 +1,72 @@
+step=10 charge=07:30+10 off=-30
+step=10 charge=07:30+10 off=-10
+step=10 charge=07:30+10 off=+5
+step=10 charge=07:30+10 off=+15
+step=10 charge=07:30+10 off=+25
+step=10 charge=07:30+10 off=+45
+step=10 charge=07:30+40 off=-30
+step=10 charge=07:30+40 off=-10
+step=10 charge=07:30+40 off=+5
+step=10 charge=07:30+40 off=+15
+step=10 charge=07:30+40 off=+25
+step=10 charge=07:30+40 off=+45
+step=10 charge=07:35+15 off=-30
+step=10 charge=07:35+15 off=-10
+step=10 charge=07:35+15 off=+5
+step=10 charge=07:35+15 off=+15
+step=10 charge=07:35+15 off=+25
+step=10 charge=07:35+15 off=+45
+step=15 charge=07:30+10 off=-30
+step=15 charge=07:30+10 off=-10 dip:B(13, 1.8753, 1287)->N(13, 0.9868, 1287)
+step=15 charge=07:30+10 off=+5
+step=15 charge=07:30+10 off=+15
+step=15 charge=07:30+10 off=+25
+step=15 charge=07:30+10 off=+45
+step=15 charge=07:30+40 off=-30
+step=15 charge=07:30+40 off=-10
+step=15 charge=07:30+40 off=+5
+step=15 charge=07:30+40 off=+15
+step=15 charge=07:30+40 off=+25
+step=15 charge=07:30+40 off=+45
+step=15 charge=07:35+15 off=-30
+step=15 charge=07:35+15 off=-10
+step=15 charge=07:35+15 off=+5 dip:B(13, 1.594, 1301)->N(13, 1.1481, 1301)
+step=15 charge=07:35+15 off=+15
+step=15 charge=07:35+15 off=+25
+step=15 charge=07:35+15 off=+45
+step=30 charge=07:30+10 off=-30 dip:B(13, 2.5952, 642)->N(13, 2.4027, 642)
+step=30 charge=07:30+10 off=-10 dip:B(13, 1.8287, 629)->N(13, 1.6343, 629)
+step=30 charge=07:30+10 off=+5 dip:B(13, 1.84, 629)->N(13, 1.6238, 629)
+step=30 charge=07:30+10 off=+15 dip:B(13, 2.2303, 629)->N(13, 2.0143, 629)
+step=30 charge=07:30+10 off=+25
+step=30 charge=07:30+10 off=+45
+step=30 charge=07:30+40 off=-30
+step=30 charge=07:30+40 off=-10
+step=30 charge=07:30+40 off=+5
+step=30 charge=07:30+40 off=+15
+step=30 charge=07:30+40 off=+25
+step=30 charge=07:30+40 off=+45
+step=30 charge=07:35+15 off=-30
+step=30 charge=07:35+15 off=-10
+step=30 charge=07:35+15 off=+5
+step=30 charge=07:35+15 off=+15
+step=30 charge=07:35+15 off=+25
+step=30 charge=07:35+15 off=+45
+step=60 charge=07:30+10 off=-30
+step=60 charge=07:30+10 off=-10
+step=60 charge=07:30+10 off=+5
+step=60 charge=07:30+10 off=+15
+step=60 charge=07:30+10 off=+25
+step=60 charge=07:30+10 off=+45
+step=60 charge=07:30+40 off=-30
+step=60 charge=07:30+40 off=-10
+step=60 charge=07:30+40 off=+5
+step=60 charge=07:30+40 off=+15
+step=60 charge=07:30+40 off=+25
+step=60 charge=07:30+40 off=+45
+step=60 charge=07:35+15 off=-30
+step=60 charge=07:35+15 off=-10
+step=60 charge=07:35+15 off=+5
+step=60 charge=07:35+15 off=+15
+step=60 charge=07:35+15 off=+25
+step=60 charge=07:35+15 off=+45
