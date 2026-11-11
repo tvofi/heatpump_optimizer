@@ -19,4 +19,10 @@ KILLED M17_adoption_unbounded
 KILLED M18_send_before_arm
 KILLED M19_grace_strict
 KILLED M20_restorer_unguarded
+SURVIVED NULL
+KILLED M21_edit_adopts_cut
+KILLED M22_cut_bracket_open
+KILLED M23_arm_ignores_dropped_record
+KILLED M24_prev_not_kept
+KILLED M25_restored_keeps_run
 rc=0

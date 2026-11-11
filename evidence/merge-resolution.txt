@@ -1,0 +1,46 @@
+== three-dot stat origin/main...HEAD
+ .../heatpump_optimizer/pump_arbiter.py             | 196 +++++++++++--
+ .../harnesses/r10_arbiter_off_restore_mutants.py   | 214 ++++++++++++++
+ dev/programme/delivery/3404.md                     |   1 +
+ docs/configuration.md                              |  17 +-
+ tests/closures.json                                |   1 +
+ tests/features.py                                  | 324 ++++++++++++++++++++-
+ tests/guard_pins.py                                |   5 +-
+ .../pump_arbiter.py/_adopt.GUARD_OFF.2e79792f.json |   6 +
+ .../pump_arbiter.py/_adopt.GUARD_OFF.d82bbc77.json |   6 +
+ ...cb2.json => _arbitrate.GUARD_OFF.87a4cba9.json} |   6 +-
+ .../_arbitrate.GUARD_OFF.cac4451e.json             |   6 -
+ .../_arbitrate.GUARD_OFF.deac2794.json             |   6 -
+ .../_arbitrate.GUARD_OFF.f7f7cbce.json             |   6 +
+ .../_arm_space.RETURN_DEL.cbe69d47.json            |   6 +
+ .../_clamp_cut.CMP_BOUND.60328cb2.json             |   6 -
+ .../_clamp_cut.GUARD_OFF.b93bc679.json             |   6 -
+ .../_edited.CMP_BOUND.3ef8ccdb.json                |   6 +
+ .../_held_back.BOOLOP.605f504a.json                |   6 +
+ .../_held_back.BOOLOP.92b8766d.json                |   6 +
+ .../_held_back.BOOLOP.e2fde80c.json                |   6 +
+ .../_held_back.CMP_BOUND.92b8766d.json             |   6 +
+ .../_held_back.GUARD_OFF.92b8766d.json             |   6 +
+ .../_held_back.GUARD_OFF.e2fde80c.json             |   6 +
+ .../_held_back.RETURN_DEL.605f504a.json            |   6 +
+ .../_pump_off.RETURN_DEL.7c441be0.json             |   6 +
+ .../_pump_off.RETURN_DEL.dfd29811.json             |   6 -
+ .../_restorer.GUARD_OFF.48471904.json              |   6 +
+ .../_space_restored.GUARD_OFF.93193bba.json        |   6 +
+ .../pump_arbiter.py/_write.BOOLOP.2f54ce51.json    |   6 -
+ .../pump_arbiter.py/_write.BOOLOP.92b8766d.json    |   6 -
+ .../pump_arbiter.py/_write.GUARD_OFF.1011932d.json |   6 +
+ .../pump_arbiter.py/_write.GUARD_OFF.2f54ce51.json |   6 -
+ .../pump_arbiter.py/_write.GUARD_OFF.92b8766d.json |   6 -
+ .../release.GUARD_OFF.ce8acfd6.json                |   6 +
+ 34 files changed, 828 insertions(+), 92 deletions(-)
+== acb7122c7 parents
+561edf4c8f9b99420013b48ce1d225645ef70b95
+a7628041dc02e298c5399003d4c0576391dd5c4e
+== fresh merge-tree of parents vs recorded merge
+fresh tree: LEDGER-MERGE: resolved tests/closures.json
+fatal: invalid object name 'LEDGER-MERGE'.
+== 4a5abf4a0 parents
+aa33e3e28869b282a8ee2cc6f88f5c6dbd6d2231
+cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf
+fresh tree: 909195e5b8aa46c92d925f404c5a179b3c88e12c recorded: 909195e5b8aa46c92d925f404c5a179b3c88e12c
