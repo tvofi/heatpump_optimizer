@@ -1,0 +1,8 @@
+SURVIVED NULL
+KILLED A1-runner-temp-merged-first
+
+real	27m34.266s
+user	106m30.914s
+sys	0m24.696s
+rc=0
+/opt/hpo/runner-temp/base

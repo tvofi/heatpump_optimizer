@@ -1,0 +1,8 @@
+NOTE body item 7f49a086: dismissed:premise stale, venv-ha is not a suite interpreter.
+NOTE body item 6d8732be: dismissed:needs an owner ruling on a cap raise; the fact is `ci.yml` `workflow_dispatch` with `-f base=<ref>` and no `pr` input.
+NOTE body item cd736041: dismissed:no red measured; `tests/nightly_ha.py` already samples with `_remote_debugging` where it exists.
+NOTE body item 65af5ac0: dismissed:no destination is live. The precondition stays in the carry text of the brief: re-measure base beside head on one box before reading a 3.14 stress memory red.
+NOTE body item bb36f50a: dismissed:the reproduced fault is fixed in this PR, and the other does not reproduce.
+NOTE body item b46fffe8: dismissed:duplicate of Carry 6, not reproduced.
+CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
+rc=0
