@@ -209,9 +209,6 @@ recording (a new selectable script the lanes never ran):
 A change to `tests/closures.json` runs the scripts whose entry differs from
 the merge base's, and those that read the table.
 
-A CI-cost hotfix under `tests/` shows its effect only on a `workflow_dispatch`
-with no `pr` input (`-f base=<ref>` alone); a closed PR's number is refused.
-
 ## The Home Assistant stub
 
 `tests/hastub/` is a minimal stand-in for the parts of `homeassistant` the
