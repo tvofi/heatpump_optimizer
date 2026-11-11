@@ -12384,7 +12384,10 @@ def _cb_type_branches():
 # offset controller's integration name (heat_curve.py) and a research
 # citation for the offset band (const.py), neither a tank type; this branch
 # adds none (`git grep -ciE` over the package's Python sums to 4 on both).
-_CB_VENDOR_BASE = 4
+# R10-HOTFIX-COMBI-CENSUS-MAIN-RED: main at cbd23f1c read 6, two more landed
+# by merges the census never ran beside; all six now name the behaviour, so
+# the base is 0 and any vendor name is growth.
+_CB_VENDOR_BASE = 0
 
 
 _cb_hits, _cb_vendor = _cb_type_branches()
