@@ -1,0 +1,90 @@
+e was hand-resolved
+ok   refused for the handed-off head's own merge, which the outer diffs cannot see
+ok   NO CARRY: a ci: commit that moves the branch's change to another function with the same context
+ok   refused by the ci: guard
+ok   NO CARRY: a commit of the branch's own that moves its change to another function with the same context (L6)
+ok   refused by the re-merge tree check, which the header-free comparison cannot replace
+ok   CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)
+ok   NO CARRY: the same subject touching one more file outside its paths
+ok   NO CARRY: the ledger under another bot's subject, whose paths do not hold it
+ok   NO CARRY: that subject touching a file outside the claim files
+ok   NO CARRY: the ledger commit under the bot's subject but a seat's author (#2059 round 1)
+ok   CARRY: remerge_main.sh's inherited-claims commit, only dropping a claim line
+ok   NO CARRY: the same subject adding a claim line
+ok   CARRY: a merge from main, then the ledger commit it set off (#2024's shape)
+ok   CARRY: a merge of a side branch whose one commit is empty (L6: no PR line changed)
+ok   NO CARRY: a merge of a branch that is not main, its one commit changing a line
+ok   NO CARRY: one merge of main and another branch at once
+ok   CARRY: a merge of a handed-off head that is itself a carried main merge (#2876's shape)
+ok   NO CARRY: a merge of a handed-off head whose main merge changed a byte
+ok   NO CARRY: a rewritten head, not a descendant of the verdict's
+ok   NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)
+ok   CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file
+ok   NO CARRY: a merge from main that changed a context line of the branch's hunk
+ok   NO CARRY: a driver the branch gave its own file, since drivers are read at main
+ok   CARRY: a re-cut merge of the branch's own previous head (#2876's shape)
+ok   CARRY: a claim file resolved to the pure union of both sides
+ok   with the refusing driver's own words kept out of the carry
+ok   NO CARRY: a claim resolution that drops a line
+ok   refused as a claim resolution that is not the union
+ok   NO CARRY: a claim resolution that rewrites a line
+ok   refused as a claim resolution that is not the union
+ok   the fixture's driver resolved the merge, keeping main's cleared claim cleared
+ok   CARRY: a claim file resolved by main's driver, which is not the union
+ok   NO CARRY: the driver's resolution with one hand-added claim line
+ok   refused as neither the union nor the driver's output
+ok   NO CARRY: main's side dropped by hand, which only the head's own driver would write
+ok   refused on main's driver, not the head's
+ok   NO CARRY: a commit of the branch's own that adds a claim line after main's driver resolved the merge
+ok   refused naming the claim file
+ok   CARRY: an empty commit of the branch's own after main's driver resolved the claim file (null control)
+ok   CARRY: the same in a clone with no claim driver configured, read by main's own driver
+ok   the fixture's ledger driver resolved the merge both sides changed
+ok   CARRY: a ledger main's driver resolved, in a clone with no ledger driver configured
+ok   NO CARRY: the same ledger with one value then changed by a commit of the branch's own
+ok   refused naming the ledger
+ok   CARRY: the verdict head plus its delivery-row add
+ok   CARRY: the verdict head itself, no commit after it (null control)
+ok   CARRY: a verdict head holding its row plus a row-edit commit
+ok   CARRY: the add and the edit in one range
+ok   NO CARRY: a row-subject commit that also touches one other file
+ok   refused naming that commit
+ok   NO CARRY: a row commit authored by anyone but tvofi
+ok   refused naming that commit and its author
+ok   NO CARRY: a row commit for #7 writing another pull request's row
+ok   refused on the path its subject binds
+ok   NO CARRY: an ordinary commit changing one test line after the row
+ok   refused naming that commit
+ok   NO CARRY: an ordinary commit changing one budget value after the row
+ok   refused naming that commit
+ok   NO CARRY: a commit of the branch's own that edits a merge-driver file (a budget raise)
+ok   refused naming the driver file
+ok   NO CARRY: a ci: subject by a seat that edits a merge-driver file
+ok   refused naming the driver file
+ok   NO CARRY: a merge from main whose merge-driver file is resolved by hand
+ok   refused naming the driver file
+ok   NO CARRY: a commit of the branch's own that edits the driver file a carried bot commit wrote
+ok   refused naming the driver file
+ok   CARRY: an empty commit of the branch's own after a carried bot commit's driver-file write (null control)
+ok   CARRY: an empty commit of the branch's own after a merge from main (null control)
+ok   CARRY: a revert, an absorb of main and the re-apply (L6)
+ok   NO CARRY: the same with a re-apply one byte away
+ok   CARRY: main rewrote a context line beside the branch's lines in a .md file (P17)
+ok   NO CARRY: the same context rewrite in a .py file (code stays strict)
+ok   refused by the branch's own comparison
+ok   NO CARRY: a .md file where main made one of the branch's + lines its own
+ok   NO CARRY: a .md hunk whose context count main changed
+ok   a merge verdict at V is approved at a head it carries to
+ok   at the live head, and the review says it was carried
+ok   printing the carry it relied on
+ok   a carry whose first fetch failed with git's 502 is fetched again and approved
+ok   after one transient failure and one settle
+ok   REFUSE: a carry fetch git rejected is not fetched again (null control)
+ok   at once, with no settle
+ok   REFUSE: a carry fetch still failing transiently when the read budget is spent
+ok   after 4 fetches, naming the count
+ok   REFUSE: the verdict at V does not carry to a head one byte away (null control)
+ok   saying why
+ok   and nothing was minted or posted
+ok   REFUSE: a carried verdict whose evidence names neither head
+app_approve self-test: 330 checks, 2 failed
