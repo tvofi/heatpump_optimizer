@@ -87,9 +87,13 @@ Read the diagram as four regions.
   and the dashboard card. Each is reached through a Home Assistant entity or
   service, never imported.
 - **The Home Assistant boundary** is where side effects live.
-  `inputs.InputReader` reads the configured input entities and normalises
-  them, and the coordinator, `pump_arbiter` and `early_cutoff.py` read the
-  pump's own control entities back directly;
+  `inputs.InputReader` reads and normalises the sensor inputs it is asked
+  for, and it is not the only reader of entity state: `coordinator.py` reads
+  the price, weather and PV production entities itself, `pump_arbiter`,
+  `pump_signals` and `early_cutoff.py` read the pump's own entities (the
+  slots it is commanded through, its mode, its switch and its defrost flag),
+  `away.py` reads the holiday calendar, and `services.py` and
+  `config_flow.py` look up an entity the user names;
   `coordinator.HeatPumpOptimizerCoordinator` is the orchestration seam that
   calls the core and then writes; `pump_arbiter` writes the pump's mode and
   set-points and owns the power switch; `store.QuarantiningStore` is the
@@ -375,18 +379,17 @@ These instruments keep this page honest:
 
 ## One owner per concern
 
-Each rule below has one owner in the code, so a change to it is made in one
-place.
+Each bullet names the module that owns one rule, and what the rule is.
 
-- **The thermal parameters have one writer.** `coordinator.py` builds a new parameter set and publishes it whole in one assignment, so a service call cannot publish a torn or unclamped set across its await. The coordinator context is a frozen value, replaced whole and never edited.
-- **The live state is published as a copy.** Each cycle owns its own copy of the thermal state, so a restore or an await cannot change the state another reader holds.
-- **One owner per duplicated shape.** The power reader in `inputs.py` converts a reading to kW and refuses a non-finite or out-of-range one. `const.py` owns the finite-float conversion. The hour-of-day conversions are two functions with two rules: `quiet_windows.py` owns the wall clock, where the end of the day is 00:00, and `dhw_schedule.py` owns the window label, where it is 24:00.
-- **One payload read on the entity base.** `entity.py` owns the finite scrub, the payload-number rule and the zone set-point attributes. One mixin in `sensor.py` reads a number at a named path of the payload, for the sensors that each carried their own guard.
-- **A delivered-heat meter input.** An optional heat energy meter gives a measured COP, heat over electric energy. `heat_energy.py` splits a span's heat into hot water and space heating by the pump's mode.
-- **An honest COP state.** `accuracy.py` owns the COP observability state, which reads "not measurable" where no meter makes COP observable.
-- **One rule for scores.** No evidence is a dash with a reason, never zero. One view model in `coordinator.py` is behind the scores and the advisor's restart advice, and it shares one convergence rule with the Health page. No score reads or recomputes a Savings figure.
-- **Learner progress in the payload.** `learner_progress.py` gives each learner's phase, its progress and what it waits for.
-- **One options page template.** `config_flow.py` renders every options page from one field registry.
+- **The thermal parameters have one writer.** `_publish_params` in `coordinator.py` builds a new parameter set, which re-runs the divisor floor, and rebinds the coordinator context and the live model to it. A solve or a learner in the middle of an await keeps the set it read. The coordinator context is a frozen dataclass, replaced whole.
+- **A long computation works on a snapshot of the live state.** In `coordinator.py` a solve takes its own deep copy of the configuration, the parameters and the thermal state, and the away recovery job and the diagnosis each take a copy of the thermal state.
+- **One owner per duplicated shape.** `inputs.py` owns the power conversion: `normalize_power_kw` converts by the entity's declared unit and refuses an unknown one, and `state_power_kw` refuses a reading that is not finite before or after conversion. `const.py` owns the finite-float conversion, `finite_float`. Two functions own what the end of the day reads as: `quiet_windows.wall_clock` folds it to 00:00, and `dhw_schedule.format_clock` keeps a window label's 24:00.
+- **One payload read on the entity base.** `entity.py` owns the finite scrub, the payload-number rule and the zone set-point attributes. One mixin in `sensor.py` reads a number at a named path of the payload.
+- **A delivered-heat counter.** `heat_energy.py` owns the span a delivered-heat kWh counter measured, the time the pump spent in each duty, and the one rule that splits an interval between space heating and hot water: the observed shares, else the plan's split. It imports nothing from Home Assistant; the coordinator reads the entities and calls in.
+- **An honest COP state.** `accuracy.cop_observability` owns the state: no electric meter, then an electric meter with no measured heat, which reads "not measurable", then estimated inputs or a heat meter.
+- **One rule for scores.** `compose_scores` in `coordinator.py` puts the grades on one scale; no evidence is no grade with one reason code, never zero. The restart advice is taken once per cycle for the advisor sensor and the envelope grade, and `house_loss_converged` is the one convergence rule the envelope grade and the Health tab's "learned" both read.
+- **Learner progress in the payload.** `learner_progress.py` gives each thermal learner's phase, its progress and what it waits for.
+- **One options page template.** `config_flow.py` builds the options pages that edit stored fields from one field registry. The setup overview, the factory reset, quick setup and the pre-fill preview build their own forms.
 
 ## Where to start reading
 

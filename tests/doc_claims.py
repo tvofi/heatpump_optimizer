@@ -3273,8 +3273,10 @@ def machinery_edge_findings(text: str, read) -> list[str]:
     An arrow means the actor runs or writes its target, so: every arrow is one labelled line with a verb of
     MACHINERY_VERBS; none starts at a store, `writes` ends at a store and `runs` does not; the arrows and the
     table's rows are the same set, which is what refuses a reversed arrow; a row's quoted text is in the file it
-    cites, and a script actor's cited file is one its node names, which refuses a row reversed with its arrow; and
-    the figure has one entry, a seat nothing points at. A node is named by its label's first line."""
+    cites; a script node names one script and its row cites that script's file, which refuses a row reversed with
+    its arrow and an edge that only a second file grouped into the node performs; and the figure has one entry, a
+    seat nothing points at. A node is named by its label's first line, and a script's file is that line's first
+    word."""
     at = text.find(MACHINERY_HEADING + "\n")
     if at < 0:
         return [f"no {MACHINERY_HEADING!r} section"]
@@ -3288,6 +3290,8 @@ def machinery_edge_findings(text: str, read) -> list[str]:
     nodes = {i: (label.split("<br/>")[0].strip(), _M_KIND[shape], label) for i, shape, label in _M_NODE.findall(fig)}
     name = {i: n for i, (n, _, _) in nodes.items()}
     out = [f"two nodes are named {n!r}" for n in sorted({n for n in name.values() if list(name.values()).count(n) > 1})]
+    out += [f"{n}: a script node names one script, and this names {len(_FILE.findall(n))}"
+            for n, k, _ in nodes.values() if k == "script" and len(_FILE.findall(n)) != 1]
     drawn: set[tuple[str, str, str]] = set()
     for line in fig.splitlines():
         if not _M_ARROW.search(re.sub(r'"[^"]*"', '""', line)):  # a label's `--once` is no arrow
@@ -3315,8 +3319,8 @@ def machinery_edge_findings(text: str, read) -> list[str]:
             out.append(f"{a} -{v}-> {b}: cites `{path}`, which is not a tracked file")
         elif quote not in src:
             out.append(f"{a} -{v}-> {b}: `{path}` no longer holds {quote!r}")
-        if kind.get(a, ("", ""))[0] == "script" and path.rsplit("/", 1)[-1] not in kind[a][1]:
-            out.append(f"{a} -{v}-> {b}: cites `{path}`, which is not a file the actor's node names")
+        if kind.get(a, ("", ""))[0] == "script" and path.rsplit("/", 1)[-1] != a.split()[0]:
+            out.append(f"{a} -{v}-> {b}: cites `{path}`, which is not the script the actor's node names")
     entries = sorted(n for i, n in name.items() if nodes[i][1] != "store" and all(b != n for _, _, b in drawn))
     if len(entries) != 1 or kind[entries[0]][0] != "seat":
         out.append(f"the figure has one entry, a seat nothing points at; it has {entries}")
@@ -3789,7 +3793,13 @@ def check_machinery_edges() -> None:
         ("an arrow reversed together with its row",
          ('loop -->|"runs"| relay', 'relay -->|"runs"| loop', row, row.replace("| loop.sh | runs | relay.sh pass |",
                                                                               "| relay.sh pass | runs | loop.sh |")),
-         "not a file the actor's node names"),
+         "not the script the actor's node names"),
+        ("a row citing a file its node names only below the first line",
+         ('relay["relay.sh pass<br/>two arms"]', 'relay["relay.sh pass<br/>loop.sh"]',
+          "`t/relay.sh`: `push_verdict`", '`t/loop.sh`: `mv "$tmp" "$out"`'), "not the script the actor's node names"),
+        ("a node grouping two scripts", ('loop["loop.sh"]', 'loop["loop.sh, relay.sh"]'), "names one script"),
+        ("a single entry that is a script, not a seat",
+         ('orch(["orchestrator<br/>a person"])', 'orch["orchestrator<br/>a person"]'), "one entry"),
         ("a store drawn as the actor (is read by)", ('loop -->|"writes"| board', 'board -->|"writes"| loop'), "starts at a store"),
         ("a verb that is not runs or writes", ('relay -->|"writes"| bus', 'relay -->|"reads"| bus'), "the verb"),
         ("writes ending at an actor", ('loop -->|"runs"| relay', 'loop -->|"writes"| relay'), "ends at a store"),
