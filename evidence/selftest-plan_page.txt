@@ -1,3 +1,0 @@
-wrote /tmp/tmpzr9pkh87/page.html: 8 groups, closure 2026-01-06T17:14:00Z
-wrote /tmp/tmpzr9pkh87/page.html: 8 groups, closure 2026-01-06T17:14:00Z
-plan_page self-test: 88 checks, 0 failed

@@ -1,0 +1,6 @@
+RESULT mutant=check-cc [('tools/plan/replan.py', 1, 2, ["FAIL closure conditions: the plan states the owner's six (tvofi 2026-11-07), and --check refuses a plan that drops them: ", "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"], [])]
+RESULT mutant=hot-notdone [('tools/audit/seat/plan_page.py', 0, 0, [], [])]
+RESULT mutant=hot-discharged [('tools/audit/seat/plan_page.py', 0, 0, [], [])]
+RESULT mutant=hot-gates [('tools/audit/seat/plan_page.py', 0, 0, [], [])]
+RESULT mutant=hot-render [('tools/audit/seat/plan_page.py', 0, 0, [], [])]
+RESULT mutant=zero-other rc= 0 []
