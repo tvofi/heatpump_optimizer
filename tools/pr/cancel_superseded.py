@@ -58,8 +58,11 @@ import argparse
 import contextlib
 import io
 import json
+import os
 import subprocess
 import sys
+import time
+from pathlib import Path
 
 BOT = "github-actions[bot]"
 ACTIVE = ("queued", "in_progress", "waiting", "pending", "requested")
@@ -98,9 +101,14 @@ def plan(*, event: str, sender: str, branch: str, pr: dict | None, head_sha: str
     return candidates(runs, live_sha=head_sha, branch=branch, run_id=run_id), ""
 
 
+CONFLICT = {"_http": 409}  # what `gh` answers for a cancel GitHub refuses with HTTP 409
+
+
 def gh(args: list[str], method: str = "GET") -> "object | None":
     p = subprocess.run(["gh", "api", "-X", method, *args], capture_output=True, text=True)
     if p.returncode != 0:
+        if method == "POST" and "HTTP 409" in p.stderr + p.stdout:
+            return CONFLICT
         print(f"cancel_superseded: gh api {args[0]} rc={p.returncode}: {p.stderr.strip()[-160:]}")
         return None
     try:
@@ -126,11 +134,52 @@ def run(a: argparse.Namespace, api=gh) -> int:
         if a.dry_run:
             print(f"cancel_superseded: would cancel {rid}")
             continue
-        ok = api([f"repos/{a.repo}/actions/runs/{rid}/cancel"], "POST")
-        print(f"cancel_superseded: cancelled {rid}" if ok is not None
-              else f"cancel_superseded: could not cancel {rid}")
+        post_cancel(api, a.repo, rid, {}, time.time())
     print(f"cancel_superseded: {len(ids)} superseded run(s) of {a.workflow} on {a.branch}")
     return 0
+
+
+ZOMBIES = "cancel-zombies.json"
+
+
+def zombie_file() -> "Path | None":
+    d = os.environ.get("HPO_STATE_DIR")
+    return Path(d) / ZOMBIES if d else None
+
+
+def zombies_read(path: "Path | None") -> dict:
+    """{run id: first-seen epoch} of the runs that answered 409 while listed active."""
+    try:
+        got = json.loads(path.read_text()) if path else {}
+    except (OSError, ValueError):
+        return {}
+    return {int(k): v for k, v in got.items()} if isinstance(got, dict) else {}
+
+
+def zombies_write(path: "Path | None", z: dict) -> None:
+    if path is None:
+        return
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".tmp")
+        tmp.write_text(json.dumps({str(k): v for k, v in sorted(z.items())}))
+        os.replace(tmp, path)
+    except OSError as e:
+        print(f"CANCEL-SWEEP: zombie file unwritable: {e}")
+
+
+def post_cancel(api, repo: str, rid: int, zombies: dict, now: float) -> str:
+    """POST one cancel; "ok", "zombie" (409: recorded in `zombies`, printed once) or "failed"."""
+    got = api([f"repos/{repo}/actions/runs/{rid}/cancel"], "POST")
+    if got is CONFLICT:
+        zombies[rid] = now
+        print(f"cancel_superseded: zombie {rid} (409, not retried)")
+        return "zombie"
+    if got is None:
+        print(f"cancel_superseded: could not cancel {rid}")
+        return "failed"
+    print(f"cancel_superseded: cancelled {rid}")
+    return "ok"
 
 
 def sweep_plan(prs: list[dict], runs: list[dict], bot_heads: set[str], *, repo: str) -> dict:
@@ -203,6 +252,11 @@ def sweep(a: argparse.Namespace, api=gh) -> int:
         return 0
     for t in truncated:
         print(f"CANCEL-SWEEP: truncated: {t} still full after {MAX_PAGES} pages; counts are a lower bound")
+    zfile = zombie_file()
+    zombies = zombies_read(zfile)
+    active = {int(r["id"]) for r in runs}
+    zombies = {k: v for k, v in zombies.items() if k in active}  # gone from the listings: dropped
+    runs = [r for r in runs if int(r["id"]) not in zombies]  # no POST and no commit read for one
     bot_heads: set[str] = set()
     first = sweep_plan(prs, runs, set(), repo=a.repo)
     if first["cancel"]:
@@ -219,17 +273,19 @@ def sweep(a: argparse.Namespace, api=gh) -> int:
                         or ((c.get("commit") or {}).get("author") or {}).get("name") == BOT):
                     bot_heads.add(h.get("sha"))
     res = sweep_plan(prs, runs, bot_heads, repo=a.repo)
+    done = 0
     for rid in res["cancel"]:
         if a.dry_run:
             print(f"cancel_superseded: would cancel {rid}")
             continue
-        ok = api([f"repos/{a.repo}/actions/runs/{rid}/cancel"], "POST")
-        print(f"cancel_superseded: cancelled {rid}" if ok is not None
-              else f"cancel_superseded: could not cancel {rid}")
+        done += post_cancel(api, a.repo, rid, zombies, time.time()) == "ok"
+    if not a.dry_run:
+        zombies_write(zfile, zombies)
     for rid in res["ghosts"]:
         print(f"cancel_superseded: ghost {rid} (no open pull request on its branch)")
-    print(f"CANCEL-SWEEP: cancelled {len(res['cancel'])}, kept {res['kept']} (live head), "
-          f"skipped {res['skipped']} (bot head / not a PR), ghosts {len(res['ghosts'])}")
+    print(f"CANCEL-SWEEP: cancelled {len(res['cancel']) if a.dry_run else done}, kept {res['kept']} (live head), "
+          f"skipped {res['skipped']} (bot head / not a PR), ghosts {len(res['ghosts'])}, "
+          f"zombies {len(zombies)}")
     return 0
 
 
