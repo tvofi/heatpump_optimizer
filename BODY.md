@@ -2,8 +2,9 @@ R10-INTRODUCED-REDS-BARRIER, the class barrier for R10-RCA-PUSHER-CENSUS-ESCAPE 
 
 **This pull request is POLICY.** It changes what a fix reviewer must block on (`dev/governance/roles/fix-review.md` step 11, `dev/governance/rules/defect-root-cause.md`). It merges on the approval under the owner's mandate (policy scope), after a merge verdict. No budget is loosened. The added sentences are paid by cutting spent prose in the same two files: `node tools/policy/policy_lint.mjs --budgets` exits 0 with both files under their per-file caps.
 
-- `merge_train.py`: one rule, `introduced_at` (`introduced_reds` pure). The base is the latest concluded `instrument-self-tests` run at the merge base. No base run counts every head red. The push-only drift step (`Refuse a self-test read set the committed table misses`) is excluded. A step skipped by scoping concludes `skipped` and is never red. An unreadable listing or job is a Stop (rc 2), never an empty list. `classify --pr` reads an introduced red as RED with one `INTRODUCED <step>` line each, so `bus.sh dispatch` and a cloud reviewer's `classify --pr` wait both stop on it. The new `introduced <sha> [--base <sha>]` subcommand prints those lines alone.
-- `review_packet.py`: `introduced_reading` reads the same rule and refuses each step as `introduced-red`. An unreadable input refuses too (fail closed).
+- `merge_train.py`: one rule, `introduced_at` (`introduced_reds` pure). A step is red by `RED_CONCLUSIONS` (`review_packet.RED`, a self-test pins the two equal), so a step `cancelled` or `timed_out` counts, not only `failure`. A head job concluding `timed_out` where the base's did not adds `(the job concluded timed_out)`: a hang the pull request makes behind a step already red at the base hides every later step. The latest run by id is read at each side, concluded or not. A head job still running reads WAIT (rc 3) under `classify --pr` where the required set is green, never GREEN. A job-level `cancelled`, `startup_failure` or `action_required`, or a red job with no red step, is a Stop (rc 2): it reads no step. No base run counts every head red. The push-only drift step (`Refuse a self-test read set the committed table misses`) is excluded. A step skipped by scoping concludes `skipped` and is never red. An unreadable listing or job is a Stop (rc 2), never an empty list. `classify --pr` reads an introduced red as RED with one `INTRODUCED <step>` line each, so `bus.sh dispatch` and a cloud reviewer's `classify --pr` wait both stop on it. The new `introduced <sha> [--base <sha>]` subcommand prints those lines alone.
+- `review_packet.py`: `introduced_reading` defers to `introduced_at` alone (the failure-only gate in front of it is gone) and refuses each name as `introduced-red`. An unreadable input, or a job still running, refuses too (fail closed). `gather`'s check-run keys come from `ci_facts`, the seam its self-test drives.
+- `bus.sh dispatch`: an INTRODUCED red's REPAIR-OWED message names the INTRODUCED lines, not a required context.
 - The base and head job are read through `?check_name=` filtered check-run reads. A main commit carries over 100 check runs, so the packet's unfiltered first page can miss the job.
 - `.github/workflows/governance.yml`: the comment above `instrument-self-tests` no longer says `pr-contract` makes the body answer its red. It now says what holds.
 - `dev/audit/config/bugclasses.json`: class `R10-SELFTEST-RED-INTRODUCED`, barriered by this rule, with `_rca` entry R10-RCA-PUSHER-CENSUS-ESCAPE. The class id also lands in `dev/audit/config/finding.schema.json`'s `class_guess` enum, and `fold_ledger.py sync` regenerates `.claude/workflows/audit-find.js`'s `CLASS_GUESS` from it. The RCA is landed as `dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md`, its figures re-measured at this merge base.
@@ -13,39 +14,53 @@ Alternatives: C2 (a `prepr.sh` census arm) covers one step, not the class. C4 (m
 
 ## Head
 
-fbf6c4dcd9056b8f588a8e24458dc9d08d71f0d8
+537d9f048449dc313760a6826a87d496bb4366f8
+
+## Repair (round 1 verdict at fbf6c4dcd9)
+
+The block: `introduced_at` read only a job concluding `failure` and steps concluding `failure`, so a hang the PR makes (job `timed_out`, step `cancelled`) read 0 and clean. Closed by reading every conclusion in `RED_CONCLUSIONS`, adding the job-level timeout, and refusing what reads no step. The three findings are built here, not carried: M7 (a re-run arm at one head, both directions), M9 (`ci_facts` arm), and the REPAIR-OWED message (bus self-test arm).
+
+Class enumeration (fixer.md step 8), rule: every value a GitHub check run's `status` and `conclusion` and an Actions step's `conclusion` can take, each driven through `introduced_at` by a self-test arm or the harness below. Dispositions: `success`, `skipped`, `neutral` job: clean at no job read (arms). `failure` job: steps read (arms). `timed_out` job: steps read plus the job timeout, subtracted by a base `timed_out` (arms, and its null). `cancelled`, `startup_failure`, `action_required` job, at the head or base: Stop (arms for cancelled at both sides and startup_failure; action_required is the same branch, `hc not in SELFTESTS_STEP_READ`). `queued`/`in_progress` job: WAIT at the head (arm), Stop at the base (same branch as base cancelled). Step `failure`, `cancelled`, `timed_out`: red (arms); step `skipped`, `success`: not red (arms). No run: clean (arm: the prelude skips the job whole). The readers of the rule: `classify --pr`, `introduced`, `review_packet.introduced_reading`; all three now call `introduced_at` with no gate of their own in front of it.
 
 ## Mutation proof
 
-Each mutant was applied to the committed tree and restored by `git checkout`. The checks that went red are below, by self-test name.
+Driver applies each mutant to the committed tree at `537d9f048`, runs the owning self-test(s), restores by `git checkout`; tree clean after. Every mutant KILLED:
 
-- M1, the base subtraction dropped (`introduced_reds` returns every head red): `merge_train.py --self-test` 5 failed: "introduced: red at the head and not at the base is the PR's; one red at both is inherited", "null: the base subtraction is what clears an inherited red", "introduced_cmd: rc 1, one INTRODUCED line per introduced step", "classify --pr reads an introduced red RED", "null: a head red only where its base is (inherited) is GREEN under classify --pr". On real data, the inherited pair `0a2139b1d` against `ee64358be` goes from 0 / rc 0 to 4 / rc 1. Acceptance (b) (`cbd23f1c8b` against `f24d107bd7`) stays 0 under M1, because both jobs are red on the excluded drift step alone. The brief's (d) "turns (b) red" does not hold on that pair, so the inherited pair is the mutation's real-data witness.
-- M2, the head job's fail-closed arm dropped (`return [], ...` for an unreadable head job): 1 failed, "fail closed: the head's job unreadable is a Stop (rc 2), never an empty list".
-- M3, the base job's fail-closed arm dropped (`bs = None`): 1 failed, "fail closed: the base's job unreadable is a Stop (rc 2)".
-- M4, the drift exclusion dropped: 3 failed, "no base run: every head red counts, the push-only drift step still excluded", "the push-only drift step alone red at the head is never introduced", "no base run: every head red but the drift step is INTRODUCED".
-- M5, the packet's fail-closed refusal dropped (`if intro_why.startswith("unreadable")` to `if False`): `review_packet.py --self-test` 4 failed: "fail closed: the head's job unreadable refuses introduced-red", and the same for the base's job, the base's listing and the head's listing.
+- N1 `RED_CONCLUSIONS` reduced to `failure` only: 3 failed (merge_train and review_packet): "one notion of red: merge_train.RED_CONCLUSIONS is this file's RED", "a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused", "a cancelled step inside a failed job is INTRODUCED".
+- N2 `SELFTESTS_STEP_READ` without `timed_out`: 1 failed, "a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused".
+- N3 `JOB_TIMED_OUT` never added: 3 failed, incl. "a hang behind a step already red at the base: the timeout alone is INTRODUCED".
+- N4 a running head job returns `[]`: 2 failed, "a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN", "fail closed: a job still running at the head refuses introduced-red, never reads clean".
+- N5 (verdict M7) `selftest_job` `max` to `min`: 3 failed, "a re-run at one head that went red: the latest run (highest id) is read, its red INTRODUCED", "a re-run at one head that went green reads clean at no job read", and the WAIT arm.
+- N6 a job-level cancelled read as steps: 2 failed, "fail closed: the head's job concluded cancelled is a Stop (rc 2), never a clean read" and the packet's.
+- N7 a red job with no red step not refused: 1 failed, "fail closed: a red head job with no red step is a Stop (rc 2), never a clean read".
+- N8 `classify_cmd`'s WAIT branch dropped: 1 failed, the WAIT arm.
+- N9 (verdict M9) `ci_facts`'s reading replaced by `([], "")`: 1 failed, "gather's ci_facts carries the INTRODUCED reading build refuses (M9: its wiring)".
+- N10 the packet's running-job refusal re-prefixed `pending:`: 1 failed, "fail closed: a job still running at the head refuses introduced-red, never reads clean".
+- N11 `bus.sh` ignoring INTRODUCED lines: 1 failed, "an INTRODUCED red (classify --pr RED, the required set green) owes REPAIR-OWED naming each INTRODUCED line, never a required context".
+
+Failing test first: each arm was added before its production line and run red (merge_train: `NameError: JOB_TIMED_OUT`; review_packet: `TypeError: 'list' object is not callable` at the old eager base read; bus: 1 failed of 175).
 
 ## Null control
 
-- Acceptance (b): `cbd23f1c8b` against `f24d107bd7` (head job 130415622883, base job 130402966157) reads `introduced: 0`, rc 0. Both jobs are red only on the push-only drift step.
-- Inherited reds: `0a2139b1d` against `ee64358be` (jobs 130543139624 and 130489627879) reads 0, rc 0, although both are red on the same 4 steps.
-- A head whose job did not conclude failure costs no job read (self-test arms in both instruments). `classify` without `--pr`, and with `--main`, is unchanged (self-test arm).
+- The verdict's harness (its `ev/unguarded-domain.txt` cases, re-driven through `introduced_at` at each tree), with two nulls:
+  - at `fbf6c4dcd9` (before): job failure + step cancelled, base green: `[]`; job timed_out + step cancelled: `[]` at 0 job reads; job cancelled: `[]` at 0 job reads; step timed_out/cancelled in a failed job: `[]`.
+  - at `537d9f048` (after): `['hang']`; `['(the job concluded timed_out)', 'hang']` at 2 job reads; Stop ("concluded cancelled, which reads no step"); `['a', 'b']`.
+  - nulls, identical at both trees: job failure + step failure, base green: `['hang']`; the same step failing at head and base: `[]`.
+- A timeout the base had too, on the same step, is inherited: GREEN, introduced rc 0 (self-test arm).
+- No `instrument-self-tests` run at the head (the prelude skipped it): GREEN (self-test arm).
+- `classify` without `--pr`, and with `--main`, unchanged (self-test arm).
 
 ## Figures
 
-Measured at origin/main `60413046e3`, 2026-11-11 (`date -u` 14:17Z). Each pair is read by `python3 tools/audit/seat/merge_train.py introduced <head> --base <base>`:
+Measured at origin/main `0e28afd38b`, 2026-11-11 16:20Z (`date -u`). Real data through `review_packet.introduced_reading(head, base)` (filtered reads only):
 
-- (a) `c93903f075` (#3425 head) against `cbd23f1c8b`: 4 INTRODUCED, rc 1 (head job 130479299736, base job 130415622883). The 4 are the sweep template render and the PR opener, PR argument builder and PR updater census steps. `review_packet.introduced_reading` reads the same 4 at the same job ids.
-- (b) `cbd23f1c8b` against `f24d107bd7`: 0, rc 0.
-- Inherited: `0a2139b1d` against `ee64358be`: 0, rc 0.
-- The class at merge time (head = the merge's second parent, base = `git merge-base <m>^1 <m>^2`): #3361 (`8652aa65ce`) has 2 INTRODUCED (the two `selftest_scope.py` steps), rc 1. #3425 (`ee64358be`) has 4 INTRODUCED against `a7628041dc`, rc 1. Both merges would have been refused.
-- (c) The fixed head: R10-HOTFIX-PUSHER-CENSUS is PR #3474, unmerged at this measurement, so it is measured as its head `ccd6055e0f` against its base `60413046e3`. It reads `introduced: 0`, rc 0: the head job 130576626586 concluded success, so no job-step read was made. The base job 130556907811 concluded failure.
-- Cost: `review_packet.introduced_reading` at `c93903f075` takes 2.53 s for its 4 reads (2 filtered check-run listings and 2 job-step reads). On a head whose job did not fail, it makes one listing read.
-- Self-tests: `python3 tools/audit/seat/merge_train.py --self-test` prints 626 checks, 0 failed. `python3 tools/audit/seat/review_packet.py --self-test` prints 103 checks, 0 failed.
-- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` reads `MODE: SCOPED -- 2 script(s) run`. `tests/entities.py` and `tests/harness_headers.py` are both rc 0, and `python3 tests/structure.py` is rc 0.
-- Class enumeration (fixer.md step 8): the seams that let a non-required red reach main unread are the reviewer's packet, the dispatcher's `classify --pr` and the train's merge read. The first two read the rule in this diff. The train's `classify_at` is left unchanged by design (a merge predicate over the required set, decision 0013), and the reviewer's block precedes it. `fold_ledger.py check` reports 0 violations.
-
-Environment note: this container's proxy cannot follow GitHub's `Link` pagination (numeric `repositories/{id}` URLs), so `gh api --paginate` over more than 100 check runs fails here. The figures above were read through a scratch `gh` shim that pages explicitly; the instrument's code path is unchanged.
+- (a) `c93903f075` (#3425 head) against `cbd23f1c8b`: the 4 INTRODUCED steps (sweep template render; PR argument builder; PR opener; PR updater census), head job 130479299736 failure, base job 130415622883 failure, 2.44 s.
+- (b) `cbd23f1c8b` against `f24d107bd7`: 0 (both jobs red on the push-only drift step alone).
+- (c) `ccd6055e0f` against `60413046e3`: 0, the head job concluded success, one listing read, 0.49 s.
+- The CLI `merge_train.py introduced c93903f075 --base cbd23f1c8b` prints `REFUSE selftests: the check runs at c93903f075 could not be read`, rc 2, in this container: its head read is the paginated listing this proxy cannot follow (numeric `repositories/{id}` Link URLs). That is the fail-closed arm, not a clean read; the code path is unchanged from the round reviewed.
+- Self-tests: `python3 tools/audit/seat/merge_train.py --self-test` 638 checks, 0 failed; `python3 tools/audit/seat/review_packet.py --self-test` 109 checks, 0 failed; `bash tools/audit/seat/bus.sh --self-test` 175 checks, 0 failed.
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` reads `MODE: SCOPED -- 3 script(s) run` (doc_claims, entities, harness_headers). `python3 tests/structure.py` passes. `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+- Cost: unchanged on a head whose job is not red (one listing, no job read); a red head adds one `git merge-base`, one filtered base listing and 2 job reads, as before; a `timed_out` head now pays those reads where it paid none.
 
 ## Approval
 
