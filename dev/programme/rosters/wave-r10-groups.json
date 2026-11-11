@@ -20632,7 +20632,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "note": "set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py'] | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py'] | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/tick_loop.sh']"
+    "note": "set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py'] | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py'] | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/owed_unactioned.py', 'tools/audit/seat/beat_jobs.py', 'tools/audit/seat/beatd.jobs.json', 'tools/audit/seat/postmerge.py', 'tools/audit/seat/record_beat.py', 'dev/programme/HANDOVER.md', 'tools/audit/seat/roster_edit.py', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/tick_loop.sh']",
+    "pr": 3425
    }
   },
   {
@@ -20813,7 +20814,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "note": "set-files files ['tools/pr/app_push.sh', 'tools/ci/codescan_wait.py', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/shims'] -> ['tools/pr/app_push.sh', 'tools/ci/codescan_wait.py', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/shims', 'tools/audit/seat/merge_train.py']"
+    "note": "set-files files ['tools/pr/app_push.sh', 'tools/ci/codescan_wait.py', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/shims'] -> ['tools/pr/app_push.sh', 'tools/ci/codescan_wait.py', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/shims', 'tools/audit/seat/merge_train.py']",
+    "pr": 3427
    }
   },
   {
@@ -20863,7 +20865,8 @@
    "brief": "The next plan-page group the owner named on 2026-11-09: the closure rule (later of v10.0.0 and R10-CATALOG-PR), the pre-publish plan.html findings, and the plan_page render defects (#3350 left them: count sentence, wave None leak, part-merged count). Failing fixture first, a mutant per predicate. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
     "stage": "in-progress",
-    "branch": null
+    "branch": null,
+    "pr": 3428
    }
   },
   {
@@ -22215,7 +22218,7 @@
    "resume": {
     "stage": "in-progress",
     "branch": null,
-    "pr": null,
+    "pr": 3426,
     "commit": null,
     "last_step": null,
     "next_step": "fixer, then sonnet review; close Dependabot pull request 3414 as superseded after the merge",
