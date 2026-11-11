@@ -1,0 +1,11 @@
+RESULT M0-baseline: rc=0 merge_train self-test: 610 checks, 0 failed
+RESULT M1-drop-changes-requested-return: rc=1 merge_train self-test: 610 checks, 1 failed
+      FAIL policy post: the owner's own latest CHANGES_REQUESTED posts no mandated approval
+RESULT M2-drop-account-check: rc=1 merge_train self-test: 610 checks, 1 failed
+      FAIL policy post: a gh account that is not the owner posts nothing, and the stop names the account
+RESULT M3-earliest-not-latest: rc=0 merge_train self-test: 610 checks, 0 failed
+RESULT M4-agent-declared-filter-off: rc=0 merge_train self-test: 610 checks, 0 failed
+RESULT M5-dismissed-not-decisive: rc=0 merge_train self-test: 610 checks, 0 failed
+RESULT M6-unreadable-account-admitted: rc=0 merge_train self-test: 610 checks, 0 failed
+RESULT M7-batch-stub-removed: rc=1 merge_train self-test: 610 checks, 1 failed
+      FAIL batch policy post: under --mandate <id> in force, a policy head is approved at admission (one post, citing the mandate) and lands IN the proved batch beside a code head
