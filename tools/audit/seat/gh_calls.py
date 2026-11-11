@@ -586,6 +586,9 @@ def self_test():
         genv = throwaway_git_init(t1, "-q")
         for argv in (["add", "."], ["commit", "-qm", "x"], ["worktree", "add", "-q", str(w / "t2")]):
             subprocess.run(["git", *argv], cwd=t1, env=genv, check=True)
+        # t5: a registered worktree whose gh_comment.py git does not track (the tracked half of the rule)
+        subprocess.run(["git", "worktree", "add", "-q", str(w / "t5")], cwd=t1, env=genv, check=True)
+        subprocess.run(["git", "rm", "-q", "--cached", "tools/pr/gh_comment.py"], cwd=w / "t5", env=genv, check=True)
         throwaway_git_clone(t1, w / "t3", "-q")
         (w / "t4" / "tools" / "pr").mkdir(parents=True)
         (w / "t4" / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
@@ -594,12 +597,16 @@ def self_test():
                 ("the baked tree's own script", "t1", 7),
                 ("a second registered worktree's tracked script", "t2", 7),
                 ("null control: a clone git does not list beside the baked tree", "t3", 1),
-                ("null control: an untracked file of the same path and name", "t4", 1)):
+                ("null control: an untracked file of the same path and name", "t4", 1),
+                ("null control: a registered worktree whose script is not tracked", "t5", 1)):
             check(f"second tree: {label}",
                   run([], via=f"{py} -I {w / tree}/tools/pr/gh_comment.py {W}", shim_text=baked).returncode == want_rc)
         guard_mut = baked.replace('[ "$wl" = "worktree $troot" ] && ok=1', 'ok=1')
         check("mutant: the worktree registration dropped lets an unlisted clone through",
               guard_mut != baked and run([], via=f"{py} -I {w / 't3'}/tools/pr/gh_comment.py {W}", shim_text=guard_mut).returncode == 7)
+        tr_mut = baked.replace(" && git -C \"$troot\" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1", "")
+        check("mutant: the tracked-file predicate dropped lets an untracked script in a registered worktree through",
+              tr_mut != baked and run([], via=f"{py} -I {w / 't5'}/tools/pr/gh_comment.py {W}", shim_text=tr_mut).returncode == 7)
         install(good)
         mut = good.replace("trackers='201 ", "trackers='0 ")
         check("mutant: the guard's issue number changed lets the planted post through",
