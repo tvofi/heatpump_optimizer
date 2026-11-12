@@ -31,9 +31,9 @@
     ".",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "app-push": {
    "run_sha": "26cc360dafe7a744810e0897ce086c705735b348b8f5bc4834ff9f42326ae45b",
@@ -102,7 +102,6 @@
     ".",
     "config",
     "objects",
-    "packed-refs",
     "refs",
     "tests",
     "tools",
@@ -117,9 +116,9 @@
     "tools/policy",
     "tools/pr"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "bare-array-expansion": {
    "run_sha": "88034369e109a71b0f038cb5eea66a1b3947a7c215421e4cd0f53cff38d2578b",
@@ -350,6 +349,7 @@
     "custom_components/heatpump_optimizer/button.py",
     "custom_components/heatpump_optimizer/flow_meter.py",
     "dev/programme/carries/**",
+    "dev/programme/rosters/wave-r10-groups.json",
     "tests/closure.py",
     "tests/closures.json",
     "tests/layout.json",
@@ -369,10 +369,10 @@
    "probes": [
     ".",
     ".github/.gitattributes",
-    ".mailmap",
     "config",
     "dev/audit/rca/R10-RCA-INERT-PREDICT.md",
     "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
+    "dev/programme/rosters",
     "objects",
     "refs",
     "tests",
@@ -389,6 +389,7 @@
    "dirs": [
     ".github/workflows",
     "dev/programme/carries",
+    "dev/programme/rosters",
     "tests",
     "tests/hastub",
     "tools/audit",
@@ -1508,12 +1509,17 @@
     "tools/audit/seat/features_block.py"
    ],
    "probes": [
-    "."
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
    ],
-   "dirs": [],
-   "git": [],
+   "dirs": [
+    "tools/audit/seat"
+   ],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "field-coverage": {
    "run_sha": "20b86cfd3342a7bd463505753b1c3622b295268086573b43619714b2fc13c09e",
@@ -1699,7 +1705,6 @@
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
-    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
@@ -2160,6 +2165,7 @@
     "tools/audit/seat/queue_pre_flight.py",
     "tools/audit/seat/r10_bash_kill_hook_drive.py",
     "tools/audit/seat/r10_deeplink_mutants.py",
+    "tools/audit/seat/r10_disinfection_setpoint_mutants.py",
     "tools/audit/seat/r10_ledger_mutants.py",
     "tools/audit/seat/r10_mandate_guard_mutants.py",
     "tools/audit/seat/r10_roster_ops_mutants.py",
@@ -2423,13 +2429,13 @@
     "tools/ci",
     "tools/release"
    ],
-   "index": false,
-   "objects": true,
    "git": [
     "diff",
     "ls-tree",
     "show"
-   ]
+   ],
+   "index": false,
+   "objects": true
   },
   "moved-path-reader": {
    "run_sha": "5375b0fa5ad187f70df1285f4fc746f92b11055f02ad8c6d4361a43ec0781392",
@@ -2463,6 +2469,7 @@
     "check_loose.py",
     "check_norm.py",
     "check_pinned.py",
+    "check_stm.py",
     "tests",
     "tools",
     "tools/audit",
@@ -2472,9 +2479,9 @@
     "tests",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "obligations-ledger": {
    "run_sha": "eefbac7949accaf538b201aac6c234820c587f6842cf136cd59d51e031e6e9de",
@@ -2497,16 +2504,15 @@
     "tools",
     "tools/audit",
     "tools/audit/seat",
-    "tools/policy/policy_lint.mjs",
-    "tools/pr"
+    "tools/policy/policy_lint.mjs"
    ],
    "dirs": [
     "tests",
     "tools/audit/seat"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "offline-spy": {
    "run_sha": "a51b4727e58f96a4e0a1789ef50339ed073e735eea6652a342706135df2012ba",
@@ -2741,7 +2747,6 @@
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
-    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
@@ -2840,164 +2845,6 @@
    ],
    "index": false,
    "objects": true
-  },
-  "outside-contract": {
-   "run_sha": "025732c1856bbffa8a8875fef362950428daf1f6f935e1d4b723b42eb5e21c29",
-   "files": [
-    ".github/**",
-    "tests/closure.py",
-    "tests/layout.py",
-    "tests/throwaway_git.py",
-    "tools/audit/archscore/**",
-    "tools/audit/carry_audit.py",
-    "tools/audit/check_scopes.py",
-    "tools/audit/fold_ledger.py",
-    "tools/audit/judge_batch.py",
-    "tools/audit/machinery_ratchet.py",
-    "tools/audit/merge_fastpath.py",
-    "tools/audit/merge_throughput.py",
-    "tools/audit/prepare_baseline.sh",
-    "tools/audit/prose_counts_census.py",
-    "tools/audit/repo_root.mjs",
-    "tools/audit/repo_root.py",
-    "tools/audit/repo_root.sh",
-    "tools/audit/round4/**",
-    "tools/audit/seat/INSTRUMENTS.md",
-    "tools/audit/seat/a1_dispatch_arms.sh",
-    "tools/audit/seat/autofix_statuses.sh",
-    "tools/audit/seat/bare_array.py",
-    "tools/audit/seat/beat_jobs.py",
-    "tools/audit/seat/beat_jobs_selftest.py",
-    "tools/audit/seat/beatd.jobs.json",
-    "tools/audit/seat/beatd.py",
-    "tools/audit/seat/beatd_shims/git",
-    "tools/audit/seat/body_patch.sh",
-    "tools/audit/seat/body_push.sh",
-    "tools/audit/seat/bottleneck_check.py",
-    "tools/audit/seat/bus.sh",
-    "tools/audit/seat/carry_fold.py",
-    "tools/audit/seat/ci-watch.sh",
-    "tools/audit/seat/ci_critpath.py",
-    "tools/audit/seat/ci_predict_replay.sh",
-    "tools/audit/seat/ci_probe.py",
-    "tools/audit/seat/closeout.py",
-    "tools/audit/seat/cloud-setup.sh",
-    "tools/audit/seat/cloud_dispatch.py",
-    "tools/audit/seat/cloud_relay.sh",
-    "tools/audit/seat/codeql-triage-poll.sh",
-    "tools/audit/seat/daemonize.py",
-    "tools/audit/seat/delivery_row.sh",
-    "tools/audit/seat/failure_logs.sh",
-    "tools/audit/seat/features_block.py",
-    "tools/audit/seat/fixtures/**",
-    "tools/audit/seat/flow_metrics.py",
-    "tools/audit/seat/gantt_drift.py",
-    "tools/audit/seat/gh_calls.py",
-    "tools/audit/seat/gh_read.py",
-    "tools/audit/seat/gh_read_run.py",
-    "tools/audit/seat/handoff_push.sh",
-    "tools/audit/seat/handover_prompt.py",
-    "tools/audit/seat/heartbeat.sh",
-    "tools/audit/seat/hooks/**",
-    "tools/audit/seat/hooks_setup.py",
-    "tools/audit/seat/ledger.py",
-    "tools/audit/seat/merge_pr.sh",
-    "tools/audit/seat/merge_train.py",
-    "tools/audit/seat/moved_paths.py",
-    "tools/audit/seat/mutant_run.py",
-    "tools/audit/seat/offline_spy.py",
-    "tools/audit/seat/open_driver.py",
-    "tools/audit/seat/open_driver_selftest.py",
-    "tools/audit/seat/open_pr.sh",
-    "tools/audit/seat/orchestrator_tick.py",
-    "tools/audit/seat/outside_intake.py",
-    "tools/audit/seat/outside_intake_selftest.py",
-    "tools/audit/seat/owed_unactioned.py",
-    "tools/audit/seat/plan_audit.py",
-    "tools/audit/seat/plan_page.py",
-    "tools/audit/seat/plan_public.py",
-    "tools/audit/seat/plan_table.py",
-    "tools/audit/seat/policy_reread_check.py",
-    "tools/audit/seat/postmerge.py",
-    "tools/audit/seat/pr_args.sh",
-    "tools/audit/seat/pr_cap.py",
-    "tools/audit/seat/probe_bridge.py",
-    "tools/audit/seat/proof_watch.py",
-    "tools/audit/seat/prune_refs.py",
-    "tools/audit/seat/pulse.py",
-    "tools/audit/seat/queue_pre_flight.py",
-    "tools/audit/seat/r10_bash_kill_hook_drive.py",
-    "tools/audit/seat/r10_deeplink_mutants.py",
-    "tools/audit/seat/r10_disinfection_setpoint_mutants.py",
-    "tools/audit/seat/r10_ledger_mutants.py",
-    "tools/audit/seat/r10_mandate_guard_mutants.py",
-    "tools/audit/seat/r10_roster_ops_mutants.py",
-    "tools/audit/seat/r10_roster_sync_mutants.py",
-    "tools/audit/seat/r10_stamp_round_mutants.py",
-    "tools/audit/seat/r9_rc_bus_fetchhead.sh",
-    "tools/audit/seat/record_beat.py",
-    "tools/audit/seat/record_row.py",
-    "tools/audit/seat/ref_privacy.py",
-    "tools/audit/seat/remerge_main.sh",
-    "tools/audit/seat/remerge_main_selftest.py",
-    "tools/audit/seat/replay_draws.py",
-    "tools/audit/seat/resume_doc.py",
-    "tools/audit/seat/review_carry.py",
-    "tools/audit/seat/review_packet.py",
-    "tools/audit/seat/review_strength.py",
-    "tools/audit/seat/roster_edit.py",
-    "tools/audit/seat/roster_lib.py",
-    "tools/audit/seat/roster_queue.py",
-    "tools/audit/seat/roster_sync.py",
-    "tools/audit/seat/row_position.py",
-    "tools/audit/seat/run_twins.py",
-    "tools/audit/seat/seat_venv.sh",
-    "tools/audit/seat/selftest_wiring.py",
-    "tools/audit/seat/shims/**",
-    "tools/audit/seat/state_docs.py",
-    "tools/audit/seat/survivor_list.py",
-    "tools/audit/seat/sweep_driver.py",
-    "tools/audit/seat/sweep_driver_selftest.py",
-    "tools/audit/seat/sweep_gantt.py",
-    "tools/audit/seat/sweep_render.py",
-    "tools/audit/seat/sweep_template.md",
-    "tools/audit/seat/tick_loop.sh",
-    "tools/audit/seat/tmp_paths.py",
-    "tools/audit/seat/topic_grammar.py",
-    "tools/audit/seat/train.sh",
-    "tools/audit/seat/update_pr.sh",
-    "tools/audit/seat/verdict_audit.py",
-    "tools/audit/seat/verify_eight.py",
-    "tools/audit/seat/wt_sync.sh",
-    "tools/audit/worktree_gc.sh",
-    "tools/ci/**",
-    "tools/coverage/**",
-    "tools/devices/**",
-    "tools/merge/ledger_merge.py",
-    "tools/plan/**",
-    "tools/policy/**",
-    "tools/pr/**",
-    "tools/release/stamp.py",
-    "tools/replay/**",
-    "tools/site/**"
-   ],
-   "probes": [
-    ".",
-    "tests",
-    "tools",
-    "tools/audit",
-    "tools/audit/seat",
-    "tools/policy",
-    "tools/pr"
-   ],
-   "dirs": [
-    ".github/workflows",
-    "tests",
-    "tools/audit/seat"
-   ],
-   "index": true,
-   "objects": false,
-   "git": []
   },
   "outside-intake": {
    "run_sha": "b1886dcd342b9193dbbf0aaac201f4682a3d288dae24feb1275aaba678eecf4d",
@@ -3211,7 +3058,6 @@
     "dev/audit/**",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/machinery_budgets.json",
-    "dev/governance/config/outside_contributors.json",
     "dev/governance/config/policy_budgets.json",
     "dev/governance/config/policy_known_bad.json",
     "dev/governance/decisions/**",
@@ -3338,6 +3184,7 @@
     "dev/archive/rosters/.gitattributes",
     "dev/archive/rosters/wave-1-groups.json",
     "dev/audit/.gitattributes",
+    "dev/audit/config/.gitattributes",
     "dev/audit/harnesses/.gitattributes",
     "dev/audit/harnesses/ci-version-edit/.gitattributes",
     "dev/audit/harnesses/r10_ci_layout_p1/.gitattributes",
@@ -3749,6 +3596,8 @@
     "dev/audit/waves/w5-g5-195-coverage/coverage/.gitattributes",
     "dev/audit/waves/w5-g5-195-coverage/coverage/logs/.gitattributes",
     "dev/governance/.gitattributes",
+    "dev/governance/config/.gitattributes",
+    "dev/governance/config/cfr_exclusions.json",
     "dev/governance/decisions/.gitattributes",
     "dev/governance/dimensions",
     "dev/governance/rules/a-rule.md",
@@ -4090,7 +3939,6 @@
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
-    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
@@ -4146,8 +3994,7 @@
     "tools/audit/seat/gh_read.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
-    "tools/policy/budget_raise_gate.py",
-    "tools/pr/outside.py"
+    "tools/policy/budget_raise_gate.py"
    ],
    "probes": [
     ".",
@@ -4162,17 +4009,16 @@
     "tools/audit/.git",
     "tools/audit/HEAD",
     "tools/audit/seat",
-    "tools/policy",
-    "tools/pr"
+    "tools/policy"
    ],
    "dirs": [
     "tests",
     "tools/audit/seat",
     "tools/policy"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "prepr": {
    "run_sha": "81b5b27a77597fc4f4cc0ef7df3f26ae0c869c3a9ef9ae7a0b76c3db2b8af521",
@@ -4308,6 +4154,7 @@
     "dev/archive/plans",
     "dev/archive/rosters",
     "dev/audit",
+    "dev/audit/config",
     "dev/audit/harnesses",
     "dev/audit/harnesses/ci-version-edit",
     "dev/audit/harnesses/r10_ci_layout_p1",
@@ -4727,6 +4574,7 @@
     "dev/audit/waves/w5-g5-195-coverage/coverage",
     "dev/audit/waves/w5-g5-195-coverage/coverage/logs",
     "dev/governance",
+    "dev/governance/config",
     "dev/governance/decisions",
     "dev/governance/dimensions",
     "dev/governance/roles",
@@ -4986,6 +4834,8 @@
    "run_sha": "9727fc2f45263c9c62fb3d38e423f05fc851d3f7df647baa2ae57be613cfc41f",
    "files": [
     "tools/audit/seat/bus.sh",
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/merge_train.py",
     "tools/audit/seat/pulse.py"
    ],
    "probes": [
@@ -4993,14 +4843,16 @@
     "tools",
     "tools/audit",
     "tools/audit/seat",
+    "tools/policy/policy_lint.mjs",
     "tools/pr/app_comment.sh"
    ],
    "dirs": [
-    "dev/governance/roles"
+    "dev/governance/roles",
+    "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "proof-watcher": {
    "run_sha": "015c72cf518e118b335fc365aae0b198358f3c7e7ff14d3f4ceeef2d07f01271",
@@ -5037,6 +4889,7 @@
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/tmp_paths.py",
     "tools/audit/seat/wt_sync.sh",
+    "tools/pr/figure_block.py",
     "tools/pr/prepr.sh"
    ],
    "probes": [
@@ -5066,9 +4919,6 @@
     "tools/ci/.gitattributes",
     "tools/ci/fixtures/.gitattributes",
     "tools/ci/fixtures/ruleset/.gitattributes",
-    "tools/ci/selftest_closures.json",
-    "tools/ci/selftest_scope.py",
-    "tools/ci/selftest_step.sh",
     "tools/coverage/.gitattributes",
     "tools/devices/.gitattributes",
     "tools/merge/.gitattributes",
@@ -5100,14 +4950,13 @@
     "tests",
     "tools/audit/seat"
    ],
+   "index": false,
+   "objects": true,
    "git": [
-    "?",
     "diff",
     "merge-base",
     "show"
-   ],
-   "index": false,
-   "objects": true
+   ]
   },
   "push-script-decisions": {
    "run_sha": "0d4cd267739feebe0afed25ac121e3abdf84137cf5bed215350242d96518f514",
@@ -5289,7 +5138,6 @@
     ".",
     "config",
     "objects",
-    "packed-refs",
     "refs",
     "tests",
     "tools",
@@ -5299,9 +5147,9 @@
    "dirs": [
     "tests"
    ],
+   "git": [],
    "index": false,
-   "objects": false,
-   "git": []
+   "objects": false
   },
   "review-packet": {
    "run_sha": "5cd83d880b60b227f269115fd2e37e970b8eb1970bd7639d87faf881775b4155",
@@ -5335,7 +5183,6 @@
    ],
    "probes": [
     ".",
-    ".mailmap",
     "dev/governance/dimensions",
     "dev/programme/rosters",
     "package.json",
@@ -5348,7 +5195,8 @@
     "tools/policy/fixtures",
     "tools/policy/package.json",
     "tools/policy/vendor",
-    "tools/policy/vendor/package.json"
+    "tools/policy/vendor/package.json",
+    "tools/pr/figure_registry.json"
    ],
    "dirs": [
     "dev/governance/dimensions",
@@ -5357,13 +5205,13 @@
     "tests",
     "tools/audit/seat"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "ls-tree",
     "merge-base",
     "show"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "review-strength-enumerator": {
    "run_sha": "dd4e2d95f02c3d09150bf9b6b3f512aec576ab8ca32cc18a0cc6aa174e0234dd",
@@ -6001,7 +5849,6 @@
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
-    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
@@ -6674,17 +6521,28 @@
    ],
    "probes": [
     ".",
+    ".gitmodules",
     "config",
     "objects",
     "refs",
     "tools",
+    "tools/.git",
+    "tools/HEAD",
     "tools/audit",
-    "tools/audit/seat"
+    "tools/audit/.git",
+    "tools/audit/HEAD",
+    "tools/audit/seat",
+    "tools/audit/seat/.git",
+    "tools/audit/seat/HEAD"
    ],
    "dirs": [],
-   "git": [],
-   "index": false,
-   "objects": false
+   "index": true,
+   "objects": true,
+   "git": [
+    "fetch",
+    "maintenance",
+    "rev-list"
+   ]
   },
   "topic-grammar": {
    "run_sha": "40ac264ceeb40c59d850cd2d025f52a4c92776ec61b0806bd6c52bd159cec58d",
@@ -6918,7 +6776,6 @@
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
-    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
@@ -6969,7 +6826,6 @@
   "verdict-bus": {
    "run_sha": "a781e6b79a8ef1a37712210f6277a5db65f5e0347994818965eac6f5d54e737d",
    "files": [
-    ".github/CODEOWNERS",
     ".github/workflows/tests.yml",
     "custom_components/heatpump_optimizer/services.yaml",
     "dev/governance/config/corpus_excluded.json",
@@ -6978,19 +6834,57 @@
     "dev/programme/carries/**",
     "dev/programme/rosters/wave-r10-groups.json",
     "tests/card_drift.mjs",
-    "tests/closure.py",
     "tests/closures.json",
     "tests/layout.json",
-    "tests/layout.py",
     "tests/mutation_table.py",
     "tests/structure_budgets.json",
     "tests/throwaway_git.py",
     "tests/throwaway_git.sh",
-    "tools/**"
+    "tools/audit/carry_audit.py",
+    "tools/audit/seat/a1_dispatch_arms.sh",
+    "tools/audit/seat/autofix_statuses.sh",
+    "tools/audit/seat/body_patch.sh",
+    "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/ci-watch.sh",
+    "tools/audit/seat/ci_predict_replay.sh",
+    "tools/audit/seat/cloud-setup.sh",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/codeql-triage-poll.sh",
+    "tools/audit/seat/delivery_row.sh",
+    "tools/audit/seat/failure_logs.sh",
+    "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/handoff_push.sh",
+    "tools/audit/seat/heartbeat.sh",
+    "tools/audit/seat/ledger.py",
+    "tools/audit/seat/merge_pr.sh",
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/open_pr.sh",
+    "tools/audit/seat/pr_args.sh",
+    "tools/audit/seat/proof_watch.py",
+    "tools/audit/seat/r9_rc_bus_fetchhead.sh",
+    "tools/audit/seat/ref_privacy.py",
+    "tools/audit/seat/remerge_main.sh",
+    "tools/audit/seat/review_carry.py",
+    "tools/audit/seat/review_packet.py",
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/seat_venv.sh",
+    "tools/audit/seat/survivor_list.py",
+    "tools/audit/seat/tick_loop.sh",
+    "tools/audit/seat/train.sh",
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/wt_sync.sh",
+    "tools/policy/brief_lint.mjs",
+    "tools/policy/counts.mjs",
+    "tools/policy/dependabot_contract.mjs",
+    "tools/policy/fixtures/required-contexts.json",
+    "tools/policy/policy_lint.mjs",
+    "tools/policy/render_md.mjs",
+    "tools/policy/vendor/markdown-it.min.js",
+    "tools/pr/app_approve.sh"
    ],
    "probes": [
     ".",
-    ".mailmap",
     "config",
     "dev/governance/dimensions",
     "dev/programme/rosters",
@@ -6999,59 +6893,24 @@
     "packed-refs",
     "refs",
     "tests",
-    "tools"
+    "tools",
+    "tools/audit",
+    "tools/audit/seat",
+    "tools/package.json",
+    "tools/policy",
+    "tools/policy/fixtures",
+    "tools/policy/package.json",
+    "tools/policy/vendor",
+    "tools/policy/vendor/package.json",
+    "tools/pr/app_comment.sh",
+    "tools/pr/figure_registry.json"
    ],
    "dirs": [
     "dev/governance/dimensions",
     "dev/programme/carries",
     "dev/programme/rosters",
     "tests",
-    "tools",
-    "tools/audit",
-    "tools/audit/archscore",
-    "tools/audit/archscore/calibration",
-    "tools/audit/archscore/metrics",
-    "tools/audit/archscore/planted",
-    "tools/audit/archscore/planted/perturb",
-    "tools/audit/archscore/planted/redteam",
-    "tools/audit/round4",
-    "tools/audit/round4/D11",
-    "tools/audit/seat",
-    "tools/audit/seat/beatd_shims",
-    "tools/audit/seat/fixtures",
-    "tools/audit/seat/fixtures/beat_jobs",
-    "tools/audit/seat/fixtures/ci_critpath",
-    "tools/audit/seat/hooks",
-    "tools/audit/seat/instruments",
-    "tools/audit/seat/shims",
-    "tools/ci",
-    "tools/ci/fixtures",
-    "tools/ci/fixtures/ruleset",
-    "tools/coverage",
-    "tools/devices",
-    "tools/merge",
-    "tools/plan",
-    "tools/policy",
-    "tools/policy/fixtures",
-    "tools/policy/fixtures/figures",
-    "tools/policy/fixtures/policy-loop",
-    "tools/policy/fixtures/policy-rot",
-    "tools/policy/fixtures/policy-rot/hooks",
-    "tools/policy/fixtures/policy-rot/prepr",
-    "tools/policy/fixtures/policy-rot/prepr/raise",
-    "tools/policy/fixtures/policy-rot/prepr/raise/recorded",
-    "tools/policy/fixtures/policy-rot/prepr/upstream",
-    "tools/policy/fixtures/red-ancestry",
-    "tools/policy/fixtures/red-ancestry/bare",
-    "tools/policy/fixtures/red-ancestry/green",
-    "tools/policy/fixtures/red-ancestry/red",
-    "tools/policy/fixtures/roster-probe",
-    "tools/policy/record-predicate",
-    "tools/policy/vendor",
-    "tools/pr",
-    "tools/release",
-    "tools/replay",
-    "tools/site"
+    "tools/audit/seat"
    ],
    "index": true,
    "objects": true,
