@@ -1,0 +1,7 @@
+  ok   open_pr: a body with a figure block opens (both pushes land, the row is present), the main merge having moved the head
+  ok     mutant mut:opfig2 (its line deleted): the row push is refused, naming another head, and the PR is closed
+  ok     mutant mut:opfig1 (its line deleted): the code push is refused at the merged head, with nothing pushed
+  ok     null control: a body with no figure block opens as before and its row push skips prepr
+  ok   open_pr: a re-run after an open closed at its row push clears the left-over branch and worktree and opens
+  ok     mutant mut:opclear (its line deleted): the re-run fails at git worktree add -b on the left-over branch (the defect)
+pr_args self-test: 205 checks, 0 failed
