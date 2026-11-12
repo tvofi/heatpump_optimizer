@@ -89,7 +89,7 @@ shape() { # <arm>
 mutant() { # <arm>
   local arm=$1 m=$d/m-$1 rc
   rm -rf "$m"; extract "$m"
-  python3 - "$m/$L" "$arm" <<'PY' || { echo "$arm: NOT RUN, the mutation did not apply (no '# mut:selftest-*' marker at this rev?)"; return; }
+  python3 - "$m/$L" "$arm" 2>/dev/null <<'PY' || { echo "$arm: NOT RUN, the mutation did not apply (no '# mut:selftest-*' marker at this rev?)"; return; }
 import sys
 p, arm = sys.argv[1:]
 s = open(p).read().split("\n")
