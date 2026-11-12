@@ -82689,7 +82689,8 @@ class _DsArb:
             timestamps=[_DS_T0, _DS_T0 + timedelta(minutes=15)], power_schedule=[1.0, 1.5],
             dhw_power_schedule=[1.0, 0.0], optimal_setpoints=[21.0, 21.0])
         self.params = SimpleNamespace(
-            dhw_setpoint=48.0, dhw_cycle_temp=None, min_electrical_power=1.0, max_electrical_power=5.0)
+            dhw_setpoint=48.0, dhw_max_temp=60.0, dhw_cycle_temp=None, min_electrical_power=1.0,
+            max_electrical_power=5.0)
         # A FakeEntry, weak-referenceable as a real entry is: off_restore keys its record on it.
         self.entry = _DsFakeEntry(entry_id=entry_id or f"ds{id(self)}")
         self.passes = 0
