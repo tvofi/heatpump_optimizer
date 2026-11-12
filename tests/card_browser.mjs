@@ -356,11 +356,59 @@ function pageStates(plan) {
   return st;
 }
 
+/** The own-text contrast unit, run IN the page (serialized by
+ * `contrastKitScript`): every element that owns a visible text node in
+ * `scope`, its computed colour composited over and measured against the first
+ * opaque background up its tree, crossing shadow hosts. SVG text is out (its
+ * paint is `fill`, its surface a sibling shape). One copy, read by
+ * `themeMismatch` and `themeLiveSwitch`. */
+function hpoContrastKit() {
+  const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+  const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
+    .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+  const ratio = (fg, bg) => { const [l1, l2] = [lum(fg), lum(bg)].sort((a, b) => b - a); return (l1 + 0.05) / (l2 + 0.05); };
+  const bgOf = (el) => {
+    for (let e = el; e; e = e.parentElement || (e.getRootNode() && e.getRootNode().host)) {
+      const c = rgba(getComputedStyle(e).backgroundColor);
+      if (c.length === 3 || (c.length === 4 && c[3] === 1)) return c;
+    }
+    return [255, 255, 255];
+  };
+  const sweep = (scope, label, skipDialog) => {
+    const runs = {};
+    const low = [];
+    let seen = 0;
+    for (const el of scope ? scope.querySelectorAll("*") : []) {
+      if (el.closest("svg") || (skipDialog && el.closest("dialog"))) continue;
+      const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+      if (!own || !el.getClientRects().length) continue;
+      const cs = getComputedStyle(el);
+      if (cs.visibility !== "visible") continue;
+      const bg = bgOf(el);
+      const c4 = rgba(cs.color);
+      const a = c4.length === 4 ? c4[3] : 1;
+      const fg = c4.slice(0, 3).map((v, i) => v * a + bg[i] * (1 - a));
+      const r = ratio(fg, bg);
+      const key = `${el.tagName.toLowerCase()}${el.classList.length ? "." + [...el.classList].join(".") : ""}`;
+      runs[key] = (runs[key] || 0) + 1;
+      seen++;
+      if (r < 4.5) low.push(`${label} ${key} ${r.toFixed(2)}:1`);
+    }
+    return { seen, runs, low };
+  };
+  return { rgba, ratio, bgOf, sweep };
+}
+const contrastKitScript = { content: hpoContrastKit.toString() };
+
 /** R9-UI-3 review, widened by R10-HOTFIX-CARD-HEALTH-TEXT: the card's text in
- * the two theme/darkMode pairings Home Assistant produces but no P9 grid cell
- * renders. HA reports hass.themes.darkMode false for any theme without a dark
- * mode, so a community dark theme paints the card with dark variables and the
- * light literals (and the mirror image under a light theme on a dark profile).
+ * all four theme/darkMode pairings. The two mismatched ones are what Home
+ * Assistant produces but no P9 grid cell renders: HA reports
+ * hass.themes.darkMode false for any theme without a dark mode, so a community
+ * dark theme paints the card with dark variables and the light literals (and
+ * the mirror image under a light theme on a dark profile). The two matched
+ * ones are HA's default theme, measured in this same unit so the four arms are
+ * one check's evidence rather than two lanes' (P662), and so a fix that only
+ * moves the defect from one pairing to another reads red here.
  *
  * The unit is every element that owns a visible text node, on the dashboard
  * tile and on every dialog page the card's own tabs offer, enumerated from
@@ -382,6 +430,8 @@ async function themeMismatch({ browser, check, plan }) {
   // so its every row kind is drawn; every other page reads pageStates.
   const healthSt = healthPageStates(st, FROZEN);
   const cases = [
+    { name: "light theme variables, darkMode false", vars: THEMES.light, dark: false },
+    { name: "dark theme variables, darkMode true", vars: THEMES.dark, dark: true },
     { name: "dark theme variables, darkMode false", vars: THEMES.dark, dark: false },
     { name: "light theme variables, darkMode true", vars: THEMES.light, dark: true },
   ];
@@ -398,6 +448,7 @@ async function themeMismatch({ browser, check, plan }) {
       // table would read black on the dark arm for a reason no install has.
       await page.setContent("<!doctype html><html><head></head><body></body></html>");
       await page.addScriptTag({ path: CARD_SRC });
+      await page.addScriptTag(contrastKitScript);
       return page.evaluate(([vars, st, dark, view]) => {
         const style = document.createElement("style");
         style.textContent = `html{${vars}} body{margin:0;padding:16px;background:var(--card-background-color)}` +
@@ -417,36 +468,9 @@ async function themeMismatch({ browser, check, plan }) {
           tabs = [...root.querySelectorAll("dialog[open] .dlg-tab[data-page]")].map((t) => t.dataset.page);
         }
         const scope = view === "tile" ? root : root.querySelector("dialog[open]");
-        const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
-        const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
-          .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
-        const ratio = (fg, bg) => { const [l1, l2] = [lum(fg), lum(bg)].sort((a, b) => b - a); return (l1 + 0.05) / (l2 + 0.05); };
-        const bgOf = (el) => {
-          for (let e = el; e; e = e.parentElement || (e.getRootNode() && e.getRootNode().host)) {
-            const c = rgba(getComputedStyle(e).backgroundColor);
-            if (c.length === 3 || (c.length === 4 && c[3] === 1)) return c;
-          }
-          return [255, 255, 255];
-        };
-        const runs = {};
-        const low = [];
-        let seen = 0;
-        for (const el of scope ? scope.querySelectorAll("*") : []) {
-          if (el.closest("svg") || (view === "tile" && el.closest("dialog"))) continue;
-          const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
-          if (!own || !el.getClientRects().length) continue;
-          const cs = getComputedStyle(el);
-          if (cs.visibility !== "visible") continue;
-          const bg = bgOf(el);
-          const c4 = rgba(cs.color);
-          const a = c4.length === 4 ? c4[3] : 1;
-          const fg = c4.slice(0, 3).map((v, i) => v * a + bg[i] * (1 - a));
-          const r = ratio(fg, bg);
-          const key = `${el.tagName.toLowerCase()}${el.classList.length ? "." + [...el.classList].join(".") : ""}`;
-          runs[key] = (runs[key] || 0) + 1;
-          seen++;
-          if (r < 4.5) low.push(`${view} ${key} ${r.toFixed(2)}:1`);
-        }
+        const K = hpoContrastKit();
+        const { rgba, ratio } = K;
+        const { seen, runs, low } = K.sweep(scope, view, view === "tile");
         // R9-UI-4: the chart's series and its in-panel text against the
         // panel they are drawn on, whose fill comes from the same darkMode
         // switch as their colours. Series as C4 reads them: the stroke where
@@ -603,6 +627,93 @@ async function cardCollapse({ browser, check, plan, out }) {
     } finally {
       await ctx.close();
     }
+  }
+}
+
+/** R10-HOTFIX-CARD-HEALTH-TEXT, carry 0: HA's default theme in auto mode,
+ * switched live with the Health dialog open, in both directions. The page
+ * models HA's themes mixin in its order: on the OS colour-scheme change it
+ * writes the theme's variables onto the document, and only then hands the
+ * card a hass whose themes.darkMode is the new scheme (a separate update,
+ * modelled one microtask later). Between the two the card reads the new
+ * theme's text against the old darkMode's surface literals -- the mismatched
+ * pairing -- so the Health dialog is measured there ("between write and
+ * hass") and again on the frame after the card's own re-render ("after
+ * re-render"), where the two agree again. Reach: the change handler fired
+ * while the card still held the old darkMode and the old row surface (so the
+ * first measurement IS the mismatched pairing), the dialog is still open on
+ * Health after the re-render, the rows' surface changed, and the row labels
+ * are among the runs measured at both points. */
+async function themeLiveSwitch({ browser, check, plan }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const st = healthPageStates(pageStates(plan), FROZEN);
+  const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 }, deviceScaleFactor: 1, colorScheme: "light" });
+  await ctx.clock.setFixedTime(FROZEN);
+  const page = await ctx.newPage();
+  try {
+    await page.setContent("<!doctype html><html><head></head><body></body></html>");
+    await page.addScriptTag({ path: CARD_SRC });
+    await page.addScriptTag(contrastKitScript);
+    await page.evaluate(([light, dark, st]) => {
+      const vars = (d) => `html{${d ? dark : light}}`;
+      const theme = document.createElement("style");
+      const base = document.createElement("style");
+      base.textContent = "body{margin:0;padding:16px;background:var(--card-background-color)}" +
+        "ha-card{display:block;background:var(--card-background-color);color:var(--primary-text-color)}" +
+        "heatpump-optimizer-card{display:block;width:900px}";
+      const mq = matchMedia("(prefers-color-scheme: dark)");
+      theme.textContent = vars(mq.matches);
+      document.head.append(theme, base);
+      const card = document.createElement("heatpump-optimizer-card");
+      document.body.appendChild(card);
+      card.setConfig({ type: "custom:heatpump-optimizer-card" });
+      card.hass = { states: st, language: "en", themes: { darkMode: mq.matches } };
+      card._onCardClick({});
+      card.dialog.page = "health";
+      card._render();
+      const K = hpoContrastKit();
+      const measure = (label) => {
+        const dlg = card.shadowRoot.querySelector("dialog[open]");
+        const row = dlg && dlg.querySelector(".health-row");
+        return { ...K.sweep(dlg, label, false), open: !!dlg, page: card.dialog.activePage(),
+          surface: row ? getComputedStyle(row).backgroundColor : null, darkMode: card.hass.themes.darkMode };
+      };
+      window.hpoLive = { measure, log: [] };
+      mq.addEventListener("change", (e) => {
+        theme.textContent = vars(e.matches);
+        window.hpoLive.log.push(measure("between write and hass"));
+        queueMicrotask(() => { card.hass = { ...card.hass, themes: { ...card.hass.themes, darkMode: e.matches } }; });
+      });
+    }, [THEMES.light, THEMES.dark, st]);
+    const before = await page.evaluate(() => window.hpoLive.measure("before"));
+    let prev = before;
+    for (const to of ["dark", "light"]) {
+      const from = to === "dark" ? "light" : "dark";
+      await page.emulateMedia({ colorScheme: to });
+      await page.waitForFunction((n) => window.hpoLive.log.length >= n, to === "dark" ? 1 : 2, { timeout: 5000 });
+      const [between, after] = await page.evaluate(() => new Promise((res) =>
+        requestAnimationFrame(() => requestAnimationFrame(() =>
+          res([window.hpoLive.log[window.hpoLive.log.length - 1], window.hpoLive.measure("after re-render")])))));
+      const dir = `${from} to ${to}`;
+      check(`R10 live ${dir} on the default theme reaches the open Health dialog`,
+        between.open && between.darkMode === (from === "dark") && between.surface === prev.surface &&
+          after.open && after.page === "health" && after.darkMode === (to === "dark") &&
+          after.surface !== prev.surface && (between.runs["span.fact-text"] || 0) >= 10 && (after.runs["span.fact-text"] || 0) >= 10,
+        `between: open ${between.open} darkMode ${between.darkMode} surface ${between.surface}; after: open ${after.open} ` +
+          `page ${after.page} darkMode ${after.darkMode}; row surface ${prev.surface} -> ${after.surface}; ` +
+          `span.fact-text ${between.runs["span.fact-text"] || 0} / ${after.runs["span.fact-text"] || 0}`);
+      for (const m of [between, after]) {
+        check(`R10 live ${dir}: every Health text run clears 4.5:1 ${m === between ? "between HA's theme write and its hass update" : "after the card's re-render"}`,
+          m.seen >= 20 && m.low.length === 0,
+          `${m.seen} runs; under 4.5 (${m.low.length}): ${m.low.slice(0, 8).join(", ")}`);
+      }
+      prev = after;
+    }
+    check("R10 live switch starts on the light default theme with the Health dialog open",
+      before.open && before.page === "health" && before.darkMode === false && before.low.length === 0,
+      `${before.seen} runs, darkMode ${before.darkMode}; under 4.5: ${before.low.slice(0, 4).join(", ")}`);
+  } finally {
+    await ctx.close();
   }
 }
 
@@ -3179,6 +3290,8 @@ try {
   // must clear 4.5:1 against what it is painted on, in that mismatch and in
   // its mirror image -- on the tile and on every dialog page.
   await themeMismatch({ browser, check, plan });
+  // Carry 0: the default theme switched live, both directions, dialog open.
+  await themeLiveSwitch({ browser, check, plan });
   await blockerHide({ browser, check, plan });
 
   // R9-UX-8: the narrative rows lay out on a phone and on a desktop.
