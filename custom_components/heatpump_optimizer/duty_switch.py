@@ -7,7 +7,7 @@ return the hot-water leg has just heated. Whether it does, and for how long
 the pump then stays off, is learned per install and per direction. It is
 recorded, persisted and published on the compressor-starts sensor, and the
 arbiter's split of a both step reads its latches through
-:func:`both_step_split` (part B); nothing else reads the estimate. A factory
+:func:`both_step_duty` (part B); nothing else reads the estimate. A factory
 reset voids the store like every other learned estimate.
 
 **Observe** (:class:`DutySwitchLearner`, no Home Assistant object). An
@@ -41,7 +41,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from typing import Any, Callable
 from weakref import WeakKeyDictionary
 
@@ -541,14 +541,19 @@ def starts_attributes(coord: Any) -> dict[str, float]:
     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
 
 
-def both_step_split(coord: Any, start: datetime, dhw_min: float, step_min: float,
-                    min_share_min: float, next_duty: str | None) -> tuple[str, bool]:
-    """:meth:`DutySwitchLearner.split` of the both step starting at ``start``,
-    decided once per step. A pump whose record is not loaded splits as before
-    the learner existed, hot water first, and latches nothing."""
-    rec = _RECORDS.get(coord)
-    if rec is None or not rec.loaded:
-        return "dhw", False
-    if rec.order is None or rec.order[0] != start:
-        rec.order = (start, rec.learner.split(dhw_min, step_min, min_share_min, next_duty))
-    return rec.order[1]
+def both_step_duty(rec: _Record, start: datetime, now: datetime, dhw_min: float, step_min: float,
+                   min_share_min: float, next_duty: str | None) -> str:
+    """The duty the both step starting at ``start`` serves at ``now``: the first
+    for its share, then the other, or the first for the whole step, as
+    :meth:`DutySwitchLearner.split` decided once per step. A record not yet
+    loaded splits as before the learner existed, hot water first, and latches
+    nothing."""
+    first, whole = "dhw", False
+    if rec.loaded:
+        if rec.order is None or rec.order[0] != start:
+            rec.order = (start, rec.learner.split(dhw_min, step_min, min_share_min, next_duty))
+        first, whole = rec.order[1]
+    first_min = dhw_min if first == "dhw" else step_min - dhw_min
+    if whole or now - start < timedelta(minutes=first_min):
+        return first
+    return "space" if first == "dhw" else "dhw"

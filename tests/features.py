@@ -83291,7 +83291,7 @@ R.check(
 
 
 # Part B (the group's ruling on rule c): the arbiter's split of a both step reads
-# the learner's latches through ``duty_switch.both_step_split``.
+# the learner's latches through ``duty_switch.both_step_duty``.
 def _ds_split(learner, plan=None, minutes=range(15), between=None, c=None):
     """The duty ``_share`` serves at each minute of ``minutes``; ``between(c, minute)`` runs before each read."""
     if c is None:
@@ -83472,7 +83472,7 @@ R.check(
     "store calls, and the estimate is read only by the arbiter's split; the module imports none of them; the "
     "pure half of wear stays pure",
     _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
-    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "both_step_split", "detach",
+    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
                      "note_mode_write", "note_pass", "record_for", "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),

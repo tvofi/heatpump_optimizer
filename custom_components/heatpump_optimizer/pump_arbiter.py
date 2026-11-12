@@ -1776,14 +1776,9 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
         return "space"
     if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
         return "dhw"
-    start = result.timestamps[i]
-    first, whole = duty_switch.both_step_split(
-        coord, start, dhw_min, PLAN_STEP_MINUTES, SPLIT_MIN_MINUTES,
-        step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
-    first_min = dhw_min if first == "dhw" else PLAN_STEP_MINUTES - dhw_min
-    if whole or now - start < timedelta(minutes=first_min):
-        return first
-    return "space" if first == "dhw" else "dhw"
+    return duty_switch.both_step_duty(
+        duty_switch.record_for(coord), result.timestamps[i], now, dhw_min, PLAN_STEP_MINUTES, SPLIT_MIN_MINUTES,
+        step_duty(result, utc_shift(result.timestamps[i], timedelta(minutes=PLAN_STEP_MINUTES))))
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
