@@ -601,6 +601,32 @@ def self_test() -> int:
         tr = read_train(td)
         check("read_train reads the spool, the QUEUE_SEEN record and the pid through merge_train's readers",
               tr == {"alive": True, "seen": {"8": {"verdict": "b" * 40, "state": "pending"}}, "spooled": [7]})
+    # The live path: main() --train-state -> snapshot_live -> judge_verdict, the readers of git and REST stubbed.
+    with tempfile.TemporaryDirectory() as td:
+        st, dump = Path(td) / "train", Path(td) / "dump.json"
+        st.mkdir()
+        (st / "queue-add.jsonl").write_text(json.dumps({"pr": 7, "verdict": "7" * 40}) + "\n")
+        (st / "train.pid").write_text(f"{os.getpid()}\n")
+        stubs = {"read_orphans": lambda c, r: {"rc": 0, "out": ""}, "read_last_open": lambda r: int(time.time()),
+                 "read_verdicts": lambda c, r: [{"pr": 7, "kind": "merge", "sha": "7" * 40, "t": int(time.time()) - 5 * H}],
+                 "read_open_heads": lambda r: {"7": "7" * 40}, "read_state": lambda c, r: {"state_ref": None}}
+        saved = {k: globals()[k] for k in stubs}
+        globals().update(stubs)
+        try:
+            def live(*extra):
+                import contextlib, io
+                with contextlib.redirect_stdout(io.StringIO()) as buf:
+                    rc = main(["--checkout", td, "--repo", "o/r", "--dump", str(dump), *extra])
+                return rc, json.loads(dump.read_text()), buf.getvalue()
+            rc, dumped, out1 = live("--train-state", str(st))
+            check("main --train-state reads the live train into the snapshot and the spooled verdict is not STOPPED",
+                  dumped.get("train", {}).get("spooled") == [7] and dumped["train"]["alive"] is True
+                  and "held by train" in out1)
+            rc0, none, out0 = live("--train-state", str(Path(td) / "absent"))
+            check("null control: a train state with no spool and no pid holds nothing, so the verdict is STOPPED",
+                  rc0 == 1 and none.get("train", {}).get("spooled") == [] and none.get("train", {}).get("alive") is False)
+        finally:
+            globals().update(saved)
     # Fail closed: an input not read is UNREADABLE, never ok, and the exit is 2.
     shut = snap(orphans={"rc": 3, "out": "bus: orphans: could not fetch"}, verdicts=None,
                 state_ref=None)
