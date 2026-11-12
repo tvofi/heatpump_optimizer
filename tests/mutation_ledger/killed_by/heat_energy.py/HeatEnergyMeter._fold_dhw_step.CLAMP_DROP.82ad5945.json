@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:HeatEnergyMeter._fold_dhw_step CLAMP_DROP 82ad5945",
+  "killed_by": "tests/features.py",
+  "old": "            self._dhw_kwh += max(0.0, heat_kwh - last) * shares[1] / (shares[0] + shares[1])",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`self._dhw_kwh += (0.0) * shares[1] / (shares[0] + shares[1])`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

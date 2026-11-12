@@ -21,7 +21,8 @@ if [ "${1:-}" = "--self-test" ]; then
   . "$SH/../../../tests/throwaway_git.sh"
   mkcopy() { mkdir -p "$W/$1/audit/seat" "$W/$1/pr"; cp "$SH/ref_privacy.py" "$W/$1/audit/seat/"
     if [ "$2" = real ]; then cp "$SELF" "$W/$1/audit/seat/body_push.sh"; else sed '/# mut:keep$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh"; fi
-    printf '#!/bin/bash\n[ "$1" = --body-check ] && [ -f "$FLAGS/lint" ] && { echo lint-stub-refuses; exit 1; }\nexit 0\n' > "$W/$1/pr/prepr.sh"; }
+    printf '#!/bin/bash\n[ "$1" = --body-check ] && [ -f "$FLAGS/lint" ] && { echo lint-stub-refuses; exit 1; }\nexit 0\n' > "$W/$1/pr/prepr.sh"
+    printf 'import os\nopen(os.environ["FLAGS"] + "/refreshed", "w").close()\n' > "$W/$1/pr/figure_block.py"; }
   mkcopy t real; mkcopy m mutant
   printf '#!/bin/bash\nexit 0\n' > "$W/packer"; printf '#!/bin/bash\n[ -f "$FLAGS/packet" ] && exit 1\nexit 0\n' > "$W/packer"
   printf '#!/bin/bash\n[ -f "$FLAGS/landed" ] && exit 1\nexit 0\n' > "$W/landed"; chmod +x "$W/packer" "$W/landed"
@@ -65,6 +66,8 @@ if [ "${1:-}" = "--self-test" ]; then
   st "$rc" 0 "the healthy run pushes"
   st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "the body" "... to handoff-body/t"
   st "$(keepsha)" none "... and the keep ref is gone"
+  st "$([ -f "$W/flags/refreshed" ] && echo ran || echo no)" ran "the seat-side figure-block refresh ran"
+  drop; run m; st "$([ -f "$W/flags/refreshed" ] && echo ran || echo no)" no "MUTANT refresh deleted: the arm above would fail"
   st "$(git -C "$W/repo" merge-base --is-ancestor "$(git -C "$W/o.git" rev-parse handoff-body/t)" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the published body is not in the code head's ancestry"
   echo "body_push self-test: $N checks, $FAILS failed"; [ "$FAILS" = 0 ]; exit $?
 fi
@@ -151,6 +154,9 @@ if [ -n "$HREF" ]; then
   # The `mutation` red an unpinned site makes is derived, so it is written into
   # `## Red checks` before the lint, not refused at the open (P67).
   (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")
+  # The seat-side writer re-renders every registered figure block at the code head with no
+  # agent turn (card 7 option C); pr-contract only verifies. A refusal aborts the push (set -e).
+  (cd "$ROOT" && python3 -I "$HERE/../../pr/figure_block.py" refresh "$ABS") # mut:keep
   # The red-check arm reads the pull request's head ref over the network, so it
   # is asked for only when origin holds fix/<topic> (a first handoff has none).
   PRB=""

@@ -62401,6 +62401,7 @@ import asyncio as _pa_aio  # noqa: E402
 from types import SimpleNamespace as _PaNS  # noqa: E402
 
 from heatpump_optimizer import pump_arbiter as _pa  # noqa: E402
+from harness import FakeEntry as _pa_entry  # noqa: E402
 from heatpump_optimizer.const import MODE_AUTO as _PA_AUTO, MODE_OFF as _PA_OFF  # noqa: E402
 
 _PA_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
@@ -62445,7 +62446,9 @@ class _PaCoord:
         self._thermal_params = _PaNS(dhw_setpoint=48.0)
         self._current_state = _PaNS(outdoor_temperature=2.0)
         # One store key per coordinator: the storage stub outlives FakeHass.
-        self.entry = _PaNS(entry_id=f"pa{next(_PA_IDS)}")
+        # A FakeEntry, weak-referenceable as a real entry is: off_restore
+        # keys its record on it (R10-ARBITER-OFF-RESTORE).
+        self.entry = _pa_entry(entry_id=f"pa{next(_PA_IDS)}")
         self.set_modes = []
 
     def _plan_is_stale(self):
@@ -63019,6 +63022,259 @@ R.check(
     _pa_offun.writes() == []
     and ("select", "select_option", "Heating + DHW") in _pa_onun.writes(),
     f"{_pa_offun.writes()} / {_pa_onun.writes()}",
+)
+
+# R10-ARBITER-OFF-RESTORE (tvofi, 2026-11-07, "Arbiter too"): off and unload
+# restore the space set-point to the person's baseline, through off_restore.
+from heatpump_optimizer import off_restore as _pa_or  # noqa: E402
+
+
+def _pa_space(coord):
+    """The values written to the space set-point, in order."""
+    return [data["value"] for _d, _sv, data in coord.hass.services.calls
+            if data.get("entity_id") == "number.water_set"]
+
+
+def _pa_turn_off(coord):
+    """The coordinator's own path into Off: the hook's restore, then the mode, then a pass."""
+    coord.entry.runtime_data = coord
+    sent = _pa_aio.run(_pa_or.async_mode_change(coord.hass, coord.entry, coord._config, coord._mode, _PA_OFF))
+    coord._mode = _PA_OFF
+    _pa_run(coord, 45)
+    return sent
+
+
+_pa_ro = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_ro)                          # baseline 53 captured, the gate 25 written
+_pa_ro_sent = _pa_turn_off(_pa_ro)
+_pa_ro_written = dict(_pa.state_for(_pa_ro).written)
+from homeassistant.helpers.storage import SAVE_COUNTS as _pa_saves  # noqa: E402
+_pa_ro_key = f"heatpump_optimizer_{_pa_ro.entry.entry_id}_pump_duty"
+_pa_ro_saved = _pa_saves.get(_pa_ro_key, 0)
+_pa_run(_pa_ro, 46)
+_pa_run(_pa_ro, 47)
+_pa_ro_resaved = _pa_saves.get(_pa_ro_key, 0) - _pa_ro_saved
+_pa_ro_null = _PaCoord(_PA_TUYA, duty="observe")
+_pa_settled(_pa_ro_null)
+_pa_ro_null_sent = _pa_turn_off(_pa_ro_null)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: switching the optimizer off writes the space set-point's baseline back, "
+    "once, and nothing else, its record saved once; null control: with the arbiter not controlling, off writes nothing",
+    _pa_ro_sent == 1 and _pa_space(_pa_ro) == [53.0] and len(_pa_ro.writes()) == 1
+    and _pa_ro_written == {} and _pa_ro_resaved == 0
+    and _pa_ro_null_sent == 0 and _pa_ro_null.writes() == [],
+    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_written=} {_pa_ro_resaved=} / {_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
+)
+_pa_ru = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_ru)
+_pa_ru.entry.runtime_data = _pa_ru
+_pa_ru_sent = _pa_aio.run(_pa_or.async_restore(_pa_ru.hass, _pa_ru.entry, _pa_ru._config, "unload"))
+_pa_aio.run(_pa.release(_pa_ru))
+R.check(
+    "R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the release writes the "
+    "fallback row without the space set-point over it",
+    _pa_ru_sent == 1 and _pa_space(_pa_ru) == [53.0]
+    and ("select", "select_option", "Heating + DHW") in _pa_ru.writes(),
+    f"{_pa_ru_sent=} {_pa_ru.writes()=}",
+)
+# Persisted: a restart's new coordinator, entry and hass restore the baseline
+# read before the first write, never the optimizer's own value it now reads.
+_pa_rr = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_rr)
+_pa_rr2 = _PaCoord(_PA_TUYA)
+_pa_rr2.entry = _pa_entry(entry_id=_pa_rr.entry.entry_id)
+_pa_rr2.device("number.water_set", "25")
+_pa_rr2_sent = _pa_turn_off(_pa_rr2)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: the baseline survives a restart: off after it restores 53, not the 25 "
+    "the optimizer wrote",
+    _pa_rr2_sent == 1 and _pa_space(_pa_rr2) == [53.0],
+    f"{_pa_rr2_sent=} {_pa_rr2.writes()=}",
+)
+
+
+def _pa_upgraded(reading):
+    """A record from before the restore existed: the arbiter wrote 30, the entity reads ``reading``."""
+    coord = _PaCoord(_PA_TUYA)
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (30.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", reading)
+    _pa_run(coord, 2)
+    first = _pa_space(coord)
+    coord.hass.services.calls.clear()
+    return coord, first, _pa_turn_off(coord)
+
+
+_pa_up, _pa_up_first, _pa_up_sent = _pa_upgraded("30")
+_pa_up_n, _pa_up_n_first, _pa_up_n_sent = _pa_upgraded("31")
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as "
+    "the baseline, and the write waits; null control: a reading of the person's own is captured, "
+    "written over, and restored on off",
+    _pa_up_first == [] and _pa_up_sent == 0 and _pa_space(_pa_up) == []
+    and _pa_up_n_first == [25.0] and _pa_up_n_sent == 1 and _pa_space(_pa_up_n) == [31.0],
+    f"{_pa_up_first=} {_pa_up_sent=} {_pa_up.writes()=} / {_pa_up_n_first=} {_pa_up_n_sent=} "
+    f"{_pa_up_n.writes()=}",
+)
+
+
+def _pa_between(reading, switch_off=False, then=None):
+    """Baseline 53; the gate 25, then a space step's target; then the entity reads ``reading``.
+
+    ``then``: a second differing reading, after the rewrite the pump did not take.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    _pa_settled(coord)
+    _pa_settled(coord, 30)
+    if switch_off:
+        with_config(coord, {"heat_pump_switch_entity": "switch.hp"})
+        coord.hass.states.set("switch.hp", FakeState("off"))
+        _pa_settled(coord, 31)
+        coord.device("switch.hp", "on")
+    coord.device("number.water_set", reading)
+    _pa_run(coord, 33)
+    if then is not None:
+        coord.device("number.water_set", then)
+        _pa_run(coord, 35)
+    coord.hass.services.calls.clear()
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a space set-point a person sets between writes becomes the baseline off "
+    "restores; null controls: the reading the entity held before the write (a refused write) and a "
+    "reading after the pump was switched off (its own reset) leave the baseline at 53",
+    _pa_between("40") == (1, [40.0]) and _pa_between("25") == (1, [53.0])
+    and _pa_between("40", switch_off=True) == (1, [53.0]),
+    f"{_pa_between('40')=} {_pa_between('25')=} {_pa_between('40', switch_off=True)=}",
+)
+_pa_echo = _PaCoord(_PA_TUYA, duties="dds-s")
+_pa_settled(_pa_echo)
+_pa_settled(_pa_echo, 30)
+_pa_echo_target = _pa.state_for(_pa_echo).written["space_setpoint"][0]
+_pa_echo.device("number.water_set", "40")
+_pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(minutes=30, seconds=10)))
+_pa_echo.device("number.water_set", str(_pa_echo_target))
+_pa_run(_pa_echo, 33)
+_pa_echo.hass.services.calls.clear()
+_pa_echo_sent = _pa_turn_off(_pa_echo)
+_pa_same = _PaCoord(_PA_TUYA, duties="dds-s")
+_pa_settled(_pa_same)
+_pa_settled(_pa_same, 30)
+_pa_run(_pa_same, 33)
+_pa_same.hass.services.calls.clear()
+_pa_same_sent = _pa_turn_off(_pa_same)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading inside the echo grace, and one that holds the write, are no "
+    "edit: off restores 53",
+    _pa_echo_sent == 1 and _pa_space(_pa_echo) == [53.0]
+    and _pa_same_sent == 1 and _pa_space(_pa_same) == [53.0],
+    f"{_pa_echo_target=} {_pa_space(_pa_echo)=} {_pa_space(_pa_same)=}",
+)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a second differing reading is a write the pump does not take, never a "
+    "second edit: off restores the first edit, 40, not 41",
+    _pa_between("40", then="41") == (1, [40.0]),
+    f"{_pa_between('40', then='41')=}",
+)
+# #3402 item 5b825bae: an adopted baseline is a value the entity takes, or
+# off writes one it refuses. number.water_set declares min 25, max 63.
+R.check(
+    "R10-ARBITER-OFF-RESTORE: an edit outside the entity's own range is adopted bounded to it: off "
+    "restores 63 for a reading of 70; null control: 40, inside it, is restored as read",
+    _pa_between("70") == (1, [63.0]) and _pa_between("40") == (1, [40.0]),
+    f"{_pa_between('70')=} {_pa_between('40')=}",
+)
+
+
+def _pa_at_grace(after_s):
+    """Baseline 53, the space write, then 40 read ``after_s`` seconds past the grace's start."""
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    _pa_settled(coord)
+    _pa_settled(coord, 30)
+    stamp = _pa.state_for(coord).written["space_setpoint"][1]
+    coord.device("number.water_set", "40")
+    _pa_aio.run(_pa.apply(coord, stamp + timedelta(seconds=after_s)))
+    coord.hass.services.calls.clear()
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading exactly ECHO_GRACE_S after the write is past the grace and "
+    "adopted; null control: one a second inside it is not, and off restores 53",
+    _pa_at_grace(_pa.ECHO_GRACE_S) == (1, [40.0]) and _pa_at_grace(_pa.ECHO_GRACE_S - 1) == (1, [53.0]),
+    f"{_pa_at_grace(_pa.ECHO_GRACE_S)=} {_pa_at_grace(_pa.ECHO_GRACE_S - 1)=}",
+)
+# #3402 item 648c3c80, the write-ahead order: the baseline is on disk before
+# the space write is sent, so a crash between the two still restores it.
+import json as _pa_json  # noqa: E402
+
+from homeassistant.helpers.storage import _DISK as _pa_disk  # noqa: E402
+
+_pa_wa = _PaCoord(_PA_TUYA)
+_pa_wa_key = f"heatpump_optimizer_{_pa_wa.entry.entry_id}_off_restore"
+_pa_wa_seen = []
+_pa_wa_call = _pa_wa.hass.services.async_call
+
+
+async def _pa_wa_spy(domain, service, data=None, **kwargs):
+    if (data or {}).get("entity_id") == "number.water_set":
+        _pa_wa_seen.append(_pa_json.loads(_pa_disk.get(_pa_wa_key) or "{}").get("armed", {}).get(_pa.CONSUMER))
+    return await _pa_wa_call(domain, service, data, **kwargs)
+
+
+_pa_wa.hass.services.async_call = _pa_wa_spy
+_pa_wa_before = _pa_disk.get(_pa_wa_key)
+_pa_settled(_pa_wa)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: the space set-point's baseline is saved before the arbiter's first "
+    "write to it is sent (write-ahead); null control: the store held no baseline before that pass",
+    _pa_wa_before is None and _pa_wa_seen[:1] == [{"entity_id": "number.water_set", "value": 53.0}],
+    f"{_pa_wa_before=} {_pa_wa_seen=}",
+)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: an install with no space set-point has no restorer (the hook's "
+    "'None unconfigured'); null control: one with it has",
+    _pa._restorer(EntryConfig.from_mapping({"pump_duty_mode": "control"})) is None
+    and _pa._restorer(_pa_wa._config) is not None,
+    f"{_pa._restorer(EntryConfig.from_mapping({'pump_duty_mode': 'control'}))=}",
+)
+
+
+def _pa_restored_twice(via):
+    """A baseline equal to the plan's own value (25), restored by ``via``, then a restart.
+
+    The restore drops the space slot from the arbiter's persisted record, so
+    after the restart the next arm captures 25 again rather than refusing it
+    as the optimizer's own last write. A space-only install, whose record holds
+    nothing else, so no other slot's write saves it.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    with_config(coord, {"heat_pump_mode_entity": "", "dhw_setpoint_entity": ""})
+    coord.device("number.water_set", "25")
+    _pa_settled(coord)                       # 25 captured, and the gate 25 written: the last write
+    coord.entry.runtime_data = coord
+    if via == "off":
+        _pa_turn_off(coord)
+    else:
+        _pa_aio.run(_pa_or.async_restore(coord.hass, coord.entry, coord._config, "unload"))
+        _pa_aio.run(_pa.release(coord))
+    again = _PaCoord(_PA_TUYA, duties="dds-s")
+    again._config = coord._config
+    again.entry = _pa_entry(entry_id=coord.entry.entry_id)
+    again.device("number.water_set", "25")
+    _pa_run(again, 0)
+    _pa_run(again, 30)
+    again.hass.services.calls.clear()
+    return _pa_turn_off(again)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, "
+    "a restart captures it again and the next off restores it",
+    _pa_restored_twice("unload") == 1 and _pa_restored_twice("off") == 1,
+    f"{_pa_restored_twice('unload')=} {_pa_restored_twice('off')=}",
 )
 _pa_subs = _PaCoord(_PA_TUYA)
 _pa_run(_pa_subs, 1)
@@ -76846,7 +77102,7 @@ def _df_write(slot, entity, state, instance, value_c):
     """What the arbiter's ``_write`` hands the service for ``value_c`` degC."""
     hass = _df_hass({entity: state}, instance)
     coord = _DfCoord()
-    coord.hass, coord.entry = hass, _DfNS(entry_id=f"df{next(_df_ids)}")
+    coord.hass, coord.entry = hass, _pa_entry(entry_id=f"df{next(_df_ids)}")
     inp = _DfNS(hass=hass, config={f"{slot}_entity": entity})
     _df_aio.run(_df_pa._write(coord, inp, slot, value_c, _DF_T0))
     calls = [c for c in hass.services.calls if (c[2] or {}).get("entity_id") == entity]
@@ -80512,6 +80768,122 @@ R.check(
 )
 
 
+# A hot-water charge inside a counter span (the dwell saw it): the cycle has no
+# space interval, yet the span stays clean where the counter is declared to see
+# the hot water, because the charge's own steps are subtracted at the close.
+# Null controls: the counter declared blind to hot water, an immersion element
+# on, and a cycle the dwell saw on space, keep today's refusal.
+def _he_bridge(sees_dhw, duty=_he.DHW, immersion=False, backup=False, counter=True):
+    coord = _t2_house(**{_HE_KEY: "sensor.he", _fb_const.CONF_HEAT_METER_SEES_DHW: sees_dhw})
+    meter = _he.meter_of(coord)
+    meter.counter, meter.cycle = counter, (NOW - timedelta(hours=0.5), NOW)
+    meter.dwell.observe(NOW - timedelta(hours=1), duty, None)
+    meter.dwell.observe(NOW, duty, None)
+    coord._immersion_active = immersion
+    coord._pump_signals = replace(
+        coord._pump_signals, electric_heat=replace(coord._pump_signals.electric_heat, backup_heater=backup))
+    return _he_cm._replay_gate(coord, None, None, None)[1]
+
+
+_he_bridges = (_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True),
+               _he_bridge(True, backup=True), _he_bridge(True, duty=_he.SPACE), _he_bridge(True, counter=False))
+R.check(
+    "a counter span carries a hot-water cycle the dwell saw when the counter sees "
+    "the hot water; blind to it, with the immersion or the pump's backup heater on, "
+    "on space, or with no counter configured it gates",
+    _he_bridges == (True, False, False, False, False, False),
+    f"{_he_bridges}",
+)
+
+
+def _he_dhw_span(charge):
+    """Two half-hour cycles, 2 kWh on space; with ``charge`` the second is a 5 kWh hot-water charge."""
+    m, reads, duties = _he.HeatEnergyMeter(), (10.0, 12.0, 17.0 if charge else 14.0), (
+        pump_mode.MODE_HEAT, pump_mode.MODE_DHW if charge else pump_mode.MODE_HEAT, pump_mode.MODE_HEAT)
+    ev = None
+    for i, (kwh, duty) in enumerate(zip(reads, duties)):
+        at = NOW + timedelta(hours=0.5 * i)
+        changed = at - timedelta(hours=1) if i == 0 else (at if duty != duties[i - 1] else None)
+        m.observe_mode(at, duty, True, changed)
+        m.observe_counters(at, kwh, None, configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        ev = m.settle({"house": True, "lower": True}, (2.0, 0.0), ("s", at)) or ev
+    return ev
+
+
+_he_dhw_ev = _he_dhw_span(True)
+_he_dhw_heat = _he.span_heat(_he_dhw_ev, 3.0)
+_he_dry_heat = _he.span_heat(_he_dhw_span(False), 3.0)
+R.check(
+    "a span's hot water is the charge cycle's own counter step, not its share of "
+    "the hours: a 5 kWh charge in a 7 kWh hour leaves 2 kW of space heat, where a "
+    "time split reads 3.5 (null control: no charge reads all its heat as space)",
+    _he_dhw_ev is not None and abs(_he_dhw_ev.energy.dhw_kwh - 5.0) < 1e-9
+    and abs(_he_dhw_heat.space_kw - 2.0) < 1e-9
+    and abs(_he_dry_heat.space_kw - _he_dry_heat.heat_kw) < 1e-12,
+    f"{_he_dhw_ev} {_he_dhw_heat} {_he_dry_heat}",
+)
+R.check(
+    "null control: a span with no charge folds no hot water and reads all its heat as space, "
+    "and a fresh meter (no counter, no dwell) bridges no hot-water cycle",
+    _he_dhw_span(False).energy.dhw_kwh == 0.0
+    and not _he.HeatEnergyMeter().bridges_hot_water((0.0, 1.0), True, False),
+    f"{_he_dhw_span(False)}",
+)
+_he_all_dhw = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=_he_dhw_ev.energy.heat_kwh))
+R.check(
+    "a span whose heat all went to hot water reads 0 kW of space heat, a measurement, not a refusal",
+    _he.span_heat(_he_all_dhw, 3.0).space_kw == 0.0,
+    f"{_he.span_heat(_he_all_dhw, 3.0)}",
+)
+_he_odd = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=8.0))
+_he_blind = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=None))
+R.check(
+    "a span with more hot water than heat, or a charge whose steps went unaccounted, "
+    "reads no space figure rather than a guess",
+    _he.span_heat(_he_odd, 3.0).space_kw is None and _he.span_heat(_he_blind, 3.0).space_kw is None,
+    f"{_he.span_heat(_he_odd, 3.0)} {_he.span_heat(_he_blind, 3.0)}",
+)
+
+
+def _he_unobs_spans(unobserved, charge=True):
+    """Two spans of half-hour reads, 1 kWh per space step; with ``charge`` the
+    step to read 3 is a 5 kWh hot-water charge the dwell saw. The mode reads at
+    ``unobserved`` are not live, so a span holding one reads the plan's split.
+    Sample bounds of 0.5-6 h close the spans at reads 11 and 22, 5.5 h each."""
+    m, kwh, out = _he.HeatEnergyMeter(), 10.0, []
+    duties = [pump_mode.MODE_DHW if charge and i == 2 else pump_mode.MODE_HEAT for i in range(23)]
+    for i, duty in enumerate(duties):
+        kwh += 0.0 if i == 0 else (5.0 if charge and i == 3 else 1.0)
+        at = NOW + timedelta(hours=0.5 * i)
+        changed = at - timedelta(hours=1) if i == 0 else (at if duty != duties[i - 1] else None)
+        m.observe_mode(at, duty, i not in unobserved, changed)
+        m.observe_counters(at, kwh, None, configured=True, cadence_h=0.5, bounds_h=(0.5, 6.0), max_heat_kw=30.0)
+        ev = m.settle({"house": True, "lower": True}, (1.0, 0.0), ("s", at))
+        out += [(ev, _he.span_heat(ev, 3.0))] if ev is not None else []
+    return out
+
+
+_he_unobs = {k: _he_unobs_spans(*k) for k in (((), True), ((6, 17), True), ((1,), True), ((6,), False))}
+_he_unobs_first = {k: v[0][1] for k, v in _he_unobs.items()}
+R.check(
+    "a span that carried a hot-water charge the dwell saw reads no space figure once "
+    "one mode read in it, after the charge or before it, was not live: the plan's "
+    "whole-unit rule would read the charge as space heat; the next span, with no "
+    "charge and a read not live, reads all its heat as space again (null controls: "
+    "all reads live subtracts the charge's own step; no charge reads all its heat as space)",
+    [len(v) for v in _he_unobs.values()] == [2, 2, 2, 2]
+    and not _he_unobs[((6, 17), True)][0][0].attribution.observed
+    and not _he_unobs[((1,), True)][0][0].attribution.observed
+    and _he_unobs_first[((6, 17), True)].heat_kw is not None
+    and _he_unobs_first[((6, 17), True)].space_kw is None and _he_unobs_first[((1,), True)].space_kw is None
+    and not _he_unobs[((6, 17), True)][1][0].attribution.observed
+    and _he_unobs[((6, 17), True)][1][1].space_kw == _he_unobs[((6, 17), True)][1][1].heat_kw is not None
+    and abs(_he_unobs_first[((), True)].space_kw - 10.0 / _he_unobs[((), True)][0][0].energy.hours) < 1e-9
+    and _he_unobs_first[((6,), False)].space_kw == _he_unobs_first[((6,), False)].heat_kw is not None,
+    f"{[(k, [(sh, ev.energy) for ev, sh in v]) for k, v in _he_unobs.items()]}",
+)
+
+
 # The earned basis. A thermal-power install's first replay of a measured heat
 # earns ``measured_heat``: the void path resets the scale before that fold, the
 # basis is saved, and a later fold does not void again. Null controls: the
@@ -80742,12 +81114,13 @@ R.check(
     and _he_fine == ("iv", True, True, None),
     f"{_he_coarse!r} {_he_fine!r}",
 )
+_he_owns = _he.HeatEnergyMeter(counter=True, earned=True)
 R.check(
     "a span run folds its own heat with no freeze; a per-cycle run reads the "
     "cycle's heat and folds unless the span owns the scale",
-    _he.replay_gate(2.5, None, "stale:indoor_temp_entity", "stale:indoor_temp_entity", 1.0, True)
+    _he.replay_gate(2.5, None, "stale:indoor_temp_entity", "stale:indoor_temp_entity", 1.0, _he_owns, (1.0, 0.0), False, False)
     == (2.5, False, None, True)
-    and _he.replay_gate(None, "iv", None, None, 1.0, True) == (1.0, True, None, False),
+    and _he.replay_gate(None, "iv", None, None, 1.0, _he_owns, (1.0, 0.0), False, False) == (1.0, True, None, False),
 )
 
 
@@ -81327,6 +81700,127 @@ R.check(
 )
 
 
+R.section("supply switch: the cycle writes the step it lands in")
+# The cycle's write lands in the step after the one its action was cut for
+# (a reload's cold solve, the price tile, the fuse advisor before the write):
+# it writes the plan's command for the step it lands in, not the action's.
+# The null control is the same cycle inside the action's own step.
+async def _ms_stale(minute):
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=[1.5, 0.0],
+        dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda *_a: (lambda: None)
+    try:
+        _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+        coord._last_optimization = _SA_T0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+    return [s for d, s, _d in hass.services.calls if d == "switch"]
+
+
+_ms_late, _ms_own = _asyncio.run(_ms_stale(15.5)), _asyncio.run(_ms_stale(2))
+R.check(
+    "a cycle whose ON action was cut in the last step writes the OFF of the step it lands in",
+    _ms_late == ["turn_off"],
+    f"{_ms_late}",
+)
+R.check(
+    "null control: the same cycle inside the action's own step writes its ON",
+    _ms_own == ["turn_on"],
+    f"{_ms_own}",
+)
+
+
+# --- the other direction, and the null controls (our commit on the adopted one) ---
+# ``_ms_cycle`` runs one ``_apply_action`` at ``minute`` past the plan start with
+# the action cut for step 0 and returns every service call in order. ``cut`` is
+# the stale write ``cycle_supply`` exists to correct; ``main`` swaps in main's
+# behaviour (the action's own value) as the control for the null checks.
+_ms_main = lambda _inp, _boosts, on, now=None: on
+
+
+async def _ms_cycle(minute, *, sched=(1.5, 0.0), cut=True, mode="auto", boosted=False,
+                    sysid=False, age_minutes=0, main=False):
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = mode
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=list(sched),
+        dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
+    armed, real = _sa_pa.async_track_time_interval, _sa_pa.cycle_supply
+    _sa_pa.async_track_time_interval = lambda *_a: (lambda: None)
+    if main:
+        _sa_pa.cycle_supply = _ms_main
+    try:
+        _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+        coord._last_optimization = _SA_T0 - timedelta(minutes=age_minutes)
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": cut, "power": 1.5 if cut else 0.0})
+        if sysid:
+            coord._current_action = {**coord._current_action, "mode": "system_identification"}
+        if boosted:
+            _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = _SA_T0 + timedelta(hours=2)
+        await coord._apply_action()
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+        _sa_pa.cycle_supply = real
+    return [(d, s, dict(x)) for d, s, x in hass.services.calls]
+
+
+_ms_sw = lambda calls: [s for d, s, _x in calls if d == "switch"]
+_ms_up = _asyncio.run(_ms_cycle(15.5, sched=(0.0, 1.5), cut=False))
+_ms_up_own = _asyncio.run(_ms_cycle(2, sched=(0.0, 1.5), cut=False))
+R.check(
+    "a cycle whose OFF action was cut in the last step writes the ON of the step it lands in",
+    _ms_sw(_ms_up) == ["turn_on"],
+    f"{_ms_up}",
+)
+R.check(
+    "null control: the same OFF-planned cycle inside the action's own step writes its OFF",
+    _ms_sw(_ms_up_own) == ["turn_off"],
+    f"{_ms_up_own}",
+)
+# Null control: a write landing in the action's own step issues the same calls
+# in the same order as main (the action's value written as cut), in a plan mode,
+# a fixed mode, under a stale plan, a live boost and system identification.
+for _ms_name, _ms_kw in (
+    ("economy plan mode", {"mode": "economy"}),
+    ("auto plan mode, OFF cut", {"cut": False, "sched": (0.0, 1.5)}),
+    ("fixed comfort mode", {"mode": "comfort"}),
+    ("stale plan", {"age_minutes": 600}),
+    ("live boost (the overlay has made the action ON)", {"boosted": True, "cut": True}),
+    ("system identification", {"sysid": True, "cut": False}),
+):
+    _ms_a = _asyncio.run(_ms_cycle(2, **_ms_kw))
+    _ms_b = _asyncio.run(_ms_cycle(2, main=True, **_ms_kw))
+    R.check(
+        f"null control: {_ms_name}, a write in the action's own step issues main's calls in order",
+        _ms_a == _ms_b,
+        f"{_ms_a} != {_ms_b}",
+    )
+# Where step_supply does not speak, the action stands even when the write lands
+# in a later step: a fixed mode, system identification, a live boost (ON, as the
+# overlay makes the action).
+for _ms_name, _ms_kw, _ms_want in (
+    ("a fixed mode", {"mode": "comfort", "cut": True}, ["turn_on"]),
+    ("system identification", {"sysid": True, "cut": True}, ["turn_on"]),
+    ("a live boost over an OFF step", {"boosted": True, "cut": True}, ["turn_on"]),
+):
+    _ms_got = _ms_sw(_asyncio.run(_ms_cycle(15.5, **_ms_kw)))
+    R.check(
+        f"{_ms_name}: a write landing in the later step keeps its own command",
+        _ms_got == _ms_want,
+        f"{_ms_got}",
+    )
+
+
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
 # A set-point install's plan rarely writes the flow ceiling, so the metered
 # draw window is censored at the top and the plugin cannot learn the pump's
@@ -81378,7 +81872,7 @@ class _CpArb:
         )
         self._thermal_params = _CpNS(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
         self._thermal_model = _CpNS(params=self._thermal_params, curve_flow_temp=lambda _o: 34.2)
-        self.entry = _CpNS(entry_id=f"cp{id(self)}")
+        self.entry = _pa_entry(entry_id=f"cp{id(self)}")
 
     def _plan_is_stale(self):
         return False
@@ -83550,7 +84044,8 @@ class _FbCoord:
         self._thermal_params = _PaNS(
             dhw_setpoint=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
         self._current_state = _PaNS(outdoor_temperature=4.0, room_temperature=21.0)
-        self.entry = _PaNS(entry_id=f"fb{next(_FB_IDS)}")
+        # Weak-referenceable, as a real entry is: a space write arms off_restore.
+        self.entry = _pa_entry(entry_id=f"fb{next(_FB_IDS)}")
         self.power = None
         self.defrosting = False
 
@@ -84122,6 +84617,151 @@ R.check(
     "under the replaced record or over the write is a cut",
     _fb_ends == (True, True),
     f"low end {_fb_ends[0]}, high end {_fb_ends[1]}",
+)
+# The off restore's edit adoption (R10-ARBITER-OFF-RESTORE's _edited) reads the
+# space slot before hold does, so a controller's clamp of a loop write is
+# _clamp_cut's and never a person's baseline: a 26.0 cut of a 25.0 -> 27.0
+# loop move sits more than the hold tolerance from both ends. Control: a 24.0
+# reading outside the bracket, and the same 26.0 with no loop run, are edits.
+def _fb_edit(observed, run=True):
+    held = _fb_pa.ArbiterState()
+    held.written["space_setpoint"] = (27.0, _FB_NOW - timedelta(seconds=_fb_pa.ECHO_GRACE_S))
+    held.space_before = 25.0
+    if run:
+        held.feedback = _fb_running(3600, 0, prev_c=25.0, sent_c=27.0)
+    return _fb_pa._edited(held, observed, _FB_NOW)
+
+
+_fb_edits = (_fb_edit(26.0), _fb_edit(24.0), _fb_edit(26.0, run=False))
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK: a controller's cut of a "
+    "loop write (26.0 inside a 25.0 -> 27.0 move) is not adopted as the person's "
+    "baseline; a reading outside the bracket, or with no loop run, still is",
+    _fb_edits == (False, True, True),
+    f"cut {_fb_edits[0]}, outside {_fb_edits[1]}, no run {_fb_edits[2]}",
+)
+# Roster Carry 8 of R10-ARBITER-OFF-RESTORE, live since #3405 merged: the off
+# restore's own-write refusal (_arm_space) reads the arbiter's last space
+# write, and a loop move drops that record so the move is sent (_note_sent).
+# The dropped record is the run's prev_c, kept until a write replaces it, so
+# an unarmed key (an upgrade) never captures the optimizer's own 26.0 as the
+# person's baseline, after one loop move or a second one with no write
+# between. A restore ends the run with the record (_space_restored). Control:
+# the same 26.0 reading on an arbiter that never wrote is captured.
+import asyncio as _fb_aio  # noqa: E402
+
+
+def _fb_own(moves, wrote=True):
+    coord = _FbCoord()
+    held = _fb_pa.state_for(coord)
+    if wrote:
+        held.written["space_setpoint"] = (26.0, _FB_NOW)
+        held.feedback = _fb_running(3600, 0)
+    for target in moves:
+        _fb_pa._note_sent(held, held.feedback, target, 26.4)
+    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    return sent, coord, held
+
+
+_fb_own_one, _fb_own_two, _fb_own_none = _fb_own([25.8]), _fb_own([25.8, 25.6]), _fb_own([], wrote=False)
+_fb_rs_coord, _fb_rs_held = _fb_own([25.8])[1:]
+_fb_rs_coord.entry.runtime_data = _fb_rs_coord
+_fb_pa._space_restored(_fb_rs_coord.entry, _FB_SET, 26.0)
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8): a loop move's "
+    "dropped record still refuses the optimizer's own 26.0 as an unarmed key's baseline, "
+    "after one move and after two with no write between; a restore ends the run; an "
+    "arbiter that never wrote captures it",
+    _fb_own_one[0] is False and _fb_own_two[0] is False and _fb_own_two[2].feedback.prev_c == 26.0
+    and _fb_rs_held.feedback is None and _fb_own_none[0] is True,
+    f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
+    f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
+)
+# Round 2 of Carry 8 (#3404's verdict at 4a5abf4a): the loop run ends on
+# paths that are neither a write nor a restore -- a pass off the loop
+# (_feedback, base or inlet missing), a compressor stop (a fresh run), a run
+# last seen past the window (a fresh run) -- and a restart drops the run too.
+# Each happens while the dropped record is held, so the own-write fact lives
+# on ArbiterState.dropped, which only a write, a restore or a release ends.
+# Controls: each path is shown to end the run (no prev_c after it), and a
+# never-written arbiter still captures (the check above).
+
+
+def _fb_own_after(end):
+    sent, coord, held = _fb_own([25.8])
+    end(coord, held)
+    held = _fb_pa.state_for(coord)  # a restart's is a fresh state
+    run = held.feedback
+    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    return sent, None if run is None else run.prev_c, after
+
+
+def _fb_end_stale(coord, held):
+    held.feedback.seen = _FB_NOW - timedelta(seconds=_FB_WIN_S + 60)
+    coord.power = 1.5
+    _fb_pa._feedback(held, coord.arbiter_inputs(), _FB_NOW, 26.4, True)
+
+
+def _fb_end_restart(coord, held):
+    _fb_aio.run(_fb_pa._persist(coord))
+    _fb_pa._STATES.pop(coord, None)
+    _fb_aio.run(_fb_pa._load(coord))
+
+
+def _fb_end_stop(coord, held):
+    coord.power = 0.0
+    _fb_pa._feedback(held, coord.arbiter_inputs(), _FB_NOW, 26.4, True)
+
+
+_fb_own_ends = {
+    "off pass": _fb_own_after(lambda c, h: _fb_pa._feedback(h, c.arbiter_inputs(), _FB_NOW, 26.4, False)),
+    "no base": _fb_own_after(lambda c, h: _fb_pa._feedback(h, c.arbiter_inputs(), _FB_NOW, None, True)),
+    "compressor stop": _fb_own_after(_fb_end_stop),
+    "stale run": _fb_own_after(_fb_end_stale),
+    "restart": _fb_own_after(_fb_end_restart),
+}
+print("CARRY8-RUN-ENDS", _fb_own_ends)
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the "
+    "own-write refusal survives every end of the loop run while the dropped write is "
+    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart",
+    all(sent is False and prev is None and after is False for sent, prev, after in _fb_own_ends.values()),
+    f"(before, run prev_c after, after) {_fb_own_ends}",
+)
+# Where the fact stops mattering or ends: once the person moves the
+# controller (25.0) the arm captures and the write lands, after which the
+# armed key never consults it -- the controller reading 26.0 again with the
+# record gone is not refused; a restore (_space_restored) and a release (Off
+# forgets the record, even one that is only the dropped write) end it, and
+# a stored value the arbiter could not have written is not loaded.
+# Control: before each, the fact is held.
+_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8])
+_fb_wr_before = dict(_fb_wr_held.dropped)
+_fb_wr_coord.hass.states.set(_FB_SET, FakeState("25.0", attributes={"min": 15, "max": 45, "step": 0.1}))
+_fb_aio.run(_fb_pa._write(_fb_wr_coord, _fb_wr_coord.arbiter_inputs(), "space_setpoint", 25.8, _FB_NOW))
+_fb_wr_written = _fb_wr_held.written.pop("space_setpoint", (None,))[0]
+_fb_wr_coord.hass.states.set(_FB_SET, FakeState("26.0", attributes={"min": 15, "max": 45, "step": 0.1}))
+_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET))
+_fb_junk = _FbCoord()
+_fb_aio.run(_fb_pa._store(_fb_junk).async_save({"written": {}, "dropped": {"space_setpoint": "26.0 degC"}}))
+_fb_aio.run(_fb_pa._load(_fb_junk))
+_fb_off_coord, _fb_off_held = _fb_own([25.8])[1:]
+_fb_off_held.written.clear()
+_fb_off_before = dict(_fb_off_held.dropped)
+_fb_off_coord._mode = _PA_OFF
+_fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter_inputs(),
+                              _fb_pa.DUTY_CONTROL, _FB_NOW))
+R.check(
+    "R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write is not consulted "
+    "once a write lands on the armed key, and ends when a restore writes the baseline or "
+    "Off releases the pump",
+    _fb_wr_before == {"space_setpoint": 26.0} and _fb_wr_written == 25.8 and _fb_wr_after is True
+    and _fb_rs_held.dropped == {}
+    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {}
+    and _fb_pa.state_for(_fb_junk).dropped == {},
+    f"write {_fb_wr_before}, wrote {_fb_wr_written}, armed after {_fb_wr_after}, "
+    f"restore {_fb_rs_held.dropped}, off {_fb_off_before} -> {_fb_off_held.dropped}, "
+    f"unwritable on disk {_fb_pa.state_for(_fb_junk).dropped}",
 )
 # R1's lower side in the replay: a 26.4 degC minimum return target (parameter
 # 979) clamps the loop's first wind-down, whose writes stay under it until a
