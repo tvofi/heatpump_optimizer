@@ -1,0 +1,7 @@
+quoted_lookbehind_alone: carry_audit self-test: 447 checks, 1 failed 1
+FAIL carry 3: an opening quote glued to a word (`5"` before the marker, a later `6"` after it) never swallows the marker
+quoted_lookahead_alone: carry_audit self-test: 447 checks, 1 failed 1
+FAIL carry 3: a quote closed against a word (`"x" too` after a lone opening quote) never swallows the marker
+mdlink_url_any: carry_audit self-test: 447 checks, 1 failed 1
+FAIL carry 3: a link whose destination holds a space is no link, so `Carry: [#100](a b)` is no marker
+null_control: carry_audit self-test: 447 checks, 0 failed 0
