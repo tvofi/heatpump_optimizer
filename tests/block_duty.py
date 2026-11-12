@@ -906,7 +906,7 @@ def hysteresis_checks() -> None:
           lambda: planner.place_startable(plan, None, raises, lambda plan: marker) is marker)
     calls, original = [], plan
 
-    def stubborn(plan):
+    def stubborn(plan, start_below):
         calls.append(1)
         return original.copy()
 
@@ -915,7 +915,7 @@ def hysteresis_checks() -> None:
           == list(drop(plan, np.full(8, 51.0), temps_of))
           and 1 <= len(calls) <= planner.STARTABLE_ROUNDS)
     check("an identity repair leaves the dropped plan",
-          lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan: plan))
+          lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan, start_below: plan))
           == list(drop(plan, np.full(8, 51.0), temps_of)))
 
     # 9. End to end, on the real optimizer.

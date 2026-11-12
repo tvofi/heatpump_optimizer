@@ -276,9 +276,10 @@ def place_startable(
 ) -> np.ndarray:
     """The floor repair of ``plan`` under the pump's start condition.
 
-    With no condition, ``repair(plan=plan)``. With one, the charges the pump would
-    not start are dropped and ``repair`` (which then places only on
-    :func:`startable_steps`) re-buys what the floor still needs; a top-up
+    With no condition, ``repair(plan=plan)``, the call as it always was. With
+    one, the charges the pump would not start are dropped and ``repair``,
+    handed the condition so it places only on :func:`startable_steps`,
+    re-buys what the floor still needs; a top-up
     warms the tank under every later charge, so the two repeat until the
     plan stands, at most :data:`STARTABLE_ROUNDS` times. The plan that leaves
     holds no charge the pump would not start, and is short of the floor only
@@ -287,7 +288,7 @@ def place_startable(
     if start_below is None:
         return repair(plan=plan)
     for _ in range(STARTABLE_ROUNDS):
-        fixed = repair(plan=drop_unstartable(plan, start_below, temps_of))
+        fixed = repair(plan=drop_unstartable(plan, start_below, temps_of), start_below=start_below)
         if np.array_equal(fixed, plan):
             break
         plan = fixed
@@ -1286,7 +1287,6 @@ class DhwPlanner:
             requirement=requirement,
             max_temp=max_temp,
             forced_off=forced_off,
-            start_below=start_below,
         ))
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,

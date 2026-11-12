@@ -763,3 +763,4 @@
 # changes exactly two leaves (the plain and the seeded render of
 # dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
 # it, so every other fixture is byte-identical. Re-recorded in the committed file.
+config_flow # R10-OUTSIDE-DHW-START-HYSTERESIS: the entities_pump page gains the two start-hysteresis pickers (space_hysteresis_entity, dhw_hysteresis_entity), so the plain render, the seeded render and the seed each gain those two keys; every leaf that moves is "present on one side only" and ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No plan reads the options unset: the other 55 fixtures are byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
