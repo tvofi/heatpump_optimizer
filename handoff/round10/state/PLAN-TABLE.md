@@ -608,9 +608,9 @@ Instrument fix, S. |  |
 | R10-PREPR-DARWIN-SELFTEST-LANE | IN | 2 | deferred | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch227.md#P684 at be04bca1a9, line numbers at origin/main b737e88eee. |  |
 | R10-OUTSIDE-CONTRIBUTOR-CYCLE | IN | 1 | not-started | - | opus/opus | - | Owner ruling (tvofi, about 2026-11-12T07:35Z, recorded by triage batch 238, entry P714): an outside contributor (today Bankaifan) may run the fixer and fix-r... |  |
 | R10-GATE-PUSH-RATCHET | IN | 1 | in-progress | - | sonnet/opus | - | owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim "I want it now if it does not move closure. |  |
-| R10-MACH-SCORECARD | IN | 1 | not-started | - | sonnet/opus | - | owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim "I want it now if it does not move closure. |  |
-| R10-PROTECTION-CENSUS | IN | 1 | not-started | - | sonnet/opus | - | owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim "I want it now if it does not move closure. |  |
-| R10-HOTFIX-OPENPR-FIGURE-REFRESH | IN | 1 | not-started | - | sonnet/opus | - | Recorded by triage batch 245, entry P739 (outside work first, P719). |  |
+| R10-MACH-SCORECARD | IN | 1 | in-progress | - | sonnet/opus | - | owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim "I want it now if it does not move closure. |  |
+| R10-PROTECTION-CENSUS | IN | 1 | in-progress | - | sonnet/opus | - | owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim "I want it now if it does not move closure. |  |
+| R10-HOTFIX-OPENPR-FIGURE-REFRESH | IN | 1 | in-progress | - | sonnet/opus | - | Recorded by triage batch 245, entry P739 (outside work first, P719). |  |
 | R10-HOTFIX-TICK-SELFTEST-CHECKOUT | IN | 1 | not-started | - | sonnet/opus | - | The self-test of tools/audit/seat/tick_loop.sh runs its TICK-GH rows (lines near 205-215) before it points HPO_TICK_CODE_DIR at its scratch (line near 218),... |  |
 
 ## ETA
