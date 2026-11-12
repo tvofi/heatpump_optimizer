@@ -713,6 +713,21 @@
    "index": false,
    "objects": true
   },
+  "day-chart": {
+   "run_sha": "baf2fd4638f92c6a5b8d925f01b49a3d02568db7ee93785ddb86c60126ce82a4",
+   "files": [
+    "tools/site/day_chart.mjs"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/site"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "delivery-row-writer": {
    "run_sha": "250157e503be273a2d938292fa7922442be673437b627fbd61a9d039dab24208",
    "files": [
