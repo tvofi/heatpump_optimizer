@@ -492,6 +492,14 @@ jobs:
         if: steps.scope.outputs.field-coverage == 'true'
         run: if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs --self-test; else node tools/policy/field_coverage.mjs --self-test; fi
 
+      # The product page's illustrative day (R10-PRODUCT-PAGE-REDESIGN): the toy
+      # planner's invariants, which tests/doc_claims.py also runs beside the
+      # page comparison whenever a diff reaches the page or the generator.
+      - name: Show the product page's day generator holding its planner invariants
+        id: day-chart
+        if: steps.scope.outputs.day-chart == 'true'
+        run: node tools/site/day_chart.mjs --self-test
+
       # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
       # well-formed comment object (#541 comment 5625671141). The countermeasure
       # is a program seats call instead of a bit seats remember, and its own
