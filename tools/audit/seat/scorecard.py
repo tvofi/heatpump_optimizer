@@ -26,8 +26,8 @@ THE LINES (rule, then the null control the self-test holds it to):
            counts green here and red in A_run.
   A_run    share of the same runs whose run conclusion is success.
            NULL: the same run counts red.
-  Y_rev    over the last 50 pull requests by first verdict (verdicts de-duplicated
-           on (pr, head, kind, cls)): share whose first verdict is `merge`.
+  Y_rev    over the last 50 pull requests by first verdict (the earliest verdict by `t`,
+           whatever the order of verdicts.json): share whose first verdict is `merge`.
            NULL: a bus of merge verdicts only prints 100%.
   M_first  same 50: share whose first verdict is `blocked` in a machinery family
            (MACH: carry, body, CI state, merge state, root-cause form, ruling or roster).
@@ -112,23 +112,19 @@ def line_a(runs: list, gate: dict) -> list[str]:
 
 
 def line_review(verdicts: list, fam: list | None) -> list[str]:
-    seen, by = set(), collections.OrderedDict()
-    for v in verdicts:
-        k = (v["pr"], v["head"], v["kind"], v["cls"])
-        if k in seen:
-            continue
-        seen.add(k)
-        by.setdefault(v["pr"], []).append(v)
-    last = sorted(by.values(), key=lambda vs: vs[0]["t"])[-WINDOW_PRS:]
+    first: dict = {}
+    for v in sorted(verdicts, key=lambda v: v["t"]):  # the first verdict is the earliest by t, whatever the file order
+        first.setdefault(v["pr"], v)
+    last = list(first.values())[-WINDOW_PRS:]
     if not last:
         return ["Y_rev   unread (no verdict)", "M_first unread (no verdict)"]
     n = len(last)
-    first_merge = sum(vs[0]["kind"] == "merge" for vs in last)
-    span = f"first verdicts {last[0][0]['t'][:16]} .. {last[-1][0]['t'][:16]}"
+    first_merge = sum(v["kind"] == "merge" for v in last)
+    span = f"first verdicts {last[0]['t'][:16]} .. {last[-1]['t'][:16]}"
     y = f"Y_rev   first verdict merge {first_merge}/{n} = {pct(first_merge, n)}  ({span})"
     if fam is None:
         return [y, "M_first unread (no family map)"]
-    mf = sum(vs[0]["kind"] == "blocked" and family_of(vs[0]["cls"], fam) in MACH for vs in last)
+    mf = sum(v["kind"] == "blocked" and family_of(v["cls"], fam) in MACH for v in last)
     return [y, f"M_first {mf}/{n} = {pct(mf, n)}  ({span})"]
 
 
