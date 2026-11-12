@@ -25262,6 +25262,67 @@
     "pr": 3516
    },
    "carry": []
+  },
+  {
+   "group": "R10-NUDGE-RETIRE",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "process",
+   "severity": "normal",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "policy: merges under mandate 6715477401",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-ROUND-PLAYBOOK-FINAL"
+   ],
+   "files": [
+    "dev/governance/roles/nudge.md",
+    "tools/audit/seat/sweep_template.md",
+    "tools/audit/seat/instruments/sweep_template.md.md",
+    "dev/governance/rules/gate-scoping.md",
+    ".cursor/rules/gate-scoping.mdc",
+    ".claude/rules/gate-scoping.md",
+    "dev/governance/config/policy_budgets.json",
+    "dev/README.md",
+    "tests/gate_lock.py",
+    "tools/audit/seat/merge_pr.sh",
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/postmerge.py",
+    "tools/audit/seat/roster_edit.py",
+    "tools/audit/seat/update_pr.sh",
+    "tools/pr/prepr.sh",
+    "tests/closures.json",
+    "tools/ci/selftest_closures.json",
+    "tests/layout.json"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": null,
+    "note": "queued by orchestrator under owner instruction 2026-11-12"
+   },
+   "brief": "Owner instruction, tvofi, 2026-11-12, verbatim: \"ok, correct any references to that script or remove it entirely\". Orchestrator ruling under the mandate (6715477401): remove dev/governance/roles/nudge.md entirely, and correct every reference to it. Why, measured at origin/main 870238eb21: its line 3 scopes it to the Cursor orchestrators on grok and qwen. It names none of tools/audit/seat/beatd.py, the digest, the standing seats, tools/audit/seat/cloud_dispatch.py or tools/audit/seat/roster_queue.py, and none of the merges that introduced those touched it. Its step 5 contradicts its step 3, and the lane caps in its step 16 contradict tools/audit/seat/pr_cap.py. A contract nobody maintains that other files still cite as the rule is a trap. What to do. (1) Delete dev/governance/roles/nudge.md. (2) tools/audit/seat/sweep_template.md: re-point every step citation to the contract that now owns the rule (dev/governance/roles/orchestrator.md, dev/governance/roles/standing-merge.md, dev/governance/roles/standing-dispatch.md, dev/governance/roles/standing.md) or state the rule in place; rewrite the page opening that names it as the turn for a Cursor orchestrator and the passage that cites it for keeping a date and a seat id out of tracked text; and drop it from the rule-file list in tools/audit/seat/instruments/sweep_template.md.md. Keep python3 -I tools/audit/seat/sweep_render.py --self-test green: it refuses a cited path that is not in the tree. (3) dev/governance/rules/gate-scoping.md: replace the citation of its cap section with the rule stated in place (the gate lease, not the tick count, is the cap), then regenerate the generated copies with node tools/policy/rules_sync.mjs (.cursor/rules/gate-scoping.mdc, .claude/rules/gate-scoping.md) and confirm its --check passes. (4) dev/governance/config/policy_budgets.json: remove the two per-file entries for the file and re-record the aggregate caps down by measurement (dev/governance/rules/ratchet-budgets.md: a deletion, so corpus and floor both fall; never a raise). (5) Every other live reference the enumeration below prints: dev/README.md, tests/gate_lock.py, tools/audit/seat/merge_pr.sh, tools/audit/seat/merge_train.py, tools/audit/seat/orchestrator_tick.py, tools/audit/seat/roster_edit.py, tools/audit/seat/update_pr.sh, tools/pr/prepr.sh and tools/audit/seat/postmerge.py. Comments cite the rule that now owns it (or drop the pointer). tools/audit/seat/postmerge.py is not a comment: its self-test reads the deleted file to split out step 12 and must be rewritten to pin the same claim against the contract that owns the post-merge bookkeeping (dev/governance/roles/orchestrator.md), with a null control, not simply dropped. Mutation sites in the diff are killed by the fixer. (6) Generated or derived lists: tests/closures.json, tools/ci/selftest_closures.json and tests/layout.json name the file. Do not run a full closure derivation off Linux (dev/governance/rules/gate-scoping.md); drop the stale entries by hand or let the closures autofix of dev/governance/rules/ci-autofix.md repair them, and for tests/layout.json open its consumer first and see whether the rename record for the deleted file must stay or go. (7) The liveness hook tools/audit/seat/hooks/liveness.py: at origin/main 870238eb21 a search for the file name finds no line about its scope there. Re-check at your merge base; if such a line and a self-test expectation exist by then, drop both, otherwise say so in the body. Precondition: R10-ROUND-PLAYBOOK-FINAL is to have removed the citations in CLAUDE.md, dev/governance/roles/orchestrator.md and dev/governance/roles/fixer.md. If any remain at your merge base, remove them here too and say so in the body. A record under dev/programme/ or dev/audit that mentions the file historically is left alone. Null control and enumeration, both outputs in the body: git grep -n 'nudge\\.md' over the tree outside dev/programme/triage, dev/programme/delivery and dev/audit prints nothing at the head (also exclude the roster JSON files under dev/programme/rosters, which are records) and prints the known set at the merge base. Owner gate: policy. Policy files change here, so the pull request merges on the owner approving review, or under mandate 6715477401 as the orchestrator ruling above. Do not touch VERSION or RELEASE_NOTES.md."
   }
  ]
 }
