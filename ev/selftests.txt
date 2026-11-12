@@ -1,0 +1,5 @@
+seat_gen: seat_gen self-test: 23 checks, 0 failed
+beat_jobs: beat_jobs self-test: 203 checks, 0 failed
+open_driver: open_driver self-test: 91 checks, 0 failed
+roster_queue: roster_queue self-test: 67 checks, 0 failed
+merge_train: merge_train self-test: 612 checks, 0 failed

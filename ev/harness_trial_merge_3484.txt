@@ -1,0 +1,8 @@
+RESULT mutant=M-open-stem failed=3 verdict=killed
+RESULT mutant=M-reap-stem failed=2 verdict=killed
+RESULT mutant=M-reap-log failed=1 verdict=killed
+RESULT mutant=M-escape failed=1 verdict=killed
+RESULT mutant=M-maxtries failed=2 verdict=killed
+RESULT mutant=M-stuckowed failed=2 verdict=killed
+RESULT mutants=24
+RESULT survived=0

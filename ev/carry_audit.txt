@@ -1,0 +1,4 @@
+NOTE stale tree: d72963a719438f2dcf370de92a71f6630804ff2e lacks origin/main be86e36a560fde88cc758cefcee322b9087a5deb; roster read at origin/main
+NOTE body item 46ff8c36: dismissed:owed by this branch's re-cut, a block item
+NOTE body item 4dd49138: R10-HOTFIX-OPENER-UNBLOCK: R10-HOTFIX-OPENER-UNBLOCK resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)

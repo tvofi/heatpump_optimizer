@@ -1,0 +1,14 @@
+== seat_gen.py lock/start-time at head
+10:`bump` writes `$HPO_STATE_DIR/<seat>.gen` (`<n> <epoch>`, n monotonic) under a flock and prints n; the
+17:`$PPID`, which dies with the call -- and its start time in `$HPO_STATE_DIR/session.lock`. A holder pid
+55:        fcntl.flock(lk, fcntl.LOCK_EX)
+58:        tmp.write_text(f"{n} {int(now)}\n")
+105:def lock(sd: Path, mine: int, now: float, command=ps_command) -> "tuple[int, str]":
+115:    tmp.write_text(f"{mine} {int(now)}\n")
+== pulse.py DUPLICATE
+76:  two or more fresh ids         STOPPED, `DUPLICATE seat <role>: <id> <id>`
+248:        return "STOPPED", f"DUPLICATE seat {seat}: {' '.join(fresh)}"
+652:    check("null control: one fresh id and one stale id is not DUPLICATE",
+654:    check("two fresh ids of one role print DUPLICATE seat <role>: <id> <id>",
+655:          one(alive(1, {"b": 1, "a": 2})) == ("STOPPED", "DUPLICATE seat merge: a b"))
+== .gen in pulse/beat_jobs

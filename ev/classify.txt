@@ -1,0 +1,24 @@
+06:52:38
+WAIT 02df7d11bb3b1260a5847dbfd4593d5965564741 pending: gate red: none
+rc=3
+06:53:41
+WAIT 02df7d11bb3b1260a5847dbfd4593d5965564741 pending: gate red: none
+rc=3
+06:54:43
+WAIT 02df7d11bb3b1260a5847dbfd4593d5965564741 pending: gate red: none
+rc=3
+06:55:45
+WAIT 02df7d11bb3b1260a5847dbfd4593d5965564741 pending: gate red: none
+rc=3
+06:56:47
+WAIT 02df7d11bb3b1260a5847dbfd4593d5965564741 pending: gate red: none
+rc=3
+06:57:49
+WAIT 02df7d11bb3b1260a5847dbfd4593d5965564741 pending: gate red: none
+rc=3
+06:58:51
+WAIT 02df7d11bb3b1260a5847dbfd4593d5965564741 pending: gate red: none
+rc=3
+06:59:53
+WAIT 02df7d11bb3b1260a5847dbfd4593d5965564741 pending: gate red: none
+rc=3

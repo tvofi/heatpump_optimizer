@@ -1,0 +1,6 @@
+RESULT mutant=M-exact failed=16 verdict=killed
+RESULT mutant=M-body failed=3 verdict=killed
+RESULT mutant=M-crit failed=5 verdict=killed
+RESULT mutant=M-triageB failed=1 verdict=killed
+RESULT mutants=22
+RESULT survived=0
