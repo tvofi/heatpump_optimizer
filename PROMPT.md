@@ -1,0 +1,51 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-carry-audit-p5, at head 2ced371c1af5581c47dc6163b53c29ee15347a3d. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead. Read your policy once, verbatim: `python3 -I tools/policy/role_pack.py render fixer --out $HOME/role-pack.md`, then that file in place of your role contract and INSTRUMENTS.md; on REFUSE read those files as before.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 2ced371c1af5581c47dc6163b53c29ee15347a3d for the base you were given.
+Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r10-carry-audit-p5 before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r10-carry-audit-p5, whose move updates the pull request. Hand off at your first clean `tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved since that run needs no re-merge and no second run, because the train re-proves the head on the current main. Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, first push `BLOCKED.md` with a `Question:` line to refs/heads/handoff-wip/r10-carry-audit-p5, even with no code. Then push the code to refs/heads/handoff/r10-carry-audit-p5, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-carry-audit-p5 <body.md>`, which pushes refs/heads/handoff-body/r10-carry-audit-p5; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r10-carry-audit-p5`. When body_push.sh exits 4 (its output ends `body_push: REFUSED CARRY-LANDED`), the carry lands on the roster you may not write: push a BLOCKED.md holding that output to refs/heads/handoff-wip/r10-carry-audit-p5 and stop; the relay folds the carries and re-runs body_push.sh. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+A red is owed a `## Red checks` answer, and may block, only when its name is in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any other red is neither answered nor a block.
+Never write to any branch except your return refs and refs/heads/handoff-wip/r10-carry-audit-p5 and refs/heads/handoff-wip/r10-carry-audit-p5-body. Never work around a hook or a refusal; report it in your result instead.
+Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
+
+Brief (snapshotted when this payload was rendered):
+Part 5 of R10-BODY-CONTRACT, carry_audit.py only: an indented Carry continuation and a quoted Carry phrase (pinned by the seven refused verdicts), and NONBLOCK section scoping (P440). Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.
+
+After: R10-BODY-CONTRACT
+
+Carry 0: Moved from R10-BODY-CONTRACT carry 47 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
+
+From handoff/r10-rca-tick-blind, body item 17fba752: carry_audit: indented Carry continuation and quoted Carry phrase, pinned by the seven refused verdicts. Carry: R10-BODY-CONTRACT (items 17fba752)
+
+Carry 1: Moved from R10-BODY-CONTRACT carry 48 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
+
+From triage batch 137 (triage: dev/programme/triage/s6-batch137.md#P440), queue line CARRY-AUDIT-NONBLOCK-FP, classified medium (a critical-path verdict stranded about 6 h). carry_audit.py tags a verdict item NONBLOCK when its prose says `deferred` outside a section holding the block, then demands a destination Carry; it also reads quoted (non-code-span) `Carry:` strings in ## Evidence as markers (the second half is carry 47 of this group; build them together). Scope NONBLOCK to the section kind and ignore a quoted Carry phrase. Fixtures from both refused relayed verdicts: #3327 (probe ab457a6f) and #3330 (7dd42751) are admitted. Null control: a real [non-blocking] item in a Block section still owes its destination. Mutant: dropping the section scope refuses #3327 again. This is part 5's work, not residue.
+
+Carry 2: From triage batch 171 (triage: dev/programme/triage/s6-batch171.md#P587 at e32beffdc8), queue line CARRY-SOURCE-BARE-NUMBER. This repairs an observed wrong behaviour (PR 3425, 2026-11-11).
+
+Cause: tools/audit/carry_audit.py landed (line 650 at main a7628041dc) counts an item as landed when any source token is a whole token of its group's text, split on [^\w#-]+. R10-TICK-RESIDUE's carries said "handed off as PR 3425" and held no "#3425". So at round roster e60ea43333, `landed --pr 3425` printed "0 missing" while `--pr '#3425'` printed "CARRY-MISSING ... body item 09380b99 ... 1 missing". carry_fold.py --pr 3425 therefore asserted success and wrote nothing.
+
+Fix: add one normaliser in carry_audit.py, used by both landed and land_ops (line 659, "From {pr}"). It maps an all-digit PR source to "#<N>" before sources are split and before an op is written. Any other non-# PR spelling is refused with rc 2, naming "#<N>". carry_fold.py needs no change, because it calls both functions.
+
+Self-test: a group whose text says "PR 3425" and holds no "#3425" carry.
+- --pr 3425 and --pr '#3425' both report the item missing.
+- Null control: a group holding a "From #3425" carry reports 0 missing for both spellings.
+- A mutant that drops the normaliser makes the bare arm report 0.
+
+Carry 3: From triage batch 172 (triage: dev/programme/triage/s6-batch172.md#P589 at 4ccb37c35d), queue line EVIDENCE-CARRY-WORD-NOT-MARKER. This repairs an observed wrong behaviour (PR 3425, 2026-11-11, plus two earlier instances).
+
+Cause: tools/audit/carry_audit.py CARRY = (?<![\w-])Carry: (line 169 at main a7628041dc) matches any mention of the word. So a structural-section item that names `Carry:` reads as an UNROUTED finding. That happened in all 3 distinct `UNROUTED ... (## Evidence) [carry]` items in the tick-loop and relay logs:
+- b6e4992b (PR 3425): "Carry: `review_carry.py ... prints CARRY";
+- 2c51d159: "Contradiction grep (own group, own-group, Carry: across ...)";
+- 8e3e097e: "... states it as a Carry: marker".
+Each refusal cost a second reviewer turn.
+
+Fix: in a structural section (## Evidence, and a merge verdict's non-findings sections), a `Carry:` is a marker only when its next token, with trailing punctuation stripped, matches GROUP_TOK (line 176), ISSUE_TOK (line 177), O<n> or `dismissed:`. A findings section keeps today's rule, and an on-shape unknown group is still refused as a bad destination.
+
+Self-test:
+- The three mention shapes under ## Evidence route nothing.
+- "Carry: R10-NO-SUCH" under ## Evidence is still refused.
+- Null controls: "Carry: R10-<live group>", "Carry: #N" and "Carry: dismissed: x" are markers.
+- A mutant that drops the shape test refuses the first shape again.
+
+Carry 4: CARRY-LANDED-OWN-TOPIC (triage: dev/programme/triage/s6-batch183.md#P605 at d4369dc3a4), in tools/audit/seat/bus.sh carry_landed (:228-237, line numbers at cbd23f1c8b): read .head.ref in the same gh api pulls/N call, map it with topic_grammar.py pr-topic, and pass --topic <topic> to carry_audit.py landed (it accepts --topic, :962-966). Without it own_group (:602-610) is None and the own-carry status exemption (:643) never applies, so a part-N body's "not built in this part ... Carry: <own group>" lines are refused CARRY-MISSING (#3448: 23 lines, one refused dispatch, one repair seat, ~15 min). Self-test: such a body under a stub PR whose head ref is the group's branch passes (rc 0); mutation proof: dropping --topic returns rc 1; null control: the same line naming another group is still refused. [moved: R10-REVIEW-DISPATCH-RESIDUE]
+
+Valid `Carry:` targets (live consumers of R10-CARRY-AUDIT-P5: groups after it or sharing its files): R10-ROUND-PLAYBOOK-FINAL, R10-PREPR-RESIDUE, R10-CLOSEOUT-PREP
