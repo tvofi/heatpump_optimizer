@@ -697,7 +697,8 @@ def disinfection_checks() -> None:
     check(
         "a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses",
         lambda: written(_dhw_snap(configured=25.0, cycle=False), "dhw") == 30.0
-        and written(_dhw_snap(configured=25.4, cycle=False, attrs={"min": 30.5, "max": 65, "step": 0.5}), "dhw") == 30.5,
+        and written(_dhw_snap(configured=25.4, cycle=False, attrs={"min": 30.5, "max": 65, "step": 0.5}), "dhw") == 30.5
+        and written(_dhw_snap(configured=25.0, cycle=False, attrs={"min": 30.4, "max": 65, "step": 1}), "dhw") == 31.0,
     )
     check(
         "the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every "
