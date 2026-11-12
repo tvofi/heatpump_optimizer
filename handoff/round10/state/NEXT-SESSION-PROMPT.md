@@ -15,7 +15,6 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-ARCH-DOCS (stage in-progress, branch `handoff/r10-arch-docs`): `git fetch origin handoff/r10-arch-docs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-BODY-CONTRACT (stage carries-open, branch `handoff/r10-body-contract`): `git fetch origin handoff/r10-body-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -26,7 +25,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SUITE-ENV-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-COMBI-TANK-PR-B (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DUTY-SWITCH-RESTART-LEARNING (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -49,7 +47,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-PREPR-WC-PAD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-MAIN-IST-PREPR-SCOPE (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-BODY-CONTRACT, R10-CARD-COLLAPSE, R10-CI-PRIORITY-PAUSE, R10-COMBI-TANK-PR-B, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-RESTART-LEARNING, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-FLY-OPENER-STALE-ENV, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-GATE-REDISPATCH-LOOP, R10-HOTFIX-MAIN-IST-PREPR-SCOPE, R10-HOTFIX-OPENER-UNBLOCK, R10-HOTFIX-PREPR-WC-PAD, R10-HOTFIX-REPLAY-CLASS-CUT, R10-HOTFIX-RESTORE-BASE-SKEW, R10-INTRODUCED-REDS-BARRIER, R10-MUTANT-RUN-FORKCAP, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DISINFECTION-SETPOINT, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PRODUCT-PAGE-REDESIGN, R10-RCA-CARD-HEALTH-TEXT, R10-RELAY-ARM-ORDER, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE-P2, R10-TICK-RESIDUE-P3, R10-TRAIN-RESIDUE-P2, R10-UPDATE-PR-SEAT-WORKTREE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-RESTART-LEARNING, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-FLY-OPENER-STALE-ENV, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-GATE-REDISPATCH-LOOP, R10-HOTFIX-MAIN-IST-PREPR-SCOPE, R10-HOTFIX-OPENER-UNBLOCK, R10-HOTFIX-PREPR-WC-PAD, R10-HOTFIX-REPLAY-CLASS-CUT, R10-HOTFIX-RESTORE-BASE-SKEW, R10-INTRODUCED-REDS-BARRIER, R10-MUTANT-RUN-FORKCAP, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DISINFECTION-SETPOINT, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PRODUCT-PAGE-REDESIGN, R10-RCA-CARD-HEALTH-TEXT, R10-RELAY-ARM-ORDER, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE-P2, R10-TICK-RESIDUE-P3, R10-TRAIN-RESIDUE-P2, R10-UPDATE-PR-SEAT-WORKTREE
 
 ## Resume steps
 
