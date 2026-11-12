@@ -920,8 +920,8 @@ that cannot save them anything should not be able to cost them anything.
 ## Away and holiday mode
 
 A week away is the largest single saving a heating system can offer: a deep
-setback plus hot water suppressed entirely, except for a legionella cycle timed
-to complete before you return.
+setback plus hot water held only at its away minimum (20 °C unless you change
+it), except for a legionella cycle timed to complete before you return.
 
 What makes this more than a manual setpoint is the **return time**. Knowing when
 the house must be comfortable again lets the recovery heat be bought in the
@@ -946,13 +946,16 @@ replans at once, not at the next optimization interval.
 the room is never planned below the mold-safe temperature, and that floor
 outranks the away setback by design: protecting the coldest surface comes
 before saving. The mold-safe temperature rises with indoor humidity and falls
-with outdoor temperature, and it is capped at the comfort target. In a humid
-house in cold weather it can sit close to that target — on one recorded
-install 19.2 to 20.9 °C, at 52–53 % indoor humidity and 1 to 5 °C outdoors,
-against a 19.5 °C target — and the plan then heats to it while you are away,
-so the setback to *Temperature while away* saves little or no space-heating
-energy for as long as the guard holds the floor above it. Hot water is still
-suppressed. The setback saves again once the house is dry enough, or mild
+with outdoor temperature. The floor the plan holds is that temperature capped
+at your comfort target: the guard never heats past the target, because drying
+a house further is a dehumidifier's job. In a humid house in cold weather the
+floor can therefore sit at or near the target itself. On one recorded install,
+at 52–53 % indoor humidity and 1 to 5 °C outdoors, the mold-safe temperature
+worked out at 19.2 to 20.9 °C; with a 19.5 °C comfort target the floor in force
+was 19.2 to 19.5 °C, and the plan heats to it while you are away. The setback
+to *Temperature while away* then saves little or no space-heating energy for as
+long as the guard holds the floor above it. Hot water still drops to its away
+minimum. The setback saves again once the house is dry enough, or mild
 enough, that the mold-safe temperature falls below the away temperature; the
 **Mold Floor Breach** sensor's `floor_c` attribute shows the floor in force.
 
@@ -1183,7 +1186,10 @@ log that identification is disabled.
 **The ceiling probe.** Once the house has converged, or while the fit waits
 for its 30-day gap, the same button arms a second experiment where the install
 can run it: **Pump duty control** set to Control, the space set-point written
-as a flow or return temperature, and a power meter on the heat pump. On the same
+as a flow or return temperature, a power meter on the heat pump, and the plan
+not writing compressor power itself (a compressor frequency entity with its
+control set to Control skips the probe, since the plan already sets the draw
+directly). On the same
 kind of night (between 23:00 and 05:00, outdoor between −5 and 10 °C, a price
 among the cheapest 30 % of the horizon) it asks for full power, which writes the
 *Heating flow ceiling*, for the longest step of at most two hours that keeps the room inside
