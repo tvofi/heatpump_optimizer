@@ -333,8 +333,11 @@ st "$(calls dry openssl)" 0 "and signs nothing"
 mkcase drymoved "$OTHER" "$MERGE"
 run drymoved --dry-run o/r 7 "$W/drymoved/seat/verdict.md"; st $? 1 "--dry-run still refuses what a real run would"
 
-crun() { # name live-head -> app_comment run from the repository, the PR's head ref at live-head
-  gr push -q -f origin "$2:refs/pull/7/head"; mkcase "$1" "$2" "Fix review: merge $CV"
+crun() { # name live-head [fork] -> app_comment run from the repository, the PR's head ref at live-head
+  # A pull request of ours has its head on a branch of origin too; a fork's is
+  # the pull ref alone, and `--carry` asks origin which (decision 0017).
+  gr push -q -f origin "$2:refs/pull/7/head" "${3:+:refs/heads/pr7}${3:-$2:refs/heads/pr7}" 2>/dev/null
+  mkcase "$1" "$2" "Fix review: merge $CV"
   run "$1" o/r 7 "$W/$1/seat/verdict.md"; }
 # A pin-only head the verdict carries to (P264).
 crun pin "$CPIN"; st $? 0 "a merge verdict posts at a pin-only head it carries to (P264)"
@@ -345,6 +348,9 @@ st "$(grep -c '^READBACK id=55 .* identical=True' "$W/pin/out")" 1 "and the carr
 crun code "$CCODE"; st $? 1 "REFUSE: a merge verdict at a head moved by a commit of the branch's own changing code"
 st "$(grep -c "head moved: .*does not carry: .*${CCODE:0:9} change its content" "$W/code/err")" 1 "refused 'head moved', with the carry's reason"
 st "$(calls code curl)" 0 "and nothing was minted or posted"
+crun forkpin "$CPIN" fork; st $? 1 "REFUSE: the same pin-only head when it is only refs/pull/7/head (a fork's)"
+st "$(grep -c "head moved: .*does not carry: .*no branch tip of origin" "$W/forkpin/err")" 1 "refused as a head that is not ours"
+st "$(calls forkpin curl)" 0 "and nothing was minted or posted"
 st "$(grep -c '^carry:' "$W/ok/posted.body")" 0 "an unmoved head posts with no carry line (null control)"
 st "$(grep -c 'CARRY' "$W/ok/out")" 0 "and prints none"
 

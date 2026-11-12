@@ -10,7 +10,9 @@
   owed as `PENDING:` instead of refusing, and with `--pull-json FILE` judges
   the pull request from that file with no token and no API call (so it reads
   neither the reviews nor the other pull requests at the head). `classify --pr N PATH...` prints
-  each path's class. `approve --repo O/R --pr N --head SHA --mandate ID`
+  each path's class. `cross --repo O/R --pr N` answers whether the head is
+  cross-repository (rc 0 yes, 3 ours, 1 unread), the one definition
+  (`cross_repository`) the train and `merge_pr.sh` call. `approve --repo O/R --pr N --head SHA --mandate ID`
   posts the one mandated class-O approval, through the reviews API with
   `commit_id` the head read, and reads it back. When: `bus.sh adopt` runs
   main's copy as the gate; our class-O read seat returns through `approve`;
