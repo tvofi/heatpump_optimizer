@@ -15,6 +15,7 @@ refuses if that fails. The file is restored even when a run raises.
 """
 from __future__ import annotations
 
+import os
 import pathlib
 import subprocess
 import sys
@@ -66,9 +67,11 @@ MUTANTS = [
 def run(target, prelude: str) -> subprocess.CompletedProcess:
     if target == CARD:
         return subprocess.run(["node", "tests/card.mjs"], capture_output=True, text=True, timeout=900)
-    return subprocess.run(
-        [sys.executable, "tools/audit/seat/features_block.py", "--prelude", prelude, *target],
-        capture_output=True, text=True, timeout=900)
+    # A fresh bytecode cache per run: a same-size mutant must never load a .pyc of another text.
+    with tempfile.TemporaryDirectory() as cache:
+        return subprocess.run(
+            [sys.executable, "tools/audit/seat/features_block.py", "--prelude", prelude, *target],
+            capture_output=True, text=True, timeout=900, env={**os.environ, "PYTHONPYCACHEPREFIX": cache})
 
 
 def main() -> int:
