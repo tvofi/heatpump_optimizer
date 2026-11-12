@@ -100,6 +100,10 @@ MUTANTS: list[tuple[str, str, str, str]] = [
     # because zero probabilities already weigh zero. The rule is the two below.
     ("leaf: the zero-pair early return fires when either direction is unpriced", PKG + "duty_legs.py",
      "if (p_ds <= 0 and p_sd <= 0) or p_max <= 0:", "if (p_ds <= 0 or p_sd <= 0) or p_max <= 0:"),
+    ("leaf: a pump with no maximum draw is not returned early", PKG + "duty_legs.py",
+     "if (p_ds <= 0 and p_sd <= 0) or p_max <= 0:", "if p_ds <= 0 and p_sd <= 0:"),
+    ("leaf: the early return is one entry per step, not per row", PKG + "duty_legs.py",
+     "return np.zeros(space.shape[0])", "return np.zeros(space.shape[1])"),
     ("optimizer: no priced direction still returns a pair", PKG + "optimizer.py",
      "return stops if max(stops) > 0 else None", "return stops"),
     ("leaf: the charged step is the hot-water block's last step", PKG + "duty_legs.py",

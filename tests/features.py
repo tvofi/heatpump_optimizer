@@ -87040,6 +87040,16 @@ R.check(
     not _dsp_row_bad and len(set(_dsp_batch_w[None].tolist())) > 32,
     f"divergent rows: {_dsp_row_bad[:5]}",
 )
+_dsp_no_pmax = _dsp_dl.switch_weights_batch(_dsp_rows, _dsp_tank, (0.7, 0.4), 0.0)
+R.check(
+    "a pump with no maximum draw weighs every row zero, one finite entry per "
+    "row and not per step, on the rows the priced pair weighs above",
+    _dsp_no_pmax.shape == (_dsp_rows.shape[0],)
+    and _dsp_rows.shape[0] != _dsp_rows.shape[1]
+    and not _dsp_no_pmax.any()
+    and bool(_dsp_batch_w[None].any()),
+    f"shape {_dsp_no_pmax.shape}",
+)
 
 # Availability: one step charged per block end, on the profile the solve starts from.
 _dsp_blk = np.array([0.0, 3.0, 3.0, 0.0, 0.0, 0.0])
