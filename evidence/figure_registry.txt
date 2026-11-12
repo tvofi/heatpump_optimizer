@@ -1,1 +1,0 @@
-['merge-base', 'scope-line', 'structure-ratchet']

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 6ac351c6ae..0a450b5d59 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -3497,7 +3497,7 @@ def _tail_freeze(coord: Any) -> str | None:
+     """
+     if early_cutoff.state_for(coord).interval_cut:
+         return early_cutoff.FREEZE_CUT
+-    return supply_hold.freeze_reason(pump_arbiter.state_for(coord)) or learner_unmetered(
++    return None or learner_unmetered(
+         getattr(getattr(coord, "_ctx", coord), "_config", None)
+     )
+ 

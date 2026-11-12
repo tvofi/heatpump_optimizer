@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/supply_hold.py b/custom_components/heatpump_optimizer/supply_hold.py
+index 0bfa4d85ff..b4e3ae6e51 100644
+--- a/custom_components/heatpump_optimizer/supply_hold.py
++++ b/custom_components/heatpump_optimizer/supply_hold.py
+@@ -100,7 +100,7 @@ def _freeze_span(config: Any) -> timedelta:
+     the open cycle and the one just closed: freezing one too many is the
+     fail-closed side. Fixed when the write is held, where the config is in hand.
+     """
+-    return 2 * timedelta(minutes=EntryConfig.from_mapping(config).optimization_interval)
++    return 1 * timedelta(minutes=EntryConfig.from_mapping(config).optimization_interval)
+ 
+ 
+ def tank_reason(inp: ArbiterInputs) -> str | None:
