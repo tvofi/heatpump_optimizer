@@ -1,0 +1,8 @@
+R9 shipped space [0.0, 1.0, 2.5, 0.0] tank [0.0, 2.0, 0.0, 0.0] lost 0.5566666666666666
+R9 availability at head       [1.0, 1.0, 0.44333333333333336, 1.0]
+R9 availability, floor None   [1.0, 0.44333333333333336, 1.0, 1.0]
+RESULT r9_vectors_differ=True
+RESULT r9_charged_step_space_under_floor_in_mutant=True
+R5 avail [1.0, 0.44333333333333336, 1.0] bound [5.5, 0.43833333333333346, 5.5] solved [0.0, 0.43833333333333346, 2.0]
+R5 pinned at head [False, True, False] pinned with the vector ignored [False, False, False]
+RESULT r5_pinned_differs=True
