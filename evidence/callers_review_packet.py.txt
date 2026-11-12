@@ -1,0 +1,125 @@
+  ok   null control: a clean head dispatches (no refusal)
+  ok   the packet is byte-identical on a second render of the same head
+  ok   the packet closes on the carry self-audit command (P275)
+  ok   the packet carries the head's harness output and names the head
+  ok   check names a stale packet: another head does not match
+  ok   carry-audit: an unrouted body refuses and names it
+  ok   head-note: a ## Head naming another head refuses
+  ok   head-note repair: the refusal names the head and the update_pr.sh push for the PR's branch
+  ok   head-note repair null: a branch that cannot be read prints today's refusal, no command
+  ok   P405 head-note asks policy_lint --pr-body --head (one rule decides); another pr-body error is not its refusal
+  ok   P405 head-note refuses on policy_lint's own `does not name` error, whatever the substring says
+  ok   P405 gathered verdict decides: a chain policy_lint accepts passes where the substring test refuses
+  ok   P405 gathered verdict decides: policy_lint's refusal beats a body that contains the head
+  ok   P405 null: with no gathered verdict the floor is the head in ## Head
+  ok   P-card3 figure-lint: a figure_lint refusal on the body refuses
+  ok   P-card3 figure-lint null: figure_lint exit 0 (unverified included) does not refuse
+  ok   P-card3 moved-head: a pull request head other than the dispatched one refuses, naming both
+  ok   P-card3 moved-head null: the same head, or a handoff-ref dispatch with no pull request yet, does not refuse
+  ok   structure: a structure refusal at the merge refuses
+  ok   red-unanswered: an unanswered concluded red refuses
+  ok   host-path: a host path refuses
+  ok   hot-file: a shared hot file with an unboarded merge verdict refuses
+  ok   required-red: the required context's latest run concluded failure refuses
+  ok   P345: a required red that is only a raise's owed approval renders: no refusal, an `approval-owed` advisory naming the reason, in the packet
+  ok   #3379: a required red that classify --pr reads WAIT renders: no refusal, a `required-wait` advisory naming classify's line (classify decides; a pending check never refuses)
+  ok   a required red that classify --pr reads GREEN renders, with a `required-green` advisory
+  ok   null control: a required red that classify --pr reads RED still refuses, naming classify's line
+  ok   S14 red-unanswered: a required `gate` red that classify --pr reads WAIT renders one required-wait advisory and no refusal
+  ok   S14 red-unanswered: the same read GREEN renders
+  ok   S14 red-unanswered null: the same with a RED read refuses red-unanswered and required-red
+  ok   S14 red-unanswered null: an APPROVAL-OWED read and an absent read keep the refusal
+  ok   S14 red-unanswered null: a non-required red (`tests / fast`) beside a WAIT read still refuses
+  ok   P345: the reason is classify --pr's own APPROVAL-OWED line at rc 4, asked with the pull request; RED (rc 1), a line naming another head, and the line at any rc but 4 are RED (null controls)
+  ok   #3379: classify's WAIT line at rc 3 is WAIT; a REFUSE at rc 2 (unread) fails closed as RED, naming it
+  ok   required-red null: the same head with that run green renders
+  ok   a head with checks still running dispatches, digest pending with run ids
+  ok   a head with no run read is `none`, never `green`
+  ok   scope null: a first round renders the three-dot diff and no delta or previous verdict
+  ok   scope: a later round renders `git diff <rh> <head>` and the previous verdict's findings, not the three-dot diff
+  ok   the packet's scope line: the exception names production code, non-obvious risk and CI's blindness, and the wider trigger wording is absent
+  ok   fix-review.md step 12: the exception names production code, non-obvious risk and CI's blindness, and the wider trigger wording is absent
+  ok   review_scope: delta only with a reviewed head that is an ancestor and a verdict naming it; else full, saying why
+  ok   previous_verdict: the newest verdict whose first line names <rh>; another head's, an older one and a malformed line are skipped; none naming it is None
+  ok   write-on-refusal null: a clean render writes
+  ok   write-on-refusal: a concluded red still writes its packet
+  ok   write-on-refusal: a host path writes nothing
+  ok   write-on-refusal: one host path beside other refusals still writes nothing
+  ok   self-audit: a verdict note with no Carry: gives rc 1
+  ok   self-audit: the same note with its own `Carry: dismissed:` gives rc 0
+  ok   self-audit null: a verdict with no unrouted note gives rc 0
+  ok   brief-carries: a body answering carries 0-4 of 6 (0-based, as the dispatch renders) is refused naming carry 5
+  ok   brief-carries null: the same body with carry 5 dispositioned passes
+  ok   S14 brief-carries: carry 0 is checked, and a one-carry group is not asked for carry 1
+  ok   S14 brief-carries: the dispatch PROMPT's Carry N: lines decide the set (21), not a live roster of 27
+  ok   S14 brief-carries null: no PROMPT (None) falls to the live count, and a body missing a live carry is refused
+  ok   S14 brief-carries: with a 21-carry PROMPT and 27 live carries the check runs over the PROMPT's 21
+  ok   brief-carries null: a group with no carries passes
+  ok   brief-carries: `carry 1` does not name carry 10, and `Carry [10]` does
+  ok   handoff: structure and hot-file refuse beside the count, each named
+  ok   handoff null: a clean head refuses nothing
+  ok   carry-landed: only a line that says landed cites a carry, with its index and sha
+  ok   carry-landed: a carry the roster entry holds too few of at the sha refuses, naming it
+  ok   carry-landed: a sha off the roster ref refuses
+  ok   carry-landed null: the same body once the carry lands passes
+  ok   carry-landed null: a body citing no carry as landed passes
+  ok   carry-landed: the handoff refuses it beside the count
+  ok   hot-file arm: an unboarded merge verdict sharing a hot file refuses
+  ok   hot-file null: the same verdict boarded passes
+  ok   hot-file own-pr arm (a): the pull request whose head is an ancestor is not refused against itself
+  ok   own-pr: with no ancestor, the head branch fix/<topic> identifies it
+  ok   hot-file own-pr arm (b) null: a different open pull request holding an unboarded merge verdict still refuses
+  ok   hot-file own-pr arm (c): two ancestors are excluded neither and both are named
+  ok   hot-file null: a verdict at a stale head is not a merge verdict at its head
+  ok   hot-file reader: the verdict's head is the first line of VERDICT.md through proof_watch.parse_verdict
+  ok   hot-file reader null: a verdict-ref commit subject is not a verdict
+  ok   red-unanswered: with the required set read, only the required unit is owed, on a diff touching the reporter's own script
+  ok   red-unanswered null: a body naming every red is owed nothing
+  ok   red-unanswered unread set: main's nightly-status red is not owed by a diff touching only a test file
+  ok   red-unanswered unread set: a diff touching tests/nightly_status.py owes both
+  ok   red-unanswered unread set: #2954's workflow diff still owes nightly-status
+  ok   red-unanswered null: no concluded red reads nothing
+  ok   red-unanswered unread set: main's delivery-status red is not owed by a diff adding only its own row
+  ok   red-unanswered unread set: a delivery row the base already had owes delivery-status
+  ok   red-unanswered: under the train's set, a delivery row the base had owes delivery-status nothing
+  ok   red-unanswered: a path list policy_lint refuses is UNAVAILABLE, not no unanswered red
+  ok   independence: a harness the diff edits is refused as the fixer's
+  ok   independence: a harness absent at the base is refused
+  ok   independence null: a base harness the diff leaves alone is the finder's
+  ok   independence: --harness-file inside the checkout is refused
+  ok   handoff-not-applied: #2887's shape (old head merged with main, tip outside) refuses
+  ok   handoff-not-applied: the `fix/<t>-pr` spelling reads handoff/<t>
+  ok   handoff-not-applied null: a head containing the handoff tip renders
+  ok   handoff-not-applied null: a pull request with no handoff ref renders
+  ok   handoff-not-applied null: a branch not spelled fix/<t> renders
+  ok   S14 roster landing: the 3377 shape (head holds the named snapshot, an ancestor of the tip) renders with the advisory
+  ok   S14 roster landing: a named snapshot not in the head is refused
+  ok   S14 roster landing: a named snapshot that is an ancestor of the tip but not of the head is refused
+  ok   S14 roster landing: a snapshot in the head but not an ancestor of the tip is refused
+  ok   S14 roster landing null: a fixer topic (not the round's) with the same shape is refused as today (#2887)
+  ok   repo(): a git read runs in the checkout the working directory is in, not the tool's install
+  ok   diff_paths: an added delivery row is touched, and only a file the base had is existing
+  ok   diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing
+  ok   scope_facts: a later round's diff is `git diff <rh> <head>` alone -- the round-one row is not in it
+  ok   scope_facts null: a first round over the same head reads the three-dot diff, round one's row included
+  ok   scope_facts null: a reviewed head that is not the head's ancestor reads the three-dot diff
+  ok   UNAVAILABLE: a working directory outside a checkout exits 3, not 1, and writes nothing
+  ok   UNAVAILABLE: a failing `gh` is unavailable, never a refusal
+  ok   UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal
+  ok   introduced: the head's red the base lacks is INTRODUCED, the inherited one is not, by 2 job-step reads
+  ok   no base run: every head red but the push-only drift step counts; skipped is never red
+  ok   a head whose job did not conclude failure costs one listing and no job read
+  ok   fail closed: the head's job unreadable refuses introduced-red, never reads clean
+  ok   fail closed: the base's job unreadable refuses introduced-red, never reads clean
+  ok   fail closed: the base's listing unreadable refuses introduced-red, never reads clean
+  ok   fail closed: the head's listing unreadable refuses introduced-red, never reads clean
+  ok   build: an INTRODUCED step is an introduced-red refusal naming the step
+  ok   null: an inherited-only head (nothing introduced) refuses nothing
+  ok   one notion of red: merge_train.RED_CONCLUSIONS is this file's RED
+  ok   a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused
+  ok   a cancelled step inside a failed job is INTRODUCED
+  ok   fail closed: a job-level cancelled at the head refuses introduced-red, never reads clean
+  ok   fail closed: a job still running at the head refuses introduced-red, never reads clean
+  ok   gather's ci_facts carries the INTRODUCED reading build refuses (M9: its wiring)
+review_packet self-test: 123 checks, 0 failed
+rc=0
