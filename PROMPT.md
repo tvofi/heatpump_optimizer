@@ -53,7 +53,7 @@ From triage P330 (queue 2026-10-31T13:24:23Z, owner-flagged: tvofi 2026-10-31 "i
 
 Carry 7: Moved from R10-FLY-STANDING-CONTRACTS carry 9 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
-tvofi 2026-10-24 card 1 recommendation (d) (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): R10-ORCH-BEATD folds into orchestrator.md that the orchestrator reads only the ledger and the plan page. When this group lands, make that sentence true of the plan page (the page is the single state view) and edit the one line in orchestrator.md that names the ledger digest alone. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified.
+tvofi 2026-10-24 card 1 recommendation (d) (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): R10-ORCH-BEATD folds into orchestrator.md that the orchestrator reads only the ledger and the plan page. When this group lands, make that sentence true of the plan page (the page is the single state view) and edit the one line in orchestrator.md that names the ledger digest alone. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified. [implemented: 1b174e9b319607e9594bfdd7cb21067ca004d340]
 
 Carry 8: Moved from R10-FLY-STANDING-CONTRACTS carry 10 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -85,7 +85,7 @@ Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item 
 Original text, verbatim:
 tvofi 2026-10-24 card 1 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): when this group lands, the standing merge seat retires: the queue builder and the train run as a daemon or beat job (train.sh and merge_train.py), their per-pitch outcome goes to the digest, and no pitch is assembled in the orchestrator's turn. Edit dev/governance/roles/standing-merge.md in this group or in R10-ORCH-BEATD's contract edit, whichever merges later, not both. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified. Acceptance: one real pitch is built and merged by the job, with the merge seat watching and agreeing; only then is the seat stopped.
 
-Carry: R10-ORCH-LEDGER
+Carry: R10-ORCH-LEDGER [dismissed: orchestrator ruling under mandate 6715477401, triage s14-42 (s6-batch234 P708): recorded refusal, not a deferral; the merge and dispatch seats stay standing seats for round 10 (standing-dispatch.md:17-18 states the hand-over condition; standing-merge.md is the live contract); beatd.jobs.json has no merge or dispatch row and an L design plus one live cycle does not fit the closing chain]
 
 Carry 10: Moved from R10-FLY-STANDING-CONTRACTS carry 12 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -101,7 +101,7 @@ Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item 
 Original text, verbatim:
 tvofi 2026-10-24 card 1 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): when this group lands, the standing roster seat retires: a daemon or beat job reads the orchestrator's roster queue file, runs each roster_edit.py op with --lint-cwd at a fresh origin/main and --push, and writes one 'roster: <op> <group> pushed <sha>' or 'refused <reason>' line per op into the digest; a refusal is never retried past the lint gate. Edit dev/governance/roles/standing-roster.md in this group or in R10-ORCH-BEATD's contract edit, whichever merges later, not both. Binding constraint (owner, tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. A seat's work moves to a daemon or beat job, never into the orchestrator's turns, and the seat stays until its replacement job is live and verified. Acceptance: the job lands a seeded no-op-safe op on a scratch roster branch and refuses a seeded lint failure, with the seat running beside it for one cycle; only then is the seat stopped.
 
-Carry: R10-ORCH-LEDGER
+Carry: R10-ORCH-LEDGER [implemented: 1b174e9b319607e9594bfdd7cb21067ca004d340]
 
 Carry 11: Moved from R10-FLY-STANDING-CONTRACTS carry 13 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -117,7 +117,7 @@ Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item 
 Original text, verbatim:
 From R10-FLOW-ROSTER-FREEZE arm (a) (carry 5, tvofi 2026-10-24 card 1): this group merges after ROSTER-FREEZE, so its contract edit owns the standing roster seat's retirement in dev/governance/roles/standing-roster.md. A beat job runs tools/audit/seat/roster_queue.py run over the orchestrator's roster queue file (roster_edit.py ops with --lint-cwd at a fresh origin/main and --push), writing one 'roster: <op> <group> pushed <sha>' or 'refused <reason>' line per op into the digest; a refusal is never retried past the lint gate. Binding (owner, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. The seat stays until the job lands a seeded no-op-safe op on a scratch roster branch and refuses a seeded lint failure, with the seat running beside it for one cycle.
 
-Carry: R10-ORCH-LEDGER
+Carry: R10-ORCH-LEDGER [implemented: 1b174e9b319607e9594bfdd7cb21067ca004d340]
 
 Carry 12: Moved from R10-FLY-STANDING-CONTRACTS carry 14 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -133,7 +133,7 @@ Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item 
 Original text, verbatim:
 Orchestrator ruling 2026-10-24 (tvofi card 1): the dispatch half of standing-dispatch.md (open_pr and update_pr, bus dispatch, pool briefs and verdict confirm) becomes a beat job owned by this group's registry. It never moves into the orchestrator's turns. The standing dispatch seat stays until that job has run beside it for one full cycle.
 
-Carry: R10-ORCH-LEDGER
+Carry: R10-ORCH-LEDGER [dismissed: orchestrator ruling under mandate 6715477401, triage s14-42 (s6-batch234 P708): recorded refusal, not a deferral; the merge and dispatch seats stay standing seats for round 10 (standing-dispatch.md:17-18 states the hand-over condition; standing-merge.md is the live contract); beatd.jobs.json has no merge or dispatch row and an L design plus one live cycle does not fit the closing chain]
 
 Carry 13: Moved from R10-FLY-STANDING-CONTRACTS carry 15 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -149,7 +149,7 @@ Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item 
 Original text, verbatim:
 From R10-ORCH-DISPATCH-REG (handoff de66f00b): **The dispatch half of standing-dispatch.md becomes a beat job owned by this registry.** Not built here: the beat and its job table are R10-ORCH-BEATD's (concern B), which is after this group. What it needs from here exists: one writer (`bus.sh dispatch`), a registry with time and model, a reopen on a failed publish. The standing dispatch seat stays until the job has run beside it for one full cycle.
 
-Carry: R10-ORCH-LEDGER
+Carry: R10-ORCH-LEDGER [dismissed: orchestrator ruling under mandate 6715477401, triage s14-42 (s6-batch234 P708): recorded refusal, not a deferral; the merge and dispatch seats stay standing seats for round 10 (standing-dispatch.md:17-18 states the hand-over condition; standing-merge.md is the live contract); beatd.jobs.json has no merge or dispatch row and an L design plus one live cycle does not fit the closing chain]
 
 Carry 14: Moved from R10-FLY-STANDING-CONTRACTS carry 16 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -165,7 +165,7 @@ Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item 
 Original text, verbatim:
 **R10-ORCH-BEATD: carry [5], the dispatch beat job.** It calls `bus.sh dispatch` (or `dispatch_group`), never a second writer of the registry or of the `reviewer-fire` close; the standing dispatch seat stays until the job has run beside it for one full cycle. Control: one beat pass over a handoff with no live dispatch leaves one registry line and one `close reviewer-fire` in `events.tsv`, and a second pass adds neither. Carry: R10-ORCH-BEATD
 
-Carry: R10-ORCH-LEDGER
+Carry: R10-ORCH-LEDGER [dismissed: orchestrator ruling under mandate 6715477401, triage s14-42 (s6-batch234 P708): recorded refusal, not a deferral; the merge and dispatch seats stay standing seats for round 10 (standing-dispatch.md:17-18 states the hand-over condition; standing-merge.md is the live contract); beatd.jobs.json has no merge or dispatch row and an L design plus one live cycle does not fit the closing chain]
 
 Carry 15: Moved from R10-FLY-STANDING-CONTRACTS carry 17 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -215,7 +215,7 @@ The carry: retire the standing tick seat into the beat. The beat's tick job writ
 Binding constraint (tvofi 2026-10-24, verbatim): 'make sure the retirement of the standing seats dont cause you to run things inline'. The seat's work moves to a daemon or beat job, never into the orchestrator's turns.
 Local stand-in, live since 2026-10-31T19:32Z: ~/hpo-orch/r10s6/s9/tick-digest/the tick-digest script (out of tree; read it as the reference shape, never cite its path in the tree). Every 240 s, on a changed tick.txt, it greps the actionable family (OWED, DISPATCH, OWNER FLAG, BLOCKED-UNFIXED, DESIGN-BUILD, UNREADABLE, DESIGN OWED, REVIEW OWED, REVIEW STALLED, UNLEVELLED, APPROVAL*, MERGE-READY, code-owned-without-review, NOT REVIEWABLE, DIRTY, RED unanswered, main red) and normalises timestamps and ages. It writes digest.txt, new.txt and gone.txt, runs owed_unactioned.py (UNACTIONED lines into new.txt), and touches the tick seat's alive file. The orchestrator's background until-loop wakes only when new.stamp changes.
 Build: a `tick-digest` job in the beatd job table beside this group's heartbeat and pitch jobs, either as a tools/audit/seat/ script or as an orchestrator_tick.py `--digest` mode. Write it under $HPO_STATE_DIR, with the sweep template's step (5) reading the digest in place of the tick seat. Remove tick_brief from the placeholder table, or make it optional.
-Controls: an unchanged board writes no new.txt (null); a board gaining one OWED line writes exactly that line; a timestamp-only change writes nothing; an UNACTIONED exit from owed_unactioned.py lands in new.txt. Carry: R10-ORCH-LEDGER
+Controls: an unchanged board writes no new.txt (null); a board gaining one OWED line writes exactly that line; a timestamp-only change writes nothing; an UNACTIONED exit from owed_unactioned.py lands in new.txt. Carry: R10-ORCH-LEDGER [implemented: 0a98a0173ffa8c3a7c3dcc3362eb3e67372a5501]
 
 Carry 18: Moved from R10-FLY-STANDING-CONTRACTS carry 21 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -229,13 +229,13 @@ Build the mechanical ones as the beatd job table jobs, beside this group's heart
 - opener: the open-driver script of carry b94-P337.
 Every job writes into the one digest the orchestrator's single wake reads (the tick-digest carry), so an LLM seat wakes only on a refusal or a judgement.
 Local stand-in, live since 2026-10-31: ~/hpo-orch/r10s6/s9/sweep-runner/the sweep-runner script (out of tree, the reference shape). Remove that seat from each standing contract only once its job is live and verified (the owner's 2026-10-24 constraint: "make sure the retirement of the standing seats dont cause you to run things inline").
-Controls: each job's null (nothing owed writes nothing) and planted case (one pending queue line drains and is marked; one REFUSE line reaches the digest). Carry: R10-ORCH-LEDGER
+Controls: each job's null (nothing owed writes nothing) and planted case (one pending queue line drains and is marked; one REFUSE line reaches the digest). Carry: R10-ORCH-LEDGER [implemented: 0a98a0173ffa8c3a7c3dcc3362eb3e67372a5501]
 
 Carry 19: Moved from R10-FLY-STANDING-CONTRACTS carry 27 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
-From #3294, body item 88565884: The liveness hook's alive files are read from $HPO_STATE_DIR/alive/ and the digest's freshness from digest.txt or the beat journal (digest.txt is rewritten only on a change); P2 should name the alive-file directory in standing.md. Carry: R10-FLY-STANDING-CONTRACTS (items 88565884)
+From #3294, body item 88565884: The liveness hook's alive files are read from $HPO_STATE_DIR/alive/ and the digest's freshness from digest.txt or the beat journal (digest.txt is rewritten only on a change); P2 should name the alive-file directory in standing.md. Carry: R10-FLY-STANDING-CONTRACTS (items 88565884) [implemented: 1b174e9b319607e9594bfdd7cb21067ca004d340]
 
-Carry 20: From the s13 CP-compression seat (2026-11-10): on a design revise nothing routes the designer to design-verdict/<group>. designer.md has no step to read it, and cloud_dispatch.py's designer payload neither names nor pins the verdict, so a round-2 designer sees the revise points only when someone hand-queues a roster carry (WSF round 2 needed carry 4). Fix: add the read step to designer.md and have the designer payload pin the latest design-verdict SHA when one exists; control: render a designer payload for a group with a revise verdict and see the SHA present, and absent for a group with none. Carry: R10-STANDING-CONTRACTS-P2
+Carry 20: From the s13 CP-compression seat (2026-11-10): on a design revise nothing routes the designer to design-verdict/<group>. designer.md has no step to read it, and cloud_dispatch.py's designer payload neither names nor pins the verdict, so a round-2 designer sees the revise points only when someone hand-queues a roster carry (WSF round 2 needed carry 4). Fix: add the read step to designer.md and have the designer payload pin the latest design-verdict SHA when one exists; control: render a designer payload for a group with a revise verdict and see the SHA present, and absent for a group with none. Carry: R10-STANDING-CONTRACTS-P2 [implemented: 1b174e9b319607e9594bfdd7cb21067ca004d340]
 
 Carry 21: From triage batch 141 (triage: dev/programme/triage/s6-batch141.md#P506 at aac4c4a441), queue lines LIVENESS-HOOK-PARITY and S14-HOOK-RESTART-PATH, owner-directive route (tvofi 2026-11-09: "keep the local one, but propose an update to the live one to cover the gaps"; this group's carry 16, tvofi 2026-11-01). The tracked SessionStart/PostCompact hook tools/audit/seat/hooks/liveness.py gains the three arms the session-local hook has, so the owner can install the tracked one and retire the local copy: (1) AUTO-RESTART: for beatd (the one supervisor), a DEAD status relaunches it through tools/audit/seat/daemonize.py from beatd's own checkout with its recorded cwd, HPO_* environment and argv, and with the seat interpreter's directory (tools/audit/seat/seat_venv.sh's venv bin) first on PATH; it prints RESTARTED or 'auto-restart FAILED'. Measured instance: a restart that dropped PATH brought beatd and the tick back under the host's Python 3.11, and the opener row died on a SyntaxError (opener digest 'open_driver rc=1: SyntaxError', 2026-11-11T00:00Z), so no handoff opened. tools/audit/seat/beatd.py refuses to start under an interpreter older than the tree's floor (3.12), naming the interpreter. (2) READ-PROOF GATE: the hook writes the policy corpus (CLAUDE.md, the rules, orchestrator.md, the instruments guide, at origin/main) to one file whose last line names a sha256 proof command, writes a compact-owed marker, and a UserPromptSubmit arm re-raises the obligation every prompt until the proof clears it. (3) CHECKOUT PRESENCE: MISSING for each checkout a live loop runs from, read from the state overlay, never a literal list. Each arm gets a planted case and a null control in tools/audit/seat/hooks_setup.py --self-test. Files to add to the group: tools/audit/seat/hooks/liveness.py, tools/audit/seat/hooks_setup.py, tools/audit/seat/beatd.py.
 
@@ -253,4 +253,4 @@ Carry 27: `dev/programme/HANDOVER.md` names four standing seats in its standing-
 
 Valid `Carry:` targets (live consumers of R10-STANDING-CONTRACTS-P2: groups after it or sharing its files): R10-ROUND-PLAYBOOK-FINAL, R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE, R10-SEAT-IDENTITY-P5, R10-CLOSEOUT-PREP, R10-HOTFIX-OPENER-UNBLOCK
 
-Part 1 of 4: build carries 7+9-12; the others are later parts dispatched at this part's handoff; answer none of them
+Part 1 of 1: build carries 15-16+21-24+27; the others are later parts dispatched at this part's handoff; answer none of them
