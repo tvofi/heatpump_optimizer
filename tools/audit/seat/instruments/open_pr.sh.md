@@ -30,12 +30,17 @@
   tip first and closes only when origin lacks the row commit; when origin
   holds it, the PR stays open and the run exits non-zero naming the failure
   (`open_pr: ROW LANDED: #N`). A refusal that is the host's, not the
-  head's stays open too (`op_host_refusal`): when every `REFUSE` row of the row push's log is
-  prepr's `self-test` step (app_push's own summary of it aside) and the pull request's diff
-  against `origin/main` leaves `tools/pr/prepr.sh` and `tools/audit/prepr.sh` alone, the PR is
-  left open as `opened`, one `open_pr: ROWLESS: #N` line names `update_pr.sh <branch> - <body>`
-  as the owed row, and the exit stays non-zero. Any other refusal row (body contract, figure
-  blocks, a stop), a mixed log, or an unread diff closes as before. The PR is created only after the body
+  head's stays open too, and is decided by measurement (`pr_host_refusal`, `pr_args.sh`): when the
+  row push's log names prepr's `self-test` step as its one refused step, the opener runs that
+  self-test on the refused head and on a pristine `origin/main` tree, each a detached throwaway
+  worktree, and only the same exit status and the same `FAIL` rows at both is the host's. The PR is
+  then left open as `opened`, one `open_pr: ROWLESS: #N` line names `update_pr.sh <branch> - <body>`
+  as the owed row, and the exit stays non-zero. Main's answer is kept per `origin/main` sha in
+  `$HPO_STATE_DIR/pr/selftest-main/<sha>.sig`, one self-test run per main move (remove the file to
+  measure again, as after a host repair); the head's is run on every such refusal. Any other
+  refused step (body contract, figure blocks, a stop), a mixed log, a failing set that differs, a
+  refusal the re-run does not reproduce, a measurement that could not be made, and a log an earlier
+  run left all close as before. The PR is created only after the body
   contract passes: `app_push.sh` runs `prepr.sh` and the `ref_privacy` guard
   before its push. A main merge that conflicts is aborted and refused
   (`merging origin/main into <sha> conflicts`), so the clean worktree is

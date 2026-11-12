@@ -189,6 +189,38 @@ pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's chec
   [ -n "${HPO_ALLOW_STALE_TOOLS:-}" ] || pr_refuse "$why: update the checkout holding $d, or set HPO_ALLOW_STALE_TOOLS=1"  # mut:stale
   printf '%s: NOTICE: %s; HPO_ALLOW_STALE_TOOLS is set, so this run goes on\n' "${PR_NAME:-pr}" "$why" >&2
 }
+# Whose refusal a refused row push is (R10-HOTFIX-OPENPR-HOST-REFUSAL): the HOST's only when the refused
+# step, run again here on the refused head and on a pristine origin/main tree, fails the same way at
+# both -- one exit status, one set of FAIL rows. It is measured, never read from the refusal's text
+# or the diff's paths: #3508 was closed for a self-test that failed on the orchestrator host at
+# origin/main too, and a path guard on prepr.sh called a head that broke any other self-test input
+# the host's. The log only names WHICH step refused; prepr's self-test is the one step with a form
+# that runs on a tree alone, so a row naming any other step (a body, figure or carry check reads the
+# head's body) is the head's. Both trees are detached worktrees under <cache>, run alike. Main's
+# answer is kept per origin/main sha in <cache>/<sha>.sig, one run per main move; whatever cannot be
+# measured (no worktree, no self-test in the tree, no cache directory) is the head's, and closes.
+pr_step_sig() { # <checkout> <sha> <scratch dir> -> the self-test's exit status and FAIL rows at <sha>; rc 1 = not measured
+  local w=$3/tree st rc=0 out=""
+  git -C "$1" worktree remove --force "$w" >/dev/null 2>&1 || :; rm -rf "$w" || :
+  git -C "$1" worktree add -q --detach "$w" "$2" >/dev/null 2>&1 || return 1  # ret:sigtree
+  st=tools/pr/prepr.sh; [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh
+  if [ -f "$w/$st" ]; then out=$(cd "$w" && PYTHONPATH=tests/hastub bash "$st" --self-test 2>&1) || rc=$?; else rc=unrun; fi
+  git -C "$1" worktree remove --force "$w" >/dev/null 2>&1 || :; rm -rf "$w" || :
+  [ "$rc" != unrun ] || return 1  # ret:signone
+  printf 'rc=%s\n' "$rc"; grep -E '^  FAIL ' <<<"$out" | sort -u || :
+}
+pr_host_refusal() { # <checkout> <refusal log> <refused head> <origin/main sha> <cache dir>: 0 = the host's, 1 = the head's
+  local c=$5 other sh sm
+  other=$(grep REFUSE "$2" 2>/dev/null | grep -vE '^  REFUSE +self-test( |$)|^app_push: REFUSE: the body did not pass tools/pr/prepr\.sh' | grep -c . || :)
+  [ "$other" = 0 ] || return 1  # mut:hostother
+  grep -qE '^  REFUSE +self-test( |$)' "$2" 2>/dev/null || return 1  # mut:hostrows
+  [ -n "$3" ] && [ -n "$4" ] && mkdir -p "$c" 2>/dev/null || return 1  # ret:hostdir
+  sh=$(pr_step_sig "$1" "$3" "$c") || return 1  # ret:hosthead
+  sm=$(cat "$c/$4.sig" 2>/dev/null) || sm=  # mut:hostcache
+  [ -n "$sm" ] || { sm=$(pr_step_sig "$1" "$4" "$c") && { rm -f "$c"/*.sig; printf '%s\n' "$sm" > "$c/$4.tmp"; } && mv -f "$c/$4.tmp" "$c/$4.sig"; } || return 1  # ret:hostmain
+  [ "${sh%%$'\n'*}" != rc=0 ] || return 1  # mut:hostfails
+  [ "$sh" = "$sm" ]  # mut:hostsame
+}
 pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
   grep -E 'REFUSE' "$1" >&2 || tail -n 20 "$1" >&2 || true
   pr_refuse "the push failed; its log is $1"
@@ -1438,7 +1470,8 @@ GH
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
-    case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; selftest|stmix|body) touch "$sdir/p2$2" ;; guard) touch "$sdir/p2selftest" ;; *) touch "$sdir/p2fail" ;; esac
+    case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; selftest) touch "$sdir/p2selftest" ;; host) touch "$sdir/p2selftest" "$sdir/hostfail" ;; stmix|body) touch "$sdir/p2$2" "$sdir/hostfail" ;;
+      stalefig) touch "$sdir/hostfail" "$sdir/figfail"; mkdir -p "$sd/pr/r" && printf '  REFUSE   self-test             FAIL x\n' > "$sd/pr/r/p2.log" ;; *) touch "$sdir/p2fail" ;; esac
     touch "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
     PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
     git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
@@ -1483,38 +1516,159 @@ GH
   rowless rowreset
   [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 0 ]
   ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)" $?
-  # A refusal that is the host's, not the head's (R10-HOTFIX-OPENPR-HOST-REFUSAL): prepr's self-test
-  # step fails on the orchestrator host at origin/main too, and every other step passes. Closing the PR
-  # for it closed #3508. Its only REFUSE row being `self-test` leaves the PR open, owing its row to
-  # update_pr.sh; a body-contract row, a mixed log, and a branch whose own diff touches the
-  # self-tested prepr.sh still close (the null controls).
+  # A refusal that is the host's, not the head's (R10-HOTFIX-OPENPR-HOST-REFUSAL), is decided by
+  # measurement: pr_host_refusal runs prepr's self-test on the refused head and on a pristine
+  # origin/main tree, and only one exit status and one set of FAIL rows at both is the host's.
+  # The stand-in self-test below fails on every tree under a host fault ($STUB_DIR/hostfail), and
+  # on a tree holding a tracked file whose last line is the marker: the head's own break.
+  cat > "$t/st-stub.sh" <<'STUB'
+#!/bin/bash
+[ "${1:-}" = --self-test ] || exit 0
+git rev-parse HEAD >> "$STUB_DIR/struns"
+[ ! -e "$STUB_DIR/hostenv" ] || { echo "ENVIRONMENT: the box is short of space"; exit 3; }
+r=0
+[ ! -e "$STUB_DIR/hostfail" ] || { echo "  FAIL a tool this host lacks (got 127, wanted 0)"; r=1; }
+[ ! -e crash ] || exit 2
+while read -r f; do [ "$(tail -n 1 "$f")" != "# BROKEN" ] || { echo "  FAIL $f reads broken"; r=1; }; done < <(git ls-files)
+echo "self-test: rc $r"; exit $r
+STUB
+  # The inputs are prepr's own enumeration, its function evaluated from its text at this checkout:
+  # every path the refused step reads, derived where step 3h derives it and never carried here.
+  hrin=$(cd "$src/../../.." && PREPR_PATH=tools/pr/prepr.sh && eval "$(sed -n '/^SELFTEST_FIXTURES=/,/^}/p' tools/pr/prepr.sh)" && selftest_inputs)
+  hro=$t/hr/o; hrc=$t/hr/cache; mkdir -p "$t/hr/stub"
+  { throwaway_git_init "$hro" -q -b main && printf 'a\n' > "$hro/README.md" && git -C "$hro" add -A \
+    && git -C "$hro" commit -q -m root && hrroot=$(git -C "$hro" rev-parse HEAD) \
+    && mkdir -p "$hro/tools/pr" && cp "$t/st-stub.sh" "$hro/tools/pr/prepr.sh" \
+    && while read -r p; do
+         case $p in ''|tools/pr/prepr.sh) continue ;; */) p=${p}x.md ;; esac
+         mkdir -p "$hro/$(dirname -- "$p")" && printf 'a\n' > "$hro/$p"
+       done <<<"$hrin" \
+    && git -C "$hro" add -A && git -C "$hro" commit -q -m main && hrmain=$(git -C "$hro" rev-parse HEAD); } || ck "host_refusal: fixture" 1
+  hrhead() { # <path> <appended last line> -> the sha of a head, one commit on main, changing that path
+    git -C "$hro" checkout -q --detach "$hrmain" && printf '%s\n' "$2" >> "$hro/$1" && git -C "$hro" add -A \
+      && git -C "$hro" commit -q -m "head: $1" && git -C "$hro" rev-parse HEAD
+  }
+  hr() { # <-|mutant|ret:tag> <head sha> [main sha] [log] -> pr_host_refusal's status; ret:<tag> turns that line's `|| return 1` into `|| return 0`
+    case $1 in
+      -) cp "$src/pr_args.sh" "$t/hr/lib.sh" ;;
+      ret:*) sed "/# $1\$/s/|| return 1/|| return 0/" "$src/pr_args.sh" > "$t/hr/lib.sh" ;;
+      *) grep -v "# mut:$1\$" "$src/pr_args.sh" > "$t/hr/lib.sh" ;;
+    esac
+    STUB_DIR=$t/hr/stub bash -c '. "$1"; pr_host_refusal "$2" "$3" "$4" "$5" "$6"' _ "$t/hr/lib.sh" "$hro" "${4:-$t/hr/st.log}" "$2" "${3:-$hrmain}" "$hrc" </dev/null
+  }
+  hrruns() { grep -c "^$1\$" "$t/hr/stub/struns" 2>/dev/null || :; }
+  printf '  ok       figures               fine\n  REFUSE   self-test             12 checks, 1 failed   FAIL x\napp_push: REFUSE: the body did not pass tools/pr/prepr.sh\n' > "$t/hr/st.log"
+  printf 'app_push: REFUSE: the body did not pass tools/pr/prepr.sh\n' > "$t/hr/none.log"
+  printf '  REFUSE   self-test             FAIL x\n  REFUSE   pr-body               no heading\n' > "$t/hr/mix.log"
+  touch "$t/hr/stub/hostfail"
+  hclean=$(hrhead README.md "a second line")
+  hr - "$hclean"
+  ck "host_refusal: a self-test failing the same way on the refused head and on a pristine origin/main tree is the host's" $?
+  nin=0; nhead=0
+  while read -r p <&3; do
+    case $p in '') continue ;; */) p=${p}x.md ;; esac
+    nin=$((nin + 1)); hbroke=$(hrhead "$p" "# BROKEN") && ! hr - "$hbroke" && nhead=$((nhead + 1))
+  done 3<<<"$hrin"
+  grep -qxF tools/policy/policy_lint.mjs <<<"$hrin" && grep -qxF tools/pr/prepr.sh <<<"$hrin" && [ "$nin" -gt 3 ] && [ "$nhead" = "$nin" ]
+  ck "host_refusal: null control: a head breaking any one path prepr's own selftest_inputs returns ($nhead of $nin, prepr.sh and policy_lint.mjs among them) is the head's, under the same host fault" $?
+  [ "$(hrruns "$hrmain")" = 1 ] && [ "$(hrruns "$hclean")" = 1 ]
+  ck "host_refusal: origin/main was measured once across all of those refusals (its answer is kept per main sha), each head once" $?
+  hr hostsame "$hbroke"
+  ck "  mutant mut:hostsame (its line deleted): the head's own break is called the host's" $?
+  hrmain2=$(hrhead README.md "main moved")
+  hr - "$hclean" "$hrmain2" && hr - "$hclean" "$hrmain2" && [ "$(hrruns "$hrmain2")" = 1 ] && [ "$(cd "$hrc" && echo *.sig)" = "$hrmain2.sig" ]
+  ck "host_refusal: a main that moved is measured again, once, and the answer for the old sha is dropped" $?
+  rm -rf "$hrc" "$t/hr/stub/struns"; hr hostcache "$hclean" && hr hostcache "$hclean" && [ "$(hrruns "$hrmain")" = 2 ]
+  ck "  mutant mut:hostcache (its line deleted): main is measured again on every refusal" $?
+  rm -f "$t/hr/stub/hostfail"; rm -rf "$hrc"
+  ! hr - "$hbroke"
+  ck "host_refusal: null control: with no host fault, the head's own break is the head's" $?
+  ! hr - "$hclean"
+  ck "host_refusal: a refusal the re-run does not reproduce (the self-test passes on both trees) is not the host's" $?
+  hr hostfails "$hclean"
+  ck "  mutant mut:hostfails (its line deleted): two passing runs agree, and the refusal is called the host's" $?
+  touch "$t/hr/stub/hostfail"; rm -rf "$hrc"
+  hcrash=$(hrhead crash "x")
+  ! hr - "$hcrash"
+  ck "host_refusal: the same FAIL rows under another exit status (the head's run stops short) are the head's" $?
+  ! hr - "$hclean" "" "$t/hr/none.log" && ! hr - "$hclean" "" "$t/hr/missing.log"
+  ck "host_refusal: a log naming no refused self-test row, or no log, is the head's (no step to measure)" $?
+  hr hostrows "$hclean" "" "$t/hr/none.log"
+  ck "  mutant mut:hostrows (its line deleted): a refusal naming no step is measured as the self-test's" $?
+  ! hr - "$hclean" "" "$t/hr/mix.log"
+  ck "host_refusal: a self-test row beside another step's REFUSE row is the head's, though the self-test fails alike on main" $?
+  hr hostother "$hclean" "" "$t/hr/mix.log"
+  ck "  mutant mut:hostother (its line deleted): the other step's refusal is called the host's" $?
+  rm -f "$t/hr/stub/hostfail"; touch "$t/hr/stub/hostenv"; rm -rf "$hrc"
+  hr - "$hclean"
+  ck "host_refusal: an environment fault (exit 3, no FAIL row) on both trees is the host's" $?
+  rm -f "$t/hr/stub/hostenv"; touch "$t/hr/stub/hostfail"; rm -rf "$hrc"
+  # What cannot be measured is the head's: each arm's mutant turns its `|| return 1` into `|| return 0`
+  # (the handoff review's mutdiffread, on the line that then read the diff, survived).
+  bad=0000000000000000000000000000000000000001
+  ! hr - "$hrroot" "$hrmain"; r=$?; hr ret:hosthead "$hrroot" "$hrmain"
+  ck "host_refusal: a head whose tree holds no self-test is not measured, so the head's; mutant ret:hosthead calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$hclean" "$hrroot"; r=$?; rm -rf "$hrc"; hr ret:hostmain "$hclean" "$hrroot"
+  ck "host_refusal: a main whose tree holds no self-test is not measured, so the head's; mutant ret:hostmain calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$hrroot" "$hrroot"; r=$?; rm -rf "$hrc"; hr ret:signone "$hrroot" "$hrroot"
+  ck "host_refusal: no self-test on either tree is no agreement; mutant ret:signone reads two unrun steps as one failure" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$bad" "$bad"; r=$?; rm -rf "$hrc"; hr ret:sigtree "$bad" "$bad"
+  ck "host_refusal: no tree at either sha is no agreement; mutant ret:sigtree reads two missing trees as one failure" $(( r || $? ))
+  rm -rf "$hrc"; printf 'x\n' > "$t/hr/blocked"; hrc=$t/hr/blocked
+  ! hr - "$hclean"; r=$?; hr ret:hostdir "$hclean"
+  ck "host_refusal: a cache directory that cannot be made measures nothing, so the head's; mutant ret:hostdir calls it the host's" $(( r || $? ))
+  hrc=$t/hr/cache
+  # The opener's own path. Before origin/main holds a self-test, nothing can be measured and the PR closes.
   hostleft() { # the PR stays open, one ROWLESS line, nothing commented, a non-zero exit, the row owed to update_pr.sh
     [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 0 ] && [ "$(cat "$t/commented")" = 0 ] \
       && [ "$(grep -c 'open_pr: ROWLESS' "$t/outo")" = 1 ] && grep -qF "update_pr.sh fix/r - <body>" "$t/outo" \
       && ! grep -qF "open_pr: CLOSED" "$t/outo" && [ "$(cat "$t/opwt")" = detached ]
   }
+  hostclosed() { [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && ! grep -qF ROWLESS "$t/outo"; }
+  rowless - host
+  hostclosed
+  ck "open_pr: a self-test refusal no tree can re-run (origin/main holds no self-test) still closes the PR" $?
+  export HPO_ALLOW_STALE_TOOLS=1  # the fixture's main gains tools/pr/prepr.sh below, ahead of the tools checkout
+  git -C "$o" checkout -q main && mkdir -p "$o/tools/pr" && cp "$t/st-stub.sh" "$o/tools/pr/prepr.sh" \
+    && git -C "$o" add tools/pr/prepr.sh && git -C "$o" commit -q -m "main: a self-test"
+  rowless - host
+  hostleft && grep -qF "fails the same way on this host on a pristine origin/main tree" "$t/outo"
+  ck "open_pr: a row push refused only by prepr's self-test, which fails the same way on a pristine origin/main tree, leaves the PR open, naming the owed row (one ROWLESS line, non-zero exit)" $?
   rowless - selftest
-  hostleft
-  ck "open_pr: a row push refused only by prepr's self-test step leaves the PR open, naming the owed row (one ROWLESS line, non-zero exit)" $?
+  hostclosed
+  ck "  null control: the same refusal with no host fault to reproduce it still closes the PR" $?
   rowless - body
-  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && ! grep -qF ROWLESS "$t/outo"
-  ck "  null control: a body-contract REFUSE row still closes the PR" $?
+  hostclosed
+  ck "  null control: a body-contract REFUSE row still closes the PR, under the host fault" $?
   rowless - stmix
-  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && ! grep -qF ROWLESS "$t/outo"
-  ck "  null control: a self-test row beside another REFUSE row still closes the PR" $?
-  rowless hostother selftest; hostleft; r=$?
-  rowless hostother stmix; [ "$r" = 0 ] && [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
-  ck "  mutant mut:hostother (its line deleted): a mixed log leaves the PR open (an always-leave-open classifier; the null control kills it)" $?
-  git -C "$o" checkout -q -b handoff/g "$codeR" && mkdir -p "$o/tools/pr" && printf '#\n' > "$o/tools/pr/prepr.sh" \
-    && git -C "$o" add tools/pr/prepr.sh && git -C "$o" commit -q -m "code g touches prepr.sh" \
+  hostclosed
+  ck "  null control: a self-test row beside another REFUSE row still closes the PR, under the host fault" $?
+  rowless hostother stmix; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
+  ck "  mutant mut:hostother (its line deleted): a mixed log leaves the PR open" $?
+  # A head-caused refusal still closes: the branch's own commit breaks a file the self-test reads.
+  git -C "$o" checkout -q -b handoff/g "$codeR" && printf '# BROKEN\n' > "$o/st-input" \
+    && git -C "$o" add st-input && git -C "$o" commit -q -m "code g breaks a self-test input" \
     && git -C "$o" update-ref refs/heads/handoff/r "$(git -C "$o" rev-parse handoff/g)" && git -C "$o" checkout -q main
-  codeG=$(git -C "$o" rev-parse handoff/r); codeS=$codeR; codeR=$codeG
-  rowless - guard
-  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && ! grep -qF ROWLESS "$t/outo"
-  ck "  null control: a self-test refusal on a branch whose own diff touches prepr.sh is the branch's own and still closes" $?
-  rowless hostguard guard; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
-  ck "  mutant mut:hostguard (its line deleted): the branch's own self-test red leaves the PR open" $?
-  codeR=$codeS; git -C "$o" update-ref refs/heads/handoff/r "$codeR"
+  codeS=$codeR; codeR=$(git -C "$o" rev-parse handoff/r)
+  rowless - host
+  hostclosed
+  ck "  null control: a self-test refusal the head's own commit causes still closes the PR, under the host fault" $?
+  rowless hostsame host; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
+  ck "  mutant mut:hostsame (its line deleted): the head's own self-test red leaves the PR open" $?
+  codeR=$codeS; git -C "$o" update-ref refs/heads/handoff/r "$codeR"; git -C "$o" branch -qD handoff/g
+  # A p2 log an earlier run of the topic left is not this run's refusal: the opener stops at its
+  # figure refresh at the row head, before its own row push, and the stale self-test row is not read.
+  printf '## Head\n\nthe body\n\n<!-- figure-block: x -->\n' > "$t/bodyF.md"
+  bodyF=$(git -C "$o" commit-tree "$(printf '100644 blob %s\tBODY.md\n' "$(git -C "$o" hash-object -w "$t/bodyF.md")" | git -C "$o" mktree)" -m "body: figures")
+  git -C "$o" update-ref refs/heads/handoff-body/r "$bodyF"
+  printf 'import os, sys\nsys.exit(1 if os.path.exists(os.path.join(os.environ.get("STUB_DIR", "."), "figfail")) and os.path.exists("dev/programme/delivery/5.md") else 0)\n' > "$m/tools/pr/figure_block.py"
+  rowless - stalefig
+  hostclosed && grep -qF "figure-block refresh at the row head failed" "$t/outo"
+  ck "open_pr: a stop before this run's own row push closes the PR, whatever self-test row an earlier run's log holds" $?
+  rowless hoststale stalefig; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
+  ck "  mutant mut:hoststale (its line deleted): the earlier run's log is measured and the PR is left open" $?
+  rm -f "$m/tools/pr/figure_block.py"; git -C "$o" update-ref refs/heads/handoff-body/r "$body"
+  git -C "$o" reset -q --hard HEAD~1; unset HPO_ALLOW_STALE_TOOLS
   # A conflicted main merge was left in the opener's worktree, and pr_release_wt kept it as dirty
   # work (carry 8); the opener now aborts its own merge and refuses, and the clean worktree, which
   # origin never had, is removed with its branch. main gains a conflicting `b` for this arm only.
