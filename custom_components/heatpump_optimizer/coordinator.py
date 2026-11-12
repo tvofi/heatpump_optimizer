@@ -3497,10 +3497,9 @@ def _tail_freeze(coord: Any) -> str | None:
     """
     if early_cutoff.state_for(coord).interval_cut:
         return early_cutoff.FREEZE_CUT
-    config = getattr(getattr(coord, "_ctx", coord), "_config", None)
-    if supply_hold.interval_held(pump_arbiter.state_for(coord), config):
-        return supply_hold.FREEZE_HELD
-    return learner_unmetered(config)
+    return supply_hold.freeze_reason(pump_arbiter.state_for(coord)) or learner_unmetered(
+        getattr(getattr(coord, "_ctx", coord), "_config", None)
+    )
 
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):

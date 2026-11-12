@@ -368,8 +368,8 @@ class ArbiterState:
     stop_gap_k: float | None = None
     #: A supply write ``supply_hold`` held back; the step tick retries it.
     supply_held: bool = False
-    #: When ``supply_hold`` last held a write (UTC), for the learners' freeze.
-    held_at: datetime | None = None
+    #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
+    held_until: datetime | None = None
 
 
 @dataclass(frozen=True)

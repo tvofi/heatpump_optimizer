@@ -82428,7 +82428,7 @@ for _ms_name, _ms_min, _ms_kw, _ms_want in (
 _sh_nheld = _sa_pa.ArbiterState()
 _sh_nin = _sh_inputs(7, state="on")
 _sh_nin().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
-_sh_ngot = (_sh.hold_supply(_sh_nheld, _sh_nin, _sh_none, None, _SA_T0 + timedelta(minutes=7)), _sh_nheld.supply_held, _sh_nheld.held_at)
+_sh_ngot = (_sh.hold_supply(_sh_nheld, _sh_nin, _sh_none, None, _SA_T0 + timedelta(minutes=7)), _sh_nheld.supply_held, _sh_nheld.held_until)
 R.check("a write of None passes and marks nothing held", _sh_ngot == (None, False, None), f"{_sh_ngot}")
 
 
@@ -82476,19 +82476,27 @@ for _ms_name, _ms_args, _ms_want in (
     R.check(f"stop: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
 
 
-# The learners' freeze spans two plan intervals from the last held write; a
-# host with no config reads the defaults, and nothing held reads nothing.
-_sh_fz = _sa_pa.ArbiterState()
-_sh_fz_free = _sh.interval_held(_sh_fz, None, _SA_T0)
-_sh_fz.held_at = _SA_T0
-_sh_fz_cfg = {"optimization_interval": 30}
+# The learners' freeze spans two plan intervals from the last held write,
+# fixed at the hold from its config; a config with no interval reads the default
+# interval, and nothing held reads nothing.
+def _sh_fz_hold(config):
+    held, inputs = _sa_pa.ArbiterState(), _sh_inputs(7, state="on")
+    inputs().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+    inp = _sa_pa.ArbiterInputs(**{**vars(inputs()), "config": config})
+    _sh.hold_supply(held, lambda: inp, _sh_none, False, _SA_T0 + timedelta(minutes=7))
+    return held
+
+
+_sh_fz = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp", "optimization_interval": 30})
+_sh_fz_dflt = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp"})
+_SH_FZ_AT = _SA_T0 + timedelta(minutes=7)
 for _ms_name, _ms_got, _ms_want in (
-    ("nothing held reads not held, with no config", _sh_fz_free, False),
-    ("a write held 59 minutes ago on a 30-minute interval is frozen", _sh.interval_held(_sh_fz, _sh_fz_cfg, _SA_T0 + timedelta(minutes=59)), True),
-    ("null control: 60 minutes ago is not", _sh.interval_held(_sh_fz, _sh_fz_cfg, _SA_T0 + timedelta(minutes=60)), False),
-    ("a host with no config reads the default interval", _sh.interval_held(_sh_fz, None, _SA_T0 + timedelta(minutes=1)), True),
+    ("nothing held reads nothing", _sh.freeze_reason(_sa_pa.ArbiterState(), _SA_T0), None),
+    ("a write held 59 minutes ago on a 30-minute interval is frozen", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=59)), _sh.FREEZE_HELD),
+    ("null control: 60 minutes ago is not", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=60)), None),
+    ("a config with no interval reads the default", _sh_fz_dflt.held_until - _SH_FZ_AT, 2 * timedelta(minutes=_sa_pa.EntryConfig.from_mapping({}).optimization_interval)),
 ):
-    R.check(f"interval_held: {_ms_name}", _ms_got is _ms_want, f"{_ms_got!r}")
+    R.check(f"freeze_reason: {_ms_name}", _ms_got == _ms_want, f"{_ms_got!r}")
 
 
 # A held write is not logged as the blocked-mode skip it is not.
