@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/supply_hold.py:interval_held GUARD_OFF ed14a3b5",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    if at is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1."
+}

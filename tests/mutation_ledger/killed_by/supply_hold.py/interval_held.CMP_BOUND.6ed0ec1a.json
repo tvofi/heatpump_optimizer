@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/supply_hold.py:interval_held CMP_BOUND 6ed0ec1a",
+  "killed_by": "tests/features.py",
+  "old": "    return dt_util.as_utc(now or dt_util.now()) - at < span",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return dt_util.as_utc(now or dt_util.now()) - at <= span`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
