@@ -10,8 +10,13 @@ A pass reads the board's `OWED <utc> handoff-no-pr refs/heads/handoff/<topic>
 orders the rest, and launches `open_pr.sh` detached for as many as the cap
 allows. The OPEN arm only: cloud_relay.sh's handoff arm owns update_pr.sh.
 
-SKIPPED (`SKIP <topic> <sha8> <reason>`): `moved` (origin's handoff tip is not
-the board's sha), `no-body` (no handoff-body/<topic>), `landed` (`ledger.py
+LIVE TIP (OPENER-LIVE-TIP, P603): the board is rewritten once per relay pass,
+so its sha can lag origin. When origin's handoff tip differs from the board's
+sha, the pass logs `RETIP <topic> <board sha8> -> <tip sha8>` and runs every
+check below, and the open, at the live tip; `ct` stays the board line's.
+
+SKIPPED (`SKIP <topic> <sha8> <reason>`): `moved` (origin has no handoff ref
+for the topic), `no-body` (no handoff-body/<topic>), `landed` (`ledger.py
 landed`, the classifier cloud_relay.sh and bus.sh orphans use), `fix-branch`
 (fix/<topic> or fix/<topic>-pr exists), `seen` (opened at this sha), `live`
 (its run is still going), `backoff` (a failed open waiting its turn), `stuck` (three
@@ -54,7 +59,7 @@ fewer than three runs have failed every pass prints
 regex reads the `STUCK ` prefix). A new sha is a new key and starts fresh.
 Per-topic files are `t-<stem>.log`/`.rc`, so no topic name can equal
 `open-driver.log`; `stem` escapes `%` before `/` so two topics never share a stem.
-Log lines: START / RESULT rc=<n> / SKIP / NEEDS-TITLE / STARVED.
+Log lines: START / RESULT rc=<n> / SKIP / RETIP / NEEDS-TITLE / STARVED.
 """
 from __future__ import annotations
 
@@ -273,9 +278,13 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
         def skip(why):
             skipped[topic] = why
             log(f"SKIP {topic} {sha[:8]} {why}")
+        live_tip = tips.get(f"refs/heads/handoff/{topic}")
+        if live_tip and live_tip != sha:  # the board lags a relay pass: check and open origin's live tip (P603)
+            log(f"RETIP {topic} {sha[:8]} -> {live_tip[:8]}")
+            sha = live_tip
         if topic.startswith(SKIP_TOPIC_PREFIXES):  # mut:optopicskip
             skip("batched")  # triage and roster changes wait and merge together with stamps (tvofi 2026-11-04)
-        elif tips.get(f"refs/heads/handoff/{topic}") != sha:
+        elif live_tip is None:
             skip("moved")
         elif f"refs/heads/handoff-body/{topic}" not in tips:
             skip("no-body")

@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 88 modules, of which 30 import the
+knows nothing about Home Assistant: 89 modules, of which 31 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back. The glue reads
 entity states, writes actuators and persists learned state. Keeping those two
@@ -186,6 +186,8 @@ custom_components/heatpump_optimizer/
 │                         #   integration asks
 ├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
 │                         #   plan step, and stands down on a manual change
+├── duty_switch.py        # Learns per direction whether a duty switch stops
+│                         #   the running compressor; observes, changes nothing
 ├── heat_curve.py         # The heat-curve displace's outputs: the ECL110 MQTT
 │                         #   topics and an offset number entity
 ├── off_restore.py        # The one owner of the off and unload restore: what
@@ -266,11 +268,11 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-30 of the 88 modules import `homeassistant` at module level: `__init__`,
+31 of the 89 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
-`dhw_learning`, `diagnostics`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `off_restore`, `pump_arbiter`, `repairs`, `services`,
+`dhw_learning`, `diagnostics`, `duty_switch`, `early_cutoff`, `entity`, `heat_curve`, `issues`, `legionella`, `notifier`, `off_restore`, `pump_arbiter`, `repairs`, `services`,
 `store`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
