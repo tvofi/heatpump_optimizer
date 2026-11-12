@@ -1,0 +1,4 @@
+SURVIVED NULL
+SURVIVED ps_start_plus
+KILLED pulse_gen_wrong_seat
+rc=0
