@@ -6839,7 +6839,7 @@ def _rollup_draft_self_test(check) -> None:
     check("P609 null: a non-draft entry is recorded False and makes no gh pr ready call",
           q[0]["draft"] is False and not any(c.startswith("gh pr ready") for c in calls))
     # Carry 1 (P447): a merge attempt waits while a stamp holds main.
-    def stamped(age_s, clears_after=None, real=True, refreshes=None):
+    def stamped(age_s, clears_after=None, real=True, refreshes=None, date=None):
         t, calls = world({})
         t.real = real
         if refreshes is not None:
@@ -6852,6 +6852,8 @@ def _rollup_draft_self_test(check) -> None:
                 gone = clears_after is not None and polls[0] >= clears_after
                 return "" if (age_s is None or gone) else "a" * 40
             if "git/commits/" in a:
+                if date is not None:
+                    return date
                 when = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=age_s)
                 return when.strftime("%Y-%m-%dT%H:%M:%SZ")
             return base_out(*argv)
@@ -6879,6 +6881,9 @@ def _rollup_draft_self_test(check) -> None:
     check("stamp hold: a future-dated hold that never clears is taken over by the wait's own poll count",
           polls == STAMP_HOLD_MAX_AGE_S // STAMP_HOLD_POLL_S
           and any(l.startswith("STAMP-HOLD taken over") for l in logs) and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(60, date="not-a-date")
+    check("stamp hold: an unreadable commit date is no wait (the age is unknowable), and the merge runs",
+          polls == 0 and any("gh pr merge" in c for c in calls))
     logs, calls, polls = stamped(None)
     check("stamp hold: null control, no hold runs the merge as today with no wait",
           not any("STAMP-HOLD" in l for l in logs) and polls == 0 and any("gh pr merge" in c for c in calls))
