@@ -10,7 +10,9 @@ The fixtures of the refused verdicts #3327 and #3330 could not be read from this
 
 ## Head
 
-1ccc74680c3292f147de1268494167fac4121017, merge base 2ced371c1af5581c47dc6163b53c29ee15347a3d.
+e0aed259368fa56032f493ea9237e477d4231015, merge base 2ced371c1af5581c47dc6163b53c29ee15347a3d.
+
+Repair of the blocked review at 1ccc74680c3292f147de1268494167fac4121017: `bus.sh` `carry_landed` read the body with `$(gh ...; echo x)`, whose status is `echo`'s, so an unreadable body was no longer reported. It now reads `$(gh ... && echo x)`, which keeps gh's status and the trailing newlines. The `--self-test` check `an unreadable body is still reported by carry_landed` (`BUS_GH=false`, expecting `carry-landing UNREAD #7`) failed first (177 checks, 1 failed) and passes with the fix (177 checks, 0 failed); restoring `; echo x` makes it fail again.
 
 ## Mutation proof
 
