@@ -1,4 +1,4 @@
-R10-STANDING-CONTRACTS-P2, part 1 of 1: builds carries 21, 22, 23 and 27 and forward-carries 24; carries 15 and 16 are answered below.
+R10-STANDING-CONTRACTS-P2, part 1 of 1: builds carries 21, 22, 23 and 27 and defers 24; carries 15 and 16 are answered below.
 
 - Carry 0: marked [implemented] on the roster, not answered here. Carry: dismissed: implemented at 1b174e9b3
 - Carry 1: marked [implemented] on the roster, not answered here. Carry: dismissed: implemented at 1b174e9b3
@@ -31,7 +31,9 @@ Carry 27: built. HANDOVER.md's standing-seats bullet names merge and dispatch pl
 
 ## Head
 
-907c15d3755fa459b6bd91333fdc2a2828d47995
+84113541350889c7dc1472a3977ab526b55e4bf2
+
+Repair of the blocked review at 907c15d375 (four survivors): hooks_setup.py now runs `beatd run --once` under a raised FLOOR (refusal naming sys.executable, nothing written) and at the floor (launch.json read back: cwd, argv, HPO_* env only); pulse.py drives main() --train-state over stubbed git/REST readers (snapshot carries the train, spooled PR not STOPPED; absent state STOPPED). The two beatd arms are registered mutants (floor refusal off, launch.jsonX); the two pulse survivors (snapshot_live train read to pass, main's pass-through to None) were run and turn the pulse self-test red.
 
 ## Mutation proof
 
