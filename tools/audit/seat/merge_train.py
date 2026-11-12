@@ -4589,6 +4589,10 @@ def _self_test() -> int:
                 return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
+                if "rollup_pages" in world:  # a paged listing: the answer follows the `after=` cursor asked
+                    cur = next((x[6:] for x in argv if x.startswith("after=")), None)
+                    world.setdefault("rollup_cursors", []).append(cur)
+                    return world["rollup_pages"](cur)
                 return world.get("rollup", (1, "HTTP 502"))
             if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
                 world["ci_list_reads"] = world.get("ci_list_reads", 0) + 1
@@ -7525,14 +7529,14 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           and platform_gate(rollup(ok_g, more=True), H0)[0] == "unread"
           and platform_gate({"data": None}, H0)[0] == "unread")
     # R10-HOTFIX-TRAIN-CONTEXT-PAGES: a required context on page 2 is judged, never skipped.
-    def pager(*pages, oid=H0):
+    def pager(*pages, oid=H0, oid_late=None):
         """A faked listing: page k answers pages[k]; reads records the cursors asked."""
         reads = []
 
         def fetch(cursor):
             reads.append(cursor)
             k = 0 if cursor is None else int(cursor)
-            pl = rollup(oid=oid, more=k + 1 < len(pages), extra=pages[k])
+            pl = rollup(oid=oid_late if k and oid_late else oid, more=k + 1 < len(pages), extra=pages[k])
             pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
                 "contexts"]["pageInfo"]["endCursor"] = str(k + 1)
             return pl
@@ -7545,6 +7549,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     f_one, r_one = pager([gate_p1] + filler)
     f_old, r_old = pager([gate_p1], [late("SUCCESS")], oid="f" * 40)
     f_inf, _ = pager(*([[gate_p1]] * (gh_read.MAX_PAGES + 2)))
+    f_mid, r_mid = pager([gate_p1], [late("FAILURE")], oid_late="f" * 40)
     got_red = platform_gate(rollup_walk(f_red, H0), H0)[0]
     got_grn = platform_gate(rollup_walk(f_grn, H0), H0)[0]
     check("A5 platform: a required context on page 2 that is red reads RED, green reads GREEN "
@@ -7554,6 +7559,10 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           and platform_gate(rollup_walk(f_one, H0), H0)[0] == "green" and r_one == [None]
           and platform_gate(rollup_walk(f_inf, H0), H0)[0] == "unread"
           and platform_gate(rollup_walk(f_old, H0), H0)[0] == "unread")
+    check("A5 platform: a later page whose oid differs from the first page's is unread, never merged in "
+          "(null: the same listing at one oid reads red from its page 2)",
+          platform_gate(rollup_walk(f_mid, H0), H0)[0] == "unread" and r_mid == [None, "1"]
+          and platform_gate(rollup_walk(pager([gate_p1], [late("FAILURE")])[0], H0), H0)[0] == "red")
     gate_req = {"required": f"{GATE}\n"}
     for what, w, merges in (
             ("train green, GitHub green: it merges", dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g)))), True),
@@ -7567,6 +7576,21 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
+    def train_pages(cursor):  # page 2 (cursor "1") carries a red required gate; page 1 alone is green
+        k = 0 if cursor is None else int(cursor)
+        pl = rollup(ok_g if k == 0 else ("COMPLETED", "FAILURE"), more=k == 0)
+        pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+            "contexts"]["pageInfo"]["endCursor"] = "1"
+        return 0, json.dumps(pl)
+    w = dict(gate_req, runs=[gt()], rollup_pages=train_pages)
+    rc, lines, calls = go(w)
+    check("A5 serial: the train passes each page's endCursor on the next read, so a red required gate on "
+          "page 2 stops the merge (null: a one-page rollup is read once, with no cursor, and merges)",
+          not merged(calls) and w["rollup_cursors"][:2] == [None, "1"] and "red" in " ".join(lines))
+    w = dict(gate_req, runs=[gt()], rollup_pages=lambda c: (0, json.dumps(rollup(ok_g))))
+    rc, lines, calls = go(w)
+    check("A5 serial null: a one-page rollup is read once, with no cursor, and merges",
+          merged(calls) and w["rollup_cursors"] == [None])
     _defer_wait_self_test(check, go, merged, cr, gt, gate_req, json.dumps(rollup(ok_g, ok_g)))
     rc, lines, calls = go({})  # go()'s default: the ruleset ["fast"], green runs
     check("A5 null: an old-layout ruleset (no gate) makes no platform read", rc == 0 and merged(calls)
