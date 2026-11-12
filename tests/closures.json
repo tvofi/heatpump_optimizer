@@ -4087,6 +4087,7 @@
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
    "dev/audit/harnesses/lane_reads_delivery.py",
+   "dev/audit/harnesses/learner_freeze_mutants.py",
    "dev/audit/harnesses/learner_inputs_swap.py",
    "dev/audit/harnesses/livehead_cancels.py",
    "dev/audit/harnesses/merge_subject_guard_block.mjs",
