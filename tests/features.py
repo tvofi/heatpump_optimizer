@@ -32075,6 +32075,14 @@ async def _st_tiles():
     names = [name for name, _ in price_tiles.specs(record.config, record.params.max_electrical_power)]
     out = {}
     with _StSeams() as seams:
+        # A coordinator's first rotation (#2257): its cap turn starts the
+        # tile's clock and solves nothing.
+        before = seams.counts()
+        for _ in names:
+            await coord._maybe_refresh_price_tile(record)
+        out["clock_first"] = (tuple(b - a for a, b in zip(before, seams.counts())), sorted(price_tiles.book(coord)))
+        price_tiles.book(coord).clear()
+        price_tiles._STEADY_TAKEN[coord] -= timedelta(hours=price_tiles.STEADY_REFRESH_HOURS)
         # The rotation position is whatever the seeding solve left it at.
         for _ in names:
             before, had = seams.counts(), {k: len(v.get("days", [])) for k, v in price_tiles.book(coord).items()}
@@ -32102,7 +32110,7 @@ async def _st_tiles():
         # A turn stamped ahead of the reading clock, on an owner of its own.
         owner, cap = type("_StOwner", (), {})(), [("power_cap_75", {"power_cap_kw": 1.0})]
         out["clock_behind"] = [price_tiles.take(owner, cap, start + age) is not None for age in (
-            timedelta(0), -timedelta(hours=1), timedelta(seconds=1) - timedelta(hours=1))]
+            timedelta(0), -timedelta(seconds=1), timedelta(0))]
     return out
 
 
@@ -32119,13 +32127,15 @@ R.check(
     repr(_st_tiles_seen),
 )
 R.check(
-    "#2257: the cap tile's steady pair is off the per-solve path: a rotation "
-    "inside the tile's clock solves the two degree tiles and nothing for the "
-    "cap slot, whose tile stands; at the clock the slot solves its three "
-    "again; a clock read behind the last turn is no age, so that turn is "
-    "taken, and the next one a second later is not",
-    [_st_tiles_seen.get("clock_" + k) for k in ("same_instant", "inside", "at", "behind")]
-    == [((2, 0), False), ((2, 0), False), ((3, 2), True), [True, True, False]],
+    "#2257: the cap tile's steady pair is off the per-solve path: a "
+    "coordinator's first rotation solves the two degree tiles and starts the "
+    "cap tile's clock, and so does a rotation inside the clock, the cap tile "
+    "standing; at the clock the slot solves its three again; a clock read "
+    "behind the last turn is no age, so that turn is taken, and the next one "
+    "a second later is not",
+    [_st_tiles_seen.get("clock_" + k) for k in ("first", "same_instant", "inside", "at", "behind")]
+    == [((2, 0), ["target_minus_1", "target_plus_1"]), ((2, 0), False), ((2, 0), False), ((3, 2), True),
+        [False, True, False]],
     repr({k: v for k, v in _st_tiles_seen.items() if k.startswith("clock_")}),
 )
 R.check(

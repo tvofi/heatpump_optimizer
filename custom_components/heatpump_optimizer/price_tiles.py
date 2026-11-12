@@ -52,7 +52,10 @@ cycle half again over its CPU budget (``tests/replay.py``, ``cycle_cost``).
 The steady figure starts from held rooms, so it moves with the horizon's
 prices and weather and not with the house: the tile is refreshed at most
 every ``STEADY_REFRESH_HOURS``, and between refreshes its turn in the
-rotation solves nothing and the tile stands as last recorded.
+rotation solves nothing and the tile stands as last recorded. The clock
+starts at a coordinator's first cap turn, which solves nothing either: one
+refresh in a timed cycle of that recorded day is by itself over the budget,
+and a start is when a host has least CPU to spare.
 
 The tiles live in a per-coordinator side table (``boost.py``'s discipline),
 so the coordinator class does not hold state it never computes with.
@@ -111,8 +114,8 @@ def book(owner: Any) -> dict[str, dict[str, Any]]:
 _CURSORS: WeakKeyDictionary[Any, int] = WeakKeyDictionary()
 
 
-#: When each coordinator's steady tile last took its turn; not persisted, so
-#: a restart refreshes it once.
+#: When each coordinator's steady tile last took its turn, or first came up
+#: for one; not persisted, so a restart waits one clock before a refresh.
 _STEADY_TAKEN: WeakKeyDictionary[Any, datetime] = WeakKeyDictionary()
 
 
@@ -120,16 +123,17 @@ def take(
     owner: Any, specs: list[tuple[str, dict[str, float]]], now: datetime,
 ) -> tuple[str, dict[str, float]] | None:
     """``owner``'s next spec, or None on the turn of a steady tile still inside
-    its clock. The rotation moves before the solve, so a failing or cancelled
-    spec cannot block the others: it is retried on the next pass, the steady
-    one at its next clock, since the clock counts turns taken and not answers.
-    A turn stamped ahead of ``now`` has no age (#775) and is taken."""
+    its clock, which its first turn starts. The rotation moves before the
+    solve, so a failing or cancelled spec cannot block the others: it is
+    retried on the next pass, the steady one at its next clock, since the
+    clock counts turns taken and not answers. A turn stamped ahead of ``now``
+    has no age (#775) and is taken."""
     cursor = _CURSORS.get(owner, 0)
     _CURSORS[owner] = cursor + 1
     name, overrides = specs[cursor % len(specs)]
     if "power_cap_kw" in overrides:
-        taken = _STEADY_TAKEN.get(owner)
-        if taken is not None and 0.0 <= (now - taken).total_seconds() < STEADY_REFRESH_HOURS * 3600.0:
+        taken = _STEADY_TAKEN.setdefault(owner, now)
+        if 0.0 <= (now - taken).total_seconds() < STEADY_REFRESH_HOURS * 3600.0:
             return None
         _STEADY_TAKEN[owner] = now
     return name, overrides
