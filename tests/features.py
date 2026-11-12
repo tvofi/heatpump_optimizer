@@ -82913,6 +82913,73 @@ R.check(
 )
 
 
+_ds_kept_span = _DS_D()
+for _ds_i in range(3):
+    _ds_kept_span.book(_ds_day + timedelta(seconds=_ds_i), False, None)
+_ds_stop_span = _DS_D()
+for _ds_i in range(3):
+    _ds_stop_span.book(_ds_day + timedelta(seconds=_ds_i), True, 60.0)
+_ds_kept_moves = [_ds_kept_span.decay(_ds_day + timedelta(days=days)) for days in (1 / 1440, 30, 40)]
+_ds_stop_moves = [_ds_stop_span.decay(_ds_day + timedelta(days=days)) for days in (1 / 1440, 30, 40)]
+R.check(
+    "the span floor reads a direction's whole weight, kept episodes included: three kept and no stop keep "
+    "their day a minute later and report no change, and lose it, reported once, only when n falls under "
+    "SPAN_FLOOR_N; null control, three stops read the same",
+    _ds_kept_moves == [False, False, True] and _ds_stop_moves == [False, False, True]
+    and (_ds_kept_span.k, _ds_kept_span.span_days) == (0.0, 0)
+    and _ds_kept_span.n < _ds_mod.SPAN_FLOOR_N <= 3.0 * 0.5 ** (30 / _ds_mod.HALF_LIFE_DAYS),
+    f"{_ds_kept_moves} {_ds_stop_moves} {_ds_kept_span}",
+)
+
+
+def _ds_wrapped(readings, writes_at=0.0):
+    """Through the record: (seconds after the write, frequency Hz) readings, a pass every 15 s to 600 s.
+
+    The signal reads running ten minutes before the write unless the first reading says otherwise; returns
+    (episode opened at the write, stopped, kept, void, off times) for hot water to heating."""
+    rec = _ds_mod._Record(None, _DsSaves())
+    rec.loaded = True
+    hz = [readings[0][1]]
+    rec.reader = lambda: (hz[0], None, None, True)
+    _ds_mod.note_signal(rec, _DS_T0 - timedelta(minutes=10))
+    _asyncio.run(_ds_mod.note_pass(rec, _DS_T0 - timedelta(minutes=5), _ds_ctx(None)))
+    ctx = _ds_ctx(_DS_T0)
+    _ds_mod.note_mode_write(rec, _DS_T0 + timedelta(seconds=writes_at), _DS_DHW, _DS_HEAT, ctx)
+    opened = rec.learner.episode is not None
+    marks = sorted({*(at for at, _ in readings[1:]), *range(15, 601, 15)})
+    for mark in marks:
+        when = _DS_T0 + timedelta(seconds=mark)
+        for at, value in readings[1:]:
+            if at == mark:
+                hz[0] = value
+                _ds_mod.note_signal(rec, when)
+        if mark % 15 == 0:
+            _asyncio.run(_ds_mod.note_pass(rec, when, ctx))
+    d = rec.learner.directions["dhw_space"]
+    return opened, d.stopped, d.kept, d.void, d.off_s
+
+
+# A stop read in the window's last debounce is still pending at the pass on the window's end.
+_DS_LATE_STOP = _ds_mod.STOP_WINDOW_S - _ds_mod.wear.EDGE_DEBOUNCE_S / 2.0
+R.check(
+    "through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on "
+    "the window's end keeps the episode open and books the stop once confirmed; null control, with no stop "
+    "read the same passes book it kept",
+    _ds_wrapped([(0, 50.0), (_DS_LATE_STOP, 0.0), (480, 50.0)]) == (True, 1, 0, 0, [480.0 - _DS_LATE_STOP])
+    and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
+    and _DS_LATE_STOP % 15 == 0 and 0.0 < _DS_LATE_STOP < _ds_mod.STOP_WINDOW_S,  # read on a pass, pending at the next
+    f"{_ds_wrapped([(0, 50.0), (_DS_LATE_STOP, 0.0), (480, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
+)
+R.check(
+    "through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing, "
+    "though the signal then reads stopped inside the window and running later (no signal is never "
+    "evidence); null control, the same readings with the compressor read running at the write book the stop",
+    _ds_wrapped([(0, None), (60, 0.0), (300, 50.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)]) == (True, 1, 0, 0, [240.0]),
+    f"{_ds_wrapped([(0, None), (60, 0.0), (300, 50.0)])} {_ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)])}",
+)
+
+
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
 # A set-point install's plan rarely writes the flow ceiling, so the metered
 # draw window is censored at the top and the plugin cannot learn the pump's
