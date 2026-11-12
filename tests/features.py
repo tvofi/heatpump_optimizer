@@ -42602,6 +42602,90 @@ R.check(
     "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
 )
 
+# The off rule reaches the MQTT arm (owner ruling under mandate 6715477401,
+# 2026-11-11): no actuator arm leaves the pump displaced. What stands on each
+# ECL110 topic -- its last publish, retained or not -- is displace 0 after
+# MODE_OFF and after unload, through the same restore hook as the entity arm.
+import json as _gm_json  # noqa: E402
+
+
+def _gm_standing(coord):
+    """Each topic's last displace and retain flag; the entity arm's last write."""
+    stand = {}
+    for dom, svc, d in coord.hass.services.calls:
+        if dom == "mqtt":
+            body = d["payload"] if d["topic"] == "ecl/set" else _gm_json.loads(d["payload"])["command"]["displace"]
+            stand[d["topic"]] = (int(body), d["retain"])
+        elif svc == "set_value":
+            stand["entity"] = d["value"]
+    return stand
+
+
+_gm = {}
+for _gm_retain in (False, True):
+    for _gm_path in ("mode_off", "unload"):
+        _gmc = _ghc_coord(entry_id=f"ghc_mqtt_{_gm_retain}_{_gm_path}", ecl110_displace_set_topic="ecl/set",
+                          ecl110_command_topic="ecl/cmd", ecl110_mqtt_retain=_gm_retain)
+        _ghc_pub(_gmc, -3.0)
+        if _gm_path == "mode_off":
+            _asyncio.run(_gmc.async_set_mode(_ghc_off, refresh=False))
+        else:
+            _gmc.entry.runtime_data = _gmc
+            _asyncio.run(_ghc_unload(_gmc.hass, _gmc.entry))
+        _gm[_gm_retain, _gm_path] = _gm_standing(_gmc)
+R.check(
+    "MODE_OFF and unload leave displace 0 standing on both ECL110 topics, retain on and off",
+    all(s == {"ecl/set": (0, r), "ecl/cmd": (0, r), "entity": 0} for (r, _), s in _gm.items()),
+    repr(_gm),
+)
+_gmn = _ghc_coord(entity=None, entry_id="ghc_mqtt_never", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmn.async_set_mode(_ghc_off, refresh=False))
+_gmx = _ghc_coord(entity=None, entry_id="ghc_mqtt_once", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmx, 2.0)
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "an MQTT arm never published is not restored; one published is restored once, not per off",
+    _ghc_mqtt(_gmn) == [] and _ghc_mqtt(_gmx) == [("ecl/set", "2"), ("ecl/set", "0")],
+    "%r %r" % (_ghc_mqtt(_gmn), _ghc_mqtt(_gmx)),
+)
+
+# Carry 30ec8edf (2): the legacy payload's heat_pump_on is the cycle's own
+# switch write. A cycle landing a step late is ``cycle_supply`` answering the
+# landing step's command against the action's; the null control is the same
+# cycle inside its step, where the two agree.
+from heatpump_optimizer import pump_arbiter as _gm_arb  # noqa: E402
+from heatpump_optimizer.const import MODE_COMFORT as _gm_comfort  # noqa: E402
+
+
+def _gm_cycle(late):
+    """(the switch writes, the legacy payload's heat_pump_on) of one _apply_action."""
+    coord = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_cycle_{late}", ecl110_command_topic="ecl/cmd")
+    coord._mode = _gm_comfort
+    coord._current_action = {"mode": "comfort", "heat_pump_on": False, "displace_value": 2.0}
+    switch = []
+
+    async def _record(on):
+        switch.append(on)
+
+    coord._write_supply = _record
+    real = _gm_arb.cycle_supply
+    if late:
+        _gm_arb.cycle_supply = lambda _inp, _boosts, on, now=None: not on
+    try:
+        _asyncio.run(coord._apply_action())
+    finally:
+        _gm_arb.cycle_supply = real
+    return switch, [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(coord)]
+
+
+_gm_inside, _gm_late = _gm_cycle(False), _gm_cycle(True)
+R.check(
+    "the legacy payload's heat_pump_on is the switch's write, inside its step and a step late",
+    _gm_inside == ([False], [False]) and _gm_late == ([True], [True]),
+    "inside=%r late=%r" % (_gm_inside, _gm_late),
+)
+
 # A crash: the write was armed and persisted, the process died unrestored. The
 # next coordinator for the same entry restores it at its first off, before
 # writing anything itself.
