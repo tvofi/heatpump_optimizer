@@ -1,0 +1,11 @@
+  heavy slot: taken slot=0 label=derive-1087 expires_at=2026-11-12T17:42:12.700406+00:00
+  [17:12:12] record tests/harness_headers.py 
+  [17:14:34] done   tests/harness_headers.py (exit 0)
+
+closure: tests/harness_headers.py would drop 3 file(s) the committed closure listed; keeping them.
+    tests/hastub/homeassistant/components/repairs.py
+    tools/audit/round4/D11/d11lib.py
+    tools/audit/round4/D11/governance_cost.py
+closure: updated 1 closure(s) in /tmp/claude-0/wt/tests/closures.json
+  tests/harness_headers.py    409 files
+rc=0
