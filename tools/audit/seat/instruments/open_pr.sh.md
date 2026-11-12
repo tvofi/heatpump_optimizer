@@ -29,7 +29,13 @@
   body PATCH or read-back, a stop past the push), so the path reads origin's
   tip first and closes only when origin lacks the row commit; when origin
   holds it, the PR stays open and the run exits non-zero naming the failure
-  (`open_pr: ROW LANDED: #N`). The PR is created only after the body
+  (`open_pr: ROW LANDED: #N`). A refusal that is the host's, not the
+  head's stays open too (`op_host_refusal`): when every `REFUSE` row of the row push's log is
+  prepr's `self-test` step (app_push's own summary of it aside) and the pull request's diff
+  against `origin/main` leaves `tools/pr/prepr.sh` and `tools/audit/prepr.sh` alone, the PR is
+  left open as `opened`, one `open_pr: ROWLESS: #N` line names `update_pr.sh <branch> - <body>`
+  as the owed row, and the exit stays non-zero. Any other refusal row (body contract, figure
+  blocks, a stop), a mixed log, or an unread diff closes as before. The PR is created only after the body
   contract passes: `app_push.sh` runs `prepr.sh` and the `ref_privacy` guard
   before its push. A main merge that conflicts is aborted and refused
   (`merging origin/main into <sha> conflicts`), so the clean worktree is

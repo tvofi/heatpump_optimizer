@@ -1182,7 +1182,11 @@ D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; case $1 in --row-only|--reuse) shi
 wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
 case $n in
   1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
-  2) [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
+  2) for k in selftest:'  REFUSE   self-test             FAIL x' stmix:'  REFUSE   self-test             FAIL x
+  REFUSE   pr-body               no heading' body:'  REFUSE   pr-body               no heading'; do
+       [ ! -e "$D/p2${k%%:*}" ] || { printf '  ok       figures               fine\n%s\napp_push: REFUSE: the body did not pass tools/pr/prepr.sh\n' "${k#*:}"; exit 1; }
+     done
+     [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
      [ ! -e "$D/p2postfail" ] || { git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: REFUSE: the body PATCH on #5 was refused; the branch IS pushed as the App"; exit 1; }
      : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
      [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
@@ -1434,7 +1438,7 @@ GH
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
-    case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; *) touch "$sdir/p2fail" ;; esac
+    case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; selftest|stmix|body) touch "$sdir/p2$2" ;; guard) touch "$sdir/p2selftest" ;; *) touch "$sdir/p2fail" ;; esac
     touch "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
     PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
     git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
@@ -1479,6 +1483,38 @@ GH
   rowless rowreset
   [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 0 ]
   ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)" $?
+  # A refusal that is the host's, not the head's (R10-HOTFIX-OPENPR-HOST-REFUSAL): prepr's self-test
+  # step fails on the orchestrator host at origin/main too, and every other step passes. Closing the PR
+  # for it closed #3508. Its only REFUSE row being `self-test` leaves the PR open, owing its row to
+  # update_pr.sh; a body-contract row, a mixed log, and a branch whose own diff touches the
+  # self-tested prepr.sh still close (the null controls).
+  hostleft() { # the PR stays open, one ROWLESS line, nothing commented, a non-zero exit, the row owed to update_pr.sh
+    [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 0 ] && [ "$(cat "$t/commented")" = 0 ] \
+      && [ "$(grep -c 'open_pr: ROWLESS' "$t/outo")" = 1 ] && grep -qF "update_pr.sh fix/r - <body>" "$t/outo" \
+      && ! grep -qF "open_pr: CLOSED" "$t/outo" && [ "$(cat "$t/opwt")" = detached ]
+  }
+  rowless - selftest
+  hostleft
+  ck "open_pr: a row push refused only by prepr's self-test step leaves the PR open, naming the owed row (one ROWLESS line, non-zero exit)" $?
+  rowless - body
+  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && ! grep -qF ROWLESS "$t/outo"
+  ck "  null control: a body-contract REFUSE row still closes the PR" $?
+  rowless - stmix
+  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && ! grep -qF ROWLESS "$t/outo"
+  ck "  null control: a self-test row beside another REFUSE row still closes the PR" $?
+  rowless hostother selftest; hostleft; r=$?
+  rowless hostother stmix; [ "$r" = 0 ] && [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
+  ck "  mutant mut:hostother (its line deleted): a mixed log leaves the PR open (an always-leave-open classifier; the null control kills it)" $?
+  git -C "$o" checkout -q -b handoff/g "$codeR" && mkdir -p "$o/tools/pr" && printf '#\n' > "$o/tools/pr/prepr.sh" \
+    && git -C "$o" add tools/pr/prepr.sh && git -C "$o" commit -q -m "code g touches prepr.sh" \
+    && git -C "$o" update-ref refs/heads/handoff/r "$(git -C "$o" rev-parse handoff/g)" && git -C "$o" checkout -q main
+  codeG=$(git -C "$o" rev-parse handoff/r); codeS=$codeR; codeR=$codeG
+  rowless - guard
+  [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && ! grep -qF ROWLESS "$t/outo"
+  ck "  null control: a self-test refusal on a branch whose own diff touches prepr.sh is the branch's own and still closes" $?
+  rowless hostguard guard; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
+  ck "  mutant mut:hostguard (its line deleted): the branch's own self-test red leaves the PR open" $?
+  codeR=$codeS; git -C "$o" update-ref refs/heads/handoff/r "$codeR"
   # A conflicted main merge was left in the opener's worktree, and pr_release_wt kept it as dirty
   # work (carry 8); the opener now aborts its own merge and refuses, and the clean worktree, which
   # origin never had, is removed with its branch. main gains a conflicting `b` for this arm only.

@@ -72,6 +72,11 @@ op_close_unrowed() {
   fi
   git -C "$WT" reset -q --hard "$PR_PUSHED" || :  # mut:rowreset
   why=${OP_WHY:-${PR_STOPPED_AT:-no step reported a stop: a stop signal, or exit status $rc}}
+  if op_host_refusal; then
+    PR_ATTEMPT=opened,PR=$N
+    printf '%s: ROWLESS: #%s is left open at %s and its row is owed: the refusal is the host'"'"'s (only prepr'"'"'s self-test step refused, and this branch'"'"'s own diff leaves prepr.sh alone); update_pr.sh %s - <body> adds the row (delivery_row.sh ensure_row)\n' "$PR_NAME" "$N" "$PR_PUSHED" "$BR" >&2
+    return 0
+  fi
   gh pr close "$N" -R $R >/dev/null && closed=1 || :  # mut:rowclose
   if [ "$closed" != 1 ]; then
     printf '%s: ROWLESS: #%s is open at %s without its row, and closing it failed; update_pr.sh %s - <body> adds it (delivery_row.sh ensure_row)\n' "$PR_NAME" "$N" "$PR_PUSHED" "$BR" >&2
@@ -83,6 +88,19 @@ op_close_unrowed() {
   python3 "$PRT/gh_comment.py" post --repo $R --issue "$N" --body-file $D/close.md >&2 \
     || echo "$PR_NAME: #$N is closed, but its comment saying why was not read back" >&2
   printf '%s: CLOSED: #%s at %s, before its row was pushed; re-run open_pr.sh once the body answers it\n' "$PR_NAME" "$N" "$PR_PUSHED" >&2
+}
+# A refusal that is the host's, not the head's: every REFUSE row of the p2 log is prepr's `self-test`
+# step (plus app_push's own summary of it), and the pull request's own diff leaves the self-tested
+# prepr.sh alone. Closing the PR for it closed #3508: the self-test failed on the orchestrator host
+# at origin/main as well. A body-contract, figure, conflict or stop refusal is the head's.
+op_host_refusal() {
+  local rows other diff
+  rows=$(grep -cE '^  REFUSE +self-test( |$)' $D/p2.log || :)
+  other=$(grep REFUSE $D/p2.log | grep -vE '^  REFUSE +self-test( |$)|^app_push: REFUSE: the body did not pass tools/pr/prepr\.sh' | grep -c . || :)
+  [ "$other" = 0 ] || return 1  # mut:hostother
+  [ "${rows:-0}" -gt 0 ] || return 1
+  diff=$(git -C "$WT" diff --name-only origin/main...HEAD) || return 1  # an unread diff is the branch's own
+  ! grep -qxE 'tools/(pr|audit)/prepr\.sh' <<<"$diff" || return 1  # mut:hostguard
 }
 op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin holds the row commit $H or was not read
   PR_ATTEMPT=opened,PR=$N
