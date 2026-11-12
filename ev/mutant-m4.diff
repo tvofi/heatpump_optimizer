@@ -1,0 +1,15 @@
+diff --git a/tools/policy/legacy_control_files.json b/tools/policy/legacy_control_files.json
+index 33e2d476fb..64e8bcbc22 100644
+--- a/tools/policy/legacy_control_files.json
++++ b/tools/policy/legacy_control_files.json
+@@ -13,6 +13,7 @@
+     "carry-1659.json",
+     "carry-1660.json",
+     "carry-201.json",
+-    "carry-752.json"
++    "carry-752.json",
++    "carry-1774.json"
+   ]
+-}
++}
+\ No newline at end of file
