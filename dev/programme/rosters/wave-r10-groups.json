@@ -23896,7 +23896,7 @@
     "OWED-RED-TEXT-TO-CLOUD (triage: dev/programme/triage/s6-batch233.md#P705 at 2ced371c1a), extends carry 0 (BODY-REFUSAL-REPAIR). A cloud seat has no gh, so when body_push.sh:128 refuses on the predictor because a red check is still owed an answer (tools/pr/ci_predict.py:1409), the seat cannot read that check's failure text and cannot write the answer; hotfix #3487 stalled 45 minutes until a local seat repaired the body. Fix: the relay (cloud_relay.sh, which has gh) or the dispatch text (cloud_dispatch.py) attaches the owed check run's name, conclusion and failure excerpt to the seat's next message whenever the predictor refusal names an owed red. Control: a refusal with no owed red adds no text."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": null,
     "commit": null,
     "last_step": null,
