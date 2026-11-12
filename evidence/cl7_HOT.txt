@@ -1,0 +1,6 @@
+mild day 12.0 degC, supply gate, cycles at minute 7 + 30 j; early cut-off not armed; tank fixed at 35.0
+HOT     winter_typical gate off held/day   0.0 episodes   0  writes   8  short runs  1 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    6.7 kWh  room min 20.95  tank min 35.00
+HOT     winter_typical gate on  held/day   3.0 episodes   1  writes   8  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.30 kWh  pump    7.0 kWh  room min 20.95  tank min 35.00
+HOT     flat           gate off held/day   0.0 episodes   0  writes   4  short runs  2 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    1.6 kWh  room min 20.18  tank min 35.00
+HOT     flat           gate on  held/day   8.0 episodes   1  writes   0  short runs  0 pauses  0  booked-not-delivered   0.05 kWh  run-past-stop   0.00 kWh  pump    0.0 kWh  room min 19.68  tank min 35.00
+EXIT 0
