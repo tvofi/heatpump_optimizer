@@ -7,16 +7,6 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-REPAIR of #3512 (topic r10-outside-supply-min-run-pause, outside request): code + ledger + body. The handoff review at 701a18e26661a8c8ef416ae3bc1e9b7df2049d8a was a merge verdict (review/3512 496e6c1a), but the pull request is red on two real checks and its delivery row cannot land until the body names them. The reviewer will take the delta of your change over 701a18e2.
+Repair only; no new carries. Resume from the branch handoff/r10-outside-supply-min-run-pause at head 701a18e26661a8c8ef416ae3bc1e9b7df2049d8a.
 
-resume=handoff/r10-outside-supply-min-run-pause@701a18e26661a8c8ef416ae3bc1e9b7df2049d8a : merge origin/main into it, repair on top, minimal otherwise.
-
-Both refusals verbatim, read from the CI logs at head 701a18e2:
-
-(1) tests / mutation (job 131279878069): "MUTATION TABLE REFUSED -- 2643 unpinned site(s) against 2608 at the ratchet base 19baca76181cb019d9b1cfd93ee6bc0a08e20047, 36 of them added by this diff." The sites are in custom_components/heatpump_optimizer/supply_hold.py lines 102-155 (CMP_BOUND, RETURN_DEL, GUARD_OFF, BOOLOP). Run `python3 tests/mutation_table.py --pin-killed` on your head (ci-autofix.md: no mutation-autofix job ran at 701a18e2, so the pin is this handoff's), commit the ledger pins it writes, and for every site that LIVES either add the test that kills it (preferred: this is new product code in an outside contributor's feature) or record its survivor_triage with the reason. The body's `## Unpinned sites` and `## Red checks` say `pinned` only for what --pin-killed ran on this head.
-
-(2) arch-score / arch-score (job 131280433257): "FAIL: dS -0.0006 WORSENS; unexplained: coord_footprint 2492->2493. Add a '## Architecture score' section with one line per metric: its name and why it rises". First try to pay it: keep the new logic in supply_hold.py and take the one line back out of the coordinator if a cleaner seam exists, measured with tools/audit/archscore/ before and after. Only if no sounder shape exists, add the `## Architecture score` section with the metric and why it rises, in fixer.md's terms. No budget raise.
-
-(3) Name every check red at 701a18e2 in `## Red checks` with its answer. `tests / nightly-ha (2025.2.0)` and `tests / nightly-status` are not required contexts: say so, citing the cancelled scheduled run 43130126209. `gate` is red because of the checks above; say so.
-
-Do not hand-type the figure block; refresh it with figure_block.py. Re-run steps 2-8 of the fixer contract after the change, and publish handoff and body with Code: naming the new tip. Entities trap: a new tracked file must be classified in a closure or on the INERT list of tests/closure.py.
+tools/audit/seat/update_pr.sh stopped at its step that merges origin/main, on a conflict. Merge origin/main into the handoff, resolve the conflict keeping the behaviour of both sides, re-run tools/pr/prepr.sh, and hand off with body_push.sh (the body's Prepr trailer must name the new head).
