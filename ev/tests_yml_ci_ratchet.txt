@@ -1,0 +1,15 @@
+  # and code health, graded once per merge: this job runs on the push the
+  # merge makes, reads the ci-metrics artifacts the run's own lanes emitted
+  # plus the recent window's (a ratchet whose input is typed by a human is
+  # not a ratchet), and refuses any metric that grew. Never passes --record:
+  # the always-green shape (the same null control the coverage ratchet's
+  # wiring carries). Not a required context: the merge already happened; the
+  # red is a debt a follow-up pays or a deliberate --record re-records.
+  ci-ratchet:
+    needs: [fast, coverage, closures]
+    if: >-
+      !cancelled() && github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: read
