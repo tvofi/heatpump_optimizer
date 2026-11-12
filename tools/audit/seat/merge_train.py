@@ -2425,8 +2425,7 @@ class Train:
                        "an unread head is never taken for ours")
         try:
             facts = _outside_gate().pull_facts(self.repo, pr, pull)
-            # outside.py's `shape` reads a head repository other than ours as a fork's.
-            cross = facts["head_repo"] != self.repo
+            cross = _outside_gate().cross_repository(facts, self.repo)
         except Stop:
             raise
         except Exception as e:  # fail closed: outside.py's answer, or none
@@ -5812,6 +5811,9 @@ def _self_test() -> int:
                 raise RuntimeError("no head repository")
             return REAL_OUTSIDE.pull_facts(repo, pr, pull)
 
+        def cross_repository(self, facts, repo):
+            return REAL_OUTSIDE.cross_repository(facts, repo)
+
         def check(self, repo, pr, ref, **kw):
             self.asked.append((repo, pr, ref))
             out = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
@@ -5944,6 +5946,19 @@ def _self_test() -> int:
         got, calls, _ = seat(w, step6)
         check(f"fork head: `check` exiting {rc_said} parks [OUTSIDE] even beside an admission-shaped line -- only rc 0 admits",
               parked(got, "the outside contract refuses") and not asked_app(calls))
+    for shape, said in (("a refusal's own words", f"REFUSE: #7 at {H0}: class R: tools/x.py"),
+                        ("the admission's words mid-line", f"note: OUTSIDE: #7 by contributor (id 1) at {H0}: 1 class-F")):
+        w = {"pull": THEIRS, "gate": OutsideStub()}
+        w["gate"].check = lambda *a, said=said, **k: (0, [said])
+        got, calls, _ = seat(w, step6)
+        check(f"fork head: `check` exiting 0 beside {shape} naming the head parks [OUTSIDE] -- the admission is the line "
+              "that starts with outside.py's `OUTSIDE: `, not any line naming the head",
+              parked(got, "the outside contract refuses", "admitted a head other than") and not asked_app(calls))
+    w = {"pull": THEIRS, "gate": OutsideStub()}
+    w["gate"].check = lambda *a, **k: (0, [f"OUTSIDE: #7 by contributor (id 1) at {H0}: 1 class-F"])
+    got, calls, _ = seat(w, step6)
+    check("... null control: the same rc 0 beside the line starting `OUTSIDE: ` at the head is admitted",
+          not isinstance(got, Stop))
     # Carry 23: class O holds paths under tests/ no CODEOWNERS line owns, where app_approve.sh
     # answers "app". The contract is read again at every step 6, the shortcuts included.
     w = {"pull": THEIRS, "gate": OutsideStub((True, "class O: the mandate is in force"),
@@ -6035,7 +6050,7 @@ def _self_test() -> int:
               lambda t: t._post_agent_approval(7, H0, dict(item), "code-owned", ["tests/features.py"], t.mandate, "approve")),
              ("_post_agent_approval as policy_approve calls it",
               lambda t: t._post_agent_approval(7, H0, dict(item), "policy", ["CLAUDE.md"], "mandate comment 4100000001", "policy")),
-             ("_post_carry", lambda t: t._post_carry(7, H0, "Outside read: " + H0 + "\n")))
+             ("_post_carry", lambda t: t._post_carry(7, H0, "the prior owner review's body at " + H0 + "\n")))
     for name, post in posts:
         got, calls, _ = seat({"pull": THEIRS}, post)
         check(f"fork head: {name} Stops [OUTSIDE] on a cross-repository head with no --approve call",
@@ -9966,9 +9981,6 @@ def _add_self_test(check) -> None:
         cf = git("commit-tree", "-p", ch, "-m", "ci: re-record closures", ch + "^{tree}")
         held: list = []
 
-        # app_approve.sh --carry asks origin whether the head is a branch tip of ours (decision 0017):
-        # the throwaway repository is its own origin, its branch `pr` the pull request's.
-        git("remote", "add", "origin", str(gd))
         def carried(pr, head):
             base = stub({"pr": pr, "verdict": cv,
                          "view": (0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": head}))})

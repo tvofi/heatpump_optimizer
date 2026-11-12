@@ -43,7 +43,7 @@ try:
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     facts = mod.pull_facts(repo, int(pr), pull)
-    cross = facts["head_repo"] != repo  # outside.py's `shape`: a head repository other than ours is a fork's
+    cross = mod.cross_repository(facts, repo)  # outside.py's one definition, never re-typed here
 except Exception as e:  # fail closed: outside.py's answer, or none
     print(f"REFUSE: {path} could not say whether #{pr}'s head is cross-repository ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})")
     sys.exit(1)
