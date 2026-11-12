@@ -1,0 +1,6 @@
+Destination group: R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (dev/programme/rosters/wave-r10-groups.json, on handoff/audit-r10-roster)
+Re-run after landing: body_push.sh r10-mode-before-supply-on with the kept body at handoff-wip/r10-mode-before-supply-on-body c202f3e3e142498ae1167d8c1fee19e767341af3
+
+Carry text (exact):
+
+- Carry 0 (the brief's forward-carry from feature triage f4, outside pull request 3456), answered: the retried write is its own row in the sibling table above, covered behind the gate, and this group merges first by the order the train picks, so the second to merge re-reads the other's paths. R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE: its hold must stay inside `_write_supply` ahead of the switch call, and that call must be `pump_arbiter.write_supply(self, switch_entity, value)` after both land, so a held switch-on writes no mode and a retried one that lands writes the mode first; control: this PR's check "a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back" with its null, re-run with the hold engaged. Re-read both groups' paths at main. Lands in `dev/programme/rosters/wave-r10-groups.json` (its group's brief, on `handoff/audit-r10-roster`, by the relay). Carry: R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE
