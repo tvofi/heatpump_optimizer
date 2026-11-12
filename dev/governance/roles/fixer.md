@@ -102,7 +102,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 
    **The handoff freezes the branch.** Until then, merge `origin/main` (never
    rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
-   conflict or the head is `DIRTY` (`nudge.md` step 9). A delta re-applied to
+   conflict or the head is `DIRTY`. A delta re-applied to
    a branch cut from an older base is diffed line by line against its
    sibling's head, or a stale copy reverts it (#2368). After it, the head is
    the reviewer's measuring surface and **only the orchestrator, the merge-main

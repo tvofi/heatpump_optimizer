@@ -16,8 +16,6 @@ names "the fixer" or "a seat", read yourself into it whenever you are the one
 acting — and you are acting whenever you write text another agent or the owner
 will treat as established.
 
-The turn is `dev/governance/roles/nudge.md`.
-
 ## 1. Verify before claiming
 
 **`fixer.md` step 8: a quoted number states its rule, not just its value.**
@@ -162,7 +160,7 @@ clauses. Run `git merge-tree --write-tree origin/main HEAD`
 before believing any conflict is real — `mergeStateStatus: DIRTY` is computed by
 GitHub, which cannot run this repository's `claimnotes` driver, and a `DIRTY`
 pull request never queues Tests at all. That, or a merge-tree conflict, is the
-one reason to absorb `main` into a head (`nudge.md` 9).
+one reason to absorb `main` into a head.
 
 ## 7. You hold the freeze
 
