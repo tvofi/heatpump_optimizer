@@ -1,0 +1,3 @@
+LEDGER-MERGE: resolved tests/closures.json
+666d28a80193d920cc18b541cf0104ba931defb1
+rc=0

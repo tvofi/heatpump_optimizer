@@ -1,0 +1,33 @@
+Fix review: blocked b18d78b5070ca6fc27f8a865240e295a544c18c2 scope-overlap: carry 9 (P603 opener live tip) duplicates open #3484 (R10-HOTFIX-OPENER-UNBLOCK, which holds carries 5-7 by roster move) and conflicts with its head in three files; the body misstates carries 5-7 as later parts
+
+bus-nonce: 6bd2e363762d5b1cf3131d0fc17fd278
+
+## Block
+
+Round 1, handoff review at b18d78b5070ca6fc27f8a865240e295a544c18c2 (the body's `## Head`, the handoff tip). The generation token, session lock and `loop-cwd` row hold up under mutation (Evidence). This verdict blocks on scope and carries, not on that code.
+
+1. P603 is built twice. The roster at `origin/handoff/audit-r10-roster` 4dd28829cca19fa97415000f3cb972332e015bca marks this group's carries 5, 6 and 7 `[moved: R10-HOTFIX-OPENER-UNBLOCK]`. That group's brief names P603 OPENER-LIVE-TIP as its part B in `open_driver.py`, by owner ruling (hotfix, tvofi 2026-11-11), and its PR #3484 is open with head 301122324b93103586b702e4b2d8179ec6583b58. Carry 9 has the same P603 card text as carry 7 but was left unmarked. This diff builds it in `open_driver.py` `run_pass`, `open_driver_selftest.py` and the M-livetip/M-gone-tip plants. `git merge-tree --write-tree 301122324b93 b18d78b5070c` exits 1 with CONFLICT in `dev/audit/harnesses/r10_open_driver_mutants.py`, `tools/audit/seat/open_driver.py` and `tools/audit/seat/open_driver_selftest.py` (ev/merge_tree_vs_3484.txt). Whichever of the two lands second needs a re-cut. Remedy: drop the P603 change and its two plants from this branch. Keep carry 8's retarget of M-exact, M-body and M-crit, which #3484 does not do. Disposition carry 9 with carries 5-7 to R10-HOTFIX-OPENER-UNBLOCK. The alternative is for the orchestrator to rule which PR owns P603, but it has one owner either way.
+2. Carries 5-7 are dispositioned on a false reason. The body says "later parts of this group's brief ... later parts dispatched at this handoff", and its first line says "part 1 of 1". The roster says those carries were moved to R10-HOTFIX-OPENER-UNBLOCK (ev/roster_carries_at_4dd28829.txt). Name that destination.
+3. Carry 0's tick item is not built and is dismissed by analogy. Carry 0 says "The tick flags a seat whose .gen moved while its old pass still touches the report file." The body points to `pulse.py`'s `DUPLICATE seat`, which keys on two fresh alive ids (`pulse.py:248`). It does not key on a `.gen` move, and a superseded seat's lingering background job need not refresh an alive id. Build the flag, or give a measured reason that DUPLICATE covers it. Carry: dismissed: owed by this branch's re-cut, a block item
+4. Carry 1 asks the lock record to hold the session binary's "start time", and the `seat_gen.py` docstring says it does. `lock` writes `int(now)`, the time the lock was taken. Unlike `bump`, it also writes without a flock. Record the process start time, or correct the docstring and the carry disposition.
+5. The `## Figures` writers line says the enumerator gives "exactly `run_queue`, `train_add`, `dispatch`". At the merge base that `git grep` prints 8 lines in 4 files, including 5 `dispatch()` call sites in `cloud_dispatch.py` (ev/writers_at_base.txt). The conclusion (three wired writers) holds by reading, but the stated figure is not what the enumerator prints. Restate it.
+
+## Findings
+
+- `beat_jobs.py` `loop_cwd`: deleting the ` and int(p) != os.getpid()` exclusion survives the self-test (203 checks, 0 failed; ev/reviewer_mutants.txt, loopcwd-selfpid). No harm in practice, because the row's own process is started fresh each pass with a live cwd. Carry: dismissed: equivalent mutant in practice, the row's own cwd is live on every pass
+- `beat_jobs.py` `loop_cwd`: removing `.removesuffix(" (deleted)")` changes no behaviour check, and only the self-test's own mutant-site check notices (loopcwd-nosuffix). Both arms give DEAD with or without it, so it is harmless. Carry: dismissed: no behaviour, no defect
+
+## Evidence
+
+- Setup: `cloud-setup.sh --check` printed `OK python3 is /opt/hpo/venv-ci/bin/python3`. `role_pack.py render fix-review` rc 0. `git diff <mb>...origin/main -- dev/governance/roles/` was empty, so the contract is current.
+- No pull request exists yet, so there is no review packet and no CI to read. Handoff review: body read from `handoff-body/r10-seat-identity-p5`. With no checks, no red is owed an answer (the owed-reds set is in ev/owed_reds.txt).
+- The body's `## Head` equals the head measured (step 7). The head commit's subject is `wip: prepr repairs in progress`.
+- `git merge-tree --write-tree origin/main b18d78b5070c` rc 0, tree 666d28a80193d920cc18b541cf0104ba931defb1, `LEDGER-MERGE: resolved tests/closures.json` (ev/merge_tree_main.txt). No conflict with main.
+- VERSION, the manifest version, RELEASE_NOTES.md and tests/golden are untouched in the three-dot diff. No fixture moved, so `env_drift.py --all` is not applicable.
+- RESULT self-tests at head (ev/selftests.txt, ev/bus_selftest.txt): seat_gen 23 checks 0 failed; beat_jobs 203 checks 0 failed; open_driver 93 checks 0 failed; roster_queue 67 checks 0 failed; merge_train 612 checks 0 failed; bus.sh 176 checks 0 failed.
+- RESULT harness `dev/audit/harnesses/r10_open_driver_mutants.py` at head: mutants=24 survived=0, with M-livetip and M-gone-tip killed (ev/mutants_head.txt). The body's merge-base abort (`ABORT M-exact`) matches carry 8's text and was not re-run.
+- RESULT reviewer mutants (ev/reviewer_mutants.txt): 15 planted. 13 are killed by behaviour checks: `held >= gen`, `held < gen`, the lock without the command match, the lock without the own-pid check, check-env garbage passing, an unreadable .gen passing, a non-monotonic bump, `loop_cwd` path-only, empty lsof read as DEAD, the opener without the live-tip rebind, and the `HPO_SEAT_GEN` wiring removed in each of `roster_queue.run_queue`, `merge_train.train_add` and `bus.sh dispatch`. One (loopcwd-nosuffix) is caught only by the self-test's own site check, and one (loopcwd-selfpid) survives; both are under Findings.
+- The null controls the body claims are present and green at head: the current generation and unset `HPO_SEAT_GEN` write as before in all three writers, a dead or reused holder pid is taken over, a gone handoff ref prints SKIP moved, and the live tip on main prints SKIP landed.
+- `ci_predict.py --base ba544faa2dd2`: "no closures, fast, governance or instrument red predicted" (ev/ci_predict.txt).
+- New files are classified: `seat_gen.py` and `seat_gen_selftest.py` are in `tests/closures.json` and `tools/ci/selftest_closures.json`, and the governance.yml `seat-gen` step is added.
+- The forward-carry was opened at the roster SHA 4dd28829cca19fa97415000f3cb972332e015bca, and #3484's head was diffed (Block 1 and 2).

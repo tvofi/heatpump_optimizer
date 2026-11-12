@@ -1,0 +1,15 @@
+RESULT mutant=gen-ge seat_gen self-test: 18 checks, 1 failed :: FAIL check null: the current generation passes|
+RESULT mutant=gen-lt seat_gen self-test: 18 checks, 4 failed :: FAIL check null: a generation ahead of the file passes|FAIL check: a lower generation is SUPERSEDED, exit 1|FAIL check-env: a superseded seat is refused|
+RESULT mutant=lock-nocmd seat_gen self-test: 18 checks, 2 failed :: FAIL lock null: a dead holder pid is taken over|FAIL lock null: a reused pid naming another command is taken over|
+RESULT mutant=lock-noself seat_gen self-test: 18 checks, 2 failed :: FAIL lock null: the session's own pid is not a duplicate|FAIL lock: a live other holder whose command is the session binary refuses, naming both pids|
+RESULT mutant=checkenv-garbage-passes seat_gen self-test: 18 checks, 1 failed :: FAIL check-env: a malformed spec is UNREADABLE|
+RESULT mutant=unreadable-gen-passes seat_gen self-test: 18 checks, 1 failed :: FAIL check: a garbage file is UNREADABLE, never a pass|
+RESULT mutant=bump-nomono seat_gen self-test: 18 checks, 5 failed :: FAIL bump: the first generation is 1, the next 2|FAIL bump: the file holds the number and the epoch|FAIL check: a lower generation is SUPERSEDED, exit 1|
+RESULT mutant=loopcwd-pathonly beat_jobs self-test: 203 checks, 2 failed ::   FAIL loop-cwd: a directory recreated at the same path writes DEAD|  FAIL mutant loop_path_only: its site appears 0 times|
+RESULT mutant=loopcwd-empty-dead beat_jobs self-test: 203 checks, 2 failed ::   FAIL loop-cwd: an lsof that returns nothing is UNREADABLE, never DEAD|  FAIL mutant loop_lsof_empty_dead: its site appears 0 times|
+RESULT mutant=loopcwd-nosuffix beat_jobs self-test: 203 checks, 1 failed ::   FAIL mutant loop_path_only killed by: loop-cwd: a directory recreated at the same path writes DEAD|
+RESULT mutant=loopcwd-selfpid beat_jobs self-test: 203 checks, 0 failed :: 
+RESULT mutant=opener-nolive open_driver self-test: 93 checks, 2 failed :: FAIL a board line at A opens at the live clean tip B (P603)|FAIL the live tip's own checks run: a moved tip already on main is skipped as landed|
+RESULT mutant=rq-unwired roster_queue self-test: 67 checks, 2 failed :: FAIL run: a superseded generation refuses rc 2 and writes no report line |FAIL run null: the current generation writes as before |
+RESULT mutant=mt-unwired merge_train self-test: 612 checks, 1 failed ::   FAIL seat_gen: an add under a superseded HPO_SEAT_GEN is refused rc 1 and spools nothing|
+RESULT mutant=bus-unwired bus self-test: 176 checks, 2 failed ::   FAIL dispatch under a superseded HPO_SEAT_GEN refuses and records nothing|  FAIL dispatch under the current HPO_SEAT_GEN records as before (null control)|
