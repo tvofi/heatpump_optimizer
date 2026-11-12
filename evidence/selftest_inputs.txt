@@ -55,3 +55,6 @@ tools/pr/local_alerts.py
 tools/pr/preflight.sh
 tools/pr/prepr.sh
 tools/release/stamp.py
+tools/policy/counts.mjs
+tools/policy/render_md.mjs
+tools/policy/fixtures/

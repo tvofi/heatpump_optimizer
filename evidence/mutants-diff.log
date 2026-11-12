@@ -1,0 +1,27 @@
+== null
+ 2 files changed, 12 insertions(+), 29 deletions(-)
+-    printf '%s: ROWLESS: #%s is left open at %s and its row is owed: the refusal is the host'"'"'s (prepr'"'"'s self-test, the one step refused, fails the same way on this host on a pristine origin/m
++    printf '%s: ROWLESS: #%s is left open at %s and its row is owed: the refusal is the host'"'"'s (only prepr'"'"'s self-test step refused, and this branch'"'"'s own diff leaves prepr.sh alone); upd
+-# A refused row push is the host's, not the head's, only by measurement (pr_host_refusal, pr_args.sh):
+-# closing the PR for it closed #3508, whose self-test failed on the orchestrator host at origin/main
+-# as well. The refusal is this run's own: a p2 log an earlier run of the topic left is not read.
++# A refusal that is the host's, not the head's: every REFUSE row of the p2 log is prepr's `self-test`
+== m1
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-  [ "$sh" = "$sm" ]  # mut:hostsame
++  [ "${sh%%$'\n'*}" = "${sm%%$'\n'*}" ]  # mut:hostsame
+== m2
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-  printf 'rc=%s\n' "$rc"; grep -E '^  FAIL ' <<<"$out" | sort -u || :
++  printf 'rc=%s\n' "$rc"; grep -E '^  NOPE ' <<<"$out" | sort -u || :
+== m3
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-  [ -n "$sm" ] || { sm=$(pr_step_sig "$1" "$4" "$c") && { rm -f "$c"/*.sig; printf '%s\n' "$sm" > "$c/$4.tmp"; } && mv -f "$c/$4.tmp" "$c/$4.sig"; } || return 1  # ret:hostmain
++  [ -n "$sm" ] || { sm=$(pr_step_sig "$1" "$4" "$c") && { printf '%s\n' "$sm" > "$c/$4.tmp"; } && mv -f "$c/$4.tmp" "$c/$4.sig"; } || return 1  # ret:hostmain
+== m6
+ 1 file changed, 1 deletion(-)
+-  OP_REFUSED=1
+== m8
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+-  st=tools/pr/prepr.sh; [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh
++  st=tools/pr/prepr.sh
