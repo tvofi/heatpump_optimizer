@@ -5871,9 +5871,11 @@ def _self_test() -> int:
         if name.startswith("cross"):
             w["gate"].cross_repository = lambda pull, repo: True
         got, calls, _ = seat(w, step6)
-        check(f"fork head: a pulls object {name} is a Stop -- an unread head is never taken for ours -- and "
-              "nothing is approved", isinstance(got, Stop) and got.step == "outside" and not asked_app(calls)
-              and not approved(calls))
+        said = {"u": "could not be read from the pulls API", "n": "could not be read from the pulls API",
+                "r": "could not say whether", "c": "names no head repository and branch"}[name[0]]
+        check(f"fork head: a pulls object {name} is a Stop saying so -- an unread head is never taken for ours -- "
+              "and nothing is approved", isinstance(got, Stop) and got.step == "outside" and said in got.why
+              and not asked_app(calls) and not approved(calls))
     # Carry 23: class O holds paths under tests/ no CODEOWNERS line owns, where app_approve.sh
     # answers "app". The contract is read again at every step 6, the shortcuts included.
     w = {"pull": THEIRS, "gate": OutsideStub((True, "class O: the mandate is in force"),

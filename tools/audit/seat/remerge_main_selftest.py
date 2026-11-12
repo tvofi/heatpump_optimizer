@@ -85,6 +85,7 @@ o=$FAKE_ORIGIN
 case "$*" in
   *"-X PUT"*update-branch*)
     [ "$FAKE_MODE" = refused ] && { echo "curl: (22) The requested URL returned error: 422" >&2; exit 22; }
+    [ "$FAKE_MODE" = still ] && exit 0
     old=$(git -C "$o" rev-parse refs/pull/1/head); m=$(git -C "$o" rev-parse main)
     t=$(git -C "$o" merge-tree --write-tree "$old" "$m")
     [ "$FAKE_MODE" = extra ] && t=$(git -C "$o" rev-parse "$old^{tree}")
@@ -103,7 +104,7 @@ mint_token() { echo "minted $1" >> "$FAKE_LOG"; PRIV=$(mktemp -d); echo "Authori
 
 def fork_case(root, script, mode, head_repo=FORK):
     """remerge_main.sh --head-repo on a head that is only refs/pull/1/head; <mode> is the fake
-    GitHub's answer (ok, refused, extra: a tree that is not the merge, commit: a 1-parent head)
+    GitHub's answer (ok, refused, still: accepted and nothing moved, extra: a tree that is not the merge, commit: a 1-parent head)
     or `conflict` (the fork head edits what main edited). Returns (run, facts)."""
     o, r, w = root / "o", root / "r", root / "w"
     for d in (o, r, w):
@@ -146,7 +147,7 @@ def fork_case(root, script, mode, head_repo=FORK):
     body.write_text("Closes #1\n")
     run = sh("bash", "tools/audit/seat/remerge_main.sh", "1", str(w), "fix/x", str(body), "--head-repo", head_repo,
              cwd=r, env={"PATH": f"{bindir}:{os.environ['PATH']}", "FAKE_LOG": str(log), "FAKE_ORIGIN": str(o),
-                         "FAKE_MODE": mode})
+                         "FAKE_MODE": mode, "REMERGE_POLLS": "2"})
     return run, {"old": old, "new": sh("git", "rev-parse", "refs/pull/1/head", cwd=o).stdout.strip(),
                  "ours_kept": sh("git", "rev-parse", "fix/x", cwd=o).stdout.strip() == ours, "log": log.read_text()}
 
@@ -168,6 +169,9 @@ def fork_checks(root, script):
     out["a refused update-branch is REMERGE FAILED at push naming the fork, non-zero, never PUSHED"] = (
         no.returncode != 0 and f"REMERGE FAILED 1 at push (fork {FORK}:fix/x)" in no.stdout
         and "maintainer edits" in no.stdout and "PUSHED" not in no.stdout and f["new"] == f["old"])
+    no, f = fork_case(root, script, "still")
+    out["an update-branch GitHub accepted that moved nothing is REMERGE FAILED at push saying so, never PUSHED"] = (
+        no.returncode != 0 and f"did not move off {f['old']}" in no.stdout and "PUSHED" not in no.stdout)
     for mode, what in (("extra", "a tree that is not git's automatic merge"), ("commit", "one parent")):
         no, f = fork_case(root, script, mode)
         out[f"a new head with {what} fails the read-back: not PUSHED, non-zero"] = (

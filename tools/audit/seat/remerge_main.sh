@@ -68,7 +68,7 @@ if [ -n "$FORK" ]; then
     --data "{\"expected_head_sha\":\"$old\"}" > "$PL" 2>&1 \
     || die "GitHub refused update-branch at the expected head $old ($(tail -1 "$PL" | cut -c1-200)); the fork must allow maintainer edits, or its owner merges main"
   new=$old
-  for _ in 1 2 3 4 5 6 7 8 9 10 11 12; do
+  for _ in $(seq 1 "${REMERGE_POLLS:-12}"); do
     new=$(curl -fsS -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$R/pulls/$PR" 2>/dev/null \
       | python3 -c 'import sys, json; print(json.load(sys.stdin)["head"]["sha"])' 2>/dev/null) || new=$old
     [ "$new" != "$old" ] && break
