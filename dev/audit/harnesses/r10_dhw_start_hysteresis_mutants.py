@@ -43,6 +43,7 @@ M = [
  ("M24 the set-point check never reaches the start notice", "setpoint_check.py", "    _dhw_start(hass, config, params)\n", "    pass\n"),
  ("M25 the notice judges the cycle's target", "setpoint_check.py", "    target = dhw_step_target_c(params, False)\n", "    target = dhw_step_target_c(params, True)\n"),
  ("M26 a hysteresis under one kelvin is none", "thermal_model.py", "hysteresis is None or hysteresis <= 0.0:", "hysteresis is None or hysteresis <= 1.0:"),
+ ("M27 pinned hot water is not held to the tank's capacity", "dhw_planner.py", "            schedule = self._ctx_clamp(\n                ctx, initial_state.dhw_temperature, draw_rates, max_temp, schedule)\n", "            pass\n"),
  ("NULL comment-only change", "dhw_planner.py", "    on = plan > 0.0\n    i = 1\n", "    on = plan > 0.0  # null mutant\n    i = 1\n"),
 ]
 only = sys.argv[2:] 

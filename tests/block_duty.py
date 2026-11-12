@@ -988,6 +988,10 @@ def hysteresis_checks() -> None:
           "under its minimum with a 4 K hysteresis than with none",
           lambda: under_floor(4.0) <= under_floor(None) + 0.5)
 
+    pinned_plan, pinned_temps = _solve_winter_mild(None, dhw_pins=np.ones(96))
+    check("a day with hot water pinned on at every step is still held to the tank's charge limit of 55 degC",
+          lambda: float(pinned_temps.max()) <= 55.0 + 0.05 and int((pinned_plan > 0.0).sum()) < 96)
+
     # 10. The ledger.
     def held_row(snap):
         held = arb.ArbiterState()
@@ -1134,7 +1138,7 @@ def hysteresis_checks() -> None:
           lambda: none.dhw_start_hysteresis_k is None and none.space_start_hysteresis_k is None)
 
 
-def _solve_winter_mild(hysteresis):
+def _solve_winter_mild(hysteresis, dhw_pins=None):
     """The 24 h solve of ``dev/audit/harnesses/r10_dhw_start_hysteresis.py`` (winter_typical, winter_mild, 53 degC)."""
     import numpy as np
     from profiles import house, prices, solve_inputs, weather
@@ -1157,7 +1161,7 @@ def _solve_winter_mild(hysteresis):
     result = opt.optimize(inputs=solve_inputs(
         initial_state=state, prices=np.asarray(prices("winter_typical", begin), dtype=float),
         outdoor_temps=outdoor, wind_speeds=wind, precipitation=rain, solar_radiation=sun,
-        start_time=begin))
+        start_time=begin, dhw_pins=dhw_pins))
     return (np.asarray(result.dhw_power_schedule, dtype=float),
             np.asarray(result.dhw_temp_trajectory, dtype=float))
 
