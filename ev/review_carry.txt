@@ -1,0 +1,5 @@
+  f08baa367  closures: re-record tests/entities.py at the merge of v7.1.12 main (derive_closures.sh --single)
+  92ecb6c16  closures: keep main's tests/closures.json; the --single re-record of tests/entities.py added 1569 inert_reads entries and turned prepr.sh's self-test 6b skip arm red
+  8c7ac4ce7  Merge commit '92ecb6c16ea264a2b468f2a30a932d3c22068e88' into fix/r10-hotfix-opener-unblock
+  190ec599d  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-opener-unblock
+review_carry: FRESH-REVIEW
