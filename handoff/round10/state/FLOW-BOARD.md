@@ -17,7 +17,7 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 57 | 8 | 1 |
+| 1 | 47 | 6 | 0 |
 
 ## Rules
 
