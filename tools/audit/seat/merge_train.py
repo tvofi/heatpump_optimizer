@@ -6781,18 +6781,33 @@ BLIND_CLASSIFY_READERS = {
 }
 
 
+_EMPTY_CTORS = ("tuple", "list", "set", "frozenset", "dict", "str", "bytes", "bool", "int", "float")
+
+
 def blind_classify_readers(text: str) -> dict:
     """{enclosing function: count} of `classify(...)` calls in <text> whose `busy`
-    (third positional, or keyword) is absent or a literal that reads nothing --
-    None, False, an empty tuple/list/set/string -- outside any self-test function."""
+    (third positional, or keyword) is absent or reads nothing -- any literal
+    or argument-less builtin constructor (None, False, (), [], {}, set(), frozenset(), dict(), '') -- outside any self-test function."""
     out: dict = {}
+
+    def reads(b):
+        # allow-list: only an expression that can carry runtime state is a read; every literal
+        # and every argument-less builtin constructor (set(), frozenset(), dict(), ...) is blind
+        if isinstance(b, (ast.Name, ast.Attribute, ast.Subscript, ast.IfExp, ast.BoolOp)):
+            return True
+        if isinstance(b, ast.Call):
+            return not (isinstance(b.func, ast.Name) and b.func.id in _EMPTY_CTORS and not b.args and not b.keywords)
+        if isinstance(b, (ast.Tuple, ast.List, ast.Set)):
+            return any(reads(e) for e in b.elts)
+        if isinstance(b, ast.Dict):
+            return any(reads(e) for e in b.values if e is not None)
+        return False
 
     def blind(c):
         b = c.args[2] if len(c.args) > 2 else next((k.value for k in c.keywords if k.arg == "busy"), None)
         if b is None or any(isinstance(a, ast.Starred) for a in c.args):
             return b is None and not any(isinstance(a, ast.Starred) for a in c.args)
-        return (isinstance(b, ast.Constant) and not b.value) or (isinstance(b, (ast.Tuple, ast.List, ast.Set)) and not b.elts) \
-            or (isinstance(b, ast.Call) and isinstance(b.func, ast.Name) and b.func.id in ("tuple", "list", "set") and not b.args)
+        return not reads(b)
 
     def walk(n, fn):
         for c in ast.iter_child_nodes(n):
@@ -6821,10 +6836,12 @@ def _gate_reader_barrier_self_test(check) -> None:
           blind_classify_readers("def f():\n    return classify(l, r)\n") == {"f": 1}
           and blind_classify_readers("def f():\n    return classify(l, r, busy)\n") == {}
           and blind_classify_readers("def _x_self_test():\n    classify(l, r)\n") == {})
-    check("P436 barrier null: a busy argument that is a literal None, (), [], set() or empty string, positional or "
+    check("P436 barrier null: a busy argument that is a literal None, (), [], {}, set(), frozenset(), dict() or empty string, positional or "
           "keyword, is as blind as none (the re-planted `classify(l, r, None)`)",
           all(blind_classify_readers(f"def f():\n    return classify(l, r, {a})\n") == {"f": 1}
-              for a in ("None", "()", "[]", "set()", "tuple()", "busy=None", "busy=()", "False", "''"))
+              for a in ("None", "()", "[]", "{}", "set()", "tuple()", "list()", "frozenset()", "dict()", "str()",
+                        "busy=None", "busy=()", "busy=[]", "busy={}", "busy=set()", "busy=frozenset()", "busy=dict()",
+                        "False", "''", "0"))
           and blind_classify_readers("def f():\n    return classify(l, r, busy=b)\n") == {}
           and blind_classify_readers("def f():\n    return classify(l, r, self._gate_busy(h, runs))\n") == {})
     stamped = lambda n, st, at: {"name": n, "conclusion": st, "completedAt": at}  # noqa: E731
@@ -7673,7 +7690,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     names = gating_names([GATE])
     check("item 11: once the ruleset is [gate], a unit's red is classed REQUIRED by the fixture's gate_required "
           "(null: an old-layout ruleset passes through unchanged)",
-          GATE in names and "tests / closures" in names and "tests / ci-ratchet" in names
+          GATE in names and "tests / closures" in names and "tests / coverage-ratchet" in names
           and gating_names(["fast", "closures"]) == ["fast", "closures"] and gating_names(None) is None)
 
     H0 = "a" * 40  # go()'s head
