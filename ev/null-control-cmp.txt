@@ -1,0 +1,1 @@
+cmp rc=0 (base code vs head code, pre-price roster, start 2026-11-12T12:00:00)

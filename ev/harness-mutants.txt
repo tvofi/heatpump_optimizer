@@ -1,0 +1,6 @@
+== roster_edit-1 roster_edit.py: KILLED rc=1 | TOTAL: 0 error(s) across 1 file(s)
+== roster_edit-2 roster_edit.py: KILLED rc=1 | AttributeError: 'NoneType' object has no attribute 'strip'
+== roster_edit-3 roster_edit.py: KILLED rc=1 | TOTAL: 0 error(s) across 1 file(s)
+== roster_lib-1 roster_lib.py: KILLED rc=1 | TOTAL: 0 error(s) across 1 file(s)
+== roster_lib-2 roster_lib.py: KILLED rc=1 | AttributeError: 'NoneType' object has no attribute 'strip'
+RESULT survivors=0
