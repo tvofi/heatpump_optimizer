@@ -1888,7 +1888,7 @@ def start_flow_min_lift_k(config: Any, start_hysteresis_k: Any = None) -> float:
     """
     lift = configured_flow_min_lift_k(config)
     hysteresis = finite_float(start_hysteresis_k)
-    return lift if hysteresis is None or hysteresis <= lift else hysteresis
+    return lift if hysteresis is None else max(lift, hysteresis)
 
 
 def dhw_step_target_c(params: ThermalParameters, cycle: bool) -> float:

@@ -39,6 +39,10 @@ M = [
  ("M20 the loop never ends early", "dhw_planner.py", "        if np.array_equal(fixed, plan):\n", "        if False:\n"),
  ("M21 a cycle past the horizon is written", "dhw_planner.py", "if cycle_step is not None and 0 <= cycle_step < n_steps:", "if cycle_step is not None and 0 <= cycle_step <= n_steps:"),
  ("M22 the shared clamp zeroes a step on the runnable block", "dhw_planner.py", "        return np.where(plan < ctx.min_run_power - 1e-9, 0.0, plan)\n", "        return np.where(plan <= ctx.min_run_power - 1e-9, 0.0, plan)\n"),
+ ("M23 the ledger's fallback target is unset", "pump_arbiter.py", '    cycle = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA or inp.disinfecting\n', "    cycle = False\n"),
+ ("M24 the set-point check never reaches the start notice", "setpoint_check.py", "    _dhw_start(hass, config, params)\n", "    pass\n"),
+ ("M25 the notice judges the cycle's target", "setpoint_check.py", "    target = dhw_step_target_c(params, False)\n", "    target = dhw_step_target_c(params, True)\n"),
+ ("M26 a hysteresis under one kelvin is none", "thermal_model.py", "hysteresis is None or hysteresis <= 0.0:", "hysteresis is None or hysteresis <= 1.0:"),
  ("NULL comment-only change", "dhw_planner.py", "    on = plan > 0.0\n    i = 1\n", "    on = plan > 0.0  # null mutant\n    i = 1\n"),
 ]
 only = sys.argv[2:] 

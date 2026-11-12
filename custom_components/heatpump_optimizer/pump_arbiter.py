@@ -1678,8 +1678,8 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
         if row is not None:
             held.log.append(_verdict(row, tank))
         held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
-                           "measured": False, "ran": False, "dhw_mode": False,
-                           "start_below": _dhw_start_below_c(inp)}
+                           "measured": False, "ran": False, "dhw_mode": False}
+        row["start_below"] = _dhw_start_below_c(inp)
     elif row["plan"] is not inp.plan:
         row["planned"], row["plan"] = duty, inp.plan
     power = inp.measured_power_kw

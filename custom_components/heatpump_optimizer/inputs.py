@@ -528,10 +528,10 @@ def read_temperature_delta_k(hass: Any, entity_id: str | None) -> float | None:
     state = hass.states.get(entity_id) if entity_id else None
     value = finite_float(getattr(state, "state", None))
     unit = str(state_unit(state) or "").strip()
-    spec = TEMPERATURE_UNIT_TO_C.get(unit) if unit else (0.0, 1.0)
-    if value is None or spec is None:
+    scale = (TEMPERATURE_UNIT_TO_C.get(unit) or (None, None))[1] if unit else 1.0
+    if value is None or scale is None:
         return None
-    delta_k = value * spec[1]
+    delta_k = value * scale
     return delta_k if 0.0 <= delta_k <= TEMPERATURE_DELTA_MAX_K else None
 
 

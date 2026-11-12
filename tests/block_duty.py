@@ -839,6 +839,9 @@ def hysteresis_checks() -> None:
           lambda: below(55, None) is None and below(55, 0) is None and below(55, -1) is None
           and below(None, 4) is None)
 
+    check("a hysteresis under one kelvin is still a start condition",
+          lambda: tm.dhw_start_below_c(55.0, 0.5) == 54.5)
+
     # 4. The step targets, on real parameters.
     cyc = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=60.0, dhw_legionella_enabled=True)
     nocyc = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=60.0, dhw_legionella_enabled=False)
@@ -1018,6 +1021,16 @@ def hysteresis_checks() -> None:
     check("a hot water step that ran the space pump on a warm tank is space-instead",
           lambda: verdict(ran=True) == "space-instead")
 
+    def unwritten(**kwargs):
+        snap = _hyst_snap(4.0, **kwargs)
+        return replace(snap, config={k: v for k, v in snap.config.items() if k != "dhw_setpoint_entity"})
+
+    check("with no set-point entity to write, the ledger's start is the plan step's target less the hysteresis",
+          lambda: arb._dhw_write(unwritten()) is None
+          and arb._dhw_start_below_c(unwritten()) == 51.0
+          and arb._dhw_start_below_c(unwritten(action={"dhw_reason": "legionella"})) == 56.0
+          and arb._dhw_start_below_c(unwritten(disinfecting=True)) == 56.0)
+
     # 11. The heating write at the modulation floor.
     def floor_write(config, state):
         full = {"flow_heat_c": 48.0, "space_setpoint_entity": "number.flow",
@@ -1077,11 +1090,15 @@ def hysteresis_checks() -> None:
           lambda: not bad_calls)
 
     # 13. The hot water minimum above the start temperature.
-    def raised(floor, entity="sensor.h"):
+    def raised(floor, entity="sensor.h", cycle=False, through=None):
         hass = FakeHass({"sensor.h": FakeState("4", unit="K")})
-        params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_enabled=False, dhw_min_temp=floor)
+        params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=60.0,
+                                   dhw_legionella_enabled=cycle, dhw_min_temp=floor)
         config = {"dhw_hysteresis_entity": entity} if entity else {}
-        setpoint_check._dhw_start(hass, config, params)
+        if through is None:
+            setpoint_check._dhw_start(hass, config, params)
+        else:
+            through(SimpleNamespace(hass=hass, effective_config=config, thermal_params=params))
         return [i for i in getattr(hass, "issues", []) if i[1] == setpoint_check.ISSUE_DHW_START]
 
     check("a minimum above the start temperature raises dhw_minimum_above_start with its figures",
@@ -1089,6 +1106,11 @@ def hysteresis_checks() -> None:
           and len(raised(52.0)) == 1
           and raised(52.0)[0][2]["translation_placeholders"]
           == {"floor": "52.0", "start": "51.0", "target": "55.0", "hysteresis": "4.0"})
+    check("the start temperature is the everyday target's even with a disinfection cycle active",
+          lambda: len(raised(52.0, cycle=True)) == 1
+          and raised(52.0, cycle=True)[0][2]["translation_placeholders"]["target"] == "55.0")
+    check("the set-point check's own entry raises it: evaluate() reaches the start notice",
+          lambda: len(raised(52.0, through=setpoint_check.evaluate)) == 1)
     check("a minimum below the start temperature raises nothing", lambda: raised(45.0) == [])
     check("a minimum exactly at the start temperature raises nothing", lambda: raised(51.0) == [])
     check("with no hysteresis entity configured a minimum of 52 raises nothing",
