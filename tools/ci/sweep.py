@@ -191,9 +191,11 @@ class Sweep:
     def fresh(self, run, gate, runs, pin):
         """Re-judge a stale-pinned red gate by one dispatched run at the head, unless one exists: True.
         False where V is that fresh judge and green: its check replaces no other run's red (#3400), so
-        the stale gate is re-run, once, the run judging after every run here concluded."""
+        the stale gate is re-run, once, the run judging after every run here concluded. A dispatch at
+        the head that is not completed, or concluded success, is that judge whenever it was created:
+        a re-run stale gate completes after it, and keying on creation re-dispatched (#3446)."""
         later = [r["id"] for r in runs if r.get("event") == "workflow_dispatch"
-                 and r.get("created_at", "") >= (gate.get("completed_at") or "~")]
+                 and (r.get("status") in NOT_COMPLETED or r.get("conclusion") == "success")]
         if self.green in later:
             self.out(f"STALE-PIN {pin}: run {self.green}, this head's fresh judge, is green and replaces no "
                      f"other run's red; run {run['id']}'s gate is re-run")

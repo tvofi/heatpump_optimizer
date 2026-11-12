@@ -41,9 +41,10 @@ is what makes it usable after the host is gone. Three arms:
               older than --state-min (default 45 min): the beat regenerates on
               every main move, so a main that keeps moving cannot hide it.
 
-THE STANDING SEATS (decision 0015). The four standing seats the orchestrator
-keeps alive -- tick, merge, dispatch, roster, each a contract under
-dev/governance/roles/standing-*.md -- are judged the same way. Each origin arm
+THE STANDING SEATS (decision 0015). The two standing seats the orchestrator
+keeps alive -- dispatch and merge, each a contract under
+dev/governance/roles/standing-*.md -- are judged the same way. Tick and roster
+are beat rows that `beatd status` judges (tools/audit/seat/beatd.py). Each origin arm
 names the seat that consumes its input: opener -> dispatch, verdict -> merge
 for a merge verdict and dispatch for any other, state-beat -> merge. A seat
 whose input is session-local is judged on its queue file, one arm per
@@ -108,10 +109,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ARMS = ("opener", "verdict", "state-beat")
 #: The standing seats and their cadences in minutes: the longest a queued input
-#: may wait before the seat counts as stopped. tick runs in windows of about
-#: 70 min; merge matches the verdict arm's default bound; dispatch and roster
-#: act within a sweep, so one hour is two missed sweeps.
-STANDING = {"tick": 70, "merge": 120, "dispatch": 60, "roster": 60}
+#: may wait before the seat counts as stopped. merge matches the verdict arm's
+#: default bound; dispatch acts within a sweep, so one hour is two missed sweeps.
+STANDING = {"merge": 120, "dispatch": 60}
+#: Retired into beat rows of beatd.jobs.json; their standing-*.md are stubs.
+RETIRED = ("tick", "roster")
 ARM_SEAT = {"opener": "dispatch", "state-beat": "merge"}
 NS = "refs/hpo-pulse"
 VERDICT_RE = re.compile(r"^verdict: #(\d+) Fix review: (\S+) ([0-9a-f]{7,40})\b")
@@ -165,11 +167,47 @@ def judge_opener(snap: dict, now: float, bound: float) -> tuple[str, str]:
     return "ok", f"no handoff waiting >= {bound / 3600:g} h on an opener that has opened nothing since{extra}"
 
 
+def _merge_train():
+    if str(Path(__file__).resolve().parent) not in sys.path:  # -I leaves the script's directory off
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import merge_train
+    return merge_train
+
+
+HELD = ("spooled for the live train's next batch", "still to run in this train")
+
+
+def train_holds(train: dict | None, pr: int, sha: str) -> bool:
+    """True when the live merge train holds <pr> at <sha>: merge_train's own
+    already_held rule, answered over the train's record, only for the two
+    answers that mean a batch will run it. A skip at this verdict, a merge, a
+    run or no record stays owed to a seat; a dead train holds nothing."""
+    if not isinstance(train, dict) or not train.get("alive"):
+        return False
+    merge_train = _merge_train()  # the train's rule, never a copy of it
+    return merge_train.already_held(pr, sha, train.get("seen") or {},
+                                    {int(n) for n in train.get("spooled") or []}) in HELD
+
+
+def read_train(state: str | None) -> dict | None:
+    """The merge train's holdings through merge_train's own readers, or None."""
+    if not state:
+        return None
+    merge_train = _merge_train()
+    st = Path(state)
+    try:
+        spooled, _ = merge_train.spool_read(st)
+        return {"alive": merge_train.pid_alive(merge_train.read_pid(st / "train.pid")),
+                "seen": merge_train.queue_seen_read(st), "spooled": sorted({int(e["pr"]) for e in spooled})}
+    except (OSError, ValueError, KeyError, TypeError):
+        return {"alive": False, "seen": {}, "spooled": [], "unreadable": True}
+
+
 def judge_verdict(snap: dict, now: float, bound: float) -> tuple[str, str]:
     vs, heads = snap.get("verdicts"), snap.get("open_heads")
     if not isinstance(vs, list) or not isinstance(heads, dict):
         return "UNREADABLE", "the review refs or the open pull requests could not be read"
-    owed, skew = [], 0
+    owed, skew, held = [], 0, 0
     for v in vs:
         head = heads.get(str(v["pr"]))
         if not head or not (head.startswith(v["sha"]) or v["sha"].startswith(head)):
@@ -178,8 +216,11 @@ def judge_verdict(snap: dict, now: float, bound: float) -> tuple[str, str]:
         if age is None:
             skew += 1
         elif age > bound:
-            owed.append((age, v))
-    extra = f"; {skew} skew" if skew else ""
+            if train_holds(snap.get("train"), int(v["pr"]), v["sha"]):
+                held += 1
+            else:
+                owed.append((age, v))
+    extra = (f"; {skew} skew" if skew else "") + (f"; {held} held by train" if held else "")
     if owed:
         owed.sort(key=lambda x: -x[0])
         lines = [f"#{v['pr']} {v['kind']} {v['sha'][:8]} {age / 3600:.1f} h" for age, v in owed]
@@ -444,11 +485,13 @@ def read_ledger(path: str) -> dict:
     return {"launches": launches, "stops": stops}
 
 
-def snapshot_live(cwd: str, remote: str, repo: str | None) -> dict:
+def snapshot_live(cwd: str, remote: str, repo: str | None, train_state: str | None = None) -> dict:
     snap = {"now": int(time.time()), "orphans": read_orphans(cwd, remote),
             "last_open_t": read_last_open(repo) if repo else None,
             "verdicts": read_verdicts(cwd, remote),
             "open_heads": read_open_heads(repo) if repo else None}
+    if train_state:
+        snap["train"] = read_train(train_state)
     snap.update(read_state(cwd, remote))
     return snap
 
@@ -531,6 +574,59 @@ def self_test() -> int:
            {"pr": 2531, "kind": "blocked", "sha": "a" * 40, "t": now - 50 * H}]
     check("a verdict whose pull request merged or whose head moved is consumed",
           words(snap(verdicts=old, open_heads={"2531": "f" * 40}))["verdict"] == "ok")
+    # A live merge train holds verdicts the pulse used to count STOPPED (11-11 01:10Z).
+    def held(alive: bool, seen: dict, spooled: list) -> dict:
+        v = [{"pr": n, "kind": "merge", "sha": f"{n:040x}", "t": now - 5 * H} for n in (1, 2, 3)]
+        return {arm: w for arm, w, _ in judge(snap(verdicts=v, open_heads={str(n): f"{n:040x}" for n in (1, 2, 3)},
+                 train={"alive": alive, "seen": seen, "spooled": spooled}), B)}["verdict"]
+    seen = {"1": {"verdict": f"{1:040x}", "state": "pending"}, "3": {"verdict": f"{3:040x}", "state": "skipped"}}
+    check("a spooled and a pending PR are held by a live train; the one it skipped at this verdict is STOPPED",
+          held(True, seen, [2]) == "STOPPED"
+          and judge(snap(verdicts=[{"pr": 1, "kind": "merge", "sha": f"{1:040x}", "t": now - 5 * H},
+                                   {"pr": 2, "kind": "merge", "sha": f"{2:040x}", "t": now - 5 * H}],
+                         open_heads={"1": f"{1:040x}", "2": f"{2:040x}"},
+                         train={"alive": True, "seen": seen, "spooled": [2]}), B)[1][1] == "ok")
+    check("a dead train pid holds nothing: the same pending and spooled PRs are STOPPED",
+          held(False, seen, [2]) == "STOPPED"
+          and judge(snap(verdicts=[{"pr": 1, "kind": "merge", "sha": f"{1:040x}", "t": now - 5 * H}],
+                         open_heads={"1": f"{1:040x}"},
+                         train={"alive": False, "seen": seen, "spooled": []}), B)[1][1] == "STOPPED")
+    check("null control: a PR skipped at its current verdict stays STOPPED under a live train",
+          judge(snap(verdicts=[{"pr": 3, "kind": "merge", "sha": f"{3:040x}", "t": now - 5 * H}],
+                     open_heads={"3": f"{3:040x}"}, train={"alive": True, "seen": seen, "spooled": []}), B)[1][1] == "STOPPED")
+    with tempfile.TemporaryDirectory() as td:
+        (Path(td) / "queue-add.jsonl").write_text(json.dumps({"pr": 7, "verdict": "a" * 40}) + "\n")
+        (Path(td) / "queue.seen.json").write_text(json.dumps({"8": {"verdict": "b" * 40, "state": "pending"}}))
+        (Path(td) / "train.pid").write_text(f"{os.getpid()}\n")
+        tr = read_train(td)
+        check("read_train reads the spool, the QUEUE_SEEN record and the pid through merge_train's readers",
+              tr == {"alive": True, "seen": {"8": {"verdict": "b" * 40, "state": "pending"}}, "spooled": [7]})
+    # The live path: main() --train-state -> snapshot_live -> judge_verdict, the readers of git and REST stubbed.
+    with tempfile.TemporaryDirectory() as td:
+        st, dump = Path(td) / "train", Path(td) / "dump.json"
+        st.mkdir()
+        (st / "queue-add.jsonl").write_text(json.dumps({"pr": 7, "verdict": "7" * 40}) + "\n")
+        (st / "train.pid").write_text(f"{os.getpid()}\n")
+        stubs = {"read_orphans": lambda c, r: {"rc": 0, "out": ""}, "read_last_open": lambda r: int(time.time()),
+                 "read_verdicts": lambda c, r: [{"pr": 7, "kind": "merge", "sha": "7" * 40, "t": int(time.time()) - 5 * H}],
+                 "read_open_heads": lambda r: {"7": "7" * 40}, "read_state": lambda c, r: {"state_ref": None}}
+        saved = {k: globals()[k] for k in stubs}
+        globals().update(stubs)
+        try:
+            def live(*extra):
+                import contextlib, io
+                with contextlib.redirect_stdout(io.StringIO()) as buf:
+                    rc = main(["--checkout", td, "--repo", "o/r", "--dump", str(dump), *extra])
+                return rc, json.loads(dump.read_text()), buf.getvalue()
+            rc, dumped, out1 = live("--train-state", str(st))
+            check("main --train-state reads the live train into the snapshot and the spooled verdict is not STOPPED",
+                  dumped.get("train", {}).get("spooled") == [7] and dumped["train"]["alive"] is True
+                  and "held by train" in out1)
+            rc0, none, out0 = live("--train-state", str(Path(td) / "absent"))
+            check("null control: a train state with no spool and no pid holds nothing, so the verdict is STOPPED",
+                  rc0 == 1 and none.get("train", {}).get("spooled") == [] and none.get("train", {}).get("alive") is False)
+        finally:
+            globals().update(saved)
     # Fail closed: an input not read is UNREADABLE, never ok, and the exit is 2.
     shut = snap(orphans={"rc": 3, "out": "bus: orphans: could not fetch"}, verdicts=None,
                 state_ref=None)
@@ -582,44 +678,50 @@ def self_test() -> int:
     check("an ok arm names no seat", not r["opener"][1].startswith("seat "))
     roles = HERE.parents[2] / "dev/governance/roles"
     check("every standing seat pulse judges is a tracked contract, and every contract a seat",
-          sorted(p.name for p in roles.glob("standing-*.md")) == sorted(f"standing-{s}.md" for s in STANDING))
+          sorted(p.name for p in roles.glob("standing-*.md")) == sorted(f"standing-{s}.md" for s in (*STANDING, *RETIRED))
+          and not set(STANDING) & set(RETIRED))
     # Null control: an idle seat with nothing owed is not STOPPED, however long idle.
-    idle = snap(seat_queues={"roster": {"entries": []}, "tick": {"entries": []}})
+    idle = snap(seat_queues={"dispatch": {"entries": []}, "merge": {"entries": []}})
     wi, di = words(idle), {a: d for a, _, d in judge(idle, B)}
     check("null control: idle standing seats with nothing queued are ok, and add one arm each",
-          wi["seat-roster"] == wi["seat-tick"] == "ok" and len(wi) == len(ARMS) + 2
-          and di["seat-roster"] == "seat roster: idle, nothing queued")
-    late = snap(seat_queues={"roster": {"entries": [now - 61 * 60, now - 5 * 60]},
-                             "tick": {"entries": [now - 69 * 60]}})
+          wi["seat-dispatch"] == wi["seat-merge"] == "ok" and len(wi) == len(ARMS) + 2
+          and di["seat-dispatch"] == "seat dispatch: idle, nothing queued")
+    late = snap(seat_queues={"dispatch": {"entries": [now - 61 * 60, now - 5 * 60]},
+                             "merge": {"entries": [now - 119 * 60]}})
     rl = {a: (w, d) for a, w, d in judge(late, B)}
     check("a queued input older than the seat's cadence is STOPPED, naming the seat",
-          rl["seat-roster"][0] == "STOPPED"
-          and rl["seat-roster"][1].startswith("seat roster: 1 queued input(s) past its 60 min cadence, oldest 61 min"))
-    check("a queued input under the seat's cadence is ok", rl["seat-tick"][0] == "ok")
+          rl["seat-dispatch"][0] == "STOPPED"
+          and rl["seat-dispatch"][1].startswith("seat dispatch: 1 queued input(s) past its 60 min cadence, oldest 61 min"))
+    check("a queued input under the seat's cadence is ok", rl["seat-merge"][0] == "ok")
     check("perturbation: a 90 min override reads the 61 min input ok",
-          words(snap(seat_queues={"roster": {"entries": [now - 61 * 60], "cadence_min": 90}}))["seat-roster"] == "ok")
+          words(snap(seat_queues={"dispatch": {"entries": [now - 61 * 60], "cadence_min": 90}}))["seat-dispatch"] == "ok")
     check("an unread queue is UNREADABLE, never ok",
           words(snap(seat_queues={"merge": {"entries": None, "cadence_min": None}}))["seat-merge"] == "UNREADABLE")
     check("a queued stamp ahead of the clock is never aged",
-          words(snap(seat_queues={"tick": {"entries": [now + 600]}}))["seat-tick"] == "ok")
+          words(snap(seat_queues={"merge": {"entries": [now + 600]}}))["seat-merge"] == "ok")
     with tempfile.TemporaryDirectory() as td:
-        qf, mf = Path(td) / "roster.q", Path(td) / "gone.q"
+        qf, mf = Path(td) / "dispatch.q", Path(td) / "gone.q"
         qf.write_text(f"{now - 61 * 60} append-carry R10-X\n\n")
-        seat, q = read_queue(f"roster={qf}")
+        seat, q = read_queue(f"dispatch={qf}")
         check("read_queue reads `<epoch> <text>` lines and skips blanks",
-              seat == "roster" and q == {"entries": [now - 61 * 60], "cadence_min": None})
+              seat == "dispatch" and q == {"entries": [now - 61 * 60], "cadence_min": None})
         check("read_queue takes a :MIN override and reads a missing file as unreadable",
-              read_queue(f"tick={qf}:90")[1]["cadence_min"] == 90.0
-              and read_queue(f"tick={mf}")[1]["entries"] is None)
+              read_queue(f"merge={qf}:90")[1]["cadence_min"] == 90.0
+              and read_queue(f"merge={mf}")[1]["entries"] is None)
         f = Path(td) / "late.json"
         f.write_text(json.dumps(late))
         out = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f)], capture_output=True, text=True)
         check("--snapshot judges the seat queues: exit 1, the STOPPED line names the seat, five arms",
-              out.returncode == 1 and "PULSE seat-roster STOPPED seat roster:" in out.stdout
+              out.returncode == 1 and "PULSE seat-dispatch STOPPED seat dispatch:" in out.stdout
               and "pulse: 5 arms, 1 stopped" in out.stdout)
         bad = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f), "--seat-queue", f"janitor={qf}"],
                              capture_output=True, text=True)
         check("--seat-queue refuses a seat no contract defines", bad.returncode == 2 and "janitor" in bad.stderr)
+        for gone in RETIRED:
+            ret = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f), "--seat-queue", f"{gone}={qf}"],
+                                 capture_output=True, text=True)
+            check(f"--seat-queue refuses the retired seat {gone}, a beat row now",
+                  ret.returncode == 2 and "retired into beat rows" in ret.stderr)
     # WHO BEAT: the per-role alive file alone never makes a seat live.
     def alive(role_min=1, ids=None, mins=None):
         return {"seat_alives": {"merge": {"role_t": now - role_min * 60, "cadence_min": mins,
@@ -719,12 +821,14 @@ def main(argv: list[str]) -> int:
                     help="judge a standing seat on its alive file and per-id entries FILE.d/ (repeatable)")
     ap.add_argument("--launch-ledger", metavar="FILE",
                     help="with --seat-alive: the launch ledger the fresh id must be the newest unstopped launch of")
+    ap.add_argument("--train-state", default=os.path.join(os.environ.get("HPO_STATE_DIR") or "", "merge_train") if os.environ.get("HPO_STATE_DIR") else None,
+                    help="the merge train's state dir (default $HPO_STATE_DIR/merge_train): a verdict its live train holds is not STOPPED")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
     for flag, specs in (("--seat-queue", a.seat_queue), ("--seat-alive", a.seat_alive)):
         bad = [s for s in specs if s.partition("=")[0] not in STANDING or not s.partition("=")[2]]
         if bad:
-            ap.error(f"{flag} takes SEAT=FILE[:MIN], SEAT one of {', '.join(STANDING)}: {bad}")
+            ap.error(f"{flag} takes SEAT=FILE[:MIN], SEAT one of {', '.join(STANDING)} (tick and roster are retired into beat rows): {bad}")
     if a.self_test:
         return self_test()
     b = bounds_s(a.opener_h, a.verdict_h, a.state_min)
@@ -733,7 +837,7 @@ def main(argv: list[str]) -> int:
         if a.now is not None:
             snap["now"] = a.now
     else:
-        snap = snapshot_live(a.checkout, a.remote, a.repo or repo_of(a.checkout, a.remote))
+        snap = snapshot_live(a.checkout, a.remote, a.repo or repo_of(a.checkout, a.remote), a.train_state)
         snap["seat_queues"] = dict(map(read_queue, a.seat_queue))
         snap["seat_alives"] = dict(map(read_alive, a.seat_alive))
         if a.launch_ledger:
