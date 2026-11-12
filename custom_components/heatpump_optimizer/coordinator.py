@@ -1123,14 +1123,14 @@ def _replay_gate(
 ) -> tuple[float | None, bool, str | None, bool]:
     """A fabric learner's ``(heat kW, span clean, freeze, folds)`` for one run (#2261).
 
-    ``raw`` is the learner's ``_learning_frozen`` answer. The rule is
-    :func:`heat_energy.replay_gate`'s, on the freeze without and with this
-    run's measured heat and on whether the span folds the scale alone.
+    ``raw`` is the learner's ``_learning_frozen`` answer; the rule, and the
+    inputs it reads, are :func:`heat_energy.replay_gate`'s.
     """
     cfg, heat_kw = _ctx_of(coord)._config, _interval_measured_heat_kw(coord)
     return heat_energy.replay_gate(
         span_heat_kw, interval, replay_freeze(raw, cfg, 0.0), replay_freeze(raw, cfg, heat_kw), heat_kw,
-        heat_energy.meter_of(coord).spans_own_scale)
+        heat_energy.meter_of(coord), coord._commanded_split(), probe_install(cfg).heat_sees_dhw,
+        coord._immersion_active or coord._pump_signals.electric_heat.resistive_heat)
 
 
 async def _async_earn_heat_basis(coord: Any, heat_kw: float | None) -> None:
