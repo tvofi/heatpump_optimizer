@@ -1,54 +1,34 @@
-roster branch handoff/audit-r10-roster at e0458e6fd809cb73d4cc1f165d7d6917e2ccacf2
-GROUP R10-COMBI-TANK-PR-B keys ['after', 'architect_note', 'brief', 'carry', 'class', 'effort', 'files', 'findings', 'fixerModel', 'fixes', 'fixture', 'group', 'hot_files', 'issues'] resume {'stage': 'in-progress', 'branch': None, 'note': "s14 orchestrator 2026-11-11: roster duplicate of PR B's scope inside R10-COMBI-TANK; built as pull request 3398 under the approved R10-COMBI-TANK design; its design-verdict's class-open point is carried to R10-COMBI-TANK; set done at 3398's merge sha, no designer re-cut"}
-   term 'dead_top_level_symbols' count 0
-   term 'read API' count 0
-   term 'ceiling' count 0
-   term 'supply' count 0
-   term 'minimum' count 0
-   term 'combi_type_branch' count 1
-   term 'vendor' count 2
-   term 'census' count 6
-   term '3420' count 0
-   term 'factory' count 0
-GROUP R10-DUTY-SWITCH-RESTART-LEARNING keys ['after', 'architect_note', 'brief', 'carry', 'class', 'effort', 'files', 'findings', 'fixerModel', 'fixes', 'fixture', 'group', 'hot_files', 'issues'] resume {'stage': 'in-progress', 'branch': None, 'commit': None, 'last_step': None, 'next_step': 'fixer handoff of part A (design approved at abc575172c, cloud fixer dispatched, work on handoff-wip/r10-duty-switch-restart-learning): no restart on the rewritten head of outside pull request 3420; then fix review; parts B to E are their own groups after this one', 'note': "s14 orchestrator 2026-11-11 under mandate 6715477401: outside design pull request 3420 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 design first, no deferral out of the round); overlap admitted (R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START): s14 orchestrator 2026-11-11 under mandate 6715477401: outside design PR 3420 accepted, design review first | set-files files ['custom_components/heatpump_optimizer/coordinator.py', 'tests/features.py'] -> ['custom_components/heatpump_optimizer/pump_arbiter.py', 'custom_components/heatpump_optimizer/wear.py', 'custom_components/heatpump_optimizer/sensor.py', 'custom_components/heatpump_optimizer/store.py', 'tests/features.py', 'tests/finite_boundary.py', 'tests/guard_pins.py', 'tests/closures.json', 'tests/entities.py', 'tests/deployment_shape.py', 'docs/architecture.md']; hot_files [] -> ['pump_arbiter.py', 'wear.py', 'sensor.py', 'store.py', 'features.py', 'finite_boundary.py', 'closures.json', 'architecture.md']", 'pr': None}
-   term 'dead_top_level_symbols' count 0
-   term 'read API' count 0
-   term 'ceiling' count 0
-   term 'supply' count 3
-   term 'minimum' count 1
-   term 'combi_type_branch' count 0
-   term 'vendor' count 0
-   term 'census' count 1
-   term '3420' count 10
-   term 'factory' count 0
-groups with DUTY-SWITCH in id: ['R10-DUTY-SWITCH-RESTART-LEARNING', 'R10-DUTY-SWITCH-RESTART-LEARNING-PR-B', 'R10-DUTY-SWITCH-PLANNER-PRICE']
-COMBI context: hat the seed under-buys. PR B, or any stage changing the planner's stages, keeps that census and does not read lp_flux as covering those two sites. Carry: R10-COMBI-TANK (item exo-seed-census-only) (items c45c9022)", "From r10-duty-switch-restart-learning, body item bcf2d3ca: `tests/features.py`'s `combi_type_branch` census is red on `origin/main` itself since pull requests 3398 and 3433 both landed: the census refuses a vendor name in the package's Python and six comment lines name one. Not touched here: neither the census nor those lines are this group's. Lands in `tests/features.py`. Carry:
-DUTY supply context: r and is now 2599cc38edffa760722e1c063da7d949f11ca963 (14 files, 717 insertions against dbd1ab5b07; e05c6b1ccc is no longer an ancestor). The rewrite drops the supply hold module and its coordinator lines (the author says they become separate pull requests), replaces the hook registry with direct calls from the arbiter, re-records the closures on Linux and u
-DUTY supply context:  changed lines) and takes only what an A build needs; at this reading that is nothing, since the delta is the registry removal, three signature changes and the supply hold's removal. The author's commits carry a Co-Authored-By and a Claude-Session trailer on every message: any further commit adopted from 3420 is re-committed with the author kept and both tra
-DUTY supply context: anner and in the duty share only once the evidence passes a threshold; it also reports that the start counter misses short cycles and that the mode follows the supply switch-on by seconds. Design first (decision 0014): the outside note is the design under review, published on the group's design ref unchanged, and the design reviewer decides approve or revise
-GROUP R10-DUTY-SWITCH-RESTART-LEARNING-PR-B brief+carry chars 2942
-   term 'dead_top_level_symbols' count 0
-   term 'read API' count 0
-   term 'reader' count 0
-   term 'ceiling' count 3
-   term 'bound n' count 0
-   term 'feedback' count 0
-   term 'wider' count 0
-   term 'kept_w' count 0
-   term 'factory' count 0
-   term 'supply hold' count 0
-   term 'minimum-run' count 0
-   term 'minimum run' count 0
-GROUP R10-DUTY-SWITCH-PLANNER-PRICE brief+carry chars 2404
-   term 'dead_top_level_symbols' count 0
-   term 'read API' count 0
-   term 'reader' count 0
-   term 'ceiling' count 0
-   term 'bound n' count 0
-   term 'feedback' count 0
-   term 'wider' count 0
-   term 'kept_w' count 0
-   term 'factory' count 0
-   term 'supply hold' count 0
-   term 'minimum-run' count 0
-   term 'minimum run' count 0
+roster branch handoff/audit-r10-roster at 86899bb0455175b7e74a557c545770a43c64f993
+--- R10-DUTY-SWITCH-RESTART-LEARNING: 3 carry item(s); stage=in-progress
+     read interface: 1 match(es) in brief+carry
+     conditional keys: 0 match(es) in brief+carry
+     factory reset: 0 match(es) in brief+carry
+     sixth episode / N_ON: 0 match(es) in brief+carry
+     published k and n decay (attr_churn): 0 match(es) in brief+carry
+     span_days reads 0: 0 match(es) in brief+carry
+     heated gate per unit: 0 match(es) in brief+carry
+     planner-price controls restated: 1 match(es) in brief+carry
+   carry[0]: BUILD INPUT, REVISED (feature triage f2, 2026-11-11; replaces the BUILD INPUT carry that names head e05c6b1ccc): pull request 3420's head was rewritten by its author and is now 2599cc38edffa760722e1c063da7d949f11ca963 (14 files, 717 insertions against dbd1ab5b
+   carry[1]: From #3461, body item be768cab: Parts B and C get no ready read API: they add module-level readers with their first caller, or `dead_top_level_symbols` refuses. n has no ceiling (verdict n11) and the loop void is wider than the design's. Lands in `docs/design/
+   carry[2]: From #3461, body item 25e8fe39: The supply minimum-run hold of pull request 3420 is removed and built nowhere; where it goes is the orchestrator's decision the design verdict routed. Lands in `docs/design/2026-11-10-duty-switch-restart-learning/design.md`. Car
+--- R10-DUTY-SWITCH-RESTART-LEARNING-PR-B: 2 carry item(s); stage=not-started
+     read interface: 3 match(es) in brief+carry
+     conditional keys: 1 match(es) in brief+carry
+     factory reset: 1 match(es) in brief+carry
+     sixth episode / N_ON: 0 match(es) in brief+carry
+     published k and n decay (attr_churn): 0 match(es) in brief+carry
+     span_days reads 0: 0 match(es) in brief+carry
+     heated gate per unit: 0 match(es) in brief+carry
+     planner-price controls restated: 1 match(es) in brief+carry
+   carry[0]: From r10-duty-switch-restart-learning, body item 1b22f416: Parts B and C get no ready read API from part A: `Direction.usable`, `.p` and `.median_off_s` hold the three values, and the part that first reads them adds the module-level reader with its first calle
+   carry[1]: From r10-duty-switch-restart-learning, body item 3c666f5b: Factory reset keeps the duty-switch store (`_FR_STORES`, "kept: observed facts"), where every other learned estimate is voided; the record holds an estimate with a latch, and voiding it would also need
+--- R10-DUTY-SWITCH-PLANNER-PRICE: 1 carry item(s); stage=not-started
+     read interface: 1 match(es) in brief+carry
+     conditional keys: 0 match(es) in brief+carry
+     factory reset: 0 match(es) in brief+carry
+     sixth episode / N_ON: 0 match(es) in brief+carry
+     published k and n decay (attr_churn): 0 match(es) in brief+carry
+     span_days reads 0: 0 match(es) in brief+carry
+     heated gate per unit: 0 match(es) in brief+carry
+     planner-price controls restated: 0 match(es) in brief+carry
+   carry[0]: From r10-duty-switch-restart-learning, body item 3656875b: The same finding for the planner's price of a switch: it reads the estimate through a reader it adds with its first caller, and an absent published key is no observation. Controls as in the item above.
