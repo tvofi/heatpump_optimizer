@@ -2,7 +2,7 @@ Quiet train output by default (owner card 2026-10-24, carry 0) and `pr_bounded` 
 
 ## Head
 
-7ee0461a30e2c58d7e5f78c1fdaa13232325f88b
+d3e955485a25d93a24f3610cea9b44b5918e7b00
 
 ## Mutation proof
 
@@ -31,7 +31,13 @@ Scope kept to the brief's "output calls only in merge_train.py": update_pr.sh an
 
 ## Red checks
 
-none
+The reds below are on commits already on main that this branch inherits; none is in the owed-reds set (`merge_train.py owed-reds` prints `tests / mutation`, `tests / typing`, `validate / validate-hacs`), and this diff touches no file they read beyond the seat scripts. Each is answered by the finding that no cheaper detector of this branch's own change exists, since the branch did not introduce it:
+
+- `tests / fast (3.14)`: red on main ancestry, not on this diff.
+- `governance / delivery-status`: red on main ancestry, not on this diff.
+- `governance / instrument-self-tests`: red on main ancestry, not on this diff.
+- `tests / nightly-status`: red on main ancestry, not on this diff.
+- `tests / replay`: red on main ancestry, not on this diff.
 
 ## Forward-carry
 
@@ -40,3 +46,5 @@ none
 ## Friction
 
 none
+
+Merge repair: origin/main merged in; the one conflict, tools/audit/seat/merge_train.py, was resolved as the union of this branch's quiet-log block (QUIET_CHATTER, quiet_log, wire_quiet) and main's one_job_pulse/BASELINE_JOBS. merge_train.py --self-test 700 checks, 0 failed; prepr.sh rc=0 at the merged head.
