@@ -1042,6 +1042,7 @@ class Stop(Exception):
 # "Base branch was modified", the GraphQL "is not up to date" family).
 BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
+OUTSIDE = "OUTSIDE"                  # a head from a fork (decision 0017): its contract, or a move only the fork can make, is owed
 def runs_approved(runs: "list[dict]") -> bool:
     """True when a head's pull_request runs listing has at least one run and
     none still held action_required (its status or its conclusion)."""
@@ -1114,6 +1115,33 @@ def classified(s: Stop) -> str:
 # The one reader of the owner's recorded mandate, old path first (the TOOLS
 # convention above).
 GATE_PATHS = (".claude/workflows/budget_raise_gate.py", "tools/policy/budget_raise_gate.py")
+
+# THE ONE OWNER of "is this pull request's head a fork's, is it an admitted
+# outside pull request, which class is each path it changes, and is its class-O
+# read the owner's" is tools/pr/outside.py (decision 0017). The train loads it
+# by path, as it loads the mandate gate, and re-types none of it: no second
+# definition of cross-repository, of the classes or of the outside-read line.
+# The two calls it makes are `Train.fork_head` and `Train.outside_contract`.
+OUTSIDE_PATH = "tools/pr/outside.py"
+# What that contract executes or reads on our side. The train runs it only
+# from files byte-equal to origin/main's own (`Train.outside_is_mains`): a
+# seat checkout behind main is an old contract, and one ahead of it is nobody's.
+OUTSIDE_MAIN_COPIES = (OUTSIDE_PATH, GATE_PATHS[-1], "dev/governance/outside_contributors.json",
+                       ".github/CODEOWNERS", "tools/pr/app_approve.sh")
+FORK_REPO = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
+
+
+@functools.lru_cache(maxsize=None)
+def _outside_gate():
+    p = ROOT / OUTSIDE_PATH
+    if not p.is_file():
+        raise Stop("outside", f"{OUTSIDE_PATH} is not in this checkout, so whether a head is a fork's cannot "
+                   "be read; an unread head is never taken for ours")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("outside", str(p))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 @functools.lru_cache(maxsize=None)
@@ -1733,6 +1761,8 @@ class Train:
         self.cp_read: "tuple[dict, set] | None" = None  # (roster, critical ids), read once per run
         self.skipped: list[dict] = []
         self.approved: dict[int, str] = {}  # {pr: head} this run approved (P86: never twice at one head)
+        self.forks: "dict[int, tuple[str, str] | None]" = {}  # {pr: (head repository, head branch) | None}: `fork_head`
+        self.contracted: dict[int, str] = {}  # {pr: head} the outside contract last held at (`outside_contract`)
         self.made_wts: list[Path] = []  # recarry worktrees THIS run created (release_worktrees)
         self.held = False  # this run's HOLD_REF is published (hold_refresh/hold_release)
         self.hold_armed = False  # a train/batch owns the ref; `wait-ci` never publishes one
@@ -2373,6 +2403,100 @@ class Train:
         the merge as the budget-raise-gate check judges it at the head."""
         return g.measured_score("origin/main", h)
 
+    def fork_head(self, pr: int) -> "tuple[str, str] | None":
+        """(head repository, head branch) when <pr>'s head is cross-repository,
+        None when it is a branch of ours: outside.py's own reading of the pulls
+        API object, which the train neither re-types nor guesses (decision
+        0017). Read once per pull request per invocation -- a pull request
+        cannot change its head repository. Both names are GitHub's, of the
+        contributor's choosing: they travel as argv and log text only, never
+        inside a shell string. A pull request, or a fork's name, that cannot be
+        read is a Stop: an unread head is never taken for ours."""
+        if pr in self.forks:
+            return self.forks[pr]
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/pulls/{pr}"])
+        try:
+            pull = json.loads(o) if code == 0 else None
+        except ValueError:
+            pull = None
+        if not isinstance(pull, dict) or not isinstance(pull.get("head"), dict):
+            raise Stop("outside", f"#{pr} could not be read from the pulls API ({o.strip()[-120:] or 'no output'}); "
+                       "an unread head is never taken for ours")
+        try:
+            cross = bool(_outside_gate().cross_repository(pull, self.repo))
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: outside.py's answer, or none
+            raise Stop("outside", f"{OUTSIDE_PATH} could not say whether #{pr}'s head is cross-repository "
+                       f"({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})") from None
+        fork = None
+        if cross:
+            name = str((pull["head"].get("repo") or {}).get("full_name") or "")
+            ref = str(pull["head"].get("ref") or "")
+            if not FORK_REPO.fullmatch(name) or name == self.repo or not ref or ref != ref.strip():
+                raise Stop("outside", f"#{pr}'s head is cross-repository and the pulls API names no head "
+                           f"repository and branch for it ('{name[:60]}', '{ref[:60]}'): deleted, or unread", cls=OUTSIDE)
+            fork = (name, ref)
+        self.forks[pr] = fork
+        return fork
+
+    def outside_is_mains(self) -> None:
+        """The outside contract runs from origin/main's copies or not at all
+        (carry 23): origin/main is fetched HERE, and every file of
+        OUTSIDE_MAIN_COPIES in this checkout must be byte-equal to main's blob
+        of that path. Never the head's copy -- nothing of a fork head is
+        executed or imported on this machine -- and never a stale seat's."""
+        code, o = self.run(["git", "fetch", "-q", "origin", "main"])
+        if code:
+            raise Stop("outside", "origin/main could not be fetched for the outside contract: " + o.strip()[-160:])
+        for rel in OUTSIDE_MAIN_COPIES:
+            c1, want = self.run(["git", "rev-parse", f"origin/main:{rel}"])
+            c2, have = self.run(["git", "hash-object", "--", rel])
+            if c1 or c2 or not is_sha(want.strip()) or want.strip() != have.strip():
+                raise Stop("outside", f"{rel} in this checkout is not origin/main's copy "
+                           f"(main {want.strip()[:12] or 'unread'}, here {have.strip()[:12] or 'unread'}): the "
+                           "outside contract is main's or it is not run; run the train from a checkout at main",
+                           cls=OUTSIDE)
+
+    def outside_contract(self, pr: int, h: str, fork: "tuple[str, str]") -> str:
+        """outside.py's WHOLE contract for the cross-repository <pr> at the
+        landing head <h>, from main's copy (carry 23): allowlist, repository
+        and base, the path rule, the head ref name, no other pull request of
+        any state at <h>, the manifest version, and class O -- the owner's
+        approving review at the head or his machinery's under a mandate in
+        force NOW. Read on every call, before any approval and whatever
+        CODEOWNERS says: class O holds paths under tests/ no CODEOWNERS line
+        owns, on which app_approve.sh answers "app", and the owner's revocation
+        of the mandate since adoption must park the head here. A refusal, or a
+        contract that cannot be read, is a Stop naming the fork; the reason
+        returned is outside.py's own."""
+        self.contracted.pop(pr, None)
+        self.outside_is_mains()
+        try:
+            ok, why = _outside_gate().contract(self.repo, pr, h, "origin/main")
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: an unread contract admits nothing
+            ok, why = False, f"the contract could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})"
+        if ok is not True:
+            raise Stop("approve", f"the outside contract refuses #{pr} at {h[:12]} (head {fork[0]}:{fork[1]}): "
+                       f"{str(why)[:400]}; parked for the owner's review at the head, or the fork's own fix "
+                       "(decision 0017)", cls=OUTSIDE)
+        self.contracted[pr] = h
+        return str(why)
+
+    def no_fork_post(self, pr: int, what: str) -> None:
+        """Stop before <what> is posted on a cross-repository head. The train's
+        approvals under the owner's account are posted after, and on the basis
+        of, the adopted verdict, which on a fork head the contributor's
+        reviewer wrote: there class O is outside.py's approve subcommand alone,
+        run by our own class-O read seat (decision 0017, (E))."""
+        fork = self.fork_head(pr)
+        if fork is not None:
+            raise Stop("approve", f"{what} is never posted on a cross-repository head ({fork[0]}:{fork[1]}): the "
+                       "verdict it would rest on is the contributor's reviewer's; class O is outside.py's approve "
+                       "subcommand, from our own read of the class-O diff (decision 0017)", cls=OUTSIDE)
+
     def raise_hold(self, pr: int, h: str, files: "list[str]") -> "tuple[list[str], bool, str]":
         """(raises, held, why) for <pr> at <h>: the train's ONE reading of a
         budget raise, shared by `approve` and queue_pre_flight.py.
@@ -2456,7 +2580,12 @@ class Train:
     def _post_carry(self, pr: int, h: str, body: str) -> str:
         """Post <body> as an approval at <h> and READ IT BACK: the newest review
         at <h> must carry this body byte-for-byte, or the post is a Stop, not a
-        pass -- a carried approval nobody can read back approves nothing."""
+        pass -- a carried approval nobody can read back approves nothing.
+        Never on a cross-repository head (`no_fork_post`): over a class-O
+        approval the carried body would repeat the outside-read line under a
+        second citation, and app_approve.sh's carry already takes that
+        approval across main's commits."""
+        self.no_fork_post(pr, "a carried owner approval")
         bf = self.state / f"carry{pr}.md"
         bf.write_text(body)
         if self.head(pr) != h:
@@ -2491,6 +2620,8 @@ class Train:
             item["carry_refused"] = why
         if not self.approval_carry or not self.mandate:
             return no("--approval-carry or --mandate is not given")
+        if self.fork_head(pr) is not None:
+            return no("the head is cross-repository, where the train carries no owner approval (decision 0017)")
         chain = [c for c in item.get("carried_chain") or [item.get("carried_from")] if is_sha(c or "") and c != h]
         if not chain:
             return no("this run's recarry did not move the head")
@@ -2531,7 +2662,16 @@ class Train:
         starts a `CI review` run of ci.yml that the merge then waits on, and
         app_approve.sh posts on every call -- so a head this run approved, or
         one the approver App already approved, is not approved again. A head
-        that moved is a new head and is approved afresh."""
+        that moved is a new head and is approved afresh.
+
+        A cross-repository head first passes outside.py's whole contract at
+        <h> (`outside_contract`), on EVERY call and before either shortcut
+        below: an approval already at the head says nothing of a mandate
+        revoked since."""
+        fork = self.fork_head(pr)
+        if fork is not None:
+            self.log(f"#{pr} outside contract holds at {h[:8]} ({fork[0]}:{fork[1]}): "
+                     f"{self.outside_contract(pr, h, fork)[:200]}")
         if self.approved.get(pr) == h:
             return "already, at this head, by this train"
         if any(r.get("state") == "APPROVED" and r.get("commit_id") == h
@@ -2543,6 +2683,9 @@ class Train:
         return how
 
     def _approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
+        fork = self.fork_head(pr)
+        if fork is not None and self.contracted.get(pr) != h:
+            self.outside_contract(pr, h, fork)  # never an approval path without the contract at this head
         code, o = self.run(["bash", tool("app_approve"), self.repo, str(pr), h])
         if code == 0 and "REFUSE" not in o:
             return "app"
@@ -2551,6 +2694,14 @@ class Train:
         owned = re.search(r"(?m)^app_approve: REFUSE: #%d touches code-owned paths \(([^)]*)\);" % pr, o)
         if owned is None:
             raise Stop("approve", "app_approve.sh refused: " + (o.splitlines() or ["(no output)"])[-1][:200])
+        if fork is not None:
+            # ONE path for a code-owned cross-repository head (decision 0017, (E)): the
+            # contract above held at <h>, class O with it, so the approval the ruleset's
+            # code-owner rule wants is already there -- the owner's, or outside.py's under
+            # his mandate. Never `raise_hold`, the carry or a post of the train's own.
+            self.log(f"#{pr} code-owned ({owned.group(1).strip()}) on a cross-repository head: "
+                     "the class-O approval at the head is the approval")
+            return "owner"
         if not self.mandate:
             raise Stop("approve", f"code-owned ({owned.group(1).strip()}) and no --mandate given: the owner's review")
         raises, held, why = self.raise_hold(pr, h, files)
@@ -2579,7 +2730,9 @@ class Train:
         (the code-owned approval of step 6 and the policy approval of step 5,
         R10-TRAIN-UPGRADE): its body names the paths, the role, the mandate it
         is given under, the verdict and the head; the head is re-checked right
-        before the post, and a refused post is a Stop."""
+        before the post, and a refused post is a Stop. Never on a
+        cross-repository head (`no_fork_post`)."""
+        self.no_fork_post(pr, f"an agent approval for {what} paths")
         body = self._agent_approval_body(h, item, what, paths, under)
         bf = self.state / f"{name}{pr}.md"
         bf.write_text(body)
@@ -2612,6 +2765,9 @@ class Train:
         pol = self.policy_paths(files) if cid else []
         if not pol:
             return None, pol, ""
+        if self.fork_head(pr) is not None:
+            # Policy paths are class R: adoption refused this head, and `policy_gate` stops it.
+            return None, pol, "the head is cross-repository, where the train posts no approval (decision 0017)"
         g = _mandate_gate()
         if any(f.endswith(g.SUFFIX) for f in files):
             # A budget file beside the policy: whether it raises is the owner's
@@ -2695,7 +2851,16 @@ class Train:
         pull request's BRANCH checked out at `origin/<branch>` (-B, so an
         existing local branch is reset), never a detached HEAD:
         `app_push.sh` pushes only a committed tip, and a detached auto-merge
-        sha is not the committed tip of anything (#1943)."""
+        sha is not the committed tip of anything (#1943).
+
+        A cross-repository head (`fork_head`) reads nothing of `origin/<branch>`:
+        a fork names its own branch, and ours of that name is another head. Its
+        worktree is DETACHED at refs/pull/<pr>/head -- so no local branch of
+        ours is reset and no holder is ever freed for it -- and remerge_main.sh
+        is told the head repository the pulls API names (--head-repo), which
+        moves the fork's branch by GitHub's own update-branch. The merge is
+        automatic or the entry parks naming the fork: the train never
+        resolves, and no approval of ours rides on what it pushed."""
         pr, v = int(item["pr"]), item["verdict"]
         if not is_sha(v):
             raise Stop("queue", f"verdict '{v}' is not a 40-hex sha")
@@ -2712,9 +2877,18 @@ class Train:
         item.pop("nr_base", None)
         if not self.contains_main(h) and not self.merges_as_is(item, h):
             self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
-            br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
+            fork = self.fork_head(pr)
+            br = fork[1] if fork else item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
-            if not wt.exists():
+            if fork and not wt.exists():
+                ref = f"refs/remotes/pull/{pr}/head"
+                self.run(["git", "fetch", "-q", "origin", f"+refs/pull/{pr}/head:{ref}"])
+                if not self.ok("git", "worktree", "add", "-q", "--detach", str(wt), ref):
+                    raise Stop("recarry", f"could not make a detached worktree at {wt} from refs/pull/{pr}/head "
+                               f"(the fork head {fork[0]}:{br})", cls=OUTSIDE)
+                if not item.get("worktree"):
+                    self.made_wts.append(wt)
+            elif not wt.exists():
                 self.run(["git", "fetch", "-q", "origin", br])
                 # The worktree must hold the pull request's BRANCH, not a
                 # detached HEAD: remerge_main.sh's app_push pushes only a
@@ -2731,11 +2905,19 @@ class Train:
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
             # The recarry itself takes 5-15 min inside app_push's prepr and logs
             # only on completion; this line makes it visible mid-flight.
-            self.log(f"#{pr} recarry START (branch {br})")
-            code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
+            self.log(f"#{pr} recarry START ({'fork ' + fork[0] + ', ' if fork else ''}branch {br})")
+            code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body),
+                                *(["--head-repo", fork[0]] if fork else [])])
+            if "MERGE CONFLICT" in o and fork:
+                raise Stop("recarry", f"main does not merge into the fork head {fork[0]}:{br} without a resolution; "
+                           "parked: the train never resolves on a fork, its owner merges main and the "
+                           "contributor's reviewer verdicts the new head (decision 0017)", cls=OUTSIDE)
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
             failed = next((ln.strip() for ln in o.splitlines() if ln.startswith("REMERGE FAILED")), None)
+            if failed and fork and " at push" in failed:
+                raise Stop("recarry", f"{failed}; parked: no identity of ours moved the fork's branch, and no "
+                           "personal token is tried without the owner (decision 0017)", cls=OUTSIDE)
             if failed:  # carry f7d2bf7c: git failed before any conflict, so nothing is owed a fixer
                 raise Stop("recarry", f"{failed}; run the train again once git answers")
             if "PUSHED" not in o:
@@ -4465,6 +4647,10 @@ def _self_test() -> int:
     # scorer run on a worktree); the world below answers with one fixed line.
     MEASURED = ["Architecture score: dS +0.4000 IMPROVES"]
     Train._measured_score = lambda self, g, h: MEASURED[0]
+    # Whether a head is a fork's is tools/pr/outside.py's reading of a pulls API
+    # object no fixture below answers: every case here is a branch of ours, and
+    # `_outside_self_test` puts the real reader back for the cross-repository cases.
+    real_fork_head, Train.fork_head = Train.fork_head, lambda self, pr: None
 
     def check(name: str, cond: bool) -> None:
         nonlocal passed, failed
@@ -4485,6 +4671,16 @@ def _self_test() -> int:
             got = budget_fixture(world.get("budgets"), argv, world.get("base", (0, "e" * 40 + "\n"))[1].strip())
             if got is not None:
                 return got
+            if argv[:2] == ["gh", "api"] and len(argv) == 3 and re.fullmatch(r"repos/o/r/pulls/\d+", argv[2]):
+                return world.get("pull", (0, ""))  # `fork_head`'s read: unanswered unless the case says
+            if argv == ["git", "fetch", "-q", "origin", "main"]:  # `outside_is_mains`
+                return world.get("main_fetch", (0, ""))
+            if argv[:2] == ["git", "rev-parse"] and argv[2].startswith("origin/main:"):
+                return 0, "f" * 40
+            if argv[:2] == ["git", "hash-object"]:  # `stale`: the one path this checkout holds another copy of
+                return 0, ("0" if argv[-1] == world.get("stale") else "f") * 40
+            if argv[:3] == ["git", "worktree", "add"] and "wt_add" in world:
+                return world["wt_add"]
             if "record_row.py" in a:  # --bot-prs: the record PR lookup and its guard
                 if "--find-open" in argv:  # a merged record PR is no longer open
                     return (0, "0") if 9 in world.get("bot_merged", ()) else world.get("bot_find", (0, "0"))
@@ -4658,6 +4854,9 @@ def _self_test() -> int:
             lines.append(s)
             timeline.append(("log", s))
 
+        gate_was, reader_was = globals()["_outside_gate"], Train.fork_head
+        if "gate" in world:  # a pulls object is answered: the real reader, over a stubbed outside.py
+            globals()["_outside_gate"], Train.fork_head = (lambda: world["gate"]), real_fork_head
         with tempfile.TemporaryDirectory() as d:
             rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs,
                        run=run_traced, sleep=lambda s: None, log=logline, polls=opts.pop("polls", 2), merge_tries=3,
@@ -4665,6 +4864,7 @@ def _self_test() -> int:
             for key, name in (("approve_body", "approve7.md"), ("carry_body", "carry7.md")):
                 f = Path(d) / name
                 world[key] = f.read_text() if f.exists() else ""
+        globals()["_outside_gate"], Train.fork_head = gate_was, reader_was
         world["timeline"] = timeline
         return rc, lines, calls
 
@@ -5579,6 +5779,212 @@ def _self_test() -> int:
     rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
     check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
           re.search(r'bash "\$_push" --recarry ', rm) is not None and "RECARRY|" in rm)
+    check("remerge_main.sh takes a fork head's repository as --head-repo and moves it by update-branch, never app_push.sh",
+          '"${1:-}" = --head-repo' in rm and "/update-branch" in rm and "expected_head_sha" in rm)
+
+    # DECISION 0017, PART 2: a head that is a fork's. tools/pr/outside.py is part
+    # 1's and owns every fact; OutsideStub is the two calls the train makes of it
+    # (`cross_repository(pull, repo)`, `contract(repo, pr, head, ref)`), so what is
+    # pinned here is the train's side: which calls it makes, when, and what each
+    # answer stops. FORK names are GitHub's, of the contributor's choosing.
+    class OutsideStub:
+        def __init__(self, *answers) -> None:
+            self.answers = list(answers) or [(True, "class F only")]
+            self.asked: list = []
+            self.crossed = 0
+
+        def cross_repository(self, pull, repo):
+            self.crossed += 1
+            if pull["head"].get("boom"):
+                raise RuntimeError("no head repository")
+            return pull["head"]["repo"]["full_name"] != repo
+
+        def contract(self, repo, pr, head, ref):
+            self.asked.append((repo, pr, head, ref))
+            out = self.answers.pop(0) if len(self.answers) > 1 else self.answers[0]
+            if isinstance(out, Exception):
+                raise out
+            return out
+
+    def pull_of(full: str, ref: str, **head) -> "tuple[int, str]":
+        return 0, json.dumps({"head": dict({"ref": ref, "repo": {"full_name": full}}, **head),
+                              "base": {"ref": "main", "repo": {"full_name": "o/r"}}})
+    FORK, FREF = "contributor/r", "fix/issue-12_a.b"
+    THEIRS, OURS = pull_of(FORK, FREF), pull_of("o/r", "fix/x")
+    OWNED = (1, "app_approve: REFUSE: #7 touches code-owned paths (tests/features.py); the owner's review")
+
+    def seat(world: dict, fn, mandate: "str | None" = "4100000001", **opts):
+        """<fn>(train) over fake(world) with the real `fork_head`: (its return, or the Stop it raised;
+        calls; log lines)."""
+        world.setdefault("heads", [H0])
+        world.setdefault("contains", [])
+        world.setdefault("gate", OutsideStub())
+        run, calls = fake(world)
+        lines: list[str] = []
+        gate_was, reader_was = globals()["_outside_gate"], Train.fork_head
+        globals()["_outside_gate"], Train.fork_head = (lambda: world["gate"]), real_fork_head
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                t = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), 1, run=run,
+                          sleep=lambda s: None, log=lines.append, critical=lambda it: False,
+                          outside=lambda it: False, **opts)
+                try:
+                    got = fn(t)
+                except Stop as stop:
+                    got = stop
+        finally:
+            globals()["_outside_gate"], Train.fork_head = gate_was, reader_was
+        return got, calls, lines
+
+    def parked(got, *words: str) -> bool:
+        return isinstance(got, Stop) and got.cls == OUTSIDE and all(w in got.why for w in words)
+    FILES = ["custom_components/x.py"]
+    step6 = lambda t: t.approve(7, H0, dict(item), FILES)
+    app_posts = lambda calls: [i for i, c in enumerate(calls)  # step 6's own call: never the --carry read
+                               if c[:1] == ["bash"] and "app_approve.sh" in c[1] and "--carry" not in c]
+    asked_app = lambda calls: bool(app_posts(calls))
+
+    w = {"pull": THEIRS, "gate": OutsideStub()}
+    rc, lines, calls = go(w)
+    check("fork head: a cross-repository head passes outside.py's whole contract at the landing head, read from "
+          "origin/main, before app_approve.sh is asked, and merges on the App's approval with no review of the train's",
+          rc == 0 and merged(calls) and not approved(calls) and asked_app(calls)
+          and set(w["gate"].asked) == {("o/r", 7, H0, "origin/main")}
+          and any("outside contract holds" in ln and f"{FORK}:{FREF}" in ln for ln in lines)
+          and calls.index(["git", "fetch", "-q", "origin", "main"]) < app_posts(calls)[0])
+    w = {"pull": OURS, "gate": OutsideStub()}
+    rc, lines, calls = go(w)
+    check("fork head null control: a head of ours, read by the same reader, is asked of outside.py and never "
+          "put to the outside contract",
+          rc == 0 and merged(calls) and w["gate"].crossed >= 1 and w["gate"].asked == []
+          and not any("outside contract" in ln for ln in lines))
+    w = {"pull": THEIRS, "gate": OutsideStub((False, "tools/x.py is class R"))}
+    rc, lines, calls = go(w)
+    check("fork head: a contract outside.py refuses parks the entry [OUTSIDE] with outside.py's own reason and the "
+          "fork's name, before app_approve.sh is asked, nothing merged",
+          rc == 1 and not merged(calls) and not approved(calls) and not asked_app(calls)
+          and "[OUTSIDE]" in lines[-1] and "tools/x.py is class R" in lines[-1] and f"{FORK}:{FREF}" in lines[-1])
+    for name, pull in (("unreadable", (1, "gh: HTTP 502")), ("no JSON", (0, "<html>")), ("no head", (0, "{}")),
+                       ("refused by outside.py", pull_of(FORK, FREF, boom=True)),
+                       ("cross-repository with its fork deleted", (0, json.dumps({"head": {"ref": FREF, "repo": None, "boom": False}})))):
+        w = {"pull": pull, "gate": OutsideStub()}
+        if name.startswith("cross"):
+            w["gate"].cross_repository = lambda pull, repo: True
+        got, calls, _ = seat(w, step6)
+        check(f"fork head: a pulls object {name} is a Stop -- an unread head is never taken for ours -- and "
+              "nothing is approved", isinstance(got, Stop) and got.step == "outside" and not asked_app(calls)
+              and not approved(calls))
+    # Carry 23: class O holds paths under tests/ no CODEOWNERS line owns, where app_approve.sh
+    # answers "app". The contract is read again at every step 6, the shortcuts included.
+    w = {"pull": THEIRS, "gate": OutsideStub((True, "class O: the mandate is in force"),
+                                               (False, "class O: mandate 4100000001 was revoked"))}
+    got, calls, _ = seat(w, lambda t: (t.approve(7, H0, dict(item), ["tests/features.py"]),
+                                       t.approve(7, H0, dict(item), ["tests/features.py"])))
+    check("fork head (carry 23): an unowned class-O path, approved 'app' at adoption's head, PARKS at the next "
+          "step 6 once the mandate is revoked -- the contract is read before the already-approved shortcut",
+          parked(got, "mandate 4100000001 was revoked", "owner's review") and len(w["gate"].asked) == 2
+          and len(app_posts(calls)) == 1)
+    w = {"pull": OURS}
+    got, calls, _ = seat(w, lambda t: (t.approve(7, H0, dict(item), FILES), t.approve(7, H0, dict(item), FILES)))
+    check("... null control: on a head of ours the second step 6 is the shortcut, and nothing is read for it",
+          got == ("app", "already, at this head, by this train"))
+    w = {"pull": THEIRS, "gate": OutsideStub(RuntimeError("the reviews could not be read"))}
+    got, calls, _ = seat(w, step6)
+    check("fork head: a contract that cannot be read parks, fail closed, nothing approved",
+          parked(got, "the reviews could not be read") and not asked_app(calls))
+    for name, world in (("a checkout whose outside.py is not origin/main's blob", {"stale": OUTSIDE_PATH}),
+                        ("a checkout whose allowlist is not origin/main's blob", {"stale": OUTSIDE_MAIN_COPIES[2]}),
+                        ("an origin/main that cannot be fetched", {"main_fetch": (128, "fatal: 502")})):
+        w = dict(world, pull=THEIRS, gate=OutsideStub())
+        got, calls, _ = seat(w, step6)
+        check(f"fork head (carry 23): {name} stops before the contract is asked of anything -- main's copy or none",
+              isinstance(got, Stop) and got.step == "outside" and w["gate"].asked == [] and not asked_app(calls))
+    # (E): a code-owned cross-repository head takes ONE path, and no writer of the train's posts there.
+    w = {"pull": THEIRS, "approve": OWNED, "gate": OutsideStub((True, "class O: the owner's review at the head"))}
+    got, calls, lines = seat(w, lambda t: t.approve(7, H0, dict(item), ["tests/features.py", "tests/structure_budgets.json"]))
+    check("fork head: code-owned with class O standing returns 'owner' -- no post, no budget read (never raise_hold), "
+          "no carry", got == "owner" and not approved(calls)
+          and not any(c[:2] in (["git", "ls-tree"], ["git", "merge-base"]) for c in calls))
+    w = {"pull": THEIRS, "approve": OWNED, "gate": OutsideStub((False, "class O: no approval at the head"))}
+    got, calls, _ = seat(w, step6)
+    check("fork head: code-owned with class O failing parks naming the owner's review, nothing posted",
+          parked(got, "class O: no approval at the head", "owner's review") and not approved(calls))
+    w = {"pull": OURS, "approve": OWNED}
+    got, calls, _ = seat(w, step6)
+    check("... null control: the same code-owned refusal on a head of ours still posts the mandate approval",
+          got == "mandate" and approved(calls))
+    posts = (("_post_agent_approval as _approve calls it",
+              lambda t: t._post_agent_approval(7, H0, dict(item), "code-owned", ["tests/features.py"], t.mandate, "approve")),
+             ("_post_agent_approval as policy_approve calls it",
+              lambda t: t._post_agent_approval(7, H0, dict(item), "policy", ["CLAUDE.md"], "mandate comment 4100000001", "policy")),
+             ("_post_carry", lambda t: t._post_carry(7, H0, "Outside read: " + H0 + "\n")))
+    for name, post in posts:
+        got, calls, _ = seat({"pull": THEIRS}, post)
+        check(f"fork head: {name} Stops [OUTSIDE] on a cross-repository head with no --approve call",
+              parked(got, "never posted on a cross-repository head", FORK) and not approved(calls))
+        got, calls, _ = seat({"pull": OURS}, post)
+        check(f"... null control: {name} on a head of ours still posts",
+              not isinstance(got, Stop) and sum(c[:3] == ["gh", "pr", "review"] and "--approve" in c for c in calls) == 1)
+    due = lambda t: t.policy_approval_due(7, H0, ["CLAUDE.md"])
+    got, calls, _ = seat({"pull": THEIRS}, due)
+    check("fork head: step 5 is never due on a cross-repository head (policy paths are class R), and says so",
+          got[0] is None and got[1] == ["CLAUDE.md"] and "cross-repository" in got[2] and not approved(calls))
+    got, calls, _ = seat({"pull": OURS}, due)
+    check("... null control: on a head of ours the same read goes on to the mandate", "cross-repository" not in got[2])
+    carried_item = dict(item, carried_from=H1, carried_chain=[H1])
+    got, calls, _ = seat({"pull": THEIRS}, lambda t: (t._carry_owner_approval(7, H0, carried_item, FILES),
+                                                      carried_item.get("carry_refused")), approval_carry=True)
+    check("fork head: --approval-carry carries nothing on a cross-repository head, its reason left for the park line",
+          got[0] is None and "cross-repository" in got[1] and not approved(calls))
+    # The main merge: worktree from the pull ref, push target from the pulls API, park on conflict.
+    w = {"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "heads": [H0, H1],
+         "remerge": f"RECARRY: fork head {FORK}:{FREF} merged with main\nPUSHED {H1} to {FORK}:{FREF}"}
+    rc, lines, calls = go(w)
+    rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
+    check("fork head recarry: the worktree is DETACHED at refs/pull/<pr>/head, nothing of origin/<branch> is fetched "
+          "or reset, and remerge_main.sh gets the pulls API's branch and --head-repo; merged at the new head",
+          rc == 0 and ["git", "fetch", "-q", "origin", "+refs/pull/7/head:refs/remotes/pull/7/head"] in calls
+          and ["git", "worktree", "add", "-q", "--detach", "/nonexistent-wt", "refs/remotes/pull/7/head"] in calls
+          and not any("-B" in c or f"origin/{FREF}" in c or "origin/fix/x" in c for c in calls)
+          and rm_argv[-5:] == ["/nonexistent-wt", FREF, rm_argv[-3], "--head-repo", FORK]
+          and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
+          and f"#7 recarry START (fork {FORK}, branch {FREF})" in lines
+          and w["gate"].asked[-1] == ("o/r", 7, H1, "origin/main"))
+    rc, lines, calls = go({"pull": OURS, "gate": OutsideStub(), "contains": [False], "heads": [H0, H1]})
+    rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
+    check("... null control: a head of ours is recarried from origin/<branch> on -B, with no --head-repo",
+          rc == 0 and ["git", "worktree", "add", "-q", "-B", "fix/x", "/nonexistent-wt", "origin/fix/x"] in calls
+          and "--head-repo" not in rm_argv and not any("refs/pull/7/head" in " ".join(c) for c in calls))
+    EVIL = 'a";$(id)'
+    rc, lines, calls = go({"pull": pull_of(FORK, EVIL), "gate": OutsideStub(), "contains": [False], "heads": [H0, H1]})
+    rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
+    check("fork head recarry: a branch name of the contributor's choosing travels as ONE argv element, verbatim, "
+          "and into no git ref or refspec", EVIL in rm_argv and not any(EVIL in x for c in calls if c[0] == "git" for x in c))
+    for out, words in (("MERGE CONFLICT 7", ("does not merge into the fork head", "never resolves")),
+                       (f"REMERGE FAILED 7 at push (fork {FORK}:{FREF}): GitHub refused update-branch",
+                        ("at push", "no personal token"))):
+        rc, lines, calls = go({"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "remerge": out})
+        check(f"fork head recarry: `{out.split(' (')[0]}` parks [OUTSIDE] naming the fork; nothing merged or approved",
+              rc == 1 and "[OUTSIDE]" in lines[-1] and FORK in lines[-1] and all(x in lines[-1] for x in words)
+              and not merged(calls) and not approved(calls))
+    rc, lines, calls = go({"pull": OURS, "gate": OutsideStub(), "contains": [False], "remerge": "MERGE CONFLICT 7"})
+    check("... null control: a conflict on a head of ours is the fixer's, as before, and carries no [OUTSIDE]",
+          rc == 1 and "[OUTSIDE]" not in lines[-1] and "that is a fixer's, and a re-review" in lines[-1])
+    rc, lines, calls = go({"pull": THEIRS, "gate": OutsideStub(), "contains": [False], "wt_add": (128, "fatal")})
+    check("fork head recarry: a worktree that cannot be made at the pull ref parks [OUTSIDE]; no holder is freed for it",
+          rc == 1 and "[OUTSIDE]" in lines[-1] and "refs/pull/7/head" in lines[-1]
+          and not any("remerge_main.sh" in " ".join(c) or "--detach" in c and c[1] == "checkout" for c in calls))
+    # Carries 16 and 26: check runs are keyed by commit, so a second pull request at the same head,
+    # open or closed, leaves runs of the same names there. Which the platform cross-check counts:
+    def rollup(*conclusions: str) -> dict:
+        nodes = [{"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": c, "isRequired": True}
+                 for c in conclusions]
+        return {"data": {"repository": {"pullRequest": {"commits": {"nodes": [{"commit": {
+            "oid": H0, "statusCheckRollup": {"contexts": {"pageInfo": {"hasNextPage": False}, "nodes": nodes}}}}]}}}}}
+    check("two pull requests at one head (carries 16, 26): platform_gate counts EVERY required gate run GitHub lists "
+          "at the head, so a green run another pull request left there cannot hide this one's red",
+          platform_gate(rollup("FAILURE", "SUCCESS"), H0)[0] == "red" and platform_gate(rollup("SUCCESS", "FAILURE"), H0)[0] == "red")
+    check("... null control: two passing runs of the name read green", platform_gate(rollup("SUCCESS", "SUCCESS"), H0)[0] == "green")
     # End-to-end absorbed-branch recarry against a REAL fixture repo (#1943):
     # the train's `git worktree add` runs for real, the remerge stub performs
     # remerge_main.sh's actual merge on that worktree, and then applies
