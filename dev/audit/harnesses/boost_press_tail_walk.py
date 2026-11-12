@@ -94,8 +94,9 @@ def walk(out: dict) -> tuple[float, float]:
 
 
 def comparable(out: dict) -> dict:
+    """The arm's summary without its name, which differs between any two arms."""
     return {k: ([s.as_dict() for s in v] if k in ("tagged", "untagged") else v)
-            for k, v in out.items()}
+            for k, v in out.items() if k != "arm"}
 
 
 def run(policy: str) -> dict:
