@@ -1,0 +1,2 @@
+carry_audit self-test: 417 checks, 0 failed
+rc=0

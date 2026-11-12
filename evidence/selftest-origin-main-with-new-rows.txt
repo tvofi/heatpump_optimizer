@@ -1,0 +1,3 @@
+FAIL landed: an own-group status line whose group is on the round's roster branch only lands nothing
+carry_audit self-test: 449 checks, 1 failed
+rc=1
