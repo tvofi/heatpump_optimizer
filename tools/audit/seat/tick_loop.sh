@@ -54,7 +54,15 @@
 # --interval defaults to 300 (the five-minute GitHub poll). Run it detached
 # (daemonize.py): a background task dies at two hours. HPO_TICK_RELAY and
 # HPO_TICK_CMD replace the relay script and the tick command (the self-test's stubs).
+# --self-test re-runs itself before anything else runs, under env -i with no caller variable carried
+# at all: PATH a literal of system directories and this bash's own, HOME and TMPDIR fresh (below).
+# So nothing a caller exports, nor anything computed from it, reaches a row, and no list of names
+# has to keep up with what a row reads. Its rows run from --self-test-rows, the internal entry.
+case ${1:-} in --self-test) exec /usr/bin/env -i PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${BASH%/*}" "$BASH" "$0" --self-test-rows "${@:2}" ;; esac  # mut:selftest-envi
 set -uo pipefail
+case ${1:-} in --self-test-rows)  # the rows' HOME and TMPDIR: fresh, the caller's never
+  SELFTEST_TMP=$(mktemp -d) || exit 1; export HOME=$SELFTEST_TMP/home TMPDIR=$SELFTEST_TMP/tmp
+  mkdir "$HOME" "$TMPDIR" || exit 1 ;; esac
 HERE=$(cd "$(dirname -- "$0")" && pwd)
 # The seat bin dir (seat_venv.sh --install-shims; $HPO_STATE_DIR/bin) goes first on the
 # PATH every child inherits -- orchestrator_tick.py, cloud_relay.sh, the sweep's train --
@@ -188,44 +196,26 @@ tick_pass() { # <out> [tick args...]: one pass; prints the banner
   [ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"
 }
 
-# The self-test's rows inherit these names and no others: each is set by selftest_allowlisted
-# below, from the caller's value (PATH, TMPDIR else /tmp, the nesting flag, offline_spy.py's two) or
-# from scratch (HOME). A name nobody listed -- a stub's TICK_RC, heartbeat.sh's HPO_HEARTBEAT_REMOTE,
-# one a later row starts reading -- cannot reach a row, so no drop list has to name it.
-SELFTEST_ENV=(PATH HOME TMPDIR HPO_TICK_SELFTEST_NESTED SPY_LOG SPY_REAL_GIT)
-
-selftest_allowlisted() { # --self-test: re-run it under env -i, the allowlist alone carried across
-  local h rc v keep=()
-  for v in HPO_TICK_SELFTEST_NESTED SPY_LOG SPY_REAL_GIT; do [ -z "${!v+x}" ] || keep+=("$v=${!v}"); done
-  h=$(mktemp -d) || { echo "tick_loop self-test: no temporary directory"; return 1; }
-  env -i PATH="$PATH" HOME="$h" TMPDIR="${TMPDIR:-/tmp}" ${keep[@]+"${keep[@]}"} "$BASH" "$0" --self-test-allowlisted  # mut:selftest-envi
-  rc=$?; rm -rf "$h"; return $rc
-}
-
-selftest_env_check() { # 0: every exported name is on the allowlist (or bash's own PWD, OLDPWD, SHLVL, _)
-  local v
-  for v in $(compgen -e); do
-    case " ${SELFTEST_ENV[*]} PWD OLDPWD SHLVL _ " in *" $v "*) ;; *)  # mut:selftest-allowlist
-      echo "tick_loop self-test: REFUSED, $v is in its environment and not on the allowlist (run --self-test)"; return 1 ;; esac
-  done
-}
-
-tick_loop_self_test() (
-  local t f=0 n=0 out
+tick_loop_self_test() ( # [--nested]: the rows; --nested (a row's own run) skips the block that nests
+  local t f=0 n=0 out nested=
+  case ${1:-} in '') ;; --nested) nested=1 ;; *) echo "tick_loop self-test: unknown argument $1"; return 2 ;; esac
   # A row's verdict is its reader's. Under pipefail a `grep -q` that leaves at its match can kill
   # the printf feeding it (141), and the row reads a match as none: prepr.sh's PIPE_GREP_Q class,
   # seen here under load as one stray FAIL in a different row each time.
   set +o pipefail  # mut:selftest-pipefail
   t=$(mktemp -d) || { echo "tick_loop self-test: no temporary directory"; return 1; }
   ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
+  # A nested run prints what its rows start from, and at its end what each stub row saw (the poison
+  # row below reads both for a caller's value).
+  [ -z "$nested" ] || { env | sed 's/^/  env: /'; echo "  argv: $0 $*"; }
   # 2 MB after the match makes the SIGPIPE certain: with pipefail on, this row reads its match as none.
   out=$(head -c 2097152 /dev/zero | tr '\0' x)
   printf 'MATCH\n%s\n' "$out" | grep -q '^MATCH$'
   ck "a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match" $?
-  printf '#!/bin/bash\necho "relay $*" >> "%s/order"; exit "${RELAY_RC:-0}"\n' "$t" > "$t/relay.sh"
-  printf '#!/bin/bash\necho "tick $*" >> "%s/order"; echo BOARD; exit "${TICK_RC:-0}"\n' "$t" > "$t/tick.sh"
+  printf '#!/bin/bash\n{ env; echo "argv: $0 $*"; } >> "%s/envdump"; echo "relay $*" >> "%s/order"; exit "${RELAY_RC:-0}"\n' "$t" "$t" > "$t/relay.sh"
+  printf '#!/bin/bash\n{ env; echo "argv: $0 $*"; } >> "%s/envdump"; echo "tick $*" >> "%s/order"; echo BOARD; exit "${TICK_RC:-0}"\n' "$t" "$t" > "$t/tick.sh"
   chmod +x "$t/tick.sh"
-  printf '#!/bin/bash\necho "hb $*" >> "%s/hb"; exit "${HB_RC:-0}"\n' "$t" > "$t/hb.sh"
+  printf '#!/bin/bash\n{ env; echo "argv: $0 $*"; } >> "%s/envdump"; echo "hb $*" >> "%s/hb"; exit "${HB_RC:-0}"\n' "$t" "$t" > "$t/hb.sh"
   export HPO_TICK_HEARTBEAT=$t/hb.sh
   # No row reads or moves the caller's checkout: an extra TICK-STALE from a branch behind
   # origin/main, a restart's checkout of a detached one. Before the first row, the repository a
@@ -403,7 +393,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
   # TICK-GH rows once ran against the real checkout: a branch printed an extra TICK-STALE, a
   # detached head was moved by the restart arm.) The nested run is the whole self-test, so it
   # skips this block.
-  if [ -z "${HPO_TICK_SELFTEST_NESTED:-}" ]; then
+  if [ -z "$nested" ]; then
     mkdir -p "$t/n/tools/audit/seat" "$t/n/tests"
     cp "$HERE/tick_loop.sh" "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$t/n/tools/audit/seat/"
     cp "$HERE/../../../tests/throwaway_git.sh" "$t/n/tests/"
@@ -412,12 +402,11 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     throwaway_git_clone -q "$t/n.git" "$t/nb"
     printf '# ahead\n' >> "$t/n/tools/audit/seat/tick_loop.sh"
     git -C "$t/n" commit -qam ahead && git -C "$t/n.git" fetch -q "$t/n" main:main
-    for c in nd nh ne; do cp -R "$t/nb" "$t/$c"; git -C "$t/$c" checkout -q --detach; done
+    for c in nd nh; do cp -R "$t/nb" "$t/$c"; git -C "$t/$c" checkout -q --detach; done
     throwaway_git_clone -q "$t/n.git" "$t/n0"
-    nest() { # <checkout> [VAR=value...]: the clone's own self-test, none of this run's overrides inherited
+    nest() { # <checkout> [VAR=value...]: the clone's own self-test, those set in its caller's environment
       local c=$1 h; shift; h=$(git -C "$c" rev-parse HEAD)
-      out=$(env -u HPO_TICK_CODE_DIR -u HPO_TICK_HEARTBEAT -u GIT_CEILING_DIRECTORIES \
-        HPO_TICK_SELFTEST_NESTED=1 HPO_STATE_DIR="$t/state" "$@" bash "$c/tools/audit/seat/tick_loop.sh" --self-test 2>&1)
+      out=$(/usr/bin/env "$@" "$BASH" "$c/tools/audit/seat/tick_loop.sh" --self-test --nested 2>&1)
       printf '%s\n' "$out" | sed -n 's/^  FAIL /    nested FAIL: /p'  # which nested row, when one fails
       printf '%s\n' "$out" | grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' && [ "$(git -C "$c" rev-parse HEAD)" = "$h" ]; }
     nest "$t/nb"
@@ -426,29 +415,40 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     ck "the self-test run from a detached checkout behind origin/main passes and does not move its HEAD" $?
     nest "$t/nh" GIT_DIR="$t/nh/.git" GIT_WORK_TREE="$t/nh"
     ck "the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD" $?
-    # Every name round 2 saw reach a row, set in the caller's environment, and one no script reads.
-    nest "$t/ne" HPO_TICK_CODE_DIR="$t/ne" HPO_TICK_RESTARTED=1 HPO_TICK_STALE_BOUND=0 HPO_TICK_RELAY_WAIT=0 \
-      HPO_TICK_SWEEP_EVERY=0 HPO_TICK_SWEEP_CMD=false HPO_SWEEP_MANDATE=x HPO_TICK_RELAY="$t/absent.sh" HPO_TICK_CMD=false \
-      HPO_TICK_HEARTBEAT="$t/absent.sh" HPO_HEARTBEAT_REMOTE=nope TICK_RC=1 RELAY_RC=1 HB_RC=1 SWEEP_RC=2 SWEEP_WORD=X \
-      RELAY_SLEEP=10 HPO_TICK_UNLISTED=1
-    ck "the self-test run with every loop variable, the stubs' controls, HPO_HEARTBEAT_REMOTE and an unlisted name set in the caller's environment, HPO_TICK_CODE_DIR naming a detached checkout behind origin/main, passes and does not move its HEAD" $?
-    # The allowlist is checked, not trusted: the rows' own entry point refuses a name off it.
-    out=$(env -i PATH="$PATH" HOME="$t" HPO_TICK_SELFTEST_NESTED=1 HPO_TICK_UNLISTED=1 "$BASH" "$0" --self-test-allowlisted 2>&1)
-    [ $? != 0 ] && [ "$out" = "tick_loop self-test: REFUSED, HPO_TICK_UNLISTED is in its environment and not on the allowlist (run --self-test)" ]
-    ck "the rows' entry point run with a name off the allowlist refuses before any row, naming it" $?
-    # A caller whose HPO_HEARTBEAT_REMOTE is a URL: the heartbeat rows push to their scratch bare
-    # remote only. offline_spy.py counts every git call that can reach a remote by its target URL.
-    printf '#!/bin/bash\nHPO_TICK_SELFTEST_NESTED=1 HPO_HEARTBEAT_REMOTE=https://127.0.0.1:9/hb.git exec bash "%s/tick_loop.sh" --self-test\n' "$HERE" > "$t/spied.sh"
+    # The poison row. Every name this script and the helpers its rows source or run read is derived,
+    # never listed: a $-reference in a shell file, an environ/getenv key in a Python one. Each is
+    # exported in the caller to a URL-shaped sentinel carrying this run's nonce (PATH's keeps two
+    # system directories behind it, so a leaked PATH still runs), and the self-test runs nested under
+    # offline_spy.py. No sentinel may reach its rows' environment, arguments or output.
+    names=$({ grep -ohE '\$\{?[A-Za-z_][A-Za-z0-9_]*' "$HERE/tick_loop.sh" "$HERE/heartbeat.sh" "$HERE/../../../tests/throwaway_git.sh" | sed 's/^\$[{]*//'
+      grep -ohE "(environ(\.get)?[[(]|getenv\()[\"'][A-Za-z_][A-Za-z0-9_]*" "$HERE/ref_privacy.py" "$HERE/offline_spy.py" | sed -E "s/.*[\"']//"; } | sort -u)
+    nonce=hpo-poison-$$-$RANDOM$RANDOM
+    { echo '#!/bin/bash'; printf /usr/bin/env
+      for v in $names; do
+        if [ "$v" = PATH ]; then printf ' %q' "PATH=https://127.0.0.1:9/$nonce-PATH.git:/usr/bin:/bin"
+        else printf ' %q' "$v=https://127.0.0.1:9/$nonce-$v.git"; fi
+      done
+      printf ' %q' "$BASH" "$HERE/tick_loop.sh"; printf ' --self-test --nested > %q 2>&1; rc=$?\n' "$t/poison.out"
+      printf 'tail -n 1 %q; exit $rc\n' "$t/poison.out"; } > "$t/poisoned.sh"
+    out=$(python3 -I "$HERE/offline_spy.py" "$t/poisoned.sh" 2>/dev/null)
+    grep -m 3 -- "$nonce" "$t/poison.out" 2>/dev/null | cut -c 1-200 | sed 's/^/    leaked: /'
+    [ -n "$names" ] && printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/poisoned.sh rc=0 network=0 remote_git=0 .* [|] tick_loop self-test: [1-9][0-9]* checks, 0 failed$" \
+      && grep -q '^  env: PATH=' "$t/poison.out" && grep -q '^  row env: PATH=' "$t/poison.out" && ! grep -q -- "$nonce" "$t/poison.out"
+    ck "the poison row: the $(printf '%s\n' $names | grep -c .) names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call" $?
+    # The rows themselves under offline_spy.py, which counts every git call that can reach a remote
+    # by its target URL; its SPY_REAL_GIT is the one it finds on this run's own PATH.
+    printf '#!/bin/bash\nexec "%s" "%s/tick_loop.sh" --self-test-rows --nested\n' "$BASH" "$HERE" > "$t/spied.sh"
     printf '#!/bin/bash\ngit ls-remote https://127.0.0.1:9/hb.git >/dev/null 2>&1; exit 0\n' > "$t/spyctl.sh"
     out=$(python3 -I "$HERE/offline_spy.py" "$t/spied.sh" 2>/dev/null)
     printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/spied.sh rc=0 network=0 remote_git=0 git=[1-9][0-9]* .* offline [|] tick_loop self-test: [1-9][0-9]* checks, 0 failed$"
-    ck "the self-test run with HPO_HEARTBEAT_REMOTE a URL in the caller's environment passes under offline_spy.py: no network call, no remote git call, its git calls seen" $?
+    ck "the self-test's rows pass under offline_spy.py: no network call, no remote git call, their git calls seen" $?
     out=$(python3 -I "$HERE/offline_spy.py" "$t/spyctl.sh" 2>/dev/null)
     printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/spyctl.sh rc=0 network=0 remote_git=1 git=1 .* REFUSED"
     ck "null control: offline_spy.py counts one git call at that URL as a remote git call" $?
     [ "$(git -C "$t/n0" rev-list --count HEAD..origin/main)" = 0 ] && nest "$t/n0"
     ck "null control: a branch checkout at origin/main (behind 0) passes and stays put" $?
   fi
+  [ -z "$nested" ] || sed 's/^/  row env: /' "$t/envdump" 2>/dev/null
   rm -rf "$t"
   echo "tick_loop self-test: $n checks, $f failed"
   [ "$f" = 0 ]
@@ -458,8 +458,8 @@ ARGV=("$@")  # a restart execs the new loop with these
 once=; sweep=; every=300; out=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/tick.txt
 while [ $# -gt 0 ]; do
   case $1 in
-    --self-test) selftest_allowlisted; exit ;;
-    --self-test-allowlisted) selftest_env_check && tick_loop_self_test; exit ;;
+    --self-test-rows) shift; tick_loop_self_test "$@"; rc=$?; rm -rf "$SELFTEST_TMP"; exit $rc ;;
+    --self-test) shift; tick_loop_self_test "$@"; exit ;;  # reached only with the re-exec above taken out
     --once) once=1; shift ;;
     --sweep) sweep=1; shift ;;
     --interval) every=${2:-}; shift 2 || shift ;;
