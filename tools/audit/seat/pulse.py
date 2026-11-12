@@ -41,9 +41,10 @@ is what makes it usable after the host is gone. Three arms:
               older than --state-min (default 45 min): the beat regenerates on
               every main move, so a main that keeps moving cannot hide it.
 
-THE STANDING SEATS (decision 0015). The four standing seats the orchestrator
-keeps alive -- tick, merge, dispatch, roster, each a contract under
-dev/governance/roles/standing-*.md -- are judged the same way. Each origin arm
+THE STANDING SEATS (decision 0015). The two standing seats the orchestrator
+keeps alive -- dispatch and merge, each a contract under
+dev/governance/roles/standing-*.md -- are judged the same way. Tick and roster
+are beat rows that `beatd status` judges (tools/audit/seat/beatd.py). Each origin arm
 names the seat that consumes its input: opener -> dispatch, verdict -> merge
 for a merge verdict and dispatch for any other, state-beat -> merge. A seat
 whose input is session-local is judged on its queue file, one arm per
@@ -108,10 +109,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 ARMS = ("opener", "verdict", "state-beat")
 #: The standing seats and their cadences in minutes: the longest a queued input
-#: may wait before the seat counts as stopped. tick runs in windows of about
-#: 70 min; merge matches the verdict arm's default bound; dispatch and roster
-#: act within a sweep, so one hour is two missed sweeps.
-STANDING = {"tick": 70, "merge": 120, "dispatch": 60, "roster": 60}
+#: may wait before the seat counts as stopped. merge matches the verdict arm's
+#: default bound; dispatch acts within a sweep, so one hour is two missed sweeps.
+STANDING = {"merge": 120, "dispatch": 60}
+#: Retired into beat rows of beatd.jobs.json; their standing-*.md are stubs.
+RETIRED = ("tick", "roster")
 ARM_SEAT = {"opener": "dispatch", "state-beat": "merge"}
 NS = "refs/hpo-pulse"
 VERDICT_RE = re.compile(r"^verdict: #(\d+) Fix review: (\S+) ([0-9a-f]{7,40})\b")
@@ -582,44 +584,50 @@ def self_test() -> int:
     check("an ok arm names no seat", not r["opener"][1].startswith("seat "))
     roles = HERE.parents[2] / "dev/governance/roles"
     check("every standing seat pulse judges is a tracked contract, and every contract a seat",
-          sorted(p.name for p in roles.glob("standing-*.md")) == sorted(f"standing-{s}.md" for s in STANDING))
+          sorted(p.name for p in roles.glob("standing-*.md")) == sorted(f"standing-{s}.md" for s in (*STANDING, *RETIRED))
+          and not set(STANDING) & set(RETIRED))
     # Null control: an idle seat with nothing owed is not STOPPED, however long idle.
-    idle = snap(seat_queues={"roster": {"entries": []}, "tick": {"entries": []}})
+    idle = snap(seat_queues={"dispatch": {"entries": []}, "merge": {"entries": []}})
     wi, di = words(idle), {a: d for a, _, d in judge(idle, B)}
     check("null control: idle standing seats with nothing queued are ok, and add one arm each",
-          wi["seat-roster"] == wi["seat-tick"] == "ok" and len(wi) == len(ARMS) + 2
-          and di["seat-roster"] == "seat roster: idle, nothing queued")
-    late = snap(seat_queues={"roster": {"entries": [now - 61 * 60, now - 5 * 60]},
-                             "tick": {"entries": [now - 69 * 60]}})
+          wi["seat-dispatch"] == wi["seat-merge"] == "ok" and len(wi) == len(ARMS) + 2
+          and di["seat-dispatch"] == "seat dispatch: idle, nothing queued")
+    late = snap(seat_queues={"dispatch": {"entries": [now - 61 * 60, now - 5 * 60]},
+                             "merge": {"entries": [now - 119 * 60]}})
     rl = {a: (w, d) for a, w, d in judge(late, B)}
     check("a queued input older than the seat's cadence is STOPPED, naming the seat",
-          rl["seat-roster"][0] == "STOPPED"
-          and rl["seat-roster"][1].startswith("seat roster: 1 queued input(s) past its 60 min cadence, oldest 61 min"))
-    check("a queued input under the seat's cadence is ok", rl["seat-tick"][0] == "ok")
+          rl["seat-dispatch"][0] == "STOPPED"
+          and rl["seat-dispatch"][1].startswith("seat dispatch: 1 queued input(s) past its 60 min cadence, oldest 61 min"))
+    check("a queued input under the seat's cadence is ok", rl["seat-merge"][0] == "ok")
     check("perturbation: a 90 min override reads the 61 min input ok",
-          words(snap(seat_queues={"roster": {"entries": [now - 61 * 60], "cadence_min": 90}}))["seat-roster"] == "ok")
+          words(snap(seat_queues={"dispatch": {"entries": [now - 61 * 60], "cadence_min": 90}}))["seat-dispatch"] == "ok")
     check("an unread queue is UNREADABLE, never ok",
           words(snap(seat_queues={"merge": {"entries": None, "cadence_min": None}}))["seat-merge"] == "UNREADABLE")
     check("a queued stamp ahead of the clock is never aged",
-          words(snap(seat_queues={"tick": {"entries": [now + 600]}}))["seat-tick"] == "ok")
+          words(snap(seat_queues={"merge": {"entries": [now + 600]}}))["seat-merge"] == "ok")
     with tempfile.TemporaryDirectory() as td:
-        qf, mf = Path(td) / "roster.q", Path(td) / "gone.q"
+        qf, mf = Path(td) / "dispatch.q", Path(td) / "gone.q"
         qf.write_text(f"{now - 61 * 60} append-carry R10-X\n\n")
-        seat, q = read_queue(f"roster={qf}")
+        seat, q = read_queue(f"dispatch={qf}")
         check("read_queue reads `<epoch> <text>` lines and skips blanks",
-              seat == "roster" and q == {"entries": [now - 61 * 60], "cadence_min": None})
+              seat == "dispatch" and q == {"entries": [now - 61 * 60], "cadence_min": None})
         check("read_queue takes a :MIN override and reads a missing file as unreadable",
-              read_queue(f"tick={qf}:90")[1]["cadence_min"] == 90.0
-              and read_queue(f"tick={mf}")[1]["entries"] is None)
+              read_queue(f"merge={qf}:90")[1]["cadence_min"] == 90.0
+              and read_queue(f"merge={mf}")[1]["entries"] is None)
         f = Path(td) / "late.json"
         f.write_text(json.dumps(late))
         out = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f)], capture_output=True, text=True)
         check("--snapshot judges the seat queues: exit 1, the STOPPED line names the seat, five arms",
-              out.returncode == 1 and "PULSE seat-roster STOPPED seat roster:" in out.stdout
+              out.returncode == 1 and "PULSE seat-dispatch STOPPED seat dispatch:" in out.stdout
               and "pulse: 5 arms, 1 stopped" in out.stdout)
         bad = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f), "--seat-queue", f"janitor={qf}"],
                              capture_output=True, text=True)
         check("--seat-queue refuses a seat no contract defines", bad.returncode == 2 and "janitor" in bad.stderr)
+        for gone in RETIRED:
+            ret = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f), "--seat-queue", f"{gone}={qf}"],
+                                 capture_output=True, text=True)
+            check(f"--seat-queue refuses the retired seat {gone}, a beat row now",
+                  ret.returncode == 2 and "retired into beat rows" in ret.stderr)
     # WHO BEAT: the per-role alive file alone never makes a seat live.
     def alive(role_min=1, ids=None, mins=None):
         return {"seat_alives": {"merge": {"role_t": now - role_min * 60, "cadence_min": mins,
@@ -724,7 +732,7 @@ def main(argv: list[str]) -> int:
     for flag, specs in (("--seat-queue", a.seat_queue), ("--seat-alive", a.seat_alive)):
         bad = [s for s in specs if s.partition("=")[0] not in STANDING or not s.partition("=")[2]]
         if bad:
-            ap.error(f"{flag} takes SEAT=FILE[:MIN], SEAT one of {', '.join(STANDING)}: {bad}")
+            ap.error(f"{flag} takes SEAT=FILE[:MIN], SEAT one of {', '.join(STANDING)} (tick and roster are retired into beat rows): {bad}")
     if a.self_test:
         return self_test()
     b = bounds_s(a.opener_h, a.verdict_h, a.state_min)

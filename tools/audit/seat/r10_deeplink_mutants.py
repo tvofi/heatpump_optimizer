@@ -124,8 +124,8 @@ P = "/config/integrations/integration/heatpump_optimizer"
 # A navigation in a pressed act branch: the Health page's Show, which R10-UX-HEALTH
 # converted from the bare `navigateTo(SETTINGS_PATH)` this anchor first named.
 NAV = '        openHaLink(host, "entities", null);\n        return;\n      } else if (act === "diagnostics")'
-DIAG = '<button type="button" class="adv-act" data-act="diagnostics">'
-LOOP = '  for (const btn of root.querySelectorAll(".adv-act")) {\n    btn.addEventListener("click", async (ev) => {'
+DIAG = '<button type="button" class="fact-act" data-act="diagnostics">'
+LOOP = '  for (const btn of root.querySelectorAll(".fact-act")) {\n    btn.addEventListener("click", async (ev) => {'
 DISMISS = "        dismissFeedback();\n        host._render();\n        return;"
 STOP = "      stop(ev);\n      const act = btn.dataset.act;"
 EVENT = 'host.dispatchEvent(new CustomEvent(%s, { detail: { entityId: "sensor.x" }, bubbles: true, composed: true }));'
@@ -274,7 +274,7 @@ RD7 = after_nav('try { const a = document.createElement("a"); a.setAttribute(["h
 AL1 = kd('if (ev.ctrlKey) { try { globalThis.history.back(); } catch (_e) {} }')
 KD1 = kd('if (key === "Delete") { try { globalThis.history.back(); } catch (_e) {} }')
 FT1 = card(ESCAPE, '      try { globalThis.history.back(); } catch (_e) {}\n' + ESCAPE)
-ON1 = card(LOOP, '  for (const b of root.querySelectorAll(".adv-act")) b.onkeydown = () => null;\n' + LOOP)
+ON1 = card(LOOP, '  for (const b of root.querySelectorAll(".fact-act")) b.onkeydown = () => null;\n' + LOOP)
 RV1 = kd('try { globalThis.history["back"](); } catch (_e) {}')
 X14 = test('    [document.head, document.body, c, ...made].forEach(walk);',
            '    [c, ...made].forEach(walk);')
@@ -375,7 +375,7 @@ PLANTS = {
     "N5_open_on_dismiss": card(DISMISS, '        globalThis.open("/config/entities", "_self");\n        return;'),
     "N1t_replaceState_in_try": after_nav('try { globalThis.history.replaceState(null, "", "/config/entities"); globalThis.dispatchEvent(new CustomEvent("location-changed")); } catch (_e) { /* no router */ }'),
     "N3t_globalThis_open_in_try": after_nav('try { globalThis.open("/config/entities", "_self"); } catch (_e) { /* no window */ }'),
-    "H9t_innerHTML_template_in_try": card(LOOP, '  try { const u = "%s"; const d = root.querySelector(".adv-act"); if (d) d.insertAdjacentHTML("afterend", `<a href=${u}>x</a>`); } catch (_e) {}\n' % P + LOOP),
+    "H9t_innerHTML_template_in_try": card(LOOP, '  try { const u = "%s"; const d = root.querySelector(".fact-act"); if (d) d.insertAdjacentHTML("afterend", `<a href=${u}>x</a>`); } catch (_e) {}\n' % P + LOOP),
     "H1_setAttribute_backtick_rendered": attach(".zz", 'a.setAttribute(`href`, "%s");' % P),
     "H2_setAttribute_backtick_unrendered": attach("a.zz", 'a.setAttribute(`href`, "%s");' % P),
     "H3_Reflect_set_rendered": attach(".zz", 'Reflect.set(a, "href", "%s");' % P),
@@ -384,7 +384,7 @@ PLANTS = {
     "H6_bracket_unrendered": attach("a.zz", 'a["href"] = "%s";' % P),
     "H7_attributes_setNamedItem": attach("a.zz", '{ const at = document.createAttribute("href"); at.value = "%s"; a.attributes.setNamedItem(at); }' % P),
     "H8_innerHTML_anchor_single_quote": card(LOOP, "  { const d = root.querySelector('.setup-result'); if (d) d.innerHTML = \"<a href='%s'>x</a>\"; }\n" % P + LOOP),
-    "H9_innerHTML_template": card(LOOP, '  { const u = "%s"; const d = root.querySelector(".adv-act"); if (d) d.insertAdjacentHTML("afterend", `<a href=${u}>x</a>`); }\n' % P + LOOP),
+    "H9_innerHTML_template": card(LOOP, '  { const u = "%s"; const d = root.querySelector(".fact-act"); if (d) d.insertAdjacentHTML("afterend", `<a href=${u}>x</a>`); }\n' % P + LOOP),
     "H10_setAttribute_literal_rendered": attach(".zz", 'a.setAttribute("href", "%s");' % P),
     # Round 4 (the review's mut4.py, #2317) and this fix's isolating variants.
     "K5_bare_open_on_dismiss": K5,
@@ -429,9 +429,9 @@ PLANTS = {
     # on the rig alone would never see the failure. Ported from the
     # 2026-10-16 snapshot of this group's first design (a3b1c00e2), whose
     # census's CustomEvent subclass the R10-DEEPLINK round-4 plants had keyed.
-    "T1c_census_only_throw_on_press": after_nav('if (root.querySelectorAll(".adv-act, .adv-act").length) throw new Error("census-only boom");'),
+    "T1c_census_only_throw_on_press": after_nav('if (root.querySelectorAll(".fact-act, .fact-act").length) throw new Error("census-only boom");'),
     "T2c_census_only_async_reject_on_press": after_nav(
-        'if (root.querySelectorAll(".adv-act, .adv-act").length) await Promise.reject(new Error("census-only reject"));'),
+        'if (root.querySelectorAll(".fact-act, .fact-act").length) await Promise.reject(new Error("census-only reject"));'),
     # The residual's witness, expected GREEN (rc=0 fails=0): a name built at
     # run time, written through a selector the stub DOM cannot resolve, in a
     # handler a press does reach. The write runs on no element, so the
@@ -476,7 +476,7 @@ PLANTS = {
     # and in a handler a drive registers (the slot menu's Escape). ON1: a
     # handler wired as an `on<event>` property, which no registration records.
     "RD7_detached_anchor_built_href_click_driven": RD7,
-    "RD8_insert_adjacent_html_built_href_driven_residual": after_nav('try { const d = root.querySelector(".adv-act"); d.insertAdjacentHTML("afterend", `<a ${["hr", "ef"].join("")}="%s">x</a>`); } catch (_e) {}' % P),
+    "RD8_insert_adjacent_html_built_href_driven_residual": after_nav('try { const d = root.querySelector(".fact-act"); d.insertAdjacentHTML("afterend", `<a ${["hr", "ef"].join("")}="%s">x</a>`); } catch (_e) {}' % P),
     "AL1_history_back_under_ctrl_in_keydown": AL1,
     "KD1_history_back_under_delete_in_keydown": KD1,
     "FT1_history_back_in_slot_menu_escape": FT1,

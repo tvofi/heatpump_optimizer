@@ -15,7 +15,8 @@
   command's process group and restore. When: a mutation proof over several
   mutants, or a fixer checking that the group's self-test pins the lines the
   diff adds; `tools/pr/prepr.sh` runs the diff arm report-only when
-  `MUTANT_CMD` is set. Refusal, rc 2, before anything runs: a malformed spec, a
+  `MUTANT_CMD` is set (`--in-place` under `MUTANT_IN_PLACE=1`), and refuses a
+  run that measured nothing (rc 2 or 3) rather than reading it as no survivor. Refusal, rc 2, before anything runs: a malformed spec, a
   repeated name, an `old` not occurring exactly once, a target differing from
   HEAD. A survivor is answered in the PR body; an equivalent one still owes a
   `survivor_triage` record. `--self-test` builds throwaway repositories.
