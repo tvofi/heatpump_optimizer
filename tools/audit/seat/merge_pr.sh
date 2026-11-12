@@ -252,7 +252,7 @@ G
   # P436: a required red the train's classify reads WAIT is waited out, not "RED"; the gate
   # that is still red (RED rc 1) refuses; no red at all never asks classify. The stub answers
   # WAIT (rc 3) twice, then the rc in FAKE_CLS_END.
-  printf '#!/bin/bash\nn=$(cat "$T_CLS" 2>/dev/null || echo 0); echo $((n+1)) > "$T_CLS"\n[ "$n" -lt 2 ] && { echo "WAIT x"; exit 3; }\n[ "$FAKE_CLS_END" = 0 ] && { echo "GREEN x"; exit 0; }\necho "RED x"; exit 1\n' > "$T/cls.sh"
+  printf '#!/bin/bash\nn=$(cat "$T_CLS" 2>/dev/null || echo 0); echo $((n+1)) > "$T_CLS"\n[ "$n" -lt 2 ] && { echo "WAIT x"; exit 3; }\n[ "$FAKE_CLS_END" = 3 ] && { echo "WAIT x"; exit 3; }\n[ "$FAKE_CLS_END" = 0 ] && { echo "GREEN x"; exit 0; }\necho "RED x"; exit 1\n' > "$T/cls.sh"
   clsflow() { # <end rc: 0 green|1 red> <red name or empty>
     rm -f "$T/cls.n"; [ -n "$2" ] && : > "$T/blocked"
     T_CLS=$T/cls.n FAKE_CLS_END=$1 FAKE_RED=$2 HPO_MERGE_CLASSIFY="bash $T/cls.sh" flow 0
@@ -265,6 +265,11 @@ G
   [ "$(cat "$T/flow.rc")" != 0 ] && grep -q '^RED: gate' "$T/flow.out" && ! grep -q '^pr merge' "$T/gh2.log"
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: a gate red classify reads RED refuses RED and does not merge"
   else fail=$((fail + 1)); echo "  FAIL null control: a gate red classify reads RED refuses RED and does not merge"; fi
+  HPO_MERGE_CLASSIFY_POLLS=4 clsflow 3 gate
+  [ "$(cat "$T/flow.rc")" = 3 ] && [ "$(cat "$T/cls.n")" = 4 ] && grep -q '^WAIT-EXHAUSTED' "$T/flow.out" \
+    && ! grep -q '^RED' "$T/flow.out" && ! grep -q '^pr merge' "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a classify that still reads WAIT after the last poll exits 3 WAIT-EXHAUSTED, never RED, and does not merge"
+  else fail=$((fail + 1)); echo "  FAIL a classify that still reads WAIT after the last poll exits 3 WAIT-EXHAUSTED, never RED, and does not merge ($(tail -1 "$T/flow.out"))"; fi
   clsflow 1 ""
   [ "$(cat "$T/flow.rc")" = 0 ] && [ ! -f "$T/cls.n" ]
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: no red at the head never asks classify"
@@ -316,6 +321,9 @@ if [ -n "$red" ]; then
          [ "$crc" = 3 ] || break
          echo "WAIT: $cls"; sleep 60
        done
+       # classify still WAIT after the last poll: the red is provisional, not final. A distinct
+       # line and exit 3 (the train's WAIT), never RED, so a caller retries rather than reads a refusal.
+       [ "$crc" = 3 ] && { echo "WAIT-EXHAUSTED: classify still reads WAIT after ${HPO_MERGE_CLASSIFY_POLLS:-20} polls; the red is a deferral not yet decided: $red"; exit 3; }
        [ "$crc" = 0 ] || { echo "RED: $red"; exit 1; }
        echo "DEFERRAL RED CLEARED (classify GREEN): $red" ;;
   esac
