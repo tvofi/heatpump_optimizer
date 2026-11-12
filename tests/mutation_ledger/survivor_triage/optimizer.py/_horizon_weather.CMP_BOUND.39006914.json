@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_horizon_weather CMP_BOUND 39006914",
+  "old": "        if hum.size < n_steps:",
+  "reason": "Equivalent (CMP_BOUND, `<` to `<=`) in `_horizon_weather`: the only input the two tell apart is a humidity series exactly the horizon long, and there the branch appends `np.full(0, nan)`, an empty array, so the series is unchanged. Measured by python3 -c 'import numpy as np; h=np.array([1.,2.,3.,4.]); print(np.concatenate([h, np.full(0, np.nan)]).tolist())', which prints [1.0, 2.0, 3.0, 4.0]. The line's other operator (GUARD_OFF) is killed by tests/features.py, \"the horizon's weather, as every solve and reference_day read it\".",
+  "verdict": "equivalent"
+}

@@ -32321,6 +32321,78 @@ R.check(
     _st_math.isnan(_st_ref_short["day"][1]) and len(_st_ref_short["day"][0]) == 7 * 48,
     repr((_st_ref_short["day"][1], len(_st_ref_short["day"][0]))),
 )
+# The horizon is the shortest of the prices, the outdoor series and the
+# configured steps, and the day never longer than 24 h of it.
+_st_ref_cut = _st_ref_fresh.reference_day(_st_replace(
+    _st_ref[False]["inputs"], forecast=_st_replace(
+        _st_ref[False]["inputs"].forecast,
+        outdoor_temps=_st_ref[False]["inputs"].forecast.outdoor_temps[:48])))
+_st_ref_long = _st_reference(hours=48)
+# Every series two days long (the fixture's weather is one day's, repeated).
+_st_ref_two = _st_ref_long["fresh"].reference_day(_st_replace(
+    _st_ref_long["inputs"], forecast=_st_replace(
+        _st_ref_long["inputs"].forecast, **{
+            k: np.resize(getattr(_st_ref_long["inputs"].forecast, k), 192)
+            for k in ("prices", "outdoor_temps", "wind_speeds", "precipitation", "solar_radiation")})))
+R.check(
+    "#2257: an outdoor series under a day prices no day although the prices "
+    "cover one (the energy is nan, the setpoints the series' own length), and a "
+    "two-day horizon prices one day of 96 steps, the one-day horizon's energy",
+    _st_math.isnan(_st_ref_cut[1]) and len(_st_ref_cut[0]) == 7 * 48
+    and _st_ref_long["n"] == 192 and len(_st_ref_two[0]) == 7 * 96
+    and abs(_st_ref_two[1] - _st_ref[False]["day"][1]) < 1e-9,
+    repr((_st_ref_cut[1], len(_st_ref_cut[0]), _st_ref_long["n"], len(_st_ref_two[0]),
+          _st_ref_two[1], _st_ref[False]["day"][1])),
+)
+
+
+def _st_hw(n=4, **series):
+    """_horizon_weather over a four-step forecast carrying ``series``."""
+    return _st_omod._horizon_weather(
+        _st_omod.ForecastSeries(prices=np.ones(6), outdoor_temps=np.zeros(6), **series), n)
+
+
+_st_hw_short = _st_hw(humidity=np.array([50.0, 60.0])).humidity
+_st_hw_long = _st_hw(humidity=np.array([50.0, 60.0, 70.0, 80.0, 90.0, 95.0])).humidity
+_st_hw_heat = _st_hw(external_heat_kw=np.array([0.0, 1.5])).external_heat_kw
+R.check(
+    "the horizon's weather, as every solve and reference_day read it: a short "
+    "humidity series is padded with nan to the horizon and a long one cut to "
+    "it, an all-nan one and none at all are None; free heat is padded with 0, "
+    "and all-zero free heat is None",
+    _st_hw_short is not None and len(_st_hw_short) == 4
+    and _st_hw_short[:2].tolist() == [50.0, 60.0] and bool(np.all(np.isnan(_st_hw_short[2:])))
+    and _st_hw_long is not None and _st_hw_long.tolist() == [50.0, 60.0, 70.0, 80.0]
+    and _st_hw(humidity=np.full(4, np.nan)).humidity is None
+    and _st_hw().humidity is None
+    and _st_hw_heat is not None and _st_hw_heat.tolist() == [0.0, 1.5, 0.0, 0.0]
+    and _st_hw(external_heat_kw=np.zeros(4)).external_heat_kw is None
+    and _st_hw().external_heat_kw is None,
+    repr((_st_hw_short, _st_hw_long, _st_hw_heat)),
+)
+
+
+async def _st_user_band():
+    """The ``banded`` each ``_solve_hubs`` call of one user what-if was handed."""
+    coord = await _st_coord()
+    handed, real = [], coord._solve_hubs
+
+    def _spy(n_steps, *, banded, band=None):
+        handed.append(banded)
+        return real(n_steps, banded=banded, band=band)
+
+    coord._solve_hubs = _spy
+    answer = await _st_ask(coord, {"min_temp": 18.5})
+    return handed, "error" in answer
+
+
+_st_user_band_seen = _asyncio.run(_st_user_band())
+R.check(
+    "#1795: the card's what-if on a house that is not away reads the hubs "
+    "unbanded: economy's and an open window's widened floor are not in its price",
+    _st_user_band_seen[0] == [False] and not _st_user_band_seen[1],
+    repr(_st_user_band_seen),
+)
 # The weekday. With weekend temperatures a schedule holds other setpoints from
 # Friday night on: one day's energy moved with the day the what-if was asked
 # on, and a weekend ask moved no setpoint on a Monday and left the branch.

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_simulate BOOLOP 19646b85",
+  "killed_by": "tests/features.py",
+  "old": "        banded = base is None and _whatif_banded(self._away_state)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`banded = base is None or _whatif_banded(self._away_state)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
