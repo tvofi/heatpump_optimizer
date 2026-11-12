@@ -87,7 +87,12 @@ Read the diagram as four regions.
   and the dashboard card. Each is reached through a Home Assistant entity or
   service, never imported.
 - **The Home Assistant boundary** is where side effects live.
-  `inputs.InputReader` performs every entity read;
+  `inputs.InputReader` reads and normalises the sensor inputs it is asked
+  for. It is not the only reader of entity state; four examples, not the
+  list: `coordinator.py` reads the price, weather and PV production entities
+  itself, `pump_arbiter` reads the entity behind a slot before it writes it
+  and the pump's power switch, `away.py` reads the holiday calendar, and
+  `services.py` refuses to assign an entity that has no state;
   `coordinator.HeatPumpOptimizerCoordinator` is the orchestration seam that
   calls the core and then writes; `pump_arbiter` writes the pump's mode and
   set-points and owns the power switch; `store.QuarantiningStore` is the
@@ -99,7 +104,9 @@ Read the diagram as four regions.
 - **The learners** consume the coordinator's evidence and return corrections.
   Most are pure; three still import `homeassistant` at module level —
   `accuracy` and `defrost` for the clock, `dhw_learning` for the clock and the
-  `HomeAssistant` type — so the glue calls them and they never call the glue.
+  `HomeAssistant` type. The glue calls them and they never call the
+  coordinator; `dhw_learning` and `snapshots` reach persistence through
+  `store.py`.
 
 ## The module map
 
@@ -229,8 +236,9 @@ custom_components/heatpump_optimizer/
 │                         #   Mold Floor Breach, Open Window Detected,
 │                         #   Wood Cheaper Than Heat Pump
 ├── button.py             # Optimize now, run identification, reset comfort
-│                         #   weight, diagnose last interval; finalize the
-│                         #   debug collection while that option is on
+│                         #   weight, reset heat loss, diagnose last interval;
+│                         #   finalize the debug collection while that option
+│                         #   is on
 ├── climate.py            # Virtual climate entity: modes, presets, DHW status
 ├── switch.py             # Away, Block DHW, Block Space Heating,
 │                         #   Boost Space Heating, DHW Boost, Optimizer Active
@@ -368,23 +376,19 @@ These instruments keep this page honest:
   example — reads NULL. It is a review trigger, never a target a seat is
   rewarded for moving, and it is a required check on a pull request.
 
-## The shape at programme end
+## One owner per concern
 
-The page above describes `main`. The round-10 roster still holds groups that
-change the shape of the code, and each change below is marked with the group
-that lands it, so R10-ARCH-DOCS can resolve every line once its group is done.
-No group in the roster adds a module, so the module map above is already the
-module set at programme end.
+Each bullet names the module that owns one rule, and what the rule is.
 
-- **One owner of the thermal parameters**, copied on write, so a service call cannot publish a torn or unclamped set across its await, and the coordinator context is written once [target: R10-PARAMS-OWNER]
-- **The live state published whole**: the thermal state, the away state and the event callbacks publish a copy, and each collaborator owns its own fields [target: R10-LIVESTATE]
-- **One owner per duplicated shape**: a power reader in `inputs` that refuses a non-finite or out-of-range reading, one hour-clock owner and one finite-float owner [target: R10-ARCH-SHAPES]
-- **Payload mixins on the entity base**: the finite scrub, the value and path mixins and the zone set-point attributes, shared by the sensors that each carried their own guard [target: R10-SENSOR-PAYLOAD]
-- **A delivered-heat meter input**: measured COP from heat over electric energy, split into hot water and space by the pump's mode [target: R10-HEAT-METER]
-- **An honest COP state**: "not measurable here" where no meter makes COP observable [target: R10-COP-GATE]
-- **One rule for scores**: no evidence is a dash with a reason, never zero, and one view model behind the scores, Savings, Advisor and Health [target: R10-SCORES]
-- **Learner progress in the payload**: phase, progress and what each learner waits for [target: R10-LEARNER-ETA]
-- **One options page template** driven by the field registry [target: R10-CONFIGFLOW-PAGES]
+- **The thermal parameters have one writer.** `_publish_params` in `coordinator.py` builds a new parameter set, which re-runs the divisor floor, and rebinds the coordinator context and the live model to it. A solve or a learner in the middle of an await keeps the set it read. The coordinator context is a frozen dataclass, replaced whole.
+- **A long computation works on a snapshot of the live state.** In `coordinator.py` a solve takes its own deep copy of the configuration, the parameters and the thermal state, and the away recovery job and the diagnosis each take a copy of the thermal state.
+- **One owner per duplicated shape.** `inputs.py` owns the power conversion: `normalize_power_kw` converts by the entity's declared unit and refuses an unknown one, and `state_power_kw` refuses a reading that is not finite before or after conversion. `finite_float` in `const.py` gives a value as a finite float, or a default. Two functions own what the end of the day reads as: `quiet_windows.wall_clock` folds it to 00:00, and `dhw_schedule.format_clock` keeps a window label's 24:00.
+- **One payload read on the entity base.** `entity.py` owns the finite scrub, the payload-number rule and the zone set-point attributes. A mixin in `sensor.py` reads the number at one path of the payload.
+- **A delivered-heat counter.** `heat_energy.py` owns the span a delivered-heat kWh counter measured, the time the pump spent in each duty, and the one rule that splits an interval between space heating and hot water: the observed shares, else the plan's split. It imports nothing from Home Assistant; the coordinator reads the entities and calls in.
+- **An honest COP state.** `accuracy.cop_observability` owns the state: no electric meter, then an electric meter with no measured heat, which reads "not measurable", then estimated inputs or a heat meter.
+- **One rule for scores.** `compose_scores` in `coordinator.py` puts the grades on one scale; no evidence is no grade with one reason code, never zero. The insight payload takes the restart advice once and hands the same advice to the scores, and `house_loss_converged` is the convergence rule that both the envelope grade and the learning view's "learned" flag read.
+- **Learner progress in the payload.** `learner_progress.py` gives each thermal learner's phase, its progress and what it waits for.
+- **One options page template.** `config_flow.py` builds the options pages that edit stored fields from one field registry. The setup overview, the factory reset, quick setup and the pre-fill preview build their own forms.
 
 ## Where to start reading
 

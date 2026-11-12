@@ -20,8 +20,8 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      RELEASE_NOTES.md -- the stamper writes the notes section by hand first.
   2. The `gate` job of HEAD's `ci.yml` push run has completed and succeeded
      (R10-CI-LAYOUT P2b, B3: on push gate.py owes every job whose failure
-     reddened the old Tests push run, ci-ratchet and coverage-ratchet
-     included), so a release never publishes ahead of the unscoped gate; a
+     reddened the old Tests push run, coverage-ratchet included; ci-ratchet
+     is report-only, gate.py's PUSH_REPORT_ONLY), so a release never publishes ahead of the unscoped gate; a
      HEAD with no ci.yml push run predates the umbrella and is read off its
      Tests push run instead (`tests_run_fallback`). --allow-red
      overrides, loudly, for a red main whose cause is already understood.
@@ -1273,7 +1273,7 @@ def self_test() -> int:
     g_ok = tests_gate("cafe", fetchers=world([ci_run], {41: [job("success"), job("failure", "tests / nightly-ha")]}))
     check("B3: the ci.yml push run's gate success is green, whatever the run concluded", g_ok[0])
     g_red = tests_gate("cafe", fetchers=world([ci_run], {41: [job("failure")]}))
-    check("B3: a red push gate (a red ci-ratchet reddens it) refuses, naming the gate",
+    check("B3: a red push gate (a red coverage-ratchet reddens it) refuses, naming the gate",
           not g_red[0] and "gate" in g_red[1] and "failure" in g_red[1])
     check("B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, "
           "cancelled, absent",
