@@ -1,0 +1,2 @@
+RESULT wall no weekend comfort: reference_day calls 84 median 1.9 ms max 2.1 ms on this host, distinct days in a week 1..1
+RESULT wall weekend comfort set: reference_day calls 84 median 5.8 ms max 11.7 ms on this host, distinct days in a week 4..4

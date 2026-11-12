@@ -1,0 +1,6 @@
+  FAIL a horizon under a day prices no day: the energy is nan, the setpoints the horizon's own  [(13.028613375639365, 336)]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+    import gen_device_fixtures as _g7b_gen  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'gen_device_fixtures'
+rc=1

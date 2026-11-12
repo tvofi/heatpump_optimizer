@@ -1,0 +1,6 @@
+  FAIL simulate_plan returns its response when the what-if ran, and asks for the steady figure (#2257): without that argument the panel shows no money  [('returned', {'results': {'test_entry': {'status': 'ok', 'steady': False}}})]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+    import gen_device_fixtures as _g7b_gen  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'gen_device_fixtures'
+rc=1

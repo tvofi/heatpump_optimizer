@@ -1,0 +1,7 @@
+  FAIL #2257: with weekend temperatures the day energy is the week's average day, one figure whichever weekday asks (to 1e-9: the seven days are summed in the order they come), above the same house's without them; the null, no weekend temperatures, is one figure too and every day of its week holds the first day's setpoints  [([28.04764903106085, 28.04764903106085, 28.581029970429277, 29.544738366324054, 29.284087844631614, 28.04764903106085, 28.04764903106085], 28.04764903106085)]
+  FAIL #2257: a weekend ask moves a setpoint on every weekday it is asked on, a Monday included, and its energy is one figure above the unasked week's: the branch and the figure read the week, never the day asked on  [[28.04764903106085, 28.04764903106085, 29.16905542264267, 31.11603906803586, 30.464247927160002, 28.04764903106085, 28.04764903106085]]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+    import gen_device_fixtures as _g7b_gen  # noqa: E402
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'gen_device_fixtures'
+rc=1

@@ -1,0 +1,4 @@
+  ok   R10-WATER-SETPOINT-FEEDBACK repeat, minimum return target 26.4 degC: the cut is the run's lower bound -- the writes under it are one unbroken wind-down before it is adopted, none after -- and nothing is repaired
+
+ALL 5337 FEATURE CHECKS PASSED
+rc=0

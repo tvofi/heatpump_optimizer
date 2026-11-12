@@ -1,0 +1,13 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:11221 BOOLOP: banded = base is None and _whatif_banded(self._away_state)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:2503 GUARD_OFF: if not np.any(external_heat_kw > 0.0):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5653 CLAMP_DROP: n_steps = min(len(series.prices), len(series.outdoor_temps),
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5654 CLAMP_DROP: day = min(n_steps, int(round(24.0 / dt)))
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5663 BOOLOP: if day * dt >= 24.0 and targets not in day_kwh:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5663 CMP_BOUND: if day * dt >= 24.0 and targets not in day_kwh:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5663 GUARD_OFF: if day * dt >= 24.0 and targets not in day_kwh:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:5667 RETURN_DEL: return week, sum(day_kwh.get(tuple(week[k:k + day]), math.na
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/whatif.py:117 GUARD_OFF: if not spec:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/whatif.py:166 RETURN_DEL: return None
+CI PREDICT: 10 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against 2ced371c1af5 (a data-file read is not seen)
+rc=0
