@@ -1,29 +1,45 @@
-Fix review: blocked 686b06f80ac7661a1d7cc84b67ac7c156566ed6d prior-findings-open: the five surviving carry_audit.py mutants and the missing spelling corpus from the verdict at 1ccc7468 are unanswered; only the bus.sh carry_landed regression is cured
+Fix review: blocked 8cf976936e013314c513ecf4bb283b7c88f63d8b mutation-vacuous: quoted_lookbehind_alone, quoted_lookahead_alone, mdlink_url_any survive on added carry_audit.py lines
 
-bus-nonce: f4853a11184d8dde6f25dbfe19ed0baa
+bus-nonce: 8a69e49b99d510bf91791a7b3a946ef1
 
-This review covers the round-3 repair return. Its scope is the delta from the reviewed head 1ccc74680c3292f147de1268494167fac4121017. A further blocked review makes the next round the fourth, and from the fourth `fixer.md` owes a re-cut.
+This is round 4, the delta review from the reviewed head 686b06f80ac7661a1d7cc84b67ac7c156566ed6d. A further blocked review means `fixer.md` owes a re-cut. Every item of the 686b06f8 verdict is resolved at this head (see Evidence). Splitting the prior driver's compound mutant, and mutating the delta's own new lines, leaves three survivors.
 
 ## Block
 
-Each item of the blocked verdict at 1ccc7468 (verdict/3493 f2d51e57ce) was checked against this head:
+I ran the mutants with the reviewer's harness at this head: `ev/mutant_driver_head.py`, which is the prior `ev/mutant_driver.py` with its anchors re-spelled for the edited lines, plus mutants on the delta's added lines. Survivors, in one block (`ev/mutants_head_driver_head.txt`):
 
-- Item 1, the bus.sh `carry_landed` regression: **cured.** The head reads `$(gh ... 2>/dev/null && echo x)`, which keeps gh's status. The new self-test check `an unreadable body is still reported by carry_landed ... (CARRY-LANDED-UNREAD)` passes at the head with 177 checks and 0 failed (`ev/bus_selftest_head.txt`). Restoring `; echo x` fails that check, with 177 checks and 1 failed (`ev/bus_mut_semicolon.txt`).
-- Item 2, the surviving mutants on added production lines: **open.** `tools/audit/carry_audit.py` is byte-identical between 1ccc7468 and this head (`ev/carry_audit_delta_bytes.txt` shows a 0-byte diff). I re-ran the prior reviewer's harness (`ev/mutant_driver.py`) at this head. The same five mutants survive, each with 434 checks and 0 failed (`ev/mutants_carry_audit_head.txt`): `kindsec_noNote`, `para_nobullet`, `para_nocarry`, `quoted_lookbehind` and `marker_brief`. The body's `## Unpinned sites` still dispositions only `_self_test` deletions. Each of the five needs either a killing check or an `## Unpinned sites` disposition (fixer.md step 2).
-- Item 3, the missing spelling corpus: **open.** The body still names no generated spelling corpus and no corpus size for `marker_shaped`, `QUOTED_PHRASE` or the paragraph-continuation test. The code is unchanged, so both of the prior reviewer's spellings still stand unsettled (`ev/shape_probes_prior.txt`):
-  - P1: two code spans that each hold a `"` swallow a real marker between them.
-  - P2: `Carry: [#100](https://x)` under `## Evidence` is fail-open.
-- Body figure (fix it in the same repair): `## Figures` still says `bash tools/audit/seat/bus.sh --self-test: 176 checks, 0 failed at the head above`. At this head the run gives 177 checks and 0 failed, and the body's own repair paragraph also says 177.
+```
+quoted_lookbehind_alone  QUOTED_PHRASE (?<![\w"])"[^"\n]*"(?!\w)  ->  "[^"\n]*"(?!\w)       444 checks, 0 failed
+quoted_lookahead_alone   QUOTED_PHRASE (?<![\w"])"[^"\n]*"(?!\w)  ->  (?<![\w"])"[^"\n]*"   444 checks, 0 failed
+mdlink_url_any           MD_LINK \]\([^)\s]*\)                     ->  \]\([^)]*\)            444 checks, 0 failed
+```
+
+(`para_bullet_readded` also survives. It is an equivalence probe that adds back the clause the fixer deleted, and its survival confirms body item 3. It is not a survivor.)
+
+- The body's item 5 says `quoted_lookbehind` is killed, and it is for the prior driver's spelling. That spelling removed both lookarounds at once (`ev/mutants_prior_driver_head.txt`). The single pin, `5" pipe ... "y"`, is killed by the lookahead alone. So each of the two conditions survives when it is removed by itself, against the body's "one pin per added shape-guard condition". Each survivor has a distinguishing input that the head classifies differently (`ev/survivor_probes.txt`):
+  - lookbehind: `x. the 5" pipe. Carry: R10-LIVE and 6" too.` At the head the marker routes. Under the mutant it is swallowed, a silent fail-open.
+  - lookahead: `x. said "q. Carry: R10-LIVE "x" too.` At the head it routes. Under the mutant it is swallowed.
+- `mdlink_url_any`, on the new `MD_LINK` line: `x. Carry: [#100](a b)` gives no segment at the head (fail-open under `## Evidence`). Under the mutant it gives one marker. The `[^)\s]` exclusion decides real input and nothing pins which way it should go.
+
+Each survivor needs either a killing check or an `## Unpinned sites` disposition (fixer.md step 2). The body's `## Unpinned sites` dispositions only `_self_test` deletions.
 
 ## Evidence
 
-- RESULT head reviewed: 686b06f80ac7661a1d7cc84b67ac7c156566ed6d (`ev/HEAD.txt`). It matches the body's `## Head`, which merges the authored head e0aed259368f.
-- RESULT `carry_audit.py --self-test` at the head: 434 checks, 0 failed (`ev/carry_selftest_head.txt`). The body's figure re-derives.
-- RESULT `bus.sh --self-test` at the head: 177 checks, 0 failed. The body's `## Figures` line of 176 does not re-derive.
-- RESULT mutation re-run at the head: every mutant the body names is still killed (`normpr-landed`, `shaped`, `findings_true`, `para_cont`, `quoted_spans`). The added mutants `normpr_landops`, `normpr_noraise`, `normpr_nohash` and `marker_group` are also killed. `marker_issue` and `marker_true` did not apply, because each anchor occurs twice.
-- Delta: the PR's own delta is commit e0aed25936. It changes `tools/audit/seat/bus.sh` only, with one production line and a three-line self-test. The rest of `git diff 1ccc7468 686b06f8` (the `merge_train.py` P608/P609 changes and the delivery rows) arrived through the merge of origin/main, 190639a631. None of it touches `custom_components/`, so nothing widens the scope.
-- Merge: `git merge-tree --write-tree origin/main 686b06f8` exits 0 against origin/main fc2a7edcf2be (`ev/merge_tree.txt`), so there is no conflict.
-- Versions: the three-dot diff from the merge base leaves VERSION, the manifest and RELEASE_NOTES.md untouched. There are no golden or claim files.
-- CI: `merge_train.py classify 686b06f8 --pr 3493` returned WAIT twice (`pending: gate red: none`, `ev/classify.txt`). The packet digest shows `gate` concluded failure and `pr-contract` queued, but classify decides. The red `tests / nightly-status` is not in the `owed-reds` set, so it is owed no answer. CI was not waited out because the block above does not depend on it.
-- Role drift: `git diff <merge-base>...origin/main -- dev/governance/roles/` touches fix-review.md steps 6, 11 and 12. I read the current text through role_pack. None of it changes this verdict.
-- Packet refusal: `handoff-not-applied` says handoff/r10-carry-audit-p5 45ae9ae7 is not an ancestor of the head. I recorded it and did not judge it, because the delta scope comes from the reviewed head.
+- RESULT head reviewed: 8cf976936e013314c513ecf4bb283b7c88f63d8b (`ev/HEAD.txt`). It is still the tip of `fix/r10-carry-audit-p5` at 10:43Z. It matches the body's `## Head`, which merges the authored head 45ae9ae729.
+- Prior item 2, the five survivors. All are resolved at this head (`ev/mutants_prior_driver_head.txt` and `ev/mutants_head_driver_head.txt`). At the base, the same driver reproduces the prior verdict's five survivors exactly (`ev/mutants_prior_driver_base.txt`, 434 checks).
+  - `kindsec_noNote`: KILLED by the `## Open residuals` check.
+  - `para_nobullet`: its clause is deleted. Adding it back survives, so the clause was equivalent, as body item 3 says.
+  - `para_nocarry`: KILLED.
+  - `quoted_lookbehind` (the compound spelling): KILLED.
+  - `marker_brief`: KILLED.
+  - `marker_issue` and `marker_true` now apply, with unique anchors, and are KILLED.
+- Prior item 3, the spelling corpus: present. The check `carry 3 corpus` asserts 104 marker spellings (13 × 8) and 8 mention spellings, and passes at the head. It is the check that kills `marker_dismissed`, `marker_issue`, `marker_brief`, `blank_off` and `mdlink_shaped`. P1 and P2 are each pinned by their own check. `blank_off`, `blank_shrink`, `mdlink_shaped` and `mdlink_dests` are all KILLED.
+- Prior body-figure item: `## Figures` now says 178. RESULT `bus.sh --self-test` at the head gives 178 checks, 0 failed (`ev/bus_selftest_head.txt`). It re-derives.
+- RESULT `carry_audit.py --self-test` at the head gives 444 checks, 0 failed (`ev/carry_selftest_head.txt`). It re-derives.
+- RESULT bus.sh mutant `&& echo x` removed: 178 checks, 1 failed, `CARRY-LANDED-SENTINEL` (`ev/bus_mut_sentinel.txt`). It matches the body.
+- Not re-derived: the body's `mutant_run.py` figure of "54 mutants drawn" at the pre-fix head. I did not re-run it, and it does not change this verdict.
+- Delta (`git diff 686b06f8 8cf97693`): it touches `tools/audit/carry_audit.py` and `tools/audit/seat/bus.sh` only, an instrument and its self-test. None of it is in `custom_components/`, so nothing widens the scope.
+- Merge: `git merge-tree --write-tree origin/main 8cf97693` exits 0 against origin/main fc2a7edcf2be (`ev/merge_tree.txt`).
+- Versions: VERSION, the manifest and RELEASE_NOTES.md are untouched. There are no golden or claim files in the delta.
+- CI: `merge_train.py classify 8cf97693 --pr 3493` returned WAIT twice (`pending: gate red: none`, `ev/classify.txt`). The packet refusal `introduced-red` was unreadable because instrument-self-tests was still queued. CI was not waited out, because the block does not depend on it.
+- Role drift: `git diff <merge-base>...origin/main -- dev/governance/roles/` changes fix-review.md. I read the current text through role_pack, and it does not change this verdict.

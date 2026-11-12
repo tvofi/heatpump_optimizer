@@ -173,7 +173,7 @@
   ok   a body's own-group status line passes when the head ref is the group's branch (CARRY-LANDED-OWN-TOPIC)
   ok   null control: the same line under another group's head ref is still refused
   ok   an unreadable body is still reported by carry_landed, and the dispatch goes on (CARRY-LANDED-UNREAD)
+  ok   a body ending in a literal x is read whole, not cut by the sentinel strip (CARRY-LANDED-SENTINEL)
   ok   watch --once under a live watcher's lock refuses and names its pid (P102)
   ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
-bus self-test: 177 checks, 0 failed
-rc=0
+bus self-test: 178 checks, 0 failed
