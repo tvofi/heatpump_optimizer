@@ -19311,7 +19311,7 @@ R.check(
 _published = []
 async def _rec_ecl(**kw):
     _published.append(kw)
-async def _rec_plan(reason="optimizer"):
+async def _rec_plan(reason="optimizer", heat_pump_on=None):
     _published.append({"reason": reason})
 _c.async_publish_ecl110_command = _rec_ecl
 _c.async_publish_current_action = _rec_plan
@@ -28162,7 +28162,7 @@ R.check(
 _g_pub: list[str] = []
 
 
-async def _g_rec(reason="optimizer"):
+async def _g_rec(reason="optimizer", heat_pump_on=None):
     _g_pub.append(reason)
 
 
