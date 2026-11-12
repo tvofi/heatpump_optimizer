@@ -1,26 +1,14 @@
 Part A of the duty-switch restart learning, built from Bankaifan's pull request 3420 with thanks: the finding, the install's table and the first implementation are theirs, and their ten commits are this branch's first ten, authorship kept. On a Luxtronik install driven over the smart-home interface, a hot water to space mode write while the compressor runs stops it; nothing priced or observed that. This pull request observes each such switch, estimates per pump and per direction how often it ends in a stop and how long the pump then stays off, persists the estimate and publishes it on the compressor-starts sensor. **Nothing reads the estimate to change a plan or a write**: that is parts B and C of the design approved at `design/R10-DUTY-SWITCH-RESTART-LEARNING` abc575172ca1e6758c58ca8d1f265a2dc7c4fa23, which `docs/design/2026-11-10-duty-switch-restart-learning/design.md` now carries. No issue is closed: the finding arrived as pull request 3420, which the orchestrator closes with thanks after the merge.
 
+## Re-cut
+
+The fourth round, so this body replaces the earlier ones under `fixer.md`'s re-cut rule: round history is deleted, and every figure below was re-taken at the head named under Head, but where a line says it was not re-run (the ledger's pin passes). The round-4 review (`Fix review: blocked 7f6c83171f04408ef9a9b1d37bfb14213a971fcc mutation-vacuous: r3v_span_floor_on_k, r3v_wrapper_pending_false, r4v_tracker_settled_any`, `VERDICT.md` on `verdict/3461` at 559df6c8) is answered under "Review round 4, answered". The only change since 7f6c83171 is one commit adding three checks to the duty-switch section of `tests/features.py`; no production line moved.
+
 ## Head
 
-7f6c83171f04408ef9a9b1d37bfb14213a971fcc
+c2686152bc05be50d12a0f8576df79cc934f3986
 
-A merge repair past the round-3 handoff, for the same reviewer, who judges this delta alone. `origin/main` moved under the handed-off head bd262a2ada9a10f9afb0e9b395ac4c0fce0f23af: pull request 3404 (the arbiter's off restore, 1aeaf273a4) and pull request 3469 (b737e88eee) landed, and `git merge-tree --write-tree origin/main bd262a2ad` reported a conflict in `custom_components/heatpump_optimizer/pump_arbiter.py` and `tests/features.py`. This head is two merge commits on bd262a2ad, not a re-cut and not a rebase. The first, d37f6b42ad9a20822c19ff13fbc1328efa014d47, merges `origin/main` at 4aa6200346e3b1032d4d25bab4a08a6f8ad668f3 and resolves that conflict. The second, this head, merges `origin/main` at ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d: pull request 3452 landed while the first was being measured, and although `git merge-tree --write-tree origin/main d37f6b42ad9a20822c19ff13fbc1328efa014d47` exits 0 with this repository's ledger merge driver, `tools/pr/prepr.sh`'s predictor refused the head as `GRADER UNMERGED`, because without the driver, as GitHub merges, `tests/closures.json` conflicts. git merged the second with no conflict.
-
-The resolution, by union:
-
-- `pump_arbiter.py`, the import line: one line naming both `duty_switch` and `off_restore`.
-- `pump_arbiter.py`, after `_write`: this group's `_reads_below`, `_report_write`, `_lit` and `_switch_context` stand before main's `_adopt`, `_held_back` and `_arm_space`, each side's text unchanged but for the line below.
-- `pump_arbiter.py`, `_arbitrate`: this group's `duty_switch.note_pass` call stays before the gate, and the gate is main's `_pump_off(inp, held)`.
-- `pump_arbiter.py`, `_switch_context`: `supply_on=not _pump_off(inp, held)`. Main gave `_pump_off` a second argument and a write: on a pump whose switch reads off it forgets `held.space_before`. Called from the context it writes nothing main does not: outside control `_forget` has already emptied that field at the top of `_arbitrate`, and in control the gate on the next line makes the same call. No alternative was available short of a second, pure reader of the switch, a parallel mechanism for one caller.
-- `tests/features.py`: both sections kept whole, main's "supply switch: the cycle writes the step it lands in" placed before this group's, so that `dev/audit/harnesses/r10_duty_switch_section.py`'s two markers still cut this group's checks alone.
-- `tests/features.py`, this group's fake coordinator, second merge: its parameters gain `dhw_cycle_temp=None`, the field pull request 3452's `_dhw_write` reads on every pass and main's own arbiter fake carries; before it the section stopped on `AttributeError` for that name.
-- `tests/features.py`, this group's fake coordinator, first merge: its `entry` is a `harness.FakeEntry`, no longer a `SimpleNamespace`, and the `FakeEntry` import moved to the section's first lines. Main's `off_restore` keys its record on the entry by weak reference, which a `SimpleNamespace` refuses; main made the same change to its own arbiter fakes in pull request 3404. Before it the section stopped on `TypeError: cannot create weak reference to 'types.SimpleNamespace' object` in `_arm_space`; a real config entry is weak-referenceable, so this is the fake's defect and no production line changed for it.
-
-Both sides survive, by rule: for each of the two files and each parent P of the first merge (bd262a2ad and 4aa6200346e3b1032d4d25bab4a08a6f8ad668f3), read against the file at d37f6b42ad9a20822c19ff13fbc1328efa014d47, `git diff -U0 $(git merge-base bd262a2ad 4aa6200346e3b1032d4d25bab4a08a6f8ad668f3) P -- <file> | grep '^+[^+]' | cut -c2- | sort -u | grep -vxFf <file>` prints the lines P added that the merged file no longer holds verbatim. Run as `git show d37f6b42ad9a20822c19ff13fbc1328efa014d47:<file>` for the file. It prints four lines in all, each named above: the two parents' import lines, `supply_on=not _pump_off(inp),` and the fake's `self.entry = SimpleNamespace(...)` line; for `tests/features.py` against main it prints nothing. The second merge had no conflict to resolve: for each of the two files, `diff <(git diff d37f6b42ad9a20822c19ff13fbc1328efa014d47 HEAD -- <file> | grep '^[-+][^-+]') <(git diff 4aa6200346e3b1032d4d25bab4a08a6f8ad668f3 ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d -- <file> | grep '^[-+][^-+]')` compares the lines the second merge changed with the lines main changed: it prints nothing for `pump_arbiter.py` and, for `tests/features.py`, the fake's parameter line alone. Control: those four lines are the ones the resolution rewrote, and the command prints them. The merged files were also read against each parent at each conflict site.
-
-The merge base is now ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d, which was `origin/main` when merged; at 2026-11-12T04:20Z by `date -u` `origin/main` is 4f3b94fb538a23912141b09725a32a9aa156096f and `git merge-tree --write-tree origin/main HEAD` exits 0 against it, so it is not merged again. Every command below compares three-dot against it. Re-taken at this head: the section, the spec's mutant run (two entries re-anchored to `_pump_off(inp, held)`, the same edits), the diff pass over each production file, the predictor's unpinned-site list, the structural ratchet, the architecture score, golden drift, `tests/features.py`, the scoped gate and the reviewer's probe at both ends. Not re-run: the pin passes themselves (the `ledger:` commits); the predictor lists no stale pin and no unpinned site at this head, so the merge moved no pinned site out from under its record.
-
-The text below this section is the round-3 body, kept where the merge changes nothing it says; a figure that is a function of the head or of `origin/main` is re-taken and says so.
+The merge base is ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d. At 2026-11-12T06:18Z by `date -u`, `origin/main` is d72963a719438f2dcf370de92a71f6630804ff2e and `git merge-tree --write-tree origin/main HEAD` exits 0 against it (this repository's ledger merge driver resolving `tests/closures.json`), so main is not merged again. Every command below compares three-dot against the merge base.
 
 ## Brief carries
 
@@ -54,39 +42,49 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
 - Publication is conditional. Five `coord_*` goldens snapshot the starts sensor's `extra_state_attributes`, so the design's premise that the sensor is off the goldens does not hold, and fourteen always-present keys read as five stale fixtures in `tests/env_drift.py --all`. A direction publishes its keys only once it holds a stopped, kept or void episode; an install that never switches duty while running publishes what it did before, and no golden moves. Mutant `publish_only_observed`.
 - Factory reset keeps the store (`_FR_STORES`, the contributor's disposition). Learned state elsewhere is voided there; the owner may want this voided too.
 
-## Review round 1, answered
+## Review round 4, answered
 
-`Fix review: blocked 5289e1fee495ba8d7e81a5c1e5c8c328aca77d7f mutation-vacuous` (`verdict.md` on `probe/revt-r10-duty-switch-restart-learning-f4a692c8`), two blocks.
-
-1. mutation-vacuous. None of the nineteen is triaged: each is killed by a check that fails under it. The reviewer's whole spec (`ev/reviewer_mutant_spec.json`, its thirty-one entries) is appended to this body's spec and run with it under Mutation proof. What was added to the section, all in `tests/features.py`:
-   - The arbiter's void inputs (`_switch_context`): the stop of the section's arbiter run is replayed with one reading changed at the install 30 s after the write: the supply switch off, a mode the plan does not command, disinfection, a boost, the backup heater, the hot-water booster, the fault flag, the feedback loop's moved target. Each voids; with every flag reading off the stop is booked, and with the fault flag on but two hours stale it is booked too (`_lit`'s freshness).
-   - The count gates' inputs (`_report_write`), each on both sides of its bound: the room at and 0.1 K under its planned set-point; a plan that leaves the target duty 179 s and 181 s after the write; a return 1.9 K and 2.0 K over the command's set-point after a seven-minute leg (round 3: on the return and the flow unit, see round 2's answer); with no return sensor, a replaced mode record 30 s and 60 s old. The last two pin the departures "the space set-point is the command's" and "source-leg age is the replaced mode record's": reverting either now fails a check (`rv_gate_setpoint`, `rv_gate_source_leg`).
-   - The write censor: a hot-water set-point the arbiter writes between the stop and the restart costs the stop its off time (`rv_ctx_last_write`).
-   - The pass ages the latches, and saves once: a learner usable in both directions, last aged sixty days before, is switched off by the first arbiter pass, which saves that record once over three passes; one aged a minute stays usable and saves nothing (`rv_pass_decay_dropped`, `rv_persist_stays_dirty`).
-   - `rv_published_undecayed`: k and n published 14 days after the stamp are half the stored ones, the tallies unchanged. `rv_detach_keeps_episode`: duty mode off with an episode open leaves none and counts none. `rv_book_no_latch`: the fifth stop switches the latch on at the booking, the fourth does not, and a kept episode taking p under the off bound switches it off.
-   The brief also asked for `mutant_run.py --diff` over the whole branch diff with every survivor answered; that pass and its three survivors are under Mutation proof. It forced one production change: `wear.EdgeTracker.note` returned `None` right after arming a pending change, a line no reading could tell from its absence (the `confirm` that follows returns `None` for a change armed at that same instant); the line is deleted.
-2. carry-missing. `docs/design/2026-11-10-duty-switch-restart-learning/design.md` gains a closing section, "Part A as built: where the code departs from this note", holding each departure this body lists and what parts B and C need of it; the approved text above it is unchanged. The carry to the two groups' briefs is under Forward-carry; the roster branch is not this seat's to write.
-
-The verdict's factory-reset finding is answered under Forward-carry.
-
-## Review round 2, answered
-
-`Fix review: blocked 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2 mutation-vacuous` (`verdict.md` and `ev/` on `probe/rev-3461-edf76a05` at e4e4c6cd5783872a0206bf9d7c01c54fcfa37108), two blocks and six findings. No finder harness exists for this group; the instruments at both ends are the reviewer's own, `ev/reviewer_mutant_spec_round2.json` and `ev/reviewer_probe.py` of that ref.
-
-1. mutation-vacuous. The reviewer's twenty-five entries are appended to this body's spec and run with it under Mutation proof. Four are killed by checks added to the section, each driven through `pump_arbiter.apply` on both sides; the fifth lost its site:
-   - `r2_ctx_defrost_interval`: an install with no defrost entity whose interval flag (`ArbiterInputs.defrosting`) reads True from the start opens nothing; the flag turning True 30 s after the write voids the stop; the flag reading False books it.
-   - `r2_ctx_economy_dropped`: the same stop on an install in Economy books, as in Auto; in Comfort no single duty is commanded and nothing is booked.
-   - `r2_gate_dhw_demand`: a space to hot water write (heating to 00:08, then hot water, the compressor running on) books a kept episode with the tank 0.1 K under its set-point and opens nothing with the tank at it or unread.
-   - `r2_gate_plan_now_only`: a write the plan's current step does not hold is reachable through a system-identification experiment, which commands heating whatever the plan books (`_planned_duty`). With the plan on hot water at the write and on heating before the window's end nothing opens; with the plan on heating at the write the same write books the stop. A block on a stale plan, the other route read, is released by `boost.release_blocked` before the write and reaches no single duty.
-   - `r2_signal_always`: not triaged, removed. `DutySwitchLearner.note_pass` no longer takes the "signal known" argument: an open episode with an unknown settled class is unreachable, as the verdict reads it, and a lost signal is `edge`'s to void (the section's "signal lost" cause and the arbiter run with an unavailable frequency). The pure check that passed the argument as False went with it. This body's `void_no_signal_pass` mutated the deleted line and is dropped from the spec.
-2. class-open, `_heated` over an indoor-unit set-point. Fixed at the arbiter's edge, where the unit is known: `_report_write` hands the command's space set-point on only where `_flow_unit` says it is a water temperature, and `SwitchContext` names the field `water_setpoint_c`. `_heated` compares the inlet with it when both are known and otherwise decides by the source leg's age, the rule it already had for an install with no inlet reading. Alternatives: comparing the inlet with the written water record on an indoor install lost, because an indoor install writes no water set-point at all; refusing every indoor-unit switch lost, because it would leave the default unit with no evidence. Driven on all three units through the arbiter: on return and on flow a return 1.9 K over the command's set-point after a seven-minute leg opens nothing and 2.0 K books; on indoor a return 9 K over the room's set-point with a 30 s leg opens nothing (the verdict's instance, booked at the blocked head), the same return with a 60 s leg books, and a return 0.5 K over the room's after a seven-minute leg books, so the room number is not compared at all. Mutants `r3_unit_gate_dropped`, `r3_unit_gate_inverted`, `r3_heated_no_setpoint_refuses`. The class's rule, `git grep -n "water_setpoint_c" -- 'custom_components/heatpump_optimizer/*.py'`, prints the field, its two reads in `_heated` and its one writer, the hand-off line in `_report_write`, closed in this diff; no other reading of the space set-point reaches the learner.
-3. The span gate. Fixed in this branch: under `SPAN_FLOOR_N` (0.5, one episode a half-life old; a named constant, not a measurement) of decayed weight `Direction.decay` forgets the first and last day with the evidence, and reports that as a change of the stored record, saved once. Alternative: the exact span of the episodes still above a weight needs every episode's day stored, a schema the estimate does not otherwise need; it lost to one comparison on the count already kept. The reviewer's probe at both ends is under Figures. Section check "the span ages with the evidence", with its null control (a first stop exactly one half-life old still anchors the span, and one a day old). Mutants `r3_span_never_ages`, `r3_span_floor_inclusive`, `r3_span_floor_value`, `r3_span_change_unreported`, `r3_span_last_day_kept`, `r3_span_reported_always`.
-
-The other findings, in the verdict's order:
-- Five real episodes never reach n of 5: not changed here, it is the meaning of a constant for the part that first reads `usable`; the check that read as an install's fifth stop is renamed to what it pins ("a stop taking n from 4 to 5"). Under Forward-carry.
-- The published k and n change with no observation: not changed here; under Forward-carry.
-- The planner-price carry's "controls as in the item above", and the PR-B brief against its carry: the roster's text, not this seat's to write; the two controls are restated in full in this body's Forward-carry line for that group.
-- No finder harness: stands as the verdict dismissed it.
+1. mutation-vacuous. Each of the three survivors is killed by a check added to the duty-switch section, each beside its null control; none is triaged. The failing check names, from applying each mutant to the tree and running the section:
+   - `r3v_span_floor_on_k` (`Direction.decay` reading the floor on `self.k`): "the span floor reads a direction's whole weight, kept episodes included". Three kept episodes and no stop: the pass a minute later reports no change and the day stays; at 30 days (n 0.68) still none; at 40 days n is under `SPAN_FLOOR_N` and the change is reported once, with k 0 and span 0. Null control: three stops read the same at the same three instants.
+   - `r3v_wrapper_pending_false` (`duty_switch.note_pass` passing False): "through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on the window's end keeps the episode open and books the stop once confirmed". Driven through `_Record`, `note_signal`, `note_mode_write` and `note_pass`, the running signal read through the record's reader and the passes every 15 s: a stop read at `STOP_WINDOW_S - EDGE_DEBOUNCE_S / 2` is pending at the pass at `STOP_WINDOW_S`, and the restart at 480 s books one stop with its off time. Null control: no stop read, the same passes book it kept.
+   - `r4v_tracker_settled_any` (`note_mode_write` counting an unknown signal as running): "through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing". The same driver, the signal unavailable before and at the write, then stopped 60 s after it and running at 300 s: nothing opens and nothing is counted. Null control: the compressor read running at the write, the same readings book one stop of 240 s.
+   ```
+   ### r3v_span_floor_on_k
+     FAIL the span floor reads a direction's whole weight, kept episodes included: three kept and no stop keep their day a minute later and report no change, and lose it, re
+   1 of 54 DUTY-SWITCH SECTION CHECKS FAILED
+   ### r3v_wrapper_pending_false
+     FAIL through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on the window's end keeps the episode open and books the stop on
+   1 of 54 DUTY-SWITCH SECTION CHECKS FAILED
+   ### r4v_tracker_settled_any
+     FAIL through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing, though the signal then reads stopped inside the window and run
+   1 of 54 DUTY-SWITCH SECTION CHECKS FAILED
+   ```
+   The reviewer's commands, as the verdict quotes them: `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py'`, once with the verdict's `ev/reviewer_mutant_spec_round3.json` (sha1 89413517a1f782ea97000c3d2a03919556017de4) and once with `ev/reviewer_mutant_spec_round4.json` (sha1 ae2d2eb54e772744d8d6336097df49fa9933b6d4), both read from `verdict/3461` at 559df6c8, at this head:
+   ```
+   ### round 3
+   SURVIVED NULL
+   KILLED r3v_aged_on_predecay_n
+   KILLED r3v_span_floor_on_k
+   KILLED r3v_unit_gate_return_only
+   KILLED r3v_unit_gate_flow_only
+   KILLED r3v_wrapper_pending_false
+   KILLED r3v_wrapper_pending_true
+   KILLED r3v_wrapper_dirty_dropped
+   KILLED r3v_heated_margin_strict
+   KILLED r3v_heated_falls_to_leg
+   KILLED r3v_pass_expiry_ignores_pending
+   KILLED r3v_ageout_keeps_reporting
+   ### round 4
+   SURVIVED NULL
+   KILLED r4v_last_write_min
+   KILLED r4v_first_day_overwritten
+   KILLED r4v_plan_stays_no_both
+   KILLED r4v_checked_every_pass
+   KILLED r4v_supply_ignores_switch
+   KILLED r4v_tracker_settled_any
+   ```
+   Control: the same two commands at 7f6c83171 print `SURVIVED` for the three (the verdict's `ev/mutants_reviewer_round3.txt` and `ev/mutants_reviewer_round4.txt`). Both specs are also appended to this body's spec (Mutant spec).
+2. carry-missing, the four items for R10-DUTY-SWITCH-RESTART-LEARNING-PR-B. The verdict routes it to the orchestrator's roster fold with no change to this head; the four lines stand under Forward-carry, each with its marker, for that fold.
 
 ## Verdict notes
 
@@ -102,7 +100,7 @@ The other findings, in the verdict's order:
 
 Every mutant ran through `tools/audit/seat/mutant_run.py`, in its `git archive` copy, at the head above, with one command: `env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`.
 
-**The spec** (`--spec`, at the end of this body): round 1's entries, then the round-1 reviewer's, then the round-2 reviewer's (`r2_`), then this round's own (`r3_`). Entries whose `old` text this round renamed (`space_setpoint_c` to `water_setpoint_c`, the hand-off line in `_report_write`) carry the new text and the same edit; `void_no_signal_pass` and `r2_signal_always` are dropped with the argument they mutated. The count is the `KILLED` lines below.
+**The spec** (`--spec`, at the end of this body): the earlier rounds' entries and both reviewers' as carried by the previous body, then the round-4 reviewer's two specs whole (`r3v_`, `r4v_`). The count is the `KILLED` lines below; `SURVIVED NULL` is the unmutated tree.
 
 ```
 SURVIVED NULL
@@ -227,49 +225,46 @@ KILLED r3_span_floor_value
 KILLED r3_span_change_unreported
 KILLED r3_span_last_day_kept
 KILLED r3_span_reported_always
+KILLED r3v_aged_on_predecay_n
+KILLED r3v_span_floor_on_k
+KILLED r3v_unit_gate_return_only
+KILLED r3v_unit_gate_flow_only
+KILLED r3v_wrapper_pending_false
+KILLED r3v_wrapper_pending_true
+KILLED r3v_wrapper_dirty_dropped
+KILLED r3v_heated_margin_strict
+KILLED r3v_heated_falls_to_leg
+KILLED r3v_pass_expiry_ignores_pending
+KILLED r3v_ageout_keeps_reporting
+KILLED r4v_last_write_min
+KILLED r4v_first_day_overwritten
+KILLED r4v_plan_stays_no_both
+KILLED r4v_checked_every_pass
+KILLED r4v_supply_ignores_switch
+KILLED r4v_tracker_settled_any
+rc=0
 ```
 
-**The branch diff** (`--diff origin/main...HEAD --report-only`, run once per production file with `--path`): three survivors, each an equivalent mutant.
+**The branch diff** (`--diff <merge base>...HEAD --report-only --path <file>`, one run per production file, `KILLED` lines left out): every survivor printed is listed.
 
 ```
+### custom_components/heatpump_optimizer/duty_switch.py
 SURVIVED custom_components/heatpump_optimizer/duty_switch.py:82 CONST_SWAP  STORE_VERSION = 2
 SURVIVED custom_components/heatpump_optimizer/duty_switch.py:187 CMP_BOUND  if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) >= 0.0:
+### custom_components/heatpump_optimizer/pump_arbiter.py
 SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1983 CONST_SWAP  return resolve_reading(None, sensor, states.get, 1.0, 0.0)[0], None, None, True
+### custom_components/heatpump_optimizer/wear.py
+### custom_components/heatpump_optimizer/sensor.py
+### custom_components/heatpump_optimizer/store.py
 ```
+
+Each is an equivalent mutant, as recorded:
 
 - `duty_switch.py` `STORE_VERSION = 2`: the version is what Home Assistant's `Store` stamps on the file and compares with a stored payload's own; no migration exists for either value and `DutySwitchLearner.from_record` never reads it. The arbiter's own `_STORE_VERSION` carries the same verdict in the ledger. Record: `tests/mutation_ledger/survivor_triage/duty_switch.py/@module.CONST.43e0a892.json`.
 - `duty_switch.py` `Direction.decay`, `> 0.0` to `>= 0.0`: the two differ only when the pass is at the stamp's own instant, and the guarded statement then assigns the stamp the instant it holds. The other side of the bound, a stamp half a second old, is driven ("every aging moves the stamp"). Record: `tests/mutation_ledger/survivor_triage/duty_switch.py/Direction.decay.CMP_BOUND.225d3f33.json`.
 - `pump_arbiter.py` `_running_signal`, `resolve_reading(None, sensor, states.get, 1.0, 0.0)[0]`: the fourth and fifth arguments are the range `resolve_reading` hands back as elements 1 and 2 of its tuple when no number entity is given; the reader keeps element 0 alone. No ledger record: `tests/mutation_table.py` generates no site for this operator on that line, and a disposition naming no site is refused.
 
-The first diff pass at this round's first commit printed forty-three survivors. One was the `wear.py` return deleted above; the others are each killed by a check added since (the learner's return values, the window's and the censor's bounds, the unstated gates, the median, the published rounding, the stored record's bounds against `store.py`'s registered domain, a failed read and a failed save, the attach and detach guards).
-
-**The ledger's own operators.** `tests / mutation` mutates with `tests/mutation_table.py`'s operators, which `--diff` does not carry (`BOOLOP`, `CLAMP_DROP`, `CONST`). At this head every site the diff adds is pinned by a `killed_by` record that module's own driver wrote: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py --shard K/N --jobs 4 --budget-minutes M`, one pass per `ledger: pin` commit of `git log 23961a5d8..HEAD`, each on the committed head it extended and each, by the seats that ran them before this merge, ending `PIN KILLED: <n> pinned, 0 left unpinned` beside `baseline tests/features.py: rc=0 failed=0` and a surviving `NULL_COMMENT`. The passes were not re-run for this body; what is re-taken is their result, the predictor's empty list under Unpinned sites, with its control. The repair commit's edits left pins naming no site; the two `ledger: drop` commits delete those and the edited lines are pinned afresh, which the absence of a `STALE PIN` line reads.
-
-Round 3's own run at 23961a5d8592e3fde3ac82ff4f705983da01fe04, before any pin, and not repeatable at this head because the list it reads is empty: for each site `tools/pr/ci_predict.py --base origin/main --only mutation` listed as added and unpinned, that module's own replacement line was written into a spec and run as above: `SURVIVED NULL`, every other line `KILLED`, no other survivor. The first such run left `duty_switch.py` `Direction.book`'s `CLAMP_DROP` alive (the last day no longer moved on); a check now kills it. The spec was built by:
-
-```python
-import json, re, sys
-from pathlib import Path
-sys.path.insert(0, "tests")
-import mutation_table as m
-want, spec = {}, []
-for line in Path(sys.argv[1]).read_text().splitlines():  # ci_predict's output
-    hit = re.match(r"PREDICT tests / mutation ADDED UNPINNED (\S+):(\d+) (\w+)", line)
-    if hit:
-        want.setdefault(hit.group(1), set()).add((int(hit.group(2)), hit.group(3)))
-for rel, keys in want.items():
-    src = Path(rel).read_text()
-    lines, seen = src.split("\n"), {}
-    for s in m.anchor_sites(src, list(m.candidates(Path(rel).resolve(), m.RATCHETED, src))):
-        if (s["line"], s["kind"]) in keys:
-            i = j = s["line"] - 1
-            while src.count("\n".join(lines[j:i + 1])) != 1:
-                j -= 1
-            n = seen[s["line"], s["kind"]] = seen.get((s["line"], s["kind"]), 0) + 1
-            spec.append({"name": f"{Path(rel).name}:{s['line']}:{s['kind']}#{n}", "file": rel,
-                         "old": "\n".join(lines[j:i + 1]), "new": "\n".join([*lines[j:i], s["new"]])})
-print(json.dumps(spec, indent=1))
-```
+**The ledger's own operators.** `tests / mutation` mutates with `tests/mutation_table.py`'s operators. Every site the diff adds was pinned by a `killed_by` record that module's own driver wrote (`PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py ...`, the `ledger: pin` commits of the branch); those passes were not re-run for this body. What is re-taken is their result: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` prints no `ADDED UNPINNED` and no `STALE PIN` line at this head (Unpinned sites). This repair adds lines under `tests/` only, which the lane does not mutate.
 
 ## Null control
 
@@ -277,25 +272,23 @@ print(json.dumps(spec, indent=1))
 - An install where no switch stops the compressor, one where it does, and a flat-price day: the split order and every service call are equal between an empty learner and one latched usable in both directions (three checks named "null control" in the section). They hold by construction, and a fourth check pins the construction: only `pump_arbiter.py` and `sensor.py` name `duty_switch`, through eight names none of which reads the estimate.
 - Both ends of the learner's range: an empty learner publishes no key and changes nothing; one saturated at p = 1 changes nothing either.
 - `tests/env_drift.py --all` against the merge base reports no unclaimed drift and no stale fixture; neither claim file is touched (`git diff origin/main...HEAD --stat -- tests/golden/` prints nothing).
-- Round 3's: the indoor-unit rows beside the same return with a full leg; the interval defrost beside the flag reading False; Economy and Auto beside Comfort; the tank at its set-point beside 0.1 K under; the off-plan write beside the same write on a step that holds it; the aged span beside a first stop one half-life old. Both ends of the span rule's range: an empty direction has no day to forget (the section reads `Direction().span_days` as 0), and one saturated keeps its days (the latch row at n 40 switches on, which needs its two-day span).
-- Each check added in round 2 carries its own: every void reading beside the same install with the flags off; every count gate beside the step the other side of its bound; the censoring write beside the same install without it; the aged learner beside one aged a minute.
+- The indoor-unit rows beside the same return with a full leg; the interval defrost beside the flag reading False; Economy and Auto beside Comfort; the tank at its set-point beside 0.1 K under; the off-plan write beside the same write on a step that holds it; the aged span beside a first stop one half-life old. Both ends of the span rule's range: an empty direction has no day to forget (the section reads `Direction().span_days` as 0), and one saturated keeps its days (the latch row at n 40 switches on, which needs its two-day span).
+- Each void and gate check carries its own: every void reading beside the same install with the flags off; every count gate beside the step the other side of its bound; the censoring write beside the same install without it; the aged learner beside one aged a minute.
+- The three checks of this repair: three stops beside the three kept episodes; no stop read beside the stop pending across the window's end; the compressor read running at the write beside the signal unknown there.
 
 ## Figures
 
-- Section checks: `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`
-- Mutants killed, the null and the diff pass's survivors: the two `mutant_run.py` runs under Mutation proof, at this head. The unpinned-site list: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation | grep -c -e 'ADDED UNPINNED' -e 'STALE PIN'` prints 0 at this head. Control, not re-run: the previous version of this body read 105 at 6dac686e24e88e6e2df5c0ec3dbf432278777279, the first merge of main before the repair commit and before any pin.
-- The merge's resolution, both parents surviving: the command and its four lines under Head.
-- Malformed payloads driven through the loader: the count in the check name the section prints ("malformed or out-of-bounds payloads").
-- Golden drift: `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)`
-- `tests/features.py` at this head: exits 0, its last line the script's own all-passed count. Control: the same tree before the fake's entry and parameters were changed stops on the two errors named under Head. `PYTHONPATH=tests/hastub python3 tests/features.py`
-- Scoped gate, run at this head: `MODE: SCOPED`, exit 0, every script it ran green. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`
-- Gate mode: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`
-- Structural ratchet: `python3 tests/structure.py`
-- Architecture score: `python3 -I tools/audit/archscore/score.py --diff "$(git merge-base origin/main HEAD)" HEAD`
-- Closures: the scripts whose recorded closure held `pump_arbiter.py`, `sensor.py` or `store.py` were re-recorded on Linux with `./tests/derive_closures.sh --scripts-from <list>` and merged with `python3 tests/closure.py merge --in-dir <dir> --partial --allow-failures`; `tests/entities.py` exited 1 while recorded only on checks that read the not-yet-merged table, and passes at the head.
-- The reviewer's probe at both ends: `$EXPORT/ev/reviewer_probe.py` (sha1 95dc3977d920f6cda166f278c67d85dbdcb085a8), `$EXPORT` being a `git archive` export of `probe/rev-3461-edf76a05` at e4e4c6cd5783872a0206bf9d7c01c54fcfa37108, run from the root of the tree it measures; it is the reviewer's evidence and not in this tree. At 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2 (a `git archive` export): `span_probe6 ... span_days=366 usable=True`, its control `span_days=1 usable=False`; `heated_room_unit ... heated=True`, its control `heated=False`. At this head, with the probe's two `space_setpoint_c=` arguments renamed (`space_setpoint_c=21.0` becomes `water_setpoint_c=None`, which is what the arbiter now hands over for a room-unit set-point; `space_setpoint_c=32.0` becomes `water_setpoint_c=32.0`): `span_probe6 ... span_days=1 usable=False`, equal to its control; `heated_room_unit ... heated=False`, equal to its control. The probe's `fifth_episode` and `attr_churn` lines read the same at both ends: neither is changed here.
-- The heated gate at the install, per unit: the rows of `_ds_gates` and `_ds_gates_open` in the section, which the two gate checks print on failure. The water set-point the arbiter commands on the fixture is its heating ceiling, read from the section's own service calls, so the bound is that ceiling plus `HEATED_MARGIN_K`.
-- Seams of the class (fixer step 8), `git grep -n -E "select_option|await _command\(" -- 'custom_components/heatpump_optimizer/*.py'`: the one mode write, in `_write`, closed in this diff by the report there; its callers `_arbitrate` and `release`, covered through it (`release` detaches first).
+- Section checks: `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py` exits 0, its last line the all-passed count.
+- Mutants: the `mutant_run.py` runs under Mutation proof and under "Review round 4, answered", at this head.
+- The failing check per surviving mutant: each mutant's `old` text replaced by its `new` text in the working tree, the section run, the tree restored (the block under "Review round 4, answered").
+- Unpinned sites: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` prints no `ADDED UNPINNED` and no `STALE PIN` line.
+- Golden drift: `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)` prints `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE`, rc 0.
+- Gate mode: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED`.
+- Scoped gate: `MODE: SCOPED`, rc 0, every script it ran green (`TEST SCRIPT(S) PASSED` line). `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`
+- Structural ratchet: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`, rc 0.
+- Architecture score: `python3 -I tools/audit/archscore/score.py --diff "$(git merge-base origin/main HEAD)" HEAD` prints dS -0.0081, `coord_footprint` 2492 to 2506 (Architecture score).
+- Merge with main: `git merge-tree --write-tree origin/main HEAD` exits 0 (Head).
+- Seams of the class (fixer step 8), `git grep -n -E "select_option|await _command\(" -- 'custom_components/heatpump_optimizer/*.py'`: the one mode write, in `_write`, closed in this diff by the report there; its callers `_arbitrate` and `release`, covered through it (`release` detaches first). Not changed by this repair, which touches no production file.
 
 ## Architecture score
 
@@ -303,12 +296,11 @@ print(json.dumps(spec, indent=1))
 
 ## Unpinned sites
 
-None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` prints no `ADDED UNPINNED` and no `STALE PIN` line. Every site the previous version of this section listed as left to `mutation-autofix` now carries a `killed_by` record this branch commits, written by the lane's own driver (Mutation proof, "The ledger's own operators"); the two equivalent sites carry a `survivor_triage` record, as before. Control, not re-run at this head: the previous version of this body, where the same command at 6dac686e24e88e6e2df5c0ec3dbf432278777279, a merge of main before any pin, printed `ADDED UNPINNED` lines.
+None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` prints no `ADDED UNPINNED` and no `STALE PIN` line. The sites carry `killed_by` records this branch commits, written by the lane's own driver; the two equivalent sites carry a `survivor_triage` record (Mutation proof).
 
 ## Red checks
 
 - `tests / mutation`: red on pull request 3461 at 3a47c7c156ff1ee55bd0a343023606f7655d2638, as `tools/pr/prepr.sh` step 6d predicted: that head adds sites no record pins. Answered at this head by the pins: the predictor lists no unpinned and no stale site here (Unpinned sites). Cheaper detector: step 6d itself, which named every site before the push at no cost beyond the self-check; the kill runs that write a pin are the lane's own and nothing cheaper than them can pin a site.
-- `gate`: red at the same head; it is the aggregate of the required checks and failed on `tests / mutation` alone, the one required check red there. Cheaper detector: the line above.
 - `tests / fast (3.14)`: red at the head the round-2 review read, 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2, on `tests/features.py`'s `combi_type_branch` census, which was red on `origin/main` itself on six lines none of which this diff adds. Green on the pull request since pull request 3466 reached main, and `tests/features.py` passes at this head, which merges it (Figures). Cheaper detector: none on this branch; the script that fails is the detector, and it ran on main.
 
 ## Forward-carry
@@ -322,7 +314,6 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
 - The published k and n decay continuously, so the starts sensor's attributes change with no observation (the reviewer's probe, `attr_churn`; control: an empty learner publishes nothing). Not changed in part A; the part that first reads or widens the publication decides its resolution. Re-measure with the probe. Owed to the same brief. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
 - `span_days` now reads 0 beside non-zero tallies once a direction's weight is under `SPAN_FLOOR_N`: a reader takes that as "nothing recent", never as "never observed". Control: the mutant `r3_span_never_ages` fails the section's span check. In `docs/design/2026-11-10-duty-switch-restart-learning/design.md`, "Part A as built"; owed to the same brief. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
 - The heated gate is decided per set-point unit, and on a water unit it compares the inlet with the commanded set-point, which `_flow_target` keeps at or above the inlet plus the minimum lift up to the heating ceiling: a hot water to space switch there counts only with the return `HEATED_MARGIN_K` over that ceiling (the section's return and flow rows, one each side of the bound). On the indoor unit every switch after a source leg of `SOURCE_LEG_MIN_S` counts. So evidence accrues at different rates per unit, and a part reading n must not assume otherwise. Controls: `r3_unit_gate_dropped` and `r3_unit_gate_inverted`. Re-measure with the section at that part's merge base. In the design note's "Part A as built"; owed to the same brief. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
-
 
 ## Friction
 
@@ -1061,6 +1052,108 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
   "old": "aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N",
   "new": "aged_out = self.n < SPAN_FLOOR_N"
+ },
+ {
+  "name": "r3v_aged_on_predecay_n",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N",
+  "new": "aged_out = self.first_day is not None and n < SPAN_FLOOR_N"
+ },
+ {
+  "name": "r3v_span_floor_on_k",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N",
+  "new": "aged_out = self.first_day is not None and self.k < SPAN_FLOOR_N"
+ },
+ {
+  "name": "r3v_unit_gate_return_only",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,",
+  "new": "water_setpoint_c=command.space_setpoint if EntryConfig.from_mapping(inp.config).space_setpoint_unit == \"return\" else None,"
+ },
+ {
+  "name": "r3v_unit_gate_flow_only",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,",
+  "new": "water_setpoint_c=command.space_setpoint if EntryConfig.from_mapping(inp.config).space_setpoint_unit == \"flow\" else None,"
+ },
+ {
+  "name": "r3v_wrapper_pending_false",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty",
+  "new": "rec.dirty = rec.learner.note_pass(when, ctx, False) or rec.dirty"
+ },
+ {
+  "name": "r3v_wrapper_pending_true",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty",
+  "new": "rec.dirty = rec.learner.note_pass(when, ctx, True) or rec.dirty"
+ },
+ {
+  "name": "r3v_wrapper_dirty_dropped",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty",
+  "new": "rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None)"
+ },
+ {
+  "name": "r3v_heated_margin_strict",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "return ctx.inlet_c - ctx.water_setpoint_c >= HEATED_MARGIN_K",
+  "new": "return ctx.inlet_c - ctx.water_setpoint_c > HEATED_MARGIN_K"
+ },
+ {
+  "name": "r3v_heated_falls_to_leg",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "        return ctx.inlet_c - ctx.water_setpoint_c >= HEATED_MARGIN_K",
+  "new": "        if ctx.inlet_c - ctx.water_setpoint_c >= HEATED_MARGIN_K:\n            return True"
+ },
+ {
+  "name": "r3v_pass_expiry_ignores_pending",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "if not pending and utc_elapsed_seconds(when, ep.at) >= STOP_WINDOW_S:",
+  "new": "if utc_elapsed_seconds(when, ep.at) >= STOP_WINDOW_S:"
+ },
+ {
+  "name": "r3v_ageout_keeps_reporting",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "        if aged_out:\n            self.first_day = self.last_day = None",
+  "new": "        if aged_out:\n            self.last_day = None"
+ },
+ {
+  "name": "r4v_last_write_min",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "last_write_at=max((at for _value, at in held.written.values()), default=None),",
+  "new": "last_write_at=min((at for _value, at in held.written.values()), default=None),"
+ },
+ {
+  "name": "r4v_first_day_overwritten",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "self.first_day, self.last_day = self.first_day or day, max(self.last_day or day, day)",
+  "new": "self.first_day, self.last_day = day, max(self.last_day or day, day)"
+ },
+ {
+  "name": "r4v_plan_stays_no_both",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "plan_stays=all(step_duty(inp.plan, at) in (target, \"both\")",
+  "new": "plan_stays=all(step_duty(inp.plan, at) in (target,)"
+ },
+ {
+  "name": "r4v_checked_every_pass",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "        if not ep.checked:\n            ep.checked = True\n            if explained:",
+  "new": "        if True:\n            ep.checked = True\n            if explained:"
+ },
+ {
+  "name": "r4v_supply_ignores_switch",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "supply_on=not _pump_off(inp, held),",
+  "new": "supply_on=True,"
+ },
+ {
+  "name": "r4v_tracker_settled_any",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is not False and rec.tracker.pending is None"
  }
 ]
 ```
