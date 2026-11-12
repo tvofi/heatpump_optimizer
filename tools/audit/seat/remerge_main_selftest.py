@@ -89,7 +89,10 @@ case "$*" in
     old=$(git -C "$o" rev-parse refs/pull/1/head); m=$(git -C "$o" rev-parse main)
     t=$(git -C "$o" merge-tree --write-tree "$old" "$m")
     [ "$FAKE_MODE" = extra ] && t=$(git -C "$o" rev-parse "$old^{tree}")
+    # side: the second parent is main's tree on a commit off main's first-parent line; notold: the first parent is not the old head
+    [ "$FAKE_MODE" = side ] && m=$(git -C "$o" commit-tree "$m^{tree}" -p "$m" -m "beside main")
     if [ "$FAKE_MODE" = commit ]; then c=$(git -C "$o" commit-tree "$t" -p "$old" -m "not a merge")
+    elif [ "$FAKE_MODE" = notold ]; then c=$(git -C "$o" commit-tree "$t" -p "$old^" -p "$m" -m merge)
     else c=$(git -C "$o" commit-tree "$t" -p "$old" -p "$m" -m merge); fi
     git -C "$o" update-ref refs/pull/1/head "$c" ;;
   *pulls/1) printf '{"head": {"sha": "%s"}}' "$(git -C "$o" rev-parse refs/pull/1/head)" ;;
@@ -172,7 +175,9 @@ def fork_checks(root, script):
     no, f = fork_case(root, script, "still")
     out["an update-branch GitHub accepted that moved nothing is REMERGE FAILED at push saying so, never PUSHED"] = (
         no.returncode != 0 and f"did not move off {f['old']}" in no.stdout and "PUSHED" not in no.stdout)
-    for mode, what in (("extra", "a tree that is not git's automatic merge"), ("commit", "one parent")):
+    for mode, what in (("extra", "a tree that is not git's automatic merge"), ("commit", "one parent"),
+                       ("side", "a second parent that is no first-parent commit of main (its tree is main's)"),
+                       ("notold", "a first parent that is not the old head (the tree is the automatic merge)")):
         no, f = fork_case(root, script, mode)
         out[f"a new head with {what} fails the read-back: not PUSHED, non-zero"] = (
             no.returncode != 0 and "is not the automatic 2-parent merge" in no.stdout and "PUSHED" not in no.stdout)
