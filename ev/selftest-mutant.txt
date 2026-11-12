@@ -1,0 +1,4 @@
+VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER)\b", re.M)
+roster_edit self-test: 281 checks, 1 failed
+FAIL triage gate: a LOG ruling is refused as LOG, never routed (got: )
+0

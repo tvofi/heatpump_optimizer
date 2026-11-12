@@ -1,0 +1,6 @@
+  -- 8 error(s), 0 warning(s)
+  -- 1 error(s), 0 warning(s)
+  -- 1 error(s), 0 warning(s)
+CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean
+rc=0
