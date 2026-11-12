@@ -105,6 +105,7 @@ handoff_push_self_test() (
 )
 
 if [ "${1:-}" = --self-test ]; then
+  [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded handoff_push bash "$0" --self-test; }  # pr_args.sh's self-test bound
   bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
   handoff_push_self_test; h=$?
   [ "$r" = 0 ] && [ "$h" = 0 ]; exit $?

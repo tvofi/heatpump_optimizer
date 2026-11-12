@@ -102,7 +102,7 @@ hb_self_test() (
 mode=; msg=; max=1200
 while [ $# -gt 0 ]; do
   case $1 in
-    --self-test) hb_self_test; exit ;;
+    --self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded heartbeat bash "$0" --self-test; }; hb_self_test; exit ;;
     --once) mode=once; shift ;;
     --watch) mode=watch; shift ;;
     --message) msg=${2:-}; shift 2 || shift ;;

@@ -1506,6 +1506,34 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         return 0
 
 
+KEY_LINE = re.compile(r"(STARTED|TRAIN|PRE-FLIGHT|BATCH|SKIP REPORT|CURED|NOT RUN|SWEEP|ADD|HELD-FOR-STAMP|PARK|REFUSE|DONE|proof)\b")
+QUIET_TAIL = 20
+
+
+def quiet_log(full: Path, out=print, tail: int = QUIET_TAIL):
+    """The train's quiet log (owner card 2026-10-24): every line goes to `full`;
+    stdout gets only the key lines (mode, the run's start/stop/done, refusals,
+    the summaries), and a `TRAIN STOPPED` line first prints the last `tail`
+    chatter lines, the failing step's tail. `--verbose`/TRAIN_VERBOSE=1 skips it."""
+    held: list[str] = []
+    fh = open(full, "a", buffering=1)
+
+    def log(m) -> None:
+        m = str(m)
+        fh.write(m + "\n")
+        if not KEY_LINE.match(m):
+            held.append(m)
+            del held[:-tail]
+            return
+        if "STOPPED" in m:
+            for h in held:
+                out("  | " + h)
+        held.clear()
+        out(m)
+    out(f"quiet output: the full log is {full} (--verbose or TRAIN_VERBOSE=1 prints it)")
+    return log
+
+
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
@@ -9246,6 +9274,20 @@ def _post_approval_self_test(check) -> None:
     finally:
         globals()["train_add"] = real
     check("post-approval wait null: without the flag add never waits, it adds", rc == 0 and len(seen) == 1)
+    # Quiet output: chatter reaches the full log alone, a stop shows its tail, verbose is the stream.
+    with tempfile.TemporaryDirectory() as qd:
+        shown: list[str] = []
+        ql = quiet_log(Path(qd) / "full.log", out=shown.append, tail=2)
+        for m in ("recarry #1 start", "gate red at abc", "recarry #2 start", "TRAIN STOPPED #2 gate: red", "TRAIN DONE"):
+            ql(m)
+        full = (Path(qd) / "full.log").read_text().splitlines()
+        check("quiet log: every line reaches the full log", len(full) == 5)
+        check("quiet log: chatter is not shown until a stop", "recarry #1 start" not in " ".join(shown))
+        check("quiet log: a stop shows the failing step's tail, bounded, then itself",
+              shown[1:4] == ["  | gate red at abc", "  | recarry #2 start", "TRAIN STOPPED #2 gate: red"] and shown[-1] == "TRAIN DONE")
+    check("quiet log: --verbose is a parser flag, off by default",
+          _parser().parse_args(["batch", "q"]).verbose is False
+          and _parser().parse_args(["batch", "q", "--verbose"]).verbose is True)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -9264,6 +9306,8 @@ def _parser() -> argparse.ArgumentParser:
                                  "one mandate, re-post that approval at h under a mandate RE-READ in force at "
                                  "the merge; a re-post that fails its byte-identical read-back is a stop. "
                                  "Default: off -- a budget stop stops, however clean the recarry was.")
+    train_opts.add_argument("--verbose", action="store_true",
+                            help="print every progress line (default: key lines, the full log in the state dir)")
     train_opts.add_argument("--main-moved-tries", type=int, default=MAIN_MOVED_TRIES,
                             help="a foreign merge that moves main under a settled head is recovered this many "
                                  "times per entry (serial: recarry and wait CI again; batch: re-prove what is "
@@ -9448,6 +9492,8 @@ def main(argv: list[str]) -> int:
     ignore = tuple(a.ignore_red) if a.ignore_red else ("tests / nightly-status",)
     opts = dict(approval_carry=a.approval_carry, main_moved_tries=a.main_moved_tries,
                 bot_prs=a.bot_prs, pre_flight=a.pre_flight, free_holders=a.free_holders)
+    if not (a.verbose or os.environ.get("TRAIN_VERBOSE") == "1"):
+        opts["log"] = quiet_log(Path(a.state_dir) / "train-full.log")
     if a.cmd == "batch":
         return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
                      base=a.base, skip_bad=a.skip_bad, overlap=a.overlap, **opts).batch(queue, a.tag)
