@@ -1,0 +1,29 @@
+SURVIVED  NULL (unmutated tree; must read SURVIVED)  :: barrier self-test: 5 checks, 0 failed 
+KILLED  plant in review_packet.py: return merge_train.classify(l, r, None)  :: barrier self-test: 5 checks, 1 failed   FAIL P436 barrier: the deferral-blind `classify` readers in the reader modules are exactly the registered ones (a new blind read of the gate 
+KILLED  plant in review_packet.py: return merge_train.classify(l, r, frozenset())  :: barrier self-test: 5 checks, 1 failed   FAIL P436 barrier: the deferral-blind `classify` readers in the reader modules are exactly the registered ones (a new blind read of th
+SURVIVED  plant in review_packet.py: return merge_train.classify(l, r, bytearray())  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return merge_train.classify(l, r, tuple(()))  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return merge_train.classify(l, r, None or ())  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return merge_train.classify(l, r, () if True else ())  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return merge_train.classify(l, r, ()[0:0])  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return merge_train.classify(l, r, busy=bool(0))  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return merge_train.classify(l, r, (lambda: ())())  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return merge_train.classify(*(l, r))  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return merge_train.classify(l, r, *())  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: c = merge_train.classify; return c(l, r)  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant in review_packet.py: return getattr(merge_train, 'classify')(l, r)  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant: a production function named _reviewer_self_test_free_reader calling classify(l, r)  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  plant: a new module tools/audit/seat/reviewer_new_reader.py calling merge_train.classify(l, r)  :: barrier self-test: 5 checks, 0 failed 
+KILLED  mutant M-ctor: frozenset dropped from _EMPTY_CTORS  :: barrier self-test: 5 checks, 1 failed   FAIL P436 barrier null: a busy argument that is a literal None, (), [], {}, set(), frozenset(), dict() or empty string, positional or keyword, is as blind  
+KILLED  mutant M-dict: reads() True for any dict literal  :: barrier self-test: 5 checks, 1 failed   FAIL P436 barrier null: a busy argument that is a literal None, (), [], {}, set(), frozenset(), dict() or empty string, positional or keyword, is as blind  
+6784:_EMPTY_CTORS = ("tuple", "list", "set", "frozenset", "dict", "str", "bool", "int", "float")
+SURVIVED  mutant M-ctor: bytes dropped from _EMPTY_CTORS  :: barrier self-test: 5 checks, 0 failed 
+6784:_EMPTY_CTORS = ("tuple", "list", "set", "frozenset", "dict", "str", "bytes", "int", "float")
+SURVIVED  mutant M-ctor: bool dropped from _EMPTY_CTORS  :: barrier self-test: 5 checks, 0 failed 
+6784:_EMPTY_CTORS = ("tuple", "list", "set", "frozenset", "dict", "str", "bytes", "bool", "float")
+SURVIVED  mutant M-ctor: int dropped from _EMPTY_CTORS  :: barrier self-test: 5 checks, 0 failed 
+6784:_EMPTY_CTORS = ("tuple", "list", "set", "frozenset", "dict", "str", "bytes", "bool", "int")
+SURVIVED  mutant M-ctor: float dropped from _EMPTY_CTORS  :: barrier self-test: 5 checks, 0 failed 
+SURVIVED  mutant M-allow: ast.Subscript dropped from reads()'s allow-list  :: barrier self-test: 5 checks, 0 failed
+SURVIVED  mutant M-allow: ast.IfExp dropped from reads()'s allow-list  :: barrier self-test: 5 checks, 0 failed
+SURVIVED  mutant M-allow: ast.BoolOp dropped from reads()'s allow-list  :: barrier self-test: 5 checks, 0 failed
