@@ -1,0 +1,11 @@
+RESULT P1 age-alone moves (p,n,span_days) with decay() each day: [(0, (1.0, 1.0, 1), (1.0, 0.0, 1)), (13, (1.0, 0.0, 1), (1.0, 0.0, 0))]
+RESULT P1b reads only: [(0, (1.0, 1.0, 1), (1.0, 0.0, 1))]
+RESULT P2 restamped quarter-hour reads over 120 d: n steps=29 upward=0 p moves=0 final n=0.0
+RESULT P3 read 5 d ahead then 1 d behind the stamp: 4.0 6.0
+RESULT P4 five at one instant: 5.0 False one second later: 4.0
+RESULT P5 spread weights after each booking: [1.0, 1.9796, 2.9392, 3.8792, 4.7999, 5.7019]
+RESULT P6 empty learner: {}
+RESULT P6 void-only: {'duty_switch_space_dhw_p': 0.0, 'duty_switch_space_dhw_n': 0.0, 'duty_switch_space_dhw_stopped': 0, 'duty_switch_space_dhw_kept': 0, 'duty_switch_space_dhw_void': 1, 'duty_switch_space_dhw_censored': 0, 'duty_switch_space_dhw_span_days': 0}
+RESULT P7 kept-only: {'duty_switch_dhw_space_p': 0.0, 'duty_switch_dhw_space_n': 1.0, 'duty_switch_dhw_space_stopped': 0, 'duty_switch_dhw_space_kept': 1, 'duty_switch_dhw_space_void': 0, 'duty_switch_dhw_space_censored': 0, 'duty_switch_dhw_space_span_days': 1}
+RESULT P7 one stop read 1 h later: {'duty_switch_space_dhw_p': 1.0, 'duty_switch_space_dhw_n': 0.0, 'duty_switch_space_dhw_stopped': 1, 'duty_switch_space_dhw_kept': 0, 'duty_switch_space_dhw_void': 0, 'duty_switch_space_dhw_censored': 0, 'duty_switch_space_dhw_median_off_s': 30.0, 'duty_switch_space_dhw_span_days': 1}
+RESULT P8 changes between consecutive reads over 96: 0 keys: ['duty_switch_dhw_space_censored', 'duty_switch_dhw_space_kept', 'duty_switch_dhw_space_median_off_s', 'duty_switch_dhw_space_n', 'duty_switch_dhw_space_p', 'duty_switch_dhw_space_span_days', 'duty_switch_dhw_space_stopped', 'duty_switch_dhw_space_void']
