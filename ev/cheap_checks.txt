@@ -1,0 +1,40 @@
+## class rule
+tools/audit/seat/cloud_relay.sh:543:  git -C "$tw" checkout -q --detach origin/main 2>/dev/null \
+tools/audit/seat/roster_edit.py:2030:    run(["git", "-C", str(drv), "checkout", "-q", "--detach", "origin/main"])
+tools/audit/seat/roster_queue.py:327:        _git("checkout", "-q", "--detach", "origin/main", cwd=a.lint_clone)
+tools/audit/seat/tick_loop.sh:116:  elif ! git -C "$top" checkout -q --detach origin/main; then why="the checkout failed"
+tools/release/stamp.py:2735:    run("git", "checkout", "-q", "--detach", "origin/main")
+## version/claims paths in diff
+dev/audit/harnesses/r10_tick_selftest_checkout.sh
+tests/closures.json
+tools/audit/seat/instruments/tick_loop.sh.md
+tools/audit/seat/tick_loop.sh
+0
+## owed-reds
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+## merge-tree
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1008 entries)
+  re-run the gate that owns this file before pushing
+c4e9638c82f42b2ff356021527c2714562a5b961
+rc=0
+43e95474559ca8e2188830f8775c1ddf52df964a
+## self-test files MB vs main
+(empty above = identical)
+## roles drift
+## structure
+STRUCTURE RATCHET PASSED

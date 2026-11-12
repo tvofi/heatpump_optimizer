@@ -1,0 +1,31 @@
+caller exports HPO_TICK_RESTARTED=1:
+RESULT asis env-HPO_TICK_RESTARTED: tick_loop self-test: 30 checks, 5 failed rc=1 13s load=1.03
+    FAIL freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+    FAIL freshness: a dirty tree prints the banner, skips the relay and is never moved
+    FAIL freshness: a checked-out branch is never moved (restart needs a detached head)
+    FAIL freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+    FAIL freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+caller exports HPO_TICK_STALE_BOUND=0:
+RESULT asis env-HPO_TICK_STALE_BOUND: tick_loop self-test: 30 checks, 7 failed rc=1 12s load=1.02
+    FAIL freshness: behind within the bound and no change to the loop's own files relays, restarts nothing; the heartbeat says behind=1
+    FAIL freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+    FAIL freshness: a dirty tree prints the banner, skips the relay and is never moved
+    FAIL freshness: a checked-out branch is never moved (restart needs a detached head)
+    FAIL freshness: a pass already restarted does not exec again (at most once per pass)
+    FAIL freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+    FAIL freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+caller exports HPO_TICK_RELAY_WAIT=5:
+RESULT asis env-HPO_TICK_RELAY_WAIT: tick_loop self-test: 30 checks, 0 failed rc=0 13s load=0.87
+caller exports HPO_TICK_SWEEP_EVERY=1:
+RESULT asis env-HPO_TICK_SWEEP_EVERY: tick_loop self-test: 30 checks, 0 failed rc=0 13s load=0.75
+caller exports HPO_SWEEP_MANDATE=x:
+RESULT asis env-HPO_SWEEP_MANDATE: tick_loop self-test: 30 checks, 0 failed rc=0 13s load=0.64
+merge base 8c10361eb1fea539dc5acb8f7442eac2810faa47, caller exports HPO_TICK_RESTARTED=1:
+RESULT asis env-RESTARTED: tick_loop self-test: 30 checks, 5 failed rc=1 13s load=0.47
+    FAIL freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+    FAIL freshness: a dirty tree prints the banner, skips the relay and is never moved
+    FAIL freshness: a checked-out branch is never moved (restart needs a detached head)
+    FAIL freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+    FAIL freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+merge base, no export (null):
+RESULT asis null: tick_loop self-test: 30 checks, 0 failed rc=0 12s load=0.39

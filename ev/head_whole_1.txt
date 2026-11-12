@@ -1,0 +1,6 @@
+rev 81ea9ea2908ea83a012e3e42d694df56bb097c8c
+whole: tick_loop self-test: 34 checks, 0 failed rc=0
+
+real	1m3.657s
+user	0m8.151s
+sys	0m3.055s
