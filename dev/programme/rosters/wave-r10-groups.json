@@ -22574,9 +22574,9 @@
    ],
    "findings": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "df471503428eaa0a480ce5507c91ed6b49951ec2",
     "last_step": null,
     "next_step": "fixer adopts the author's commits on outside pull request 3435, split by seam if needed (no design step, size M)",
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3435 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-CARD-COLLAPSE, R10-OUTSIDE-DHW-CHARGE-SETTLE): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3435 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: shares tests/features.py with R10-OUTSIDE-DHW-CHARGE-SETTLE and R10-DUTY-SWITCH-RESTART-LEARNING and coordinator.py with R10-DUTY-SWITCH-RESTART-LEARNING, R10-COMBI-TANK, R10-COMBI-TANK-PR-B and R10-ADVISOR-STEADY-START; different seams (learner spans, boost tail, progress card); the fixer rebases on main at each part",
@@ -23708,7 +23708,8 @@
    "source": "outside",
    "findings": [],
    "carry": [
-    "From r10-outside-learner-robustness, body item 0aadbc91: Part 2 of outside pull request 3435, the boost settle tail scaled on the time the boost ran and persisted across a restart (boost.py, store.py, const.py and the mode change in coordinator.py), is not in this diff. It is its own roster group by feature triage ruling P613, cut from the author's commit f47199b6 with the authorship kept. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (items 0aadbc91)"
+    "From r10-outside-learner-robustness, body item 0aadbc91: Part 2 of outside pull request 3435, the boost settle tail scaled on the time the boost ran and persisted across a restart (boost.py, store.py, const.py and the mode change in coordinator.py), is not in this diff. It is its own roster group by feature triage ruling P613, cut from the author's commit f47199b6 with the authorship kept. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (items 0aadbc91)",
+    "Carry 1: Part 2 of outside pull request 3435, the boost settle tail scaled on the time the boost ran and persisted across a restart (boost.py, store.py, const.py and the mode change in coordinator.py), is not in this diff. It is its own roster group by feature triage ruling P613, cut from the author's commit f47199b6 with the authorship kept. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P2"
    ],
    "resume": {
     "stage": "not-started",
@@ -23768,7 +23769,8 @@
    "source": "outside",
    "findings": [],
    "carry": [
-    "From r10-outside-learner-robustness, body item cc8a67d1: Part 3 of outside pull request 3435, the refusal reasons at DEBUG and the frozen learner phase with the card in three languages (heat_energy.py, learner_progress.py, payload.py, the card script, tests/card.mjs), is not in this diff. It is its own roster group by feature triage ruling P613, built after part 2 from the same commit. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (items cc8a67d1)"
+    "From r10-outside-learner-robustness, body item cc8a67d1: Part 3 of outside pull request 3435, the refusal reasons at DEBUG and the frozen learner phase with the card in three languages (heat_energy.py, learner_progress.py, payload.py, the card script, tests/card.mjs), is not in this diff. It is its own roster group by feature triage ruling P613, built after part 2 from the same commit. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (items cc8a67d1)",
+    "Carry 2: Part 3 of outside pull request 3435, the refusal reasons at DEBUG and the frozen learner phase with the card in three languages (heat_energy.py, learner_progress.py, payload.py, the card script, tests/card.mjs), is not in this diff. It is its own roster group by feature triage ruling P613, built after part 2 from the same commit. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3"
    ],
    "resume": {
     "stage": "not-started",
