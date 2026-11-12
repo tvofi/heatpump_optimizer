@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """R10-GATE-DEFER-BARRIER: source mutants of the busy classifier (merge_train.busy_reads and its callers).
 
-    python3 -I dev/audit/harnesses/r10_gate_defer_barrier_mutants.py [--tree DIR]
+    python3 -I dev/audit/harnesses/r10_gate_defer_barrier_mutants.py [--tree DIR] [--corpus-under OTHER]
 
 DIR is a tree root holding tools/audit/seat/ (default: this tree). Each row of MUTANTS replaces one
 source fragment of tools/audit/seat/merge_train.py, which must occur exactly once (a fragment that no
@@ -11,6 +11,9 @@ against it. A mutant is KILLED when a check fails or the block raises. The unmut
 first as the null control and must fail nothing. The table mutants of BUSY_ARMS (each arm replaced by
 each other verdict, each operand field dropped) are not repeated here: the self-test block runs them
 itself and this harness's `enumerator` and `corpus` rows show that block reddening.
+--corpus-under OTHER runs no mutant: it reads DIR's BUSY_CORPUS (each expression as third positional and
+as `busy=`) through OTHER's `blind_classify_readers` and through DIR's, and prints per tree how many
+calls are judged against the recorded verdict, split by direction (`RESULT corpus ...`; exit 0).
 A line per mutant, then `RESULT mutants=N survived=S stale=T baseline_failed=F`; exit 1 unless S, T and F are 0.
 """
 import argparse
@@ -67,10 +70,38 @@ def run(path: Path, source: str) -> list:
     return failed
 
 
+def load(seat: Path, name: str):
+    mod = types.ModuleType(name)
+    mod.__file__ = str(seat / "merge_train.py")
+    sys.modules[name] = mod
+    sys.path.insert(0, str(seat))
+    try:
+        exec(compile((seat / "merge_train.py").read_text(), mod.__file__, "exec"), mod.__dict__)
+    finally:
+        sys.path.remove(str(seat))
+    return mod
+
+
+def corpus_under(seat: Path, other: Path) -> int:
+    here = load(seat, "mt_here")
+    rows = [(want, form.format(e)) for want, e in here.BUSY_CORPUS if not e.startswith("slice:")
+            for form in ("{}", "busy={}")]
+    for label, mod in (("other", load(other, "mt_other")), ("tree", here)):
+        bad = [want for want, arg in rows
+               if (mod.blind_classify_readers(f"def f():\n    return classify(l, r, {arg})\n") == {}) != (want == here.READS)]
+        print(f"RESULT corpus {label} calls={len(rows)} wrong={len(bad)} "
+              f"not_reading_passed={sum(w != here.READS for w in bad)} reading_counted_blind={sum(w == here.READS for w in bad)}")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tree", default=str(Path(__file__).resolve().parents[3]))
-    seat = Path(ap.parse_args().tree) / "tools/audit/seat"
+    ap.add_argument("--corpus-under")
+    args = ap.parse_args()
+    seat = Path(args.tree) / "tools/audit/seat"
+    if args.corpus_under:
+        return corpus_under(seat, Path(args.corpus_under) / "tools/audit/seat")
     sys.path.insert(0, str(seat))
     path = seat / "merge_train.py"
     src = path.read_text()
