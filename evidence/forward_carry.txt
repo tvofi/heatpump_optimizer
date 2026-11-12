@@ -1,16 +1,10 @@
-== blob ids: approved design.md at abc575172c vs in-tree at head
-fe5c7235475a3d3c9f11d827ca6b019e28cecacc
-fe5c7235475a3d3c9f11d827ca6b019e28cecacc
-== carry terms in the in-tree note (count of matching lines)
-0
-== the note's read-API and store lines at head
-38:Calls the arbiter makes, all into duty_switch.py: attach(hass, entry id, entities, reader), detach, note-mode-write, note-pass. Read API for B and C, unused in A: per direction, usable (bool), stop probability, median off seconds.
-48:**Store.** Version 1: per direction k, n, last-decay instant, first and last episode day, latch, off-time list, void and censored counts. `from_dict` validates shape and bounds and returns an empty learner otherwise, as `wear.py:101` does. Loaded on the fir
-== group named anywhere under dev/programme or .claude/workflows at head
-== files the diff touches under dev/programme
-== carry_audit on the body
-usage: carry_audit.py check [-h] --body BODY [--comments COMMENTS]
-                            [--issue-folds-file ISSUE_FOLDS_FILE]
-                            [--branch BRANCH] [--pr-group PR_GROUP]
-carry_audit.py check: error: the following arguments are required: --body
-rc=0
+design note at head: blob 1e786bff2d2c3c85bd27e7de498afcf66c41c2ff
+section 'Part A as built': 16 lines
+  /read API\|reader/: 3
+  /conditional\|absent/: 1
+  /Factory\|factory/: 1
+  /minimum-run\|supply hold\|supply_hold/: 1
+  /sixth\|N_ON/: 0
+  /no observation\|continuously/: 1
+  /span/: 1
+  /unit/: 1

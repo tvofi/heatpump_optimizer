@@ -1,9 +1,0 @@
-RESULT round_trip_equal True usable True n 5.32
-RESULT malformed_cases 36 not_emptied []
-RESULT extra_top_key_loads_whole True
-RESULT accepted_inconsistent usable_true_n0 loaded_empty False before (True, 0.0) after_pass (False, 0.0)
-RESULT accepted_inconsistent future_stamp loaded_empty False before (True, 5.32) after_pass (True, 5.32)
-RESULT accepted_inconsistent naive_stamp loaded_empty False before (True, 5.32) after_pass (False, 1.175)
-RESULT decay_p_constant True n 0.349 usable False
-RESULT one_episode_after_off n 1.349 usable False
-RESULT backward_clock_n_unchanged True

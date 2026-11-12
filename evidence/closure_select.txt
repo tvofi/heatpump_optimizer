@@ -1,6 +1,6 @@
 ########## scoped gate ##########
   MODE: SCOPED -- 23 script(s) run, 10 scoped out.
-  changed files (18), measured against the recorded closures in tests/closures.json:
+  changed files (128), measured against the recorded closures in tests/closures.json:
       custom_components/heatpump_optimizer/duty_switch.py
       custom_components/heatpump_optimizer/pump_arbiter.py
       custom_components/heatpump_optimizer/sensor.py
@@ -10,6 +10,7 @@
       dev/audit/rounds/round4/D6/claims.json
       dev/audit/rounds/round4/D6/claims.md
       dev/audit/rounds/round4/D6/claims.py
+      dev/programme/delivery/3461.md
       docs/architecture.md
       docs/design/2026-11-10-duty-switch-restart-learning/design.md
       tests/closures.json
@@ -18,7 +19,49 @@
       tests/features.py
       tests/finite_boundary.py
       tests/guard_pins.py
-      tests/mutation_ledger/killed_by/sensor.py/CompressorStartsSensor.extra_state_attributes.RETURN_DEL.0bb57d03.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CMP_BOUND.de78bd36.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.3ad20fe2.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.54638822.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.611517e5.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.824cdeaf.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.82d27bff.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.ce5749d5.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.dd55387f.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.e636784d.json
+      tests/mutation_ledger/killed_by/duty_switch.py/@module.CONST.f848cc1c.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction._latch.CMP_BOUND.4f285906.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction._latch.CMP_BOUND.f54ea3ea.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction._latch.GUARD_OFF.61222a3d.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction._latch.RETURN_DEL.2c3b9104.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.CLAMP_DROP.4bfd6d2d.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.GUARD_OFF.c741388e.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.GUARD_OFF.ef0a9633.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.decay.BOOLOP.474af5b8.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.decay.CMP_BOUND.474af5b8.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.decay.CMP_BOUND.50222946.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.decay.GUARD_OFF.225d3f33.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.decay.GUARD_OFF.465a172e.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.decay.RETURN_DEL.f0d661a4.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.from_row.CMP_BOUND.0523be4c.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.median_off_s.RETURN_DEL.7beb48c3.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.p.CMP_BOUND.6e792b66.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.weights.CLAMP_DROP.15fb0b50.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.weights.GUARD_OFF.d81cf5eb.json
+      tests/mutation_ledger/killed_by/duty_switch.py/Direction.weights.RETURN_DEL.e70607ef.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner._close.RETURN_DEL.355fcbc3.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner._interrupt.GUARD_OFF.86589cf1.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner._interrupt.RETURN_DEL.51e82991.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner._void.RETURN_DEL.355fcbc3.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.CMP_BOUND.7c075d4e.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.CMP_BOUND.d5d3637d.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.GUARD_OFF.287f8c4e.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.GUARD_OFF.34de120b.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.GUARD_OFF.4e1bea9b.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.GUARD_OFF.7c075d4e.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.GUARD_OFF.86589cf1.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.GUARD_OFF.d5d3637d.json
+      tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.edge.RETURN_DEL.96c9f042.json
+      ... and 68 more
 
       RUN   tests/arch_score_head.py (its tests/closures.json entry changed)
       RUN   tests/block_duty.py (its tests/closures.json entry changed)
@@ -59,3 +102,4 @@
   closure. The claim is re-checked by the FULL unscoped suite that runs
   on every push to main, so a wrong closure turns main red within one
   gate. Set GATE_SCOPE=full to run everything here and now.
+rc=0
