@@ -15,7 +15,9 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-ARCH-DOCS (stage in-progress, branch `handoff/r10-arch-docs`): `git fetch origin handoff/r10-arch-docs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-USER-DOCS-VERIFY (stage in-progress, branch `handoff/r10-user-docs-verify`): `git fetch origin handoff/r10-user-docs-verify && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-ROUND-PLAYBOOK-FINAL (stage in-progress, branch `handoff/r10-round-playbook-final`): `git fetch origin handoff/r10-round-playbook-final && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SEAT-SCRIPT-OUTPUT (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -30,6 +32,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CLOSEOUT-PREP (stage in-progress, branch `fix/r10-closeout-prep`): `git fetch origin fix/r10-closeout-prep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DUTY-SWITCH-RESTART-LEARNING (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-CHARGE-SETTLE (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -42,6 +45,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RELAY-ARM-ORDER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-MUTANT-RUN-FORKCAP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-STALE-STEP (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-OPENER-UNBLOCK (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-CARD-HEALTH-TEXT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PREPR-WC-PAD (stage carries-open): no branch pushed yet, so nothing to fetch

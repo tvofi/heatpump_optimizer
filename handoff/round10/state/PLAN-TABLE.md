@@ -345,7 +345,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-CIPREDICT-GAPS | FLY | 1 | done | - | sonnet/opus | - | Two reds prepr's CI-predict step should have predicted and did not, both in tools/pr/ci_predict.py, the cheaper detector for CI reds (defect-root-cause.md). |  |
 | R10-RCA-JIDOKA-YIELD | IN | 1 | done | - | sonnet/opus | - | From triage P309 (root-cause probe R10-RCA-JIDOKA-YIELD, filed by the orchestrator s8 2026-10-30): the RCA's own countermeasure M1, plus landing the RCA. |  |
 | R10-FLY-BASH-KILL-GUARD | IN | 1 | done | - | sonnet/opus | - | From triage P323 (orchestrator s8, 2026-10-31): a seat ran `pkill -f` with an empty pattern while restarting its watch loop. |  |
-| R10-USER-DOCS-VERIFY | DOCS | 1 | not-started | #3139, #3398 | opus/opus | - | Split from R10-USER-DOCS-FINAL (tvofi, 2026-10-31: "split USER-DOCS-FINAL"). |  |
+| R10-USER-DOCS-VERIFY | DOCS | 1 | in-progress | #3139, #3398 | opus/opus | - | Split from R10-USER-DOCS-FINAL (tvofi, 2026-10-31: "split USER-DOCS-FINAL"). |  |
 | R10-HOTFIX-PREHEAT-LABEL | CORE | 1 | done | - | opus/opus | - | Hotfix from a live user defect. |  |
 | R10-HOTFIX-AWAY-PRESENCE | CORE | 1 | done | #3117 | opus/opus | - | Hotfix from a live user defect. |  |
 | R10-AUDIT-COVERAGE-ENDGAME | IN | 1 | done | #3102 | opus/opus | - | Pre-study: the design note on the design/r10-audit-coverage ref. |  |
@@ -445,7 +445,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-RCA-GATE-BUSY-DEFER-2 | CP | 1 | done | - | opus/opus | - | Root cause (trigger 2: turned PRs red after the R10-HOTFIX-GATE-BUSY-DEFER fix #3246 merged at 355d9965) of the edit-gate race persisting: on #3263 head 02e9... |  |
 | R10-FLY-STAMP-FLUSH-HOLD | F | 1 | done | - | sonnet/opus | - | From triage batch 131 (triage: dev/programme/triage/s6-batch131.md#P402 at cd88cf6bd00d): stamp.py record_flush waits for a record merge while refs/heads/tra... |  |
 | R10-FLY-STAMP-FLUSH-COST | F | 1 | done | - | sonnet/opus | - | From triage batch 132 (triage: dev/programme/triage/s6-batch132.md#P404 and #P403 at 6db424629), savings estimate 6 to 16 h (central 10 h; instrument tier). |  |
-| R10-ROUND-PLAYBOOK-FINAL | C | 3 | not-started | #2716, #3106 | opus/opus | yes: owner request (tvofi, 2026-10-21); policy files, merges on mandated approval under 6319294694 | Owner ruling (tvofi, 2026-11-07, verbatim "Approve both"; coordination issue comment 6707334933): the final, size-S reconciliation pass of the round playbook... |  |
+| R10-ROUND-PLAYBOOK-FINAL | C | 3 | in-progress | #2716, #3106 | opus/opus | yes: owner request (tvofi, 2026-10-21); policy files, merges on mandated approval under 6319294694 | Owner ruling (tvofi, 2026-11-07, verbatim "Approve both"; coordination issue comment 6707334933): the final, size-S reconciliation pass of the round playbook... |  |
 | R10-HOTFIX-COP-UNMEASURED | CP | 1 | done | - | opus/opus | - | R10-HOTFIX-COP-UNMEASURED (hotfix tier: owner-reported, user-visible, 2026-11-07). |  |
 | R10-HOTFIX-TRAIN-DEFER-WAIT | CP | 1 | done | - | opus/opus | - | The merge train reads a red `gate` as final while the head's code run is still running, and skips a pull request that would have gone green. |  |
 | R10-CI-OWN-DELIVERY-ROW | IN | 1 | done | - | opus/opus | yes: code-owned: tools/ci/ (tvofi approves, or mandate 6624093439 in force) | Owner-approved CI-throughput lever 2 (tvofi, 2026-11-07, #201 comment 6707834331). |  |
@@ -512,7 +512,7 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 | R10-COMBI-TANK-PR-B | Core model | 1 | done | #3225 | opus/opus | - | PR B of the approved R10-COMBI-TANK design (PR 0 #3268 merged, PR A #3358): the loader wiring an install reaches, the combi seed, display and accounting of t... |  |
 | R10-STATE-DOCS-PUSH-RACE | tooling | 1 | done | - | sonnet/opus | - | tools/audit/seat/state_docs.py main() reads the tip of the round's state-doc ref once, generates for about half a minute, then pushes once with no re-read an... |  |
 | R10-CARD-COLLAPSE | UI | 1 | in-progress | - | opus/opus | - | Owner request (tvofi, 2026-11-09 ~23:35Z), verbatim: "For the next group touching the card, I want these two sections (first card) collapsible and default to... |  |
-| R10-CLOSEOUT-PREP | C | 3 | not-started | - | sonnet/opus | - | Closeout preparation, split from R10-CLOSEOUT-CLEANUP so that its two document-side carries run beside R10-ROUND-PLAYBOOK-FINAL instead of serially inside th... |  |
+| R10-CLOSEOUT-PREP | C | 3 | in-progress | - | sonnet/opus | - | Closeout preparation, split from R10-CLOSEOUT-CLEANUP so that its two document-side carries run beside R10-ROUND-PLAYBOOK-FINAL instead of serially inside th... |  |
 | R10-HOTFIX-OPENER-BOARD-PREFIX | IN | 1 | done | - | sonnet/opus | - | Hotfix (owed-lines seat, s13, 2026-11-09, mandate 6715477401): the beat's opener passes open_driver.py the tick board, whose owed level lines are flagged `->... |  |
 | R10-ARCH-DOCS-DELTA | DOCS | 3 | not-started | #2395 | sonnet/opus | - | Owner ruling (tvofi, 2026-11-10, verbatim "Yes on 1 and 2", lever 1 of the s13 critical-path compression study): R10-ARCH-DOCS is split. |  |
 | R10-HOTFIX-PACKET-APPROVAL-OWED | IN | 1 | done | - | sonnet/opus | - | Hotfix: review_packet.py refused required-red on a head classify read WAIT (a red gate while a unit re-runs), deadlocking #3379. |  |
@@ -570,7 +570,7 @@ New S group (no carry_receivable group lists mutant_run.py). |  |
 Orchestrator ruling under mandate 6715477401 (scope all), recorded in P606. |  |
 | R10-OUTSIDE-SUPPLY-STALE-STEP | CORE | 1 | carries-open | #3457 | sonnet/opus | - | Outside pull request 3457 by Bankaifan (fork head 875e3e0f32 at acceptance; re-read it with git ls-remote origin refs/pull/3457/head), accepted into round 10... |  |
 | R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE | CORE | 2 | not-started | #3456 | opus/opus | - | Outside pull request 3456 by Bankaifan (fork head 659ca850e7 at acceptance; re-read it with git ls-remote origin refs/pull/3456/head), accepted into round 10... |  |
-| R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 | CORE | 1 | not-started | #3435 | opus/opus | - | Part 2 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
+| R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 | CORE | 1 | in-progress | #3435 | opus/opus | - | Part 2 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
 | R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 | CORE | 2 | not-started | #3435 | sonnet/opus | - | Part 3 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
 | R10-HOTFIX-REPLAY-CLASS-CUT | C | 1 | done | - | opus/opus | - | triage: dev/programme/triage/s6-batch193.md#P615 at 9698b45f58
 
