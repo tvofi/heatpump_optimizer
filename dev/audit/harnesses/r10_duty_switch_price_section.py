@@ -95,13 +95,14 @@ MUTANTS: list[tuple[str, str, str, str]] = [
      "~to_space & (step_minutes - dhw_min > SPLIT_MIN_MINUTES)"),
     ("leaf: the leg classification ignores the duty floor", PKG + "duty_legs.py",
      "_runs(space, floor), _runs(dhw, floor)", "_runs(space, None), _runs(dhw, None)"),
-    # The leaf's own zero-pair return is a shortcut, not a rule: dropping its
-    # zero-pair clause (`if p_max <= 0:`) was run and turns no check red,
-    # because zero probabilities already weigh zero. The rule is the two below.
-    ("leaf: the zero-pair early return fires when either direction is unpriced", PKG + "duty_legs.py",
-     "if (p_ds <= 0 and p_sd <= 0) or p_max <= 0:", "if (p_ds <= 0 or p_sd <= 0) or p_max <= 0:"),
+    # The leaf has no zero-pair return: zero probabilities weigh zero on the
+    # full path, and the optimizer never calls it without a priced direction.
     ("leaf: a pump with no maximum draw is not returned early", PKG + "duty_legs.py",
-     "if (p_ds <= 0 and p_sd <= 0) or p_max <= 0:", "if p_ds <= 0 and p_sd <= 0:"),
+     "    if p_max <= 0:\n        return np.zeros(space.shape[0])", "    if p_max < 0:\n        return np.zeros(space.shape[0])"),
+    ("leaf: a negative learned value is kept", PKG + "duty_legs.py",
+     "max(v, 0.0) if math.isfinite(v) and v <= upper", "v if math.isfinite(v) and v <= upper"),
+    ("leaf: a learned value on its upper bound reads as zero", PKG + "duty_legs.py",
+     "max(v, 0.0) if math.isfinite(v) and v <= upper", "max(v, 0.0) if math.isfinite(v) and v < upper"),
     ("leaf: the early return is one entry per step, not per row", PKG + "duty_legs.py",
      "return np.zeros(space.shape[0])", "return np.zeros(space.shape[1])"),
     ("optimizer: no priced direction still returns a pair", PKG + "optimizer.py",

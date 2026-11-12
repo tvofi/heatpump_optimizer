@@ -218,8 +218,6 @@ def _stop_availability(
     lost = duty_legs.lost_share(
         stops, duty_legs.priced_pair(opt.config.duty_switch_off_seconds)
     )
-    if not lost > 0:
-        return None
     space, tank = _realize_joint(
         opt.config.clamp_planned_levels,
         np.minimum(np.clip(start, 0.0, p_max), np.maximum(0.0, p_max - dhw_plan)),

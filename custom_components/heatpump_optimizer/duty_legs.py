@@ -94,7 +94,7 @@ def priced_pair(values: Any, upper: float = math.inf) -> tuple[float, float]:
         return 0.0, 0.0
     if len(pair) != 2:
         return 0.0, 0.0
-    a, b = (v if math.isfinite(v) and 0.0 <= v <= upper else 0.0 for v in pair)
+    a, b = (max(v, 0.0) if math.isfinite(v) and v <= upper else 0.0 for v in pair)
     return a, b
 
 
@@ -120,7 +120,7 @@ def switch_weights_batch(
     """
     space = np.asarray(space_matrix, dtype=float)
     p_ds, p_sd = stop_probability
-    if (p_ds <= 0 and p_sd <= 0) or p_max <= 0:
+    if p_max <= 0:
         return np.zeros(space.shape[0])
     first, last, two = leg_ends(space, dhw_kw, floor)
     level = space + np.asarray(dhw_kw, dtype=float)
