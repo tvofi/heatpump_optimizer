@@ -9,4 +9,8 @@
   `--prelude 'import line'` (repeatable) runs one line before the block, the
   import an earlier block made; `--through MARKER` runs the script from the top
   up to the marker line instead of a block, the state every earlier block
-  builds. `--self-test` runs offline over a features file it writes itself.
+  builds. `--emit-prelude OUT START [END]` writes the earlier top-level
+  statements the block reads (each missing name's last binding before its use)
+  to OUT, derived from the tree it runs on, so a mutation proof cites
+  `--prelude 'exec(open("OUT").read())'` with no hand-copied file. `--self-test`
+  runs offline over a features file it writes itself.
