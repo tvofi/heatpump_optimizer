@@ -2126,6 +2126,14 @@ B
   out=$(BUS_GH=false run dispatch 7 "$h1" cmsg_L5 2>&1); rc=$?
   echo "$out" | grep -q 'BUS carry-landing UNREAD #7: the body could not be read'
   expect "an unreadable body is still reported by carry_landed, and the dispatch goes on (CARRY-LANDED-UNREAD)" $?
+  # the `&& echo x` sentinel keeps a body's last character: `R10-LIVEx` names no group, so the gate has
+  # nothing to land and the dispatch goes on; with the sentinel gone `${raw%x}` cuts it to `R10-LIVE`,
+  # which holds no carry (lroster '[]'), and the dispatch is refused CARRY-MISSING
+  printf '## Forward-carry\n\n- The census misses the store seam. Carry: R10-LIVEx\n' > "$W/body31"
+  lroster '[]'
+  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L6 2>&1); rc=$?
+  [ $rc = 0 ] && ! echo "$out" | grep -q 'CARRY-MISSING' && echo "$out" | grep -q '^bus-nonce: '
+  expect "a body ending in a literal x is read whole, not cut by the sentinel strip (CARRY-LANDED-SENTINEL)" $?
   printf '## Summary\nround four, repaired\n' > "$W/body31"
   git -C "$W/seat" push -q -f origin "$m0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
   # P102: a second watcher over the same state directory refuses, naming the holder; a dead
