@@ -25132,6 +25132,48 @@
     "note": "orchestrator ruling 2026-11-12"
    },
    "carry": []
+  },
+  {
+   "group": "R10-HOTFIX-OPENPR-HOST-REFUSAL",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/open_pr.sh",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX. Defect: open_pr.sh closes a freshly opened pull request when its row push is refused by a host-environment self-test red. The p2 push runs the full pre-PR check when the body carries no Prepr receipt, that run includes the macOS self-test, and the self-test has failed on the orchestrator host since PR 3475. On any non-zero exit the EXIT trap runs op_close_unrowed, which calls gh pr close whenever origin lacks the row commit; nothing classifies the refusal. Measured evidence: PR 3508 (the plan binding chain) was closed this way on 2026-11-12; PRs 3511, 3512 and 3513 stayed open only because the orchestrator killed the openers before the trap ran. The opener cap is held at zero on this host meanwhile.\n\nFix: when every REFUSE row in the p2 log is the pre-PR self-test step failing while every other step passes, op_close_unrowed leaves the pull request OPEN, prints one line saying the row is owed (the existing ROWLESS path that update_pr.sh ensure_row already serves, naming update_pr.sh with the branch as the owed row), sets PR_ATTEMPT to opened with the PR number so the driver neither retries nor closes, and exits non-zero. Any other refusal (body contract, figure blocks, conflict, stop signal) keeps today close. Guard: if the pull request own diff touches the self-tested script, the refusal is the branch own and it still closes. Out of scope: whether p2 should fall back to the full pre-PR check at all (owned by the opener reuse group).\n\nSelf-test arm in the open_pr.sh self-test (through pr_args.sh): a faked p2 log whose only REFUSE row is the self-test step must leave the PR open with exactly one ROWLESS/OWED line and a non-zero exit. Null control: a faked p2 log with a body-contract REFUSE row still closes the PR, and a mixed log (self-test plus another REFUSE) still closes. Red-then-green demonstration: write the arm first and show it red on origin/main (the PR is closed), then green with the fix; mutate the classifier to always-leave-open and show the null-control arm kill it. Report the structure.py budgets row for tools/audit/seat. Update the open_pr entry in INSTRUMENTS.md.\n\nTriage: P742 ACCEPT round 10 (batch 246)",
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-hotfix-openpr-host-refusal",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a sonnet fixer now",
+    "note": "triage batch 246 P742 ACCEPT round 10"
+   },
+   "carry": []
   }
  ]
 }
