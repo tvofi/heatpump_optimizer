@@ -1,0 +1,9 @@
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/bus.sh:558:dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/cloud_dispatch.py:814:        line = dispatch()
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/cloud_dispatch.py:996:        dispatch()  # settle: the ref holds this roster's brief for R10-X
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/cloud_dispatch.py:999:        check("a re-dispatch of the same brief moves no ref", dispatch() == line and tip_of() == settled)
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/cloud_dispatch.py:1003:        dispatch()
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/cloud_dispatch.py:1167:        dispatch()
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/merge_train.py:1555:def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/queue_pre_flight.py:248:def run_queue(pf: PreFlight, queue: "list[dict]") -> "tuple[list[dict], bool]":
+6e100ef6980216a81eaa0438bdc215d62b19271f:tools/audit/seat/roster_queue.py:224:def run_queue(a, python=None):

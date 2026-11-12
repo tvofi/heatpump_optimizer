@@ -1,0 +1,22 @@
+merge-base 6e100ef6980216a81eaa0438bdc215d62b19271f
+(empty above = untouched)
+ .github/workflows/governance.yml               |  10 ++
+ dev/audit/harnesses/r10_open_driver_mutants.py |  14 ++-
+ dev/programme/delivery/3491.md                 |   1 +
+ tests/closure.py                               |   5 +
+ tests/closures.json                            |   4 +
+ tools/audit/seat/INSTRUMENTS.md                |   1 +
+ tools/audit/seat/beat_jobs.py                  |  33 ++++-
+ tools/audit/seat/beat_jobs_selftest.py         |  50 ++++++++
+ tools/audit/seat/beatd.jobs.json               |  18 +++
+ tools/audit/seat/bus.sh                        |  12 ++
+ tools/audit/seat/handover_prompt.py            |   6 +-
+ tools/audit/seat/instruments/seat_gen.py.md    |  16 +++
+ tools/audit/seat/merge_train.py                |  24 ++++
+ tools/audit/seat/pulse.py                      |  18 ++-
+ tools/audit/seat/roster_queue.py               |  24 ++++
+ tools/audit/seat/seat_gen.py                   | 159 +++++++++++++++++++++++++
+ tools/audit/seat/seat_gen_selftest.py          |  98 +++++++++++++++
+ tools/audit/seat/sweep_template.md             |   5 +-
+ tools/ci/selftest_closures.json                |  19 +++
+ 19 files changed, 504 insertions(+), 13 deletions(-)

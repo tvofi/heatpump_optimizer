@@ -1,0 +1,7 @@
+== e2e with HPO_STATE_DIR and a gen bump after the newest launch
+PULSE seat-alive-merge STOPPED SUPERSEDED merge: new still beats; launched 120 min before the gen bump
+== null: gen bump before launch
+PULSE seat-alive-merge ok seat merge: beat 0 min ago by new
+== ps_start on this host vs /proc
+ps_start(self)= 1794509160 now= 1794509160 delta= 0
+ps_start(dead pid)= 0

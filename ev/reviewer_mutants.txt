@@ -1,0 +1,8 @@
+MUTANT gen_t-field1to0: pulse self-test: 69 checks, 0 failed 
+MUTANT gen_t-read-off: pulse self-test: 69 checks, 0 failed 
+MUTANT superseded-lt-to-gt:   FAIL a gen bump after the newest launch, with that launch still beating, is SUPERSEDED (DUPLICATE sees one id)   FAIL null control: a gen bump before the newest launch is ok pulse self-test: 67 checks, 2 failed 
+MUTANT superseded-max-to-min: pulse self-test: 69 checks, 0 failed 
+MUTANT lock-flock-off: seat_gen self-test: 23 checks, 0 failed 
+MUTANT lock-start-now: FAIL lock: a free lock is taken FAIL lock: a live other holder whose command is the session binary refuses, naming both pids seat_gen self-test: 23 checks, 2 failed 
+MUTANT ps_start-zero: seat_gen self-test: 23 checks, 0 failed 
+MUTANT ps_start-plus: seat_gen self-test: 23 checks, 0 failed 

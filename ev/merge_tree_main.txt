@@ -1,0 +1,15 @@
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (574 entries)
+  re-run the gate that owns this file before pushing
+95b51f8fd8f2f56b1e5b5981efaa8e89bb703793
+100644 205ba633eda5f255f2f0ff988e97ca82a2f5d978 1	dev/audit/harnesses/r10_open_driver_mutants.py
+100644 44d3740eea43f497891fb84cd4c3880188108ffe 2	dev/audit/harnesses/r10_open_driver_mutants.py
+100644 131860f80ffc0b8ddef70c6c70903be842da9e95 3	dev/audit/harnesses/r10_open_driver_mutants.py
+
+Auto-merging dev/audit/harnesses/r10_open_driver_mutants.py
+CONFLICT (content): Merge conflict in dev/audit/harnesses/r10_open_driver_mutants.py
+Auto-merging tests/closure.py
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/merge_train.py
+Auto-merging tools/ci/selftest_closures.json
+rc=1

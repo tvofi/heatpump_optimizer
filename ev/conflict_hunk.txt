@@ -1,0 +1,13 @@
+#: A plant is (old, new) in TARGET, or (old, new, file) in another module of SEAT.
+PLANTS = {
+<<<<<<< /tmp/claude-0/ours.py
+    "M-exact": ("    if up in groups:  # exact match always wins\n", "    if False:\n", GRAMMAR),
+    "M-body": (" and names_group(body_head, m.group(1).upper())", "", GRAMMAR),
+=======
+    "M-livetip": ("            log(f\"RETIP {topic} {sha[:8]} -> {live_tip[:8]}\")\n            sha = live_tip\n",
+                  "            live_tip = None\n"),
+    "M-moved-gone": ("        elif live_tip is None:\n            skip(\"moved\")", "        elif False:\n            skip(\"moved\")"),
+    "M-exact": ("    if up in groups:  # exact match always wins\n", "    if False:\n"),
+    "M-body": (" and names_group(body_head, m.group(1).upper())", ""),
+>>>>>>> /tmp/claude-0/theirs.py
+    "M-landed": ("        elif main and world.landed(main, sha):\n", "        elif False:\n"),
