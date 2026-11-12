@@ -1,0 +1,129 @@
+== null
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: a self-test failing the same way on the refused head and on a pristine origin/main tree is the host's
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: origin/main was measured once across all of those refusals (its answer is kept per main sha), each head once
+_: line 1: pr_host_refusal: command not found
+  FAIL   mutant mut:hostsame (its line deleted): the head's own break is called the host's
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: a main that moved is measured again, once, and the answer for the old sha is dropped
+_: line 1: pr_host_refusal: command not found
+  FAIL   mutant mut:hostcache (its line deleted): main is measured again on every refusal
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL   mutant mut:hostfails (its line deleted): two passing runs agree, and the refusal is called the host's
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL   mutant mut:hostrows (its line deleted): a refusal naming no step is measured as the self-test's
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL   mutant mut:hostother (its line deleted): the other step's refusal is called the host's
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: an environment fault (exit 3, no FAIL row) on both trees is the host's
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: a head whose tree holds no self-test is not measured, so the head's; mutant ret:hosthead calls it the host's
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: a main whose tree holds no self-test is not measured, so the head's; mutant ret:hostmain calls it the host's
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: no self-test on either tree is no agreement; mutant ret:signone reads two unrun steps as one failure
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: no tree at either sha is no agreement; mutant ret:sigtree reads two missing trees as one failure
+_: line 1: pr_host_refusal: command not found
+_: line 1: pr_host_refusal: command not found
+  FAIL host_refusal: a cache directory that cannot be made measures nothing, so the head's; mutant ret:hostdir calls it the host's
+  FAIL open_pr: a self-test refusal no tree can re-run (origin/main holds no self-test) still closes the PR
+  FAIL open_pr: a row push refused only by prepr's self-test, which fails the same way on a pristine origin/main tree, leaves the PR open, naming the owed row (one ROWLESS line, non-zero exit)
+  FAIL   null control: the same refusal with no host fault to reproduce it still closes the PR
+  FAIL   null control: a self-test refusal the head's own commit causes still closes the PR, under the host fault
+  FAIL open_pr: a stop before this run's own row push closes the PR, whatever self-test row an earlier run's log holds
+pr_args self-test: 235 checks, 19 failed
+rc=1
+== m1
+  FAIL host_refusal: null control: a head breaking any one path prepr's own selftest_inputs returns (0 of 60, prepr.sh and policy_lint.mjs among them) is the head's, under the same host fault
+  FAIL   null control: a self-test refusal the head's own commit causes still closes the PR, under the host fault
+pr_args self-test: 235 checks, 2 failed
+rc=1
+== m2
+  FAIL host_refusal: null control: a head breaking any one path prepr's own selftest_inputs returns (0 of 60, prepr.sh and policy_lint.mjs among them) is the head's, under the same host fault
+  FAIL   null control: a self-test refusal the head's own commit causes still closes the PR, under the host fault
+pr_args self-test: 235 checks, 2 failed
+rc=1
+== m3
+  FAIL host_refusal: a main that moved is measured again, once, and the answer for the old sha is dropped
+pr_args self-test: 235 checks, 1 failed
+rc=1
+== m6
+  FAIL open_pr: a row push refused only by prepr's self-test, which fails the same way on a pristine origin/main tree, leaves the PR open, naming the owed row (one ROWLESS line, non-zero exit)
+  FAIL   mutant mut:hostother (its line deleted): a mixed log leaves the PR open
+  FAIL   mutant mut:hostsame (its line deleted): the head's own self-test red leaves the PR open
+pr_args self-test: 235 checks, 3 failed
+rc=1
+== m8
+pr_args self-test: 235 checks, 0 failed
+rc=0
