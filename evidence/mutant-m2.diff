@@ -1,0 +1,13 @@
+diff --git a/tools/policy/brief_lint.mjs b/tools/policy/brief_lint.mjs
+index 05198529c5..8e83c232a7 100644
+--- a/tools/policy/brief_lint.mjs
++++ b/tools/policy/brief_lint.mjs
+@@ -975,7 +975,7 @@ function readLegacyControlFiles() {
+     return new Set()
+   }
+ }
+-const LEGACY_CONTROL_FILES = readLegacyControlFiles()
++const LEGACY_CONTROL_FILES = new Set()
+ 
+ export function lintCarryFile(file, { roster, legacy = LEGACY_CONTROL_FILES } = {}) {
+   const findings = []
