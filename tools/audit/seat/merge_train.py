@@ -4590,12 +4590,13 @@ def _self_test() -> int:
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
                 if "rollup_pages" in world:  # a paged listing, answered as GitHub answers the QUERY sent:
-                    # the page after `after=` only where the query passes $after to contexts, and an
-                    # endCursor only where the query asks for one
+                    # the page after `after=` only where the query declares $after and passes it to
+                    # contexts, and an endCursor only where the query asks for one
                     asked = next(x for x in argv if x.startswith("query="))
                     cur = next((x[6:] for x in argv if x.startswith("after=")), None)
                     world.setdefault("rollup_cursors", []).append(cur)
-                    return world["rollup_pages"](cur if "contexts(first:100,after:$after)" in asked else None,
+                    paged = "$after:String)" in asked and "contexts(first:100,after:$after)" in asked
+                    return world["rollup_pages"](cur if paged else None,
                                                  "pageInfo{hasNextPage endCursor}" in asked)
                 return world.get("rollup", (1, "HTTP 502"))
             if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
@@ -7601,6 +7602,8 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     for what, sent, cursors in (  # the query text is production: GitHub pages only the query that asks
             ("does not pass $after to contexts is served page 1 on every read, to the page cap",
              ROLLUP_Q.replace("contexts(first:100,after:$after)", "contexts(first:100)"), [None] + ["1"] * (gh_read.MAX_PAGES - 1)),
+            ("does not declare $after is served page 1 on every read, to the page cap",
+             ROLLUP_Q.replace(",$after:String)", ")"), [None] + ["1"] * (gh_read.MAX_PAGES - 1)),
             ("asks for no endCursor gets none, and stops on page 1",
              ROLLUP_Q.replace("pageInfo{hasNextPage endCursor}", "pageInfo{hasNextPage}"), [None])):
         w, kept = dict(gate_req, runs=[gt()], rollup_pages=train_pages), ROLLUP_Q
