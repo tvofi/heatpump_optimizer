@@ -33,7 +33,7 @@
     },
     "health-light.png": {
       "width": 1056,
-      "height": 792,
+      "height": 1014,
       "structure": "10447dc0f4b62f8b"
     },
     "tile-dark.png": {
@@ -68,7 +68,7 @@
     },
     "health-dark.png": {
       "width": 1056,
-      "height": 792,
+      "height": 1014,
       "structure": "10447dc0f4b62f8b"
     }
   }
