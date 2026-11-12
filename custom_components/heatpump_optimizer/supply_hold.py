@@ -20,7 +20,8 @@ of the integration leaves the stamp alone. A restart of Home Assistant builds
 a new state machine whose first write stamps the restart
 (``tests/ha_contract.py``, ``StateMachine.async_set``), so a pump found
 running reads as a run that started then and is held on for at most
-:data:`MIN_RUN`. A stamp missing or ahead of the clock is an unknown age and
+:data:`MIN_RUN`, and a pump found stopped is held off for at most
+:data:`MIN_PAUSE`. A write that leaves the state keeps the stamp. A stamp missing or ahead of the clock is an unknown age and
 holds nothing (#775: unknowable, never 0).
 
 **Running and stopped** are read as ``pump_arbiter._pump_off`` reads them:
@@ -95,8 +96,10 @@ def interval_held(held: ArbiterState, config: Any, now: datetime | None = None) 
     the fail-closed side.
     """
     at = held.held_at
-    span = 2 * timedelta(minutes=EntryConfig.from_mapping(config).optimization_interval)
-    return at is not None and dt_util.as_utc(now or dt_util.now()) - at < span
+    if at is None:
+        return False
+    span = 2 * timedelta(minutes=EntryConfig.from_mapping(config or {}).optimization_interval)
+    return dt_util.as_utc(now or dt_util.now()) - at < span
 
 
 def tank_reason(inp: ArbiterInputs) -> str | None:

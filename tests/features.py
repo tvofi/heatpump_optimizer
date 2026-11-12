@@ -81501,7 +81501,7 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
     hass = FakeHass({
-        "switch.hp": FakeState("off", last_updated=_SA_T0),
+        "switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1)),
         "sensor.hp_power": FakeState("0.0", unit="kW", last_updated=_SA_T0),
     })
     coord = Coord(hass, FakeEntry(data={
@@ -81532,8 +81532,11 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
             for domain, service, _data in hass.services.calls:
                 if domain == "switch":
                     writes.append((m, service))
-                    hass.states.set("switch.hp", FakeState(
-                        "on" if service == "turn_on" else "off", last_updated=now))
+                    # A write that leaves the state keeps last_changed, as
+                    # StateMachine.async_set does (the supply gate reads it).
+                    new = "on" if service == "turn_on" else "off"
+                    if hass.states.get("switch.hp").state != new:
+                        hass.states.set("switch.hp", FakeState(new, last_updated=now))
             hass.services.calls.clear()
             on = hass.states.get("switch.hp").state == "on"
             hass.states.set("sensor.hp_power", FakeState("1.5" if on else "0.0", unit="kW", last_updated=now))
@@ -81594,7 +81597,7 @@ async def _sa_guarded(guard=None):
     ticks, dropped = [], []
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: dropped.append(fn)))[1]
-    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
     switch = {} if guard == "no_switch" else {"heat_pump_switch_entity": "switch.hp"}
     coord = Coord(hass, FakeEntry(data={**_LC_DATA, **switch, "pump_duty_mode": "observe"}))
     coord._mode = "auto"
@@ -81990,7 +81993,8 @@ async def _ms_run(duties, switch, events, until=20, off_at=None, entity="switch.
                     writes.append((m, service)) if not every else None
                     on = service == "turn_on"
                     new = ("heat" if on else "off") if domain == "climate" else ("on" if on else "off")
-                    hass.states.set(entity, FakeState(new, last_updated=now))
+                    if hass.states.get(entity).state != new:  # async_set keeps last_changed
+                        hass.states.set(entity, FakeState(new, last_updated=now))
             hass.services.calls.clear()
         frozen = _sh_coord_mod._tail_freeze(coord)
     finally:
