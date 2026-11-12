@@ -1,0 +1,26 @@
+  # the always-green shape (the same null control the coverage ratchet's
+  # wiring carries). Not a required context: the merge already happened; the
+  # red is a debt a follow-up pays or a deliberate --record re-records.
+  ci-ratchet:
+    needs: [fast, coverage, closures]
+    if: >-
+      !cancelled() && github.event_name == 'push'
+      && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      actions: read
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.13"
+
+      # The window fetch's decisions -- the list call's retry, the refusal of
+      # an empty or partial body as a failed fetch (never an empty window),
+      # and the skip of an artifact that expired before its zip download --
+      # are in tests/ci_ratchet.py, not in a heredoc, so --self-test drives
+      # them with no network. The step is here, in the job that runs them,
+      # and tests/entities.py also pins it: a self-test no run line names is
