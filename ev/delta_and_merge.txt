@@ -1,0 +1,14 @@
+ .../rounds/round10/protection-census/CENSUS.md     | 200 ++++++++++++++-------
+ tests/closures.json                                |   2 +-
+ 2 files changed, 139 insertions(+), 63 deletions(-)
+b7a838c1ef516f840530eb85b4c94c6fdfdab0f1 7033a7e40a3af1d1b8f06ebaf060b073748b561c 6e8db8d8c12e480181e730bd30e01da3c97b733f Merge commit '6e8db8d8c12e480181e730bd30e01da3c97b733f' into fix/r10-protection-census
+6e8db8d8c12e480181e730bd30e01da3c97b733f 67f17e64e5801dc52e0c8257eb9afbf741b3d610 closures: re-record tests/entities.py (rc 1 -> 0) after the census files
+67f17e64e5801dc52e0c8257eb9afbf741b3d610 23d7ac26f4d64451839c64d83565e961428bbac4 round 10 protection census: classify the 17 required contexts by what each reads, re-sort every row
+
+merge-tree origin/main 6e100ef6980216a81eaa0438bdc215d62b19271f vs head:
+LEDGER-MERGE: resolved tests/closures.json
+2de5742ab016f1755e510978e1446e8cfde8314e
+rc=0
+delivery count at 67f17e64: 1614, at head: 1620
+roles delta vs main: 0 lines
+VERSION/manifest/notes touched: 0

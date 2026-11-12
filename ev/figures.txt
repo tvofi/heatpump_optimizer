@@ -1,0 +1,25 @@
+$ required contexts
+['fast (3.14)', 'browser', 'briefs', 'closure-scope', 'closures', 'typing', 'hassfest', 'validate-hacs', 'policy-docs', 'wave-script', 'pr-contract', 'env-matrix', 'Analyze (actions)', 'Analyze (javascript-typescript)', 'Analyze (python)', 'mutation', 'budget-raise-gate']
+$ closures
+33 29 ['tests/arch_score.py', 'tests/ha_contract.py', 'tests/layout.py', 'tests/md_tables.mjs']
+$ main_reds wc
+28
+$ by conclusion/job
+      6 cancelled gate
+      6 cancelled tests
+      8 failure gate
+      8 failure tests
+$ null control
+0
+$ runs
+4009 failure;4015 failure;4028 failure;4035 failure;4036 cancelled;4037 cancelled;4038 cancelled;4040 cancelled;4044 cancelled;4045 cancelled;4046 failure;4055 failure;4056 failure;4128 failure;
+$ ledger
+ENTRIES 18 PRS 14
+$ harness_headers
+4
+#3180	2026-11-04T08:00:40Z	3f7777a59
+#3189	2026-11-04T15:47:47Z	fd9c5bab5
+#3208	2026-11-04T23:07:05Z	327d83e73
+#3242	2026-11-06T13:40:00Z	e836876f3
+$ delivery
+1620
