@@ -164,6 +164,8 @@ from .const import (
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     CONF_POWER_ENTITY,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
     DOMAIN,
@@ -711,6 +713,12 @@ FLOW_INLET_KEYS = (
 #: in the same precedence; none read leaves the no-inlet floor, the hold in
 #: return terms.
 RETURN_SKIPPED_RUNG = CONF_VALVE_OUTLET_TEMP_ENTITY
+#: The controller's lower and upper limit on the space water set-point, as
+#: the two optional sensors the feedback loop's bounds read.
+SETPOINT_LIMIT_KEYS = (
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
+)
 
 
 def _reader(hass: Any, config: Mapping[str, Any]) -> InputReader:
@@ -983,14 +991,49 @@ def _feedback_bounds(held: ArbiterState, rec: FeedbackRun, inp: ArbiterInputs, i
     """``(lo, hi)`` the loop's target stays within, °C.
 
     Never more than :data:`FEEDBACK_DOWN_K` below the inlet, nor past a stop
-    bound or a controller cut, nor at the gate (I2); never above the ceiling.
+    bound, a controller cut or the controller's own limits where their
+    sensors are read (:func:`_setpoint_limits_c`), nor at the gate (I2);
+    never above the ceiling.
+
+    The gate is the value a step that does not heat writes, so a heating
+    write at or below it tells the controller the step is off. A
+    controller's upper limit, read from its sensor or from a cut, that
+    sits under the lowest heating write (the gate plus one entity step)
+    leaves no heating value inside it: it is not the limit of a heating
+    set-point (a sensor in the wrong slot, a placeholder, a parked
+    circuit), and it is left out as an unreadable one is.
     """
     gate = _gate_c(inp) or _gate_floor_c(inp.config)
-    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, gate + FEEDBACK_GATE_CLEAR_K]
+    clear = gate + FEEDBACK_GATE_CLEAR_K
+    lowest = _bounded(inp, "space_setpoint", clear, lo=clear) or clear
+    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, clear]
     if held.stop_gap_k is not None:
         lows.append(inlet - held.stop_gap_k + FEEDBACK_STOP_MARGIN_K)
-    highs = [_heat_ceiling_c(inp.config), rec.cut_hi_c]
-    return (max(v for v in lows if v is not None), min(v for v in highs if v is not None))
+    low, high = _setpoint_limits_c(inp)
+    lows.append(low)
+    highs = [_heat_ceiling_c(inp.config)]
+    highs += [v for v in (rec.cut_hi_c, high) if v is not None and v >= lowest]
+    return (max(v for v in lows if v is not None), min(highs))
+
+
+def _setpoint_limits_c(inp: ArbiterInputs) -> tuple[float | None, float | None]:
+    """The controller's ``(lower, upper)`` limit on the space set-point, °C.
+
+    Each from its optional sensor (:data:`SETPOINT_LIMIT_KEYS`) and ``None``
+    where that is unset, unavailable, not a number or outside any water's
+    range. Neither key has an age limit (``const.INPUT_MAX_AGE_MINUTES``):
+    a limit is a setting, so its sensor reports when it changes and a
+    reading holds until the source is ``unavailable``. A pair that is not lower below upper is two sensors in
+    each other's slot, and neither is used.
+    """
+    reader = _reader(inp.hass, inp.config)
+    low, high = (
+        reading.value if reading.ok else None
+        for reading in (reader.read(key) for key in SETPOINT_LIMIT_KEYS)
+    )
+    if low is not None and high is not None and low >= high:
+        return (None, None)
+    return (low, high)
 
 
 def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: float | None) -> None:
@@ -1053,9 +1096,10 @@ def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: dat
 
     On the reporting install the two limits are smart-home interface inputs 10104
     (parameter 979) and 10103 (parameter 87), which clamp register 10001
-    (#3372 comment 6756915104). They are inferred from the readback here:
-    no configured entity names them, and a controller without them is cut
-    the same way.
+    (#3372 comment 6756915104). Where their sensors are configured the loop
+    stays inside them (:func:`_setpoint_limits_c`) and no write is cut;
+    they are inferred from the readback here for an install that names
+    neither, and for a controller that publishes none.
     """
     if slot != "space_setpoint":
         return False
