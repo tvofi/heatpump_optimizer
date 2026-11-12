@@ -102,6 +102,7 @@
     ".",
     "config",
     "objects",
+    "packed-refs",
     "refs",
     "tests",
     "tools",
@@ -116,9 +117,9 @@
     "tools/policy",
     "tools/pr"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "bare-array-expansion": {
    "run_sha": "88034369e109a71b0f038cb5eea66a1b3947a7c215421e4cd0f53cff38d2578b",
@@ -1692,16 +1693,19 @@
     "tools/pr/codeql_scope.py",
     "tools/pr/dependabot_merge.py",
     "tools/pr/depgraph.py",
+    "tools/pr/figure_block.py",
     "tools/pr/gate_priority.py",
     "tools/pr/gh_comment.py",
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
+    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
     "tools/release/stamp.py",
-    "tools/site/build_docs.mjs"
+    "tools/site/build_docs.mjs",
+    "tools/site/day_chart.mjs"
    ],
    "probes": [
     ".",
@@ -2419,13 +2423,13 @@
     "tools/ci",
     "tools/release"
    ],
+   "index": false,
+   "objects": true,
    "git": [
     "diff",
     "ls-tree",
     "show"
-   ],
-   "index": false,
-   "objects": true
+   ]
   },
   "moved-path-reader": {
    "run_sha": "5375b0fa5ad187f70df1285f4fc746f92b11055f02ad8c6d4361a43ec0781392",
@@ -2493,15 +2497,16 @@
     "tools",
     "tools/audit",
     "tools/audit/seat",
-    "tools/policy/policy_lint.mjs"
+    "tools/policy/policy_lint.mjs",
+    "tools/pr"
    ],
    "dirs": [
     "tests",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "offline-spy": {
    "run_sha": "a51b4727e58f96a4e0a1789ef50339ed073e735eea6652a342706135df2012ba",
@@ -2643,6 +2648,7 @@
     "tools/audit/seat/queue_pre_flight.py",
     "tools/audit/seat/r10_bash_kill_hook_drive.py",
     "tools/audit/seat/r10_deeplink_mutants.py",
+    "tools/audit/seat/r10_disinfection_setpoint_mutants.py",
     "tools/audit/seat/r10_ledger_mutants.py",
     "tools/audit/seat/r10_mandate_guard_mutants.py",
     "tools/audit/seat/r10_roster_ops_mutants.py",
@@ -2729,21 +2735,23 @@
     "tools/pr/codeql_scope.py",
     "tools/pr/dependabot_merge.py",
     "tools/pr/depgraph.py",
+    "tools/pr/figure_block.py",
     "tools/pr/gate_priority.py",
     "tools/pr/gh_comment.py",
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
+    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
     "tools/release/stamp.py",
     "tools/replay/**",
-    "tools/site/build_docs.mjs"
+    "tools/site/build_docs.mjs",
+    "tools/site/day_chart.mjs"
    ],
    "probes": [
     "-",
-    "-c",
     ".",
     "config",
     "objects",
@@ -3203,6 +3211,7 @@
     "dev/audit/**",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/machinery_budgets.json",
+    "dev/governance/config/outside_contributors.json",
     "dev/governance/config/policy_budgets.json",
     "dev/governance/config/policy_known_bad.json",
     "dev/governance/decisions/**",
@@ -3836,6 +3845,8 @@
     "tools/policy/fixtures/policy-rot",
     "tools/policy/fixtures/policy-rot/prepr"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "?",
     "cat-file",
@@ -3843,9 +3854,7 @@
     "log",
     "ls-tree",
     "merge-base"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "post-merge-bookkeeping": {
    "run_sha": "7f9730626bce97831ee61c879e8b929c037930447bf2bd8c202bbac5e13ade99",
@@ -3988,6 +3997,7 @@
     "tools/audit/seat/queue_pre_flight.py",
     "tools/audit/seat/r10_bash_kill_hook_drive.py",
     "tools/audit/seat/r10_deeplink_mutants.py",
+    "tools/audit/seat/r10_disinfection_setpoint_mutants.py",
     "tools/audit/seat/r10_ledger_mutants.py",
     "tools/audit/seat/r10_mandate_guard_mutants.py",
     "tools/audit/seat/r10_roster_ops_mutants.py",
@@ -4074,21 +4084,23 @@
     "tools/pr/codeql_scope.py",
     "tools/pr/dependabot_merge.py",
     "tools/pr/depgraph.py",
+    "tools/pr/figure_block.py",
     "tools/pr/gate_priority.py",
     "tools/pr/gh_comment.py",
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
+    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
     "tools/release/stamp.py",
     "tools/replay/**",
-    "tools/site/build_docs.mjs"
+    "tools/site/build_docs.mjs",
+    "tools/site/day_chart.mjs"
    ],
    "probes": [
     "-",
-    "-c",
     ".",
     "config",
     "objects",
@@ -5275,6 +5287,7 @@
     ".",
     "config",
     "objects",
+    "packed-refs",
     "refs",
     "tests",
     "tools",
@@ -5284,9 +5297,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "review-packet": {
    "run_sha": "5cd83d880b60b227f269115fd2e37e970b8eb1970bd7639d87faf881775b4155",
@@ -5885,6 +5898,7 @@
     "tools/audit/seat/queue_pre_flight.py",
     "tools/audit/seat/r10_bash_kill_hook_drive.py",
     "tools/audit/seat/r10_deeplink_mutants.py",
+    "tools/audit/seat/r10_disinfection_setpoint_mutants.py",
     "tools/audit/seat/r10_ledger_mutants.py",
     "tools/audit/seat/r10_mandate_guard_mutants.py",
     "tools/audit/seat/r10_roster_ops_mutants.py",
@@ -5979,17 +5993,20 @@
     "tools/pr/codeql_scope.py",
     "tools/pr/dependabot_merge.py",
     "tools/pr/depgraph.py",
+    "tools/pr/figure_block.py",
     "tools/pr/gate_priority.py",
     "tools/pr/gh_comment.py",
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
+    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
     "tools/release/stamp.py",
     "tools/replay/**",
-    "tools/site/build_docs.mjs"
+    "tools/site/build_docs.mjs",
+    "tools/site/day_chart.mjs"
    ],
    "probes": [
     ".",
@@ -6806,6 +6823,7 @@
     "tools/audit/seat/queue_pre_flight.py",
     "tools/audit/seat/r10_bash_kill_hook_drive.py",
     "tools/audit/seat/r10_deeplink_mutants.py",
+    "tools/audit/seat/r10_disinfection_setpoint_mutants.py",
     "tools/audit/seat/r10_ledger_mutants.py",
     "tools/audit/seat/r10_mandate_guard_mutants.py",
     "tools/audit/seat/r10_roster_ops_mutants.py",
@@ -6892,21 +6910,23 @@
     "tools/pr/codeql_scope.py",
     "tools/pr/dependabot_merge.py",
     "tools/pr/depgraph.py",
+    "tools/pr/figure_block.py",
     "tools/pr/gate_priority.py",
     "tools/pr/gh_comment.py",
     "tools/pr/head_note.py",
     "tools/pr/local_alerts.py",
     "tools/pr/merge_main_bot.py",
+    "tools/pr/outside.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/pr/push.sh",
     "tools/release/stamp.py",
     "tools/replay/**",
-    "tools/site/build_docs.mjs"
+    "tools/site/build_docs.mjs",
+    "tools/site/day_chart.mjs"
    ],
    "probes": [
     "-",
-    "-c",
     ".",
     "config",
     "objects",
