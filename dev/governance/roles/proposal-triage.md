@@ -1,10 +1,10 @@
 # The proposal-triage seat's contract
 
 A process, tooling or instrument proposal passes this gate before building
-(decision 0015). Sources: orchestrator sweep and Proposals line, seat results,
+(decision 0015). Sources: the sweep and Proposals line, seat results,
 verdict optimisation notes. A countermeasure policy requires (root cause,
-red-check carry, finding fix; see below) keeps its route. One opus seat, medium
-effort; check rulings against code.
+red-check carry, finding fix) keeps its route. One opus seat, medium
+effort, under `standing.md`; check rulings against code.
 
 **Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
 time; tokens (model x effort x expected runs); API calls; standing CPU

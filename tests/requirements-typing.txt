@@ -20,11 +20,15 @@
 #
 # <overrides> holds every pin this lock carries past an exact pin of the
 # package that requires it, which is the set `pip check` lists on the
-# installed lock: homeassistant==2026.11.0 (homeassistant-stubs 2026.9.3
-# pins 2026.9.3), uv==0.13.7, astral==3.2 and sqlalchemy==2.1.8
-# (homeassistant 2026.11.0 pins each lower), acme==5.9.0 (hass-nabucasa
-# pins 5.7.0 or lower) and python-dateutil==4.0.0 (botocore caps it below
-# 3.0.0). They are the pip group's bumps (Dependabot #3088, re-applied
+# installed lock, each at its pin line's version: homeassistant
+# (homeassistant-stubs 2026.9.3 pins 2026.9.3), uv, astral and sqlalchemy
+# (homeassistant 2026.11.0 pins each lower), acme (hass-nabucasa pins 5.7.0
+# or lower) and python-dateutil (botocore caps it below 3.0.0). Write an
+# override into <overrides> only, never into a comment here as `name==`:
+# Dependabot rewrites the version at every `name==` in this file, comments
+# included, and leaves the hash lines of a pin it matched twice at the old
+# version (dev/audit/rca/r10-rca-dependabot-stale-hash.md; tests/entities.py
+# refuses the spelling). They are the pip group's bumps (Dependabot #3088, re-applied
 # 2026-11-01; #3323's and #3414's moved some of them), and without them the
 # compile is unsatisfiable. cryptography, pillow, hass-nabucasa, orjson,
 # python-slugify, securetar and pyopenssl were overrides until homeassistant
@@ -32,9 +36,8 @@
 # them. A bump to a package homeassistant 2026.11.0 pins exactly that is not
 # already one of these overrides is held at that pin rather than added as a
 # new one (zeroconf 0.152.0 and cronsim 2.7 against #3414's 0.154.0 and 2.8).
-# Dependabot rewrites only the version line of an overridden pin and keeps
-# the old hash lines, which pip's hash-checking mode refuses; re-apply such
-# a bump with the single-package route below. homeassistant-stubs itself stays at
+# A Dependabot bump pip's hash-checking mode refuses is re-applied by the
+# single-package route below. homeassistant-stubs itself stays at
 # 2026.9.3: 2026.10.0 is an empty release deprecating the package (Home
 # Assistant ships py.typed), and under it the ruler reads Home Assistant's
 # own annotations, a different measurement (70 errors at 2026-11-01). mypy executes none of these packages, so
