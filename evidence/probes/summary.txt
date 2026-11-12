@@ -1,0 +1,30 @@
+PROBE mut-HPO_TICK_RELAY_WAIT rc=1 secs=14 tick_loop self-test: 31 checks, 6 failed fails: --once: one pass, cloud_relay.sh pass --confirm first, then the tick w|null control: no cloud_relay.sh in the tree (before #2419) skips the r|a failing relay pass is reported and the tick still runs; the tick's s|null control: the late relay is reaped with its log next pass, and a f|freshness null control: behind 0 is silent (code=<sha7> behind=0 on th|freshness: behind within the bound and no change to the loop's own fil
+PROBE mut-HPO_TICK_CODE_DIR rc=0 secs=15 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE mut-HPO_TICK_RESTARTED rc=1 secs=15 tick_loop self-test: 31 checks, 5 failed fails: freshness: a held relay lock does not restart, skips the relay and sti|freshness: a dirty tree prints the banner, skips the relay and is neve|freshness: a checked-out branch is never moved (restart needs a detach|freshness: origin/main's tick_loop.sh failing bash -n is never checked|freshness: a loop-file change with a free lock and a clean detached tr
+PROBE mut-HPO_TICK_HEARTBEAT rc=0 secs=15 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE mut-HPO_TICK_SWEEP_EVERY rc=1 secs=15 tick_loop self-test: 31 checks, 1 failed fails: --sweep: the next pass inside the interval sweeps nothing (the slow ba
+PROBE mut-HPO_TICK_STALE_BOUND rc=1 secs=15 tick_loop self-test: 31 checks, 7 failed fails: freshness: behind within the bound and no change to the loop's own fil|freshness: a held relay lock does not restart, skips the relay and sti|freshness: a dirty tree prints the banner, skips the relay and is neve|freshness: a checked-out branch is never moved (restart needs a detach|freshness: a pass already restarted does not exec again (at most once |freshness: origin/main's tick_loop.sh failing bash -n is never checked|freshness: a loop-file change with a free lock and a clean detached tr
+PROBE mut-HPO_SWEEP_MANDATE rc=0 secs=15 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE mut-HPO_TICK_CMD rc=0 secs=15 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE mut-HPO_TICK_RELAY rc=0 secs=15 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE mut-HPO_TICK_SWEEP_CMD rc=0 secs=15 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE mut-none rc=0 secs=13 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE headcls-TICK_RC rc=1 secs=14 tick_loop self-test: 31 checks, 14 failed fails: --once: one pass, cloud_relay.sh pass --confirm first, then the tick w|null control: no cloud_relay.sh in the tree (before #2419) skips the r|a relay slower than the interval does not delay the board; the banner |a pass that finds the relay in flight starts none (no overlap) and sti|null control: the late relay is reaped with its log next pass, and a f|each pass calls the heartbeat once, with the pass line (no --out path)|a failing heartbeat is printed, never silent, and the loop still exits|a refused sweep is reported with its rc and the pass still completes|a real pass moves heartbeat/orchestrator on the remote|null control: a refused push is printed with its reason and the pass s|freshness null control: behind 0 is silent (code=<sha7> behind=0 on th|freshness: behind within the bound and no change to the loop's own fil|freshness: a held relay lock does not restart, skips the relay and sti|freshness: origin/main's tick_loop.sh failing bash -n is never checked
+PROBE headcls-SWEEP_RC rc=1 secs=14 tick_loop self-test: 31 checks, 1 failed fails: --sweep: one sweep after the tick, its last line after the banner, its
+PROBE headcls-SWEEP_WORD rc=1 secs=14 tick_loop self-test: 31 checks, 1 failed fails: --sweep: one sweep after the tick, its last line after the banner, its
+PROBE headcls-HPO_TICK_SELFTEST_NESTED rc=0 secs=14 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE headcls-RELAY_RC rc=1 secs=14 tick_loop self-test: 31 checks, 3 failed fails: --once: one pass, cloud_relay.sh pass --confirm first, then the tick w|freshness null control: behind 0 is silent (code=<sha7> behind=0 on th|freshness: behind within the bound and no change to the loop's own fil
+PROBE headcls-HPO_HEARTBEAT_REMOTE rc=1 secs=14 tick_loop self-test: 31 checks, 1 failed fails: a real pass moves heartbeat/orchestrator on the remote
+PROBE headcls-HB_RC rc=1 secs=14 tick_loop self-test: 31 checks, 3 failed fails: --once: one pass, cloud_relay.sh pass --confirm first, then the tick w|--sweep: one sweep after the tick, its last line after the banner, its|freshness null control: behind 0 is silent (code=<sha7> behind=0 on th
+PROBE headcls-RELAY_SLEEP rc=0 secs=23 tick_loop self-test: 31 checks, 0 failed fails: 
+PROBE head-HPO_TICK_STALE_BOUND rc=0 secs=80 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_TICK_CODE_DIR rc=0 secs=80 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_TICK_RELAY_WAIT rc=0 secs=80 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_TICK_RESTARTED rc=0 secs=80 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_TICK_RELAY rc=0 secs=80 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_TICK_SWEEP_EVERY rc=0 secs=80 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_TICK_SWEEP_CMD rc=0 secs=80 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_SWEEP_MANDATE rc=0 secs=80 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_TICK_HEARTBEAT rc=0 secs=78 tick_loop self-test: 36 checks, 0 failed fails: 
+PROBE head-HPO_TICK_CMD rc=0 secs=78 tick_loop self-test: 36 checks, 0 failed fails: 
+ALLDONE
