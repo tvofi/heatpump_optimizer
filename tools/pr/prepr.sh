@@ -257,6 +257,13 @@ pinned_touched() { # file of changed paths, pins (one per line)
   return 1
 }
 
+# Step 7a2's whole body, and --body-check's: a rendered figure block is re-rendered
+# from the base's registry at HEAD and compared (read-only, offline; pr-contract
+# runs the same verify). A body with no block passes untouched.
+figure_block_check() { # body file
+  python3 -I tools/pr/figure_block.py verify "$1" --base origin/main --head HEAD
+}
+
 # Step 7a's whole body, so `--self-test` drives the code the step runs rather
 # than a second copy of the command. A step wired into the run and demonstrated
 # by a sibling command is a step nothing pins: the assertion passes while the
@@ -1816,6 +1823,9 @@ if [ "${1:-}" = "--body-check" ]; then
   fout=$(figures_check "$2" 2>&1); fr=$?
   if [ "$fr" -eq 0 ]; then echo "figures ok: $(tail -1 <<<"$fout")"; else echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi
   [ "$r" -ne 0 ] || r=$fr
+  gout=$(figure_block_check "$2" 2>&1); gr=$?
+  if [ "$gr" -eq 0 ]; then echo "figure blocks ok: $(tail -1 <<<"$gout")"; else printf '%s\n' "$gout"; echo "REFUSE figure blocks: $(tail -1 <<<"$gout")"; fi
+  [ "$r" -ne 0 ] || r=$gr
   vline=$(privacy_line); vr=$?
   if [ "$vr" -eq 0 ]; then echo "ref_privacy ok: $vline"; else echo "REFUSE ref_privacy: $vline"; fi
   [ "$r" -ne 0 ] || r=$vr
@@ -2400,7 +2410,19 @@ EOS
   st "$r" 1 "a check needing a git checkout measures nothing in the archive copy, and is refused"
   got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
   st "$r" 0 "the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes"
-  st "$(mg status --porcelain | wc -l)" 0 "and the in-place run leaves the work tree clean"
+  # BSD/macOS wc pads its count ("       0"); the comparison is a string compare, so
+  # it runs under a padding wc first on PATH, which Linux CI never sees (P676).
+  # Both stubs ignore the host wc's width (strip, then emit one fixed form), so the
+  # check is the same on GNU and BSD hosts: PW pads to 8, PN never pads.
+  PW=$(mktemp -d); PN=$(mktemp -d)
+  printf '#!/bin/sh\nn=$(/usr/bin/wc "$@" | tr -d " ")\nprintf "%%8s\\n" "$n"\n' > "$PW/wc"
+  printf '#!/bin/sh\n/usr/bin/wc "$@" | tr -d " "\n' > "$PN/wc"
+  chmod +x "$PW/wc" "$PN/wc"
+  st "$(PATH="$PW:$PATH"; printf 'x\n' | wc -l)" "       1" "the padding wc stub pads its count, so the next comparison is measured under it (null control)"
+  st "$(PATH="$PN:$PATH"; printf 'x\n' | wc -l)" "1" "the non-padding wc stub does not pad its count (null control)"
+  st "$(PATH="$PW:$PATH"; mg status --porcelain | wc -l | tr -d ' ')" 0 "and the in-place run leaves the work tree clean, under a wc that pads its count"
+  st "$(PATH="$PN:$PATH"; mg status --porcelain | wc -l | tr -d ' ')" 0 "and the in-place run leaves the work tree clean, under a wc that does not pad"
+  rm -rf "${PW:?}" "${PN:?}"
   got=$(mutants_line "$MR" "$MB" "true"); r=$?
   st "$r" 2 "a command killing nothing reports its survivors, report only"
   nl=$(cd "$MR" && python3 -I tools/audit/seat/mutant_run.py --diff "$MB...HEAD" --cmd true --list | grep -c '^MUTANT lib.py:')
@@ -3961,6 +3983,9 @@ EOF
   st "$r" 0 "and a row that writes into the tracked fixture dir changes it (null control)"
   case "$bc" in *'fout=$(figures_check "$2" 2>&1); fr=$?'*'[ "$r" -ne 0 ] || r=$fr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "--body-check runs step 7a's figure lint and refuses on its rc (carry 8)"
+  case "$bc" in *'gout=$(figure_block_check "$2" 2>&1); gr=$?'*'[ "$r" -ne 0 ] || r=$gr'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check runs figure_block_check and refuses on its rc (card 7)"
+  st "$(declare -f figure_block_check | grep -c 'figure_block.py verify')" 1 "figure_block_check calls figure_block.py verify"
   case "$bc" in *'vline=$(privacy_line); vr=$?'*'[ "$r" -ne 0 ] || r=$vr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "--body-check runs privacy_line and refuses on its rc (P78)"
   case "$bc" in *'bline=$(body_privacy_line "$2"); br=$?'*'[ "$r" -ne 0 ] || r=$br'*) r=0 ;; *) r=1 ;; esac
@@ -4672,6 +4697,11 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   figures_check "$BODY" >/tmp/prepr-fig.$$ 2>&1
   step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
   rm -f /tmp/prepr-fig.$$
+
+  # --- 7a2. every registered figure block is what the registry renders at HEAD.
+  figure_block_check "$BODY" >/tmp/prepr-fb.$$ 2>&1
+  step "figure blocks" $? "$(tail -1 /tmp/prepr-fb.$$)"
+  rm -f /tmp/prepr-fb.$$
 
   # --- 7e. every finding the body records names a destination on the round's
   # roster branch, freshly fetched (`carry_line` above): pr-contract's carry check.

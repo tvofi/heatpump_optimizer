@@ -180,6 +180,9 @@ BODY_GRACE = datetime.timedelta(hours=1)
 CAP_ISSUES = 15
 #: OWED-handoff lines printed per pass (the earlier list's cap, kept).
 CAP_ORPHANS = 20
+# A triage or record batch topic is held by design -- no PR opens until the stamp sweep -- so it sorts after
+# every other stranded ref before the cap slice (14 of 20 capped lines were held, hiding 26 others).
+HELD_TOPIC = re.compile(r"^ORPHAN (?:triage|record)-\S*batch\S*")
 #: The OWED-handoff read. DESIGN CHOICE: no age window. bus.sh's default
 #: (--min-age-h 2) spares a ref pushed moments ago as a lane's in-flight push,
 #: but a handoff whose body ref exists is complete, and a level line that
@@ -2435,13 +2438,15 @@ class Tick:
                          f"{len(stranded)} ORPHAN line(s)): OWED handoffs "
                          "UNCHECKED this pass, not confirmed empty", flag=True)
             return
+        stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order
+        held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)
         for l in stranded[:CAP_ORPHANS]:
             self.line(S, f"OWED handoff: {l[len('ORPHAN '):]} -- no PR head "
                          "carries it: open_pr.sh (opener), update_pr.sh "
                          "(update) or a human decision (review)", flag=True)
         if len(stranded) > CAP_ORPHANS:
             self.line(S, f"OWED handoffs capped at {CAP_ORPHANS} of "
-                         f"{len(stranded)}; the rest print next pass once "
+                         f"{len(stranded)} ({held} held, listed last); the rest print next pass once "
                          "these are discharged", flag=True)
         for l in out:
             if l.startswith("SUPERSEDED "):
@@ -2811,6 +2816,9 @@ def self_test() -> int:
         gh.on("rate_limit", out=json.dumps({"remaining": rate[0],
                                             "limit": rate[1]}))
         for pr, rv in (reviews or {}).items():
+            flat = [x for p in rv for x in (p if isinstance(p, list) else [p])]
+            gh.on(lambda argv, pr=pr: any(f"pulls/{pr}/reviews" in a and "page=" in a for a in argv),
+                  out="".join(json.dumps(x) + "\n" for x in flat))
             gh.on(f"pulls/{pr}/reviews", out=json.dumps(rv))
         # GitHub search answers GET only: a stub that 404s any search call
         # NOT carrying --method GET, so an arm fails loudly on the POST form
@@ -3863,6 +3871,27 @@ def self_test() -> int:
                  and not l["flag"] for l in t.sections["REPLAN"])),
             ("the read carries no age window (a complete handoff is owed now)",
              bus_calls[-1] == ["orphans", "--min-age-h", "0"]),
+        ])
+        total, failed = total + a, failed + f
+        held14 = [f"ORPHAN {'triage' if i % 2 == 0 else 'record'}-s14-batch{i} {'a1' * 20} 5.0h uncovered=1 repair=opener" for i in range(14)]
+        live11 = [f"ORPHAN r10-live-{i} {'b2' * 20} 4.0h uncovered=1 repair=opener" for i in range(11)]
+        summ25 = ("orphans: 25 stranded, 0 superseded; skipped no-body=0 named=0 ancestor=0 young=0; "
+                  "origin main b87e8f1")
+        t = tick(bus_refs=held14 + live11 + [summ25], bus_rc=1)
+        t.orphans("REPLAN")
+        owed = [x["text"] for x in t.findings if x["text"].startswith("OWED handoff: ")]
+        capl = [x["text"] for x in t.findings if x["text"].startswith("OWED handoffs capped at")]
+        a, f = check("OWED handoffs held-last", [
+            ("25 stranded with 14 held: all 11 others print within the cap, held ones after them",
+             len(owed) == CAP_ORPHANS and all(f"r10-live-{i} " in owed[i] for i in range(11))
+             and "triage-s14-batch0 " in owed[11]),
+            ("the cap line counts the held refs",
+             len(capl) == 1 and "capped at 20 of 25 (14 held" in capl[0]),
+            ("null control: 11 live refs and no held ones print in bus order, no cap line",
+             (lambda t2: [x["text"].split()[2] for x in t2.findings if x["text"].startswith("OWED handoff: ")]
+              == [f"r10-live-{i}" for i in range(11)] and not any("capped" in x["text"] for x in t2.findings))(
+                 (lambda tt: (tt.orphans("REPLAN"), tt)[1])(
+                     tick(bus_refs=live11 + [summ25.replace("25", "11")], bus_rc=1)))),
         ])
         total, failed = total + a, failed + f
         t = tick(bus_refs=[BUS_CLEAR])
