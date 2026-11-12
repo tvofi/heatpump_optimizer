@@ -23,6 +23,9 @@ RESULT lines, each a sum over the 18 solves:
   floor_deficit_k_steps                  degree-steps of the simulated tank under 45 degC
   dhw_cost                               the planned hot-water energy at the day's prices
   plan_sha1                              sha1 over the 18 hot-water schedules and trajectories
+  repair_rounds_max / placements         the most floor-repair calls one placement under a start
+                                         condition made (``dhw_planner.place_startable``), and
+                                         how many placements were counted; "none" with no condition
 Null control: ``--hysteresis`` unset and ``--hysteresis 0`` print the
 plan_sha1 the merge base prints; a hysteresis of 4 prints
 runs_at_or_above_minus_4k=0 only on a tree whose planner reads it.
@@ -47,7 +50,26 @@ from profiles import house, prices, solve_inputs, weather  # noqa: E402
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState  # noqa: E402
 
+from heatpump_optimizer import dhw_planner  # noqa: E402
+
 START = datetime(2026, 1, 15, 0, 0)
+ROUNDS: list[int] = []
+if hasattr(dhw_planner, "place_startable"):
+    _place = dhw_planner.place_startable
+
+    def _counted(plan, start_below, temps_of, repair):
+        calls = [0]
+
+        def counting(**kwargs):
+            calls[0] += 1
+            return repair(**kwargs)
+
+        out = _place(plan, start_below, temps_of, counting)
+        if start_below is not None:
+            ROUNDS.append(calls[0])
+        return out
+
+    dhw_planner.place_startable = _counted
 SETPOINT_C, FLOOR_C, DT_H = 55.0, 45.0, 0.25
 SUPPORTED = hasattr(ThermalState(), "dhw_start_hysteresis_k")
 
@@ -109,6 +131,7 @@ def main() -> int:
     print(f"RESULT floor_deficit_k_steps={deficit:.2f} K*steps")
     print(f"RESULT dhw_cost={cost:.2f} price-units")
     print(f"RESULT plan_sha1={digest.hexdigest()}")
+    print("RESULT repair_rounds_max=" + (f"{max(ROUNDS)} of {len(ROUNDS)} placements" if ROUNDS else "none"))
     return 0
 
 

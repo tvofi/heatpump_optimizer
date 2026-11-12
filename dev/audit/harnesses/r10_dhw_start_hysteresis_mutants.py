@@ -33,6 +33,11 @@ M = [
  ("M14 ledger start ignores the written target", "pump_arbiter.py", "        dhw_step_target_c(inp.params, cycle) if written is None else written, hysteresis)", "        dhw_step_target_c(inp.params, False), hysteresis)"),
  ("M15 delta reader accepts above the maximum", "inputs.py", "    return delta_k if 0.0 <= delta_k <= TEMPERATURE_DELTA_MAX_K else None", "    return delta_k if 0.0 <= delta_k else None"),
  ("M16 a run at step 0 is judged too", "dhw_planner.py", "    on = plan > 0.0\n    i = 1\n", "    on = plan > 0.0\n    i = 0\n"),
+ ("M17 the round bound is nine", "dhw_planner.py", "STARTABLE_ROUNDS = 8\n", "STARTABLE_ROUNDS = 9\n"),
+ ("M18 a cycle on the first step is not a cycle step", "dhw_planner.py", "if cycle_step is not None and 0 <= cycle_step < n_steps:", "if cycle_step is not None and 0 < cycle_step < n_steps:"),
+ ("M19 a run at the second step is not judged", "dhw_planner.py", "    on = plan > 0.0\n    i = 1\n", "    on = plan > 0.0\n    i = 2\n"),
+ ("M20 the loop never ends early", "dhw_planner.py", "        if np.array_equal(fixed, plan):\n", "        if False:\n"),
+ ("M21 a cycle past the horizon is written", "dhw_planner.py", "if cycle_step is not None and 0 <= cycle_step < n_steps:", "if cycle_step is not None and 0 <= cycle_step <= n_steps:"),
  ("NULL comment-only change", "dhw_planner.py", "    on = plan > 0.0\n    i = 1\n", "    on = plan > 0.0  # null mutant\n    i = 1\n"),
 ]
 only = sys.argv[2:] 

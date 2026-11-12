@@ -851,6 +851,10 @@ def hysteresis_checks() -> None:
     check("each step's start temperature is its own target less the hysteresis, the cycle step the cycle's",
           lambda: list(planner.dhw_start_temps(cyc, 4.0, 6, 3)) == [51, 51, 51, 56, 51, 51]
           and list(planner.dhw_start_temps(cyc, 4.0, 6, None)) == [51.0] * 6)
+    check("a cycle on the first step is judged against its own target; one past the horizon moves no step",
+          lambda: list(planner.dhw_start_temps(cyc, 4.0, 3, 0)) == [56, 51, 51]
+          and list(planner.dhw_start_temps(cyc, 4.0, 3, 3)) == [51, 51, 51]
+          and list(planner.dhw_start_temps(cyc, 4.0, 3, 2)) == [51, 51, 56])
     check("with no or zero hysteresis no step has a start temperature",
           lambda: planner.dhw_start_temps(cyc, None, 6, 3) is None
           and planner.dhw_start_temps(cyc, 0.0, 6, 3) is None)
@@ -894,6 +898,8 @@ def hysteresis_checks() -> None:
           lambda: list(drop(plan, np.where(np.arange(8) == 2, 56.0, 51.0), temps_of))
           == [1, 0, 1, 1, 0, 0, 0, 0])
     check("dropping unstartable charges does not mutate its input", lambda: np.array_equal(plan, kept))
+    check("a run that begins at the second step on a warm tank is dropped",
+          lambda: list(drop(np.array([0.0, 1.0, 0.0]), np.full(3, 51.0), temps_of)) == [0, 0, 0])
     check("a run at the first step is kept on a warm tank, with nothing planned at the horizon's end",
           lambda: list(drop(np.array([1.0, 0.0, 0.0]), np.full(3, 51.0), temps_of)) == [1, 0, 0])
 
@@ -914,6 +920,28 @@ def hysteresis_checks() -> None:
           lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, stubborn))
           == list(drop(plan, np.full(8, 51.0), temps_of))
           and 1 <= len(calls) <= planner.STARTABLE_ROUNDS)
+    rounds = []
+
+    def counting(plan, start_below):
+        rounds.append(1)
+        return plan
+
+    planner.place_startable(plan, np.full(8, 51.0), temps_of, counting)
+    check("a repair that changes nothing ends the loop: one round to drop, one to see the plan stand",
+          lambda: len(rounds) == 2)
+    turns = []
+
+    def restless(plan, start_below):
+        # Never the plan it was handed: step 4 flips on every call.
+        turns.append(1)
+        out = original.copy()
+        out[4] = float(len(turns) % 2)
+        return out
+
+    settled = planner.place_startable(plan, np.full(8, 51.0), temps_of, restless)
+    check("a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge",
+          lambda: planner.STARTABLE_ROUNDS == 8 and len(turns) == 8
+          and np.array_equal(settled, drop(settled, np.full(8, 51.0), temps_of)))
     check("an identity repair leaves the dropped plan",
           lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan, start_below: plan))
           == list(drop(plan, np.full(8, 51.0), temps_of)))

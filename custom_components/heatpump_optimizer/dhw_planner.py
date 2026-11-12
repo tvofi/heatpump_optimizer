@@ -200,9 +200,10 @@ def _drop_off_steps(mask: np.ndarray, off: np.ndarray | None) -> np.ndarray:
 
 
 #: How many times :func:`place_startable` re-buys what the start condition
-#: barred before it settles for dropping: each round fixes the earliest
-#: charge the round before left unstartable, and the measured days settle in
-#: two or three.
+#: barred before it settles for dropping. A round re-buys under the charges
+#: the round before kept, and the measured placements settle in two or three
+#: (``dev/audit/harnesses/r10_dhw_start_hysteresis.py``, repair_rounds_max),
+#: so eight is that with room to spare and still a bound.
 STARTABLE_ROUNDS = 8
 
 
@@ -219,7 +220,7 @@ def dhw_start_temps(
     everyday = dhw_start_below_c(dhw_step_target_c(params, False), hysteresis_k)
     if everyday is None:
         return None
-    start = np.full(max(n_steps, 0), everyday)
+    start = np.full(n_steps, everyday)
     if cycle_step is not None and 0 <= cycle_step < n_steps:
         start[cycle_step] = dhw_start_below_c(dhw_step_target_c(params, True), hysteresis_k)
     return start
@@ -263,7 +264,6 @@ def drop_unstartable(
         end = i + int(np.argmin(np.append(on[i:], False)))
         if temps_of(plan)[i] >= start_below[i]:
             plan[i:end] = 0.0
-            on[i:end] = False
         i = end
     return plan
 
