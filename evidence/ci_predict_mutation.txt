@@ -1,2 +1,0 @@
-CI PREDICT: no closures, fast, governance or instrument red predicted against ef579d9ba689 (a data-file read is not seen)
-rc=0
