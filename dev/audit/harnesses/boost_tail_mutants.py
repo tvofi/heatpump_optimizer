@@ -5,7 +5,8 @@ in place, runs the part's block of tests/features.py through
 tools/audit/seat/features_block.py, and restores the file. It prints each
 mutant's exit status and the names of the checks that went red. ``M0`` is the
 null mutant (a comment edit) and must fail nothing; every other mutant must
-fail at least one check.
+fail at least one check or raise: either exits non-zero, and a raise
+prints its last line.
 
     python3 dev/audit/harnesses/boost_tail_mutants.py
 
@@ -14,6 +15,7 @@ when a run raises.
 """
 from __future__ import annotations
 
+import os
 import pathlib
 import subprocess
 import sys
@@ -67,13 +69,33 @@ MUTANTS = {
     "X13-mode-entry-keeps-spent-sum": (
         "        if live:\n            self._clear_spent(now)\n",
         "        if live:\n            pass\n"),
+    # The ledger inventory's BOOLOP sites (``and`` to ``or``), which
+    # tools/audit/seat/mutant_run.py does not draw.
+    "B240-press-start-boolop": (
+        "            if channel == CHANNEL_SPACE and not self.active(channel, now):\n",
+        "            if channel == CHANNEL_SPACE or not self.active(channel, now):\n"),
+    "B502-payload-start-boolop": (
+        "    if held.space_since is not None and CHANNEL_SPACE in held.until:\n",
+        "    if held.space_since is not None or CHANNEL_SPACE in held.until:\n"),
+    "B549-restore-tail-boolop": (
+        "    if until is not None and dt_util.as_utc(until) > dt_util.as_utc(now):\n",
+        "    if until is not None or dt_util.as_utc(until) > dt_util.as_utc(now):\n"),
+    "B557-restore-start-boolop": (
+        "    if since is not None and CHANNEL_SPACE in held.until:\n",
+        "    if since is not None or CHANNEL_SPACE in held.until:\n"),
+    "B560-restore-ended-boolop": (
+        "    if end is not None and CHANNEL_SPACE not in held.until:\n",
+        "    if end is not None or CHANNEL_SPACE not in held.until:\n"),
 }
 
 
 def block(prelude: str) -> subprocess.CompletedProcess:
     return subprocess.run(
         [sys.executable, "tools/audit/seat/features_block.py", START, END, "--prelude", prelude],
-        capture_output=True, text=True, timeout=600)
+        capture_output=True, text=True, timeout=600,
+        # Two mutants of one size written inside one second would otherwise
+        # share a cached .pyc: the second run would measure the first mutant.
+        env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
 
 
 def main() -> int:
@@ -98,7 +120,9 @@ def main() -> int:
         print(f"{name}: exit {r.returncode}, {len(fails)} check(s) red")
         for f in fails:
             print(f"    {f[:160]}")
-        killed = r.returncode != 0 and bool(fails)
+        if r.returncode != 0 and not fails:
+            print(f"    raised: {(r.stderr.strip().splitlines() or ['-'])[-1][:160]}")
+        killed = r.returncode != 0
         if name.startswith("M0") == killed:
             status = 1
     print("MUTANTS: " + ("as expected" if status == 0 else "UNEXPECTED"))
