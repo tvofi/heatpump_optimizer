@@ -13,6 +13,7 @@
 #   bus.sh push-design-verdict <topic> <verdict.md>             (design reviewer)
 #   bus.sh confirm <pr> <review commit>                         (orchestrator)
 #   bus.sh post <pr>                                            (orchestrator)
+#   bus.sh adopt <pr> <comment id>                              (dispatch seat: an outside contributor's verdict, decision 0017)
 #   bus.sh orphans [--min-age-h N] [--no-body] [--no-ancestry] [--no-content]
 #   bus.sh --self-test
 #
@@ -330,6 +331,115 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
 # writer can supersede it: if the ref moves after the answer the push is refused
 # non-fast-forward, which is a retry, not a commit on the wrong lineage. So
 # resolve the ref in the worktree that will use it, in a local, before the fetch.
+# ADOPTION (decision 0017): the authoritative gate for an allowlisted outside
+# contributor's fork pull request. The contributor's reviewer publishes from the
+# fork: one commit holding VERDICT.md and ev/, and a pull-request comment whose
+# first line is the verdict's and which carries `review-commit: <sha40>`. A
+# green pr-contract on a fork head proves nothing we rely on (the head supplies
+# its own workflow files), so `adopt` runs the whole contract here, FROM MAIN'S
+# COPY: it fetches main itself (a stale local ref is an old contract), checks
+# that commit out to a throwaway worktree, and runs that tree's bus.sh
+# (`adopt-from-main`), which refuses unless its own tree is the commit just
+# fetched. So outside.py, the allowlist, CODEOWNERS, policy_lint.mjs,
+# carry_audit.py, app_approve.sh and every push-verdict gate are main's, never
+# this seat's checkout's and never the head's. Nothing of the fork is checked
+# out or executed: the review commit is read with ls-tree and cat-file.
+adopt() { # pr comment-id
+  local pr=${1:-} cid=${2:-} t m rc
+  numeric "$pr" || die "adopt: the pull request '$pr' is not a number"
+  numeric "$cid" || die "adopt: the comment id '$cid' is not a number"
+  t=$(mktemp -d) || die "adopt: no temporary directory"
+  git fetch -q --no-tags "$REMOTE" "+refs/heads/main:refs/hpo-bus/adopt-main" \
+    || { rm -rf "$t"; die "adopt: could not fetch $REMOTE's main, and a stale main is an old contract"; }  # mut:adoptfetch
+  m=$(git rev-parse -q --verify refs/hpo-bus/adopt-main) || { rm -rf "$t"; die "adopt: no main was fetched"; }
+  git worktree add -q --detach "$t/main" "$m" >/dev/null 2>&1 \
+    || { rm -rf "$t"; git worktree prune; die "adopt: could not check main ($m) out to a throwaway worktree"; }
+  if [ -f "$t/main/tools/audit/seat/bus.sh" ] && [ -f "$t/main/tools/pr/outside.py" ]; then
+    bash "$t/main/tools/audit/seat/bus.sh" adopt-from-main "$pr" "$cid" "$m"; rc=$?  # mut:adoptmain
+  else
+    printf 'bus: REFUSE: adopt: %s'"'"'s main (%s) holds no outside contract (tools/pr/outside.py)\n' "$REMOTE" "$m" >&2; rc=1
+  fi
+  git worktree remove --force "$t/main" >/dev/null 2>&1; rm -rf "$t"; git worktree prune
+  return $rc
+}
+
+json_field() { # file dotted.key -> the value (empty for a missing one), a string or a number
+  python3 -I -c 'import json, sys
+v = json.load(open(sys.argv[1], encoding="utf-8"))
+for k in sys.argv[2].split("."):
+    v = v.get(k) if isinstance(v, dict) else None
+sys.stdout.write("" if v is None else str(v))' "$1" "$2"
+}
+
+adopt_from_main() { # pr comment-id main-sha: adopt's body, run as main's copy
+  local pr=${1:-} cid=${2:-} m=${3:-} gh=${HPO_BUS_GH:-gh} t out rc first hsha head login uid full title c n mb line meta path cnt=0
+  numeric "$pr" && numeric "$cid" && [[ $m =~ ^[0-9a-f]{40}$ ]] || die "adopt: run bus.sh adopt <pr> <comment id>"
+  [ "$(git -C "$ROOT" rev-parse HEAD 2>/dev/null)" = "$m" ] \
+    || die "adopt: this bus.sh is not main's copy at $m; run bus.sh adopt, which checks main out and runs it from there"
+  t=$(mktemp -d) || die "adopt: no temporary directory"
+  # shellcheck disable=SC2064 # $t is expanded now, on purpose
+  trap "rm -rf '$t'" EXIT
+  out=$(python3 -I "$ROOT/tools/pr/outside.py" check --repo "$REPO" --pr "$pr" --ref "$m" --comment "$cid" 2>&1); rc=$?
+  [ $rc = 0 ] || die "adopt: #$pr is not adopted by main's outside.py at ${m:0:12} (rc $rc): $(tr '\n' ' ' <<< "$out")"
+  $gh api "repos/$REPO/pulls/$pr" > "$t/pull.json" 2>/dev/null || die "adopt: #$pr could not be read"
+  $gh api "repos/$REPO/issues/comments/$cid" > "$t/comment.json" 2>/dev/null || die "adopt: comment $cid could not be read"
+  head=$(json_field "$t/pull.json" head.sha) && login=$(json_field "$t/pull.json" user.login) \
+    && uid=$(json_field "$t/pull.json" user.id) && full=$(json_field "$t/pull.json" head.repo.full_name) \
+    && title=$(json_field "$t/pull.json" title) && json_field "$t/pull.json" body > "$t/body.md" \
+    && json_field "$t/comment.json" body | tr -d '\r' > "$t/comment.md" \
+    || die "adopt: the pull request or the comment did not parse"
+  [[ $head =~ ^[0-9a-f]{40}$ ]] && [[ $login =~ ^[A-Za-z0-9-]+$ ]] && numeric "$uid" \
+    || die "adopt: #$pr's head, author login or author id is not what the API's shape promises"
+  first=$(head -n 1 "$t/comment.md")
+  hsha=$(verdict_sha "$first") || die "adopt: comment $cid's first line is outside fix-review.md's grammar: '$first'"
+  case $first in "Fix review: merge "*) ;; *) die "adopt: only a merge verdict is adopted; comment $cid's is '$first'" ;; esac
+  [ "$hsha" = "$head" ] || die "adopt: comment $cid's verdict names $hsha and #$pr's live head is $head"  # mut:adopthead
+  c=$(sed -n 's/^review-commit: \([0-9a-f]\{40\}\)$/\1/p' "$t/comment.md" | head -n 1)
+  [ -n "$c" ] || die "adopt: comment $cid carries no 'review-commit: <sha40>' line naming the fork commit that holds VERDICT.md and ev/"
+  # The fork, by the name the pulls API reports; the name is matched, never expanded.
+  [[ $full =~ ^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$ ]] || die "adopt: the head repository name '$full' is not owner/name"
+  git fetch -q --no-tags -- "${HPO_BUS_GITHUB:-https://github.com}/$full.git" "$c" 2>/dev/null \
+    && git cat-file -e "$c^{commit}" 2>/dev/null \
+    || die "adopt: the review commit $c could not be fetched from $full"
+  # Plumbing only: regular files, VERDICT.md and ev/, under a size and a count cap.
+  while IFS= read -r line; do
+    meta=${line%%$'\t'*}; path=${line#*$'\t'}
+    # shellcheck disable=SC2086 # mode, type, sha, size
+    set -- $meta
+    [ "${1:-}" = 100644 ] && [ "${2:-}" = blob ] || die "adopt: '$path' in the review commit is not a regular file (mode ${1:-?})"
+    numeric "${4:-}" && [ "$4" -le 5242880 ] || die "adopt: '$path' in the review commit is over 5 MB"
+    case $path in
+      VERDICT.md) ;;
+      ev/*) [[ $path =~ ^ev/[A-Za-z0-9._/-]+$ ]] && [[ $path != *..* ]] || die "adopt: the evidence path '$path' holds a character outside letters, digits, dot, underscore, dash and slash" ;;
+      *) die "adopt: the review commit holds '$path'; it is VERDICT.md and ev/ and nothing else" ;;
+    esac
+    cnt=$((cnt + 1)); [ "$cnt" -le 400 ] || die "adopt: the review commit holds more than 400 files"
+    mkdir -p "$t/v/$(dirname "$path")" && git cat-file blob "$3" > "$t/v/$path" || die "adopt: could not read '$path' from the review commit"
+  done < <(git -c core.quotepath=on ls-tree -r -l "$c")
+  [ -f "$t/v/VERDICT.md" ] && [ -d "$t/v/ev" ] || die "adopt: the review commit $c holds no VERDICT.md beside an ev/ directory"
+  [ "$(head -n 1 "$t/v/VERDICT.md")" = "$first" ] \
+    || die "adopt: VERDICT.md's first line in $c is not comment $cid's, byte for byte"  # mut:adoptfirst
+  [ -z "$(verdict_nonce "$t/v/VERDICT.md")" ] && ! grep -q '^bus-adopted: ' "$t/v/VERDICT.md" \
+    || die "adopt: the contributor's VERDICT.md carries a bus-nonce or bus-adopted line; the adoption writes both"
+  # The body is not bound to the head: main's policy_lint and carry_audit over the LIVE body.
+  mb=$(git merge-base "$m" "$head") && git diff --no-renames --name-only "$mb...$head" > "$t/paths" \
+    || die "adopt: the diff of #$pr against main could not be read"
+  out=$(${HPO_BUS_BODYLINT:-node "$ROOT/tools/policy/policy_lint.mjs"} --pr-body "$t/body.md" --head "$head" --base "$mb" \
+          --title "$title" --author "$login" --outside-author "$login" --paths-file "$t/paths" 2>&1) \
+    || die "adopt: #$pr's body fails main's policy_lint --pr-body: $(grep -v '^[[:space:]]*$' <<< "$out" | tail -n 3 | tr '\n' ' ')"
+  out=$(${HPO_BUS_CARRYAUDIT:-python3 -I "$ROOT/tools/audit/carry_audit.py"} --git-dir "$(git rev-parse --show-toplevel)" \
+          --roster-ref "$m" check --body "$t/body.md" 2>&1) \
+    || die "adopt: #$pr's body fails main's carry_audit.py check: $(tail -n 2 <<< "$out" | tr '\n' ' ')"
+  # The dispatch record is the adoption's own: no reviewer of ours was dispatched.
+  n=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
+  [[ $n =~ ^[0-9a-f]{32}$ ]] || die "adopt: could not mint a nonce"
+  printf '\nbus-adopted: #%s comment %s by %s (id %s), review-commit %s, main %s (decision 0017)\nbus-nonce: %s\n' \
+    "$pr" "$cid" "$login" "$uid" "$c" "$m" "$n" >> "$t/v/VERDICT.md"
+  mkdir -p "$S" && printf '%s %s %s %s %s %s\n' "$pr" "$head" "outside:$login" "$n" "$(date -u +%FT%TZ)" - >> "$S/dispatched" \
+    || die "adopt: cannot record in $S"
+  push_verdict "$pr" "$t/v/VERDICT.md" "$t/v/ev"
+}
+
 append_commit() { # family pr tree message -> pushes one commit on <family>/<pr> after its tip, prints it
   local fam=$1 pr=$2 tree=$3 msg=$4 parent="" tip="" c rc
   tip=$(git ls-remote "$REMOTE" "refs/heads/$fam/$pr" 2>/dev/null | awk 'NF { print $1; exit }')
@@ -2125,6 +2235,103 @@ B
   out=$(run watch --once 2>&1); rc=$?
   [ $rc = 0 ] && [ ! -e "$W/state/watch.lock" ]
   expect "null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock" $?
+  # ADOPTION (decision 0017). Its own origin, whose main is a copy of this tree's
+  # programs, a fork as a second bare repository, and a `gh` answering from files.
+  local A=$W/ad AM AH AC AN ah2 fx
+  mkdir -p "$A/bin" "$A/api" "$A/gh/bankaifan" "$A/ev/ev"
+  throwaway_git_init "$A/origin.git" -q --bare; throwaway_git_init "$A/gh/bankaifan/hpo.git" -q --bare
+  git -C "$A/gh/bankaifan/hpo.git" config uploadpack.allowAnySHA1InWant true
+  throwaway_git_init "$A/src" -q -b main; ag() { git -C "$A/src" -c user.name=t -c user.email=t@t "$@"; }
+  ag remote add origin "$A/origin.git"; ag remote add fork "$A/gh/bankaifan/hpo.git"
+  mkdir -p "$A/src/tests" "$A/src/.github" "$A/src/dev/governance/config" "$A/src/custom_components/x"
+  cp -R "$ROOT/tools" "$A/src/tools"; cp "$ROOT/tests/layout.py" "$ROOT/tests/layout.json" "$ROOT/tests/closure.py" "$ROOT/tests/throwaway_git.sh" "$ROOT/tests/mutation_table.py" "$ROOT/tests/closures.json" "$A/src/tests/"
+  cp "$ROOT/.github/CODEOWNERS" "$A/src/.github/"; echo a > "$A/src/custom_components/x/a.py"; echo r > "$A/src/README.md"
+  printf '{"contributors": []}\n' > "$A/src/dev/governance/config/outside_contributors.json"
+  ag add -A -f .; ag commit -q -m "main, no contributor yet"; ag push -q origin main
+  throwaway_git_init "$A/seat" -q -b main; git -C "$A/seat" remote add origin "$A/origin.git"
+  git -C "$A/seat" fetch -q origin main; git -C "$A/seat" checkout -q --detach origin/main   # the seat's origin/main: stale from here on
+  printf '{"contributors": [{"login": "bankaifan", "id": 555001, "since": "2026-11-12", "decision": "0017"}]}\n' > "$A/src/dev/governance/config/outside_contributors.json"
+  ag commit -qam "the owner adds the contributor"; AM=$(ag rev-parse HEAD); ag push -q origin main
+  fx() { # name path... -> a fork head off AM changing each path, pushed as the pull ref
+    local n=$1 f; shift; ag checkout -q -B "f-$n" "$AM"
+    for f in "$@"; do mkdir -p "$A/src/$(dirname "$f")"; echo "$n" >> "$A/src/$f"; ag add -f "$f"; done
+    ag commit -q -m "fork: $n"; ag rev-parse HEAD
+  }
+  AH=$(fx good custom_components/x/a.py)
+  # main moves on after the fork point, in a class-R path: a two-dot range would charge it to the fork.
+  ag checkout -q main; echo later >> "$A/src/tools/pr/README.md"; ag commit -qam "main moves on in tools/"; AM=$(ag rev-parse HEAD); ag push -q origin main
+  aset() { # head verdict-first-line [comment-first-line] [extra file in the review commit]: the pull ref, the fork's review commit, the API's answers
+    local h=$1 vf=$2 cf=${3:-$2} extra=${4:-}
+    git -C "$A/src" push -q -f origin "$h:refs/pull/7/head"
+    rm -rf "$A/rc"; mkdir -p "$A/rc/ev"; printf '%s\n\nRESULT measured\n' "$vf" > "$A/rc/VERDICT.md"; printf 'measured at %s\n' "$h" > "$A/rc/ev/run.log"
+    [ -z "$extra" ] || { mkdir -p "$A/rc/$(dirname "$extra")"; echo x > "$A/rc/$extra"; }
+    AC=$(cd "$A/rc" && export GIT_DIR="$A/src/.git" GIT_INDEX_FILE="$A/rc.index" GIT_WORK_TREE="$A/rc" && rm -f "$A/rc.index" \
+         && git add -A -f . && git -c user.name=t -c user.email=t@t commit-tree "$(git write-tree)" -m "verdict 7 $h")
+    git -C "$A/src" push -q -f fork "$AC:refs/heads/probe/rev-7"
+    printf '{"number": 7, "state": "open", "title": "fix: a", "body": "## Head\\n\\nbody\\n", "user": {"login": "bankaifan", "id": 555001, "type": "User"}, "head": {"sha": "%s", "ref": "fix/a", "repo": {"full_name": "bankaifan/hpo", "owner": {"login": "bankaifan"}}}, "base": {"ref": "main", "repo": {"full_name": "o/r"}}}\n' "$h" > "$A/api/pull.json"
+    python3 -I -c 'import json, sys; json.dump({"id": 31, "user": {"login": "bankaifan", "id": 555001, "type": "User"}, "issue_url": "https://api.github.com/repos/o/r/issues/7", "body": sys.argv[1] + "\nreview-commit: " + sys.argv[2] + "\n"}, open(sys.argv[3], "w"))' "$cf" "$AC" "$A/api/comment.json"
+  }
+  cat > "$A/bin/gh" <<'G'
+#!/bin/bash
+echo "$*" >> "$AD/gh.log"
+case "$*" in
+  *"repos/o/r/pulls/7/reviews"*|*"/commits/"*"/pulls"*|*"repos/o/r/pulls?"*) echo '[[]]' ;;
+  *"repos/o/r/pulls/7") cat "$AD/api/pull.json" ;;
+  *"repos/o/r/issues/comments/31") cat "$AD/api/comment.json" ;;
+  *) echo "gh: Not Found (HTTP 404)" >&2; exit 1 ;;
+esac
+G
+  printf '#!/bin/bash\necho "$*" >> "$AD/lint.log"\n[ ! -f "$AD/lint-refuses" ] || { echo "pr-body: planted refusal"; exit 1; }\n' > "$A/bin/lint"
+  printf '#!/bin/bash\necho "$*" >> "$AD/carry.log"\n[ ! -f "$AD/carry-refuses" ] || { echo "UNROUTED planted"; exit 1; }\n' > "$A/bin/carryaudit"
+  chmod +x "$A/bin/gh" "$A/bin/lint" "$A/bin/carryaudit"
+  adopt_run() { (cd "$A/seat" && AD=$A PATH="$A/bin:$PATH" HPO_BUS_GH="$A/bin/gh" HPO_BUS_GITHUB="$A/gh" HPO_BUS_STATE=$A/state \
+                 HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r HPO_BUS_BODYLINT="$A/bin/lint" HPO_BUS_CARRYAUDIT="$A/bin/carryaudit" \
+                 HOME=$W HPO_IDENTITY_DIR=${BUS_ID:-$W/noid} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
+  atip() { git -C "$A/origin.git" rev-parse -q --verify refs/heads/review/7 2>/dev/null || echo none; }
+  aset "$AH" "Fix review: merge $AH"
+  out=$(adopt_run adopt 7 31); rc=$?
+  [ $rc = 0 ] || printf '%s\n' "$out" | tail -n 5
+  [ $rc = 0 ] && [ "$(atip)" != none ]; expect "adopt: an allowlisted contributor's merge verdict on a class-F head is proposed on review/7" $?
+  [ "$(git -C "$A/origin.git" show "$(atip):VERDICT.md" | head -n 1)" = "Fix review: merge $AH" ] \
+    && git -C "$A/origin.git" show "$(atip):VERDICT.md" | grep -q "^bus-adopted: #7 comment 31 by bankaifan (id 555001), review-commit $AC, main $AM (decision 0017)\$" \
+    && git -C "$A/origin.git" show "$(atip):evidence/run.log" | grep -q "$AH"
+  expect "... its first line the contributor's, with the provenance line and the fork's evidence" $?
+  AN=$(git -C "$A/origin.git" show "$(atip):VERDICT.md" | sed -n 's/^bus-nonce: //p')
+  grep -q "^7 $AH outside:bankaifan $AN " "$A/state/dispatched"; expect "... under a dispatch record whose reviewer is outside:<login>" $?
+  # (the seat's checkout predates the allowlist entry and the provenance names the new main: adopt fetched it)
+  grep -q -- "--outside-author bankaifan" "$A/lint.log" && grep -q "check --body" "$A/carry.log"
+  expect "... after main's policy_lint --pr-body and carry_audit.py ran over the live body" $?
+  [ -z "$(git -C "$A/seat" worktree list --porcelain | grep -c '^worktree ' | grep -vx 1)" ]; expect "... and the throwaway worktree of main is gone" $?
+  out=$(BUS_ID=$W/ap adopt_run confirm 7 "$(atip)"); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q "^BUS posted 7 .* Fix review: merge $AH"; expect "... and bus.sh confirm signs and posts it as any reviewer's proposal" $?
+  # Each refusal: review/7 does not move.
+  arefuse() { # name pattern
+    local before; before=$(atip); out=$(adopt_run adopt 7 31); rc=$?
+    [ $rc != 0 ] && echo "$out" | grep -q -- "$2" && [ "$(atip)" = "$before" ]; expect "adopt refuses $1, moving nothing" $?
+  }
+  for f in tools/pr/x.py .github/workflows/x.yml tests/closures.json tests/golden/x.json tests/structure_budgets.json dev/governance/config/outside_contributors.json newroot.txt scripts/x.sh; do
+    ah2=$(fx "r" "$f"); aset "$ah2" "Fix review: merge $ah2"; arefuse "a head touching the class-R path $f" "class R: $f"
+  done
+  ah2=$(fx "o" tests/entities.py); aset "$ah2" "Fix review: merge $ah2"; arefuse "a head touching a class-O path with no owner read" "class O: tests/entities.py"
+  aset "$AH" "Fix review: merge $norow" ; arefuse "a verdict naming a commit that is not the live head" "live head is $AH"
+  aset "$AH" "Fix review: blocked $AH claims: moved"; arefuse "a blocked verdict" "only a merge verdict is adopted"
+  aset "$AH" "Fix review: merge $AH" "Fix review:  merge $AH"; arefuse "a comment whose first line is outside the grammar" "outside fix-review.md's grammar"
+  aset "$AH" "Fix review: merge $norow" "Fix review: merge $AH"; arefuse "a VERDICT.md whose first line is not the comment's" "byte for byte"
+  aset "$AH" "Fix review: merge $AH" "" "run.sh"; arefuse "a review commit holding a file beside VERDICT.md and ev/" "VERDICT.md and ev/ and nothing else"
+  aset "$AH" "Fix review: merge $AH" "" 'ev/a b.log'; arefuse "an evidence path with a space" "evidence path"
+  aset "$AH" "Fix review: merge $AH"; : > "$A/lint-refuses"; arefuse "a body main's policy_lint refuses" "fails main's policy_lint"; rm "$A/lint-refuses"
+  : > "$A/carry-refuses"; arefuse "a body main's carry_audit refuses" "fails main's carry_audit"; rm "$A/carry-refuses"
+  sed -i.bak 's/"id": 555001, "type": "User"}, "issue_url"/"id": 4, "type": "User"}, "issue_url"/' "$A/api/comment.json"
+  arefuse "a comment by an account that is not the allowlist entry" "is not the pull request author's allowlist entry"
+  aset "$AH" "Fix review: merge $AH"; sed -i.bak 's/"ref": "fix\/a"/"ref": "a$(id)"/' "$A/api/pull.json"; arefuse "a head branch name a shell would expand" "head branch name"
+  # main's copy decides: a main whose outside.py refuses everything refuses this adoptable head.
+  aset "$AH" "Fix review: merge $AH"
+  ag checkout -q main; printf 'print("REFUSE: MAIN-COPY-RAN")\nraise SystemExit(1)\n' > "$A/src/tools/pr/outside.py"; ag commit -qam "main's outside.py refuses"; ag push -q origin main
+  arefuse "by MAIN's copy of outside.py, not this checkout's (which admits)" "MAIN-COPY-RAN"
+  out=$(adopt_run adopt-from-main 7 31 "$AM"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "is not main's copy"; expect "adopt-from-main refuses to run from a tree that is not the main it was handed" $?
+  ag rm -q tools/pr/outside.py; ag commit -qm "main without the contract"; ag push -q origin main
+  arefuse "when main holds no outside contract" "holds no outside contract"
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]
@@ -2174,6 +2381,8 @@ case ${1:-} in
   dispatch-handoff) shift; dispatch_handoff "$@" ;;
   rekey) shift; rekey "$@" ;;
   confirm) shift; confirm "$@" ;;
+  adopt) shift; adopt "$@" ;;
+  adopt-from-main) shift; adopt_from_main "$@" ;;
   post) shift; numeric "${1:-}" || die "post: give a pull-request number"; mkdir -p "$S"; post_verdict "$1" ;;
   orphans) shift; orphans "$@" ;;
   --self-test) self_test ;;

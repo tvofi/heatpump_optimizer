@@ -58,6 +58,9 @@
 /dev/governance/roles/COMMON.md
 /dev/governance/dimensions/               @tvofi
 /dev/governance/decisions/                @tvofi
+# The outside contributors' allowlist (decision 0017): who may have a fork pull
+# request adopted. Data, so no glob above holds it; the owner alone edits it.
+/dev/governance/config/outside_contributors.json @tvofi
 /dev/audit/README.md                      @tvofi
 /dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi
@@ -74,6 +77,10 @@
 # self-test step, so only ownership covers it.
 /tools/pr/cancel_superseded.py            @tvofi
 /tools/pr/codeql_scope.py                 @tvofi
+# The outside-contributor contract (decision 0017): the path classes, the
+# class-O check and the one writer of a mandated class-O approval. Pinned in
+# pr-contract; owned too, because bus.sh adopt runs main's copy as the gate.
+/tools/pr/outside.py                      @tvofi
 # The merge fast path decides when a pull request merges without a fresh CI
 # run (round-9 process review item 2B); the orchestrator runs main's copy, and
 # its self-test cannot stop a pull request that weakens a class and its fixture

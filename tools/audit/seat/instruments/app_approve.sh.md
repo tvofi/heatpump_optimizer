@@ -13,3 +13,9 @@ claim-driver output on them). When:
   Its GitHub reads -- the four `gh api` reads and curl's JWT read of the
   App's installation -- are under `seat/gh_read.py`'s read rule; the token
   mint and the review POST are never retried.
+  `--carry` asks origin whether the head is the tip of one of its branches
+  (decision 0017). On any other head, a fork's, every non-merge commit
+  refuses whatever its subject or author, a merge must be of main, and each
+  file with a merge driver at main must hold main's bytes in it; an
+  unreadable `ls-remote` carries nothing. No tool of ours pushes a fork's
+  head to a branch of origin.
