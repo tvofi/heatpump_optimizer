@@ -1,0 +1,4 @@
+{
+ "_comment": "The outside contributors whose fork pull requests bus.sh adopt admits (decision 0017). One entry per account: login and numeric id as the users API reports them (`gh api users/<login> --jq \"{login,id,type}\"`), the date added, the decision. Read with `git show <ref>:<path>` by tools/pr/outside.py, never from a checkout. Policy: only the owner adds or removes an entry, and the first one only after the two checks decision 0017 lists under \"Before the first allowlist entry\".",
+ "contributors": []
+}

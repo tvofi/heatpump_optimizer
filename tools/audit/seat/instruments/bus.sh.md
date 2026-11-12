@@ -58,3 +58,13 @@ under the review is refused, and so is a topic with no design ref.
   registry (no reader keys on it), refuses a tip that is not `handoff/<topic>`'s or a second
   reviewer at one tip, and reads no row, packet or CI. `rekey <topic> <pr>`, run by
   `open_pr.sh`, appends the record under the PR (rc 3: no handoff dispatch; idempotent).
+  `adopt <pr> <comment id>` (decision 0017) adopts an allowlisted outside
+  contributor's merge verdict: it fetches main, checks it out to a throwaway
+  worktree and runs that copy (`adopt-from-main`, which refuses from any other
+  tree), so `outside.py check`, `policy_lint.mjs --pr-body`, `carry_audit.py`
+  and every `push-verdict` gate are main's. The comment's first line names the
+  live head and equals the first line of VERDICT.md in the fork commit its
+  `review-commit: <sha40>` line names; that commit is read with `ls-tree` and
+  `cat-file` only (regular files, VERDICT.md and `ev/`). It records the
+  dispatch as reviewer `outside:<login>` and proposes on `review/<pr>`;
+  `confirm` is unchanged. Refusal: every reason above, moving nothing.
