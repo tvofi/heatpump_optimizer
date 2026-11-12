@@ -22889,9 +22889,9 @@
    "carry": [],
    "findings": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "7617c7cf4abfabb04aa55ae242274e9a3f4fe61c",
     "last_step": null,
     "next_step": "fixer rebuilds outside pull request 3443 with the legacy names installed from the base entity for cores without the native ones (no design step, size S); the pushed head is not adoptable as it is; waits on no group",
     "note": "feature-triage seat for the orchestrator under mandate 6715477401, 2026-11-11: outside pull request 3443 by Bankaifan accepted into round 10; no reviewer on the outside PR itself; no live group owns climate.py or entity.py; overlap admitted (R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-OUTSIDE-DHW-START-HYSTERESIS): feature-triage seat 2026-11-11 for the orchestrator under mandate 6715477401: outside pull request 3443 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); no live group owns climate.py or entity.py; overlap: tests/entities.py, tests/features.py and tests/finite_boundary.py with in-flight groups, test files only, distinct seams (the climate entity's published names)",
