@@ -83363,6 +83363,16 @@ R.check(
     and _ds_latch_rec.order is not None and _ds_latch_rec.order[0] == _DS_T0 + timedelta(minutes=15),
     f"{_ds_latched_run} {_ds_next_start}",
 )
+_ds_unloaded_c = _DsArb()
+_ds_unloaded_rec = _ds_mod.record_for(_ds_unloaded_c)
+_ds_unloaded_rec.learner = _ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)
+_ds_unloaded = _ds_split(None, c=_ds_unloaded_c)
+R.check(
+    "a record whose store is not read yet splits as today and latches nothing; null control, the same learner "
+    "loaded keeps the whole step",
+    _ds_unloaded == _DS_TODAY and _ds_unloaded_rec.order is None and _ds_wholes["next serves space"] == _DS_WHOLE,
+    f"{_ds_unloaded} {_ds_unloaded_rec.order}",
+)
 _ds_latch_off = _ds_split(_ds_mod.DutySwitchLearner(), _ds_next_dhw)
 R.check(
     "null control of the latch: the re-solved plan and learner read from the step's start split as today",
