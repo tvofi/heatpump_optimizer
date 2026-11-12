@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
+index 609ec3a55c..ca1ec10ef3 100755
+--- a/tools/audit/seat/open_pr.sh
++++ b/tools/audit/seat/open_pr.sh
+@@ -97,7 +97,7 @@ op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin ho
+ }
+ op_figures() { # <p1|p2>: re-render the body's generated figure blocks at this worktree's head; a block names the head it was rendered at
+   grep -q '^<!-- figure-block: ' $D/body.md || return 0
+-  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base origin/main --head HEAD > $D/fig-$1.log 2>&1 && return 0
++  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base origin/main --head $C > $D/fig-$1.log 2>&1 && return 0
+   OP_WHY="the figure-block refresh at $1 failed:
+ $(tail -n 20 $D/fig-$1.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
+ }

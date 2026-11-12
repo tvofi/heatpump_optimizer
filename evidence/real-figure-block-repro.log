@@ -1,0 +1,21 @@
+== render at handoff head C=41dc1fd62bde2897d68ef8f99afa8eb8ab4dc0be
+figure_block: refreshed 1 block(s) at 41dc1fd62bde
+## Figures
+
+<!-- figure-block: merge-base mb=73081fd42beac6a8e24132c28f6ecdd160b748ba head=41dc1fd62bde2897d68ef8f99afa8eb8ab4dc0be -->
+~~~text
+73081fd42beac6a8e24132c28f6ecdd160b748ba
+~~~
+<!-- /figure-block -->
+
+figure_block verify: 1 block(s), 0 refused
+verify@C rc=0
+== merged head c3b49a04127c0344c49204087bfec493118a536a
+  ERROR   [figure-block] line 3: block `merge-base` names head=41dc1fd62bde mb=73081fd42bea, this run is head=c3b49a04127c mb=7848f76d2521; re-render with `figure_block.py refresh <body>`
+figure_block verify: 1 block(s), 1 refused
+verify stale@merged (no fix) rc=1
+figure_block: refreshed 1 block(s) at c3b49a04127c
+figure_block verify: 1 block(s), 0 refused
+verify refreshed@merged (fix) rc=0
+op_figures guard: no block -> return 0 before refresh
+no-block body byte-identical after refresh
