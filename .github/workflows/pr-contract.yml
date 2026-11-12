@@ -224,6 +224,36 @@ jobs:
             --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified | tostring)] | @tsv' \
             > /tmp/pr-commits.tsv
 
+      # AN OUTSIDE CONTRIBUTOR'S PULL REQUEST, AS AN EARLY SIGNAL (decision 0017).
+      # tools/pr/outside.py is the base's (the restore above takes tools/pr/*.py)
+      # and it reads the allowlist and CODEOWNERS with `git show` at the base
+      # commit, the pull request's author, head repository and head ref name
+      # off the API: none of them reaches this shell as text. rc 0 writes the
+      # author for the one flag below that relaxes policy_lint's author arm;
+      # rc 3 is not an outside pull request and the ordinary author rule
+      # judges it; anything else refuses. This gates nothing we rely on: a fork
+      # head runs the workflow files of its own merge ref, so `bus.sh adopt`,
+      # on our machine from main's copy, is the gate. A base with no outside.py
+      # or no allowlist has no outside contract and the step says so.
+      - name: Judge an outside contributor's pull request (early signal)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ steps.pr.outputs.number }}
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format('origin/{0}', inputs.base) }}
+        run: |
+          set -uo pipefail
+          : > /tmp/pr-outside.txt
+          for f in tools/pr/outside.py dev/governance/outside_contributors.json; do
+            git cat-file -e "$PINNED:$f" 2>/dev/null || { echo "the base holds no $f: no outside contract to judge by"; exit 0; }
+          done
+          rc=0
+          python3 -I tools/pr/outside.py check --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --ref "$PINNED" --early --no-fetch || rc=$?
+          case $rc in
+            0) cp /tmp/pr-author.txt /tmp/pr-outside.txt ;;
+            3) ;;
+            *) exit 1 ;;
+          esac
+
       # The paths decide whether `## Approval` is owed, so this runs WITHOUT
       # `|| true` and with `set -o pipefail`: a derivation that fails must fail
       # the step. policy_lint refuses an unreadable or empty list for the same
@@ -353,18 +383,21 @@ jobs:
             RED_ARGS+=(--red "$name")
           done < /tmp/pr-reds.txt
           PR_TITLE=$(cat /tmp/pr-title.txt)
+          # Set only when outside.py admitted this pull request, above.
+          OUTSIDE=()
+          if test -s /tmp/pr-outside.txt; then OUTSIDE=(--outside-author "$(cat /tmp/pr-outside.txt)"); fi
           if test -f .claude/workflows/policy_lint.mjs; then
             node .claude/workflows/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
               --author "$(cat /tmp/pr-author.txt)" --commits-file /tmp/pr-commits.tsv \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
-              "${RED_ARGS[@]}"
+              ${OUTSIDE[@]+"${OUTSIDE[@]}"} "${RED_ARGS[@]}"
           else
             node tools/policy/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
               --author "$(cat /tmp/pr-author.txt)" --commits-file /tmp/pr-commits.tsv \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
-              "${RED_ARGS[@]}"
+              ${OUTSIDE[@]+"${OUTSIDE[@]}"} "${RED_ARGS[@]}"
           fi
 
       - name: Every figure's command resolves at this head

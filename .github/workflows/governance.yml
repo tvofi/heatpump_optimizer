@@ -1397,6 +1397,18 @@ jobs:
           python3 -I tools/audit/seat/survivor_list.py --self-test | tee "$RUNNER_TEMP/survivor-list-self-test.txt"
           grep -Eq '^survivor_list self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/survivor-list-self-test.txt"
 
+      # Decision 0017: admission, the three path classes, class O in both forms
+      # against every writer under the owner's account, the approve subcommand,
+      # and the two workflow pins (no contributor-named value in a run: block;
+      # the fork conjunct on tests.yml's laneskip step), over a faked gh.
+      - name: Show the outside-contributor contract (tools/pr/outside.py) refusing its own fixtures
+        id: outside-contract
+        if: ${{ !cancelled() && steps.scope.outputs.outside-contract == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/outside.py --self-test | tee "$RUNNER_TEMP/outside-self-test.txt"
+          grep -Eq '^outside self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/outside-self-test.txt"
+
       - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
         id: ci-probe-instrument
         if: ${{ !cancelled() && steps.scope.outputs.ci-probe-instrument == 'true' }}

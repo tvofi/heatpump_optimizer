@@ -46,7 +46,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f] [--required-file f]
+//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--outside-author login] [--commits-file f] [--required-file f]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -316,6 +316,9 @@ const POLICY_DIR_EXCLUDE = [
   // map spells them by their old `.claude/workflows/` names; a new one did not
   // (R10-MACHINERY-RATCHETS), and R9-RO-9 would have flagged all five.
   /^dev\/governance\/config\/[a-z0-9_]+\.json$/,
+  // The outside contributors' allowlist (decision 0017): data tools/pr/outside.py
+  // reads with `git show`, owned in CODEOWNERS, never prose.
+  /^dev\/governance\/outside_contributors\.json$/,
 ]
 
 // `files` is injectable for ONE reason: the acceptance. This check runs over
@@ -3996,6 +3999,28 @@ function assertAcceptance(derived) {
       console.log('\nFIXTURE VACUOUS: the author check fired on the App (either form) or on an absent author (the null controls)')
       return 1
     }
+    // Decision 0017: an admitted outside author passes this arm only under the
+    // flag naming that very login; without it, or under another's, today's
+    // refusal stands, and the flag silences nothing else in the body.
+    const outside = checkPrBody(rel, { head: ZERO, author: 'bankaifan', outsideAuthor: 'bankaifan' })
+    const noFlag = checkPrBody(rel, { head: ZERO, author: 'bankaifan' })
+    const otherFlag = checkPrBody(rel, { head: ZERO, author: 'tvofi', outsideAuthor: 'bankaifan' })
+    const emptyFlag = checkPrBody(rel, { head: ZERO, author: '', outsideAuthor: '' })
+    if (outside.length) {
+      console.log('\nFIXTURE VACUOUS: the author check fired on an admitted outside author under its own flag')
+      return 1
+    }
+    if (![noFlag, otherFlag, emptyFlag].every((r) => r.some((e) => /hpo-author App/.test(e.message)))) {
+      console.log('\nFIXTURE VACUOUS: the author check passed an outside login with no flag, another login under the flag, or an empty one')
+      return 1
+    }
+    const badBody = path.relative(ROOT, path.join(prepr, 'no-figures.md'))
+    if (fs.existsSync(path.join(prepr, 'no-figures.md'))
+        && checkPrBody(badBody, { head: ZERO, author: 'bankaifan', outsideAuthor: 'bankaifan' }).length
+           !== checkPrBody(badBody, { head: ZERO }).length) {
+      console.log('\nFIXTURE VACUOUS: the outside-author flag changed a refusal other than the author arm')
+      return 1
+    }
   }
 
   // The Dependabot arm (tools/policy/dependabot_contract.mjs). The arm: a
@@ -7117,7 +7142,7 @@ function figureBlockProblems(body, { base = '', head = '' } = {}) {
   return msgs
 }
 
-function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null, required = null } = {}) {
+function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, outsideAuthor = null, commits = null, required = null } = {}) {
   // A Dependabot pull request answers the dependency-bump contract instead
   // (tools/policy/dependabot_contract.mjs); every other author, the full one.
   if (author != null && DEPENDABOT_AUTHORS.has(author)) {
@@ -7128,7 +7153,11 @@ function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], pat
   const out = []
   // The REST `/pulls/{n}` `.user.login` reports the App as `hpo-author[bot]`
   // while the GraphQL `author.login` reports `app/hpo-author`; accept both.
-  if (author != null && author !== 'app/hpo-author' && author !== 'hpo-author[bot]') {
+  // An outside contributor's pull request (decision 0017): `--outside-author`
+  // is passed only after tools/pr/outside.py admitted this author's pull
+  // request, and it names that one login. It relaxes this arm and nothing else.
+  if (author != null && author !== 'app/hpo-author' && author !== 'hpo-author[bot]'
+      && !(outsideAuthor != null && outsideAuthor !== '' && author === outsideAuthor)) {
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
       message: `the pull request author is \`${author}\`; a pull request is authored by the hpo-author App (decision 0011) — re-open it via tools/audit/app_push.sh, never push.sh` })
   }
@@ -7257,6 +7286,7 @@ function cmdPrBody(args) {
   // a PR authored as tvofi or any other identity is refused, fail-closed,
   // because an author cannot approve their own code-owned PR.
   const author = val('--author')
+  const outsideAuthor = val('--outside-author')
   // `--red` may be REPEATED, once per name. A LONE `--red` value is still
   // split on commas -- the form `prepr.sh --self-test` drives -- but each
   // value of a repeated `--red` is ONE name, verbatim: CI's pr-contract job
@@ -7340,7 +7370,7 @@ function cmdPrBody(args) {
   // naming every red, or a run with none, reaches no network at all.
   const requiredFile = val('--required-file')
   const required = () => requiredSet(requiredFile, notes)
-  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits, required })
+  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, outsideAuthor, commits, required })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)
