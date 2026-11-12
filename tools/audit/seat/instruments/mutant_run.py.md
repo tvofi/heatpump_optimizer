@@ -26,4 +26,12 @@
   the session, cleared its environment or was orphaned is still counted) is polled every 0.5 s and SIGKILLed whole, also at the
   command's exit and on a signal, past `--fork-cap` processes (default 256): `FORKCAP name` or
   `FORKCAP file:line OPERATOR`, never KILLED (the cap proves no test pins the
-  mutant); a diff run with one exits 1. `--self-test` builds throwaway repositories.
+  mutant); a diff run with one exits 1. On a host without `/proc` (macOS) the
+  process table comes from `ps -axo pid=,stat=,ppid=,pgid=` and `os.getsid`, and
+  the environment-mark leg is absent; with no child subreaper there either, a
+  descendant that left the session is not followed. `MUTANT_RUN_PROCFS` names the
+  procfs root (default `/proc`); one that does not exist makes any host the macOS
+  one. `--self-test` builds throwaway repositories and reads the process table
+  with no procfs, through a faked procfs root and through the host's own on every
+  host; a case the host cannot run prints one `skip` line with its reason and is
+  counted on the `skipped` line above the summary.
