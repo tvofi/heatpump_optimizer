@@ -1,6 +1,6 @@
 {
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_hard_max_temp GUARD_OFF f3c560aa",
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_dhw_write GUARD_OFF 90de19e4",
   "killed_by": "tests/guard_pins.py",
-  "old": "        if self.legionella_cycle_active:",
+  "old": "    if cycle is None:",
   "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
 }
