@@ -6734,6 +6734,15 @@ def _gate_race_self_test(check) -> None:
     red, sb = wait([[edit_gate]], [started("in_progress", CODE_RUN_DEADLINE_SECONDS + 60)], polls=3)
     check("carry 4 (1) null: a started sibling past its deadline keeps the polls bound (TIMEOUT)",
           red == ["TIMEOUT"] and len(sb) == 3)
+    with tempfile.TemporaryDirectory() as d:  # the deadline's edges, read directly: [0, CODE_RUN_DEADLINE_SECONDS] inclusive
+        tb = Train("o/r", Path(d), None, "", (), 1, run=lambda *a, **k: (0, ""), sleep=lambda s: None,
+                   log=lambda s: None, polls=3, wall=lambda: NOW)
+        edge = lambda st, ago: tb._sibling_in_deadline([(1, st, iso(ago))])  # noqa: E731
+        check("carry 4 (1) edges: a started run is inside its deadline at 0 s and at exactly the deadline, outside "
+              "one second past it, and a queued or unreadable-start one is never inside",
+              edge("in_progress", 0) is True and edge("in_progress", CODE_RUN_DEADLINE_SECONDS) is True
+              and edge("in_progress", CODE_RUN_DEADLINE_SECONDS + 1) is False and edge("queued", 5) is False
+              and tb._sibling_in_deadline([(1, "in_progress", "")]) is False)
     tick = iter(range(10 ** 6))
     red, sb = wait([[edit_gate]], [started("in_progress", 5000)], polls=3, wall=lambda: NOW + 600 * next(tick))
     check("carry 4 (1): a started sibling that never finishes ends at its deadline as TIMEOUT, never unbounded "
@@ -6815,6 +6824,18 @@ def _gate_reader_barrier_self_test(check) -> None:
               for a in ("None", "()", "[]", "set()", "tuple()", "busy=None", "busy=()", "False", "''"))
           and blind_classify_readers("def f():\n    return classify(l, r, busy=b)\n") == {}
           and blind_classify_readers("def f():\n    return classify(l, r, self._gate_busy(h, runs))\n") == {})
+    stamped = lambda n, st, at: {"name": n, "conclusion": st, "completedAt": at}  # noqa: E731
+    G1, G2 = "2026-11-12T09:00:00Z", "2026-11-12T10:00:00Z"
+    check("P608 rollup_red_after_pass: a failure strictly newer than the pass is real, an equal stamp is a deferral "
+          "(no order proves the red landed later), the other name's entries are never read, and an unstamped entry is no proof",
+          rollup_red_after_pass([stamped("gate", "SUCCESS", G1), stamped("gate", "FAILURE", G2)], "gate") is True
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G2)], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G1)], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G1), stamped("gate", "FAILURE", G2),
+                                     stamped("other", "SUCCESS", "2026-11-12T12:00:00Z")], "gate") is True
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G1),
+                                     stamped("other", "FAILURE", "2026-11-12T12:00:00Z")], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", ""), stamped("gate", "FAILURE", G2)], "gate") is False)
     sh = (seat / "merge_pr.sh").read_text()
     check("P436 barrier: merge_pr.sh's raw latest-check red read is followed by a classify WAIT-wait before RED",
           sh.index('conclusion=="failure"') < sh.index("merge_train.py} classify") < sh.index('echo "RED: $red"'))
