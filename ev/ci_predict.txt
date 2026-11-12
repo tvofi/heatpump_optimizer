@@ -1,0 +1,37 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:3501 GUARD_OFF: if supply_hold.interval_held(pump_arbiter.state_for(coord), 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:3503 RETURN_DEL: return learner_unmetered(config)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:7834 BOOLOP: elif switch_entity and not held.supply_held:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:7834 GUARD_OFF: elif switch_entity and not held.supply_held:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:241 RETURN_DEL: return tank_reason(inp)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:272 CMP_BOUND: if run is None or run < MIN_ON:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:272 GUARD_OFF: if run is None or run < MIN_ON:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:274 CMP_BOUND: if held.cycle_end is None or held.cycle_end - dt_util.as_utc
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:274 GUARD_OFF: if held.cycle_end is None or held.cycle_end - dt_util.as_utc
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1831 BOOLOP: if held.supply is None or (held.supply[0] == step and not he
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1831 GUARD_OFF: if held.supply is None or (held.supply[0] == step and not he
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1835 GUARD_OFF: if on is None and held.supply_held and not inp.entry_release
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1841 GUARD_OFF: if on != last or held.supply_held:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1852 GUARD_OFF: if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_sta
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1854 RETURN_DEL: return bool(inp.action.get("heat_pump_on"))
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1867 RETURN_DEL: return inp.hass.states.get(entity) if entity else None
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:78 GUARD_OFF: if value is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:83 GUARD_OFF: if age is None or _passes(inp, boosts, now):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:85 CMP_BOUND*2: wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:86 GUARD_OFF: if wait:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:88 RETURN_DEL: return None if wait else value
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:99 GUARD_OFF: if at is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:102 CMP_BOUND: return dt_util.as_utc(now or dt_util.now()) - at < span
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:102 RETURN_DEL: return dt_util.as_utc(now or dt_util.now()) - at < span
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:107 GUARD_OFF: if inp.disinfecting:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:113 RETURN_DEL: return "tank_cold" if cold else None
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:124 GUARD_OFF: if state in _UNREADABLE or (state != "off") is value:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:126 RETURN_DEL: return switch_age(switch, now)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:137 GUARD_OFF: if since is None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:140 CMP_BOUND: return None if since > now else now - since
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:140 RETURN_DEL: return None if since > now else now - since
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:153 CMP_BOUND: if nxt - now >= MIN_RUN or step_supply(inp, boosts, nxt) is 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:153 GUARD_OFF: if nxt - now >= MIN_RUN or step_supply(inp, boosts, nxt) is 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:155 BOOLOP: return not (step_duty(inp.plan, now) in ("dhw", "both") and 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:155 RETURN_DEL: return not (step_duty(inp.plan, now) in ("dhw", "both") and 
+CI PREDICT: 35 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against 19baca76181c (a data-file read is not seen)
