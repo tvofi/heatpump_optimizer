@@ -2,11 +2,25 @@ Part A of the duty-switch restart learning, built from Bankaifan's pull request 
 
 ## Head
 
-bd262a2ada9a10f9afb0e9b395ac4c0fce0f23af
+7f6c83171f04408ef9a9b1d37bfb14213a971fcc
 
-Round 3, on the head the round-2 review blocked, 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2. Three things lie on top of it: the repair commit 23961a5d8592e3fde3ac82ff4f705983da01fe04, which this body's previous version named and whose tree the pull request's head 3a47c7c156ff1ee55bd0a343023606f7655d2638 holds (`git rev-parse 3a47c7c15^{tree} 23961a5d8^{tree}` prints one id twice); a merge of `origin/main` at a7887485deb7b41995b20a48fab2ae411d887954, which carries pull request 3466; and `killed_by` records of the mutation ledger. Nothing else: `git diff --name-only $(git merge-tree --write-tree a7887485d 23961a5d8 | head -1) HEAD | grep -vc '^tests/mutation_ledger/killed_by/'` prints 0, so no production line, test or harness differs from the clean merge of the two, and this pass changed none. The orchestrator ruled that this line lands on the frozen handoff as its fast-forward (`git merge-base --is-ancestor 23961a5d8 HEAD` exits 0).
+A merge repair past the round-3 handoff, for the same reviewer, who judges this delta alone. `origin/main` moved under the handed-off head bd262a2ada9a10f9afb0e9b395ac4c0fce0f23af: pull request 3404 (the arbiter's off restore, 1aeaf273a4) and pull request 3469 (b737e88eee) landed, and `git merge-tree --write-tree origin/main bd262a2ad` reported a conflict in `custom_components/heatpump_optimizer/pump_arbiter.py` and `tests/features.py`. This head is two merge commits on bd262a2ad, not a re-cut and not a rebase. The first, d37f6b42ad9a20822c19ff13fbc1328efa014d47, merges `origin/main` at 4aa6200346e3b1032d4d25bab4a08a6f8ad668f3 and resolves that conflict. The second, this head, merges `origin/main` at ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d: pull request 3452 landed while the first was being measured, and although `git merge-tree --write-tree origin/main d37f6b42ad9a20822c19ff13fbc1328efa014d47` exits 0 with this repository's ledger merge driver, `tools/pr/prepr.sh`'s predictor refused the head as `GRADER UNMERGED`, because without the driver, as GitHub merges, `tests/closures.json` conflicts. git merged the second with no conflict.
 
-The merge base is now a7887485deb7b41995b20a48fab2ae411d887954. `origin/main` is 2cfa3d7d6906632c2a842d898f8fe712a71baeb4 (2026-11-12T01:14Z), and `git merge-tree --write-tree origin/main HEAD` exits 0 against it, so it is not merged again. Every command below compares three-dot, against that merge base. Re-taken at this head, the last run ending 2026-11-12T02:45Z by `date -u`: the section, the spec's mutant run, the diff pass over each production file, the predictor's unpinned-site list with its control, the structural ratchet, the architecture score, golden drift, the scoped gate and the reviewer's probe at both ends. Not re-run: the pin passes themselves (the `ledger:` commits), round 3's ledger-operator spec run, which read a list that is empty here, and round 1's closure re-recording.
+The resolution, by union:
+
+- `pump_arbiter.py`, the import line: one line naming both `duty_switch` and `off_restore`.
+- `pump_arbiter.py`, after `_write`: this group's `_reads_below`, `_report_write`, `_lit` and `_switch_context` stand before main's `_adopt`, `_held_back` and `_arm_space`, each side's text unchanged but for the line below.
+- `pump_arbiter.py`, `_arbitrate`: this group's `duty_switch.note_pass` call stays before the gate, and the gate is main's `_pump_off(inp, held)`.
+- `pump_arbiter.py`, `_switch_context`: `supply_on=not _pump_off(inp, held)`. Main gave `_pump_off` a second argument and a write: on a pump whose switch reads off it forgets `held.space_before`. Called from the context it writes nothing main does not: outside control `_forget` has already emptied that field at the top of `_arbitrate`, and in control the gate on the next line makes the same call. No alternative was available short of a second, pure reader of the switch, a parallel mechanism for one caller.
+- `tests/features.py`: both sections kept whole, main's "supply switch: the cycle writes the step it lands in" placed before this group's, so that `dev/audit/harnesses/r10_duty_switch_section.py`'s two markers still cut this group's checks alone.
+- `tests/features.py`, this group's fake coordinator, second merge: its parameters gain `dhw_cycle_temp=None`, the field pull request 3452's `_dhw_write` reads on every pass and main's own arbiter fake carries; before it the section stopped on `AttributeError` for that name.
+- `tests/features.py`, this group's fake coordinator, first merge: its `entry` is a `harness.FakeEntry`, no longer a `SimpleNamespace`, and the `FakeEntry` import moved to the section's first lines. Main's `off_restore` keys its record on the entry by weak reference, which a `SimpleNamespace` refuses; main made the same change to its own arbiter fakes in pull request 3404. Before it the section stopped on `TypeError: cannot create weak reference to 'types.SimpleNamespace' object` in `_arm_space`; a real config entry is weak-referenceable, so this is the fake's defect and no production line changed for it.
+
+Both sides survive, by rule: for each of the two files and each parent P of the first merge (bd262a2ad and 4aa6200346e3b1032d4d25bab4a08a6f8ad668f3), read against the file at d37f6b42ad9a20822c19ff13fbc1328efa014d47, `git diff -U0 $(git merge-base bd262a2ad 4aa6200346e3b1032d4d25bab4a08a6f8ad668f3) P -- <file> | grep '^+[^+]' | cut -c2- | sort -u | grep -vxFf <file>` prints the lines P added that the merged file no longer holds verbatim. Run as `git show d37f6b42ad9a20822c19ff13fbc1328efa014d47:<file>` for the file. It prints four lines in all, each named above: the two parents' import lines, `supply_on=not _pump_off(inp),` and the fake's `self.entry = SimpleNamespace(...)` line; for `tests/features.py` against main it prints nothing. The second merge had no conflict to resolve: for each of the two files, `diff <(git diff d37f6b42ad9a20822c19ff13fbc1328efa014d47 HEAD -- <file> | grep '^[-+][^-+]') <(git diff 4aa6200346e3b1032d4d25bab4a08a6f8ad668f3 ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d -- <file> | grep '^[-+][^-+]')` compares the lines the second merge changed with the lines main changed: it prints nothing for `pump_arbiter.py` and, for `tests/features.py`, the fake's parameter line alone. Control: those four lines are the ones the resolution rewrote, and the command prints them. The merged files were also read against each parent at each conflict site.
+
+The merge base is now ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d, which was `origin/main` when merged; at 2026-11-12T04:20Z by `date -u` `origin/main` is 4f3b94fb538a23912141b09725a32a9aa156096f and `git merge-tree --write-tree origin/main HEAD` exits 0 against it, so it is not merged again. Every command below compares three-dot against it. Re-taken at this head: the section, the spec's mutant run (two entries re-anchored to `_pump_off(inp, held)`, the same edits), the diff pass over each production file, the predictor's unpinned-site list, the structural ratchet, the architecture score, golden drift, `tests/features.py`, the scoped gate and the reviewer's probe at both ends. Not re-run: the pin passes themselves (the `ledger:` commits); the predictor lists no stale pin and no unpinned site at this head, so the merge moved no pinned site out from under its record.
+
+The text below this section is the round-3 body, kept where the merge changes nothing it says; a figure that is a function of the head or of `origin/main` is re-taken and says so.
 
 ## Brief carries
 
@@ -220,7 +234,7 @@ KILLED r3_span_reported_always
 ```
 SURVIVED custom_components/heatpump_optimizer/duty_switch.py:82 CONST_SWAP  STORE_VERSION = 2
 SURVIVED custom_components/heatpump_optimizer/duty_switch.py:187 CMP_BOUND  if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) >= 0.0:
-SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1780 CONST_SWAP  return resolve_reading(None, sensor, states.get, 1.0, 0.0)[0], None, None, True
+SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1983 CONST_SWAP  return resolve_reading(None, sensor, states.get, 1.0, 0.0)[0], None, None, True
 ```
 
 - `duty_switch.py` `STORE_VERSION = 2`: the version is what Home Assistant's `Store` stamps on the file and compares with a stored payload's own; no migration exists for either value and `DutySwitchLearner.from_record` never reads it. The arbiter's own `_STORE_VERSION` carries the same verdict in the ledger. Record: `tests/mutation_ledger/survivor_triage/duty_switch.py/@module.CONST.43e0a892.json`.
@@ -229,7 +243,7 @@ SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1780 CONST_SWAP  r
 
 The first diff pass at this round's first commit printed forty-three survivors. One was the `wear.py` return deleted above; the others are each killed by a check added since (the learner's return values, the window's and the censor's bounds, the unstated gates, the median, the published rounding, the stored record's bounds against `store.py`'s registered domain, a failed read and a failed save, the attach and detach guards).
 
-**The ledger's own operators.** `tests / mutation` mutates with `tests/mutation_table.py`'s operators, which `--diff` does not carry (`BOOLOP`, `CLAMP_DROP`, `CONST`). At this head every site the diff adds is pinned by a `killed_by` record that module's own driver wrote: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py --shard K/N --jobs 4 --budget-minutes M`, one pass per `ledger: pin` commit of `git log 23961a5d8..HEAD`, each on the committed head it extended and each, by the seats that ran them, ending `PIN KILLED: <n> pinned, 0 left unpinned` beside `baseline tests/features.py: rc=0 failed=0` and a surviving `NULL_COMMENT`. The passes were not re-run for this body; what is re-taken is their result, the predictor's empty list under Unpinned sites, with its control. The repair commit's edits left pins naming no site; the two `ledger: drop` commits delete those and the edited lines are pinned afresh, which the absence of a `STALE PIN` line reads.
+**The ledger's own operators.** `tests / mutation` mutates with `tests/mutation_table.py`'s operators, which `--diff` does not carry (`BOOLOP`, `CLAMP_DROP`, `CONST`). At this head every site the diff adds is pinned by a `killed_by` record that module's own driver wrote: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/features.py --shard K/N --jobs 4 --budget-minutes M`, one pass per `ledger: pin` commit of `git log 23961a5d8..HEAD`, each on the committed head it extended and each, by the seats that ran them before this merge, ending `PIN KILLED: <n> pinned, 0 left unpinned` beside `baseline tests/features.py: rc=0 failed=0` and a surviving `NULL_COMMENT`. The passes were not re-run for this body; what is re-taken is their result, the predictor's empty list under Unpinned sites, with its control. The repair commit's edits left pins naming no site; the two `ledger: drop` commits delete those and the edited lines are pinned afresh, which the absence of a `STALE PIN` line reads.
 
 Round 3's own run at 23961a5d8592e3fde3ac82ff4f705983da01fe04, before any pin, and not repeatable at this head because the list it reads is empty: for each site `tools/pr/ci_predict.py --base origin/main --only mutation` listed as added and unpinned, that module's own replacement line was written into a spec and run as above: `SURVIVED NULL`, every other line `KILLED`, no other survivor. The first such run left `duty_switch.py` `Direction.book`'s `CLAMP_DROP` alive (the last day no longer moved on); a check now kills it. The spec was built by:
 
@@ -269,12 +283,12 @@ print(json.dumps(spec, indent=1))
 ## Figures
 
 - Section checks: `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`
-- Mutants killed, the null and the diff pass's survivors: the two `mutant_run.py` runs under Mutation proof, at this head. The unpinned-site list: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation | grep -c -e 'ADDED UNPINNED' -e 'STALE PIN'` prints 0 at this head and 105 at 6dac686e24e88e6e2df5c0ec3dbf432278777279 (a detached worktree of it), the merge of main before the repair commit and before any pin.
-- Ledger records this line adds over the clean merge of main and the repair commit: `git diff --name-status $(git merge-tree --write-tree a7887485d 23961a5d8 | head -1) HEAD | cut -c1 | sort | uniq -c` prints one line, `107 A`; the same list through `grep -vc '^A.tests/mutation_ledger/killed_by/'` prints 0.
+- Mutants killed, the null and the diff pass's survivors: the two `mutant_run.py` runs under Mutation proof, at this head. The unpinned-site list: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation | grep -c -e 'ADDED UNPINNED' -e 'STALE PIN'` prints 0 at this head. Control, not re-run: the previous version of this body read 105 at 6dac686e24e88e6e2df5c0ec3dbf432278777279, the first merge of main before the repair commit and before any pin.
+- The merge's resolution, both parents surviving: the command and its four lines under Head.
 - Malformed payloads driven through the loader: the count in the check name the section prints ("malformed or out-of-bounds payloads").
 - Golden drift: `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)`
-- `tests/features.py` at the head: exits 0, its last line the script's own all-passed count; the `combi_type_branch` census that was its one failing check at 23961a5d8592e3fde3ac82ff4f705983da01fe04 passes with pull request 3466 merged. Control: the previous version of this body, at that head, where the same command printed that check as its only `FAIL` line. `PYTHONPATH=tests/hastub python3 tests/features.py`
-- Scoped gate, run at this head: `MODE: SCOPED`, exit 0, every script it ran green. Control: at 23961a5d8592e3fde3ac82ff4f705983da01fe04 the same command exited non-zero on `tests/features.py` alone. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`
+- `tests/features.py` at this head: exits 0, its last line the script's own all-passed count. Control: the same tree before the fake's entry and parameters were changed stops on the two errors named under Head. `PYTHONPATH=tests/hastub python3 tests/features.py`
+- Scoped gate, run at this head: `MODE: SCOPED`, exit 0, every script it ran green. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`
 - Gate mode: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`
 - Structural ratchet: `python3 tests/structure.py`
 - Architecture score: `python3 -I tools/audit/archscore/score.py --diff "$(git merge-base origin/main HEAD)" HEAD`
@@ -289,7 +303,7 @@ print(json.dumps(spec, indent=1))
 
 ## Unpinned sites
 
-None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` prints no `ADDED UNPINNED` and no `STALE PIN` line. Every site the previous version of this section listed as left to `mutation-autofix` now carries a `killed_by` record this branch commits, written by the lane's own driver (Mutation proof, "The ledger's own operators"); the two equivalent sites carry a `survivor_triage` record, as before. Control: the same command at 6dac686e24e88e6e2df5c0ec3dbf432278777279, the merge of main before any pin, prints `ADDED UNPINNED` lines (count under Figures).
+None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` prints no `ADDED UNPINNED` and no `STALE PIN` line. Every site the previous version of this section listed as left to `mutation-autofix` now carries a `killed_by` record this branch commits, written by the lane's own driver (Mutation proof, "The ledger's own operators"); the two equivalent sites carry a `survivor_triage` record, as before. Control, not re-run at this head: the previous version of this body, where the same command at 6dac686e24e88e6e2df5c0ec3dbf432278777279, a merge of main before any pin, printed `ADDED UNPINNED` lines.
 
 ## Red checks
 
@@ -316,6 +330,7 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
 - fixer.md: cost: a new production module read by the arbiter re-records 22 closures before the gate can scope. Carry: dismissed: the price of a measured closure, paid once
 - fixer.md: cost: `mutant_run.py --diff` carries five operators and `tests / mutation` seven, three of them not shared, so a diff pass with no survivor still left one site the lane would have refused; the ledger's replacements had to be turned into a spec by hand to see it. Carry: dismissed: one site in this diff, and the lane itself reports it at the pull request
 - fixer.md: cost: two seats worked this topic at once, one repairing the blocked head and one merging main and pinning; the first handed off and froze `handoff/` while the second's line was being built, so the second stopped on a question and a third seat re-took the whole body at the merged head. Carry: dismissed: the orchestrator ruled on it in this seat's dispatch, and the line lands as a fast-forward
+- fixer.md: cost: main's `_pump_off` gained an argument and `off_restore` a weak reference to the entry while this branch was in review, so a conflict git reported in two files also broke a call and a fake it reported nowhere, and a third pull request landing during the measurement broke the fake again and cost a second merge and a second full re-take; the section harness found each in one run. Carry: dismissed: found by the group's own harness on the merged tree, before the handoff
 
 ## Mutant spec
 
@@ -744,7 +759,7 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
  {
   "name": "rv_ctx_supply",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "supply_on=not _pump_off(inp),",
+  "old": "supply_on=not _pump_off(inp, held),",
   "new": "supply_on=True,"
  },
  {
@@ -906,8 +921,8 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
  {
   "name": "r2_pass_after_gate",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))\n    if mode != DUTY_CONTROL or _pump_off(inp):\n        return",
-  "new": "    if mode != DUTY_CONTROL or _pump_off(inp):\n        return\n    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))"
+  "old": "    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))\n    if mode != DUTY_CONTROL or _pump_off(inp, held):\n        return",
+  "new": "    if mode != DUTY_CONTROL or _pump_off(inp, held):\n        return\n    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))"
  },
  {
   "name": "r2_ctx_defrost_entity",
