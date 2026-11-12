@@ -1,0 +1,7 @@
+Reviewer's mutants at head e199f727b44059611092c141d1d04edb8dee219a (worktree), sweep_render.py --self-test after each, file restored after:
+MUTANT restore step (3) from main verbatim: rc=1, killed (first by the placeholder refusal: `orch_scratch` not in the placeholder table)
+MUTANT restore step (3) from main, {{orch_scratch}} -> {{seat_root}}: rc=1, 35 checks, 2 failed: FAIL "the rendered sweep names no train launch for the orchestrator", FAIL "null control: step (3) restored to a train launch is caught"
+MUTANT restore step (2) from main: rc=0, 37 checks, 0 failed (SURVIVED)
+MUTANT restore step (4) from main: rc=0, 37 checks, 0 failed (SURVIVED)
+MUTANT restore step (6) from main: rc=0, 37 checks, 0 failed (SURVIVED)
+Unmutated: 37 checks, 0 failed. At merge base: 35 checks, 0 failed.
