@@ -1,0 +1,18 @@
+== mutant R2 at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-.brand { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; color: var(--ink); font: 700 1.05rem var(--f-display); white-space: nowrap; min-height: 40px }
++.brand { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; color: var(--ink); font: 700 1.05rem var(--f-display); white-space: nowrap }
+FAIL floor 360px light: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Heat Pump Cost Optimizer",216,30]]]
+FAIL floor 360px dark: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Heat Pump Cost Optimizer",216,30]]]
+FAIL floor 390px light: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Heat Pump Cost Optimizer",245,30]]]
+FAIL floor 390px dark: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Heat Pump Cost Optimizer",245,30]]]
+FAIL floor 768px light: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Heat Pump Cost Optimizer",245,30]]]
+FAIL floor 768px dark: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Heat Pump Cost Optimizer",245,30]]]
+FAIL floor 1440px light: every target outside a line of text is at least 40 px in both dimensions  [38 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Heat Pump Cost Optimizer",245,30]]]
+FAIL floor 1440px dark: every target outside a line of text is at least 40 px in both dimensions  [38 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Heat Pump Cost Optimizer",245,30]]]
+FAIL floor 360px without the page's fonts: every target outside a line of text is at least 40 px in both dimensions  [4 font request(s) refused, 0 font face(s) loaded; 30 targets held to the floor, 4 exempt; under 40 px [["Heat Pump Cost Optimizer",216,30]]]
+FAIL floor 1440px without the page's fonts: every target outside a line of text is at least 40 px in both dimensions  [4 font request(s) refused, 0 font face(s) loaded; 38 targets held to the floor, 4 exempt; under 40 px [["Heat Pump Cost Optimizer",256,30]]]
+RESULT fails=10
+RESULT base=6cc15e9b8f53
+rc=0

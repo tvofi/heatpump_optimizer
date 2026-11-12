@@ -1,0 +1,12 @@
+== mutant M3 at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-<section class="band" id="limits" aria-labelledby="lim-h">
++<section class="band" id="ai" aria-labelledby="lim-h">
+-<section class="band" id="ai" aria-labelledby="ai-h">
++<section class="band" id="limits" aria-labelledby="ai-h">
+FAIL floor 1440px styles off: every heading, paragraph and list item has a box and none starts above an earlier one; the ten anchors lie in page order  [0 style sheets and 0 style attributes left; 140 text blocks, 44 headings, 0 without a box, 0 out of order; anchor tops 1805,1805,4432,11419,14260,28181,29217,38623,37995,38806]
+FAIL floor 390px styles off: every heading, paragraph and list item has a box and none starts above an earlier one; the ten anchors lie in page order  [0 style sheets and 0 style attributes left; 140 text blocks, 44 headings, 0 without a box, 0 out of order; anchor tops 773,773,1771,4639,7708,12891,14207,24093,23286,24402]
+RESULT fails=2
+RESULT base=6cc15e9b8f53
+rc=0
