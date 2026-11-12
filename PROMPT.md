@@ -7,12 +7,16 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-REPAIR of #3499 (topic r10-gate-defer-barrier, CRITICAL PATH): code + body. Round 3 of the fix review is blocked at the PR head 44e0b74b55080d829f199410c2e4861850cd7d99 (merge of handoff 487225c07f6262053ecf0b8a25e5fbf42a916703); verdict/3499 holds it, read its VERDICT.md and evidence/ first. This is the third round: keep the change minimal and cure only what follows.
+REPAIR of #3499 (topic r10-gate-defer-barrier, CRITICAL PATH): code. The fix review of the repair delta is blocked at the handoff tip 9f8def4ae679513923e1031954dd93a90fe9b685 (class-open); read its verdict (probe ref probe/revt-r10-gate-defer-barrier-c03cc456, verdict.md and ev/) first. This is a later round: keep the change minimal and cure only what follows.
 
-resume=handoff/r10-gate-defer-barrier@487225c07f6262053ecf0b8a25e5fbf42a916703 : merge origin/main into it, repair on top.
+resume=handoff/r10-gate-defer-barrier@9f8def4ae679513923e1031954dd93a90fe9b685 : merge origin/main into it if it moved, repair on top.
 
-(1) The one open item, verbatim: "class-open, census of blind `classify` readers: `blind_classify_readers` (merge_train.py:6790-6795) decides 'reads nothing' with a deny-list ... Survived (676 checks, 0 failed): `frozenset()`, `dict()`, `{}`." Round 2's other items are cured; do not touch them. Fix as the reviewer states: invert the predicate so that only a non-literal busy expression (a Name, an Attribute, or a call to a non-builtin) counts as a read, and every literal or builtin-constructor busy is blind; pin frozenset(), dict(), {} and the existing killed spellings in the self-test, with a mutation proof that the old deny-list form fails the new pins.
+(1) The open item, as the verdict states it: blind_classify_readers still reads a builtin constructor holding only an empty literal (frozenset(()), set([]), dict({}), tuple([]), list(()), frozenset(set())) and an IfExp or BoolOp of blind operands (None or (), () if c else ...). STOP ADDING SPELLINGS. Make blind_classify_readers total over the expression grammar: every ast expression node type is classified blind, reading, or REFUSED-unknown, with a test that enumerates the ast expression node classes so that a new node type fails closed. Cover the builtin constructors holding only empty literals and IfExp/BoolOp of blind operands as the verdict names. Give one mutant per arm of the classification and show each killed.
 
-(2) Body: `## Red checks` must name `arch-score / arch-score` at the new head: its run at 44e0b74b failed in the PR-lookup step on `gh: HTTP 503` (job 131268051080), no dS or WORSENS line, cause outside this repository (GitHub API); state the result of the run at your new head truthfully (a fresh run scores it). A body-only repair fixer for the same line was also rendered at b9198a09; yours supersedes it.
+(2) If that cannot be done inside the group's files, stop with BLOCKED.md naming what is missing; do not widen the group.
 
-Re-run steps 2-8 of fixer.md after the merge; the reviewer takes the delta over 44e0b74b.
+(3) Body: state the result of every required check at your new head truthfully; nothing in the body may claim a check you did not read.
+
+A BASH_ENV in the cloud environment runs the profile ahead of every nested bash: run tests/entities.py and any closures recording with `env -u BASH_ENV`.
+
+Re-run steps 2-8 of fixer.md after the merge; the reviewer takes the delta over 9f8def4ae679513923e1031954dd93a90fe9b685.
