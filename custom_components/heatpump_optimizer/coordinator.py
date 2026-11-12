@@ -1326,9 +1326,8 @@ def _zone_capacity(params: ThermalParameters) -> float:
 
 def _restored_stores(coord: Any) -> tuple[Any, ...]:
     """The stores ``_async_save_restored`` writes, each read before a restore applies."""
-    return (coord._thermal_learning_store, coord._dhw_learner.profile_store,
-            coord._dhw_learner.draws_store, coord._price_model_store, coord._accuracy_store,
-            duty_switch.record_for(coord).store)
+    return (coord._thermal_learning_store, coord._dhw_learner.profile_store, coord._dhw_learner.draws_store,
+            coord._price_model_store, coord._accuracy_store, duty_switch.record_for(coord).store)
 
 
 async def _async_save_restored(coord: Any) -> None:
