@@ -1,0 +1,2 @@
+body: answer filter -> is not None rc 1 pulse self-test: 64 checks, 2 failed ['  FAIL a spooled and a pending PR are held by a live train; the one it skipped at this verdict is STOPPED', '  FAIL null control: a PR skipped at its current verdict stays STOPPED under a live train']
+body: spool read dropped rc 1 pulse self-test: 64 checks, 2 failed ["  FAIL read_train reads the spool, the QUEUE_SEEN record and the pid through merge_train's readers", '  FAIL main --train-state reads the live train into the snapshot and the spooled verdict is not STOPPED']

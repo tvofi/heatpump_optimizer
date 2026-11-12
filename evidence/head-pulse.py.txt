@@ -13,6 +13,8 @@
   ok   a dead train pid holds nothing: the same pending and spooled PRs are STOPPED
   ok   null control: a PR skipped at its current verdict stays STOPPED under a live train
   ok   read_train reads the spool, the QUEUE_SEEN record and the pid through merge_train's readers
+  ok   main --train-state reads the live train into the snapshot and the spooled verdict is not STOPPED
+  ok   null control: a train state with no spool and no pid holds nothing, so the verdict is STOPPED
   ok   an unread last opening is UNREADABLE, never ok
   ok   unreadable inputs read UNREADABLE on every arm, never ok
   ok   a state ref with main or its own commit unread is UNREADABLE
@@ -62,4 +64,5 @@
   ok   --seat-alive refuses a seat no contract defines
   ok   --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
   ok   the summary line counts the arms
-pulse self-test: 64 checks, 0 failed
+pulse self-test: 66 checks, 0 failed
+rc=0
