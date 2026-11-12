@@ -1,18 +1,15 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-hotfix-train-context-pages, at head 402b0e76364e5befd6480946add4930cb410928e. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-hotfix-train-context-pages, at head e59e21fee4629623f2f88ea83be76d527b7d0805. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead. Read your policy once, verbatim: `python3 -I tools/policy/role_pack.py render fixer --out $HOME/role-pack.md`, then that file in place of your role contract and INSTRUMENTS.md; on REFUSE read those files as before.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 402b0e76364e5befd6480946add4930cb410928e for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch e59e21fee4629623f2f88ea83be76d527b7d0805 for the base you were given.
 Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r10-hotfix-train-context-pages before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r10-hotfix-train-context-pages, whose move updates the pull request. Hand off at your first clean `tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved since that run needs no re-merge and no second run, because the train re-proves the head on the current main. Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, first push `BLOCKED.md` with a `Question:` line to refs/heads/handoff-wip/r10-hotfix-train-context-pages, even with no code. Then push the code to refs/heads/handoff/r10-hotfix-train-context-pages, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-hotfix-train-context-pages <body.md>`, which pushes refs/heads/handoff-body/r10-hotfix-train-context-pages; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r10-hotfix-train-context-pages`. When body_push.sh exits 4 (its output ends `body_push: REFUSED CARRY-LANDED`), the carry lands on the roster you may not write: push a BLOCKED.md holding that output to refs/heads/handoff-wip/r10-hotfix-train-context-pages and stop; the relay folds the carries and re-runs body_push.sh. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
-A red is owed a `## Red checks` answer, and may block, only when its name is in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any other red is neither answered nor a block.
 Never write to any branch except your return refs and refs/heads/handoff-wip/r10-hotfix-train-context-pages and refs/heads/handoff-wip/r10-hotfix-train-context-pages-body. Never work around a hook or a refusal; report it in your result instead.
-Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
+Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires; at most 5 inline search operations per prompt; never set FRUGAL_ALLOW_INLINE.
 
 Brief (snapshotted when this payload was rendered):
-REPAIR of the handoff r10-hotfix-train-context-pages, blocked a second time at 853c9f47ccb8704697c96afcce0d3916919acab0 mutation-survivor by the fix review (probe/revt-r10-hotfix-train-context-pages-b5d616ce). Pull request #3516 exists; its head descends the reviewed tip. resume=handoff/r10-hotfix-train-context-pages@853c9f47ccb8704697c96afcce0d3916919acab0 : merge origin/main if it moved, repair on top; do not re-cut.
-
-Second block of the same class: close the class. Kill or disposition (equivalent, with the argument) every survivor a full diff-mutant pass over the whole delta finds, not only M5, M8 and M9; also correct the body's M2 figure to the measured one.
-
-BLOCKED VERDICT, verbatim:
-
+REPAIR for fixer r10-hotfix-train-context-pages (PR #3516, PR head 3cb406c6; handoff tip 853c9f47ccb8704697c96afcce0d3916919acab0).
+Resume from handoff/r10-hotfix-train-context-pages@853c9f47ccb8704697c96afcce0d3916919acab0.
+The latest verdict on verdict/3516 (commit c4ca5f73), quoted verbatim:
+----- VERDICT BEGIN -----
 Fix review: blocked 853c9f47ccb8704697c96afcce0d3916919acab0 mutation-survivor: rollup_walk page-merge reads only the last page (fail-open), and the ROLLUP_Q endCursor and after-argument texts survive the self-test
 
 bus-nonce: b5d616ce3c5ddbeb2ec965d8736f7e48
@@ -48,8 +45,5 @@ Round 2. This is a delta review over dbe75142ac7cc3e505aebfc9758102132a102804. T
 - RESULT `git merge-tree --write-tree origin/main 853c9f47ccb8704697c96afcce0d3916919acab0`: rc 0, so it merges cleanly with origin/main at 43e95474559ca8e2188830f8775c1ddf52df964a (ev/merge-tree.txt).
 - Changed vs merge base: only `tools/audit/seat/merge_train.py` (ev/changed-files.txt). VERSION, the manifest, the notes heading, the claim files and the golden fixtures are untouched.
 - `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract is current. The body's `## Head` names 853c9f47ccb8704697c96afcce0d3916919acab0, the head reviewed.
-
-
-Re-run steps 2-8 of dev/governance/roles/fixer.md after any merge. Do not alter VERSION, the manifest or RELEASE_NOTES.md. If it cannot be done in scope, stop with BLOCKED.md.
-
-A BASH_ENV in the cloud environment runs the profile ahead of every nested bash: run tests/entities.py and any closures recording with `env -u BASH_ENV`.
+----- VERDICT END -----
+Answer every survivor the verdict lists with a killing test or a survivor_triage record; steps 2-8; push handoff and handoff-body with Code: <tip>.
