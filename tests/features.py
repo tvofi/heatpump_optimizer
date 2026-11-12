@@ -82130,7 +82130,7 @@ for _ms_name, _ms_args, _ms_kw in (
 # Rule three: an ON that starts a run the plan ends within MIN_RUN is skipped,
 # except on a hot-water step whose tank is below its minimum or under a
 # disinfection hold (``supply_hold.tank_reason``, the early cut-off's own).
-def _sh_inputs(minute, *, dhw=False, cold=False, disinfecting=False, state="off"):
+def _sh_inputs(minute, *, dhw=False, cold=False, disinfecting=False, state="off", nodhw=False):
     hass = FakeHass({"switch.hp": FakeState(state, last_updated=_SA_T0 - timedelta(hours=1))})
     plan = SimpleNamespace(
         timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)],
@@ -82139,7 +82139,7 @@ def _sh_inputs(minute, *, dhw=False, cold=False, disinfecting=False, state="off"
         hass=hass, config={"heat_pump_switch_entity": "switch.hp"}, mode="auto", plan=plan,
         plan_stale=False, entry_released=False,
         state=SimpleNamespace(dhw_temperature=40.0 if cold == "edge" else 35.0 if cold else 50.0),
-        thermal=None, params=SimpleNamespace(dhw_enabled=True, dhw_min_temp=40.0),
+        thermal=None, params=SimpleNamespace(dhw_min_temp=40.0) if nodhw else SimpleNamespace(dhw_enabled=True, dhw_min_temp=40.0),
         action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=disinfecting)
 
 
@@ -82162,6 +82162,7 @@ for _ms_name, _ms_min, _ms_kw, _ms_want in (
     ("null control: the switch already on", 7, {"state": "on"}, (True, False)),
     ("an unreadable switch", 7, {"state": "unavailable"}, (True, False)),
     ("a hot-water step with the tank exactly at its minimum (not below)", 7, {"dhw": True, "cold": "edge"}, (None, True)),
+    ("a cold tank on params with no dhw_enabled field is not exempt", 7, {"dhw": True, "cold": True, "nodhw": True}, (None, True)),
 ):
     _ms_got = _sh_start(_ms_min, **_ms_kw)
     R.check(f"rule three: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
