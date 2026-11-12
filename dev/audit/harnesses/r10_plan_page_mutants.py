@@ -49,6 +49,19 @@ MUTANTS = [
     ("M0", PAGE, None, None),
     ("live", PAGE, "elif _stage(entry) in replan.LIVE_STAGES:", "elif False:"),
     ("blocked", PAGE, "elif blk and not part:", "elif False:"),
+    ("hotfix-mark", PAGE, "g not in done and roster_lib.is_hotfix(entry),",
+     "g not in done and False,"),
+    ("hotfix-gates-crit", PAGE, "gating_crit = {a for c in crit if c in G",
+     "gating_crit = {a for c in () if c in G"),
+    # Round 2's four survivors (fix review 9774026d05): the mark as rendered,
+    # and each term of the row's `hot` and of `gating_crit`.
+    ("hot-render", PAGE, '           if r["hot"] else "")', '           if False else "")'),
+    ("hot-gates", PAGE, "if a in G and roster_lib.gates(G[a])}", "if a in G}"),
+    ("hot-notdone", PAGE, "g in gating_crit and g not in done and", "g in gating_crit and"),
+    ("hot-crit", PAGE, "gating_crit = {a for c in crit if c in G for a",
+     "gating_crit = {a for c in G for a"),
+    ("closure-conditions-text", PAGE, "{', '.join(summ.get('closure_conditions') or",
+     "{', '.join([] or"),
     ("partial", PAGE, "if m and m.group(1) in G:", "if False:"),
     ("blocked-by-less-done", PAGE,
      "if a in G and a not in discharged and roster_lib.gates(G[a])]",
@@ -68,9 +81,6 @@ MUTANTS = [
      "if i[\"state\"] == \"OPEN\")"),
     ("page-refuses-stale", PAGE, "    if stale:\n        bad.append", "    if False:\n        bad.append"),
     ("freshness-rule", PLAN, "if have != want:", "if False:"),
-    ("stamp-on-axis", PAGE,
-     "end = max([_t(plan[\"summary\"][\"closure\"])] + [_t(s[\"at\"]) for s in plan[\"stamps\"]]\n",
-     "end = max([_t(plan[\"summary\"][\"closure\"])]\n"),
     # Round 2: the fix review's survivors B to E (probe/rev-2558-e98d4b97).
     # B moved with its rule (2026-11-01): `replan.check_plan` refuses a plan
     # recording no model, which the page reads through C, so the page's own
