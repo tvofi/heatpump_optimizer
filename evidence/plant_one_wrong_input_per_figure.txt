@@ -1,0 +1,33 @@
+PLANT A_gate: moved=['A_gate']  expect=['A_gate']  OK
+   before: A_gate  12/16 read = 75%  (unread 4 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+   after:  A_gate  11/16 read = 69%  (unread 4 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+PLANT A_run: moved=['A_gate', 'A_run']  expect=['A_gate', 'A_run']  OK
+   before: A_gate  12/16 read = 75%  (unread 4 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+   after:  A_gate  13/17 read = 76%  (unread 3 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+   before: A_run   7/20 = 35%
+   after:  A_run   8/20 = 40%
+PLANT Y_rev: moved=['Y_rev']  expect=['Y_rev']  OK
+   before: Y_rev   first verdict merge 16/50 = 32%  (first verdicts 2026-10-11T15:00 .. 2026-10-25T11:00)
+   after:  Y_rev   first verdict merge 17/50 = 34%  (first verdicts 2026-10-11T15:00 .. 2026-10-25T11:00)
+PLANT M_first: moved=['M_first']  expect=['M_first']  OK
+   before: M_first 23/50 = 46%  (first verdicts 2026-10-11T15:00 .. 2026-10-25T11:00)
+   after:  M_first 24/50 = 48%  (first verdicts 2026-10-11T15:00 .. 2026-10-25T11:00)
+PLANT Y_train: moved=['Y_train']  expect=['Y_train']  OK
+   before: Y_train never skipped or parked 35/50 = 70%  (last 50 train-named merged PRs)
+   after:  Y_train never skipped or parked 34/50 = 68%  (last 50 train-named merged PRs)
+PLANT H: moved=['H']  expect=['H']  OK
+   before: H       hotfix-token merges 20/40 of the last 50 code merges; production merges among them 18  (naming measure, no null control)
+   after:  H       hotfix-token merges 21/40 of the last 50 code merges; production merges among them 18  (naming measure, no null control)
+PLANT E: moved=['E']  expect=['E']  OK
+   before: E       roster groups from outside reports 10; hotfix or bug groups touching the product 10; open among both 8
+   after:  E       roster groups from outside reports 11; hotfix or bug groups touching the product 10; open among both 9
+PLANT C: moved=['A_gate', 'A_run', 'C, K']  expect=['A_gate', 'A_run', 'C, K']  OK
+   before: A_gate  12/16 read = 75%  (unread 4 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+   after:  A_gate  11/16 read = 69%  (unread 4 of 20; window 2026-11-04T00:00:00Z .. 2026-11-10T09:00:00Z)
+   before: A_run   7/20 = 35%
+   after:  A_run   6/20 = 30%
+   before: C, K    C 2; K 4  (longest cancelled main-run streak; recycle lines of the dispatch and triage seats)
+   after:  C, K    C 10; K 4  (longest cancelled main-run streak; recycle lines of the dispatch and triage seats)
+PLANT K: moved=['C, K']  expect=['C, K']  OK
+   before: C, K    C 2; K 4  (longest cancelled main-run streak; recycle lines of the dispatch and triage seats)
+   after:  C, K    C 2; K 5  (longest cancelled main-run streak; recycle lines of the dispatch and triage seats)
