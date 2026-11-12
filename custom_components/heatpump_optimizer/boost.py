@@ -544,7 +544,8 @@ async def restore(coord: Any) -> None:
 def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) -> None:
     """The persisted settling tail, while it runs, and the live overlay's start."""
     tail = raw.get("space_settle")
-    until = _parse_until(tail.get("until")) if isinstance(tail, Mapping) else None
+    tail = tail if isinstance(tail, Mapping) else {}
+    until = _parse_until(tail.get("until"))
     if until is not None and dt_util.as_utc(until) > dt_util.as_utc(now):
         held.space_settle_until = until
         # Unreadable boosted time reads as a start nobody saw: unknown.
