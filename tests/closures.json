@@ -2444,9 +2444,6 @@
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/core.py"
   ],
-  "tests/gitignore_config.py": [
-   "tests/gitignore_config.py"
-  ],
   "tests/golden.py": [
    "VERSION",
    "custom_components/heatpump_optimizer/__init__.py",
@@ -5090,10 +5087,6 @@
    "seconds": 90.4
   },
   "tests/frontend.py": {
-   "rc": 0,
-   "seconds": 0.1
-  },
-  "tests/gitignore_config.py": {
    "rc": 0,
    "seconds": 0.1
   },
