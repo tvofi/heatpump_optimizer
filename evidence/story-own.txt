@@ -1,9 +1,0 @@
-1: DIV.chart < DIV.vizcard < DIV.viz.s1 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.
-2: DIV.chart < DIV.vizcard < DIV.viz.s1.s2 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.
-3: DIV.chart < DIV.vizcard < DIV.viz.s1.s2.s3 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.
-4: DIV.chart < DIV.vizcard < DIV.viz.s1.s2.s3.s4 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.
-5: DIV.chart < DIV.vizcard < DIV.viz.s1.s2.s3.s4.s5 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.
-4: DIV.chart < DIV.vizcard < DIV.viz.s1.s2.s3.s4 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.
-3: DIV.chart < DIV.vizcard < DIV.viz.s1.s2.s3 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.
-2: DIV.chart < DIV.vizcard < DIV.viz.s1.s2 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.
-1: DIV.chart < DIV.vizcard < DIV.viz.s1 < DIV.scrolly < SECTION.band < DIV.wrap < MAIN.

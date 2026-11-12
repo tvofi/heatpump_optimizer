@@ -1,9 +1,0 @@
-light 360px: scrollWidth 360 innerWidth 360 bg rgb(243, 248, 252) console 0 [] hosts ["localhost:8765"]
-light 390px: scrollWidth 390 innerWidth 390 bg rgb(243, 248, 252) console 0 [] hosts ["localhost:8765"]
-light 768px: scrollWidth 768 innerWidth 768 bg rgb(243, 248, 252) console 0 [] hosts ["localhost:8765"]
-light 1440px: scrollWidth 1440 innerWidth 1440 bg rgb(243, 248, 252) console 0 [] hosts ["localhost:8765"]
-story 1440 light: 1:none | 2:none | 3:none | 4:none | 5:none | 4:none | 3:none | 2:none | 1:none
-dark 360px: scrollWidth 360 innerWidth 360 bg rgb(11, 26, 40) console 0 [] hosts ["localhost:8765"]
-dark 390px: scrollWidth 390 innerWidth 390 bg rgb(11, 26, 40) console 0 [] hosts ["localhost:8765"]
-dark 768px: scrollWidth 768 innerWidth 768 bg rgb(11, 26, 40) console 0 [] hosts ["localhost:8765"]
-dark 1440px: scrollWidth 1440 innerWidth 1440 bg rgb(11, 26, 40) console 0 [] hosts ["localhost:8765"]

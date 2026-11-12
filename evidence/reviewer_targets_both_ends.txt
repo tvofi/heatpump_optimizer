@@ -1,0 +1,8 @@
+RESULT base 6cc15e9b8f53 360px: nav [] next [] brand [["Heat Pump Cost Optimiz",30]] bmc [["Buy me a coffee",38]]
+RESULT base 6cc15e9b8f53 390px: nav [] next [] brand [["Heat Pump Cost Optimiz",30]] bmc [["Buy me a coffee",38]]
+RESULT base 6cc15e9b8f53 768px: nav [] next [] brand [["Heat Pump Cost Optimiz",30]] bmc [["Buy me a coffee",38]]
+RESULT base 6cc15e9b8f53 1440px: nav [["Features",37],["How it works",37],["The card",37],["Works with",37],["Get started",37],["Limits",37],["Docs",37],["Reference",37]] next [] brand [["Heat Pump Cost Optimiz",30]] bmc [["Buy me a coffee",38]]
+RESULT head 1a35b70dbf2c 360px: nav [] next [["Scroll through one day",26]] brand [["Heat Pump Cost Optimiz",30]] bmc [["Buy me a coffee",38]]
+RESULT head 1a35b70dbf2c 390px: nav [] next [["Scroll through one day",26]] brand [["Heat Pump Cost Optimiz",30]] bmc [["Buy me a coffee",38]]
+RESULT head 1a35b70dbf2c 768px: nav [] next [["Scroll through one day",26]] brand [["Heat Pump Cost Optimiz",30]] bmc [["Buy me a coffee",38]]
+RESULT head 1a35b70dbf2c 1440px: nav [["How it works",37],["The card",37],["Features",37],["Works with",37],["Get started",37],["Limits",37],["Docs",37],["Reference",37]] next [["Scroll through one day",26]] brand [["Heat Pump Cost Optimiz",30]] bmc [["Buy me a coffee",38]]
