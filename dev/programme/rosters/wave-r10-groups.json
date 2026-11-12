@@ -24988,6 +24988,47 @@
     "note": "orchestrator hotfix"
    },
    "carry": []
+  },
+  {
+   "group": "R10-HOTFIX-MAIN-IST-READSET-2",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/ci/selftest_closures.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX. Main push-only self-test read-set drift at main 6e100ef6: governance / instrument-self-tests job 131147058316, step Refuse a self-test read set the committed table misses (the push-only drift step over tools/ci/selftest_closures.json), same family as merged hotfix #3487 r10-hotfix-main-ist-prepr-scope. Drift lines, verbatim apart from quote marks:\n  UNDER-SCOPED step policy-lint-mutants: probes misses [\"dev/audit/config/.gitattributes\", \"dev/governance/config/.gitattributes\", \"dev/governance/config/cfr_exclusions.json\"]\n  UNDER-SCOPED step field-coverage: files misses [\"tools/pr/figure_block.py\", \"tools/site/day_chart.mjs\"]\n  UNDER-SCOPED step verdict-bus: probes misses [\"tools/pr/figure_registry.json\"]\n  UNDER-SCOPED step push-names-the-host: files misses [\"tools/pr/figure_block.py\"]\n  UNDER-SCOPED step selftest-wiring: files misses [\"tools/audit/seat/r10_disinfection_setpoint_mutants.py\", \"tools/pr/figure_block.py\", \"tools/site/day_chart.mjs\"]\n  UNDER-SCOPED step features-block: probes misses [\"tools\", \"tools/audit\", \"tools/audit/seat\"]\n  UNDER-SCOPED step features-block: dirs misses [\"tools/audit/seat\"]\n  UNDER-SCOPED step mutant-driver: probes misses [\"the stm checker script (a bare name, no path)\"]\n  UNDER-SCOPED step programme-pulse: files misses [\"tools/audit/seat/gh_read.py\", \"tools/audit/seat/merge_train.py\"]\n  UNDER-SCOPED step programme-pulse: probes misses [\"tools/policy/policy_lint.mjs\"]\n  UNDER-SCOPED step programme-pulse: dirs misses [\"tools/audit/seat\"]\n  UNDER-SCOPED step review-packet: probes misses [\"tools/pr/figure_registry.json\"]\n  UNDER-SCOPED step tick-loop: probes misses [\".gitmodules\", \"tools/.git\", \"tools/HEAD\", \"tools/audit/.git\", \"tools/audit/HEAD\", \"tools/audit/seat/.git\", \"tools/audit/seat/HEAD\"]\n  UNDER-SCOPED step tick-loop: it read the index, the table says not\n  UNDER-SCOPED step tick-loop: it read the objects, the table says not\n  UNDER-SCOPED step hooks-setup: files misses [\"tools/audit/seat/r10_disinfection_setpoint_mutants.py\"]\n  UNDER-SCOPED step ci-predictor: probes misses [\"tools/pr/figure_block.py\"]\n  UNDER-SCOPED step prepr: dirs misses [\"dev/audit/config\", \"dev/governance/config\"]\n  UNDER-SCOPED step open-pr: files misses [\"tools/audit/seat/r10_disinfection_setpoint_mutants.py\", \"tools/pr/figure_block.py\", \"tools/site/day_chart.mjs\"]\n  UNDER-SCOPED step pr-args: files misses [\"tools/audit/seat/r10_disinfection_setpoint_mutants.py\", \"tools/pr/figure_block.py\", \"tools/site/day_chart.mjs\"]\n  UNDER-SCOPED step update-pr: files misses [\"tools/audit/seat/r10_disinfection_setpoint_mutants.py\", \"tools/pr/figure_block.py\", \"tools/site/day_chart.mjs\"]\nFix: re-record the named self-tests read sets in tools/ci/selftest_closures.json per the re-record rule stated in tools/ci/selftest_scope.py (read it at current main). Name which merge introduced each read by git log on the read path: candidates are #3479 and #3497 (figure_block.py, figure_registry.json, day_chart.mjs, r10_disinfection_setpoint_mutants.py are the paths to log); say in the body which. Failing check first: the check that refuses on the table missing a read must be red at main for these steps and green after, with a null control. PR body answers the red-check trigger: a cheaper detector is selftest_scope check run by prepr on a diff that adds a read, if it does not already; state which. Only tools/ci/selftest_closures.json changes unless the rule requires more.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a sonnet fixer now",
+    "note": "orchestrator hotfix"
+   },
+   "carry": []
   }
  ]
 }
