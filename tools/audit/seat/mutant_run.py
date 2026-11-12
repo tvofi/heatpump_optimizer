@@ -132,9 +132,9 @@ def _subreaper(on: int) -> int:
         return -1
 
 
-def _ptable() -> list[tuple[int, str, int, int, int]]:
+def _ptable() -> list[tuple[int, str, int, int, int | None]]:
     """(pid, state, ppid, pgrp, session) of every process. From /proc where it exists; on a host
-    without procfs (macOS, the BSDs) from `ps`, the session from os.getsid (-1 where refused)."""
+    without procfs (macOS, the BSDs) from `ps`, the session from os.getsid (None where refused)."""
     rows = []
     try:
         names = os.listdir("/proc")
@@ -151,14 +151,12 @@ def _ptable() -> list[tuple[int, str, int, int, int]]:
                 try:
                     session = os.getsid(int(pid))
                 except OSError:
-                    session = -1  # exited since the listing, or another session's to hide
+                    session = None  # exited since the listing, or another session's to hide
                 rows.append((int(pid), state[:1], int(ppid), int(pgrp), session))
             except ValueError:
                 continue
         return rows
-    for d in names:
-        if not d.isdigit():
-            continue
+    for d in filter(str.isdigit, names):
         try:
             stat = Path("/proc", d, "stat").read_text()
             state, ppid, pgrp, session = stat[stat.rindex(")") + 2:].split()[:4]
@@ -172,9 +170,10 @@ def _carries(pid: int, mark: bytes) -> bool:
     """Whether `pid`'s environment holds `mark`; False where it cannot be read (not ours, exited,
     or no /proc: on such a host only the session, group and ppid legs find a member)."""
     try:
-        return mark in Path("/proc", str(pid), "environ").read_bytes().split(b"\0")
+        env = Path("/proc", str(pid), "environ").read_bytes()
     except OSError:
-        return False
+        env = b""
+    return mark in env.split(b"\0")
 
 
 def family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -> list[int]:
@@ -685,51 +684,68 @@ class _NoProcfs:
                     raise FileNotFoundError(2, "No such file or directory", str(path))
                 return real(path, *a, **k)
             return f
+        self.saved = (os.listdir, Path.read_text, Path.read_bytes)
         os.listdir, Path.read_text, Path.read_bytes = gone(ls), gone(rt), gone(rb)
-        return self
 
     def __exit__(self, *exc):
-        os.listdir, Path.read_text, Path.read_bytes = self._real
+        os.listdir, Path.read_text, Path.read_bytes = self.saved
 
 
-def _procless_checks(check) -> None:
+def _procless_checks(check, tmp: Path) -> None:
     """family() and _reap() read the process table on a host without /proc as they do with it."""
-    for label, ctx in (("with /proc absent", _NoProcfs), ("with /proc present (null control)", _Null)):
+    (tmp / "ps").write_text("#!/bin/sh\nexit 7\n")
+    (tmp / "ps").chmod(0o755)
+    tok = f"st-{os.getpid()}"
+    for label, ctx, procfs in (("with /proc absent", _NoProcfs, False), ("with /proc present (null control)", _Null, True)):
         lone = subprocess.Popen(["sleep", "30"], start_new_session=True)
         kid = subprocess.Popen(["sleep", "30"])
-        dead = subprocess.Popen(["true"])
+        marked = subprocess.Popen(["sleep", "30"], start_new_session=True, env=dict(os.environ, MUTANT_RUN_TOKEN=tok))
+        dead = subprocess.Popen(["true"], start_new_session=True)  # a zombie session leader: `ps` stat `Zs`, not `Z`
+        os.waitid(os.P_PID, dead.pid, os.WEXITED | os.WNOWAIT)  # exited, still unreaped
         try:
-            time.sleep(0.3)  # `true` has exited and is a zombie until reaped
             with ctx():
                 try:
-                    by_session, by_root = family(lone.pid, ""), family(lone.pid, "", root=os.getpid())
-                    _reap(frozenset({lone.pid, kid.pid}), 0)
+                    by_session, by_root = family(lone.pid, ""), family(lone.pid, "", skip=frozenset({marked.pid}), root=os.getpid())
+                    by_token = family(lone.pid, tok)
+                    _reap(frozenset({kid.pid, marked.pid}), lone.pid)
                     err = ""
                 except Exception as e:  # noqa: BLE001 -- the failure is the finding, reported as a FAIL
-                    by_session, by_root, err = [], [], f"{type(e).__name__}: {e}"
+                    by_session, by_root, by_token, err = [], [], [], f"{type(e).__name__}: {e}"
+                path, os.environ["PATH"] = os.environ["PATH"], f"{tmp}{os.pathsep}{os.environ['PATH']}"
+                try:
+                    broken = repr(family(lone.pid, ""))
+                except OSError as e:
+                    broken = str(e)
+                finally:
+                    os.environ["PATH"] = path
             check(f"no-procfs: {label}, family() finds a command by its session" + (f" ({err})" if err else ""),
                   lone.pid in by_session and kid.pid not in by_session)
             check(f"no-procfs: {label}, family() finds the driver's descendants by ppid, zombies excluded",
                   set(by_root) == {kid.pid, lone.pid})  # never `dead`, nor the `ps` that listed the table
-            try:
-                os.waitpid(dead.pid, os.WNOHANG)
-                reaped = False
-            except ChildProcessError:
-                reaped = True
-            check(f"no-procfs: {label}, _reap() collects a dead child it does not skip", reaped and not err)
+            check(f"no-procfs: {label}, a process that left the session is found by its token "
+                  + ("(the environ leg)" if procfs else "only with /proc (no environ leg without it)"),
+                  (marked.pid in by_token) == procfs and not err)
+            check(f"no-procfs: {label}, _reap() collects a dead child it does not skip",
+                  dead.pid not in {row[0] for row in _ptable()} and not err)
+            check(f"no-procfs: {label}, a failing `ps` " + ("is never read: the table is procfs" if procfs
+                  else "refuses (OSError), never an empty table that turns the cap off"),
+                  broken.startswith("ps exited 7") != procfs)
         finally:
-            for p in (lone, kid):
+            for p in (lone, kid, marked):
                 p.kill()
                 p.wait()
-            dead.returncode = 0  # reaped above (or by the check's own waitpid): Popen must not wait again
+            dead.returncode = 0  # reaped by _reap above: Popen must not wait again
 
 
 class _Null:
+    """The real /proc readers for the life of the block, also under MUTANT_RUN_NO_PROCFS=1."""
+
     def __enter__(self):
-        return self
+        self.saved = (os.listdir, Path.read_text, Path.read_bytes)
+        os.listdir, Path.read_text, Path.read_bytes = _NoProcfs._real
 
     def __exit__(self, *exc):
-        return None
+        os.listdir, Path.read_text, Path.read_bytes = self.saved
 
 
 def _self_test() -> int:
@@ -743,8 +759,8 @@ def _self_test() -> int:
         fails += not ok
         print(("  ok   " if ok else "  FAIL ") + name)
 
-    _procless_checks(check)
     tmp = Path(tempfile.mkdtemp(prefix="mutrun-st-"))
+    _procless_checks(check, tmp)
     scratch = tmp / "tmpdir"
     scratch.mkdir()
     try:
@@ -946,6 +962,7 @@ def _self_test() -> int:
                        "os.waitpid(pid, 0)\n")
         # a descendant that left the session is followed by the ppid leg alone once its environment is gone:
         # a host with no child subreaper (macOS, the BSDs) cannot run these cases, and says so per case
+        check("subreaper: a Linux host has one, so no case below is skipped there", _can_subreap() == sys.platform.startswith("linux"))
         why = None if _can_subreap() else "no child subreaper (PR_SET_CHILD_SUBREAPER) on this host, so nothing follows a descendant out of its session"
         for mode in ("pgrp", "session", "cleanenv"):
             if why and mode != "pgrp":
