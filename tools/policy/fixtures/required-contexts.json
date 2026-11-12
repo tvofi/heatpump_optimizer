@@ -46,7 +46,6 @@
     "tests / arch-instrument",
     "tests / briefs",
     "tests / browser",
-    "tests / ci-ratchet",
     "tests / closure-scope",
     "tests / closures",
     "tests / coverage",
