@@ -26,9 +26,8 @@ none
 
 ## Forward-carry
 
-- Carry 0 (R10-FLY-SUITE-ENV-FLAKES nightly respawn), 4 (stress mem peak), 1-3 are marked implemented or dismissed on the roster; nothing is built for them here. Carry: dismissed: already marked implemented or dismissed on the roster
-- Carries 5 and 6 (ec93383a) are built here. Carry: dismissed: built in this pull request
+none
 
 ## Friction
 
-- gate-scoping: cost: `prepr.sh`'s closure recording of `tests/entities.py` under strace did not finish in 17+ min in the cloud image. Carry: R10-SUITE-ENV-RESIDUE
+- gate-scoping: cost: `prepr.sh`'s closure recording of `tests/entities.py` under strace did not finish in 17+ min in the cloud image. Carry: dismissed: a slow strace recording of one script in this image is one occurrence, not a recurring class (defect-root-cause.md); recorded here only
