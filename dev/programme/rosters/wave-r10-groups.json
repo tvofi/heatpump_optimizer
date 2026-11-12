@@ -24710,9 +24710,10 @@
     "commit": null,
     "last_step": null,
     "next_step": "designer (size L): architect note at design/R10-OUTSIDE-CONTRIBUTOR-CYCLE; design review; fixer only on Design review: approve, and on merge_train.py only after R10-GATE-DEFER-BARRIER merges",
-    "note": "triage s14-60 s6-batch238 P714: owner ruling 2026-11-12 ~07:35Z; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3, R10-TRAIN-REVIEW-PRESETTLE): triage: dev/programme/triage/s6-batch238.md#P714 (owner ruling 2026-11-12); shares tools/audit/seat/merge_train.py with R10-GATE-DEFER-BARRIER, which goes first (critical path); the brief says so",
+    "note": "triage s14-60 s6-batch238 P714: owner ruling 2026-11-12 ~07:35Z; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3, R10-TRAIN-REVIEW-PRESETTLE): triage: dev/programme/triage/s6-batch238.md#P714 (owner ruling 2026-11-12); shares tools/audit/seat/merge_train.py with R10-GATE-DEFER-BARRIER, which goes first (critical path); the brief says so | set-source unset -> outside",
     "pr": null
-   }
+   },
+   "source": "outside"
   }
  ]
 }
