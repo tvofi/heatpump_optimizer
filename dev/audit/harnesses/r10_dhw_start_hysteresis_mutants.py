@@ -17,13 +17,13 @@ import subprocess, sys, os
 W = sys.argv[1]
 CC = os.path.join(W, "custom_components/heatpump_optimizer")
 M = [
- ("M1 lift owner returns the configured lift", "thermal_model.py", "    return lift if hysteresis is None or hysteresis <= lift else hysteresis\n", "    return lift\n"),
+ ("M1 lift owner returns the configured lift", "thermal_model.py", "    return lift if hysteresis is None else max(lift, hysteresis)\n", "    return lift\n"),
  ("M2 drop_unstartable >= to >", "dhw_planner.py", "        if temps_of(plan)[i] >= start_below[i]:", "        if temps_of(plan)[i] > start_below[i]:"),
  ("M3 ledger not-startable branch removed", "pump_arbiter.py", '    if planned == "dhw" and actual == "idle" and _not_startable(row):\n        return "not-startable"\n', ""),
  ("M4 repair places without the start mask", "dhw_planner.py", "            usable &= startable_steps(plan, temps, start_below)[lo : b + 1]\n", ""),
  ("M5 startable_steps < to <=", "dhw_planner.py", "[: on.size] < start_below[: on.size]) | on", "[: on.size] <= start_below[: on.size]) | on"),
  ("M6 a zero hysteresis is a start condition", "thermal_model.py", "hysteresis is None or hysteresis <= 0.0:", "hysteresis is None or hysteresis < 0.0:"),
- ("M7 the difference reader applies the unit's zero", "inputs.py", "    delta_k = value * spec[1]\n", "    delta_k = (value + spec[0]) * spec[1]\n"),
+ ("M7 the difference reader ignores the unit's scale", "inputs.py", "    delta_k = value * scale\n", "    delta_k = value\n"),
  ("M8 the cycle step judged against the everyday target", "dhw_planner.py", "        start[cycle_step] = dhw_start_below_c(dhw_step_target_c(params, True), hysteresis_k)\n", "        pass\n"),
  ("M9 notice at a minimum equal to the start temperature", "setpoint_check.py", "start is not None and floor > start,", "start is not None and floor >= start,"),
  ("M10 place_startable returns without the final drop", "dhw_planner.py", "        plan = fixed\n    return drop_unstartable(plan, start_below, temps_of)\n", "        plan = fixed\n    return plan\n"),
