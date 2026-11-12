@@ -1,0 +1,3 @@
+RESULT mutant=M0 failed=0 verdict=baseline
+RESULT sites=200 unmapped=6 mutants=271 survived=8
+rc=1
