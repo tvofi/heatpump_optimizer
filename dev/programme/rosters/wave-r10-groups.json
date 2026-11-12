@@ -24133,7 +24133,7 @@
     "OPENER-RETRY-VERB (triage: dev/programme/triage/s6-batch224.md#P678 at 9572f75a5b), line numbers at 47788534da. Add `open_driver.py retry <topic> [<sha>]` in tools/audit/seat/open_driver.py: it removes the topic's fails.json entry (the (topic, sha) entry when a sha is given), prints the removed n, next and why, refuses a topic with no entry and writes nothing, writes the file as pass() does (:249) and reads it back. The instrument doc (open_driver.py.md) names it as the cure after an environment failure is fixed, in place of a hand edit of fails.json, which pass() loads at :225 and rewrites at :249 every pass. Basis: 3 hand resets in 40 h (fails.json.bak 2026-11-11 08:27Z, fails.json.bak-s14-1352 13:52Z, and the 2026-11-12 00:10:11Z restart of r10-hotfix-opener-unblock 20 min inside its 1800 s backoff after the Darwin wc-padding prepr failure). Acceptance in open_driver_selftest.py: (i) after `retry`, the next pass starts the topic inside its backoff window; (ii) null control: without it, the same pass skips the topic as backoff; (iii) mutation: a verb that writes nothing turns (i) red; (iv) a topic with no entry is refused and fails.json is byte-identical. Not in scope: a shorter backoff floor for hotfix/outside topics (rejected in P678(a): the backoff is sha-keyed, so a same-sha retry repeats a full prepr until the environment is cured)."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": null,
     "commit": null,
     "last_step": null,
