@@ -1,0 +1,7 @@
+top keys ['_comment', 'workflow', 'job', 'steps']
+counts head/main870/mainnow/prev 114 113 114 114
+added vs main870: ['outside-contract'] removed: []
+changed vs main870: 12 ['app-verdict-poster', 'ci-predictor', 'field-coverage', 'obligations-ledger', 'open-pr', 'policy-lint-mutants', 'pr-args', 'pr-merger', 'review-carry', 'selftest-wiring', 'update-pr', 'verdict-bus']
+byte-equal: 101
+non-step keys differing: []
+main now vs main870 changed steps: ['scorecard'] removed []

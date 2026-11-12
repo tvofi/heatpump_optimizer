@@ -1,0 +1,4 @@
+MODE: FULL -- every step runs (a gate file changed: ['.github/workflows/governance.yml', 'tools/ci/selftest_closures.json'])
+  run policy-lint-mutants
+  run fragment-check
+  run lane-skip-decision

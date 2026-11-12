@@ -1,0 +1,20 @@
+mutant m8-mergepr-cross-true at b372f8e935365aaecbe6e74c68d3954e5a3ca1b1
+tools/audit/seat/merge_pr.sh: 'cross = mod.cross_repository(facts, repo)' -> 'cross = True'
+cmd: bash tools/audit/seat/merge_pr.sh --self-test
+rc=1
+RESULT m8-mergepr-cross-true: KILLED, 0 FAIL line(s), summary ['merge_pr self-test: 29 checks, 5 failed']
+
+
+--- tail
+  ok   a ready pull request with --ready owes no ready mark
+  ok   a stale check-run over a completed run is re-run once and logged with its run id
+  ok   a check-run whose run is still in progress is not re-run (null control)
+  ok   the owner body declares an agent and cites exactly the mandate given
+  ok   no mandate date is written into this script
+  ok   null control: the merge records the reviewed head
+  ok   a refused merge fails the script (the line's own exit)
+  ok   null control: a verdict for the head posts as today
+  ok   a verdict for another head refuses CARRIED HEAD, naming the train, and posts nothing
+  ok   the merge runs postmerge.py once, for the merged pull request
+  ok   an owed post-merge step prints OWED after the merge line and fails the script
+merge_pr self-test: 29 checks, 5 failed

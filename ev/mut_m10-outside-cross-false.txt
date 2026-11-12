@@ -1,0 +1,46 @@
+mutant m10-outside-cross-false at b372f8e935365aaecbe6e74c68d3954e5a3ca1b1
+tools/pr/outside.py: '    return f["head_repo"] != repo' -> '    return False'
+cmd: python3 -I tools/pr/outside.py --self-test
+rc=1
+RESULT m10-outside-cross-false: KILLED, 27 FAIL line(s), summary []
+
+FAIL admitted: an allowlisted login+id on a cross-repository head touching class F (got 1, want 0)
+FAIL cross: a fork's head is cross-repository (rc 0) (got 3, want 0)
+FAIL cross: a head repository that is gone is not ours (got 3, want 0)
+FAIL REFUSE: a second open pull request at the head (got (1, False), want (1, True))
+FAIL REFUSE: a CLOSED pull request at the head (its runs left check runs on the commit) (got (1, False), want (1, True))
+FAIL (null control) another pull request of the same branch at another commit refuses nothing (got 1, want 0)
+FAIL admitted: the verdict comment is the author's allowlist entry's, on this pull request (got 1, want 0)
+FAIL admitted: the head branch name 'fix/issue-12_a.b' (got 1, want 0)
+FAIL admitted: the head branch name 'xxxxxxxxxxxxxxxxxxxx' (got 1, want 0)
+FAIL admitted: the head branch name 'A' (got 1, want 0)
+FAIL admitted: the head branch name '0/9' (got 1, want 0)
+FAIL REFUSE: a diff with class-R paths names each (got (1, 0), want (1, 2))
+FAIL REFUSE: a manifest version edit (got (1, False), want (1, True))
+FAIL (null control) a manifest edit that leaves the version key alone is class F (got 1, want 0)
+FAIL pr-contract's early signal: a class-O read still owed is PENDING, not a refusal (got (1, False), want (0, True))
+FAIL the offline early form: PENDING for class O, and not one gh call (got (1, False, []), want (0, True, []))
+FAIL class O admitted: the owner's APPROVED review at H carrying the line (got 1, want 0)
+FAIL class O admitted: read at L, and L carries to H (got 1, want 0)
+FAIL class O admitted: commit_id re-anchored to H, the line names a carried L (got 1, want 0)
+FAIL class O admitted: commit_id on an intermediate X with L->X and X->H carried (item 25) (got 1, want 0)
+FAIL (null control) the approval AFTER his change request stands: latest, not any (got 1, want 0)
+FAIL (null control) a later COMMENTED review is not decisive and voids nothing (got 1, want 0)
+FAIL (null control) the contributor's own change request voids nothing (got 1, want 0)
+FAIL class O admitted: the approve body at H under a mandate of scope all in force now (got 1, want 0)
+FAIL (null control) a revocation by another account revokes nothing (got 1, want 0)
+FAIL (null control) his own later approval lifts his change request (got 1, want 0)
+FAIL approve: one review posted on an outside head with a class-O path, under a mandate in force (got (1, 0), want (0, 1))
+--- tail
+ok   class O REFUSE: the owner's grammar in a comment on the pull request itself, not a record issue
+FAIL approve: one review posted on an outside head with a class-O path, under a mandate in force (got (1, 0), want (0, 1))
+Traceback (most recent call last):
+  File "/tmp/mut-m10-outside-cross-false/tools/pr/outside.py", line 1018, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/mut-m10-outside-cross-false/tools/pr/outside.py", line 975, in main
+    return self_test()
+  File "/tmp/mut-m10-outside-cross-false/tools/pr/outside.py", line 875, in self_test
+    posted = world["routes"][f"repos/{R}/pulls/{PR}/reviews"][-1]
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+IndexError: list index out of range
