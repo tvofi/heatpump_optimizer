@@ -16,6 +16,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ARCH-DOCS (stage carries-open, branch `handoff/r10-arch-docs`): `git fetch origin handoff/r10-arch-docs && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-USER-DOCS-VERIFY (stage in-progress, branch `handoff/r10-user-docs-verify`): `git fetch origin handoff/r10-user-docs-verify && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CI-PRIORITY-PAUSE (stage in-progress, branch `handoff/r10-ci-priority-pause`): `git fetch origin handoff/r10-ci-priority-pause && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ROUND-PLAYBOOK-FINAL (stage in-progress, branch `handoff/r10-round-playbook-final`): `git fetch origin handoff/r10-round-playbook-final && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -24,7 +25,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-GATE-DEFER-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-DISPATCH-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-GH-READ-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-PLAN-PAGE-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-STANDING-CONTRACTS-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CARRY-AUDIT-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -38,12 +38,10 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-OUTSIDE-DHW-CHARGE-SETTLE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ECL110-MQTT-OFF-NEUTRAL (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-OUTSIDE-DISINFECTION-SETPOINT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-TICK-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-RELAY-ARM-ORDER (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-MUTANT-RUN-FORKCAP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-STALE-STEP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -53,12 +51,16 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-MACH-SCORECARD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-PROTECTION-CENSUS (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-TICK-SELFTEST-CHECKOUT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-MUTANT-RUN-DARWIN (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-MAIN-IST-READSET-2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PLAN-OWNER-PRICE (stage in-progress, branch `fix/r10-hotfix-plan-owner-price`): `git fetch origin fix/r10-hotfix-plan-owner-price && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-LEGACY-CONTROL-DATA (stage in-progress, branch `fix/r10-hotfix-legacy-control-data`): `git fetch origin fix/r10-hotfix-legacy-control-data && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-OPENPR-HOST-REFUSAL (stage in-progress, branch `fix/r10-hotfix-openpr-host-refusal`): `git fetch origin fix/r10-hotfix-openpr-host-refusal && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-MACOS-SELFTEST-LANE (stage in-progress, branch `fix/r10-hotfix-macos-selftest-lane`): `git fetch origin fix/r10-hotfix-macos-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-TRAIN-CONTEXT-PAGES (stage in-progress, branch `fix/r10-hotfix-train-context-pages`): `git fetch origin fix/r10-hotfix-train-context-pages && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-ARCH-DOCS, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-RESTART-LEARNING, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-LEGACY-CONTROL-DATA, R10-HOTFIX-MAIN-IST-READSET-2, R10-HOTFIX-MUTANT-RUN-DARWIN, R10-HOTFIX-OPENER-UNBLOCK, R10-HOTFIX-PLAN-OWNER-PRICE, R10-HOTFIX-PREPR-WC-PAD, R10-HOTFIX-TICK-SELFTEST-CHECKOUT, R10-MACH-SCORECARD, R10-MUTANT-RUN-FORKCAP, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DISINFECTION-SETPOINT, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PROTECTION-CENSUS, R10-RCA-CARD-HEALTH-TEXT, R10-RELAY-ARM-ORDER, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE-P2, R10-TRAIN-RESIDUE-P2, R10-USER-DOCS-VERIFY
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-ARCH-DOCS, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-RESTART-LEARNING, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-LEGACY-CONTROL-DATA, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-MAIN-IST-READSET-2, R10-HOTFIX-MUTANT-RUN-DARWIN, R10-HOTFIX-OPENER-UNBLOCK, R10-HOTFIX-OPENPR-HOST-REFUSAL, R10-HOTFIX-PLAN-OWNER-PRICE, R10-HOTFIX-PREPR-WC-PAD, R10-HOTFIX-TICK-SELFTEST-CHECKOUT, R10-HOTFIX-TRAIN-CONTEXT-PAGES, R10-MACH-SCORECARD, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PROTECTION-CENSUS, R10-RCA-CARD-HEALTH-TEXT, R10-RELAY-ARM-ORDER, R10-REVIEW-DISPATCH-RESIDUE, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE-P2, R10-TRAIN-RESIDUE-P2, R10-USER-DOCS-VERIFY
 
 ## Resume steps
 
