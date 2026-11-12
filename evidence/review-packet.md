@@ -1,49 +1,63 @@
 # Review packet #3503
-head: b7a838c1ef516f840530eb85b4c94c6fdfdab0f1
+head: 5d647dd055d7e08e1073bedbe570257c606b98b3
 base: fc2a7edcf2be8847037d9e8dc5bde460977befa8
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-arch-score / arch-score id=131169083428 in_progress
-arm id=131165755406 skipped
-budget-raise-gate / budget-raise-gate id=131169082931 queued
-cancel-superseded id=131165756086 success
-codeql id=131167606987 skipped
-codeql / Analyze (actions) id=131169082852 queued
-codeql / Analyze (javascript-typescript) id=131169082949 queued
-codeql / Analyze (python) id=131169082633 queued
-gate id=131168707973 queued
-governance id=131167603263 skipped
-governance / delivery-status id=131169083049 queued
-governance / delivery-status-publish id=131169085055 skipped
-governance / env-matrix id=131169083099 queued
-governance / instrument-self-tests id=131169083041 queued
-governance / policy-docs id=131169082835 queued
-governance / record id=131169085109 skipped
-governance / wave-script id=131169083063 queued
-hassfest id=131167602758 skipped
-hassfest / hassfest id=131169082720 success
-kernel-points id=131169085255 skipped
-pr-contract id=131168711773 skipped
-prelude id=131165755650 success
-refresh id=131165756151 queued
-tests id=131167604754 skipped
-tests / briefs id=131169082805 queued
-tests / closure-scope id=131169082686 queued
-tests / mutation id=131169083033 queued
-tests / nightly-status id=131169082904 queued
-validate id=131167602716 skipped
-validate / validate-hacs id=131169082592 in_progress
+## Gate digest: red
+CodeQL id=131186762951 success
+arch-score / arch-score id=131190825203 success
+budget-raise-gate / budget-raise-gate id=131190825491 success
+cancel-superseded id=131190329847 success
+codeql id=131190827976 skipped
+codeql / Analyze (actions) id=131186315332 success
+codeql / Analyze (javascript-typescript) id=131186315316 success
+codeql / Analyze (python) id=131186315379 success
+gate id=131191768636 failure
+governance id=131190827421 skipped
+governance / delivery-status id=131186315195 success
+governance / delivery-status-publish id=131186317513 skipped
+governance / env-matrix id=131186315753 success
+governance / instrument-self-tests id=131186315342 success
+governance / policy-docs id=131186315468 success
+governance / record id=131186317267 skipped
+governance / wave-script id=131186315443 success
+hassfest id=131190827699 skipped
+hassfest / hassfest id=131186315162 success
+kernel-points id=131190827980 skipped
+pr-contract id=131191771342 skipped
+prelude id=131190329307 success
+refresh id=131190329694 success
+sweep-self id=131192269142 skipped
+tests id=131190827698 skipped
+tests / arch-instrument id=131187230543 success
+tests / briefs id=131186315136 success
+tests / browser id=131187230676 success
+tests / claims-autofix id=131194406465 skipped
+tests / closure-scope id=131186315003 success
+tests / closures id=131187230588 in_progress
+tests / coverage id=131187230535 in_progress
+tests / coverage-ratchet id=131194852695 success
+tests / fast (3.14) id=131187230773 success
+tests / graders-head-copy id=131194855547 skipped
+tests / lane-proofs id=131194855559 skipped
+tests / mutation id=131186314999 success
+tests / mutation-autofix id=131186826573 skipped
+tests / mutation-pins id=131186825097 skipped
+tests / nightly-ha id=131187232826 skipped
+tests / nightly-status id=131186315079 failure
+tests / replay id=131187234065 skipped
+tests / typing id=131187230453 success
+validate id=131190827646 skipped
+validate / validate-hacs id=131186314803 success
 
 ## Refusals
-introduced-red: unreadable: head governance / instrument-self-tests job 131169083041: queued has not concluded: an introduced red cannot be ruled out (fail closed)
-
-## Advisories
 none
 
+## Advisories
+required-wait: required context `gate` reads concluded failure at 5d647dd055d7e08e1073bedbe570257c606b98b3 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
+
 ## carry_audit at the head
-NOTE stale tree: b7a838c1ef516f840530eb85b4c94c6fdfdab0f1 lacks origin/main 6e100ef6980216a81eaa0438bdc215d62b19271f; roster read at origin/main
 NOTE body item cf76793a: dismissed:both decisions are written in CENSUS.md under "Sizing for round 11", the file the round-11 build reads, and no group id exists yet to route them to
 CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
 
@@ -247,11 +261,41 @@ index 0000000000..cff87cd66d
 @@ -0,0 +1 @@
 +- [#3503](https://github.com/tvofi/heatpump_optimizer/pull/3503) — **open**, R10-PROTECTION-CENSUS: r10 protection census (R10-PROTECTION-CENSUS)
 diff --git a/tests/closures.json b/tests/closures.json
-index 9614c971e2..7c1da3e5bd 100644
+index 9614c971e2..85232ab6c3 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -5083,7 +5083,7 @@
-    "seconds": 55.0
+@@ -4505,6 +4505,7 @@
+    "dev/audit/rounds/round10/intake/intake.py",
+    "dev/audit/rounds/round10/intake/normalise.py",
+    "dev/audit/rounds/round10/intake/quiet.sh",
++   "dev/audit/rounds/round10/protection-census/main_reds.py",
+    "dev/audit/rounds/round10/study-ident/collect_q1.py",
+    "dev/audit/rounds/round10/study-ident/eta_rolling.py",
+    "dev/audit/rounds/round10/study-ident/ident_rolling.py",
+@@ -5048,7 +5049,7 @@
+   },
+   "tests/boost_drift_replay.py": {
+    "rc": 0,
+-   "seconds": 340.3
++   "seconds": 150.2
+   },
+   "tests/card.mjs": {
+    "rc": 0,
+@@ -5060,7 +5061,7 @@
+   },
+   "tests/config_flow_steps.py": {
+    "rc": 0,
+-   "seconds": 13.6
++   "seconds": 29.8
+   },
+   "tests/debug_collect.py": {
+    "rc": 0,
+@@ -5080,10 +5081,10 @@
+   },
+   "tests/edge.py": {
+    "rc": 0,
+-   "seconds": 55.0
++   "seconds": 17.9
    },
    "tests/entities.py": {
 -   "rc": 1,
@@ -259,6 +303,47 @@ index 9614c971e2..7c1da3e5bd 100644
     "seconds": 867.9
    },
    "tests/env_drift.py": {
+@@ -5092,7 +5093,7 @@
+   },
+   "tests/features.py": {
+    "rc": 0,
+-   "seconds": 1207.9
++   "seconds": 531.8
+   },
+   "tests/finite_boundary.py": {
+    "rc": 0,
+@@ -5104,7 +5105,7 @@
+   },
+   "tests/golden.py": {
+    "rc": 0,
+-   "seconds": 0.4
++   "seconds": 0.9
+   },
+   "tests/guard_pins.py": {
+    "rc": 0,
+@@ -5148,7 +5149,7 @@
+   },
+   "tests/stress.py": {
+    "rc": 0,
+-   "seconds": 1060.0
++   "seconds": 443.5
+   },
+   "tests/structure.py": {
+    "rc": 0,
+@@ -5156,11 +5157,11 @@
+   },
+   "tests/typing_ruler.py": {
+    "rc": 0,
+-   "seconds": 15.8
++   "seconds": 0.4
+   },
+   "tests/validate.py": {
+    "rc": 0,
+-   "seconds": 54.2
++   "seconds": 21.5
+   },
+   "tests/wood_advisor.py": {
+    "rc": 0,
 
 ## Before you return the verdict (P275)
 Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
