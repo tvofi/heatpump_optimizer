@@ -1,0 +1,8 @@
+1625c1625
+< try {
+---
+> try { if (process.env.HPO_ONLY) { await themeMismatch({ browser, check, plan }); await themeLiveSwitch({ browser, check, plan }); } else {
+3180c3180
+< } finally {
+---
+> } } finally {

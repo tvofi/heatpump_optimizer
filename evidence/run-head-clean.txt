@@ -1,0 +1,21 @@
+  ok    R9-UI-3 every tile text run clears 4.5:1 with light theme variables, darkMode false
+  ok    R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with light theme variables, darkMode false
+  ok    R10 every own-text run on every dialog page clears 4.5:1 with light theme variables, darkMode false
+  ok    R9-UI-3 every tile text run clears 4.5:1 with dark theme variables, darkMode true
+  ok    R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with dark theme variables, darkMode true
+  ok    R10 every own-text run on every dialog page clears 4.5:1 with dark theme variables, darkMode true
+  ok    R9-UI-3 every tile text run clears 4.5:1 with dark theme variables, darkMode false
+  ok    R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with dark theme variables, darkMode false
+  ok    R10 every own-text run on every dialog page clears 4.5:1 with dark theme variables, darkMode false
+  ok    R9-UI-3 every tile text run clears 4.5:1 with light theme variables, darkMode true
+  ok    R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with light theme variables, darkMode true
+  ok    R10 every own-text run on every dialog page clears 4.5:1 with light theme variables, darkMode true
+  ok    R10 live light to dark on the default theme reaches the open Health dialog
+  ok    R10 live light to dark: every Health text run clears 4.5:1 between HA's theme write and its hass update
+  ok    R10 live light to dark: every Health text run clears 4.5:1 after the card's re-render
+  ok    R10 live dark to light on the default theme reaches the open Health dialog
+  ok    R10 live dark to light: every Health text run clears 4.5:1 between HA's theme write and its hass update
+  ok    R10 live dark to light: every Health text run clears 4.5:1 after the card's re-render
+  ok    R10 live switch starts on the light default theme with the Health dialog open
+
+ALL BROWSER CHECKS PASSED
