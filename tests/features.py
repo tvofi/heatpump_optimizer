@@ -86299,11 +86299,11 @@ def _dsp_stop(learner, at, off_s):
     """One hot water to heating switch at ``at`` that stops the compressor 19 s
     later, void-checked on the next pass, restarting after ``off_s``."""
     ctx = _dsp_ds.SwitchContext(
-        mode_written_at=at, last_write_at=at, inlet_c=44.2, space_setpoint_c=32.0,
+        mode_written_at=at, last_write_at=at, inlet_c=44.2, water_setpoint_c=32.0,
         target_demand=True, plan_stays=True)
     learner.mode_write(at, _dsp_pm.MODE_DHW, _dsp_pm.MODE_HEAT, True, ctx)
     learner.edge(at + timedelta(seconds=19), False)
-    learner.note_pass(at + timedelta(seconds=60), ctx, True, False)
+    learner.note_pass(at + timedelta(seconds=60), ctx, False)
     learner.edge(at + timedelta(seconds=19 + off_s), True)
 
 

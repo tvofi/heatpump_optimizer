@@ -82,7 +82,7 @@ MUTANTS: list[tuple[str, str, str, str]] = [
     ("leaf: the hot-water-to-heating switch reads the other direction", PKG + "duty_legs.py",
      "(before == DHW) & (after == SPACE),\n        p_ds,", "(before == DHW) & (after == SPACE),\n        p_sd,"),
     ("leaf: the switch weight takes the larger neighbouring draw", PKG + "duty_legs.py",
-     "np.minimum(level[:, :-1], level[:, 1:])", "np.maximum(level[:, :-1], level[:, 1:])"),
+     "np.minimum(level[_BEFORE], level[_AFTER])", "np.maximum(level[_BEFORE], level[_AFTER])"),
     ("leaf: the in-step weight draws the smaller circuit, not the combined draw", PKG + "duty_legs.py",
      "np.where(two, p_ds * level, 0.0)",
      "np.where(two, p_ds * np.minimum(space, np.asarray(dhw_kw, dtype=float)), 0.0)"),
