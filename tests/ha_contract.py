@@ -1095,6 +1095,37 @@ def _error_generated_message():
 
 
 @contract(
+    "homeassistant.core.StateMachine",
+    "a restart's first write stamps last_changed anew, whatever state it restores",
+    cite="core.py StateMachine.async_set -- no last_changed parameter; a new state is stamped at the write",
+    expect="real",
+)
+def _restart_stamps_last_changed():
+    # supply_hold measures a run on the switch's last_changed: after a restart
+    # a pump found running reads as a run that started at the restart.
+    import asyncio
+    import tempfile
+    from datetime import timedelta
+
+    from homeassistant.core import HomeAssistant, State
+    from homeassistant.util import dt as dt_util
+
+    async def main():
+        hass = HomeAssistant(tempfile.mkdtemp())
+        restored = State("switch.hp", "on", last_changed=dt_util.utcnow() - timedelta(hours=1))
+        before = dt_util.utcnow()
+        try:
+            hass.states.async_set("switch.hp", restored.state, restored.attributes)
+            written = hass.states.get("switch.hp")
+        finally:
+            await hass.async_stop(force=True)
+        assert written.state == "on"
+        assert written.last_changed >= before > restored.last_changed
+
+    asyncio.run(main())
+
+
+@contract(
     "homeassistant.exceptions.ServiceValidationError",
     "subclasses HomeAssistantError",
     cite="exceptions.py -- `class ServiceValidationError(HomeAssistantError)`",
