@@ -25,9 +25,74 @@ from typing import Any
 import numpy as np
 
 from .const import START_HYSTERESIS_SAMPLES
+from .drift import utc_elapsed_seconds
 
 #: Months of per-month counts kept, matching the ledger's horizon.
 KEEP_MONTHS = 24
+#: Reported compressor frequency, Hz, at or above which it runs. A stopped
+#: inverter reports 0 and a running one its modulation floor, tens of Hz; 1 Hz
+#: is the line ``freq_control.FrequencyMap.observe`` already refuses a sample
+#: under. A constant, not a measured threshold.
+RUNNING_FLOOR_HZ = 1.0
+#: Seconds a changed running class must hold before it is an edge: longer
+#: than a one-frame zero or a meter's dip, shorter than any stop worth
+#: counting. A constant, not a measured threshold.
+EDGE_DEBOUNCE_S = 30.0
+
+
+def compressor_running(
+    frequency_hz: float | None, power_kw: float | None, threshold_kw: float | None,
+    by_frequency: bool,
+) -> bool | None:
+    """Whether the compressor runs, by one reading; ``None`` is no signal.
+
+    ``by_frequency`` names the install's source: the actual-frequency sensor
+    where one is configured, at :data:`RUNNING_FLOOR_HZ`; else the meter at
+    ``threshold_kw`` (``thermal_model.on_threshold_kw``). A reading that is
+    absent or not finite is no signal, never "stopped", and the source is
+    never mixed: a meter standing in for a silent frequency sensor would
+    flip the class at every outage.
+    """
+    reading, floor = (frequency_hz, RUNNING_FLOOR_HZ) if by_frequency else (power_kw, threshold_kw)
+    if reading is None or floor is None or not (np.isfinite(reading) and np.isfinite(floor)):
+        return None
+    return bool(float(reading) >= float(floor))
+
+
+@dataclass
+class EdgeTracker:
+    """Debounced edges of the running class (``True``, ``False``, ``None``).
+
+    An event of the settled class costs one compare and clears a pending
+    change, so a one-frame zero is no edge. A changed class is pending from
+    its first event and becomes the settled class once it held
+    :data:`EDGE_DEBOUNCE_S`, confirmed by a later event of the same class
+    (:meth:`note`) or by the caller's own clock (:meth:`confirm`): a final
+    zero no event follows is still confirmed. The edge carries the first
+    changed event's time. A time-spacing throttle would drop exactly that
+    final event.
+    """
+
+    settled: bool | None = None
+    #: (the changed class, when it was first seen), until confirmed or undone.
+    pending: tuple[bool | None, datetime] | None = None
+
+    def note(self, when: datetime, running: bool | None) -> tuple[datetime, bool | None] | None:
+        """Fold one reading; the confirmed edge ``(since, class)`` or ``None``."""
+        if running == self.settled:
+            self.pending = None
+            return None
+        if self.pending is None or self.pending[0] != running:
+            self.pending = (running, when)
+        return self.confirm(when)
+
+    def confirm(self, when: datetime) -> tuple[datetime, bool | None] | None:
+        """Settle a pending change that has held the debounce by ``when``."""
+        pending = self.pending
+        if pending is None or utc_elapsed_seconds(when, pending[1]) < EDGE_DEBOUNCE_S:
+            return None
+        self.settled, self.pending = pending[0], None
+        return pending[1], pending[0]
 
 
 @dataclass
