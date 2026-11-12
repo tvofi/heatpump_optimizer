@@ -1,0 +1,7 @@
+NOTE stale tree: e43f976d22648a95b4c41966a63cc890b2c6c32c lacks origin/main 19baca76181cb019d9b1cfd93ee6bc0a08e20047; roster read at origin/main
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/heat_curve.py:167 BOOLOP: if not set_topic and not command_topic:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/heat_curve.py:167 GUARD_OFF: if not set_topic and not command_topic:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/heat_curve.py:177 RETURN_DEL: return off_restore.Restorer(set_topic or command_topic, writ
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/heat_curve.py:266 RETURN_DEL: return sent
+CI PREDICT: 4 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against fc2a7edcf2be (a data-file read is not seen)
