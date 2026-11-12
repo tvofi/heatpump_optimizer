@@ -835,6 +835,12 @@ MAIN_MOVED_TRIES = 3
 # (a recarry or a poll), never a whole CI wait and never a whole batch. A
 # `batch/` rehearsal publishes nothing: it merges nothing into main.
 HOLD_REF = "refs/heads/train-hold"
+#: The reverse hold: a stamp (tools/release/stamp.py, `STAMP_HOLD_REF` there) publishes
+#: it while it runs; a merge attempt waits on it (`Train.stamp_hold_wait`), and a hold
+#: at or past STAMP_HOLD_MAX_AGE_S is a dead holder's and is taken over.
+STAMP_HOLD_REF = "refs/heads/stamp-hold"
+STAMP_HOLD_MAX_AGE_S = 7200
+STAMP_HOLD_POLL_S = 30
 #: The approver App's login (app_approve.sh's VERDICT_AUTHORS): its APPROVED
 #: review at a head is that head's approval, never posted twice (P86).
 APPROVER_LOGIN = "hpo-approver[bot]"
@@ -2752,6 +2758,7 @@ class Train:
                 self.review_settle(pr, h)
             else:
                 self.sleep(30)
+            self.stamp_hold_wait()
             guard()
             code, whole = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
                                     "--match-head-commit", h])
@@ -2997,6 +3004,38 @@ class Train:
         self.log("TRAIN HOLD released" if not code else
                  f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
                  "it expires at the beat's own bound, or delete it by hand")
+
+    def stamp_hold_age(self) -> "float | None":
+        """Seconds since the stamp hold commit was made, or None when no hold
+        stands or its age is unknowable (unreadable, or dated ahead of this
+        clock, #775: never young). Two reads: the ref, then its commit date."""
+        sha = self.out("gh", "api", f"repos/{self.repo}/git/ref/{STAMP_HOLD_REF.removeprefix('refs/')}",
+                       "--jq", ".object.sha").strip()
+        if not is_sha(sha):
+            return None
+        stamp = self.out("gh", "api", f"repos/{self.repo}/git/commits/{sha}", "--jq", ".committer.date").strip()
+        try:
+            age = time.time() - datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return None
+        return age if age >= 0 else None
+
+    def stamp_hold_wait(self) -> None:
+        """Before a merge attempt: wait while a stamp holds main (STAMP-HOLD).
+        A hold at or past STAMP_HOLD_MAX_AGE_S is a dead holder's: taken over
+        and logged, not deleted. Only a real train (it merges into main) waits."""
+        if not self.real:
+            return
+        while True:
+            age = self.stamp_hold_age()
+            if age is None:
+                return
+            if age >= STAMP_HOLD_MAX_AGE_S:
+                self.log(f"STAMP-HOLD taken over: {STAMP_HOLD_REF} is {int(age)}s old, past "
+                         f"{STAMP_HOLD_MAX_AGE_S}s; its holder is dead")
+                return
+            self.log(f"STAMP-HOLD: a stamp is running ({int(age)}s old); no merge until it exits")
+            self.sleep(STAMP_HOLD_POLL_S)
 
     def unwind(self) -> None:
         """The closing lines of a train or batch, run once a stop is already
@@ -6451,6 +6490,46 @@ def _rollup_draft_self_test(check) -> None:
     t.record_drafts(q)
     check("P609 null: a non-draft entry is recorded False and makes no gh pr ready call",
           q[0]["draft"] is False and not any(c.startswith("gh pr ready") for c in calls))
+    # Carry 1 (P447): a merge attempt waits while a stamp holds main.
+    def stamped(age_s, clears_after=None, real=True):
+        t, calls = world({})
+        t.real = real
+        base_out, polls, logs = t.out, [0], []
+        def out(*argv):
+            a = " ".join(argv)
+            if "git/ref/heads/stamp-hold" in a:
+                gone = clears_after is not None and polls[0] >= clears_after
+                return "" if (age_s is None or gone) else "a" * 40
+            if "git/commits/" in a:
+                when = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=age_s)
+                return when.strftime("%Y-%m-%dT%H:%M:%SZ")
+            return base_out(*argv)
+        def sleep(s):
+            polls[0] += 1
+        t.out, t.sleep, t.log = out, sleep, logs.append
+        t.policy_approve = t.policy_gate = t.approve = lambda *a, **k: None
+        try:
+            t.land(7, H, {"pr": 7}, [], lambda: None)
+        except Stop as e:
+            logs.append(f"STOP {e.why}")
+        return logs, calls, polls[0]
+    logs, calls, polls = stamped(60, clears_after=3)
+    held_at = [i for i, c in enumerate(calls) if "gh pr merge" in c]
+    check("stamp hold: a live hold logs STAMP-HOLD and waits, and the merge runs only after it clears",
+          sum(l.startswith("STAMP-HOLD:") for l in logs) == 3 and polls == 3 and len(held_at) == 1)
+    logs, calls, polls = stamped(None)
+    check("stamp hold: null control, no hold runs the merge as today with no wait",
+          not any("STAMP-HOLD" in l for l in logs) and polls == 0 and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(STAMP_HOLD_MAX_AGE_S + 5)
+    check("stamp hold: a hold past the age bound is a dead holder's, taken over, and the merge runs",
+          any(l.startswith("STAMP-HOLD taken over") for l in logs) and polls == 0
+          and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(60, real=False)
+    check("stamp hold: a rehearsal batch (merges nothing into main) does not wait",
+          polls == 0 and not any("STAMP-HOLD" in l for l in logs))
+    check("stamp hold: the ref names agree between the train and the stamp",
+          STAMP_HOLD_REF == "refs/heads/stamp-hold"
+          and 'STAMP_HOLD_REF = "refs/heads/stamp-hold"' in (ROOT / "tools/release/stamp.py").read_text())
 
 
 def _review_settle_self_test(check) -> None:
