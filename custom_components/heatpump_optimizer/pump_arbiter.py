@@ -1387,7 +1387,8 @@ def _report_write(
     Every mode write lands in :func:`_write`, a re-send after :func:`hold`
     dropped the record included (``replaced`` is then ``None``). The space
     set-point is the command's, written right after the mode: the one the
-    controller judges the heating request on. The source leg's age is the
+    controller judges the heating request on, and handed on only where it is
+    a water temperature (:func:`_flow_unit`), never an indoor unit's room one. The source leg's age is the
     replaced mode record's; ``dhw_since`` is already reset on the pass that
     leaves hot water.
     """
@@ -1400,7 +1401,7 @@ def _report_write(
         planned = _planned_room(inp.plan, now)
         context = replace(
             context,
-            inlet_c=_flow_inlet_c(inp), space_setpoint_c=command.space_setpoint,
+            inlet_c=_flow_inlet_c(inp), water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,
             source_leg_s=utc_elapsed_seconds(now, replaced[1]) if replaced else None,
             target_demand=_reads_below(room, planned) if target == "space" else _reads_below(tank, inp.params.dhw_setpoint),
             plan_stays=all(step_duty(inp.plan, at) in (target, "both")
