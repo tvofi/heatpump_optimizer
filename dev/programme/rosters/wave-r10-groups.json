@@ -25218,6 +25218,47 @@
     "note": "triage batch 246 P744 ACCEPT round 10; overlap admitted (R10-CI-PRIORITY-PAUSE): triage batch 246 P744 ACCEPT round 10: local Darwin beat row runs instrument self-tests per tip"
    },
    "carry": []
+  },
+  {
+   "group": "R10-HOTFIX-TRAIN-CONTEXT-PAGES",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/merge_train.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX. Defect: the merge train required-check read stops at the first page of contexts. In merge_train.py the read returns unread with the reason that there are more contexts than one page and it did not read them whole, so a green approved head with a long check-run list is classed as its own skip and its re-add is refused. Measured evidence from the ruling: PR 3449 (under the earlier P638 reopening condition) and PR 3479, which needed a direct merge as a deadlock; three PRs in about two days were each green and approved and each needed a hand direct merge; one direct merge moved main under a waiting proof batch and cost a re-prove (MAIN-MOVED). The P638 reopening condition holds: the redispatch-loop hotfix is done and a green verdicted entry was still skipped.\n\nFix: read every page of the contexts under the gh_read rule, so a head with more than one page of check-runs is classified on all of them. One extra API call per extra page, only on such heads. The arm that names the QUEUED context instead of guessing a review is deferred to round 11 and is out of scope; BRANCH_POLICY is already re-admitted.\n\nSelf-test arm in merge_train.py: a faked listing with a required context on page 2 that is red must read RED, and with that context green must read GREEN. Null control: a one-page listing is unchanged and makes the same single read. Red-then-green demonstration: show the arm red on origin/main (unread), then green with the fix; mutate the page loop to stop after page 1 and show the arm kill it.\n\nTriage: P765 ACCEPT round 10 (batch 246)",
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-hotfix-train-context-pages",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a sonnet fixer now",
+    "note": "triage batch 246 P765 ACCEPT round 10; overlap admitted (R10-CI-PRIORITY-PAUSE): triage batch 246 P765 ACCEPT round 10: train reads every page of required contexts"
+   },
+   "carry": []
   }
  ]
 }
