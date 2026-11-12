@@ -24542,6 +24542,47 @@
     "next_step": "fixer (sonnet, size S, no design step), then sonnet review; hotfix, dispatched above the cap",
     "note": "orchestrator 2026-11-12: authorised P676 new hotfix group"
    }
+  },
+  {
+   "group": "R10-HOTFIX-MAIN-IST-PREPR-SCOPE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/ci/selftest_closures.json"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "sonnet",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": null,
+   "brief": "triage: dev/programme/triage/s6-batch225.md#P680 at 9874c27034, line numbers at origin/main 47788534da. Hotfix, main is red: governance / instrument-self-tests on the 6d16af36c2 push (#3482) prints `UNDER-SCOPED step prepr: files misses ['dev/audit/harnesses/mutant_guard.py', 'tools/audit/seat/mutant_run.py']` and `selftest_scope check: 111 gated step(s), 1 refusal(s)`. Fix: re-record the prepr step's entry in `tools/ci/selftest_closures.json` with the instrument's own re-record path, as the `tools/ci/selftest_scope.py` docstring states (`record --step prepr` on Linux with strace, or commit main's `selftest-closures` artifact from `check --write`). Never hand-edit the table. The entry must list both files. Drop the two over-scoped entries that the check's notes name (steps cloud-dispatcher and prepr, 1 file each). Proof: `selftest_scope.py check` prints \"0 refusal(s)\" over the run's traces. Null control: the old table prints the UNDER-SCOPED line on the same traces. Re-verify at your base first; if main has gone green, report that and stop. Root-cause trigger answer (for the RCA record): the #3455 merge (046736a49f) made the prepr self-test in `tools/pr/prepr.sh` run `tools/audit/seat/mutant_run.py` without re-recording the prepr closure. The cheaper detector: prepr.sh or ci_predict runs `selftest_scope.py check` before handoff whenever a gated step's script changes. Do not touch `tools/pr/prepr.sh`; R10-HOTFIX-PREPR-WC-PAD owns it.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (sonnet, size S, no design step), then sonnet review; hotfix, dispatched above the cap",
+    "note": "triage s14-34 2026-11-12: P680 accepted, new hotfix group (main red)"
+   }
   }
  ]
 }
