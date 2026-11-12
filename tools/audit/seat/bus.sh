@@ -623,7 +623,12 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     4) printf 'bus: %s\n' "$(printf '%s\n' "$cls" | grep '^APPROVAL-OWED ' | tail -n 1)" >&2 ;;
     # CARRY 17 card 3: a required red is a repair owed to the fixer, not a refusal a
     # retry loop re-tries (190 REFUSE tries, 2026-11-07); rc 5 and no `REFUSE:` prefix.
-    1) printf 'bus: REPAIR-OWED: dispatch: #%s'"'"'s head %s is not reviewable: a required context'"'"'s latest run there concluded failure (%s) -- back to its fixer for a repair; do not retry\n' "$pr" "$h" "$(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')" >&2; exit 5 ;;
+    # A red classify --pr reads from merge_train.introduced_at (R10-INTRODUCED-REDS-BARRIER)
+    # carries INTRODUCED lines and names those, not a required context's.
+    1) intro=$(printf '%s\n' "$cls" | sed -n 's/^INTRODUCED //p' | awk 'NR > 1 { printf "; " } { printf "%s", $0 }')
+       if [ -n "$intro" ]; then why="instrument-self-tests went red here and not at its merge base (INTRODUCED: $intro)"
+       else why="a required context's latest run there concluded failure ($(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p'))"; fi
+       printf 'bus: REPAIR-OWED: dispatch: #%s'"'"'s head %s is not reviewable: %s -- back to its fixer for a repair; do not retry\n' "$pr" "$h" "$why" >&2; exit 5 ;;
     *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
   esac
   # THE REVIEW CARRY (tvofi, 2026-10-27: "if there are no code changes, the
@@ -1080,7 +1085,8 @@ P
 printf '%s|' "$@" >> "$BUS_TEST_CLASSIFIES"; echo >> "$BUS_TEST_CLASSIFIES"
 case ${BUS_CLASSIFY_RC:-0} in
   0) echo "GREEN $2 pending: none red: none" ;;
-  1) echo "RED $2 pending: none red: tests / fast gate" ;;
+  1) if [ -n "${BUS_CLASSIFY_INTRO:-}" ]; then printf 'RED %s pending: none red: none introduced: 2\nINTRODUCED %s\nINTRODUCED census\n' "$2" "$BUS_CLASSIFY_INTRO"
+     else echo "RED $2 pending: none red: tests / fast gate"; fi ;;
   3) echo "WAIT $2 pending: gate red: none" ;;
   4) echo "APPROVAL-OWED $2 1 budget raise(s), first tests/structure_budgets.json: m: 3 -> 4: a raise is the owner's (0013): planted" ;;
   *) echo "REFUSE proof: could not read main-protect-checks's required contexts; no proof is judged against a guessed list" ;;
@@ -2046,6 +2052,10 @@ B
   [ $rc = 5 ] && echo "$out" | grep -q "^bus: REPAIR-OWED: .*is not reviewable: .*(tests / fast gate)" && ! echo "$out" | grep -q "REFUSE" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
   expect "a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded" $?
+  out=$(BUS_CLASSIFY_RC=1 BUS_CLASSIFY_INTRO='(the job concluded timed_out)' run dispatch 7 "$h1" cmsg_K); rc=$?
+  [ $rc = 5 ] && echo "$out" | grep -qF "is not reviewable: instrument-self-tests went red here and not at its merge base (INTRODUCED: (the job concluded timed_out); census)" \
+    && ! echo "$out" | grep -q "required context" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+  expect "an INTRODUCED red (classify --pr RED, the required set green) owes REPAIR-OWED naming each INTRODUCED line, never a required context" $?
   out=$(BUS_CLASSIFY_RC=0 run dispatch 7 "$h1" cmsg_K); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
   expect "null control: the same dispatch at a GREEN-classified head mints and records" $?
