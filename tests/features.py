@@ -81935,6 +81935,7 @@ R.section("supply switch: minimum run and pause, restart")
 # switch's own ``last_changed``, whoever moved it. The real coordinator writes;
 # each tick fires every minute.
 import importlib
+import logging
 
 _sh = importlib.import_module(_sa_pa.__package__ + ".supply_hold")
 _sh_coord_mod = importlib.import_module(_sa_pa.__package__ + ".coordinator")
@@ -82159,6 +82160,52 @@ for _ms_name, _ms_min, _ms_kw, _ms_want in (
 ):
     _ms_got = _sh_start(_ms_min, **_ms_kw)
     R.check(f"rule three: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# An unreadable switch passes an OFF the gate would hold on a readable one;
+# a stamp ahead of the clock is an unknown age and holds nothing (#775).
+def _sh_stop(state, minutes_ago):
+    held = _sa_pa.ArbiterState()
+    inputs = _sh_inputs(7, state=state)
+    inputs().hass.states.set("switch.hp", FakeState(state, last_updated=_SA_T0 + timedelta(minutes=7 - minutes_ago)))
+    got = _sh.hold_supply(held, inputs, _sh_none, False, _SA_T0 + timedelta(minutes=7))
+    return got, held.supply_held
+
+
+for _ms_name, _ms_args, _ms_want in (
+    ("an OFF to a switch reading unavailable passes", ("unavailable", 3), (False, False)),
+    ("an OFF to a switch reading unknown passes", ("unknown", 3), (False, False)),
+    ("an OFF to a switch stamped ahead of the clock passes", ("on", -3), (False, False)),
+    ("null control: an OFF to a switch on three minutes is held", ("on", 3), (None, True)),
+):
+    _ms_got = _sh_stop(*_ms_args)
+    R.check(f"stop: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# A held write is not logged as the blocked-mode skip it is not.
+class _ShLog(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.seen = []
+
+    def emit(self, record):
+        self.seen.append(record.getMessage())
+
+
+_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
+_sh_coord_mod._LOGGER.addHandler(_sh_log)
+_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+try:
+    _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
+finally:
+    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
+    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+_sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
+R.check(
+    "a held OFF is not logged as the cooling or blocked-mode skip",
+    _sh_skips == [],
+    f"{_sh_skips}",
+)
 
 
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
