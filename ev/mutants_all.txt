@@ -1,0 +1,58 @@
+RESULT t01-cross-false: KILLED rc=1 FAIL-lines=29 | merge_train self-test: 710 checks, 29 failed
+    FAIL fork head: a cross-repository head passes outside.py's whole contract at the landing head, read from origin/main, before app_approve.sh is asked, and merges on the App's approval with no review of the train's
+    FAIL fork head: a contract outside.py refuses parks the entry [OUTSIDE] with outside.py's own reason and the fork's name, before app_approve.sh is asked, nothing merged
+    FAIL fork head: a pulls object cross-repository with its fork deleted is a Stop saying so -- an unread head is never taken for ours -- and nothing is approved
+RESULT t02-admit-any-head: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL the real outside.py: an admission of another head parks the fork head [OUTSIDE] with the contract's own words, nothing merged or approved
+RESULT t03-rc3-admits: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL fork head: `check` exiting 3 parks [OUTSIDE] even beside an admission-shaped line -- only rc 0 admits
+RESULT t04-allowlist-old-path: NOT-APPLIED (2 occurrences of the target)
+RESULT t05-no-fork-post-off: KILLED rc=1 FAIL-lines=3 | merge_train self-test: 710 checks, 3 failed
+    FAIL fork head: _post_agent_approval as _approve calls it Stops [OUTSIDE] on a cross-repository head with no --approve call
+    FAIL fork head: _post_agent_approval as policy_approve calls it Stops [OUTSIDE] on a cross-repository head with no --approve call
+    FAIL fork head: _post_carry Stops [OUTSIDE] on a cross-repository head with no --approve call
+RESULT t06-ok-not-true-off: KILLED rc=1 FAIL-lines=11 | merge_train self-test: 710 checks, 11 failed
+    FAIL fork head: a contract outside.py refuses parks the entry [OUTSIDE] with outside.py's own reason and the fork's name, before app_approve.sh is asked, nothing merged
+    FAIL the real outside.py: a class-R path parks the fork head [OUTSIDE] with the contract's own words, nothing merged or approved
+    FAIL the real outside.py: an author on no allowlist entry (rc 3) parks the fork head [OUTSIDE] with the contract's own words, nothing merged or approved
+RESULT t07-blob-compare-off: KILLED rc=1 FAIL-lines=2 | merge_train self-test: 710 checks, 2 failed
+    FAIL fork head (carry 23): a checkout whose outside.py is not origin/main's blob stops before the contract is asked of anything -- main's copy or none
+    FAIL fork head (carry 23): a checkout whose allowlist is not origin/main's blob stops before the contract is asked of anything -- main's copy or none
+RESULT t08-contracted-pop-dropped: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL ... the head the contract held at is recorded, and the record is dropped the moment it is read again: a refusal leaves no head for `_approve` to trust
+RESULT t09-_approve-contract-guard-off: KILLED rc=1 FAIL-lines=2 | merge_train self-test: 710 checks, 2 failed
+    FAIL fork head: `_approve` reached without step 6's own read still runs the contract at this head first: it holds, the App approves
+    FAIL fork head: `_approve` reached without step 6's own read still runs the contract at this head first: it refuses, and app_approve.sh is never asked
+RESULT t10-approve-contract-call-off: KILLED rc=1 FAIL-lines=4 | merge_train self-test: 710 checks, 4 failed
+    FAIL fork head: a cross-repository head passes outside.py's whole contract at the landing head, read from origin/main, before app_approve.sh is asked, and merges on the App's approval with no review of the train's
+    FAIL the real outside.py: a fork head of an allowlisted author changing class-F paths only is ADMITTED by its own `check` at the landing head, and the train merges it on the App's approval
+    FAIL fork head (carry 23): an unowned class-O path, approved 'app' at adoption's head, PARKS at the next step 6 once the mandate is revoked -- the contract is read before the already-approved shortcut
+RESULT t11-_approve-fork-owner-arm-off: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL fork head: code-owned with class O standing returns 'owner' -- no post, no budget read (never raise_hold), no carry
+RESULT t12-carry-owner-fork-arm-off: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL fork head: --approval-carry carries nothing on a cross-repository head, its reason left for the park line
+RESULT t13-policy-due-fork-arm-off: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL fork head: step 5 is never due on a cross-repository head (policy paths are class R), and says so
+RESULT t14-push-park-off: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+RESULT t15-outside-prefix-dropped: SURVIVED rc=0 FAIL-lines=0 | merge_train self-test: 710 checks, 0 failed
+RESULT p01-cross-false: KILLED rc=1 FAIL-lines=2 | merge_pr self-test: 29 checks, 2 failed
+    FAIL owner mode on a cross-repository head refuses, naming the fork (decision 0017) (rc=0: )
+    FAIL ... having read the pull request and neither the mandate nor a post (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;api repos/tvofi/heatpump_optimizer/pulls/7;api repos/tvofi/heatpump_optimizer/issues/
+RESULT r01-first-parent-line: KILLED rc=1 FAIL-lines=1 | remerge_main self-test: 13 checks, 1 failed
+    FAIL a new head with a second parent that is no first-parent commit of main (its tree is main's) fails the read-back: not PUSHED, non-zero
+RESULT r02-p1-old: KILLED rc=1 FAIL-lines=1 | remerge_main self-test: 13 checks, 1 failed
+    FAIL a new head with a first parent that is not the old head (the tree is the automatic merge) fails the read-back: not PUSHED, non-zero
+RESULT t16-fork-name-check-off: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL fork head: a pulls object cross-repository with its fork deleted is a Stop saying so -- an unread head is never taken for ours -- and nothing is approved
+RESULT t17-main-fetch-fail-ignored: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL fork head (carry 23): an origin/main that cannot be fetched stops before the contract is asked of anything -- main's copy or none
+RESULT t18-fork-conflict-park-off: KILLED rc=1 FAIL-lines=1 | merge_train self-test: 710 checks, 1 failed
+    FAIL fork head recarry: `MERGE CONFLICT 7` parks [OUTSIDE] naming the fork; nothing merged or approved
+RESULT t19-main-copies-drop-codeowners: KILLED rc=1 FAIL-lines=2 | merge_train self-test: 710 checks, 2 failed
+    FAIL fork head (carry 23): the files the contract must hold as origin/main's own are outside.py, the mandate gate, the allowlist, CODEOWNERS, app_approve.sh, policy_lint.mjs and tests/closure.py, by path
+    FAIL ... and that list is exactly what the real outside.py opens under its root or reads at the ref
+RESULT t20-unread-pull-ours: KILLED rc=1 FAIL-lines=3 | merge_train self-test: 710 checks, 3 failed
+    FAIL fork head: a pulls object unreadable is a Stop saying so -- an unread head is never taken for ours -- and nothing is approved
+    FAIL fork head: a pulls object no JSON is a Stop saying so -- an unread head is never taken for ours -- and nothing is approved
+    FAIL fork head: a pulls object no head is a Stop saying so -- an unread head is never taken for ours -- and nothing is approved

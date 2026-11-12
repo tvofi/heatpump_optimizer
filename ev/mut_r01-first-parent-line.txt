@@ -1,0 +1,14 @@
+  ok   a refused push (detached worktree) exits non-zero and says REMERGE FAILED at push
+  ok   null control: the attached worktree pushes and exits 0
+  ok   a fork head is merged by update-branch at the expected head and reads back PUSHED at the new head
+  ok   ... the token is minted for OUR repository, never the fork's, and app_push.sh is not run
+  ok   ... and our own branch of the fork's branch name is neither read as the start nor moved
+  ok   a refused update-branch is REMERGE FAILED at push naming the fork, non-zero, never PUSHED
+  ok   an update-branch GitHub accepted that moved nothing is REMERGE FAILED at push saying so, never PUSHED
+  ok   a new head with a tree that is not git's automatic merge fails the read-back: not PUSHED, non-zero
+  ok   a new head with one parent fails the read-back: not PUSHED, non-zero
+  FAIL a new head with a second parent that is no first-parent commit of main (its tree is main's) fails the read-back: not PUSHED, non-zero
+  ok   a new head with a first parent that is not the old head (the tree is the automatic merge) fails the read-back: not PUSHED, non-zero
+  ok   a fork head main does not merge into is MERGE CONFLICT before any token or update-branch
+  ok   --head-repo naming our own repository refuses at args, nothing fetched, minted or asked
+remerge_main self-test: 13 checks, 1 failed

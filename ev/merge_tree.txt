@@ -1,0 +1,8 @@
+ec04f2ed5b811c48c5493c5d19b4c9d52a1d469d
+100644 0887612435831d9856f02a2ed7830bb2a5b90531 1	tools/ci/selftest_closures.json
+100644 871e5f757509c5778e4d298a8826ac752eb45fef 2	tools/ci/selftest_closures.json
+100644 82fb629c81a3bdba824a4794cd5430aa7dfb3dbe 3	tools/ci/selftest_closures.json
+
+Auto-merging tools/ci/selftest_closures.json
+CONFLICT (content): Merge conflict in tools/ci/selftest_closures.json
+rc=1 main=42828bf2540980a54ae4751b965384a9dc65d810 head=0d2dfd8b850441a1db42f4c88042dc5b27e88917
