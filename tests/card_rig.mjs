@@ -869,3 +869,30 @@ export function claimsAreThisBranchs(
     return true;
   }
 }
+
+// R10-HOTFIX-CARD-HEALTH-TEXT: the class and id names a card source puts in
+// front of a content blocker, one reader for tests/card.mjs's ad-list-prone
+// name check and dev/audit/harnesses/r10_card_blocker_names.py. Each entry
+// is [kind, name]: "class" or "id" for a value that reaches the DOM (a class
+// or id attribute, a className assignment, a classList argument; a templated
+// value up to its first `${`, so `adv-${row.status}` reads as `adv-`), and
+// "token" for a `.name` / `#name` anywhere in the source (its stylesheet and
+// selectors included; a JS member access is read too, which errs toward
+// refusing).
+export const AD_PRONE_NAME = /^(?:ad|ads|adv|advert|banner|sponsor|promo)(?:$|[-_])/i;
+export function cardNames(src) {
+  const out = [];
+  const addValue = (kind, v) => {
+    for (const tok of v.split(/\s+/)) {
+      const lit = tok.split("${")[0];
+      if (lit) out.push([kind, lit]);
+    }
+  };
+  for (const m of src.matchAll(/\b(class|id)\s*=\s*(["'])([\s\S]*?)\2/g)) addValue(m[1], m[3]);
+  for (const m of src.matchAll(/\bclassName\s*=\s*(["'`])([\s\S]*?)\1/g)) addValue("class", m[2]);
+  for (const m of src.matchAll(/\bclassList\.(?:add|remove|toggle|contains|replace)\(([^)]*)\)/g)) {
+    for (const s of m[1].matchAll(/(["'`])([^"'`]*)\1/g)) addValue("class", s[2]);
+  }
+  for (const m of src.matchAll(/[.#](-?[A-Za-z_][\w-]*)/g)) out.push(["token", m[1]]);
+  return out;
+}

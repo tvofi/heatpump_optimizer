@@ -15,11 +15,14 @@
 version: 2
 updates:
   # Hash-locked (`pip install --require-hashes`): Dependabot rewrites the
-  # version line and the hash lines of most packages it bumps, but not all:
-  # #3088 and #3323 each moved pins whose hash lines it left at the old
-  # version (the typing lock's overrides, and requirements-coverage.txt's
-  # coverage), which pip's hash-checking mode refuses. Such a pull request is
-  # re-applied on a branch through each lock header's compile, never edited.
+  # version at every `name==` match in a lock, a comment included, and leaves
+  # the hash lines of a pin it matched twice at the old version, which pip's
+  # hash-checking mode refuses: each of the 9 stale pins of #3088, #3323 and
+  # #3414 was also spelled `name==` in a comment of its lock, and none of the
+  # 61 fresh ones was (dev/audit/rca/r10-rca-dependabot-stale-hash.md). So no
+  # lock comment spells a pinned package `name==`, which tests/entities.py
+  # refuses. A pull request pip still refuses is re-applied on a branch
+  # through each lock header's compile, never edited.
   - package-ecosystem: "pip"
     directory: "/tests"
     schedule:

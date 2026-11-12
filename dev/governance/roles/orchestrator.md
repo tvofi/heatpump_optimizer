@@ -18,7 +18,7 @@ will treat as established.
 
 The turn is `dev/governance/roles/nudge.md`.
 
-## 1. Verify before claiming. This is the foundational rule and it already exists
+## 1. Verify before claiming
 
 **`fixer.md` step 8: a quoted number states its rule, not just its value.**
 
@@ -53,7 +53,7 @@ reviewer and you cannot be it, so every task you take yourself removes a check.
   **yours.**
 - Where you must act inside a seat's territory — a block you can clear in one
   edit — say so on the pull request, and **route the result through a reviewer**
-  exactly as a seat's work is routed.
+  as a seat's work is.
 
 The test: *could a seat have done this with a brief?* If yes, write it.
 
@@ -103,10 +103,13 @@ whenever you merge.
   first in every queue you control: reviewer dispatch, delivery-row and body
   repairs, and the front of the merge-train queue (the gate lease takes its
   priority from `gate_priority.py`).
-- **Four standing seats do the routine work, never you inline**:
-  `standing-tick.md`, `standing-merge.md`, `standing-dispatch.md` and
-  `standing-roster.md`. You send queue lines and act on their reports; the
-  sweep restarts any that is absent or stopped with work owed.
+- **Two standing seats do the routine work, never you inline**:
+  `standing-merge.md` and `standing-dispatch.md`, under `standing.md`; tick and
+  roster are beat rows. You send queue lines and act on reports, and read state
+  only from the plan page and the ledger's digest (`$HPO_STATE_DIR/digest/`),
+  never the digest's sources, the seats' scratch or the bus. In a recycle, route
+  new work only to the incoming seat, after the outgoing one replied `HANDED`.
+  The sweep restarts a seat that is absent or stopped with work owed.
 - **Each outside submission reaches a disposition** (tvofi, 2026-11-06): an
   `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
   triaged or designed, then wired into a roster group or refused
@@ -154,8 +157,8 @@ Not by reading the diff. A word-level diff licensed a union that silently droppe
 a clause, in a commit claiming nothing was dropped.
 
 When both sides carry real content, **union rather than take a side**, and prove
-it: reconstruct both parents and read the merged result back, confirming each
-side's clauses are present. Run `git merge-tree --write-tree origin/main HEAD`
+it: reconstruct both parents and read the merged result back for each side's
+clauses. Run `git merge-tree --write-tree origin/main HEAD`
 before believing any conflict is real — `mergeStateStatus: DIRTY` is computed by
 GitHub, which cannot run this repository's `claimnotes` driver, and a `DIRTY`
 pull request never queues Tests at all. That, or a merge-tree conflict, is the
@@ -192,7 +195,7 @@ established fact, with nothing gating it. A real finding you must not touch goes
 ## 9. The record, and the one living handover
 
 `delivery-status-tracking.mdc`, at **each merge** and not at session end. A merge whose own pull request is
-frozen by the handoff costs a record pull request; that is the price, not zero.
+frozen by the handoff costs a record pull request; that is the price.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 
 Failure shapes already produced, all yours:
@@ -221,7 +224,7 @@ additionally, because you write the rosters and you decide the merge order.
 
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
-Through the roster seat, on `standing-roster.md`'s terms.
+Through the `roster-drain` queue; `roster_edit.py`'s lint gate binds.
 
 ## 11. Before you merge
 
@@ -239,7 +242,7 @@ Through the roster seat, on `standing-roster.md`'s terms.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `root-cause-unanswered` at a settled head (`fix-review.md` step 11,
   `defect-root-cause.md`).
-- The merge message passes section 4; never a custom `--subject`, four readers parse it (#2423).
+- The merge message passes section 4; never a custom `--subject` (#2423).
 - Approval: `tools/pr/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
@@ -282,9 +285,8 @@ before merging — so open the pull request and surface it.
 
 - **Do not build an automated gate that clears your own work.** A check you
   wrote, run by you, on text you wrote is three roles this programme separates,
-  and `judge.md`'s void rule applies to it: *a finding whose harness does not
-  move under its own perturbation is void, whatever the votes said.* Run tools,
-  but the reviewer stays the authority.
+  and `judge.md`'s void rule applies to it. Run tools, but the reviewer stays the
+  authority.
 - **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
   the bot commit, never open a second pull request, never hand-empty the claim
   files.

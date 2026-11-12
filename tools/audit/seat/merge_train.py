@@ -592,11 +592,125 @@ def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
         raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
     req = t.required(pr_head=not on_main)
     state, pending, red = t.classify_at(sha, runs, req)
+    line = f"{sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}"
+    if pr is not None and not on_main:
+        intro, how = t.introduced(sha, runs)
+        if intro:  # a finding of the pull request: RED whatever the required set reads
+            return 1, "\n".join([f"RED {line} introduced: {len(intro)}",
+                                  *(f"INTRODUCED {n}" for n in intro)])
+        if intro is None and state == "green":  # its job still runs: a hang reads WAIT, never GREEN
+            return 3, f"WAIT {line} introduced: pending ({how})"
     why = approval_owed(t, pr, sha, runs, req) if state == "red" and pr is not None else None
     if why:
         return 4, f"APPROVAL-OWED {sha} {why}"
-    return ({"green": 0, "red": 1, "wait": 3}[state],
-            f"{state.upper()} {sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
+    return {"green": 0, "red": 1, "wait": 3}[state], f"{state.upper()} {line}"
+
+
+# AN INTRODUCED SELF-TEST RED IS THE PULL REQUEST'S (R10-INTRODUCED-REDS-BARRIER,
+# dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md). SELFTESTS is in no required
+# set (decision 0013's HPO_JOB_GRADES boundary), so the 2026-11-07 ruling owes
+# its red no answer, and #3361 and #3425 merged reds their own diffs made. A
+# step red at the head and not at the merge base is the PR's finding; one red at
+# both is main's, inherited and still unowed.
+SELFTESTS = "governance / instrument-self-tests"
+#: The push-only step: SELFTEST_TRACE (strace) is set on a push to main alone,
+#: so its red is main's read-set table, never a pull request's diff.
+SELFTESTS_PUSH_ONLY = frozenset({"Refuse a self-test read set the committed table misses"})
+#: A commit's SELFTESTS check runs alone, one page: a main commit carries over
+#: 100 check runs, so an unfiltered first page can miss the job.
+SELFTESTS_RUNS = "check-runs?check_name=governance%20%2F%20instrument-self-tests&per_page=100"
+
+
+#: A step or job conclusion that is red: review_packet.RED, the repository's one
+#: definition (its self-test pins the two equal). A hang the pull request makes
+#: concludes the job timed_out with its running step cancelled.
+RED_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out", "action_required", "startup_failure"})
+#: A SELFTESTS job conclusion read clean at no job read (skipped: the prelude
+#: scoped it out); one in SELFTESTS_STEP_READ is read step by step; any other
+#: (a job-level cancelled, startup_failure, action_required) has no reading.
+SELFTESTS_CLEAN = frozenset({"success", "skipped", "neutral"})
+SELFTESTS_STEP_READ = frozenset({"failure", "timed_out"})
+#: The INTRODUCED name of a head job that timed out where its base's did not: a
+#: hang behind a step already red at the base hides every step after it.
+JOB_TIMED_OUT = "(the job concluded timed_out)"
+
+
+def selftest_job(runs) -> "dict | None":
+    """The latest SELFTESTS check run in a commit's check runs, concluded or not
+    (an Actions job's check-run id is its job id; a re-run's is higher), else None."""
+    mine = [r for r in runs or () if r.get("name") == SELFTESTS]
+    return max(mine, key=lambda r: int(r["id"])) if mine else None
+
+
+def _red_steps(steps) -> "set[str]":
+    return {s.get("name") for s in steps if s.get("conclusion") in RED_CONCLUSIONS}
+
+
+def introduced_reds(head_steps, base_steps) -> "list[str]":
+    """The SELFTESTS step names concluded red (RED_CONCLUSIONS) at the head and
+    not at the base, less SELFTESTS_PUSH_ONLY; pure. `base_steps` None (no base
+    run): every head red is introduced. A step skipped by scoping concluded
+    `skipped`, so it is never red on either side."""
+    def red(steps):
+        return _red_steps(steps) - SELFTESTS_PUSH_ONLY
+    return sorted(red(head_steps) - (red(base_steps) if base_steps is not None else set()))
+
+
+def _job_conclusion(job: dict) -> str:
+    return job.get("conclusion") if job.get("status") == "completed" else str(job.get("status"))
+
+
+def introduced_at(head_runs, base_runs, job_steps) -> "tuple[list[str] | None, str]":
+    """(introduced names, how read) from the head's check runs; `base_runs()`
+    reads the base's (None unreadable) and `job_steps(job id)` one job's steps
+    (None unreadable), each called only when the head's latest SELFTESTS job is
+    red. Names None: that job has not concluded (a wait). No run, or a clean
+    conclusion, is ([], ...) at no read. A job concluding timed_out where the
+    base's did not adds JOB_TIMED_OUT. Any input with no reading (unreadable, a
+    job-level cancelled, a red job with no red step) raises ValueError: fail
+    closed, never an empty list."""
+    hj = selftest_job(head_runs)
+    if hj is None:
+        return [], f"head {SELFTESTS}: no run"
+    hc = _job_conclusion(hj)
+    if hj.get("status") != "completed":
+        return None, f"head {SELFTESTS} job {hj['id']}: {hc}"
+    if hc in SELFTESTS_CLEAN:
+        return [], f"head {SELFTESTS}: {hc}"
+    if hc not in SELFTESTS_STEP_READ:
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc}, which reads no step: re-run it")
+    hs = job_steps(hj["id"])
+    if hs is None:
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} is unreadable")
+    if not _red_steps(hs):
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc} with no red step")
+    runs = base_runs()
+    if runs is None:
+        raise ValueError("the base's check runs are unreadable")
+    bj = selftest_job(runs)
+    bs, bc = None, None
+    if bj is not None:
+        bc = _job_conclusion(bj)
+        if bc not in SELFTESTS_CLEAN | SELFTESTS_STEP_READ:
+            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is {bc}, which reads no step")
+        bs = job_steps(bj["id"])
+        if bs is None:
+            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is unreadable")
+    names = introduced_reds(hs, bs)
+    if hc == "timed_out" and bc != "timed_out":
+        names.insert(0, JOB_TIMED_OUT)
+    return names, (f"head job {hj['id']} {hc} base job "
+                   + (f"{bj['id']} {bc}" if bj else "none: every head red counts"))
+
+
+def introduced_cmd(t: "Train", head: str, base: "str | None") -> "tuple[int, str]":
+    """The `introduced` subcommand: INTRODUCED <step> lines and a summary,
+    rc 1 when any, 0 when none, 3 while the head's job runs; a Stop (unreadable) is rc 2."""
+    intro, against = t.introduced(head, None, base)
+    if intro is None:
+        return 3, f"introduced: pending at {head} {against}"
+    return (1 if intro else 0), "\n".join([*(f"INTRODUCED {n}" for n in intro),
+                                           f"introduced: {len(intro)} at {head} {against}"])
 
 
 #: The gate unit whose red, before the review, is every budget raise's state (K15 (d)).
@@ -928,11 +1042,10 @@ class Stop(Exception):
 # "Base branch was modified", the GraphQL "is not up to date" family).
 BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
-def runs_approved(listing: str) -> bool:
-    """True when a head's pull_request runs listing (status<TAB>conclusion
-    lines) has at least one run and none still held action_required."""
-    rows = [ln.split("\t") for ln in listing.splitlines() if ln.strip()]
-    return bool(rows) and not any("action_required" in r for r in rows)
+def runs_approved(runs: "list[dict]") -> bool:
+    """True when a head's pull_request runs listing has at least one run and
+    none still held action_required (its status or its conclusion)."""
+    return bool(runs) and not any("action_required" in (r.get("status"), r.get("conclusion")) for r in runs)
 
 
 BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: its pull_request runs are held
@@ -1361,6 +1474,32 @@ def undraft(t: "Train", pr: int, h: str, item: dict) -> None:
         raise Stop("undraft", f"#{pr} is a draft again after gh pr ready")
 
 
+STILL_DRAFT = re.compile(r"still a draft", re.I)
+ROLLUP_PENDING = ("QUEUED", "IN_PROGRESS", "PENDING", "WAITING", "REQUESTED")
+
+
+def rollup_states(entries) -> "dict[str, str]":
+    """One state per context of a `statusCheckRollup`, never by list order
+    (P608: #3445 listed four FAILURE gates then an older SUCCESS last, and
+    last-listed-wins read green while GitHub blocked on the red). A context
+    with any unfinished entry is PENDING; otherwise the entry newest by
+    `completedAt`, else `startedAt`, stands (an equal stamp keeps the later
+    listed entry)."""
+    best: dict = {}
+    pending: set = set()
+    for i, c in enumerate(entries):
+        name = c.get("name") or c.get("context") or "?"
+        state = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        if (c.get("status") or state).upper() in ROLLUP_PENDING or state in ROLLUP_PENDING:
+            pending.add(name)
+        # GitHub's zero time (0001-...) on an unfinished run is no stamp
+        stamps = [x for x in (c.get("completedAt"), c.get("startedAt")) if x and not x.startswith("0001")]
+        stamp = stamps[0] if stamps else ""
+        if name not in best or (stamp, i) >= best[name][0]:
+            best[name] = ((stamp, i), state)
+    return {n: ("PENDING" if n in pending else v[1]) for n, v in best.items()}
+
+
 APPROVER_BOT = "hpo-approver[bot]"
 WAIT_GATES = (GATE, RAISE_GATE)
 
@@ -1389,13 +1528,9 @@ def post_approval_wait(t: "Train", pr: int, head: str, poll: float, budget_s: fl
                 revs, why = [], s.why
             at = max((r.get("submitted_at") or "" for r in revs if (r.get("user") or {}).get("login") == APPROVER_BOT
                       and r.get("state") == "APPROVED" and r.get("commit_id") == head), default="")
-            code, raw = t.run(["gh", "api", "--paginate", "--slurp", f"repos/{t.repo}/issues/{pr}/comments?per_page=100"])
-            try:
-                said = code == 0 and any((c.get("user") or {}).get("login") == APPROVER_BOT
-                                         and (c.get("body") or "").startswith(f"Fix review: merge {head}")
-                                         for page in json.loads(raw) for c in page)
-            except (ValueError, TypeError):
-                said = False
+            code, cs, _ = t.pages(f"repos/{t.repo}/issues/{pr}/comments")
+            said = code == 0 and any((c.get("user") or {}).get("login") == APPROVER_BOT
+                                     and (c.get("body") or "").startswith(f"Fix review: merge {head}") for c in cs)
             runs = t._check_runs(head) or []
             mine = [c for c in runs if c.get("name") in WAIT_GATES and at and (c.get("started_at") or "") >= at]
             if not (at and said):
@@ -1506,6 +1641,48 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         return 0
 
 
+BASELINE_JOBS = 6  # completed same-name runs the one-job pulse takes its p50 and max from
+
+
+def one_job_pulse(runs, now: float) -> "str | None":
+    """`CI waits on 1 job: <name> <e>m of p50 <p>m / max <m>m (normal)` when exactly
+    one run of the listing is unfinished, else None. The baseline is the p50 and
+    max duration of the last BASELINE_JOBS completed runs of the same name in the
+    SAME listing (no extra API call); a name with none completed prints
+    `no baseline`. Elapsed over the max reads `over max`, never a verdict to
+    cancel (2026-11-11: two near-complete 2173-3623 s python jobs were cancelled
+    as hung)."""
+    runs = list(runs or ())
+    open_ = [r for r in runs if r.get("status") != "completed"]
+    if len(open_) != 1:
+        return None
+    job = open_[0]
+    name = job.get("name", "?")
+
+    def ts(v):
+        try:
+            return datetime.datetime.fromisoformat(v.replace("Z", "+00:00")).timestamp()
+        except (AttributeError, ValueError):
+            return None
+
+    def secs(r):
+        a, b = ts(r.get("started_at")), ts(r.get("completed_at"))
+        return None if a is None or b is None else b - a
+
+    done = sorted((r for r in runs if r.get("name") == name and r.get("status") == "completed"
+                   and secs(r) is not None), key=lambda r: r.get("completed_at") or "")
+    durs = sorted(secs(r) for r in done[-BASELINE_JOBS:])
+    start = ts(job.get("started_at"))
+    if start is None:
+        return f"CI waits on 1 job: {name} (not started)"
+    el = max(0.0, now - start)
+    if not durs:
+        return f"CI waits on 1 job: {name} {el / 60:.0f}m, no baseline"
+    p50 = durs[(len(durs) - 1) // 2]
+    return (f"CI waits on 1 job: {name} {el / 60:.0f}m of p50 {p50 / 60:.0f}m / "
+            f"max {durs[-1] / 60:.0f}m ({'normal' if el <= durs[-1] else 'over max'})")
+
+
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
@@ -1529,7 +1706,7 @@ class Train:
         self.run = run or self._run
         self.sleep, self.log, self.clock = sleep, log, clock
         self.wall = wall  # epoch seconds: the infra re-run's due time is a reset_epoch (V142)
-        self.run = self._reads_retried(self.run)
+        self.run = self._reads_retried(_jq_checked(self.run) if run and _JQ_CHECK else self.run)
         # `batch --skip-bad` only: a per-entry Stop is skipped and reported
         # rather than stopping the train. Default (False) stays fail-fast.
         self.skip_bad = skip_bad
@@ -1600,6 +1777,12 @@ class Train:
             return code, (f"{o.rstrip()} {why}" if why else o)
         return retried
 
+    def pages(self, path: str, key: str = "") -> "tuple[int, list | None, str]":
+        """Every item of the paged list at <path>, by explicit page number
+        under the read rule (gh_read.read_pages): never `--paginate`, whose
+        followed Link header a cloud seat's proxy refuses."""
+        return gh_read.read_pages(self.run, path, key)
+
     def out(self, *argv: str, cwd: Path = ROOT, stdin: str | None = None) -> str:
         return self.run(list(argv), cwd=cwd, stdin=stdin)[1].strip()
 
@@ -1644,10 +1827,8 @@ class Train:
         who, _, subject = o.strip().partition("\t")
         if who not in ("github-actions", "github-actions[bot]"):
             return None
-        code, o = self.run(["gh", "api", "--paginate", "--jq",
-                            '.workflow_runs[] | [.status, (.conclusion // "")] | @tsv',
-                            f"repos/{self.repo}/actions/runs?head_sha={h}&event=pull_request&per_page=100"])
-        return subject if code or not runs_approved(o) else None
+        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}&event=pull_request", "workflow_runs")
+        return subject if code or not runs_approved(runs) else None
 
     def bot_refusal(self, pr: int, h: str, subject: str) -> Stop:
         return Stop("ci", f"#{pr} head {h[:8]} is a GITHUB_TOKEN push (github-actions[bot]: "
@@ -1840,16 +2021,54 @@ class Train:
                     f"after the verdict. Re-verdict at the live head {h[:8]}: the delta is {delta}",
                     cls=STALE_VERDICT_CARRY)
 
-    def _check_runs(self, h: str) -> "list[dict] | None":
-        """One paginated read of the check runs at <h>, parsed; None on a failed
-        or unparseable read (wait_ci's fetch, shared with main_green's
-        log-only overlap read)."""
-        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
-                              f"repos/{self.repo}/commits/{h}/check-runs?per_page=100"])
+    def _selftest_runs(self, h: str) -> "list[dict] | None":
+        """<h>'s SELFTESTS check runs, one read (SELFTESTS_RUNS); None when unreadable."""
+        code, raw = self.run(["gh", "api", f"repos/{self.repo}/commits/{h}/{SELFTESTS_RUNS}", "--jq", ".check_runs"])
         try:
-            return [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
+            runs = json.loads(raw) if code == 0 else None
         except ValueError:
             return None
+        return runs if isinstance(runs, list) else None
+
+    def _job_steps(self, job: int) -> "list[dict] | None":
+        """One read of an Actions job's steps (introduced_at's job-step read); None when unreadable."""
+        code, raw = self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{job}", "--jq", ".steps"])
+        try:
+            steps = json.loads(raw) if code == 0 else None
+        except ValueError:
+            return None
+        return steps if isinstance(steps, list) else None
+
+    def introduced(self, head: str, head_runs=None, base: "str | None" = None) -> "tuple[list[str] | None, str]":
+        """introduced_at at <head> against <base>, by default the merge base
+        `git merge-base origin/main <head>` (approval_owed's base), read only
+        when the head's job is red; a read that fails is a Stop, never an empty
+        list. <head_runs> spares the head's check-run read a caller already
+        made. Returns (names, what was read); names None while the job runs."""
+        runs = self._check_runs(head) if head_runs is None else head_runs
+        if runs is None:
+            raise Stop("selftests", f"the check runs at {head[:12]} could not be read")
+        at = [base]
+
+        def base_runs():
+            if at[0] is None:
+                code, out = self.run(["git", "merge-base", "origin/main", head])
+                if code or not is_sha(out.strip()):
+                    raise ValueError(f"no merge base for {head[:12]}: {out.strip()[:120]}")
+                at[0] = out.strip()
+            return self._selftest_runs(at[0])
+        try:
+            names, how = introduced_at(runs, base_runs, self._job_steps)
+        except ValueError as e:
+            raise Stop("selftests", f"{e}: an introduced red cannot be ruled out (fail closed)")
+        return names, f"against {at[0] or '-'}: {how}"
+
+    def _check_runs(self, h: str) -> "list[dict] | None":
+        """One paged read of the check runs at <h>, parsed; None on a failed
+        or unparseable read (wait_ci's fetch, shared with main_green's
+        log-only overlap read)."""
+        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{h}/check-runs", "check_runs")
+        return None if code else runs
 
     def gate_deferred(self, h: str, red: "list[str]") -> "list[int]":
         """The ids of the other workflow runs at <h> still unfinished when the
@@ -1863,28 +2082,18 @@ class Train:
         stands, today's skip); `wait_ci`'s polls bound the wait."""
         if red != [GATE]:
             return []
-        code, o = self.run(["gh", "api", "--paginate", "--jq", ".workflow_runs[] | [.id, .status] | @tsv",
-                            f"repos/{self.repo}/actions/runs?head_sha={h}&per_page=100"])
+        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}", "workflow_runs")
         if code:
             return []
-        out = []
-        for ln in o.splitlines():
-            rid, _, st = ln.partition("\t")
-            if rid.strip().isdigit() and st.strip() not in ("completed", "action_required", ""):
-                out.append(int(rid))
-        return sorted(out)
+        return sorted(r["id"] for r in runs if isinstance(r.get("id"), int)
+                      and (r.get("status") or "") not in ("completed", "action_required", ""))
 
     def _gate_busy(self, h: str, check_runs) -> list:
         """gate_busy at <h> from one ci.yml runs listing by head sha. An
         unreadable listing reads no run busy, logged: the red stands as it did
         before this read existed -- a refusal, never a wait on a guess."""
-        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".workflow_runs[]",
-                              f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}&per_page=100"])
-        try:
-            ci_runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
-        except ValueError:
-            ci_runs = None
-        if ci_runs is None:
+        code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}", "workflow_runs")
+        if code:
             self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
             return []
         return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
@@ -1987,6 +2196,9 @@ class Train:
                     done = sum(c.get("status") == "completed" for c in runs or ())
                 self.log(f"beat: waiting {what} (poll {k}, t+{int(now - start)}s, "
                          f"required: {req}, concluded: {done}/{req})")
+                pulse = one_job_pulse(runs, self.wall())
+                if pulse:
+                    self.log(pulse)
                 due = now + HEARTBEAT_SECONDS
             # Sleep only until the next beat is due: POLL_SECONDS (300) behind
             # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
@@ -2041,12 +2253,10 @@ class Train:
             return comment, []
         thread = []
         for n in g.RECORD_ISSUES:
-            code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                                f"repos/{self.repo}/issues/{n}/comments"
-                                f"?per_page=100&since={comment.get('created_at')}"])
+            code, cs, why = self.pages(f"repos/{self.repo}/issues/{n}/comments?since={comment.get('created_at')}")
             if code:
-                raise Stop("policy", f"the mandate thread on #{n} could not be read: " + o.strip()[-160:])
-            thread += [c for page in json.loads(o) for c in page]
+                raise Stop("policy", f"the mandate thread on #{n} could not be read: " + why.strip()[-160:])
+            thread += cs
         return comment, thread
 
     def policy_gate(self, pr: int, h: str, files: list[str], posting: "dict | None" = None) -> "str | None":
@@ -2096,11 +2306,10 @@ class Train:
                 read[cid] = self._mandate_read(cid)
             return read[cid]
         try:
-            code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                                f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
+            code, reviews, why = self.pages(f"repos/{self.repo}/pulls/{pr}/reviews")
             if code:
-                raise Stop("policy", head_pol + ": the reviews could not be read: " + o.strip()[-160:])
-            reviews = [r for page in json.loads(o) for r in page] + ([posting] if posting else [])
+                raise Stop("policy", head_pol + ": the reviews could not be read: " + why.strip()[-160:])
+            reviews += [posting] if posting else []
             ok, why = g.approval(reviews, h, mandate_fn, merge_mandate)
             if not ok:
                 raise Stop("policy", head_pol + ": " + (self._policy_move(h, pol, reviews) or why))
@@ -2145,11 +2354,10 @@ class Train:
                 f"({', '.join(moved)}): a fresh owner review, not a carry") if moved else ""
 
     def _reviews(self, pr: int, what: str) -> list[dict]:
-        code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                            f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
+        code, reviews, why = self.pages(f"repos/{self.repo}/pulls/{pr}/reviews")
         if code:
-            raise Stop("approve", f"the reviews could not be read for {what}: " + o.strip()[-160:])
-        return [r for page in json.loads(o) for r in page]
+            raise Stop("approve", f"the reviews could not be read for {what}: " + why.strip()[-160:])
+        return reviews
 
     def _body(self, pr: int) -> str:
         """The pull request's body; an unreadable one stops (a raise's
@@ -2257,12 +2465,8 @@ class Train:
                             "--body-file", str(bf)])
         if code:
             raise Stop("approve", "the carried review was refused: " + o[-200:])
-        try:
-            code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                                f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
-            back = [r for page in json.loads(o) for r in page] if code == 0 else []
-        except ValueError:
-            back = []
+        code, back, _ = self.pages(f"repos/{self.repo}/pulls/{pr}/reviews")
+        back = [] if code else back
         if not any(r.get("state") == "APPROVED" and r.get("commit_id") == h
                    and (r.get("body") or "") == body for r in back):
             raise Stop("approve", "the carried approval did not read back byte-identical; "
@@ -2720,7 +2924,7 @@ class Train:
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
         self.unstale(h)
-        said, swept, carried = "(no output)", False, False
+        said, swept, carried, undrafted = "(no output)", False, False, False
         for k in range(1, self.merge_tries + 1):
             if k == 1:
                 self.review_settle(pr, h)
@@ -2742,6 +2946,15 @@ class Train:
             self.log(f"#{pr} merge attempt {k}/{self.merge_tries} refused (rc={code}): {said}")
             if BASE_MOVED.search(said):
                 raise MainMoved("merge", f"GitHub refused the merge because the base moved: {said}")
+            if STILL_DRAFT.search(said):
+                # P609: a draft is a state, not a race. Admitted as a draft: the
+                # train readies it once and attempts again; any other draft was
+                # drafted after admission (its author's) and is left as a hold.
+                if not item.get("draft") or undrafted:
+                    raise Stop("merge", f"#{pr} drafted after admission: left as a hold")
+                undrafted = True
+                undraft(self, pr, h, item)
+                continue
             if not swept and self.bot_prs:
                 # P191: a record PR that turned green mid-batch merges now, once
                 # per landing, and the existing recovery recarries this entry.
@@ -2808,10 +3021,7 @@ class Train:
             d = None
         if not isinstance(d, dict):
             return f"the merge state could not be read ({o.strip()[-120:] or 'no output'})", True, False
-        last: dict = {}
-        for c in d.get("statusCheckRollup") or ():
-            last[c.get("name") or c.get("context") or "?"] = (
-                c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        last = rollup_states(d.get("statusCheckRollup") or ())
         red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED]
         pending = [n for n in req if n not in self.ignore and n not in red
                    and last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL")]
@@ -3011,6 +3221,17 @@ class Train:
         """(status, step, why) of one entry under the same construction `preflight` uses."""
         return self.pre_flight_reader().entry(item)
 
+    def record_drafts(self, queue: list[dict]) -> None:
+        """P609: `item["draft"]` is `undraft`'s only licence and `add` alone set
+        it, so a `--queue` file or `build_queue` entry never carried it. One
+        `is_draft` read per entry lacking the key, at batch start (= admission);
+        a head drafted after this read is its author's and is left alone."""
+        if not self.real:
+            return
+        for item in queue:
+            if "draft" not in item:
+                item["draft"] = is_draft(self, int(item["pr"]))
+
     def preflight(self, queue: list[dict]) -> list[dict]:
         """`--pre-flight`: queue_pre_flight.py's admission reads over the whole
         queue before anything waits or merges; a PARK or FAIL entry is logged
@@ -3173,13 +3394,9 @@ class Train:
         if tip is None:
             return f"no confirmed verdict on the bus (verdict/{n})"
         authors, vid = allow
-        code, o = self.run(["gh", "api", "--paginate", "--slurp", f"repos/{self.repo}/issues/{n}/comments?per_page=100"])
-        try:
-            cs = [c for page in json.loads(o) for c in page] if code == 0 else None
-        except (ValueError, TypeError):
-            cs = None
-        if cs is None:
-            return f"its comments could not be read: {o.strip()[-120:]}"
+        code, cs, why = self.pages(f"repos/{self.repo}/issues/{n}/comments")
+        if code:
+            return f"its comments could not be read: {why.strip()[-120:]}"
         vs = [c for c in cs if (c.get("user") or {}).get("login") in authors
               and (c.get("user") or {}).get("id") == vid and (c.get("body") or "").startswith("Fix review:")]
         if not vs:
@@ -3361,9 +3578,8 @@ class Train:
         """The one entry whose own files lie in the closure of every script the
         proof's failing jobs name, under main's table or the proof's; None when
         no script is named (a job with no script) or more than one entry owns them."""
-        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
-                              f"repos/{self.repo}/commits/{sha}/check-runs?per_page=100"])
-        runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else []
+        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{sha}/check-runs", "check_runs")
+        runs = [] if code else runs
         scripts: set[str] = set()
         for c in runs:
             if c.get("name") in red and c.get("conclusion") not in GREEN:
@@ -3623,13 +3839,8 @@ class Train:
             code, att = self.run(["gh", "api", f"repos/{self.repo}/actions/runs/{rid}", "--jq", ".run_attempt"])
             if code or att.strip() != "1":
                 continue
-            code, raw = self.run(["gh", "api", "--paginate", "--jq", ".jobs[]",
-                                  f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest&per_page=100"])
-            try:
-                failed = [j for j in (json.loads(x) for x in raw.splitlines() if x.strip())
-                          if j.get("conclusion") == "failure"] if code == 0 else []
-            except ValueError:
-                failed = []
+            code, jobs, _ = self.pages(f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest", "jobs")
+            failed = [] if code else [j for j in jobs if j.get("conclusion") == "failure"]
             logs = {j.get("id"): job_log(self.run, self.repo, j.get("id")) for j in failed}
             got = infra_due(1, failed, logs)
             if got is None:
@@ -4014,6 +4225,7 @@ class Train:
             base = self.git("rev-parse", f"origin/{self.base}")
             req = self.required()
             self.main_green(base, req, "before admission")
+            self.record_drafts(queue)
             admitted = self.preflight(queue)
             graders = mf.grader_specs(mf.workflow_texts(base, git=lambda *a: self.git(*a)))
             # --skip-bad stops at the ENTRY: an admission refusal (a red head, a
@@ -4242,6 +4454,8 @@ def sweep(t: Train, train_argv: "list[str]", add=train_add, ledger_log: "str | N
 
 
 def _self_test() -> int:
+    global _JQ_CHECK
+    _JQ_CHECK = True
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_env, throwaway_git_init
     passed = failed = 0
@@ -4384,13 +4598,13 @@ def _self_test() -> int:
                     return 0, ""
                 return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "dev/governance/roles/fixer.md"))
             if argv[:2] == ["gh", "api"] and "/pulls/" in a and "/reviews" in a:
-                return 0, json.dumps([world.get("reviews", [])])
+                return 0, _jl(world.get("reviews", []))
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(world["mandate"])) if world.get("mandate") \
                     else (1, "gh: Not Found (HTTP 404)")
             if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
                 # every record issue is read; the fixture's thread is #201's
-                return 0, json.dumps([world.get("thread", []) if "/issues/201/" in a else []])
+                return 0, _jl(world.get("thread", []) if "/issues/201/" in a else [])
             if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
                 return (0, "7") if world.get("required", "fast\n") else (1, "HTTP 404")
             if "rulesets/7" in a:
@@ -4413,7 +4627,7 @@ def _self_test() -> int:
             if "state,mergeCommit" in a:
                 return 0, world["merge"].pop(0) if world.get("merge") else "MERGED " + "d" * 40
             if argv[:2] == ["gh", "api"] and re.search(r"/issues/\d+/comments", a):  # pre-flight's findings read
-                return 0, json.dumps([world.get("verdict_comments", [])])
+                return 0, _jl(world.get("verdict_comments", []))
             return 0, ""
         return run, calls
 
@@ -4532,7 +4746,38 @@ def _self_test() -> int:
           and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
           and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
           and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
-    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
+    # one-job pulse (R10-TICK-RESIDUE-P2 carry 0): the baseline is the same listing's completed same-name runs
+    def jr(name, st, a, b=None):
+        iso = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+        return {"name": name, "status": st, "started_at": iso(a), "completed_at": iso(b) if b is not None else None}
+    # completed in index order, so the 9000 s run is the OLDEST: the BASELINE_JOBS window drops it
+    hist = [jr("codeql / Analyze (python)", "completed", 10000 * i, 10000 * i + d)
+            for i, d in enumerate([9000, 2400, 2800, 3000, 3600, 2900, 2700])]
+    live = jr("codeql / Analyze (python)", "in_progress", 50000)
+    pl = one_job_pulse(hist + [live, jr("tests", "completed", 0, 60)], 50000 + 2460)
+    check("a one-unfinished listing prints the job, elapsed and its same-name p50/max baseline "
+          "(last 6 of 7: the oldest, 9000 s run falls out of the window, so max stays 60m)",
+          pl == "CI waits on 1 job: codeql / Analyze (python) 41m of p50 47m / max 60m (normal)")
+    check("elapsed past the max reads over max, a name with no completed run reads no baseline",
+          one_job_pulse(hist + [live], 50000 + 4000).endswith("(over max)")
+          and one_job_pulse([live], 50000 + 600) == "CI waits on 1 job: codeql / Analyze (python) 10m, no baseline")
+    check("null control: two unfinished jobs print no such line, and none unfinished neither",
+          one_job_pulse(hist + [live, jr("tests", "queued", 50000)], 51000) is None
+          and one_job_pulse(hist, 51000) is None)
+    # wait_ci itself logs the pulse beside the beat (a pulse built and never logged reads nothing)
+    iso0 = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": iso0(0), "completed_at": iso0(600)},
+            {"name": "fast", "status": "in_progress", "conclusion": None, "started_at": iso0(5000), "completed_at": None}]
+    ticks = iter([0, 240, 500])
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None, log=lines.append,
+                  polls=2, clock=lambda: next(ticks), wall=lambda: 5000 + 1200)
+        t.wait_ci(H0)
+    check("wait_ci logs the one-job pulse right after its beat, from the same listing",
+          len(lines) == 4 and lines[0].startswith("beat:") and lines[2].startswith("beat:")
+          and lines[1] == lines[3] == "CI waits on 1 job: fast 20m of p50 10m / max 10m (over max)")
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": "1"}]
     ticks = iter([0, 240, 480, 700])
     lines = []
     with tempfile.TemporaryDirectory() as d:
@@ -5321,9 +5566,9 @@ def _self_test() -> int:
           "and the train goes on at the new head (null control for the refusal above)",
           rc == 0 and merged(calls) and any("recarry" in ln for ln in lines)
           and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
-    for what, runs, merges in (("approved (completed/success)", (0, "completed\tsuccess\n"), True),
-                               ("still held action_required", (0, "completed\taction_required\n"), False),
-                               ("held, status form", (0, "action_required\t\n"), False),
+    for what, runs, merges in (("approved (completed/success)", (0, _jl([{"status": "completed", "conclusion": "success"}])), True),
+                               ("still held action_required", (0, _jl([{"status": "completed", "conclusion": "action_required"}])), False),
+                               ("held, status form", (0, _jl([{"status": "action_required", "conclusion": None}])), False),
                                ("absent (no pull_request run)", (0, ""), False),
                                ("unreadable listing", (1, "gh: HTTP 502"), False)):
         rc, lines, calls = go({"bot_tips": {H0: BOT}, "bot_runs": runs})
@@ -5496,7 +5741,8 @@ def _self_test() -> int:
                                                                         "conclusion": "neutral", "started_at": "1"}]})
     check("skipped and neutral are green (null control)", rc == 0 and merged(calls))
     check("the CI read pages past the first 100 runs",
-          any("--paginate" in c and any("check-runs" in x for x in c) for c in calls))
+          any(any("check-runs" in x for x in c) and any(re.search(r"[?&]page=\d+", x) for x in c) for c in calls)
+          and not any("--paginate" in c for c in calls))
     rc, lines, calls = go({"contains": [True, True, False]})
     check("main moving after approval and before the merge stops it", rc == 1 and "merge:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"preflight": "  ok       policy corpus -- current"})
@@ -5601,6 +5847,7 @@ def _self_test() -> int:
     _read_retry_self_test(check)
     _git_retry_self_test(check)
     _review_settle_self_test(check)
+    _rollup_draft_self_test(check)
     _gate_race_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
@@ -5609,8 +5856,146 @@ def _self_test() -> int:
     _add_self_test(check)
     _queue_self_test(check)
     _stale_verdict_self_test(check)
+    _introduced_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _introduced_self_test(check) -> None:
+    """R10-INTRODUCED-REDS-BARRIER: a SELFTESTS step red at the head and not at
+    the base is INTRODUCED, `classify --pr` reads it RED, and every unreadable
+    input fails closed. The four cases: introduced, inherited, no base run, and
+    a step skipped by scoping; the push-only drift step never counts."""
+    H, B = "1" * 40, "2" * 40
+    drift = next(iter(SELFTESTS_PUSH_ONLY))
+
+    def job(i, concl="failure"):
+        return {"name": SELFTESTS, "id": i, "status": "completed", "conclusion": concl}
+
+    head_s = [{"name": "new red", "conclusion": "failure"}, {"name": "old red", "conclusion": "failure"},
+              {"name": "scoped", "conclusion": "skipped"}, {"name": drift, "conclusion": "failure"}]
+    base_s = [{"name": "new red", "conclusion": "success"}, {"name": "old red", "conclusion": "failure"},
+              {"name": "scoped", "conclusion": "failure"}, {"name": drift, "conclusion": "failure"}]
+    check("introduced: red at the head and not at the base is the PR's; one red at both is inherited",
+          introduced_reds(head_s, base_s) == ["new red"])
+    check("no base run: every head red counts, the push-only drift step still excluded",
+          introduced_reds(head_s, None) == ["new red", "old red"])
+    check("a step skipped by scoping at the head is not counted, though red at the base",
+          "scoped" not in introduced_reds(head_s, None) + introduced_reds(head_s, base_s))
+    check("null: the base subtraction is what clears an inherited red (the same head against itself reads 0)",
+          introduced_reds(head_s, head_s) == [])
+    check("the push-only drift step alone red at the head is never introduced",
+          introduced_reds([{"name": drift, "conclusion": "failure"}], None) == [])
+
+    def world(head_runs, base_runs, jobs, mb=B):
+        calls: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if argv[:2] == ["git", "merge-base"]:
+                return (0, mb + "\n") if mb else (128, "fatal: Not a valid commit name")
+            if a.endswith("rulesets --jq " + argv[-1]):
+                return 0, "7"
+            if "rulesets/7" in a:
+                return 0, "fast\n"
+            for sha, runs in ((H, head_runs), (B, base_runs)):
+                if f"commits/{sha}/{SELFTESTS_RUNS}" in a:  # the filtered read: one JSON array
+                    return (1, "HTTP 502") if runs is None else (0, json.dumps(
+                        [r for r in runs if r["name"] == SELFTESTS]))
+                if f"commits/{sha}/check-runs" in a:
+                    return (1, "HTTP 502") if runs is None else (0, "\n".join(json.dumps(r) for r in runs))
+            m = re.search(r"actions/jobs/(\d+)", a)
+            if m:
+                st = jobs.get(int(m.group(1)))
+                return (1, "HTTP 404") if st is None else (0, json.dumps(st))
+            return 1, "unexpected"
+        return Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run, sleep=lambda s: None), calls
+
+    fast = {"name": "fast", "id": 5, "status": "completed", "conclusion": "success"}
+    t, calls = world([fast, job(11)], [job(21)], {11: head_s, 21: base_s})
+    rc, out = introduced_cmd(t, H, None)
+    check("introduced_cmd: rc 1, one INTRODUCED line per introduced step, base by git merge-base origin/main",
+          rc == 1 and out.splitlines()[0] == "INTRODUCED new red" and len(out.splitlines()) == 2
+          and f"against {B}: head job 11 failure base job 21 failure" in out
+          and any(c.startswith("git merge-base origin/main") for c in calls))
+    check("the cost: one job-step read per side, the base's SELFTESTS runs by one filtered read",
+          sum("actions/jobs/" in c for c in calls) == 2 and sum(f"commits/{B}/" in c for c in calls) == 1
+          and any(f"commits/{B}/{SELFTESTS_RUNS}" in c for c in calls))
+    rc, line = classify_cmd(t, H, 7, False)
+    check("classify --pr reads an introduced red RED with its INTRODUCED lines, the required set green",
+          rc == 1 and line.startswith(f"RED {H} pending: none red: none introduced: 1")
+          and "\nINTRODUCED new red" in line)
+    check("null: classify without --pr is unchanged (GREEN), and so is --main",
+          classify_cmd(t, H, None, False)[0] == 0 and classify_cmd(t, H, 7, True)[0] == 0)
+    t, calls = world([fast, job(11)], [job(21)], {11: base_s, 21: base_s})
+    check("null: a head red only where its base is (inherited) is GREEN under classify --pr, introduced rc 0",
+          classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
+    t, calls = world([fast, job(11)], [fast], {11: head_s})
+    check("no base run: every head red but the drift step is INTRODUCED",
+          introduced_cmd(t, H, B)[1].count("INTRODUCED") == 2)
+    t, calls = world([fast, job(11, "success")], None, {})
+    check("a head whose SELFTESTS concluded success costs no read beyond its check runs",
+          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c or "merge-base" in c for c in calls))
+    for why, w in (("the head's job", ([fast, job(11)], [job(21)], {21: base_s})),
+                   ("the base's job", ([fast, job(11)], [job(21)], {11: head_s})),
+                   ("the base's check runs", ([fast, job(11)], None, {11: head_s})),
+                   ("the merge base", ([fast, job(11)], [job(21)], {11: head_s, 21: base_s}, ""))):
+        t, _ = world(*w)
+        try:
+            classify_cmd(t, H, 7, False)
+            closed = False
+        except Stop as s:
+            closed = s.step == "selftests"
+        check(f"fail closed: {why} unreadable is a Stop (rc 2), never an empty list", closed)
+
+    # Beyond a `failure` conclusion (the r1 verdict's class): a hang the pull
+    # request makes concludes timed_out with its running step cancelled, a
+    # cancelled step can sit in a failed job, a head can carry a re-run, a job
+    # can still be running, and a job-level cancelled reads nothing.
+    hang = [{"name": "hang", "conclusion": "cancelled"}, {"name": "after", "conclusion": "skipped"}]
+    green = [{"name": "hang", "conclusion": "success"}, {"name": "after", "conclusion": "success"}]
+    t, _ = world([fast, job(11, "timed_out")], [job(21, "success")], {11: hang, 21: green})
+    rc, line = classify_cmd(t, H, 7, False)
+    check("a hang the PR makes (job timed_out, its step cancelled) is RED under classify --pr, step and timeout INTRODUCED",
+          rc == 1 and f"\nINTRODUCED {JOB_TIMED_OUT}" in line and "\nINTRODUCED hang" in line)
+    t, _ = world([fast, job(11)], [job(21, "success")], {11: hang, 21: green})
+    check("a cancelled step inside a failed job is INTRODUCED",
+          introduced_cmd(t, H, None)[1].splitlines()[0] == "INTRODUCED hang")
+    inherited = [{"name": "hang", "conclusion": "failure"}, {"name": "after", "conclusion": "skipped"}]
+    t, _ = world([fast, job(11, "timed_out")], [job(21)], {11: hang, 21: inherited})
+    out = introduced_cmd(t, H, None)[1]
+    check("a hang behind a step already red at the base: the timeout alone is INTRODUCED",
+          out.splitlines()[0] == f"INTRODUCED {JOB_TIMED_OUT}" and out.count("INTRODUCED") == 1)
+    t, _ = world([fast, job(11, "timed_out")], [job(21, "timed_out")], {11: hang, 21: hang})
+    check("null: a timeout the base had too, on the same step, is inherited (GREEN, introduced rc 0)",
+          classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
+    t, _ = world([fast, job(11, "success"), job(12)], [job(21, "success")], {12: hang, 21: green})
+    check("a re-run at one head that went red: the latest run (highest id) is read, its red INTRODUCED",
+          introduced_cmd(t, H, None)[0] == 1)
+    t, calls = world([fast, job(11), job(12, "success")], [job(21, "success")], {11: hang, 21: green})
+    check("a re-run at one head that went green reads clean at no job read",
+          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c for c in calls))
+    running = {"name": SELFTESTS, "id": 12, "status": "in_progress", "conclusion": None}
+    t, calls = world([fast, job(11, "success"), running], [job(21, "success")], {})
+    rc, line = classify_cmd(t, H, 7, False)
+    check("a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN",
+          rc == 3 and line.startswith(f"WAIT {H}") and introduced_cmd(t, H, None)[0] == 3
+          and not any("actions/jobs" in c for c in calls))
+    t, _ = world([fast], [job(21, "success")], {})
+    check("null: a head with no instrument-self-tests run (the prelude skipped it) is GREEN",
+          classify_cmd(t, H, 7, False)[0] == 0)
+    for why, w in (("the head's job concluded cancelled", ([fast, job(11, "cancelled")], [job(21)], {11: hang, 21: green})),
+                   ("the head's job concluded startup_failure", ([fast, job(11, "startup_failure")], [job(21)], {})),
+                   ("the base's job concluded cancelled", ([fast, job(11)], [job(21, "cancelled")], {11: hang, 21: green})),
+                   ("a red head job with no red step", ([fast, job(11)], [job(21)], {11: green, 21: green}))):
+        t, _ = world(*w)
+        try:
+            classify_cmd(t, H, 7, False)
+            closed = False
+        except Stop as s:
+            closed = s.step == "selftests"
+        check(f"fail closed: {why} is a Stop (rc 2), never a clean read", closed)
 
 
 def _stale_verdict_self_test(check) -> None:
@@ -5638,9 +6023,9 @@ def _stale_verdict_self_test(check) -> None:
             if argv[:2] == ["git", "ls-remote"]:
                 return 0, f"{T}\trefs/heads/verdict/7\n"
             if argv[:2] == ["gh", "api"] and "/comments" in a:
-                return 0, json.dumps([[{"id": 42, "created_at": "2026-11-06T23:00:00Z",
+                return 0, _jl([{"id": 42, "created_at": "2026-11-06T23:00:00Z",
                                         "user": {"login": login, "id": vid},
-                                        "body": f"Fix review: merge {H}\n\nbus: verdict/7 at {T}, confirmed\n"}]])
+                                        "body": f"Fix review: merge {H}\n\nbus: verdict/7 at {T}, confirmed\n"}])
             if argv[:2] == ["git", "log"]:  # verdict/7, newest first: the merge tip over a blocked one
                 return (log_code, "fatal: bad object" if log_code else
                         f"{T}\x00verdict: #7 Fix review: merge {H}\n"
@@ -5823,7 +6208,7 @@ def _queue_self_test(check) -> None:
                 return 0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": h})
             if argv[:2] == ["gh", "api"] and "/comments" in a:
                 n = int(a.split("/issues/")[1].split("/")[0])
-                return 0, json.dumps([w["comments"].get(n, [])])
+                return 0, _jl(w["comments"].get(n, []))
             if "--carry" in argv:
                 i = argv.index("--carry")
                 return 0, w["carry"].get((argv[i + 1], argv[i + 2]), "app_approve: REFUSE: unknown pair")
@@ -6260,8 +6645,8 @@ def _gate_race_self_test(check) -> None:
         with tempfile.TemporaryDirectory() as d:
             t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls)
             return t.wait_ci(H, only=[GATE]), calls_sb
-    busy = "42237558473\tin_progress\n42237558635\tcompleted\n"
-    done = "42237558473\tcompleted\n42237558635\tcompleted\n"
+    busy = _jl([{"id": 42237558473, "status": "in_progress"}, {"id": 42237558635, "status": "completed"}])
+    done = _jl([{"id": 42237558473, "status": "completed"}, {"id": 42237558635, "status": "completed"}])
     rerun_green = dict(edit_gate, conclusion="success", started_at="2026-11-06T15:26:00Z")
     red, _ = wait([[edit_gate], [edit_gate], [rerun_green, code_gate]], [busy, done, done], polls=5)
     check("a failed gate beside an unfinished sibling run is waited on, then through the cascade re-run's lag, "
@@ -6271,7 +6656,7 @@ def _gate_race_self_test(check) -> None:
     red, sb = wait([[edit_gate]], [done])
     check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
           red == [GATE] and len(sb) == 1)
-    red, sb = wait([[edit_gate]], ["42237558473\taction_required\n42237558635\tcompleted\n"])
+    red, sb = wait([[edit_gate]], [_jl([{"id": 42237558473, "status": "action_required"}, {"id": 42237558635, "status": "completed"}])])
     check("a held sibling run (action_required) is not unfinished: the red gate returns on the first poll",
           red == [GATE] and len(sb) == 1)
     red, sb = wait([[edit_gate]], [(1, "boom")])
@@ -6282,6 +6667,130 @@ def _gate_race_self_test(check) -> None:
         r = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
                   polls=3).wait_ci(H, only=["fast"])
     check("a failed unit beside an unfinished sibling is final: only the gate defers", r == ["fast"] and not sb)
+
+
+def _rollup_draft_self_test(check) -> None:
+    """P608 (a rollup reads by newest entry, never list order) and P609 (a draft
+    is a state: undraft once when admitted as a draft, else a hold)."""
+    H = "b" * 40
+    ent = lambda st, at, run="COMPLETED": {"name": "gate", "status": run, "conclusion": st, "completedAt": at}  # noqa: E731
+    # #3445 7fb8680c: four FAILURE gates, the newest 09:29:14Z, then SUCCESS 09:23:45Z listed last
+    fails = [ent("FAILURE", f"2026-11-11T09:{m}:00Z") for m in ("10", "15", "20")] + [ent("FAILURE", "2026-11-11T09:29:14Z")]
+    frozen = fails + [ent("SUCCESS", "2026-11-11T09:23:45Z")]
+
+    def refusal(entries, ms="BLOCKED", rd="REVIEW_REQUIRED"):
+        def run(argv, cwd=ROOT, stdin=None):
+            if "statusCheckRollup" in " ".join(argv):
+                return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd, "statusCheckRollup": entries})
+            return 0, ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None)
+        t.required = lambda pr_head=False: ["gate"]
+        t.review_run_settling = lambda pr, h: False
+        return t.policy_refusal(3445, H)
+    for label, ents in (("in list order", frozen), ("reversed", frozen[::-1])):
+        why, wait, appr = refusal(ents)
+        check(f"P608 #3445's five gate entries {label}: red gate, not a missing review",
+              "required context(s) red at bbbbbbbb: gate" in why and wait is False and appr is False)
+    why, wait, _ = refusal([ent("SUCCESS", "2026-11-11T09:00:00Z"), ent("", "2026-11-11T10:29:00Z", "IN_PROGRESS")])
+    check("P608 a SUCCESS then an IN_PROGRESS entry is pending: wait", wait is True and "not yet green" in why)
+    ok = [ent("SUCCESS", f"2026-11-11T09:0{i}:00Z") for i in range(3)]
+    # M7: the unfinished entry is the OLDER one, a newer SUCCESS beside it
+    why, wait, _ = refusal([ent("", "2026-11-11T08:00:00Z", "IN_PROGRESS"), ent("SUCCESS", "2026-11-11T09:00:00Z")])
+    check("P608 an unfinished entry older than a SUCCESS still makes the context pending",
+          wait is True and "not yet green" in why)
+    # M8: GitHub's zero time on completedAt is no stamp: startedAt orders the entry
+    zero = {"name": "gate", "status": "COMPLETED", "conclusion": "SUCCESS",
+            "completedAt": "0001-01-01T00:00:00Z", "startedAt": "2026-11-11T10:00:00Z"}
+    check("P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [ent("FAILURE", "2026-11-11T09:00:00Z"), zero], [zero, ent("FAILURE", "2026-11-11T09:00:00Z")]))
+          and rollup_states([zero, ent("FAILURE", "2026-11-11T11:00:00Z")]) == {"gate": "FAILURE"})
+    # M9: an entry with only startedAt is ordered by it
+    st = lambda c, at: {"name": "gate", "status": "COMPLETED", "conclusion": c, "startedAt": at}  # noqa: E731
+    check("P608 an entry with only startedAt is ordered by it, in either list order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [st("FAILURE", "2026-11-11T09:00:00Z"), st("SUCCESS", "2026-11-11T09:30:00Z")],
+              [st("SUCCESS", "2026-11-11T09:30:00Z"), st("FAILURE", "2026-11-11T09:00:00Z")])))
+    check("P608 null: all-SUCCESS in any order reaches the review branch",
+          all("missing requirement is a review" in refusal(o)[0] for o in (ok, ok[::-1])))
+
+    # P609: land() on a head that is a draft
+    def world(draft_item, redraft=0):
+        calls, state = [], {"draft": True, "redraft": redraft}
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if a.startswith("gh pr ready"):
+                state["draft"] = False
+                return 0, ""
+            if "gh pr merge" in a:
+                if state["redraft"] > 0:  # the author drafts it again under the train
+                    state["redraft"] -= 1
+                    state["draft"] = True
+                state["merged"] = not state["draft"]
+                return (1, "Pull Request is still a draft") if state["draft"] else (0, "")
+            if "preflight" in a:
+                return 0, "clean\n"
+            return 0, ""
+        def out(*argv):
+            a = " ".join(argv)
+            if "isDraft" in a:
+                return "true" if state["draft"] else "false"
+            if "state,mergeCommit" in a:
+                return "MERGED abc" if state.get("merged") else "OPEN None"
+            return ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None, base="batch/x")
+        t.out, t.head, t.review_settle, t.unstale = out, (lambda pr: H), (lambda pr, h: None), (lambda h: None)
+        return t, calls
+    def land(item, **kw):
+        t, calls = world(item, **kw)
+        try:
+            t.land(7, H, item, [], lambda: None)
+        except Stop as s:
+            return s, calls
+        return None, calls
+    s, calls = land({"pr": 7, "draft": True})
+    check("P609 an admitted draft is readied once, then the merge attempts again",
+          s is None and sum(c.startswith("gh pr ready") for c in calls) == 1
+          and sum("gh pr merge" in c for c in calls) == 1)
+    s, calls = land({"pr": 7})
+    check("P609 a draft the train never admitted as one: one attempt, then the hold, no recarry",
+          s is not None and not isinstance(s, MainMoved) and "drafted after admission: left as a hold" in s.why
+          and sum("gh pr merge" in c for c in calls) == 1 and not any(c.startswith("gh pr ready") for c in calls))
+    s, calls = land({"pr": 7, "draft": True}, redraft=2)
+    check("P609 a draft again after the one ready: that hold after two attempts, never eight",
+          s is not None and "left as a hold" in s.why and sum("gh pr merge" in c for c in calls) == 2
+          and sum(c.startswith("gh pr ready") for c in calls) == 2)
+    t, calls = world({})
+    t.real = True
+    q = [{"pr": 7}, {"pr": 8, "draft": False}]
+    t.record_drafts(q)
+    check("P609 record_drafts reads once per entry lacking the key and keeps a recorded value",
+          q[0]["draft"] is True and q[1]["draft"] is False)
+    # M4: the batch itself records the key (the --queue / build_queue route)
+    t, calls = world({})
+    t.real = True
+    class _Halt(Exception):
+        pass
+    seen: list = []
+    def halt(q):
+        seen.extend(dict(i) for i in q)
+        raise _Halt
+    t.sweep_bots, t.required, t.main_green, t.preflight = (lambda: None), (lambda pr_head=False: []), (lambda *a: None), halt
+    t.git = lambda *a: H
+    t.state = Path(tempfile.mkdtemp())
+    try:
+        t._batch([{"pr": 7}], "t")
+    except _Halt:
+        pass
+    check("P609 a batch records the draft key on a key-less entry before admission",
+          len(seen) == 1 and seen[0].get("draft") is True)
+    t, calls = world({})
+    t.real, t.out = True, (lambda *a: "false")
+    q = [{"pr": 7}]
+    t.record_drafts(q)
+    check("P609 null: a non-draft entry is recorded False and makes no gh pr ready call",
+          q[0]["draft"] is False and not any(c.startswith("gh pr ready") for c in calls))
 
 
 def _review_settle_self_test(check) -> None:
@@ -6307,7 +6816,7 @@ def _review_settle_self_test(check) -> None:
                 return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd,
                                       "statusCheckRollup": [{"name": "gate", "conclusion": rollup}]})
             if "/reviews" in a:
-                return 0, json.dumps([list(reviews)])
+                return 0, _jl(list(reviews))
             return 0, ""
         t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleeps.append, log=lines.append,
                   polls=3, wall=lambda: NOW)
@@ -6948,7 +7457,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     names = gating_names([GATE])
     check("item 11: once the ruleset is [gate], a unit's red is classed REQUIRED by the fixture's gate_required "
           "(null: an old-layout ruleset passes through unchanged)",
-          GATE in names and "tests / closures" in names and "tests / ci-ratchet" in names
+          GATE in names and "tests / closures" in names and "tests / coverage-ratchet" in names
           and gating_names(["fast", "closures"]) == ["fast", "closures"] and gating_names(None) is None)
 
     H0 = "a" * 40  # go()'s head
@@ -7121,13 +7630,13 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             if got is not None:
                 return got
             if "/reviews" in a:
-                return 0, json.dumps([reviews if reviews is not None else [owner_rv(OLD, now)]])
+                return 0, _jl(reviews if reviews is not None else [owner_rv(OLD, now)])
             if argv[:3] == ["gh", "pr", "view"]:
                 return 0, body
             if "issues/comments/" in a:
                 return 0, json.dumps(mandate_c(now))
             if "/comments" in a:
-                return 0, json.dumps([[]])
+                return 0, _jl([])
             return 1, "unexpected " + a
         saved, buf = Train._run, io.StringIO()
         Train._run = staticmethod(fake_run)
@@ -7658,8 +8167,8 @@ def _batch_self_test(check) -> None:
                 n = a.split("/pulls/")[1].split("/")[0]
                 w.setdefault("reviews_reads", []).append(n)
                 rf = w.get("reviews_for")
-                return 0, json.dumps([(rf(w["heads"][int(n)]) if rf else [])
-                                      + [r for r in w.get("posted", []) if r["pr"] == int(n)]])
+                return 0, _jl((rf(w["heads"][int(n)]) if rf else [])
+                           + [r for r in w.get("posted", []) if r["pr"] == int(n)])
             if argv[:3] == ["gh", "api", "user"]:  # the acting account: the owner's
                 return 0, _mandate_gate().OWNER_LOGIN
             if argv[:3] == ["gh", "pr", "review"]:  # posted as the owner's account, as `gh` is
@@ -7672,7 +8181,7 @@ def _batch_self_test(check) -> None:
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(w["mandate"])) if w.get("mandate") else (1, "gh: Not Found (HTTP 404)")
             if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
-                return 0, json.dumps([w.get("thread", []) if "/issues/201/" in a else []])
+                return 0, _jl(w.get("thread", []) if "/issues/201/" in a else [])
             if "preflight.sh" in a:
                 return 0, "  clean    no refusal"
             if "worktree_gc.sh" in a:
@@ -8771,11 +9280,13 @@ def _add_self_test(check) -> None:
                 return 0, "true" if w.get("is_draft") else "false"
             if argv[:2] == ["git", "ls-remote"]:  # verdict/<pr>'s confirmed tip
                 return w.get("ls", (0, f"{T}\t{argv[-1]}\n"))
+            if argv[:2] == ["gh", "api"] and "/comments" in a and "comments" in w:
+                return w["comments"]
             if argv[:2] == ["gh", "api"] and "/comments" in a:  # its posting: merge at the added verdict
                 first = w.get("first", f"Fix review: merge {w.get('verdict', H)}")
-                return 0, json.dumps([[{"id": 42, "created_at": "2026-10-25T00:00:00Z",
+                return 0, _jl([{"id": 42, "created_at": "2026-10-25T00:00:00Z",
                                         "user": {"login": login, "id": vid},
-                                        "body": f"{first}\n\nbus: verdict/{w.get('pr', 7)} at {T}, confirmed\n"}]])
+                                        "body": f"{first}\n\nbus: verdict/{w.get('pr', 7)} at {T}, confirmed\n"}])
             if argv[:3] == ["gh", "pr", "view"]:
                 return w.get("view", (0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": H})))
             if "--carry" in argv:
@@ -8787,7 +9298,7 @@ def _add_self_test(check) -> None:
             if "--corpus-filter" in a:
                 return 0, "\n".join(f for f in (stdin or "").split() if f == "CLAUDE.md")
             if argv[:2] == ["gh", "api"] and "/reviews" in a:
-                return 0, json.dumps([w.get("reviews", [])])
+                return 0, _jl(w.get("reviews", []))
             if argv[:2] == ["gh", "api"] and "/pulls/" in a:  # the body raise_hold justifies
                 return 0, ""
             if argv[:3] == ["gh", "pr", "view"]:
@@ -8813,6 +9324,8 @@ def _add_self_test(check) -> None:
              "base: #7 targets dev"),
             ("verdict", {"ls": (0, "")}, "verdict: no confirmed verdict on the bus (verdict/7)"),
             ("verdict", {"ls": (128, "fatal: unreachable")}, "verdict: the verdict bus could not be read"),
+            ("verdict", {"comments": (1, "gh: Not Found (HTTP 404)")},
+             "verdict: its comments could not be read: gh: Not Found (HTTP 404)"),
             ("verdict", {"first": f"Fix review: blocked {H} tests: red"}, "verdict: the newest verdict is blocked"),
             ("verdict", {"first": f"Fix review: merge {V}"},
              "verdict: the newest posted merge verdict names 222222222222, not the added 111111111111"),
@@ -9187,12 +9700,12 @@ def _post_approval_self_test(check) -> None:
             if "git/ref/pull" in j:
                 return 0, ref
             if "/reviews" in j:
-                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "state": "APPROVED", "commit_id": H,
-                                       "submitted_at": AT}]])
+                return 0, _jl([{"user": {"login": APPROVER_BOT}, "state": "APPROVED", "commit_id": H,
+                                       "submitted_at": AT}])
             if "/comments" in j:
                 if comments is not None:
                     return 0, comments
-                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "body": f"Fix review: {verdict} {H}\nn"}]])
+                return 0, _jl([{"user": {"login": APPROVER_BOT}, "body": f"Fix review: {verdict} {H}\nn"}])
             if "check-runs" in j:
                 rs = runs_by_poll[min(len(slept), len(runs_by_poll) - 1)]
                 return 0, "\n".join(json.dumps(r) for r in rs)
@@ -9349,6 +9862,11 @@ def _parser() -> argparse.ArgumentParser:
     c.add_argument("sha")
     c.add_argument("--main", action="store_true", help="<sha> is main's tip: PR_ONLY contexts are not judged")
     c.add_argument("--pr", type=int, help="the pull request <sha> heads: lets a RED read as APPROVAL-OWED (rc 4)")
+    i = sub.add_parser("introduced", parents=[common],
+                       help=f"the {SELFTESTS} steps red at <sha> and not at its merge base (or --base): "
+                            "INTRODUCED lines, rc 1 when any, 0 none, 3 its job still runs, 2 unreadable (fail closed)")
+    i.add_argument("sha")
+    i.add_argument("--base", help="the base commit (default: git merge-base origin/main <sha>)")
     # The required set a `## Red checks` obligation is judged against
     # (policy_lint.mjs --pr-body): the one owner, read live.
     sub.add_parser("owed-reds", parents=[common],
@@ -9412,6 +9930,14 @@ def main(argv: list[str]) -> int:
         rc, out = owed_reds(Train(a.repo, Path("."), None, "", (), a.min_runs))
         print(out)
         return rc
+    if a.cmd == "introduced":
+        try:
+            rc, out = introduced_cmd(Train(a.repo, Path("."), None, "", (), a.min_runs), a.sha, a.base)
+        except Stop as s:
+            print(f"REFUSE {s.step}: {s.why}")
+            return 2
+        print(out)
+        return rc
     if a.cmd in ("unstale", "classify"):
         # classify's stdout is its one verdict line; its deferral log goes to stderr
         t = Train(a.repo, Path("."), None, "", (), a.min_runs,
@@ -9453,6 +9979,29 @@ def main(argv: list[str]) -> int:
                      base=a.base, skip_bad=a.skip_bad, overlap=a.overlap, **opts).batch(queue, a.tag)
     return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
                  **opts).train(queue)
+
+
+#: Self-test only: Train wraps an injected `run` so a stub refuses a paged read
+#: whose `--jq` is not the object key the path serves (mutation proof for the
+#: `key` argument of Train.pages and each call site).
+_JQ_CHECK = False
+_PAGED_KEY = (("check-runs", "check_runs"), ("/jobs?", "jobs"), ("actions/", "workflow_runs"))
+
+
+def _jq_checked(run):
+    def checked(argv, *a, **k):
+        if argv[:2] == ["gh", "api"] and "--jq" in argv and re.search(r"[?&]page=\d+", argv[2]):
+            want = next((key for frag, key in _PAGED_KEY if frag in argv[2]), None)
+            jq = argv[argv.index("--jq") + 1]
+            if want and jq != f".{want}[]":
+                return 1, f"unexpected --jq {jq!r} for {argv[2]}"
+        return run(argv, *a, **k)
+    return checked
+
+
+def _jl(items) -> str:
+    """A paged read's stub answer: one compact JSON item per line (`--jq .[]`)."""
+    return "".join(json.dumps(x) + "\n" for x in items)
 
 
 if __name__ == "__main__":

@@ -271,6 +271,9 @@ def self_test() -> int:
           and "grep -c 'OWED' <tick_log>" in five_line)
     check("the rendered sweep names no tick seat's own log and no newest-pass read",
           "tick-owed" not in rendered and "newest pass" not in rendered and "newest actionable" not in rendered)
+    check("the tick seat is retired: no tick_alive, tick_brief or tick_stale_min placeholder, declared or rendered",
+          not {"tick_alive", "tick_brief", "tick_stale_min"} & set(names) and "{tick_" not in rendered
+          and not re.search(r"tick_(alive|brief|stale_min)", rendered))
     old_five = tracked.replace("Read {{digest}}/digest.txt whole", "Read {{tick_log}}'s newest pass unfiltered")
     check("null control: step (5) restored to the newest pass fails the read check",
           old_five != tracked and "<digest>/digest.txt whole" not in render(old_five, full))

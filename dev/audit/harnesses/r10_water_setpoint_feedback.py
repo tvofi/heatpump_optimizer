@@ -11,7 +11,10 @@ no ``ArbiterState.feedback``), so the same command reads both ends.
 One line per arm: the plan, the option, the mean measured draw over the last
 30 minutes of a three-hour block, whether every one of those minutes is
 within 20 % of plan, the compressor starts, and the speed at minutes 30 and
-180. Synthetic inputs only. Run from a worktree root:
+180; then, for part 3, the lowest and highest value written against a
+controller limit with and without its sensor configured, and the lowest
+write beside the gate for a high-limit sensor reading around it. Synthetic
+inputs only. Run from a worktree root:
   PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_water_setpoint_feedback.py
 """
 from __future__ import annotations
@@ -35,6 +38,8 @@ T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
 SET = "number.fb_return_set"
 RETURN = "sensor.fb_return"
 IDS = itertools.count()
+LIMIT_KEYS = ("space_setpoint_low_limit_entity", "space_setpoint_high_limit_entity")
+LIMITS = ("sensor.fb_low_limit", "sensor.fb_high_limit")
 
 
 class Coord:
@@ -42,7 +47,7 @@ class Coord:
     flag the simulation sets each pass."""
 
     def __init__(self, *, unit="return", power_entity=True, feedback=None, lift=0.5,
-                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None):
+                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None, limits=(None, None)):
         self.hass = FakeHass({
             SET: FakeState("26.0", attributes={"min": 15, "max": 45, "step": step}),
             RETURN: FakeState("25.9", unit="°C"),
@@ -52,6 +57,12 @@ class Coord:
             "space_setpoint_unit": unit, "heat_pump_return_temp_entity": RETURN,
             "flow_min_lift_k": lift, "flow_heat_c": ceiling,
         }
+        # The controller's limits on the set-point as sensors (part 3): a state
+        # string or number per side, None for an unset slot.
+        for key, entity, limit in zip(LIMIT_KEYS, LIMITS, limits):
+            if limit is not None:
+                config[key] = entity
+                self.hass.states.set(entity, FakeState(str(limit), unit="°C"))
         if power_entity:
             config["heat_pump_power_entity"] = "sensor.fb_power"
         if feedback is not None:
@@ -159,6 +170,31 @@ def main() -> None:
         print(f"{label:16s} option {option:7s} mean {mean:.3f} kW  every-minute-within-20% "
               f"{every}  starts {run['starts']}  speed {run['trace'][30][1]:.1f} -> "
               f"{run['trace'][-1][1]:.1f} Hz")
+    # Part 3: the controller's limits read from their two optional sensors
+    # (a Luxtronik's inputs 10104 and 10103). A tree that does not read them
+    # prints the same row with the sensors as without.
+    for label, kw, side in (
+        ("return limit 27.6", {"plan_kw": [0.53] * 8 + [1.2] * 16, "clamp": (10.0, 27.6)}, 1),
+        ("return minimum 28.0",
+         {"plan_kw": [1.2] * 8 + [0.53] * 16, "ceiling": 40.0, "clamp": (28.0, 50.0)}, 0),
+    ):
+        for sensors in (False, True):
+            limits = tuple(kw["clamp"][i] if sensors and i == side else None for i in (0, 1))
+            sent = [w[1] for w in sim(limits=limits, **kw)["writes"]]
+            print(f"{label:20s} sensor {'set' if sensors else 'unset':5s} writes {len(sent)}  "
+                  f"lowest {min(sent):.1f}  highest {max(sent):.1f}")
+    # The class the part-3 review left open: a high-limit sensor reading at
+    # or around the gate, the value that means off. One row per unit and
+    # reading: the lowest write beside the gate, and whether it clears it.
+    step_up = {"plan_kw": [0.53] * 8 + [1.2] * 16, "clamp": (10.0, 27.6)}
+    for unit in ("return", "flow"):
+        for offset in (None, -5.0, 0.0, 0.05, 0.1):
+            gate = pa._gate_c(Coord(unit=unit).arbiter_inputs())
+            limit = None if offset is None else round(gate + offset, 3)
+            sent = [w[1] for w in sim(unit=unit, limits=(None, limit), **step_up)["writes"]]
+            name = "unset" if limit is None else f"{limit:.2f}"
+            print(f"{unit:6s} gate {gate:.1f}  high limit {name:5s} writes {len(sent)}  "
+                  f"lowest {min(sent):.1f}  above the gate {min(sent) > gate}")
 
 
 if __name__ == "__main__":

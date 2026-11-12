@@ -1053,6 +1053,7 @@ Each clears itself once the cause is gone.
 - **Learned model was restored from a snapshot** — the drift above happened while every input looked healthy, so the learners were rolled back automatically. Nothing is required.
 - **Frequency control stood down** — the compressor frequency kept diverging from the commanded value, so frequency control fell back to observe. Check the entity, then switch the frequency mode to observe, save, and back to control.
 - **Optimization keeps failing; the plan is going stale** — several solves in a row failed. Once the plan is a few intervals old the pump is handed back to its own heating curve. Look for a lost price or weather connection, or a solver error in the log.
+- **Electricity prices are outdated** — a price fetch failed, and the optimizer keeps planning on the last published prices while they still cover the current time. Once they run out it becomes unavailable until prices arrive again. Check the price source, its token or the price entity.
 - **Planning fell back to the slow in-process solver** — the separate solver process could not be used, so Home Assistant may feel briefly unresponsive on each solve. Attach the reported cause and the log to a bug report.
 - **Floor return temperature sensor is not reporting** — the slab temperature is carried forward from the plan's prediction until the sensor reads again. Check the entity, or clear the slot.
 - **Heat pump operating mode entity is not reporting** — the plan stops being held to the last mode it read. Check the entity, or clear the slot.

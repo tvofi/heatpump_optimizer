@@ -228,7 +228,7 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
 
 
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
-            design: str = "", reviewed_head: str = "") -> str:
+            design: str = "", reviewed_head: str = "", verdict: tuple = ()) -> str:
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
     pin = (f"Before any commit, pin the seat identity: `git config user.name {SEAT_NAME} && git config "
            f"user.email {SEAT_EMAIL}`. ") if role in COMMITTING_ROLES else ""
@@ -347,7 +347,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"tools/audit/seat/bus.sh push-design {topic} <design.md>`, which pushes "
             f"refs/heads/design/{topic}; that push is the return signal, and the design/{topic} tip "
             "is the SHA you hand off. You may push only to that ref. Open no pull request, push no "
-            "handoff ref and write no delivery row.")
+            "handoff ref and write no delivery row."
+            + (f" The design reviewer's verdict is at design-verdict/{topic}, commit {verdict[0]}, "
+               f"first line `{verdict[1]}`: read it first, answer every point in a new design.md pushed "
+               f"on top of design/{topic}, and do not restart." if verdict else ""))
     elif role == "design-reviewer":
         body = (
             "Role: read dev/governance/roles/design-review.md from main, and follow it exactly. "
@@ -380,7 +383,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
 
 def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
            topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "",
-           design: str = "", pin: str = "", reviewed_head: str = "") -> dict:
+           design: str = "", pin: str = "", reviewed_head: str = "", verdict: tuple = ()) -> dict:
     """The payload; with `publish_ref`, its event is the stub naming PROMPT.md at commit
     `pin` of that ref (`publish_seat`)."""
     if role not in ROLES:
@@ -408,7 +411,7 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
     if publish_ref and not is_head(pin):
         raise Refusal("a published seat's stub needs the 40-hex commit holding its PROMPT.md")
     text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref
-            else _prompt(role, repo, pr, head, topic, nonce, brief, design, reviewed_head))
+            else _prompt(role, repo, pr, head, topic, nonce, brief, design, reviewed_head, verdict))
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
         "session_context": {
@@ -657,7 +660,14 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         design = design_tip(repo_dir, group_id)
         if not design:
             raise Refusal(f"no design/{group_id} on origin to review")
-    args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
+    verdict = ()
+    if role == "designer":  # a revise routes the round-2 designer to the verdict commit, pinned by SHA
+        vref = f"refs/heads/design-verdict/{group_id}"
+        vtip = _git(repo_dir, "ls-remote", "origin", vref).split()[:1]
+        if vtip:
+            _git(repo_dir, "fetch", "-q", "origin", vtip[0])
+            verdict = (vtip[0], _git(repo_dir, "show", f"{vtip[0]}:verdict.md").split("\n", 1)[0])
+    args = dict(design=design, verdict=verdict, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
                 pr=pr, topic=topic,
                 brief=group_brief(group, roster, fixer=role == "fixer") + (f"\n{pline}\n" if pline else ""),
                 reviewed_head=reviewed_head)
@@ -822,6 +832,8 @@ def _group_checks(check) -> None:
               "bus.sh push-design R10-BIG" in dtext and "refs/heads/design/R10-BIG" in dtext
               and "only to that ref" in dtext and "Open no pull request" in dtext
               and "send no code to any ref" not in dtext)
+        check("a designer's text names no design-verdict ref while none exists (null control)",
+              "design-verdict/" not in dtext)
         git(work, "push", "-q", "origin", f"{tip}:refs/heads/design/R10-BIG")
         rref = dispatch("R10-BIG", "design-reviewer")
         rtext = fetched(rref, "PROMPT.md")
@@ -832,6 +844,11 @@ def _group_checks(check) -> None:
         check("a fixer is still refused with a design and no verdict", refused("R10-BIG", design_exempt=""))
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: revise {tip} class-open\n"})
         check("a fixer is refused on a `revise` verdict", refused("R10-BIG"))
+        vtip = git(work, "ls-remote", "origin", "refs/heads/design-verdict/R10-BIG").split()[0]
+        dref = dispatch("R10-BIG", "designer")  # over the existing dispatch/designer-R10-BIG ref
+        dtext2 = fetched(dref, "PROMPT.md")
+        check("a designer's text pins the revise verdict's own commit and first line",
+              dref == ref and vtip != tip and vtip in dtext2 and f"Design review: revise {tip} class-open" in dtext2)
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {'a' * 40}\n"})
         check("a fixer is refused on an approval of a design that has since moved", refused("R10-BIG"))
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {tip}\n"})

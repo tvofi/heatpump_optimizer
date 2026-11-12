@@ -371,6 +371,17 @@ jobs:
         if: always()
         run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
 
+      # Generated figure blocks are re-rendered from an instrument the BASE's
+      # tools/pr/figure_registry.json names, run by the base's restored copy of
+      # the program (tools/pr/*.py) over the head's tree, read-only. A body with
+      # no block passes.
+      - name: Every figure block is what its registered instrument renders
+        if: always()
+        env:
+          PR_HEAD: ${{ steps.pr.outputs.head }}
+          PR_BASE: ${{ steps.pr.outputs.base }}
+        run: python3 -I tools/pr/figure_block.py verify /tmp/pr-body.md --base "$PR_BASE" --head "$PR_HEAD"
+
       # preflight.sh refuses a closing keyword whose number is not in the
       # intended list it is given. prepr.sh's step 7 derives it with this
       # program byte for byte (`preflight_body`; its self-test pins that). The

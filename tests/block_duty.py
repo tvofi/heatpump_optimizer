@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import sys
 from datetime import datetime, timedelta, timezone
+from dataclasses import replace
 from types import SimpleNamespace
 
 sys.path.insert(0, "tests")
@@ -21,6 +22,7 @@ from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
 from heatpump_optimizer import boost as boost_mod  # noqa: E402
 from heatpump_optimizer import entity as entity_mod  # noqa: E402
 from heatpump_optimizer import pump_arbiter as arb  # noqa: E402
+from heatpump_optimizer import setpoint_check  # noqa: E402
 from heatpump_optimizer import switch as switch_mod  # noqa: E402
 from heatpump_optimizer.const import (  # noqa: E402
     ECONOMY_ABSOLUTE_FLOOR,
@@ -28,6 +30,7 @@ from heatpump_optimizer.const import (  # noqa: E402
     SPACE_PUMP_FLOOR_MARGIN_C,
 )
 from heatpump_optimizer.dhw_schedule import parse_windows  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters  # noqa: E402
 
 UTC = timezone.utc
 R = Results("block duty")
@@ -497,7 +500,280 @@ def main() -> int:
         lambda: arb._without_block(both_off, "both", NOW) == "idle",
     )
 
+    disinfection_checks()
     return R.close("BLOCK DUTY CHECKS")
+
+
+def _dhw_snap(*, action=None, disinfecting=False, configured=55.0, cycle=True,
+              disinfection=60.0, attrs=None, entity="number.dhw", reading=55.0):
+    """A control snapshot over a hot water set-point number, 30 to 65 degC by default.
+
+    ``params`` are the production ``ThermalParameters``, so the cycle's
+    temperature is the one its owner states, never a copy in this script.
+    """
+    snap = _snap(
+        config={"pump_duty_mode": "control", "dhw_setpoint_entity": entity},
+        params=ThermalParameters(dhw_setpoint=configured, dhw_legionella_temp=disinfection,
+                                 dhw_legionella_enabled=cycle, dhw_min_temp=40.0),
+        action=action, disinfecting=disinfecting,
+    )
+    states = {} if entity is None else {
+        "number.dhw": FakeState(str(reading), attributes=attrs or {"min": 30, "max": 65, "step": 1}),
+    }
+    return replace(snap, hass=FakeHass(states))
+
+
+def _combi_snap(force, **booking):
+    """``_dhw_snap`` on an active combi store holding 2 L of potable water, under the limit."""
+    snap = _dhw_snap(**booking)
+    return replace(snap, params=replace(
+        snap.params, dhw_enabled=True, dhw_combi_tank_enabled=True, combi_potable_volume_l=2.0,
+        dhw_combi_legionella_force=force, mixing_valve_mode="manual", buffer_tank_volume=300.0,
+    ))
+
+
+def _written(snap, duty):
+    return arb.desired(_Coord(snap), snap, duty, NOW).dhw_setpoint
+
+
+#: Every row of ``desired`` and every way a step books a cycle: the grid the
+#: null controls drive, so a row that bypasses the cycle's answer is in it.
+_DUTIES = (None, "idle", "space", "dhw", "both")
+_BOOKINGS = ({}, {"action": {"dhw_reason": "legionella"}}, {"disinfecting": True},
+             {"action": {"dhw_reason": "legionella"}, "disinfecting": True})
+
+
+def _fix_value(snap, *, arbiter=True):
+    """The hot-water repair once the arbiter wrote this step's answer (none
+    with ``arbiter`` false), the pump reading the snapshot's value: ``None``
+    when it stands down, else the value its Fix writes."""
+    coord = _Coord(snap)
+    own = arb.desired(coord, snap, "dhw", NOW).dhw_setpoint
+    if arbiter and own is not None:
+        arb.state_for(coord).written["dhw_setpoint"] = (own, NOW)
+    hass = snap.hass
+    setpoint_check._dhw(hass, snap.config, snap.params, lambda pump: arb.dhw_gated(coord, pump))
+    raised = [i for i in getattr(hass, "issues", []) if i[1] == setpoint_check.ISSUE_DHW]
+    return raised[0][2]["data"]["value"] if raised else None
+
+
+def _step(step):
+    """The hot-water entity's attributes, 30 to 80 degC, on ``step``."""
+    return {"min": 30, "max": 80, "step": step}
+
+
+#: The census of ``_dhw_write``'s cycle rounding paths: every step size an
+#: entity states here, and everyday/disinfection pairs below, at and above
+#: each other, on and off each step, up to the 70 degC cap.
+_GRID_STEPS = (0.1, 0.5, 1, 2, 5)
+_GRID_TEMPS = (50.0, 55.0, 57.0, 58.0, 60.0, 60.2, 60.3, 60.4, 60.7, 62.0, 69.6, 70.0, 72.0)
+
+
+def _cycle_grid_over_hard_max():
+    """Every (step, everyday, disinfection) whose cycle write exceeds the hard
+    maximum the same parameters state, or is no write at all; asserts the
+    grid holds all three orderings first, so a narrowed grid refuses."""
+    pairs = [(e, d) for e in _GRID_TEMPS[:-1] for d in _GRID_TEMPS]
+    assert {(d > e) - (d < e) for e, d in pairs} == {-1, 0, 1}
+    bad = []
+    for step in _GRID_STEPS:
+        for e, d in pairs:
+            snap = _dhw_snap(disinfecting=True, configured=e, disinfection=d, attrs=_step(step))
+            w = _written(snap, "dhw")
+            if w is None or w > snap.params.dhw_hard_max_temp + 1e-9:
+                bad.append((step, e, d, w, snap.params.dhw_hard_max_temp))
+    return bad
+
+
+#: The no-cycle arms of the census: the cycle enabled and not running (no
+#: booking, the switch not held), and the cycle disabled (switch held).
+_NOCYCLE_ARMS = {"idle": dict(cycle=True), "disabled": dict(cycle=False, disinfecting=True)}
+
+
+def _nocycle_grid_over_limit(arm):
+    """Every (step, everyday, disinfection) whose no-cycle write in ``arm``
+    exceeds the charge limit (``dhw_max_temp``) the same parameters state, or
+    is no write at all. Asserts its preconditions first: every row is one no
+    cycle runs on, and every step size but the finest holds an off-step
+    everyday set-point, so a narrowed grid refuses."""
+    kw = _NOCYCLE_ARMS[arm]
+    pairs = [(e, d) for e in _GRID_TEMPS[:-1] for d in _GRID_TEMPS]
+    assert all(any(abs(e / s - round(e / s)) > 1e-9 for e in _GRID_TEMPS[:-1]) for s in _GRID_STEPS[1:])
+    bad = []
+    for step in _GRID_STEPS:
+        for e, d in pairs:
+            snap = _dhw_snap(configured=e, disinfection=d, attrs=_step(step), **kw)
+            assert (snap.params.dhw_cycle_temp is None) == (arm == "disabled") and not snap.action
+            assert snap.params.dhw_cycle_temp is None or not snap.disinfecting
+            w = _written(snap, "dhw")
+            if w is None or w > snap.params.dhw_max_temp + 1e-9:
+                bad.append((step, e, d, w, snap.params.dhw_max_temp))
+    return bad
+
+
+def _repair_grid_over_hard_max():
+    """Every (step, everyday, disinfection) whose repair Fix, on an install the
+    arbiter does not write and a pump reading of 30, exceeds the tank's hard
+    maximum the repair's own parameters state."""
+    bad = []
+    for step in _GRID_STEPS:
+        for e in _GRID_TEMPS[:-1]:
+            for d in _GRID_TEMPS:
+                snap = _dhw_snap(configured=e, disinfection=d, attrs=_step(step), reading=30.0)
+                fix = _fix_value(snap, arbiter=False)
+                if fix is None or fix > snap.params.dhw_hard_max_temp + 1e-9:
+                    bad.append((step, e, d, fix, snap.params.dhw_hard_max_temp))
+    return bad
+
+
+def disinfection_checks() -> None:
+    """A disinfection cycle holds its own temperature, not the everyday set-point."""
+    written = _written
+    check(
+        "a commanded or held disinfection cycle writes its temperature, not the configured set-point",
+        lambda: written(_dhw_snap(action={"dhw_reason": "legionella"}), "dhw") == 60.0
+        and written(_dhw_snap(disinfecting=True), "both") == 60.0
+        and written(_dhw_snap(), "dhw") == 55.0,
+    )
+    check(
+        "a configured set-point above the disinfection temperature is never lowered to it",
+        lambda: written(_dhw_snap(disinfecting=True, configured=62.0), "dhw") == 62.0,
+    )
+    check(
+        "every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too",
+        lambda: all(written(_dhw_snap(action={"dhw_reason": "legionella"}), d) == 60.0
+                    for d in (None, "idle", "dhw", "both")),
+    )
+    check(
+        "the cycle's temperature is the thermal parameters' own answer, not a copy",
+        lambda: written(_dhw_snap(disinfecting=True, disinfection=58.0), "dhw")
+        == ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=58.0).dhw_cycle_temp == 58.0,
+    )
+    check(
+        "a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's",
+        lambda: ThermalParameters(dhw_setpoint=62.0, dhw_legionella_temp=60.0).dhw_cycle_temp == 62.0
+        and ThermalParameters(dhw_setpoint=62.0, dhw_legionella_temp=60.0).dhw_hard_max_temp == 62.0
+        and ThermalParameters(dhw_setpoint=62.0, dhw_legionella_enabled=False).dhw_cycle_temp is None,
+    )
+    check(
+        "an off-step disinfection temperature above the everyday set-point is written on the step at or "
+        "below it, never above the tank's hard maximum",
+        lambda: written(_dhw_snap(disinfecting=True, disinfection=60.3), "dhw") == 60.0
+        and written(_dhw_snap(disinfecting=True, disinfection=60.3, attrs=_step(5)), "dhw") == 60.0
+        and written(_dhw_snap(disinfecting=True, disinfection=62.0, attrs=_step(5)), "dhw") == 60.0
+        and written(_dhw_snap(disinfecting=True, disinfection=60.7, attrs=_step(0.5)), "dhw") == 60.5
+        and written(_dhw_snap(disinfecting=True, disinfection=60.0, attrs=_step(5)), "dhw") == 60.0,
+    )
+    check(
+        "a cycle whose temperature is an off-step everyday set-point (the disinfection temperature at or "
+        "below it) writes the step at or below it, as 49a45dd8 and the same install's everyday step do",
+        lambda: all(written(_dhw_snap(**b, configured=60.4, disinfection=60.2), "dhw") == 60.0
+                    for b in _BOOKINGS)
+        and all(written(_dhw_snap(**b, configured=57.0, disinfection=50.0, attrs=_step(5)), "dhw") == 55.0
+                for b in _BOOKINGS)
+        and written(_dhw_snap(disinfecting=True, configured=57.0, disinfection=57.0, attrs=_step(5)), "dhw") == 55.0
+        and written(_dhw_snap(cycle=False, disinfecting=True, configured=57.0, disinfection=50.0,
+                              attrs=_step(5)), "dhw") == 55.0,
+    )
+    check(
+        "an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard "
+        "maximum is the everyday set-point there (the everyday step's own nearest write is main's)",
+        lambda: written(_dhw_snap(disinfecting=True, configured=58.0, disinfection=50.0, attrs=_step(5)), "dhw") == 55.0
+        and written(_dhw_snap(configured=58.0, disinfection=50.0, attrs=_step(5)), "dhw") == 55.0,
+    )
+    check(
+        "no no-cycle write exceeds the charge limit (dhw_max_temp), the cycle enabled and not running "
+        "or disabled, over every step size and everyday set-point on and off the step",
+        lambda: _nocycle_grid_over_limit("idle") == [] and _nocycle_grid_over_limit("disabled") == [],
+    )
+    check(
+        "an off-step everyday set-point is written on the step at or below it, never rounded up "
+        "(everyday 58, step 5: 55, not 60; everyday 60.7, step 1: 60), the cycle idle or disabled",
+        lambda: all(written(_dhw_snap(configured=58.0, attrs=_step(5), **kw), d) == 55.0
+                    and written(_dhw_snap(configured=60.7, attrs=_step(1), **kw), d) == 60.0
+                    and written(_dhw_snap(configured=60.3, attrs=_step(0.5), **kw), d) == 60.0
+                    for kw in _NOCYCLE_ARMS.values() for d in (None, "idle", "dhw", "both")),
+    )
+    check(
+        "a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses",
+        lambda: written(_dhw_snap(configured=25.0, cycle=False), "dhw") == 30.0
+        and written(_dhw_snap(configured=25.4, cycle=False, attrs={"min": 30.5, "max": 65, "step": 0.5}), "dhw") == 30.5
+        and written(_dhw_snap(configured=25.0, cycle=False, attrs={"min": 30.4, "max": 65, "step": 1}), "dhw") == 31.0
+        and written(_dhw_snap(configured=30.6, cycle=False, attrs={"min": 30.4, "max": 65, "step": 1}), "dhw") == 31.0
+        and written(_dhw_snap(configured=72.0, cycle=False, attrs={"min": 70, "max": 80, "step": 1}), "dhw") == 70.0
+        and written(_dhw_snap(configured=58.0, cycle=False, attrs={"max": 65, "step": 5}), "dhw") == 55.0,
+    )
+    check(
+        "the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every "
+        "step size and pair, and an off-step floor's repair stands down at the step below it",
+        lambda: _repair_grid_over_hard_max() == []
+        and _fix_value(_dhw_snap(disinfection=60.3, reading=60.0), arbiter=False) is None
+        and _fix_value(_dhw_snap(disinfection=60.3, reading=59.0), arbiter=False) == 60.0
+        and _fix_value(_dhw_snap(disinfection=60.3, reading=60.0 - setpoint_check.MIXING_VALVE_WRITE_EPSILON),
+                       arbiter=False) is None
+        and _fix_value(_dhw_snap(disinfection=72.0, reading=69.0, attrs=_step(1)), arbiter=False) == 70.0,
+    )
+    check(
+        "a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum",
+        lambda: written(_dhw_snap(disinfecting=True, disinfection=72.0,
+                                  attrs={"min": 30, "max": 80, "step": 1}), "dhw") == 70.0,
+    )
+    check(
+        "no cycle write exceeds the tank's hard maximum, over every step size and the disinfection "
+        "temperature below, at and above the everyday set-point, on and off the step",
+        lambda: _cycle_grid_over_hard_max() == [],
+    )
+    check(
+        "a disinfection temperature above the entity's range stays bounded at its maximum",
+        lambda: written(_dhw_snap(disinfecting=True, attrs={"min": 30, "max": 58, "step": 1}), "dhw") == 58.0,
+    )
+    check(
+        "the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW",
+        lambda: written(_dhw_snap(action={"dhw_reason": "legionella"}), "space") == 30.0
+        and written(_dhw_snap(), "space") == 30.0
+        and written(_dhw_snap(disinfecting=True), "space") == 60.0,
+    )
+    check(
+        "null control: a disabled cycle writes the everyday set-point on every row and booking",
+        lambda: all(written(_dhw_snap(cycle=False, **b), d) == (30.0 if d == "space" and not b.get("disinfecting") else 55.0)
+                    for d in _DUTIES for b in _BOOKINGS),
+    )
+    check(
+        "a combi store at or under the potable limit runs no cycle: a booked or held step writes the "
+        "everyday set-point, unless the cycle is forced (#3398's predicate, read through the cycle's owner)",
+        lambda: not _combi_snap(False).params.legionella_cycle_active
+        and _combi_snap(True).params.legionella_cycle_active
+        and all(written(_combi_snap(False, **b), "dhw") == 55.0 and written(_combi_snap(True, **b), "dhw") == 60.0
+                for b in _BOOKINGS[1:]),
+    )
+    check(
+        "null control: an everyday set-point at or above the disinfection temperature is written as is",
+        lambda: all(written(_dhw_snap(configured=c, **b), d) == (30.0 if d == "space" and not b.get("disinfecting") else c)
+                    for c in (60.0, 62.0) for d in _DUTIES for b in _BOOKINGS),
+    )
+    check(
+        "null control: no hot-water set-point entity is no hot-water write on any row",
+        lambda: all(written(_dhw_snap(entity=None, **b), d) is None for d in _DUTIES for b in _BOOKINGS),
+    )
+    check(
+        "the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself",
+        lambda: _fix_value(_dhw_snap()) is None,
+    )
+    check(
+        "a person's value beside the arbiter's write still raises the repair, its Fix on the floor",
+        lambda: _fix_value(_dhw_snap(reading=50.0)) == 60.0,
+    )
+    check(
+        "null control: with no arbiter write the pump's own set-point must still permit the cycle",
+        lambda: _fix_value(_dhw_snap(entity=None)) is None
+        and _fix_value(_dhw_snap(), arbiter=False) == 60.0
+        and _fix_value(_dhw_snap(reading=60.0), arbiter=False) is None,
+    )
+    check(
+        "null control: a disabled cycle and an everyday set-point at the disinfection temperature raise nothing",
+        lambda: _fix_value(_dhw_snap(cycle=False)) is None
+        and _fix_value(_dhw_snap(configured=60.0, reading=60.0)) is None,
+    )
 
 
 if __name__ == "__main__":

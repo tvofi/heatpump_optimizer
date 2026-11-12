@@ -29,12 +29,12 @@
     "advisor-light.png": {
       "width": 1056,
       "height": 708,
-      "structure": "f6e80bdb46caba23"
+      "structure": "9b30f4ad501e8236"
     },
     "health-light.png": {
       "width": 1056,
       "height": 792,
-      "structure": "1c76c65ce6e7146e"
+      "structure": "10447dc0f4b62f8b"
     },
     "tile-dark.png": {
       "width": 900,
@@ -64,12 +64,12 @@
     "advisor-dark.png": {
       "width": 1056,
       "height": 708,
-      "structure": "f6e80bdb46caba23"
+      "structure": "9b30f4ad501e8236"
     },
     "health-dark.png": {
       "width": 1056,
       "height": 792,
-      "structure": "1c76c65ce6e7146e"
+      "structure": "10447dc0f4b62f8b"
     }
   }
 }

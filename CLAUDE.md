@@ -119,10 +119,10 @@ Under `dev/governance/roles/`.
 | `architect-planner.md` | P3 from round 11: triages verified findings, groups by owning seam, plans moves to the archscore target |
 | `plan-review.md` | attacks that plan; only `Plan review: approve` sends it to the owner |
 | `proposal-triage.md` | gates a process or tooling proposal on cost/benefit first |
-| `standing-tick.md` | reports only owed or new tick-board items |
+| `standing.md` | the standing seats' shared terms |
 | `standing-merge.md` | runs merges, critical path first, never choosing them |
 | `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
-| `standing-roster.md` | `roster_edit.py` ops only, behind the lint gate |
+| `standing-tick.md`, `standing-roster.md` | retired into beat rows |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
 | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |

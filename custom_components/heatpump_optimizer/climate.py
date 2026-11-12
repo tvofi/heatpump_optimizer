@@ -82,7 +82,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     _attr_name = None
     _attr_translation_key = "heat_pump_optimizer"
     _platform_domain = "climate"
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO]
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE
@@ -123,7 +123,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     def available(self) -> bool:
         """Unavailable while the indoor thermometer has not read.
 
-        ``current_temperature`` used to return ``ThermalState.room_temperature``
+        ``native_current_temperature`` used to return ``ThermalState.room_temperature``
         (21.0 °C) on a default install with no indoor entity, and the climate
         entity stayed available, so the thermostat card published that
         constructor default as a measurement (A3(e)).
@@ -132,7 +132,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         return bool(super().available and flags.get("upper_floor_temperature"))
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return the current indoor temperature, or None if nothing measured it."""
         if not self.coordinator.data:
             return None
@@ -147,7 +147,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         return None
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Return the comfort target the user asked for.
 
         The optimizer's own per-step setpoint is deliberately not reported
