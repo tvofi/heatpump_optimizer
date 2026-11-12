@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
+index c8ba27f784..55cdab6163 100755
+--- a/tools/audit/seat/bus.sh
++++ b/tools/audit/seat/bus.sh
+@@ -233,7 +233,7 @@ carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and r
+   # one call reads the head ref (its topic is the pull request's own group: the own-carry status
+   # exemption needs it) and the body; a reader that returns the body alone yields no topic
+   # `&& echo x` keeps gh's own status (`; echo x` would replace it) and the body's trailing newlines
+-  if ! raw=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '"HEADREF:" + .head.ref + "\n" + (.body // "")' 2>/dev/null && echo x); then
++  if ! raw=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '"HEADREF:" + .head.ref + "\n" + (.body // "")' 2>/dev/null; echo x); then
+     echo "BUS carry-landing UNREAD #$1: the body could not be read; the dispatch goes on" >&2; rm -f "$b"; return 0
+   fi
+   raw=${raw%x}
