@@ -9,7 +9,7 @@
     `gate` succeeded (a run with no cached job listing is `unread`).
   - `A_run` — the share of the same runs whose run conclusion is success.
   - `Y_rev` — over the last 50 pull requests, the share whose first review
-    verdict (de-duplicated on pr, head, kind, class) is `merge`.
+    verdict (the earliest by `t`, whatever the order of `verdicts.json`) is `merge`.
   - `M_first` — over the same 50, the share whose first verdict is `blocked`
     in a machinery family (carry, body, CI state, merge state, root-cause
     form, ruling or roster).

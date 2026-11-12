@@ -62,6 +62,20 @@ def cases(sc) -> dict[str, bool]:
     y, m = sc.line_review(mix, FAM)
     r["Y_rev planted: one merge first in four pull requests"] = "merge 1/4 = 25%" in y
     r["M_first planted: only a blocked first verdict in a machinery family counts"] = m.startswith("M_first 1/4 = 25%")
+    # the first verdict is the earliest by t, in any file order; the window is the 50 latest first verdicts
+    shuf = [{"pr": 1, "head": H, "kind": "blocked", "cls": "carry-x", "t": "2026-11-03T00:00:00Z"},
+            {"pr": 1, "head": H, "kind": "merge", "cls": "none", "t": "2026-11-01T00:00:00Z"},
+            {"pr": 2, "head": H, "kind": "blocked", "cls": "zzz", "t": "2026-11-02T00:00:00Z"}]
+    y, m = sc.line_review(shuf, FAM)
+    r["Y_rev unordered: the earliest verdict by t is the first, not the first in the file"] = \
+        "merge 1/2 = 50%" in y and "first verdicts 2026-11-01T00:00 .. 2026-11-02T00:00" in y and m.startswith("M_first 0/2 = 0%")
+    rev = [{"pr": i, "head": H, "kind": "merge" if i < 50 else "blocked", "cls": "none",
+            "t": f"2026-11-{1 + (99 - i) // 24:02d}T{(99 - i) % 24:02d}:00:00Z"} for i in range(60)]
+    y, _ = sc.line_review(rev, FAM)
+    r["Y_rev unordered window: the 50 latest first verdicts, whatever the file order"] = "merge 50/50 = 100%" in y
+    y, _ = sc.line_review([{"pr": 1, "head": H, "kind": "blocked", "cls": "zzz", "t": "2026-11-01T00:00:00Z"},
+                           {"pr": 1, "head": H, "kind": "merge", "cls": "none", "t": "2026-11-02T00:00:00Z"}], FAM)
+    r["Y_rev first verdict: a later merge does not make a blocked first verdict a merge"] = "merge 0/1 = 0%" in y
     y, m = sc.line_review(mix, None)
     r["M_first without a family map is unread, Y_rev still prints"] = "unread" in m and "1/4" in y
     # Y_train
@@ -70,6 +84,8 @@ def cases(sc) -> dict[str, bool]:
     r["Y_train null: a log with no SKIP or PARK line prints 100%; an unnamed pull request is not counted"] = "2/2 = 100%" in t
     t = sc.line_train(mg, TRAIN_CLEAN + "SKIP #1001 red\nPARK #1002 held\n")
     r["Y_train planted: a SKIP line and a PARK line each cost the pull request"] = "0/2 = 0%" in t
+    t = sc.line_train(["1003"], "MERGED #1003\n")
+    r["Y_train named: a pull request named only on a MERGED line is counted"] = "1/1 = 100%" in t
     # H
     rows = [{"class": "production", "tokens": "hotfix-x"}, {"class": "instrument", "tokens": "hotfix"},
             {"class": "docs", "tokens": "hotfix"}, {"class": "production", "tokens": "feat"}]
@@ -107,13 +123,17 @@ def cases(sc) -> dict[str, bool]:
     s3 = sc.line_size(Path("."), lambda argv, cwd: (2, ""))
     s4 = sc.line_size(Path("."), lambda argv, cwd: fake(argv, cwd) if "machinery_ratchet.py" in argv[2] else (2, "origin/main:f:5\n"))
     r["S: an unreadable ratchet is unread, never a number"] = "ratchet unread" in s3[0]
+    s5 = sc.line_size(Path("."), lambda argv, cwd: (3, '{"nonproduction_merges": 1, "window": 2, "churn_per_kilo_product_lines": 3}\n')
+                      if "machinery_ratchet.py" in argv[2] else fake(argv, cwd))
+    r["S: a ratchet that exits non-zero is unread even when it printed JSON"] = "ratchet unread" in s5[0]
     r["S: an unreadable line count is unread, never a ratio"] = "498 per 580" in s4[0] and s4[-1].endswith("unread")
     # the whole report over a planted state dir, and over an empty one
     with tempfile.TemporaryDirectory() as td:
         d = Path(td) / "scorecard"
         (d / "jobs").mkdir(parents=True)
         (d / "runs.json").write_text(json.dumps(rs))
-        (d / "jobs" / "jobs_5.json").write_text(json.dumps({"jobs": [{"name": "gate", "conclusion": "success"}]}))
+        (d / "jobs" / "jobs_5.json").write_text(json.dumps({"jobs": [{"name": "gate", "conclusion": "success"},
+                                                                    {"name": "governance / instrument-self-tests", "conclusion": "failure"}]}))
         (d / "verdicts.json").write_text(json.dumps({"verdicts": mix}))
         (d / "merges.tsv").write_text("pr\tct\tclass\ttokens\n1001\t1\tproduction\thotfix\n1002\t2\tproduction\tx\n")
         (d / "roster.json").write_text(json.dumps({"groups": g}))
@@ -124,23 +144,29 @@ def cases(sc) -> dict[str, bool]:
         out = sc.report(d, Path(td) / "train.log", None, Path(td) / "sweep.txt")
         r["report: ten lines' worth over a planted state dir (S unread without a checkout)"] = \
             len(out) == 9 and not any("unread (" in x for x in out if x[:2] != "S ") and out[0].startswith("A_gate  5/5")
+        r["report: A_gate reads the job named gate, not the last job listed"] = out[0].startswith("A_gate  5/5 read = 100%") and out[1].startswith("A_run   4/5")
+        r["report: K reads the sweep record it is given"] = "K 1 " in out[-1] and "K unread" not in out[-1]
         empty = sc.report(Path(td) / "none", Path(td) / "none.log", None, None)
         r["report: an empty state dir prints unread on every line, none a number"] = \
             all("unread" in x for x in empty if not x.startswith("C, K")) and "C unread; K unread" in empty[-1]
     return r
 
 
-#: (needle, replacement, the case that must fail). One per predicate; the dedupe key changes no first
-#: verdict, so it has none.
+#: (needle, replacement, the case that must fail). One per predicate.
 MUTANTS = {
     "A_gate reads the run conclusion": ('"success" if r["c"] == "success" else gate.get(r["id"], "unread")', 'r["c"]', "A_gate null"),
     "A_gate window": ("WINDOW_RUNS = 20", "WINDOW_RUNS = 21", "only the last 20"),
     "A_run counts cancelled green": ('sum(r["c"] == "success" for r in ok)', 'sum(r["c"] != "cancelled" for r in ok)', "A_run null"),
-    "Y_rev not merge": ('first_merge = sum(vs[0]["kind"] == "merge"', 'first_merge = sum(vs[0]["kind"] != "merge"', "Y_rev null"),
+    "Y_rev not merge": ('first_merge = sum(v["kind"] == "merge"', 'first_merge = sum(v["kind"] != "merge"', "Y_rev null"),
     "Y_rev window": ("WINDOW_PRS = 50", "WINDOW_PRS = 51", "Y_rev null"),
-    "M_first ignores kind": ('vs[0]["kind"] == "blocked" and family_of', 'True and family_of', "M_first planted"),
-    "M_first family inverted": ("in MACH for vs in last", "not in MACH for vs in last", "M_first planted"),
-    "M_first first verdict": ('family_of(vs[0]["cls"], fam)', 'family_of(vs[-1]["cls"], fam)', "M_first planted"),
+    "M_first ignores kind": ('v["kind"] == "blocked" and family_of', 'True and family_of', "M_first planted"),
+    "M_first family inverted": ("in MACH for v in last", "not in MACH for v in last", "M_first planted"),
+    "Y_rev first verdict kept": ("first.setdefault(v[\"pr\"], v)", "first[v[\"pr\"]] = v", "Y_rev first verdict"),
+    "Y_rev ordered by t": ('sorted(verdicts, key=lambda v: v["t"])', "list(verdicts)", "Y_rev unordered"),
+    "A_gate job named gate": ('if j["name"] == "gate":', "if True:", "report: A_gate reads the job named gate"),
+    "report passes the record": ("rd(record) if record else None", "None", "report: K reads"),
+    "Y_train MERGED names": ('(BATCH|SKIP|PARK|MERGED|ADMIT|ALREADY)', '(BATCH|SKIP|PARK|ADMIT|ALREADY)', "Y_train named"),
+    "S ratchet exit": ("json.loads(out) if rc == 0 else None", "json.loads(out)", "S: a ratchet that exits non-zero"),
     "Y_train SKIP": ('r"SKIP #(\\d+)"', 'r"SKIPX #(\\d+)"', "Y_train planted"),
     "Y_train PARK": ('ln.startswith("PARK")', 'ln.startswith("PARKX")', "Y_train planted"),
     "Y_train unnamed counted": ("tn = [p for p in merged if p in named]", "tn = [p for p in merged]", "Y_train null"),
