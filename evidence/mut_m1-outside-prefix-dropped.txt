@@ -1,0 +1,20 @@
+mutant m1-outside-prefix-dropped at b372f8e935365aaecbe6e74c68d3954e5a3ca1b1
+tools/audit/seat/merge_train.py: 'any(str(ln).startswith("OUTSIDE: ") and f" at {h}: " in str(ln) for ln in lines)' -> 'any(f" at {h}: " in str(ln) for ln in lines)'
+cmd: python3 -I tools/audit/seat/merge_train.py --self-test
+rc=1
+RESULT m1-outside-prefix-dropped: KILLED, 0 FAIL line(s), summary ['merge_train self-test: 714 checks, 2 failed']
+
+
+--- tail
+  ok   null: a timeout the base had too, on the same step, is inherited (GREEN, introduced rc 0)
+  ok   a re-run at one head that went red: the latest run (highest id) is read, its red INTRODUCED
+  ok   a re-run at one head that went green reads clean at no job read
+  ok   a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN
+  ok   null: a head with no instrument-self-tests run (the prelude skipped it) is GREEN
+  ok   fail closed: the head's job concluded cancelled is a Stop (rc 2), never a clean read
+  ok   fail closed: the head's job concluded startup_failure is a Stop (rc 2), never a clean read
+  ok   fail closed: the base's job concluded cancelled is a Stop (rc 2), never a clean read
+  ok   fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
+merge_train self-test: 714 checks, 2 failed
+/tmp/mut-m1-outside-prefix-dropped/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),

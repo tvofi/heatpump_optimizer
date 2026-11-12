@@ -1,0 +1,11 @@
+wiring_st rc=0 :: selftest_wiring self-test: 26 checks, 0 failed
+entities rc=1 :: ModuleNotFoundError: No module named 'homeassistant'
+structure rc=0 :: STRUCTURE RATCHET PASSED
+archscore rc=0 :: Architecture score: dS +0.0000 NULL
+wiring_check rc=0 :: selftest_wiring: 0 index gap(s)
+owed_reds rc=0 :: validate / validate-hacs
+field_cov rc=0 :: FIELD COVERAGE SELF-TEST ok
+pl_mutants rc=0 :: MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOv
+record rc=0 :: selftest_scope: recorded 5 step(s) into /tmp/rv/rerecord.json; 0 failed [], 0 broken trace(s)
+pr_args rc=0 :: pr_args self-test: 205 checks, 0 failed
+DONE

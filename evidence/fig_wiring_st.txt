@@ -1,0 +1,27 @@
+  ok   an inline run line wires it (null control)
+  ok   a block run line wires it (null control)
+  ok   a comment line naming it does not
+  ok   a shell comment inside the run block does not
+  ok   a trailing comment on a run line does not
+  ok   a run line naming it without its self-test does not
+  ok   a step name naming it does not
+  ok   a basename alone does not (the rule wants the path)
+  ok   a sibling's self-test on the line does not wire it
+  ok   a self-test that belongs to the next command on the line does not
+  ok   nor one after a pipe
+  ok   the block ends at its indentation: a later step's text is not run
+  ok   a file outside tools/audit/seat/ is wired by its run line
+  ok   a nested file is wired by its run line
+  ok   a file under another tools/ directory with no run line is unwired
+  ok   the enumeration takes --self-test and a case arm at any tools/ path, not a file without one, a .md or .json, or a __pycache__ file
+  ok   a consistent index and entry set has no gap (null control)
+  ok   deleting one index line leaves its file unindexed
+  ok   an index line whose file is gone is refused
+  ok   a file linked twice is refused
+  ok   a line naming another instrument than its file's entry is refused
+  ok   an entry file no line links is refused
+  ok   a missing index is refused
+  ok   --check exits 1 on an unwired file (rc=1)
+  ok   --check exits 0 when every file is wired (null control) (rc=0)
+  ok   --check exits 1 on an index gap when every file is wired (rc=1)
+selftest_wiring self-test: 26 checks, 0 failed

@@ -1,0 +1,11 @@
+review_carry head: review_carry self-test: 32 checks, 0 failed rc=0 
+ledger head: ledger self-test: 103 checks, 0 failed rc=0 
+merge_pr head: merge_pr self-test: 29 checks, 0 failed rc=0 
+outside head: outside self-test: 212 checks, 0 failed rc=0 
+remerge head: remerge_main self-test: 13 checks, 0 failed rc=0 
+app_comment head: app_comment self-test: 70 checks, 0 failed rc=0 
+app_approve head: app_approve self-test: 350 checks, 0 failed rc=0 
+merge_train head: merge_train self-test: 714 checks, 0 failed rc=0 
+bus head: bus self-test: 203 checks, 0 failed rc=0 
+ci_predict head: ci_predict self-test: 0 failed rc=0 
+DONE
