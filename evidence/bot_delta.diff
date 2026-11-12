@@ -1,6 +1,3 @@
-5d647dd055d7e08e1073bedbe570257c606b98b3 github-actions[bot] ci: re-record closures
- tests/closures.json | 17 +++++++++--------
- 1 file changed, 9 insertions(+), 8 deletions(-)
 diff --git a/tests/closures.json b/tests/closures.json
 index 7c1da3e5bd..85232ab6c3 100644
 --- a/tests/closures.json
@@ -41,9 +38,43 @@ index 7c1da3e5bd..85232ab6c3 100644
    "tests/entities.py": {
     "rc": 0,
 @@ -5092,7 +5093,7 @@
-review_carry: b7a838c1e -> 5d647dd05  main=origin/main
-  branch-only commits: 1
-  why: 1 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
-  5d647dd05  ci: re-record closures
-review_carry: CARRY
-carry rc=0
+   },
+   "tests/features.py": {
+    "rc": 0,
+-   "seconds": 1207.9
++   "seconds": 531.8
+   },
+   "tests/finite_boundary.py": {
+    "rc": 0,
+@@ -5104,7 +5105,7 @@
+   },
+   "tests/golden.py": {
+    "rc": 0,
+-   "seconds": 0.4
++   "seconds": 0.9
+   },
+   "tests/guard_pins.py": {
+    "rc": 0,
+@@ -5148,7 +5149,7 @@
+   },
+   "tests/stress.py": {
+    "rc": 0,
+-   "seconds": 1060.0
++   "seconds": 443.5
+   },
+   "tests/structure.py": {
+    "rc": 0,
+@@ -5156,11 +5157,11 @@
+   },
+   "tests/typing_ruler.py": {
+    "rc": 0,
+-   "seconds": 15.8
++   "seconds": 0.4
+   },
+   "tests/validate.py": {
+    "rc": 0,
+-   "seconds": 54.2
++   "seconds": 21.5
+   },
+   "tests/wood_advisor.py": {
+    "rc": 0,
