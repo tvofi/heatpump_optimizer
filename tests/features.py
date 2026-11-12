@@ -30176,7 +30176,7 @@ from heatpump_optimizer.const import (  # noqa: E402
     PRICE_SOURCE_TIBBER as _PRICE_SOURCE_TIBBER,
 )
 
-# D10-07: a failed price fetch must FAIL the update. Every failure path used
+# D10-07: a failed price fetch with no covering prices must FAIL the update. Every failure path used
 # to return silently, so last_update_success never moved and the entities
 # stayed available forever behind stale prices. The stub's session getter
 # raises, which is exactly one such failure.
@@ -30222,6 +30222,111 @@ R.check(
     _tib._tibber_outage_cycles == 0,
     f"cycles: {_tib._tibber_outage_cycles}",
 )
+
+# Price outage with still-valid prices: the failed fetch is bridged (warning +
+# repair), the update does not fail; once the old prices no longer cover now
+# the update fails again, and a recovered fetch clears the repair. Null
+# controls: a healthy fetch raises no repair, a refused token still fails.
+import logging as _logging_pf  # noqa: E402
+import sys as _sys_pf  # noqa: E402
+from homeassistant.util import dt as _dtu_pf  # noqa: E402
+
+_pf_mod = _sys_pf.modules[type(_tib).__module__]
+_pf_pull = _pf_mod.pull_prices
+_pf_session = _pf_mod.async_get_clientsession
+_pf_now = _dtu_pf.now().replace(minute=0, second=0, microsecond=0)
+
+
+def _pf_rows(hours):
+    return [{"total": 0.3, "starts_at": (_pf_now + timedelta(hours=h)).isoformat()} for h in hours]
+
+
+def _pf_fetch(verdict=None, payload=None):
+    """One price fetch; ``verdict`` scripts ``pull_prices``, None keeps the stub's failure."""
+    if verdict is not None:
+        async def _scripted(*_a, **_k):
+            return verdict, payload
+        _pf_mod.pull_prices = _scripted
+        _pf_mod.async_get_clientsession = lambda _hass: None
+    try:
+        _asyncio.run(_tib._fetch_tibber_prices())
+    except Exception as err:  # noqa: BLE001 - the class is the assertion
+        return err
+    finally:
+        _pf_mod.pull_prices = _pf_pull
+        _pf_mod.async_get_clientsession = _pf_session
+    return None
+
+
+class _PfLevels(_logging_pf.Handler):
+    def emit(self, record):
+        _pf_levels.append(record.levelname)
+
+
+_pf_levels: list = []
+_pf_handler = _PfLevels()
+_logging_pf.getLogger("heatpump_optimizer").addHandler(_pf_handler)
+_pf_issue_ids = lambda: [i[1] for i in getattr(_tib.hass, "issues", [])]  # noqa: E731
+
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_pf_raised = _pf_fetch("ok", _pf_rows((0, 1, 2)))
+R.check(
+    "null control: a healthy price fetch neither fails the update nor raises the price_feed_stale repair",
+    _pf_raised is None and _pf_issue_ids() == [] and _tib._tibber_outage_cycles == 0,
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_tib._prices = _pf_rows((-1, 0, 1, 2))
+_pf_levels.clear()
+_pf_raised = _pf_fetch()
+R.check(
+    "a failed price fetch while the last prices still cover now does not fail the update",
+    _pf_raised is None and _tib._tibber_outage_cycles == 1 and len(_tib._prices) == 4,
+    f"raised {_pf_raised!r}, cycles {_tib._tibber_outage_cycles}",
+)
+R.check(
+    "...and raises the price_feed_stale repair, logging a WARNING and no ERROR",
+    _pf_issue_ids() == ["price_feed_stale"] and "WARNING" in _pf_levels and "ERROR" not in _pf_levels,
+    f"issues {_pf_issue_ids()}, levels {_pf_levels}",
+)
+_pf_raised = _pf_fetch("ok", _pf_rows((0, 1, 2)))
+R.check(
+    "a recovered fetch clears the repair and the outage latch",
+    _pf_raised is None and _pf_issue_ids() == [] and _tib._tibber_outage_cycles == 0,
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_pf_fetch()  # bridged again: the repair is up when the prices run out below
+_tib._prices = _pf_rows((-5, -4, -3))
+_pf_levels.clear()
+_pf_raised = _pf_fetch()
+R.check(
+    "null control: prices that no longer cover now fail the update again, and the repair stays",
+    type(_pf_raised).__name__ == "UpdateFailed" and _pf_issue_ids() == ["price_feed_stale"],
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_tib._prices = []
+_pf_levels.clear()
+_pf_fetch()
+R.check(
+    "null control: an outage with no covering prices logs ERROR on its first cycle and raises no repair",
+    "ERROR" in _pf_levels and _pf_issue_ids() == [],
+    f"levels {_pf_levels}, issues {_pf_issue_ids()}",
+)
+_tib._tibber_outage_cycles = 0
+_tib._prices = _pf_rows((-1, 0, 1, 2))
+_pf_raised = _pf_fetch("reauth", "token refused")
+R.check(
+    "null control: a refused token fails the update although prices still cover now, and raises no price_feed_stale repair",
+    type(_pf_raised).__name__ == "ConfigEntryAuthFailed" and "price_feed_stale" not in _pf_issue_ids(),
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_logging_pf.getLogger("heatpump_optimizer").removeHandler(_pf_handler)
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_tib._tibber_reauth_started = False
+_tib._prices = []
 
 # #216 (round-2 D10-B): the latch must OWN the outage's logging. The four
 # in-try failure verdicts (401/403, HTTP != 200, GraphQL errors, no homes)
@@ -49253,7 +49358,7 @@ _RC2_ROWS = [
     (_C.HeatPumpOptimizerClimate, "async_turn_on", (), ("mode", "off"), ("hvac_mode", _C.HVACMode.AUTO)),
     (_C.HeatPumpOptimizerClimate, "async_set_hvac_mode", (_C.HVACMode.HEAT,), ("mode", "auto"), ("hvac_mode", _C.HVACMode.HEAT)),
     (_C.HeatPumpOptimizerClimate, "async_set_preset_mode", ("economy",), ("mode", "auto"), ("preset_mode", "economy")),
-    (_C.HeatPumpOptimizerClimate, "async_set_temperature", ({"temperature": 21.5},), ("mode", "auto"), ("target_temperature", 21.5)),
+    (_C.HeatPumpOptimizerClimate, "async_set_temperature", ({"temperature": 21.5},), ("mode", "auto"), ("native_target_temperature", 21.5)),
     (_rc2_dt.AwayReturnDateTime, "async_set_value", (_RC2_RETURN,), ("away", True), ("native_value", _RC2_RETURN)),
 ]
 # The buttons share one PARALLEL_UPDATES slot, so a press that awaits a solve
@@ -61388,7 +61493,7 @@ R.check(
 def _p8_setpoint(state):
     hass = _FakeHass({"number.dhw_sp": state})
     hass.issues = []
-    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, legionella_cycle_active=False, dhw_legionella_temp=60.0)
+    params = _r9f12_tp(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
     _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
     return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
 
@@ -62012,6 +62117,261 @@ R.check(
     "floor makes the first read as a 43.1 L tank heat",
 )
 
+# A charge start makes the tank reading FALL (the loading transient), and the
+# reading recovers once the charge stops; a draw does not recover. Each case
+# drives one learner on a pinned clock, samples 5 min apart (a sub-production
+# cadence; the production ones are below), and reads (the open draw occurrence in kWh,
+# usage-profile points). Pre-fix the dip is booked on the heated interval and
+# taught as usage on the settle interval; a fix that drops every
+# charge-affected interval instead loses the real draw. "dip" recovers; "draw"
+# is the same fall that stays down: it must keep what main booked. "edge" dips
+# on the interval ending exactly DHW_CHARGE_SETTLE_HOURS after the heated
+# sample, still inside the window. "space": a compressor start for SPACE
+# heating never sets the plan's DHW flag, the learner's only heating input,
+# so the dip is learned exactly as on main -- the null control.
+def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,), saturday=False, step_min=5):
+    import sys as _sys
+    import types as _types
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    coord._thermal_params.dhw_schedule_enabled = False  # one all-day window
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    published, heating = [], [False]
+    learner._publish = lambda **k: published.append(k)
+    learner._heating_active = lambda: heating[0]
+    saved = [None]
+
+    async def _save_draws():
+        saved[0] = learner.draw_stats.as_dict()["open_kwh"]
+
+    learner.async_save_draws = _save_draws
+    module = _sys.modules[type(learner).__module__]
+    real_dt = module.dt_util
+    start = dt_util.now().replace(hour=start_hm[0], minute=start_hm[1], second=0)
+    if saturday:
+        start += timedelta(days=(5 - start.weekday()) % 7)
+    clock = [start]
+    module.dt_util = _types.SimpleNamespace(now=lambda: clock[0])
+    try:
+        for i, temp in enumerate(temps):
+            clock[0] = start + timedelta(minutes=step_min * i)
+            heating[0] = charged and i in heated_at
+            _aio.run(learner.async_learn_dynamics(temp))
+    finally:
+        module.dt_util = real_dt
+    stats = learner.draw_stats.as_dict()
+    closed = [e for v in stats["reservoirs"].values() for e in v]
+    return (
+        round(stats["open_kwh"], 4), len(published), closed,
+        list(learner.daytype_samples), saved[0] == stats["open_kwh"],
+    )
+
+
+_chg_dip = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0))
+_chg_draw = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0))
+_chg_edge = _chg_seq((50.0, 50.0, 50.0, 50.0, 48.0, 49.5, 50.0, 50.0))
+_chg_space = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0), charged=False)
+_chg_space_draw = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0), charged=False)
+# The recovery crosses midnight: the rise in the tick that opens the next
+# day's occurrence still reaches the dip in the day it closes, and a later
+# rise takes nothing from the new day (a closed occurrence is final).
+_chg_midnight = _chg_seq((50.0, 50.0, 47.0, 47.0, 48.5, 50.0, 50.0), start_hm=(23, 40))
+# A draw before the charge, then the device heats on past the plan slot:
+# those rises are no dip recovering, and must not take back the draw, which
+# the charge never folded.
+_chg_reheat = _chg_seq((50.0, 47.0, 47.0, 47.0, 49.0, 51.0, 51.0), heated_at=(2,))
+# An 8 K draw during the charge, then 8 K of reheat past the slot: the take
+# back stops at the dip bound, DHW_CHARGE_DIP_MAX_K, and 3 K stays booked.
+_chg_cap = _chg_seq((50.0, 50.0, 42.0, 42.0, 46.0, 50.0, 50.0))
+# A 4 K draw during a three-sample charge, then the charge heats 2 K back:
+# a heated rise is charge heat, not a dip recovering, so the draw stays
+# booked as on main (4 K beside "draw"'s 3 K).
+_chg_heated_rise = _chg_seq(
+    (50.0, 50.0, 46.0, 48.0, 48.0, 48.0, 48.0, 48.0), heated_at=(1, 2, 3)
+)
+# A 3 K settle drop that recovers only 1 K: the usage learner still learns
+# the 2 K left, at the interval's own length, once the charge closes.
+_chg_partial = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0))
+# "draw", then a later 1 K rise after the charge has closed: a closed charge
+# takes nothing back.
+# The same partial recovery on a Saturday teaches the weekend day type.
+_chg_partial_sat = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0), saturday=True)
+_chg_late = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0, 48.0))
+_chg_reheat_ctl = _chg_seq((50.0, 47.0, 47.0, 47.0, 47.0, 47.0, 47.0), heated_at=(2,))
+# The learner runs once per coordinator refresh, optimization_interval: 30 min
+# by default, 10-120 min. At those cadences the interval ENDING at the first
+# heated sample holds the draw made before the charge: a 3 K draw, then a 4 K
+# dip under 1 K of charge heat that recovers. Only the draw may stay booked,
+# as in the same trace with no dip (truth); pre-fix the recovery took back
+# part of that draw. The no-charge control keeps main's dip-inflated booking.
+def _chg_cadence(step_min, dip=True, charged=True):
+    temps = (50.0, 47.0, 44.0 if dip else 48.0, 48.0, 48.0)
+    return _chg_seq(temps, charged=charged, start_hm=(7, 0), step_min=step_min)[0]
+
+
+_chg_cad = {
+    step: (_chg_cadence(step), _chg_cadence(step, dip=False), _chg_cadence(step, charged=False))
+    for step in (10, 15, 30)
+}
+R.check(
+    "at the learner's production cadences a charge-start dip's recovery takes back "
+    "no draw made before the charge",
+    all(abs(d - t) < 0.01 and n > t + 0.5 for d, t, n in _chg_cad.values()),
+    f"cadence min: (dip open kWh, truth, no DHW charge on record (control)) {_chg_cad}",
+)
+
+# The take-back is bounded twice: by the charge-folded energy left in the open
+# occurrence, and by DHW_CHARGE_DIP_MAX_K per charge, not per interval. "esc":
+# a 3 K draw before the charge, a 1 K dip and two 1 K settle rises: the second
+# rise finds nothing left to take, and the draw stays as with no dip at all
+# (_chg_reheat_ctl). "cap3": an 8 K fall on the charge, then three 3 K rises in
+# the settle window: 5 K is taken and 3 K stays booked, as in "draw".
+_chg_esc = _chg_seq((50.0, 47.0, 47.0, 46.0, 47.0, 48.0, 48.0), heated_at=(2,))
+_chg_cap3 = _chg_seq((50.0, 50.0, 42.0, 45.0, 48.0, 51.0, 51.0))
+R.check(
+    "a charge's take-back stops at the energy its charge folded and at the dip bound",
+    abs(_chg_esc[0] - _chg_reheat_ctl[0]) < 0.01 and abs(_chg_cap3[0] - _chg_draw[0]) < 0.01,
+    f"(open kWh, ...) a 1 K dip recovering 2 K after a draw {_chg_esc} vs no dip (control) "
+    f"{_chg_reheat_ctl}; three 3 K rises after an 8 K fall {_chg_cap3} vs a 3 K draw {_chg_draw}",
+)
+
+R.check(
+    "a charge-start dip that recovers is learned as neither a draw nor usage, "
+    "and a draw that does not recover keeps what main booked",
+    _chg_dip[0] < 0.05 and _chg_dip[1] == 0
+    and _chg_edge[0] < 0.05 and _chg_edge[1] == 0
+    and _chg_draw[0] > 0.5 and _chg_draw[1] == 1
+    and _chg_space[0] > 0.5 and _chg_space[1] == 2
+    and abs(_chg_draw[0] - _chg_space_draw[0]) < 0.05
+    and _chg_midnight[0] == 0.0 and 0.0 < _chg_midnight[2][0] < _chg_draw[0]
+    and _chg_reheat[0] > 0.5 and abs(_chg_reheat[0] - _chg_reheat_ctl[0]) < 0.05
+    and abs(_chg_cap[0] - _chg_draw[0]) < 0.05
+    and _chg_heated_rise[0] > _chg_draw[0] + 0.1
+    and _chg_partial[1] == 1 and 0.0 < _chg_partial[0] < _chg_draw[0]
+    and abs(_chg_late[0] - _chg_draw[0]) < 0.05
+    and _chg_partial[3] == [1, 0] and _chg_partial_sat[3] == [0, 1]
+    and _chg_dip[4] and _chg_partial[4],
+    f"(open kWh, usage points) dip {_chg_dip}, dip at the window edge {_chg_edge}, "
+    f"draw that stays down {_chg_draw}, the dip with no DHW charge on record "
+    f"(control) {_chg_space}, the draw with none (control) {_chg_space_draw}, "
+    f"(new day open kWh, -, [closed day]) recovery across midnight {_chg_midnight}, "
+    f"a draw then heating past the slot {_chg_reheat} vs no reheat (control) "
+    f"{_chg_reheat_ctl}, an 8 K draw and 8 K of reheat {_chg_cap}, a draw then "
+    f"charge heat {_chg_heated_rise}, a 3 K settle drop recovering 1 K "
+    f"{_chg_partial}, on a Saturday {_chg_partial_sat}, a rise after the charge "
+    f"closed {_chg_late}; [weekday, weekend] day counts, and whether the last "
+    f"save holds the final open kWh, are the last two fields",
+)
+
+
+# The cooling learner reads the same flag: a 30-min interval that STARTED on a
+# heated sample is no standby decay. The same interval with no charge on
+# record is the control that proves it learnable (one cooling sample).
+def _chg_cooling(started_heated):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    learner._heating_active = lambda: False
+    now = dt_util.now()
+    learner.last_temp_sample, learner.last_sample_time = 50.0, now - timedelta(minutes=30)
+    learner.heating_since_sample = started_heated
+    _aio.run(learner.async_learn_dynamics(49.8))
+    return learner.cooling_samples
+
+
+_chg_cool = (_chg_cooling(True), _chg_cooling(False))
+R.check(
+    "a 30-min interval that started on a heated DHW sample teaches no cooling",
+    _chg_cool == (0, 1),
+    f"cooling samples from a 30-min interval started heated / not (control) {_chg_cool}",
+)
+
+# The snapshot restore and the store loader now share one day-type reader, so
+# a snapshot whose day count overflows int() (inf) restores a zero count, as
+# the loader already did, rather than raising out of apply_payload. A finite
+# count is the control that still restores as stored. A snapshot restore
+# keeps a day type whose profile is absent or not 24 long as it was, its
+# count included, and a negative count is clamped to zero.
+def _chg_restore(count, profile=(1.0,) * 24):
+    learner = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))._dhw_learner
+    payload = {"hourly_profile": [1.0] * 24, "profile_weekend_samples": count}
+    if profile is not None:
+        payload["profile_weekend"] = list(profile)
+    try:
+        learner.apply_payload(payload)
+    except OverflowError:
+        return "OverflowError"
+    return learner.daytype_samples[1], len(learner.profile_weekend)
+
+
+_chg_restored = (
+    _chg_restore(float("inf")), _chg_restore(7), _chg_restore(7, (1.0,) * 23),
+    _chg_restore(7, None), _chg_restore(-3),
+)
+R.check(
+    "a snapshot restore takes an overflowing day-type count as zero, as the loader does, "
+    "and keeps a day type with a malformed profile as it was",
+    _chg_restored == ((0, 24), (7, 24), (0, 24), (0, 24), (0, 24)),
+    f"(weekend day count, profile length) restored from inf / 7 (control) / "
+    f"7 beside a 23-long profile / 7 with no profile / -3: {_chg_restored}",
+)
+
+
+# The draw fold persists a tick only above a 1e-4 kWh churn floor, for the
+# energy it folds and for the energy a recovery takes back alike: a tick AT
+# the floor saves nothing (the floor is strict), one ulp above it saves. Each
+# arm opens the occurrence with a zero tick first, so no occurrence closes and
+# the floor alone decides. The inputs are searched, not derived from the
+# fold's formula: the probe needs a drop whose booked energy is exactly 1e-4.
+def _chg_floor_saves(arm, above):
+    learner = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))._dhw_learner
+    learner._params().dhw_enabled = True
+    learner.cooling_rate = 0.0
+    learner._external_heat_active = lambda: False
+    saves = [0]
+
+    async def _save_draws():
+        saves[0] += 1
+
+    learner.async_save_draws = _save_draws
+    now = dt_util.now().replace(hour=8, minute=0, second=0, microsecond=0)
+    _aio.run(learner.async_fold_draw_stats(now, 50.0, 0.0, 1.0))
+    saves[0] = 0
+    floor = 1e-4 if not above else _ct_math.nextafter(1e-4, 1.0)
+    if arm == "fold":
+        cap = learner._params().dhw_store.capacity_kwh_per_c
+        drop = floor / cap
+        for _ in range(64):
+            if drop * cap == floor:
+                break
+            drop = _ct_math.nextafter(drop, 1.0 if drop * cap < floor else 0.0)
+        else:
+            return "no drop books exactly the floor"
+        _aio.run(learner.async_fold_draw_stats(now, 50.0, drop, 1.0))
+    else:
+        learner.draw_stats._open_charge_kwh = learner.draw_stats._open_kwh = floor
+        _aio.run(learner.async_fold_draw_stats(now, 50.0, 0.0, 1.0, recovered_k=1.0))
+    return saves[0]
+
+
+_chg_floor = {
+    arm: (_chg_floor_saves(arm, False), _chg_floor_saves(arm, True)) for arm in ("fold", "take")
+}
+R.check(
+    "the draw fold saves a tick only strictly above its 1e-4 kWh floor, folded or taken back",
+    _chg_floor == {"fold": (0, 1), "take": (0, 1)},
+    f"saves at the floor / one ulp above (control), per arm: {_chg_floor}",
+)
+
 # A zero-capacity tank is the input the floors were hiding. With the capacity
 # read raw, four of the seams below divide by it, so each has to decline to
 # plan rather than raise. Pre-fix this arm answers "ZeroDivisionError": the
@@ -62443,7 +62803,8 @@ class _PaCoord:
         self._thermal_model = _PaNS(
             params=_PaNS(min_electrical_power=0.4), curve_flow_temp=lambda _o: 34.2
         )
-        self._thermal_params = _PaNS(dhw_setpoint=48.0)
+        # No disinfection cycle: the arbiter reads the cycle's temperature only on a cycle step.
+        self._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_cycle_temp=None)
         self._current_state = _PaNS(outdoor_temperature=2.0)
         # One store key per coordinator: the storage stub outlives FakeHass.
         # A FakeEntry, weak-referenceable as a real entry is: off_restore
@@ -63305,8 +63666,8 @@ R.check(
     f"{_pa_heat_own.writes()} {_pa_heat_sig.mode_owned=}",
 )
 _pa_mbs = _PaCoord(_PA_MODBUS, duties="s")
-_pa_mbs._thermal_params = _PaNS(
-    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, legionella_cycle_active=True, dhw_legionella_temp=60.0
+_pa_mbs._thermal_params = _r9f12_tp(
+    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
 )
 _pa_settled(_pa_mbs, 1)
 _p8_sp.evaluate(_pa_mbs, lambda pump: _pa.dhw_gated(_pa_mbs, pump))
@@ -64017,7 +64378,7 @@ R.check(
     f"{_pa_ingate.writes()}",
 )
 
-# dhw_gated: only the arbiter's own gate, still reading as written, is excused.
+# dhw_gated: only the arbiter's own write, still reading as written, is excused.
 _pa_gate = _PaCoord(_PA_MODBUS, duties="s")
 _pa_run(_pa_gate, 1)
 _pa_full = _PaCoord(_PA_TUYA, duties="d")
@@ -64028,8 +64389,8 @@ R.check(
     f"{_pa.state_for(_pa_gate).written=}",
 )
 R.check(
-    "a written set-point at the configured value is no gate, so it excuses nothing",
-    not _pa.dhw_gated(_pa_full, 48.0),
+    "a written set-point at the configured value is the arbiter's too: it writes the cycle itself, so it is excused",
+    _pa.dhw_gated(_pa_full, 48.0) and not _pa.dhw_gated(_pa_full, 46.0),
     f"{_pa.state_for(_pa_full).written=}",
 )
 
@@ -66738,7 +67099,7 @@ async def _f11_midsolve(away: bool):
                 refresh=False)
         ent = _f11_climate.HeatPumpOptimizerClimate(c, entry)
         published: list = []
-        c.async_add_listener(lambda: published.append(ent.target_temperature))
+        c.async_add_listener(lambda: published.append(ent.native_target_temperature))
         seen: list = []
         solve = _f11_cm._await_optimize
 
@@ -66751,7 +67112,7 @@ async def _f11_midsolve(away: bool):
         with _f11_mock.patch.object(_f11_cm, "_await_optimize", _wrapped):
             dt_util.freeze(t0 + timedelta(minutes=15))
             await c.async_run_optimization()
-        return seen, ent.target_temperature
+        return seen, ent.native_target_temperature
     finally:
         dt_util.freeze(None)
 
@@ -69197,9 +69558,9 @@ for _f25_valve, _f25_kw in (
     _f25_cap = {}
     _f25_real_builder = _f21_optmod._terminal_row_cost
 
-    def _f25_cap_builder(refill, cop_end, cop_buffer, stores):
-        built = _f25_real_builder(refill, cop_end, cop_buffer, stores)
-        _f25_cap["args"] = (refill, cop_end, cop_buffer, stores)
+    def _f25_cap_builder(refill, cop_end, cop_buffer, stores, law=None):
+        built = _f25_real_builder(refill, cop_end, cop_buffer, stores, law)
+        _f25_cap["args"] = (refill, cop_end, cop_buffer, stores, law)
         _f25_cap["spec"] = built[1]
         return built
 
@@ -77320,8 +77681,8 @@ _df_space_hass = _df_strict_hass({"number.space": FakeState("unavailable")})
 _df_sc.evaluate(_DfNS(
     hass=_df_space_hass,
     effective_config={"space_setpoint_entity": "number.space"},
-    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False, legionella_cycle_active=False,
-                         dhw_legionella_temp=60.0),
+    thermal_params=_r9f12_tp(dhw_min_temp=45.0, dhw_legionella_enabled=False,
+                             dhw_legionella_temp=60.0),
 ))
 R.check(
     "a set-point slot with no entity id reads nothing, before any state lookup, "
@@ -83984,6 +84345,153 @@ R.check(
 )
 
 
+# --- R10-SAV-VALUATION-RESIDUE: stored heat bought back at the part-load law ---
+from heatpump_optimizer import optimizer as _svr_optmod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _SVR_OPT,
+    OptimizationConfig as _SVR_CFG,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _SVR_MODEL,
+    ThermalParameters as _SVR_PARAMS,
+    ThermalState as _SVR_STATE,
+    power_for_heat_per_cop_kw as _svr_inverse,
+)
+
+_SVR_HOURS = 0.25 * 96 * 0.25  # the cheapest quarter of the 24 h, 15 min horizon
+
+
+def _svr_opt(derate):
+    p = _SVR_PARAMS(min_electrical_power=0.5, max_electrical_power=6.0)
+    p.cop_partload_derate = derate
+    return _SVR_OPT(_SVR_MODEL(p), _SVR_CFG(horizon_hours=24, time_step_minutes=15)), p
+
+
+def _svr_state(t):
+    return _SVR_STATE(room_temperature=t, slab_temperature=t + 4.0, outdoor_temperature=-5.0,
+                      upper_floor_temperature=t, lower_floor_temperature=t,
+                      buffer_tank_temperature=30.0, dhw_temperature=50.0)
+
+
+def _svr_figures(derate):
+    opt, p = _svr_opt(derate)
+    prices, out = np.linspace(0.5, 2.0, 96), np.full(96, -5.0)
+    cost, batch = opt._terminal_cost(prices, out)
+    cold = np.full(96, 12.0)
+    term = cost(cold, cold, cold, cold, None)
+    row = batch({k: cold[None, :] for k in ("room", "slab", "upper", "lower", "buffer")})[0]
+    # A deficit whose refill rate sits on the band, below max power.
+    mild = np.full(96, 20.6)
+    band = cost(mild, mild, mild, mild, None)
+    warm_end, cold_end = _svr_state(21.0), _svr_state(12.0)
+    charge = opt._deferred_energy_cost(warm_end, cold_end, prices, out)
+    credit = opt._deferred_energy_cost(cold_end, warm_end, prices, out)
+    rp = float(np.percentile(prices, 25)) * opt.config.price_weight
+    return dict(term=term, band=band, row=row, charge=charge, credit=credit, rp=rp, p=p, opt=opt)
+
+
+_svr_lin, _svr_der = _svr_figures(0.0), _svr_figures(0.2)
+
+
+def _svr_law(fig, key):
+    hpc = _svr_lin[key] / fig["rp"]
+    return fig["rp"] * np.copysign(
+        float(_svr_inverse(fig["p"], abs(hpc), hours=_SVR_HOURS)), hpc)
+
+
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost and "
+    "the deferred settlement buy stored heat back at the same law, the tree's "
+    "own inverse at the deficit spread over the cheapest quarter of the "
+    "horizon; the batch twin agrees bit for bit, a surplus is credited at the "
+    "law a deficit is charged; null control: with no derate both laws are "
+    "None and the figures are the linear ones",
+    _svr_der["term"] > _svr_lin["term"] > 0.0
+    and abs(_svr_der["term"] - _svr_law(_svr_der, "term")) <= 1e-9 * _svr_der["term"]
+    and 1.0 < _svr_der["band"] / _svr_lin["band"] < 1.0 / (1.0 - 0.2)
+    and abs(_svr_der["band"] - _svr_law(_svr_der, "band")) <= 1e-9 * _svr_der["band"]
+    and _svr_der["row"] == _svr_der["term"] and _svr_lin["row"] == _svr_lin["term"]
+    and _svr_der["charge"] > _svr_lin["charge"] > 0.0
+    and abs(_svr_der["charge"] - _svr_law(_svr_der, "charge")) <= 1e-9 * _svr_der["charge"]
+    and _svr_der["credit"] == -_svr_der["charge"]
+    and _svr_optmod._refill_law(_svr_lin["p"], 96, 0.25) is None
+    and _svr_optmod._refill_law(_svr_der["p"], 96, 0.25) is not None,
+    f"linear {({k: _svr_lin[k] for k in ('term', 'band', 'row', 'charge', 'credit')})} "
+    f"derated {({k: _svr_der[k] for k in ('term', 'band', 'row', 'charge', 'credit')})}",
+)
+
+
+def _svr_valved(derate):
+    """A valved two-zone install (manual valve, a tank past
+    BUFFER_STORE_MIN_VOLUME, cop_flow_carnot), so the tank is a store whose
+    deficit converts at its own flow-derated COP: ``_terminal_row_cost``'s
+    split buffer/building arm, which the single-sum figures above never reach."""
+    p = _SVR_PARAMS(min_electrical_power=0.5, max_electrical_power=6.0, two_zone_enabled=True,
+                    mixing_valve_mode="manual", buffer_tank_volume=300.0, cop_flow_carnot=True)
+    p.cop_partload_derate = derate
+    opt = _SVR_OPT(_SVR_MODEL(p), _SVR_CFG(horizon_hours=24, time_step_minutes=15))
+    seen, real = {}, _svr_optmod._terminal_row_cost
+
+    def spy(refill_price, cop_end, cop_buffer, stores, law=None):
+        seen.update(cop_end=cop_end, cop_buffer=cop_buffer,
+                    buffer="buffer" in [s[1] for s in stores])
+        return real(refill_price, cop_end, cop_buffer, stores, law)
+
+    _svr_optmod._terminal_row_cost = spy
+    try:
+        prices, out = np.linspace(0.5, 2.0, 96), np.full(96, -5.0)
+        cost, batch = opt._terminal_cost(prices, out)
+    finally:
+        _svr_optmod._terminal_row_cost = real
+    cold, tank = np.full(96, 12.0), np.full(96, 20.0)
+    term = cost(cold, cold, cold, cold, tank)
+    row = batch({"room": cold[None, :], "slab": cold[None, :], "upper": cold[None, :],
+                 "lower": cold[None, :], "buffer": tank[None, :]})[0]
+    rp = float(np.percentile(prices, 25)) * opt.config.price_weight
+    return dict(term=term, row=row, rp=rp, p=p, **seen)
+
+
+_svr_vlin, _svr_vder = _svr_valved(0.0), _svr_valved(0.2)
+_svr_vhpc = _svr_vlin["term"] / _svr_vder["rp"]
+_svr_vlaw = _svr_vder["rp"] * float(_svr_inverse(_svr_vder["p"], _svr_vhpc, hours=_SVR_HOURS))
+
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: on a valved install, where the tank's deficit "
+    "converts at its own flow-derated COP (the split buffer/building arm of "
+    "_terminal_row_cost), the derated terminal cost is the same part-load law "
+    "applied to the split linear figure, and its batch row equals the scalar; "
+    "precondition: the tank is a store and cop_buffer differs from cop_end; "
+    "null control: with no derate the figure is the split linear one",
+    _svr_vder["buffer"] and _svr_vder["p"].buffer_is_store
+    and _svr_vder["cop_buffer"] != _svr_vder["cop_end"]
+    and _svr_vder["term"] > _svr_vlin["term"] > 0.0
+    and abs(_svr_vder["term"] - _svr_vlaw) <= 1e-9 * _svr_vder["term"]
+    and _svr_vder["row"] == _svr_vder["term"] and _svr_vlin["row"] == _svr_vlin["term"],
+    f"linear {(_svr_vlin['term'], _svr_vlin['row'])} derated "
+    f"{(_svr_vder['term'], _svr_vder['row'])} law {_svr_vlaw} "
+    f"cop_end {_svr_vder.get('cop_end')} cop_buffer {_svr_vder.get('cop_buffer')}",
+)
+
+from heatpump_optimizer.thermal_model import refill_power_kwh as _svr_refill  # noqa: E402
+
+# refill_power_kwh's own contract, read directly: its callers reach it only
+# through _refill_law, which returns None with no derate, so they cannot read
+# either arm of its guard. Inputs on the band, below max power over the hours.
+_svr_pass = (
+    _svr_refill(_svr_lin["p"], 7.3, _SVR_HOURS), _svr_refill(_svr_lin["p"], -7.3, _SVR_HOURS),
+    _svr_refill(_svr_der["p"], 7.3, 0.0), _svr_refill(_svr_der["p"], 7.3, -1.0),
+)
+_svr_bent = _svr_refill(_svr_der["p"], 7.3, _SVR_HOURS)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: refill_power_kwh returns its input bit for bit "
+    "with no derate (either sign) and over no hours, where no rate exists to "
+    "derate; null control: with a derate over the stated hours the same input "
+    "pays more",
+    _svr_pass == (7.3, -7.3, 7.3, 7.3) and _svr_bent > 7.3,
+    f"pass-through {_svr_pass} derated {_svr_bent}",
+)
+
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on
@@ -84010,6 +84518,8 @@ _FB_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
 _FB_SET = "number.fb_return_set"
 _FB_RETURN = "sensor.fb_return"
 _FB_IDS = __import__("itertools").count()
+_FB_LIMIT_KEYS = ("space_setpoint_low_limit_entity", "space_setpoint_high_limit_entity")
+_FB_LIMITS = ("sensor.fb_low_limit", "sensor.fb_high_limit")
 
 
 class _FbCoord:
@@ -84017,7 +84527,7 @@ class _FbCoord:
     flag the simulation sets each pass."""
 
     def __init__(self, *, unit="return", power_entity=True, feedback=None, lift=0.5,
-                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None):
+                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None, limits=(None, None)):
         self.hass = FakeHass({
             _FB_SET: FakeState("26.0", attributes={"min": 15, "max": 45, "step": step}),
             _FB_RETURN: FakeState("25.9", unit="°C"),
@@ -84027,6 +84537,13 @@ class _FbCoord:
             "space_setpoint_unit": unit, "heat_pump_return_temp_entity": _FB_RETURN,
             "flow_min_lift_k": lift, "flow_heat_c": ceiling,
         }
+        # The controller's own limits on the set-point as sensors (a Luxtronik's
+        # inputs 10104 and 10103): a FakeState, or a state string, per side.
+        for key, entity, limit in zip(_FB_LIMIT_KEYS, _FB_LIMITS, limits):
+            if limit is not None:
+                config[key] = entity
+                self.hass.states.set(entity, limit if isinstance(limit, FakeState)
+                                     else FakeState(str(limit), unit="°C"))
         if power_entity:
             config["heat_pump_power_entity"] = "sensor.fb_power"
         if feedback is not None:
@@ -84228,6 +84745,228 @@ R.check(
     "the miss and the repair are today's",
     bool(_fb_basecut["issues"]),
     f"issues at {_fb_basecut['issues'][:3]}",
+)
+
+# Part 3 (#3372 comment 6756915104): the two limits as optional sensors. Read,
+# they bound the loop before it writes, so the controller never has to cut.
+_FB_STEP_UP = {"plan_kw": [0.53] * 8 + [1.2] * 16, "clamp": (10.0, 27.6)}
+_fb_limit_hi = _fb_sim(limits=(None, 27.6), **_FB_STEP_UP)
+_fb_run = _fb_limit_hi["held"].feedback
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3, return limit 27.6 degC read from its sensor: no "
+    "write passes it, so the controller cuts nothing, and no repair is raised",
+    bool(_fb_limit_hi["writes"]) and max(w[1] for w in _fb_limit_hi["writes"]) <= 27.6
+    and _fb_run is not None and _fb_run.cut_hi_c is None and not _fb_limit_hi["issues"],
+    f"highest write {max((w[1] for w in _fb_limit_hi['writes']), default=None)}, "
+    f"cut {None if _fb_run is None else _fb_run.cut_hi_c}, issues {_fb_limit_hi['issues'][:3]}",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 null control: the same block with no limit "
+    "sensor writes past 27.6 degC before the cut is read back",
+    max(w[1] for w in _fb_clamped["writes"]) > 27.6,
+    f"highest write {max(w[1] for w in _fb_clamped['writes'])}",
+)
+# The lower side: a block at 1.2 kW, then 0.53 kW, with a 28.0 degC minimum
+# return target that the wind-down from the start programme runs into.
+_FB_STEP_DOWN = {"plan_kw": [1.2] * 8 + [0.53] * 16, "ceiling": 40.0, "clamp": (28.0, 50.0)}
+_fb_floor_blind = _fb_sim(**_FB_STEP_DOWN)
+_fb_floor = _fb_sim(limits=(28.0, None), **_FB_STEP_DOWN)
+_fb_run = _fb_floor["held"].feedback
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3, minimum return target 28.0 degC read from its "
+    "sensor: no write goes below it and the controller cuts nothing",
+    bool(_fb_floor["writes"]) and min(w[1] for w in _fb_floor["writes"]) >= 28.0
+    and _fb_run is not None and _fb_run.cut_lo_c is None and not _fb_floor["issues"],
+    f"lowest write {min((w[1] for w in _fb_floor['writes']), default=None)}, "
+    f"cut {None if _fb_run is None else _fb_run.cut_lo_c}, issues {_fb_floor['issues'][:3]}",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 null control: the same block with no limit "
+    "sensor writes below 28.0 degC and is cut there",
+    min(w[1] for w in _fb_floor_blind["writes"]) < 28.0
+    and _fb_floor_blind["held"].feedback.cut_lo_c == 28.0,
+    f"lowest write {min(w[1] for w in _fb_floor_blind['writes'])}, "
+    f"cut {_fb_floor_blind['held'].feedback.cut_lo_c}",
+)
+# A limit that cannot be used is absent, never guessed: an unavailable or
+# non-numeric sensor, a fault code outside any water's range, and a pair
+# that is crossed (the two sensors swapped) write what no sensor writes.
+_fb_blind = _fb_clamped["writes"]
+_fb_unusable = {
+    label: _fb_sim(limits=limits, **_FB_STEP_UP)["writes"] == _fb_blind
+    for label, limits in (
+        ("unavailable", (None, "unavailable")),
+        ("not a number", (None, "limit")),
+        ("fault code above", (850.0, None)),
+        ("fault code below", (None, -50.0)),
+        ("crossed", (27.6, 10.0)),
+        ("equal", (27.6, 27.6)),
+    )
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3: an unavailable, non-numeric or implausible limit "
+    "sensor, and a crossed or equal pair, write exactly what no limit sensor writes",
+    all(_fb_unusable.values()) and len(_fb_blind) > 10,
+    f"same as no sensor: {_fb_unusable}, {len(_fb_blind)} writes",
+)
+# A limit is a setting: its sensor reports on change only, so a reading days
+# old is still the limit (only ``unavailable`` says the source is gone).
+_fb_old = FakeState("27.6", unit="°C", last_updated=_FB_T0 - timedelta(days=30),
+                    last_reported=_FB_T0 - timedelta(days=30))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3: a limit last reported 30 days ago still bounds "
+    "the loop",
+    _fb_sim(limits=(None, _fb_old), **_FB_STEP_UP)["writes"] == _fb_limit_hi["writes"],
+)
+# The limits act on the loop alone (I1, I3): today's target is not moved by
+# them, so an install the loop does not act on writes the same with them.
+_fb_limit_cells = {
+    label: _fb_sim(minutes=60, limits=(27.0, 27.6), **kw)["writes"]
+    == _fb_sim(minutes=60, **kw)["writes"]
+    for label, kw in (
+        ("indoor", {"unit": "indoor"}),
+        ("no power entity", {"power_entity": False}),
+        ("option off", {"feedback": False}),
+    )
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: an indoor unit, no power entity or the option "
+    "off writes the same with both limit sensors as with neither",
+    all(_fb_limit_cells.values()),
+    f"same: {_fb_limit_cells}",
+)
+_fb_first = _fb_sim(minutes=20, limits=(27.0, None))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I3: the first write of a run is today's inlet "
+    "plus the lift, also below a read minimum (the controller's cut and the repair "
+    "are today's)",
+    bool(_fb_first["writes"]) and abs(_fb_first["writes"][0][1] - (25.9 + 0.5)) < 0.05,
+    f"first write {_fb_first['writes'][:1]}",
+)
+# The gate is the value that means off, so no controller upper limit may bring
+# a heating write to it (I2), whatever its sensor reads: below the gate, at it,
+# or between it and the entity's next step, fresh or 30 days old. A limit under
+# the lowest heating write is not a heating limit and writes what no sensor
+# writes; one a step or more above the gate is used, and still clears the gate.
+_FB_GATE_OFFSETS_K = (-5.0, -0.1, -0.01, 0.0, 0.004, 0.01, 0.05, 0.09, 0.1, 0.15, 0.3)
+_fb_gate_blind = {unit: _fb_sim(unit=unit, **_FB_STEP_UP) for unit in ("return", "flow")}
+_fb_gate_c = {unit: _fb_pa._gate_c(run["coord"].arbiter_inputs())
+              for unit, run in _fb_gate_blind.items()}
+_fb_gate_low, _fb_gate_same = {}, {}
+for _unit, _gate in _fb_gate_c.items():
+    for _label, _limit in (
+        *((f"{_off:+}", round(_gate + _off, 3)) for _off in _FB_GATE_OFFSETS_K),
+        ("30 days old", FakeState(str(_gate), unit="°C",
+                                  last_updated=_FB_T0 - timedelta(days=30),
+                                  last_reported=_FB_T0 - timedelta(days=30))),
+    ):
+        _sent = _fb_sim(unit=_unit, limits=(None, _limit), **_FB_STEP_UP)["writes"]
+        _fb_gate_low[_unit, _label] = min((w[1] for w in _sent), default=None)
+        _fb_gate_same[_unit, _label] = _sent == _fb_gate_blind[_unit]["writes"]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: a high-limit sensor reading below the gate, at "
+    "it or just above it, fresh or 30 days old, never brings a write to the gate or below "
+    "it, on a return and on a flow target",
+    len(_fb_gate_low) == 2 * (len(_FB_GATE_OFFSETS_K) + 1)
+    and all(low is not None and low > _fb_gate_c[unit]
+            for (unit, _label), low in _fb_gate_low.items()),
+    f"gate {_fb_gate_c}, lowest write at or below it: "
+    f"{ {k: v for k, v in _fb_gate_low.items() if v is None or v <= _fb_gate_c[k[0]]} }",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2 null control: with no limit sensor the lowest "
+    "write is above the gate too, so a write at the gate is the sensor's doing",
+    all(min(w[1] for w in run["writes"]) > _fb_gate_c[unit] and len(run["writes"]) > 10
+        for unit, run in _fb_gate_blind.items()),
+    f"lowest blind write { {u: min(w[1] for w in r['writes']) for u, r in _fb_gate_blind.items()} }",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: a high limit under the lowest heating write "
+    "(the gate plus one entity step) writes exactly what no limit sensor writes; one at "
+    "that write or above it is used",
+    all(same == (label == "30 days old" or float(label) < 0.1 - 1e-9)
+        for (_unit, label), same in _fb_gate_same.items()),
+    f"same as no sensor: {_fb_gate_same}",
+)
+
+
+def _fb_loop_write(unit, step, *, high=None, cut_hi=None, w_c=26.0, inlet=25.9):
+    """One loop pass past the start hold: ``(what _feedback returns, the gate)``."""
+    coord = _FbCoord(unit=unit, step=step, limits=(None, high), plan_kw=1.2)
+    coord.power = 1.0
+    coord.hass.states.get(_FB_RETURN).state = f"{inlet:.2f}"
+    inp = coord.arbiter_inputs()
+    now = _FB_T0 + timedelta(minutes=10)
+    held = _fb_pa.state_for(coord)
+    held.feedback = _fb_pa.FeedbackRun(
+        _FB_T0, w_c, now - timedelta(minutes=1), running=True, cut_hi_c=cut_hi)
+    base = _fb_pa._flow_target(inp, "space", now)
+    return _fb_pa._feedback(held, inp, now, base, True), _fb_pa._gate_c(inp)
+
+
+# The same property on every sibling of the sensor in the loop's upper bound
+# and at every entity step: the sensor, the readback cut, and both, each on a
+# grid across the gate, under a target above, at and below it.
+_fb_grid = [
+    (unit, step, source, off, w_off, inlet)
+    for unit in ("return", "flow") for step in (0.1, 0.5, 1.0)
+    for source in ("sensor", "cut", "both")
+    for off in (-8.0, -1.0, -0.3, -0.1, -0.01, 0.0, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0)
+    for w_off in (-3.0, 0.0, 0.05, 6.0) for inlet in (17.0, 25.9, 31.0)
+]
+_fb_grid_bad = []
+for _unit, _step, _source, _off, _w_off, _inlet in _fb_grid:
+    _gate = _fb_gate_c[_unit]
+    _lim = round(_gate + _off, 3)
+    _out, _g = _fb_loop_write(
+        _unit, _step, high=_lim if _source != "cut" else None,
+        cut_hi=_lim if _source != "sensor" else None, w_c=_gate + _w_off, inlet=_inlet)
+    if _out is None or _g != _gate or _out <= _gate:
+        _fb_grid_bad.append((_unit, _step, _source, _off, _w_off, _inlet, _out))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: no controller upper limit, read from its "
+    "sensor, from a readback cut or from both, on any entity step, makes a loop pass "
+    "return the gate or below it",
+    len(_fb_grid) == 2 * 3 * 3 * 14 * 4 * 3 and not _fb_grid_bad,
+    f"{len(_fb_grid_bad)} of {len(_fb_grid)} at or below the gate, first {_fb_grid_bad[:4]}",
+)
+# The sibling write paths of the space set-point (the indoor target, today's
+# open-loop target with the loop off or unmetered, the gate of a step that
+# does not heat, the start hold) read neither sensor: a high limit that binds
+# the loop, and one at the gate, change none of their writes.
+_FB_SIBLINGS = (
+    ("indoor", {"unit": "indoor", "minutes": 60}),
+    ("no power entity", {"power_entity": False, "minutes": 60}),
+    ("option off", {"feedback": False, "minutes": 60}),
+    ("no heating planned", {"plan_kw": 0.0, "minutes": 60}),
+    ("start hold", {"minutes": 5}),
+)
+_fb_sibling_blind = {label: _fb_sim(**kw)["writes"] for label, kw in _FB_SIBLINGS}
+_fb_sibling_same = {
+    (label, high): _fb_sim(limits=(None, high), **kw)["writes"] == _fb_sibling_blind[label]
+    for label, kw in _FB_SIBLINGS for high in (24.0, 20.0, 15.0)
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: the indoor target, an unmetered or switched-off "
+    "loop, a step that does not heat and the start hold each write the same under a high "
+    "limit that binds the loop, one at the gate and one below it as with no sensor",
+    all(_fb_sibling_same.values()) and all(_fb_sibling_blind.values()),
+    f"same: {_fb_sibling_same}, writes { {k: len(v) for k, v in _fb_sibling_blind.items()} }",
+)
+_fb_loop_bound = _fb_sim(minutes=60, limits=(None, 24.0))["writes"]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1 null control: the same 24.0 degC limit moves "
+    "the loop's own writes, so the sibling paths are unmoved by not reading it",
+    _fb_loop_bound != _fb_sim(minutes=60)["writes"]
+    and min(w[1] for w in _fb_loop_bound) == 24.0,
+    f"lowest write under the limit {min((w[1] for w in _fb_loop_bound), default=None)}",
+)
+_fb_used = _fb_loop_write("return", 0.1, high=24.0, w_c=30.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2 null control: the same pass with a limit well "
+    "above the gate returns that limit, so the grid's passes reach the upper bound",
+    _fb_used[0] == 24.0 and _fb_used[1] == 20.0,
+    f"returned {_fb_used}",
 )
 
 
