@@ -781,9 +781,9 @@ def check_vent_feed() -> None:
     R.check(
         "vent tripped + overlay live: the learner reports the ventilation "
         "reason and stays folded (no scale move)",
-        coord._learner_freeze_reason == "ventilation"
+        coord._learner_freezes.last == "ventilation"
         and coord._house_heat_loss_scale == scale0,
-        f"reason={coord._learner_freeze_reason} "
+        f"reason={coord._learner_freezes.last} "
         f"scale={coord._house_heat_loss_scale}",
     )
     R.check(

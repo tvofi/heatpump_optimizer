@@ -31,7 +31,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
-from .const import CONF_BUFFER_TANK_TEMP_ENTITY, CONF_DHW_TEMP_ENTITY
 from .drift import stored_instant, utc_elapsed_seconds
 from .payload import LearnerProgress
 
@@ -140,21 +139,42 @@ def pauses(reason: str | None) -> bool:
     unmetered-power freeze and an unread room (a property of the install that
     never ends, so a pause would promise a resume), and the plant states the
     heat pump itself signals (external heat, defrost, fault), which come and
-    go within cycles. The reason is ``learner_freeze_reason``, the last one a
-    learner recorded this cycle: the hot-water and buffer learners record
-    their own probe's problem there, which holds neither fabric learner, so
-    a reading on one of their probes keeps the count too.
+    go within cycles. Which learner a reason holds is not this census's: each
+    card learner reads only the record of the learner it folds in
+    (:data:`HELD_BY`).
     """
     if reason is None:
         return False
     if reason in ("boost_space", "ventilation"):
         return True
     problem, _, key = reason.partition(":")
-    return bool(key) and problem != "not_configured" and key not in _OTHER_PROBES
+    return bool(key) and problem != "not_configured"
 
 
-#: The probes only the hot-water and buffer learners freeze on.
-_OTHER_PROBES = frozenset((CONF_DHW_TEMP_ENTITY, CONF_BUFFER_TANK_TEMP_ENTITY))
+#: Each card learner and the learner whose freeze holds it. The solar aperture
+#: (``_fold_solar_aperture``) and the internal gains (``_fold_internal_gains``)
+#: fold inside the house learner's cycle, behind its freeze gate, so the house
+#: learner's freeze is theirs; no other learner's record reaches a card learner.
+HELD_BY: Mapping[str, str] = {"house": "house", "lower": "lower", "solar": "house", "gains": "house"}
+
+
+class FreezeRecord(dict[str, str]):
+    """The freeze each learner recorded this cycle, by learner, in recording order.
+
+    One learner's unusable probe is its own: a shared slot handed the last
+    learner's reason to every learner on the card (a lower-floor probe paused
+    the house learner, which never freezes on it).
+    """
+
+    def note(self, learner: str, reason: str) -> None:
+        """``learner`` froze on ``reason``; it becomes the last one recorded."""
+        self.pop(learner, None)
+        self[learner] = reason
+
+    @property
+    def last(self) -> str | None:
+        """The reason recorded last this cycle (the published ``learner_freeze_reason``)."""
+        return next(reversed(self.values()), None)
 
 
 def log_skip(clean: bool, what: str, why: str, *args: object) -> bool:

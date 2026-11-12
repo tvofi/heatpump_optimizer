@@ -9,9 +9,9 @@ fail nothing; every other mutant must fail at least one check.
 
     python3 dev/audit/harnesses/learner_freeze_mutants.py
 
-Run from the repository root on a clean checkout, with PYTHONPATH=tests/hastub
-and tests/plan_view.py run once (tests/card.mjs reads its plan payload). The
-file is restored even when a run raises.
+Run from the repository root on a clean checkout, with PYTHONPATH=tests/hastub.
+It runs tests/plan_view.py first, whose plan payload tests/card.mjs reads, and
+refuses if that fails. The file is restored even when a run raises.
 """
 from __future__ import annotations
 
@@ -42,9 +42,10 @@ MUTANTS = [
     ("M3-end-key-outside-the-frozen-phase", PKG / "learner_progress.py",
      '    if phase == "frozen":\n        status["frozen_until"]', '    if True:\n        status["frozen_until"]', BLOCK),
     ("M4-payload-passes-no-freeze", PKG / "coordinator.py",
-     "                boost.learning_freeze(self, self._learner_freeze_reason)),", "                None),", BLOCK),
-    ("M5-hot-water-and-buffer-probes-pause", PKG / "learner_progress.py",
-     "key not in _OTHER_PROBES", "True", BLOCK),
+     "                {k: boost.learning_freeze(self, r) for k, r in self._learner_freezes.items()}),",
+     "                None),", BLOCK),
+    ("M5-lower-card-learner-reads-the-house-record", PKG / "learner_progress.py",
+     '"lower": "lower"', '"lower": "house"', BLOCK),
     ("M6-global-mode-given-an-end", PKG / "boost.py",
      "    if raw != FREEZE_REASON or _mode_live(coord):", "    if raw != FREEZE_REASON:", BLOCK),
     ("M7-skip-reason-formatted-before-the-level-check", PKG / "learner_progress.py",
@@ -53,6 +54,12 @@ MUTANTS = [
     ("M8-span-line-with-no-counter", PKG / "heat_energy.py",
      "if _LOGGER.isEnabledFor(logging.DEBUG) and meter.refusal is not None:",
      "if _LOGGER.isEnabledFor(logging.DEBUG):", BLOCK),
+    ("M9-a-learner-recording-again-keeps-its-place", PKG / "learner_progress.py",
+     "        self.pop(learner, None)\n", "", BLOCK),
+    ("M10-lower-learner-records-in-the-house-slot", PKG / "coordinator.py",
+     'self._learner_freezes.note("lower", frozen)', 'self._learner_freezes.note("house", frozen)', BLOCK),
+    ("M11-solar-and-gains-read-the-lower-record", PKG / "learner_progress.py",
+     '"solar": "house", "gains": "house"', '"solar": "lower", "gains": "lower"', BLOCK),
 ]
 
 
@@ -65,6 +72,10 @@ def run(target, prelude: str) -> subprocess.CompletedProcess:
 
 
 def main() -> int:
+    pv = subprocess.run([sys.executable, "tests/plan_view.py"], capture_output=True, text=True, timeout=900)
+    if pv.returncode != 0:
+        print(f"REFUSED: tests/plan_view.py exit {pv.returncode}; tests/card.mjs reads its payload")
+        return 2
     with tempfile.TemporaryDirectory() as d:
         out = pathlib.Path(d) / "prelude.py"
         subprocess.run([sys.executable, "tools/audit/seat/features_block.py", "--emit-prelude", str(out), *BLOCK],

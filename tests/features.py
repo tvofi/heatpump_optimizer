@@ -2423,7 +2423,7 @@ def _r10do_dhw(tank):
         _r9f12_aio.run(coord._update_current_state())
     finally:
         _r9f12_dt.freeze(None)
-    return seen, coord._learner_freeze_reason, coord._legionella.last_cycle
+    return seen, coord._learner_freezes.last, coord._legionella.last_cycle
 
 
 _r10do_tank, _r10do_notank = _r10do_dhw("48.0"), _r10do_dhw(None)
@@ -14035,7 +14035,7 @@ from datetime import timedelta as _timedelta
 import homeassistant.util.dt as _lz_dt
 
 
-def _two_zone_learner(*, lower_entity=None, ratio=1.0):
+def _two_zone_learner(*, lower_entity=None, ratio=1.0, **extra):
     cfg = {
         "tibber_token": "x",
         "weather_entity": "weather.home",
@@ -14048,6 +14048,7 @@ def _two_zone_learner(*, lower_entity=None, ratio=1.0):
     }
     if lower_entity:
         cfg["lower_floor_temp_entity"] = lower_entity
+    cfg.update(extra)
     c = _Coord(_FakeHass({}), _FakeEntry(data=cfg))
     c._apply_lower_floor_loss_ratio(ratio)
     return c
@@ -14177,8 +14178,8 @@ _ext._external_heat_active = True
 _r_ext, _n_ext = _drive_lower(_ext, observed_lower=19.6)
 R.check(
     "external heat freezes the split learner too",
-    _n_ext == 0 and _ext._learner_freeze_reason == "external_heat_source",
-    f"{_n_ext} samples, reason {_ext._learner_freeze_reason}",
+    _n_ext == 0 and _ext._learner_freezes.last == "external_heat_source",
+    f"{_n_ext} samples, reason {_ext._learner_freezes.last}",
 )
 
 # The learned value has to survive a restart, or it re-converges from scratch
@@ -20820,7 +20821,7 @@ _feed_residual(_cv, -0.4, 4, _T4 + timedelta(hours=8))
 R.check(
     "while frozen, cold residuals feed the detector but never the model",
     _cv._house_heat_loss_scale == _scale_frozen
-    and _cv._learner_freeze_reason == "ventilation",
+    and _cv._learner_freezes.last == "ventilation",
     "an afternoon of airing out must not teach a phantom heat loss",
 )
 # The four frozen feeds above kept accumulating up to the 1.8 cap, so
@@ -31689,8 +31690,8 @@ R.check(
 )
 R.check(
     "and nothing reports a freeze reason on that run",
-    _lf_ok._learner_freeze_reason is None,
-    f"got {_lf_ok._learner_freeze_reason!r}",
+    _lf_ok._learner_freezes.last is None,
+    f"got {_lf_ok._learner_freezes.last!r}",
 )
 
 for _lf_cond in ("stale", "unavailable", "missing_entity", "not_numeric"):
@@ -31708,8 +31709,8 @@ for _lf_cond in ("stale", "unavailable", "missing_entity", "not_numeric"):
     )
     R.check(
         f"and the freeze reason names both the condition and the key ({_lf_cond})",
-        _lf_c._learner_freeze_reason == f"{_lf_cond}:indoor_temp_entity",
-        f"got {_lf_c._learner_freeze_reason!r}",
+        _lf_c._learner_freezes.last == f"{_lf_cond}:indoor_temp_entity",
+        f"got {_lf_c._learner_freezes.last!r}",
     )
 
 # The three other consumers of the same predicate, checked on a coordinator
@@ -32868,7 +32869,7 @@ R.check(
     "a defrost interval teaches the heat-loss learner nothing",
     _df_house._house_heat_loss_scale == 1.0
     and _df_house._house_heat_loss_samples == 0
-    and _df_house._learner_freeze_reason == "defrosting",
+    and _df_house._learner_freezes.last == "defrosting",
     f"scale {_df_house._house_heat_loss_scale:.4f}, "
     f"{_df_house._house_heat_loss_samples} samples: a defrost pulls heat back "
     "out of the circuit, so folding it walks the persisted scale one way",
@@ -35520,7 +35521,7 @@ R.check(
 )
 R.check(
     "and nothing reports a freeze",
-    _psd_none._learner_freeze_reason is None
+    _psd_none._learner_freezes.last is None
     and _psd_none._learning_frozen("indoor_temp_entity") is None,
 )
 
@@ -35544,8 +35545,8 @@ R.check(
 )
 R.check(
     "and the reason names the pump, not a sensor",
-    _psd_offline._learner_freeze_reason == pump_signals.FREEZE_OFFLINE,
-    f"got {_psd_offline._learner_freeze_reason!r}",
+    _psd_offline._learner_freezes.last == pump_signals.FREEZE_OFFLINE,
+    f"got {_psd_offline._learner_freezes.last!r}",
 )
 R.check(
     "the freeze is plant-wide: it does not depend on which key is asked about",
@@ -35563,7 +35564,7 @@ _psd_online = _psd_drive(
 R.check(
     "an online pump learns exactly as an unconfigured one does",
     _psd_online._house_heat_loss_scale == _psd_none._house_heat_loss_scale
-    and _psd_online._learner_freeze_reason is None,
+    and _psd_online._learner_freezes.last is None,
     f"{_psd_online._house_heat_loss_scale:.6f} vs "
     f"{_psd_none._house_heat_loss_scale:.6f}",
 )
@@ -35576,7 +35577,7 @@ _psd_lan = _psd_drive(
 )
 R.check(
     "an unavailable online entity does not freeze on its own",
-    _psd_lan._learner_freeze_reason is None
+    _psd_lan._learner_freezes.last is None
     and _psd_lan._house_heat_loss_samples > 50,
     "in LAN mode the pump's own power and temperature entities go unavailable "
     "with it, and v5.1.3's per-key rule freezes on those; freezing again here "
@@ -35591,9 +35592,9 @@ _psd_fault = _psd_drive(
 R.check(
     "a fault freezes the learners",
     _psd_fault._house_heat_loss_samples == 0
-    and _psd_fault._learner_freeze_reason == pump_signals.FREEZE_FAULT,
+    and _psd_fault._learner_freezes.last == pump_signals.FREEZE_FAULT,
     f"{_psd_fault._house_heat_loss_samples} samples, "
-    f"reason {_psd_fault._learner_freeze_reason!r}",
+    f"reason {_psd_fault._learner_freezes.last!r}",
 )
 _psd_view = _psd_fault._input_health_view()
 R.check(
@@ -35617,9 +35618,9 @@ _psd_cool = _psd_drive(
 R.check(
     "a cooling pump freezes the learners",
     _psd_cool._house_heat_loss_samples == 0
-    and _psd_cool._learner_freeze_reason == pump_signals.FREEZE_COOLING,
+    and _psd_cool._learner_freezes.last == pump_signals.FREEZE_COOLING,
     f"{_psd_cool._house_heat_loss_samples} samples, "
-    f"reason {_psd_cool._learner_freeze_reason!r}",
+    f"reason {_psd_cool._learner_freezes.last!r}",
 )
 R.check(
     "and it suppresses BOTH channels of the plan",
@@ -35649,7 +35650,7 @@ _psd_heat = _psd_drive(
 R.check(
     "the pump's normal winter mode changes nothing at all",
     _psd_heat._house_heat_loss_scale == _psd_none._house_heat_loss_scale
-    and _psd_heat._learner_freeze_reason is None
+    and _psd_heat._learner_freezes.last is None
     and not _psd_heat._pump_signals.space_blocked
     and not _psd_heat._pump_signals.dhw_blocked,
 )
@@ -50061,10 +50062,10 @@ finally:
     dt_util.freeze(None)
 R.check(
     "a frozen learner records why it froze and learns nothing",
-    _t2_buf_frozen._learner_freeze_reason == "external_heat_source"
+    _t2_buf_frozen._learner_freezes.last == "external_heat_source"
     and _t2_buf_frozen._buffer_cooling_samples == 0
     and _t2_buf_frozen._buffer_cooling_rate == _T2_RATE0,
-    f"reason {_t2_buf_frozen._learner_freeze_reason!r} "
+    f"reason {_t2_buf_frozen._learner_freezes.last!r} "
     f"samples {_t2_buf_frozen._buffer_cooling_samples}",
 )
 R.check(
@@ -51073,14 +51074,14 @@ R.check(
     "with a visible reason instead of fitting the 21.0 C default",
     _t2_hl_no_indoor._house_heat_loss_samples == 0
     and _t2_hl_no_indoor._house_heat_loss_scale == 1.0
-    and _t2_hl_no_indoor._learner_freeze_reason
+    and _t2_hl_no_indoor._learner_freezes.last
     == "not_configured:indoor_temp_entity"
     and _t2_no_indoor_view["learner_freeze_reason"]
     == "not_configured:indoor_temp_entity"
     and _t2_no_indoor_view["learners_frozen"] is True,
     f"samples {_t2_hl_no_indoor._house_heat_loss_samples} scale "
     f"{_t2_hl_no_indoor._house_heat_loss_scale!r} reason "
-    f"{_t2_hl_no_indoor._learner_freeze_reason!r} view {_t2_no_indoor_view!r}",
+    f"{_t2_hl_no_indoor._learner_freezes.last!r} view {_t2_no_indoor_view!r}",
 )
 _t2_hl_indoor_ok = _t2_house(observed=20.9)
 _t2_drive(_t2_hl_indoor_ok, "_async_learn_house_heat_loss")
@@ -51088,9 +51089,9 @@ R.check(
     "#2508 null control: a configured indoor entity still learns, and its "
     "unconfigured power slot does not freeze it",
     _t2_hl_indoor_ok._house_heat_loss_samples == 1
-    and _t2_hl_indoor_ok._learner_freeze_reason is None,
+    and _t2_hl_indoor_ok._learner_freezes.last is None,
     f"samples {_t2_hl_indoor_ok._house_heat_loss_samples} reason "
-    f"{_t2_hl_indoor_ok._learner_freeze_reason!r}",
+    f"{_t2_hl_indoor_ok._learner_freezes.last!r}",
 )
 # The freeze enters `_replay_gate` as its raw reason, so the cycle also
 # leaves no heat-counter span clean; the configured house is the control.
@@ -51125,7 +51126,7 @@ R.check(
     "(its observable is the lower zone's own sensor)",
     _t2_lo_no_indoor._lower_floor_loss_samples == 1,
     f"samples {_t2_lo_no_indoor._lower_floor_loss_samples} reason "
-    f"{_t2_lo_no_indoor._learner_freeze_reason!r}",
+    f"{_t2_lo_no_indoor._learner_freezes.last!r}",
 )
 
 # #2508's other room readers: #16's lead-time accuracy and #2's curve-comfort
@@ -79847,13 +79848,13 @@ R.check(
     and _tp_un_lf._t2_escaped is None
     and abs((_tp_un_lf_seen["kwargs"].get("measured_heat_kw") or 0.0) - 4.2) < 1e-9
     and _tp_unk._house_heat_loss_samples == 0
-    and _tp_unk._learner_freeze_reason is not None
+    and _tp_unk._learner_freezes.last is not None
     and _fm_un._house_heat_loss_samples == 0
-    and _fm_un._learner_freeze_reason == _PP_FREEZE,
+    and _fm_un._learner_freezes.last == _PP_FREEZE,
     f"house {_tp_un_seen['kwargs'].get('measured_heat_kw')!r} samples "
     f"{_tp_un._house_heat_loss_samples}; lower "
     f"{_tp_un_lf_seen['kwargs'].get('measured_heat_kw')!r}; unreadable "
-    f"{_tp_unk._learner_freeze_reason!r}; flow meter {_fm_un._learner_freeze_reason!r}",
+    f"{_tp_unk._learner_freezes.last!r}; flow meter {_fm_un._learner_freezes.last!r}",
 )
 _tp_met_seen, _tp_met_c = _tp_replay(_HOUSE_LEARNER)
 _tp_stale_seen, _tp_stale = _tp_replay(_HOUSE_LEARNER, heat_age_min=45)
@@ -79863,9 +79864,9 @@ R.check(
     abs((_tp_met_seen["kwargs"].get("measured_heat_kw") or 0.0) - 4.2) < 1e-9
     and _tp_met_c._house_heat_loss_samples == 1
     and _tp_stale._house_heat_loss_samples == 0
-    and str(_tp_stale._learner_freeze_reason).endswith(_TP_KEY),
+    and str(_tp_stale._learner_freezes.last).endswith(_TP_KEY),
     f"{_tp_met_seen['kwargs'].get('measured_heat_kw')!r} "
-    f"stale {_tp_stale._learner_freeze_reason!r}",
+    f"stale {_tp_stale._learner_freezes.last!r}",
 )
 
 
@@ -79998,9 +79999,9 @@ def _cv_room_air(latch):
     out = {}
     b = _t2_coord(buffer_tank_temp_entity="sensor.buffer")
     b._vent_cusum.tripped = latch
-    b._learner_freeze_reason = None
+    b._learner_freezes.clear()
     _asyncio.run(b._async_learn_buffer_cooling(40.0))
-    out["buffer"] = b._learner_freeze_reason
+    out["buffer"] = b._learner_freezes.last
     d = _t2_coord(heat_pump_power_entity="sensor.hp_power")
     d._vent_cusum.tripped = latch
     d._measured_power = 2.0
@@ -80024,7 +80025,7 @@ def _cv_room_air(latch):
         h._vent_cusum.tripped = latch
         before = (h._house_heat_loss_samples, h._thermal_params)
         _t2_drive(h, method)
-        out[name] = (h._learner_freeze_reason, (h._house_heat_loss_samples, h._thermal_params) == before)
+        out[name] = (h._learner_freezes.last, (h._house_heat_loss_samples, h._thermal_params) == before)
     f = _t2_coord()
     f._vent_cusum.tripped = latch
     f._current_action = {"power": 2.0, "dhw_power": 0.0}
@@ -87121,13 +87122,14 @@ R.check(
 _p3_census = {
     "boost_space": True, "ventilation": True, "stale:power_entity": True, "unavailable:indoor_temp_entity": True,
     "early_cutoff": False, "unmetered_power": False, "not_configured:indoor_temp_entity": False,
-    "stale:dhw_temp_entity": False, "unavailable:buffer_tank_temp_entity": False,
+    "stale:dhw_temp_entity": True, "unavailable:buffer_tank_temp_entity": True,
     "pump_offline": False, "pump_fault": False, "pump_cooling": False,
     "external_heat_source": False, "defrosting": False, None: False,
 }
 R.check(
-    "P3 census: the boost, an open window and an unusable reading pause the learner; the early "
-    "cut-off, unmetered power, an unread room and the pump's own states keep its count",
+    "P3 census: the boost, an open window and an unusable reading pause the learner that "
+    "recorded it; the early cut-off, unmetered power, an unread room and the pump's own states "
+    "keep its count",
     {k: _p3_lp.pauses(k) for k in _p3_census} == _p3_census
     and all(_p3_lp.learner_progress(_p3_inp, (k, None)) == _p3_plain for k, v in _p3_census.items() if k and not v),
     str({k: _p3_lp.pauses(k) for k in _p3_census}),
@@ -87167,18 +87169,72 @@ R.check(
     and boost_mod.space_boost_active(_p3_mode, NOW) is True and boost_mod.space_boost_active(_p3_c, NOW) is False,
     "",
 )
-import ast as _p3_ast  # noqa: E402
-import inspect as _p3_inspect  # noqa: E402
-_p3_view_calls = [
-    _p3_ast.unparse(n) for n in _p3_ast.walk(_p3_ast.parse(_p3_inspect.getsource(_he_cm)))
-    if isinstance(n, _p3_ast.Call) and getattr(n.func, "id", None) == "learner_progress_view"
-]
+# The census of who a probe problem pauses, driven through the learners and the
+# payload builder (``_learning_view``): every probe the input watchdog ages
+# (``INPUT_MAX_AGE_MINUTES``), made unusable alone, through the lower, house and
+# buffer learners in ``_async_learn_interval``'s order. The design, stated here
+# and not read from the code under test: the house learner freezes on the room,
+# the outdoor and the thermal-power probes, and the solar aperture and the gains
+# fold behind its gate; the lower learner freezes on those and its own probe.
+# Every other pair keeps its count.
+from heatpump_optimizer import const as _p3_const  # noqa: E402
+from heatpump_optimizer.const import INPUT_MAX_AGE_MINUTES as _p3_probes  # noqa: E402
+from heatpump_optimizer.inputs import InputReading as _p3_IR  # noqa: E402
+
+_p3_fabric = {_p3_const.CONF_INDOOR_TEMP_ENTITY, _p3_const.CONF_OUTDOOR_TEMP_ENTITY, _p3_const.CONF_THERMAL_POWER_ENTITY}
+_p3_design = {
+    "house": _p3_fabric, "solar": _p3_fabric, "gains": _p3_fabric,
+    "lower": _p3_fabric | {_p3_const.CONF_LOWER_FLOOR_TEMP_ENTITY},
+}
+
+
+def _p3_card(problem_key):
+    c = _two_zone_learner(
+        lower_entity="sensor.lower", solar_aperture_learning_enabled=True, internal_gains_learning_enabled=True)
+    if problem_key is not None:
+        c._input_health = _NS(readings={problem_key: _p3_IR(
+            key=problem_key, entity_id="sensor.p3", value=1.0, problem="stale")})
+    interval = c._close_fabric_interval()
+    _asyncio.run(c._async_learn_lower_floor_loss(interval))
+    _asyncio.run(c._async_learn_house_heat_loss(interval))
+    _asyncio.run(c._async_learn_buffer_cooling(40.0))
+    return {k: v["phase"] for k, v in c._learning_view()["learner_progress"].items()}
+
+
+_p3_null = _p3_card(None)
+_p3_seen = {k: _p3_card(k) for k in _p3_probes}
+_p3_bad = {
+    (k, name): phase for k, phases in _p3_seen.items() for name, phase in phases.items()
+    if (phase == "frozen") != (k in _p3_design[name])
+}
 R.check(
-    "P3 one source, wired: the payload's learner phases read the freeze the learners "
-    "recorded this cycle (the published learner_freeze_reason), with its end from BoostState",
-    len(_p3_view_calls) == 1
-    and _p3_view_calls[0].endswith("boost.learning_freeze(self, self._learner_freeze_reason))"),
-    f"{_p3_view_calls}",
+    "P3 census, driven: a probe problem pauses on the card exactly the learners that freeze on "
+    "that probe -- a lower-floor probe pauses the lower learner alone, the room, outdoor and "
+    "thermal-power probes pause all four, every other probe none; the census drives every aged "
+    "probe, every card learner is on, and with no problem none is paused",
+    not _p3_bad
+    and set(_p3_null) == set(_p3_design) == set(_p3_lp.HELD_BY)
+    and "frozen" not in _p3_null.values() and "off" not in _p3_null.values()
+    and set().union(*_p3_design.values()) <= set(_p3_probes)
+    and len(_p3_seen) == len(_p3_probes) > len(set().union(*_p3_design.values())),
+    f"mismatched {_p3_bad}; null {_p3_null}",
+)
+_p3_rec = _p3_lp.FreezeRecord()
+_p3_rec.note("house", "stale:indoor_temp_entity")
+_p3_rec.note("lower", "stale:lower_floor_temp_entity")
+_p3_rec.note("house", "boost_space")
+_p3_dhw = _two_zone_learner(lower_entity="sensor.lower")
+_p3_dhw._learner_freezes.note("dhw", "stale:dhw_temp_entity")
+_p3_dhw._learner_freezes.note("buffer", "boost_space")
+R.check(
+    "P3 one record per learner: the sensor's learner_freeze_reason is the reason recorded last "
+    "this cycle, a learner recording again moving to the end; a reason only the hot-water or "
+    "buffer learner recorded pauses no card learner, though it is the one the sensor publishes",
+    _p3_rec.last == "boost_space" and list(_p3_rec) == ["lower", "house"]
+    and _p3_lp.FreezeRecord().last is None
+    and "frozen" not in {v["phase"] for v in _p3_dhw._learning_view()["learner_progress"].values()}
+    and _p3_dhw._learner_freezes.last == "boost_space",
+    f"{dict(_p3_rec)} {dict(_p3_dhw._learner_freezes)}",
 )
 from types import SimpleNamespace as _p3_ns  # noqa: E402
 from heatpump_optimizer import heat_energy as _p3_he  # noqa: E402

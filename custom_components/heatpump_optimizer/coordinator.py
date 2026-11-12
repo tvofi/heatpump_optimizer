@@ -324,7 +324,7 @@ from .flow_lift import FlowCurveBias, curve_supply_temp
 from .flow_meter import cop_evidence, observe_water, replay_freeze, space_reference_cop
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
-from .learner_progress import Freeze, LearnerInputs, log_skip, learner_progress, snapshot_rates
+from .learner_progress import HELD_BY, Freeze, FreezeRecord, LearnerInputs, log_skip, learner_progress, snapshot_rates
 from . import pump_schedule
 from homeassistant.helpers import issue_registry as ir
 from .open_meteo import OpenMeteoSolar
@@ -1721,14 +1721,14 @@ def learner_progress_view(
     config: Any,
     snapshots: Sequence[Mapping[str, Any]],
     samples: tuple[float, float, float],
-    frozen: Freeze | None = None,
+    frozen: Mapping[str, Freeze | None] | None = None,
 ) -> dict[str, LearnerProgress]:
     """Each thermal learner's phase, progress and wait (R10-IDENT Q3).
 
     ``samples`` are the house, lower and solar learners' counts; a
     non-finite one (a corrupted store) counts as none. ``frozen``: the
-    freeze the learners recorded this cycle (``learner_freeze_reason``),
-    with its end.
+    freeze each learner recorded this cycle, with its end, by learner; a
+    card learner reads its own (``HELD_BY``).
     ``learner_progress`` owns the phases, this only gathers their inputs.
     """
     counts = {
@@ -1773,7 +1773,7 @@ def learner_progress_view(
             internal_gains_gate_open, None, house_wait, rates["house"],
         ),
     }
-    return {name: learner_progress(inputs, frozen) for name, inputs in learners.items()}
+    return {name: learner_progress(inputs, (frozen or {}).get(HELD_BY[name])) for name, inputs in learners.items()}
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
@@ -3878,7 +3878,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # --- Input health -------------------------------------------------
         self._input_health: InputHealth | None = None
-        self._learner_freeze_reason: str | None = None
+        self._learner_freezes = FreezeRecord()
 
     def _init_grid(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Price modelling, the capacity tariff and PV surplus."""
@@ -5442,7 +5442,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "learners_frozen": False,
                 "learner_freeze_reason": None,
             }
-        reason = self._learner_freeze_reason
+        reason = self._learner_freezes.last
         return {
             "input_health": stale_summary(health),
             "stale_inputs": health.stale_keys,
@@ -5641,7 +5641,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # this learner in particular has to be told, not left to infer.
         frozen = self._learning_frozen(CONF_BUFFER_TANK_TEMP_ENTITY)
         if frozen:
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note("buffer", frozen)
             return
 
         # With a mixing valve the tank is a store the house draws on while the
@@ -5773,7 +5773,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # reason makes the residual untrustworthy, detector included.
         vent_only = frozen == "ventilation"
         if frozen and not vent_only:
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note("house", frozen)
             return log_skip(clean, "house heat loss", "frozen (%s)", frozen)
 
         if interval is None or observed is None:
@@ -5824,7 +5824,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if vent_only:
             # The detector has been fed; the learner itself stays frozen
             # until the window closes.
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note("house", frozen)
             return clean
         if not fold:
             return clean
@@ -5928,7 +5928,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_LOWER_FLOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
         ))
         if frozen:
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note("lower", frozen)
             return clean
         if interval is None or observed is None or not fold:
             return clean
@@ -6816,7 +6816,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
         self._input_returns.arm(reader.health)
-        self._learner_freeze_reason = None
+        self._learner_freezes.clear()
 
         # The defrost derate's humidity bucket is resolved from this, so it has
         # to be current before anything calls compute_cop.
@@ -6833,7 +6833,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         tank = dhw.value if dhw.ok else None
         # A combi store's probe (#3225) also moves with the space side's draw.
         if tank is not None and not combi and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
-            self._learner_freeze_reason = frozen
+            self._learner_freezes.note("dhw", frozen)
         hours = await self._legionella.async_observe(tank, reader)
         _ctx_of(self).publish(self, dhw_hours_since_legionella=hours)
 
@@ -7986,7 +7986,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "learner_progress": learner_progress_view(
                 ctx._current_state, ctx._thermal_params, ctx._config, snaps,
                 (self._house_heat_loss_samples, self._lower_floor_loss_samples, self._solar_aperture["n"]),
-                boost.learning_freeze(self, self._learner_freeze_reason)),
+                {k: boost.learning_freeze(self, r) for k, r in self._learner_freezes.items()}),
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._measured_cop.cop,
