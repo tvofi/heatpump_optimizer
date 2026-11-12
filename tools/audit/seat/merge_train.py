@@ -1646,6 +1646,48 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         return 0
 
 
+BASELINE_JOBS = 6  # completed same-name runs the one-job pulse takes its p50 and max from
+
+
+def one_job_pulse(runs, now: float) -> "str | None":
+    """`CI waits on 1 job: <name> <e>m of p50 <p>m / max <m>m (normal)` when exactly
+    one run of the listing is unfinished, else None. The baseline is the p50 and
+    max duration of the last BASELINE_JOBS completed runs of the same name in the
+    SAME listing (no extra API call); a name with none completed prints
+    `no baseline`. Elapsed over the max reads `over max`, never a verdict to
+    cancel (2026-11-11: two near-complete 2173-3623 s python jobs were cancelled
+    as hung)."""
+    runs = list(runs or ())
+    open_ = [r for r in runs if r.get("status") != "completed"]
+    if len(open_) != 1:
+        return None
+    job = open_[0]
+    name = job.get("name", "?")
+
+    def ts(v):
+        try:
+            return datetime.datetime.fromisoformat(v.replace("Z", "+00:00")).timestamp()
+        except (AttributeError, ValueError):
+            return None
+
+    def secs(r):
+        a, b = ts(r.get("started_at")), ts(r.get("completed_at"))
+        return None if a is None or b is None else b - a
+
+    done = sorted((r for r in runs if r.get("name") == name and r.get("status") == "completed"
+                   and secs(r) is not None), key=lambda r: r.get("completed_at") or "")
+    durs = sorted(secs(r) for r in done[-BASELINE_JOBS:])
+    start = ts(job.get("started_at"))
+    if start is None:
+        return f"CI waits on 1 job: {name} (not started)"
+    el = max(0.0, now - start)
+    if not durs:
+        return f"CI waits on 1 job: {name} {el / 60:.0f}m, no baseline"
+    p50 = durs[(len(durs) - 1) // 2]
+    return (f"CI waits on 1 job: {name} {el / 60:.0f}m of p50 {p50 / 60:.0f}m / "
+            f"max {durs[-1] / 60:.0f}m ({'normal' if el <= durs[-1] else 'over max'})")
+
+
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
@@ -2169,6 +2211,9 @@ class Train:
                     done = sum(c.get("status") == "completed" for c in runs or ())
                 self.log(f"beat: waiting {what} (poll {k}, t+{int(now - start)}s, "
                          f"required: {req}, concluded: {done}/{req})")
+                pulse = one_job_pulse(runs, self.wall())
+                if pulse:
+                    self.log(pulse)
                 due = now + HEARTBEAT_SECONDS
             # Sleep only until the next beat is due: POLL_SECONDS (300) behind
             # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
@@ -4732,7 +4777,38 @@ def _self_test() -> int:
           and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
           and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
           and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
-    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
+    # one-job pulse (R10-TICK-RESIDUE-P2 carry 0): the baseline is the same listing's completed same-name runs
+    def jr(name, st, a, b=None):
+        iso = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+        return {"name": name, "status": st, "started_at": iso(a), "completed_at": iso(b) if b is not None else None}
+    # completed in index order, so the 9000 s run is the OLDEST: the BASELINE_JOBS window drops it
+    hist = [jr("codeql / Analyze (python)", "completed", 10000 * i, 10000 * i + d)
+            for i, d in enumerate([9000, 2400, 2800, 3000, 3600, 2900, 2700])]
+    live = jr("codeql / Analyze (python)", "in_progress", 50000)
+    pl = one_job_pulse(hist + [live, jr("tests", "completed", 0, 60)], 50000 + 2460)
+    check("a one-unfinished listing prints the job, elapsed and its same-name p50/max baseline "
+          "(last 6 of 7: the oldest, 9000 s run falls out of the window, so max stays 60m)",
+          pl == "CI waits on 1 job: codeql / Analyze (python) 41m of p50 47m / max 60m (normal)")
+    check("elapsed past the max reads over max, a name with no completed run reads no baseline",
+          one_job_pulse(hist + [live], 50000 + 4000).endswith("(over max)")
+          and one_job_pulse([live], 50000 + 600) == "CI waits on 1 job: codeql / Analyze (python) 10m, no baseline")
+    check("null control: two unfinished jobs print no such line, and none unfinished neither",
+          one_job_pulse(hist + [live, jr("tests", "queued", 50000)], 51000) is None
+          and one_job_pulse(hist, 51000) is None)
+    # wait_ci itself logs the pulse beside the beat (a pulse built and never logged reads nothing)
+    iso0 = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": iso0(0), "completed_at": iso0(600)},
+            {"name": "fast", "status": "in_progress", "conclusion": None, "started_at": iso0(5000), "completed_at": None}]
+    ticks = iter([0, 240, 500])
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None, log=lines.append,
+                  polls=2, clock=lambda: next(ticks), wall=lambda: 5000 + 1200)
+        t.wait_ci(H0)
+    check("wait_ci logs the one-job pulse right after its beat, from the same listing",
+          len(lines) == 4 and lines[0].startswith("beat:") and lines[2].startswith("beat:")
+          and lines[1] == lines[3] == "CI waits on 1 job: fast 20m of p50 10m / max 10m (over max)")
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": "1"}]
     ticks = iter([0, 240, 480, 700])
     lines = []
     with tempfile.TemporaryDirectory() as d:
