@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_split_wrapping RETURN_DEL 5b3b19fa",
+  "killed_by": "tests/guard_pins.py",
+  "old": "    return [(s, e) for s, e in flat if e > s]",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

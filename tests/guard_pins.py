@@ -11,6 +11,8 @@ and the pinned-guess lower clamp (M11). The coordinator residual stays.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import asyncio
 import sys
 from datetime import datetime, timedelta, timezone
@@ -363,6 +365,8 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
             }
             self._mode = const.MODE_AUTO
             self.stale = False
+            # The real coordinator carries its entry; duty_switch keys its store on it.
+            self.entry = SimpleNamespace(entry_id="guard_pins")
             self._current_action = {"mode": "eco"}
             t0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
             self._optimization_result = NS(
@@ -375,7 +379,7 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
                 params=NS(min_electrical_power=0.4),
                 curve_flow_temp=lambda _o: 34.2,
             )
-            self._thermal_params = NS(dhw_setpoint=48.0)
+            self._thermal_params = NS(dhw_setpoint=48.0, dhw_max_temp=48.0)
             self._current_state = NS(outdoor_temperature=2.0)
             self.entry = FakeEntry(entry_id=f"gp{next(ids)}")
             self.hass.states.set(flag, FakeState("off"))
@@ -645,7 +649,8 @@ def _service_dispatch_pins() -> dict[str, bool]:
     from heatpump_optimizer import pump_arbiter
 
     class Coord:
-        pass
+        # The real coordinator carries its entry; duty_switch keys its store on it.
+        entry = SimpleNamespace(entry_id="guard_pins_slots")
 
     states = {
         "select.pump_mode": FakeState(
