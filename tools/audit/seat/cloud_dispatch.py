@@ -917,6 +917,13 @@ def _group_checks(check) -> None:
             check("a part past the split, a part of a group of five or fewer, and a part for another role refuse",
                   "splits into 4 parts" in why_any("R10-SPLIT", part=5) and "five or fewer" in why_any("R10-FIVE", part=1)
                   and "fixer's" in why_any("R10-SPLIT", "probe", part=2))
+            check("a seat that is not the fixer's dispatches a group of 21 pending carries unrefused (null: the fixer refuses)",
+                  not why_any("R10-SPLIT", "probe") and "21 pending carries" in why_any("R10-SPLIT"))
+            roster_lib.CARRY_CUTOVER[roster_lib.roster_path(str(work), roster_lib.reader_ref(str(work), None), None)] = "0" * 40
+            lwhy = why_any("R10-SPLIT", part=2)
+            check("a --part dispatch whose cut-over roster the clone cannot read refuses naming the cut-over, not crashing",
+                  lwhy.startswith("cannot read ") and "0" * 40 in lwhy and "Error" not in lwhy)
+            roster_lib.CARRY_CUTOVER.clear()
             fwhy = why_any("R10-FIVE")
             ftext = "" if fwhy else fetched("dispatch/fixer-" + _topic_of(five), "PROMPT.md")
             check("five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)",
@@ -1129,7 +1136,7 @@ def _group_checks(check) -> None:
               judged(SEAT_EMAIL) == (0, SEAT_EMAIL + "\n") and judged("seat@build.local")[0] == 3)
         out = io.StringIO()
         with contextlib.chdir(work), contextlib.redirect_stdout(out):
-            rc = main(["--role", "reviewer", "--head", rhead, "--pr", "7", "--nonce", "abc123", "--publish",
+            rc = main(["--role", "reviewer", "--head", rhead, "--pr", "7", "--nonce", "abc123def4567890", "--publish",
                        "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"])
         try:
             msg = fetched("dispatch/reviewer-rev-7", "PROMPT.md")
@@ -1137,7 +1144,9 @@ def _group_checks(check) -> None:
             msg = ""
         check("a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there",
               rc == 0 and " of dispatch/reviewer-rev-7 (`git fetch origin " in content(out.getvalue())
-              and msg.startswith("CLOUD REVIEWER") and "Bus nonce: abc123." in msg)
+              and msg.startswith("CLOUD REVIEWER") and "Bus nonce: abc123def4567890." in msg)
+        check("the verdict ref and its read-back both carry the nonce's first eight characters, not the whole nonce",
+              msg.count("refs/heads/probe/rev-7-abc123de`") == 2 and "rev-7-abc123def" not in msg)
         # Two sources, never one: the roster from the round's roster branch
         # (O17), the head from main. The branch is one commit ahead of main
         # with its own brief, so either swap shows.
