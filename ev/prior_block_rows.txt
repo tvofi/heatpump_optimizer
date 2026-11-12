@@ -1,0 +1,11 @@
+counted classify(l, r, None, **kw)
+counted classify(l, r, busy=(), **kw)
+counted classify(l, *rest, busy=None)
+counted classify(l, r, [x for x in runs if 0])
+counted classify(l, r, (not 1) and b)
+counted classify(l, r, b if f'' else ())
+counted classify(l, r, frozenset(()))
+counted classify(l, r, busy=set([]))
+counted classify(l, r, None or ())
+counted classify(l, r, () if c else None)
+controls: [0, 0, 0]
