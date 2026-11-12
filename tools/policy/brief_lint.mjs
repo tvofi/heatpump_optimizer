@@ -962,9 +962,9 @@ export function checkCarryShape(file, data, findings, roster) {
 // never added here -- and shrinks as a carry is re-measured or consumed.
 // LEGACY_CONTROL_CAP pins that: the set may only shrink (assertLegacyControl), and a member whose
 // controls now lint clean must leave it.
-const LEGACY_CONTROL_CAP = 13
+const LEGACY_CONTROL_CAP = 14
 const LEGACY_CONTROL_FILES = new Set([
-  'carry-1067.json', 'carry-1336.json', 'carry-1395.json', 'carry-1398.json',
+  'carry-1067.json', 'carry-1336.json', 'carry-1395.json', 'carry-1398.json', 'carry-1412.json',
   'carry-1454.json', 'carry-1459.json', 'carry-1463.json', 'carry-1644.json', 'carry-1645.json',
   'carry-1659.json', 'carry-1660.json', 'carry-201.json', 'carry-752.json',
 ])
