@@ -85884,12 +85884,17 @@ R.check(
 class _P3Coord:
     mode = "auto"
 _p3_c = _P3Coord()
+_p3_mode = type("C", (), {"mode": boost_mod.MODE_BOOST})()
+# Both hold a running tail, so only the global mode can make the end unknown.
+boost_mod.held_for(_p3_c).space_settle_until = NOW + _p3_td(hours=5)
+boost_mod.held_for(_p3_mode).space_settle_until = NOW + _p3_td(hours=5)
 R.check(
-    "P3 one source: another reason has no boost end; the global boost mode has none either",
+    "P3 one source: another reason has no boost end; the global boost mode has none either, "
+    "though a tail is running; the same tail outside the mode is the end",
     boost_mod.learning_freeze(_p3_c, None) is None
     and boost_mod.learning_freeze(_p3_c, "stale:power_entity") == ("stale:power_entity", None)
-    and boost_mod.learning_freeze(type("C", (), {"mode": boost_mod.MODE_BOOST})(), boost_mod.FREEZE_REASON)
-    == (boost_mod.FREEZE_REASON, None),
+    and boost_mod.learning_freeze(_p3_mode, boost_mod.FREEZE_REASON) == (boost_mod.FREEZE_REASON, None)
+    and boost_mod.learning_freeze(_p3_c, boost_mod.FREEZE_REASON) == (boost_mod.FREEZE_REASON, NOW + _p3_td(hours=5)),
     "",
 )
 import ast as _p3_ast  # noqa: E402
@@ -85913,6 +85918,8 @@ _p3_was = _p3_log.level
 _p3_log.setLevel(_p3_logging.WARNING)
 try:
     _p3_off_ok = _p3_lp.log_skip(True, "house heat loss", "frozen (%s)", _P3Boom()) is True
+except AssertionError:  # formatted with DEBUG off: the check below goes red
+    _p3_off_ok = False
 finally:
     _p3_log.setLevel(_p3_was)
 R.check(
