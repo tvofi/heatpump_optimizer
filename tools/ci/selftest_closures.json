@@ -3994,6 +3994,7 @@
    "files": [
     ".claude/hooks/**",
     ".claude/settings.json",
+    ".gitattributes",
     ".github/workflows/**",
     ".gitignore",
     "CLAUDE.md",
@@ -4013,6 +4014,7 @@
     "tests/card_drift.mjs",
     "tests/closure.py",
     "tests/closures.json",
+    "tests/env_drift.py",
     "tests/gate_lock.py",
     "tests/harness_headers.py",
     "tests/layout.json",
@@ -4032,6 +4034,7 @@
     "tools/audit/seat/review_packet.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/worktree_gc.sh",
+    "tools/merge/ledger_merge.py",
     "tools/policy/brief_lint.mjs",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/counts.mjs",
