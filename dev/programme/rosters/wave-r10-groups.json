@@ -24224,7 +24224,7 @@
    "architect_note": "",
    "brief": "Part 3 of R10-TICK-RESIDUE (orchestrator ruling, s14, 2026-11-11T14:20Z: split the unbuilt carries off so the group discharges). PR #3425 (merged at ee64358be7) built carries 9, 10, 13 and 15 of R10-TICK-RESIDUE and listed every other carry as not built, staying open for a later part. R10-TICK-RESIDUE-P2 (PR #3471) builds only P600's item and P602's carry. This part owns the remaining 24 carries, moved here verbatim. Each carry is the item. Read each carry's own text, and its source ruling where it cites one, before building.\n\nOrder the carries tick levels first: carries from R10-TICK-LEVELS, then the drain, plan and remerge items, then the part-2 items.\n\nNo after-edges. Overlap admitted with R10-SEAT-IDENTITY-P5 (beat_jobs.py and beatd.jobs.json): P5's seam is the generation token, the session lock and the opener stand-in, and this part's is tick levels, drain persistence and the plan beat. They are distinct seams, merged in train order.",
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": null,
     "commit": null,
     "last_step": null,
