@@ -1263,6 +1263,7 @@
    "dev/governance/roles/fix-review.md",
    "dev/governance/roles/nudge.md",
    "dev/programme/rosters/wave-r10-groups.json",
+   "docs/CONTRIBUTING.md",
    "docs/architecture.md",
    "docs/automations.md",
    "docs/configuration.md",
@@ -3181,6 +3182,7 @@
    "dev/audit/rounds/round5/D11/seat-b/corpus_churn.py",
    "dev/audit/rounds/round5/D13/seat-a/dora_cfr.py",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
+   "docs/CONTRIBUTING.md",
    "docs/architecture.md",
    "docs/automations.md",
    "docs/configuration.md",
@@ -5164,7 +5166,7 @@
    "seconds": 0.2
   },
   "tests/harness_headers.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 118.2
   },
   "tests/layout.py": {
