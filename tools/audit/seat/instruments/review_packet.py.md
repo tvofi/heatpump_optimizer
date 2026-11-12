@@ -18,7 +18,7 @@
   prints the `approval-owed` advisory instead, P345; WAIT or GREEN prints
   `required-wait`/`required-green`, #3379: classify decides, as in `bus.sh`), a host path, a hot file shared with an open pull request holding an
   unboarded merge verdict, or a `fix/<t>` head lacking its `handoff/<t>` tip
-  (`handoff-not-applied`), or a body line citing a carry as landed that the roster ref lacks at the cited sha (`carry-landed`); a pending check never refuses. A `head-note` refusal names the repair (`update_pr.sh`). The packet closes on the `carry_audit.py check` self-audit a reviewer runs before its verdict. `handoff`, run by
+  (`handoff-not-applied`), a body line citing a carry as landed that the roster ref lacks at the cited sha (`carry-landed`), or an `instrument-self-tests` step red at the head and not at the merge base (`introduced-red`, one line per INTRODUCED step or timeout, by `merge_train.introduced_at` through `ci_facts`: one filtered check-run read and one job-step read per side, an unreadable one or a job still running refusing; R10-INTRODUCED-REDS-BARRIER); a pending check never refuses. A `head-note` refusal names the repair (`update_pr.sh`). The packet closes on the `carry_audit.py check` self-audit a reviewer runs before its verdict. `handoff`, run by
   `body_push.sh` before a PR body is pushed, refuses the structure and
   hot-file and `carry-landed` signals and `brief-carries` (a roster carry the body never names
   as `Carry N`). A refusal still
