@@ -1,0 +1,36 @@
+### seed 7
+== head
+A_gate  12/16 read = 75%  (unread 4 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+A_run   7/20 = 35%
+Y_rev   first verdict merge 16/50 = 32%  (first verdicts 2026-10-11T15:00 .. 2026-10-25T11:00)
+M_first 23/50 = 46%  (first verdicts 2026-10-11T15:00 .. 2026-10-25T11:00)
+Y_train never skipped or parked 35/50 = 70%  (last 50 train-named merged PRs)
+H       hotfix-token merges 20/40 of the last 50 code merges; production merges among them 18  (naming measure, no null control)
+S       unread (no checkout)
+E       roster groups from outside reports 10; hotfix or bug groups touching the product 10; open among both 8
+C, K    C 2; K 4  (longest cancelled main-run streak; recycle lines of the dispatch and triage seats)
+== study reference
+A_gate  12/16 read = 75%  (unread 4 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+A_run   7/20 = 35%
+Y_rev   first verdict merge 16/50 = 32%   M_first 23/50 = 46%   (first verdicts 2026-10-11T15:00 .. 2026-10-25T11:00)
+Y_train never skipped or parked 35/50 = 70%  (last 50 train-named merged PRs)
+H       hotfix-token merges 20/40 of the last 50 code merges; production merges among them 18
+E       roster groups from outside reports 10; hotfix or bug groups touching the product 10; open among both 8
+### seed 11
+== head
+A_gate  17/19 read = 89%  (unread 1 of 20; window 2026-11-05T12:00:00Z .. 2026-11-10T12:00:00Z)
+A_run   13/20 = 65%
+Y_rev   first verdict merge 17/50 = 34%  (first verdicts 2026-10-09T00:00 .. 2026-10-24T23:00)
+M_first 14/50 = 28%  (first verdicts 2026-10-09T00:00 .. 2026-10-24T23:00)
+Y_train never skipped or parked 31/50 = 62%  (last 50 train-named merged PRs)
+H       hotfix-token merges 17/44 of the last 50 code merges; production merges among them 18  (naming measure, no null control)
+S       unread (no checkout)
+E       roster groups from outside reports 6; hotfix or bug groups touching the product 7; open among both 6
+C, K    C 2; K 4  (longest cancelled main-run streak; recycle lines of the dispatch and triage seats)
+== study reference
+A_gate  17/19 read = 89%  (unread 1 of 20; window 2026-11-05T12:00:00Z .. 2026-11-10T12:00:00Z)
+A_run   13/20 = 65%
+Y_rev   first verdict merge 17/50 = 34%   M_first 14/50 = 28%   (first verdicts 2026-10-09T00:00 .. 2026-10-24T23:00)
+Y_train never skipped or parked 31/50 = 62%  (last 50 train-named merged PRs)
+H       hotfix-token merges 17/44 of the last 50 code merges; production merges among them 18
+E       roster groups from outside reports 6; hotfix or bug groups touching the product 7; open among both 6
