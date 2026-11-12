@@ -1,0 +1,20 @@
+== gaps grep (harness)
+248:  check(`${tag}: no clock-driven animation is still running once the hero strip has drawn`, m.clock === 0, `${m.clock} running of ${m.anims} (the rest: the hero strip, finished, and the scroll-driven progress line)`)
+281:  await page.locator("#cp1").focus(); await page.keyboard.press("ArrowRight");
+288:    await page.keyboard.press(k);
+== page: progress/timeline rules
+      1 255:@supports not selector(:has(*)) {
+      1 259:@supports not selector(:has(*)) {
+      1 38:@supports (animation-timeline: scroll()) { @media (prefers-reduced-motion: no-preference) {
+      1 39: animation-timeline: scroll(root) 
+== fonts
+url(site/fonts/outfit-latin-600-normal.woff2)
+url(site/fonts/outfit-latin-700-normal.woff2)
+url(site/fonts/source-sans-3-latin-400-normal.woff2)
+url(site/fonts/source-sans-3-latin-600-normal.woff2)
+== M2 Control path span
+count 1
+<legend><span class="eyebrow">Control path</span><span data-copy>How is your heat pump controlled?</span></legend>
+      <div class="opts">
+        <label><input type="radio" name="cp" id="cp1" checked>On/off switch</label>
+        <label><input type="radio" n

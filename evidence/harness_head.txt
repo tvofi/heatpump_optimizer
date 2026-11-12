@@ -79,6 +79,10 @@ ok   11 chooser: the arrow key moves to the next radio, the ring is drawn on its
 ok   gallery: End, Home and the arrows select a tab and show only its panel  [End=t-opt/p-opt Home=t-why/p-why ArrowLeft=t-opt/p-opt ArrowRight=t-why/p-why]
 ok   theme switch: stores the preference and rewrites the picture sources  [{"bg":"rgb(11, 26, 40)","saved":"dark","media":"all|all","label":"Switch to light theme"}]
 ok   chart: one labelled image, its drawings hidden and without text; five steps in an ordered list, numbers hidden; hero strip and progress line hidden  [{"role":"img","label":254,"bare":0,"text":0,"steps":5,"numbers":0,"hero":"true","progress":"progress/true","week":4}]
+ok   server: an absent path and a directory answer 404, and the page 200  [/no-such-file.html 404; /img 404; /index.html 200]
 RESULT fails=0
-RESULT base=cbd23f1c8bf6
-rc=0
+RESULT base=6cc15e9b8f53
+
+real	0m44.648s
+user	0m3.777s
+sys	0m1.277s
