@@ -1,3 +1,0 @@
-truth 0.6542
-dip   0.6542
-no-charge control (flag never on, dip trace) 1.3127

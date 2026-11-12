@@ -1,8 +1,0 @@
-== wt-base
-truth 0.6542
-dip   1.3127
-no-charge control (flag never on, dip trace) 1.3127
-== wt-head
-truth 0.6542
-dip   0.3847
-no-charge control (flag never on, dip trace) 1.3127

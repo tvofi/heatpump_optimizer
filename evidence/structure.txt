@@ -10,7 +10,7 @@
   custom_components/heatpump_optimizer/config_flow.py:3262-4078  817 LOC  46 methods  HeatPumpOptimizerOptionsFlow
   custom_components/heatpump_optimizer/config_flow.py:2564-3259  696 LOC  24 methods  HeatPumpOptimizerConfigFlow
   custom_components/heatpump_optimizer/legionella.py:63-721  659 LOC  21 methods  LegionellaGuard
-  custom_components/heatpump_optimizer/dhw_learning.py:137-629  493 LOC  19 methods  DhwProfileLearner
+  custom_components/heatpump_optimizer/dhw_learning.py:147-639  493 LOC  19 methods  DhwProfileLearner
   custom_components/heatpump_optimizer/defrost.py:209-661  453 LOC  12 methods  DefrostDerate
   custom_components/heatpump_optimizer/accuracy.py:158-532  375 LOC  20 methods  AccuracyTracker
   custom_components/heatpump_optimizer/tariff.py:165-481  317 LOC  10 methods  PeakTracker
@@ -61,13 +61,13 @@
   custom_components/heatpump_optimizer/dhw_learning.py: 6
   custom_components/heatpump_optimizer/open_meteo.py: 6
   custom_components/heatpump_optimizer/climate.py: 5
+  custom_components/heatpump_optimizer/debugger.py: 5
   custom_components/heatpump_optimizer/device_prefill.py: 5
+  custom_components/heatpump_optimizer/diagnostics.py: 5
   custom_components/heatpump_optimizer/legionella.py: 5
   custom_components/heatpump_optimizer/name_match.py: 5
   custom_components/heatpump_optimizer/accuracy.py: 4
   custom_components/heatpump_optimizer/boost.py: 4
-  custom_components/heatpump_optimizer/debugger.py: 4
-  custom_components/heatpump_optimizer/diagnostics.py: 4
   custom_components/heatpump_optimizer/optimizer.py: 4
   custom_components/heatpump_optimizer/early_cutoff.py: 3
   custom_components/heatpump_optimizer/entry_config.py: 3
@@ -101,7 +101,7 @@
 ########## import cycles (function-scope imports in, TYPE_CHECKING out) ##########
 
 ########## dead top-level symbols ##########
-  custom_components/heatpump_optimizer/const.py:1882  ENTITY_FAMILY_OVERRIDES
+  custom_components/heatpump_optimizer/const.py:1886  ENTITY_FAMILY_OVERRIDES
 
 ########## dead members (no live attribute load reaches them) ##########
   dead_methods = 0 (methods and properties; receiver-resolved, reachability from live code)
@@ -150,8 +150,8 @@
     custom_components/heatpump_optimizer/coordinator.py:3615
     custom_components/heatpump_optimizer/coordinator.py:11261
     custom_components/heatpump_optimizer/coordinator.py:11268
-    custom_components/heatpump_optimizer/dhw_learning.py:338
-    custom_components/heatpump_optimizer/dhw_learning.py:340
+    custom_components/heatpump_optimizer/dhw_learning.py:348
+    custom_components/heatpump_optimizer/dhw_learning.py:350
     custom_components/heatpump_optimizer/entity.py:251
     custom_components/heatpump_optimizer/thermal_model.py:272
     custom_components/heatpump_optimizer/thermal_model.py:289
