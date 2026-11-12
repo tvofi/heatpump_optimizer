@@ -169,6 +169,8 @@ QUOTED = re.compile(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d')
 QUOTED_PHRASE = re.compile(r'(?<![\w"])"[^"\n]*"(?!\w)|\u201c[^\u201d\n]*\u201d')
 
 CARRY = re.compile(r"(?<![\w-])Carry:")
+# `[text](url)`: a destination written as a link names its text (`Carry: [#100](https://x)`)
+MD_LINK = re.compile(r"\[([^\]\n]+)\]\([^)\s]*\)")
 ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
 # `Carry: <dest> (item <id>, supersedes <old>)` (P296): retires <old> for that item alone.
 SUPERSEDES = re.compile(r"\(item\s+([0-9a-f]{8}),\s*supersedes\s+([^\s),]+)\)")
@@ -237,7 +239,7 @@ def items(text: str, verdict: bool) -> list[dict]:
                 # an indented line holding a marker, after the blank, still belongs to the
                 # paragraph it continues (R10-CARRY-AUDIT-P5: the seven refused verdicts)
                 nxt = next((x for x in lines[i + 1:] if x.strip()), "")
-                if not (nxt.startswith((" ", "\t")) and CARRY.search(nxt) and not BULLET.match(nxt)):
+                if not (nxt.startswith((" ", "\t")) and CARRY.search(nxt)):
                     flush()
             elif kind == "bullet":
                 cur.append("")
@@ -314,7 +316,7 @@ def owed_carry(text: str) -> bool:
 def marker_shaped(seg: str) -> bool:
     """Whether a `Carry:` segment opens with a destination token: a group, `#N`, an O-brief or
     `dismissed:`. A structural section names the word without routing (P589)."""
-    rest = seg.split(":", 1)[1].strip().strip("`*_")
+    rest = MD_LINK.sub(r"\1", seg.split(":", 1)[1]).strip().strip("`*_")
     if re.match(r"dismissed\s*:", rest, re.I):
         return True
     tok = (rest.split() or [""])[0].strip("`*_().:,;")
@@ -326,7 +328,9 @@ def carry_segments(text: str, shaped: bool = False) -> list[str]:
     or the line end; a `Carry:` inside a code span or a double-quoted phrase is a
     quoted example, not one. <shaped> keeps only a segment opening with a destination
     token (`marker_shaped`), as a structural section reads a marker."""
-    spans = [m.span() for m in CODE_SPAN.finditer(text)] + [m.span() for m in QUOTED_PHRASE.finditer(text)]
+    # a quote inside a code span opens no phrase: pair the quotes of the text with its code spans blanked
+    blanked = CODE_SPAN.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), text)
+    spans = [m.span() for m in CODE_SPAN.finditer(text)] + [m.span() for m in QUOTED_PHRASE.finditer(blanked)]
     starts = [m.start() for m in CARRY.finditer(text)]
     segs = []
     for i, at in enumerate(starts):
@@ -364,7 +368,7 @@ def carry_dests(text: str) -> list[str]:
 
 def seg_dests(seg: str) -> list[str]:
     """The destination tokens of one marker segment (`Carry: ...`)."""
-    rest = seg.split(":", 1)[1].strip().strip("`*_")
+    rest = MD_LINK.sub(r"\1", seg.split(":", 1)[1]).strip().strip("`*_")
     dm = re.match(r"dismissed\s*:\s*(.*)", rest, re.I)
     if dm:
         return ["dismissed:" + dm.group(1)]
@@ -2151,6 +2155,43 @@ def _self_test() -> int:
     check("carry 3 null controls: group, #N and dismissed: are markers under ## Evidence",
           [ev(t)["u"] + ev(t)["b"] for t in ("x. Carry: R10-LIVE", "x. Carry: #100", "x. Carry: dismissed: host load, not a defect")] == [0, 0, 0]
           and all(len(ev(t)["rows"]) == 1 for t in ("x. Carry: R10-LIVE", "x. Carry: #100", "x. Carry: dismissed: host load, not a defect")))
+    # R10-CARRY-AUDIT-P5 round 3: one pin per added shape-guard condition, each beside its null control
+    check("carry 1: `deferred` under a blocked verdict's ## Residuals (a note heading) is a note",
+          [(x["why"], x["status"]) for x in run(head, vh("blocked", "## Residuals\n\n- the arm is deferred.\n"))["rows"]]
+          == [("non-blocking", "unrouted")])
+    check("carry 1: `deferred` under a blocked verdict's heading holding a note word mid-heading (## Open residuals) is a note",
+          [(x["why"], x["status"]) for x in run(head, vh("blocked", "## Open residuals\n\n- the arm is deferred.\n"))["rows"]]
+          == [("non-blocking", "unrouted")])
+    # the paragraph-continuation test needs no bullet clause: a bullet line starts its own item in the line loop
+    r = run(head + "## Friction\n\nthe census misses a seam.\n\n - the store seam too. Carry: R10-LIVE\n")
+    check("carry 0: a one-space-indented bullet after a paragraph's blank is its own item, the paragraph stays unrouted",
+          r["u"] == 1 and len(r["rows"]) == 2)
+    r = run(head + "## Friction\n\nthe census misses a seam.\n\n  code block\n")
+    check("carry 0: an indented line without a marker after the blank is its own item",
+          r["u"] == 2 and len(r["rows"]) == 2)
+    r = run(head + '## Friction\n\n- the 5" pipe is short. Carry: R10-LIVE and "y" too.\n')
+    check('carry 0: a quote glued to a word (`5"`) opens no phrase, so the marker after it routes',
+          r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    check("carry 3: an O-brief destination under ## Evidence is a marker",
+          len(ev("x. Carry: O12-foo")["rows"]) == 1 and len(ev("x. Carry: O12")["rows"]) == 1)
+    # the spelling corpus of the shape guards (marker_shaped, QUOTED_PHRASE, the paragraph-continuation
+    # test): every destination spelling in every context under ## Evidence; the reviewers' P1 and P2 are in it
+    dsp = ("R10-LIVE", "`R10-LIVE`", "**R10-LIVE**", "(R10-LIVE)", "R10-LIVE,", "#100", "`#100`", "[#100](https://x)",
+           "[R10-LIVE](https://x)", "O12", "O12-foo", "dismissed: host load, not a defect", "**dismissed:** host load, not a defect")
+    ctx = ("x. {m}", "x `a=\"` then {m} then `b=\"`", 'the 5" pipe. {m}', 'said "q". {m}', "x `Carry: R10-LIVE` and {m}",
+           "{m} (item aaaaaaaa)", "**x** {m} and more words", "x\n  more words {m}")
+    pos = [(d, c) for d in dsp for c in ctx]
+    bad = [(d, c) for d, c in pos if len(ev(c.format(m=f"Carry: {d}"))["rows"]) != 1]
+    neg = ("Carry: `review_carry.py ... prints CARRY", "Carry: across all rosters", "Carry: marker", '"Carry: R10-LIVE" quoted',
+           "`Carry: R10-LIVE` in a span", "Carry: [the docs](https://x) say so", "Carry: *", "carry: R10-LIVE")
+    badn = [t for t in neg if ev(t)["rows"]]
+    check(f"carry 3 corpus: {len(pos)} marker spellings flag, {len(neg)} mention spellings route nothing (P1, P2 in it)",
+          not bad and not badn and len(pos) == 104 and len(neg) == 8)
+    check("carry 3 corpus P1: a marker between two code spans each holding a quote still routes (R10-LIVE: 0 unrouted)",
+          ev('x `a="` then Carry: R10-LIVE then `b="`')["u"] == 0 and len(ev('x `a="` then Carry: R10-LIVE then `b="`')["rows"]) == 1)
+    check("carry 3 corpus P2: a link-form destination is a marker and resolves to its text",
+          marker_shaped("Carry: [#100](https://x)") and seg_dests("Carry: [#100](https://x)") == ["#100"]
+          and ev("x. Carry: [#100](https://x)")["u"] == 0 and ev("x. Carry: [R10-NO-SUCH](https://x)")["b"] == 1)
     # carry 2: the bare PR number
     pr_roster = {"groups": [{"group": "R10-TICK", "resume": {"stage": "not-started"}, "brief": "b",
                              "carry": ["handed off as PR 3425, body item aaaaaaaa"]}]}
