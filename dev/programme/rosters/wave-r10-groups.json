@@ -13013,7 +13013,8 @@
    "group": "R10-USER-DOCS-VERIFY",
    "size": "M",
    "issues": [
-    3139
+    3139,
+    3398
    ],
    "fixes": [],
    "findings": [],
