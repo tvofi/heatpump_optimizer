@@ -4050,6 +4050,8 @@
    "tools/audit/seat/review_strength.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/roster_queue.py",
+   "tools/audit/seat/scorecard.py",
+   "tools/audit/seat/scorecard_selftest.py",
    "tools/audit/seat/selftest_wiring.py",
    "tools/audit/seat/survivor_list.py",
    "tools/audit/seat/sweep_driver.py",
