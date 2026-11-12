@@ -237,9 +237,7 @@ def items(text: str, verdict: bool) -> list[dict]:
                 # an indented line holding a marker, after the blank, still belongs to the
                 # paragraph it continues (R10-CARRY-AUDIT-P5: the seven refused verdicts)
                 nxt = next((x for x in lines[i + 1:] if x.strip()), "")
-                if nxt.startswith((" ", "\t")) and CARRY.search(nxt) and not BULLET.match(nxt):
-                    cur.append("")
-                else:
+                if not (nxt.startswith((" ", "\t")) and CARRY.search(nxt) and not BULLET.match(nxt)):
                     flush()
             elif kind == "bullet":
                 cur.append("")
@@ -2172,6 +2170,9 @@ def _self_test() -> int:
     except ValueError as e:
         refused = "#<N>" in str(e)
     check("carry 2: another spelling is refused naming #<N>", refused)
+    check("carry 2: the CLI answers rc 2 for a non-# spelling, for landed and land-ops",
+          [main(["landed", "--body", os.devnull, "--pr", "PR3425"]),
+           main(["land-ops", "--body", os.devnull, "--pr", "pr#3425"])] == [2, 2])
     check("carry 2: land_ops writes 'From #3425' for a bare number",
           all("From #3425" in o for o in land_ops([{"group": "R10-TICK", "id": "aaaaaaaa", "text": "x", "why": "not in its brief or carries"}], "3425")))
     print(f"carry_audit self-test: {passed + failed} checks, {failed} failed")
