@@ -255,6 +255,12 @@
   ok   P331 (2) null: a required context red parks, never waits
   ok   P590 a rollup holding a success gate and a deferral failure gate (SUCCESS first) waits, with no review wording
   ok   P590 a rollup holding a success gate and a deferral failure gate (FAILURE first) waits, with no review wording
+  ok   P436 A: a gate FAILURE while a ci.yml run is unfinished is a deferral wait (reason names it)
+  ok   P436 A null: the same gate FAILURE with no unfinished ci.yml run is red, never a wait
+  ok   P436 B: a real gate red beside an unrelated unfinished workflow (not a ci.yml run) is red
+  ok   P436 B': a lone real gate red beside an unrelated unfinished workflow is red
+  ok   P436 C: another required context red beside a deferral gate is named, and the refusal does not wait
+  ok   P436 C null: the same other-context red with a green gate is named red
   ok   P608 #3445's five gate entries in list order: red gate, not a missing review
   ok   P608 #3445's five gate entries reversed: red gate, not a missing review
   ok   P608 a SUCCESS then an IN_PROGRESS entry is pending: wait
@@ -270,16 +276,20 @@
   ok   P609 null: a non-draft entry is recorded False and makes no gh pr ready call
   ok   a failed gate beside an unfinished sibling run is waited on, then through the cascade re-run's lag, not returned red (the #3248 scene)
   ok   a sibling run that never finishes ends as TIMEOUT, bounded by the polls
-  ok   carry 4 (1): a STARTED sibling run inside its deadline is waited on past `polls` (#3398: 5863 s, polls=24 is ~5832 s), not TIMEOUT
+  FAIL carry 4 (1): a STARTED sibling run inside its deadline is waited on past `polls` (#3398: 5863 s, polls=24 is ~5832 s), not TIMEOUT
   ok   carry 4 (1) null: a QUEUED sibling keeps the polls bound (TIMEOUT)
   ok   carry 4 (1) null: a started sibling past its deadline keeps the polls bound (TIMEOUT)
-  ok   carry 4 (1): a started sibling that never finishes ends at its deadline as TIMEOUT, never unbounded (the wall advances 600 s a read)
+  ok   carry 4 (1): CODE_RUN_DEADLINE_SECONDS is ci.yml's longest job ceiling (timeout-minutes) in seconds, read from the registered artifact
+  ok   carry 4 (1) edges: a started run is inside its deadline at 0 s and at exactly the deadline, outside one second past it, and a queued or unreadable-start one is never inside
+  FAIL carry 4 (1): a started sibling that never finishes ends at its deadline as TIMEOUT, never unbounded (the wall advances 600 s a read)
   ok   null control: a red gate with no unfinished sibling run still returns red on the first poll
   ok   a held sibling run (action_required) is not unfinished: the red gate returns on the first poll
   ok   an unreadable runs listing leaves the red standing (today's skip)
   ok   a failed unit beside an unfinished sibling is final: only the gate defers
   ok   P436 barrier: the deferral-blind `classify` readers in the reader modules are exactly the registered ones (a new blind read of the gate conclusion reddens this) -- []
   ok   P436 barrier null: a new function reading `classify(latest, req)` is a blind reader the registry does not hold
+  ok   P436 barrier null: a busy argument that is a literal None, (), [], set() or empty string, positional or keyword, is as blind as none (the re-planted `classify(l, r, None)`)
+  ok   P608 rollup_red_after_pass: a failure strictly newer than the pass is real, an equal stamp is a deferral (no order proves the red landed later), the other name's entries are never read, and an unstamped entry is no proof
   ok   P436 barrier: merge_pr.sh's raw latest-check red read is followed by a classify WAIT-wait before RED
   ok   K15 (a): main e7c66485's shape -- required contexts in flight, record and record-autofix red -- reads wait, never red, even with record listed as required
   ok   K15 (a): every required context green reads green; a non-required red is not counted
@@ -392,8 +402,6 @@
   ok   carry 2: job_log passes the flag first, reads without it only where gh does not know the flag, and returns None for a read that fails otherwise (one call, no retry)
   ok   carry 2 null: through the same reader, a gate red on a non-infra job is never re-run
   ok   V142 blocking null: a gate that does not qualify is not re-run and main stops red as today
-/root/wt_M6/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:927: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
-  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
   ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
   ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
   ok   batch announces itself in its FIRST line -- tag, pid, base, the queue's PRs -- before any blocking call, so a daemonized launch is attributable from the log's first line
@@ -667,5 +675,5 @@ REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>
   ok   fail closed: the head's job concluded startup_failure is a Stop (rc 2), never a clean read
   ok   fail closed: the base's job concluded cancelled is a Stop (rc 2), never a clean read
   ok   fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
-merge_train self-test: 666 checks, 0 failed
-rc=0
+merge_train self-test: 676 checks, 2 failed
+rc=1

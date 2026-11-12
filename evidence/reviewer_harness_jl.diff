@@ -1,4 +1,0 @@
-76c76
-<             return 0, (f"42237558473\t{status}\t{started}\n" if seen[1] <= 7 else "42237558473\tcompleted\t\n")
----
->             return 0, (json.dumps({"id": 42237558473, "status": status, "run_started_at": started}) if seen[1] <= 7 else json.dumps({"id": 42237558473, "status": "completed"}))

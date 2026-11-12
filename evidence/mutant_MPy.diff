@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/merge_pr.sh b/tools/audit/seat/merge_pr.sh
+index a3525684ee..cd2845010a 100755
+--- a/tools/audit/seat/merge_pr.sh
++++ b/tools/audit/seat/merge_pr.sh
+@@ -318,7 +318,7 @@ if [ -n "$red" ]; then
+        # whether a required red is red, answers WAIT while a run it names is unfinished.
+        for i in $(seq 1 ${HPO_MERGE_CLASSIFY_POLLS:-20}); do
+          cls=$(${HPO_MERGE_CLASSIFY:-python3 -I tools/audit/seat/merge_train.py} classify "$S" --repo $R --pr $PR 2>&1); crc=$?
+-         [ "$crc" = 3 ] || break
++         break
+          echo "WAIT: $cls"; sleep 60
+        done
+        # classify still WAIT after the last poll: the red is provisional, not final. A distinct

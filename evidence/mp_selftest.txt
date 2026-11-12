@@ -22,6 +22,7 @@
   ok   an owed post-merge step prints OWED after the merge line and fails the script
   ok   a gate red that classify reads WAIT, then GREEN, is waited out and merges
   ok   null control: a gate red classify reads RED refuses RED and does not merge
+  ok   a classify that still reads WAIT after the last poll exits 3 WAIT-EXHAUSTED, never RED, and does not merge
   ok   null control: no red at the head never asks classify
-merge_pr self-test: 25 checks, 0 failed
+merge_pr self-test: 26 checks, 0 failed
 rc=0
