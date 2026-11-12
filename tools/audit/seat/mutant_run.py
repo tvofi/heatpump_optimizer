@@ -708,7 +708,6 @@ def _fake_procfs(root: Path, environ: dict[int, bytes]) -> None:
         (root / str(pid) / "stat").write_text(f"{pid} (a) b) {state} {ppid} {pgrp} {session or 0} 0 -1\n")
         if pid in environ:
             (root / str(pid) / "environ").write_bytes(environ[pid])
-    (root / "self").mkdir()  # procfs holds names that are no pid
 
 
 def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None:
@@ -728,7 +727,7 @@ def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None
         lone = subprocess.Popen(["sleep", "30"], start_new_session=True)
         kid = subprocess.Popen(["sleep", "30"], env=dict(os.environ, MUTANT_RUN_TOKEN=tok + "0"))  # a near miss
         marked = subprocess.Popen(["sleep", "30"], env=dict(os.environ, MUTANT_RUN_TOKEN=tok))
-        dead = subprocess.Popen(["true"], start_new_session=True)  # a zombie session leader: `ps` stat `Zs`, not `Z`
+        dead = subprocess.Popen(["true"])
         try:
             check(f"no-procfs: {label}, the premise: the exited child is still a zombie when the table is read",
                   _zombie(dead.pid))  # polled: os.waitid's WNOWAIT is not on macOS
@@ -736,13 +735,9 @@ def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None
                 mark = f"MUTANT_RUN_TOKEN={tok}".encode()
                 _fake_procfs(root, {marked.pid: b"A=1\0" + mark + b"\0", kid.pid: mark + b"0\0A=" + mark + b"\0"})
             with _Procfs(root or tmp / "no-proc"):
-                try:
-                    by_session, by_root = family(lone.pid, ""), family(lone.pid, "", skip=frozenset({marked.pid}), root=os.getpid())
-                    by_token = family(lone.pid, tok)
-                    _reap(frozenset({kid.pid, marked.pid}), lone.pid)
-                    err = ""
-                except Exception as e:  # noqa: BLE001 -- the failure is the finding, reported as a FAIL
-                    by_session, by_root, by_token, err = [], [], [], f"{type(e).__name__}: {e}"
+                by_session, by_root = family(lone.pid, ""), family(lone.pid, "", skip=frozenset({marked.pid}), root=os.getpid())
+                by_token = family(lone.pid, tok)
+                _reap(frozenset({kid.pid, marked.pid}), lone.pid)
                 path, os.environ["PATH"] = os.environ["PATH"], f"{tmp}{os.pathsep}{os.environ['PATH']}"
                 try:
                     broken = repr(family(lone.pid, ""))
@@ -765,15 +760,15 @@ def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None
                         os.environ["PATH"] = path
                     check(f"no-procfs: {label}, a row whose session os.getsid refuses takes no other row's, a line that is "
                           "no row is passed over, and a `Zs` zombie in the command's group is not counted", staged == [lone.pid])
-            check(f"no-procfs: {label}, family() finds a command by its session" + (f" ({err})" if err else ""),
+            check(f"no-procfs: {label}, family() finds a command by its session",
                   lone.pid in by_session and kid.pid not in by_session)
             check(f"no-procfs: {label}, family() finds the driver's descendants by ppid, zombies excluded",
                   set(by_root) == {kid.pid, lone.pid})  # never `dead`, nor the `ps` that listed the table
             check(f"no-procfs: {label}, a process outside the command's session is found by its token "
                   + ("(the environ leg), and one carrying a longer token is not" if procfs else "only with procfs (no environ leg without it)"),
-                  (marked.pid in by_token) == procfs and kid.pid not in by_token and not err)
+                  (marked.pid in by_token) == procfs and kid.pid not in by_token)
             check(f"no-procfs: {label}, _reap() collects a dead child it does not skip",
-                  dead.pid not in {row[0] for row in _ptable()} and not err)
+                  dead.pid not in {row[0] for row in _ptable()})
             check(f"no-procfs: {label}, a failing `ps` " + ("is never read: the table is procfs" if procfs
                   else "refuses (OSError), never an empty table that turns the cap off"),
                   broken.startswith("ps exited 7") != procfs)
@@ -781,7 +776,6 @@ def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None
             for p in (lone, kid, marked):
                 p.kill()
                 p.wait()
-            dead.returncode = 0  # reaped by _reap above: Popen must not wait again
 
 
 def _self_test() -> int:
@@ -965,13 +959,13 @@ def _self_test() -> int:
               rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"] and time.monotonic() - t0 < 20)
         check("forkcap: no process of the capped session is left", _no_session(int(pidf.read_text())))
         capped = ("--spec", str(spec), "--cmd", f"sh {gate} 120", "--fork-cap", "32", "--timeout", "60")
-        rc, out, _ = drive(*capped, procfs=tmp / "no-proc")
-        check("forkcap: a driver whose MUTANT_RUN_PROCFS names no directory caps the same chain from `ps` (the macOS path, on any host)",
-              rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"])
         (tmp / "empty-proc").mkdir()
         rc, out, _ = drive(*capped, procfs=tmp / "empty-proc")
         check("forkcap: a driver whose MUTANT_RUN_PROCFS names an empty root sees no process, so the chain runs out (the root named is the one read)",
               rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
+        rc, out, _ = drive(*capped, procfs=tmp / "no-proc")
+        check("forkcap: a driver whose MUTANT_RUN_PROCFS names no directory caps the same chain from `ps` (the macOS path, on any host)",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"])
         rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 120", "--fork-cap", "0", "--timeout", "60")
         check("forkcap: with the cap off the same chain runs out unbounded-by-the-driver and SURVIVES (mutation proof)",
               rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
