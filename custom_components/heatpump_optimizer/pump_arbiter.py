@@ -1853,6 +1853,12 @@ def release_supply(held: ArbiterState) -> None:
         unsub()
 
 
+def supply_switch(inp: ArbiterInputs) -> Any:
+    """The configured power switch's state object, or ``None``."""
+    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
+    return inp.hass.states.get(entity) if entity else None
+
+
 def _pump_off(inp: ArbiterInputs, held: ArbiterState) -> bool:
     """Whether the configured power switch reads off.
 
@@ -1862,9 +1868,7 @@ def _pump_off(inp: ArbiterInputs, held: ArbiterState) -> bool:
     never adopted as a person's edit: the space reading before the next
     write is forgotten here (:func:`_edited`).
     """
-    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
-    power = inp.hass.states.get(entity) if entity else None
-    off = getattr(power, "state", None) == "off"
+    off = getattr(supply_switch(inp), "state", None) == "off"
     held.space_before = None if off else held.space_before
     return off
 

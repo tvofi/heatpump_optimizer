@@ -53,7 +53,7 @@ from .boost import CHANNEL_DHW, CHANNEL_SPACE
 from .const import MODE_AUTO, MODE_ECONOMY
 from .entry_config import EntryConfig
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
-from .pump_arbiter import ArbiterInputs, ArbiterState, step_duty, step_supply
+from .pump_arbiter import ArbiterInputs, ArbiterState, step_duty, step_supply, supply_switch
 
 #: The shortest run and pause the gate lets a write end; the early cut-off's too.
 MIN_RUN = timedelta(minutes=10)
@@ -117,8 +117,7 @@ def _age(inp: ArbiterInputs, value: bool, now: datetime) -> timedelta | None:
     ``None`` where the write changes nothing, the switch is unreadable or its
     stamp is missing or ahead of ``now``.
     """
-    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
-    switch = inp.hass.states.get(entity) if entity else None
+    switch = supply_switch(inp)
     state = getattr(switch, "state", None)
     since = getattr(switch, "last_changed", None)
     if state in _UNREADABLE or (state != "off") is value or since is None:
