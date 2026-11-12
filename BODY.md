@@ -21,14 +21,53 @@ What the keyed delta found and what this diff does with it, page by page:
 - Carry 9's crop: `tests/card_browser.mjs` takes the Health page at a 1300 px viewport (`HEALTH_VIEWPORT_H`), the other pages at 860 px as before; the re-take changes only `health-light.png` and `health-dark.png` (1056 × 792 to 1056 × 1014) and their two `pages.json` heights; the other twelve figures are byte-identical to main's.
 - Carry 10 and Carry 11 (Carry 10 is dismissed in the brief as Carry 11's duplicate): the *Compressor runs below min power* row is pinned by `check_surface_coverage` (option `compressor_modulation`, Default cell against `DEFAULT_COMPRESSOR_MODULATION`). Control in Figures. Carry 12 and Carry 13: `--markers --user` ends `0 user-doc marker(s), 0 due`, exit 0.
 
+## Repair (fix review round 1, probe/revt-r10-user-docs-verify-ee7535dc)
+
+Each block, answered from the code at 67c7e7fb58a999614ee6527d865cc29c85646417:
+
+1. **Mold-safe range above its cap (claim-false).** `coordinator._mold_floor_series` returns `np.minimum(floors, cap)` with `cap = ctx._config.target_temperature` (the configured target, never the away-lowered one), and `binary_sensor`'s `floor_c` is that capped series (`self.coordinator.mold_floor_series(...)`, `"floor_c": floor`). `docs/how-it-works.md` "Away and the mold guard" now gives 19.2 to 20.9 °C as the *uncapped* mold-safe temperature and the floor in force as 19.2 to 19.5 °C, held at the 19.5 °C target, and says why the guard stops at the target (the `_mold_floor_series` docstring: heating past target is dehumidification's job). The same re-check found the paragraph's "Hot water is still suppressed" loose: away does not stop hot water, `away.solve_bands` caps `dhw_min_temp` and `dhw_idle_min_temp` at the away hot-water minimum (`DEFAULT_AWAY_DHW_MIN_TEMP` 20.0, the *Hot water minimum while away* row); the sentence and the section's opening ("hot water suppressed entirely") now say it is held at its away minimum.
+2. **The `_Suggested` unwrap pinned by nothing.** `check_surface_coverage` gains `every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)`: it reads `config_flow._OPTION_FIELDS` itself, so a new `_Suggested` field is covered without an edit, and its anchor refuses an empty set. Failing first: with the unwrap line replaced by `d = f.default` (the reviewer's mutant), `tests/doc_claims.py` exits 1, `1 of 348 checks FAILED`, the FAIL naming `{'compressor_modulation': ('auto', '<computed>'), 'two_zone_mode': ('auto', '<computed>')}`; restored, `ALL 348 checks PASSED` (before this check the same mutant read `ALL 347 checks PASSED`).
+3. **The ceiling probe's missing precondition.** `thermal_model.flow_setpoint_driven` also requires `not probe_install(cfg).plan_writes_power()`, true when a compressor frequency entity is set and its control mode is `control` (`"frequency" in self.writes`); `sysid.armable` then refuses with "no metered flow set-point to probe the ceiling on". The page's condition list now names it.
+
+Every numeric claim the diff writes, re-read against the code (lookups by two read-only subagents returning quoted code; the mold cap and binary sensor read directly):
+
+| page, passage | claim | code |
+|---|---|---|
+| configuration.md, *Temperature while away* | 16.0 °C, 5–21, 0.5 steps | `DEFAULT_AWAY_TEMPERATURE` 16.0; `_F("away", CONF_AWAY_TEMPERATURE, ..., _number(5, 21, 0.5, ...))` |
+| configuration.md, *Heat loss coefficient* | 0.01–1.0 kW/°C, hidden on two zones | `RANGE_HOUSE_HEAT_LOSS = (0.01, 1.0)`; `when=_single_zone` |
+| configuration.md, combi row | a store is a throttling valve and at least 100 L | `buffer_is_store`: `is_throttling(...)` and `>= BUFFER_STORE_MIN_VOLUME` (100.0) |
+| configuration.md, combi row (added sentence) | 600 L, median 24.8 K, about 9 kWh | no source in the tree (a user's recorded measurement, stated as an example); 600 L × 4.186 kJ/(kg·K) × 12.4 K ≈ 8.7 kWh is consistent |
+| how-it-works.md, away | hot water held at its away minimum, 20 °C default | `away.solve_bands`: `min(v, floor)` over `_DHW_FIELDS`; `DEFAULT_AWAY_DHW_MIN_TEMP` 20.0 |
+| how-it-works.md, mold guard | rises with indoor humidity, falls with outdoor temperature | `mold_safe_room_floor`: `outdoor + (t_surface_min - outdoor) / frsi`, `t_surface_min` the dew point of `rh * p_sat(room) / limit` |
+| same | floor capped at the configured target; 19.2–19.5 °C in force against 19.5 °C | `_mold_floor_series` `np.minimum(floors, cap)`; the 19.2–20.9 °C, 52–53 %, 1–5 °C figures are the R10-REPLAY-REAL-DAY carry's (`dev/programme/rosters/wave-r10-groups.json`) |
+| how-it-works.md, COP gate | 80 % of min power, else 30 % of max, never below 0.2 kW | `flow_lift_power_floor_kw` `max(0.8 * min, 0.2)`; `nameplate_power_floor_kw` `max(0.3 * max, 0.2)` |
+| how-it-works.md, part load | default 0; linear to 1 − derate at max; refused at or above band / (band + max) | `DEFAULT_HEAT_PUMP_COP_PARTLOAD_DERATE` 0.0; `partload_factor` `1.0 - derate * x`; `partload_derate_limit` `band / (band + p_max)`; `_partload_derate` `derate if derate < limit else` default |
+| how-it-works.md, ceiling probe | 30-day gap | `SysIdConfig.min_days_between_runs` 30.0 |
+| same | 23:00 to 05:00, −5 to 10 °C, cheapest 30 % | `start_hour` 23, `end_hour` 5; `min_outdoor_temp` -5.0, `max_outdoor_temp` 10.0; `max_price_percentile` 30.0 (`conditions_met`) |
+| same | step of at most two hours, at least two intervals or abort | `step_hours` 2.0; `PROBE_MIN_CYCLES` 2; `probe_step_hours` returns None, then `abort("no probe step of two cycles fits ...")` |
+| same | twelve samples, their median | `CEILING_MIN_SAMPLES` 12; `np.median` in `_ceiling_median` |
+| same | used when more than 15 % below configured; never raises it | `AGREE_TOLERANCE` 0.15; `solve_band`: `learned >= (1 - AGREE_TOLERANCE) * cfg_max` books the configured maximum |
+| same | lapses 45 days after newest sample; two overdraws above 15 % clear it | `CEILING_LAPSE_DAYS` 45.0; `CEILING_OVERDRAWS` 2; `_overdrawn` `drawn_kw > (1 + AGREE_TOLERANCE) * median` |
+| same | every 7 days unlearned, 30 learned | `PROBE_DAYS_UNLEARNED` 7.0; `PROBE_DAYS_LEARNED` 30.0 |
+| dashboard-card.md, idle | above 0.1 kW total, channel above 0.05 kW, both strict | `MIN_RUNNING_DRAW_KW` 0.1 (`>`); `CHANNEL_ACTIVE_KW` 0.05 (`kw > CHANNEL_ACTIVE_KW`) |
+| dashboard-card.md, Health | "of about 30 samples" | `health.model_learning` with `need` from `solar_aperture.needed`; `SOLAR_APERTURE_MIN_SAMPLES` 30 |
+| same | 24-bar internal-gains strip | `healthGainsRow`, gated on `internal_gains_kw.length === 24` |
+| same | debug collection 7 days | `debugger.COLLECT_SPAN = timedelta(days=7)`; card `DEBUG_DAYS = 7` |
+| same | six-item checklist | `healthChecklistHtml`: price, weather, indoor, control, power, insight |
+| same | Why now's five reasons | `slot_drivers.DRIVER_CODES` (five codes) |
+| dashboard-card.md, Health alt text | 12 minutes, 96 steps, 142 W/K, 1.15, 0.9 °C/h, 0.97, three of six ticked | the picture `tests/card_browser.mjs` takes from its fixture, read by eye (the round-1 review agrees) |
+
+`tests/doc_claims.py` has no arm reading numbers out of prose, so this table is the check for the prose figures; no arm was added for them because each would re-state the constant it pins (`tests/README.md`).
+
 ## Head
 
-6d55f13c16ebde76dcd7ea397d6f6b17a0fdbb8f, merge base 19baca76181cb019d9b1cfd93ee6bc0a08e20047 (origin/main, read at 2026-11-12T13:53Z). The surfaces, markers, pages and figures were measured at the brief's base 6e100ef6980216a81eaa0438bdc215d62b19271f. Main then gained #3501 (tools/audit/seat only), merged at bdf580e2d, and #3430 (R10-ARCH-DOCS: `docs/architecture.md` and its `tests/doc_claims.py` arms), #3428, #3500 and #3504, none touching a user page or `custom_components`, merged at 6d55f13 (`tests/doc_claims.py` auto-merged); the gate and `prepr.sh` below are re-taken at 6d55f13.
+67c7e7fb58a999614ee6527d865cc29c85646417, merge base 19baca76181cb019d9b1cfd93ee6bc0a08e20047; origin/main read at 4145f2852642fd0b5ccb8b7af60d41e896a5eea3, 2026-11-12T20:16Z (`git merge-tree --write-tree origin/main HEAD` rc 0: no conflict, so no re-merge). The repair commit touches `docs/how-it-works.md` and `tests/doc_claims.py` only; the round-1 head was 6d55f13c16ebde76dcd7ea397d6f6b17a0fdbb8f. The surfaces, markers, pages and figures were measured at the brief's base 6e100ef6980216a81eaa0438bdc215d62b19271f; main then gained #3501, #3430, #3428, #3500 and #3504, none touching a user page or `custom_components`, merged at 6d55f13.
 
 ## Mutation proof
 
 - `tools/site/build_docs.mjs`: with the fix's `querySelectorAll(...).forEach(...)` removed (`git stash push tools/site/build_docs.mjs`), `tests/doc_claims.py` exits 1, `2 of 320 checks FAILED`: `the docs pages' theme toggle turns a dark <picture> source off on a light site theme` and `... and on for a dark site theme on a light OS` (each `{'light': '(prefers-color-scheme: dark)', 'dark': '(prefers-color-scheme: dark)', None: ...}`); restored, `ALL 320 checks PASSED`.
-- `tests/doc_claims.py`: with the `_Suggested` unwrap and the docs row's Default cell mutated to `No: on/off`, `--surfaces` prints `option compressor_modulation ... 0 "auto"` and `# option 'compressor_modulation' (Compressor runs below min power): no home on docs/configuration.md: Default cell 'No: on/off'`, exit 1; without the unwrap the same mutated row reads `1 <computed>`, exit 0, `ALL 320 checks PASSED` (the carry's gap, measured before the fix).
+- `tests/doc_claims.py` (repair): the unwrap alone mutated, as in Repair item 2: `1 of 348 checks FAILED`, restored `ALL 348 checks PASSED`.
+- `tests/doc_claims.py` (round 1): with the `_Suggested` unwrap and the docs row's Default cell mutated to `No: on/off`, `--surfaces` prints `option compressor_modulation ... 0 "auto"` and `# option 'compressor_modulation' (Compressor runs below min power): no home on docs/configuration.md: Default cell 'No: on/off'`, exit 1; without the unwrap the same mutated row reads `1 <computed>`, exit 0, `ALL 320 checks PASSED` (the carry's gap, measured before the fix).
 - No `.py` line is added outside `tests/` and `dev/`, so `prepr.sh`'s mutant draw is empty.
 
 ## Null control
@@ -40,7 +79,7 @@ What the keyed delta found and what this diff does with it, page by page:
 
 ## Figures
 
-<!-- figure-block: scope-line mb=19baca76181cb019d9b1cfd93ee6bc0a08e20047 head=6d55f13c16ebde76dcd7ea397d6f6b17a0fdbb8f -->
+<!-- figure-block: scope-line mb=19baca76181cb019d9b1cfd93ee6bc0a08e20047 head=67c7e7fb58a999614ee6527d865cc29c85646417 -->
 ~~~text
 MODE: SCOPED -- 6 script(s) run, 27 scoped out.
 ~~~
@@ -63,7 +102,7 @@ MODE: SCOPED -- 6 script(s) run, 27 scoped out.
 - Card figures: `HPO_PAGES_OUT=<scratch> node tests/card_browser.mjs` rc 0, `ALL BROWSER CHECKS PASSED`; `cmp` against `docs/img/card/*.png`: 12 same, `health-dark.png` and `health-light.png` differ; their PNG headers read 1056 × 1014 (main 1056 × 792).
 - Site themes: `node tools/site/build_docs.mjs --root . --tree <ls-files> --out <scratch> --mermaid native` rc 0, then a Playwright script reading each `picture img`'s `currentSrc` per (OS scheme, saved `hpo-theme`): before the fix light/dark and dark/light show the OS's render; after it, light/light and dark/light the four light PNGs, light/dark and dark/dark the four `-dark` PNGs.
 - Coffee badge: four `<img>` renders in Chromium (deviceScaleFactor 2), contrast from the SVG's hex fills by the WCAG relative-luminance formula, as given above.
-- Gate at 6d55f13 against 19baca761: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 6 script(s) run, 27 scoped out` (doc_claims.py, entities.py, harness_headers.py, md_tables.mjs, plan_view.py, card_drift.mjs). Run with `PYTHONPATH=tests/hastub`: `tests/doc_claims.py` rc 0 `ALL 347 checks PASSED`; `tests/entities.py` rc 0 `ALL 2709 ENTITY CHECKS PASSED`; `tests/harness_headers.py` rc 0 `ALL 115 HARNESS HEADER CHECKS PASSED` (at 07b7b9717 it was rc 1 on the D6 register, `the executed harnesses leave their committed output byte-identical`: the two new relative links move C108 from 89 to 91 links, broken=[], regenerated in its own commit); `node tests/md_tables.mjs`, `tests/plan_view.py`, `node tests/card_drift.mjs` rc 0; run_always `tests/layout.py` rc 0, `tests/closure.py selftest` rc 0 `ALL 118 closure shrink pins PASSED`, `tests/env_drift.py --claims-only 19baca761` rc 0; `node tests/card_browser.mjs` (no scope selects it; this diff changes it) rc 0 `ALL BROWSER CHECKS PASSED` at 0eedee6df plus the viewport change. `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. Claim files untouched; VERSION, the manifest and RELEASE_NOTES.md absent from the three-dot diff. `tools/pr/prepr.sh <body>` at 6d55f13: `PRE-PR: 6d55f13c16ebde76dcd7ea397d6f6b17a0fdbb8f ... rc=0`, every step ok or skipped by its own rule, closures included. The two earlier runs, at bdf580e2d and at 6d55f13 before this body named it, refused only the body (`## Forward-carry` named no destination file, the scope-line block was not rendered, `## Head` named the older head), each fixed here.
+- Gate at 67c7e7fb5 against 19baca761: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 6 script(s) run, 27 scoped out` (doc_claims.py, entities.py, harness_headers.py, md_tables.mjs, plan_view.py, card_drift.mjs). Run with `PYTHONPATH=tests/hastub`: `tests/doc_claims.py` rc 0 `ALL 348 checks PASSED`; `env -u BASH_ENV python3 tests/entities.py` rc 0 `ALL 2709 ENTITY CHECKS PASSED`; `tests/harness_headers.py` rc 0 `ALL 115 HARNESS HEADER CHECKS PASSED`; `node tests/md_tables.mjs` rc 0 `doc_misrendered_lines=0`; `tests/plan_view.py` rc 0; `node tests/card_drift.mjs` rc 0 `identical in all 45 states`; run_always `tests/layout.py` rc 0, `tests/closure.py selftest` rc 0 `ALL 118 closure shrink pins PASSED`, `tests/env_drift.py --claims-only 19baca761` rc 0. `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. The repair changes no card or `GRID_SURFACE` file, so `card_browser.mjs` was not re-run (round 1's run stands for the unchanged card files). Claim files untouched; VERSION, the manifest and RELEASE_NOTES.md absent from the three-dot diff. `tools/pr/prepr.sh` at 67c7e7fb5: below the figure block.
 
 ## Red checks
 
@@ -71,7 +110,7 @@ none yet at this head (CI not run).
 
 ## Forward-carry
 
-none: whether away mode should lower the mold-safe floor is already tvofi's open question in Carry 4 itself, and the badge's 2.3:1 mismatch case is recorded under Carry 7 above for the owner; neither changes how a later stage works.
+none
 
 ## Friction
 
