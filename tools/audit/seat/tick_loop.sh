@@ -198,11 +198,11 @@ tick_loop_self_test() (
   # are dropped before the first row: every HPO_TICK_* but the nesting flag, and the sweep's mandate.
   for v in $(compgen -v HPO_TICK_) HPO_SWEEP_MANDATE; do [ "$v" = HPO_TICK_SELFTEST_NESTED ] || unset "$v"; done  # mut:selftest-envscrub
   t=$(mktemp -d) || { echo "tick_loop self-test: no temporary directory"; return 1; }
+  ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
   # 2 MB after the match makes the SIGPIPE certain: with pipefail on, this row reads its match as none.
   out=$(head -c 2097152 /dev/zero | tr '\0' x)
   printf 'MATCH\n%s\n' "$out" | grep -q '^MATCH$'
   ck "a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match" $?
-  ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
   printf '#!/bin/bash\necho "relay $*" >> "%s/order"; exit "${RELAY_RC:-0}"\n' "$t" > "$t/relay.sh"
   printf '#!/bin/bash\necho "tick $*" >> "%s/order"; echo BOARD; exit "${TICK_RC:-0}"\n' "$t" > "$t/tick.sh"
   chmod +x "$t/tick.sh"
