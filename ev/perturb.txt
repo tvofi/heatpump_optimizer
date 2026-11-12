@@ -1,0 +1,20 @@
+## perturbations of the delta at b49a16c2f7a11194e9eb2662d3e992c864c6fb7d, each restored (git checkout) before the next
+# P0 null: unedited
+rc=0
+# P1 walk marker edited (manifest.json -> hacs.json): the inlined walk no longer equals the canonical
+FAIL python copies=182 differ=['dev/audit/harnesses/mutant_run_diff_shards.py']
+rc=1
+# P2 ROOT back to the depth root, the walk left in place
+FAIL depth seams: dev/audit/harnesses/mutant_run_diff_shards.py:42: ROOT = Path(__file__).resolve().parents[3]
+rc=1
+# P3 walk raises replaced by a silent fallback to the depth root
+FAIL python copies=182 differ=['dev/audit/harnesses/mutant_run_diff_shards.py']
+rc=1
+# P4 (instrument probe, not the diff's shape): a depth root spelled .parent.parent.parent.parent
+rc=0
+# restored:
+0
+rc=0
+## the inlined function against tools/audit/repo_root.py's, by harness_headers._fn_text
+EQUAL 458
+in scope: True

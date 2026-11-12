@@ -1,0 +1,11 @@
+## tests/harness_headers.py at 3dccd18a95617b752a1be6fce24f5dc7df3bd57f
+Traceback (most recent call last):
+  File "/tmp/tmp.PFMo3l15LB/wtA/tests/harness_headers.py", line 650, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/tmp/tmp.PFMo3l15LB/wtA/tests/harness_headers.py", line 519, in main
+    from harness import Results
+  File "/tmp/tmp.PFMo3l15LB/wtA/tests/harness.py", line 29, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+rc=1

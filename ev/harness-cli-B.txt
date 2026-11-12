@@ -1,0 +1,8 @@
+shard 0/4: 32 of 128
+BASELINE FAILS
+rc=3
+list rc=0
+128
+MUTANT tools/audit/seat/mutant_run.py:1033 STMT_DEL  pass
+MUTANT tools/audit/seat/mutant_run.py:1069 STMT_DEL  pass
+SAME-AS-PREV-ROUND
