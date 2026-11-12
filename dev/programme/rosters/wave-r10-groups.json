@@ -20582,9 +20582,10 @@
    "architect_note": "",
    "brief": "Quiet output by default for the seat PR scripts (owner card, 2026-10-24) and the pr_bounded self-test bound in the 12 seat self-tests that lack it. Output calls only in merge_train.py; chained after R10-TRAIN-RESIDUE, which edits its logic. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-TRAIN-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-TRAIN-RESIDUE, ordered by after-edges where files overlap"
+    "note": "overlap admitted (R10-TRAIN-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-TRAIN-RESIDUE, ordered by after-edges where files overlap",
+    "pr": 3490
    }
   },
   {
@@ -21075,9 +21076,10 @@
    "architect_note": "",
    "brief": "Design P5 of design/r10-fly-standing-contracts plus its beat row: the generation token a superseded seat checks before it writes (P63), the session lock keyed on the session binary's pid (P236), the loop-cwd row for long-lived loops outside the job table, and retiring the session-local opener stand-in for open_driver.py under beatd.py. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-TICK-RESIDUE, R10-STANDING-CONTRACTS-P2): carries-open audit 2026-11-09: distinct seam from R10-STANDING-CONTRACTS-P2, R10-TICK-RESIDUE, ordered by after-edges where files overlap"
+    "note": "overlap admitted (R10-TICK-RESIDUE, R10-STANDING-CONTRACTS-P2): carries-open audit 2026-11-09: distinct seam from R10-STANDING-CONTRACTS-P2, R10-TICK-RESIDUE, ordered by after-edges where files overlap",
+    "pr": 3491
    }
   },
   {
