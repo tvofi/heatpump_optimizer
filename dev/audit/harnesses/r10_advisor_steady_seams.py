@@ -30,18 +30,23 @@ not go through ``async_simulate``.
            against the same house without one: the mean-price figure, which
            reads no surplus, beside the same energy at each what-if plan's own
            average purchase price.
+  wall     what the week costs: ``reference_day``'s wall a call, and how many
+           distinct days a week holds (each is one pair of thermostat passes),
+           with and without weekend comfort. Two calls a what-if, on the loop.
 
 Run from the tree root:
 
   PYTHONPATH=tests/hastub:tests:custom_components \
-      python3 dev/audit/harnesses/r10_advisor_steady_seams.py [weekday|fields|pair|pv ...]
+      python3 dev/audit/harnesses/r10_advisor_steady_seams.py [weekday|fields|pair|pv|wall ...]
 
-No argument runs all four. Every figure is a month's money in the fixture's
+No argument runs all five. Every figure is a month's money in the fixture's
 price unit; re-run rather than carry a number.
 """
 from __future__ import annotations
 
+import statistics
 import sys
+import time
 from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -209,7 +214,22 @@ def arm_pv():
                       f"mean price {float(np.mean(given.forecast.prices)):.3f}")
 
 
-ARMS = {"weekday": arm_weekday, "fields": arm_fields, "pair": arm_pair, "pv": arm_pv}
+def arm_wall():
+    for label, config in (("no weekend comfort", {}), ("weekend comfort set", WEEKEND)):
+        opt, _params = build(**config)
+        walls, distinct = [], set()
+        for hour in HOURS:
+            for d in range(7):
+                given = inputs(hour, start(), MONDAY + timedelta(days=d))
+                began = time.perf_counter()
+                week, _kwh = opt.reference_day(given)
+                walls.append((time.perf_counter() - began) * 1e3)
+                distinct.add(len({tuple(week[k:k + N]) for k in range(0, 7 * N, N)}))
+        print(f"RESULT wall {label}: reference_day calls {len(walls)} median {statistics.median(walls):.1f} ms "
+              f"max {max(walls):.1f} ms on this host, distinct days in a week {min(distinct)}..{max(distinct)}")
+
+
+ARMS = {"weekday": arm_weekday, "fields": arm_fields, "pair": arm_pair, "pv": arm_pv, "wall": arm_wall}
 
 if __name__ == "__main__":
     for arm in sys.argv[1:] or list(ARMS):
