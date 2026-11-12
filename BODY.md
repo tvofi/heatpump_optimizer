@@ -9,6 +9,8 @@ What ships, by brief item:
 - (e) Siblings: `space_learning_frozen` and `interval_boosted` read the overlay and `space_settle_until`, unchanged in meaning, so they are covered. `heat_loss_refit` waits `SPACE_SETTLE_TAIL` after the last tagged pair (`coordinator.py`, `settle=boost.SPACE_SETTLE_TAIL`). Every boost length owes exactly that tail, pinned by a sweep, so the refit never reads evidence the interval learners refused.
 - (f) The store: `BOOST_STORE_VERSION` is unchanged at 1. A store this build writes loads in main's loader with main's overlay and block. One main wrote loads here with no tail. `space_settle/until` declares its own look-ahead (`BOOST_SPACE_SETTLE_TAIL_HOURS`), and a tail past it is bounded by the store. A spent tail is not restored.
 
+Carry 0 and Carry 1 (one item, 0aadbc91: part 2 cut from the author's commit with authorship kept) land here. The persisted tail, the overlay start, the store entries and the mode-change call ship, cut from 7db392d8c2, whose author is Bankaifan. The scaling on the time the boost ran does not ship, by the ruling above, and goes forward to round 11 under `## Forward-carry`.
+
 Also fixed: one mypy `union-attr` in `_restore_settle` that the wip head carried. `tests/typing_ruler.py` measured 1 against a recorded 0. The tail record is now narrowed before it is read.
 
 ## Head
