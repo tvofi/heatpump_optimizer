@@ -83373,6 +83373,17 @@ R.check(
     _ds_unloaded == _DS_TODAY and _ds_unloaded_rec.order is None and _ds_wholes["next serves space"] == _DS_WHOLE,
     f"{_ds_unloaded} {_ds_unloaded_rec.order}",
 )
+_ds_censored = _ds_learner(dhw_space=(6.0, 0.0, True, []), space_dhw=_DS_ON)
+_ds_edges = (_ds_split(_ds_mod.DutySwitchLearner(), minutes=(7.5 - 1 / 60, 7.5)),
+             _ds_censored.split(9.99, 15.0, _sa_pa.SPLIT_MIN_MINUTES, "space"),
+             _ds_censored.split(9.99, 15.0, _sa_pa.SPLIT_MIN_MINUTES + 0.02, "space"))
+R.check(
+    "on the bounds: hot water's share ends at its own instant, a second later than one second before it; and a "
+    "direction whose every off time was censored adds no off time to the whole-step bound (5.01 min second share "
+    "split, under a 5.02 min minimum whole)",
+    _ds_edges == ("ds", ("dhw", False), ("dhw", True)),
+    str(_ds_edges),
+)
 _ds_latch_off = _ds_split(_ds_mod.DutySwitchLearner(), _ds_next_dhw)
 R.check(
     "null control of the latch: the re-solved plan and learner read from the step's start split as today",

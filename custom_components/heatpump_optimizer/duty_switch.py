@@ -220,9 +220,8 @@ class Direction:
                 self.censored += 1
             else:
                 self.off_s = [*self.off_s, off_s][-OFF_SAMPLES_MAX:]
-        if self.n > N_CAP:
-            scale = N_CAP / self.n
-            self.k, self.kept_w = self.k * scale, self.kept_w * scale
+        scale = min(1.0, N_CAP / self.n)
+        self.k, self.kept_w = self.k * scale, self.kept_w * scale
         self._latch()
 
     def stored_row(self) -> dict[str, Any]:
