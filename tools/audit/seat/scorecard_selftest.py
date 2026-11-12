@@ -1,7 +1,7 @@
 """Self-test of scorecard.py: a null control and a planted case per line, and one mutant per predicate.
 
-Run through `python3 -I tools/audit/seat/scorecard.py --self-test [--no-mutants]`. Offline, in-process
-over planted inputs; the mutants edit a temp copy of scorecard.py, and a mutant that survives, or whose
+Run through scorecard.py's own test mode, with or without the mutants. Offline, in-process over
+planted inputs; the mutants edit a temp copy of scorecard.py, and a mutant that survives, or whose
 copy does not run, fails the test.
 """
 from __future__ import annotations
