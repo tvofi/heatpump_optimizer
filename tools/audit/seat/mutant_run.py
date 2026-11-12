@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """The tracked mutant driver: apply one textual edit, run a command, restore.
 
-    python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd '<argv>' [--copy-tree | --in-place]
+    python3 tools/audit/seat/mutant_run.py --spec mutants.json --cmd '<argv>' [--copy-tree | --in-place] [--fork-cap N]
     python3 tools/audit/seat/mutant_run.py --diff <base>...HEAD --cmd '<argv>' [--max-mutants N] [--report-only] [--list]
     python3 -I tools/audit/seat/mutant_run.py --self-test
 
@@ -22,9 +22,20 @@ working tree under `dev/audit/harnesses/mutant_guard.py`, which refuses a
 target that differs from HEAD and restores it under SIGTERM, SIGINT and exit.
 Under either mode a signal kills the running command's process group first.
 
+FORK CAP (R10-MUTANT-RUN-FORKCAP). The command runs in its own session; its family (session, process group, every process
+carrying the run's MUTANT_RUN_TOKEN, and every descendant of the driver, which is a child
+subreaper (PR_SET_CHILD_SUBREAPER) while the command runs, so a descendant that setsid'd,
+setpgid'd, cleared its environment or was orphaned still counts) is polled every 0.5 s and killed whole, also at exit; a family holding more than `--fork-cap` processes (default 256, 0
+turns the cap off) is SIGKILLed whole and reported `FORKCAP <name>` (diff mode:
+`FORKCAP file:line OPERATOR  <mutated line>`), never KILLED: a mutant that makes
+a self-test re-enter itself (a chain 700 deep once exhausted a host's `ulimit -u`)
+was stopped by the cap, not by a test pinning it, so it is unresolved. A diff
+run with a FORKCAP line exits 1 (rc 0 under `--report-only`); `survivor_list.py`
+reads only SURVIVED lines. A FORKCAP on the NULL run is rc 3, as KILLED NULL is.
+
 DIFF MODE (R10-MUTANT-RUN-DRIVER, card 4). `--diff base...HEAD` reads the
 ADDED lines of the Python files the three-dot diff touches (not under tests/ or
-dev/, not inside a multi-line string) and mutates each with five operators:
+dev/, not inside a multi-line string) and mutates each with six operators:
 
   GUARD_OFF   `if cond:` / `elif cond:` becomes `if False:`
   RETURN_DEL  `return ...` becomes `pass`
@@ -33,6 +44,14 @@ dev/, not inside a multi-line string) and mutates each with five operators:
               are left alone: they pin no behaviour)
   CONST_SWAP  the first number moves (n to n+1, 0.0 to 1.0) or, with none,
               the first True/False flips
+  STMT_DEL    from the head file's ast, each simple statement (assignment,
+              expression, delete, raise, assert, return) an added line falls in
+              is replaced whole, however many lines it spans, by `pass` at its
+              indent; the report line is `SURVIVED <file>:<first line> STMT_DEL  pass`.
+              Left alone: a statement sharing its lines with other code, a
+              docstring or bare constant, print and _LOGGER calls, imports and
+              compound headers, and any statement CALL_DEL or RETURN_DEL already
+              deletes to the same text
 
 A mutant that does not compile is skipped. The command runs once unedited (rc 3
 `BASELINE FAILS` if it fails: nothing is then readable) and once per mutant;
@@ -49,6 +68,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import ctypes
 import json
 import os
 import re
@@ -58,11 +78,16 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 REFUSE_RC, SURVIVE_RC, BROKEN_RC = 2, 1, 3
-OPERATORS = ("GUARD_OFF", "RETURN_DEL", "CMP_BOUND", "CALL_DEL", "CONST_SWAP")
+TIMEOUT_RC, FORKCAP_RC = -1, -2  # run_cmd's two non-exit outcomes: a kill, and a stop that proves nothing
+FORKCAP = [256]  # processes one command's session may hold (--fork-cap); 0 turns the cap off
+FORKCAP_POLL_S = 0.5
+OPERATORS = ("GUARD_OFF", "RETURN_DEL", "CMP_BOUND", "CALL_DEL", "CONST_SWAP", "STMT_DEL")
+_SIMPLE = (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Expr, ast.Delete, ast.Raise, ast.Assert, ast.Return)
 SKIP_PREFIXES = ("tests/", "dev/")
 _STR = re.compile(r"""("(?:[^"\\\n]|\\.)*"|'(?:[^'\\\n]|\\.)*')""")
 _CMP = re.compile(r"(?<![<>=!\-])(<=|>=|<|>)(?![<>=])")
@@ -83,27 +108,118 @@ def git(root: Path, *args: str, text: bool = True) -> subprocess.CompletedProces
 
 
 # --- running one command ----------------------------------------------------
+PR_SET_CHILD_SUBREAPER, PR_GET_CHILD_SUBREAPER = 36, 37  # linux/prctl.h
+
+
+def _subreaper(on: int) -> int:
+    """Set this process's child-subreaper flag (PR_SET_CHILD_SUBREAPER: an orphaned descendant is
+    reparented to this process, not to init, so it stays in the ppid-closure whatever it does to
+    its session or environment); return the previous flag, -1 where prctl is unavailable."""
+    try:
+        libc, prev = ctypes.CDLL(None, use_errno=True), ctypes.c_int(0)
+        if libc.prctl(PR_GET_CHILD_SUBREAPER, ctypes.byref(prev), 0, 0, 0) or libc.prctl(PR_SET_CHILD_SUBREAPER, on, 0, 0, 0):
+            return -1
+        return prev.value
+    except (OSError, AttributeError):
+        return -1
+
+
+def family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -> list[int]:
+    """Live processes of the command `sid` started: its session, its process group, any that still
+    carries the run's token in its environment, and, given `root` (this driver, a subreaper while
+    the command runs), every descendant of `root` but those of its children in `skip` (children it
+    had before the command). The ppid leg is the one a descendant cannot leave: setsid, setpgid,
+    a cleared environment and an exited parent all keep it under `root`. Zombies are not counted."""
+    me, mark, kids, out = os.getpid(), ("MUTANT_RUN_TOKEN=" + token).encode(), {}, set()
+    for d in os.listdir("/proc"):
+        if not d.isdigit() or int(d) == me:
+            continue
+        try:
+            stat = Path("/proc", d, "stat").read_text()
+            state, ppid, pgrp, session = stat[stat.rindex(")") + 2:].split()[:4]
+            if state == "Z":
+                continue
+            kids.setdefault(int(ppid), []).append(int(d))
+            if sid in (int(pgrp), int(session)) or mark in Path("/proc", d, "environ").read_bytes().split(b"\0"):
+                out.add(int(d))
+        except (OSError, ValueError):
+            continue  # exited between the listing and the read, or not ours to read
+    todo, seen = ([c for c in kids.get(root, []) if c not in skip] if root else []), set()
+    while todo:
+        pid = todo.pop()
+        if pid not in seen:
+            seen.add(pid)
+            todo.extend(kids.get(pid, []))
+    return sorted(out | seen)
+
+
+def _reap(skip: frozenset, keep: int) -> None:
+    """Collect the exit status of every orphan reparented to this subreaper (children not in
+    `skip` and not the command `keep`, which Popen waits for), so dead ones leave no zombie."""
+    for d in os.listdir("/proc"):
+        try:
+            pid = int(d)
+            stat = Path("/proc", d, "stat").read_text()
+            if pid != keep and pid not in skip and int(stat[stat.rindex(")") + 2:].split()[1]) == os.getpid():
+                os.waitpid(pid, os.WNOHANG)
+        except (OSError, ValueError, ChildProcessError):
+            continue
+
+
+def _kill_family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -> None:
+    """SIGKILL every member until none is left (a member may fork while the list is taken)."""
+    for _ in range(20):
+        pids = family(sid, token, skip, root)
+        if root:
+            _reap(skip, sid)
+        if not pids:
+            return
+        for pid in pids:
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except (ProcessLookupError, PermissionError):
+                pass
+        time.sleep(0.05)
+
+
 def run_cmd(argv: list[str], cwd: Path, timeout: float) -> int:
-    """Exit status of the command; a timeout is -1 (a kill: the mutant hangs)."""
-    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    """Exit status of the command; TIMEOUT_RC (-1) is a kill (the mutant hangs); FORKCAP_RC (-2)
+    is the session holding more than FORKCAP[0] processes (a re-entering self-test), which proves
+    nothing about the test pinning the mutant and is never a kill."""
+    token = f"{os.getpid()}-{time.monotonic_ns()}"
+    env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1", MUTANT_RUN_TOKEN=token)
+    prev = _subreaper(1)
+    root = os.getpid() if prev >= 0 else 0
+    skip = frozenset(family(0, token, root=root)) if root else frozenset()  # children (and theirs) from before
     p = subprocess.Popen(argv, cwd=str(cwd), env=env, start_new_session=True,
                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    _child.append(p)
+    _child.append((p, token, skip, root))
+    fam = lambda: family(p.pid, token, skip, root)  # noqa: E731
+    deadline = time.monotonic() + timeout
     try:
-        return p.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        _killpg(p)
-        p.wait()
-        return -1
+        while True:
+            try:
+                rc = p.wait(timeout=max(0.0, min(FORKCAP_POLL_S, deadline - time.monotonic())))
+                if FORKCAP[0] and len(fam()) > FORKCAP[0]:
+                    rc = FORKCAP_RC
+                return rc
+            except subprocess.TimeoutExpired:
+                pass
+            if root:
+                _reap(skip, p.pid)
+            if time.monotonic() >= deadline:
+                _kill_family(p.pid, token, skip, root)
+                p.wait()
+                return TIMEOUT_RC
+            if FORKCAP[0] and len(fam()) > FORKCAP[0]:
+                _kill_family(p.pid, token, skip, root)
+                p.wait()
+                return FORKCAP_RC
     finally:
+        _kill_family(p.pid, token, skip, root)  # a daemon outliving its command is the command's, not the next mutant's
         _child.clear()
-
-
-def _killpg(p) -> None:
-    try:
-        os.killpg(p.pid, signal.SIGKILL)
-    except (ProcessLookupError, PermissionError):
-        pass
+        if prev >= 0:
+            _subreaper(prev)
 
 
 class Workspace:
@@ -134,8 +250,8 @@ class Workspace:
         prev = {sg: signal.getsignal(sg) for sg in (signal.SIGTERM, signal.SIGINT)}
 
         def on_signal(signum, frame):
-            for p in _child:
-                _killpg(p)
+            for p, token, skip, root in _child:
+                _kill_family(p.pid, token, skip, root)
             self.close()
             h = prev[signum]
             if callable(h):
@@ -192,7 +308,12 @@ def load_spec(path: str, root: Path) -> list[dict]:
 
 
 def run_spec(spec: list[dict], argv: list[str], ws: Workspace, timeout: float) -> int:
-    if run_cmd(argv, ws.dir, timeout) != 0:
+    rc = run_cmd(argv, ws.dir, timeout)
+    if rc == FORKCAP_RC:
+        print("FORKCAP NULL", flush=True)
+        print("mutant_run: the unedited tree forked past --fork-cap, nothing is readable", file=sys.stderr)
+        return BROKEN_RC
+    if rc != 0:
         print("KILLED NULL", flush=True)
         print("mutant_run: the null mutant was killed, the command fails on the unedited tree", file=sys.stderr)
         return BROKEN_RC
@@ -200,6 +321,9 @@ def run_spec(spec: list[dict], argv: list[str], ws: Workspace, timeout: float) -
     for m in spec:
         text = ws.path(m["file"]).read_text(encoding="utf-8")
         rc = ws.apply(m["file"], text.replace(m["old"], m["new"], 1), argv, timeout)
+        if rc == FORKCAP_RC:
+            print("FORKCAP " + m["name"], flush=True)
+            continue
         print(("SURVIVED " if rc == 0 else "KILLED ") + m["name"], flush=True)
     return 0
 
@@ -292,7 +416,48 @@ def diff_mutants(root: Path, rng: str, rev_root: Path, only: tuple = ()) -> list
                 except (SyntaxError, ValueError):
                     continue
                 found.append((rel, n, op, text, new.strip()))
+        found.extend(_stmt_del(rel, src, lines, nums, {m[3] for m in found if m[0] == rel}))
     return found
+
+
+def _stmt_del(rel: str, src: str, lines: list[str], nums: list[int], have: set[str]) -> list[tuple]:
+    """STMT_DEL: each simple statement an added line falls in, whole, becomes `pass` at its indent.
+
+    Skipped: a statement sharing its lines with other code (`a = 1; b = 2`, `if x: y = 1`),
+    a docstring or bare constant, a print or _LOGGER call, and any text another operator already
+    produced (a single-line CALL_DEL or RETURN_DEL), so a statement is one mutant, not two.
+    """
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return []
+    out = []
+    for node in sorted((x for x in ast.walk(tree) if isinstance(x, _SIMPLE)), key=lambda x: x.lineno):
+        lo, hi = node.lineno, node.end_lineno
+        if not any(lo <= n <= hi for n in nums):
+            continue
+        if isinstance(node, ast.Expr):
+            v = node.value
+            if isinstance(v, ast.Constant):
+                continue
+            if isinstance(v, ast.Call) and ast.unparse(v.func).split(".")[0] in ("print", "_LOGGER"):
+                continue
+        first, last = lines[lo - 1].rstrip("\r\n"), lines[hi - 1].rstrip("\r\n")
+        head = first.encode()[: node.col_offset].decode()
+        tail = last.encode()[node.end_col_offset:].decode().strip()
+        if head.strip() or (tail and not tail.startswith("#")):
+            continue
+        eol = lines[lo - 1][len(first):]
+        text = "".join(lines[: lo - 1]) + head + "pass" + eol + "".join(lines[hi:])
+        if text == src or text in have:
+            continue
+        try:
+            compile(text, rel, "exec")
+        except (SyntaxError, ValueError):
+            continue
+        have.add(text)
+        out.append((rel, lo, "STMT_DEL", text, "pass"))
+    return out
 
 
 def run_diff(rng: str, argv: list[str], root: Path, in_place: bool, timeout: float,
@@ -327,7 +492,11 @@ def run_diff(rng: str, argv: list[str], root: Path, in_place: bool, timeout: flo
             return BROKEN_RC
         survivors = 0
         for rel, n, op, text, new in mutants:
-            if ws.apply(rel, text, argv, timeout) == 0:
+            rc = ws.apply(rel, text, argv, timeout)
+            if rc == FORKCAP_RC:  # unresolved, not killed: listed apart from SURVIVED so survivor_list.py skips it
+                survivors += 1
+                print(f"FORKCAP {rel}:{n} {op}  {new}", flush=True)
+            elif rc == 0:
                 survivors += 1
                 print(f"SURVIVED {rel}:{n} {op}  {new}", flush=True)
         return 0 if (report_only or not survivors) else SURVIVE_RC
@@ -345,12 +514,15 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--in-place", action="store_true", help="mutate the working tree under mutant_guard")
     ap.add_argument("--root", default=str(ROOT))
     ap.add_argument("--timeout", type=float, default=600.0)
+    ap.add_argument("--fork-cap", type=int, default=FORKCAP[0],
+                    help="kill the command's session past this many processes and report FORKCAP (0: no cap)")
     ap.add_argument("--max-mutants", type=int, default=0)
     ap.add_argument("--report-only", action="store_true")
     ap.add_argument("--list", action="store_true")
     ap.add_argument("--path", action="append", default=[], help="diff mode: only files under this prefix (repeatable)")
     a = ap.parse_args(argv)
     root = Path(a.root).resolve()
+    FORKCAP[0] = a.fork_cap
     try:
         if a.copy_tree and a.in_place:
             raise Refusal("--copy-tree and --in-place exclude each other")
@@ -410,12 +582,35 @@ PINNED = ("from lib import clamp\n"
 NORM_PINNED = ("from lib import norm\nimport lib\nseen = []\nlib.note = seen.append\n"
                "assert norm(-1) == 0 and norm(0) == 0 and norm(2) == 4 and seen == [0, 2]\n"
                "assert lib.label() == ('a < b', True)\n")
+STM = '''import os
+
+
+def f(x):
+    """Doc."""
+    total = x + 1
+    kept = x * 2
+    wide = (x +
+            1 +
+            2)
+    print(os.sep)
+    return kept
+'''
+SHR = 'def g(x):\n    a = 1; b = 2\n    if x: y = 1\n    c = 3  # note\n    return a\n'
+STM_PINNED = "from stm import f\nassert f(3) == 6\n"
 LOOSE = "from lib import clamp\nassert clamp(3, 0, 5) == 3\n"
+
+
+def _no_session(sid: int) -> bool:
+    """True once no process has session id `sid` (polled for up to 5 s)."""
+    for _ in range(50):
+        if not family(sid, ""):
+            return True
+        time.sleep(0.1)
+    return False
 
 
 def _gone(pid: str) -> bool:
     """True once the process `pid` no longer exists (polled for up to 5 s)."""
-    import time
     for _ in range(50):
         try:
             os.kill(int(pid), 0)
@@ -426,7 +621,6 @@ def _gone(pid: str) -> bool:
 
 
 def _self_test() -> int:
-    import time
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_init
     fails = checks = 0
@@ -559,14 +753,14 @@ def _self_test() -> int:
         rng = f"{base}...HEAD"
         rc, out, _ = drive("--diff", rng, "--list")
         ops = {l.split()[2] for l in out.splitlines() if l.startswith("MUTANT ")}
-        check("diff: the added lines yield all five operators", ops == set(OPERATORS))
+        check("diff: the added lines yield all six operators", ops == set(OPERATORS))
         rc, out, _ = drive("--diff", rng, "--list")
         listed = [l for l in out.splitlines() if l.startswith("MUTANT ")]
         src2 = LIB2.splitlines()
         doc = {i + 1 for i, l in enumerate(src2) if l.strip() in ("if x < 1:", "return 7", "Say it.") or l.strip().startswith('"""')}
         msg = next(i + 1 for i, l in enumerate(src2) if l.strip().startswith("msg ="))
         check("diff: no mutant inside a multi-line string, and none from a < or # inside a string literal",
-              doc and not any(int(l.split()[1].split(":")[1]) in doc | {msg} for l in listed))
+              doc and not any(int(l.split()[1].split(":")[1]) in doc | {msg} for l in listed if l.split()[2] != "STMT_DEL"))
         check("diff: a True constant is flipped", any(l.endswith("on = False") for l in listed))
         rc, out, _ = drive("--diff", rng, "--cmd", "python3 check_norm.py")
         check("diff: a self-test that pins the guard, return, bound, call and constant leaves no survivor, rc 0",
@@ -588,6 +782,110 @@ def _self_test() -> int:
         check("diff: an empty diff prints no survivor and exits 0 (null control)", rc == 0 and out == "")
         status = subprocess.run(["git", "-C", str(repo), "status", "--porcelain"], capture_output=True, text=True, env=env).stdout
         check("diff: the working tree is clean after every run", status == "" and not listing())
+
+        # fork cap: a command that forks a chain without end is stopped and left no process behind
+        chain, gate, pidf = tmp / "chain.sh", tmp / "gate.sh", tmp / "gate.pid"
+        chain.write_text('n=$1; [ "$n" -le 0 ] && exit 0; sleep 0.02; sh "$0" $((n - 1))\n')
+        gate.write_text(f'echo $$ > {pidf}; grep -q "return lo" lib.py && exit 0; sh {chain} "$1"\n')
+        write_spec([bad])
+        t0 = time.monotonic()
+        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 120", "--fork-cap", "32", "--timeout", "60")
+        check("forkcap: an endless-style chain past a cap of 32 is FORKCAP, within seconds, never KILLED",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"] and time.monotonic() - t0 < 20)
+        check("forkcap: no process of the capped session is left", _no_session(int(pidf.read_text())))
+        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 120", "--fork-cap", "0", "--timeout", "60")
+        check("forkcap: with the cap off the same chain runs out unbounded-by-the-driver and SURVIVES (mutation proof)",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
+        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 10", "--fork-cap", "32")
+        check("forkcap: a bounded 10-process command under the same cap is unaffected (null control)",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
+
+        # fork cap in the other two modes: a null run that re-enters, and a diff-mode mutant that does
+        write_spec([bad])
+        rc, out, err = drive("--spec", str(spec), "--cmd", f"sh {chain} 120", "--fork-cap", "32", "--timeout", "60")
+        check("forkcap: a command that forks past the cap on the unedited tree is FORKCAP NULL, rc 3, no mutant run",
+              rc == 3 and out.splitlines() == ["FORKCAP NULL"] and "forked past --fork-cap" in err)
+        orig = tmp / "lib_orig.py"
+        orig.write_text(LIB2)
+        t0 = time.monotonic()
+        rc, out, _ = drive("--diff", rng, "--path", "lib.py", "--max-mutants", "2", "--fork-cap", "32", "--timeout", "60",
+                           "--cmd", f"sh -c 'cmp -s lib.py {orig} && exit 0; sh {chain} 120'")
+        fl = out.splitlines()
+        check("forkcap: a diff-mode mutant that forks past the cap is FORKCAP file:line OPERATOR, rc 1, never SURVIVED or KILLED",
+              rc == 1 and len(fl) == 2 and all(re.match(r"FORKCAP lib\.py:\d+ [A-Z_]+  ", l) for l in fl)
+              and time.monotonic() - t0 < 40)
+        rc, out, _ = drive("--diff", rng, "--path", "lib.py", "--max-mutants", "2", "--fork-cap", "32", "--report-only",
+                           "--cmd", f"sh -c 'cmp -s lib.py {orig} && exit 0; sh {chain} 120'")
+        check("forkcap: under --report-only the same diff-mode FORKCAP lines print and rc is 0",
+              rc == 0 and len(out.splitlines()) == 2 and all(l.startswith("FORKCAP ") for l in out.splitlines()))
+
+        # fork cap: descendants that leave the process group or the session are still the command's
+        esc = tmp / "esc.py"
+        esc.write_text("import os, sys, time\n"
+                       "mode, n = sys.argv[1], int(sys.argv[2])\n"
+                       "if n <= 0:\n    time.sleep(120)\n    sys.exit(0)\n"
+                       "pid = os.fork()\n"
+                       "if pid == 0:\n"
+                       "    {'pgrp': lambda: os.setpgid(0, 0), 'session': os.setsid, 'cleanenv': os.setsid, 'plain': lambda: None}[mode]()\n"
+                       "    env = {} if mode == 'cleanenv' else os.environ\n"
+                       "    os.execve(sys.executable, [sys.executable, sys.argv[0], mode, str(n - 1)], env)\n"
+                       "time.sleep(0.02)\n"
+                       "os.waitpid(pid, 0)\n")
+        for mode in ("pgrp", "session", "cleanenv"):
+            write_spec([bad])
+            t0 = time.monotonic()
+            rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh -c 'grep -q \"return lo\" lib.py && exit 0; python3 {esc} {mode} 120'",
+                               "--fork-cap", "32", "--timeout", "60")
+            check(f"forkcap: a chain that leaves its {mode} at every link is FORKCAP, not waited out",
+                  rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"] and time.monotonic() - t0 < 30)
+            left = subprocess.run(["pgrep", "-f", f"{esc} {mode}"], capture_output=True, text=True).stdout.split()
+            check(f"forkcap: no {mode}-leaving descendant outlives the run", not left)
+            for pid in left:
+                os.kill(int(pid), signal.SIGKILL)
+        write_spec([bad])
+        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh -c 'setsid python3 {esc} plain 0 </dev/null >/dev/null 2>&1 & exit 0'", "--timeout", "60")
+        left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=True, text=True).stdout.split()
+        check("forkcap: a daemon that left the session and outlived its command is killed at the command's exit",
+              rc == 0 and not left)
+        for pid in left:
+            os.kill(int(pid), signal.SIGKILL)
+        write_spec([bad])
+        rc, out, _ = drive("--spec", str(spec), "--cmd",
+                           f"sh -c 'setsid env -i {sys.executable} {esc} plain 0 </dev/null >/dev/null 2>&1 & exit 0'", "--timeout", "60")
+        left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=True, text=True).stdout.split()
+        check("forkcap: a daemon that left the session, cleared its environment and outlived its command is killed at the command's exit",
+              rc == 0 and not left)
+        for pid in left:
+            os.kill(int(pid), signal.SIGKILL)
+
+        # STMT_DEL
+        g("commit", "-q", "--allow-empty", "-m", "marker")
+        before = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, env=env).stdout.strip()
+        (repo / "stm.py").write_text(STM)
+        (repo / "check_stm.py").write_text(STM_PINNED)
+        g("add", "-A")
+        g("commit", "-q", "-m", "add stm")
+        rc, out, _ = drive("--diff", f"{before}...HEAD", "--list", "--path", "stm.py")
+        sd = [l for l in out.splitlines() if " STMT_DEL " in l]
+        sites = sorted(int(l.split()[1].split(":")[1]) for l in sd)
+        check("STMT_DEL: one mutant per simple statement, a three-line continuation exactly once at its first line, "
+              "none for an import, a docstring, a print or a compound header", sites == [6, 7, 8])
+        rc, out, _ = drive("--diff", f"{before}...HEAD", "--cmd", "python3 check_stm.py", "--report-only", "--path", "stm.py")
+        got = sorted(l.split()[:3] for l in out.splitlines() if " STMT_DEL " in l)
+        check("STMT_DEL: the unpinned assignments SURVIVE and the pinned one is KILLED",
+              got == [["SURVIVED", "stm.py:6", "STMT_DEL"], ["SURVIVED", "stm.py:8", "STMT_DEL"]])
+        (repo / "stm.py").write_text(STM.replace('"""Doc."""', '"""Doc, reworded."""') + "# a comment\n")
+        g("commit", "-q", "-am", "doc only")
+        rc, out, _ = drive("--diff", "HEAD~1...HEAD", "--list")
+        check("STMT_DEL: a comment- and docstring-only diff lists none (null control)", " STMT_DEL " not in out)
+        # STMT_DEL on a shared line: `a = 1; b = 2` and `if x: y = 1` are skipped, a trailing comment is not
+        (repo / "shr.py").write_text(SHR)
+        g("add", "-A")
+        g("commit", "-q", "-m", "add shr")
+        rc, out, _ = drive("--diff", "HEAD~1...HEAD", "--list", "--path", "shr.py")
+        sites = sorted(int(l.split()[1].split(":")[1]) for l in out.splitlines() if " STMT_DEL " in l)
+        check("STMT_DEL: a statement sharing its line (`a = 1; b = 2`, `if x: y = 1`) is skipped; a statement with a "
+              "trailing comment is not (the return is RETURN_DEL's)", sites == [4])
         check("operators: no mutant for a comment, an import or a def, and no CALL_DEL for a log call",
               not any(list(mutate_line(s)) for s in ("# if x < 1:", "import a1", "def f(x=1):"))
               and "CALL_DEL" not in {o for o, _ in mutate_line("    _LOGGER.info(x)")})
