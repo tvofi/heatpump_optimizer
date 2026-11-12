@@ -95,12 +95,33 @@ op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin ho
   printf '%s: ROW LANDED: #%s has its row on origin at %s, but the row push then failed (exit status %s); #%s is left open: %s\n' \
     "$PR_NAME" "$N" "$H" "$1" "$N" "${OP_WHY:-${PR_STOPPED_AT:-a stop signal after the push}}" >&2
 }
+op_figures() { # <p1|p2>: re-render the body's generated figure blocks at this worktree's head; a block names the head it was rendered at
+  grep -q '^<!-- figure-block: ' $D/body.md || return 0
+  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base origin/main --head HEAD > $D/fig-$1.log 2>&1 && return 0
+  OP_WHY="the figure-block refresh at $1 failed:
+$(tail -n 20 $D/fig-$1.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
+}
+op_clear_leftover() { # a closed-after-p2 open leaves its branch and detached checkout; both go when origin holds all of them
+  git -C "$M" worktree prune
+  git -C "$M" fetch -q origin "refs/heads/$BR:refs/remotes/origin/$BR" 2>/dev/null || :
+  if git -C "$M" worktree list --porcelain | grep -qxF "worktree $WT"; then  # a stray unregistered directory still stops at worktree add
+    [ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ] && git -C "$WT" merge-base --is-ancestor HEAD "origin/$BR" 2>/dev/null \
+      || pr_refuse "a left-over checkout $WT holds work origin/$BR lacks; keep or remove it, then re-run"
+    git -C "$M" worktree remove --force "$WT"
+  fi
+  if git -C "$M" show-ref -q --verify refs/heads/$BR; then
+    git -C "$M" merge-base --is-ancestor "refs/heads/$BR" "origin/$BR" 2>/dev/null \
+      || pr_refuse "a left-over local branch $BR holds commits origin/$BR lacks; keep or remove it, then re-run"
+    git -C "$M" branch -qD $BR
+  fi
+}
 git fetch -q origin handoff/$T handoff-body/$T main
 pr_tools_fresh
 pr_code_in_handoff "$C" "$T"
 git cat-file -e "$PR_BT:BODY.md" 2>/dev/null || pr_refuse "handoff-body/$T ($PR_BT) holds no BODY.md"
 git show "$PR_BT:BODY.md" > $D/body.md
 python3 -I "$SEAT/pr_cap.py" info --repo $R  # mut:openinfo
+op_clear_leftover  # mut:opclear
 git worktree add -q -b $BR $WT $C
 cd $WT
 git fetch -q origin main
@@ -121,6 +142,7 @@ python3 "$PRT/ci_predict.py" --rekey-body $D/body.md --from $C || echo "open_pr:
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
+[ "$(git rev-parse HEAD)" = "$C" ] || op_figures p1 || pr_refuse "the figure-block refresh at the merged head failed; nothing is pushed"  # mut:opfig1
 RU=--reuse  # mut:opreuse
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" ${RU-} $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 pr_wait $! $D/p1.log
@@ -137,6 +159,7 @@ p,H,N,C=sys.argv[1:5]; s=open(p).read()
 s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
 open(p,'w').write(s)
 E
+op_figures p2 || pr_refuse "the figure-block refresh at the row head failed"  # mut:opfig2
 RO=--row-only  # mut:oprowonly
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 rc=0; wait $! || rc=$?

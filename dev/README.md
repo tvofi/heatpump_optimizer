@@ -10,14 +10,15 @@ document and the obligation each carries; the named file is the policy, not
 this summary. Where this README and a policy file disagree, the policy file
 wins.
 
-**It describes the shape at the end of the current programme.** What is
-already on `main` is written from the tree. What a roster group has still to
-land carries a marker naming that group: `[target: <group>]` for an element
-that exists once the group merges, `[retired-by: <group>]` for one the group
-removes, and `; owner step` where the change lands only on the owner's own
-action. The groups are the keys of `dev/programme/rosters/wave-r10-groups.json`,
-and `tests/doc_claims.py` refuses a marker naming anything else. Resolving the
-markers once their groups are done is R10-ARCH-DOCS's end-of-round check.
+**It describes `main`.** Everything it names is written from the tree, and
+`tests/doc_claims.py` resolves each path, script argument, workflow job,
+ledger kind and diagram node it names. A page that describes a shape still to
+land marks each such element with the roster group that lands it:
+`[target: <group>]` for an element that exists once the group merges,
+`[retired-by: <group>]` for one the group removes, and `; owner step` where
+the change lands only on the owner's own action. `tests/doc_claims.py` refuses
+a marker naming no roster group, and a marker outside an HTML comment whose
+groups are all done.
 
 ## Reading the figures
 
@@ -30,7 +31,6 @@ theme:
 | rectangle `[ ]` | a script, or a job run detached by `tools/audit/seat/daemonize.py` |
 | rhombus `{ }` | a decision made by a person or an agent |
 | cylinder `[( )]` | a git ref or a store |
-| dashed edge | flow that exists once its marked group lands |
 
 ## The `dev/` layout
 
@@ -155,60 +155,83 @@ train → merge → record → stamp. The order is the orchestrator's contract,
 
 ## The CI shape
 
-### The job graph at programme end
+### The job graph
 
-One umbrella workflow calls every unit and ends in one check, `gate`, which is
-the only context the ruleset requires. The check name of a unit's job is
-`<file stem> / <job>`, for example `tests / fast (3.14)`.
+One umbrella workflow, `.github/workflows/ci.yml`, calls every unit and ends in
+one check, `gate`, which is the only context the ruleset requires. The check
+name of a unit's job is `<file stem> / <job>`, for example `tests / fast (3.14)`.
 
 ```mermaid
 flowchart LR
-    ev(["pull request, review,<br/>push to main, merge group"]) -.-> ci["ci.yml: the umbrella<br/>[target: R10-CI-LAYOUT-P2]"]
-    ci -.-> pre["prelude<br/>kind, pr, base, scope"]
-    pre -.-> tests["tests"]
-    pre -.-> codeql["codeql"]
-    pre -.-> gov["governance"]
-    pre -.-> hass["hassfest"]
-    pre -.-> val["validate"]
-    pre -.-> arch["arch-score"]
-    pre -.-> brg["budget-raise-gate"]
-    tests & codeql & gov & hass & val & arch & brg -.-> prc["pr-contract<br/>waits for code scanning"]
-    prc -.-> gate["gate"]
-    gate -.-> rs[("ruleset main-protect-checks<br/>requires only gate<br/>[target: R10-CI-LAYOUT-P2; owner step]")]
-    cut{"owner PUTs the whole ruleset,<br/>then reads it back"} -.->|"PUT"| rs
-    rs -.->|"read-back differs: roll back, ruleset first"| cut
+    ev(["pull request, review, push to main,<br/>merge group, manual dispatch"]) --> ci["ci.yml: the umbrella"]
+    ci --> pre["prelude<br/>kind, pr, base, head, workset"]
+    pre --> tests["tests"]
+    pre --> codeql["codeql"]
+    pre --> gov["governance"]
+    pre --> hass["hassfest"]
+    pre --> val["validate"]
+    pre --> kp["kernel-points"]
+    pre --> arch["arch-score"]
+    pre --> brg["budget-raise-gate"]
+    tests & codeql & gov & hass & val & kp & arch & brg --> prc["pr-contract"]
+    pre --> prc
+    prc --> gate["gate"]
+    pre --> gate
+    gate --> rs[("ruleset main-protect-checks<br/>requires only gate")]
+    cut{"owner runs ruleset_cutover.py:<br/>PUT, then read back,<br/>or --rollback"} -->|"PUT"| rs
 ```
 
-The cut-over is the owner's: the ruleset object is written whole, read back
-and diffed, and rolled back ruleset-first if the read-back or the first runs
-fail. The orchestrator boards it at a pitch that keeps the gap rule. Those
-steps are the ORCHESTRATOR-PROMPT checklist the orchestrator runs; this figure
-shows only where they sit.
+An arrow from one job to the next means the second job needs the first. The
+prelude (`tools/ci/prelude.py`) computes once what the run is, and each unit
+runs when the prelude's work set names it; the figure names five of the
+prelude's outputs. `ci.yml` carries three more jobs: `cancel-superseded` and
+`refresh` need no other job, and `sweep-self` needs `gate`.
 
-### The workflows on `main` today
+The ruleset is the owner's. `tools/ci/ruleset_cutover.py` is the instrument
+that cut its required contexts over to `gate`: it saves a rollback copy, PUTs
+the ruleset's six writable keys, refuses with the difference where either half
+of the read-back fails, and `--rollback` PUTs the saved copy back.
+`dev/governance/roles/nudge.md` section 4 is the rule for reading it: the live
+ruleset every turn, never a remembered list.
 
-Each unit file below starts on its own pull-request event today, and the
-ruleset requires each of its contexts by name. The umbrella above turns every
-one into a callable unit.
+### The workflow files
 
+- `.github/workflows/ci.yml`: the umbrella; it starts on a pull request, a
+  review, a push to `main`, a merge group or a manual dispatch
 - `.github/workflows/tests.yml`: the gate scripts, the scoped selection, the
   closures and the autofix jobs
-- `.github/workflows/governance.yml`: policy, record and instrument self-tests
+- `.github/workflows/governance.yml`: policy, record and instrument
+  self-tests
 - `.github/workflows/codeql.yml`, `.github/workflows/hassfest.yml`,
   `.github/workflows/validate.yml`: code scanning and the two Home Assistant
   validators
 - `.github/workflows/pr-contract.yml`, `.github/workflows/arch-score.yml`,
-  `.github/workflows/budget-raise-gate.yml`: the body contract, the
-  architecture score and the raise gate
-- `.github/workflows/ci.yml`: the inert umbrella stub that phase one landed
-- `.github/workflows/pr-contract-rerun.yml` [retired-by: R10-CI-LAYOUT-P2]
-- `.github/workflows/budget-raise-gate-rerun.yml` [retired-by: R10-CI-LAYOUT-P2]
-- `.github/workflows/gate-sweep.yml`, which re-runs a stale `gate` at a pull request's live head [target: R10-CI-LAYOUT-P2]
-- `.github/workflows/nightly.yml`, `.github/workflows/merge-main.yml`,
-  `.github/workflows/release.yml`, `.github/workflows/pages.yml`,
-  `.github/workflows/kernel-points.yml`: standalone, called by nothing
+  `.github/workflows/budget-raise-gate.yml`, `.github/workflows/kernel-points.yml`:
+  the body contract, the architecture score, the raise gate and the kernel
+  benchmark
+- `.github/workflows/gate-sweep.yml`: starts when a CI run completes and
+  runs `tools/ci/gate.py --sweep`, which is `tools/ci/sweep.py`. Once that
+  run's `gate` is green at the pull request's live head, the sweep re-runs
+  the red `gate` job of every other CI run at that head. Where no green
+  `gate` covers the newest event, it re-runs each red `gate` that judged
+  before another run's jobs had finished
+- `.github/workflows/marketplace.yml`: on a schedule or a manual dispatch,
+  calls the two Home Assistant validators
+- `.github/workflows/nightly.yml`, `.github/workflows/merge-main.yml`: start
+  on a push to `main` or a manual dispatch; the nightly also on a schedule
+- `.github/workflows/dependency-graph.yml`: starts on a push to `main` that
+  touches one of its three path filters, on a schedule or a manual dispatch
+- `.github/workflows/release.yml`, `.github/workflows/pages.yml`: start on a
+  `v*` tag or a manual dispatch
+- `.github/workflows/dependabot-automerge.yml`: starts on a
+  `pull_request_target` event, the one pull-request trigger outside the
+  umbrella
 
-`ls .github/workflows/` is the list; this one is a reading aid.
+Every unit the umbrella calls is a `workflow_call` file, so none of them
+starts on a pull-request event of its own. `.github/workflows/governance.yml`
+also runs on a schedule and `.github/workflows/kernel-points.yml` on a manual
+dispatch. `ls .github/workflows/` is the
+list; this one is a reading aid.
 
 ### The order a change is refused in
 
@@ -225,9 +248,8 @@ flowchart TD
 ```
 
 Read it as the order a change must survive, not as separate jobs. The required
-check is every context the ruleset names today, and `gate` alone once the
-cut-over lands [target: R10-CI-LAYOUT-P2; owner step]. Two traps hold in both
-shapes: a required context that never reports at a head is absent, not green,
+check is `gate`. Two traps hold: a required context that never reports at a
+head is absent, not green,
 and a `DIRTY` pull request does not go red, it cannot run
 (`dev/governance/rules/claim-files.md`).
 
@@ -235,78 +257,258 @@ and a `DIRTY` pull request does not go red, it cannot run
 
 ### Its components
 
-```mermaid
-flowchart LR
-    orch(["orchestrator seat"])
-    seats(["fixer, reviewer and design seats"])
-    owner(["owner"])
-    beat["beatd: one supervised beat,<br/>one job table<br/>[target: R10-ORCH-MACHINERY]"]
-    tick["tick: the read-only board<br/>orchestrator_tick.py"]
-    relayp["relay-probe arm<br/>cloud_relay.sh"]
-    relayh["handoff arm<br/>cloud_relay.sh"]
-    docs["state-docs and plan-page<br/>state_docs.py, plan_page.py"]
-    hb["heartbeat<br/>heartbeat.sh --once"]
-    watch["watcher, off the host<br/>heartbeat.sh --watch"]
-    ledger[("obligations ledger:<br/>dispositions, events, derived fold<br/>[target: R10-ORCH-MACHINERY]")]
-    bus[("bus refs: handoff, handoff-body,<br/>probe, review, verdict")]
-    disp[("dispatch records<br/>dispatch/role-topic")]
-    roster[("roster branch<br/>handoff/audit-r10-roster")]
-    hold[("hold list<br/>[target: R10-FLOW-RELAY-HOLD]")]
-    model[("one plan model<br/>[target: R10-PLAN-ARTIFACT]")]
-    kit["flow toolkit<br/>[target: R10-FLOW-TOOLKIT-MEASURE, R10-FLOW-TOOLKIT-MODEL]"]
-    train["merge train and its pitch<br/>merge_train.py"]
-    main[("main")]
-    pick{"dispatch, board, hold<br/>or stop"}
+Start at the top: the orchestrator dispatches a seat. Follow the arrows down
+from the seat's push to the merge on `main`. An arrow runs from the actor to
+its target and its label is the verb, `runs` or `writes`; no arrow means "is
+read by". A script node names one script, the one whose code the arrow's row
+cites, and the arrows are the runs and writes of a normal pass, not every
+one in the code.
 
-    beat -.-> tick & relayp & relayh & docs & hb
-    tick --> orch
-    orch --> pick
-    pick -->|"dispatch"| disp
-    disp --> seats
-    seats -->|"push"| bus
-    relayp -->|"grade and post a verdict"| bus
-    relayh -->|"open or update the pull request"| bus
-    hold -.->|"frozen heads stay put"| relayh
-    relayp & relayh -.-> ledger
-    ledger -.-> tick
-    roster --> docs
-    model -.-> docs
-    kit -.-> model
-    hb --> watch
-    watch -->|"stopped beat"| owner
-    pick -->|"board at a pitch"| train
-    train -->|"pitch keeps the gap rule"| main
+```mermaid
+flowchart TB
+    orch(["orchestrator<br/>the owner, or the seat holding the mandate"])
+    subgraph actors["actors"]
+        disp["cloud_dispatch.py"]
+        seats(["fixer, reviewer and design seats"])
+        tloop["tick_loop.sh"]
+        relay["cloud_relay.sh pass<br/>probe arm, handoff arm"]
+        busx["bus.sh"]
+        tick["orchestrator_tick.py<br/>the board; it does not act"]
+        jobs["beat_jobs.py<br/>the jobs of the beat's table"]
+        plan["replan.py<br/>the plan model"]
+        docs["state_docs.py"]
+        page["plan_page.py"]
+        rq["roster_queue.py"]
+        redit["roster_edit.py"]
+        opr["open_pr.sh"]
+        train["merge_train.py"]
+        post["postmerge.py"]
+        rsync["roster_sync.py"]
+        hb["heartbeat.sh --once"]
+        watch["heartbeat.sh --watch<br/>off the host"]
+    end
+    subgraph stores["stores"]
+        dref[("dispatch ref<br/>dispatch/role-topic")]
+        drec[("dispatch record<br/>the nonce file")]
+        bus[("bus refs<br/>handoff, handoff-body, probe,<br/>review, verdict, design, design-verdict")]
+        hold[("relay hold list")]
+        ledger[("obligations ledger")]
+        board[("board file")]
+        roster[("roster branch<br/>handoff/audit-r10-roster")]
+        sdoc[("state documents and plan page<br/>handoff/audit-r10-plan")]
+        pr[("pull request")]
+        thold[("train-hold ref")]
+        hbref[("heartbeat ref")]
+        main[("main")]
+    end
+    orch -->|"runs"| disp
+    orch -->|"runs"| seats
+    orch -->|"runs"| tloop
+    orch -->|"runs"| jobs
+    orch -->|"runs"| train
+    orch -->|"runs"| watch
+    orch -->|"writes"| hold
+    disp -->|"writes"| dref
+    disp -->|"runs"| busx
+    seats -->|"writes"| bus
+    seats -->|"runs"| busx
+    tloop -->|"runs"| relay
+    tloop -->|"runs"| tick
+    tloop -->|"writes"| board
+    tloop -->|"runs"| train
+    tloop -->|"runs"| hb
+    relay -->|"runs"| busx
+    relay -->|"runs"| redit
+    relay -->|"writes"| pr
+    relay -->|"writes"| ledger
+    busx -->|"writes"| drec
+    busx -->|"writes"| bus
+    busx -->|"writes"| pr
+    busx -->|"writes"| ledger
+    busx -->|"runs"| train
+    jobs -->|"runs"| plan
+    jobs -->|"runs"| docs
+    jobs -->|"runs"| rq
+    jobs -->|"runs"| opr
+    docs -->|"runs"| page
+    docs -->|"writes"| sdoc
+    rq -->|"runs"| redit
+    redit -->|"writes"| roster
+    opr -->|"writes"| pr
+    opr -->|"runs"| busx
+    opr -->|"writes"| ledger
+    train -->|"writes"| main
+    train -->|"writes"| thold
+    train -->|"writes"| pr
+    train -->|"runs"| post
+    post -->|"runs"| rsync
+    post -->|"runs"| docs
+    post -->|"writes"| ledger
+    rsync -->|"runs"| redit
+    hb -->|"writes"| hbref
 ```
 
-- **Detached jobs** run under `tools/audit/seat/daemonize.py` today: the tick
-  loop (`tools/audit/seat/tick_loop.sh`), the relay's pass
-  (`tools/audit/seat/cloud_relay.sh pass`), the state documents and the plan
-  page (`tools/audit/seat/state_docs.py`, `tools/audit/seat/plan_page.py`). The
-  heartbeat (`tools/audit/seat/heartbeat.sh`) pushes one liveness ref, which a
-  watcher off the host reads.
-- **One supervised beat** replaces the hand-launched loops: `tools/audit/seat/beatd.py`
-  with its job table `tools/audit/seat/beatd.jobs.json`, one job per arm, where an unreadable table refuses to start [target: R10-ORCH-MACHINERY]
-- **The obligations ledger**, `tools/audit/seat/ledger.py`, keeps two stores and one derived fold, with one writer per fact [target: R10-ORCH-MACHINERY]
-  - derived, recomputed every pass: `handoff-no-pr`, `handoff-update`, `probe-ref`, `stage-mismatch`, `absorb-edge-missing`, `record-owed` [target: R10-ORCH-MACHINERY]
-  - events, opened and closed: `reviewer-fire`, `verdict-unposted`, `train-stop` [target: R10-ORCH-MACHINERY]
+Every arrow is one row here, with the line of code or contract that performs
+it. `tests/doc_claims.py` refuses an arrow with no row, a row with no arrow, a
+row whose quoted text is not in the file it cites, an arrow that starts at a
+store, a script node that names no script or two, and a script's row that
+cites any file but that script.
+
+| actor | verb | target | performed at |
+|---|---|---|---|
+| orchestrator | runs | cloud_dispatch.py | `tools/audit/seat/cloud_dispatch.py`: `Render the cloud-runner trigger payload for one seat` |
+| orchestrator | runs | fixer, reviewer and design seats | `tools/audit/seat/instruments/cloud_dispatch.py.md`: `or fire the standing trigger` |
+| orchestrator | runs | tick_loop.sh | `tools/audit/seat/instruments/tick_loop.sh.md`: `in place of a seat looping the tick` |
+| orchestrator | runs | beat_jobs.py | `tools/audit/seat/instruments/beatd.py.md`: `until a supervisor unit is applied it runs under` |
+| orchestrator | runs | merge_train.py | `dev/governance/roles/nudge.md`: `tools/audit/seat/merge_train.py run` |
+| orchestrator | runs | heartbeat.sh --watch | `tools/audit/seat/instruments/heartbeat.sh.md`: `the owner schedules a cloud task` |
+| orchestrator | writes | relay hold list | `tools/audit/seat/cloud_relay.sh`: `only the orchestrator writes or edits it` |
+| cloud_dispatch.py | writes | dispatch ref | `tools/audit/seat/cloud_dispatch.py`: `"push", "-q", "origin", f"{commit}:refs/heads/{ref}"` |
+| cloud_dispatch.py | runs | bus.sh | `tools/audit/seat/cloud_dispatch.py`: `str(HERE / "bus.sh"), "dispatch"` |
+| fixer, reviewer and design seats | writes | bus refs | `tools/audit/seat/body_push.sh`: `git push -q origin "$C:refs/heads/$REF"` |
+| fixer, reviewer and design seats | runs | bus.sh | `dev/governance/roles/fix-review.md`: `tools/audit/seat/bus.sh push-verdict` |
+| tick_loop.sh | runs | cloud_relay.sh pass | `tools/audit/seat/tick_loop.sh`: `bash "$relay" pass --confirm` |
+| tick_loop.sh | runs | orchestrator_tick.py | `tools/audit/seat/tick_loop.sh`: `python3 "$HERE/orchestrator_tick.py"` |
+| tick_loop.sh | writes | board file | `tools/audit/seat/tick_loop.sh`: `mv -f "$tmp" "$out"` |
+| tick_loop.sh | runs | merge_train.py | `tools/audit/seat/tick_loop.sh`: `python3 "$HERE/merge_train.py" sweep` |
+| tick_loop.sh | runs | heartbeat.sh --once | `tools/audit/seat/tick_loop.sh`: `heartbeat.sh}" --once` |
+| cloud_relay.sh pass | runs | bus.sh | `tools/audit/seat/cloud_relay.sh`: `bash "$HERE/bus.sh" push-verdict` |
+| cloud_relay.sh pass | runs | roster_edit.py | `tools/audit/seat/cloud_relay.sh`: `python3 -I "$HERE/carry_fold.py"` |
+| cloud_relay.sh pass | writes | pull request | `tools/audit/seat/cloud_relay.sh`: `upd=(bash "$why/update_pr.sh")` |
+| cloud_relay.sh pass | writes | obligations ledger | `tools/audit/seat/cloud_relay.sh`: `ledger_open verdict-unposted` |
+| bus.sh | writes | dispatch record | `tools/audit/seat/bus.sh`: `>> "$S/dispatched"` |
+| bus.sh | writes | bus refs | `tools/audit/seat/bus.sh`: `append_commit review` |
+| bus.sh | writes | pull request | `tools/audit/seat/bus.sh`: `"$POSTER" "$REPO" "$pr" "$body"` |
+| bus.sh | writes | obligations ledger | `tools/audit/seat/bus.sh`: `close reviewer-fire "$pr" "$h"` |
+| bus.sh | runs | merge_train.py | `tools/audit/seat/bus.sh`: `merge_train.py"} add "$1" "$sha"` |
+| beat_jobs.py | runs | replan.py | `tools/audit/seat/beat_jobs.py`: `"tools/plan/replan.py", "--out"` |
+| beat_jobs.py | runs | state_docs.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/state_docs.py", "--push"` |
+| beat_jobs.py | runs | roster_queue.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/roster_queue.py", "run"` |
+| beat_jobs.py | runs | open_pr.sh | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/open_driver.py", "--board"` |
+| state_docs.py | runs | plan_page.py | `tools/audit/seat/state_docs.py`: `str(SEAT / "plan_page.py")` |
+| state_docs.py | writes | state documents and plan page | `tools/audit/seat/state_docs.py`: `f"{commit}:refs/heads/{state_ref}"` |
+| roster_queue.py | runs | roster_edit.py | `tools/audit/seat/roster_queue.py`: `"--lint-cwd", a.lint_clone, "--push"]` |
+| roster_edit.py | writes | roster branch | `tools/audit/seat/roster_edit.py`: `refspec = f"{head}:refs/heads/{branch}"` |
+| open_pr.sh | writes | pull request | `tools/audit/seat/open_pr.sh`: `bash "$_push"` |
+| open_pr.sh | runs | bus.sh | `tools/audit/seat/open_pr.sh`: `bash "$SEAT/bus.sh" rekey "$T" "$N"` |
+| open_pr.sh | writes | obligations ledger | `tools/audit/seat/open_pr.sh`: `"$SEAT/ledger.py" attempt "refs/heads/handoff/$T"` |
+| merge_train.py | writes | main | `tools/audit/seat/merge_train.py`: `"--merge", "--match-head-commit"` |
+| merge_train.py | writes | train-hold ref | `tools/audit/seat/merge_train.py`: `git/refs/heads/train-hold` |
+| merge_train.py | writes | pull request | `tools/audit/seat/merge_train.py`: `["gh", "pr", "ready", str(pr), "--repo", t.repo]` |
+| merge_train.py | runs | postmerge.py | `tools/audit/seat/merge_train.py`: `tool("postmerge"), str(pr), "--repo"` |
+| postmerge.py | runs | roster_sync.py | `tools/audit/seat/postmerge.py`: `/roster_sync.py", "--repo", repo, "--apply"` |
+| postmerge.py | runs | state_docs.py | `tools/audit/seat/postmerge.py`: `/state_docs.py", "--repo", repo, "--push"` |
+| postmerge.py | writes | obligations ledger | `tools/audit/seat/postmerge.py`: `"open", "postmerge-owed"` |
+| roster_sync.py | runs | roster_edit.py | `tools/audit/seat/roster_sync.py`: `roster_edit.write_roster(` |
+| heartbeat.sh --once | writes | heartbeat ref | `tools/audit/seat/heartbeat.sh`: `"$c:refs/heads/$REF"` |
+
+How to read a row:
+
+- A person's row cites the contract or instrument guide that says the person
+  does it; the one-script rule binds script actors only.
+- A script that writes through a helper it runs is drawn as the writer, and
+  the helper is not a node: `tools/audit/seat/open_pr.sh` runs
+  `tools/pr/app_push.sh` and `tools/audit/seat/ledger.py`, the relay runs its pull-request updater, and
+  `tools/audit/seat/bus.sh` runs its comment poster.
+- Two launchers stand between drawn scripts and are not nodes. The
+  orchestrator starts `tools/audit/seat/beatd.py`, which starts each job's
+  command line from `tools/audit/seat/beatd.jobs.json`, and every job there
+  is a `tools/audit/seat/beat_jobs.py` call. The opener job runs
+  `tools/audit/seat/open_driver.py`, which launches
+  `tools/audit/seat/open_pr.sh`. Each of those two rows cites the line that
+  starts the launcher.
+- `tools/audit/seat/roster_sync.py` imports `tools/audit/seat/roster_edit.py`
+  and calls it. The relay's carry-fold arm starts
+  `tools/audit/seat/carry_fold.py`, which imports
+  `tools/audit/seat/roster_edit.py` and calls it with `--push`; that helper
+  is not a node either. Each other `runs` arrow from a script starts its
+  target as a process.
+- `tools/audit/seat/bus.sh` runs `tools/audit/seat/merge_train.py add` when it
+  posts a merge verdict and a train state directory is set.
+- A run that only reads is left out with the other reads, for example:
+  `tools/audit/seat/cloud_relay.sh`, `tools/audit/seat/bus.sh` and
+  `tools/audit/seat/postmerge.py` each run
+  `tools/audit/seat/merge_train.py classify`, and `tools/audit/seat/bus.sh`
+  runs `tools/audit/seat/cloud_relay.sh held`.
+- A write on a refusal path is left out:
+  `tools/audit/seat/cloud_dispatch.py` reopens `reviewer-fire` in the ledger
+  when the dispatch ref could not be published.
+- The figure draws what one normal pass does. A second caller of a drawn
+  script that is no node is left out: `tools/audit/seat/merge_pr.sh` also runs
+  `tools/audit/seat/postmerge.py`.
+
+What the figure leaves out is the reading, because a read moves nothing:
+
+- `tools/audit/seat/orchestrator_tick.py` reads the pull requests and their
+  checks from the GitHub API, the tree, the design refs and the ledger's
+  derived rules, and prints the board. It pushes, merges and closes nothing.
+  The board lists what needs a decision or a seat.
+- `tools/audit/seat/cloud_relay.sh pass` reads the probe and handoff refs and
+  the hold list. Its probe arm takes a reviewer's `probe/rev-<pr>-<nonce>`
+  ref and publishes the verdict through `tools/audit/seat/bus.sh push-verdict`.
+  Its handoff arm updates an open pull request from `handoff/<topic>` and
+  `handoff-body/<topic>`, and leaves a pull request on the hold list alone.
+- `tools/audit/seat/bus.sh` refuses a verdict whose nonce the dispatch record
+  does not hold.
+- `tools/audit/seat/heartbeat.sh --watch` reads the heartbeat ref and prints
+  `HEARTBEAT STALE` when it is old. The owner schedules it off the host; the
+  schedule is not in the tree.
+
+The parts, one by one:
+
+- **Two loops**, each run detached under `tools/audit/seat/daemonize.py` by
+  its instrument guide. `tools/audit/seat/tick_loop.sh` runs the relay's
+  pass, the tick, the train's sweep when started with `--sweep`, and the
+  heartbeat, in that order. `tools/audit/seat/beatd.py` runs the job table
+  `tools/audit/seat/beatd.jobs.json`, where an unreadable table refuses to
+  start. The figure draws three of its jobs, each of which writes a store
+  drawn here: `roster-drain`, `plan-beat` and `opener`. No beat job runs the
+  relay, the tick, the train or the heartbeat.
+- **A seat is started by the orchestrator.** `tools/audit/seat/cloud_dispatch.py`
+  publishes the dispatch ref, records the dispatch through
+  `tools/audit/seat/bus.sh` and prints the payload; it fires no seat.
 - **The bus refs** are the seats' only channel to the orchestrator: a fixer
-  pushes `handoff/<topic>` and `handoff-body/<topic>`; a cloud reviewer pushes
-  `probe/rev-<pr>-<nonce>`, which `tools/audit/seat/cloud_relay.sh` grades and
-  posts through `tools/audit/seat/bus.sh push-verdict`.
-- **Dispatch records** are written by `tools/audit/seat/cloud_dispatch.py`, one
-  per dispatched seat, and `bus.sh` refuses a verdict whose nonce no record
-  holds.
-- **The merge train**, `tools/audit/seat/merge_train.py`, boards verdicted pull
-  requests at a pitch. The pitch's gap rule keeps a disruptive merge away from
-  a critical-chain pull request about to board; a `train-hold` ref stops the
-  record autofix from merging into a running train.
-- **The relay's hold list** keeps a frozen pull request's head still while its handoff branch moves [target: R10-FLOW-RELAY-HOLD]
+  pushes `handoff/<topic>` and `handoff-body/<topic>`, a cloud reviewer
+  pushes a probe ref, and a designer pushes `design/<group>` through
+  `tools/audit/seat/bus.sh push-design`. `tools/audit/seat/bus.sh` itself
+  writes the review, verdict, design and design-verdict refs.
+- **A pull request is opened by the opener job**, `tools/audit/seat/open_driver.py`,
+  which launches `tools/audit/seat/open_pr.sh` for a handoff with no pull
+  request. The relay only updates one that is open.
+- **The obligations ledger**, `tools/audit/seat/ledger.py`, keeps two stores,
+  the dispositions and the events, and one derived level file that the relay
+  rewrites every pass. Its `KINDS` table is the list of kinds:
+  - derived, recomputed every pass, among them: `handoff-no-pr`, `handoff-update`, `probe-ref`, `review-owed`, `record-owed`
+  - events, opened and closed: `reviewer-fire`, `verdict-unposted`, `approve-held-runs`, `dispatch`, `train-stop`, `postmerge-owed`
+  - no script opens `train-stop`; the train's sweep reads it and adds nothing to the train while one is open
+- **The merge train**, `tools/audit/seat/merge_train.py`, merges verdicted
+  pull requests one at a time, each with `--match-head-commit` at the head
+  its verdict carries to. A critical-path pull request skips the sweep of
+  record pull requests before it; the sweep runs after its merge. While a
+  run is live it creates and refreshes the `train-hold` ref and deletes it
+  on release, and the record beat in `.github/workflows/nightly.yml` skips
+  while that ref's commit is under an hour old.
+  After each merge it runs `tools/audit/seat/postmerge.py`, which opens
+  `postmerge-owed` for a step that failed.
+- **The relay's hold list** is a file under the state directory, one pull
+  request number per line. No script writes it; the relay's header says
+  only the orchestrator does.
 - **The roster branch**, `handoff/audit-r10-roster`, is written through
-  `tools/audit/seat/roster_edit.py`; `tools/audit/seat/roster_sync.py`, run by
-  the state-documents beat, derives each group's stage from its branch's pull
-  request.
-- **One plan model** feeds the plan page and the plan table, extended by the flow toolkit's projection [target: R10-PLAN-ARTIFACT, R10-FLOW-TOOLKIT-MODEL]
-- **The flow toolkit**'s measuring instruments land under `tools/audit/seat/` for any round [target: R10-FLOW-TOOLKIT-MEASURE]
+  `tools/audit/seat/roster_edit.py`, which the queue, the stage sync and
+  the relay's carry fold each call. `tools/audit/seat/roster_queue.py`,
+  the `roster-drain` job, drains queued edits into it, and
+  `tools/audit/seat/roster_sync.py`, run by `tools/audit/seat/postmerge.py`
+  after a merge, derives a group's stage from its pull request's state. No
+  beat job runs `tools/audit/seat/roster_sync.py`.
+- **The plan model** is `tools/plan/replan.py`. The `plan-beat` job runs it,
+  then `tools/audit/seat/state_docs.py`, which renders the state documents,
+  runs `tools/audit/seat/plan_page.py` for the plan page and pushes both in
+  one commit.
+- **Flow instruments** measure a round, four of them here: `tools/audit/seat/flow_metrics.py`
+  from git alone, `tools/audit/seat/review_strength.py` from the verdict
+  bus, `tools/audit/seat/ci_critpath.py` one workflow run's critical path,
+  and `tools/audit/seat/gantt_drift.py` the plan's gantt against the real
+  state.
 
 ### One handoff's path
 
@@ -317,6 +519,7 @@ sequenceDiagram
     participant DR as design reviewer
     participant F as fixer
     participant B as bus refs
+    participant OP as opener job
     participant RL as relay
     participant RV as fix reviewer
     participant T as merge train
@@ -328,8 +531,8 @@ sequenceDiagram
     O->>B: read the approval back
     O->>F: dispatch the fixer
     F->>B: push handoff/topic and handoff-body/topic
-    Note over B,RL: ledger opens handoff-no-pr
-    RL->>M: open the pull request at the head SHA
+    Note over B,RL: handoff-no-pr opens
+    OP->>M: open the pull request at the head SHA
     Note over RL,M: handoff-no-pr closes, reviewer-fire opens
     O->>RV: dispatch at the reviewable head SHA
     Note over O,RV: reviewer-fire closes
@@ -338,15 +541,15 @@ sequenceDiagram
     RL->>M: post the verdict, then confirm
     Note over RL,M: probe-ref closes, verdict-unposted opens and closes on read-back
     O->>M: read the verdict back
-    O->>T: board at the next pitch
+    O->>T: board the verdicted pull request
     T->>M: merge --match-head-commit
-    Note over T,M: a refusal opens train-stop, record-owed opens on merge
     O->>M: land the delivery row
-    Note over O,M: record-owed closes
     O->>M: stamp the version after the merge
 ```
 
-- The ledger kinds the notes name are `tools/audit/seat/ledger.py`'s [target: R10-ORCH-MACHINERY]
+- The ledger kinds the notes name are keys of `KINDS` in
+  `tools/audit/seat/ledger.py`. A derived kind "opens" when a pass first
+  computes it and "closes" when a pass no longer does.
 - **The reviewable head is a SHA.** A head that moved under a review is a
   blocked verdict, never a re-read: "moved" means the head SHA, not the body
   bytes. `dev/governance/roles/fix-review.md` is the rule.
@@ -361,7 +564,7 @@ sequenceDiagram
 | whether a design is sound | the design reviewer | the orchestrator reads the verdict back before dispatching the fixer |
 | what a fix is and what it proves | the fixer | `tools/pr/prepr.sh` and the scoped gate refuse what is missing |
 | whether a fix merges | the fix reviewer, at one head SHA | `tools/audit/seat/bus.sh` posts it; the relay grades a cloud verdict |
-| when a pull request boards | the orchestrator, at a pitch | `tools/audit/seat/merge_train.py` refuses a head that moved or a red check |
+| when a pull request boards | the orchestrator | `tools/audit/seat/merge_train.py` refuses a head that moved or a red check |
 | a policy change or a budget raise | the owner, by approving review | `budget-raise-gate` and the code-owner rule refuse the merge without it |
 | the ruleset | the owner | read back and diffed after the change |
 | the version | nobody: it is derived | `tools/release/stamp.py`, after the merge |
