@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/review_packet.py b/tools/audit/seat/review_packet.py
+index 9e3476cc50..d234104026 100644
+--- a/tools/audit/seat/review_packet.py
++++ b/tools/audit/seat/review_packet.py
+@@ -1528,3 +1528,7 @@ def main(argv: list[str]) -> int:
+ 
+ if __name__ == "__main__":
+     sys.exit(main(sys.argv[1:]))
++
++
++def planted(l, r):
++    return classify(l, r, None)

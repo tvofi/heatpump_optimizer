@@ -1,0 +1,9 @@
+main=fc2a7edcf2be8847037d9e8dc5bde460977befa8
+RESULT policy_wait=False policy_text_names_review=False
+RESULT policy_null_waits=False (the passing gate alone must not wait)
+RESULT policy_null_ok=True
+DEFECT policy
+RESULT under_started=['gate'] under_queued_null=['gate']
+DEFECT under
+DEFECT under-null
+rc=1

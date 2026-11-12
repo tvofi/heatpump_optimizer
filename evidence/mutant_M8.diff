@@ -1,0 +1,14 @@
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 4576782645..801add29ff 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -3083,8 +3083,7 @@ class Train:
+         # failure stamped strictly newer than every pass is a real red (P608:
+         # #3445), not a deferral: the deferral fails first, the pass lands later.
+         if GATE in req and GATE not in self.ignore and seen.get(GATE, set()) & set(POLICY_RED) \
+-                and ((("SUCCESS" in seen[GATE]) and not rollup_red_after_pass(entries, GATE))
+-                     or self.gate_deferred(h, [GATE])):
++                and ((("SUCCESS" in seen[GATE]) and not rollup_red_after_pass(entries, GATE))):
+             return (f"required context gate is a deferral at {h[:8]} (a failing gate beside a passing one, "
+                     "or a sibling run unfinished): its deciding run settles it"), True, False
+         red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED]
