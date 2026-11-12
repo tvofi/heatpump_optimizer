@@ -1351,6 +1351,7 @@
    "tools/policy/rules_sync.mjs",
    "tools/release/stamp.py",
    "tools/site/build_docs.mjs",
+   "tools/site/day_chart.mjs",
    "tools/site/package-lock.json",
    "tools/site/package.json"
   ],
@@ -4207,6 +4208,7 @@
    "dev/audit/harnesses/r10_plan_page_mutants.py",
    "dev/audit/harnesses/r10_policy_lint_family_mutants.py",
    "dev/audit/harnesses/r10_prepr_cap_lease_mutants.py",
+   "dev/audit/harnesses/r10_product_page.mjs",
    "dev/audit/harnesses/r10_pusher_reap_launch_mutants.sh",
    "dev/audit/harnesses/r10_raise_paths.sh",
    "dev/audit/harnesses/r10_ratio_anchor.py",
