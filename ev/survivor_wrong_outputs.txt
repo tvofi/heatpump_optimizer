@@ -1,0 +1,14 @@
+## gate_name_any on st7
+  head:   A_gate  12/16 read = 75%  (unread 4 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+  mutant: A_gate  7/16 read = 44%  (unread 4 of 20; window 2026-11-04T15:00:00Z .. 2026-11-10T09:00:00Z)
+## report_record_dropped on st7
+  head:   C, K    C 2; K 4  (longest cancelled main-run streak; recycle lines of the dispatch and triage seats)
+  mutant: C, K    C 2; K unread  (longest cancelled main-run streak; recycle lines of the dispatch and triage seats)
+## first_by_input_not_t on st7u
+  head:   Y_rev   first verdict merge 20/50 = 40%  (first verdicts 2026-10-11T15:00 .. 2026-10-25T12:00)
+  mutant: Y_rev   first verdict merge 19/50 = 38%  (first verdicts 2026-10-17T02:00 .. 2026-10-06T02:00)
+  head:   M_first 18/50 = 36%  (first verdicts 2026-10-11T15:00 .. 2026-10-25T12:00)
+  mutant: M_first 19/50 = 38%  (first verdicts 2026-10-17T02:00 .. 2026-10-06T02:00)
+## named_regex_no_merged on st7
+  head:   Y_train never skipped or parked 35/50 = 70%  (last 50 train-named merged PRs)
+  mutant: Y_train never skipped or parked 3/23 = 13%  (last 50 train-named merged PRs)

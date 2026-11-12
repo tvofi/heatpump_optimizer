@@ -1,0 +1,6 @@
+S       non-production merges 489 per 580; churn 11939 per 1 000 product lines
+S       machinery 182931 / product 100305 = 1.82
+182931
+100305
+independent (ls-tree blob line count):
+184305
