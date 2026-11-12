@@ -1,0 +1,4 @@
+6d55f13c16ebde76dcd7ea397d6f6b17a0fdbb8f
+6d55f13c16ebde76dcd7ea397d6f6b17a0fdbb8f	refs/heads/fix/r10-user-docs-verify
+6d55f13c16ebde76dcd7ea397d6f6b17a0fdbb8f	refs/heads/handoff/r10-user-docs-verify
+reviewed head 6d55f13c16ebde76dcd7ea397d6f6b17a0fdbb8f; branch tips above read 2026-11-12T18:57:34Z
