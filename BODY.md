@@ -2,7 +2,10 @@ R10-SEAT-IDENTITY-P5 (part 1 of 1: carries 0-4, 8). One writer per standing seat
 
 ## Head
 
-1e2a04f06c42a1299dff7a195cb8b2e5e1448b41
+7572aa0aa878e55d8480264d8f0bcd927c6280aa
+
+## Merge of origin/main (repair)
+Conflict: origin/main 402b0e7636 (#3484) and this branch both edited `PLANTS` in `dev/audit/harnesses/r10_open_driver_mutants.py` (main added M-livetip and M-moved-gone; this branch retargeted M-exact and M-body at `topic_grammar.py`). Resolution: both sides kept, every plant of each present, nothing else changed. Harness run at the merged head: 24 mutants, 0 survived. `tools/pr/prepr.sh` at the merged head: rc=0, every step ok (closures, diff mutants and body skipped), no red predicted. Carry: dismissed: no finding.
 
 ## Closures repair (edited classification lines)
 Under the coordinator's ruling the owner's mandate covers, the minimal classification edit only:
@@ -54,6 +57,7 @@ Each plant is one site in `seat_gen.py` or `beat_jobs.py`; the named check goes 
 - A `HPO_SEAT_GEN` value is `<seat>=<gen>`; the orchestrator's seat prompts must carry it after `seat_gen.py bump <seat>`. The `seat_gen.py` docstring and its instruments entry state it. Carry: dismissed: documented in the instrument, no later stage is narrowed
 
 - Carry 5, Carry 6 and Carry 7: marked `[moved: R10-HOTFIX-OPENER-UNBLOCK]` on the roster, not answered here. Carry: dismissed: moved to R10-HOTFIX-OPENER-UNBLOCK on the roster (open #3484), not later parts of this group
+- Carry 10 (harness-stale, the card carry 8 of this group's earlier roster restates): built. M-exact and M-body plant in `topic_grammar.py` and run; at the merged head `python3 -I dev/audit/harnesses/r10_open_driver_mutants.py` prints `RESULT mutants=24` and `RESULT survived=0`. Carry: dismissed: built in this diff
 - Carry 9 (P603 opener live tip, `open_driver.py`): taken out of this branch; the same card is carry 7, which #3484 holds. Carry: dismissed: owned by #3484
 
 ## Friction
