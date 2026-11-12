@@ -28,6 +28,8 @@ none
 
 none
 
+Carry dispositions (roster state read, not built here): Carry 0 dismissed on the roster (superseded by its own rule); Carry 1 implemented; Carry 2 implemented; Carry 3 implemented; Carry 4 dismissed on the roster (premise gone). Carry 5 and Carry 6 are built in this pull request.
+
 ## Friction
 
 - gate-scoping: cost: `prepr.sh`'s closure recording of `tests/entities.py` under strace did not finish in 17+ min in the cloud image. Carry: dismissed: a slow strace recording of one script in this image is one occurrence, not a recurring class (defect-root-cause.md); recorded here only
