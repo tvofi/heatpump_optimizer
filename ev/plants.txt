@@ -1,0 +1,6 @@
+PLANT classify(l, r, frozenset(())): merge_train self-test: 676 checks, 0 failed | barrier FAIL lines: 0
+PLANT classify(l, r, busy=set([])): merge_train self-test: 676 checks, 0 failed | barrier FAIL lines: 0
+PLANT classify(l, r, None or ()): merge_train self-test: 676 checks, 0 failed | barrier FAIL lines: 0
+PLANT classify(l, r, frozenset()): merge_train self-test: 676 checks, 1 failed | barrier FAIL lines: 1
+
+[exited with code 0]

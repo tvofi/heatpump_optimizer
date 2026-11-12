@@ -1,0 +1,92 @@
+SHOULD-BE-BLIND blind None
+SHOULD-BE-BLIND blind busy=None
+SHOULD-BE-BLIND blind ()
+SHOULD-BE-BLIND blind busy=()
+SHOULD-BE-BLIND blind []
+SHOULD-BE-BLIND blind busy=[]
+SHOULD-BE-BLIND blind {}
+SHOULD-BE-BLIND blind busy={}
+SHOULD-BE-BLIND blind set()
+SHOULD-BE-BLIND blind busy=set()
+SHOULD-BE-BLIND blind frozenset()
+SHOULD-BE-BLIND blind busy=frozenset()
+SHOULD-BE-BLIND blind dict()
+SHOULD-BE-BLIND blind busy=dict()
+SHOULD-BE-BLIND blind tuple()
+SHOULD-BE-BLIND blind busy=tuple()
+SHOULD-BE-BLIND blind list()
+SHOULD-BE-BLIND blind busy=list()
+SHOULD-BE-BLIND blind str()
+SHOULD-BE-BLIND blind busy=str()
+SHOULD-BE-BLIND blind ''
+SHOULD-BE-BLIND blind busy=''
+SHOULD-BE-BLIND blind 0
+SHOULD-BE-BLIND blind busy=0
+SHOULD-BE-BLIND blind False
+SHOULD-BE-BLIND blind busy=False
+SHOULD-BE-BLIND READ  frozenset(())
+SHOULD-BE-BLIND READ  busy=frozenset(())
+SHOULD-BE-BLIND READ  set([])
+SHOULD-BE-BLIND READ  busy=set([])
+SHOULD-BE-BLIND READ  dict({})
+SHOULD-BE-BLIND READ  busy=dict({})
+SHOULD-BE-BLIND READ  tuple([])
+SHOULD-BE-BLIND READ  busy=tuple([])
+SHOULD-BE-BLIND READ  list(())
+SHOULD-BE-BLIND READ  busy=list(())
+SHOULD-BE-BLIND READ  frozenset(set())
+SHOULD-BE-BLIND READ  busy=frozenset(set())
+SHOULD-BE-BLIND READ  frozenset([])
+SHOULD-BE-BLIND READ  busy=frozenset([])
+SHOULD-BE-BLIND READ  dict(())
+SHOULD-BE-BLIND READ  busy=dict(())
+SHOULD-BE-BLIND READ  () if c else None
+SHOULD-BE-BLIND READ  busy=() if c else None
+SHOULD-BE-BLIND READ  None or ()
+SHOULD-BE-BLIND READ  busy=None or ()
+SHOULD-BE-BLIND READ  () and x
+SHOULD-BE-BLIND READ  busy=() and x
+SHOULD-BE-BLIND blind bytes()
+SHOULD-BE-BLIND blind busy=bytes()
+SHOULD-BE-BLIND blind b''
+SHOULD-BE-BLIND blind busy=b''
+SHOULD-BE-BLIND blind f''
+SHOULD-BE-BLIND blind busy=f''
+SHOULD-BE-BLIND blind (*(),)
+SHOULD-BE-BLIND blind busy=(*(),)
+SHOULD-BE-BLIND blind [*[]]
+SHOULD-BE-BLIND blind busy=[*[]]
+SHOULD-BE-BLIND blind {**{}}
+SHOULD-BE-BLIND blind busy={**{}}
+SHOULD-BE-BLIND READ  type(None)()
+SHOULD-BE-BLIND READ  busy=type(None)()
+SHOULD-BE-BLIND READ  dict.fromkeys([])
+SHOULD-BE-BLIND READ  busy=dict.fromkeys([])
+SHOULD-BE-BLIND READ  frozenset().union()
+SHOULD-BE-BLIND READ  busy=frozenset().union()
+SHOULD-BE-BLIND READ  NO_BUSY
+SHOULD-BE-BLIND READ  busy=NO_BUSY
+SHOULD-READ READ  b
+SHOULD-READ READ  busy=b
+SHOULD-READ READ  self.b
+SHOULD-READ READ  busy=self.b
+SHOULD-READ READ  x[0]
+SHOULD-READ READ  busy=x[0]
+SHOULD-READ READ  h(r)
+SHOULD-READ READ  busy=h(r)
+SHOULD-READ READ  frozenset(r)
+SHOULD-READ READ  busy=frozenset(r)
+SHOULD-READ READ  [b]
+SHOULD-READ READ  busy=[b]
+SHOULD-READ READ  {'a': b}
+SHOULD-READ READ  busy={'a': b}
+SHOULD-READ blind {r.id for r in runs}
+SHOULD-READ blind busy={r.id for r in runs}
+SHOULD-READ blind [r for r in runs]
+SHOULD-READ blind busy=[r for r in runs]
+SHOULD-READ blind a | b
+SHOULD-READ blind busy=a | b
+SHOULD-READ READ  x if c else y
+SHOULD-READ READ  busy=x if c else y
+SHOULD-READ READ  self._gate_busy(h, runs)
+SHOULD-READ READ  busy=self._gate_busy(h, runs)
