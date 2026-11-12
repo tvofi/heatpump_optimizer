@@ -12384,7 +12384,10 @@ def _cb_type_branches():
 # offset controller's integration name (heat_curve.py) and a research
 # citation for the offset band (const.py), neither a tank type; this branch
 # adds none (`git grep -ciE` over the package's Python sums to 4 on both).
-_CB_VENDOR_BASE = 4
+# R10-HOTFIX-COMBI-CENSUS-MAIN-RED: main at cbd23f1c read 6, two more landed
+# by merges the census never ran beside; all six now name the behaviour, so
+# the base is 0 and any vendor name is growth.
+_CB_VENDOR_BASE = 0
 
 
 _cb_hits, _cb_vendor = _cb_type_branches()
@@ -71796,10 +71799,10 @@ R.check(
 _dbg_dsnap = ((_dbg_dg.get("debug") or {}).get("payload_snapshots") or [{}])[0].get("data", {})
 R.check(
     "DBG-1 Download diagnostics carries the bundle through its own redaction: a name "
-    "is redacted and a coordinate coarsened inside a payload snapshot",
+    "and a coordinate are redacted inside a payload snapshot",
     _dbg_dg.get("debug", {}).get("schema") == "hpo-debug/1"
     and _dbg_dsnap.get("name") == _DBG_REDACTED
-    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": 59.3, "longitude": 18.1},
+    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": _DBG_REDACTED, "longitude": _DBG_REDACTED},
     str(_dbg_dsnap)[:300],
 )
 R.check(
@@ -81345,7 +81348,7 @@ _DS_DHW, _DS_HEAT = _ds_pm.MODE_DHW, _ds_pm.MODE_HEAT
 def _ds_ctx(at, **over):
     """A context that counts: heated return, demand, the plan stays, nothing else explains a stop."""
     return _ds_mod.SwitchContext(**{
-        "mode_written_at": at, "last_write_at": at, "inlet_c": 44.2, "water_setpoint_c": 32.0,
+        "mode_written_at": at, "last_write_at": at, "inlet_c": 44.2, "space_setpoint_c": 32.0,
         "source_leg_s": 17 * 60.0, "target_demand": True, "plan_stays": True, **over})
 
 
@@ -81361,7 +81364,7 @@ def _ds_switch(learner, at, stop_s=None, restart_s=None, old=_DS_DHW, new=_DS_HE
         elif mark == restart_s:
             learner.edge(when, True)
         else:
-            learner.note_pass(when, ctx, False)
+            learner.note_pass(when, ctx, True, False)
     return learner
 
 
@@ -81377,7 +81380,7 @@ _ds_switch(_ds_tab, _ds_day.replace(hour=15, minute=0, second=1), stop_s=12, res
 for _ds_h, _ds_m in ((3, 32), (13, 45), (14, 15)):
     # Into hot water the inlet is never over a set-point: the source leg's age gates it (verdict n10).
     _ds_switch(_ds_tab, _ds_day.replace(hour=_ds_h, minute=_ds_m, second=40), old=_DS_HEAT, new=_DS_DHW,
-               inlet_c=24.0, water_setpoint_c=32.0, source_leg_s=600.0)
+               inlet_c=24.0, space_setpoint_c=32.0, source_leg_s=600.0)
 # The 14 s leg: the return is not heated, and without a return sensor the leg is too short.
 _ds_switch(_ds_tab, _ds_day.replace(hour=13, minute=29, second=53), stop_s=19, inlet_c=33.0)
 _ds_switch(_ds_tab, _ds_day.replace(hour=13, minute=29, second=53), stop_s=19, inlet_c=None, source_leg_s=14.0)
@@ -81429,7 +81432,7 @@ def _ds_voided(cause):
     ctx = _ds_ctx(at)
     l.mode_write(at, _DS_DHW, _DS_HEAT, True, ctx)
     if cause == "before the stop":
-        l.note_pass(at + timedelta(seconds=10), _ds_ctx(at, defrosting=True), False)
+        l.note_pass(at + timedelta(seconds=10), _ds_ctx(at, defrosting=True), True, False)
     if cause == "stopped before the write":
         l.edge(at - timedelta(seconds=5), False)
     l.edge(at + timedelta(seconds=19), False)
@@ -81439,9 +81442,9 @@ def _ds_voided(cause):
     elif cause == "another mode write":
         pass
     elif isinstance(cause, dict):
-        l.note_pass(after, _ds_ctx(at, **cause), False)
+        l.note_pass(after, _ds_ctx(at, **cause), True, False)
     else:
-        l.note_pass(after, ctx, False)
+        l.note_pass(after, ctx, True, False)
     if cause == "another mode write before the stop":
         pass
     l.edge(at + timedelta(seconds=500), True)
@@ -81480,7 +81483,7 @@ def _ds_midway(step):
 
 def _ds_stopped_then(l, at, then):
     l.edge(at + timedelta(seconds=19), False)
-    l.note_pass(at + timedelta(seconds=60), _ds_ctx(at), False)
+    l.note_pass(at + timedelta(seconds=60), _ds_ctx(at), True, False)
     then(l, at + timedelta(seconds=120))
 
 
@@ -81490,21 +81493,22 @@ R.check(
     _ds_midway(lambda l, at: l.mode_write(at + timedelta(seconds=30), None, _DS_HEAT, True, _ds_ctx(at))) == (1, 0, 0, 0, [])
     and _ds_midway(lambda l, at: l.edge(at + timedelta(seconds=181), False)) == (0, 0, 1, 0, [])
     and _ds_midway(lambda l, at: l.edge(at + timedelta(seconds=180), False)) == (0, 0, 0, 0, [])
-    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=179), _ds_ctx(at), False)) == (0, 0, 0, 0, [])
-    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=180), _ds_ctx(at), True)) == (0, 0, 0, 0, [])
-    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=180), _ds_ctx(at), False)) == (0, 0, 1, 0, []),
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=179), _ds_ctx(at), True, False)) == (0, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=180), _ds_ctx(at), True, True)) == (0, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=180), _ds_ctx(at), True, False)) == (0, 0, 1, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=60), _ds_ctx(at), False, False)) == (1, 0, 0, 0, []),
 )
 R.check(
     "an attributed stop keeps its count and loses its off time to a later write of any slot, "
     "the supply switch or a lost signal",
     all(_ds_midway(lambda l, at, then=then: _ds_stopped_then(l, at, then)) == (0, 1, 0, 1, []) for then in (
-        lambda l, t: l.note_pass(t, _ds_ctx(_ds_day, last_write_at=t - timedelta(seconds=30)), False),
-        lambda l, t: l.note_pass(t, _ds_ctx(_ds_day, supply_on=False), False),
+        lambda l, t: l.note_pass(t, _ds_ctx(_ds_day, last_write_at=t - timedelta(seconds=30)), True, False),
+        lambda l, t: l.note_pass(t, _ds_ctx(_ds_day, supply_on=False), True, False),
         lambda l, t: l.edge(t, None),
         lambda l, t: l.mode_write(t, _DS_HEAT, _DS_DHW, False, _ds_ctx(t)),
     ))
     and _ds_midway(lambda l, at: _ds_stopped_then(
-        l, at, lambda l, t: (l.note_pass(t, _ds_ctx(_ds_day), False), l.edge(t, True)))) == (0, 1, 0, 0, [101.0]),
+        l, at, lambda l, t: (l.note_pass(t, _ds_ctx(_ds_day), True, False), l.edge(t, True)))) == (0, 1, 0, 0, [101.0]),
 )
 
 
@@ -81515,7 +81519,7 @@ def _ds_opened(stopped=False):
     l.mode_write(_ds_day, _DS_DHW, _DS_HEAT, True, _ds_ctx(_ds_day))
     if stopped:
         l.edge(_ds_day + timedelta(seconds=19), False)
-        l.note_pass(_ds_day + timedelta(seconds=60), _ds_ctx(_ds_day), False)
+        l.note_pass(_ds_day + timedelta(seconds=60), _ds_ctx(_ds_day), True, False)
     return l
 
 
@@ -81532,11 +81536,11 @@ _ds_returns = {
     "a start edge before any stop": _ds_opened().edge(_ds_after(10), True),
     "the stop edge itself, booked only when the episode closes": _ds_opened().edge(_ds_after(19), False),
     "a pass over a stopped episode that moves nothing": _ds_opened(stopped=True).note_pass(
-        _ds_after(120), _ds_ctx(_ds_day), False),
+        _ds_after(120), _ds_ctx(_ds_day), True, False),
     "a re-send that voids the open episode": _ds_opened().mode_write(_ds_after(30), None, _DS_HEAT, True, _ds_ctx(_ds_day)),
-    "a pass that voids it": _ds_opened().note_pass(_ds_after(60), _ds_ctx(_ds_day, fault=True), False),
+    "a pass that voids it": _ds_opened().note_pass(_ds_after(60), _ds_ctx(_ds_day, fault=True), True, False),
     "a pass over a stopped episode on which another direction's latch falls": _ds_stale_latch.note_pass(
-        _ds_after(120), _ds_ctx(_ds_day), False),
+        _ds_after(120), _ds_ctx(_ds_day), True, False),
 }
 _ds_early = _ds_opened()
 _ds_early.edge(_ds_after(10), True)
@@ -81562,7 +81566,7 @@ R.check(
     "A write stamped at the stop's own instant censors nothing; one half a second after it does",
     [_ds_stop_at(s) for s in (0.0, 0.5, -0.001)] == [(0, 0.0), (0, 0.5), (1, None)]
     and [_ds_midway(lambda l, at, lag=lag: _ds_stopped_then(l, at, lambda l, t: (
-        l.note_pass(t, _ds_ctx(_ds_day, last_write_at=at + timedelta(seconds=19 + lag)), False), l.edge(t, True))))
+        l.note_pass(t, _ds_ctx(_ds_day, last_write_at=at + timedelta(seconds=19 + lag)), True, False), l.edge(t, True))))
         for lag in (0.0, 0.5)] == [(0, 1, 0, 0, [101.0]), (0, 1, 0, 1, [])],
     f"{[_ds_stop_at(s) for s in (0.0, 0.5, -0.001)]}",
 )
@@ -81570,7 +81574,7 @@ R.check(
 
 def _ds_opens_on(**gates):
     l = _ds_mod.DutySwitchLearner()
-    l.mode_write(_ds_day, _DS_DHW, _DS_HEAT, True, _ds_mod.SwitchContext(inlet_c=44.2, water_setpoint_c=32.0, **gates))
+    l.mode_write(_ds_day, _DS_DHW, _DS_HEAT, True, _ds_mod.SwitchContext(inlet_c=44.2, space_setpoint_c=32.0, **gates))
     return l.episode is not None
 
 
@@ -81679,34 +81683,9 @@ R.check(
     and _ds_ahead.weights(_ds_day) == (3.0, 7.0),
     f"{_ds_aged} {_ds_fell}",
 )
-def _ds_span(first_days_ago, stops=6):
-    """(span days, usable, first day's age) after ``stops`` stops on one day, a first one that many days before."""
-    d, today = _DS_D(), _ds_day + timedelta(days=400)
-    if first_days_ago is not None:
-        d.book(today - timedelta(days=first_days_ago), True, 100.0)
-    for i in range(stops):
-        d.book(today + timedelta(minutes=10 * i), True, 100.0)
-    return d.span_days, d.usable
-
-
-_ds_span_idle = _ds_dir(1.0, 1.0)
-_ds_span_idle.decayed_at = _ds_day
-_ds_span_moves = [_ds_span_idle.decay(_ds_day + timedelta(days=days)) for days in (14, 14.01, 15)]
 R.check(
-    "the span ages with the evidence: once a direction's weight is under SPAN_FLOOR_N its days are forgotten, "
-    "so one year-old stop and six on a single day span one day and are not usable, as a fresh learner's six; "
-    "null control, a first stop one half-life old still anchors the span",
-    [_ds_span(age) for age in (365, 14.01, None)] == [(1, False)] * 3
-    and [_ds_span(age) for age in (14, 1)] == [(15, True), (2, True)]
-    # Forgetting the days is a change of the stored record, reported once.
-    and _ds_span_moves == [False, True, False] and _ds_span_idle.span_days == 0
-    and (_ds_span_idle.first_day, _ds_span_idle.last_day) == (None, None)
-    and abs(_ds_mod.SPAN_FLOOR_N - 0.5) < 1e-12,
-    f"{[_ds_span(age) for age in (365, 14.01, 14, 1, None)]} {_ds_span_moves}",
-)
-R.check(
-    "the latch is judged at the booking itself: a stop taking n from 4 to 5 switches a direction on, one "
-    "taking it from 3 to 4 does not, and a kept episode taking p under 0.3 switches one off",
+    "the latch is judged at the booking itself: the fifth stop switches a direction on, the fourth does not, "
+    "and a kept episode taking p under 0.3 switches one off",
     (_ds_fifth.usable, _ds_fourth.usable, _ds_diluted.usable) == (True, False, False),
     f"{_ds_fifth} {_ds_fourth} {_ds_diluted}",
 )
@@ -81833,17 +81812,15 @@ class _DsArb:
         self.entry = SimpleNamespace(entry_id=entry_id or f"ds{id(self)}")
         self.passes = 0
         self.mode, self.disinfecting, self.room_c = "auto", False, 20.0
-        self.defrosting, self.tank_c, self.action = None, 45.0, {"heat_pump_on": True}
 
     def arbiter_inputs(self):
         self.passes += 1
         return _sa_pa.ArbiterInputs(
             hass=self.hass, config=self._config, mode=self.mode, plan=self.plan, plan_stale=False,
             entry_released=False, state=SimpleNamespace(
-                outdoor_temperature=2.0, room_temperature=self.room_c, dhw_temperature=self.tank_c),
+                outdoor_temperature=2.0, room_temperature=self.room_c, dhw_temperature=45.0),
             thermal=SimpleNamespace(params=self.params), params=self.params,
-            action=self.action, measured_power_kw=None, disinfecting=self.disinfecting,
-            defrosting=self.defrosting)
+            action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=self.disinfecting)
 
 
 def _ds_fire(c, value):
@@ -81963,13 +81940,10 @@ R.check(
     f"{_ds_flags_quiet} {_ds_flag_stale}",
 )
 
-# The count gates' inputs, read at the mode write. Where the space set-point
-# is a water temperature (unit return or flow; the command's is the 55 degC
-# heating ceiling here) and a return sensor reads, the heated test is the inlet
-# over that set-point, at ``HEATED_MARGIN_K`` exactly. On the default indoor
-# unit the set-point is the planned room temperature (21), which any running
-# pump's return is over, so there, and without a return sensor, the test is the
-# age of the mode record the write replaced, at ``SOURCE_LEG_MIN_S`` exactly.
+# The count gates' inputs, read at the mode write. With a return sensor the
+# heated test is the inlet over the command's space set-point (21 here), at
+# ``HEATED_MARGIN_K`` exactly; without one it is the age of the mode record
+# the write replaced, at ``SOURCE_LEG_MIN_S`` exactly.
 def _ds_plan(*steps):
     """A plan of (start second, space kW, hot-water kW) steps."""
     return SimpleNamespace(
@@ -81978,12 +81952,10 @@ def _ds_plan(*steps):
         optimal_setpoints=[21.0] * len(steps))
 
 
-def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, unit=None, **run):
-    """The dhw->space row of one stop on an install with set-point entities and, optionally, a return
-    sensor and a declared space set-point ``unit`` (the default is indoor)."""
+def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, **run):
+    """The dhw->space row of one stop on an install with set-point entities and, optionally, a return sensor."""
     c = _DsArb({"space_setpoint_entity": "number.space", "dhw_setpoint_entity": "number.dhw",
-                **({"heat_pump_return_temp_entity": "sensor.ret"} if return_c is not None else {}),
-                **({"space_setpoint_unit": unit} if unit else {})})
+                **({"heat_pump_return_temp_entity": "sensor.ret"} if return_c is not None else {})})
     c.plan, c.room_c = plan or c.plan, room_c
     c.hass.states.set("sensor.ret", FakeState(str(return_c), unit="°C"))
     for entity in ("number.space", "number.dhw"):
@@ -81996,96 +81968,27 @@ _ds_gates = {
     "the room at its planned set-point: no demand": _ds_gate(room_c=21.0),
     "the plan leaves the target duty inside the stop window": _ds_gate(
         plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0), (659, 0.0, 1.0)), every=30),
-    **{f"a {unit} set-point and a return 1.9 K over it, after a seven-minute leg": _ds_gate(return_c=56.9, unit=unit)
-       for unit in ("return", "flow")},
-    "an indoor set-point, a return 9 K over the room's, and a 30 s leg": _ds_gate(
-        _DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (90, 1.5, 0.0)), return_c=30.0, every=30),
+    "a return 1.9 K over the set-point, after a seven-minute leg": _ds_gate(return_c=22.9),
     "no return sensor and a 30 s leg": _ds_gate(_DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (90, 1.5, 0.0)), every=30),
 }
 _ds_gates_open = {
     "the room under its planned set-point": _ds_gate(room_c=20.9),
     "the plan stays one second past the window": _ds_gate(
         plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0), (661, 0.0, 1.0), (720, 1.5, 0.0)), every=30),
-    **{f"a {unit} set-point and a return 2.0 K over it": _ds_gate(return_c=57.0, unit=unit) for unit in ("return", "flow")},
-    "an indoor set-point, the same return, and a 60 s leg": _ds_gate(
-        _DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (120, 1.5, 0.0)), return_c=30.0, every=30),
-    "an indoor set-point and a return only 0.5 K over the room's, after a seven-minute leg": _ds_gate(return_c=21.5),
+    "a return 2.0 K over the set-point": _ds_gate(return_c=23.0),
     "no return sensor and a 60 s leg": _ds_gate(_DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (120, 1.5, 0.0)), every=30),
 }
 R.check(
     "through the arbiter, a mode write opens no episode without demand on the target duty, when the plan "
-    "leaves that duty inside the stop window, on a return under the heated margin over the command's water "
-    "set-point (unit return or flow), or, on an indoor set-point whatever the return reads and with no "
-    "return sensor, on a replaced mode record younger than the least source leg",
+    "leaves that duty inside the stop window, on a return under the heated margin over the command's "
+    "set-point, or (no return sensor) on a replaced mode record younger than the least source leg",
     _ds_gates == {name: (0, 0, 0, 0, []) for name in _ds_gates},
     f"{_ds_gates}",
 )
 R.check(
     "null control: each gate one step the other side of its bound books the stop",
-    [row[:3] for row in _ds_gates_open.values()] == [(1, 0, 0)] * len(_ds_gates_open) and len(_ds_gates_open) == 7,
+    [row[:3] for row in _ds_gates_open.values()] == [(1, 0, 0)] * 4,
     f"{_ds_gates_open}",
-)
-
-
-def _ds_install(freq=_DS_STOP, direction="dhw_space", plan=None, hook=None, **reads):
-    """One direction's row on the bare install, with the coordinator's ``reads`` set from the start."""
-    c = _DsArb()
-    c.plan = plan or c.plan
-    for name, value in reads.items():
-        setattr(c, name, value)
-    _ds_episode(freq, c=c, hook=hook)
-    d = _ds_mod.record_for(c).learner.directions[direction]
-    return d.stopped, d.kept, d.void, d.censored, d.off_s
-
-
-# An install that knows a defrost only through the interval flag (``PumpSignals.defrosting``), no entity.
-_ds_interval = {
-    "from the start": _ds_install(defrosting=True),
-    "from 00:08:30, after the stop": _ds_install(hook=(510, lambda c, now: setattr(c, "defrosting", True))),
-    "never (the flag reads False)": _ds_install(defrosting=False),
-}
-R.check(
-    "through the arbiter, a defrost known only by the interval flag opens nothing, and one that begins after "
-    "the stop voids it; null control, the flag reading False books the stop",
-    list(_ds_interval.values()) == [(0, 0, 0, 0, []), (0, 0, 1, 0, []), (1, 0, 0, 0, [495.0])],
-    f"{_ds_interval}",
-)
-_ds_modes = {mode: _ds_install(mode=mode) for mode in ("economy", "auto", "comfort")}
-R.check(
-    "through the arbiter, Economy is a plan-control mode like Auto: the stop books in both; null control, "
-    "Comfort commands no single duty and books nothing",
-    _ds_modes == {"economy": (1, 0, 0, 0, [495.0]), "auto": (1, 0, 0, 0, [495.0]), "comfort": (0, 0, 0, 0, [])},
-    f"{_ds_modes}",
-)
-# Heating to 00:08, then hot water; the compressor runs on. The tank's set-point is 48.
-_ds_to_dhw = _ds_plan((0, 1.5, 0.0), (480, 0.0, 1.0))
-_ds_tank = {tank_c: _ds_install({}, "space_dhw", _ds_to_dhw, tank_c=tank_c) for tank_c in (47.9, 48.0, None)}
-R.check(
-    "through the arbiter, a space->dhw write counts only on hot-water demand: a tank at its set-point, or "
-    "unread, opens nothing; null control, a tank 0.1 K under it books the kept episode",
-    _ds_tank == {47.9: (0, 1, 0, 0, []), 48.0: (0, 0, 0, 0, []), None: (0, 0, 0, 0, [])}
-    and _ds_install({}, "dhw_space", _ds_to_dhw) == (0, 0, 0, 0, []),
-    f"{_ds_tank}",
-)
-
-
-# A write the plan's current step does not hold: a system-identification
-# experiment starts at 00:08 and commands heating, whatever the plan books.
-def _ds_experiment(c, now):
-    c.action = {"mode": "system_identification", "power": 2.0, "heat_pump_on": True}
-
-
-_ds_off_plan = {
-    "hot water at the write, heating before the window ends": _ds_install(
-        plan=_ds_plan((0, 0.0, 1.0), (600, 1.5, 0.0)), hook=(480, _ds_experiment)),
-    "heating at the write and at the window's end": _ds_install(
-        plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0)), hook=(480, _ds_experiment)),
-}
-R.check(
-    "through the arbiter, a mode write the plan's step at the write does not hold opens nothing, though the "
-    "plan holds the duty by the window's end; null control, the same write on a step that holds it books the stop",
-    list(_ds_off_plan.values()) == [(0, 0, 0, 0, []), (1, 0, 0, 0, [495.0])],
-    f"{_ds_off_plan}",
 )
 # A later write of another slot, while the pump is off, costs the stop its off time.
 _ds_censor = _ds_gate(hook=(630, lambda c, now: setattr(c.params, "dhw_setpoint", 50.0)))

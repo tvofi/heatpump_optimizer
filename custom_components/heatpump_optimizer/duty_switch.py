@@ -28,9 +28,7 @@ the registry takes the pump's :class:`_Record`, never the coordinator.
 episodes (stored as the stopped and the kept weight), half-life :data:`HALF_LIFE_DAYS`: decay scales both alike, so
 ``p = k / n`` never moves with age and only ``n`` falls. ``usable`` latches on
 at :data:`N_ON` episodes spanning :data:`SPAN_DAYS_ON` days with ``p`` at
-:data:`P_ON`, and off under :data:`N_OFF` or :data:`P_OFF`. The span is of
-the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
-forgotten with it. Every threshold
+:data:`P_ON`, and off under :data:`N_OFF` or :data:`P_OFF`. Every threshold
 here is a named constant from one day on one install, not a measurement.
 """
 from __future__ import annotations
@@ -59,21 +57,15 @@ _DIRECTION = {(pump_mode.MODE_DHW, pump_mode.MODE_HEAT): "dhw_space",
               (pump_mode.MODE_HEAT, pump_mode.MODE_DHW): "space_dhw"}
 #: Seconds after the write inside which a stop is the switch's.
 STOP_WINDOW_S = 180.0
-#: Kelvin the inlet must sit over the space circuit's water set-point for the
-#: hot-water leg to have heated the circuit; without an inlet reading or a
-#: water set-point (an indoor-unit set-point is a room temperature, which the
-#: water is always over), and into hot water (whose inlet is never over a
-#: set-point), the source leg's least seconds.
+#: Kelvin the inlet must sit over the space set-point for the hot-water leg
+#: to have heated the circuit; without an inlet reading, and into hot water
+#: (whose inlet is never over a set-point), the source leg's least seconds.
 HEATED_MARGIN_K = 2.0
 SOURCE_LEG_MIN_S = 60.0
 HALF_LIFE_DAYS = 14.0
 N_ON, N_OFF = 5.0, 2.5
 P_ON, P_OFF = 0.5, 0.3
 SPAN_DAYS_ON = 2
-#: Decayed episodes under which a direction's days span nothing any more: one
-#: episode a half-life old. Without it the first day never moved, and a year-old
-#: episode made six stops on one day read as a year's span.
-SPAN_FLOOR_N = 0.5
 OFF_SAMPLES_MAX = 32
 #: Load bounds: a count or an off time past these was not written here.
 _N_MAX = 1e6
@@ -111,9 +103,7 @@ class SwitchContext:
     last_write_at: datetime | None = None
 
     inlet_c: float | None = None
-    #: The space set-point where it is a water temperature (unit flow or
-    #: return); ``None`` on an indoor-unit set-point, a room temperature.
-    water_setpoint_c: float | None = None
+    space_setpoint_c: float | None = None
     source_leg_s: float | None = None
     target_demand: bool = False
     plan_stays: bool = False
@@ -131,8 +121,8 @@ class SwitchContext:
 
 def _heated(direction: str, ctx: SwitchContext) -> bool:
     """Whether the source leg counts as having set the circuit up for a stop."""
-    if direction == "dhw_space" and ctx.inlet_c is not None and ctx.water_setpoint_c is not None:
-        return ctx.inlet_c - ctx.water_setpoint_c >= HEATED_MARGIN_K
+    if direction == "dhw_space" and ctx.inlet_c is not None:
+        return ctx.space_setpoint_c is not None and ctx.inlet_c - ctx.space_setpoint_c >= HEATED_MARGIN_K
     return ctx.source_leg_s is not None and ctx.source_leg_s >= SOURCE_LEG_MIN_S
 
 
@@ -180,16 +170,13 @@ class Direction:
         return self.k * factor, self.n * factor
 
     def decay(self, when: datetime) -> bool:
-        """Age the counts to ``when``; whether the latch or the span's days moved."""
+        """Age the counts to ``when``; whether the latch moved."""
         n = self.n
         factor = self.weights(when)[1] / n if n > 0.0 else 1.0
         self.k, self.kept_w = self.k * factor, self.kept_w * factor
         if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) > 0.0:
             self.decayed_at = when
-        aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N
-        if aged_out:
-            self.first_day = self.last_day = None
-        return self._latch() or aged_out
+        return self._latch()
 
     def _latch(self) -> bool:
         was = self.usable
@@ -314,12 +301,11 @@ class DutySwitchLearner:
         ep.stop_at = when
         return False
 
-    def note_pass(self, when: datetime, ctx: SwitchContext, pending: bool) -> bool:
+    def note_pass(self, when: datetime, ctx: SwitchContext, signal: bool, pending: bool) -> bool:
         """One arbiter pass: age the latches, void, expire or censor the episode.
 
-        ``pending`` is whether a change of the running class awaits its
-        debounce. A lost signal is a confirmed edge (:meth:`edge`), never
-        this call's to judge.
+        ``signal`` is whether the running class is known, ``pending`` whether
+        a change of it awaits its debounce.
         """
         changed = any([d.decay(when) for d in self.directions.values()])
         ep = self.episode
@@ -327,7 +313,7 @@ class DutySwitchLearner:
             return changed
         explained = ctx.void_cause() is not None or ctx.mode_written_at != ep.at
         if ep.stop_at is None:
-            if explained:
+            if explained or not signal:
                 return self._void(ep)
             if not pending and utc_elapsed_seconds(when, ep.at) >= STOP_WINDOW_S:
                 return self._close(ep, False, None)
@@ -469,7 +455,8 @@ async def note_pass(rec: _Record, when: datetime, ctx: SwitchContext) -> None:
     if not await _load(rec):
         return
     rec.feed(rec.tracker.confirm(when))
-    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty
+    rec.dirty = rec.learner.note_pass(
+        when, ctx, rec.tracker.settled is not None, rec.tracker.pending is not None) or rec.dirty
     if rec.dirty:
         await _persist(rec)
 
