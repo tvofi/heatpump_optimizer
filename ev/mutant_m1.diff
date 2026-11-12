@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/supply_hold.py b/custom_components/heatpump_optimizer/supply_hold.py
+index 0bfa4d85ff..662505bd83 100644
+--- a/custom_components/heatpump_optimizer/supply_hold.py
++++ b/custom_components/heatpump_optimizer/supply_hold.py
+@@ -91,7 +91,7 @@ def hold_supply(held: ArbiterState, inputs: Any, boosts: Any, value: bool | None
+ def freeze_reason(held: ArbiterState, now: datetime | None = None) -> str | None:
+     """:data:`FREEZE_HELD` while a learner's interval may have had a write held, else ``None``."""
+     until = held.held_until
+-    held_now = until is not None and dt_util.as_utc(now or dt_util.now()) < until
++    held_now = until is not None and dt_util.as_utc(now or dt_util.now()) <= until
+     return FREEZE_HELD if held_now else None
+ 
+ 
