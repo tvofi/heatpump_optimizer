@@ -18928,9 +18928,9 @@
     "R10-ARBITER-OFF-RESTORE reuses this group's write record (roster ordering note). At this head the space slot's record is dropped by `pump_arbiter._note_sent` whenever the loop's target moves by less than `SETPOINT_TOLERANCE`, and re-created by `_write` in the same pass (absent after a failed write until the next pass); between those two lines it is absent. A restore that reads `ArbiterState.written` at MODE_OFF or unload reads it after the pass, so it sees the record, but it must not take the space record's absence as \"never written\" without checking `ArbiterState.feedback`. Precondition, not opportunity; re-measure on that group's merge base. Lands in that group's brief, `dev/programme/rosters/wave-r10-groups.json` on `handoff/audit-r10-roster`. Carry: R10-ARBITER-OFF-RESTORE"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-arbiter-off-restore",
-    "commit": null,
+    "commit": "1aeaf273a4ccc913218ad68fddeef1dab8eb0941",
     "last_step": null,
     "next_step": "dispatch a fixer when R10-GENERIC-HEAT-CURVE's PR merges",
     "note": "s12-36 dispatch seat 2026-11-07: owner ruling Arbiter too, #201 comment 6708225978; fixer dispatches when R10-GENERIC-HEAT-CURVE's PR merges, not before; overlap admitted (R10-USER-DOCS-VERIFY, R10-HOTFIX-COP-UNMEASURED, R10-COP-GATE-E, R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT): owner ruling 2026-11-07 (tvofi, issue 201 comment 6708225978): Arbiter too, off restores the baseline",
