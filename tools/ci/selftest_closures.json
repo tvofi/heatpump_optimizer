@@ -4136,7 +4136,8 @@
     "tools/audit/seat/gh_read.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
-    "tools/policy/budget_raise_gate.py"
+    "tools/policy/budget_raise_gate.py",
+    "tools/pr/outside.py"
    ],
    "probes": [
     ".",
@@ -4151,16 +4152,17 @@
     "tools/audit/.git",
     "tools/audit/HEAD",
     "tools/audit/seat",
-    "tools/policy"
+    "tools/policy",
+    "tools/pr"
    ],
    "dirs": [
     "tests",
     "tools/audit/seat",
     "tools/policy"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "prepr": {
    "run_sha": "81b5b27a77597fc4f4cc0ef7df3f26ae0c869c3a9ef9ae7a0b76c3db2b8af521",
