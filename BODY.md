@@ -38,9 +38,9 @@ Instrument: `python3 dev/audit/harnesses/boost_tail_mutants.py`. It applies each
 
 ## Figures
 
-<!-- figure-block: scope-line mb=26072317b5556a2baa1ff562d8fbbc9588e2ba5c head=44103897f885e226e8e2dd47cc7cbc42418588cc -->
+<!-- figure-block: scope-line mb=2b4515dc52821ad721225090d329c224dbddafae head=594238bfda916f814ca54bb5e84725602b7005dd -->
 ~~~text
-MODE: SCOPED -- 29 script(s) run, 4 scoped out.
+MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
 <!-- /figure-block -->
 
