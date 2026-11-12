@@ -289,6 +289,19 @@ driver_wrote() {
 carry() {
   local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own="" botc="" drv lb
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
+  # Whose head (decision 0017). The arms below trust what only our identities
+  # write: a bot's subject and author, a `ci:` subject, a commit of the branch's
+  # own. A fork's pusher writes all three, and no bot of ours commits to a fork.
+  # So the head is ours only when it is the tip of a branch of origin, asked of
+  # origin itself; on any other head only the automatic merge of main carries,
+  # and an unreadable answer carries nothing. No tool of ours pushes a fork's
+  # head to a branch of origin, or this test would read it as ours.
+  local ours=1 heads ms dp
+  if [ -n "$(git rev-list -n 1 "$v..$h" --not "$main" 2>/dev/null)" ]; then
+    retry_with git_transient heads git ls-remote --heads origin \
+      || { echo "origin's branch heads could not be listed, so whether $h is a head of ours is unknown (fail closed): $GH_ERR"; return 1; }
+    printf '%s\n' "$heads" | grep -q "^$h[[:space:]]refs/heads/" || ours=0
+  fi
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
   # A read loop and a guarded expansion, not `mapfile`: macOS ships bash 3.2,
@@ -338,6 +351,22 @@ carry() {
       esac
       git diff --quiet "$t" "$c" -- . ${x[@]+"${x[@]}"} \
         || { echo "$c is not the automatic merge of its parents"; return 1; }
+      # On a head that is not ours the merge is of main, and every file with a
+      # merge driver at main is main's own bytes: a fork changes none of them
+      # (budgets, closures, claims, the register), and the comparison above
+      # leaves them out, so a merge commit could otherwise raise a budget or
+      # narrow a closure under a verdict that carries.
+      if [ "$ours" = 0 ]; then
+        if git merge-base --is-ancestor "$2" "$main" 2>/dev/null; then ms=$2
+        elif git merge-base --is-ancestor "$1" "$main" 2>/dev/null; then ms=$1
+        else echo "$c merges a commit that is not main's, on a head that is no branch tip of origin"; return 1; fi
+        dp=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print $1}')
+        while IFS= read -r p; do
+          [ -z "$p" ] && continue
+          git diff --quiet "$ms" "$c" -- "$p" \
+            || { echo "$c leaves the merge-driver file $p other than main's at ${ms:0:9}, on a head that is no branch tip of origin"; return 1; }
+        done <<<"$dp"
+      fi
       # A claim file is where a driver refusal leaves a human deciding, and a
       # pure union of both sides is the only resolution that changes nothing:
       # it carries the branch's note and main's. A line dropped, added or
@@ -357,6 +386,8 @@ carry() {
         [ "$got" = "$want" ] || claim_driver_wrote "$main" "$c" "$1" "$2" "$p" \
           || { echo "$c resolves $p to something other than the union of its parents or main's driver output on them"; return 1; }
       done <<<"$cp"
+    elif [ "$ours" = 0 ]; then
+      echo "$c is a commit after the reviewed head, on a head that is no branch tip of origin: there only an automatic merge of main carries, whatever its subject or author says"; return 1
     elif [[ $subj != ci:* ]] && [ -z "$(bot_paths "$subj")" ]; then
       # A commit of the branch's own: carried only where the head's content is
       # the reviewed head's, merged onto the main it now sits on (below, L6).
@@ -997,7 +1028,10 @@ g add -A; as_bot -m "ci: pin killed mutants"; H_DELREADD=$(g rev-parse HEAD)
 g checkout -q --detach "$V_PINMOD"; pinrow tests/mutation_ledger/killed_by/fresh.json
 g add -A; as_bot -m "ci: pin killed mutants"; H_OKADD=$(g rev-parse HEAD)
 g checkout -q main; g push -q origin main
-setpr() { g push -q -f origin "$1:refs/pull/7/head"; }
+# A pull request of ours: its head is the pull ref and a branch tip. forkpr is
+# a fork's: the pull ref alone (decision 0017, `carry`).
+setpr() { g push -q -f origin "$1:refs/pull/7/head" "$1:refs/heads/pr7"; }
+forkpr() { g push -q -f origin "$1:refs/pull/7/head"; g push -q origin :refs/heads/pr7 :refs/heads/carried-head >/dev/null 2>&1; true; }
 
 pr_json() { printf '{"state": "%s", "merged": %s, "head": {"sha": "%s"}}' "$1" "$2" "$3"; }
 comment() { # id first-line [login [association [extra-body-line [type [user-id]]]]]
@@ -1631,9 +1665,22 @@ st "$(grep -c '^app_approve: DRY-RUN' "$W/dry/out")" 1 "reporting what it would 
 mkcase drypolicy open false "$SHA" "$GOOD"; files_json CLAUDE.md > "$W/drypolicy/files.json"
 run drypolicy --dry-run o/r 7 "$SHA"; st $? 1 "--dry-run still refuses what a real run would"
 
+# Decision 0017: `carry` asks origin whether the head is a branch tip of ours.
+# Every case from here on that is not about a fork pushes its head as one first
+# (a fixture with no remote takes itself as origin); `forkcarry` deletes the
+# branch, so the same head is only what a fork's pull ref would hold.
+ourcarry() { # <verdict> <head> <main ref>, in the fixture's directory
+  git remote get-url origin >/dev/null 2>&1 || git remote add origin .
+  git -c push.negotiate=false push -q -f origin "$2:refs/heads/carried-head" >/dev/null 2>&1 || return 2
+  bash "$SELF" --carry "$@"
+}
+forkcarry() { # <verdict> <head>: the clone's fixture, the head on no branch of origin
+  ( cd "$W/clone" && { git push -q origin :refs/heads/carried-head :refs/heads/pr7 >/dev/null 2>&1; true; } \
+    && bash "$SELF" --carry "$1" "$2" origin/main ) > "$W/carry.out" 2>&1
+}
 # The carry (#1667). Each refusal is a head the rule must not carry, beside
 # the one move it must: a merge from main that left the branch's diff alone.
-carried() { ( cd "$W/clone" && bash "$SELF" --carry "$V" "$1" origin/main ) > "$W/carry.out" 2>&1; }
+carried() { ( cd "$W/clone" && ourcarry "$V" "$1" origin/main ) > "$W/carry.out" 2>&1; }
 carried "$H_MERGE"; st $? 0 "CARRY: a merge from main that leaves the branch's own diff byte-identical"
 carried "$H_CIEMPTY"; st $? 0 "CARRY: a ci: commit that changes nothing"
 carried "$H_EVIL"; st $? 1 "NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)"
@@ -1658,7 +1705,7 @@ st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by
 # delete-then-readd of the SAME path (the two-commit seam the `cat-file -e`
 # guard closes). All four must refuse on the branch's own comparison.
 for arm in "$H_PINMOD" "$H_PINDEL" "$H_DELADD" "$H_DELREADD"; do
-  ( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$arm" origin/main ) > "$W/carry.out" 2>&1
+  ( cd "$W/clone" && ourcarry "$V_PINMOD" "$arm" origin/main ) > "$W/carry.out" 2>&1
   st $? 1 "NO CARRY: the bot's pin commit over a row the branch's own diff already carried"
   st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, not the confinement check"
 done
@@ -1666,11 +1713,11 @@ done
 # still safe to hide, so a bot commit that adds a new path without touching the
 # reviewed one still carries -- the positive control that keeps `cat-file -e`
 # from over-refusing.
-( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_OKADD" origin/main ) > "$W/carry.out" 2>&1
+( cd "$W/clone" && ourcarry "$V_PINMOD" "$H_OKADD" origin/main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: a bot commit that only ADDS a fresh row is still new bot content"
 # The planted metacharacter arm: without `:(exclude,literal)` this head would
 # carry, its glob-named addition silently hiding the rewrite beside it.
-( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
+( cd "$W/clone" && ourcarry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a path named '*' is not a wildcard, it is one added file"
 st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, literal pathspec holding"
 # The relocation (fix review of 97df6851): a hand resolution moves the
@@ -1687,11 +1734,11 @@ st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the
   git checkout -q --detach "$(cat ../reloc.v)"; git merge -q --no-ff --no-edit main >/dev/null
   git show main:f.py > f.py; sed -i.bak '15s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak
   git commit -q --amend -a --no-edit; git rev-parse HEAD > ../reloc.h
-  bash "$SELF" --carry "$(cat ../reloc.v)" "$(cat ../reloc.h)" main ) > "$W/carry.out" 2>&1
+  ourcarry "$(cat ../reloc.v)" "$(cat ../reloc.h)" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a hand resolution that moves the branch's change to another function with the same context"
 st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge, whatever the diffs compare"
 ( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"; git merge -q --no-ff --no-edit "$(cat ../reloc.h)" >/dev/null
-  bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
+  ourcarry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a merge of a handed-off head whose own main merge was hand-resolved"
 st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused for the handed-off head's own merge, which the outer diffs cannot see"
 # The same move as a plain `ci:` commit (fix review of 8bcce59d): no merge,
@@ -1699,13 +1746,13 @@ st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused for the hand
 ( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"
   git show main~1:f.py > f.py; sed -i.bak '14s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak
   git commit -qam "ci: re-record closures"
-  bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
+  ourcarry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a ci: commit that moves the branch's change to another function with the same context"
 st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by the ci: guard"
 ( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"
   git show main~1:f.py > f.py; sed -i.bak '14s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak
   git commit -qam "fix: move the guard"
-  bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
+  ourcarry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a commit of the branch's own that moves its change to another function with the same context (L6)"
 st "$(grep -c "change its content" "$W/carry.out")" 1 "refused by the re-merge tree check, which the header-free comparison cannot replace"
 carried "$H_PIN"; st $? 0 "CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)"
@@ -1713,9 +1760,9 @@ carried "$H_PINOUT"; st $? 1 "NO CARRY: the same subject touching one more file 
 carried "$H_PINELSE"; st $? 1 "NO CARRY: the ledger under another bot's subject, whose paths do not hold it"
 carried "$H_CLAIMSOUT"; st $? 1 "NO CARRY: that subject touching a file outside the claim files"
 carried "$H_PINSEAT"; st $? 1 "NO CARRY: the ledger commit under the bot's subject but a seat's author (#2059 round 1)"
-( cd "$W/clone" && bash "$SELF" --carry "$V_CL" "$H_CLAIMSDROP" origin/main ) >/dev/null 2>&1
+( cd "$W/clone" && ourcarry "$V_CL" "$H_CLAIMSDROP" origin/main ) >/dev/null 2>&1
 st $? 0 "CARRY: remerge_main.sh's inherited-claims commit, only dropping a claim line"
-( cd "$W/clone" && bash "$SELF" --carry "$V_CL" "$H_CLAIMSADD" origin/main ) > "$W/carry.out" 2>&1
+( cd "$W/clone" && ourcarry "$V_CL" "$H_CLAIMSADD" origin/main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: the same subject adding a claim line"
 H_MERGEPIN=$(pin_commit "$H_MERGE" "ci: pin killed mutants" tests/mutation_ledger/killed_by/b.json)
 carried "$H_MERGEPIN"; st $? 0 "CARRY: a merge from main, then the ledger commit it set off (#2024's shape)"
@@ -1733,11 +1780,11 @@ carried "$H_HOP"; st $? 0 "CARRY: a merge of a handed-off head that is itself a 
 H_HOPEVIL=$(mkmerge "$V" "$H_EVIL" "Merge commit into fix")
 carried "$H_HOPEVIL"; st $? 1 "NO CARRY: a merge of a handed-off head whose main merge changed a byte"
 carried "$H_REWRITE"; st $? 1 "NO CARRY: a rewritten head, not a descendant of the verdict's"
-( cd "$W/clone" && bash "$SELF" --carry "$H_CIEMPTY" "$V" origin/main ) > "$W/carry.out" 2>&1
+( cd "$W/clone" && ourcarry "$H_CIEMPTY" "$V" origin/main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)"
 carried "$H_TOUCH"; st $? 0 "CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file"
 carried "$H_CTX"; st $? 1 "NO CARRY: a merge from main that changed a context line of the branch's hunk"
-( cd "$W/clone" && bash "$SELF" --carry "$V_A" "$H_A" origin/main ) >/dev/null 2>&1
+( cd "$W/clone" && ourcarry "$V_A" "$H_A" origin/main ) >/dev/null 2>&1
 st $? 1 "NO CARRY: a driver the branch gave its own file, since drivers are read at main"
 # A merge of the branch's OWN previous head (#2876's shape, R10-REVIEW-CARRY):
 # update_pr.sh re-cuts a head this way, and the merge authors no commit. The
@@ -1751,7 +1798,7 @@ st $? 1 "NO CARRY: a driver the branch gave its own file, since drivers are read
   git rev-parse HEAD > ../recut.m
   git commit-tree "$(git rev-parse "$(cat ../recut.m)^{tree}")" -p "$(cat ../recut.v)" \
     -p "$(cat ../recut.m)" -m "Merge commit 'x' into fix" > ../recut.h
-  bash "$SELF" --carry "$(cat ../recut.v)" "$(cat ../recut.h)" main ) > "$W/carry.out" 2>&1
+  ourcarry "$(cat ../recut.v)" "$(cat ../recut.h)" main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: a re-cut merge of the branch's own previous head (#2876's shape)"
 # The claim files, where a driver refusal leaves a human deciding. Only a pure
 # union of both parents' lines changes nothing; a line dropped, added or
@@ -1783,15 +1830,15 @@ claim_merge() { # the resolved file as a printf format -> the merge commit
     git rev-parse HEAD )
 }
 H_CU=$(claim_merge '# note\nc1 # one\nc2 # two\nc3 # three\nc4 # four\n')
-( cd "$R" && bash "$SELF" --carry "$VC" "$H_CU" main ) > "$W/carry.out" 2>&1
+( cd "$R" && ourcarry "$VC" "$H_CU" main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: a claim file resolved to the pure union of both sides"
 st "$(grep -c FIXTURE-DRIVER-REFUSED "$W/carry.out")" 0 "with the refusing driver's own words kept out of the carry"
 H_CD=$(claim_merge '# note\nc1 # one\nc2 # two\nc3 # three\n')
-( cd "$R" && bash "$SELF" --carry "$VC" "$H_CD" main ) > "$W/carry.out" 2>&1
+( cd "$R" && ourcarry "$VC" "$H_CD" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a claim resolution that drops a line"
 st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused as a claim resolution that is not the union"
 H_CR=$(claim_merge '# note\nc1 # one\nc2 # two\nc3 # three, reworded\nc4 # four\n')
-( cd "$R" && bash "$SELF" --carry "$VC" "$H_CR" main ) > "$W/carry.out" 2>&1
+( cd "$R" && ourcarry "$VC" "$H_CR" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a claim resolution that rewrites a line"
 st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused as a claim resolution that is not the union"
 # The real driver (P290): it takes the claim list from the one side that
@@ -1819,12 +1866,12 @@ H_DR=$( cd "$RD" && git checkout -q --detach "$VD" && git merge -q --no-ff --no-
   && git rev-parse HEAD )
 st "$( cd "$RD" && git show "$H_DR:tests/golden/claimed_drift.txt" | grep -c '^c1')" 0 \
   "the fixture's driver resolved the merge, keeping main's cleared claim cleared"
-( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DR" main ) > "$W/carry.out" 2>&1
+( cd "$RD" && ourcarry "$VD" "$H_DR" main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: a claim file resolved by main's driver, which is not the union"
 H_DA=$( cd "$RD" && git checkout -q --detach "$VD" && git merge -q --no-ff --no-edit --no-commit main >/dev/null 2>&1
   printf 'c9 # by hand\n' >> tests/golden/claimed_drift.txt; git add tests/golden/claimed_drift.txt
   git commit -q --no-edit && git rev-parse HEAD )
-( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DA" main ) > "$W/carry.out" 2>&1
+( cd "$RD" && ourcarry "$VD" "$H_DA" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: the driver's resolution with one hand-added claim line"
 st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused as neither the union nor the driver's output"
 # The driver is main's, never the head's: a branch whose own driver writes
@@ -1834,22 +1881,22 @@ VF=$( cd "$RD" && git checkout -q --detach "$VD" && printf 'import sys\nsys.exit
   && git commit -qam "fix: a driver that writes nothing" && git rev-parse HEAD )
 H_DF=$( cd "$RD" && git checkout -q --detach "$VF" && git merge -q --no-ff --no-edit --no-commit main >/dev/null 2>&1
   git checkout "$VF" -- tests/golden/claimed_drift.txt; git commit -q --no-edit && git rev-parse HEAD )
-( cd "$RD" && bash "$SELF" --carry "$VF" "$H_DF" main ) > "$W/carry.out" 2>&1
+( cd "$RD" && ourcarry "$VF" "$H_DF" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: main's side dropped by hand, which only the head's own driver would write"
 st "$(grep -c "union of its parents" "$W/carry.out")" 1 "refused on main's driver, not the head's"
 # The claim-file twin (#3077 round 1): an own commit after the driver's merge.
 H_DROWN=$( cd "$RD" && git checkout -q --detach "$H_DR" && printf 'c9 # own\n' >> tests/golden/claimed_drift.txt \
   && git commit -qam "fix: tidy wording" && git rev-parse HEAD )
-( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DROWN" main ) > "$W/carry.out" 2>&1
+( cd "$RD" && ourcarry "$VD" "$H_DROWN" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a commit of the branch's own that adds a claim line after main's driver resolved the merge"
 st "$(grep -c "claimed_drift.txt at $H_DROWN is not" "$W/carry.out")" 1 "refused naming the claim file"
 H_DREMPTY=$( cd "$RD" && git checkout -q --detach "$H_DR" && git commit -q --allow-empty -m "fix: nothing" && git rev-parse HEAD )
-( cd "$RD" && bash "$SELF" --carry "$VD" "$H_DREMPTY" main ) > "$W/carry.out" 2>&1
+( cd "$RD" && ourcarry "$VD" "$H_DREMPTY" main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: an empty commit of the branch's own after main's driver resolved the claim file (null control)"
 # A clone without the drivers configured (CI's, or a fresh checkout) has
 # git's text merge where the driver wrote, so main's own driver is run on the
 # two: once for the claim file above, once for a ledger.
-( cd "$RD" && git config --remove-section merge.claimnotes && bash "$SELF" --carry "$VD" "$H_DREMPTY" main ) > "$W/carry.out" 2>&1
+( cd "$RD" && git config --remove-section merge.claimnotes && ourcarry "$VD" "$H_DREMPTY" main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: the same in a clone with no claim driver configured, read by main's own driver"
 ( cd "$RD" && git config merge.claimnotes.name claims \
   && git config merge.claimnotes.driver 'python3 tests/env_drift.py --merge-claim-file %O %A %B %L %P' )
@@ -1872,9 +1919,9 @@ RL="$W/ledgerdrv"; throwaway_git_init "$RL" -q -b main
 VL=$(cat "$W/ledgerdrv.v"); HL=$(cat "$W/ledgerdrv.h"); HLX=$(cat "$W/ledgerdrv.x")
 st "$( cd "$RL" && git show "$HL:tests/structure_budgets.json" | tr -d ' \n')" '{"a":2,"b":3}' \
   "the fixture's ledger driver resolved the merge both sides changed"
-( cd "$RL" && bash "$SELF" --carry "$VL" "$HL" main ) > "$W/carry.out" 2>&1
+( cd "$RL" && ourcarry "$VL" "$HL" main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: a ledger main's driver resolved, in a clone with no ledger driver configured"
-( cd "$RL" && bash "$SELF" --carry "$VL" "$HLX" main ) > "$W/carry.out" 2>&1
+( cd "$RL" && ourcarry "$VL" "$HLX" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: the same ledger with one value then changed by a commit of the branch's own"
 st "$(grep -c "structure_budgets.json at $HLX is not" "$W/carry.out")" 1 "refused naming the ledger"
 # The delivery row (P123): delivery_row.sh commit_row's subject, author and
@@ -1889,7 +1936,7 @@ H_ROWADD=$(rowc "$V" 7 "$TV" 7 dev/programme/delivery/7.md)
 carried "$H_ROWADD"; st $? 0 "CARRY: the verdict head plus its delivery-row add"
 carried "$V"; st $? 0 "CARRY: the verdict head itself, no commit after it (null control)"
 H_ROWEDIT=$(rowc "$H_ROWADD" 7 "$TV" 7 dev/programme/delivery/7.md)
-( cd "$W/clone" && bash "$SELF" --carry "$H_ROWADD" "$H_ROWEDIT" origin/main ) > "$W/carry.out" 2>&1
+( cd "$W/clone" && ourcarry "$H_ROWADD" "$H_ROWEDIT" origin/main ) > "$W/carry.out" 2>&1
 st $? 0 "CARRY: a verdict head holding its row plus a row-edit commit"
 carried "$H_ROWEDIT"; st $? 0 "CARRY: the add and the edit in one range"
 H_ROWMORE=$(rowc "$V" 7 "$TV" 7 dev/programme/delivery/7.md b.txt)
@@ -1952,7 +1999,7 @@ carried "$H_REAPPLYX"; st $? 1 "NO CARRY: the same with a re-apply one byte away
   side count '1i\
 q0
 ' top.md ) || exit 2
-mdcarry() { ( cd "$W/mdctx" && git branch -qf main "m$1" && bash "$SELF" --carry "$(cat ../md.v)" "$(cat "../md.$1")" main ) > "$W/carry.out" 2>&1; }
+mdcarry() { ( cd "$W/mdctx" && git branch -qf main "m$1" && ourcarry "$(cat ../md.v)" "$(cat "../md.$1")" main ) > "$W/carry.out" 2>&1; }
 mdcarry ctx; st $? 0 "CARRY: main rewrote a context line beside the branch's lines in a .md file (P17)"
 mdcarry py; st $? 1 "NO CARRY: the same context rewrite in a .py file (code stays strict)"
 st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison"
@@ -1984,6 +2031,46 @@ st "$(grep -c "does not carry" "$W/nocarry/err")" 1 "saying why"
 st "$(calls nocarry curl)" 0 "and nothing was minted or posted"
 setpr "$H_MERGE"; mkcase carryev open false "$H_MERGE" "[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $W/evnosha-dir")]"
 run carryev o/r 7 "$H_MERGE"; st $? 1 "REFUSE: a carried verdict whose evidence names neither head"
+
+# Decision 0017: a head that is no branch tip of origin is a fork's. The same
+# commits that carry on a head of ours refuse there, and the automatic merge of
+# main carries both ways.
+M0=$(g rev-list --max-parents=0 main | head -1)
+g checkout -q --detach "$M0"; ed1 's/^5$/five/' a.txt; g commit -qam "fix: a fork's own"; V_F=$(g rev-parse HEAD)
+H_FMERGE=$(mkmerge "$V_F" "$M1" "Merge main into fork")
+forkcarry "$V_F" "$H_FMERGE"; st $? 0 "CARRY on a fork head: the automatic merge of main"
+( cd "$W/clone" && ourcarry "$V_F" "$H_FMERGE" origin/main ) > "$W/carry.out" 2>&1; st $? 0 "... and on a head of ours (null control)"
+for arm in "$H_CILED:a closures bot commit" "$H_PIN:a ledger bot commit" "$H_OWNEMPTY:an empty commit of the branch's own" "$H_CIEMPTY:an empty ci: commit" "$H_ROWADD:a delivery-row commit"; do
+  ( cd "$W/clone" && ourcarry "$V" "${arm%%:*}" origin/main ) > "$W/carry.out" 2>&1; st $? 0 "CARRY on a head of ours: ${arm#*:}"
+  forkcarry "$V" "${arm%%:*}"; st $? 1 "NO CARRY on a fork head: ${arm#*:}"
+  st "$(grep -c "no branch tip of origin: there only an automatic merge of main carries" "$W/carry.out")" 1 "refused as a commit on a head that is not ours"
+done
+# Item 21: V wrote a merge-driver file (led.json), so its main merge holds
+# other bytes there than main does. Ours: reviewed content, carried. A fork's:
+# a merge commit is where a budget raise would hide.
+forkcarry "$V" "$H_MERGE"; st $? 1 "NO CARRY on a fork head: a main merge whose merge-driver file is not main's"
+st "$(grep -c "leaves the merge-driver file led.json other than main's" "$W/carry.out")" 1 "refused naming the driver file"
+g checkout -q --detach "$V_F"; g commit -q --allow-empty -m side-f; SIDE_F=$(g rev-parse HEAD)
+forkcarry "$V_F" "$(mkmerge "$V_F" "$SIDE_F" "Merge side into fork")"; st $? 1 "NO CARRY on a fork head: a merge of a branch that is not main"
+# A merge neither of whose parents is main's has no main side to hold the driver
+# files to: the reviewed head merged with its own ancestor, built by plumbing.
+g checkout -q --detach "$V_F"; echo y >> "$W/clone/b.txt"; g commit -qam "fix: a fork's second"; V_G=$(g rev-parse HEAD)
+H_SELF=$(g commit-tree -p "$V_G" -p "$V_F" -m "Merge an ancestor" "$V_G^{tree}")
+forkcarry "$V_G" "$H_SELF"; st $? 1 "NO CARRY on a fork head: a merge that is not of main, though it adds no commit"
+st "$(grep -c "merges a commit that is not main's" "$W/carry.out")" 1 "refused as a merge with no main side"
+mkdir -p "$W/lsfail"
+printf '#!/bin/bash\n[ "$1" = ls-remote ] && { echo "fatal: repository not found" >&2; exit 128; }\nexec "%s" "$@"\n' "$REAL_GIT" > "$W/lsfail/git"; chmod +x "$W/lsfail/git"
+( cd "$W/clone" && PATH="$W/lsfail:$PATH" bash "$SELF" --carry "$V_F" "$H_FMERGE" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: origin's branch heads unreadable, even for an automatic merge of main (fail closed)"
+st "$(grep -c "could not be listed" "$W/carry.out")" 1 "saying the heads could not be listed"
+EVF="$W/ev-f"; mkdir -p "$EVF"; printf 'fix review at head %s\n' "$V" > "$EVF/verdict.md"
+CARRYF="[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $EVF")]"
+setpr "$H_CILED"; mkcase botours open false "$H_CILED" "$CARRYF"
+run botours o/r 7 "$H_CILED"; st $? 0 "a verdict at V is approved at a bot commit's head when the pull request's head is a branch of ours"
+forkpr "$H_CILED"; mkcase botfork open false "$H_CILED" "$CARRYF"
+run botfork o/r 7 "$H_CILED"; st $? 1 "REFUSE: the same head when it is only refs/pull/7/head (a fork's)"
+st "$(grep -c "no branch tip of origin" "$W/botfork/err")" 1 "saying why"
+st "$(calls botfork curl)" 0 "and nothing was minted or posted"
 
 echo "app_approve self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
