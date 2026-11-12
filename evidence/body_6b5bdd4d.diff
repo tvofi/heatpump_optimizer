@@ -1,0 +1,28 @@
+commit 6b5bdd4dd6ac69877321b6d58115569bb97fec9f
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Thu Nov 12 07:10:01 2026 +0100
+
+    body: r10-standing-contracts-p2-p4
+    
+    Code: e199f727b44059611092c141d1d04edb8dee219a
+
+diff --git a/BODY.md b/BODY.md
+index d98ccffe18..188852dfa2 100644
+--- a/BODY.md
++++ b/BODY.md
+@@ -18,11 +18,13 @@ none
+ 
+ ## Red checks
+ 
+-none
++- `tests / nightly-status`: red because the scheduled nightly run 43130126209 (head 4778853, 2026-11-12) concluded cancelled on its mutation-ledger lanes. The cause is a cancelled scheduled run on main outside this diff, which touches only policy text and no workflow; main's nightly owner answers it, and this check is not a required context on `main-protect`.
++- `tests / fast (3.14)`, `governance / instrument-self-tests` and `replay`: in progress or not yet reported when this body was written; no failure line was read for any of them at the PR head. This body does not claim them green.
+ 
+ ## Forward-carry
+ 
+-- Carry 16: dismissed. tools/audit/seat/hooks/liveness.py, seat_interpreter.py, git_identity.py, tools/audit/seat/hooks_setup.py (--check, --install, --self-test; main() near L393) and tools/audit/seat/instruments/hooks_setup.py.md exist on main since f0c6bbfd7; the project-level pre-bash guard is check-only in hooks_setup.py. No tracked .claude/ file is changed here (diff of .claude/hooks/session-start.sh and .claude/settings.json: empty). Carry: dismissed: implemented at f0c6bbfd7
++- Carry 16 part (1) (judge every loop): not answered by this part; it stays open on the roster, unmarked, for the group's other part. Carry: R10-STANDING-CONTRACTS-P2 | dismissed: not this part, its own part of the group answers it
++- Carry 16 part (2) (hooks): dismissed. tools/audit/seat/hooks/liveness.py, seat_interpreter.py, git_identity.py, tools/audit/seat/hooks_setup.py (--check, --install, --self-test; main() near L393) and tools/audit/seat/instruments/hooks_setup.py.md exist on main since f0c6bbfd7; the project-level pre-bash guard is check-only in hooks_setup.py. No tracked .claude/ file is changed here (diff of .claude/hooks/session-start.sh and .claude/settings.json: empty). Carry: dismissed: implemented at f0c6bbfd7
+ - Carry 17: dismissed. `tick-digest` row: tools/audit/seat/beatd.jobs.json and beat_jobs.py:41; standing-tick.md is retired (b16084794); orchestrator.md L106-109 reads the digest; sweep step (5) reads it; tick_brief is absent (sweep_render.py self-test). Carry: dismissed: implemented at 0a98a0173
+ - Carry 18: dismissed. roster-drain, plan-beat, pulse, cancel-sweep, disk and opener rows are in beatd.jobs.json (0a98a0173); standing-roster.md is retired (b16084794). Carry: dismissed: implemented at 0a98a0173
+ - Carry 19: dismissed. dev/governance/roles/standing.md L47-50 names $HPO_STATE_DIR/alive/. Carry: dismissed: implemented at 1b174e9b3
