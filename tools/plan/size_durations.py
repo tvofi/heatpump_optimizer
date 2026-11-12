@@ -56,8 +56,10 @@ The held (carries-open) model
     `carry_part_hours`; zero open carries plan zero.
 
 Percentiles are linear between order statistics (numpy's default rule).
-The one network read is `fetch()`, GraphQL queries through `gh api graphql`
-under `gh_read.retry`'s transient rule; nothing is written to GitHub.
+The one network read is `fetch()`, GraphQL queries through `gh api graphql`,
+or `fetch_rest()` (`--via rest`) where GraphQL is refused, both under
+`gh_read.retry`'s transient rule; nothing is written to GitHub. Either writes
+the same `--prs-cache` shape, and the model's `sizes_provenance` names the read.
 """
 
 from __future__ import annotations
@@ -71,6 +73,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -130,6 +133,17 @@ def iso(t: dt.datetime) -> str:
 
 # ------------------------------------------------------------------- reads
 
+def _gh(argv: list) -> str:
+    """One `gh api` read under `gh_read.retry`'s transient rule; raises on failure."""
+    def attempt():
+        r = subprocess.run(argv, capture_output=True, text=True)
+        return (r.stdout, None) if r.returncode == 0 else (None, r.stderr)
+    text, failure, _, why = gh_read.retry(attempt, gh_read.gh_wait, __import__("time").sleep)
+    if failure is not None:
+        raise RuntimeError(f"{' '.join(argv[:3])} failed {why}: {gh_read.one_line(failure)}")
+    return text
+
+
 def fetch(repo_owner: str, since: str) -> list:
     """Merged PRs created since `since`, newest first, flattened. Read only."""
     owner, name = repo_owner.split("/")
@@ -139,18 +153,52 @@ def fetch(repo_owner: str, since: str) -> list:
         argv = ["gh", "api", "graphql", "-f", "query=" + query]
         if cursor:
             argv += ["-f", "cursor=" + cursor]
-
-        def attempt():
-            r = subprocess.run(argv, capture_output=True, text=True)
-            return (r.stdout, None) if r.returncode == 0 else (None, r.stderr)
-        text, failure, _, why = gh_read.retry(attempt, gh_read.gh_wait, __import__("time").sleep)
-        if failure is not None:
-            raise RuntimeError(f"gh api graphql failed {why}: {gh_read.one_line(failure)}")
-        page = json.loads(text)["data"]["repository"]["pullRequests"]
+        page = json.loads(_gh(argv))["data"]["repository"]["pullRequests"]
         out += [flatten(n) for n in page["nodes"]]
         if not page["pageInfo"]["hasNextPage"] or page["nodes"][-1]["createdAt"] < since:
             return out
         cursor = page["pageInfo"]["endCursor"]
+
+
+def rest_node(pr: dict, commits: list, comments: list) -> dict:
+    """A REST pull (`GET pulls`), its commits and its issue comments in the
+    GraphQL node shape `flatten` reads: either read writes the one cache."""
+    first = ((commits or [{}])[0].get("commit") or {}).get("author") or {}
+    return {
+        "number": pr["number"], "title": pr.get("title"),
+        "headRefName": (pr.get("head") or {}).get("ref"), "createdAt": pr["created_at"],
+        "mergedAt": pr["merged_at"], "body": pr.get("body"),
+        "mergeCommit": {"oid": pr.get("merge_commit_sha")},
+        "commits": {"nodes": [{"commit": {"authoredDate": first.get("date")}}]},
+        "comments": {"nodes": [{"createdAt": c["created_at"], "body": c.get("body")}
+                               for c in comments]},
+    }
+
+
+def fetch_rest(repo_owner: str, since: str, get=None) -> list:
+    """`fetch` over the REST API, for a seat whose `gh api graphql` is refused:
+    the same PRs (merged, created since `since`, newest first) and fields, at
+    three reads per PR; `get(path)` is the read, injected by the self-test.
+    Unlike `fetch`, it drops the last page's PRs created before `since`, which
+    no round-10 group owns (`SINCE`). Read only."""
+    get = get or (lambda path: json.loads(_gh(["gh", "api", f"repos/{repo_owner}/{path}"])))
+    out, page = [], 1
+    while True:
+        pulls = get(f"pulls?state=closed&sort=created&direction=desc&per_page=100&page={page}")
+        for p in pulls:
+            if p["created_at"] < since:
+                return out
+            if p.get("merged_at"):
+                n = p["number"]
+                out.append(flatten(rest_node(p, get(f"pulls/{n}/commits?per_page=1"),
+                                             get(f"issues/{n}/comments?per_page=100"))))
+        if len(pulls) < 100:
+            return out
+        page += 1
+
+
+#: `--via`: the read that builds the PR list, recorded in `sizes_provenance`.
+READS = {"graphql": fetch, "rest": fetch_rest}
 
 
 def flatten(n: dict) -> dict:
@@ -598,6 +646,90 @@ def self_test() -> int:
         if not cond:
             fails.append(name)
 
+    # The REST read writes the GraphQL read's cache, field for field.
+    gq = {"number": 7, "title": "t", "headRefName": "fix/x", "createdAt": "2026-10-13T00:00:00Z",
+          "mergedAt": "2026-10-14T00:00:00Z", "body": "b", "mergeCommit": {"oid": "a" * 40},
+          "commits": {"nodes": [{"commit": {"authoredDate": "2026-10-12T23:00:00Z"}}]},
+          "comments": {"nodes": [{"author": {"login": "x"}, "createdAt": f"2026-10-13T0{i}:00:00Z",
+                                  "body": f"Fix review: merge {i}abcdef0\nmore"} for i in (1, 2)]}}
+    rp = {"number": 7, "title": "t", "head": {"ref": "fix/x"}, "created_at": "2026-10-13T00:00:00Z",
+          "merged_at": "2026-10-14T00:00:00Z", "body": "b", "merge_commit_sha": "a" * 40}
+    rcommits = [{"commit": {"author": {"date": d}}}
+                for d in ("2026-10-12T23:00:00Z", "2026-10-13T05:00:00Z")]
+    rcomments = [{"user": {"login": "x"}, "created_at": c["createdAt"], "body": c["body"]}
+                 for c in gq["comments"]["nodes"]]
+    check("rest_node: a REST pull, its commits and comments flatten as the GraphQL node",
+          flatten(rest_node(rp, rcommits, rcomments)) == flatten(gq))
+    check("rest_node (null): no commit read falls back to creation, as the GraphQL node does",
+          flatten(rest_node(rp, [], []))["first_commit_at"] == rp["created_at"])
+
+    def pull(n, day, merged=True):
+        return dict(rp, number=n, created_at=f"2026-10-{day}T00:00:00Z",
+                    merged_at="2026-10-30T00:00:00Z" if merged else None)
+    pages = {1: [pull(500 - i, 20, merged=i % 2 == 0) for i in range(100)],
+             2: [pull(300, 13), pull(299, 11), pull(298, 13)]}
+    asked = []
+
+    def fake_get(path):
+        asked.append(path)
+        m = re.search(r"pulls\?.*page=(\d+)$", path)
+        if m:
+            return pages.get(int(m.group(1)), [])
+        return rcommits if "/commits" in path else rcomments
+    got = fetch_rest("o/r", "2026-10-12", fake_get)
+    check("fetch_rest: merged PRs only, across a full page, stopping at the first created "
+          "before since", [p["number"] for p in got] == [500 - i for i in range(0, 100, 2)] + [300]
+          and any("page=2" in a for a in asked) and not any("page=3" in a for a in asked))
+    pages[2] = [pull(300, 13), pull(297, 14)]
+    pages[3] = [pull(200, 13)]
+    got = fetch_rest("o/r", "2026-10-12", fake_get)
+    check("fetch_rest: a short page ends the read", [p["number"] for p in got][-2:] == [300, 297])
+    check("fetch_rest: a PR created at the cut-off instant is read",
+          [p["number"] for p in fetch_rest("o/r", "2026-10-13T00:00:00Z", fake_get)][-1] == 297)
+    check("_gh: a read returns its stdout", _gh([sys.executable, "-c", "print(7)"]) == "7\n")
+    try:
+        _gh([sys.executable, "-c", "import sys; sys.exit(3)"])
+        gh_raised = False
+    except RuntimeError:
+        gh_raised = True
+    check("_gh (null): a failed read raises, never returns", gh_raised)
+    with tempfile.TemporaryDirectory() as td:
+        cache, calls = os.path.join(td, "prs.json"), []
+        fresh = read_prs({"rest": lambda o, s_: calls.append((o, s_)) or [{"number": 1}]},
+                         "rest", "o/r", "2026-10-12", cache)
+        again = read_prs({"rest": lambda o, s_: calls.append((o, s_)) or []},
+                         "rest", "o/r", "2026-10-12", cache)
+    check("read_prs: a fresh read writes the cache, a second replays it without a read",
+          fresh == ([{"number": 1}], False) and again == ([{"number": 1}], True)
+          and calls == [("o/r", "2026-10-12")])
+    check("input_note names the read and a replayed cache",
+          input_note("rest", "2026-10-12", 3, True) == " Input: 3 merged PRs created since "
+          "2026-10-12, read by size_durations.fetch_rest (--via rest), replayed from a "
+          "--prs-cache file." and input_note("graphql", "x", 1, False).endswith(
+              "size_durations.fetch (--via graphql)."))
+
+    # `run` reads through `reads[via]` and its provenance names that read.
+    roster, prs = _fixture()
+    with tempfile.TemporaryDirectory() as td:
+        rf, read_by = os.path.join(td, "roster.json"), []
+        Path(rf).write_text(json.dumps(roster), encoding="utf-8")
+        fakes = {v: (lambda o, s_, v=v: read_by.append(v) or prs) for v in READS}
+        ran = {v: run(td, None, "o/r", "2026-10-12", None, None, DEFAULT_PERCENTILE, v,
+                      reads=fakes, roster_file=rf)["sizes_provenance"] for v in ("rest", "graphql")}
+    check("run --via rest: the rest read builds the PR list", read_by == ["rest", "graphql"])
+    check("run --via rest: sizes_provenance ends naming fetch_rest",
+          ran["rest"].endswith(input_note("rest", "2026-10-12", len(prs), False)))
+    check("run --via graphql (null): sizes_provenance ends naming fetch",
+          ran["graphql"].endswith(input_note("graphql", "2026-10-12", len(prs), False)))
+    with tempfile.TemporaryDirectory() as td:
+        rf, pc = os.path.join(td, "roster.json"), os.path.join(td, "prs.json")
+        Path(rf).write_text(json.dumps(roster), encoding="utf-8")
+        Path(pc).write_text(json.dumps(prs), encoding="utf-8")
+        replay = run(td, None, "o/r", "2026-10-12", pc, None, DEFAULT_PERCENTILE, "rest",
+                     reads={"rest": lambda o, s_: 1 / 0}, roster_file=rf)["sizes_provenance"]
+    check("run --prs-cache: sizes_provenance ends naming the replay, no read made",
+          replay.endswith(input_note("rest", "2026-10-12", len(prs), True)))
+
     roster, prs = _fixture()
     mapping = prs_of_groups(roster, prs, {})
     check("branch maps R9-A to #11", mapping.get("R9-A") == [11])
@@ -709,14 +841,12 @@ def self_test() -> int:
 # -------------------------------------------------------------------- main
 
 def run(repo: str, roster_ref: str | None, repo_owner: str, since: str,
-        cache: str | None, csv_path: str | None, percentile: float) -> dict:
-    roster, _, _ = replan.load_roster(repo, roster_ref)
-    if cache and Path(cache).is_file():
-        prs = json.loads(Path(cache).read_text(encoding="utf-8"))
-    else:
-        prs = fetch(repo_owner, since)
-        if cache:
-            Path(cache).write_text(json.dumps(prs), encoding="utf-8")
+        cache: str | None, csv_path: str | None, percentile: float,
+        via: str = "graphql", reads: dict = READS, roster_file: str | None = None) -> dict:
+    """The size model over `reads[via]`'s PR list; `reads` and `roster_file`
+    (`replan.load_roster`'s `file`) are injected by the self-test."""
+    roster, _, _ = replan.load_roster(repo, roster_ref, file=roster_file)
+    prs, replayed = read_prs(reads, via, repo_owner, since, cache)
     rows, parts, held, _mapping = measure(repo, roster, prs)
     if csv_path:
         write_csv(rows, csv_path)
@@ -726,8 +856,28 @@ def run(repo: str, roster_ref: str | None, repo_owner: str, since: str,
         write_csv(held_report(roster, prs, _mapping), stem + "-held-carries.csv")
     out = model(rows, percentile)
     out.update(carry_model(parts, held, percentile))
+    out["sizes_provenance"] += input_note(via, since, len(prs), replayed)
     out["sizes_measured_at"] = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     return out
+
+
+def read_prs(reads: dict, via: str, repo_owner: str, since: str, cache: str | None):
+    """(PRs, replayed): the `--prs-cache` file when it exists, else `reads[via]`,
+    written to the cache when one is named."""
+    if cache and Path(cache).is_file():
+        return json.loads(Path(cache).read_text(encoding="utf-8")), True
+    prs = reads[via](repo_owner, since)
+    if cache:
+        Path(cache).write_text(json.dumps(prs), encoding="utf-8")
+    return prs, False
+
+
+def input_note(via: str, since: str, n: int, replayed: bool) -> str:
+    """The provenance sentence naming the model's input, so a re-derivation by
+    the other read can tell drift from a different input."""
+    return (f" Input: {n} merged PRs created since {since}, read by "
+            f"size_durations.{READS[via].__name__} (--via {via})"
+            + (", replayed from a --prs-cache file." if replayed else "."))
 
 
 def main(argv=None) -> int:
@@ -738,13 +888,16 @@ def main(argv=None) -> int:
     p.add_argument("--repo-owner", default="tvofi/heatpump_optimizer")
     p.add_argument("--since", default=SINCE, help="earliest PR creation read")
     p.add_argument("--prs-cache", default=None, help="read (or write) the fetched PRs here")
+    p.add_argument("--via", choices=sorted(READS), default="graphql",
+                   help="the read that fetches the PRs (rest where graphql is refused)")
     p.add_argument("--csv", default=None)
     p.add_argument("--percentile", type=float, default=DEFAULT_PERCENTILE)
     p.add_argument("--out-durations", default=None, help="merge the model into this file")
     a = p.parse_args(argv)
     if a.self_test:
         return self_test()
-    out = run(a.repo, a.roster_ref, a.repo_owner, a.since, a.prs_cache, a.csv, a.percentile)
+    out = run(a.repo, a.roster_ref, a.repo_owner, a.since, a.prs_cache, a.csv, a.percentile,
+              a.via)
     if a.out_durations:
         target = Path(a.out_durations)
         old = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
