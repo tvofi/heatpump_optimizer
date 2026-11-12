@@ -1,0 +1,11 @@
+== tools/audit/seat/seat_gen.py
+ok   mutant session_ppid killed by: session_pid: the first ancestor running the session binary, never the shell
+seat_gen self-test: 23 checks, 0 failed
+== tools/audit/seat/pulse.py
+  ok   the summary line counts the arms
+pulse self-test: 69 checks, 0 failed
+== tools/audit/seat/beat_jobs.py
+  ok   mutant fold_new_kept_stale killed by: fold: a fold that added nothing empties new.txt, and leaves the stamp
+beat_jobs self-test: 203 checks, 0 failed
+== tools/audit/seat/open_driver.py
+open_driver self-test: 93 checks, 0 failed

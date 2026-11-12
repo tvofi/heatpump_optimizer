@@ -1,0 +1,11 @@
+== mutant pulse-gen-read-off: line 477 'if sd:' -> 'if False:'
+pulse self-test: 69 checks, 0 failed
+== mutant ps_start-zero: return 0
+        return 0
+seat_gen self-test: 23 checks, 0 failed
+== mutant resolution-main-side: M-exact/M-body untargeted (main's hunk)
+ dev/audit/harnesses/r10_open_driver_mutants.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+RESULT mutant=M-moved-gone failed=1 verdict=killed
+ABORT M-exact: pattern occurs 0 times
+== control restored
