@@ -1,0 +1,116 @@
+[
+ {
+  "name": "procfs_leg_reads_ps",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "names = os.listdir(PROCFS[0])",
+  "new": "names = os.listdir(PROCFS[0] / \"never-exists-xx\")"
+ },
+ {
+  "name": "no_procfs_leg_no_ps_fallback",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "    except FileNotFoundError:\n        ps = subprocess.Popen",
+  "new": "    except NotADirectoryError:\n        ps = subprocess.Popen"
+ },
+ {
+  "name": "no_procfs_leg_failed_ps_is_empty_table",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "if ps.returncode:",
+  "new": "if False:"
+ },
+ {
+  "name": "host_leg_never_skipped",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "if root == host and not (host / \"self\" / \"stat\").is_file():",
+  "new": "if False:"
+ },
+ {
+  "name": "skip_not_counted",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "        skips += 1",
+  "new": "        skips += 0"
+ },
+ {
+  "name": "env_root_ignored",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "PROCFS = [Path(os.environ.get(\"MUTANT_RUN_PROCFS\", \"/proc\"))]",
+  "new": "PROCFS = [Path(\"/proc\")]"
+ },
+ {
+  "name": "zombie_state_not_sliced",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "rows.append((int(pid), state[:1], int(ppid)",
+  "new": "rows.append((int(pid), state, int(ppid)"
+ },
+ {
+  "name": "refused_getsid_keeps_last_session",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "                    session = None  # exited",
+  "new": "                    pass  # exited"
+ },
+ {
+  "name": "reap_collects_nothing",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "if ppid == me and pid != keep and pid not in skip:",
+  "new": "if False:"
+ },
+ {
+  "name": "token_matched_as_substring",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "return mark in env.split(b\"\\0\")",
+  "new": "return mark in env"
+ },
+ {
+  "name": "ps_counts_itself",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "if int(pid) == ps.pid:",
+  "new": "if False:"
+ },
+ {
+  "name": "stat_split_after_first_paren",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "stat[stat.rindex(\")\") + 2:].split()[:4]",
+  "new": "stat[stat.index(\")\") + 2:].split()[:4]"
+ },
+ {
+  "name": "rv_carries_always_false",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "        env = (PROCFS[0] / str(pid) / \"environ\").read_bytes()",
+  "new": "        env = b\"\""
+ },
+ {
+  "name": "rv_zombie_counted",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "if pid == me or state == \"Z\":",
+  "new": "if pid == me:"
+ },
+ {
+  "name": "rv_ps_valueerror_aborts",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "            except ValueError:\n                continue\n        return rows",
+  "new": "            except ValueError:\n                break\n        return rows"
+ },
+ {
+  "name": "rv_procfs_row_error_aborts",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "        except (OSError, ValueError):\n            continue  # exited between the listing and the read\n",
+  "new": "        except (OSError, ValueError):\n            break  # exited between the listing and the read\n"
+ },
+ {
+  "name": "rv_reap_ignores_keep",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "if ppid == me and pid != keep and pid not in skip:",
+  "new": "if ppid == me and pid not in skip:"
+ },
+ {
+  "name": "rv_reap_ignores_skip",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "if ppid == me and pid != keep and pid not in skip:",
+  "new": "if ppid == me and pid != keep:"
+ },
+ {
+  "name": "rv_pgrp_leg_dropped",
+  "file": "tools/audit/seat/mutant_run.py",
+  "old": "if sid in (pgrp, session) or _carries(pid, mark):",
+  "new": "if sid == session or _carries(pid, mark):"
+ }
+]
