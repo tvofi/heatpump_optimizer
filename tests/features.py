@@ -14481,6 +14481,7 @@ from heatpump_optimizer.coordinator import (  # noqa: E402
     async_factory_reset as _fr_reset,
 )
 from heatpump_optimizer.wood_fuel import wood_furnace_on as _fr_wood  # noqa: E402
+from heatpump_optimizer import duty_switch as _fr_ds  # noqa: E402
 
 R.section("A factory reset returns settings, learners or both to their defaults")
 
@@ -14539,11 +14540,30 @@ def _fr_learn(c):
     c._accuracy.lead_sigma[1.0], c._accuracy.lead_counts[1.0] = 0.3, 12
     c._price_learner.model.shapes[0][3] = 1.2
     c._dhw_learner.draw_stats.fold(_fr_dt.now(), "06:00-09:00", 2.5)
+    _fr_ds_learn(c)
     _aio.run(c._async_save_thermal_learning())
     _aio.run(c._dhw_learner.async_save_profile())
     _aio.run(c._dhw_learner.async_save_draws())
     _aio.run(c._async_save_accuracy())
     _aio.run(c._async_save_price_model())
+
+
+def _fr_ds_learn(c):
+    """A duty-switch record latched usable, in memory and on disk, as the arbiter's pass leaves it."""
+    rec = _fr_ds.record_for(c)
+    day = _fr_dt.now().date()
+    d = rec.learner.directions["dhw_space"]
+    d.k, d.stopped, d.usable, d.off_s, d.first_day, d.last_day = 6.0, 6, True, [480.0], day, day + timedelta(days=1)
+    rec.loaded = True
+    _aio.run(rec.store.async_save(rec.learner.stored_record()))
+
+
+def _fr_ds_read(c):
+    """(dhw->space usable, its weight) of the coordinator's record once loaded, as the first pass loads it."""
+    rec = _fr_ds.record_for(c)
+    _aio.run(_fr_ds._load(rec))
+    d = rec.learner.directions["dhw_space"]
+    return d.usable, d.n
 
 
 def _fr_disk(entry_id):
@@ -14674,7 +14694,7 @@ _FR_FACTS = {
         "snow_accum_last", "last_heavy_snow", "freq_fallback", "updated_at",
     },
     "accuracy": {"peaks", "mode"},
-    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(),
+    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(), "duty_switch": set(),
 }
 _fr_l_setup = _fr_l_before["at_setup"]
 _fr_learned_keys = sorted((n, k) for n, facts in _FR_FACTS.items()
@@ -15047,7 +15067,7 @@ _FR_STORES = {
     "dhw_legionella": "kept: the last disinfection, a safety fact",
     "notifier": "kept: which notices were sent",
     "pump_duty": "kept: what was last written to the pump",
-    "duty_switch": "kept: what duty switches did to this pump's compressor, observed facts",
+    "duty_switch": "voided: the learned stop estimate and its latch, the in-memory learner with it",
     "debug": "kept: a diagnostics collection",
     "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
 }
@@ -15059,6 +15079,24 @@ for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")
             for _fr_arg in _fr_n.args:
                 if isinstance(_fr_arg, _fr_ast.JoinedStr):
                     _fr_found.add(_fr_arg.values[-1].value.lstrip("_"))
+# The duty-switch record (ruling on carry item 3c666f5b, 2026-11-12): voided like every other
+# learned estimate, and the learner the entry is set up with again holds none of it.
+_fr_ds_before, _fr_ds_entry, _fr_ds_hass, _fr_ds_old = _fr_case("learners", "fr_dsw")
+_fr_ds_hass2 = FakeHass({})
+_fr_ds_entry2 = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_dsw_restart")
+_fr_ds_c2 = _aio.run(_fr_boot(_fr_ds_hass2, _fr_ds_entry2))
+_fr_learn(_fr_ds_c2)
+_fr_ds_restarted = _aio.run(_fr_boot(_fr_ds_hass2, _fr_ds_entry2))
+R.check(
+    "a learners reset leaves no stored duty-switch estimate and no latch, and the learner the entry is set up with "
+    "reads none; null control, a plain restart keeps the stored record, its weight and its latch",
+    "duty_switch" in _fr_ds_before["disk"] and _fr_ds_before["disk"]["duty_switch"]["directions"]["dhw_space"]["usable"]
+    and "duty_switch" not in _fr_ds_before["at_setup"] and "duty_switch" not in _fr_disk("fr_dsw")
+    and _fr_ds_read(_fr_ds_entry.runtime_data) == (False, 0.0)
+    and _fr_ds_read(_fr_ds_restarted) == (True, 6.0) and "duty_switch" in _fr_disk("fr_dsw_restart"),
+    f"before {sorted(_fr_ds_before['disk'])}, at setup {sorted(_fr_ds_before['at_setup'])}, "
+    f"after {_fr_ds_read(_fr_ds_entry.runtime_data)}, restarted {_fr_ds_read(_fr_ds_restarted)}",
+)
 R.check(
     "every store the integration persists has a factory-reset disposition",
     _fr_found == set(_FR_STORES) and len(_fr_found) >= 15,
@@ -83199,8 +83237,9 @@ R.check(
 )
 
 
-# Null controls (design.md, evidence 5 and 6): nothing reads the estimate, so
-# an empty learner and one saturated at p = 1 give the same commands.
+# Null controls (design.md, evidence 5 and 6; the group's brief): below the
+# evidence threshold, and on an install where no switch stops the compressor,
+# the split and every written command are today's.
 def _ds_saturated():
     return _ds_saturated_at(None)
 
@@ -83218,21 +83257,174 @@ def _ds_commands(learner, freq, plan=None):
     return calls, split, rec.learner.directions["dhw_space"].usable
 
 
+def _ds_learner(**rows):
+    """A learner whose named directions hold ``(k, kept weight, usable, off seconds)``, over two days."""
+    l = _ds_mod.DutySwitchLearner()
+    for name, (k, kept_w, usable, off_s) in rows.items():
+        d = l.directions[name]
+        d.k, d.kept_w, d.usable, d.off_s = k, kept_w, usable, list(off_s)
+        d.first_day, d.last_day = _ds_day.date(), _ds_day.date() + timedelta(days=1)
+    return l
+
+
+#: Under the evidence threshold at p = 1, and an install whose every switch was kept.
+_DS_BELOW = {d: (_ds_mod.N_ON - 0.1, 0.0, False, [900.0]) for d in _ds_mod.DIRECTIONS}
+_DS_NO_STOP = {d: (0.0, _ds_mod.N_CAP, False, []) for d in _ds_mod.DIRECTIONS}
 _ds_plain = _ds_commands(_ds_mod.DutySwitchLearner(), {})
+_ds_nulls = [_ds_commands(_ds_learner(**rows), {}) for rows in (_DS_BELOW, _DS_NO_STOP)]
 _ds_full = _ds_commands(_ds_saturated(), {})
 R.check(
-    "null control, an install where no switch stops the compressor: the split order and every written "
-    "command are identical between an empty learner and one saturated at p = 1",
-    _ds_plain[:2] == _ds_full[:2] and _ds_plain[0] != [] and _ds_plain[1] == "d" * 8 + "s" * 7
-    and _ds_full[2] and not _ds_plain[2],
-    f"{_ds_plain[1]} {_ds_full[1]}",
+    "null control, an empty learner, one under the evidence threshold at p = 1 and one from an install where no "
+    "switch stops the compressor: the split order and every written command are today's, hot water first for its "
+    "share; and a latched learner does change the split (the controls are not vacuous)",
+    all(run[:2] == _ds_plain[:2] for run in _ds_nulls) and _ds_plain[0] != [] and _ds_plain[1] == "d" * 8 + "s" * 7
+    and _ds_full[1] == "d" * 15 and _ds_full[2] and not _ds_plain[2],
+    f"{_ds_plain[1]} {[run[1] for run in _ds_nulls]} {_ds_full[1]}",
 )
 _ds_plain_stop = _ds_commands(_ds_mod.DutySwitchLearner(), {8.25: "0", 16.5: "35"})
-_ds_full_stop = _ds_commands(_ds_saturated(), {8.25: "0", 16.5: "35"})
+_ds_nulls_stop = [_ds_commands(_ds_learner(**rows), {8.25: "0", 16.5: "35"}) for rows in (_DS_BELOW, _DS_NO_STOP)]
 R.check(
-    "and so are they on the install whose switch does stop it: part A changes no write at either end of its evidence",
-    _ds_plain_stop[:2] == _ds_full_stop[:2] == _ds_plain[:2],
-    f"{_ds_plain_stop[1]} {_ds_full_stop[1]}",
+    "and so are they on the install whose switch does stop it, while no direction is latched",
+    all(run[:2] == _ds_plain_stop[:2] == _ds_plain[:2] for run in _ds_nulls_stop),
+    f"{_ds_plain_stop[1]} {[run[1] for run in _ds_nulls_stop]}",
+)
+
+
+# Part B (the group's ruling on rule c): the arbiter's split of a both step reads
+# the learner's latches through ``duty_switch.both_step_split``.
+def _ds_split(learner, plan=None, minutes=range(15), between=None, c=None):
+    """The duty ``_share`` serves at each minute of ``minutes``; ``between(c, minute)`` runs before each read."""
+    if c is None:
+        c = _DsArb()
+        rec = _ds_mod.record_for(c)
+        rec.learner, rec.loaded = learner, True
+    c.plan = plan or c.plan
+    out = ""
+    for m in minutes:
+        if between is not None:
+            between(c, m)
+        out += str(_sa_pa._share(c, c.arbiter_inputs(), "both", _DS_T0 + timedelta(minutes=m)))[0]
+    return out
+
+
+_DS_TODAY, _DS_SPACE_FIRST, _DS_WHOLE = "d" * 8 + "s" * 7, "s" * 8 + "d" * 7, "d" * 15
+_DS_ON = (6.0, 0.0, True, [900.0])
+_ds_next_dhw, _ds_next_idle = _ds_plan((0, 1.0, 1.0), (900, 0.0, 1.0)), _ds_plan((0, 1.0, 1.0), (900, 0.0, 0.0))
+_ds_orders = {
+    "only hot water to space": _ds_split(_ds_learner(dhw_space=_DS_ON)),
+    "only space to hot water": _ds_split(_ds_learner(space_dhw=_DS_ON)),
+    "both": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)),
+    "none": _ds_split(_ds_mod.DutySwitchLearner()),
+}
+R.check(
+    "where only hot water to space is usable the both step serves space first for its share; with only space to "
+    "hot water, or neither, hot water goes first as today",
+    _ds_orders["only hot water to space"] == _DS_SPACE_FIRST
+    and _ds_orders["only space to hot water"] == _ds_orders["none"] == _DS_TODAY,
+    str(_ds_orders),
+)
+_ds_wholes = {
+    "next serves space": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)),
+    "next serves hot water": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_next_dhw),
+    "next idle": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_next_idle),
+    "off 151 s": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, [151.0]), space_dhw=_DS_ON)),
+    "off 150 s": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, [150.0]), space_dhw=_DS_ON)),
+    "censored": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, []), space_dhw=_DS_ON)),
+}
+R.check(
+    "the first duty keeps the whole step only when the switch into the second is usable, the second share (7.5 min) "
+    "is shorter than SPLIT_MIN_MINUTES plus that direction's median off time, and the plan's next step serves the "
+    "second duty; a next step serving the first duty or idle, an off time on the bound (150 s), or no off time "
+    "split as today",
+    _ds_wholes["next serves space"] == _ds_wholes["off 151 s"] == _DS_WHOLE
+    and _ds_wholes["next serves hot water"] == _ds_wholes["next idle"] == _ds_wholes["off 150 s"]
+    == _ds_wholes["censored"] == _DS_TODAY
+    and _sa_pa.SPLIT_MIN_MINUTES + 150.0 / 60.0 == 7.5,
+    str(_ds_wholes),
+)
+
+
+def _ds_resolve(c, m):
+    """At minute 4 a re-solve moves the next step to hot water and the learner unlatches."""
+    if m == 4:
+        c.plan = _ds_next_dhw
+        _ds_mod.record_for(c).learner = _ds_mod.DutySwitchLearner()
+
+
+_ds_latch_c = _DsArb()
+_ds_latch_rec = _ds_mod.record_for(_ds_latch_c)
+_ds_latch_rec.learner, _ds_latch_rec.loaded = _ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), True
+_ds_latched_run = _ds_split(None, between=_ds_resolve, c=_ds_latch_c)
+_ds_next_start = _ds_split(None, _ds_plan((900, 1.0, 1.0), (1800, 0.0, 1.0)), range(15, 30), c=_ds_latch_c)
+R.check(
+    "the split is latched per step: a re-solve moving the next step off the second duty and an unlatched learner "
+    "inside the step leave it whole; the next both step decides afresh",
+    _ds_latched_run == _DS_WHOLE and _ds_next_start == _DS_TODAY
+    and _ds_latch_rec.order is not None and _ds_latch_rec.order[0] == _DS_T0 + timedelta(minutes=15),
+    f"{_ds_latched_run} {_ds_next_start}",
+)
+_ds_latch_off = _ds_split(_ds_mod.DutySwitchLearner(), _ds_next_dhw)
+R.check(
+    "null control of the latch: the re-solved plan and learner read from the step's start split as today",
+    _ds_latch_off == _DS_TODAY,
+    _ds_latch_off,
+)
+
+
+def _ds_delivery(learner, plan):
+    """(room, tank) kW-minutes served over a both step and the one after it, against the plan's."""
+    served = {"s": 0.0, "d": 0.0}
+    for i, duty in enumerate(_ds_split(learner, plan) + "".join(
+            str(_sa_pa.step_duty(plan, _DS_T0 + timedelta(minutes=m)))[0] for m in range(15, 30))):
+        step = i // 15
+        served[duty] += plan.power_schedule[step] + plan.dhw_power_schedule[step]
+    planned = (sum(plan.power_schedule[:2]) * 15.0, sum(plan.dhw_power_schedule[:2]) * 15.0)
+    return (served["s"], served["d"]), planned
+
+
+_ds_moved = _ds_delivery(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_plan((0, 1.0, 1.0), (900, 1.5, 0.0)))
+_ds_kept = _ds_delivery(_ds_mod.DutySwitchLearner(), _ds_plan((0, 1.0, 1.0), (900, 1.5, 0.0)))
+R.check(
+    "with the whole-step rule active the room and tank delivery summed over the denied step and the next equals "
+    "the plan's, the next step serving the denied duty whole; and so does today's split",
+    sum(_ds_moved[0]) == sum(_ds_moved[1]) and _ds_moved[0][0] == 1.5 * 15.0
+    and sum(_ds_kept[0]) == sum(_ds_kept[1]),
+    f"{_ds_moved} {_ds_kept}",
+)
+_ds_span_gone = _ds_learner(dhw_space=(0.3, 0.0, False, [900.0]), space_dhw=(0.3, 0.0, False, [900.0]))
+for _ds_d in _ds_span_gone.directions.values():
+    _ds_d.first_day = _ds_d.last_day = None
+    _ds_d.stopped = 9
+_ds_rates = [_ds_split(_ds_learner(dhw_space=(n, 0.0, True, [900.0]))) for n in (_ds_mod.N_ON, _ds_mod.N_CAP)]
+R.check(
+    "the split reads the latches and nothing published: span_days 0 beside non-zero tallies splits as today, and "
+    "two latched learners whose evidence weighs 5 and 10 (a unit gating fewer switches) split alike",
+    _ds_split(_ds_span_gone) == _DS_TODAY and _ds_span_gone.published(_ds_day)["duty_switch_dhw_space_span_days"] == 0
+    and _ds_rates == [_DS_SPACE_FIRST] * 2,
+    f"{_ds_split(_ds_span_gone)} {_ds_rates}",
+)
+_ds_capped = _DS_D()
+for _ds_i in range(40):
+    _ds_capped.book(_ds_day + timedelta(days=_ds_i // 20, minutes=_ds_i), True, 600.0)
+_ds_cap_last = _ds_day + timedelta(days=1, minutes=39)
+_ds_old = _DS_D(k=40.0, decayed_at=_ds_cap_last, first_day=_ds_day.date(), last_day=_ds_cap_last.date(), usable=True)
+
+
+def _ds_held_after(d, days):
+    d = _DS_D(**{f: getattr(d, f) for f in ("k", "kept_w", "decayed_at", "first_day", "last_day", "usable")})
+    d.decay(_ds_cap_last)  # the pass after the last booking
+    d.decay(_ds_cap_last + timedelta(days=days))
+    return d.usable
+
+
+R.check(
+    "n has a ceiling: forty stops over two days hold n at N_CAP with p unchanged, so with no further episode a "
+    "latched direction unlatches just past two half-lives and is re-tested; a record stored over the cap is held "
+    "to it by the next pass alike; null control, a day before that it is still latched",
+    abs(_ds_capped.n - _ds_mod.N_CAP) < 1e-9 and _ds_capped.p == 1.0 and _ds_capped.usable
+    and not _ds_held_after(_ds_capped, 28.05) and _ds_held_after(_ds_capped, 27.0)
+    and not _ds_held_after(_ds_old, 28.05) and _ds_held_after(_ds_old, 27.0),
+    f"n {_ds_capped.n} p {_ds_capped.p} {[_ds_held_after(d, x) for d in (_ds_capped, _ds_old) for x in (27.0, 28.05)]}",
 )
 # Flat prices: ``tests/golden/flat_prices.json``'s scenario is solved here
 # (its floats are not compared with the recording, which only a canonical BLAS
@@ -83253,34 +83445,35 @@ def _ds_flat_plan(i):
 
 
 _ds_flat_runs = [[_ds_commands(l, {}, _ds_flat_plan(i))[:2] for i in _ds_flat_both]
-                 for l in (_ds_mod.DutySwitchLearner(), _ds_saturated())]
+                 for l in (_ds_mod.DutySwitchLearner(), _ds_learner(**_DS_BELOW), _ds_learner(**_DS_NO_STOP))]
 R.check(
     "null control, a flat-price day: each both step of the flat scenario's plan is split and written "
-    "identically under an empty and a saturated learner",
-    len(set(_ds_flat["prices"])) == 1 and _ds_flat_both != [] and _ds_flat_runs[0] == _ds_flat_runs[1]
+    "identically under an empty learner, one under the evidence threshold and one where no switch stops",
+    len(set(_ds_flat["prices"])) == 1 and _ds_flat_both != [] and _ds_flat_runs[0] == _ds_flat_runs[1] == _ds_flat_runs[2]
     and all(calls != [] for calls, _split in _ds_flat_runs[0]),
-    f"{[split for _c, split in _ds_flat_runs[0]]} {[split for _c, split in _ds_flat_runs[1]]}",
+    f"{[[split for _c, split in run] for run in _ds_flat_runs]}",
 )
-# Both controls hold by construction: only the arbiter (which reports) and the
-# sensor (which publishes) name the module, and neither reads the estimate.
+# Only the arbiter (which reports and reads the split), the sensor (which
+# publishes) and the coordinator (whose factory reset voids the store) name the module.
 _ds_pkg = _DsPath("custom_components/heatpump_optimizer")
 _ds_readers = sorted(
     p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
         isinstance(n, _ds_ast.ImportFrom) and (n.module == "duty_switch" or any(a.name == "duty_switch" for a in n.names))
         for n in _ds_ast.walk(_ds_ast.parse(p.read_text()))))
 _ds_uses = sorted({
-    n.attr for name in ("pump_arbiter.py", "sensor.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
+    n.attr for name in ("pump_arbiter.py", "sensor.py", "coordinator.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
     if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch"})
 _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
            if isinstance(n, _ds_ast.ImportFrom) and n.level == 1} | {
     a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
     if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
 R.check(
-    "only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and "
-    "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
-    _ds_readers == ["pump_arbiter.py", "sensor.py"]
-    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
-                     "starts_attributes"]
+    "only the arbiter, the sensor and the coordinator name duty_switch, through its report, attach, publish and "
+    "store calls, and the estimate is read only by the arbiter's split; the module imports none of them; the "
+    "pure half of wear stays pure",
+    _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
+    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "both_step_split", "detach",
+                     "note_mode_write", "note_pass", "record_for", "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
     f"{_ds_readers} {_ds_uses} {_ds_own}",

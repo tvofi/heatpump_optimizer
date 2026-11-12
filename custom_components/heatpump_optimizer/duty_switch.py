@@ -4,9 +4,11 @@ Design: ``docs/design/2026-11-10-duty-switch-restart-learning/design.md``,
 part A. On some pumps a mode write from hot water to heating while the
 compressor runs stops it: the controller judges the heating request on a
 return the hot-water leg has just heated. Whether it does, and for how long
-the pump then stays off, is learned per install and per direction. **Nothing
-reads the estimate to change a plan or a write**; it is recorded, persisted
-and published on the compressor-starts sensor.
+the pump then stays off, is learned per install and per direction. It is
+recorded, persisted and published on the compressor-starts sensor, and the
+arbiter's split of a both step reads its latches through
+:func:`both_step_split` (part B); nothing else reads the estimate. A factory
+reset voids the store like every other learned estimate.
 
 **Observe** (:class:`DutySwitchLearner`, no Home Assistant object). An
 episode opens at a landed mode write between the two single duties while the
@@ -31,7 +33,7 @@ at a decayed weight of :data:`N_ON`, not a count (five stops ten hours apart
 weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with ``p`` at
 :data:`P_ON`, and off under :data:`N_OFF` or :data:`P_OFF`. The span is of
 the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
-forgotten with it. Every threshold
+forgotten with it. ``n`` is held at :data:`N_CAP`. Every threshold
 here is a named constant from one day on one install, not a measurement.
 """
 from __future__ import annotations
@@ -69,6 +71,11 @@ HEATED_MARGIN_K = 2.0
 SOURCE_LEG_MIN_S = 60.0
 HALF_LIFE_DAYS = 14.0
 N_ON, N_OFF = 5.0, 2.5
+#: The most decayed episodes a direction holds, twice the on-threshold, kept
+#: by scaling both counts alike (``p`` does not move): a direction the split
+#: avoids gets no episode, and from the cap ``n`` is under :data:`N_OFF` two
+#: half-lives after its last one, so the default split runs and re-tests it.
+N_CAP = 2.0 * N_ON
 P_ON, P_OFF = 0.5, 0.3
 SPAN_DAYS_ON = 2
 #: Decayed episodes under which a direction's days span nothing any more: one
@@ -183,7 +190,7 @@ class Direction:
     def decay(self, when: datetime) -> bool:
         """Age the counts to ``when``; whether the latch or the span's days moved."""
         n = self.n
-        factor = self.weights(when)[1] / n if n > 0.0 else 1.0
+        factor = min(self.weights(when)[1], N_CAP) / n if n > 0.0 else 1.0
         self.k, self.kept_w = self.k * factor, self.kept_w * factor
         if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) > 0.0:
             self.decayed_at = when
@@ -213,6 +220,9 @@ class Direction:
                 self.censored += 1
             else:
                 self.off_s = [*self.off_s, off_s][-OFF_SAMPLES_MAX:]
+        if self.n > N_CAP:
+            scale = N_CAP / self.n
+            self.k, self.kept_w = self.k * scale, self.kept_w * scale
         self._latch()
 
     def stored_row(self) -> dict[str, Any]:
@@ -373,6 +383,29 @@ class DutySwitchLearner:
             out.update({f"duty_switch_{name}_{key}": value for key, value in row.items() if value is not None})
         return out
 
+    def split(self, dhw_min: float, step_min: float, min_share_min: float,
+              next_duty: str | None) -> tuple[str, bool]:
+        """``(duty served first, whether it takes the whole step)`` of a step
+        both duties share, ``dhw_min`` of its ``step_min`` being hot water's.
+
+        Read only through the latches: ``n``, the tallies and ``span_days``
+        are not read, so evidence accruing faster on one set-point unit than
+        another moves nothing here until a latch moves. Space goes first only
+        where hot water to space alone is usable; the first duty keeps the
+        whole step only when the switch into the second is usable, the second
+        share is shorter than ``min_share_min`` plus that direction's median
+        off time, and ``next_duty`` (the plan's following step) serves the
+        second, so its delivery moves one step and is not dropped. With no
+        latch on this is ``("dhw", False)``: hot water first for its share.
+        """
+        usable = {name for name, d in self.directions.items() if d.usable}
+        first, second = ("space", "dhw") if usable == {"dhw_space"} else ("dhw", "space")
+        into = self.directions[f"{first}_{second}"]
+        if not into.usable or next_duty not in (second, "both"):
+            return first, False
+        second_min = dhw_min if second == "dhw" else step_min - dhw_min
+        return first, second_min < min_share_min + (into.median_off_s or 0.0) / 60.0
+
     def stored_record(self) -> dict[str, Any]:
         return {"directions": {name: d.stored_row() for name, d in self.directions.items()}}
 
@@ -412,6 +445,9 @@ class _Record:
     unsub: Callable[[], None] | None = None
     loaded: bool = False
     dirty: bool = False
+    #: The both step whose split was decided, and the decision, latched so
+    #: neither the tick nor a re-solve inside the step flips it.
+    order: tuple[datetime, tuple[str, bool]] | None = None
 
     def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
         """Hand a confirmed edge, if any, to the learner."""
@@ -503,3 +539,16 @@ def starts_attributes(coord: Any) -> dict[str, float]:
     """The compressor-starts sensor's duty-switch attributes; a pump never arbitrated reads empty."""
     rec = _RECORDS.get(coord)
     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
+
+
+def both_step_split(coord: Any, start: datetime, dhw_min: float, step_min: float,
+                    min_share_min: float, next_duty: str | None) -> tuple[str, bool]:
+    """:meth:`DutySwitchLearner.split` of the both step starting at ``start``,
+    decided once per step. A pump whose record is not loaded splits as before
+    the learner existed, hot water first, and latches nothing."""
+    rec = _RECORDS.get(coord)
+    if rec is None or not rec.loaded:
+        return "dhw", False
+    if rec.order is None or rec.order[0] != start:
+        rec.order = (start, rec.learner.split(dhw_min, step_min, min_share_min, next_duty))
+    return rec.order[1]

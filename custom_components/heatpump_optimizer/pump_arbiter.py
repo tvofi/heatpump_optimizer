@@ -1754,7 +1754,11 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
-    """On a planned both step, hot water first for its share, then heating.
+    """On a planned both step, the first duty for its share, then the other.
+
+    Hot water goes first unless ``duty_switch`` has learned that only the
+    switch from hot water to heating stops the compressor; the order, and
+    whether the first duty keeps the whole step, is its latched decision.
 
     Heating + DHW leaves the split to the pump's own two thermostats (tvofi,
     2026-09-27). The share is the step's hot-water power over its total.
@@ -1772,7 +1776,14 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
         return "space"
     if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
         return "dhw"
-    return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
+    start = result.timestamps[i]
+    first, whole = duty_switch.both_step_split(
+        coord, start, dhw_min, PLAN_STEP_MINUTES, SPLIT_MIN_MINUTES,
+        step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
+    first_min = dhw_min if first == "dhw" else PLAN_STEP_MINUTES - dhw_min
+    if whole or now - start < timedelta(minutes=first_min):
+        return first
+    return "space" if first == "dhw" else "dhw"
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
