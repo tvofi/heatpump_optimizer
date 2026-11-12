@@ -972,11 +972,6 @@ const EXCLUDED_BECAUSE_CITED = new Map([
   // `tools/audit/briefs/orchestrator.md` cites it; that is the citation whose
   // disappearance nothing saw.
   ['docs/decisions/0010-merge-commits-on-main.md', 'tools/audit/briefs/orchestrator.md'],
-  // The author-identity record. Its CORPUS_EXCLUDED line was paid for a
-  // citation by `tools/audit/briefs/fixer.md`; when the briefs came to say
-  // "decision 0011" in prose the path went, and the line's comment went on
-  // claiming two citers for weeks (PROC-3's review), because nothing read it.
-  ['docs/decisions/0011-app-authored-identity.md', 'tools/audit/briefs/fixer.md'],
 ])
 
 // Injectable for the reason `uncoveredPolicyFiles` states about itself: this
