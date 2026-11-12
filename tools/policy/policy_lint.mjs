@@ -316,9 +316,6 @@ const POLICY_DIR_EXCLUDE = [
   // map spells them by their old `.claude/workflows/` names; a new one did not
   // (R10-MACHINERY-RATCHETS), and R9-RO-9 would have flagged all five.
   /^dev\/governance\/config\/[a-z0-9_]+\.json$/,
-  // The outside contributors' allowlist (decision 0017): data tools/pr/outside.py
-  // reads with `git show`, owned in CODEOWNERS, never prose.
-  /^dev\/governance\/outside_contributors\.json$/,
 ]
 
 // `files` is injectable for ONE reason: the acceptance. This check runs over

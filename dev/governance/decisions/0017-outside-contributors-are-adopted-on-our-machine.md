@@ -28,7 +28,7 @@ approvals remain in our machinery even for such PRs."*
    fetches main, checks it out to a throwaway worktree and runs the whole
    contract from that copy. Nothing of the fork is checked out or executed on
    our machine: git objects and the API only.
-2. **The allowlist** is `dev/governance/outside_contributors.json`: login,
+2. **The allowlist** is `dev/governance/config/outside_contributors.json`: login,
    numeric id (from the users API), date, decision. The pull request's author
    and the verdict comment's author must be one entry, by login, id and type
    `User`. It merges empty; the owner adds an entry once both parts are on main.

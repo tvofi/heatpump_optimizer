@@ -60,7 +60,7 @@
 /dev/governance/decisions/                @tvofi
 # The outside contributors' allowlist (decision 0017): who may have a fork pull
 # request adopted. Data, so no glob above holds it; the owner alone edits it.
-/dev/governance/outside_contributors.json @tvofi
+/dev/governance/config/outside_contributors.json @tvofi
 /dev/audit/README.md                      @tvofi
 /dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi

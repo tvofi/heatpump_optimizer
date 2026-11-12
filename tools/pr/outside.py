@@ -65,7 +65,7 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-ALLOWLIST = "dev/governance/outside_contributors.json"
+ALLOWLIST = "dev/governance/config/outside_contributors.json"
 CODEOWNERS = ".github/CODEOWNERS"
 MANIFEST = "custom_components/heatpump_optimizer/manifest.json"
 # Matched whole with fullmatch: `$` under match admits a trailing newline.
@@ -171,7 +171,7 @@ def owner_patterns(text: "str | None") -> "list[re.Pattern]":
         raise Refuse(f"{CODEOWNERS} could not be read")
     out = []
     for line in text.splitlines():
-        parts = line.split("#", 1)[0].split()
+        parts = line.partition("#")[0].split()
         if len(parts) < 2:
             continue
         pat = parts[0]
@@ -523,6 +523,7 @@ def self_test() -> int:
     MID, RID = 4100000001, 4100000002
     NOW = datetime.datetime(2026, 11, 12, 12, 0, tzinfo=datetime.timezone.utc)
     iso = lambda m: (NOW + datetime.timedelta(minutes=m)).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
+    real_now = now_utc
     now_utc = lambda: NOW  # noqa: E731
 
     def mandate(scope="all", start=-60, until=60, user=OWN, issue=None, repo=R, edited=False, body=None):
@@ -582,10 +583,12 @@ def self_test() -> int:
             return Done(1, "", "gh: Not Found (HTTP 404)")
         if val == "ERR":
             return Done(1, "", "gh: Server Error (HTTP 500)")
+        if val == "RAW":
+            return Done(0, "<html>not json</html>")
         return Done(0, json.dumps([val] if slurp else val))
 
     ALLOW = {"contributors": [{"login": "bankaifan", "id": 555001, "since": "2026-11-12", "decision": "0017"}]}
-    OWNERS = "/.github/workflows/ @tvofi\n/dev/governance/ @tvofi\n/docs/decisions/ @tvofi\n/docs/owned.md @tvofi\n/dev/x/unowned.md\n"
+    OWNERS = "/.github/workflows/ @tvofi\n/dev/governance/ @tvofi\n/docs/ownedir/ @tvofi\n/docs/owned.md @tvofi\n/dev/x/unowned.md\n"
 
     def fake_show(ref, path):
         return world["files"].get((ref, path), world["files"].get(path))
@@ -609,6 +612,22 @@ def self_test() -> int:
         def chk(**kw):
             rc, lines = check(R, PR, "origin/main", gate=g, fetch=False, **kw)
             return rc, " | ".join(lines)
+
+        # --- the API read itself ---------------------------------------------
+        def refuses(fn, word):
+            try:
+                fn()
+            except Refuse as e:
+                return word in str(e)
+            return False
+
+        ro = reset(); ro["k"] = {"a": 1}; ro["raw"] = "RAW"; ro["err"] = "ERR"
+        st(api("k"), {"a": 1}, "api(): one document comes back parsed")
+        st(refuses(lambda: api("k", pages=True), "no list of pages"), True, "api(): a paginated answer whose page is no list refuses")
+        st(refuses(lambda: api("absent"), "exited 1"), True, "api(): a 404 refuses, naming gh's exit")
+        st(refuses(lambda: api("err"), "exited 1"), True, "api(): a server error refuses, naming gh's exit")
+        st(refuses(lambda: api("raw"), "no JSON"), True, "api(): an answer that is not JSON refuses")
+        st(_run(["git", "--version"])[1].startswith("git version"), True, "_run(): a command's stdout is captured")
 
         # --- admission -------------------------------------------------------
         reset(); rc, out = chk()
@@ -672,11 +691,13 @@ def self_test() -> int:
             st(cl(p), "F", f"class F: {p}")
         for p in ("docs/index.html", "docs/site/docs.css", "docs/site/readme.md", "docs/img/readme/render.mjs",
                   "docs/img/model/make_model_figures.py", "docs/img/card/pages.json", "docs/owned.md",
-                  "docs/decisions/0001.md", "tests/entities.py", "tests/structure.py", "tests/new_test.py",
+                  "docs/ownedir/0001.md", "tests/entities.py", "tests/structure.py", "tests/new_test.py",
                   "tests/hastub/homeassistant/core.py"):
             st(cl(p), "O", f"class O: {p}")
         st(len(rules.policy) >= 10 and len(rules.gate) >= 5, True, "the policy patterns and GATE_FILES were read, not empty")
-        tracked = real_run(["git", "-C", str(ROOT), "ls-files"], capture_output=True, text=True).stdout.splitlines()
+        # The tracked tree; in an export with no .git, every file of the export.
+        tracked = real_run(["git", "-C", str(ROOT), "ls-files"], capture_output=True, text=True).stdout.splitlines() \
+            or [str(p.relative_to(ROOT)) for p in ROOT.rglob("*") if p.is_file() and ".git" not in p.relative_to(ROOT).parts]
         st(len(tracked) > 100, True, "the tracked tree was listed (the next four checks read it)")
         st([p for p in rules.gate if cl(p) != "R"], [], "every closure.GATE_FILES entry classifies R")
         st([p for p in tracked if p.endswith("_budgets.json") and cl(p) != "R"], [], "every tracked *_budgets.json classifies R")
@@ -765,8 +786,10 @@ def self_test() -> int:
         st(o([rv(cite)]), 1, "class O REFUSE: _agent_approval_body under 'mandate comment <id>'")
         st(o([rv(sh.rstrip() + f"\n\nCarried by the train's clean recarry from {L} (delta: main's commits only); prior owner review 1; mandate re-read in force at merge: {MID}.\n")]),
            1, "class O REFUSE: _post_carry's body over owner_body's")
-        st(real_run(["git", "-C", str(ROOT), "grep", "-l", "-F", READ_WORDS, "--", "tools", ".github", ":!tools/pr/outside.py",
-                     ":!tools/audit/seat/instruments"], capture_output=True, text=True).stdout, "",
+        tracked_now = real_run(["git", "-C", str(ROOT), "ls-files", "tools", ".github"], capture_output=True, text=True).stdout.splitlines() \
+            or [str(p.relative_to(ROOT)) for d in ("tools", ".github") for p in (ROOT / d).rglob("*") if p.is_file()]
+        st([p for p in tracked_now if p != "tools/pr/outside.py" and not p.startswith("tools/audit/seat/instruments/")
+            and (ROOT / p).is_file() and READ_WORDS.encode() in (ROOT / p).read_bytes()], [],
            "no program under tools/ or .github/ but this one writes the outside-read line")
 
         # --- class O, the machinery's form -----------------------------------------
@@ -842,6 +865,46 @@ def self_test() -> int:
     finally:
         subprocess.run = real_run
         carries, show, changed = real
+        now_utc = real_now
+
+    # --- the live plumbing, over a throwaway repository (every case above fakes it) --
+    import shutil
+    tmp = tempfile.mkdtemp(prefix="outside-selftest-")
+    cwd = os.getcwd()
+    try:
+        env = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull)
+
+        def tg(*a):
+            return subprocess.run(["git", "-C", tmp, "-c", "user.name=t", "-c", "user.email=t@t", *a], capture_output=True, text=True, env=env)
+
+        tg("init", "-q", "-b", "main")
+        Path(tmp, "f.txt").write_text("one\n")
+        tg("add", "-A"); tg("commit", "-q", "-m", "c")
+        os.chdir(tmp)
+        c = git("rev-parse", "HEAD").strip()
+        st(bool(SHA40.fullmatch(c)), True, "git(): a command's stdout comes back")
+        try:
+            git("rev-parse", "--verify", "-q", "refs/heads/absent"); st("returned", "raised", "git(): a failing command raises")
+        except Refuse:
+            st("raised", "raised", "git(): a failing command raises, never an empty answer")
+        st(show(c, "f.txt"), "one\n", "show(): a path at a ref comes back")
+        st(show(c, "absent.txt"), None, "show(): a path the ref does not hold is None, never empty text")
+        st(changed(c, c), (c, []), "changed(): the merge base and the three-dot path list")
+        st(carries(c, c, c), True, "carries(): app_approve.sh --carry says yes for a head onto itself")
+        st(carries("a" * 40, c, c), False, "carries(): and no for a commit that is no ancestor of the head")
+        st(now_utc().tzinfo is not None and abs((now_utc() - datetime.datetime.now(datetime.timezone.utc)).total_seconds()) < 60, True,
+           "now_utc(): the instant a mandate is judged at is the clock's, with a zone")
+        Path(tmp, "tools/policy").mkdir(parents=True); Path(tmp, "tests").mkdir()
+        Path(tmp, "tools/policy/policy_lint.mjs").write_text("const POLICY_GLOBS = [\n]\nconst POLICY_DIRS = []\n")
+        Path(tmp, "tests/closure.py").write_text("GATE_FILES = tuple(x for x in ())\n")
+        for fn, what in ((policy_patterns, "policy_lint.mjs with empty policy arrays"), (gate_files, "a closure.py whose GATE_FILES is no literal")):
+            try:
+                fn(Path(tmp)); st("read", "refused", f"REFUSE: {what}")
+            except (Refuse, ValueError):
+                st("refused", "refused", f"REFUSE: {what}")
+    finally:
+        os.chdir(cwd)
+        shutil.rmtree(tmp, ignore_errors=True)
 
     # --- the workflows: no contributor-named value in a shell, a fork never skips --
     wf = sorted((ROOT / ".github/workflows").glob("*.yml"))

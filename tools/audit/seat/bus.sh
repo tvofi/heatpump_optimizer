@@ -2243,14 +2243,14 @@ B
   git -C "$A/gh/bankaifan/hpo.git" config uploadpack.allowAnySHA1InWant true
   throwaway_git_init "$A/src" -q -b main; ag() { git -C "$A/src" -c user.name=t -c user.email=t@t "$@"; }
   ag remote add origin "$A/origin.git"; ag remote add fork "$A/gh/bankaifan/hpo.git"
-  mkdir -p "$A/src/tests" "$A/src/.github" "$A/src/dev/governance" "$A/src/custom_components/x"
+  mkdir -p "$A/src/tests" "$A/src/.github" "$A/src/dev/governance/config" "$A/src/custom_components/x"
   cp -R "$ROOT/tools" "$A/src/tools"; cp "$ROOT/tests/layout.py" "$ROOT/tests/layout.json" "$ROOT/tests/closure.py" "$ROOT/tests/throwaway_git.sh" "$ROOT/tests/mutation_table.py" "$ROOT/tests/closures.json" "$A/src/tests/"
   cp "$ROOT/.github/CODEOWNERS" "$A/src/.github/"; echo a > "$A/src/custom_components/x/a.py"; echo r > "$A/src/README.md"
-  printf '{"contributors": []}\n' > "$A/src/dev/governance/outside_contributors.json"
+  printf '{"contributors": []}\n' > "$A/src/dev/governance/config/outside_contributors.json"
   ag add -A -f .; ag commit -q -m "main, no contributor yet"; ag push -q origin main
   throwaway_git_init "$A/seat" -q -b main; git -C "$A/seat" remote add origin "$A/origin.git"
   git -C "$A/seat" fetch -q origin main; git -C "$A/seat" checkout -q --detach origin/main   # the seat's origin/main: stale from here on
-  printf '{"contributors": [{"login": "bankaifan", "id": 555001, "since": "2026-11-12", "decision": "0017"}]}\n' > "$A/src/dev/governance/outside_contributors.json"
+  printf '{"contributors": [{"login": "bankaifan", "id": 555001, "since": "2026-11-12", "decision": "0017"}]}\n' > "$A/src/dev/governance/config/outside_contributors.json"
   ag commit -qam "the owner adds the contributor"; AM=$(ag rev-parse HEAD); ag push -q origin main
   fx() { # name path... -> a fork head off AM changing each path, pushed as the pull ref
     local n=$1 f; shift; ag checkout -q -B "f-$n" "$AM"
@@ -2309,7 +2309,7 @@ G
     local before; before=$(atip); out=$(adopt_run adopt 7 31); rc=$?
     [ $rc != 0 ] && echo "$out" | grep -q -- "$2" && [ "$(atip)" = "$before" ]; expect "adopt refuses $1, moving nothing" $?
   }
-  for f in tools/pr/x.py .github/workflows/x.yml tests/closures.json tests/golden/x.json tests/structure_budgets.json dev/governance/outside_contributors.json newroot.txt scripts/x.sh; do
+  for f in tools/pr/x.py .github/workflows/x.yml tests/closures.json tests/golden/x.json tests/structure_budgets.json dev/governance/config/outside_contributors.json newroot.txt scripts/x.sh; do
     ah2=$(fx "r" "$f"); aset "$ah2" "Fix review: merge $ah2"; arefuse "a head touching the class-R path $f" "class R: $f"
   done
   ah2=$(fx "o" tests/entities.py); aset "$ah2" "Fix review: merge $ah2"; arefuse "a head touching a class-O path with no owner read" "class O: tests/entities.py"
