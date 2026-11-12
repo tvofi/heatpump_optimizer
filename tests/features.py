@@ -27698,7 +27698,7 @@ async def _svc_ok_run():
 
 
 async def _svc_ok_simulate(overrides, steady=False):
-    return {"status": "ok"}
+    return {"status": "ok", "steady": steady}
 
 
 async def _svc_ok_restore():
@@ -27715,9 +27715,10 @@ R.check(
 _svc_coord.async_simulate = _svc_ok_simulate
 _svc_out = _svc_call(_svc_hass, "simulate_plan", {"target_temp": 21.0})
 R.check(
-    "simulate_plan returns its response when the what-if ran",
+    "simulate_plan returns its response when the what-if ran, and asks for the "
+    "steady figure (#2257): without that argument the panel shows no money",
     _svc_out[0] == "returned"
-    and _svc_out[1] == {"results": {_svc_entry.entry_id: {"status": "ok"}}},
+    and _svc_out[1] == {"results": {_svc_entry.entry_id: {"status": "ok", "steady": True}}},
     f"{_svc_out}",
 )
 _svc_coord.async_restore_learned_snapshot = _svc_ok_restore
@@ -32166,12 +32167,13 @@ def _st_reference(hours=24, dhw=False, start=_ST_STARTS[0], when=_ST_WED, max_kw
 
 _st_ref = {dhw: _st_reference(dhw=dhw) for dhw in (False, True)}
 R.check(
-    "#2257: reference_day's setpoints are the ones the solve's own thermostat "
-    "pass was handed, with and without hot water, from an optimizer that has "
-    "solved nothing; its energy is finite, positive and the same when asked again",
+    "#2257: reference_day's setpoints open with the ones the solve's own thermostat "
+    "pass was handed and run a week of days, with and without hot water, from an "
+    "optimizer that has solved nothing; its energy is finite, positive and the "
+    "same when asked again",
     all(
-        r["handed"] and r["day"][0] == np.asarray(r["handed"][0][1], dtype=float)[: len(r["day"][0])].tolist()
-        and len(r["day"][0]) == 96 and _st_math.isfinite(r["day"][1]) and r["day"][1] > 0.0 and r["day"] == r["again"]
+        r["handed"] and r["day"][0][:96] == np.asarray(r["handed"][0][1], dtype=float)[:96].tolist()
+        and len(r["day"][0]) == 7 * 96 and _st_math.isfinite(r["day"][1]) and r["day"][1] > 0.0 and r["day"] == r["again"]
         for r in _st_ref.values()
     ),
     repr({k: (len(v["handed"]), v["day"][1]) for k, v in _st_ref.items()}),
@@ -32191,13 +32193,17 @@ R.check(
 )
 _st_ref_fresh = _st_ref[False]["fresh"]
 _st_ref_w = _st_omod._day_mean_weather(_st_omod._horizon_weather(_st_ref[False]["inputs"].forecast, 96), 96)
-_st_ref_targets = np.asarray(_st_ref[False]["day"][0])
+_st_ref_targets = np.asarray(_st_ref[False]["day"][0][:96])
 _st_ref_one = _st_ref_fresh._compute_baseline_power(_st_ref_w, _st_ref[False]["inputs"].state, 0.25, _st_ref_targets)
 R.check(
     "the energy is the second pass's, at the day's mean weather: one pass from "
-    "the held start reads another number (the perturbation), and every series "
-    "of that weather is flat",
+    "the held start reads another number (the perturbation), a second from "
+    "where it ended reads the week's own (no weekend temperatures: seven equal "
+    "days), and every series of that weather is flat",
     abs(float(np.sum(_st_ref_one[0])) * 0.25 - _st_ref[False]["day"][1]) > 1e-6
+    and abs(float(np.sum(_st_ref_fresh._compute_baseline_power(
+        _st_ref_w, _st_ref[False]["inputs"].state, 0.25, _st_ref_targets, start=_st_ref_one[1])[0])) * 0.25
+        - _st_ref[False]["day"][1]) < 1e-9
     and all(np.ptp(a) == 0.0 for a in (
         _st_ref_w.outdoor_temps, _st_ref_w.wind_speeds, _st_ref_w.precipitation, _st_ref_w.solar_radiation))
     and float(_st_ref_w.outdoor_temps[0]) == float(np.mean(_st_ref[False]["inputs"].forecast.outdoor_temps[:96])),
@@ -32207,8 +32213,38 @@ _st_ref_short = _st_reference(hours=12)
 R.check(
     "a horizon under a day prices no day: the energy is nan, the setpoints the "
     "horizon's own",
-    _st_math.isnan(_st_ref_short["day"][1]) and len(_st_ref_short["day"][0]) == 48,
+    _st_math.isnan(_st_ref_short["day"][1]) and len(_st_ref_short["day"][0]) == 7 * 48,
     repr((_st_ref_short["day"][1], len(_st_ref_short["day"][0]))),
+)
+# The weekday. With weekend temperatures a schedule holds other setpoints from
+# Friday night on: one day's energy moved with the day the what-if was asked
+# on, and a weekend ask moved no setpoint on a Monday and left the branch.
+_ST_WEEKEND = {"comfort_temp_day_weekend": 22.0, "comfort_temp_night_weekend": 20.0}
+_st_week = [_st_reference(when=_ST_WED + timedelta(days=d), **_ST_WEEKEND)["day"] for d in range(7)]
+_st_week_null = [_st_reference(when=_ST_WED + timedelta(days=d))["day"] for d in range(7)]
+_st_week_ask = [
+    _st_reference(when=_ST_WED + timedelta(days=d), **{**_ST_WEEKEND, "comfort_temp_day_weekend": 23.0})["day"]
+    for d in range(7)
+]
+R.check(
+    "#2257: with weekend temperatures the day energy is the week's average day, "
+    "one figure whichever weekday asks (to 1e-9: the seven days are summed in "
+    "the order they come), above the same house's without them; the null, no "
+    "weekend temperatures, is one figure too and every day of its week holds "
+    "the first day's setpoints",
+    max(d[1] for d in _st_week) - min(d[1] for d in _st_week) < 1e-9
+    and len({d[1] for d in _st_week_null}) == 1 and _st_week[0][1] > _st_week_null[0][1] + 0.1
+    and all(d[0][k * 96:(k + 1) * 96] == d[0][:96] for d in _st_week_null for k in range(7))
+    and len({tuple(_st_week[0][0][k * 96:(k + 1) * 96]) for k in range(7)}) > 1,
+    repr(([d[1] for d in _st_week], _st_week_null[0][1])),
+)
+R.check(
+    "#2257: a weekend ask moves a setpoint on every weekday it is asked on, a "
+    "Monday included, and its energy is one figure above the unasked week's: "
+    "the branch and the figure read the week, never the day asked on",
+    all(a[0] != b[0] and a[1] > b[1] + 0.01 for a, b in zip(_st_week_ask, _st_week))
+    and max(d[1] for d in _st_week_ask) - min(d[1] for d in _st_week_ask) < 1e-9,
+    repr([d[1] for d in _st_week_ask]),
 )
 R.check(
     "the schedule figure, on numbers: the energy difference at the mean price, "

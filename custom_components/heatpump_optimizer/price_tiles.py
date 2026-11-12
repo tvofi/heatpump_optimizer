@@ -22,7 +22,11 @@ configuration's and the capped one, are solved again from a start held at
 each one's own schedule (``SolveInputs.held_start``), and each one's spend
 plus the heat it left unstored (``deferred_energy_cost``) is differenced:
 the fuse advisor reads the same figure, and so does the what-if panel for a
-change that moves no comfort target. From the measured house the settled
+change that moves no comfort target. The held start holds the rooms and
+the slab, not a tank: a hot-water ask's figure moves with the measured tank
+and turns sign with the hour
+(``dev/audit/harnesses/r10_advisor_steady_seams.py``, arm ``pair``), which
+docs/dashboard-card.md says. From the measured house the settled
 figure still moved with where the house started, and a cap, which can only
 cost, read as a saving on some starts; unsettled, a cap that left the house
 colder at the horizon's end read as one too.
@@ -31,7 +35,8 @@ A SCHEDULE CHANGE IS AN ESTIMATE, NOT TWO PLANS (#2257). Two plans solved
 from held starts read a comfort or day-window change against its own sign
 (``dev/audit/harnesses/r10_advisor_steady_carrier.py``), so the panel's
 figure for one is ``schedule_figure``: the energy a thermostat holding each
-schedule draws over a day, at the day's average weather and average price.
+schedule draws over the average day of the week ahead, at the day's average
+weather and average price.
 It excludes the optimiser's load shifting, on both sides. The degree tiles
 keep the held figure, the same thermostat priced at each hour's own price.
 ``dev/audit/harnesses/r10_advisor_residue.py whatif`` measures the figures.
