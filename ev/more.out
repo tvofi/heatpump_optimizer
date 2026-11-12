@@ -1,0 +1,7 @@
+base harness b3: b3: parity GREEN; only in tests.yml [], only in REQUIRED []
+base harness b3 --plant: b3: parity RED; only in tests.yml ['ci-ratchet'], only in REQUIRED []
+PLANT harness-exemption (coverage-ratchet moved into PUSH_REPORT_ONLY): b3 b3: parity GREEN; only in tests.yml [], only in REQUIRED []; self-test gate self-test: 91 checks, 3 failed
+owed-reds: tests / mutation tests / typing validate / validate-hacs 
+structure: STRUCTURE RATCHET PASSED
+closure select:   MODE: FULL -- every test script runs, nothing is scoped out.
+VERSION/manifest/notes/golden untouched
