@@ -15,6 +15,12 @@
 # docstring; `python3 tests/throwaway_git.py --self-test` pins that this file
 # sets the same variables to the same values.
 
+# GIT_CONFIG_GLOBAL is a path under this regular file (ENOTDIR: git reads no
+# global config, and no process can create one there), resolved at source time
+# because throwaway_git_init calls the env after a cd. tests/throwaway_git.py's
+# NO_GLOBAL_CONFIG is its twin; the paths differ by the file each names.
+_hpo_throwaway_git_global="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)/throwaway_git.sh/no-global-config"
+
 throwaway_git_env() {
   local v
   unset GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_CONFIG GIT_CONFIG_PARAMETERS \
@@ -25,14 +31,8 @@ throwaway_git_env() {
   for v in $(compgen -v GIT_CONFIG_KEY_; compgen -v GIT_CONFIG_VALUE_); do
     unset "$v"
   done
-  # An emptied file, not /dev/null (it can hold bytes: `bad config line 1`);
-  # tests/throwaway_git.py's empty_global_config() is its twin; the paths differ.
-  local g="${_HPO_EMPTY_GITCONFIG:-}"
-  [ -n "$g" ] && [ -f "$g" ] || g=$(mktemp "${TMPDIR:-/tmp}/hpo-empty-gitconfig-XXXXXX") || return 1
-  : >"$g"
-  _HPO_EMPTY_GITCONFIG="$g"
   export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=1+t@users.noreply.github.com GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=1+t@users.noreply.github.com \
-    GIT_CONFIG_GLOBAL="$g" GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_COUNT=2 \
+    GIT_CONFIG_GLOBAL="$_hpo_throwaway_git_global" GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_COUNT=2 \
     GIT_CONFIG_KEY_0=maintenance.auto GIT_CONFIG_VALUE_0=false \
     GIT_CONFIG_KEY_1=gc.auto GIT_CONFIG_VALUE_1=0
 }

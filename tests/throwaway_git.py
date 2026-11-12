@@ -81,13 +81,11 @@ reruns). Review owns the rest.
 
 from __future__ import annotations
 
-import atexit
 import contextlib
 import os
 import re
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -108,28 +106,18 @@ LOCAL_ENV = ("GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAM
 _INHERITED_PAIR = re.compile(r"GIT_CONFIG_(?:KEY|VALUE)_")
 
 
-_EMPTY_CONFIG: list[str] = []
-
-
-def empty_global_config() -> str:
-    """A path git reads as an empty global config: one mkstemp file per process,
-    removed at exit and emptied on every call. Not os.devnull: where /dev/null
-    holds bytes (a cloud image's does) git dies with `bad config line 1 in file
-    /dev/null`."""
-    if not _EMPTY_CONFIG:
-        fd, path = tempfile.mkstemp(prefix="hpo-empty-gitconfig-")
-        os.close(fd)
-        atexit.register(lambda: os.path.exists(path) and os.unlink(path))
-        _EMPTY_CONFIG.append(path)
-    open(_EMPTY_CONFIG[0], "w").close()
-    return _EMPTY_CONFIG[0]
+#: GIT_CONFIG_GLOBAL: a path under this regular file, so ENOTDIR, which git reads as
+#: no global config and no process can create. Not os.devnull: where /dev/null holds
+#: bytes (a cloud image's does) git dies with `bad config line 1 in file /dev/null`;
+#: not a temp file, which outlives a killed process and is a path to trust or clean.
+NO_GLOBAL_CONFIG = str(Path(__file__).resolve() / "no-global-config")
 
 
 def throwaway_git_env(base: dict | None = None) -> dict:
     """The environment for every git call into a throwaway repository."""
     env = {k: v for k, v in (os.environ if base is None else base).items()
            if k not in LOCAL_ENV and not _INHERITED_PAIR.match(k)}
-    env.update(IDENTITY, GIT_CONFIG_GLOBAL=empty_global_config(), GIT_CONFIG_NOSYSTEM="1",
+    env.update(IDENTITY, GIT_CONFIG_GLOBAL=NO_GLOBAL_CONFIG, GIT_CONFIG_NOSYSTEM="1",
                GIT_CONFIG_COUNT=str(len(CONFIG)))
     for i, (key, value) in enumerate(CONFIG):
         env[f"GIT_CONFIG_KEY_{i}"], env[f"GIT_CONFIG_VALUE_{i}"] = key, value
@@ -258,6 +246,7 @@ def grep(ref: str) -> list[tuple[str, int, str]]:
 
 
 def self_test() -> int:
+    import tempfile
     passed = failed = 0
 
     def check(name: str, cond: bool, detail: str = "") -> None:
@@ -329,20 +318,15 @@ def self_test() -> int:
 
         check("init returns the env", got_env == throwaway_git_env())
         # A global config path holding bytes breaks git (the cloud image's /dev/null):
-        # the null control is the old path, the arm is the empty file the env now names.
+        # the null control is such a file, the arm is the path the env now names.
         junk = Path(td) / "junk"
         junk.write_text("not a config line\n")
         old = subprocess.run(["git", "init", "-q", str(Path(td) / "o")], capture_output=True,
                              env=dict(throwaway_git_env(), GIT_CONFIG_GLOBAL=str(junk)))
         new = subprocess.run(["git", "init", "-q", str(Path(td) / "n")], capture_output=True,
                              env=throwaway_git_env())
-        Path(empty_global_config()).write_text("not a config line\n")
-        again = subprocess.run(["git", "init", "-q", str(Path(td) / "m")], capture_output=True,
-                               env=throwaway_git_env())
-        check("a non-empty file at the old global-config path fails git init (null control); "
-              "the env's path still inits, and again after the file was dirtied",
-              old.returncode != 0 and new.returncode == 0 and again.returncode == 0,
-              f"{old.returncode}/{new.returncode}/{again.returncode}")
+        check("a non-empty file as the global config fails git init (null control); the env's path inits",
+              old.returncode != 0 and new.returncode == 0, f"{old.returncode}/{new.returncode}")
         check("git reads auto-maintenance off, and gc.auto 0, through the env",
               read("maintenance.auto", got_env) == "false" and read("gc.auto", got_env) == "0")
         bare = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
@@ -380,14 +364,61 @@ def self_test() -> int:
         r = subprocess.run(["bash", "-c", '. "$1"; throwaway_git_env; env -0', "_", str(twin)],
                            env=hostile, capture_output=True, text=True)
         sh_env = dict(kv.split("=", 1) for kv in r.stdout.split("\0") if "=" in kv)
-        # GIT_CONFIG_GLOBAL is a per-process temp path on each side: compared as "an empty file".
+        # GIT_CONFIG_GLOBAL names each side's own file: compared by the check below.
         mine = {k: v for k, v in throwaway_git_env(hostile).items() if k.startswith("GIT_")}
         theirs = {k: v for k, v in sh_env.items() if k.startswith("GIT_")}
-        both_empty = all(os.path.isfile(g) and os.path.getsize(g) == 0
-                         for g in (mine.pop("GIT_CONFIG_GLOBAL", ""), theirs.pop("GIT_CONFIG_GLOBAL", "")))
+        both_set = bool(mine.pop("GIT_CONFIG_GLOBAL", "") and theirs.pop("GIT_CONFIG_GLOBAL", ""))
         check("the shell twin's throwaway_git_env sets exactly the same GIT_ variables",
-              r.returncode == 0 and both_empty and mine == theirs, f"py-only {set(mine.items()) - set(theirs.items())}, "
+              r.returncode == 0 and both_set and mine == theirs, f"py-only {set(mine.items()) - set(theirs.items())}, "
               f"sh-only {set(theirs.items()) - set(mine.items())}")
+        # The global config path is one no process can create or hold bytes at: its parent
+        # is the helper's own regular file (ENOTDIR, which git reads as no global config).
+        homes = Path(td) / "home"
+        (homes / ".config" / "git").mkdir(parents=True)
+        (homes / ".gitconfig").write_text("[core]\n\tleak = home\n")
+        (homes / ".config" / "git" / "config").write_text("[core]\n\txleak = xdg\n")
+        host = dict(bare, HOME=str(homes), XDG_CONFIG_HOME=str(homes / ".config"))
+        precious = Path(td) / "precious"
+        precious.write_text("[core]\n\tkeep = 1\n")
+        inherited = dict(host, _HPO_EMPTY_GITCONFIG=str(precious), GIT_CONFIG_GLOBAL=str(precious))
+        # Sourced by a relative path, then a cd, as `.claude/hooks/pre-bash.sh` sources it.
+        r = subprocess.run(["bash", "-c", '. ./throwaway_git.sh && cd "$1" && throwaway_git_env; '
+                            'printf %s "$GIT_CONFIG_GLOBAL"; printf "\\0%s" "$(git config --get core.leak)" '
+                            '"$(git config --get core.xleak)" "$(git config --get core.keep)"', "_", td],
+                           cwd=twin.parent, env=inherited, capture_output=True, text=True)
+        sh_global, *sh_reads = r.stdout.split("\0") + ["?"] * 3
+        py_env = throwaway_git_env(inherited)
+        py_reads = [read(k, py_env) for k in ("core.leak", "core.xleak", "core.keep")]
+        try:
+            open(NO_GLOBAL_CONFIG, "w").close()
+            created = "created"
+        except NotADirectoryError:
+            created = ""
+        check("null control: without the env, git reads the host's global and XDG config and the "
+              "inherited global; and the env's own path cannot be created",
+              [read(k, host) for k in ("core.leak", "core.xleak")] == ["home", "xdg"]
+              and read("core.keep", inherited) == "1" and not created, created)
+        check("each side's GIT_CONFIG_GLOBAL is a path under its own regular file, which no process "
+              "can create, and git there reads no host, XDG or inherited global key",
+              Path(py_env["GIT_CONFIG_GLOBAL"]).parent == ROOT / SELF
+              and Path(sh_global).parent == ROOT / SHELL_TWIN
+              and py_reads == ["", "", ""] and sh_reads[:3] == ["", "", ""],
+              f"py {py_env['GIT_CONFIG_GLOBAL']} {py_reads}; sh {sh_global} {sh_reads}; {r.stderr}")
+        check("a file named by an inherited _HPO_EMPTY_GITCONFIG or GIT_CONFIG_GLOBAL is never written",
+              precious.read_text() == "[core]\n\tkeep = 1\n", repr(precious.read_text()))
+        # Residue: a python and a shell process each build the env and init a repository
+        # under a fresh TMPDIR, which must be empty after both exit.
+        scratch = Path(td) / "tmp"
+        scratch.mkdir()
+        fresh = dict(bare, TMPDIR=str(scratch))
+        rp = subprocess.run([sys.executable, "-c", "import sys; sys.path.insert(0, sys.argv[1]); "
+                             "import throwaway_git as t; t.throwaway_git_init(sys.argv[2], '-q')",
+                             str(ROOT / "tests"), str(Path(td) / "rp")], env=fresh, capture_output=True, text=True)
+        rs = subprocess.run(["bash", "-c", '. "$1"; throwaway_git_env; throwaway_git_init "$2" -q',
+                             "_", str(twin), str(Path(td) / "rs")], env=fresh, capture_output=True, text=True)
+        check("a python and a shell process that built the env leave nothing in TMPDIR",
+              rp.returncode == 0 and rs.returncode == 0 and not any(scratch.iterdir()),
+              f"{rp.returncode}/{rs.returncode} {sorted(x.name for x in scratch.iterdir())} {rp.stderr}{rs.stderr}")
         r = subprocess.run(["bash", "-c", '. "$1"; throwaway_git_init "$2" -q --bare && '
                             'git -C "$2" config --get maintenance.auto && git -C "$2" config --get gc.auto '
                             '&& test -z "${GIT_CONFIG_GLOBAL:-}"', "_", str(twin), str(Path(td) / "b.git")],
