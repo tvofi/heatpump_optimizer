@@ -925,6 +925,57 @@ def cases(bj) -> dict[str, bool]:
     res["no row runs a git command that moves HEAD or the tree"] = (
         bool(git) and not any(set(c) & set(MOVES) for c in git))
     tmp.cleanup()
+    # darwin-selftest
+    tipa, tipb = SHA["a"], SHA["b"]
+
+    def git_tip(tip):
+        return lambda argv: (0, tip + "\n", "") if "rev-parse" in argv else (0, "", "")
+
+    def darwin(tip=tipa, extra=None, platform="darwin", stubs=("tools/audit/seat/mutant_run.py",)):
+        c, f = fresh(answers={"git": git_tip(tip), **(extra or {})})
+        c.platform = platform
+        bj.darwin_instruments = lambda wt: [p[len("tools/"):] for p in stubs]
+        return c, f
+
+    c, f = darwin(platform="linux")
+    bj.darwin_selftest(c)
+    res["darwin-selftest null: a non-Darwin host runs nothing and writes nothing"] = not f.calls and not files(c)
+    c, f = darwin()
+    bj.darwin_selftest(c)
+    res["darwin-selftest null: a clean tip prints nothing, and every self-test ran"] = \
+        digest(c) == "" and not (c.digest / "jobs" / "darwin-selftest").exists() and f.ran("prepr.sh") == 1 \
+        and f.ran("mutant_run.py") == 1
+    bj.darwin_selftest(c)
+    res["darwin-selftest: an unchanged tip is skipped"] = f.ran("prepr.sh") == 1 and f.ran("mutant_run.py") == 1
+    f.answers["git"] = git_tip(tipb)
+    bj.darwin_selftest(c)
+    res["darwin-selftest: a new tip runs again"] = f.ran("prepr.sh") == 2
+    red = (1, "mutant_run self-test\nFAIL darwin: no /proc here\ntrailing line\n", "")
+    c, f = darwin(extra={"mutant_run.py": red, "prepr.sh": (1, "", "3 checks\nlast stderr line\n")})
+    bj.darwin_selftest(c)
+    res["darwin-selftest: a red self-test is one RED line naming it and its first FAIL line"] = \
+        digest(c).splitlines() == ["darwin-selftest: RED tools/pr/prepr.sh last stderr line",
+                                   "darwin-selftest: RED tools/audit/seat/mutant_run.py FAIL darwin: no /proc here"]
+    git = [a for a in f.calls if a[0] == "git"]
+    take = next(i for i, a in enumerate(f.calls) if "slot-take" in a)
+    drop = next((i for i, a in enumerate(f.calls) if "slot-release" in a), -1)
+    add = next(i for i, a in enumerate(f.calls) if "worktree" in a and "add" in a)
+    first_run = next(i for i, a in enumerate(f.calls) if a[-2:] == ["tools/pr/prepr.sh", "--self-test"])
+    res["darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes"] = \
+        take < add < first_run < drop and "--detach" in f.calls[add] and "worktree" in f.calls[-2] and "remove" in f.calls[-2] \
+        and "slot-release" in f.calls[-1] and not any(m in a for a in git for m in MOVES)
+    c, f = darwin(extra={"git": (128, "", "fatal: bad ref\n")})
+    bj.darwin_selftest(c)
+    res["darwin-selftest: an unreadable origin/main is UNREADABLE and runs nothing"] = \
+        digest(c).startswith("darwin-selftest: UNREADABLE origin/main rc=128: fatal") and f.ran("prepr.sh") == 0
+    res["darwin-selftest: first_fail names the first FAIL line, else the last line, else the code"] = \
+        bj.first_fail("a\nFAIL x\nb", "FAIL y", 1) == "FAIL x" and bj.first_fail("a", "b", 1) == "b" \
+        and bj.first_fail("", "", 7) == "rc=7 with no output"
+    real = load(Path(bj.__file__) if hasattr(bj, "__file__") else HERE / "beat_jobs.py", "beat_jobs_real_instruments")
+    got = real.darwin_instruments(HERE.parents[2])
+    res["darwin-selftest: the wired set is the real tree's seat self-tests, mutant_run.py among them"] = \
+        "audit/seat/mutant_run.py" in got and all(p.startswith("audit/seat/") for p in got)
+
     return res
 
 
@@ -1105,6 +1156,17 @@ MUTANTS = {
     "fold_new_kept_stale": ('    atomic(ctx.digest / "new.txt", "".join(ln + "\\n" for ln in new))  # empty when the fold added nothing\n    atomic(ctx.digest / "gone.txt", "".join(ln + "\\n" for ln in gone))\n    if new:\n',
                             '    if new:\n        atomic(ctx.digest / "new.txt", "".join(ln + "\\n" for ln in new))\n    if gone:\n        atomic(ctx.digest / "gone.txt", "".join(ln + "\\n" for ln in gone))\n    if new:\n',
                             "fold: a fold that added nothing empties new.txt, and leaves the stamp"),
+    "darwin_gate_dropped": ('    if ctx.platform != "darwin":\n        return\n', "",
+                            "darwin-selftest null: a non-Darwin host runs nothing and writes nothing"),
+    "darwin_first_fail_is_last_line": ('next((ln for ln in lines if "FAIL" in ln), lines[-1] if lines else f"rc={rc} with no output")',
+                                       '(lines[-1] if lines else f"rc={rc} with no output")',
+                                       "darwin-selftest: a red self-test is one RED line naming it and its first FAIL line"),
+    "darwin_tip_not_skipped": ('.get("tip") == tip:\n        return', '.get("tip") == "":\n        return',
+                               "darwin-selftest: an unchanged tip is skipped"),
+    "darwin_red_dropped": ('            if rc != 0:\n                lines.append', '            if False:\n                lines.append',
+                           "darwin-selftest: a red self-test is one RED line naming it and its first FAIL line"),
+    "darwin_lease_not_released": ('        ctx.run([*gate, "slot-release"', '        (lambda *a: None)([*gate, "slot-release"',
+                                  "darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes"),
 }
 
 

@@ -279,6 +279,24 @@
       "env_pass": [],
       "class": null,
       "kind": "periodic"
+    },
+    {
+      "name": "darwin-selftest",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "darwin-selftest",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 900,
+      "timeout_s": 3600,
+      "heartbeat_s": null,
+      "env_pass": [],
+      "class": null,
+      "kind": "periodic"
     }
   ]
 }

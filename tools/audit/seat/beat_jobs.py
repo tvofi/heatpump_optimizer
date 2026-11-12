@@ -100,6 +100,20 @@ ROWS (the job table's `interval_s` in brackets):
                      --cursor state/outside-cursor.json`: its `OUTSIDE` lines
                      (submissions by outside users owed a triage, an answer or
                      a reply this turn), `outside-intake: UNREADABLE` on rc 2.
+  darwin-selftest [900] Darwin hosts only (any other host runs nothing, not even git).
+                     At each new origin/main tip (one run per tip; the tip is
+                     remembered in `state/darwin-selftest.json`, so an unchanged
+                     tip is skipped), under a heavy slot of tests/gate_lock.py,
+                     in a detached worktree this row makes under `state/` and
+                     removes (it writes into no checkout it tests): `prepr.sh
+                     --self-test`, then `--self-test` of each script under
+                     tools/audit/seat that selftest_wiring.py reports as both
+                     self-testing and wired in a workflow. One line per red,
+                     `darwin-selftest: RED <instrument> <first FAIL line>`; the
+                     digest has none when every one is green. WHY: CI runs the
+                     self-tests on Linux only, so a Darwin-only read (mutant_run.py
+                     listing /proc) was found only when an opener failed. It
+                     detects after the merge; it does not prevent.
   bottleneck [1800]  bottleneck_check.py `--checkout <repo> --train-log
                      <train_log> --wip-cap <plan_slots> --memory
                      state/bottleneck.json`: its `BOTTLENECK:` and
@@ -129,7 +143,7 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck")
+        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck", "darwin-selftest")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
 #: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
@@ -185,8 +199,9 @@ class Ctx:
     """One row's inputs; `run` and `free_gib` are the edges the self-test replaces."""
 
     def __init__(self, state: Path, repo: Path, overlay: Path | None = None, board: Path | None = None,
-                 run=sh, free_gib=None, now: float | None = None):
+                 run=sh, free_gib=None, now: float | None = None, platform: str | None = None):
         self.state, self.repo, self.run, self.clock = state, repo, run, time.monotonic
+        self.platform = sys.platform if platform is None else platform
         self.digest = state / "digest"
         self.now = time.time() if now is None else now
         self.free_gib = free_gib or (lambda: shutil.disk_usage("/").free / 2 ** 30)
@@ -628,10 +643,64 @@ def bottleneck(ctx: Ctx) -> None:
     write_job(ctx, "bottleneck", [ln for ln in out.splitlines() if ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))])
 
 
+DARWIN_SEAT = "audit/seat/"
+DARWIN_LEASE_LABEL = "darwin-selftest"
+
+
+def first_fail(out: str, err: str, rc: int) -> str:
+    """The first line naming FAIL in the run's output, else its last non-empty line, else the exit code."""
+    lines = [ln.strip() for ln in (out + "\n" + err).splitlines() if ln.strip()]
+    return next((ln for ln in lines if "FAIL" in ln), lines[-1] if lines else f"rc={rc} with no output")
+
+
+def darwin_instruments(wt: Path) -> list[str]:
+    """Paths under tools/ of the seat scripts that self-test and are wired in a workflow, in the worktree under test."""
+    import selftest_wiring
+    wired = selftest_wiring.wired(wt)
+    return [p for p in selftest_wiring.self_testing(wt)
+            if p.startswith(DARWIN_SEAT) and p.endswith((".py", ".sh")) and p in wired]
+
+
+def darwin_selftest(ctx: Ctx) -> None:
+    if ctx.platform != "darwin":
+        return
+    rc, tip, err = ctx.run(["git", "-C", str(ctx.repo), "rev-parse", "origin/main"], ctx.repo, ctx.env)
+    tip = tip.strip()
+    if rc != 0 or not re.fullmatch(r"[0-9a-f]{40}", tip):
+        return write_job(ctx, "darwin-selftest",
+                         [f"darwin-selftest: UNREADABLE origin/main rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+    if ctx.memory("darwin-selftest.json", {}).get("tip") == tip:
+        return
+    gate = [sys.executable, "-I", str(ctx.repo / "tests" / "gate_lock.py")]
+    wt = ctx.digest / "state" / "darwin-selftest-wt"
+    env = {k: v for k, v in ctx.env.items() if k != "HPO_STATE_DIR"}  # a self-test never reaches this digest
+    env["HPO_SLOT_LABEL"] = DARWIN_LEASE_LABEL
+    lines: list[str] = []
+    ctx.run([*gate, "slot-take", "--label", DARWIN_LEASE_LABEL, "--owner-pid", str(os.getpid())], ctx.repo, env)
+    try:
+        ctx.run(["git", "-C", str(ctx.repo), "worktree", "remove", "--force", str(wt)], ctx.repo, env)  # a killed pass's
+        rc, _, err = ctx.run(["git", "-C", str(ctx.repo), "worktree", "add", "--detach", str(wt), tip], ctx.repo, env)
+        if rc != 0:
+            return write_job(ctx, "darwin-selftest",
+                             [f"darwin-selftest: UNREADABLE worktree rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+        runs = [("tools/pr/prepr.sh", ["bash", "tools/pr/prepr.sh", "--self-test"])]
+        runs += [(f"tools/{p}", ["python3" if p.endswith(".py") else "bash", *(["-I"] if p.endswith(".py") else []),
+                                 f"tools/{p}", "--self-test"]) for p in darwin_instruments(wt)]
+        for name, argv in runs:
+            rc, out, err = ctx.run(argv, wt, env)
+            if rc != 0:
+                lines.append(f"darwin-selftest: RED {name} {first_fail(out, err, rc)}")
+    finally:
+        ctx.run(["git", "-C", str(ctx.repo), "worktree", "remove", "--force", str(wt)], ctx.repo, env)
+        ctx.run([*gate, "slot-release", "--label", DARWIN_LEASE_LABEL], ctx.repo, env)
+    ctx.remember("darwin-selftest.json", {"tip": tip})
+    write_job(ctx, "darwin-selftest", lines)
+
+
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
        "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
-       "outside-intake": outside_intake, "bottleneck": bottleneck}
+       "outside-intake": outside_intake, "bottleneck": bottleneck, "darwin-selftest": darwin_selftest}
 
 
 def main(argv: list[str]) -> int:
