@@ -122,10 +122,11 @@ against a measured baseline and a null control.
   carries kept (triage batches 238, 240 and 241 name them and the carries
   re-homed to the groups owning `merge_train.py`,
   `tools/pr/cancel_superseded.py` and `tests/entities.py`).
-- R10-ROUND-PLAYBOOK-FINAL's roster carries 17, 25, 26 and 35 to 40, as
+- R10-ROUND-PLAYBOOK-FINAL's roster carries 17, 25, 26 and 35 to 41, as
   written there: `pr_cap.py`'s production slots, the budget keys' moved paths,
   D15's drawn-power gain, the stubs bump, R10-CI-PRIORITY-PAUSE's three, the
-  boost settling tail and R10-PREPR-RESIDUE's seven.
+  boost settling tail, R10-PREPR-RESIDUE's seven and
+  R10-PREPR-DARWIN-SELFTEST-LANE un-deferred as a macOS leg.
 - Benchmark cards G1-G10, accepted (G11 rejected), baseline instruments
   `flow_metrics.py` and `review_strength.py`: G1 a machinery budget of about
   40% of dispatched groups; G2 evidence tiers keyed on closures; G3 a
