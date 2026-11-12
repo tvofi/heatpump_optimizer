@@ -21,3 +21,4 @@ tests / fast (3.14)
 tests / mutation
 tests / typing
 validate / validate-hacs
+rc=0
