@@ -1778,6 +1778,10 @@
     }
   },
   "issues": {
+    "price_feed_stale": {
+      "title": "Electricity prices are outdated",
+      "description": "The price source did not deliver new prices ({error}). The optimizer keeps planning on the last published prices, which still cover the current time. Once they run out, the optimizer becomes unavailable until prices arrive again. This notice clears itself as soon as a fetch succeeds."
+    },
     "cop_degradation": {
       "title": "Heat pump efficiency has dropped",
       "description": "The heat pump has been delivering about {shortfall_percent} % less heat per kWh than it used to under the same conditions, which is costing roughly {cost_month} {currency} per month at recent prices. The usual suspects are a clogged filter, low refrigerant, or a defrost problem — worth a look before the season gets colder. This notice clears itself if efficiency recovers."

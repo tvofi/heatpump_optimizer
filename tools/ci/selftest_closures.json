@@ -713,6 +713,21 @@
    "index": false,
    "objects": true
   },
+  "day-chart": {
+   "run_sha": "baf2fd4638f92c6a5b8d925f01b49a3d02568db7ee93785ddb86c60126ce82a4",
+   "files": [
+    "tools/site/day_chart.mjs"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/site"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "delivery-row-writer": {
    "run_sha": "250157e503be273a2d938292fa7922442be673437b627fbd61a9d039dab24208",
    "files": [
@@ -3999,6 +4014,7 @@
     ".gitignore",
     "CLAUDE.md",
     "custom_components/heatpump_optimizer/services.yaml",
+    "dev/audit/harnesses/mutant_guard.py",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/policy_budgets.json",
     "dev/governance/roles/COMMON.md",
@@ -4027,6 +4043,7 @@
     "tools/audit/seat/cloud-setup.sh",
     "tools/audit/seat/gh_read.py",
     "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/mutant_run.py",
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/review_packet.py",
@@ -4075,6 +4092,7 @@
     "tools/pr/app_push.sh",
     "tools/pr/approve_held_runs.sh",
     "tools/pr/ci_predict.py",
+    "tools/pr/figure_block.py",
     "tools/pr/gate_priority.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",

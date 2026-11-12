@@ -2724,8 +2724,8 @@ def sweep(entities: list, action: dict, errors: list[str], t: datetime) -> list[
                 state = e.hvac_mode
                 attrs = dict(e.extra_state_attributes or {})
                 attrs.update({"hvac_action": e.hvac_action,
-                              "current_temperature": e.current_temperature,
-                              "target_temperature": e.target_temperature,
+                              "current_temperature": e.native_current_temperature,
+                              "target_temperature": e.native_target_temperature,
                               # Not published: the value the climate entity is
                               # judged against, carried under a private key.
                               "_heat_pump_on": action.get("heat_pump_on")})

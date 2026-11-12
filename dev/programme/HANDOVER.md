@@ -80,11 +80,12 @@ line (`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.
   the owner and beats `git config` and `-c`. Check `git log -1
   --format='%an <%ae>'` after each commit.
 - **Standing seats**, each on its own contract in `dev/governance/roles/`:
-  `standing-tick.md` (lists owed items, never acts), `standing-merge.md`
-  (operates the train, never chooses what merges), `standing-dispatch.md`
-  (dispatch, relay, verdict confirm), `standing-roster.md` (`roster_edit.py`
-  ops behind the lint gate), plus `proposal-triage.md` (opus; a proposal gets a
-  ruling before it is routed). The orchestrator sends queue lines and acts on
+  `standing-merge.md` (operates the train, never chooses what merges) and
+  `standing-dispatch.md` (dispatch, relay, verdict confirm), plus
+  `proposal-triage.md` (opus; a proposal gets a ruling before it is routed).
+  The tick and roster seats are retired into the `tick-digest` and
+  `roster-drain` beat rows (`standing-tick.md`, `standing-roster.md`): read the
+  digest, queue roster ops for the job. The orchestrator sends queue lines and acts on
   reports; `tools/audit/seat/pulse.py` and the sweep's liveness step restart an
   absent one. **The orchestrator never runs `train.sh add`, a roster op or a
   dispatch inline** (tvofi, 2026-10-21 and 2026-10-27): it confirms a verdict on

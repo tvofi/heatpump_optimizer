@@ -1778,6 +1778,10 @@
     }
   },
   "issues": {
+    "price_feed_stale": {
+      "title": "Elpriserna är inaktuella",
+      "description": "Priskällan levererade inga nya priser ({error}). Optimeraren fortsätter planera med de senast publicerade priserna, som fortfarande täcker nuvarande tid. När de tar slut blir optimeraren otillgänglig tills priser kommer igen. Den här notisen försvinner av sig själv när en hämtning lyckas."
+    },
     "cop_degradation": {
       "title": "Värmepumpens verkningsgrad har sjunkit",
       "description": "Värmepumpen har levererat ungefär {shortfall_percent} % mindre värme per kWh än den brukade under samma förhållanden, vilket kostar cirka {cost_month} {currency} per månad med senaste tidens priser. De vanliga misstänkta är ett igensatt filter, låg köldmediefyllning eller ett avfrostningsproblem — värt en titt innan säsongen blir kallare. Meddelandet försvinner av sig självt om verkningsgraden återhämtar sig."
