@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/setpoint_check.py:_dhw CMP_BOUND e7d6e35a",
+  "killed_by": "tests/block_duty.py",
+  "old": "        and pump < on_step_c - MIXING_VALVE_WRITE_EPSILON",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`and pump <= on_step_c - MIXING_VALVE_WRITE_EPSILON`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}
