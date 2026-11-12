@@ -24624,7 +24624,9 @@
    "after": [
     "R10-HOTFIX-PREPR-WC-PAD"
    ],
-   "carry": [],
+   "carry": [
+    "From r10-hotfix-prepr-wc-pad, body item cd713c47: This is the third macOS-only prepr self-test failure (the class barrier fires): the deferred raw-`wc` string-compare lint (P676(b)) and a host-independence rule for self-test stubs are owed; both land in dev/programme/rosters/wave-r10-groups.json, group R10-PREPR-DARWIN-SELFTEST-LANE, on the roster branch at 5b1b0f1586a2e95e84a7504e528b56bb8aa7020c. Carry: R10-PREPR-DARWIN-SELFTEST-LANE (items cd713c47)"
+   ],
    "architect_note": null,
    "brief": "triage: dev/programme/triage/s6-batch227.md#P684 at be04bca1a9, line numbers at origin/main b737e88eee. Class barrier for Darwin-only prepr self-test reds, triggered by the third instance (R10-HOTFIX-PREPR-SELFTEST-DARWIN; the wc padding at tools/pr/prepr.sh :2413; the wc-pad hotfix's own stub self-test). No workflow under .github runs on macOS today. Build one path-filtered CI job that runs tools/pr/prepr.sh --self-test on a macOS runner for a pull request touching tools/pr/prepr.sh or the stubs its self-test uses; scope it so no other pull request spends macOS minutes, and register it in the gate's scope the way the other path-filtered jobs are. Demonstrate: the job goes red on the pre-fix wc comparison (revert R10-HOTFIX-PREPR-WC-PAD's change in a scratch commit) and green at the head. The raw-wc string-compare lint (P676(b)) is refused as superseded. A root-cause record under dev/audit/rca is owed in its own root-cause seat (dev/governance/roles/root-cause.md), dispatched by the orchestrator; this group is its proposed countermeasure and cites that record. Size S, after R10-HOTFIX-PREPR-WC-PAD.",
    "resume": {
