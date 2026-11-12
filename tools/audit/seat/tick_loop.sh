@@ -197,6 +197,9 @@ tick_loop_self_test() (
   chmod +x "$t/tick.sh"
   printf '#!/bin/bash\necho "hb $*" >> "%s/hb"; exit "${HB_RC:-0}"\n' "$t" > "$t/hb.sh"
   export HPO_TICK_HEARTBEAT=$t/hb.sh
+  # Every row before the freshness rows runs from no checkout: never the real one, which a
+  # row would read (an extra TICK-STALE) and a restart would move.
+  mkdir "$t/nogit"; export HPO_TICK_CODE_DIR=$t/nogit GIT_CEILING_DIRECTORIES=$t
   # The seat bin dir under a scratch state dir, holding a gh that carries the shim marker,
   # so a host whose gh is not the shim (CI's) prints no TICK-GH line in the rows below.
   mkdir -p "$t/state/bin" "$t/bare/bin"; export HPO_STATE_DIR=$t/state
@@ -213,9 +216,6 @@ tick_loop_self_test() (
   g=$(cat "$t/gh"); printf '%s\n' "$out" | grep -Eq "^TICK-GH [0-9T:-]+Z gh=${g:-none}: not the seat gh shim" \
     && [ "$(printf '%s\n' "$out" | grep -c '^TICK-')" = 2 ]
   ck "a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner" $?
-  # The rows before the freshness rows run from no checkout: never the real one, whose
-  # fetch and checkout a restart would move.
-  mkdir "$t/nogit"; export HPO_TICK_CODE_DIR=$t/nogit GIT_CEILING_DIRECTORIES=$t
   out=$(HPO_TICK_RELAY=$t/relay.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt" -- --only PRS)
   [ "$(cat "$t/order")" = "relay pass --confirm
 tick --only PRS" ] && [ "$(cat "$t/b.txt")" = BOARD ] \
@@ -360,6 +360,34 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     && printf '%s\n' "$out" | grep -qx "NEW-LOOP --once --out $t/f.txt --sweep" \
     && [ "$(git -C "$t/c" rev-parse HEAD)" = "$(git -C "$t/c" rev-parse origin/main)" ] && [ ! -f "$t/order" ]
   ck "freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args" $?
+  # The self-test run from a checkout behind origin/main on the watched paths -- a branch, then a
+  # detached head -- must read nothing of it and leave its HEAD where it was (the TICK-GH rows
+  # once ran against the real checkout: a branch printed an extra TICK-STALE, a detached head
+  # was moved by the restart arm). The nested run is the whole self-test, so it skips this block.
+  if [ -z "${HPO_TICK_SELFTEST_NESTED:-}" ]; then
+    mkdir -p "$t/n/tools/audit/seat" "$t/n/tests"
+    cp "$HERE/tick_loop.sh" "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$t/n/tools/audit/seat/"
+    cp "$HERE/../../../tests/throwaway_git.sh" "$t/n/tests/"
+    throwaway_git_init "$t/n.git" -q --bare -b main && throwaway_git_init "$t/n" -q -b main
+    git -C "$t/n" add -A && git -C "$t/n" commit -qm base && git -C "$t/n.git" fetch -q "$t/n" main:main
+    throwaway_git_clone -q "$t/n.git" "$t/nb"
+    printf '# ahead\n' >> "$t/n/tools/audit/seat/tick_loop.sh"
+    git -C "$t/n" commit -qam ahead && git -C "$t/n.git" fetch -q "$t/n" main:main
+    cp -R "$t/nb" "$t/nd"; git -C "$t/nd" checkout -q --detach
+    nest() { # <checkout>: the clone's own self-test, none of this run's overrides inherited
+      HPO_TICK_SELFTEST_NESTED=1 env -u HPO_TICK_CODE_DIR -u HPO_TICK_HEARTBEAT -u HPO_STATE_DIR -u GIT_CEILING_DIRECTORIES \
+        bash "$1/tools/audit/seat/tick_loop.sh" --self-test 2>&1; }
+    b0=$(git -C "$t/nb" rev-parse HEAD); out=$(nest "$t/nb")
+    printf '%s\n' "$out" | grep -q ' 0 failed$' && [ "$(git -C "$t/nb" rev-parse HEAD)" = "$b0" ]
+    ck "the self-test run from a branch checkout behind origin/main passes and does not move its HEAD" $?
+    d0=$(git -C "$t/nd" rev-parse HEAD); out=$(nest "$t/nd")
+    printf '%s\n' "$out" | grep -q ' 0 failed$' && [ "$(git -C "$t/nd" rev-parse HEAD)" = "$d0" ]
+    ck "the self-test run from a detached checkout behind origin/main passes and does not move its HEAD" $?
+    rm -rf "$t/nb2"; throwaway_git_clone -q "$t/n.git" "$t/nb2"; git -C "$t/nb2" reset -q --hard origin/main
+    b0=$(git -C "$t/nb2" rev-parse HEAD); out=$(nest "$t/nb2")
+    printf '%s\n' "$out" | grep -q ' 0 failed$' && [ "$(git -C "$t/nb2" rev-parse HEAD)" = "$b0" ]
+    ck "null control: a branch checkout at origin/main (behind 0) passes and stays put" $?
+  fi
   rm -rf "$t"
   echo "tick_loop self-test: $n checks, $f failed"
   [ "$f" = 0 ]
