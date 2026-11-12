@@ -410,6 +410,7 @@ const LOOP_CHECK_NAMES = [
   // `## Friction` section and the histogram keying nothing, which is the
   // silent shape the shared parser replaced.
   { name: 'checkPrBody', file: 'policy_lint.mjs', kind: 'return' },
+  { name: 'figureBlockProblems', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'frictionEntries', file: 'policy_lint.mjs', kind: 'return' },
   // The histogram's KEYING, which is a second silent shape beside the grammar's:
   // `frictionEntries` decides what an entry IS, `frictionKey` decides which key
@@ -4035,6 +4036,33 @@ function assertAcceptance(derived) {
     }
   }
 
+  // The figure-block arm: a rendered block in `## Figures` passes; each rule
+  // draws exactly its own error; free-form figures with no block are the null
+  // control. Bodies are the healthy good.md with its Figures section swapped.
+  {
+    const own = fs.readFileSync(path.join(prepr, 'good.md'), 'utf8')
+    const figs = own.slice(own.indexOf('## Figures'), own.indexOf('## Red checks'))
+    const H = 'a'.repeat(40)
+    const blk = (attrs) => `<!-- figure-block: scope-line${attrs} -->\n~~~text\nx\n~~~\n<!-- /figure-block -->`
+    const good = blk(` mb=${H} head=${H}`)
+    const cases = [
+      ['a rendered block', `## Figures\n\n${good}\n\n`, null],
+      ['free-form figures, no block (null control)', figs, null],
+      ['a malformed marker', `## Figures\n\n<!-- figure-block: Scope -->\n`, 'does not parse'],
+      ['an unclosed block', `## Figures\n\n${good.replace('<!-- /figure-block -->', '')}\n`, 'never closed'],
+      ['a block outside Figures', `${figs}## Notes\n\n${good}\n\n`, 'outside'],
+      ['another head', `## Figures\n\n${blk(` mb=${H} head=${'b'.repeat(40)}`)}\n\n`, 'another head'],
+      ['an unrendered marker', `## Figures\n\n${blk('')}\n\n`, 'unrendered'],
+    ]
+    for (const [label, text, needle] of cases) {
+      const errs = figureBlockProblems(own.replace(figs, text), { head: H })
+      if (needle ? errs.length !== 1 || !errs[0].includes(needle) : errs.length) {
+        console.log(`\nFIXTURE VACUOUS: the figure-block arm on ${label} drew ${errs.length} error(s) (${errs.map((e) => e.slice(0, 80)).join(' | ')}); it must draw ${needle ? `exactly one, naming \`${needle}\`` : 'none'}`)
+        return 1
+      }
+    }
+  }
+
   // The attribution arm (R10-FLY-NO-FOOTERS): attribution.md is a healthy body
   // plus the footer and a session link, so the arm and only the arm fires on
   // it; good-claude-ai.md names claude.ai in another sense and quotes the
@@ -7050,6 +7078,45 @@ function dependabotYmlAt(base) {
   try { return fs.readFileSync(path.join(ROOT, '.github', 'dependabot.yml'), 'utf8') } catch { return '' }
 }
 
+// The offline half of the figure-block contract (tools/pr/figure_block.py is the
+// grammar's owner and `verify` the rendering half; this runs no instrument).
+// Same line scan as figure_block.parse: an open marker that does not parse, a
+// block never closed or opened inside another, a block outside `## Figures`, a
+// block rendered at another head or never rendered, a name the base's registry
+// does not hold.
+const FIGURE_OPEN = /^<!-- figure-block: ([a-z][a-z0-9-]*)((?: [a-z]+=[0-9a-f]{40})*) -->$/
+const FIGURE_CLOSE = '<!-- /figure-block -->'
+function figureBlockProblems(body, { base = '', head = '' } = {}) {
+  const msgs = []
+  const lines = body.split('\n')
+  const inFigures = new Set((sections(body).get('Figures') ?? '').split('\n'))
+  const headOk = /^[0-9a-f]{40}$/.test(head) && !/^0{40}$/.test(head)
+  let registry
+  if (base) {
+    try {
+      registry = Object.keys(JSON.parse(execFileSync('git', ['show', `${base}:tools/pr/figure_registry.json`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).instruments ?? {})
+    } catch { registry = undefined }
+  }
+  for (let i = 0; i < lines.length; i++) {
+    const m = FIGURE_OPEN.exec(lines[i])
+    if (!m) {
+      if (lines[i].startsWith('<!-- figure-block')) msgs.push(`line ${i + 1}: a figure-block marker that does not parse: ${JSON.stringify(lines[i].slice(0, 80))}`)
+      continue
+    }
+    let j = i + 1
+    while (j < lines.length && lines[j] !== FIGURE_CLOSE && !lines[j].startsWith('<!-- figure-block')) j++
+    if (j >= lines.length) { msgs.push(`line ${i + 1}: figure-block ${m[1]} is never closed`); break }
+    if (lines[j] !== FIGURE_CLOSE) { msgs.push(`line ${j + 1}: a figure-block opens inside another`); i = j - 1; continue }
+    if (!inFigures.has(lines[i]) || !inFigures.has(lines[j])) msgs.push(`line ${i + 1}: figure-block ${m[1]} lies outside \`## Figures\``)
+    const headAttr = /(?:^| )head=([0-9a-f]{40})/.exec(m[2])?.[1]
+    if (headOk && headAttr === undefined) msgs.push(`line ${i + 1}: figure-block ${m[1]} is unrendered: run figure_block.py refresh`)
+    else if (headOk && headAttr !== head) msgs.push(`line ${i + 1}: figure-block ${m[1]} names another head (${headAttr.slice(0, 12)}, this is ${head.slice(0, 12)}): run figure_block.py refresh`)
+    if (registry && !registry.includes(m[1])) msgs.push(`line ${i + 1}: figure-block ${m[1]} is not registered at base`)
+    i = j
+  }
+  return msgs
+}
+
 function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null, required = null } = {}) {
   // A Dependabot pull request answers the dependency-bump contract instead
   // (tools/policy/dependabot_contract.mjs); every other author, the full one.
@@ -7174,6 +7241,8 @@ function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], pat
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
       message: `check \`${name}\` is red and \`## Red checks\` does not name it.${why} Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
   }
+
+  for (const message of figureBlockProblems(body, { base, head })) out.push({ severity: 'error', check: 'pr-body', where: bodyPath, message })
 
   return out
 }

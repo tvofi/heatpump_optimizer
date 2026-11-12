@@ -382,7 +382,8 @@ tools/audit/seat/body_patch.sh mention: comments; it PATCHes a body through app_
 tools/audit/seat/body_push.sh mention: comments; it writes the Prepr: trailer app_push.sh --reuse reads, and runs no push
 tools/pr/prepr.sh mention: comments; it honours the receipt app_push.sh --reuse passes it, and runs no push
 tools/pr/app_mint.sh mention: comments; sourced by app_push.sh, it launches nothing
-tools/policy/policy_lint.mjs mention: a refusal message'
+tools/policy/policy_lint.mjs mention: a refusal message
+tools/audit/seat/remerge_main_selftest.py mention: it writes a fake app_push.sh into a scratch origin and pushes nothing'
 pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any OPEN
   local root=${1:-$(cd "$PR_ARGS_DIR/../../.." && pwd)} rev=${2:-} f kind txt bad=0
   local found
