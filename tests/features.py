@@ -81174,6 +81174,7 @@ R.check(
     _bt_restored.space_settle_until == NOW + timedelta(hours=9)
     and _bt_restored.space_since == NOW - timedelta(hours=1)
     and _bt_down.space_settle_until == NOW - timedelta(hours=1) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_down.space_since is None  # a start is held only while its overlay is live
     and _bt_spent.space_settle_until is None,
     f"{_bt_restored} {_bt_down} {_bt_spent}",
 )
