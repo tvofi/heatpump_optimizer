@@ -4177,6 +4177,7 @@
    "dev/audit/harnesses/r10_ftol_cell_search.py",
    "dev/audit/harnesses/r10_gate_busy_defer_3.py",
    "dev/audit/harnesses/r10_gate_defer_barrier.py",
+   "dev/audit/harnesses/r10_gate_defer_barrier_mutants.py",
    "dev/audit/harnesses/r10_gate_defer_race.py",
    "dev/audit/harnesses/r10_gate_defer_read_final.py",
    "dev/audit/harnesses/r10_gate_priority_base.py",
