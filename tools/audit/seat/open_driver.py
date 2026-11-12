@@ -270,17 +270,13 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
         cap = DEFAULT_CAP
     skipped, cands, board_topics = {}, [], []
     for topic, sha, ct in parse_board(board):
-        live_tip = tips.get(f"refs/heads/handoff/{topic}")
-        if live_tip:
-            sha = live_tip  # the board is rewritten once per relay pass: every check below reads the live tip
-
         def skip(why):
             skipped[topic] = why
             log(f"SKIP {topic} {sha[:8]} {why}")
         if topic.startswith(SKIP_TOPIC_PREFIXES):  # mut:optopicskip
             skip("batched")  # triage and roster changes wait and merge together with stamps (tvofi 2026-11-04)
-        elif not live_tip:
-            skip("moved")  # the handoff ref is gone: nothing to open
+        elif tips.get(f"refs/heads/handoff/{topic}") != sha:
+            skip("moved")
         elif f"refs/heads/handoff-body/{topic}" not in tips:
             skip("no-body")
         elif f"{topic} {sha}" in seen:

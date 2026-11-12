@@ -25,8 +25,6 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
   M-triageB  the R10-TRIAGE-B<M> fallback is dropped.
   M-escape   stem() no longer escapes % before /: `a%2Fb` and `a/b` share a file.
   M-maxtries the MAX_TRIES stop is dropped: a failing open is retried forever.
-  M-livetip   a board line at A is checked and opened at A, not the live tip B (P603).
-  M-gone-tip  a line whose handoff ref is gone no longer prints SKIP moved.
   M-stuckowed a stuck (topic, sha) prints OWED, not STUCK.
   M-open-stem   World.launch names the .rc by the raw topic: a slash topic's
                 result file is never written (the open side).
@@ -36,7 +34,7 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
 
     python3 dev/audit/harnesses/r10_open_driver_mutants.py
 
-EXPECTED RESULT mutants=24
+EXPECTED RESULT mutants=22
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -93,8 +91,6 @@ PLANTS = {
     "M-reap-log": ('{reason(d / f"t-{stem(t)}.log")}', '{reason(d / f"t-{t}.log")}'),
     "M-escape": ('topic.replace("%", "%25").replace("/", "%2F")', 'topic.replace("/", "%2F")'),
     "M-maxtries": ('        elif fails.get(f"{topic} {sha}", {}).get("n", 0) >= MAX_TRIES:\n', "        elif False:\n"),
-    "M-livetip": ("        if live_tip:\n            sha = live_tip", "        if False:\n            sha = live_tip"),
-    "M-gone-tip": ("        elif not live_tip:\n", "        elif False:\n"),
     "M-stuckowed": ('f"STUCK {t} {sha[:8]} rc=', 'f"OWED {stamp} open-refused {t} {sha[:8]} rc='),
 }
 
