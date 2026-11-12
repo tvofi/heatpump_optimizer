@@ -36,7 +36,7 @@
 // REFUSED as unregistered, and a DECLARED key the set no longer yields is DEAD.
 // So a new check is refused until someone says what it reads.
 //
-//   node tools/policy/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
+//   node tools/policy/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|replay_cuts|registry|census]
 //        [--ruleset-json FILE]   # the live ruleset object; without it `gh api`
 //   node tools/policy/field_coverage.mjs --self-test
 //
@@ -204,6 +204,35 @@ const APPROVALS = {
   },
 }
 
+// The replay lane's declared level cut (tests/replay.py COST_CUTS,
+// R10-HOTFIX-REPLAY-CLASS-CUT): the cut is the input of two checks, the
+// projection the class budgets are derived through (`cycle_cost:class_rule`)
+// and `cycle_cost:level_shift`, which accepts a class that has drawn nothing
+// since a shift only while a declared cut explains it. Each field is perturbed
+// on the committed draw table and the two must stop agreeing with the tree.
+// The verdict calls the functions, not `controls()`, whose fixtures import
+// Home Assistant's dependencies; `replay` itself imports under `-I`.
+const REPLAY_CUTS = {
+  name: 'replay_cuts',
+  check: 'tests/replay.py level_shift_offenders + derive_cost_classes over cost_draws',
+  artifact: 'the first cut of tests/replay.py COST_CUTS',
+  load: () => {
+    const got = spawnSync('python3', ['-I', '-c', "import json,sys\nsys.path[:0]=['tests','tests/hastub']\nimport replay\nprint(json.dumps(replay.COST_CUTS[0]))"], { cwd: ROOT, encoding: 'utf8' })
+    if (got.status !== 0) throw new Error(`python3 exit ${got.status}: ${(got.stderr || '').trim().split('\n').pop()}`)
+    return JSON.parse(got.stdout)
+  },
+  // Any non-empty text is evidence; the property is that evidence is stated.
+  violate: { evidence: '' },
+  ignore: {
+    commit: 'names the cut for its reader; the projection reads factor and from, the shift reads from, fixture, metric, factor and evidence',
+  },
+  async verdict(obj) {
+    const code = "import json,sys\nsys.path[:0]=['tests','tests/hastub']\nimport replay as R\ncut=(json.loads(sys.argv[1]),)\nsyn='synthetic-dhw-only.json'\nraw=R.cost_draws(cuts=())\n_,off=R.level_shift_offenders(raw,R.cost_draw_created(),syn,cuts=cut)\nkeyed=R.derive_cost_classes(R.cost_draws(cuts=cut),syn)[1]\nprint('red' if off or keyed!=R.COST_CLASS_BUDGETS[syn] else 'green')"
+    const { code: rc, out } = await run('python3', ['-I', '-c', code, JSON.stringify(obj)])
+    return rc === 0 ? out.trim() : `error:exit ${rc}: ${out.trim().split('\n').pop()}`
+  },
+}
+
 function ruleFixture() { return JSON.parse(fs.readFileSync(at('.claude/workflows/fixtures/required-contexts.json'), 'utf8')) }
 function ruleRepo() { return ruleFixture().branch_endpoint.replace(/^repos\//, '').replace(/\/rules\/branches\/main$/, '') }
 function ruleId() { return ruleFixture().rulesets[0] }
@@ -347,7 +376,7 @@ const DECLARED = {
   'pinned tools/audit/preflight.sh': { none: 'runs other checks; no input of its own' },
   'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
   'pinned tools/audit/prepare_baseline.sh': { none: 'check-wave-script reads its ISOLATED_DIMS line as text; it grades no input here' },
-  'pinned tools/pr/figure_block.py': { none: 'reads the figures a pull-request body states against the commands that produced them; graded by its own self-test, no arm here', pending: 'R10-BODY-CONTRACT part 3 pins it in governance.yml' },
+  'pinned tools/pr/figure_block.py': { none: 'reads the figures a pull-request body states against the commands that produced them; graded by its own self-test, no arm here' },
   'pinned tools/audit/machinery_ratchet.py': { none: 'reads machinery_budgets.json through load_budgets(), which refuses a key it does not read and requires each it does (its --self-test pins both), and merge history; no arm here' },
   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
   'pinned tools/audit/seat/gh_read.py': { none: 'the read rule gh_read_run.py imports: classifies gh stderr, grades no input field; its self_test, run inside record_row.py\'s, pins every classifier alternative from both sides', pending: 'R10-FLY-GH-READ-RETRY\'s follow-up adding it to pr-contract.yml\'s base restore' },
@@ -561,6 +590,7 @@ const RUNS = {
   ruleset: (report) => jsonRun(RULESET, report),
   budgets: (report) => budgetsRun(report),
   approvals: (report) => jsonRun(APPROVALS, report),
+  replay_cuts: (report) => jsonRun(REPLAY_CUTS, report),
   registry: (report) => registryRun(report),
   census: (report, { run = censusRun, censuses = CENSUSES, rows } = {}) => { censusRegistry(report, censuses, rows); run(report, censuses) },
 }
@@ -645,7 +675,7 @@ async function selfTest() {
     const rr = fresh(); let ran = null
     RUNS.census(rr, { run: (rep, cs) => { ran = cs }, censuses: [], rows: () => ['archscore.dead_y', 'archscore.family_orphan_overrides'] })
     t("main's census arm runs the registry pass (an ungated row is REFUSED) and then the planted runs", rr.refused.length === 1 && /archscore\.dead_y/.test(rr.refused[0]) && Array.isArray(ran))
-    t('main runs every arm --only can name, census among them', Object.keys(RUNS).join(',') === 'hooks,ruleset,budgets,approvals,registry,census')
+    t('main runs every arm --only can name, census among them', Object.keys(RUNS).join(',') === 'hooks,ruleset,budgets,approvals,replay_cuts,registry,census')
   }
   const saved = { ...DECLARED }
   try {
@@ -678,7 +708,7 @@ async function main() {
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--only') only = argv[++i]
     else if (argv[i] === '--ruleset-json') rulesetSource = path.resolve(argv[++i])
-    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census] [--ruleset-json FILE]`); process.exit(2) }
+    else { console.error(`usage: field_coverage.mjs [--only hooks|ruleset|budgets|approvals|replay_cuts|registry|census] [--ruleset-json FILE]`); process.exit(2) }
   }
   if (only && !(only in RUNS)) { console.error(`--only ${only}: no such arm`); process.exit(2) }
   const t0 = Date.now()

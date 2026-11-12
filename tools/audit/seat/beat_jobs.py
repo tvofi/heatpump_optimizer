@@ -415,7 +415,9 @@ def plan_beat(ctx: Ctx) -> None:
     if got is None:
         return
     plan, slots, seats, mirror, repo = got
-    rc, _, err = ctx.py("tools/plan/replan.py", "--out", plan, "--slots", slots, "--seats", seats)
+    # the overlay's plan_coordinator_cap rides to replan.py; absent, replan's own default stands
+    cap = ["--coordinator-cap", str(ctx.overlay["plan_coordinator_cap"])] if ctx.overlay.get("plan_coordinator_cap") else []
+    rc, _, err = ctx.py("tools/plan/replan.py", "--out", plan, "--slots", slots, "--seats", seats, *cap)
     if rc != 0:
         last = (err.strip().splitlines() or [""])[-1]
         return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])

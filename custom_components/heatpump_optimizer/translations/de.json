@@ -584,7 +584,10 @@
               "space_setpoint_entity": "Sollwert-Entität der Raumheizung (optional)",
               "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
               "flow_min_lift_k": "Mindesthub über dem Eingangswasser (K)",
-              "flow_heat_c": "Obergrenze der Heizungsvorlauftemperatur (°C)"
+              "flow_heat_c": "Obergrenze der Heizungsvorlauftemperatur (°C)",
+              "space_setpoint_power_feedback": "Geplanter Leistung über die gemessene Aufnahme folgen",
+              "space_setpoint_low_limit_entity": "Sensor für den minimalen Sollwert des Reglers (optional)",
+              "space_setpoint_high_limit_entity": "Sensor für den maximalen Sollwert des Reglers (optional)"
             },
             "data_description": {
               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
@@ -592,7 +595,10 @@
               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
               "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
               "flow_min_lift_k": "Mit Steuerung der Pumpenfunktion auf Steuern ist der bei der niedrigsten Planleistung geschriebene Wasser-Sollwert das gemessene Eingangswasser plus dieser Wert: Wärmepumpen-Rücklauf, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass, und bei einer Entität mit Rücklauftemperatur nur die ersten drei. 5 K passt zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Von einem Regler, der die Zahl als Ziel für das Rücklaufwasser nimmt, wird angenommen, dass er seinen Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt, er will also wahrscheinlich weniger; 1–2 K ist ein Ausgangspunkt, der an der gemessenen Frequenz und Leistung des Verdichters zu prüfen ist, kein gemessener Wert.",
-              "flow_heat_c": "Der bei voller Planleistung geschriebene Wasser-Sollwert und der höchste, der geschrieben wird, solange der Plan die Führung hat. 55 °C passt zu einem Vorlaufziel. Wähle ihn bei einer Entität mit Rücklauftemperatur über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus dem Hub, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel."
+              "flow_heat_c": "Der bei voller Planleistung geschriebene Wasser-Sollwert und der höchste, der geschrieben wird, solange der Plan die Führung hat. 55 °C passt zu einem Vorlaufziel. Wähle ihn bei einer Entität mit Rücklauftemperatur über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus dem Hub, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel.",
+              "space_setpoint_power_feedback": "Standardmäßig an. Wirkt nur mit Wärmepumpen-Betriebssteuerung auf Steuern, einer Einheit Vorlauf- oder Rücklauftemperatur und einem Leistungssensor der Wärmepumpe; sonst ändert sich nichts. Nach 5 Minuten Starthaltezeit wird der Wasser-Sollwert gesenkt, solange die gemessene Aufnahme über der geplanten Leistung liegt, angehoben, solange sie darunter liegt, und innerhalb von 10 % gehalten, statt dem steigenden Eingangswasser zu folgen. Aus schreibt das Eingangswasser plus den Hub. Anforderungen an den Regler: seine Heizungshysterese höchstens der Hub (Luxtronik: 0,5 K), sonst startet ein stehender Verdichter nicht; sein minimales Rücklaufziel unter dem Rücklauf der Heizperiode; seine Integration fragt ihn mindestens alle 10 Minuten ab und stellt nach einem Reglerneustart die Heizbetriebsart wieder her, denn eine Luxtronik Smart Home Interface verwirft nach 600 s ohne Zugriff alle gesetzten Werte; und kein zweites Werkzeug schreibt dieselben Register (eine Luxtronik verwirft Schreibvorgänge dann stillschweigend).",
+              "space_setpoint_low_limit_entity": "Optional. Ein Temperatursensor, der den niedrigsten Wert meldet, den der Regler für die Sollwert-Entität oben annimmt (eine Luxtronik über ha-luxtronik-shi: \"Temperature: return target minimum\", Eingang 10104). Damit sendet Geplanter Leistung über die gemessene Aufnahme folgen nie einen Wert darunter, statt die Grenze erst zu finden, wenn der Regler einen Schreibwert kappt. Nur von dieser Option verwendet; leer ändert sich nichts.",
+              "space_setpoint_high_limit_entity": "Optional. Ein Temperatursensor, der den höchsten Wert meldet, den der Regler für die Sollwert-Entität oben annimmt (eine Luxtronik über ha-luxtronik-shi: \"Temperature: return limit\", Eingang 10103). Damit sendet Geplanter Leistung über die gemessene Aufnahme folgen nie einen Wert darüber, statt die Grenze erst zu finden, wenn der Regler einen Schreibwert kappt. Nur von dieser Option verwendet; leer ändert sich nichts."
             }
           },
           "plant": {
@@ -813,6 +819,23 @@
             "data_description": {
               "buffer_max_temperature": "Der Speicher wird nie über diesen Wert geladen, egal wie günstig der Strom ist.",
               "buffer_tank_volume": "Liter. Der Speicher zwischen Wärmepumpe und Heizkreisen. Größere Speicher nehmen mehr günstige Wärme auf."
+            }
+          },
+          "combi": {
+            "name": "Kombispeicher (Warmwasser aus dem Pufferspeicher)",
+            "data": {
+              "dhw_combi_tank_enabled": "Warmwasser wird im Pufferspeicher bereitet",
+              "dhw_combi_tank_type": "Wie der Speicher Warmwasser bereitet",
+              "combi_dhw_effectiveness": "Wirkungsgrad des Wärmeübertragers",
+              "combi_potable_volume_l": "Trinkwasser im Speicher",
+              "dhw_combi_legionella_force": "Legionellenzyklus trotzdem ausführen"
+            },
+            "data_description": {
+              "dhw_combi_tank_enabled": "Einschalten, wenn ein Speicher mit Heizungswasser sowohl die Heizung als auch das Warmwasser versorgt und es keinen getrennten Warmwasserspeicher gibt: ein Multifunktions- oder Hygienespeicher, ein Tank-in-Tank-Speicher oder eine Frischwasserstation am Pufferspeicher. Erfordert ein drosselndes Mischventil, einen Pufferspeicher von mindestens 100 L, eingeschaltetes Warmwasser und keine Holzheizschlange. Als Pufferspeichergröße das Heizungswasservolumen des Speichers eintragen. Für die Abkühlrate bevorzugt den ErP-Warmhalteverlust S in Watt bei 65 °C aus dem Datenblatt verwenden: der Verlust pro Kelvin ist S / 45 K (20 °C Raumtemperatur angenommen). Den Temperaturfühler des Pufferspeichers in die mittlere Tauchhülse setzen: ein Fühler wird als Mittelwert des ganzen Speichers gelesen. Zwei Speicher in einem Mantel (ein Pufferteil unter einem Warmwasserteil) sind kein Kombispeicher: als zwei Speicher einrichten.",
+              "dhw_combi_tank_type": "Die Wahl eines Typs füllt die beiden Zahlen unten aus; danach anpassen oder Eigene wählen, um eigene Werte einzugeben. Beispiel: ein Multifunktionsspeicher mit 40 L Wendel ist Innenliegende Wendel mit 40 L.",
+              "combi_dhw_effectiveness": "Wie nahe das Zapfwasser bei deiner üblichen Zapfmenge an die Speichertemperatur herankommt, von 0,1 bis 1: (Zapf − Kaltwasser) / (Speicher − Kaltwasser). Etwa 0,85 für eine Wendel, 0,95 für Tank-in-Tank und 0,75 für eine Frischwasserstation. Der Wirkungsgrad einer Station sinkt mit steigendem Durchfluss, daher ihre Tabelle beim typischen Durchfluss ablesen; Hersteller empfehlen höchstens 60 °C primärseitig gegen Verkalkung.",
+              "combi_potable_volume_l": "Liter Trinkwasser, die im Speicher stehen: der Inhalt der Wendel oder der Innenbehälter (etwa 100–250 L). 0 für eine Frischwasserstation.",
+              "dhw_combi_legionella_force": "Bei 3 L Trinkwasser oder weniger im Speicher steht keines zum Desinfizieren, daher ist der Legionellenzyklus standardmäßig aus; einschalten, um ihn trotzdem auszuführen. Die Trinkwasserregeln erwarten dennoch Warmwasser mit 60 °C in Großanlagen und 50 °C in Kleinanlagen."
             }
           },
           "wood": {
@@ -1577,6 +1600,7 @@
       "flow_curve_needs_direct_plant": "Die Bepreisung der Vorlauftemperaturanhebung ist für ein System ohne Mischventil gedacht. Mit Ventil bepreist die Temperatur des Pufferspeichers die Anhebung bereits, sie würde also doppelt gezählt. Stelle das Ventil auf „Kein Mischventil“ oder schalte dies aus.",
       "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten hat einen Wert. Lass das Gerät leer und nenne stattdessen einen Modbus-Paket-Präfix.",
       "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, gib daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben.",
+      "combi_needs_store": "Ein Kombispeicher ist der Pufferspeicher selbst: er erfordert ein drosselndes Mischventil, einen Pufferspeicher von mindestens 100 L, eingeschaltetes Warmwasser und keine Holzheizschlange am Warmwasser. Das ändern oder den Kombispeicher ausschalten.",
       "heat_curve_not_offset": "Der eigene Wertebereich dieser Entität enthält 0 nicht, sie ist also kein Offset: Sie sieht wie ein absoluter Kurvenpunkt aus. Wähle die Offset-Entität des Reglers.",
       "heat_curve_unreadable": "Diese Entität hat gerade keinen Wert, daher ist unbekannt, auf welchen Wert sie beim Ausschalten zurückgesetzt würde. Wähle eine Entität, die einen Wert meldet, oder speichere erneut, sobald sie es tut.",
       "heat_curve_out_of_range": "Diese Entität zeigt einen Wert außerhalb ihres eigenen angegebenen Bereichs, daher kann sie nicht sicher verschoben werden. Prüfe die Entität zuerst in ihrer Integration.",
@@ -1738,6 +1762,14 @@
         "both": "Einstellungen und gelernte Werte"
       }
     },
+    "dhw_combi_tank_type": {
+      "options": {
+        "internal_coil": "Innenliegende Wendel (Multifunktions- oder Hygienespeicher)",
+        "tank_in_tank": "Tank-in-Tank",
+        "external_station": "Frischwasserstation am Pufferspeicher",
+        "custom": "Eigene"
+        }
+      },
     "heat_curve_target_kind": {
       "options": {
         "offset": "Offset (0 ist neutral, flüchtig)",
@@ -1746,6 +1778,10 @@
     }
   },
   "issues": {
+    "price_feed_stale": {
+      "title": "Strompreise sind veraltet",
+      "description": "Die Preisquelle hat keine neuen Preise geliefert ({error}). Der Optimierer plant mit den zuletzt veröffentlichten Preisen weiter, die den aktuellen Zeitpunkt noch abdecken. Sind sie aufgebraucht, wird der Optimierer nicht verfügbar, bis wieder Preise ankommen. Dieser Hinweis verschwindet von selbst, sobald ein Abruf gelingt."
+    },
     "cop_degradation": {
       "title": "Effizienz der Wärmepumpe ist gesunken",
       "description": "Die Wärmepumpe liefert unter gleichen Bedingungen etwa {shortfall_percent} % weniger Wärme pro kWh als früher, was bei aktuellen Preisen rund {cost_month} {currency} pro Monat kostet. Die üblichen Verdächtigen sind ein verstopfter Filter, zu wenig Kältemittel oder ein Abtauproblem – ein Blick lohnt sich, bevor die Saison kälter wird. Dieser Hinweis verschwindet von selbst, wenn sich die Effizienz erholt."

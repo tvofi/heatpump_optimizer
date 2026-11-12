@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_cycle_temp RETURN_DEL 25788b20",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        return None if target is None else max(self.dhw_setpoint, target)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

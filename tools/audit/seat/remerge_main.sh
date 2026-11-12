@@ -51,5 +51,7 @@ wait $! || :; push_out=$(cat "$PL")
 # FAIL lines name the failing arms and prepr's `full log:` line names its log (carry 16).
 printf '%s\n' "$push_out" | grep -E 'RECARRY|REFUSE|PUSHED|^ *FAIL |full log:' || true  # mut:remergegrep
 # No PUSHED: keep the log, as pr_push_failed does, and name it.
-case $push_out in *PUSHED*) ;; *) KEEP=1; echo "remerge: push log kept: $PL" ;; esac
+pushed=1; case $push_out in *PUSHED*) pushed=0 ;; *) KEEP=1; echo "remerge: push log kept: $PL" ;; esac
 sleep 5; echo "RESULT pr=$PR head=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"
+# A refused push (app_push on a detached or untipped worktree) is a failed remerge, not RESULT's success (carry 15).
+if [ "$pushed" -ne 0 ]; then echo "REMERGE FAILED $PR at push"; exit 1; fi  # mut:remergepush

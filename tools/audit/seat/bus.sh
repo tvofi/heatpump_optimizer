@@ -552,7 +552,8 @@ autofix_inflight() { # head -> prints the autofix bot jobs of the head that are 
 # (ledger.py, beside $HPO_BUS_LEDGER else its default log): a seat started at that head.
 # THE REVIEW PACKET (R10-ORCH-REVIEW-PACKET; tvofi card 8): before recording, `review_packet.py
 # render` writes $S/packets/<pr>-<head>.md, refusing on its mechanical signals, and dispatch
-# names it only once `check` reads that head in it. --harness/--harness-file is the finder's.
+# names it only once `check` reads that head in it. --harness/--harness-file is the finder's;
+# --reviewed-head makes a later round's packet its delta and the verdict there (fix-review.md 12).
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
 dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
   local force="" fixing=""
@@ -613,7 +614,12 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     4) printf 'bus: %s\n' "$(printf '%s\n' "$cls" | grep '^APPROVAL-OWED ' | tail -n 1)" >&2 ;;
     # CARRY 17 card 3: a required red is a repair owed to the fixer, not a refusal a
     # retry loop re-tries (190 REFUSE tries, 2026-11-07); rc 5 and no `REFUSE:` prefix.
-    1) printf 'bus: REPAIR-OWED: dispatch: #%s'"'"'s head %s is not reviewable: a required context'"'"'s latest run there concluded failure (%s) -- back to its fixer for a repair; do not retry\n' "$pr" "$h" "$(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')" >&2; exit 5 ;;
+    # A red classify --pr reads from merge_train.introduced_at (R10-INTRODUCED-REDS-BARRIER)
+    # carries INTRODUCED lines and names those, not a required context's.
+    1) intro=$(printf '%s\n' "$cls" | sed -n 's/^INTRODUCED //p' | awk 'NR > 1 { printf "; " } { printf "%s", $0 }')
+       if [ -n "$intro" ]; then why="instrument-self-tests went red here and not at its merge base (INTRODUCED: $intro)"
+       else why="a required context's latest run there concluded failure ($(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p'))"; fi
+       printf 'bus: REPAIR-OWED: dispatch: #%s'"'"'s head %s is not reviewable: %s -- back to its fixer for a repair; do not retry\n' "$pr" "$h" "$why" >&2; exit 5 ;;
     *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
   esac
   # THE REVIEW CARRY (tvofi, 2026-10-27: "if there are no code changes, the
@@ -677,7 +683,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   # told nothing about a packet and one told "no packet, because X" are in different
   # worlds, and only the second is honest (R10-ORCH-REVIEW-PACKET, #2870).
   pmsg=$(${HPO_BUS_PACKER:-python3 -I "$ROOT/tools/audit/seat/review_packet.py"} render \
-           --pr "$pr" --head "$h" --out "$pk" ${hk:+"$hk" "$hv"} 2>&1 >/dev/null) || prc=$?
+           --pr "$pr" --head "$h" --out "$pk" ${rh:+--reviewed-head "$rh"} ${hk:+"$hk" "$hv"} 2>&1 >/dev/null) || prc=$?
   if [ "$prc" = 0 ] && ! python3 -I "$ROOT/tools/audit/seat/review_packet.py" check "$pk" --head "$h" >/dev/null 2>&1; then
     prc=3
     pmsg="review_packet: UNAVAILABLE: the packet written does not name the head $h"
@@ -1070,7 +1076,8 @@ P
 printf '%s|' "$@" >> "$BUS_TEST_CLASSIFIES"; echo >> "$BUS_TEST_CLASSIFIES"
 case ${BUS_CLASSIFY_RC:-0} in
   0) echo "GREEN $2 pending: none red: none" ;;
-  1) echo "RED $2 pending: none red: tests / fast gate" ;;
+  1) if [ -n "${BUS_CLASSIFY_INTRO:-}" ]; then printf 'RED %s pending: none red: none introduced: 2\nINTRODUCED %s\nINTRODUCED census\n' "$2" "$BUS_CLASSIFY_INTRO"
+     else echo "RED $2 pending: none red: tests / fast gate"; fi ;;
   3) echo "WAIT $2 pending: gate red: none" ;;
   4) echo "APPROVAL-OWED $2 1 budget raise(s), first tests/structure_budgets.json: m: 3 -> 4: a raise is the owner's (0013): planted" ;;
   *) echo "REFUSE proof: could not read main-protect-checks's required contexts; no proof is judged against a guessed list" ;;
@@ -1256,6 +1263,8 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
     && echo "$out" | grep -qF "review-carry: $h1 was blocked, so a fresh review is owed" \
     && [ "$(grep -c "^31 $hm cmsg_C3 " "$W/state/dispatched")" = 1 ]
   expect "P348: a blocked verdict at the reviewed head over a clean range mints, says why, and records (#3045 r3)" $?
+  tail -n 1 "$W/packs" | grep -q "^render|--pr|31|--head|$hm|--out|[^|]*|--reviewed-head|$h1|\$"
+  expect "a later round's dispatch hands the renderer its --reviewed-head, so the packet is the delta (fix-review.md 12; null: the harness dispatch below passes none)" $?
   vc merge "$h1"; vc blocked "$h2" "harness: another head"; n=$(grep -c . "$W/state/dispatched")
   out=$(seat dispatch 31 "$hm" cmsg_C4 --reviewed-head "$h1"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
@@ -2034,6 +2043,10 @@ B
   [ $rc = 5 ] && echo "$out" | grep -q "^bus: REPAIR-OWED: .*is not reviewable: .*(tests / fast gate)" && ! echo "$out" | grep -q "REFUSE" \
     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
   expect "a head whose required context concluded failure (classify RED) is not dispatched, owes its fixer a repair (rc 5, REPAIR-OWED, no REFUSE), and nothing is recorded" $?
+  out=$(BUS_CLASSIFY_RC=1 BUS_CLASSIFY_INTRO='(the job concluded timed_out)' run dispatch 7 "$h1" cmsg_K); rc=$?
+  [ $rc = 5 ] && echo "$out" | grep -qF "is not reviewable: instrument-self-tests went red here and not at its merge base (INTRODUCED: (the job concluded timed_out); census)" \
+    && ! echo "$out" | grep -q "required context" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+  expect "an INTRODUCED red (classify --pr RED, the required set green) owes REPAIR-OWED naming each INTRODUCED line, never a required context" $?
   out=$(BUS_CLASSIFY_RC=0 run dispatch 7 "$h1" cmsg_K); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
   expect "null control: the same dispatch at a GREEN-classified head mints and records" $?

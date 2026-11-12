@@ -349,14 +349,31 @@ function pageStates(plan) {
   return st;
 }
 
-/** The page-screenshot mode: the tile at 900 px and each dialog page, per
- * theme. Returns nothing; each picture is checked as a PNG of real size. */
+/** R9-UI-3 review, widened by R10-HOTFIX-CARD-HEALTH-TEXT: the card's text in
+ * the two theme/darkMode pairings Home Assistant produces but no P9 grid cell
+ * renders. HA reports hass.themes.darkMode false for any theme without a dark
+ * mode, so a community dark theme paints the card with dark variables and the
+ * light literals (and the mirror image under a light theme on a dark profile).
+ *
+ * The unit is every element that owns a visible text node, on the dashboard
+ * tile and on every dialog page the card's own tabs offer, enumerated from
+ * the rendered `.dlg-tab[data-page]` list -- never a selector list. The
+ * selector list this replaced (`.tile, .hl-stat, .hl-narrative,
+ * .status-pill` on the tile only) passed while the Health and Advisor rows
+ * drew --hpo-text on the darkMode-literal --hpo-surface-2 at 1.24:1 and
+ * 1.11:1 from v7.0.5 to v7.1.11 (906fee95e; rca r10-card-health-text). Each
+ * run's computed colour is measured against the first opaque background up
+ * its tree. SVG text is out of this unit (its paint is `fill`, its surface a
+ * sibling shape): the chart check below and the P9 grid own it. */
 async function themeMismatch({ browser, check, plan }) {
   const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
   const st = pageStates(plan);
   for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) {
     st[id] = { ...st[id], attributes: { ...st[id].attributes, active_now: false } };
   }
+  // The Health page reads the fixture with a stale input and the model rows,
+  // so its every row kind is drawn; every other page reads pageStates.
+  const healthSt = healthPageStates(st, FROZEN);
   const cases = [
     { name: "dark theme variables, darkMode false", vars: THEMES.dark, dark: false },
     { name: "light theme variables, darkMode true", vars: THEMES.light, dark: true },
@@ -365,10 +382,16 @@ async function themeMismatch({ browser, check, plan }) {
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 }, deviceScaleFactor: 1 });
     await ctx.clock.setFixedTime(FROZEN);
     const page = await ctx.newPage();
-    try {
-      await page.goto("about:blank");
+    // Mount a fresh card on `view` ("tile", or a dialog page id) and measure
+    // it. Returns the text sweep, the page ids the dialog's tabs offer, and
+    // on the tile the chart's series against their panel.
+    const mount = async (view) => {
+      // A standards-mode document, as Home Assistant's is: about:blank is in
+      // quirks mode, where a table does not inherit `color`, so the Savings
+      // table would read black on the dark arm for a reason no install has.
+      await page.setContent("<!doctype html><html><head></head><body></body></html>");
       await page.addScriptTag({ path: CARD_SRC });
-      const res = await page.evaluate(([vars, st, dark]) => {
+      return page.evaluate(([vars, st, dark, view]) => {
         const style = document.createElement("style");
         style.textContent = `html{${vars}} body{margin:0;padding:16px;background:var(--card-background-color)}` +
           `ha-card{display:block;background:var(--card-background-color);color:var(--primary-text-color)}` +
@@ -379,9 +402,18 @@ async function themeMismatch({ browser, check, plan }) {
         card.setConfig({ type: "custom:heatpump-optimizer-card" });
         card.hass = { states: st, language: "en", themes: { darkMode: dark } };
         const root = card.shadowRoot;
+        let tabs = [];
+        if (view !== "tile") {
+          card._onCardClick({});
+          card.dialog.page = view;
+          card._render();
+          tabs = [...root.querySelectorAll("dialog[open] .dlg-tab[data-page]")].map((t) => t.dataset.page);
+        }
+        const scope = view === "tile" ? root : root.querySelector("dialog[open]");
         const rgba = (s) => (s.match(/[\d.]+/g) || []).map(Number);
         const lum = ([r, g, b]) => [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; })
           .reduce((a, v, i) => a + v * [0.2126, 0.7152, 0.0722][i], 0);
+        const ratio = (fg, bg) => { const [l1, l2] = [lum(fg), lum(bg)].sort((a, b) => b - a); return (l1 + 0.05) / (l2 + 0.05); };
         const bgOf = (el) => {
           for (let e = el; e; e = e.parentElement || (e.getRootNode() && e.getRootNode().host)) {
             const c = rgba(getComputedStyle(e).backgroundColor);
@@ -389,26 +421,32 @@ async function themeMismatch({ browser, check, plan }) {
           }
           return [255, 255, 255];
         };
-        const seen = [];
+        const runs = {};
         const low = [];
-        for (const box of root.querySelectorAll(".tile, .hl-stat, .hl-narrative, .status-pill")) {
-          for (const el of [box, ...box.querySelectorAll("*")]) {
-            const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
-            if (!own || !el.getClientRects().length) continue;
-            const fg = rgba(getComputedStyle(el).color), bg = bgOf(el);
-            const [l1, l2] = [lum(fg), lum(bg)].sort((a, b) => b - a);
-            const r = (l1 + 0.05) / (l2 + 0.05);
-            seen.push(el.className || el.tagName);
-            if (r < 4.5) low.push(`${el.className || el.tagName.toLowerCase()} ${r.toFixed(2)}:1`);
-          }
+        let seen = 0;
+        for (const el of scope ? scope.querySelectorAll("*") : []) {
+          if (el.closest("svg") || (view === "tile" && el.closest("dialog"))) continue;
+          const own = [...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim());
+          if (!own || !el.getClientRects().length) continue;
+          const cs = getComputedStyle(el);
+          if (cs.visibility !== "visible") continue;
+          const bg = bgOf(el);
+          const c4 = rgba(cs.color);
+          const a = c4.length === 4 ? c4[3] : 1;
+          const fg = c4.slice(0, 3).map((v, i) => v * a + bg[i] * (1 - a));
+          const r = ratio(fg, bg);
+          const key = `${el.tagName.toLowerCase()}${el.classList.length ? "." + [...el.classList].join(".") : ""}`;
+          runs[key] = (runs[key] || 0) + 1;
+          seen++;
+          if (r < 4.5) low.push(`${view} ${key} ${r.toFixed(2)}:1`);
         }
         // R9-UI-4: the chart's series and its in-panel text against the
         // panel they are drawn on, whose fill comes from the same darkMode
         // switch as their colours. Series as C4 reads them: the stroke where
         // there is one, else the fill, at the element's opacity.
-        const panel = root.querySelector("rect.panel");
-        const plotBg = panel ? rgba(getComputedStyle(panel).fill) : null;
         const chart = { seen: 0, low: [] };
+        const panel = view === "tile" ? root.querySelector("rect.panel") : null;
+        const plotBg = panel ? rgba(getComputedStyle(panel).fill) : null;
         if (plotBg && plotBg.length >= 3) {
           for (const el of root.querySelectorAll(".series[data-key], text.now-label, text.estimated-label, text.now-temp")) {
             if (!el.getClientRects().length) continue;
@@ -419,25 +457,120 @@ async function themeMismatch({ browser, check, plan }) {
             if (fg.length < 3) continue;
             const a = parseFloat(cs.opacity);
             const shown = fg.slice(0, 3).map((v, i) => v * a + plotBg[i] * (1 - a));
-            const [l1, l2] = [lum(shown), lum(plotBg)].sort((x, y) => y - x);
-            const r = (l1 + 0.05) / (l2 + 0.05);
+            const r = ratio(shown, plotBg);
             chart.seen++;
             if (r < (text ? 4.5 : 3)) chart.low.push(`${el.getAttribute("class")}${el.dataset.key ? ":" + el.dataset.key : ""} ${r.toFixed(2)}:1`);
           }
         }
-        return { seen: seen.length, idle: !!root.querySelector('.status-pill[data-status="idle"]'),
-          tiles: root.querySelectorAll(".tile").length, stats: root.querySelectorAll(".hl-stat").length, low,
-          panel: !!panel, chart };
-      }, [c.vars, st, c.dark]);
-      check(`R9-UI-3 tile, headline-stat and pill text clears 4.5:1 with ${c.name}`,
-        res.idle && res.tiles === 4 && res.stats >= 2 && res.seen >= 12 && res.low.length === 0,
-        `${res.seen} text runs, ${res.tiles} tiles, ${res.stats} stats, idle pill ${res.idle}; under 4.5: ${res.low.slice(0, 6).join(", ")}`);
+        return { view, seen, runs, low, tabs, panel: !!panel, chart,
+          tiles: root.querySelectorAll(".tile").length, stats: root.querySelectorAll(".hl-stat").length,
+          idle: !!root.querySelector('.status-pill[data-status="idle"]') };
+      }, [c.vars, view === "health" ? healthSt : st, c.dark, view]);
+    };
+    try {
+      const tile = await mount("tile");
+      check(`R9-UI-3 every tile text run clears 4.5:1 with ${c.name}`,
+        tile.idle && tile.tiles === 4 && tile.stats >= 2 && tile.seen >= 12 && tile.low.length === 0,
+        `${tile.seen} text runs, ${tile.tiles} tiles, ${tile.stats} stats, idle pill ${tile.idle}; under 4.5: ${tile.low.slice(0, 6).join(", ")}`);
       check(`R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with ${c.name}`,
-        res.panel && res.chart.seen >= 8 && res.chart.low.length === 0,
-        `${res.chart.seen} measured; under the floor: ${res.chart.low.slice(0, 6).join(", ")}`);
+        tile.panel && tile.chart.seen >= 8 && tile.chart.low.length === 0,
+        `${tile.chart.seen} measured; under the floor: ${tile.chart.low.slice(0, 6).join(", ")}`);
+      // The pages are the ones the dialog offers, read off its own tabs.
+      const first = await mount("plan");
+      const pages = [];
+      for (const id of first.tabs) pages.push(id === "plan" ? first : await mount(id));
+      const low = pages.flatMap((p) => p.low);
+      const count = (id, key) => (pages.find((p) => p.view === id) || { runs: {} }).runs[key] || 0;
+      // The sweep's own controls: it reached every page with text on it,
+      // and the rows of the 906fee95e defect are among what it measured --
+      // a sweep that found the Health or Advisor rows absent would pass for
+      // having nothing to measure.
+      const reach = { pages: first.tabs.length, empty: pages.filter((p) => p.seen < 5).map((p) => p.view),
+        health: count("health", "span.fact-text"), advisor: count("advisor", "span.fact-text") };
+      check(`R10 every own-text run on every dialog page clears 4.5:1 with ${c.name}`,
+        reach.pages >= 5 && !reach.empty.length && reach.health >= 10 && reach.advisor >= 3 && low.length === 0,
+        `${pages.map((p) => `${p.view}=${p.seen}`).join(" ")} runs; reach ${JSON.stringify(reach)}; ` +
+          `under 4.5 (${low.length}): ${low.slice(0, 8).join(", ")}`);
     } finally {
       await ctx.close();
     }
+  }
+}
+
+/** R10-HOTFIX-CARD-HEALTH-TEXT: a content blocker's generic element-hiding
+ * rules, applied inside the card's shadow root, must leave every label a
+ * layout box. The owner's v7.1.11 Health page drew values and bars at the
+ * row's left edge with no label: EasyList's `##.adv-text` and `##.adv-label`
+ * (easylist_general_hide.txt; AdGuard Base carries both) matched the card's
+ * own class names and removed the box (rca r10-card-health-text, third
+ * pass). A blocker's `##.x` is `display: none !important`; the cell injects
+ * exactly that, as a stylesheet inside the shadow root after the render, on
+ * every page the dialog's tabs offer, and requires every element owning a
+ * text node to keep a client rect. The bare arm is the null control: the
+ * same sweep without the rules. The static class-name check in
+ * tests/card.mjs is the cheap barrier; this is the rendered proof. */
+const BLOCKER_HIDE_RULES = ["##.adv-text", "##.adv-label"];
+async function blockerHide({ browser, check, plan }) {
+  const FROZEN = Date.parse(plan.dhw_plan.forecast[0].t) + 6 * HOUR;
+  const st = pageStates(plan);
+  const healthSt = healthPageStates(st, FROZEN);
+  const css = BLOCKER_HIDE_RULES.map((r) => `${r.slice(2)}{display:none!important}`).join("\n");
+  const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 }, deviceScaleFactor: 1 });
+  await ctx.clock.setFixedTime(FROZEN);
+  const page = await ctx.newPage();
+  const mount = async (view, inject) => {
+    await page.setContent("<!doctype html><html><head></head><body></body></html>");
+    await page.addScriptTag({ path: CARD_SRC });
+    return page.evaluate(([vars, st, view, inject]) => {
+      const style = document.createElement("style");
+      style.textContent = `html{${vars}} body{margin:0;padding:16px}` +
+        `heatpump-optimizer-card{display:block;width:900px}`;
+      document.head.appendChild(style);
+      const card = document.createElement("heatpump-optimizer-card");
+      document.body.appendChild(card);
+      card.setConfig({ type: "custom:heatpump-optimizer-card" });
+      card.hass = { states: st, language: "en", themes: { darkMode: true } };
+      card._onCardClick({});
+      card.dialog.page = view;
+      card._render();
+      const root = card.shadowRoot;
+      if (inject) {
+        const s = document.createElement("style");
+        s.textContent = inject;
+        root.appendChild(s);
+      }
+      const tabs = [...root.querySelectorAll("dialog[open] .dlg-tab[data-page]")].map((t) => t.dataset.page);
+      const scope = root.querySelector("dialog[open]");
+      let seen = 0;
+      const boxless = [];
+      for (const el of scope ? scope.querySelectorAll("*") : []) {
+        if (el.closest("svg") || el.matches("style, script, template")) continue;
+        if (![...el.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim())) continue;
+        seen++;
+        const r = el.getBoundingClientRect();
+        if (!el.getClientRects().length || r.width === 0 || r.height === 0) {
+          boxless.push(`${view} ${el.tagName.toLowerCase()}${el.classList.length ? "." + [...el.classList].join(".") : ""}`);
+        }
+      }
+      return { view, tabs, seen, boxless };
+    }, [THEMES.dark, view === "health" ? healthSt : st, view, inject]);
+  };
+  try {
+    for (const [arm, inject] of [["without blocker rules (null control)", ""],
+      [`with ${BLOCKER_HIDE_RULES.join(" ")} injected into the shadow root`, css]]) {
+      const first = await mount("plan", inject);
+      const pages = [];
+      for (const id of first.tabs) pages.push(id === "plan" ? first : await mount(id, inject));
+      const boxless = pages.flatMap((p) => p.boxless);
+      const seenOf = (id) => (pages.find((p) => p.view === id) || { seen: 0 }).seen;
+      const reach = { pages: first.tabs.length, health: seenOf("health"), advisor: seenOf("advisor") };
+      check(`R10 every text-bearing element on every dialog page keeps a layout box ${arm}`,
+        reach.pages >= 5 && reach.health >= 20 && reach.advisor >= 3 && boxless.length === 0,
+        `${pages.map((p) => `${p.view}=${p.seen}`).join(" ")}; reach ${JSON.stringify(reach)}; ` +
+          `box-less (${boxless.length}): ${boxless.slice(0, 8).join(", ")}`);
+    }
+  } finally {
+    await ctx.close();
   }
 }
 
@@ -2925,8 +3058,9 @@ try {
   // community dark theme paints the card with dark variables and the light
   // literals. Every text run on a tile, a headline stat or the status pill
   // must clear 4.5:1 against what it is painted on, in that mismatch and in
-  // its mirror image.
+  // its mirror image -- on the tile and on every dialog page.
   await themeMismatch({ browser, check, plan });
+  await blockerHide({ browser, check, plan });
 
   // R9-UX-8: the narrative rows lay out on a phone and on a desktop.
   await narrativeLayout({ browser, check, plan, out: process.env.HPO_NL_OUT });

@@ -2249,6 +2249,54 @@ async def options_advanced_pages():
         and not entry.options,
         f"errors={result.get('errors')} options={sorted(entry.options)}",
     )
+    # #3225 (R10-COMBI-TANK): the combi switch is judged by the model's own
+    # predicate over what would be stored, so a switch the model would ignore
+    # (here: no throttling valve) is refused rather than saved.
+    flow, entry, _ = fresh_options({const.CONF_DHW_ENABLED: True})
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {**BUILDING_PAGE_ANSWERS, const.CONF_DHW_COMBI_TANK_ENABLED: True},
+    )
+    check(
+        "opt_building",
+        "error",
+        "a combi tank without the buffer store (no throttling valve) is refused, not saved (#3225)",
+        shows(result, "building")
+        and result.get("errors", {}).get(const.CONF_DHW_COMBI_TANK_ENABLED) == "combi_needs_store"
+        and const.CONF_DHW_COMBI_TANK_ENABLED not in entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+    # Null control: the same switch over a store (a throttling valve, 504 l)
+    # is saved, and a changed type writes its preset's two numbers.
+    flow, entry, _ = fresh_options({const.CONF_DHW_ENABLED: True})
+    await flow.async_step_building(None)
+    await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_MODE: config_flow.mixing_valve.MODE_MANUAL,
+            const.CONF_BUFFER_TANK_VOLUME: 504.0,
+            const.CONF_DHW_COMBI_TANK_ENABLED: True,
+            const.CONF_DHW_COMBI_TANK_TYPE: "external_station",
+            const.CONF_COMBI_DHW_EFFECTIVENESS: 0.85,
+            const.CONF_COMBI_POTABLE_VOLUME_L: 40.0,
+        },
+    )
+    saved = dict(entry.options)
+    check(
+        "opt_building",
+        "happy",
+        "a combi tank over the buffer store is saved, and a changed type writes its preset (#3225)",
+        saved.get(const.CONF_DHW_COMBI_TANK_ENABLED) is True
+        and saved.get(const.CONF_COMBI_DHW_EFFECTIVENESS) == 0.75
+        and saved.get(const.CONF_COMBI_POTABLE_VOLUME_L) == 0.0
+        and config_flow.ThermalParameters.from_config({**BASE_ENTRY_DATA, **saved}).combi_tank_active,
+        f"options={saved}",
+    )
+
     flow, entry, _ = fresh_options()
     await flow.async_step_building(None)
     result = await submit(
@@ -2802,6 +2850,9 @@ async def entity_clear_survives_the_flow_manager():
         # The wood block renders only with its gate on, and the gate is a
         # field of the same page: seeding it drives the gated slots too.
         seed[config_flow.CONF_WOOD_FURNACE_ENABLED] = True
+        # The set-point limit sensors render only for a water unit, a field
+        # of the same page.
+        seed[config_flow.CONF_SPACE_SETPOINT_UNIT] = "return"
         for key in keys:
             flow, entry, _ = fresh_options(pre_options=seed)
             shown = await getattr(flow, f"async_step_{step}")(None)

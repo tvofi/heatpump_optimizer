@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.10";
+const CARD_VERSION = "7.1.12";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -100,8 +100,8 @@ const STRINGS = {
     "health.limit": "limit {limit}",
     "health.no_age": "no reading",
     "health.pill_ok": "All inputs fresh",
-    "health.pill_one": "1 input stale",
-    "health.pill_other": "{n} inputs stale",
+    "health.pill_one": "1 input problem",
+    "health.pill_other": "{n} input problems",
     "health.solved": "Solved {age} ago",
     "health.next_solve": "Next solve in {age}",
     "health.next_due": "Next solve due now",
@@ -147,6 +147,8 @@ const STRINGS = {
     "health.input_solar_radiation_entity": "Solar radiation sensor",
     "health.input_space_circulation_pump_entity": "Heating circulation pump switch",
     "health.input_space_setpoint_entity": "Space-heating set-point entity",
+    "health.input_space_setpoint_high_limit_entity": "Controller's maximum set-point sensor",
+    "health.input_space_setpoint_low_limit_entity": "Controller's minimum set-point sensor",
     "health.input_valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve",
     "health.input_vvc_pump_entity": "Hot water circulation pump switch",
     "health.input_weather_entity": "Weather forecast",
@@ -707,6 +709,7 @@ const STRINGS = {
     "setup.buffer_too_small": "too small to store",
     "setup.no_valve_caption": "no mixing valve: delivery is not throttled",
     "setup.box_dhw_tank": "Hot water tank",
+    "setup.dhw_combi_caption": "made in the buffer tank (combi)",
     "setup.dhw_coil_caption": "refilled through a wood tank coil",
     "setup.dhw_coil_preheats": "preheats the mains water",
     "setup.dhw_coil_off": "coil configured, not modelled",
@@ -993,8 +996,8 @@ const STRINGS = {
     "health.limit": "gräns {limit}",
     "health.no_age": "ingen avläsning",
     "health.pill_ok": "Alla indata aktuella",
-    "health.pill_one": "1 indata inaktuell",
-    "health.pill_other": "{n} indata inaktuella",
+    "health.pill_one": "1 indataproblem",
+    "health.pill_other": "{n} indataproblem",
     "health.solved": "Löst för {age} sedan",
     "health.next_solve": "Nästa lösning om {age}",
     "health.next_due": "Nästa lösning är försenad",
@@ -1040,6 +1043,8 @@ const STRINGS = {
     "health.input_solar_radiation_entity": "Solinstrålningsgivare",
     "health.input_space_circulation_pump_entity": "Brytare för värmesystemets cirkulationspump",
     "health.input_space_setpoint_entity": "Börvärdesenhet för rumsuppvärmning",
+    "health.input_space_setpoint_high_limit_entity": "Givare för styrenhetens högsta börvärde",
+    "health.input_space_setpoint_low_limit_entity": "Givare för styrenhetens lägsta börvärde",
     "health.input_valve_outlet_temp_entity": "Temperatur efter shunten mellan ved- och värmepumpstank",
     "health.input_vvc_pump_entity": "Brytare för VVC-pump",
     "health.input_weather_entity": "Väderprognos",
@@ -1572,6 +1577,7 @@ const STRINGS = {
     "setup.buffer_too_small": "för liten för att lagra",
     "setup.no_valve_caption": "ingen shuntventil: leveransen stryps inte",
     "setup.box_dhw_tank": "Varmvattentank",
+    "setup.dhw_combi_caption": "görs i ackumulatortanken (kombi)",
     "setup.dhw_coil_caption": "återfylls genom en slinga i vedtanken",
     "setup.dhw_coil_preheats": "förvärmer kallvattnet",
     "setup.dhw_coil_off": "slinga vald, inte modellerad",
@@ -1841,8 +1847,8 @@ const STRINGS = {
     "health.limit": "Grenzwert {limit}",
     "health.no_age": "kein Messwert",
     "health.pill_ok": "Alle Eingänge aktuell",
-    "health.pill_one": "1 Eingang veraltet",
-    "health.pill_other": "{n} Eingänge veraltet",
+    "health.pill_one": "1 Eingangsproblem",
+    "health.pill_other": "{n} Eingangsprobleme",
     "health.solved": "Berechnet vor {age}",
     "health.next_solve": "Nächste Berechnung in {age}",
     "health.next_due": "Nächste Berechnung jetzt fällig",
@@ -1888,6 +1894,8 @@ const STRINGS = {
     "health.input_solar_radiation_entity": "Sensor für Sonneneinstrahlung",
     "health.input_space_circulation_pump_entity": "Schalter der Heizungsumwälzpumpe",
     "health.input_space_setpoint_entity": "Sollwert-Entität der Raumheizung",
+    "health.input_space_setpoint_high_limit_entity": "Sensor für den maximalen Sollwert des Reglers",
+    "health.input_space_setpoint_low_limit_entity": "Sensor für den minimalen Sollwert des Reglers",
     "health.input_valve_outlet_temp_entity": "Temperatur nach dem Mischventil Holz/Wärmepumpe",
     "health.input_vvc_pump_entity": "Schalter der Warmwasser-Zirkulationspumpe",
     "health.input_weather_entity": "Wettervorhersage",
@@ -2297,6 +2305,7 @@ const STRINGS = {
     "setup.buffer_too_small": "zu klein zum Speichern",
     "setup.no_valve_caption": "kein Mischventil: Abgabe wird nicht gedrosselt",
     "setup.box_dhw_tank": "Warmwasserspeicher",
+    "setup.dhw_combi_caption": "im Pufferspeicher bereitet (Kombi)",
     "setup.dhw_coil_caption": "wird über eine Holzspeicher-Wendel nachgeladen",
     "setup.dhw_coil_preheats": "wärmt das Leitungswasser vor",
     "setup.dhw_coil_off": "Wendel konfiguriert, nicht modelliert",
@@ -4380,7 +4389,11 @@ function setupSvgHtml(topo, ctx) {
     off: ["setup.dhw_coil_off", "setup.dhw_coil_off_why"],
     none: ["setup.dhw_coil_none", "setup.dhw_coil_none_why"],
   };
-  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"], [],
+  // A combi store (#3225) makes hot water from the buffer's own water: the
+  // box says so, and its pipe leaves the buffer rather than the pump.
+  const combi = topo.dhw_source === "combi";
+  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"],
+    combi ? [L("setup.dhw_combi_caption")] : [],
     topo.wood && topo.wood.present ? coilWords[coilState].map((k) => L(k)) : []);
   box(2, L(topo.two_zone ? "setup.box_upper_floor" : "setup.box_house"),
     ["upper_zone"]);
@@ -4700,7 +4713,11 @@ function setupSvgHtml(topo, ctx) {
     // Electric hot water: the pump heats the DHW tank on every layout
     // (#40 feedback, item 2) — stale payloads deserve the pipe too.
     if (topo.dhw) {
-      pipe(findPlace("heat_pump"), findPlace("dhw_tank"), "hp-dhw");
+      if (topo.dhw_source === "combi") {
+        pipe(bufferBox, findPlace("dhw_tank"), "buffer-dhw");
+      } else {
+        pipe(findPlace("heat_pump"), findPlace("dhw_tank"), "hp-dhw");
+      }
     }
   }
 
@@ -5081,7 +5098,7 @@ function cardStyleBlock(darkMode) {
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
         /* The advisor page's ranked rows (#1269), the same HTML-button
            surface as the picker's controls: the same floor. */
-        .adv-row, .adv-act,
+        .fact-row, .fact-act,
         .hl-stat.hl-score,
         /* The headline score pill (#1388, R6-D4-01) joins the floor: it is a
            control -- role="button", tabindex="0" and a click handler open the
@@ -5192,12 +5209,18 @@ function cardStyleBlock(darkMode) {
       }
       /* A surface-2 block re-points the text tokens at the ink literals, so
          every descendant that reads --hpo-text or --hpo-text-2 is paired
-         with the surface it sits on, whatever the HA theme's own text. */
-      .tile, .hl-stat, .hl-narrative {
+         with the surface it sits on, whatever the HA theme's own text. The
+         one rule that puts a text block on --hpo-surface-2: a block given
+         the surface anywhere else drew the theme's text on it, which is how
+         the Health and Advisor rows read 1.24:1 under a dark theme HA
+         reports as darkMode false (906fee95e, R10-HOTFIX-CARD-HEALTH-TEXT). */
+      .tile, .hl-stat, .hl-narrative, .health-row, .fact-inbox-row {
         --hpo-text: var(--hpo-ink, #212121);
         --hpo-text-2: var(--hpo-ink-2, #727272);
         color: var(--hpo-text, #212121);
         background: var(--hpo-surface-2, #f7f9fb);
+      }
+      .tile, .hl-stat, .hl-narrative {
         border-radius: var(--hpo-radius-m, 12px);
         padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); min-width: 0;
       }
@@ -5773,12 +5796,16 @@ function cardStyleBlock(darkMode) {
         outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 2px;
       }
-      /* A pressed toggle says so in the ink and not only in the border: the
-         accent is the token measured against the card, and a 1 px border
-         moving is a state a reader can miss at a glance. */
+      /* A pressed toggle says so in the ink and not only in the border: a
+         1 px border moving is a state a reader can miss at a glance. The
+         accent ink is a darkMode literal, so it is drawn on the surface from
+         the same switch: on the theme's card surface it read 2.95:1 under a
+         dark theme HA reports as darkMode false, and 2.32:1 in the mirror
+         (R10-HOTFIX-CARD-HEALTH-TEXT). */
       .layout-edit-toggle.on {
         border-color: var(--hpo-primary, #03a9f4);
         color: var(--hpo-accent, #026aa8);
+        background: var(--hpo-surface-2, #f7f9fb);
       }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
@@ -5960,12 +5987,12 @@ function cardStyleBlock(darkMode) {
          an unpriced row's reason text is smaller rather than faded: it
          must stay readable as prose, not pass as a de-emphasised
          number. */
-      .advisor-page .adv-head {
+      .advisor-page .fact-head {
         display: flex; flex-wrap: wrap; gap: 4px 12px;
         align-items: baseline; justify-content: space-between;
         padding: 4px 0 2px 0;
       }
-      .adv-title { font-weight: 600; }
+      .fact-title { font-weight: 600; }
       .health-cols {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
         gap: 4px 16px; align-items: start;
@@ -5974,14 +6001,11 @@ function cardStyleBlock(darkMode) {
          takes the user agent's 700, the one bold heading in the card
          (H3b). */
       .health-h { margin: 12px 0 4px 0; font-size: 1em; font-weight: 600; }
-      /* The row's surface is the pair its ink is drawn for (H3a): the text is
-         the card's --hpo-text, so the surface is the card's --hpo-surface-2.
-         A theme's --secondary-background-color under the card's dark ink
-         read 1.20:1 wherever the theme does not define it. */
+      /* The row's surface and ink are the surface-2 pair (H3a), set by the
+         surface-2 block rule beside .tile. */
       .health-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--hpo-surface-2, #f7f9fb);
       }
       .health-support { margin-top: 12px; }
       /* "What the model has learned" (R9-UX-7): a tabular value and an
@@ -6012,25 +6036,25 @@ function cardStyleBlock(darkMode) {
       .health-row[data-done="true"] .health-mark {
         background: var(--hpo-ok-bg, #e8f1ed); border-color: transparent;
       }
-      /* The inbox rows (R9-UX-2): a surface-2 block with a title, a detail,
-         a tabular value and at most one action, which wraps under the text
-         on a narrow card. */
-      .adv-inbox-row {
+      /* The inbox rows (R9-UX-2): a surface-2 block (its surface and ink
+         from the block rule beside .tile) with a title, a detail, a tabular
+         value and at most one action, which wraps under the text on a
+         narrow card. */
+      .fact-inbox-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--hpo-surface-2, #f7f9fb);
       }
-      .adv-text { flex: 1 1 14em; min-width: 0; }
-      .adv-text .adv-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
-      .adv-act {
+      .fact-text { flex: 1 1 14em; min-width: 0; }
+      .fact-text .fact-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
+      .fact-act {
         font: inherit; cursor: pointer; padding: 0.3em 0.9em;
         color: inherit; background: none;
         border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
       }
-      .adv-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
-      .adv-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
-      .adv-row {
+      .fact-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .fact-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
+      .fact-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
+      .fact-row {
         display: flex; width: 100%; gap: 12px;
         align-items: center; justify-content: space-between;
         padding: 0.45em 0.7em; margin: 2px 0;
@@ -6040,16 +6064,16 @@ function cardStyleBlock(darkMode) {
         border-radius: 6px; cursor: pointer;
         font-variant-numeric: tabular-nums;
       }
-      .adv-row:hover { background: var(--secondary-background-color, #f5f5f5); }
-      .adv-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-label { flex: 1 1 auto; }
-      .adv-value { flex: 0 0 auto; text-align: right; }
-      .adv-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
-      .adv-unpriced-head {
+      .fact-row:hover { background: var(--secondary-background-color, #f5f5f5); }
+      .fact-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .fact-label { flex: 1 1 auto; }
+      .fact-value { flex: 0 0 auto; text-align: right; }
+      .fact-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
+      .fact-unpriced-head {
         font-weight: 600; padding: 14px 0 2px 0;
       }
-      .adv-unpriced-head + .adv-row .adv-value,
-      .adv-row.unpriced .adv-value {
+      .fact-unpriced-head + .fact-row .fact-value,
+      .fact-row.unpriced .fact-value {
         font-size: max(12px, 0.85em); max-width: 60%;
       }
 
@@ -10092,15 +10116,15 @@ function advisorRowHtml(host, row) {
     const text = row.status === "waiting"
       ? L("advisor.waiting", { reason: row.reason })
       : L("advisor.unavailable");
-    return `<div class="adv-inbox-row adv-${row.status}"><span class="adv-text">${esc(text)}</span></div>`;
+    return `<div class="fact-inbox-row fact-${row.status}"><span class="fact-text">${esc(text)}</span></div>`;
   }
   const value = row.value === null ? L("advisor.no_value")
     : L("advisor.value_month", {
       value: Math.round(row.value), currency: host.plan.currency() });
-  return `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(row.title)}<span class="adv-sub">${esc(row.detail)}</span></span>
-      <span class="adv-value">${esc(value)}</span>
-      ${row.act ? `<button type="button" class="adv-act" data-act="${row.act}"
+  return `<div class="fact-inbox-row">
+      <span class="fact-text">${esc(row.title)}<span class="fact-sub">${esc(row.detail)}</span></span>
+      <span class="fact-value">${esc(value)}</span>
+      ${row.act ? `<button type="button" class="fact-act" data-act="${row.act}"
         data-key="${esc(row.key || "")}" data-target="${row.target ?? ""}">${esc(L(act[row.act]))}</button>` : ""}
     </div>`;
 }
@@ -10135,26 +10159,26 @@ function feedbackGaps(plan) {
 
 function feedbackRowHtml(gaps) {
   const list = gaps.map((g) => `${L(`advisor.feedback_${g.class}`)} (${g.key})`).join(", ");
-  return `<div class="adv-inbox-row" data-advice="feedback">
-      <span class="adv-text">${esc(L("advisor.feedback_title"))}<span class="adv-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="adv-sub">${esc(L("advisor.step_metering"))}</span></span>
-      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
-      <button type="button" class="adv-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
+  return `<div class="fact-inbox-row" data-advice="feedback">
+      <span class="fact-text">${esc(L("advisor.feedback_title"))}<span class="fact-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="fact-sub">${esc(L("advisor.step_metering"))}</span></span>
+      <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+      <button type="button" class="fact-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
     </div>`;
 }
 
 function advisorInboxHtml(host) {
   const rows = advisorRows(host);
   const feedback = feedbackGaps(host.plan);
-  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}<span class="adv-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
-      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="fact-inbox-row">
+      <span class="fact-text">${esc(L(`advisor.optin_${id}`))}<span class="fact-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
+      <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
     </div>`).join("");
-  return `<div class="adv-head"><span class="adv-title">${esc(L("advisor.inbox_heading"))}</span></div>
+  return `<div class="fact-head"><span class="fact-title">${esc(L("advisor.inbox_heading"))}</span></div>
     ${(rows.length ? rows.map((r) => advisorRowHtml(host, r)).join("")
       : feedback.length ? ""
         : `<div class="empty">${esc(L("advisor.inbox_empty"))}</div>`)
       + (feedback.length ? feedbackRowHtml(feedback) : "")}
-    <div class="adv-head"><span class="adv-title">${esc(L("advisor.optin_heading"))}</span></div>
+    <div class="fact-head"><span class="fact-title">${esc(L("advisor.optin_heading"))}</span></div>
     ${optIn}`;
 }
 
@@ -10292,6 +10316,10 @@ function fmtMinutes(m) {
 function healthPillHtml(plan) {
   const st = inputProblemState(plan);
   if (!st || st.state === "unavailable" || st.state === "unknown") return "";
+  // Every problem kind counts (unavailable, out of range, stale, ...), one
+  // per Health-page row, so the words name no single kind: "stale" here
+  // contradicted a row whose own pill read "Unavailable"
+  // (R10-HOTFIX-CARD-HEALTH-TEXT).
   const n = ((st.attributes || {}).problems || []).length;
   const text = n === 0 ? L("health.pill_ok")
     : L(n === 1 ? "health.pill_one" : "health.pill_other", { n });
@@ -10319,8 +10347,8 @@ function inputAssigned(plan, key) {
 }
 
 function healthRow(attrs, title, detail, pill) {
-  return `<div class="health-row"${attrs}><span class="adv-text">${esc(title)}` +
-    `<span class="adv-sub">${esc(detail)}</span></span>${pill}</div>`;
+  return `<div class="health-row"${attrs}><span class="fact-text">${esc(title)}` +
+    `<span class="fact-sub">${esc(detail)}</span></span>${pill}</div>`;
 }
 
 function healthInputsHtml(plan) {
@@ -10416,7 +10444,7 @@ function healthModelTitle(id, reason) {
 function healthModelRow(id, title, detail, value, share, tone) {
   const pct = Math.round(Math.max(0, Math.min(1, Number(share) || 0)) * 100);
   return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}" title="${esc(healthModelTitle(id, detail))}">` +
-    `<span class="adv-text">${esc(title)}<span class="adv-sub">${esc(detail)}</span></span>` +
+    `<span class="fact-text">${esc(title)}<span class="fact-sub">${esc(detail)}</span></span>` +
     `<span class="model-value">${esc(value)}</span>` +
     `<span class="model-bar" aria-hidden="true"><span style="width:${pct}%"></span></span></div>`;
 }
@@ -10440,7 +10468,7 @@ function healthGainsRow(gains, learning) {
   const peak = L("health.model_gains_peak", { kw: top.toFixed(1), hh: String(at).padStart(2, "0") });
   const detail = learning ? `${learning.text} ${peak}` : peak;
   return `<div class="health-row model-row" data-model-row="gains" data-tone="ok" title="${esc(healthModelTitle("gains", detail))}">` +
-    `<span class="adv-text">${esc(L("health.model_gains"))}<span class="adv-sub">` +
+    `<span class="fact-text">${esc(L("health.model_gains"))}<span class="fact-sub">` +
     `${esc(detail)}</span></span>` +
     `<span class="gains-strip" aria-hidden="true">${bars}</span></div>`;
 }
@@ -10567,8 +10595,8 @@ function healthChecklistHtml(plan) {
   ];
   return `<h3 class="health-h">${esc(L("health.checklist"))}</h3>` + items.map(([id, done, act]) =>
     `<div class="health-row" data-check="${id}" data-done="${done}"><span class="health-mark">${done ? "✓" : ""}</span>` +
-    `<span class="adv-text">${esc(L(`health.check_${id}`))}</span>` +
-    (!done && act ? `<button type="button" class="adv-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
+    `<span class="fact-text">${esc(L(`health.check_${id}`))}</span>` +
+    (!done && act ? `<button type="button" class="fact-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
       `${esc(L(act === "assign" ? "health.act_assign" : "health.act_show"))}</button>` : "") + `</div>`).join("");
 }
 
@@ -10611,9 +10639,9 @@ function healthDebugHtml(host) {
   const text = host._debugArmed && state === "final" ? L("health.debug_confirm")
     : state === "active" ? L("health.debug_active", { rows, days })
       : state === "final" ? L("health.debug_final", { rows }) : L("health.debug_off");
-  return `<div class="health-row health-debug" data-debug="${state}"><span class="adv-text">${esc(L("health.debug_title"))}` +
-    `<span class="adv-sub">${esc(text)}</span></span>` +
-    (state === "active" ? "" : `<button type="button" class="adv-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
+  return `<div class="health-row health-debug" data-debug="${state}"><span class="fact-text">${esc(L("health.debug_title"))}` +
+    `<span class="fact-sub">${esc(text)}</span></span>` +
+    (state === "active" ? "" : `<button type="button" class="fact-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
     `</div>`;
 }
 
@@ -10633,9 +10661,9 @@ function healthPageHtml(host) {
     </div>
     ${healthInputsHtml(plan)}
     ${healthModelHtml(plan)}
-    <div class="health-row health-support"><span class="adv-text">${esc(L("health.support_title"))}
-      <span class="adv-sub">${esc(L("health.support_detail"))}</span></span>
-      <button type="button" class="adv-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
+    <div class="health-row health-support"><span class="fact-text">${esc(L("health.support_title"))}
+      <span class="fact-sub">${esc(L("health.support_detail"))}</span></span>
+      <button type="button" class="fact-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
     ${healthDebugHtml(host)}
     ${healthChecklistHtml(plan)}
     <div class="setup-result" role="status"></div></div>`;
@@ -10821,7 +10849,7 @@ function advisorPageHtml(host) {
   const spread = (row) => {
     const value = Number(row.spread_c);
     return Number.isFinite(value)
-      ? `±${value.toFixed(2)} °C <span class="adv-est">${esc(L("advisor.estimated"))}</span>`
+      ? `±${value.toFixed(2)} °C <span class="fact-est">${esc(L("advisor.estimated"))}</span>`
       : "—";
   };
   const isPriced = (row) => !!(row && row.priced);
@@ -10830,25 +10858,25 @@ function advisorPageHtml(host) {
   // Every quantified row carries the estimate badge and its spread; a row
   // the proxy cannot price renders its reason instead of a number, below
   // every ranked row, so it can never pose as one.
-  const rowHtml = (row) => `<button type="button" class="adv-row"
+  const rowHtml = (row) => `<button type="button" class="fact-row"
       data-key="${esc(String(row.key || ""))}">
-      <span class="adv-label">${esc(String(row.label || row.key || ""))}</span>
-      <span class="adv-value">${isPriced(row)
+      <span class="fact-label">${esc(String(row.label || row.key || ""))}</span>
+      <span class="fact-value">${isPriced(row)
         ? spread(row)
         : esc(L(`advisor.reason_${row.reason || "no_clamped_parameter"}`))}
       </span>
     </button>`;
   return `<div class="setup-page advisor-page">
     ${inbox}
-    <div class="adv-head">
-      <span class="adv-title">${esc(L("advisor.heading"))}</span>
-      <span class="adv-basis">${esc(L(
+    <div class="fact-head">
+      <span class="fact-title">${esc(L("advisor.heading"))}</span>
+      <span class="fact-basis">${esc(L(
         adv.basis === "history" ? "advisor.basis_history" : "advisor.basis_config"
       ))}</span>
     </div>
-    <div class="adv-note">${esc(L("advisor.spread_note"))}</div>
+    <div class="fact-note">${esc(L("advisor.spread_note"))}</div>
     ${priced.map(rowHtml).join("")}
-    ${unpriced.length ? `<div class="adv-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
+    ${unpriced.length ? `<div class="fact-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
     ${unpriced.map(rowHtml).join("")}
     <div class="setup-hint">${esc(L("advisor.act_hint"))}</div>
     <div class="setup-result" role="status"></div>
@@ -10860,7 +10888,7 @@ function advisorPageHtml(host) {
  * lane the card already owns, rather than a second one grown here. */
 function attachAdvisorPage(host, root) {
   attachAdvisorInbox(host, root);
-  for (const row of root.querySelectorAll(".adv-row")) {
+  for (const row of root.querySelectorAll(".fact-row")) {
     row.addEventListener("click", (ev) => {
       stop(ev);
       const key = row.dataset.key;
@@ -10893,7 +10921,7 @@ function attachAdvisorInbox(host, root) {
     const out = root.querySelector(".setup-result");
     if (out) out.textContent = text;
   };
-  for (const btn of root.querySelectorAll(".adv-act")) {
+  for (const btn of root.querySelectorAll(".fact-act")) {
     btn.addEventListener("click", async (ev) => {
       stop(ev);
       const act = btn.dataset.act;

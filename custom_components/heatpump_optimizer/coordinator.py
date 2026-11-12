@@ -1123,14 +1123,14 @@ def _replay_gate(
 ) -> tuple[float | None, bool, str | None, bool]:
     """A fabric learner's ``(heat kW, span clean, freeze, folds)`` for one run (#2261).
 
-    ``raw`` is the learner's ``_learning_frozen`` answer. The rule is
-    :func:`heat_energy.replay_gate`'s, on the freeze without and with this
-    run's measured heat and on whether the span folds the scale alone.
+    ``raw`` is the learner's ``_learning_frozen`` answer; the rule, and the
+    inputs it reads, are :func:`heat_energy.replay_gate`'s.
     """
     cfg, heat_kw = _ctx_of(coord)._config, _interval_measured_heat_kw(coord)
     return heat_energy.replay_gate(
         span_heat_kw, interval, replay_freeze(raw, cfg, 0.0), replay_freeze(raw, cfg, heat_kw), heat_kw,
-        heat_energy.meter_of(coord).spans_own_scale)
+        heat_energy.meter_of(coord), coord._commanded_split(), probe_install(cfg).heat_sees_dhw,
+        coord._immersion_active or coord._pump_signals.electric_heat.resistive_heat)
 
 
 async def _async_earn_heat_basis(coord: Any, heat_kw: float | None) -> None:
@@ -2568,6 +2568,45 @@ def _seed_store(
     leaves its field as it is rather than fabricate a level.
     """
     return reading.value if reading.ok else _open_loop_plan_value(result, trajectory_attr, now)
+
+
+def combi_tank_seed(
+    buffer: InputReading,
+    dhw: InputReading,
+    result: OptimizationResult | None,
+    now: datetime,
+) -> float | None:
+    """The combi store's one level (#3225): a measured tank before any plan.
+
+    One node, so one seed for both fields: the buffer probe, else the hot water
+    probe (the same water), else the previous plan's buffer trajectory, which
+    equals its DHW trajectory in combi. ``_seed_store`` over the DHW reading is
+    that last pair, so the seed path stays the one primitive.
+    """
+    return buffer.value if buffer.ok else _seed_store(dhw, result, "buffer_temp_trajectory", now)
+
+
+def tank_levels(
+    combi: bool,
+    dhw: InputReading,
+    buffer: InputReading,
+    result: OptimizationResult | None,
+    now: datetime,
+) -> tuple[float | None, float | None]:
+    """This cycle's (hot water, buffer) levels; ``None`` leaves a field as it is.
+
+    Without an ok reading a tank is seeded from the previous plan's own
+    trajectory (open-loop propagation); no reading and no plan gives ``None``.
+    A combi store is one node, so both carry its one level (carry 6: a measured
+    tank wherever either probe reads it); otherwise each tank seeds alone.
+    """
+    if combi:
+        level = combi_tank_seed(buffer, dhw, result, now)
+        return level, level
+    return (
+        _seed_store(dhw, result, "dhw_temp_trajectory", now),
+        _seed_store(buffer, result, "buffer_temp_trajectory", now),
+    )
 
 
 def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
@@ -4091,8 +4130,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         the entity-change listener all enter through ``pump_arbiter.apply``,
         which asks for a fresh snapshot, so a boost set or a mode change
         between passes is seen by the next one. ``plan_stale`` is the gate
-        ``_plan_is_stale`` owns; the plan itself rides along because the
-        share split and the baseline read it ungated.
+        ``_plan_is_stale`` owns (``ArbiterInputs`` says why the plan rides along).
         """
         ctx = _ctx_of(self)
         return pump_arbiter.ArbiterInputs(
@@ -4107,6 +4145,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             params=ctx._thermal_params,
             action=self._current_action,
             measured_power_kw=pump_arbiter.live_power_kw(self.hass, ctx._config),
+            defrosting=self._pump_signals.defrosting,
             disinfecting=getattr(
                 getattr(self._legionella, "disinfect", None), "memo", None
             )
@@ -4311,7 +4350,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #47: what a typical remaining day is expected to bottom out at.
         if (
             params.dhw_elastic_legionella_enabled
-            and params.dhw_legionella_enabled
+            and params.legionella_cycle_active
             and self._legionella.last_cycle is not None
             and self._prices
         ):
@@ -6028,7 +6067,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         try:
             await self._update_current_state()
 
-            # Raises UpdateFailed on any failure -- see _fetch_tibber_prices.
+            # Raises UpdateFailed once no published price covers now -- see _fetch_tibber_prices.
             await self._fetch_tibber_prices()
 
             # Fetch weather forecast (full 24h for solar, wind, rain, temp)
@@ -6691,19 +6730,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 self._solar_radiation = observed
                 state.solar_radiation = observed
 
-        # The tank levels. Without an ok reading each tank is seeded from the
-        # previous plan's own trajectory (open-loop propagation, D12-s1-01):
-        # a never-advanced default (55 °C DHW, 40 °C buffer) reached every
-        # solve otherwise. No reading and no plan leaves the field as it is.
+        # The tank levels (``tank_levels``): a never-advanced default (55 °C
+        # DHW, 40 °C buffer) reached every solve otherwise (D12-s1-01).
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
         buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
         plan, seeded_at = self._optimization_result, dt_util.now()
         if dhw.ok:
             self._dhw_temperature = dhw.value
-        if (level := _seed_store(dhw, plan, "dhw_temp_trajectory", seeded_at)) is not None:
-            state.dhw_temperature = level
-        if (level := _seed_store(buffer_reading, plan, "buffer_temp_trajectory", seeded_at)) is not None:
-            state.buffer_tank_temperature = level
+        combi = _ctx_of(self)._thermal_params.combi_tank_active
+        level, buffer_level = tank_levels(combi, dhw, buffer_reading, plan, seeded_at)
+        state.dhw_temperature = state.dhw_temperature if level is None else level
+        state.buffer_tank_temperature = state.buffer_tank_temperature if buffer_level is None else buffer_level
 
         # Wood tank temperature (issue #40): re-read from the physical tank
         # each cycle through the same stale-aware reader — the model never
@@ -6794,7 +6831,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._track_curve_comfort(dt_util.now())
 
         tank = dhw.value if dhw.ok else None
-        if tank is not None and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
+        # A combi store's probe (#3225) also moves with the space side's draw.
+        if tank is not None and not combi and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
             self._learner_freeze_reason = frozen
         hours = await self._legionella.async_observe(tank, reader)
         _ctx_of(self).publish(self, dhw_hours_since_legionella=hours)
@@ -6923,9 +6961,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _fetch_tibber_prices(self) -> None:
         """Fetch electricity prices (Tibber or a price entity).
 
-        A failed fetch raises :class:`UpdateFailed` (D10-07). Entity
-        sources never start reauthentication. The outage latch (D10-09)
-        is unchanged.
+        A failed fetch raises :class:`UpdateFailed` (D10-07) only once the
+        last published prices no longer cover now; entity sources never
+        start reauthentication.
         """
         cfg = getattr(self, "_ctx", self)._config
         hass = self.hass
@@ -6955,29 +6993,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
 
     def _tibber_fetch_failed(self, reason: str, *, exc_info: bool = False, auth: bool = False) -> None:
-        """Record one failed price fetch: log once, raise as a failed update.
+        """Record one failed price fetch and raise it as a failed update.
 
-        D10-09: an outage lasting a day used to print the same ERROR on
-        every cycle. The first failure logs ERROR; the rest log DEBUG until
-        a fetch succeeds again, which logs the outage's length at INFO.
+        Last published prices still covering now bridge it instead: a warning
+        and the ``price_feed_stale`` repair; a refused token always fails.
+        Only an outage's first cycle logs above DEBUG (D10-09); a recovered
+        fetch logs the outage's length at INFO.
         """
-        if not self._tibber_outage_cycles:
-            _LOGGER.error("%s", reason, exc_info=exc_info)
-        else:
-            _LOGGER.debug("Tibber still failing (%s)", reason)
         self._tibber_outage_cycles += 1
-        if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
-            self._tibber_start_reauth()
-            _raise_auth_failed("tibber_auth_failed", reason, error=reason)
-        _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
+        if not issues.note_price_outage(self.hass, reason, self._tibber_outage_cycles, exc_info,
+                                        not auth and self._known_prices_for([plan_step_start(dt_util.now())])):
+            if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
+                self._tibber_start_reauth()
+                _raise_auth_failed("tibber_auth_failed", reason, error=reason)
+            _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
 
     def _tibber_fetch_recovered(self) -> None:
         """Clear the outage latch after a successful fetch."""
         if self._tibber_outage_cycles:
-            _LOGGER.info(
-                "Tibber prices recovered after %d failed cycle(s)",
-                self._tibber_outage_cycles,
-            )
+            _LOGGER.info("Tibber prices recovered after %d failed cycle(s)",
+                         self._tibber_outage_cycles)
+            issues.clear_issue(self.hass, "price_feed_stale")
         self._tibber_outage_cycles = 0
         # A later revocation of the (new) token deserves its own flow.
         self._tibber_reauth_started = False
@@ -7778,7 +7814,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                           self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
-        on = bool(self._current_action.get("heat_pump_on", False))
+        on = pump_arbiter.cycle_supply(self.arbiter_inputs(), boost.held_for(self), bool(self._current_action.get("heat_pump_on", False)))
         await self._write_supply(on)
         # Between cycles the step tick writes each step's change (#2492).
         pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)
@@ -7893,6 +7929,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "dhw_next_window_in_hours": self._dhw_next_window_in_hours(),
             "dhw_idle_min_temperature": params.dhw_idle_min_temp,
             "dhw_legionella_enabled": params.dhw_legionella_enabled,
+            "dhw_legionella_cycle_active": params.legionella_cycle_active,
             "dhw_legionella_due_in_hours": self._legionella.due_in_hours(),
             **self._legionella.disinfect.view(),
             # T3: the inlet actually in force, the tank in shower terms

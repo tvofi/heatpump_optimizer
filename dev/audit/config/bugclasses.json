@@ -4940,6 +4940,40 @@
       "doc": [
         "dev/audit/rca/r10-rca-roster-drain-replay.md"
       ]
+    },
+    "R10-RCA-DEPENDABOT-STALE-HASH": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "every grouped Dependabot pip pull request on tests/ in round 10 (#3088, #3323, #3414) carried pins whose version moved and whose --hash block stayed the previous version's (3, 5 and 1 pins); each stale pin is one whose name==version a lock comment also spelled and Dependabot rewrote (9 of 9 stale, 0 of 61 fresh), and #3147's re-apply planted the comments behind 5 of the later 6",
+      "trigger": "third instance (the #3408 forward-carry)",
+      "date": "2026-11-11",
+      "status": "proposed",
+      "parts_missing": [
+        "the lock-comment rewording and the --tree check wired into the suite (R10-DEPENDABOT-3414-COMPAT)"
+      ],
+      "process_state": "(c) the re-apply process in .github/dependabot.yml (never edit, re-apply by the header's compile) was followed by #3147 and #3408 and read clean, yet its own comments recording holds and overrides as name==version are what Dependabot rewrites without rehashing the next week",
+      "countermeasure": "built: dev/audit/harnesses/dependabot_stale_hash.py census (rc 1 at the three Dependabot heads, rc 0 at the three re-apply commits and four npm/actions heads) and --tree precondition guard (rc 1 at d08ed31049, 17 exposed; rc 0 on the reworded tree; 0.05 s); carried: reword the comments and run --tree in the suite. Lower schedule and a recompile workflow refused by the cost test",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-rca-dependabot-stale-hash.md",
+      "doc": [
+        "dev/audit/rca/r10-rca-dependabot-stale-hash.md"
+      ]
+    },
+    "R10-RCA-PUSHER-CENSUS-ESCAPE": {
+      "class": "R10-SELFTEST-RED-INTRODUCED",
+      "level": "class",
+      "subject": "#3361 and #3425 merged governance / instrument-self-tests reds their own diffs introduced, inside 3.67 d of the 2026-11-07 owed-reds ruling",
+      "trigger": "class (3 instances by the root-cause seat, 2 merges re-measured)",
+      "date": "2026-11-11",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(d) the 2026-11-07 ruling removed the pr-contract backstop for non-required reds, rightly for reds inherited from main, and with it the backstop for reds a pull request introduces",
+      "countermeasure": "C1 built: merge_train.introduced_at, read by classify --pr and review_packet.py; fix-review.md step 11 blocks on it. C2 recorded fallback; C3, C4 and C5 refused",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5576,6 +5610,39 @@
       "per_round": true,
       "cross_round": true,
       "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "R10-SELFTEST-RED-INTRODUCED": {
+    "kind": "instrument",
+    "mechanism": "A pull request merges a red its own diff introduced in governance / instrument-self-tests, a job in no required set (decision 0013's HPO_JOB_GRADES boundary): the 2026-11-07 ruling (234ff52c75) owes only a required check's red an answer, so the body names none, merge_train.py classify reads GREEN and no reviewer rule reads the job, and main goes red on the steps the diff broke",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 tools/audit/seat/merge_train.py introduced <head> --base <merge base>: each instrument-self-tests step red at the head and not at the base, rc 1 when any",
+    "detector_idea": null,
+    "barrier": "merge_train.introduced_at, read by merge_train.py classify --pr (RED with INTRODUCED lines, which bus.sh dispatch and a cloud reviewer's wait stop on) and tools/audit/seat/review_packet.py (introduced-red); fix-review.md step 11 makes it a block",
+    "status": "barriered",
+    "nearest_existing": null,
+    "mechanism_difference": "no check is skipped or stale and no required check is red: the red is on a job graded by no merge rule, and the ruling that freed inherited reds from an answer freed introduced ones too",
+    "aliases": [
+      "a PR merges a non-required self-test red its own diff introduced"
+    ],
+    "non_round_note": "Process incidents measured by the fixer of R10-INTRODUCED-REDS-BARRIER with the detector at each merge's second parent against the merge base of its parents, not audit findings, not counted in total. The root-cause seat counted 3 (#3425 twice, two causes); that attribution is carried in the RCA.",
+    "non_round_instances": [
+      "8652aa65ce #3361: 2 introduced at 825f549270 against b8f67a7751",
+      "ee64358be #3425: 4 introduced at c93903f075 against a7628041dc"
+    ],
+    "rca": [
+      "R10-RCA-PUSHER-CENSUS-ESCAPE"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
       "class_rca_on_record": true
     }
   },

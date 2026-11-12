@@ -1,3 +1,83 @@
+## v7.1.12
+
+**Patch stamp: 40 merges since v7.1.11, stamped on the owner's order.** The user-visible changes are a hot-water learner that no longer books the dip after a charge start as a draw, a price outage that no longer stops steering while the last prices still cover now, hot-water disinfection written at its own temperature, the optimizer's off switch restoring the pump's space set-point, a climate entity that works on both old and new Home Assistant cores, a dashboard card whose Health labels survive ad blockers, and a rebuilt product page.
+
+### #3444 A hot-water charge start is not booked as a draw (R10-OUTSIDE-DHW-CHARGE-SETTLE)
+
+Built from outside pull request #3434 by Bankaifan, with thanks. A hot-water charge start drops the tank reading by 3 to 5 K within minutes, and the draw statistics used to book that dip as a draw, which inflated the heavy-day figure the planner reads. The dip is now treated as part of the charge: it is bounded per charge, and a later rise once the charge stops takes back what was booked. Real draws are not taken back.
+
+### #3454 A failed price fetch no longer stops steering while the last prices still cover now (R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID)
+
+Built from outside pull request #3437 by Bankaifan, with thanks. A failed price fetch used to make every entity unavailable and stop steering, even though the last fetched prices still covered the current step. Now, as long as a price is known for the current step, the failure is logged as a warning, the `price_feed_stale` repair is raised and the update carries on. Once no published price covers now, the update fails as before, and the repair stays until a fetch succeeds. A refused token always fails and raises no repair.
+
+### #3460 The climate entity works on Home Assistant 2026.11 and on older cores (R10-OUTSIDE-CLIMATE-NATIVE-TEMP)
+
+Built from outside pull request #3443 by Bankaifan, with thanks. Home Assistant 2026.11 serves the climate temperatures under new native names and logs every class that still defines the old ones. The climate entity now holds its logic under the native names and adds the old names only on a core whose base class lacks the native ones, so it works from the supported floor 2025.2.0 upward and logs nothing on 2026.11.
+
+### #3452 Disinfection cycles are written at the disinfection temperature (R10-OUTSIDE-DISINFECTION-SETPOINT)
+
+Built from outside pull request #3439 by Bankaifan, with thanks. With Pump duty control writing the hot-water set-point, a disinfection cycle used to write the everyday set-point (55 with the stock 55/60 pair), so the pump's own thermostat ended the cycle below its target. The cycle now writes its own temperature, capped at the tank's hard maximum of 70 C and bounded by the entity's range. The set-point repair no longer stands permanently against the optimizer's own write during a cycle.
+
+### #3404 Turning the optimizer off restores the pump's space set-point (R10-ARBITER-OFF-RESTORE)
+
+Turning the optimizer off, and every unload, now writes the space set-point that Pump duty control had changed back to the person's own baseline. The baseline is saved before the first write, a value the person sets between writes becomes the new baseline, and the restored value is kept within the entity's range and step. This replaces the earlier behaviour where off wrote nothing for that set-point. `docs/configuration.md` describes it under Pump duty control.
+
+### #3469 Optional controller limits bound the water set-point (R10-WATER-SETPOINT-FEEDBACK, part 3)
+
+Two new optional entity options on the options page that carries the space set-point unit, shown for a water unit, name the controller's own lower and upper limit sensors for the written set-point. An upper limit that leaves no room above the off value for a heating write is ignored, so a placeholder or misplaced sensor can no longer make the loop write the off value or lower. The options have labels in every translation and in the card.
+
+### #3468 A heat-counter span survives a hot-water cycle (R10-OUTSIDE-LEARNER-ROBUSTNESS)
+
+Part 1 of outside pull request #3435 by Bankaifan, with thanks. A heat-counter span used to be thrown away when a cycle inside it ran hot water. Where the counter is declared to see hot water, the mode dwell observed the charge, and no immersion element or pump backup heater is on, the charge is now removed from the span by its own counter steps and the rest is used for learning. A span with an unaccounted step still reads no space-heat figure.
+
+### #3478 The heat pump switch follows the step it lands in (R10-OUTSIDE-SUPPLY-STALE-STEP)
+
+Thank you to Bankaifan for pull request #3457. The cycle cuts its action at the solve, then waits on system identification, the fuse advisor and the price tile before writing the heat pump switch, so a write could land in the next step and stand against the plan for up to one plan step. The switch is now written for the step it lands in, falling back to the solved action where there is no plan for that step. The displace value and set-point are not changed by this.
+
+### #3442 Stored heat is valued at the part-load rate (R10-SAV-VALUATION-RESIDUE)
+
+Under a part-load derate, the end-of-horizon value of stored heat and the cost of deferred energy bought it back at a COP with no draw. Both now use one refill law, which spreads the heat evenly over the cheapest quarter of the horizon. With no derate the figures are unchanged, bit for bit.
+
+### #3485 Health and Advisor labels survive ad blockers (R10-HOTFIX-CARD-HEALTH-TEXT)
+
+The dashboard card's Health and Advisor labels lost their layout box when a content blocker's generic hide rules for `adv-text` and `adv-label` applied inside the card. Every `adv-*` class in the card is renamed to `fact-*`, which no tested filter list names. The change also carries the earlier fix for Health and Advisor text ink in a card whose dark mode is off.
+
+### #3458 Product page redesign (R10-PRODUCT-PAGE-REDESIGN)
+
+The product page is rebuilt around one illustrative day drawn by a generator, a scroll story over it, a first-week timeline and a control-path chooser in place of the table. Touch targets are at least 40 px, the page reads in order with styles off, and it can be operated by keyboard.
+
+### Developer tooling, CI and audit machinery only
+
+#3475 (mutant run fork cap), #3431 (suite environment residue), #3494 and #3464 (standing contracts, part 2), #3462 (GitHub read residue, part 2), #3488 (prepr word-count padding hotfix), #3471 (tick residue, part 2), #3476 (introduced-reds barrier), #3487 (main prepr scope hotfix), #3470 (train residue, part 2), #3473 (gate redispatch loop hotfix), #3465 (relay arm order), #3477 (replay class cut hotfix), #3355 (pull request body contract, part 3), #3482 (self-test scope union hotfix), #3455 (fixer spelling corpus, part 2), #3449 (Dependabot #3414 compatibility, part 2), #3467 (CodeQL pull request paths), #3463 and #3438 (restore base skew hotfix and its root cause), #3474 (pusher census hotfix), #3445 and #3450 (review dispatch residue, parts 4 and 3), #3472 (roster carry exact match), #3466 (vendor-name census fix, comments only).
+
+### Triage and delivery rows (record only)
+
+#3496, #3489, #3486, #3480 (delivery rows, autofix).
+
+## v7.1.11
+
+**Patch stamp: 25 merges since v7.1.10, stamped on the owner's order.** The user-visible changes are the water set-point that follows measured feedback, the configuration of a combi store, and a diagnostics download that no longer carries the home's location.
+
+### #3405 and #3433 The water set-point follows measured feedback (R10-WATER-SETPOINT-FEEDBACK)
+
+The water set-point now follows the measured feedback, as an advanced-settings option that defaults on for qualifying installs (#3405). #3433 carries the contributor's answers on registers, watchdog and hysteresis into that work.
+
+### #3398 Combi tank store, part B (R10-COMBI-TANK)
+
+For outside request #3225 by Bankaifan, with thanks. A combi store, where one body of heating water serves both the space circuit and hot water, can now be configured; part A (#3358, v7.1.10) landed its physics in the thermal model.
+
+### #3447 Download diagnostics redacts the location (R10-OUTSIDE-DIAG-REDACT-LOCATION)
+
+Built from outside pull request #3436 by Bankaifan, with thanks. Download diagnostics used to round latitude and longitude to one decimal and publish the solar location option's coordinate as that rounded cell. Both are now redacted outright, so a replay taken from a download carries no solar location. The on-instance replay export is unchanged.
+
+### Developer tooling, CI and audit machinery only
+
+#3423 (worktree collection keeps live worktrees), #3453 (gh shim escapes hotfix), #3425 (tick residue), #3427 (GitHub read residue), #3424 (train residue), #3419 (prepr read-set hotfix), #3379 (later review rounds review only the delta), #3429 (root cause: Dependabot stale hash), #3426 (Dependabot #3414 compatibility), #3384 (no merge blocked on a non-required red, part 2), #3417 (carry sink barrier), #3366 (dispatch at handoff, part 2), #3322 (GitHub Actions group bump), #3321 (mermaid 12.2.0 to 12.3.0 for the site).
+
+### Triage and delivery rows (record only)
+
+#3389, #3392, #3383, #3374 (triage batches); #3459, #3432, #3422 (delivery rows).
+
 ## v7.1.10
 
 **Patch stamp: 36 merges since v7.1.9 and one direct commit, stamped on the owner's order after the combi tank store landed.** The user-visible changes are the heat curve control through a Home Assistant number entity, the COP that is no longer graded from a self-comparison, and a German translation. The combi tank store lands as engine physics that no option reaches yet. The rest of the window is round-10 tooling, audit machinery and delivery records.

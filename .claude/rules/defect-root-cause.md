@@ -132,9 +132,8 @@ checker is the **fix reviewer**, before returning `merge`.
 
 The fixer whose branch turned a check red names that check in the PR body, and
 answers the trigger's question there: the cheaper detector and its standing
-cost, or the recorded finding that none exists. Both answers are legitimate —
-the worked examples above are one of each — so the cost of a check that does not
-qualify is one line, which is what keeps the obligation from being argued away.
+cost, or the recorded finding that none exists. Both answers are legitimate: the
+worked examples above are one of each.
 
 The reviewer reads the PR's checks, not the body's account; a red check the body
 does not answer is **`blocked: root-cause trigger unanswered for <check>`**.
@@ -145,6 +144,8 @@ outside it, an alert apart, blocks nothing; `nightly-status` and `delivery-statu
 grade `main`, and their red is the orchestrator's there: fix the nightly lane and
 dispatch Nightly (`web-fragments.md`), or drain the overdue rows. An unreadable set
 keeps the pre-ruling rule. A cause outside this repository is named with its owner.
+An `instrument-self-tests` step red at the head and not at the merge base is the pull
+request's finding, a block (`fix-review.md` step 11); one inherited from `main` stays unowed.
 
 The first trigger — the defect reached a released version — has no moment
 cheaper than the issue itself, so it is carried by the **Root cause** section

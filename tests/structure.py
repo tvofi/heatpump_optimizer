@@ -321,7 +321,7 @@ HA_CONVENTION_METHODS = {
     "async_turn_on",
     "async_turn_off",
     "is_on",
-    "current_temperature",
+    "native_current_temperature",
     "hvac_action",
     # ClimateEntity state HA reads off the instance (D7-s3-02: the member
     # census now counts properties, so these two must be named).
@@ -364,7 +364,7 @@ def is_ha_convention_method(name: str) -> bool:
 # the entity mixins in ``entity.py``, whose own bases are in-package. The
 # suffix is HA's own naming convention rather than a list that goes stale on
 # the next platform. ``entity_self_check`` pins both halves of the separation.
-HA_ENTITY_METHODS = frozenset({"available", "target_temperature"})
+HA_ENTITY_METHODS = frozenset({"available", "native_target_temperature"})
 HA_ENTITY_BASE_SUFFIX = "Entity"
 
 
@@ -4211,7 +4211,7 @@ def entity_self_check() -> tuple[tuple[str, bool], ...]:
          ("Gauge", "available") in dead_pairs),
         ("no entity-read name is exempt as a bare name",
          not is_ha_convention_method("available")
-         and not is_ha_convention_method("target_temperature")),
+         and not is_ha_convention_method("native_target_temperature")),
     )
 
 

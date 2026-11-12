@@ -50,6 +50,7 @@
     "tests/structure_budgets.json",
     "tests/throwaway_git.sh",
     "tools/audit/seat/delivery_row.sh",
+    "tools/audit/seat/gh_read.py",
     "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/ref_privacy.py",
     "tools/policy/**",
@@ -176,6 +177,7 @@
    "files": [
     "tools/audit/seat/beat_jobs.py",
     "tools/audit/seat/beat_jobs_selftest.py",
+    "tools/audit/seat/beatd.jobs.json",
     "tools/audit/seat/fixtures/beat_jobs/**",
     "tools/audit/seat/ledger.py",
     "tools/audit/seat/orchestrator_tick.py",
@@ -192,9 +194,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "beatd": {
    "run_sha": "890c4cc0063250459d54f074ae06e1953ddfa0feb7148a64ef54276c2a968407",
@@ -327,17 +329,17 @@
     "tools",
     "tools/audit",
     "tools/policy",
-    "tools/policy/policy_lint.mjs",
     "tools/pr/app_approve.sh"
    ],
    "dirs": [
     "tests",
     "tools/audit",
-    "tools/audit/seat"
+    "tools/audit/seat",
+    "tools/policy"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "ci-predictor": {
    "run_sha": "e06a8fb9b8d49bc863a2e947c030db8b387e81a3f5d114bcb83c22f22534e174",
@@ -546,6 +548,8 @@
    "run_sha": "3b48ec7e71b49eae06fc284309966260011f2c4017ab49fd6a752c95b149868f",
    "files": [
     "dev/governance/roles/fix-review.md",
+    "tests/closures.json",
+    "tests/mutation_table.py",
     "tests/throwaway_git.sh",
     "tools/audit/carry_audit.py",
     "tools/audit/seat/**",
@@ -557,6 +561,7 @@
     "objects",
     "packed-refs",
     "refs",
+    "tests",
     "tools",
     "tools/audit",
     "tools/audit/seat",
@@ -564,6 +569,7 @@
     "tools/pr/app_comment.sh"
    ],
    "dirs": [
+    "tests",
     "tools/audit/seat",
     "tools/audit/seat/beatd_shims",
     "tools/audit/seat/fixtures",
@@ -573,9 +579,9 @@
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "cloud-setup-profile": {
    "run_sha": "0a2fb43948f79c43c90c697eeff8b63e4c98d7ab176a35b3e06398f29fcd69a8",
@@ -706,6 +712,21 @@
    ],
    "index": false,
    "objects": true
+  },
+  "day-chart": {
+   "run_sha": "baf2fd4638f92c6a5b8d925f01b49a3d02568db7ee93785ddb86c60126ce82a4",
+   "files": [
+    "tools/site/day_chart.mjs"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/site"
+   ],
+   "dirs": [],
+   "index": false,
+   "objects": false,
+   "git": []
   },
   "delivery-row-writer": {
    "run_sha": "250157e503be273a2d938292fa7922442be673437b627fbd61a9d039dab24208",
@@ -1616,6 +1637,7 @@
     "tools/audit/seat/seat_venv.sh",
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/survivor_list.py",
     "tools/audit/seat/sweep_driver.py",
     "tools/audit/seat/sweep_driver_selftest.py",
     "tools/audit/seat/sweep_gantt.py",
@@ -1705,9 +1727,28 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
+  },
+  "figure-block": {
+   "run_sha": "7295269b8e4ede5ee5449b86ec2276c56cbd36e12d6e4d0de3373e49703b1cc9",
+   "files": [
+    "tests/throwaway_git.py",
+    "tools/pr/figure_block.py"
+   ],
+   "probes": [
+    ".",
+    "tests",
+    "tools",
+    "tools/pr"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
   },
   "figure-census": {
    "run_sha": "740c9b07ed8530eb237326010160ac6b0a36a741f8dd09a41ce91c3a78aaacb7",
@@ -1917,6 +1958,7 @@
    "run_sha": "f7b00abdc16649eff7027d19450a7c15669e548a86651f6ef8562e43e4c31489",
    "files": [
     "tests/layout.py",
+    "tests/throwaway_git.py",
     "tools/audit/seat/gh_calls.py",
     "tools/audit/seat/shims/seat-gh",
     "tools/policy/budget_raise_gate.py"
@@ -1994,26 +2036,32 @@
   "handover-prompt": {
    "run_sha": "978bb964bf6f2b3577322b27c19093a8d35e6e9ed1da21d05f37a4dd47b0644f",
    "files": [
+    "tests/layout.py",
     "tools/audit/seat/handover_prompt.py",
-    "tools/audit/seat/roster_lib.py"
+    "tools/audit/seat/roster_lib.py",
+    "tools/policy/budget_raise_gate.py"
    ],
    "probes": [
     ".",
     ".claude/rules",
     "dev/governance/roles",
     "dev/programme/delivery",
+    "tests",
     "tools",
     "tools/audit",
     "tools/audit/seat",
+    "tools/policy",
     "tools/pr/app_push.sh",
     "tools/release/stamp.py"
    ],
    "dirs": [
-    "tools/audit/seat"
+    "tests",
+    "tools/audit/seat",
+    "tools/policy"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "heartbeat-andon": {
    "run_sha": "c37a5295c81af9650f42bdf9a55da123d3989f942b8d748425ffabd644f2cf47",
@@ -2120,6 +2168,7 @@
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/remerge_main.sh",
+    "tools/audit/seat/remerge_main_selftest.py",
     "tools/audit/seat/replay_draws.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/review_carry.py",
@@ -2135,6 +2184,7 @@
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/shims/**",
     "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/survivor_list.py",
     "tools/audit/seat/sweep_driver.py",
     "tools/audit/seat/sweep_driver_selftest.py",
     "tools/audit/seat/sweep_gantt.py",
@@ -2159,9 +2209,9 @@
     "tools/audit/seat/instruments",
     "tools/audit/seat/shims"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "lane-skip-decision": {
    "run_sha": "93637fa3725f392f833de33b8fae0b336cf07368c62ed558f20de81a51e82d82",
@@ -2605,6 +2655,7 @@
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/remerge_main.sh",
+    "tools/audit/seat/remerge_main_selftest.py",
     "tools/audit/seat/replay_draws.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/review_carry.py",
@@ -2619,6 +2670,7 @@
     "tools/audit/seat/seat_venv.sh",
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/survivor_list.py",
     "tools/audit/seat/sweep_driver.py",
     "tools/audit/seat/sweep_driver_selftest.py",
     "tools/audit/seat/sweep_gantt.py",
@@ -2727,9 +2779,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "orchestrator-tick": {
    "run_sha": "3d6d9b5492e86cf277695081249b8930a14cd223f8b17a1a2a162c5e2337c19f",
@@ -2873,6 +2925,7 @@
   "plan-page": {
    "run_sha": "87be7bdeb72cf26e61fa3d08fdbf093158083de1b44904cad7a2b2f150cf5736",
    "files": [
+    "tests/layout.py",
     "tests/throwaway_git.py",
     "tools/audit/merge_throughput.py",
     "tools/audit/seat/bottleneck_check.py",
@@ -2882,6 +2935,7 @@
     "tools/audit/seat/roster_lib.py",
     "tools/plan/durations.json",
     "tools/plan/replan.py",
+    "tools/policy/budget_raise_gate.py",
     "tools/release/stamp.py"
    ],
    "probes": [
@@ -2890,6 +2944,7 @@
     "tools",
     "tools/audit",
     "tools/plan",
+    "tools/policy",
     "tools/release"
    ],
    "dirs": [
@@ -2897,11 +2952,12 @@
     "tools/audit",
     "tools/audit/seat",
     "tools/plan",
+    "tools/policy",
     "tools/release"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "plan-public": {
    "run_sha": "abc70dfd4be9ad00009e8ed57e464993780ee62569627840b5783c3ad3b70b6f",
@@ -3639,41 +3695,53 @@
    "run_sha": "7f9730626bce97831ee61c879e8b929c037930447bf2bd8c202bbac5e13ade99",
    "files": [
     "dev/governance/roles/nudge.md",
+    "tests/layout.py",
     "tools/audit/seat/postmerge.py",
     "tools/audit/seat/record_beat.py",
-    "tools/audit/seat/roster_lib.py"
+    "tools/audit/seat/roster_lib.py",
+    "tools/policy/budget_raise_gate.py"
    ],
    "probes": [
     ".",
+    "tests",
     "tools",
     "tools/audit",
-    "tools/audit/seat"
+    "tools/audit/seat",
+    "tools/policy"
    ],
    "dirs": [
-    "tools/audit/seat"
+    "tests",
+    "tools/audit/seat",
+    "tools/policy"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "post-merge-record-line": {
    "run_sha": "f0f980b0b4885b93951ea498acfffac8c721e177169e6cef1a0cf54ac6ae6c3f",
    "files": [
+    "tests/layout.py",
     "tools/audit/seat/record_beat.py",
-    "tools/audit/seat/roster_lib.py"
+    "tools/audit/seat/roster_lib.py",
+    "tools/policy/budget_raise_gate.py"
    ],
    "probes": [
     ".",
+    "tests",
     "tools",
     "tools/audit",
-    "tools/audit/seat"
+    "tools/audit/seat",
+    "tools/policy"
    ],
    "dirs": [
-    "tools/audit/seat"
+    "tests",
+    "tools/audit/seat",
+    "tools/policy"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "pr-args": {
    "run_sha": "899b6b6134adb436b9d10b4079f0d6107dc774ba0b279abe835eef473262ec0f",
@@ -3774,6 +3842,7 @@
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/remerge_main.sh",
+    "tools/audit/seat/remerge_main_selftest.py",
     "tools/audit/seat/replay_draws.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/review_carry.py",
@@ -3788,6 +3857,7 @@
     "tools/audit/seat/seat_venv.sh",
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/survivor_list.py",
     "tools/audit/seat/sweep_driver.py",
     "tools/audit/seat/sweep_driver_selftest.py",
     "tools/audit/seat/sweep_gantt.py",
@@ -3896,9 +3966,9 @@
     "tools/site/.gitattributes"
    ],
    "dirs": [],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "pr-merger": {
    "run_sha": "49a4573210ed0ee90b52759978d16a2c1f80c901a1e4dca863184a8daaaa8890",
@@ -3944,6 +4014,7 @@
     ".gitignore",
     "CLAUDE.md",
     "custom_components/heatpump_optimizer/services.yaml",
+    "dev/audit/harnesses/mutant_guard.py",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/policy_budgets.json",
     "dev/governance/roles/COMMON.md",
@@ -3972,6 +4043,7 @@
     "tools/audit/seat/cloud-setup.sh",
     "tools/audit/seat/gh_read.py",
     "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/mutant_run.py",
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/review_packet.py",
@@ -4009,6 +4081,7 @@
     "tools/policy/fixtures/policy-rot/prepr/upstream/**",
     "tools/policy/fixtures/policy-rot/prepr/wrong-head.md",
     "tools/policy/fixtures/red-ancestry/**",
+    "tools/policy/fixtures/required-contexts.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/render_md.mjs",
     "tools/policy/role_pack.py",
@@ -4019,6 +4092,7 @@
     "tools/pr/app_push.sh",
     "tools/pr/approve_held_runs.sh",
     "tools/pr/ci_predict.py",
+    "tools/pr/figure_block.py",
     "tools/pr/gate_priority.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
@@ -4692,6 +4766,8 @@
     "tools/replay",
     "tools/site"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "?",
     "add",
@@ -4716,9 +4792,7 @@
     "rev-list",
     "show",
     "update-ref"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "probe-bridge": {
    "run_sha": "e800b265b68d9dcb6f4afbfbe05d49e2f3ebd3842b235ef2997e664d9434e7df",
@@ -5065,6 +5139,7 @@
     "custom_components/heatpump_optimizer/services.yaml",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/policy_budgets.json",
+    "dev/governance/roles/fix-review.md",
     "dev/programme/carries/**",
     "dev/programme/rosters/wave-r10-groups.json",
     "tests/card_drift.mjs",
@@ -5216,12 +5291,14 @@
   "roster-queue-runner": {
    "run_sha": "d5cd705b4d2a5ded00be29cdd0c36a43a31afc42011bdb9205b6cf665468041f",
    "files": [
+    "tests/layout.py",
     "tests/throwaway_git.py",
     "tools/audit/carry_audit.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/roster_edit.py",
     "tools/audit/seat/roster_lib.py",
-    "tools/audit/seat/roster_queue.py"
+    "tools/audit/seat/roster_queue.py",
+    "tools/policy/budget_raise_gate.py"
    ],
    "probes": [
     ".",
@@ -5230,16 +5307,18 @@
     "refs",
     "tests",
     "tools",
-    "tools/audit"
+    "tools/audit",
+    "tools/policy"
    ],
    "dirs": [
     "tests",
     "tools/audit",
-    "tools/audit/seat"
+    "tools/audit/seat",
+    "tools/policy"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "roster-sync-reconciler": {
    "run_sha": "176c372108c490c2302baaa98ecc0a8a8317d1cd8e51f20abe4f257ad0ee74ea",
@@ -5485,10 +5564,13 @@
     "tools/audit/archscore/metrics",
     "tools/audit/seat",
     "tools/plan",
+    "tools/policy",
     "tools/policy/fixtures/policy-rot",
     "tools/policy/fixtures/policy-rot/prepr",
     "tools/release"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "?",
     "cat-file",
@@ -5498,9 +5580,7 @@
     "merge-base",
     "rev-list",
     "show"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "selftest-scope": {
    "run_sha": "f5ec792ec3efe1110346aa55286c78476472afa3a83a128272f5e87587085203",
@@ -5515,6 +5595,8 @@
    ],
    "probes": [
     ".",
+    ".github",
+    ".github/workflows",
     "tests",
     "tools",
     "tools/ci"
@@ -5522,9 +5604,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "selftest-scope-mutants": {
    "run_sha": "00b691b683d6ff8e9527d535aafec449ad59e72a20cd3c063182d4a30fb9af60",
@@ -5540,6 +5622,8 @@
    ],
    "probes": [
     ".",
+    ".github",
+    ".github/workflows",
     "strace",
     "tests",
     "tools",
@@ -5548,9 +5632,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "selftest-wiring": {
    "run_sha": "12270ecc61efdff0edc98cfa58e949ce640919b1af72f63631fb59c588cb8f86",
@@ -5655,6 +5739,7 @@
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/remerge_main.sh",
+    "tools/audit/seat/remerge_main_selftest.py",
     "tools/audit/seat/replay_draws.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/review_carry.py",
@@ -5670,6 +5755,7 @@
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/shims/**",
     "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/survivor_list.py",
     "tools/audit/seat/sweep_driver.py",
     "tools/audit/seat/sweep_driver_selftest.py",
     "tools/audit/seat/sweep_gantt.py",
@@ -5802,9 +5888,9 @@
     "tools/replay",
     "tools/site"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "stamp-round-close-mutation": {
    "run_sha": "cbebd8930d74d0d4b42e51386b58cf9d8cef34662c52b45463b62d5588a7da88",
@@ -5827,6 +5913,7 @@
   "state-doc-writer": {
    "run_sha": "78e714c49c75381ec173e957096d960d7899d651c3167a99cbf70097d17ee208",
    "files": [
+    "tests/layout.py",
     "tests/throwaway_git.py",
     "tools/audit/carry_audit.py",
     "tools/audit/merge_throughput.py",
@@ -5845,6 +5932,7 @@
     "tools/audit/seat/topic_grammar.py",
     "tools/plan/durations.json",
     "tools/plan/replan.py",
+    "tools/policy/budget_raise_gate.py",
     "tools/release/stamp.py"
    ],
    "probes": [
@@ -5856,6 +5944,7 @@
     "tools",
     "tools/audit",
     "tools/plan",
+    "tools/policy",
     "tools/release"
    ],
    "dirs": [
@@ -5863,11 +5952,12 @@
     "tools/audit",
     "tools/audit/seat",
     "tools/plan",
+    "tools/policy",
     "tools/release"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "superseded-run-canceller": {
    "run_sha": "9d9c67b9ee56ec126ff04839b0521157973902359bf2934fe831626812b75f5d",
@@ -6570,6 +6660,7 @@
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/remerge_main.sh",
+    "tools/audit/seat/remerge_main_selftest.py",
     "tools/audit/seat/replay_draws.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/review_carry.py",
@@ -6584,6 +6675,7 @@
     "tools/audit/seat/seat_venv.sh",
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/state_docs.py",
+    "tools/audit/seat/survivor_list.py",
     "tools/audit/seat/sweep_driver.py",
     "tools/audit/seat/sweep_driver_selftest.py",
     "tools/audit/seat/sweep_gantt.py",
@@ -6692,9 +6784,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "verdict-bus": {
    "run_sha": "a781e6b79a8ef1a37712210f6277a5db65f5e0347994818965eac6f5d54e737d",
@@ -6703,11 +6795,13 @@
     "custom_components/heatpump_optimizer/services.yaml",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/policy_budgets.json",
+    "dev/governance/roles/fix-review.md",
     "dev/programme/carries/**",
     "dev/programme/rosters/wave-r10-groups.json",
     "tests/card_drift.mjs",
     "tests/closures.json",
     "tests/layout.json",
+    "tests/mutation_table.py",
     "tests/structure_budgets.json",
     "tests/throwaway_git.py",
     "tests/throwaway_git.sh",
@@ -6740,6 +6834,7 @@
     "tools/audit/seat/review_packet.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/seat/seat_venv.sh",
+    "tools/audit/seat/survivor_list.py",
     "tools/audit/seat/tick_loop.sh",
     "tools/audit/seat/train.sh",
     "tools/audit/seat/update_pr.sh",
@@ -6782,13 +6877,13 @@
     "tests",
     "tools/audit/seat"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "ls-tree",
     "merge-base",
     "show"
-   ],
-   "index": true,
-   "objects": true
+   ]
   }
  }
 }

@@ -33,7 +33,8 @@
   `review_carry.py` answers CARRY refuses only when the latest verdict naming
   `rh` on `verdict/<pr>` is merge; a blocked one, or none, dispatches and prints
   `review-carry: <rh> was blocked|has no verdict, so a fresh review is owed`,
-  and an unreadable `verdict/<pr>` refuses (P348).
+  and an unreadable `verdict/<pr>` refuses (P348). The renderer is handed `--reviewed-head`
+  too, so the packet is that round's delta.
 
 The design steps (decision 0014) write the same append-only way:
 `bus.sh push-design <topic> <design.md>` adds `design.md` to `design/<topic>`;

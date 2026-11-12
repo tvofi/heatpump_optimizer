@@ -139,6 +139,7 @@ class EntryConfig(Mapping[str, Any]):
     peak_tariff_enabled: bool = _key(const.DEFAULT_PEAK_TARIFF_ENABLED, _flag)
     peak_tariff_weekdays_only: bool = _key(const.DEFAULT_PEAK_TARIFF_WEEKDAYS_ONLY, _flag)
     precip_type_enabled: bool = _key(const.DEFAULT_PRECIP_TYPE_ENABLED, _flag)
+    space_setpoint_power_feedback: bool = _key(const.DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, _flag)
     price_prior_enabled: bool = _key(const.DEFAULT_PRICE_PRIOR_ENABLED, _flag)
     price_tiles_enabled: bool = _key(const.DEFAULT_PRICE_TILES_ENABLED, _flag)
     pv_enabled: bool = _key(const.DEFAULT_PV_ENABLED, _flag)

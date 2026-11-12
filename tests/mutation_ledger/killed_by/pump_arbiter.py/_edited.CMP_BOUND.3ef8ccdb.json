@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_edited CMP_BOUND 3ef8ccdb",
+  "killed_by": "tests/features.py",
+  "old": "        and utc_elapsed_seconds(now, record[1]) >= ECHO_GRACE_S \\",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`and utc_elapsed_seconds(now, record[1]) > ECHO_GRACE_S \\`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

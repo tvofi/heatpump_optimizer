@@ -63,7 +63,7 @@ it writes is recorded. A reading that differs from the record after
 :data:`ECHO_GRACE_S` -- a person, an automation or the pump's own reset --
 is written again at once: while "Optimizer active" is on the optimizer is
 the pump's one writer, and turning it off is how a person takes the pump
-back, and nothing is written from then on. A value the pump
+back, and nothing is written from then on but the restore below. A value the pump
 still does not hold after that rewrite raises a warning repair and is sent
 again every :data:`RETRY_MINUTES`; the first reading that holds it clears
 the repair. Readings inside the grace prove nothing either way: the fork
@@ -77,8 +77,8 @@ row is configured (#1911). Inside a silent window it is held on; outside
 one, off; a boost releases it for the boost and it is held again after.
 An install with no silent rows never has it written. An Off window adds
 no write of its own: those steps are the idle row, and the power switch
-is not one of them. Switching the optimizer off writes nothing and undoes
-nothing, so a switch it turned on stays on. The reading that write causes
+is not one of them. Switching the optimizer off writes nothing to it and
+undoes nothing, so a switch it turned on stays on. The reading that write causes
 keeps the learners off the interval, and it is not a further cap on the
 plan: the window's ceiling is the solve's.
 
@@ -102,10 +102,22 @@ house is below the plan's room temperature for the step. A house at or
 above it needs no space heat, so the lease does not hand the pump's own
 space thermostat a warm house (tvofi, v6.6.12). A stale or
 missing plan, comfort, an experiment and the end of the lease all get
-the baseline row above, and so does unloading while the optimizer is on.
-A boost adds its duty to the plan step's (Boost Space Heating alone is
+the baseline row above, and so does unloading while the optimizer is on,
+the space set-point apart. A boost adds its duty to the plan step's (Boost Space Heating alone is
 space only, DHW boost alone hot water only), and the global boost mode is
-both (:func:`_planned_duty`). Turning it off writes nothing.
+both (:func:`_planned_duty`). Turning it off writes nothing but the restore.
+
+**Off restores the space set-point** (tvofi, 2026-11-07, "Arbiter too",
+retracting 2026-09-26's "off writes nothing" for this slot). Before its first
+write the arbiter arms :mod:`off_restore` (:data:`CONSUMER`), which captures
+the entity's reading, persisted, as the person's baseline and writes it back
+on the change into Off and on every unload, a reload and a Home Assistant
+stop included (the hook's one rule). A reading equal to the arbiter's own
+last write is never captured (:func:`_arm_space`). What a person sets while
+the optimizer is off is captured at the next arm; one set between writes is
+adopted as the baseline (:func:`_edited`), bounded to the entity's own
+range, and, while active, still written over. The mode, the hot-water set-point and the silent switch are not
+restored.
 
 It acts at step boundaries: a one-minute tick (only while the option is not
 off) re-derives the step, since the solve runs every 30 minutes and a plan
@@ -130,11 +142,12 @@ from __future__ import annotations
 import asyncio
 import bisect
 import logging
+import math
 from collections import Counter, deque
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
-from typing import Any, TypeGuard
+from typing import Any, TypeGuard, cast
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -145,12 +158,19 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, issues, pump_mode, quiet_windows
+from . import boost, duty_switch, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     CONF_POWER_ENTITY,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
     DOMAIN,
     MODE_AUTO,
@@ -161,13 +181,14 @@ from .const import (
     SPACE_SETPOINT_WATER_UNITS,
 )
 from .entry_config import EntryConfig
+from .freq_control import defrost_interval, resolve_reading
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
+    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, state_power_kw, write_setpoint_c,
 )
 from .log_latch import log_held
-from .payload import CurrentAction
+from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
@@ -240,6 +261,43 @@ _TICK = timedelta(minutes=1)
 #: arbiter's tick in that same minute reads the draw from before the write.
 RUN_SETTLE = _TICK
 
+#: The power-feedback loop on a water set-point (R10-WATER-SETPOINT-FEEDBACK,
+#: outside report #3380): a controller that integrates on target minus inlet
+#: ramps for as long as the target sits above the water, so the open-loop
+#: inlet-plus-lift target never settles at the planned level. The window the
+#: measured draw is averaged over before it is compared with the plan; the
+#: meter updates every few seconds and the arbiter passes at least once a
+#: minute (:data:`_TICK`).
+FEEDBACK_WINDOW = timedelta(minutes=3)
+#: How long a run writes today's target before the loop moves it: the
+#: controller's start programme (about 3 minutes at a fixed speed, measured
+#: on the reporting install) is not a response to the target.
+FEEDBACK_START_HOLD = timedelta(minutes=5)
+#: How far the target moves per minute outside the deadband, K. Time-based,
+#: not per pass: passes come from the cycle, the tick and the listener.
+FEEDBACK_RATE_K_PER_MIN = 0.2
+#: The deadband on the draw error: this share of the planned level, or of
+#: the band's floor where the plan asks less, so a sub-minimum level gets no
+#: narrower band than the modulation floor's. Inside it the target is held,
+#: not re-anchored to the rising inlet.
+FEEDBACK_DEADBAND_SHARE = 0.1
+#: How far below the inlet the loop may wind the target down, K. A controller
+#: stops a running compressor when its inlet reaches target plus its heating
+#: hysteresis, a setting whose minimum is 0.5 K on the reporting firmware
+#: (3.92.3; #3372 comment 6756915104, which also says not to assume 2 K, and
+#: that input 10107 carries the start threshold in effect); less one 0.1 K
+#: entity step and a 0.1 K inlet rise between passes, 0.3 K cannot stop it at
+#: any permitted hysteresis, because a loop write is sent even when it moves
+#: less than :data:`SETPOINT_TOLERANCE` (:func:`_note_sent`).
+FEEDBACK_DOWN_K = 0.3
+#: After a stop the loop caused, how much closer to the inlet than the gap
+#: that stopped the compressor the target is held for the rest of this
+#: arbiter state's life, K: two 0.1 K entity steps.
+FEEDBACK_STOP_MARGIN_K = 0.2
+#: Past the gate by any amount the entity's step rounding does not absorb,
+#: so the loop's lowest write is the gate plus one entity step (I2).
+FEEDBACK_GATE_CLEAR_K = 0.01
+
 
 @dataclass(frozen=True)
 class PumpCommand:
@@ -253,11 +311,41 @@ class PumpCommand:
 
 
 @dataclass
+class FeedbackRun:
+    """One compressor run under the power-feedback loop; never persisted.
+
+    A restart re-enters the start-hold, which writes today's target. The
+    target ``w_c`` is kept unrounded, so a move smaller than the entity's
+    step accumulates instead of rounding away.
+    """
+
+    start: datetime
+    w_c: float
+    seen: datetime
+    #: (when, measured kW) over :data:`FEEDBACK_WINDOW`.
+    samples: deque[tuple[datetime, float]] = field(default_factory=deque)
+    running: bool = False
+    #: The last value the loop sent that differs from today's target, and
+    #: the record it replaced: the bracket ``hold`` reads a clamp cut in.
+    sent_c: float | None = None
+    prev_c: float | None = None
+    #: Where the controller cut a loop write: the target never passes it.
+    cut_lo_c: float | None = None
+    cut_hi_c: float | None = None
+
+
+@dataclass
 class ArbiterState:
     """Per-coordinator record: what was written, and what did not hold."""
 
     #: slot -> (value written, when); the ownership record, persisted.
     written: dict[str, tuple[Any, datetime]] = field(default_factory=dict)
+    #: slot -> the last write a loop move dropped from ``written`` to resend
+    #: (:func:`_note_sent`), read while that record is missing, until a
+    #: restore or release ends it; persisted with it. A loop run's reset
+    #: keeps it. A write lands only once the off restore is armed, which
+    #: :func:`_arm_space` no longer refuses, so no write needs to end it.
+    dropped: dict[str, Any] = field(default_factory=dict)
     #: slot -> differing readings in a row; slot -> when a value the pump
     #: did not hold is sent again.
     misses: dict[str, int] = field(default_factory=dict)
@@ -274,6 +362,14 @@ class ArbiterState:
     supply: tuple[datetime, bool] | None = None
     #: The step tick's listener; dropped only at unload, never by duty mode.
     supply_unsub: Callable[[], None] | None = None
+    #: The space set-point's reading when the arbiter last armed a write to
+    #: it; ``None`` unknown (a restart, or the power switch read off since).
+    #: A later reading that is neither this nor the write is a person's edit.
+    space_before: float | None = None
+    #: The power-feedback loop's live run, and the inlet-to-target gap at
+    #: which a loop-lowered target stopped the compressor (:func:`_feedback`).
+    feedback: FeedbackRun | None = None
+    stop_gap_k: float | None = None
 
 
 @dataclass(frozen=True)
@@ -299,6 +395,10 @@ class ArbiterInputs:
     action: CurrentAction
     measured_power_kw: float | None
     disinfecting: bool
+    #: The pump's defrost flag as read (``PumpSignals.defrosting``); what it
+    #: means is ``freq_control.defrost_interval``'s, and ``None`` is no flag
+    #: or no evidence.
+    defrosting: bool | None = None
 
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
@@ -495,7 +595,12 @@ def _bounded(
     value = max(value, floor, low if low is not None else floor)
     value = min(value, high) if high is not None else value
     lows = [v for v in (lo, low) if v is not None]
-    highs = [v for v in (hi, high) if v is not None]
+    highs = [high] if high is not None else []
+    # The entity's range outranks a caller's ceiling: a write under its
+    # minimum on the step is refused, so a ceiling below that is dropped and
+    # the minimum, rounded up onto the step, holds.
+    if hi is not None and (low is None or hi >= quantise_setpoint_c(inp.hass, entity, low, rounding="up")):
+        highs.append(hi)
     return quantise_setpoint_c(
         inp.hass, entity, value, rounding=rounding,
         lo_c=max(lows) if lows else None, hi_c=min(highs) if highs else None,
@@ -617,6 +722,12 @@ FLOW_INLET_KEYS = (
 #: in the same precedence; none read leaves the no-inlet floor, the hold in
 #: return terms.
 RETURN_SKIPPED_RUNG = CONF_VALVE_OUTLET_TEMP_ENTITY
+#: The controller's lower and upper limit on the space water set-point, as
+#: the two optional sensors the feedback loop's bounds read.
+SETPOINT_LIMIT_KEYS = (
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
+)
 
 
 def _reader(hass: Any, config: Mapping[str, Any]) -> InputReader:
@@ -806,6 +917,214 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     return _bounded(inp, "space_setpoint", hold, _gate_floor_c(inp.config))
 
 
+def _feedback_on(inp: ArbiterInputs, duty: str | None, now: datetime, boosts: Any) -> bool:
+    """Whether this pass's water target (the caller's water unit) is the loop's.
+
+    A space-only step below the band top, on an install with a power meter
+    and the option on, outside a boost (``boosts``, the
+    coordinator's ``boost.BoostState``), an experiment and a defrost. Space
+    only comes from a fresh plan in Auto or Economy, an experiment or a
+    boost (:func:`_planned_duty`). Anywhere else the meter reads a draw that
+    is not this target's response (hot water, a reversed cycle), the step
+    wants the ceiling, or the level is not the plan's.
+    """
+    cfg = EntryConfig.from_mapping(inp.config)
+    if duty != "space" or not (cfg.space_setpoint_power_feedback and cfg.heat_pump_power_entity):
+        return False
+    planned, top = _step_kw(inp.plan, now), _band_kw(inp)[1]
+    return bool(
+        not defrost_interval(inp.defrosting) and _experiment_kw(inp) is None
+        and not boosts.active(boost.CHANNEL_SPACE, now)
+        and planned is not None and top is not None and planned < float(top)
+    )
+
+
+def _feedback(held: ArbiterState, inp: ArbiterInputs, now: datetime, base: float | None, on: bool) -> float | None:
+    """The space water target under the power-feedback loop, else ``base``.
+
+    ``base`` is today's open-loop target (:func:`_flow_target`). While the
+    compressor runs on a qualifying pass (``on``, :func:`_feedback_on`), the
+    target moves by :data:`FEEDBACK_RATE_K_PER_MIN` against the error
+    between the windowed measured draw and the planned level, is held inside
+    the deadband instead of re-anchored to the rising inlet, and stays
+    within :func:`_feedback_bounds`. A run's first
+    :data:`FEEDBACK_START_HOLD` writes ``base``, so its first write is
+    today's. Any other pass, a stopped compressor or a missing inlet resets
+    the run.
+    """
+    inlet = _flow_inlet_c(inp) if on else None
+    if base is None or inlet is None:
+        held.feedback = None
+        return base
+    power = finite_float(inp.measured_power_kw)
+    rec = held.feedback
+    if rec is not None and utc_elapsed_seconds(now, rec.seen) > FEEDBACK_WINDOW.total_seconds():
+        rec = None  # passes that skipped the loop: a cooling or switched-off pump
+    if power is None or power < _ran_kw(inp):
+        if rec is not None and rec.running:
+            _note_stop(held, rec, inlet, base)
+        held.feedback = FeedbackRun(now, base, now)
+        return base
+    if rec is None:
+        rec = held.feedback = FeedbackRun(now, base, now)
+    rec.samples.append((now, power))
+    while utc_elapsed_seconds(now, rec.samples[0][0]) > FEEDBACK_WINDOW.total_seconds():
+        rec.samples.popleft()
+    minutes = max(0.0, utc_elapsed_seconds(now, rec.seen)) / 60.0
+    rec.running, rec.seen = True, now
+    if utc_elapsed_seconds(now, rec.start) < FEEDBACK_START_HOLD.total_seconds():
+        rec.w_c, rec.sent_c = base, None
+        return base
+    lo, hi = _feedback_bounds(held, rec, inp, inlet)
+    rec.w_c = min(max(_nudged(rec, inp, now, minutes), lo), hi)
+    out = _bounded(inp, "space_setpoint", rec.w_c, _gate_floor_c(inp.config), lo=lo, hi=hi)
+    _note_sent(held, rec, out, base)
+    return out
+
+
+def _nudged(rec: FeedbackRun, inp: ArbiterInputs, now: datetime, minutes: float) -> float:
+    """``rec.w_c`` moved against the draw error, or held inside the deadband.
+
+    The plan's ``power_schedule`` is electrical kW, the unit of the band it
+    is mapped on (:func:`_band_kw`) and of the meter.
+    """
+    planned = float(_step_kw(inp.plan, now) or 0.0)
+    floor = finite_float(_band_kw(inp)[0]) or 0.0
+    error = sum(kw for _at, kw in rec.samples) / len(rec.samples) - planned
+    if abs(error) <= FEEDBACK_DEADBAND_SHARE * max(planned, floor):
+        return rec.w_c
+    return rec.w_c - math.copysign(FEEDBACK_RATE_K_PER_MIN * minutes, error)
+
+
+def _feedback_bounds(held: ArbiterState, rec: FeedbackRun, inp: ArbiterInputs, inlet: float) -> tuple[float, float]:
+    """``(lo, hi)`` the loop's target stays within, °C.
+
+    Never more than :data:`FEEDBACK_DOWN_K` below the inlet, nor past a stop
+    bound, a controller cut or the controller's own limits where their
+    sensors are read (:func:`_setpoint_limits_c`), nor at the gate (I2);
+    never above the ceiling.
+
+    The gate is the value a step that does not heat writes, so a heating
+    write at or below it tells the controller the step is off. A
+    controller's upper limit, read from its sensor or from a cut, that
+    sits under the lowest heating write (the gate plus one entity step)
+    leaves no heating value inside it: it is not the limit of a heating
+    set-point (a sensor in the wrong slot, a placeholder, a parked
+    circuit), and it is left out as an unreadable one is.
+    """
+    gate = _gate_c(inp) or _gate_floor_c(inp.config)
+    clear = gate + FEEDBACK_GATE_CLEAR_K
+    lowest = _bounded(inp, "space_setpoint", clear, lo=clear) or clear
+    lows = [inlet - FEEDBACK_DOWN_K, rec.cut_lo_c, clear]
+    if held.stop_gap_k is not None:
+        lows.append(inlet - held.stop_gap_k + FEEDBACK_STOP_MARGIN_K)
+    low, high = _setpoint_limits_c(inp)
+    lows.append(low)
+    highs = [_heat_ceiling_c(inp.config)]
+    highs += [v for v in (rec.cut_hi_c, high) if v is not None and v >= lowest]
+    return (max(v for v in lows if v is not None), min(highs))
+
+
+def _setpoint_limits_c(inp: ArbiterInputs) -> tuple[float | None, float | None]:
+    """The controller's ``(lower, upper)`` limit on the space set-point, °C.
+
+    Each from its optional sensor (:data:`SETPOINT_LIMIT_KEYS`) and ``None``
+    where that is unset, unavailable, not a number or outside any water's
+    range. Neither key has an age limit (``const.INPUT_MAX_AGE_MINUTES``):
+    a limit is a setting, so its sensor reports when it changes and a
+    reading holds until the source is ``unavailable``. A pair that is not lower below upper is two sensors in
+    each other's slot, and neither is used.
+    """
+    reader = _reader(inp.hass, inp.config)
+    low, high = (
+        reading.value if reading.ok else None
+        for reading in (reader.read(key) for key in SETPOINT_LIMIT_KEYS)
+    )
+    if low is not None and high is not None and low >= high:
+        return (None, None)
+    return (low, high)
+
+
+def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: float | None) -> None:
+    """Send a loop target whenever it moves; remember it and what it replaces.
+
+    ``_write`` skips a value within :data:`SETPOINT_TOLERANCE` of its record,
+    which keeps a held target silent. A loop move is smaller than that, and
+    skipped it would leave the controller on a value up to the tolerance
+    from the loop's: enough past the inlet to stop a running compressor
+    (:data:`FEEDBACK_DOWN_K`), or to stall the wind-down. So a target that
+    moves at all drops the record, and an equal one is still not sent. The
+    dropped record is the run's ``prev_c``, the bracket :func:`_cut_of`
+    reads, and ``held.dropped`` until a restore ends it: it is still the
+    arbiter's last write, which the off restore's own-write refusal reads
+    (:func:`_arm_space`) after the run that dropped it has ended.
+    """
+    recorded = held.written.get("space_setpoint")
+    if out is None or (recorded is not None and recorded[0] == out):
+        return
+    if recorded is not None:
+        rec.prev_c = held.dropped["space_setpoint"] = recorded[0]
+    rec.sent_c = out if out != base else None
+    held.written.pop("space_setpoint", None)
+
+
+def _note_stop(held: ArbiterState, rec: FeedbackRun, inlet: float, base: float) -> None:
+    """A run stopped under a loop target below today's: the loop caused it.
+
+    The inlet-to-target gap it stopped at bounds the target from then on,
+    :data:`FEEDBACK_STOP_MARGIN_K` closer to the inlet, so a controller whose
+    stop hysteresis is smaller than assumed restarts at most once.
+    """
+    if rec.sent_c is None or rec.sent_c >= base:
+        return
+    gap = inlet - rec.sent_c
+    held.stop_gap_k = gap if held.stop_gap_k is None else min(held.stop_gap_k, gap)
+
+
+def _cut_of(rec: FeedbackRun | None, value: Any, observed: Any) -> bool:
+    """Whether ``observed`` is the controller cutting the loop write ``value``:
+    a reading between the record the write replaced and the write, each end
+    widened by :data:`SETPOINT_TOLERANCE`. Read by :func:`_clamp_cut` and,
+    before it, by the off restore's :func:`_edited`.
+    """
+    if rec is None or rec.sent_c is None or rec.prev_c is None or value != rec.sent_c:
+        return False
+    low, high = sorted((rec.prev_c, value))
+    return bool(low - SETPOINT_TOLERANCE <= observed <= high + SETPOINT_TOLERANCE)
+
+
+def _clamp_cut(held: ArbiterState, slot: str, value: Any, observed: Any, at: datetime) -> bool:
+    """Whether a differing reading is the controller clamping a loop write.
+
+    A reading between the record the loop write replaced and the write
+    (each within :data:`SETPOINT_TOLERANCE`) is the controller's own limit,
+    not a person: the record adopts it, the run's target stops there for
+    the rest of the run, and ``hold`` reads it as held. A cut of
+    today's target, or any other reading (a person, a revert to the
+    controller's default), is ``hold``'s as before and starts the run over.
+
+    On the reporting install the two limits are smart-home interface inputs 10104
+    (parameter 979) and 10103 (parameter 87), which clamp register 10001
+    (#3372 comment 6756915104). Where their sensors are configured the loop
+    stays inside them (:func:`_setpoint_limits_c`) and no write is cut;
+    they are inferred from the readback here for an install that names
+    neither, and for a controller that publishes none.
+    """
+    if slot != "space_setpoint":
+        return False
+    rec, held.feedback = held.feedback, None
+    if rec is None or rec.prev_c is None or not _cut_of(rec, value, observed):
+        return False
+    held.feedback = rec
+    if value > rec.prev_c:
+        rec.cut_hi_c = observed
+    else:
+        rec.cut_lo_c = observed
+    rec.w_c, rec.sent_c = observed, None
+    held.written["space_setpoint"] = (observed, at)
+    return True
+
+
 def _silent_rows(spec: Any) -> TypeGuard[str]:
     """Whether ``spec`` names a silent window the week can reach.
 
@@ -858,11 +1177,36 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
     return _inside_silent(spec, cfg.quiet_off_windows, now)
 
 
+def _dhw_write(inp: ArbiterInputs) -> float | None:
+    """The hot-water set-point this step holds, °C on the entity's step.
+
+    A cycle runs while the plan's step books hot water for it (``dhw_reason``
+    legionella) or the integration holds the pump's disinfection switch on;
+    its temperature is the thermal parameters' (``dhw_cycle_temp``, the higher
+    of the everyday set-point and the disinfection temperature), on the
+    entity's step at or below the tank's hard maximum (``dhw_hard_max_temp``,
+    that temperature capped at 70 °C), which no write exceeds: an off-step
+    target is held a step below it (everyday 57, disinfection 50, step 5:
+    55, not 60). No cycle, the everyday set-point is written on the step
+    at or below the charge limit (``dhw_max_temp``): rounding it up would
+    hold the tank above the user's own limit for good (everyday 58, step 5:
+    55, not 60). Holding the everyday set-point through a cycle
+    stopped the pump's own thermostat short of the cycle's target (2026-11-01:
+    60 °C planned, 55 °C written back within a minute).
+    """
+    everyday = float(inp.params.dhw_setpoint)
+    booked = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA
+    cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None
+    if cycle is None:
+        return _bounded(inp, "dhw_setpoint", everyday, hi=inp.params.dhw_max_temp)
+    return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)
+
+
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = inp.plan
     mode_state = _slot_state(inp, "mode")
-    dhw = _bounded(inp, "dhw_setpoint", float(inp.params.dhw_setpoint))
+    dhw = _dhw_write(inp)
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         # Cooling is the user's season, not a duty the plan chose: hands off,
         # the silent switch included.
@@ -872,6 +1216,8 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     if duty == "space" and inp.disinfecting:
         duty = "both"
     space = _space_target(inp, result, now, duty)
+    if _flow_unit(inp.config):
+        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "idle":
         # No mode write. The mode last written served the duty that just
         # finished, whose thermostat the plan has just satisfied, so it is
@@ -894,12 +1240,15 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
 
 
 def dhw_gated(coord: Any, reading: float | None) -> bool:
-    """Whether ``reading`` is the arbiter's own hot-water gate, below configured."""
+    """Whether ``reading`` is the arbiter's own hot-water write, still as written.
+
+    Its gate and its everyday set-point alike: the arbiter writes a cycle's
+    temperature itself on a cycle step (``_dhw_write``), so its own write is
+    a step decision, never the pump's set-point below the disinfection floor.
+    A record exists only while the arbiter controls the pump (``_forget``).
+    """
     written = state_for(coord).written.get("dhw_setpoint")
-    if reading is None or written is None or _differs("dhw_setpoint", reading, written[0]):
-        return False
-    configured = float(coord.arbiter_inputs().params.dhw_setpoint)
-    return bool(written[0] < configured - SETPOINT_TOLERANCE)
+    return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0]))
 
 
 def _planned_duty(coord: Any, inp: ArbiterInputs, now: datetime) -> str | None:
@@ -1060,7 +1409,7 @@ def hold(coord: Any, now: datetime) -> None:
         observed = _observed(inp, slot)
         if observed is None or utc_elapsed_seconds(now, at) < ECHO_GRACE_S:
             continue
-        if not _differs(slot, observed, value):
+        if not _differs(slot, observed, value) or _clamp_cut(held, slot, value, observed, at):
             held.misses.pop(slot, None)
             if held.retry.pop(slot, None) is not None and not held.retry:
                 issues.clear_issue(coord.hass, ISSUE_IGNORED)
@@ -1070,6 +1419,25 @@ def hold(coord: Any, now: datetime) -> None:
         if held.misses[slot] > 1:
             entity = _slot_entity(inp.config, slot)
             _not_held(coord, held, slot, f"{entity}: {observed} (set by the optimizer: {value})", now)
+
+
+def _edited(held: ArbiterState, observed: float, now: datetime) -> bool:
+    """The space reading is a person's edit, read before :func:`hold` rewrites it.
+
+    One that differs from the arbiter's write after the grace, on the first
+    miss (a second is a write the pump does not take), and not what the
+    entity read when the write was sent (a refused write falls back to that),
+    that reading known: after a restart or a power cycle (the pump's own
+    reset) nothing is adopted. Nor is the controller's cut of a loop write
+    (:func:`_cut_of`), which :func:`hold` adopts as the loop's bound.
+    """
+    record, before = held.written.get("space_setpoint"), held.space_before
+    return record is not None and before is not None \
+        and utc_elapsed_seconds(now, record[1]) >= ECHO_GRACE_S \
+        and not held.misses.get("space_setpoint") \
+        and _differs("space_setpoint", observed, record[0]) \
+        and _differs("space_setpoint", observed, before) \
+        and not _cut_of(held.feedback, record[0], observed)
 
 
 def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datetime) -> None:
@@ -1088,7 +1456,7 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
 
 
 def _forget(held: ArbiterState) -> None:
-    held.written, held.misses, held.retry = {}, {}, {}
+    held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None
 
 
 def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
@@ -1105,7 +1473,9 @@ def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | 
     return None
 
 
-async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime) -> None:
+async def _write(
+    coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime, command: PumpCommand | None = None,
+) -> None:
     held = state_for(coord)
     entity = _slot_entity(inp.config, slot)
     state = inp.hass.states.get(entity) if entity else None
@@ -1114,11 +1484,9 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
         recorded and not _differs(slot, recorded[0], value)
     ):
         return
-    if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
+    if await _held_back(inp, coord.entry, held, slot, entity, now):
         return
     domain = entity.split(".", 1)[0]
-    if slot == "mode" and domain not in _MODE_DOMAINS:
-        return  # a read-only mode slot is read, never written (D12-s2-02)
     service = _service(slot, state, value)
     try:
         if service is None:
@@ -1131,12 +1499,126 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
     held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
+    _report_write(duty_switch.record_for(coord), boost.held_for(coord), held, inp, slot, recorded, now, command)
     await _persist(coord)
+
+
+def _reads_below(reading: Any, setpoint: Any) -> bool:
+    """Whether a reading is known and under its known set-point: the duty has demand."""
+    return reading is not None and setpoint is not None and float(reading) < float(setpoint)
+
+
+def _report_write(
+    learner: Any, boosts: Any, held: ArbiterState, inp: ArbiterInputs, slot: str,
+    replaced: tuple[Any, datetime] | None, now: datetime, command: PumpCommand | None,
+) -> None:
+    """Tell ``duty_switch`` of a landed mode write, with its gates.
+
+    Every mode write lands in :func:`_write`, a re-send after :func:`hold`
+    dropped the record included (``replaced`` is then ``None``). The space
+    set-point is the command's, written right after the mode: the one the
+    controller judges the heating request on, and handed on only where it is
+    a water temperature (:func:`_flow_unit`), never an indoor unit's room one. The source leg's age is the
+    replaced mode record's; ``dhw_since`` is already reset on the pass that
+    leaves hot water.
+    """
+    if slot != "mode":
+        return
+    context, mode = _switch_context(boosts, held, inp, now), held.written["mode"][0]
+    target = {pump_mode.MODE_HEAT: "space", pump_mode.MODE_DHW: "dhw"}.get(mode)
+    if command is not None and target is not None and inp.plan is not None:
+        room, tank = getattr(inp.state, "room_temperature", None), getattr(inp.state, "dhw_temperature", None)
+        planned = _planned_room(inp.plan, now)
+        context = replace(
+            context,
+            inlet_c=_flow_inlet_c(inp), water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,
+            source_leg_s=utc_elapsed_seconds(now, replaced[1]) if replaced else None,
+            target_demand=_reads_below(room, planned) if target == "space" else _reads_below(tank, inp.params.dhw_setpoint),
+            plan_stays=all(step_duty(inp.plan, at) in (target, "both")
+                           for at in (now, utc_shift(now, timedelta(seconds=duty_switch.STOP_WINDOW_S)))),
+        )
+    duty_switch.note_mode_write(learner, now, replaced[0] if replaced else None, mode, context)
+
+
+def _lit(inp: ArbiterInputs, *keys: str) -> bool:
+    """Whether any of the configured flag entities ``keys`` reads on, fresh."""
+    reader = _reader(inp.hass, inp.config)
+    return any(reading.ok and bool(reading.flag) for reading in map(reader.read_bool, keys))
+
+
+def _switch_context(boosts: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> duty_switch.SwitchContext:
+    """This pass's readings that ``duty_switch`` judges a duty switch by."""
+    mode = held.written.get("mode")
+    return duty_switch.SwitchContext(
+        supply_on=not _pump_off(inp, held),
+        plan_control=inp.mode in (MODE_AUTO, MODE_ECONOMY) and duty_mode(inp.config) == DUTY_CONTROL,
+        defrosting=bool(defrost_interval(inp.defrosting)) or _lit(inp, CONF_HEAT_PUMP_DEFROST_ENTITY),
+        disinfecting=bool(inp.disinfecting),
+        boost_held=any(boosts.active(c, now) for c in (boost.CHANNEL_SPACE, boost.CHANNEL_DHW)),
+        electric_heat=_lit(inp, CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY),
+        fault=_lit(inp, CONF_HEAT_PUMP_FAULT_ENTITY),
+        loop_moved=held.feedback is not None and held.feedback.sent_c is not None,
+        mode_written_at=mode[1] if mode else None,
+        last_write_at=max((at for _value, at in held.written.values()), default=None),
+    )
+
+
+async def _adopt(inp: ArbiterInputs, entry: Any, held: ArbiterState, now: datetime) -> None:
+    """A space set-point a person set (:func:`_edited`) becomes the baseline off restores."""
+    entity = _entities(inp.config)["space_setpoint"]
+    edit = _observed(inp, "space_setpoint")
+    if edit is None or not _edited(held, edit, now):
+        return
+    # Off writes the baseline back, so it is one the entity takes: the edit
+    # inside the entity's own range, on its step (#3402's bound at adoption).
+    # A reading implies a state, so _bounded answers a number.
+    baseline = cast(float, _bounded(inp, "space_setpoint", edit))
+    if await off_restore.async_rebaseline(inp.hass, entry, CONSUMER, entity, baseline):
+        _LOGGER.info("Pump duty: %s was set to %s by hand; turning the optimizer off restores %s",
+                     entity, edit, baseline)
+
+
+async def _held_back(
+    inp: ArbiterInputs, entry: Any, held: ArbiterState, slot: str, entity: str, now: datetime,
+) -> bool:
+    """A write that differs but is not sent this pass: its retry is not due, the
+    mode slot is read-only (D12-s2-02), or the space restore is not armed."""
+    if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
+        return True
+    if slot == "mode" and entity.split(".", 1)[0] not in _MODE_DOMAINS:
+        return True
+    return slot == "space_setpoint" and not await _arm_space(inp, entry, held, entity)
+
+
+async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity: str) -> bool:
+    """Arm the off restore before a space write; False holds the write.
+
+    The first arm captures the entity's reading as the baseline off restores
+    (:mod:`off_restore`), but never one equal to the arbiter's own last write
+    -- a record from before this restore existed: that number is the
+    optimizer's, not the person's, so the write is held, latched, until the
+    controller reads anything else.
+    """
+    armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
+    reading = read_setpoint(inp.hass, entity)
+    record = held.written.get("space_setpoint")
+    # A loop move dropped the record to be sent (_note_sent); held.dropped
+    # keeps it across the run's end, which the loop resets on any stop.
+    last = record[0] if record is not None else held.dropped.get("space_setpoint")
+    own = (armed is None or armed["entity_id"] != entity) and last is not None \
+        and reading is not None and not _differs("space_setpoint", reading, last)
+    if log_held(inp.hass, f"space_baseline_own:{entity}", own,
+                "Pump duty: %s reads %s, the optimizer's own last write, which is no "
+                "baseline to restore on off; not writing it until it is set at the controller",
+                entity, reading):
+        return False
+    held.space_before = reading
+    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER)
 
 
 async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
     for slot in _SLOTS:
-        await _write(coord, inp, slot, getattr(command, slot), now)
+        await _write(coord, inp, slot, getattr(command, slot), now, command)
 
 
 async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
@@ -1241,9 +1723,11 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
 
 async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: str, now: datetime) -> None:
     if inp.mode == MODE_OFF or mode != DUTY_CONTROL:
-        # Off writes nothing, not even the baseline (tvofi, 2026-09-26): the
-        # pump is the person's the moment the optimizer lets go of it.
-        if held.written or held.retry:
+        # Off writes nothing here, not even the baseline row: the pump is the
+        # person's the moment the optimizer lets go of it. The space
+        # set-point's baseline is restored by off_restore (tvofi, 2026-11-07,
+        # "Arbiter too"), before this pass; its record is dropped here.
+        if held.written or held.retry or held.dropped or held.space_before is not None:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
             issues.clear_issue(coord.hass, ISSUE_IGNORED)
@@ -1256,8 +1740,10 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
     )
     _observe(held, inp, duty, now)
-    if mode != DUTY_CONTROL or _pump_off(inp):
+    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))
+    if mode != DUTY_CONTROL or _pump_off(inp, held):
         return
+    await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
     await _command(
         coord, inp,
@@ -1347,6 +1833,20 @@ def step_supply(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool | None:
     return None if i is None or i >= len(inp.plan.power_schedule or ()) else plan_step_runs(inp.plan, i)
 
 
+def cycle_supply(inp: ArbiterInputs, boosts: Any, on: bool, now: datetime | None = None) -> bool:
+    """The cycle's supply: the plan's command for the step it is written in.
+
+    The action is cut at the solve, and the experiment, the fuse advisor and
+    the price tile run before it is written, so a cycle can write a step late.
+    :func:`note_supply` stamps the write with the step it lands in, so the
+    step tick never corrected a stale ``on``: the switch then held the last
+    step's command for a whole step, as after a reload's cold solve. ``on``
+    stands wherever :func:`step_supply` does not speak.
+    """
+    step = step_supply(inp, boosts, now or dt_util.now())
+    return on if step is None else step
+
+
 @dataclass(frozen=True)
 class SupplyWiring:
     """What the step tick reads and writes through; built by :func:`note_supply`.
@@ -1412,30 +1912,42 @@ def release_supply(held: ArbiterState) -> None:
         unsub()
 
 
-def _pump_off(inp: ArbiterInputs) -> bool:
+def _pump_off(inp: ArbiterInputs, held: ArbiterState) -> bool:
     """Whether the configured power switch reads off.
 
     Switched off, the pump reports set-points of its own (tvofi's reads 25
     degC), so nothing is compared or written until it is on again; then a
-    reset that is still there is rewritten like any other difference.
+    reset that is still there is rewritten like any other difference, and
+    never adopted as a person's edit: the space reading before the next
+    write is forgotten here (:func:`_edited`).
     """
     entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
     power = inp.hass.states.get(entity) if entity else None
-    return bool(getattr(power, "state", None) == "off")
+    off = getattr(power, "state", None) == "off"
+    held.space_before = None if off else held.space_before
+    return off
 
 
 async def release(coord: Any) -> None:
-    """Unload: write the baseline over anything still owned, then let go."""
+    """Unload: write the baseline row over anything still owned, then let go.
+
+    Not the space set-point: the unload's restore (:mod:`off_restore`) has
+    written its baseline back already, and the record of it is saved here.
+    """
     release_listeners(coord)
     held = state_for(coord)
     release_supply(held)
     inp = coord.arbiter_inputs()
     if held.written and duty_mode(inp.config) == DUTY_CONTROL and inp.mode != MODE_OFF:
-        await _command(coord, inp, desired(coord, inp, None, dt_util.now()), dt_util.now())
+        await _command(coord, inp, replace(desired(coord, inp, None, dt_util.now()), space_setpoint=None),
+                       dt_util.now())
+    if held.loaded:
+        await _persist(coord)
 
 
 def release_listeners(coord: Any) -> None:
     held = state_for(coord)
+    duty_switch.detach(coord)
     while held.unsubs:
         held.unsubs.pop()()
 
@@ -1461,6 +1973,25 @@ def _listen(coord: Any) -> None:
         entities.extend(night_mode_write_ids(prefix).values())
     if entities:
         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
+    duty_switch.attach(duty_switch.record_for(coord), *_running_signal(inp))
+
+
+def _running_signal(inp: ArbiterInputs) -> tuple[str | None, duty_switch.Reader]:
+    """The entity whose changes say the compressor started or stopped, and its reader.
+
+    The actual-frequency sensor where one is configured (never the number
+    entity, a set-point register that echoes the last write), else the meter
+    against ``on_threshold_kw``, the threshold :func:`_ran_kw` shares.
+    """
+    cfg = EntryConfig.from_mapping(inp.config)
+    sensor, meter, states, thermal = cfg.compressor_freq_sensor, cfg.heat_pump_power_entity, inp.hass.states, inp.thermal
+
+    def reader() -> tuple[float | None, float | None, float | None, bool]:
+        if sensor:
+            return resolve_reading(None, sensor, states.get, 0.0, 0.0)[0], None, None, True
+        return None, state_power_kw(states.get(meter), "clamp"), on_threshold_kw(thermal.params), False
+
+    return sensor or meter, reader
 
 
 def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:
@@ -1476,6 +2007,7 @@ async def _persist(coord: Any) -> None:
     held = state_for(coord)
     payload = {
         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
+        "dropped": dict(held.dropped),
     }
     try:
         await _store(coord).async_save(payload)
@@ -1502,6 +2034,8 @@ async def _load(coord: Any) -> None:
             continue
         if at is not None and _writable(slot, value):
             held.written[slot] = (value, at)
+    dropped = raw.get("dropped")
+    held.dropped = {k: v for k, v in dropped.items() if _writable(k, v)} if isinstance(dropped, dict) else {}
 
 
 def _writable(slot: str, value: Any) -> bool:
@@ -1520,6 +2054,36 @@ def _writable(slot: str, value: Any) -> bool:
 
 
 boost.bind_cold_lease(block_cold_lease)
+
+#: The off-restore hook's key for the space set-point (R10-ARBITER-OFF-RESTORE).
+CONSUMER = "pump_arbiter_space"
+
+
+def _restorer(config: Any) -> off_restore.Restorer | None:
+    """The space set-point's restore: the reading captured before the first write, degC."""
+    entity = EntryConfig.from_mapping(config).space_setpoint_entity
+    if not entity:
+        return None
+    return off_restore.Restorer(entity, write_setpoint_c, baseline_of=read_setpoint,
+                                restored=_space_restored)
+
+
+def _space_restored(entry: Any, _entity_id: str, _value: float) -> None:
+    """The restore wrote the baseline: the slot is the arbiter's no longer.
+
+    Its record goes, and the loop's run with it, so the next arm captures
+    what the entity reads and :func:`hold` compares nothing against a write
+    the entity was told over.
+    """
+    coord = getattr(entry, "runtime_data", None)
+    held = None if coord is None else _STATES.get(coord)
+    if held is not None:
+        for record in (held.written, held.misses, held.retry, held.dropped):
+            record.pop("space_setpoint", None)
+        held.feedback = None  # its prev_c is that record too (_note_sent)
+
+
+off_restore.register_consumer(CONSUMER, _restorer, write=write_setpoint_c)
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:
