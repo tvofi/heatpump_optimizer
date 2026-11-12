@@ -1,6 +1,0 @@
-review_carry: 82e14f6d8 -> 8c45afd38  main=origin/main
-  branch-only commits: 1
-  why: 8c45afd38f2378350bd2e532b68da28e7f682f0e is not the automatic merge of its parents
-  8c45afd38  Merge remote-tracking branch 'origin/main' into fix/r10-card-collapse
-review_carry: FRESH-REVIEW
-rc=1
