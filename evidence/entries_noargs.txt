@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.gfUEG9mLIi/wt/dev/audit/rca/ci-red/entries.py", line 41, in <module>
+    main(sys.argv[1], sys.argv[2])
+         ~~~~~~~~^^^
+IndexError: list index out of range
