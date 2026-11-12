@@ -17,9 +17,6 @@ marker_issue: NOT-APPLIED (count 2)
 marker_brief: rc=0 SURVIVED | carry_audit self-test: 434 checks, 0 failed | 
 marker_true: NOT-APPLIED (count 2)
 normpr_landops: rc=1 KILLED | carry_audit self-test: 434 checks, 1 failed | FAIL carry 2: land_ops writes 'From #3425' for a bare number
-normpr_cli: rc=1 KILLED | NOTE stale tree: 1ccc74680c3292f147de1268494167fac4121017 lacks origin/main 26072317b5556a2baa1ff562d8fbbc9588e2ba5c; roster read at origin/main | 
+normpr_cli: rc=1 KILLED | NOTE stale tree: 686b06f80ac7661a1d7cc84b67ac7c156566ed6d lacks origin/main fc2a7edcf2be8847037d9e8dc5bde460977befa8; roster read at origin/main | 
 normpr_noraise: rc=1 KILLED | carry_audit self-test: 434 checks, 2 failed | FAIL carry 2: another spelling is refused naming #<N> || FAIL carry 2: the CLI answers rc 2 for a non-# spelling, for landed and land-ops
 normpr_nohash: rc=1 KILLED | carry_audit self-test: 434 checks, 2 failed | FAIL carry 2: norm_pr maps digits to #N, keeps #N and empty || FAIL carry 2: land_ops writes 'From #3425' for a bare number
-marker_issue(retry): rc=1 KILLED | carry_audit self-test: 434 checks, 1 failed | FAIL carry 3 null controls: group, #N and dismissed: are markers under ## Evidence
-marker_true(retry): rc=1 KILLED | carry_audit self-test: 434 checks, 3 failed | FAIL carry 3: the b6e4992b mention shape under ## Evidence routes nothing || FAIL carry 3: the 2c51d159 mention shape under ## Evidence routes nothing || FAIL carry 3: the 8e3e097e mention shape under ## Evidence routes nothing
-normpr_cli detail: rc=1 | [] | []

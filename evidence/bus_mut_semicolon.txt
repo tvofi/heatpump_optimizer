@@ -170,9 +170,10 @@
   ok   a verdict for a topic with no design ref is refused
   ok   dispatch refuses a body carry its group does not hold, printing the roster op, recording nothing (CARRY 0)
   ok   and dispatches once the group's carries name the pull request (P310, the null control)
-  FAIL a body's own-group status line passes when the head ref is the group's branch (CARRY-LANDED-OWN-TOPIC)
+  ok   a body's own-group status line passes when the head ref is the group's branch (CARRY-LANDED-OWN-TOPIC)
   ok   null control: the same line under another group's head ref is still refused
+  FAIL an unreadable body is still reported by carry_landed, and the dispatch goes on (CARRY-LANDED-UNREAD)
   ok   watch --once under a live watcher's lock refuses and names its pid (P102)
   ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
-bus self-test: 176 checks, 1 failed
+bus self-test: 177 checks, 1 failed
 rc=1
