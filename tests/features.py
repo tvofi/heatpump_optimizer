@@ -82292,6 +82292,102 @@ R.check(
 )
 
 
+# Which writes the gate holds, one input changed at a time against a held
+# write: the plan modes and the boosts (``supply_hold._passes``), rule
+# three's window one tick inside it and its hot-water exemption on a "both"
+# step (``_ends_soon``), and the step tick's retry where the cycle would
+# write nothing (``supply_tick``, ``_action_supply``).
+def _sh_at(minute, value, since_min, state, mode="auto", boosts=None):
+    held = _sa_pa.ArbiterState()
+    base = _sh_inputs(minute, state=state)()
+    base.hass.states.set("switch.hp", FakeState(state, last_updated=_SA_T0 + timedelta(minutes=since_min)))
+    inp = _sa_pa.ArbiterInputs(**{**vars(base), "mode": mode})
+    got = _sh.hold_supply(held, lambda: inp, boosts or _sh_none, value, _SA_T0 + timedelta(minutes=minute))
+    return got, held.supply_held
+
+
+def _sh_both(cold):
+    held = _sa_pa.ArbiterState()
+    inp = _sh_inputs(7, dhw=True, cold=cold)()
+    inp.plan.power_schedule[0] = 1.5
+    got = _sh.hold_supply(held, lambda: inp, _sh_none, True, _SA_T0 + timedelta(minutes=7))
+    return got, held.supply_held, _sa_pa.step_duty(inp.plan, _SA_T0 + timedelta(minutes=7))
+
+
+_sh_boost_mod = importlib.import_module(_sa_pa.__package__ + ".boost")
+_sh_boost = lambda ch: SimpleNamespace(active=lambda c, _n: c == ch)  # noqa: E731
+for _ms_name, _ms_got, _ms_want in (
+    ("economy is a plan mode: an OFF three minutes into a run is held", _sh_at(12, False, 9, "on", mode="economy"), (None, True)),
+    ("a fixed mode (comfort) passes an OFF three minutes into a run", _sh_at(12, False, 9, "on", mode="comfort"), (False, False)),
+    ("a live space boost passes an ON three minutes into a pause", _sh_at(2, True, -1, "off", boosts=_sh_boost(_sh_boost_mod.CHANNEL_SPACE)), (True, False)),
+    ("a live DHW boost passes an ON three minutes into a pause", _sh_at(2, True, -1, "off", boosts=_sh_boost(_sh_boost_mod.CHANNEL_DHW)), (True, False)),
+    ("null control: no boost holds that ON", _sh_at(2, True, -1, "off"), (None, True)),
+    ("rule three: an ON at minute 6, one tick inside MIN_RUN of an OFF step, is skipped", _sh_start(6), (None, True)),
+    ("rule three: a both step with the tank below its minimum is exempt", _sh_both(True), (True, False, "both")),
+    ("rule three: null control: a both step with the tank warm is skipped", _sh_both(False), (None, True, "both")),
+):
+    R.check(f"which writes are held: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+async def _sh_tick_over(**over):
+    held = _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    inp = _sa_pa.ArbiterInputs(**{**vars(inp), "plan": None, "action": {"heat_pump_on": False}, **over})
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return wrote, held.supply_held
+
+
+for _ms_name, _ms_over, _ms_want in (
+    ("the entry released: no write, the hold dropped", {"entry_released": True}, ([], False)),
+    ("a stale plan: no write, the hold dropped", {"plan_stale": True}, ([], False)),
+    ("economy with no plan retries the action's OFF", {"mode": "economy"}, ([False], True)),
+):
+    _ms_got = _asyncio.run(_sh_tick_over(**_ms_over))
+    R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# An install with no power switch: the gate reads no switch. Upstream's
+# ``StateMachine.get`` lowers a missed entity id, so ``get(None)`` raises
+# (tests/ha_contract.py, "StateMachine.get(None) raises"); FakeStates returns
+# None, so this install's states read as upstream's do.
+class _ShUpstreamStates:
+    def __init__(self, states):
+        self._states = dict(states)
+
+    def get(self, entity_id):
+        return self._states.get(entity_id) or self._states.get(entity_id.lower())
+
+    def set(self, entity_id, state):
+        self._states[entity_id] = state
+
+
+async def _sh_no_switch():
+    hass = FakeHass({})
+    hass.states = _ShUpstreamStates({})
+    coord = Coord(hass, FakeEntry(data=dict(_LC_DATA)))
+    coord._mode = "auto"
+    _sa_dt.freeze(_SA_T0 + timedelta(minutes=3))
+    try:
+        await coord._write_supply(True)
+        await coord._write_supply(False)
+    finally:
+        _sa_dt.freeze(None)
+    return [c for c in hass.services.calls if c[0] == "switch"], _sa_pa.state_for(coord).supply_held
+
+
+try:
+    _sh_ns = _asyncio.run(_sh_no_switch())
+except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
+    _sh_ns = repr(_sh_err)
+R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
+        _sh_ns == ([], False), f"{_sh_ns}")
+
+
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
 # A set-point install's plan rarely writes the flow ceiling, so the metered
 # draw window is censored at the top and the plugin cannot learn the pump's

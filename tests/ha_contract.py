@@ -1126,6 +1126,33 @@ def _restart_stamps_last_changed():
 
 
 @contract(
+    "homeassistant.core.StateMachine",
+    "StateMachine.get(None) raises",
+    cite="core.py StateMachine.get -- a miss retries entity_id.lower()",
+    expect="real",
+)
+def _get_none_raises():
+    # pump_arbiter.supply_switch reads no switch on an install without one;
+    # tests/features.py's no-switch install reads states as upstream does.
+    import asyncio
+    import tempfile
+
+    from homeassistant.core import HomeAssistant
+
+    async def main():
+        hass = HomeAssistant(tempfile.mkdtemp())
+        try:
+            hass.states.get(None)
+        except AttributeError:
+            return
+        finally:
+            await hass.async_stop(force=True)
+        raise AssertionError("StateMachine.get(None) returned")
+
+    asyncio.run(main())
+
+
+@contract(
     "homeassistant.exceptions.ServiceValidationError",
     "subclasses HomeAssistantError",
     cite="exceptions.py -- `class ServiceValidationError(HomeAssistantError)`",
