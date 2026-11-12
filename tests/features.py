@@ -85925,6 +85925,19 @@ R.check(
     and _dsp_g_bare[2] is _dsp_g_avail and _dsp_g_bare[3] == 0,
     f"{_dsp_g_bare[3]} solves, incumbent kept {_dsp_g_bare[0] is _dsp_g_incumbent}",
 )
+
+
+def _dsp_g_raises(*_a):
+    raise RuntimeError("the planner's tank walk failed")
+
+
+_dsp_g_broke = _dsp_g_run(-1e9, shortfall=_dsp_g_raises)
+R.check(
+    "a candidate pass that raises is skipped: the incumbent, its requirement "
+    "and its availability stand, and nothing is solved",
+    _dsp_g_broke[0] is _dsp_g_incumbent and _dsp_g_broke[1] is _dsp_leg_req
+    and _dsp_g_broke[2] is _dsp_g_avail and _dsp_g_broke[3] == 0,
+)
 _dsp_g_real_build = _dsp_om._dhw_build
 _dsp_om._dhw_build = lambda *a, **k: (_dsp_leg_plan, _dsp_leg_req)
 try:

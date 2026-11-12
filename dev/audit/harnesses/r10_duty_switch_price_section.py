@@ -36,6 +36,7 @@ from pathlib import Path
 
 def repo_root(start):
     """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
     here = Path(start).resolve()
     if here.is_file():
         here = here.parent
@@ -62,6 +63,8 @@ PKG = "custom_components/heatpump_optimizer/"
 MUTANTS: list[tuple[str, str, str, str]] = [
     ("optimizer: a candidate is tried with no requirement to hold it to", PKG + "optimizer.py",
      "if kept_requirement is None or not duty_legs.switch_weight(", "if not duty_legs.switch_weight("),
+    ("optimizer: a candidate pass that raises is not caught", PKG + "optimizer.py",
+     "    except Exception as err:  # noqa: BLE001 - a candidate is optional", "    except KeyError as err:  # a candidate is optional"),
     ("learner: no count cap", PKG + "duty_switch.py",
      "        if self.n > N_CAP:\n", "        if False:\n"),
     ("learner: the cap scales the stops alone", PKG + "duty_switch.py",

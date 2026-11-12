@@ -1505,6 +1505,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_legs.py",
    "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
@@ -2869,6 +2870,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_legs.py",
    "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
@@ -3780,6 +3782,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_legs.py",
    "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
@@ -5152,7 +5155,7 @@
    "seconds": 0.2
   },
   "tests/harness_headers.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 118.2
   },
   "tests/layout.py": {
@@ -5193,7 +5196,7 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 15.8
+   "seconds": 33.9
   },
   "tests/validate.py": {
    "rc": 0,

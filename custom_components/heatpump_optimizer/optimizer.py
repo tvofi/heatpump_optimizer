@@ -393,7 +393,7 @@ def _avoid_priced_switches(
             if score < base - 1e-9:
                 opt._dhw_requirement = requirement
                 return candidate_space, plan.schedule, candidate_status
-    except Exception as err:  # pragma: no cover - defensive
+    except Exception as err:  # noqa: BLE001 - a candidate is optional: the incumbent stands
         _LOGGER.debug("Duty-switch candidate pass skipped: %s", err)
     opt._space_avail = kept_avail
     return incumbent
