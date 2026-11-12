@@ -184,14 +184,9 @@ class PreFlight:
         code, body = self.t.run(["gh", "api", f"repos/{self.repo}/pulls/{pr}", "--jq", '.body // ""'])
         if code:
             return f"the body could not be read: {body.strip()[-160:]}"
-        code, o = self.t.run(["gh", "api", "--paginate", "--slurp",
-                              f"repos/{self.repo}/issues/{pr}/comments?per_page=100"])
-        try:
-            if code:
-                raise ValueError(o.strip()[-160:])
-            comments = [c for page in json.loads(o) for c in page]
-        except (ValueError, TypeError) as e:
-            return f"the comments could not be read: {e}"
+        code, comments, why = self.t.pages(f"repos/{self.repo}/issues/{pr}/comments")
+        if code:
+            return f"the comments could not be read: {why.strip()[-160:]}"
         if not ca.finding_rows(body, comments)[0]:
             return ""  # nothing to route: the roster is not read
         try:
@@ -358,19 +353,21 @@ def _self_test() -> int:
             if argv[:2] == ["gh", "api"] and "/reviews" in a:
                 if world.get("reviews_fail"):
                     return 1, "gh: HTTP 403"
-                return 0, json.dumps([world.get("reviews", [])])
+                return 0, mt._jl(world.get("reviews", []))
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(world["mandate"])) if world.get("mandate") \
                     else (1, "gh: Not Found (HTTP 404)")
             if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in mt._mandate_gate().RECORD_ISSUES):
                 # every record issue is read; the fixture's thread is #201's
-                return 0, json.dumps([world.get("thread", []) if "/issues/201/" in a else []])
+                return 0, mt._jl(world.get("thread", []) if "/issues/201/" in a else [])
             if argv[:2] == ["gh", "api"] and "/issues/7/comments" in a:
                 if world.get("comments_fail"):
                     return 1, "gh: HTTP 502"
-                return 0, json.dumps([world.get("comments", [])])
+                return 0, mt._jl(world.get("comments", []))
             if argv[:2] == ["gh", "api"] and a.endswith("/pulls/7 --jq .body // \"\""):
                 return 0, world.get("body", "")
+            if argv[:3] == ["gh", "api", "user"]:  # the acting account `policy_approval_due` reads: the owner's
+                return 0, mt._mandate_gate().OWNER_LOGIN
             return 0, ""
         return run
 
