@@ -47,6 +47,7 @@ rendered text that no overlay value supplied.
 | `seat_queues` | `pulse.py`'s `--seat-queue SEAT=FILE` arguments, one per standing seat's session queue file |
 | `seat_alives` | optional: `SEAT=FILE[:MIN]` entries, one per standing seat the session runs, whitespace-separated or a JSON list; each renders as `pulse.py --seat-alive ENTRY` (`FILE.d/<id>` holds the per-process entries). A seat listed with no alive file reads `UNREADABLE`, never skipped; none listed leaves the flag out |
 | `intake_since` | the UTC time the outside intake starts from (the round's opening); the beat's `outside-intake` row keeps its own cursor past it |
+| `loop_cwd_patterns` | the `pgrep -f` patterns naming the long-lived loops outside the job table; the beat's `loop-cwd` row writes `DEAD <name> pid=<p> cwd gone` when a loop's cwd inode changed or the path no longer resolves |
 | `launch_ledger` | optional: the launch ledger file (`<ts> <nonce> <role> ...` and `<ts> <nonce> stop` lines) for `pulse.py --launch-ledger`; empty leaves the flag out |
 | `gantt_roster` | the roster the beat's `gantt` row reads, as `<branch>:<path>` (fetched to `refs/gantt/roster`, never a local branch) |
 | `gantt_acks` | the Gantt acks file `sweep_gantt.py --acks` reads, one `<ISO> <KEY> act\|defer\|accept [until=<ISO>] <reason>` line per answered slip |
