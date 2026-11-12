@@ -1,0 +1,10 @@
+head 11a6c579bb8e354b4f76209b1b4c472ddfee5c19; git grep at head, excluding tools/audit/round*, dev/audit/rounds, *.json (scout run, verbatim results)
+1\.86      : no hit carrying the load1 floor (12 incidental: logs, svg coords)
+1\.27      : no hit carrying h2_cycle's thread_factor 1.27-1.30 (incidental: owners_lint logs, R9-RCA-1990 "1.27-1.83 s")
+c398fc84   : dev/programme/register/audit-2026-09.md:434 only, as "v6.2.14, the first green stamp", not as the round-2 recording SHA
+triage-quiet-judges : none
+web-phase0 : none
+could not separate : none
+twenty had no : none
+thirty-one : dev/programme/plan-2026-09-open-issues.md:437 (survives elsewhere)
+roster handoff/audit-r10-roster at c454574f36a140f712384aee1f5516f92f4856da, wave-r10-groups.json, R10-ROUND-PLAYBOOK-FINAL carry[14]: "...paid for by cuts of at least 414 bytes, cap unchanged..."; carry[29]: "...or proves 20%..."

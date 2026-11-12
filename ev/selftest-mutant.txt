@@ -1,0 +1,2 @@
+roster_edit self-test: 281 checks, 1 failed
+FAIL triage gate: a LOG ruling is refused as LOG, never routed (got: )
