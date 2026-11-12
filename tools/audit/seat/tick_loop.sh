@@ -197,9 +197,12 @@ tick_loop_self_test() (
   chmod +x "$t/tick.sh"
   printf '#!/bin/bash\necho "hb $*" >> "%s/hb"; exit "${HB_RC:-0}"\n' "$t" > "$t/hb.sh"
   export HPO_TICK_HEARTBEAT=$t/hb.sh
-  # Every row before the freshness rows runs from no checkout: never the real one, which a
-  # row would read (an extra TICK-STALE) and a restart would move.
-  mkdir "$t/nogit"; export HPO_TICK_CODE_DIR=$t/nogit GIT_CEILING_DIRECTORIES=$t
+  # No row reads or moves the caller's checkout: an extra TICK-STALE from a branch behind
+  # origin/main, a restart's checkout of a detached one. Before the first row, the repository a
+  # caller's environment names is dropped (a git hook exports GIT_DIR, which outranks -C) and
+  # every row but the freshness rows, which name their own clone, runs from no checkout.
+  . "$HERE/../../../tests/throwaway_git.sh" && throwaway_git_env || return 1  # mut:selftest-gitenv
+  mkdir "$t/nogit"; export HPO_TICK_CODE_DIR=$t/nogit GIT_CEILING_DIRECTORIES=$t  # mut:selftest-nocheckout
   # The seat bin dir under a scratch state dir, holding a gh that carries the shim marker,
   # so a host whose gh is not the shim (CI's) prints no TICK-GH line in the rows below.
   mkdir -p "$t/state/bin" "$t/bare/bin"; export HPO_STATE_DIR=$t/state
@@ -212,7 +215,9 @@ tick_loop_self_test() (
   out=$(PATH="$t/state/bin:$PATH" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/pathtick.sh" bash "$0" --once --out "$t/b.txt")
   [ "$(tr ':' '\n' < "$t/path" | grep -cx "$t/state/bin")" = 1 ]
   ck "a PATH already led by the seat bin dir (a restart's exec) is not prepended twice" $?
-  out=$(HPO_STATE_DIR=$t/bare HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/pathtick.sh" bash "$0" --once --out "$t/b.txt")
+  # A plain gh of the row's own leads the PATH: the caller's may be the seat shim (a live seat's is).
+  printf '#!/bin/sh\nexit 0\n' > "$t/bare/gh"; chmod +x "$t/bare/gh"
+  out=$(PATH="$t/bare:$PATH" HPO_STATE_DIR=$t/bare HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/pathtick.sh" bash "$0" --once --out "$t/b.txt")  # mut:selftest-plaingh
   g=$(cat "$t/gh"); printf '%s\n' "$out" | grep -Eq "^TICK-GH [0-9T:-]+Z gh=${g:-none}: not the seat gh shim" \
     && [ "$(printf '%s\n' "$out" | grep -c '^TICK-')" = 2 ]
   ck "a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner" $?
@@ -293,7 +298,6 @@ sweep" ] && printf '%s\n' "$out" | grep -q '^TICK-SWEEP '
   [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^TICK-SWEEP .* rc=2 SWEEP REFUSED queue: x$' && printf '%s\n' "$out" | grep -q 'tick=0'
   ck "a refused sweep is reported with its rc and the pass still completes" $?
   # The real script against a bare remote: a pass moves the ref.
-  . "$HERE/../../../tests/throwaway_git.sh" && throwaway_git_env || return 1
   throwaway_git_init "$t/remote.git" -q --bare && throwaway_git_init "$t/w" -q -b main
   git -C "$t/w" remote add origin "$t/remote.git"; mkdir -p "$t/w/seat"
   cp "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$t/w/seat/"
@@ -360,10 +364,12 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     && printf '%s\n' "$out" | grep -qx "NEW-LOOP --once --out $t/f.txt --sweep" \
     && [ "$(git -C "$t/c" rev-parse HEAD)" = "$(git -C "$t/c" rev-parse origin/main)" ] && [ ! -f "$t/order" ]
   ck "freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args" $?
-  # The self-test run from a checkout behind origin/main on the watched paths -- a branch, then a
-  # detached head -- must read nothing of it and leave its HEAD where it was (the TICK-GH rows
-  # once ran against the real checkout: a branch printed an extra TICK-STALE, a detached head
-  # was moved by the restart arm). The nested run is the whole self-test, so it skips this block.
+  # The self-test run as a live seat runs it -- from a checkout behind origin/main on the watched
+  # paths, a branch and then a detached head, the seat's gh shim leading PATH -- reads nothing of
+  # that checkout and leaves its HEAD where it was; so does one a git hook's GIT_DIR names. (The
+  # TICK-GH rows once ran against the real checkout: a branch printed an extra TICK-STALE, a
+  # detached head was moved by the restart arm.) The nested run is the whole self-test, so it
+  # skips this block.
   if [ -z "${HPO_TICK_SELFTEST_NESTED:-}" ]; then
     mkdir -p "$t/n/tools/audit/seat" "$t/n/tests"
     cp "$HERE/tick_loop.sh" "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$t/n/tools/audit/seat/"
@@ -373,19 +379,21 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     throwaway_git_clone -q "$t/n.git" "$t/nb"
     printf '# ahead\n' >> "$t/n/tools/audit/seat/tick_loop.sh"
     git -C "$t/n" commit -qam ahead && git -C "$t/n.git" fetch -q "$t/n" main:main
-    cp -R "$t/nb" "$t/nd"; git -C "$t/nd" checkout -q --detach
-    nest() { # <checkout>: the clone's own self-test, none of this run's overrides inherited
-      HPO_TICK_SELFTEST_NESTED=1 env -u HPO_TICK_CODE_DIR -u HPO_TICK_HEARTBEAT -u HPO_STATE_DIR -u GIT_CEILING_DIRECTORIES \
-        bash "$1/tools/audit/seat/tick_loop.sh" --self-test 2>&1; }
-    b0=$(git -C "$t/nb" rev-parse HEAD); out=$(nest "$t/nb")
-    printf '%s\n' "$out" | grep -q ' 0 failed$' && [ "$(git -C "$t/nb" rev-parse HEAD)" = "$b0" ]
+    for c in nd nh; do cp -R "$t/nb" "$t/$c"; git -C "$t/$c" checkout -q --detach; done
+    throwaway_git_clone -q "$t/n.git" "$t/n0"
+    nest() { # <checkout> [VAR=value...]: the clone's own self-test, none of this run's overrides inherited
+      local c=$1 h; shift; h=$(git -C "$c" rev-parse HEAD)
+      out=$(env -u HPO_TICK_CODE_DIR -u HPO_TICK_HEARTBEAT -u HPO_STATE_DIR -u GIT_CEILING_DIRECTORIES \
+        HPO_TICK_SELFTEST_NESTED=1 PATH="$t/state/bin:$PATH" "$@" bash "$c/tools/audit/seat/tick_loop.sh" --self-test 2>&1)
+      printf '%s\n' "$out" | sed -n 's/^  FAIL /    nested FAIL: /p'  # which nested row, when one fails
+      printf '%s\n' "$out" | grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' && [ "$(git -C "$c" rev-parse HEAD)" = "$h" ]; }
+    nest "$t/nb"
     ck "the self-test run from a branch checkout behind origin/main passes and does not move its HEAD" $?
-    d0=$(git -C "$t/nd" rev-parse HEAD); out=$(nest "$t/nd")
-    printf '%s\n' "$out" | grep -q ' 0 failed$' && [ "$(git -C "$t/nd" rev-parse HEAD)" = "$d0" ]
+    nest "$t/nd"
     ck "the self-test run from a detached checkout behind origin/main passes and does not move its HEAD" $?
-    rm -rf "$t/nb2"; throwaway_git_clone -q "$t/n.git" "$t/nb2"; git -C "$t/nb2" reset -q --hard origin/main
-    b0=$(git -C "$t/nb2" rev-parse HEAD); out=$(nest "$t/nb2")
-    printf '%s\n' "$out" | grep -q ' 0 failed$' && [ "$(git -C "$t/nb2" rev-parse HEAD)" = "$b0" ]
+    nest "$t/nh" GIT_DIR="$t/nh/.git" GIT_WORK_TREE="$t/nh"
+    ck "the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD" $?
+    [ "$(git -C "$t/n0" rev-list --count HEAD..origin/main)" = 0 ] && nest "$t/n0"
     ck "null control: a branch checkout at origin/main (behind 0) passes and stays put" $?
   fi
   rm -rf "$t"
