@@ -1,0 +1,15 @@
+M1-1based: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 5 failed
+M2-live-only: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 1 failed
+M3-round-scope-dropped: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 1 failed
+M4-no-tip-ancestry: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 2 failed
+M5-no-head-ancestry: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 1 failed
+M6-wait-green-dropped: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 2 failed
+M7-required-dropped: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 1 failed
+M8-wait-only PATTERN-COUNT 2
+M9-prompt-anchor: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 2 failed
+M10-dispatch-prompt-none: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed
+M11-gather-snapadv-dropped: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed
+M12-gather-round-none: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed
+M13-carries-live-in-handoff: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed
+NULL-docstring: SURVIVED rc=0 (0 failing) review_packet self-test: 108 checks, 0 failed
+M8-wait-only: KILLED rc=1 (0 failing) review_packet self-test: 108 checks, 1 failed
