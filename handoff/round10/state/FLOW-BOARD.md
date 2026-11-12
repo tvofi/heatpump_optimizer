@@ -1,17 +1,17 @@
 # Flow board
 
-Window ends 2026-11-13T00:00:06+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-13T00:28:16+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 2 / 1.0 | 23 / 24.0 |
-| fly-ins closed | 4 | 10 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 4 | 39 / 6 / 0 / 10 |
-| first-pass fix-review yield | 7/8 (0.88) | 22/37 (0.59) |
-| blocked-class mix | claim-false:1, class-open:1 | body-not-applied:1, carry-dismissal-unsupported:1, census-misclassified:2, claim-false:1, class-open:7, evidence-cut:1, findings-unresolved:1, harness:2, head-moved:1, introduced-red:1, mutation-survivor:1, mutation-vacuous:4, prior-findings-open:1, regression:1, root-cause-detectable:1, scope-overlap:1, self-test-red:1, trace-gap:1 |
-| lead time per size (h, n/p50/max) | S n=1 p50=9.08 max=9.08 | L n=6 p50=19.22 max=36.53; M n=12 p50=33.37 max=105.45; S n=21 p50=15.27 max=28.30 |
+| roster groups closed vs takt | 0 / 1.0 | 23 / 24.0 |
+| fly-ins closed | 1 | 10 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 1 | 38 / 6 / 0 / 10 |
+| first-pass fix-review yield | 3/4 (0.75) | 21/37 (0.57) |
+| blocked-class mix | mutation-vacuous:1 | body-not-applied:1, carry-dismissal-unsupported:1, census-misclassified:2, claim-false:1, class-open:7, evidence-cut:1, findings-unresolved:1, harness:2, head-moved:1, introduced-red:1, mutation-survivor:1, mutation-vacuous:5, prior-findings-open:1, regression:1, root-cause-detectable:1, scope-overlap:1, self-test-red:1, trace-gap:1 |
+| lead time per size (h, n/p50/max) | none | L n=6 p50=19.22 max=36.53; M n=12 p50=33.37 max=105.45; S n=20 p50=16.65 max=28.30 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
