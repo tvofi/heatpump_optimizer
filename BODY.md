@@ -1,157 +1,101 @@
-R10-SAV-VALUATION-RESIDUE. Under a part-load derate, `_terminal_cost` and `_deferred_energy_cost` bought stored heat back at a COP with no draw. Both now buy it back through one law, `optimizer._refill_law`. The law is `thermal_model.refill_power_kwh`, the tree's own inverse (`power_for_heat_per_cop_kw`), applied with the heat spread evenly over the cheapest quarter of the horizon. Those are the hours the 25th-percentile refill price (`_refill_price`) is drawn from. The terminal and the deferred figure change together, as `_terminal_cost`'s docstring binds them. With no derate `_refill_law` is `None` and every figure is the linear one, bit for bit.
-
-Decision (Carry 2's "price refill at a stated rate's derated heat, or segment the hot-water LP"): the stated rate. The LP segmentation was built, measured and refused: see `## Forward-carry`. The unattributed savings residual (Carry 1) is now attributed. It belongs to the booked reference, not to stored heat and not to COP.
+R10-SAV-VALUATION-RESIDUE, part 1 of 3 (Carry 0 to Carry 4). Behind a valve whose curve's top draw falls short of the setpoint's steady need, `_thermostat_held_state` set the zones to the target anyway. No thermostat behind that curve keeps that state, so every booked reference step drew its stores: -34.85 kWh_th over the valve arm, booked as reference heat nobody paid for. The held zones now sit at the temperature whose steady need equals the curve's top draw (`thermal_model.valve_top_draw`), found by bisection (`_VALVE_HELD_BISECTIONS`). That state is an equilibrium, so the booked steps draw no stored heat. A curve that can hold the target leaves the held state exactly as before. Unvalved installs are untouched: the function returns before the valve branch.
 
 Alternatives and why each lost:
-- (a) The rate at max power: one figure for every deficit. It over-charges every refill a floor run would buy (the carried `at-max` bound).
-- (b) The plan's own energy-weighted draw `P_r` (`r10_partload_residue.py refill`): unknown when `_terminal_cost` is built, before the plan exists, so the objective and the settlement could not share it.
-- (c) Segmenting the hot-water LP: measured worse (`## Figures`).
-The rate taken is a property of the deficit and the window, known to both twins at build time.
+- (a) Settle the reference's store change per booked step in the ledger. That books a sag no thermostat behind this curve undergoes, and it moves stored-heat valuation, which Carry 4 rules out ("a fix there changes the reference ..., not stored-heat valuation").
+- (b) Find the equilibrium by simulating the reference forward until it settles. That costs a horizon of steps per solve on a Pi-class target. The closed-form balance (need at level zones against the curve's top draw) is monotone in the zone temperature, so bisection reaches it in 40 evaluations of arithmetic.
+- (c) Book `_compute_baseline_power`'s first simulated step in place of the apportioned one. The first step from a held 21 C is still the sag's transient, so it does not remove the cause.
 
-The brief's three carries:
-- Carry 1 (the residual): attributed in `## Figures`; its fix is carried in `## Forward-carry`.
-- Carry 2 (part-load refill pricing): built for `_terminal_cost` and `_deferred_energy_cost` together. The hot-water LP's secant was measured, and its segmentation refused and carried.
-- Carry 3 (Carry 2's segmenting and refill-rate decision, and its zero-derate control): the decision is the paragraph above; the control is `## Null control` and the companion's `d = 0` rows.
-
-Carries 4, 5 and 6 on the roster entry are this body's own `Carry: R10-SAV-VALUATION-RESIDUE` items, landed by the carry fold, not further work:
-- Carry 4 is the merge-base residual in `## Figures` (-3.90 % flat, -8.02 % varying).
-- Carry 5 is the residual's attribution in `## Forward-carry`.
-- Carry 6 is the hot-water LP's secant in `## Forward-carry`.
-- Carry 7, Carry 8 and Carry 9 are this body's own `## Figures` residual line and its two `## Forward-carry` items, folded back from #3442 verbatim. They repeat Carries 4, 5 and 6, so nothing further was done for them: Carry 7 is the merge-base residual (-3.90 % flat, -8.02 % varying), Carry 8 the residual's attribution, Carry 9 the hot-water LP's secant. The two Forward-carry items stay pending the orchestrator's ruling on their owner.
+The brief's carries:
+- Carry 0 (the unattributed residual, -3.75 % / -8.12 % at its source): #3442 attributed it (Carry 4's text). This diff removes the attributed store term. The flat arm's residual moves from -3.90 % to +4.78 % (`## Figures`).
+- Carry 1 (part-load refill pricing in `_terminal_cost` and `_deferred_energy_cost`): built by #3442 (`optimizer._refill_law`, one law for both twins). Re-measured at this head: terminal and deferred gaps read 0.000000 and `null rows not zero 0` (`## Figures`). This diff touches neither function. The hot-water LP's secant stays with Carry 5.
+- Carry 2 (Carry 1's segment-or-rate decision and its zero-derate control): decided in #3442 as the stated rate. The control still reads `null rows not zero 0` at this head.
+- Carry 3 (the residual at the merge base): re-measured at 14f227c5, -3.90 % flat and -8.02 % varying. At the head it is +4.78 % and +1.20 %.
+- Carry 4 (the attribution and its fix): built in this diff. Its acceptance was that the store term reads 0 on a reference at equilibrium and that the flat arm's residual moves by the term's share. The store term goes from -34.85 to -0.30 kWh_th. The non-steady loss term goes from +12.52 to -0.30 kWh_th. In kWh_th the remaining residual is -0.60, so the +4.78 % left in kWh_e is the COP gap #3442 named (reference 1.820 against the plan's 1.92, a ratio of 1.055).
+- Carry 6 and Carry 11 repeat Carry 3, and Carry 7 and Carry 12 repeat Carry 4. Each is answered by the carry it repeats, so nothing further is owed for them.
+- Carry 5, Carry 8, Carry 10 and Carry 13 belong to parts 2 and 3 and are not answered here. Carry 8 and Carry 13 repeat Carry 5. Carry: dismissed: evidence, not a finding
+- Carry 9 also belongs to a later part, and this diff moves its starting point. On a valve curve that cannot hold the setpoint, the reference's held state now starts at the curve's equilibrium below the target (single-zone at -10 C: 17.205 C), not at 21 C. Carry 9's "19.93 against 21.00" was read from a held 21 C start, so it is not comparable at this head.
+  - A pass ending below 21 there is the curve's limit, not the controller's. A controller fix is legitimate only if the curve's top draw at the target exceeds the level-zone steady need (`valve_top_draw` against `_thermostat_demand_*` at level zones), measured on the install's own valve parameters.
+  - Re-measure `r10_advisor_steady_seams.py fields` at that part's merge base. Carry: dismissed: Carry 9 is already this group's, and its later part reads this body
 
 ## Head
 
-611102f07624b45af9e434ec4359f6db3f8e5b14 (repair). It is `f1e49686bc911dff1a6e573c681524d4cbbcc792`, the PR head that merges round 2's 61241004, plus one commit: the `killed_by` row for `optimizer.py:2712 GUARD_OFF`. No production or test line changed. `origin/main` was at ee64358be on 2026-11-11 (UTC); `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged.
-
-Round 2's head, 61241004989d6a432faf2e4d8523b8a2883439e8, is cut from 9394a652, round 1's head, with `origin/main` cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf merged in at 56a5572a.
-
-That merge had one textual conflict, `tests/structure_budgets.json`'s `class_excess_loc`. The ledger merge driver resolved it (`17537 + both deltas = 17533`), and it was re-measured on the merged tree: `python3 tests/structure.py` prints `ok class_excess_loc 17533 <= 17533` and `STRUCTURE RATCHET PASSED`. No cap was raised. VERSION, the manifest and RELEASE_NOTES are untouched (`prepr.sh` `no version edit` ok).
-
-Base figures are at 32aea942, the branch's cut. Round-2 figures were re-taken at 61241004 on 2026-11-11 (UTC), with main at cbd23f1c.
-
-## Round 2
-
-Round 1's block (`Fix review: blocked 9394a652 mutation-vacuous`) named three gaps:
-- The split buffer/building arm of `_terminal_row_cost` was unpinned: the `if refill is not None:` inside `if cop_buffer != cop_end:`.
-- The 2723 `CLAMP_DROP` survivor had no triage.
-- The `hours <= 0.0` arm of `refill_power_kwh`'s guard survived and had no triage.
-
-What this round did:
-- **Valved arm.** A new `tests/features.py` check, `R10-SAV-VALUATION-RESIDUE: on a valved install ...`.
-  - The install is two-zone, with a `manual` valve, a 300 L tank and `cop_flow_carnot`. So `buffer_is_store` holds, and `cop_buffer` 1.4551 differs from `cop_end` 2.4500.
-  - Both conditions are asserted as preconditions, read off `_terminal_row_cost`'s own arguments through a spy.
-  - The check asserts that the derated terminal (`d = 0.2`) equals the law applied to the split linear figure, within 1e-9. The law is `power_for_heat_per_cop_kw` at the refill hours.
-  - It also asserts that `_terminal_cost_batch`'s row equals the scalar at both derates.
-  - Head readings: linear 65.425760, derated 81.782200, law 81.782200.
-- **`refill_power_kwh`'s guard deleted, not triaged.**
-  - `power_for_heat_per_cop_kw` already returns its input unchanged when `d == 0` or `band <= 0`, and `hours <= 0` makes `band <= 0`. So neither arm of the guard could change a result.
-  - Both mutants survived even a direct contract check: the guard made `if False:`, and the `hours` arm dropped.
-  - Deleting the guard removes both sites.
-  - A third new check, `refill_power_kwh returns its input bit for bit ...`, pins the pass-through and the `copysign` that carries the sign. The pass-through is checked with no derate at either sign, and at `hours` 0 and -1.
-- **Clamps triaged as equivalent.** The three sites are `optimizer.py` 2718, 2719 and 2723, all `CLAMP_DROP`.
-  - Triage rows: `tests/mutation_ledger/survivor_triage/optimizer.py/_terminal_row_cost.row_cost.CLAMP_DROP.{374beae5,bce793a5,9e69f3b6}.json`, written by `mutation_table.row_text` at the inventory's own anchors.
-  - `cop_end` is `compute_cop(...)`. `cop_buffer` is `marginal_cop(..., "buffer", ...)`, which is `compute_cop(..., flow_temp=...)`.
-  - Both end in `_cop_law`'s `return max(cop, 1.0)`, so the 1e-6 floor never binds.
-
-Alternative that lost: triaging `refill_power_kwh`'s two guard arms as equivalent. Deleting the guard won because it duplicated the inverse's own pass-through, and a triage on a deletable line keeps dead code (`fixer.md` step 17).
-
-Class sweep. Rule: `git grep -n -E "_refill_law|_bought_back|refill_power_kwh|refill\(" -- custom_components/` enumerates every site that applies the law. Every site it returns, with its disposition:
-- `optimizer.py:2713`: the split arm. Closed in this diff by the valved check (M7 below).
-- `optimizer.py:2723`: the single-sum arm. Already guarded by round 1's check (round 1 M8).
-- `optimizer.py:3081`: `_terminal_cost` builds the law both terminal arms receive. Already guarded (round 1 M2).
-- `optimizer.py:5640`: `_deferred_energy_cost` applies the law once, to the total after the per-store COP corrections (`for store, ... in tanks`). It has no split arm. Already guarded (round 1 M1).
-- `optimizer.py:2647` and `2655`: `_refill_law` and `_bought_back`, the law's definition and its one wrapper. Already guarded (round 1 M3, M4).
-- `thermal_model.py:2601`: `refill_power_kwh` itself. Closed in this diff (guard deleted; contract check; M11 below).
-
-The rule's other hits are `config_flow.py`'s `async_step_*_prefill`, which match on the name only.
+2e5cad3b03888993a595dd5649a63ddaa05a196a, cut from `origin/main` 14f227c5bd0eb80855b21055cc668857a5f820b4, which is also the merge base. The fix and its check are 8bd0eae9. a8d91109 orders the bisection span (`min()` dropped) and deletes the two moved pins. 4f4f3f1e adds the three triage rows. 2e5cad3b adds the check's 14 C and 16 C rows, which kill three of prepr's diff-mutant survivors (`## Unpinned sites`). No production figure below moves between 8bd0eae9 and this head: the span change is equivalent wherever the bisection runs. The block was re-run at 2e5cad3b (`ALL 5 FEATURES BLOCK PASSED`). Measured 2026-11-12 (UTC). VERSION, the manifest and RELEASE_NOTES are untouched.
 
 ## Mutation proof
 
-Round 1, at 5c368ab. Each production line was neutralised in turn, the new `tests/features.py` check run (its block standalone), and the line restored. Each run printed FAIL `R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost and the deferred settlement ...`. The four mutants were: `_deferred_energy_cost`'s conversion made the identity (at the first commit, `electrical = refill(electrical)` to `pass`); `_terminal_cost` passing `None` for the law; `_refill_law`'s derate guard made always-`None`; and `refill_power_kwh` returning its input.
+The group's blocks were run standalone at 8bd0eae9 in a detached worktree:
+`PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py "# --- R10-SAV-VALUATION-RESIDUE: stored heat" "# --- R10-WATER-SETPOINT-FEEDBACK"`. Each production line was neutralised in turn, then restored.
+- M1, `if short(held) > 0.0:` to `if False:`: FAIL `R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the setpoint, the thermostat reference starts where that curve holds the house ...`.
+- M2, the bisection step `lo, hi = (lo, mid) if short(...) > 0.0 else (mid, hi)` to `lo, hi = (lo, mid)`: FAIL, the same check.
+- M3, `valve_top_draw`'s `return _circuit_draw(circuits, model.params.buffer_max_temp)` to `return math.inf`: FAIL, the same check.
+- M4, `if short(held) > 0.0:` to `if True:`: FAIL `R10-SAV-VALUATION-RESIDUE: null control -- a valve curve able to hold the setpoint leaves the held state's zones at the target`.
+- NULL, a comment edited inside the change: `ALL 5 FEATURES BLOCK PASSED`.
 
-Round 2, at 61241004. The block was run standalone: `tests/features.py` from `# --- R10-SAV-VALUATION-RESIDUE` to the next block, under `PYTHONPATH=tests/hastub`. Each production line was neutralised in turn, then restored:
-- M7, `optimizer.py:2712` `if refill is not None:` to `if False:`: FAIL `... on a valved install ...`.
-- M11, `refill_power_kwh`'s `math.copysign(...)` to its bare first argument: FAIL `... under a part-load derate ...` and FAIL `... refill_power_kwh returns its input bit for bit ...`.
-- M8b, the 2723 clamp `max(cop_end, 1e-6)` to `(cop_end)`: all three PASS. Equivalent; triaged in `## Round 2`.
-- NULL, a comment line added inside `_terminal_row_cost`: all three PASS.
-
-At the head all three PASS.
+At the base 14f227c5 the new check FAILs (`1 of 5 FEATURES BLOCK FAILED`). At the head all 5 pass.
 
 ## Null control
 
-At `d = 0` the companion harness reads every terminal, deferred and LP gap as 0, over 32 solves at both ends (`null rows not zero 0`). The check asserts `_refill_law` is `None` with no derate, and the valved check's `d = 0` figure is the split linear one, which its batch row equals. The base tree reads the defect: the same check FAILs at 32aea942, where the derated terminal equals the linear one.
-
-Flat-price null (mandatory): the flat day's rows are printed beside the spread day's. The derated refill's move of the savings figure is the `predicted_savings` column of `r10_sav_valuation_residue.py` at both ends, apart from the stored-heat term. The residual attribution runs at `d = 0`, so it reads the same at both ends: no part-load term is in it.
+- A valve curve able to hold the setpoint (`mixing_valve_target` 40.0, two-zone and single-zone, -10 C): the held zones read exactly 21.0 at both ends, and the first step's store change is 0.0. The new null-control check asserts this, and M4 kills it.
+- Unvalved installs return before the valve branch. The tank temperature reads the same `zoned(...)` call at a level target as before (`h.room_temperature` equals the target), so a curve that holds the target is bitwise unchanged.
+- Flat-price null (mandatory): `valve-flat` is the flat-price arm. Its residual carries no price term, and the store term is price-independent (-34.85 on both arms at the base, -0.30 on both at the head).
+- Zero-derate control for Carry 1 and Carry 2: `null rows not zero 0` from both companions at the head.
 
 ## Figures
 
-- **Carried figures**, re-measured at the merge base: `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_partload_pricing.py`.
-  - Flat `d=0.112`: lp_err max 0.267290 (dhw cost max 7.0145), terminal-at-max max 4.368455, deferred-at-max max 2.140129; `null rows not zero 0`.
-  - The harness applies the linear rule's bound to the production figure. So at the head its terminal and deferred columns still print a bound: it measures what this fix replaces, and the companion below reads the defect.
-- **Companion**, `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_sav_valuation_residue.py`. It compares the production figure against `power_for_heat_per_cop_kw` at the refill hours, applied to the zero-derate figure.
-  - Base 32aea942: spread `d=0.112` terminal gap max 3.150490, deferred gap max 0.440868; flat `d=0.112` terminal gap max 2.835283, deferred gap max 0.187447.
-  - Head 5c368ab, and again at 0edaebae: all four 0.000000.
-  - LP gap (left by this fix): spread 0.202595, flat 0.335995 at both ends.
-  - `d=0` rows read 0 at both ends; `null rows not zero 0`, `failures 0`.
-  - 7b60fb7 and 21f178bc change only `tests/`.
-- **Companion, round 2**, at 61241004 (sha1 146c08d9faf2823f2779f01b68cf44f6f1b62648): `spread d=0.112 ... terminal gap max 0.000000 deferred gap max 0.000000`, and `flat d=0.112` the same; LP gap 0.202595 / 0.335995; `null rows not zero 0`, `failures 0`. Its 16 cells set no `cop_flow_carnot`, so none takes the split arm. The valved check in `## Round 2` is the split arm's reading.
-- **Residual** at the merge base, `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py valve-flat` and `valve-vary`: -3.90 % (flat), -8.02 % (varying). These arms run at `d = 0`, unchanged by this diff. It is attributed below; the finding is the first `## Forward-carry` item. Carry: R10-SAV-VALUATION-RESIDUE
-- **Attribution** (carried in `## Forward-carry`), `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_residual_attribution.py flat` and `winter_typical`. Units are kWh_th over the arm's plant steps (`plant steps seen 192 of 192`).
-  - Flat: the booked reference, stepped from its held state, draws -34.85 from its stores and loses +12.52 beyond the steady comfort term. Together that is -22.33 kWh_th, the residual.
-  - Varying: -34.85 and +11.89.
-  - The store term is price-independent; a reference at equilibrium reads 0 on it.
-  - Ruled out first by a probe on the same loop: the buffer tank's standby loss, plan less held reference, is +0.07 kWh_e against the flat arm's -5.21 kWh_e gap.
-- **LP segmentation, refused.** The hot-water LP was cut into four equal draw slices of the band, each step's energy priced at its slice's slope, and `r10_partload_pricing.py` run at that tree.
-  - Every derated hot-water cell's published hot-water cost rose: flat 7.0145 to 7.8780, spread 8.0681 to 8.8053 (every draw at the floor, 1.500 kW).
-  - The base LP publishes the true inverse of the energy it buys, so its secant is a valuation error, not a delivery one.
-  - A convex-exact program cannot cost more in truth, so the chord model misprices. The segmentation was reverted.
-- **Repair: the 2712 pin**, at f1e49686 through `python3 tools/audit/seat/mutant_run.py --in-place --spec <spec> --cmd 'bash <killcmd>'`. The spec mutates `optimizer.py:2712` `if refill is not None:` to `if False:`; the command runs `PYTHONPATH=tests/hastub python3 tests/features.py` and fails only on `mutation_table.py`'s `killed()` rule against the measured baseline (rc != 0 and more `FAIL` lines than 1).
-  - Baseline, unmutated: `1 of 5240 FEATURE CHECKS FAILED`, rc=1, the inherited `combi_type_branch census`.
-  - `SURVIVED NULL` (rc=1 failed=1), `KILLED row_cost_split_refill_GUARD_OFF` (rc=1 failed=2); the added FAIL is `R10-SAV-VALUATION-RESIDUE: on a valved install, where the tank's deficit converts at its own flow-derated COP ...`. Run twice, the same both times.
-  - The default `--copy-tree` run printed `KILLED NULL` (rc 3): `tests/features.py` fails further checks in a `git archive` copy, so the proof runs in place under `mutant_guard`.
-  - After the pin, `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base $(git merge-base origin/main HEAD)` lists no `ADDED UNPINNED` site.
-- **Structure**, `python3 tests/structure.py`: `class_excess_loc` 17537 to 17536 at round 1 (re-recorded: the law and the shared refill price at module level). At round 2's merge, 17533 <= 17533.
-- **Gate, round 1**: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` (`tests/closure.py select --diff 32aea942`). `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` at 5c368ab: 26 scripts ok, and `tests/features.py` red on R9-F2.5's capture builder, which wrapped `_terminal_row_cost` at four arguments. The builder forwards the law at 7b60fb7, and `PYTHONPATH=tests/hastub python3 tests/features.py` there prints `ALL 5188 FEATURE CHECKS PASSED`.
-- **Gate, round 2**, at 61241004:
-  - `tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`
-  - `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` prints `1 TEST SCRIPT(S) FAILED`. The one red is `tests/features.py`, `1 of 5240 FEATURE CHECKS FAILED`: `combi_type_branch census`. That red is inherited from main, not made by this diff. The vendor regex `alpha.?innotec|mfs ?[0-9]|luxtronik` matches 6 lines in the package's top-level `*.py`, against `_CB_VENDOR_BASE = 4`. The count is 6 at both `origin/main` cbd23f1c and this head, by `git grep -i -E` on each ref, so this diff adds none. `ALL 116 STRESS CHECKS PASSED`.
-  - `tools/pr/prepr.sh` exits 0; its `merged structure` step prints `STRUCTURE RATCHET PASSED`.
+<!-- figure-block: scope-line mb=14f227c5bd0eb80855b21055cc668857a5f820b4 head=2e5cad3b03888993a595dd5649a63ddaa05a196a -->
+~~~text
+MODE: SCOPED -- 27 script(s) run, 6 scoped out.
+~~~
+<!-- /figure-block -->
+
+- **Held state and first-step store change.** The new check's `_svh_case` is driven over two-zone/single-zone at -10/-15 C, and at 14/16 C since 2e5cad3b (fixture: `profiles.house` with the valve arm's `manual` valve, target 21.0). Each reading is the store change of one reference step at `_compute_baseline_power`'s power on a one-step horizon, in kWh_th.
+  - Base 14f227c5: held room 21.0 everywhere; dS -0.3870, -0.4658 (two-zone), -1.0875, -1.2750 (single-zone).
+  - Head 8bd0eae9: held room 19.695, 19.430 (two-zone), 17.205, 16.510 (single-zone); dS 0.0000 in all four.
+  - Head 2e5cad3b, the mild rows: two-zone 20.970 at 14 C and 21.0 at 16 C; single-zone 20.543 and 20.821; dS 0.0000 in all four.
+- **Why the base is infeasible.** At -10 C on the valve arm's two-zone install, the level-zone steady need at 21 C is 5.612 kW against the curve's top draw of 4.357 kW. Probe in scratch, driving `_thermostat_demand_two_zone` and `_valve_draw_circuits` on the held state.
+- **Residual and attribution**: `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_residual_attribution.py flat` and `winter_typical` (sha1 4b214a9bc277...). Its harness residual line is `r10_sav_wood_reference.py`'s `valve-flat` / `valve-vary` closed loop. `plant steps seen 192 of 192` at both ends. Carry: dismissed: evidence, not a finding
+  - Base 14f227c5: residual -3.90 % (flat), -8.02 % (varying); reference stored -34.85 kWh_th; non-steady +12.52 / +11.89.
+  - Head 8bd0eae9: residual +4.78 % (flat), +1.20 % (varying); reference stored -0.30 kWh_th; non-steady -0.30 / -0.93.
+- **Carried pricing figures** at the head: `PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/r10_partload_pricing.py` (sha1 8b5cdfa93b3e...) prints `flat d=0.112: ... lp_err max 0.267290 (dhw cost max 7.0145)` and `null rows not zero 0`. `r10_sav_valuation_residue.py` (sha1 146c08d9faf2...) prints `flat d=0.112: cells 16 lp gap max 0.335995 terminal gap max 0.000000 deferred gap max 0.000000`, `null rows not zero 0` and `failures 0`. These are #3442's readings, unchanged.
+- **Class sweep.** Rule: `git grep -n "_thermostat_held_state(" -- custom_components/` enumerates every reader of the held state. Each site and its disposition:
+  - `_compute_baseline_power`'s first step: closed in this diff (the booked reference).
+  - `_start_gap_cost`: closed in this diff. It reads the same function, so the start's stored-heat settlement now values the gap against the equilibrium the thermostat keeps.
+  - The definition itself.
+  - No other reader exists.
+- **Structure**: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- **Gate**: `tests/closure.py select --diff 14f227c5` prints `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` at 8bd0eae9 prints `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN` (exit 0), including `ALL 5299 FEATURE CHECKS PASSED`, `ALL 2709 ENTITY CHECKS PASSED` and `ALL 116 STRESS CHECKS PASSED`.
 
 ## Red checks
 
-- `tests / mutation`: red at f1e49686 with `MUTATION TABLE REFUSED -- ... 1 of them added by this diff`. The one site is `optimizer.py:2712 GUARD_OFF` (`if refill is not None:` in `row_cost`'s split branch). `tests / mutation-autofix` did not pin it: `mutation_table.py --pin-killed` refuses to drive a red baseline, and `tests/features.py`'s baseline is red on the inherited census below. This head adds its `killed_by` row, measured under the same `killed()` rule (`## Figures`, repair).
-  - Root-cause answer: the cheaper detector exists and ran. `prepr.sh` step 6d (`tools/pr/ci_predict.py`) listed the site locally in seconds at no added standing cost, and `## Unpinned sites` gave it to the autofix lane. The lane's precondition, a green driver baseline, was broken by main's inherited red, not by this diff. No further detector to build: the autofix's refusal on a red baseline is the correct behaviour, and the inherited red has its own hotfix.
-- `tests / fast (3.14)`: red only on `tests/features.py`'s `combi_type_branch census` (`1 of 5240 FEATURE CHECKS FAILED`), inherited from main since #3398, not made by this PR; the hotfix `r10-hotfix-combi-census-main-red` is in flight. This diff touches no file the census reads.
-  - Root-cause answer: not this PR's defect; the cause and its detector are the hotfix's (#3398's red on main).
+- `mutation` at 4f4f3f1ef05f: red by construction on the 4 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+  - Root-cause answer: the cheaper detector exists and ran. `prepr.sh` step 6d (`tools/pr/ci_predict.py`) listed every site locally, at no added standing cost. Each site has a disposition under `## Unpinned sites`: three triaged as equivalent in this diff, four killed (measured) and left to `mutation-autofix` to pin. Nothing further to build: a red by construction until the lane pins is the ratchet's intended route.
 
 ## Unpinned sites
 
-Each site is on `custom_components/`, the lane `mutation-autofix` mutates. A kill marked "measured" was read in a standalone mutation proof: round 1's or round 2's (`## Mutation proof`). The lane records each kill, and `tests / mutation-pins` confirms it.
+Each site is on `custom_components/`, the lane `mutation-autofix` mutates. A kill marked "measured" was read with the group's block run standalone (`## Mutation proof`'s command).
 
-- custom_components/heatpump_optimizer/optimizer.py:137 CONST: pinned by `mutation-autofix` (round 1, quantile 0.25 to 0.5 killed, measured)
-- custom_components/heatpump_optimizer/optimizer.py:2629 RETURN_DEL: pinned by `mutation-autofix` (unmeasured)
-- custom_components/heatpump_optimizer/optimizer.py:2644 GUARD_OFF: pinned by `mutation-autofix` (round 1, the derate guard, measured)
-- custom_components/heatpump_optimizer/optimizer.py:2647 RETURN_DEL: pinned by `mutation-autofix` (unmeasured)
-- custom_components/heatpump_optimizer/optimizer.py:2656 RETURN_DEL: pinned by `mutation-autofix` (unmeasured)
-- custom_components/heatpump_optimizer/optimizer.py:2712 GUARD_OFF: pinned at the repair head, `killed_by/optimizer.py/_terminal_row_cost.row_cost.GUARD_OFF.9afb8da3.json` (round 2 M7, re-measured through `mutant_run.py`; `mutation-autofix` refused the red baseline)
-- custom_components/heatpump_optimizer/optimizer.py:2718 CLAMP_DROP: triage `survivor_triage/optimizer.py/_terminal_row_cost.row_cost.CLAMP_DROP.374beae5.json` (equivalent)
-- custom_components/heatpump_optimizer/optimizer.py:2719 CLAMP_DROP: triage `survivor_triage/optimizer.py/_terminal_row_cost.row_cost.CLAMP_DROP.bce793a5.json` (equivalent)
-- custom_components/heatpump_optimizer/optimizer.py:2722 GUARD_OFF: pinned by `mutation-autofix` (round 1, the single-sum guard, measured)
-- custom_components/heatpump_optimizer/optimizer.py:2723 CLAMP_DROP: triage `survivor_triage/optimizer.py/_terminal_row_cost.row_cost.CLAMP_DROP.9e69f3b6.json` (equivalent; round 2 M8b survived)
-- custom_components/heatpump_optimizer/optimizer.py:5640 RETURN_DEL: pinned by `mutation-autofix` (round 1, the deferred conversion, measured)
+- custom_components/heatpump_optimizer/optimizer.py:596 CLAMP_DROP: pinned by `mutation-autofix` (measured: the held-state check and its null control FAIL; at its old anchor `tests/stress.py` killed it)
+- custom_components/heatpump_optimizer/optimizer.py:602 CONST: triage `survivor_triage/optimizer.py/@module.CONST.b8c7cb71.json` (equivalent; 80 measured, block passes)
+- custom_components/heatpump_optimizer/optimizer.py:639 CMP_BOUND: triage `survivor_triage/optimizer.py/_thermostat_held_state.CMP_BOUND.42081e68.json` (equivalent; measured, block passes)
+- custom_components/heatpump_optimizer/optimizer.py:639 GUARD_OFF: pinned by `mutation-autofix` (measured, M1)
+- custom_components/heatpump_optimizer/optimizer.py:644 CMP_BOUND: triage `survivor_triage/optimizer.py/_thermostat_held_state.CMP_BOUND.745fa965.json` (equivalent; measured, block passes)
+- custom_components/heatpump_optimizer/optimizer.py:649 CMP_BOUND: pinned by `mutation-autofix` (measured: `PYTHONPATH=tests/hastub python3 tests/features.py` under the mutant prints `1 of 5299 FEATURE CHECKS FAILED`, FAIL `behind a valve at zero demand the held tank keeps its measured temperature, ...`, against `ALL 5299 FEATURE CHECKS PASSED` unmutated)
+- custom_components/heatpump_optimizer/thermal_model.py:2302 RETURN_DEL: pinned by `mutation-autofix` (measured: the block raises `TypeError`)
 
-Round 1's `thermal_model.py:2603` sites (`GUARD_OFF` and `CMP_BOUND`, plus the `hours` arm the reviewer's M10 dropped) left the tree with the guard. `ci_predict.py` lists no site in `thermal_model.py`.
+`prepr.sh`'s diff mutants (`MUTANT_CMD` = the block above) at 4f4f3f1e left 8 survivors. Each, with its disposition at this head:
+- optimizer.py:596 CONST_SWAP `max(1.0, q_floor)`: killed at this head by the 14/16 C rows (FAIL, dS -0.075 to -0.1875).
+- optimizer.py:639 CONST_SWAP `short(held) > 1.0`: killed at this head (the two-zone 14 C shortfall is under 1 kW; FAIL, single-zone 14 C dS -0.1438).
+- optimizer.py:649 CONST_SWAP `held_need > 1.0`: killed at this head (two-zone 16 C, FAIL, dS -0.1749).
+- optimizer.py:602 CONST_SWAP `_VALVE_HELD_BISECTIONS = 41`: equivalent, as the CONST triage row argues (41 narrows the bracket by half of 2**-40).
+- optimizer.py:634 CONST_SWAP `need`'s dt 0.25 to 0.5: equivalent. At level zones the demand's pull-back and slab-charge terms are zero, so dt multiplies nothing; measured: block passes.
+- optimizer.py:639 and 644 CMP_BOUND: the triage rows above.
+- optimizer.py:649 CMP_BOUND: killed by `tests/features.py`, as above.
+
+The two `killed_by` rows whose lines this diff moved (`_thermostat_held_state.CLAMP_DROP.5c7d4c36`, `_thermostat_held_state.CMP_BOUND.76b8fad3`) are deleted, because no inventory site keys them any more. Their lines are the 596 and 649 sites above. The 640 `CLAMP_DROP` site left the tree: a shortfall needs heat, so the outdoor is below the target, and the span's `min()` is gone.
 
 ## Forward-carry
 
-- **The savings residual's attribution.** The booked reference's held state is not held by the power booked for it: -34.85 kWh_th over the arm, price-independent. It also loses +12.52 / +11.89 kWh_th beyond the steady comfort term.
-  - A fix there changes the reference (`_thermostat_held_state`, `_compute_baseline_power`'s first step), not stored-heat valuation.
-  - Legitimate only if the store term reads 0 on a reference at equilibrium and the flat arm's residual moves by the term's share.
-  - Re-measure with `r10_sav_residual_attribution.py` at the merge base.
-  - Pending the orchestrator's ruling on its owner. Carry: R10-SAV-VALUATION-RESIDUE
-- **The hot-water LP's secant** (`_plan_dhw_min_cost`, flat 0.335995 / spread 0.202595 per day against the tree's inverse) is left. Equal-slice segmentation measured worse in truth (`## Figures`).
-  - A segmented LP is legitimate only if, on `r10_partload_pricing.py`'s cells, the published plan's true hot-water cost does not rise at any derated cell and the `d = 0` rows stay bitwise.
-  - Pending the orchestrator's ruling on its owner. Carry: R10-SAV-VALUATION-RESIDUE
+none
 
 ## Friction
 
