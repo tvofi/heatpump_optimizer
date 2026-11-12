@@ -172,7 +172,7 @@ def _copy_run(edit: tuple[str, str, str] | None) -> tuple[int | None, list[str]]
                "PYTHONPATH": str(copy / "tests" / "hastub"), "PYTHONDONTWRITEBYTECODE": "1"}
         out = subprocess.run([sys.executable, __file__], cwd=copy, env=env, capture_output=True, text=True)
         red = [line[7:].split("  [")[0] for line in out.stdout.splitlines() if line.startswith("  FAIL ")]
-        if out.returncode not in (0, 1):
+        if "SECTION CHECKS" not in out.stdout:  # a traceback exits 1 too, and closes nothing
             red.append(f"the section stopped: {(out.stderr.strip().splitlines() or ['no output'])[-1]}")
         return out.returncode, red
 

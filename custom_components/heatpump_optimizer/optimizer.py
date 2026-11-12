@@ -354,7 +354,6 @@ def _avoid_priced_switches(
         opt.model.params.min_electrical_power, p_max,
     )
     kept_avail, kept_requirement = opt._space_avail, opt._dhw_requirement
-    # No requirement to hold a candidate to is no candidate.
     if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:
         return incumbent
     try:

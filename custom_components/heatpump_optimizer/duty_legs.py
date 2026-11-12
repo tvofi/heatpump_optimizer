@@ -98,6 +98,11 @@ def priced_pair(values: Any, upper: float = math.inf) -> tuple[float, float]:
     return a, b
 
 
+#: A boundary pairs each step but the last with the step after it; the legs
+#: that meet there and the levels they run at are read through the same pair.
+_BEFORE, _AFTER = np.s_[:, :-1], np.s_[:, 1:]
+
+
 def switch_weights_batch(
     space_matrix: np.ndarray,
     dhw_kw: np.ndarray,
@@ -119,13 +124,13 @@ def switch_weights_batch(
         return np.zeros(space.shape[0])
     first, last, two = leg_ends(space, dhw_kw, floor)
     level = space + np.asarray(dhw_kw, dtype=float)
-    before, after = last[:, :-1], first[:, 1:]
+    before, after = last[_BEFORE], first[_AFTER]
     stops = np.where(
         (before == DHW) & (after == SPACE),
         p_ds,
         np.where((before == SPACE) & (after == DHW), p_sd, 0.0),
     )
-    across = stops * np.minimum(level[:, :-1], level[:, 1:])
+    across = stops * np.minimum(level[_BEFORE], level[_AFTER])
     inside = np.where(two, p_ds * level, 0.0)
     return row_sums(np.concatenate([inside, across], axis=1)) / p_max
 
