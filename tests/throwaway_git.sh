@@ -26,9 +26,11 @@ throwaway_git_env() {
     unset "$v"
   done
   # An emptied file, not /dev/null (it can hold bytes: `bad config line 1`);
-  # the same path tests/throwaway_git.py's empty_global_config() names.
-  local g="${TMPDIR:-/tmp}/hpo-empty-gitconfig-$(id -u)"
+  # tests/throwaway_git.py's empty_global_config() is its twin; the paths differ.
+  local g="${_HPO_EMPTY_GITCONFIG:-}"
+  [ -n "$g" ] && [ -f "$g" ] || g=$(mktemp "${TMPDIR:-/tmp}/hpo-empty-gitconfig-XXXXXX") || return 1
   : >"$g"
+  _HPO_EMPTY_GITCONFIG="$g"
   export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=1+t@users.noreply.github.com GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=1+t@users.noreply.github.com \
     GIT_CONFIG_GLOBAL="$g" GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_COUNT=2 \
     GIT_CONFIG_KEY_0=maintenance.auto GIT_CONFIG_VALUE_0=false \

@@ -81,11 +81,13 @@ reruns). Review owns the rest.
 
 from __future__ import annotations
 
+import atexit
 import contextlib
 import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -106,15 +108,21 @@ LOCAL_ENV = ("GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAM
 _INHERITED_PAIR = re.compile(r"GIT_CONFIG_(?:KEY|VALUE)_")
 
 
+_EMPTY_CONFIG: list[str] = []
+
+
 def empty_global_config() -> str:
-    """A path git reads as an empty global config, emptied on every call. Not
-    os.devnull: where /dev/null holds bytes (a cloud image's does) git dies
-    with `bad config line 1 in file /dev/null`. The path is a pure function of
-    the uid and TMPDIR, so the shell twin names the same file."""
-    path = os.path.join(os.environ.get("TMPDIR") or "/tmp", f"hpo-empty-gitconfig-{os.getuid()}")
-    with open(path, "w"):
-        pass
-    return path
+    """A path git reads as an empty global config: one mkstemp file per process,
+    removed at exit and emptied on every call. Not os.devnull: where /dev/null
+    holds bytes (a cloud image's does) git dies with `bad config line 1 in file
+    /dev/null`."""
+    if not _EMPTY_CONFIG:
+        fd, path = tempfile.mkstemp(prefix="hpo-empty-gitconfig-")
+        os.close(fd)
+        atexit.register(lambda: os.path.exists(path) and os.unlink(path))
+        _EMPTY_CONFIG.append(path)
+    open(_EMPTY_CONFIG[0], "w").close()
+    return _EMPTY_CONFIG[0]
 
 
 def throwaway_git_env(base: dict | None = None) -> dict:
@@ -250,7 +258,6 @@ def grep(ref: str) -> list[tuple[str, int, str]]:
 
 
 def self_test() -> int:
-    import tempfile
     passed = failed = 0
 
     def check(name: str, cond: bool, detail: str = "") -> None:
@@ -373,10 +380,13 @@ def self_test() -> int:
         r = subprocess.run(["bash", "-c", '. "$1"; throwaway_git_env; env -0', "_", str(twin)],
                            env=hostile, capture_output=True, text=True)
         sh_env = dict(kv.split("=", 1) for kv in r.stdout.split("\0") if "=" in kv)
+        # GIT_CONFIG_GLOBAL is a per-process temp path on each side: compared as "an empty file".
         mine = {k: v for k, v in throwaway_git_env(hostile).items() if k.startswith("GIT_")}
         theirs = {k: v for k, v in sh_env.items() if k.startswith("GIT_")}
+        both_empty = all(os.path.isfile(g) and os.path.getsize(g) == 0
+                         for g in (mine.pop("GIT_CONFIG_GLOBAL", ""), theirs.pop("GIT_CONFIG_GLOBAL", "")))
         check("the shell twin's throwaway_git_env sets exactly the same GIT_ variables",
-              r.returncode == 0 and mine == theirs, f"py-only {set(mine.items()) - set(theirs.items())}, "
+              r.returncode == 0 and both_empty and mine == theirs, f"py-only {set(mine.items()) - set(theirs.items())}, "
               f"sh-only {set(theirs.items()) - set(mine.items())}")
         r = subprocess.run(["bash", "-c", '. "$1"; throwaway_git_init "$2" -q --bare && '
                             'git -C "$2" config --get maintenance.auto && git -C "$2" config --get gc.auto '
