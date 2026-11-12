@@ -1,0 +1,8 @@
+download date (UTC): 2026-11-12T00:25:21.394Z
+easylist_general_hide (easylist.txt): header: (none); generic ## rules: 13631; after keyword filter+dedupe: 13287; kept (parse ok): 13287
+adguard_base_safari (adg_safari.txt): header: ! Version: 2.5.3.83 | ! TimeUpdated: 2026-11-12T00:17:45+00:00 | ! Updated rules; generic ## rules: 14228; after keyword filter+dedupe: 13541; kept (parse ok): 13541
+adguard_base_chromium (adg_chromium2.txt): header: ! Version: 2.5.3.83 | ! TimeUpdated: 2026-11-12T00:17:45+00:00 | ! Updated rules; generic ## rules: 14005; after keyword filter+dedupe: 13482; kept (parse ok): 13482
+adguard_annoyances (adg_annoy.txt): header: ! Version: 2.2.86.27 | ! TimeUpdated: 2026-11-11T18:09:17+00:00; generic ## rules: 1845; after keyword filter+dedupe: 1832; kept (parse ok): 1832
+adguard_social (adg_social.txt): header: ! Version: 2.1.35.10 | ! TimeUpdated: 2026-11-11T15:08:35+00:00; generic ## rules: 943; after keyword filter+dedupe: 844; kept (parse ok): 844
+ubo_annoyances (ubo_annoy.txt): header: ! Last modified: %timestamp%; generic ## rules: 0; after keyword filter+dedupe: 0; kept (parse ok): 0
+union kept: 16214

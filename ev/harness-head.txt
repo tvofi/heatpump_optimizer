@@ -1,0 +1,17 @@
+card at HEAD: 256 names
+EasyList general hide: 13631 generic rules; (no stamp); https://raw.githubusercontent.com/easylist/easylist/master/easylist/easylist_general_hide.txt
+  class grid: .grid > .container > #aside-promotion
+  class panel: .panel.ad
+  targeted by a rule naming it alone (0): none
+AdGuard Base (chromium): 14005 generic rules; Version: 2.5.3.83; https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/platforms/extension/chromium/filters/2.txt
+  class advisor-page: .contentmovie > div[class^="ad"]
+  class grid: .grid > .container > #aside-promotion
+  class panel: .panel.ad
+  targeted by a rule naming it alone (0): none
+AdGuard Base (uBlock flavour): 14008 generic rules; Version: 2.5.3.83; https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/platforms/extension/ublock/filters/2.txt
+  class advisor-page: .contentmovie > div[class^="ad"]
+  class grid: .grid > .container > #aside-promotion
+  class panel: .panel.ad
+  targeted by a rule naming it alone (0): none
+uBlock filters: 45 generic rules; Last modified: %timestamp%; https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt
+  targeted by a rule naming it alone (0): none
