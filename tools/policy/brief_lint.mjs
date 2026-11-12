@@ -962,7 +962,7 @@ export function checkCarryShape(file, data, findings, roster) {
 // never added here -- and shrinks as a carry is re-measured or consumed.
 // LEGACY_CONTROL_CAP pins that: the set may only shrink (assertLegacyControl), and a member whose
 // controls now lint clean must leave it.
-const LEGACY_CONTROL_CAP = 14
+const LEGACY_CONTROL_CAP = 13
 // The members are data, not source: tools/policy/legacy_control_files.json, which no check pins, so a
 // repair that delists a member is one pull request. The cap stays here. Fail-closed: an unreadable or
 // malformed file yields an empty set, so every listed carry is linted with the control rules.
