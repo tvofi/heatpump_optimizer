@@ -1,0 +1,5 @@
+Live PR #3492 body, read via GitHub API 2026-11-12T06:19Z (PR updated_at 2026-11-12T06:08:15Z), ## Forward-carry first bullet, verbatim:
+- Carry 16: dismissed. tools/audit/seat/hooks/liveness.py, seat_interpreter.py, git_identity.py, tools/audit/seat/hooks_setup.py (--check, --install, --self-test; main() near L393) and tools/audit/seat/instruments/hooks_setup.py.md exist on main since f0c6bbfd7; the project-level pre-bash guard is check-only in hooks_setup.py. No tracked .claude/ file is changed here (diff of .claude/hooks/session-start.sh and .claude/settings.json: empty). Carry: dismissed: implemented at f0c6bbfd7
+Live PR body ## Red checks: "none".
+BODY.md at handoff-body/r10-standing-contracts-p2-p4 6b5bdd4d (committed 2026-11-12T06:10:01Z, after the PR's last update) splits carry 16 into part (1) open and part (2) dismissed, and fills ## Red checks. The PR body was never set from it.
+Roster handoff/audit-r10-roster b600ca7d, R10-STANDING-CONTRACTS-P2 carry[16] (0-based): unmarked (text opens "Moved from R10-FLY-STANDING-CONTRACTS carry 19 ..."), so part (1) is open there as BODY.md says.
