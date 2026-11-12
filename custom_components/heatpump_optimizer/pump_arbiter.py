@@ -158,10 +158,14 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, issues, off_restore, pump_mode, quiet_windows
+from . import boost, duty_switch, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
+    CONF_HEAT_PUMP_DEFROST_ENTITY,
+    CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
+    CONF_HEAT_PUMP_FAULT_ENTITY,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,
     CONF_POWER_ENTITY,
     CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
@@ -177,11 +181,11 @@ from .const import (
     SPACE_SETPOINT_WATER_UNITS,
 )
 from .entry_config import EntryConfig
-from .freq_control import defrost_interval
+from .freq_control import defrost_interval, resolve_reading
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
+    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, state_power_kw, write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
@@ -368,8 +372,8 @@ class ArbiterState:
     stop_gap_k: float | None = None
     #: A supply write ``supply_hold`` held back; the step tick retries it.
     supply_held: bool = False
-    #: When ``supply_hold`` last held a write (UTC), for the learners' freeze.
-    held_at: datetime | None = None
+    #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
+    held_until: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -1473,7 +1477,9 @@ def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | 
     return None
 
 
-async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime) -> None:
+async def _write(
+    coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime, command: PumpCommand | None = None,
+) -> None:
     held = state_for(coord)
     entity = _slot_entity(inp.config, slot)
     state = inp.hass.states.get(entity) if entity else None
@@ -1497,7 +1503,68 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
     held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
+    _report_write(duty_switch.record_for(coord), boost.held_for(coord), held, inp, slot, recorded, now, command)
     await _persist(coord)
+
+
+def _reads_below(reading: Any, setpoint: Any) -> bool:
+    """Whether a reading is known and under its known set-point: the duty has demand."""
+    return reading is not None and setpoint is not None and float(reading) < float(setpoint)
+
+
+def _report_write(
+    learner: Any, boosts: Any, held: ArbiterState, inp: ArbiterInputs, slot: str,
+    replaced: tuple[Any, datetime] | None, now: datetime, command: PumpCommand | None,
+) -> None:
+    """Tell ``duty_switch`` of a landed mode write, with its gates.
+
+    Every mode write lands in :func:`_write`, a re-send after :func:`hold`
+    dropped the record included (``replaced`` is then ``None``). The space
+    set-point is the command's, written right after the mode: the one the
+    controller judges the heating request on, and handed on only where it is
+    a water temperature (:func:`_flow_unit`), never an indoor unit's room one. The source leg's age is the
+    replaced mode record's; ``dhw_since`` is already reset on the pass that
+    leaves hot water.
+    """
+    if slot != "mode":
+        return
+    context, mode = _switch_context(boosts, held, inp, now), held.written["mode"][0]
+    target = {pump_mode.MODE_HEAT: "space", pump_mode.MODE_DHW: "dhw"}.get(mode)
+    if command is not None and target is not None and inp.plan is not None:
+        room, tank = getattr(inp.state, "room_temperature", None), getattr(inp.state, "dhw_temperature", None)
+        planned = _planned_room(inp.plan, now)
+        context = replace(
+            context,
+            inlet_c=_flow_inlet_c(inp), water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,
+            source_leg_s=utc_elapsed_seconds(now, replaced[1]) if replaced else None,
+            target_demand=_reads_below(room, planned) if target == "space" else _reads_below(tank, inp.params.dhw_setpoint),
+            plan_stays=all(step_duty(inp.plan, at) in (target, "both")
+                           for at in (now, utc_shift(now, timedelta(seconds=duty_switch.STOP_WINDOW_S)))),
+        )
+    duty_switch.note_mode_write(learner, now, replaced[0] if replaced else None, mode, context)
+
+
+def _lit(inp: ArbiterInputs, *keys: str) -> bool:
+    """Whether any of the configured flag entities ``keys`` reads on, fresh."""
+    reader = _reader(inp.hass, inp.config)
+    return any(reading.ok and bool(reading.flag) for reading in map(reader.read_bool, keys))
+
+
+def _switch_context(boosts: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> duty_switch.SwitchContext:
+    """This pass's readings that ``duty_switch`` judges a duty switch by."""
+    mode = held.written.get("mode")
+    return duty_switch.SwitchContext(
+        supply_on=not _pump_off(inp, held),
+        plan_control=inp.mode in (MODE_AUTO, MODE_ECONOMY) and duty_mode(inp.config) == DUTY_CONTROL,
+        defrosting=bool(defrost_interval(inp.defrosting)) or _lit(inp, CONF_HEAT_PUMP_DEFROST_ENTITY),
+        disinfecting=bool(inp.disinfecting),
+        boost_held=any(boosts.active(c, now) for c in (boost.CHANNEL_SPACE, boost.CHANNEL_DHW)),
+        electric_heat=_lit(inp, CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY),
+        fault=_lit(inp, CONF_HEAT_PUMP_FAULT_ENTITY),
+        loop_moved=held.feedback is not None and held.feedback.sent_c is not None,
+        mode_written_at=mode[1] if mode else None,
+        last_write_at=max((at for _value, at in held.written.values()), default=None),
+    )
 
 
 async def _adopt(inp: ArbiterInputs, entry: Any, held: ArbiterState, now: datetime) -> None:
@@ -1555,7 +1622,7 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
 
 async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
     for slot in _SLOTS:
-        await _write(coord, inp, slot, getattr(command, slot), now)
+        await _write(coord, inp, slot, getattr(command, slot), now, command)
 
 
 async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
@@ -1677,6 +1744,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
     )
     _observe(held, inp, duty, now)
+    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))
     if mode != DUTY_CONTROL or _pump_off(inp, held):
         return
     await _adopt(inp, coord.entry, held, now)
@@ -1900,6 +1968,7 @@ async def release(coord: Any) -> None:
 
 def release_listeners(coord: Any) -> None:
     held = state_for(coord)
+    duty_switch.detach(coord)
     while held.unsubs:
         held.unsubs.pop()()
 
@@ -1925,6 +1994,25 @@ def _listen(coord: Any) -> None:
         entities.extend(night_mode_write_ids(prefix).values())
     if entities:
         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
+    duty_switch.attach(duty_switch.record_for(coord), *_running_signal(inp))
+
+
+def _running_signal(inp: ArbiterInputs) -> tuple[str | None, duty_switch.Reader]:
+    """The entity whose changes say the compressor started or stopped, and its reader.
+
+    The actual-frequency sensor where one is configured (never the number
+    entity, a set-point register that echoes the last write), else the meter
+    against ``on_threshold_kw``, the threshold :func:`_ran_kw` shares.
+    """
+    cfg = EntryConfig.from_mapping(inp.config)
+    sensor, meter, states, thermal = cfg.compressor_freq_sensor, cfg.heat_pump_power_entity, inp.hass.states, inp.thermal
+
+    def reader() -> tuple[float | None, float | None, float | None, bool]:
+        if sensor:
+            return resolve_reading(None, sensor, states.get, 0.0, 0.0)[0], None, None, True
+        return None, state_power_kw(states.get(meter), "clamp"), on_threshold_kw(thermal.params), False
+
+    return sensor or meter, reader
 
 
 def _store(coord: Any) -> QuarantiningStore[dict[str, Any]]:

@@ -37,7 +37,7 @@ an unreadable switch pass unchanged. Both minimums sit below the plan's step,
 so a write on a step boundary after a step-long run or pause is never held.
 
 **The learners.** A held interval ran other than the plan commanded, so
-:func:`interval_held` freezes it through ``_learning_frozen``
+:func:`freeze_reason` freezes it through ``_learning_frozen``
 (:data:`FREEZE_HELD`), as ``early_cutoff`` freezes a cut one.
 
 The minimums are constants, not options, for the reason ``early_cutoff``
@@ -84,22 +84,23 @@ def hold_supply(held: ArbiterState, inputs: Any, boosts: Any, value: bool | None
         return value
     wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if value else age < MIN_RUN
     if wait:
-        held.supply_held, held.held_at = True, now
+        held.supply_held, held.held_until = True, now + _freeze_span(inp.config)
     return None if wait else value
 
 
-def interval_held(held: ArbiterState, config: Any, now: datetime | None = None) -> bool:
-    """Whether a learner's interval may have had a write held.
+def freeze_reason(held: ArbiterState, now: datetime | None = None) -> str | None:
+    """:data:`FREEZE_HELD` while a learner's interval may have had a write held, else ``None``."""
+    until = held.held_until
+    held_now = until is not None and dt_util.as_utc(now or dt_util.now()) < until
+    return FREEZE_HELD if held_now else None
 
-    Two plan intervals back, as ``early_cutoff.CutoffState.interval_cut``
-    counts the open cycle and the one just closed: freezing one too many is
-    the fail-closed side.
+
+def _freeze_span(config: Any) -> timedelta:
+    """Two plan intervals, as ``early_cutoff.CutoffState.interval_cut`` counts
+    the open cycle and the one just closed: freezing one too many is the
+    fail-closed side. Fixed when the write is held, where the config is in hand.
     """
-    at = held.held_at
-    if at is None:
-        return False
-    span = 2 * timedelta(minutes=EntryConfig.from_mapping(config or {}).optimization_interval)
-    return dt_util.as_utc(now or dt_util.now()) - at < span
+    return 2 * timedelta(minutes=EntryConfig.from_mapping(config).optimization_interval)
 
 
 def tank_reason(inp: ArbiterInputs) -> str | None:
