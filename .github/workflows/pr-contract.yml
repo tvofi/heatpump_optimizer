@@ -216,9 +216,10 @@ jobs:
           # The title too: a queue entry's payload does not carry it, and a
           # dispatch's has no pull request. Read like the body, never the payload.
           gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" --jq '.title // ""' > /tmp/pr-title.txt
-          # The whole answer, for tools/pr/outside.py below (decision 0017): the
-          # author's id and type, the head repository and the head ref name
-          # reach it as a file, never as text in a shell line.
+          # The whole answer, for tools/pr/outside.py (decision 0017), which
+          # policy_lint spawns below: the author's id and type, the head
+          # repository and the head ref name reach it as a file, never as text
+          # in a shell line.
           gh api "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}" > /tmp/pr-pull.json
           # Every commit's identity, for the Dependabot arm alone
           # (tools/policy/dependabot_contract.mjs): a human commit pushed onto a
@@ -227,38 +228,6 @@ jobs:
           gh api --paginate "repos/${GITHUB_REPOSITORY}/pulls/${PR_NUMBER}/commits" \
             --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified | tostring)] | @tsv' \
             > /tmp/pr-commits.tsv
-
-      # AN OUTSIDE CONTRIBUTOR'S PULL REQUEST, AS AN EARLY SIGNAL (decision 0017).
-      # tools/pr/outside.py is the base's (the restore above takes tools/pr/*.py).
-      # It is handed NO token: it judges the pull request the step above read
-      # into a file, and reads the allowlist and CODEOWNERS with `git show` at
-      # the base commit, so no value a contributor names reaches this shell as
-      # text. rc 0 writes the author for the one flag below that relaxes
-      # policy_lint's author arm; rc 3 is not an outside pull request and the
-      # ordinary author rule judges it; anything else refuses. This gates
-      # nothing we rely on: a fork head runs the workflow files of its own
-      # merge ref, so `bus.sh adopt`, on our machine from main's copy, is the
-      # gate, and only it reads the reviews (class O prints PENDING here) and
-      # the other pull requests at the head. A base with no outside.py or no
-      # allowlist has no outside contract and the step says so.
-      - name: Judge an outside contributor's pull request (early signal)
-        env:
-          PR_NUMBER: ${{ steps.pr.outputs.number }}
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format('origin/{0}', inputs.base) }}
-        run: |
-          set -uo pipefail
-          : > /tmp/pr-outside.txt
-          for f in tools/pr/outside.py dev/governance/outside_contributors.json; do
-            git cat-file -e "$PINNED:$f" 2>/dev/null || { echo "the base holds no $f: no outside contract to judge by"; exit 0; }
-          done
-          rc=0
-          python3 -I tools/pr/outside.py check --repo "$GITHUB_REPOSITORY" --pr "$PR_NUMBER" --ref "$PINNED" \
-            --early --no-fetch --pull-json /tmp/pr-pull.json || rc=$?
-          case $rc in
-            0) cp /tmp/pr-author.txt /tmp/pr-outside.txt ;;
-            3) ;;
-            *) exit 1 ;;
-          esac
 
       # The paths decide whether `## Approval` is owed, so this runs WITHOUT
       # `|| true` and with `set -o pipefail`: a derivation that fails must fail
@@ -389,21 +358,26 @@ jobs:
             RED_ARGS+=(--red "$name")
           done < /tmp/pr-reds.txt
           PR_TITLE=$(cat /tmp/pr-title.txt)
-          # Set only when outside.py admitted this pull request, above.
-          OUTSIDE=()
-          if test -s /tmp/pr-outside.txt; then OUTSIDE=(--outside-author "$(cat /tmp/pr-outside.txt)"); fi
+          # --outside-pull, --outside-ref (decision 0017): for an author that is
+          # neither App, policy_lint spawns the base's tools/pr/outside.py (the
+          # restore above takes tools/pr/*.py) over the pull request the API
+          # step saved, with no token; admitted, the author arm alone relaxes.
+          # An early signal: a fork head runs its own merge ref's workflow
+          # files, so `bus.sh adopt`, from main's copy on our machine, is the gate.
           if test -f .claude/workflows/policy_lint.mjs; then
             node .claude/workflows/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
               --author "$(cat /tmp/pr-author.txt)" --commits-file /tmp/pr-commits.tsv \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
-              ${OUTSIDE[@]+"${OUTSIDE[@]}"} "${RED_ARGS[@]}"
+              --outside-pull /tmp/pr-pull.json --outside-ref "$PR_BASE" \
+              "${RED_ARGS[@]}"
           else
             node tools/policy/policy_lint.mjs \
               --pr-body /tmp/pr-body.md --head "$PR_HEAD" --base "$PR_BASE" --title "$PR_TITLE" \
               --author "$(cat /tmp/pr-author.txt)" --commits-file /tmp/pr-commits.tsv \
               --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
-              ${OUTSIDE[@]+"${OUTSIDE[@]}"} "${RED_ARGS[@]}"
+              --outside-pull /tmp/pr-pull.json --outside-ref "$PR_BASE" \
+              "${RED_ARGS[@]}"
           fi
 
       - name: Every figure's command resolves at this head
