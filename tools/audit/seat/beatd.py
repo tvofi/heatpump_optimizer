@@ -37,7 +37,8 @@ died holding it. A job's environment is HOME, USER, LOGNAME, LANG, LC_ALL,
 TMPDIR, SHELL, its env_pass names, `HPO_BEATD_JOB=<name>`, `HPO_REAL_GIT`,
 `HPO_GIT_SHIM_LOG=S/beatd/git-retry.log`, the ref-lock timeout
 (`core.filesRefLockTimeout=30000` through GIT_CONFIG_COUNT), and PATH with
-`beatd_shims` first. The real git is resolved once, before that prepend: the
+`beatd_shims` first, then the seat bin dir (`$HPO_STATE_DIR/bin`, default
+`~/.local/state/hpo/bin`), then the beat's own. The real git is resolved once, before that prepend: the
 first `git` on the beat's own PATH, canonicalised; it refuses rc 2 when there
 is none, when it is a shim (line 2 `# hpo-git-shim`), or when it does not
 answer `--version` with `git version`. `--once` runs each job once; `--for N`
@@ -285,6 +286,11 @@ def next_start(kind: str, prev: float, start: float, end: float, interval_s: flo
     return (end if kind == "watch" else max(prev, start)) + interval_s
 
 
+def seat_bin() -> Path:
+    # GH-BUCKET-SPENDER-UNLOGGED / P449: no daemon PATH reached the seat gh shim, so the opener's gh calls went unlogged
+    return Path(os.environ.get("HPO_STATE_DIR") or Path.home() / ".local/state/hpo") / "bin"
+
+
 class Beat:
     def __init__(self, state: Path, table: dict, repo: Path, real_git: str):
         self.dir = state / "beatd"
@@ -303,7 +309,7 @@ class Beat:
                  HPO_GIT_SHIM_LOG=str(self.dir / "git-retry.log"),
                  GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="core.filesRefLockTimeout",
                  GIT_CONFIG_VALUE_0="30000",
-                 PATH=os.pathsep.join([str(SHIMS), os.environ.get("PATH", "")]))
+                 PATH=os.pathsep.join([str(SHIMS), str(seat_bin()), os.environ.get("PATH", "")]))
         return e
 
     def argv(self, job: dict) -> list[str]:
@@ -965,7 +971,16 @@ def case6_beat(prog, w):
     p = _passes(s, "fetch")
     log = s / "beatd" / "git-retry.log"
     envs = (rw / "env").read_text() if (rw / "env").exists() else ""
-    return {"beat job B exits ok through the shim": r.returncode == 0 and len(p) == 1
+    sd = w / "seatstate"
+    pf = w / "jobpath"
+    t2 = _table(w, [_job("pathjob", ["/bin/bash", "-c", f'echo "$PATH" > {pf}'], timeout_s=60)])
+    _beat(prog, "run", "--state", w / "s6c", "--jobs", t2, "--once",
+          env=dict(os.environ, HPO_STATE_DIR=str(sd)))
+    ents = pf.read_text().strip().split(os.pathsep) if pf.exists() else []
+    beat_path = os.environ.get("PATH", "").split(os.pathsep)
+    return {"job PATH: beatd_shims, then $HPO_STATE_DIR/bin": ents[:2] == [str(SHIMS), str(sd / "bin")],
+            "job PATH: the beat's own PATH follows unchanged": ents[2:] == beat_path,
+            "beat job B exits ok through the shim": r.returncode == 0 and len(p) == 1
             and p[0].endswith("outcome=ok"),
             "beat job's retry lands in S/beatd/git-retry.log": log.exists()
             and len(log.read_text().splitlines()) >= 1,
@@ -1149,8 +1164,11 @@ MUTANTS = {
         "shim", "max=${HPO_GIT_RETRIES:-2}", "max=0", "6",
         "race: B through the shim exits 0, origin/main current, a retry logged"),
     "m6_no_shim_prepend": (
-        "beatd", "PATH=os.pathsep.join([str(SHIMS), os.environ.get(\"PATH\", \"\")]))",
+        "beatd", "PATH=os.pathsep.join([str(SHIMS), str(seat_bin()), os.environ.get(\"PATH\", \"\")]))",
         "PATH=os.environ.get(\"PATH\", \"\"))", "6b", "beat job B exits ok through the shim"),
+    "m6_no_seat_bin": (
+        "beatd", "[str(SHIMS), str(seat_bin()), os.environ", "[str(SHIMS), os.environ", "6b",
+        "job PATH: beatd_shims, then $HPO_STATE_DIR/bin"),
     "m6_drop_C_skip": (
         "shim", "-C|-c|--git-dir", "-c|--git-dir", "6",
         "race: B through the shim exits 0, origin/main current, a retry logged"),
