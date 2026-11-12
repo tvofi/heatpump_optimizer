@@ -571,7 +571,7 @@ Hotfix, no after: the gh shim refuses gh's own --allow-escape-sequences, so merg
 | R10-TICK-RESIDUE-P2 | IN | 1 | in-progress | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch181.md#P600 at b253df9967
 
 Not-started sibling of R10-TICK-RESIDUE (PR #3425 holds a merge verdict at c93903f075; a carr... |  |
-| R10-RELAY-ARM-ORDER | IN | 1 | in-progress | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch182.md#P601 at f18bee99d1
+| R10-RELAY-ARM-ORDER | IN | 1 | carries-open | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch182.md#P601 at f18bee99d1
 
 New S group (every group listing cloud_relay.sh is done/absorbed except R10-REVIEW-DISPATCH-R... |  |
 | R10-MUTANT-RUN-FORKCAP | IN | 1 | in-progress | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch183.md#P604 at d4369dc3a4
@@ -615,7 +615,7 @@ Instrument fix, S. |  |
 | R10-RCA-CARD-HEALTH-TEXT | CP | 1 | not-started | - | opus/opus | - | Root-cause seat (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md) beside R10-HOTFIX-CARD-HEALTH-TEXT, never inside it. |  |
 | R10-DEPENDABOT-3483-COMPAT | C | 1 | not-started | - | sonnet/sonnet | - | Replacement for Dependabot pull request 3483 (pip group in tests, 8 updates), red at head 08d58a81 on tests / typing: the bot moved homeassistant-stubs 2026.... |  |
 | R10-UPDATE-PR-SEAT-WORKTREE | IN | 1 | not-started | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch222.md#P675 at d3b5ec4a2f, line numbers at origin/main 046736a49f. |  |
-| R10-HOTFIX-PREPR-WC-PAD | IN | 1 | not-started | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch223.md#P676 at 4e7aa35d79, line numbers at origin/main 6d16af36c2. |  |
+| R10-HOTFIX-PREPR-WC-PAD | IN | 1 | in-progress | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch223.md#P676 at 4e7aa35d79, line numbers at origin/main 6d16af36c2. |  |
 | R10-HOTFIX-MAIN-IST-PREPR-SCOPE | IN | 1 | in-progress | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch225.md#P680 at 9874c27034, line numbers at origin/main 47788534da. |  |
 | R10-PREPR-DARWIN-SELFTEST-LANE | IN | 2 | not-started | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch227.md#P684 at be04bca1a9, line numbers at origin/main b737e88eee. |  |
 
