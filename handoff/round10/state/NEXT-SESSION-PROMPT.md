@@ -18,10 +18,12 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SEAT-SCRIPT-OUTPUT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-DISPATCH-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-GH-READ-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-PLAN-PAGE-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-STANDING-CONTRACTS-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SUITE-ENV-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
