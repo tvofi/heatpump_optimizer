@@ -41,7 +41,7 @@ The unmodified tree (origin/main's `tools/audit/seat` and `tools/ci`) read by th
 
 ## Red checks
 
-none
+- `arch-score / arch-score` at head 44e0b74b55080d829f199410c2e4861850cd7d99: its first run (job 131268051080) failed in the PR-lookup step on `gh: HTTP 503`; nothing was scored (no dS or WORSENS line in its log). The cause is outside this repository (GitHub API, owner GitHub). The re-run, job 131294433348 of run 43242714081, concluded success. Cheaper detector: none exists.
 
 ## Forward-carry
 
