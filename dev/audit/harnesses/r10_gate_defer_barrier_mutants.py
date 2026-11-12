@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R10-GATE-DEFER-BARRIER: source mutants of the busy classifier (merge_train.busy_reads and its callers).
+"""R10-GATE-DEFER-BARRIER: source mutants of the busy barrier (merge_train.busy_reads, _busy_candidates, blind_classify_readers).
 
     python3 -I dev/audit/harnesses/r10_gate_defer_barrier_mutants.py [--tree DIR] [--corpus-under OTHER]
 
@@ -8,12 +8,11 @@ source fragment of tools/audit/seat/merge_train.py, which must occur exactly onc
 longer occurs is a STALE row, counted as a failure, never skipped). The mutated source is compiled in
 memory under the file's own path -- nothing is written -- and `_gate_reader_barrier_self_test` is run
 against it. A mutant is KILLED when a check fails or the block raises. The unmutated source is run
-first as the null control and must fail nothing. The table mutants of BUSY_ARMS (each arm replaced by
-each other verdict, each operand field dropped) are not repeated here: the self-test block runs them
-itself and this harness's `enumerator` and `corpus` rows show that block reddening.
---corpus-under OTHER runs no mutant: it reads DIR's BUSY_CORPUS (each expression as third positional and
-as `busy=`) through OTHER's `blind_classify_readers` and through DIR's, and prints per tree how many
-calls are judged against the recorded verdict, split by direction (`RESULT corpus ...`; exit 0).
+first as the null control and must fail nothing.
+--corpus-under OTHER runs no mutant: it reads DIR's BUSY_CORPUS (each expression as third positional,
+as `busy=`, and as `busy=` beside a reading `**kw`) through OTHER's `blind_classify_readers` and through
+DIR's, and prints per tree how many calls are judged against the recorded verdict, split by direction
+(`RESULT corpus ...`; exit 0).
 A line per mutant, then `RESULT mutants=N survived=S stale=T baseline_failed=F`; exit 1 unless S, T and F are 0.
 """
 import argparse
@@ -22,39 +21,23 @@ import types
 from pathlib import Path
 
 MUTANTS = [
- ("name: a builtin name reads", "return env.get(n.id, BLIND if n.id in _BUILTIN_NAMES else READS)", "return env.get(n.id, READS)"),
- ("name: env ignored", "return env.get(n.id, BLIND if n.id in _BUILTIN_NAMES else READS)", "return BLIND if n.id in _BUILTIN_NAMES else READS"),
- ("boolop: stop inverted", "if _static_truth(v) is stop:", "if _static_truth(v) is (not stop):"),
- ("boolop: no short-circuit", "            if _static_truth(v) is stop:\n                break", "            if _static_truth(v) is stop:\n                pass"),
- ("ifexp: test never folded", "return over([n.body, n.orelse] if t is None else [n.body] if t else [n.orelse])", "return over([n.body, n.orelse])"),
- ("ifexp: branches swapped", "else [n.body] if t else [n.orelse])", "else [n.orelse] if t else [n.body])"),
- ("ifexp: test is an operand", "return over([n.body, n.orelse] if t is None", "return over([n.test, n.body, n.orelse] if t is None"),
- ("comp: target not bound", "                    env[t.id] = got", "                    pass"),
- ("comp: refused iter passed", "        if REFUSED in gens:\n            return REFUSED\n", ""),
- ("comp: empty iter not folded", "        if any(_static_truth(g.iter) is False for g in n.generators):\n            return BLIND  # an iteration over a literal empty container yields nothing\n", ""),
- ("comp: dict key dropped", "over([n.key, n.value] if isinstance(n, ast.DictComp)", "over([n.value] if isinstance(n, ast.DictComp)"),
- ("comp: dict value dropped", "over([n.key, n.value] if isinstance(n, ast.DictComp)", "over([n.key] if isinstance(n, ast.DictComp)"),
- ("comp: filter is an operand", "else [n.elt], env)", "else [n.elt, *[i for g in n.generators for i in g.ifs]], env)"),
- ("over: READS dominates REFUSED", "return REFUSED if REFUSED in got else READS if READS in got else BLIND", "return READS if READS in got else REFUSED if REFUSED in got else BLIND"),
- ("unknown node reads", "arm = arms.get(type(n).__name__, REFUSED)", "arm = arms.get(type(n).__name__, READS)"),
- ("unknown node blind", "arm = arms.get(type(n).__name__, REFUSED)", "arm = arms.get(type(n).__name__, BLIND)"),
- ("subscript index is an operand", '"Subscript": ("value",)', '"Subscript": ("value", "slice")'),
- ("binding: literal * splat not flattened", "if isinstance(a, ast.Starred) and isinstance(a.value, (ast.Tuple, ast.List)):", "if False:"),
- ("binding: literal ** not flattened", "if k is None and isinstance(v, ast.Dict):", "if False:"),
- ("binding: only the busy key", 'if k == "busy" or not isinstance(k, str)]', 'if k == "busy"]'),
- ("binding: any key binds", 'if k == "busy" or not isinstance(k, str)]', 'if True]'),
- ("binding: splat ignored", "return cand + (splat or args[2:3])", "return cand + args[2:3]"),
- ("binding: fourth positional", "return cand + (splat or args[2:3])", "return cand + (splat or args[3:4])"),
- ("blind: REFUSED passes", "return READS not in got or REFUSED in got", "return READS not in got"),
- ("blind: absent busy passes", "return READS not in got or REFUSED in got", "return BLIND in got or REFUSED in got"),
- ("truth: constant unknown", "    if isinstance(n, ast.Constant):\n        return bool(n.value)\n", ""),
- ("truth: empty literal unknown", "        if not elts:\n            return False\n", ""),
- ("truth: non-empty literal unknown", "            return True\n    return None", "            return None\n    return None"),
- ("truth: a starred-only literal is true", "if any(e is not None and not isinstance(e, ast.Starred) for e in elts):", "if elts:"),
- ("enumerator: lists nothing", "                  if c.__name__ not in arms)", "                  if False)"),
- ("self-test functions counted", 'and not any("self_test" in x for x in fn)', ''),
+    ("grammar: a Call is not unwrapped to its func", "    if isinstance(n, ast.Call):\n        n = n.func\n", ""),
+    ("grammar: an Attribute chain is not walked to its root", "    while isinstance(n, ast.Attribute):\n        n = n.value\n", ""),
+    ("grammar: a builtin Name reads", "return isinstance(n, ast.Name) and n.id not in _BUILTIN_NAMES", "return isinstance(n, ast.Name)"),
+    ("grammar: open (anything but a literal or builtin reads -- the fold shape)",
+     "return isinstance(n, ast.Name) and n.id not in _BUILTIN_NAMES",
+     "return not isinstance(n, ast.Constant) and not (isinstance(n, ast.Name) and n.id in _BUILTIN_NAMES)"),
+    ("grammar: a Subscript base walks like an Attribute", "while isinstance(n, ast.Attribute):", "while isinstance(n, (ast.Attribute, ast.Subscript)):"),
+    ("binding: one reading candidate passes the call (the a6076a0f regression)",
+     "not all(busy_reads(b) for b in got)", "not any(busy_reads(b) for b in got)"),
+    ("binding: a call with no candidate passes", "return not got or not all(", "return not all("),
+    ("binding: a * splat before the third positional is not a candidate", "if i >= 2 or isinstance(a, ast.Starred)]", "if i >= 2]"),
+    ("binding: only the third positional is a candidate", "if i >= 2 or isinstance(a, ast.Starred)]", "if i == 2]"),
+    ("binding: a ** splat is not a candidate", 'k.arg in ("busy", None)]', 'k.arg == "busy"]'),
+    ("binding: a busy= keyword is not a candidate", 'k.arg in ("busy", None)]', 'k.arg is None]'),
+    ("binding: a * splat is read as its Starred node", "a.value if isinstance(a, ast.Starred) else a\n", "a\n"),
+    ("scope: self-test functions are counted", ' and not any("self_test" in x for x in fn)', ""),
 ]
-
 
 def run(path: Path, source: str) -> list:
     """The names of the barrier block's failing checks over <source>, or the exception it raised."""
@@ -84,13 +67,12 @@ def load(seat: Path, name: str):
 
 def corpus_under(seat: Path, other: Path) -> int:
     here = load(seat, "mt_here")
-    rows = [(want, form.format(e)) for want, e in here.BUSY_CORPUS if not e.startswith("slice:")
-            for form in ("{}", "busy={}")]
+    rows = [(want, form.format(e)) for want, e in here.BUSY_CORPUS for form in ("{}", "busy={}", "busy={}, **kw")]
     for label, mod in (("other", load(other, "mt_other")), ("tree", here)):
         bad = [want for want, arg in rows
-               if (mod.blind_classify_readers(f"def f():\n    return classify(l, r, {arg})\n") == {}) != (want == here.READS)]
+               if (mod.blind_classify_readers(f"def f():\n    return classify(l, r, {arg})\n") == {}) is not want]
         print(f"RESULT corpus {label} calls={len(rows)} wrong={len(bad)} "
-              f"not_reading_passed={sum(w != here.READS for w in bad)} reading_counted_blind={sum(w == here.READS for w in bad)}")
+              f"not_reading_passed={sum(not w for w in bad)} reading_counted_blind={sum(bool(w) for w in bad)}")
     return 0
 
 
