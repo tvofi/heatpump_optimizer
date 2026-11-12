@@ -1,0 +1,2 @@
+fold_ledger: .claude/workflows/audit-find.js already carries dev/audit/config/finding.schema.json
+rc=0

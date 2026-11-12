@@ -1,0 +1,2 @@
+MUTANT M4-mergepr-nowait: rc=1 merge_pr self-test: 25 checks, 1 failed
+      FAIL a gate red that classify reads WAIT, then GREEN, is waited out and merges (RED: gate)

@@ -1,0 +1,9 @@
+MUTANT M5-plant-blind-2arg: rc=1 merge_train self-test: 665 checks, 1 failed
+      ok   P590 a rollup holding a success gate and a deferral failure gate (FAILURE first) waits, with no review wording
+      FAIL P436 barrier: the deferral-blind `classify` readers in the reader modules are exactly the registered ones (a new blind read of the gate conclusion reddens this) -- [('review_packet.py', 'planted')]
+      ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+      ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+      ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+      ok   a script that failed a check keeps the plain FAILED line

@@ -1,0 +1,10 @@
+MUTANT M2-policy-samename-false: rc=1 d6/D11/fix/codeowners_gap.py", line 133, in repo_root
+    raise RuntimeError(f"no repository root above {start}")
+RuntimeError: no repository root above /tmp/claude-0/-home-user-heatpump-optimizer/01ceb9b2-12cf-5a1a-b1d9-f42969affc73/scratchpad/m_M2/dev/audit/rounds/round6/D11/fix/codeowners_gap.py
+
+      FAIL P590 a rollup holding a success gate and a deferral failure gate (SUCCESS first) waits, with no review wording
+      FAIL P590 a rollup holding a success gate and a deferral failure gate (FAILURE first) waits, with no review wording
+      ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+      ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify

@@ -1,0 +1,5 @@
+PROBE rc=1
+PROBE WAIT: WAIT x
+PROBE WAIT: WAIT x
+PROBE RED: gate
+merge_pr self-test: 25 checks, 0 failed

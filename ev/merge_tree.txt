@@ -1,0 +1,13 @@
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1002 entries)
+  re-run the gate that owns this file before pushing
+72695641e23725f81161c64e42044febdb592714
+100644 4f6528540323f726d2562f668638562da9f7e7e5 1	tools/audit/seat/merge_train.py
+100644 e86248a3449f65d9a37a7891494ffd51e080116d 2	tools/audit/seat/merge_train.py
+100644 5093a16e99d916ab940c30045810b801a49e83a1 3	tools/audit/seat/merge_train.py
+
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/merge_train.py
+CONFLICT (content): Merge conflict in tools/audit/seat/merge_train.py
+Auto-merging tools/audit/seat/orchestrator_tick.py
+merge-tree rc=1

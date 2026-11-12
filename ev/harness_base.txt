@@ -1,0 +1,7 @@
+RESULT policy_wait=False policy_text_names_review=False
+RESULT policy_null_waits=False (the passing gate alone must not wait)
+RESULT policy_null_ok=True
+DEFECT policy
+RESULT under_started=['TIMEOUT'] under_queued_null=['TIMEOUT']
+DEFECT under
+rc=1
