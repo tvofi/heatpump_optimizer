@@ -1,0 +1,8 @@
+dev/audit/rounds/round10/D14/sweep-I1/run_trace.sh:15:  while [ "$(jobs -r | wc -l)" -ge 4 ]; do sleep 5; done
+dev/audit/rounds/round10/study-ident/run_q1.sh:17:  while [ "$(jobs -r | wc -l)" -ge 6 ]; do sleep 2; done
+dev/audit/rounds/round10/study-ident/run_seeds.sh:12:  while [ "$(jobs -r | wc -l)" -ge 8 ]; do sleep 2; done
+tools/audit/seat/cloud_relay.sh:984:  printf '#!/bin/sh\necho x >> "%s/nff.calls"\n[ "$(wc -l < "%s/nff.calls")" -gt 1 ] && exec "%s" "$@"\necho " ! [rejected]        c -> review/$1 (fetch first)" >&2\necho "bus: REFUSE: the push of review/$1 was refused" >&2\nexit 1\n' "$t" "$t" "$stub" > "$t/nff.sh"; chmod +x "$t/nff.sh"
+tools/audit/seat/cloud_relay.sh:1100:  printf '#!/bin/sh\necho x >> "%s/flaky.calls"\n[ "$(wc -l < "%s/flaky.calls")" -gt "${FLAKY_FAILS:-0}" ] && exec "%s" "$@"\necho "error: RPC failed; HTTP 400 curl 22" >&2\nexit 1\n' "$t" "$t" "$stub" > "$t/flaky.sh"; chmod +x "$t/flaky.sh"
+tools/pr/app_push.sh:1095:st "$(git -C "$R/wt" rev-list --first-parent origin/main | wc -c | awk '{print ($1 > 65536) ? "over" : "under"}')" over "real git: main's first-parent list is over 64 KB, past any pipe buffer"
+tools/pr/prepr.sh:2406:  st "$(PATH="$PW:$PATH"; printf 'x\n' | wc -l)" "       1" "the padding wc stub pads its count, so the next comparison is measured under it (null control)"
+tools/pr/prepr.sh:4126:  [ -z "$PREPR_LOG" ] || LOG_MARK=$(wc -l <"$PREPR_LOG")
