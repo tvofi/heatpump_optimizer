@@ -391,6 +391,7 @@ def self_test() -> int:
         py_reads = [read(k, py_env) for k in ("core.leak", "core.xleak", "core.keep")]
         try:
             open(NO_GLOBAL_CONFIG, "w").close()
+            os.unlink(NO_GLOBAL_CONFIG)
             created = "created"
         except NotADirectoryError:
             created = ""
