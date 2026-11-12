@@ -1,4 +1,0 @@
-P2 link-form under Evidence BASE items: [('Evidence', 'carry', None)]
-   BASE audit rows: []
-P1 quoted-span marker under Evidence BASE items: [('Evidence', 'carry', None)]
-   BASE audit rows: []
