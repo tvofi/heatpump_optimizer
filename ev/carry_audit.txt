@@ -1,0 +1,29 @@
+NOTE body item 8af5508b: dismissed(R10-STANDING-CONTRACTS-P2):not this part, its own part of the group answers it
+NOTE body item a5957d77: dismissed:implemented at f0c6bbfd7
+NOTE body item 417e3b08: dismissed:implemented at 0a98a0173
+NOTE body item 014c06b0: dismissed:implemented at 0a98a0173
+NOTE body item 4802ce65: dismissed:implemented at 1b174e9b3
+NOTE body item 2e81552c: dismissed:implemented at 1b174e9b3
+NOTE body item 09679877: dismissed:implemented at 1b174e9b3
+NOTE body item c015dd5a: dismissed:implemented at 1b174e9b3
+NOTE body item 499d7fb7: dismissed:implemented at 1b174e9b3
+NOTE body item bb090eb2: dismissed:implemented at 1b174e9b3
+NOTE body item a1716531: dismissed:implemented at 1b174e9b3
+NOTE body item e506e2b5: dismissed:implemented at d69619360
+NOTE body item e0282cef: dismissed:implemented at 1b174e9b3
+NOTE body item 3435d043: dismissed:implemented at 1b174e9b3
+NOTE body item c0a966f7: dismissed:dismissed on the roster by orchestrator ruling
+NOTE body item e0536dc7: dismissed:implemented at 1b174e9b3
+NOTE body item 725b5bb0: dismissed:implemented at 1b174e9b3
+NOTE body item abaf8387: dismissed:dismissed on the roster by orchestrator ruling
+NOTE body item 35fd5d3c: dismissed:dismissed on the roster by orchestrator ruling
+NOTE body item e81663ad: dismissed:dismissed on the roster by orchestrator ruling
+NOTE body item a9033d26: dismissed:implemented at 1b174e9b3
+NOTE body item 00b98c0a: dismissed(R10-STANDING-CONTRACTS-P2):not this part, its own part of the group answers it
+NOTE body item 79ccf771: dismissed(R10-STANDING-CONTRACTS-P2):not this part, its own part of the group answers it
+NOTE body item 90456d83: dismissed(R10-STANDING-CONTRACTS-P2):not this part, its own part of the group answers it
+NOTE body item 9d68a419: dismissed(R10-STANDING-CONTRACTS-P2):not this part, its own part of the group answers it
+NOTE body item 69c9bd39: dismissed:dismissed on the roster by orchestrator ruling
+NOTE body item 95be365e: dismissed:dismissed on the roster by orchestrator ruling
+NOTE body item 4034288d: dismissed(R10-STANDING-CONTRACTS-P2):not this part, its own part of the group answers it
+CARRY-AUDIT: 28 finding item(s): 28 routed, 0 unrouted, 0 bad destination(s)
