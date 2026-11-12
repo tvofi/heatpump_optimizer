@@ -108,6 +108,9 @@ MUTANTS = [
      "if False:"),
     ("cloud_dispatch-20", "cloud_dispatch.py", "topic = group_id if role in DESIGN_ROLES else _topic_of(group)",
      "topic = _topic_of(group)"),
+    # r10-hotfix-nonrequired-reds-2: the reviewer and fixer prompts state who owes a red an answer.
+    ("cloud_dispatch-21", "cloud_dispatch.py", "    if role in OWED_REDS_ROLES:\n", "    if False:\n"),
+    ("cloud_dispatch-22", "cloud_dispatch.py", 'OWED_REDS_ROLES = ("reviewer", "fixer")', 'OWED_REDS_ROLES = ("reviewer",)'),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),
@@ -422,6 +425,12 @@ MUTANTS = [
     ("orchestrator_tick-4", "orchestrator_tick.py", 'getattr(self, "_req_pr", None) or required', "required"),
     # r10-ci-layout-p2-u9a: a unit's red under the gate ruleset is REQUIRED (DESIGN-P2 9 item 11).
     ("orchestrator_tick-5", "orchestrator_tick.py", "gating = mt.gating_names(req) or []", "gating = req or []"),
+    # r10-hotfix-nonrequired-reds-2: `RED unanswered` reads only the owed set (merge_train owed-reds');
+    # -6 drops the filter, -7 gating_names, -8 judged, -9 the unreadable-set fallback (every red).
+    ("orchestrator_tick-6", "orchestrator_tick.py", "owed_red = [r for r in red if r in owed]", "owed_red = red"),
+    ("orchestrator_tick-7", "orchestrator_tick.py", "owed = mt.judged(mt.gating_names(req)) if", "owed = mt.judged(req) if"),
+    ("orchestrator_tick-8", "orchestrator_tick.py", "owed = mt.judged(mt.gating_names(req)) if", "owed = mt.gating_names(req) if"),
+    ("orchestrator_tick-9", "orchestrator_tick.py", "if req is not None else red\n", "if req is not None else []\n"),
     # r10-ci-layout-p2a-up: the namespace guard, the rate-limit refusal, the owner check and the explicit --repo.
     ("ci_probe-1", "ci_probe.py", 'REF_RE = re.compile(r"^ci-probe/', 'REF_RE = re.compile(r"^(ci-)?probe/'),
     ("ci_probe-2", "ci_probe.py", "if frac < MIN_REMAINING:", "if frac < 0:"),

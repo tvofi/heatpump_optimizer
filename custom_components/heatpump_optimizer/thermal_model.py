@@ -158,13 +158,10 @@ EULER_MONOTONE_MAX_RATIO: float = 1.0
 
 # Combi tank (#3225, R10-COMBI-TANK): one store of heating water serves the
 # space circuit and hot water through an exchanger whose effectiveness is
-# eps = (T_tap - T_in) / (T_store - T_in). The defaults are the design's
-# internal-coil preset (eps 0.85, 30 l of potable water in the coil); a value
-# below the floor is no real exchanger, and the floor keeps the tap-to-store
-# transform's divisor finite.
-COMBI_DHW_EFFECTIVENESS_DEFAULT: float = 0.85
+# eps = (T_tap - T_in) / (T_store - T_in). The defaults are const.py's
+# internal-coil preset; a value below the floor is no real exchanger, and the
+# floor keeps the tap-to-store transform's divisor finite.
 COMBI_DHW_EFFECTIVENESS_FLOOR: float = 0.1
-COMBI_POTABLE_VOLUME_DEFAULT_L: float = 30.0
 
 
 def _holiday_dhw_windows(config: Mapping[str, Any]) -> list[Window] | None:
@@ -311,9 +308,10 @@ class ThermalParameters:
     buffer_max_temp: float = 70.0  # °C
     # Combi tank (#3225): hot water is drawn from the buffer store through an
     # exchanger of effectiveness eps holding `combi_potable_volume_l` litres.
-    dhw_combi_tank_enabled: bool = False
-    combi_dhw_effectiveness: float = COMBI_DHW_EFFECTIVENESS_DEFAULT
-    combi_potable_volume_l: float = COMBI_POTABLE_VOLUME_DEFAULT_L
+    dhw_combi_tank_enabled: bool = const.DEFAULT_DHW_COMBI_TANK_ENABLED
+    combi_dhw_effectiveness: float = const.DEFAULT_COMBI_DHW_EFFECTIVENESS
+    combi_potable_volume_l: float = const.DEFAULT_COMBI_POTABLE_VOLUME_L
+    dhw_combi_legionella_force: bool = const.DEFAULT_DHW_COMBI_LEGIONELLA_FORCE
 
     @property
     def combi_tank_active(self) -> bool:
@@ -321,6 +319,15 @@ class ThermalParameters:
         return (
             self.dhw_combi_tank_enabled and self.dhw_enabled
             and self.buffer_is_store and not self.dhw_coil_active
+        )
+
+    @property
+    def legionella_cycle_active(self) -> bool:
+        """The flag's one behaviour read: a combi store at or under the potable limit runs no cycle unless forced."""
+        return self.dhw_legionella_enabled and (
+            not self.dhw_combi_tank_enabled or not self.combi_tank_active
+            or self.combi_potable_volume_l > const.COMBI_LEGIONELLA_POTABLE_LIMIT_L
+            or self.dhw_combi_legionella_force
         )
 
     @property
@@ -868,37 +875,34 @@ class ThermalParameters:
         """The everyday charge limit: how hot a plan may take the tank.
 
         This is the user's own "Highest tank temperature to charge to", and
-        nothing else. Until v5.1.10 the disinfection temperature was folded
-        in here permanently, which turned a 60 °C hygiene setting into the
-        ceiling the cost planner spent every single day: pre-buying at the
-        night trough beats heating at the evening window even after standby
-        losses, and how far the plan over-charges is bounded by exactly this
-        number. A 52/60 pair therefore ran the tank to ~58 °C on a day with
-        no cycle due — the field did the opposite of what its help text
-        promises ("An upper limit on charging, not a target").
-
-        A disinfection cycle legitimately goes above this, but only while it
-        is running: the optimizer raises the ceiling per step around the
-        cycle it has actually scheduled, and ``dhw_hard_max_temp`` below is
-        the physical rating that bounds even that.
+        nothing else: with the disinfection temperature folded in (until
+        v5.1.10) the cost planner spent that ceiling every day, and a 52/60
+        pair ran the tank to ~58 °C with no cycle due. A cycle goes above it
+        only around the step it runs, to ``dhw_cycle_temp``.
         """
         return min(70.0, self.dhw_setpoint)
 
     @property
     def dhw_hard_max_temp(self) -> float:
-        """The tank's rating: the hottest this tank may ever be driven.
-
-        The everyday ceiling is a preference; this is physics, and it has to
-        stay above the disinfection temperature or the model would refuse
-        the very boost the hygiene cycle exists to deliver. ``simulate_dhw_step``
-        clamps to this, so a pinned plan, a replayed trajectory or a
-        legionella boost is bounded without the everyday limit silently
-        capping a cycle at the setpoint.
+        """The tank's rating, the hottest it may ever be driven: a cycle's
+        temperature where one runs, else the everyday ceiling. ``simulate_dhw_step``
+        clamps to it, so a pinned plan, a replay or a legionella boost is
+        bounded without the everyday limit capping a cycle at the set-point.
         """
-        top = self.dhw_setpoint
-        if self.dhw_legionella_enabled:
-            top = max(top, self.dhw_legionella_temp)
-        return min(70.0, top)
+        top = self.dhw_cycle_temp
+        return min(70.0, self.dhw_setpoint if top is None else top)
+
+    @property
+    def dhw_disinfection_temp(self) -> float | None:
+        """°C a disinfection cycle must reach; ``None`` where none runs, for every reader."""
+        return self.dhw_legionella_temp if self.legionella_cycle_active else None
+
+    @property
+    def dhw_cycle_temp(self) -> float | None:
+        """°C held through a cycle: the higher of the everyday set-point and the
+        disinfection temperature, as a cycle never lowers the tank; else ``None``."""
+        target = self.dhw_disinfection_temp
+        return None if target is None else max(self.dhw_setpoint, target)
 
     def effective_dhw_draw_pattern(self) -> list[float]:
         """Hourly draw multipliers restricted to the configured demand windows.
@@ -943,12 +947,7 @@ class ThermalParameters:
         The mapping is a table rather than ninety lines of near-identical
         ``config.get(KEY, DEFAULT)`` calls. Adding a parameter is one row, and
         a typo in a key or a default is visible by comparison with its
-        neighbours instead of buried in prose.
-
-        Split out of ``from_config`` (#225 stage 1) verbatim. What is left
-        there is the other half: the fields the table cannot express, because
-        they need validating, deriving from another field, or defaulting on
-        absence rather than on value.
+        neighbours instead of buried in prose. ``from_config`` holds the rest.
         """
         # field name -> the name its CONF_ key and DEFAULT_ value share in
         # ``const``, resolved by name so the table stays readable and a missing
@@ -1007,6 +1006,8 @@ class ThermalParameters:
             "max_electrical_power": "HEAT_PUMP_MAX_POWER",
             "min_electrical_power": "HEAT_PUMP_MIN_POWER",
             "cop_partload_derate": "HEAT_PUMP_COP_PARTLOAD_DERATE",
+            "combi_dhw_effectiveness": "COMBI_DHW_EFFECTIVENESS",
+            "combi_potable_volume_l": "COMBI_POTABLE_VOLUME_L",
         }
 
         values = {
@@ -1021,12 +1022,10 @@ class ThermalParameters:
             ("dhw_schedule_enabled", "DHW_SCHEDULE_ENABLED"),
             ("dhw_legionella_enabled", "DHW_LEGIONELLA_ENABLED"),
             ("dhw_elastic_legionella_enabled", "DHW_ELASTIC_LEGIONELLA_ENABLED"),
+            ("dhw_combi_tank_enabled", "DHW_COMBI_TANK_ENABLED"),
+            ("dhw_combi_legionella_force", "DHW_COMBI_LEGIONELLA_FORCE"),
         ):
-            values[name] = bool(
-                config.get(
-                    getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")
-                )
-            )
+            values[name] = bool(config.get(getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")))
         return values
 
     @classmethod
@@ -1132,11 +1131,6 @@ class ThermalParameters:
                     const.CONF_RADIATOR_POWER_FRACTION,
                 )
             )
-        # A None value does NOT count as presence (v4.0.0 T3): clearing the
-        # DHW temperature sensor on the entities page writes the key back as
-        # None, and counting that as "configured" phantom-enabled hot water
-        # on entries that never had it. An empty string still counts — an
-        # empty ``dhw_windows`` legitimately means "learned windows".
         values["dhw_enabled"] = _dhw_enabled_from_config(config)
 
         # Demand windows: fall back to the default schedule when the stored
@@ -1168,6 +1162,14 @@ class ThermalParameters:
         return cls(**values)
 
 def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
+    """The explicit switch, else the presence of a hot water key.
+
+    A None value does NOT count as presence (v4.0.0 T3): clearing the DHW
+    temperature sensor on the entities page writes the key back as None, and
+    counting that as "configured" phantom-enabled hot water on entries that
+    never had it. An empty string still counts — an empty ``dhw_windows``
+    legitimately means "learned windows".
+    """
     if const.CONF_DHW_ENABLED in config:
         return bool(config[const.CONF_DHW_ENABLED])
     return any(
@@ -1765,7 +1767,10 @@ def modulation_floor_flow_c(
     lift (:func:`configured_flow_min_lift_k`). The set-point is a power
     command (tvofi, 2026-10-19): the system water behind it rises slowly,
     so a set-point anchored anywhere but the water it heats commands a
-    power the plan never booked. ``gate_c`` is the set-point a step that
+    power the plan never booked. It is the open-loop half: a controller
+    that integrates on set-point minus inlet keeps ramping while the inlet
+    lags this value, so the arbiter closes it on measured power
+    (R10-WATER-SETPOINT-FEEDBACK). ``gate_c`` is the set-point a step that
     does not heat writes; the lift is taken from whichever of the two is
     higher, so a step that heats never writes the value that means off --
     on a tank at or below the gate it did (R10-SETPOINT-BOOST). ``None``
@@ -1859,8 +1864,8 @@ def configured_flow_min_lift_k(config: Any) -> float:
     of zero or less writes the inlet itself at the floor, which commands no
     heat on a step the plan heats -- the value the floor exists to keep off
     the entity. The options flow offers 0.5-15 K. A controller that takes
-    the set-point as its return-water target (Luxtronik through its Smart
-    Home Interface, for one) modulates its compressor on the gap between
+    the set-point as its return-water target (through a smart-home
+    interface input, for one) modulates its compressor on the gap between
     target and return, so the rated 5 K drives it to near full speed at the
     plan's lowest level; such a controller wants about 1-2 K.
     """
@@ -2588,6 +2593,21 @@ def power_for_heat_per_cop_kw(
     held = h / (1.0 - d)
     power = np.where(h <= p_min, h, np.where(held >= p_max, held, on_band))
     return float(power) if np.ndim(heat_per_cop) == 0 else power
+
+
+def refill_power_kwh(params: ThermalParameters, heat_per_cop_kwh: float, hours: float) -> float:
+    """The electrical kWh that buys back ``heat_per_cop_kwh`` (heat over COP)
+    as a steady draw over ``hours``: :func:`power_for_heat_per_cop_kw` at that
+    rate, so a refill above the modulation floor pays its part-load derate.
+
+    Sign-symmetric: a surplus is credited at the law a deficit is charged at.
+    The input itself, bit for bit, while the derate is 0 or ``hours`` is not
+    positive: the inverse passes ``abs`` through unchanged there (its own
+    ``band <= 0`` guard) and ``copysign`` restores the sign."""
+    return math.copysign(
+        power_for_heat_per_cop_kw(params, abs(heat_per_cop_kwh), hours=hours),
+        heat_per_cop_kwh,
+    )
 
 
 def added_power_for_heat_per_cop_kw(

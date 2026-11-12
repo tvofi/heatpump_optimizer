@@ -1380,9 +1380,9 @@ def self_test() -> int:
     sys.path.insert(0, str(root / "tools" / "audit"))
     import carry_audit
     grp = next(n for n, g in carry_audit.load_dests(root).groups.items()
-               if carry_audit.roster_lib.is_open(g))
+               if carry_audit.Dests.live(g))  # a destination is carry_receivable, not merely open
     body = "## Forward-carry\n\n- %s\n\n  Carry: %s\n"
-    cases = [("a carry to a group of the roster is predicted green", body % ("a finding", grp), 0),
+    cases = [("a carry to a live group of the roster is predicted green", body % ("a finding", grp), 0),
              ("a carry to a group the roster lacks is predicted red", body % ("a finding", "R10-NO-SUCH-GROUP"), 1),
              ("a finding with no carry at all is predicted red", "## Forward-carry\n\n- a finding\n", 1)]
     bad = 0

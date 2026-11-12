@@ -2,6 +2,8 @@
 # Collect a merged pull request's worktree, branch and seat scratch.
 #
 #   tools/audit/worktree_gc.sh <owner/repo> [--dry-run] [--strict] [--keep-dir <path>]
+#     --keep-dir is the EVIDENCE DESTINATION, not a keep list: nothing is protected by naming it.
+#     A worktree a live process reads is kept by itself (cwd, argv, open file, live pidfile).
 #   tools/audit/worktree_gc.sh --self-test
 #
 # WHY THIS EXISTS. Seats work in /tmp/hpo-orch/<seat>/wt/ and nothing removed
@@ -114,7 +116,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # their answers on the path they are handed, so the fixture must live on
   # the resolved form or every lookup silently misses.
   W=$(python3 -c 'import os,sys; print(os.path.realpath(sys.argv[1]))' "$W")
-  trap 'rm -rf "$W"' EXIT
+  trap '[ -n "${ZPID:-}" ] && kill "$ZPID" 2>/dev/null; rm -rf "$W"' EXIT
   mkdir -p "$W/bin"
   FAILS=0; N=0
   st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
@@ -180,11 +182,20 @@ STUB
 #!/bin/bash
 printf 'lsof %s\n' "$*" >> "$STUB/log"
 [ -f "$STUB/lsofbroken" ] && exit 1
+case " $* " in *" -d cwd "*) ;; *) [ -f "$STUB/lsofopenbroken" ] && exit 1 ;; esac
 printf 'p1\nn/\n'
-[ -f "$STUB/cwds" ] && sed 's/^/n/' "$STUB/cwds"
+case " $* " in *" -d cwd "*) [ -f "$STUB/cwds" ] && sed 's/^/n/' "$STUB/cwds" ;; *) [ -f "$STUB/opens" ] && sed 's/^/n/' "$STUB/opens" ;; esac
 exit 0
 STUB
-  chmod +x "$W/bin/gh" "$W/bin/git" "$W/bin/lsof"
+  cat > "$W/bin/ps" <<'STUB'
+#!/bin/bash
+printf 'ps %s\n' "$*" >> "$STUB/log"
+[ -f "$STUB/psbroken" ] && exit 1
+printf 'init\n'
+[ -f "$STUB/argv" ] && cat "$STUB/argv"
+exit 0
+STUB
+  chmod +x "$W/bin/gh" "$W/bin/git" "$W/bin/lsof" "$W/bin/ps"
 
   age_old() { # seconds dirs... -> every mtime under each back to now-seconds
     python3 - "$@" <<'PY'
@@ -202,6 +213,10 @@ PY
   H3=10800; H25=90000
   encpath() { printf '%s' "$1" | tr '/ ' '__'; }
 
+  # A live process whose pid contains a zero digit (a pidfile read must keep the 0).
+  # No signal is sent here: a child whose pid has no 0 exits by itself, so no
+  # forked copy of this shell can die by a signal and run the EXIT trap's rm.
+  while :; do sh -c 'case $$ in *0*) exec sleep 600 ;; esac' & ZPID=$!; case $ZPID in *0*) break ;; esac; wait "$ZPID"; done
   mkcase() { local d="$W/$1"; mkdir -p "$d/tmp" "$d/ev" "$d/root"; : > "$d/log"; : > "$d/deleted"; printf '%s\n' "$d/root" > "$d/rootfile"; }
   run() { # name args... -> rc; out/err captured in the case dir
     local d="$W/$1"; shift
@@ -238,7 +253,7 @@ PY
       printf 'worktree %s/orch/seat-unmerged/wt\nHEAD 5555555555555555555555555555555555555555\ndetached\n\n' "$d"
       printf 'worktree %s/orch/seat-dirtymerged/wt\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/fix/dirty\n\n' "$d"
       printf 'worktree %s/orch/seat-locked/wt\nHEAD 6666666666666666666666666666666666666666\ndetached\nlocked\n\n' "$d"
-      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d; do
+      for n in onremote:7 cwd:8 onremote-young:9 onremote-dirty:b tip:1 nohold:d argvuse:7 openuse:7 deadpid:7 argvscr:7 argvdq:7 argvsq:7 argvcol:7 argvcom:7 argvsib:7 openeq:7 opensib:7 pidzero:7 lockuse:7 dotlock:7; do
         printf 'worktree %s/orch/seat-%s/wt\nHEAD %s\ndetached\n\n' "$d" "${n%%:*}" "$(printf '%040d' 0 | tr 0 "${n##*:}")"
       done
       printf 'worktree %s/orch/seat-onremote-locked/wt\nHEAD %s\ndetached\nlocked\n\n' "$d" "$(printf '%040d' 0 | tr 0 a)"
@@ -248,12 +263,29 @@ PY
              "$d/orch/seat-detached/wt" "$d/orch/seat-detached/evidence-run12" \
              "$d/orch/seat-unmerged/wt" "$d/orch/seat-dirtymerged/wt" \
              "$d/orch/seat-locked/wt" "$d/orch/seat-onremote/wt" "$d/orch/seat-cwd/wt/sub" \
+             "$d/orch/seat-argvuse/wt" "$d/orch/seat-openuse/wt" "$d/orch/seat-deadpid/wt" \
+             "$d/orch/seat-argvscr/wt" "$d/orch/seat-argvdq/wt" "$d/orch/seat-argvsq/wt" "$d/orch/seat-argvcol/wt" "$d/orch/seat-argvcom/wt" "$d/orch/seat-argvsib/wt" "$d/orch/seat-openeq/wt" "$d/orch/seat-opensib/wt" "$d/orch/seat-pidzero/wt" "$d/orch/seat-lockuse/wt" "$d/orch/seat-dotlock/wt" \
              "$d/orch/seat-onremote-young/wt" "$d/orch/seat-onremote-dirty/wt" \
              "$d/orch/seat-tip/wt" "$d/orch/seat-nohold/wt" "$d/orch/seat-onremote-locked/wt" \
              "$d/orch/seat-unpushed/wt" "$d/unpushed"
     # Heads a remote ref holds (the origin/main tip 1111 included: a seat reading live main).
     for c in 7 8 9 a b 1; do printf '%040d\n' 0 | tr 0 "$c"; done > "$d/onremote"
     printf '%s/orch/seat-cwd/wt/sub\n' "$d" > "$d/cwds"
+    # Live users that are NOT a cwd: a `git -C <wt>` argv, an open file, a live train.pid.
+    { printf 'git -C %s/orch/seat-argvuse/wt log\n' "$d"
+      printf 'bash %s/orch/seat-argvscr/wt/script.sh\n' "$d"
+      printf 'sh -c cd "%s/orch/seat-argvdq/wt"; make\n' "$d"
+      printf "sh -c cd '%s/orch/seat-argvsq/wt'; make\\n" "$d"
+      printf 'git --paths=%s/orch/seat-argvcol/wt:/tmp status\n' "$d"
+      printf 'git --paths=%s/orch/seat-argvcom/wt,/tmp status\n' "$d"
+      printf 'git -C %s/orch/seat-argvsib/wt2 log\n' "$d"; } > "$d/argv"
+    { printf '%s/orch/seat-openuse/wt/f\n' "$d"
+      printf '%s/orch/seat-openeq/wt\n' "$d"
+      printf '%s/orch/seat-opensib/wt2/f\n' "$d"; } > "$d/opens"
+    printf '2999999\n' > "$d/orch/seat-deadpid/wt/train.pid"
+    printf '%s\n' "$ZPID" > "$d/orch/seat-pidzero/wt/train.pid"
+    printf '%s\n' "$$" > "$d/orch/seat-lockuse/wt/x.lock"
+    printf '%s\n' "$$" > "$d/orch/seat-dotlock/wt/.x.lock"
     printf 'M f\n' > "$d/status/$(encpath "$d/orch/seat-onremote-dirty/wt")"
     printf '[{"state":"MERGED"}]\n' > "$d/pr/fix_unpushed.json"
     printf '1\n' > "$d/unpushed/$(encpath "$d/orch/seat-unpushed/wt")"
@@ -264,7 +296,9 @@ PY
     # Collectable detached worktrees must be older than the hour guard.
     age_old "$H3" "$d/orch/seat-detached" "$d/orch/seat-unmerged" "$d/orch/seat-locked" \
             "$d/orch/seat-onremote" "$d/orch/seat-cwd" "$d/orch/seat-onremote-dirty" "$d/orch/seat-tip" \
-            "$d/orch/seat-nohold" "$d/orch/seat-onremote-locked" "$d/orch/seat-unpushed"
+            "$d/orch/seat-nohold" "$d/orch/seat-onremote-locked" "$d/orch/seat-unpushed" \
+            "$d/orch/seat-argvuse" "$d/orch/seat-openuse" "$d/orch/seat-deadpid" \
+            "$d/orch/seat-argvscr" "$d/orch/seat-argvdq" "$d/orch/seat-argvsq" "$d/orch/seat-argvcol" "$d/orch/seat-argvcom" "$d/orch/seat-argvsib" "$d/orch/seat-openeq" "$d/orch/seat-opensib" "$d/orch/seat-pidzero" "$d/orch/seat-lockuse" "$d/orch/seat-dotlock"
   }
 
   # The main sweep: every class in one run, so the interactions (one seat's
@@ -342,6 +376,32 @@ PY
   st "$(gots sweep "keep  $D/orch/seat-nohold/wt  unmerged-head")" 1 "naming unmerged-head"
   [ -d "$D/orch/seat-cwd/wt" ]; st $? 0 "a process cwd inside an on-remote worktree: kept"
   st "$(gots sweep "keep  $D/orch/seat-cwd/wt  cwd-inside")" 1 "naming cwd-inside"
+  # P453: a live process reaching the checkout without a cwd in it (git -C, open file, live train.pid).
+  [ -d "$D/orch/seat-argvuse/wt" ]; st $? 0 "argv names the worktree (git -C), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvuse/wt  argv-inside")" 1 "naming argv-inside"
+  [ -d "$D/orch/seat-openuse/wt" ]; st $? 0 "an open file inside, cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-openuse/wt  open-file")" 1 "naming open-file"
+  [ -d "$D/orch/seat-argvscr/wt" ]; st $? 0 "argv names a script inside the worktree (terminator /), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvscr/wt  argv-inside")" 1 "naming argv-inside for the script path"
+  [ -d "$D/orch/seat-argvdq/wt" ]; st $? 0 "argv carries a double-quoted <wt> token from sh -c cd (double-quote terminator), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvdq/wt  argv-inside")" 1 "naming argv-inside for argvdq"
+  [ -d "$D/orch/seat-argvsq/wt" ]; st $? 0 "argv carries a single-quoted <wt> token (single-quote terminator), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvsq/wt  argv-inside")" 1 "naming argv-inside for argvsq"
+  [ -d "$D/orch/seat-argvcol/wt" ]; st $? 0 "argv carries --paths=<wt>:/tmp (colon terminator), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvcol/wt  argv-inside")" 1 "naming argv-inside for argvcol"
+  [ -d "$D/orch/seat-argvcom/wt" ]; st $? 0 "argv carries --paths=<wt>,/tmp (comma terminator), cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-argvcom/wt  argv-inside")" 1 "naming argv-inside for argvcom"
+  gone "$D/orch/seat-argvsib/wt"; st $? 0 "null control: argv naming a sibling prefix (<worktree>2) holds nothing and the worktree is collected"
+  [ -d "$D/orch/seat-openeq/wt" ]; st $? 0 "an open file that is the worktree directory itself, cwd elsewhere: kept"
+  st "$(gots sweep "keep  $D/orch/seat-openeq/wt  open-file")" 1 "naming open-file for the directory itself"
+  gone "$D/orch/seat-opensib/wt"; st $? 0 "null control: an open file under a sibling prefix (<worktree>2/f) holds nothing and the worktree is collected"
+  [ -d "$D/orch/seat-pidzero/wt" ]; st $? 0 "a live pid containing a zero digit in train.pid: kept"
+  st "$(gots sweep "keep  $D/orch/seat-pidzero/wt  pidfile-live")" 1 "naming pidfile-live for the zero-digit pid"
+  [ -d "$D/orch/seat-lockuse/wt" ]; st $? 0 "a live pid in <worktree>/x.lock: kept"
+  st "$(gots sweep "keep  $D/orch/seat-lockuse/wt  pidfile-live")" 1 "naming pidfile-live for x.lock"
+  [ -d "$D/orch/seat-dotlock/wt" ]; st $? 0 "a live pid in <worktree>/.x.lock: kept"
+  st "$(gots sweep "keep  $D/orch/seat-dotlock/wt  pidfile-live")" 1 "naming pidfile-live for .x.lock"
+  gone "$D/orch/seat-deadpid/wt"; st $? 0 "null control: the same worktree with a dead-pid train.pid and no live user is collected"
   [ -d "$D/orch/seat-onremote-young/wt" ]; st $? 0 "a young on-remote worktree: kept"
   st "$(gots sweep "keep  $D/orch/seat-onremote-young/wt  young")" 1 "naming young"
   [ -d "$D/orch/seat-onremote-dirty/wt" ]; st $? 0 "a dirty on-remote worktree: kept"
@@ -416,7 +476,15 @@ PY
   mkcase nolsof; build nolsof; : > "$W/nolsof/lsofbroken"
   run nolsof --keep-dir "$W/nolsof/ev" o/r
   [ -d "$W/nolsof/orch/seat-onremote/wt" ]; st $? 0 "unreadable lsof: the on-remote worktree is kept"
+  mkcase nops; build nops; : > "$W/nops/psbroken"
+  run nops --keep-dir "$W/nops/ev" o/r
+  [ -d "$W/nops/orch/seat-onremote/wt" ]; st $? 0 "unreadable ps: the on-remote worktree is kept"
   st "$(gots nolsof "keep  $W/nolsof/orch/seat-onremote/wt  cwd-unread")" 1 "naming cwd-unread"
+  # The open-file listing alone unreadable (the cwd call answers): still kept.
+  mkcase noopen; build noopen; : > "$W/noopen/lsofopenbroken"
+  run noopen --keep-dir "$W/noopen/ev" o/r
+  [ -d "$W/noopen/orch/seat-onremote/wt" ]; st $? 0 "unreadable open-file lsof, cwd lsof readable: the on-remote worktree is kept"
+  st "$(gots noopen "keep  $W/noopen/orch/seat-onremote/wt  cwd-unread")" 1 "naming cwd-unread for the open-file listing"
 
   # Class C must keep the seat dir holding another LIVE worktree -- the header's
   # own keep rule, which classes A/B enforce via dispose_seat_dir. The orphan
@@ -571,7 +639,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-[ -n "$REPO" ] || die "usage: worktree_gc.sh [--dry-run] [--strict] [--keep-dir <path>] <owner/repo>"
+[ -n "$REPO" ] || die "usage: worktree_gc.sh [--dry-run] [--strict] [--keep-dir <evidence-destination, NOT a protect list>] <owner/repo>"
 [[ $REPO =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || die "repository '$REPO' is not owner/repo shaped"
 KEEP_DIR="${KEEP_DIR:-$KEEP_DIR_DEFAULT}"
 
@@ -643,23 +711,43 @@ head_on_remote() {
   [ -n "$(git for-each-ref --count=1 --contains "$1" --format='%(refname)' refs/remotes refs/tags 2>/dev/null)" ]
 }
 
-# 0 no process has its cwd inside dir, 1 one does, 2 lsof is unreadable.
+# What holds a worktree besides a cwd: 0 nothing, 1 a live process holds it
+# (names the way in HELD_WAY: cwd-inside, argv-inside, open-file or pidfile-live),
+# 2 lsof or ps is unreadable. A run reaching a checkout by `git -C`, `--checkout`
+# or a script path has its cwd elsewhere, so argv and open files count as well.
+HELD_WAY=""
 cwd_inside() { # real path of a worktree
-  local out
+  local out p="$1" f pid
   command -v lsof >/dev/null 2>&1 || return 2
   out=$(lsof -a -d cwd -Fn 2>/dev/null) || return 2
   [ -n "$out" ] || return 2
-  printf '%s\n' "$out" | awk -v p="$1" 'substr($0,1,1)=="n" { d=substr($0,2); if (d==p || index(d, p "/")==1) f=1 } END { exit f ? 0 : 1 }' && return 1
+  if printf '%s\n' "$out" | awk -v p="$p" 'substr($0,1,1)=="n" { d=substr($0,2); if (d==p || index(d, p "/")==1) f=1 } END { exit f ? 0 : 1 }'; then
+    HELD_WAY=cwd-inside; return 1
+  fi
+  out=$(ps -eo args= 2>/dev/null) || return 2
+  if printf '%s\n' "$out" | awk -v p="$p" '{ for (i=1;i<=NF;i++) { a=$i; k=index(a, p); if (k>0) { t=substr(a, k+length(p), 1); if (t=="" || t=="/" || t=="\"" || t=="\x27" || t==":" || t==",") f=1 } } } END { exit f ? 0 : 1 }'; then
+    HELD_WAY=argv-inside; return 1
+  fi
+  out=$(lsof -Fn 2>/dev/null) || return 2
+  if printf '%s\n' "$out" | awk -v p="$p" 'substr($0,1,1)=="n" { d=substr($0,2); if (d==p || index(d, p "/")==1) f=1 } END { exit f ? 0 : 1 }'; then
+    HELD_WAY=open-file; return 1
+  fi
+  for f in "$p/train.pid" "$p"/*.lock "$p"/.*.lock; do
+    [ -f "$f" ] || continue
+    pid=$(head -c 32 "$f" 2>/dev/null | tr -dc '0-9')
+    kill -0 "$pid" 2>/dev/null && { HELD_WAY=pidfile-live; return 1; }
+  done
   return 0
 }
 
 # 0 when no live process holds the worktree and it may go; otherwise prints the
-# keep line (cwd-inside, or cwd-unread when lsof cannot say) and returns 1. Every
-# removal arm asks it: a worktree a process stands in goes on no arm.
+# keep line (HELD_WAY, or cwd-unread when lsof or ps cannot say) and returns 1.
+# Every removal arm asks it: a worktree a process stands in, reads through
+# `git -C`, or has open goes on no arm.
 cwd_free() { # wt-path real-path
   cwd_inside "$2"
   case $? in
-    1) printf 'keep  %s  cwd-inside\n' "$1"; KEPT_N=$((KEPT_N+1)); return 1 ;;
+    1) printf 'keep  %s  %s\n' "$1" "$HELD_WAY"; KEPT_N=$((KEPT_N+1)); return 1 ;;
     2) printf 'keep  %s  cwd-unread\n' "$1"; KEPT_N=$((KEPT_N+1)); return 1 ;;
   esac
   return 0

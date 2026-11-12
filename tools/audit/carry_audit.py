@@ -41,7 +41,8 @@ starts an item without a bullet. A FINDING item:
            lines and the attribution line never are.
 
 A DESTINATION (`Dests.check`):
-  GROUP      a group of the newest roster (`roster_lib`), not done or absorbed (a refusal
+  GROUP      a group of the newest roster (`roster_lib`), at no `roster_lib.CARRY_DEST_CLOSED`
+             stage and no receiver-only sink (no PR, issue or fix; files []) (a refusal
              lists the live groups after-edged on `check --pr-group G` as valid targets); with no
              --roster-ref, also one open on the round's roster branch
              (`roster_lib.round_ref`), printed NOTE ... resolved on <ref>;
@@ -370,14 +371,20 @@ class Dests:
         self.round_ref, self.round_groups = ((round_roster[0], roster_lib.groups_of(round_roster[1]))
                                              if round_roster else (None, {}))
         self.owned: dict[int, str] = {n: f"{CARRIES_DIR}/carry-{n}.json" for n in carry_issues}
+        # What `Carry: #N` may name: the group token's rule (`live`) applied to #N's roster owners;
+        # a carry file or an O-brief receives whatever group lists the issue.
+        self.receiving: set[int] = set(carry_issues)
         for name, g in self.groups.items():
             if roster_lib.is_open(g):
                 for n in issue_numbers(g):
                     self.owned.setdefault(n, name)
+                    if self.live(g):
+                        self.receiving.add(n)
         self.briefs_dir = briefs_dir
         for f in sorted(Path(briefs_dir).glob("O*-*.md")) if briefs_dir else []:
             for n in re.findall(r"-(\d{3,})(?=[-.])", f.name):  # an O-brief owns the issues its name carries
                 self.owned.setdefault(int(n), f.name)
+                self.receiving.add(int(n))
         self.issue_state = issue_state  # callable n -> "open" | "closed" | None
 
     def owns(self, n: int) -> bool:
@@ -401,6 +408,12 @@ class Dests:
             if not self.owns(n):
                 return False, (f"#{n} has no owner: no live roster group lists it and there is no "
                                f"{CARRIES_DIR}/carry-{n}.json")
+            if n not in self.receiving:
+                owner = self.owned[n]  # a group: a carry file or an O-brief would be receiving
+                return False, (f"#{n}'s roster owner {owner} (resume.stage "
+                               f"{((self.groups.get(owner) or {}).get('resume') or {}).get('stage')}), which takes no carry; "
+                               f"a carry goes to the live group owning the seam, else the producing group keeps "
+                               f"the fix; valid targets: {self.consumers()}")
             if self.issue_state and (st := self.issue_state(n)) not in (None, "open"):
                 return False, f"#{n} is {st}"
             return True, ""
@@ -422,13 +435,15 @@ class Dests:
         res = (g or r).get("resume") or {}
         stage = res.get("stage")
         into = f" into {res['absorbed_into']}" if stage == "absorbed" and res.get("absorbed_into") else ""
-        return False, (f"{tok} is {'done' if stage in roster_lib.DONE_STAGES else stage}{into} (resume.stage {stage}); "
-                       f"valid targets: {self.consumers()}")
+        what = ("a receiver only (no PR, issue or fix; files [])" if stage not in roster_lib.CARRY_DEST_CLOSED
+                else "done" if stage in roster_lib.DONE_STAGES else stage)
+        return False, (f"{tok} is {what}{into} (resume.stage {stage}); a carry goes to the live group owning "
+                       f"the seam, else the producing group keeps the fix; valid targets: {self.consumers()}")
 
     @staticmethod
     def live(group: dict) -> bool:
-        """A group that can still take a carry: not done, not absorbed."""
-        return (group.get("resume") or {}).get("stage") not in roster_lib.CARRY_CLOSED
+        """A group that can still take a carry (`roster_lib.carry_receivable`)."""
+        return roster_lib.carry_receivable(group)
 
     def consumers(self) -> str:
         """The live groups after-edged on the pull request's group, for a refusal to print."""
@@ -1210,7 +1225,7 @@ def _self_test() -> int:
           fp("Mentions #7\nFixing #7\nunfixes #7\n") == [])
     nf, nn = fold_problems("Closes #8\n", lambda n: None)
     check("an issue that cannot be fetched fails open with a printed note", nf == [] and len(nn) == 1 and "#8" in nn[0])
-    # A closed destination (done, absorbed) is refused, and the refusal lists the live groups
+    # A closed destination (done, absorbed; the sink barrier below adds the rest) is refused, and the refusal lists the live groups
     # after-edged on the pull request's own group as the valid targets.
     def gr(name, stage, after=()):
         return {"group": name, "after": list(after), "resume": {"stage": stage}}
@@ -1231,6 +1246,48 @@ def _self_test() -> int:
         r = run(plant.rstrip() + f" Carry: {g}\n", d=Dcl)
         check(f"a live group ({g}) is accepted with no note (null control)",
               r["u"] == 0 and r["b"] == 0 and r["rows"][0]["notes"] == [g])
+    # THE SINK BARRIER (R10-CARRY-SINK-BARRIER, tvofi 2026-11-10): a carry goes to the
+    # live group owning the seam, else the producing group keeps the fix. A group whose
+    # PR merged (carries-open), a ruled one (refused, refuted) and a receiver-only group
+    # (no PR, issue or fix, and `files: []`; a brief is no seam) are refused, naming the rule.
+    def sg(name, stage, **kw):
+        return dict({"group": name, "issues": [], "fixes": [], "brief": "Build it.", "after": ["R10-PR"],
+                     "resume": {"stage": stage}}, **kw)
+    Dsk = Dests({"groups": [sg("R10-PR", "in-progress", brief="Build the PR arm.", after=[]),
+                            sg("R10-CO", "carries-open", issues=[900],
+                               resume={"stage": "carries-open", "pr": 3000}),
+                            sg("R10-RFS", "refused", brief="Ruled out."), sg("R10-RFT", "refuted", brief="A finding."),
+                            sg("R10-SINK", "not-started", files=[], brief="Receives the carries of R10-PR."),
+                            sg("R10-WORK", "in-progress", brief="Build the seam.", resume={"stage": "in-progress", "pr": 3001}),
+                            sg("R10-NEXT", "not-started", brief="Build the next arm.")]},
+                set(), None, pr_group="R10-PR")
+    for g in ("R10-CO", "R10-RFS", "R10-RFT", "R10-SINK"):
+        r = run(plant.rstrip() + f" Carry: {g}\n", d=Dsk)
+        msg = r["rows"][0]["bad"][0] if r["b"] == 1 else ""
+        check(f"sink barrier: a carry to {g} is refused, naming the rule and the live targets",
+              msg.startswith(f"{g}: {g} is ") and "live group owning the seam" in msg
+              and "producing group keeps the fix" in msg and "R10-WORK" in msg and "R10-CO," not in msg)
+    for g in ("R10-WORK", "R10-NEXT", "R10-PR"):
+        r = run(plant.rstrip() + f" Carry: {g}\n", d=Dsk)
+        check(f"sink barrier (null control): a carry to the live group {g} still passes",
+              r["u"] == 0 and r["b"] == 0)
+    # ... and the issue token is the same destination: `Carry: #N` whose every roster owner fails
+    # carry_receivable is refused like the group token (verdict/3417), unless a carry file or an
+    # O-brief owns #N; `owns` (sweep --issues, orphaned) is unchanged.
+    Path(tmp.name, "O11-parked-906.md").write_text("brief\n")
+    Dis = Dests({"groups": [sg("R10-CO", "carries-open", issues=[900, 903, 905, 906], resume={"stage": "carries-open", "pr": 3000}),
+                            sg("R10-RFT", "refuted", issues=[901]),
+                            sg("R10-WORK", "in-progress", issues=[902], fixes=[903], resume={"stage": "in-progress", "pr": 3001})]},
+                {905}, tmp.name, pr_group="R10-PR")
+    for n, g in ((900, "R10-CO"), (901, "R10-RFT")):
+        r = run(plant.rstrip() + f" Carry: #{n}\n", d=Dis)
+        msg = r["rows"][0]["bad"][0] if r["b"] == 1 else ""
+        check(f"sink barrier: a carry to #{n}, owned only by {g}, is refused naming the owner and the rule",
+              g in msg and "live group owning the seam" in msg and Dis.owns(n))
+    for n, why in ((902, "a live group lists it"), (903, "a live group also lists it"),
+                   (905, "a carry file owns it"), (906, "an O-brief names it")):
+        r = run(plant.rstrip() + f" Carry: #{n}\n", d=Dis)
+        check(f"sink barrier (null control): a carry to #{n} passes, {why}", r["u"] == 0 and r["b"] == 0)
     for br, want in (("fix/r10-pr", "R10-PR"), ("fix/r10-pr-pr", "R10-PR"), ("fix/r10-nothing", None)):
         check(f"branch {br} resolves to the PR group {want} (the workflow passes --branch, not --pr-group)",
               pr_group_of(Dcl, br) == want)

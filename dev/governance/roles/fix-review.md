@@ -29,7 +29,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    is `blocked <sha> class-open: <seams>`, a site or a predicate's unguarded
    domain: every one the review found, not one per round, no hunt past it owed.
    An item whose harness does not move under its own perturbation is void
-   (`judge.md`): padding buys nothing. A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A rule returning
+   (`judge.md`). A body whose issue states more than one seam and names no rule is `blocked <sha> harness: class-rule-missing`. A rule returning
    nothing means a one-seam class: say so, never read the absence as compliance.
 7. Confirm the PR body's head SHA is the head you measured (handoff review: the handoff tip), or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified: say so.** Re-derive
@@ -50,8 +50,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger). Read the PR's own checks (`get_check_runs`, or
     the commit's `check-runs` API), not the body's account, and never a
-    listing that shows one run per check. For each required check that went red
-    (`defect-root-cause.md`'s Enforcement),
+    listing that shows one run per check. For each required check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
     or the finding that none exists. Both pass; silence is
     `blocked <sha> root-cause-detectable: <check>` where a cheaper detector
@@ -64,8 +63,9 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     refuses, wait or hand back unverdicted, saying so.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
-    **A red `nightly-status` or `delivery-status` is not this pull request's**:
-    neither is required (`defect-root-cause.md`).
+    **A red outside `merge_train.py owed-reds`' set is not this pull request's**
+    and blocks nothing, except an `instrument-self-tests` step red at the head and
+    not the merge base (`classify --pr`'s INTRODUCED): its finding, a block.
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head
@@ -83,14 +83,19 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     verdict, and check it is still the head when you post it; if it moved, say
     which of your numbers survive and which you re-took.
 
-    The handoff makes the head yours, so one that moved under you is a broken
-    rule: `blocked <sha> head-moved: measured <sha>, head is <other>`.
+    A head that moved under you is
+    `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
     **A `merge` verdict attaches to the head its first line names and carries**
     (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
     <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
     (L6), not `head-moved`; a red CI never carries.
-    Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed.
+    Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
+    <head>` (a main merge: its resolution), each prior finding resolved, the live
+    required checks. Only a delta touching production code (`custom_components/`)
+    that puts already-reviewed code's functionality at non-obvious risk, in a way
+    CI would not detect, widens it, to exactly that code; the verdict names the
+    path and the risk. Instrument, test, policy and body deltas never widen it.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run

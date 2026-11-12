@@ -495,6 +495,27 @@ CARRY_MARKS = ("implemented", "moved", "dismissed")
 _CARRY_MARK = re.compile(r" \[(implemented|moved|dismissed): ([^\]\n]+)\]\Z")
 #: The stages in which a group can no longer receive or discharge a carry.
 CARRY_CLOSED = CLOSED_STAGES
+#: The stages a carry may not be routed TO (R10-CARRY-SINK-BARRIER, tvofi
+#: 2026-11-10): every CARRY_CLOSED stage, plus `carries-open`, whose pull
+#: request merged so no seat is left to build a carry parked there, and
+#: `refuted`, which names a finding, not work. Not CARRY_CLOSED itself: a
+#: carries-open group still holds and discharges the carries it owes.
+CARRY_DEST_CLOSED = CARRY_CLOSED + ("carries-open", "refuted")
+
+
+def carry_receivable(group: dict) -> bool:
+    """THE carry-destination test: a group a carry may be routed or moved to.
+    Its stage is outside CARRY_DEST_CLOSED, and it is no receiver-only sink:
+    a group with no pull request, issue or fix and a recorded `files` list
+    that is empty owns no seam to build the carry in. A brief does not count:
+    every group has one (append-group requires it), a sink's included; a group
+    with no `files` key has an unrecorded seam, not an empty one.
+    carry_audit.py's destination check and roster_edit.py's append-carry,
+    mark-carry moved and absorb --into all read it."""
+    res = group.get("resume") or {}
+    sink = (group.get("files") == [] and not res.get("pr")
+            and not group.get("issues") and not group.get("fixes"))
+    return res.get("stage") not in CARRY_DEST_CLOSED and not sink
 #: THE CUT-OVER, per roster path: a carry that sat on a closed group at this
 #: roster-branch commit is LEGACY and is never reported, so the invariant
 #: starts at the cut-over with no blanket migration and nothing marked
@@ -640,6 +661,10 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
     longer than `limit` is cut with an ellipsis.
     """
     text = (group.get("brief") or "").strip()
+    # A brief written as a markdown document opens with a heading marker; the
+    # row is plain text, so the marker goes and the lines join.
+    text = re.sub(r"\A\s*#{1,6}[ \t]*", "", text)
+    text = re.sub(r"\s*\n\s*", " ", text)
     text = _ATTRIBUTION.sub("", text)
     cut = re.split(r"(?<=\.)\s", text, maxsplit=1)[0]
     cut = cut.replace("|", "/")
@@ -1009,6 +1034,19 @@ def _self_test() -> int:
           and is_open({"resume": {"stage": "refuted"}})
           and "refused" in CARRY_CLOSED and "deferred" not in DONE_STAGES,
           CLOSED_STAGES)
+    # THE SINK BARRIER (R10-CARRY-SINK-BARRIER): the carry-destination test.
+    def cr(st, **kw):
+        return carry_receivable(dict({"group": "G", "files": ["x.py"], "resume": {"stage": st}}, **kw))
+    check("carry_receivable: carries-open, refuted and every CARRY_CLOSED stage take no carry",
+          not any(cr(st) for st in ("carries-open", "refuted") + CARRY_CLOSED))
+    check("carry_receivable: a receiver-only sink (no PR, issue or fix; files []) takes none",
+          not cr("not-started", files=[], brief="Receives carries."))
+    check("carry_receivable (null): live stages take a carry, and so does a group with an "
+          "empty files list but a PR, an issue or a fix, or no files key",
+          all(cr(st) for st in ("not-started", "in-progress", "queued", "review"))
+          and cr("not-started", files=[], issues=[1]) and cr("not-started", files=[], fixes=[2])
+          and carry_receivable({"group": "G", "files": [], "resume": {"stage": "in-progress", "pr": 3}})
+          and carry_receivable({"group": "G", "resume": {"stage": "in-progress"}}))
     def rg(n, st, **kw):
         return {"group": n, "resume": {"stage": st, **kw.pop("res", {})}, **kw}
     chain = {"groups": [rg("P", "deferred"), rg("Q", "queued", after=["P"]),

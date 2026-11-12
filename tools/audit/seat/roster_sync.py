@@ -511,8 +511,9 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
 
     The parser is `carry_audit.py`'s (`audit`, hence `items` and `carry_dests`);
     a second one is refused. Only a group token is appended -- an issue, an
-    O-brief and a dismissal keep their own record -- and a destination that
-    is done is refused, never appended. A destination that already records
+    O-brief and a dismissal keep their own record -- and a destination
+    `roster_lib.carry_receivable` refuses (done, carries-open, ruled, a
+    receiver only) is refused, never appended. A destination that already records
     the same finding (`already_carried`) is refused too: the derived text is
     that finding again in the body's words, and re-appending it would
     duplicate the carry. A different finding from the same pull request
@@ -531,10 +532,12 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
                 g = groups.get(dest)
                 if g is None:
                     refusals.append((pr.number, dest, "not a roster group"))
-                elif not roster_lib.is_open(g):
+                elif not roster_lib.carry_receivable(g):
+                    st = (g.get("resume") or {}).get("stage")
                     refusals.append((pr.number, dest,
-                                     "the destination is done (resume.stage "
-                                     f"{(g.get('resume') or {}).get('stage')})"))
+                                     f"the destination is {'done' if st in roster_lib.DONE_STAGES else st} "
+                                     f"(resume.stage {st}); a carry goes to the live group owning the seam, "
+                                     "else the producing group keeps the fix"))
                 else:
                     text = " ".join(BULLET.sub("", row["text"], count=1).split())
                     if text in (g.get("carry") or []) or (dest, text) in appends:
@@ -1410,15 +1413,18 @@ def self_test() -> int:
                           and stranded_w == [],
                           (rc, got, stranded_w, out[-300:], err[-300:]))
                 else:
+                    # The sink barrier (R10-CARRY-SINK-BARRIER): a group the pass
+                    # closes carries-open takes no new carry, in either path.
                     check("a destination holding a post-cut-over carry projects "
-                          "carries-open: the dry run plans the append (null "
-                          "control)", rc_d == 0 and "carry R9-LEG +=" in out_d
-                          and "REFUSED Carry: R9-LEG" not in out_d,
+                          "carries-open: the dry run refuses the append, naming "
+                          "the stage", rc_d == 0 and "carry R9-LEG +=" not in out_d
+                          and "REFUSED Carry: R9-LEG from #62: the destination is "
+                          "carries-open" in out_d,
                           (rc_d, out_d[-400:], err_d[-200:]))
-                    check("and the write appends it and writes carries-open "
-                          "(null control)",
+                    check("and the write refuses it too and writes carries-open "
+                          "with its own carries only",
                           rc == 0 and got == ("carries-open",
-                                              ["legacy one", "post one", routed]),
+                                              ["legacy one", "post one"]),
                           (rc, got, out[-300:], err[-300:]))
             bare_u, drv_u, _ = build(root / "leg-unreadable", LINT_OK,
                                      [leg_at_cut, leg_tip])

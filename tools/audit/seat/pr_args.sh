@@ -382,7 +382,8 @@ tools/audit/seat/body_patch.sh mention: comments; it PATCHes a body through app_
 tools/audit/seat/body_push.sh mention: comments; it writes the Prepr: trailer app_push.sh --reuse reads, and runs no push
 tools/pr/prepr.sh mention: comments; it honours the receipt app_push.sh --reuse passes it, and runs no push
 tools/pr/app_mint.sh mention: comments; sourced by app_push.sh, it launches nothing
-tools/policy/policy_lint.mjs mention: a refusal message'
+tools/policy/policy_lint.mjs mention: a refusal message
+tools/audit/seat/remerge_main_selftest.py mention: it writes a fake app_push.sh into a scratch origin and pushes nothing'
 pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any OPEN
   local root=${1:-$(cd "$PR_ARGS_DIR/../../.." && pwd)} rev=${2:-} f kind txt bad=0
   local found
@@ -1246,6 +1247,68 @@ STUB
   ck "  mutant mut:opcollect (its line deleted): open_pr.sh never asks for the collection" $?
   racerun oprowonly; [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
   ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
+  # R10-HOTFIX-OPENPR-FIGURE-REFRESH: a figure block names the head it was rendered at, so the body
+  # open_pr.sh pushes needs it re-rendered at each head it pushes (p1 when the main merge moved the
+  # head, p2 always: the row commit moves it). The stub pusher is lint's figure-block head check; the
+  # stub figure_block.py rewrites each head= to the worktree's HEAD (the real one has its own self-test).
+  if [ ! -e "$t/fixf" ]; then
+    git -C "$o" checkout -q -b handoff/f "$base" && mkdir -p "$o/tools/pr" && printf 'f\n' > "$o/f" \
+      && cat > "$o/tools/pr/app_push.sh" <<'STUB'
+#!/bin/bash
+D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; flag=; case $1 in --row-only|--reuse) flag=$1; shift ;; esac
+wt=$2; br=$3; body=$4; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
+h=$(grep -o '^<!-- figure-block: [a-z-]* mb=[0-9a-f]* head=[0-9a-f]*' "$body" | grep -o 'head=.*' | cut -c6-)
+if [ -n "$h" ]; then
+  [ "$h" = "$(git -C "$wt" rev-parse HEAD)" ] || { echo "app_push: REFUSE: figure-block scope-line names another head ($h)"; exit 1; }
+  [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr RUNS: the body changed"
+else
+  [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr SKIPPED: only the row"
+fi
+git -C "$wt" push -q -f origin "$br" || exit 1  # -f: a re-run's merge commit is not the first run's; the real pusher's refusal of that is outside this arm
+[ "$n" != 1 ] || echo "app_push: PUSHED to $br; pull request #5 is open"
+exit 0
+STUB
+    git -C "$o" add f tools/pr/app_push.sh && git -C "$o" commit -q -m "code f" && git -C "$o" checkout -q main && touch "$t/fixf"
+  fi
+  codeF=$(git -C "$o" rev-parse handoff/f)
+  printf 'import re, subprocess, sys\nf = sys.argv[sys.argv.index("refresh") + 1]\nh = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()\nt = re.sub(r"head=[0-9a-f]{40}", "head=" + h, open(f).read())\nopen(f, "w").write(t)\n' > "$m/tools/pr/figure_block.py"
+  figbody() { # <block|none>: handoff-body/f carries a body with a figure block naming the code head, or none
+    local blob tree
+    if [ "$1" = block ]; then blob=$(printf '## Head\n\nthe body\n\n## Figures\n\n<!-- figure-block: scope-line mb=%s head=%s -->\n~~~text\nx\n~~~\n<!-- /figure-block -->\n' "$codeF" "$codeF" | git -C "$o" hash-object -w --stdin)
+    else blob=$(printf '## Head\n\nthe body\n' | git -C "$o" hash-object -w --stdin); fi
+    tree=$(printf '100644 blob %s\tBODY.md\n' "$blob" | git -C "$o" mktree)
+    git -C "$o" update-ref refs/heads/handoff-body/f "$(git -C "$o" -c user.name=t -c user.email=t@t commit-tree "$tree" -m body)"
+  }
+  figrun() { # <mutant|-> <block|none> [keep]: open_pr.sh f with main moved on; "keep" re-runs over the last run's leftovers
+    local sd=$t/fig-state sdir=$t/fig-stub g
+    if [ "${3:-}" != keep ]; then
+      rm -rf "$sd" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/f fix/f-pr 2>/dev/null; git -C "$o" branch -qD fix/f fix/f-pr 2>/dev/null
+      mkdir -p "$sd"; git -C "$m" branch -f fix/f "$base"
+    fi
+    sd=$(cd "$sd" && pwd -P); rm -rf "$sdir"; mkdir -p "$sdir"; figbody "$2"
+    printf 'z\n' > "$o/zz" && git -C "$o" add zz && git -C "$o" -c user.name=t -c user.email=t@t commit -q -m "main file"
+    for g in open_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" f "$codeF" T G > "$t/fo" 2>&1; echo $? > "$t/frc"
+    git -C "$o" cat-file -e fix/f-pr:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/frow" || echo 0 > "$t/frow"
+    cp "$sd/pr/f/p2.log" "$t/fp2" 2>/dev/null || : > "$t/fp2"
+    git -C "$o" reset -q --hard "$base"; true
+  }
+  figrun - block; [ "$(cat "$t/frc")" = 0 ] && grep -q '^PR=5 ' "$t/fo" && [ "$(cat "$t/frow")" = 1 ]
+  ck "open_pr: a body with a figure block opens (both pushes land, the row is present), the main merge having moved the head" $?
+  figrun opfig2 block; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ] && grep -qF "figure-block scope-line names another head" "$t/fo" "$t/fp2" 2>/dev/null
+  ck "  mutant mut:opfig2 (its line deleted): the row push is refused, naming another head, and the PR is closed" $?
+  figrun opfig1 block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "figure-block scope-line names another head" "$t/fo"
+  ck "  mutant mut:opfig1 (its line deleted): the code push is refused at the merged head, with nothing pushed" $?
+  figrun - none; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ] && grep -qF "ROW-ONLY: prepr SKIPPED" "$t/fp2"
+  ck "  null control: a body with no figure block opens as before and its row push skips prepr" $?
+  # An open closed after its second push leaves the local branch and the detached worktree; the next run's
+  # worktree add -b failed on them. The re-run must clear what origin already holds.
+  figrun opfig2 block; figrun - block keep; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ]
+  ck "open_pr: a re-run after an open closed at its row push clears the left-over branch and worktree and opens" $?
+  figrun opfig2 block; figrun opclear block keep; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ]
+  ck "  mutant mut:opclear (its line deleted): the re-run fails at git worktree add -b on the left-over branch (the defect)" $?
   # R10-FLOW-BODY-ONLY parts (a) and (b), ruling R4: update_pr.sh merges origin/main only when the PR
   # is DIRTY or the merge would conflict, and a head the run leaves unmoved is re-bodied by
   # body_patch.sh (here a stub, HPO_BODY_PATCH) with no push. handoff/v carries a push stub that

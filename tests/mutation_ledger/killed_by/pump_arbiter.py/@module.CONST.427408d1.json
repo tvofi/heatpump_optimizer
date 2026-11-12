@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:<module> CONST 427408d1",
+  "killed_by": "tests/features.py",
+  "old": "FEEDBACK_RATE_K_PER_MIN = 0.2",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`FEEDBACK_RATE_K_PER_MIN = 0.4`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

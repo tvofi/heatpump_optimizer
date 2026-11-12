@@ -1236,7 +1236,7 @@ def _arch_entry(module: str) -> str:
     if _arch_map is None:
         return ""
     m = _re.search(
-        rf"{_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
+        rf"(?<!\w){_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
         rf"((?:│[^\n]*#[ \t]*[^\n]*\n)*)",
         _arch_map.group(1),
     )
@@ -3125,8 +3125,8 @@ R.check(
 _a3e_clim = _climate_platform.HeatPumpOptimizerClimate(_a3e_fake, ENTRY)
 R.check(
     "without an indoor reading climate does not publish the constructor default",
-    (not _a3e_clim.available) and _a3e_clim.current_temperature is None,
-    f"available={_a3e_clim.available} current={_a3e_clim.current_temperature!r}",
+    (not _a3e_clim.available) and _a3e_clim.native_current_temperature is None,
+    f"available={_a3e_clim.available} current={_a3e_clim.native_current_temperature!r}",
 )
 R.check(
     "the upper floor names where its number comes from",
@@ -3448,7 +3448,7 @@ def _d801_publications(config, cycles):
             if state is None:
                 state = getattr(entity, "is_on", None)
             if state is None:
-                state = getattr(entity, "current_temperature", None)
+                state = getattr(entity, "native_current_temperature", None)
             if state is not None:
                 out[f"{label}|state"] = state
             attrs = getattr(entity, "extra_state_attributes", None) or {}
@@ -4207,6 +4207,11 @@ _P2_CENSUSES = {
         "tests/features.py", "combi_flux_live census: every DHW walk the planner runs"),
     "combi_tap_limit": (
         "tests/features.py", "combi_tap_limit census: every tap-stated minimum the planner"),
+    # R10-COMBI-TANK PR B (#3225, design §L and §T.4).
+    "combi_legionella_gate": (
+        "tests/features.py", "combi_legionella_gate census: outside thermal_model.py no behaviour reads"),
+    "combi_type_branch": (
+        "tests/features.py", "combi_type_branch census: no preset slug outside const.py's table"),
     # #1747: the DHW mode block reached the first DHW build and not the
     # co-optimisation replan's (R9-RCA-1747); EG-B8's census holds it.
     "dhw_mode_blocked_at_every_build": (
@@ -10729,12 +10734,12 @@ R.check(
 )
 R.check(
     "the thermostat shows the user's target, not the per-step setpoint",
-    clim.target_temperature == clim.coordinator.target_temperature,
+    clim.native_target_temperature == clim.coordinator.target_temperature,
 )
 R.check(
     "current temperature reads the published payload",
-    clim.current_temperature == DATA["indoor_temperature"],
-    str(clim.current_temperature),
+    clim.native_current_temperature == DATA["indoor_temperature"],
+    str(clim.native_current_temperature),
 )
 asyncio.run(clim.async_set_hvac_mode(climate_mod.HVACMode.OFF))
 R.check(
@@ -11097,7 +11102,7 @@ R.check(
     "current_temperature is None with no coordinator data",
     climate_mod.HeatPumpOptimizerClimate(
         FakeCoordinator(None), clim._entry
-    ).current_temperature
+    ).native_current_temperature
     is None,
 )
 
@@ -22014,8 +22019,13 @@ _REPO_ROOT_CQ = pathlib.Path(__file__).resolve().parents[1]
 # under an ignore pattern is analyzable code being filtered out, refused.
 _CODEQL_INIT = [st for st in _CODEQL_STEPS
                 if str(st.get("uses", "")).startswith("github/codeql-action/init@")]
-_CODEQL_IGNORE = ((_yaml.safe_load((_CODEQL_INIT[0].get("with") or {}).get("config") or "")
-                   or {}).get("paths-ignore") or []) if _CODEQL_INIT else []
+# The config is one expression choosing between two JSON lists: the full-run list
+# (workflow scripts only) and the pull-request python list, which adds tests/ and
+# dev/. Both are read out of the registered text, not a constant.
+_CODEQL_CONFIG = str((_CODEQL_INIT[0].get("with") or {}).get("config") or "") if _CODEQL_INIT else ""
+_CODEQL_LISTS = [json.loads(m) for m in re.findall(r"'(\[[^']*\])'", _CODEQL_CONFIG)]
+_CODEQL_PR_LIST, _CODEQL_BASE_LIST = (_CODEQL_LISTS + [[], []])[:2]
+_CODEQL_IGNORE = list(_CODEQL_BASE_LIST)
 _CODEQL_IGNORED = {pat: sorted(str(p.relative_to(_REPO_ROOT_CQ)) for p in _REPO_ROOT_CQ.glob(pat)
                                if p.is_file() and not p.is_symlink())
                    for pat in _CODEQL_IGNORE}
@@ -22028,6 +22038,31 @@ R.check(
     "codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)",
     bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
     f"ignored={_CODEQL_IGNORED}; parseable under an ignore pattern={_CODEQL_PARSEABLE}",
+)
+# r10-codeql-pr-paths: the pull-request python list is the full-run list plus
+# tests/ and dev/, chosen only for a pull_request event on the python leg. Without
+# the event or language guard the full run would lose them too (null control: the
+# guard text removed reads False).
+_CODEQL_GUARD = "github.event_name == 'pull_request' && matrix.language == 'python'"
+# The whole expression is one anchored shape, `(<GUARD>) && '<PR>' || '<BASE>'`,
+# and is evaluated for every event x leg: only a pull_request on python gets the
+# tests/dev list, so main's push run keeps the full set. A negated or `|| true`
+# guard fails the anchor and, evaluated, the push rows (null control: both red).
+_CODEQL_SHAPE = re.fullmatch(
+    r"paths-ignore: \$\{\{ \(" + re.escape(_CODEQL_GUARD) + r"\) && '(\[[^']*\])' \|\| '(\[[^']*\])' \}\}\s*",
+    _CODEQL_CONFIG)
+_CODEQL_SELECTED = {(ev, lg): json.loads(_CODEQL_SHAPE.group(1 if (ev == "pull_request" and lg == "python") else 2))
+                    for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                    for lg in ("actions", "javascript-typescript", "python")} if _CODEQL_SHAPE else {}
+_CODEQL_EXPECT = {(ev, lg): (_CODEQL_PR_LIST if (ev == "pull_request" and lg == "python") else _CODEQL_BASE_LIST)
+                  for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                  for lg in ("actions", "javascript-typescript", "python")}
+R.check(
+    "codeql.yml: tests/ and dev/ are ignored on a pull request's python leg only; a full run ignores workflow scripts alone",
+    len(_CODEQL_LISTS) == 2 and _CODEQL_PR_LIST == _CODEQL_BASE_LIST + ["tests/**", "dev/**"]
+    and _CODEQL_CONFIG.count(_CODEQL_GUARD) == 1
+    and bool(_CODEQL_SHAPE) and _CODEQL_SELECTED == _CODEQL_EXPECT,
+    f"lists={_CODEQL_LISTS}; config={_CODEQL_CONFIG!r}; selected={_CODEQL_SELECTED}",
 )
 # A skipped leg uploads main's analysis of its category as a stand-in, so a
 # pull request carries every configuration main does and code scanning never
@@ -25637,8 +25672,8 @@ from heatpump_optimizer import diagnostics as _diag_mod  # noqa: E402
 import json as _json
 
 # #509: what a household looks like in a diagnostics file. The coordinate is
-# full precision and its 1-decimal cell is a different string, so "the precise
-# value is absent" cannot pass just because the two happen to render the same;
+# full precision and its 1-decimal rounding is a different string, so the
+# redaction check also catches a rounded leftover, not only the exact value;
 # ``_DIAG_DEEP`` sits two levels down and inside a list, because the property
 # that stops the NEXT nested location from leaking is depth-independence, not a
 # rule about ``solar_location``; and the option-level coordinate differs from
@@ -25711,11 +25746,6 @@ def _diag_at(node, *path):
     return node
 
 
-# The setup data's own location: ``config`` is the live merge, where the
-# options' location replaces this one whole.
-_diag_location = _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION)
-_diag_location = _diag_location if isinstance(_diag_location, dict) else {}
-
 R.check(
     "the Tibber token never leaves the instance",
     _diag["config"].get(_CONF_TOKEN) == _HA_REDACTED
@@ -25739,45 +25769,27 @@ R.check(
     ),
 )
 R.check(
-    "the coordinate survives as a coarse cell rather than as a hole",
-    _diag_location.get("latitude") == round(_DIAG_LAT, 1)
-    and _diag_location.get("longitude") == round(_DIAG_LON, 1),
-    f"solar_location came back as {_diag_location!r}; support cannot see a "
-    f"swapped or wrong-country coordinate through a redacted one",
-)
-R.check(
-    "the documented coordinate precision is one decimal place",
-    getattr(_diag_mod, "COORDINATE_PLACES", None) == 1,
-    f"COORDINATE_PLACES is {getattr(_diag_mod, 'COORDINATE_PLACES', None)!r}",
-)
-R.check(
-    "the coarsening reaches a coordinate nested below the top level",
-    _diag_at(_diag, "config", "_deep", "sites", 0, "station", "latitude")
-    == round(_DIAG_LAT, 1),
-    "a coordinate two levels down, inside a list, came back as "
-    f"{_diag_at(_diag, 'config', '_deep', 'sites', 0, 'station', 'latitude')!r}",
-)
-R.check(
-    "the live config's coordinate, from options, is coarsened too",
-    _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION, "latitude")
-    == round(_DIAG_OPT_LAT, 1)
-    and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION, "longitude")
-    == round(_DIAG_OPT_LON, 1),
+    "the location is redacted whole, from data and from options, not coarsened",
+    _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
+    and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
+    and not any(
+        str(round(_c, 1)) in _blob
+        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+    ),
     repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)),
 )
-_diag_typed = _diag_at(_diag, "config", "_deep", "typed")
-_diag_typed = _diag_typed if isinstance(_diag_typed, dict) else {}
 R.check(
-    "a coordinate that is not a number is redacted rather than published",
-    _diag_typed.get("latitude") == _HA_REDACTED
-    and _diag_typed.get("longitude") == _HA_REDACTED
-    and "Storgatan 5, Solna" not in _blob,
-    f"a non-numeric coordinate came back as {_diag_typed!r}",
+    "a coordinate nested below the top level, inside a list, is redacted",
+    _diag_at(_diag, "config", "_deep", "sites", 0, "station")
+    == {"latitude": _HA_REDACTED, "longitude": _HA_REDACTED},
+    repr(_diag_at(_diag, "config", "_deep", "sites", 0, "station")),
 )
 R.check(
-    "a non-coordinate member of the location dict is left alone",
-    _diag_location.get("elevation") == "not-a-number",
-    "redaction reached a key that is not a coordinate",
+    "a coordinate that is not a number is redacted too (None stays None, as in Home Assistant)",
+    _diag_at(_diag, "config", "_deep", "typed")
+    == {"latitude": _HA_REDACTED, "longitude": None}
+    and "Storgatan 5, Solna" not in _blob,
+    f"a non-numeric coordinate came back as {_diag_at(_diag, 'config', '_deep', 'typed')!r}",
 )
 R.check(
     "the installation name the user typed never leaves the instance",
@@ -31828,7 +31840,7 @@ _RD_EVENTS = ({"github.event_name": "workflow_dispatch"},
 
 
 # A dispatch is never a push: the units it owes are gate.py's `no-pr` and `pr`
-# classes, so the push-only jobs (coverage, ci-ratchet) are not among them.
+# classes, so the push-only jobs (coverage, coverage-ratchet) are not among them.
 _RD_UNITS = sorted(set(_cig_required["pr"]) | set(_cig_required["no-pr"]))
 
 
@@ -40554,6 +40566,40 @@ R.check(
     f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
 )
 
+# No lock comment spells a hash-pinned package `name==`. Dependabot rewrites
+# the version at every `name==` match in a lock, the comment included, and
+# leaves the hash block of a pin it matched twice at the old version, which
+# `--require-hashes` refuses: 9 of 9 stale pins of #3088, #3323 and #3414 had
+# that shape, 0 of 61 fresh ones (dev/audit/rca/r10-rca-dependabot-stale-hash.md).
+# Driven through the harness's own `--tree` reader, then its `exposed` over
+# the committed lock with one comment planted, which must read one pin.
+import contextlib as _dsh_ctx  # noqa: E402
+import importlib.util as _dsh_util  # noqa: E402
+import io as _dsh_io  # noqa: E402
+
+_dsh_spec = _dsh_util.spec_from_file_location(
+    "hpo_dependabot_stale_hash",
+    _closure.ROOT / "dev" / "audit" / "harnesses" / "dependabot_stale_hash.py")
+_dsh = _dsh_util.module_from_spec(_dsh_spec)
+_dsh_spec.loader.exec_module(_dsh)
+_dsh_out = _dsh_io.StringIO()
+with _dsh_ctx.redirect_stdout(_dsh_out):
+    _dsh_exposed = _dsh.tree(None)
+R.check(
+    "no lock comment names a hash-pinned package as `name==` (Dependabot stale hashes)",
+    _dsh_exposed == 0 and " files=0 " not in _dsh_out.getvalue(),
+    _dsh_out.getvalue().strip()[-600:] + ". Reword each to `name 1.2.3`, or "
+    "point at the pin line",
+)
+_DSH_LOCK = (_closure.ROOT / "tests" / "requirements-ci.txt").read_text()
+_DSH_PIN = re.search(_PIN_REQ.pattern, _DSH_LOCK, re.M)
+_dsh_planted = _dsh.exposed(f"# holds {_DSH_PIN.group(0)}\n" + _DSH_LOCK)
+R.check(
+    "stale-hash barrier arm: one planted `name==` comment reads exactly one pin",
+    len(_dsh_planted) == 1 and _dsh.exposed(_DSH_LOCK) == [],
+    f"planted={_dsh_planted} committed={_dsh.exposed(_DSH_LOCK)}",
+)
+
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #
 # `tests/replay.py` replays recorded days nightly. What it would take a night to
@@ -41894,7 +41940,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     "the latch itself, or latched by a guard the static rule cannot read "
     "(an outage counter, a transition notice, a once-per-attempt spacing, "
     "an lru_cache parsing an option once per distinct text)": {
-        ("log_latch.py", "log_held"): 2, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("log_latch.py", "log_held"): 2, ("issues.py", "note_price_outage"): 2,
         ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
         ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
         ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
@@ -42286,6 +42332,36 @@ R.check(
     "sensors all publish _evidence_attributes",
     _c2238_p6 == [{"c2238": "sentinel"}] * 3,
     f"{_c2238_p6}",
+)
+
+# --- The standing seats' shared terms live once, in `standing.md` ------------
+#
+# (a) every contract that shares them cites the file; (b) the file carries its
+# five headings, the alive-file directory, the bus read and the autofix-hold
+# predicate (all three job names, so deleting the sentence fails even with its
+# heading kept); (c) `fixer.md`, the contract `tools/pr/ci_predict.py`'s
+# BOOTSTRAP remedy cites, carries the remedy. A design choice: the cited name is
+# written here and not read from ci_predict.py, which is INERT (closure.py), so
+# reading it would make every edit of that instrument select this script.
+_SR = Path("dev/governance/roles")
+_SR_TEXT = lambda n: (_SR / n).read_text() if (_SR / n).is_file() else ""  # noqa: E731
+_SR_STANDING = _SR_TEXT("standing.md")
+_SR_FAIL = (
+    [f"a:{n}" for n in ("standing-merge.md", "standing-dispatch.md", "standing-tick.md",
+                        "standing-roster.md", "proposal-triage.md")
+     if "`standing.md`" not in _SR_TEXT(n)]
+    + [f"b:{t}" for t in ("## Wait", "## Reads", "## Autofix hold", "## Recycle", "## Alive files",
+                          "$HPO_STATE_DIR/alive/", "bus.sh orphans",
+                          "mutation-autofix", "closures-autofix", "claims-autofix")
+       if t not in _SR_STANDING]
+    + [f"c:fixer.md:{t}" for t in ("BOOTSTRAP", "0013") if t not in _SR_TEXT("fixer.md")]
+)
+R.check(
+    "the standing seats' shared terms are written once in standing.md, cited by "
+    "each standing contract, and fixer.md carries the BOOTSTRAP remedy and "
+    "decision 0013",
+    _SR_FAIL == [],
+    f"missing: {_SR_FAIL}",
 )
 
 

@@ -152,6 +152,18 @@ from .const import (
     CONF_RADIATOR_POWER_FRACTION,
     CONF_UPPER_FLOOR_AREA_RATIO,
     CONF_BUFFER_TANK_VOLUME,
+    COMBI_TANK_CUSTOM,
+    COMBI_TANK_PRESETS,
+    CONF_COMBI_DHW_EFFECTIVENESS,
+    CONF_COMBI_POTABLE_VOLUME_L,
+    CONF_DHW_COMBI_LEGIONELLA_FORCE,
+    CONF_DHW_COMBI_TANK_ENABLED,
+    CONF_DHW_COMBI_TANK_TYPE,
+    DEFAULT_COMBI_DHW_EFFECTIVENESS,
+    DEFAULT_COMBI_POTABLE_VOLUME_L,
+    DEFAULT_DHW_COMBI_LEGIONELLA_FORCE,
+    DEFAULT_DHW_COMBI_TANK_ENABLED,
+    DEFAULT_DHW_COMBI_TANK_TYPE,
     CONF_WINDOW_AREA,
     POSITIVE_PARAM_FLOOR,
     CONF_SOLAR_ORIENTATION_FACTOR,
@@ -202,7 +214,11 @@ from .const import (
     CONF_FLOW_HEAT_C,
     DEFAULT_FLOW_HEAT_C,
     CONF_FLOW_MIN_LIFT_K,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     DEFAULT_FLOW_MIN_LIFT_K,
+    DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_WIND_SENSITIVITY,
     CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     CONF_OPTIMIZATION_INTERVAL,
@@ -595,6 +611,21 @@ def _money(
     to that currency (#1657): 5 SEK/kWh left a 20 HUF/kWh fee unenterable."""
     currency = resolve_currency(hass)
     return _number(0, maximum * money_scale(currency), step, f"{currency}{per}")
+
+
+def _combi_preset_fill(cleaned: dict[str, Any], stored: Mapping[str, Any]) -> dict[str, Any]:
+    """A combi type chosen in this save writes its preset's two numbers (#3225).
+
+    Only a CHANGED type pre-fills, so numbers edited under a kept type stand,
+    and "custom" pre-fills nothing: the type is the flow's shortcut to the
+    two numbers the model reads, never a branch below it.
+    """
+    kind = cleaned.get(CONF_DHW_COMBI_TANK_TYPE)
+    preset = COMBI_TANK_PRESETS.get(kind) if isinstance(kind, str) else None
+    if preset is not None and kind != stored.get(CONF_DHW_COMBI_TANK_TYPE, DEFAULT_DHW_COMBI_TANK_TYPE):
+        cleaned[CONF_COMBI_DHW_EFFECTIVENESS] = preset.effectiveness
+        cleaned[CONF_COMBI_POTABLE_VOLUME_L] = preset.potable_volume_l
+    return cleaned
 
 
 def _number(
@@ -1666,6 +1697,13 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
     # ceiling at the gate would write "off" on every heating step.
     _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, 70, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
+    # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
+    # on by default, and it acts only where a power meter is configured too.
+    _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),
+    # The controller's own limits on that set-point, where it publishes them
+    # (a Smart Home Interface's inputs 10104 and 10103): the loop stays inside them.
+    _F("entities", CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
@@ -1775,6 +1813,11 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_FLOW_CURVE_COP_ENABLED, DEFAULT_FLOW_CURVE_COP_ENABLED, selector.BooleanSelector(), group="valve"),
     _F("building", CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME, _number(10, 1500, 5, 'L'), group="buffer"),
     _F("building", CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP, _number(40, 90, 1, '°C', slider=True), group="buffer"),
+    _F("building", CONF_DHW_COMBI_TANK_ENABLED, DEFAULT_DHW_COMBI_TANK_ENABLED, selector.BooleanSelector(), group="combi"),
+    _F("building", CONF_DHW_COMBI_TANK_TYPE, DEFAULT_DHW_COMBI_TANK_TYPE, _select([*COMBI_TANK_PRESETS, COMBI_TANK_CUSTOM], 'dhw_combi_tank_type'), group="combi"),
+    _F("building", CONF_COMBI_DHW_EFFECTIVENESS, DEFAULT_COMBI_DHW_EFFECTIVENESS, _number(0.1, 1.0, 0.01), group="combi"),
+    _F("building", CONF_COMBI_POTABLE_VOLUME_L, DEFAULT_COMBI_POTABLE_VOLUME_L, _number(0, 500, 1, 'L'), group="combi"),
+    _F("building", CONF_DHW_COMBI_LEGIONELLA_FORCE, DEFAULT_DHW_COMBI_LEGIONELLA_FORCE, selector.BooleanSelector(), group="combi"),
     _F("building", CONF_WOOD_FURNACE_ENABLED, _Computed(lambda cur, hass: wood_furnace_on(cur)), bool, group="wood"),
     _F("building", CONF_VALVE_OUTLET_TEMP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_TANK_TOP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
@@ -2379,12 +2422,15 @@ def _omit_unstored_computed(
 #: The DHW pair is presence-inferred (either key switches hot-water planning
 #: on); the wood trio and the wood-valve probe publish ``None`` while absent;
 #: the Tibber token could not be shown equivalent, and the initial flow
-#: always stores it. ``tests/config_flow_steps.py`` derives this whole set
-#: and fails when it moves.
+#: always stores it; the two set-point limit sensors are read only inside a
+#: running feedback loop, which no refresh of an idle install reaches, so
+#: their absence is not shown equivalent either. ``tests/config_flow_steps.py``
+#: derives this whole set and fails when it moves.
 _ABSENT_IS_NOT_DEFAULT: Final = frozenset({
     CONF_DHW_WINDOWS, CONF_DHW_TANK_VOLUME,
     CONF_WOOD_TYPE, CONF_WOOD_PACKING, CONF_WOOD_FURNACE_EFFICIENCY,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY, CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_TIBBER_TOKEN,
 })
 
@@ -3422,9 +3468,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         labels = {step: self._MENU_LABELS[step] for step in self._ADVANCED_MENU}
         return self.async_show_menu(
             step_id="advanced",
-            menu_options=await _translated_menu(
-                self.hass, "options", "advanced", labels
-            ),
+            menu_options=await _translated_menu(self.hass, "options", "advanced", labels),
         )
 
     async def async_step_setup_overview(
@@ -3708,7 +3752,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             user_input,
             clear=True,
             check=self._plumbing_errors,
-            finish=self._building_wood_flag,
+            finish=self._building_finish,
         )
 
     async def _plumbing_errors(
@@ -3717,9 +3761,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """The write-target kind (#398) and the flow-curve lift (#1067), validated."""
         errors: dict[str, str] = {}
         merged = {**current, **submit}
+        params = ThermalParameters.from_config(merged)
         if (
             submit.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND) == mixing_valve.WRITE_TARGET_FLOW
-            and not ThermalParameters.from_config(merged).two_zone_enabled
+            and not params.two_zone_enabled
         ):
             errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
         elif submit.get(CONF_FLOW_CURVE_COP_ENABLED) and mixing_valve.is_throttling(
@@ -3729,7 +3774,14 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             # the priced flow; the model refuses the curve lift there too, so
             # saving it would be a switch that does nothing.
             errors[CONF_FLOW_CURVE_COP_ENABLED] = "flow_curve_needs_direct_plant"
+        if merged.get(CONF_DHW_COMBI_TANK_ENABLED) and not params.combi_tank_active:
+            # #3225: judged by the model's own predicate, never a copy of it.
+            errors[CONF_DHW_COMBI_TANK_ENABLED] = "combi_needs_store"
         return errors
+
+    def _building_finish(self, cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
+        """The wood flag, then the combi type's pre-fill of its two numbers."""
+        return _combi_preset_fill(self._building_wood_flag(cleaned, merged), self._current)
 
     @staticmethod
     def _building_wood_flag(cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
@@ -3780,10 +3832,6 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     ) -> ConfigFlowResult:
         """Heat-curve offset control: ECL110 over MQTT, or a number entity."""
         return await self._page("heat_curve", user_input, clear=True, check=partial(_heat_curve_errors, self.hass))
-
-    # ------------------------------------------------------------------
-    # Option pages added in v2.8.0
-    # ------------------------------------------------------------------
 
     async def async_step_building_preset(
         self, user_input: dict[str, Any] | None = None
@@ -3846,15 +3894,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def _silent_window_errors(
         self, submit: dict[str, Any], _current: dict[str, Any]
     ) -> dict[str, str]:
-        errors: dict[str, str] = {}
         problem = dhw_spec_problem(submit[CONF_SILENT_MODE_WINDOWS])
-        if problem is not None:
-            errors[CONF_SILENT_MODE_WINDOWS] = (
-                "silent_mode_window_too_short"
-                if problem == DHW_ERROR_TOO_SHORT
-                else problem
-            )
-        return errors
+        if problem == DHW_ERROR_TOO_SHORT:
+            problem = "silent_mode_window_too_short"
+        return {} if problem is None else {CONF_SILENT_MODE_WINDOWS: problem}
 
     async def async_step_grid_fees(
         self, user_input: dict[str, Any] | None = None
