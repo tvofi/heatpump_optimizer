@@ -582,7 +582,7 @@ New S group (no carry_receivable group lists mutant_run.py). |  |
 | R10-CODEQL-PR-PATHS | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch184.md#P606 at 484fa0d3b3
 
 Orchestrator ruling under mandate 6715477401 (scope all), recorded in P606. |  |
-| R10-OUTSIDE-SUPPLY-STALE-STEP | CORE | 1 | in-progress | #3457 | sonnet/opus | - | Outside pull request 3457 by Bankaifan (fork head 875e3e0f32 at acceptance; re-read it with git ls-remote origin refs/pull/3457/head), accepted into round 10... |  |
+| R10-OUTSIDE-SUPPLY-STALE-STEP | CORE | 1 | carries-open | #3457 | sonnet/opus | - | Outside pull request 3457 by Bankaifan (fork head 875e3e0f32 at acceptance; re-read it with git ls-remote origin refs/pull/3457/head), accepted into round 10... |  |
 | R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE | CORE | 2 | not-started | #3456 | opus/opus | - | Outside pull request 3456 by Bankaifan (fork head 659ca850e7 at acceptance; re-read it with git ls-remote origin refs/pull/3456/head), accepted into round 10... |  |
 | R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 | CORE | 1 | not-started | #3435 | opus/opus | - | Part 2 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
 | R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 | CORE | 2 | not-started | #3435 | sonnet/opus | - | Part 3 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |

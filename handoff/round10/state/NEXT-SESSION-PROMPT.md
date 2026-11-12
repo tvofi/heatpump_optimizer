@@ -44,7 +44,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TICK-RESIDUE-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-RELAY-ARM-ORDER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-MUTANT-RUN-FORKCAP (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-OUTSIDE-SUPPLY-STALE-STEP (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-SUPPLY-STALE-STEP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-REPLAY-CLASS-CUT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-GATE-REDISPATCH-LOOP (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-INTRODUCED-REDS-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
