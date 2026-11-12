@@ -1,9 +1,0 @@
-SURVIVED tools/audit/seat/mutant_run.py:656 CONST_SWAP  prev = _subreaper(2)
-SURVIVED tools/audit/seat/mutant_run.py:671 CONST_SWAP  for _ in range(51):
-SURVIVED tools/audit/seat/mutant_run.py:674 CALL_DEL  pass
-SURVIVED tools/audit/seat/mutant_run.py:674 CONST_SWAP  time.sleep(0.2)
-SURVIVED tools/audit/seat/mutant_run.py:675 RETURN_DEL  pass
-SURVIVED tools/audit/seat/mutant_run.py:675 CONST_SWAP  return True
-SURVIVED tools/audit/seat/mutant_run.py:724 GUARD_OFF  if False:
-SURVIVED tools/audit/seat/mutant_run.py:725 CALL_DEL  pass
-SERIAL-DONE rc=0

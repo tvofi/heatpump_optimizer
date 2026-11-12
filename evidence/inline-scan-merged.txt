@@ -1,0 +1,2 @@
+## inline_scan on the merge-tree result 1e816fa40a (origin/main 3254c38b14 + b49a16c2f7a11194e9eb2662d3e992c864c6fb7d)
+rc=0

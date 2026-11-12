@@ -1,0 +1,39 @@
+## git diff --stat 3dccd18a95617b752a1be6fce24f5dc7df3bd57f b49a16c2f7a11194e9eb2662d3e992c864c6fb7d
+ dev/audit/harnesses/mutant_run_diff_shards.py | 15 ++++++++++++++-
+ 1 file changed, 14 insertions(+), 1 deletion(-)
+## name-status
+M	dev/audit/harnesses/mutant_run_diff_shards.py
+## commits A..B
+b49a16c2f7a11194e9eb2662d3e992c864c6fb7d 3dccd18a95617b752a1be6fce24f5dc7df3bd57f harness: mutant_run_diff_shards.py finds the checkout with the canonical repo_root walk, not a depth root
+## mutant_run.py blobs
+28b998c4d22cb909d953e0fbd6b8c4ed82bc082c
+28b998c4d22cb909d953e0fbd6b8c4ed82bc082c
+IDENTICAL
+IDENTICAL-d823c55e4d
+## full diff
+diff --git a/dev/audit/harnesses/mutant_run_diff_shards.py b/dev/audit/harnesses/mutant_run_diff_shards.py
+index cd161abcd0..c55fe695c4 100644
+--- a/dev/audit/harnesses/mutant_run_diff_shards.py
++++ b/dev/audit/harnesses/mutant_run_diff_shards.py
+@@ -26,7 +26,20 @@ import shlex
+ import sys
+ from pathlib import Path
+ 
+-ROOT = Path(__file__).resolve().parents[3]
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(__file__)
+ sys.dont_write_bytecode = True
+ sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
+ import mutant_run as m  # noqa: E402 -- the driver under measurement

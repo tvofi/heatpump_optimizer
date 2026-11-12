@@ -1,0 +1,128 @@
+tools/audit/seat/mutant_run.py:147 CONST_SWAP  names = os.listdir(PROCFS[1])
+tools/audit/seat/mutant_run.py:149 CONST_SWAP  ps = subprocess.Popen(["ps", "-axo", "pid=,stat=,ppid=,pgid="], stdout=subprocess.PIPE, text=False)
+tools/audit/seat/mutant_run.py:150 CONST_SWAP  listing = ps.communicate()[1]
+tools/audit/seat/mutant_run.py:151 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:156 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:162 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:162 CONST_SWAP  rows.append((int(pid), state[:2], int(ppid), int(pgrp), session))
+tools/audit/seat/mutant_run.py:165 RETURN_DEL  pass
+tools/audit/seat/mutant_run.py:168 CONST_SWAP  stat = (PROCFS[1] / d / "stat").read_text()
+tools/audit/seat/mutant_run.py:169 CONST_SWAP  state, ppid, pgrp, session = stat[stat.rindex(")") + 3:].split()[:4]
+tools/audit/seat/mutant_run.py:170 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:173 RETURN_DEL  pass
+tools/audit/seat/mutant_run.py:180 CONST_SWAP  env = (PROCFS[1] / str(pid) / "environ").read_bytes()
+tools/audit/seat/mutant_run.py:183 RETURN_DEL  pass
+tools/audit/seat/mutant_run.py:194 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:196 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:197 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:198 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:213 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:656 CONST_SWAP  prev = _subreaper(2)
+tools/audit/seat/mutant_run.py:657 RETURN_DEL  pass
+tools/audit/seat/mutant_run.py:657 CMP_BOUND  return prev > 0 and _subreaper(prev) >= 0
+tools/audit/seat/mutant_run.py:657 CONST_SWAP  return prev >= 1 and _subreaper(prev) >= 0
+tools/audit/seat/mutant_run.py:671 CONST_SWAP  for _ in range(51):
+tools/audit/seat/mutant_run.py:672 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:672 CONST_SWAP  if any(row[1] == pid and row[1] == "Z" for row in _ptable()):
+tools/audit/seat/mutant_run.py:673 RETURN_DEL  pass
+tools/audit/seat/mutant_run.py:673 CONST_SWAP  return False
+tools/audit/seat/mutant_run.py:674 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:674 CONST_SWAP  time.sleep(0.2)
+tools/audit/seat/mutant_run.py:675 RETURN_DEL  pass
+tools/audit/seat/mutant_run.py:675 CONST_SWAP  return True
+tools/audit/seat/mutant_run.py:696 CONST_SWAP  self.saved, PROCFS[1] = PROCFS[0], self.root
+tools/audit/seat/mutant_run.py:699 CONST_SWAP  PROCFS[1] = self.saved
+tools/audit/seat/mutant_run.py:707 CONST_SWAP  (root / str(pid)).mkdir(parents=False)
+tools/audit/seat/mutant_run.py:709 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:724 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:725 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:727 CONST_SWAP  lone = subprocess.Popen(["sleep", "30"], start_new_session=False)
+tools/audit/seat/mutant_run.py:734 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:736 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:740 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:748 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:750 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:771 CONST_SWAP  dead.pid not in {row[1] for row in _ptable()})
+tools/audit/seat/mutant_run.py:777 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:778 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:784 CONST_SWAP  fails = checks = skips = 1
+tools/audit/seat/mutant_run.py:794 CONST_SWAP  skips += 2
+tools/audit/seat/mutant_run.py:798 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:820 CONST_SWAP  stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=False, cwd=str(repo),
+tools/audit/seat/mutant_run.py:965 CONST_SWAP  rc == 1 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
+tools/audit/seat/mutant_run.py:968 CONST_SWAP  rc == 1 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"])
+tools/audit/seat/mutant_run.py:1009 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:1012 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:1013 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:1027 GUARD_OFF  if False:
+tools/audit/seat/mutant_run.py:1028 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:1030 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:1033 CONST_SWAP  left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=False, text=True).stdout.split()
+tools/audit/seat/mutant_run.py:1034 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:1034 CONST_SWAP  check(name, rc == 1 and not left)
+tools/audit/seat/mutant_run.py:1036 CALL_DEL  pass
+tools/audit/seat/mutant_run.py:1070 CONST_SWAP  skips == (1 if _can_subreap() else 4) + (0 if Path("/proc", "self", "stat").is_file() else 1))
+tools/audit/seat/mutant_run.py:103 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:145 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:147 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:149 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:150 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:152 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:155 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:159 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:161 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:168 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:169 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:180 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:182 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:211 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:656 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:693 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:696 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:699 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:707 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:708 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:710 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:716 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:717 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:718 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:719 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:723 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:727 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:728 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:729 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:730 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:732 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:735 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:738 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:739 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:741 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:743 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:745 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:747 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:749 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:751 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:752 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:755 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:756 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:758 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:760 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:761 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:763 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:765 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:767 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:770 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:772 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:794 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:819 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:961 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:962 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:963 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:964 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:966 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:967 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:1010 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:1026 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:1031 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:1033 STMT_DEL  pass
+tools/audit/seat/mutant_run.py:1069 STMT_DEL  pass
