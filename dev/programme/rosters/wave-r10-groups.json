@@ -24960,7 +24960,7 @@
    "architect_note": "",
    "brief": "The self-test of tools/audit/seat/tick_loop.sh runs its TICK-GH rows (lines near 205-215) before it points HPO_TICK_CODE_DIR at its scratch (line near 218), so those rows read the callers real checkout. On a branch checkout behind origin/main on the watched paths one extra TICK-STALE line fails the row grep -c ^TICK- = 2, and ci predict then refuses the handoff of an unrelated group (R10-PROCESS-SLIM part 2, PR 3451). On a detached checkout behind main the restart arm moves the callers HEAD to origin/main. Fix: no self-test row may read or move the callers checkout; failing test first for both shapes (branch checkout behind, detached checkout behind) with a HEAD-unmoved assertion; null control: behind=0 passes before and after. Evidence and controls are in BLOCKED.md at handoff-wip/r10-process-slim-p2 sha 1b45b89b9abfb4313cf661cf4c6712b5a51a86fa. Closure test (owner ruling 2026-11-12): it enters round 10 because every fixer handoff from a branch checkout behind main hits it.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
