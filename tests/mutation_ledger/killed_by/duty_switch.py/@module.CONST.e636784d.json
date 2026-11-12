@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:<module> CONST e636784d",
+  "killed_by": "tests/features.py",
+  "old": "SPAN_FLOOR_N = 0.5",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`SPAN_FLOOR_N = 1.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
