@@ -353,9 +353,12 @@ def space_boost_active(coord: Any, now: datetime | None = None) -> bool:
     (``space_learning_frozen``) additionally covers the plant-state
     divergence the overlay leaves behind.
     """
-    if getattr(coord, "mode", None) == MODE_BOOST:
-        return True
-    return held_for(coord).active(CHANNEL_SPACE, now or dt_util.now())
+    return _mode_live(coord) or held_for(coord).active(CHANNEL_SPACE, now or dt_util.now())
+
+
+def _mode_live(coord: Any) -> bool:
+    """Is the global boost mode selected?"""
+    return getattr(coord, "mode", None) == MODE_BOOST
 
 
 def space_learning_frozen(coord: Any, now: datetime | None = None) -> bool:
@@ -394,7 +397,7 @@ def learning_freeze(coord: Any, raw: str | None) -> tuple[str, datetime | None] 
     """
     if raw is None:
         return None
-    if raw != FREEZE_REASON or getattr(coord, "mode", None) == MODE_BOOST:
+    if raw != FREEZE_REASON or _mode_live(coord):
         return raw, None
     return raw, held_for(coord).freeze_end()
 
