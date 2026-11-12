@@ -1,0 +1,5 @@
+  ok   stale verdict: the dispatch time decides, not the registry's line order (a merge dispatch recorded after the blocked one but timed before it is refused)
+  ok   stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)
+  ok   stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict
+merge_train self-test: 614 checks, 0 failed
+rc=0
