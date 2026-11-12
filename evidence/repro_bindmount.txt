@@ -1,0 +1,38 @@
+== 8c10361eb1fea539dc5acb8f7442eac2810faa47
+devnull bytes: 10
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+    import sys; sys.path.insert(0,"tests"); import throwaway_git as t; t.throwaway_git_init(sys.argv[1], "-q")
+                                                                       ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/tmp/claude-0/wt-8c10361eb1fea539dc5acb8f7442eac2810faa47/tests/throwaway_git.py", line 145, in throwaway_git_init
+    subprocess.run([*git, "init", *init_args], cwd=path, env=env, check=True, capture_output=True)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['git', 'init', '-q']' returned non-zero exit status 128.
+py rc=1
+sh rc=0
+config --list rc=0
+fatal: bad config line 1 in file /dev/null
+config --global --get rc=128 (1 = key absent)
+fatal: bad config line 1 in file /dev/null
+commit rc=128
+residue: 0
+== HEAD
+devnull bytes: 10
+py rc=0
+sh rc=0
+config --list rc=0
+config --global --get rc=1 (1 = key absent)
+commit rc=0
+residue: 0
+== wt-8c10361eb1fea539dc5acb8f7442eac2810faa47
+fatal: bad config line 1 in file /dev/null
+sh exit 128
+sh init rc 0
+0
+== wt-HEAD
+sh exit 0
+sh init rc 0
+0
