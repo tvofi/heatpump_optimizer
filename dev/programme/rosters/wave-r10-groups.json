@@ -23962,9 +23962,9 @@
     "CI-RATCHET-ADVISORY-ON-PUSH (triage: dev/programme/triage/s6-batch218.md#P666 at bb3a0e5b92), owner ruling (tvofi 2026-11-11, verbatim \"I agree with all the recommendations.\", study review Q1). BUILD-ON-NEXT-RED: build this as a hotfix the next time `tests / ci-ratchet` reddens the gate on a push to main; otherwise it is round 11's. Line numbers at 61afd4f2db: tools/ci/gate.py:68 lists ci-ratchet in PUSH_ONLY, so its failure reddens the push gate (:88). Repair: on push, ci-ratchet is reported advisory (its result printed, never a gate failure); on pull requests it stays as today. Self-test: a push fixture whose only failed job is ci-ratchet reads gate green with an advisory line. Null control: the same failure on a pull-request event still fails, and a push with coverage-ratchet red still fails. Mutation proof: restoring ci-ratchet to the push set turns the first arm red."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "8124343607cea8683983bf5e1005e4b27f55d502",
     "last_step": null,
     "next_step": "fixer (hotfix, size M, no design step)",
     "note": "triage s14 batch 196 P620; overlap admitted (R10-GATE-DEFER-BARRIER): triage s14 batch 196 P620 ACCEPT hotfix: CI gate livelock, cancelled run as gate source and sweep re-dispatch after a gate re-run",
