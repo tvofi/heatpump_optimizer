@@ -4473,7 +4473,9 @@ def check_stateless() -> None:
                   "The term silently evaluated to zero for many installs.",
                   "Before this was shared, the simulation charged the buffer.",
                   "Some labels read SEK, which is the historical default.",
-                  "The fit degrades to the historical two-column form."):
+                  "The fit degrades to the historical two-column form.",
+                  # R10-UX-HEALTH part 3's phrase, refused in strings.json by tests/entities.py; here on the docs.
+                  "| Heat pump operating mode | none | Read only, exactly as before. |"):
         got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
         R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
     R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "
