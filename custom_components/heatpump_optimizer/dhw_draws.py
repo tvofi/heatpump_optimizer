@@ -54,10 +54,16 @@ class DrawStats:
     _open_label: str = ""
     _open_date: str = ""
     _open_kwh: float = 0.0
+    #: The part of ``_open_kwh`` folded from charge-affected ticks, which
+    #: ``take_back`` may still remove. Not persisted: after a restart the
+    #: open occurrence keeps all it folded, as before take_back existed.
+    _open_charge_kwh: float = 0.0
 
     # -- accumulation -------------------------------------------------------
 
-    def fold(self, when: datetime, window_label: str, energy_kwh: float) -> None:
+    def fold(
+        self, when: datetime, window_label: str, energy_kwh: float, *, charge: bool = False
+    ) -> None:
         """Fold one learning tick's beyond-standby draw energy in.
 
         ``window_label`` is the demand window "now" falls in, or "" when
@@ -71,8 +77,25 @@ class DrawStats:
             self._open_label = window_label
             self._open_date = date_key
             self._open_kwh = 0.0
+            self._open_charge_kwh = 0.0
         if window_label:
-            self._open_kwh += max(0.0, float(energy_kwh))
+            energy = max(0.0, float(energy_kwh))
+            self._open_kwh += energy
+            if charge:
+                self._open_charge_kwh += energy
+
+    def take_back(self, energy_kwh: float) -> float:
+        """Remove up to ``energy_kwh`` of the open occurrence's charge-folded energy.
+
+        The open occurrence is the last one folded into, closed only by the
+        next fold that changes its window or date, so a recovery seen in the
+        tick that crosses a window boundary still reaches the dip it undoes.
+        Returns what it took.
+        """
+        taken = min(max(0.0, energy_kwh), self._open_charge_kwh)
+        self._open_charge_kwh -= taken
+        self._open_kwh -= taken
+        return taken
 
     def _close(self) -> None:
         if not self._open_label:
