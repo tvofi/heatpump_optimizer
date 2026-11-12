@@ -61388,7 +61388,7 @@ R.check(
 def _p8_setpoint(state):
     hass = _FakeHass({"number.dhw_sp": state})
     hass.issues = []
-    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, legionella_cycle_active=False, dhw_legionella_temp=60.0)
+    params = _r9f12_tp(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
     _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
     return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
 
@@ -62443,7 +62443,8 @@ class _PaCoord:
         self._thermal_model = _PaNS(
             params=_PaNS(min_electrical_power=0.4), curve_flow_temp=lambda _o: 34.2
         )
-        self._thermal_params = _PaNS(dhw_setpoint=48.0)
+        # No disinfection cycle: the arbiter reads the cycle's temperature only on a cycle step.
+        self._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_cycle_temp=None)
         self._current_state = _PaNS(outdoor_temperature=2.0)
         # One store key per coordinator: the storage stub outlives FakeHass.
         # A FakeEntry, weak-referenceable as a real entry is: off_restore
@@ -63305,8 +63306,8 @@ R.check(
     f"{_pa_heat_own.writes()} {_pa_heat_sig.mode_owned=}",
 )
 _pa_mbs = _PaCoord(_PA_MODBUS, duties="s")
-_pa_mbs._thermal_params = _PaNS(
-    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, legionella_cycle_active=True, dhw_legionella_temp=60.0
+_pa_mbs._thermal_params = _r9f12_tp(
+    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
 )
 _pa_settled(_pa_mbs, 1)
 _p8_sp.evaluate(_pa_mbs, lambda pump: _pa.dhw_gated(_pa_mbs, pump))
@@ -64017,7 +64018,7 @@ R.check(
     f"{_pa_ingate.writes()}",
 )
 
-# dhw_gated: only the arbiter's own gate, still reading as written, is excused.
+# dhw_gated: only the arbiter's own write, still reading as written, is excused.
 _pa_gate = _PaCoord(_PA_MODBUS, duties="s")
 _pa_run(_pa_gate, 1)
 _pa_full = _PaCoord(_PA_TUYA, duties="d")
@@ -64028,8 +64029,8 @@ R.check(
     f"{_pa.state_for(_pa_gate).written=}",
 )
 R.check(
-    "a written set-point at the configured value is no gate, so it excuses nothing",
-    not _pa.dhw_gated(_pa_full, 48.0),
+    "a written set-point at the configured value is the arbiter's too: it writes the cycle itself, so it is excused",
+    _pa.dhw_gated(_pa_full, 48.0) and not _pa.dhw_gated(_pa_full, 46.0),
     f"{_pa.state_for(_pa_full).written=}",
 )
 
@@ -77320,8 +77321,8 @@ _df_space_hass = _df_strict_hass({"number.space": FakeState("unavailable")})
 _df_sc.evaluate(_DfNS(
     hass=_df_space_hass,
     effective_config={"space_setpoint_entity": "number.space"},
-    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False, legionella_cycle_active=False,
-                         dhw_legionella_temp=60.0),
+    thermal_params=_r9f12_tp(dhw_min_temp=45.0, dhw_legionella_enabled=False,
+                             dhw_legionella_temp=60.0),
 ))
 R.check(
     "a set-point slot with no entity id reads nothing, before any state lookup, "

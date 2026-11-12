@@ -75,9 +75,9 @@ def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
     Stateless and idempotent: no coordinator attribute. A second call with
     the same inputs leaves ``hass.issues`` at one entry per issue id.
     Never raises into the caller — a balky entity must not break a solve.
-    ``gated`` is the pump-duty arbiter's own hot-water gate (wired by the
-    coordinator, which owns both sides of the seam, #1739): a reading that
-    is the arbiter's own write is a step decision, not a mis-set point.
+    ``gated`` is whether a reading is the pump-duty arbiter's own hot-water
+    write (wired by the coordinator, which owns both sides of the seam,
+    #1739): that is a step decision, not a mis-set point.
     """
     try:
         _evaluate(coord, gated)
@@ -115,10 +115,9 @@ def _quiet(hass: Any, config: dict[str, Any]) -> None:
 
 
 def _dhw_floor(params: Any) -> float:
+    disinfection = params.dhw_disinfection_temp
     floor = float(params.dhw_min_temp)
-    if params.legionella_cycle_active:
-        floor = max(floor, float(params.dhw_legionella_temp))
-    return floor
+    return floor if disinfection is None else max(floor, float(disinfection))
 
 
 def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> None:
@@ -126,8 +125,9 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
     entity_id = EntryConfig.from_mapping(config).dhw_setpoint_entity or ""
     pump, unit = setpoint_and_unit(hass, entity_id) or (None, None)
     floor = _dhw_floor(params)
-    # The pump-duty arbiter's own space-only gate is a step decision, not
-    # a set-point below the disinfection floor (``pump_arbiter.dhw_gated``).
+    # A reading that is the pump-duty arbiter's own write is a step decision,
+    # not a set-point below the disinfection floor: the arbiter writes the
+    # cycle's temperature itself on a cycle step (``pump_arbiter.dhw_gated``).
     active = (
         bool(entity_id)
         and pump is not None

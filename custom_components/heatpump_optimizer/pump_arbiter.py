@@ -184,7 +184,7 @@ from .inputs import (
     InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, write_setpoint_c,
 )
 from .log_latch import log_held
-from .payload import CurrentAction
+from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
@@ -1168,11 +1168,33 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
     return _inside_silent(spec, cfg.quiet_off_windows, now)
 
 
+def _dhw_write(inp: ArbiterInputs) -> float | None:
+    """The hot-water set-point this step holds, °C on the entity's step.
+
+    A cycle runs while the plan's step books hot water for it (``dhw_reason``
+    legionella) or the integration holds the pump's disinfection switch on;
+    its temperature is the thermal parameters' (``dhw_cycle_temp``, the higher
+    of the everyday set-point and the disinfection temperature), on the
+    entity's step at or below the tank's hard maximum (``dhw_hard_max_temp``,
+    that temperature capped at 70 °C), which no write exceeds: an off-step
+    target is held a step below it (everyday 57, disinfection 50, step 5:
+    55, not 60). Holding the everyday set-point through a cycle
+    stopped the pump's own thermostat short of the cycle's target (2026-11-01:
+    60 °C planned, 55 °C written back within a minute).
+    """
+    everyday = float(inp.params.dhw_setpoint)
+    booked = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA
+    cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None
+    if cycle is None:
+        return _bounded(inp, "dhw_setpoint", everyday)
+    return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)
+
+
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = inp.plan
     mode_state = _slot_state(inp, "mode")
-    dhw = _bounded(inp, "dhw_setpoint", float(inp.params.dhw_setpoint))
+    dhw = _dhw_write(inp)
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         # Cooling is the user's season, not a duty the plan chose: hands off,
         # the silent switch included.
@@ -1206,12 +1228,15 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
 
 
 def dhw_gated(coord: Any, reading: float | None) -> bool:
-    """Whether ``reading`` is the arbiter's own hot-water gate, below configured."""
+    """Whether ``reading`` is the arbiter's own hot-water write, still as written.
+
+    Its gate and its everyday set-point alike: the arbiter writes a cycle's
+    temperature itself on a cycle step (``_dhw_write``), so its own write is
+    a step decision, never the pump's set-point below the disinfection floor.
+    A record exists only while the arbiter controls the pump (``_forget``).
+    """
     written = state_for(coord).written.get("dhw_setpoint")
-    if reading is None or written is None or _differs("dhw_setpoint", reading, written[0]):
-        return False
-    configured = float(coord.arbiter_inputs().params.dhw_setpoint)
-    return bool(written[0] < configured - SETPOINT_TOLERANCE)
+    return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0]))
 
 
 def _planned_duty(coord: Any, inp: ArbiterInputs, now: datetime) -> str | None:
