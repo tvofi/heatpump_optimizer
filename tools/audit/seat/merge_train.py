@@ -1517,7 +1517,7 @@ QUIET_CHATTER = (
     (r"#\d+ recarry: ", "#12 recarry: main merged, head abcd1234; pushed"),
     (r"#\d+ overlap: recarry start", "#12 overlap: recarry start"),
     (r"#\d+ \w+ platform gate=green", "#12 abcd1234 platform gate=green: all rollups green"),
-    (r"(released|deleted) ", "released /tmp/wt-12"),
+    (r"(released|deleted) ", "released worktree wt-12"),
     (r"grade \S+ \S+: ok", "grade batch-1 abcd1234: ok (41s)"),
 )
 QUIET_CHATTER_RE = re.compile("|".join(f"(?:{p})" for p, _ in QUIET_CHATTER))
@@ -9338,7 +9338,7 @@ def _post_approval_self_test(check) -> None:
         shown.clear()
         quiet_log(Path(qd) / "f5.log", out=shown.append)(skips[0])
         check("quiet log: a SKIP line reaches stdout in the shape merge_throughput's TRAIN_SKIP_RE parses",
-              any(re.match(r"^SKIP #(\d+) ([a-z-]+): (.*)$", x) for x in shown))
+              shown[1:] == [skips[0]] and skips[0].startswith("SKIP #12 admission: "))
         # the entry point wires it: a seeded stop exits the same in quiet and verbose, quiet keeps its key lines
         qf = Path(qd) / "q.json"
         qf.write_text("[]")
