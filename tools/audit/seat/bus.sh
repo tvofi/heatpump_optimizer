@@ -232,7 +232,8 @@ carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and r
   b=$(mktemp) || return 0
   # one call reads the head ref (its topic is the pull request's own group: the own-carry status
   # exemption needs it) and the body; a reader that returns the body alone yields no topic
-  if ! raw=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '"HEADREF:" + .head.ref + "\n" + (.body // "")' 2>/dev/null; echo x); then
+  # `&& echo x` keeps gh's own status (`; echo x` would replace it) and the body's trailing newlines
+  if ! raw=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '"HEADREF:" + .head.ref + "\n" + (.body // "")' 2>/dev/null && echo x); then
     echo "BUS carry-landing UNREAD #$1: the body could not be read; the dispatch goes on" >&2; rm -f "$b"; return 0
   fi
   raw=${raw%x}
@@ -2122,6 +2123,9 @@ B
   out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L4 2>&1); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q '^CARRY-MISSING R10-LIVE'
   expect "null control: the same line under another group's head ref is still refused" $?
+  out=$(BUS_GH=false run dispatch 7 "$h1" cmsg_L5 2>&1); rc=$?
+  echo "$out" | grep -q 'BUS carry-landing UNREAD #7: the body could not be read'
+  expect "an unreadable body is still reported by carry_landed, and the dispatch goes on (CARRY-LANDED-UNREAD)" $?
   printf '## Summary\nround four, repaired\n' > "$W/body31"
   git -C "$W/seat" push -q -f origin "$m0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
   # P102: a second watcher over the same state directory refuses, naming the holder; a dead
