@@ -2189,6 +2189,9 @@ def _self_test() -> int:
           not bad and not badn and len(pos) == 104 and len(neg) == 8)
     check("carry 3 corpus P1: a marker between two code spans each holding a quote still routes (R10-LIVE: 0 unrouted)",
           ev('x `a="` then Carry: R10-LIVE then `b="`')["u"] == 0 and len(ev('x `a="` then Carry: R10-LIVE then `b="`')["rows"]) == 1)
+    wide = "x `" + "c" * 38 + '` Carry: R10-LIVE and "' + "w" * 38 + '"'  # a quote span that offsets shifted by the code span would cover the marker
+    check("carry 0: blanking a code span keeps its length, so a later quoted phrase never reaches back over the marker",
+          ev(wide)["u"] == 0 and len(ev(wide)["rows"]) == 1)
     check("carry 3 corpus P2: a link-form destination is a marker and resolves to its text",
           marker_shaped("Carry: [#100](https://x)") and seg_dests("Carry: [#100](https://x)") == ["#100"]
           and ev("x. Carry: [#100](https://x)")["u"] == 0 and ev("x. Carry: [R10-NO-SUCH](https://x)")["b"] == 1)
