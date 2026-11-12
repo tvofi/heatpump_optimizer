@@ -18,11 +18,8 @@
   ok   null control: a pass once the interval has passed sweeps again
   ok   null control: without --sweep no sweep runs (the default loop adds nothing and starts no train)
   ok   a refused sweep is reported with its rc and the pass still completes
-fatal: ambiguous argument 'heartbeat/orchestrator': unknown revision or path not in the working tree.
-Use '--' to separate paths from revisions, like this:
-'git <command> [<revision>...] -- [<file>...]'
-  FAIL a real pass moves heartbeat/orchestrator on the remote
-  FAIL null control: a refused push is printed with its reason and the pass still completes
+  ok   a real pass moves heartbeat/orchestrator on the remote
+  ok   null control: a refused push is printed with its reason and the pass still completes
   ok   freshness null control: behind 0 is silent (code=<sha7> behind=0 on the banner) and does not exec
   ok   freshness: a commit outside the loop's code paths is not counted (the path filter)
   ok   freshness: behind within the bound and no change to the loop's own files relays, restarts nothing; the heartbeat says behind=1
@@ -32,4 +29,13 @@ Use '--' to separate paths from revisions, like this:
   ok   freshness: a pass already restarted does not exec again (at most once per pass)
   ok   freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
   ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
-tick_loop self-test: 31 checks, 2 failed
+  ok   the self-test run from a branch checkout behind origin/main passes and does not move its HEAD
+  ok   the self-test run from a detached checkout behind origin/main passes and does not move its HEAD
+  ok   the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD
+  ok   the self-test run with every loop variable, the stubs' controls, HPO_HEARTBEAT_REMOTE and an unlisted name set in the caller's environment, HPO_TICK_CODE_DIR naming a detached checkout behind origin/main, passes and does not move its HEAD
+  ok   the rows' entry point run with a name off the allowlist refuses before any row, naming it
+  ok   the self-test run with HPO_HEARTBEAT_REMOTE a URL in the caller's environment passes under offline_spy.py: no network call, no remote git call, its git calls seen
+  ok   null control: offline_spy.py counts one git call at that URL as a remote git call
+  ok   null control: a branch checkout at origin/main (behind 0) passes and stays put
+tick_loop self-test: 39 checks, 0 failed
+rc=0
