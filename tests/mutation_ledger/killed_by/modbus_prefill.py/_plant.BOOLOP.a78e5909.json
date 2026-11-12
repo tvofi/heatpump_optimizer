@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:_plant BOOLOP a78e5909",
+  "killed_by": "tests/features.py",
+  "old": "            round(capacity / cop, 1) if capacity and capacity > 0 else None",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`round(capacity / cop, 1) if capacity or capacity > 0 else None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
