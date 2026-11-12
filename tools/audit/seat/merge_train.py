@@ -6734,6 +6734,9 @@ def _gate_race_self_test(check) -> None:
     red, sb = wait([[edit_gate]], [started("in_progress", CODE_RUN_DEADLINE_SECONDS + 60)], polls=3)
     check("carry 4 (1) null: a started sibling past its deadline keeps the polls bound (TIMEOUT)",
           red == ["TIMEOUT"] and len(sb) == 3)
+    ceiling = max(int(m) for m in re.findall(r"timeout-minutes:\s*(\d+)", (ROOT / ".github/workflows/ci.yml").read_text()))
+    check("carry 4 (1): CODE_RUN_DEADLINE_SECONDS is ci.yml's longest job ceiling (timeout-minutes) in seconds, "
+          "read from the registered artifact", CODE_RUN_DEADLINE_SECONDS == ceiling * 60)
     with tempfile.TemporaryDirectory() as d:  # the deadline's edges, read directly: [0, CODE_RUN_DEADLINE_SECONDS] inclusive
         tb = Train("o/r", Path(d), None, "", (), 1, run=lambda *a, **k: (0, ""), sleep=lambda s: None,
                    log=lambda s: None, polls=3, wall=lambda: NOW)
