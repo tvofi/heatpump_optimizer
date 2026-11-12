@@ -389,9 +389,23 @@ def cases() -> dict[str, bool]:
         out = _run_hook("liveness.py", s3)
         res["restart: a late job (not beatd) is DEAD and never relaunched (null control)"] = (
             "DEAD loop pulse" in out and "RESTARTED" not in out and "auto-restart" not in out)
-        res["beatd: refuses to start under an interpreter older than the floor, naming it"] = (
-            "FLOOR = (3, 12)" in (SEAT / "beatd.py").read_text()
-            and "older than the tree's floor" in (SEAT / "beatd.py").read_text())
+        # beatd run, executed: the floor refusal and the recorded launch the restart above replays
+        bst, jobs = tmp / "beatd-run", tmp / "empty-jobs.json"
+        jobs.write_text(json.dumps({"version": 1, "jobs": []}))
+        drive = lambda floor, *extra, env=None: subprocess.run(  # noqa: E731
+            [sys.executable, "-I", "-c", "import sys; sys.path.insert(0, sys.argv[1]); import beatd; beatd.FLOOR = %r; "
+             "sys.exit(beatd.main(['run', '--state', sys.argv[2], '--jobs', sys.argv[3], '--once', *sys.argv[4:]]))" % (floor,),
+             str(SEAT), str(bst), str(jobs), *extra], capture_output=True, text=True, cwd=tmp, timeout=60,
+            env={**os.environ, **(env or {})})
+        r = drive((99, 0))
+        res["beatd: run under an interpreter older than the floor is refused naming it, and starts nothing"] = (
+            r.returncode == 2 and "REFUSE" in r.stderr and sys.executable in r.stderr and "older than the tree's floor 99.0" in r.stderr
+            and not (bst / "beatd" / "launch.json").exists())
+        r = drive((3, 12), env={"HPO_X": "kept", "NOT_HPO": "dropped"})
+        rec = json.loads((bst / "beatd" / "launch.json").read_text()) if (bst / "beatd" / "launch.json").is_file() else {}
+        res["beatd: run at the floor starts, and records its cwd, argv and HPO_* environment (null control for the refusal)"] = (
+            r.returncode == 0 and "REFUSE" not in r.stderr and rec.get("cwd") == str(tmp) and rec.get("argv", [None])[0] == sys.executable
+            and rec.get("env", {}).get("HPO_X") == "kept" and "NOT_HPO" not in rec.get("env", {}))
         for f in (fd, fd2, fd3):
             os.close(f)
         res["check reports the project guard missing in a tree without it"] = guard_missing
@@ -430,6 +444,8 @@ MUTANTS = [  # (label, old text, new text): each must turn at least one case red
     ("a missing checkout is never reported", "sorted(names.items()) if not Path(v).is_dir()]", "sorted(names.items()) if False]"),
     ("the read-proof accepts any sha256", "    if sha.strip() != want:", "    if False:"),
     ("the prompt arm never re-raises the proof", "        if (state / \"compact-owed\").exists():", "        if False:"),
+    ("beatd run never refuses an interpreter under the floor", "    if sys.version_info < FLOOR:\n", "    if False:\n"),
+    ("beatd run records no launch", "(d / \"launch.json\").write_text(", "(d / \"launch.jsonX\").write_text("),
     ("seat-interpreter never reports", "    if r.returncode == 0:\n        return []\n", "    if True:\n        return []\n"),
 ]
 
@@ -450,7 +466,7 @@ def self_test(run_mutants: bool = True) -> int:
                     (tgt / rel).parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(ROOT / rel, tgt / rel)
                 # the hooks before this file: an anchor without a newline also matches its own MUTANTS literal here
-                for f in ("hooks/liveness.py", "hooks/seat_interpreter.py", "hooks_setup.py"):
+                for f in ("hooks/liveness.py", "hooks/seat_interpreter.py", "beatd.py", "hooks_setup.py"):
                     p = tgt / "tools/audit/seat" / f
                     text = p.read_text()
                     if old is None or old in text:
