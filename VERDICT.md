@@ -1,19 +1,26 @@
-Fix review: merge dd5faa50c0a87aec310975128c18b172e052af3a
+Fix review: merge a32f2e0bf405e4245c1864c294599c976f90a1cf
 
-bus-nonce: 9b1ac2b4e0b46b6c7ca8dde25d549bea
+bus-nonce: 1a2b691d5b3038f25adea793ebdc82b2
+pending-ci: gate
 
-Scoped re-check at an unmoved head (dd5faa50c0a87aec310975128c18b172e052af3a), resuming probe/rev-3464-7b43b7be. Only the carry-missing class and the three raises were re-examined; the earlier mutants, figures, archscore, env drift and merge-tree stand as recorded there.
+Round: a continuation of the delta round whose merge verdict (commit 4b602a697c1f on probe/rev-3464-b241498e, nonce b241498e) named f0f6b47f2c8f402e6d35b461c06760318576b01a. That verdict stands and none of it is redone. It never posted, so no verdict on verdict/3464 names f0f6b47f and the packet's scope line reads `full`; the scope taken here is fix-review.md step 12's carry instead, because `review_carry.py f0f6b47f2c8f402e6d35b461c06760318576b01a a32f2e0bf405e4245c1864c294599c976f90a1cf` prints `review_carry: CARRY` (`ev/review_carry.txt`).
 
 ## Findings
 
-(none new. The first verdict's findings, sweep_render self-test, residual roster-seat sites, entities heading pins, cloud_dispatch edge cases, were carried in that verdict and are not restated.)
+(none. The verdict at f0f6b47f left no open finding, and the merge adds no change of the branch's own.)
 
 ## Evidence
 
-- Carry-missing cured, per item named by the first verdict, against the body read at this head:
-  - scp2-raise-predict-needs-body: now `Carry: R10-PREPR-RESIDUE`, a live group (lane IN, brief names the prepr.sh pre-open prediction seam) on origin/handoff/audit-r10-roster bba7761032c9. Not own-group any more. It has no roster item yet; the carry audit routes it from the merged body.
-  - scp2-layout-vs-citation: now `Carry: dismissed:` with a reason (first instance, resolved by leaving the line untouched, a second instance goes to root-cause.md). Valid.
-  - scp2-handover-seats: names the owner-routed ruling of the design verdict's item 27, and is on the roster as body item e8e05480 under R10-STANDING-CONTRACTS-P2 (`ev/roster_grep.txt`; branch tip bba7761032c9 descends from the cited c53716012a0c).
-  - scp2-unbuilt-seats and scp2-carries-21-23: each names the orchestrator's pending routing or ruling, as the first verdict accepted.
-- Raises: the diff changes three pinned token-cap rows (standing.md new; standing-tick.md and standing-roster.md lowered). `## Raise justification` covers all three, lists four payments tried (no standing.md; fold into orchestrator.md; pay from the stubs and standing-dispatch.md; keep old tick/roster caps, refused with a reason), and carries `Architecture score: dS +0.0000 NULL`, which matches the first review's own run.
-- classify at this head (`ev/classify.txt`): APPROVAL-OWED, the budget raise's approval alone; judged GREEN. Owed-reds set (tests / mutation, tests / typing, validate / validate-hacs): none is red per classify. Main's two known reds (tests / fast (3.14), governance / instrument-self-tests) are not this branch's.
+- Separation: `git log f0f6b47f..a32f2e0b --not origin/main` returns one commit, a32f2e0bf405 itself, with parents f0f6b47f2c8f and main 046736a49f8c (`ev/review_carry.txt`).
+- Automatic merge: `git merge-tree --write-tree f0f6b47f 046736a4` with the tree's ledger driver prints `LEDGER-MERGE: resolved tests/closures.json`, exits 0 and writes tree f3a042e125b8, which is the head's own tree (0 diff lines, `ev/auto_merge.txt`). The head holds no hand resolution.
+- Main's own changes: `git diff --stat f0f6b47f a32f2e0b` and `git diff --stat 61afd4f2 046736a4` (merge base to main) list the same 12 files with the same totals (`ev/auto_merge.txt`).
+- tests/closures.json is the driver's union (`ev/closures_union.txt`, a reviewer-built set comparison): three list leaves differ, and each at the head equals the set union of the reviewed head's and main's, sorted, with no duplicate. `closures.tests/entities.py` holds 565 entries, the branch's one and main's one over the base. No scalar leaf differs.
+- Files both sides touched, `dev/governance/roles/fixer.md` and `tests/entities.py`: the changed lines of the branch's delta are identical before and after the merge, and so are main's (`ev/semantic_merge.txt`, four comparisons, each IDENTICAL).
+- `node tools/policy/policy_lint.mjs --budgets` exits 0 at the head in a detached worktree (`ev/semantic_merge.txt`); main's fixer.md edit and the branch's fit the per-file cap together.
+- `tests/entities.py` was not run by this seat: the seat's python3 has no `homeassistant` module and the script stops at import (`ev/semantic_merge.txt`). The standing-terms check at this head is CI's `gate` to show, which is the pending context.
+- Production code: `git diff --name-only origin/main...a32f2e0b` lists nothing under `custom_components/`, and VERSION, RELEASE_NOTES.md and tests/golden are untouched. Nothing widens the scope.
+- Merge with main: `git merge-tree --write-tree origin/main a32f2e0b` at origin/main 046736a49f8c exits 0 (`ev/merge_tree.txt`).
+- PR body: its `## Head` section names a32f2e0bf405e4245c1864c294599c976f90a1cf. Its Red checks section answers `budget-raise-gate / budget-raise-gate`, the one failed check run at this head (check run 130863752546, read from the PR's check runs); classify does not count it red.
+- Roles: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- CI at this head: `WAIT a32f2e0bf405e4245c1864c294599c976f90a1cf pending: gate red: none` at 2026-11-11T23:45Z and again at publish (`ev/classify.txt`). The runs began at 23:37Z. This seat did not poll for 30 minutes: the continuation brief asks for the pending-ci line when CI is not done, and the relay holds the verdict until `gate` is green.
+- Head re-read at publish: origin/fix/r10-standing-contracts-p2 and refs/pull/3464/head are both a32f2e0bf405e4245c1864c294599c976f90a1cf.

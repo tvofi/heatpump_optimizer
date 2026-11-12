@@ -1,0 +1,14 @@
+reviewed head (verdict 4b602a697c1f480e7c4e5004873cb11042bfcf1a on probe/rev-3464-b241498e): f0f6b47f2c8f402e6d35b461c06760318576b01a
+head: a32f2e0bf405e4245c1864c294599c976f90a1cf
+origin/main: 046736a49f8c352160ac4f55aa7f5faa5b82cafa
+
+$ git log --format="%H %P %s" f0f6b47f2c8f402e6d35b461c06760318576b01a..a32f2e0bf405e4245c1864c294599c976f90a1cf --not origin/main
+a32f2e0bf405e4245c1864c294599c976f90a1cf f0f6b47f2c8f402e6d35b461c06760318576b01a 046736a49f8c352160ac4f55aa7f5faa5b82cafa Merge remote-tracking branch 'origin/main' into fix/r10-standing-contracts-p2
+
+$ review_carry.py f0f6b47f2c8f402e6d35b461c06760318576b01a a32f2e0bf405e4245c1864c294599c976f90a1cf
+review_carry: f0f6b47f2 -> a32f2e0bf  main=origin/main
+  branch-only commits: 1
+  why: 0 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  a32f2e0bf  Merge remote-tracking branch 'origin/main' into fix/r10-standing-contracts-p2
+review_carry: CARRY
+rc=0
