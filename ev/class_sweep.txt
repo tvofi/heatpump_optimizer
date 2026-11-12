@@ -1,0 +1,11 @@
+custom_components/heatpump_optimizer/optimizer.py:605:def _thermostat_held_state(
+custom_components/heatpump_optimizer/optimizer.py:5724:        state = _thermostat_held_state(self.model, initial_state, weather, targets[0])
+custom_components/heatpump_optimizer/optimizer.py:5831:        held = _sharing_wood_side(_thermostat_held_state(
+custom_components/heatpump_optimizer/optimizer.py:114:    valve_top_draw,
+custom_components/heatpump_optimizer/optimizer.py:583:def _held_zones(
+custom_components/heatpump_optimizer/optimizer.py:610:    The zones at ``target`` (``_held_zones``), so the first step draws the
+custom_components/heatpump_optimizer/optimizer.py:626:    held = _held_zones(model, state, weather0, target)
+custom_components/heatpump_optimizer/optimizer.py:637:        return need(h) - valve_top_draw(model, h, outdoor, wind, rain)
+custom_components/heatpump_optimizer/optimizer.py:644:            lo, hi = (lo, mid) if short(_held_zones(model, state, weather0, mid)) > 0.0 else (mid, hi)
+custom_components/heatpump_optimizer/optimizer.py:645:        held = _held_zones(model, state, weather0, lo)
+custom_components/heatpump_optimizer/thermal_model.py:2294:def valve_top_draw(
