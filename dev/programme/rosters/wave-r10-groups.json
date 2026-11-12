@@ -24741,7 +24741,8 @@
    },
    "source": "outside",
    "carry": [
-    "From r10-outside-contributor-cycle-p2, body item d4703cd1: **The interface to part 1's module.** The two calls above are this part's assumption; part 1 had published nothing to read. Whoever lands second reconciles `Train.fork_head`, `Train.outside_contract` and merge_pr.sh's `head_is_ours` to part 1's names, and re-runs the three self-tests; the stubs then follow that module's real signatures. Control: with a wrong name the train stops every pull request at `could not say whether #<n>'s head is cross-repository`, ours included. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE (items d4703cd1)"
+    "From r10-outside-contributor-cycle-p2, body item d4703cd1: **The interface to part 1's module.** The two calls above are this part's assumption; part 1 had published nothing to read. Whoever lands second reconciles `Train.fork_head`, `Train.outside_contract` and merge_pr.sh's `head_is_ours` to part 1's names, and re-runs the three self-tests; the stubs then follow that module's real signatures. Control: with a wrong name the train stops every pull request at `could not say whether #<n>'s head is cross-repository`, ours included. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE (items d4703cd1)",
+    "From r10-outside-contributor-cycle-p2, body item 8da136bb: **`tools/ci/selftest_closures.json` re-record is owed, on top of part 1's entry, once part 1 is on main.** Not done here: part 1's module does not exist at this head, the recorder needs it on disk to trace a read of it, and `selftest_scope.py record` needs strace. The self-tests here stub it, so whether the recorded closure of `merge-train` or `pr-merger` moves is unmeasured, not known to be flat. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE (items 8da136bb)"
    ]
   },
   {
