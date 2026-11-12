@@ -13,6 +13,8 @@ Arms, each driving the tree's own Train with a fake `gh` (no network):
            run's) and a failing `gate` (the edit run's deferral). policy_refusal
            must be a wait (second field True), not the park "the missing requirement
            is a review". Null: a rollup of the passing gate alone is the park as before.
+  policy-real-red / policy-hidden-red   a real gate red beside an unrelated unfinished workflow, and another
+           required context's red beside a deferral gate, must both read red (no wait, the context named).
   under    #3398's shape: a deferral red whose code run is in_progress, started and
            inside its deadline, outlives `polls`; wait_ci must return [] once the run
            ends, not ["TIMEOUT"]. Null: a QUEUED run keeps the polls bound (TIMEOUT).
@@ -38,22 +40,27 @@ def load(tree: Path):
     return mod
 
 
-def policy(mt, rollup):
+def policy(mt, rollup, ci=(), every=(), req=("gate",)):
     H, NOW = "b" * 40, 1_000_000.0
 
     def run(argv, cwd=None, stdin=None):
         a = " ".join(argv)
+        if "workflows/ci.yml/runs?head_sha=" in a:
+            return 0, "".join(json.dumps(x) + "\n" for x in ci)
+        if "actions/runs?head_sha=" in a:
+            return 0, "".join(json.dumps(x) + "\n" for x in every)
         if "actions/runs?event=pull_request_review" in a:
             return 0, ""
         if "statusCheckRollup" in a:
             return 0, json.dumps({"mergeStateStatus": "BLOCKED", "reviewDecision": "APPROVED",
-                                  "statusCheckRollup": [{"name": "gate", "conclusion": r} for r in rollup]})
+                                  "statusCheckRollup": [r if isinstance(r, dict) else {"name": "gate", "conclusion": r}
+                                                        for r in rollup]})
         if "/reviews" in a:
             return 0, json.dumps([[]])
         return 0, ""
     t = mt.Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
                  polls=3, wall=lambda: NOW)
-    t.required = lambda pr_head=False: ["gate"]
+    t.required = lambda pr_head=False: list(req)
     return t.policy_refusal(3264, H)
 
 
@@ -73,7 +80,10 @@ def under(mt, status, polls=3):
             return 0, "\n".join(json.dumps(c) for c in cur)
         if "actions/runs?head_sha=" in a:
             seen[1] += 1
-            return 0, (f"42237558473\t{status}\t{started}\n" if seen[1] <= 7 else "42237558473\tcompleted\t\n")
+            # the paged read's answer: one JSON object per line (`--jq .[]`), as merge_train.py's `pages` reads it
+            row = ({"id": 42237558473, "status": status, "run_started_at": started} if seen[1] <= 7
+                   else {"id": 42237558473, "status": "completed", "run_started_at": ""})
+            return 0, json.dumps(row) + "\n"
         return 0, ""
     with tempfile.TemporaryDirectory() as d:
         t = mt.Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
@@ -96,6 +106,19 @@ def main() -> int:
         print("DEFECT policy"); defects += 1
     if got0[1] is not False:
         print("DEFECT policy-null"); defects += 1
+    # a real red is never read as a deferral (the round-2 verdict's cases): the arm's DEFECT is a wait, or a hidden red
+    fail = lambda n, at: {"name": n, "conclusion": "FAILURE", "completedAt": at}  # noqa: E731
+    other = [{"id": 9, "name": "codeql", "status": "in_progress"}]
+    code = [{"id": 5, "status": "queued"}]
+    fast = "tests / fast (3.14)"
+    b = policy(mt, [fail("gate", "2026-11-12T09:55:00Z"), fail("gate", "2026-11-12T11:00:00Z")], every=other)
+    c = policy(mt, [fail("gate", "2026-11-12T09:55:00Z"), fail(fast, "2026-11-12T10:10:00Z")], ci=code, req=("gate", fast))
+    a = policy(mt, [fail("gate", "2026-11-12T09:55:00Z")], ci=code)
+    print(f"RESULT policy_B_wait={b[1]} policy_C_wait={c[1]} policy_C_names_fast={fast in c[0]} policy_A_wait={a[1]}")
+    if b[1] is not False:
+        print("DEFECT policy-real-red"); defects += 1
+    if c[1] is not False or fast not in c[0]:
+        print("DEFECT policy-hidden-red"); defects += 1
     r = under(mt, "in_progress")
     q = under(mt, "queued")
     print(f"RESULT under_started={r} under_queued_null={q}")
