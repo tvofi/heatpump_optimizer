@@ -2,9 +2,9 @@ Part A of the duty-switch restart learning, built from Bankaifan's pull request 
 
 ## Head
 
-bf9707ae03044f329bdbc5c3ce8d3249c51f955b
+23961a5d8592e3fde3ac82ff4f705983da01fe04
 
-Round 2, cut from the reviewed head 5289e1fee495ba8d7e81a5c1e5c8c328aca77d7f, plus one merge: the pull request's branch gained e277df592e678982bb22fb48644482e30b5b86c7, the delivery row for #3461 (`dev/programme/delivery/3461.md`, one line), which is merged in so the head fast-forwards from it; `git diff --stat 68a6ba2b39aa97c02eddf10eb579bc8db4474f4d HEAD` prints that file alone. `origin/main` is not merged: the merge base is still cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf; `origin/main` is ee64358be7eeccaec5178a923cb3b83a18a924a0 (2026-11-11T12:55Z), and `git merge-tree --write-tree origin/main HEAD` exits 0 against it, so nothing forces a merge. Every command below compares three-dot, against that merge base. Re-taken at this head: the section, every mutant run, the unpinned-site list, the structural ratchet and the architecture score. The scoped gate and the whole of `tests/features.py` ran at 68a6ba2b39aa97c02eddf10eb579bc8db4474f4d, as their lines under Figures say. Round 1's and not re-run: the control on a `git archive` of main, and the closure re-recording.
+Round 3, a repair of the head the round-2 review blocked, 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2: one commit on top of it, nothing rebased or merged. `origin/main` is not merged: the merge base is still cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf; `origin/main` is 046736a49f8c352160ac4f55aa7f5faa5b82cafa (2026-11-12T00:14Z), and `git merge-tree --write-tree origin/main HEAD` exits 0 against it. Every command below compares three-dot, against that merge base. Re-taken at this head: the section, every mutant run, the unpinned-site list, the structural ratchet, the architecture score, the scoped gate and the reviewer's probe. Round 1's and not re-run: the control on a `git archive` of main, and the closure re-recording.
 
 ## Brief carries
 
@@ -44,7 +44,7 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
 
 1. mutation-vacuous. None of the nineteen is triaged: each is killed by a check that fails under it. The reviewer's whole spec (`ev/reviewer_mutant_spec.json`, its thirty-one entries) is appended to this body's spec and run with it under Mutation proof. What was added to the section, all in `tests/features.py`:
    - The arbiter's void inputs (`_switch_context`): the stop of the section's arbiter run is replayed with one reading changed at the install 30 s after the write: the supply switch off, a mode the plan does not command, disinfection, a boost, the backup heater, the hot-water booster, the fault flag, the feedback loop's moved target. Each voids; with every flag reading off the stop is booked, and with the fault flag on but two hours stale it is booked too (`_lit`'s freshness).
-   - The count gates' inputs (`_report_write`), each on both sides of its bound: the room at and 0.1 K under its planned set-point; a plan that leaves the target duty 179 s and 181 s after the write; a return 1.9 K and 2.0 K over the command's set-point after a seven-minute leg; with no return sensor, a replaced mode record 30 s and 60 s old. The last two pin the departures "the space set-point is the command's" and "source-leg age is the replaced mode record's": reverting either now fails a check (`rv_gate_setpoint`, `rv_gate_source_leg`).
+   - The count gates' inputs (`_report_write`), each on both sides of its bound: the room at and 0.1 K under its planned set-point; a plan that leaves the target duty 179 s and 181 s after the write; a return 1.9 K and 2.0 K over the command's set-point after a seven-minute leg (round 3: on the return and the flow unit, see round 2's answer); with no return sensor, a replaced mode record 30 s and 60 s old. The last two pin the departures "the space set-point is the command's" and "source-leg age is the replaced mode record's": reverting either now fails a check (`rv_gate_setpoint`, `rv_gate_source_leg`).
    - The write censor: a hot-water set-point the arbiter writes between the stop and the restart costs the stop its off time (`rv_ctx_last_write`).
    - The pass ages the latches, and saves once: a learner usable in both directions, last aged sixty days before, is switched off by the first arbiter pass, which saves that record once over three passes; one aged a minute stays usable and saves nothing (`rv_pass_decay_dropped`, `rv_persist_stays_dirty`).
    - `rv_published_undecayed`: k and n published 14 days after the stamp are half the stored ones, the tallies unchanged. `rv_detach_keeps_episode`: duty mode off with an episode open leaves none and counts none. `rv_book_no_latch`: the fifth stop switches the latch on at the booking, the fourth does not, and a kept episode taking p under the off bound switches it off.
@@ -53,9 +53,28 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
 
 The verdict's factory-reset finding is answered under Forward-carry.
 
+## Review round 2, answered
+
+`Fix review: blocked 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2 mutation-vacuous` (`verdict.md` and `ev/` on `probe/rev-3461-edf76a05` at e4e4c6cd5783872a0206bf9d7c01c54fcfa37108), two blocks and six findings. No finder harness exists for this group; the instruments at both ends are the reviewer's own, `ev/reviewer_mutant_spec_round2.json` and `ev/reviewer_probe.py` of that ref.
+
+1. mutation-vacuous. The reviewer's twenty-five entries are appended to this body's spec and run with it under Mutation proof. Four are killed by checks added to the section, each driven through `pump_arbiter.apply` on both sides; the fifth lost its site:
+   - `r2_ctx_defrost_interval`: an install with no defrost entity whose interval flag (`ArbiterInputs.defrosting`) reads True from the start opens nothing; the flag turning True 30 s after the write voids the stop; the flag reading False books it.
+   - `r2_ctx_economy_dropped`: the same stop on an install in Economy books, as in Auto; in Comfort no single duty is commanded and nothing is booked.
+   - `r2_gate_dhw_demand`: a space to hot water write (heating to 00:08, then hot water, the compressor running on) books a kept episode with the tank 0.1 K under its set-point and opens nothing with the tank at it or unread.
+   - `r2_gate_plan_now_only`: a write the plan's current step does not hold is reachable through a system-identification experiment, which commands heating whatever the plan books (`_planned_duty`). With the plan on hot water at the write and on heating before the window's end nothing opens; with the plan on heating at the write the same write books the stop. A block on a stale plan, the other route read, is released by `boost.release_blocked` before the write and reaches no single duty.
+   - `r2_signal_always`: not triaged, removed. `DutySwitchLearner.note_pass` no longer takes the "signal known" argument: an open episode with an unknown settled class is unreachable, as the verdict reads it, and a lost signal is `edge`'s to void (the section's "signal lost" cause and the arbiter run with an unavailable frequency). The pure check that passed the argument as False went with it. This body's `void_no_signal_pass` mutated the deleted line and is dropped from the spec.
+2. class-open, `_heated` over an indoor-unit set-point. Fixed at the arbiter's edge, where the unit is known: `_report_write` hands the command's space set-point on only where `_flow_unit` says it is a water temperature, and `SwitchContext` names the field `water_setpoint_c`. `_heated` compares the inlet with it when both are known and otherwise decides by the source leg's age, the rule it already had for an install with no inlet reading. Alternatives: comparing the inlet with the written water record on an indoor install lost, because an indoor install writes no water set-point at all; refusing every indoor-unit switch lost, because it would leave the default unit with no evidence. Driven on all three units through the arbiter: on return and on flow a return 1.9 K over the command's set-point after a seven-minute leg opens nothing and 2.0 K books; on indoor a return 9 K over the room's set-point with a 30 s leg opens nothing (the verdict's instance, booked at the blocked head), the same return with a 60 s leg books, and a return 0.5 K over the room's after a seven-minute leg books, so the room number is not compared at all. Mutants `r3_unit_gate_dropped`, `r3_unit_gate_inverted`, `r3_heated_no_setpoint_refuses`. The class's rule, `git grep -n "water_setpoint_c" -- 'custom_components/heatpump_optimizer/*.py'`, prints the field, its two reads in `_heated` and its one writer, the hand-off line in `_report_write`, closed in this diff; no other reading of the space set-point reaches the learner.
+3. The span gate. Fixed in this branch: under `SPAN_FLOOR_N` (0.5, one episode a half-life old; a named constant, not a measurement) of decayed weight `Direction.decay` forgets the first and last day with the evidence, and reports that as a change of the stored record, saved once. Alternative: the exact span of the episodes still above a weight needs every episode's day stored, a schema the estimate does not otherwise need; it lost to one comparison on the count already kept. The reviewer's probe at both ends is under Figures. Section check "the span ages with the evidence", with its null control (a first stop exactly one half-life old still anchors the span, and one a day old). Mutants `r3_span_never_ages`, `r3_span_floor_inclusive`, `r3_span_floor_value`, `r3_span_change_unreported`, `r3_span_last_day_kept`, `r3_span_reported_always`.
+
+The other findings, in the verdict's order:
+- Five real episodes never reach n of 5: not changed here, it is the meaning of a constant for the part that first reads `usable`; the check that read as an install's fifth stop is renamed to what it pins ("a stop taking n from 4 to 5"). Under Forward-carry.
+- The published k and n change with no observation: not changed here; under Forward-carry.
+- The planner-price carry's "controls as in the item above", and the PR-B brief against its carry: the roster's text, not this seat's to write; the two controls are restated in full in this body's Forward-carry line for that group.
+- No finder harness: stands as the verdict dismissed it.
+
 ## Verdict notes
 
-- n10: the heated gate is per direction (`duty_switch._heated`): inlet minus set-point into space, the source leg's age into hot water; the table's three kept rows pin it with an inlet under the set-point. Mutant `heated_direction_gate`.
+- n10: the heated gate is per direction (`duty_switch._heated`): inlet minus water set-point into space (round 2: only where the set-point is a water temperature), the source leg's age into hot water; the table's three kept rows pin it with an inlet under the set-point. Mutant `heated_direction_gate`.
 - n12: built to the note's rule, empty on any invalid shape or bound.
 - n13: `DutySwitchLearner`, `Direction` and `SwitchContext` take no Home Assistant object; the tests drive them directly.
 - n14: one call, `duty_switch.starts_attributes`, returns the finished dict; the check the note asks for found the opposite of what the design assumed: the five `coord_*` fixtures do hold that sensor's attributes. See the conditional publication above.
@@ -67,7 +86,7 @@ The verdict's factory-reset finding is answered under Forward-carry.
 
 Every mutant ran through `tools/audit/seat/mutant_run.py`, in its `git archive` copy, at the head above, with one command: `env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`.
 
-**The spec** (`--spec`, at the end of this body): round 1's entries, then the reviewer's, unchanged.
+**The spec** (`--spec`, at the end of this body): round 1's entries, then the round-1 reviewer's, then the round-2 reviewer's (`r2_`), then this round's own (`r3_`). Entries whose `old` text this round renamed (`space_setpoint_c` to `water_setpoint_c`, the hand-off line in `_report_write`) carry the new text and the same edit; `void_no_signal_pass` and `r2_signal_always` are dropped with the argument they mutated. The count is the `KILLED` lines below.
 
 ```
 SURVIVED NULL
@@ -85,7 +104,6 @@ KILLED void_electric_heat
 KILLED void_fault
 KILLED void_feedback_loop
 KILLED void_foreign_write
-KILLED void_no_signal_pass
 KILLED void_no_signal_edge
 KILLED void_other_mode_write
 KILLED void_stopped_before_write
@@ -160,14 +178,47 @@ KILLED rv_reader_power_threshold
 KILLED rv_reader_entity_meter_only
 KILLED rv_lit_ignores_freshness
 KILLED rv_old_option
+KILLED r2_interrupt_unchecked_void
+KILLED r2_edge_none_checked
+KILLED r2_explained_mode_stamp
+KILLED r2_book_at_now_not_write
+KILLED r2_weights_no_clamp
+KILLED r2_running_ignores_pending
+KILLED r2_attach_not_idempotent
+KILLED r2_attach_no_first_read
+KILLED r2_detach_keeps_tracker
+KILLED r2_pass_after_gate
+KILLED r2_ctx_defrost_entity
+KILLED r2_ctx_defrost_interval
+KILLED r2_ctx_booster_only
+KILLED r2_ctx_boost_space_only
+KILLED r2_ctx_economy_dropped
+KILLED r2_gate_dhw_demand
+KILLED r2_gate_plan_now_only
+KILLED r2_gate_both_dropped
+KILLED r2_reader_freq_floor_arg
+KILLED r2_sensor_order
+KILLED r2_tracker_pending_reset
+KILLED r2_load_marks_loaded_on_fail
+KILLED r2_tally_bool
+KILLED r2_void_not_counted
+KILLED r3_unit_gate_dropped
+KILLED r3_unit_gate_inverted
+KILLED r3_heated_no_setpoint_refuses
+KILLED r3_span_never_ages
+KILLED r3_span_floor_inclusive
+KILLED r3_span_floor_value
+KILLED r3_span_change_unreported
+KILLED r3_span_last_day_kept
+KILLED r3_span_reported_always
 ```
 
 **The branch diff** (`--diff origin/main...HEAD --report-only`, run once per production file with `--path`): three survivors, each an equivalent mutant.
 
 ```
-SURVIVED custom_components/heatpump_optimizer/duty_switch.py:74 CONST_SWAP  STORE_VERSION = 2
-SURVIVED custom_components/heatpump_optimizer/duty_switch.py:177 CMP_BOUND  if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) >= 0.0:
-SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1779 CONST_SWAP  return resolve_reading(None, sensor, states.get, 1.0, 0.0)[0], None, None, True
+SURVIVED custom_components/heatpump_optimizer/duty_switch.py:82 CONST_SWAP  STORE_VERSION = 2
+SURVIVED custom_components/heatpump_optimizer/duty_switch.py:187 CMP_BOUND  if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) >= 0.0:
+SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1780 CONST_SWAP  return resolve_reading(None, sensor, states.get, 1.0, 0.0)[0], None, None, True
 ```
 
 - `duty_switch.py` `STORE_VERSION = 2`: the version is what Home Assistant's `Store` stamps on the file and compares with a stored payload's own; no migration exists for either value and `DutySwitchLearner.from_record` never reads it. The arbiter's own `_STORE_VERSION` carries the same verdict in the ledger. Record: `tests/mutation_ledger/survivor_triage/duty_switch.py/@module.CONST.43e0a892.json`.
@@ -176,7 +227,7 @@ SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1779 CONST_SWAP  r
 
 The first diff pass at this round's first commit printed forty-three survivors. One was the `wear.py` return deleted above; the others are each killed by a check added since (the learner's return values, the window's and the censor's bounds, the unstated gates, the median, the published rounding, the stored record's bounds against `store.py`'s registered domain, a failed read and a failed save, the attach and detach guards).
 
-**The ledger's own operators.** `tests / mutation` mutates with `tests/mutation_table.py`'s operators, which `--diff` does not carry (`BOOLOP`, `CLAMP_DROP`, `CONST`). For each site `tools/pr/ci_predict.py --base origin/main --only mutation` lists as added and unpinned, that module's own replacement line was written into a spec and run as above: `SURVIVED NULL`, 109 `KILLED`, no other survivor. The first such run left `duty_switch.py` `Direction.book`'s `CLAMP_DROP` alive (the last day no longer moved on); a check now kills it. The spec is built by:
+**The ledger's own operators.** `tests / mutation` mutates with `tests/mutation_table.py`'s operators, which `--diff` does not carry (`BOOLOP`, `CLAMP_DROP`, `CONST`). For each site `tools/pr/ci_predict.py --base origin/main --only mutation` lists as added and unpinned, that module's own replacement line was written into a spec and run as above: `SURVIVED NULL`, every other line `KILLED` (`grep -vc KILLED` on the run's output prints 2: the null and the exit line), no other survivor. The first such run left `duty_switch.py` `Direction.book`'s `CLAMP_DROP` alive (the last day no longer moved on); a check now kills it. The spec is built by:
 
 ```python
 import json, re, sys
@@ -208,6 +259,7 @@ print(json.dumps(spec, indent=1))
 - An install where no switch stops the compressor, one where it does, and a flat-price day: the split order and every service call are equal between an empty learner and one latched usable in both directions (three checks named "null control" in the section). They hold by construction, and a fourth check pins the construction: only `pump_arbiter.py` and `sensor.py` name `duty_switch`, through eight names none of which reads the estimate.
 - Both ends of the learner's range: an empty learner publishes no key and changes nothing; one saturated at p = 1 changes nothing either.
 - `tests/env_drift.py --all` against the merge base reports no unclaimed drift and no stale fixture; neither claim file is touched (`git diff origin/main...HEAD --stat -- tests/golden/` prints nothing).
+- Round 3's: the indoor-unit rows beside the same return with a full leg; the interval defrost beside the flag reading False; Economy and Auto beside Comfort; the tank at its set-point beside 0.1 K under; the off-plan write beside the same write on a step that holds it; the aged span beside a first stop one half-life old. Both ends of the span rule's range: an empty direction has no day to forget (the section reads `Direction().span_days` as 0), and one saturated keeps its days (the latch row at n 40 switches on, which needs its two-day span).
 - Each check added in round 2 carries its own: every void reading beside the same install with the flags off; every count gate beside the step the other side of its bound; the censoring write beside the same install without it; the aged learner beside one aged a minute.
 
 ## Figures
@@ -217,11 +269,13 @@ print(json.dumps(spec, indent=1))
 - Malformed payloads driven through the loader: the count in the check name the section prints ("malformed or out-of-bounds payloads").
 - Golden drift: `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)`
 - `tests/features.py` at the head: one check fails, the `combi_type_branch` census, on six lines of `const.py`, `heat_curve.py`, `pump_arbiter.py` and `thermal_model.py` that are `origin/main`'s own and none of this diff's. Control: the same script on a `git archive` of that main fails the same check on the same six lines (and one more, the `recorded_at` check an archive copy always fails). `PYTHONPATH=tests/hastub python3 tests/features.py`
-- Scoped gate, run at 68a6ba2b39aa97c02eddf10eb579bc8db4474f4d (the head less the delivery row): `MODE: SCOPED`, and of the scripts it ran only `tests/features.py` exited non-zero, on the one check of the line above. Control: `tests/features.py` run alone prints that check as its only `FAIL` line. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`
+- Scoped gate, run at this head: `MODE: SCOPED`, and of the scripts it ran only `tests/features.py` exited non-zero, on the one check of the line above. Control: `tests/features.py` run alone prints that check as its only `FAIL` line. `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`
 - Gate mode: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`
 - Structural ratchet: `python3 tests/structure.py`
 - Architecture score: `python3 -I tools/audit/archscore/score.py --diff "$(git merge-base origin/main HEAD)" HEAD`
 - Closures: the scripts whose recorded closure held `pump_arbiter.py`, `sensor.py` or `store.py` were re-recorded on Linux with `./tests/derive_closures.sh --scripts-from <list>` and merged with `python3 tests/closure.py merge --in-dir <dir> --partial --allow-failures`; `tests/entities.py` exited 1 while recorded only on checks that read the not-yet-merged table, and passes at the head.
+- The reviewer's probe at both ends: `$EXPORT/ev/reviewer_probe.py` (sha1 95dc3977d920f6cda166f278c67d85dbdcb085a8), `$EXPORT` being a `git archive` export of `probe/rev-3461-edf76a05` at e4e4c6cd5783872a0206bf9d7c01c54fcfa37108, run from the root of the tree it measures; it is the reviewer's evidence and not in this tree. At 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2 (a `git archive` export): `span_probe6 ... span_days=366 usable=True`, its control `span_days=1 usable=False`; `heated_room_unit ... heated=True`, its control `heated=False`. At this head, with the probe's two `space_setpoint_c=` arguments renamed (`space_setpoint_c=21.0` becomes `water_setpoint_c=None`, which is what the arbiter now hands over for a room-unit set-point; `space_setpoint_c=32.0` becomes `water_setpoint_c=32.0`): `span_probe6 ... span_days=1 usable=False`, equal to its control; `heated_room_unit ... heated=False`, equal to its control. The probe's `fifth_episode` and `attr_churn` lines read the same at both ends: neither is changed here.
+- The heated gate at the install, per unit: the rows of `_ds_gates` and `_ds_gates_open` in the section, which the two gate checks print on failure. The water set-point the arbiter commands on the fixture is its heating ceiling, read from the section's own service calls, so the bound is that ceiling plus `HEATED_MARGIN_K`.
 - Seams of the class (fixer step 8), `git grep -n -E "select_option|await _command\(" -- 'custom_components/heatpump_optimizer/*.py'`: the one mode write, in `_write`, closed in this diff by the report there; its callers `_arbitrate` and `release`, covered through it (`release` detaches first).
 
 ## Architecture score
@@ -232,97 +286,99 @@ print(json.dumps(spec, indent=1))
 
 Every site below is the list `tools/pr/ci_predict.py --base origin/main --only mutation` prints at this head. Each was driven with the ledger's own replacement under Mutation proof and is killed by the section, so `mutation-autofix` has a kill to pin; the two equivalent sites are not on the list because they carry a `survivor_triage` record.
 
-- custom_components/heatpump_optimizer/duty_switch.py:59 CONST: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:63 CONST: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:64 CONST: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:65 CONST: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:61 CONST: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:67 CONST: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/duty_switch.py:68 CONST: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/duty_switch.py:69 CONST: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:71 CONST: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/duty_switch.py:72 CONST: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:119 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:124 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:124 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:125 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:125 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:126 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:126 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:126 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:153 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:162 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:166 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:168 CLAMP_DROP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:170 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:175 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:177 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:179 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:183 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:184 CMP_BOUND*2: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:186 CMP_BOUND*3: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:187 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:193 CLAMP_DROP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:194 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:198 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:225 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:233 CMP_BOUND*2: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:237 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:243 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:276 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:280 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:282 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:287 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:289 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:292 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:295 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:297 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:297 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:299 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:299 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:302 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:76 CONST: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:77 CONST: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:79 CONST: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:80 CONST: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:129 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:134 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:135 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:136 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:136 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:136 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:163 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:172 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:176 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:178 CLAMP_DROP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:180 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:185 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:187 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:189 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:189 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:190 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:192 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:196 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:197 CMP_BOUND*2: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:199 CMP_BOUND*3: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:200 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:206 CLAMP_DROP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:207 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:211 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:238 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:246 CMP_BOUND*2: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:250 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:256 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:289 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:293 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:295 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:300 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:302 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:305 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:308 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:310 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:310 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:312 CMP_BOUND: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/duty_switch.py:312 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:315 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:316 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:318 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:318 CMP_BOUND: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:318 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:320 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:321 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:323 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:325 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:325 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:315 RETURN_DEL: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/duty_switch.py:326 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:328 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:333 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:338 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:346 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:356 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:371 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:373 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:400 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:410 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:413 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:418 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:433 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:441 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:329 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:330 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:332 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:332 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:332 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:334 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:335 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:337 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:339 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:339 CMP_BOUND: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:340 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:342 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:347 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:352 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:360 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:370 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:385 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:387 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:414 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:424 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:427 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:432 GUARD_OFF: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/duty_switch.py:447 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:449 BOOLOP: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/duty_switch.py:455 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:460 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:466 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:471 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:473 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/duty_switch.py:488 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:461 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:463 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:469 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:473 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:479 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:484 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:486 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/duty_switch.py:501 RETURN_DEL: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/pump_arbiter.py:1378 CMP_BOUND: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/pump_arbiter.py:1378 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1394 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1398 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1415 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1415 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1423 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1429 BOOLOP: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1778 GUARD_OFF: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1780 RETURN_DEL: pinned by `mutation-autofix`
-- custom_components/heatpump_optimizer/pump_arbiter.py:1782 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1395 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1399 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1416 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1416 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1424 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1430 BOOLOP: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1779 GUARD_OFF: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1781 RETURN_DEL: pinned by `mutation-autofix`
+- custom_components/heatpump_optimizer/pump_arbiter.py:1783 RETURN_DEL: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/sensor.py:2787 RETURN_DEL: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/wear.py:36 CONST: pinned by `mutation-autofix`
 - custom_components/heatpump_optimizer/wear.py:40 CONST: pinned by `mutation-autofix`
@@ -346,10 +402,15 @@ Every site below is the list `tools/pr/ci_predict.py --base origin/main --only m
 ## Forward-carry
 
 - Parts B and C get no ready read API from part A: `Direction.usable`, `.p` and `.median_off_s` hold the three values, and the part that first reads them adds the module-level reader with its first caller. Control: a reader added with no caller turns `tests/structure.py`'s `dead_top_level_symbols` red. The published keys are conditional (a direction with no stopped, kept or void episode publishes none), so a reader takes an absent key as no observation, never as zero; control: the mutant `publish_only_observed` of this body's spec fails the section's attribute check. The loop void is wider than the design's and n has no ceiling but the load bound. Re-measure at the part's own merge base. Lands in `docs/design/2026-11-10-duty-switch-restart-learning/design.md`, section "Part A as built", and is owed to the group's brief on the round's roster. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
-- The same finding for the planner's price of a switch: it reads the estimate through a reader it adds with its first caller, and an absent published key is no observation. Controls as in the item above. Lands in the same section of the design note, and is owed to the group's brief on the round's roster. Carry: R10-DUTY-SWITCH-PLANNER-PRICE
+- The same finding for the planner's price of a switch: it reads the estimate through a reader it adds with its first caller, and an absent published key is no observation. Controls: a reader added with no caller turns `tests/structure.py`'s `dead_top_level_symbols` red, and the mutant `publish_only_observed` of this body's spec fails the section's attribute check. Lands in the same section of the design note, and is owed to the group's brief on the round's roster. Carry: R10-DUTY-SWITCH-PLANNER-PRICE
 - Factory reset keeps the duty-switch store (`_FR_STORES`, "kept: observed facts"), where every other learned estimate is voided; the record holds an estimate with a latch, and voiding it would also need the in-memory learner emptied. Accepted by the review for part A, where nothing reads the estimate; the owner rules before a part does. Lands in the design note's "Part A as built". Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
 - The supply minimum-run hold of pull request 3420 is removed and built nowhere; where it goes is the orchestrator's decision the design verdict routed. Lands in the design note's "Part A as built". Carry: R10-DUTY-SWITCH-RESTART-LEARNING
 - `tests/features.py`'s `combi_type_branch` census is red on `origin/main` itself since pull requests 3398 and 3433 both landed: the census refuses a vendor name in the package's Python and six comment lines name one. Not touched here: neither the census nor those lines are this group's. Lands in that group's carry on the round's roster. Carry: R10-COMBI-TANK-PR-B
+- `usable` needs a sixth episode in practice: each booking decays the earlier ones first, so five stops ten hours apart end at n under `N_ON` (the reviewer's probe, `fifth_episode`; control: five bookings at one instant reach it, the section's "a stop taking n from 4 to 5"). The part that first reads `usable` decides whether `N_ON` means five episodes or a weight of five. Re-measure with the probe at that part's merge base. Owed to the group's brief on the round's roster. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
+- The published k and n decay continuously, so the starts sensor's attributes change with no observation (the reviewer's probe, `attr_churn`; control: an empty learner publishes nothing). Not changed in part A; the part that first reads or widens the publication decides its resolution. Re-measure with the probe. Owed to the same brief. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
+- `span_days` now reads 0 beside non-zero tallies once a direction's weight is under `SPAN_FLOOR_N`: a reader takes that as "nothing recent", never as "never observed". Control: the mutant `r3_span_never_ages` fails the section's span check. In `docs/design/2026-11-10-duty-switch-restart-learning/design.md`, "Part A as built"; owed to the same brief. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
+- The heated gate is decided per set-point unit, and on a water unit it compares the inlet with the commanded set-point, which `_flow_target` keeps at or above the inlet plus the minimum lift up to the heating ceiling: a hot water to space switch there counts only with the return `HEATED_MARGIN_K` over that ceiling (the section's return and flow rows, one each side of the bound). On the indoor unit every switch after a source leg of `SOURCE_LEG_MIN_S` counts. So evidence accrues at different rates per unit, and a part reading n must not assume otherwise. Controls: `r3_unit_gate_dropped` and `r3_unit_gate_inverted`. Re-measure with the section at that part's merge base. In the design note's "Part A as built"; owed to the same brief. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
+
 
 ## Friction
 
@@ -446,12 +507,6 @@ Every site below is the list `tools/pr/ci_predict.py --base origin/main --only m
   "new": "explained = ctx.void_cause() is not None"
  },
  {
-  "name": "void_no_signal_pass",
-  "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "if explained or not signal:",
-  "new": "if explained:"
- },
- {
   "name": "void_no_signal_edge",
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
   "old": "return self._close(ep, True, None) if ep.checked else self._void(ep)",
@@ -508,8 +563,8 @@ Every site below is the list `tools/pr/ci_predict.py --base origin/main --only m
  {
   "name": "heated_margin",
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "ctx.inlet_c - ctx.space_setpoint_c >= HEATED_MARGIN_K",
-  "new": "ctx.inlet_c - ctx.space_setpoint_c >= -100.0"
+  "old": "ctx.inlet_c - ctx.water_setpoint_c >= HEATED_MARGIN_K",
+  "new": "ctx.inlet_c - ctx.water_setpoint_c >= -100.0"
  },
  {
   "name": "heated_source_leg",
@@ -520,8 +575,8 @@ Every site below is the list `tools/pr/ci_predict.py --base origin/main --only m
  {
   "name": "heated_direction_gate",
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "if direction == \"dhw_space\" and ctx.inlet_c is not None:",
-  "new": "if ctx.inlet_c is not None:"
+  "old": "if direction == \"dhw_space\" and ctx.inlet_c is not None and ctx.water_setpoint_c is not None:",
+  "new": "if ctx.inlet_c is not None and ctx.water_setpoint_c is not None:"
  },
  {
   "name": "window_stop_inside",
@@ -862,14 +917,14 @@ Every site below is the list `tools/pr/ci_predict.py --base origin/main --only m
  {
   "name": "rv_gate_setpoint",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "inlet_c=_flow_inlet_c(inp), space_setpoint_c=command.space_setpoint,",
-  "new": "inlet_c=_flow_inlet_c(inp), space_setpoint_c=0.0,"
+  "old": "inlet_c=_flow_inlet_c(inp), water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,",
+  "new": "inlet_c=_flow_inlet_c(inp), water_setpoint_c=0.0 if _flow_unit(inp.config) else None,"
  },
  {
   "name": "rv_gate_inlet",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "inlet_c=_flow_inlet_c(inp), space_setpoint_c=command.space_setpoint,",
-  "new": "inlet_c=None, space_setpoint_c=command.space_setpoint,"
+  "old": "inlet_c=_flow_inlet_c(inp), water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,",
+  "new": "inlet_c=None, water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,"
  },
  {
   "name": "rv_reader_power_threshold",
@@ -894,6 +949,204 @@ Every site below is the list `tools/pr/ci_predict.py --base origin/main --only m
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
   "old": "duty_switch.note_mode_write(learner, now, replaced[0] if replaced else None, mode, context)",
   "new": "duty_switch.note_mode_write(learner, now, None, mode, context)"
+ },
+ {
+  "name": "r2_interrupt_unchecked_void",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "return self._void(ep) if ep.stop_at is None else self._close(ep, True, None)",
+  "new": "return self._void(ep)"
+ },
+ {
+  "name": "r2_edge_none_checked",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "return self._close(ep, True, None) if ep.checked else self._void(ep)",
+  "new": "return self._void(ep)"
+ },
+ {
+  "name": "r2_explained_mode_stamp",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "explained = ctx.void_cause() is not None or ctx.mode_written_at != ep.at",
+  "new": "explained = ctx.void_cause() is not None"
+ },
+ {
+  "name": "r2_book_at_now_not_write",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "        day = when.date()\n        self.first_day, self.last_day = self.first_day or day, max(self.last_day or day, day)",
+  "new": "        day = when.date()\n        self.first_day, self.last_day = day, max(self.last_day or day, day)"
+ },
+ {
+  "name": "r2_weights_no_clamp",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "age_s = max(0.0, utc_elapsed_seconds(when, self.decayed_at))",
+  "new": "age_s = utc_elapsed_seconds(when, self.decayed_at)"
+ },
+ {
+  "name": "r2_running_ignores_pending",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is True"
+ },
+ {
+  "name": "r2_attach_not_idempotent",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "if rec.unsub is not None or not entity:",
+  "new": "if not entity:"
+ },
+ {
+  "name": "r2_attach_no_first_read",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "    rec.unsub = async_track_state_change_event(rec.hass, [entity], _changed)\n    note_signal(rec, dt_util.now())",
+  "new": "    rec.unsub = async_track_state_change_event(rec.hass, [entity], _changed)"
+ },
+ {
+  "name": "r2_detach_keeps_tracker",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "rec.unsub, rec.reader, rec.tracker, rec.learner.episode = None, None, wear.EdgeTracker(), None",
+  "new": "rec.unsub, rec.reader, rec.learner.episode = None, None, None"
+ },
+ {
+  "name": "r2_pass_after_gate",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))\n    if mode != DUTY_CONTROL or _pump_off(inp):\n        return",
+  "new": "    if mode != DUTY_CONTROL or _pump_off(inp):\n        return\n    await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))"
+ },
+ {
+  "name": "r2_ctx_defrost_entity",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "defrosting=bool(defrost_interval(inp.defrosting)) or _lit(inp, CONF_HEAT_PUMP_DEFROST_ENTITY),",
+  "new": "defrosting=bool(defrost_interval(inp.defrosting)),"
+ },
+ {
+  "name": "r2_ctx_defrost_interval",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "defrosting=bool(defrost_interval(inp.defrosting)) or _lit(inp, CONF_HEAT_PUMP_DEFROST_ENTITY),",
+  "new": "defrosting=_lit(inp, CONF_HEAT_PUMP_DEFROST_ENTITY),"
+ },
+ {
+  "name": "r2_ctx_booster_only",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "electric_heat=_lit(inp, CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY, CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY),",
+  "new": "electric_heat=_lit(inp, CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY),"
+ },
+ {
+  "name": "r2_ctx_boost_space_only",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "for c in (boost.CHANNEL_SPACE, boost.CHANNEL_DHW)),",
+  "new": "for c in (boost.CHANNEL_SPACE,)),"
+ },
+ {
+  "name": "r2_ctx_economy_dropped",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "plan_control=inp.mode in (MODE_AUTO, MODE_ECONOMY) and duty_mode(inp.config) == DUTY_CONTROL,",
+  "new": "plan_control=inp.mode in (MODE_AUTO,) and duty_mode(inp.config) == DUTY_CONTROL,"
+ },
+ {
+  "name": "r2_gate_dhw_demand",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "if target == \"space\" else _reads_below(tank, inp.params.dhw_setpoint),",
+  "new": "if target == \"space\" else True,"
+ },
+ {
+  "name": "r2_gate_plan_now_only",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "for at in (now, utc_shift(now, timedelta(seconds=duty_switch.STOP_WINDOW_S)))),",
+  "new": "for at in (utc_shift(now, timedelta(seconds=duty_switch.STOP_WINDOW_S)),)),"
+ },
+ {
+  "name": "r2_gate_both_dropped",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "plan_stays=all(step_duty(inp.plan, at) in (target, \"both\")",
+  "new": "plan_stays=all(step_duty(inp.plan, at) in (target,)"
+ },
+ {
+  "name": "r2_reader_freq_floor_arg",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "return resolve_reading(None, sensor, states.get, 0.0, 0.0)[0], None, None, True",
+  "new": "return resolve_reading(None, sensor, states.get, 0.0, 0.0)[0], None, None, False"
+ },
+ {
+  "name": "r2_sensor_order",
+  "file": "custom_components/heatpump_optimizer/sensor.py",
+  "old": "return {**starts, **duty_switch.starts_attributes(self.coordinator)}",
+  "new": "return {**duty_switch.starts_attributes(self.coordinator)}"
+ },
+ {
+  "name": "r2_tracker_pending_reset",
+  "file": "custom_components/heatpump_optimizer/wear.py",
+  "old": "        if self.pending is None or self.pending[0] != running:\n            self.pending = (running, when)",
+  "new": "        self.pending = (running, when)"
+ },
+ {
+  "name": "r2_load_marks_loaded_on_fail",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "            _LOGGER.debug(\"Could not load the duty-switch record: %s\", err)\n            return False",
+  "new": "            _LOGGER.debug(\"Could not load the duty-switch record: %s\", err)\n            rec.loaded = True\n            return False"
+ },
+ {
+  "name": "r2_tally_bool",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "return isinstance(value, int) and _stored_number(value, _TALLY_MAX)",
+  "new": "return _stored_number(value, _TALLY_MAX)"
+ },
+ {
+  "name": "r2_void_not_counted",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "        self.episode = None\n        self.directions[ep.direction].void += 1",
+  "new": "        self.episode = None"
+ },
+ {
+  "name": "r3_unit_gate_dropped",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,",
+  "new": "water_setpoint_c=command.space_setpoint,"
+ },
+ {
+  "name": "r3_unit_gate_inverted",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,",
+  "new": "water_setpoint_c=None,"
+ },
+ {
+  "name": "r3_heated_no_setpoint_refuses",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "if direction == \"dhw_space\" and ctx.inlet_c is not None and ctx.water_setpoint_c is not None:",
+  "new": "if direction == \"dhw_space\" and ctx.inlet_c is not None and ctx.water_setpoint_c is None:\n        return False\n    if direction == \"dhw_space\" and ctx.inlet_c is not None:"
+ },
+ {
+  "name": "r3_span_never_ages",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N",
+  "new": "aged_out = False"
+ },
+ {
+  "name": "r3_span_floor_inclusive",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "self.n < SPAN_FLOOR_N",
+  "new": "self.n <= SPAN_FLOOR_N"
+ },
+ {
+  "name": "r3_span_floor_value",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "SPAN_FLOOR_N = 0.5",
+  "new": "SPAN_FLOOR_N = 0.25"
+ },
+ {
+  "name": "r3_span_change_unreported",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "return self._latch() or aged_out",
+  "new": "return self._latch()"
+ },
+ {
+  "name": "r3_span_last_day_kept",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "self.first_day = self.last_day = None",
+  "new": "self.first_day = None"
+ },
+ {
+  "name": "r3_span_reported_always",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N",
+  "new": "aged_out = self.n < SPAN_FLOOR_N"
  }
 ]
 ```
