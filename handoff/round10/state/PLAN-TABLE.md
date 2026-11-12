@@ -561,7 +561,7 @@ Not-started sibling of R10-TICK-RESIDUE (PR #3425 holds a merge verdict at c9390
 | R10-RELAY-ARM-ORDER | IN | 1 | carries-open | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch182.md#P601 at f18bee99d1
 
 New S group (every group listing cloud_relay.sh is done/absorbed except R10-REVIEW-DISPATCH-R... |  |
-| R10-MUTANT-RUN-FORKCAP | IN | 1 | in-progress | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch183.md#P604 at d4369dc3a4
+| R10-MUTANT-RUN-FORKCAP | IN | 1 | carries-open | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch183.md#P604 at d4369dc3a4
 
 New S group (no carry_receivable group lists mutant_run.py). |  |
 | R10-CODEQL-PR-PATHS | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch184.md#P606 at 484fa0d3b3
