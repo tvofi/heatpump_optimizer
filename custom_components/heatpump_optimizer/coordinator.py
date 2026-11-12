@@ -7717,11 +7717,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
 
     async def async_publish_current_action(self, reason: str = "optimizer", heat_pump_on: bool | None = None) -> None:
-        """Publish MQTT command for the currently selected optimizer action.
-
-        ``heat_pump_on`` is the cycle's own switch write where it made one, so
-        the legacy body never disagrees with the switch (carry 30ec8edf).
-        """
+        """Publish the current action's MQTT command; ``heat_pump_on``, given, is the cycle's switch write."""
         if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
             return
         await self.async_publish_ecl110_command(
