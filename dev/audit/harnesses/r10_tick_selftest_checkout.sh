@@ -28,10 +28,12 @@
 #   nocheckout  the HPO_TICK_CODE_DIR export back below the TICK-GH rows
 #   gitenv      throwaway_git_env back below the heartbeat rows
 #   plaingh     the no-shim row's own plain gh taken off its PATH
+#   envscrub    the line dropping the caller's HPO_TICK_* and HPO_SWEEP_MANDATE deleted
+#   pipefail    the self-test's `set +o pipefail` deleted
 # A mutant arm needs the `# mut:selftest-*` markers and says so on a <rev> without them.
 # No arm named runs the five shapes.
 set -uo pipefail
-rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh]...}; shift
+rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|pipefail]...}; shift
 [ $# -gt 0 ] || set -- branch detached gitdir shim level
 top=$(git rev-parse --show-toplevel) || exit 2
 sha=$(git -C "$top" rev-parse --verify -q "$rev^{commit}") || { echo "no commit $rev"; exit 2; }
@@ -110,6 +112,10 @@ elif arm == "plaingh":
     i = marked("selftest-plaingh")
     assert 'PATH="$t/bare:$PATH" ' in s[i]
     s[i] = s[i].replace('PATH="$t/bare:$PATH" ', "")
+elif arm == "envscrub":
+    s.pop(marked("selftest-envscrub"))
+elif arm == "pipefail":
+    s.pop(marked("selftest-pipefail"))
 else:
     assert arm == "whole"
 open(p, "w").write("\n".join(s))
@@ -123,7 +129,7 @@ echo "rev $sha"
 for arm in "$@"; do
   case $arm in
     branch|detached|gitdir|shim|level) shape "$arm" ;;
-    whole|nocheckout|gitenv|plaingh) mutant "$arm" ;;
+    whole|nocheckout|gitenv|plaingh|envscrub|pipefail) mutant "$arm" ;;
     *) echo "unknown arm '$arm'"; exit 2 ;;
   esac
 done

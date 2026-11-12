@@ -193,8 +193,15 @@ tick_loop_self_test() (
   # A row's verdict is its reader's. Under pipefail a `grep -q` that leaves at its match can kill
   # the printf feeding it (141), and the row reads a match as none: prepr.sh's PIPE_GREP_Q class,
   # seen here under load as one stray FAIL in a different row each time.
-  set +o pipefail
+  set +o pipefail  # mut:selftest-pipefail
+  # The loop's own variables a caller may hold (a pass exports HPO_TICK_RESTARTED to all it starts)
+  # are dropped before the first row: every HPO_TICK_* but the nesting flag, and the sweep's mandate.
+  for v in $(compgen -v HPO_TICK_) HPO_SWEEP_MANDATE; do [ "$v" = HPO_TICK_SELFTEST_NESTED ] || unset "$v"; done  # mut:selftest-envscrub
   t=$(mktemp -d) || { echo "tick_loop self-test: no temporary directory"; return 1; }
+  # 2 MB after the match makes the SIGPIPE certain: with pipefail on, this row reads its match as none.
+  out=$(head -c 2097152 /dev/zero | tr '\0' x)
+  printf 'MATCH\n%s\n' "$out" | grep -q '^MATCH$'
+  ck "a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match" $?
   ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
   printf '#!/bin/bash\necho "relay $*" >> "%s/order"; exit "${RELAY_RC:-0}"\n' "$t" > "$t/relay.sh"
   printf '#!/bin/bash\necho "tick $*" >> "%s/order"; echo BOARD; exit "${TICK_RC:-0}"\n' "$t" > "$t/tick.sh"
@@ -384,7 +391,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     throwaway_git_clone -q "$t/n.git" "$t/nb"
     printf '# ahead\n' >> "$t/n/tools/audit/seat/tick_loop.sh"
     git -C "$t/n" commit -qam ahead && git -C "$t/n.git" fetch -q "$t/n" main:main
-    for c in nd nh; do cp -R "$t/nb" "$t/$c"; git -C "$t/$c" checkout -q --detach; done
+    for c in nd nh ne; do cp -R "$t/nb" "$t/$c"; git -C "$t/$c" checkout -q --detach; done
     throwaway_git_clone -q "$t/n.git" "$t/n0"
     nest() { # <checkout> [VAR=value...]: the clone's own self-test, none of this run's overrides inherited
       local c=$1 h; shift; h=$(git -C "$c" rev-parse HEAD)
@@ -398,6 +405,10 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     ck "the self-test run from a detached checkout behind origin/main passes and does not move its HEAD" $?
     nest "$t/nh" GIT_DIR="$t/nh/.git" GIT_WORK_TREE="$t/nh"
     ck "the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD" $?
+    nest "$t/ne" HPO_TICK_CODE_DIR="$t/ne" HPO_TICK_RESTARTED=1 HPO_TICK_STALE_BOUND=0 HPO_TICK_RELAY_WAIT=0 \
+      HPO_TICK_SWEEP_EVERY=0 HPO_TICK_SWEEP_CMD=false HPO_SWEEP_MANDATE=x HPO_TICK_RELAY="$t/absent.sh" HPO_TICK_CMD=false \
+      HPO_TICK_HEARTBEAT="$t/absent.sh"
+    ck "the self-test run with every loop variable set in the caller's environment, HPO_TICK_CODE_DIR naming a detached checkout behind origin/main, passes and does not move its HEAD" $?
     [ "$(git -C "$t/n0" rev-list --count HEAD..origin/main)" = 0 ] && nest "$t/n0"
     ck "null control: a branch checkout at origin/main (behind 0) passes and stays put" $?
   fi
