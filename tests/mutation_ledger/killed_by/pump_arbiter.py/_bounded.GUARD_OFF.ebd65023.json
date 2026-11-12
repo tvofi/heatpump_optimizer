@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_bounded GUARD_OFF ebd65023",
+  "killed_by": "tests/block_duty.py",
+  "old": "    if hi is not None and (low is None or hi >= quantise_setpoint_c(inp.hass, entity, low, rounding=\"up\")):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=6."
+}

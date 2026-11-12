@@ -585,6 +585,47 @@ def _cycle_grid_over_hard_max():
     return bad
 
 
+#: The no-cycle arms of the census: the cycle enabled and not running (no
+#: booking, the switch not held), and the cycle disabled (switch held).
+_NOCYCLE_ARMS = {"idle": dict(cycle=True), "disabled": dict(cycle=False, disinfecting=True)}
+
+
+def _nocycle_grid_over_limit(arm):
+    """Every (step, everyday, disinfection) whose no-cycle write in ``arm``
+    exceeds the charge limit (``dhw_max_temp``) the same parameters state, or
+    is no write at all. Asserts its preconditions first: every row is one no
+    cycle runs on, and every step size but the finest holds an off-step
+    everyday set-point, so a narrowed grid refuses."""
+    kw = _NOCYCLE_ARMS[arm]
+    pairs = [(e, d) for e in _GRID_TEMPS[:-1] for d in _GRID_TEMPS]
+    assert all(any(abs(e / s - round(e / s)) > 1e-9 for e in _GRID_TEMPS[:-1]) for s in _GRID_STEPS[1:])
+    bad = []
+    for step in _GRID_STEPS:
+        for e, d in pairs:
+            snap = _dhw_snap(configured=e, disinfection=d, attrs=_step(step), **kw)
+            assert (snap.params.dhw_cycle_temp is None) == (arm == "disabled") and not snap.action
+            assert snap.params.dhw_cycle_temp is None or not snap.disinfecting
+            w = _written(snap, "dhw")
+            if w is None or w > snap.params.dhw_max_temp + 1e-9:
+                bad.append((step, e, d, w, snap.params.dhw_max_temp))
+    return bad
+
+
+def _repair_grid_over_hard_max():
+    """Every (step, everyday, disinfection) whose repair Fix, on an install the
+    arbiter does not write and a pump reading of 30, exceeds the tank's hard
+    maximum the repair's own parameters state."""
+    bad = []
+    for step in _GRID_STEPS:
+        for e in _GRID_TEMPS[:-1]:
+            for d in _GRID_TEMPS:
+                snap = _dhw_snap(configured=e, disinfection=d, attrs=_step(step), reading=30.0)
+                fix = _fix_value(snap, arbiter=False)
+                if fix is None or fix > snap.params.dhw_hard_max_temp + 1e-9:
+                    bad.append((step, e, d, fix, snap.params.dhw_hard_max_temp))
+    return bad
+
+
 def disinfection_checks() -> None:
     """A disinfection cycle holds its own temperature, not the everyday set-point."""
     written = _written
@@ -638,7 +679,39 @@ def disinfection_checks() -> None:
         "an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard "
         "maximum is the everyday set-point there (the everyday step's own nearest write is main's)",
         lambda: written(_dhw_snap(disinfecting=True, configured=58.0, disinfection=50.0, attrs=_step(5)), "dhw") == 55.0
-        and written(_dhw_snap(configured=58.0, disinfection=50.0, attrs=_step(5)), "dhw") == 60.0,
+        and written(_dhw_snap(configured=58.0, disinfection=50.0, attrs=_step(5)), "dhw") == 55.0,
+    )
+    check(
+        "no no-cycle write exceeds the charge limit (dhw_max_temp), the cycle enabled and not running "
+        "or disabled, over every step size and everyday set-point on and off the step",
+        lambda: _nocycle_grid_over_limit("idle") == [] and _nocycle_grid_over_limit("disabled") == [],
+    )
+    check(
+        "an off-step everyday set-point is written on the step at or below it, never rounded up "
+        "(everyday 58, step 5: 55, not 60; everyday 60.7, step 1: 60), the cycle idle or disabled",
+        lambda: all(written(_dhw_snap(configured=58.0, attrs=_step(5), **kw), d) == 55.0
+                    and written(_dhw_snap(configured=60.7, attrs=_step(1), **kw), d) == 60.0
+                    and written(_dhw_snap(configured=60.3, attrs=_step(0.5), **kw), d) == 60.0
+                    for kw in _NOCYCLE_ARMS.values() for d in (None, "idle", "dhw", "both")),
+    )
+    check(
+        "a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses",
+        lambda: written(_dhw_snap(configured=25.0, cycle=False), "dhw") == 30.0
+        and written(_dhw_snap(configured=25.4, cycle=False, attrs={"min": 30.5, "max": 65, "step": 0.5}), "dhw") == 30.5
+        and written(_dhw_snap(configured=25.0, cycle=False, attrs={"min": 30.4, "max": 65, "step": 1}), "dhw") == 31.0
+        and written(_dhw_snap(configured=30.6, cycle=False, attrs={"min": 30.4, "max": 65, "step": 1}), "dhw") == 31.0
+        and written(_dhw_snap(configured=72.0, cycle=False, attrs={"min": 70, "max": 80, "step": 1}), "dhw") == 70.0
+        and written(_dhw_snap(configured=58.0, cycle=False, attrs={"max": 65, "step": 5}), "dhw") == 55.0,
+    )
+    check(
+        "the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every "
+        "step size and pair, and an off-step floor's repair stands down at the step below it",
+        lambda: _repair_grid_over_hard_max() == []
+        and _fix_value(_dhw_snap(disinfection=60.3, reading=60.0), arbiter=False) is None
+        and _fix_value(_dhw_snap(disinfection=60.3, reading=59.0), arbiter=False) == 60.0
+        and _fix_value(_dhw_snap(disinfection=60.3, reading=60.0 - setpoint_check.MIXING_VALVE_WRITE_EPSILON),
+                       arbiter=False) is None
+        and _fix_value(_dhw_snap(disinfection=72.0, reading=69.0, attrs=_step(1)), arbiter=False) == 70.0,
     )
     check(
         "a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum",
