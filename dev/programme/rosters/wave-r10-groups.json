@@ -14392,7 +14392,7 @@
     "Moved from R10-TRAIN-RESIDUE-P2 (carry dispositions 2026-11-12): Moved from R10-TRAIN-MERGE-LOOP-2 carry 18 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom r10-rca-livehead-cancel, body item 7bd3e57f: The finding changes the orchestrator's next pass: name the process sending `@tvofi` cancels at live heads (RCA section 6), then either land P267's bounded pause or refuse at that seat's cancel path. This seat's write scope is its return refs, so it cannot write that brief. Carry: R10-TRAIN-MERGE-LOOP-2 (live merge_train.py seam; re-homed from the refused R10-CI-PRIORITY-PAUSE, which carried P267's bounded pause; the orchestrator names the sender first, `dev/audit/rca/r10-livehead-cancel.md` section 6). (items 7bd3e57f)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-ci-priority-pause",
     "commit": null,
     "last_step": null,
