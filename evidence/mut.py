@@ -13,9 +13,15 @@ M = [
  ("J relay stale bound 15 -> 100", "tools/audit/seat/hooks/liveness.py", '_env_min("HPO_RELAY_STALE_MIN", 15)', '_env_min("HPO_RELAY_STALE_MIN", 100)'),
  ("K proof never clears marker", "tools/audit/seat/hooks/liveness.py", '    (state / "compact-owed").unlink()', '    pass'),
  ("L --train-state not passed to snapshot", "tools/audit/seat/pulse.py", 'repo_of(a.checkout, a.remote), a.train_state)', 'repo_of(a.checkout, a.remote), None)'),
+ ("M launch env records every variable", "tools/audit/seat/beatd.py", 'for k, v in os.environ.items() if k.startswith("HPO_")}', 'for k, v in os.environ.items()}'),
+ ("N launch records cwd as /", "tools/audit/seat/beatd.py", '"cwd": os.getcwd()', '"cwd": "/"'),
+ ("O launch argv drops the interpreter", "tools/audit/seat/beatd.py", '"argv": [sys.executable, *sys.argv]', '"argv": [*sys.argv]'),
+ ("P snapshot_live train guard off", "tools/audit/seat/pulse.py", '    if train_state:\n        snap["train"]', '    if False:\n        snap["train"]'),
 ]
 TESTS = [["tools/audit/seat/hooks_setup.py","--self-test"],["tools/audit/seat/pulse.py","--self-test"]]
+ONLY=sys.argv[2:]
 for label, f, old, new in M:
+    if ONLY and label.split()[0] not in ONLY: continue
     p = root / f; t = p.read_text()
     n = t.count(old)
     if n != 1:

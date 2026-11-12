@@ -1,33 +1,26 @@
-Fix review: blocked 907c15d3755fa459b6bd91333fdc2a2828d47995 mutation-vacuous: beatd floor refusal disabled; beatd launch.json never written; pulse snapshot_live never reads the train; --train-state never passed to snapshot_live
+Fix review: merge 84113541350889c7dc1472a3977ab526b55e4bf2
 
-bus-nonce: d7a360748e386c9bd5ddd1b0627d7c85
+bus-nonce: 841f3e53d5fed0dcd0cc5c9740d0a035
 
-## Block
+## Summary
 
-Round 1. Handoff review at head 907c15d3755fa459b6bd91333fdc2a2828d47995 (refs/heads/handoff/r10-standing-contracts-p2 still points at it), body 22884c42 (refs/heads/handoff-body/r10-standing-contracts-p2), merge base 2ced371c1a.
-
-The body says carry 21 is built: "beatd.py records its launch and refuses an interpreter below 3.12 naming it", and says carry 23's pulse "reads the train ... (--train-state, default $HPO_STATE_DIR/merge_train)". I mutated four of the lines that do this work. hooks_setup.py --self-test and pulse.py --self-test both stay green at rc 0 under each one (ev/reviewer-mutants-run1.txt):
-
-- A: in beatd.py cmd_run, `if sys.version_info < FLOOR:` replaced with `if False:`. It survives. The only case covering this, "beatd: refuses to start under an interpreter older than the floor, naming it", greps beatd.py's source for `FLOOR = (3, 12)` and the message text. It never runs cmd_run, so the refusal is not tested. Carry 21 asks for "a planted case and a null control" per arm. This arm has neither.
-- B: in beatd.py, the `launch.json` write renamed to `launch.jsonX`. It survives. The restart cases plant launch.json by hand, so nothing checks that beatd records the launch the restart arm replays.
-- I: in pulse.py snapshot_live, `snap["train"] = read_train(train_state)` replaced with `pass`. It survives.
-- L: in pulse.py main, `a.train_state` passed to snapshot_live replaced with `None`. It survives. With I, this means the live path (`--train-state` through snapshot_live to judge_verdict) is untested. Only judge_verdict over a fixture `train`, and read_train called directly, are covered. Carry 23's measured symptom, 13 STOPPED at 01:10Z, is a symptom of that live path.
-
-Each needs a case that runs the behaviour, and the mutant above must fail it. Examples: run cmd_run with FLOOR set above the running interpreter and expect the Refuse message naming sys.executable. Run `beatd.py run --once` on a fixture state and read launch.json back. Drive main()/snapshot_live with `--train-state` on a planted spool, or move the train read into a seam that the snapshot test covers.
+Round 2, delta review of handoff/r10-standing-contracts-p2 (PR 3494). Previous head 907c15d3755fa459b6bd91333fdc2a2828d47995 was blocked mutation-vacuous with four survivors (A floor refusal, B launch.json, I snapshot_live train read, L --train-state pass-through). The delta 907c15d3..84113541 is one commit, 8411354135, touching only tools/audit/seat/hooks_setup.py (self-test cases plus two registered mutants) and tools/audit/seat/pulse.py (self-test live-path case). It changes no production line under custom_components/, so the scope does not widen. All four earlier survivors are now killed. No survivor remains in my run.
 
 ## Findings
 
-- The body's first line says it "forward-carries 24", but `## Forward-carry` says none and the Carry 24 line says not answered here. The brief and the second commit (907c15d375) say carry 24 is deferred to a later part. The re-cut body should say one thing. Carry: dismissed: settled by the re-cut this block requires
-- pulse.py `--train-state` defaults to None when HPO_STATE_DIR is unset. merge_train.py's `--state-dir` falls back to ~/.local/state/hpo/merge_train instead (merge_train.py:9284). Under an unset HPO_STATE_DIR, pulse reads no train and counts the pre-PR STOPPED set. That fails safe, but it is a second spelling of the train's default. Carry: dismissed: fails safe to the pre-PR count; the re-cut may take merge_train's default through the same seam as the block's case I/L
+- The body's `## Mutation proof` says "dropping the spool read fails 1". At this head it fails 2: the new live-path case also goes red (ev/head-body-figures.txt). The figure was carried unchanged from the earlier head. It understates the kill, so no claim fails. Carry: dismissed: understated figure from the earlier head; the mutant is killed more strongly than claimed
 
 ## Evidence
 
-- RESULT hooks_setup.py --self-test: head 58 checks 0 failed (ev/head-hooks_setup.py.txt); merge base 39 checks 0 failed (ev/base-hooks_setup.py.txt). No instrument self-test is red at the head that was green at the base.
-- RESULT pulse.py --self-test: head 64 checks 0 failed; merge base 60 checks 0 failed (ev/head-pulse.py.txt, ev/base-pulse.py.txt).
-- RESULT the body's in-tree mutants: all six new hooks_setup MUTANTS are killed inside the head's self-test (rc 0). I re-derived the body's pulse figures. Answer filter replaced with `is not None` gives 2 failed. Spool read dropped gives 1 failed. Both match the body (ev/reviewer-mutants.txt).
-- RESULT reviewer mutants killed: C (overlay checkouts ignored), D (restart drops HPO_* env), E (restart ignores recorded cwd), F (corpus never written on compaction), G (HELD never matches), H (dead train still holds), J (relay stale bound 15 to 100; killed through the in-tree mutant anchor), K (proof never clears the marker). Driver: ev/mut.py.
-- I checked carries 21, 22, 23 and 27 against roster branch handoff/audit-r10-roster at 2eadb4e258c936e85d635899223dec0b82c840f3, group R10-STANDING-CONTRACTS-P2, carry indices 21, 22, 23 and 27. Carry 22's three constraints are met in the diff: restart is beatd only, the relay is judged by log age, and the proof line names no session path (asserted by the `"session" not in proof` case). Carry 27's HANDOVER edit is present. Carry 16: ae1971474 is an ancestor of origin/main.
-- `git merge-tree --write-tree origin/main 907c15d3` exits 0 with no conflict (ev/merge-tree.txt).
-- VERSION, the manifest, RELEASE_NOTES.md, claim files, golden fixtures, *_budgets.json and tests/closures.json are untouched in the three-dot diff. The diff adds no new file.
-- No pull request exists yet, so there are no CI checks to read, no review packet and no red check to answer. `merge_train.py owed-reds` prints coverage-ratchet, fast (3.14), mutation, typing and validate-hacs, and none of them has run on this head.
-- Head re-read before return: refs/heads/handoff/r10-standing-contracts-p2 = 907c15d3755fa459b6bd91333fdc2a2828d47995.
+- Finder's harness at both ends (ev/mut.py is the previous reviewer's driver from probe/revt-r10-standing-contracts-p2-d7a36074 ev/mut.py, extended with M to P and an optional label filter):
+  - RESULT at 907c15d3 (ev/prev-reviewer-mutants.txt): A, B, I and L all SURVIVED. hooks_setup 58 checks, 0 failed. pulse 64 checks, 0 failed. This reproduces the earlier block.
+  - RESULT at 84113541 (ev/head-reviewer-mutants.txt): A to L all KILLED. A and B kill hooks_setup.py. I and L kill pulse.py. C to H, J and K are still killed.
+  - RESULT reviewer's new targeted mutants on the repaired arms at 84113541, all KILLED: M (launch.json records every env variable, not just HPO_*), N (records cwd as /), O (argv drops the interpreter), P (snapshot_live `if train_state:` set to False).
+- Null control: the un-mutated head passes. hooks_setup.py --self-test prints "61 checks, 0 failed" at rc 0 and kills its in-tree MUTANTS, including the two new beatd arms (ev/head-hooks_setup.py.txt). pulse.py --self-test prints "66 checks, 0 failed" at rc 0 (ev/head-pulse.py.txt). The new cases carry their own null controls: beatd at the floor starts and records, and an absent train state holds nothing, so the verdict is STOPPED. Each passes un-mutated, and each is the counterpart of a planted case that the mutants turn red.
+- Body figures re-derived at 84113541 (ev/head-body-figures.txt). Answer filter changed to `is not None`: 2 failed, which matches the body. Spool read dropped: 2 failed, where the body says 1 (see Findings).
+- Previous verdict's findings: (1) the "forward-carries 24" contradiction is resolved in the handoff body. BODY.md at handoff-body/r10-standing-contracts-p2 now reads "defers 24". PR 3494's live body still has the old line and the old head 88417939, because the PR has not taken the handoff yet. Updating it is the orchestrator's job when it lands this head, not a defect of this head. (2) The second spelling of the train default under an unset HPO_STATE_DIR was dismissed with a Carry in round 1. The delta leaves it unchanged, and it still fails safe.
+- Head: BODY.md `## Head` names 84113541350889c7dc1472a3977ab526b55e4bf2. refs/heads/handoff/r10-standing-contracts-p2 still read 84113541350889c7dc1472a3977ab526b55e4bf2 before return.
+- `git merge-tree --write-tree origin/main 84113541` (origin/main 0b276e8c0c) exits 0, tree c72d8e9c0c, no conflict (ev/merge-tree.txt).
+- The three-dot diff against main touches only HANDOVER.md, beatd.py, liveness.py, hooks_setup.py, instruments/hooks_setup.py.md and pulse.py. It leaves VERSION, the manifest, RELEASE_NOTES.md, claim files, golden fixtures, *_budgets.json and tests/closures.json untouched, and adds no new file.
+- CI: PR 3494 exists, but its head is 88417939, not this handoff head. No review packet exists and no CI has run on 84113541, so there is no red check to answer. `merge_train.py owed-reds` names coverage-ratchet, fast, mutation, typing and validate-hacs; none has run on this head.
+- Role contract: fix-review.md on main differs from the merge base in wording only. I followed the version rendered from main by role_pack.py.
