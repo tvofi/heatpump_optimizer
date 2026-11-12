@@ -71,8 +71,7 @@ none yet at this head (CI not run).
 
 ## Forward-carry
 
-- Whether away mode should lower the mold-safe floor (Carry 4) is a product question for tvofi, not a docs change; the pages state the interaction as built. Carry: R10-USER-DOCS-VERIFY (pending owner ruling)
-- The README coffee badge's dark fill is 2.3:1 against a light host when the OS is dark and the host light; the fill is the site's `--accent` token, so a change belongs to the site's palette, not this page. Lands in `dev/programme/rosters/wave-r10-groups.json` (this group's entry, pending owner ruling). Carry: R10-USER-DOCS-VERIFY
+none: whether away mode should lower the mold-safe floor is already tvofi's open question in Carry 4 itself, and the badge's 2.3:1 mismatch case is recorded under Carry 7 above for the owner; neither changes how a later stage works.
 
 ## Friction
 
