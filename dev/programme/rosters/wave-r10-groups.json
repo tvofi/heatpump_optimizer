@@ -23206,7 +23206,7 @@
     "R10-GH-READ-RESIDUE-P3 (triage: dev/programme/triage/s6-batch227.md#P683 at be04bca1a9), line numbers at b737e88eee. Severity high, first among this group's carries: tools/audit/seat/shims/seat-gh :123-126 admits a record-issue comment only from python running the baked tree's own tools/pr/gh_comment.py by real path; the train's postmerge (tools/audit/seat/postmerge.py :12) posts from another checkout, so the guard refused the train's own record comment on every merge of 2026-11-12 (#3478, #3468, #3404, #3469), each repaired by a hand postmerge.py --retry. Build the sounder of: the guard admits the caller's own git top level gh_comment.py when tracked and byte-identical to the baked tree's; or postmerge invokes the baked tree's poster by its real path. Pin both arms: the train's postmerge post passes, a raw gh issue comment on a tracker is still refused."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER): triage s14-12 2026-11-11: P596 not-started sibling of R10-GH-READ-RESIDUE (p2 in flight), per orchestrator rule; triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/shims/seat-gh', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/merge_train.py', 'tools/audit/seat/gh_read.py']"
    }
