@@ -26,13 +26,12 @@ MUTANTS = {
     "M0-null (comment edit)": (
         "        # Unreadable boosted time reads as a start nobody saw: unknown.\n",
         "        # Unreadable boosted time reads as a start nobody saw: unknown (null mutant).\n"),
-    "M1-short-tail (a boost summed under 2 h owes 1.5 h)": (
-        "        until = utc_shift(end, SPACE_SETTLE_TAIL)\n",
-        "        until = utc_shift(end, SPACE_SETTLE_TAIL if self.space_boosted is None"
-        " or self.space_boosted >= timedelta(hours=2) else timedelta(hours=1.5))\n"),
+    "M1-full-tail (every sum owes the full tail, the scaling dropped; P3)": (
+        "        until = utc_shift(end, settle_tail(self.space_boosted))\n",
+        "        until = utc_shift(end, SPACE_SETTLE_TAIL)\n"),
     "M2-sum-dropped (each boost counted alone)": (
-        "            self.space_boosted += timedelta(seconds=utc_elapsed_seconds(end, since))\n",
-        "            self.space_boosted = timedelta(seconds=utc_elapsed_seconds(end, since))\n"),
+        "        return self.space_boosted + timedelta(seconds=max(0.0, utc_elapsed_seconds(end, since)))\n",
+        "        return timedelta(seconds=max(0.0, utc_elapsed_seconds(end, since)))\n"),
     "M3-persisted-tail-dropped": (
         "    if held.space_settle_until is not None:\n        boosted = held.space_boosted\n",
         "    if False:\n        boosted = held.space_boosted\n"),
