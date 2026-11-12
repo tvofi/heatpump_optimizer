@@ -1,0 +1,30 @@
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index c87bd19479..afd1c3484c 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -1641,7 +1641,6 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
+         return 0
+ 
+ 
+-<<<<<<< 040b7d95df
+ # Quiet output hides only this named chatter: every other line is a key line (a
+ # merge, an OWED obligation, a failing check name, a SKIP the throughput reader
+ # parses) and prints, so a line a later edit adds shows by default.
+@@ -1688,7 +1687,8 @@ def wire_quiet(a, opts: dict) -> None:
+     """Quiet is the default; `--verbose` or TRAIN_VERBOSE=1 restores the stream."""
+     if not (a.verbose or os.environ.get("TRAIN_VERBOSE") == "1"):
+         opts["log"] = quiet_log(Path(a.state_dir) / "train-full.log")
+-=======
++
++
+ BASELINE_JOBS = 6  # completed same-name runs the one-job pulse takes its p50 and max from
+ 
+ 
+@@ -1729,7 +1729,6 @@ def one_job_pulse(runs, now: float) -> "str | None":
+     p50 = durs[(len(durs) - 1) // 2]
+     return (f"CI waits on 1 job: {name} {el / 60:.0f}m of p50 {p50 / 60:.0f}m / "
+             f"max {durs[-1] / 60:.0f}m ({'normal' if el <= durs[-1] else 'over max'})")
+->>>>>>> 0b276e8c0c
+ 
+ 
+ class Train:

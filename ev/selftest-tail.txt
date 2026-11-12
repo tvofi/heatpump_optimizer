@@ -1,0 +1,5 @@
+  ok   fail closed: the head's job concluded startup_failure is a Stop (rc 2), never a clean read
+  ok   fail closed: the base's job concluded cancelled is a Stop (rc 2), never a clean read
+  ok   fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
+merge_train self-test: 700 checks, 0 failed
+st_rc=0
