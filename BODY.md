@@ -14,7 +14,7 @@ Alternatives: C2 (a `prepr.sh` census arm) covers one step, not the class. C4 (m
 
 ## Head
 
-537d9f048449dc313760a6826a87d496bb4366f8
+c67a466bf8df055f8791d8fb3aec7dc191a32ff9
 
 ## Repair (round 1 verdict at fbf6c4dcd9)
 
@@ -68,6 +68,7 @@ Pending: this is a policy change (`dev/governance/roles/fix-review.md` step 11, 
 
 ## Red checks
 
+- `governance / policy-docs`, at the PR head 242e7c1377 (my handoff 537d9f04 plus a merge of main and the delivery-row commit): `REFUSED replay_cuts: cannot load the first cut of tests/replay.py COST_CUTS: python3 exit 1: AttributeError: module 'replay' has no attribute 'COST_CUTS'. Did you mean: 'COST_BUDGETS'?`, then `FIELD COVERAGE REFUSED` (refused=1 dead=1). Cause: #3477 (R10-HOTFIX-REPLAY-CLASS-CUT) landed on main after that merge. It added `replay.COST_CUTS` and its `field_coverage.mjs` registration together. The step runs the base's pinned `field_coverage.mjs` against the head's tree, so main's registration loaded the head's older `tests/replay.py`. This diff touches neither file. Repaired by merging `origin/main` (both files now come from main), with no other change. `node tools/policy/field_coverage.mjs` and its `--self-test`, `node tools/policy/policy_lint.mjs` and `tools/pr/prepr.sh` are green at this head. Cheaper detector: none could see it at the handoff. `prepr.sh` at 537d9f04 ran against a main that did not yet carry #3477. The red exists only when the base moves after the head, and the merge train re-proves every head on the current main.
 - `tests / fast (3.14)`: main's red (the combi census), inherited at the merge base, cleared by PR #3466. Not this diff's.
 - `governance / instrument-self-tests`: main's failures (roster group R10-HOTFIX-PUSHER-CENSUS, PR #3474), inherited from the merge base. This diff's own rule reads them as not introduced.
 
