@@ -1,8 +1,0 @@
-pr-contract / pr-contract, job 131204918659, run 43219103056, head 5d647dd055d7e08e1073bedbe570257c606b98b3, started 2026-11-12T13:10:24Z, concluded failure 13:11:09Z
-red checks the body must answer: ,tests / nightly-status
-  record   red-history           8 commit(s) between origin/main and this head, every failure conclusion across them: tests / closures, tests / nightly-status
-  ERROR   [pr-body] /tmp/pr-body.md: check `tests / closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-PR-BODY: 1 error(s) in /tmp/pr-body.md
-##[error]Process completed with exit code 1.
-(later steps in the same job: FIGURES: 1 resolved, 1 not verified, 0 refused; CARRY-AUDIT: 1 routed, 0 unrouted; no version edit)
-gate, job 131205355042, run 43219103056: concluded failure 13:11:55Z
