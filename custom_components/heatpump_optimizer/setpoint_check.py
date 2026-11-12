@@ -14,12 +14,14 @@ from .const import MIXING_VALVE_WRITE_EPSILON
 from .entry_config import EntryConfig
 from .issues import clear_issue, set_issue
 from .inputs import (
+    read_temperature_delta_k,
     quantise_setpoint_c,
     read_setpoint,
     setpoint_and_unit,
     temperature_from_c,
 )
 from .quiet_windows import silent_unenforceable
+from .thermal_model import dhw_start_below_c, dhw_step_target_c
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,6 +31,7 @@ ISSUE_SPACE = "space_setpoint_unreadable"
 #: them. A warning, not a fix -- the remedy is an assignment only the
 #: setup diagram (or SW-4's Modbus schedule) can make.
 ISSUE_QUIET = "quiet_silent_not_enforced"
+ISSUE_DHW_START = "dhw_minimum_above_start"
 
 
 class ConfigNotices:
@@ -90,8 +93,37 @@ def _evaluate(coord: Any, gated: Callable[[float], bool] | None) -> None:
     config = coord.effective_config
     params = coord.thermal_params
     _dhw(hass, config, params, gated)
+    _dhw_start(hass, config, params)
     _space(hass, config)
     _quiet(hass, config)
+
+
+def _dhw_start(hass: Any, config: dict[str, Any], params: Any) -> None:
+    """One warning when this pump cannot hold the hot-water minimum.
+
+    A pump with a start hysteresis (``dhw_hysteresis_entity``) starts a charge
+    only below its target less that (``thermal_model.dhw_start_below_c``, on
+    the everyday target), and the plan places no charge it will not start. A
+    minimum above that start temperature is therefore one the tank must fall
+    through before any charge can begin: the plan shows the tank under it,
+    and this says why. Cleared with no hysteresis read.
+    """
+    hysteresis = read_temperature_delta_k(
+        hass, EntryConfig.from_mapping(config).dhw_hysteresis_entity)
+    target = dhw_step_target_c(params, False)
+    start = dhw_start_below_c(target, hysteresis)
+    floor = float(params.dhw_min_temp)
+    set_issue(
+        hass,
+        ISSUE_DHW_START,
+        start is not None and floor > start,
+        placeholders={
+            "floor": f"{floor:.1f}",
+            "start": "" if start is None else f"{start:.1f}",
+            "target": f"{target:.1f}",
+            "hysteresis": "" if hysteresis is None else f"{hysteresis:.1f}",
+        },
+    )
 
 
 def _quiet(hass: Any, config: dict[str, Any]) -> None:

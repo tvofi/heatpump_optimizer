@@ -1875,6 +1875,52 @@ def configured_flow_min_lift_k(config: Any) -> float:
         number if number is not None and number > 0.0 else FLOW_MIN_LIFT_K
     )
 
+def start_flow_min_lift_k(config: Any, start_hysteresis_k: Any = None) -> float:
+    """The modulation floor's lift a heating write uses, K.
+
+    The configured lift (:func:`configured_flow_min_lift_k`), never below the
+    pump's own heating start hysteresis where one is read
+    (``ThermalState.space_start_hysteresis_k``): its controller starts only
+    once the target sits that far above the water, so a floor written closer
+    books heat on a step the pump never starts. The one lift every reader of
+    the floor takes; no hysteresis, or one at or below the configured lift,
+    is the configured lift.
+    """
+    lift = configured_flow_min_lift_k(config)
+    hysteresis = finite_float(start_hysteresis_k)
+    return lift if hysteresis is None or hysteresis <= lift else hysteresis
+
+
+def dhw_step_target_c(params: ThermalParameters, cycle: bool) -> float:
+    """The hot-water target a plan step holds on the pump, °C, before the
+    set-point entity's own step.
+
+    The disinfection cycle's temperature on its step (``dhw_cycle_temp``, at
+    or below the tank's hard maximum), the everyday set-point at or below
+    the charge limit on any other: the two values, with the two bounds,
+    ``pump_arbiter._dhw_write`` writes.
+    """
+    target = params.dhw_cycle_temp if cycle else None
+    if target is None:
+        return min(float(params.dhw_setpoint), float(params.dhw_max_temp))
+    return min(float(target), float(params.dhw_hard_max_temp))
+
+
+def dhw_start_below_c(target_c: Any, start_hysteresis_k: Any) -> float | None:
+    """The tank temperature below which the pump starts a charge, °C, or ``None``.
+
+    The target the step holds less the pump's own hot-water start hysteresis
+    (``ThermalState.dhw_start_hysteresis_k``): its tank thermostat starts a
+    charge only below that, whatever mode it is handed. ``None`` with no
+    target, no hysteresis read, or one not above zero: every charge is then
+    taken to start, which is the pump that starts on the mode alone.
+    """
+    target, hysteresis = finite_float(target_c), finite_float(start_hysteresis_k)
+    if target is None or hysteresis is None or hysteresis <= 0.0:
+        return None
+    return target - hysteresis
+
+
 def on_threshold_kw(params: ThermalParameters) -> float:
     """The MEASURED draw above which the compressor counts as running, in kW.
 
@@ -1929,6 +1975,11 @@ class ThermalState:
     # Hours since the tank was last known to be at anti-legionella temperature.
     # None means "unknown" and is treated as not due.
     dhw_hours_since_legionella: float | None = None
+    # The pump's own start hysteresis per duty, K (``dhw_hysteresis_entity``,
+    # ``space_hysteresis_entity``). None: not configured or unread, and every
+    # planned charge and every heating write is taken to start the pump.
+    dhw_start_hysteresis_k: float | None = None
+    space_start_hysteresis_k: float | None = None
 
     # ECL110 control state
     ecl110_displace_command: float = 0.0  # °C requested parallel shift

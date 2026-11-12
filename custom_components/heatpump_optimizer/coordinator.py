@@ -206,6 +206,7 @@ from .inputs import (
     age_of,
     normalize_price_per_kwh,
     parse_bool,
+    start_hysteresis_k,
     price_per_kwh,
     stale_summary,
     state_power_kw,
@@ -6737,10 +6738,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         plan, seeded_at = self._optimization_result, dt_util.now()
         if dhw.ok:
             self._dhw_temperature = dhw.value
-        combi = _ctx_of(self)._thermal_params.combi_tank_active
-        level, buffer_level = tank_levels(combi, dhw, buffer_reading, plan, seeded_at)
+        level, buffer_level = tank_levels(_ctx_of(self)._thermal_params.combi_tank_active, dhw, buffer_reading, plan, seeded_at)
         state.dhw_temperature = state.dhw_temperature if level is None else level
         state.buffer_tank_temperature = state.buffer_tank_temperature if buffer_level is None else buffer_level
+        state.dhw_start_hysteresis_k, state.space_start_hysteresis_k = start_hysteresis_k(self.hass, _ctx_of(self)._config)
 
         # Wood tank temperature (issue #40): re-read from the physical tank
         # each cycle through the same stale-aware reader — the model never

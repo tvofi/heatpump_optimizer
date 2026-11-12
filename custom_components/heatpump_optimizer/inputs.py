@@ -509,6 +509,43 @@ def read_setpoint(hass: Any, entity_id: str | None) -> float | None:
     return None if reading is None else reading[0]
 
 
+#: The widest temperature difference :func:`read_temperature_delta_k` reads
+#: as one, K: a larger number is a wrong entity (a tank probe, a set-point),
+#: which as a start hysteresis would bar every planned charge.
+TEMPERATURE_DELTA_MAX_K = 20.0
+
+
+def read_temperature_delta_k(hass: Any, entity_id: str | None) -> float | None:
+    """A temperature *difference* in K (a hysteresis), or ``None`` unread.
+
+    The unit's scale without its zero: K and °C stand as they are and °F is
+    scaled by 5/9, where the absolute readers (:func:`normalize_temperature_c`)
+    would read 2 K as -271 °C. A state with no unit is taken as K; a unit
+    outside the temperature family, a non-number, or a value outside 0 to
+    :data:`TEMPERATURE_DELTA_MAX_K` is no reading.
+    """
+    state = hass.states.get(entity_id) if entity_id else None
+    value = finite_float(getattr(state, "state", None))
+    unit = str(state_unit(state) or "").strip()
+    spec = TEMPERATURE_UNIT_TO_C.get(unit) if unit else (0.0, 1.0)
+    if value is None or spec is None:
+        return None
+    delta_k = value * spec[1]
+    return delta_k if 0.0 <= delta_k <= TEMPERATURE_DELTA_MAX_K else None
+
+
+def start_hysteresis_k(hass: Any, config: Any) -> tuple[float | None, float | None]:
+    """The pump's own (hot-water, heating) start hysteresis, K each.
+
+    ``config`` is the entry's ``EntryConfig``; an option left empty or an
+    entity that does not read is ``None`` (:func:`read_temperature_delta_k`).
+    """
+    return (
+        read_temperature_delta_k(hass, config.dhw_hysteresis_entity),
+        read_temperature_delta_k(hass, config.space_hysteresis_entity),
+    )
+
+
 def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, float | None]:
     """The set-point entity's own (min, max) in degC, ``None`` where it states none.
 
