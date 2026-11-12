@@ -479,7 +479,7 @@ def _parse_until(raw: Any) -> datetime | None:
     return stored_instant(raw, dt_util.DEFAULT_TIME_ZONE)
 
 
-def _payload(held: BoostState) -> dict[str, Any]:
+def _store_payload(held: BoostState) -> dict[str, Any]:
     """What ``persist`` stores: an install that never boosted stores what it always did."""
     payload: dict[str, Any] = {
         channel: {"until": end.isoformat()}
@@ -506,7 +506,7 @@ def _payload(held: BoostState) -> dict[str, Any]:
 
 async def persist(coord: _BoostCoord) -> None:
     try:
-        await _store(coord).async_save(_payload(held_for(coord)))
+        await _store(coord).async_save(_store_payload(held_for(coord)))
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not persist boost state: %s", err)
 

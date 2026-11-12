@@ -81035,12 +81035,12 @@ _bt_live = boost_mod.BoostState()
 _bt_live.set(boost_mod.CHANNEL_SPACE, True, NOW)
 R.check(
     "a boost store from an install that never boosted is main's payload, field for field",
-    boost_mod._payload(boost_mod.BoostState()) == {}
-    and boost_mod._payload(_bt_never) == {"block_dhw": {"until": (NOW + timedelta(hours=1)).isoformat()}}
-    and boost_mod._payload(_bt_live) == {"space": {"until": (NOW + timedelta(hours=2)).isoformat(),
+    boost_mod._store_payload(boost_mod.BoostState()) == {}
+    and boost_mod._store_payload(_bt_never) == {"block_dhw": {"until": (NOW + timedelta(hours=1)).isoformat()}}
+    and boost_mod._store_payload(_bt_live) == {"space": {"until": (NOW + timedelta(hours=2)).isoformat(),
                                                    "since": NOW.isoformat()}}
-    and set(boost_mod._payload(_bt_click)) == {"space_settle"},
-    f"{boost_mod._payload(_bt_never)} {boost_mod._payload(_bt_live)} {boost_mod._payload(_bt_click)}",
+    and set(boost_mod._store_payload(_bt_click)) == {"space_settle"},
+    f"{boost_mod._store_payload(_bt_never)} {boost_mod._store_payload(_bt_live)} {boost_mod._store_payload(_bt_click)}",
 )
 
 # (f) A tail further ahead than its declared look-ahead (a clock stepped back)
@@ -81103,7 +81103,7 @@ _bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(hours=3))
 _bt_ours.set(boost_mod.CHANNEL_SPACE, False, _bt_now - timedelta(hours=2))
 _bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(minutes=5))
 _bt_ours.blocked[boost_mod.CHANNEL_DHW] = _bt_now + timedelta(hours=1)
-_bt_ours_payload = boost_mod._payload(_bt_ours)
+_bt_ours_payload = boost_mod._store_payload(_bt_ours)
 _bt_down_main = _bt_load(_bt_ours_payload, main_loader=True)
 _bt_up = _bt_load({"space": {"until": (_bt_now + timedelta(hours=1)).isoformat()}}, main_loader=False)
 _bt_same = _bt_load(_bt_ours_payload, main_loader=False)
