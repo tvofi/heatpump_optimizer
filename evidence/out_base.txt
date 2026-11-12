@@ -1,0 +1,16 @@
+RESULT nopair duty-cycle varied space=0c16f85cc6ece44e dhw=8726ca8a19934e9a obj=24.252313315052778 status=optimal
+RESULT nopair duty-cycle flat space=a70d3d3dc2213cd3 dhw=6a98b7108745e4c7 obj=43.33833229019572 status=optimal
+RESULT nopair modulating clamped varied space=e4fbf0c81718ff7f dhw=6cd46c7ba78c1bcf obj=25.80158125683288 status=optimal
+RESULT nopair modulating clamped flat space=ec2a2cb3feaa586a dhw=39b8a57d536e8df3 obj=46.53597870276562 status=optimal
+RESULT nopair fixed-speed varied space=90e5e1f86f3cf228 dhw=85db004e9080e7db obj=30.07125665657837 status=optimal
+RESULT nopair fixed-speed flat space=046b630771476abd dhw=842df5609b7a1796 obj=55.675732441272395 status=optimal
+RESULT constant_draw_cycling=0.1636363636363636
+RESULT lone_run_cycling=0.1636363636363636
+RESULT switch_weight=SKIPPED-no-feature
+RESULT priced=SKIPPED-no-feature
+RESULT zeropair=SKIPPED-no-feature
+RESULT priced_cyc0=SKIPPED-no-feature
+RESULT priced_nooff=SKIPPED-no-feature
+RESULT leg_rule=SKIPPED-no-feature
+RESULT scalar_batch=SKIPPED-no-feature
+RESULT probe_done tree=005eed2573da9e946fa4838de147401d0ff36cc1

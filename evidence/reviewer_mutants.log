@@ -1,0 +1,56 @@
+head ee89d50b2bf9da997cb567874cd078c3bf290321
+== control, no edit: exit 0, 0 red
+== R1 _co_optimize does not restore the availability vector after a refused candidate: KILLED (exit 1, 1 red)
+     FAIL a refused co-optimisation candidate leaves the vector its incumbent was scored with  [1 candidate solve(s), status first]
+== R2 _avoid_priced_switches does not restore the availability vector after a refusal: KILLED (exit 1, 4 red)
+     FAIL on the duty-cycle install the solved heating in every charged step is at most avail x p_max - dhw, and a charged step exists  [None]
+     FAIL fixed-speed: every shipped total is 0 or p_max and the plan's duty floor is p_min, with a hot-water block followed by a charged heating step  [charged [], live []]
+     FAIL fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max  [fed [], live []]
+     FAIL a candidate that does not score lower is refused after its solve, and the incumbent's requirement and availability are put back
+== R3 the achieved objective is handed no availability vector: KILLED (exit 1, 2 red)
+     FAIL the published objective of a priced plan is its closure's value on the arrays that ship, with the vector the solve scored with
+     FAIL modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+== R4 the predicted cost is handed the shipped draw: KILLED (exit 1, 1 red)
+     FAIL modulating clamped: the predicted cost is the energy of the delivered draw, not of the shipped level
+== R5 _co_optimize's headroom ignores the availability vector: SURVIVED (exit 0, 0 red)
+== R6 the batch energy cost is handed the shipped draw: KILLED (exit 1, 4 red)
+     FAIL modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild  [live []]
+     FAIL modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+     FAIL modulating clamped: the predicted cost is the energy of the delivered draw, not of the shipped level
+     FAIL fixed-speed: the batch objective is the scalar one bit for bit with a priced pair and a vector
+== R7 the batch switch term is handed the delivered draw: KILLED (exit 1, 1 red)
+     FAIL fixed-speed: the batch objective is the scalar one bit for bit with a priced pair and a vector
+== R8 the batch simulation is handed the shipped draw: KILLED (exit 1, 3 red)
+     FAIL at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective  [{'duty-cycle': (1.0522209364705104, 0.44333333333333336, 24.56797959599393, 24.475797492910235), 'modulating clamped': (1.0
+     FAIL the scalar and the batch objective both price the energy of the delivered draw plus hot water, and agree bit for bit with a vector  [21.820050729315078 vs 26.77901811625215]
+     FAIL fixed-speed: the batch objective is the scalar one bit for bit with a priced pair and a vector
+== R9 the availability vector is classified with no duty floor: SURVIVED (exit 0, 0 red)
+== R10 the ban forbids only the step heating runs in, not the one before: KILLED (exit 1, 5 red)
+     FAIL at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective  [{'duty-cycle': (1.0522209364705104, 0.44333333333333336, 24.56797959599393, 24.475797492910235), 'modulating clamped': (1.0
+     FAIL the ban is the steps heating runs in or runs in next, for hot water to heating, and mirrors onto the previous step for the other direction
+     FAIL the guard's fixture is the one it names: the incumbent holds a priced switch after the disinfection run-up and the ban forbids the run-up step
+     FAIL a banned candidate that scores lower but falls short of its returned requirement where the incumbent holds its own is refused before any solve, and the incumbent's requirement and availability stay in place  [1 solves, incumbent kept False]
+== R11 the candidate pass runs on a combi store: SURVIVED (exit 0, 0 red)
+== R12 the candidate pass runs with no cycling cost: KILLED (exit 1, 3 red)
+     FAIL null control: a stopping switch with no measured off time on an install that prices no cycle moves nothing either
+     FAIL modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild  [live [29]]
+     FAIL modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+== R13 a two-leg step is not charged: KILLED (exit 1, 3 red)
+     FAIL the block's own last step when it is a two-leg step, and then not the step after  [None]
+     FAIL modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild  [live [7]]
+     FAIL modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+== R14 the reverse direction bans nothing: KILLED (exit 1, 1 red)
+     FAIL the ban is the steps heating runs in or runs in next, for hot water to heating, and mirrors onto the previous step for the other direction
+== R15 the headroom on a clamped install carries the lost time too: KILLED (exit 1, 2 red)
+     FAIL a duty-cycle install carries the lost time on the bound, a clamped one on the delivered draw, and neither moves anything with no vector
+     FAIL at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective  [{'duty-cycle': (1.0522209364705104, 0.44333333333333336, 24.56797959599393, 24.475797492910235), 'modulating clamped': (1.0
+== R16 the incumbent's short steps do not excuse the candidate: KILLED (exit 1, 2 red)
+     FAIL at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective  [{'duty-cycle': (1.0522209364705104, 0.44333333333333336, 24.56797959599393, 24.475797492910235), 'modulating clamped': (1.0
+     the section stopped: IndexError: too many indices for array: array is 0-dimensional, but 1 were indexed
+== R17 the publication realises nothing after the candidate pass (control-shaped: delivered on clamped install keyed off): KILLED (exit 1, 4 red)
+     FAIL a relaxed start carrying a vector is charged on its unrounded level, the rounded objective on the level that ships  [[0.7 3. ], [1.5 3. ], [1.5 3. ]]
+     FAIL modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild  [live [7]]
+     FAIL modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+     FAIL the scalar and the batch objective both price the energy of the delivered draw plus hot water, and agree bit for bit with a vector  [25.236331313277468 vs 25.236331313277468]
+RESULT reviewer_mutants=17 survived=3
+EXIT 0
