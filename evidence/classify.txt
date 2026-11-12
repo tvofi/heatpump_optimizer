@@ -1,1 +1,4 @@
-WAIT 686b06f80ac7661a1d7cc84b67ac7c156566ed6d pending: gate red: none (rc=3, two reads)
+WAIT 8cf976936e013314c513ecf4bb283b7c88f63d8b pending: gate red: none
+classify rc=3
+WAIT 8cf976936e013314c513ecf4bb283b7c88f63d8b pending: gate red: none
+classify rc=3 at 10:43Z
