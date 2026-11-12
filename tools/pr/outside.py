@@ -6,6 +6,7 @@ class-O read the owner's".
     python3 -I tools/pr/outside.py check --repo O/R --pr N [--ref origin/main] [--early] [--no-fetch]
     python3 -I tools/pr/outside.py check --repo O/R --pr N --ref SHA --early --no-fetch --pull-json FILE
     python3 -I tools/pr/outside.py classify --pr N [--ref origin/main] PATH...
+    python3 -I tools/pr/outside.py cross --repo O/R --pr N
     python3 -I tools/pr/outside.py approve --repo O/R --pr N --head SHA40 --mandate ID [--role TEXT]
     python3 -I tools/pr/outside.py --self-test
 
@@ -25,6 +26,11 @@ runs main's copy from a throwaway directory, pr-contract the base's restored
 copy. The DATA (the allowlist, CODEOWNERS) is read with `git show <ref>:<path>`,
 never from a checkout a head could have written. Nothing here executes, checks
 out or imports anything of the head: git objects and the API only.
+
+`cross` answers one fact for a shell caller: rc 0 and `CROSS-REPOSITORY` when
+the pull request's head lives in another repository, rc 3 and
+`SAME-REPOSITORY` when it is ours, rc 1 and `REFUSE:` when it could not be read.
+A Python caller imports `cross_repository(pull_facts(repo, pr), repo)`.
 
 THE CLASSES, first match wins, default deny:
   R  refused: .github/, tools/, .claude/, .cursor/, the policy set
@@ -314,11 +320,19 @@ def pull_facts(repo: str, pr: int, pull: "dict | None" = None) -> dict:
             "base_ref": base.get("ref")}
 
 
+def cross_repository(f: dict, repo: str) -> bool:
+    """THE definition of a cross-repository head, for every reader (the merge
+    train and merge_pr.sh import or call it, never re-type it): the head lives
+    in another repository than `repo`. A head repository that is gone is not
+    ours either. `f` is pull_facts' answer."""
+    return f["head_repo"] != repo
+
+
 def shape(f: dict, repo: str) -> "list[str]":
     """Steps 2 and 5: a cross-repository head on main of ours, under a head
     ref name no shell expands."""
     out = []
-    if not f["head_repo"] or f["head_repo"] == repo:
+    if not f["head_repo"] or not cross_repository(f, repo):
         out.append(f"the head repository is {f['head_repo'] or 'gone'}: an outside pull request comes from a fork, "
                    "and a branch of ours is authored by the hpo-author App (decision 0011)")
     if f["base_repo"] != repo or f["base_ref"] != "main":
@@ -430,6 +444,17 @@ def check(repo: str, pr: int, ref: str, gate=None, fetch: bool = True, early: bo
         return 0, lines + [f"OUTSIDE: #{pr} by {entry['login']} (id {entry['id']}) at {head}: {n['F']} class-F and {n['O']} class-O path(s), none refused"]
     except Refuse as e:
         return 1, [f"REFUSE: {e} (an unread fact refuses)"]
+
+
+def cross(repo: str, pr: int) -> "tuple[int, str]":
+    """The `cross` subcommand: (rc, line)."""
+    try:
+        f = pull_facts(repo, pr)
+    except Refuse as e:
+        return 1, f"REFUSE: {e} (whether #{pr}'s head is cross-repository is unread)"
+    if cross_repository(f, repo):
+        return 0, f"CROSS-REPOSITORY #{pr}: head repository {f['head_repo'] or 'gone'}, not {repo}"
+    return 3, f"SAME-REPOSITORY #{pr}: head repository {repo}"
 
 
 # --- the one writer of the machinery's class-O approval -------------------------
@@ -644,6 +669,10 @@ def self_test() -> int:
         reset(head_repo=R); rc, out = chk()
         st((rc, "comes from a fork" in out), (1, True), "REFUSE: a same-repository head")
         reset(head_repo=None); st(chk()[0], 1, "REFUSE: a head repository that is gone")
+        reset(); st(cross(R, PR)[0], 0, "cross: a fork's head is cross-repository (rc 0)")
+        reset(head_repo=R); st(cross(R, PR)[0], 3, "cross: a head of ours is not (rc 3)")
+        reset(head_repo=None); st(cross(R, PR)[0], 0, "cross: a head repository that is gone is not ours")
+        ro = reset(); ro[f"repos/{R}/pulls/{PR}"] = "ERR"; st(cross(R, PR)[0], 1, "cross: an unreadable pull request refuses, never read as ours")
         reset(base_ref="release"); rc, out = chk()
         st((rc, "not tvofi/heatpump_optimizer:main" in out), (1, True), "REFUSE: a base other than main")
         reset(base_repo="bankaifan/heatpump_optimizer"); st(chk()[0], 1, "REFUSE: main of another repository as the base")
@@ -952,10 +981,15 @@ def main(argv: "list[str]") -> int:
     c.add_argument("--pull-json", help="the pulls API's answer as a file (pr-contract, with --early): no API call is made")
     k = sub.add_parser("classify"); k.add_argument("--pr", type=int, required=True); k.add_argument("--ref", default="origin/main")
     k.add_argument("paths", nargs="+")
+    x = sub.add_parser("cross"); x.add_argument("--repo", required=True); x.add_argument("--pr", type=int, required=True)
     a = sub.add_parser("approve"); a.add_argument("--repo", required=True); a.add_argument("--pr", type=int, required=True)
     a.add_argument("--head", required=True); a.add_argument("--mandate", type=int); a.add_argument("--ref", default="origin/main")
     a.add_argument("--role", default="the class-O read seat"); a.add_argument("--no-fetch", action="store_true")
     args = ap.parse_args(argv)
+    if args.cmd == "cross":
+        rc, line = cross(args.repo, args.pr)
+        print(line)
+        return rc
     if args.cmd == "classify":
         try:
             rules = Rules(args.ref)

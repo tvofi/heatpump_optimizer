@@ -85,15 +85,21 @@ approvals remain in our machinery even for such PRs."*
    fork's head to a branch of this repository**: that test would read it as
    ours.
 7. **Unchanged:** verdicts post as `hpo-approver` (0013); merges with main and
-   code-owner approvals stay ours; no secret reaches a fork run (the three
+   code-owner approvals stay ours (the train merges main into the fork's
+   branch itself, automatically or not at all: on a conflict it parks naming
+   the fork and never resolves); no secret reaches a fork run (the three
    autofix jobs and `mutation-pins` require a same-repository head); a held
    fork run is approved by `hpo-runs` after a read of the diff.
 
 ## Before the first allowlist entry
 
-Two checks need the owner's credential and a fork, which the building seat did
-not hold. Neither changes the code; both are owed before an entry is added:
+Three checks need the owner's credential and a fork, which the building seats
+did not hold. None changes the code; each is owed before an entry is added:
 
+- **The fork-head merge.** Whether GitHub lets an identity of ours update a
+  maintainer-editable fork branch with main (part 2's merge), and which
+  identity the merge commit then carries. If none may, the train parks naming
+  the fork, and no personal token is tried without the owner.
 - **The live check.** Post one mandated class-O approval on a test fork head
   with `outside.py approve`, read from the API which `commit_id` it reports
   before and after our main merge, and take one adopted verdict through
