@@ -67,10 +67,16 @@ NO PROCFS. Where /proc is absent (macOS, the BSDs) the process table comes from
 reads nothing, and with no subreaper there either, a descendant that left the
 session is not followed.
 
-`--self-test` builds throwaway repositories and runs every arm above; a case
-that needs a child subreaper prints a `skip` line naming why on a host without
-one. `MUTANT_RUN_NO_PROCFS=1` makes every /proc read fail, as on macOS, in this
-process and every driver it starts, so a Linux host runs the macOS path.
+The procfs root is `MUTANT_RUN_PROCFS` (default /proc): a path that does not
+exist makes the host one without procfs, in this process and every driver it
+starts, so a Linux host runs the macOS path.
+
+`--self-test` builds throwaway repositories and runs every arm above. It reads
+the process table three ways on every host: with no procfs root, through a faked
+root it writes from the live table, and through the host's own /proc. A case the
+host cannot run (its own /proc where there is none, a child subreaper where
+prctl is absent) prints one `skip` line naming why and is counted on the
+`skipped` line above the summary.
 """
 from __future__ import annotations
 
@@ -94,6 +100,7 @@ REFUSE_RC, SURVIVE_RC, BROKEN_RC = 2, 1, 3
 TIMEOUT_RC, FORKCAP_RC = -1, -2  # run_cmd's two non-exit outcomes: a kill, and a stop that proves nothing
 FORKCAP = [256]  # processes one command's session may hold (--fork-cap); 0 turns the cap off
 FORKCAP_POLL_S = 0.5
+PROCFS = [Path(os.environ.get("MUTANT_RUN_PROCFS", "/proc"))]  # the procfs root; one that does not exist is a host without procfs
 OPERATORS = ("GUARD_OFF", "RETURN_DEL", "CMP_BOUND", "CALL_DEL", "CONST_SWAP", "STMT_DEL")
 _SIMPLE = (ast.Assign, ast.AugAssign, ast.AnnAssign, ast.Expr, ast.Delete, ast.Raise, ast.Assert, ast.Return)
 SKIP_PREFIXES = ("tests/", "dev/")
@@ -133,11 +140,11 @@ def _subreaper(on: int) -> int:
 
 
 def _ptable() -> list[tuple[int, str, int, int, int | None]]:
-    """(pid, state, ppid, pgrp, session) of every process. From /proc where it exists; on a host
-    without procfs (macOS, the BSDs) from `ps`, the session from os.getsid (None where refused)."""
+    """(pid, state, ppid, pgrp, session) of every process. From the procfs root where it exists; on
+    a host without procfs (macOS, the BSDs) from `ps`, the session from os.getsid (None where refused)."""
     rows = []
     try:
-        names = os.listdir("/proc")
+        names = os.listdir(PROCFS[0])
     except FileNotFoundError:
         ps = subprocess.Popen(["ps", "-axo", "pid=,stat=,ppid=,pgid="], stdout=subprocess.PIPE, text=True)
         listing = ps.communicate()[0]
@@ -158,7 +165,7 @@ def _ptable() -> list[tuple[int, str, int, int, int | None]]:
         return rows
     for d in filter(str.isdigit, names):
         try:
-            stat = Path("/proc", d, "stat").read_text()
+            stat = (PROCFS[0] / d / "stat").read_text()
             state, ppid, pgrp, session = stat[stat.rindex(")") + 2:].split()[:4]
             rows.append((int(d), state, int(ppid), int(pgrp), int(session)))
         except (OSError, ValueError):
@@ -168,9 +175,9 @@ def _ptable() -> list[tuple[int, str, int, int, int | None]]:
 
 def _carries(pid: int, mark: bytes) -> bool:
     """Whether `pid`'s environment holds `mark`; False where it cannot be read (not ours, exited,
-    or no /proc: on such a host only the session, group and ppid legs find a member)."""
+    or no procfs: on such a host only the session, group and ppid legs find a member)."""
     try:
-        env = Path("/proc", str(pid), "environ").read_bytes()
+        env = (PROCFS[0] / str(pid) / "environ").read_bytes()
     except OSError:
         env = b""
     return mark in env.split(b"\0")
@@ -678,40 +685,56 @@ def _gone(pid: str) -> bool:
     return False
 
 
-class _NoProcfs:
-    """Every read under /proc raises FileNotFoundError, as on macOS and the BSDs, which have no
-    procfs: os.listdir and Path.read_text/read_bytes are patched for the life of the block."""
-    _real = (os.listdir, Path.read_text, Path.read_bytes)
+class _Procfs:
+    """The procfs root is `root` for the life of the block: the platform, injected."""
+
+    def __init__(self, root: Path):
+        self.root = root
 
     def __enter__(self):
-        ls, rt, rb = self._real
-
-        def gone(real):
-            def f(path=".", *a, **k):
-                if str(path) == "/proc" or str(path).startswith("/proc/"):
-                    raise FileNotFoundError(2, "No such file or directory", str(path))
-                return real(path, *a, **k)
-            return f
-        self.saved = (os.listdir, Path.read_text, Path.read_bytes)
-        os.listdir, Path.read_text, Path.read_bytes = gone(ls), gone(rt), gone(rb)
+        self.saved, PROCFS[0] = PROCFS[0], self.root
 
     def __exit__(self, *exc):
-        os.listdir, Path.read_text, Path.read_bytes = self.saved
+        PROCFS[0] = self.saved
 
 
-def _procless_checks(check, tmp: Path) -> None:
-    """family() and _reap() read the process table on a host without /proc as they do with it."""
+def _fake_procfs(root: Path, environ: dict[int, bytes]) -> Path:
+    """Write the live process table under `root` as procfs lays it out (`<pid>/stat`, and
+    `<pid>/environ` for the pids in `environ`), so the procfs readers run on a host without one.
+    Every comm holds `) `, which a stat line is split after the LAST of."""
+    for pid, state, ppid, pgrp, session in _ptable():
+        (root / str(pid)).mkdir(parents=True)
+        (root / str(pid) / "stat").write_text(f"{pid} (a) b) {state} {ppid} {pgrp} {session or 0} 0 -1\n")
+        if pid in environ:
+            (root / str(pid) / "environ").write_bytes(environ[pid])
+    (root / "self").mkdir()  # procfs holds names that are no pid
+    return root
+
+
+def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None:
+    """family() and _reap() read the process table alike with no procfs, through a faked procfs
+    root, and through the host's own (`host`), a leg skipped, counted, where the host has none."""
     (tmp / "ps").write_text("#!/bin/sh\nexit 7\n")
     (tmp / "ps").chmod(0o755)
     tok = f"st-{os.getpid()}"
-    for label, ctx, procfs in (("with /proc absent", _NoProcfs, False), ("with /proc present (null control)", _Null, True)):
+    check("procfs: a Linux host has one, so its leg below is not skipped there",
+          (Path("/proc", "self", "stat").is_file()) == sys.platform.startswith("linux"))
+    for label, root in (("with no procfs", None), ("through a faked procfs root", tmp / "fake-proc"),
+                        ("through the host's procfs (null control)", host)):
+        procfs = root is not None
+        if root == host and not (host / "self" / "stat").is_file():
+            skip(f"no-procfs: {label}, all five arms", f"this host has no {host}; the faked root above drives the same readers")
+            continue
         lone = subprocess.Popen(["sleep", "30"], start_new_session=True)
-        kid = subprocess.Popen(["sleep", "30"])
+        kid = subprocess.Popen(["sleep", "30"], env=dict(os.environ, MUTANT_RUN_TOKEN=tok + "0"))  # a near miss
         marked = subprocess.Popen(["sleep", "30"], start_new_session=True, env=dict(os.environ, MUTANT_RUN_TOKEN=tok))
         dead = subprocess.Popen(["true"], start_new_session=True)  # a zombie session leader: `ps` stat `Zs`, not `Z`
         _zombie(dead.pid)  # exited, still unreaped (os.waitid's WNOWAIT, which macOS lacks)
         try:
-            with ctx():
+            if root == tmp / "fake-proc":
+                mark = f"MUTANT_RUN_TOKEN={tok}".encode()
+                _fake_procfs(root, {marked.pid: b"A=1\0" + mark + b"\0", kid.pid: mark + b"0\0A=" + mark + b"\0"})
+            with _Procfs(root or tmp / "no-proc"):
                 try:
                     by_session, by_root = family(lone.pid, ""), family(lone.pid, "", skip=frozenset({marked.pid}), root=os.getpid())
                     by_token = family(lone.pid, tok)
@@ -731,8 +754,8 @@ def _procless_checks(check, tmp: Path) -> None:
             check(f"no-procfs: {label}, family() finds the driver's descendants by ppid, zombies excluded",
                   set(by_root) == {kid.pid, lone.pid})  # never `dead`, nor the `ps` that listed the table
             check(f"no-procfs: {label}, a process that left the session is found by its token "
-                  + ("(the environ leg)" if procfs else "only with /proc (no environ leg without it)"),
-                  (marked.pid in by_token) == procfs and not err)
+                  + ("(the environ leg), and one carrying a longer token is not" if procfs else "only with procfs (no environ leg without it)"),
+                  (marked.pid in by_token) == procfs and kid.pid not in by_token and not err)
             check(f"no-procfs: {label}, _reap() collects a dead child it does not skip",
                   dead.pid not in {row[0] for row in _ptable()} and not err)
             check(f"no-procfs: {label}, a failing `ps` " + ("is never read: the table is procfs" if procfs
@@ -745,21 +768,10 @@ def _procless_checks(check, tmp: Path) -> None:
             dead.returncode = 0  # reaped by _reap above: Popen must not wait again
 
 
-class _Null:
-    """The real /proc readers for the life of the block, also under MUTANT_RUN_NO_PROCFS=1."""
-
-    def __enter__(self):
-        self.saved = (os.listdir, Path.read_text, Path.read_bytes)
-        os.listdir, Path.read_text, Path.read_bytes = _NoProcfs._real
-
-    def __exit__(self, *exc):
-        os.listdir, Path.read_text, Path.read_bytes = self.saved
-
-
 def _self_test() -> int:
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_init
-    fails = checks = 0
+    fails = checks = skips = 0
 
     def check(name: str, ok: bool) -> None:
         nonlocal fails, checks
@@ -767,8 +779,13 @@ def _self_test() -> int:
         fails += not ok
         print(("  ok   " if ok else "  FAIL ") + name)
 
+    def skip(name: str, why: str) -> None:
+        nonlocal skips
+        skips += 1
+        print(f"  skip {name} -- {why}")
+
     tmp = Path(tempfile.mkdtemp(prefix="mutrun-st-"))
-    _procless_checks(check, tmp)
+    _procless_checks(check, skip, tmp)
     scratch = tmp / "tmpdir"
     scratch.mkdir()
     try:
@@ -788,9 +805,10 @@ def _self_test() -> int:
         base = subprocess.run(["git", "-C", str(repo), "rev-parse", "HEAD"], capture_output=True, text=True, env=env).stdout.strip()
         senv = dict(env, TMPDIR=str(scratch), PYTHONPATH="")
 
-        def drive(*args, sig=None, watch=None):
+        def drive(*args, sig=None, watch=None, procfs=None):
             p = subprocess.Popen([sys.executable, str(Path(__file__).resolve()), "--root", str(repo), *args],
-                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=senv, cwd=str(repo))
+                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(repo),
+                                 env=dict(senv, MUTANT_RUN_PROCFS=str(procfs)) if procfs else senv)
             if sig:
                 for _ in range(150):
                     if watch():
@@ -930,6 +948,14 @@ def _self_test() -> int:
         check("forkcap: an endless-style chain past a cap of 32 is FORKCAP, within seconds, never KILLED",
               rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"] and time.monotonic() - t0 < 20)
         check("forkcap: no process of the capped session is left", _no_session(int(pidf.read_text())))
+        capped = ("--spec", str(spec), "--cmd", f"sh {gate} 120", "--fork-cap", "32", "--timeout", "60")
+        rc, out, _ = drive(*capped, procfs=tmp / "no-proc")
+        check("forkcap: a driver whose MUTANT_RUN_PROCFS names no directory caps the same chain from `ps` (the macOS path, on any host)",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "FORKCAP ret_hi"])
+        (tmp / "empty-proc").mkdir()
+        rc, out, _ = drive(*capped, procfs=tmp / "empty-proc")
+        check("forkcap: a driver whose MUTANT_RUN_PROCFS names an empty root sees no process, so the chain runs out (the root named is the one read)",
+              rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
         rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh {gate} 120", "--fork-cap", "0", "--timeout", "60")
         check("forkcap: with the cap off the same chain runs out unbounded-by-the-driver and SURVIVES (mutation proof)",
               rc == 0 and out.splitlines() == ["SURVIVED NULL", "SURVIVED ret_hi"])
@@ -974,7 +1000,7 @@ def _self_test() -> int:
         why = None if _can_subreap() else "no child subreaper (PR_SET_CHILD_SUBREAPER) on this host, so nothing follows a descendant out of its session"
         for mode in ("pgrp", "session", "cleanenv"):
             if why and mode != "pgrp":
-                print(f"  skip forkcap: a chain that leaves its {mode} at every link -- {why}")
+                skip(f"forkcap: a chain that leaves its {mode} at every link", why)
                 continue
             write_spec([bad])
             t0 = time.monotonic()
@@ -989,7 +1015,7 @@ def _self_test() -> int:
         for case, launch in (("left the session", "python3"), ("left the session, cleared its environment", f"env -i {sys.executable}")):
             name = f"forkcap: a daemon that {case} and outlived its command is killed at the command's exit"
             if why:
-                print(f"  skip {name} -- {why}")
+                skip(name, why)
                 continue
             write_spec([bad])
             rc, out, _ = drive("--spec", str(spec), "--cmd",
@@ -1030,15 +1056,16 @@ def _self_test() -> int:
         check("operators: no mutant for a comment, an import or a def, and no CALL_DEL for a log call",
               not any(list(mutate_line(s)) for s in ("# if x < 1:", "import a1", "def f(x=1):"))
               and "CALL_DEL" not in {o for o, _ in mutate_line("    _LOGGER.info(x)")})
+        check("skip: each case this host cannot run is counted, once: four without a child subreaper, one without /proc",
+              skips == (0 if _can_subreap() else 4) + (0 if Path("/proc", "self", "stat").is_file() else 1))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+    print(f"mutant_run self-test: {skips} skipped (each printed above as a `skip` line with its reason)")
     print(f"mutant_run self-test: {checks} checks, {fails} failed")
     return 1 if fails else 0
 
 
 if __name__ == "__main__":
-    if os.environ.get("MUTANT_RUN_NO_PROCFS") == "1":  # emulate a host without procfs (macOS) on Linux; inherited by every driver the self-test starts
-        _NoProcfs().__enter__()
     if sys.argv[1:] == ["--self-test"]:
         sys.exit(_self_test())
     sys.exit(main(sys.argv[1:]))
