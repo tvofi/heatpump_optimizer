@@ -3125,8 +3125,8 @@ R.check(
 _a3e_clim = _climate_platform.HeatPumpOptimizerClimate(_a3e_fake, ENTRY)
 R.check(
     "without an indoor reading climate does not publish the constructor default",
-    (not _a3e_clim.available) and _a3e_clim.current_temperature is None,
-    f"available={_a3e_clim.available} current={_a3e_clim.current_temperature!r}",
+    (not _a3e_clim.available) and _a3e_clim.native_current_temperature is None,
+    f"available={_a3e_clim.available} current={_a3e_clim.native_current_temperature!r}",
 )
 R.check(
     "the upper floor names where its number comes from",
@@ -3448,7 +3448,7 @@ def _d801_publications(config, cycles):
             if state is None:
                 state = getattr(entity, "is_on", None)
             if state is None:
-                state = getattr(entity, "current_temperature", None)
+                state = getattr(entity, "native_current_temperature", None)
             if state is not None:
                 out[f"{label}|state"] = state
             attrs = getattr(entity, "extra_state_attributes", None) or {}
@@ -10734,12 +10734,12 @@ R.check(
 )
 R.check(
     "the thermostat shows the user's target, not the per-step setpoint",
-    clim.target_temperature == clim.coordinator.target_temperature,
+    clim.native_target_temperature == clim.coordinator.target_temperature,
 )
 R.check(
     "current temperature reads the published payload",
-    clim.current_temperature == DATA["indoor_temperature"],
-    str(clim.current_temperature),
+    clim.native_current_temperature == DATA["indoor_temperature"],
+    str(clim.native_current_temperature),
 )
 asyncio.run(clim.async_set_hvac_mode(climate_mod.HVACMode.OFF))
 R.check(
@@ -11102,7 +11102,7 @@ R.check(
     "current_temperature is None with no coordinator data",
     climate_mod.HeatPumpOptimizerClimate(
         FakeCoordinator(None), clim._entry
-    ).current_temperature
+    ).native_current_temperature
     is None,
 )
 
@@ -41940,7 +41940,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     "the latch itself, or latched by a guard the static rule cannot read "
     "(an outage counter, a transition notice, a once-per-attempt spacing, "
     "an lru_cache parsing an option once per distinct text)": {
-        ("log_latch.py", "log_held"): 2, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("log_latch.py", "log_held"): 2, ("issues.py", "note_price_outage"): 2,
         ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
         ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
         ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
@@ -42332,6 +42332,36 @@ R.check(
     "sensors all publish _evidence_attributes",
     _c2238_p6 == [{"c2238": "sentinel"}] * 3,
     f"{_c2238_p6}",
+)
+
+# --- The standing seats' shared terms live once, in `standing.md` ------------
+#
+# (a) every contract that shares them cites the file; (b) the file carries its
+# five headings, the alive-file directory, the bus read and the autofix-hold
+# predicate (all three job names, so deleting the sentence fails even with its
+# heading kept); (c) `fixer.md`, the contract `tools/pr/ci_predict.py`'s
+# BOOTSTRAP remedy cites, carries the remedy. A design choice: the cited name is
+# written here and not read from ci_predict.py, which is INERT (closure.py), so
+# reading it would make every edit of that instrument select this script.
+_SR = Path("dev/governance/roles")
+_SR_TEXT = lambda n: (_SR / n).read_text() if (_SR / n).is_file() else ""  # noqa: E731
+_SR_STANDING = _SR_TEXT("standing.md")
+_SR_FAIL = (
+    [f"a:{n}" for n in ("standing-merge.md", "standing-dispatch.md", "standing-tick.md",
+                        "standing-roster.md", "proposal-triage.md")
+     if "`standing.md`" not in _SR_TEXT(n)]
+    + [f"b:{t}" for t in ("## Wait", "## Reads", "## Autofix hold", "## Recycle", "## Alive files",
+                          "$HPO_STATE_DIR/alive/", "bus.sh orphans",
+                          "mutation-autofix", "closures-autofix", "claims-autofix")
+       if t not in _SR_STANDING]
+    + [f"c:fixer.md:{t}" for t in ("BOOTSTRAP", "0013") if t not in _SR_TEXT("fixer.md")]
+)
+R.check(
+    "the standing seats' shared terms are written once in standing.md, cited by "
+    "each standing contract, and fixer.md carries the BOOTSTRAP remedy and "
+    "decision 0013",
+    _SR_FAIL == [],
+    f"missing: {_SR_FAIL}",
 )
 
 
