@@ -4089,6 +4089,7 @@
    "dev/audit/harnesses/livehead_cancels.py",
    "dev/audit/harnesses/merge_subject_guard_block.mjs",
    "dev/audit/harnesses/mutant_guard.py",
+   "dev/audit/harnesses/mutant_run_diff_shards.py",
    "dev/audit/harnesses/nightly_drain_breakdown.py",
    "dev/audit/harnesses/prepr_slot_nested.py",
    "dev/audit/harnesses/pulse_replay.py",
