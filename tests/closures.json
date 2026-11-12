@@ -1908,6 +1908,8 @@
    "tools/audit/seat/roster_edit.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/roster_sync.py",
+   "tools/audit/seat/seat_gen.py",
+   "tools/audit/seat/seat_gen_selftest.py",
    "tools/audit/seat/state_docs.py",
    "tools/audit/seat/tmp_paths.py",
    "tools/audit/seat/topic_grammar.py",
