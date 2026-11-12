@@ -661,6 +661,20 @@ def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
     return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
 
 
+ROSTER_REF = re.compile(r"refs/remotes/origin/handoff/audit-r\d+-roster")
+
+
+def round_roster_refs(root: Path) -> "list[tuple[str, str]]":
+    """(ref, sha) of each round roster branch this checkout has fetched. CI's
+    pr-contract fetches `handoff/audit-r*-roster` before its carry check
+    (pr-contract.yml), and a clone inherits no remote-tracking ref: without
+    these, a `Carry:` to a group that lives only on the round's branch is
+    predicted red where CI routes it (carry_audit.load_dests skips an absent
+    round ref in silence)."""
+    out = git(root, "for-each-ref", "--format=%(objectname) %(refname)", "refs/remotes/origin/handoff/") or ""
+    return [(name, sha) for sha, _, name in (ln.partition(" ") for ln in out.splitlines()) if ROSTER_REF.fullmatch(name)]
+
+
 def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = None) -> tuple[str, subprocess.CompletedProcess | None]:
     """Run `steps` (each a function of the tree, its runner and a scratch
     directory) where CI's pull-request run of `job` runs them: the merge of
@@ -683,6 +697,8 @@ def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = No
             return subprocess.run(a, cwd=r, env=env, input=input, capture_output=True, text=True)
 
         run("git", "update-ref", "refs/remotes/origin/main", tip)
+        for name, sha in round_roster_refs(root):  # the refs CI's own fetch gives the job
+            run("git", "update-ref", name, sha)
         run("git", "checkout", "-q", "--detach", tip)
         if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
             return "unmerged", None
@@ -1373,6 +1389,44 @@ def null_control_self_test(root: Path) -> int:
     return bad
 
 
+def roster_ref_self_test() -> int:
+    """ci_tree_run's tree holds the round roster refs the checkout fetched, as
+    CI's pr-contract does, and no other handoff ref."""
+    import tempfile
+    from throwaway_git import throwaway_git_init
+    bad = 0
+    with tempfile.TemporaryDirectory() as td:
+        env = throwaway_git_init(td, "-q", "-b", "main")
+
+        def g(*a: str) -> str:
+            return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=td, env=env,
+                                  capture_output=True, text=True).stdout.strip()
+
+        Path(td, "w.yml").write_text(
+            "jobs:\n  j:\n    steps:\n      - name: Restore the check source from the base commit\n        run: |\n"
+            "          git diff --name-only -z \"$(git hash-object -t tree /dev/null)\" \"$PINNED\" -- \\\n"
+            "            'w.yml' > \"$RUNNER_TEMP/pinned.list\"\n")
+        g("add", "-A"); g("commit", "-q", "-m", "base"); tip = g("rev-parse", "HEAD")
+        g("commit", "-q", "--allow-empty", "-m", "head")
+        g("update-ref", "refs/remotes/origin/handoff/audit-r9-roster", tip)
+        g("update-ref", "refs/remotes/origin/handoff/some-topic", tip)
+
+        def seen(ref: str):
+            return lambda r, run, tmp: run("git", "rev-parse", "--verify", "-q", ref + "^{commit}")
+
+        cases = [("the predictor's tree holds the round roster ref this checkout fetched (CI fetches it before the carry check)",
+                  "refs/remotes/origin/handoff/audit-r9-roster", 0),
+                 ("and no other handoff ref (null control)", "refs/remotes/origin/handoff/some-topic", 1),
+                 ("nor a roster ref the checkout never fetched (null control)", "refs/remotes/origin/handoff/audit-r8-roster", 1)]
+        for label, ref, want in cases:
+            state, out = ci_tree_run(Path(td), tip, "j", [seen(ref)], workflow="w.yml")
+            got = None if out is None else (1 if out.returncode else 0)
+            ok = state == "ran" and got == want
+            print(f"  {'ok  ' if ok else 'FAIL'} {label}{'' if ok else f' -- {state}, rc {got}'}")
+            bad += not ok
+    return bad
+
+
 def self_test() -> int:
     """The carry arm over a plant and a null, through carry_audit's own audit."""
     import tempfile
@@ -1400,6 +1454,7 @@ def self_test() -> int:
     bad += mutant_self_test(root)
     bad += null_control_self_test(root)
     bad += graders_self_test(root)
+    bad += roster_ref_self_test()
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
         sys.path.insert(0, str(root / "tools" / "ci"))
