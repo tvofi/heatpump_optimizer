@@ -599,11 +599,125 @@ def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
         raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
     req = t.required(pr_head=not on_main)
     state, pending, red = t.classify_at(sha, runs, req)
+    line = f"{sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}"
+    if pr is not None and not on_main:
+        intro, how = t.introduced(sha, runs)
+        if intro:  # a finding of the pull request: RED whatever the required set reads
+            return 1, "\n".join([f"RED {line} introduced: {len(intro)}",
+                                  *(f"INTRODUCED {n}" for n in intro)])
+        if intro is None and state == "green":  # its job still runs: a hang reads WAIT, never GREEN
+            return 3, f"WAIT {line} introduced: pending ({how})"
     why = approval_owed(t, pr, sha, runs, req) if state == "red" and pr is not None else None
     if why:
         return 4, f"APPROVAL-OWED {sha} {why}"
-    return ({"green": 0, "red": 1, "wait": 3}[state],
-            f"{state.upper()} {sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
+    return {"green": 0, "red": 1, "wait": 3}[state], f"{state.upper()} {line}"
+
+
+# AN INTRODUCED SELF-TEST RED IS THE PULL REQUEST'S (R10-INTRODUCED-REDS-BARRIER,
+# dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md). SELFTESTS is in no required
+# set (decision 0013's HPO_JOB_GRADES boundary), so the 2026-11-07 ruling owes
+# its red no answer, and #3361 and #3425 merged reds their own diffs made. A
+# step red at the head and not at the merge base is the PR's finding; one red at
+# both is main's, inherited and still unowed.
+SELFTESTS = "governance / instrument-self-tests"
+#: The push-only step: SELFTEST_TRACE (strace) is set on a push to main alone,
+#: so its red is main's read-set table, never a pull request's diff.
+SELFTESTS_PUSH_ONLY = frozenset({"Refuse a self-test read set the committed table misses"})
+#: A commit's SELFTESTS check runs alone, one page: a main commit carries over
+#: 100 check runs, so an unfiltered first page can miss the job.
+SELFTESTS_RUNS = "check-runs?check_name=governance%20%2F%20instrument-self-tests&per_page=100"
+
+
+#: A step or job conclusion that is red: review_packet.RED, the repository's one
+#: definition (its self-test pins the two equal). A hang the pull request makes
+#: concludes the job timed_out with its running step cancelled.
+RED_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out", "action_required", "startup_failure"})
+#: A SELFTESTS job conclusion read clean at no job read (skipped: the prelude
+#: scoped it out); one in SELFTESTS_STEP_READ is read step by step; any other
+#: (a job-level cancelled, startup_failure, action_required) has no reading.
+SELFTESTS_CLEAN = frozenset({"success", "skipped", "neutral"})
+SELFTESTS_STEP_READ = frozenset({"failure", "timed_out"})
+#: The INTRODUCED name of a head job that timed out where its base's did not: a
+#: hang behind a step already red at the base hides every step after it.
+JOB_TIMED_OUT = "(the job concluded timed_out)"
+
+
+def selftest_job(runs) -> "dict | None":
+    """The latest SELFTESTS check run in a commit's check runs, concluded or not
+    (an Actions job's check-run id is its job id; a re-run's is higher), else None."""
+    mine = [r for r in runs or () if r.get("name") == SELFTESTS]
+    return max(mine, key=lambda r: int(r["id"])) if mine else None
+
+
+def _red_steps(steps) -> "set[str]":
+    return {s.get("name") for s in steps if s.get("conclusion") in RED_CONCLUSIONS}
+
+
+def introduced_reds(head_steps, base_steps) -> "list[str]":
+    """The SELFTESTS step names concluded red (RED_CONCLUSIONS) at the head and
+    not at the base, less SELFTESTS_PUSH_ONLY; pure. `base_steps` None (no base
+    run): every head red is introduced. A step skipped by scoping concluded
+    `skipped`, so it is never red on either side."""
+    def red(steps):
+        return _red_steps(steps) - SELFTESTS_PUSH_ONLY
+    return sorted(red(head_steps) - (red(base_steps) if base_steps is not None else set()))
+
+
+def _job_conclusion(job: dict) -> str:
+    return job.get("conclusion") if job.get("status") == "completed" else str(job.get("status"))
+
+
+def introduced_at(head_runs, base_runs, job_steps) -> "tuple[list[str] | None, str]":
+    """(introduced names, how read) from the head's check runs; `base_runs()`
+    reads the base's (None unreadable) and `job_steps(job id)` one job's steps
+    (None unreadable), each called only when the head's latest SELFTESTS job is
+    red. Names None: that job has not concluded (a wait). No run, or a clean
+    conclusion, is ([], ...) at no read. A job concluding timed_out where the
+    base's did not adds JOB_TIMED_OUT. Any input with no reading (unreadable, a
+    job-level cancelled, a red job with no red step) raises ValueError: fail
+    closed, never an empty list."""
+    hj = selftest_job(head_runs)
+    if hj is None:
+        return [], f"head {SELFTESTS}: no run"
+    hc = _job_conclusion(hj)
+    if hj.get("status") != "completed":
+        return None, f"head {SELFTESTS} job {hj['id']}: {hc}"
+    if hc in SELFTESTS_CLEAN:
+        return [], f"head {SELFTESTS}: {hc}"
+    if hc not in SELFTESTS_STEP_READ:
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc}, which reads no step: re-run it")
+    hs = job_steps(hj["id"])
+    if hs is None:
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} is unreadable")
+    if not _red_steps(hs):
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc} with no red step")
+    runs = base_runs()
+    if runs is None:
+        raise ValueError("the base's check runs are unreadable")
+    bj = selftest_job(runs)
+    bs, bc = None, None
+    if bj is not None:
+        bc = _job_conclusion(bj)
+        if bc not in SELFTESTS_CLEAN | SELFTESTS_STEP_READ:
+            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is {bc}, which reads no step")
+        bs = job_steps(bj["id"])
+        if bs is None:
+            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is unreadable")
+    names = introduced_reds(hs, bs)
+    if hc == "timed_out" and bc != "timed_out":
+        names.insert(0, JOB_TIMED_OUT)
+    return names, (f"head job {hj['id']} {hc} base job "
+                   + (f"{bj['id']} {bc}" if bj else "none: every head red counts"))
+
+
+def introduced_cmd(t: "Train", head: str, base: "str | None") -> "tuple[int, str]":
+    """The `introduced` subcommand: INTRODUCED <step> lines and a summary,
+    rc 1 when any, 0 when none, 3 while the head's job runs; a Stop (unreadable) is rc 2."""
+    intro, against = t.introduced(head, None, base)
+    if intro is None:
+        return 3, f"introduced: pending at {head} {against}"
+    return (1 if intro else 0), "\n".join([*(f"INTRODUCED {n}" for n in intro),
+                                           f"introduced: {len(intro)} at {head} {against}"])
 
 
 #: The gate unit whose red, before the review, is every budget raise's state (K15 (d)).
@@ -1368,6 +1482,48 @@ def undraft(t: "Train", pr: int, h: str, item: dict) -> None:
         raise Stop("undraft", f"#{pr} is a draft again after gh pr ready")
 
 
+STILL_DRAFT = re.compile(r"still a draft", re.I)
+ROLLUP_PENDING = ("QUEUED", "IN_PROGRESS", "PENDING", "WAITING", "REQUESTED")
+
+
+def rollup_states(entries) -> "dict[str, str]":
+    """One state per context of a `statusCheckRollup`, never by list order
+    (P608: #3445 listed four FAILURE gates then an older SUCCESS last, and
+    last-listed-wins read green while GitHub blocked on the red). A context
+    with any unfinished entry is PENDING; otherwise the entry newest by
+    `completedAt`, else `startedAt`, stands (an equal stamp keeps the later
+    listed entry)."""
+    best: dict = {}
+    pending: set = set()
+    for i, c in enumerate(entries):
+        name = c.get("name") or c.get("context") or "?"
+        state = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        if (c.get("status") or state).upper() in ROLLUP_PENDING or state in ROLLUP_PENDING:
+            pending.add(name)
+        # GitHub's zero time (0001-...) on an unfinished run is no stamp
+        stamps = [x for x in (c.get("completedAt"), c.get("startedAt")) if x and not x.startswith("0001")]
+        stamp = stamps[0] if stamps else ""
+        if name not in best or (stamp, i) >= best[name][0]:
+            best[name] = ((stamp, i), state)
+    return {n: ("PENDING" if n in pending else v[1]) for n, v in best.items()}
+
+
+def rollup_red_after_pass(entries, name: str) -> bool:
+    """True when every `name` entry that passed AND the newest failed one carry a
+    stamp (`completedAt`, else `startedAt`) and the failure is strictly newer than
+    every pass: a red that landed after the last green, never a deferral."""
+    def stamp(c):
+        xs = [x for x in (c.get("completedAt"), c.get("startedAt")) if x and not x.startswith("0001")]
+        return xs[0] if xs else ""
+    passes, fails = [], []
+    for c in entries:
+        if (c.get("name") or c.get("context") or "?") != name:
+            continue
+        st = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        (passes if st == "SUCCESS" else fails if st in POLICY_RED else []).append(stamp(c))
+    return bool(fails and passes and all(passes) and all(fails) and max(fails) > max(passes))
+
+
 APPROVER_BOT = "hpo-approver[bot]"
 WAIT_GATES = (GATE, RAISE_GATE)
 
@@ -1511,6 +1667,48 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
                                    for e in queue})
         t.log(f"STARTED train.sh pid {pid} over {' '.join('#%d' % int(e['pr']) for e in queue)}; queue {qf.name}")
         return 0
+
+
+BASELINE_JOBS = 6  # completed same-name runs the one-job pulse takes its p50 and max from
+
+
+def one_job_pulse(runs, now: float) -> "str | None":
+    """`CI waits on 1 job: <name> <e>m of p50 <p>m / max <m>m (normal)` when exactly
+    one run of the listing is unfinished, else None. The baseline is the p50 and
+    max duration of the last BASELINE_JOBS completed runs of the same name in the
+    SAME listing (no extra API call); a name with none completed prints
+    `no baseline`. Elapsed over the max reads `over max`, never a verdict to
+    cancel (2026-11-11: two near-complete 2173-3623 s python jobs were cancelled
+    as hung)."""
+    runs = list(runs or ())
+    open_ = [r for r in runs if r.get("status") != "completed"]
+    if len(open_) != 1:
+        return None
+    job = open_[0]
+    name = job.get("name", "?")
+
+    def ts(v):
+        try:
+            return datetime.datetime.fromisoformat(v.replace("Z", "+00:00")).timestamp()
+        except (AttributeError, ValueError):
+            return None
+
+    def secs(r):
+        a, b = ts(r.get("started_at")), ts(r.get("completed_at"))
+        return None if a is None or b is None else b - a
+
+    done = sorted((r for r in runs if r.get("name") == name and r.get("status") == "completed"
+                   and secs(r) is not None), key=lambda r: r.get("completed_at") or "")
+    durs = sorted(secs(r) for r in done[-BASELINE_JOBS:])
+    start = ts(job.get("started_at"))
+    if start is None:
+        return f"CI waits on 1 job: {name} (not started)"
+    el = max(0.0, now - start)
+    if not durs:
+        return f"CI waits on 1 job: {name} {el / 60:.0f}m, no baseline"
+    p50 = durs[(len(durs) - 1) // 2]
+    return (f"CI waits on 1 job: {name} {el / 60:.0f}m of p50 {p50 / 60:.0f}m / "
+            f"max {durs[-1] / 60:.0f}m ({'normal' if el <= durs[-1] else 'over max'})")
 
 
 class Train:
@@ -1847,6 +2045,48 @@ class Train:
                     f"after the verdict. Re-verdict at the live head {h[:8]}: the delta is {delta}",
                     cls=STALE_VERDICT_CARRY)
 
+    def _selftest_runs(self, h: str) -> "list[dict] | None":
+        """<h>'s SELFTESTS check runs, one read (SELFTESTS_RUNS); None when unreadable."""
+        code, raw = self.run(["gh", "api", f"repos/{self.repo}/commits/{h}/{SELFTESTS_RUNS}", "--jq", ".check_runs"])
+        try:
+            runs = json.loads(raw) if code == 0 else None
+        except ValueError:
+            return None
+        return runs if isinstance(runs, list) else None
+
+    def _job_steps(self, job: int) -> "list[dict] | None":
+        """One read of an Actions job's steps (introduced_at's job-step read); None when unreadable."""
+        code, raw = self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{job}", "--jq", ".steps"])
+        try:
+            steps = json.loads(raw) if code == 0 else None
+        except ValueError:
+            return None
+        return steps if isinstance(steps, list) else None
+
+    def introduced(self, head: str, head_runs=None, base: "str | None" = None) -> "tuple[list[str] | None, str]":
+        """introduced_at at <head> against <base>, by default the merge base
+        `git merge-base origin/main <head>` (approval_owed's base), read only
+        when the head's job is red; a read that fails is a Stop, never an empty
+        list. <head_runs> spares the head's check-run read a caller already
+        made. Returns (names, what was read); names None while the job runs."""
+        runs = self._check_runs(head) if head_runs is None else head_runs
+        if runs is None:
+            raise Stop("selftests", f"the check runs at {head[:12]} could not be read")
+        at = [base]
+
+        def base_runs():
+            if at[0] is None:
+                code, out = self.run(["git", "merge-base", "origin/main", head])
+                if code or not is_sha(out.strip()):
+                    raise ValueError(f"no merge base for {head[:12]}: {out.strip()[:120]}")
+                at[0] = out.strip()
+            return self._selftest_runs(at[0])
+        try:
+            names, how = introduced_at(runs, base_runs, self._job_steps)
+        except ValueError as e:
+            raise Stop("selftests", f"{e}: an introduced red cannot be ruled out (fail closed)")
+        return names, f"against {at[0] or '-'}: {how}"
+
     def _check_runs(self, h: str) -> "list[dict] | None":
         """One paginated read of the check runs at <h>, parsed; None on a failed
         or unparseable read (wait_ci's fetch, shared with main_green's
@@ -2020,6 +2260,9 @@ class Train:
                     done = sum(c.get("status") == "completed" for c in runs or ())
                 self.log(f"beat: waiting {what} (poll {k}, t+{int(now - start)}s, "
                          f"required: {req}, concluded: {done}/{req})")
+                pulse = one_job_pulse(runs, self.wall())
+                if pulse:
+                    self.log(pulse)
                 due = now + HEARTBEAT_SECONDS
             # Sleep only until the next beat is due: POLL_SECONDS (300) behind
             # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
@@ -2753,7 +2996,7 @@ class Train:
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
         self.unstale(h)
-        said, swept, carried = "(no output)", False, False
+        said, swept, carried, undrafted = "(no output)", False, False, False
         for k in range(1, self.merge_tries + 1):
             if k == 1:
                 self.review_settle(pr, h)
@@ -2775,6 +3018,15 @@ class Train:
             self.log(f"#{pr} merge attempt {k}/{self.merge_tries} refused (rc={code}): {said}")
             if BASE_MOVED.search(said):
                 raise MainMoved("merge", f"GitHub refused the merge because the base moved: {said}")
+            if STILL_DRAFT.search(said):
+                # P609: a draft is a state, not a race. Admitted as a draft: the
+                # train readies it once and attempts again; any other draft was
+                # drafted after admission (its author's) and is left as a hold.
+                if not item.get("draft") or undrafted:
+                    raise Stop("merge", f"#{pr} drafted after admission: left as a hold")
+                undrafted = True
+                undraft(self, pr, h, item)
+                continue
             if not swept and self.bot_prs:
                 # P191: a record PR that turned green mid-batch merges now, once
                 # per landing, and the existing recovery recarries this entry.
@@ -2841,18 +3093,21 @@ class Train:
             d = None
         if not isinstance(d, dict):
             return f"the merge state could not be read ({o.strip()[-120:] or 'no output'})", True, False
-        last: dict = {}
+        entries = d.get("statusCheckRollup") or ()
+        last = rollup_states(entries)
         seen: dict = {}
-        for c in d.get("statusCheckRollup") or ():
+        for c in entries:
             nm = c.get("name") or c.get("context") or "?"
-            last[nm] = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
-            seen.setdefault(nm, set()).add(last[nm])
+            seen.setdefault(nm, set()).add((c.get("conclusion") or c.get("state") or c.get("status") or "").upper())
         # A deferral gate (gate.py `deferral`) fails at once beside a gate that
         # passed (a CI review run's), and collapsing by name hides it (P590):
         # the same-named contexts are read together, and a failing GATE beside
-        # a passing one, or beside an unfinished sibling run, is a wait.
+        # a passing one, or beside an unfinished sibling run, is a wait. A
+        # failure stamped strictly newer than every pass is a real red (P608:
+        # #3445), not a deferral: the deferral fails first, the pass lands later.
         if GATE in req and GATE not in self.ignore and seen.get(GATE, set()) & set(POLICY_RED) \
-                and (("SUCCESS" in seen[GATE]) or self.gate_deferred(h, [GATE])):
+                and ((("SUCCESS" in seen[GATE]) and not rollup_red_after_pass(entries, GATE))
+                     or self.gate_deferred(h, [GATE])):
             return (f"required context gate is a deferral at {h[:8]} (a failing gate beside a passing one, "
                     "or a sibling run unfinished): its deciding run settles it"), True, False
         red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED]
@@ -3056,6 +3311,17 @@ class Train:
     def preflight_entry(self, item: dict) -> "tuple[str, str, str]":
         """(status, step, why) of one entry under the same construction `preflight` uses."""
         return self.pre_flight_reader().entry(item)
+
+    def record_drafts(self, queue: list[dict]) -> None:
+        """P609: `item["draft"]` is `undraft`'s only licence and `add` alone set
+        it, so a `--queue` file or `build_queue` entry never carried it. One
+        `is_draft` read per entry lacking the key, at batch start (= admission);
+        a head drafted after this read is its author's and is left alone."""
+        if not self.real:
+            return
+        for item in queue:
+            if "draft" not in item:
+                item["draft"] = is_draft(self, int(item["pr"]))
 
     def preflight(self, queue: list[dict]) -> list[dict]:
         """`--pre-flight`: queue_pre_flight.py's admission reads over the whole
@@ -4060,6 +4326,7 @@ class Train:
             base = self.git("rev-parse", f"origin/{self.base}")
             req = self.required()
             self.main_green(base, req, "before admission")
+            self.record_drafts(queue)
             admitted = self.preflight(queue)
             graders = mf.grader_specs(mf.workflow_texts(base, git=lambda *a: self.git(*a)))
             # --skip-bad stops at the ENTRY: an admission refusal (a red head, a
@@ -4578,7 +4845,38 @@ def _self_test() -> int:
           and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
           and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
           and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
-    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
+    # one-job pulse (R10-TICK-RESIDUE-P2 carry 0): the baseline is the same listing's completed same-name runs
+    def jr(name, st, a, b=None):
+        iso = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+        return {"name": name, "status": st, "started_at": iso(a), "completed_at": iso(b) if b is not None else None}
+    # completed in index order, so the 9000 s run is the OLDEST: the BASELINE_JOBS window drops it
+    hist = [jr("codeql / Analyze (python)", "completed", 10000 * i, 10000 * i + d)
+            for i, d in enumerate([9000, 2400, 2800, 3000, 3600, 2900, 2700])]
+    live = jr("codeql / Analyze (python)", "in_progress", 50000)
+    pl = one_job_pulse(hist + [live, jr("tests", "completed", 0, 60)], 50000 + 2460)
+    check("a one-unfinished listing prints the job, elapsed and its same-name p50/max baseline "
+          "(last 6 of 7: the oldest, 9000 s run falls out of the window, so max stays 60m)",
+          pl == "CI waits on 1 job: codeql / Analyze (python) 41m of p50 47m / max 60m (normal)")
+    check("elapsed past the max reads over max, a name with no completed run reads no baseline",
+          one_job_pulse(hist + [live], 50000 + 4000).endswith("(over max)")
+          and one_job_pulse([live], 50000 + 600) == "CI waits on 1 job: codeql / Analyze (python) 10m, no baseline")
+    check("null control: two unfinished jobs print no such line, and none unfinished neither",
+          one_job_pulse(hist + [live, jr("tests", "queued", 50000)], 51000) is None
+          and one_job_pulse(hist, 51000) is None)
+    # wait_ci itself logs the pulse beside the beat (a pulse built and never logged reads nothing)
+    iso0 = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": iso0(0), "completed_at": iso0(600)},
+            {"name": "fast", "status": "in_progress", "conclusion": None, "started_at": iso0(5000), "completed_at": None}]
+    ticks = iter([0, 240, 500])
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None, log=lines.append,
+                  polls=2, clock=lambda: next(ticks), wall=lambda: 5000 + 1200)
+        t.wait_ci(H0)
+    check("wait_ci logs the one-job pulse right after its beat, from the same listing",
+          len(lines) == 4 and lines[0].startswith("beat:") and lines[2].startswith("beat:")
+          and lines[1] == lines[3] == "CI waits on 1 job: fast 20m of p50 10m / max 10m (over max)")
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": "1"}]
     ticks = iter([0, 240, 480, 700])
     lines = []
     with tempfile.TemporaryDirectory() as d:
@@ -5647,6 +5945,7 @@ def _self_test() -> int:
     _read_retry_self_test(check)
     _git_retry_self_test(check)
     _review_settle_self_test(check)
+    _rollup_draft_self_test(check)
     _gate_race_self_test(check)
     _gate_reader_barrier_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
@@ -5656,8 +5955,146 @@ def _self_test() -> int:
     _add_self_test(check)
     _queue_self_test(check)
     _stale_verdict_self_test(check)
+    _introduced_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _introduced_self_test(check) -> None:
+    """R10-INTRODUCED-REDS-BARRIER: a SELFTESTS step red at the head and not at
+    the base is INTRODUCED, `classify --pr` reads it RED, and every unreadable
+    input fails closed. The four cases: introduced, inherited, no base run, and
+    a step skipped by scoping; the push-only drift step never counts."""
+    H, B = "1" * 40, "2" * 40
+    drift = next(iter(SELFTESTS_PUSH_ONLY))
+
+    def job(i, concl="failure"):
+        return {"name": SELFTESTS, "id": i, "status": "completed", "conclusion": concl}
+
+    head_s = [{"name": "new red", "conclusion": "failure"}, {"name": "old red", "conclusion": "failure"},
+              {"name": "scoped", "conclusion": "skipped"}, {"name": drift, "conclusion": "failure"}]
+    base_s = [{"name": "new red", "conclusion": "success"}, {"name": "old red", "conclusion": "failure"},
+              {"name": "scoped", "conclusion": "failure"}, {"name": drift, "conclusion": "failure"}]
+    check("introduced: red at the head and not at the base is the PR's; one red at both is inherited",
+          introduced_reds(head_s, base_s) == ["new red"])
+    check("no base run: every head red counts, the push-only drift step still excluded",
+          introduced_reds(head_s, None) == ["new red", "old red"])
+    check("a step skipped by scoping at the head is not counted, though red at the base",
+          "scoped" not in introduced_reds(head_s, None) + introduced_reds(head_s, base_s))
+    check("null: the base subtraction is what clears an inherited red (the same head against itself reads 0)",
+          introduced_reds(head_s, head_s) == [])
+    check("the push-only drift step alone red at the head is never introduced",
+          introduced_reds([{"name": drift, "conclusion": "failure"}], None) == [])
+
+    def world(head_runs, base_runs, jobs, mb=B):
+        calls: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if argv[:2] == ["git", "merge-base"]:
+                return (0, mb + "\n") if mb else (128, "fatal: Not a valid commit name")
+            if a.endswith("rulesets --jq " + argv[-1]):
+                return 0, "7"
+            if "rulesets/7" in a:
+                return 0, "fast\n"
+            for sha, runs in ((H, head_runs), (B, base_runs)):
+                if f"commits/{sha}/{SELFTESTS_RUNS}" in a:  # the filtered read: one JSON array
+                    return (1, "HTTP 502") if runs is None else (0, json.dumps(
+                        [r for r in runs if r["name"] == SELFTESTS]))
+                if f"commits/{sha}/check-runs" in a:
+                    return (1, "HTTP 502") if runs is None else (0, "\n".join(json.dumps(r) for r in runs))
+            m = re.search(r"actions/jobs/(\d+)", a)
+            if m:
+                st = jobs.get(int(m.group(1)))
+                return (1, "HTTP 404") if st is None else (0, json.dumps(st))
+            return 1, "unexpected"
+        return Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run, sleep=lambda s: None), calls
+
+    fast = {"name": "fast", "id": 5, "status": "completed", "conclusion": "success"}
+    t, calls = world([fast, job(11)], [job(21)], {11: head_s, 21: base_s})
+    rc, out = introduced_cmd(t, H, None)
+    check("introduced_cmd: rc 1, one INTRODUCED line per introduced step, base by git merge-base origin/main",
+          rc == 1 and out.splitlines()[0] == "INTRODUCED new red" and len(out.splitlines()) == 2
+          and f"against {B}: head job 11 failure base job 21 failure" in out
+          and any(c.startswith("git merge-base origin/main") for c in calls))
+    check("the cost: one job-step read per side, the base's SELFTESTS runs by one filtered read",
+          sum("actions/jobs/" in c for c in calls) == 2 and sum(f"commits/{B}/" in c for c in calls) == 1
+          and any(f"commits/{B}/{SELFTESTS_RUNS}" in c for c in calls))
+    rc, line = classify_cmd(t, H, 7, False)
+    check("classify --pr reads an introduced red RED with its INTRODUCED lines, the required set green",
+          rc == 1 and line.startswith(f"RED {H} pending: none red: none introduced: 1")
+          and "\nINTRODUCED new red" in line)
+    check("null: classify without --pr is unchanged (GREEN), and so is --main",
+          classify_cmd(t, H, None, False)[0] == 0 and classify_cmd(t, H, 7, True)[0] == 0)
+    t, calls = world([fast, job(11)], [job(21)], {11: base_s, 21: base_s})
+    check("null: a head red only where its base is (inherited) is GREEN under classify --pr, introduced rc 0",
+          classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
+    t, calls = world([fast, job(11)], [fast], {11: head_s})
+    check("no base run: every head red but the drift step is INTRODUCED",
+          introduced_cmd(t, H, B)[1].count("INTRODUCED") == 2)
+    t, calls = world([fast, job(11, "success")], None, {})
+    check("a head whose SELFTESTS concluded success costs no read beyond its check runs",
+          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c or "merge-base" in c for c in calls))
+    for why, w in (("the head's job", ([fast, job(11)], [job(21)], {21: base_s})),
+                   ("the base's job", ([fast, job(11)], [job(21)], {11: head_s})),
+                   ("the base's check runs", ([fast, job(11)], None, {11: head_s})),
+                   ("the merge base", ([fast, job(11)], [job(21)], {11: head_s, 21: base_s}, ""))):
+        t, _ = world(*w)
+        try:
+            classify_cmd(t, H, 7, False)
+            closed = False
+        except Stop as s:
+            closed = s.step == "selftests"
+        check(f"fail closed: {why} unreadable is a Stop (rc 2), never an empty list", closed)
+
+    # Beyond a `failure` conclusion (the r1 verdict's class): a hang the pull
+    # request makes concludes timed_out with its running step cancelled, a
+    # cancelled step can sit in a failed job, a head can carry a re-run, a job
+    # can still be running, and a job-level cancelled reads nothing.
+    hang = [{"name": "hang", "conclusion": "cancelled"}, {"name": "after", "conclusion": "skipped"}]
+    green = [{"name": "hang", "conclusion": "success"}, {"name": "after", "conclusion": "success"}]
+    t, _ = world([fast, job(11, "timed_out")], [job(21, "success")], {11: hang, 21: green})
+    rc, line = classify_cmd(t, H, 7, False)
+    check("a hang the PR makes (job timed_out, its step cancelled) is RED under classify --pr, step and timeout INTRODUCED",
+          rc == 1 and f"\nINTRODUCED {JOB_TIMED_OUT}" in line and "\nINTRODUCED hang" in line)
+    t, _ = world([fast, job(11)], [job(21, "success")], {11: hang, 21: green})
+    check("a cancelled step inside a failed job is INTRODUCED",
+          introduced_cmd(t, H, None)[1].splitlines()[0] == "INTRODUCED hang")
+    inherited = [{"name": "hang", "conclusion": "failure"}, {"name": "after", "conclusion": "skipped"}]
+    t, _ = world([fast, job(11, "timed_out")], [job(21)], {11: hang, 21: inherited})
+    out = introduced_cmd(t, H, None)[1]
+    check("a hang behind a step already red at the base: the timeout alone is INTRODUCED",
+          out.splitlines()[0] == f"INTRODUCED {JOB_TIMED_OUT}" and out.count("INTRODUCED") == 1)
+    t, _ = world([fast, job(11, "timed_out")], [job(21, "timed_out")], {11: hang, 21: hang})
+    check("null: a timeout the base had too, on the same step, is inherited (GREEN, introduced rc 0)",
+          classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
+    t, _ = world([fast, job(11, "success"), job(12)], [job(21, "success")], {12: hang, 21: green})
+    check("a re-run at one head that went red: the latest run (highest id) is read, its red INTRODUCED",
+          introduced_cmd(t, H, None)[0] == 1)
+    t, calls = world([fast, job(11), job(12, "success")], [job(21, "success")], {11: hang, 21: green})
+    check("a re-run at one head that went green reads clean at no job read",
+          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c for c in calls))
+    running = {"name": SELFTESTS, "id": 12, "status": "in_progress", "conclusion": None}
+    t, calls = world([fast, job(11, "success"), running], [job(21, "success")], {})
+    rc, line = classify_cmd(t, H, 7, False)
+    check("a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN",
+          rc == 3 and line.startswith(f"WAIT {H}") and introduced_cmd(t, H, None)[0] == 3
+          and not any("actions/jobs" in c for c in calls))
+    t, _ = world([fast], [job(21, "success")], {})
+    check("null: a head with no instrument-self-tests run (the prelude skipped it) is GREEN",
+          classify_cmd(t, H, 7, False)[0] == 0)
+    for why, w in (("the head's job concluded cancelled", ([fast, job(11, "cancelled")], [job(21)], {11: hang, 21: green})),
+                   ("the head's job concluded startup_failure", ([fast, job(11, "startup_failure")], [job(21)], {})),
+                   ("the base's job concluded cancelled", ([fast, job(11)], [job(21, "cancelled")], {11: hang, 21: green})),
+                   ("a red head job with no red step", ([fast, job(11)], [job(21)], {11: green, 21: green}))):
+        t, _ = world(*w)
+        try:
+            classify_cmd(t, H, 7, False)
+            closed = False
+        except Stop as s:
+            closed = s.step == "selftests"
+        check(f"fail closed: {why} is a Stop (rc 2), never a clean read", closed)
 
 
 def _stale_verdict_self_test(check) -> None:
@@ -6400,6 +6837,130 @@ def _gate_reader_barrier_self_test(check) -> None:
     sh = (seat / "merge_pr.sh").read_text()
     check("P436 barrier: merge_pr.sh's raw latest-check red read is followed by a classify WAIT-wait before RED",
           sh.index('conclusion=="failure"') < sh.index("merge_train.py} classify") < sh.index('echo "RED: $red"'))
+
+
+def _rollup_draft_self_test(check) -> None:
+    """P608 (a rollup reads by newest entry, never list order) and P609 (a draft
+    is a state: undraft once when admitted as a draft, else a hold)."""
+    H = "b" * 40
+    ent = lambda st, at, run="COMPLETED": {"name": "gate", "status": run, "conclusion": st, "completedAt": at}  # noqa: E731
+    # #3445 7fb8680c: four FAILURE gates, the newest 09:29:14Z, then SUCCESS 09:23:45Z listed last
+    fails = [ent("FAILURE", f"2026-11-11T09:{m}:00Z") for m in ("10", "15", "20")] + [ent("FAILURE", "2026-11-11T09:29:14Z")]
+    frozen = fails + [ent("SUCCESS", "2026-11-11T09:23:45Z")]
+
+    def refusal(entries, ms="BLOCKED", rd="REVIEW_REQUIRED"):
+        def run(argv, cwd=ROOT, stdin=None):
+            if "statusCheckRollup" in " ".join(argv):
+                return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd, "statusCheckRollup": entries})
+            return 0, ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None)
+        t.required = lambda pr_head=False: ["gate"]
+        t.review_run_settling = lambda pr, h: False
+        return t.policy_refusal(3445, H)
+    for label, ents in (("in list order", frozen), ("reversed", frozen[::-1])):
+        why, wait, appr = refusal(ents)
+        check(f"P608 #3445's five gate entries {label}: red gate, not a missing review",
+              "required context(s) red at bbbbbbbb: gate" in why and wait is False and appr is False)
+    why, wait, _ = refusal([ent("SUCCESS", "2026-11-11T09:00:00Z"), ent("", "2026-11-11T10:29:00Z", "IN_PROGRESS")])
+    check("P608 a SUCCESS then an IN_PROGRESS entry is pending: wait", wait is True and "not yet green" in why)
+    ok = [ent("SUCCESS", f"2026-11-11T09:0{i}:00Z") for i in range(3)]
+    # M7: the unfinished entry is the OLDER one, a newer SUCCESS beside it
+    why, wait, _ = refusal([ent("", "2026-11-11T08:00:00Z", "IN_PROGRESS"), ent("SUCCESS", "2026-11-11T09:00:00Z")])
+    check("P608 an unfinished entry older than a SUCCESS still makes the context pending",
+          wait is True and "not yet green" in why)
+    # M8: GitHub's zero time on completedAt is no stamp: startedAt orders the entry
+    zero = {"name": "gate", "status": "COMPLETED", "conclusion": "SUCCESS",
+            "completedAt": "0001-01-01T00:00:00Z", "startedAt": "2026-11-11T10:00:00Z"}
+    check("P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [ent("FAILURE", "2026-11-11T09:00:00Z"), zero], [zero, ent("FAILURE", "2026-11-11T09:00:00Z")]))
+          and rollup_states([zero, ent("FAILURE", "2026-11-11T11:00:00Z")]) == {"gate": "FAILURE"})
+    # M9: an entry with only startedAt is ordered by it
+    st = lambda c, at: {"name": "gate", "status": "COMPLETED", "conclusion": c, "startedAt": at}  # noqa: E731
+    check("P608 an entry with only startedAt is ordered by it, in either list order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [st("FAILURE", "2026-11-11T09:00:00Z"), st("SUCCESS", "2026-11-11T09:30:00Z")],
+              [st("SUCCESS", "2026-11-11T09:30:00Z"), st("FAILURE", "2026-11-11T09:00:00Z")])))
+    check("P608 null: all-SUCCESS in any order reaches the review branch",
+          all("missing requirement is a review" in refusal(o)[0] for o in (ok, ok[::-1])))
+
+    # P609: land() on a head that is a draft
+    def world(draft_item, redraft=0):
+        calls, state = [], {"draft": True, "redraft": redraft}
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if a.startswith("gh pr ready"):
+                state["draft"] = False
+                return 0, ""
+            if "gh pr merge" in a:
+                if state["redraft"] > 0:  # the author drafts it again under the train
+                    state["redraft"] -= 1
+                    state["draft"] = True
+                state["merged"] = not state["draft"]
+                return (1, "Pull Request is still a draft") if state["draft"] else (0, "")
+            if "preflight" in a:
+                return 0, "clean\n"
+            return 0, ""
+        def out(*argv):
+            a = " ".join(argv)
+            if "isDraft" in a:
+                return "true" if state["draft"] else "false"
+            if "state,mergeCommit" in a:
+                return "MERGED abc" if state.get("merged") else "OPEN None"
+            return ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None, base="batch/x")
+        t.out, t.head, t.review_settle, t.unstale = out, (lambda pr: H), (lambda pr, h: None), (lambda h: None)
+        return t, calls
+    def land(item, **kw):
+        t, calls = world(item, **kw)
+        try:
+            t.land(7, H, item, [], lambda: None)
+        except Stop as s:
+            return s, calls
+        return None, calls
+    s, calls = land({"pr": 7, "draft": True})
+    check("P609 an admitted draft is readied once, then the merge attempts again",
+          s is None and sum(c.startswith("gh pr ready") for c in calls) == 1
+          and sum("gh pr merge" in c for c in calls) == 1)
+    s, calls = land({"pr": 7})
+    check("P609 a draft the train never admitted as one: one attempt, then the hold, no recarry",
+          s is not None and not isinstance(s, MainMoved) and "drafted after admission: left as a hold" in s.why
+          and sum("gh pr merge" in c for c in calls) == 1 and not any(c.startswith("gh pr ready") for c in calls))
+    s, calls = land({"pr": 7, "draft": True}, redraft=2)
+    check("P609 a draft again after the one ready: that hold after two attempts, never eight",
+          s is not None and "left as a hold" in s.why and sum("gh pr merge" in c for c in calls) == 2
+          and sum(c.startswith("gh pr ready") for c in calls) == 2)
+    t, calls = world({})
+    t.real = True
+    q = [{"pr": 7}, {"pr": 8, "draft": False}]
+    t.record_drafts(q)
+    check("P609 record_drafts reads once per entry lacking the key and keeps a recorded value",
+          q[0]["draft"] is True and q[1]["draft"] is False)
+    # M4: the batch itself records the key (the --queue / build_queue route)
+    t, calls = world({})
+    t.real = True
+    class _Halt(Exception):
+        pass
+    seen: list = []
+    def halt(q):
+        seen.extend(dict(i) for i in q)
+        raise _Halt
+    t.sweep_bots, t.required, t.main_green, t.preflight = (lambda: None), (lambda pr_head=False: []), (lambda *a: None), halt
+    t.git = lambda *a: H
+    t.state = Path(tempfile.mkdtemp())
+    try:
+        t._batch([{"pr": 7}], "t")
+    except _Halt:
+        pass
+    check("P609 a batch records the draft key on a key-less entry before admission",
+          len(seen) == 1 and seen[0].get("draft") is True)
+    t, calls = world({})
+    t.real, t.out = True, (lambda *a: "false")
+    q = [{"pr": 7}]
+    t.record_drafts(q)
+    check("P609 null: a non-draft entry is recorded False and makes no gh pr ready call",
+          q[0]["draft"] is False and not any(c.startswith("gh pr ready") for c in calls))
 
 
 def _review_settle_self_test(check) -> None:
@@ -9477,6 +10038,11 @@ def _parser() -> argparse.ArgumentParser:
     c.add_argument("sha")
     c.add_argument("--main", action="store_true", help="<sha> is main's tip: PR_ONLY contexts are not judged")
     c.add_argument("--pr", type=int, help="the pull request <sha> heads: lets a RED read as APPROVAL-OWED (rc 4)")
+    i = sub.add_parser("introduced", parents=[common],
+                       help=f"the {SELFTESTS} steps red at <sha> and not at its merge base (or --base): "
+                            "INTRODUCED lines, rc 1 when any, 0 none, 3 its job still runs, 2 unreadable (fail closed)")
+    i.add_argument("sha")
+    i.add_argument("--base", help="the base commit (default: git merge-base origin/main <sha>)")
     # The required set a `## Red checks` obligation is judged against
     # (policy_lint.mjs --pr-body): the one owner, read live.
     sub.add_parser("owed-reds", parents=[common],
@@ -9538,6 +10104,14 @@ def main(argv: list[str]) -> int:
         return 1 if red else 0
     if a.cmd == "owed-reds":
         rc, out = owed_reds(Train(a.repo, Path("."), None, "", (), a.min_runs))
+        print(out)
+        return rc
+    if a.cmd == "introduced":
+        try:
+            rc, out = introduced_cmd(Train(a.repo, Path("."), None, "", (), a.min_runs), a.sha, a.base)
+        except Stop as s:
+            print(f"REFUSE {s.step}: {s.why}")
+            return 2
         print(out)
         return rc
     if a.cmd in ("unstale", "classify"):

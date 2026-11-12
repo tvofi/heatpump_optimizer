@@ -18,10 +18,10 @@ What the unmodified tree does.
 
 ## Figures
 
-`none`, or one line per figure the body states, with the command that printed it;
-name the instrument rather than restate what it prints. `pr-contract` refuses a
-command that does not resolve, and never re-runs one. Required check `arch-score`:
-a gate rise passes only explained under `## Architecture score`, one line per metric.
+`none`, or one line per figure with the command that printed it; name the
+instrument, not what it prints. `pr-contract` refuses a command that does not
+resolve, never re-runs one. Gate rise: explain under `## Architecture score`.
+Registered: empty `<!-- figure-block: scope-line -->`..`<!-- /figure-block -->`, `body_push.sh` fills it.
 
 ## Red checks
 

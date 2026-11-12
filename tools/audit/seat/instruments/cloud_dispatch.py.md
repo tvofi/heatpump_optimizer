@@ -81,6 +81,7 @@ designer may push only `design/<group>` (through `bus.sh push-design`) and
 opens no pull request; the design reviewer may push only
 `design-verdict/<group>` and is pinned to the `design/<group>` tip read from
 origin at the dispatch (`--design` on the flag path). Each role's text says so.
+A designer payload pins the latest `design-verdict/<group>` commit and its first line when that ref exists.
 A `fixer` dispatch for an L or XL group is refused unless
 `design-verdict/<group>` reads `Design review: approve <sha>` at the current
 design tip, or `--design-exempt <reason>` names an approved design, pre-study
@@ -93,3 +94,9 @@ is read from the roster (`model.<role>`, `<role>Model`) and the field is printed
 `--carry-only` and `--record-pr` run a reviewer on sonnet. A fixer's brief ends with the live
 consumer groups (the only valid `Carry:` targets) and the group's `enumeration` command,
 from `roster_lib.brief_lines`.
+A `fixer` for a group holding more than five pending carries (`roster_lib.pending_carries`)
+is refused, and the refusal prints the split: index-ordered fives, a remainder of one or two
+folded into the last part. `--part <k>` dispatches part k under topic `<topic>-p<k>` (k over 1)
+with one generated line naming its carries; dispatch each part at the previous part's handoff.
+Every reviewer stop path, a setup refusal and a bounded CI wait included, pushes a verdict to
+its probe ref and reads it back.
