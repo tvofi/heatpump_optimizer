@@ -85910,6 +85910,42 @@ R.check(
     and _p3_view_calls[0].endswith("boost.learning_freeze(self, self._learner_freeze_reason))"),
     f"{_p3_view_calls}",
 )
+from types import SimpleNamespace as _p3_ns  # noqa: E402
+from heatpump_optimizer import heat_energy as _p3_he  # noqa: E402
+
+
+class _P3Lines(_p3_logging.Handler):
+    def __init__(self):
+        super().__init__(_p3_logging.DEBUG)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+
+_p3_he_log, _p3_cap = _p3_logging.getLogger(_p3_he.__name__), _P3Lines()
+_p3_he_was = _p3_he_log.level
+_p3_he_log.addHandler(_p3_cap)
+_p3_he_log.setLevel(_p3_logging.DEBUG)
+try:
+    _p3_no_counter = _p3_he.close_span(_p3_he.HeatEnergyMeter(), {}, (1.0, 0.0), "s", NOW, 3.0, "u", lambda *a: "iv")
+    _p3_quiet = list(_p3_cap.lines)
+    _p3_ev = _p3_he.SpanEvidence(_p3_he.SpanEnergy(NOW, NOW, 1.0, 3.0, 1.0, None), None, "s", NOW,
+                                 {"house": True, "lower": False, "cop": True}, (1.0, 0.0),
+                                 _p3_he.Attribution(1.0, 0.0, True))
+    _p3_he.close_span(_p3_ns(settle=lambda *_a: _p3_ev, refusal=None), {}, (1.0, 0.0), "s", NOW, 3.0, "u",
+                      lambda *a: "iv")
+finally:
+    _p3_he_log.removeHandler(_p3_cap)
+    _p3_he_log.setLevel(_p3_he_was)
+R.check(
+    "P3 null control: an install with no heat counter closes no span and logs no span line at "
+    "DEBUG; a span the counter closed logs one line, its refusal and the learners it reaches",
+    _p3_no_counter == _p3_he.NO_SPAN and _p3_quiet == []
+    and len(_p3_cap.lines) == 1 and _p3_cap.lines[0].startswith("Heat counter span 1.00 h")
+    and _p3_cap.lines[0].endswith("house refused, lower refused"),
+    f"{_p3_quiet} {_p3_cap.lines}",
+)
 class _P3Boom:
     def __repr__(self): raise AssertionError("formatted with DEBUG off")
     __str__ = __repr__

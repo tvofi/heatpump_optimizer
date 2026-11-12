@@ -50,6 +50,9 @@ MUTANTS = [
     ("M7-skip-reason-formatted-before-the-level-check", PKG / "learner_progress.py",
      '    _LOGGER.debug("No %s sample this cycle: " + why + "%s", what, *args,',
      '    _LOGGER.debug("No %s sample this cycle: " + (why % args) + "%s", what,', BLOCK),
+    ("M8-span-line-with-no-counter", PKG / "heat_energy.py",
+     "if _LOGGER.isEnabledFor(logging.DEBUG) and meter.refusal is not None:",
+     "if _LOGGER.isEnabledFor(logging.DEBUG):", BLOCK),
 ]
 
 
