@@ -23305,10 +23305,11 @@
     "R10-TRAIN-RESIDUE-P2 (triage: dev/programme/triage/s6-batch228.md#P690 at ab46cc3050), line numbers at ef579d9ba6. tools/audit/seat/merge_train.py already_held (:1278) answers `skipped by this train at this same verdict` (:1302) for an entry the train skipped even when its live head has since moved and the verdict carries to it. On 2026-11-12 #3454 (skipped on A5: head moved by the merge-main bot, review_carry CARRY) and #3460 (skipped on a head red cured by a clean main merge, CARRY), both outside-derived, were refused re-admission and each needed a direct merge by hand under the owner's deadlock exception. Fix: already_held does not hold a skipped entry at the same verdict when the live head differs from the skipped head and the verdict carries to the live head (the train's own review_carry); otherwise it holds as today. Self-test: both shapes (A5 head move; red cured by a main merge) re-admitted, failing on the base and passing on the fix; null controls: same head stays held; a moved head whose verdict does not carry stays held."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
     "note": "overlap admitted (R10-SEAT-SCRIPT-OUTPUT, R10-GATE-DEFER-BARRIER): triage s14-13 2026-11-11: P597 not-started sibling of R10-TRAIN-RESIDUE (carries-open, not carry_receivable); triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0",
-    "pr": 3470
+    "pr": 3470,
+    "commit": "be86e36a560fde88cc758cefcee322b9087a5deb"
    }
   },
   {
