@@ -1684,56 +1684,6 @@ def heat_loss_basis_voids(stored: Any, basis: str) -> bool:
     return stored in bases and bases.index(stored) < bases.index(basis)
 
 
-def project_planned_levels(power: Any, p_min: float, p_max: float) -> np.ndarray:
-    """Map a schedule onto ``{0} ∪ [p_min, p_max]``.
-
-    Zero stays off: the power switch can realize it. A value in
-    ``(0, p_min)`` is the duty-cycle average the solver books and a
-    switch-plus-setpoint surface delivers as ``p_min``, so it is clamped
-    up. Above ``p_max`` is clipped. Design choice (#1955): the feasible
-    set is not the closed interval ``[p_min, p_max]``, which would force
-    the pump on for the whole horizon.
-    """
-    return _onto_band(np.asarray(power, dtype=float), float(p_min), float(p_max))
-
-
-def _onto_band(arr: np.ndarray, lo: Any, hi: Any) -> np.ndarray:
-    """``arr`` clipped to ``[0, hi]``, a value in ``(0, lo)`` raised to ``lo``.
-
-    ``lo`` and ``hi`` are floats or arrays broadcasting against ``arr``.
-    """
-    capped = np.where(np.greater(arr, hi), hi, arr)
-    nonneg = np.where(np.less(capped, 0.0), 0.0, capped)
-    return np.where(
-        np.logical_and(np.greater(nonneg, 0.0), np.less(nonneg, lo)),
-        lo,
-        nonneg,
-    )
-
-
-def project_space_against(
-    space: Any, dhw: Any, p_min: float, p_max: float
-) -> np.ndarray:
-    """Space heating onto what one on/off compressor leaves beside ``dhw``.
-
-    ``dhw`` is the DHW schedule already projected by
-    :func:`project_planned_levels`, an ``N`` vector; ``space`` is an ``N``
-    vector or a ``B x N`` matrix, broadcast row by row (#3289). One
-    compressor serves both channels, so per step space is clipped to
-    ``[0, p_max - dhw]`` and a value in ``(0, p_min - dhw)`` is raised to
-    that bound: the total lands in ``{0} ∪ [p_min, p_max]`` and DHW keeps
-    the level its planner booked. A negative bound needs no floor at 0: a
-    cap below 0 clips to 0, and a raise below 0 matches no running level.
-    With ``dhw`` zero this is :func:`project_planned_levels`. Design choice:
-    a shared scale on the total lost because it writes into the DHW plan the
-    space solve treats as fixed.
-    """
-    other = np.asarray(dhw, dtype=float)
-    return _onto_band(
-        np.asarray(space, dtype=float), float(p_min) - other, float(p_max) - other
-    )
-
-
 def _span_when(left: float | None, right: float | None, ready: bool) -> float:
     """``left - right`` once both ends are floats, else ``0``."""
     span = 0.0

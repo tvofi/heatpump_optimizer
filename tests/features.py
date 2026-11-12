@@ -7263,7 +7263,7 @@ def _check_batch_cost_948(label, cap):
     # objective_batch call on the 6-row matrix above.
     with _count_entries_948(
         (_PvOpt, "_comfort_terms"),
-        (_grad_optmod, "cycling_penalty"),
+        (_grad_optmod.runs, "start_count"),
         (_grad_optmod, "peak_cost_smooth"),
         (_PvModel, "simulate_trajectory"),
         (_PvModel, "simulate_trajectory_batch"),
@@ -7280,7 +7280,7 @@ def _check_batch_cost_948(label, cap):
     R.check(
         f"and without the per-row grid-term helpers: {label}",
         cyc == 0 and peak == 0,
-        f"cycling_penalty entered {cyc} times, peak_cost_smooth {peak} times "
+        f"runs.start_count entered {cyc} times, peak_cost_smooth {peak} times "
         f"(the solver's capacity term is the smooth surrogate since #1210; "
         f"the exact peak_cost is billed/published only and never batched)",
     )
@@ -7348,7 +7348,7 @@ _check_batch_cost_948(
 )
 
 # The batch twins under their own branch grids, one level below the
-# objective: every arm peak_cost and cycling_penalty branch on, priced per
+# objective: every arm peak_cost and runs.start_count branch on, priced per
 # row against the scalar function on the same plan. Rule: row b of the
 # batch result must equal the scalar function on row b's plan, exactly,
 # for every (offset, window length, factors) arm -- separated peaks, the
@@ -7360,9 +7360,9 @@ _check_batch_cost_948(
 # it); the extra checks below pin that the two scalars agree everywhere
 # the plateau gate does not fire.
 from heatpump_optimizer.tariff import peak_cost_batch as _pcb948
-from heatpump_optimizer.optimizer import (
-    cycling_penalty as _cyc948,
-    cycling_penalty_batch as _cpb948,
+from heatpump_optimizer.runs import (
+    start_count as _cyc948,
+    start_count_batch as _cpb948,
 )
 
 _rows948 = np.vstack([
@@ -7427,11 +7427,11 @@ R.check(
 _cyc_bad948 = [
     _b948
     for _b948 in range(_rows948.shape[0])
-    if _cpb948(_rows948[_b948 : _b948 + 1], 2.0, 6.0)[0]
-    != _cyc948(_rows948[_b948], 2.0, 6.0)
+    if _cpb948(_rows948, 2.0)[_b948]
+    != _cyc948(_rows948[_b948], 2.0)
 ]
 R.check(
-    "cycling_penalty_batch is cycling_penalty on every row, bit for bit",
+    "runs.start_count_batch is runs.start_count on every row, bit for bit",
     not _cyc_bad948,
     f"divergent rows: {_cyc_bad948}",
 )
@@ -67631,9 +67631,9 @@ import sys as _f22_sys  # noqa: E402
 
 from heatpump_optimizer import thermal_model as _f22_tm  # noqa: E402
 from heatpump_optimizer.dhw_planner import _DHW_MIN_RUN_CHUNK as _F22_CHUNK  # noqa: E402
-from heatpump_optimizer.optimizer import (  # noqa: E402
-    cycling_penalty as _f22_cyc,
-    cycling_penalty_batch as _f22_cyc_batch,
+from heatpump_optimizer.runs import (  # noqa: E402
+    start_count as _f22_cyc,
+    start_count_batch as _f22_cyc_batch,
 )
 
 
@@ -67684,7 +67684,7 @@ for _f22_two in (False, True):
 for _f22_rows in (2, 97):
     _f22_pm = np.random.default_rng(3).uniform(0.0, 6.0, size=(_f22_rows, 96))
     _f22_cost[("cycling", None, _f22_rows)] = _f22_calls(
-        _f22_cyc_batch, _f22_pm, 2.0, 6.0
+        _f22_cyc_batch, _f22_pm, 2.0
     )[0]
 _f22_growth = {
     k[:2]: (_f22_cost[k[:2] + (97,)], _f22_cost[k[:2] + (2,)])
@@ -67730,10 +67730,10 @@ for _f22_two in (False, True):
         _f22_pm[0] = 3.0
         for _f22_order in ("C", "F"):
             _f22_pmo = np.asarray(_f22_pm, order=_f22_order)
-            _f22_got = _f22_cyc_batch(_f22_pmo, 2.0, 6.0)
+            _f22_got = _f22_cyc_batch(_f22_pmo, 2.0)
             for _f22_b in range(_f22_pmo.shape[0]):
                 if (np.float64(_f22_got[_f22_b]).tobytes()
-                        != np.float64(_f22_cyc(np.array(_f22_pmo[_f22_b]), 2.0, 6.0)).tobytes()):
+                        != np.float64(_f22_cyc(np.array(_f22_pmo[_f22_b]), 2.0)).tobytes()):
                     _f22_bad.append(("cycling", _f22_n, _f22_order, _f22_b))
 R.check(
     "R9-F2.2: every batched comfort and cycling row is its scalar twin byte "
@@ -67750,12 +67750,14 @@ _f22_ref_bad = []
 for _f22_n in (1, 5, 7, 8, 9, 95, 96, 97, 128, 129, 192):
     for _f22_seed in range(25):
         _f22_x = np.random.default_rng((_f22_n, _f22_seed)).uniform(0.0, 6.0, size=_f22_n)
-        _f22_want = 2.0 * float(np.sum(np.abs(np.diff(_f22_x)))) / (2.0 * 6.0) if _f22_n > 1 else 0.0
-        if np.float64(_f22_cyc(_f22_x, 2.0, 6.0)).tobytes() != np.float64(_f22_want).tobytes():
+        _f22_r = np.clip(_f22_x / 2.0, 0.0, 1.0)
+        _f22_want = float(np.sum(
+            np.clip(_f22_x / _f22_tm.MIN_RUNNING_DRAW_KW, 0.0, 1.0) * (1.0 - np.r_[0.0, _f22_r[:-1]])))
+        if np.float64(_f22_cyc(_f22_x, 2.0)).tobytes() != np.float64(_f22_want).tobytes():
             _f22_ref_bad.append((_f22_n, _f22_seed))
 R.check(
-    "R9-F2.2: the scalar cycling penalty is still numpy's own sum of the "
-    "swings, to the byte",
+    "R9-F2.2: the scalar start count is numpy's own sum of each running "
+    "step's share of a start its predecessor left open, to the byte",
     not _f22_ref_bad,
     f"(width, seed) that moved: {_f22_ref_bad[:6]} of {len(_f22_ref_bad)}",
 )
@@ -69700,8 +69702,16 @@ def _r10s_solve(run=None):
         lower_floor_temperature=21.0, slab_temperature=22.0,
         outdoor_temperature=float(out[0]),
     )
-    runs, live = [], []
+    runs, live, committing = [], [], []
     real_sm = _r10s_optmod._scoped_minimize
+    real_commit = _r10s_optmod._commit_runs
+
+    def commit(*a, **k):
+        committing.append(1)
+        try:
+            return real_commit(*a, **k)
+        finally:
+            committing.pop()
     real_traj = _r10s_Model.simulate_trajectory
 
     def traj(self, *a, **k):
@@ -69713,7 +69723,7 @@ def _r10s_solve(run=None):
         rec = {
             "jac": kw.get("jac") is not None, "scalar": 0,
             "kind": ("continuation" if opt._floor_l1_scale != 1.0
-                     else "relaxed" if opt._levels_relaxed else "multi-start"),
+                     else "commit" if committing else "multi-start"),
         }
         runs.append(rec)
         live.append(rec)
@@ -69724,6 +69734,7 @@ def _r10s_solve(run=None):
 
     with _r10s_mock.patch.object(_r10s_optmod, "_scoped_minimize", sm), \
             _r10s_mock.patch.object(_r10s_Model, "simulate_trajectory", traj), \
+            _r10s_mock.patch.object(_r10s_optmod, "_commit_runs", commit), \
             (_r10s_mock.patch.object(_r10s_optmod, "_lbfgsb_run", run, create=True)
              if run is not None else _r10s_ctx.nullcontext()):
         res = opt.optimize(inputs=solve_inputs(
@@ -69753,10 +69764,10 @@ _r10s_ref = _r10s_census(_r10s_ref_runs)
 print(f"RESULT r10_solver_runs fused={_r10s_got} scalar_valued={_r10s_ref}")
 R.check(
     "R10-SOLVER D9-s1-01 (census precondition): the metered solve runs the "
-    "continuation, the relaxed candidate and the multi-start's own runs on "
+    "continuation, the committed dispatch and the multi-start's own runs on "
     "the batched jac",
     all(_r10s_got.get(k, (0, 0))[0] > 0
-        for k in ("continuation", "relaxed", "multi-start")),
+        for k in ("continuation", "commit", "multi-start")),
     f"(supplied-jac runs, scalar simulations) per kind: {_r10s_got}",
 )
 R.check(
@@ -69769,7 +69780,7 @@ R.check(
     "R10-SOLVER D9-s1-01 (positive control): the scalar-valued form of the "
     "same runs is seen by the meter",
     _r10s_ref.get("continuation", (0, 0))[1] > 0
-    and _r10s_ref.get("relaxed", (0, 0))[1] > 0,
+    and _r10s_ref.get("commit", (0, 0))[1] > 0,
     f"(supplied-jac runs, scalar simulations) per kind: {_r10s_ref}",
 )
 R.check(
@@ -72558,7 +72569,6 @@ from heatpump_optimizer.thermal_model import (
     levels_clamped as _pp_clamped,
     planned_draw_runs as _pp_runs,
     probe_install as _pp_probe,
-    project_planned_levels as _pp_project,
 )
 
 _PP_UNMETERED = {
@@ -72570,13 +72580,6 @@ _PP_METERED = {
     _PP_POWER: "sensor.hp_power",
     _PP_FREQ: "number.hz",
 }
-_pp_gap = np.array([0.0, 0.3, 0.5, 3.0, 14.0, 20.0])
-_pp_projected = _pp_project(_pp_gap, 3.0, 14.0)
-R.check(
-    "a switch-plus-setpoint install clamps a sub-minimum level up to p_min and keeps off off",
-    np.allclose(_pp_projected, [0.0, 3.0, 3.0, 3.0, 14.0, 14.0]),
-    f"{_pp_projected.tolist()}",
-)
 R.check(
     "null control: the duty-cycle reading of 0.3 kW still runs when no floor is passed",
     _pp_runs(0.3) is True and _pp_runs(0.3, modulation_floor=3.0) is False
@@ -72677,8 +72680,8 @@ R.check(
 # R10-MIN-POWER-FLOOR. ``compressor_modulation`` declares whether the
 # compressor can run below p_min; ``thermal_model.declared_modulation`` is its
 # only reader. On a clamped install one compressor serves space and DHW, so
-# space ships projected against the DHW the step already carries
-# (``project_space_against``): every step's total is 0 or in [p_min, p_max].
+# space ships committed beside the DHW the step already carries
+# (``optimizer._commit_runs``): every step's total is 0 or in [p_min, p_max].
 # The solve cell is the finder's (dev/audit/harnesses/r10_min_power_floor.py):
 # a 2.5-3.5 kW pump, spread prices, DHW on, outdoor mean -4 degC.
 from heatpump_optimizer.const import (  # noqa: E402
@@ -72698,7 +72701,6 @@ from heatpump_optimizer.const import (  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _MpfOpt,
     OptimizationConfig as _MpfCfg,
-    _realize_draw as _mpf_realize,
 )
 from heatpump_optimizer.thermal_model import (  # noqa: E402
     UNMETERED_POWER_FREEZE as _MPF_FREEZE,
@@ -72709,8 +72711,6 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
     InstallCapability as _MpfCap,
     learner_unmetered as _mpf_unmetered,
     probe_install as _mpf_probe,
-    project_planned_levels as _mpf_project,
-    project_space_against as _mpf_against,
 )
 
 # The #1955 block's two surfaces, restated so this block runs alone
@@ -72781,34 +72781,6 @@ R.check(
     and _mpf_unmetered(_mpf_on_off(_MPF_METERED)) is None
     and _mpf_unmetered({**_MPF_UNMETERED, _MPF_KEY: _MPF_MOD}) is None
     and _mpf_unmetered(_MPF_UNMETERED) == _MPF_FREEZE,
-)
-
-_mpf_space = np.array([0.0, 0.3, 2.8, 4.0, 1.0, 2.8, 0.05, -0.2])
-_mpf_dhw = np.array([0.0, 0.0, 2.5, 0.0, 3.5, 0.0, 2.5, 0.0])
-_mpf_proj = _mpf_against(_mpf_space, _mpf_dhw, 2.5, 3.5)
-_mpf_rows = _mpf_against(np.vstack([_mpf_space, _mpf_space[::-1]]), _mpf_dhw, 2.5, 3.5)
-R.check(
-    "space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum "
-    "level raised to p_min only where DHW is off, identity where the total already fits",
-    np.allclose(_mpf_proj, [0.0, 2.5, 1.0, 3.5, 0.0, 2.8, 0.05, 0.0])
-    and np.array_equal(_mpf_against(_mpf_space, np.zeros(8), 2.5, 3.5),
-                       _mpf_project(_mpf_space, 2.5, 3.5))
-    and np.array_equal(_mpf_rows[0], _mpf_proj)
-    and np.array_equal(_mpf_rows[1], _mpf_against(_mpf_space[::-1], _mpf_dhw, 2.5, 3.5)),
-    f"{_mpf_proj.tolist()}",
-)
-_mpf_r_space, _mpf_r_dhw = _mpf_realize(True, _mpf_space, np.array([0.0, 1.0, 2.5, 4.0, 0, 0, 0, 0]), 2.5, 3.5)
-R.check(
-    "a clamped install realizes DHW as its own projection and space against it; "
-    "unclamped and DHW-less draws are unchanged",
-    np.allclose(_mpf_r_dhw, [0.0, 2.5, 2.5, 3.5, 0, 0, 0, 0])
-    and np.allclose(_mpf_r_space, [0.0, 0.3, 1.0, 0.0, 2.5, 2.8, 2.5, 0.0])
-    and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[0] is _mpf_space
-    and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[1] is _mpf_dhw
-    and _mpf_realize(True, _mpf_space, None, 2.5, 3.5)[1] is None
-    and np.array_equal(_mpf_realize(True, _mpf_space, None, 2.5, 3.5)[0],
-                       _mpf_project(_mpf_space, 2.5, 3.5)),
-    f"space {_mpf_r_space.tolist()} dhw {_mpf_r_dhw.tolist()}",
 )
 
 _MPF_STEPS = np.arange(96)
@@ -73154,167 +73126,6 @@ R.check(
     "null control: the supply-to-target conversion moves nothing but a return target",
     _pa._as_target({}, 35.0) == 35.0 and _pa._as_target(_RT_FLOW, 35.0) == 35.0
     and _pa._as_target(_RT, 35.0) == 35.0 - _pa.RETURN_SUPPLY_OFFSET_K,
-)
-
-# The objective scores the rounded levels a clamped install ships, so it is
-# flat between 0 and p_min and a start descending into that band stalls
-# there. The relaxed candidate (``_relaxed_starts``) is the fix; the
-# control arm is the same solve with it removed, which is the mutant. A
-# synthetic 750 L tank with no valve, space-only and with hot water, so both
-# solve paths carry the tank's state without the store credit. The valve was
-# removed when R10-BUFFER-STORE made a valved tank a live store in the
-# single-zone model: the store's energy state smooths the rounded-level
-# plateau this section traps, and the relaxed start's margin on the valved
-# fixture fell to 0.0135 (measured, deterministic over three runs) against
-# 4.081 with no valve -- under the 0.5 arch-robustness margin the check
-# needs, and 0.447 even on the two-zone fixture that was already live. The
-# live store's own landscape is pinned by the R10-BUFFER-STORE checks; the
-# reduced margin on live-store installs is carried forward to that group.
-# The rounded objective is non-convex
-# and L-BFGS-B's path differs by architecture (``fixer.md`` step 15): which
-# cells the candidate wins, and whether the control arm also leaves the band,
-# moved between arm64 and CI's x86_64. So the checks pin what the mechanism
-# guarantees on every platform -- a strictly lower objective where it wins,
-# never a higher one, and a plan that books above the floor -- not a cell's
-# basin. In the hot-water cells space ships projected against the DHW plan
-# (#3289, ``project_space_against``): before that, two cells shipped space
-# plus DHW above their 5.5 kW p_max; the checks' predicates hold either way.
-import heatpump_optimizer.optimizer as _sp_opt_mod  # noqa: E402
-from heatpump_optimizer.optimizer import (  # noqa: E402
-    HeatPumpOptimizer as _SpOpt,
-    OptimizationConfig as _SpCfg,
-)
-from heatpump_optimizer.thermal_model import (  # noqa: E402
-    ThermalModel as _SpTM,
-    ThermalParameters as _SpTP,
-    ThermalState as _SpTS,
-)
-
-_SP_STEPS = np.arange(96)
-_SP_SPREAD = 1.3 + 0.9 * np.sin(2 * np.pi * (_SP_STEPS - 30) / 96.0)
-_SP_FLAT = np.full(96, float(_SP_SPREAD.mean()))
-_SP_CHEAP = np.argsort(_SP_SPREAD, kind="stable")[:24]
-
-
-def _sp_solve(prices, dhw, loss, relaxed=True, out_mean=2.0):
-    params = _SpTP()
-    params.mixing_valve_mode = "none"
-    params.buffer_tank_volume = 750.0
-    params.min_electrical_power, params.max_electrical_power = 1.5, 5.5
-    params.dhw_enabled, params.house_heat_loss_scale = dhw, loss
-    opt = _SpOpt(_SpTM(params), _SpCfg(clamp_planned_levels=True))
-    kept = _sp_opt_mod._relaxed_starts
-    if not relaxed:
-        _sp_opt_mod._relaxed_starts = lambda _opt, *a: a[-2]
-    try:
-        result = _sp_run(opt, prices, out_mean)
-    finally:
-        _sp_opt_mod._relaxed_starts = kept
-    return np.asarray(result.power_schedule, float), float(result.objective_value)
-
-
-def _sp_run(opt, prices, out_mean):
-    outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (_SP_STEPS - 50) / 96.0)
-    return opt.optimize(inputs=solve_inputs(
-        initial_state=_SpTS(
-            room_temperature=20.5, upper_floor_temperature=20.5,
-            lower_floor_temperature=20.5, slab_temperature=21.0,
-            outdoor_temperature=float(outdoor[0]),
-            buffer_tank_temperature=30.0, dhw_temperature=50.0,
-        ),
-        prices=prices, outdoor_temps=outdoor,
-        start_time=datetime(2026, 1, 10, tzinfo=UTC),
-    ))
-
-
-def _sp_above_min_kwh(plan):
-    """kWh booked above p_min in the 24 cheapest steps."""
-    return float(np.clip(plan[_SP_CHEAP] - 1.5, 0.0, None).sum() * 0.25)
-
-
-def _sp_pair(prices, dhw, loss, out_mean=2.0):
-    """(fix, control) for one cell, each ``(plan, objective)``."""
-    return tuple(
-        _sp_solve(prices, dhw, loss, relaxed, out_mean) for relaxed in (True, False)
-    )
-
-
-(_sp_fix, _sp_fix_obj), (_sp_ctl, _sp_ctl_obj) = _sp_pair(_SP_SPREAD, False, 1.0)
-R.check(
-    "a buffered rounded install with price spread books above the floor in the cheapest "
-    "steps, and its own objective scores the plan lower than the solve without the "
-    "relaxed start",
-    _sp_above_min_kwh(_sp_fix) > 1.0 and _sp_fix_obj < _sp_ctl_obj - 0.5,
-    f"above-min kWh {_sp_above_min_kwh(_sp_fix):.2f} (control "
-    f"{_sp_above_min_kwh(_sp_ctl):.2f}), objective {_sp_fix_obj:.3f} vs {_sp_ctl_obj:.3f}",
-)
-# Four hot-water cells: heat-loss scale 0.6/1.0 by outdoor mean -4/+2 degC.
-_sp_dhw_cells = {
-    (loss, out): _sp_pair(_SP_SPREAD, True, loss, out)
-    for loss in (0.6, 1.0) for out in (-4.0, 2.0)
-}
-_sp_dhw_delta = {
-    cell: fix[1] - ctl[1] for cell, (fix, ctl) in _sp_dhw_cells.items()
-}
-R.check(
-    "with hot water on, the space solve around the hot-water plan carries the relaxed "
-    "start: it lowers the objective in at least one of four cells and raises it in none",
-    sum(d < -0.1 for d in _sp_dhw_delta.values()) >= 1
-    and all(d <= 1e-9 for d in _sp_dhw_delta.values()),
-    f"objective deltas {({k: round(v, 3) for k, v in _sp_dhw_delta.items()})}",
-)
-# Plan identity at flat prices is NOT asserted: the band traps flat-price
-# solves too, so the candidate moves some flat plans, each to a lower
-# objective (the census in dev/audit/harnesses/r10_setpoint_power.py).
-_sp_flat = {
-    dhw: _sp_pair(_SP_FLAT, dhw, loss) for dhw, loss in ((False, 1.0), (True, 0.6))
-}
-R.check(
-    "flat-price null control: at flat prices the relaxed start never ships a plan its "
-    "own objective scores worse, on either path",
-    all(fix[1] <= ctl[1] + 1e-9 for fix, ctl in _sp_flat.values()),
-    f"{({k: (round(f[1], 3), round(c[1], 3)) for k, (f, c) in _sp_flat.items()})}",
-)
-
-# The two helpers at the edges the solves above do not reach: an install that
-# can duty-cycle, a start index past the last (the warm pass), and the flag the
-# relaxed run scores under. A quadratic stands in for the objective.
-_sp_clamped = _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=True))
-_sp_free = _SpOpt(_SpTM(_SpTP()), _SpCfg(clamp_planned_levels=False))
-_sp_rounded_seen = []
-
-
-def _sp_quad(x, *_args):
-    _sp_rounded_seen.append(_sp_opt_mod._scores_rounded(_sp_clamped))
-    return float(np.sum((np.asarray(x, float) - 1.0) ** 2))
-
-
-def _sp_quad_batch(rows, *_args):
-    return np.array([_sp_quad(row) for row in np.atleast_2d(rows)])
-
-
-_SP_BOUNDS = [(0.0, 2.0)] * 3
-_sp_moved = _sp_opt_mod._relaxed_starts(
-    _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 0, (), [np.zeros(3)], 50,
-)
-R.check(
-    "a clamped install gains one candidate, refined while the objective scores the "
-    "duty-cycle reading, and rounds again after",
-    len(_sp_moved) == 2 and np.allclose(_sp_moved[1], 1.0, atol=1e-3)
-    and _sp_rounded_seen and not any(_sp_rounded_seen)
-    and _sp_opt_mod._scores_rounded(_sp_clamped) is True,
-    f"{len(_sp_moved)} {_sp_moved[-1]} seen {set(_sp_rounded_seen)}",
-)
-R.check(
-    "an install that can duty-cycle gains none and never scores rounded; a start past "
-    "the last (the warm pass) adds none",
-    len(_sp_opt_mod._relaxed_starts(
-        _sp_free, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 0, (), [np.zeros(3)], 50,
-    )) == 1
-    and _sp_opt_mod._scores_rounded(_sp_free) is False
-    and len(_sp_opt_mod._relaxed_starts(
-        _sp_clamped, _sp_quad, _sp_quad_batch, _SP_BOUNDS, 1, (), [np.zeros(3)], 50,
-    )) == 1,
 )
 
 R.section("#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519")
@@ -83226,29 +83037,47 @@ R.check(
     and all(calls != [] for calls, _split in _ds_flat_runs[0]),
     f"{[split for _c, split in _ds_flat_runs[0]]} {[split for _c, split in _ds_flat_runs[1]]}",
 )
-# Both controls hold by construction: only the arbiter (which reports) and the
-# sensor (which publishes) name the module, and neither reads the estimate.
+# Both controls hold by construction: the arbiter (which reports) and the
+# sensor (which publishes) name the module and neither reads the estimate; the
+# coordinator reads it for the solve alone, through ``planner_reading``.
 _ds_pkg = _DsPath("custom_components/heatpump_optimizer")
 _ds_readers = sorted(
     p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
         isinstance(n, _ds_ast.ImportFrom) and (n.module == "duty_switch" or any(a.name == "duty_switch" for a in n.names))
         for n in _ds_ast.walk(_ds_ast.parse(p.read_text()))))
-_ds_uses = sorted({
-    n.attr for name in ("pump_arbiter.py", "sensor.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
+_ds_uses, _ds_solve_uses = (sorted({
+    n.attr for name in names for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
     if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch"})
+    for names in (("pump_arbiter.py", "sensor.py"), ("coordinator.py",)))
 _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
            if isinstance(n, _ds_ast.ImportFrom) and n.level == 1} | {
     a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
     if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
 R.check(
-    "only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and "
-    "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
-    _ds_readers == ["pump_arbiter.py", "sensor.py"]
+    "the arbiter and the sensor name duty_switch through its report, attach and publish calls and never "
+    "read the estimate; the coordinator reads it through planner_reading alone, for the solve; the module "
+    "imports none of them; the pure half of wear stays pure",
+    _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
     and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
                      "starts_attributes"]
+    and _ds_solve_uses == ["planner_reading"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
-    f"{_ds_readers} {_ds_uses} {_ds_own}",
+    f"{_ds_readers} {_ds_uses} {_ds_solve_uses} {_ds_own}",
+)
+# The solve's reading: per direction the stop probability while it is usable,
+# else none, and the running signal's settled class.
+_ds_solve = _DsArb()
+_ds_unread = _ds_mod.planner_reading(_ds_solve)
+_ds_solve_rec = _ds_mod.record_for(_ds_solve)
+_ds_solve_rec.learner.directions.update(dhw_space=_ds_dir(8, 10, usable=True), space_dhw=_ds_dir(9, 10))
+_ds_solve_rec.tracker.settled = True
+R.check(
+    "planner_reading: a pump never arbitrated reads nothing and no running signal; a usable direction "
+    "reads its stop probability, one not usable reads 0.0, and the settled running class rides along",
+    _ds_unread == ({}, None)
+    and _ds_mod.planner_reading(_ds_solve) == ({"duty_stop_to_space": 0.8, "duty_stop_to_dhw": 0.0}, True),
+    f"{_ds_unread} {_ds_mod.planner_reading(_ds_solve)}",
 )
 # Published on the compressor-starts sensor, beside the counter, off the payload.
 from heatpump_optimizer import sensor as _ds_sensor  # noqa: E402
@@ -86762,6 +86591,385 @@ R.check(
     and not _fb_floor["issues"],
     f"cut {None if _fb_floor_run is None else _fb_floor_run.cut_lo_c}, under {_fb_under}, "
     f"issues {_fb_floor['issues'][:3]}",
+)
+
+# --- honest starts and runs (docs/design/2026-11-12-honest-starts-and-runs) ---
+# P1 the start count, P2 commit and dispatch, P3 the metered floor, P4 hot
+# water as runs. A start is an off-to-on edge whatever level it starts to.
+from heatpump_optimizer import runs as _hs  # noqa: E402
+from heatpump_optimizer import draw_range as _hs_dr  # noqa: E402
+from heatpump_optimizer import optimizer as _hs_om  # noqa: E402
+from heatpump_optimizer.dhw_planner import (  # noqa: E402
+    ChargeRuns as _HsRuns,
+    DhwPlanner as _HsPlanner,
+    _DhwPlanContext as _HsCtx,
+    _commit_charges as _hs_charges,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    InstallCapability as _HsCap,
+    ThermalModel as _HsTM,
+    ThermalParameters as _HsTP,
+    ThermalState as _HsTS,
+)
+
+_HS_F = 1.1
+R.check(
+    "P1: a realizable plan counts its integer edges; each step of a trickle under the "
+    "floor restarts the share its predecessor left open; a level change inside a run, "
+    "and a run continuing from a running compressor, cost nothing; a start to the floor "
+    "costs what one to the maximum does",
+    _hs.start_count([0, 1.2, 2.0, 0, 0, 1.1, 0], _HS_F) == 2.0
+    and abs(_hs.start_count(np.full(8, 0.3), _HS_F) - (1.0 + 7 * (1.0 - 0.3 / _HS_F))) < 1e-12
+    and _hs.start_count([1.1, 3.0, 1.5], _HS_F) == 1.0
+    and _hs.start_count([1.1, 2.0], _HS_F, running=True) == 0.0
+    and _hs.start_count([1.1, 0.0, 1.1], _HS_F, running=True) == 1.0
+    and _hs.start_count([0, 1.1], _HS_F) == _hs.start_count([0, 3.3], _HS_F) == 1.0
+    and np.isfinite(_hs.start_count([0.0, 0.05], 0.0)),
+)
+_hs_tot = np.array([[0, 1.1, 2.0, 2.0, 1.1, 0], [0.4, 0.6, 2.2, 0, 1.5, 1.5]])
+_hs_hot = np.array([0, 0, 1.2, 0, 0, 1.5])
+R.check(
+    "P4 duty: a both step and a hot-water-then-space boundary each count the into-space "
+    "probability, space-then-hot-water the other; with none the count is P1's; batch "
+    "rows are the scalar bit for bit",
+    _hs.start_count([1.1, 2.5, 1.1], _HS_F, dhw=[0, 1.2, 0], to_space=0.3) == 1.0 + 0.3
+    and _hs.start_count([1.2, 1.1], _HS_F, dhw=[1.2, 0], to_space=0.3, to_dhw=0.7) == 1.3
+    and _hs.start_count([1.1, 1.2], _HS_F, dhw=[0, 1.2], to_space=0.3, to_dhw=0.7) == 1.7
+    and _hs.start_count(_hs_tot[1], _HS_F, dhw=_hs_hot) == _hs.start_count(_hs_tot[1], _HS_F)
+    and all(
+        np.float64(_hs.start_count_batch(_hs_tot, _HS_F, run, _hs_hot, 0.3, 0.7)[b]).tobytes()
+        == np.float64(_hs.start_count(_hs_tot[b], _HS_F, run, _hs_hot, 0.3, 0.7)).tobytes()
+        for b in range(2) for run in (False, True)
+    ),
+)
+
+
+def _hs_level(q, mask, cap=3.3):
+    return np.where(mask, np.minimum(np.maximum(q, _HS_F), cap), 0.0)
+
+
+_hs_q = np.r_[np.full(40, 0.4), np.zeros(16), np.full(40, 0.3)]
+_hs_pr = 1.0 + 0.5 * np.sin(np.arange(96) / 8.0)
+_hs_forced = np.full(96, np.nan)
+_hs_forced[[5, 70]], _hs_forced[[30, 31]] = 1.0, 0.0
+_hs_masks = {b: _hs.commit(_hs_q, _hs_pr, _HS_F, 3.3, 2.5, b, dt=0.25, forced=_hs_forced)
+             for b in _hs.BANDS}
+_hs_bal = {b: abs(float(np.sum(_hs_level(_hs_q, m) - _hs_q) * 0.25)) for b, (m, _) in _hs_masks.items()}
+_hs_run = np.r_[np.zeros(10), np.full(20, 2.0), np.zeros(66)]
+_hs_long, _ = _hs.commit(np.tile([0.6, 0.0], 48), np.ones(96), _HS_F, 3.3, 0.0, 2, dt=0.25,
+                         lengths=(3, 3))
+_hs_lens = [len(list(g)) for _, g in __import__("itertools").groupby(_hs_long)]
+R.check(
+    "P2 commit: forced steps kept, the end balance within half a floor step, fewer "
+    "starts the wider the band, identity on a realizable input, every inner run and "
+    "pause at least the shortest run and pause",
+    all(e and m[5] and m[70] and not m[30] and not m[31] for m, e in _hs_masks.values())
+    and all(v <= _HS_F * 0.25 / 2 + 1e-9 for v in _hs_bal.values())
+    and _hs.start_count(_hs_level(_hs_q, _hs_masks[24][0]), _HS_F)
+    <= _hs.start_count(_hs_level(_hs_q, _hs_masks[2][0]), _HS_F)
+    and np.array_equal(_hs.commit(_hs_run, np.ones(96), _HS_F, 3.3, 2.5, 2, dt=0.25)[0], _hs_run > 0)
+    and min(_hs_lens[1:-1]) >= 3,
+    f"balances {_hs_bal}, run lengths {_hs_lens[:8]}",
+)
+
+
+def _hs_solve(cost, prices, clamp=False, room=21.0, out=None, dhw=False, **limits):
+    """A solve on a 1.1-3.3 kW pump, mild weather unless ``out`` says otherwise."""
+    params = _HsTP()
+    params.min_electrical_power, params.max_electrical_power = _HS_F, 3.3
+    params.dhw_enabled = dhw
+    out = 6.0 + 3 * np.sin(2 * np.pi * (np.arange(96) - 50) / 96) if out is None else out
+    opt = _hs_om.HeatPumpOptimizer(_HsTM(params), _hs_om.OptimizationConfig(
+        cycling_cost=cost, clamp_planned_levels=clamp))
+    return opt.optimize(inputs=solve_inputs(
+        initial_state=_HsTS(room_temperature=room, slab_temperature=room + 1.0,
+                            outdoor_temperature=float(out[0])),
+        prices=prices, outdoor_temps=out, start_time=datetime(2026, 1, 10, tzinfo=UTC), **limits,
+    ))
+
+
+def _hs_edges(total):
+    on = np.asarray(total) > 0.1
+    return int(np.sum(on & ~np.r_[False, on[:-1]]))
+
+
+_hs_flat = np.full(96, 1.0)
+_hs_relaxed = np.asarray(_hs_solve(0.0, _hs_flat).power_schedule)
+_hs_priced = _hs_solve(2.5, _hs_flat)
+_hs_plan = np.asarray(_hs_priced.power_schedule)
+R.check(
+    "P2 dispatch: a priced start ships every step off or in [floor, cap], publishes the "
+    "plan's integer count, and starts no more often than the relaxed plan reads",
+    bool(np.all((_hs_plan == 0.0) | ((_hs_plan >= _HS_F - 1e-9) & (_hs_plan <= 3.3 + 1e-9))))
+    and _hs_priced.compressor_starts == _hs_edges(_hs_plan)
+    and _hs_priced.compressor_starts <= _hs.start_count(_hs_relaxed, _HS_F),
+    f"starts {_hs_priced.compressor_starts} relaxed {_hs.start_count(_hs_relaxed, _HS_F):.2f}, "
+    f"sub-floor {int(np.sum((_hs_plan > 0) & (_hs_plan < _HS_F - 1e-9)))}",
+)
+# The reviewer's cells: a cap under the floor for twelve hours on a cold
+# house, and a cold day where one run through used to ship. Never worse than
+# the projection: the house no colder than the unpriced plan leaves it, and no
+# objective above the unpriced plan's sub-floor steps snapped.
+_hs_sine = 1.0 + 0.5 * np.sin(np.arange(96) / 8.0)
+_hs_cap = dict(power_caps_extra=np.r_[np.full(48, 0.8), np.full(48, 3.3)], room=19.0)
+_hs_capped = [_hs_solve(c, _hs_sine, **_hs_cap) for c in (2.5, 0.0)]
+_hs_cold = dict(room=19.5, out=np.full(96, -2.0))
+_hs_seen = []
+_hs_kept_commit = _hs_om._commit_runs
+_hs_om._commit_runs = lambda *a: _hs_seen.append(a[2]) or _hs_kept_commit(*a)
+try:
+    _hs_through = _hs_solve(2.5, _hs_sine, **_hs_cold)
+finally:
+    _hs_om._commit_runs = _hs_kept_commit
+_hs_unpriced = np.asarray(_hs_solve(0.0, _hs_sine, **_hs_cold).power_schedule)
+_hs_snapped = np.where(_hs_unpriced < _HS_F, np.where(_hs_unpriced > 0.5, _HS_F, 0.0), _hs_unpriced)
+_hs_onoff = np.asarray(_hs_solve(0.0, _hs_sine, clamp=True).power_schedule)
+R.check(
+    "never worse than the projection: a cap under the floor leaves the house no colder "
+    "than the unpriced plan does; a cold day ships no objective above the unpriced plan "
+    "snapped; an on/off install at no start cost ships every step off or at the floor",
+    min(_hs_capped[0].room_temp_trajectory) >= min(_hs_capped[1].room_temp_trajectory) - 0.05
+    and _hs_through.objective_value <= _hs_seen[-1](_hs_snapped) + 1e-9
+    and bool(np.all((_hs_onoff == 0.0) | (_hs_onoff >= _HS_F - 1e-9))),
+    f"capped rooms {min(_hs_capped[0].room_temp_trajectory):.2f} / "
+    f"{min(_hs_capped[1].room_temp_trajectory):.2f}, cold day {_hs_through.objective_value:.2f} "
+    f"against {_hs_seen[-1](_hs_snapped):.2f}",
+)
+_hs_hot = _hs_solve(0.0, _hs_sine, clamp=True, dhw=True, space_blocked=True)
+_hs_hot_plan = np.asarray(_hs_hot.dhw_power_schedule)
+R.check(
+    "P4: on an install that cannot duty-cycle, at no start cost, every hot-water step is off "
+    "or at the floor, and the published starts are the plan's edges",
+    bool(np.all((_hs_hot_plan == 0.0) | (_hs_hot_plan >= _HS_F - 1e-9)))
+    and _hs_hot.compressor_starts == _hs_edges(_hs_hot_plan + np.asarray(_hs_hot.power_schedule)),
+    f"{np.round(_hs_hot_plan[_hs_hot_plan > 0], 3).tolist()}",
+)
+# The reviewer's capped hour: on/off, no start cost, hot water on, 0.9 kW on
+# steps 8-11 under a 1.1 kW floor. Only those steps lose their charge.
+_hs_cap1 = np.r_[np.full(8, 3.3), np.full(4, 0.9), np.full(84, 3.3)]
+_hs_c1 = _hs_solve(0.0, _hs_sine, clamp=True, dhw=True, power_caps_extra=_hs_cap1)
+_hs_c1_tot = np.asarray(_hs_c1.power_schedule) + np.asarray(_hs_c1.dhw_power_schedule)
+R.check(
+    "P4: one capped hour on an on/off install leaves hot water charged elsewhere, no "
+    "step over its cap and the tank hot",
+    sum(_hs_c1.dhw_power_schedule) > 0.0 and bool(np.all(_hs_c1_tot <= _hs_cap1 + 1e-9))
+    and min(_hs_c1.dhw_temp_trajectory) >= 45.0,
+    f"{sum(_hs_c1.dhw_power_schedule) * 0.25:.2f} kWh, tank {min(_hs_c1.dhw_temp_trajectory):.1f}",
+)
+# Disinfection due under a cap below the floor on steps 0-7: the step moves
+# to one that can charge, and the published hour is the step that runs.
+_hs_lp = _HsTP(min_electrical_power=_HS_F, max_electrical_power=3.3, dhw_enabled=True,
+               dhw_legionella_enabled=True)
+_hs_lc = np.r_[np.full(8, 0.9), np.full(88, 3.3)]
+_hs_l = _hs_om.HeatPumpOptimizer(_HsTM(_hs_lp), _hs_om.OptimizationConfig(clamp_planned_levels=True)).optimize(
+    inputs=solve_inputs(
+        initial_state=_HsTS(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=6.0,
+                            dhw_hours_since_legionella=720.0),
+        prices=_hs_sine, outdoor_temps=np.full(96, 6.0), start_time=datetime(2026, 1, 10, tzinfo=UTC),
+        power_caps_extra=_hs_lc,
+    ))
+_hs_l_dhw = np.asarray(_hs_l.dhw_power_schedule)
+_hs_l_step = int(round(_hs_l.predictive_info["dhw_legionella_step_hour"] / 0.25))
+R.check(
+    "P4: a disinfection step under a cap below the floor moves to a step that charges",
+    not _hs_l_dhw[:8].any() and _hs_l_step >= 8 and _hs_l_dhw[_hs_l_step] > 0.0,
+    f"step {_hs_l_step}, charging {np.flatnonzero(_hs_l_dhw)[:6].tolist()}",
+)
+_hs_opt, _hs_onoff_opt, _hs_free = (
+    _hs_om.HeatPumpOptimizer(_HsTM(_HsTP(min_electrical_power=_HS_F)), _hs_om.OptimizationConfig(**kw))
+    for kw in (dict(cycling_cost=2.5), dict(clamp_planned_levels=True), {}))
+_hs_fit = np.r_[np.zeros(20), np.full(30, 1.5), np.zeros(46)]
+_hs_trickle = np.full(96, 0.3)
+with _hs_om._start_term_off(_hs_opt):
+    _hs_relax_term = _hs_opt._grid_terms(96, 0.25)[0](_hs_trickle)
+R.check(
+    "null controls: an on/off install's relaxed plan that already runs ships unchanged at "
+    "no start cost; an unengaged solve ships its relaxed plan, trickle and all, with a "
+    "zero start term; the relaxed solve's start term is off, and back once it is through",
+    _hs_om._commit_runs(_hs_onoff_opt, None, None, None, [], _hs_fit, None, 10)[0] is _hs_fit
+    and _hs_om._commit_runs(_hs_free, None, None, None, [], _hs_trickle, None, 10)[0] is _hs_trickle
+    and _hs_free._grid_terms(96, 0.25)[0](_hs_trickle) == 0.0
+    and _hs_relax_term == 0.0 and _hs_opt._grid_terms(96, 0.25)[0](_hs_trickle) > 0.0,
+)
+
+_hs_dark = _hs_solve(0.0, _hs_sine, clamp=True, dhw=True, power_caps_extra=np.full(96, 0.9))
+R.check(
+    "a cap under the floor on every step leaves an on/off install no charge, and the plan "
+    "says how far the tank falls short; a cap at the floor, or none, is no such cap, and "
+    "the capped hour that kept the tank hot publishes nothing",
+    not np.any(_hs_dark.dhw_power_schedule) and _hs_dark.predictive_info.get("dhw_floor_breach_c", 0.0) > 0.0
+    and not _hs_om._capped_under_floor(_hs_opt, np.full(4, _HS_F))
+    and not _hs_om._capped_under_floor(_hs_opt, None)
+    and "dhw_floor_breach_c" not in _hs_c1.predictive_info,
+    f"breach {_hs_dark.predictive_info.get('dhw_floor_breach_c')}",
+)
+R.check(
+    "the solve's running state: the duty-switch learner's settled signal where one is "
+    "listened to, else the meter against the threshold, else the executing step; and "
+    "whether that step charges hot water",
+    _cb_coord._running_fields(False, 2.0, 0.5, {"heat_pump_on": True})
+    == {"compressor_running": False, "charge_running": False}
+    and _cb_coord._running_fields(None, 0.5, 0.5, {}) == {"compressor_running": True, "charge_running": False}
+    and _cb_coord._running_fields(None, 0.4, 0.5, {"heat_pump_on": True, "dhw_heating_active": True})
+    == {"compressor_running": False, "charge_running": True}
+    and _cb_coord._running_fields(None, None, 0.5, {"heat_pump_on": True})["compressor_running"] is True,
+)
+
+
+# A combi store with a start priced: the space plan is settled against the
+# hot-water plan the flux exchange ended on (``optimizer._settled_space``).
+def _hs_combi(settle):
+    opt = _StoreOpt(ThermalModel(_ct_params()), _StoreCfg(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=19.0, max_temp=23.0,
+        cycling_cost=0.5))
+    kept = _hs_om._settled_space
+    if not settle:
+        _hs_om._settled_space = lambda _opt, _h, _objective, space, *_a: space
+    try:
+        r = opt.optimize(inputs=solve_inputs(
+            initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                                       buffer_tank_temperature=50.0, dhw_temperature=50.0,
+                                       outdoor_temperature=0.0),
+            prices=_CT_PRICES, outdoor_temps=np.full(96, 0.0), wind_speeds=np.zeros(96),
+            precipitation=np.zeros(96), solar_radiation=np.zeros(96),
+            start_time=datetime(2026, 1, 15)))
+    finally:
+        _hs_om._settled_space = kept
+    req = np.asarray(opt._dhw_requirement)
+    under = float(np.max(np.clip(req - np.asarray(r.dhw_temp_trajectory)[1:req.size + 1], 0.0, None)))
+    return r, under, _hs.floor_kw(opt.model.params.min_electrical_power)
+
+
+(_hs_set, _hs_set_under, _hs_cf), (_hs_raw, _hs_raw_under, _) = _hs_combi(True), _hs_combi(False)
+_hs_set_s, _hs_set_d = np.asarray(_hs_set.power_schedule), np.asarray(_hs_set.dhw_power_schedule)
+_hs_set_tail = (np.r_[0.0, _hs_set_d[:-1]] >= _hs_cf) & (np.r_[_hs_set_d[1:], 0.0] == 0.0)
+R.check(
+    "combi, a start priced: the settled pair scores below the unsettled one, its store falls "
+    "no further under the hot-water requirement, every space step is off or at the floor and "
+    "every charge step off, at the floor or the last of its run; null controls: off combi "
+    "and on a solve that plans no runs the space plan is returned as it is",
+    _hs_set.objective_value < _hs_raw.objective_value
+    and _hs_set_under <= _hs_raw_under + _hs.STORE_GRID_K
+    and bool(np.all((_hs_set_s == 0.0) | (_hs_set_s >= _hs_cf - 1e-9)))
+    and bool(np.all((_hs_set_d == 0.0) | (_hs_set_d >= _hs_cf - 1e-9) | _hs_set_tail))
+    and _hs_om._settled_space(_hs_opt, None, None, _hs_fit, None, None, 3.3) is _hs_fit
+    and _hs_om._settled_space(_StoreOpt(ThermalModel(_ct_params()), _StoreCfg()), None, None, _hs_fit, None, None, 3.3) is _hs_fit,
+    f"objective {_hs_set.objective_value:.3f} against {_hs_raw.objective_value:.3f}, "
+    f"under {_hs_set_under:.2f} against {_hs_raw_under:.2f}",
+)
+
+# P3: running samples asked at or under the floor in force, filed with a time.
+_HS_NOW = 1.8e9
+
+
+def _hs_draw(rows, lo=0.53, hi=3.3):
+    d = _hs_dr.DrawRange()
+    for k, (drawn, asked) in enumerate(rows):
+        d.observe(drawn, asked, lo, hi, when_s=_HS_NOW - (len(rows) - k) * 1800.0)
+    return d
+
+
+def _hs_band(d, lo=0.53, now=_HS_NOW, engaged=True, cap=None):
+    return _hs_dr.solve_band(d, _HsTP(min_electrical_power=lo, max_electrical_power=3.3),
+                             cap or _HsCap(writes=frozenset({"setpoint"}), measured_power=True, frequency=False),
+                             now, engaged=engaged)
+
+
+_hs_n = _hs_dr.MIN_SAMPLES
+_hs_low = _hs_draw([(1.1, 0.5)] * _hs_n)
+_hs_lapse = _HS_NOW + (_hs_dr.CEILING_LAPSE_DAYS + 1) * 86400.0
+R.check(
+    "P3: floor asks drawing 1.1 against a configured 0.53 raise the band's floor to 1.1; "
+    "high asks alone, a pump drawing its ask, one sample short, an unengaged solve, a "
+    "lapsed store and a reconfiguration all keep the configured figure",
+    _hs_band(_hs_low).min_kw == 1.1 and _hs_band(_hs_low).floor_source == "metered_floor"
+    and _hs_band(_hs_draw([(2.5, 2.4)] * 2 * _hs_n)).min_kw == 0.53
+    and _hs_band(_hs_draw([(0.55, 0.53)] * _hs_n)).min_kw == 0.53
+    and _hs_band(_hs_draw([(1.1, 0.5)] * (_hs_n - 1))).min_kw == 0.53
+    and _hs_band(_hs_low, engaged=False).min_kw == 0.53
+    and _hs_band(_hs_low, now=_hs_lapse).min_kw == 0.53
+    and _hs_band(_hs_low, lo=0.6).min_kw == 0.6
+    and _hs_dr.DrawRange.from_dict(_hs_low.as_dict()).learned_min_kw(_HS_NOW) == 1.1,
+)
+_hs_ratchet, _hs_t, _hs_floors = _hs_draw([(1.1, 0.5)] * _hs_n), _HS_NOW, []
+for _ in range(6000):  # a plan asking the floor in force, a meter 4 % high
+    _hs_f = _hs_band(_hs_ratchet, now=_hs_t).min_kw
+    _hs_ratchet.observe(1.04 * _hs_f, _hs_f, 0.53, 3.3, when_s=_hs_t)
+    _hs_floors.append(_hs_f)
+    _hs_t += 900.0
+R.check(
+    "P3: the floor does not ratchet: asking the learned floor files nothing, so the "
+    "store lapses and the configured figure returns",
+    max(_hs_floors) == 1.1 and _hs_floors[-1] == 0.53,
+    f"max {max(_hs_floors)}, last {_hs_floors[-1]}",
+)
+
+# P4: twelve short charges on a 1.1 kW floor, committed against the tank walk.
+_hs_tp = _HsTP(min_electrical_power=_HS_F, max_electrical_power=3.3, dhw_enabled=True)
+_hs_tm = _HsTM(_hs_tp)
+_hs_hours = (np.arange(96) * 0.25) % 24.0
+_hs_draws = _hs_tm.dhw_draw_rates(_hs_hours)
+_hs_ctx = _HsCtx(
+    prices=_hs_pr, import_prices=_hs_pr, outdoor_temps=np.full(96, 5.0), humidity=None,
+    n_steps=96, dt=0.25, store=_hs_tp.dhw_store, p_dhw_max=2.6, min_run_power=0.66,
+    max_lead_steps=96,
+)
+_hs_pulses = np.where(np.arange(96) % 8 == 3, 0.8, 0.0)
+_hs_req = np.full(96, 30.0)
+
+
+def _hs_charge(cost):
+    planner = _HsPlanner(_hs_tm, _hs_om.OptimizationConfig(), charge_runs=(
+        _HsRuns(cost, 0.0, 0.0, False, False, False) if cost > 0 else None))
+    return planner, _hs_charges(planner, _hs_ctx, _hs_pulses, 50.0, _hs_draws, _hs_req,
+                                np.full(96, _hs_tp.dhw_max_temp), None, 40, None)
+
+
+_hs_pl, _hs_charged = _hs_charge(2.5)
+_hs_walk = _hs_pl._dhw_plan_temps(_hs_charged, 50.0, _hs_ctx.outdoor_temps, _hs_draws, 0.25)[1:]
+_hs_walk0 = _hs_pl._dhw_plan_temps(_hs_pulses, 50.0, _hs_ctx.outdoor_temps, _hs_draws, 0.25)[1:]
+R.check(
+    "P4: a committed hot-water plan starts less, runs every on step at the run power or "
+    "ends a run at the ceiling, holds the disinfection step and every floor the "
+    "uncommitted plan held; unengaged it is the plan itself",
+    _hs.start_count(_hs_charged, _HS_F) < _hs.start_count(_hs_pulses, _HS_F)
+    and bool(np.all((_hs_charged == 0) | np.isclose(_hs_charged, 2.6)
+                    | ((_hs_charged < 2.6) & (np.r_[_hs_charged[1:], 0.0] == 0))))
+    and _hs_charged[40] > 0
+    and bool(np.all((_hs_walk >= _hs_req - 0.05) | (_hs_walk0 < _hs_req - 0.05)))
+    and _hs_charge(0.0)[1] is _hs_pulses,
+    f"starts {_hs.start_count(_hs_charged, _HS_F)} from {_hs.start_count(_hs_pulses, _HS_F)}",
+)
+
+
+# The store program on a 0.25 K grid: half a kelvin lost a step, six gained by
+# a whole charging step, a quarter of a currency unit a start.
+def _hs_store(floors, drift=-0.5, initial=40.0, ceiling=50.0, rating=60.0):
+    return _hs.Store(initial, 1.0, np.broadcast_to(np.asarray(drift, dtype=float), (12,)),
+                     lambda k, t: np.full(np.shape(t), 6.0), np.asarray(floors, dtype=float),
+                     np.full(12, ceiling), rating)
+
+
+_hs_costs = _hs.ChargeCosts(np.ones(12), np.full(12, 0.25), np.zeros(12), np.zeros(12))
+_hs_full7 = np.full(12, 20.0)
+_hs_full7[7] = 50.0  # full at step 7, where the floor meets the ceiling
+_hs_tailed = _hs.commit_store(_hs_store(_hs_full7), _hs_costs, min_top=2 / 3)
+_hs_short3 = np.full(12, 20.0)
+_hs_short3[3] = 41.5  # 3.5 K short at step 3 under a 41.5 degC ceiling: 0.58 of a step
+_hs_warmed = np.r_[np.ones(4), -np.ones(8)]  # the space side heats the store, then drains it
+_hs_last = np.r_[np.full(11, 20.0), 39.5]
+R.check(
+    "the store program: a charge runs whole steps and ends inside its last one where the "
+    "store is full; a tail under min_tail and a charge shorter than min_top are no plan; "
+    "a step without a charge is not bound by the charge ceiling but stops at the rating",
+    np.flatnonzero(_hs_tailed).tolist() == [5, 6, 7]
+    and np.allclose(_hs.charge_shares(_hs_store(_hs_full7), _hs_tailed)[5:8], [1.0, 1.0, 1 / 3])
+    and _hs.commit_store(_hs_store(_hs_full7), _hs_costs, min_top=2 / 3, min_tail=0.5) is None
+    and _hs.commit_store(_hs_store(_hs_short3, ceiling=41.5), _hs_costs, min_top=2 / 3) is None
+    and np.flatnonzero(_hs.commit_store(_hs_store(_hs_short3, ceiling=41.5), _hs_costs, min_top=0.5)).tolist() == [3]
+    and not _hs.commit_store(_hs_store(_hs_last, _hs_warmed, 44.0, 45.0), _hs_costs).any()
+    and _hs.commit_store(_hs_store(_hs_last, _hs_warmed, 44.0, 45.0, rating=47.0), _hs_costs).any(),
+    f"{np.flatnonzero(_hs_tailed).tolist()}",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

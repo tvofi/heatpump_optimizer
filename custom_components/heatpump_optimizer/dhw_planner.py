@@ -25,7 +25,7 @@ from typing import Any, Callable, NamedTuple, Protocol
 import numpy as np
 from scipy.optimize import linprog
 
-from . import pv
+from . import pv, runs
 from .const import DHW_QUANTILE_MIN_EVENTS
 from .dhw_draws import window_label as draw_window_label
 from .dhw_schedule import (
@@ -137,6 +137,17 @@ def _forced_off_with(
     return forced_off | mask
 
 
+def _under_floor_off(planner: DhwPlanner, forced_off: np.ndarray | None, n_steps: int) -> np.ndarray | None:
+    """``forced_off`` with every step whose cap is under the pump's floor, on
+    an install that cannot duty-cycle (``DhwPlanner.charge_runs``): no charge
+    can run there, so the planners buy its heat in the steps that remain, and
+    the disinfection step is placed on one that can charge."""
+    charge = planner.charge_runs
+    if charge is None or charge.caps is None or not charge.clamped:
+        return forced_off
+    return _forced_off_with(forced_off, np.asarray(charge.caps, dtype=float) < planner.model.params.min_electrical_power, n_steps)
+
+
 def _legionella_off_mask(off_steps: Any, n_steps: int) -> np.ndarray | None:
     """The Off window as a horizon mask, or None when there is no window."""
     if off_steps is None:
@@ -183,6 +194,173 @@ def _place_legionella_step(
     scored = np.array(prices[first:limit], dtype=float, copy=True)
     scored[window] = np.inf
     return first + int(np.argmin(scored))
+
+
+class ChargeRuns(NamedTuple):
+    """How a solve that plans runs prices a hot-water charge
+    (``optimizer._charge_runs``; ``None`` on a solve that does not)."""
+
+    #: One compressor start, currency.
+    start_cost: float
+    #: The learned share of a start a duty change into hot water, and into
+    #: space heating, costs (``OptimizationConfig.duty_stop_to_dhw``).
+    to_dhw: float
+    to_space: float
+    #: The compressor runs at solve time; a hot-water charge is under way.
+    compressor_running: bool
+    charge_running: bool
+    #: The install cannot duty-cycle under its floor.
+    clamped: bool
+    #: The per-step ceiling on the pump's total draw (``power_caps_extra``),
+    #: or None uncapped: what a step's own charge may draw.
+    caps: np.ndarray | None = None
+
+
+def _commit_charges(
+    planner: DhwPlanner,
+    ctx: _DhwPlanContext,
+    plan: np.ndarray,
+    initial_temp: float,
+    draw_rates: np.ndarray,
+    requirement: np.ndarray,
+    max_temp: Any,
+    forced_off: np.ndarray | None,
+    disinfection: int | None,
+    space: np.ndarray | None,
+) -> np.ndarray:
+    """The hot-water plan as charges the pump can run, where the solve plans
+    runs (``DhwPlanner.charge_runs``).
+
+    The candidates are ``_stored_charges``' committed plan and the plan as
+    the planners left it, each with every step under the floor run at the
+    floor (dropped where its own cap is under it). A run's last step is
+    left as it is where the install can end a run at any moment: the charge
+    stops inside it, at its level, and that is no level under the floor.
+    Each keeps the plan's floors, so the cheapest ships: its energy at the
+    planning prices plus the starts it holds.
+    """
+    charge = planner.charge_runs
+    if charge is None or not np.any(plan > 0.0):
+        return plan
+    floor = runs.floor_kw(planner.model.params.min_electrical_power)
+    cap = ctx.p_dhw_max if charge.caps is None else np.asarray(charge.caps, dtype=float)[: ctx.n_steps]
+
+    def lifted(x: np.ndarray) -> np.ndarray:
+        under = (x > 0.0) & (x < floor)
+        if not charge.clamped:
+            under &= ~((np.r_[0.0, x[:-1]] >= floor) & (np.r_[x[1:], 0.0] <= 0.0))
+        return np.where(under, np.where(floor <= cap, floor, 0.0), x)
+
+    candidates = [lifted(x) for x in (_stored_charges(
+        planner, ctx, plan, initial_temp, draw_rates, requirement, max_temp, forced_off, disinfection, space,
+    ), plan)]
+    return min(candidates, key=lambda x: float(np.sum(ctx.prices * x) * ctx.dt) + charge.start_cost * runs.start_count(
+        x, floor, charge.charge_running,
+    ))
+
+
+def _stored_charges(
+    planner: DhwPlanner,
+    ctx: _DhwPlanContext,
+    plan: np.ndarray,
+    initial_temp: float,
+    draw_rates: np.ndarray,
+    requirement: np.ndarray,
+    max_temp: Any,
+    forced_off: np.ndarray | None,
+    disinfection: int | None,
+    space: np.ndarray | None,
+) -> np.ndarray:
+    """``runs.commit_store``'s plan where the planner's real walk keeps it,
+    else ``plan``.
+
+    The program runs on the LP's own linear store (decay, gain, draw and, on
+    a combi store, the space side's flux), between the floors and ceilings
+    the plan's walk kept (no lower or higher than the plan went where it
+    left them). A charge runs whole steps at the run power, at the step's
+    planning price and the COP at the store's temperature; the disinfection
+    step is forced on, the forced-off steps off. What a charge pays besides
+    its energy follows the compressor (``_charge_costs``): a start where it
+    is off, the learned share of one for each duty change where the space
+    plan runs it.
+    """
+    charge = planner.charge_runs
+    level = ctx.p_dhw_max
+    floor = runs.floor_kw(planner.model.params.min_electrical_power)
+    if charge is None or level < floor or ctx.c_dhw <= 0.0:
+        return plan
+    n, dt = ctx.n_steps, ctx.dt
+    forced = np.full(n, np.nan)
+    if forced_off is not None:
+        forced[forced_off] = 0.0
+    if disinfection is not None:
+        forced[disinfection] = 1.0
+
+    def walk(candidate: np.ndarray) -> np.ndarray:
+        return planner._dhw_plan_temps(
+            candidate, initial_temp, ctx.outdoor_temps, draw_rates, dt,
+            ctx.humidity, ctx.tank_exo_kw,
+        )[1 : n + 1]
+
+    held = walk(plan)
+    floors = np.minimum(requirement, held)
+    ceilings = np.maximum(max_temp, held)
+    decay, gain = ctx.tank_decay
+    exo = np.zeros(n) if ctx.tank_exo_kw is None else np.asarray(ctx.tank_exo_kw, dtype=float)[:n]
+    grid = np.arange(np.floor(min(initial_temp, floors.min())), np.ceil(ceilings.max()) + 1.0)
+    cop = np.array([planner._dhw_cop_profile(ctx.outdoor_temps, np.full(n, t), ctx.humidity) for t in grid])
+    per_cop = heat_per_cop_kw(planner.model.params, level) * dt / ctx.c_dhw
+    store = runs.Store(
+        initial_temp, decay, gain - (np.asarray(draw_rates, dtype=float)[:n] - exo) * dt / ctx.c_dhw,
+        lambda k, t: np.interp(t, grid, cop[:, k]) * per_cop, floors, ceilings,
+        planner.model.params.dhw_store.rating_max_temp,
+    )
+    mask = runs.commit_store(
+        store, _charge_costs(charge, ctx.prices * level * dt, space, n),
+        min_top=max(floor / level, runs.MIN_ON.total_seconds() / 3600.0 / dt),
+        min_tail=floor / level if charge.clamped else 0.0,
+        running=charge.charge_running, forced=forced,
+        lengths=(runs.steps_at_least(runs.MIN_ON, dt), runs.steps_at_least(runs.MIN_OFF, dt)),
+    )
+    if mask is None:
+        return plan
+    # The shares on the planner's own COP at the walked temperature, not the table's.
+    share = runs.charge_shares(store._replace(heat=lambda k, t: planner._dhw_cop_profile(
+        ctx.outdoor_temps[k : k + 1], t, None if ctx.humidity is None else ctx.humidity[k : k + 1],
+    ) * per_cop), mask)
+    # A charge cut at the ceiling draws what its share of the heat takes; the
+    # rating clamp then trims what the linear store left over it.
+    params = planner.model.params
+    committed = planner._clamp_dhw_to_capacity(
+        plan=np.where(share >= 1.0, level, power_for_heat_per_cop_kw(params, share * heat_per_cop_kw(params, level))),
+        initial_temp=initial_temp, outdoor_temps=ctx.outdoor_temps, draw_rates=draw_rates, dt=dt,
+        max_temp=max_temp, humidity=ctx.humidity, exo_kw=ctx.tank_exo_kw,
+    )
+    return committed if np.all(walk(committed) >= floors - 2 * runs.STORE_TOLERANCE_K) else plan
+
+
+def _charge_costs(charge: ChargeRuns, energy: np.ndarray, space: np.ndarray | None, n: int) -> runs.ChargeCosts:
+    """``runs.commit_store``'s costs beside the space plan, where one is known.
+
+    The arbiter serves a step's hot water first and its space heating after
+    (``pump_arbiter._share``), so with the compressor running on space as a
+    step begins, a charge on that step is a duty change into hot water and
+    no start; beside space heating in its own step it is a change back into
+    space inside the step; and one that ends before a space step is a change
+    at that boundary. Each pays its direction's learned share of a start.
+    A charge that reaches the ceiling stops the compressor there, so a space
+    step after it is a start in full.
+    """
+    on = np.zeros(n, dtype=bool) if space is None else np.asarray(space, dtype=float)[:n] > 0.0
+    before = np.r_[charge.compressor_running and not charge.charge_running, on[:-1]]
+    after = np.r_[on[1:], False]
+    cost = charge.start_cost
+    return runs.ChargeCosts(
+        on=energy + cost * (charge.to_dhw * before + charge.to_space * on),
+        start=cost * np.where(before, 0.0, 1.0),
+        end=cost * charge.to_space * (on & ~before),
+        top=cost * (after & ~on),
+    )
 
 
 def _drop_off_steps(mask: np.ndarray, off: np.ndarray | None) -> np.ndarray:
@@ -321,7 +499,7 @@ class DhwPlanner:
 
     Every input is explicit and fixed at construction. ``pv_surplus`` and
     ``price_known`` default to None, which is what a fresh optimizer held
-    before its first solve.
+    before its first solve. ``charge_runs``: ``_commit_charges``' pricing, or None.
     """
 
     def __init__(
@@ -330,11 +508,13 @@ class DhwPlanner:
         config: _PlannerConfig,
         pv_surplus: np.ndarray | None = None,
         price_known: np.ndarray | None = None,
+        charge_runs: ChargeRuns | None = None,
     ) -> None:
         self.model = model
         self.config = config
         self._pv_surplus = pv_surplus
         self._price_known = price_known
+        self.charge_runs = charge_runs
 
     def _dhw_planning_prices(
         self,
@@ -1045,7 +1225,7 @@ class DhwPlanner:
             floor_temps=floor_temps,
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
-            off_steps=off_steps,
+            off_steps=_under_floor_off(self, _legionella_off_mask(off_steps, n_steps), n_steps),
             exo_kw=tank_exo_kw,
         )
 
@@ -1087,6 +1267,7 @@ class DhwPlanner:
             # remain. Not a pin: the window is a scheduled decision, so the
             # pin-safety release loop in ``optimize`` never frees these.
             forced_off = _forced_off_with(forced_off, off_steps, n_steps)
+        forced_off = _under_floor_off(self, forced_off, n_steps)
 
         # Pre-heating is allowed anywhere in the horizon: the planners price the
         # standby losses of storing heat, so an early cheap hour wins only when
@@ -1195,6 +1376,8 @@ class DhwPlanner:
             max_temp=max_temp,
             forced_off=forced_off,
         )
+        schedule = _commit_charges(self, ctx, schedule, initial_state.dhw_temperature, draw_rates,
+                                   requirement, max_temp, forced_off, legionella_step, space_demand)
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
         # so a plan leaves this stage already bounded by the per-step
