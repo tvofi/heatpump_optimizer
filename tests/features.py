@@ -84237,6 +84237,54 @@ R.check(
 )
 
 
+# --- R10-SAV-VALUATION-RESIDUE: the reference held where its valve curve can hold it ---
+from profiles import house as _svh_house  # noqa: E402
+from heatpump_optimizer.optimizer import _thermostat_held_state as _svh_held  # noqa: E402
+from heatpump_optimizer.thermal_model import WeatherSeries as _SVH_WS  # noqa: E402
+
+_SVH_VALVE = {"mixing_valve_mode": "manual", "mixing_valve_target": 21.0,
+              "buffer_tank_volume": 750.0, "buffer_max_temperature": 56.0,
+              "heat_pump_max_power": 4.0}
+
+
+def _svh_case(two_zone, outdoor, **over):
+    """The held state, the stored-heat change of its first reference step, the step's room."""
+    p = _SVR_PARAMS.from_config(_svh_house(two_zone=two_zone, dhw=False, **{**_SVH_VALVE, **over}))
+    model = _SVR_MODEL(p)
+    opt = _SVR_OPT(model, _SVR_CFG(horizon_hours=1, time_step_minutes=15, target_temp=21.0))
+    w = _SVH_WS(outdoor_temps=np.array([outdoor]), wind_speeds=np.zeros(1),
+                precipitation=np.zeros(1), solar_radiation=np.zeros(1))
+    start = _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=outdoor,
+                       upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+                       buffer_tank_temperature=30.0)
+    held = _svh_held(model, start, w, 21.0)
+    # A one-step horizon books the simulated step itself (nothing to apportion).
+    power = float(opt._compute_baseline_power(w, start, 0.25)[0][0])
+    nxt = model.simulate_step(held, power, outdoor, 0.0, 0.0, 0.0, 0.25)
+    return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
+
+
+_svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
+    "setpoint, the thermostat reference starts where that curve holds the "
+    "house -- its first booked step draws no stored heat (the held 21 C "
+    "drew it every step, booked as unpaid reference heat); both zonings, "
+    "two outdoor temperatures",
+    all(abs(ds) < 0.02 and h.room_temperature < 21.0 - 0.1
+        for h, ds, _ in _svh_rows.values()),
+    {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
+)
+# Null control: a curve that holds the setpoint keeps the held state at target.
+_svh_ok = {tz: _svh_case(tz, -10.0, mixing_valve_target=40.0) for tz in (True, False)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: null control -- a valve curve able to hold "
+    "the setpoint leaves the held state's zones at the target",
+    all(h.room_temperature == 21.0 and h.upper_floor_temperature == 21.0
+        and h.lower_floor_temperature == 21.0 for h, _, _ in _svh_ok.values()),
+    {tz: round(h.room_temperature, 4) for tz, (h, _, _) in _svh_ok.items()},
+)
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on
