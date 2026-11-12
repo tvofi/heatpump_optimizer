@@ -1,0 +1,86 @@
+NOTE stale tree: 8e6e94427f86b0c15ecdbbe1ed639acc716737ee lacks origin/main 8c10361eb1fea539dc5acb8f7442eac2810faa47; roster read at origin/main
+NOTE stale tree: 8e6e94427f86b0c15ecdbbe1ed639acc716737ee lacks origin/main 8c10361eb1fea539dc5acb8f7442eac2810faa47; roster read at origin/main
+  ok   a carry to a live group of the roster is predicted green
+NOTE stale tree: 8e6e94427f86b0c15ecdbbe1ed639acc716737ee lacks origin/main 8c10361eb1fea539dc5acb8f7442eac2810faa47; roster read at origin/main
+  ok   a carry to a group the roster lacks is predicted red
+NOTE stale tree: 8e6e94427f86b0c15ecdbbe1ed639acc716737ee lacks origin/main 8c10361eb1fea539dc5acb8f7442eac2810faa47; roster read at origin/main
+  ok   a finding with no carry at all is predicted red
+  ok   a file re-added at a path whose move landed is predicted red (rc 1)
+  ok   the re-added path under a second commit is predicted red (rc 1)
+  ok   the re-added path with its entry dropped from the staged manifest is predicted red (rc 1)
+  ok   a new line citing a landed path is predicted red (rc 1)
+  ok   a manifest that does not parse is predicted red (rc 1)
+  ok   a comment citing nothing is predicted green (null control) (rc 0)
+  ok   the re-added path staged and not committed is predicted green (null control) (rc 0)
+  ok   an unregistered push site is predicted red (rc 1)
+  ok   a guarded pusher's guard dropped in HEAD and restored in the index is predicted red (rc 1)
+  ok   a line that pushes nothing and names the seat's home is predicted green (null control: CI judges with the runner's identity) (rc 0)
+  ok   the push site staged and not committed is predicted green (null control) (rc 0)
+  ok   a grammar registered only in the head's copy is predicted red (rc 1)
+  ok   a grammar the base tip shares and registers, under a HEAD that only edits the lane, is predicted green (CI merges HEAD into the tip) (rc 0)
+  ok   a grammar in two files the lane does not load, the lane untouched, is not run (null control: the key; prepr step 3f4 refuses it under either copy) (rc 0)
+  ok   a lane edit under a branch merge, main already past it, is predicted green (null control: CI's origin/main is the base) (rc 0)
+  ok   a comment in the lane is predicted green (null control) (rc 0)
+  ok   a head copy of the lane that exits 1 is predicted green (null control: CI runs the base's) (rc 0)
+  ok   the registration staged and not committed is predicted green (null control) (rc 0)
+  ok   a self-testing tool the diff adds with no workflow run line is predicted red (rc 1)
+  ok   an INERT read the host's inert_reads omit is predicted for the one host that runs it: a self-test named two lines from the file counts, one past the window does not, an inert_reads-only listing does not, and the file is never its own host
+  ok   a plain read the host's closure omits is UNDER-SCOPED
+  ok   null control: a record inside the host's closure is not
+  ok   a read in the file's own closure but not the host's is graded under the host's key (null control for the file-key mutant: grading under the file's own key passes it)
+  ok   a self-test the recorder cannot finish is a note, never a red
+  ok   null control: a file the diff does not change is never recorded
+  ok   a host runs the self-test by `--self-test` or the quoted `self-test` subcommand (lane_skip's shape); a comment, or a `self_test` table key, is no host
+  ok   rekey: a key whose line only moved is re-keyed to its new line
+  ok   rekey: a key whose line text changed is kept (null control)
+  ok   rekey: a key whose text is on two lines at HEAD is kept (null control)
+  ok   rekey: a key the inventory holds no such kind for at the new line is kept
+  ok   rekey: a key outside ## Unpinned sites is never touched
+  ok   rekey: exactly one key is re-keyed
+  ok   an unwired self-testing tool the diff adds is predicted red
+  ok   the same tool named by a workflow run line is not
+  ok   null control: a tool main already carries is not this branch's
+  ok   a planted MISMATCH on a changed instrument page is predicted red
+  ok   null control: the same MISMATCH on a page the diff leaves alone
+  ok   a planted target edited so its anchor is gone is predicted red
+  ok   the same target with its anchor intact is predicted green
+  ok   a diff touching only the driver runs it: the driver is its own target
+  ok   null control: a diff touching no planted target runs no driver (the anchor is gone, no red)
+  ok   a pool of only a comment-free file is predicted red
+  ok   null control: a pool holding a commented file predicts nothing
+  ok   a mixed pool still has a null control
+  ok   an empty pool predicts nothing
+  ok   an unpinned site in a comment-free file is refused, rc=1
+  ok   null control: the same site in a commented file is no refusal, rc=0
+  ok   tools/policy/vendor/markdown-it.min.js keys every restoring job
+  ok   tools/policy/budget_raise_gate.py keys every restoring job
+  ok   dev/governance/config/corpus_excluded.json keys no job (a data file CI reads as the branch has it)
+  ok   a restored path the base tip lacks keys no job (nothing to restore it from)
+  ok   the arm's job set is every restoring step the workflows hold (the enumeration rule's count)
+  ok   the arm makes every pinned run but the agreement arm's and the exempt
+  ok   every pinned run line is runnable as CI runs it (null control: no gap)
+  ok   a run line passing a token RUN_TOKENS does not map is a gap
+  ok   an exemption no run line holds is a gap
+  ok   a second workflow's restored grader edited so the head passes what the base refuses is predicted red, job by job (the class, not governance.yml's three)
+  ok   the same workflow with its program unedited and the corpus alone changed is not run (null control)
+  ok   a run line reading the pull request's live state is run, predicted with what it ran without, and noted partial
+  ok   an exclusion written into the restored grader is predicted red (#2916's shape)
+  ok   an edit to a vendored file the grader requires is predicted red (round 3's markdown-it.min.js)
+  ok   an edit to a gate the grader spawns is predicted red (round 2's budget_raise_gate.py)
+  ok   the exclusion in the unrestored data file, the grader keyed by a comment, is predicted green (null control: the repair)
+  ok   a corpus-only diff the base's grader refuses is not run (null control: the key; prepr runs the same copy CI does)
+  ok   the inline exclusion staged and not committed is predicted green (null control)
+  ok   a bash run line is a graded run: its $INTENDED is every issue the body closes and its stdin is the body
+  ok   the event tokens are stood in (head, title, author), the stdout redirect is not an argument
+  ok   a partial run's missing input is noted and is no verdict (null control: a plain run's refusal is)
+  ok   two workflows sharing a job name are keyed `<stem>/<job>` apart
+  ok   a run reading the body is skipped, noted, never passed, with no body to read (null control: the run that reads none still runs)
+  ok   pr-contract's code-scanning wait grades no file and is exempt (null control: its preflight run is graded)
+  ok   the closing line owes no repair when every red is a BOOTSTRAP (null control: one repairable red does)
+  ok   predict reaches the graders arm by name (its call site, not only its helper)
+  ok   the predictor's tree holds the round roster ref this checkout fetched (CI fetches it before the carry check)
+  ok   and no other handoff ref (null control)
+  ok   nor a roster ref the checkout never fetched (null control)
+  ok   every JOB value is a name gate.REQUIRED owes
+ci_predict self-test: 0 failed
+rc=0
