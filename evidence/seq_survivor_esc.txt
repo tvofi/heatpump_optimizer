@@ -1,5 +1,0 @@
-cap kWh/K 0.232
-A pre-draw, 1K dip, two +1K settle rises : 0.4633
-A control: same, no second rise           : 0.689
-B 8K drop, three +3K settle rises        : 0.689
-B control: one +3K rise                   : 1.849

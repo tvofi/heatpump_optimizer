@@ -1,20 +1,25 @@
-Fix review: merge 6ab7d15ef7dfb69eb55ede687f044297306572de
+Fix review: merge 7236c8a2c1dbd17b145598032e996a637e3fc752
 
-bus-nonce: 13f2fbdc2ea0f9397e2133a5a0ce170a
-pending-ci: gate (merge_train.py classify prints WAIT: pending, gate red: none; head lacks main 6cc15e9b, so a red tests / fast (3.14) combi census or governance / instrument-self-tests is main's old red, cured by the remerge)
-
-## Findings
-
-- Residual: at 10 and 15 min the repair is inert against the base: the dip arm reads the same at both ends in every cell, so the phantom the fix targets stays there at those cadences. It is no worse than the base and removes no real draw; the gain is at 30 min only (3 cells move, all toward truth). Carry: dismissed: no regression, and the gain claim at production cadence is bounded by the 30-min default
+bus-nonce: 70f18a8fbba02f3b6ebe65eacadd5d13
+pending-ci: gate (merge_train.py classify prints WAIT 7236c8a2c1dbd17b145598032e996a637e3fc752 pending: gate red: none, after more than 30 min of polling, ev/classify_final.txt)
 
 ## Evidence
 
-- Delta reviewed: 8fe71477..6ab7d15ef7dfb69eb55ede687f044297306572de (round 3, delta of the blocked round 2 at verdict/3444@2a99a2d447f7). Production delta: dhw_learning.py only (ChargeSettle.classify now returns (heated, settling); the fold's charge flag is started_heated or settling instead of heated_interval or settling). No widening beyond that path.
-- Block answered. My seq30.py (30 min apart, same sequence as the block): base truth 0.6542 / dip 1.3127 / control 1.3127; old head dip 0.3847; this head truth 0.6542, dip 0.6542, control 1.3127 (ev/seq30_{base,head}.txt). Null control holds.
-- Finder-class harness at both ends, my cadence probe over 72 cells (10/15/30/60 min, 3 charges, 6 draw offsets): truth is identical to base in all 72. Dip cells that move against base: only step=15 charge 07:35+15 off+5 (truth 1.2527, base 1.594, head 1.1481), step=30 07:30+10 off+5 (truth 1.6087, base 1.84, head 1.6238) and off+15 (truth 1.9994, base 2.2303, head 2.0143); none is further from truth than base. The block's 15-min cell (07:30+10, off -10; head 0.9868 at the old head, truth 1.8777) now equals the base (ev/cadence_new.txt). The four 30-min cells the old head moved to new under-counts no longer do.
-- The fixer's harness r10_dhw_charge_settle_p90.py at 10/15/30 min, both ends (ev/harness_{base,head}.txt): the dip arm never moves away from truth against base; 30-min draw-0735 2.0823 to 1.8629 (truth 1.8512), draw-0745 2.5009 to 2.2759 (truth 2.2703); 10 and 15 min equal the base.
-- Mutants run through tests/features.py at the head: reverting the repair (charge=heated_interval or settling) makes the new check "at the learner's production cadences ..." FAIL, and seq30 reads 0.3847 again; R2_ESCROW_DEC_OFF (dhw_draws.py take-back escrow not decremented) and R2_CREDIT_PER_INTERVAL (the credit reset on every charge-affected interval), the two round-2 survivors, now FAIL "a charge's take-back stops at the energy its charge folded and at the dip bound". The unmutated head passes all three charge checks. The one FAIL in a full features.py run at the head is the combi_type_branch census (vendor-name census, line 1208 of ev/features_head.txt), the inherited main red.
-- Sub-production cadence: the 5-min arms stay as a sub-cadence check, and the test comment now says so.
-- git merge-tree --write-tree origin/main 6ab7d15ef7dfb69eb55ede687f044297306572de exits 0 (tree 00d73351c2715c1f64956e4e40efd5e6a1e64cea). The PR body's code tip and VERSION, manifest and notes heading: not re-read at this delta beyond a diff touching only dhw_learning.py, the harness and tests/features.py, so none of the three is touched.
-- Not re-run: the body's named mutant tables and the heavy gate (CI's). owed-reds printed; classify WAIT, gate red: none.
-- Harness provenance: the harness is the builder's; probe, cadence and seq scripts are the reviewer's, not in the tree (ev/).
+- Round 4, a delta review over the reviewed head 6ab7d15ef7dfb69eb55ede687f044297306572de (resume verdict/3444@45a53b2c). Range 6ab7d15e..7236c8a2: 2329627cd (mutation-autofix pins, 22 ledger files), 11547bbe3 (the churn-floor check in tests/features.py, 49 lines, and the pins), b6e31891a (a merge of both onto 2329627cd), 9b5c699a (merges origin/main 6d16af36), and 7236c8a2 (merges 9b5c699a).
+- Production patch unchanged: `git diff ee64358be 6ab7d15e -- custom_components/` is byte-identical to `git diff 6d16af36 7236c8a2 -- custom_components/`. The main merge left the reviewed production code as it was, so the review does not widen.
+- Previous verdict's one finding (Residual: the fix is inert at 10/15 min) was dismissed there, and the production patch has not changed, so it stands as dismissed. Nothing new to carry.
+- Mutation proof, my own runs of `PYTHONPATH=tests/hastub python3 tests/features.py` in worktrees at this head (ev/features_M{0,1,2}.txt, ev/mutant_M{1,2}.diff):
+  - M0, unmutated (the control): `ALL 5243 FEATURE CHECKS PASSED`, rc=0. The new check reads ok, and the combi_type_branch census is green now that main is merged.
+  - M1, dhw_learning.py:516 `energy_kwh >= 1e-4`: rc=1, `1 of 5243 FEATURE CHECKS FAILED`, only "the draw fold saves a tick only strictly above its 1e-4 kWh floor, folded or taken back", reading `{'fold': (1, 1), 'take': (0, 1)}`.
+  - M2, `taken_kwh >= 1e-4`: rc=1, the same single check, reading `{'fold': (0, 1), 'take': (1, 1)}`.
+  - Each mutant fails only its own arm, and in every run the one-ulp-above control saves once. So the check is not vacuous, and each arm detects its own site.
+- `python3 tests/mutation_table.py --list CMP_BOUND` (rc 0) prints both dhw_learning.py:516 CMP_BOUND sites as `pinned`, which matches the body. The ledger entry DhwProfileLearner.async_fold_draw_stats.CMP_BOUND.b95e18b7.json names tests/features.py as the killer.
+- The new check is test-only: it drives `async_fold_draw_stats` at exactly 1e-4 and at nextafter(1e-4, 1), and the fold arm searches for a drop whose booked energy is exactly the floor. No production behaviour moves.
+- `git merge-tree --write-tree origin/main 7236c8a2` exits 0 (`LEDGER-MERGE: resolved tests/closures.json`, set merge). origin/main is at 2cfa3d7d, and the head merges main 6d16af36 (ev/merge-tree.txt).
+- Claim files: `git diff 6d16af36...7236c8a2` (three-dot) is empty for both claim files, so the branch claims nothing. The two-dot change in the range is main's.
+- VERSION, manifest.json and RELEASE_NOTES.md show no change from merge base 6d16af36.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED (ev/structure.txt). The budget file's change against the merge base is class_excess_loc 17534 -> 17532 (down) plus recorded_at; nothing was raised.
+- PR body: `## Head` names 7236c8a2c1dbd17b145598032e996a637e3fc752, which is the head measured here. `## Red checks` answers tests / mutation, tests / mutation-autofix, tests / typing, tests / fast (3.14), governance / instrument-self-tests, gate, pr-contract, arch-score and tests / nightly-status, each with a named cheaper detector or a finding that none exists. tests / nightly-status is outside `merge_train.py owed-reds` (ev/owed-reds.txt), so it owes nothing. The pr-contract run at this head has not run yet, so its check of red-history is CI's, behind the gate.
+- Not re-run: the gate, the mutation table, and the round-3 harness figures, whose production patch is unchanged since they were measured; those are CI's or the prior round's. figure_lint's 43 `unverified` lines are the round-3 harness rows already re-derived in the previous verdict; I did not re-derive them at this delta.
+- Harness provenance: the worktree mutants are mine, not in the tree, and their diffs are in ev/.
+- Closing self-audit: `carry_audit.py check` over this verdict printed `CARRY-AUDIT: 0 finding item(s)` with rc 0. I ran it against a stub body holding only the PR body's `## Forward-carry: none` and `## Friction: none`. The review packet's own run of carry_audit at the head, over the live body, printed the same 0 items.
