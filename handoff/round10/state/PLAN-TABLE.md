@@ -561,7 +561,7 @@ Not-started sibling of R10-TRAIN-RESIDUE (carries-open after #3424 merged 07:47:
 
 Hotfix, no after: the gh shim refuses gh's own --allow-escape-sequences, so merge_train.job_l... |  |
 | R10-HOTFIX-COMBI-CENSUS-MAIN-RED | B | 1 | done | - | opus/opus | - | Main is red since the merge of pull request 3398 (merge commit cbd23f1c8bf6): the push run on main fails tests/features.py at its combi type branch census, t... |  |
-| R10-TICK-RESIDUE-P2 | IN | 1 | in-progress | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch181.md#P600 at b253df9967
+| R10-TICK-RESIDUE-P2 | IN | 1 | carries-open | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch181.md#P600 at b253df9967
 
 Not-started sibling of R10-TICK-RESIDUE (PR #3425 holds a merge verdict at c93903f075; a carr... |  |
 | R10-RELAY-ARM-ORDER | IN | 1 | carries-open | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch182.md#P601 at f18bee99d1
