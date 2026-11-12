@@ -1,0 +1,37 @@
+ok   (9) behind on the seat paths and idle: checks out origin/main and re-execs
+ok   (9) the guard: already restarted to this origin/main refuses with its why
+ok   (9) --once never restarts
+ok   (9) once a restart is taken no job instance starts
+ok   (9) null: with no restart taken the same job runs
+ok   (9) behind on tools/pr alone restarts too
+ok   (9) null: behind only off the seat paths does not restart
+ok   (9) a running instance defers the restart to the next pass
+ok   (9) dirty: refuses with its why
+ok   (9) dirty: a refusal persisting into a second pass prints BEAT-STALE
+ok   (9) local: refuses with its why
+ok   (9) local: a refusal persisting into a second pass prints BEAT-STALE
+ok   (9) broken: refuses with its why
+ok   (9) broken: a refusal persisting into a second pass prints BEAT-STALE
+ok   anchor m9_paths_unfiltered occurs once in production, changes it, names a check of (9)
+ok   anchor m9_guard_off occurs once in production, changes it, names a check of (9)
+ok   anchor m9_dirty_ignored occurs once in production, changes it, names a check of (9)
+ok   anchor m9_local_commit_ignored occurs once in production, changes it, names a check of (9)
+ok   anchor m9_compile_unchecked occurs once in production, changes it, names a check of (9)
+ok   anchor m9_running_ignored occurs once in production, changes it, names a check of (9)
+ok   anchor m9_stale_never occurs once in production, changes it, names a check of (9)
+ok   anchor m9_no_exec occurs once in production, changes it, names a check of (9)
+ok   anchor m9_once_restarts occurs once in production, changes it, names a check of (9)
+ok   anchor m9_no_start_gate occurs once in production, changes it, names a check of (9)
+beatd: NO-RESTART behind=unknown code=unknown: could not count origin/main over the checkout
+ok   mutant m9_paths_unfiltered turns (9) 'null: behind only off the seat paths does not restart' red
+ok   mutant m9_guard_off turns (9) 'the guard: already restarted to this origin/main refuses with its why' red
+ok   mutant m9_dirty_ignored turns (9) 'dirty: refuses with its why' red
+ok   mutant m9_local_commit_ignored turns (9) 'local: refuses with its why' red
+ok   mutant m9_compile_unchecked turns (9) 'broken: refuses with its why' red
+ok   mutant m9_running_ignored turns (9) 'a running instance defers the restart to the next pass' red
+ok   mutant m9_stale_never turns (9) 'dirty: a refusal persisting into a second pass prints BEAT-STALE' red
+ok   mutant m9_no_exec turns (9) 'behind on the seat paths and idle: checks out origin/main and re-execs' red
+ok   mutant m9_once_restarts turns (9) '--once never restarts' red
+ok   mutant m9_no_start_gate turns (9) 'once a restart is taken no job instance starts' red
+beatd self-test: 34 checks, 0 failed
+rc=0
