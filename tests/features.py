@@ -82138,7 +82138,7 @@ def _sh_inputs(minute, *, dhw=False, cold=False, disinfecting=False, state="off"
     return lambda: _sa_pa.ArbiterInputs(
         hass=hass, config={"heat_pump_switch_entity": "switch.hp"}, mode="auto", plan=plan,
         plan_stale=False, entry_released=False,
-        state=SimpleNamespace(dhw_temperature=35.0 if cold else 50.0),
+        state=SimpleNamespace(dhw_temperature=40.0 if cold == "edge" else 35.0 if cold else 50.0),
         thermal=None, params=SimpleNamespace(dhw_enabled=True, dhw_min_temp=40.0),
         action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=disinfecting)
 
@@ -82161,9 +82161,42 @@ for _ms_name, _ms_min, _ms_kw, _ms_want in (
     ("a space step with the tank below its minimum", 7, {"cold": True}, (None, True)),
     ("null control: the switch already on", 7, {"state": "on"}, (True, False)),
     ("an unreadable switch", 7, {"state": "unavailable"}, (True, False)),
+    ("a hot-water step with the tank exactly at its minimum (not below)", 7, {"dhw": True, "cold": "edge"}, (None, True)),
 ):
     _ms_got = _sh_start(_ms_min, **_ms_kw)
     R.check(f"rule three: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# A write of None (cooling, both channels blocked) is passed and marks nothing
+# held, even on a run three minutes old.
+_sh_nheld = _sa_pa.ArbiterState()
+_sh_nin = _sh_inputs(7, state="on")
+_sh_nin().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+_sh_ngot = (_sh.hold_supply(_sh_nheld, _sh_nin, _sh_none, None, _SA_T0 + timedelta(minutes=7)), _sh_nheld.supply_held, _sh_nheld.held_at)
+R.check("a write of None passes and marks nothing held", _sh_ngot == (None, False, None), f"{_sh_ngot}")
+
+
+# A held write whose command is gone (the optimizer switched off) is dropped
+# by the step tick, flag and all; the null control keeps it in a plan mode.
+async def _sh_tick(mode):
+    held = _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    inp = _sa_pa.ArbiterInputs(**{**vars(inp), "mode": mode, "plan": None, "action": {"heat_pump_on": False}})
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return wrote, held.supply_held
+
+
+for _ms_name, _ms_mode, _ms_want in (
+    ("the optimizer switched off: no write, the hold dropped", "off", ([], False)),
+    ("null control: a plan mode with no plan retries the action's OFF", "auto", ([False], True)),
+):
+    _ms_got = _asyncio.run(_sh_tick(_ms_mode))
+    R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
 
 
 # An unreadable switch passes an OFF the gate would hold on a readable one;
@@ -82225,6 +82258,36 @@ R.check(
     "a held OFF is not logged as the cooling or blocked-mode skip",
     _sh_skips == [],
     f"{_sh_skips}",
+)
+
+
+
+async def _sh_blocked_write():
+    hass = FakeHass({"switch.hp": FakeState("on", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "space_blocked": True, "dhw_blocked": True})
+    _sa_dt.freeze(_SA_T0)
+    try:
+        await coord._write_supply(False)
+    finally:
+        _sa_dt.freeze(None)
+    return [c for c in hass.services.calls if c[0] == "switch"]
+
+
+_sh_log.seen.clear()
+_sh_coord_mod._LOGGER.addHandler(_sh_log)
+_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+try:
+    _sh_bcalls = _asyncio.run(_sh_blocked_write())
+finally:
+    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
+    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+_sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
+R.check(
+    "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
+    _sh_bcalls == [] and len(_sh_bskips) == 1,
+    f"{_sh_bcalls} {_sh_bskips}",
 )
 
 

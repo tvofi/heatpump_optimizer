@@ -79,7 +79,7 @@ def hold_supply(held: ArbiterState, inputs: Any, boosts: Any, value: bool | None
         return value
     now = dt_util.as_utc(now or dt_util.now())
     inp = inputs()
-    age = _age(inp, value, now)
+    age = _held_for(inp, value, now)
     if age is None or _passes(inp, boosts, now):
         return value
     wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if value else age < MIN_RUN
@@ -114,7 +114,7 @@ def tank_reason(inp: ArbiterInputs) -> str | None:
     return None
 
 
-def _age(inp: ArbiterInputs, value: bool, now: datetime) -> timedelta | None:
+def _held_for(inp: ArbiterInputs, value: bool, now: datetime) -> timedelta | None:
     """How long the switch has been in the state ``value`` would end, or ``None``.
 
     ``None`` where the write changes nothing, the switch is unreadable or its

@@ -1843,7 +1843,7 @@ def _action_supply(inp: ArbiterInputs) -> bool | None:
     """
     if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_stale or not inp.action:
         return None
-    return bool(inp.action.get("heat_pump_on", False))
+    return bool(inp.action.get("heat_pump_on"))
 
 
 def release_supply(held: ArbiterState) -> None:
