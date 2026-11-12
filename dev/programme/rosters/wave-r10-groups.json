@@ -23539,9 +23539,10 @@
     "From r10-mutant-run-forkcap, body item 803fdcf8: Residual: MUTVAC-STMT-DEL's acceptance (the 23 reviewer-named Python sites reach >= 14 STMT_DEL-visible mutants, from 7) is unmeasured: the sites' heads.tsv is in neither the tree nor the dispatch payload, so this seat cannot run `mutant_run.py --diff <base>...<head> --list` over them. `#3394` is refused by `carry_audit.py check` as having no owner. It stays with this group pending the orchestrator's ruling: supply heads.tsv to a re-run, or name a receiving group. Carry: R10-MUTANT-RUN-FORKCAP"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "pr": 3475
+    "pr": 3475,
+    "commit": "d655c4a86e5eae7896f49a99334e87298dac7748"
    }
   },
   {
