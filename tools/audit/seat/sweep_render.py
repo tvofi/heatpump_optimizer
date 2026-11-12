@@ -90,7 +90,8 @@ DEFAULTS = {
 
 #: Placeholders the overlay may omit or leave empty; each renders as the pulse.py
 #: flag given, repeated once per entry, or as nothing when there is none.
-OPTIONAL_FLAGS = {"seat_alives": "--seat-alive", "launch_ledger": "--launch-ledger"}
+OPTIONAL_FLAGS = {"seat_alives": "--seat-alive", "launch_ledger": "--launch-ledger",
+                  "plan_coordinator_cap": "--coordinator-cap"}
 ENTRY = re.compile(r"^[a-z]+=\S+$")
 
 
@@ -248,7 +249,7 @@ def self_test() -> int:
           re.findall(r"--seat-alive (\S+)", render(tracked, dict(full, seat_alives=["tick=/a", "merge=/b"])))
           == ["tick=/a", "merge=/b"])
     none = {k: v for k, v in full.items() if k not in OPTIONAL_FLAGS}
-    bare, empty = render(tracked, none), render(tracked, dict(full, seat_alives="", launch_ledger=""))
+    bare, empty = render(tracked, none), render(tracked, dict(full, seat_alives="", launch_ledger="", plan_coordinator_cap=""))
     check("null control: an overlay with no seat_alives renders step (1b) without the flag and does not fail",
           "--seat-alive" not in bare and "--launch-ledger" not in bare and bare == empty
           and "  " not in "".join(l for l in bare.splitlines() if "pulse.py --repo" in l))
@@ -270,6 +271,9 @@ def self_test() -> int:
           and "grep -c 'OWED' <tick_log>" in five_line)
     check("the rendered sweep names no tick seat's own log and no newest-pass read",
           "tick-owed" not in rendered and "newest pass" not in rendered and "newest actionable" not in rendered)
+    check("the tick seat is retired: no tick_alive, tick_brief or tick_stale_min placeholder, declared or rendered",
+          not {"tick_alive", "tick_brief", "tick_stale_min"} & set(names) and "{tick_" not in rendered
+          and not re.search(r"tick_(alive|brief|stale_min)", rendered))
     old_five = tracked.replace("Read {{digest}}/digest.txt whole", "Read {{tick_log}}'s newest pass unfiltered")
     check("null control: step (5) restored to the newest pass fails the read check",
           old_five != tracked and "<digest>/digest.txt whole" not in render(old_five, full))
