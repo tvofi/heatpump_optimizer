@@ -84264,15 +84264,18 @@ def _svh_case(two_zone, outdoor, **over):
     return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
 
 
-_svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0)}
+# -10 and -15 C sag far; at 14 C the two-zone house falls just short of the
+# target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
+_svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0, 14.0, 16.0)}
 R.check(
     "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
     "setpoint, the thermostat reference starts where that curve holds the "
     "house -- its first booked step draws no stored heat (the held 21 C "
     "drew it every step, booked as unpaid reference heat); both zonings, "
-    "two outdoor temperatures",
-    all(abs(ds) < 0.02 and h.room_temperature < 21.0 - 0.1
-        for h, ds, _ in _svh_rows.values()),
+    "from a deep shortfall to a mild day the curve holds",
+    all(abs(ds) < 0.02 for h, ds, _ in _svh_rows.values())
+    and all(_svh_rows[(tz, t)][0].room_temperature < 21.0 - 0.1
+            for tz in (True, False) for t in (-10.0, -15.0)),
     {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
 )
 # Null control: a curve that holds the setpoint keeps the held state at target.
