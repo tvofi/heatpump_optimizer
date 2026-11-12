@@ -1,0 +1,33 @@
+pulse: pulse self-test: 70 checks, 0 failed
+seat_gen: seat_gen self-test: 25 checks, 0 failed
+beat_jobs: beat_jobs self-test: 211 checks, 0 failed
+open_driver: open_driver self-test: 93 checks, 0 failed
+STRUCTURE RATCHET PASSED
+delta-touches-VERSION/custom_components: 0
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+arch-score / arch-score
+budget-raise-gate / budget-raise-gate
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+gate
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs

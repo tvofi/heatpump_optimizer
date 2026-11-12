@@ -1,0 +1,12 @@
+== wt 34dae66f17d5b511646ff51f3607d0fa6110bbfe
+SURVIVED NULL
+KILLED pulse_gen_read_off
+KILLED ps_start_zero
+rc=0
+== wtp 7572aa0aa878e55d8480264d8f0bcd927c6280aa
+SURVIVED NULL
+SURVIVED pulse_gen_read_off
+SURVIVED ps_start_zero
+rc=0
+
+[exited with code 0]
