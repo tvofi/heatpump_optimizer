@@ -12,7 +12,7 @@ Alternatives not taken: `rounding="down"` with no `hi=` (a second statement of t
 
 ## Head
 
-43095bdec3bba091bfe1a5a38abf172987e7ceb8, seven commits on origin/main ef579d9ba689 (`c9258994` the failing checks, `20d22eae` the fix with the harness and runner, `05a56e58` M11 retired, `4498df97` the entity-minimum clamp in `_bounded` and the test fakes, `ec29e0dd` that clamp replaced by dropping a ceiling under the minimum, `4342f022` the minimum taken on its step and the diff's survivors killed, `43095bde` the repair's redundant guard dropped and the killed sites pinned); merge base ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d, origin/main's tip at 2026-11-12T03:33:29Z (`date -u`).
+c5b48730d9063440e8df53a5a14928d9e96f0078 (the authored head 43095bdec3bba091bfe1a5a38abf172987e7ceb8 merged with origin/main 7617c7cf4a, conflict-free, review_carry.py CARRY), seven authored commits on origin/main ef579d9ba689 (`c9258994` the failing checks, `20d22eae` the fix with the harness and runner, `05a56e58` M11 retired, `4498df97` the entity-minimum clamp in `_bounded` and the test fakes, `ec29e0dd` that clamp replaced by dropping a ceiling under the minimum, `4342f022` the minimum taken on its step and the diff's survivors killed, `43095bde` the repair's redundant guard dropped and the killed sites pinned); merge base ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d, origin/main's tip at 2026-11-12T03:33:29Z (`date -u`).
 
 ## Mutation proof
 
@@ -41,7 +41,7 @@ Failing first: `PYTHONPATH=tests/hastub python3 tests/block_duty.py` at c9258994
 
 Taken at 43095bde against merge base ef579d9b unless a line names 20d22eae; origin/main's tip 7617c7cf4a at the last fetch, `git merge-tree --write-tree origin/main HEAD` clean.
 
-<!-- figure-block: scope-line mb=ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d head=43095bdec3bba091bfe1a5a38abf172987e7ceb8 -->
+<!-- figure-block: scope-line mb=26072317b5556a2baa1ff562d8fbbc9588e2ba5c head=c5b48730d9063440e8df53a5a14928d9e96f0078 -->
 ~~~text
 MODE: SCOPED -- 22 script(s) run, 11 scoped out.
 ~~~
