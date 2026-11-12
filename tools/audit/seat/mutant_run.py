@@ -659,6 +659,14 @@ def _no_session(sid: int) -> bool:
     return False
 
 
+def _zombie(pid: int) -> None:
+    """Return once `pid` is a zombie, i.e. exited and not yet reaped (polled for up to 5 s)."""
+    for _ in range(50):
+        if any(row[0] == pid and row[1] == "Z" for row in _ptable()):
+            return
+        time.sleep(0.1)
+
+
 def _gone(pid: str) -> bool:
     """True once the process `pid` no longer exists (polled for up to 5 s)."""
     for _ in range(50):
@@ -701,7 +709,7 @@ def _procless_checks(check, tmp: Path) -> None:
         kid = subprocess.Popen(["sleep", "30"])
         marked = subprocess.Popen(["sleep", "30"], start_new_session=True, env=dict(os.environ, MUTANT_RUN_TOKEN=tok))
         dead = subprocess.Popen(["true"], start_new_session=True)  # a zombie session leader: `ps` stat `Zs`, not `Z`
-        os.waitid(os.P_PID, dead.pid, os.WEXITED | os.WNOWAIT)  # exited, still unreaped
+        _zombie(dead.pid)  # exited, still unreaped (os.waitid's WNOWAIT, which macOS lacks)
         try:
             with ctx():
                 try:
