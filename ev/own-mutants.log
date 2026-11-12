@@ -1,0 +1,26 @@
+RESULT own-mutant=topic-part-gt2 rc=1 failed=2 killed
+  FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+  FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+RESULT own-mutant=fixer-guard-off rc=0 failed=0 SURVIVED
+RESULT own-mutant=fold-lt rc=1 failed=1 killed
+  FAIL the split folds a remainder of one or two into the last part, and only that
+RESULT own-mutant=part-index-off rc=1 failed=1 killed
+  FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+RESULT own-mutant=small-lt rc=1 failed=1 killed
+  FAIL five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)
+RESULT own-mutant=selfskip-off rc=1 failed=1 killed
+  FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+RESULT own-mutant=seat-refused-head rc=1 failed=1 killed
+  FAIL the reviewer's setup or hook refusal pushes `seat-refused`, and it reads its ref back, at the PR and at the handoff
+RESULT own-mutant=readback-nonce rc=0 failed=0 SURVIVED
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError: ('push `Fix review: blocked {head} ci-wait', 2)
+RESULT own-mutant=ci-wait-head rc=0 failed=0 SURVIVED
+RESULT own-mutant=ci-wait-head rc=1 failed=1 killed
+  FAIL WAIT is bounded: past about 30 minutes an incomplete review pushes `ci-wait` with the classify line
+RESULT own-mutant=legacy-refusal-swallow rc=0 failed=0 SURVIVED
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError: ('dispatch_group(', 6)
+APPLY-FAIL part-dropped-sig

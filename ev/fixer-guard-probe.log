@@ -1,0 +1,14 @@
+ron)
+    topic = group_id if role in DESIGN_ROLES else _topic_of(group)
+    pline = ""
+    if part and role != "fixer":
+        raise Refusal(f"--part is the fixer's: a {role} seat is not split")
+    if role == "fixer" and (part or len(group.get("carry") or []) > PART_CARRIES):
+        try:
+            legacy = roster_lib.read_legacy(repo_dir, roster_lib.roster_path(repo_dir, roster_ref, None))
+        except roster_lib.RosterNotFound as e:
+            raise Refusal(str(e))
+        pline = part_line(group_id, roster_lib.pending_carries(group, legacy), part)
+        if part > 1:
+            topic = f"{topic}-p{part}"
+            for other in roster.get("groups", []):  # a part's topic is a ro

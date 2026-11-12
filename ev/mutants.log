@@ -1,0 +1,230 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=tree-skip failed=1 verdict=killed
+    FAIL a re-dispatch of the same brief moves no ref
+RESULT mutant=brief-drop failed=11 verdict=killed
+    FAIL a group with no carry, consumer or enumeration renders its brief and `After:` alone (the null control)
+    FAIL a fixer's brief lists the live consumers (after-edged and file-sharing) as the only valid Carry targets, not the done one
+    FAIL and the group's class-enumeration command
+    FAIL five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)
+    FAIL a group's two carries render numbered by roster index and verbatim, after its brief and `After:`
+    FAIL a host path inside a carry refuses as one in the brief does, and pushes nothing
+    FAIL a changed brief fast-forwards the ref
+    FAIL a host path in a roster brief refuses and pushes nothing
+    FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=parent-drop failed=-1 verdict=CRASHED
+RESULT mutant=nonce-altered failed=2 verdict=killed
+    FAIL the worker registry records the reviewer: pr, head, seat, nonce, time and the model
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=part-collision-off failed=1 verdict=killed
+    FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+RESULT mutant=topic-to-id failed=-1 verdict=CRASHED
+    FAIL a group dispatch prints one short line, the ref name
+    FAIL a fixer for an L group is dispatched with --design-exempt (the reason is the orchestrator's)
+    FAIL a fixer is dispatched once the verdict approves the current design tip (null control)
+    FAIL the printed line round-trips to a payload byte-identical to the flag path's --publish
+    FAIL without --publish the flag path is unchanged: the whole prompt in its event, nothing published
+    FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+    FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+RESULT mutant=render-host-off failed=6 verdict=killed
+    FAIL a macOS home in the brief is refused
+    FAIL a linux home in the brief is refused
+    FAIL a public account's home in the brief is refused
+    FAIL a home path in the nonce is refused
+    FAIL a host path inside a carry refuses as one in the brief does, and pushes nothing
+    FAIL a host path in a roster brief refuses and pushes nothing
+RESULT mutant=privacy-off failed=1 verdict=killed
+    FAIL _publish itself refuses a ref that would publish the host, and pushes nothing
+RESULT mutant=head-ignored failed=-1 verdict=CRASHED
+RESULT mutant=prompt-wrong failed=25 verdict=killed
+    FAIL a designer's ref is dispatch/designer-<group>, pins the base SHA and names its contract
+    FAIL the designer's text allows design/<group> alone and no pull request, in its own words
+    FAIL a design reviewer pins the design tip and the base, names its contract and its one ref
+    FAIL the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip
+    FAIL the stub keeps the seat line and the footer ban inline; PROMPT.md is the whole prompt
+    FAIL the stub payload is far smaller than the prompt: under 1 KB whole, the brief absent, the SHA present
+    FAIL without --publish the flag path is unchanged: the whole prompt in its event, nothing published
+    FAIL the roster brief is inlined and the roster tip is the head
+    FAIL a group with no carry, consumer or enumeration renders its brief and `After:` alone (the null control)
+    FAIL a fixer's brief lists the live consumers (after-edged and file-sharing) as the only valid Carry targets, not the done one
+    FAIL and the group's class-enumeration command
+    FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+    FAIL --part 1 keeps the group's own topic and names carries 0-4
+    FAIL five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)
+    FAIL a group's two carries render numbered by roster index and verbatim, after its brief and `After:`
+    FAIL a re-dispatch of the same brief moves no ref
+    FAIL a changed brief fast-forwards the ref
+    FAIL the worker registry records the reviewer: pr, head, seat, nonce, time and the model
+    FAIL a reviewer is dispatched at the PR head passed, not at a ref's tip
+    FAIL the reviewer's brief carries the packet render at the dispatched head for the seat's own machine
+    FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
+    FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=roster-repo-ignored failed=-1 verdict=CRASHED
+RESULT mutant=roster-ref-main failed=3 verdict=killed
+    FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=head-from-roster-ref failed=1 verdict=killed
+    FAIL by default the brief is the round's roster branch's and the head is main's tip, not that branch's
+RESULT mutant=reviewer-head-off failed=1 verdict=killed
+    FAIL a reviewer needs its PR head, and is refused for that reason
+RESULT mutant=explicit-roster-ref-ignored failed=2 verdict=killed
+    FAIL an explicit roster ref is read, not the round's roster branch
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=cli-head-dropped failed=5 verdict=killed
+    FAIL --group forwards --head to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=cli-roster-ref-dropped failed=2 verdict=killed
+    FAIL --group forwards --roster-ref to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+RESULT mutant=fetch-skipped failed=1 verdict=killed
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=cli-role-fixed failed=3 verdict=killed
+    FAIL --group forwards --role to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=cli-pr-dropped failed=3 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=cli-nonce-dropped failed=3 verdict=killed
+    FAIL --group forwards --nonce to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=cli-group-fixed failed=3 verdict=killed
+    FAIL --group forwards --group to dispatch_group
+    FAIL the CLI forwards --part to the group path, and refuses it without --group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+RESULT mutant=cli-model-fixed failed=3 verdict=killed
+    FAIL --group forwards --model to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=cli-overlay-dropped failed=3 verdict=killed
+    FAIL --group forwards --overlay to dispatch_group
+    FAIL the --group CLI passes --head and --roster-ref through
+    FAIL a re-dispatch from a second clone fast-forwards the existing ref
+RESULT mutant=group-refusal-off failed=7 verdict=killed
+    FAIL --group refuses --brief (exit 2, nothing dispatched)
+    FAIL --group refuses --design (exit 2, nothing dispatched)
+    FAIL --group refuses --env-id (exit 2, nothing dispatched)
+    FAIL --group refuses --out (exit 2, nothing dispatched)
+    FAIL --group refuses --publish (exit 2, nothing dispatched)
+    FAIL --group refuses --repo (exit 2, nothing dispatched)
+    FAIL --group refuses --topic (exit 2, nothing dispatched)
+RESULT mutant=env-id-forwarded-as-none failed=1 verdict=killed
+    FAIL --group forwards --env-id to dispatch_group
+RESULT mutant=flag-unlisted failed=2 verdict=killed
+    FAIL every flag the parser accepts has a --group disposition in GROUP_FLAGS, and no other
+    FAIL --group forwards --extra to dispatch_group
+RESULT mutant=pointer-ref-dropped failed=3 verdict=killed
+    FAIL a published fixer's event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA
+    FAIL a published reviewer's event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA
+    FAIL the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip
+RESULT mutant=pointer-off failed=-1 verdict=CRASHED
+    FAIL a published fixer's event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA
+    FAIL a published reviewer's event is a stub: the seat line, the footer ban and PROMPT.md at the pinned SHA
+    FAIL the published event is a stub pinning the commit holding PROMPT.md by SHA, never the ref's tip
+    FAIL the stub keeps the seat line and the footer ban inline; PROMPT.md is the whole prompt
+    FAIL the stub payload is far smaller than the prompt: under 1 KB whole, the brief absent, the SHA present
+RESULT mutant=publish-ignored failed=3 verdict=killed
+    FAIL the printed line round-trips to a payload byte-identical to the flag path's --publish
+    FAIL without --publish the flag path is unchanged: the whole prompt in its event, nothing published
+    FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
+RESULT mutant=publish-ref-rev-dropped failed=2 verdict=killed
+    FAIL the reviewer's publish ref is dispatch/reviewer-rev-7
+    FAIL a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there
+RESULT mutant=wait-line-dropped failed=1 verdict=killed
+    FAIL every role's prompt caps one tool call's wait under the 5-minute prompt-cache TTL (R10-FLY-CACHE-PROMPTS)
+RESULT mutant=claude-md-reread failed=1 verdict=killed
+    FAIL the fixer reads its role file, not CLAUDE.md, which the harness already loaded
+RESULT mutant=cli-pr-truncated failed=3 verdict=killed
+    FAIL --group forwards --pr to dispatch_group
+    FAIL the --group CLI passes --role, --group, --model, --pr and --nonce through
+    FAIL a nonce the relay minted is re-recorded by the seat fired with it, with its model, minting none
+RESULT mutant=part-count failed=5 verdict=killed
+    FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
+    FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+    FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+    FAIL --part 1 keeps the group's own topic and names carries 0-4
+    FAIL the split folds a remainder of one or two into the last part, and only that
+RESULT mutant=part-refusal-off failed=1 verdict=killed
+    FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
+RESULT mutant=part-prefilter failed=1 verdict=killed
+    FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
+RESULT mutant=part-fold-off failed=5 verdict=killed
+    FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
+    FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+    FAIL --part 1 keeps the group's own topic and names carries 0-4
+    FAIL a part past the split, a part of a group of five or fewer, and a part for another role refuse
+    FAIL the split folds a remainder of one or two into the last part, and only that
+RESULT mutant=part-fold-one failed=1 verdict=killed
+    FAIL the split folds a remainder of one or two into the last part, and only that
+RESULT mutant=part-pending-raw failed=3 verdict=killed
+    FAIL a fixer for a group with 21 pending carries (a marked 22nd not counted) refuses, printing the split
+    FAIL a part past the split, a part of a group of five or fewer, and a part for another role refuse
+    FAIL five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)
+RESULT mutant=part-topic-dropped failed=3 verdict=killed
+    FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+    FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+    FAIL the CLI forwards --part to the group path, and refuses it without --group
+RESULT mutant=part-coll-topic-off failed=1 verdict=killed
+    FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+RESULT mutant=part-coll-id-off failed=1 verdict=killed
+    FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+RESULT mutant=part-coll-self-off failed=1 verdict=killed
+    FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish
+RESULT mutant=part-split-one failed=1 verdict=killed
+    FAIL the split folds a remainder of one or two into the last part, and only that
+RESULT mutant=part-runs-skip failed=1 verdict=killed
+    FAIL the split folds a remainder of one or two into the last part, and only that
+RESULT mutant=part-cli-nogroup-open failed=1 verdict=killed
+    FAIL the CLI forwards --part to the group path, and refuses it without --group
+RESULT mutant=part-line-dropped failed=2 verdict=killed
+    FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
+    FAIL --part 1 keeps the group's own topic and names carries 0-4
+RESULT mutant=part-cli-dropped failed=2 verdict=killed
+    FAIL --group forwards --part to dispatch_group
+    FAIL the CLI forwards --part to the group path, and refuses it without --group
+RESULT mutant=part-role-open failed=1 verdict=killed
+    FAIL a part past the split, a part of a group of five or fewer, and a part for another role refuse
+RESULT mutant=part-range-off failed=1 verdict=killed
+    FAIL a part past the split, a part of a group of five or fewer, and a part for another role refuse
+RESULT mutant=part-small-open failed=1 verdict=killed
+    FAIL a part past the split, a part of a group of five or fewer, and a part for another role refuse
+RESULT mutant=wait-bound-dropped failed=1 verdict=killed
+    FAIL WAIT is bounded: past about 30 minutes an incomplete review pushes `ci-wait` with the classify line
+RESULT mutant=ci-wait-dropped failed=1 verdict=killed
+    FAIL WAIT is bounded: past about 30 minutes an incomplete review pushes `ci-wait` with the classify line
+RESULT mutant=required-red-dropped failed=1 verdict=killed
+    FAIL a required-red packet does not stop the reviewer while classify reads WAIT: classify decides
+RESULT mutant=seat-refused-dropped failed=1 verdict=killed
+    FAIL the reviewer's setup or hook refusal pushes `seat-refused`, and it reads its ref back, at the PR and at the handoff
+RESULT mutant=poll-end-dropped failed=1 verdict=killed
+    FAIL the reviewer's setup or hook refusal pushes `seat-refused`, and it reads its ref back, at the PR and at the handoff
+RESULT mutant=readback-dropped failed=1 verdict=killed
+    FAIL the reviewer's setup or hook refusal pushes `seat-refused`, and it reads its ref back, at the PR and at the handoff
+RESULT mutant=frugal-allowance-back failed=2 verdict=killed
+    FAIL every role's prompt carries the frugal-routing line once, verbatim (P398)
+    FAIL and no prompt grants an inline allowance the guard does not (tvofi 2026-11-09, Carry 9)
+RESULT mutant=model-roster-ignored failed=6 verdict=killed
+    FAIL a fixer dispatched with no model runs on the roster's fixer model and prints the model and the field it read
+    FAIL the legacy <role>Model field is read where the table is absent, and the field named
+    FAIL a roster ruling opus for the reviewer still resolves opus for a first-round review (null control)
+    FAIL a carry-only review and a record-PR review resolve sonnet whatever the roster rules
+    FAIL a role with no ruled model and no --model refuses rather than guessing
+    FAIL a re-dispatch of the same brief moves no ref
+RESULT mutant=record-pr-opus failed=1 verdict=killed
+    FAIL a carry-only review and a record-PR review resolve sonnet whatever the roster rules
+RESULT mutant=done-filter-dropped failed=1 verdict=killed
+    FAIL a fixer's brief lists the live consumers (after-edged and file-sharing) as the only valid Carry targets, not the done one
+RESULT mutant=enum-line-dropped failed=1 verdict=killed
+    FAIL and the group's class-enumeration command
+RESULT mutants=63 survived=0
+rc=0
