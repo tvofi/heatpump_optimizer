@@ -484,6 +484,13 @@ jobs:
         if: steps.scope.outputs.bottleneck-alert == 'true'
         run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
 
+      # The convergence scorecard's ten report-only lines: each rule held to its
+      # null control over planted inputs, offline, and one mutant per predicate.
+      - name: Show the scorecard holding each of its ten lines to its null control
+        id: scorecard
+        if: steps.scope.outputs.scorecard == 'true'
+        run: python3 -I tools/audit/seat/scorecard.py --self-test
+
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.

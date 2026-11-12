@@ -39,7 +39,7 @@ COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
 records every read, so this lane's recorded closure is the package: all 108
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+alike (107 until R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
 ``payload.py``, 87 until R9-UX-4's ``notifier.py``, 88 until R9-SW-1's
 ``quiet_windows.py``, 89 until R9-DBG-1's ``debugger.py``, 90 until
@@ -88,7 +88,8 @@ to 145; R10-I18N-DE's ``translations/de.json``, read by every closure that
 reads the catalogues, moved card.mjs with config_flow_steps.py from 0.800 to
 0.802 and left the count at 145; R10-GENERIC-HEAT-CURVE's heat_curve.py and
 off_restore.py, read by every closure that imports the coordinator, moved it
-from 145 to 146; R10-ADVISOR-STEADY-START's whatif.py, re-recorded into the
+from 145 to 146; R10-DUTY-SWITCH-RESTART-LEARNING's duty_switch.py, read by every
+closure that imports the arbiter, the sensor platform or the store, from 146 to 148; R10-ADVISOR-STEADY-START's whatif.py, re-recorded into the
 same closures, left it at 148).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
