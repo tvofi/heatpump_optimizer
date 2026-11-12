@@ -85852,6 +85852,7 @@ R.check(
 _p3_census = {
     "boost_space": True, "ventilation": True, "stale:power_entity": True, "unavailable:indoor_temp_entity": True,
     "early_cutoff": False, "unmetered_power": False, "not_configured:indoor_temp_entity": False,
+    "stale:dhw_temp_entity": False, "unavailable:buffer_tank_temp_entity": False,
     "pump_offline": False, "pump_fault": False, "pump_cooling": False,
     "external_heat_source": False, "defrosting": False, None: False,
 }
@@ -85890,6 +85891,19 @@ R.check(
     and boost_mod.learning_freeze(type("C", (), {"mode": boost_mod.MODE_BOOST})(), boost_mod.FREEZE_REASON)
     == (boost_mod.FREEZE_REASON, None),
     "",
+)
+import ast as _p3_ast  # noqa: E402
+import inspect as _p3_inspect  # noqa: E402
+_p3_view_calls = [
+    _p3_ast.unparse(n) for n in _p3_ast.walk(_p3_ast.parse(_p3_inspect.getsource(_he_cm)))
+    if isinstance(n, _p3_ast.Call) and getattr(n.func, "id", None) == "learner_progress_view"
+]
+R.check(
+    "P3 one source, wired: the payload's learner phases read the freeze the learners "
+    "recorded this cycle (the published learner_freeze_reason), with its end from BoostState",
+    len(_p3_view_calls) == 1
+    and _p3_view_calls[0].endswith("boost.learning_freeze(self, self._learner_freeze_reason))"),
+    f"{_p3_view_calls}",
 )
 class _P3Boom:
     def __repr__(self): raise AssertionError("formatted with DEBUG off")

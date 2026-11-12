@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
+from .const import CONF_BUFFER_TANK_TEMP_ENTITY, CONF_DHW_TEMP_ENTITY
 from .drift import stored_instant, utc_elapsed_seconds
 from .payload import LearnerProgress
 
@@ -139,11 +140,21 @@ def pauses(reason: str | None) -> bool:
     unmetered-power freeze and an unread room (a property of the install that
     never ends, so a pause would promise a resume), and the plant states the
     heat pump itself signals (external heat, defrost, fault), which come and
-    go within cycles.
+    go within cycles. The reason is ``learner_freeze_reason``, the last one a
+    learner recorded this cycle: the hot-water and buffer learners record
+    their own probe's problem there, which holds neither fabric learner, so
+    a reading on one of their probes keeps the count too.
     """
-    return reason is not None and (
-        reason in ("boost_space", "ventilation")
-        or (":" in reason and not reason.startswith("not_configured:")))
+    if reason is None:
+        return False
+    if reason in ("boost_space", "ventilation"):
+        return True
+    problem, _, key = reason.partition(":")
+    return bool(key) and problem != "not_configured" and key not in _OTHER_PROBES
+
+
+#: The probes only the hot-water and buffer learners freeze on.
+_OTHER_PROBES = frozenset((CONF_DHW_TEMP_ENTITY, CONF_BUFFER_TANK_TEMP_ENTITY))
 
 
 def log_skip(clean: bool, what: str, why: str, *args: object) -> bool:

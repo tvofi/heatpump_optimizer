@@ -1721,11 +1721,14 @@ def learner_progress_view(
     config: Any,
     snapshots: Sequence[Mapping[str, Any]],
     samples: tuple[float, float, float],
+    frozen: Freeze | None = None,
 ) -> dict[str, LearnerProgress]:
     """Each thermal learner's phase, progress and wait (R10-IDENT Q3).
 
     ``samples`` are the house, lower and solar learners' counts; a
-    non-finite one (a corrupted store) counts as none.
+    non-finite one (a corrupted store) counts as none. ``frozen``: the
+    freeze the learners recorded this cycle (``learner_freeze_reason``),
+    with its end.
     ``learner_progress`` owns the phases, this only gathers their inputs.
     """
     counts = {
@@ -1770,7 +1773,7 @@ def learner_progress_view(
             internal_gains_gate_open, None, house_wait, rates["house"],
         ),
     }
-    return {name: learner_progress(inputs) for name, inputs in learners.items()}
+    return {name: learner_progress(inputs, frozen) for name, inputs in learners.items()}
 
 
 THERMAL_LEARNING_STORE_VERSION = 1
@@ -7983,7 +7986,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "learner_progress": learner_progress_view(
                 ctx._current_state, ctx._thermal_params, ctx._config, snaps,
                 (self._house_heat_loss_samples, self._lower_floor_loss_samples, self._solar_aperture["n"]),
-            ),
+                boost.learning_freeze(self, self._learner_freeze_reason)),
             "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._measured_cop.cop,
