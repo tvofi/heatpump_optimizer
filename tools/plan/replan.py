@@ -114,17 +114,27 @@ ROUND_CLOSE = "round-close"
 
 # A fixer already working. `queued` is not working: the plan dispatches it.
 LIVE_STAGES = ("in-progress", "fixing", "review", "in-review")
+#: The live stages whose build is finished: a group here starts from its
+#: review rounds, not from a fresh fixer start.
+REVIEW_STAGES = ("review", "in-review")
 
 DEFAULT_CAPS = {
-    "slots": 16,             # open pull requests: the owner's cap since 2026-10-31
-    "seats": 16,             # fixers working: one per open pull request
+    "slots": 20,             # open pull requests: the owner's cap since 2026-11-07
+    "seats": 20,             # fixers working: one per open pull request
     "coordinator_cap": 2,    # open pull requests touching coordinator.py
     "stamp_every": 3,        # production groups per patch stamp (tvofi 2026-10-26)
 }
 #: Where DEFAULT_CAPS' slots and seats come from, recorded in every plan that
 #: uses them: a plan drawn at a cap nobody chose must say whose cap it is.
-CAPS_PROVENANCE = ("tvofi 2026-10-31 (#201 comment 6544047621): 16 open pull "
-                   "requests; replan.py DEFAULT_CAPS")
+CAPS_PROVENANCE = ("tvofi 2026-11-07 (#201 comment 6707334933, superseding 6544047621): "
+                   "20 open pull requests; replan.py DEFAULT_CAPS")
+
+
+#: What "the programme is closed" means beyond the plan's last finish (tvofi
+#: 2026-11-07, #201): the plan states it beside `summary.closure`, which is only
+#: the schedule's own end.
+CLOSURE_CONDITIONS = ("no open pull requests", "no handoffs", "no carries", "no findings",
+                      "no leads", "only the coordination issue open")
 
 
 class PlanError(Exception):
@@ -551,6 +561,13 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str,
         why += left_out
     else:
         hours, why = float(sizes[size]), f"{size}: sizes_hours"
+    if is_live and stage in REVIEW_STAGES and size in first:
+        # The build is done: what is left is the review rounds still to run, at
+        # least one, never more than a fresh fixer's remaining share.
+        left_rounds = max(rounds - 1, 1.0)
+        in_review = min(left_rounds * float(durations["round_hours"]),
+                        hours * float(durations.get("live_remaining_fraction", 0.7)))
+        return in_review, why + f", in {stage}: {left_rounds:.2f} review round(s) left"
     if is_live:
         hours *= float(durations.get("live_remaining_fraction", 0.7))
         why += ", working (live_remaining_fraction)"
@@ -877,8 +894,8 @@ def selftest_model() -> int:
 
     # 5. caps: a call naming none draws at the owner's, and says so.
     nocaps = cli_caps(parse_args([]))
-    expect("a replan given no caps does not draw a 6-slot plan: the owner's 16, with provenance",
-           nocaps["slots"] == 16 and nocaps["seats"] == 16
+    expect("a replan given no caps does not draw a 6-slot plan: the owner's 20, with provenance",
+           nocaps["slots"] == 20 and nocaps["seats"] == 20
            and nocaps["provenance"] == CAPS_PROVENANCE, nocaps)
     given = cli_caps(parse_args(["--slots", "4"]))
     expect("null control: a cap given on the command line is used and named as given",
@@ -1290,6 +1307,11 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         post_start[n] = ready_at
         post_end[n] = ready_at + post_dur[n]
 
+    # The programme closes at the LATER of the round-close stamp and the last
+    # post-closure step (the catalog PR): tvofi 2026-11-07, "not considered
+    # closed until both v.10.0.0 and the catalog PR has landed".
+    closure_at = max([stamps[-1]["at"]] + list(post_end.values()))
+
     # a wave is the set of groups the replan dispatches at one instant
     by_open: dict = {}
     for n in open_:
@@ -1412,7 +1434,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         # Expected arrivals over the plan's wall time, priced at the median
         # size: reported, not scheduled -- they are not groups yet.
         sz = sorted(float(v) for v in size_hours.values())
-        n_exp = inflow * closure / 60.0
+        n_exp = inflow * closure_at / 60.0
         arrivals = {"groups": round(n_exp, 2),
                     "work_hours": round(n_exp * sz[len(sz) // 2], 2)}
     peak_flight, peak_coord = peak_concurrency(groups_out, start)
@@ -1480,9 +1502,10 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "inherited_dependency_violations": inherited_deps,
         },
         "summary": {
-            "closure": iso(start, closure),
+            "closure": iso(start, closure_at),
             "closure_stamp": stamps[-1]["version"],
-            "wall_hours": round(closure / 60.0, 2),
+            "closure_conditions": list(CLOSURE_CONDITIONS),
+            "wall_hours": round(closure_at / 60.0, 2),
             "ci_minutes": ci,
             "gate_minutes": gate_report,
             "batches": len(batch_rows),
@@ -1760,9 +1783,16 @@ def check_plan(plan: dict) -> list:
         bad.append("summary: stamp count disagrees with the stamps list")
     if s["groups_open"] != len(groups):
         bad.append("summary: open-group count disagrees with the groups list")
-    closure = max((mins(g["finish"]) for g in in_round.values()), default=0)
+    close_stamps = [x for x in plan.get("stamps", []) if x.get("kind") == ROUND_CLOSE]
+    post_fin = [mins(plan["groups"][n]["finish"]) for n in s.get("post_closure") or []
+                if n in plan["groups"]]
+    closure = max([mins(x["at"]) for x in close_stamps] + post_fin
+                  or [max((mins(g["finish"]) for g in in_round.values()), default=0)])
+    if s.get("closure_conditions") != list(CLOSURE_CONDITIONS):
+        bad.append("summary: closure_conditions is not the owner's closure conditions")
     if mins(s["closure"]) != closure:
-        bad.append("summary: closure is not the last group finish")
+        bad.append("summary: closure is not the later of the round-close stamp and the "
+                   "last post-closure group finish")
     if "model" in plan["generated"]:
         bad += model_refusals(plan["generated"]["model"])
     else:
@@ -2377,10 +2407,56 @@ def selftest() -> int:
            pc["groups"]["R10-CATALOG-PR"].get("post_closure") is True
            and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
            and pc["summary"]["post_closure"] == ["R10-CATALOG-PR"], str(pc["groups"]["R10-CATALOG-PR"]))
-    expect("post-closure: in no stamp's carries and outside summary.closure",
+    expect("post-closure: in no stamp's carries, and summary.closure is the later of the "
+           "stamp and the catalog step's finish (tvofi 2026-11-07), which starts no earlier "
+           "than the stamp",
            all("R10-CATALOG-PR" not in s["carries"] for s in pc["stamps"])
-           and pc["summary"]["closure"] == p0["summary"]["closure"]
-           and pc["stamps"] == p0["stamps"], str(pc["stamps"]))
+           and pc["summary"]["closure"] == pc["groups"]["R10-CATALOG-PR"]["finish"]
+           and pc["summary"]["closure"] > close_at
+           and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
+           and pc["stamps"] == p0["stamps"], str((pc["summary"]["closure"], pc["stamps"])))
+    # The fixture prices a round at 0 h, which would make every review price 0:
+    # these arms use a round of 1 h and S at the named expected rounds.
+    def rv(st, rounds=3.0, drop=()):
+        d = dict(durations, round_hours=1.0, review_rounds={**durations["review_rounds"], "S": rounds})
+        return group_hours(fx("RV", "S", stage=st), {k: v for k, v in d.items() if k not in drop},
+                           True, "<t>")[0]
+    expect("live stage: a group in review is priced by its review rounds left, below a fresh "
+           "fixer's remaining share; one in progress is not",
+           abs(rv("in-review") - 2.0) < 1e-9 and rv("in-review") == rv("review")
+           and rv("in-review") < rv("in-progress"),
+           str([rv(x) for x in ("in-review", "review", "in-progress")]))
+    expect("live stage (floor): fewer than two expected rounds still price one review round, "
+           "not the rounds themselves (max(rounds - 1, 1))",
+           abs(rv("in-review", 1.4) - 1.0) < 1e-9 and 1.4 < rv("in-progress", 1.4),
+           str((rv("in-review", 1.4), rv("in-progress", 1.4))))
+    unset = ("live_remaining_fraction",)
+    expect("live stage (cap): with no live_remaining_fraction recorded, review and progress "
+           "share the one 0.7 default, so many rounds left price as in progress",
+           rv("in-review", 99.0, unset) == rv("in-progress", 99.0, unset) < 98.0,
+           str((rv("in-review", 99.0, unset), rv("in-progress", 99.0, unset))))
+    gen_start = dt.datetime.strptime(pc["generated"]["start"], "%Y-%m-%dT%H:%M:%SZ")
+    expect("post-closure: wall_hours runs to summary.closure (the catalog finish), not the stamp",
+           abs(pc["summary"]["wall_hours"] * 60 - (
+               dt.datetime.strptime(pc["summary"]["closure"], "%Y-%m-%dT%H:%M:%SZ")
+               - gen_start).total_seconds() / 60) < 1.0
+           and pc["summary"]["wall_hours"] > p0["summary"]["wall_hours"],
+           str((pc["summary"]["wall_hours"], p0["summary"]["wall_hours"])))
+    expect("closure conditions: the plan states the owner's six (tvofi 2026-11-07), and --check "
+           "refuses a plan that drops them",
+           pc["summary"]["closure_conditions"] == [
+               "no open pull requests", "no handoffs", "no carries", "no findings",
+               "no leads", "only the coordination issue open"]
+           and any("closure_conditions" in b for b in check_plan(
+               dict(pc, summary=dict(pc["summary"], closure_conditions=[])))), "")
+    expect("post-closure (null): with no post-stamp group, closure is the stamp's at",
+           p0["summary"]["closure"] == p0["stamps"][-1]["at"], str(p0["summary"]["closure"]))
+    expect("post-closure (a): a plan whose closure drops the catalog step is refused by --check",
+           any("closure" in b for b in check_plan(
+               dict(pc, summary=dict(pc["summary"], closure=p0["summary"]["closure"])))), "")
+    ex = cli_caps(parse_args(["--slots", "7"]))
+    expect("slots 20 (null): an explicit --slots keeps its value, the seats stay the default",
+           ex["slots"] == 7 and ex["seats"] == DEFAULT_CAPS["seats"] == 20, str(ex))
     expect("post-closure (null): a production group with no stamp dependency is in the "
            "closing stamp's carries",
            pc["stamps"][-1]["carries"] == ["R10-A", "R10-B"], str(pc["stamps"][-1]))
@@ -2705,6 +2781,24 @@ def selftest() -> int:
         expect("since-tag: a clean merge's change is read against its first parent",
                got == ["R10-STORE-RACES"], str(got))
 
+    # --measure-sizes hands --sizes-via to size_durations.run: the module is a
+    # stub in sys.modules, so the mutation copies (no size_durations.py beside
+    # them) run this arm too, and no read reaches the network.
+    import types
+    from unittest import mock
+    vias = []
+    stub = types.SimpleNamespace(
+        SINCE="2026-10-12", DEFAULT_PERCENTILE=0.5,
+        run=lambda *a, **k: vias.append((a[7:8] or [k.get("via", "graphql")])[0])
+        or {"sizes_hours": {}})
+    with mock.patch.dict(sys.modules, {"size_durations": stub}), \
+            tempfile.TemporaryDirectory() as td:
+        for via in ("rest", "graphql"):
+            main(["--measure-sizes", "--sizes-via", via,
+                  "--out-durations", os.path.join(td, "d.json")])
+    expect("--measure-sizes --sizes-via rest reaches size_durations.run as via=rest "
+           "(null: graphql)", vias == ["rest", "graphql"], str(vias))
+
     gate = gate_minutes(durations)
     want_gate = 50.0 + 22.0 + 27.0 * (1.0 + 0.04)
     expect("the gate price includes the cancelled-leg rerun",
@@ -2879,7 +2973,7 @@ def selftest() -> int:
              "if inflow > 0:", "if inflow >= 0:"),
             ("inflow-rate",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             "n_exp = inflow * closure / 60.0", "n_exp = 1.0"),
+             "n_exp = inflow * closure_at / 60.0", "n_exp = 1.0"),
             ("height-tiebreak",
              _m("def dispatch_key(n: str, ", "tier: dict, savings: dict,"),
              _m("sav, -height[n], ", "-dur_min[n], n)"), "sav, n)"),
@@ -2901,6 +2995,9 @@ def selftest() -> int:
             ("held-carry-model",
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m('if stage == HELD_STAGE and ', 'durations.get("carries_per_part"):'), "if False:"),
+            ("live-review-stage",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("if is_live and stage in REVIEW_STAGES ", "and size in first:"), "if False:"),
             ("rounds-explicit",
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m("hours = work + (rounds - 1) * ", 'float(durations["round_hours"])'),
@@ -2951,6 +3048,25 @@ def selftest() -> int:
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("while len(carry) >= ", "every:"), "while False:"),
+            ("review-min",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("left_rounds = max(rounds - 1, ", "1.0)"), "left_rounds = rounds"),
+            ("wall-hours",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('"wall_hours": round(closure_at ', "/ 60.0, 2),"),
+             '"wall_hours": round(closure / 60.0, 2),'),
+            ("closure-conditions",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('"closure_conditions": list(', 'CLOSURE_CONDITIONS),'),
+             '"closure_conditions": [],'),
+            ("closure-later-of",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("closure_at = max([stamps[-1][\"at\"]] + ", "list(post_end.values()))"),
+             "closure_at = max([stamps[-1][\"at\"]] + [])"),
+            ("closure-check-later-of",
+             _m("def check_plan(plan: dict", ") -> list:"),
+             _m("closure = max([mins(x[\"at\"]) for x in close_stamps] + ", "post_fin"),
+             "closure = max([mins(x[\"at\"]) for x in close_stamps] + []"),
             ("round-close-version",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("stamps.append({\"version\": closing, ", "\"at\": closure + closure_lead,"),
@@ -3154,6 +3270,8 @@ def parse_args(argv=None):
                         "(tools/plan/size_durations.py) into --out-durations")
     p.add_argument("--sizes-csv", default=None, help="--measure-sizes: write the raw rows here")
     p.add_argument("--prs-cache", default=None, help="--measure-sizes: read or write the fetch")
+    p.add_argument("--sizes-via", choices=("graphql", "rest"), default="graphql",
+                   help="--measure-sizes: the PR read (size_durations.READS)")
     p.add_argument("--out-durations", default=None)
     p.add_argument("--live-refs", default=None,
                    help="a saved `git ls-remote --heads` listing: liveness by evidence")
@@ -3189,7 +3307,7 @@ def main(argv=None) -> int:
         old = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
         got = size_durations.run(args.repo, args.roster_ref, args.repo_owner, size_durations.SINCE,
                                  args.prs_cache, args.sizes_csv,
-                                 size_durations.DEFAULT_PERCENTILE)
+                                 size_durations.DEFAULT_PERCENTILE, args.sizes_via)
         target.write_text(json.dumps({**old, **got}, indent=1, sort_keys=True) + "\n",
                           encoding="utf-8")
         print(f"measured sizes {got['sizes_hours']} -> {target}")

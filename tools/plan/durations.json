@@ -3,16 +3,16 @@
  "batch_window_minutes": 0,
  "batch_window_note": "0: merge a batch as soon as it is merge-ready, sharing a gate run only among groups that finish at the same instant. Measured on the round-10 roster at blob 277cdd359193 (branch tip e3010676), fixed start 2026-10-20T17:00Z: window 0 closes 226.28 h with 44 batches and 5737.5 CI minutes; 20 min closes 228.28 h with 44 and the same CI; 60 min 232.28 h; 120 min 238.28 h. Closure is the first objective, and holding a finished group delays its dependents' release even when no group is waiting for the slot, so every window above 0 costs wall time with no CI saving at this roster.",
  "cancelled_rate_note": "The cancelled-rate denominator is the Analyze (python) rows that completed, not the commits whose three legs all completed: a run cancelled at its 30-minute cap is a cancelled run even when another leg of the same tree had not finished at measurement time. Measured 2026-10-20T17:53Z: 2 cancelled of 30 Analyze rows (0.067).",
- "carries_per_part": 11.0,
+ "carries_per_part": 22.0,
  "carry_baseline": {
   "L": 3.0,
-  "M": 1.0,
+  "M": 2.0,
   "S": 0.0,
   "XL": 11.5
  },
- "carry_hours": 0.33,
- "carry_part_hours": 19.8,
- "carry_provenance": "p75 hours over 43 second-or-later part PRs (first commit or creation to merge); carries_per_part is the p90 of roster carries a part body cites as answered over the 20 that cite any (size_durations.cited_carries): a part's capacity, since a part's hours do not grow with its carries. held_open_carries: each carries-open group's carries no merged body of its own cites, at measurement; replan.py counts any carry appended since as open",
+ "carry_hours": 0.28,
+ "carry_part_hours": 26.8,
+ "carry_provenance": "p75 hours over 99 second-or-later part PRs (first commit or creation to merge); carries_per_part is the p90 of roster carries a part body cites as answered over the 58 that cite any (size_durations.cited_carries): a part's capacity, since a part's hours do not grow with its carries. held_open_carries: each carries-open group's carries no merged body of its own cites, at measurement; replan.py counts any carry appended since as open",
  "ci": {
   "Analyze (python)": {
    "cancelled": 2,
@@ -51,131 +51,56 @@
  "closure_lead_minutes": 120,
  "first_round_by_class_hours": {
   "L": {
-   "production": 16.0
+   "instrument": 17.9,
+   "production": 18.6
   },
   "M": {
-   "instrument": 13.6,
-   "production": 17.2
+   "instrument": 18.0,
+   "production": 18.7
   },
   "S": {
-   "instrument": 11.7,
-   "production": 16.1
+   "instrument": 12.4,
+   "production": 17.5
   }
  },
  "first_round_hours": {
-  "L": 16.4,
-  "M": 14.9,
-  "S": 12.1,
-  "XL": 22.6
+  "L": 18.6,
+  "M": 18.4,
+  "S": 13.3,
+  "XL": 23.3
  },
  "held_open_carries": {
-  "R10-996-RUNNER-CLAIMS": {
-   "carries": 3,
-   "open": 3
-  },
-  "R10-COP-GATE": {
-   "carries": 27,
-   "open": 19
-  },
-  "R10-COP-PARTLOAD": {
-   "carries": 8,
-   "open": 7
-  },
-  "R10-FLOW-BOARD": {
-   "carries": 8,
-   "open": 6
-  },
-  "R10-FLOW-BODY-ONLY": {
-   "carries": 18,
-   "open": 4
-  },
-  "R10-FLOW-DESIGN-STAGES": {
-   "carries": 23,
-   "open": 18
-  },
-  "R10-FLY-CANCEL-SWEEP": {
-   "carries": 2,
-   "open": 2
-  },
-  "R10-FLY-LEDGER-SAMPLE": {
-   "carries": 6,
-   "open": 1
-  },
-  "R10-FLY-MANDATE-REVOKE-GUARD": {
-   "carries": 3,
-   "open": 2
-  },
-  "R10-FLY-MUTANT-RESTORE": {
-   "carries": 1,
-   "open": 1
-  },
-  "R10-FLY-NO-FOOTERS": {
-   "carries": 6,
-   "open": 6
-  },
-  "R10-FLY-OPENPR-ATOMIC": {
-   "carries": 10,
-   "open": 1
-  },
-  "R10-FLY-RELAY-REVIEW-FF": {
-   "carries": 18,
-   "open": 18
-  },
-  "R10-FLY-SEAT-ALIVE-ID": {
-   "carries": 6,
-   "open": 2
-  },
-  "R10-FLY-SUITE-ENV-FLAKES": {
-   "carries": 15,
-   "open": 15
-  },
-  "R10-FLY-TICK-APPROVAL-OWED": {
-   "carries": 3,
-   "open": 3
-  },
-  "R10-FLY-TRAIN-DEFAULTS": {
-   "carries": 5,
-   "open": 5
-  },
-  "R10-FRICTION-REGRESSION": {
-   "carries": 3,
-   "open": 3
-  },
-  "R10-MERGE-SUBJECT-CASEARM": {
-   "carries": 8,
-   "open": 1
-  },
-  "R10-ORCH-LEDGER": {
-   "carries": 45,
-   "open": 43
-  },
-  "R10-ORCH-PLANPAGE": {
-   "carries": 11,
-   "open": 3
-  },
-  "R10-ORCH-REVIEW-PACKET": {
-   "carries": 15,
-   "open": 4
-  },
-  "R10-ORCH-ROSTER-SCHEMA": {
-   "carries": 35,
-   "open": 34
-  },
-  "R10-TRAIN-OVERLAP-GRADE": {
-   "carries": 23,
-   "open": 1
-  },
-  "R10-USER-DOCS-FINAL": {
-   "carries": 1,
+  "R10-CLOSEOUT-CLEANUP": {
+   "carries": 7,
    "open": 0
   },
-  "R10-UX-HEALTH": {
-   "carries": 22,
-   "open": 2
+  "R10-DEPENDABOT-3414-COMPAT": {
+   "carries": 1,
+   "open": 1
   },
-  "R10-WOOD-NOTIFY": {
-   "carries": 4,
-   "open": 4
+  "R10-DISPATCH-AT-HANDOFF": {
+   "carries": 17,
+   "open": 0
+  },
+  "R10-FIXER-MD-SPELLING-CORPUS": {
+   "carries": 7,
+   "open": 7
+  },
+  "R10-GENERIC-HEAT-CURVE-PERSISTENT": {
+   "carries": 8,
+   "open": 1
+  },
+  "R10-HOTFIX-MAIN-SELFTESTS": {
+   "carries": 2,
+   "open": 0
+  },
+  "R10-REVIEW-ENUMERATE": {
+   "carries": 0,
+   "open": 0
+  },
+  "R10-WATER-SETPOINT-FEEDBACK": {
+   "carries": 8,
+   "open": 1
   }
  },
  "inflow_groups_per_hour": 0.4,
@@ -187,26 +112,27 @@
   "merges": 29
  },
  "review_rounds": {
-  "L": 4.18,
-  "M": 2.59,
-  "S": 2.33,
-  "XL": 2.83
+  "L": 4.0,
+  "M": 3.47,
+  "S": 2.47,
+  "XL": 3.17
  },
  "review_rounds_by_class": {
   "L": {
-   "production": 3.44
+   "instrument": 4.12,
+   "production": 3.92
   },
   "M": {
-   "instrument": 2.22,
-   "production": 2.81
+   "instrument": 3.26,
+   "production": 3.7
   },
   "S": {
-   "instrument": 2.19,
-   "production": 2.51
+   "instrument": 2.4,
+   "production": 2.49
   }
  },
  "roster_provenance": "The schedule figures in the pull request body are taken at roster branch tip e3010676747126df614e595ae43477db7d32e7b9, roster blob 277cdd3591938af542a3f72510389f9bc3378429. A later roster edit moves the batches, the CI minutes and the closure; re-run the replanner and re-take the figures rather than quoting these.",
- "round_hours": 4.62,
+ "round_hours": 5.65,
  "samples": [
   {
    "Analyze (python)": {
@@ -426,13 +352,13 @@
   }
  ],
  "sizes_hours": {
-  "L": 31.1,
-  "M": 22.2,
-  "S": 18.2,
-  "XL": 31.1
+  "L": 35.6,
+  "M": 32.4,
+  "S": 21.6,
+  "XL": 35.6
  },
- "sizes_measured_at": "2026-11-01T07:38:26Z",
+ "sizes_measured_at": "2026-11-11T04:56:48Z",
  "sizes_percentile": 75,
- "sizes_provenance": "p75 over 189 done groups with a merged PR (S n=123, M n=49, L n=11, XL n=6): active hours (the union of each part's first commit or creation, or the roster's dispatch stamp, to its merge) with extra review rounds priced out at the pooled Theil-Sen slope (4.62 h/round), then the cell's mean rounds added back; per class where a cell has n>=5. Wall clock: review, queueing and the PR-less handoff wait are inside it. carry_hours (0.33 h) is the Theil-Sen slope of the round-adjusted hours on the group's carry count, priced per carry above the size's median (carry_baseline). Monotone in size: XL 31 h lifted to L's 31.1 h. Measured by tools/plan/size_durations.py; re-derive, never edit.",
+ "sizes_provenance": "p75 over 348 done groups with a merged PR (S n=227, M n=94, L n=21, XL n=6): active hours (the union of each part's first commit or creation, or the roster's dispatch stamp, to its merge) with extra review rounds priced out at the pooled Theil-Sen slope (5.65 h/round), then the cell's mean rounds added back; per class where a cell has n>=5. Wall clock: review, queueing and the PR-less handoff wait are inside it. carry_hours (0.28 h) is the Theil-Sen slope of the round-adjusted hours on the group's carry count, priced per carry above the size's median (carry_baseline). Monotone in size: XL 29.9 h lifted to L's 35.6 h. Measured by tools/plan/size_durations.py; re-derive, never edit. Input: 1021 merged PRs created since 2026-10-12, read by size_durations.fetch_rest (--via rest).",
  "stamp_lead_minutes": 60
 }
