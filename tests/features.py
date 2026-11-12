@@ -82122,7 +82122,8 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
             _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
             await coord._apply_action()
         calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
-        return calls, told, [data["option"] for d, _s, data in hass.services.calls if d == "select"]
+        return calls, told, [data["option"] for d, _s, data in hass.services.calls if d == "select"], \
+            _sa_pa.state_for(coord).loaded
     finally:
         _sa_dt.freeze(None)
         _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
@@ -82191,6 +82192,19 @@ R.check(
     "null control: write_supply with the switch off and the optimizer on writes the mode first",
     _mb_direct[("off", "auto")] == [("select", "select_option"), ("switch", "turn_on")],
     f"{_mb_direct}",
+)
+# The lead loads the persisted record before its write, as a pass does, so
+# the pass's own load cannot overwrite the record of the mode just written.
+_mb_loaded = {duty: _asyncio.run(_mb_run(via="direct", duty=duty))[3] for duty in ("control", "observe")}
+R.check(
+    "a lead write loads the persisted record before it writes",
+    _mb_loaded["control"] is True,
+    f"{_mb_loaded}",
+)
+R.check(
+    "null control: write_supply on duty mode observe loads nothing",
+    _mb_loaded["observe"] is False,
+    f"{_mb_loaded}",
 )
 _mb_dis = {dis: _asyncio.run(_mb_run(via="direct", space=True, disinfect=dis))[2] for dis in (True, False)}
 R.check(
