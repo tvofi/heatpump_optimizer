@@ -43,7 +43,7 @@ from pathlib import Path
 SEAT = Path(__file__).resolve().parent
 ROOT = SEAT.parents[2]
 HOOKS = [  # (id, script, events)
-    ("liveness", "liveness.py", ("SessionStart", "PostCompact")),
+    ("liveness", "liveness.py", ("SessionStart", "PostCompact", "UserPromptSubmit")),
     ("seat-interpreter", "seat_interpreter.py", ("SessionStart",)),
     ("git-identity", "git_identity.py", ("SessionStart",)),
 ]
@@ -140,7 +140,7 @@ def cmd_install(path: Path, root: Path = ROOT) -> int:
 
 # ---------------------------------------------------------------- self-test
 
-def _fixture_state(base: Path, *, dead: bool = False, stale: bool = False):
+def _fixture_state(base: Path, *, dead: bool = False, stale: bool = False, down: bool = False):
     """A healthy beat state under `base` (lock held by the caller), or one planted fault."""
     import fcntl
     s = base / "state"
@@ -171,8 +171,9 @@ def _fixture_state(base: Path, *, dead: bool = False, stale: bool = False):
         for p in (s / "digest" / "digest.txt", s / "beatd" / "journal.log", s / "alive" / "merge"):
             os.utime(p, (old, old))
     fd = os.open(s / "beatd" / "beatd.lock", os.O_RDWR | os.O_CREAT, 0o600)
-    fcntl.flock(fd, fcntl.LOCK_EX)
-    os.write(fd, b"1\n")
+    if not down:  # a free lock is a dead beatd
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        os.write(fd, b"1\n")
     return s, fd
 
 
@@ -317,8 +318,97 @@ def cases() -> dict[str, bool]:
         res["git-identity: a --state with no value is ignored"] = _run_hook("git_identity.py", s, args=["--state"]) == ""
         # the installer's edges and its command line
         rc, out = check({}, tmp / "bare")
-        res["check reports the project guard missing in a tree without it"] = (
-            rc == 1 and any(ln.startswith("missing pre-bash guard") for ln in out))
+        guard_missing = rc == 1 and any(ln.startswith("missing pre-bash guard") for ln in out)
+        # carries 21-22: the arms the session-local hook had
+        def git(repo, *a):
+            subprocess.run(["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@t", *a],
+                           check=True, capture_output=True)
+        s, fd = _fixture_state(tmp / "readproof")
+        repo = Path((s / "orch-checkout").read_text().strip())
+        for n in ("CLAUDE.md", "dev/governance/roles/orchestrator.md", "tools/audit/seat/INSTRUMENTS.md", ".claude/rules/r.md"):
+            (repo / n).parent.mkdir(parents=True, exist_ok=True)
+            (repo / n).write_text(f"policy {n}\n")
+        git(repo, "add", "-A")
+        git(repo, "commit", "-qm", "corpus")
+        git(repo, "update-ref", "refs/remotes/origin/main", "HEAD")
+        out = _run_hook("liveness.py", s, {"hook_event_name": "PostCompact"})
+        corpus = (s / "policy-corpus.txt").read_text() if (s / "policy-corpus.txt").is_file() else ""
+        proof = corpus.splitlines()[-1] if corpus else ""
+        sha = proof.rpartition("--prove ")[2]
+        res["read-proof: PostCompact writes the corpus with a sha256 proof last line and a compact-owed marker"] = (
+            "READ-PROOF owed" in out and proof.startswith("PROOF: ") and len(sha) == 64 and (s / "compact-owed").is_file()
+            and "policy CLAUDE.md" in corpus and "policy .claude/rules/r.md" in corpus)
+        res["read-proof: a UserPromptSubmit re-raises the obligation every prompt until the proof clears it"] = (
+            all("READ-PROOF owed" in _run_hook("liveness.py", s, {"hook_event_name": "UserPromptSubmit"}) for _ in range(2)))
+        res["read-proof: a wrong sha256 is refused and the marker stands"] = (
+            "refused" in _run_hook("liveness.py", s, args=["--state", str(s), "--prove", "0" * 64])
+            and (s / "compact-owed").is_file())
+        _run_hook("liveness.py", s, args=["--state", str(s), "--prove", sha])
+        res["read-proof: the right sha256 clears the marker and the next prompt is silent (null control)"] = (
+            not (s / "compact-owed").exists()
+            and _run_hook("liveness.py", s, {"hook_event_name": "UserPromptSubmit"}).strip() == ""
+            and "session" not in proof)
+        res["read-proof: a healthy SessionStart with a fresh stamp writes no marker (null control)"] = (
+            (_run_hook("liveness.py", s), not (s / "compact-owed").exists())[1])
+        os.close(fd)
+        # checkout presence, from the state overlay
+        s, fd = _fixture_state(tmp / "checkouts")
+        (s / "sweep-overlay.json").write_text(json.dumps({"loop_checkout": str(tmp / "no-such-checkout"), "other": "x"}))
+        out = _run_hook("liveness.py", s)
+        res["checkout: a checkout the overlay names that is not a directory is MISSING"] = (
+            f"MISSING checkout loop_checkout {tmp / 'no-such-checkout'}" in out and "MISSING checkout other" not in out)
+        (s / "sweep-overlay.json").write_text(json.dumps({"loop_checkout": str(tmp)}))
+        res["checkout: null control, a present checkout is not MISSING"] = "MISSING" not in _run_hook("liveness.py", s)
+        # the relay is judged by its log's age, never a standalone process
+        relay = s / "cloud-relay.log"
+        relay.write_text("pass\n")
+        res["relay: a fresh relay log with no standalone relay process is live (null control)"] = (
+            "DEAD relay" not in _run_hook("liveness.py", s))
+        os.utime(relay, (time.time() - 7200, time.time() - 7200))
+        res["relay: a stale relay log is DEAD"] = "DEAD relay cloud-relay.log" in _run_hook("liveness.py", s)
+        os.close(fd)
+        # the one restart: beatd only, from its recorded launch, seat venv first on PATH
+        s, fd = _fixture_state(tmp / "down", down=True)
+        (s / "venv-ci" / "bin").mkdir(parents=True)
+        mark = tmp / "down" / "restarted"
+        (s / "beatd" / "launch.json").write_text(json.dumps({
+            "cwd": str(tmp), "argv": [sys.executable, "-c", "import os,sys;open(sys.argv[1],'w').write(os.getcwd()+'|'+os.environ['PATH']+'|'+os.environ.get('HPO_X',''))", str(mark)],
+            "env": {"HPO_X": "kept"}}))
+        out = _run_hook("liveness.py", s)
+        for _ in range(50):
+            if mark.is_file() and mark.read_text():
+                break
+            time.sleep(0.1)
+        got_mark = mark.read_text() if mark.is_file() else ""
+        res["restart: a DEAD beatd is relaunched with its recorded cwd, HPO_* env and the seat venv first on PATH"] = (
+            "DEAD beatd" in out and "RESTARTED beatd" in out and got_mark.startswith(f"{tmp.resolve()}|{s / 'venv-ci' / 'bin'}") and got_mark.endswith("|kept"))
+        s2, fd2 = _fixture_state(tmp / "down2", down=True)
+        out = _run_hook("liveness.py", s2)
+        res["restart: a DEAD beatd with no recorded launch prints auto-restart FAILED"] = "auto-restart FAILED" in out and "RESTARTED" not in out
+        s3, fd3 = _fixture_state(tmp / "down3", dead=True)
+        out = _run_hook("liveness.py", s3)
+        res["restart: a late job (not beatd) is DEAD and never relaunched (null control)"] = (
+            "DEAD loop pulse" in out and "RESTARTED" not in out and "auto-restart" not in out)
+        # beatd run, executed: the floor refusal and the recorded launch the restart above replays
+        bst, jobs = tmp / "beatd-run", tmp / "empty-jobs.json"
+        jobs.write_text(json.dumps({"version": 1, "jobs": []}))
+        drive = lambda floor, *extra, env=None: subprocess.run(  # noqa: E731
+            [sys.executable, "-I", "-c", "import sys; sys.path.insert(0, sys.argv[1]); import beatd; beatd.FLOOR = %r; "
+             "sys.exit(beatd.main(['run', '--state', sys.argv[2], '--jobs', sys.argv[3], '--once', *sys.argv[4:]]))" % (floor,),
+             str(SEAT), str(bst), str(jobs), *extra], capture_output=True, text=True, cwd=tmp, timeout=60,
+            env={**os.environ, **(env or {})})
+        r = drive((99, 0))
+        res["beatd: run under an interpreter older than the floor is refused naming it, and starts nothing"] = (
+            r.returncode == 2 and "REFUSE" in r.stderr and sys.executable in r.stderr and "older than the tree's floor 99.0" in r.stderr
+            and not (bst / "beatd" / "launch.json").exists())
+        r = drive((3, 12), env={"HPO_X": "kept", "NOT_HPO": "dropped"})
+        rec = json.loads((bst / "beatd" / "launch.json").read_text()) if (bst / "beatd" / "launch.json").is_file() else {}
+        res["beatd: run at the floor starts, and records its cwd, argv and HPO_* environment (null control for the refusal)"] = (
+            r.returncode == 0 and "REFUSE" not in r.stderr and rec.get("cwd") == str(tmp) and rec.get("argv", [None])[0] == sys.executable
+            and rec.get("env", {}).get("HPO_X") == "kept" and "NOT_HPO" not in rec.get("env", {}))
+        for f in (fd, fd2, fd3):
+            os.close(f)
+        res["check reports the project guard missing in a tree without it"] = guard_missing
         deep = tmp / "new" / "dir" / "settings.json"
         res["install creates a settings file under a missing directory, then has nothing to change"] = (
             cmd_install(deep) == 0 and check(load(deep))[0] == 0 and cmd_install(deep) == 0)
@@ -347,6 +437,15 @@ MUTANTS = [  # (label, old text, new text): each must turn at least one case red
     ("install is not idempotent", "            if st == \"ok\":\n                continue\n", ""),
     ("liveness reads no dead loop", "            if f[2] == \"late\":", "            if False:"),
     ("liveness reads no stale digest", "if not ages or min(ages) > _env_min(", "if False and min(ages) > _env_min("),
+    ("restart drops the seat venv from PATH", "            cmd += [\"--path-prepend\", str(venv)]\n", "            pass\n"),
+    ("restart relaunches a loop whose launch is unrecorded", "        rec = json.loads((state / \"beatd\" / \"launch.json\").read_text())\n",
+     "        rec = {\"argv\": [\"true\"], \"cwd\": \"/\", \"env\": {}}\n"),
+    ("the relay is never judged by its log", "    if age is not None and age > _env_min(\"HPO_RELAY_STALE_MIN\", 15):", "    if False:"),
+    ("a missing checkout is never reported", "sorted(names.items()) if not Path(v).is_dir()]", "sorted(names.items()) if False]"),
+    ("the read-proof accepts any sha256", "    if sha.strip() != want:", "    if False:"),
+    ("the prompt arm never re-raises the proof", "        if (state / \"compact-owed\").exists():", "        if False:"),
+    ("beatd run never refuses an interpreter under the floor", "    if sys.version_info < FLOOR:\n", "    if False:\n"),
+    ("beatd run records no launch", "(d / \"launch.json\").write_text(", "(d / \"launch.jsonX\").write_text("),
     ("seat-interpreter never reports", "    if r.returncode == 0:\n        return []\n", "    if True:\n        return []\n"),
 ]
 
@@ -367,7 +466,7 @@ def self_test(run_mutants: bool = True) -> int:
                     (tgt / rel).parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(ROOT / rel, tgt / rel)
                 # the hooks before this file: an anchor without a newline also matches its own MUTANTS literal here
-                for f in ("hooks/liveness.py", "hooks/seat_interpreter.py", "hooks_setup.py"):
+                for f in ("hooks/liveness.py", "hooks/seat_interpreter.py", "beatd.py", "hooks_setup.py"):
                     p = tgt / "tools/audit/seat" / f
                     text = p.read_text()
                     if old is None or old in text:
