@@ -32,14 +32,14 @@
  {
   "name": "S06_copy_path_never",
   "file": "tools/audit/seat/pr_args.sh",
-  "old": "[ ! -f \"$w/tools/audit/prepr.sh\" ] || st=tools/audit/prepr.sh",
+  "old": "[ ! -f \"$w/tools/audit/prepr.sh\" ] || st=tools/audit/prepr.sh  # the copy tools/pr/prepr.sh itself runs when a tree holds one",
   "new": "true"
  },
  {
   "name": "S07_copy_path_always",
   "file": "tools/audit/seat/pr_args.sh",
-  "old": "[ ! -f \"$w/tools/audit/prepr.sh\" ] || st=tools/audit/prepr.sh",
-  "new": "st=tools/audit/prepr.sh"
+  "old": "[ ! -f \"$w/tools/audit/prepr.sh\" ] || st=tools/audit/prepr.sh  # the copy tools/pr/prepr.sh itself runs when a tree holds one",
+  "new": "st=tools/audit/prepr.sh  # never tools/pr/prepr.sh"
  },
  {
   "name": "S08_absent_selftest_run",

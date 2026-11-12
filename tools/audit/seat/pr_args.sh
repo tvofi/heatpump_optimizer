@@ -210,7 +210,7 @@ pr_step_sig() { # <checkout> <sha> <scratch dir> -> the self-test's exit status 
   w=$(mktemp -d "$3/tree.XXXXXX" 2>/dev/null) || return 1  # ret:sigpriv
   git -C "$1" worktree add -q --detach "$w" "$2" >/dev/null 2>&1 || { rm -rf "$w"; false; } || return 1  # ret:sigtree
   st=tools/pr/prepr.sh
-  [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh  # mut:sigold
+  [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh  # the copy tools/pr/prepr.sh itself runs when a tree holds one  # mut:sigold
   if [ -f "$w/$st" ]; then out=$(cd "$w" && PYTHONPATH=tests/hastub bash "$st" --self-test 2>&1) || rc=$?; else rc=unrun; fi
   at=$(git -C "$w" rev-parse -q --verify HEAD 2>/dev/null) || at=gone
   git -C "$1" worktree remove --force "$w" >/dev/null 2>&1 || :; rm -rf "$w" || :
@@ -1653,11 +1653,11 @@ STUB
   mkdir -p "$t/hr/nomk" && printf '#!/bin/bash\nexit 1\n' > "$t/hr/nomk/mktemp" && chmod +x "$t/hr/nomk/mktemp"
   rm -rf "$hrc"; ! PATH="$t/hr/nomk:$PATH" hr - "$hclean"; r=$?; rm -rf "$hrc"; PATH="$t/hr/nomk:$PATH" hr ret:sigpriv "$hclean"
   ck "host_refusal: a run that gets no tree of its own (mktemp fails) measures nothing, so the head's; mutant ret:sigpriv calls it the host's" $(( r || $? ))
-  # prepr runs its copy at tools/audit/prepr.sh when a tree holds one (its step 3h), and so does the measurement.
+  # tools/pr/prepr.sh runs its copy at tools/audit/prepr.sh when a tree holds one (its step 3h), and so does the measurement.
   hold=$(git -C "$hro" checkout -q --detach "$hrmain" && mkdir -p "$hro/tools/audit" && git -C "$hro" mv tools/pr/prepr.sh tools/audit/prepr.sh \
     && git -C "$hro" commit -q -m "head: the self-test at its copy path" && git -C "$hro" rev-parse HEAD)
   rm -rf "$hrc"; [ -n "$hold" ] && hr - "$hold"; r=$?; rm -rf "$hrc"; ! hr sigold "$hold"
-  ck "host_refusal: a head holding the self-test only at tools/audit/prepr.sh is measured there, and is the host's; mutant mut:sigold (its line deleted) finds no self-test, so the head's" $(( r || $? ))
+  ck "host_refusal: a head holding the self-test only at tools/audit/prepr.sh, not tools/pr/prepr.sh, is measured there, and is the host's; mutant mut:sigold (its line deleted) finds no self-test, so the head's" $(( r || $? ))
   # A run that did not end whole is no measurement, and main's answer is never kept from one.
   rm -rf "$hrc"; printf '%s\n' "$hclean" "$hrmain" > "$t/hr/stub/gone"
   ! hr - "$hclean"; r=$?; rm -rf "$hrc"; hr ret:sigwhole "$hclean"
