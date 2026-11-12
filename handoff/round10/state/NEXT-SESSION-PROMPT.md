@@ -54,7 +54,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-PROTECTION-CENSUS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-TICK-SELFTEST-CHECKOUT (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-MUTANT-RUN-DARWIN (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-MUTANT-RUN-DARWIN (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PLAN-OWNER-PRICE (stage in-progress, branch `fix/r10-hotfix-plan-owner-price`): `git fetch origin fix/r10-hotfix-plan-owner-price && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-LEGACY-CONTROL-DATA (stage in-progress, branch `fix/r10-hotfix-legacy-control-data`): `git fetch origin fix/r10-hotfix-legacy-control-data && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-OPENPR-HOST-REFUSAL (stage in-progress, branch `fix/r10-hotfix-openpr-host-refusal`): `git fetch origin fix/r10-hotfix-openpr-host-refusal && git worktree add --detach $SEAT/wt FETCH_HEAD`
