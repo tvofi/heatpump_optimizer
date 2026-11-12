@@ -12,7 +12,6 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading** (`CLAUDE.md` rule 4). The rule is keyed on the manifest's
    `version` field, not the file; the command is `prepr.sh` step 5's.
-   Compare three-dot (`CLAUDE.md` rule 3).
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
@@ -23,12 +22,15 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    A guard that classifies text by shape is driven over a generated spelling
    corpus (case, quoting, glued options, delimiters, wrapping) with the corpus
    size named in the body; a spelling the reviewer finds is added to it.
-   A mutant run from a `git archive` copy fails the #363 `recorded_at` check
-   on every mutant, baseline included: the runner's, not the mutant's
-   (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.** `prepr.sh` step 6d lists the unpinned sites the diff adds; the body's
-   `## Unpinned sites` gives each its disposition: pinned by
-   `mutation-autofix` (its lane mutates `custom_components/` only; a `tools/`
-   site needs an in-tree mutant harness), a value check, or a triage under
+   A `git archive` copy fails the #363 `recorded_at` check, and a self-test
+   needing a checkout, on every mutant, baseline included (#1713, #1723).
+   **The diff's survivors are yours before the handoff; `--pin-killed` is
+   `ci-autofix.md`'s.** Set `prepr.sh`'s `MUTANT_CMD` to the group's self-test
+   or a `features_block.py` call (`MUTANT_IN_PLACE=1` for a checkout); it draws only
+   the first 40 mutants of added `.py` lines outside `tests/` and `dev/`. Each
+   `SURVIVED` line and step 6d unpinned site gets a killing check or an `## Unpinned
+   sites` disposition: pinned by `mutation-autofix` (its lane mutates `custom_components/`
+   only; a `tools/` site needs an in-tree mutant harness), a value check, or a triage under
    `tests/mutation_ledger/survivor_triage/` (the ratchet reads no body). Run the
    ledger's own mutant before claiming a kill (#2445).
 3. **Re-execute the finding's harness on your branch**: before and after, with
@@ -43,15 +45,15 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    the harness drives leaves only its count arm readable at the head;
    the fixer ports the rest, as its own (`fix-review.md` step 9; #2365).
    **Every quantified claim carries a null control, not only cost, gain and
-   time**: a count, a percentage, an "every" or a "none" is a measurement,
-   owed the command that produced it and
-   the result that would have appeared had it been false. **Never print a
-   conclusion beside a command** — `diff a b && echo IDENTICAL`, never
-   `diff a b; echo "(empty means identical)"`, which prints either way. A figure
-   from a sliding window, or one an instrument prints, is stale after you write
-   it: state the rule or name the instrument, never the number. A learner or guard
-   change is measured at both ends of its input range — an install with zero
-   evidence, and one on the clamp — a fix has been worse than its bug before. The class's seams and the rule that enumerates them are step 8's.
+   time**: a count, a percentage, an "every" or a "none" is a measurement, owed
+   the command that produced it and the result that would have appeared had it
+   been false. **Never print a conclusion beside a command** — `diff a b &&
+   echo IDENTICAL`, never `diff a b; echo "(empty means identical)"`, which
+   prints either way. A figure from a sliding window, or one an instrument
+   prints, is stale after you write it: state the rule or name the instrument,
+   never the number. A learner or guard change is measured at both ends of its
+   input range — an install with zero evidence, and one on the clamp — a fix
+   has been worse than its bug before.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the live `VERSION`.
@@ -75,6 +77,12 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    `tools/pr/prepr.sh`, run on a committed tree (step 6f reads `HEAD`; 7e is
    the carry check); the orchestrator opens
    the PR (`docs/decisions/0011-app-authored-identity.md`).
+
+   **`ci_predict.py` printing `BOOTSTRAP`** (the base's copy of the changed
+   grader refuses, the head's passes in `prepr.sh`) is not `BLOCKED`: register
+   in unpinned data the grader reads (`corpus_excluded.json`, #2916), or split:
+   p1 the grader hunks alone, p2 the rest, a WIP handoff until p1 is on main
+   (decision 0013, Consequences).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
@@ -167,20 +175,16 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     satisfied it.**
 
     If your work depends on a symbol's upstream behaviour, add or read its
-    contract rather than assuming; if you extend the stub, argue the fidelity
-    against upstream, not what your test needs — that shape agrees with a wrong
-    implementation.
+    contract; if you extend the stub, argue the fidelity against upstream, not
+    what your test needs — that shape agrees with a wrong implementation.
 
 14. **An allow-list is keyed on something, and your entry silences everything
     that key matches.** Before adding a case to a pin, a baseline or a
     suppression list, name the key's fields, name the property that makes your
     own occurrence legitimate, then key the occurrence the pin exists to catch
-    and compare the two. Equal keys mean the entry blinds the pin at the site
-    it watches, and the answer is to change the route until no entry is needed,
-    or to widen the key until the two separate — never to add it and note the
-    risk. #714 declined a `KNOWN_BLOCKING` entry keyed on (call, file,
-    snippet): no field carries the caller, so it would equally have matched
-    that line reached from a coroutine (#525).
+    and compare the two. Equal keys blind the pin at the site it watches, and
+    the answer is to change the route until no entry is needed, or to widen the
+    key until the two separate — never to add it and note the risk.
 
     **A fix that changes the route leaves the reported text where it was, so
     name the route.** #714 rerouted the caller and left `worker.wait(timeout=2)`
@@ -190,24 +194,22 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 
 15. **A bitwise-parity claim over numpy reductions is per-architecture.**
     `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`, and neither is a
-    reduction over a row VIEW of a batched array one over the fresh array
-    the scalar expression builds: numpy's pairwise loop takes alignment and
-    stride as inputs, per backend (#948: arm64 parity, x86_64 drift, at the
-    96-step production width only). Where the contract is bitwise, run the
-    SCALAR EXPRESSION per row, on the
-    fresh per-row arrays that expression's own elementwise ops allocate —
-    batch only what is elementwise end to end — and drive the parity grid
-    at the production width.
+    reduction over a row VIEW of a batched array one over the fresh array the
+    scalar expression builds: numpy's pairwise loop takes alignment and stride
+    as inputs, per backend (#948: arm64 parity, x86_64 drift, at the 96-step
+    production width only). Where the contract is bitwise, run the SCALAR
+    EXPRESSION per row, on the fresh per-row arrays that expression's own
+    elementwise ops allocate — batch only what is elementwise end to end — and
+    drive the parity grid at the production width.
 
     The same rule holds one level up and across interpreter versions: a
-    reduction whose scalar form is a PYTHON BUILTIN is compensated
-    arithmetic on CPython 3.12+ — builtin `sum` is Neumaier — and no
-    vectorized accumulation reproduces it (#948: 1-2 ulp, red on CI's 3.14
-    runner, green on 3.11, whose `sum` is plain).
-    Make the twin call the scalar closure's own function per row, and put
-    detector rows on the parity grid that separate the two summations
-    (measured: ~12% of random three-term sums), so the interpreter class
-    that diverges — CI's — runs the detector.
+    reduction whose scalar form is a PYTHON BUILTIN is compensated arithmetic
+    on CPython 3.12+ — builtin `sum` is Neumaier — and no vectorized
+    accumulation reproduces it (#948: 1-2 ulp, red on CI's 3.14 runner, green
+    on 3.11, whose `sum` is plain). Make the twin call the scalar closure's own
+    function per row, and put detector rows on the parity grid that separate
+    the two summations (measured: ~12% of random three-term sums), so the
+    interpreter class that diverges — CI's — runs the detector.
 
     A per-row twin removes re-entry, not work; when it is the fix for a
     recomputation finding, re-measure the finding's cost on the fixed tree and
@@ -243,13 +245,13 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     - a group's architect note (`orchestrator.md` section 5) followed; a departure is raised, not made.
 
     Cost is no reason to take the worse fix; the preamble's scope still binds,
-    and a fix not sound within it stops and asks the orchestrator.
-    An improvement claim names its mechanism, which the reviewer removes as the
+    and a fix not sound within it stops and asks the orchestrator. An
+    improvement claim names its mechanism, which the reviewer removes as the
     null control (`fix-review.md` step 14). Never move a metric by a change
     that does not improve the code: a mechanical split, code moved to an
-    unmeasured path, a triage on a killable mutant, or cases enumerated where
-    a structural fix exists (#1874, #2345: a spelling list, three review
-    rounds, class still open).
+    unmeasured path, a triage on a killable mutant, or cases enumerated where a
+    structural fix exists (#1874, #2345: a spelling list, three review rounds,
+    class still open).
 18. **What a later round or seat reruns, or a body figure needs reproduced,
     lands in the same pull request** (tvofi, 2026-10-03): a harness in
     `dev/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`,
@@ -299,11 +301,8 @@ split part the approved plan names.
 
 ## Before you hand off: answer any check your branch turned red
 
-`defect-root-cause.md`'s second trigger fires on your own PR: name each red in
-`merge_train.py owed-reds`' set, and no other, in the body and answer it there:
-the cheaper detector and its standing cost, or a recorded finding that none exists.
-`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
-(`ci-autofix.md`). You name the trigger; analysing it is `root-cause.md`'s seat.
+`defect-root-cause.md`'s second trigger fires on your own PR, as its Enforcement section states.
+`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them (`ci-autofix.md`).
 
 ## Past three rounds, re-cut rather than repair
 
