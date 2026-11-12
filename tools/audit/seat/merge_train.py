@@ -1361,6 +1361,32 @@ def undraft(t: "Train", pr: int, h: str, item: dict) -> None:
         raise Stop("undraft", f"#{pr} is a draft again after gh pr ready")
 
 
+STILL_DRAFT = re.compile(r"still a draft", re.I)
+ROLLUP_PENDING = ("QUEUED", "IN_PROGRESS", "PENDING", "WAITING", "REQUESTED")
+
+
+def rollup_states(entries) -> "dict[str, str]":
+    """One state per context of a `statusCheckRollup`, never by list order
+    (P608: #3445 listed four FAILURE gates then an older SUCCESS last, and
+    last-listed-wins read green while GitHub blocked on the red). A context
+    with any unfinished entry is PENDING; otherwise the entry newest by
+    `completedAt`, else `startedAt`, stands (an equal stamp keeps the later
+    listed entry)."""
+    best: dict = {}
+    pending: set = set()
+    for i, c in enumerate(entries):
+        name = c.get("name") or c.get("context") or "?"
+        state = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        if (c.get("status") or state).upper() in ROLLUP_PENDING or state in ROLLUP_PENDING:
+            pending.add(name)
+        # GitHub's zero time (0001-...) on an unfinished run is no stamp
+        stamps = [x for x in (c.get("completedAt"), c.get("startedAt")) if x and not x.startswith("0001")]
+        stamp = stamps[0] if stamps else ""
+        if name not in best or (stamp, i) >= best[name][0]:
+            best[name] = ((stamp, i), state)
+    return {n: ("PENDING" if n in pending else v[1]) for n, v in best.items()}
+
+
 APPROVER_BOT = "hpo-approver[bot]"
 WAIT_GATES = (GATE, RAISE_GATE)
 
@@ -2765,7 +2791,7 @@ class Train:
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
         self.unstale(h)
-        said, swept, carried = "(no output)", False, False
+        said, swept, carried, undrafted = "(no output)", False, False, False
         for k in range(1, self.merge_tries + 1):
             if k == 1:
                 self.review_settle(pr, h)
@@ -2787,6 +2813,15 @@ class Train:
             self.log(f"#{pr} merge attempt {k}/{self.merge_tries} refused (rc={code}): {said}")
             if BASE_MOVED.search(said):
                 raise MainMoved("merge", f"GitHub refused the merge because the base moved: {said}")
+            if STILL_DRAFT.search(said):
+                # P609: a draft is a state, not a race. Admitted as a draft: the
+                # train readies it once and attempts again; any other draft was
+                # drafted after admission (its author's) and is left as a hold.
+                if not item.get("draft") or undrafted:
+                    raise Stop("merge", f"#{pr} drafted after admission: left as a hold")
+                undrafted = True
+                undraft(self, pr, h, item)
+                continue
             if not swept and self.bot_prs:
                 # P191: a record PR that turned green mid-batch merges now, once
                 # per landing, and the existing recovery recarries this entry.
@@ -2853,10 +2888,7 @@ class Train:
             d = None
         if not isinstance(d, dict):
             return f"the merge state could not be read ({o.strip()[-120:] or 'no output'})", True, False
-        last: dict = {}
-        for c in d.get("statusCheckRollup") or ():
-            last[c.get("name") or c.get("context") or "?"] = (
-                c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        last = rollup_states(d.get("statusCheckRollup") or ())
         red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED]
         pending = [n for n in req if n not in self.ignore and n not in red
                    and last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL")]
@@ -3055,6 +3087,17 @@ class Train:
     def preflight_entry(self, item: dict) -> "tuple[str, str, str]":
         """(status, step, why) of one entry under the same construction `preflight` uses."""
         return self.pre_flight_reader().entry(item)
+
+    def record_drafts(self, queue: list[dict]) -> None:
+        """P609: `item["draft"]` is `undraft`'s only licence and `add` alone set
+        it, so a `--queue` file or `build_queue` entry never carried it. One
+        `is_draft` read per entry lacking the key, at batch start (= admission);
+        a head drafted after this read is its author's and is left alone."""
+        if not self.real:
+            return
+        for item in queue:
+            if "draft" not in item:
+                item["draft"] = is_draft(self, int(item["pr"]))
 
     def preflight(self, queue: list[dict]) -> list[dict]:
         """`--pre-flight`: queue_pre_flight.py's admission reads over the whole
@@ -4059,6 +4102,7 @@ class Train:
             base = self.git("rev-parse", f"origin/{self.base}")
             req = self.required()
             self.main_green(base, req, "before admission")
+            self.record_drafts(queue)
             admitted = self.preflight(queue)
             graders = mf.grader_specs(mf.workflow_texts(base, git=lambda *a: self.git(*a)))
             # --skip-bad stops at the ENTRY: an admission refusal (a red head, a
@@ -5677,6 +5721,7 @@ def _self_test() -> int:
     _read_retry_self_test(check)
     _git_retry_self_test(check)
     _review_settle_self_test(check)
+    _rollup_draft_self_test(check)
     _gate_race_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
@@ -6358,6 +6403,130 @@ def _gate_race_self_test(check) -> None:
         r = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
                   polls=3).wait_ci(H, only=["fast"])
     check("a failed unit beside an unfinished sibling is final: only the gate defers", r == ["fast"] and not sb)
+
+
+def _rollup_draft_self_test(check) -> None:
+    """P608 (a rollup reads by newest entry, never list order) and P609 (a draft
+    is a state: undraft once when admitted as a draft, else a hold)."""
+    H = "b" * 40
+    ent = lambda st, at, run="COMPLETED": {"name": "gate", "status": run, "conclusion": st, "completedAt": at}  # noqa: E731
+    # #3445 7fb8680c: four FAILURE gates, the newest 09:29:14Z, then SUCCESS 09:23:45Z listed last
+    fails = [ent("FAILURE", f"2026-11-11T09:{m}:00Z") for m in ("10", "15", "20")] + [ent("FAILURE", "2026-11-11T09:29:14Z")]
+    frozen = fails + [ent("SUCCESS", "2026-11-11T09:23:45Z")]
+
+    def refusal(entries, ms="BLOCKED", rd="REVIEW_REQUIRED"):
+        def run(argv, cwd=ROOT, stdin=None):
+            if "statusCheckRollup" in " ".join(argv):
+                return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd, "statusCheckRollup": entries})
+            return 0, ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None)
+        t.required = lambda pr_head=False: ["gate"]
+        t.review_run_settling = lambda pr, h: False
+        return t.policy_refusal(3445, H)
+    for label, ents in (("in list order", frozen), ("reversed", frozen[::-1])):
+        why, wait, appr = refusal(ents)
+        check(f"P608 #3445's five gate entries {label}: red gate, not a missing review",
+              "required context(s) red at bbbbbbbb: gate" in why and wait is False and appr is False)
+    why, wait, _ = refusal([ent("SUCCESS", "2026-11-11T09:00:00Z"), ent("", "2026-11-11T10:29:00Z", "IN_PROGRESS")])
+    check("P608 a SUCCESS then an IN_PROGRESS entry is pending: wait", wait is True and "not yet green" in why)
+    ok = [ent("SUCCESS", f"2026-11-11T09:0{i}:00Z") for i in range(3)]
+    # M7: the unfinished entry is the OLDER one, a newer SUCCESS beside it
+    why, wait, _ = refusal([ent("", "2026-11-11T08:00:00Z", "IN_PROGRESS"), ent("SUCCESS", "2026-11-11T09:00:00Z")])
+    check("P608 an unfinished entry older than a SUCCESS still makes the context pending",
+          wait is True and "not yet green" in why)
+    # M8: GitHub's zero time on completedAt is no stamp: startedAt orders the entry
+    zero = {"name": "gate", "status": "COMPLETED", "conclusion": "SUCCESS",
+            "completedAt": "0001-01-01T00:00:00Z", "startedAt": "2026-11-11T10:00:00Z"}
+    check("P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [ent("FAILURE", "2026-11-11T09:00:00Z"), zero], [zero, ent("FAILURE", "2026-11-11T09:00:00Z")]))
+          and rollup_states([zero, ent("FAILURE", "2026-11-11T11:00:00Z")]) == {"gate": "FAILURE"})
+    # M9: an entry with only startedAt is ordered by it
+    st = lambda c, at: {"name": "gate", "status": "COMPLETED", "conclusion": c, "startedAt": at}  # noqa: E731
+    check("P608 an entry with only startedAt is ordered by it, in either list order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [st("FAILURE", "2026-11-11T09:00:00Z"), st("SUCCESS", "2026-11-11T09:30:00Z")],
+              [st("SUCCESS", "2026-11-11T09:30:00Z"), st("FAILURE", "2026-11-11T09:00:00Z")])))
+    check("P608 null: all-SUCCESS in any order reaches the review branch",
+          all("missing requirement is a review" in refusal(o)[0] for o in (ok, ok[::-1])))
+
+    # P609: land() on a head that is a draft
+    def world(draft_item, redraft=0):
+        calls, state = [], {"draft": True, "redraft": redraft}
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if a.startswith("gh pr ready"):
+                state["draft"] = False
+                return 0, ""
+            if "gh pr merge" in a:
+                if state["redraft"] > 0:  # the author drafts it again under the train
+                    state["redraft"] -= 1
+                    state["draft"] = True
+                state["merged"] = not state["draft"]
+                return (1, "Pull Request is still a draft") if state["draft"] else (0, "")
+            if "preflight" in a:
+                return 0, "clean\n"
+            return 0, ""
+        def out(*argv):
+            a = " ".join(argv)
+            if "isDraft" in a:
+                return "true" if state["draft"] else "false"
+            if "state,mergeCommit" in a:
+                return "MERGED abc" if state.get("merged") else "OPEN None"
+            return ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None, base="batch/x")
+        t.out, t.head, t.review_settle, t.unstale = out, (lambda pr: H), (lambda pr, h: None), (lambda h: None)
+        return t, calls
+    def land(item, **kw):
+        t, calls = world(item, **kw)
+        try:
+            t.land(7, H, item, [], lambda: None)
+        except Stop as s:
+            return s, calls
+        return None, calls
+    s, calls = land({"pr": 7, "draft": True})
+    check("P609 an admitted draft is readied once, then the merge attempts again",
+          s is None and sum(c.startswith("gh pr ready") for c in calls) == 1
+          and sum("gh pr merge" in c for c in calls) == 1)
+    s, calls = land({"pr": 7})
+    check("P609 a draft the train never admitted as one: one attempt, then the hold, no recarry",
+          s is not None and not isinstance(s, MainMoved) and "drafted after admission: left as a hold" in s.why
+          and sum("gh pr merge" in c for c in calls) == 1 and not any(c.startswith("gh pr ready") for c in calls))
+    s, calls = land({"pr": 7, "draft": True}, redraft=2)
+    check("P609 a draft again after the one ready: that hold after two attempts, never eight",
+          s is not None and "left as a hold" in s.why and sum("gh pr merge" in c for c in calls) == 2
+          and sum(c.startswith("gh pr ready") for c in calls) == 2)
+    t, calls = world({})
+    t.real = True
+    q = [{"pr": 7}, {"pr": 8, "draft": False}]
+    t.record_drafts(q)
+    check("P609 record_drafts reads once per entry lacking the key and keeps a recorded value",
+          q[0]["draft"] is True and q[1]["draft"] is False)
+    # M4: the batch itself records the key (the --queue / build_queue route)
+    t, calls = world({})
+    t.real = True
+    class _Halt(Exception):
+        pass
+    seen: list = []
+    def halt(q):
+        seen.extend(dict(i) for i in q)
+        raise _Halt
+    t.sweep_bots, t.required, t.main_green, t.preflight = (lambda: None), (lambda pr_head=False: []), (lambda *a: None), halt
+    t.git = lambda *a: H
+    t.state = Path(tempfile.mkdtemp())
+    try:
+        t._batch([{"pr": 7}], "t")
+    except _Halt:
+        pass
+    check("P609 a batch records the draft key on a key-less entry before admission",
+          len(seen) == 1 and seen[0].get("draft") is True)
+    t, calls = world({})
+    t.real, t.out = True, (lambda *a: "false")
+    q = [{"pr": 7}]
+    t.record_drafts(q)
+    check("P609 null: a non-draft entry is recorded False and makes no gh pr ready call",
+          q[0]["draft"] is False and not any(c.startswith("gh pr ready") for c in calls))
 
 
 def _review_settle_self_test(check) -> None:

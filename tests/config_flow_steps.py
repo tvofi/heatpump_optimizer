@@ -2850,6 +2850,9 @@ async def entity_clear_survives_the_flow_manager():
         # The wood block renders only with its gate on, and the gate is a
         # field of the same page: seeding it drives the gated slots too.
         seed[config_flow.CONF_WOOD_FURNACE_ENABLED] = True
+        # The set-point limit sensors render only for a water unit, a field
+        # of the same page.
+        seed[config_flow.CONF_SPACE_SETPOINT_UNIT] = "return"
         for key in keys:
             flow, entry, _ = fresh_options(pre_options=seed)
             shown = await getattr(flow, f"async_step_{step}")(None)

@@ -48,6 +48,8 @@ its section 6 the round-11 template.
 5. **Four standing seats** (tvofi, 2026-10-22): tick, merge,
    dispatch/relay/verdict and roster, each a tracked contract, kept alive by
    the sweep's standing-seat liveness step and `tools/audit/seat/pulse.py`.
+   Amended 2026-11-11: the tick and roster seats retired into beat rows (tvofi,
+   2026-10-24 card 1); two standing seats remain, under `standing.md`.
 6. **Critical-path groups start regardless of every cap** (tvofi, 2026-10-22,
    restated: "remember critical path groups starts regardless off the caps
    when ready"): WIP, drain-first, coordinator K/2 and seat cap alike, and go
