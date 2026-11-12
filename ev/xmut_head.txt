@@ -1,0 +1,20 @@
+X1 clear_spent ignores a live overlay: exit 0, 0 red
+X2 clear_spent ignores a live mode: exit 0, 0 red
+X3 re-press resets the start: exit 0, 0 red
+X4 mode exit not persisted: exit 0, 0 red
+X5 apply persists only on release: exit 0, 0 red
+X6 ended-while-down owes nothing: exit 1, 1 red
+    FAIL a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its tail; a spe
+X7 settle may shorten a running tail: exit 0, 0 red
+X8 payload drops since: exit 1, 2 red
+    FAIL a boost store from an install that never boosted is main's payload, field for field  [{'block_dhw': {'until': '2026-02-01T13:00:00+00:00'}} {'spa
+    FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader 
+X9 restore drops since: exit 1, 2 red
+    FAIL a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its tail; a spe
+    FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader 
+X10 coordinator mode hook removed: exit 0, 0 red
+X11 negative boosted_h accepted: exit 0, 0 red
+X12 spent tail restored: exit 1, 1 red
+    FAIL a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its tail; a spe
+X13 mode entry does not clear spent: exit 0, 0 red
+exit 0

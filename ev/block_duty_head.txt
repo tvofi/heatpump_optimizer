@@ -1,0 +1,75 @@
+
+=== block duty ===
+  ok   BLOCK_HOURS is 2
+  ok   the boost lead stays two hours while both constants are 2
+  ok   a block is live until its own end and not after
+  ok   expiry at the end drops the block and does not settle a block
+  ok   a block dated more than two hours ahead is clamped to two hours
+  ok   a space block replacing a live boost sets the settling tail and clears the boost
+  ok   a DHW block replacing a boost does not set the space settling tail
+  ok   a later boost clears the block
+  ok   no block leaves the action unchanged
+  ok   a space block zeroes space power and not the supply switch
+  ok   a space block does not invent power_normalized
+  ok   a DHW block zeroes hot water
+  ok   no floor is a reason
+  ok   a due or overdue cycle inside the horizon releases DHW
+  ok   a cycle exactly at the horizon does not release
+  ok   a live disinfection hold releases DHW
+  ok   the tank at its minimum inside a window releases DHW
+  ok   the tank at its minimum outside a demand window does not release
+  ok   the room floor releases at the margin and not above it
+  ok   the cold rail releases a space block
+  ok   the cold rail is strict below its threshold
+  ok   a missing room below the rail counts
+  ok   sysid and a stale plan release a block
+  ok   no snapshot is not a reason
+  ok   a due cycle releases the block before the overlay and asks to persist
+  ok   a coordinator with no arbiter inputs has no release reason
+  ok   a non-mapping payload is not a legionella reason
+  ok   a planned demand window releases the tank floor
+  ok   restore keeps a future block and a future boost, not one dated now
+  ok   a block dated at this instant is not still live
+  ok   an already-expired block is not released
+  ok   a live block with no floor is kept
+  ok   turning a block on refreshes
+  ok   a due cycle refuses the on-press
+  ok   a block switch reads the block channel
+  ok   a boost switch does not read the block channel
+  ok   a boost switch reads the boost channel
+  ok   the block switch says why and the boost switch does not
+  ok   a block with no floor publishes no attribute
+  ok   the block press holds the block channel
+  ok   no block leaves the duty, including None
+  ok   a space block turns both into dhw, space into idle, and idle stays idle
+  ok   a DHW block turns both into space
+  ok   the cold lease is strict: a room at the plan is not below it
+  ok   the arbiter releases a block a floor forbids before it serves a duty
+  ok   both channels blocked is idle
+  ok   a commanded or held disinfection cycle writes its temperature, not the configured set-point
+  ok   a configured set-point above the disinfection temperature is never lowered to it
+  ok   every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too
+  ok   the cycle's temperature is the thermal parameters' own answer, not a copy
+  ok   a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's
+  ok   an off-step disinfection temperature above the everyday set-point is written on the step at or below it, never above the tank's hard maximum
+  ok   a cycle whose temperature is an off-step everyday set-point (the disinfection temperature at or below it) writes the step at or below it, as 49a45dd8 and the same install's everyday step do
+  ok   an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard maximum is the everyday set-point there (the everyday step's own nearest write is main's)
+  ok   no no-cycle write exceeds the charge limit (dhw_max_temp), the cycle enabled and not running or disabled, over every step size and everyday set-point on and off the step
+  ok   an off-step everyday set-point is written on the step at or below it, never rounded up (everyday 58, step 5: 55, not 60; everyday 60.7, step 1: 60), the cycle idle or disabled
+  ok   a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses
+  ok   the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every step size and pair, and an off-step floor's repair stands down at the step below it
+  ok   a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum
+  ok   no cycle write exceeds the tank's hard maximum, over every step size and the disinfection temperature below, at and above the everyday set-point, on and off the step
+  ok   a disinfection temperature above the entity's range stays bounded at its maximum
+  ok   the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW
+  ok   null control: a disabled cycle writes the everyday set-point on every row and booking
+  ok   a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398's predicate, read through the cycle's owner)
+  ok   null control: an everyday set-point at or above the disinfection temperature is written as is
+  ok   null control: no hot-water set-point entity is no hot-water write on any row
+  ok   the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself
+  ok   a person's value beside the arbiter's write still raises the repair, its Fix on the floor
+  ok   null control: with no arbiter write the pump's own set-point must still permit the cycle
+  ok   null control: a disabled cycle and an everyday set-point at the disinfection temperature raise nothing
+
+ALL 70 BLOCK DUTY CHECKS PASSED
+exit 0

@@ -1,0 +1,22 @@
+M0-null (comment edit): exit 0, 0 check(s) red
+M1-short-tail (a boost summed under 2 h owes 1.5 h): exit 1, 7 check(s) red
+    FAIL a 38 s boost cancelled owes the full tail from its end and sums its 38 s; a window run to its end settles 12 h from that end (null control); a click inside
+    FAIL short boosts back to back owe no less than one boost of their summed length, over both surfaces; one short boost alone sums only itself (null control)  [Bo
+    FAIL the boosted sum clears once its tail ran out with nothing live, and not before  [BoostState(until={}, blocked={}, space_settle_until=datetime.datetime(2026
+    FAIL a boost mode restored with no start leaves an unknown sum when left; one seen to start sums its own length; both owe the full tail  [BoostState(until={}, b
+    FAIL a restart keeps the boosted sum with the tail; an unreadable sum is unknown; a store main wrote restores with no start and no tail  [BoostState(until={}, b
+    FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader keeps the 
+    FAIL every boost length, cancelled inside the window or expired past it, owes the full tail the refit waits  [[datetime.timedelta(seconds=5400), datetime.timede
+M2-sum-dropped (each boost counted alone): exit 1, 3 check(s) red
+    FAIL short boosts back to back owe no less than one boost of their summed length, over both surfaces; one short boost alone sums only itself (null control)  [Bo
+    FAIL the boosted sum clears once its tail ran out with nothing live, and not before  [BoostState(until={}, blocked={}, space_settle_until=datetime.datetime(2026
+    FAIL a restart keeps the boosted sum with the tail; an unreadable sum is unknown; a store main wrote restores with no start and no tail  [BoostState(until={}, b
+M3-persisted-tail-dropped: exit 1, 2 check(s) red
+    FAIL a boost store from an install that never boosted is main's payload, field for field  [{'block_dhw': {'until': '2026-02-01T13:00:00+00:00'}} {'space': {'unt
+    FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader keeps the 
+M4-restore-dropped: exit 1, 1 check(s) red
+    FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader keeps the 
+M5-sum-never-clears: exit 1, 1 check(s) red
+    FAIL the boosted sum clears once its tail ran out with nothing live, and not before  [BoostState(until={}, blocked={}, space_settle_until=datetime.datetime(2026
+MUTANTS: as expected
+exit 0
