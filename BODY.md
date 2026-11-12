@@ -1,4 +1,4 @@
-Residue of R10-PREPR-CAP and R10-FLY-CIPREDICT-RESTORING on the pre-open prediction seam. This head lands Carry 4 (the `.gitignore` anchor, pinned by a `gitignore_config` arm of `tests/layout.py` (its self-test carries the null control: an unanchored `config/` rule yields 2 findings, the anchored `/config/` rule 0)) and repairs Carry 6 (PREPR-SLOT-LIVELOCK): the first review blocked the dismissal because its null control could not fail; the harness is rebuilt with a discriminating bare arm and a real `take_slot` path. Carries are numbered 0-based, as the brief and the handoff check number them (`Carry N`).
+Residue of R10-PREPR-CAP and R10-FLY-CIPREDICT-RESTORING on the pre-open prediction seam. This head lands Carry 4 (the `.gitignore` anchor, pinned by a `gitignore_config` arm of `tests/layout.py` (its self-test carries the null control: an unanchored `config/` rule yields 2 findings, the anchored `/config/` rule 0)) and repairs Carry 6 (PREPR-SLOT-LIVELOCK): the first review blocked the dismissal because its null control could not fail; the harness is rebuilt with a discriminating bare arm and a real `take_slot` path. Carries are numbered 0-based, as the brief and the handoff check number them (`Carry N`); the fix review's "carry 7" is this body's Carry 6 (PREPR-SLOT-LIVELOCK) and its "carry 5" is Carry 4 (`.gitignore`), the same two items counted from 1.
 
 Status: Carry 4 landed in this head (the `.gitignore` anchor); Carry 6 is dismissed below with the discriminating controls named; untouched in this part: Carry 0, Carry 1, Carry 2, Carry 3, Carry 5, Carry 7, Carry 8, Carry 9, Carry 10, Carry 11, Carry 12, Carry 13, Carry 14, Carry 15, Carry 16, Carry 17, Carry 18, Carry 19, Carry 20, Carry 21, Carry 22, Carry 23, Carry 24.
 
@@ -9,6 +9,10 @@ bdc2e986fa5f8f72c7194c685b20b0c0041f66a2, measured with `tools/pr/prepr.sh` on t
 ## Mutation proof
 
 Carry 4: reverting the `.gitignore` anchor to the unanchored `config/` rule turns the `tests/layout.py` gitignore arm red (its self-test with rule `config/` expects 2 findings). Carry 6: `python3 dev/audit/harnesses/prepr_slot_nested.py --mutant` deletes the `export HPO_SLOT_LABEL` line from the cut `take_slot`; the nested arm then queues (nested_finished=0, nested_queue_empty=0, outer_exported_label=0) and the harness exits 1.
+
+## Mutant run
+
+`python3 tools/audit/seat/mutant_run.py --diff $(git merge-base origin/main HEAD)...HEAD` generates zero mutants: the three-dot diff holds no production line, only `.gitignore`, `tests/layout.py` and harness/ledger files. The mutation proofs above are therefore the manual ones.
 
 ## Null control
 
