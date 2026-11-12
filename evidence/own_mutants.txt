@@ -1,8 +1,0 @@
-RESULT own-mutant=stale_reset_drop rc=0 beatd self-test: 34 checks, 0 failed fails: 
-RESULT own-mutant=stale_first rc=0 beatd self-test: 34 checks, 0 failed fails: 
-RESULT own-mutant=untracked_counted rc=0 beatd self-test: 34 checks, 0 failed fails: 
-RESULT own-mutant=detach_always rc=1  fails: 
-RESULT own-mutant=no_stop rc=0 beatd self-test: 34 checks, 0 failed fails: 
-RESULT own-mutant=no_guard_env rc=0 beatd self-test: 34 checks, 0 failed fails: 
-RESULT own-mutant=retip_noswap rc=1 open_driver self-test: 93 checks, 2 failed fails: FAIL live tip: a board line at A with origin's clean tip B opens at B;FAIL live tip: the checks run at B, so a landed B is skipped landed, never opened;
-RESULT own-mutant=retip_nolog rc=1 open_driver self-test: 93 checks, 1 failed fails: FAIL live tip: a board line at A with origin's clean tip B opens at B;

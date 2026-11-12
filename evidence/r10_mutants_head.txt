@@ -1,5 +1,0 @@
-RESULT mutant=M0 failed=0 verdict=null-ok
-RESULT mutant=M-livetip failed=2 verdict=killed
-RESULT mutant=M-moved-gone failed=1 verdict=killed
-ABORT M-exact: pattern occurs 0 times
-rc=2

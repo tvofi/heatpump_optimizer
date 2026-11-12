@@ -1,1 +1,0 @@
-own_mutants.txt is the first batch. Its stale_first and untracked_counted rows are void: the anchor occurred twice (the self-test's mutant table repeats it), so nothing was mutated. own_mutants2.txt re-runs them, replacing the first occurrence only.
