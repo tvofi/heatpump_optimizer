@@ -695,6 +695,11 @@ def disinfection_checks() -> None:
                     for kw in _NOCYCLE_ARMS.values() for d in (None, "idle", "dhw", "both")),
     )
     check(
+        "a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses",
+        lambda: written(_dhw_snap(configured=25.0, cycle=False), "dhw") == 30.0
+        and written(_dhw_snap(configured=25.4, cycle=False, attrs={"min": 30.5, "max": 65, "step": 0.5}), "dhw") == 30.5,
+    )
+    check(
         "the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every "
         "step size and pair, and an off-step floor's repair stands down at the step below it",
         lambda: _repair_grid_over_hard_max() == []

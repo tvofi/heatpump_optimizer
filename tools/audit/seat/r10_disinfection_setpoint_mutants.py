@@ -31,6 +31,8 @@ MUTANTS = [
     ("M16-limit-round-up", A, 'everyday, hi=inp.params.dhw_max_temp)', 'everyday, rounding="up")'),
     ("M17-fix-uncapped", P, 'rounding="up", hi_c=params.dhw_hard_max_temp)', 'rounding="up")'),
     ("M18-active-raw-floor", P, "and pump < floor_c - MIXING_VALVE_WRITE_EPSILON", "and pump < floor - MIXING_VALVE_WRITE_EPSILON"),
+    ("M19-ceiling-under-min", A, "top = max(min(highs), low) if highs and low is not None else min(highs) if highs else None",
+     "top = min(highs) if highs else None"),
     ("M3-booking-ignored", A, "if booked or inp.disinfecting else None", "if inp.disinfecting else None"),
     ("M4-hold-ignored", A, "if booked or inp.disinfecting else None", "if booked else None"),
     ("M5-gate-only-excuse", A, 'return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0]))',
