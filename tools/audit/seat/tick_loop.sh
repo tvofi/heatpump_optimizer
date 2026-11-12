@@ -433,7 +433,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
       RELAY_SLEEP=10 HPO_TICK_UNLISTED=1
     ck "the self-test run with every loop variable, the stubs' controls, HPO_HEARTBEAT_REMOTE and an unlisted name set in the caller's environment, HPO_TICK_CODE_DIR naming a detached checkout behind origin/main, passes and does not move its HEAD" $?
     # The allowlist is checked, not trusted: the rows' own entry point refuses a name off it.
-    out=$(HPO_TICK_SELFTEST_NESTED=1 HPO_TICK_UNLISTED=1 bash "$0" --self-test-allowlisted 2>&1)
+    out=$(env -i PATH="$PATH" HOME="$t" HPO_TICK_SELFTEST_NESTED=1 HPO_TICK_UNLISTED=1 "$BASH" "$0" --self-test-allowlisted 2>&1)
     [ $? != 0 ] && [ "$out" = "tick_loop self-test: REFUSED, HPO_TICK_UNLISTED is in its environment and not on the allowlist (run --self-test)" ]
     ck "the rows' entry point run with a name off the allowlist refuses before any row, naming it" $?
     # A caller whose HPO_HEARTBEAT_REMOTE is a URL: the heartbeat rows push to their scratch bare
