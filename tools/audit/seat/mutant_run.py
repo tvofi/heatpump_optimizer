@@ -62,7 +62,15 @@ an equivalent one still needs a survivor_triage record. `--list` prints the
 mutants without running. The command is the group's named self-test or
 `python3 tools/audit/seat/features_block.py "<marker>"`.
 
-`--self-test` builds throwaway repositories and runs every arm above.
+NO PROCFS. Where /proc is absent (macOS, the BSDs) the process table comes from
+`ps -axo pid=,stat=,ppid=,pgid=` with the session from os.getsid; the token leg
+reads nothing, and with no subreaper there either, a descendant that left the
+session is not followed.
+
+`--self-test` builds throwaway repositories and runs every arm above; a case
+that needs a child subreaper prints a `skip` line naming why on a host without
+one. `MUTANT_RUN_NO_PROCFS=1` makes every /proc read fail, as on macOS, in this
+process and every driver it starts, so a Linux host runs the macOS path.
 """
 from __future__ import annotations
 
