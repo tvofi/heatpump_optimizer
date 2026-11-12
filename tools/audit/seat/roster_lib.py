@@ -661,6 +661,10 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
     longer than `limit` is cut with an ellipsis.
     """
     text = (group.get("brief") or "").strip()
+    # A brief written as a markdown document opens with a heading marker; the
+    # row is plain text, so the marker goes and the lines join.
+    text = re.sub(r"\A\s*#{1,6}[ \t]*", "", text)
+    text = re.sub(r"\s*\n\s*", " ", text)
     text = _ATTRIBUTION.sub("", text)
     cut = re.split(r"(?<=\.)\s", text, maxsplit=1)[0]
     cut = cut.replace("|", "/")
