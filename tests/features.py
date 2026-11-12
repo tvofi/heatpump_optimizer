@@ -80875,16 +80875,16 @@ R.check(
 
 
 # #1935 follow-up: the boost's settling tail is priced on how long it ran. The
-# full window keeps today's 12 h; a click of a few seconds owes only the floor,
+# full window keeps today's 12 h; a length of a few seconds owes only the floor,
 # the learners' longest sample; an unseen start owes the full tail.
 _bt_hour = boost_mod.settle_tail(timedelta(hours=1))
 R.check(
     "the settling tail scales with the boost's length: full window 12 h, an hour "
-    "12 h + 6 h * ln(1/2), 38 s the 1.5 h floor, an unseen start the full tail",
+    "12 h + 3 h * ln(1/2), 38 s the 1.5 h floor, an unseen start the full tail",
     boost_mod.settle_tail(timedelta(hours=boost_mod.BOOST_HOURS)) == boost_mod.SPACE_SETTLE_TAIL
     and boost_mod.settle_tail(None) == boost_mod.SPACE_SETTLE_TAIL
     and boost_mod.settle_tail(timedelta(seconds=38)) == timedelta(hours=1.5)
-    and abs(_bt_hour.total_seconds() - (12.0 + 6.0 * _he_math.log(0.5)) * 3600.0) < 1e-6,
+    and abs(_bt_hour.total_seconds() - (12.0 + 3.0 * _he_math.log(0.5)) * 3600.0) < 1e-6,
     f"hour {_bt_hour}",
 )
 
@@ -80904,10 +80904,10 @@ _bt_nested = _bt_state(timedelta(hours=2), cancel=False)
 _bt_nested.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=3))
 _bt_nested.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=3, seconds=38))
 R.check(
-    "a 38 s boost cancelled ends its freeze 1.5 h after the cancel; a window run to its end "
+    "a 38 s boost cancelled is priced at the minimum on-time; a window run to its end "
     "settles 12 h from that end (null control); a click inside a long tail adds to it, "
     "so the full tail runs again from the click's end",
-    _bt_click.space_settle_until == NOW + timedelta(seconds=38, hours=1.5)
+    _bt_click.space_settle_until == NOW + timedelta(seconds=38) + boost_mod.settle_tail(boost_mod._PRESS_MIN)
     and _bt_full.space_settle_until == NOW + timedelta(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
     and _bt_nested.space_settle_until == NOW + timedelta(hours=3, seconds=38) + boost_mod.SPACE_SETTLE_TAIL,
     f"{_bt_click.space_settle_until} {_bt_full.space_settle_until} {_bt_nested.space_settle_until}",
@@ -80995,21 +80995,24 @@ R.check(
 )
 
 # (b) The floor is the interval learners' longest sample, one number both read.
-# (c) The floor is the tail of a boost this long; a press shorter than the
-# integration's minimum on-time (early_cutoff.MIN_ON) may run the compressor
-# that long after the cancel, and a press of that length still owes only the
-# floor, so the floor covers the overrun. A press longer than MIN_ON is past it.
+# (c) The floor is the tail of a boost of ``_bt_floor_len``, shorter than the
+# pump's minimum on-time (early_cutoff.MIN_ON), which a press that starts the
+# compressor runs it for however soon it is cancelled: the floor does not
+# cover the overrun, so each press is priced at no less than MIN_ON. Null
+# control: a press longer than MIN_ON is priced at its own length.
 _bt_floor_len = boost_mod._BOOST_WINDOW * _he_math.exp(
-    (boost_mod._SETTLE_FLOOR - boost_mod.SPACE_SETTLE_TAIL) / boost_mod._SETTLE_TAU)
+    (boost_mod._SETTLE_FLOOR - boost_mod.SPACE_SETTLE_TAIL) / boost_mod._SETTLE_SLOPE)
 from heatpump_optimizer import early_cutoff as _bt_cutoff  # noqa: E402
+_bt_long = _bt_state(_bt_cutoff.MIN_ON * 3)
 R.check(
-    "the settle floor is the learners' longest sample, and is the tail of a boost "
-    "at least the minimum on-time long",
+    "the settle floor is the learners' longest sample; it is the tail of a boost shorter "
+    "than the minimum on-time, so a press is priced at no less than the minimum on-time",
     boost_mod._SETTLE_FLOOR == timedelta(hours=_he_cm.HOUSE_LOSS_MAX_SAMPLE_HOURS)
-    and _bt_floor_len >= _bt_cutoff.MIN_ON
-    and boost_mod.settle_tail(_bt_cutoff.MIN_ON) == boost_mod._SETTLE_FLOOR
-    and boost_mod.settle_tail(_bt_floor_len * 1.01) > boost_mod._SETTLE_FLOOR,
-    f"floor length {_bt_floor_len}, min on {_bt_cutoff.MIN_ON}",
+    and _bt_floor_len < _bt_cutoff.MIN_ON == boost_mod._PRESS_MIN
+    and _bt_click.space_boosted == _bt_cutoff.MIN_ON
+    and _bt_click.space_settle_until - NOW - timedelta(seconds=38) > boost_mod._SETTLE_FLOOR
+    and _bt_long.space_boosted == _bt_cutoff.MIN_ON * 3,
+    f"floor length {_bt_floor_len}, min on {_bt_cutoff.MIN_ON}, click {_bt_click}",
 )
 
 # (d) The mode's start is not persisted: a mode restored as boost has no start,

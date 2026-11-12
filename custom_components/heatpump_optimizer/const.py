@@ -1061,6 +1061,9 @@ BOOST_SPACE_SETTLE_TAIL_HOURS: Final = 12.0
 #: The interval learners' longest sample, hours: the coordinator's sample bound
 #: and ``boost.settle_tail``'s floor, which must hold every sample a boost overlaps.
 HOUSE_LOSS_MAX_SAMPLE_HOURS: Final = 1.5
+#: The shortest run the early cut may end, minutes: the early cut's ``MIN_ON``
+#: and the least time ``boost.settle_tail`` prices a press at.
+PUMP_MIN_ON_MINUTES: Final = 10.0
 #: #20 — events per window before the p90 fully replaces the mean (ramp).
 DHW_QUANTILE_MIN_EVENTS: Final = 8
 #: #18 — day-type samples at which the blend is half day-type, half pooled.

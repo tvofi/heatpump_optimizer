@@ -36,6 +36,7 @@ from .const import (
     ECONOMY_ABSOLUTE_FLOOR,
     HOUSE_LOSS_MAX_SAMPLE_HOURS,
     MODE_BOOST,
+    PUMP_MIN_ON_MINUTES,
     SPACE_PUMP_FLOOR_MARGIN_C,
 )
 from .dhw_schedule import DHWWindowError, hour_in_windows, parse_windows
@@ -70,8 +71,13 @@ _cold_lease: Any = None
 #: (-34 % on the scale across two boost days, with the window freeze
 #: already holding); two time constants clear ~86 % of the divergence.
 SPACE_SETTLE_TAIL = timedelta(hours=BOOST_SPACE_SETTLE_TAIL_HOURS)
-#: The decay constant the tail is two of.
-_SETTLE_TAU = SPACE_SETTLE_TAIL / 2
+#: How fast the tail shortens with the boost: per e-fold of the boosted
+#: time, half the slab constant the full tail is two of. The full constant
+#: (equal residual) was measured on tests/boost_drift_replay.py's press arms:
+#: a quarter-window press walked the scale ~3x as far as the whole window
+#: under the full tail; at half, a shorter boost is held until its divergence
+#: is ``sqrt(boosted / window)`` of the full window's residual.
+_SETTLE_SLOPE = SPACE_SETTLE_TAIL / 4
 #: The shortest tail: the interval learners' longest sample. A boost cancelled
 #: inside one cycle leaves neither the overlay nor the interval tag at the next
 #: learner run, and a counter span opened before the press would replay across
@@ -79,6 +85,9 @@ _SETTLE_TAU = SPACE_SETTLE_TAIL / 2
 #: a frozen cycle.
 _SETTLE_FLOOR = timedelta(hours=HOUSE_LOSS_MAX_SAMPLE_HOURS)
 _BOOST_WINDOW = timedelta(hours=BOOST_HOURS)
+#: The least time a press is priced at: a press that starts the compressor
+#: runs it for the pump's minimum on-time, however soon it is cancelled.
+_PRESS_MIN = timedelta(minutes=PUMP_MIN_ON_MINUTES)
 
 
 def settle_tail(boosted: timedelta | None) -> timedelta:
@@ -87,9 +96,8 @@ def settle_tail(boosted: timedelta | None) -> timedelta:
     The divergence an overlay leaves is the heat it added, at most the
     nameplate times its length, and it decays with the slab's constant. The
     full window's tail leaves ``e**-2`` of that window's divergence; a shorter
-    boost is held until it has decayed to the same residual, so its tail is
-    ``tail + tau * ln(boosted / window)``, never negative and never longer
-    than the full window's, and never shorter than ``_SETTLE_FLOOR``. ``None``,
+    boost owes ``tail + _SETTLE_SLOPE * ln(boosted / window)``, never longer
+    than the full window's and never shorter than ``_SETTLE_FLOOR``. ``None``,
     a length nobody saw begin, owes the full tail.
     """
     if boosted is None:
@@ -99,7 +107,7 @@ def settle_tail(boosted: timedelta | None) -> timedelta:
         return SPACE_SETTLE_TAIL
     if ratio <= 0.0:
         return _SETTLE_FLOOR
-    return max(_SETTLE_FLOOR, SPACE_SETTLE_TAIL + _SETTLE_TAU * math.log(ratio))
+    return max(_SETTLE_FLOOR, SPACE_SETTLE_TAIL + _SETTLE_SLOPE * math.log(ratio))
 
 
 #: The freeze reason ``_learning_frozen`` reports while the space overlay
@@ -160,14 +168,14 @@ class BoostState:
     def settle(self, end: datetime, since: datetime | None) -> None:
         """Start the tail a space boost live from ``since`` until ``end`` owes.
 
-        Priced on the boosted time accumulated with it. Never shortens a tail
-        already running: a short boost pressed inside a long one's tail
-        leaves the longer.
+        Priced on the boosted time accumulated with it, each boost at no
+        less than ``_PRESS_MIN``. Never shortens a tail already running: a
+        short boost pressed inside a long one's tail leaves the longer.
         """
         if since is None or self.space_boosted is None:
             self.space_boosted = None
         else:
-            self.space_boosted += timedelta(seconds=max(0.0, utc_elapsed_seconds(end, since)))
+            self.space_boosted += max(_PRESS_MIN, timedelta(seconds=utc_elapsed_seconds(end, since)))
         until = utc_shift(end, settle_tail(self.space_boosted))
         held = self.space_settle_until
         if held is None or utc_elapsed_seconds(until, held) > 0:
