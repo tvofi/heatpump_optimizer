@@ -23076,7 +23076,7 @@
     "From 3461, body item 036facc8: The same finding for the planner's price of a switch: it reads the estimate through a reader it adds with its first caller, and an absent published key is no observation. Controls: a reader added with no caller turns `tests/structure.py`'s `dead_top_level_symbols` red, and the mutant `publish_only_observed` of this body's spec fails the section's attribute check. Lands in the same section of the design note, and is owed to the group's brief on the round's roster. Carry: R10-DUTY-SWITCH-PLANNER-PRICE (items 036facc8)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
