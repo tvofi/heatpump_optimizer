@@ -666,12 +666,13 @@ def _no_session(sid: int) -> bool:
     return False
 
 
-def _zombie(pid: int) -> None:
-    """Return once `pid` is a zombie, i.e. exited and not yet reaped (polled for up to 5 s)."""
+def _zombie(pid: int) -> bool:
+    """True once `pid` is a zombie, i.e. exited and not yet reaped (polled for up to 5 s)."""
     for _ in range(50):
         if any(row[0] == pid and row[1] == "Z" for row in _ptable()):
-            return
+            return True
         time.sleep(0.1)
+    return False
 
 
 def _gone(pid: str) -> bool:
@@ -698,7 +699,7 @@ class _Procfs:
         PROCFS[0] = self.saved
 
 
-def _fake_procfs(root: Path, environ: dict[int, bytes]) -> Path:
+def _fake_procfs(root: Path, environ: dict[int, bytes]) -> None:
     """Write the live process table under `root` as procfs lays it out (`<pid>/stat`, and
     `<pid>/environ` for the pids in `environ`), so the procfs readers run on a host without one.
     Every comm holds `) `, which a stat line is split after the LAST of."""
@@ -708,7 +709,6 @@ def _fake_procfs(root: Path, environ: dict[int, bytes]) -> Path:
         if pid in environ:
             (root / str(pid) / "environ").write_bytes(environ[pid])
     (root / "self").mkdir()  # procfs holds names that are no pid
-    return root
 
 
 def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None:
@@ -723,14 +723,15 @@ def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None
                         ("through the host's procfs (null control)", host)):
         procfs = root is not None
         if root == host and not (host / "self" / "stat").is_file():
-            skip(f"no-procfs: {label}, all five arms", f"this host has no {host}; the faked root above drives the same readers")
+            skip(f"no-procfs: {label}, every arm", f"this host has no {host}; the faked root above drives the same readers")
             continue
         lone = subprocess.Popen(["sleep", "30"], start_new_session=True)
         kid = subprocess.Popen(["sleep", "30"], env=dict(os.environ, MUTANT_RUN_TOKEN=tok + "0"))  # a near miss
-        marked = subprocess.Popen(["sleep", "30"], start_new_session=True, env=dict(os.environ, MUTANT_RUN_TOKEN=tok))
+        marked = subprocess.Popen(["sleep", "30"], env=dict(os.environ, MUTANT_RUN_TOKEN=tok))
         dead = subprocess.Popen(["true"], start_new_session=True)  # a zombie session leader: `ps` stat `Zs`, not `Z`
-        _zombie(dead.pid)  # exited, still unreaped (os.waitid's WNOWAIT, which macOS lacks)
         try:
+            check(f"no-procfs: {label}, the premise: the exited child is still a zombie when the table is read",
+                  _zombie(dead.pid))  # polled: os.waitid's WNOWAIT is not on macOS
             if root == tmp / "fake-proc":
                 mark = f"MUTANT_RUN_TOKEN={tok}".encode()
                 _fake_procfs(root, {marked.pid: b"A=1\0" + mark + b"\0", kid.pid: mark + b"0\0A=" + mark + b"\0"})
@@ -749,11 +750,26 @@ def _procless_checks(check, skip, tmp: Path, host: Path = Path("/proc")) -> None
                     broken = str(e)
                 finally:
                     os.environ["PATH"] = path
+                if not procfs:  # a staged `ps`: the rows no live table yields on demand
+                    stale = subprocess.Popen(["true"])
+                    stale.wait()  # reaped, so os.getsid refuses its pid
+                    (tmp / "staged").mkdir()
+                    (tmp / "staged" / "ps").write_text(
+                        f"#!/bin/sh\necho '{lone.pid} Ss {os.getpid()} {lone.pid}'\necho '{stale.pid} S 1 1'\n"
+                        f"echo 'no table row'\necho '{kid.pid} Zs 1 {lone.pid}'\n")
+                    (tmp / "staged" / "ps").chmod(0o755)
+                    os.environ["PATH"] = f"{tmp / 'staged'}{os.pathsep}{path}"
+                    try:
+                        staged = family(lone.pid, "")
+                    finally:
+                        os.environ["PATH"] = path
+                    check(f"no-procfs: {label}, a row whose session os.getsid refuses takes no other row's, a line that is "
+                          "no row is passed over, and a `Zs` zombie in the command's group is not counted", staged == [lone.pid])
             check(f"no-procfs: {label}, family() finds a command by its session" + (f" ({err})" if err else ""),
                   lone.pid in by_session and kid.pid not in by_session)
             check(f"no-procfs: {label}, family() finds the driver's descendants by ppid, zombies excluded",
                   set(by_root) == {kid.pid, lone.pid})  # never `dead`, nor the `ps` that listed the table
-            check(f"no-procfs: {label}, a process that left the session is found by its token "
+            check(f"no-procfs: {label}, a process outside the command's session is found by its token "
                   + ("(the environ leg), and one carrying a longer token is not" if procfs else "only with procfs (no environ leg without it)"),
                   (marked.pid in by_token) == procfs and kid.pid not in by_token and not err)
             check(f"no-procfs: {label}, _reap() collects a dead child it does not skip",
