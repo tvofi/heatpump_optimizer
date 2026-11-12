@@ -1,0 +1,12 @@
+single-name generic rules: 13075 admitted by AD_PRONE_NAME: 9642
+advertisement rule: false refused: false
+sponsored rule: false refused: false
+adbox rule: false refused: false
+textad rule: true refused: false
+sidebar-ad rule: false refused: false
+top-ad rule: true refused: false
+adsbygoogle rule: false refused: false
+adlabel rule: false refused: false
+adtext rule: false refused: false
+ad-text rule: false refused: true
+promoted rule: false refused: false
