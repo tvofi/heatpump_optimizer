@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_lit BOOLOP 9eef9a18",
+  "killed_by": "tests/features.py",
+  "old": "    return any(reading.ok and bool(reading.flag) for reading in map(reader.read_bool, keys))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return any(reading.ok or bool(reading.flag) for reading in map(reader.read_bool, keys))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
