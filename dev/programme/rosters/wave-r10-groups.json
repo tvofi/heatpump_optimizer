@@ -22774,9 +22774,9 @@
    ],
    "findings": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d",
     "last_step": null,
     "next_step": "fixer now, top tier (hygiene defect measured): adopts the author's commits on outside pull request 3439, no design step, size S; waits on no group (hunks of pull requests 3404 and 3433 are outside the function this group edits)",
     "note": "s14 triage s14-9 for the orchestrator under mandate 6715477401, 2026-11-11: outside pull request 3439 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits; overlap admitted (R10-USER-DOCS-VERIFY): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3439 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); overlap: pump_arbiter.py with R10-ARBITER-OFF-RESTORE (after it), different seam (the hot-water write during a disinfection cycle)",
