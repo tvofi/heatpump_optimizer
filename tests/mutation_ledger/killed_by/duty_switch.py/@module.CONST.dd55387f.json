@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:<module> CONST dd55387f",
+  "killed_by": "tests/features.py",
+  "old": "OFF_SAMPLES_MAX = 32",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`OFF_SAMPLES_MAX = 64`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
