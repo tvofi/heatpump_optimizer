@@ -21306,7 +21306,7 @@
    "architect_note": "",
    "brief": "Savings and valuation accuracy left by #3347 and #3291: the unattributed savings residual (-3.90 % flat, -8.02 % varying; measure and attribute first), and the part-load refill pricing (_terminal_cost, _deferred_energy_cost, _plan_dhw_min_cost secant error under a derate), with the zero-derate null control. Flat-price null control mandatory. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "branch": null,
     "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-WATER-SETPOINT-FEEDBACK, ordered by after-edges where files overlap",
     "pr": 3442,
