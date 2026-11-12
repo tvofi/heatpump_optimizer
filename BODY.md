@@ -1,52 +1,58 @@
-R10-HOTFIX-CARD-HEALTH-TEXT, live defect on v7.1.11: the Health and Advisor labels lose their layout box when a content blocker's generic hide rules `##.adv-text` and `##.adv-label` (EasyList general hide; AdGuard Base, chromium and uBlock flavours) apply inside the card's shadow root. This PR renames every `adv-*` class in the card to `fact-*`, adds a browser-lane cell that injects those rules into the shadow root (failing first), and adds a static check in `tests/card.mjs` that refuses ad-list-prone class and id names. It also carries the earlier darkMode-false ink fix from this ref (560d2c569, d76f4d056, 75839015c), because that fix was already done and is green on the resumed ref. The card's class and id reader is `cardNames` in `tests/card_rig.mjs`. It has two consumers, `tests/card.mjs` and the harness, because the agreement lane refused a second copy of that grammar.
+R10-HOTFIX-CARD-HEALTH-TEXT, carries 0 and 1, cut from main after #3485. This PR changes only `tests/card_browser.mjs`, and no production line.
 
-## Root cause
+**Carry 1 (P662).** `themeMismatch`'s cases now include the two matched arms: light variables with darkMode false, and dark variables with darkMode true. One unit therefore measures every own-text run on the tile and on every dialog page, Health and Advisor rows included, in all four theme/darkMode pairings. Before this PR, the matched arms were measured only by the P9 grid's lockstep cells. The own-text sweep moves out of `themeMismatch`'s page script into `hpoContrastKit`, which `themeLiveSwitch` also reads. That keeps one copy of the WCAG unit.
 
-The RCA body is `handoff-body/r10-rca-card-health-text` at 03be2c7fbc50aecd6c17ce7a2456b651e1757326. Its first pass found the darkMode-false ink defect: the Health and Advisor rows draw `--hpo-text` on the darkMode-literal `--hpo-surface-2`, from 906fee95e (v7.0.5) onward. The ink commits on this branch fix it. Its second pass showed that ink defect cannot produce the owner's screenshot: the screenshot shows box-less labels, with the value at x=11. The orchestrator's third pass (THIRD-PASS.md) reproduced the owner's state in WebKit and Chromium. EasyList's generic `##.adv-text` (easylist.txt:9291 = easylist_general_hide.txt:7904) and `##.adv-label` (:7887 in easylist_general_hide.txt) are applied inside the shadow root. They remove the box of all 19 Health labels and hit 3 Advisor elements. Process state is (c) for the ink defect (themeMismatch's selector unit; RCA section 2). For the blocker defect the state is (a): no check read the card's class names against ad-list-prone names, and no lane rendered the card under a blocker's rules. The countermeasures are `blockerHide` (rendered) and the static name check (fast lane). Whether each real blocker reaches shadow roots is still being verified by the RCA seat. The rename holds either way.
+**Carry 0 (owner fact: default theme, auto, following macOS).** `themeLiveSwitch` mounts the card on HA's default theme tokens (`THEMES.light`/`THEMES.dark`) and opens the Health dialog. It then switches the OS colour scheme live, light to dark and back, with `page.emulateMedia`. In the page, a `prefers-color-scheme` change listener does what HA's themes mixin does, in the same order. It writes the theme's variables onto the document. One microtask later, it gives the card a hass whose `themes.darkMode` is the new scheme. The Health dialog is measured twice per direction: between the variable write and the hass update, and on the frame after the card's re-render. Reach requires each of these:
+- at the first point, the card still holds the old darkMode and the old row surface, so that measurement is the mismatched pairing;
+- after the re-render, the dialog is still open on Health;
+- the row surface flipped;
+- at least 10 `span.fact-text` labels are measured at both points.
 
-Prefix choice: I checked each candidate prefix's names against every generic `##` rule in EasyList general hide (13631 rules), AdGuard Base chromium and uBlock flavours (version 2.5.3.82; 14005 and 14008 rules) and uBlock filters (45 rules), all fetched 2026-11-11 around 23:45Z. `fact-` names no rule, either alone or in a compound. Its stem is not ad-related. It also does not collide with the card's `--hpo-*` custom properties, which a `hpo-` class prefix would have done (a `/hpo-text/` search in tests/card.mjs would then read both). `hint-`, `tip-` and `lbl-` were also clean. They lost on meaning: Health rows are not hints.
+**Which state the owner's install was in.** Steady state is the matched arm: dark variables with darkMode true (or light with false). HA writes the variables and darkMode together on every OS switch. The card reads no OS scheme itself: the card has 0 `@media (prefers-color-scheme` rules, and its 2 `matchMedia(` calls are `pointer: coarse` and `prefers-reduced-motion`. So the P9 grid's off-lockstep cells (OS scheme varied, darkMode fixed) do not change the card's paint, and they are not the live state.
 
-Alternatives considered for the barrier: vendoring a filter list into the tree is refused (GPLv3 / CC BY-SA; brief). A live-list gate would make CI depend on the network and on a list that changes daily. The deny-stem pattern reads the tree alone, and `dev/audit/harnesses/r10_card_blocker_names.py` is the re-runnable instrument against the live lists.
-
-Not carried, and why:
-- Whether each real blocker (uBlock Origin, AdGuard, Safari content blockers) reaches a shadow root is still open with the RCA seat's third pass. The rename and both checks hold either way.
-- The harness lists compound generic rules that touch a card name: `.panel.ad`, `.grid > .container > #aside-promotion`, and `.contentmovie > div[class^="ad"]` on `advisor-page`. Each needs a second class or an ancestor that the card's shadow root never has.
-
-Dispatched carries:
-- Carry 0 (the owner fact: default HA theme, auto light/dark with macOS; a live-switch test was asked for). The install is in the matched arm: dark theme variables with `darkMode: true`. The RCA second pass measured that arm at 11.08:1 on every v7.x tag, so the owner's state is not a contrast state. The third pass showed it is box removal by the blocker rules. The failing-first test is therefore `blockerHide`, which runs in that matched dark arm (`THEMES.dark`, `darkMode: true`). It is red on the released card (main 61afd4f2 = v7.1.11: 49 box-less labels) and green here. I did not build the live-switch cell. The brief replaced this carry's hypothesis with the third-pass cause, and the P9 grid's off-lockstep cells already render the OS-scheme-varied states green.
-- Carry 1 (contrast, not emptiness, on the Health and Advisor rows in all four arms). This is built in 560d2c569. `themeMismatch`'s unit is every own-text run on the tile and on every dialog page, in both mismatched arms. The two matched arms are the P9 grid's lockstep cells, which ran `MODE: FULL` green at 75839015c. Planted defect (main's card, which is 906fee95e's pairing): red at 1.24:1 and 1.11:1 on `span.adv-text` / `span.adv-sub` (Mutation proof). Null control: the tip lane is green on every page in all arms.
+On the released pairing, the steady arms are green, so this contrast check cannot be red in the owner's steady state. The released pairing is red only in the window between HA's variable write and its hass update, at 1.24:1 (light to dark) and 1.11:1 (dark to light). In this model the hass update lands one microtask after the write, so no frame is painted inside that window. Whether HA's frontend paints one is not measured here. The orchestrator's hypothesis is therefore refuted as an explanation of the screenshot: the owner's install was in the matched arm, where the released rows read 11.08:1 (RCA second pass). The screenshot's box-less labels are #3485's blocker cause, and `blockerHide` is red on the released card in that matched dark arm (#3485 body). The new check still pins the transient. A fix that moved the rows back onto a darkMode literal under theme text would go red there, as the mutation below shows.
 
 ## Head
 
-2f6188444316a9df45c714e934892140a8838855, merge base and origin/main 61afd4f2db10341ab9b86583944402b206eb4c78 at 2026-11-12T00:06Z.
+e5e6c81b8ee7fe91a2599ae6d021bb6a471a4890, merged with origin/main 19baca76181cb019d9b1cfd93ee6bc0a08e20047 (merge base 19baca76181cb019d9b1cfd93ee6bc0a08e20047) at 2026-11-12T13:38:51Z. The two merges of main (at cbe8d93bd8 and 19baca7618) brought in no card or browser-lane file (`git diff --name-only e1361b108c HEAD`: gate, stamp, merge-train, plan-tooling and delivery files only). The browser-lane run below was taken at the pre-merge commit e1361b108c, on the same card and test tree.
 
 ## Mutation proof
 
-- Rename reverted: the card file at 75839015c (`adv-*`), with this head's tests. `node tests/card.mjs` fails `no class or id in the card is a name generic ad-blocker hide rules target` and reads `1723 names read; ad-list-prone: adv-, adv-act, adv-basis, adv-est, adv-head, adv-inbox-row, adv-label, adv-note, adv-row, adv-sub, adv-text, adv-title, adv-unpriced-head, adv-value`. `blockerHide` fails `R10 every text-bearing element on every dialog page keeps a layout box with ##.adv-text ##.adv-label injected into the shadow root`, with 49 box-less elements (Advisor and Health `span.adv-text` / `span.adv-sub`).
-- Ink fix reverted: main 61afd4f2's card in a 75839015c worktree, `themeMismatch` alone. It fails `R10 every own-text run on every dialog page clears 4.5:1` in both arms: 67 runs under 4.5:1, among them `advisor span.adv-text 1.24:1` / `1.11:1` and `setup button.layout-edit-toggle.on 2.95:1` / `2.32:1`.
-- The deny pattern is driven over a generated spelling corpus. It has 7 stems × 3 cases × (bare + 2 separators × 5 suffixes) = 231 names that must be refused, and 241 near misses that must pass (a stem glued to a letter or digit, a stem inside a word, `advice-text`, `address`, `promote`, `fact-text`, ...). The check `the ad-list-prone name pattern refuses every stem spelling and no near miss` is ok. The extractor's own probe (`the card-name extractor reads class, id, className, classList and selector names`) is ok.
+Planted the released defect as Carry 1 specifies: `.health-row, .fact-inbox-row` back on `--hpo-surface-2` with `--hpo-text`, as at 906fee95e. In the card's surface-2 rule, the two row selectors leave the ink re-point and get a background-only rule. I ran a scratch driver that calls only `themeLiveSwitch` and `themeMismatch` from `tests/card_browser.mjs`. Four checks go red:
+- `R10 live light to dark: every Health text run clears 4.5:1 between HA's theme write and its hass update`: 40 of 59 runs under 4.5:1, `span.fact-text` / `span.fact-sub` at 1.24:1
+- `R10 live dark to light: every Health text run clears 4.5:1 between HA's theme write and its hass update`: 40 of 59 runs, 1.11:1
+- `R10 every own-text run on every dialog page clears 4.5:1 with dark theme variables, darkMode false`: 65 runs, Advisor `span.fact-text`, `span.fact-sub`, `span.fact-value` and `button.fact-act` at 1.24:1
+- `R10 every own-text run on every dialog page clears 4.5:1 with light theme variables, darkMode true`: 65 runs, the same elements at 1.11:1
+
+Card restored with `git checkout custom_components/`.
 
 ## Null control
 
-`blockerHide`'s first arm is the same sweep without the injected rules. It is ok at main 61afd4f2's card, at 75839015c's card and at this head. So the injected-arm red at the base comes from the rules and not from the sweep. Its reach floor (≥5 pages, ≥20 text elements on Health, ≥3 on Advisor) is met at both ends: plan=81 setup=10 savings=22 advisor=46 health=59. At this head the injected arm is ok because the rules now match nothing. The harness at 61afd4f2 reads `class adv-label, class adv-text` targeted by a rule naming them alone in EasyList and both AdGuard flavours. At this head it reads none in all four lists. The static check is red at 75839015c's card and green here, as shown above.
+Under the same planted defect, these stay ok:
+- both matched arms of `themeMismatch`, with their tile and chart checks;
+- both `after the card's re-render` checks;
+- both reach checks;
+- the start check.
+
+The matched arms and the post-render frames are the steady states the RCA found clean, so the red comes from the mismatched pairing and not from the sweep. On the unmutated tree, all 7 `themeLiveSwitch` checks and all 12 `themeMismatch` checks are ok.
 
 ## Figures
 
-- 49 box-less elements under the injected rules at main 61afd4f2's card, and 0 here. Instrument: `blockerHide` in `node tests/card_browser.mjs` (CI `tests / browser`), measured alone through a scratch driver that calls only that function.
-- 1723 names read at 75839015c's card, 14 ad-list-prone. Instrument: `node tests/card.mjs`, check `no class or id in the card is a name generic ad-blocker hide rules target`.
-- Generic rule counts, list versions and per-list hits. Instrument: `python3 -I dev/audit/harnesses/r10_card_blocker_names.py 61afd4f2` and `... HEAD` (network; lists fetched at run time).
-- 67 runs under 4.5:1 at main's card, 0 at 75839015c and here. Instrument: `themeMismatch` in `node tests/card_browser.mjs`.
-- Full browser lane, `node tests/card_browser.mjs` (P9 grid `MODE: FULL`): `ALL BROWSER CHECKS PASSED` rc 0 at 75839015c, and with `HPO_PAGES_OUT=docs/img/card` at 0b86aacd1's tree.
-- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` printed `MODE: SCOPED -- 12 script(s) run, 21 scoped out`. `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` ran them.
+- 59 runs measured on the Health dialog per live switch, and 40 under 4.5:1 on the planted defect. Instrument: `themeLiveSwitch` in `node tests/card_browser.mjs`. Measured through a scratch driver that patches the file's driver to call only that function after `chromium.launch()`; it is not in the tree.
+- 65 runs under 4.5:1 per mismatched arm on the planted defect, and 0 in the matched arms. Instrument: `themeMismatch` in `node tests/card_browser.mjs`, same driver.
+- Full browser lane: `node tests/card_browser.mjs` printed `P9 grid MODE: FULL (HPO_BROWSER_SCOPE=full)` and `ALL BROWSER CHECKS PASSED`, rc 0, at e1361b108c. Payload from `PYTHONPATH=tests/hastub python3 tests/plan_view.py`.
+- The card has 0 OS-scheme rules and 2 `matchMedia(` calls, neither of them the colour scheme. Instrument: `python3 -c` with `re.findall(r'@media[^{]*prefers-color-scheme', s)` and `s.count('matchMedia(')` over `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+
+<!-- figure-block: scope-line mb=19baca76181cb019d9b1cfd93ee6bc0a08e20047 head=e5e6c81b8ee7fe91a2599ae6d021bb6a471a4890 -->
+~~~text
+MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+~~~
+<!-- /figure-block -->
 
 ## Red checks
 
 none
-
-## Unpinned sites
-
-n/a: the diff adds no `custom_components/` predicate beyond class-name strings, and the static check and `blockerHide` read those strings by value.
 
 ## Forward-carry
 
