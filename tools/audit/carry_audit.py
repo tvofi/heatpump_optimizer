@@ -2172,6 +2172,12 @@ def _self_test() -> int:
     r = run(head + '## Friction\n\n- the 5" pipe is short. Carry: R10-LIVE and "y" too.\n')
     check('carry 0: a quote glued to a word (`5"`) opens no phrase, so the marker after it routes',
           r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    check('carry 3: an opening quote glued to a word (`5"` before the marker, a later `6"` after it) never swallows the marker',
+          len(ev('x. the 5" pipe. Carry: R10-LIVE and 6" too.')["rows"]) == 1)
+    check('carry 3: a quote closed against a word (`"x" too` after a lone opening quote) never swallows the marker',
+          len(ev('x. said "q. Carry: R10-LIVE "x" too.')["rows"]) == 1)
+    check("carry 3: a link whose destination holds a space is no link, so `Carry: [#100](a b)` is no marker",
+          not ev("x. Carry: [#100](a b)")["rows"])
     check("carry 3: an O-brief destination under ## Evidence is a marker",
           len(ev("x. Carry: O12-foo")["rows"]) == 1 and len(ev("x. Carry: O12")["rows"]) == 1)
     # the spelling corpus of the shape guards (marker_shaped, QUOTED_PHRASE, the paragraph-continuation
