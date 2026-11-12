@@ -188,15 +188,34 @@ tick_pass() { # <out> [tick args...]: one pass; prints the banner
   [ $? = 0 ] || echo "HEARTBEAT NOT PUSHED: heartbeat.sh did not finish cleanly"
 }
 
+# The self-test's rows inherit these names and no others: each is set by selftest_allowlisted
+# below, from the caller's value (PATH, TMPDIR else /tmp, the nesting flag, offline_spy.py's two) or
+# from scratch (HOME). A name nobody listed -- a stub's TICK_RC, heartbeat.sh's HPO_HEARTBEAT_REMOTE,
+# one a later row starts reading -- cannot reach a row, so no drop list has to name it.
+SELFTEST_ENV=(PATH HOME TMPDIR HPO_TICK_SELFTEST_NESTED SPY_LOG SPY_REAL_GIT)
+
+selftest_allowlisted() { # --self-test: re-run it under env -i, the allowlist alone carried across
+  local h rc v keep=()
+  for v in HPO_TICK_SELFTEST_NESTED SPY_LOG SPY_REAL_GIT; do [ -z "${!v+x}" ] || keep+=("$v=${!v}"); done
+  h=$(mktemp -d) || { echo "tick_loop self-test: no temporary directory"; return 1; }
+  env -i PATH="$PATH" HOME="$h" TMPDIR="${TMPDIR:-/tmp}" ${keep[@]+"${keep[@]}"} "$BASH" "$0" --self-test-allowlisted  # mut:selftest-envi
+  rc=$?; rm -rf "$h"; return $rc
+}
+
+selftest_env_check() { # 0: every exported name is on the allowlist (or bash's own PWD, OLDPWD, SHLVL, _)
+  local v
+  for v in $(compgen -e); do
+    case " ${SELFTEST_ENV[*]} PWD OLDPWD SHLVL _ " in *" $v "*) ;; *)  # mut:selftest-allowlist
+      echo "tick_loop self-test: REFUSED, $v is in its environment and not on the allowlist (run --self-test)"; return 1 ;; esac
+  done
+}
+
 tick_loop_self_test() (
   local t f=0 n=0 out
   # A row's verdict is its reader's. Under pipefail a `grep -q` that leaves at its match can kill
   # the printf feeding it (141), and the row reads a match as none: prepr.sh's PIPE_GREP_Q class,
   # seen here under load as one stray FAIL in a different row each time.
   set +o pipefail  # mut:selftest-pipefail
-  # The loop's own variables a caller may hold (a pass exports HPO_TICK_RESTARTED to all it starts)
-  # are dropped before the first row: every HPO_TICK_* but the nesting flag, and the sweep's mandate.
-  for v in $(compgen -v HPO_TICK_) HPO_SWEEP_MANDATE; do [ "$v" = HPO_TICK_SELFTEST_NESTED ] || unset "$v"; done  # mut:selftest-envscrub
   t=$(mktemp -d) || { echo "tick_loop self-test: no temporary directory"; return 1; }
   ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
   # 2 MB after the match makes the SIGPIPE certain: with pipefail on, this row reads its match as none.
@@ -407,10 +426,26 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     ck "the self-test run from a detached checkout behind origin/main passes and does not move its HEAD" $?
     nest "$t/nh" GIT_DIR="$t/nh/.git" GIT_WORK_TREE="$t/nh"
     ck "the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD" $?
+    # Every name round 2 saw reach a row, set in the caller's environment, and one no script reads.
     nest "$t/ne" HPO_TICK_CODE_DIR="$t/ne" HPO_TICK_RESTARTED=1 HPO_TICK_STALE_BOUND=0 HPO_TICK_RELAY_WAIT=0 \
       HPO_TICK_SWEEP_EVERY=0 HPO_TICK_SWEEP_CMD=false HPO_SWEEP_MANDATE=x HPO_TICK_RELAY="$t/absent.sh" HPO_TICK_CMD=false \
-      HPO_TICK_HEARTBEAT="$t/absent.sh"
-    ck "the self-test run with every loop variable set in the caller's environment, HPO_TICK_CODE_DIR naming a detached checkout behind origin/main, passes and does not move its HEAD" $?
+      HPO_TICK_HEARTBEAT="$t/absent.sh" HPO_HEARTBEAT_REMOTE=nope TICK_RC=1 RELAY_RC=1 HB_RC=1 SWEEP_RC=2 SWEEP_WORD=X \
+      RELAY_SLEEP=10 HPO_TICK_UNLISTED=1
+    ck "the self-test run with every loop variable, the stubs' controls, HPO_HEARTBEAT_REMOTE and an unlisted name set in the caller's environment, HPO_TICK_CODE_DIR naming a detached checkout behind origin/main, passes and does not move its HEAD" $?
+    # The allowlist is checked, not trusted: the rows' own entry point refuses a name off it.
+    out=$(env -i PATH="$PATH" HOME="$t" HPO_TICK_SELFTEST_NESTED=1 HPO_TICK_UNLISTED=1 "$BASH" "$0" --self-test-allowlisted 2>&1)
+    [ $? != 0 ] && [ "$out" = "tick_loop self-test: REFUSED, HPO_TICK_UNLISTED is in its environment and not on the allowlist (run --self-test)" ]
+    ck "the rows' entry point run with a name off the allowlist refuses before any row, naming it" $?
+    # A caller whose HPO_HEARTBEAT_REMOTE is a URL: the heartbeat rows push to their scratch bare
+    # remote only. offline_spy.py counts every git call that can reach a remote by its target URL.
+    printf '#!/bin/bash\nHPO_TICK_SELFTEST_NESTED=1 HPO_HEARTBEAT_REMOTE=https://127.0.0.1:9/hb.git exec bash "%s/tick_loop.sh" --self-test\n' "$HERE" > "$t/spied.sh"
+    printf '#!/bin/bash\ngit ls-remote https://127.0.0.1:9/hb.git >/dev/null 2>&1; exit 0\n' > "$t/spyctl.sh"
+    out=$(python3 -I "$HERE/offline_spy.py" "$t/spied.sh" 2>/dev/null)
+    printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/spied.sh rc=0 network=0 remote_git=0 git=[1-9][0-9]* .* offline [|] tick_loop self-test: [1-9][0-9]* checks, 0 failed$"
+    ck "the self-test run with HPO_HEARTBEAT_REMOTE a URL in the caller's environment passes under offline_spy.py: no network call, no remote git call, its git calls seen" $?
+    out=$(python3 -I "$HERE/offline_spy.py" "$t/spyctl.sh" 2>/dev/null)
+    printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/spyctl.sh rc=0 network=0 remote_git=1 git=1 .* REFUSED"
+    ck "null control: offline_spy.py counts one git call at that URL as a remote git call" $?
     [ "$(git -C "$t/n0" rev-list --count HEAD..origin/main)" = 0 ] && nest "$t/n0"
     ck "null control: a branch checkout at origin/main (behind 0) passes and stays put" $?
   fi
@@ -423,7 +458,8 @@ ARGV=("$@")  # a restart execs the new loop with these
 once=; sweep=; every=300; out=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/tick.txt
 while [ $# -gt 0 ]; do
   case $1 in
-    --self-test) tick_loop_self_test; exit ;;
+    --self-test) selftest_allowlisted; exit ;;
+    --self-test-allowlisted) selftest_env_check && tick_loop_self_test; exit ;;
     --once) once=1; shift ;;
     --sweep) sweep=1; shift ;;
     --interval) every=${2:-}; shift 2 || shift ;;

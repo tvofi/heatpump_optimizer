@@ -28,21 +28,23 @@
 #   nocheckout  the HPO_TICK_CODE_DIR export back below the TICK-GH rows
 #   gitenv      throwaway_git_env back below the heartbeat rows
 #   plaingh     the no-shim row's own plain gh taken off its PATH
-#   envscrub    the line dropping the caller's HPO_TICK_* and HPO_SWEEP_MANDATE deleted
+#   envscrub    the line dropping the caller's HPO_TICK_* and HPO_SWEEP_MANDATE deleted (a rev before envi)
+#   envi        --self-test runs the rows in the caller's environment, not re-run under env -i
+#   allowlist   the rows' entry point lets a name off the allowlist through
 #   pipefail    the self-test's `set +o pipefail` deleted
 # A mutant arm needs the `# mut:selftest-*` markers and says so on a <rev> without them.
 # No arm named runs the five shapes.
 set -uo pipefail
-rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|pipefail]...}; shift
+rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|allowlist|pipefail]...}; shift
 [ $# -gt 0 ] || set -- branch detached gitdir shim level
 top=$(git rev-parse --show-toplevel) || exit 2
 sha=$(git -C "$top" rev-parse --verify -q "$rev^{commit}") || { echo "no commit $rev"; exit 2; }
 d=$(mktemp -d) || exit 2
 trap 'rm -rf "$d"' EXIT
 L=tools/audit/seat/tick_loop.sh
-extract() { # <dir>: <rev>'s four files, in a directory that is no checkout
+extract() { # <dir>: <rev>'s five files, in a directory that is no checkout
   local f; mkdir -p "$1/tools/audit/seat" "$1/tests"
-  for f in "$L" tools/audit/seat/heartbeat.sh tools/audit/seat/ref_privacy.py tests/throwaway_git.sh; do
+  for f in "$L" tools/audit/seat/heartbeat.sh tools/audit/seat/ref_privacy.py tools/audit/seat/offline_spy.py tests/throwaway_git.sh; do
     git -C "$top" show "$sha:$f" > "$1/$f" || exit 2
   done
 }
@@ -114,6 +116,13 @@ elif arm == "plaingh":
     s[i] = s[i].replace('PATH="$t/bare:$PATH" ', "")
 elif arm == "envscrub":
     s.pop(marked("selftest-envscrub"))
+elif arm == "envi":
+    i = marked("selftest-envi")
+    s[i] = '  tick_loop_self_test  # mut:selftest-envi'
+elif arm == "allowlist":
+    i = marked("selftest-allowlist")
+    assert '*" $v "*) ;; *)' in s[i]
+    s[i] = s[i].replace('*" $v "*) ;; *)', '*) ;; *" $v "*)')
 elif arm == "pipefail":
     s.pop(marked("selftest-pipefail"))
 else:
@@ -129,7 +138,7 @@ echo "rev $sha"
 for arm in "$@"; do
   case $arm in
     branch|detached|gitdir|shim|level) shape "$arm" ;;
-    whole|nocheckout|gitenv|plaingh|envscrub|pipefail) mutant "$arm" ;;
+    whole|nocheckout|gitenv|plaingh|envscrub|envi|allowlist|pipefail) mutant "$arm" ;;
     *) echo "unknown arm '$arm'"; exit 2 ;;
   esac
 done
