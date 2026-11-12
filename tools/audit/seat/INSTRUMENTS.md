@@ -23,6 +23,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`app_comment.sh`](instruments/app_comment.sh.md) — posts one fix-review verdict on a PR as `hpo-approver` and reads the posted comment back byte-identical
 - [`app_push.sh`](instruments/app_push.sh.md) — pushes a branch and opens or re-bodies its pull request as the `hpo-author` App
 - [`depgraph.py` (tools/pr/)](instruments/depgraph.py.md) — compares GitHub's dependency graph with the tree's pins
+- [`figure_block.py` (tools/pr/)](instruments/figure_block.py.md) — renders/refreshes/verifies registered figure blocks in a PR body
 - [`head_note.py` (tools/pr/)](instruments/head_note.py.md) — prefixes a note under a body's `## Head` heading, found as `checkPrBody`'s `sections()` reads it (outside a fence, `##`, whitespace, `Head`)
 - [`role_pack.py` (tools/policy/)](instruments/role_pack.py.md) — renders one seat's policy pack: its role contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim, in one file
 - [`approve_held_runs.sh`](instruments/approve_held_runs.sh.md) — approves the workflow runs GitHub holds `action_required` on a branch
@@ -40,12 +41,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 
 ## tools/audit/seat/
 
-The four standing seats that drive these instruments for the orchestrator each
-have a contract: `dev/governance/roles/standing-tick.md` (the tick board),
-`dev/governance/roles/standing-merge.md` (the train and direct merges),
-`dev/governance/roles/standing-dispatch.md` (dispatch, relay, verdicts) and
-`dev/governance/roles/standing-roster.md` (roster ops). `pulse.py` and the
-sweep's standing-seat liveness step keep them alive.
+The two standing seats that drive these instruments for the orchestrator each
+have a contract under `dev/governance/roles/standing.md`:
+`standing-merge.md` (the train) and `standing-dispatch.md`
+(dispatch, relay, verdicts). The tick board and roster ops are the beat rows
+`tick-digest`, `owed-check` and `roster-drain`. `pulse.py` and the sweep's
+standing-seat liveness step keep the seats alive.
 
 - [`features_block.py`](instruments/features_block.py.md) — runs one block of `tests/features.py`, or the script through a marker
 - [`mutant_run.py`](instruments/mutant_run.py.md) — applies spec mutants or the diff's added lines one at a time to a git-archive copy and prints KILLED or SURVIVED
@@ -103,7 +104,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`roster_lib.py`](instruments/roster_lib.py.md) — shared roster parsing and wave logic (depth, critical path, open groups, the branch-to-group lookup)
 - [`carry_fold.py`](instruments/carry_fold.py.md) — the orchestrator's pre-merge writer for a body's `Carry: <GROUP>` items, asserting each id landed after the fold
 - [`roster_sync.py`](instruments/roster_sync.py.md) — derives the factual half of a roster group's `resume` from pull-request state
-- [`roster_queue.py`](instruments/roster_queue.py.md) — the standing roster seat's queue runner
+- [`roster_queue.py`](instruments/roster_queue.py.md) — the `roster-drain` beat row's queue runner
 - [`seat_venv.sh`](instruments/seat_venv.sh.md) — builds the seat interpreter venvs reproducibly and installs the `shims/`
 - [`selftest_wiring.py`](instruments/selftest_wiring.py.md) — refuses a self-testing file under `tools/` (widened from `tools/audit/seat/` by #2444's forward-carry) that no workflow `run:` line, comments removed, invokes with its self-test (`--check`, `--self-test`)
 - [`tick_loop.sh`](instruments/tick_loop.sh.md) — the tick's driver loop (tvofi approved, 2026-10-18)
