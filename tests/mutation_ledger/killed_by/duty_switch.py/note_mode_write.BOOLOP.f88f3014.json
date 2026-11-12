@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:note_mode_write BOOLOP f88f3014",
+  "killed_by": "tests/features.py",
+  "old": "    running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`running = rec.tracker.settled is True or rec.tracker.pending is None`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
