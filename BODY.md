@@ -2,12 +2,12 @@ Part A of the duty-switch restart learning, built from Bankaifan's pull request 
 
 ## Re-cut
 
-The sixth round, past the three-round bound by owner ruling: outside request, drive to merge. This body replaces the earlier ones under `fixer.md`'s re-cut rule: round history is deleted, and every figure below was re-taken at the head named under Head, but where a line says it was not re-run. The round-6 review (`Fix review: blocked 1b3707d0bf67416d6d70563beaa08b1022ce74f8 mutation-vacuous: r6v_stopped_with_pending_start_runs`, `verdict.md` on `probe/rev-3461-42482ab5` at 8205b6d2) is answered under "Review round 6, answered". The only change since 1b3707d0 is one commit adding one check to the duty-switch section of `tests/features.py` and a `before` argument to its `_ds_wrapped` driver, and one re-recording `tests/entities.py`'s entry in `tests/closures.json` by `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` (its rc reads 0 where it read 1); no production line moved. The mutant runs below ran at 5272665f, the first of the two, whose tree differs from this head in `tests/closures.json` alone.
+The seventh repair, answering the seventh review, past the three-round bound by owner ruling: outside request, drive to merge. This body replaces the earlier ones under `fixer.md`'s re-cut rule: round history is deleted, and every figure below was re-taken at the head named under Head, but where a line says it was not re-run. The round-7 review (`Fix review: blocked 112f0d777b8f8c921a75982d36305e94ffd2f7f4 mutation-vacuous: r7v_unsettled_with_pending_runs`, `verdict.md` on `probe/rev-3461-ba74baae`) is answered under "Review round 7, answered". Since 112f0d77 the branch adds two checks to the duty-switch section of `tests/features.py` and a `fresh` argument to its `_ds_wrapped` driver, merges `origin/main` three times, last 19baca76181cb019d9b1cfd93ee6bc0a08e20047, and gives the section's arbiter fake the `dhw_max_temp` that main's 4498df97 made the arbiter read; no production line moved.
 ## Head
 
-e169c167ea4a7f0adec363bb34f79b50b8e21377
+9453c5e25523a963106e27aad6e9fe16846aa367
 
-The merge base is ba544faa2dd25b75b0129879112d6409affe9662 (`git merge-base origin/main HEAD` at this head). At 2026-11-12T10:41Z by `date -u`, `origin/main` is fc2a7edcf2be8847037d9e8dc5bde460977befa8 and `git merge-tree --write-tree origin/main HEAD` exits 0 against it (this repository's ledger merge driver resolving `tests/closures.json`), so main is not merged again. Every command below compares three-dot against the merge base.
+The merge base is 19baca76181cb019d9b1cfd93ee6bc0a08e20047 (`git merge-base origin/main HEAD` at this head), which is `origin/main`: this head merges it. Every command below compares three-dot against the merge base. The mutant runs, the drift, structure and architecture figures and the diff pass ran at a5e0e78df906e41e3a59b503a0b9531a8edadf22, which merged `origin/main` 6e100ef6980216a81eaa0438bdc215d62b19271f; this head differs from it by the merges of `origin/main` cbe8d93b and 19baca76 alone, whose delta from 6e100ef6 touches nothing under `custom_components/` and not `tests/features.py` (`git diff --stat 6e100ef69 19baca761 -- custom_components tests/features.py` prints nothing), so the diff pass's mutant set and the section are the same. The scoped gate (`GOLDEN_REF=cbe8d93b`) ran at f6b7356ef7dc89555f5182f5a3a5e0f830f4c503, which merged `origin/main` cbe8d93b; this head adds only the merge of `origin/main` 19baca76, whose delta from cbe8d93b is seven files under `tools/plan/`, `tools/audit/seat/`, `dev/audit/harnesses/` and `dev/programme/delivery/`, and nothing under `custom_components/` or `tests/`. `tools/pr/prepr.sh` with this body ran at this head.
 ## Brief carries
 
 - Carry 1 (the build input; the brief prints it as carry 0): done as asked. The branch starts from pull request 3420's ten commits at e05c6b1ccc17f2486160669f4a64a33b79ea6a17, the head `git ls-remote origin refs/pull/3420/head` still printed at the start, re-committed with author and author date kept; the build was measured against the approved design and the reviewer's comparison section, as the next section answers line by line, and not rebuilt from scratch: the episode and void logic, the pass-confirmed debounce, the store's three census registrations and the stop, kept, defrost and reload tests are the contributor's, moved behind the design's seam.
@@ -40,63 +40,37 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
 - Publication is conditional. Five `coord_*` goldens snapshot the starts sensor's `extra_state_attributes`, so the design's premise that the sensor is off the goldens does not hold, and fourteen always-present keys read as five stale fixtures in `tests/env_drift.py --all`. A direction publishes its keys only once it holds a stopped, kept or void episode; an install that never switches duty while running publishes what it did before, and no golden moves. Mutant `publish_only_observed`.
 - Factory reset keeps the store (`_FR_STORES`, the contributor's disposition). Learned state elsewhere is voided there; the owner may want this voided too.
 
-## Review round 6, answered
+## Review round 7, answered
 
 1. mutation-vacuous. The survivor is killed by one check added to the duty-switch section, beside its null control; it is not triaged.
-   - `r6v_stopped_with_pending_start_runs` (`duty_switch.note_mode_write` counting a compressor settled stopped with a start pending as running): "through duty_switch.note_mode_write, a mode write while the compressor is settled stopped and a start read inside the debounce before it is still pending opens nothing and books nothing". Driven through `_Record`, `note_signal`, `note_mode_write` and `note_pass`: the signal settles stopped (0 Hz) at the settling pass, a start (50 Hz) is read `_DS_START_LEAD` (10 s) before the write with no pass between, so it is pending at the write; nothing opens and nothing is booked, whether the start holds through the window or reads 0 Hz again 15 s after the write. The check asserts `0 < _DS_START_LEAD < wear.EDGE_DEBOUNCE_S`. Null control: the running row of the round-5 check, the compressor settled running at the write, books it kept through the same passes. `_ds_wrapped`'s new `before` defaults to empty and leaves every earlier call unchanged.
+   - `r7v_unsettled_with_pending_runs` (`duty_switch.note_mode_write` counting an unsettled tracker with an edge pending as running): "through duty_switch.note_mode_write, a mode write on a record just loaded whose first reading, 50 Hz, came inside the debounce before the write and is still pending opens nothing and books nothing". Driven through `_Record`, `note_signal`, `note_mode_write` and `note_pass`: `_ds_wrapped`'s new `fresh` argument skips the settling reading and pass, so the record is as loaded (`settled is None`); its first reading, 50 Hz, is taken `_DS_START_LEAD` (10 s) before the hot water to heating write with no pass between, so it is pending at the write; nothing opens and nothing is booked, whether the reading holds through the window or reads 0 Hz 15 s after the write. The check asserts `0 < _DS_START_LEAD < wear.EDGE_DEBOUNCE_S`. Null control: the running row of the round-5 check, the compressor settled running at the write, books it kept through the same passes. `fresh` defaults to False and leaves every earlier call unchanged.
    The failing check, from applying the mutant to a `git archive` copy of this head and running the section:
    ```
-     FAIL through duty_switch.note_mode_write, a mode write while the compressor is settled stopped and a start read inside the debounce before it is still pending opens not
-   1 of 57 DUTY-SWITCH SECTION CHECKS FAILED
+     FAIL through duty_switch.note_mode_write, a mode write on a record just loaded whose first reading, 50 Hz, came inside the debounce before the write and is still pending opens nothing and books noth
+   1 of 59 DUTY-SWITCH SECTION CHECKS FAILED
    ```
-   The reviewer's command, `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py'`, with each of the verdict's five specs read from `probe/rev-3461-42482ab5` at 8205b6d2 (`ev/reviewer_mutant_spec_round3.json`, `_round4.json`, `_round5.json`, `_round5b.json`, `_round6.json` sha1 6bb898259df25dbbf419d789b368987f97fdc7ed), at this head:
+   The reviewer's command, `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py'`, with each of the verdict's two round-7 specs read from `probe/rev-3461-ba74baae` (`ev/reviewer_mutant_spec_round7.json`, `ev/reviewer_mutant_spec_round7b.json`), at the repair commit, before the merge:
    ```
-   ### round3
+   ### round7
    SURVIVED NULL
-   KILLED r3v_aged_on_predecay_n
-   KILLED r3v_span_floor_on_k
-   KILLED r3v_unit_gate_return_only
-   KILLED r3v_unit_gate_flow_only
-   KILLED r3v_wrapper_pending_false
-   KILLED r3v_wrapper_pending_true
-   KILLED r3v_wrapper_dirty_dropped
-   KILLED r3v_heated_margin_strict
-   KILLED r3v_heated_falls_to_leg
-   KILLED r3v_pass_expiry_ignores_pending
-   KILLED r3v_ageout_keeps_reporting
-   rc=0
-   ### round4
+   KILLED r7v_unsettled_with_pending_runs
+   KILLED r7v_stopped_with_pending_runs_only
+   KILLED r7v_pending_start_counts
+   KILLED r7v_unsettled_no_pending_runs
+   ### round7b
    SURVIVED NULL
-   KILLED r4v_last_write_min
-   KILLED r4v_first_day_overwritten
-   KILLED r4v_plan_stays_no_both
-   KILLED r4v_checked_every_pass
-   KILLED r4v_supply_ignores_switch
-   KILLED r4v_tracker_settled_any
-   rc=0
-   ### round5
-   SURVIVED NULL
-   KILLED r5v_span_floor_on_kept_w
-   KILLED r5v_tracker_settled_not_none
-   KILLED r5v_tracker_settled_dropped
-   KILLED r5v_wrapper_pending_inverted
-   rc=0
-   ### round5b
-   SURVIVED NULL
-   KILLED r5v_pass_judges_before_confirm
-   KILLED r5v_write_pending_ignored_when_stopped
-   rc=0
-   ### round6
-   SURVIVED NULL
-   KILLED r6v_settled_or_pending
-   KILLED r6v_running_const_true
-   KILLED r6v_stopped_with_pending_start_runs
-   KILLED r6v_checked_never_set
-   KILLED r6v_confirm_after_judge_too
-   rc=0
+   KILLED r7v_running_with_pending_runs
+   KILLED r7v_stopped_no_pending_runs
    ```
-   Control: the round-6 spec at 1b3707d0 prints `SURVIVED` for `r6v_stopped_with_pending_start_runs` (the verdict's `ev/mutants_reviewer_round6.txt`). The round-6 spec is also appended to this body's spec (Mutant spec). The branch diff was re-run whole at this head (Mutation proof): its survivors are the two recorded equivalents and the one with no ledger site, the same three as at 1b3707d0, and none other.
-2. Findings: the round count is the sixth, as the Re-cut note now says; no finder harness exists, as in rounds 1 to 5.
+   Control: the verdict's `ev/mutants_reviewer_round7.txt` prints `SURVIVED` for `r7v_unsettled_with_pending_runs` at 112f0d77. Both round-7 specs are appended to this body's spec (Mutant spec) and were re-run whole at this head (Mutation proof).
+2. The whole-branch diff pass, run by this seat before the handoff, found one survivor beyond the three recorded: `duty_switch.py:396 STMT_DEL`, the alias `Reader = Callable[...]` deleted, an operator `mutant_run.py` gained on main since the last body. Killed, not triaged: Python 3.14 defers the arbiter's `-> tuple[str | None, duty_switch.Reader]` annotation, but Home Assistant 2025.2, this integration's floor in `hacs.json`, runs 3.13, which evaluates it when `pump_arbiter` is imported. The check "the reader's annotations resolve, as Python 3.13 resolves the arbiter's at import" resolves `_running_signal`'s and `attach`'s annotations with `typing.get_type_hints` and asserts they name one reader type; null control, a seam annotated with a name no module binds does not resolve. Under the mutant (spec entry `r8f_reader_alias_deleted`), in a `git archive` copy:
+   ```
+     FAIL the reader's annotations resolve, as Python 3.13 resolves the arbiter's at import: _running_signal returns and attach takes the one reader type; null control, a seam annotated with a name no mo
+   1 of 59 DUTY-SWITCH SECTION CHECKS FAILED
+   ```
+3. The merge of `origin/main` 6e100ef6 broke the section on a line git reported nowhere: main's 4498df97 has `pump_arbiter._dhw_write` read `params.dhw_max_temp` and gave main's fakes the field, and this branch's `_DsArb` fake lacked it (`AttributeError` in the section). The fake now carries `dhw_max_temp=60.0`, above the 50 C set-point the censor check writes; a limit equal to the 48 C set-point, as main's fakes carry, capped that write away and failed the censor check. The diff pass at the merge is how it was found, refusing on its baseline.
+4. Findings: the fence of the body's `## Mutant spec` opens `json` again; the round count is the seventh review, answered by this repair; no finder harness exists, as in rounds 1 to 6.
+
 ## Verdict notes
 
 - n10: the heated gate is per direction (`duty_switch._heated`): inlet minus water set-point into space (round 2: only where the set-point is a water temperature), the source leg's age into hot water; the table's three kept rows pin it with an inlet under the set-point. Mutant `heated_direction_gate`.
@@ -111,7 +85,7 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
 
 Every mutant ran through `tools/audit/seat/mutant_run.py`, in its `git archive` copy, at the head above, with one command: `env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`.
 
-**The spec** (`--spec`, at the end of this body): the earlier rounds' entries and both reviewers' as carried by the previous body, then the round-4, round-5 and round-6 reviewers' specs whole (`r3v_`, `r4v_`, `r5v_`, `r6v_`). The count is the `KILLED` lines below, 149, run as two halves with the null of each surviving; `SURVIVED NULL` is the unmutated tree.
+**The spec** (`--spec`, at the end of this body): the previous body's 149 entries, then the round-7 reviewer's two specs whole (`r7v_`) and this seat's `r8f_reader_alias_deleted`. The count is the `KILLED` lines below, 156, one run with the null surviving; `SURVIVED NULL` is the unmutated tree.
 
 ```
 SURVIVED NULL
@@ -264,19 +238,26 @@ KILLED r6v_running_const_true
 KILLED r6v_stopped_with_pending_start_runs
 KILLED r6v_checked_never_set
 KILLED r6v_confirm_after_judge_too
+KILLED r7v_unsettled_with_pending_runs
+KILLED r7v_stopped_with_pending_runs_only
+KILLED r7v_pending_start_counts
+KILLED r7v_unsettled_no_pending_runs
+KILLED r7v_running_with_pending_runs
+KILLED r7v_stopped_no_pending_runs
+KILLED r8f_reader_alias_deleted
 rc=0
 ```
 
-**The branch diff** (`--diff <merge base>...HEAD`, one run over the whole branch diff, the 214 mutants `--list` enumerates; it prints survivors only): every survivor printed is listed.
+**The branch diff** (`--diff 6e100ef6980216a81eaa0438bdc215d62b19271f...HEAD`, at a5e0e78df9, one run over the whole branch diff, the 361 mutants `--list` enumerates; it prints survivors only): every survivor printed is listed. The `STMT_DEL` survivor at `duty_switch.py:396` that the same pass printed at the merge commit is killed (Review round 7, answered, item 2) and does not appear.
 
 ```
 SURVIVED custom_components/heatpump_optimizer/duty_switch.py:82 CONST_SWAP  STORE_VERSION = 2
 SURVIVED custom_components/heatpump_optimizer/duty_switch.py:187 CMP_BOUND  if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) >= 0.0:
-SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1983 CONST_SWAP  return resolve_reading(None, sensor, states.get, 1.0, 0.0)[0], None, None, True
+SURVIVED custom_components/heatpump_optimizer/pump_arbiter.py:1991 CONST_SWAP  return resolve_reading(None, sensor, states.get, 1.0, 0.0)[0], None, None, True
 rc=1
 ```
 
-Each is an equivalent mutant, as recorded:
+Each is an equivalent mutant, as recorded, and each was recorded so by the previous body at its own head:
 
 - `duty_switch.py` `STORE_VERSION = 2`: the version is what Home Assistant's `Store` stamps on the file and compares with a stored payload's own; no migration exists for either value and `DutySwitchLearner.from_record` never reads it. The arbiter's own `_STORE_VERSION` carries the same verdict in the ledger. Record: `tests/mutation_ledger/survivor_triage/duty_switch.py/@module.CONST.43e0a892.json`.
 - `duty_switch.py` `Direction.decay`, `> 0.0` to `>= 0.0`: the two differ only when the pass is at the stamp's own instant, and the guarded statement then assigns the stamp the instant it holds. The other side of the bound, a stamp half a second old, is driven ("every aging moves the stamp"). Record: `tests/mutation_ledger/survivor_triage/duty_switch.py/Direction.decay.CMP_BOUND.225d3f33.json`.
@@ -295,20 +276,22 @@ Each is an equivalent mutant, as recorded:
 - The round-4 checks: three stops beside the three kept episodes; no stop read beside the stop pending across the window's end; the compressor read running at the write beside the signal unknown there.
 - The round-5 checks: the compressor read running at the write beside it read stopped there; the stop with no defrost and a restart beside the stop with a defrost first read on the pass after the confirming one.
 - The round-6 check: the compressor settled running at the write beside it settled stopped with a start pending there.
+- The round-7 checks: the compressor settled running at the write beside a record just loaded with its first reading pending there; the reader's seams resolving beside a seam annotated with an unbound name.
 
 ## Figures
 
 - Section checks: `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py` exits 0, its last line the all-passed count.
-- Mutants: the `mutant_run.py` runs under Mutation proof and under "Review round 6, answered", at this head.
-- The failing check per surviving mutant: each mutant's `old` text replaced by its `new` text in the working tree, the section run, the tree restored (the block under "Review round 6, answered").
+- Mutants: the `mutant_run.py` runs under Mutation proof and under "Review round 7, answered", at this head.
+- The failing check per surviving mutant: each mutant's `old` text replaced by its `new` text in the working tree, in a `git archive` copy, the section run (the blocks under "Review round 7, answered").
 - Unpinned sites: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` prints no `ADDED UNPINNED` and no `STALE PIN` line.
 - Golden drift: `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)` prints `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE`, rc 0.
 - Gate mode: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED`.
 - Scoped gate: `MODE: SCOPED`, rc 0, every script it ran green (`TEST SCRIPT(S) PASSED` line). `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`
 - Structural ratchet: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`, rc 0.
 - Architecture score: `python3 -I tools/audit/archscore/score.py --diff "$(git merge-base origin/main HEAD)" HEAD` prints dS -0.0081, `coord_footprint` 2492 to 2506 (Architecture score).
-- Merge with main: `git merge-tree --write-tree origin/main HEAD` exits 0 (Head).
+- Merge with main: `git merge-tree --write-tree origin/main HEAD` exits 0; this head merges `origin/main` (Head).
 - Seams of the class (fixer step 8), `git grep -n -E "select_option|await _command\(" -- 'custom_components/heatpump_optimizer/*.py'`: the one mode write, in `_write`, closed in this diff by the report there; its callers `_arbitrate` and `release`, covered through it (`release` detaches first). Not changed by this repair, which touches no production file.
+- `tools/pr/prepr.sh` with this body: rc 0 at this head; `origin/main` had not moved from the merge base when it ran.
 
 ## Architecture score
 
@@ -321,6 +304,7 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
 ## Red checks
 
 - `tests / mutation`: red on pull request 3461 at 3a47c7c156ff1ee55bd0a343023606f7655d2638, as `tools/pr/prepr.sh` step 6d predicted: that head adds sites no record pins. Answered at this head by the pins: the predictor lists no unpinned and no stale site here (Unpinned sites). Cheaper detector: step 6d itself, which named every site before the push at no cost beyond the self-check; the kill runs that write a pin are the lane's own and nothing cheaper than them can pin a site.
+- `tests / coverage-ratchet` and `tests / fast (3.14)`: red at 112f0d777b8f8c921a75982d36305e94ffd2f7f4 in run 43210133740, which tested that head merged with `origin/main` 6e100ef6 (the jobs' `GOLDEN_REF`). `fast` ends `1 TEST SCRIPT(S) FAILED`; the ratchet reads `COVERAGE RATCHET BREACHED` with `pump_arbiter.py` at 91.25 % under the 95 % module floor. That merge is the one under "Review round 7, answered", item 3: the duty-switch section of `tests/features.py` raises `AttributeError` on `dhw_max_temp` there, reproduced in this seat, and the script stopping early is the inferred cause of the arbiter's low coverage; which script `fast` named was not read from its log. Answered at this head by the fake's `dhw_max_temp`: the section passes, and the scoped gate runs `tests/features.py` green (Figures). Run 43218147229 at the same head reads both green. Cheaper detector: the section harness on the merged tree, seconds per run, which found it here; `prepr.sh` runs no test script on a merge of main, and the gate is what runs one.
 - `tests / fast (3.14)`: red at the head the round-2 review read, 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2, on `tests/features.py`'s `combi_type_branch` census, which was red on `origin/main` itself on six lines none of which this diff adds. Green on the pull request since pull request 3466 reached main, and `tests/features.py` passes at this head, which merges it (Figures). Cheaper detector: none on this branch; the script that fails is the detector, and it ran on main.
 
 ## Forward-carry
@@ -342,10 +326,12 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
 - fixer.md: cost: `mutant_run.py --diff` carries five operators and `tests / mutation` seven, three of them not shared, so a diff pass with no survivor still left one site the lane would have refused; the ledger's replacements had to be turned into a spec by hand to see it. Carry: dismissed: one site in this diff, and the lane itself reports it at the pull request
 - fixer.md: cost: two seats worked this topic at once, one repairing the blocked head and one merging main and pinning; the first handed off and froze `handoff/` while the second's line was being built, so the second stopped on a question and a third seat re-took the whole body at the merged head. Carry: dismissed: the orchestrator ruled on it in this seat's dispatch, and the line lands as a fast-forward
 - fixer.md: cost: main's `_pump_off` gained an argument and `off_restore` a weak reference to the entry while this branch was in review, so a conflict git reported in two files also broke a call and a fake it reported nowhere, and a third pull request landing during the measurement broke the fake again and cost a second merge and a second full re-take; the section harness found each in one run. Carry: dismissed: found by the group's own harness on the merged tree, before the handoff
+- fixer.md: cost: merging main broke the section on a fake git did not report, main's arbiter newly reading `params.dhw_max_temp`; found by the diff pass refusing its baseline, before the handoff. Carry: dismissed: found by the group's own harness on the merged tree
 
 ## Mutant spec
 
-```json[
+```json
+[
  {
   "name": "latch_n_on",
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
@@ -1239,6 +1225,48 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
   "old": "    rec.feed(rec.tracker.confirm(when))\n    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty\n",
   "new": "    _edge = rec.tracker.confirm(when)\n    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty\n    rec.feed(_edge)\n"
+ },
+ {
+  "name": "r7v_unsettled_with_pending_runs",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = (rec.tracker.settled is True and rec.tracker.pending is None) or (rec.tracker.settled is None and rec.tracker.pending is not None)"
+ },
+ {
+  "name": "r7v_stopped_with_pending_runs_only",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = (rec.tracker.settled is True and rec.tracker.pending is None) or (rec.tracker.settled is False and rec.tracker.pending is not None)"
+ },
+ {
+  "name": "r7v_pending_start_counts",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = (rec.tracker.settled is True and rec.tracker.pending is None) or (rec.tracker.pending is not None and rec.tracker.pending[0] is True)"
+ },
+ {
+  "name": "r7v_unsettled_no_pending_runs",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is not False and rec.tracker.pending is None"
+ },
+ {
+  "name": "r7v_running_with_pending_runs",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is True"
+ },
+ {
+  "name": "r7v_stopped_no_pending_runs",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is not None and rec.tracker.pending is None"
+ },
+ {
+  "name": "r8f_reader_alias_deleted",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "Reader = Callable[[], tuple[float | None, float | None, float | None, bool]]",
+  "new": "pass"
  }
 ]
 ```
