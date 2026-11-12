@@ -583,6 +583,12 @@ def sweep_settling(check_runs, now: float) -> bool:
 #: re-runs it leaves the red standing, read one poll later.
 SWEEP_SETTLE_POLLS = 1
 
+#: How long after its run_started_at a started ci.yml run at a deferring head is
+#: waited on past `polls`: the longest job ceiling in ci.yml (prelude, 150 min),
+#: one named constant in place of reading each job's timeout-minutes. A wait on
+#: a run past it, or on a queued one, is bounded by `polls` alone (TIMEOUT).
+CODE_RUN_DEADLINE_SECONDS = 150 * 60
+
 
 def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
     """The `classify` subcommand's one read at <sha>, as (exit code, line):
@@ -1851,9 +1857,9 @@ class Train:
         except ValueError:
             return None
 
-    def gate_deferred(self, h: str, red: "list[str]") -> "list[int]":
-        """The ids of the other workflow runs at <h> still unfinished when the
-        only red is GATE, else []. An edit run's gate fails by design while a
+    def gate_deferred_runs(self, h: str, red: "list[str]") -> "list[tuple]":
+        """The (id, status, run_started_at) of the other workflow runs at <h> still
+        unfinished when the only red is GATE, else []. An edit run's gate fails by design while a
         code run at the same head is unfinished ("still being judged; their
         gate decides", gate.py `deferral`), and that run's own gate check-run
         does not exist until every unit finishes (ci.yml: gate needs
@@ -1863,16 +1869,36 @@ class Train:
         stands, today's skip); `wait_ci`'s polls bound the wait."""
         if red != [GATE]:
             return []
-        code, o = self.run(["gh", "api", "--paginate", "--jq", ".workflow_runs[] | [.id, .status] | @tsv",
+        code, o = self.run(["gh", "api", "--paginate", "--jq", ".workflow_runs[] | [.id, .status, .run_started_at] | @tsv",
                             f"repos/{self.repo}/actions/runs?head_sha={h}&per_page=100"])
         if code:
             return []
         out = []
         for ln in o.splitlines():
-            rid, _, st = ln.partition("\t")
+            rid, _, rest = ln.partition("\t")
+            st, _, started = rest.partition("\t")
             if rid.strip().isdigit() and st.strip() not in ("completed", "action_required", ""):
-                out.append(int(rid))
+                out.append((int(rid), st.strip(), started.strip()))
         return sorted(out)
+
+    def gate_deferred(self, h: str, red: "list[str]") -> "list[int]":
+        """The ids of `gate_deferred_runs`."""
+        return [r[0] for r in self.gate_deferred_runs(h, red)]
+
+    def _sibling_in_deadline(self, rows) -> bool:
+        """Whether a deferral's deciding run is STARTED (in_progress) and still
+        inside CODE_RUN_DEADLINE_SECONDS of its run_started_at: such a wait is
+        bounded by that run's own deadline, not by `polls` (#3398 ran 5863 s and
+        concluded success; polls=24 is ~5832 s). A run still queued, past its
+        deadline, or with no readable start keeps the polls bound."""
+        for _rid, st, started in rows:
+            try:
+                t0 = datetime.datetime.fromisoformat(started.replace("Z", "+00:00")).timestamp()
+            except (ValueError, AttributeError):
+                continue
+            if st == "in_progress" and 0 <= self.wall() - t0 <= CODE_RUN_DEADLINE_SECONDS:
+                return True
+        return False
 
     def _gate_busy(self, h: str, check_runs) -> list:
         """gate_busy at <h> from one ci.yml runs listing by head sha. An
@@ -1931,7 +1957,10 @@ class Train:
         graced = False
         held: list = []
         settle = 0
-        for k in range(1, self.polls + 1):
+        k, deferring, last_def = 0, [], 0
+        while k < self.polls or (last_def and not deferring and k <= last_def + 2) or self._sibling_in_deadline(deferring):
+            k += 1
+            deferring = []
             runs = self._check_runs(h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
@@ -1953,7 +1982,10 @@ class Train:
                     state = classify(last, only, busy)
                 _, pending, red = state
                 if not pending:
-                    sib = self.gate_deferred(h, red)
+                    rows = self.gate_deferred_runs(h, red)
+                    sib = [r[0] for r in rows]
+                    deferring = rows
+                    last_def = k if rows else last_def
                     if sib:
                         graced = True
                     elif graced and red == [GATE]:
@@ -6268,10 +6300,13 @@ def _gate_race_self_test(check) -> None:
         calls_sb: list = []
         return run, calls, calls_sb
 
-    def wait(checks, sibs, polls=4):
+    NOW = 1_800_000_000.0
+
+    def wait(checks, sibs, polls=4, wall=None):
         run, calls, calls_sb = world(checks, sibs)
         with tempfile.TemporaryDirectory() as d:
-            t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls)
+            t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls,
+                      wall=wall or (lambda: NOW))
             return t.wait_ci(H, only=[GATE]), calls_sb
     busy = "42237558473\tin_progress\n42237558635\tcompleted\n"
     done = "42237558473\tcompleted\n42237558635\tcompleted\n"
@@ -6281,6 +6316,22 @@ def _gate_race_self_test(check) -> None:
           "not returned red (the #3248 scene)", red == [])
     red, _ = wait([[edit_gate]], [busy], polls=3)
     check("a sibling run that never finishes ends as TIMEOUT, bounded by the polls", red == ["TIMEOUT"])
+    def iso(ago):
+        return datetime.datetime.fromtimestamp(NOW - ago, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    started = lambda st, ago: f"42237558473\t{st}\t{iso(ago)}\n"
+    red, sb = wait([[edit_gate]] * 8 + [[rerun_green, code_gate]],
+                   [started("in_progress", 5000)] * 7 + [done], polls=3)
+    check("carry 4 (1): a STARTED sibling run inside its deadline is waited on past `polls` (#3398: 5863 s, "
+          "polls=24 is ~5832 s), not TIMEOUT", red == [] and len(sb) > 3)
+    red, _ = wait([[edit_gate]], [started("queued", 5000)], polls=3)
+    check("carry 4 (1) null: a QUEUED sibling keeps the polls bound (TIMEOUT)", red == ["TIMEOUT"])
+    red, sb = wait([[edit_gate]], [started("in_progress", CODE_RUN_DEADLINE_SECONDS + 60)], polls=3)
+    check("carry 4 (1) null: a started sibling past its deadline keeps the polls bound (TIMEOUT)",
+          red == ["TIMEOUT"] and len(sb) == 3)
+    tick = iter(range(10 ** 6))
+    red, sb = wait([[edit_gate]], [started("in_progress", 5000)], polls=3, wall=lambda: NOW + 600 * next(tick))
+    check("carry 4 (1): a started sibling that never finishes ends at its deadline as TIMEOUT, never unbounded "
+          "(the wall advances 600 s a read)", red == ["TIMEOUT"] and 3 < len(sb) < 40)
     red, sb = wait([[edit_gate]], [done])
     check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
           red == [GATE] and len(sb) == 1)
