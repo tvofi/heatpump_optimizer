@@ -23024,7 +23024,7 @@
     "From 3461, body item d088605d: The heated gate is decided per set-point unit, and on a water unit it compares the inlet with the commanded set-point, which `_flow_target` keeps at or above the inlet plus the minimum lift up to the heating ceiling: a hot water to space switch there counts only with the return `HEATED_MARGIN_K` over that ceiling (the section's return and flow rows, one each side of the bound). On the indoor unit every switch after a source leg of `SOURCE_LEG_MIN_S` counts. So evidence accrues at different rates per unit, and a part reading n must not assume otherwise. Controls: `r3_unit_gate_dropped` and `r3_unit_gate_inverted`. Re-measure with the section at that part's merge base. In the design note's \"Part A as built\"; owed to the same brief. Carry: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B (items d088605d)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
