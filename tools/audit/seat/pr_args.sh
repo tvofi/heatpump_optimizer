@@ -1546,7 +1546,10 @@ r=0
 [ ! -e "$STUB_DIR/hostfail" ] || { echo "  FAIL a tool this host lacks (got 127, wanted 0)"; r=1; }
 git ls-files >/dev/null 2>&1 || { echo "  FAIL the tree this run reads is gone"; r=1; }
 [ ! -e crash ] || exit 2
-while read -r f; do [ "$(tail -n 1 "$f")" != "# BROKEN" ] || { echo "  FAIL $f reads broken"; r=1; }; done < <(git ls-files)
+[ "${PYTHONPATH:-}" = tests/hastub ] || { echo "  FAIL not run the way prepr runs its self-test"; r=1; }
+while read -r f; do [ "$(tail -n 1 "$f")" != "# BROKEN" ] || { echo "  FAIL $f reads broken" >&2; r=1; }; done < <(git ls-files)
+# a tree above main prints the host's row twice: one set of rows, not one text
+[ ! -e "$STUB_DIR/hostfail" ] || [ "$(wc -l < README.md)" -le 1 ] || echo "  FAIL a tool this host lacks (got 127, wanted 0)"
 echo "self-test: rc $r"; exit $r
 STUB
   # The inputs are prepr's own enumeration, its function evaluated from its text at this checkout:
@@ -1635,14 +1638,14 @@ STUB
   # What cannot be measured is the head's: each arm's mutant turns its `|| return 1` into `|| return 0`
   # (the handoff review's mutdiffread, on the line that then read the diff, survived).
   bad=0000000000000000000000000000000000000001
-  ! hr - "$hrroot" "$hrmain"; r=$?; hr ret:hosthead "$hrroot" "$hrmain"
-  ck "host_refusal: a head whose tree holds no self-test is not measured, so the head's; mutant ret:hosthead calls it the host's" $(( r || $? ))
-  rm -rf "$hrc"; ! hr - "$hclean" "$hrroot"; r=$?; rm -rf "$hrc"; hr ret:hostmain "$hclean" "$hrroot"
-  ck "host_refusal: a main whose tree holds no self-test is not measured, so the head's; mutant ret:hostmain calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$hrroot" "$hrmain" && [ -z "$(ls "$hrc")" ]; r=$?; hr ret:hosthead "$hrroot" "$hrmain"
+  ck "host_refusal: a head whose tree holds no self-test is not measured, so the head's, and main is not run for it; mutant ret:hosthead calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$hclean" "$hrroot" && [ -z "$(ls "$hrc")" ]; r=$?; rm -rf "$hrc"; hr ret:hostmain "$hclean" "$hrroot"
+  ck "host_refusal: a main whose tree holds no self-test is not measured, so the head's, and no answer is kept for it; mutant ret:hostmain calls it the host's" $(( r || $? ))
   rm -rf "$hrc"; ! hr - "$hrroot" "$hrroot"; r=$?; rm -rf "$hrc"; hr ret:signone "$hrroot" "$hrroot"
   ck "host_refusal: no self-test on either tree is no agreement; mutant ret:signone reads two unrun steps as one failure" $(( r || $? ))
-  rm -rf "$hrc"; ! hr - "$bad" "$bad"; r=$?; rm -rf "$hrc"; hr ret:sigtree "$bad" "$bad"
-  ck "host_refusal: no tree at either sha is no agreement; mutant ret:sigtree reads two missing trees as one failure" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$bad" "$bad" && [ -z "$(ls "$hrc")" ]; r=$?; rm -rf "$hrc"; hr ret:sigtree "$bad" "$bad"
+  ck "host_refusal: no tree at either sha is no agreement, and the directory made for one is removed; mutant ret:sigtree reads two missing trees as one failure" $(( r || $? ))
   rm -rf "$hrc"; printf 'x\n' > "$t/hr/blocked"; hrc=$t/hr/blocked
   ! hr - "$hclean"; r=$?; hr ret:hostdir "$hclean"
   ck "host_refusal: a cache directory that cannot be made measures nothing, so the head's; mutant ret:hostdir calls it the host's" $(( r || $? ))
