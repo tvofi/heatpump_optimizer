@@ -1,18 +1,17 @@
-17
-fast (3.14)
-browser
-briefs
-closure-scope
-closures
-typing
-hassfest
-validate-hacs
-policy-docs
-wave-script
-pr-contract
-env-matrix
 Analyze (actions)
 Analyze (javascript-typescript)
 Analyze (python)
-mutation
+briefs
+browser
 budget-raise-gate
+closure-scope
+closures
+env-matrix
+fast (3.14)
+hassfest
+mutation
+policy-docs
+pr-contract
+typing
+validate-hacs
+wave-script

@@ -1,0 +1,6 @@
+    main(sys.argv[1], sys.argv[2])
+         ~~~~~~~~^^^
+IndexError: list index out of range
+---
+ENTRIES 18 PRS 14
+harness_headers rows: 4

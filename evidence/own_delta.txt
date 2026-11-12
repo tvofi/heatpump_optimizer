@@ -1,0 +1,7 @@
+reviewed: 23d7ac26f4d64451839c64d83565e961428bbac4
+head: 7033a7e40a3af1d1b8f06ebaf060b073748b561c
+(empty above = CENSUS.md and main_reds.py unchanged)
+ .../rounds/round10/protection-census/CENSUS.md     | 73 ++++++++++++++++++++++
+ .../rounds/round10/protection-census/main_reds.py  | 11 ++++
+ dev/programme/delivery/3503.md                     |  1 +
+ 3 files changed, 85 insertions(+)
