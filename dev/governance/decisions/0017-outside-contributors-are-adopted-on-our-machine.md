@@ -89,6 +89,26 @@ approvals remain in our machinery even for such PRs."*
    autofix jobs and `mutation-pins` require a same-repository head); a held
    fork run is approved by `hpo-runs` after a read of the diff.
 
+## Before the first allowlist entry
+
+Two checks need the owner's credential and a fork, which the building seat did
+not hold. Neither changes the code; both are owed before an entry is added:
+
+- **The live check.** Post one mandated class-O approval on a test fork head
+  with `outside.py approve`, read from the API which `commit_id` it reports
+  before and after our main merge, and take one adopted verdict through
+  `bus.sh adopt`, `confirm` and `app_approve.sh` end to end. The class-O check
+  admits the review on the commit it read, on the head, and on a commit that
+  carries between them, so every answer GitHub can give is covered; the check
+  records which one it gave.
+- **The account behind `secrets.CLOSURES_PUSH_TOKEN`.** It is the one workflow
+  secret that is neither an App credential nor the Actions token. The tree
+  shows where it goes: the three autofix jobs (same-repository heads only),
+  `merge-main.yml` (main only), and the reusable Tests call, where GitHub
+  withholds secrets from a fork's run. If it authenticates the owner's
+  account, class O's account read rests on that withholding; the owner names
+  the account.
+
 ## Owner defaults this record takes
 
 His approving review of this record is his ruling on each:

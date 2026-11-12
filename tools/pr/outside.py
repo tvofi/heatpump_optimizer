@@ -872,12 +872,13 @@ def self_test() -> int:
     tmp = tempfile.mkdtemp(prefix="outside-selftest-")
     cwd = os.getcwd()
     try:
-        env = dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_SYSTEM=os.devnull)
+        sys.path.insert(0, str(ROOT / "tests"))
+        from throwaway_git import throwaway_git_init  # the one hermetic way to build a repository
+        env = throwaway_git_init(tmp, "-q", "-b", "main")
 
         def tg(*a):
             return subprocess.run(["git", "-C", tmp, "-c", "user.name=t", "-c", "user.email=t@t", *a], capture_output=True, text=True, env=env)
 
-        tg("init", "-q", "-b", "main")
         Path(tmp, "f.txt").write_text("one\n")
         tg("add", "-A"); tg("commit", "-q", "-m", "c")
         os.chdir(tmp)
