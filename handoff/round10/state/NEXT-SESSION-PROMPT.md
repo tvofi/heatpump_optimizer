@@ -33,16 +33,20 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-PREP (stage in-progress, branch `fix/r10-closeout-prep`): `git fetch origin fix/r10-closeout-prep && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-DUTY-SWITCH-RESTART-LEARNING (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-DUTY-SWITCH-RESTART-LEARNING (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-CHARGE-SETTLE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ECL110-MQTT-OFF-NEUTRAL (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-DUTY-SWITCH-RESTART-LEARNING-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-DUTY-SWITCH-PLANNER-PRICE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-MODE-BEFORE-SUPPLY-ON (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-TICK-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-RELAY-ARM-ORDER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-STALE-STEP (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-OPENER-UNBLOCK (stage in-progress): no branch pushed yet, so nothing to fetch
