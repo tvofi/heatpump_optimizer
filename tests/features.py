@@ -82932,18 +82932,22 @@ R.check(
 )
 
 
-def _ds_wrapped(readings, writes_at=0.0, defrost_from=None):
+def _ds_wrapped(readings, writes_at=0.0, defrost_from=None, before=()):
     """Through the record: (seconds after the write, frequency Hz) readings, a pass every 15 s to 600 s.
 
-    The signal reads running ten minutes before the write unless the first reading says otherwise; a defrost
-    reads on from the pass at ``defrost_from`` seconds when given; returns (episode opened at the write,
-    stopped, kept, void, off times) for hot water to heating."""
+    The signal reads running ten minutes before the write unless the first reading says otherwise; ``before``
+    holds (seconds before the write, frequency Hz) readings taken after the settling pass with no pass between
+    them and the write; a defrost reads on from the pass at ``defrost_from`` seconds when given; returns
+    (episode opened at the write, stopped, kept, void, off times) for hot water to heating."""
     rec = _ds_mod._Record(None, _DsSaves())
     rec.loaded = True
     hz = [readings[0][1]]
     rec.reader = lambda: (hz[0], None, None, True)
     _ds_mod.note_signal(rec, _DS_T0 - timedelta(minutes=10))
     _asyncio.run(_ds_mod.note_pass(rec, _DS_T0 - timedelta(minutes=5), _ds_ctx(None)))
+    for lead, value in before:
+        hz[0] = value
+        _ds_mod.note_signal(rec, _DS_T0 - timedelta(seconds=lead))
     ctx = _ds_ctx(_DS_T0)
     _ds_mod.note_mode_write(rec, _DS_T0 + timedelta(seconds=writes_at), _DS_DHW, _DS_HEAT, ctx)
     opened = rec.learner.episode is not None
@@ -82988,6 +82992,20 @@ R.check(
     and _ds_wrapped([(0, 0.0), (60, 50.0)]) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, []),
     f"{_ds_wrapped([(0, 0.0)])} {_ds_wrapped([(0, 0.0), (60, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
+)
+# A start read inside the debounce before the write is still pending at it; the compressor is settled stopped.
+_DS_START_LEAD = 10.0
+R.check(
+    "through duty_switch.note_mode_write, a mode write while the compressor is settled stopped and a start read "
+    "inside the debounce before it is still pending opens nothing and books nothing, whether the start holds "
+    "or reads zero again 15 s after the write (only a settled running compressor is evidence); null control, "
+    "the same passes with the compressor settled running at the write book it kept",
+    _ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
+    and 0.0 < _DS_START_LEAD < _ds_mod.wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
+    f"{_ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)])} "
+    f"{_ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
 )
 # A stop read 60 s after the write is confirmed by the pass one debounce later, on a clean context.
 _DS_CONFIRM_AT = 60 + _ds_mod.wear.EDGE_DEBOUNCE_S
