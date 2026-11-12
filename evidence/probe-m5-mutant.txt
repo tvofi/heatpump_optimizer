@@ -1,0 +1,3 @@
+page1 red required gate, page2 green gate rerun: ('green', '1 required gate run(s) pass')
+page1 non-gate required ctx, page2 green gate: ('green', '1 required gate run(s) pass')
+control: both on one walk, gate red on page2: ('red', '1 of 1 required gate run(s) concluded FAILURE')
