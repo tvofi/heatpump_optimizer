@@ -1,0 +1,10 @@
+A drop the call in land: KILLED rc=1 ['merge_train self-test: 661 checks, 2 failed'] ['FAIL stamp hold: a live hold logs STAMP-HOLD and waits, and the merge runs only after it clears', "FAIL stamp hold: a hold past the age bound is a dead holder's, taken over, and the merge runs"]
+B drop `if not self.real: return`: KILLED-by-timeout (hang)
+C age bound >= -> >: SURVIVED rc=0 ['merge_train self-test: 661 checks, 0 failed'] []
+D take-over keeps waiting (no return): KILLED rc=-9 ['  ok   stamp hold: null control, no hold runs the merge as today with no wait'] []
+E future-dated hold read as its (negative) age: SURVIVED rc=0 ['merge_train self-test: 661 checks, 0 failed'] []
+F drop the poll sleep: KILLED-by-timeout (hang)
+G drop the wait log: KILLED rc=1 ['merge_train self-test: 661 checks, 1 failed'] ['FAIL stamp hold: a live hold logs STAMP-HOLD and waits, and the merge runs only after it clears']
+H drop the take-over log: KILLED rc=1 ['merge_train self-test: 661 checks, 1 failed'] ["FAIL stamp hold: a hold past the age bound is a dead holder's, taken over, and the merge runs"]
+J future-dated hold treated as live (age 0): SURVIVED rc=0 ['merge_train self-test: 661 checks, 0 failed'] []
+finished

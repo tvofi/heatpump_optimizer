@@ -1,0 +1,34 @@
+    def stamp_hold_wait(self) -> None:
+        """Before a merge attempt: wait while a stamp holds main (STAMP-HOLD).
+        A hold at or past STAMP_HOLD_MAX_AGE_S is a dead holder's: taken over
+        and logged, not deleted. Only a real train (it merges into main) waits."""
+        while True:
+            age = self.stamp_hold_age()
+            if age is None:
+                return
+            if age >= STAMP_HOLD_MAX_AGE_S:
+                self.log(f"STAMP-HOLD taken over: {STAMP_HOLD_REF} is {int(age)}s old, past "
+                         f"{STAMP_HOLD_MAX_AGE_S}s; its holder is dead")
+                return
+            self.log(f"STAMP-HOLD: a stamp is running ({int(age)}s old); no merge until it exits")
+            self.sleep(STAMP_HOLD_POLL_S)
+
+    def unwind(self) -> None:
+# THE RECORD-BEAT HOLD (R10-TRAIN-HOLD, issue #2302). CI cannot see this
+# process's pidfile, and the record beat in nightly.yml auto-merges record pull
+# requests on its own schedule: #2291, #2295 and #2299 each landed mid-train
+# on 2026-10-15 and stopped or re-carried #2284 and #2290. A real run
+# publishes this ref while it is live and deletes it at its closing line; the
+# beat skips while the ref is younger than its own HOLD_MAX_AGE_S and treats
+# an older one as stale, so a crashed train cannot block records forever. The
+# ref points at a commit created at publication, whose committer date is the
+# age the beat reads; it is refreshed at the start of every queue item, before
+# every recarry, and before every sleep inside wait_ci, so the age is the last
+# REFRESH's, not the run's, and the beat's bound prices that gap -- one phase
+# (a recarry or a poll), never a whole CI wait and never a whole batch. A
+# `batch/` rehearsal publishes nothing: it merges nothing into main.
+HOLD_REF = "refs/heads/train-hold"
+956:STAMP_HOLD_MAX_AGE_S = 7200
+957:STAMP_HOLD_POLL_S = 30
+1084:          # = 240 s), never a whole wait or a whole batch. HOLD_MAX_AGE_S=3600
+1099:          HOLD_MAX_AGE_S=3600
