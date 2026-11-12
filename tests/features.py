@@ -87176,6 +87176,11 @@ R.check(
     and _dsp_dl.space_headroom(6.0, np.array([5.5, 7.0]), np.array([1.0, 0.5]), None).tolist()
     == [0.5, 0.0],
 )
+R.check(
+    "a pump under 1 kW weighs its switch like any other: p x draw / p_max at "
+    "a maximum draw of 0.5 kW",
+    _dsp_dl.switch_weight(np.array([0.0, 0.4]), np.array([0.4, 0.0]), (1.0, 0.0), 0.5) == 0.8,
+)
 
 
 def _dsp_obj_a(*_a, **_k):
@@ -87700,10 +87705,10 @@ R.check(
     and _dsp_g_low_on_ban[0] is _dsp_g_incumbent and _dsp_g_low_on_ban[3] == 0,
     f"{_dsp_g_low_on_ban[3]} solve(s)",
 )
-_dsp_g_tie = _dsp_g_run(-5e-10, shortfall=lambda *a: (None, np.zeros(96), None))
+_dsp_g_tie = _dsp_g_run(-1e-9, shortfall=lambda *a: (None, np.zeros(96), None))
 R.check(
-    "a candidate lower by less than the 1e-9 margin is a tie: refused after "
-    "its solve, as _co_optimize refuses its own",
+    "a candidate lower by exactly the 1e-9 margin, and so by no more than "
+    "it, is a tie: refused after its solve, as _co_optimize refuses its own",
     _dsp_g_tie[0] is _dsp_g_incumbent and _dsp_g_tie[3] == 1
     and _dsp_g_tie[1] is _dsp_leg_req and _dsp_g_tie[2] is _dsp_g_avail,
     f"{_dsp_g_tie[3]} solve(s)",
