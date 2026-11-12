@@ -1716,6 +1716,25 @@
    "objects": false,
    "git": []
   },
+  "figure-block": {
+   "run_sha": "7295269b8e4ede5ee5449b86ec2276c56cbd36e12d6e4d0de3373e49703b1cc9",
+   "files": [
+    "tests/throwaway_git.py",
+    "tools/pr/figure_block.py"
+   ],
+   "probes": [
+    ".",
+    "tests",
+    "tools",
+    "tools/pr"
+   ],
+   "dirs": [
+    "tests"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "figure-census": {
    "run_sha": "740c9b07ed8530eb237326010160ac6b0a36a741f8dd09a41ce91c3a78aaacb7",
    "files": [
@@ -2711,6 +2730,7 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
     "objects",
@@ -3897,6 +3917,7 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
     "objects",
@@ -3973,6 +3994,7 @@
    "files": [
     ".claude/hooks/**",
     ".claude/settings.json",
+    ".gitattributes",
     ".github/workflows/**",
     ".gitignore",
     "CLAUDE.md",
@@ -3991,6 +4013,7 @@
     "tests/card_drift.mjs",
     "tests/closure.py",
     "tests/closures.json",
+    "tests/env_drift.py",
     "tests/gate_lock.py",
     "tests/harness_headers.py",
     "tests/layout.json",
@@ -4009,6 +4032,7 @@
     "tools/audit/seat/review_packet.py",
     "tools/audit/seat/roster_lib.py",
     "tools/audit/worktree_gc.sh",
+    "tools/merge/ledger_merge.py",
     "tools/policy/brief_lint.mjs",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/counts.mjs",
@@ -4730,6 +4754,7 @@
     "?",
     "add",
     "archive",
+    "branch",
     "cat-file",
     "checkout",
     "clone",
@@ -5096,6 +5121,7 @@
     "custom_components/heatpump_optimizer/services.yaml",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/policy_budgets.json",
+    "dev/governance/roles/fix-review.md",
     "dev/programme/carries/**",
     "dev/programme/rosters/wave-r10-groups.json",
     "tests/card_drift.mjs",
@@ -5695,6 +5721,7 @@
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/remerge_main.sh",
+    "tools/audit/seat/remerge_main_selftest.py",
     "tools/audit/seat/replay_draws.py",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/review_carry.py",
@@ -6705,6 +6732,7 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
     "objects",
@@ -6749,6 +6777,7 @@
     "custom_components/heatpump_optimizer/services.yaml",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/policy_budgets.json",
+    "dev/governance/roles/fix-review.md",
     "dev/programme/carries/**",
     "dev/programme/rosters/wave-r10-groups.json",
     "tests/card_drift.mjs",
