@@ -274,6 +274,7 @@ merge bot PRs automatically"; run and batch):
 from __future__ import annotations
 
 import argparse
+import ast
 import contextlib
 import datetime
 import fcntl
@@ -5647,6 +5648,7 @@ def _self_test() -> int:
     _git_retry_self_test(check)
     _review_settle_self_test(check)
     _gate_race_self_test(check)
+    _gate_reader_barrier_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
     _batch_self_test(check)
@@ -6346,6 +6348,58 @@ def _gate_race_self_test(check) -> None:
         r = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
                   polls=3).wait_ci(H, only=["fast"])
     check("a failed unit beside an unfinished sibling is final: only the gate defers", r == ["fast"] and not sb)
+
+
+#: P436's barrier. Every reader of the required gate's conclusion goes through
+#: `classify` with its `busy` argument (Train.classify_at, wait_ci) or through
+#: the `classify` subcommand; a call of `classify` with NO busy argument is a
+#: deferral-blind read, and these are the only ones in the reader modules. The
+#: key is (module, enclosing function); the count pins the number of calls, so
+#: a second blind read inside a registered function reddens too.
+BLIND_CLASSIFY_READERS = {
+    ("merge_train.py", "approval_owed"): (1, "re-reads a head whose approval is owed: a deferral there is the policy gate's, not this read's"),
+    ("merge_train.py", "Train.classify_at"): (1, "the first read of the two-step: a red GATE is re-read against busy/sweep right after"),
+    ("merge_train.py", "Train.wait_ci"): (1, "the first read of the poll: a red GATE is re-read against busy right after"),
+    ("merge_train.py", "Train.main_green"): (1, "main's tip: a push to main runs the full code run, no edit-run deferral exists there"),
+    ("orchestrator_tick.py", "Tick._classify_reading"): (1, "the fallback when classify_at cannot run: a red stays red (fail closed)"),
+}
+
+
+def blind_classify_readers(text: str) -> dict:
+    """{enclosing function: count} of `classify(...)` calls in <text> with fewer
+    than three arguments (no `busy`), outside any self-test function."""
+    out: dict = {}
+
+    def walk(n, fn):
+        for c in ast.iter_child_nodes(n):
+            nf = fn + [c.name] if isinstance(c, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) else fn
+            if isinstance(c, ast.Call):
+                f = c.func
+                nm = f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else ""
+                if nm == "classify" and len(c.args) + len(c.keywords) < 3 and not any("self_test" in x for x in fn):
+                    out[".".join(fn) or "<top>"] = out.get(".".join(fn) or "<top>", 0) + 1
+            walk(c, nf)
+    walk(ast.parse(text), [])
+    return out
+
+
+def _gate_reader_barrier_self_test(check) -> None:
+    seat = ROOT / "tools/audit/seat"
+    found = {}
+    for mod in ("merge_train.py", "orchestrator_tick.py", "review_packet.py", "proof_watch.py"):
+        for fn, n in blind_classify_readers((seat / mod).read_text()).items():
+            found[(mod, fn)] = n
+    want = {k: v[0] for k, v in BLIND_CLASSIFY_READERS.items()}
+    check("P436 barrier: the deferral-blind `classify` readers in the reader modules are exactly the registered "
+          f"ones (a new blind read of the gate conclusion reddens this) -- {sorted(set(found) ^ set(want))}",
+          found == want)
+    check("P436 barrier null: a new function reading `classify(latest, req)` is a blind reader the registry does not hold",
+          blind_classify_readers("def f():\n    return classify(l, r)\n") == {"f": 1}
+          and blind_classify_readers("def f():\n    return classify(l, r, busy)\n") == {}
+          and blind_classify_readers("def _x_self_test():\n    classify(l, r)\n") == {})
+    sh = (seat / "merge_pr.sh").read_text()
+    check("P436 barrier: merge_pr.sh's raw latest-check red read is followed by a classify WAIT-wait before RED",
+          sh.index('conclusion=="failure"') < sh.index("merge_train.py} classify") < sh.index('echo "RED: $red"'))
 
 
 def _review_settle_self_test(check) -> None:
