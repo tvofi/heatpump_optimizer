@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-12T09:57:47+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-12T11:00:15+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 3 / 1.0 | 24 / 24.0 |
+| roster groups closed vs takt | 0 / 1.0 | 24 / 24.0 |
 | fly-ins closed | 0 | 0 |
-| main moves: group-carrying / record / roster-edit / fly-in | 5 / 0 / 0 / 0 | 36 / 4 / 0 / 0 |
-| first-pass fix-review yield | 0/0 (-) | 21/42 (0.50) |
-| blocked-class mix | none | body-not-applied:1, carry-dismissal-unsupported:1, carry-missing:3, class-open:5, harness:3, harness-vacuous:1, mutation-survivor:1, mutation-vacuous:10, null-control-leak:1, part-topic-collision:1, regression:1, regression-unmeasured:1, root-cause-unanswered:3, scope-overlap:1, trace-gap:1 |
-| lead time per size (h, n/p50/max) | L n=1 p50=23.58 max=23.58; M n=1 p50=31.49 max=31.49; S n=3 p50=20.31 max=24.09 | L n=3 p50=19.22 max=23.58; M n=11 p50=15.77 max=105.45; S n=22 p50=14.13 max=25.71 |
+| main moves: group-carrying / record / roster-edit / fly-in | 3 / 0 / 0 / 0 | 39 / 4 / 0 / 0 |
+| first-pass fix-review yield | 2/2 (1.00) | 21/41 (0.51) |
+| blocked-class mix | none | body-not-applied:1, carry-dismissal-unsupported:1, carry-missing:3, class-open:4, harness:3, harness-vacuous:1, mutation-survivor:1, mutation-vacuous:9, null-control-leak:1, part-topic-collision:1, regression:1, regression-unmeasured:1, root-cause-unanswered:3, scope-overlap:1, trace-gap:1 |
+| lead time per size (h, n/p50/max) | L n=1 p50=3.80 max=3.80; M n=1 p50=33.37 max=33.37; S n=1 p50=28.30 max=28.30 | L n=4 p50=19.22 max=23.58; M n=12 p50=17.45 max=105.45; S n=23 p50=14.52 max=28.30 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 43 | 6 | 0 |
+| 1 | 44 | 6 | 0 |
 
 ## Rules
 
