@@ -4238,6 +4238,8 @@
    "dev/audit/harnesses/r10_sav_null_settled.py",
    "dev/audit/harnesses/r10_sav_null_terms.py",
    "dev/audit/harnesses/r10_sav_receipt_render.py",
+   "dev/audit/harnesses/r10_sav_residual_attribution.py",
+   "dev/audit/harnesses/r10_sav_valuation_residue.py",
    "dev/audit/harnesses/r10_sav_volume.py",
    "dev/audit/harnesses/r10_sav_wood_reference.py",
    "dev/audit/harnesses/r10_savings_upgrade_month.py",
