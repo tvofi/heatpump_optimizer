@@ -894,6 +894,8 @@ def hysteresis_checks() -> None:
           lambda: list(drop(plan, np.where(np.arange(8) == 2, 56.0, 51.0), temps_of))
           == [1, 0, 1, 1, 0, 0, 0, 0])
     check("dropping unstartable charges does not mutate its input", lambda: np.array_equal(plan, kept))
+    check("a run at the first step is kept on a warm tank, with nothing planned at the horizon's end",
+          lambda: list(drop(np.array([1.0, 0.0, 0.0]), np.full(3, 51.0), temps_of)) == [1, 0, 0])
 
     # 8. The repair loop.
     def raises(_plan):
@@ -935,6 +937,14 @@ def hysteresis_checks() -> None:
           lambda: late_runs(4.0) == 0)
     check("null control: a zero hysteresis plans exactly as none",
           lambda: np.array_equal(solve(0.0)[0], solve(None)[0]))
+
+    def under_floor(hysteresis):
+        # Degree-steps of the simulated tank under the 45 degC minimum.
+        return float(np.clip(45.0 - solve(hysteresis)[1], 0.0, None).sum())
+
+    check("what the start condition bars is re-bought where the pump starts: the tank is no further "
+          "under its minimum with a 4 K hysteresis than with none",
+          lambda: under_floor(4.0) <= under_floor(None) + 0.5)
 
     # 10. The ledger.
     def held_row(snap):

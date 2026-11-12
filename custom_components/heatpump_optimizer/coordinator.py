@@ -6735,10 +6735,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # DHW, 40 °C buffer) reached every solve otherwise (D12-s1-01).
         dhw = reader.read(CONF_DHW_TEMP_ENTITY)
         buffer_reading = reader.read(CONF_BUFFER_TANK_TEMP_ENTITY)
-        plan, seeded_at = self._optimization_result, dt_util.now()
         if dhw.ok:
             self._dhw_temperature = dhw.value
-        level, buffer_level = tank_levels(_ctx_of(self)._thermal_params.combi_tank_active, dhw, buffer_reading, plan, seeded_at)
+        combi = _ctx_of(self)._thermal_params.combi_tank_active
+        level, buffer_level = tank_levels(combi, dhw, buffer_reading, self._optimization_result, dt_util.now())
         state.dhw_temperature = state.dhw_temperature if level is None else level
         state.buffer_tank_temperature = state.buffer_tank_temperature if buffer_level is None else buffer_level
         state.dhw_start_hysteresis_k, state.space_start_hysteresis_k = start_hysteresis_k(self.hass, _ctx_of(self)._config)
