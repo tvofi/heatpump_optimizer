@@ -484,6 +484,13 @@ jobs:
         if: steps.scope.outputs.bottleneck-alert == 'true'
         run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
 
+      # The convergence scorecard's ten report-only lines: each rule held to its
+      # null control over planted inputs, offline, and one mutant per predicate.
+      - name: Show the scorecard holding each of its ten lines to its null control
+        id: scorecard
+        if: steps.scope.outputs.scorecard == 'true'
+        run: python3 -I tools/audit/seat/scorecard.py --self-test
+
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.
@@ -491,6 +498,14 @@ jobs:
         id: field-coverage
         if: steps.scope.outputs.field-coverage == 'true'
         run: if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs --self-test; else node tools/policy/field_coverage.mjs --self-test; fi
+
+      # The product page's illustrative day (R10-PRODUCT-PAGE-REDESIGN): the toy
+      # planner's invariants, which tests/doc_claims.py also runs beside the
+      # page comparison whenever a diff reaches the page or the generator.
+      - name: Show the product page's day generator holding its planner invariants
+        id: day-chart
+        if: steps.scope.outputs.day-chart == 'true'
+        run: node tools/site/day_chart.mjs --self-test
 
       # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
       # well-formed comment object (#541 comment 5625671141). The countermeasure

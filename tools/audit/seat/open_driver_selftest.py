@@ -212,9 +212,22 @@ def run():
     sd, w = world(upd, heads=heads)
     go(sd, w, upd)
     check("null: handoff-update / body line ignored", w.launched == [])
+    # OPENER-LIVE-TIP (P603): the board is rewritten once per relay pass, so a
+    # line can name a handoff sha origin has since moved past. The candidate
+    # checks re-run at origin's live tip; only an absent tip is `moved`.
     sd, w = world("", heads=[("r10-cp", sha("2"))])
     go(sd, w, line("r10-cp", sha("7")))
-    check("moved handoff skipped", w.launched == [])
+    check("live tip: a board line at A with origin's clean tip B opens at B",
+          len(w.launched) == 1 and od._load(sd / "open-driver" / "runs.json", {}).get("r10-cp", {}).get("sha") == sha("2")
+          and f"RETIP r10-cp {sha('7')[:8]} -> {sha('2')[:8]}" in out and not any(o.startswith("SKIP") for o in out))
+    sd, w = world("", heads=[("r10-cp", sha("2"))], landed={sha("2")})
+    go(sd, w, line("r10-cp", sha("7")))
+    check("live tip: the checks run at B, so a landed B is skipped landed, never opened",
+          w.launched == [] and out[-1] == f"SKIP r10-cp {sha('2')[:8]} landed")
+    sd, w = world("", heads=[])
+    go(sd, w, line("r10-cp", sha("7")))
+    check("null: a line whose handoff ref is gone still prints SKIP moved",
+          w.launched == [] and out == [f"SKIP r10-cp {sha('7')[:8]} moved"])
     for tp in ("triage-s9-batch4", "roster-carry-fold"):
         sd, w = world("", ros=roster("ROSTER-CARRY-FOLD", "R10-TRIAGE-S9"), heads=[(tp, sha("2"))])
         go(sd, w, line(tp, sha("2")))
