@@ -152,6 +152,14 @@ async function walk(page) {
     lostAlt.length === 1 && lostAlt[0].startsWith("One optimization interval"), `gone ${JSON.stringify(lostAlt.map(a => a.slice(0, 60)))}`);
 }
 
+/** The 40 px floor's rule, stated once (the header says what it exempts and why). */
+const targetFloor = () => {
+  const inLine = e => getComputedStyle(e).display === "inline" && [...e.parentElement.childNodes].some(n => n.nodeType === 3 && n.data.trim());
+  const all = [...document.querySelectorAll("a[href], button, summary, select, textarea, label:has(input), input:not(label input), [tabindex]")].filter(e => e.getClientRects().length);
+  const held = all.filter(e => !inLine(e));
+  return { targets: held.length, inLine: all.length - held.length,
+    small: held.map(e => { const r = e.getBoundingClientRect(); return [(e.textContent.trim() || e.getAttribute("aria-label") || e.tagName).slice(0, 24), Math.round(r.width), Math.round(r.height)]; }).filter(([, w, h]) => w < 40 || h < 40) };
+};
 // ---- 8: widths x themes; no overflow, no console message, no request beyond the page's own
 for (const width of WIDTHS) for (const theme of THEMES) {
   const { ctx, page, seen } = await open({ viewport: { width, height: 800 }, colorScheme: theme });
@@ -160,14 +168,8 @@ for (const width of WIDTHS) for (const theme of THEMES) {
     sw: document.documentElement.scrollWidth, iw: innerWidth,
     bg: getComputedStyle(document.body).backgroundColor,
     lazy: [...document.images].filter(i => i.getClientRects().length && (!i.complete || !i.naturalWidth)).map(i => i.getAttribute("src")),
-    ...(() => {
-      const inLine = e => getComputedStyle(e).display === "inline" && [...e.parentElement.childNodes].some(n => n.nodeType === 3 && n.data.trim());
-      const all = [...document.querySelectorAll("a[href], button, summary, select, textarea, label:has(input), input:not(label input), [tabindex]")].filter(e => e.getClientRects().length);
-      const held = all.filter(e => !inLine(e));
-      return { targets: held.length, inLine: all.length - held.length,
-        small: held.map(e => { const r = e.getBoundingClientRect(); return [(e.textContent.trim() || e.getAttribute("aria-label") || e.tagName).slice(0, 24), Math.round(r.width), Math.round(r.height)]; }).filter(([, w, h]) => w < 40 || h < 40) };
-    })(),
   }));
+  Object.assign(m, await page.evaluate(targetFloor));
   const paths = seen.requests.map(u => new URL(u)).map(u => (u.origin === ORIGIN ? u.pathname : u.href));
   const foreign = [...new Set(paths.filter(p => !ALLOWED.has(p)))];
   const tag = `${width}px ${theme}`;
@@ -178,6 +180,21 @@ for (const width of WIDTHS) for (const theme of THEMES) {
   check(`8 ${tag}: every image with a box loaded, theme background ${m.bg}`, m.lazy.length === 0 && m.bg === (theme === "dark" ? "rgb(11, 26, 40)" : "rgb(243, 248, 252)"), JSON.stringify(m.lazy));
   check(`floor ${tag}: every target outside a line of text is at least 40 px in both dimensions`, m.small.length === 0 && m.targets > 0,
     `${m.targets} targets held to the floor, ${m.inLine} links in a line of text exempt; under 40 px ${JSON.stringify(m.small)}`);
+  await ctx.close();
+}
+
+// ---- the same floor when the page's fonts do not arrive and the system's own stand in
+for (const width of [360, 1440]) {
+  const ctx = await browser.newContext({ viewport: { width, height: 800 } });
+  const page = await ctx.newPage();
+  let refused = 0;
+  await page.route("**/site/fonts/**", r => { refused++; return r.abort(); });
+  await page.goto(ORIGIN + "/", { waitUntil: "load" });
+  await walk(page);
+  const m = await page.evaluate(targetFloor);
+  const loaded = await page.evaluate(() => [...document.fonts].filter(f => f.status === "loaded").length);
+  check(`floor ${width}px without the page's fonts: every target outside a line of text is at least 40 px in both dimensions`, m.small.length === 0 && m.targets > 0 && refused > 0 && loaded === 0,
+    `${refused} font request(s) refused, ${loaded} font face(s) loaded; ${m.targets} targets held to the floor, ${m.inLine} exempt; under 40 px ${JSON.stringify(m.small)}`);
   await ctx.close();
 }
 
@@ -308,12 +325,12 @@ const withoutFeature = (page, feature) => page.evaluate(feature => {
   [...document.styleSheets].forEach(visit);
   return { dropped, skipped, applied };
 }, feature);
-/** What layout gives every element but the progress line: its display and its untransformed box. */
+/** What layout gives every element but the progress line: its display and its box on the page, read at rest. */
 const layoutOf = page => page.evaluate(async () => {
-  // A reveal in flight carries a transform, and a transformed box is its children's offset parent: read at rest.
+  // A reveal in flight carries a transform: read once every clock-driven animation and transition has finished.
   await Promise.all(document.getAnimations().filter(a => a.timeline instanceof DocumentTimeline && a.playState === "running").map(a => a.finished.catch(() => {})));
   return JSON.stringify([...document.querySelectorAll("body *")].filter(e => !e.closest(".progress") && !(e instanceof SVGElement))
-  .map(e => [getComputedStyle(e).display, e.offsetLeft, e.offsetTop, e.offsetWidth, e.offsetHeight]));
+  .map(e => { const r = e.getBoundingClientRect(); return [getComputedStyle(e).display, ...[r.left + scrollX, r.top + scrollY, r.width, r.height].map(Math.round)]; }));
 });
 for (const width of [1440, 390]) {
   const { ctx, page, seen } = await open({ viewport: { width, height: 800 } });
@@ -357,7 +374,8 @@ for (const width of [1440, 390]) {
     document.querySelectorAll('style, link[rel~="stylesheet"]').forEach(e => e.remove());
     document.querySelectorAll("[style]").forEach(e => e.removeAttribute("style"));
     const top = e => Math.round(e.getBoundingClientRect().top + scrollY);
-    const flow = [...document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, li, legend, figcaption, dt, dd, summary")].filter(e => !e.closest("[hidden], svg, template"));
+    const flow = [...document.querySelectorAll("h1, h2, h3, h4, h5, h6, p, li, legend, figcaption, dt, dd, summary")].filter(e => !e.closest('[role="tabpanel"][hidden], svg, template'));
+    // The script hides the gallery panels that are not selected; nothing else on the page may be without a box.
     const boxless = flow.filter(e => !e.getClientRects().length).length;
     // An element may sit beside its predecessor (a table cell, a list marker's line) but never start above where an earlier one started.
     let back = 0, high = -1, first = "";
@@ -377,8 +395,12 @@ for (const width of [1440, 390]) {
 for (const width of [1440, 360]) {
   const { ctx, page } = await open({ viewport: { width, height: 800 } });
   await page.evaluate(() => { let n = 0; for (const e of document.querySelectorAll("body *")) e.dataset.k = String(n++); });
-  const want = await page.evaluate(() => [...document.querySelectorAll("a[href], button, input, select, textarea, summary, [tabindex]")]
-    .filter(e => e.getClientRects().length && !e.disabled && e.tabIndex >= 0 && !(e.type === "radio" && !e.checked)).map(e => e.dataset.k));
+  // Every displayed control, whatever its tabindex says: only a radio that is not its group's checked one and a tab
+  // that is not its list's tabindex 0 tab are left out, because the group and the list are one stop each.
+  const want = await page.evaluate(() => [...document.querySelectorAll('a[href], button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])')]
+    .filter(e => e.getClientRects().length && !e.disabled
+      && !(e.type === "radio" && !e.checked && document.querySelector(`input[type="radio"][name="${e.name}"]:checked`))
+      && !(e.getAttribute("role") === "tab" && e.tabIndex < 0 && e.closest('[role="tablist"]').querySelector('[role="tab"][tabindex="0"]'))).map(e => e.dataset.k));
   const stops = [], ringless = [], scrollers = [];
   for (let i = 0; i < want.length + 20; i++) {
     await page.keyboard.press("Tab");
