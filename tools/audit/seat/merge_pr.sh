@@ -11,12 +11,49 @@
 # approval says nothing of the raise justification `budget-raise-gate` reads.
 # A draft pull request refuses before anything is posted, unless --ready says
 # to mark it ready first.
+# owner mode never posts on a pull request whose head is a fork's (decision
+# 0017): this approval is given after, and on the basis of, the verdict, which
+# on such a head the contributor's reviewer wrote. Whether a head is
+# cross-repository is tools/pr/outside.py's answer over the pulls API object,
+# asked before the mandate is read; unanswered is a refusal.
 set -uo pipefail
 R=tvofi/heatpump_optimizer
 # The self-test grades this script's own tree; a merge runs from the main checkout.
 if [ "${1:-}" = --self-test ]; then cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
 else cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." || exit 1; fi
 SELF=$PWD/tools/audit/seat/merge_pr.sh
+OUTSIDE=$PWD/tools/pr/outside.py  # never from the environment; the self-test asks this tree's own copy
+
+# Whose head <pr> is, by outside.py's own reading: prints `OURS` (rc 0), or
+# `CROSS-REPOSITORY: <why>` or `REFUSE: <why>` (rc 1). No second definition here.
+head_is_ours() { # <repo> <pr>
+  python3 -I - "$1" "$2" "$OUTSIDE" <<'P'
+import importlib.util, json, subprocess, sys
+repo, pr, path = sys.argv[1:4]
+r = subprocess.run(["gh", "api", f"repos/{repo}/pulls/{pr}"], capture_output=True, text=True)
+try:
+    pull = json.loads(r.stdout) if r.returncode == 0 else None
+except ValueError:
+    pull = None
+if not isinstance(pull, dict) or not isinstance(pull.get("head"), dict):
+    print(f"REFUSE: #{pr} could not be read from the pulls API; an unread head is never taken for ours")
+    sys.exit(1)
+try:
+    spec = importlib.util.spec_from_file_location("outside", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    facts = mod.pull_facts(repo, int(pr), pull)
+    cross = mod.cross_repository(facts, repo)  # outside.py's one definition, never re-typed here
+except Exception as e:  # fail closed: outside.py's answer, or none
+    print(f"REFUSE: {path} could not say whether #{pr}'s head is cross-repository ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})")
+    sys.exit(1)
+if cross:
+    print(f"CROSS-REPOSITORY: #{pr}'s head is {str(facts['head_repo'] or 'a deleted fork')[:80]}'s; owner mode posts nothing there, "
+          "class O is outside.py's approve subcommand from our own read (decision 0017)")
+    sys.exit(1)
+print("OURS")
+P
+}
 
 # The mandate in force now, by the gate's own reading: prints `IN FORCE: <why>`
 # (rc 0) or `REFUSE: <why>` (rc 1). The gate file is the tree's own.
@@ -57,6 +94,7 @@ gates() { # <pr> <mode> <mandate-id> <ready 0|1>
   fi
   [ "$2" = owner ] || return 0
   [[ "$3" =~ ^[0-9]{6,}$ ]] || { echo "MANDATE REQUIRED: owner mode needs --mandate <comment-id> naming the mandate in force on a record issue (got '$3')"; return 1; }
+  HEAD_WHY=$(head_is_ours $R "$1") || { echo "OUTSIDE $HEAD_WHY"; return 1; }
   MANDATE_WHY=$(mandate_in_force $R "$3") || { echo "MANDATE $MANDATE_WHY"; return 1; }
   MANDATE_WHY=${MANDATE_WHY#IN FORCE: }
 }
@@ -92,6 +130,7 @@ case "$*" in
   *isDraft*) echo "${FAKE_DRAFT:-false}" ;;
   *issues/comments/*) [ -n "${FAKE_MANDATE:-}" ] && cat "$FAKE_MANDATE" || { echo "gh: Not Found (HTTP 404)" >&2; exit 1; } ;;
   *issues/[0-9]*/comments*) echo "[[]]" ;;
+  *pulls/[0-9]*) [ -n "${FAKE_PULL:-}" ] && cat "$FAKE_PULL" || { echo "gh: HTTP 502" >&2; exit 1; } ;;
   *check-runs*) cat "$FAKE_RUNS" ;;
   */rerun*) cp "$FAKE_RUNS_AFTER" "$FAKE_RUNS" ;;
   *actions/runs/*) echo "$FAKE_RUN_STATUS" ;;
@@ -99,6 +138,10 @@ case "$*" in
 esac
 G
   chmod +x "$T/gh"
+  # outside.py is part 1's (decision 0017), and the real one is asked: its `pull_facts` reads the pulls object.
+  printf '{"number": 7, "head": {"ref": "fix/x", "repo": {"full_name": "%s"}}}' "$R" > "$T/ours.json"
+  printf '{"number": 7, "head": {"ref": "fix/x", "repo": {"full_name": "contributor/heatpump_optimizer"}}}' > "$T/theirs.json"
+  export FAKE_PULL=$T/ours.json
   mk() { # <from-min> <until-min> [scope] -> a mandate comment, minutes from now
     python3 -I - "$1" "$2" "${3:-all}" <<'P'
 import datetime, json, sys
@@ -128,6 +171,16 @@ P
   ck "owner mode under a budget-raise mandate refuses: the gate's MANDATE_COVERS_CODE_OWNED excludes it" 1 "does not cover" false "$T/raise.json" -- 7 owner 4100000001 0
   ck "owner mode under an expired mandate refuses with the gate's why" 1 "expired" false "$T/expired.json" -- 7 owner 4100000001 0
   ck "owner mode under a mandate that does not exist refuses" 1 "not a comment that exists" false "" -- 7 owner 4100000001 0
+  FAKE_PULL=$T/theirs.json ck "owner mode on a cross-repository head refuses, naming the fork (decision 0017)" 1 "OUTSIDE CROSS-REPOSITORY: #7's head is contributor/heatpump_optimizer's" false "$T/live.json" -- 7 owner 4100000001 0
+  if grep -q 'pulls/7' "$T/log" && ! grep -q 'issues/comments\|pr review' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... having read the pull request and neither the mandate nor a post"
+  else fail=$((fail + 1)); echo "  FAIL ... having read the pull request and neither the mandate nor a post ($(tr '\n' ';' < "$T/log"))"; fi
+  sed 's/"number": 7/"number": 8/' "$T/ours.json" > "$T/other.json"
+  FAKE_PULL=$T/other.json ck "owner mode refuses a pulls object of another pull request: the real outside.py's pull_facts reads it" 1 "is not #7" false "$T/live.json" -- 7 owner 4100000001 0
+  FAKE_PULL= ck "owner mode on a pull request that cannot be read refuses: an unread head is never ours" 1 "OUTSIDE REFUSE: #7 could not be read" false "$T/live.json" -- 7 owner 4100000001 0
+  OUTSIDE=$T/absent.py ck "owner mode with no outside.py to ask refuses, fail closed" 1 "OUTSIDE REFUSE: $T/absent.py could not say" false "$T/live.json" -- 7 owner 4100000001 0
+  FAKE_PULL=$T/theirs.json ck "null control: app mode on a cross-repository head passes the gates (the App's approval is app_approve.sh's)" 0 "" false "" -- 7 app "" 0
+  if ! grep -q 'pulls/7' "$T/log"; then pass=$((pass + 1)); echo "  ok   ... and app mode asks nothing about the head"
+  else fail=$((fail + 1)); echo "  FAIL ... and app mode asks nothing about the head"; fi
   ck "a draft refuses without --ready, naming the flag" 1 "DRAFT: #7 is a draft; pass --ready" true "" -- 7 app "" 0
   ck "a draft with --ready passes the gates" 0 "" true "" -- 7 app "" 1
   PATH="$T:$PATH" FAKE_LOG="$T/log" FAKE_DRAFT=true gates 7 app "" 1 >/dev/null
