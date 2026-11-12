@@ -2,7 +2,9 @@ Quiet train output by default (owner card 2026-10-24, carry 0) and `pr_bounded` 
 
 ## Head
 
-7ee0461a30e2c58d7e5f78c1fdaa13232325f88b
+d3e955485a25d93a24f3610cea9b44b5918e7b00
+
+Merge repair: origin/main merged in; the one conflict, tools/audit/seat/merge_train.py, was resolved as the union of this branch's quiet-log block (QUIET_CHATTER, quiet_log, wire_quiet) and main's one_job_pulse/BASELINE_JOBS. merge_train.py --self-test 700 checks, 0 failed; prepr.sh rc=0 at the merged head.
 
 ## Mutation proof
 
