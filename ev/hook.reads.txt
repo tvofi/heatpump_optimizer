@@ -1,0 +1,8 @@
+15204 execve("/opt/hpo/venv-ci/bin/python3", ["python3", "tests/env_drift.py", "--install-merge-driver"], 0x5653421239f0 /* 171 vars */) = 0
+15204 openat(AT_FDCWD, "/tmp/claude-0/-home-user-heatpump-optimizer/be312add-be04-5648-910e-810ed3318892/scratchpad/clone/tests/env_drift.py", O_RDONLY|O_CLOEXEC) = 3
+15204 openat(AT_FDCWD, "/tmp/claude-0/-home-user-heatpump-optimizer/be312add-be04-5648-910e-810ed3318892/scratchpad/clone/tests/env_drift.py", O_RDONLY) = 3
+15204 openat(AT_FDCWD, "/tmp/claude-0/-home-user-heatpump-optimizer/be312add-be04-5648-910e-810ed3318892/scratchpad/clone/.gitattributes", O_RDONLY|O_CLOEXEC) = 3
+15217 execve("/opt/hpo/venv-ci/bin/python3", ["python3", "tools/merge/ledger_merge.py", "--install"], 0x5653421239f0 /* 171 vars */) = 0
+15217 openat(AT_FDCWD, "/tmp/claude-0/-home-user-heatpump-optimizer/be312add-be04-5648-910e-810ed3318892/scratchpad/clone/tools/merge/ledger_merge.py", O_RDONLY|O_CLOEXEC) = 3
+15217 openat(AT_FDCWD, "/tmp/claude-0/-home-user-heatpump-optimizer/be312add-be04-5648-910e-810ed3318892/scratchpad/clone/tools/merge/ledger_merge.py", O_RDONLY) = 3
+15217 openat(AT_FDCWD, "/tmp/claude-0/-home-user-heatpump-optimizer/be312add-be04-5648-910e-810ed3318892/scratchpad/clone/.gitattributes", O_RDONLY|O_CLOEXEC) = 3
