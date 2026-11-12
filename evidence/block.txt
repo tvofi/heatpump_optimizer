@@ -1,0 +1,26 @@
+
+=== features block ===
+  ok   a cycle that switches the supply on writes the step's mode first, then the switch
+  ok   a step tick that switches the supply on writes the step's mode first, then the switch
+  ok   null control: without the lead the same cycle and tick switch on with no mode before it
+  ok   the mode written ahead of a switch-on is reported with the supply off, opening no learner episode
+  ok   null control: the same context with the supply on is not voided by the supply
+Pump duty: writing DHW to select.pump_mode failed: select refused
+  ok   a mode write that fails ahead of a switch-on holds nothing: the switch follows in the same write
+  ok   a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back
+  ok   null control: the same heating step with no cut on record writes the mode, then the switch
+  ok   write_supply with the switch already on, the optimizer off or the entry released writes the switch alone
+  ok   null control: write_supply with the switch off and the optimizer on writes the mode first
+  ok   a lead write loads the persisted record before it writes
+  ok   null control: write_supply on duty mode observe loads nothing
+  ok   the mode written ahead of a switch-on for a heating step under a held disinfection is Heating + DHW
+  ok   null control: the same heating step with no disinfection leads with Heating
+  ok   null control, no mode entity: the service calls and their order are today's
+  ok   null control, duty mode observe: the service calls and their order are today's
+  ok   null control, supply already on: the service calls and their order are today's
+
+ALL 17 FEATURES BLOCK PASSED
+
+real	0m0.673s
+user	0m1.345s
+sys	0m0.056s

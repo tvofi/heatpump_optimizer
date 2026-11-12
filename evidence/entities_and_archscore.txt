@@ -1,0 +1,7 @@
+  ok   and the probe rule finds no step where none runs (ci-ratchet, its null control)
+  ok   the CI ratchet is wired into a push-to-main job that never --records
+  ok   the CI ratchet refuses a non-finite, mistyped or unknown budget row
+  ok   the CI ratchet's main() refuses a script-run count above its budget
+Architecture score: dS +0.0000 NULL
+
+[exited with code 0]
