@@ -1,0 +1,943 @@
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT init -q --bare
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/w remote add origin /tmp/tmp.phqj5AUQ3p/remote.git
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:09:43Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/w/seat push -q --no-verify -f origin 40867477e771cf0b95f0bf17b1fd4cb8070f2f3d:refs/heads/heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/remote.git log -1 --format=%s heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/w remote set-url origin /tmp/tmp.phqj5AUQ3p/nowhere.git
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:09:43Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/w/seat push -q --no-verify -f origin 40867477e771cf0b95f0bf17b1fd4cb8070f2f3d:refs/heads/heartbeat/orchestrator
+EVILGIT init -q --bare -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/s add -A
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/s commit -qm base
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/o.git fetch -q /tmp/tmp.phqj5AUQ3p/s main:main
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp.phqj5AUQ3p/o.git /tmp/tmp.phqj5AUQ3p/c
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c checkout -q --detach
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/s commit -qam README
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/o.git fetch -q /tmp/tmp.phqj5AUQ3p/s main:main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/s commit -qam tools/pr/x
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/o.git fetch -q /tmp/tmp.phqj5AUQ3p/s main:main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/o.git fetch -q /tmp/tmp.phqj5AUQ3p/s main:main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c checkout -q -- tools/pr/x
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c checkout -q -b local
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c checkout -q --detach
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c branch -qD local
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/o.git fetch -q /tmp/tmp.phqj5AUQ3p/s main:main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/o.git fetch -q /tmp/tmp.phqj5AUQ3p/s main:main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c fetch -q origin main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c checkout -q --detach origin/main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/c rev-parse origin/main
+EVILGIT init -q --bare -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/n add -A
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/n commit -qm base
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/n.git fetch -q /tmp/tmp.phqj5AUQ3p/n main:main
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp.phqj5AUQ3p/n.git /tmp/tmp.phqj5AUQ3p/nb
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/n commit -qam ahead
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/n.git fetch -q /tmp/tmp.phqj5AUQ3p/n main:main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nd checkout -q --detach
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nh checkout -q --detach
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/ne checkout -q --detach
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp.phqj5AUQ3p/n.git /tmp/tmp.phqj5AUQ3p/n0
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nb rev-parse HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT init -q --bare
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/w remote add origin /tmp/tmp.WsN9gkp0aD/remote.git
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:09:56Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/w/seat push -q --no-verify -f origin 530d6faba6da15268897cc4e899faab83f73ffdd:refs/heads/heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/remote.git log -1 --format=%s heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/w remote set-url origin /tmp/tmp.WsN9gkp0aD/nowhere.git
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:09:56Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/w/seat push -q --no-verify -f origin 530d6faba6da15268897cc4e899faab83f73ffdd:refs/heads/heartbeat/orchestrator
+EVILGIT init -q --bare -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/s add -A
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/s commit -qm base
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/o.git fetch -q /tmp/tmp.WsN9gkp0aD/s main:main
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp.WsN9gkp0aD/o.git /tmp/tmp.WsN9gkp0aD/c
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c checkout -q --detach
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/s commit -qam README
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/o.git fetch -q /tmp/tmp.WsN9gkp0aD/s main:main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/s commit -qam tools/pr/x
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/o.git fetch -q /tmp/tmp.WsN9gkp0aD/s main:main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/o.git fetch -q /tmp/tmp.WsN9gkp0aD/s main:main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c checkout -q -- tools/pr/x
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c checkout -q -b local
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c checkout -q --detach
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c branch -qD local
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/o.git fetch -q /tmp/tmp.WsN9gkp0aD/s main:main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/o.git fetch -q /tmp/tmp.WsN9gkp0aD/s main:main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c fetch -q origin main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c checkout -q --detach origin/main
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse HEAD
+EVILGIT -C /tmp/tmp.WsN9gkp0aD/c rev-parse origin/main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nb rev-parse HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nd rev-parse HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT init -q --bare
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/w remote add origin /tmp/tmp.YUK3PlGXJE/remote.git
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:10:09Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/w/seat push -q --no-verify -f origin 2caf9722f65bcdb0554f8bcce2b3238f3ef8e6e3:refs/heads/heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/remote.git log -1 --format=%s heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/w remote set-url origin /tmp/tmp.YUK3PlGXJE/nowhere.git
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:10:09Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/w/seat push -q --no-verify -f origin 2caf9722f65bcdb0554f8bcce2b3238f3ef8e6e3:refs/heads/heartbeat/orchestrator
+EVILGIT init -q --bare -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/s add -A
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/s commit -qm base
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/o.git fetch -q /tmp/tmp.YUK3PlGXJE/s main:main
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp.YUK3PlGXJE/o.git /tmp/tmp.YUK3PlGXJE/c
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c checkout -q --detach
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/s commit -qam README
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/o.git fetch -q /tmp/tmp.YUK3PlGXJE/s main:main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/s commit -qam tools/pr/x
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/o.git fetch -q /tmp/tmp.YUK3PlGXJE/s main:main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/o.git fetch -q /tmp/tmp.YUK3PlGXJE/s main:main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c checkout -q -- tools/pr/x
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c checkout -q -b local
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c checkout -q --detach
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c branch -qD local
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/o.git fetch -q /tmp/tmp.YUK3PlGXJE/s main:main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/o.git fetch -q /tmp/tmp.YUK3PlGXJE/s main:main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c fetch -q origin main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c checkout -q --detach origin/main
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse HEAD
+EVILGIT -C /tmp/tmp.YUK3PlGXJE/c rev-parse origin/main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nd rev-parse HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nh rev-parse HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT init -q --bare
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/w remote add origin /tmp/tmp.FYMvgLpu2m/remote.git
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:10:22Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/w/seat push -q --no-verify -f origin f787c358e2ad1f3519037b6c502fdf6798fddcb6:refs/heads/heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/remote.git log -1 --format=%s heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/w remote set-url origin /tmp/tmp.FYMvgLpu2m/nowhere.git
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:10:22Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/w/seat push -q --no-verify -f origin f787c358e2ad1f3519037b6c502fdf6798fddcb6:refs/heads/heartbeat/orchestrator
+EVILGIT init -q --bare -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/s add -A
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/s commit -qm base
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/o.git fetch -q /tmp/tmp.FYMvgLpu2m/s main:main
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp.FYMvgLpu2m/o.git /tmp/tmp.FYMvgLpu2m/c
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c checkout -q --detach
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/s commit -qam README
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/o.git fetch -q /tmp/tmp.FYMvgLpu2m/s main:main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/s commit -qam tools/pr/x
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/o.git fetch -q /tmp/tmp.FYMvgLpu2m/s main:main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/o.git fetch -q /tmp/tmp.FYMvgLpu2m/s main:main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c checkout -q -- tools/pr/x
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c checkout -q -b local
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c checkout -q --detach
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c branch -qD local
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/o.git fetch -q /tmp/tmp.FYMvgLpu2m/s main:main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/o.git fetch -q /tmp/tmp.FYMvgLpu2m/s main:main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c fetch -q origin main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c checkout -q --detach origin/main
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse HEAD
+EVILGIT -C /tmp/tmp.FYMvgLpu2m/c rev-parse origin/main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/nh rev-parse HEAD
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/ne rev-parse HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT init -q --bare
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/w remote add origin /tmp/tmp.Mhf3XfSVVa/remote.git
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:10:34Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/w/seat push -q --no-verify -f origin 739c2cf095fba76afba193ffba118261afb684c9:refs/heads/heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/remote.git log -1 --format=%s heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/w remote set-url origin /tmp/tmp.Mhf3XfSVVa/nowhere.git
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:10:34Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/w/seat push -q --no-verify -f origin d941e99f84f3ee717037f7c39383c728dc1ad749:refs/heads/heartbeat/orchestrator
+EVILGIT init -q --bare -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/s add -A
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/s commit -qm base
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/o.git fetch -q /tmp/tmp.Mhf3XfSVVa/s main:main
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp.Mhf3XfSVVa/o.git /tmp/tmp.Mhf3XfSVVa/c
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c checkout -q --detach
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/s commit -qam README
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/o.git fetch -q /tmp/tmp.Mhf3XfSVVa/s main:main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/s commit -qam tools/pr/x
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/o.git fetch -q /tmp/tmp.Mhf3XfSVVa/s main:main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/o.git fetch -q /tmp/tmp.Mhf3XfSVVa/s main:main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c checkout -q -- tools/pr/x
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c checkout -q -b local
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c checkout -q --detach
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c branch -qD local
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/o.git fetch -q /tmp/tmp.Mhf3XfSVVa/s main:main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/o.git fetch -q /tmp/tmp.Mhf3XfSVVa/s main:main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c fetch -q origin main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c checkout -q --detach origin/main
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse HEAD
+EVILGIT -C /tmp/tmp.Mhf3XfSVVa/c rev-parse origin/main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/ne rev-parse HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT init -q --bare
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w remote add origin /tmp/tmp_g41av4u/tmp.35MbXzHhx0/remote.git
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:10:47Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w/seat remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w/seat push -q --no-verify -f origin 2b40c53292dafd8b716d83f9a32f3d0811e07de7:refs/heads/heartbeat/orchestrator
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/remote.git log -1 --format=%s heartbeat/orchestrator
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w remote set-url origin /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nowhere.git
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:10:47Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w/seat remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/w/seat push -q --no-verify -f origin 2b40c53292dafd8b716d83f9a32f3d0811e07de7:refs/heads/heartbeat/orchestrator
+EVILGIT init -q --bare -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s add -A
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s commit -qm base
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git remote get-url /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git fetch -q /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s main:main
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c checkout -q --detach
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s commit -qam README
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git remote get-url /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git fetch -q /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s main:main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s commit -qam tools/pr/x
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git remote get-url /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git fetch -q /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s main:main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git remote get-url /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git fetch -q /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s main:main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c checkout -q -- tools/pr/x
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c checkout -q -b local
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c checkout -q --detach
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c branch -qD local
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git remote get-url /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git fetch -q /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s main:main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git remote get-url /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/o.git fetch -q /tmp/tmp_g41av4u/tmp.35MbXzHhx0/s main:main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c remote get-url origin
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c fetch -q origin main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c checkout -q --detach origin/main
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse HEAD
+EVILGIT -C /tmp/tmp_g41av4u/tmp.35MbXzHhx0/c rev-parse origin/main
+EVILGIT -C . remote get-url https://127.0.0.1:9/hb.git
+EVILGIT ls-remote https://127.0.0.1:9/hb.git
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/n0 rev-list --count HEAD..origin/main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/n0 rev-parse HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT init -q --bare
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/w remote add origin /tmp/tmp.0v7EeJGqvm/remote.git
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:11:01Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/w/seat push -q --no-verify -f origin f0cc85f6e46116ecca89168a9cc2ad10ee5fc709:refs/heads/heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/remote.git log -1 --format=%s heartbeat/orchestrator
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/w remote set-url origin /tmp/tmp.0v7EeJGqvm/nowhere.git
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/nogit rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/w/seat hash-object -t tree /dev/null
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/w/seat commit-tree 4b825dc642cb6eb9a060e54bf8d69288fbee4904 -m TICK-PASS 2026-11-12T21:11:01Z relay=absent tick=0 code=none behind=unknown
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/w/seat push -q --no-verify -f origin f0cc85f6e46116ecca89168a9cc2ad10ee5fc709:refs/heads/heartbeat/orchestrator
+EVILGIT init -q --bare -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT init -q -b main
+EVILGIT config maintenance.auto false
+EVILGIT config gc.auto 0
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/s add -A
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/s commit -qm base
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/o.git fetch -q /tmp/tmp.0v7EeJGqvm/s main:main
+EVILGIT clone -c maintenance.auto=false -c gc.auto=0 -q /tmp/tmp.0v7EeJGqvm/o.git /tmp/tmp.0v7EeJGqvm/c
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c checkout -q --detach
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/s commit -qam README
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/o.git fetch -q /tmp/tmp.0v7EeJGqvm/s main:main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/s commit -qam tools/pr/x
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/o.git fetch -q /tmp/tmp.0v7EeJGqvm/s main:main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/o.git fetch -q /tmp/tmp.0v7EeJGqvm/s main:main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c checkout -q -- tools/pr/x
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c checkout -q -b local
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c checkout -q --detach
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c branch -qD local
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/o.git fetch -q /tmp/tmp.0v7EeJGqvm/s main:main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/s commit -qam tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/o.git fetch -q /tmp/tmp.0v7EeJGqvm/s main:main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --show-toplevel
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c fetch -q origin main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat tools/pr tools/audit/carry_audit.py
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-list --count HEAD..origin/main -- tools/audit/seat/tick_loop.sh tools/audit/seat/cloud_relay.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c symbolic-ref -q HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c status --porcelain --untracked-files=no
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c show origin/main:tools/audit/seat/tick_loop.sh
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c checkout -q --detach origin/main
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse --short=7 HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse HEAD
+EVILGIT -C /tmp/tmp.0v7EeJGqvm/c rev-parse origin/main
+EVILGIT -C /tmp/tmp.phqj5AUQ3p/n0 rev-parse HEAD
