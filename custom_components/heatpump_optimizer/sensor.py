@@ -20,7 +20,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import narrative
+from . import duty_switch, narrative
 from . import topology
 from .accuracy import COP_ESTIMATED, COP_NOT_MEASURABLE
 from .const import (
@@ -2783,7 +2783,8 @@ class CompressorStartsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
                 "compressor_starts"
             )
         ) or {}
-        return dict(starts)
+        # Beside the counter it explains, and off the payload the goldens snapshot.
+        return {**starts, **duty_switch.starts_attributes(self.coordinator)}
 
 
 class FrequencyAdvisorSensor(
