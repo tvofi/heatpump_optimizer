@@ -1,4 +1,4 @@
-R10-ROUND-PLAYBOOK-FINAL, **draft pass** (dispatched ahead of closure: every carry is answered from the tree at the base; a short final pass after the last after-group merges adds only what merged after this handoff). The round playbook in `dev/audit/README.md` gains the freeze's red definition (carry 29), the pre-v10.0.0 soak step in the closure sequence (carry 30), the P545 lessons and the spelling-corpus rule (carries 27, 28), and the round-11 opening items (brief intake (a) and (b), carries 32-40). Six contracts take the carried paragraphs (carries 14, 15, 16, 18), and `roster_edit.py` reads a `LOG` verdict as itself (carry 18's vocabulary half). Every policy file stays inside its `policy_lint.mjs --budgets` cap: no cap is raised; each addition is paid by cuts of spent prose and by correcting stale claims.
+R10-ROUND-PLAYBOOK-FINAL, **draft pass** (dispatched ahead of closure: every carry is answered from the tree at the base; a short final pass after the last after-group merges adds only what merged after this handoff). The round playbook in `dev/audit/README.md` gains the freeze's red definition (carry 29), the pre-v10.0.0 soak step in the closure sequence (carry 30), the P545 lessons and the spelling-corpus rule (carries 27, 28), and the round-11 opening items (brief intake (a) and (b), carries 32-40). Six contracts take the carried paragraphs (carries 14, 15, 16, 18), and `roster_edit.py` reads a `LOG` verdict as itself (carry 18's vocabulary half). Every policy file stays inside its `policy_lint.mjs --budgets` cap: no cap is raised; each addition is paid by cuts of prose that has a surviving copy in the tree (each named under Repair) and by correcting stale claims. No measurement or downstream constraint is cut.
 
 **This is policy.** `CLAUDE.md`, `dev/audit/README.md` and five role contracts change, so it merges only on tvofi's approving review at its head (`CLAUDE.md`, "Where the policy is"). Carry 14's own terms apply: if the owner accepts no cut, that paragraph is closed unimplemented.
 
@@ -11,27 +11,50 @@ Awaiting tvofi's approving review at the head: the diff changes `CLAUDE.md`, `de
 
 ## Head
 
-a8fbc286a5ce5e78838893617cfd440d89bd6354: the fix commit a75d2565170045c6ad90d94009d5bdb5fa2c2cbf merged twice with `origin/main`, last at 19baca76181cb019d9b1cfd93ee6bc0a08e20047 (#3501, #3430, #3504, #3500, #3428; none touches this diff's files). Both merges were clean. `prepr.sh` was re-run in full on the final merged head (stamped 2026-11-12, `git rev-parse origin/main`). The caps, `brief_lint` and the `roster_edit.py` self-test figures below were re-taken after the first merge, and the caps again at this head.
+9d3da28204b0683981252bff8651c19b8f89f3f7: the repair of 11a6c579bb8e354b4f76209b1b4c472ddfee5c19 (review verdict on `verdict/3510`, class evidence-cut), after one merge of `origin/main` at 8c10361eb1fea539dc5acb8f7442eac2810faa47 (clean; `git merge-tree --write-tree` reported no conflict). A second commit answers roster carries 41 and 42, which landed after the first handoff. Steps 2-8 of `fixer.md` were re-executed on this head, stamped `git rev-parse origin/main` = 8c10361eb1fea539dc5acb8f7442eac2810faa47 at 2026-11-12T16:20Z (`date -u`). The earlier fix commit is a75d2565170045c6ad90d94009d5bdb5fa2c2cbf.
+
+## Repair
+
+Restored, verbatim in number and constraint, each the only copy in the tree:
+
+- `dev/audit/README.md`, harness contract: the round-2 judge's `load1` ambient floor, 1.86 (best of ten retries: 1.55), as the basis for "`load1` is quoted, not gated".
+- `dev/audit/README.md`, harness contract: `h2_cycle.py`'s `thread_factor` of 1.27-1.30 over four re-takes, structural, as why a deliberate second thread can never meet the bare 1.05 ratio.
+- `dev/audit/README.md`, rounds 1-3: round 2's numbers recorded at `c398fc84`; `web-phase0.js` and `triage-quiet-judges.json` at `d5d8c4a`; and "their briefs record what a judge established and refuted, so read them before re-deriving anything a group in them settled".
+- `dev/audit/README.md`, instrument defects: the verifier "says which they could not separate".
+- `dev/governance/roles/orchestrator.md` section 9: "twenty had no disposition while the check reported clean".
+
+Paid only with prose whose content survives elsewhere in the tree:
+
+- README layout block, `tools/pr/preflight.sh  executed by tests/entities.py, so it is not INERT`: survives as `tests/closure.py`'s `INERT_EXCEPT`, which the README's own line 8 says not to restate.
+- README layout block, `tools/release/stamp.py  the only way a version is assigned`: survives as `CLAUDE.md` rule 4.
+- README round-11 bullet, `rounds.py` takes one directory argument and no `--stats` mode: survives, with the failing command, in `dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md` (lines 19-31).
+- README trap, `tests/setup_qa_render.mjs` writes SVGs to `../setup-qa/`: survives in `tests/README.md` (the `setup_qa_render.mjs` entry) and `tests/closure.py` (its `../setup-qa/` comment).
+- README intro, the register path and `.claude/workflows/audit-*.js`: the register path survives in the README's rounds 1-3 section, and the workflows in the playbook table (`audit-find.js`, `audit-verify.js`, `audit-plan.js`).
+- `orchestrator.md`'s rotate line, its "near 500 k tokens ... through `state_docs.py` and the resume" clause: survives in the README's context-rotation bullet ("about 500 k for the orchestrator, which rotates through `state_docs.py` and the resume"); the line keeps "ledger-clean point, never mid-task" and points there.
+
+Not restored, by the review's own reading: "absorbs thirty-one numbers while naming eight" survives at `dev/programme/plan-2026-09-open-issues.md:437`. The `CLAUDE.md` four-issues cut stays under carry 14 (see Approval).
 
 ## Mutation proof
 
-`roster_edit.py`'s `VERDICT_LINE_RE` with `LOG` removed from its alternation (the fix's production line), then `python3 tools/audit/seat/roster_edit.py --self-test`: `281 checks, 1 failed`, `FAIL triage gate: a LOG ruling is refused as LOG, never routed (got: )`. Restored: `281 checks, 0 failed`. The prose changes have no executable predicate. Their control is `brief_lint.mjs`'s PLAYBOOK fixture: the renamed-instrument fixture is refused and the null fixture lints clean.
+`roster_edit.py`'s `VERDICT_LINE_RE` with `LOG` removed from its alternation (the fix's production line), then `python3 tools/audit/seat/roster_edit.py --self-test`: `281 checks, 1 failed`, `FAIL triage gate: a LOG ruling is refused as LOG, never routed (got: )`. Restored: `281 checks, 0 failed`. Re-run at this head with the same result both ways. The prose changes have no executable predicate. Their control is `brief_lint.mjs`'s PLAYBOOK fixture: the renamed-instrument fixture is refused and the null fixture lints clean.
 
 ## Null control
 
 At the base, `tools/policy/brief_lint.mjs` prints `PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean`. The head prints the same line, and the edited README lints with 0 errors. That is the unchanged-tree control the brief asks for. At the base, a `Verdict: LOG` entry reads `unreadable` (the mutant above is the base's regex), so the base cannot tell LOG from a missing verdict.
 
+Cap null control, re-taken against this head: a temporary worktree of the head with only the six payment hunks reversed (restorations kept) prints, under `node tools/policy/policy_lint.mjs --budgets`, `tools/audit/README.md` 322/321, 6163/6059 and `tools/audit/briefs/orchestrator.md` 295/295, 4261/4251, both over their token caps (the README also over its line cap); the head itself prints the rows under Figures, inside both.
+
 ## Figures
 
-- Caps, `node tools/policy/policy_lint.mjs --budgets` (columns lines/cap, ~tokens/cap), at the head: `tools/audit/README.md` (the README's cap key, carry 25) 314/321, 6051/6059; `CLAUDE.md` 214/221, 3604/3605; `fixer.md` 315/315, 5215/5216; `orchestrator.md` 294/295, 4246/4251; `architect-planner.md` 84/85, 1261/1261; `plan-review.md` 24/24, 304/304; `proposal-triage.md` 36/36, 488/489. Null control: the same command on the README alone printed 395/321, 7333/6059 before the payments.
-- Bytes, `wc -c` base -> head: README 24230 -> 24205; `CLAUDE.md` 14401 -> 14415, where carry 14's paragraph (414 bytes) is paid by 428 bytes of cuts with the token cap unchanged.
+- Caps, `node tools/policy/policy_lint.mjs --budgets` (columns lines/cap, ~tokens/cap), at the head: `tools/audit/README.md` (the README's cap key, carry 25) 315/321, 6050/6059; `CLAUDE.md` 214/221, 3604/3605; `fixer.md` 315/315, 5215/5216; `orchestrator.md` 295/295, 4246/4251; `architect-planner.md` 84/85, 1261/1261; `plan-review.md` 24/24, 304/304; `proposal-triage.md` 36/36, 488/489; `D13.md` 79/79, 1149/1149; `D11.md` 99/103, 1494/1499. No cap is raised.
+- Bytes, `wc -c` base -> head: README 24230 -> 24200; `CLAUDE.md` 14401 -> 14415, where carry 14's paragraph (414 bytes) is paid by 428 bytes of cuts with the token cap unchanged; `orchestrator.md` 16984 -> 16983.
 - `node tools/policy/brief_lint.mjs`: 0 errors on every linted file; PLAYBOOK fixture line as quoted under Null control.
 - `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- Scope, `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`. It names `tests/entities.py`, which was run with `PYTHONPATH=tests/hastub` and is green.
+- Scope, `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. It names `tests/doc_claims.py` (`ALL 343 checks PASSED`) and `tests/entities.py` (`ALL 2709 ENTITY CHECKS PASSED`, rc 0, run with `env -u BASH_ENV PYTHONPATH=tests/hastub`).
 - Stale claims corrected, each checked by reading the tree. The README intro said "the three harnesses a judge still re-runs", but its own table lists four. The traps said `optimizer.py` has two `sleep(0.002)` calls; `grep -n 'sleep(0.002)' custom_components/heatpump_optimizer/optimizer.py` returns three (`_lbfgsb_restart`, `_multi_start_minimize`, the DHW-to-space seam), so the text now names them and carries no count. `architect-planner.md`'s "the 17 scored metrics" is a count the tree answers, so it now reads "the scored metrics".
 
-<!-- figure-block: scope-line mb=19baca76181cb019d9b1cfd93ee6bc0a08e20047 head=a8fbc286a5ce5e78838893617cfd440d89bd6354 -->
+<!-- figure-block: scope-line mb=8c10361eb1fea539dc5acb8f7442eac2810faa47 head=9d3da28204b0683981252bff8651c19b8f89f3f7 -->
 ~~~text
 MODE: SCOPED -- 2 script(s) run, 31 scoped out.
 ~~~
@@ -62,7 +85,7 @@ Each carry, 0-based as dispatched, with its answer :
 - Carry 26: written into the README's round-11 list by pointer to this roster carry (D15's drawn-power gain). Its text stays verbatim on the roster, because restating 350 words in full does not fit the README's cap.
 - Carry 27: written into the README as the "Lessons" paragraph after the phase table (all four).
 - Carry 28: written. The Lessons paragraph cites `fixer.md` step 2 for the spelling-corpus rule; phase 7's contract column already names `fixer.md`.
-- Carry 29: written. Production share now says the machinery is frozen. "Fixes a red" means the required `gate` job's red on main (`tools/ci/gate.py`) or a self-test red the pull request introduces, never one inherited from main. Each round-11 machinery group names its ground. Policy wording: it binds only on tvofi's approving review. See Friction for 10% versus 20%.
+- Carry 29: written. Production share now says the machinery is frozen. "Fixes a red" means the required `gate` job's red on main (`tools/ci/gate.py`) or a self-test red the pull request introduces, never one inherited from main. Each round-11 machinery group names its ground. Policy wording: it binds only on tvofi's approving review. See Approval for 10% versus 20%.
 - Carry 30: written. The closure sentence is followed by the soak step: the patch release, tvofi's own install, and the card's tabs opened before v10.0.0, never without.
 - Carry 31: not landed. It stays open as this group's own roster carry 31, for the final pass. `dev/governance/dimensions/D13.md` is at its exact cap (79/79 lines, 1149/1149 tokens), and the carry forbids changing any other sentence, so no payment exists. D11.md has 5 tokens of headroom. The scorecard has not landed, because R10-TICK-RESIDUE-P3 is deferred to round 11 (carry 33). Both paragraphs need the owner's budget-raise confirmation, which this seat may not presume. The README's deferred-groups item reopens the scorecard group.
 - Carry 32: written into the round-11 list (seat retirement, its precondition, the s14 load, size L, design first).
@@ -74,6 +97,8 @@ Each carry, 0-based as dispatched, with its answer :
 - Carry 40 (appended after dispatch): written into the round-11 list by pointer (R10-PREPR-RESIDUE's seven).
 - Brief intake (a) and (b): the round-11 list names R10-PROTECTION-CENSUS's rows as the intake baseline (the census is in progress at this draft; the final pass adds its result) and B1 as conditional on it, unless the owner orders it into round 10.
 - The `CLAUDE.md` index row for `dev/audit/README.md` is unchanged, because the README's role did not change.
+- Carry 41: written into the README's round-11 list beside carries 35 to 40: R10-PREPR-DARWIN-SELFTEST-LANE is un-deferred with the widened macOS-leg brief, as written on the roster (round 10 only if the owner approves the runner spend and the replan shows closure does not move).
+- Carry 42: answered by this group's final pass, which the opening paragraph already scopes to what merged after this handoff. Before the v10.0.0 stamp, that pass re-reads the merged diff of each of the eleven named groups that merged after this group, folds in what changed, and records the groups, merge SHAs and what was folded (or nothing) in `dev/programme/HANDOVER.md`. Nothing is owed at this head: the re-read is keyed to merges that follow this group's own.
 
 ## Forward-carry
 
