@@ -81087,6 +81087,77 @@ R.check(
     f"{_bt_loaded} {_bt_kept}",
 )
 
+# (f) Both directions of the boost store, through ``restore`` itself at
+# ``BOOST_STORE_VERSION`` unchanged: this build's payload (tail, boosted sum,
+# start) read by main's loader -- ``restore`` without ``_restore_settle``, the
+# only line this part added to it -- keeps main's overlay and block, and a
+# payload main wrote restores here with the overlay and no tail. Null control:
+# the same payload through this build's own loader also restores the tail.
+import asyncio as _bt_asyncio  # noqa: E402
+
+
+class _BtCoord:
+    pass
+
+
+class _BtStore:
+    def __init__(self, payload):
+        self.payload = payload
+
+    async def async_load(self):
+        return self.payload
+
+
+def _bt_load(payload, *, main_loader):
+    coord, saved = _BtCoord(), (boost_mod._store, boost_mod._restore_settle)
+    boost_mod._store = lambda _coord: _BtStore(payload)
+    if main_loader:
+        boost_mod._restore_settle = lambda *_a: None
+    try:
+        _bt_asyncio.run(boost_mod.restore(coord))
+    finally:
+        boost_mod._store, boost_mod._restore_settle = saved
+    return boost_mod.held_for(coord)
+
+
+_bt_now = dt_util.now()
+_bt_ours = boost_mod.BoostState()
+_bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(hours=3))
+_bt_ours.set(boost_mod.CHANNEL_SPACE, False, _bt_now - timedelta(hours=2))
+_bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(minutes=5))
+_bt_ours.blocked[boost_mod.CHANNEL_DHW] = _bt_now + timedelta(hours=1)
+_bt_ours_payload = boost_mod._payload(_bt_ours)
+_bt_down_main = _bt_load(_bt_ours_payload, main_loader=True)
+_bt_up = _bt_load({"space": {"until": (_bt_now + timedelta(hours=1)).isoformat()}}, main_loader=False)
+_bt_same = _bt_load(_bt_ours_payload, main_loader=False)
+R.check(
+    "a boost store this build wrote loads in main's loader with main's overlay and block; "
+    "one main wrote loads here with no tail; this build's loader keeps the tail (null control)",
+    set(_bt_ours_payload) == {"space", "block_dhw", "space_settle"}
+    and _bt_down_main.until == _bt_ours.until and _bt_down_main.blocked == _bt_ours.blocked
+    and _bt_down_main.space_settle_until is None
+    and set(_bt_up.until) == {boost_mod.CHANNEL_SPACE} and _bt_up.space_settle_until is None
+    and _bt_up.space_since is None
+    and _bt_same.space_settle_until == _bt_ours.space_settle_until
+    and _bt_same.space_since == _bt_ours.space_since
+    and _bt_same.space_boosted == timedelta(hours=1),
+    f"{_bt_ours_payload} {_bt_down_main} {_bt_up} {_bt_same}",
+)
+
+# (e) ``heat_loss_refit`` keeps the full tail after the last boost-tagged pair
+# (a pair carries no boost length), and no length is priced past it: the refit
+# never reads evidence the interval learners refused. Null control: the floor
+# is shorter than the full tail, so the sweep can tell the two apart.
+_bt_sweep = [boost_mod.settle_tail(timedelta(minutes=m)) for m in range(0, 24 * 60, 7)]
+R.check(
+    "no boost length owes a tail longer than the full tail the refit waits, and the tail "
+    "never shortens as the boosted time grows",
+    max(_bt_sweep) == boost_mod.SPACE_SETTLE_TAIL
+    and all(a <= b for a, b in zip(_bt_sweep, _bt_sweep[1:]))
+    and min(_bt_sweep) == boost_mod._SETTLE_FLOOR < boost_mod.SPACE_SETTLE_TAIL,
+    f"{min(_bt_sweep)} .. {max(_bt_sweep)}",
+)
+
 # Null control: the order of the freeze reasons in ``_learning_frozen`` is main's.
 import ast as _bt_ast  # noqa: E402
 import inspect as _bt_inspect  # noqa: E402
