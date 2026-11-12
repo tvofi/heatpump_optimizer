@@ -1,4 +1,3 @@
-19baca76181cb019d9b1cfd93ee6bc0a08e20047
 RESULT policy_wait=False policy_text_names_review=False
 RESULT policy_null_waits=False (the passing gate alone must not wait)
 RESULT policy_null_ok=True
@@ -6,4 +5,4 @@ DEFECT policy
 RESULT policy_B_wait=False policy_C_wait=False policy_C_names_fast=True policy_A_wait=False
 RESULT under_started=['TIMEOUT'] under_queued_null=['TIMEOUT']
 DEFECT under
-rc=1
+base 8c10361eb1fea539dc5acb8f7442eac2810faa47
