@@ -25006,7 +25006,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch an opus fixer now",
-    "note": "orchestrator hotfix"
+    "note": "orchestrator hotfix",
+    "pr": 3518
    },
    "carry": [
     "From the orchestrator's local macOS run of 2026-11-12 (outputs kept by the session; re-measure, do not trust): at the hotfix's step tip fdfd99d535 the pre-PR self-test passes on Darwin (542 passed, 0 failed, where main 19baca7618 fails 5), but the mutant driver's own self-test still fails 2 of 64 checks on Darwin, both the no-procfs group's null controls that run with a real proc filesystem present (the environ leg finding a process that left the session by its token, and a failing ps never being read because the table is procfs). Darwin has no proc filesystem, so those two null controls cannot hold there. Owed: make each of the two checks state its precondition and skip, naming the skip in the tally, on a host without a proc filesystem, or emulate the table; a skip that hides a real failure on Linux is the defect to avoid. Control: on Linux the tally and both checks are unchanged; on Darwin the self-test ends 0 failed with the two named as skipped. Re-measure at your merge base by running the driver's self-test on both hosts."
