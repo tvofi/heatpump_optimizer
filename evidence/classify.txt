@@ -1,3 +1,6 @@
-RED 1965559c0ce814ee36c37fce9b5d41f55ec3e5ef pending: gate red: none introduced: 1
-INTRODUCED Render the sweep template, and the policy re-read predicate
-rc=1
+13:51:14 WAIT 2aa65fa6d39b06bd67201d6658019ae38f05b0bd pending: gate red: none
+13:52:27 WAIT 2aa65fa6d39b06bd67201d6658019ae38f05b0bd pending: gate red: none
+13:53:39 WAIT 2aa65fa6d39b06bd67201d6658019ae38f05b0bd pending: gate red: none
+13:54:55 WAIT 2aa65fa6d39b06bd67201d6658019ae38f05b0bd pending: gate red: none
+13:56:07 WAIT 2aa65fa6d39b06bd67201d6658019ae38f05b0bd pending: gate red: none
+13:57:19 WAIT 2aa65fa6d39b06bd67201d6658019ae38f05b0bd pending: gate red: none

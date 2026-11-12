@@ -1,1 +1,0 @@
-tools/audit/seat/sweep_template.md:54:| `sweep_record` | optional: the day's sweep record file, whose `recycle` lines of the standing dispatch and triage seats the `scorecard` row counts as K (absent: K prints unread) |
