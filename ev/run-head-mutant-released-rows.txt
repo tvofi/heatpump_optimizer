@@ -1,0 +1,25 @@
+  ok    R9-UI-3 every tile text run clears 4.5:1 with light theme variables, darkMode false
+  ok    R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with light theme variables, darkMode false
+  ok    R10 every own-text run on every dialog page clears 4.5:1 with light theme variables, darkMode false
+  ok    R9-UI-3 every tile text run clears 4.5:1 with dark theme variables, darkMode true
+  ok    R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with dark theme variables, darkMode true
+  ok    R10 every own-text run on every dialog page clears 4.5:1 with dark theme variables, darkMode true
+  ok    R9-UI-3 every tile text run clears 4.5:1 with dark theme variables, darkMode false
+  ok    R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with dark theme variables, darkMode false
+  FAIL  R10 every own-text run on every dialog page clears 4.5:1 with dark theme variables, darkMode false
+        plan=81 setup=10 savings=22 advisor=46 health=59 runs; reach {"pages":5,"empty":[],"health":19,"advisor":7}; under 4.5 (65): advisor span.fact-text 1.24:1, advisor span.fact-sub 1.24:1, advisor span.fact-value 1.24:1, advisor button.fact-act 1.24:1, advisor span.fact-text 1.24:1, advisor span.fact-sub 1.24:1, advisor span.fact-value 1.24:1, advisor button.fact-act 1.24:1
+  ok    R9-UI-3 every tile text run clears 4.5:1 with light theme variables, darkMode true
+  ok    R9-UI-4 chart series clear 3:1 and in-panel text 4.5:1 on their panel with light theme variables, darkMode true
+  FAIL  R10 every own-text run on every dialog page clears 4.5:1 with light theme variables, darkMode true
+        plan=81 setup=10 savings=22 advisor=46 health=59 runs; reach {"pages":5,"empty":[],"health":19,"advisor":7}; under 4.5 (65): advisor span.fact-text 1.11:1, advisor span.fact-sub 1.11:1, advisor span.fact-value 1.11:1, advisor button.fact-act 1.11:1, advisor span.fact-text 1.11:1, advisor span.fact-sub 1.11:1, advisor span.fact-value 1.11:1, advisor button.fact-act 1.11:1
+  ok    R10 live light to dark on the default theme reaches the open Health dialog
+  FAIL  R10 live light to dark: every Health text run clears 4.5:1 between HA's theme write and its hass update
+        59 runs; under 4.5 (40): between write and hass span.fact-text 1.24:1, between write and hass span.fact-sub 1.24:1, between write and hass span.fact-text 1.24:1, between write and hass span.fact-sub 1.24:1, between write and hass span.fact-text 1.24:1, between write and hass span.fact-sub 1.24:1, between write and hass span.fact-text 1.24:1, between write and hass span.fact-sub 1.24:1
+  ok    R10 live light to dark: every Health text run clears 4.5:1 after the card's re-render
+  ok    R10 live dark to light on the default theme reaches the open Health dialog
+  FAIL  R10 live dark to light: every Health text run clears 4.5:1 between HA's theme write and its hass update
+        59 runs; under 4.5 (40): between write and hass span.fact-text 1.11:1, between write and hass span.fact-sub 1.11:1, between write and hass span.fact-text 1.11:1, between write and hass span.fact-sub 1.11:1, between write and hass span.fact-text 1.11:1, between write and hass span.fact-sub 1.11:1, between write and hass span.fact-text 1.11:1, between write and hass span.fact-sub 1.11:1
+  ok    R10 live dark to light: every Health text run clears 4.5:1 after the card's re-render
+  ok    R10 live switch starts on the light default theme with the Health dialog open
+
+4 BROWSER CHECK(S) FAILED
