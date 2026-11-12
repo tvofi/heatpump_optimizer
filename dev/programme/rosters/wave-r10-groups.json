@@ -24739,7 +24739,10 @@
     "note": "triage s14-60 s6-batch238 P714: owner ruling 2026-11-12 ~07:35Z; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE-P3, R10-TRAIN-REVIEW-PRESETTLE): triage: dev/programme/triage/s6-batch238.md#P714 (owner ruling 2026-11-12); shares tools/audit/seat/merge_train.py with R10-GATE-DEFER-BARRIER, which goes first (critical path); the brief says so | set-source unset -> outside",
     "pr": null
    },
-   "source": "outside"
+   "source": "outside",
+   "carry": [
+    "From r10-outside-contributor-cycle-p2, body item d4703cd1: **The interface to part 1's module.** The two calls above are this part's assumption; part 1 had published nothing to read. Whoever lands second reconciles `Train.fork_head`, `Train.outside_contract` and merge_pr.sh's `head_is_ours` to part 1's names, and re-runs the three self-tests; the stubs then follow that module's real signatures. Control: with a wrong name the train stops every pull request at `could not say whether #<n>'s head is cross-repository`, ours included. Carry: R10-OUTSIDE-CONTRIBUTOR-CYCLE (items d4703cd1)"
+   ]
   },
   {
    "group": "R10-GATE-PUSH-RATCHET",
