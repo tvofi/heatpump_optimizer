@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/merge_pr.sh b/tools/audit/seat/merge_pr.sh
+index a3525684ee..12c3f918ee 100755
+--- a/tools/audit/seat/merge_pr.sh
++++ b/tools/audit/seat/merge_pr.sh
+@@ -323,7 +323,7 @@ if [ -n "$red" ]; then
+        done
+        # classify still WAIT after the last poll: the red is provisional, not final. A distinct
+        # line and exit 3 (the train's WAIT), never RED, so a caller retries rather than reads a refusal.
+-       [ "$crc" = 3 ] && { echo "WAIT-EXHAUSTED: classify still reads WAIT after ${HPO_MERGE_CLASSIFY_POLLS:-20} polls; the red is a deferral not yet decided: $red"; exit 3; }
++       [ "$crc" = 3 ] && { echo "RED: classify still reads WAIT after ${HPO_MERGE_CLASSIFY_POLLS:-20} polls; the red is a deferral not yet decided: $red"; exit 1; }
+        [ "$crc" = 0 ] || { echo "RED: $red"; exit 1; }
+        echo "DEFERRAL RED CLEARED (classify GREEN): $red" ;;
+   esac

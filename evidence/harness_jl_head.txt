@@ -1,5 +1,0 @@
-RESULT policy_wait=True policy_text_names_review=False
-RESULT policy_null_waits=False (the passing gate alone must not wait)
-RESULT policy_null_ok=True
-RESULT under_started=[] under_queued_null=['TIMEOUT']
-rc=0

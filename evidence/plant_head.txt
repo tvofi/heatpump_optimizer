@@ -1,0 +1,3 @@
+usage: plant.py [-h] --tree TREE
+plant.py: error: the following arguments are required: --tree
+rc=2
