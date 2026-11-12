@@ -25123,7 +25123,7 @@
    "architect_note": "",
    "brief": "HOTFIX, two serial pull requests. Orchestrator ruling 2026-11-12 on the advisor-steady-start branch stopped at BOOTSTRAP: a registration literal sits inside a pinned grader, so repairing a listed carry needs a grader edit that the same pull request cannot make green. This is the BOOTSTRAP class; the body names it.\n\nPart 1: in tools/policy/brief_lint.mjs, move the legacy-control file list (LEGACY_CONTROL_FILES) out of the grader's literal into a new JSON data file beside the grader, which is not pinned by the grader's own checks and which the grader reads. The cap (LEGACY_CONTROL_CAP) stays a literal in the grader. The entries are unchanged, so the base's copy and the head's agree and nothing reddens. Null control: the lint's output on origin/main's tree is byte-identical before and after the move. Add a self-test arm that a listed-but-clean file is still refused, with its mutant, killed. Failing test first.\n\nPart 2, after part 1 is on main: repair the first control of dev/archive/carries/carry-1412.json to name dhw_planner.py with no line number. The repair exists as commit 815f99a3faea7305d5ef9c85ef801d740bd54bb0 on the advisor-steady-start handoff-wip branch; cite it in prose, take the content, do not merge the branch. Delist the carry from the data file. Then survey every other listed file for a control citation that resolves only by line-number accident (body item 00444e5b of the advisor-steady-start branch), and report each as finding or clean.\n\nOut of scope: changing the cap, adding entries, any other grader change.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-hotfix-legacy-control-data",
     "commit": null,
     "last_step": null,
