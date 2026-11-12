@@ -15,26 +15,18 @@ Polish of the non-expanded card. Each change is listed with why. The ordering re
 
 ## Head
 
-8c45afd38f2378350bd2e532b68da28e7f682f0e, a merge of origin/main d72963a719438f2dcf370de92a71f6630804ff2e into 82e14f6d8fb87fc65dd993d1cadbd35883090f07; merge base d72963a719438f2dcf370de92a71f6630804ff2e (origin/main's tip; measured 2026-11-12 06:44 UTC).
+`30f1b6c8fe007b8d4400ba262e51fecd10afb4d2` (fix/r10-card-collapse) is a merge of origin/main `5365b1843702465563fd330623464769777c8c06` into this PR's previous head `089bd3aa5ba3c2d12c49dcb4cfee369b29bc8d44`, plus one commit re-deriving `tests/entities.py`'s closure. Merge base `5365b1843702465563fd330623464769777c8c06` (origin/main's tip; measured 2026-11-12 11:48 UTC).
 
-## Repair round 3 (merge repair)
+## Merge repair (v7.1.12 stamp)
 
-The merge train refused 82e14f6d8fb87fc65dd993d1cadbd35883090f07: `git merge-tree --write-tree origin/main 82e14f6d8fb87fc65dd993d1cadbd35883090f07` (claimnotes driver installed) reported two conflicts, not the one the dispatch named.
+`git merge-tree --write-tree origin/main 089bd3aa5ba3c2d12c49dcb4cfee369b29bc8d44` (claimnotes driver installed: `python3 tests/env_drift.py --install-merge-driver` printed `MERGE-CLAIM: already-installed`) reported two conflicts. Each resolution is listed below; no other line was written by hand.
 
-- `tests/golden/card_claimed_drift.txt`: the driver refused `CONFLICTING CLAIMS` (base stamp 7.1.10, main 7.1.11, branch 7.1.10) because both sides rewrote the claims of the same 44 scenarios; main's lines are R10-HOTFIX-CARD-HEALTH-TEXT's. Resolution: main's file verbatim (stamp `claims-for: 7.1.11`, its v7.1.11 note, R10-HOTFIX-CARD-HEALTH-TEXT's block) plus this branch's R10-CARD-COLLAPSE block unchanged. Neither side's line was dropped or rewritten. The claim set was re-derived at the merged tree, not copied: `node tests/card_drift.mjs origin/main` (after `tests/plan_view.py`) reports 44 states moved and claimed, `editor_schema` identical, rc 0. That is the same 44 the R10-CARD-COLLAPSE block names, so it claims exactly the moved set. Control that main's lines excuse nothing for this diff: with the file restored to `git show origin/main:tests/golden/card_claimed_drift.txt`, the same command prints 44 `DRIFT ... (unclaimed)` lines and `card_drift: 44 problem(s)`, rc 1. Read-back: `git diff origin/main HEAD -- tests/golden/card_claimed_drift.txt` is 53 added lines and 0 removed (this branch's block); `git diff 82e14f6d8fb87fc65dd993d1cadbd35883090f07 HEAD -- tests/golden/card_claimed_drift.txt` is only the stamp, the v7.1.11 note and the R10-HOTFIX-CARD-HEALTH-TEXT block. No value-bearing fixture was recorded.
-- `tests/card_browser.mjs`: both sides added a cell at the same place, this branch's `cardCollapse` and main's `blockerHide` (R10-HOTFIX-CARD-HEALTH-TEXT). Resolution keeps both, `cardCollapse` first; both call sites merged without conflict. Read-back: the added and removed lines of `git diff origin/main HEAD -- tests/card_browser.mjs` equal, as sorted sets, those of `git diff ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e 82e14f6d8fb87fc65dd993d1cadbd35883090f07 -- tests/card_browser.mjs` (this branch's own delta), so nothing of main's cell was lost and nothing new was written; `node --check` passes.
+- `tests/golden/card_claimed_drift.txt`: the driver refused `CONFLICTING CLAIMS` (base 7.1.11, main 7.1.12, branch 7.1.11). The v7.1.12 stamp emptied the claims. Resolution: main's stamped file verbatim (`claims-for: 7.1.12`), with this branch's R10-CARD-COLLAPSE block appended unchanged. The block is the hunk `git diff 0b276e8c0cd4ddbcf5c5e0adfe179af00441e7f3...089bd3aa5ba3c2d12c49dcb4cfee369b29bc8d44 -- tests/golden/card_claimed_drift.txt` adds, a blank line plus 52 non-empty lines. Read-back: `git diff origin/main HEAD -- tests/golden/card_claimed_drift.txt` adds 52 non-empty lines and removes 0. Its added and removed lines equal, as sorted sets, those of the branch's own three-dot diff. The claim set was re-derived at the merged tree rather than copied: after `tests/plan_view.py`, `node tests/card_drift.mjs origin/main` prints `card_drift: 44 state(s) moved and claimed, 1 identical`, rc 0. Null control: with the file restored to `git show origin/main:tests/golden/card_claimed_drift.txt`, the same command exits rc 1. No value-bearing fixture was recorded, and `VERSION` is untouched.
+- `docs/index.html`: main rewrote the product page (R10 product page, `32fa499a7a`..`fcc7f07e67`). This branch's only change to the file is one sentence of the card lead (`#card`, `data-src="README.md#dashboard-card"`). Resolution: main's file verbatim, with that one sentence re-applied. Read-back: the added and removed lines of `git diff origin/main HEAD -- docs/index.html` equal, in order, those of `git diff 0b276e8c0cd4ddbcf5c5e0adfe179af00441e7f3 089bd3aa5ba3c2d12c49dcb4cfee369b29bc8d44 -- docs/index.html`, one removed line and one added.
+- `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js` auto-merged. Read-back: the added and removed lines of `git diff origin/main HEAD` equal, as sorted sets, the branch's own `git diff 0b276e8c0c 089bd3aa5b` for that file. So main's card change is kept, and nothing new was written.
+- `tests/closures.json`: `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` re-recorded `tests/entities.py`'s `rc` from 1 to 0, and changed nothing else. It kept `tools/pr/figure_registry.json`, which it reported it would have dropped.
 
-No other line changed. Steps 2-8 were re-run at 8c45afd38f2378350bd2e532b68da28e7f682f0e: `## Figures
-
-All at 8c45afd38f2378350bd2e532b68da28e7f682f0e, merge base d72963a719438f2dcf370de92a71f6630804ff2e, 2026-11-12 06:44 UTC, Python 3.14.7, `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`.
-- `python3 tests/closure.py select --diff d72963a719438f2dcf370de92a71f6630804ff2e --workdir "$D"`: `MODE: SCOPED -- 12 script(s) run, 21 scoped out.` Every script in `scope.run` exits 0, `tests/features.py` included (`ALL 5294 FEATURE CHECKS PASSED`), `tests/card.mjs` `ALL CARD CHECKS PASSED`, `tests/card_drift.mjs` `card_drift: 44 state(s) moved and claimed, 1 identical`. `run_always` lines: `python3 tests/env_drift.py --claims-only origin/main` printed `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` printed `ALL 118 closure shrink pins PASSED`; `python3 tests/layout.py` rc 0.
-- `python3 tests/env_drift.py --all`: rc 0, `NO STALE FIXTURE`.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff d72963a719438f2dcf370de92a71f6630804ff2e`: `Architecture score: dS +0.0000 NULL`. An earlier head read `card_clone_copies` 103 -> 108. That was paid by merging the narrative summary into `narrativeParts`, adding one `weightOf` helper, and passing one `{score, narrative, whynow}` disclosure argument to `headlineHtml`.
-- `git diff --quiet d72963a719438f2dcf370de92a71f6630804ff2e...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json && echo untouched`: printed.
-- `PYTHONPATH=tests/hastub node tests/card_browser.mjs` (the second conflicted file): `ALL BROWSER CHECKS PASSED`, rc 0, no `FAIL` line; both `cardCollapse`'s collapse checks (light and dark) and `blockerHide`'s two `keeps a layout box` arms (null control and injected rules) ran.
-
-## Red checks` read none, and `env_drift --all` refused the branch for lacking #3398's combi leaves. This round merges origin/main (no conflict; `git merge-tree --write-tree origin/main bbad7959ae2bacf68d01f190f28e87f849932179` printed a tree and no conflict) and changes no line of its own. Main's delta to the card file is the setup diagram's combi caption and pipe, disjoint from the fold code. Steps 2-8 were re-run at 82e14f6d8fb87fc65dd993d1cadbd35883090f07: `## Figures` and the round-2 mutants below.
+Steps 2-8 were re-run at this head, giving the round-4 mutants under `## Mutation proof` and the `## Figures` below. Earlier rounds: round 1 (pin-missing, below); round 2 merged origin/main without conflict; round 3 was a merge repair of `card_claimed_drift.txt` and `tests/card_browser.mjs` at `8c45afd38f2378350bd2e532b68da28e7f682f0e`.
 
 ## Repair round 1
 
@@ -96,6 +88,12 @@ Round 2, re-run at 82e14f6d8fb87fc65dd993d1cadbd35883090f07 after the merge (`PY
 - M4, the fold handler's `again.focus()` line deleted: rc 1, `collapse: focus returns to the rebuilt header`, `collapse: focus returns to the dialog's copy of the pressed header`.
 - M2, the `this._folds = {...}` toggle line deleted: rc 1, 21 failing checks, the first `headline shows every narrative line`.
 
+Round 4, re-run at this head after the v7.1.12 merge (`PYTHONPATH=tests/hastub node tests/card.mjs`, card file restored by `git checkout` after each):
+- NULL, ` // null` appended to the fold handler's `again.focus()` line: rc 0, 0 failing checks.
+- R1, `this._folds = { narrative: false, whynow: false };` added to the card's `set hass`: rc 1, 1 failing check, `collapse: a hass refresh rebuilds the card and keeps each fold as it was`.
+- M4, the fold handler's `again.focus()` line deleted: rc 1, `collapse: focus returns to the rebuilt header`, `collapse: focus returns to the dialog's copy of the pressed header`.
+- M2, the `this._folds = {...}` toggle line deleted: rc 1, 21 failing checks, the first `headline shows every narrative line`.
+
 ## Null control
 
 There is no finder harness, because the group is an owner request, not an audit finding. The before and after is this branch's `tests/card.mjs` block, run at both ends.
@@ -111,14 +109,13 @@ Each new check asserts its own precondition, so it cannot pass on an empty read:
 
 ## Figures
 
-All at 82e14f6d8fb87fc65dd993d1cadbd35883090f07, merge base ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e, 2026-11-11 14:45 UTC, Python 3.14.7.
-- `PYTHONPATH=tests/hastub node tests/card.mjs`: `ALL CARD CHECKS PASSED`, rc 0.
-- `python3 tests/closure.py select --diff ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e --workdir "$D"`: `MODE: SCOPED -- 12 script(s) run, 21 scoped out.` Each script in `scope.run` run with `PYTHONPATH=tests/hastub GOLDEN_MODE=drift` exits 0 except `tests/features.py`, rc 1, one failing check: `combi_type_branch census` (answered under `## Red checks`). `run_always` lines: `python3 tests/env_drift.py --claims-only origin/main` printed `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` printed `ALL 118 closure shrink pins PASSED`.
-- `python3 tests/env_drift.py --all`: `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE` against origin/main, rc 0 (the round-2 refusal is gone: #3398's combi leaves are in the tree by the merge).
+All at `30f1b6c8fe007b8d4400ba262e51fecd10afb4d2`, merge base 5365b1843702465563fd330623464769777c8c06 (origin/main's tip), 2026-11-12 11:48 UTC, Python 3.14.7, `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`.
+- `python3 tests/closure.py select --diff 5365b1843702465563fd330623464769777c8c06 --workdir "$D"`: `MODE: SCOPED -- 12 script(s) run, 21 scoped out.` Every script in `scope.run` exits 0: `tests/entities.py` `ALL 2709 ENTITY CHECKS PASSED`, `tests/features.py` `ALL 5303 FEATURE CHECKS PASSED`, `tests/card.mjs` `ALL CARD CHECKS PASSED`, `tests/card_drift.mjs origin/main` `card_drift: 44 state(s) moved and claimed, 1 identical`, `tests/golden.py` and `tests/env_drift.py` `NO STALE FIXTURE`. The `run_always` lines: `python3 tests/env_drift.py --claims-only origin/main` printed `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` printed `ALL 118 closure shrink pins PASSED`; `python3 tests/layout.py` rc 0.
+- `python3 tests/env_drift.py --all`: rc 0, `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e`: `Architecture score: dS +0.0000 NULL`. An earlier head read `card_clone_copies` 103 -> 108. That was paid by merging the narrative summary into `narrativeParts`, adding one `weightOf` helper, and passing one `{score, narrative, whynow}` disclosure argument to `headlineHtml`.
-- `git diff --quiet ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json && echo untouched`: printed.
-- `tests/card_browser.mjs` (exit 0, no `FAIL` line, `cardCollapse` and the P9 grid's `folds_open` cell included) and the regenerated `docs/img/card` figures were measured at d7c39135839ea0a985796105ebfda170cdd6d505. Neither repair round changes the fold code, and CI's `tests / browser` re-runs the lane.
+- `python3 tools/audit/archscore/score.py --diff 5365b1843702465563fd330623464769777c8c06`: `Architecture score: dS +0.0000 NULL`.
+- `git diff --quiet 5365b1843702465563fd330623464769777c8c06...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json && echo untouched`: printed.
+- `tests/card_browser.mjs` was not re-run this round. No scope selects it, this merge changes no fold code (see the card read-back above), and CI's `tests / browser` re-runs the lane.
 
 ## Red checks
 
@@ -131,3 +128,4 @@ none
 ## Friction
 
 none
+
