@@ -283,8 +283,7 @@ async def publish(
     carries no attribute and is not handed in. Either arm is armed for the
     off restore before it writes.
     """
-    if config.ecl110_displace_set_topic or config.ecl110_command_topic:
-        await off_restore.async_arm(hass, entry, config, MQTT_CONSUMER)
+    await off_restore.async_arm(hass, entry, config, MQTT_CONSUMER)  # no topic: no restorer, a no-op
     await publish_ecl110_topics(
         hass,
         config.ecl110_displace_set_topic,

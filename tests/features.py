@@ -42646,8 +42646,9 @@ _asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
 _asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
 R.check(
     "an MQTT arm never published is not restored; one published is restored once, not per off",
-    _ghc_mqtt(_gmn) == [] and _ghc_mqtt(_gmx) == [("ecl/set", "2"), ("ecl/set", "0")],
-    "%r %r" % (_ghc_mqtt(_gmn), _ghc_mqtt(_gmx)),
+    _ghc_mqtt(_gmn) == [] and _ghc_mqtt(_gmx) == [("ecl/set", "2"), ("ecl/set", "0")]
+    and _ghc_restore.diagnostics(_gmx.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "%r %r %r" % (_ghc_mqtt(_gmn), _ghc_mqtt(_gmx), _ghc_restore.diagnostics(_gmx.entry)),
 )
 
 # A topic refusing the neutral is a failed restore: latched, still armed, so the
@@ -42671,6 +42672,20 @@ R.check(
     "a topic refusing the neutral leaves the MQTT arm armed and counts no restore",
     all(d["armed"] == [_ghc.MQTT_CONSUMER] and d["restores"] == 0 for d in _gm_fail.values()),
     repr(_gm_fail),
+)
+
+# Topics cleared after the arm: the entity is no longer the optimizer's to write,
+# so the restore disarms it unwritten and counts nothing (off_restore's rule for
+# a consumer no longer configured).
+_gmc_armed = _ghc_coord(entity=None, entry_id="ghc_mqtt_cleared", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmc_armed, 2.0)
+_gmc_bare = _ghc_coord(entity=None, entry_id="ghc_mqtt_bare")
+_asyncio.run(_ghc_restore.async_restore(_gmc_armed.hass, _gmc_armed.entry, _gmc_bare.effective_config, "unload"))
+R.check(
+    "an MQTT arm whose topics were cleared is disarmed unwritten, no restore counted",
+    _ghc_mqtt(_gmc_armed) == [("ecl/set", "2")]
+    and _ghc_restore.diagnostics(_gmc_armed.entry) == {"armed": [], "restores": 0, "last_restore": None},
+    "%r %r" % (_ghc_mqtt(_gmc_armed), _ghc_restore.diagnostics(_gmc_armed.entry)),
 )
 
 # Carry 30ec8edf (2): the legacy payload's heat_pump_on is the cycle's own
