@@ -242,12 +242,12 @@ carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and r
   fi
   printf '%s' "$raw" > "$b"
   out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
-    landed --body "$b" --pr "#$1" "${topic[@]}" 2>&1); rc=$?
+    landed --body "$b" --pr "#$1" ${topic[@]+"${topic[@]}"} 2>&1); rc=$?
   case $rc in
     0) ;;
     1) printf '%s\n' "$out" >&2
        python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
-         land-ops --body "$b" --pr "#$1" "${topic[@]}" 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
+         land-ops --body "$b" --pr "#$1" ${topic[@]+"${topic[@]}"} 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
     *) printf 'BUS carry-landing UNREAD #%s: %s; the dispatch goes on\n' "$1" "$(tail -n 1 <<< "$out")" >&2 ;;
   esac
   rm -f "$b"; [ "$rc" != 1 ]  # mut:landed
