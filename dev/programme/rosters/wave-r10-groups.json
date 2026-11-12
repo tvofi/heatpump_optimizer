@@ -19270,7 +19270,7 @@
     "branch": "handoff/r10-fixer-md-spelling-corpus",
     "note": "queued by orchestrator s12 (roster-audit4) for triage queue line 86's ruling, comment 6708543123",
     "pr": 3397,
-    "commit": "04dfcafccdde1ee5df21a02fe4f06a5bc1083ea0"
+    "commit": "046736a49f8c352160ac4f55aa7f5faa5b82cafa"
    },
    "brief": "Orchestrator ruling under the mandate (comment 6624093439, scope all), coordination issue comment 6708543123, 2026-11-07, and the owner's 2026-11-07 order to act on every roster-audit2 finding (M6): the fixer.md sentence drafted in dev/audit/rca/R10-RCA-CLASS-OPEN.md section 6 is approved, verbatim: \"A guard that classifies text by shape is driven over a generated spelling corpus (case, quoting, glued options, delimiters, wrapping) with the corpus size named in the body; a spelling the reviewer finds is added to it.\" Land that sentence in dev/governance/roles/fixer.md. The draft names step 5; read the role at this group's merge base and place it in the step that governs how a fixer tests a guard (step 5 if it still does, otherwise the step that now does), and state the placement and why in the body. The sentence is approved word for word: do not reword it. If the role is mirrored by a generated file, regenerate it with node tools/policy/rules_sync.mjs and run its --check. policy_lint --budgets must not grow beyond fixer.md's cap; pay for the sentence by tightening fixer.md text first, and a raise goes only through the budget-raise gate. Control: brief_lint and policy_lint pass at the head; the sentence appears exactly once in the role (null control: the merge base has none). It merges as policy under the mandate, and R10-ROUND-PLAYBOOK-FINAL reflects it."
   },
