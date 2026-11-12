@@ -1,0 +1,206 @@
+[
+ {
+  "name": "S01_shared_tree",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "w=$(mktemp -d \"$3/tree.XXXXXX\" 2>/dev/null) || return 1",
+  "new": "w=$3/tree; git -C \"$1\" worktree remove --force \"$w\" >/dev/null 2>&1; rm -rf \"$w\"; mkdir -p \"$w\""
+ },
+ {
+  "name": "S02_no_tree_is_measured",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "w=$(mktemp -d \"$3/tree.XXXXXX\" 2>/dev/null) || return 1",
+  "new": "w=$(mktemp -d \"$3/tree.XXXXXX\" 2>/dev/null) || return 0"
+ },
+ {
+  "name": "S03_tree_at_checkout_head",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "worktree add -q --detach \"$w\" \"$2\"",
+  "new": "worktree add -q --detach \"$w\" HEAD"
+ },
+ {
+  "name": "S04_failed_add_leaves_dir",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "{ rm -rf \"$w\"; false; } || return 1",
+  "new": "{ false; } || return 1"
+ },
+ {
+  "name": "S05_failed_add_is_measured",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "{ rm -rf \"$w\"; false; } || return 1",
+  "new": "{ rm -rf \"$w\"; false; } || return 0"
+ },
+ {
+  "name": "S06_copy_path_never",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "[ ! -f \"$w/tools/audit/prepr.sh\" ] || st=tools/audit/prepr.sh",
+  "new": "true"
+ },
+ {
+  "name": "S07_copy_path_always",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "[ ! -f \"$w/tools/audit/prepr.sh\" ] || st=tools/audit/prepr.sh",
+  "new": "st=tools/audit/prepr.sh"
+ },
+ {
+  "name": "S08_absent_selftest_run",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "if [ -f \"$w/$st\" ]; then out=",
+  "new": "if true; then out="
+ },
+ {
+  "name": "S09_no_hastub_path",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "PYTHONPATH=tests/hastub bash \"$st\" --self-test 2>&1",
+  "new": "bash \"$st\" --self-test 2>&1"
+ },
+ {
+  "name": "S10_stderr_rows_lost",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "bash \"$st\" --self-test 2>&1) || rc=$?",
+  "new": "bash \"$st\" --self-test) || rc=$?"
+ },
+ {
+  "name": "S11_status_flattened",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "--self-test 2>&1) || rc=$?; else",
+  "new": "--self-test 2>&1) || rc=1; else"
+ },
+ {
+  "name": "S12_unrun_reads_as_pass",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "else rc=unrun; fi",
+  "new": "else rc=0; fi"
+ },
+ {
+  "name": "S13_tree_state_unread",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "at=$(git -C \"$w\" rev-parse -q --verify HEAD 2>/dev/null) || at=gone",
+  "new": "at=$(git -C \"$1\" rev-parse -q --verify \"$2^{commit}\" 2>/dev/null) || at=gone"
+ },
+ {
+  "name": "S14_registration_left",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "git -C \"$1\" worktree remove --force \"$w\" >/dev/null 2>&1 || :; rm -rf \"$w\" || :\n  [ \"$rc\" != unrun ]",
+  "new": "rm -rf \"$w\" || :\n  [ \"$rc\" != unrun ]"
+ },
+ {
+  "name": "S15_tree_left",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "git -C \"$1\" worktree remove --force \"$w\" >/dev/null 2>&1 || :; rm -rf \"$w\" || :\n  [ \"$rc\" != unrun ]",
+  "new": ":\n  [ \"$rc\" != unrun ]"
+ },
+ {
+  "name": "S16_unrun_is_measured",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "[ \"$rc\" != unrun ] || return 1",
+  "new": "[ \"$rc\" != unrun ] || return 0"
+ },
+ {
+  "name": "S17_disturbed_is_measured",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "2>/dev/null)\" ] || return 1  # ret:sigwhole",
+  "new": "2>/dev/null)\" ] || :  # ret:sigwhole"
+ },
+ {
+  "name": "S18_killed_is_measured",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "[ \"$rc\" -le 128 ] || return 1",
+  "new": "[ \"$rc\" -le 255 ] || return 1"
+ },
+ {
+  "name": "S19_status_not_compared",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "printf 'rc=%s\\n' \"$rc\"; grep -E",
+  "new": "printf 'rc=%s\\n' \"${rc/#[1-9]*/1}\"; grep -E"
+ },
+ {
+  "name": "S20_rows_not_compared",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "grep -E '^  FAIL ' <<<\"$out\" | sort -u || :",
+  "new": ":"
+ },
+ {
+  "name": "S21_rows_as_text",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "<<<\"$out\" | sort -u || :",
+  "new": "<<<\"$out\" || :"
+ },
+ {
+  "name": "H01_old_answers_kept",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "{ rm -f \"$c\"/*.sig; mv -f",
+  "new": "{ mv -f"
+ },
+ {
+  "name": "H02_answer_not_kept",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "{ rm -f \"$c\"/*.sig; mv -f \"$c/$4.tmp.$$\" \"$c/$4.sig\"; }",
+  "new": "{ rm -f \"$c\"/*.sig; }"
+ },
+ {
+  "name": "H03_exit_status_only",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "[ \"$sh\" = \"$sm\" ]",
+  "new": "[ \"${sh%%$'\\n'*}\" = \"${sm%%$'\\n'*}\" ]"
+ },
+ {
+  "name": "H04_main_always_measured",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "sm=$(cat \"$c/$4.sig\" 2>/dev/null) || sm=",
+  "new": "sm="
+ },
+ {
+  "name": "H05_passes_agree",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "[ \"${sh%%$'\\n'*}\" != rc=0 ] || return 1",
+  "new": ":"
+ },
+ {
+  "name": "H06_other_steps_ignored",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "[ \"$other\" = 0 ] || return 1",
+  "new": ":"
+ },
+ {
+  "name": "H07_unnamed_step_measured",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "grep -qE '^  REFUSE +self-test( |$)' \"$2\" 2>/dev/null || return 1",
+  "new": ":"
+ },
+ {
+  "name": "H08_unmeasured_head_host",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "sh=$(pr_step_sig \"$1\" \"$3\" \"$c\") || return 1",
+  "new": "sh=$(pr_step_sig \"$1\" \"$3\" \"$c\") || return 0"
+ },
+ {
+  "name": "H09_unmeasured_main_host",
+  "file": "tools/audit/seat/pr_args.sh",
+  "old": "\"$c/$4.sig\"; }; } || return 1",
+  "new": "\"$c/$4.sig\"; }; } || return 0"
+ },
+ {
+  "name": "O01_refusal_never_marked",
+  "file": "tools/audit/seat/open_pr.sh",
+  "old": "OP_REFUSED=1",
+  "new": ":"
+ },
+ {
+  "name": "O02_never_host",
+  "file": "tools/audit/seat/open_pr.sh",
+  "old": "if op_host_refusal; then",
+  "new": "if false; then"
+ },
+ {
+  "name": "O03_always_host",
+  "file": "tools/audit/seat/open_pr.sh",
+  "old": "if op_host_refusal; then",
+  "new": "if true; then"
+ },
+ {
+  "name": "O04_stale_log_read",
+  "file": "tools/audit/seat/open_pr.sh",
+  "old": "[ -n \"${OP_REFUSED:-}\" ] || return 1",
+  "new": ":"
+ }
+]
