@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:Direction._latch CMP_BOUND f54ea3ea",
+  "killed_by": "tests/features.py",
+  "old": "            self.usable = not (self.n < N_OFF or self.p < P_OFF)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`self.usable = not (self.n <= N_OFF or self.p < P_OFF)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}
