@@ -81526,6 +81526,99 @@ R.check(
     f"{_bt_enter} {_bt_other} {_bt_left} {_bt_left_payload} {_bt_cycle} {_bt_quiet} {_bt_cycle_payload}",
 )
 
+# The fixer's own pass over every added line: the tail runs out at its own
+# instant, not a second either side (a press at the instant sums only itself, a
+# press half a second before adds to the series); a spent tail is cleared by the
+# expiry itself, so a quiet install stores main's payload again; a press that
+# finds the tail spent clears the sum without an expiry first; leaving the mode
+# frees the sum to clear.
+_bt_at, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_at.set(boost_mod.CHANNEL_SPACE, True, _bt_at.space_settle_until)
+_bt_before, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_before.set(boost_mod.CHANNEL_SPACE, True, _bt_before.space_settle_until - timedelta(milliseconds=500))
+_bt_before.set(boost_mod.CHANNEL_SPACE, False, _bt_before.space_settle_until + timedelta(minutes=10))
+_bt_quiet_st, _ = _bt_series([("space", _bt_20)])
+_bt_quiet_st.expire(_bt_quiet_st.space_settle_until + timedelta(minutes=1))
+_bt_noexp, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_noexp_at = _bt_noexp.space_settle_until + timedelta(minutes=1)
+_bt_noexp.set(boost_mod.CHANNEL_SPACE, True, _bt_noexp_at)
+_bt_noexp.set(boost_mod.CHANNEL_SPACE, False, _bt_noexp_at + _bt_20)
+_bt_modeleft, _bt_modeleft_end = _bt_series([("mode", timedelta(minutes=30))])
+_bt_modeleft.expire(_bt_modeleft.space_settle_until + timedelta(minutes=1))
+R.check(
+    "the tail runs out at its own instant; a spent tail clears on expiry and a quiet install "
+    "stores main's payload; a press after a spent tail sums only itself; a left mode lets "
+    "its sum clear",
+    _bt_at.space_boosted == timedelta(0)
+    and _bt_before.space_boosted == 3 * _bt_20 + timedelta(minutes=10, milliseconds=500)
+    and (_bt_quiet_st.space_settle_until, _bt_quiet_st.space_boosted) == (None, timedelta(0))
+    and boost_mod._store_payload(_bt_quiet_st) == {}
+    and _bt_noexp.space_boosted == _bt_20
+    and (_bt_modeleft.mode_since, _bt_modeleft.space_settle_until) == (None, None),
+    f"{_bt_at} {_bt_before} {_bt_quiet_st} {_bt_noexp} {_bt_modeleft}",
+)
+
+# Restore at the boundaries: a tail ending at the restart's instant is spent,
+# and an overlay that ended more than a tail before the restart owes nothing.
+# Null control: ``_bt_down`` above, ended an hour before, owes its tail.
+_bt_r_now = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_r_now, {"space_settle": {"until": NOW.isoformat(), "boosted_h": 1.0}}, NOW)
+_bt_r_old = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_r_old, {"space": {"until": (NOW - timedelta(hours=13)).isoformat(),
+                                                "since": (NOW - timedelta(hours=14)).isoformat()}}, NOW)
+R.check(
+    "a restored tail ending now is spent; an overlay ended over a tail before the restart owes none",
+    (_bt_r_now.space_settle_until, _bt_r_now.space_boosted) == (None, timedelta(0))
+    and (_bt_r_old.space_settle_until, _bt_r_old.space_boosted) == (None, timedelta(0)),
+    f"{_bt_r_now} {_bt_r_old}",
+)
+
+# ``persist`` saves ``_store_payload`` through the boost store's own key and
+# version. Null control: the payload saved is the one a quiet state builds.
+_bt_saves = []
+
+
+class _BtSaveStore:
+    def __init__(self, real):
+        self.real = real
+
+    async def async_save(self, data):
+        _bt_saves.append((self.real._key, self.real._version, data))
+
+
+_bt_pc = _BtCoord()
+_bt_pc.hass, _bt_pc.entry = FakeHass(), type("_BtEntry", (), {"entry_id": "bt"})()
+boost_mod.held_for(_bt_pc).settle(NOW, NOW - _bt_20)
+_bt_real_store = boost_mod._store
+boost_mod._store = lambda c: _BtSaveStore(_bt_real_store(c))
+try:
+    _bt_asyncio.run(boost_mod.persist(_bt_pc))
+finally:
+    boost_mod._store = _bt_real_store
+R.check(
+    "persist saves the store payload under the boost store's key and version",
+    _bt_saves == [(f"{boost_mod.DOMAIN}_bt_boost", boost_mod.BOOST_STORE_VERSION,
+                   boost_mod._store_payload(boost_mod.held_for(_bt_pc)))]
+    and "space_settle" in _bt_saves[0][2],
+    f"{_bt_saves}",
+)
+
+# The coordinator's mode change reaches ``note_mode_change``: leaving the boost
+# mode through ``async_set_mode`` starts the tail and sums the mode's time.
+# Null control: entering it starts no tail.
+_bt_cc = _sr_coord()
+_bt_asyncio.run(_bt_cc.async_set_mode(boost_mod.MODE_BOOST, refresh=False))
+_bt_cc_in = (boost_mod.held_for(_bt_cc).mode_since is not None, boost_mod.held_for(_bt_cc).space_settle_until)
+_bt_asyncio.run(_bt_cc.async_set_mode(_fb_const.MODE_AUTO, refresh=False))
+_bt_cc_held = boost_mod.held_for(_bt_cc)
+R.check(
+    "async_set_mode into the boost mode marks its start, and out of it starts the tail",
+    _bt_cc_in == (True, None)
+    and _bt_cc_held.mode_since is None and _bt_cc_held.space_settle_until is not None
+    and _bt_cc_held.space_boosted is not None,
+    f"{_bt_cc_in} {_bt_cc_held}",
+)
+
 
 # A hot-water charge inside a counter span (the dwell saw it): the cycle has no
 # space interval, yet the span stays clean where the counter is declared to see
