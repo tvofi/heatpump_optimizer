@@ -32,7 +32,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-RESTORE-BASE-SKEW (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-CHARGE-SETTLE (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DISINFECTION-SETPOINT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-PRODUCT-PAGE-REDESIGN (stage in-progress): no branch pushed yet, so nothing to fetch
