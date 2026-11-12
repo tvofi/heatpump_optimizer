@@ -698,7 +698,10 @@ def disinfection_checks() -> None:
         "a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses",
         lambda: written(_dhw_snap(configured=25.0, cycle=False), "dhw") == 30.0
         and written(_dhw_snap(configured=25.4, cycle=False, attrs={"min": 30.5, "max": 65, "step": 0.5}), "dhw") == 30.5
-        and written(_dhw_snap(configured=25.0, cycle=False, attrs={"min": 30.4, "max": 65, "step": 1}), "dhw") == 31.0,
+        and written(_dhw_snap(configured=25.0, cycle=False, attrs={"min": 30.4, "max": 65, "step": 1}), "dhw") == 31.0
+        and written(_dhw_snap(configured=30.6, cycle=False, attrs={"min": 30.4, "max": 65, "step": 1}), "dhw") == 31.0
+        and written(_dhw_snap(configured=72.0, cycle=False, attrs={"min": 70, "max": 80, "step": 1}), "dhw") == 70.0
+        and written(_dhw_snap(configured=58.0, cycle=False, attrs={"max": 65, "step": 5}), "dhw") == 55.0,
     )
     check(
         "the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every "
@@ -706,6 +709,8 @@ def disinfection_checks() -> None:
         lambda: _repair_grid_over_hard_max() == []
         and _fix_value(_dhw_snap(disinfection=60.3, reading=60.0), arbiter=False) is None
         and _fix_value(_dhw_snap(disinfection=60.3, reading=59.0), arbiter=False) == 60.0
+        and _fix_value(_dhw_snap(disinfection=60.3, reading=60.0 - setpoint_check.MIXING_VALVE_WRITE_EPSILON),
+                       arbiter=False) is None
         and _fix_value(_dhw_snap(disinfection=72.0, reading=69.0, attrs=_step(1)), arbiter=False) == 70.0,
     )
     check(

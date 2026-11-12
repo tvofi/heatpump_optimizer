@@ -591,10 +591,12 @@ def _bounded(
     value = max(value, floor, low if low is not None else floor)
     value = min(value, high) if high is not None else value
     lows = [v for v in (lo, low) if v is not None]
-    # The entity's range outranks a caller's ceiling: below its minimum a
-    # write is refused, so a ceiling under it is dropped and the minimum,
-    # rounded up onto the step, holds.
-    highs = [v for v in (hi, high) if v is not None and (low is None or v >= low)]
+    highs = [high] if high is not None else []
+    # The entity's range outranks a caller's ceiling: a write under its
+    # minimum on the step is refused, so a ceiling below that is dropped and
+    # the minimum, rounded up onto the step, holds.
+    if hi is not None and (low is None or hi >= quantise_setpoint_c(inp.hass, entity, low, rounding="up")):
+        highs.append(hi)
     return quantise_setpoint_c(
         inp.hass, entity, value, rounding=rounding,
         lo_c=max(lows) if lows else None, hi_c=min(highs) if highs else None,
