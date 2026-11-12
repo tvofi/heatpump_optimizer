@@ -48,3 +48,5 @@ Carry 13: **The hot-water LP's secant** (`_plan_dhw_min_cost`, flat 0.335995 / s
 Valid `Carry:` targets (live consumers of R10-SAV-VALUATION-RESIDUE: groups after it or sharing its files): R10-ARCH-DOCS-DELTA, R10-DUTY-SWITCH-RESTART-LEARNING, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-DUTY-SWITCH-PLANNER-PRICE, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2
 
 Part 1 of 3: build carries 0-4; the others are later parts dispatched at this part's handoff; answer none of them
+
+Cloud entities trap: before the push run `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` and fix what it names.
