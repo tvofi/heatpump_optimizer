@@ -6816,7 +6816,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
         self._input_returns.arm(reader.health)
-        self._learner_freezes.clear()
+        self._learner_freezes = FreezeRecord()
 
         # The defrost derate's humidity bucket is resolved from this, so it has
         # to be current before anything calls compute_cop.

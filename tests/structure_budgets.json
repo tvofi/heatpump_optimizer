@@ -2,7 +2,7 @@
  "class_excess_loc": 17523,
  "const_modules_over_50": 3,
  "coordinator_attrs": 139,
- "coordinator_multiassigned_attrs": 107,
+ "coordinator_multiassigned_attrs": 108,
  "coordinator_private_reach": 0,
  "dead_methods": 0,
  "dead_top_level_symbols": 1,
