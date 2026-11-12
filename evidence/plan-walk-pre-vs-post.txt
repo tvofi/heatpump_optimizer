@@ -1,0 +1,10 @@
+CHANGED .generated.roster_ref '/tmp/claude-0/S/pre/wave-r10-groups.json' -> '/tmp/claude-0/S/post/wave-r10-groups.json'
+ADDED .groups.R10-CATALOG-PR.duration_basis 'owner-stated 240 min (not measured): owner-stated price, tvofi 2026-11-12: "Price it at 4h"'
+CHANGED .groups.R10-CATALOG-PR.duration_minutes 1589 -> 240
+CHANGED .groups.R10-CATALOG-PR.finish '2026-11-18T10:27:00Z' -> '2026-11-17T11:58:00Z'
+ADDED .groups.R10-CATALOG-PR.owner_priced True
+CHANGED .summary.closure '2026-11-18T10:27:00Z' -> '2026-11-17T11:58:00Z'
+CHANGED .summary.expected_arrivals.groups 56.98 -> 47.99
+CHANGED .summary.expected_arrivals.work_hours 2028.49 -> 1708.33
+CHANGED .summary.post_closure_finish '2026-11-18T10:27:00Z' -> '2026-11-17T11:58:00Z'
+CHANGED .summary.wall_hours 142.45 -> 119.97

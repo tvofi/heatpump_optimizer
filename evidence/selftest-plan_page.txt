@@ -1,0 +1,7 @@
+wrote /tmp/tmp0sit0say/page.html: 8 groups, closure 2026-01-06T22:04:00Z
+wrote /tmp/tmp0sit0say/page.html: 8 groups, closure 2026-01-06T22:04:00Z
+plan_page self-test: 95 checks, 0 failed
+
+real	0m0.556s
+user	0m0.435s
+sys	0m0.040s
