@@ -1,0 +1,142 @@
+GONE CLAUDE.md: `AGENTS.md`, at the root, is the entry point for a harness that auto-loads that
+GONE CLAUDE.md: name instead of this one (ZCode, Codex);
+GONE CLAUDE.md: it states no policy of its own and
+GONE CLAUDE.md: This rule is stated here and again in `dev/governance/roles/orchestrator.md`
+GONE CLAUDE.md: That duplication is deliberate and is the owner's call:
+GONE CLAUDE.md: seat, so it belongs where every seat reads, and it binds the orchestrator
+GONE CLAUDE.md: hardest, so it belongs in that contract too.
+GONE dev/audit/README.md: Everything the per-dimension audit runs on, so that a finding can be
+GONE dev/audit/README.md: the briefs each auditor receives,
+GONE dev/audit/README.md: the schema every finding must satisfy, the harness contract, and the three
+GONE dev/audit/README.md: harnesses a judge still re-runs (the instruments section below).
+GONE dev/audit/README.md: that records what came of it is `dev/programme/register/audit-2026-09.md`;
+GONE dev/audit/README.md: scripts are `.claude/workflows/audit-*.js`.
+GONE dev/audit/README.md: Almost nothing here is read by the gate.
+GONE dev/audit/README.md: its `INERT_EXCEPT` record which paths under `tools/` that covers and which it
+GONE dev/audit/README.md: does not, including the one file here a test executes.
+GONE dev/audit/README.md: dev/audit/README.md           this file:
+GONE dev/audit/README.md: the round playbook, the harness contract, the instruments kept live
+GONE dev/audit/README.md: tools/pr/preflight.sh         executed by tests/entities.py, so it is not INERT
+GONE dev/audit/README.md: tools/release/stamp.py        the only way a version is assigned
+GONE dev/audit/README.md: - The standing set is the triage seat (`proposal-triage.md`) plus the beat
+GONE dev/audit/README.md: jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing one
+GONE dev/audit/README.md: digest, `jobs/<row>` under the beat's state directory:
+GONE dev/audit/README.md: the tick seat's job is
+GONE dev/audit/README.md: the `tick-digest` and `owed-check` rows, the roster seat's `roster-drain`;
+GONE dev/audit/README.md: merge seat's is `train.sh` under `tools/audit/seat/daemonize.py`
+GONE dev/audit/README.md: the dispatch and relay seat names no row yet and
+GONE dev/audit/README.md: stays (`standing-dispatch.md`).
+GONE dev/audit/README.md: seat's work moves to a beat job, never into the orchestrator's turns, and the
+GONE dev/audit/README.md: From the v10.0.0 stamp, a change to
+GONE dev/audit/README.md: unblocks a named pull request touching `custom_components/` or fixes a red on
+GONE dev/audit/README.md: main or on one;
+GONE dev/audit/README.md: from `DEFAULT_CAPS` in `tools/plan/replan.py`.
+GONE dev/audit/README.md: Of it, 10 slots (a fixed count,
+GONE dev/audit/README.md: the owner's ruling, not a tree value) are reserved for pull requests touching
+GONE dev/audit/README.md: a machinery PR never takes one, and a production PR is never refused for a machinery slot.
+GONE dev/audit/README.md: accepted only when its friction blocks a production merge, otherwise ruled
+GONE dev/audit/README.md: Exemption from all three:
+GONE dev/audit/README.md: a proposal proving more
+GONE dev/audit/README.md: than 10% on CI time, programme completion time, right-first-time rate or token
+GONE dev/audit/README.md: merge queue can replace the train:
+GONE dev/audit/README.md: this user-owned repository (round 10's D13 probe report).
+GONE dev/audit/README.md: Confirm plan and
+GONE dev/audit/README.md: weigh the HACS URL redirect, App installations, deploy key,
+GONE dev/audit/README.md: for queue latency, `merge_group` gate names and CI minutes against the train;
+GONE dev/audit/README.md: then adopt or decline, and close each held group (R10-FLOW-RECORD-PITCH,
+GONE dev/audit/README.md: R10-FLOW-BODY-ONLY part (a)) the queue makes moot.
+GONE dev/audit/README.md: - `dev/audit/rca/harness-friction/rounds.py` takes one directory argument and
+GONE dev/audit/README.md: no `--stats` mode.
+GONE dev/audit/README.md: A RESULT whose `thread_factor` exceeds 1.05 is
+GONE dev/audit/README.md: the factor is a BLAS signal, not a tax on real
+GONE dev/audit/README.md: A harness that deliberately runs work on a second thread (the
+GONE dev/audit/README.md: real `ThreadPoolExecutor` the FakeHass trap below mandates) can never
+GONE dev/audit/README.md: satisfy the bare ratio
+GONE dev/audit/README.md: that thread's honest CPU lands in
+GONE dev/audit/README.md: `process_time` and not in `thread_time` (`h2_cycle.py`:
+GONE dev/audit/README.md: the residual `(process_cpu - deliberate_thread_cpu)/thread_cpu` as the
+GONE dev/audit/README.md: `thread_factor` with the subtracted CPU as its own RESULT.
+GONE dev/audit/README.md: `load1 <= 1.5` bar is a stall, not a safeguard.
+GONE dev/audit/README.md: What protects a timing
+GONE dev/audit/README.md: number is a *ratio* metric and a null control under the same load in
+GONE dev/audit/README.md: do not wait for 1.5.
+GONE dev/audit/README.md: - `tests/setup_qa_render.mjs` writes SVGs to `../setup-qa/`, outside the
+GONE dev/audit/README.md: - The GIL yields in `optimizer.py` are two `sleep(0.002)` calls:
+GONE dev/audit/README.md: consecutive L-BFGS-B starts (`_multi_start_minimize`), one at the seam
+GONE dev/audit/README.md: between the DHW stage and the space stage.
+GONE dev/audit/README.md: Neither sits inside an iteration.
+GONE dev/audit/README.md: ## Running the gate on the audit box
+GONE dev/audit/README.md: Drift mode against the merge base, and the lease `run.sh` takes around
+GONE dev/audit/README.md: `stress.py`, are `.claude/rules/gate-scoping.md`.
+GONE dev/audit/README.md: A direct `stress.py` run
+GONE dev/audit/README.md: takes no lease.
+GONE dev/audit/README.md: A ratio cancels load, an absolute number does not.
+GONE dev/audit/README.md: The audit measures the integration with instruments that are themselves code:
+GONE dev/audit/README.md: A defect your dimension's method meets in one of those is a
+GONE dev/audit/README.md: instrumented symbol, perturbation, metric definition, control
+GONE dev/audit/README.md: paragraph of prose in your report.
+GONE dev/audit/README.md: It travels the ordinary route:
+GONE dev/audit/README.md: panel, judge, then an issue.
+GONE dev/audit/README.md: the seat that finds an instrument defect is using the instrument it
+GONE dev/audit/README.md: accuses, and the judge re-measures with it.
+GONE dev/audit/README.md: accused check fire has not refuted the finding;
+GONE dev/audit/README.md: say which you could not separate.
+GONE dev/audit/README.md: fix it, verify it independently if you
+GONE dev/audit/README.md: cannot, file it only then
+GONE dev/audit/README.md: so a one-line instrument repair is made in place and
+GONE dev/audit/README.md: needs no issue.
+GONE dev/audit/README.md: What this refuses is the third outcome:
+GONE dev/audit/README.md: a report nobody carries,
+GONE dev/audit/README.md: met again next round.
+GONE dev/audit/README.md: `audit-round2-evidence` harnesses disagree on the repository root:
+GONE dev/audit/README.md: measures the working directory, `D7/sysid_plant.py` the checkout its file lives
+GONE dev/audit/README.md: in, so from the tag's worktree it measures the tag.
+GONE dev/audit/README.md: **Copy a harness into the tree under test first**, say which root rule it used,
+GONE dev/audit/README.md: and cite the SHA you ran, never the tag name:
+GONE dev/audit/README.md: the round-2 numbers were recorded
+GONE dev/audit/README.md: at `c398fc84`, and the tag, moved once by name, points at `757e164`.
+GONE dev/audit/README.md: those harnesses still run is `round2/HARNESSES.md` at `d5d8c4a`, final at that
+GONE dev/audit/README.md: ## Rounds 1-3 are at a tag
+GONE dev/audit/README.md: `tools/audit/round1/` to `round3/`, three closed rounds' write-once evidence, are
+GONE dev/audit/README.md: reachable in full at **`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`** (`origin/main`
+GONE dev/audit/README.md: Cite that SHA, never a tag:
+GONE dev/audit/README.md: Round 2's executable harnesses are at `audit-round2-evidence` (`757e164`).
+GONE dev/audit/README.md: with `web-phase0.js` and `triage-quiet-judges.json`, are at `d5d8c4a` too;
+GONE dev/audit/README.md: Each was added by a fix pull request *after* its round closed, and each is an
+GONE dev/audit/README.md: instrument someone re-runs rather than a report someone reads.
+GONE dev/audit/README.md: All four drive production symbols and print `RESULT` lines under the harness
+GONE dev/audit/README.md: contract in this file.
+GONE dev/audit/README.md: `j5_gil.py` must never be run on
+GONE dev/governance/roles/architect-planner.md: **Method:** ATAM's quality scenarios with sensitivity and tradeoff points;
+GONE dev/governance/roles/architect-planner.md: the Mikado method's prerequisite graph;
+GONE dev/governance/roles/architect-planner.md: name, marking the sensitivity and tradeoff points the round touches.
+GONE dev/governance/roles/architect-planner.md: **Plan the moves to the programme target.** Findings first;
+GONE dev/governance/roles/architect-planner.md: and carrying a finding's evidence (a harness, prototype or prediction, and
+GONE dev/governance/roles/architect-planner.md: weights or its calibration.
+GONE dev/governance/roles/architect-planner.md: sensitivity points the moves touch, seams likely to need
+GONE dev/governance/roles/architect-planner.md: redesign, and where the score could read better while the code is not,
+GONE dev/governance/roles/architect-planner.md: mean of (count + 1) over the 17 scored metrics, log2(1/0.7) x the summed
+GONE dev/governance/roles/architect-planner.md: The target binds this plan, never a single seat.
+GONE dev/governance/roles/architect-planner.md: A fixer and a fix reviewer
+GONE dev/governance/roles/architect-planner.md: still ask only whether the change is sounder (`fixer.md` step 17) and whether
+GONE dev/governance/roles/architect-planner.md: every number is earned.
+GONE dev/governance/roles/fixer.md: API floor is theirs), woken once by its exit, never sleeping and polling;
+GONE dev/governance/roles/fixer.md: conflict or the head is `DIRTY` (`nudge.md` step 9).
+GONE dev/governance/roles/orchestrator.md: The turn is `dev/governance/roles/nudge.md`.
+GONE dev/governance/roles/orchestrator.md: one reason to absorb `main` into a head (`nudge.md` 9).
+GONE dev/governance/roles/orchestrator.md: - **A range in prose is not a disposition.** `#470–#500` reads as complete and
+GONE dev/governance/roles/orchestrator.md: It binds you
+GONE dev/governance/roles/orchestrator.md: additionally, because you write the rosters and you decide the merge order.
+GONE dev/governance/roles/plan-review.md: the holdouts named, and fitness functions per move.
+GONE dev/governance/roles/plan-review.md: each decision serves a named
+GONE dev/governance/roles/plan-review.md: scenario, and its tradeoffs are written down.
+GONE dev/governance/roles/proposal-triage.md: A process, tooling or instrument proposal passes this gate before building
+GONE dev/governance/roles/proposal-triage.md: the sweep and Proposals line, seat results,
+GONE dev/governance/roles/proposal-triage.md: verdict optimisation notes.
+GONE dev/governance/roles/proposal-triage.md: A countermeasure policy requires (root cause,
+GONE dev/governance/roles/proposal-triage.md: tokens (model x effort x expected runs);
+GONE dev/governance/roles/proposal-triage.md: **Machinery.** A planned instrument/machinery group, or existing non-production
+GONE dev/governance/roles/proposal-triage.md: `Verdict:`, `Source:`, `Instances:` (each figure beside its command or
+GONE dev/governance/roles/proposal-triage.md: cite, don't carry), `Cost:` (estimate, each capped file's `--budgets`
+GONE tools/audit/seat/roster_edit.py: VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER)\b", re.M)
+TOTAL 141 gone of 230 removed fragments
