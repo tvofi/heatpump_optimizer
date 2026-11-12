@@ -26,11 +26,18 @@ Every ``null_*`` line is byte-identical at the base and the head; a
 ``stock`` line differing is the fix.
 
 ``--grid`` instead prints the census of the write's rounding paths, one
-``grid`` line per entity step (0.1, 0.5, 1, 2, 5; range 30-80 degC), everyday
-set-point, disinfection temperature (below, at and above each other, on and
-off each step, past the 70 degC cap) and cycle (held, or disabled for the
-everyday write): ``write=`` the dhw row's write, ``hard_max=`` the same
-parameters' ``dhw_hard_max_temp``, ``over=1`` where the write exceeds it.
+``grid`` line per arm, entity step (0.1, 0.5, 1, 2, 5; range 30-80 degC),
+everyday set-point and disinfection temperature (below, at and above each
+other, on and off each step, past the 70 degC cap). Arms: ``held`` (cycle
+enabled, switch held: the cycle write), ``idle`` (cycle enabled, not running)
+and ``disabled`` (cycle disabled, switch held): the everyday write.
+``write=`` the dhw row's write; ``hard_max=`` the same parameters'
+``dhw_hard_max_temp``, ``over=1`` where the write exceeds it; ``limit=`` the
+charge limit ``dhw_max_temp``, ``over_limit=1`` where the write exceeds it;
+``below_floor=1`` where the write is under ``dhw_min_temp`` plus
+``DHW_MIN_TEMP_SETPOINT_MARGIN`` (no step between the two bounds); ``fix=``
+the repair's Fix value with no arbiter write and the pump reading 30
+(``-`` when it stands down), ``fix_over=1`` where it exceeds ``hard_max``.
 """
 from __future__ import annotations
 
@@ -44,7 +51,7 @@ sys.path.insert(0, "custom_components")
 from harness import FakeHass, FakeState  # noqa: E402
 from heatpump_optimizer import pump_arbiter as arb  # noqa: E402
 from heatpump_optimizer import setpoint_check  # noqa: E402
-from heatpump_optimizer.const import MODE_AUTO  # noqa: E402
+from heatpump_optimizer.const import DHW_MIN_TEMP_SETPOINT_MARGIN, MODE_AUTO  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalParameters  # noqa: E402
 
 NOW = datetime(2026, 7, 1, 12, 0, tzinfo=timezone.utc)
@@ -102,18 +109,27 @@ def _repair(snap, own):
     return f"{raised[0][2]['data']['value']:g}" if raised else "-"
 
 
+GRID_ARMS = {"held": (True, True), "idle": (True, False), "disabled": (False, True)}
+
+
 def grid() -> int:
-    for step in GRID_STEPS:
-        for everyday in GRID_TEMPS[:-1]:
-            for disinfection in GRID_TEMPS:
-                for cycle in (True, False):
+    for arm, (cycle, disinfecting) in GRID_ARMS.items():
+        for step in GRID_STEPS:
+            for everyday in GRID_TEMPS[:-1]:
+                for disinfection in GRID_TEMPS:
                     install = dict(configured=everyday, disinfection=disinfection, cycle=cycle, entity="number.dhw")
-                    snap = _snap(install, {}, True, 0.0, {"min": 30, "max": 80, "step": step})
+                    attrs = {"min": 30, "max": 80, "step": step}
+                    snap = _snap(install, {}, disinfecting, 0.0, attrs)
                     own = arb.desired(_Coord(snap), snap, "dhw", NOW).dhw_setpoint
-                    top = snap.params.dhw_hard_max_temp
-                    over = int(own is not None and own > top + 1e-9)
-                    print(f"grid step={step} everyday={everyday} disinfection={disinfection} cycle={int(cycle)} "
-                          f"write={own} hard_max={top} over={over}")
+                    p = snap.params
+                    top, limit = p.dhw_hard_max_temp, p.dhw_max_temp
+                    floor = p.dhw_min_temp + DHW_MIN_TEMP_SETPOINT_MARGIN
+                    fix = _repair(_snap(install, {}, disinfecting, 30.0, attrs), None)
+                    print(f"grid arm={arm} step={step} everyday={everyday} disinfection={disinfection} "
+                          f"write={own} hard_max={top} over={int(own is not None and own > top + 1e-9)} "
+                          f"limit={limit} over_limit={int(own is not None and own > limit + 1e-9)} "
+                          f"below_floor={int(own is not None and own < floor - 1e-9)} "
+                          f"fix={fix} fix_over={int(fix != '-' and float(fix) > top + 1e-9)}")
     return 0
 
 
