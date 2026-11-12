@@ -17,7 +17,7 @@ Evidence:
 - The steps after `ci predict` name main's head, not this one. They print `merged structure STRUCTURE RATCHET PASSED (tests/structure.py at 6e100ef69802, HEAD merged with origin/main)`, and then:
   `REFUSE pr-body ... ## Head does not name 6e100ef, which is the head this ran on.`
   `PRE-PR: 6e100ef6980216a81eaa0438bdc215d62b19271f 000000000000000000000000000001000 rc=1`
-- Steps up to and including `ci predict` ran at f26a283 and all print ok or skip (`closures` skip: the diff cannot be scoped; `diff mutants` skip: MUTANT_CMD unset).
+- Steps up to and including `ci predict` ran at f26a283 and all print ok or skip (`closures` skip: the diff cannot be scoped). `diff mutants` (skip: MUTANT_CMD unset) ran after the move, at 6e100ef.
 - Control, the same arm at behind=0: the run at 8301a5f2 (main fc2a7edc, unmoved until the stamp) kept HEAD at 8301a5f2 through every step up to `ci predict`, as the reflog shows (no checkout entry between 10:15:41 and 10:50:20).
 - The worktree is restored to f26a283 (`git checkout --detach f26a283`).
 - Brief's closure run: `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` at f26a283 exits rc=0, with `tests/entities.py 566 files`, and HEAD is unmoved after the run. It changes one value in `tests/closures.json`: `recorded["tests/entities.py"].rc` goes from 1 to 0, and the closure's file list is unchanged. rc 1 is the value at origin/main, f26a2839, 9efb4daf and 4bc2f3bc, so it is inherited and not this branch's. It is committed as 5f95f406 on top of f26a283, below this file.
