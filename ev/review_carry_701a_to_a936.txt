@@ -1,0 +1,11 @@
+review_carry: 701a18e26 -> a936a11d4  main=origin/main
+  branch-only commits: 7
+  why: 934f6d683e4f75409490a8ebf1718fcc124869de is not the automatic merge of its parents
+  62a0d672f  Merge remote-tracking branch 'origin/main' into fix-r10
+  874cb0168  supply_hold: the learners' freeze is a reason with its span fixed at the hold
+  808f50df7  structure: record class_excess_loc 17526 -> 17525
+  b2dd26288  ci: pin killed mutants
+  4662745d2  Merge commit 'b2dd262882a8ae99a4ac9a32323a7263da56653f' into fix-r10
+  934f6d683  Merge remote-tracking branch 'origin/main' into fix-r10
+  a936a11d4  mutation ledger: drop five pins whose sites the freeze_reason change removed
+review_carry: FRESH-REVIEW

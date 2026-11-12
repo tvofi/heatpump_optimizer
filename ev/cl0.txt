@@ -1,0 +1,13 @@
+mild day 12.0 degC, supply gate, cycles at minute 0 + 30 j; early cut-off not armed; tank fixed at 35.0
+NULL    winter_typical gate off held/day   0.0 episodes   0  writes   4  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    1.5 kWh  room min 20.00  tank min 35.00
+NULL    winter_typical gate on  held/day   0.0 episodes   0  writes   4  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    1.5 kWh  room min 20.00  tank min 35.00
+NULL    flat           gate off held/day   0.0 episodes   0  writes   6  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    0.2 kWh  room min 19.72  tank min 35.00
+NULL    flat           gate on  held/day   0.0 episodes   0  writes   6  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    0.2 kWh  room min 19.72  tank min 35.00
+HOT     winter_typical gate off held/day   0.0 episodes   0  writes   4  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    7.5 kWh  room min 20.94  tank min 35.00
+HOT     winter_typical gate on  held/day   0.0 episodes   0  writes   4  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    7.5 kWh  room min 20.94  tank min 35.00
+HOT     flat           gate off held/day   0.0 episodes   0  writes   2  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    1.5 kWh  room min 20.15  tank min 35.00
+HOT     flat           gate on  held/day   0.0 episodes   0  writes   2  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    1.5 kWh  room min 20.15  tank min 35.00
+LIGHT   winter_typical gate off held/day   0.0 episodes   0  writes   6  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump   24.5 kWh  room min 17.82  tank min 35.00
+LIGHT   winter_typical gate on  held/day   0.0 episodes   0  writes   6  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump   24.5 kWh  room min 17.82  tank min 35.00
+LIGHT   flat           gate off held/day   0.0 episodes   0  writes  17  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump   29.5 kWh  room min 19.02  tank min 35.00
+LIGHT   flat           gate on  held/day   0.0 episodes   0  writes  17  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump   29.5 kWh  room min 19.02  tank min 35.00

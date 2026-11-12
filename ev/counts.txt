@@ -1,0 +1,9 @@
+py modules: 90
+importing homeassistant: 33
+package files: 109
+docs/architecture.md:8:knows nothing about Home Assistant: 90 modules, of which 32 import the
+docs/architecture.md:273:32 of the 90 modules import `homeassistant` at module level: `__init__`,
+tests/deployment_shape.py:40:records every read, so this lane's recorded closure is the package: all 109
+
+ALL DEPLOYMENT SHAPE CHECKS PASSED
+importing homeassistant at module level (col 0): 32
