@@ -31,8 +31,8 @@ PR=$1; W=$2; BR=$3; B=$4; shift 4
 R=tvofi/heatpump_optimizer; FORK=""; TIP="origin/$BR"; SRC=$BR
 if [ "${1:-}" = --head-repo ]; then
   FORK=${2:-}; TIP="refs/remotes/pull/$PR/head"; SRC="+refs/pull/$PR/head:$TIP"
-  { [[ $FORK =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] && [ "$FORK" != "$R" ] && [[ $PR =~ ^[0-9]+$ ]]; } \
-    || { echo "REMERGE FAILED $PR at args (--head-repo '$FORK' is not another owner/repo)"; exit 1; }  # mut:remergeforkarg
+  argok=no; { [[ $FORK =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] && [ "$FORK" != "$R" ] && [[ $PR =~ ^[0-9]+$ ]]; } && argok=yes
+  [ "$argok" = yes ] || { echo "REMERGE FAILED $PR at args (--head-repo '$FORK' is not another owner/repo)"; exit 1; }  # mut:remergeforkarg
 fi
 SEAT=$(cd "$(dirname -- "$0")" && pwd)
 PL=$B.push.log; pr_exit_trap 'declare -F mint_cleanup >/dev/null && mint_cleanup; test -n "${KEEP:-}" || rm -f "$PL"'

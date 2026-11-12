@@ -46,7 +46,7 @@ try:
 except Exception as e:  # fail closed: outside.py's answer, or none
     print(f"REFUSE: {path} could not say whether #{pr}'s head is cross-repository ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})")
     sys.exit(1)
-if cross:  # mut:ownerfork
+if cross:
     print(f"CROSS-REPOSITORY: #{pr}'s head is {str((pull['head'].get('repo') or {}).get('full_name'))[:80]}'s; owner mode posts nothing there, "
           "class O is outside.py's approve subcommand from our own read (decision 0017)")
     sys.exit(1)
