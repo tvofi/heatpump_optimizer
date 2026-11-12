@@ -4102,7 +4102,9 @@ def surface_sources(services: dict | None = None) -> list[dict]:
         add("option_page", page.step, titles.get(page.step, page.label))
     opt_steps = _EN_STRINGS["options"]["step"]
     for f in config_flow._OPTION_FIELDS:
-        d = f.default
+        # A `_Suggested` default renders its stored value, else its literal fallback: the fallback is the default a
+        # fresh entry shows, so its Default cell is compared like any literal's (carry from r10-min-power-floor).
+        d = f.default.fallback if isinstance(f.default, config_flow._Suggested) else f.default
         value = d if isinstance(d, (bool, int, float, str)) and not isinstance(d, config_flow._Rule) else _COMPUTED
         add("option", f.key or f"{f.step}[{f.group}]", fields(opt_steps.get(f.step, {})).get(f.key, ""), value,
             titles.get(f.step, f.step))
