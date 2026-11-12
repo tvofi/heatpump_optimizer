@@ -19,6 +19,11 @@
   `--once` makes one pass, `--interval` defaults to 300 s. Refusal: a
   non-numeric `--interval` or an unknown option; a failing relay pass or tick
   is reported and the loop goes on. `--self-test` drives it over stubs.
+  The self-test reads and moves no checkout but scratch clones of its own:
+  before its first row it drops the repository the caller's environment
+  names (`GIT_DIR`) and points `HPO_TICK_CODE_DIR` at scratch, and it runs
+  itself whole from a branch and a detached clone behind origin/main to
+  pin that, so it is safe from any checkout, whatever origin/main does.
   Each pass then calls `heartbeat.sh --once` (the andon, below), bounded at
   60 s; `HPO_TICK_HEARTBEAT` replaces it.
   Before the relay, the freshness check (P14): `git fetch -q origin main`
