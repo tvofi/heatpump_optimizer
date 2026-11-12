@@ -274,6 +274,25 @@
    "index": false,
    "objects": false
   },
+  "scorecard": {
+   "run_sha": "3215c0b1f85e68b18dde7d804fdeca68363603e0bf8bb708323038e2801941ac",
+   "files": [
+    "tools/audit/seat/scorecard.py",
+    "tools/audit/seat/scorecard_selftest.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "budget-raise-gate": {
    "run_sha": "8e2afa7d1084b7223a39f0ef593e419b78e3a724781a06ccb99196801427962a",
    "files": [
