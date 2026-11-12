@@ -800,6 +800,12 @@ def self_test() -> int:
                                "--repo", "x/y", "--checkout", td], capture_output=True, text=True)
         check("the CLI accepts --seat-alive and --launch-ledger and prints a seat-alive-merge arm",
               "PULSE seat-alive-merge" in live.stdout)
+        (t / "merge.gen").write_text(f"2 {int(time.time())}\n")  # seat_gen.py bump's `<n> <epoch>`, after every launch
+        gen = subprocess.run([sys.executable, "-I", __file__, "--seat-alive", f"merge={af}", "--launch-ledger", str(lf),
+                              "--repo", "x/y", "--checkout", td], capture_output=True, text=True,
+                             env={**os.environ, "HPO_STATE_DIR": td})
+        check("the CLI reads $HPO_STATE_DIR/<seat>.gen: a bump after the newest launch prints SUPERSEDED",
+              "SUPERSEDED merge: new still beats" in gen.stdout and "SUPERSEDED" not in live.stdout)
         badseat = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(t / "none"), "--seat-alive", f"janitor={af}"],
                                  capture_output=True, text=True)
         check("--seat-alive refuses a seat no contract defines", badseat.returncode == 2 and "janitor" in badseat.stderr)
