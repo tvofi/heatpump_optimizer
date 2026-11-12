@@ -1,0 +1,4 @@
+  ok   a refused push (detached worktree) exits non-zero and says REMERGE FAILED at push
+  ok   null control: the attached worktree pushes and exits 0
+remerge_main self-test: 2 checks, 0 failed
+rc=0

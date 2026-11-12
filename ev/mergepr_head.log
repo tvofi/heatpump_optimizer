@@ -1,0 +1,30 @@
+  ok   app mode on a ready pull request passes the gates (null control)
+  ok   owner mode with no --mandate refuses, never a default
+  ok   owner mode with a non-id --mandate refuses
+  ok   owner mode under a mandate in force now passes
+  ok   owner mode under a code-owned mandate in force now passes
+  ok   owner mode under a budget-raise mandate refuses: the gate's MANDATE_COVERS_CODE_OWNED excludes it
+  ok   owner mode under an expired mandate refuses with the gate's why
+  ok   owner mode under a mandate that does not exist refuses
+  ok   owner mode on a cross-repository head refuses, naming the fork (decision 0017)
+  ok   ... having read the pull request and neither the mandate nor a post
+  ok   owner mode on a pull request that cannot be read refuses: an unread head is never ours
+  ok   owner mode with no outside.py to ask refuses, fail closed
+  ok   null control: app mode on a cross-repository head passes the gates (the App's approval is app_approve.sh's)
+  ok   ... and app mode asks nothing about the head
+  ok   a draft refuses without --ready, naming the flag
+  ok   a draft with --ready passes the gates
+  ok   ... and owes the ready mark
+  ok   a ready pull request with --ready owes no ready mark
+  ok   a stale check-run over a completed run is re-run once and logged with its run id
+  ok   a check-run whose run is still in progress is not re-run (null control)
+  ok   the owner body declares an agent and cites exactly the mandate given
+  ok   no mandate date is written into this script
+  ok   null control: the merge records the reviewed head
+  ok   a refused merge fails the script (the line's own exit)
+  ok   null control: a verdict for the head posts as today
+  ok   a verdict for another head refuses CARRIED HEAD, naming the train, and posts nothing
+  ok   the merge runs postmerge.py once, for the merged pull request
+  ok   an owed post-merge step prints OWED after the merge line and fails the script
+merge_pr self-test: 28 checks, 0 failed
+rc=0

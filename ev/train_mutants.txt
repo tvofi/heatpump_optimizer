@@ -1,0 +1,48 @@
+RESULT mutant T1_no_fork_post: rc=1 merge_train self-test: 701 checks, 3 failed FAIL lines=3
+    FAIL fork head: _post_agent_approval as _approve calls it Stops [OUTSIDE] on a cross-repository head with no --approve call
+    FAIL fork head: _post_agent_approval as policy_approve calls it Stops [OUTSIDE] on a cross-repository head with no --approve call
+    FAIL fork head: _post_carry Stops [OUTSIDE] on a cross-repository head with no --approve call
+RESULT mutant T2_contract_ok: rc=1 merge_train self-test: 701 checks, 6 failed FAIL lines=6
+    FAIL fork head: a contract outside.py refuses parks the entry [OUTSIDE] with outside.py's own reason and the fork's name, before app_approve.sh is asked, nothing merged
+    FAIL fork head (carry 23): an unowned class-O path, approved 'app' at adoption's head, PARKS at the next step 6 once the mandate is revoked -- the contract is read before the already-approved shortcut
+    FAIL ... the head the contract held at is recorded, and the record is dropped the moment it is read again: a refusal leaves no head for `_approve` to trust
+    FAIL fork head: `_approve` reached without step 6's own read still runs the contract at this head first: it refuses, and app_approve.sh is never asked
+    FAIL fork head: a contract that cannot be read parks, fail closed, nothing approved
+    FAIL fork head: code-owned with class O failing parks naming the owner's review, nothing posted
+RESULT mutant T3_approve_call: rc=1 merge_train self-test: 701 checks, 3 failed FAIL lines=3
+    FAIL fork head: a cross-repository head passes outside.py's whole contract at the landing head, read from origin/main, before app_approve.sh is asked, and merges on the App's approval with no review of the train's
+    FAIL fork head (carry 23): an unowned class-O path, approved 'app' at adoption's head, PARKS at the next step 6 once the mandate is revoked -- the contract is read before the already-approved shortcut
+    FAIL ... the head the contract held at is recorded, and the record is dropped the moment it is read again: a refusal leaves no head for `_approve` to trust
+RESULT mutant T4_blob_compare: rc=1 merge_train self-test: 701 checks, 2 failed FAIL lines=2
+    FAIL fork head (carry 23): a checkout whose outside.py is not origin/main's blob stops before the contract is asked of anything -- main's copy or none
+    FAIL fork head (carry 23): a checkout whose allowlist is not origin/main's blob stops before the contract is asked of anything -- main's copy or none
+RESULT mutant T5_owner_arm: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head: code-owned with class O standing returns 'owner' -- no post, no budget read (never raise_hold), no carry
+RESULT mutant T6_cross: rc=1 merge_train self-test: 701 checks, 23 failed FAIL lines=23
+    FAIL fork head: a cross-repository head passes outside.py's whole contract at the landing head, read from origin/main, before app_approve.sh is asked, and merges on the App's approval with no review of the train's
+    FAIL fork head: a contract outside.py refuses parks the entry [OUTSIDE] with outside.py's own reason and the fork's name, before app_approve.sh is asked, nothing merged
+    FAIL fork head: a pulls object cross-repository with its fork deleted is a Stop saying so -- an unread head is never taken for ours -- and nothing is approved
+    FAIL fork head (carry 23): an unowned class-O path, approved 'app' at adoption's head, PARKS at the next step 6 once the mandate is revoked -- the contract is read before the already-approved shortcut
+    FAIL ... the head the contract held at is recorded, and the record is dropped the moment it is read again: a refusal leaves no head for `_approve` to trust
+    FAIL fork head: `_approve` reached without step 6's own read still runs the contract at this head first: it holds, the App approves
+RESULT mutant T7_head_repo_dropped: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head recarry: the worktree is DETACHED at refs/pull/<pr>/head, nothing of origin/<branch> is fetched or reset, and remerge_main.sh gets the pulls API's branch and --head-repo; merged at the new head
+RESULT mutant T8_policy_due_fork: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head: step 5 is never due on a cross-repository head (policy paths are class R), and says so
+RESULT mutant T9_contracted_pop: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL ... the head the contract held at is recorded, and the record is dropped the moment it is read again: a refusal leaves no head for `_approve` to trust
+RESULT mutant T10_copies_gate_path: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head (carry 23): the files the contract must hold as origin/main's own are outside.py, the mandate gate, the allowlist, CODEOWNERS and app_approve.sh, by path
+RESULT mutant T11_fetch_fail: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head (carry 23): an origin/main that cannot be fetched stops before the contract is asked of anything -- main's copy or none
+RESULT mutant T12_carry_fork_arm: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head: --approval-carry carries nothing on a cross-repository head, its reason left for the park line
+RESULT mutant T13_push_park: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head recarry: `REMERGE FAILED 7 at push` parks [OUTSIDE] naming the fork; nothing merged or approved
+RESULT mutant T14_conflict_park: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head recarry: `MERGE CONFLICT 7` parks [OUTSIDE] naming the fork; nothing merged or approved
+RESULT mutant T15_unnamed_fork: rc=1 merge_train self-test: 701 checks, 1 failed FAIL lines=1
+    FAIL fork head: a pulls object cross-repository with its fork deleted is a Stop saying so -- an unread head is never taken for ours -- and nothing is approved
+RESULT mutant T16_approve_guard: rc=1 merge_train self-test: 701 checks, 2 failed FAIL lines=2
+    FAIL fork head: `_approve` reached without step 6's own read still runs the contract at this head first: it holds, the App approves
+    FAIL fork head: `_approve` reached without step 6's own read still runs the contract at this head first: it refuses, and app_approve.sh is never asked

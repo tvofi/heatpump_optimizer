@@ -1,0 +1,38 @@
+merge-base fc2a7edcf2be8847037d9e8dc5bde460977befa8 head 40abc1bd0a2cf1fd9524aa824713d6a0207a5d3d origin/main 19baca76181cb019d9b1cfd93ee6bc0a08e20047
+$ git diff --stat MB...HEAD
+ tools/audit/seat/merge_pr.sh              |  52 ++++
+ tools/audit/seat/merge_train.py           | 477 +++++++++++++++++++++++++++++-
+ tools/audit/seat/remerge_main.sh          |  55 +++-
+ tools/audit/seat/remerge_main_selftest.py | 121 ++++++++
+ 4 files changed, 692 insertions(+), 13 deletions(-)
+$ git diff --name-only MB...HEAD -- VERSION RELEASE_NOTES.md custom_components tests/golden "*_budgets.json" (empty = untouched)
+$ git merge-tree --write-tree origin/main HEAD
+104d6db4961649adfd9a2d4f95bdf835b9e1b863
+rc=0
+$ closure select
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+$ structure
+STRUCTURE RATCHET PASSED
+$ archscore
+Architecture score: dS +0.0000 NULL
+$ env_drift --all
+RECORD PR CLAIMS: three-dot touches neither card nor solver fixtures, so both claim lists must be empty. Empty the lists.
+$ owed-reds
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+$ closure select (MODE line and scope.run)
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+tests/entities.py
+$ env_drift --all at head
+rc=1
+$ env_drift --all at base
+RECORD PR CLAIMS: three-dot touches neither card nor solver fixtures, so both claim lists must be empty. Empty the lists.
+rc=1
+$ claim files three-dot
+(empty = byte-identical)

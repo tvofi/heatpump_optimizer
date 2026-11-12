@@ -1,0 +1,18 @@
+head reviewed: 40abc1bd0a2cf1fd9524aa824713d6a0207a5d3d
+part 1 handoff head (refs/heads/handoff/r10-outside-contributor-cycle): e216e6c09878b3845ec057ce355ea74fd0ac21bb
+combined tree (git merge-tree --write-tree e216e6c09878b3845ec057ce355ea74fd0ac21bb 40abc1bd0a2cf1fd9524aa824713d6a0207a5d3d, exit 0): 5801a2731f976e8d710a47bd9ff0e00ba8e65886
+
+$ grep -n "^def cross_repository\|^def contract\|^def " tools/pr/outside.py | grep -c .
+24
+$ grep -n "def cross_repository\|def contract\b" tools/pr/outside.py  (no output = neither exists)
+rc=1
+$ git ls-files | grep outside_contributors.json
+dev/governance/config/outside_contributors.json
+$ grep -n OUTSIDE_MAIN_COPIES -A1 tools/audit/seat/merge_train.py | head -4
+1129:OUTSIDE_MAIN_COPIES = (OUTSIDE_PATH, GATE_PATHS[-1], "dev/governance/outside_contributors.json",
+1130-                       ".github/CODEOWNERS", "tools/pr/app_approve.sh")
+
+$ python3 -I probe (real Train.fork_head against part 1 real outside.py, pulls object of a same-repository head)
+RESULT fork_head ours -> Stop: outside: tools/pr/outside.py could not say whether #7's head is cross-repository (module 'outside' has no attribute 'cross_repository')
+RESULT fork_head fork -> Stop: outside: tools/pr/outside.py could not say whether #7's head is cross-repository (module 'outside' has no attribute 'cross_repository')
+RESULT outside.py has cross_repository: False contract: False

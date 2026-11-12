@@ -1,0 +1,33 @@
+RESULT mutant P1_cross_if_false: rc=1 merge_pr self-test: 28 checks, 2 failed FAIL lines=2
+    FAIL owner mode on a cross-repository head refuses, naming the fork (decision 0017) (rc=0: )
+    FAIL ... having read the pull request and neither the mandate nor a post (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;api repos/tvofi/heatpump_optimizer/pulls/7;api repos/tv
+RESULT mutant P2_gates_line_deleted: rc=1 merge_pr self-test: 28 checks, 4 failed FAIL lines=4
+    FAIL owner mode on a cross-repository head refuses, naming the fork (decision 0017) (rc=0: )
+    FAIL ... having read the pull request and neither the mandate nor a post (pr view 7 --repo tvofi/heatpump_optimizer --json isDraft --jq .isDraft;api repos/tvofi/heatpump_optimizer/issues/comments/4100
+    FAIL owner mode on a pull request that cannot be read refuses: an unread head is never ours (rc=0: )
+    FAIL owner mode with no outside.py to ask refuses, fail closed (rc=0: )
+RESULT mutant R_remergeforkarg: rc=1 remerge_main self-test: 11 checks, 1 failed FAIL lines=1
+    FAIL --head-repo naming our own repository refuses at args, nothing fetched, minted or asked
+RESULT mutant R_remergeforkback: rc=1 remerge_main self-test: 11 checks, 2 failed FAIL lines=2
+    FAIL a new head with a tree that is not git's automatic merge fails the read-back: not PUSHED, non-zero
+    FAIL a new head with one parent fails the read-back: not PUSHED, non-zero
+RESULT mutant R_bare(remergepush): rc=1 remerge_main self-test: 11 checks, 1 failed FAIL lines=1
+    FAIL a refused push (detached worktree) exits non-zero and says REMERGE FAILED at push
+RESULT mutant R3_start_ref_origin_BR: rc=1 remerge_main self-test: 11 checks, 4 failed FAIL lines=4
+    FAIL a fork head is merged by update-branch at the expected head and reads back PUSHED at the new head
+    FAIL ... and our own branch of the fork's branch name is neither read as the start nor moved
+    FAIL an update-branch GitHub accepted that moved nothing is REMERGE FAILED at push saying so, never PUSHED
+    FAIL a fork head main does not merge into is MERGE CONFLICT before any token or update-branch
+RESULT mutant R4_expected_head_dropped: rc=1 remerge_main self-test: 11 checks, 1 failed FAIL lines=1
+    FAIL a fork head is merged by update-branch at the expected head and reads back PUSHED at the new head
+RESULT mutant R5_head_moved_true: rc=1 remerge_main self-test: 11 checks, 1 failed FAIL lines=1
+    FAIL an update-branch GitHub accepted that moved nothing is REMERGE FAILED at push saying so, never PUSHED
+RESULT mutant R6_first_parent_of_main_dropped: rc=0 remerge_main self-test: 11 checks, 0 failed FAIL lines=0
+
+RESULT mutant R7_p1_is_old_dropped: rc=0 remerge_main self-test: 11 checks, 0 failed FAIL lines=0
+
+RESULT mutant R8_fork_not_ours_dropped: rc=1 remerge_main self-test: 11 checks, 1 failed FAIL lines=1
+    FAIL --head-repo naming our own repository refuses at args, nothing fetched, minted or asked
+RESULT unmutated: rc=0 remerge_main self-test: 11 checks, 0 failed FAIL lines=0
+ rc=0 merge_pr self-test: 28 checks, 0 failed FAIL lines=0
+
