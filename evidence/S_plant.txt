@@ -1,2 +1,0 @@
-S       non-production merges 489 per 580; churn 11939 per 1 000 product lines
-S       machinery 183031 / product 100305 = 1.82
