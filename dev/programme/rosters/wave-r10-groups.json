@@ -22373,7 +22373,7 @@
    "rca": [],
    "after": [],
    "carry": [
-    "From r10-rca-dependabot-stale-hash: Reword every lock comment that `--tree` lists so no pinned package is spelled `name==`. In the same diff, correct `.github/dependabot.yml`'s \"Dependabot leaves some hash lines stale\" to name this cause, and run `dependabot_stale_hash.py --tree` from the suite that reads the locks (exit 1 at its parent, exit 0 at its head). Its diff already edits `tests/requirements-typing.txt`; this seat may not edit a lock. Carry: R10-DEPENDABOT-3414-COMPAT",
+    "From r10-rca-dependabot-stale-hash: Reword every lock comment that `--tree` lists so no pinned package is spelled `name==`. In the same diff, correct `.github/dependabot.yml`'s \"Dependabot leaves some hash lines stale\" to name this cause, and run `dependabot_stale_hash.py --tree` from the suite that reads the locks (exit 1 at its parent, exit 0 at its head). Its diff already edits `tests/requirements-typing.txt`; this seat may not edit a lock. Carry: R10-DEPENDABOT-3414-COMPAT [implemented: dbd1ab5b0712ebc51e29ef8c001a2c0ef68af3cd]",
     "Reword every lock comment that `--tree` lists so no pinned package is spelled `name==`. In the same diff, correct `.github/dependabot.yml`'s \"Dependabot leaves some hash lines stale\" to name this cause, and run `dependabot_stale_hash.py --tree` from the suite that reads the locks (exit 1 at its parent, exit 0 at its head). Its diff already edits `tests/requirements-typing.txt`; this seat may not edit a lock. Carry: R10-DEPENDABOT-3414-COMPAT"
    ],
    "architect_note": "",
