@@ -81243,6 +81243,32 @@ R.check(
     f"{_bt_after} {_bt_inside}",
 )
 
+# (a) Each surface clears a spent sum by itself, with no other call between: an
+# expiry alone (a cycle with no press), a press alone and a mode entered alone,
+# each after the series' tail ran out. Null control: the sum before any of
+# them is the series' hour.
+def _bt_spent_series():
+    st, _ = _bt_series([("space", _bt_20)] * 3)
+    return st, st.space_settle_until + timedelta(minutes=1)
+
+
+_bt_ex, _bt_ex_at = _bt_spent_series()
+_bt_ex_before = _bt_ex.space_boosted
+_bt_ex.expire(_bt_ex_at)
+_bt_pr, _bt_pr_at = _bt_spent_series()
+_bt_pr.set(boost_mod.CHANNEL_SPACE, True, _bt_pr_at)
+_bt_pr.set(boost_mod.CHANNEL_SPACE, False, _bt_pr_at + _bt_20)
+_bt_md, _bt_md_at = _bt_spent_series()
+_bt_md.note_mode(True, _bt_md_at)
+_bt_md.note_mode(False, _bt_md_at + _bt_20)
+R.check(
+    "a spent sum clears on an expiry alone, on a press alone and on a mode entered alone",
+    _bt_ex_before == timedelta(hours=1)
+    and _bt_ex.space_boosted == timedelta(0) and _bt_ex.space_settle_until is None
+    and _bt_pr.space_boosted == _bt_20 and _bt_md.space_boosted == _bt_20,
+    f"{_bt_ex} {_bt_pr} {_bt_md}",
+)
+
 # (d) The mode's start is not persisted: a mode restored as boost has no start,
 # so leaving it makes the sum unknown (fail closed) and owes the full tail.
 # Null control: a mode entered in this run and left after 30 minutes sums 30.
@@ -85890,11 +85916,12 @@ boost_mod.held_for(_p3_c).space_settle_until = NOW + _p3_td(hours=5)
 boost_mod.held_for(_p3_mode).space_settle_until = NOW + _p3_td(hours=5)
 R.check(
     "P3 one source: another reason has no boost end; the global boost mode has none either, "
-    "though a tail is running; the same tail outside the mode is the end",
+    "though a tail is running; the same tail outside the mode is the end; the mode is a live boost",
     boost_mod.learning_freeze(_p3_c, None) is None
     and boost_mod.learning_freeze(_p3_c, "stale:power_entity") == ("stale:power_entity", None)
     and boost_mod.learning_freeze(_p3_mode, boost_mod.FREEZE_REASON) == (boost_mod.FREEZE_REASON, None)
-    and boost_mod.learning_freeze(_p3_c, boost_mod.FREEZE_REASON) == (boost_mod.FREEZE_REASON, NOW + _p3_td(hours=5)),
+    and boost_mod.learning_freeze(_p3_c, boost_mod.FREEZE_REASON) == (boost_mod.FREEZE_REASON, NOW + _p3_td(hours=5))
+    and boost_mod.space_boost_active(_p3_mode, NOW) is True and boost_mod.space_boost_active(_p3_c, NOW) is False,
     "",
 )
 import ast as _p3_ast  # noqa: E402
