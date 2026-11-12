@@ -1,0 +1,31 @@
+measured 83 broken 0
+== MAIN 2b4515dc: 15 refusal(s) over 83 measured step(s)
+   UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/config/.gitattributes', 'dev/governance/config/.gitattributes', 'dev/governance/config/cfr_exclusions.json']
+   UNDER-SCOPED step field-coverage: files misses ['tools/pr/figure_block.py', 'tools/site/day_chart.mjs']
+   UNDER-SCOPED step verdict-bus: probes misses ['tools/pr/figure_registry.json']
+   UNDER-SCOPED step push-names-the-host: files misses ['tools/pr/figure_block.py']
+   UNDER-SCOPED step selftest-wiring: files misses ['tools/audit/seat/r10_disinfection_setpoint_mutants.py', 'tools/pr/figure_block.py', 'tools/site/day_chart.mjs']
+   UNDER-SCOPED step features-block: probes misses ['tools', 'tools/audit', 'tools/audit/seat']
+   UNDER-SCOPED step features-block: dirs misses ['tools/audit/seat']
+   UNDER-SCOPED step mutant-driver: probes misses ['check_stm.py']
+   UNDER-SCOPED step programme-pulse: files misses ['tools/audit/seat/gh_read.py', 'tools/audit/seat/merge_train.py']
+   UNDER-SCOPED step programme-pulse: probes misses ['tools/policy/policy_lint.mjs']
+   UNDER-SCOPED step programme-pulse: dirs misses ['tools/audit/seat']
+   UNDER-SCOPED step review-packet: probes misses ['tools/pr/figure_registry.json']
+   UNDER-SCOPED step tick-loop: probes misses ['.gitmodules', 'tools/.git', 'tools/HEAD', 'tools/audit/.git', 'tools/audit/HEAD', 'tools/audit/seat/.git', 'tools/audit/seat/HEAD']
+   UNDER-SCOPED step tick-loop: it read the index, the table says not
+   UNDER-SCOPED step tick-loop: it read the objects, the table says not
+fatal: path 'tools/ci/selftest_closures.json' exists on disk, but not in 'f5a2c9cba6b6bab1242e381bed5b2960043eb45f'
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/dbd99e8e-f3b1-522b-bdce-e223a84bd4ab/scratchpad/drv/cmp.py", line 10, in <module>
+    t=json.loads(subprocess.check_output(["git","-C",str(root),"show",rev+":tools/ci/selftest_closures.json"]))
+                 ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/subprocess.py", line 473, in check_output
+    return run(*popenargs, stdout=PIPE, timeout=timeout, check=True,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               **kwargs).stdout
+               ^^^^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/subprocess.py", line 578, in run
+    raise CalledProcessError(retcode, process.args,
+                             output=stdout, stderr=stderr)
+subprocess.CalledProcessError: Command '['git', '-C', '/tmp/claude-0/-home-user-heatpump-optimizer/dbd99e8e-f3b1-522b-bdce-e223a84bd4ab/scratchpad/main', 'show', 'f5a2c9cba6b6bab1242e381bed5b2960043eb45f:tools/ci/selftest_closures.json']' returned non-zero exit status 128.
