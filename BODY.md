@@ -2,14 +2,12 @@ Part A of the duty-switch restart learning, built from Bankaifan's pull request 
 
 ## Re-cut
 
-The fourth round, so this body replaces the earlier ones under `fixer.md`'s re-cut rule: round history is deleted, and every figure below was re-taken at the head named under Head, but where a line says it was not re-run (the ledger's pin passes). The round-4 review (`Fix review: blocked 7f6c83171f04408ef9a9b1d37bfb14213a971fcc mutation-vacuous: r3v_span_floor_on_k, r3v_wrapper_pending_false, r4v_tracker_settled_any`, `VERDICT.md` on `verdict/3461` at 559df6c8) is answered under "Review round 4, answered". The only change since 7f6c83171 is one commit adding three checks to the duty-switch section of `tests/features.py`; no production line moved.
-
+The fifth round, past the three-round bound by owner ruling: outside request, drive to merge. This body replaces the earlier ones under `fixer.md`'s re-cut rule: round history is deleted, and every figure below was re-taken at the head named under Head, but where a line says it was not re-run. The round-5 review (`Fix review: blocked 42659b9711f2940aa54145b7b6e1b47e65717376 mutation-vacuous: r5v_tracker_settled_not_none, r5v_write_pending_ignored_when_stopped, r5v_pass_judges_before_confirm`, `verdict.md` on `probe/rev-3461-4d5b2e06` at 9dfb9130) is answered under "Review round 5, answered". The only change since 42659b97 is one commit adding two checks to the duty-switch section of `tests/features.py` and a defrost argument to its `_ds_wrapped` driver; no production line moved.
 ## Head
 
-c2686152bc05be50d12a0f8576df79cc934f3986
+05e7b0b94a260896567c7c12bb829e17136999cb
 
-The merge base is ef579d9ba689dcb48b0d4aa95222f1ce83d99c2d. At 2026-11-12T06:18Z by `date -u`, `origin/main` is d72963a719438f2dcf370de92a71f6630804ff2e and `git merge-tree --write-tree origin/main HEAD` exits 0 against it (this repository's ledger merge driver resolving `tests/closures.json`), so main is not merged again. Every command below compares three-dot against the merge base.
-
+The merge base is ba544faa2dd25b75b0129879112d6409affe9662 (`git merge-base origin/main HEAD` at this head; the previous body named ef579d9ba, the merge base of the authored head c2686152b, which the round-5 review noted). At 2026-11-12T08:28Z by `date -u`, `origin/main` is 0b276e8c0cd4ddbcf5c5e0adfe179af00441e7f3 and `git merge-tree --write-tree origin/main HEAD` exits 0 against it (this repository's ledger merge driver resolving `tests/closures.json`), so main is not merged again. Every command below compares three-dot against the merge base.
 ## Brief carries
 
 - Carry 1 (the build input; the brief prints it as carry 0): done as asked. The branch starts from pull request 3420's ten commits at e05c6b1ccc17f2486160669f4a64a33b79ea6a17, the head `git ls-remote origin refs/pull/3420/head` still printed at the start, re-committed with author and author date kept; the build was measured against the approved design and the reviewer's comparison section, as the next section answers line by line, and not rebuilt from scratch: the episode and void logic, the pass-confirmed debounce, the store's three census registrations and the stop, kept, defrost and reload tests are the contributor's, moved behind the design's seam.
@@ -42,26 +40,25 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
 - Publication is conditional. Five `coord_*` goldens snapshot the starts sensor's `extra_state_attributes`, so the design's premise that the sensor is off the goldens does not hold, and fourteen always-present keys read as five stale fixtures in `tests/env_drift.py --all`. A direction publishes its keys only once it holds a stopped, kept or void episode; an install that never switches duty while running publishes what it did before, and no golden moves. Mutant `publish_only_observed`.
 - Factory reset keeps the store (`_FR_STORES`, the contributor's disposition). Learned state elsewhere is voided there; the owner may want this voided too.
 
-## Review round 4, answered
+## Review round 5, answered
 
-1. mutation-vacuous. Each of the three survivors is killed by a check added to the duty-switch section, each beside its null control; none is triaged. The failing check names, from applying each mutant to the tree and running the section:
-   - `r3v_span_floor_on_k` (`Direction.decay` reading the floor on `self.k`): "the span floor reads a direction's whole weight, kept episodes included". Three kept episodes and no stop: the pass a minute later reports no change and the day stays; at 30 days (n 0.68) still none; at 40 days n is under `SPAN_FLOOR_N` and the change is reported once, with k 0 and span 0. Null control: three stops read the same at the same three instants.
-   - `r3v_wrapper_pending_false` (`duty_switch.note_pass` passing False): "through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on the window's end keeps the episode open and books the stop once confirmed". Driven through `_Record`, `note_signal`, `note_mode_write` and `note_pass`, the running signal read through the record's reader and the passes every 15 s: a stop read at `STOP_WINDOW_S - EDGE_DEBOUNCE_S / 2` is pending at the pass at `STOP_WINDOW_S`, and the restart at 480 s books one stop with its off time. Null control: no stop read, the same passes book it kept.
-   - `r4v_tracker_settled_any` (`note_mode_write` counting an unknown signal as running): "through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing". The same driver, the signal unavailable before and at the write, then stopped 60 s after it and running at 300 s: nothing opens and nothing is counted. Null control: the compressor read running at the write, the same readings book one stop of 240 s.
+1. mutation-vacuous. Each of the three survivors is killed by a check added to the duty-switch section, each beside its null control; none is triaged. The failing check names, from applying each mutant to a `git archive` copy of this head and running the section:
+   - `r5v_tracker_settled_not_none` and `r5v_write_pending_ignored_when_stopped` (`note_mode_write` counting a compressor settled stopped as running): "through duty_switch.note_mode_write, a mode write while the compressor is read stopped opens nothing and books nothing". Driven through `_Record`, `note_signal`, `note_mode_write` and `note_pass`, the signal read stopped (0 Hz) before and at the write: nothing opens and nothing is booked, whether it stays stopped through the window or starts 60 s after the write. Null control: the compressor read running at the write, the same passes book it kept.
+   - `r5v_pass_judges_before_confirm` (`duty_switch.note_pass` judging before confirming the pending edge): "through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it". A stop read 60 s after the write is confirmed by the pass at 60 s + `EDGE_DEBOUNCE_S` on a clean context, and a defrost reads on from the next pass: the stop is booked and nothing is void. Null control: the same stop with no defrost and a restart at 300 s books one stop of 240 s.
    ```
-   ### r3v_span_floor_on_k
-     FAIL the span floor reads a direction's whole weight, kept episodes included: three kept and no stop keep their day a minute later and report no change, and lose it, re
-   1 of 54 DUTY-SWITCH SECTION CHECKS FAILED
-   ### r3v_wrapper_pending_false
-     FAIL through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on the window's end keeps the episode open and books the stop on
-   1 of 54 DUTY-SWITCH SECTION CHECKS FAILED
-   ### r4v_tracker_settled_any
-     FAIL through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing, though the signal then reads stopped inside the window and run
-   1 of 54 DUTY-SWITCH SECTION CHECKS FAILED
+   ### r5v_tracker_settled_not_none
+     FAIL through duty_switch.note_mode_write, a mode write while the compressor is read stopped opens nothing and books nothing, whether it stays stopped or starts inside t
+   1 of 56 DUTY-SWITCH SECTION CHECKS FAILED
+   ### r5v_pass_judges_before_confirm
+     FAIL through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it: a defrost that first reads on the pass after the confirming one 
+   1 of 56 DUTY-SWITCH SECTION CHECKS FAILED
+   ### r5v_write_pending_ignored_when_stopped
+     FAIL through duty_switch.note_mode_write, a mode write while the compressor is read stopped opens nothing and books nothing, whether it stays stopped or starts inside t
+   1 of 56 DUTY-SWITCH SECTION CHECKS FAILED
    ```
-   The reviewer's commands, as the verdict quotes them: `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py'`, once with the verdict's `ev/reviewer_mutant_spec_round3.json` (sha1 89413517a1f782ea97000c3d2a03919556017de4) and once with `ev/reviewer_mutant_spec_round4.json` (sha1 ae2d2eb54e772744d8d6336097df49fa9933b6d4), both read from `verdict/3461` at 559df6c8, at this head:
+   The reviewer's commands, as the verdict quotes them: `python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py'`, with each of the verdict's four specs read from `probe/rev-3461-4d5b2e06` at 9dfb9130 (`ev/reviewer_mutant_spec_round3.json`, `_round4.json`, `_round5.json` sha1 ab09aedd0b011decd7d6848f8b4f379486ffa19e, `_round5b.json` sha1 4829d7a6f4ace3a6ee1e0730cf0763740d454d1b), at this head:
    ```
-   ### round 3
+   ### round3
    SURVIVED NULL
    KILLED r3v_aged_on_predecay_n
    KILLED r3v_span_floor_on_k
@@ -74,7 +71,7 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
    KILLED r3v_heated_falls_to_leg
    KILLED r3v_pass_expiry_ignores_pending
    KILLED r3v_ageout_keeps_reporting
-   ### round 4
+   ### round4
    SURVIVED NULL
    KILLED r4v_last_write_min
    KILLED r4v_first_day_overwritten
@@ -82,10 +79,19 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
    KILLED r4v_checked_every_pass
    KILLED r4v_supply_ignores_switch
    KILLED r4v_tracker_settled_any
+   ### round5
+   SURVIVED NULL
+   KILLED r5v_span_floor_on_kept_w
+   KILLED r5v_tracker_settled_not_none
+   KILLED r5v_tracker_settled_dropped
+   KILLED r5v_wrapper_pending_inverted
+   ### round5b
+   SURVIVED NULL
+   KILLED r5v_pass_judges_before_confirm
+   KILLED r5v_write_pending_ignored_when_stopped
    ```
-   Control: the same two commands at 7f6c83171 print `SURVIVED` for the three (the verdict's `ev/mutants_reviewer_round3.txt` and `ev/mutants_reviewer_round4.txt`). Both specs are also appended to this body's spec (Mutant spec).
-2. carry-missing, the four items for R10-DUTY-SWITCH-RESTART-LEARNING-PR-B. The verdict routes it to the orchestrator's roster fold with no change to this head; the four lines stand under Forward-carry, each with its marker, for that fold.
-
+   Control: the same commands at 42659b97 print `SURVIVED` for the three (the verdict's `ev/mutants_reviewer_round5.txt` and `ev/mutants_reviewer_round5b.txt`). Both round-5 specs are also appended to this body's spec (Mutant spec). The branch diff was re-run whole at this head, so no survivor is left past the two recorded equivalents and the one with no ledger site (Mutation proof).
+2. Findings: the merge base is restated under Head; the roster carries stand on `handoff/audit-r10-roster` at ff2b33ab6e9f189db660efe364524a2f7dbc02ad (Forward-carry); no finder harness exists, as in rounds 1 to 4.
 ## Verdict notes
 
 - n10: the heated gate is per direction (`duty_switch._heated`): inlet minus water set-point into space (round 2: only where the set-point is a water temperature), the source leg's age into hot water; the table's three kept rows pin it with an inlet under the set-point. Mutant `heated_direction_gate`.
@@ -100,7 +106,7 @@ Each line answers one conflict of `verdict.md`'s section "Pull request 3420 at e
 
 Every mutant ran through `tools/audit/seat/mutant_run.py`, in its `git archive` copy, at the head above, with one command: `env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py`.
 
-**The spec** (`--spec`, at the end of this body): the earlier rounds' entries and both reviewers' as carried by the previous body, then the round-4 reviewer's two specs whole (`r3v_`, `r4v_`). The count is the `KILLED` lines below; `SURVIVED NULL` is the unmutated tree.
+**The spec** (`--spec`, at the end of this body): the earlier rounds' entries and both reviewers' as carried by the previous body, then the round-4 and round-5 reviewers' specs whole (`r3v_`, `r4v_`, `r5v_`). The count is the `KILLED` lines below, 144, run as three parallel thirds with the null of each surviving; `SURVIVED NULL` is the unmutated tree.
 
 ```
 SURVIVED NULL
@@ -242,6 +248,12 @@ KILLED r4v_plan_stays_no_both
 KILLED r4v_checked_every_pass
 KILLED r4v_supply_ignores_switch
 KILLED r4v_tracker_settled_any
+KILLED r5v_span_floor_on_kept_w
+KILLED r5v_tracker_settled_not_none
+KILLED r5v_tracker_settled_dropped
+KILLED r5v_wrapper_pending_inverted
+KILLED r5v_pass_judges_before_confirm
+KILLED r5v_write_pending_ignored_when_stopped
 rc=0
 ```
 
@@ -274,13 +286,14 @@ Each is an equivalent mutant, as recorded:
 - `tests/env_drift.py --all` against the merge base reports no unclaimed drift and no stale fixture; neither claim file is touched (`git diff origin/main...HEAD --stat -- tests/golden/` prints nothing).
 - The indoor-unit rows beside the same return with a full leg; the interval defrost beside the flag reading False; Economy and Auto beside Comfort; the tank at its set-point beside 0.1 K under; the off-plan write beside the same write on a step that holds it; the aged span beside a first stop one half-life old. Both ends of the span rule's range: an empty direction has no day to forget (the section reads `Direction().span_days` as 0), and one saturated keeps its days (the latch row at n 40 switches on, which needs its two-day span).
 - Each void and gate check carries its own: every void reading beside the same install with the flags off; every count gate beside the step the other side of its bound; the censoring write beside the same install without it; the aged learner beside one aged a minute.
-- The three checks of this repair: three stops beside the three kept episodes; no stop read beside the stop pending across the window's end; the compressor read running at the write beside the signal unknown there.
+- The round-4 checks: three stops beside the three kept episodes; no stop read beside the stop pending across the window's end; the compressor read running at the write beside the signal unknown there.
+- The round-5 checks: the compressor read running at the write beside it read stopped there; the stop with no defrost and a restart beside the stop with a defrost first read on the pass after the confirming one.
 
 ## Figures
 
 - Section checks: `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_section.py` exits 0, its last line the all-passed count.
 - Mutants: the `mutant_run.py` runs under Mutation proof and under "Review round 4, answered", at this head.
-- The failing check per surviving mutant: each mutant's `old` text replaced by its `new` text in the working tree, the section run, the tree restored (the block under "Review round 4, answered").
+- The failing check per surviving mutant: each mutant's `old` text replaced by its `new` text in the working tree, the section run, the tree restored (the block under "Review round 5, answered").
 - Unpinned sites: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` prints no `ADDED UNPINNED` and no `STALE PIN` line.
 - Golden drift: `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/env_drift.py --all $(git merge-base origin/main HEAD)` prints `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE`, rc 0.
 - Gate mode: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED`.
@@ -1154,6 +1167,42 @@ None at this head: `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --bas
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
   "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
   "new": "running = rec.tracker.settled is not False and rec.tracker.pending is None"
+ },
+ {
+  "name": "r5v_span_floor_on_kept_w",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N",
+  "new": "aged_out = self.first_day is not None and self.kept_w < SPAN_FLOOR_N"
+ },
+ {
+  "name": "r5v_tracker_settled_not_none",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is not None and rec.tracker.pending is None"
+ },
+ {
+  "name": "r5v_tracker_settled_dropped",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.pending is None"
+ },
+ {
+  "name": "r5v_wrapper_pending_inverted",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty",
+  "new": "rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is None) or rec.dirty"
+ },
+ {
+  "name": "r5v_pass_judges_before_confirm",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "    rec.feed(rec.tracker.confirm(when))\n    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty\n",
+  "new": "    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty\n    rec.feed(rec.tracker.confirm(when))\n"
+ },
+ {
+  "name": "r5v_write_pending_ignored_when_stopped",
+  "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is True and rec.tracker.pending is None or rec.tracker.settled is False"
  }
 ]
 ```
