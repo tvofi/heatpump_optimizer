@@ -387,6 +387,7 @@ OUTSIDE_CHECKS = (
     "log:no_new_blocking_call",
     "log:blocking_pin_not_stale",
     "log:blocking_positive_control",
+    "log:no_deprecated_member",
 )
 
 FORBIDDEN = {
@@ -395,6 +396,9 @@ FORBIDDEN = {
 }
 
 TRACEBACK_HEAD = "Traceback (most recent call last):"
+
+#: Home Assistant's ``migrate_deprecated_entity_members`` report.
+DEPRECATED_MEMBER = "provides the deprecated"
 
 # The repairs that mean the solve route itself is in trouble. Named rather than
 # "the integration raised nothing", because a defaults-only entry with no
@@ -3410,6 +3414,20 @@ def _scan_pin(checks: Checks, text: str) -> None:
             not hits,
             f"{len(hits)} line(s)" + (f", first: {hits[0][:200]}" if hits else ""),
         )
+    # A core that moved an entity API to new names logs, once per class,
+    # every class of this package still defining the old one, then stops
+    # reading it at the stated removal (the climate temperatures, 2026.11).
+    # The line is a WARNING with no traceback, so nothing above sees it.
+    hits = [
+        line
+        for line in text.splitlines()
+        if DEPRECATED_MEMBER in line and PACKAGE_NAME in line
+    ]
+    checks.check(
+        "log:no_deprecated_member",
+        not hits,
+        f"{len(hits)} line(s)" + (f", first: {hits[0][:200]}" if hits else ""),
+    )
     # A blocking-call report is a WARNING that carries a stack, not an
     # exception, so the stack after one belongs to the pin below rather than
     # to this check -- otherwise #525 would read as an integration crash.

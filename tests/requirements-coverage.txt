@@ -3,8 +3,10 @@
 # distribution set, so a package added there invalidates the drift baseline
 # for every `fast` run -- the workflow step that installs this says so too.
 #
-# Regenerate:
-#   echo 'coverage==7.17.2' | uv pip compile - --python-version 3.13.15 \
+# Regenerate, reading the version from the pin line below (a comment never
+# spells the pin, or Dependabot rewrites it and keeps the old hashes):
+#   grep -m1 -E '^coverage=' tests/requirements-coverage.txt | cut -d' ' -f1 \
+#     | uv pip compile - --python-version 3.13.15 \
 #     --python-platform x86_64-manylinux_2_28 --generate-hashes \
 #     --no-header --no-annotate -o <body>
 # and replace everything below the blank line that ends this header.
