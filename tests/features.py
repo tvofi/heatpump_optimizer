@@ -82932,11 +82932,12 @@ R.check(
 )
 
 
-def _ds_wrapped(readings, writes_at=0.0):
+def _ds_wrapped(readings, writes_at=0.0, defrost_from=None):
     """Through the record: (seconds after the write, frequency Hz) readings, a pass every 15 s to 600 s.
 
-    The signal reads running ten minutes before the write unless the first reading says otherwise; returns
-    (episode opened at the write, stopped, kept, void, off times) for hot water to heating."""
+    The signal reads running ten minutes before the write unless the first reading says otherwise; a defrost
+    reads on from the pass at ``defrost_from`` seconds when given; returns (episode opened at the write,
+    stopped, kept, void, off times) for hot water to heating."""
     rec = _ds_mod._Record(None, _DsSaves())
     rec.loaded = True
     hz = [readings[0][1]]
@@ -82954,7 +82955,8 @@ def _ds_wrapped(readings, writes_at=0.0):
                 hz[0] = value
                 _ds_mod.note_signal(rec, when)
         if mark % 15 == 0:
-            _asyncio.run(_ds_mod.note_pass(rec, when, ctx))
+            defrost = defrost_from is not None and mark >= defrost_from
+            _asyncio.run(_ds_mod.note_pass(rec, when, _ds_ctx(_DS_T0, defrosting=True) if defrost else ctx))
     d = rec.learner.directions["dhw_space"]
     return opened, d.stopped, d.kept, d.void, d.off_s
 
@@ -82977,6 +82979,27 @@ R.check(
     _ds_wrapped([(0, None), (60, 0.0), (300, 50.0)]) == (False, 0, 0, 0, [])
     and _ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)]) == (True, 1, 0, 0, [240.0]),
     f"{_ds_wrapped([(0, None), (60, 0.0), (300, 50.0)])} {_ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)])}",
+)
+R.check(
+    "through duty_switch.note_mode_write, a mode write while the compressor is read stopped opens nothing and "
+    "books nothing, whether it stays stopped or starts inside the window (no compressor ran across the switch); "
+    "null control, the same passes with the compressor read running at the write book it kept",
+    _ds_wrapped([(0, 0.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 0.0), (60, 50.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, []),
+    f"{_ds_wrapped([(0, 0.0)])} {_ds_wrapped([(0, 0.0), (60, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
+)
+# A stop read 60 s after the write is confirmed by the pass one debounce later, on a clean context.
+_DS_CONFIRM_AT = 60 + _ds_mod.wear.EDGE_DEBOUNCE_S
+R.check(
+    "through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it: a "
+    "defrost that first reads on the pass after the confirming one does not void it, and the stop is booked; "
+    "null control, the same stop with no defrost and a restart at 300 s books one stop of 240 s",
+    _ds_wrapped([(0, 50.0), (60, 0.0)], defrost_from=_DS_CONFIRM_AT + 15) == (True, 1, 0, 0, [])
+    and _ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)]) == (True, 1, 0, 0, [240.0])
+    and _DS_CONFIRM_AT % 15 == 0,  # the confirming pass is a pass, the defrost reads on the next
+    f"{_ds_wrapped([(0, 50.0), (60, 0.0)], defrost_from=_DS_CONFIRM_AT + 15)} "
+    f"{_ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)])}",
 )
 
 
