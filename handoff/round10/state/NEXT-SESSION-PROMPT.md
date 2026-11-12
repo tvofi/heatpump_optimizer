@@ -17,7 +17,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-PREPR-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-PREPR-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SEAT-SCRIPT-OUTPUT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-GATE-DEFER-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-DISPATCH-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch

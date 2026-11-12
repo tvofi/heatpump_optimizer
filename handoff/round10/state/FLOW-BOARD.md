@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-12T12:01:23+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-12T12:16:40+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,10 +8,10 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 0 / 1.0 | 24 / 24.0 |
 | fly-ins closed | 1 | 1 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 1 / 0 / 1 | 40 / 5 / 0 / 1 |
-| first-pass fix-review yield | 1/4 (0.25) | 18/40 (0.45) |
-| blocked-class mix | census-misclassified:1, class-open:1, mutation-vacuous:2, prior-findings-open:1 | body-not-applied:1, carry-dismissal-unsupported:1, carry-missing:3, census-misclassified:1, class-open:5, harness:3, harness-vacuous:1, mutation-survivor:1, mutation-vacuous:11, null-control-leak:1, prior-findings-open:1, regression:1, regression-unmeasured:1, root-cause-unanswered:1, scope-overlap:1, trace-gap:1 |
-| lead time per size (h, n/p50/max) | S n=1 p50=21.37 max=21.37 | L n=4 p50=19.22 max=23.58; M n=12 p50=17.45 max=105.45; S n=24 p50=15.27 max=28.30 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 1 | 40 / 5 / 0 / 1 |
+| first-pass fix-review yield | 1/4 (0.25) | 17/39 (0.44) |
+| blocked-class mix | census-misclassified:1, class-open:1, mutation-vacuous:2, prior-findings-open:1 | body-not-applied:1, carry-dismissal-unsupported:1, carry-missing:3, census-misclassified:1, class-open:5, harness:3, harness-vacuous:1, mutation-survivor:1, mutation-vacuous:10, null-control-leak:1, prior-findings-open:1, regression:1, regression-unmeasured:1, root-cause-unanswered:1, scope-overlap:1, trace-gap:1 |
+| lead time per size (h, n/p50/max) | M n=1 p50=34.77 max=34.77 | L n=4 p50=19.22 max=23.58; M n=12 p50=20.49 max=105.45; S n=24 p50=15.27 max=28.30 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
