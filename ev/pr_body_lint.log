@@ -1,0 +1,4 @@
+  record   red-history           1 commit(s) between origin/main and this head, every failure conclusion across them: none
+
+PR-BODY: 0 error(s) in /tmp/claude-0/-home-user-heatpump-optimizer/0861fefb-bebe-5875-ab7e-dc57b17fcb87/scratchpad/BODY.md
+pr_body_lint rc=0

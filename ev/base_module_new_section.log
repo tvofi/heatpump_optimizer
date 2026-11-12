@@ -1,0 +1,31 @@
+
+=== duty-switch section of tests/features.py ===
+
+-- duty-switch restart learning, part A (design duty-switch-restart-learning)
+  ok   the table replays as three stops (one censored, two off times) and three kept; the 14 s leg counts nothing
+  ok   null control: the 14 s leg with a heated return, or a full leg without a return sensor, does count
+  ok   a switch opens an episode only between the two single duties, while running, with demand, on the plan and with nothing else to explain a stop; a re-send opens nothing
+  ok   each void cause in turn turns the stopped episode void: supply off, a non-plan mode, defrost, disinfection, boost, an electric heater, a fault, 3405's loop, a person's change, a foreign write, a lost signal
+  ok   null control: the same switch with no cause books the stop
+  ok   inside the window another mode write (a re-send included) voids; a stop past the window is kept; a pending change holds the expiry back
+  ok   an attributed stop keeps its count and loses its off time to a later write of any slot, the supply switch or a lost signal
+  ok   each learner call returns whether the stored record changed, which is what the caller saves on; a start edge before any stop is not read as the stop
+  ok   a stop edge at the write's own instant, or half a second after it, is the switch's; one before it voids. A write stamped at the stop's own instant censors nothing; one half a second after it does
+  ok   a gate the arbiter did not state is a gate not passed: demand alone or the plan alone opens nothing; a learner nobody fed has no usable direction, p of nothing is 0 and its span is no day
+  ok   the running class: the frequency at its floor, else the meter at its threshold; an absent or non-finite reading is no signal, never stopped, and the meter never stands in for the frequency
+  ok   a one-frame zero is no edge; a final zero no event follows is confirmed by the pass, at its own time
+  ok   usable switches on at n >= 5 spanning two days with p >= 0.5, and not below any of the three
+  ok   once on it stays on until n < 2.5 or p < 0.3
+  ok   decay halves n in 14 days and leaves p unchanged; a direction that fell under 2.5 does not switch on at one fresh episode; a stamp ahead of the clock decays nothing
+  ok   the span ages with the evidence: once a direction's weight is under SPAN_FLOOR_N its days are forgotten, so one year-old stop and six on a single day span one day and are not usable, as a fresh learner's six; null control, a first stop one half-life old still anchors the span
+  ok   the latch is judged at the booking itself: a stop taking n from 4 to 5 switches a direction on, one taking it from 3 to 4 does not, and a kept episode taking p under 0.3 switches one off
+  ok   the median off time is the middle of an odd list and the mean of the middle two of an even one; a booking ages the counts to its own time first, and every aging moves the stamp
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/0861fefb-bebe-5875-ab7e-dc57b17fcb87/scratchpad/wt-head/dev/audit/harnesses/r10_duty_switch_section.py", line 70, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/0861fefb-bebe-5875-ab7e-dc57b17fcb87/scratchpad/wt-head/dev/audit/harnesses/r10_duty_switch_section.py", line 59, in main
+    exec(compile(PRELUDE + section, "tests/features.py[duty-switch]", "exec"), scope)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[duty-switch]", line 413, in <module>
+KeyError: 'duty_switch_dhw_space_p'
