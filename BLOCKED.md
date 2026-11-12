@@ -6,7 +6,7 @@ Not pushed by this seat: `handoff/r10-duty-switch-restart-learning` and `handoff
 
 ## What bd262a2ad is
 
-- 23961a5d8 (the repair step, itself on the pull request's head 84405a2a2), merged with `origin/main` a7887485deb7b41995b20a48fab2ae411d887954, which carries pull request 3466 (`git merge-base --is-ancestor 7a8e1c659add a7887485d` exits 0), plus `killed_by` records only: `git diff --stat 23961a5d8 bd262a2ad -- . ':!tests/mutation_ledger'` lists what the merge of main brought and no file of this group's.
+- 23961a5d8 (the repair step, itself on the pull request's head 84405a2a2), merged with `origin/main` a7887485deb7b41995b20a48fab2ae411d887954, which carries pull request 3466 (`git merge-base --is-ancestor 7a8e1c659add a7887485d` exits 0), plus `killed_by` records only. Of the files this group's diff touches, the line differs from 23961a5d8 in two, `pump_arbiter.py` and `tests/features.py`, and by main's own edits alone: `git diff --stat 23961a5d8 bd262a2ad -- <those files>` and `git diff --stat 23961a5d8...a7887485d -- <those files>` print the same two lines (4 and 9 changed lines). An earlier version of this note said the merge touched no file of the group's; that was wrong.
 - Its tree equals the parallel seat's 76bd67818 (`git rev-parse bd262a2ad^{tree} 76bd67818^{tree}` prints one id twice); the two seats pinned from both ends and merged each other's lines through this ref.
 - `origin/main` has since moved to 47788534daffab7a199a132c5f2ca118951018dc; `git merge-tree --write-tree 47788534d bd262a2ad` exits 0, so nothing forces a second merge.
 
