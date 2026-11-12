@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/supply_hold.py b/custom_components/heatpump_optimizer/supply_hold.py
+index 0bfa4d85ff..fd4c5985f9 100644
+--- a/custom_components/heatpump_optimizer/supply_hold.py
++++ b/custom_components/heatpump_optimizer/supply_hold.py
+@@ -84,7 +84,7 @@ def hold_supply(held: ArbiterState, inputs: Any, boosts: Any, value: bool | None
+         return value
+     wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if value else age < MIN_RUN
+     if wait:
+-        held.supply_held, held.held_until = True, now + _freeze_span(inp.config)
++        held.supply_held = True
+     return None if wait else value
+ 
+ 
