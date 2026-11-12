@@ -248,9 +248,11 @@ tick --only PRS" ] && [ "$(cat "$t/b.txt")" = BOARD ] \
   ck "a failing relay pass is reported and the tick still runs; the tick's status is reported" $?
   # A relay slower than the interval (update_pr.sh's prepr, #2525) must not hold the board.
   printf '#!/bin/bash\necho start >> "%s/slow"; sleep "${RELAY_SLEEP:-0}"; echo done >> "%s/slow"; echo SLOW-LOG\n' "$t" "$t" > "$t/slow.sh"
-  rm -f "$t/order" "$t/b.txt"; s0=$SECONDS
+  # No wall-clock bound: the pass is back, its board written, while the 6 s relay has not finished
+  # (a bound in whole seconds over a pass that already waits one failed on a loaded host).
+  rm -f "$t/order" "$t/b.txt" "$t/slow"
   out=$(RELAY_SLEEP=6 HPO_TICK_RELAY_WAIT=1 HPO_TICK_RELAY=$t/slow.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --interval 3 --out "$t/b.txt")
-  [ $((SECONDS - s0)) -lt 3 ] && [ "$(cat "$t/b.txt" 2>/dev/null)" = BOARD ] && printf '%s\n' "$out" | grep -q 'relay=running tick=0'
+  ! grep -qx done "$t/slow" 2>/dev/null && [ "$(cat "$t/b.txt" 2>/dev/null)" = BOARD ] && printf '%s\n' "$out" | grep -q 'relay=running tick=0'
   ck "a relay slower than the interval does not delay the board; the banner says relay=running" $?
   out=$(RELAY_SLEEP=6 HPO_TICK_RELAY_WAIT=1 HPO_TICK_RELAY=$t/slow.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --out "$t/b.txt")
   [ "$(cat "$t/slow")" = start ] && printf '%s\n' "$out" | grep -q 'relay=running tick=0' && [ "$(grep -c '^tick' "$t/order")" = 2 ]
