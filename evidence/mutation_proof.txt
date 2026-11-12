@@ -1,0 +1,8 @@
+RESULT M1: rc=1 ['1 of 5 FEATURES BLOCK FAILED'] ['FAIL R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the setpoint, the thermostat reference ']
+RESULT M2: rc=1 ['1 of 5 FEATURES BLOCK FAILED'] ['FAIL R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the setpoint, the thermostat reference ']
+RESULT M3: rc=1 ['1 of 5 FEATURES BLOCK FAILED'] ['FAIL R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the setpoint, the thermostat reference ']
+RESULT M4: rc=1 ['1 of 5 FEATURES BLOCK FAILED'] ["FAIL R10-SAV-VALUATION-RESIDUE: null control -- a valve curve able to hold the setpoint leaves the held state'"]
+RESULT M5-own-drop-final-assign: rc=1 ['1 of 5 FEATURES BLOCK FAILED'] ['FAIL R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the setpoint, the thermostat reference ']
+RESULT M6-own-need-at-target: rc=1 ['1 of 5 FEATURES BLOCK FAILED'] ['FAIL R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the setpoint, the thermostat reference ']
+RESULT M7-own-held_need-old: rc=0 ['ALL 5 FEATURES BLOCK PASSED'] []
+RESULT NULL: rc=0 ['ALL 5 FEATURES BLOCK PASSED'] []
