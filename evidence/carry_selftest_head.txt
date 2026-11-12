@@ -1,3 +1,1 @@
-carry_audit: --pr 'PR3425' is not a pull request number: spell it #<N>
-carry_audit: --pr 'pr#3425' is not a pull request number: spell it #<N>
-carry_audit self-test: 444 checks, 0 failed
+carry_audit self-test: 447 checks, 0 failed
