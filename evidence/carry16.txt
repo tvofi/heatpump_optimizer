@@ -1,0 +1,12 @@
+Roster handoff/audit-r10-roster 4dd28829cca19fa97415000f3cb972332e015bca, dev/programme/rosters/wave-r10-groups.json, R10-STANDING-CONTRACTS-P2 carry[16] (0-based):
+"(1) JUDGE EVERY LOOP. The live-usage review gets one row per out-of-tree loop the round ran, with a verdict of fold ..., keep-as-is ..., or drop ..."
+"(2) HOOKS, DESCRIBED AND INSTALLABLE. ..."
+Body dismisses carry 16 whole: "Carry: dismissed: implemented at f0c6bbfd7" citing only part (2) files (hooks/, hooks_setup.py).
+On main:
+- f0c6bbfd7 = "P3 hooks: tracked user-level hooks, installer, orchestrator-checkout Bash guard" (part 2 only).
+- PR #3294 (merged, carries f0c6bbfd7) body: "Carry 19: delivered for its section (2) only; section (1) stays open." (old index 19 = this roster's carry 16, "Moved from R10-FLY-STANDING-CONTRACTS carry 19").
+- PR #3197 body, "## Live-usage review": "No out-of-tree stand-in log is readable from a cloud fixer; recorded as a gap" - no per-loop verdict rows.
+- git grep -iE "keep-as-is" origin/main over dev/ and tools/ excluding rosters/ and triage/: no match. No tracked per-loop fold/keep/drop record exists.
+- design/R10-STANDING-CONTRACTS-P2 a249d768 design.md:205 "carries 15, 16 part (1) and 18 are the job table and sweep rewrites" - but this same design line claimed carry 15 built by #3197, which this PR shows was not; the line is not evidence.
+Partly folded on main (not a disposition record): opener retry semantics (open_driver.py:47,78 BACKOFF 1800/MAX_TRIES 3, STUCK), head-watch row, liveness hook re-arm of the wake loop. No row/verdict for the triage seat's pass loop or the merge seat's watch loop.
+Carries 17, 18, 19 re-checked on main: beatd.jobs.json rows tick-digest, roster-drain, plan-beat, pulse, cancel-sweep, disk, opener present; standing-tick.md and standing-roster.md headed "(retired)"; orchestrator.md:106-109 reads $HPO_STATE_DIR/digest/; standing.md:49 names $HPO_STATE_DIR/alive/; tick_brief absent (self-test). Confirmed implemented.
