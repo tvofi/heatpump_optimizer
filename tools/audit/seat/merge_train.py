@@ -9413,6 +9413,9 @@ def _add_self_test(check) -> None:
         def git(*a):
             return subprocess.run(["git", *a], cwd=gd, env=genv, capture_output=True, text=True,
                                   check=True).stdout.strip()
+        # app_approve.sh --carry lists origin's branch heads (decision 0017): the
+        # fixture is its own origin, so a head on a branch here is a head of ours.
+        git("remote", "add", "origin", ".")
         (gd / "m.txt").write_text("0\n")
         git("add", "-A"); git("commit", "-qm", "base"); git("checkout", "-qb", "pr")
         (gd / "a.py").write_text("x\n")
@@ -9424,6 +9427,8 @@ def _add_self_test(check) -> None:
         ch = git("rev-parse", "HEAD")
         (gd / "a.py").write_text("y\n"); git("commit", "-qam", "fix: an unreviewed delta")
         cn = git("rev-parse", "HEAD")
+        git("branch", "carried", ch)
+        cf = git("commit-tree", "-p", ch, "-m", "ci: re-record closures", ch + "^{tree}")
         held: list = []
 
         def carried(pr, head):
@@ -9459,6 +9464,12 @@ def _add_self_test(check) -> None:
               rc == 1 and lines[-1].startswith(f"ADD REFUSED #11 carry: the verdict {cv[:12]} does not carry to "
                                                f"head {cn[:12]}: CARRY: no")
               and f"own commits {cn[:9]} change its content" in lines[-1]
+              and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
+        rc, lines = carried(12, cf)
+        check("a head on no branch of origin (a fork's) carrying an empty ci: commit past its verdict is refused "
+              "by the `carry` rule as not ours, nothing spooled",
+              rc == 1 and lines[-1].startswith("ADD REFUSED #12 carry:")
+              and f"{cf} is a commit after the" in lines[-1]  # the not-ours arm's words, cut by the train's line bound
               and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
 
         st = Path(tempfile.mkdtemp(dir=tmp.name))

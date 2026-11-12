@@ -1021,6 +1021,8 @@ def self_test() -> int:
         cput = lambda p, m: ((cw / p).write_text(m + "\n"), cg("add", "-A"), cg("commit", "-qm", m),
                              cg("rev-parse", "HEAD"))[-1]
         cput("base.txt", "base")
+        # app_approve.sh --carry lists origin's branch heads (decision 0017): the fixture is its own origin.
+        cg("remote", "add", "origin", ".")
         cg("checkout", "-qb", "fix")
         vh = cput("fix.txt", "the reviewed fix")
         cg("checkout", "-q", "main")
@@ -1036,6 +1038,10 @@ def self_test() -> int:
         check("REVIEW OWED skips a head its newest merge verdict carries to (a clean main merge); "
               "a branch-own commit after it is owed (null control)",
               review_owed(crs, rb, set(), carrier) == [f"REVIEW OWED: #6 {own_head[:12]}"])
+        cg("remote", "rename", "origin", "elsewhere")
+        check("with origin's branch heads unreadable the same carried head is owed (fail closed)",
+              [l.split()[2] for l in review_owed(crs, rb, set(), carrier)] == ["#5", "#6"])
+        cg("remote", "rename", "elsewhere", "origin")
         rb["5"].append(f"Fix review: blocked {vh} harness: y")
         check("a newest verdict that is blocked carries nothing", [l.split()[2] for l in
               review_owed(crs, rb, set(), carrier)] == ["#5", "#6"])
