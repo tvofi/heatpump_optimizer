@@ -1,0 +1,21 @@
+KILLED   supply_hold.py: 'if wait else value' -> 'if False else value' | hold never applied (gate removed) | A=1 B=0 19 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: 'else age < MIN_RUN' -> 'else age <= MIN_RUN' | MIN_RUN bound <=  | A=1 B=0 5 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: 'else age < MIN_RUN' -> 'else False' | minimum run removed | A=1 B=0 10 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: '(age < MIN_PAUSE or' -> '(False or' | minimum pause removed | A=1 B=0 3 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: '    held.supply_held = False\n    if value is None' -> '    if value is None' | held flag not reset on each write | A=1 B=0 8 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: 'span = 2 * timedelta' -> 'span = 1 * timedelta' | interval_held span 2 -> 1 | A=1 B=0 1 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: '- at < span' -> '- at <= span' | interval_held bound <= | A=1 B=0 1 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: 'step_supply(inp, boosts, nxt) is not False' -> 'step_supply(inp, boosts, nxt) is True' | rule three: next-step None treated as OFF | A=1 B=0 2 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: 'getattr(params, "dhw_enabled", False) and ' -> '' | tank cold ignores dhw_enabled | A=1 B=0 1 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: 'if nxt - now >= MIN_RUN or' -> 'if nxt - now > MIN_RUN + MIN_RUN or' | rule three window doubled | A=1 B=0 12 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: 'boosts.active(CHANNEL_SPACE, now) or boosts.active' -> 'False)' | boosts never pass | A=1 B=0 2 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: 'if since is None:\n        return None' -> 'if since is None:\n        return timedel' | missing stamp read as age 0 | A=0 B=1 ALL 88 FEATURES BLOCK PASSED | 1 of 60 FEATURES BLOCK FAILED
+KILLED   supply_hold.py: 'if age is None or _passes' -> 'if _passes' | unknown age not passed (would crash/hold) | A=1 B=1 TypeError: '<' not supported between instances of 'NoneType' and 'datetime.timedelta' | TypeError: '<' not supported between instances of 'NoneType' and
+KILLED   pump_arbiter.py: 'if on != last or held.supply_held:' -> 'if on != last:' | step tick does not retry a held write | A=1 B=0 9 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   pump_arbiter.py: 'on = None if inp.entry_released else step_supply' -> 'on = step_supply' | step tick writes after entry released | A=1 B=0 1 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   pump_arbiter.py: 'held.supply_held = False  # a held write dies' -> 'pass  # a held write dies' | held flag survives a dropped command | A=1 B=0 3 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   pump_arbiter.py: 'or inp.plan_stale or not inp.action' -> 'or not inp.action' | stale plan retries action | A=1 B=0 1 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+17 of 17 killed
+KILLED   coordinator.py 'return supply_hold.FREEZE_HELD' -> 'pass' | learners not frozen on a held interval | A=1 B=0 1 of 88 FEATURES BLOCK FAILED | ALL 60 FEATURES BLOCK PASSED
+KILLED   early_cutoff.py 'return tank_reason(inp)' -> 'return None' | early cut-off ignores tank exemption | A=0 B=1 ALL 88 FEATURES BLOCK PASSED | 1 of 60 FEATURES BLOCK FAILED
+KILLED   early_cutoff.py 'if run is None or run < MIN_ON:' -> 'if run is not None and run < MIN_ON:' | early cut-off cuts a run of unknown age | A=0 B=1 ALL 88 FEATURES BLOCK PASSED | 1 of 60 FEATURES BLOCK FAILED

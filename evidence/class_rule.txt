@@ -1,0 +1,3 @@
+custom_components/heatpump_optimizer/coordinator.py:7833:            await pump_arbiter.switch_supply(self.hass, switch_entity, value)
+custom_components/heatpump_optimizer/early_cutoff.py:325:    inp.hass.async_create_task(switch_supply(inp.hass, switch, False))
+custom_components/heatpump_optimizer/pump_arbiter.py:1725:async def switch_supply(hass: Any, entity_id: str, on: bool) -> None:

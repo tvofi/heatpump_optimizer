@@ -1,0 +1,7 @@
+custom_components/heatpump_optimizer/coordinator.py:4565:        service = "turn_on" if on else "turn_off"
+custom_components/heatpump_optimizer/disinfection.py:160:        if not await self._write(entity_id, "turn_on"):
+custom_components/heatpump_optimizer/disinfection.py:181:                    await self._write(owned, "turn_off")
+custom_components/heatpump_optimizer/disinfection.py:203:        landed = [owned for owned in list(self.owned) if await self._write(owned, "turn_off")]
+custom_components/heatpump_optimizer/disinfection.py:214:        want = service == "turn_on"
+custom_components/heatpump_optimizer/pump_arbiter.py:1470:        return ("turn_on" if value else "turn_off"), {}
+custom_components/heatpump_optimizer/pump_arbiter.py:1722:    return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"
