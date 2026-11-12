@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-12T15:03:59+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-12T15:43:27+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 1 / 1.0 | 24 / 24.0 |
+| roster groups closed vs takt | 0 / 1.0 | 23 / 24.0 |
 | fly-ins closed | 0 | 1 |
-| main moves: group-carrying / record / roster-edit / fly-in | 3 / 1 / 0 / 0 | 43 / 5 / 0 / 1 |
-| first-pass fix-review yield | 0/0 (-) | 15/32 (0.47) |
-| blocked-class mix | root-cause-detectable:1 | body-not-applied:1, carry-dismissal-unsupported:1, carry-missing:2, census-misclassified:2, class-open:5, findings-unresolved:1, harness:2, harness-vacuous:1, head-moved:1, introduced-red:1, mutation-vacuous:6, null-control-leak:1, prior-findings-open:1, regression:1, regression-unmeasured:1, root-cause-detectable:1, scope-overlap:1, trace-gap:1 |
-| lead time per size (h, n/p50/max) | L n=1 p50=36.53 max=36.53; M n=1 p50=36.87 max=36.87; S n=1 p50=4.60 max=4.60 | L n=5 p50=19.22 max=36.53; M n=13 p50=20.49 max=105.45; S n=25 p50=14.52 max=28.30 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 41 / 5 / 0 / 1 |
+| first-pass fix-review yield | 2/2 (1.00) | 17/34 (0.50) |
+| blocked-class mix | none | body-not-applied:1, carry-dismissal-unsupported:1, carry-missing:2, census-misclassified:2, class-open:5, findings-unresolved:1, harness:2, harness-vacuous:1, head-moved:1, introduced-red:1, mutation-vacuous:6, null-control-leak:1, prior-findings-open:1, regression:1, regression-unmeasured:1, root-cause-detectable:1, scope-overlap:1, trace-gap:1 |
+| lead time per size (h, n/p50/max) | none | L n=5 p50=19.22 max=36.53; M n=13 p50=20.49 max=105.45; S n=23 p50=15.27 max=28.30 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 45 | 6 | 0 |
+| 1 | 46 | 6 | 0 |
 
 ## Rules
 
