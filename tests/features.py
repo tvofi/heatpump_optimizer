@@ -81178,10 +81178,13 @@ R.check(
     f"{_bt_restored} {_bt_down} {_bt_spent}",
 )
 _bt_store = _he_store._tries().get("boost", {})
+_bt_hdom = _bt_store.get("space_settle", {}).get("boosted_h", {}).get("")
 R.check(
-    "the boost store declares the settling tail's lead past the overlay's two hours",
+    "the boost store declares the settling tail's lead past the overlay's two hours, and a "
+    "boosted sum of any length from zero, or unknown; a negative one is out of its domain",
     getattr(_bt_store.get("space_settle", {}).get("until", {}).get(""), "ahead_h", None)
-    == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS,
+    == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS
+    and [_he_store.in_domain(_bt_hdom, v) for v in (0.0, 0.5, None, -0.1)] == [True, True, True, False],
     f"{_bt_store.get('space_settle')}",
 )
 
