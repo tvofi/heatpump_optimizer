@@ -1,43 +1,21 @@
-Builds carries 16 (TRAIN-POLICY-REASON-STALE-CONTEXT) and 17 (TRAIN-UNDRAFT-EVERY-ROUTE) of R10-TRAIN-RESIDUE-P2 in `tools/audit/seat/merge_train.py`. `policy_refusal` read the last-listed rollup entry, so #3445 (gate FAILURE x4, SUCCESS listed last) parked as "missing requirement is a review" while GitHub blocked on a red gate; a `--queue` or `build_queue` entry never carried `item["draft"]`, so `undraft` never fired and `land` burned 8 attempts on "still a draft".
-
-Fix: `rollup_states` reduces a rollup to one state per context by newest `completedAt`, else `startedAt`, any unfinished entry making it PENDING. `Train.record_drafts` sets `item["draft"]` from one `is_draft` read per entry lacking the key at batch start, before `preflight`. In `land`, "still a draft" is a state: an admitted draft is readied once and re-attempted, any other draft stops with `drafted after admission: left as a hold` (a plain Stop, so no recarry and no MAIN-MOVED). Alternative rejected: setting the key inside `preflight` only, since `preflight` returns early without `--pre-flight`.
-
-- Carry 0: left for a later part; it stays on the roster.
-- Carry 1: left for a later part; it stays on the roster.
-- Carry 2: left for a later part; it stays on the roster.
-- Carry 3: left for a later part; it stays on the roster.
-- Carry 4: left for a later part; it stays on the roster.
-- Carry 5: left for a later part; it stays on the roster.
-- Carry 6: left for a later part; it stays on the roster.
-- Carry 7: left for a later part; it stays on the roster.
-- Carry 8: left for a later part; it stays on the roster.
-- Carry 9: left for a later part; it stays on the roster.
-- Carry 10: left for a later part; it stays on the roster.
-- Carry 11: left for a later part; it stays on the roster.
-- Carry 12: left for a later part; it stays on the roster.
-- Carry 13: left for a later part; it stays on the roster.
-- Carry 14: left for a later part; it stays on the roster.
-- Carry 15: left for a later part; it stays on the roster.
+The train now waits on a running stamp (carry 1, P447): a stamp that pushes publishes `refs/heads/stamp-hold`, and `Train.land` waits on it before each merge attempt. Part 1 of 4 of R10-TRAIN-RESIDUE-P2 (carries 0-4).
 
 ## Head
 
-0c55662763813cee343d86278f94f90bc3e193a6, measured on origin/main ee64358be7eeccaec5178a923cb3b83a18a924a0.
+818466419f7b67b2b19982fb2d16ed37ee765ba5, measured 2026-11-12T07:30Z against origin/main 289c9b99 (merge base be86e36a).
 
 ## Mutation proof
 
-Mutants of `merge_train.py`, each run through `python3 tools/audit/seat/merge_train.py --self-test`:
-- `if name not in best or (stamp, i) >= best[name][0]:` -> `if True:` (last-listed wins): FAIL "P608 #3445's five gate entries in list order".
-- `if not item.get("draft") or undrafted:` -> `if False:`: FAIL "P609 a draft the train never admitted as one" and "P609 a draft again after the one ready".
-- the `record_drafts` read replaced by `pass`: the P609 `record_drafts` case raises KeyError on `q[0]["draft"]` (a crash, not a named FAIL line).
+Deleting the `self.stamp_hold_wait()` line in `land` and running `python3 tools/audit/seat/merge_train.py --self-test` turns red: `stamp hold: a live hold logs STAMP-HOLD and waits, and the merge runs only after it clears` and `stamp hold: a hold past the age bound is a dead holder's, taken over, and the merge runs`. Restored, all green. `stamp.py --self-test` covers the take/release arms (four `stamp hold:` checks).
 
 ## Null control
 
-At the merge base `policy_refusal` has `last[name]=` overwrite and no "still a draft" arm. In the self-test, all-SUCCESS in either order reaches the review branch; a non-draft entry makes no `gh pr ready` call; a recorded `draft: False` is kept by `record_drafts`.
+With no hold the merge runs as today with zero polls (`stamp hold: null control, no hold runs the merge as today with no wait`); a rehearsal (`batch/`) train never waits; an unarmed stamp (no `--push`, or `--dry-run`) pushes nothing.
 
 ## Figures
 
-- `python3 tools/audit/seat/merge_train.py --self-test` exits 0 at the head; its P608 and P609 lines print `ok` (9 lines).
-- `tools/pr/prepr.sh` rc=0 with `PREPR_SKIP_CLOSURES` set in the environment: the closures step printed "skip ... PREPR_SKIP_CLOSURES is set"; the interpreter's missing homeassistant module was not separately confirmed.
+- `git grep -c -- '--require-rows' HEAD -- tools/release/stamp.py` (carry 4 precondition): 8, not 0.
+- `python3 tools/audit/seat/merge_train.py --self-test`, `python3 tools/release/stamp.py --self-test`, `python3 tests/entities.py`, `python3 tests/doc_claims.py`: all pass at the head.
 
 ## Red checks
 
@@ -45,12 +23,30 @@ none
 
 ## Forward-carry
 
-none
+- Carry 0 (P444, undraft gap): no code in `tools/` drafts a pull request on the recarry/update path (`gh pr ready --undo` appears only in `open_pr.sh` and `handoff_push.sh`), so a head cannot become a draft through the train. The #3318 shape (a `--queue`/`build_queue` entry with no `draft` key) is the one carry 17 fixed at be86e36a (`record_drafts` reads it for every key-less entry; an author's later draft is left a hold, null control in the self-test). The train log naming #3318's admission path is not in this checkout, so that confirmation is not made here. Carry: dismissed: implemented at be86e36a5
+- Carry 1: built in this pull request. stamp.py: `stamp_hold` (taken before rule 1, so the gate wait is covered; released on any exit); merge_train.py: `stamp_hold_wait` before each merge attempt in `land`, which both `batch` and `add`-started trains reach. `add` itself merges nothing. A hold at or past `STAMP_HOLD_MAX_AGE_S` is a dead holder's and is taken over. web-stamp.js is unchanged: it runs stamp.py, which takes the hold. Alternative rejected: a second flag file the workflow writes, which a crashed workflow would leave with no age. Carry: dismissed: built in this pull request
+- Carry 2 (name the sender of live-head cancels, then P267's bounded pause): the sender is named from GitHub's run actors, which this seat cannot read, and the bounded pause is P267's. Carry: R10-CI-PRIORITY-PAUSE
+- Carry 3 (App-actor cancels at a live head; whether a run's actor is its canceller is unestablished): needs the runs API and `dev/audit/harnesses/livehead_cancels.py`, not measured here. Carry: R10-CI-PRIORITY-PAUSE
+- Carry 4 (delete Nightly's record-autofix beat): precondition not met, the `--require-rows` count above is 8. Carry: R10-CI-PRIORITY-PAUSE
+- Carry 5: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 6: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 7: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 8: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 9: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 10: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 11: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 12: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 13: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 14: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 15: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 16: marked [implemented: be86e36a560fde88cc758cefcee322b9087a5deb] on the roster, not answered here. Carry: dismissed: implemented at be86e36a5
+- Carry 17: marked [implemented: be86e36a560fde88cc758cefcee322b9087a5deb] on the roster, not answered here. Carry: dismissed: implemented at be86e36a5
+- Carry 18: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 19: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 20: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 21: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
+- Carry 22: belongs to another part of this group and is not answered here. Carry: R10-TRAIN-RESIDUE-P2 | dismissed: not this part, its own part of the group answers it
 
 ## Friction
 
 none
-
-## Architecture score
-
-n/a: no budget or gate rise.
