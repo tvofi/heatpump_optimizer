@@ -1,0 +1,24 @@
+INPUT (verbose stream):
+   TRAIN pid=1 queue=2 mandate=none
+   #101 3f2a1b0c ci red=tests / gate, tests / mutation
+   #101 dropped to serial: the proof is red at tests / gate
+   serial: #101
+   #100 approved (policy) at 3f2a1b0c
+   #100 MERGED 9e8d7c6b5a4f
+   #100 OWED delivery row: gh 502
+   #100 post-merge steps OWED (rc=1); the merge stands
+   #101 MERGED 1a2b3c4d5e6f
+   TRAIN DONE
+QUIET stdout:
+   quiet output: the full log is /tmp/tmpgjdkkc5m/f.log (--verbose or TRAIN_VERBOSE=1 prints it)
+   TRAIN pid=1 queue=2 mandate=none
+   TRAIN DONE
+HIDDEN in quiet mode: 8
+   #101 3f2a1b0c ci red=tests / gate, tests / mutation
+   #101 dropped to serial: the proof is red at tests / gate
+   serial: #101
+   #100 approved (policy) at 3f2a1b0c
+   #100 MERGED 9e8d7c6b5a4f
+   #100 OWED delivery row: gh 502
+   #100 post-merge steps OWED (rc=1); the merge stands
+   #101 MERGED 1a2b3c4d5e6f

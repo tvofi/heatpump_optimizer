@@ -1,0 +1,5 @@
+heartbeat rc=0 2s heartbeat self-test: 8 checks, 0 failed
+delivery_row rc=0 0s delivery_row self-test: 6 checks, 0 failed
+cloud-setup rc=0 1s cloud_setup self-test: 22 checks, 0 failed
+failure_logs rc=0 0s passed=7 failed=0
+tick_loop bound=1s rc=124 1s tick_loop: BOUND: the self-test passed 1 s, so its whole session is ended
