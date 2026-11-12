@@ -165,6 +165,8 @@ OWED_CARRY = re.compile(r"\bcarry\s*\[?\d+\]?\W{0,6}[^.\n]{0,80}?\b(?:not done|n
                         r"|not in this (?:part|diff|pull request|change)|still (?:not met|open|owed)"
                         r"|owed (?:by|to|in))", re.I)
 QUOTED = re.compile(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d')
+# a quoted phrase opens after a non-word (`5" Carry: X` opens none) and closes before one
+QUOTED_PHRASE = re.compile(r'(?<![\w"])"[^"\n]*"(?!\w)|\u201c[^\u201d\n]*\u201d')
 
 CARRY = re.compile(r"(?<![\w-])Carry:")
 ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
@@ -196,6 +198,13 @@ def freed(t: str) -> str:
     return NOTHING.sub(" ", "".join(out))
 
 
+def nonblock_words(t: str, findings_section: bool) -> bool:
+    """Whether <t> says NONBLOCK. The bare word `deferred` counts only in a section of a
+    findings or block kind: a blocked verdict's `## Verified` or `## Summary` line reading
+    "deferred" is a check's state, not a note (P440: #3327, #3330 refused for it)."""
+    return any(findings_section or m.group(0).lower() != "deferred" for m in NONBLOCK.finditer(t))
+
+
 def items(text: str, verdict: bool) -> list[dict]:
     """The finding-shaped items of one markdown text, in order:
     {"id", "section", "text", "flagged"} (every item; `flagged` marks the
@@ -217,7 +226,7 @@ def items(text: str, verdict: bool) -> list[dict]:
             out.append({"section": section, "text": body, "kind": kind})
         cur, kind = [], None
 
-    for ln in lines:
+    for i, ln in enumerate(lines):
         h = HEADING.match(ln)
         if h:
             flush()
@@ -225,7 +234,13 @@ def items(text: str, verdict: bool) -> list[dict]:
             continue
         if not ln.strip():
             if kind == "para":
-                flush()
+                # an indented line holding a marker, after the blank, still belongs to the
+                # paragraph it continues (R10-CARRY-AUDIT-P5: the seven refused verdicts)
+                nxt = next((x for x in lines[i + 1:] if x.strip()), "")
+                if nxt.startswith((" ", "\t")) and CARRY.search(nxt) and not BULLET.match(nxt):
+                    cur.append("")
+                else:
+                    flush()
             elif kind == "bullet":
                 cur.append("")
             continue
@@ -269,10 +284,11 @@ def items(text: str, verdict: bool) -> list[dict]:
         elif verdict and (EVIDENCE_HEADING.match(sec)
                           or not (blocked_verdict or block_sec or FINDINGS_HEADING.match(sec))):
             why = ("lead" if LEAD.match(first) else "under lead" if inherited
-                   else "carry" if carry_segments(t) else "")
+                   else "carry" if carry_segments(t, shaped=True) else "")
         elif verdict:
             note_sec = NONBLOCK.search(sec) if blocked_verdict else NOTE_HEADING.search(sec)
-            why = ("non-blocking" if NONBLOCK.search(freed(t)) else "" if block_sec
+            kind_sec = block_sec or FINDINGS_HEADING.match(sec) or NOTE_HEADING.search(sec)
+            why = ("non-blocking" if nonblock_words(freed(t), bool(kind_sec)) else "" if block_sec
                    else "section" if note_sec else "lead" if LEAD.match(first)
                    else "under lead" if inherited else "")
         elif sec.lower() in CARRY_SECTIONS:
@@ -297,10 +313,22 @@ def owed_carry(text: str) -> bool:
     return bool(OWED_CARRY.search(QUOTED.sub(" ", bare)))
 
 
-def carry_segments(text: str) -> list[str]:
+def marker_shaped(seg: str) -> bool:
+    """Whether a `Carry:` segment opens with a destination token: a group, `#N`, an O-brief or
+    `dismissed:`. A structural section names the word without routing (P589)."""
+    rest = seg.split(":", 1)[1].strip().strip("`*_")
+    if re.match(r"dismissed\s*:", rest, re.I):
+        return True
+    tok = (rest.split() or [""])[0].strip("`*_().:,;")
+    return bool(GROUP_TOK.match(tok) or ISSUE_TOK.match(tok) or BRIEF_TOK.match(tok))
+
+
+def carry_segments(text: str, shaped: bool = False) -> list[str]:
     """The text of every `Carry:` marker in <text>, each cut at the next `Carry:`
-    or the line end; a `Carry:` inside a code span is a quoted example, not one."""
-    spans = [m.span() for m in CODE_SPAN.finditer(text)]
+    or the line end; a `Carry:` inside a code span or a double-quoted phrase is a
+    quoted example, not one. <shaped> keeps only a segment opening with a destination
+    token (`marker_shaped`), as a structural section reads a marker."""
+    spans = [m.span() for m in CODE_SPAN.finditer(text)] + [m.span() for m in QUOTED_PHRASE.finditer(text)]
     starts = [m.start() for m in CARRY.finditer(text)]
     segs = []
     for i, at in enumerate(starts):
@@ -308,7 +336,9 @@ def carry_segments(text: str) -> list[str]:
             continue
         # each `Carry:` up to the next one: a quoted marker earlier on the line
         # must not swallow the real one after it
-        segs.append(text[at:starts[i + 1] if i + 1 < len(starts) else len(text)].split("\n", 1)[0])
+        seg = text[at:starts[i + 1] if i + 1 < len(starts) else len(text)].split("\n", 1)[0]
+        if not shaped or marker_shaped(seg):
+            segs.append(seg)
     return segs
 
 
@@ -617,6 +647,17 @@ def own_carry_status(dests: Dests, group: str, text: str) -> bool:
     return any(int(i) < n for i in CARRY_INDEX.findall(CODE_SPAN.sub(" ", text)))
 
 
+def norm_pr(pr: str) -> str:
+    """A pull-request source as the roster spells it, `#<N>`: an all-digit one gains the `#`
+    (a group saying "PR 3425" holds no `#3425`, yet the bare token matched it: P587); empty
+    stays empty; any other spelling raises ValueError naming `#<N>`."""
+    if re.fullmatch(r"\d+", pr):
+        return "#" + pr
+    if pr and not re.fullmatch(r"#\d+", pr):
+        raise ValueError(f"--pr {pr!r} is not a pull request number: spell it #<N>")
+    return pr
+
+
 def landed(body: str, dests: Dests, source: str = "", statuses: "list[dict] | None" = None) -> list[dict]:
     """Each (finding item, GROUP destination) of a body whose group's brief or
     carries do not hold the item id and whose carries do not hold the source
@@ -630,7 +671,7 @@ def landed(body: str, dests: Dests, source: str = "", statuses: "list[dict] | No
     nothing and is appended to <statuses> when given (carry_audit prints it as a status
     line). An own-group item with no index, or an index the group has no carry at, lands."""
     out = []
-    srcs = [x for x in re.split(r"[\s,]+", source) if x]
+    srcs = [("#" + x if x.isdigit() else x) for x in re.split(r"[\s,]+", source) if x]  # mut:normpr
     own = own_group(dests, srcs)
     for r in audit(body, [], dests)["rows"]:
         for tok in r["dests"]:
@@ -656,6 +697,7 @@ def land_ops(missing: list[dict], pr: str = "", topic: str = "") -> list[str]:
     """roster_edit.py's append-carry op for each missing landing a carry can
     make (never a bad destination), tagged `(items <id>)`, one per tag."""
     ops, seen = [], set()
+    pr = norm_pr(pr)
     src = f"From {pr} ({topic})" if pr and topic else f"From {pr or topic or 'this pull request'}"
     for m in missing:
         if m["why"].startswith("bad destination") or (m["group"], m["id"]) in seen:
@@ -995,6 +1037,11 @@ def main(argv: list[str]) -> int:
                 dests.pr_group = pr_group_of(dests, a.branch)  # mut:branch
             return report(audit(body, comments, dests)) | fold_rc
         if a.cmd in ("landed", "land-ops"):
+            try:
+                a.pr = norm_pr(a.pr)
+            except ValueError as e:
+                print(f"carry_audit: {e}")
+                return 2
             # rc 0 every carry landed, 1 one is missing (CARRY-MISSING lines), 3 the roster unreadable
             try:
                 dests = load_dests(Path(a.git_dir), ref, a.briefs_dir)
@@ -2075,6 +2122,58 @@ def _self_test() -> int:
           not [ln for ln in roster_report(rr, {}, None) if ln.startswith("ISSUE")])
     check("roster: open_issues reads gh's JSON, numbers or objects, and drops pull requests",
           open_issue_numbers('[1, {"number": 2}, {"number": 3, "pull_request": {}}]') == {1, 2})
+    # R10-CARRY-AUDIT-P5 (carries 0-3): fixtures cut from the refused shapes; each arm has its null control.
+    vh = lambda word, rest: [{"id": 48, "body": f"Fix review: {word} {'d' * 40}\n\n{rest}"}]
+    n_ = lambda body, com=(): len(run(head, list(com))["rows"]) if not body else len(run(body, list(com))["rows"])
+    r = run(head + "## Friction\n\nthe census misses the store seam.\n\n  Carry: R10-LIVE\n")
+    check("carry 0: an indented Carry: line after a paragraph's blank routes that paragraph",
+          r["u"] == 0 and r["b"] == 0 and len(r["rows"]) == 1)
+    r = run(head + "## Friction\n\nthe census misses the store seam.\n\nCarry: R10-LIVE\n")
+    check("carry 0 null control: an unindented one after the blank is a separate item, the paragraph stays unrouted",
+          r["u"] == 1)
+    r = run(head + '## Friction\n\n- the census misses a seam; the old text said "Carry: R10-LIVE is the form" once.\n')
+    check("carries 0/1: a double-quoted Carry: phrase routes nothing", r["u"] == 1)
+    r = run(head + '## Friction\n\n- the census misses a seam; the old text said "x". Carry: R10-LIVE\n')
+    check("carries 0/1 null control: a bare marker after a quoted phrase routes", r["u"] == 0 and r["b"] == 0)
+    for w in ("blocked", "merge"):
+        rows = run(head, vh(w, "## Verified\n\n- the restamp job is deferred to CI.\n"))["rows"]
+        check(f"carry 1: `deferred` in a {w} verdict's ## Verified is no note", rows == [])
+    check("carry 1 null control: `deferred` in a blocked verdict's ## Block still owes its destination",
+          [(x["why"], x["status"]) for x in run(head, vh("blocked", "## Block\n\n- the arm is deferred.\n"))["rows"]]
+          == [("non-blocking", "unrouted")])
+    check("carry 1 null control: a real non-blocking item in ## Verified is still a finding",
+          len(run(head, vh("blocked", "## Verified\n\n- a point that is non-blocking: x.\n"))["rows"]) == 1)
+    for k, ev in (("b6e4992b", "Carry: `review_carry.py ... prints CARRY"),
+                  ("2c51d159", "Contradiction grep (own group, own-group, Carry: across all rosters)"),
+                  ("8e3e097e", "the body states it as a Carry: marker")):
+        rows = run(head, vh("merge", f"## Evidence\n\n- {ev}\n"))["rows"]
+        check(f"carry 3: the {k} mention shape under ## Evidence routes nothing", rows == [])
+    ev = lambda t: run(head, vh("merge", f"## Evidence\n\n- {t}\n"))
+    check("carry 3: `Carry: R10-NO-SUCH` under ## Evidence is still a bad destination", ev("x. Carry: R10-NO-SUCH")["b"] == 1)
+    check("carry 3 null controls: group, #N and dismissed: are markers under ## Evidence",
+          [ev(t)["u"] + ev(t)["b"] for t in ("x. Carry: R10-LIVE", "x. Carry: #100", "x. Carry: dismissed: host load, not a defect")] == [0, 0, 0]
+          and all(len(ev(t)["rows"]) == 1 for t in ("x. Carry: R10-LIVE", "x. Carry: #100", "x. Carry: dismissed: host load, not a defect")))
+    # carry 2: the bare PR number
+    pr_roster = {"groups": [{"group": "R10-TICK", "resume": {"stage": "not-started"}, "brief": "b",
+                             "carry": ["handed off as PR 3425, body item aaaaaaaa"]}]}
+    Dp = Dests(pr_roster, set(), None)
+    pbody = "## Friction\n\n- tick.py: unclear: x. Carry: R10-TICK\n"
+    miss = lambda pr, d=Dp: len(landed(pbody, d, pr))
+    check("carry 2: a group saying 'PR 3425' without '#3425' misses, bare and hashed alike",
+          miss("3425") == 1 and miss("#3425") == 1)
+    pr_roster["groups"][0]["carry"] = ["From #3425: tick.py"]
+    Dp = Dests(pr_roster, set(), None)
+    check("carry 2 null control: a 'From #3425' carry reports 0 missing for both spellings", miss("3425", Dp) == 0 and miss("#3425", Dp) == 0)
+    check("carry 2: norm_pr maps digits to #N, keeps #N and empty",
+          (norm_pr("3425"), norm_pr("#3425"), norm_pr("")) == ("#3425", "#3425", ""))
+    try:
+        norm_pr("PR3425")
+        refused = False
+    except ValueError as e:
+        refused = "#<N>" in str(e)
+    check("carry 2: another spelling is refused naming #<N>", refused)
+    check("carry 2: land_ops writes 'From #3425' for a bare number",
+          all("From #3425" in o for o in land_ops([{"group": "R10-TICK", "id": "aaaaaaaa", "text": "x", "why": "not in its brief or carries"}], "3425")))
     print(f"carry_audit self-test: {passed + failed} checks, {failed} failed")
     tmp.cleanup()
     return 1 if failed else 0
