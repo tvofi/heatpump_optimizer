@@ -1,0 +1,12 @@
+9fc05f1644ce67679c3936be3a0b94e864b7ef4f
+dev/audit/harnesses/r10_open_driver_mutants.py
+tools/audit/seat/open_driver.py
+tools/audit/seat/open_driver_selftest.py
+
+Auto-merging dev/audit/harnesses/r10_open_driver_mutants.py
+CONFLICT (content): Merge conflict in dev/audit/harnesses/r10_open_driver_mutants.py
+Auto-merging tools/audit/seat/open_driver.py
+CONFLICT (content): Merge conflict in tools/audit/seat/open_driver.py
+Auto-merging tools/audit/seat/open_driver_selftest.py
+CONFLICT (content): Merge conflict in tools/audit/seat/open_driver_selftest.py
+rc=1
