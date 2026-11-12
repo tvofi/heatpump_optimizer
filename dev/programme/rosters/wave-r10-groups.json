@@ -20736,9 +20736,10 @@
    "architect_note": "",
    "brief": "P436's class barrier: every reader of the gate conclusion (merge_train policy_refusal, orchestrator_tick one_pr/main, review_packet gate_digest, merge_pr.sh, nudge.md step 15) treats an at-once deferral red as provisional; the committed finder harness for the gate-race hotfix; RCA 5.2's stale-pin fresh dispatch; then the class recorded barriered in bugclasses.json. nudge.md is policy: owner approval at merge. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, ordered by after-edges where files overlap | set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/merge_pr.sh', 'tools/ci/sweep.py', 'dev/audit/config/bugclasses.json', 'dev/governance/roles/nudge.md'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/merge_pr.sh', 'tools/ci/sweep.py', 'dev/audit/config/bugclasses.json', 'dev/governance/roles/nudge.md', 'tools/ci/gate.py']"
+    "note": "overlap admitted (R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-TRAIN-RESIDUE, ordered by after-edges where files overlap | set-files files ['tools/audit/seat/merge_train.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/merge_pr.sh', 'tools/ci/sweep.py', 'dev/audit/config/bugclasses.json', 'dev/governance/roles/nudge.md'] -> ['tools/audit/seat/merge_train.py', 'tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/merge_pr.sh', 'tools/ci/sweep.py', 'dev/audit/config/bugclasses.json', 'dev/governance/roles/nudge.md', 'tools/ci/gate.py']",
+    "pr": 3499
    }
   },
   {
@@ -21184,9 +21185,10 @@
    "architect_note": "",
    "brief": "Where the suites run: the nightly heartbeat respawn (#3320 left it open), cloud-setup's venv-ha lacking scipy and paho, harnesses that measure the cwd tree instead of the root they were given, and the dispatch form a CI-cost hotfix must use to show its effect. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "pr": 3431
+    "pr": 3431,
+    "commit": "ce6bb87e7aaa4b4625760a6fc3940e41e66e91f2"
    }
   },
   {
@@ -22527,9 +22529,9 @@
    "carry": [],
    "findings": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "14c0012eb41680cc04747fb3bc5d78d02d1ab736",
     "last_step": null,
     "next_step": "fixer adopts the author's commits on outside pull request 3434 (no design step, size S)",
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3434 by Bankaifan accepted into round 10; no reviewer on the outside PR itself, this group's fixer adopts its commits",
@@ -24758,12 +24760,13 @@
    "findings": [],
    "brief": "owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim \"I want it now if it does not move closure. That applies for any other study decisions that might have been dropped\"), recorded by triage batch 244, entries P734 and P735. Study review Q1 (batch 218 P666) and the review plan's B2, built now. Q1: the ci-ratchet job in .github/workflows/tests.yml stops failing the gate on a push to main (it still runs and still shows its own result); tools/ci/gate.py drops ci-ratchet from its push-only set while coverage-ratchet stays; the gate's self-test that asserts ci-ratchet is owed on push is rewritten to assert the opposite; the tools/release/stamp.py docstring that names ci-ratchet among push-gated jobs is corrected; and any pin of the push set in tests/entities.py moves with it. Check that the ci-gate parity harness under dev/audit/harnesses/ still agrees. On pull requests ci-ratchet is graded as today. B2: on a push, gate.py prints one report-only machinery summary line in the step summary, listing the conclusions of the instrument self-tests, ci-ratchet and the other non-required jobs; it changes no exit code. The full Q1 contract (self-test, null control, mutation proof) is this group's carry, moved here from R10-HOTFIX-GATE-REDISPATCH-LOOP; its BUILD-ON-NEXT-RED condition no longer applies. Null control for B2: a push with every job green prints the line and exits as before. tools/ci/gate.py is shared with R10-GATE-DEFER-BARRIER (critical path) on a different seam (the push-only set, its self-test and the summary, not the deferral logic): this group merges before the barrier's next handoff, or the barrier merges main after it. .github/workflows/tests.yml and tools/release/stamp.py are code-owned: tvofi's review, or a mandate in force that covers code-owned paths.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "fixer (size S): failing test first; merge before R10-GATE-DEFER-BARRIER's next handoff",
-    "note": "triage: dev/programme/triage/s6-batch244.md#P735 at 0ba0f293b0; owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim \"I want it now if it does not move closure. That applies for any other study decisions that might have been dropped\"); overlap admitted with R10-GATE-DEFER-BARRIER on tools/ci/gate.py by seam, merged before the barrier's next handoff.; overlap admitted (R10-GATE-DEFER-BARRIER): triage: dev/programme/triage/s6-batch244.md#P735 (owner ruling 2026-11-12 ~08:20Z); shares tools/ci/gate.py with R10-GATE-DEFER-BARRIER (critical path) on a different seam (push-only set, self-test, summary line); merges before the barrier next handoff"
+    "note": "triage: dev/programme/triage/s6-batch244.md#P735 at 0ba0f293b0; owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim \"I want it now if it does not move closure. That applies for any other study decisions that might have been dropped\"); overlap admitted with R10-GATE-DEFER-BARRIER on tools/ci/gate.py by seam, merged before the barrier's next handoff.; overlap admitted (R10-GATE-DEFER-BARRIER): triage: dev/programme/triage/s6-batch244.md#P735 (owner ruling 2026-11-12 ~08:20Z); shares tools/ci/gate.py with R10-GATE-DEFER-BARRIER (critical path) on a different seam (push-only set, self-test, summary line); merges before the barrier next handoff",
+    "pr": 3500
    },
    "carry": []
   },
