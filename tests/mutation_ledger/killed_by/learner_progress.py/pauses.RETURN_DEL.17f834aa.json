@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learner_progress.py:pauses RETURN_DEL 17f834aa",
+  "killed_by": "tests/features.py",
+  "old": "    return bool(key) and problem != \"not_configured\" and key not in _OTHER_PROBES",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

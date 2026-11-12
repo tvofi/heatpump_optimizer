@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:learner_progress_view RETURN_DEL 679a9e6e",
+  "killed_by": "tests/features.py",
+  "old": "    return {name: learner_progress(inputs, frozen) for name, inputs in learners.items()}",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
