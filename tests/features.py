@@ -42650,6 +42650,29 @@ R.check(
     "%r %r" % (_ghc_mqtt(_gmn), _ghc_mqtt(_gmx)),
 )
 
+# A topic refusing the neutral is a failed restore: latched, still armed, so the
+# next off or unload tries again; either topic's refusal counts.
+_gm_fail = {}
+for _gm_bad in ("ecl/set", "ecl/cmd"):
+    _gmf = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_refused_{_gm_bad}", ecl110_displace_set_topic="ecl/set",
+                      ecl110_command_topic="ecl/cmd")
+    _ghc_pub(_gmf, 2.0)
+    _gmf_call = _gmf.hass.services.async_call
+
+    async def _gmf_refuse(domain, service, data, *a, _bad=_gm_bad, _call=_gmf_call, **k):
+        if domain == "mqtt" and data.get("topic") == _bad:
+            raise RuntimeError("broker gone")
+        return await _call(domain, service, data, *a, **k)
+
+    _gmf.hass.services.async_call = _gmf_refuse
+    _asyncio.run(_gmf.async_set_mode(_ghc_off, refresh=False))
+    _gm_fail[_gm_bad] = _ghc_restore.diagnostics(_gmf.entry)
+R.check(
+    "a topic refusing the neutral leaves the MQTT arm armed and counts no restore",
+    all(d["armed"] == [_ghc.MQTT_CONSUMER] and d["restores"] == 0 for d in _gm_fail.values()),
+    repr(_gm_fail),
+)
+
 # Carry 30ec8edf (2): the legacy payload's heat_pump_on is the cycle's own
 # switch write. A cycle landing a step late is ``cycle_supply`` answering the
 # landing step's command against the action's; the null control is the same
