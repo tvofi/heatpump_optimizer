@@ -1,8 +1,6 @@
-Draft pass of R10-CLOSEOUT-PREP deliverable 1 (carry-file destinations), handed off ahead of the open groups; a short final pass adds what merges after this. Part of the closure check; deliverable 2 (dev/README.md) and carry 2 are not in this pull request.
+Removes carry-file content that landed commits answer: `dev/programme/carries/carry-1774.json` (discharged by 4efdd6cea1, as its own brief records) and entry 5 of `dev/programme/carries/carry-201.json` (`tools/audit/prepare_baseline.sh` carries the files `tests/entities.py` opens, 57a47dd9aa and d176dd1435), with their closure-table lines. Data files only.
 
-Removes what a landed commit answers: `carry-1774.json` (its own brief records the discharge: R9-EG-A4, 4efdd6cea1) and `carry-201.json` entry 5 (prepare_baseline.sh now carries the files tests/entities.py opens, 57a47dd9aa and d176dd1435). Their closure-table lines go with them.
-
-Not closed, listed for the final pass: carry-1645 is answered (both anchor lookups guarded, 16e8fef927; `tests/doc_claims.py` passes) but deleting it edits `LEGACY_CONTROL_FILES` in the pinned grader `tools/policy/brief_lint.mjs`, which `ci_predict` reads as BOOTSTRAP, so it needs a grader-only part first. carry-2065 (`min3_running_folded` reads 3/15), carry-2066 (`selfmod_independent_4kw` reads 0.789), carry-2075 (the file branch of `app_approve.sh` still excludes a bot_paths file whole), carry-1922 (canon and `tests/layout.py` GUARD_EXEMPT still live) and the remaining 23 entries of carry-201 are unanswered and still lack a roster group as destination; this draft does not assign them.
+Draft pass, ahead of the open groups. The rest of the roster's carry files are untouched here and stay where they are: carry-1645 (answered, but its removal edits the pinned grader `tools/policy/brief_lint.mjs`, so it needs a grader-only part), carry-2065, carry-2066, carry-2075, carry-1922 and the other 23 entries of carry-201.
 
 ## Head
 
