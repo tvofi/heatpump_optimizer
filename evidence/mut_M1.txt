@@ -1,0 +1,18 @@
+== mutant M1 at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-.next { display: inline-flex; align-items: center; gap: 10px; color: var(--ink-2); font-weight: 600; text-decoration: none; margin-top: 6px; width: fit-content; min-height: 40px }
++.next { display: inline-flex; align-items: center; gap: 10px; color: var(--ink-2); font-weight: 600; text-decoration: none; margin-top: 6px; width: fit-content }
+FAIL floor 360px light: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Scroll through one day",193,26]]]
+FAIL floor 360px dark: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Scroll through one day",193,26]]]
+FAIL floor 390px light: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Scroll through one day",193,26]]]
+FAIL floor 390px dark: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Scroll through one day",193,26]]]
+FAIL floor 768px light: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Scroll through one day",193,26]]]
+FAIL floor 768px dark: every target outside a line of text is at least 40 px in both dimensions  [30 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Scroll through one day",193,26]]]
+FAIL floor 1440px light: every target outside a line of text is at least 40 px in both dimensions  [38 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Scroll through one day",193,26]]]
+FAIL floor 1440px dark: every target outside a line of text is at least 40 px in both dimensions  [38 targets held to the floor, 4 links in a line of text exempt; under 40 px [["Scroll through one day",193,26]]]
+FAIL floor 360px without the page's fonts: every target outside a line of text is at least 40 px in both dimensions  [4 font request(s) refused, 0 font face(s) loaded; 30 targets held to the floor, 4 exempt; under 40 px [["Scroll through one day",213,26]]]
+FAIL floor 1440px without the page's fonts: every target outside a line of text is at least 40 px in both dimensions  [4 font request(s) refused, 0 font face(s) loaded; 38 targets held to the floor, 4 exempt; under 40 px [["Scroll through one day",213,26]]]
+RESULT fails=10
+RESULT base=6cc15e9b8f53
+rc=0

@@ -1,0 +1,12 @@
+== mutant M2a at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-.progress { display: none }
++.progress { display: block }
+FAIL 10 reduced motion 1440px: no animation and no transition anywhere, no progress line  [0 animations, 0 elements with a transition, progress block]
+FAIL 10 reduced motion 390px: no animation and no transition anywhere, no progress line  [0 animations, 0 elements with a transition, progress block]
+FAIL 10 no scroll-driven animation 1440px: the progress line is drawn with the feature and gone without it  [display block -> block; 1 @supports block(s) skipped, 0 rule(s) dropped; 0 scroll-driven animation(s) left]
+FAIL 10 no scroll-driven animation 390px: the progress line is drawn with the feature and gone without it  [display block -> block; 1 @supports block(s) skipped, 0 rule(s) dropped; 0 scroll-driven animation(s) left]
+RESULT fails=4
+RESULT base=6cc15e9b8f53
+rc=0

@@ -1,0 +1,10 @@
+== mutant M5b at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-@supports not selector(:has(*)) { .cp .pp { display: grid; margin-top: 8px } }
++
+FAIL 10 no relational selector 1440px: all four control-path answers are shown, each under its own name, whichever radio is checked  [with :has() 1 pane, 0 names; without it 0,0,0,0 panes shown over the four radios, names ["","","",""]; 3 :has() rule(s) dropped, 1 @supports not block(s) applied, 0 :has() rule(s) left]
+FAIL 10 no relational selector 390px: all four control-path answers are shown, each under its own name, whichever radio is checked  [with :has() 1 pane, 0 names; without it 0,0,0,0 panes shown over the four radios, names ["","","",""]; 3 :has() rule(s) dropped, 1 @supports not block(s) applied, 0 :has() rule(s) left]
+RESULT fails=2
+RESULT base=6cc15e9b8f53
+rc=0

@@ -1,0 +1,11 @@
+== mutant R1 at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-nav.links a { display: block; padding: 9px 11px; border-radius: 8px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: .92rem }
++nav.links a { display: block; padding: 7px 11px; border-radius: 8px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: .92rem }
+FAIL floor 1440px light: every target outside a line of text is at least 40 px in both dimensions  [38 targets held to the floor, 4 links in a line of text exempt; under 40 px [["How it works",104,37],["The card",77,37],["Features",77,37],["Works with",93,37],["Get started",92,37],["Limits",61,37],["Docs",52,37],["Reference",85,37]]]
+FAIL floor 1440px dark: every target outside a line of text is at least 40 px in both dimensions  [38 targets held to the floor, 4 links in a line of text exempt; under 40 px [["How it works",104,37],["The card",77,37],["Features",77,37],["Works with",93,37],["Get started",92,37],["Limits",61,37],["Docs",52,37],["Reference",85,37]]]
+FAIL floor 1440px without the page's fonts: every target outside a line of text is at least 40 px in both dimensions  [4 font request(s) refused, 0 font face(s) loaded; 38 targets held to the floor, 4 exempt; under 40 px [["How it works",114,37],["The card",85,37],["Features",84,37],["Works with",102,37],["Get started",102,37],["Limits",64,37],["Docs",58,37],["Reference",95,37]]]
+RESULT fails=3
+RESULT base=6cc15e9b8f53
+rc=0

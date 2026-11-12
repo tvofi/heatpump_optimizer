@@ -1,9 +1,0 @@
-== M2: Control path span deleted
-FAIL 7 sentences: every text node under a source mark at the base is on the page at the head  [124 marked nodes at the base; missing ["Control path"]]
-RESULT fails=1
-RESULT base=6cc15e9b8f53
-== M-server: catch body=null -> Buffer.alloc(0)
-FAIL server: an absent path and a directory answer 404, and the page 200  [/no-such-file.html 200; /img 200; /index.html 200]
-RESULT fails=1
-RESULT base=6cc15e9b8f53
-clean-check done

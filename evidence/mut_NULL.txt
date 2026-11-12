@@ -1,0 +1,4 @@
+== mutant NULL at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+RESULT fails=0
+RESULT base=6cc15e9b8f53
+rc=0

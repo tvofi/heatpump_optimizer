@@ -1,0 +1,11 @@
+== mutant M4a at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-    <button class="iconbtn" id="theme" type="button" aria-label="Switch to dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"
++    <button tabindex="-1" class="iconbtn" id="theme" type="button" aria-label="Switch to dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0
+FAIL 6 size: the page is under 70000 bytes  [70003 bytes; the base is 45301]
+FAIL floor 1440px keyboard: Tab stops at every displayed control, at nothing else but a scrolling box, and each stop draws a solid ring inside the window  [36 controls (a radio group and the tab list one stop each), 35 stops, 0 of them a scrolling box; missed 1, not a control 0, without a ring []]
+FAIL floor 360px keyboard: Tab stops at every displayed control, at nothing else but a scrolling box, and each stop draws a solid ring inside the window  [28 controls (a radio group and the tab list one stop each), 28 stops, 1 of them a scrolling box; missed 1, not a control 0, without a ring []]
+RESULT fails=3
+RESULT base=6cc15e9b8f53
+rc=0

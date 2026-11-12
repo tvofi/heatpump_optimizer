@@ -1,0 +1,10 @@
+== mutant M2b at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
++  body{margin:9px!important}
+FAIL 6 size: the page is under 70000 bytes  [70018 bytes; the base is 45301]
+FAIL 10 no scroll-driven animation 1440px: nothing else changes, and no console message  [424 elements, display and layout box DIFFER; 0 console]
+FAIL 10 no scroll-driven animation 390px: nothing else changes, and no console message  [424 elements, display and layout box DIFFER; 0 console]
+RESULT fails=3
+RESULT base=6cc15e9b8f53
+rc=0

@@ -1,0 +1,12 @@
+== mutant M3b at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-<section class="band" id="limits" aria-labelledby="lim-h">
++<section hidden class="band" id="limits" aria-labelledby="lim-h">
+FAIL 10 no script 1440px: every section is visible and nothing waits for a reveal  [0 hidden, 8 sections with a box]
+FAIL 10 no script 390px: every section is visible and nothing waits for a reveal  [0 hidden, 8 sections with a box]
+FAIL floor 1440px styles off: every heading, paragraph and list item has a box and none starts above an earlier one; the ten anchors lie in page order  [0 style sheets and 0 style attributes left; 140 text blocks, 44 headings, 15 without a box, 15 out of order (first: What it will not do, before yo); anchor tops 1805,1805,4432,11419,14260,28181,29217,0,37999,38182]
+FAIL floor 390px styles off: every heading, paragraph and list item has a box and none starts above an earlier one; the ten anchors lie in page order  [0 style sheets and 0 style attributes left; 140 text blocks, 44 headings, 15 without a box, 15 out of order (first: What it will not do, before yo); anchor tops 773,773,1771,4639,7708,12891,14207,0,23290,23599]
+RESULT fails=4
+RESULT base=6cc15e9b8f53
+rc=0

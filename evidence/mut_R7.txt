@@ -1,0 +1,13 @@
+== mutant R7 at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
++.cp .p3 { display: none !important }
+FAIL 6 size: the page is under 70000 bytes  [70026 bytes; the base is 45301]
+FAIL 10 no script 1440px: the chooser still works  [cp2->p2 cp3-> cp0->p0 cp1->p1]
+FAIL 10 no script 390px: the chooser still works  [cp2->p2 cp3-> cp0->p0 cp1->p1]
+FAIL 10 no relational selector 1440px: all four control-path answers are shown, each under its own name, whichever radio is checked  [with :has() 1 pane, 0 names; without it 3,3,3,3 panes shown over the four radios, names ["On/off switch","ECL110 heat curve","","None of these"]; 3 :has() rule(s) dropped, 2 @supports not block(s) applied, 0 :has() rule(s) left]
+FAIL 10 no relational selector 390px: all four control-path answers are shown, each under its own name, whichever radio is checked  [with :has() 1 pane, 0 names; without it 3,3,3,3 panes shown over the four radios, names ["On/off switch","ECL110 heat curve","","None of these"]; 3 :has() rule(s) dropped, 2 @supports not block(s) applied, 0 :has() rule(s) left]
+FAIL 11 chooser: checking each radio displays exactly its own pane  [cp2->p2 cp3-> cp0->p0 cp1->p1]
+RESULT fails=6
+RESULT base=6cc15e9b8f53
+rc=0
