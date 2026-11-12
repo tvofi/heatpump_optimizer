@@ -96,11 +96,25 @@ Re-check only these hunks; every other file auto-merged. The conflict is with #3
 
 ## Head
 
-9c5485e367c7ce78d54a31155d31f43f8fe9f58b (`handoff/r10-process-slim-p2`): a merge of origin/main 0a2139b1ddaf7831b32c443d438fa14e90938bcb into the PR head dd70a4bd0e3e964179ddf5de06b00a895a0ed34c, then one commit re-recording a self-test closure (03047e42) and one answering roster carry 3 (9c5485e3). Measured 2026-11-11T13:31:52Z.
+e9e70ff2c5bd6cf90b5e61e946735456c0677411 (`handoff/r10-process-slim-p2`): 63c62197e9935d6cb0fb4e71afef058d85a97903 merges origin/main 2cfa3d7d6906632c2a842d898f8fe712a71baeb4 into the PR head c453a37767b08430cb88364ba93e1de85cc7f15b (the merge verdict's 9c5485e3 plus tvofi's merge of origin/main 61afd4f2); e9e70ff2 is one test-side resolution commit on it. Measured at origin/main 2cfa3d7d.
 
+**Head note (repair 4, merge of origin/main 2cfa3d7d): six conflicts resolved by union** (`fixer.md` step 6; no re-cut, a resolution delta for the same reviewer; no other change to the group's content). `git merge-tree --write-tree --name-only origin/main c453a377` exits 1 with 6 `CONFLICT` lines, all against #3464 (R10-STANDING-CONTRACTS p2: `standing.md` added, the tick and roster seats retired into beat rows); every other file auto-merged, `tests/closures.json` through the `ledgermerge` driver. After it, `git merge-tree --write-tree origin/main HEAD` exits 0. Re-check only these hunks:
+- **`CLAUDE.md`, role-contract table:** the `proposal-triage.md` row stays removed (this branch, C6 (a)); main's `standing.md` row and its "`standing-tick.md`, `standing-roster.md` | retired into beat rows" row are kept; main's removal of the old `standing-tick.md` row is taken.
+- **`dev/governance/roles/proposal-triage.md` (modify/delete):** stays deleted (C6 (a)). Main's edit to it (`1b174e9b3`: "Sources: the sweep and Proposals line" and "under `standing.md`") is dropped with the file; the triage bar lives in `orchestrator.md` section 5's proposal bullet, unchanged by this merge.
+- **`dev/governance/roles/standing.md` (main's new file, auto-merged, one hand edit):** "Binds `standing-merge.md`, `standing-dispatch.md` and `proposal-triage.md`." reads "Binds `standing-merge.md` and `standing-dispatch.md`.": the third contract is the one this branch deletes, and a citation of a missing file is a `policy_lint.mjs` `[citations]` error (the refusal 0c12e36e answered for the same path).
+- **`dev/governance/roles/standing-roster.md`:** main's retirement text, whole. This branch's only edit there dropped the `proposal-triage.md` citation, a line main's text no longer has.
+- **`dev/governance/roles/standing-dispatch.md`:** main's header ("One of the two standing seats (`standing.md`; ...)") kept; the Dispatch paragraph is this branch's (no delivery-row check, card C5; "`bus.sh dispatch` (cards C4, C8 refuse there)"). Main's change to that paragraph was a reflow of the same words plus the row check, so nothing of main's is lost.
+- **`dev/governance/roles/orchestrator.md`:** section 9 is this branch's C5 text; main's one change to the base there ("that is the price, not zero." to "that is the price.") was inside the sentence C5 replaces. Section 6 auto-merged and reads back with both sides' clauses: this branch dropped "A word-level diff licensed a union ..." and main reworded "read the merged result back for each side's clauses". Main's section-5 standing-seats bullet and section 10b auto-merged unchanged.
+- **The cap payment, inside `orchestrator.md`.** The union printed `TOTAL: 2 error(s)` on `node tools/policy/policy_lint.mjs`: 296 lines over 295 and about 4263 tokens over 4251 (each parent read 294 lines). Paid by deleting section 5's motivation clause "a seat was dispatched to fix what an open pull request fixed." after the `list_pull_requests` rule, which stays (`fixer.md` step 9). After: 295/295 lines, 4247/4251 tokens, `TOTAL: 0 error(s)`. No budget change.
+- **`dev/governance/config/policy_budgets.json`:** main's caps for `standing.md` (50/553), `standing-roster.md` (7/92) and `standing-tick.md` (6/83) taken, as measured on main's files; `proposal-triage.md`'s two caps stay removed with the file. No cap raised; `node tools/policy/policy_lint.mjs --budgets` exits 0 with every per-file row at or under its cap.
+- **`tests/entities.py`, the semantic interaction (e9e70ff2, test only).** Main's #3464 check "the standing seats' shared terms are written once in standing.md, cited by each standing contract, ..." lists `proposal-triage.md` among the contracts that must cite `standing.md`; the file is gone, `_SR_TEXT` reads a missing file as empty, and the check failed on the merge (`missing: ['a:proposal-triage.md']`, `1 of 2700 ENTITY CHECKS FAILED`). The path leaves the tuple; the four standing contracts stay pinned. Control: the check's own predicate, exec'd on a copy of `dev/governance/roles/`, prints `[]` at e9e70ff2 and `['a:standing-merge.md']` with that file's `` `standing.md` `` citation perturbed.
+- `node tools/policy/rules_sync.mjs`: `0 file(s) written` (no rule source conflicted); `--check` prints `RULES-SYNC ok`.
+- **Step ref.** `handoff-wip/r10-process-slim-p2` held a previous seat's 1a46d36ec; fast-forwarded by a step commit whose parents are 1a46d36ec and this head, tree equal to this head. Carry: dismissed: stale step ref, not a finding about the fix.
+
+**Previous head:** 9c5485e367c7ce78d54a31155d31f43f8fe9f58b
 Previous head: 4c24160f3a5b45e1c9c9d7d5e72395d7153c02c7 (the head `Fix review: merge` names); dd70a4bd0 adds tvofi's main merge d195424a7 and the #3451 delivery row on top of it.
 
-**Head note (repair 3, merge of origin/main 0a2139b1 plus one re-record).** This is not a re-cut. The reviewer judges only this delta (`fix-review.md` step 12).
+**Previous head note (repair 3, merge of origin/main 0a2139b1 plus one re-record).** This is not a re-cut. The reviewer judges only this delta (`fix-review.md` step 12).
 - **The merge.** `git merge origin/main` into dd70a4bd0 had no conflicts: `tests/closures.json` was resolved by the `ledgermerge` driver (`LEDGER-MERGE: resolved tests/closures.json`) and `tools/audit/seat/sweep_template.md` auto-merged. No hand-written hunk.
 - **The re-record (red 1, `governance / instrument-self-tests`).** This PR drops the `delivery_row self-test` grep line from governance.yml's `handoff-push` step, so `selftest_scope.py static` printed `STALE tools/ci/selftest_closures.json: run text changed since it was recorded: ['handoff-push']`. Command, run on **Linux with strace** (`/usr/bin/strace`): `python3 tools/ci/selftest_scope.py record --step handoff-push`. Its output: `recorded 1 step(s) ... 0 failed [], 0 broken trace(s)`. The entry gets a new `run_sha`, drops `tools/audit/seat/delivery_row.sh` from `files` and drops `tools/audit/seat` from `dirs`, which matches the removed line. After the re-record, `python3 tools/ci/selftest_scope.py static` prints `111 gated step(s), 0 problem(s)`. Before it printed `1 problem(s)`, the null control.
 - **Re-run at this head (fixer.md steps 2-8).** `python3 tests/closure.py select --diff 0a2139b1` prints `MODE: FULL` (reason: `.github/workflows/tests.yml changes the gate itself`), so the suite is CI's (step 5). Each of the following was run with `PYTHONPATH=tests/hastub`, rc 0:
@@ -206,6 +220,16 @@ Each changed line was mutated by hand. A mutant was graded by the self-test or c
 
 ## Figures
 
+**Repair 4, at e9e70ff2c5bd6cf90b5e61e946735456c0677411 (the merge 63c62197 plus the entities.py resolution), merge base origin/main 2cfa3d7d6906632c2a842d898f8fe712a71baeb4:**
+- `git merge-tree --write-tree --name-only origin/main c453a377`: exit 1, 6 `CONFLICT` lines (the control); `git merge-tree --write-tree origin/main HEAD`: exit 0.
+- `python3 tests/closure.py select --diff 2cfa3d7d --workdir $D`: `MODE: FULL` (`.github/workflows/tests.yml changes the gate itself`), so CI runs the suite (step 5). With `PYTHONPATH=tests/hastub`, each rc 0: `tests/env_drift.py --claims-only 2cfa3d7d` (`claims hygiene: 2cfa3d7d... ok`), `tests/closure.py selftest` (`ALL 118 closure shrink pins PASSED`), `tests/layout.py` (`layout self-test: ok`), `tests/harness_headers.py` (`ALL 112 HARNESS HEADER CHECKS PASSED`), `tests/structure.py` (`STRUCTURE RATCHET PASSED`).
+- `node tools/policy/policy_lint.mjs`: rc 0, no `ERROR` line; control, the unpaid union: `TOTAL: 2 error(s)` (`[budgets]` on `tools/audit/briefs/orchestrator.md`, 296 > 295 lines, 4263 > 4251 tokens). `--budgets`: orchestrator 295/295, 4247/4251. `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
+- `git diff --shortstat 2cfa3d7d...HEAD`: `44 files changed, 610 insertions(+), 788 deletions(-)`.
+- `grep -c proposal-triage dev/governance/config/policy_budgets.json`: 0 at this head, 2 at origin/main.
+- `bash tools/pr/prepr.sh BODY.md`: `PRE-PR: e9e70ff2c5bd6cf90b5e61e946735456c0677411 000000000000000000000000000000000 rc=0` (`closures` skipped: the diff cannot be scoped; `carry` 6 routed, 0 bad destination(s) at origin/handoff/audit-r10-roster 026817c1b).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2700 ENTITY CHECKS PASSED`, rc 0; control, at the merge 63c62197: `1 of 2700 ENTITY CHECKS FAILED` (the standing.md citation check above).
+- The merge's hand-written hunks are policy prose plus that one test tuple, and move no mutation anchor in production code, so no pin is re-taken.
+
 **Repair 3, at 9c5485e3 (carry 3):** `HPO_GATE_PRIORITY=2 PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2699 ENTITY CHECKS PASSED`, rc 0. That is the caller environment carry 3 measured red (`2 of 2707 ENTITY CHECKS FAILED` at r10-hotfix-restore-base-skew's head). `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
 
 **This round, at 4c24160f3a5b45e1c9c9d7d5e72395d7153c02c7, merge base origin/main a7628041dc02e298c5399003d4c0576391dd5c4e (2026-11-11T06:38:20Z):**
@@ -300,6 +324,8 @@ Content approved by tvofi in chat 2026-11-05 (cards C2-C9 accepted; C4, C5, C8 a
 
 The round-2 sentences that said the beat is deleted are no longer in the diff.
 
+- **Repair 4 (merge of origin/main 2cfa3d7d)** changes two policy sentences beyond the resolution: main's new `standing.md` "Binds" line drops `proposal-triage.md`, the contract this PR deletes; and `orchestrator.md` section 5 loses "a seat was dispatched to fix what an open pull request fixed." (the cap payment, motivation only; the `list_pull_requests` obligation stays).
+
 ## Raise justification
 
 **Repair 3: why the gate still refuses, with evidence.** The raise follows a file this PR deletes, and nothing on the code side removes it:
@@ -331,6 +357,8 @@ Architecture score: dS +0.0000 NULL
   The stamp's flush (rules 3-4) and rule 5 (`--require-rows`) still read the beat, and that group is changing the flush now (orchestrator ruling 2026-11-08). Carry: dismissed: already landed in R10-TRAIN-RESIDUE's roster brief ("the deletion of the record-autofix beat with the train-hold and stamp-hold arms once no stamp rule reads the rows", origin/handoff/audit-r10-roster dbff400dec), a group now carries-open at PR #3424, which carry_audit.py no longer accepts as a destination
 
 ## Carries
+
+Roster indexes, 0-based as the dispatch renders them (`origin/handoff/audit-r10-roster`, group R10-PROCESS-SLIM): Carry 0 is Carry 1 below (the stale `## Head`); Carry 1 is Carry 2 below (the instrument-self-tests timeout); Carry 2 and Carry 3 are both Carry 3 below (item 84d0892c, recorded twice on the roster).
 
 - **Carry 1** is the roster's carry on R10-PROCESS-SLIM: a repair body's `## Head` named the previous handoff. `tools/audit/seat/body_push.sh` now refuses `head-stale` when `## Head` does not name `handoff/<topic>`'s code sha. The check runs after the identity guard (round 3) and pushes nothing. It is unchanged by this round, and `body_push.sh --self-test` prints `35 checks, 0 failed`.
 - **Carry 2** is the instrument-self-tests timeout. Main's R10-HOTFIX-SELFTEST-TIMEOUT answers it now, by running the slow self-tests detached under the 30-minute timeout. This branch's own answer (`open_pr.sh` and `update_pr.sh` no longer re-running `pr_args.sh`'s self-test, and a 40-minute timeout) is dropped in the merge in favour of main's (Merge resolution).
