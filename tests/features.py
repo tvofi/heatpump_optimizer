@@ -32223,15 +32223,21 @@ _st_ref_cut = _st_ref_fresh.reference_day(_st_replace(
         _st_ref[False]["inputs"].forecast,
         outdoor_temps=_st_ref[False]["inputs"].forecast.outdoor_temps[:48])))
 _st_ref_long = _st_reference(hours=48)
+# Every series two days long (the fixture's weather is one day's, repeated).
+_st_ref_two = _st_ref_long["fresh"].reference_day(_st_replace(
+    _st_ref_long["inputs"], forecast=_st_replace(
+        _st_ref_long["inputs"].forecast, **{
+            k: np.resize(getattr(_st_ref_long["inputs"].forecast, k), 192)
+            for k in ("prices", "outdoor_temps", "wind_speeds", "precipitation", "solar_radiation")})))
 R.check(
     "#2257: an outdoor series under a day prices no day although the prices "
     "cover one (the energy is nan, the setpoints the series' own length), and a "
     "two-day horizon prices one day of 96 steps, the one-day horizon's energy",
     _st_math.isnan(_st_ref_cut[1]) and len(_st_ref_cut[0]) == 7 * 48
-    and len(_st_ref_long["day"][0]) == 7 * 96
-    and abs(_st_ref_long["day"][1] - _st_ref[False]["day"][1]) < 1e-9,
-    repr((_st_ref_cut[1], len(_st_ref_cut[0]), len(_st_ref_long["day"][0]),
-          _st_ref_long["day"][1], _st_ref[False]["day"][1])),
+    and _st_ref_long["n"] == 192 and len(_st_ref_two[0]) == 7 * 96
+    and abs(_st_ref_two[1] - _st_ref[False]["day"][1]) < 1e-9,
+    repr((_st_ref_cut[1], len(_st_ref_cut[0]), _st_ref_long["n"], len(_st_ref_two[0]),
+          _st_ref_two[1], _st_ref[False]["day"][1])),
 )
 
 
