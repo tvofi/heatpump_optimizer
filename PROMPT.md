@@ -7,6 +7,7 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-RESUME: repair of branch handoff/r10-gate-defer-barrier at 940705766041a8316ba976d33a3b16b7ca281668 (supersedes the merge-repair brief; do both in this one pass).
-The review verdict is on the ref probe/revt-r10-gate-defer-barrier-68948c61 (verdict file and ev/). Read the verdict file(s) in full and answer EVERY item in one pass; run the reviewer's mutant spec and mutant_run.py --diff over the whole branch diff before handing off.
-The branch also conflicts with origin/main in tools/audit/seat/merge_train.py (content conflict; tests/closures.json auto-resolves by the ledger merge). Merge origin/main as ONE merge commit, union both sides' real content in merge_train.py, read the merged file back and name each side's clauses in the body, run merge_train.py --self-test plus the group's self-tests and prepr, re-run the gate that owns tests/closures.json, republish the body. Put the fixes for the verdict items in separate commits after the merge commit so the delta is reviewable.
+RESUME: repair of branch handoff/r10-gate-defer-barrier at b0762a639d569cc01d370f8be89510486122ec39 (the merge-repair's return; merge with main is already done, do not merge main again unless merge-tree conflicts).
+The review verdict is on the ref probe/revt-r10-gate-defer-barrier-68948c61 (verdict file and ev/), written against the pre-merge head 940705766041a8316ba976d33a3b16b7ca281668. Read the verdict file(s) in full and answer EVERY item in one pass; run the reviewer's mutant spec and mutant_run.py --diff over the whole branch diff before handing off.
+
+Before handing off, also run: mutant_run.py --diff over the whole branch diff.
