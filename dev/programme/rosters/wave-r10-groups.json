@@ -20464,10 +20464,11 @@
    "architect_note": "",
    "brief": "Residue of R10-PREPR-CAP and R10-FLY-CIPREDICT-RESTORING on one seam, the pre-open prediction in tools/pr/prepr.sh and tools/pr/ci_predict.py: body-check parity, the HEAD-ONLY predicting detector, the anchored .gitignore config rule, harness_headers inline scan, the nested-slot livelock, and the INERT-import mislabel. Each carry states its failing test and null control; measure first where the carry says so. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
     "note": "set-files files ['tools/pr/prepr.sh', 'tests/gate_lock.py', 'tools/pr/ci_predict.py', '.gitignore', 'tools/audit/seat/body_push.sh'] -> ['tools/pr/prepr.sh', 'tests/gate_lock.py', 'tools/pr/ci_predict.py', '.gitignore', 'tools/audit/seat/body_push.sh', 'tools/audit/seat/bus.sh', 'tools/audit/carry_audit.py']",
-    "pr": 3479
+    "pr": 3479,
+    "commit": "6e100ef6980216a81eaa0438bdc215d62b19271f"
    }
   },
   {
