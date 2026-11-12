@@ -2177,6 +2177,10 @@ def _self_test() -> int:
     check("an unpriced group carries neither field (null control)",
           "owner_price_minutes" not in grp("R9-B")
           and roster_lib.owner_price(grp("R9-B")) is None)
+    check("set-price stores the citation stripped, and the stored text re-reads equal",
+          more("set-price", "R9-B", "--price-cite", f"  {words}\n", value="90") == 0
+          and grp("R9-B").get("owner_price_cite") == words
+          and roster_lib.owner_price(grp("R9-B")) == (90.0, words))
 
     t_sf = tip()
     rc, said = more_refusal("set-files", "R9-A", "--add", "no/such/path.py")
