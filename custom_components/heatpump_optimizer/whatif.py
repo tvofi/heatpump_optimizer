@@ -26,6 +26,24 @@ plan from the same start at the same solve instant. A pair that fails leaves
 the answer without the figure and the slot as it was: no caller falls back
 to a figure that prices something else.
 
+THE REFERENCE DAY. ``schedule_figure``'s energy is
+``HeatPumpOptimizer.reference_day``'s, and three things would otherwise ride
+in it beside the schedule. The start: each day's thermostat loop runs twice
+and the second pass, started where the first ended, is the one counted, so
+the day is one of an unbroken run of such days and neither a coast nor a
+heat-up. The hour's weather: a day-window change moves heat across the
+window's edge, and priced in each hour's own weather the difference carried
+two days' COP and read against the change, so every series is its mean over
+the horizon's first day. The weekday: a schedule with weekend temperatures
+holds other setpoints from Friday night on, so one day's energy moved with
+the day asked on and a weekend ask moved no setpoint on a Monday; the seven
+days from the horizon's start are each priced, one pair of passes per
+distinct day, and averaged. Two passes settle what the setpoints hold. They
+do not settle a store no setpoint holds (a two-zone house's buffer without a
+valve keeps a few tenths a month of the measured tank), nor a thermostat that
+never reaches its setpoint, whose days tie
+(``dev/audit/harnesses/r10_advisor_steady_seams.py``, arm ``fields``).
+
 The state lives in a per-coordinator side table (``boost.py``'s discipline),
 so the coordinator class holds no state it never computes with.
 """
@@ -163,7 +181,8 @@ def schedule_days(live: tuple[Any, Any], sim: tuple[Any, Any]) -> tuple[float, f
 
     Each side is an unsolved optimizer and its inputs, built at one instant
     from one set of arrays, and ``reference_day`` gives each one's setpoints
-    and the energy a thermostat holding them draws. The branch is taken on
+    over the week ahead and the energy a thermostat holding them draws on its
+    average day. The branch is taken on
     the setpoints, element by element, never on the energies: two schedules
     a thermostat cannot tell apart (held at the pump's maximum both ways) are
     still a schedule ask, whose figure is then 0, and an ask that moves no

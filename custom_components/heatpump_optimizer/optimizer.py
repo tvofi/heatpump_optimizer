@@ -5635,36 +5635,36 @@ class HeatPumpOptimizer:
         return float(electrical * refill_price)
 
     def reference_day(self, inputs: SolveInputs) -> tuple[list[float], float]:
-        """The thermostat's setpoints over the first day of ``inputs``' horizon
-        and the electricity it draws holding them for a day, kWh; no solve (#2257).
+        """The thermostat's setpoints over the week ``inputs``' horizon opens and
+        the electricity it draws holding them on that week's average day, kWh;
+        no solve (#2257).
 
         The what-if's figure for a schedule change is this energy differenced
-        between two schedules, so it must carry nothing but the schedule. Two
-        things would otherwise ride in it. The start: the loop runs twice and
-        the second pass, started where the first ended, is the one counted, so
-        the day is one of an unbroken run of such days and neither a coast nor
-        a heat-up. The hour's weather: a day-window change moves heat across
-        the window's edge, and priced in each hour's own weather the difference
-        carried two days' COP and read against the change, so every series is
-        its mean over the day. Weather and setpoints are ``optimize``'s own
-        (``_horizon_weather``, ``_step_clock``, ``_build_comfort_bounds``).
+        between two schedules, so it carries nothing but the schedule
+        (``whatif``'s THE REFERENCE DAY): each distinct day of the seven is
+        looped twice and the second pass, started where the first ended, is the
+        one counted; every weather series is its mean over the horizon's first
+        day. Weather and setpoints are ``optimize``'s own (``_horizon_weather``,
+        ``_step_clock``, ``_build_comfort_bounds``).
 
         A horizon under a day prices no day: the energy is nan.
         """
-        series, limits, dt = inputs.forecast, inputs.limits, self.config.dt_hours
+        series, dt = inputs.forecast, self.config.dt_hours
         n_steps = min(len(series.prices), len(series.outdoor_temps), self.config.n_steps)
         day = min(n_steps, int(round(24.0 / dt)))
-        step_datetimes, step_hours = _step_clock(inputs.start_time or datetime.now(), n_steps, dt)
-        comfort_targets = self._build_comfort_bounds(
-            step_hours, n_steps, limits.min_temp_margins, limits.min_temp_floors, step_datetimes,
-        )[0][:day]
-        targets = _baseline_targets(comfort_targets, day, self.config.target_temp)
-        if day * dt < 24.0:
-            return targets, math.nan
         weather = _day_mean_weather(_horizon_weather(series, n_steps), day)
-        _, settled = self._compute_baseline_power(weather, inputs.state, dt, comfort_targets)
-        power, _ = self._compute_baseline_power(weather, inputs.state, dt, comfort_targets, start=settled)
-        return targets, float(np.sum(power)) * dt
+        week: list[float] = []
+        day_kwh: dict[tuple[float, ...], float] = {}
+        for offset in range(7):
+            when, hours = _step_clock((inputs.start_time or datetime.now()) + timedelta(days=offset), day, dt)
+            comfort = self._build_comfort_bounds(hours, day, None, None, when)[0]
+            targets = tuple(_baseline_targets(comfort, day, self.config.target_temp))
+            week.extend(targets)
+            if day * dt >= 24.0 and targets not in day_kwh:
+                _, settled = self._compute_baseline_power(weather, inputs.state, dt, comfort)
+                power, _ = self._compute_baseline_power(weather, inputs.state, dt, comfort, start=settled)
+                day_kwh[targets] = float(np.sum(power)) * dt
+        return week, sum(day_kwh.get(tuple(week[k:k + day]), math.nan) for k in range(0, 7 * day, day)) / 7.0
 
     def _compute_baseline_power(
         self,
