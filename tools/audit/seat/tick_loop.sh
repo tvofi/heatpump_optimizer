@@ -422,7 +422,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     # offline_spy.py. No sentinel may reach its rows' environment, arguments or output.
     names=$({ grep -ohE '\$\{?[A-Za-z_][A-Za-z0-9_]*' "$HERE/tick_loop.sh" "$HERE/heartbeat.sh" "$HERE/../../../tests/throwaway_git.sh" | sed 's/^\$[{]*//'
       grep -ohE "(environ(\.get)?[[(]|getenv\()[\"'][A-Za-z_][A-Za-z0-9_]*" "$HERE/ref_privacy.py" "$HERE/offline_spy.py" | sed -E "s/.*[\"']//"; } | sort -u)
-    nonce=hpo-poison-$$-$RANDOM$RANDOM
+    nonce=hpo-poison-$$-$RANDOM$RANDOM k=$(printf '%s\n' $names | grep -c .)
     { echo '#!/bin/bash'; printf /usr/bin/env
       for v in $names; do
         if [ "$v" = PATH ]; then printf ' %q' "PATH=https://127.0.0.1:9/$nonce-PATH.git:/usr/bin:/bin"
@@ -434,7 +434,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     grep -m 3 -- "$nonce" "$t/poison.out" 2>/dev/null | cut -c 1-200 | sed 's/^/    leaked: /'
     [ -n "$names" ] && printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/poisoned.sh rc=0 network=0 remote_git=0 .* [|] tick_loop self-test: [1-9][0-9]* checks, 0 failed$" \
       && grep -q '^  env: PATH=' "$t/poison.out" && grep -q '^  row env: PATH=' "$t/poison.out" && ! grep -q -- "$nonce" "$t/poison.out"
-    ck "the poison row: the $(printf '%s\n' $names | grep -c .) names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call" $?
+    ck "the poison row: the $k names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call" $?
     # The rows themselves under offline_spy.py, which counts every git call that can reach a remote
     # by its target URL; its SPY_REAL_GIT is the one it finds on this run's own PATH.
     printf '#!/bin/bash\nexec "%s" "%s/tick_loop.sh" --self-test-rows --nested\n' "$BASH" "$HERE" > "$t/spied.sh"
