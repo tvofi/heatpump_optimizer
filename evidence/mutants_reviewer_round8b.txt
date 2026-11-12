@@ -1,0 +1,3 @@
+SURVIVED NULL
+KILLED r8f_reader_alias_deleted
+rc=0

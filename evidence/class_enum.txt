@@ -1,9 +1,0 @@
-custom_components/heatpump_optimizer/pump_arbiter.py:1460:        return "select_option", {"option": _option_for(state, value)}
-custom_components/heatpump_optimizer/pump_arbiter.py:1740:    await _command(
-custom_components/heatpump_optimizer/pump_arbiter.py:1934:        await _command(coord, inp, replace(desired(coord, inp, None, dt_util.now()), space_setpoint=None),
-custom_components/heatpump_optimizer/pump_mode.py:85:    #: ``select.select_option`` would have to be given to write it.
----
-custom_components/heatpump_optimizer/duty_switch.py:116:    water_setpoint_c: float | None = None
-custom_components/heatpump_optimizer/duty_switch.py:134:    if direction == "dhw_space" and ctx.inlet_c is not None and ctx.water_setpoint_c is not None:
-custom_components/heatpump_optimizer/duty_switch.py:135:        return ctx.inlet_c - ctx.water_setpoint_c >= HEATED_MARGIN_K
-custom_components/heatpump_optimizer/pump_arbiter.py:1526:            inlet_c=_flow_inlet_c(inp), water_setpoint_c=command.space_setpoint if _flow_unit(inp.config) else None,

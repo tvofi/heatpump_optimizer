@@ -1,8 +1,0 @@
-SURVIVED NULL
-KILLED r4v_last_write_min
-KILLED r4v_first_day_overwritten
-KILLED r4v_plan_stays_no_both
-KILLED r4v_checked_every_pass
-KILLED r4v_supply_ignores_switch
-SURVIVED r4v_tracker_settled_any
-rc=0
