@@ -21402,9 +21402,10 @@
    "brief": "PR B of the approved R10-COMBI-TANK design (PR 0 #3268 merged, PR A #3358): the loader wiring an install reaches, the combi seed, display and accounting of the exchange, the web-verified figures, and the Co-authored-by trailer crediting the outside contributor. Outside-sourced (#3225): outside tier. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "source": "outside",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "note": "s14 orchestrator 2026-11-11: roster duplicate of PR B's scope inside R10-COMBI-TANK; built as pull request 3398 under the approved R10-COMBI-TANK design; its design-verdict's class-open point is carried to R10-COMBI-TANK; set done at 3398's merge sha, no designer re-cut"
+    "note": "s14 orchestrator 2026-11-11: roster duplicate of PR B's scope inside R10-COMBI-TANK; built as pull request 3398 under the approved R10-COMBI-TANK design; its design-verdict's class-open point is carried to R10-COMBI-TANK; set done at 3398's merge sha, no designer re-cut",
+    "commit": "cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf"
    }
   },
   {
