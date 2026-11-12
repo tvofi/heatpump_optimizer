@@ -620,6 +620,67 @@ def _gone(pid: str) -> bool:
     return False
 
 
+class _NoProcfs:
+    """Every read under /proc raises FileNotFoundError, as on macOS and the BSDs, which have no
+    procfs: os.listdir and Path.read_text/read_bytes are patched for the life of the block."""
+    _real = (os.listdir, Path.read_text, Path.read_bytes)
+
+    def __enter__(self):
+        ls, rt, rb = self._real
+
+        def gone(real):
+            def f(path=".", *a, **k):
+                if str(path) == "/proc" or str(path).startswith("/proc/"):
+                    raise FileNotFoundError(2, "No such file or directory", str(path))
+                return real(path, *a, **k)
+            return f
+        os.listdir, Path.read_text, Path.read_bytes = gone(ls), gone(rt), gone(rb)
+        return self
+
+    def __exit__(self, *exc):
+        os.listdir, Path.read_text, Path.read_bytes = self._real
+
+
+def _procless_checks(check) -> None:
+    """family() and _reap() read the process table on a host without /proc as they do with it."""
+    for label, ctx in (("with /proc absent", _NoProcfs), ("with /proc present (null control)", _Null)):
+        lone = subprocess.Popen(["sleep", "30"], start_new_session=True)
+        kid = subprocess.Popen(["sleep", "30"])
+        dead = subprocess.Popen(["true"])
+        try:
+            time.sleep(0.3)  # `true` has exited and is a zombie until reaped
+            with ctx():
+                try:
+                    by_session, by_root = family(lone.pid, ""), family(0, "", root=os.getpid())
+                    _reap(frozenset({lone.pid, kid.pid}), 0)
+                    err = ""
+                except Exception as e:  # noqa: BLE001 -- the failure is the finding, reported as a FAIL
+                    by_session, by_root, err = [], [], f"{type(e).__name__}: {e}"
+            check(f"no-procfs: {label}, family() finds a command by its session" + (f" ({err})" if err else ""),
+                  lone.pid in by_session and kid.pid not in by_session)
+            check(f"no-procfs: {label}, family() finds the driver's descendants by ppid, zombies excluded",
+                  kid.pid in by_root and lone.pid in by_root and dead.pid not in by_root)
+            try:
+                os.waitpid(dead.pid, os.WNOHANG)
+                reaped = False
+            except ChildProcessError:
+                reaped = True
+            check(f"no-procfs: {label}, _reap() collects a dead child it does not skip", reaped and not err)
+        finally:
+            for p in (lone, kid):
+                p.kill()
+                p.wait()
+            dead.returncode = 0  # reaped above (or by the check's own waitpid): Popen must not wait again
+
+
+class _Null:
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return None
+
+
 def _self_test() -> int:
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_init
@@ -631,6 +692,7 @@ def _self_test() -> int:
         fails += not ok
         print(("  ok   " if ok else "  FAIL ") + name)
 
+    _procless_checks(check)
     tmp = Path(tempfile.mkdtemp(prefix="mutrun-st-"))
     scratch = tmp / "tmpdir"
     scratch.mkdir()
