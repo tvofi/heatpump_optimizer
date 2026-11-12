@@ -6,24 +6,44 @@ supply switch bypasses the compressor's own interlocks. So the one gate the
 cycle and the step tick write through (``coordinator._write_supply``) holds a
 write back that would
 
-* end a run under :data:`MIN_RUN`. A run counts from the later of this
-  gate's own on write and this record's first gated write: a run found on at
-  a restart or a reload is held as one that started then;
-* end a pause under :data:`MIN_PAUSE`, counted from this gate's own off write;
-  a stop the early cut-off wrote keeps ``early_cutoff.allow_on``'s rule;
-* start a run the plan ends under :data:`MIN_RUN`: an on write inside a step
-  whose next step is planned off.
+* end a run younger than :data:`MIN_RUN`;
+* end a pause younger than :data:`MIN_PAUSE`;
+* start a run the plan ends within :data:`MIN_RUN`: an on write inside a
+  step whose next step is planned off. Not where the step heats the tank
+  and the tank needs it now (:func:`tank_reason`): that run starts, and the
+  minimum carries it past the boundary.
 
-A held write sets ``ArbiterState.supply_held``, and ``pump_arbiter.
-supply_tick`` retries it every minute with the step's own command, so the
-write lands once its minimum has passed. Both minimums sit below the plan's
-step, so the plan's own boundaries never meet them, and a plan holds no run
-or pause shorter than them. A non-plan mode and a live boost pass unchanged,
-and so does every off write the cooling or blocked mode already skips.
+**One clock.** A run's and a pause's age is the switch's own ``last_changed``,
+as ``early_cutoff`` measures its minimum run, so a run started by a boost, a
+fixed mode, the user or the cut-off counts like one this gate wrote. A reload
+of the integration leaves the stamp alone. A restart of Home Assistant builds
+a new state machine whose first write stamps the restart
+(``tests/ha_contract.py``, ``StateMachine.async_set``), so a pump found
+running reads as a run that started then and is held on for at most
+:data:`MIN_RUN`. A stamp missing or ahead of the clock is an unknown age and
+holds nothing (#775: unknowable, never 0).
+
+**Running and stopped** are read as ``pump_arbiter._pump_off`` reads them:
+``off`` is stopped, any other readable state is running, so a ``climate`` or
+``input_boolean`` target (``on_off_service``) is held like a switch.
+
+**Only a delay.** The gate never makes a write; it returns ``None`` for one it
+holds and sets :attr:`ArbiterState.supply_held`, and ``pump_arbiter.
+supply_tick`` retries it each minute with the step's own command, or the
+action's where the plan gives none, so it lands once its minimum has passed.
+A write of ``None``, a non-plan mode, a live boost, system identification and
+an unreadable switch pass unchanged. Both minimums sit below the plan's step,
+so a write on a step boundary after a step-long run or pause is never held.
+
+**The learners.** A held interval ran other than the plan commanded, so
+:func:`interval_held` freezes it through ``_learning_frozen``
+(:data:`FREEZE_HELD`), as ``early_cutoff`` freezes a cut one.
+
+The minimums are constants, not options, for the reason ``early_cutoff``
+gives for its margin; ``early_cutoff`` reads them too.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -33,49 +53,90 @@ from .boost import CHANNEL_DHW, CHANNEL_SPACE
 from .const import MODE_AUTO, MODE_ECONOMY
 from .entry_config import EntryConfig
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
-from .pump_arbiter import ArbiterInputs, ArbiterState, step_supply
+from .pump_arbiter import ArbiterInputs, ArbiterState, step_duty, step_supply
 
-#: The early cut-off's own minimums too (``early_cutoff.MIN_ON``/``MIN_OFF``).
+#: The shortest run and pause the gate lets a write end; the early cut-off's too.
 MIN_RUN = timedelta(minutes=10)
 MIN_PAUSE = timedelta(minutes=10)
 
+#: The ``_learning_frozen`` reason for an interval in which a write was held.
+FREEZE_HELD = "supply_held"
 
-@dataclass
-class _Hold:
-    #: This record's first gated write, and the gate's last on and off writes.
-    born: datetime | None = None
-    on_at: datetime | None = None
-    off_at: datetime | None = None
+#: Switch states that say nothing about the pump.
+_UNREADABLE = (None, "unavailable", "unknown")
 
 
-def hold_supply(held: ArbiterState, inp: ArbiterInputs, boosts: Any, value: bool | None,
+def hold_supply(held: ArbiterState, inputs: Any, boosts: Any, value: bool | None,
                 now: datetime | None = None) -> bool | None:
-    """``value``, or ``None`` while this module's rules hold the write back."""
-    now = dt_util.as_utc(now or dt_util.now())
-    rec = held.hold = held.hold or _Hold()
-    rec.born, held.supply_held = rec.born or now, False
-    switch = inp.hass.states.get(EntryConfig.from_mapping(inp.config).heat_pump_switch_entity or "")
-    reads = getattr(switch, "state", None)
-    if (value is None or reads not in ("on", "off") or (reads == "on") is value
-            or inp.mode not in (MODE_AUTO, MODE_ECONOMY)
-            or any(boosts.active(c, now) for c in (CHANNEL_SPACE, CHANNEL_DHW))):
+    """``value``, or ``None`` while a minimum holds the write back.
+
+    ``inputs`` is the coordinator's ``arbiter_inputs`` builder, called only
+    for a write that is not ``None``.
+    """
+    held.supply_held = False
+    if value is None:
         return value
-    held.supply_held = _start_held(rec, inp, boosts, now) if value else _stop_held(rec, now)
-    return None if held.supply_held else value
+    now = dt_util.as_utc(now or dt_util.now())
+    inp = inputs()
+    age = _age(inp, value, now)
+    if age is None or _passes(inp, boosts, now):
+        return value
+    wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if value else age < MIN_RUN
+    if wait:
+        held.supply_held, held.held_at = True, now
+    return None if wait else value
 
 
-def _start_held(rec: _Hold, inp: ArbiterInputs, boosts: Any, now: datetime) -> bool:
-    """Inside the gate's own pause, or a run the plan ends under :data:`MIN_RUN`."""
+def interval_held(held: ArbiterState, config: Any, now: datetime | None = None) -> bool:
+    """Whether a learner's interval may have had a write held.
+
+    Two plan intervals back, as ``early_cutoff.CutoffState.interval_cut``
+    counts the open cycle and the one just closed: freezing one too many is
+    the fail-closed side.
+    """
+    at = held.held_at
+    span = 2 * timedelta(minutes=EntryConfig.from_mapping(config).optimization_interval)
+    return at is not None and dt_util.as_utc(now or dt_util.now()) - at < span
+
+
+def tank_reason(inp: ArbiterInputs) -> str | None:
+    """Why the tank must be heated now: a disinfection hold or a cold tank."""
+    if inp.disinfecting:
+        return "disinfecting"
+    params = inp.params
+    if getattr(params, "dhw_enabled", False) and float(inp.state.dhw_temperature) < float(
+        params.dhw_min_temp
+    ):
+        return "tank_cold"
+    return None
+
+
+def _age(inp: ArbiterInputs, value: bool, now: datetime) -> timedelta | None:
+    """How long the switch has been in the state ``value`` would end, or ``None``.
+
+    ``None`` where the write changes nothing, the switch is unreadable or its
+    stamp is missing or ahead of ``now``.
+    """
+    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
+    switch = inp.hass.states.get(entity) if entity else None
+    state = getattr(switch, "state", None)
+    since = getattr(switch, "last_changed", None)
+    if state in _UNREADABLE or (state != "off") is value or since is None:
+        return None
+    since = dt_util.as_utc(since)
+    return None if since > now else now - since
+
+
+def _passes(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool:
+    """A write the gate never holds: a non-plan mode, an experiment, a boost."""
+    return (inp.mode not in (MODE_AUTO, MODE_ECONOMY)
+            or (inp.action or {}).get("mode") == "system_identification"
+            or boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNEL_DHW, now))
+
+
+def _ends_soon(inp: ArbiterInputs, boosts: Any, now: datetime) -> bool:
+    """A start whose run the plan ends within :data:`MIN_RUN`, the tank not owed it."""
     nxt = plan_step_start(now) + timedelta(minutes=PLAN_STEP_MINUTES)
-    wait = (rec.off_at is not None and now - rec.off_at < MIN_PAUSE) or (
-        nxt - now < MIN_RUN and step_supply(inp, boosts, nxt) is False)
-    rec.on_at = rec.on_at if wait else now
-    return wait
-
-
-def _stop_held(rec: _Hold, now: datetime) -> bool:
-    """A run under :data:`MIN_RUN`; a stop let through starts the gate's pause."""
-    starts = (rec.born, rec.on_at)
-    short = now - max((s for s in starts if s and s <= now), default=now) < MIN_RUN
-    rec.off_at = rec.off_at if short else now
-    return short
+    if nxt - now >= MIN_RUN or step_supply(inp, boosts, nxt) is not False:
+        return False
+    return not (step_duty(inp.plan, now) in ("dhw", "both") and tank_reason(inp))

@@ -368,8 +368,8 @@ class ArbiterState:
     stop_gap_k: float | None = None
     #: A supply write ``supply_hold`` held back; the step tick retries it.
     supply_held: bool = False
-    #: ``supply_hold``'s own record, made on first use.
-    hold: Any = None
+    #: When ``supply_hold`` last held a write (UTC), for the learners' freeze.
+    held_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -1824,12 +1824,26 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
         return
     inp = wiring.inputs()
     on = None if inp.entry_released else step_supply(inp, wiring.boosts, now)
+    if on is None and held.supply_held and not inp.entry_released:
+        on = _action_supply(inp)  # a held write the plan does not speak for
     if on is None:
-        held.supply_held = False  # a held write dies with the plan's command
+        held.supply_held = False  # a held write dies with its command
         return
     last, held.supply = held.supply[1], (step, on)
     if on != last or held.supply_held:
         await wiring.write(on)
+
+
+def _action_supply(inp: ArbiterInputs) -> bool | None:
+    """The action's supply where the cycle would write it in a plan mode, or ``None``.
+
+    The retry for a held write :func:`step_supply` gives no command for (an
+    empty plan): a mode left, a stale plan or no action drops it, as the
+    cycle would write nothing.
+    """
+    if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_stale or not inp.action:
+        return None
+    return bool(inp.action.get("heat_pump_on", False))
 
 
 def release_supply(held: ArbiterState) -> None:

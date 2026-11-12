@@ -69980,8 +69980,7 @@ def _r9egb9_make(entry_id, extra=None, anchor=None):
     hass = _R9EGB9Hass({
         "sensor.indoor": FakeState("21.0", unit="°C"),
         "sensor.outdoor": FakeState("-5.0", unit="°C"),
-        # Off: a supply found on is held for MIN_RUN after a restart (supply_hold).
-        "switch.heat_pump": FakeState("off"),
+        "switch.heat_pump": FakeState("on"),
     })
     coord = Coord(hass, _r9egb9_entry(data={
         "tibber_token": "x",
@@ -81930,30 +81929,44 @@ for _ms_name, _ms_kw, _ms_want in (
 
 R.section("supply switch: minimum run and pause, restart")
 # A re-solve, a cycle or a step tick inside a step must neither stop the
-# compressor minutes after the switch turned it on nor start it minutes after
-# the gate turned it off (``pump_arbiter.hold_supply``): the gate holds the
-# write back and the step tick writes it once MIN_RUN / MIN_PAUSE has passed.
-# The real coordinator writes; each tick fires every minute.
+# compressor minutes after it started nor start it minutes after it stopped
+# (``supply_hold.hold_supply``): the gate holds the write back and the step
+# tick writes it once MIN_RUN / MIN_PAUSE has passed. Both are measured on the
+# switch's own ``last_changed``, whoever moved it. The real coordinator writes;
+# each tick fires every minute.
+import importlib
+
+_sh = importlib.import_module(_sa_pa.__package__ + ".supply_hold")
+_sh_coord_mod = importlib.import_module(_sa_pa.__package__ + ".coordinator")
+
+_sh_off = lambda _held, _inputs, _boosts, value, now=None: value  # main: no gate
 
 
-async def _ms_run(duties, switch, events, until=20, off_at=None):
+async def _ms_run(duties, switch, events, until=20, off_at=None, entity="switch.hp",
+                  plan=True, sysid=False, gate=True, every=False):
     """Switch writes by minute from 06:00 for a plan of ``duties`` (``s`` on).
 
     ``switch`` is the switch's state and since-minute at 06:00 (negative is
     before); ``events`` maps a minute to the action the cycle adopts there;
-    at ``off_at`` the optimizer is switched off.
+    at ``off_at`` the optimizer is switched off. ``plan=False`` runs with no
+    plan, ``sysid`` under system identification, ``gate=False`` with main's
+    write (no gate); ``every`` returns every service call, not only the
+    switch's, and the learners' freeze reason at the end.
     """
     ticks = []
-    armed = _sa_pa.async_track_time_interval
+    armed, real = _sa_pa.async_track_time_interval, _sh_coord_mod.supply_hold.hold_supply
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
-    hass = FakeHass({"switch.hp": FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
-    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    if not gate:
+        _sh_coord_mod.supply_hold.hold_supply = _sh_off
+    domain = entity.split(".", 1)[0] if entity else None
+    hass = FakeHass({} if not entity else {entity: FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": entity, "pump_duty_mode": "observe"}))
     coord._mode = "auto"
     coord._optimization_result = SimpleNamespace(
         timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
         power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
-        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties))
-    writes = []
+        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties)) if plan else None
+    writes, frozen = [], None
     try:
         for m in range(until + 1):
             now = _SA_T0 + timedelta(minutes=m)
@@ -81962,19 +81975,28 @@ async def _ms_run(duties, switch, events, until=20, off_at=None):
             coord._mode = "off" if off_at is not None and m >= off_at else coord._mode
             if m in events:
                 _sa_boost.adopt_plan(coord, {"heat_pump_on": events[m], "power": 1.5 * events[m]})
-                coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
+                if sysid:
+                    coord._current_action = {**coord._current_action, "mode": "system_identification"}
+                if plan:
+                    coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
                 await coord._apply_action()
             for tick in ([] if m in events else list(ticks)):
                 await tick(now)
-            for domain, service, _data in hass.services.calls:
-                if domain == "switch":
-                    writes.append((m, service))
-                    hass.states.set("switch.hp", FakeState("on" if service == "turn_on" else "off", last_updated=now))
+            for d, service, data in hass.services.calls:
+                if every:
+                    writes.append((m, d, service, dict(data)))
+                if d == domain and data.get("entity_id") == entity:
+                    writes.append((m, service)) if not every else None
+                    on = service == "turn_on"
+                    new = ("heat" if on else "off") if domain == "climate" else ("on" if on else "off")
+                    hass.states.set(entity, FakeState(new, last_updated=now))
             hass.services.calls.clear()
+        frozen = _sh_coord_mod._tail_freeze(coord)
     finally:
         _sa_dt.freeze(None)
         _sa_pa.async_track_time_interval = armed
-    return writes
+        _sh_coord_mod.supply_hold.hold_supply = real
+    return (writes, frozen) if every else writes
 
 
 # The cycle at 06:00 switches on; a re-solve at 06:03 turns the step off.
@@ -82000,7 +82022,7 @@ R.check(
 _ms_pause = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 15: True}, until=25))
 _ms_rest = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 23: True}, until=25))
 R.check(
-    "a re-solve three minutes into a pause the gate wrote does not switch the supply on; the step tick does at MIN_PAUSE",
+    "a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE",
     _ms_pause == [(0, "turn_on"), (12, "turn_off"), (22, "turn_on")],
     f"{_ms_pause}",
 )
@@ -82009,17 +82031,134 @@ R.check(
     _ms_rest == [(0, "turn_on"), (12, "turn_off"), (23, "turn_on")],
     f"{_ms_rest}",
 )
-# A restart or a reload finds the switch on, an hour into its run: the first
-# cycle's OFF is held as a run that started then, and nothing is switched on
-# against the plan. The null control is the 06:00 pause case above: the same
-# first cycle on a switch reading on writes OFF at once once the record is
-# MIN_RUN old.
-_ms_boot = _asyncio.run(_ms_run("--", ("on", -60), {0: False}, until=12))
+# One clock: a run or a pause the gate did not write (a boost, a fixed mode,
+# the user, the cut-off) is measured on the switch's own stamp like one it
+# wrote. The switch reads on, or off, since 05:57.
+_ms_user_run = _asyncio.run(_ms_run("--", ("on", -3), {0: False}, until=12))
+_ms_user_pause = _asyncio.run(_ms_run("ss", ("off", -3), {0: True}, until=12))
 R.check(
-    "the first cycle after a restart keeps a supply found on for MIN_RUN, then switches it off",
+    "a run someone else started three minutes ago is held on until MIN_RUN of the switch's own stamp",
+    _ms_user_run == [(7, "turn_off")],
+    f"{_ms_user_run}",
+)
+R.check(
+    "a pause someone else started three minutes ago is held off until MIN_PAUSE of the switch's own stamp",
+    _ms_user_pause == [(7, "turn_on")],
+    f"{_ms_user_pause}",
+)
+# A restart of Home Assistant stamps the switch at the restart (the
+# ``StateMachine.async_set`` contract in tests/ha_contract.py): the pump reads
+# as a run started then and is held on for MIN_RUN. A reload of the
+# integration keeps the stamp: an hour-old run is switched off at once.
+_ms_boot = _asyncio.run(_ms_run("--", ("on", 0), {0: False}, until=12))
+_ms_reload = _asyncio.run(_ms_run("--", ("on", -60), {0: False}, until=12))
+R.check(
+    "after a Home Assistant restart a supply found on is held for MIN_RUN of its restart stamp, then switched off",
     _ms_boot == [(10, "turn_off")],
     f"{_ms_boot}",
 )
+R.check(
+    "null control: after a reload an hour-old run is switched off at once",
+    _ms_reload == [(0, "turn_off")],
+    f"{_ms_reload}",
+)
+# A held write the plan gives no command for (no plan) is retried with the
+# action's own value at the minimum, not dropped until the next cycle.
+_ms_noplan = _asyncio.run(_ms_run("--", ("on", -3), {0: False}, until=12, plan=False))
+R.check(
+    "with no plan, an OFF held three minutes into a run lands at MIN_RUN",
+    _ms_noplan == [(7, "turn_off")],
+    f"{_ms_noplan}",
+)
+# System identification passes the gate: a step-response edge is not delayed.
+_ms_sysid = _asyncio.run(_ms_run("ss", ("on", -3), {0: False}, until=12, sysid=True))
+R.check(
+    "system identification: an OFF three minutes into a run is written at once",
+    _ms_sysid == [(0, "turn_off")],
+    f"{_ms_sysid}",
+)
+# A climate target reads heat / off; its run is held like a switch's.
+_ms_clim = _asyncio.run(_ms_run("--", ("heat", -3), {0: False}, until=12, entity="climate.hp"))
+_ms_clim_old = _asyncio.run(_ms_run("--", ("heat", -60), {0: False}, until=12, entity="climate.hp"))
+R.check(
+    "a climate target reading heat three minutes is held on until MIN_RUN",
+    _ms_clim == [(7, "turn_off")],
+    f"{_ms_clim}",
+)
+R.check(
+    "null control: a climate target heating an hour is switched off at once",
+    _ms_clim_old == [(0, "turn_off")],
+    f"{_ms_clim_old}",
+)
+# The learners: an interval with a held write ran other than the plan, so
+# ``_learning_frozen`` names it (``supply_hold.FREEZE_HELD``); the null
+# control is the same run with no write held.
+_ms_fz_held = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, every=True))[1]
+_ms_fz_free = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14, every=True))[1]
+R.check(
+    "an interval in which the gate held a write freezes the learners with the supply_held reason",
+    _ms_fz_held == _sh.FREEZE_HELD,
+    f"{_ms_fz_held!r}",
+)
+R.check(
+    "null control: the same interval with no write held does not",
+    _ms_fz_free != _sh.FREEZE_HELD,
+    f"{_ms_fz_free!r}",
+)
+# Null control, owed: with every write on a step boundary and no restart, the
+# service calls and their order are identical to main's (the gate off); an
+# install with no supply switch is untouched by the gate.
+for _ms_name, _ms_args, _ms_kw in (
+    ("writes on step boundaries", ("s-s-", ("off", -60), {0: True, 15: False, 30: True, 45: False}), {"until": 59}),
+    ("a plan the step tick moves", ("s-ss", ("off", -60), {0: True}), {"until": 59}),
+    ("no supply switch", ("s-s-", ("off", -60), {0: True, 3: False, 15: False, 31: True}), {"until": 40, "entity": None}),
+):
+    _ms_a = _asyncio.run(_ms_run(*_ms_args, every=True, **_ms_kw))[0]
+    _ms_b = _asyncio.run(_ms_run(*_ms_args, every=True, gate=False, **_ms_kw))[0]
+    R.check(
+        f"null control: {_ms_name}, the gate issues main's service calls in main's order",
+        _ms_a == _ms_b and (_ms_kw.get("entity", 1) is None or _ms_a),
+        f"{_ms_a} != {_ms_b}",
+    )
+
+
+# Rule three: an ON that starts a run the plan ends within MIN_RUN is skipped,
+# except on a hot-water step whose tank is below its minimum or under a
+# disinfection hold (``supply_hold.tank_reason``, the early cut-off's own).
+def _sh_inputs(minute, *, dhw=False, cold=False, disinfecting=False, state="off"):
+    hass = FakeHass({"switch.hp": FakeState(state, last_updated=_SA_T0 - timedelta(hours=1))})
+    plan = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)],
+        power_schedule=[0.0 if dhw else 1.5, 0.0], dhw_power_schedule=[1.5 if dhw else 0.0, 0.0])
+    return lambda: _sa_pa.ArbiterInputs(
+        hass=hass, config={"heat_pump_switch_entity": "switch.hp"}, mode="auto", plan=plan,
+        plan_stale=False, entry_released=False,
+        state=SimpleNamespace(dhw_temperature=35.0 if cold else 50.0),
+        thermal=None, params=SimpleNamespace(dhw_enabled=True, dhw_min_temp=40.0),
+        action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=disinfecting)
+
+
+_sh_none = SimpleNamespace(active=lambda _c, _n: False)
+
+
+def _sh_start(minute, **kw):
+    held = _sa_pa.ArbiterState()
+    got = _sh.hold_supply(held, _sh_inputs(minute, **kw), _sh_none, True, _SA_T0 + timedelta(minutes=minute))
+    return got, held.supply_held
+
+
+for _ms_name, _ms_min, _ms_kw, _ms_want in (
+    ("a space step, ON at minute 7 before an OFF step", 7, {}, (None, True)),
+    ("null control: the same ON at minute 5, MIN_RUN before the boundary", 5, {}, (True, False)),
+    ("a hot-water step with the tank warm", 7, {"dhw": True}, (None, True)),
+    ("a hot-water step with the tank below its minimum", 7, {"dhw": True, "cold": True}, (True, False)),
+    ("a hot-water step under a disinfection hold", 7, {"dhw": True, "disinfecting": True}, (True, False)),
+    ("a space step with the tank below its minimum", 7, {"cold": True}, (None, True)),
+    ("null control: the switch already on", 7, {"state": "on"}, (True, False)),
+    ("an unreadable switch", 7, {"state": "unavailable"}, (True, False)),
+):
+    _ms_got = _sh_start(_ms_min, **_ms_kw)
+    R.check(f"rule three: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
 
 
 # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------

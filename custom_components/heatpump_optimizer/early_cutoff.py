@@ -81,7 +81,7 @@ from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
 from .pump_arbiter import ArbiterInputs, step_duty, switch_supply
-from .supply_hold import MIN_PAUSE, MIN_RUN
+from .supply_hold import MIN_PAUSE, MIN_RUN, tank_reason
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -238,12 +238,7 @@ def _plant_exempt(inp: ArbiterInputs) -> str | None:
     # Exempt only if it exists AND reads on, not either.
     if flag is not None and parse_bool(getattr(flag, "state", None)):
         return "defrost"
-    params, state = inp.params, inp.state
-    if getattr(params, "dhw_enabled", False) and float(state.dhw_temperature) < float(
-        params.dhw_min_temp
-    ):
-        return "tank_cold"
-    return None
+    return tank_reason(inp)
 
 
 def threshold(inp: ArbiterInputs, opt_config: Any, now: datetime) -> float:
