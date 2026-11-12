@@ -4,6 +4,7 @@ admitted outside pull request, which class is each path it changes, and is its
 class-O read the owner's".
 
     python3 -I tools/pr/outside.py check --repo O/R --pr N [--ref origin/main] [--early] [--no-fetch]
+    python3 -I tools/pr/outside.py check --repo O/R --pr N --ref SHA --early --no-fetch --pull-json FILE
     python3 -I tools/pr/outside.py classify --pr N [--ref origin/main] PATH...
     python3 -I tools/pr/outside.py approve --repo O/R --pr N --head SHA40 --mandate ID [--role TEXT]
     python3 -I tools/pr/outside.py --self-test
@@ -14,7 +15,10 @@ no other pull request at the head, the path classes over the three-dot diff,
 the manifest version, and class O. rc 0 admitted, 1 refused (each reason on a
 `REFUSE:` line), 3 not an outside pull request (its author is on no allowlist
 entry, so the ordinary contract judges it). `--early` is pr-contract's signal:
-a class-O read still owed prints `PENDING:` and does not refuse.
+a class-O read still owed prints `PENDING:` and does not refuse. With
+`--pull-json` it makes no API call at all (the job's API step read the pull
+request into a file; this program is handed no token), so it reads neither
+the reviews nor the other pull requests at the head: adoption does.
 
 WHERE THE RULES ARE READ. The programs are this file's own tree: `bus.sh adopt`
 runs main's copy from a throwaway directory, pr-contract the base's restored
@@ -298,8 +302,10 @@ def owner_read(reviews: "list[dict]", head: str, gate, repo: str, carry) -> "tup
 
 # --- the contract -------------------------------------------------------------
 
-def pull_facts(repo: str, pr: int) -> dict:
-    p = api(f"repos/{repo}/pulls/{pr}")
+def pull_facts(repo: str, pr: int, pull: "dict | None" = None) -> dict:
+    p = api(f"repos/{repo}/pulls/{pr}") if pull is None else pull
+    if not isinstance(p, dict) or p.get("number") != pr:
+        raise Refuse(f"the pull request read is not #{pr}")
     head, base = p.get("head") or {}, p.get("base") or {}
     return {"author": p.get("user") or {}, "state": p.get("state"),
             "head_repo": (head.get("repo") or {}).get("full_name"), "head_ref": head.get("ref"),
@@ -355,11 +361,17 @@ def changed(ref: str, head: str) -> "tuple[str, list[str]]":
 
 
 def check(repo: str, pr: int, ref: str, gate=None, fetch: bool = True, early: bool = False,
-          comment: "int | None" = None) -> "tuple[int, list[str]]":
-    """The whole contract. (rc, lines): 0 admitted, 1 refused, 3 not outside."""
+          comment: "int | None" = None, pull: "dict | None" = None) -> "tuple[int, list[str]]":
+    """The whole contract. (rc, lines): 0 admitted, 1 refused, 3 not outside.
+    `pull` is pr-contract's form: the pulls API's answer as a caller already
+    read it, judged with no API call here. That form reads neither the other
+    pull requests at the head nor the reviews, so it is `early` only: it can
+    say PENDING, never that class O is met."""
     gate = gate or load_gate()
     try:
-        f = pull_facts(repo, pr)
+        if pull is not None and not early:
+            return 1, ["REFUSE: a pull request handed in as a file is the early signal's form; the gate reads the API itself"]
+        f = pull_facts(repo, pr, pull)
         allow = read_allowlist(ref)
         entry = allowlisted(f["author"], allow)
         if entry is None:
@@ -382,7 +394,7 @@ def check(repo: str, pr: int, ref: str, gate=None, fetch: bool = True, early: bo
             git("fetch", "-q", "--no-tags", "origin", f"+refs/pull/{pr}/head:refs/hpo-outside/{pr}")
             if git("rev-parse", f"refs/hpo-outside/{pr}").strip() != head:
                 return 1, [f"REFUSE: refs/pull/{pr}/head is not the head {head} the API names (it moved; run again)"]
-        others = other_pulls(repo, pr, f)
+        others = other_pulls(repo, pr, f) if pull is None else []
         if others:
             out.append(f"the head {head[:12]} is also the head of #{', #'.join(map(str, others))}: its runs leave "
                        "check runs of the same names on this commit, so close it and push a new head")
@@ -399,7 +411,10 @@ def check(repo: str, pr: int, ref: str, gate=None, fetch: bool = True, early: bo
                 out.append(f"{MANIFEST}'s version changes ({vb!r} -> {vh!r}): versions are assigned after the merge, by stamp.py")
         opaths = sorted(p for p, c in classes.items() if c == "O")
         lines = []
-        if opaths and not out:
+        if opaths and not out and pull is not None:
+            lines.append(f"PENDING: class O ({', '.join(opaths[:6])}{' ...' if len(opaths) > 6 else ''}) needs the owner's "
+                         f"approving review at {head[:12]}, or his machinery's under his mandate; adoption reads it")
+        elif opaths and not out:
             ok, why = owner_read(api(f"repos/{repo}/pulls/{pr}/reviews?per_page=100", pages=True), head, gate, repo,
                                  lambda a, b: carries(a, b, ref))
             if ok:
@@ -695,6 +710,18 @@ def self_test() -> int:
         st(o([]), 1, "class O REFUSE: no review at all")
         reset(reviews=[], paths=OP); rc, out = chk(early=True)
         st((rc, out.startswith("PENDING:")), (0, True), "pr-contract's early signal: a class-O read still owed is PENDING, not a refusal")
+        # pr-contract's offline form: the pull request from a file, no API call at all.
+        reset(reviews=[], paths=OP); world["log"].clear()
+        rc, lines = check(R, PR, "origin/main", gate=g, fetch=False, early=True, pull=pull())
+        st((rc, lines[0].startswith("PENDING:"), world["log"]), (0, True, []), "the offline early form: PENDING for class O, and not one gh call")
+        rc, lines = check(R, PR, "origin/main", gate=g, fetch=False, early=True, pull=pull(ref="a$(id)"))
+        st((rc, world["log"]), (1, []), "the offline early form refuses a head branch name a shell expands, with no gh call")
+        world["paths"] = ["tools/x.py"]
+        st(check(R, PR, "origin/main", gate=g, fetch=False, early=True, pull=pull())[0], 1, "the offline early form refuses a class-R path")
+        st(check(R, PR, "origin/main", gate=g, fetch=False, early=True, pull=pull(author={**BK, "id": 1}))[0], 3, "the offline early form: an author on no entry is not outside")
+        st(check(R, PR, "origin/main", gate=g, fetch=False, early=True, pull=pull(number=8))[0], 1, "the offline early form refuses a file that is another pull request's")
+        world["paths"] = list(OP)
+        st(check(R, PR, "origin/main", gate=g, fetch=False, pull=pull())[0], 1, "REFUSE: the offline form without --early: it is never the gate")
         st(o([rv(line())]), 0, "class O admitted: the owner's APPROVED review at H carrying the line")
         st(o([rv(line(), user={**OWN, "id": 5})]), 1, "class O REFUSE: the same review under another numeric id")
         st(o([rv(line(), user=BK)]), 1, "class O REFUSE: the same review under the contributor's account")
@@ -858,6 +885,7 @@ def main(argv: "list[str]") -> int:
     c = sub.add_parser("check"); c.add_argument("--repo", required=True); c.add_argument("--pr", type=int, required=True)
     c.add_argument("--ref", default="origin/main"); c.add_argument("--early", action="store_true")
     c.add_argument("--no-fetch", action="store_true"); c.add_argument("--comment", type=int)
+    c.add_argument("--pull-json", help="the pulls API's answer as a file (pr-contract, with --early): no API call is made")
     k = sub.add_parser("classify"); k.add_argument("--pr", type=int, required=True); k.add_argument("--ref", default="origin/main")
     k.add_argument("paths", nargs="+")
     a = sub.add_parser("approve"); a.add_argument("--repo", required=True); a.add_argument("--pr", type=int, required=True)
@@ -873,7 +901,13 @@ def main(argv: "list[str]") -> int:
             print(rules.classify(p, args.pr), p)
         return 0
     if args.cmd == "check":
-        rc, lines = check(args.repo, args.pr, args.ref, fetch=not args.no_fetch, early=args.early, comment=args.comment)
+        pull = None
+        if args.pull_json:
+            try:
+                pull = json.load(open(args.pull_json, encoding="utf-8"))
+            except (OSError, ValueError):
+                print(f"REFUSE: {args.pull_json} is not a readable JSON file"); return 1
+        rc, lines = check(args.repo, args.pr, args.ref, fetch=not args.no_fetch, early=args.early, comment=args.comment, pull=pull)
     else:
         if not SHA40.fullmatch(args.head):
             print("REFUSE: --head takes a 40-hex commit"); return 1

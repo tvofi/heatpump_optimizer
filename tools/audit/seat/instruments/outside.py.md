@@ -7,7 +7,9 @@
   `check --repo O/R --pr N [--ref REF]` is the whole contract at the live
   head: rc 0 admitted, 1 refused (one `REFUSE:` line per reason), 3 not an
   outside pull request; `--early` (pr-contract) prints a class-O read still
-  owed as `PENDING:` instead of refusing. `classify --pr N PATH...` prints
+  owed as `PENDING:` instead of refusing, and with `--pull-json FILE` judges
+  the pull request from that file with no token and no API call (so it reads
+  neither the reviews nor the other pull requests at the head). `classify --pr N PATH...` prints
   each path's class. `approve --repo O/R --pr N --head SHA --mandate ID`
   posts the one mandated class-O approval, through the reviews API with
   `commit_id` the head read, and reads it back. When: `bus.sh adopt` runs
