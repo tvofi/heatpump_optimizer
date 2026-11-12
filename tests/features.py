@@ -83370,6 +83370,33 @@ R.check(
     f"{_ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)])} "
     f"{_ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
 )
+# Home Assistant 2025.2 runs Python 3.13, which evaluates the arbiter's annotations at import; 3.14 defers them.
+from heatpump_optimizer import pump_arbiter as _ds_pa  # noqa: E402
+import typing as _ds_typing  # noqa: E402
+
+
+def _ds_hints(*fns):
+    """The resolved annotations of each function, or the error resolving them raised."""
+    try:
+        return tuple(_ds_typing.get_type_hints(fn) for fn in fns)
+    except (NameError, AttributeError) as err:
+        return repr(err)
+
+
+def _ds_unbound(reader: "_DsNoSuchReader") -> None:  # noqa: F821
+    """A seam annotated with a name no module binds: the null control of the check below."""
+
+
+_ds_seams = _ds_hints(_ds_pa._running_signal, _ds_mod.attach)
+R.check(
+    "the reader's annotations resolve, as Python 3.13 resolves the arbiter's at import: _running_signal returns "
+    "and attach takes the one reader type; null control, a seam annotated with a name no module binds does not "
+    "resolve",
+    isinstance(_ds_seams, tuple)
+    and _ds_seams[0]["return"] == tuple[str | None, _ds_seams[1]["reader"]]
+    and isinstance(_ds_hints(_ds_unbound), str),
+    f"{_ds_seams} {_ds_hints(_ds_unbound)}",
+)
 # A restart: a record just loaded is unsettled, and its first reading, inside the debounce before the write, is pending.
 R.check(
     "through duty_switch.note_mode_write, a mode write on a record just loaded whose first reading, 50 Hz, "
