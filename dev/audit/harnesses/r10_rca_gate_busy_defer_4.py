@@ -168,7 +168,8 @@ def replay(tree):
     crs, runs = as_of(fx["3293"], ts("2026-11-07T21:07:00Z"))
     crs = crs + [unit("fast", 99, conclusion="failure")]
     req = ["fast"]
-    st = (mt.classify(mt.latest_runs(crs), req))[0].upper()
+    idle = (mt.gate_busy([], []),) if hasattr(mt, "Busy") else ()  # a tree whose classify requires busy: none at this head
+    st = (mt.classify(mt.latest_runs(crs), req, *idle))[0].upper()
     print(f"SCENE null-red-non-gate want=RED got={st}")
     bad += st != "RED"
     print(f"RESULT replay defects={defects} settle_gap={gap} null_bad={bad} scenes={len(rows) + 1}")

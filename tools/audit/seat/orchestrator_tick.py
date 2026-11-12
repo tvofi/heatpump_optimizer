@@ -1211,7 +1211,7 @@ class Tick:
             t = mt.Train(self.repo, Path("."), None, "", (), 0, run=run, log=lambda _m: None)
             return t.classify_at(head, runs, req)
         except (mt.Stop, OSError, ValueError):
-            return mt.classify(self.latest(runs or []), req)
+            return mt.classify(self.latest(runs or []), req, mt.FINAL)
 
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
