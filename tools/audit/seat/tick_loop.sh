@@ -190,6 +190,10 @@ tick_pass() { # <out> [tick args...]: one pass; prints the banner
 
 tick_loop_self_test() (
   local t f=0 n=0 out
+  # A row's verdict is its reader's. Under pipefail a `grep -q` that leaves at its match can kill
+  # the printf feeding it (141), and the row reads a match as none: prepr.sh's PIPE_GREP_Q class,
+  # seen here under load as one stray FAIL in a different row each time.
+  set +o pipefail
   t=$(mktemp -d) || { echo "tick_loop self-test: no temporary directory"; return 1; }
   ck() { n=$((n + 1)); if [ "$2" = 0 ]; then echo "  ok   $1"; else f=$((f + 1)); echo "  FAIL $1"; fi; }
   printf '#!/bin/bash\necho "relay $*" >> "%s/order"; exit "${RELAY_RC:-0}"\n' "$t" > "$t/relay.sh"
