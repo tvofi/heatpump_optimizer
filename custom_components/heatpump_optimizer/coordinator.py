@@ -5824,7 +5824,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if vent_only:
             # The detector has been fed; the learner itself stays frozen
             # until the window closes.
-            self._learner_freezes.note_freeze("house", frozen)
+            self._learner_freezes.note_freeze("house", "ventilation")
             return clean
         if not fold:
             return clean
