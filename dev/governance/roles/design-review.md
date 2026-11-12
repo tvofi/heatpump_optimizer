@@ -10,7 +10,9 @@ Time box: 45 min of seat time for L, 75 min for XL.
    no new write path into state another module owns.
 2. **Check the shape against the finding.** Every behaviour the design changes
    is one a finding names, or the note says why it must move with it. One that
-   no finding names is `revise` (`product-tradeoff-regression`).
+   no finding names is `revise` (`product-tradeoff-regression`). A design that
+   relies on a grader's new behaviour inside the pull request that changes that
+   grader is `revise` (`architecture-unsound`).
 3. **Check the sibling sites**: grep the finding's class across the tree
    yourself. A site the note missed is `revise` (`class-open`).
 4. **Check the evidence plan**: the failing test can fail on today's code, the
@@ -18,11 +20,10 @@ Time box: 45 min of seat time for L, 75 min for XL.
    perturbation the finding names, and the goldens and claim files named are
    the right ones.
 5. **Check consistency with `D7.md` and with sibling designs in flight**: read
-   every open `design/*` ref whose hot files overlap, so that two designs do
+   every open `design/*` ref whose hot files overlap, so two designs do
    not claim one seam.
 6. **Check the cost**: the design's file count and churn fit the group's size.
-   A design that needs a larger group is `revise` with a proposed split, never
-   an approval.
+   A design that needs a larger group is `revise` with a proposed split.
 7. **Return** `Design review: approve <sha>` or `Design review: revise <sha>
    <class>` at `design-verdict/<group>`, each point one line naming file, line
    and the fix wanted, in `fix-review.md`'s verdict words where they fit
@@ -38,9 +39,7 @@ section as a carried observation, `Carry: <group> (item <id>)`, or
 `Carry: dismissed: <reason of two or more words> (item <id>)`, colon required
 (`carry_audit.py`'s grammar); the fixer and fix review own it from there.
 `revise` is only for a defect in the design itself: the seam, the shape, the
-sibling sites, the evidence plan or the cost. R10-SCORES went 8 → 4 → approve,
-each round also producing fixer notes; counted as revisions they would have
-held it open.
+sibling sites, the evidence plan or the cost (R10-SCORES: 8 → 4 → approve).
 
 **Decisions are routed, not revised.** A point only the orchestrator or owner
 can settle (scope, ordering, a product trade-off) is marked
@@ -48,6 +47,6 @@ can settle (scope, ordering, a product trade-off) is marked
 and is no revise point.
 
 **Three notes at most**, as in `fixer.md`'s "past three rounds, re-cut rather
-than repair". If the third note still draws `revise`, there is no fourth: the
+than repair". If the third still draws `revise`, the
 designer re-cuts to the minimal shape the fixer can start from, and the
 remaining points become carries.
