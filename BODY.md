@@ -2,6 +2,12 @@ Removes carry-file content that landed commits answer: `dev/programme/carries/ca
 
 Draft pass, ahead of the open groups. The rest of the roster's carry files are untouched here and stay where they are: carry-1645 (answered, but its removal edits the pinned grader `tools/policy/brief_lint.mjs`, so it needs a grader-only part), carry-2065, carry-2066, carry-2075, carry-1922 and the other 23 entries of carry-201.
 
+Carry 0: partly met in this draft. Seven carry files stood at the cut; this pull request answers carry-1774 whole and one entry of carry-201, and leaves the rest as listed above for the final pass, so the control (`git ls-tree origin/main dev/programme/carries/` lists only files whose every entry names a live destination or a landed commit) does not yet hold.
+
+Carry 1: not in this pull request; the dispatch was deliverable 1 only, so dev/README.md is untouched.
+
+Carry 2: not in this pull request, same reason; the machinery caps are untouched.
+
 ## Head
 
 071f551147a95b22b8591f2a0cb354e1fac6342f, on origin/main 6e100ef6980216a81eaa0438bdc215d62b19271f (unmoved since the cut, so no second prepr run).
