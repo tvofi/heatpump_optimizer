@@ -85804,4 +85804,87 @@ R.check(
     f"issues {_fb_floor['issues'][:3]}",
 )
 
+# R10-OUTSIDE-LEARNER-ROBUSTNESS-P3: the frozen learner phase takes the answer the
+# learners obey, with its end from BoostState; the refusal reasons go to DEBUG.
+import logging as _p3_logging
+from datetime import timedelta as _p3_td
+
+from heatpump_optimizer import learner_progress as _p3_lp
+
+_p3_inp = _p3_lp.LearnerInputs(True, 5, lambda n: n >= 50, None, "colder", None)
+_p3_off = _p3_lp.LearnerInputs(False, 5, None, None, None, None)
+_p3_plain = _p3_lp.learner_progress(_p3_inp)
+_p3_end = NOW + _p3_td(hours=14)
+_p3_boost = _p3_lp.learner_progress(_p3_inp, ("boost_space", _p3_end))
+R.check(
+    "P3 null control: with nothing holding the learners the payload is main's -- no frozen_until "
+    "key, the weather wait still shown; held by the boost it is frozen, the reason in waiting_for, "
+    "the end a key of that phase alone; off outranks frozen",
+    _p3_plain["phase"] == "waiting" and "frozen_until" not in _p3_plain
+    and _p3_lp.learner_progress(_p3_inp, None) == _p3_plain
+    and _p3_boost["phase"] == "frozen" and _p3_boost["waiting_for"] == "boost_space"
+    and _p3_boost["frozen_until"] == _p3_end.isoformat()
+    and _p3_lp.learner_progress(_p3_inp, ("boost_space", None))["frozen_until"] is None
+    and _p3_lp.learner_progress(_p3_off, ("boost_space", _p3_end))["phase"] == "off"
+    and "frozen_until" not in _p3_lp.learner_progress(_p3_off, ("boost_space", _p3_end)),
+    f"{_p3_plain} {_p3_boost}",
+)
+_p3_census = {
+    "boost_space": True, "ventilation": True, "stale:power_entity": True, "unavailable:indoor_temp_entity": True,
+    "early_cutoff": False, "unmetered_power": False, "not_configured:indoor_temp_entity": False,
+    "pump_offline": False, "pump_fault": False, "pump_cooling": False,
+    "external_heat_source": False, "defrosting": False, None: False,
+}
+R.check(
+    "P3 census: the boost, an open window and an unusable reading pause the learner; the early "
+    "cut-off, unmetered power, an unread room and the pump's own states keep its count",
+    {k: _p3_lp.pauses(k) for k in _p3_census} == _p3_census
+    and all(_p3_lp.learner_progress(_p3_inp, (k, None)) == _p3_plain for k, v in _p3_census.items() if k and not v),
+    str({k: _p3_lp.pauses(k) for k in _p3_census}),
+)
+_p3_h = boost_mod.BoostState()
+_p3_none = _p3_h.freeze_end()
+_p3_h.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_p3_live = _p3_h.freeze_end()
+_p3_h.set(boost_mod.CHANNEL_SPACE, False, NOW + _p3_td(minutes=10))
+_p3_cancel = _p3_h.freeze_end()
+_p3_h.set(boost_mod.CHANNEL_SPACE, True, NOW + _p3_td(minutes=20))
+_p3_press = _p3_h.freeze_end()
+R.check(
+    "P3 end: none with no boost; a live overlay ends its window plus the tail; a cancel moves "
+    "it earlier (the tail from the cancel); a second press moves it later again",
+    _p3_none is None
+    and _p3_live == NOW + _p3_td(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
+    and _p3_cancel == NOW + _p3_td(minutes=10) + boost_mod.SPACE_SETTLE_TAIL < _p3_live
+    and _p3_press > _p3_cancel,
+    f"{_p3_none} {_p3_live} {_p3_cancel} {_p3_press}",
+)
+class _P3Coord:
+    mode = "auto"
+_p3_c = _P3Coord()
+R.check(
+    "P3 one source: another reason has no boost end; the global boost mode has none either",
+    boost_mod.learning_freeze(_p3_c, None) is None
+    and boost_mod.learning_freeze(_p3_c, "stale:power_entity") == ("stale:power_entity", None)
+    and boost_mod.learning_freeze(type("C", (), {"mode": boost_mod.MODE_BOOST})(), boost_mod.FREEZE_REASON)
+    == (boost_mod.FREEZE_REASON, None),
+    "",
+)
+class _P3Boom:
+    def __repr__(self): raise AssertionError("formatted with DEBUG off")
+    __str__ = __repr__
+_p3_log = _p3_logging.getLogger(_p3_lp.__name__)
+_p3_was = _p3_log.level
+_p3_log.setLevel(_p3_logging.WARNING)
+try:
+    _p3_off_ok = _p3_lp.log_skip(True, "house heat loss", "frozen (%s)", _P3Boom()) is True
+finally:
+    _p3_log.setLevel(_p3_was)
+R.check(
+    "P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off "
+    "nothing is formatted and the gate's value is returned unchanged",
+    _p3_off_ok and _p3_lp.log_skip(False, "x", "y") is False,
+    "",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

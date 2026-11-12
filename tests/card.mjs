@@ -12480,13 +12480,25 @@ check("without an indoor reading the corner now label is absent",
     check("UX-HEALTH D: a waiting learner says what it waits for in words",
       /Waiting: it learns when it is cold enough outside/.test(waiting) && !/colder/.test(waiting), waiting);
     const frozenUntil = new Date(Date.now() + 3 * 3600 * 1000);
-    const frozen = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "boost",
+    const frozen = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "boost_space",
       frozen_until: frozenUntil.toISOString(), samples: 1 }))), "heat_loss");
-    const frozenOpen = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.0, waiting_for: "boost",
+    const frozenOpen = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.0, waiting_for: "boost_space",
       frozen_until: null, samples: 0 }))), "heat_loss");
     check("a learner a boost holds says it is paused and until when, not a count standing still",
       /Paused after a boost until/.test(frozen) && /Paused while a boost runs/.test(frozenOpen)
       && !/Learning:/.test(frozen), `${frozen} | ${frozenOpen}`);
+    const frozenWindow = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "ventilation",
+      frozen_until: null, samples: 1 }))), "heat_loss");
+    const p3Count = rowOf(modelOf(metered(lp({ phase: "counting", progress: 0.02, waiting_for: null, samples: 1 }))), "heat_loss");
+    check("P3: a learner held for a reason with no line of its own says paused, never the raw key; a count renders as on main",
+      /Paused until its inputs are usable again/.test(frozenWindow) && !/ventilation/.test(frozenWindow)
+      && /Learning: 2 % of the samples/.test(p3Count) && !/Paused/.test(p3Count), `${frozenWindow} | ${p3Count}`);
+    const dayEdge = (plusDays, h, m) => { const d = new Date(); d.setDate(d.getDate() + plusDays); d.setHours(h, m, 0, 0); return d; };
+    const rowAt = (d) => rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "boost_space",
+      frozen_until: d.toISOString(), samples: 1 }))), "heat_loss");
+    check("P3: an end past midnight shows the day (tomorrow), an end later today only the clock time",
+      /Paused after a boost until/.test(rowAt(dayEdge(0, 23, 30))) && !/tomorrow/i.test(rowAt(dayEdge(0, 23, 30)))
+      && /tomorrow/i.test(rowAt(dayEdge(1, 0, 30))), `${rowAt(dayEdge(0, 23, 30))} | ${rowAt(dayEdge(1, 0, 30))}`);
     check("UX-HEALTH D: a learner that is off has no row",
       !/data-model-row="gains"/.test(modelOf(metered({ learner_progress: { gains: { phase: "off", samples: 0 } } }))));
     // The owner's hover spec (carry 14): every score and scale hover says what
