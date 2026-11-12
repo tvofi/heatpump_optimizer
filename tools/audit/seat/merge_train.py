@@ -4589,10 +4589,14 @@ def _self_test() -> int:
                 return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
-                if "rollup_pages" in world:  # a paged listing: the answer follows the `after=` cursor asked
+                if "rollup_pages" in world:  # a paged listing, answered as GitHub answers the QUERY sent:
+                    # the page after `after=` only where the query passes $after to contexts, and an
+                    # endCursor only where the query asks for one
+                    asked = next(x for x in argv if x.startswith("query="))
                     cur = next((x[6:] for x in argv if x.startswith("after=")), None)
                     world.setdefault("rollup_cursors", []).append(cur)
-                    return world["rollup_pages"](cur)
+                    return world["rollup_pages"](cur if "contexts(first:100,after:$after)" in asked else None,
+                                                 "pageInfo{hasNextPage endCursor}" in asked)
                 return world.get("rollup", (1, "HTTP 502"))
             if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
                 world["ci_list_reads"] = world.get("ci_list_reads", 0) + 1
@@ -7563,6 +7567,13 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           "(null: the same listing at one oid reads red from its page 2)",
           platform_gate(rollup_walk(f_mid, H0), H0)[0] == "unread" and r_mid == [None, "1"]
           and platform_gate(rollup_walk(pager([gate_p1], [late("FAILURE")])[0], H0), H0)[0] == "red")
+    walked = lambda *pages: platform_gate(rollup_walk(pager(*pages)[0], H0), H0)[0]
+    check("A5 platform: page 1's contexts stay in the merge: a red required gate run on page 1, or another "
+          "required context there, reads RED beside a green gate rerun on page 2 "
+          "(null: that page 2 alone reads green)",
+          walked([late("FAILURE")], [late("SUCCESS")]) == "red"
+          and walked([dict(nonreq, isRequired=True)], [late("SUCCESS")]) == "red"
+          and walked([late("SUCCESS")]) == "green")
     gate_req = {"required": f"{GATE}\n"}
     for what, w, merges in (
             ("train green, GitHub green: it merges", dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g)))), True),
@@ -7576,18 +7587,33 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
-    def train_pages(cursor):  # page 2 (cursor "1") carries a red required gate; page 1 alone is green
+    def train_pages(cursor, with_cursor=True):  # page 2 (cursor "1") carries a red required gate; page 1 alone is green
         k = 0 if cursor is None else int(cursor)
         pl = rollup(ok_g if k == 0 else ("COMPLETED", "FAILURE"), more=k == 0)
         pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
-            "contexts"]["pageInfo"]["endCursor"] = "1"
+            "contexts"]["pageInfo"].update({"endCursor": "1"} if with_cursor else {})
         return 0, json.dumps(pl)
     w = dict(gate_req, runs=[gt()], rollup_pages=train_pages)
     rc, lines, calls = go(w)
     check("A5 serial: the train passes each page's endCursor on the next read, so a red required gate on "
           "page 2 stops the merge (null: a one-page rollup is read once, with no cursor, and merges)",
-          not merged(calls) and w["rollup_cursors"][:2] == [None, "1"] and "red" in " ".join(lines))
-    w = dict(gate_req, runs=[gt()], rollup_pages=lambda c: (0, json.dumps(rollup(ok_g))))
+          not merged(calls) and w["rollup_cursors"] == [None, "1"] and "platform gate=red" in " ".join(lines))
+    for what, sent, cursors in (  # the query text is production: GitHub pages only the query that asks
+            ("does not pass $after to contexts is served page 1 on every read, to the page cap",
+             ROLLUP_Q.replace("contexts(first:100,after:$after)", "contexts(first:100)"), [None] + ["1"] * (gh_read.MAX_PAGES - 1)),
+            ("asks for no endCursor gets none, and stops on page 1",
+             ROLLUP_Q.replace("pageInfo{hasNextPage endCursor}", "pageInfo{hasNextPage}"), [None])):
+        w, kept = dict(gate_req, runs=[gt()], rollup_pages=train_pages), ROLLUP_Q
+        globals()["ROLLUP_Q"] = sent
+        try:
+            rc, lines, calls = go(w)
+        finally:
+            globals()["ROLLUP_Q"] = kept
+        check(f"A5 serial: a rollup query that {what}: page 2's red gate is never read, the head is unread and "
+              "nothing merges (null: the query as shipped reads it red, the row above)",
+              sent != ROLLUP_Q and not merged(calls) and w["rollup_cursors"] == cursors
+              and "platform gate=unread" in " ".join(lines))
+    w = dict(gate_req, runs=[gt()], rollup_pages=lambda c, _: (0, json.dumps(rollup(ok_g))))
     rc, lines, calls = go(w)
     check("A5 serial null: a one-page rollup is read once, with no cursor, and merges",
           merged(calls) and w["rollup_cursors"] == [None])
