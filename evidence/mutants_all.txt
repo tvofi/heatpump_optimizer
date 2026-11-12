@@ -1,0 +1,11 @@
+RESULT m3-mergepr-cross-false: KILLED, 0 FAIL, rc=1, ['merge_pr self-test: 29 checks, 2 failed']
+RESULT m4-fixture-words-restored: KILLED, 1 FAIL, rc=1, ['outside self-test: 212 checks, 1 failed']
+RESULT m1-outside-prefix-dropped: KILLED, 0 FAIL, rc=1, ['merge_train self-test: 714 checks, 2 failed']
+RESULT m5-doubled-remote: KILLED, 0 FAIL, rc=1, []
+RESULT m2-train-cross-false: KILLED, 0 FAIL, rc=1, ['merge_train self-test: 714 checks, 31 failed']
+RESULT m7-train-cross-inverted-stub: KILLED, 0 FAIL, rc=1, []
+RESULT m9-train-cross-true: KILLED, 0 FAIL, rc=1, []
+RESULT m8-mergepr-cross-true: KILLED, 0 FAIL, rc=1, ['merge_pr self-test: 29 checks, 5 failed']
+RESULT m6-prefix-anywhere: KILLED, 0 FAIL, rc=1, ['merge_train self-test: 714 checks, 1 failed']
+ALLDONE
+RESULT m10-outside-cross-false: KILLED, 27 FAIL, rc=1, []

@@ -1,0 +1,20 @@
+mutant m4-fixture-words-restored at b372f8e935365aaecbe6e74c68d3954e5a3ca1b1
+tools/audit/seat/merge_train.py: '"the prior owner review\'s body at " + H0' -> '"Outside read: " + H0'
+cmd: python3 -I tools/pr/outside.py --self-test
+rc=1
+RESULT m4-fixture-words-restored: KILLED, 1 FAIL line(s), summary ['outside self-test: 212 checks, 1 failed']
+
+FAIL no program under tools/ or .github/ but this one writes the outside-read line (got ['tools/audit/seat/merge_train.py'], want [])
+--- tail
+ok   show(): a path the ref does not hold is None, never empty text
+ok   changed(): the merge base and the three-dot path list
+ok   carries(): app_approve.sh --carry says yes for a head onto itself
+ok   carries(): and no for a commit that is no ancestor of the head
+ok   now_utc(): the instant a mandate is judged at is the clock's, with a zone
+ok   REFUSE: policy_lint.mjs with empty policy arrays
+ok   REFUSE: a closure.py whose GATE_FILES is no literal
+ok   the workflow scan finds a contributor-named value inside a run: block and on a run: line, and not under env:
+ok   the workflows were listed
+ok   no workflow expands a contributor-named value (head ref, title, body) inside a run: block
+ok   tests.yml's laneskip step carries the same-repository conjunct: a fork head restores no lane proof and always runs
+outside self-test: 212 checks, 1 failed

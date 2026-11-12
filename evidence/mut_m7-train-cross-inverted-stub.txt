@@ -1,0 +1,20 @@
+mutant m7-train-cross-inverted-stub at b372f8e935365aaecbe6e74c68d3954e5a3ca1b1
+tools/audit/seat/merge_train.py: '            return REAL_OUTSIDE.cross_repository(facts, repo)' -> '            return True'
+cmd: python3 -I tools/audit/seat/merge_train.py --self-test
+rc=1
+RESULT m7-train-cross-inverted-stub: KILLED, 0 FAIL line(s), summary []
+
+
+--- tail
+  FAIL ... null control: _post_carry on a head of ours still posts
+  ok   fork head: step 5 is never due on a cross-repository head (policy paths are class R), and says so
+Traceback (most recent call last):
+  File "/tmp/mut-m7-train-cross-inverted-stub/tools/audit/seat/merge_train.py", line 10569, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/mut-m7-train-cross-inverted-stub/tools/audit/seat/merge_train.py", line 10449, in main
+    return _self_test()
+  File "/tmp/mut-m7-train-cross-inverted-stub/tools/audit/seat/merge_train.py", line 6066, in _self_test
+    check("... null control: on a head of ours the same read goes on to the mandate", "cross-repository" not in got[2])
+                                                                                                                ~~~^^^
+TypeError: 'Stop' object is not subscriptable

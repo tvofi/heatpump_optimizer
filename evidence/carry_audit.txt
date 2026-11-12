@@ -1,0 +1,3 @@
+NOTE stale tree: b372f8e935365aaecbe6e74c68d3954e5a3ca1b1 lacks origin/main d1def1ea63078aa58cc56f9d323ca60f732464bb; roster read at origin/main
+NOTE body item 2baf3bc8: dismissed:a cloud image gap this seat cannot route to a group it verified; the orchestrator reads it here
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)

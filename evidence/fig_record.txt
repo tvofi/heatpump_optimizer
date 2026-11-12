@@ -1,0 +1,8 @@
+OK       0.0s launch
+OK      10.5s app-verdict-poster
+OK      11.1s obligations-ledger
+OK       5.9s pr-merger
+OK       9.4s review-carry
+OK       4.2s outside-contract
+OK       0.0s unread
+selftest_scope: recorded 5 step(s) into /tmp/rv/rerecord.json; 0 failed [], 0 broken trace(s)

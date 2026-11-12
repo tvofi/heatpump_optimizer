@@ -1,0 +1,38 @@
+== fig_summary
+wiring_st rc=0 :: selftest_wiring self-test: 26 checks, 0 failed
+entities rc=1 :: ModuleNotFoundError: No module named 'homeassistant'
+structure rc=0 :: STRUCTURE RATCHET PASSED
+archscore rc=0 :: Architecture score: dS +0.0000 NULL
+wiring_check rc=0 :: selftest_wiring: 0 index gap(s)
+owed_reds rc=0 :: validate / validate-hacs
+field_cov rc=0 :: FIELD COVERAGE SELF-TEST ok
+pl_mutants rc=0 :: MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOv
+record rc=0 :: selftest_scope: recorded 5 step(s) into /tmp/rv/rerecord.json; 0 failed [], 0 broken trace(s)
+pr_args rc=0 :: pr_args self-test: 205 checks, 0 failed
+DONE
+
+== fig_entities_ha.txt
+  File "/opt/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/components/mqtt/models.py", line 12, in <module>
+    from paho.mqtt.client import MQTTMessage
+ModuleNotFoundError: No module named 'paho'
+rc=1
+== fig_record.txt
+OK       9.4s review-carry
+OK       4.2s outside-contract
+OK       0.0s unread
+selftest_scope: recorded 5 step(s) into /tmp/rv/rerecord.json; 0 failed [], 0 broken trace(s)
+== fig_pr_args.txt
+  ok   open_pr: a failed re-key is named, never fatal (the pull request is already open)
+  ok     mutant mut:rekey (its line deleted) re-keys nothing
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 205 checks, 0 failed
+== fig_pl_mutants.txt
+  PIN      record recordClassPaths     FIXTURE VACUOUS: recordClassPaths ["a code file beside a delivery row did not break the record class","an empty diff classified as record-class; one that cannot
+  PIN      record sunsetMarkerLine     FIXTURE VACUOUS: the sunset marker census does not name the corpus's marker population, so `proposed (0) held (0)` prints with nothing to say whether a rule has
+
+MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindin
+RESULT rerecord outside-contract equal | measured-not-committed: {'files': [], 'probes': [], 'dirs': []} | committed-not-measured counts: {'files': 0, 'probes': 0, 'dirs': 0} | flags mine/committed: {}
+RESULT rerecord review-carry equal | measured-not-committed: {'files': [], 'probes': [], 'dirs': []} | committed-not-measured counts: {'files': 0, 'probes': 0, 'dirs': 0} | flags mine/committed: {}
+RESULT rerecord obligations-ledger equal | measured-not-committed: {'files': [], 'probes': [], 'dirs': []} | committed-not-measured counts: {'files': 0, 'probes': 0, 'dirs': 0} | flags mine/committed: {}
+RESULT rerecord app-verdict-poster equal | measured-not-committed: {'files': [], 'probes': [], 'dirs': []} | committed-not-measured counts: {'files': 0, 'probes': 0, 'dirs': 0} | flags mine/committed: {}
+RESULT rerecord pr-merger equal | measured-not-committed: {'files': [], 'probes': [], 'dirs': []} | committed-not-measured counts: {'files': 0, 'probes': 0, 'dirs': 0} | flags mine/committed: {}
