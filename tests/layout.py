@@ -14,6 +14,9 @@ written (tvofi's D2). Four arms, each counted separately:
               tracked file, and every retired target lands in one category:
               a glob that matches nothing is a check that measures nothing
 
+plus a fifth, uncounted check (`gitignore_config`): the .gitignore `config/`
+rule stays root-anchored. Its findings fail the exit code in every mode.
+
     python3 tests/layout.py               # report on this tree, then --self-test
     python3 tests/layout.py --report      # per-arm counts; exit 0 whatever they are
     python3 tests/layout.py --enforce     # exit 1 on any finding (R9-RO-9 flips to this)
@@ -488,6 +491,37 @@ def stale(root: Path, manifest: dict) -> list[str]:
     return [f"{k[1:]}: {o} | {line.strip()[:120]}" for k, t in text.items() if t for o, line in stale_lines(t, now)]
 
 
+def ignored(root: Path, path: str) -> bool:
+    return subprocess.run(["git", "check-ignore", "-q", "--no-index", path],
+                          cwd=root, capture_output=True).returncode == 0
+
+
+def gitignore_config(root: Path) -> list[str]:
+    """The .gitignore `config/` rule is root-anchored: an unanchored one hides
+    dev/audit/config/ and dev/governance/config/ from `git add`, and a handoff
+    silently omits the file. The root-level HA runtime directory stays ignored."""
+    out = [] if ignored(root, "config/x") else ["root-level config/x is no longer ignored"]
+    return out + [f"{n} is ignored by .gitignore" for n in ("dev/audit/config/x", "dev/governance/config/x")
+                  if ignored(root, n)]
+
+
+def gitignore_self_test() -> int:
+    """Null control: an unanchored `config/` rule must be flagged, an anchored one not."""
+    from throwaway_git import throwaway_git_init
+    failed = 0
+    for rule, want in (("config/", 2), ("/config/", 0)):
+        tmp = Path(tempfile.mkdtemp(prefix="hpo-layout-ignore-"))
+        try:
+            throwaway_git_init(tmp, "-q")
+            (tmp / ".gitignore").write_text(rule + "\n")
+            got = len(gitignore_config(tmp))
+        finally:
+            shutil.rmtree(tmp)
+        failed += got != want
+        print(f"  {'ok  ' if got == want else 'FAIL'} gitignore self-test: rule {rule!r}: {got} finding(s), want {want}")
+    return failed
+
+
 def guard_self_test() -> int:
     """A two-commit repo per case on a stub manifest: the base, then the
     change staged, each case naming how many findings of which kind it owes."""
@@ -803,6 +837,9 @@ def main() -> int:
             rc = 1
         rc = rc or verdict(found, a.enforce)
         print(f"layout: MODE: {'ENFORCE' if a.enforce else 'REPORT (exit 0 on findings until R9-RO-9)'}")
+        ign = gitignore_config(ROOT)
+        print(f"layout: GITIGNORE: {len(ign)} finding(s)", *ign, sep="\n    " if ign else "")
+        rc = rc or (1 if ign else 0)
     if a.guard or run_all:
         base = guard_base(ROOT, a.base)
         if base is None:
@@ -814,7 +851,7 @@ def main() -> int:
             print(f"layout: GUARD: {len(refused)} refusal(s) against {base[:12]}")
             rc = rc or (1 if refused else 0)
     if a.self_test or run_all:
-        failed = self_test(ROOT) + locate_self_test(ROOT) + guard_self_test()
+        failed = self_test(ROOT) + locate_self_test(ROOT) + guard_self_test() + gitignore_self_test()
         print(f"layout self-test: {'ok' if not failed else f'{failed} case(s) FAILED'}")
         rc = rc or (1 if failed else 0)
     return rc
