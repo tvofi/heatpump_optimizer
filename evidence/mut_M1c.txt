@@ -1,0 +1,9 @@
+== mutant M1c at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-      <p style="margin-top:12px"><a style="padding-block:11px" href="https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&amp;repository=heatpump_optimizer&amp;category=integration">Open this repository in your own Home Assistant</a></p></div>
++      <p style="margin-top:12px"><a style="padding-block:9px" href="https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&amp;repository=heatpump_optimizer&amp;category=integration">Open this repository in your own Home Assistant</a></p></div>
+FAIL floor 1440px without the page's fonts: every target outside a line of text is at least 40 px in both dimensions  [4 font request(s) refused, 0 font face(s) loaded; 38 targets held to the floor, 4 exempt; under 40 px [["Open this repository in ",354,37]]]
+RESULT fails=1
+RESULT base=6cc15e9b8f53
+rc=0

@@ -1,0 +1,10 @@
+== mutant M4b at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72; diff:
+--- a/docs/index.html
++++ b/docs/index.html
+-:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px }
++:focus-visible { outline: 0 solid var(--accent); outline-offset: 2px; border-radius: 4px }
+FAIL floor 1440px keyboard: Tab stops at every displayed control, at nothing else but a scrolling box, and each stop draws a solid ring inside the window  [36 controls (a radio group and the tab list one stop each), 36 stops, 0 of them a scrolling box; missed 0, not a control 0, without a ring ["Skip to content","Heat Pump Cost Optimizer","How it works","The card","Features","Works with","Get started","Limits","Docs","Reference","Switch to dark theme","Source on GitHub","Install from the Marketp","Read the documentation","Scroll through one day","how it works","the dashboard card docum","Why idle","Open this repository in ","setting up the integrati","README","docs/index.htmlThe produ","docs/how-it-works.mdThe ","docs/configuration.mdEve","docs/setup.mdThe setup f","docs/dashboard-card.mdTh","docs/automations.mdCompl","docs/architecture.mdModu","docs/ecl110.mdECL110 MQT","DISCLAIMER.mdTh
+FAIL floor 360px keyboard: Tab stops at every displayed control, at nothing else but a scrolling box, and each stop draws a solid ring inside the window  [28 controls (a radio group and the tab list one stop each), 29 stops, 1 of them a scrolling box; missed 0, not a control 0, without a ring ["Skip to content","Heat Pump Cost Optimizer","Switch to dark theme","Source on GitHub","Install from the Marketp","Read the documentation","Scroll through one day","how it works","type: custom:heatpump-op","the dashboard card docum","Why idle","Open this repository in ","setting up the integrati","README","docs/index.htmlThe produ","docs/how-it-works.mdThe ","docs/configuration.mdEve","docs/setup.mdThe setup f","docs/dashboard-card.mdTh","docs/automations.mdCompl","docs/architecture.mdModu","docs/ecl110.mdECL110 MQT","DISCLAIMER.mdThe full di","GitHub","MIT License","Disclaimer","README","Buy me a 
+RESULT fails=2
+RESULT base=6cc15e9b8f53
+rc=0

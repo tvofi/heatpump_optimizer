@@ -1,38 +1,59 @@
-Fix review: blocked 1a35b70dbf2c9225c7a2d946be27c5620e0322f1 harness: design-trace-missing targets-40px (a.next is 26 px), no-scroll-driven-animation row, styles-off reading order, keyboard reach and ring beyond chooser and gallery, no-relational-selector row read as text only
+Fix review: merge 438d15f1926d713925c2b00f2fcbd0dcf20b5a72
 
-bus-nonce: 4454bc77d121225a9c08700d922d54aa
+bus-nonce: 5ea8e7e43563c45bd34007ba1302a299
+pending-ci: gate
 
-Round: first fresh review at this head (review_carry answered FRESH-REVIEW; the verdict at 11c5dfb1 is not carried). Measured in a detached worktree at 1a35b70dbf2c9225c7a2d946be27c5620e0322f1, base 6cc15e9b8f53b5393bb4ed7297bfc12747d6e2f6; the head on origin was still that SHA when this was written.
+Round: third review of this PR, a delta review over the reviewed head 1a35b70dbf2c9225c7a2d946be27c5620e0322f1 (verdict on probe/rev-3458-4454bc77 at d5998f40efbf8c4761184db5503ccc94dc320e7d). Measured in a detached worktree at 438d15f1926d713925c2b00f2fcbd0dcf20b5a72, base 6cc15e9b8f53b5393bb4ed7297bfc12747d6e2f6; `git ls-remote` gave that SHA for the branch and for refs/pull/3458/head when this was written. Scope: `git diff 1a35b70dbf2c 438d15f1926d` is `docs/index.html` (11 lines) and `dev/audit/harnesses/r10_product_page.mjs`; no `custom_components/` line, so the scope is not widened.
 
-## Block
+## Previous findings
 
-fix-review.md step 9: design note design/R10-PRODUCT-PAGE-REDESIGN at 2f56c2e6a9a2, section 10, names requirements that `dev/audit/harnesses/r10_product_page.mjs` and `tests/doc_claims.py` do not test, and the body records no waiver by tvofi for any of them (the Rulings cover four other points). All five, not one per round:
+All five of the blocked verdict's items are answered by a check in the harness, and each check goes red under a page mutation I ran myself. None is open.
 
-1. "targets are at least 40 px". The harness's floor check measures `a.btn, button, .cp .opts label, a.iconbtn` only, and is named for that subset. Measured by me at the head (ev/reviewer_targets_both_ends.txt): the link this redesign adds, `a.next` "Scroll through one day", is 26 px tall at 360, 390, 768 and 1440 px, and it is absent at the base. Its CSS is the note's own text (note line 508), so the note's rule and the note's floor disagree: this needs either a `min-height` on `.next` (the page has 107 bytes left under the 70 000 cap) and the selector widened, or tvofi's waiver in the body. Same measure, unchanged from the base and also outside the selector: header section links 37 px at 1440 px, `a.brand` 30 px, `a.bmc` 38 px.
-2. Fallback row "no scroll-driven animation: no progress line; nothing else changes". No check runs it; the no-script check excludes scroll timelines by construction (`a.timeline instanceof DocumentTimeline`). My probe, with the page's one `@supports (animation-timeline: scroll())` condition made false: `.progress` display none, 0 console messages (ev/reviewer_probe.txt). The page holds the row; the harness does not test it.
-3. "the page reads in order with styles off". No check. My probe with every style element and style attribute removed: the 40 headings lie top to bottom in document order and the ten anchors in page order. Holds by my instrument; untested by the harness.
-4. "every control is reachable and operable by keyboard with a visible ring". The harness presses ArrowRight in the chooser and the gallery keys; no Tab traversal, the theme button is only clicked, and the ring is read on the chooser pill alone. My probe: Tab reaches 34 stops at 1440 px and 27 at 360 px, each with an outline or shadow drawn. I did not reconcile those counts with the 42 focusable elements in the DOM (radio group, roving tabs and width-hidden links would account for it; not derived).
-5. Fallback row "no relational selector: all four control-path answers shown, named". The harness matches the two `@supports not selector(:has(*))` rules as source text and says so in its header; nothing renders the state. Not waived.
-
-Items 2 to 5 are closed by a check each (or a waiver); item 1 also needs the page or the note to give way.
+1. Targets at least 40 px: closed. The page gave way: `.next` and `.brand` take `min-height: 40px`, the section links, the footer links, the coffee link and the HACS link take block padding. The floor check now reads every displayed link, button, summary, radio pill and tab stop in both dimensions at four widths, two themes, and at two widths with the fonts refused. Proof: M1, M1b, M1c, and my R1, R2, R3 below.
+2. No scroll-driven animation: closed. The row is run by simulation on the parsed rules. Proof: M2a, M2b, and my R4.
+3. Reads in order with styles off: closed. Proof: M3, M3b.
+4. Keyboard reach, operation and ring: closed. The Tab walk's stop set must equal the displayed-control set, which reconciles the stop counts my last verdict left underived. Proof: M4a, M4b, and my R5, R6.
+5. No relational selector: closed. Rendered, and the source-text match is deleted. Proof: M5a, M5b, and my R7.
 
 ## Evidence
 
-- Harness at the head: `node dev/audit/harnesses/r10_product_page.mjs` (sha1 47d8241f76bf7df4c0434e7204994025861a66f0): 82 `ok`, `RESULT fails=0`, `RESULT base=6cc15e9b8f53` (ev/harness_head.txt). The harness is the builder's, written to the judge's note; no finder's harness exists for this feature.
-- Mutation, preset price `[3.0,` to `[3.4,`: `node tools/site/day_chart.mjs --self-test --check` rc 1 `FAIL price: the page's markup is not the generator's`; `tests/doc_claims.py` `1 of 316 checks FAILED` on the generator pin; restored, `ALL 316 checks PASSED` (ev/mutations_1_3_4.txt).
-- Mutation, legend's `Control path` span deleted: `FAIL 7 sentences ... missing ["Control path"]`, `RESULT fails=1` (ev/mutations_2_server.txt).
-- Mutation, the step's run line to `true`: `UNWIRED tools/site/day_chart.mjs`, `130 wired, 1 unwired`; restored `131 wired, 0 unwired`.
-- Mutation, `day-chart` row deleted: `MODE: FULL -- every step runs (the table is stale ... missing ['day-chart'] ...)`; restored: `M:README.md` SCOPED 18 steps without `day-chart`, `M:tools/site/day_chart.mjs` SCOPED 20 steps with it.
-- Mutation, server catch `body = null` to `Buffer.alloc(0)`: `FAIL server: ... [/no-such-file.html 200; /img 200; /index.html 200]`, `RESULT fails=1`.
-- Acceptance 1: product-page claims 49 at the base, 53 at the head; `ALL 315 checks PASSED` at 6cc15e9b8f53, `ALL 316` at the head (ev/base_claims.txt, ev/figures.txt). The body quotes 315 at cbd23f1c8bf6; I took it at the merge base.
-- Design text: 329 of the note's 343 code-block lines are in the page or the generator verbatim after whitespace normalisation; the 14 others are the nine marker lines (filled by the generator), the legend (Ruling 2) and four pane lines (the hidden per-pane heading the body discloses) (ev/design_trace.txt).
-- Figures re-derived at the head: page 69893 bytes; `0 1219` depth seams; `STRUCTURE RATCHET PASSED`; `tmp_paths: 0 refused`; generator `self-test OK`, `--check --page /nonexistent/x.html` rc 1 `no such page`, `--write --page` on a copy `unchanged`; `closure.py select` `MODE: FULL`, reason as the body gives.
-- Not re-derived: the mutation and null-control entries the body took at 33a4e689fc7f and dd31ed3599c8 for the depth root; `ci_predict.py`; the two `tests/closures.json` entries (CI's `tests / closures`, pending).
-- Step 4: `tests/env_drift.py` did not run in this container (its baseline `git worktree add` exits 129). `git diff 6cc15e9b8f53 HEAD -- tests/golden custom_components VERSION RELEASE_NOTES.md` is empty, so no fixture, claim file, production line or version is touched.
-- Merge: `git merge-tree --write-tree origin/main 1a35b70dbf2c9225c7a2d946be27c5620e0322f1` exits 0 against main at 6d16af36c26a (`LEDGER-MERGE: resolved tests/closures.json`). The head is a merge of 33a4e689fc7f and 45a5053c62cd; the body's "no merge was made" refers to main.
-- CI at the head when written: `merge_train.py classify` printed `WAIT 1a35b70dbf2c9225c7a2d946be27c5620e0322f1 pending: gate red: none` on each of 7 polls to 00:24 UTC. This block does not turn on CI. Step 11 (the body's Red checks answers for `tests / fast (3.14)` and CodeQL) is unverdicted: the head's workflows had not concluded.
-- Reviewer's instruments, out of tree and mine, not the finder's: ev/reviewer_probe.cjs, ev/reviewer_targets_both_ends.cjs (Chromium only).
+- Harness at the head: `node dev/audit/harnesses/r10_product_page.mjs` (sha1 a750358a4047fa476401634860a904dc79ecadb3) prints 95 `ok`, `RESULT fails=0`, `RESULT base=6cc15e9b8f53` (ev/harness_head.txt). The harness is the builder's, written to the judge's note; no finder's harness exists for this feature.
+- The same harness over the reviewed head's page (`git show 1a35b70dbf2c:docs/index.html`): `RESULT fails=10`, the eight `floor <width> <theme>` checks and the two without fonts, nothing else red (ev/harness_new_on_reviewed_page.txt). The body's figure holds.
+- Null control: my driver with no mutation prints `RESULT fails=0` (ev/mut_NULL.txt).
+- The body's eleven mutants, re-run by me at the head, one worktree each (ev/reviewer_mutants.py, ev/reviewer_mutant_driver.sh, ev/mut_<name>.txt). All killed, with the check and detail the body quotes:
+  - M1 `fails=10`, every floor check lists `["Scroll through one day",193,26]`.
+  - M1b `fails=2`, the two fonts-refused checks, `["Buy me a coffee",172,37]`.
+  - M1c `fails=1`, `floor 1440px without the page's fonts`, `["Open this repository in ",354,37]`.
+  - M2a `fails=4`, both `no scroll-driven animation` first arms `display block -> block`, and both reduced-motion checks.
+  - M2b both `nothing else changes` arms, `display and layout box DIFFER`.
+  - M3 `fails=2`, both `styles off`, anchor tops `...,29217,38623,37995,38806`.
+  - M3b both `styles off`, `15 without a box, 15 out of order`; it also turns the two `no script ... every section is visible` checks red, which the body does not mention.
+  - M4a both keyboard walks, `36 controls ... 35 stops ... missed 1` and `28 controls ... 28 stops, 1 of them a scrolling box; missed 1`.
+  - M4b `fails=2`, both walks, the ringless list opening `"Skip to content","Heat Pump Cost Optimizer"`.
+  - M5a `fails=2`, `4,4,4,4 panes shown`, names `["","","",""]`.
+  - M5b `fails=2`, `0,0,0,0 panes shown`.
+- Seven mutants of my own, each a member of the class the body's mutants do not plant. All killed:
+  - R1, section links' padding back to 7 px: the three 1440 px floor checks, eight links at 37 px.
+  - R2, `min-height` off `.brand`: `fails=10`, `["Heat Pump Cost Optimizer",245,30]`.
+  - R3, the `footer a` rule deleted: `fails=10`, four footer links at 23 px.
+  - R4, a scroll timeline declared on `.hero-art` outside the `@supports` block: both `nothing else changes` arms red.
+  - R5, `.bmc:focus-visible { outline: none }`: both walks, `without a ring ["Buy me a coffee"]`, so one ringless control among 36 is seen.
+  - R6, `tabindex="-1"` on the story link: both walks `missed 1`.
+  - R7, pane 3 forced hidden: both `no relational selector` checks, `3,3,3,3 panes shown`, the third name empty.
+- Step 6, the floor at configurations the harness does not walk. My own probe (ev/reviewer_targets_delta.cjs, mine and out of tree, Chromium only) at 320, 360, 390, 480, 600, 768, 900, 939, 940, 1024 and 1440 px, in the default state, each of the four chooser states and each gallery tab: 99 states, and no interactive element outside a line of text is under 40 px in either dimension at the head (ev/reviewer_targets_delta_head.txt). At the reviewed head the same probe returns one or more in all 99 (ev/reviewer_targets_delta_reviewed.txt): the story link 193x26, four footer links at 23, the coffee link at 38, the brand at 30, the HACS link at 22, eight section links at 37. The enumeration matches the body's list of seams; each is in the diff.
+- Overlap, the risk the added padding carries: the probe's overlapping-pair list is the same at both heads (the sticky header over a scrolled link, and a section link clipped by its scrolling list). The padding adds no overlapping pair.
+- The four links the floor exempts are named by my probe: `how it works`, `the dashboard card documentation` link, `setting up the integration`, `README`, each computed `inline` with sentence text beside it, 24 or 25 px tall.
+- Figures re-derived at the head: page 69989 bytes (11 under the cap); `ALL 316 checks PASSED` from `tests/doc_claims.py`; floor counts 38 held and 4 exempt at 1440 px, 30 and 4 at the other three widths; keyboard 36 controls and 36 stops at 1440 px, 28 controls and 29 stops with one scrolling box at 360 px.
+- Not re-derived: the body's base-page target enumeration with fonts refused; `ci_predict.py`; the figures for `structure.py`, `selftest_wiring.py`, `tmp_paths.py`, the depth-seam scan and the generator, which this round's two-file delta does not reach and which I took at 1a35b70dbf2c.
+- Step 4 and 5: `git diff 1a35b70dbf2c 438d15f1926d -- VERSION RELEASE_NOTES.md custom_components tests/golden` is empty.
+- Step 7: the body's `## Head` names 438d15f1926d713925c2b00f2fcbd0dcf20b5a72.
+- Step 13: `git merge-tree --write-tree origin/main 438d15f1926d713925c2b00f2fcbd0dcf20b5a72` exits 0 against main at 2cfa3d7d6906 (`LEDGER-MERGE: resolved tests/closures.json`).
+- Step 14: the one number the delta moves is the page size, 69893 to 69989 bytes, which is the added declarations. The cap is not raised.
+- Step 15: `.next` departs from the note's line 508 by `min-height: 40px`, disclosed in the body, and made so the note's own floor holds. No other departure in the added lines.
+- CI: `merge_train.py classify 438d15f1926d713925c2b00f2fcbd0dcf20b5a72 --pr 3458` printed `WAIT 438d15f1926d713925c2b00f2fcbd0dcf20b5a72 pending: gate red: none`, rc 3, on each of 28 polls from 01:47:33 to 02:17:45 UTC (ev/classify_polls.txt). The review was complete, so I stopped waiting and return this with its `pending-ci:` line. The check digest at render showed `gate` concluded failure and `tests / nightly-status` failure while classify read WAIT; classify decides.
+- Step 11: the body answers `tests / fast (3.14)`, CodeQL with alerts 53 and 54, `tests / nightly-status` and `gate`. I did not verdict those answers: the head's workflows had not concluded. `tests / nightly-status` is outside `merge_train.py owed-reds`' set.
+- carry_audit: `carry_audit.py check` over this verdict, rc 0. I gave it a body holding only the PR's `## Forward-carry` and `## Friction` sections (both `none`), not the full body; the packet's own run over the full body reads `0 finding item(s)`.
 
 ## Findings
 
-none
+- The floor check exempts a link in a line of text, and that reading of the note's "targets are at least 40 px" is the fixer's, not tvofi's ruling; the body says so. Four links are exempt and measure 24 or 25 px tall. I did not block on it: the note states the floor among its accessibility floors, the exemption is WCAG 2.5.8's own, and my last verdict's item 1 named standalone targets only. tvofi may read the note more strictly. Carry: dismissed: inline prose links take their line height under the WCAG 2.5.8 inline exception, disclosed in the body, owner may overrule

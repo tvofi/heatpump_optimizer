@@ -1,2 +1,0 @@
-RESULT base page, non-inline targets under 40px tall at 360px: 6 [["a.brand","Heat Pump Cost Optimizer",30],["a","GitHub",23],["a","MIT License",23],["a","Disclaimer",23],["a","README",23],["a.bmc","Buy me a coffee",38]]
-RESULT base page, non-inline targets under 40px tall at 1440px: 6 [["a.brand","Heat Pump Cost Optimizer",30],["a","GitHub",23],["a","MIT License",23],["a","Disclaimer",23],["a","README",23],["a.bmc","Buy me a coffee",38]]
