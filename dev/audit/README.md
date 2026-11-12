@@ -2,8 +2,7 @@
 
 Everything a round runs on, so a finding can be re-measured by someone who
 was not there: the playbook, the harness contract and the instruments a judge
-re-runs. The register is `dev/programme/register/audit-2026-09.md`; the
-orchestration scripts are `.claude/workflows/audit-*.js`.
+re-runs.
 
 Which of these paths the gate reads is `tests/closure.py`'s `INERT` and
 `INERT_EXCEPT` to say; do not restate them.
@@ -12,12 +11,9 @@ Which of these paths the gate reads is `tests/closure.py`'s `INERT` and
 which seat; this file does not repeat that list. The rest of the layout:
 
 ```
-dev/audit/README.md           this file: the round playbook, the harness contract, the instruments kept live
 dev/audit/config/             finding.schema.json (a finding without evidence cannot be returned), scopes, ledgers
 dev/audit/rounds/round<N>/    a round's reports, harnesses and verdicts
 tools/audit/seat/             the stateless seat instruments; each carries --self-test
-tools/pr/preflight.sh         executed by tests/entities.py, so it is not INERT
-tools/release/stamp.py        the only way a version is assigned
 ```
 
 ## Running a round: the playbook
@@ -88,9 +84,9 @@ only after tvofi says they opened the card's tabs on it, never without.
 merges only if it unblocks a named pull request touching `custom_components/`
 or fixes a red, meaning the required `gate` job's on main (`tools/ci/gate.py`)
 or a self-test red its own pull request introduces, never one inherited from
-main. Each round-11 machinery group names its ground; the merge seat checks it
-at admission. Of the owner's open-PR cap (`DEFAULT_CAPS` in
-`tools/plan/replan.py`), 10 slots (the owner's count) are reserved for
+main; the rest waits for an instrument window the owner opens. Each round-11
+machinery group names its ground; the merge seat checks it at admission. Of the owner's open-PR cap (`DEFAULT_CAPS` in
+`tools/plan/replan.py`), 10 slots (the owner's count, not a tree value) are reserved for
 `custom_components/` pull requests; a machinery PR never takes one, nor a
 production one waits for a machinery slot. A proposal
 is accepted only when its friction blocks a production merge, else ruled LOG
@@ -107,7 +103,8 @@ against a measured baseline and a null control.
   instruments; after a transfer re-probe queue latency, `merge_group` gate
   names and CI minutes against the train; adopt or decline, and close the held
   groups the queue makes moot (R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY,
-  R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE, R10-FLOW-BODY-ONLY (a)).
+  R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE, R10-FLOW-BODY-ONLY (a)). Context: the Lean flow
+  pre-study, section K9 (out of the tree).
 - Intake's baseline: R10-PROTECTION-CENSUS's rows (each red check per round-10
   production head: real catch, grader skew or infrastructure). On it, B1
   (triage batch 245, P740) opens the round unless ordered into round 10: on an
@@ -125,10 +122,11 @@ against a measured baseline and a null control.
   carries kept (triage batches 238, 240 and 241 name them and the carries
   re-homed to the groups owning `merge_train.py`,
   `tools/pr/cancel_superseded.py` and `tests/entities.py`).
-- R10-ROUND-PLAYBOOK-FINAL's roster carries 17, 25, 26 and 35 to 40, as
+- R10-ROUND-PLAYBOOK-FINAL's roster carries 17, 25, 26 and 35 to 41, as
   written there: `pr_cap.py`'s production slots, the budget keys' moved paths,
   D15's drawn-power gain, the stubs bump, R10-CI-PRIORITY-PAUSE's three, the
-  boost settling tail and R10-PREPR-RESIDUE's seven.
+  boost settling tail, R10-PREPR-RESIDUE's seven and
+  R10-PREPR-DARWIN-SELFTEST-LANE un-deferred as a macOS leg.
 - Benchmark cards G1-G10, accepted (G11 rejected), baseline instruments
   `flow_metrics.py` and `review_strength.py`: G1 a machinery budget of about
   40% of dispatched groups; G2 evidence tiers keyed on closures; G3 a
@@ -164,8 +162,6 @@ against a measured baseline and a null control.
   #1721's token-view detector stays unproven until an RCA refusal settles it;
   a decision record is named by number, never by path, so none joins
   `policy_lint`'s corpus.
-- `dev/audit/rca/harness-friction/rounds.py` takes one directory argument and
-  no `--stats` mode.
 
 ## The harness contract
 
@@ -199,13 +195,14 @@ without reading the finding, so it has to carry everything:
   carries none is defective however quiet the box (#950, round 4 D9-INST).
   A `thread_factor` over 1.05 is a BLAS signal, rejected and re-taken. A
   harness running deliberate work on a second thread (the FakeHass trap below)
-  subtracts that thread's CPU, prints the residual
+  can never meet the bare ratio (`h2_cycle.py`: 1.27–1.30 over four re-takes,
+  structural), so it subtracts that thread's CPU, prints the residual
   `(process_cpu - deliberate_thread_cpu)/thread_cpu` as `thread_factor` and
   the subtracted CPU as its own RESULT.
-  **`load1` is quoted, not gated** (the box's ambient floor exceeds any
-  useful bar): a timing is protected by a *ratio* metric and a null control
-  under the same load in the same session. Drift mode and the `run.sh` lease
-  are `.claude/rules/gate-scoping.md`'s; a direct `stress.py` run takes none.
+  **`load1` is quoted, not gated**: the round-2 judge measured this box's
+  ambient floor at 1.86 (best of ten retries: 1.55); a timing is protected by
+  a *ratio* metric and a null control under the same load in the same
+  session.
 - It hooks a named production symbol (`instrumented_symbol` in the finding)
   and moves under a named `perturbation`: a config change or a one-line
   production edit under which the number must change in a stated direction.
@@ -250,8 +247,6 @@ moves.
 - `tests/plan_view.py` writes a per-checkout plan payload under `/tmp` and
   every Node harness reads it; `card.mjs` alone falls back to an unhashed
   legacy path with a warning, the others fail. Set `HPO_PLANDATA` per harness.
-- `tests/setup_qa_render.mjs` writes SVGs to `../setup-qa/`, outside the
-  repository.
 - `tests/env_drift.py` runs `git worktree add` in the repository it is run
   from and refuses a ref that resolves to `HEAD`.
 - `tests/closure.py` globs `tests/*.py` and `tests/*.mjs` non-recursively;
@@ -284,19 +279,25 @@ gate's checks and budgets, the harness contract, the lint lanes, this toolkit)
 is a finding **of your dimension** under the same bar as any other, not prose
 in a report. It goes panel, judge, then issue, and **filing waits for the
 judge**, who re-measures with the accused instrument; a verifier who cannot
-make the accused check fire has not refuted it. `CLAUDE.md`'s order still
-governs: a one-line instrument repair is made in place, with no issue.
+make the accused check fire has not refuted it, and says which they could not
+separate. `CLAUDE.md`'s order still governs: a one-line instrument repair is
+made in place, with no issue.
 
 ## Rounds 1-3 are at a SHA
 
-`tools/audit/round1/` to `round3/` and the done rosters `wave-1b-groups.json`,
-`wave-2-groups.json` and `wave-3-groups.json` are at
-**`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`** (`git show d5d8c4a:tools/audit/round2/JUDGE.md`);
-every number anything still acts on is in `dev/programme/register/audit-2026-09.md`.
-Round 2's harnesses are at `757e164` (`round2/HARNESSES.md` says which run);
-the tag `audit-round2-evidence` moved once, so cite the SHA. A harness's root
-rule varies (`D6/claims.py` measures the working directory, `D7/sysid_plant.py`
-its own checkout): copy it into the tree under test and say which it used.
+`tools/audit/round1/` to `round3/`, the done rosters `wave-1b-groups.json`,
+`wave-2-groups.json` and `wave-3-groups.json`, `web-phase0.js` and
+`triage-quiet-judges.json` are at
+**`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`** (`origin/main` at v6.3.18, on
+`main`'s first-parent history; `git show d5d8c4a:tools/audit/round2/JUDGE.md`);
+their briefs record what a judge established and refuted, so read them before
+re-deriving anything a group in them settled. Every number anything still acts
+on is in `dev/programme/register/audit-2026-09.md`. Round 2's harnesses are at
+`757e164` (which still run is `round2/HARNESSES.md` at `d5d8c4a`, final at
+that commit only), its numbers recorded at `c398fc84`; the tag `audit-round2-evidence` moved once, so cite the SHA. A
+harness's root rule varies (`D6/claims.py` measures the working directory,
+`D7/sysid_plant.py` its own checkout): copy it into the tree under test and say
+which it used.
 
 ## The four that stayed
 

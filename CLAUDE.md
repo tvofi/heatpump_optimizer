@@ -110,7 +110,7 @@ Under `dev/governance/roles/`.
 
 | contract | the role |
 |---|---|
-| `orchestrator.md` | dispatches, merges, holds the freeze, records, stamps; turn `nudge.md`. |
+| `orchestrator.md` | dispatches, merges, holds the freeze, records, stamps; Cursor turn `nudge.md` |
 | `fixer.md` | owns one architecturally sound fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim; steps 2–8 re-execute after any rebase or merge, and the handoff to review freezes the branch |
 | `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
 | `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
