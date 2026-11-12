@@ -77,6 +77,7 @@ standing-seat liveness step keep the seats alive.
 - [`moved_paths.py`](instruments/moved_paths.py.md) — lists every line in the given files that names a path `tests/layout.json` marks moved
 - [`offline_spy.py`](instruments/offline_spy.py.md) — runs a seat instrument's `--self-test` under a throwaway HOME and counts what it reaches outside
 - [`open_driver.py`](instruments/open_driver.py.md) — the open arm: one pass opens the pull requests the tick board owes (topic→group incl. `-p<N>`/`-<N>` parts, priority, cap, STARVED, retry)
+- [`seat_gen.py`](instruments/seat_gen.py.md) — the generation token a superseded seat's writers check before writing, and the session lock keyed on the session binary's pid
 - [`open_pr.sh`](instruments/open_pr.sh.md) — opens a draft PR from `handoff/<topic>` as `hpo-author`, adds its own delivery row, re-pushes, prints N and the head
 - [`orchestrator_tick.py`](instruments/orchestrator_tick.py.md) — the heartbeat's dispatch list
 - [`owed_unactioned.py`](instruments/owed_unactioned.py.md) — says which tick owed lines have outlived a sweep with no live acknowledgement
