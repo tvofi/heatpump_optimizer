@@ -2816,6 +2816,9 @@ def self_test() -> int:
         gh.on("rate_limit", out=json.dumps({"remaining": rate[0],
                                             "limit": rate[1]}))
         for pr, rv in (reviews or {}).items():
+            flat = [x for p in rv for x in (p if isinstance(p, list) else [p])]
+            gh.on(lambda argv, pr=pr: any(f"pulls/{pr}/reviews" in a and "page=" in a for a in argv),
+                  out="".join(json.dumps(x) + "\n" for x in flat))
             gh.on(f"pulls/{pr}/reviews", out=json.dumps(rv))
         # GitHub search answers GET only: a stub that 404s any search call
         # NOT carrying --method GET, so an arm fails loudly on the POST form

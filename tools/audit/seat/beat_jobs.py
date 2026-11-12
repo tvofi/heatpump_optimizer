@@ -113,6 +113,10 @@ ROWS (the job table's `interval_s` in brackets):
                      owner's thresholds, 2026-11-07); a held breach re-prints its
                      first line, so it is new once per trip. A line suggests; the
                      orchestrator decides. `bottleneck: UNREADABLE` on a non-zero rc.
+  scorecard [86400]  scorecard.py `report --dir S/scorecard --train-log <train_log>
+                     [--sweep-record <sweep_record>]` into `S/beatd/scorecard.txt`
+                     (ten report-only lines, none a gate); the digest hears only
+                     `scorecard: UNREADABLE rc=<n>` when the instrument fails.
 No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
 `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
 file. Every row exits 0 once its lines are written: the digest is the signal,
@@ -135,7 +139,8 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "bottleneck")
+        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "bottleneck",
+        "scorecard")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
 #: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
@@ -657,10 +662,25 @@ def bottleneck(ctx: Ctx) -> None:
     write_job(ctx, "bottleneck", [ln for ln in out.splitlines() if ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))])
 
 
+def scorecard(ctx: Ctx) -> None:
+    """scorecard.py report into S/beatd/scorecard.txt; report-only, so the digest hears only of a failed run."""
+    got = ctx.need("scorecard", "train_log")
+    if got is None:
+        return
+    args = ["report", "--dir", str(ctx.state / "scorecard"), "--train-log", got[0], "--repo", str(ctx.repo)]
+    if ctx.overlay.get("sweep_record"):
+        args += ["--sweep-record", str(ctx.overlay["sweep_record"])]
+    rc, out, err = ctx.py("tools/audit/seat/scorecard.py", *args)
+    if rc != 0 or not out.strip():
+        return write_job(ctx, "scorecard", [f"scorecard: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
+    atomic(ctx.state / "beatd" / "scorecard.txt", out)
+    write_job(ctx, "scorecard", [])
+
+
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
        "opener": opener, "loop-cwd": loop_cwd, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
-       "outside-intake": outside_intake, "bottleneck": bottleneck}
+       "outside-intake": outside_intake, "bottleneck": bottleneck, "scorecard": scorecard}
 
 
 def main(argv: list[str]) -> int:

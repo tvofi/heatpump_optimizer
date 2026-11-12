@@ -1122,13 +1122,14 @@ def _group_checks(check) -> None:
               not published and "someone" not in git(work, "ls-remote", str(origin)))
         # A step push matches no glob the handoff machinery lists, read from its own source.
         # (carry_fold_arm lists handoff-wip/* on purpose, to read a BLOCKED.md; it moves no PR, so it is not a handoff glob)
-        globs = ([g for g in re.findall(r"'(refs/heads/handoff[^'*]*\*)'", (HERE / "cloud_relay.sh").read_text())
+        # (the same glob listed by two arms is one glob: the pin is the set the handoff machinery lists, not how often)
+        globs = list(dict.fromkeys([g for g in re.findall(r"'(refs/heads/handoff[^'*]*\*)'", (HERE / "cloud_relay.sh").read_text())
                   if not g.startswith(f"refs/heads/{WIP_NS}/")]
-                 + re.findall(r'"\+(refs/heads/handoff[^:"*]*\*):', (HERE / "bus.sh").read_text()))
+                 + re.findall(r'"\+(refs/heads/handoff[^:"*]*\*):', (HERE / "bus.sh").read_text())))
         git(work, "push", "-q", str(origin), f"{tip}:refs/heads/{WIP_NS}/r10-x", f"{tip}:refs/heads/handoff/r10-x")
         listed = git(work, "ls-remote", str(origin), *globs)
         check("a handoff-wip push is invisible to cloud_relay.sh's handoff arm and bus.sh orphans; handoff/ is not (null)",
-              len(globs) == 4 and f"refs/heads/{WIP_NS}/" not in listed and "refs/heads/handoff/r10-x" in listed)
+              len(globs) == 2 and f"refs/heads/{WIP_NS}/" not in listed and "refs/heads/handoff/r10-x" in listed)
         git(work, "push", "-q", str(origin), f":refs/heads/{WIP_NS}/r10-x", ":refs/heads/handoff/r10-x")
         # The pinned identity passes ref_privacy --commits; a machine's domain does not (null control).
         bare_env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))}

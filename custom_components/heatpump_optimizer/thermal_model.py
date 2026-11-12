@@ -2595,6 +2595,21 @@ def power_for_heat_per_cop_kw(
     return float(power) if np.ndim(heat_per_cop) == 0 else power
 
 
+def refill_power_kwh(params: ThermalParameters, heat_per_cop_kwh: float, hours: float) -> float:
+    """The electrical kWh that buys back ``heat_per_cop_kwh`` (heat over COP)
+    as a steady draw over ``hours``: :func:`power_for_heat_per_cop_kw` at that
+    rate, so a refill above the modulation floor pays its part-load derate.
+
+    Sign-symmetric: a surplus is credited at the law a deficit is charged at.
+    The input itself, bit for bit, while the derate is 0 or ``hours`` is not
+    positive: the inverse passes ``abs`` through unchanged there (its own
+    ``band <= 0`` guard) and ``copysign`` restores the sign."""
+    return math.copysign(
+        power_for_heat_per_cop_kw(params, abs(heat_per_cop_kwh), hours=hours),
+        heat_per_cop_kwh,
+    )
+
+
 def added_power_for_heat_per_cop_kw(
     params: ThermalParameters, power_kw: Any, heat_per_cop: Any
 ) -> Any:
