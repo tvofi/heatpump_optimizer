@@ -1,0 +1,31 @@
+# carry_audit.py landed --body BODY.md  (roster tip 4058c036b06f6ec22a17ef81ff43bcbf76cf261e)
+NOTE stale tree: 737823acd1b143311e19d4b8ac5066100d136ccc lacks origin/main 26072317b5556a2baa1ff562d8fbbc9588e2ba5c; roster read at origin/main
+CARRY-MISSING R10-ADVISOR-STEADY-START body item 29bbcce6: not in its brief or carries: "- The background steady pair breaks the recorded day's cycle-cost budget and needs a ruling this sea"
+CARRY-MISSING R10-ADVISOR-STEADY-START body item 5e937702: not in its brief or carries: '- The ruling\'s "one real high-spread price day" is not met, and whether the synthetic day discharges'
+CARRY-LANDED: 2 missing
+rc=1
+
+# carry_audit.py landed --body BODY.md --topic r10-advisor-steady-start
+NOTE stale tree: 737823acd1b143311e19d4b8ac5066100d136ccc lacks origin/main 26072317b5556a2baa1ff562d8fbbc9588e2ba5c; roster read at origin/main
+CARRY-LANDED: 0 missing
+rc=0
+
+# carry_audit.py check --body BODY.md
+NOTE stale tree: 737823acd1b143311e19d4b8ac5066100d136ccc lacks origin/main 26072317b5556a2baa1ff562d8fbbc9588e2ba5c; roster read at origin/main
+NOTE body item 29bbcce6: R10-ADVISOR-STEADY-START: R10-ADVISOR-STEADY-START resolved on origin/handoff/audit-r10-roster
+NOTE body item 5e937702: R10-ADVISOR-STEADY-START: R10-ADVISOR-STEADY-START resolved on origin/handoff/audit-r10-roster
+NOTE body item 55dd448f: R10-SAV-VALUATION-RESIDUE: R10-SAV-VALUATION-RESIDUE resolved on origin/handoff/audit-r10-roster
+NOTE body item 2c18d19e: dismissed:disclosed in the docs paragraph, the option the design offered
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+
+# R10-ADVISOR-STEADY-START carry list at roster 4058c036 (index, length, mentions cycle-cost/cpu_ratio/replay, first 160 chars)
+0 4002 False Moved from R10-ADVISOR-WHATIF carry 0 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched thi
+1 1709 False Owner-side ruling on the brief-departure item of design/R10-ADVISOR-STEADY-START at 55f90c7c63ae3f1609e6032959871e5ccbd867fe, made by the round-10 orchestrator 
+2 656 False From r10-advisor-steady-start, body item c7424eb8: The ruling's "one real high-spread price day" is not met: dev/audit/harnesses/r10_advisor_steady_bracket.py r
+3 577 False From r10-advisor-steady-start, body item ccc86b13: Item pair-other-asks of the design: the hot-water ask reads +0.0 on `_solve_coord`, which has no tank (tests/
+4 555 False From r10-advisor-steady-start, body item 70e463f9: Items measured-fields, weekday-day and pv-price of the design are not measured: the schedule figure on a thro
+5 614 False From #3481, body item b4048305: The ruling's "one real high-spread price day" is not met: dev/audit/harnesses/r10_advisor_steady_bracket.py runs a synthetic pea
+6 535 False From #3481, body item 128b800e: Item pair-other-asks of the design: the hot-water ask reads +0.0 on `_solve_coord`, which has no tank (tests/features.py), so th
+7 513 False From #3481, body item c33b6f10: Items measured-fields, weekday-day and pv-price of the design are not measured: the schedule figure on a throttling-valve two-ta
+brief mentions: False

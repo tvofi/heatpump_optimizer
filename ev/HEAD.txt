@@ -1,0 +1,12 @@
+reviewed head 737823acd1b143311e19d4b8ac5066100d136ccc
+handoff ref now: 737823acd1b143311e19d4b8ac5066100d136ccc	refs/heads/handoff/r10-advisor-steady-start
+body ref now: 07985b1316929a0d423e578a7cd0283f4380b3ad	refs/heads/handoff-body/r10-advisor-steady-start
+pr head now: 18b5f950b12b29ea17d256dbeef7d33aeea27561	refs/pull/3481/head
+origin/main 26072317b5556a2baa1ff562d8fbbc9588e2ba5c
+merge-tree origin/main head: b6132c695cfcad8e4b9d24d674d0f1de39ef08eb rc=0
+merge-tree 2050adb3 338c53d7: 082561cafe0d7499d9e654d465103b9767237aa9; head tree 082561cafe0d7499d9e654d465103b9767237aa9
+roster tip 4058c036b06f6ec22a17ef81ff43bcbf76cf261e	refs/heads/handoff/audit-r10-roster
+
+pr head 18b5f950b12b29ea17d256dbeef7d33aeea27561 parents: 40be5b2f78f8a8b0a0e05b0c113ad6be6011acf9 737823acd1b143311e19d4b8ac5066100d136ccc
+pr head tree 082561cafe0d7499d9e654d465103b9767237aa9
+body commit 07985b1316929a0d423e578a7cd0283f4380b3ad

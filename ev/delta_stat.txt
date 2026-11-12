@@ -1,0 +1,17 @@
+ tests/features.py                                  | 72 ++++++++++++++++++++++
+ ...Coordinator.async_simulate.BOOLOP.19646b85.json |  6 ++
+ ...umpOptimizer.reference_day.BOOLOP.dcbeb653.json |  6 ++
+ ...ptimizer.reference_day.CLAMP_DROP.b9947f73.json |  6 ++
+ ...ptimizer.reference_day.CLAMP_DROP.cbe42979.json |  6 ++
+ ...Optimizer.reference_day.CMP_BOUND.dcbeb653.json |  6 ++
+ ...Optimizer.reference_day.GUARD_OFF.dcbeb653.json |  6 ++
+ ...ptimizer.reference_day.RETURN_DEL.5b1941e5.json |  6 ++
+ .../_horizon_weather.CMP_BOUND.362ff97e.json       |  6 ++
+ .../_horizon_weather.GUARD_OFF.094aad58.json       |  6 ++
+ .../_horizon_weather.GUARD_OFF.362ff97e.json       |  6 ++
+ .../_horizon_weather.GUARD_OFF.39006914.json       |  6 ++
+ .../_horizon_weather.GUARD_OFF.679f37e0.json       |  6 ++
+ .../_horizon_weather.CMP_BOUND.39006914.json       |  6 ++
+ .../limited_answer.RETURN_DEL.da9e8e97.json        |  6 ++
+ .../scratch_copies.GUARD_OFF.d061db3d.json         |  6 ++
+ 16 files changed, 162 insertions(+)

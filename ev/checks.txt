@@ -1,0 +1,8 @@
+head 737823acd1b143311e19d4b8ac5066100d136ccc
+python3 tests/structure.py -> STRUCTURE RATCHET PASSED
+python3 tools/pr/ci_predict.py -> CI PREDICT: no closures, fast, governance or instrument red predicted against 2ced371c1af5 (a data-file read is not seen)
+git diff merge-base...HEAD -- VERSION manifest.json RELEASE_NOTES.md tests/golden -> empty
+git diff merge-base...origin/main -- dev/governance/roles/ -> empty (origin/main 289c9b996 when read)
+merge_train.py owed-reds -> tests / coverage-ratchet; tests / fast (3.14); tests / mutation; tests / typing; validate / validate-hacs
+merge_train.py classify 338c53d77a7a171bcbb04b554bb7bc1d07a9ecec --pr 3481 -> WAIT 338c53d77a7a171bcbb04b554bb7bc1d07a9ecec pending: gate red: none (exit 3)
+triage: np.concatenate([h, np.full(0, nan)]) -> [1.0, 2.0, 3.0, 4.0]; parse_windows("") , parse_weekly_windows("") -> [] None

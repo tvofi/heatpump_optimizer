@@ -1,0 +1,7 @@
+review_carry: 338c53d77 -> 737823acd  main=origin/main
+  branch-only commits: 3
+  why: the branch's own commits 2050adb3b d788f83a8 change its content: 737823acd1b143311e19d4b8ac5066100d136ccc is not the reviewed head 338c53d77a7a171bcbb04b554bb7bc1d07a9ecec merged onto 2ced371c1af5581c47dc6163b53c29ee15347a3d
+  d788f83a8  Checks for the horizon's weather, the reference day's clamps and the card what-if's band; three equivalent mutants triaged (#2257)
+  2050adb3b  The two-day reference check runs on two days of every series; eight pins from --pin-killed (#2257)
+  737823acd  Merge remote-tracking branch 'origin/fix/r10-advisor-steady-start' into fix/r10-advisor-steady-start
+review_carry: FRESH-REVIEW
