@@ -1,8 +1,7 @@
-BLOCKED: r10-standing-contracts-p2 part 1 (carries 7, 9-12) at 2ced371c1af5. Wip started from main, not from the older stop note on this ref.
+Question: how may carry 15 be answered so the carry audit routes it?
 
-Carry 7: dismissed: implemented at 1b174e9b3 (orchestrator.md:109 "only from the plan page and the ledger's digest").
-Carry 10: dismissed: implemented at 1b174e9b3 (standing-roster.md is the retired stub; roster-drain row in tools/audit/seat/beatd.jobs.json).
-Carry 11: dismissed: implemented at 1b174e9b3 (same evidence as carry 10).
-Carry 9: not buildable. standing-merge.md is still the live seat contract and beatd.jobs.json has no merge or train row (rows: tick-digest, owed-check, roster-drain, plan-beat, gantt, verdict-audit, pulse, cancel-sweep, disk, opener, head-watch, audit-dispatch, outside-intake, bottleneck). The carry requires the replacement job live and one real pitch merged by it before the seat stops (owner constraint "dont cause you to run things inline"). Retiring the contract text now would break that constraint.
-Carry 12: not buildable. There is no dispatch row either; standing-dispatch.md:17 already says "a beat job takes over once a cycle's log agrees". It needs the job built and one full cycle run beside the seat.
-Question: build the merge and dispatch beat rows in beatd.jobs.json and beat_jobs.py (new design, outside the approved P2 contract-edit design), or leave carries 9 and 12 to R10-ORCH-LEDGER?
+Code is pushed at handoff/r10-standing-contracts-p2 907c15d37 (carries 21, 22, 23, 27 built; carry 16 dismissed, implemented at ae1971474; carry 24 not built).
+body_push refused twice with `REFUSED BODY-LINT`; the audit says: UNROUTED body item [owed carry] 'Carry 15: dismissed: implemented at e199f727 (handoff/r10-standing-contracts-p2-p4, built by the other part)'. Writing `Carry: R10-STANDING-CONTRACTS-P2` on it gives BAD-DEST (the group is carries-open, 'valid targets: none live after R10-STANDING-CONTRACTS-P2').
+Same BAD-DEST for a forward-carry of carry 24 to R10-FIXER-MD-SPELLING-CORPUS or to this group. Carry 24 (fixer.md citation vs the layout guard) needs a grader-first p1: tools/policy/policy_lint.mjs drops the docs/decisions/0011 citation-presence pin and fixer.md cites decision 0011 in prose; built here, prepr's ci_predict refused it as BOOTSTRAP (the base's policy_lint refuses the change), so it was reverted from this head.
+Body is kept at handoff-wip/r10-standing-contracts-p2-body 1232c3a2.
+prepr on 907c15d37: only the body/carry arms red (BAD-DEST above); every other step ok. Push of the wip step ref with force-with-lease was denied by the harness, so this note sits on the old wip tip.
