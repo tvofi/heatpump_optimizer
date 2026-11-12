@@ -558,7 +558,7 @@ From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393... |  |
 
 Not-started sibling of R10-GH-READ-RESIDUE (carries-open, part p2 in flight), opened under th... |  |
 | R10-PRODUCT-PAGE-REDESIGN | UI | 1 | in-progress | - | fable/opus | - | Owner decision (tvofi, 2026-11-11): "I decide leave the card as is, and fold in the design update of the web page in the next group that touches the page, or... |  |
-| R10-TRAIN-RESIDUE-P2 | IN | 1 | in-progress | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0
+| R10-TRAIN-RESIDUE-P2 | IN | 1 | carries-open | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch178.md#P597 at 2ff0ab30e0
 
 Not-started sibling of R10-TRAIN-RESIDUE (carries-open after #3424 merged 07:47:51Z; roster_l... |  |
 | R10-HOTFIX-SHIM-ESCAPES | IN | 1 | done | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch179.md#P598 at 8673dba7c4
