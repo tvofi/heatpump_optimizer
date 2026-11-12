@@ -9,7 +9,13 @@ Alternatives considered: Part A could poll on a timer thread instead of after ea
 
 ## Head
 
-80779d2e7492c8aaf1b4b4608d3f6b93a45dcffd. Merge base and origin/main are both 61afd4f2db10341ab9b86583944402b206eb4c78, at 2026-11-11T20:37Z.
+`92ecb6c16ea264a2b468f2a30a932d3c22068e88`. Merge base and origin/main are both `5365b1843702465563fd330623464769777c8c06`, at 2026-11-12T11:24Z.
+
+Merge repair: `cf26b254e6` merges origin/main `5365b18437` (past the v7.1.12 stamp `4596f721f6`) into the previous head `93e4697879`. Its one conflict, `tools/audit/seat/beatd.py` `cmd_run`, is resolved by union: main's `launch.json` write (what `liveness.py` relaunches a dead beatd from) runs first, then this branch's `beat = Beat(...)`, `rc = beat.run(...)` and the in-place `os.execve` restart. Read-back: every line each parent added over the merge base is present in the merged file (a `grep -qxF` per added line of `git diff -U0 <base> <side> -- tools/audit/seat/beatd.py`, which prints `MISSING:` per absent line; it printed none for either side). The reviewer's delta is the `cmd_run` hunk of `git diff 93e4697879 92ecb6c16e -- tools/audit/seat/beatd.py`; `tests/closures.json` is byte-identical to origin/main's (`git diff --quiet origin/main HEAD -- tests/closures.json`).
+
+`env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` ran at `cf26b254e6`, rc 0, and its recording was committed as `f08baa3673`, then withdrawn by `92ecb6c16e`. It raised `inert_reads["tests/entities.py"]` from 75 to 1644 entries (1569 new: 799 under `dev/audit`, 663 under `dev/programme`, 6 under `dev/governance/decisions`). At that head `prepr.sh` refused twice. Its self-test failed 3 of 542 on the 6b skip arm (`6b skips a diff that reaches no selectable script, recording nothing (got 1, wanted 3)`): a new `dev/governance/rules/` file now reaches `tests/entities.py`. `ci_predict.py` also predicted a closures red, because the recording dropped `dev/audit/harnesses/r10_open_driver_mutants.py` from the entry. The same self-test exits rc 0 at origin/main (null control). With main's `closures.json`, `ci_predict.py --apply-inert` writes nothing and predicts no red. A recording that widens the gate's reach belongs to the closures lane, not a merge repair. Carry: dismissed: the recording is CI's `closures` job and `closures-autofix`'s to commit on Linux, not this repair's.
+
+Figures re-taken at this head: the beatd self-test, the scope, the structure ratchet and prepr.sh. The others below were taken at `80779d2e74` and describe code the merge did not touch.
 
 ## Mutation proof
 
@@ -41,19 +47,21 @@ Failing test first: the new checks against the merge base's `open_driver.py` pri
 - Part A: on a checkout behind origin/main only off the seat paths (`docs/zz.md`), the beat does not restart. It keeps one START at C1 with HEAD unchanged, and prints neither BEAT-RESTART nor NO-RESTART. `--once` never restarts. With no restart taken, the gated `run_one` runs its job.
 - Part B: a board line whose handoff ref is gone prints exactly `SKIP r10-cp <sha8> moved` and opens nothing.
 - On the merge base, the beat never restarts. In the case-9 fixture its journal holds one START at C1, and the opener skips every mismatched line as `moved`.
+- Merge read-back: the per-line `grep -qxF` check prints `MISSING: <line>` for any added line absent from the merged file; it printed none.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/open_driver.py --self-test`: 93 checks, 0 failed at the head. The merge base has 91 checks; the head adds 3 and replaces 1.
-- `python3 -I tools/audit/seat/beatd.py --self-test 9`: 34 checks, 0 failed at the head, mutants included.
-- `python3 -I tools/audit/seat/beatd.py --self-test`: 153 checks, 0 failed at the head (every case and mutant).
-- `python3 dev/audit/harnesses/r10_open_driver_mutants.py`: M0 `null-ok`, M-livetip `killed`, M-moved-gone `killed`. Then `ABORT M-exact: pattern occurs 0 times`, rc 2. The harness aborts the same way on a `git archive origin/main` copy at the merge base, so the abort predates this diff (see Friction).
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`tests/doc_claims.py`, `tests/entities.py`).
-- `HPO_GATE_PRIORITY=2 python3 -c '... gate_lock._priority_cases(gate_lock) ...'` (run from `tests/`): 2 failed of 14 at the merge base, 0 failed of 14 at the head. With the variable unset: 0 failed of 14 at both. With `HPO_GATE_PRIORITY=1` at the base: 0 failed of 14, so only an inherited urgent priority breaks the arms.
-- `HPO_GATE_PRIORITY=2 PYTHONPATH=tests/hastub python3 tests/entities.py` at the head: `ALL 2705 ENTITY CHECKS PASSED`. `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: `ALL 315 checks PASSED`.
-- `tools/pr/prepr.sh` at the head: rc 0.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL`.
+- `python3 -I tools/audit/seat/beatd.py --self-test` at `cf26b254e6` (`beatd.py` unchanged to `92ecb6c16e`): `beatd self-test: 157 checks, 0 failed` (every case and mutant; main's `launch.json` checks included).
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` at `92ecb6c16e`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (`tests/doc_claims.py`, `tests/entities.py`).
+- `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` at `cf26b254e6`: rc 0, `tests/entities.py 677 files`; not committed (see Head).
+- `python3 tests/structure.py` at `92ecb6c16e`: `STRUCTURE RATCHET PASSED`.
+- `tools/pr/prepr.sh` at `92ecb6c16e`: rc 0.
+- At `80779d2e74`: `python3 -I tools/audit/seat/open_driver.py --self-test`: 93 checks, 0 failed. The merge base has 91 checks; the head adds 3 and replaces 1.
+- At `80779d2e74`: `python3 -I tools/audit/seat/beatd.py --self-test 9`: 34 checks, 0 failed, mutants included.
+- At `80779d2e74`: `python3 dev/audit/harnesses/r10_open_driver_mutants.py`: M0 `null-ok`, M-livetip `killed`, M-moved-gone `killed`. Then `ABORT M-exact: pattern occurs 0 times`, rc 2. The harness aborts the same way on a `git archive origin/main` copy at the merge base, so the abort predates this diff (see Friction).
+- At `80779d2e74`: `HPO_GATE_PRIORITY=2 python3 -c '... gate_lock._priority_cases(gate_lock) ...'` (run from `tests/`): 2 failed of 14 at the merge base, 0 failed of 14 at the head. With the variable unset: 0 failed of 14 at both. With `HPO_GATE_PRIORITY=1` at the base: 0 failed of 14, so only an inherited urgent priority breaks the arms.
+- At `80779d2e74`: `HPO_GATE_PRIORITY=2 PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2705 ENTITY CHECKS PASSED`. `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`: `ALL 315 checks PASSED`.
+- At `80779d2e74`: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL`.
 - Field figures: re-measured on the beat host, not here, because this container holds no `open-driver.log`. The enumerators are:
   - moved skips: `grep -E '^<day>' open-driver.log | grep -cE 'SKIP \S+ \S+ moved'`
   - STALE CHECKOUT refusals: `grep -cF 'STALE CHECKOUT' open-driver.log` over the RESULT lines of the same window
