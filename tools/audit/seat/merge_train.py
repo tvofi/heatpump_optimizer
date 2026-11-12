@@ -5880,12 +5880,31 @@ def _self_test() -> int:
     # answers "app". The contract is read again at every step 6, the shortcuts included.
     w = {"pull": THEIRS, "gate": OutsideStub((True, "class O: the mandate is in force"),
                                                (False, "class O: mandate 4100000001 was revoked"))}
-    got, calls, _ = seat(w, lambda t: (t.approve(7, H0, dict(item), ["tests/features.py"]),
-                                       t.approve(7, H0, dict(item), ["tests/features.py"])))
+    held: list = []
+
+    def twice(t):
+        first = t.approve(7, H0, dict(item), ["tests/features.py"])
+        held.append(dict(t.contracted))
+        try:
+            t.approve(7, H0, dict(item), ["tests/features.py"])
+        except Stop as stop:
+            held.append(dict(t.contracted))
+            return first, stop
+    got, calls, _ = seat(w, twice)
     check("fork head (carry 23): an unowned class-O path, approved 'app' at adoption's head, PARKS at the next "
           "step 6 once the mandate is revoked -- the contract is read before the already-approved shortcut",
-          parked(got, "mandate 4100000001 was revoked", "owner's review") and len(w["gate"].asked) == 2
-          and len(app_posts(calls)) == 1)
+          got is not None and got[0] == "app" and parked(got[1], "mandate 4100000001 was revoked", "owner's review")
+          and len(w["gate"].asked) == 2 and len(app_posts(calls)) == 1)
+    check("... the head the contract held at is recorded, and the record is dropped the moment it is read again: "
+          "a refusal leaves no head for `_approve` to trust", held == [{7: H0}, {}])
+    check("... and the pull request is read from the pulls API once for both, a head repository being fixed",
+          sum(c == ["gh", "api", "repos/o/r/pulls/7"] for c in calls) == 1 and w["gate"].crossed == 1)
+    for answer, want in (((True, "class F only"), "app"), ((False, "class R"), None)):
+        w = {"pull": THEIRS, "gate": OutsideStub(answer)}
+        got, calls, _ = seat(w, lambda t: t._approve(7, H0, dict(item), FILES))
+        check("fork head: `_approve` reached without step 6's own read still runs the contract at this head first: "
+              + ("it holds, the App approves" if want else "it refuses, and app_approve.sh is never asked"),
+              len(w["gate"].asked) == 1 and (got == want if want else parked(got, "class R") and not asked_app(calls)))
     w = {"pull": OURS}
     got, calls, _ = seat(w, lambda t: (t.approve(7, H0, dict(item), FILES), t.approve(7, H0, dict(item), FILES)))
     check("... null control: on a head of ours the second step 6 is the shortcut, and nothing is read for it",
@@ -5896,11 +5915,35 @@ def _self_test() -> int:
           parked(got, "the reviews could not be read") and not asked_app(calls))
     for name, world in (("a checkout whose outside.py is not origin/main's blob", {"stale": OUTSIDE_PATH}),
                         ("a checkout whose allowlist is not origin/main's blob", {"stale": OUTSIDE_MAIN_COPIES[2]}),
-                        ("an origin/main that cannot be fetched", {"main_fetch": (128, "fatal: 502")})):
+                        ("an origin/main that cannot be fetched", {"main_fetch": (128, "g" * 40 + "fatal: 502 " + "x" * 149)})):
         w = dict(world, pull=THEIRS, gate=OutsideStub())
         got, calls, _ = seat(w, step6)
         check(f"fork head (carry 23): {name} stops before the contract is asked of anything -- main's copy or none",
-              isinstance(got, Stop) and got.step == "outside" and w["gate"].asked == [] and not asked_app(calls))
+              isinstance(got, Stop) and got.step == "outside" and w["gate"].asked == [] and not asked_app(calls)
+              and ("main_fetch" not in world or got.why.endswith(": fatal: 502 " + "x" * 149)))
+    check("fork head (carry 23): the files the contract must hold as origin/main's own are outside.py, the mandate "
+          "gate, the allowlist, CODEOWNERS and app_approve.sh, by path",
+          OUTSIDE_MAIN_COPIES == ("tools/pr/outside.py", "tools/policy/budget_raise_gate.py",
+                                  "dev/governance/outside_contributors.json", ".github/CODEOWNERS",
+                                  "tools/pr/app_approve.sh"))
+    # The loader itself, which every case above stubs: by path, fail closed when the file is absent.
+    path_was = globals()["OUTSIDE_PATH"]
+    with tempfile.TemporaryDirectory() as d:
+        (Path(d) / "outside.py").write_text("def cross_repository(pull, repo):\n    return 'from the file'\n")
+        globals()["OUTSIDE_PATH"] = str(Path(d) / "outside.py")
+        try:
+            loaded = _outside_gate.__wrapped__()
+            globals()["OUTSIDE_PATH"] = str(Path(d) / "absent.py")
+            try:
+                absent = _outside_gate.__wrapped__()
+            except Stop as stop:
+                absent = stop
+        finally:
+            globals()["OUTSIDE_PATH"] = path_was
+    check("the outside.py loader executes the file at its path and hands the module back",
+          getattr(loaded, "cross_repository", lambda *a: None)(None, "") == "from the file")
+    check("... and with no file there it is a Stop, never a module: an unread head is never taken for ours",
+          isinstance(absent, Stop) and absent.step == "outside" and "is not in this checkout" in absent.why)
     # (E): a code-owned cross-repository head takes ONE path, and no writer of the train's posts there.
     w = {"pull": THEIRS, "approve": OWNED, "gate": OutsideStub((True, "class O: the owner's review at the head"))}
     got, calls, lines = seat(w, lambda t: t.approve(7, H0, dict(item), ["tests/features.py", "tests/structure_budgets.json"]))
@@ -5952,6 +5995,16 @@ def _self_test() -> int:
           and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls)
           and f"#7 recarry START (fork {FORK}, branch {FREF})" in lines
           and w["gate"].asked[-1] == ("o/r", 7, H1, "origin/main"))
+    for given, what in ((None, "one it made is this run's to release"), ("/nonexistent-wt", "one it was handed is not")):
+        made: list = []
+        it = {k: v for k, v in item.items() if k != "worktree" or given}
+
+        def recarried(t):
+            t.recarry(dict(it))
+            made.extend(str(x) for x in t.made_wts)
+            return str(t.state / "wt" / "7")
+        got, calls, _ = seat({"pull": THEIRS, "contains": [False], "heads": [H0, H1]}, recarried)
+        check(f"fork head recarry: the detached worktree -- {what}", made == ([] if given else [got]))
     rc, lines, calls = go({"pull": OURS, "gate": OutsideStub(), "contains": [False], "heads": [H0, H1]})
     rm_argv = next((c for c in calls if "remerge_main.sh" in " ".join(c)), [])
     check("... null control: a head of ours is recarried from origin/<branch> on -B, with no --head-repo",
