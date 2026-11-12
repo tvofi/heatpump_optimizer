@@ -4180,6 +4180,8 @@
    "dev/audit/harnesses/r10_demand_overbook.py",
    "dev/audit/harnesses/r10_dhw_charge_settle_p90.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
+   "dev/audit/harnesses/r10_dhw_start_hysteresis.py",
+   "dev/audit/harnesses/r10_dhw_start_hysteresis_mutants.py",
    "dev/audit/harnesses/r10_diag_ages_export.py",
    "dev/audit/harnesses/r10_disinfection_setpoint.py",
    "dev/audit/harnesses/r10_duty_switch_section.py",
