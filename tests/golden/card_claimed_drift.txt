@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.11
+# claims-for: 7.1.12
 #
-# v7.1.11: Water set-point feedback, combi store configuration, diagnostics without the location. The stamp empties the list; the
+# v7.1.12: Charge-dip draws, price-outage steering, disinfection set-point, off restore, card labels. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -793,47 +793,3 @@
 # renamed fact-* (EasyList's generic ##.adv-text and ##.adv-label hid them),
 # which moves the same 44 states' stylesheet and the Advisor and Health
 # markup; no text or value moves with the rename.
-no_plan  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-no_plan_expanded  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-plan_inline  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-plan_inline_sv  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-plan_short_window  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-custom_title_currency  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-hidden_series  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-score_open  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-expanded_plan  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-what_if_off  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-expanded_zoomed  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-draft_dirty_menu_open  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-draft_mid_drag  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-whatif_edited  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-whatif_weekly  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-override_active  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-shared_steps  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-shared_steps_hover  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-tooltip_hover  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-coarse_pointer  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-reduced_motion  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-setup_single_buffer  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-setup_two_tank  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-setup_coil  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-advisor_page  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-savings_page  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-savings_empty  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-health_page  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle; header chip wording
-setup_not_published  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-advisor_empty  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-layout_editing_dragged  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-layout_editing_tidy  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-picker_open_filtered  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-wood_alert  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-wood_lane  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-wood_whatif  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-away_toggle  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-away_return  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-away_status  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-history_panned  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-history_deep_panned  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-history_no_power  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-history_unavailable  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle
-history_pending  # R10-HOTFIX-CARD-HEALTH-TEXT stylesheet: surface-2 ink pairing for the Health and Advisor rows and the pressed layout toggle

@@ -62945,7 +62945,7 @@ class _PaCoord:
             params=_PaNS(min_electrical_power=0.4), curve_flow_temp=lambda _o: 34.2
         )
         # No disinfection cycle: the arbiter reads the cycle's temperature only on a cycle step.
-        self._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_cycle_temp=None)
+        self._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None)
         self._current_state = _PaNS(outdoor_temperature=2.0)
         # One store key per coordinator: the storage stub outlives FakeHass.
         # A FakeEntry, weak-referenceable as a real entry is: off_restore
@@ -76974,7 +76974,7 @@ class _EcCoord(_PaCoord):
         self._optimization_result = _ec_plan(duties, planned)
         self._current_action = {"heat_pump_on": True}
         self._thermal_params = _PaNS(
-            dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=False, dhw_setpoint=48.0)
+            dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=False, dhw_setpoint=48.0, dhw_max_temp=48.0)
         self._current_state = _PaNS(
             dhw_temperature=50.0, lower_floor_temperature=21.0, outdoor_temperature=2.0)
         self.entry = FakeEntry_ec(entry_id=f"ec{next(_PA_IDS)}")
@@ -77486,7 +77486,7 @@ R.check(
 # 275 two-zone cold lower floor: the cut is blocked when a second zone is below target.
 _ec_zone = _EcCoord()
 _ec_zone._thermal_params = _PaNS(
-    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0)
+    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0, dhw_max_temp=48.0)
 _ec_zone._current_state = _PaNS(
     dhw_temperature=50.0, lower_floor_temperature=18.0, outdoor_temperature=2.0)
 _ec_zone.arm()
@@ -77500,7 +77500,7 @@ R.check(
 # 275 CMP_BOUND: _second_zone_cold at the exact lower == limit - MARGIN_K boundary.
 _ec_sz = _EcCoord()
 _ec_sz._thermal_params = _PaNS(
-    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0)
+    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0, dhw_max_temp=48.0)
 _ec_sz._current_state = _PaNS(
     dhw_temperature=50.0, lower_floor_temperature=21.0, outdoor_temperature=2.0)
 R.check(
@@ -77695,7 +77695,7 @@ def _df_dhw_command(entity, state, instance, setpoint_c):
         hass=hass, config=EntryConfig.from_mapping({"dhw_setpoint_entity": entity}),
         mode="auto", plan=None, plan_stale=False, entry_released=False,
         state=_DfNS(outdoor_temperature=2.0), thermal=None,
-        params=_DfNS(dhw_setpoint=setpoint_c), action={}, measured_power_kw=None,
+        params=_DfNS(dhw_setpoint=setpoint_c, dhw_max_temp=setpoint_c), action={}, measured_power_kw=None,
         disinfecting=False,
     )
     return _df_pa.desired(None, inp, "dhw", _DF_T0).dhw_setpoint
@@ -82372,7 +82372,7 @@ class _CpArb:
             timestamps=[_CP_T0], power_schedule=list(power_schedule),
             dhw_power_schedule=[0.0], optimal_setpoints=[21.0],
         )
-        self._thermal_params = _CpNS(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
+        self._thermal_params = _CpNS(dhw_setpoint=48.0, dhw_max_temp=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
         self._thermal_model = _CpNS(params=self._thermal_params, curve_flow_temp=lambda _o: 34.2)
         self.entry = _pa_entry(entry_id=f"cp{id(self)}")
 
@@ -84700,7 +84700,7 @@ class _FbCoord:
         self._thermal_model = _PaNS(
             params=_PaNS(min_electrical_power=0.53), curve_flow_temp=lambda _o: 34.0)
         self._thermal_params = _PaNS(
-            dhw_setpoint=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
+            dhw_setpoint=48.0, dhw_max_temp=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
         self._current_state = _PaNS(outdoor_temperature=4.0, room_temperature=21.0)
         # Weak-referenceable, as a real entry is: a space write arms off_restore.
         self.entry = _pa_entry(entry_id=f"fb{next(_FB_IDS)}")
