@@ -258,7 +258,8 @@ def in_domain(domain: Domain, value: Any) -> bool:
 #: every entry through the real loaders), so this table only declares.
 #: Shorthands for the table below.
 _POS = math.nextafter(0.0, 1.0)
-_R, _Z, _N, _Z0 = Domain("real"), Domain("real", 0.0), Domain("real", null=True), Domain("real", 0.0, null=True)
+_R, _Z, _N = Domain("real"), Domain("real", 0.0), Domain("real", null=True)
+_Z0 = Domain("real", 0.0, null=True)
 _COUNT, _FLAG, _TEXT = Domain("int", 0), Domain("flag"), Domain("text")
 _AT, _AT0 = Domain("instant"), Domain("instant", null=True)
 _DAY, _DAY0, _MONTH = Domain("day"), Domain("day", null=True), Domain("month")
