@@ -41,11 +41,13 @@ import math
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from collections.abc import Callable, Collection
+from collections.abc import Callable, Collection, Mapping
 from typing import Any, Literal, NamedTuple
 from weakref import WeakKeyDictionary
 
 from .const import (
+    CONF_DHW_HYSTERESIS_ENTITY,
+    CONF_SPACE_HYSTERESIS_ENTITY,
     ENERGY_UNIT_TO_KWH,
     FLOW_UNIT_TO_KG_S,
     INPUT_MAX_AGE_MINUTES,
@@ -534,16 +536,20 @@ def read_temperature_delta_k(hass: Any, entity_id: str | None) -> float | None:
     return delta_k if 0.0 <= delta_k <= TEMPERATURE_DELTA_MAX_K else None
 
 
-def start_hysteresis_k(hass: Any, config: Any) -> tuple[float | None, float | None]:
-    """The pump's own (hot-water, heating) start hysteresis, K each.
+def read_start_hysteresis(state: Any, hass: Any, config: Mapping[str, Any]) -> None:
+    """Put the pump's own start hysteresis per duty, K, on ``state``.
 
-    ``config`` is the entry's ``EntryConfig``; an option left empty or an
-    entity that does not read is ``None`` (:func:`read_temperature_delta_k`).
+    ``state`` is the cycle's ``ThermalState`` and ``config`` the entry's
+    effective options: ``dhw_start_hysteresis_k`` and
+    ``space_start_hysteresis_k`` take what ``dhw_hysteresis_entity`` and
+    ``space_hysteresis_entity`` read (:func:`read_temperature_delta_k`), and
+    ``None`` for an option left empty or an entity that does not read, so a
+    reading that goes away stops binding the plan the same cycle.
     """
-    return (
-        read_temperature_delta_k(hass, config.dhw_hysteresis_entity),
-        read_temperature_delta_k(hass, config.space_hysteresis_entity),
-    )
+    state.dhw_start_hysteresis_k = read_temperature_delta_k(
+        hass, config.get(CONF_DHW_HYSTERESIS_ENTITY))
+    state.space_start_hysteresis_k = read_temperature_delta_k(
+        hass, config.get(CONF_SPACE_HYSTERESIS_ENTITY))
 
 
 def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, float | None]:

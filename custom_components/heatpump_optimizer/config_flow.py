@@ -1727,8 +1727,11 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities_pump
     _F("entities_pump", CONF_HEAT_PUMP_MODE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_MODE_ENTITY]))),
     _F("entities_pump", CONF_PUMP_DUTY_MODE, DEFAULT_PUMP_DUTY_MODE, _select(list(PUMP_DUTY_MODES), 'pump_duty_mode')),
-    _F("entities_pump", CONF_SPACE_HYSTERESIS_ENTITY, _STORED, _entity_of(['sensor', 'number', 'input_number'])),
-    _F("entities_pump", CONF_DHW_HYSTERESIS_ENTITY, _STORED, _entity_of(['sensor', 'number', 'input_number'])),
+    # The pump's own start hysteresis per duty: one picker each, a number or a sensor.
+    *(
+        _F("entities_pump", key, _STORED, _entity_of(['sensor', 'number', 'input_number']))
+        for key in (CONF_SPACE_HYSTERESIS_ENTITY, CONF_DHW_HYSTERESIS_ENTITY)
+    ),
     _F("entities_pump", CONF_HEAT_PUMP_DEFROST_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_DEFROST_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_ONLINE_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_ONLINE_ENTITY]))),
     _F("entities_pump", CONF_HEAT_PUMP_FAULT_ENTITY, _STORED, _entity_of(list(topology.ASSIGNABLE_KEYS[CONF_HEAT_PUMP_FAULT_ENTITY]))),
