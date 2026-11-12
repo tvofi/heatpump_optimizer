@@ -1,0 +1,8 @@
+[
+ {"name": "r7v_running_with_pending_runs", "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is True"},
+ {"name": "r7v_stopped_no_pending_runs", "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is not None and rec.tracker.pending is None"}
+]
