@@ -410,7 +410,13 @@ class Beat:
         return 0
 
 
+FLOOR = (3, 12)  # the tree's interpreter floor
+
+
 def cmd_run(a) -> int:
+    if sys.version_info < FLOOR:
+        raise Refuse(f"{sys.executable} is Python {sys.version_info[0]}.{sys.version_info[1]}, "
+                     f"older than the tree's floor {FLOOR[0]}.{FLOOR[1]}; start beatd under the seat interpreter")
     state = Path(a.state)
     table = load_table(Path(a.jobs))
     real = resolve_git(os.environ.get("PATH", ""))
@@ -420,6 +426,11 @@ def cmd_run(a) -> int:
     if not inst.take(wait_s=0.6):
         print(f"beatd: ALREADY RUNNING pid={lock_pid(d / 'beatd.lock')}", file=sys.stderr)
         return 75
+    try:  # what liveness.py relaunches a dead beatd from: its cwd, HPO_* environment and argv
+        (d / "launch.json").write_text(json.dumps({"cwd": os.getcwd(), "argv": [sys.executable, *sys.argv],
+                                                   "env": {k: v for k, v in os.environ.items() if k.startswith("HPO_")}}))
+    except OSError:
+        pass
     try:
         return Beat(state, table, Path(a.repo).resolve(), real).run(a.once, a.for_s)
     finally:
