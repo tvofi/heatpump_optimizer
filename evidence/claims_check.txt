@@ -1,0 +1,21 @@
+orch_scratch refs above (empty=none)
+step 2 restored to base: rc 0 sweep_render self-test: 37 checks, 0 failed
+step 4 restored to base: rc 0 sweep_render self-test: 37 checks, 0 failed
+step 6 restored to base: rc 0 sweep_render self-test: 37 checks, 0 failed
+f0c6bbfd7 on main
+0a98a0173 on main
+1b174e9b3 on main
+b16084794 on main
+tools/audit/seat/hooks/git_identity.py
+tools/audit/seat/hooks/liveness.py
+tools/audit/seat/hooks/seat_interpreter.py
+tools/audit/seat/hooks_setup.py
+tools/audit/seat/instruments/hooks_setup.py.md
+## Alive files
+
+`$HPO_STATE_DIR/alive/`, the directory `tools/audit/seat/hooks/liveness.py`
+reads; `HPO_ALIVE_STALE_MIN` sets staleness.
+tools/audit/seat/beatd.jobs.json:6:      "name": "tick-digest",
+tools/audit/seat/beatd.jobs.json:11:        "tick-digest",
+tools/audit/seat/beat_jobs.py:41:  tick-digest [240]  the board's flagged (`-> `) lines of the actionable family
+"name": "tick-digest" "name": "owed-check" "name": "roster-drain" "name": "plan-beat" "name": "gantt" "name": "verdict-audit" "name": "pulse" "name": "cancel-sweep" "name": "disk" "name": "opener" "name": "head-watch" "name": "audit-dispatch" "name": "outside-intake" "name": "bottleneck" 
