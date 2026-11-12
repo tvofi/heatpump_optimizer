@@ -584,7 +584,7 @@ Orchestrator ruling under mandate 6715477401 (scope all), recorded in P606. |  |
 | R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE | CORE | 2 | not-started | #3456 | opus/opus | - | Outside pull request 3456 by Bankaifan (fork head 659ca850e7 at acceptance; re-read it with git ls-remote origin refs/pull/3456/head), accepted into round 10... |  |
 | R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 | CORE | 1 | not-started | #3435 | opus/opus | - | Part 2 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
 | R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 | CORE | 2 | not-started | #3435 | sonnet/opus | - | Part 3 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
-| R10-HOTFIX-REPLAY-CLASS-CUT | C | 1 | in-progress | - | opus/opus | - | triage: dev/programme/triage/s6-batch193.md#P615 at 9698b45f58
+| R10-HOTFIX-REPLAY-CLASS-CUT | C | 1 | carries-open | - | opus/opus | - | triage: dev/programme/triage/s6-batch193.md#P615 at 9698b45f58
 
 Main red, hotfix. |  |
 | R10-RELAY-NOBODY-STALL | IN | 3 | not-started | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch194.md#P617 at ed9c2a421e
@@ -616,7 +616,7 @@ Instrument fix, S. |  |
 | R10-DEPENDABOT-3483-COMPAT | C | 1 | not-started | - | sonnet/sonnet | - | Replacement for Dependabot pull request 3483 (pip group in tests, 8 updates), red at head 08d58a81 on tests / typing: the bot moved homeassistant-stubs 2026.... |  |
 | R10-UPDATE-PR-SEAT-WORKTREE | IN | 1 | not-started | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch222.md#P675 at d3b5ec4a2f, line numbers at origin/main 046736a49f. |  |
 | R10-HOTFIX-PREPR-WC-PAD | IN | 1 | not-started | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch223.md#P676 at 4e7aa35d79, line numbers at origin/main 6d16af36c2. |  |
-| R10-HOTFIX-MAIN-IST-PREPR-SCOPE | IN | 1 | not-started | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch225.md#P680 at 9874c27034, line numbers at origin/main 47788534da. |  |
+| R10-HOTFIX-MAIN-IST-PREPR-SCOPE | IN | 1 | in-progress | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch225.md#P680 at 9874c27034, line numbers at origin/main 47788534da. |  |
 | R10-PREPR-DARWIN-SELFTEST-LANE | IN | 2 | not-started | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch227.md#P684 at be04bca1a9, line numbers at origin/main b737e88eee. |  |
 
 ## ETA
