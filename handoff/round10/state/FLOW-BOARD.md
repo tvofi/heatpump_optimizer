@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-12T13:21:54+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-12T13:33:26+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 24 / 24.0 |
+| roster groups closed vs takt | 1 / 1.0 | 25 / 24.0 |
 | fly-ins closed | 0 | 1 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 40 / 5 / 0 / 1 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 41 / 5 / 0 / 1 |
 | first-pass fix-review yield | 0/0 (-) | 17/38 (0.45) |
-| blocked-class mix | census-misclassified:1 | body-not-applied:1, carry-dismissal-unsupported:1, carry-missing:3, census-misclassified:2, class-open:5, harness:3, harness-vacuous:1, mutation-survivor:1, mutation-vacuous:8, null-control-leak:1, prior-findings-open:1, regression:1, regression-unmeasured:1, root-cause-unanswered:1, scope-overlap:1, trace-gap:1 |
-| lead time per size (h, n/p50/max) | none | L n=4 p50=19.22 max=23.58; M n=12 p50=20.49 max=105.45; S n=24 p50=15.27 max=28.30 |
+| blocked-class mix | census-misclassified:1, findings-unresolved:1 | body-not-applied:1, carry-dismissal-unsupported:1, carry-missing:3, census-misclassified:2, class-open:5, findings-unresolved:1, harness:3, harness-vacuous:1, mutation-survivor:1, mutation-vacuous:8, null-control-leak:1, prior-findings-open:1, regression:1, regression-unmeasured:1, root-cause-unanswered:1, scope-overlap:1, trace-gap:1 |
+| lead time per size (h, n/p50/max) | S n=1 p50=2.69 max=2.69 | L n=4 p50=19.22 max=23.58; M n=12 p50=20.49 max=105.45; S n=25 p50=14.52 max=28.30 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 46 | 6 | 0 |
+| 1 | 45 | 6 | 0 |
 
 ## Rules
 
