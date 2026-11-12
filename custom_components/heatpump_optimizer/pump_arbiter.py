@@ -1178,6 +1178,9 @@ def _dhw_write(inp: ArbiterInputs) -> float | None:
     entity's step at or below the tank's hard maximum (``dhw_hard_max_temp``,
     that temperature capped at 70 °C), which no write exceeds: an off-step
     target is held a step below it (everyday 57, disinfection 50, step 5:
+    55, not 60). No cycle, the everyday set-point is written on the step
+    at or below the charge limit (``dhw_max_temp``): rounding it up would
+    hold the tank above the user's own limit for good (everyday 58, step 5:
     55, not 60). Holding the everyday set-point through a cycle
     stopped the pump's own thermostat short of the cycle's target (2026-11-01:
     60 °C planned, 55 °C written back within a minute).
@@ -1186,7 +1189,7 @@ def _dhw_write(inp: ArbiterInputs) -> float | None:
     booked = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA
     cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None
     if cycle is None:
-        return _bounded(inp, "dhw_setpoint", everyday)
+        return _bounded(inp, "dhw_setpoint", everyday, hi=inp.params.dhw_max_temp)
     return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)
 
 
