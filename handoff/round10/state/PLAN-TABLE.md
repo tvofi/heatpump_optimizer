@@ -612,7 +612,7 @@ Instrument fix, S. |  |
 Instrument fix, S. |  |
 | R10-DISINFECTION-STEP-NOTICE | CORE | 2 | not-started | - | opus/opus | - | Product ruling (2) of the fable seat's ruling on dhw_hard_max_temp, origin/handoff-body/r10-product-ruling-dhw-hard-max at d507c499 ("Ruling: (1) round-down... |  |
 | R10-HOTFIX-OPENER-UNBLOCK | IN | 1 | in-progress | - | opus/opus | - | Hotfix by owner ruling (tvofi, 2026-11-11T20:13Z, verbatim: "3) make it a hotfix"), on the orchestrator's description of the opener's stale-checkout refusals... |  |
-| R10-HOTFIX-CARD-HEALTH-TEXT | CP | 1 | in-progress | - | opus/opus | - | Hotfix for a live defect on the released v7.1.11, reported by the owner (tvofi, 2026-11-11 about 21:27Z, verbatim: "Live bug on v7.1.11. |  |
+| R10-HOTFIX-CARD-HEALTH-TEXT | CP | 1 | carries-open | - | opus/opus | - | Hotfix for a live defect on the released v7.1.11, reported by the owner (tvofi, 2026-11-11 about 21:27Z, verbatim: "Live bug on v7.1.11. |  |
 | R10-RCA-CARD-HEALTH-TEXT | CP | 1 | not-started | - | opus/opus | - | Root-cause seat (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md) beside R10-HOTFIX-CARD-HEALTH-TEXT, never inside it. |  |
 | R10-DEPENDABOT-3483-COMPAT | C | 1 | not-started | - | sonnet/sonnet | - | Replacement for Dependabot pull request 3483 (pip group in tests, 8 updates), red at head 08d58a81 on tests / typing: the bot moved homeassistant-stubs 2026.... |  |
 | R10-UPDATE-PR-SEAT-WORKTREE | IN | 1 | not-started | - | sonnet/sonnet | - | triage: dev/programme/triage/s6-batch222.md#P675 at d3b5ec4a2f, line numbers at origin/main 046736a49f. |  |
