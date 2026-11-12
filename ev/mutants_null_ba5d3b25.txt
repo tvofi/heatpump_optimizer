@@ -1,0 +1,2 @@
+RESULT mutants=31 survived=0 stale=30 baseline_failed=0
+rc=0

@@ -1,0 +1,3 @@
+RESULT corpus other calls=272 wrong=114 not_reading_passed=66 reading_counted_blind=48
+RESULT corpus tree calls=272 wrong=0 not_reading_passed=0 reading_counted_blind=0
+rc=0

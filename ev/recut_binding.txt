@@ -1,0 +1,13 @@
+barrier block under `return got != {READS}`: failed = 0
+  counted=1  classify(l, r, None, **kw)
+  counted=1  classify(l, r, (), **opts)
+  counted=1  classify(l, r, busy=(), **kw)
+  counted=1  classify(*a, busy=None)
+  counted=1  classify(l, *rest, busy=())
+  counted=1  classify(l, r, **{'busy': ()}, **kw)
+  counted=1  classify(l, r, **{'busy': (), k: b})
+  counted=0  classify(l, r, b, **kw)
+  counted=0  classify(l, r, busy=b, **kw)
+  counted=0  classify(*a)
+  counted=0  classify(l, r, **kw)
+  counted=0  classify(l, r, *rest, **kw)
