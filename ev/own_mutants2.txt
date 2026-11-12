@@ -1,0 +1,8 @@
+RESULT own-mutant=stale_first rc=1 verdict=killed ['beatd self-test: 34 checks, 2 failed'] fails=['FAIL anchor m9_stale_never occurs once in production, changes it, names a check of (9)', "FAIL mutant m9_stale_never turns (9) 'dirty: a refusal persisting into a second pass prints BEAT-STALE' red"] err=[]
+RESULT own-mutant=untracked_counted rc=1 verdict=killed ['beatd self-test: 34 checks, 2 failed'] fails=['FAIL anchor m9_dirty_ignored occurs once in production, changes it, names a check of (9)', "FAIL mutant m9_dirty_ignored turns (9) 'dirty: refuses with its why' red"] err=[]
+RESULT own-mutant=detach_always rc=1 verdict=killed [] fails=[] err=["subprocess.CalledProcessError: Command '['/usr/bin/git', '-C', '/tmp/beatd-st-cc9z68pd/repo9-behind', 'symbolic-ref', '--short', 'HEAD']' returned non-zero exit status 128."]
+RESULT own-mutant=no_stop rc=0 verdict=SURVIVED ['beatd self-test: 34 checks, 0 failed'] fails=[] err=[]
+RESULT own-mutant=no_guard_env rc=0 verdict=SURVIVED ['beatd self-test: 34 checks, 0 failed'] fails=[] err=[]
+RESULT own-mutant=retip_noswap rc=1 verdict=killed ['open_driver self-test: 93 checks, 2 failed'] fails=["FAIL live tip: a board line at A with origin's clean tip B opens at B", 'FAIL live tip: the checks run at B, so a landed B is skipped landed, never opened'] err=[]
+RESULT own-mutant=retip_nolog rc=1 verdict=killed ['open_driver self-test: 93 checks, 1 failed'] fails=["FAIL live tip: a board line at A with origin's clean tip B opens at B"] err=[]
+ALL-DONE
