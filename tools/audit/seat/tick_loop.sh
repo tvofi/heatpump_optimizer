@@ -215,7 +215,8 @@ tick_loop_self_test() (
   out=$(PATH="$t/state/bin:$PATH" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/pathtick.sh" bash "$0" --once --out "$t/b.txt")
   [ "$(tr ':' '\n' < "$t/path" | grep -cx "$t/state/bin")" = 1 ]
   ck "a PATH already led by the seat bin dir (a restart's exec) is not prepended twice" $?
-  # A plain gh of the row's own leads the PATH: the caller's may be the seat shim (a live seat's is).
+  # A plain gh of the row's own leads the PATH: the caller's may be the seat shim (a live seat's
+  # is, and the lines above put its state dir's bin first before this self-test began).
   printf '#!/bin/sh\nexit 0\n' > "$t/bare/gh"; chmod +x "$t/bare/gh"
   out=$(PATH="$t/bare:$PATH" HPO_STATE_DIR=$t/bare HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/pathtick.sh" bash "$0" --once --out "$t/b.txt")  # mut:selftest-plaingh
   g=$(cat "$t/gh"); printf '%s\n' "$out" | grep -Eq "^TICK-GH [0-9T:-]+Z gh=${g:-none}: not the seat gh shim" \
@@ -365,7 +366,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     && [ "$(git -C "$t/c" rev-parse HEAD)" = "$(git -C "$t/c" rev-parse origin/main)" ] && [ ! -f "$t/order" ]
   ck "freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args" $?
   # The self-test run as a live seat runs it -- from a checkout behind origin/main on the watched
-  # paths, a branch and then a detached head, the seat's gh shim leading PATH -- reads nothing of
+  # paths, a branch and then a detached head, its state dir's bin holding the gh shim -- reads nothing of
   # that checkout and leaves its HEAD where it was; so does one a git hook's GIT_DIR names. (The
   # TICK-GH rows once ran against the real checkout: a branch printed an extra TICK-STALE, a
   # detached head was moved by the restart arm.) The nested run is the whole self-test, so it
@@ -383,8 +384,8 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     throwaway_git_clone -q "$t/n.git" "$t/n0"
     nest() { # <checkout> [VAR=value...]: the clone's own self-test, none of this run's overrides inherited
       local c=$1 h; shift; h=$(git -C "$c" rev-parse HEAD)
-      out=$(env -u HPO_TICK_CODE_DIR -u HPO_TICK_HEARTBEAT -u HPO_STATE_DIR -u GIT_CEILING_DIRECTORIES \
-        HPO_TICK_SELFTEST_NESTED=1 PATH="$t/state/bin:$PATH" "$@" bash "$c/tools/audit/seat/tick_loop.sh" --self-test 2>&1)
+      out=$(env -u HPO_TICK_CODE_DIR -u HPO_TICK_HEARTBEAT -u GIT_CEILING_DIRECTORIES \
+        HPO_TICK_SELFTEST_NESTED=1 HPO_STATE_DIR="$t/state" "$@" bash "$c/tools/audit/seat/tick_loop.sh" --self-test 2>&1)
       printf '%s\n' "$out" | sed -n 's/^  FAIL /    nested FAIL: /p'  # which nested row, when one fails
       printf '%s\n' "$out" | grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' && [ "$(git -C "$c" rev-parse HEAD)" = "$h" ]; }
     nest "$t/nb"
