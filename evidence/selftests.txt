@@ -1,23 +1,13 @@
 == seat_gen
-ok   mutant lock_own_pid killed by: lock null: the session's own pid is not a duplicate
-ok   mutant session_ppid killed by: session_pid: the first ancestor running the session binary, never the shell
 seat_gen self-test: 23 checks, 0 failed
-rc=0
 == beat_jobs
-  ok   mutant need_accepts_empty killed by: a row whose overlay key is empty says so, and runs nothing
-  ok   mutant fold_new_kept_stale killed by: fold: a fold that added nothing empties new.txt, and leaves the stamp
 beat_jobs self-test: 203 checks, 0 failed
-rc=0
 == open_driver
-open_driver self-test: 93 checks, 0 failed
-rc=0
+open_driver self-test: 91 checks, 0 failed
 == roster_queue
-~ G resume.pr: null -> 7
-no difference
 roster_queue self-test: 67 checks, 0 failed
-rc=0
 == merge_train
-  ok   stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)
-  ok   stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict
-merge_train self-test: 612 checks, 0 failed
-rc=0
+merge_train self-test: 657 checks, 0 failed
+== harness
+RESULT mutants=22
+RESULT survived=0

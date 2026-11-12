@@ -1,6 +1,0 @@
-RESULT mutant=M-maxtries failed=2 verdict=killed
-RESULT mutant=M-livetip failed=2 verdict=killed
-RESULT mutant=M-gone-tip failed=1 verdict=killed
-RESULT mutant=M-stuckowed failed=2 verdict=killed
-RESULT mutants=24
-RESULT survived=0
