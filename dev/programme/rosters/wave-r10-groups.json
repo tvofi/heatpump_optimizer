@@ -25388,7 +25388,9 @@
    "severity": "medium",
    "size": "XL",
    "wave": 8,
-   "issues": [],
+   "issues": [
+    3529
+   ],
    "fixes": [],
    "after": [
     "R10-DUTY-SWITCH-PLANNER-PRICE",
