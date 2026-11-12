@@ -1,0 +1,15 @@
+rev fb218fa5f70d57a959f362da8074df1145656cf0
+envscrub: tick_loop self-test: 36 checks, 1 failed rc=1
+      nested FAIL: --once: one pass, cloud_relay.sh pass --confirm first, then the tick with its args; one banner
+      nested FAIL: null control: no cloud_relay.sh in the tree (before #2419) skips the relay and still ticks
+      nested FAIL: a failing relay pass is reported and the tick still runs; the tick's status is reported
+      nested FAIL: null control: the late relay is reaped with its log next pass, and a fast relay reports ok
+      nested FAIL: --sweep: the next pass inside the interval sweeps nothing (the slow backstop)
+      nested FAIL: freshness null control: behind 0 is silent (code=<sha7> behind=0 on the banner) and does not exec
+      nested FAIL: freshness: behind within the bound and no change to the loop's own files relays, restarts nothing; the heartbeat says behind=1
+      nested FAIL: freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+      nested FAIL: freshness: a dirty tree prints the banner, skips the relay and is never moved
+      nested FAIL: freshness: a checked-out branch is never moved (restart needs a detached head)
+      nested FAIL: freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+      nested FAIL: freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+    FAIL the self-test run with every loop variable set in the caller's environment, HPO_TICK_CODE_DIR naming a detached checkout behind origin/main, passes and does not move its HEAD
