@@ -21296,7 +21296,7 @@
    "architect_note": "",
    "brief": "Savings and valuation accuracy left by #3347 and #3291: the unattributed savings residual (-3.90 % flat, -8.02 % varying; measure and attribute first), and the part-load refill pricing (_terminal_cost, _deferred_energy_cost, _plan_dhw_min_cost secant error under a derate), with the zero-derate null control. Flat-price null control mandatory. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
     "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-WATER-SETPOINT-FEEDBACK, ordered by after-edges where files overlap",
     "pr": 3442,
@@ -24896,9 +24896,9 @@
    "architect_note": "",
    "brief": "Recorded by triage batch 245, entry P739 (outside work first, P719). tools/audit/seat/open_pr.sh writes the PR body once from handoff-body/<topic>:BODY.md and never runs tools/pr/figure_block.py refresh. A figure block names the head it was rendered at, so pr-body lint refuses p1 after a main merge and always refuses p2, whose row commit moves the head (R10-OUTSIDE-DISINFECTION-SETPOINT part 2: refused twice, PR #3495 opened and auto-closed). Build: (1) before p1, when the merged head differs from the code head, refresh the body's figure blocks; on failure refuse with nothing pushed. (2) before p2, at the row head, always refresh (a body without a block is unchanged); on failure set the close reason and refuse, so the EXIT trap closes the PR and names why. (3) open_pr.sh --self-test gains a case with a figure block in the body: it opens with p1, p2 and the row; the mutant without the p2 refresh is refused at p2 with 'figure-block scope-line names another head'; a body with no block still prints 'ROW-ONLY: prepr SKIPPED' (null control). (4) a re-run after a closed-after-p2 open must not fail at git worktree add -b on the left-over branch fix/<topic>-pr and detached worktree: remove or reuse them. A figure-block body then runs the full prepr at p2 (row-only verdict fails on the changed body); keeping row-only for a figure-block-only re-render is optional. Overlap on open_pr.sh with R10-SEAT-SCRIPT-OUTPUT (PR #3490) is by seam: touch only the p1/p2 body-render points. Outside work depends on it: dispatch first (P719).",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "2b4515dc52821ad721225090d329c224dbddafae",
     "last_step": null,
     "next_step": "dispatch a sonnet fixer now (outside opener blocked)",
     "note": "triage: dev/programme/triage/s6-batch245.md#P739 at 69d8a379eb; reference patch outside the tree (seat s14-69, open_pr-figure-refresh.diff, uncommitted).",
