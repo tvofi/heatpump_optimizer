@@ -19,30 +19,32 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SEAT-SCRIPT-OUTPUT (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-GATE-DEFER-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-DISPATCH-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-GH-READ-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-PLAN-PAGE-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-STANDING-CONTRACTS-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CARRY-AUDIT-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-SUITE-ENV-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SUITE-ENV-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SAV-VALUATION-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DUTY-SWITCH-RESTART-LEARNING (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-OUTSIDE-DHW-CHARGE-SETTLE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-DHW-CHARGE-SETTLE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DISINFECTION-SETPOINT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-TICK-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-RELAY-ARM-ORDER (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-MUTANT-RUN-FORKCAP (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-MUTANT-RUN-FORKCAP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-STALE-STEP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-OPENER-UNBLOCK (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-CARD-HEALTH-TEXT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PREPR-WC-PAD (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-GATE-PUSH-RATCHET (stage in-progress): no branch pushed yet, so nothing to fetch
 
 Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-RESTART-LEARNING, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GATE-PUSH-RATCHET, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-OPENER-UNBLOCK, R10-HOTFIX-OPENPR-FIGURE-REFRESH, R10-HOTFIX-PREPR-WC-PAD, R10-MACH-SCORECARD, R10-MUTANT-RUN-FORKCAP, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DISINFECTION-SETPOINT, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PLAN-PAGE-RESIDUE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PROTECTION-CENSUS, R10-RCA-CARD-HEALTH-TEXT, R10-RELAY-ARM-ORDER, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE-P2, R10-TRAIN-RESIDUE-P2, R10-USER-DOCS-VERIFY
 
