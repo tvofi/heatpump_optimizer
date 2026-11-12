@@ -1,0 +1,53 @@
+R10-GATE-DEFER-BARRIER, part 1 of 2 (carries 0-4): every reader of the required `gate` conclusion treats an at-once deferral red as provisional. Carries 5-8 are part 2 and are not answered here.
+
+Alternatives that lost: a new re-dispatch job (the sweep is one); copying gate.py's `busy` into each reader (`classify_at` is the one reading); a spelling list of forbidden comparisons (the census below is keyed on the call, `classify` without its `busy` argument, so a new spelling of the same blind read is still a call). `policy_refusal` reads same-named contexts together (the predecessor's commit 1eb3bd2c4, kept) rather than collapsing by name.
+
+What changed, by carry:
+- Carry 4 (2), `policy_refusal`: a failing `gate` beside a passing one, or beside an unfinished sibling run, waits with the deferral reason; under `reviewDecision` APPROVED the remaining case is worded as an approval of the last push at the moved head (never "a review").
+- Carry 4 (1), `wait_ci`: when the deferral is read and a sibling ci.yml run at the head is in_progress and inside `CODE_RUN_DEADLINE_SECONDS` (one named constant, the longest job ceiling in ci.yml) of its `run_started_at`, the wait is bounded by that deadline, not by `polls`; a queued run, one past the deadline, or one with no readable start keeps the polls bound (TIMEOUT). The existing "never finishes ends in TIMEOUT within polls" check is kept.
+- Carries 2 and 3, readers: `orchestrator_tick.py` `one_pr` and `main` read through `_classify_reading` (`Train.classify_at`; its fallback is the raw `classify`, so an unread classify stays red), and the gate-race line no longer cites the deleted `GATE_WAIT_MAX_S` wait; `merge_pr.sh` waits out a `classify` WAIT before it prints RED; `review_packet.py` `gate_digest`, `proof_watch.py` and `bus.sh` already read through `classify` (`required_reading`, `classify_at`, `merge_train.py classify`) and are unchanged. A structural self-test (`_gate_reader_barrier_self_test`, registry `BLIND_CLASSIFY_READERS`) fails on another `classify` call without `busy` in a reader module, and on `merge_pr.sh` losing its wait.
+- Carry 3, record: class `N-provisional-gate-red-read-final` in `bugclasses.json` as barriered, citing `dev/audit/rca/r10-gate-defer-read-final.md`, with the id in `finding.schema.json` and its generated copy (`fold_ledger.py sync`). `dev/governance/roles/nudge.md` step 15 reads a gate failure through `classify` (policy: needs the owner's approving review before merge); the sentence was tightened elsewhere in the step to stay under the `files_tokens` cap, no cap raised.
+- Carry 1: `dev/audit/harnesses/r10_gate_defer_barrier.py`, the committed finder harness for the policy and under-run arms.
+- Carry 0: `dev/audit/rca/r10-gate-busy-defer-2.md` section 1's "waits one poll, then passes" is marked superseded; section 5.2's fresh dispatch stays needed (below).
+
+## Head
+
+ba47446a8722acf4055b62883cf32e8e5d7d1c59 (code head; everything below measured there, on a base whose merge with origin/main `git merge-tree --write-tree` reports clean). Live instances cited, not re-measured: `gate` red at the heads of #3479, #3454 and #3442 while sibling jobs were queued or running, and four merge attempts on #3465 against a base-policy refusal while its gate check-run sat QUEUED. #3473 (R10-HOTFIX-GATE-REDISPATCH-LOOP) is still open and is not duplicated; once it lands, re-check that the `classify` WAIT window still spans the gate re-run it adds (this change builds on origin/main).
+
+## Mutation proof
+
+Each production line deleted, the named self-test run, line restored:
+- `wait_ci` deadline extension (`or self._sibling_in_deadline(deferring)`) removed: `_gate_race_self_test` fails "carry 4 (1): a STARTED sibling run inside its deadline is waited on past `polls`" and "a started sibling that never finishes ends at its deadline".
+- `policy_refusal` same-name deferral predicate forced false: `_review_settle_self_test` fails both "P590 a rollup holding a success gate and a deferral failure gate" orders.
+- `orchestrator_tick._classify_reading` returning raw `classify`: `orchestrator_tick.py --self-test` fails "carry 9 one_pr: WAIT clears the red", "P436 one_pr reads classify_at: WAIT" and the OWED-buckets carry-9 check.
+- `merge_pr.sh` wait (`[ "$crc" = 3 ] || break` made `break`): `merge_pr.sh --self-test` fails "a gate red that classify reads WAIT, then GREEN, is waited out and merges".
+
+## Null control
+
+The unmodified tree (origin/main's `tools/audit/seat` and `tools/ci`) read by the finder's harness: `policy` arm reads DEFECT (the passing-plus-failing rollup is not a wait) and `under` arm reads DEFECT (TIMEOUT where the code run concluded success). Controls kept in the self-tests: a rollup of the passing gate alone parks as before; REVIEW_REQUIRED keeps the review wording; a queued sibling, and a started one past its deadline, end in TIMEOUT; a red gate with no unfinished run is red at once; `merge_pr.sh` with a RED `classify` still refuses RED and with no red never asks `classify`; a new function calling `classify(latest, req)` is a blind reader the registry does not hold.
+
+## Figures
+
+- `python3 -I dev/audit/harnesses/r10_gate_defer_barrier.py` at this head: exit 0, no DEFECT line.
+- `D=$(mktemp -d); git archive origin/main tools/audit/seat tools/ci | tar -x -C "$D"; python3 -I dev/audit/harnesses/r10_gate_defer_barrier.py --tree "$D"`: exit 1, DEFECT policy and DEFECT under (the baseline control).
+- `PYTHONPATH=tests/hastub python3 tools/audit/seat/merge_train.py --self-test`, `python3 tools/audit/seat/orchestrator_tick.py --self-test`, `bash tools/audit/seat/merge_pr.sh --self-test`: 0 failed each.
+- `python3 tools/pr/ci_predict.py --apply-inert` repaired the one predicted closures red (the new harness, a classification in `tests/closures.json`).
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED; no budget touched.
+- Enumerator for the barrier registry: `blind_classify_readers` over merge_train.py, orchestrator_tick.py, review_packet.py and proof_watch.py, compared with `BLIND_CLASSIFY_READERS` by `_gate_reader_barrier_self_test`.
+
+## Red checks
+
+none
+
+## Forward-carry
+
+- Section 5.2 of `dev/audit/rca/r10-gate-busy-defer-2.md` (a fresh dispatch where a re-run would replay a stale pinned program) stays needed under the at-once program; re-measure with that document's `census` arm after #3473 lands. Carry: dismissed: the seam is #3473 (R10-HOTFIX-GATE-REDISPATCH-LOOP), whose roster row is carries-open and not receivable; the relay folds this re-measure instruction when #3473 lands
+- The fixer step 8 extension to a writer change (enumerate the readers of a conclusion whose meaning changes), proposed in `dev/audit/rca/r10-gate-defer-read-final.md` section 6, is policy and is not edited here. Carry: dismissed: owner-only policy, already recorded in that document's section 7
+
+## Friction
+
+none
+
+## Approval
+
+Policy file changed: `dev/governance/roles/nudge.md` step 15 (the generated `tools/audit/briefs/nudge.md` follows it). Not approved yet: this seat holds no approval and asserts none. Merge waits on `@tvofi`'s approving review of the head, per `CLAUDE.md`.
