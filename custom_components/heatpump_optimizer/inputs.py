@@ -46,8 +46,6 @@ from typing import Any, Literal, NamedTuple
 from weakref import WeakKeyDictionary
 
 from .const import (
-    CONF_DHW_HYSTERESIS_ENTITY,
-    CONF_SPACE_HYSTERESIS_ENTITY,
     ENERGY_UNIT_TO_KWH,
     FLOW_UNIT_TO_KG_S,
     INPUT_MAX_AGE_MINUTES,
@@ -62,6 +60,7 @@ from .const import (
     TEMPERATURE_UNIT_TO_C,
 )
 from .const import finite_float
+from .entry_config import EntryConfig
 from .log_latch import log_held
 from .payload import InputProblem
 
@@ -546,10 +545,9 @@ def read_start_hysteresis(state: Any, hass: Any, config: Mapping[str, Any]) -> N
     ``None`` for an option left empty or an entity that does not read, so a
     reading that goes away stops binding the plan the same cycle.
     """
-    state.dhw_start_hysteresis_k = read_temperature_delta_k(
-        hass, config.get(CONF_DHW_HYSTERESIS_ENTITY))
-    state.space_start_hysteresis_k = read_temperature_delta_k(
-        hass, config.get(CONF_SPACE_HYSTERESIS_ENTITY))
+    cfg = EntryConfig.from_mapping(config)
+    state.dhw_start_hysteresis_k = read_temperature_delta_k(hass, cfg.dhw_hysteresis_entity)
+    state.space_start_hysteresis_k = read_temperature_delta_k(hass, cfg.space_hysteresis_entity)
 
 
 def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, float | None]:
