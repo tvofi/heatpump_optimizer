@@ -32088,6 +32088,21 @@ async def _st_tiles():
         out["fuse"] = tuple(b - a for a, b in zip(before, seams.counts()))
         user = _st_whatif.state_for(coord)
         out["user_untouched"] = (user.last_at, dict(user.answer))
+        # The cap tile's clock (#2257): a whole rotation more at each age of
+        # its last refresh, the three slots' solves summed.
+        start, clock = _st_dt.now(), timedelta(hours=price_tiles.STEADY_REFRESH_HOURS)
+        for label, age in (("same_instant", timedelta(0)), ("inside", clock - timedelta(seconds=1)),
+                           ("at", clock)):
+            _st_dt.freeze(start + age)
+            before, stamp = seams.counts(), price_tiles.book(coord)["power_cap_75"]["computed_at"]
+            for _ in names:
+                await coord._maybe_refresh_price_tile(record)
+            out["clock_" + label] = (tuple(b - a for a, b in zip(before, seams.counts())),
+                                     price_tiles.book(coord)["power_cap_75"]["computed_at"] != stamp)
+        # A turn stamped ahead of the reading clock, on an owner of its own.
+        owner, cap = type("_StOwner", (), {})(), [("power_cap_75", {"power_cap_kw": 1.0})]
+        out["clock_behind"] = [price_tiles.take(owner, cap, start + age) is not None for age in (
+            timedelta(0), -timedelta(hours=1), timedelta(seconds=1) - timedelta(hours=1))]
     return out
 
 
@@ -32102,6 +32117,16 @@ R.check(
     _st_tiles_seen.get("target_minus_1") == (1, 0) and _st_tiles_seen.get("target_plus_1") == (1, 0)
     and _st_tiles_seen.get("power_cap_75") == (1, 2),
     repr(_st_tiles_seen),
+)
+R.check(
+    "#2257: the cap tile's steady pair is off the per-solve path: a rotation "
+    "inside the tile's clock solves the two degree tiles and nothing for the "
+    "cap slot, whose tile stands; at the clock the slot solves its three "
+    "again; a clock read behind the last turn is no age, so that turn is "
+    "taken, and the next one a second later is not",
+    [_st_tiles_seen.get("clock_" + k) for k in ("same_instant", "inside", "at", "behind")]
+    == [((2, 0), False), ((2, 0), False), ((3, 2), True), [True, True, False]],
+    repr({k: v for k, v in _st_tiles_seen.items() if k.startswith("clock_")}),
 )
 R.check(
     "the fuse advisor after the cap tile on the same record shares its live "
