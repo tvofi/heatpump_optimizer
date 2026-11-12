@@ -124,6 +124,51 @@ def _subreaper(on: int) -> int:
         return -1
 
 
+def _ptable() -> list[tuple[int, str, int, int, int]]:
+    """(pid, state, ppid, pgrp, session) of every process. From /proc where it exists; on a host
+    without procfs (macOS, the BSDs) from `ps`, the session from os.getsid (-1 where refused)."""
+    rows = []
+    try:
+        names = os.listdir("/proc")
+    except FileNotFoundError:
+        ps = subprocess.Popen(["ps", "-axo", "pid=,stat=,ppid=,pgid="], stdout=subprocess.PIPE, text=True)
+        listing = ps.communicate()[0]
+        if ps.returncode:
+            raise OSError(f"ps exited {ps.returncode}: no process table, so no fork cap")
+        for line in listing.splitlines():
+            try:
+                pid, state, ppid, pgrp = line.split()
+                if int(pid) == ps.pid:
+                    continue  # the listing's own process, a child of this driver: never the command's
+                try:
+                    session = os.getsid(int(pid))
+                except OSError:
+                    session = -1  # exited since the listing, or another session's to hide
+                rows.append((int(pid), state[:1], int(ppid), int(pgrp), session))
+            except ValueError:
+                continue
+        return rows
+    for d in names:
+        if not d.isdigit():
+            continue
+        try:
+            stat = Path("/proc", d, "stat").read_text()
+            state, ppid, pgrp, session = stat[stat.rindex(")") + 2:].split()[:4]
+            rows.append((int(d), state, int(ppid), int(pgrp), int(session)))
+        except (OSError, ValueError):
+            continue  # exited between the listing and the read
+    return rows
+
+
+def _carries(pid: int, mark: bytes) -> bool:
+    """Whether `pid`'s environment holds `mark`; False where it cannot be read (not ours, exited,
+    or no /proc: on such a host only the session, group and ppid legs find a member)."""
+    try:
+        return mark in Path("/proc", str(pid), "environ").read_bytes().split(b"\0")
+    except OSError:
+        return False
+
+
 def family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -> list[int]:
     """Live processes of the command `sid` started: its session, its process group, any that still
     carries the run's token in its environment, and, given `root` (this driver, a subreaper while
@@ -131,19 +176,12 @@ def family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -
     had before the command). The ppid leg is the one a descendant cannot leave: setsid, setpgid,
     a cleared environment and an exited parent all keep it under `root`. Zombies are not counted."""
     me, mark, kids, out = os.getpid(), ("MUTANT_RUN_TOKEN=" + token).encode(), {}, set()
-    for d in os.listdir("/proc"):
-        if not d.isdigit() or int(d) == me:
+    for pid, state, ppid, pgrp, session in _ptable():
+        if pid == me or state == "Z":
             continue
-        try:
-            stat = Path("/proc", d, "stat").read_text()
-            state, ppid, pgrp, session = stat[stat.rindex(")") + 2:].split()[:4]
-            if state == "Z":
-                continue
-            kids.setdefault(int(ppid), []).append(int(d))
-            if sid in (int(pgrp), int(session)) or mark in Path("/proc", d, "environ").read_bytes().split(b"\0"):
-                out.add(int(d))
-        except (OSError, ValueError):
-            continue  # exited between the listing and the read, or not ours to read
+        kids.setdefault(ppid, []).append(pid)
+        if sid in (pgrp, session) or _carries(pid, mark):
+            out.add(pid)
     todo, seen = ([c for c in kids.get(root, []) if c not in skip] if root else []), set()
     while todo:
         pid = todo.pop()
@@ -156,14 +194,13 @@ def family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -
 def _reap(skip: frozenset, keep: int) -> None:
     """Collect the exit status of every orphan reparented to this subreaper (children not in
     `skip` and not the command `keep`, which Popen waits for), so dead ones leave no zombie."""
-    for d in os.listdir("/proc"):
-        try:
-            pid = int(d)
-            stat = Path("/proc", d, "stat").read_text()
-            if pid != keep and pid not in skip and int(stat[stat.rindex(")") + 2:].split()[1]) == os.getpid():
+    me = os.getpid()
+    for pid, _state, ppid, _pgrp, _session in _ptable():
+        if ppid == me and pid != keep and pid not in skip:
+            try:
                 os.waitpid(pid, os.WNOHANG)
-        except (OSError, ValueError, ChildProcessError):
-            continue
+            except ChildProcessError:
+                continue
 
 
 def _kill_family(sid: int, token: str, skip: frozenset = frozenset(), root: int = 0) -> None:
@@ -600,6 +637,12 @@ STM_PINNED = "from stm import f\nassert f(3) == 6\n"
 LOOSE = "from lib import clamp\nassert clamp(3, 0, 5) == 3\n"
 
 
+def _can_subreap() -> bool:
+    """Whether this host has a child subreaper (Linux prctl); the flag is restored as found."""
+    prev = _subreaper(1)
+    return prev >= 0 and _subreaper(prev) >= 0
+
+
 def _no_session(sid: int) -> bool:
     """True once no process has session id `sid` (polled for up to 5 s)."""
     for _ in range(50):
@@ -651,7 +694,7 @@ def _procless_checks(check) -> None:
             time.sleep(0.3)  # `true` has exited and is a zombie until reaped
             with ctx():
                 try:
-                    by_session, by_root = family(lone.pid, ""), family(0, "", root=os.getpid())
+                    by_session, by_root = family(lone.pid, ""), family(lone.pid, "", root=os.getpid())
                     _reap(frozenset({lone.pid, kid.pid}), 0)
                     err = ""
                 except Exception as e:  # noqa: BLE001 -- the failure is the finding, reported as a FAIL
@@ -659,7 +702,7 @@ def _procless_checks(check) -> None:
             check(f"no-procfs: {label}, family() finds a command by its session" + (f" ({err})" if err else ""),
                   lone.pid in by_session and kid.pid not in by_session)
             check(f"no-procfs: {label}, family() finds the driver's descendants by ppid, zombies excluded",
-                  kid.pid in by_root and lone.pid in by_root and dead.pid not in by_root)
+                  set(by_root) == {kid.pid, lone.pid})  # never `dead`, nor the `ps` that listed the table
             try:
                 os.waitpid(dead.pid, os.WNOHANG)
                 reaped = False
@@ -893,7 +936,13 @@ def _self_test() -> int:
                        "    os.execve(sys.executable, [sys.executable, sys.argv[0], mode, str(n - 1)], env)\n"
                        "time.sleep(0.02)\n"
                        "os.waitpid(pid, 0)\n")
+        # a descendant that left the session is followed by the ppid leg alone once its environment is gone:
+        # a host with no child subreaper (macOS, the BSDs) cannot run these cases, and says so per case
+        why = None if _can_subreap() else "no child subreaper (PR_SET_CHILD_SUBREAPER) on this host, so nothing follows a descendant out of its session"
         for mode in ("pgrp", "session", "cleanenv"):
+            if why and mode != "pgrp":
+                print(f"  skip forkcap: a chain that leaves its {mode} at every link -- {why}")
+                continue
             write_spec([bad])
             t0 = time.monotonic()
             rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh -c 'grep -q \"return lo\" lib.py && exit 0; python3 {esc} {mode} 120'",
@@ -904,21 +953,18 @@ def _self_test() -> int:
             check(f"forkcap: no {mode}-leaving descendant outlives the run", not left)
             for pid in left:
                 os.kill(int(pid), signal.SIGKILL)
-        write_spec([bad])
-        rc, out, _ = drive("--spec", str(spec), "--cmd", f"sh -c 'setsid python3 {esc} plain 0 </dev/null >/dev/null 2>&1 & exit 0'", "--timeout", "60")
-        left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=True, text=True).stdout.split()
-        check("forkcap: a daemon that left the session and outlived its command is killed at the command's exit",
-              rc == 0 and not left)
-        for pid in left:
-            os.kill(int(pid), signal.SIGKILL)
-        write_spec([bad])
-        rc, out, _ = drive("--spec", str(spec), "--cmd",
-                           f"sh -c 'setsid env -i {sys.executable} {esc} plain 0 </dev/null >/dev/null 2>&1 & exit 0'", "--timeout", "60")
-        left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=True, text=True).stdout.split()
-        check("forkcap: a daemon that left the session, cleared its environment and outlived its command is killed at the command's exit",
-              rc == 0 and not left)
-        for pid in left:
-            os.kill(int(pid), signal.SIGKILL)
+        for case, launch in (("left the session", "python3"), ("left the session, cleared its environment", f"env -i {sys.executable}")):
+            name = f"forkcap: a daemon that {case} and outlived its command is killed at the command's exit"
+            if why:
+                print(f"  skip {name} -- {why}")
+                continue
+            write_spec([bad])
+            rc, out, _ = drive("--spec", str(spec), "--cmd",
+                               f"sh -c 'setsid {launch} {esc} plain 0 </dev/null >/dev/null 2>&1 & exit 0'", "--timeout", "60")
+            left = subprocess.run(["pgrep", "-f", f"{esc} plain 0"], capture_output=True, text=True).stdout.split()
+            check(name, rc == 0 and not left)
+            for pid in left:
+                os.kill(int(pid), signal.SIGKILL)
 
         # STMT_DEL
         g("commit", "-q", "--allow-empty", "-m", "marker")
@@ -958,6 +1004,8 @@ def _self_test() -> int:
 
 
 if __name__ == "__main__":
+    if os.environ.get("MUTANT_RUN_NO_PROCFS") == "1":  # emulate a host without procfs (macOS) on Linux; inherited by every driver the self-test starts
+        _NoProcfs().__enter__()
     if sys.argv[1:] == ["--self-test"]:
         sys.exit(_self_test())
     sys.exit(main(sys.argv[1:]))
