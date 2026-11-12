@@ -946,6 +946,17 @@ def hysteresis_checks() -> None:
           lambda: list(planner.place_startable(plan, np.full(8, 51.0), temps_of, lambda plan, start_below: plan))
           == list(drop(plan, np.full(8, 51.0), temps_of)))
 
+    # 8b. The clamp-then-zero step the placement stages share.
+    from heatpump_optimizer.dhw_planner import DhwPlanner
+    floor_kw = 1.0
+    handed = np.array([floor_kw, floor_kw - 1e-9, floor_kw - 2e-9, 0.4, 0.0])
+    clamp_ctx = SimpleNamespace(outdoor_temps=None, dt=0.25, humidity=None, tank_exo_kw=None,
+                                min_run_power=floor_kw)
+    clamp_self = SimpleNamespace(_clamp_dhw_to_capacity=lambda *args: handed.copy())
+    check("a step the capacity clamp leaves below a runnable block is zeroed; one on the block, to the 1e-9 the rule allows, is kept",
+          lambda: list(DhwPlanner._ctx_clamp(clamp_self, clamp_ctx, 50.0, None, None, np.ones(5)))
+          == [floor_kw, floor_kw - 1e-9, 0.0, 0.0, 0.0])
+
     # 9. End to end, on the real optimizer.
     solved = {}
 
