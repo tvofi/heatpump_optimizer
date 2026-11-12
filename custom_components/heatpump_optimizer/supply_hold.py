@@ -107,11 +107,10 @@ def tank_reason(inp: ArbiterInputs) -> str | None:
     if inp.disinfecting:
         return "disinfecting"
     params = inp.params
-    if getattr(params, "dhw_enabled", False) and float(inp.state.dhw_temperature) < float(
+    cold = getattr(params, "dhw_enabled", False) and float(inp.state.dhw_temperature) < float(
         params.dhw_min_temp
-    ):
-        return "tank_cold"
-    return None
+    )
+    return "tank_cold" if cold else None
 
 
 def _held_for(inp: ArbiterInputs, value: bool, now: datetime) -> timedelta | None:
