@@ -57,4 +57,4 @@ under the mandate; owner visibility is the orchestrator's call.
 - 16: hooks_setup.py --check/--install and the digest's STALE line for hooks (no STALE line on main).
 - 21, 22: hooks_setup.py and beatd.py liveness-hook parity (P506, P550).
 - 23: tools/audit/seat/pulse.py judge_verdict while a train is live (P554).
-- 24: dev/governance/roles/fixer.md, the retired `docs/decisions/` citation against the layout guard.
+- 24: dev/governance/roles/fixer.md, the retired `dev/governance/decisions/` citation against the layout guard.

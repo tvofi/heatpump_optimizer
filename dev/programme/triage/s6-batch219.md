@@ -15,7 +15,7 @@ line attributes about 3800 calls to callers the shim cannot see, chiefly cloud s
 
 Instances, measured from the two shim logs over the bucket's hour (21:25:35Z to 22:25:35Z,
 `awk '$1>=...&&$1<...'` over each log and its `.1`):
-- `/Users/timmalmstrom/hpo-orch/r10s6/gh-calls.log`, the log `gh_calls.py` reads under the
+- `~/hpo-orch/r10s6/gh-calls.log`, the log `gh_calls.py` reads under the
   orchestrator's `HPO_STATE_DIR`: 1188 lines. That is the line's 1180.
 - `~/.local/state/hpo/gh-calls.log`, the default home: 1833 lines in the same hour. No line
   shares a stamp and pid with the other log, so the two are disjoint.
@@ -59,9 +59,9 @@ Verdict: ACCEPT as a carry on R10-REVIEW-DISPATCH-RESIDUE (probe_arm skips a rev
 Source: triage queue line 347 (the dispatch seat via the orchestrator, 2026-11-11T22:25:50Z).
 
 Instances:
-- /Users/timmalmstrom/hpo-orch/r10s6/dispositions.tsv:164 holds `refs/heads/probe/rev-3481-c0d2fd50
+- ~/hpo-orch/r10s6/dispositions.tsv:164 holds `refs/heads/probe/rev-3481-c0d2fd50
   6f2ab2974dca... 2026-11-11T22:13:16Z relay-dispose`.
-- /Users/timmalmstrom/hpo-orch/r10s6/tick.txt.relay.log:29-38. At 22:23:24Z the relay relayed that
+- ~/hpo-orch/r10s6/tick.txt.relay.log:29-38. At 22:23:24Z the relay relayed that
   ref at the same sha. It pushed review/3481 a61af580 and logged `OWED verdict-unposted #3481
   7c7f0608`. The verdict came from a reviewer below the fixer's model. The local stopgap disposed
   review/3481 at a61af580.
@@ -92,7 +92,7 @@ a self-test arm, in a file the group already owns.
 Verdict: ACCEPT as a carry on R10-TRAIN-RESIDUE-P2 (wait_ci runs the stale re-run while a required context stays pending).
 
 Source: triage queue line 348 (orchestrator, 2026-11-11T22:27:34Z). Stopgap in
-/Users/timmalmstrom/hpo-orch/r10s6/s14/sweep.md:675.
+~/hpo-orch/r10s6/s14/sweep.md:675.
 
 Instances:
 - #3455 at cbf80c6e waited from poll 1 to poll 19 (t+4370 s of 7320 s). It was waiting on gate
@@ -137,7 +137,7 @@ Source: triage queue line 349 (orchestrator, 2026-11-11T22:29:12Z).
 Instances:
 - #3479 at d925d867 printed `REVIEW STALLED ... 95m`. Its review had already returned as
   probe/rev-3479-aeb68873 f36a81b9 at 20:38:46Z. At 22:23:20Z the relay held it
-  `HELD-PENDING-CI #3479 d925d867` (/Users/timmalmstrom/hpo-orch/r10s6/tick.txt.relay.log:27-28).
+  `HELD-PENDING-CI #3479 d925d867` (~/hpo-orch/r10s6/tick.txt.relay.log:27-28).
 - Cause, at 61afd4f2db: tools/audit/seat/orchestrator_tick.py `verdict_levels` (:720-729) prints
   the line when three things hold: the head is in the dispatch record, no approver verdict names
   it, and `_reviewer_ref_age` (:1046) is over STALL_MINUTES (90, :133). It never looks for the
