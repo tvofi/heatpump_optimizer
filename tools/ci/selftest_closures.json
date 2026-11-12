@@ -5651,6 +5651,7 @@
     "dev/audit/**",
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/machinery_budgets.json",
+    "dev/governance/config/outside_contributors.json",
     "dev/governance/config/policy_budgets.json",
     "dev/governance/config/policy_known_bad.json",
     "dev/governance/decisions/**",
