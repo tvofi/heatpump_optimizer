@@ -23103,7 +23103,7 @@
    "findings": [],
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": null,
     "commit": null,
     "last_step": null,
