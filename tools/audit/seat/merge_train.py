@@ -7546,15 +7546,16 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
                 "contexts"]["pageInfo"]["endCursor"] = str(k + 1)
             return pl
         return fetch, reads
-    filler = [dict(nonreq, name=f"x{i}") for i in range(3)]
+    filler, H1 = [nonreq], H0.replace("a", "f")  # a non-required red; another head
     gate_p1 = {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": "SUCCESS", "isRequired": True}
     late = lambda c: {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": c, "isRequired": True}
     f_red, r_red = pager(filler, [late("FAILURE")])
     f_grn, r_grn = pager(filler, [late("SUCCESS")])
     f_one, r_one = pager([gate_p1] + filler)
-    f_old, r_old = pager([gate_p1], [late("SUCCESS")], oid="f" * 40)
-    f_inf, _ = pager(*([[gate_p1]] * (gh_read.MAX_PAGES + 2)))
-    f_mid, r_mid = pager([gate_p1], [late("FAILURE")], oid_late="f" * 40)
+    f_old, r_old = pager([gate_p1], [late("SUCCESS")], oid=H1)
+    f_two = pager([gate_p1], [gate_p1])[0]
+    f_inf = lambda c: f_two(None)  # a listing with no last page: every read answers page 1, more to come
+    f_mid, r_mid = pager([gate_p1], [late("FAILURE")], oid_late=H1)
     got_red = platform_gate(rollup_walk(f_red, H0), H0)[0]
     got_grn = platform_gate(rollup_walk(f_grn, H0), H0)[0]
     check("A5 platform: a required context on page 2 that is red reads RED, green reads GREEN "
@@ -7575,6 +7576,14 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           walked([late("FAILURE")], [late("SUCCESS")]) == "red"
           and walked([dict(nonreq, isRequired=True)], [late("SUCCESS")]) == "red"
           and walked([late("SUCCESS")]) == "green")
+    no_rollup = {"data": None}
+    check("A5 platform: an answer carrying no rollup is handed back as it came, on the first page or a later "
+          "one, and a walk past the page cap hands back the merge still marked unfinished "
+          "(null: the same two pages answered whole read green)",
+          rollup_walk(lambda c: no_rollup, H0) is no_rollup
+          and rollup_walk(lambda c: no_rollup if c else f_two(c), H0) is no_rollup
+          and "not read whole" in platform_gate(rollup_walk(f_inf, H0), H0)[1]
+          and platform_gate(rollup_walk(f_two, H0), H0)[0] == "green")
     gate_req = {"required": f"{GATE}\n"}
     for what, w, merges in (
             ("train green, GitHub green: it merges", dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g)))), True),
@@ -7588,9 +7597,13 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
-    def train_pages(cursor, with_cursor=True):  # page 2 (cursor "1") carries a red required gate; page 1 alone is green
-        k = 0 if cursor is None else int(cursor)
-        pl = rollup(ok_g if k == 0 else ("COMPLETED", "FAILURE"), more=k == 0)
+    tail = "T" + "e" * 159  # the 160 characters the reason keeps of a longer error
+    rc, lines, calls = go(dict(gate_req, runs=[gt()], rollup=(1, "gh: HTTP 502 Bad Gateway x" + tail)))
+    check("A5 serial: a failed rollup read is unread, its reason gh's own last 160 characters, never the "
+          "error text parsed as an answer (null: the readable rollup above merges)",
+          not merged(calls) and f"platform gate=unread: {tail}" in " ".join(lines))
+    def train_pages(cursor, with_cursor=True):  # page 2 (any cursor) carries a red required gate; page 1 alone is green
+        pl = rollup(ok_g if cursor is None else ("COMPLETED", "FAILURE"), more=cursor is None)
         pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
             "contexts"]["pageInfo"].update({"endCursor": "1"} if with_cursor else {})
         return 0, json.dumps(pl)
