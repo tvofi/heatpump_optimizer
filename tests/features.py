@@ -81129,10 +81129,10 @@ R.check(
 )
 
 
-# #1935 follow-up (R10-OUTSIDE-LEARNER-ROBUSTNESS-P2): every space boost owes
-# the full settling tail from its own end, whatever time it ran (no scaled
-# tail kept every press arm of dev/audit/harnesses/boost_press_tail_walk.py
-# inside the whole window's walk); the time it ran is summed and persisted.
+# #1935 follow-up (R10-OUTSIDE-LEARNER-ROBUSTNESS-P2): a space boost owes the
+# settling tail ``settle_tail`` prices on the boosted time summed since the
+# learners were last free (scaled by R10-OUTSIDE-LEARNER-ROBUSTNESS-P3, owner
+# ruling 2026-11-12); the sum is persisted.
 def _bt_state(ran, *, cancel=True):
     st = boost_mod.BoostState()
     st.set(boost_mod.CHANNEL_SPACE, True, NOW)
@@ -81148,10 +81148,10 @@ _bt_nested = _bt_state(timedelta(hours=2), cancel=False)
 _bt_nested.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=3))
 _bt_nested.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=3, seconds=38))
 R.check(
-    "a 38 s boost cancelled owes the full tail from its end and sums its 38 s; a window "
+    "a 38 s boost cancelled owes the floor tail from its end and sums its 38 s; a window "
     "run to its end settles 12 h from that end (null control); a click inside a long "
     "tail adds to it, so the full tail runs again from the click's end",
-    _bt_click.space_settle_until == NOW + timedelta(seconds=38) + boost_mod.SPACE_SETTLE_TAIL
+    _bt_click.space_settle_until == NOW + timedelta(seconds=38) + timedelta(hours=1.5)
     and _bt_click.space_boosted == timedelta(seconds=38)
     and _bt_full.space_settle_until == NOW + timedelta(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
     and _bt_nested.space_settle_until == NOW + timedelta(hours=3, seconds=38) + boost_mod.SPACE_SETTLE_TAIL,
@@ -81211,11 +81211,12 @@ _bt_one, _bt_one_end = _bt_series([("space", _bt_20)])
 R.check(
     "short boosts back to back owe no less than one boost of their summed length, "
     "over both surfaces; one short boost alone sums only itself (null control)",
-    _bt_three.space_settle_until == _bt_three_end + boost_mod.SPACE_SETTLE_TAIL
+    _bt_three.space_settle_until == _bt_three_end + boost_mod.settle_tail(timedelta(hours=1))
     and _bt_three.space_boosted == 3 * _bt_20
-    and _bt_mixed.space_settle_until == _bt_mixed_end + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mixed.space_settle_until == _bt_mixed_end + boost_mod.settle_tail(timedelta(hours=1))
     and _bt_mixed.space_boosted == timedelta(hours=1)
-    and _bt_one.space_settle_until == _bt_one_end + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_one.space_settle_until == _bt_one_end + boost_mod.settle_tail(_bt_20)
+    and boost_mod.settle_tail(_bt_20) < boost_mod.settle_tail(timedelta(hours=1))
     and _bt_one.space_boosted == _bt_20,
     f"{_bt_three} {_bt_mixed} {_bt_one}",
 )
@@ -81234,11 +81235,11 @@ _bt_inside.set(boost_mod.CHANNEL_SPACE, True, _bt_inside_end + timedelta(hours=1
 _bt_inside.set(boost_mod.CHANNEL_SPACE, False, _bt_inside_end + timedelta(hours=1, minutes=20))
 R.check(
     "the boosted sum clears once its tail ran out with nothing live, and not before",
-    _bt_after.space_settle_until == _bt_spent_at + timedelta(minutes=21) + boost_mod.SPACE_SETTLE_TAIL
+    _bt_after.space_settle_until == _bt_spent_at + timedelta(minutes=21) + boost_mod.settle_tail(_bt_20)
     and _bt_after.space_boosted == _bt_20
     and _bt_inside.space_boosted == 4 * _bt_20
     and _bt_inside.space_settle_until
-    == _bt_inside_end + timedelta(hours=1, minutes=20) + boost_mod.SPACE_SETTLE_TAIL,
+    == _bt_inside_end + timedelta(hours=1, minutes=20) + boost_mod.settle_tail(4 * _bt_20),
     f"{_bt_after} {_bt_inside}",
 )
 
@@ -81252,10 +81253,11 @@ _bt_mode_seen.note_mode(True, NOW - timedelta(minutes=30))
 _bt_mode_seen.note_mode(False, NOW)
 R.check(
     "a boost mode restored with no start leaves an unknown sum when left; one seen to "
-    "start sums its own length; both owe the full tail",
+    "start sums its own length and owes its tail; the unknown one owes the full tail",
     _bt_mode_restored.space_settle_until == NOW + boost_mod.SPACE_SETTLE_TAIL
     and _bt_mode_restored.space_boosted is None
-    and _bt_mode_seen.space_settle_until == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mode_seen.space_settle_until == NOW + boost_mod.settle_tail(timedelta(minutes=30))
+    and boost_mod.settle_tail(timedelta(minutes=30)) < boost_mod.SPACE_SETTLE_TAIL
     and _bt_mode_seen.space_boosted == timedelta(minutes=30),
     f"{_bt_mode_restored} {_bt_mode_seen}",
 )
@@ -81277,7 +81279,7 @@ R.check(
     "a restart keeps the boosted sum with the tail; an unreadable sum is unknown; "
     "a store main wrote restores with no start and no tail",
     _bt_rs.space_boosted == timedelta(hours=1) + _bt_20
-    and _bt_rs.space_settle_until == NOW + _bt_20 + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_rs.space_settle_until == NOW + _bt_20 + boost_mod.settle_tail(timedelta(hours=1) + _bt_20)
     and _bt_rbad.space_boosted is None
     and _bt_main.space_since is None and _bt_main.space_settle_until is None,
     f"{_bt_rs} {_bt_rbad} {_bt_main}",
@@ -81377,21 +81379,39 @@ R.check(
 )
 
 # (e) ``heat_loss_refit`` waits ``SPACE_SETTLE_TAIL`` after the last
-# boost-tagged pair (a pair carries no boost length), and every boost length,
-# cancelled or expired, owes exactly that tail from its end: the refit never
-# reads evidence the interval learners refused. Null control: a mutant tail
-# shorter for a short boost turns it red (the body's mutation table).
+# boost-tagged pair (a pair carries no boost length), and no boost length,
+# cancelled or expired, owes more than that tail from its end: the refit never
+# reads evidence the interval learners refused. The tail grows with the length
+# and is the full tail from the window's length on. Null control: every
+# expired boost (the whole window) owes exactly the full tail.
 _bt_window_min = int(60 * boost_mod.BOOST_HOURS)
+_bt_lengths = list(range(1, 2 * _bt_window_min, 7))
 _bt_sweep = [
     _bt_state(timedelta(minutes=m), cancel=m < _bt_window_min).space_settle_until
     - (NOW + timedelta(minutes=min(m, _bt_window_min)))
-    for m in range(1, 2 * _bt_window_min, 7)
+    for m in _bt_lengths
 ]
 R.check(
-    "every boost length, cancelled inside the window or expired past it, owes the full "
-    "tail the refit waits",
-    set(_bt_sweep) == {boost_mod.SPACE_SETTLE_TAIL} and len(_bt_sweep) == len(range(1, 2 * _bt_window_min, 7)),
+    "no boost length owes more than the tail the refit waits; the tail grows with the "
+    "length, from the 1.5 h floor, and an expired window owes the full tail",
+    max(_bt_sweep) == boost_mod.SPACE_SETTLE_TAIL and _bt_sweep == sorted(_bt_sweep)
+    and _bt_sweep[0] == timedelta(hours=1.5)
+    and {t for m, t in zip(_bt_lengths, _bt_sweep) if m >= _bt_window_min} == {boost_mod.SPACE_SETTLE_TAIL}
+    and len(set(_bt_sweep)) > 2,
     f"{sorted(set(_bt_sweep))}",
+)
+
+# Owner ruling 2026-11-12 (R10-OUTSIDE-LEARNER-ROBUSTNESS-P3): the contributor's
+# scaled tail, ``12 h + 6 h * ln(boosted / 2 h)`` with a 1.5 h floor, the
+# literal values (a test re-deriving the formula would pin nothing).
+_bt_tails = {m: boost_mod.settle_tail(None if m is None else timedelta(minutes=m)).total_seconds() / 3600
+             for m in (None, 0, 10, 30, 60, 90, 120, 180)}
+R.check(
+    "the scaled tail: floor 1.5 h to 10 min, 3.68 h at 30 min, 7.84 h at 60 min, "
+    "10.27 h at 90 min, 12 h from the window's 2 h on and for an unknown length",
+    {m: round(v, 2) for m, v in _bt_tails.items()}
+    == {None: 12.0, 0: 1.5, 10: 1.5, 30: 3.68, 60: 7.84, 90: 10.27, 120: 12.0, 180: 12.0},
+    f"{_bt_tails}",
 )
 
 # Null control: the order of the freeze reasons in ``_learning_frozen`` is main's.
@@ -85851,12 +85871,13 @@ _p3_cancel = _p3_h.freeze_end()
 _p3_h.set(boost_mod.CHANNEL_SPACE, True, NOW + _p3_td(minutes=20))
 _p3_press = _p3_h.freeze_end()
 R.check(
-    "P3 end: none with no boost; a live overlay ends its window plus the tail; a cancel moves "
-    "it earlier (the tail from the cancel); a second press moves it later again",
+    "P3 end: none with no boost; a live overlay ends its window plus the tail its whole "
+    "window owes; a cancel after 10 min moves it earlier (the 1.5 h floor from the cancel); "
+    "a second press moves it later again, to the new window's end plus the summed tail",
     _p3_none is None
     and _p3_live == NOW + _p3_td(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
-    and _p3_cancel == NOW + _p3_td(minutes=10) + boost_mod.SPACE_SETTLE_TAIL < _p3_live
-    and _p3_press > _p3_cancel,
+    and _p3_cancel == NOW + _p3_td(minutes=10) + _p3_td(hours=1.5) < _p3_live
+    and _p3_press == NOW + _p3_td(minutes=20, hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL > _p3_cancel,
     f"{_p3_none} {_p3_live} {_p3_cancel} {_p3_press}",
 )
 class _P3Coord:

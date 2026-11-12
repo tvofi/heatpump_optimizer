@@ -95,6 +95,7 @@ from .entry_config import EntryConfig, factory_settings, undo_point, undone_sett
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    HOUSE_LOSS_MAX_SAMPLE_HOURS,
     DOMAIN,
     PRICE_SOURCE_ENTITY,
     CONF_INDOOR_HUMIDITY_ENTITY,
@@ -1630,7 +1631,6 @@ HOUSE_LOSS_ALPHA = 0.02
 # UA and dividing by it amplifies sensor noise without limit.
 HOUSE_LOSS_MIN_DELTA = 6.0
 HOUSE_LOSS_MIN_SAMPLE_HOURS = 0.15
-HOUSE_LOSS_MAX_SAMPLE_HOURS = 1.5
 #: The interval learners' ``(min, max)`` sample length, which a heat counter's span lands inside.
 HOUSE_LOSS_SAMPLE_BOUNDS_H = (HOUSE_LOSS_MIN_SAMPLE_HOURS, HOUSE_LOSS_MAX_SAMPLE_HOURS)
 # The re-anchor threshold gate: a nameplate edit within this fraction keeps
