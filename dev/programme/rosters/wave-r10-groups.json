@@ -23793,7 +23793,8 @@
    "findings": [],
    "carry": [
     "From r10-outside-learner-robustness, body item cc8a67d1: Part 3 of outside pull request 3435, the refusal reasons at DEBUG and the frozen learner phase with the card in three languages (heat_energy.py, learner_progress.py, payload.py, the card script, tests/card.mjs), is not in this diff. It is its own roster group by feature triage ruling P613, built after part 2 from the same commit. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (items cc8a67d1)",
-    "Carry 2: Part 3 of outside pull request 3435, the refusal reasons at DEBUG and the frozen learner phase with the card in three languages (heat_energy.py, learner_progress.py, payload.py, the card script, tests/card.mjs), is not in this diff. It is its own roster group by feature triage ruling P613, built after part 2 from the same commit. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3"
+    "Carry 2: Part 3 of outside pull request 3435, the refusal reasons at DEBUG and the frozen learner phase with the card in three languages (heat_energy.py, learner_progress.py, payload.py, the card script, tests/card.mjs), is not in this diff. It is its own roster group by feature triage ruling P613, built after part 2 from the same commit. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3",
+    "Owner ruling tvofi 2026-11-12, full learner robustness lands in round 10: besides its own brief this group also delivers the scaled boost settle tail the contributor asked for, which part 2 shipped as the absolute bound with the full 12 h tail under an orchestrator ruling the owner overrode. Measure the scaled tail against that shipped behaviour with a flat-price null control."
    ],
    "resume": {
     "stage": "not-started",
