@@ -1,0 +1,14 @@
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index d8b34b9999..2c8d4443fb 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -3081,8 +3081,7 @@ class Train:
+         # real red (P608: #3445). The deferral is only the gate's own: the other
+         # required contexts are read below, so a red beside it is still named.
+         deferral = bool(GATE in req and GATE not in self.ignore and seen.get(GATE, set()) & set(POLICY_RED)
+-                        and ((("SUCCESS" in seen[GATE]) and not rollup_red_after_pass(entries, GATE))
+-                             or self._gate_busy(h, self._check_runs(h))))
++                        and ((("SUCCESS" in seen[GATE]) and not rollup_red_after_pass(entries, GATE))))
+         red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED and not (deferral and n == GATE)]
+         pending = [n for n in req if n not in self.ignore and n not in red
+                    and (last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL") or (deferral and n == GATE))]
