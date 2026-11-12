@@ -1,5 +1,1 @@
-reviewed head: 80779d2e7492c8aaf1b4b4608d3f6b93a45dcffd
-merge base: 61afd4f2db10341ab9b86583944402b206eb4c78
-origin/main at review: 6d16af36c26ad5a3d9610a9c8412cc54dc3c12dd
-merge-tree --write-tree origin/main 80779d2e7492c8aaf1b4b4608d3f6b93a45dcffd: rc=0 tree a3b698b8f6514bb9e8bf5dd81bb47fe77ba2ad7b
-handoff ref tip: 80779d2e7492c8aaf1b4b4608d3f6b93a45dcffd	refs/heads/handoff/r10-hotfix-opener-unblock
+190ec599dac05e7a19e7639376c737d53ba40685

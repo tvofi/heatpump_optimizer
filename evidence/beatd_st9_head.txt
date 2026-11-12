@@ -34,4 +34,3 @@ ok   mutant m9_no_exec turns (9) 'behind on the seat paths and idle: checks out 
 ok   mutant m9_once_restarts turns (9) '--once never restarts' red
 ok   mutant m9_no_start_gate turns (9) 'once a restart is taken no job instance starts' red
 beatd self-test: 34 checks, 0 failed
-rc=0

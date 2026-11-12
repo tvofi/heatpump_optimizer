@@ -1,4 +1,0 @@
-RESULT gate_lock_priority side=base HPO_GATE_PRIORITY=2: 2 failed of 14 ['priority: an urgent waiter takes before an older normal one, after its ticket rewrite', 'priority: the heavy-slot pool orders by the same rule']
-RESULT gate_lock_priority side=base HPO_GATE_PRIORITY=unset: 0 failed of 14 []
-RESULT gate_lock_priority side=head HPO_GATE_PRIORITY=2: 0 failed of 14 []
-RESULT gate_lock_priority side=head HPO_GATE_PRIORITY=unset: 0 failed of 14 []
