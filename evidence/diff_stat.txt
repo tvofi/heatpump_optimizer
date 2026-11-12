@@ -1,0 +1,4 @@
+ dev/programme/delivery/3492.md     | 1 +
+ tools/audit/seat/sweep_render.py   | 5 +++++
+ tools/audit/seat/sweep_template.md | 9 ++++-----
+ 3 files changed, 10 insertions(+), 5 deletions(-)
