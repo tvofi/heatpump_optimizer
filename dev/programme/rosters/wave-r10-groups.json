@@ -21149,9 +21149,10 @@
    "architect_note": "",
    "brief": "Part 5 of R10-BODY-CONTRACT, carry_audit.py only: an indented Carry continuation and a quoted Carry phrase (pinned by the seven refused verdicts), and NONBLOCK section scoping (P440). Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "pr": 3493
+    "pr": 3493,
+    "commit": "d1def1ea63078aa58cc56f9d323ca60f732464bb"
    }
   },
   {
@@ -24836,9 +24837,9 @@
    "findings": [],
    "brief": "owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim \"I want it now if it does not move closure. That applies for any other study decisions that might have been dropped\"), recorded by triage batch 244, entries P734 and P736. Study review Q3 (batch 218 P668): the convergence scorecard is recorded daily, report-only. P668 carried its landing on R10-TICK-RESIDUE-P3, which is deferred, so it was dropped; that carry is moved here and is this group's contract (the ten lines with their rules and null controls, a rewritten tracked script with no host paths and no GitHub call, unread runs printed as unread, a beat row in tools/audit/seat/beat_jobs.py and tools/audit/seat/beatd.jobs.json). Report-only: no gate, no threshold, no budget file. Until it lands, the orchestrator records the scorecard by hand daily. R10-TICK-RESIDUE-P3 stays deferred; none of these files is a barrier file.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "e4ba9412b2617a2c240741f665f2740b364e2ccf",
     "last_step": null,
     "next_step": "fixer (size S): the moved carry is the contract",
     "note": "triage: dev/programme/triage/s6-batch244.md#P736 at 0ba0f293b0; owner ruling (tvofi 2026-11-12 about 08:20Z, verbatim \"I want it now if it does not move closure. That applies for any other study decisions that might have been dropped\"); carry SCORECARD-LANDS-AS-BEAT-ROW moved here from R10-TICK-RESIDUE-P3.; overlap admitted (R10-CI-PRIORITY-PAUSE): triage: dev/programme/triage/s6-batch244.md#P736 (owner ruling 2026-11-12 ~08:20Z); beat_jobs.py and beatd.jobs.json shared with R10-TICK-RESIDUE-P3 (deferred), whose scorecard carry moves here",
@@ -24966,7 +24967,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a sonnet fixer now",
-    "note": "BLOCKED.md of the process-slim-p2 merge repair, sha 1b45b89b"
+    "note": "BLOCKED.md of the process-slim-p2 merge repair, sha 1b45b89b",
+    "pr": 3520
    },
    "carry": []
   },
