@@ -7,6 +7,30 @@ Repair round 1, after `Fix review: blocked d0c9eb66 hold-unrefreshed`:
 
 This merge stays behind the barrier PR 3499 (it touches `tools/audit/seat/merge_train.py`).
 
+- Carry 1: built here (P447, STAMP-HOLD: `stamp_hold_wait`, `stamp_hold_age`, the `stamp.py` `stamp_hold`/`stamp_run` split).
+- Carry 2: left for a later part; it stays on the roster.
+- Carry 3: left for a later part; it stays on the roster.
+- Carry 4: left for a later part; it stays on the roster.
+- Carry 5: left for a later part; it stays on the roster.
+- Carry 6: left for a later part; it stays on the roster.
+- Carry 7: left for a later part; it stays on the roster.
+- Carry 8: left for a later part; it stays on the roster.
+- Carry 9: left for a later part; it stays on the roster.
+- Carry 10: left for a later part; it stays on the roster.
+- Carry 11: left for a later part; it stays on the roster.
+- Carry 12: left for a later part; it stays on the roster.
+- Carry 13: left for a later part; it stays on the roster.
+- Carry 14: left for a later part; it stays on the roster (P567 fix 2, newest-wins red rule versus GitHub's any-red rule).
+- Carry 15: left for a later part; it stays on the roster.
+- Carry 16: left for a later part; it stays on the roster.
+- Carry 17: built in the merged first part; this part adds the pins its review owed (X10, X14, X16, X17).
+- Carry 18: built in the merged first part; this part adds the pins its review owed (X10, X14, X16, X17).
+- Carry 19: left for a later part; it stays on the roster.
+- Carry 20: left for a later part; it stays on the roster.
+- Carry 21: left for a later part; it stays on the roster.
+- Carry 22: left for a later part; it stays on the roster.
+- Carry 23: left for a later part; it stays on the roster.
+
 ## Head
 
 1012ff4440889a24bf3bcd2f66eff2bfefeddb19, on top of d0c9eb66497bfd1cb2931bae2c7bddcfa3271e71 (the reviewed head), measured on origin/main 14f227c5bd0eb80855b21055cc668857a5f820b4's descendant; merge-tree reports no conflict.
