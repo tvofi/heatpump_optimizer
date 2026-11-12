@@ -2841,6 +2841,7 @@
     ".github/**",
     "tests/closure.py",
     "tests/layout.py",
+    "tests/throwaway_git.py",
     "tools/audit/archscore/**",
     "tools/audit/carry_audit.py",
     "tools/audit/check_scopes.py",
