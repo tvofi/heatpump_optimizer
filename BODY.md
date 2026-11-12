@@ -2,7 +2,14 @@ R10-SEAT-IDENTITY-P5 (part 1 of 1: carries 0-4, 8). One writer per standing seat
 
 ## Head
 
-3e39de94d367b82d778b0d47b87fa57059edb09d
+af1920d50eb3bfdbb94e53177b2fa892444e85c7
+
+## Closures repair (edited classification lines)
+Under the coordinator's ruling the owner's mandate covers, the minimal classification edit only:
+- `tests/closure.py` `INERT_EXCEPT`: added `tools/audit/seat/seat_gen.py` and `tools/audit/seat/seat_gen_selftest.py` (plus a comment), because `tests/entities.py` reads both and the INERT `tools/audit/seat/` prefix declared them unread; the refusal text named "remove from INERT or except them", and the prefix stays INERT as for `orchestrator_tick.py`.
+- `tests/closures.json`: the two files recorded into the `tests/entities.py` closure by `derive_closures.sh --single tests/entities.py --record-only` then `closure.py merge --partial --allow-failures` (the recording's only FAILs were the orphan check this edit clears and the harness's own null-control fixtures); `orphan_files()` now prints `[]`. The stray earlier entry under another key is removed by the merge.
+- `BLOCKED.md` removed. Nothing else changed.
+`tools/pr/prepr.sh` at this head: rc=0 (MODE: FULL, since `tests/closure.py` is a gate file).
 
 ## Mutation proof
 
@@ -29,7 +36,7 @@ Each plant is one site in `seat_gen.py` or `beat_jobs.py`; the named check goes 
 
 ## Red checks
 
-none
+- `tests / fast (3.14)`: red on this branch's ancestry (main), not on a file this diff touches; this diff changes no production code and its own self-tests pass at head (prepr rc=0). Cheaper detector: none found for a main-side red, the scoped gate already runs only this diff's closure. Carry: dismissed: inherited from main, outside this diff
 
 ## Forward-carry
 
