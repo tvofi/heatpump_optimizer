@@ -263,6 +263,11 @@ _COUNT, _FLAG, _TEXT = Domain("int", 0), Domain("flag"), Domain("text")
 _AT, _AT0 = Domain("instant"), Domain("instant", null=True)
 _DAY, _DAY0, _MONTH = Domain("day"), Domain("day", null=True), Domain("month")
 _ABSENT = Domain("choice", null=True)  # ``None`` only: the channel is left automatic
+#: ``DutySwitchLearner.from_record`` reads a record whole or not at all: a
+#: half-kept row would be evidence nobody observed.
+_DUTY_SWITCH = "one invalid field empties the duty-switch learner"
+_DS_WEIGHT = Domain("real", 0.0, 1e6, whole=_DUTY_SWITCH)
+_DS_DAY = Domain("day", null=True, whole=_DUTY_SWITCH)
 _SHAPE = SHAPE_MAX / SHAPE_MIN
 _QUARTER = QUARTER_FACTOR_MAX / QUARTER_FACTOR_MIN
 _ROW = "the update path's cone repair clips and renormalises the whole row (observe_day)"
@@ -494,6 +499,18 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
             "mode", "dhw_setpoint", "space_setpoint", "silent",
             "night_start_hour", "night_start_minute", "night_end_hour", "night_end_minute",
         )},
+    },
+    # duty_switch.py: per direction the decayed counts, latch, off times and tallies.
+    "duty_switch": {
+        f"directions/{d}/{leaf}": domain
+        for d in ("dhw_space", "space_dhw") for leaf, domain in {
+            "k": _DS_WEIGHT, "kept_w": _DS_WEIGHT,
+            "decayed_at": Domain("instant", null=True, whole=_DUTY_SWITCH),
+            "first_day": _DS_DAY, "last_day": _DS_DAY,
+            "usable": Domain("flag", whole=_DUTY_SWITCH),
+            "off_s/#": Domain("real", 0.0, 86400.0, whole=_DUTY_SWITCH),
+            **{t: Domain("int", 0, 10**9, whole=_DUTY_SWITCH) for t in ("stopped", "kept", "void", "censored")},
+        }.items()
     },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},
