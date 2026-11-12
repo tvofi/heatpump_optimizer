@@ -1,12 +1,16 @@
-Handoff head 4e9eb7424e0b74a1ef1db914b7c3404ae9fad3fa pushed to handoff/r10-ci-priority-pause (origin/main 2bfa2f5f merged). body_push refused twice, verbatim:
+Question: R10-TRAIN-RESIDUE-P2 is carries-open, so every body carry to it is BAD-DEST, and the owed item ce279d5a (Carry 0) is answered only by a dismissal to that same group. Which live group should receive the body's four carries (and ce279d5a)? Code head ec3c6b8b29 pushed to handoff/r10-ci-priority-pause with the closure classification (the UNCLASSIFIED refusal is cleared); body kept at handoff-wip/r10-ci-priority-pause-body.
 
+body_push output, verbatim:
 ```
-PREDICT tests / fast (3.14) UNCLASSIFIED dev/audit/config/ci_priority.json: in no measured closure and not on INERT -- tests/entities.py refuses it, and every script that imports it is UNDER-SCOPED
-CI PREDICT: an UNCLASSIFIED file is classified in the diff (CLAUDE.md): one a test script reads joins that script's closure through tests/derive_closures.sh --single <script>; one no script reads goes on INERT in tests/closure.py
-CI PREDICT: 1 predicted red(s) on tests / fast (3.14) against 2bfa2f5fb799 -- repair before the handoff; the lines above name each arm's repair
-body_push: the predictor refuses this head (above); repair it, push the code, then the body
-body_push: REFUSED PREDICTOR
-body_push: refused body kept at handoff-wip/r10-ci-priority-pause-body ae9696306d96077046041df260d26395612d6c9f
+fill-red: the diff adds no unpinned mutation site; nothing written
+pr-body ok: PR-BODY: 0 error(s) in /tmp/claude-0/body.md -- no budget leaf raised over 2bfa2f5fb7...ec3c6b8b29
+REFUSE carry: BAD-DEST body item ce279d5a: R10-TRAIN-RESIDUE-P2: R10-TRAIN-RESIDUE-P2 is carries-open (resume.stage carries-open); a carry goes to the live group owning the seam, else the producing group keeps the fix; valid targets: unknown (no --pr-group) -- CARRY-AUDIT: 7 finding item(s): 2 routed, 0 unrouted, 5 bad destination(s), at origin/handoff/audit-r10-roster b58333d803
+preflight ok
+figures ok: FIGURES: 14 resolved, 0 not verified, 0 refused
+figure blocks ok: figure_block verify: 0 block(s), 0 refused
+ref_privacy ok: ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 1261 line(s) added since 2bfa2f5fb799 judged, 0 refused
+ref_privacy (body) ok: no host identity in the body
+body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again
+body_push: REFUSED BODY-LINT
+body_push: refused body kept at handoff-wip/r10-ci-priority-pause-body cec5b653b65524562002959d185aeab726cde6f6
 ```
-
-Cause: tests/derive_closures.sh --single tests/entities.py (with venv-ha on PATH) exits 1, so dev/audit/config/ci_priority.json cannot be recorded into a closure here; closures-autofix records it in CI. Needs the relay's ruling on pushing the body despite this predicted UNCLASSIFIED/UNDER-SCOPED red. Question: may the body be pushed past the predictor refusal, leaving the closure recording to closures-autofix?
