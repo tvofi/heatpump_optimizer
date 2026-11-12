@@ -1,0 +1,26 @@
+F1 mode exit start dropped: exit 1, 6 red
+    FAIL short boosts back to back owe no less than one boost of their summed length, over both surfaces; one short boost alone sums only itself
+    FAIL a boost mode restored with no start leaves an unknown sum when left; one seen to start sums its own length; both owe the full tail  [Bo
+    FAIL the boosted sum is not cleared while an overlay or the mode is live past an earlier boost's tail, so the live boost adds to it, over bo
+    FAIL an extended overlay sums from its first press; the mode entered after a spent tail sums only itself  [BoostState(until={}, blocked={}, 
+    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, 
+    FAIL async_set_mode into the boost mode marks its start, and out of it starts the tail  [(True, None) BoostState(until={}, blocked={}, space
+F2 expiry start dropped: exit 1, 1 red
+    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, 
+F3 sum sign flipped: exit 1, 10 red
+    FAIL a 38 s boost cancelled owes the full tail from its end and sums its 38 s; a window run to its end settles 12 h from that end (null cont
+    FAIL short boosts back to back owe no less than one boost of their summed length, over both surfaces; one short boost alone sums only itself
+    FAIL the boosted sum clears once its tail ran out with nothing live, and not before  [BoostState(until={}, blocked={}, space_settle_until=da
+    FAIL a boost mode restored with no start leaves an unknown sum when left; one seen to start sums its own length; both owe the full tail  [Bo
+    FAIL a restart keeps the boosted sum with the tail; an unreadable sum is unknown; a store main wrote restores with no start and no tail  [Bo
+    FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build
+    FAIL the boosted sum is not cleared while an overlay or the mode is live past an earlier boost's tail, so the live boost adds to it, over bo
+    FAIL an extended overlay sums from its first press; the mode entered after a spent tail sums only itself  [BoostState(until={}, blocked={}, 
+    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, 
+    FAIL the tail runs out at its own instant; a spent tail clears on expiry and a quiet install stores main's payload; a press after a spent ta
+F7 ended-while-down anchored to restart: exit 1, 2 red
+    FAIL a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its t
+    FAIL a restored tail ending now is spent; an overlay ended over a tail before the restart owes none  [BoostState(until={}, blocked={}, space
+F11 apply reads the tail after expiry: exit 1, 1 red
+    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, 
+F12 ended-while-down start is the restart: exit 0, 0 red  <-- SURVIVED

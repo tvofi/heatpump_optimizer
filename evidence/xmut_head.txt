@@ -1,0 +1,30 @@
+X1 clear_spent ignores a live overlay: exit 1, 1 red
+    FAIL the boosted sum is not cleared while an overlay or the mode is live past an earlier boost's tail, so the live boost adds to it, over both surface
+X2 clear_spent ignores a live mode: exit 1, 1 red
+    FAIL the boosted sum is not cleared while an overlay or the mode is live past an earlier boost's tail, so the live boost adds to it, over both surface
+X3 re-press resets the start: exit 1, 1 red
+    FAIL an extended overlay sums from its first press; the mode entered after a spent tail sums only itself  [BoostState(until={}, blocked={}, space_sett
+X4 mode exit not persisted: exit 1, 1 red
+    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, another mo
+X5 apply persists only on release: exit 1, 1 red
+    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, another mo
+X6 ended-while-down owes nothing: exit 1, 1 red
+    FAIL a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its tail; a spe
+X7 settle may shorten a running tail: exit 1, 1 red
+    FAIL a settle ending before the running tail's end leaves it; one ending later moves it  [2026-02-01 23:00:00+00:00 BoostState(until={}, blocked={}, s
+X8 payload drops since: exit 1, 2 red
+    FAIL a boost store from an install that never boosted is main's payload, field for field  [{'block_dhw': {'until': '2026-02-01T13:00:00+00:00'}} {'spa
+    FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader 
+X9 restore drops since: exit 1, 2 red
+    FAIL a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its tail; a spe
+    FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader 
+X10 coordinator mode hook removed: exit 1, 1 red
+    FAIL async_set_mode into the boost mode marks its start, and out of it starts the tail  [(False, None) BoostState(until={}, blocked={}, space_settle_u
+X11 negative boosted_h accepted: exit 1, 1 red
+    FAIL a restored boosted sum outside [0, inf) is unknown; 0 and 0.5 h restore as stored  [[datetime.timedelta(days=-1, seconds=82800), None, None, None
+X12 spent tail restored: exit 1, 2 red
+    FAIL a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its tail; a spe
+    FAIL a restored tail ending now is spent; an overlay ended over a tail before the restart owes none  [BoostState(until={}, blocked={}, space_settle_un
+X13 mode entry does not clear spent: exit 1, 1 red
+    FAIL an extended overlay sums from its first press; the mode entered after a spent tail sums only itself  [BoostState(until={}, blocked={}, space_sett
+rc=0
