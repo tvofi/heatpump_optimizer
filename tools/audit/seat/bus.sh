@@ -2180,13 +2180,13 @@ B
   printf '#!/bin/bash\nprintf "HEADREF:%%s\\n" "$HEADREF"; cat "%s/body31"\n' "$W" > "$W/ghstub2"
   printf '## Forward-carry\n\n- Carry 0: not built in this part. Carry: R10-LIVE\n' > "$W/body31"
   lroster '["From #99: the store seam."]'
-  out=$(HEADREF=fix/r10-live BUS_GH="bash $W/ghstub2" dhid 7 "$h1" cmsg_L3 2>&1); rc=$?
+  out=$(HEADREF=fix/r10-live BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L3 2>&1); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
   expect "a body's own-group status line passes when the head ref is the group's branch (CARRY-LANDED-OWN-TOPIC)" $?
-  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" dhid 7 "$h1" cmsg_L4 2>&1); rc=$?
+  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L4 2>&1); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q '^CARRY-MISSING R10-LIVE'
   expect "null control: the same line under another group's head ref is still refused" $?
-  out=$(BUS_GH=false dhid 7 "$h1" cmsg_L5 2>&1); rc=$?
+  out=$(BUS_GH=false run dispatch 7 "$h1" cmsg_L5 2>&1); rc=$?
   echo "$out" | grep -q 'BUS carry-landing UNREAD #7: the body could not be read'
   expect "an unreadable body is still reported by carry_landed, and the dispatch goes on (CARRY-LANDED-UNREAD)" $?
   # the `&& echo x` sentinel keeps a body's last character: `R10-LIVEx` names no group, so the gate has
@@ -2194,7 +2194,7 @@ B
   # which holds no carry (lroster '[]'), and the dispatch is refused CARRY-MISSING
   printf '## Forward-carry\n\n- The census misses the store seam. Carry: R10-LIVEx\n' > "$W/body31"
   lroster '[]'
-  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" dhid 7 "$h1" cmsg_L6 2>&1); rc=$?
+  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L6 2>&1); rc=$?
   [ $rc = 0 ] && ! echo "$out" | grep -q 'CARRY-MISSING' && echo "$out" | grep -q '^bus-nonce: '
   expect "a body ending in a literal x is read whole, not cut by the sentinel strip (CARRY-LANDED-SENTINEL)" $?
   printf '## Summary\nround four, repaired\n' > "$W/body31"
