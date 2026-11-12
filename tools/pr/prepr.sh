@@ -2400,7 +2400,12 @@ EOS
   st "$r" 1 "a check needing a git checkout measures nothing in the archive copy, and is refused"
   got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
   st "$r" 0 "the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes"
-  st "$(mg status --porcelain | wc -l)" 0 "and the in-place run leaves the work tree clean"
+  # BSD/macOS wc pads its count ("       0"); the comparison is a string compare, so
+  # it runs under a padding wc first on PATH, which Linux CI never sees (P676).
+  PW=$(mktemp -d); printf '#!/bin/sh\n/usr/bin/wc "$@" | sed "s/^/       /"\n' > "$PW/wc"; chmod +x "$PW/wc"
+  st "$(PATH="$PW:$PATH"; printf 'x\n' | wc -l)" "       1" "the padding wc stub pads its count, so the next comparison is measured under it (null control)"
+  st "$(PATH="$PW:$PATH"; mg status --porcelain | wc -l | tr -d ' ')" 0 "and the in-place run leaves the work tree clean, under a wc that pads its count"
+  rm -rf "${PW:?}"
   got=$(mutants_line "$MR" "$MB" "true"); r=$?
   st "$r" 2 "a command killing nothing reports its survivors, report only"
   nl=$(cd "$MR" && python3 -I tools/audit/seat/mutant_run.py --diff "$MB...HEAD" --cmd true --list | grep -c '^MUTANT lib.py:')
