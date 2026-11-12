@@ -676,8 +676,10 @@ empty table is drawn.
 
 The **Health** tab answers "is the plan running on good data?" in one screen,
 and the dialog's header carries a pill that says the same on every tab: **All
-inputs fresh**, or **1 input stale** / **N inputs stale** in the warn colour.
-The pill appears once the **Input Problem** sensor has a state.
+inputs fresh**, or **1 input problem** / **N input problems** in the warn
+colour. It counts every input the **Input Problem** sensor lists,
+whatever the problem (stale, unavailable, out of range, ...); the input's row
+on the Health page names which. The pill appears once that sensor has a state.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/health-dark.png">
