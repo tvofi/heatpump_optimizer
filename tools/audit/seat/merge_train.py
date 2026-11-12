@@ -275,6 +275,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import builtins
 import contextlib
 import datetime
 import fcntl
@@ -6781,33 +6782,143 @@ BLIND_CLASSIFY_READERS = {
 }
 
 
-_EMPTY_CTORS = ("tuple", "list", "set", "frozenset", "dict", "str", "bytes", "bool", "int", "float")
+BLIND, READS, REFUSED = "blind", "reads", "refused"
+
+#: The busy classifier's whole grammar: one arm per `ast.expr` node class, keyed
+#: by class name. A tuple arm names the fields whose operands can BE the value
+#: (a test, a subscript index or a comprehension filter only steers it); a str
+#: arm is a verdict, or the name of the special rule in `busy_reads`. A node
+#: class this table does not hold is REFUSED, never read:
+#: `unclassified_expr_nodes` lists them and the self-test refuses a non-empty list.
+BUSY_ARMS = {
+    "Constant": BLIND,
+    "Name": "name", "BoolOp": "boolop", "IfExp": "ifexp",
+    "ListComp": "comp", "SetComp": "comp", "GeneratorExp": "comp", "DictComp": "comp",
+    "Attribute": ("value",), "Subscript": ("value",), "Starred": ("value",), "Await": ("value",),
+    "Slice": ("lower", "upper", "step"),
+    "UnaryOp": ("operand",), "BinOp": ("left", "right"), "Compare": ("left", "comparators"),
+    "Call": ("func", "args", "keywords"),
+    "Tuple": ("elts",), "List": ("elts",), "Set": ("elts",), "Dict": ("keys", "values"),
+    "JoinedStr": ("values",), "FormattedValue": ("value",),
+    "TemplateStr": ("values",), "Interpolation": ("value",),
+    # a binding that outlives the expression, a value sent in, a body not yet run: undecidable here
+    "NamedExpr": REFUSED, "Yield": REFUSED, "YieldFrom": REFUSED, "Lambda": REFUSED,
+}
+_BUILTIN_NAMES = frozenset(dir(builtins))
+
+
+def unclassified_expr_nodes(classes=None, arms=None) -> list:
+    """The `ast.expr` node classes of this interpreter that BUSY_ARMS does not
+    classify: empty, or a grammar the classifier was not written for."""
+    arms = BUSY_ARMS if arms is None else arms
+    return sorted(c.__name__ for c in (ast.expr.__subclasses__() if classes is None else classes)
+                  if c.__name__ not in arms)
+
+
+def _static_truth(n):
+    """True/False where <n>'s truthiness is fixed by its syntax, else None."""
+    if isinstance(n, ast.Constant):
+        return bool(n.value)
+    if isinstance(n, (ast.Tuple, ast.List, ast.Set, ast.Dict)):
+        elts = n.keys if isinstance(n, ast.Dict) else n.elts
+        if not elts:
+            return False
+        if any(e is not None and not isinstance(e, ast.Starred) for e in elts):
+            return True
+    return None
+
+
+def busy_reads(n, env=None, arms=None, seen=None) -> str:
+    """BLIND, READS or REFUSED for the expression <n> as a `busy` value: READS
+    when a free name that is not a builtin can flow into the value, BLIND when
+    none can, REFUSED when a node on the way has no arm (or a refusing one).
+    One structural recursion over BUSY_ARMS; REFUSED dominates READS.
+    <env> maps a comprehension-bound name to the verdict of what it iterates."""
+    arms = BUSY_ARMS if arms is None else arms
+    env = {} if env is None else env
+    if seen is not None:
+        seen.add(type(n).__name__)
+    arm = arms.get(type(n).__name__, REFUSED)
+
+    def over(nodes, env=env):
+        got = {busy_reads(x, env, arms, seen) for x in nodes}
+        return REFUSED if REFUSED in got else READS if READS in got else BLIND
+
+    if arm in (BLIND, READS, REFUSED):
+        return arm
+    if arm == "name":
+        return env.get(n.id, BLIND if n.id in _BUILTIN_NAMES else READS)
+    if arm == "boolop":
+        # the value is one operand: `and` stops at the first false one, `or` at the first true one
+        stop, live = isinstance(n.op, ast.Or), []
+        for v in n.values:
+            live.append(v)
+            if _static_truth(v) is stop:
+                break
+        return over(live)
+    if arm == "ifexp":
+        t = _static_truth(n.test)
+        return over([n.body, n.orelse] if t is None else [n.body] if t else [n.orelse])
+    if arm == "comp":
+        env, gens = dict(env), []
+        for g in n.generators:
+            got = busy_reads(g.iter, env, arms, seen)
+            gens.append(got)
+            for t in ast.walk(g.target):
+                if isinstance(t, ast.Name):
+                    env[t.id] = got
+        if REFUSED in gens:
+            return REFUSED
+        if any(_static_truth(g.iter) is False for g in n.generators):
+            return BLIND  # an iteration over a literal empty container yields nothing
+        return over([n.key, n.value] if isinstance(n, ast.DictComp) else [n.elt], env)
+    out = []
+    for f in arm:
+        v = getattr(n, f, None)
+        for x in v if isinstance(v, list) else [v]:
+            x = x.value if isinstance(x, ast.keyword) else x
+            if x is not None:
+                out.append(x)
+    return over(out)
+
+
+def _busy_candidates(c: ast.Call) -> list:
+    """The expressions that can bind `classify`'s `busy` in the call <c>: the
+    third positional or the `busy` keyword, read through literal `*(...)` and
+    `**{...}` splats; a splat whose length cannot be read is itself the candidate."""
+    args, kws = [], []
+
+    def flat(a):
+        if isinstance(a, ast.Starred) and isinstance(a.value, (ast.Tuple, ast.List)):
+            for e in a.value.elts:
+                flat(e)
+        else:
+            args.append(a)
+
+    def flatkw(k, v):
+        if k is None and isinstance(v, ast.Dict):
+            for kk, vv in zip(v.keys, v.values):
+                flatkw(kk.value if isinstance(kk, ast.Constant) else kk, vv)
+        else:
+            kws.append((k, v))
+    for a in c.args:
+        flat(a)
+    for k in c.keywords:
+        flatkw(k.arg, k.value)
+    cand = [v for k, v in kws if k == "busy" or not isinstance(k, str)]
+    splat = [a.value for a in args[:3] if isinstance(a, ast.Starred)]
+    return cand + (splat or args[2:3])
 
 
 def blind_classify_readers(text: str) -> dict:
     """{enclosing function: count} of `classify(...)` calls in <text> whose `busy`
-    (third positional, or keyword) is absent or reads nothing -- any literal
-    or argument-less builtin constructor (None, False, (), [], {}, set(), frozenset(), dict(), '') -- outside any self-test function."""
+    is absent or is not READS by `busy_reads` -- BLIND, or REFUSED: an expression
+    the classifier cannot decide is counted, never passed -- outside any self-test function."""
     out: dict = {}
 
-    def reads(b):
-        # allow-list: only an expression that can carry runtime state is a read; every literal
-        # and every argument-less builtin constructor (set(), frozenset(), dict(), ...) is blind
-        if isinstance(b, (ast.Name, ast.Attribute, ast.Subscript, ast.IfExp, ast.BoolOp)):
-            return True
-        if isinstance(b, ast.Call):
-            return not (isinstance(b.func, ast.Name) and b.func.id in _EMPTY_CTORS and not b.args and not b.keywords)
-        if isinstance(b, (ast.Tuple, ast.List, ast.Set)):
-            return any(reads(e) for e in b.elts)
-        if isinstance(b, ast.Dict):
-            return any(reads(e) for e in b.values if e is not None)
-        return False
-
     def blind(c):
-        b = c.args[2] if len(c.args) > 2 else next((k.value for k in c.keywords if k.arg == "busy"), None)
-        if b is None or any(isinstance(a, ast.Starred) for a in c.args):
-            return b is None and not any(isinstance(a, ast.Starred) for a in c.args)
-        return not reads(b)
+        got = {busy_reads(b) for b in _busy_candidates(c)}
+        return READS not in got or REFUSED in got
 
     def walk(n, fn):
         for c in ast.iter_child_nodes(n):
@@ -6820,6 +6931,42 @@ def blind_classify_readers(text: str) -> dict:
             walk(c, nf)
     walk(ast.parse(text), [])
     return out
+
+
+#: The classifier's corpus: (expected verdict, expression). Every arm of
+#: BUSY_ARMS appears on both of its sides where it has two; the self-test
+#: refuses an arm no row visits and an arm whose replacement leaves every row standing.
+BUSY_CORPUS = [(v, e) for v, es in (
+    (BLIND, ("None", "False", "0", "''", "b''", "f''", "f'{0}'", "...", "()", "[]", "{}", "set()", "frozenset()",
+             "dict()", "tuple()", "list()", "str()", "bytes()", "frozenset(())", "set([])", "dict({})", "dict(())",
+             "tuple([])", "list(())", "frozenset([])", "frozenset(set())", "None or ()", "() and x", "() and x.y",
+             "() if c else None", "() if c else []", "x if 0 else ()", "() if 1 else x", "0 or ()", "1 or x",
+             "(*(),)", "[*[]]", "{**{}}", "{*()}", "dict.fromkeys([])", "frozenset().union()", "type(None)()",
+             "().count", "()[0]", "()[i]", "()[i:j]", "-0", "not ()", "() + ()", "() == ()", "() in ((),)",
+             "[e for e in ()]", "{e for e in []}", "{e: e for e in ()}", "(e for e in ())", "[() for r in runs]",
+             "[e for e in () if c]", "[a for a, b in ()]", "[f for e in () for f in e]", "sorted(())", "len", "{0: ()}",
+             "[x for e in ()]", "[x for r in runs for e in []]", "await ()", "slice:0:1", "slice:",
+             "[e for e in frozenset()]", "[e for e in (0,)]", "[0 for e in (0,) if c]", "(0,) or b", "() if [0] else b")),
+    (READS, ("b", "self.b", "x[0]", "h(r)", "frozenset(r)", "[b]", "(b,)", "{b}", "{b: 0}", "{0: b}", "{**d}", "[*runs]",
+             "a | b", "-b", "not b", "b is None", "b or ()", "() or b", "None or b", "b if c else ()", "() if c else b",
+             "b if 1 else ()", "() if 0 else b", "b and ()", "{r.id for r in runs}", "[r for r in runs]",
+             "{r.id: r for r in runs}", "(r for r in runs)", "[a for a, b in pairs]", "[f for e in runs for f in e]",
+             "[x for e in (0,)]", "await b", "h(*a)", "f'{b}'", "f'{b!r:>{w}}'", "self._gate_busy(h, runs)",
+             "frozenset().union(b)", "dict(busy=b)", "set(*runs)", "dict(**d)", "runs[i:j]", "b.c.d", "h()()", "slice:i:", "slice::j", "slice:::k",
+             "{r.id: 0 for r in runs}", "{0: r for r in runs}", "0 | b", "b | 0", "None is b", "0 < 1 < b", "[id for id in runs]", "(*(),) or b")),
+    (REFUSED, ("(y := b)", "[(y := ())]", "lambda: b", "lambda: ()", "frozenset((y := b))", "b or (y := ())",
+               "[e for e in (y := runs)]", "{(lambda: 0): 0}", "[0 for e in (y := runs)]", "h((yield))", "h((yield from b))", "(y := b).c")),
+) for e in es]
+if sys.version_info >= (3, 14):
+    BUSY_CORPUS += [(BLIND, "t''"), (BLIND, "t'{0}'"), (READS, "t'{b}'")]
+
+
+def busy_corpus_misses(arms=None, seen=None) -> list:
+    """The BUSY_CORPUS rows whose verdict under <arms> is not the recorded one."""
+    def node(e):  # `slice:<s>` is the Slice node of `x[<s>]`, which no expression has at its root
+        return ast.parse(f"x[{e[6:] or ':'}]", mode="eval").body.slice if e.startswith("slice:") else ast.parse(e, mode="eval").body
+    return [(want, e, got) for want, e in BUSY_CORPUS
+            for got in [busy_reads(node(e), None, arms, seen)] if got != want]
 
 
 def _gate_reader_barrier_self_test(check) -> None:
@@ -6844,6 +6991,45 @@ def _gate_reader_barrier_self_test(check) -> None:
                         "False", "''", "0"))
           and blind_classify_readers("def f():\n    return classify(l, r, busy=b)\n") == {}
           and blind_classify_readers("def f():\n    return classify(l, r, self._gate_busy(h, runs))\n") == {})
+    here = {c.__name__ for c in ast.expr.__subclasses__()}
+    check(f"P436 classifier is total: every ast.expr node class of this interpreter has an arm in BUSY_ARMS -- {unclassified_expr_nodes()}",
+          unclassified_expr_nodes() == [] and len(here) > 20)
+    novel = type("NovelExpr", (ast.AST,), {"_fields": ()})
+    check("P436 classifier null: a node class with no arm is listed by the enumerator and REFUSED by the classifier, at the root and "
+          "under a reading sibling, and a classify call carrying one is counted (fails closed)",
+          unclassified_expr_nodes([*ast.expr.__subclasses__(), novel]) == ["NovelExpr"]
+          and busy_reads(novel()) == REFUSED
+          and busy_reads(ast.List(elts=[ast.Name(id="b"), novel()])) == REFUSED
+          and busy_reads(ast.List(elts=[ast.Name(id="b")])) == READS
+          and unclassified_expr_nodes(arms={k: v for k, v in BUSY_ARMS.items() if k != "IfExp"}) == ["IfExp"])
+    seen: set = set()
+    misses = busy_corpus_misses(seen=seen)
+    check(f"P436 classifier corpus: each of the {len(BUSY_CORPUS)} BUSY_CORPUS expressions gets its recorded verdict -- {misses[:5]}",
+          not misses and {v for v, _ in BUSY_CORPUS} == {BLIND, READS, REFUSED})
+    check(f"P436 classifier corpus visits every arm this interpreter can build -- unvisited {sorted(here - seen)}", here <= seen)
+    alive = [(k, v) for k in sorted(here) for v in (BLIND, READS, REFUSED)
+             if v != BUSY_ARMS[k] and not busy_corpus_misses({**BUSY_ARMS, k: v})]
+    alive += [(k, f) for k in sorted(here) if isinstance(BUSY_ARMS[k], tuple) for f in BUSY_ARMS[k]
+              if not busy_corpus_misses({**BUSY_ARMS, k: tuple(x for x in BUSY_ARMS[k] if x != f)})]
+    check("P436 classifier arm mutants: replacing any one arm by each other verdict, or dropping any one operand field of an arm, "
+          f"moves a corpus row -- surviving {alive}", not alive)
+    rows = [(want, form.format(e)) for want, e in BUSY_CORPUS if not e.startswith("slice:")
+            for form in ("classify(l, r, {})", "classify(l, r, busy={})", "classify(*(l, r), *[{}])",
+                         "classify(l, r, **{{'busy': {}}})", "t.classify(l, busy=({}), required=r)")]
+    wrong = [(want, src) for want, src in rows
+             if (blind_classify_readers(f"def f():\n    return {src}\n") == {}) != (want == READS)]
+    check(f"P436 barrier over the corpus: of {len(rows)} classify calls (each expression as third positional, keyword, and through a literal "
+          f"* and ** splat) only a READS busy is not counted -- {wrong[:5]}", not wrong and len(rows) > 500)
+    count = lambda src: blind_classify_readers(f"def f():\n    return {src}\n").get("f", 0)  # noqa: E731
+    check("P436 barrier binding: busy is found where the call binds it -- an empty or two-element literal splat leaves it absent, a "
+          "splat of unknown length is the candidate, a ** mapping binds it only under the busy key",
+          all(count(c) == 1 for c in ("classify(l, r, *())", "classify(*(l, r))", "classify(*[l], *(r,))", "classify(l, r, **{})",
+                                      "classify(l, r, **{'other': b})", "classify(l, r, *frozenset())", "classify(l, r, *(), **{})",
+                                      "classify(l, r, **{'busy': ()})", "classify(l, r, **{**{'busy': None}})",
+                                      "classify(l, r, b, busy=(y := 0))", "classify(l, r, *rest, **{k: (lambda: 0)})"))
+          and all(count(c) == 0 for c in ("classify(l, r, *rest)", "classify(*a)", "classify(l, *rest)", "classify(l, r, **kw)",
+                                          "classify(l, r, **{'busy': b})", "classify(l, r, **{k: b})", "classify(*(l, r, b))",
+                                          "classify(l, r, **{**{'busy': b}})", "classify(l, r, *(b,))")))
     stamped = lambda n, st, at: {"name": n, "conclusion": st, "completedAt": at}  # noqa: E731
     G1, G2 = "2026-11-12T09:00:00Z", "2026-11-12T10:00:00Z"
     check("P608 rollup_red_after_pass: a failure strictly newer than the pass is real, an equal stamp is a deferral "
