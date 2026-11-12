@@ -1,2 +1,0 @@
-CI PREDICT: no closures, fast, governance or instrument red predicted against ba544faa2dd2 (a data-file read is not seen)
-rc=0
