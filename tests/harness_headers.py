@@ -10,11 +10,13 @@ RESULT. Playwright and stress harnesses are not run here.
 """
 from __future__ import annotations
 
+import json
 import os
 import re
 import resource
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, "tests")
@@ -592,6 +594,55 @@ def main() -> int:
         clean,
         detail,
     )
+    # tests/harness.py anchors its sys.path and its translations read to its
+    # own tree: imported from a foreign cwd it must still import and name the
+    # catalogues (before the anchor it raised FileNotFoundError there).
+    with tempfile.TemporaryDirectory() as decoy:
+        # A decoy tree at the cwd holding a module of each name the harness's
+        # importers take from either insert: a cwd-relative insert of either
+        # half resolves the decoy's module instead of this tree's
+        # (dev/audit/harnesses/learner_inputs_swap.py imports `profiles`
+        # straight after `harness`).
+        os.makedirs(os.path.join(decoy, "custom_components", "heatpump_optimizer"))
+        os.makedirs(os.path.join(decoy, "tests"))
+        for stub in (("custom_components", "heatpump_optimizer", "__init__.py"),
+                     ("tests", "profiles.py")):
+            with open(os.path.join(decoy, *stub), "w"):
+                pass
+        foreign = subprocess.run(
+            [sys.executable, "-c",
+             "import json, sys; sys.path.insert(0, sys.argv[1]); before = list(sys.path); "
+             "import harness, heatpump_optimizer, profiles; "
+             "added = sys.path[:len(sys.path) - len(before)]; "
+             "print(json.dumps({'langs': len(harness.SHIPPED_LANGS), "
+             "'package': heatpump_optimizer.__file__, 'profiles': profiles.__file__, "
+             "'added': added, 'kept': sys.path[len(added):] == before}))",
+             str(ROOT / "tests")],
+            cwd=decoy, capture_output=True, text=True,
+            env={**os.environ, "PYTHONPATH": str(ROOT / "tests" / "hastub")},
+        )
+    try:
+        got = json.loads(foreign.stdout.strip().splitlines()[-1])
+    except (IndexError, ValueError):
+        got = {}
+    detail = (foreign.stderr or foreign.stdout)[-200:]
+
+    def own(path: object, sub: str) -> bool:
+        return isinstance(path, str) and os.path.isabs(path) and \
+            Path(path).resolve().is_relative_to(ROOT / sub)
+
+    R.check("tests/harness.py from a foreign cwd finds its catalogues and its own tree's package",
+            foreign.returncode == 0 and isinstance(got.get("langs"), int) and got["langs"] > 0
+            and own(got.get("package"), "custom_components"), detail)
+    R.check("tests/harness.py from a foreign cwd resolves a module the cwd's tests/ also holds "
+            "to its own tests/", own(got.get("profiles"), "tests"), detail)
+    # Each insert pinned alone: exactly the two anchored paths, absolute, in
+    # this tree, so neither half can go back to cwd-relative unnoticed.
+    R.check("tests/harness.py's sys.path inserts are exactly its own tests/ and custom_components/, absolute",
+            got.get("kept") is True
+            and sorted(got.get("added") or []) == sorted([str(ROOT / "custom_components"), str(ROOT / "tests")])
+            and all(os.path.isabs(a) for a in got.get("added") or []),
+            f"added={got.get('added')!r} {detail}")
     return R.close("HARNESS HEADER CHECKS")
 
 
