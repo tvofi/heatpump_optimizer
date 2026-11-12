@@ -2,11 +2,24 @@ Adds the report-only convergence scorecard as a beat row (R10-MACH-SCORECARD): `
 
 ## Head
 
-c766208d486edd8f80323d615af802c08aa5c3ce
+c77c5a836b396b67beddad333234fe5f7071494c
 
 ## Mutation proof
 
-One mutant per predicate of `scorecard.py` (window sizes, the gate-versus-run split, first-verdict kind, machinery family membership, SKIP and PARK, the train-named filter, hotfix token and class filter, each escape arm, the cancelled streak, the seat filter of K, the ratio and the unreadable count) is planted in a temp copy by `python3 -I tools/audit/seat/scorecard.py --self-test`, and each must be killed by the named case; plus three row mutants (rc check, sweep_record hand-on, the scorecard.txt write) in `python3 -I tools/audit/seat/beat_jobs.py --self-test`. Both end `ok`/`0 failed` only when every mutant is killed. The first-verdict de-duplication key is not mutated: it cannot change a first verdict.
+One mutant per predicate of `scorecard.py` (window sizes, the gate-versus-run split, the job named `gate`, first-verdict kind and its ordering by `t`, which verdict is kept as first, machinery family membership, SKIP and PARK, the train-named filter including `MERGED`, hotfix token and class filter, each escape arm, the cancelled streak, the seat filter of K, the sweep record handed to K, the ratchet's exit code, the ratio and the unreadable count) is planted in a temp copy by `python3 -I tools/audit/seat/scorecard.py --self-test`, and each must be killed by the named case; plus three row mutants in `python3 -I tools/audit/seat/beat_jobs.py --self-test`.
+
+Review verdict c766208d, the six survivors, each now `KILLED` by `mutant_run.py --spec` over `scorecard.py --self-test --no-mutants` (the unedited tree is `SURVIVED NULL`, as it must):
+- gate_name_any: the planted `jobs_5.json` lists a failed `governance / instrument-self-tests` job after `gate`; case "report: A_gate reads the job named gate".
+- report_record_dropped: case "report: K reads the sweep record it is given".
+- first_by_input_not_t: `line_review` now sorts the verdicts by `t` before taking the first per pull request, so "first verdict" is the earliest whatever the file order (the ordering point of the verdict; documented in the docstring and `instruments/scorecard.py.md`); cases "Y_rev unordered" and "Y_rev unordered window" on shuffled verdicts.
+- named_regex_no_merged: case "Y_train named", a pull request named only on a `MERGED` line.
+- ratchet_rc_ignored: case "S: a ratchet that exits non-zero is unread even when it printed JSON"; the guard is kept and pinned rather than called equivalent.
+- dedup_dropped: the de-duplication on (pr, head, kind, cls) could not change any first verdict, so it is deleted rather than excused; the first verdict per pull request is `setdefault` over the `t`-sorted list, and its last-wins mutant is killed by "Y_rev first verdict".
+
+Diff arm: `mutant_run.py --diff <merge-base>...HEAD`, run with the scorecard self-test for `scorecard.py` and `scorecard_selftest.py`, and with the `beat_jobs.py` self-test for `beat_jobs.py` (`--path`). Further survivors, listed and not chased (outside the verdict):
+- `beat_jobs.py:647` CALL_DEL: dropping the final `write_job(ctx, "scorecard", [])` on success.
+- `scorecard.py`: 92 (`family_of` unmapped return), 99 (`load_family` split index), 104/105 (no concluded run guard), 119/120 (no verdict guard), 138 (PARK takes the first `#nnnn`), 183-186 (`sh_out` timeout and OSError return), 217 and 228 (`rd`/`load` unreadable returns), 263-276 (argparse and `main`).
+- `scorecard_selftest.py`: the constants of the planted fixtures and the mutant-runner loop (lines 68-73, 118-129, 193-218), which the `--no-mutants` command cannot reach.
 
 ## Null control
 
