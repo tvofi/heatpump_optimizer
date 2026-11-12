@@ -196,17 +196,27 @@ pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's chec
 # origin/main too, and a path guard on prepr.sh called a head that broke any other self-test input
 # the host's. The log only names WHICH step refused; prepr's self-test is the one step with a form
 # that runs on a tree alone, so a row naming any other step (a body, figure or carry check reads the
-# head's body) is the head's. Both trees are detached worktrees under <cache>, run alike. Main's
-# answer is kept per origin/main sha in <cache>/<sha>.sig, one run per main move; whatever cannot be
-# measured (no worktree, no self-test in the tree, no cache directory) is the head's, and closes.
+# head's body) is the head's. Both trees are detached worktrees under <cache>, run alike, and each
+# measurement owns its tree: a directory mktemp makes for that one call, which no other run names,
+# removes or reuses (two refusals measured at once in one shared tree read each other's files, and
+# called a head's break the host's). A run that did not end whole is no measurement: its tree gone
+# or off <sha> when the self-test returns, or the self-test ended by a signal. Main's answer is
+# kept per origin/main sha in <cache>/<sha>.sig, written from a whole run under this process's own
+# name and renamed into place, one run per main move; whatever cannot be measured (no tree of its
+# own, no worktree, no self-test in the tree, no cache directory) is the head's, and closes. A run
+# killed mid-measurement leaves its <cache>/tree.* directory: nothing here removes another run's.
 pr_step_sig() { # <checkout> <sha> <scratch dir> -> the self-test's exit status and FAIL rows at <sha>; rc 1 = not measured
-  local w=$3/tree st rc=0 out=""
-  git -C "$1" worktree remove --force "$w" >/dev/null 2>&1 || :; rm -rf "$w" || :
-  git -C "$1" worktree add -q --detach "$w" "$2" >/dev/null 2>&1 || return 1  # ret:sigtree
-  st=tools/pr/prepr.sh; [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh
+  local w st rc=0 out="" at
+  w=$(mktemp -d "$3/tree.XXXXXX" 2>/dev/null) || return 1  # ret:sigpriv
+  git -C "$1" worktree add -q --detach "$w" "$2" >/dev/null 2>&1 || { rm -rf "$w"; false; } || return 1  # ret:sigtree
+  st=tools/pr/prepr.sh
+  [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh  # the copy tools/pr/prepr.sh itself runs when a tree holds one  # mut:sigold
   if [ -f "$w/$st" ]; then out=$(cd "$w" && PYTHONPATH=tests/hastub bash "$st" --self-test 2>&1) || rc=$?; else rc=unrun; fi
+  at=$(git -C "$w" rev-parse -q --verify HEAD 2>/dev/null) || at=gone
   git -C "$1" worktree remove --force "$w" >/dev/null 2>&1 || :; rm -rf "$w" || :
   [ "$rc" != unrun ] || return 1  # ret:signone
+  [ "$at" = "$(git -C "$1" rev-parse -q --verify "$2^{commit}" 2>/dev/null)" ] || return 1  # ret:sigwhole
+  [ "$rc" -le 128 ] || return 1  # ret:sigkilled
   printf 'rc=%s\n' "$rc"; grep -E '^  FAIL ' <<<"$out" | sort -u || :
 }
 pr_host_refusal() { # <checkout> <refusal log> <refused head> <origin/main sha> <cache dir>: 0 = the host's, 1 = the head's
@@ -217,7 +227,7 @@ pr_host_refusal() { # <checkout> <refusal log> <refused head> <origin/main sha> 
   [ -n "$3" ] && [ -n "$4" ] && mkdir -p "$c" 2>/dev/null || return 1  # ret:hostdir
   sh=$(pr_step_sig "$1" "$3" "$c") || return 1  # ret:hosthead
   sm=$(cat "$c/$4.sig" 2>/dev/null) || sm=  # mut:hostcache
-  [ -n "$sm" ] || { sm=$(pr_step_sig "$1" "$4" "$c") && { rm -f "$c"/*.sig; printf '%s\n' "$sm" > "$c/$4.tmp"; } && mv -f "$c/$4.tmp" "$c/$4.sig"; } || return 1  # ret:hostmain
+  [ -n "$sm" ] || { sm=$(pr_step_sig "$1" "$4" "$c") && printf '%s\n' "$sm" > "$c/$4.tmp.$$" && { rm -f "$c"/*.sig; mv -f "$c/$4.tmp.$$" "$c/$4.sig"; }; } || return 1  # ret:hostmain
   [ "${sh%%$'\n'*}" != rc=0 ] || return 1  # mut:hostfails
   [ "$sh" = "$sm" ]  # mut:hostsame
 }
@@ -1525,11 +1535,21 @@ GH
 #!/bin/bash
 [ "${1:-}" = --self-test ] || exit 0
 git rev-parse HEAD >> "$STUB_DIR/struns"
+if [ -d "$STUB_DIR/meet" ]; then # two runs at once: wait here, inside the tree, until a second run is inside its own
+  : > "$STUB_DIR/meet/$$"; i=0
+  until [ "$(ls "$STUB_DIR/meet" | wc -l)" -ge 2 ]; do sleep 0.1; i=$((i + 1)); [ "$i" -lt 600 ] || { : > "$STUB_DIR/alone"; break; }; done
+fi
+! grep -qxF "$(git rev-parse HEAD)" "$STUB_DIR/gone" 2>/dev/null || rm -rf "$PWD"
+[ ! -e "$STUB_DIR/killed" ] || kill -KILL $$
 [ ! -e "$STUB_DIR/hostenv" ] || { echo "ENVIRONMENT: the box is short of space"; exit 3; }
 r=0
 [ ! -e "$STUB_DIR/hostfail" ] || { echo "  FAIL a tool this host lacks (got 127, wanted 0)"; r=1; }
+git ls-files >/dev/null 2>&1 || { echo "  FAIL the tree this run reads is gone"; r=1; }
 [ ! -e crash ] || exit 2
-while read -r f; do [ "$(tail -n 1 "$f")" != "# BROKEN" ] || { echo "  FAIL $f reads broken"; r=1; }; done < <(git ls-files)
+[ "${PYTHONPATH:-}" = tests/hastub ] || { echo "  FAIL not run the way prepr runs its self-test"; r=1; }
+while read -r f; do [ "$(tail -n 1 "$f")" != "# BROKEN" ] || { echo "  FAIL $f reads broken" >&2; r=1; }; done < <(git ls-files)
+# a tree above main prints the host's row twice: one set of rows, not one text
+[ ! -e "$STUB_DIR/hostfail" ] || [ "$(wc -l < README.md)" -le 1 ] || echo "  FAIL a tool this host lacks (got 127, wanted 0)"
 echo "self-test: rc $r"; exit $r
 STUB
   # The inputs are prepr's own enumeration, its function evaluated from its text at this checkout:
@@ -1548,13 +1568,25 @@ STUB
     git -C "$hro" checkout -q --detach "$hrmain" && printf '%s\n' "$2" >> "$hro/$1" && git -C "$hro" add -A \
       && git -C "$hro" commit -q -m "head: $1" && git -C "$hro" rev-parse HEAD
   }
-  hr() { # <-|mutant|ret:tag> <head sha> [main sha] [log] -> pr_host_refusal's status; ret:<tag> turns that line's `|| return 1` into `|| return 0`
+  hrlib() { # <-|mutant|ret:tag|shared>: the library the next hrrun sources; ret:<tag> turns that line's `|| return 1` into `|| return 0`
     case $1 in
       -) cp "$src/pr_args.sh" "$t/hr/lib.sh" ;;
       ret:*) sed "/# $1\$/s/|| return 1/|| return 0/" "$src/pr_args.sh" > "$t/hr/lib.sh" ;;
+      # one tree for every measurement, replaced by whichever run starts next: the blocked head's pr_step_sig
+      shared) sed '/# ret:sigpriv$/s|w=.*|w=$3/tree; git -C "$1" worktree remove --force "$w" >/dev/null 2>\&1; rm -rf "$w"; mkdir -p "$w"|' "$src/pr_args.sh" > "$t/hr/lib.sh" ;;
       *) grep -v "# mut:$1\$" "$src/pr_args.sh" > "$t/hr/lib.sh" ;;
     esac
-    STUB_DIR=$t/hr/stub bash -c '. "$1"; pr_host_refusal "$2" "$3" "$4" "$5" "$6"' _ "$t/hr/lib.sh" "$hro" "${4:-$t/hr/st.log}" "$2" "${3:-$hrmain}" "$hrc" </dev/null
+  }
+  hrrun() { # <head sha> [main sha] [log] -> pr_host_refusal's status
+    STUB_DIR=$t/hr/stub bash -c '. "$1"; pr_host_refusal "$2" "$3" "$4" "$5" "$6"' _ "$t/hr/lib.sh" "$hro" "${3:-$t/hr/st.log}" "$1" "${2:-$hrmain}" "$hrc" </dev/null
+  }
+  hr() { hrlib "$1"; shift; hrrun "$@"; } # <-|mutant|ret:tag|shared> <head sha> [main sha] [log]
+  hrpair() { # <-|shared> <first head> <second head>: measured at once, the first inside its self-test when the second starts; statuses in $t/hr/rc1, rc2
+    local pid i=0
+    rm -rf "$t/hr/stub/meet" "$t/hr/stub/alone"; mkdir -p "$t/hr/stub/meet"; hrlib "$1"
+    ( hrrun "$2"; echo $? > "$t/hr/rc1" ) & pid=$!
+    until [ -n "$(ls "$t/hr/stub/meet")" ] || [ "$i" -ge 600 ]; do sleep 0.1; i=$((i + 1)); done
+    hrrun "$3"; echo $? > "$t/hr/rc2"; wait "$pid"; rm -rf "$t/hr/stub/meet"
   }
   hrruns() { grep -c "^$1\$" "$t/hr/stub/struns" 2>/dev/null || :; }
   printf '  ok       figures               fine\n  REFUSE   self-test             12 checks, 1 failed   FAIL x\napp_push: REFUSE: the body did not pass tools/pr/prepr.sh\n' > "$t/hr/st.log"
@@ -1606,18 +1638,51 @@ STUB
   # What cannot be measured is the head's: each arm's mutant turns its `|| return 1` into `|| return 0`
   # (the handoff review's mutdiffread, on the line that then read the diff, survived).
   bad=0000000000000000000000000000000000000001
-  ! hr - "$hrroot" "$hrmain"; r=$?; hr ret:hosthead "$hrroot" "$hrmain"
-  ck "host_refusal: a head whose tree holds no self-test is not measured, so the head's; mutant ret:hosthead calls it the host's" $(( r || $? ))
-  rm -rf "$hrc"; ! hr - "$hclean" "$hrroot"; r=$?; rm -rf "$hrc"; hr ret:hostmain "$hclean" "$hrroot"
-  ck "host_refusal: a main whose tree holds no self-test is not measured, so the head's; mutant ret:hostmain calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$hrroot" "$hrmain" && [ -z "$(ls "$hrc")" ]; r=$?; hr ret:hosthead "$hrroot" "$hrmain"
+  ck "host_refusal: a head whose tree holds no self-test is not measured, so the head's, and main is not run for it; mutant ret:hosthead calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$hclean" "$hrroot" && [ -z "$(ls "$hrc")" ]; r=$?; rm -rf "$hrc"; hr ret:hostmain "$hclean" "$hrroot"
+  ck "host_refusal: a main whose tree holds no self-test is not measured, so the head's, and no answer is kept for it; mutant ret:hostmain calls it the host's" $(( r || $? ))
   rm -rf "$hrc"; ! hr - "$hrroot" "$hrroot"; r=$?; rm -rf "$hrc"; hr ret:signone "$hrroot" "$hrroot"
   ck "host_refusal: no self-test on either tree is no agreement; mutant ret:signone reads two unrun steps as one failure" $(( r || $? ))
-  rm -rf "$hrc"; ! hr - "$bad" "$bad"; r=$?; rm -rf "$hrc"; hr ret:sigtree "$bad" "$bad"
-  ck "host_refusal: no tree at either sha is no agreement; mutant ret:sigtree reads two missing trees as one failure" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$bad" "$bad" && [ -z "$(ls "$hrc")" ]; r=$?; rm -rf "$hrc"; hr ret:sigtree "$bad" "$bad"
+  ck "host_refusal: no tree at either sha is no agreement, and the directory made for one is removed; mutant ret:sigtree reads two missing trees as one failure" $(( r || $? ))
   rm -rf "$hrc"; printf 'x\n' > "$t/hr/blocked"; hrc=$t/hr/blocked
   ! hr - "$hclean"; r=$?; hr ret:hostdir "$hclean"
   ck "host_refusal: a cache directory that cannot be made measures nothing, so the head's; mutant ret:hostdir calls it the host's" $(( r || $? ))
   hrc=$t/hr/cache
+  mkdir -p "$t/hr/nomk" && printf '#!/bin/bash\nexit 1\n' > "$t/hr/nomk/mktemp" && chmod +x "$t/hr/nomk/mktemp"
+  rm -rf "$hrc"; ! PATH="$t/hr/nomk:$PATH" hr - "$hclean"; r=$?; rm -rf "$hrc"; PATH="$t/hr/nomk:$PATH" hr ret:sigpriv "$hclean"
+  ck "host_refusal: a run that gets no tree of its own (mktemp fails) measures nothing, so the head's; mutant ret:sigpriv calls it the host's" $(( r || $? ))
+  # tools/pr/prepr.sh runs its copy at tools/audit/prepr.sh when a tree holds one (its step 3h), and so does the measurement.
+  hold=$(git -C "$hro" checkout -q --detach "$hrmain" && mkdir -p "$hro/tools/audit" && git -C "$hro" mv tools/pr/prepr.sh tools/audit/prepr.sh \
+    && git -C "$hro" commit -q -m "head: the self-test at its copy path" && git -C "$hro" rev-parse HEAD)
+  rm -rf "$hrc"; [ -n "$hold" ] && hr - "$hold"; r=$?; rm -rf "$hrc"; ! hr sigold "$hold"
+  ck "host_refusal: a head holding the self-test only at tools/audit/prepr.sh, not tools/pr/prepr.sh, is measured there, and is the host's; mutant mut:sigold (its line deleted) finds no self-test, so the head's" $(( r || $? ))
+  # A run that did not end whole is no measurement, and main's answer is never kept from one.
+  rm -rf "$hrc"; printf '%s\n' "$hclean" "$hrmain" > "$t/hr/stub/gone"
+  ! hr - "$hclean"; r=$?; rm -rf "$hrc"; hr ret:sigwhole "$hclean"
+  ck "host_refusal: trees removed under both runs fail alike, and are not measured, so the head's; mutant ret:sigwhole calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; printf '%s\n' "$hrmain" > "$t/hr/stub/gone"
+  ! hr - "$hclean" && [ -d "$hrc" ] && [ -z "$(ls "$hrc")" ]; r=$?; hr ret:sigwhole "$hclean"; [ -f "$hrc/$hrmain.sig" ]
+  ck "host_refusal: a main run whose tree was removed under it keeps no answer for main; mutant ret:sigwhole keeps the disturbed run's" $(( r || $? ))
+  rm -rf "$hrc" "$t/hr/stub/gone"; touch "$t/hr/stub/killed"
+  ! hr - "$hclean"; r=$?; rm -rf "$hrc"; hr ret:sigkilled "$hclean"
+  ck "host_refusal: a self-test ended by a signal on both trees is not measured, so the head's; mutant ret:sigkilled calls it the host's" $(( r || $? ))
+  rm -rf "$hrc" "$t/hr/stub/killed"
+  # Two refusals measured at once (the second block: one tree shared by every measurement). The
+  # stand-in waits inside its tree until the other run is inside its own, so the runs overlap.
+  hclean2=$(hrhead README.md "another second line")
+  hr - "$hclean"; hrpair - "$hclean" "$hclean2"
+  [ "$(cat "$t/hr/rc1")" = 0 ] && [ "$(cat "$t/hr/rc2")" = 0 ] && [ ! -e "$t/hr/stub/alone" ] && [ "$(ls "$hrc")" = "$hrmain.sig" ] \
+    && [ "$(git -C "$hro" worktree list | wc -l)" = 1 ]
+  ck "host_refusal: two host refusals measured at once, each in a tree of its own, are both the host's, and no tree outlives its run" $?
+  hrpair shared "$hclean" "$hclean2"
+  [ "$(cat "$t/hr/rc1")" = 1 ] && [ ! -e "$t/hr/stub/alone" ]
+  ck "  mutant shared (one tree for every measurement): the host refusal whose tree the other run replaced is called the head's (#3508's defect)" $?
+  rm -rf "$hrc"; git -C "$hro" worktree prune; hrpair - "$hbroke" "$hclean"
+  [ "$(cat "$t/hr/rc1")" = 1 ] && [ "$(cat "$t/hr/rc2")" = 0 ] && [ ! -e "$t/hr/stub/alone" ] && [ "$(ls "$hrc")" = "$hrmain.sig" ] \
+    && [ "$(cat "$hrc/$hrmain.sig")" = "$(printf 'rc=1\n  FAIL a tool this host lacks (got 127, wanted 0)')" ] && hr - "$hclean" && ! hr - "$hbroke"
+  ck "host_refusal: with no answer kept for main, a head's own break and a host refusal measured at once are the head's and the host's, and the answer kept for main is the unraced one" $?
   # The opener's own path. Before origin/main holds a self-test, nothing can be measured and the PR closes.
   hostleft() { # the PR stays open, one ROWLESS line, nothing commented, a non-zero exit, the row owed to update_pr.sh
     [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 0 ] && [ "$(cat "$t/commented")" = 0 ] \

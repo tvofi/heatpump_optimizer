@@ -33,7 +33,15 @@
   head's stays open too, and is decided by measurement (`pr_host_refusal`, `pr_args.sh`): when the
   row push's log names prepr's `self-test` step as its one refused step, the opener runs that
   self-test on the refused head and on a pristine `origin/main` tree, each a detached throwaway
-  worktree, and only the same exit status and the same `FAIL` rows at both is the host's. The PR is
+  worktree no other run shares (its own `selftest-main/tree.*` directory, so refusals measured at
+  once do not read each other's files), and only the same exit status and the same `FAIL` rows at
+  both is the host's. A run whose tree was gone or moved when the self-test returned, or whose
+  self-test a signal ended, is no measurement and is never kept as main's answer; an opener killed
+  mid-measurement leaves its `tree.*` directory, which nothing removes for it. The classifier's
+  mutants beyond the suite's own `mut:`/`ret:` lines are
+  `dev/audit/harnesses/r10_hotfix_openpr_host_refusal_mutants.json`, run by `mutant_run.py
+  --in-place --spec` under `bash tools/audit/seat/pr_args.sh --self-test` (the suite needs a
+  checkout, so not the default copy). The PR is
   then left open as `opened`, one `open_pr: ROWLESS: #N` line names `update_pr.sh <branch> - <body>`
   as the owed row, and the exit stays non-zero. Main's answer is kept per `origin/main` sha in
   `$HPO_STATE_DIR/pr/selftest-main/<sha>.sig`, one self-test run per main move (remove the file to
