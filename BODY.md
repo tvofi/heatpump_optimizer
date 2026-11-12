@@ -1,8 +1,13 @@
-Builds carries 17 (TRAIN-POLICY-REASON-STALE-CONTEXT) and 18 (TRAIN-UNDRAFT-EVERY-ROUTE) of R10-TRAIN-RESIDUE-P2 in `tools/audit/seat/merge_train.py`. `policy_refusal` read the last-listed rollup entry, so #3445 (gate FAILURE x4, SUCCESS listed last) parked as "missing requirement is a review" while GitHub blocked on a red gate; a `--queue` or `build_queue` entry never carried `item["draft"]`, so `undraft` never fired and `land` burned 8 attempts on "still a draft".
+Builds carry 1 (P447, STAMP-HOLD) of R10-TRAIN-RESIDUE-P2 in `tools/audit/seat/merge_train.py` and `tools/release/stamp.py`: a stamp pushes main's tags and release commit while a train may merge into it, so a merge landing mid-stamp fails `guard()` or recarries. The stamp now publishes `refs/heads/stamp-hold` for its run (`stamp_hold`/`stamp_run` split in `stamp.py`); `Train.stamp_hold_wait` waits before each merge attempt while the hold stands, and takes over a hold at or past `STAMP_HOLD_MAX_AGE_S` (7200 s) as a dead holder's. Carries 17 and 18 merged in the first part; this part also answers the review's open pins on them (below).
 
-Fix: `rollup_states` reduces a rollup to one state per context by newest `completedAt`, else `startedAt`, any unfinished entry making it PENDING. `Train.record_drafts` sets `item["draft"]` from one `is_draft` read per entry lacking the key at batch start, before `preflight`. In `land`, "still a draft" is a state: an admitted draft is readied once and re-attempted, any other draft stops with `drafted after admission: left as a hold` (a plain Stop, so no recarry and no MAIN-MOVED). Alternative rejected: setting the key inside `preflight` only, since `preflight` returns early without `--pre-flight`.
+Repair round 1, after `Fix review: blocked d0c9eb66 hold-unrefreshed`:
+- The wait calls `self.hold_refresh()` before every sleep. The record beat treats `train-hold` older than `HOLD_MAX_AGE_S` (3600 s) as stale and merges record PRs, and this wait runs to 7200 s.
+- A future-dated hold (the train's clock behind the stamp's) is live, not absent: `stamp_hold_age` returns the negative age and the wait bounds it by its own elapsed poll time (`max(age, waited)`), so it is taken over after 7200 s of waiting instead of never. Decision: this hold guards main against a merge, so unknowable-as-young fails closed, bounded; the beat's convention (stale) is for a bookkeeping beat.
+- Tests that pin carries 17/18, which survived before: equal-stamp pair in both orders (X10), two valid stamps (X14), `context`-keyed entry (X16), `record_drafts` with `real` false (X17).
 
-- Carry 1: left for a later part; it stays on the roster.
+This merge stays behind the barrier PR 3499 (it touches `tools/audit/seat/merge_train.py`).
+
+- Carry 1: built here (P447, STAMP-HOLD: `stamp_hold_wait`, `stamp_hold_age`, the `stamp.py` `stamp_hold`/`stamp_run` split).
 - Carry 2: left for a later part; it stays on the roster.
 - Carry 3: left for a later part; it stays on the roster.
 - Carry 4: left for a later part; it stays on the roster.
@@ -15,41 +20,50 @@ Fix: `rollup_states` reduces a rollup to one state per context by newest `comple
 - Carry 11: left for a later part; it stays on the roster.
 - Carry 12: left for a later part; it stays on the roster.
 - Carry 13: left for a later part; it stays on the roster.
-- Carry 14: left for a later part; it stays on the roster.
+- Carry 14: left for a later part; it stays on the roster (P567 fix 2, newest-wins red rule versus GitHub's any-red rule).
 - Carry 15: left for a later part; it stays on the roster.
 - Carry 16: left for a later part; it stays on the roster.
-- Carry 17: built here (TRAIN-POLICY-REASON-STALE-CONTEXT, `rollup_states`).
-- Carry 18: built here (TRAIN-UNDRAFT-EVERY-ROUTE, `record_drafts` and the `land` draft arm).
+- Carry 17: built in the merged first part; this part adds the pins its review owed (X10, X14, X16, X17).
+- Carry 18: built in the merged first part; this part adds the pins its review owed (X10, X14, X16, X17).
+- Carry 19: left for a later part; it stays on the roster.
+- Carry 20: left for a later part; it stays on the roster.
+- Carry 21: left for a later part; it stays on the roster.
+- Carry 22: left for a later part; it stays on the roster.
+- Carry 0: left for a later part; it stays on the roster.
 
 ## Head
 
-cb30b77fbf14333a3f1a358548bb17771a2d8dc8, measured on origin/main ee64358be7eeccaec5178a923cb3b83a18a924a0. Repair round 1 after `Fix review: blocked 0c55662763813cee343d86278f94f90bc3e193a6 mutation-vacuous`; the added commit is test-only plus one production tidy: `rollup_states` drops a zero-time stamp per field before the `or`, so a zero `completedAt` now falls back to `startedAt`.
+1012ff4440889a24bf3bcd2f66eff2bfefeddb19, on top of d0c9eb66497bfd1cb2931bae2c7bddcfa3271e71 (the reviewed head), measured on origin/main 14f227c5bd0eb80855b21055cc668857a5f820b4's descendant; merge-tree reports no conflict.
 
 ## Mutation proof
 
-Mutants of `merge_train.py`, each run through `python3 tools/audit/seat/merge_train.py --self-test` (623 checks, 0 failed unplanted):
-- `if name not in best or (stamp, i) >= best[name][0]:` -> `if True:` (last-listed wins): FAIL "P608 #3445's five gate entries in list order".
-- `if not item.get("draft") or undrafted:` -> `if False:`: FAIL "P609 a draft the train never admitted as one" and "P609 a draft again after the one ready".
-- M4 `self.record_drafts(queue)` in `_batch` -> `pass`: FAIL "P609 a batch records the draft key on a key-less entry before admission" (drives `_batch` with `preflight` stubbed to capture the queue).
-- M5 the read inside `record_drafts` -> `pass`: the `record_drafts` case crashes on KeyError.
-- M7 `pending.add(name)` -> `pass`: FAIL "P608 an unfinished entry older than a SUCCESS still makes the context pending".
-- M8 the zero-time filter `if x and not x.startswith("0001")` -> `if x`: FAIL "P608 a zero-time completedAt falls back to startedAt".
-- M9 the `startedAt` fallback dropped from the stamp tuple: FAIL "P608 a zero-time completedAt falls back to startedAt" and "P608 an entry with only startedAt is ordered by it".
-Survivors found by my own drive among these seven: none. Not driven: the reviewer's M10 (inconclusive, malformed in the review).
+Each mutant of `merge_train.py` run through `python3 tools/audit/seat/merge_train.py --self-test` (669 checks, 0 failed unplanted); the reviewer's drivers `ev/mut.py` and `ev/mut_prior.py` adapted to the new code:
+- A drop `self.stamp_hold_wait()` in `land`: KILLED (5 FAIL, "stamp hold:" cases).
+- B drop `if not self.real: return`: KILLED ("a rehearsal batch ... does not wait").
+- D take-over without `return`: KILLED (hang, timeout).
+- E negative age -> None (the old fail-open): KILLED ("a future-dated hold ... is live", and the poll-count take-over case).
+- K drop `self.hold_refresh()` in the wait: KILLED ("every poll of a held wait refreshes train-hold").
+- L drop `waited += ...`: KILLED (hang); M `max(age, waited)` -> `age`: KILLED (hang); F drop the poll sleep: KILLED (4 FAIL).
+- `return None` on an unparseable commit date dropped (mutant_run.py:3201 RETURN_DEL, survived before): now KILLED by "an unreadable commit date is no wait".
+- J negative age -> 0.0: survives, equivalent (live, bounded by the same `waited` count, differs only in the logged age). C `>=` -> `>`: equivalent (an age of exactly 7200.0 from a whole-second date is unreachable). mutant_run.py:3210 `waited = 1`: equivalent (take-over after 240 polls either way).
+- Prior survivors X10-X17 (`rollup_states`, `record_drafts`, via ev/mut_prior.py): X14 `stamps[0]`->`stamps[-1]` KILLED ("two valid stamps"), X16 drop the `context` fallback KILLED ("status-context entry"), X17 drop `if not self.real` in `record_drafts` KILLED ("record_drafts on a rehearsal ... reads nothing"), M4/M7/M8/M9 KILLED. X10 `>=` -> `>` survives and is equivalent: the key is `(stamp, i)` and `i` is unique per entry, so a tie cannot occur; the equal-stamp pair is pinned in both list orders regardless.
+
+`stamp.py` mutants are the reviewer's S1-S5, all KILLED at d0c9eb66; `stamp.py` is unchanged in this round.
 
 ## Null control
 
-At the merge base `policy_refusal` has `last[name]=` overwrite and no "still a draft" arm. In the self-test, all-SUCCESS in either order reaches the review branch; a non-draft entry makes no `gh pr ready` call; a recorded `draft: False` is kept by `record_drafts`; the unplanted tree passes every new case.
+No hold: `stamp hold: null control, no hold runs the merge as today with no wait` (0 polls, merge runs); a rehearsal batch does not wait; all-SUCCESS rollups and a recorded `draft: False` are unchanged; the unplanted tree passes every new case.
 
 ## Figures
 
-- `python3 tools/audit/seat/merge_train.py --self-test` exits 0 at the head, 623 checks, 0 failed; the P608 and P609 lines print `ok`.
-- `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` rc=0 at the head, body check included; merge-tree against origin/main reports no conflict.
+- `python3 tools/audit/seat/merge_train.py --self-test`: rc 0, 669 checks, 0 failed (was 661 at d0c9eb66; eight new cases).
+- `python3 tools/release/stamp.py --self-test`: rc 0.
+- `bash tools/pr/prepr.sh /home/user/body.md`: every step ok except `self-test` (`tools/pr/prepr.sh --self-test`, case 6b "skips a diff that reaches no selectable script", 539 passed, 3 failed). The same three cases fail at the reviewed head d0c9eb66 in this clone, so they are not from this diff; the branch changes neither `tools/pr/prepr.sh` nor `dev/governance/`.
+- `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py`: exit 0, `tests/closures.json` re-recorded for `tests/entities.py` (874 files).
 
 ## Red checks
 
-- `tests / fast (3.14)`: main's red (combi census), cleared by PR #3466; not this diff.
-- `governance / instrument-self-tests`: main's red (pusher census), roster group R10-HOTFIX-PUSHER-CENSUS; not this diff.
+none
 
 ## Forward-carry
 
