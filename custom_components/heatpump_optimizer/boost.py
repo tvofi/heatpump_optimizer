@@ -143,6 +143,19 @@ class BoostState:
         if held is None or utc_elapsed_seconds(until, held) > 0:
             self.space_settle_until = until
 
+    def freeze_end(self) -> datetime | None:
+        """When the learners' boost freeze ends: the live overlay's end plus the tail, else the running tail.
+
+        ``None`` with no overlay and no tail. A tail already running from an
+        earlier boost is kept when it outlasts the live overlay's.
+        """
+        end = self.until.get(CHANNEL_SPACE)
+        projected = None if end is None else utc_shift(end, SPACE_SETTLE_TAIL)
+        held = self.space_settle_until
+        if projected is None or (held is not None and utc_elapsed_seconds(held, projected) > 0):
+            return held
+        return projected
+
     def _clear_spent(self, now: datetime) -> None:
         """Free the learners of past boosts once their tail ran out with no overlay live."""
         tail = self.space_settle_until
@@ -336,6 +349,19 @@ def space_learning_frozen(coord: Any, now: datetime | None = None) -> bool:
         return True
     tail = held.space_settle_until
     return tail is not None and utc_elapsed_seconds(tail, now) > 0
+
+
+def learning_freeze(coord: Any, raw: str | None) -> tuple[str, datetime | None] | None:
+    """The answer the learners obey (``raw``, their ``_learning_frozen``) with its end.
+
+    The end is known only for this module's own reason, and not while the
+    global boost mode is selected (it ends when the user leaves it).
+    """
+    if raw is None:
+        return None
+    if raw != FREEZE_REASON or getattr(coord, "mode", None) == MODE_BOOST:
+        return raw, None
+    return raw, held_for(coord).freeze_end()
 
 
 def interval_boosted(pending: Mapping[str, Any], coord: Any) -> bool:

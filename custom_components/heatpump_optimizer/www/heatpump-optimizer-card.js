@@ -207,6 +207,7 @@ const STRINGS = {
     "health.learner_wait_sunnier": "it learns in sunshine",
     "health.learner_frozen": "Paused after a boost until {time}.",
     "health.learner_frozen_any": "Paused while a boost runs.",
+    "health.learner_frozen_other": "Paused until its inputs are usable again.",
     "health.learner_waiting_any": "Waiting for conditions it can learn in.",
     "health.learner_counting": "Learning: {pct} % of the samples it needs.",
     "health.learner_eta": "About {d} days until learned.",
@@ -1105,6 +1106,7 @@ const STRINGS = {
     "health.learner_wait_sunnier": "den lär sig i solsken",
     "health.learner_frozen": "Pausad efter en boost till {time}.",
     "health.learner_frozen_any": "Pausad medan en boost pågår.",
+    "health.learner_frozen_other": "Pausad tills dess indata är användbara igen.",
     "health.learner_waiting_any": "Väntar på förhållanden den kan lära sig i.",
     "health.learner_counting": "Lär sig: {pct} % av mätningarna den behöver.",
     "health.learner_eta": "Ungefär {d} dagar tills den är inlärd.",
@@ -1955,6 +1957,7 @@ const STRINGS = {
     "health.learner_wait_sunnier": "es lernt bei Sonnenschein",
     "health.learner_frozen": "Nach einem Boost pausiert bis {time}.",
     "health.learner_frozen_any": "Pausiert, solange ein Boost läuft.",
+    "health.learner_frozen_other": "Pausiert, bis die Eingaben wieder brauchbar sind.",
     "health.learner_waiting_any": "Wartet auf Bedingungen, unter denen es lernen kann.",
     "health.learner_counting": "Lernt: {pct} % der benötigten Messwerte.",
     "health.learner_eta": "Noch etwa {d} Tage bis zum Abschluss des Lernens.",
@@ -10488,10 +10491,12 @@ function learnerPhase(p) {
   const pct = readNumber(p.progress) === null ? null : Math.round(readNumber(p.progress) * 100);
   if (p.phase === "off") return null;
   if (p.phase === "frozen") {
-    // A boost, or the slab heat it left, holds the learner: say until when.
+    // Held by a boost, an open window or an unusable reading: only the boost has an end and a line of its own.
     const until = p.frozen_until ? new Date(p.frozen_until) : null;
-    return { text: until && !isNaN(until) ? L("health.learner_frozen", { time: fmtExpiry(until) })
-      : L("health.learner_frozen_any"), share: (pct || 0) / 100 };
+    const boost = p.waiting_for === "boost_space";
+    return { text: !boost ? L("health.learner_frozen_other")
+      : until && !isNaN(until) ? L("health.learner_frozen", { time: fmtExpiry(until) }) : L("health.learner_frozen_any"),
+      share: (pct || 0) / 100 };
   }
   if (p.phase === "waiting") {
     const why = `health.learner_wait_${p.waiting_for}`;

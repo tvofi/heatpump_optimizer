@@ -560,23 +560,27 @@ def close_span(
     """
     ev = meter.settle(clean, plan_kw, (anchor_state, anchor_at))
     if ev is None:
+        if _LOGGER.isEnabledFor(logging.DEBUG) and meter.refusal is not None:
+            _LOGGER.debug("Heat counter span refused: %s", meter.refusal)
         return NO_SPAN
     got, e = span_heat(ev, modelled_cop), ev.energy
     interval = None
     if got.space_kw is not None and e is not None:
         interval = interval_of(ev.state, ev.state_at, e.end, e.hours, got.asked_kw)
-    return SpanClose(
+    close = SpanClose(
         interval, got.space_kw, got.asked_kw, got.heat_kw, 0.0 if got.elec_kw is None else got.elec_kw,
         got.refusal or (unaligned if got.elec_kw is None else None), (got.heat_kw, ev.attribution),
         interval is not None and bool(ev.clean.get("lower")), interval is not None and bool(ev.clean.get("house")),
         bool(ev.clean.get("cop")) or e is None,
     )
+    log_close(meter, close)
+    return close
 
 
 def log_close(meter: HeatEnergyMeter, close: SpanClose) -> None:
     """At DEBUG: a span that closed or was refused, and which fabric learner it reaches."""
-    if meter.closed is None and meter.refusal is None:
-        return
+    if not _LOGGER.isEnabledFor(logging.DEBUG) or (meter.closed is None and meter.refusal is None):
+        return  # nothing is formatted with DEBUG off
     e = meter.closed
     _LOGGER.debug(
         "Heat counter span %s: %s, space %s kW; house %s, lower %s",
