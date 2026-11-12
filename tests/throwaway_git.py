@@ -106,11 +106,22 @@ LOCAL_ENV = ("GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG", "GIT_CONFIG_PARAM
 _INHERITED_PAIR = re.compile(r"GIT_CONFIG_(?:KEY|VALUE)_")
 
 
+def empty_global_config() -> str:
+    """A path git reads as an empty global config, emptied on every call. Not
+    os.devnull: where /dev/null holds bytes (a cloud image's does) git dies
+    with `bad config line 1 in file /dev/null`. The path is a pure function of
+    the uid and TMPDIR, so the shell twin names the same file."""
+    path = os.path.join(os.environ.get("TMPDIR") or "/tmp", f"hpo-empty-gitconfig-{os.getuid()}")
+    with open(path, "w"):
+        pass
+    return path
+
+
 def throwaway_git_env(base: dict | None = None) -> dict:
     """The environment for every git call into a throwaway repository."""
     env = {k: v for k, v in (os.environ if base is None else base).items()
            if k not in LOCAL_ENV and not _INHERITED_PAIR.match(k)}
-    env.update(IDENTITY, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1",
+    env.update(IDENTITY, GIT_CONFIG_GLOBAL=empty_global_config(), GIT_CONFIG_NOSYSTEM="1",
                GIT_CONFIG_COUNT=str(len(CONFIG)))
     for i, (key, value) in enumerate(CONFIG):
         env[f"GIT_CONFIG_KEY_{i}"], env[f"GIT_CONFIG_VALUE_{i}"] = key, value
@@ -310,6 +321,21 @@ def self_test() -> int:
                                   capture_output=True, text=True).stdout.strip()
 
         check("init returns the env", got_env == throwaway_git_env())
+        # A global config path holding bytes breaks git (the cloud image's /dev/null):
+        # the null control is the old path, the arm is the empty file the env now names.
+        junk = Path(td) / "junk"
+        junk.write_text("not a config line\n")
+        old = subprocess.run(["git", "init", "-q", str(Path(td) / "o")], capture_output=True,
+                             env=dict(throwaway_git_env(), GIT_CONFIG_GLOBAL=str(junk)))
+        new = subprocess.run(["git", "init", "-q", str(Path(td) / "n")], capture_output=True,
+                             env=throwaway_git_env())
+        Path(empty_global_config()).write_text("not a config line\n")
+        again = subprocess.run(["git", "init", "-q", str(Path(td) / "m")], capture_output=True,
+                               env=throwaway_git_env())
+        check("a non-empty file at the old global-config path fails git init (null control); "
+              "the env's path still inits, and again after the file was dirtied",
+              old.returncode != 0 and new.returncode == 0 and again.returncode == 0,
+              f"{old.returncode}/{new.returncode}/{again.returncode}")
         check("git reads auto-maintenance off, and gc.auto 0, through the env",
               read("maintenance.auto", got_env) == "false" and read("gc.auto", got_env) == "0")
         bare = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
