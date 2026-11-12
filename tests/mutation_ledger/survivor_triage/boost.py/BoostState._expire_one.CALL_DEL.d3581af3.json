@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState._expire_one CALL_DEL d3581af3",
-  "old": "                self.settle(end, self.space_since)",
-  "reason": "Equivalent (CALL_DEL). The call sits under `if settle and channel == CHANNEL_SPACE:`, and the only call of `_expire_one` is `expire`'s block loop, which passes `settle=False`, so the line never runs; the same reason as this scope's GUARD_OFF row (50e15df0). The space overlay's expiry settles in `expire`'s own loop, whose `settle` call tests/features.py's 'every boost length, cancelled inside the window or expired past it, owes the full tail the refit waits' pins.",
-  "verdict": "equivalent"
-}
