@@ -1,0 +1,13 @@
+M0 head unmutated: 0 refusal(s) SURVIVED
+M1 tick-loop objects->False: 1 refusal(s) KILLED
+    UNDER-SCOPED step tick-loop: it read the objects, the table says not
+M2 tick-loop index->False: 1 refusal(s) KILLED
+    UNDER-SCOPED step tick-loop: it read the index, the table says not
+M3 field-coverage drop day_chart.mjs: 1 refusal(s) KILLED
+    UNDER-SCOPED step field-coverage: files misses ['tools/site/day_chart.mjs']
+M4 policy-lint-mutants drop cfr_exclusions probe: 1 refusal(s) KILLED
+    UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/governance/config/cfr_exclusions.json']
+M5 programme-pulse drop dir tools/audit/seat: 1 refusal(s) KILLED
+    UNDER-SCOPED step programme-pulse: dirs misses ['tools/audit/seat']
+M6 selftest-wiring drop r10_disinfection mutants file: 1 refusal(s) KILLED
+    UNDER-SCOPED step selftest-wiring: files misses ['tools/audit/seat/r10_disinfection_setpoint_mutants.py']

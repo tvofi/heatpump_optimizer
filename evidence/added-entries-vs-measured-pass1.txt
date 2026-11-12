@@ -1,0 +1,38 @@
+ci-predictor : NOT MEASURED in pass 1
+features-block files added 0 unmeasured-added []
+features-block probes added 3 unmeasured-added []
+features-block dirs added 1 unmeasured-added []
+field-coverage files added 2 unmeasured-added []
+field-coverage probes added 0 unmeasured-added []
+field-coverage dirs added 0 unmeasured-added []
+hooks-setup : NOT MEASURED in pass 1
+mutant-driver files added 0 unmeasured-added []
+mutant-driver probes added 1 unmeasured-added []
+mutant-driver dirs added 0 unmeasured-added []
+open-pr : NOT MEASURED in pass 1
+policy-lint-mutants files added 0 unmeasured-added []
+policy-lint-mutants probes added 3 unmeasured-added []
+policy-lint-mutants dirs added 0 unmeasured-added []
+pr-args : NOT MEASURED in pass 1
+prepr : NOT MEASURED in pass 1
+programme-pulse files added 2 unmeasured-added []
+programme-pulse probes added 1 unmeasured-added []
+programme-pulse dirs added 1 unmeasured-added []
+push-names-the-host files added 1 unmeasured-added []
+push-names-the-host probes added 0 unmeasured-added []
+push-names-the-host dirs added 0 unmeasured-added []
+review-packet files added 0 unmeasured-added []
+review-packet probes added 1 unmeasured-added []
+review-packet dirs added 0 unmeasured-added []
+selftest-wiring files added 3 unmeasured-added []
+selftest-wiring probes added 0 unmeasured-added []
+selftest-wiring dirs added 0 unmeasured-added []
+tick-loop files added 0 unmeasured-added []
+tick-loop probes added 7 unmeasured-added []
+tick-loop dirs added 0 unmeasured-added []
+tick-loop index False -> True measured True
+tick-loop objects False -> True measured True
+update-pr : NOT MEASURED in pass 1
+verdict-bus files added 0 unmeasured-added []
+verdict-bus probes added 1 unmeasured-added []
+verdict-bus dirs added 0 unmeasured-added []

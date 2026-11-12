@@ -1,0 +1,9 @@
+measured 30 broken 0
+== MAIN 2b4515dc: 6 refusal(s) over 30 measured step(s)
+   UNDER-SCOPED step hooks-setup: files misses ['tools/audit/seat/r10_disinfection_setpoint_mutants.py']
+   UNDER-SCOPED step ci-predictor: probes misses ['tools/pr/figure_block.py']
+   UNDER-SCOPED step prepr: dirs misses ['dev/audit/config', 'dev/governance/config']
+   UNDER-SCOPED step open-pr: files misses ['tools/audit/seat/r10_disinfection_setpoint_mutants.py', 'tools/pr/figure_block.py', 'tools/site/day_chart.mjs']
+   UNDER-SCOPED step pr-args: files misses ['tools/audit/seat/r10_disinfection_setpoint_mutants.py', 'tools/pr/figure_block.py', 'tools/site/day_chart.mjs']
+   UNDER-SCOPED step update-pr: files misses ['tools/audit/seat/r10_disinfection_setpoint_mutants.py', 'tools/pr/figure_block.py', 'tools/site/day_chart.mjs']
+== HEAD f5a2c9cb: 0 refusal(s) over 30 measured step(s)

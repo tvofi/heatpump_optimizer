@@ -1,0 +1,35 @@
+OK       0.0s launch
+OK     155.8s hooks-setup
+OK       1.0s offline-spy
+OK       0.8s throwaway-git-helper
+OK     193.6s merge-train
+OK       2.8s carry-check-and-the
+OK       8.8s train-launcher
+OK       0.8s figure-check
+OK       0.1s figure-census
+OK       0.2s pin-rule
+OK       0.1s github-rest-client
+OK       0.2s ci-prelude
+OK       0.2s gate-predicate
+OK       0.1s gate-sweep
+OK       0.1s code-scanning-alert-lister
+OK       0.3s ruleset-cut-over-instrument
+OK       0.1s sweep-driver
+OK       0.2s gantt-and-verdict-audit
+OK       0.2s survivor-list
+OK       5.1s ci-probe-instrument
+OK       0.2s code-scanning-wait
+OK     182.7s ci-predictor
+OK       0.1s local-alert-lister
+OK       1.0s alert-lister-mutants
+OK     340.5s prepr
+OK       0.0s open-pr
+OK       0.0s pr-args
+OK       0.0s beatd
+OK     340.6s update-pr
+OK       3.2s selftest-scope
+OK      49.0s selftest-scope-mutants
+OK       0.0s unread
+KEPT traces at /tmp/selftest-record-rjz58ors
+selftest_scope: recorded 30 step(s) into /tmp/claude-0/-home-user-heatpump-optimizer/dbd99e8e-f3b1-522b-bdce-e223a84bd4ab/scratchpad/measured2-table.json; 0 failed [], 0 broken trace(s)
+exit=0
