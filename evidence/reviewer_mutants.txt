@@ -1,2 +1,0 @@
-== mutant: drop the two INERT_EXCEPT lines
-[]
