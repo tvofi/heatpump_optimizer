@@ -1,0 +1,38 @@
+
+=== features block ===
+
+-- R10-GENERIC-HEAT-CURVE — the displace through a number entity, kind offset
+  ok   no topic and an offset entity: one publish of 5 sends one set_value of 5 (R10-GENERIC-HEAT-CURVE)
+  ok   the entity option empty: no set_value, and the /set topic still carries the integer (W7)
+  ok   both configured: MQTT first with the full integer, the entity bounded by the 3 K default band
+  ok   a kelvin entity is sent -2 for -2, never 271.15 through the absolute helpers (T1)
+  ok   a Fahrenheit entity is sent the difference x9/5: 2 K is 3.6 °F (T1)
+  ok   an entity range narrower than the displace saturates and is latched once, naming it (W6)
+  ok   a reading already at the target is not written (W1)
+  ok   inside the grace a differing reading proves nothing: no second write (W2)
+  ok   after the grace the first miss is written once more (W2)
+  ok   a second miss for the same target latches a warning and sends nothing (W3)
+  ok   and a new target is written again (W3)
+  ok   the 24 h write guard is 2 x 1440 / interval: 96 at the default 30 min (W4)
+  ok   at the guard nothing is written and it is latched; one below it the write goes (W4)
+  ok   absent, unavailable, a non-temperature unit, a sensor, a range without 0 or a raising service: no value lands, the failure is latched, the MQTT arm still publishes
+  ok   MODE_OFF after a write writes one 0 (the off rule)
+  ok   and while off the arm writes nothing, nor does a second off
+  ok   nothing written, nothing restored; an unconfigured entity is never written
+  ok   unload after a write writes one 0, through async_unload_entry (the off rule)
+  FAIL MODE_OFF and unload leave displace 0 standing on both ECL110 topics, retain on and off  [{(False, 'mode_off'): {'ecl/set': (-3, False), 'ecl/cmd': (-3, False), 'entity': 0}, (False, 'unload'): {'ecl/set': (-3, False), 'ecl/cmd': (-3, False), 'entity': 0}, (True, 'mode_off'): {'ecl/set': (-3, True), 'ecl/cmd': (-3, True), 'entity': 0}, (True, 'unload'): {'ecl/set': (-3, True), 'ecl/cmd': (-3, True), 'entity': 0}}]
+  FAIL the legacy neutral body releases supply: heat_pump_on true, displace 0, reason off_restore  [{'source': 'heatpump_optimizer', 'reason': 'optimizer', 'timestamp': '2026-11-12T14:18:24.993690+00:00', 'command': {'type': 'ecl110_control', 'heat_pump_on': True, 'displace': -3}, 'context': {'price': None, 'mode': None, 'pre_heat_urgency': None}}]
+  FAIL publish_ecl110_topics with no topic configured publishes nothing and reports success  [[]]
+  FAIL an MQTT arm never published is not restored; one published is restored once, not per off  [[] [('ecl/set', '2')] {'armed': [], 'restores': 0, 'last_restore': None}]
+Traceback (most recent call last):
+  File "/root/wtb/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/root/wtb/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/root/wtb/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 325, in <module>
+  File "tests/features.py[block]", line 325, in <genexpr>
+AttributeError: module 'heatpump_optimizer.heat_curve' has no attribute 'MQTT_CONSUMER'
