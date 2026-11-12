@@ -42638,6 +42638,21 @@ R.check(
     all(s == {"ecl/set": (0, r), "ecl/cmd": (0, r), "entity": 0} for (r, _), s in _gm.items()),
     repr(_gm),
 )
+_gm_neutral = [_gm_json.loads(d["payload"]) for dom, _, d in _gmc.hass.services.calls
+               if dom == "mqtt" and d["topic"] == "ecl/cmd"][-1]
+R.check(
+    "the legacy neutral body releases supply: heat_pump_on true, displace 0, reason off_restore",
+    _gm_neutral["command"] == {"type": "ecl110_control", "heat_pump_on": True, "displace": 0}
+    and _gm_neutral["reason"] == "off_restore",
+    repr(_gm_neutral),
+)
+_gmt = _ghc_coord(entity=None, entry_id="ghc_mqtt_none")
+R.check(
+    "publish_ecl110_topics with no topic configured publishes nothing and reports success",
+    _asyncio.run(_ghc.publish_ecl110_topics(_gmt.hass, None, None, 1, False, 0, {})) is True
+    and _ghc_mqtt(_gmt) == [],
+    repr(_ghc_mqtt(_gmt)),
+)
 _gmn = _ghc_coord(entity=None, entry_id="ghc_mqtt_never", ecl110_displace_set_topic="ecl/set")
 _asyncio.run(_gmn.async_set_mode(_ghc_off, refresh=False))
 _gmx = _ghc_coord(entity=None, entry_id="ghc_mqtt_once", ecl110_displace_set_topic="ecl/set")
@@ -42718,10 +42733,14 @@ def _gm_cycle(late):
 
 
 _gm_inside, _gm_late = _gm_cycle(False), _gm_cycle(True)
+_gmd = _ghc_coord(entity=None, entry_id="ghc_mqtt_default_on", ecl110_command_topic="ecl/cmd")
+_gmd._mode, _gmd._current_action = _gm_comfort, {"mode": "comfort", "displace_value": 1.0}
+_asyncio.run(_gmd.async_publish_current_action())
+_gm_default = [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(_gmd)]
 R.check(
-    "the legacy payload's heat_pump_on is the switch's write, inside its step and a step late",
-    _gm_inside == ([False], [False]) and _gm_late == ([True], [True]),
-    "inside=%r late=%r" % (_gm_inside, _gm_late),
+    "the legacy payload's heat_pump_on is the switch's write, inside its step and a step late; no write and no key: off",
+    _gm_inside == ([False], [False]) and _gm_late == ([True], [True]) and _gm_default == [False],
+    "inside=%r late=%r default=%r" % (_gm_inside, _gm_late, _gm_default),
 )
 
 # A crash: the write was armed and persisted, the process died unrestored. The

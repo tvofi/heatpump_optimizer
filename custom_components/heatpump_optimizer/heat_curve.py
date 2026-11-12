@@ -226,8 +226,6 @@ async def publish_ecl110_topics(
     suppresses the direct ``/set`` write that supersedes it. True when every
     configured topic took its publish.
     """
-    if not set_topic and not command_topic:
-        return True
     sent = True
 
     # Preferred path: write plain numeric payload directly to /set topic.
