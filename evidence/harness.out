@@ -1,6 +1,0 @@
-/tmp/hpo-slot-nested-ovx9hp21/slots: 4/4 slots held [0:held-0(live), 1:held-1(live), 2:held-2(live), 3:held-3(live)] queue=- past-lease=0 unleased=0
-RESULT labelled_real_slot_lines=0
-RESULT labelled_rc=0
-RESULT labelled_queued=0  (380s)
-RESULT bare_finished=0
-RESULT direct_take_finished=0
