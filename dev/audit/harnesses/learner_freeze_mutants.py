@@ -57,7 +57,7 @@ MUTANTS = [
     ("M9-a-learner-recording-again-keeps-its-place", PKG / "learner_progress.py",
      "        self.pop(learner, None)\n", "", BLOCK),
     ("M10-lower-learner-records-in-the-house-slot", PKG / "coordinator.py",
-     'self._learner_freezes.note("lower", frozen)', 'self._learner_freezes.note("house", frozen)', BLOCK),
+     'self._learner_freezes.note_freeze("lower", frozen)', 'self._learner_freezes.note_freeze("house", frozen)', BLOCK),
     ("M11-solar-and-gains-read-the-lower-record", PKG / "learner_progress.py",
      '"solar": "house", "gains": "house"', '"solar": "lower", "gains": "lower"', BLOCK),
 ]

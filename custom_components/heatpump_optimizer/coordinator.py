@@ -5641,7 +5641,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # this learner in particular has to be told, not left to infer.
         frozen = self._learning_frozen(CONF_BUFFER_TANK_TEMP_ENTITY)
         if frozen:
-            self._learner_freezes.note("buffer", frozen)
+            self._learner_freezes.note_freeze("buffer", frozen)
             return
 
         # With a mixing valve the tank is a store the house draws on while the
@@ -5773,7 +5773,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # reason makes the residual untrustworthy, detector included.
         vent_only = frozen == "ventilation"
         if frozen and not vent_only:
-            self._learner_freezes.note("house", frozen)
+            self._learner_freezes.note_freeze("house", frozen)
             return log_skip(clean, "house heat loss", "frozen (%s)", frozen)
 
         if interval is None or observed is None:
@@ -5824,7 +5824,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if vent_only:
             # The detector has been fed; the learner itself stays frozen
             # until the window closes.
-            self._learner_freezes.note("house", frozen)
+            self._learner_freezes.note_freeze("house", frozen)
             return clean
         if not fold:
             return clean
@@ -5928,7 +5928,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_LOWER_FLOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY
         ))
         if frozen:
-            self._learner_freezes.note("lower", frozen)
+            self._learner_freezes.note_freeze("lower", frozen)
             return clean
         if interval is None or observed is None or not fold:
             return clean
@@ -6833,7 +6833,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         tank = dhw.value if dhw.ok else None
         # A combi store's probe (#3225) also moves with the space side's draw.
         if tank is not None and not combi and (frozen := await self._dhw_learner.async_learn_dynamics(tank)):
-            self._learner_freezes.note("dhw", frozen)
+            self._learner_freezes.note_freeze("dhw", frozen)
         hours = await self._legionella.async_observe(tank, reader)
         _ctx_of(self).publish(self, dhw_hours_since_legionella=hours)
 

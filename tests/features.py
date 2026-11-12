@@ -87220,12 +87220,12 @@ R.check(
     f"mismatched {_p3_bad}; null {_p3_null}",
 )
 _p3_rec = _p3_lp.FreezeRecord()
-_p3_rec.note("house", "stale:indoor_temp_entity")
-_p3_rec.note("lower", "stale:lower_floor_temp_entity")
-_p3_rec.note("house", "boost_space")
+_p3_rec.note_freeze("house", "stale:indoor_temp_entity")
+_p3_rec.note_freeze("lower", "stale:lower_floor_temp_entity")
+_p3_rec.note_freeze("house", "boost_space")
 _p3_dhw = _two_zone_learner(lower_entity="sensor.lower")
-_p3_dhw._learner_freezes.note("dhw", "stale:dhw_temp_entity")
-_p3_dhw._learner_freezes.note("buffer", "boost_space")
+_p3_dhw._learner_freezes.note_freeze("dhw", "stale:dhw_temp_entity")
+_p3_dhw._learner_freezes.note_freeze("buffer", "boost_space")
 R.check(
     "P3 one record per learner: the sensor's learner_freeze_reason is the reason recorded last "
     "this cycle, a learner recording again moving to the end; a reason only the hot-water or "

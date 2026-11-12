@@ -166,7 +166,7 @@ class FreezeRecord(dict[str, str]):
     the house learner, which never freezes on it).
     """
 
-    def note(self, learner: str, reason: str) -> None:
+    def note_freeze(self, learner: str, reason: str) -> None:
         """``learner`` froze on ``reason``; it becomes the last one recorded."""
         self.pop(learner, None)
         self[learner] = reason
