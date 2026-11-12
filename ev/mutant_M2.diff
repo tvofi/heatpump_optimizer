@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/dhw_learning.py b/custom_components/heatpump_optimizer/dhw_learning.py
+index c912d13db..fd5af5bbc 100644
+--- a/custom_components/heatpump_optimizer/dhw_learning.py
++++ b/custom_components/heatpump_optimizer/dhw_learning.py
+@@ -513,7 +513,7 @@ class DhwProfileLearner:
+         # saving only at close time meant a restart mid-shower silently
+         # dropped everything since the last close, dragging the p90 down.
+         # Zero-energy ticks (most of the day) still cause no churn.
+-        if before != after or energy_kwh > 1e-4 or taken_kwh > 1e-4:
++        if before != after or energy_kwh > 1e-4 or taken_kwh >= 1e-4:
+             await self.async_save_draws()
+ 
+     async def async_learn_cooling(
