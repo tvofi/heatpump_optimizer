@@ -26,7 +26,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SUITE-ENV-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-COMBI-TANK-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-COMBI-TANK-PR-B (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DUTY-SWITCH-RESTART-LEARNING (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -43,7 +43,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-MUTANT-RUN-FORKCAP (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-STALE-STEP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-REPLAY-CLASS-CUT (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-GATE-REDISPATCH-LOOP (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-GATE-REDISPATCH-LOOP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-INTRODUCED-REDS-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-OPENER-UNBLOCK (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-CARD-HEALTH-TEXT (stage carries-open): no branch pushed yet, so nothing to fetch
