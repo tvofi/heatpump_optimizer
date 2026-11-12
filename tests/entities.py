@@ -31840,7 +31840,7 @@ _RD_EVENTS = ({"github.event_name": "workflow_dispatch"},
 
 
 # A dispatch is never a push: the units it owes are gate.py's `no-pr` and `pr`
-# classes, so the push-only jobs (coverage, ci-ratchet) are not among them.
+# classes, so the push-only jobs (coverage, coverage-ratchet) are not among them.
 _RD_UNITS = sorted(set(_cig_required["pr"]) | set(_cig_required["no-pr"]))
 
 
