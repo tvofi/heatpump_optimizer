@@ -456,7 +456,7 @@ class Dests:
 def pr_group_of(dests: "Dests", branch: str) -> str | None:
     """The roster group a pull request's head branch answers for: `roster_lib.group_for_branch`,
     then once more without a trailing `-pr` (a fix branch drifts from its group by that suffix)."""
-    roster = {"groups": list(dests.groups.values())}
+    roster = {"groups": list({**dests.round_groups, **dests.groups}.values())}  # mut:roundgroup
     return (roster_lib.group_for_branch(roster, branch)
             or roster_lib.group_for_branch(roster, branch[:-3] if branch.endswith("-pr") else ""))
 
@@ -2018,6 +2018,17 @@ def _self_test() -> int:
     got, sts = own_item("Carry 3: built. Carry: R10-A", "#9 r10-b")
     check("landed: the same item from another group's pull request lands (null control)",
           len(land_ops(got)) == 1 and sts == [])
+    Dnew = Dests({"groups": [{"group": "R10-A", "resume": {"stage": "in-progress"}}]}, set(), None,
+                 round_roster=("origin/handoff/audit-r10-roster", {"groups": [
+                     {"group": "R10-NEWGRP", "carry": ["c0", "c1"], "resume": {"stage": "in-progress"}}]}))
+    sts = []
+    got = landed(head + "## Forward-carry\n\n- Carry 1: built. Carry: R10-NEWGRP\n", Dnew, "#9 r10-newgrp-p2", sts)
+    check("landed: an own-group status line whose group is on the round's roster branch only lands nothing",
+          got == [] and len(sts) == 1 and pr_group_of(Dnew, "r10-newgrp-p2") == "R10-NEWGRP")
+    sts = []
+    got = landed(head + "## Forward-carry\n\n- Carry 1: built. Carry: R10-NEWGRP\n", Dnew, "#9 r10-nowhere", sts)
+    check("landed: a status line whose own group is on neither roster still refuses (null control)",
+          sts == [] and pr_group_of(Dnew, "r10-nowhere") is None)
     own_d.pr_group = "R10-A"
     got, sts = own_item("Carry 0: stays open. Carry: R10-A", "#9")
     check("landed: the group is read from pr_group when the source names no topic", got == [] and len(sts) == 1)
