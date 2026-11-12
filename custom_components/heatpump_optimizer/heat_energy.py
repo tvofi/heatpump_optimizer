@@ -28,6 +28,7 @@ it says what the pump delivered at one instant, not over the interval.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, NamedTuple
@@ -36,6 +37,8 @@ from weakref import WeakKeyDictionary
 from .const import HEAT_LOSS_BASES
 from .drift import utc_elapsed_seconds
 from .pump_mode import MODE_DHW, MODE_HEAT
+
+_LOGGER = logging.getLogger(__name__)
 
 SPACE = "space"
 DHW = "dhw"
@@ -567,6 +570,19 @@ def close_span(
         got.refusal or (unaligned if got.elec_kw is None else None), (got.heat_kw, ev.attribution),
         interval is not None and bool(ev.clean.get("lower")), interval is not None and bool(ev.clean.get("house")),
         bool(ev.clean.get("cop")) or e is None,
+    )
+
+
+def log_close(meter: HeatEnergyMeter, close: SpanClose) -> None:
+    """At DEBUG: a span that closed or was refused, and which fabric learner it reaches."""
+    if meter.closed is None and meter.refusal is None:
+        return
+    e = meter.closed
+    _LOGGER.debug(
+        "Heat counter span %s: %s, space %s kW; house %s, lower %s",
+        f"{e.hours:.2f} h" if e is not None else "refused", close.refusal or meter.refusal or "read",
+        f"{close.space_kw:.2f}" if close.space_kw is not None else "none",
+        "folds" if close.house else "refused", "folds" if close.lower else "refused",
     )
 
 

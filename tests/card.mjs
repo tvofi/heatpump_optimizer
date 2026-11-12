@@ -12479,6 +12479,14 @@ check("without an indoor reading the corner now label is absent",
     const waiting = rowOf(modelOf(metered(lp({ phase: "waiting", progress: null, waiting_for: "colder", samples: 0 }))), "heat_loss");
     check("UX-HEALTH D: a waiting learner says what it waits for in words",
       /Waiting: it learns when it is cold enough outside/.test(waiting) && !/colder/.test(waiting), waiting);
+    const frozenUntil = new Date(Date.now() + 3 * 3600 * 1000);
+    const frozen = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "boost",
+      frozen_until: frozenUntil.toISOString(), samples: 1 }))), "heat_loss");
+    const frozenOpen = rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.0, waiting_for: "boost",
+      frozen_until: null, samples: 0 }))), "heat_loss");
+    check("a learner a boost holds says it is paused and until when, not a count standing still",
+      /Paused after a boost until/.test(frozen) && /Paused while a boost runs/.test(frozenOpen)
+      && !/Learning:/.test(frozen), `${frozen} | ${frozenOpen}`);
     check("UX-HEALTH D: a learner that is off has no row",
       !/data-model-row="gains"/.test(modelOf(metered({ learner_progress: { gains: { phase: "off", samples: 0 } } }))));
     // The owner's hover spec (carry 14): every score and scale hover says what
