@@ -1,0 +1,9 @@
+custom_components/heatpump_optimizer/pump_arbiter.py:402:_SLOTS = ("mode", "dhw_setpoint", "space_setpoint", "silent")
+custom_components/heatpump_optimizer/pump_arbiter.py:425:        "dhw_setpoint": cfg.dhw_setpoint_entity,
+custom_components/heatpump_optimizer/pump_arbiter.py:1197:        return _bounded(inp, "dhw_setpoint", everyday, hi=inp.params.dhw_max_temp)
+custom_components/heatpump_optimizer/pump_arbiter.py:1198:    return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)
+custom_components/heatpump_optimizer/pump_arbiter.py:1228:        return PumpCommand(both, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
+custom_components/heatpump_optimizer/pump_arbiter.py:1246:    written = state_for(coord).written.get("dhw_setpoint")
+custom_components/heatpump_optimizer/pump_arbiter.py:1247:    return not (reading is None or written is None or _differs("dhw_setpoint", reading, written[0]))
+custom_components/heatpump_optimizer/setpoint_check.py:17:    quantise_setpoint_c,
+custom_components/heatpump_optimizer/setpoint_check.py:134:    on_step_c = quantise_setpoint_c(hass, entity_id, floor, rounding="up", hi_c=params.dhw_hard_max_temp)

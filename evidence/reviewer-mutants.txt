@@ -1,0 +1,6 @@
+Reviewer's own mutants, each applied alone to a detached worktree of 43095bdec3bba091bfe1a5a38abf172987e7ceb8, PYTHONPATH=tests/hastub, tests/block_duty.py and tests/guard_pins.py:
+== R1-fix-cap-charge-limit (setpoint_check hi_c=params.dhw_max_temp): 3 of 70 BLOCK DUTY CHECKS FAILED | guard_pins: ALL 61 GUARD PIN CHECKS PASSED
+== R2-equivalent-min-null (no-cycle hi=min(dhw_max_temp, dhw_hard_max_temp), equivalent by construction): ALL 70 BLOCK DUTY CHECKS PASSED | guard_pins: AttributeError on a SimpleNamespace fake lacking dhw_hard_max_temp (fake artefact, not a kill)
+== R3-raw-min (_bounded compares hi with the raw low): 1 of 70 BLOCK DUTY CHECKS FAILED | guard_pins: ALL 61 GUARD PIN CHECKS PASSED
+== R4-floor-nearest (setpoint_check rounding="up" -> "nearest"): ALL 70 BLOCK DUTY CHECKS PASSED | guard_pins: ALL 61 GUARD PIN CHECKS PASSED
+== R4-floor-nearest under tests/features.py: 1 of 5287 FEATURE CHECKS FAILED (log ev/R4-features.txt)

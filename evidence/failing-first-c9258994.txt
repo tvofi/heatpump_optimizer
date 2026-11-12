@@ -1,0 +1,5 @@
+  FAIL an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard maximum is the everyday set-point there (the everyday step'
+  FAIL no no-cycle write exceeds the charge limit (dhw_max_temp), the cycle enabled and not running or disabled, over every step size and everyday set-point on 
+  FAIL an off-step everyday set-point is written on the step at or below it, never rounded up (everyday 58, step 5: 55, not 60; everyday 60.7, step 1: 60), the 
+  FAIL the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every step size and pair, and an off-step floor's repair stan
+4 of 69 BLOCK DUTY CHECKS FAILED
