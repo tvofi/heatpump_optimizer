@@ -1,3 +1,2 @@
-MERGE-CLAIM: resolved tests/golden/card_claimed_drift.txt
-5f0249d89cddab4b184a6e95e1c3340d4a3eb718
+35ffb65c6c3a5ac2902ecde1fefe5a6d0cfd5b40
 rc=0

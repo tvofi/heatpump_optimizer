@@ -1,4 +1,4 @@
- heatpump-optimizer-card  v7.1.10 
+ heatpump-optimizer-card  v7.1.11 
 defined elements: heatpump-optimizer-card, heatpump-optimizer-card-editor
 customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card","description":"Plots heat-pump price, power and temperature plans on one shared time axis with per-series toggles.","preview":true}]
   ok    every card language is key-for-key with en and keeps en's placeholders
@@ -181,9 +181,12 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    a very wide dialog does not turn the legend into a headline
   ok    the dialog's chrome never renders under the tile's 14 px base
   ok    and its ceiling is reachable inside the dialog's 1700 px cap
+  ok    the ad-list-prone name pattern refuses every stem spelling and no near miss
+  ok    the card-name extractor reads class, id, className, classList and selector names
+  ok    no class or id in the card is a name generic ad-blocker hide rules target
   ok    every caption role is floored at the ramp's 12 px step
   ok    the layout bar's buttons take the chip's dialog size
-  ok    the health and advisor rows take the surface their ink is drawn for
+  ok    the health and advisor rows take their surface and its ink from one rule
   ok    the health headings are the card's 600, not the user agent's 700
   ok    the savings replay takes the setup map's phone treatment
   ok    the receipt's text-sm fallbacks are the token's own value
@@ -1185,7 +1188,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    and a card with no recorded history draws none
   ok    the live-edge chunk is fetched again once the clock has moved a plan step
   ok    the card element defines at most 26 members of its own (26)
-  ok    the card markup gate's claim file is stamped for v7.1.10
+  ok    the card markup gate's claim file is stamped for v7.1.11
   ok    a docs-only three-dot moves nothing a claim excuses
   ok    the card source moves something a claim excuses
   ok    justifiesCardClaim names the card and nothing beside it
@@ -1270,8 +1273,9 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    a healthy input shows Fresh with its age
   ok    no 'plan uses X instead' text is invented (the fallback is not published)
   ok    the plan block shows solved-ago, next solve, steps and solve time
-  ok    the header pill reads 1 input stale (warn)
-  ok    two failing inputs read 2 inputs stale
+  ok    the header pill reads 1 input problem (warn)
+  ok    two failing inputs read 2 input problems
+  ok    one unavailable input: the pill counts it and does not call it stale (en, sv, de)
   ok    an unavailable input says so in words
   ok    with no problems the pill reads All inputs fresh (ok)
   ok    without the Input Problem sensor there is no health pill and no input rows

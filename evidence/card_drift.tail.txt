@@ -1,3 +1,4 @@
+# full log 17465780 bytes at /tmp/claude-0/ev/card_drift.txt, tail kept
                  <SVG aria-hidden="true" class="hpo-mark" focusable="false" viewBox="0 0 48 48" classes=["hpo-mark"]>
         @@ -48,34 +48,6 @@
                      text="21.1"
