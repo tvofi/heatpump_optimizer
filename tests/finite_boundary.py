@@ -264,6 +264,14 @@ def _healthy_payloads() -> dict[str, dict]:
         run(pump_arbiter._persist(coord))
     except Exception as exc:  # pragma: no cover - diagnostic only
         print("note: pump_arbiter persist skipped: %r" % (exc,))
+    from heatpump_optimizer import duty_switch
+    duty_switch.record_for(coord).learner.directions["dhw_space"].book(
+        _dt.datetime(2026, 1, 1, 12, 0, 0, tzinfo=_dt.timezone.utc), True, 480.0)
+    run(duty_switch._persist(duty_switch.record_for(coord)))
+    from heatpump_optimizer import off_restore
+    _off = run(off_restore._armed_record(coord.hass, coord.entry))
+    _off.armed.update({"heat_curve": None, "stand_in": 21.5})
+    run(off_restore._save(_off))
     run(_save_notifier(coord))
     run(_save_debug(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
@@ -477,8 +485,10 @@ LOADERS = {
     "boost": lambda c: __import__("heatpump_optimizer.boost", fromlist=["x"]).restore_session(c, c._adopt_away_override, c._config, c._entity_state),
     "away": lambda c: __import__("heatpump_optimizer.away", fromlist=["x"]).restore_override(c, c._adopt_away_override, c._config, c._entity_state),
     "pump_duty": lambda c: __import__("heatpump_optimizer.pump_arbiter", fromlist=["x"])._load(c),
+    "duty_switch": lambda c: (lambda m: m._load(m.record_for(c)))(__import__("heatpump_optimizer.duty_switch", fromlist=["x"])),
     "notifier": _load_notifier,
     "debug": _load_debug,
+    "off_restore": lambda c: __import__("heatpump_optimizer.off_restore", fromlist=["x"])._armed_record(c.hass, c.entry),
 }
 
 R.check(
@@ -738,11 +748,79 @@ def _scrub_mro_check() -> None:
     )
 
 
+def _native_alias_check() -> None:
+    """The climate entity's temperatures live once, under the native names,
+    and the pre-native spelling is served only where the core reads it.
+
+    Home Assistant 2026.11 moved the climate temperature API to the native
+    names and made the old ones deprecated wrappers, which log for every
+    class still defining them; the supported floor (2025.2.0) has no native
+    names and reads only the old ones. One stub entity, defining only the
+    native members, is built against a base class of each shape: without
+    the native names the three old names must be the scrubbed native
+    members (a NaN reads None through the old name); with them the class
+    must carry none of the old names, so the core's deprecation scan finds
+    nothing to report."""
+    from homeassistant.helpers.entity import Entity
+    from heatpump_optimizer import climate
+    from heatpump_optimizer.entity import HeatPumpOptimizerEntity
+
+    def default(self):
+        return "base default"
+
+    def unit(self):
+        return getattr(self, "_attr_temperature_unit", "base default")
+
+    old = {"current_temperature": property(default),
+           "target_temperature": property(default),
+           "temperature_unit": property(unit)}
+    native = {"native_current_temperature": property(default),
+              "native_target_temperature": property(default),
+              "native_temperature_unit": property(default)}
+    module = {"__module__": "homeassistant.components.climate"}
+    bases = {
+        "without": type("_PreNativeClimate", (Entity,), {**old, **module}),
+        "with": type("_NativeClimate", (Entity,), {**old, **native, **module}),
+    }
+    members = {
+        "native_current_temperature": property(lambda self: float("nan")),
+        "native_target_temperature": property(lambda self: 21.0),
+        "_attr_native_temperature_unit": "\u00b0C",
+        "__module__": climate.__name__,
+    }
+    legacy = ("current_temperature", "target_temperature", "temperature_unit",
+              "_attr_temperature_unit")
+    pre = type("_PreNativeProbe", (HeatPumpOptimizerEntity, bases["without"]), dict(members))
+    ent = object.__new__(pre)
+    read = (pre.current_temperature.fget(ent), pre.target_temperature.fget(ent),
+            pre.temperature_unit.fget(ent))
+    R.check(
+        "on a core without native climate names the old names read the "
+        "scrubbed native values",
+        read == (None, 21.0, "\u00b0C"),
+        f"read {read!r}",
+    )
+    R.check(
+        "on a core without native climate names each old name is the native "
+        "member object itself",
+        vars(pre).get("current_temperature") is vars(pre)["native_current_temperature"]
+        and vars(pre).get("target_temperature") is vars(pre)["native_target_temperature"],
+        f"vars={sorted(n for n in vars(pre) if not n.startswith('__'))}",
+    )
+    post = type("_NativeProbe", (HeatPumpOptimizerEntity, bases["with"]), dict(members))
+    carried = sorted(n for n in legacy if n in vars(post))
+    R.check(
+        "on a core with native climate names the class carries none of the old names",
+        not carried,
+        f"carried {carried}",
+    )
+
+
 #: A bool is not a number (the round-10 mandate's bool policy) and a numeric
 #: string is text: either at a number state's source must publish None.
 _NOT_NUMBERS = (True, "21.5")
 #: The state properties Home Assistant reads as a number.
-_NUMBER_STATES = ("native_value", "current_temperature", "target_temperature")
+_NUMBER_STATES = ("native_value", "native_current_temperature", "native_target_temperature")
 #: Payload sections the healthy payload does not build (no solve has run, no
 #: month has settled), seeded so the entities reading them publish a number
 #: and the census reaches them. A sensor declaring ``_payload_path`` is
@@ -900,7 +978,7 @@ def _owner_pins() -> None:
     def climate_temp(data):
         ent = object.__new__(climate.HeatPumpOptimizerClimate)
         ent.coordinator = _types.SimpleNamespace(data=data, last_update_success=True)
-        return climate.HeatPumpOptimizerClimate.current_temperature.fget(ent)
+        return climate.HeatPumpOptimizerClimate.native_current_temperature.fget(ent)
 
     def starts(lifetime):
         ent = object.__new__(sensor.CompressorStartsSensor)
@@ -1127,6 +1205,13 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     arbiter = importlib.import_module("heatpump_optimizer.pump_arbiter")
     arbiter.state_for(coord).written["dhw_setpoint"] = (55.0, t0)
     run(arbiter._persist(coord))
+    duty = importlib.import_module("heatpump_optimizer.duty_switch")
+    duty.record_for(coord).learner.directions["dhw_space"].book(t0, True, 480.0)
+    run(duty._persist(duty.record_for(coord)))
+    off = importlib.import_module("heatpump_optimizer.off_restore")
+    held = run(off._armed_record(coord.hass, coord.entry))
+    held.armed.update({"heat_curve": None, "stand_in": 21.5})
+    run(off._save(held))
     run(_save_notifier(coord))
     run(_save_debug(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
@@ -1787,8 +1872,10 @@ def _a6_savers():
         "boost": lambda c: mod("boost").persist(c),
         "away": lambda c: mod("away").persist_override(c, c._away_state),
         "pump_duty": lambda c: mod("pump_arbiter")._persist(c),
+        "duty_switch": lambda c: mod("duty_switch")._persist(mod("duty_switch").record_for(c)),
         "notifier": _save_notifier,
         "debug": _save_debug,
+        "off_restore": lambda c: mod("off_restore")._save(mod("off_restore")._RECORDS[c.entry]),
     }
 
 
@@ -2888,6 +2975,7 @@ def _main() -> int:
     _publish_arm()
     _no_rewrap_check()
     _scrub_mro_check()
+    _native_alias_check()
     _number_state_arm()
     _i1_pins_arm()
     _version_arm(by_name)

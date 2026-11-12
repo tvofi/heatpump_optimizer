@@ -39,10 +39,10 @@ CHANGES_REQUESTED or DISMISSED; a COMMENTED review decides nothing) is APPROVED
 and was submitted on this exact head SHA, by the login AND numeric id AND
 account type pinned below, and does not say in its own body that an agent gave
 it (AGENT_DECLARED below) -- or, if it does, cites one mandate the owner
-recorded on #201 that covers budget raises and was in force when the review
-was submitted (MANDATE_GRAMMAR, mandate_check), and the body carries the raise
-justification (JUSTIFICATION_HEADING, justification). Anything else, a failed
-API read included, is exit 1.
+recorded on a record issue (RECORD_ISSUES) that covers budget raises and was
+in force when the review was submitted (MANDATE_GRAMMAR, mandate_check), and
+the body carries the raise justification (JUSTIFICATION_HEADING,
+justification). Anything else, a failed API read included, is exit 1.
 
 WHAT IT DOES NOT SEE. A ledger disposition (`survivor_triage`, `killed_by`)
 is a per-site record, not a cap, and is `free` here: an `equivalent` verdict
@@ -102,7 +102,7 @@ AGENT_DECLARED = re.compile(
     r"|claude\.ai/code|generated (?:by|with) \[?claude", re.I)
 # The owner's recorded mandate (tvofi, 2026-10-02, amending the refusal above):
 # an agent may approve as tvofi, openly, while a mandate tvofi wrote is in
-# force. The record is a comment on the tracking issue by the pinned owner
+# force. The record is a comment on a record issue (RECORD_ISSUES) by the pinned owner
 # account, read from the API at run time; no copy in the tree is trusted. Its
 # first line is MANDATE_GRAMMAR, and a comment edited at any time grants
 # nothing (anyone with write access can edit it and its author stays tvofi).
@@ -112,8 +112,22 @@ AGENT_DECLARED = re.compile(
 # "mandate <id>" or as the comment's `issuecomment-<id>` URL, and that word
 # keeps it declared an agent's: authorship is never hidden to pass.
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
-MANDATE_ISSUE = 201
-MANDATE_ISSUE_URL = f"/repos/{DEFAULT_REPO}/issues/{MANDATE_ISSUE}"
+# The programme's coordination and record issue, THE one definition every
+# writer and reader imports (a shell or workflow that cannot import it is
+# pinned to it by a self-test). #201 was the record until GitHub's
+# 2,500-comment cap closed it to comments; tvofi, 2026-11-09, ruled "Yes" to a
+# continuation issue. #201's comments stay the record and are still read: a
+# reader of the record (a mandate, its revocation, a merge's line) reads every
+# issue in RECORD_ISSUES, oldest first; a writer posts to RECORD_ISSUE only.
+RECORD_ISSUES = (201, 3394)
+RECORD_ISSUE = RECORD_ISSUES[-1]
+
+
+def on_record_issue(comment) -> bool:
+    """Whether the API issue comment `comment` is on one of DEFAULT_REPO's
+    RECORD_ISSUES (a comment id is global, so its issue_url is what says)."""
+    url = str(comment.get("issue_url") or "")
+    return any(url.endswith(f"/repos/{DEFAULT_REPO}/issues/{n}") for n in RECORD_ISSUES)
 MANDATE_GRAMMAR = re.compile(
     rf"MANDATE: agents may approve as {OWNER_LOGIN}, scope (code-owned|budget-raise|all), "
     r"from (\S+) until (\S+)")
@@ -146,8 +160,8 @@ JUSTIFICATION_SCORE = re.compile(
 # The figure is also checked, not only its shape (the #3045 fix review,
 # 2026-10-31): a body claiming "dS +0.0012 IMPROVES" on a diff that scores
 # +0.0000 NULL reached a mandated approval. On the mandated arm the gate runs
-# the BASE's scorer three-dot, as arch-score.yml does (measured_score), and one
-# score line of the section must name that figure: the dS at score.py's four
+# the BASE's scorer three-dot, as arch-score.yml does (measured_score), and the LAST
+# score line of the section (the head's claim) must name that figure: the dS at score.py's four
 # decimals and the verdict word. The other lines report payments tried, trees
 # the gate cannot rebuild, so they are shape-checked only.
 ARCH_SCORER = "tools/audit/archscore/score.py"
@@ -383,7 +397,7 @@ def revokes(body, cid) -> bool:
     alone to skip its thread read) and the id as a whole number, so a longer
     number that contains it names another comment. THE one revocation test:
     mandate_state judges the thread with it, and gh_comment.py refuses a post
-    or patch to #201 it holds for (triage P336), by importing it."""
+    or patch to a record issue it holds for (triage P336), by importing it."""
     body = body or ""
     return bool(MANDATE_REVOKED.search(body)) and re.search(rf"(?<!\d){cid}(?!\d)", body) is not None
 
@@ -395,12 +409,12 @@ def mandate_grant(comment):
 
 def revocable(comment, now) -> bool:
     """Whether a revocation naming `comment`'s id would void a grant that can
-    still bind at `now`: the owner's comment on the tracking issue, its first
+    still bind at `now`: the owner's comment on a record issue, its first
     line the grammar, its window not closed (an end that does not parse counts
     as open: guarding too much fails safe). gh_comment.py's guard reads it."""
     m = mandate_grant(comment)
     if not (m and _is_owner(comment.get("user"))
-            and str(comment.get("issue_url") or "").endswith(MANDATE_ISSUE_URL)):
+            and on_record_issue(comment)):
         return False
     end = _when(m.group(3))
     return end is None or end > now
@@ -427,8 +441,9 @@ def mandate_state(cid, comment, thread, at, at_repr, when="review",
     name = f"mandate {cid}"
     if comment is None:
         return False, f"{name} is not a comment that exists"
-    if not str(comment.get("issue_url") or "").endswith(MANDATE_ISSUE_URL):
-        return False, f"{name} is not a comment on {DEFAULT_REPO}#{MANDATE_ISSUE}"
+    if not on_record_issue(comment):
+        return False, (f"{name} is not a comment on {DEFAULT_REPO}'s record issues "
+                       f"({', '.join(f'#{n}' for n in RECORD_ISSUES)})")
     if not _is_owner(comment.get("user")):
         return False, (f"{name} was not written by {OWNER_LOGIN} (id {OWNER_ID}), "
                        "and only the owner grants a mandate")
@@ -500,19 +515,22 @@ def justification(body) -> tuple[bool, str]:
 
 
 def score_check(body, measured) -> tuple[bool, str]:
-    """(agrees, why): a score line of the body's section names the figure in
-    `measured`, score.py's report line for this head (measured_score)."""
+    """(agrees, why): the LAST score line of the body's section names the
+    figure in `measured`, score.py's report line for this head (measured_score).
+    Earlier lines are the payments' own reports (the contract asks for them), so
+    the head's claim is the one that closes the section; a wrong figure after
+    the true one is no longer accepted beside it (R10-RAISE-GATE-SHIM-P2)."""
     m = JUSTIFICATION_SCORE.search(str(measured or ""))
     if not m:
         return False, (f"the measured architecture score could not be read ({str(measured)[:120]!r}), "
                        "and an unread figure supports no claim")
     want = (round(float(m.group(1)), 4), m.group(2))
     got = [(round(float(a), 4), v) for a, v in JUSTIFICATION_SCORE.findall(_section(body) or "")]
-    if want in got:
+    if got and got[-1] == want:
         return True, f"the body's arch_score figure is the measured one, dS {m.group(1)} {m.group(2)}"
     return False, (f"`{JUSTIFICATION_HEADING}` claims {', '.join(f'dS {a:+.4f} {v}' for a, v in got) or 'no figure'}, "
                    f"but {ARCH_SCORER} measures dS {m.group(1)} {m.group(2)} for this head three-dot: "
-                   "a mandated raise rests on the true figure")
+                   "a mandated raise rests on the true figure, as the section's last score line")
 
 
 def justified(body, score_fn=None) -> tuple[bool, str]:
@@ -655,7 +673,7 @@ def _reviews(repo: str, pr: str) -> list[dict]:
 
 
 def _mandate(repo: str, cid: int) -> tuple[dict | None, list[dict]]:
-    """The cited comment (None when the API answers 404) and the tracking
+    """The cited comment (None when the API answers 404) and every record
     issue's comments since it was written, where a revocation would be."""
     out = subprocess.run(["gh", "api", f"repos/{repo}/issues/comments/{cid}"],
                          capture_output=True, text=True)
@@ -664,15 +682,18 @@ def _mandate(repo: str, cid: int) -> tuple[dict | None, list[dict]]:
             return None, []
         raise RuntimeError(f"gh api exited {out.returncode}: {out.stderr.strip()}")
     comment = json.loads(out.stdout)
-    if not str(comment.get("issue_url") or "").endswith(MANDATE_ISSUE_URL):
+    if not on_record_issue(comment):
         return comment, []
-    out = subprocess.run(
-        ["gh", "api", "--paginate", "--slurp",
-         f"repos/{repo}/issues/{MANDATE_ISSUE}/comments?per_page=100&since={comment.get('created_at')}"],
-        capture_output=True, text=True)
-    if out.returncode != 0:
-        raise RuntimeError(f"gh api exited {out.returncode}: {out.stderr.strip()}")
-    return comment, [c for page in json.loads(out.stdout) for c in page]
+    thread = []
+    for n in RECORD_ISSUES:
+        out = subprocess.run(
+            ["gh", "api", "--paginate", "--slurp",
+             f"repos/{repo}/issues/{n}/comments?per_page=100&since={comment.get('created_at')}"],
+            capture_output=True, text=True)
+        if out.returncode != 0:
+            raise RuntimeError(f"gh api exited {out.returncode}: {out.stderr.strip()}")
+        thread += [c for page in json.loads(out.stdout) for c in page]
+    return comment, thread
 
 
 def _body(repo: str, pr: str) -> str:
@@ -998,7 +1019,7 @@ def self_test() -> int:
 
     # The owner's recorded mandate (tvofi, 2026-10-02): an agent's review under
     # the owner's account, declared as such, is decisive when it cites a
-    # MANDATE comment tvofi wrote on #201 that covers budget raises and was in
+    # MANDATE comment tvofi wrote on a record issue that covers budget raises and was in
     # force when the review was submitted. Each refusal arm below has a passing
     # neighbour that differs from it in the one field the arm reads.
     MID, RID = 4100000001, 4100000002
@@ -1006,7 +1027,7 @@ def self_test() -> int:
             "from 2026-10-02T06:00Z until 2026-10-03T06:00Z")
 
     def mandate(body=MAND, user=own, created="2026-10-02T05:30:00Z", updated=None,
-                issue=MANDATE_ISSUE, cid=MID) -> dict:
+                issue=RECORD_ISSUE, cid=MID) -> dict:
         return {"id": cid, "user": user, "body": body, "created_at": created,
                 "updated_at": updated or created,
                 "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/{issue}"}
@@ -1014,7 +1035,7 @@ def self_test() -> int:
     def revoke(cid=MID, user=own, rid=RID) -> dict:
         return {"id": rid, "user": user, "body": f"MANDATE REVOKED {cid}",
                 "created_at": "2026-10-02T08:00:00Z", "updated_at": "2026-10-02T08:00:00Z",
-                "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/{MANDATE_ISSUE}"}
+                "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/{RECORD_ISSUE}"}
 
     def agent(sha=H, at="2026-10-02T07:00:00Z", cite=f"mandate {MID}", state="APPROVED") -> dict:
         return {**rv(own, state, sha), "submitted_at": at,
@@ -1098,6 +1119,12 @@ def self_test() -> int:
           rcm([agent()], mandate(user={**own, "id": OWNER_ID + 1}))[0], 1)
     check("mandate: a mandate comment by the approver App fails", rcm([agent()], mandate(user=app))[0], 1)
     check("mandate: a mandate comment on another issue fails", rcm([agent()], mandate(issue=1838))[0], 1)
+    check("mandate: a mandate on #201, the record before the comment cap, still passes",
+          rcm([agent()], mandate(issue=201))[0], 0)
+    check("mandate: ... and a revocation on the continuation issue still voids it",
+          rcm([agent()], mandate(issue=201), thread=[revoke()])[0], 1)
+    check("mandate: the record issue is the last of RECORD_ISSUES, and #201 one of them",
+          (RECORD_ISSUE == RECORD_ISSUES[-1], 201 in RECORD_ISSUES, RECORD_ISSUE != 201), (True, True, True))
     check("mandate: a cited comment that does not exist fails", rcm([agent()], "missing")[0], 1)
     check("mandate: a mandate comment on #201 of another repository fails",
           rcm([agent()], {**mandate(), "issue_url": "https://api.github.com/repos/evil/other/issues/201"})[0], 1)
@@ -1213,9 +1240,12 @@ def self_test() -> int:
           rcm([agent()], body=TRUE_BODY.replace("+0.0000", "+0.0"), score=TRUE)[0], 0)
     check("score: -0.0000 is the same figure as +0.0000",
           rcm([agent()], body=TRUE_BODY.replace("+0.0000", "-0.0000"), score=TRUE)[0], 0)
-    check("score: the true figure beside a payment's own line passes (other lines are shape-only)",
-          rcm([agent()], body=TRUE_BODY.replace(TRUE, TRUE + "\nArchitecture score: dS -0.0310 WORSENS"),
+    check("score: the true figure last, after a payment's own line, passes (earlier lines are shape-only)",
+          rcm([agent()], body=TRUE_BODY.replace(TRUE, "Architecture score: dS -0.0310 WORSENS\n" + TRUE),
               score=TRUE)[0], 0)
+    check("score: a wrong figure after the true one is refused (carry 5)",
+          rcm([agent()], body=TRUE_BODY.replace(TRUE, TRUE + "\nArchitecture score: dS -0.0310 WORSENS"),
+              score=TRUE)[0], 1)
     check("score: the true figure under another heading does not count",
           rcm([agent()], body=PLANT.replace("## Tests\n", f"## Figures\n\n{TRUE}\n\n## Tests\n"), score=TRUE)[0], 1)
     check("score: score.py's inadmissible suffix still reads",
@@ -1444,17 +1474,17 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         out.append(("e2e: a raise approved on the head, on the second page, exits 0", rc_, 0))
         rc_, _, _ = run(raise_, pages=[[approved(raise_)], [approved(fork)]])
         out.append(("e2e: a raise whose latest approval is stale exits 1", rc_, 1))
-        # The mandate, read live: the cited comment by id, then #201's comments
-        # since it was written, where a revocation would be.
+        # The mandate, read live: the cited comment by id, then every record
+        # issue's comments since it was written, where a revocation would be.
         cid = 4100000001
         mand = {"id": cid, "user": own, "created_at": "2026-10-02T05:30:00Z",
                 "updated_at": "2026-10-02T05:30:00Z",
-                "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/{MANDATE_ISSUE}",
+                "issue_url": f"https://api.github.com/repos/{DEFAULT_REPO}/issues/201",
                 "body": (f"MANDATE: agents may approve as {OWNER_LOGIN}, scope budget-raise, "
                          "from 2026-10-02T06:00Z until 2026-10-03T06:00Z")}
         agent_rv = {**approved(raise_), "id": 9, "submitted_at": "2026-10-02T07:00:00Z",
                     "body": f"Agent review under mandate {cid}.\n\n---\n_Generated by [Claude Code](https://claude.ai/code)_"}
-        thread_key = f"issues/{MANDATE_ISSUE}/comments"
+        thread_key = "/comments?per_page=100&since="   # every record issue's thread
         pr_key = f"=repos/{DEFAULT_REPO}/pulls/7"
         just = {"body": (f"## Summary\n\nx\n\n{JUSTIFICATION_HEADING}\n\nPayments tried: none improved it.\n"
                          "Architecture score: dS +0.0000 NULL\n")}
@@ -1463,10 +1493,11 @@ def _end_to_end() -> list[tuple[str, object, object]]:
                                        thread_key: {"out": [[]]}, pr_key: {"out": just}})
         out.append(("e2e: a raise approved at the head under a mandate in force exits 0",
                     (rc_, f"under mandate {cid}" in text), (0, True)))
-        out.append(("e2e: ... after reading the comment, #201 since it was written, then the body",
+        out.append(("e2e: ... after reading the comment, every record issue since it was written, then the body",
                     [c[-1] for c in calls][1:],
                     [f"repos/tvofi/heatpump_optimizer/issues/comments/{cid}",
-                     f"repos/tvofi/heatpump_optimizer/{thread_key}?per_page=100&since=2026-10-02T05:30:00Z",
+                     *(f"repos/tvofi/heatpump_optimizer/issues/{n}/comments?per_page=100&since=2026-10-02T05:30:00Z"
+                       for n in RECORD_ISSUES),
                      pr_key[1:]]))
         out.append(("e2e: ... after running the base's scorer three-dot, fork to head",
                     (open(argv_f).read() if os.path.exists(argv_f := os.path.join(stub, "score_argv")) else None),

@@ -241,6 +241,62 @@
       ],
       "class": null,
       "kind": "periodic"
+    },
+    {
+      "name": "outside-intake",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "outside-intake",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 1800,
+      "timeout_s": 300,
+      "heartbeat_s": null,
+      "env_pass": [
+        "GH_TOKEN"
+      ],
+      "class": null,
+      "kind": "periodic"
+    },
+    {
+      "name": "bottleneck",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "bottleneck",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 1800,
+      "timeout_s": 300,
+      "heartbeat_s": null,
+      "env_pass": [],
+      "class": null,
+      "kind": "periodic"
+    },
+    {
+      "name": "scorecard",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "scorecard",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 86400,
+      "timeout_s": 600,
+      "heartbeat_s": null,
+      "env_pass": [],
+      "class": null,
+      "kind": "periodic"
     }
   ]
 }

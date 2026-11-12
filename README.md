@@ -113,8 +113,8 @@ optional mould guard watches surface humidity. Safety — tank minimums, the
 legionella clock, the comfort floor — releases pinned slots it cannot honour and
 tells you which.
 
-**Fits your Home Assistant.** Entity names are translated (English
-and Swedish) and follow your Home Assistant language, without touching entity ids
+**Fits your Home Assistant.** Entity names are translated (English,
+Swedish and German) and follow your Home Assistant language, without touching entity ids
 or history. Monetary units follow your instance currency.
 
 <picture>
@@ -241,6 +241,8 @@ act on" — pricing and planning without actuating anything.
 |---|---|---|
 | **On/off switch** | a `switch` that turns the heat pump on and off | may turn it off during expensive hours |
 | **ECL110 heat curve** | a Danfoss ECL110-compatible weather-compensated controller, reachable over MQTT | a heat-pump on/off decision and an integer parallel shift (*displace*) onto the controller's own heat curve |
+| **Heat-curve offset entity** | a controller whose volatile whole-curve offset is a `number` entity (for example a Luxtronik SHI heating offset) | the same displace as a temperature difference via `number.set_value`, bounded to ±3 K by default; 0 again when the optimizer is turned off or unloaded |
+| **Heat-curve stored parameter** | a controller with no volatile offset, whose stored curve setting is a `number` entity (kind *persistent*) | its value before the first write plus the displace, within ±3 K and at most 12 writes a day by default; that value written back when the optimizer is turned off or unloaded |
 | **Compressor frequency** | the compressor frequency exposed as a `number` entity (typically from Modbus or ESPHome) | the recommended frequency via `number.set_value` — but only once you switch the mode to Control |
 
 The boundaries of each path — what it can reach and what it cannot — are
@@ -270,11 +272,14 @@ installing rather than discover it after:
   broadest path — any on/off `switch` will do, and the only one of the three
   that needs nothing from the pump's electronics — but any control finer than
   on-and-off needs one of the other paths.
-- **ECL110 control is MQTT-only.** The ECL110 path is for installs that have
-  such a controller on MQTT, and publishing goes through Home Assistant's own
-  `mqtt.publish` service, "so the MQTT integration has to be set up". The two
-  command topics ship empty, so an install without an ECL110 has nothing to
-  clear on the options page. Details in
+- **ECL110 control is MQTT-only; other controllers need an offset entity.** The
+  ECL110 path is for installs that have such a controller on MQTT, and
+  publishing goes through Home Assistant's own `mqtt.publish` service, "so the
+  MQTT integration has to be set up". The two command topics ship empty, so an
+  install without an ECL110 has nothing to clear on the options page. Without
+  MQTT, the displace reaches only a controller whose heat-curve offset is a
+  volatile `number` entity, 0 neutral; an absolute or stored curve parameter
+  is not supported in this version. Details in
   [ECL110 heat-curve control](#ecl110-heat-curve-control) and
   [docs/ecl110.md](./docs/ecl110.md).
 - **Frequency control needs a `number` entity and your explicit say-so.** The
@@ -365,8 +370,10 @@ things are left behind on purpose, because deleting them is your call:
 
 - **The heat pump keeps its last command.** The last setpoint the optimizer
   wrote to your thermostat, or the last ECL110 displacement it published, stays
-  in force until you set the pump's own controls back. Nothing is restored on
-  removal.
+  in force until you set the pump's own controls back. Nothing else is restored on
+  removal: a heat-curve entity is the one exception, written back when the
+  integration unloads (0 for an offset, the value it held before the first
+  write for a stored parameter).
 - **The learned state.** Every entry keeps its learners and ledgers in twelve files
   under `.storage/` in your configuration directory, and Home Assistant does not
   delete an integration's store files with the entry:
@@ -537,7 +544,7 @@ wood furnace, niche hardware, and the one compatibility duplicate (Upper Floor
 Temperature). They can be enabled from the entity registry,
 and an entity enabled later starts collecting from that moment.
 
-The display names are translated (English and Swedish) and follow
+The display names are translated (English, Swedish and German) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
@@ -948,7 +955,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Advanced learning features | Outage recovery, weather/plant learners, curve learning |
 | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
-| Heat curve control (ECL110) | MQTT topics, displace limits and the controller time constant |
+| Heat curve control | MQTT topics, the offset entity, displace limits and the controller time constant |
 | Reset to factory defaults | The settings, the learned values or both back to a fresh installation, the sensors and wiring kept; `restore_learned_snapshot` undoes it |
 
 Every sensor you picked during setup can be re-pointed here, and clearing a field
@@ -1046,6 +1053,7 @@ Each clears itself once the cause is gone.
 - **Learned model was restored from a snapshot** — the drift above happened while every input looked healthy, so the learners were rolled back automatically. Nothing is required.
 - **Frequency control stood down** — the compressor frequency kept diverging from the commanded value, so frequency control fell back to observe. Check the entity, then switch the frequency mode to observe, save, and back to control.
 - **Optimization keeps failing; the plan is going stale** — several solves in a row failed. Once the plan is a few intervals old the pump is handed back to its own heating curve. Look for a lost price or weather connection, or a solver error in the log.
+- **Electricity prices are outdated** — a price fetch failed, and the optimizer keeps planning on the last published prices while they still cover the current time. Once they run out it becomes unavailable until prices arrive again. Check the price source, its token or the price entity.
 - **Planning fell back to the slow in-process solver** — the separate solver process could not be used, so Home Assistant may feel briefly unresponsive on each solve. Attach the reported cause and the log to a bug report.
 - **Floor return temperature sensor is not reporting** — the slab temperature is carried forward from the plan's prediction until the sensor reads again. Check the entity, or clear the slot.
 - **Heat pump operating mode entity is not reporting** — the plan stops being held to the last mode it read. Check the entity, or clear the slot.
@@ -1073,7 +1081,7 @@ Each clears itself once the cause is gone.
 The integration can drive a Danfoss ECL110-compatible controller over MQTT,
 publishing a heat-pump on/off decision and an integer parallel shift (*displace*)
 onto the controller's own heat curve. The ECL110 settings live only
-on the **Heat curve control (ECL110)** options page, not in initial setup, and
+on the **Heat curve control** options page, not in initial setup, and
 both ECL110 sensors are disabled by default. The MQTT topics ship empty;
 nothing is published or subscribed until you set a topic, so an install without
 an ECL110 never touches the topics at all. Topics, payloads, options and the

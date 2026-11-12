@@ -125,10 +125,6 @@ RED_CHECKS = {
     "delivery-status": "governance / delivery-status",
 }
 
-#: The programme's tracking issue; the beat posts its coordination comment
-#: there (delivery-status-tracking.md item 3).
-TRACKING_ISSUE = 201
-
 #: GitHub's own closing-keyword families. The generated prose must carry none
 #: of them before an issue number, because GitHub closes an issue from a pull
 #: request's body prose -- a generated `Closes #N` would close an issue the
@@ -603,7 +599,8 @@ def pr_title(rows: list[dict]) -> str:
 
 
 def coord_comment(pr_number: int, rows: list[dict]) -> str:
-    """The beat's #201 coordination comment (delivery-status-tracking item 3).
+    """The beat's coordination comment on the record issue
+    (budget_raise_gate.RECORD_ISSUE; delivery-status-tracking item 3).
 
     States what landed and what stayed manual; carries no closing keyword.
     """
@@ -616,7 +613,7 @@ def coord_comment(pr_number: int, rows: list[dict]) -> str:
         "where `--automerge-check` passes; the HANDOVER updated-for line "
         "stays manual by design. A seat's edit to a neutral row takes it "
         "off the automerge path and back to a manual review.")
-    _no_closing_where("#201 comment", text)
+    _no_closing_where("record-issue comment", text)
     return text
 
 
@@ -1012,7 +1009,11 @@ def _body_check(body: str, reds: list[str], workdir: Path,
     The fixture paths are a record pull request's: two delivery rows that
     already existed at the base (so the main-state reporters' exemption is
     void, which is the case this section exists for) and the pull request's
-    own added row.
+    own added row. The required set is given EMPTY (`--required-file` is
+    the null device), which policy_lint reads as unreadable: the pre-ruling rule a record body still
+    answers where the live set is out of reach (`defect-root-cause.md`), and no
+    ruleset read decides this self-test (tvofi 2026-11-07 made a readable set
+    owe these reporters nothing).
     """
     paths = ["dev/programme/delivery/2480.md",
              "dev/programme/delivery/2483.md",
@@ -1029,7 +1030,8 @@ def _body_check(body: str, reds: list[str], workdir: Path,
     argv = ["node", str(_LINT_JS), "--pr-body", str(body_path),
             "--head", "a" * 40, "--title", title,
             "--paths-file", str(paths_path),
-            "--existing-file", str(existing_path)]
+            "--existing-file", str(existing_path),
+            "--required-file", os.devnull]
     for name in reds:
         argv += ["--red", name]
     try:
@@ -1929,7 +1931,7 @@ def main() -> int:
     ap.add_argument("--print-title", action="store_true",
                     help="print the record pull request title for --plan-file")
     ap.add_argument("--print-comment", action="store_true",
-                    help="print the #201 comment for --plan-file and --pr")
+                    help="print the record-issue comment for --plan-file and --pr")
     ap.add_argument("--write-self-row", action="store_true",
                     help="write dev/programme/delivery/<--pr>.md for the open record "
                          "pull request, anchoring its number and carrying no "

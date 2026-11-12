@@ -9,6 +9,9 @@
   `--variables` prints and the setup run's last line names; `--check`, in a
   seat: `OK` (exit 0) only when all three hold, or `REFUSE` naming them (exit
   1). The profile prepends `venv-ci/bin` only
-  when absent, so a PATH a caller narrowed is left alone; `--self-test`: the
-  profile, variables and check arms. Refusal: a missing checkout warns and
+  when absent, so a PATH a caller narrowed is left alone, and sets every other
+  variable only where it is unset, so a `BASH_ENV` naming it changes no value a
+  caller handed its child; `--self-test`: the profile, variables and check
+  arms, and that every name the profile exports keeps a caller's value under
+  `BASH_ENV`. Refusal: a missing checkout warns and
   exits 0, so a session still starts, without pins.

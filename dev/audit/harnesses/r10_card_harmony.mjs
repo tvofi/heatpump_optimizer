@@ -39,7 +39,7 @@ fs.writeFileSync(path.join(cardDir, "heatpump-optimizer-card.js"),
 
 const url = (q) => `file://${root}/docs/design/harmony/harness/harness.html?${q}`;
 const ROLES = [".legend-note", ".hl-caveat", ".viewctl button", ".whatif .wi-hint",
-  ".whatif .wi-group-title", ".setup-hint", ".setup-dest", ".adv-sub", ".adv-note", ".adv-basis",
+  ".whatif .wi-group-title", ".setup-hint", ".setup-dest", ".fact-sub", ".fact-note", ".fact-basis",
   ".health-mark", ".layout-bar button", ".chip"];
 (async () => {
   const b = await chromium.launch();
@@ -86,7 +86,7 @@ const ROLES = [".legend-note", ".hl-caveat", ".viewctl button", ".whatif .wi-hin
               const sizes = [...rep.querySelectorAll("text")].map((t) => parseFloat(getComputedStyle(t).fontSize) * scale);
               res.replay_label_px = sizes.length ? [+Math.min(...sizes).toFixed(2), +Math.max(...sizes).toFixed(2)] : null;
             }
-            const row = scope.querySelector(".health-row, .adv-inbox-row");
+            const row = scope.querySelector(".health-row, .fact-inbox-row");
             if (row) {
               const cs = getComputedStyle(row);
               const lum = (c) => { const m = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * m[0] + 0.7152 * m[1] + 0.0722 * m[2]; };

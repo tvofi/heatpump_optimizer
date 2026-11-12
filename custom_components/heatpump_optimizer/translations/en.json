@@ -391,7 +391,8 @@
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
-      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead."
+      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
+      "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
     },
     "abort": {
       "already_configured": "This integration is already set up.",
@@ -538,7 +539,7 @@
           "learning_features": "Advanced learning features",
           "grid_connection": "Fuse and peak guards",
           "grid_fees": "Transfer fees and contract",
-          "heat_curve": "Heat curve control (ECL110)",
+          "heat_curve": "Heat curve control",
           "factory_reset": "Reset to factory defaults"
         }
       },
@@ -581,13 +582,23 @@
               "indoor_temp_entity": "Indoor temperature sensor",
               "outdoor_temp_entity": "Outdoor temperature sensor",
               "space_setpoint_entity": "Space-heating set-point entity (optional)",
-              "space_setpoint_unit": "What that set-point entity expects"
+              "space_setpoint_unit": "What that set-point entity expects",
+              "flow_min_lift_k": "Minimum lift above the inlet water (K)",
+              "flow_heat_c": "Heating flow ceiling (°C)",
+              "space_setpoint_power_feedback": "Follow the planned power on the measured draw",
+              "space_setpoint_low_limit_entity": "Controller's minimum set-point sensor (optional)",
+              "space_setpoint_high_limit_entity": "Controller's maximum set-point sensor (optional)"
             },
             "data_description": {
               "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
               "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
               "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point.",
-              "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: this integration never recommends a space set-point."
+              "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: this integration never recommends a space set-point.",
+              "flow_min_lift_k": "With Pump duty control at Control, the water set-point written at the plan's lowest power is the measured inlet water plus this: heat-pump return, buffer tank, floor return or valve outlet, and for a Return temperature entity the first three only. 5 K suits a controller that holds its supply at the set-point. A controller that takes the number as its return-water target is assumed to run its compressor harder the further the target sits above the return, so it likely wants less; 1–2 K is a starting point to check against the compressor's measured frequency and power, not a measured value.",
+              "flow_heat_c": "The water set-point written at full planned power, and the highest one written while the plan is in charge. 55 °C suits a supply target. For a Return temperature entity choose it above the highest return you see in normal heating plus the lift, and no higher than the controller accepts; on a low-temperature floor heating 35–40 °C may be a starting point to check against measurements. Below 30 °C is not offered: the gate that means off is 25 °C for a flow target and 20 °C for a return target.",
+              "space_setpoint_power_feedback": "On by default. Acts only with Pump duty control at Control, a Flow or Return temperature unit and a heat-pump power sensor; otherwise nothing changes. After a 5-minute start hold, the water set-point is nudged down while the measured draw is above the planned level and up while it is below, and held while it is within 10 %, instead of following the rising inlet water. Off writes the inlet plus the lift. Requirements on the controller: its heating hysteresis at most the lift (Luxtronik: 0.5 K), or a stopped compressor is not started; its minimum return target below the heating-season return; its integration polling it at least every 10 minutes, and restoring its heating mode after a controller restart, since a Luxtronik Smart Home Interface drops every set value after 600 s without access; and no second tool writing the same registers (a Luxtronik then silently discards writes).",
+              "space_setpoint_low_limit_entity": "Optional. A temperature sensor that reports the lowest value the controller accepts for the set-point entity above (a Luxtronik through ha-luxtronik-shi: \"Temperature: return target minimum\", input 10104). With it, Follow the planned power never sends a value below it, instead of finding the limit when the controller cuts a write. Used by that option alone; left empty, nothing changes.",
+              "space_setpoint_high_limit_entity": "Optional. A temperature sensor that reports the highest value the controller accepts for the set-point entity above (a Luxtronik through ha-luxtronik-shi: \"Temperature: return limit\", input 10103). With it, Follow the planned power never sends a value above it, instead of finding the limit when the controller cuts a write. Used by that option alone; left empty, nothing changes."
             }
           },
           "plant": {
@@ -810,6 +821,23 @@
               "buffer_tank_volume": "Litres. The tank between the heat pump and the heating circuits. Larger tanks store more cheap heat."
             }
           },
+          "combi": {
+            "name": "Combi tank (hot water from the buffer)",
+            "data": {
+              "dhw_combi_tank_enabled": "Hot water is made from the buffer tank",
+              "dhw_combi_tank_type": "How the tank makes hot water",
+              "combi_dhw_effectiveness": "Exchanger effectiveness",
+              "combi_potable_volume_l": "Drinking water held inside the tank",
+              "dhw_combi_legionella_force": "Run the legionella cycle anyway"
+            },
+            "data_description": {
+              "dhw_combi_tank_enabled": "Turn on when one tank of heating water serves both the heating and hot water, with no separate hot water tank: a multifunction or hygiene store, a tank-in-tank, or a fresh-water station on the buffer. Needs a throttling mixing valve, a buffer of at least 100 L, hot water on and no wood coil. Enter the tank's heating-water volume as the buffer size. For the buffer cooling rate, prefer the datasheet's ErP standing loss S in watts at 65 °C: the loss per kelvin is S / 45 K (a 20 °C room assumed). Point the buffer temperature sensor at the tank's middle well: one probe is read as the whole tank's mean. Two tanks in one shell (a buffer section under a hot water section) are not a combi tank: set them up as two tanks.",
+              "dhw_combi_tank_type": "Choosing a type fills in the two numbers below; edit them afterwards, or choose Custom to enter your own. Example: a multifunction store with a 40 L coil is Internal coil with 40 L.",
+              "combi_dhw_effectiveness": "How close the tap water gets to the tank temperature at your usual draw flow, from 0.1 to 1: (tap − cold inlet) / (tank − cold inlet). About 0.85 for a coil, 0.95 for a tank-in-tank and 0.75 for a fresh-water station. A station's effectiveness falls as the flow rises, so read its table at your typical flow; manufacturers recommend at most 60 °C on the primary side against scaling.",
+              "combi_potable_volume_l": "Litres of drinking water standing inside the tank: the coil's content, or the inner tank (about 100–250 L). 0 for a fresh-water station.",
+              "dhw_combi_legionella_force": "With 3 L or less of drinking water in the tank there is none standing to disinfect, so the legionella cycle is off by default; turn this on to run it anyway. Drinking-water rules still expect hot water delivered at 60 °C in large systems and 50 °C in small ones."
+            }
+          },
           "wood": {
             "name": "Wood furnace",
             "data": {
@@ -912,8 +940,8 @@
         }
       },
       "heat_curve": {
-        "title": "Heat curve control (ECL110)",
-        "description": "For Danfoss ECL110 controllers driven over MQTT. The optimizer shifts the heat curve up in cheap hours and down in expensive ones. Leave these blank if you do not have one.",
+        "title": "Heat curve control",
+        "description": "Shifts the heat curve up in cheap hours and down in expensive ones, through a Danfoss ECL110 over MQTT, a number entity that offsets your controller's curve, or both. Leave the topics and the entity empty if you have neither.",
         "data": {
           "ecl110_displace_set_topic": "Offset command topic",
           "ecl110_command_topic": "Legacy JSON command topic",
@@ -923,6 +951,12 @@
           "ecl110_displace_min": "Largest downward offset",
           "ecl110_displace_max": "Largest upward offset",
           "ecl110_pid_time_constant_hours": "Controller response time",
+          "heat_curve_displace_entity": "Heat-curve offset entity",
+          "heat_curve_target_kind": "What the entity is",
+          "heat_curve_offset_band_k": "Largest offset written to the entity",
+          "heat_curve_persistent_band_k": "Largest displacement of a stored parameter",
+          "heat_curve_persistent_writes_per_day": "Most writes a day to a stored parameter",
+          "heat_curve_persistent_min_dwell_minutes": "Least time between writes to a stored parameter",
           "after_save": "After saving"
         },
         "data_description": {
@@ -934,6 +968,12 @@
           "ecl110_displace_min": "How far the heat curve may be shifted down during expensive hours.",
           "ecl110_displace_max": "How far the heat curve may be shifted up when storing cheap heat.",
           "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow.",
+          "heat_curve_displace_entity": "A number entity that shifts your controller's heat curve. Kind offset: a whole-curve offset, 0 meaning no shift, that the controller forgets on a restart (for example a Luxtronik SHI heating offset); turning the optimizer off, or unloading it, writes 0. Kind persistent: a curve setting the controller stores; turning the optimizer off, or unloading it, writes back the value it held before the first write.",
+          "heat_curve_target_kind": "Offset: a temperature difference, 0 neutral, not stored by the controller. Prefer it wherever your controller has one. Persistent: a curve setting the controller stores, displaced from its own value and written back on off; every write wears the controller's memory, so writes are limited per day.",
+          "heat_curve_offset_band_k": "The offset written to the entity stays within this many kelvin either way. 3 K is an estimate between a +1 to +2 step SG-Ready boost and Luxtronik's own ±5 K correction.",
+          "heat_curve_persistent_band_k": "The stored setting is moved at most this many kelvin either way from the value it held before the first write. 3 K is an estimate between a +1 to +2 step SG-Ready boost and Luxtronik's own ±5 K correction.",
+          "heat_curve_persistent_writes_per_day": "Writes in one local day, the write back on off included; one is always kept for it. 12 (six shift-and-return episodes) stays under the one documented manufacturer quota found (Daikin, 7000 a year); the margin below it is an estimate. 0 or 1 writes nothing. Above 19 exceeds that quota.",
+          "heat_curve_persistent_min_dwell_minutes": "After a write, the next waits at least this long. 60 minutes is about three response times of a radiator system (a forum estimate); a slow floor may want 2 to 3 hours.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1003,6 +1043,7 @@
           "heat_pump_cop_nominal": "Heat pump nominal COP",
           "heat_pump_max_power": "Heat pump max power (kW)",
           "heat_pump_min_power": "Heat pump min power (kW)",
+          "compressor_modulation": "Compressor runs below min power",
           "heat_pump_cop_partload_derate": "Heat pump COP loss at max power",
           "after_save": "After saving"
         },
@@ -1014,6 +1055,7 @@
           "heat_pump_cop_nominal": "Units of heat produced per unit of electricity under normal conditions. Check the data sheet; 3 to 4 is typical for air-to-water, 4 to 5 for ground source.",
           "heat_pump_max_power": "Electrical input at full output. Caps how much cheap electricity can be stored per hour.",
           "heat_pump_min_power": "Lowest electrical input the pump can run at without cycling on and off.",
+          "compressor_modulation": "Whether the compressor can run below the min power above. On/off: every planned step is either off or between min and max power, with hot water and space heating sharing that one compressor. Modulating: a level below min power is planned as an average the pump reaches by running part of the step. Automatic decides from the mapped entities: a power switch plus a setpoint and no frequency entity counts as on/off, anything else as modulating.",
           "heat_pump_cop_partload_derate": "Share of efficiency lost running at max power rather than min power, as a fraction (0.1 = 10 %). Larger heat flows need larger temperature differences across the heat exchangers. 0 leaves power out of the COP; typical air-to-water units lose 0.05 to 0.15. A heat meter is not needed. Keep it below band / (band + max power), band being max minus min power, or heat would fall as power rises.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
@@ -1174,6 +1216,9 @@
               "heat_pump_heat_energy_entity": "Heat pump heat energy meter (optional)",
               "heat_pump_power_entity": "Heat pump power meter (optional)",
               "heat_pump_thermal_power_entity": "Heat pump thermal power meter (optional)",
+              "heat_pump_power_source": "Heat pump power meter: meter or estimate",
+              "heat_pump_thermal_power_source": "Heat pump thermal power meter: meter or estimate",
+              "heat_meter_sees_dhw": "Heat reading covers hot water",
               "house_power_entity": "Whole-house power meter (optional)"
             },
             "data_description": {
@@ -1181,6 +1226,9 @@
               "heat_pump_heat_energy_entity": "A cumulative kWh meter of the heat the pump delivers, from a heat meter. It counts the heat over each hour, short compressor runs included, so it is used instead of the thermal power meter and the water flow sensor when set. With the energy meter it makes efficiency an observation, and the house heat-loss learner reads the heat that was actually delivered. A meter that also counts hot water is split by the operating mode entity, by the time the pump spent heating the house and the tank; without one, or in a combined mode, an hour that heated the tank is not read as space heating.",
               "heat_pump_power_entity": "Actual electrical draw. Without it the integration only knows what it asked the pump to do. With it, efficiency becomes measurable, predicted costs get a real counterpart to check against, and a wood furnace can be detected reliably. Watts or kilowatts both work.",
               "heat_pump_thermal_power_entity": "The heat the pump delivers, from a heat meter, in watts or kilowatts. With the power meter it makes efficiency an observation rather than an inference, and the house heat-loss learner and the capacity curve read the heat that was actually delivered. When set it is used instead of the water flow sensor.",
+              "heat_pump_power_source": "Whether the power meter is a real meter or a figure the pump or its integration estimates, such as an \"Estimated Power Draw\" sensor. Every learner trains on either; only metered heat over metered power is shown and graded as a measured COP. Auto reads an entity whose id contains \"estimat\" as an estimate.",
+              "heat_pump_thermal_power_source": "Whether the thermal power meter is a real heat meter or a figure the pump or its integration estimates, such as an \"Estimated Heating Output\" sensor. An estimate trains the learners but never makes a measured COP. Auto reads an entity whose id contains \"estimat\" as an estimate.",
+              "heat_meter_sees_dhw": "Turn on only if the heat energy meter or the thermal power meter also measures the heat sent to the hot-water tank, for example a meter ahead of the diverter valve. Off, hot-water runs record no measured COP.",
               "house_power_entity": "Total consumption at the meter. A capacity tariff is billed on the whole house, not on the heat pump alone, so without this the peak the optimizer avoids is only part of the real one."
             }
           },
@@ -1223,7 +1271,7 @@
         },
         "data_description": {
           "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything.",
-          "pump_duty_mode": "Off (the default) never writes the pump. Observe writes nothing and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, Heating + DHW when both are planned or a disinfection cycle is on, unchanged on idle steps), the hot water set-point entity (the hot water set-point configured on the hot water page) and the space set-point entity (for a flow set-point, a target that follows the planned power — the heating flow (55 °C, or flow_heat_c) at full power, toward 5 °C above the first fresh reading of the heat-pump return, buffer tank, floor return or valve outlet (35 °C when none is configured) at the modulation floor — or the entity maximum on steps that heat the house, its minimum on steps that do not, and 35 °C or the weather curve when the plan is not in charge; for an indoor one, the planned room temperature). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered to its minimum instead. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
+          "pump_duty_mode": "Off (the default) never writes the pump. Observe writes nothing and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, Heating + DHW when both are planned or a disinfection cycle is on, unchanged on idle steps), the hot water set-point entity (the hot water set-point configured on the hot water page) and the space set-point entity (for a flow set-point, a target that follows the planned power — the heating flow (55 °C, or flow_heat_c) at full power, toward 5 °C (or flow_min_lift_k) above the first fresh reading of the heat-pump return, buffer tank, floor return or valve outlet (35 °C when none is configured) at the modulation floor — or the entity maximum on steps that heat the house, its minimum on steps that do not, and 35 °C or the weather curve when the plan is not in charge; for an indoor one, the planned room temperature). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered to its minimum instead. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
           "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
@@ -1551,7 +1599,12 @@
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
       "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
       "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
-      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
+      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above.",
+      "combi_needs_store": "A combi tank is the buffer store itself: it needs a throttling mixing valve, a buffer tank of at least 100 L, hot water turned on and no wood coil heating the hot water. Change those or turn the combi tank off.",
+      "heat_curve_not_offset": "That entity's own range does not include 0, so it is not an offset: it looks like an absolute curve point. Choose the controller's offset entity.",
+      "heat_curve_unreadable": "That entity holds no reading now, so the value it would be returned to on off is unknown. Choose an entity that reports a value, or save again once it does.",
+      "heat_curve_out_of_range": "That entity reads a value outside its own declared range, so it cannot be displaced safely. Check the entity in its integration first.",
+      "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
     },
     "abort": {
       "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
@@ -1616,6 +1669,13 @@
         "flow": "Flow temperature"
       }
     },
+    "compressor_modulation": {
+      "options": {
+        "auto": "Automatic (from the mapped entities)",
+        "on_off": "No: on/off",
+        "modulating": "Yes: modulating"
+      }
+    },
     "two_zone_mode": {
       "options": {
         "auto": "Automatic (on once zone values exist)",
@@ -1649,6 +1709,13 @@
         "control": "Control (turn the switch on and off)"
       }
     },
+    "meter_source": {
+      "options": {
+        "auto": "Auto (an id naming an estimate is one)",
+        "meter": "Meter (a measurement)",
+        "estimate": "Estimate (a vendor model)"
+      }
+    },
     "freq_control_mode": {
       "options": {
         "observe": "Observe (learn and recommend only)",
@@ -1677,7 +1744,8 @@
     "space_setpoint_unit": {
       "options": {
         "indoor": "Indoor temperature",
-        "flow": "Flow temperature"
+        "flow": "Flow temperature",
+        "return": "Return temperature"
       }
     },
     "pump_duty_mode": {
@@ -1693,9 +1761,27 @@
         "learners": "Learned values",
         "both": "Settings and learned values"
       }
+    },
+    "dhw_combi_tank_type": {
+      "options": {
+        "internal_coil": "Internal coil (multifunction or hygiene store)",
+        "tank_in_tank": "Tank-in-tank",
+        "external_station": "Fresh-water station on the buffer",
+        "custom": "Custom"
+        }
+      },
+    "heat_curve_target_kind": {
+      "options": {
+        "offset": "Offset (0 is neutral, volatile)",
+        "persistent": "Persistent (stored by the controller, written back on off)"
+      }
     }
   },
   "issues": {
+    "price_feed_stale": {
+      "title": "Electricity prices are outdated",
+      "description": "The price source did not deliver new prices ({error}). The optimizer keeps planning on the last published prices, which still cover the current time. Once they run out, the optimizer becomes unavailable until prices arrive again. This notice clears itself as soon as a fetch succeeds."
+    },
     "cop_degradation": {
       "title": "Heat pump efficiency has dropped",
       "description": "The heat pump has been delivering about {shortfall_percent} % less heat per kWh than it used to under the same conditions, which is costing roughly {cost_month} {currency} per month at recent prices. The usual suspects are a clogged filter, low refrigerant, or a defrost problem — worth a look before the season gets colder. This notice clears itself if efficiency recovers."

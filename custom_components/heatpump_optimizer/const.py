@@ -5,7 +5,7 @@ import math
 import re
 from datetime import timedelta
 from numbers import Real
-from typing import Any, Final, overload
+from typing import Any, Final, NamedTuple, overload
 
 DOMAIN: Final = "heatpump_optimizer"
 #: Entity ids that name a person or a household calendar, anywhere in a
@@ -60,6 +60,10 @@ CONF_LOWER_FLOOR_TEMP_ENTITY: Final = "lower_floor_temp_entity"
 # coordinate, so it can be used instead of (or alongside) a local sensor.
 CONF_SOLAR_FORECAST_SOURCE: Final = "solar_forecast_source"
 CONF_SOLAR_LOCATION: Final = "solar_location"
+#: The keys that carry a home location, at any depth: the solar-forecast
+#: location whole, and a coordinate anywhere else. No part of one leaves the
+#: instance in a diagnostics download, its debug bundle's replay half included.
+LOCATION_KEYS: Final = frozenset({CONF_SOLAR_LOCATION, "latitude", "longitude"})
 
 SOLAR_SOURCE_WEATHER: Final = "weather"
 SOLAR_SOURCE_OPEN_METEO: Final = "open_meteo"
@@ -697,6 +701,19 @@ CONF_ECL110_RETAIN: Final = "ecl110_mqtt_retain"
 CONF_ECL110_DISPLACE_MIN: Final = "ecl110_displace_min"
 CONF_ECL110_DISPLACE_MAX: Final = "ecl110_displace_max"
 CONF_ECL110_PID_TIME_CONSTANT: Final = "ecl110_pid_time_constant_hours"
+# The heat-curve displace through a Home Assistant entity (R10-GENERIC-HEAT-CURVE).
+CONF_HEAT_CURVE_DISPLACE_ENTITY: Final = "heat_curve_displace_entity"
+CONF_HEAT_CURVE_TARGET_KIND: Final = "heat_curve_target_kind"
+CONF_HEAT_CURVE_OFFSET_BAND_K: Final = "heat_curve_offset_band_k"
+CONF_HEAT_CURVE_PERSISTENT_BAND_K: Final = "heat_curve_persistent_band_k"
+CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: Final = "heat_curve_persistent_writes_per_day"
+CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: Final = "heat_curve_persistent_min_dwell_minutes"
+#: What the entity is. ``offset``: a zero-neutral, volatile whole-curve offset;
+#: ``persistent``: a curve parameter the controller stores, displaced from the
+#: baseline captured before the first write (R10-GENERIC-HEAT-CURVE-PERSISTENT).
+HEAT_CURVE_KIND_OFFSET: Final = "offset"
+HEAT_CURVE_KIND_PERSISTENT: Final = "persistent"
+HEAT_CURVE_TARGET_KINDS: Final = (HEAT_CURVE_KIND_OFFSET, HEAT_CURVE_KIND_PERSISTENT)
 
 # Temperature settings
 CONF_TARGET_TEMP: Final = "target_temperature"
@@ -792,16 +809,57 @@ CONF_DHW_MIN_TEMP: Final = "dhw_min_temperature"  # °C
 CONF_DHW_SETPOINT_ENTITY: Final = "dhw_setpoint_entity"
 CONF_SPACE_SETPOINT_ENTITY: Final = "space_setpoint_entity"
 CONF_SPACE_SETPOINT_UNIT: Final = "space_setpoint_unit"
-SPACE_SETPOINT_UNITS: Final = ("indoor", "flow")
+SPACE_SETPOINT_UNITS: Final = ("indoor", "flow", "return")
 DEFAULT_SPACE_SETPOINT_UNIT: Final = "indoor"
+#: The units whose number is a water temperature: the pump-duty arbiter writes
+#: the same heating flow to either. "return" is a controller that takes the
+#: set-point as its return-water target (a smart-home interface input, on
+#: the reporting install): the lift and ceiling below are its own, and only the values
+#: the arbiter derives from a supply temperature (the rated hold, the weather
+#: curve) are moved down by the rated spread (``pump_arbiter._as_target``).
+SPACE_SETPOINT_WATER_UNITS: Final = ("flow", "return")
 #: Heating flow at full planned power, °C. The arbiter moves toward the
 #: return temperature as the planned level falls (#1955). Absent keeps
 #: :data:`pump_arbiter.FLOW_HEAT_C`.
 CONF_FLOW_HEAT_C: Final = "flow_heat_c"
 DEFAULT_FLOW_HEAT_C: Final = 55.0
+#: The flow set-point's lift over the measured inlet water at the modulation
+#: floor, K. Absent keeps :data:`thermal_model.FLOW_MIN_LIFT_K`. A controller
+#: that takes the set-point as its return-water target modulates on the gap
+#: between the two, so it wants a lift of about 1-2 K, not the rated 5 K
+#: supply-over-return spread a supply target is anchored at.
+CONF_FLOW_MIN_LIFT_K: Final = "flow_min_lift_k"
+DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
+#: Close the water set-point on measured power (R10-WATER-SETPOINT-FEEDBACK):
+#: on by default, as tvofi ruled (2026-11-09) for an install with a water
+#: unit and a power meter, the only installs it acts on.
+CONF_SPACE_SETPOINT_POWER_FEEDBACK: Final = "space_setpoint_power_feedback"
+DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
+#: The controller's own lower and upper limit on the water set-point it is
+#: sent, each as an optional sensor: the feedback loop stays inside the pair
+#: instead of finding each limit by having a write cut. On a heat pump's
+#: Smart Home Interface they are inputs 10104 (minimum return target,
+#: parameter 979) and 10103 (return limit, parameter 87), which clamp
+#: register 10001 (#3372 comment 6756915104). Unset, nothing reads them.
+CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY: Final = "space_setpoint_low_limit_entity"
+CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY: Final = "space_setpoint_high_limit_entity"
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
+#: Whether the compressor can run below its minimum power (#3289). ``on_off``
+#: plans every step at 0 or between min and max power; ``modulating`` keeps a
+#: level below the minimum as a duty-cycle average; ``auto`` (the default, same
+#: as absent) follows ``clamp_planned_levels``, then the install probe.
+CONF_COMPRESSOR_MODULATION: Final = "compressor_modulation"
+COMPRESSOR_MODULATION_AUTO: Final = "auto"
+COMPRESSOR_MODULATION_ON_OFF: Final = "on_off"
+COMPRESSOR_MODULATION_MODULATING: Final = "modulating"
+COMPRESSOR_MODULATIONS: Final = (
+    COMPRESSOR_MODULATION_AUTO,
+    COMPRESSOR_MODULATION_ON_OFF,
+    COMPRESSOR_MODULATION_MODULATING,
+)
+DEFAULT_COMPRESSOR_MODULATION: Final = COMPRESSOR_MODULATION_AUTO
 CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 # How fast the tank cools when nothing is drawn, expressed at a reference
 # condition so it stays meaningful regardless of tank size. Self-learned at
@@ -908,6 +966,51 @@ CONF_DHW_ELASTIC_LEGIONELLA_ENABLED: Final = "dhw_elastic_legionella_enabled"
 DEFAULT_DHW_ELASTIC_LEGIONELLA_ENABLED: Final = False
 CONF_DHW_LEGIONELLA_MIN_INTERVAL_DAYS: Final = "dhw_legionella_min_interval_days"
 DEFAULT_DHW_LEGIONELLA_MIN_INTERVAL_DAYS: Final = 5.0
+#: #3225 (R10-COMBI-TANK) — the buffer store is also the hot water tank: hot
+#: water is made through an exchanger in the heating water. The model reads
+#: two numbers only, the exchanger effectiveness eps = (T_tap - T_in) /
+#: (T_store - T_in) at the typical draw flow and the litres of potable water
+#: held inside the store; the type select is the options flow's pre-fill of
+#: those two numbers and nothing reads it below the flow.
+CONF_DHW_COMBI_TANK_ENABLED: Final = "dhw_combi_tank_enabled"
+DEFAULT_DHW_COMBI_TANK_ENABLED: Final = False
+CONF_DHW_COMBI_TANK_TYPE: Final = "dhw_combi_tank_type"
+CONF_COMBI_DHW_EFFECTIVENESS: Final = "combi_dhw_effectiveness"
+CONF_COMBI_POTABLE_VOLUME_L: Final = "combi_potable_volume_l"
+#: Forces the legionella cycle on a combi store whose potable volume is at or
+#: under COMBI_LEGIONELLA_POTABLE_LIMIT_L, where it defaults off.
+CONF_DHW_COMBI_LEGIONELLA_FORCE: Final = "dhw_combi_legionella_force"
+DEFAULT_DHW_COMBI_LEGIONELLA_FORCE: Final = False
+
+
+class CombiTankPreset(NamedTuple):
+    """One physical combi construction: the two numbers the model reads."""
+
+    effectiveness: float
+    potable_volume_l: float
+
+
+#: Keyed by physical construction, never by product (design §T.4). Sources:
+#: internal_coil eps [assumed; one measured 1.8 kW/K corrugated coil gives 0.89
+#: at 12 l/min], 30 l a mid coil content [assumed]; tank_in_tank eps
+#: [assumed], 150 l inside the ~100-250 l inner tanks published (IEA SHC Task
+#: 26 store C: 228 l); external_station eps [datasheet range: 0.88 at 16 l/min
+#: to 0.58 at 38 l/min in one station table], 0 l (a plate exchanger stores
+#: no potable water). "custom" has no row: the user's own two numbers.
+COMBI_TANK_PRESETS: Final[dict[str, CombiTankPreset]] = {
+    "internal_coil": CombiTankPreset(0.85, 30.0),
+    "tank_in_tank": CombiTankPreset(0.95, 150.0),
+    "external_station": CombiTankPreset(0.75, 0.0),
+}
+COMBI_TANK_CUSTOM: Final = "custom"
+DEFAULT_DHW_COMBI_TANK_TYPE: Final = "internal_coil"
+DEFAULT_COMBI_DHW_EFFECTIVENESS: Final = COMBI_TANK_PRESETS["internal_coil"].effectiveness
+DEFAULT_COMBI_POTABLE_VOLUME_L: Final = COMBI_TANK_PRESETS["internal_coil"].potable_volume_l
+#: At or under this many litres of potable water a combi store holds none
+#: worth disinfecting (a plate exchanger's content and its fittings), so the
+#: cycle defaults off there on physical grounds [assumed threshold]; it is
+#: not a DVGW W 551 exemption, which a one- or two-family house never needs.
+COMBI_LEGIONELLA_POTABLE_LIMIT_L: Final = 3.0
 #: #28 — display only: the shower the tank actually holds.
 CONF_SHOWER_FLOW_LPM: Final = "shower_flow_lpm"
 DEFAULT_SHOWER_FLOW_LPM: Final = 8.0
@@ -1149,6 +1252,24 @@ CONF_FLOW_METER_ENTITY: Final = "flow_meter_entity"
 #: outranks the meter whenever it is configured, and with a power entity it
 #: makes COP an observable (``flow_meter.read_heat_output_kw``).
 CONF_THERMAL_POWER_ENTITY: Final = "heat_pump_thermal_power_entity"
+#: Whether the power and the thermal power entity are meters or a vendor's
+#: model (R10-HOTFIX-COP-UNMEASURED): a COP is measured only from metered heat
+#: over metered power (``thermal_model.InstallCapability.cop_measured``), while
+#: every learner trains on either. ``auto`` reads an entity whose id names an
+#: estimate (``ESTIMATE_ID_MARK``, as an "Estimated Power Draw" sensor's does) as
+#: one and any other as a meter; the explicit answers override it.
+CONF_POWER_SOURCE: Final = "heat_pump_power_source"
+CONF_THERMAL_POWER_SOURCE: Final = "heat_pump_thermal_power_source"
+METER_SOURCE_AUTO: Final = "auto"
+METER_SOURCE_METER: Final = "meter"
+METER_SOURCE_ESTIMATE: Final = "estimate"
+DEFAULT_METER_SOURCE: Final = METER_SOURCE_AUTO
+ESTIMATE_ID_MARK: Final = "estimat"
+#: Whether the heat reading (the heat counter, else the thermal power entity)
+#: sees the hot-water circuit, as a meter ahead of the diverter does. Declared,
+#: never assumed: off, a hot-water interval records no measured COP.
+CONF_HEAT_METER_SEES_DHW: Final = "heat_meter_sees_dhw"
+DEFAULT_HEAT_METER_SEES_DHW: Final = False
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 #: The two frequency-control stages. Anything unrecognised in config reads
 #: as observe. Here rather than in ``freq_control`` because ``entry_config``
@@ -1480,6 +1601,29 @@ DEFAULT_ECL110_RETAIN: Final = False
 DEFAULT_ECL110_DISPLACE_MIN: Final = -20.0
 DEFAULT_ECL110_DISPLACE_MAX: Final = 20.0
 DEFAULT_ECL110_PID_TIME_CONSTANT: Final = 1.5  # hours, first-order approximation
+DEFAULT_HEAT_CURVE_TARGET_KIND: Final = HEAT_CURVE_KIND_OFFSET
+# The most the entity arm may offset the curve, K, either way; the user range is
+# 0.5 to 5 K. Web research handoff-body/r10-ghc-research 52f5a442, BODY.md, its
+# "Recommended defaults" row "O5a band | 3 K | 0.5 to 5 K": 5 K is one
+# controller's own user correction (documented, a third-party app), 3 K an estimate between
+# that and SG-Ready's +1/+2 offset steps (NIBE, documented).
+DEFAULT_HEAT_CURVE_OFFSET_BAND_K: Final = 3.0
+HEAT_CURVE_OFFSET_BAND_RANGE_K: Final = (0.5, 5.0)
+# Kind persistent, the same research body's "Recommended defaults" rows. Band
+# (O5a): the offset kind's 3 K and 0.5 to 5 K, for the same reasons. Writes per
+# local day (O5b), restores included: 12, six displace-and-restore episodes,
+# under Daikin's documented 7000 a year (about 19 a day; forum-quoted) and 66 %
+# of a 100k-cycle NAND cell over 15 years (Micron, documented); 12 rather than
+# 19 rests on wear levelling (estimate). 0 writes nothing; 48 is above Daikin's
+# quota. Dwell (O5c): 60 min, about three radiator time constants of ~20 min
+# (forum); SG-Ready's 10 min minimum (documented, secondary) is under the 15 min
+# floor, 6 h covers a slow floor (2 to 3 h, forum).
+DEFAULT_HEAT_CURVE_PERSISTENT_BAND_K: Final = 3.0
+HEAT_CURVE_PERSISTENT_BAND_RANGE_K: Final = (0.5, 5.0)
+DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: Final = 12
+HEAT_CURVE_PERSISTENT_WRITES_PER_DAY_RANGE: Final = (0, 48)
+DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: Final = 60
+HEAT_CURVE_PERSISTENT_MIN_DWELL_RANGE_MINUTES: Final = (15, 360)
 
 
 # How long a hand-arranged plan stays pinned, measured from the moment it is
@@ -1732,6 +1876,8 @@ INPUT_PLAUSIBLE_RANGE_C: Final = {
     CONF_WOOD_TANK_BOTTOM_ENTITY: WATER_RANGE_C,
     CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: WATER_RANGE_C,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: WATER_RANGE_C,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY: WATER_RANGE_C,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY: WATER_RANGE_C,
     CONF_EXTERNAL_HEAT_ENTITY: FLUE_RANGE_C,
 }
 

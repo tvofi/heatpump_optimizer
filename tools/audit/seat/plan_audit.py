@@ -555,7 +555,7 @@ def self_test() -> int:
     # Change coupling from a real (throwaway) history: the same two modules
     # changing together is coupling, each changing alone is none.
     sys.path.insert(0, str(ROOT / "tests"))
-    from throwaway_git import throwaway_git_environ, throwaway_git_init
+    from throwaway_git import IDENTITY, throwaway_git_environ, throwaway_git_init
     # The harness owns its git identity for this block (`throwaway_git_environ`,
     # the tree's mechanism for a self-test that drives production code making
     # its own git calls): `coupling()` runs `git` itself, so threading an `env`
@@ -566,7 +566,7 @@ def self_test() -> int:
         repo = Path(tmp)
         throwaway_git_init(repo, "-q", "-b", "main")
         t("the fixture commits under the harness's own identity, not the box's",
-          git("var", "GIT_AUTHOR_IDENT", cwd=repo).startswith("t <t@t>"),
+          git("var", "GIT_AUTHOR_IDENT", cwd=repo).startswith(f'{IDENTITY["GIT_AUTHOR_NAME"]} <{IDENTITY["GIT_AUTHOR_EMAIL"]}>'),
           git("var", "GIT_AUTHOR_IDENT", cwd=repo))
         (repo / PKG).mkdir(parents=True)
         (repo / PKG / "a.py").write_text("a = 1\n")

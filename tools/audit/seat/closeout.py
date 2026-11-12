@@ -100,8 +100,12 @@ STEPS = ("in-main", "refs", "local", "issues", "report")   # the order is the ga
 
 
 def roster_blockers(roster: dict, self_group: str = SELF_GROUP) -> list:
-    """Every group other than `self_group` whose stage is not done, sorted."""
-    return sorted(g for g in roster_lib.open_groups(roster) if g != self_group)
+    """Every group other than `self_group` whose stage is not done, sorted, less
+    the groups the roster exempts (`roster_lib.closeout_exempt`): the post-stamp
+    owner step, which starts only after this run's stamp, and a ruled group."""
+    exempt = roster_lib.closeout_exempt(roster)[0]
+    return sorted(g for g in roster_lib.unfinished_groups(roster)
+                  if g != self_group and g not in exempt)
 
 
 class Ctx:
@@ -348,7 +352,9 @@ def step_issues(c: Ctx) -> list:
     issues = c.open_issues()
     if issues is None:
         return ["the open issues cannot be read; nothing is dispositioned unseen"]
-    rest = sorted(i["number"] for i in issues if i["number"] != c.successor)
+    exempt = roster_lib.closeout_exempt(c.roster)[1]
+    rest = sorted(i["number"] for i in issues
+                  if i["number"] != c.successor and i["number"] not in exempt)
     if rest:
         return [f"{len(rest)} open issue(s) beyond the successor "
                 f"{'#' + str(c.successor) if c.successor else '(none named)'} "
@@ -571,6 +577,46 @@ def self_test() -> int:
         check("roster_blockers names every other open group and skips this one",
               roster_blockers(roster({"X": "not-started", "Y": "done", SELF_GROUP: "not-started"}))
               == ["X"])
+        # the exemption (roster_lib.closeout_exempt): a post-stamp owner step, its wired
+        # issue, and a ruled group never block; an ordinary not-started group still does
+        def gr(name, stage, **kw):
+            return dict({"group": name, "resume": {"stage": stage}}, **kw)
+
+        cat = gr("CAT", "not-started", kind="owner-step", issues=[2965], after=[SELF_GROUP])
+        cat["resume"]["next_step"] = "after the v10.0.0 closeout stamp: open the catalog PR"
+        post_only = {"groups": [gr("A", "done"), gr(SELF_GROUP, "not-started"), cat]}
+        check("a fixture roster with only the post-stamp owner step open proceeds",
+              roster_blockers(post_only) == [])
+        check("a refused group (no open host) is not a blocker",
+              roster_blockers({"groups": [gr("R", "refused"), gr(SELF_GROUP, "not-started")]}) == [])
+        hosted = gr("R", "refuted")
+        hosted["resume"]["host"] = "H"
+        check("a ruled group whose host is still open blocks",
+              roster_blockers({"groups": [hosted, gr("H", "in-progress"),
+                                          gr(SELF_GROUP, "not-started")]}) == ["H", "R"])
+        for st in ("refused", "deferred"):
+            hosted_st = gr("R", st)
+            hosted_st["resume"]["host"] = "H"
+            check(f"a {st} group whose host is still open blocks (roster_lib.CLOSED_STAGES "
+                  "drops it from open_groups)",
+                  roster_blockers({"groups": [hosted_st, gr("H", "in-progress"),
+                                              gr(SELF_GROUP, "not-started")]}) == ["H", "R"])
+        check("a deferred group with no host still blocks, as before CLOSED_STAGES grew",
+              roster_blockers({"groups": [gr("D", "deferred"),
+                                          gr(SELF_GROUP, "not-started")]}) == ["D"])
+        check("null control: an ordinary not-started group still refuses beside the exempt ones",
+              roster_blockers({"groups": [cat, gr("N", "not-started"), gr("R", "refused"),
+                                          gr(SELF_GROUP, "not-started")]}) == ["N"])
+        check("a group after the post-stamp step is post-stamp too",
+              roster_blockers({"groups": [cat, gr("T", "queued", after=["CAT"]),
+                                          gr(SELF_GROUP, "not-started")]}) == [])
+        wired = mk(all_done, issues=[{"number": 7, "title": "s"}, {"number": 2965, "title": "c"}])
+        wired.roster = post_only
+        check("step 4 does not wait for an issue wired to a post-stamp group",
+              step_issues(wired) == [])
+        wired.issues = [{"number": 7, "title": "s"}, {"number": 9, "title": "x"}]
+        check("null control: step 4 still waits for an unwired issue",
+              step_issues(wired) != [])
         # null control: every other group done -> it proceeds into the steps
         lines = []
         c = mk(all_done, lint_rc=1)

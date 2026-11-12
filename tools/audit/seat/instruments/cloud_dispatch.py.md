@@ -37,7 +37,7 @@
   patch; the brief is snapshotted at `run`, so it is inlined at render time
   (into the event, or into PROMPT.md at the pinned commit), an edit afterwards
   reaches no running seat, and overlapping runs are fine;
-  the toolchain (`PATH` with `/opt/hpo/venv-ci/bin`, `BASH_ENV`,
+  the toolchain (`PATH` with `/opt/hpo/venv-ci/bin`,
   `HPO_TYPING_PYTHON`, `OPENBLAS_CORETYPE`) comes from the environment's
   variables, not from a profile the seat sources, so the prompt says only
   that it is on `PATH`, and the setup line runs `cloud-setup.sh --check`
@@ -49,8 +49,10 @@
   else, and a seat may not write a record it did not mint), `handoff/<topic>`
   plus `handoff-body/<topic>` for a fixer (which pushes each verified step,
   fast-forward only, to `handoff-wip/<topic>`, a prefix neither
-  `cloud_relay.sh`'s handoff arm nor `bus.sh orphans` lists, merges a moved
-  `origin/main` and reruns `prepr.sh` before the handoff, and deletes the step
+  `cloud_relay.sh`'s handoff arm nor `bus.sh orphans` lists, hands off at its
+  first clean `prepr.sh` head, merges `origin/main` and reruns only when
+  `git merge-tree --write-tree origin/main HEAD` conflicts (tvofi, 2026-11-07),
+  and deletes the step
   ref once `body_push.sh` succeeds; a seat that dies leaves that one ref),
   `handoff-body/<topic>` for a probe; a fixer or probe pins the noreply seat
   identity before its first commit,
@@ -64,10 +66,13 @@
   refusal against a rendering that passes, offline.
   Two measured traps when driving the runner: an update and a run fired in
   parallel start the run on the PREVIOUS config, so a launch is update, wait
-  for it, then run, sequentially; and, until the pasted setup script writes
-  `cloud-setup.sh`'s idempotent profile, the container's `BASH_ENV` puts the venv
-  python ahead of the test stubs, so a cloud seat runs `tests/entities.py` (and
-  anything else resolving `homeassistant`) with `env -u BASH_ENV`.
+  for it, then run, sequentially; and a `BASH_ENV` in the environment's
+  variables, which no seat's Bash call reads, runs the profile ahead of every
+  nested bash: a profile that overwrote a caller's variable reached each
+  test's child (a stub's `PATH`, #2835; `RUNNER_TEMP`, three
+  `tests/entities.py` checks, `dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md`).
+  Until a session's setup script writes the profile that sets nothing a caller
+  set, a cloud seat runs `tests/entities.py` with `env -u BASH_ENV`.
 
 Design roles (decision 0014): `--role designer` and `--role design-reviewer`
 take the roster group id as the topic (`dispatch/designer-<group>`,
@@ -76,8 +81,22 @@ designer may push only `design/<group>` (through `bus.sh push-design`) and
 opens no pull request; the design reviewer may push only
 `design-verdict/<group>` and is pinned to the `design/<group>` tip read from
 origin at the dispatch (`--design` on the flag path). Each role's text says so.
+A designer payload pins the latest `design-verdict/<group>` commit and its first line when that ref exists.
 A `fixer` dispatch for an L or XL group is refused unless
 `design-verdict/<group>` reads `Design review: approve <sha>` at the current
 design tip, or `--design-exempt <reason>` names an approved design, pre-study
 or prototype already on record. The tick board's `DESIGN OWED:` line lists the
 groups whose designer is due.
+`--role reviewer --topic <t> --head <handoff tip>` with no `--pr` renders a reviewer at the
+handoff: it reads `handoff-body/<t>`, renders no packet, waits on no CI and returns
+`probe/revt-<t>-<nonce8>` (subject `verdict <t> <head>`). With `--group`, an omitted `--model`
+is read from the roster (`model.<role>`, `<role>Model`) and the field is printed;
+`--carry-only` and `--record-pr` run a reviewer on sonnet. A fixer's brief ends with the live
+consumer groups (the only valid `Carry:` targets) and the group's `enumeration` command,
+from `roster_lib.brief_lines`.
+A `fixer` for a group holding more than five pending carries (`roster_lib.pending_carries`)
+is refused, and the refusal prints the split: index-ordered fives, a remainder of one or two
+folded into the last part. `--part <k>` dispatches part k under topic `<topic>-p<k>` (k over 1)
+with one generated line naming its carries; dispatch each part at the previous part's handoff.
+Every reviewer stop path, a setup refusal and a bounded CI wait included, pushes a verdict to
+its probe ref and reads it back.

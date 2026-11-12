@@ -144,6 +144,12 @@ class ExternalHeatState:
     #: ``None`` when the tank pair is not sensed.
     wood_energy_kwh: float | None = None
 
+    def heating(self) -> bool:
+        """Whether the external source heats the house now: a fire active or
+        fading, any displacement, or any free heat. The savings settlement
+        calibrates a wood house from the intervals this reads False."""
+        return self.active or self.fading or self.displacement > 0.0 or self.free_heat_kw > 0.0
+
     def as_dict(self) -> ExternalHeat:
         return {
             "active": self.active,

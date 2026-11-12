@@ -89,6 +89,8 @@ jobs:
       workset: ${{ steps.derive.outputs.workset }}
       # R10-CI-SLIM C7(a): 'false' idles the machinery lanes (prelude.machinery).
       machinery: ${{ steps.derive.outputs.machinery }}
+      # R10-CI-SELFTEST-SCOPE: instrument-self-tests' steps (prelude.selftest_scope).
+      selftests: ${{ steps.derive.outputs.selftests }}
       # R10-CI-OWN-DELIVERY-ROW: the same with the PR's own delivery row ignored (arch-instrument).
       machinery_rowblind: ${{ steps.derive.outputs.machinery_rowblind }}
     steps:
@@ -214,6 +216,7 @@ jobs:
     with:
       base: ${{ needs.prelude.outputs.base }}
       machinery: ${{ needs.prelude.outputs.machinery }}
+      selftests: ${{ needs.prelude.outputs.selftests }}
     permissions:
       contents: read
       pull-requests: read
@@ -352,3 +355,59 @@ jobs:
           # runs no pr-contract (prelude.defer_to, R10-CI-SLIM C3).
           WORKSET: ${{ needs.prelude.outputs.workset }}
         run: python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+
+  # gate-sweep.yml's `workflow_run` never fires for a run whose actor is the bot:
+  # GitHub starts no workflow from an event its GITHUB_TOKEN caused (a token push's
+  # approved pull_request run, a github.token dispatch). Such a run sweeps itself
+  # here, after its gate, on the base's programs (tools/ci/sweep.py: SWEEP-SELF;
+  # dev/audit/rca/R10-RCA-SWEEP-TOKEN-ACTOR.md). Skipped, so no runner, on every
+  # other run, which workflow_run sweeps.
+  sweep-self:
+    needs: gate
+    if: ${{ !cancelled() && github.actor == 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      actions: write
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Restore the programs from the base
+        id: restore
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+          INPUT_BASE: ${{ inputs.base }}
+        run: |
+          set -euo pipefail
+          if [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then
+            [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }
+            git fetch -q --no-tags origin "refs/heads/$INPUT_BASE"
+            PINNED=$(git rev-parse FETCH_HEAD)
+          fi
+          if [ -z "$PINNED" ]; then
+            echo "no pull request base to restore the programs from: nothing to sweep"
+            exit 0
+          fi
+          git fetch -q --no-tags origin "$PINNED"
+          git checkout "$PINNED" -- 'tools/ci/*.py'
+          echo "pinned=$PINNED" >> "$GITHUB_OUTPUT"
+      # The outcome is the last output line's first word, as in gate-sweep.yml.
+      - name: Re-judge the other gates at this head
+        if: steps.restore.outputs.pinned != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          [[ "$RUN_ID" =~ ^[0-9]+$ ]] || { echo "::error title=sweep refused::run id malformed"; exit 1; }
+          out=$(python3 -I tools/ci/gate.py --sweep --run "$RUN_ID" 2>&1) || true
+          printf '%s\n' "$out"
+          last=$(printf '%s\n' "$out" | tail -n 1)
+          case "${last%% *}" in
+            SWEEP-DONE|SKIP|SWEEP) ;;
+            RATE-LIMITED) echo "::error title=RATE-LIMITED::$last"; exit 1 ;;
+            *) echo "::error title=sweep failed::${last:-no output}"; exit 1 ;;
+          esac

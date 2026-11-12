@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import math
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
@@ -64,6 +65,83 @@ DHW_COOLING_MAX_SAMPLE_HOURS = 6.0
 # The tank has to be meaningfully warmer than its surroundings for the decay
 # to carry any information about the loss coefficient.
 DHW_COOLING_MIN_DELTA = 5.0
+# A charge start drops the tank reading 3-5 K within 4-10 min (lukewarm
+# heating-circuit water reaches the sensor zone as the valve swings to hot
+# water; observed live on a 600 l combi tank, 2026-11), and after a very
+# short charge that dip lands just after the plan slot ends. Intervals ending
+# this long after the last heated sample are still treated as heated.
+DHW_CHARGE_SETTLE_HOURS = 0.25
+# The deepest charge-start dip the recovery may take back per charge: the top
+# of the same observed 3-5 K, so an unheated rise after a charge (a device
+# finishing its charge past the plan slot) erases at most this much draw.
+DHW_CHARGE_DIP_MAX_K = 5.0
+
+
+@dataclass
+class ChargeSettle:
+    """The open DHW charge's loading transient, in memory (a restart forgets it).
+
+    A drop on a charge-affected interval may be the dip rather than a draw,
+    and only the reading tells them apart afterwards: the dip recovers once
+    the charge stops, a draw does not. So the draw statistics book such a
+    drop provisionally, the usage learner defers a settle interval's drop,
+    and each later unheated rise takes back what it recovered, up to
+    DHW_CHARGE_DIP_MAX_K per charge. The first unheated interval past the
+    settle window that does not rise closes the charge and learns what is
+    left.
+    """
+
+    last_heated_time: datetime | None = None
+    open: bool = False
+    credit_k: float = 0.0
+    #: deferred usage observations: [previous_temp, temp_drop, dt_h, hour, weekend]
+    pending: list[list[Any]] = field(default_factory=list)
+
+    def classify(
+        self, now: datetime, heating: bool, started_heated: bool
+    ) -> tuple[bool, bool]:
+        """Stamp a heated sample; (heated interval, settling unheated interval).
+
+        An interval is heated when it starts or ends on a heated sample. Only
+        one that started heated, or is settling, can hold the charge-start
+        dip: the plan's flag marks the charge no earlier than its slot, so an
+        interval ending at the first heated sample holds the draw before it,
+        which at a 10-120 min refresh is all of that draw.
+        """
+        heated_interval = started_heated or heating
+        if heating:
+            self.last_heated_time = now
+        return heated_interval, not heated_interval and (
+            self.last_heated_time is not None
+            and utc_elapsed_seconds(now, self.last_heated_time) / 3600.0
+            <= DHW_CHARGE_SETTLE_HOURS
+        )
+
+    def advance(
+        self, heated_interval: bool, settling: bool, obs: list[Any]
+    ) -> tuple[float, list[list[Any]]]:
+        """Step over one interval's usage observation ``obs`` (see ``pending``).
+
+        Returns the dip its rise recovered, in K, and the deferred
+        observations it releases to the usage learner.
+        """
+        if (heated_interval or settling) and not self.open:
+            self.open, self.credit_k = True, DHW_CHARGE_DIP_MAX_K
+        if not self.open or heated_interval:
+            return 0.0, []
+        if obs[1] < 0:
+            taken = left = min(-obs[1], self.credit_k)
+            self.credit_k -= taken
+            for deferred in self.pending:
+                cut = min(left, max(0.0, deferred[1]))
+                deferred[1] -= cut
+                left -= cut
+            return taken, []
+        if settling:
+            self.pending.append(obs)
+            return 0.0, []
+        due, self.pending, self.open = self.pending, [], False
+        return 0.0, due
 
 
 class DhwProfileLearner:
@@ -108,6 +186,7 @@ class DhwProfileLearner:
         self.cooling_rate: float = float(params().dhw_cooling_rate)
         self.cooling_samples: int = 0
         self.heating_since_sample: bool = False
+        self.charge_settle = ChargeSettle()
         self.profile_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
             DHW_PROFILE_STORE_VERSION,
@@ -182,25 +261,7 @@ class DhwProfileLearner:
             self._publish(dhw_hourly_draw_pattern=self.hourly_profile.copy())
             _LOGGER.info("Loaded learned DHW usage profile from storage")
 
-        # #18: day-type profiles are additive keys. A pooled-only store —
-        # every store written before T3 — leaves both arrays at the pooled
-        # profile with zero samples, and the blend below then answers
-        # exactly the pooled pattern.
-        for attr, key, count_idx in (
-            ("profile_weekday", "profile_weekday", 0),
-            ("profile_weekend", "profile_weekend", 1),
-        ):
-            arr = stored.get(key)
-            if isinstance(arr, list) and len(arr) == 24:
-                setattr(self, attr, self.normalize_profile(arr))
-            else:
-                setattr(self, attr, self.hourly_profile.copy())
-            try:
-                self.daytype_samples[count_idx] = max(
-                    0, int(stored.get(f"{key}_samples", 0))
-                )
-            except (TypeError, ValueError, OverflowError):
-                self.daytype_samples[count_idx] = 0
+        self._restore_daytypes(stored, reset_missing=True)
 
         rate = stored.get("cooling_rate")
         if rate is None:
@@ -266,25 +327,33 @@ class DhwProfileLearner:
         # The day-type profiles restore alongside the pooled one, or a
         # rollback would blend a rolled-back pool with un-rolled-back
         # day shapes — half of one week, half of another.
-        for attr, key, count_idx in (
-            ("profile_weekday", "profile_weekday", 0),
-            ("profile_weekend", "profile_weekend", 1),
-        ):
-            arr = profile.get(key)
-            if isinstance(arr, list) and len(arr) == 24:
-                setattr(self, attr, self.normalize_profile(arr))
-                try:
-                    self.daytype_samples[count_idx] = max(
-                        0, int(profile.get(f"{key}_samples", 0))
-                    )
-                except (TypeError, ValueError):
-                    self.daytype_samples[count_idx] = 0
+        self._restore_daytypes(profile, reset_missing=False)
         rate = profile.get("cooling_rate")
         if rate is not None:
             try:
                 self.apply_cooling_rate(float(rate))
             except (TypeError, ValueError):
                 pass
+
+    def _restore_daytypes(self, source: dict[str, Any], *, reset_missing: bool) -> None:
+        """Restore the #18 day-type profiles and their day counts.
+
+        The keys are additive: a store written before T3 has neither, and the
+        loader (``reset_missing``) leaves both at the pooled profile with zero
+        samples, so the blend answers exactly the pooled pattern.
+        """
+        for idx, key in enumerate(("profile_weekday", "profile_weekend")):
+            arr = source.get(key)
+            if isinstance(arr, list) and len(arr) == 24:
+                setattr(self, key, self.normalize_profile(arr))
+            elif reset_missing:
+                setattr(self, key, self.hourly_profile.copy())
+            else:
+                continue
+            try:
+                self.daytype_samples[idx] = max(0, int(source.get(f"{key}_samples", 0)))
+            except (TypeError, ValueError, OverflowError):
+                self.daytype_samples[idx] = 0
 
     def apply_draws(self, draws: dict[str, Any]) -> None:
         """Restore the draw-statistics half of a learner snapshot."""
@@ -362,7 +431,8 @@ class DhwProfileLearner:
 
         previous_temp = self.last_temp_sample
         previous_time = self.last_sample_time
-        heated_during_interval = self.heating_since_sample or heating
+        started_heated = self.heating_since_sample
+        heated_interval, settling = self.charge_settle.classify(now, heating, started_heated)
 
         self.last_temp_sample = dhw_temp
         self.last_sample_time = now
@@ -380,59 +450,70 @@ class DhwProfileLearner:
             return None
 
         temp_drop = previous_temp - dhw_temp
-
-        if not heated_during_interval:
-            await self.async_learn_cooling(previous_temp, dhw_temp, dt_h)
-        await self.async_learn_usage(
-            previous_temp,
-            temp_drop,
-            dt_h,
-            now.hour,
-            heated_during_interval,
-            weekend=now.weekday() >= 5,
+        weekend = now.weekday() >= 5
+        recovered_k, due = self.charge_settle.advance(
+            heated_interval, settling, [previous_temp, temp_drop, dt_h, now.hour, weekend]
         )
-        await self.async_fold_draw_stats(now, previous_temp, temp_drop, dt_h)
+        for prev, drop, dt_p, hour, wkend in due:
+            await self.async_learn_usage(prev, drop, dt_p, hour, False, weekend=wkend)
+
+        if not heated_interval:
+            await self.async_learn_cooling(previous_temp, dhw_temp, dt_h)
+        if not settling:
+            await self.async_learn_usage(
+                previous_temp, temp_drop, dt_h, now.hour, heated_interval, weekend=weekend
+            )
+        await self.async_fold_draw_stats(
+            now, previous_temp, temp_drop, dt_h,
+            charge=started_heated or settling, recovered_k=recovered_k,
+        )
         return None
 
+    def _standby_rate(self, previous_temp: float) -> float:
+        """The modelled standby cooling, in °C/h, of a tank at ``previous_temp``."""
+        return (
+            self.cooling_rate
+            * max(0.0, previous_temp - TANK_ROOM_AMBIENT_TEMP)
+            / DHW_COOLING_REFERENCE_DELTA
+        )
+
     async def async_fold_draw_stats(
-        self, now: datetime, previous_temp: float, temp_drop: float, dt_h: float
+        self, now: datetime, previous_temp: float, temp_drop: float, dt_h: float,
+        *, charge: bool = False, recovered_k: float = 0.0,
     ) -> None:
         """Fold one interval's beyond-standby draw energy into #32's stats.
 
         External heat is the one contamination the freeze guard upstream
         does not cover: a wood burn drives the tank temperature and every
         drop-based attribution with it, so those intervals are skipped
-        outright. Heated intervals ARE folded — heating makes the drop
-        smaller, so the attributed energy is a lower bound of the true
-        draw, which can only make the learned heavy-day target
-        conservative relative to reality, never inflated.
+        outright. A charge-affected interval (``charge``) is folded
+        provisionally: a charge start makes the reading FALL (the loading
+        transient), and ``recovered_k``, the dip a later unheated rise
+        recovered (``ChargeSettle``), is taken back from the open occurrence.
         """
         if self._external_heat_active():
             return
         params = self._params()
         if not params.dhw_enabled:
             return
-        standby_rate = (
-            self.cooling_rate
-            * max(0.0, previous_temp - TANK_ROOM_AMBIENT_TEMP)
-            / DHW_COOLING_REFERENCE_DELTA
-        )
-        intensity = max(0.0, temp_drop / dt_h - standby_rate)  # °C/h beyond standby
-        energy_kwh = intensity * dt_h * params.dhw_tank_thermal_mass
+        cap = params.dhw_store.capacity_kwh_per_c
+        intensity = max(0.0, temp_drop / dt_h - self._standby_rate(previous_temp))
+        energy_kwh = intensity * dt_h * cap  # beyond standby
         windows = params.dhw_demand_windows
         label = draw_window_label(
             now.hour + now.minute / 60.0, windows
         )
         self.draw_stats.prune(labels_for(windows))
         before = {k: len(v) for k, v in self.draw_stats.reservoirs.items()}
-        self.draw_stats.fold(now, label, energy_kwh)
+        taken_kwh = self.draw_stats.take_back(recovered_k * cap)
+        self.draw_stats.fold(now, label, energy_kwh, charge=charge)
         after = {k: len(v) for k, v in self.draw_stats.reservoirs.items()}
         # Persist when an occurrence closes, and also whenever real energy
         # was folded into the OPEN occurrence — as_dict carries it, and
         # saving only at close time meant a restart mid-shower silently
         # dropped everything since the last close, dragging the p90 down.
         # Zero-energy ticks (most of the day) still cause no churn.
-        if before != after or energy_kwh > 1e-4:
+        if before != after or energy_kwh > 1e-4 or taken_kwh > 1e-4:
             await self.async_save_draws()
 
     async def async_learn_cooling(
@@ -511,12 +592,7 @@ class DhwProfileLearner:
         if temp_drop < 0.15 or heated:
             return
 
-        standby_rate = (
-            self.cooling_rate
-            * max(0.0, previous_temp - TANK_ROOM_AMBIENT_TEMP)
-            / DHW_COOLING_REFERENCE_DELTA
-        )
-        draw_intensity = temp_drop / dt_h - standby_rate
+        draw_intensity = temp_drop / dt_h - self._standby_rate(previous_temp)
         if draw_intensity <= 0.05:
             return
 

@@ -65,7 +65,7 @@ def main(argv):
         with open(f, "w", encoding="utf-8") as fh:
             fh.write(t)
         r = subprocess.run([sys.executable, "tools/pr/gh_comment.py", "post", "--repo", g.DEFAULT_REPO,
-                            "--issue", str(g.MANDATE_ISSUE), "--body-file", f, "--dry-run"],
+                            "--issue", str(g.RECORD_ISSUE), "--body-file", f, "--dry-run"],
                            capture_output=True, text=True)
         last = (r.stdout + r.stderr).strip().splitlines()[-1]
         print(f"RESULT body={label} rc={r.returncode} last={last[:40]!r}")

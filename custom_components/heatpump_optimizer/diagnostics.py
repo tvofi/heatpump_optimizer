@@ -9,8 +9,16 @@ emitted verbatim apart from the token, and ``CONF_SOLAR_LOCATION`` is seeded
 by ``config_flow._default_location`` from ``hass.config.latitude`` -- so the
 usual install, which accepts the pre-filled field, published its home to
 building precision. The rule is now **no credential and no personal
-location**, enforced with Home Assistant's own ``async_redact_data`` so it
-holds at any depth rather than only over the top-level keys of ``entry.data``.
+location**: coordinates are redacted outright, not rounded. An earlier version
+kept them to one decimal so support could spot swapped or wrong-country
+values; the owner decided that this is not worth publishing any part of a
+home location. Redaction uses Home Assistant's own ``async_redact_data``, so
+it holds at any depth rather than only over the top-level keys of ``entry.data``.
+
+The debug bundle's sealed replay half (``debug.replay``) is built without
+any location key (``debugger._public``), because ``replay_doc`` would keep a
+coordinate to two places and its shape check refuses a redaction marker; so
+both passes run over the whole payload and no section is held out of them.
 
 What is kept, and why, because over-redaction makes a diagnostics file
 useless for the support it exists for: the entity ids, which say which
@@ -40,7 +48,7 @@ production triage found redacted credential values elsewhere in the same
 payload. So each value the entry's keyed passes remove -- the token, the entry
 name, each coordinate at full precision -- is searched for in the whole
 payload afterwards and redacted wherever it is: inside a message, as a key,
-or as the number under a key the coarsening does not name. A value shorter
+or as the number under a key the keyed pass does not name. A value shorter
 than ``replay_doc.LEAK_MIN_CHARS`` is not searched for, as the replay's own
 leak check does not, so a two-letter name cannot blank every word holding it.
 
@@ -68,8 +76,9 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from . import heat_curve
 from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
-from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
+from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, LOCATION_KEYS, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
 from .inputs import OUTRANKS_STALE, describe_problem, health_summary
 from .thermal_model import probe_install
@@ -82,24 +91,13 @@ from .coordinator import (
 from .payload import LearningView
 
 #: Keys whose values never leave the instance, at any depth: the Tibber
-#: credential, and the entry name, which is free text the user typed and
+#: credential, the location (``LOCATION_KEYS``), and the entry name, which is
+#: free text the user typed and
 #: which nothing outside the config flow's entry title reads. Redacting
 #: ``name`` at any depth is deliberate even though it is a common key --
 #: blanking an internal label a future summary adds is a far cheaper failure
 #: than publishing a household name, and a privacy control fails safe.
-TO_REDACT = {CONF_TIBBER_TOKEN, CONF_NAME}
-
-#: Coordinate keys, wherever they are nested. Coarsened, not redacted.
-COORDINATE_KEYS = frozenset({"latitude", "longitude"})
-
-#: Decimal places kept on a coordinate. One place is about 11 km of latitude
-#: and 6 km of longitude at the 59 degrees N of a Swedish install -- far
-#: coarser than the dwelling #509 was about, and at or below Open-Meteo's own
-#: forecast grid, so it cannot change which cell a reader would look up. A
-#: fully redacted coordinate would hide the two faults this field actually
-#: produces: latitude and longitude swapped, and a location in the wrong
-#: country.
-COORDINATE_PLACES = 1
+TO_REDACT = {CONF_TIBBER_TOKEN, CONF_NAME, *LOCATION_KEYS}
 
 #: The input watchdog's published keys (the coordinator's input health view).
 INPUT_KEYS = (
@@ -128,7 +126,7 @@ def _without_private_ids(value: Any) -> Any:
 
 def _private_values(node: Any, under: str | None = None) -> set[str]:
     """The text of every value the keyed passes remove from ``node``: each one
-    under a ``TO_REDACT`` key, and each coordinate the coarsening cuts.
+    under a ``TO_REDACT`` key.
 
     A leaf's text is ``str(leaf)`` whatever its type, as ``_without_values``
     reads it: the keyed pass blanks a value of any type.
@@ -137,7 +135,7 @@ def _private_values(node: Any, under: str | None = None) -> set[str]:
         return set().union(*(_private_values(item, key) for key, item in node.items()))
     if isinstance(node, list):
         return set().union(*(_private_values(item, under) for item in node))
-    removed = under in TO_REDACT or (under in COORDINATE_KEYS and _coordinate(node) != node)
+    removed = under in TO_REDACT
     text = str(node)
     return {text} if removed and len(text) >= replay_doc.LEAK_MIN_CHARS else set()
 
@@ -311,30 +309,6 @@ def _published_sections(coord: Any, now: datetime) -> dict[str, Any]:
     }
 
 
-def _coordinate(value: Any) -> Any:
-    """One coordinate, coarsened -- or redacted if it is not a number.
-
-    Free text under a coordinate key can be an address, so only something
-    that converts to a float is published.
-    """
-    try:
-        return round(float(value), COORDINATE_PLACES)
-    except (TypeError, ValueError):
-        return REDACTED
-
-
-def _coarsen(value: Any) -> Any:
-    """``value`` with every coordinate coarsened, at any depth."""
-    if isinstance(value, Mapping):
-        return {
-            key: _coordinate(item) if key in COORDINATE_KEYS else _coarsen(item)
-            for key, item in value.items()
-        }
-    if isinstance(value, list):
-        return [_coarsen(item) for item in value]
-    return value
-
-
 def config_view(
     data: Mapping[str, Any], options: Mapping[str, Any]
 ) -> dict[str, Any]:
@@ -422,27 +396,24 @@ async def async_get_config_entry_diagnostics(
     # the debug bundle's payload snapshots and store documents included. The
     # value pass then finds what they removed under any other key.
     private = frozenset(_private_values([dict(entry.data), dict(entry.options)]))
-    redacted: dict[str, Any] = _without_values(async_redact_data(
-        _without_private_ids(
-            _coarsen(
-                {
-                    "exported_at": now.isoformat(),
-                    "entry": {
-                        "version": entry.version,
-                        "options_keys": sorted(entry.options.keys()),
-                    },
-                    **config_view(entry.data, entry.options),
-                    "coordinator": snapshot,
-                    **_published_sections(coord, now),
-                    "domain": DOMAIN,
-                    # #1940: capped, so a week too large to inline is its summary.
-                    "debug": debugger.capped(
-                        await collector.async_bundle(coord, snapshot, entry),
-                        f"{DOMAIN}_{entry.entry_id}_debug",
-                    ) if collector else None,
-                }
-            )
-        ),
-        TO_REDACT,
-    ), private)
+    redacted: dict[str, Any] = _without_values(async_redact_data(_without_private_ids(
+        {
+            "exported_at": now.isoformat(),
+            "entry": {
+                "version": entry.version,
+                "options_keys": sorted(entry.options.keys()),
+            },
+            **config_view(entry.data, entry.options),
+            "coordinator": snapshot,
+            # The heat-curve entity arm and its off restore.
+            "heat_curve": heat_curve.diagnostics(entry, coord.effective_config) if coord is not None else None,
+            **_published_sections(coord, now),
+            "domain": DOMAIN,
+            # #1940: capped, so a week too large to inline is its summary.
+            "debug": debugger.capped(
+                await collector.async_bundle(coord, snapshot, entry),
+                f"{DOMAIN}_{entry.entry_id}_debug",
+            ) if collector else None,
+        }
+    ), TO_REDACT), private)
     return redacted

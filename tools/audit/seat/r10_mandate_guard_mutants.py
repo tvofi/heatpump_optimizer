@@ -43,7 +43,7 @@ PLANTS = {
     "G1": (GHC, 'if g.revocable(c, now) and g.revokes(body, c.get("id"))}',
            'if g.revocable(c, now) and g.MANDATE_REVOKED.search(body)'
            ' and re.search(rf"{c.get(\'id\')}(?!\\d)", body)}'),
-    "G2": (GHC, 'on = str(fetch(repo, comment).get("issue_url") or "").endswith(g.MANDATE_ISSUE_URL)',
+    "G2": (GHC, 'on = g.on_record_issue(fetch(repo, comment))',
            "on = False"),
     "G3": (GHC, "} - {withdraw})", "}) if withdraw is None else []"),
     "G4": (GHC, "        mandate_guard(a.repo, body,", "        (lambda *_a, **_k: None)(a.repo, body,"),
@@ -51,7 +51,7 @@ PLANTS = {
     "B2": (GATE, "        return score_check(body, score_fn())", "        return ok, why"),
     "B3": (GATE, '_git("worktree", "add", "-q", "--detach", wt, base)',
            '_git("worktree", "add", "-q", "--detach", wt, head)'),
-    "B4": (GATE, "    if want in got:", "    if want[0] in [a for a, _ in got]:"),
+    "B4": (GATE, "    if got and got[-1] == want:", "    if got and got[-1][0] == want[0]:"),
 }
 
 

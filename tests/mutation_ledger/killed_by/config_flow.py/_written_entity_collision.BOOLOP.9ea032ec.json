@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_written_entity_collision BOOLOP 9ea032ec",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    if entity_id and any(merged.get(key) == entity_id for key in _WRITTEN_ENTITY_KEYS):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if entity_id or any(merged.get(key) == entity_id for key in _WRITTEN_ENTITY_KEYS):`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=175."
+}

@@ -7,7 +7,8 @@ into `.claude/rules/`, which the harness loads on this path). It holds what a
 session starting now must know and cannot derive from the tree in one command.
 Delivery status is the frozen table in `dev/programme/plan-2026-09-open-issues.md`
 plus one `dev/programme/delivery/<N>.md` per pull request, linked from here and
-never restated. **Volatile state is on #201 and nowhere here**: running seats,
+never restated. **Volatile state is on #3394 (#201's continuation past its
+2,500-comment cap) and nowhere here**: running seats,
 open pull requests and heads, the train queue, today's next action, the open-PR
 cap currently in force, and the mandate's id and dates. Chronology this file no
 longer carries is read at its last pre-round-10 form,
@@ -32,6 +33,11 @@ line (`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.
   is a dated snapshot, not the path. The resume, plan table and next-session
   prompt under `handoff/round10/state/` on `origin/handoff/audit-r10-plan` are
   generated from the roster by `tools/audit/seat/state_docs.py`.
+- **The round's plan page is public** at
+  `https://tvofi.github.io/heatpump_optimizer/plan/`: `.github/workflows/pages.yml`
+  publishes it through `tools/audit/seat/plan_public.py` after each state push
+  of the beat's `plan-beat` row. An outside submission on the roster is answered
+  with that link by `tools/audit/seat/outside_intake.py answer`.
 - **Done for round 10** (tvofi, 2026-10-25, verbatim): "run the full programme
   to completion (no owed handoffs, no deferred findings, no deferred leads, no
   open roster groups, no issues open except 201, nothing deferred to round
@@ -74,11 +80,12 @@ line (`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.
   the owner and beats `git config` and `-c`. Check `git log -1
   --format='%an <%ae>'` after each commit.
 - **Standing seats**, each on its own contract in `dev/governance/roles/`:
-  `standing-tick.md` (lists owed items, never acts), `standing-merge.md`
-  (operates the train, never chooses what merges), `standing-dispatch.md`
-  (dispatch, relay, verdict confirm), `standing-roster.md` (`roster_edit.py`
-  ops behind the lint gate), plus `proposal-triage.md` (opus; a proposal gets a
-  ruling before it is routed). The orchestrator sends queue lines and acts on
+  `standing-merge.md` (operates the train, never chooses what merges) and
+  `standing-dispatch.md` (dispatch, relay, verdict confirm), plus
+  `proposal-triage.md` (opus; a proposal gets a ruling before it is routed).
+  The tick and roster seats are retired into the `tick-digest` and
+  `roster-drain` beat rows (`standing-tick.md`, `standing-roster.md`): read the
+  digest, queue roster ops for the job. The orchestrator sends queue lines and acts on
   reports; `tools/audit/seat/pulse.py` and the sweep's liveness step restart an
   absent one. **The orchestrator never runs `train.sh add`, a roster op or a
   dispatch inline** (tvofi, 2026-10-21 and 2026-10-27): it confirms a verdict on
@@ -94,7 +101,7 @@ line (`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.
   fixers go to the cloud too.** A cloud seat silent past about 2.5 hours with
   no ref pushed is re-run locally after an `ls-remote` guard against a late
   push. Fixers run at medium effort; a mechanical turn takes sonnet or haiku.
-- **The open-PR cap** is the owner's, restated on #201 each time it moves, and
+- **The open-PR cap** is the owner's, restated on #3394 each time it moves, and
   it is a count of open pull requests that gates only starting a new roster
   group. `pr_cap.py dispatch-gate` counts in-progress roster groups against
   `HPO_WIP_CAP` instead, which is not the owner's rule: never quote its `WIP
@@ -114,7 +121,7 @@ tick driver (`tick_loop.sh`, `orchestrator_tick.py`), the verdict path
 `body_push.sh`, `body_patch.sh`), the merge path (`train.sh`, `merge_train.py`,
 `tools/pr/app_approve.sh`), the roster (`roster_edit.py`, `roster_sync.py`,
 `state_docs.py`), the sweep (`sweep_render.py`, `sweep_template.md`), and
-`tools/audit/worktree_gc.sh` after each merge. Comments on #201 and on pull
+`tools/audit/worktree_gc.sh` after each merge. Comments on #3394 and on pull
 requests are posted with `tools/pr/gh_comment.py` and read back
 (`comment-readback.md`).
 
@@ -143,7 +150,7 @@ requests are posted with `tools/pr/gh_comment.py` and read back
 
 The authority to approve as the owner is a record, read from the API at the
 moment of use and trusted nowhere in the tree: the newest comment by `tvofi`
-on #201 whose first line is `MANDATE: agents may approve as tvofi, scope
+on #201 or #3394 whose first line is `MANDATE: agents may approve as tvofi, scope
 <code-owned|budget-raise|all>, from <ISO> until <ISO>`. Its id, scope and
 dates are on #201 and in the sweep prompt; decision 0013 and its 2026-10-02
 and 2026-10-14 amendments are the rule. After `until`, decision 0007's
@@ -163,7 +170,7 @@ per-pull-request owner review is the rule again.
   seat's classifier denial of it is not laundered through the mandate, the seat
   is re-briefed or the work runs where the action is allowed.
 - **The kill switch is deliberately loose.** `budget_raise_gate.py` voids a
-  mandate on any later comment by the owner's account on #201 that contains the
+  mandate on any later comment by the owner's account on #201 or #3394 that contains the
   stem of the verb "to revoke", in any case, on any line, beside that
   mandate's id. **An identifier counts**: a roster group whose name contains
   that stem voided it a second time (2026-10-31) and refused a pull request's
@@ -210,7 +217,7 @@ per-pull-request owner review is the rule again.
    no negated closing keyword, never a custom `--subject`, `preflight.sh` as a
    filter with the intended issues as arguments, then read which issues the
    merge actually closed.
-5. **After each merge**: `state_docs.py --push`, the merge's #201 comment, the
+5. **After each merge**: `state_docs.py --push`, the merge's #3394 comment, the
    delivery row (the beat writes it; a frozen PR's own row costs a record pull
    request), the roster `set-stage` through the roster seat, and
    `tools/audit/worktree_gc.sh`. This file is updated in the same record pull
@@ -223,7 +230,7 @@ per-pull-request owner review is the rule again.
 7. **Stamp.** The orchestrator stamps, `stamp.py --push --push-key
    ~/.zcode/stamp-deploy.key --known-hosts <file>`, never by hand and never in
    a branch. It refuses a `main` whose `ci.yml` push run's `gate` is not green
-   (`--allow-red` takes the cause in the release notes and on #201), a window
+   (`--allow-red` takes the cause in the release notes and on #3394), a window
    with a merged PR lacking its row (`--allow-rowless` likewise), and notes
    omitting a merged PR. The deploy key's SSH on port 22 can time out from the
    stamping host: route `github.com` to `ssh.github.com:443` and verify the host
@@ -427,7 +434,7 @@ graduation owes a mutation proof in its own pull request.
   handoff and only the orchestrator moves the head; a head moved under a live
   review costs it (`orchestrator.md` section 7). A record pull request cannot
   converge while the merge queue runs (#531 stayed open 20 hours over 31
-  merges), so one record per merge, and live state on #201.
+  merges), so one record per merge, and live state on #3394.
 - **`prepr.sh` gates `## Head` against the LOCAL head and `pr-contract` gates
   the REMOTE tip**, so a pull request that writes its own record file pushes
   twice and one `pr-contract` run necessarily fails on the commit being

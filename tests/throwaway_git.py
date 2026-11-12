@@ -92,8 +92,8 @@ ROOT = Path(__file__).resolve().parents[1]
 SELF = "tests/throwaway_git.py"
 SHELL_TWIN = "tests/throwaway_git.sh"
 
-IDENTITY = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
-            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+IDENTITY = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "1+t@users.noreply.github.com",
+            "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "1+t@users.noreply.github.com"}
 #: (key, value) set both through the environment and in the repository's config.
 CONFIG = (("maintenance.auto", "false"), ("gc.auto", "0"))
 #: `git rev-parse --local-env-vars` at git 2.55.0, plus GIT_INTERNAL_SUPER_PREFIX

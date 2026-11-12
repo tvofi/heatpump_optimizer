@@ -12,7 +12,6 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading** (`CLAUDE.md` rule 4). The rule is keyed on the manifest's
    `version` field, not the file; the command is `prepr.sh` step 5's.
-   Compare three-dot (`CLAUDE.md` rule 3).
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
@@ -20,13 +19,18 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    not the tail**: a line past a script's own return changes nothing, nor
    `exit $?` to `exit 0` under `set -e` (write `|| true; exit 0`; #2709), and a
    vacuous mutation reads exactly like a passing check.
-   A mutant run from a `git archive` copy fails the #363 `recorded_at` check
-   on every mutant, baseline included: the runner's, not the mutant's
-   (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.**
-   `prepr.sh` step 6d lists the unpinned sites the diff adds; the body's
-   `## Unpinned sites` gives each its disposition: pinned by
-   `mutation-autofix` (its lane mutates `custom_components/` only; a `tools/`
-   site needs an in-tree mutant harness), a value check, or a triage under
+   A guard that classifies text by shape is driven over a generated spelling
+   corpus (case, quoting, glued options, delimiters, wrapping) with the corpus
+   size named in the body; a spelling the reviewer finds is added to it.
+   A `git archive` copy fails the #363 `recorded_at` check, and a self-test
+   needing a checkout, on every mutant, baseline included (#1713, #1723).
+   **The diff's survivors are yours before the handoff; `--pin-killed` is
+   `ci-autofix.md`'s.** Set `prepr.sh`'s `MUTANT_CMD` to the group's self-test
+   or a `features_block.py` call (`MUTANT_IN_PLACE=1` for a checkout); it draws only
+   the first 40 mutants of added `.py` lines outside `tests/` and `dev/`. Each
+   `SURVIVED` line and step 6d unpinned site gets a killing check or an `## Unpinned
+   sites` disposition: pinned by `mutation-autofix` (its lane mutates `custom_components/`
+   only; a `tools/` site needs an in-tree mutant harness), a value check, or a triage under
    `tests/mutation_ledger/survivor_triage/` (the ratchet reads no body). Run the
    ledger's own mutant before claiming a kill (#2445).
 3. **Re-execute the finding's harness on your branch**: before and after, with
@@ -41,15 +45,15 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    the harness drives leaves only its count arm readable at the head;
    the fixer ports the rest, as its own (`fix-review.md` step 9; #2365).
    **Every quantified claim carries a null control, not only cost, gain and
-   time**: a count, a percentage, an "every" or a "none" is a measurement,
-   owed the command that produced it and
-   the result that would have appeared had it been false. **Never print a
-   conclusion beside a command** — `diff a b && echo IDENTICAL`, never
-   `diff a b; echo "(empty means identical)"`, which prints either way. A figure
-   from a sliding window, or one an instrument prints, is stale after you write
-   it: state the rule or name the instrument, never the number. A learner or guard
-   change is measured at both ends of its input range — an install with zero
-   evidence, and one on the clamp — a fix has been worse than its bug before. The class's seams and the rule that enumerates them are step 8's.
+   time**: a count, a percentage, an "every" or a "none" is a measurement, owed
+   the command that produced it and the result that would have appeared had it
+   been false. **Never print a conclusion beside a command** — `diff a b &&
+   echo IDENTICAL`, never `diff a b; echo "(empty means identical)"`, which
+   prints either way. A figure from a sliding window, or one an instrument
+   prints, is stale after you write it: state the rule or name the instrument,
+   never the number. A learner or guard change is measured at both ends of its
+   input range — an install with zero evidence, and one on the clamp — a fix
+   has been worse than its bug before.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the live `VERSION`.
@@ -74,50 +78,55 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    the carry check); the orchestrator opens
    the PR (`docs/decisions/0011-app-authored-identity.md`).
 
+   **`ci_predict.py` printing `BOOTSTRAP`** (the base's copy of the changed
+   grader refuses, the head's passes in `prepr.sh`) is not `BLOCKED`: register
+   in unpinned data the grader reads (`corpus_excluded.json`, #2916), or split:
+   p1 the grader hunks alone, p2 the rest, a WIP handoff until p1 is on main
+   (decision 0013, Consequences).
+
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
    A mutation proof leaves `stress.py` to CI's required mutation check: never
    run it locally per mutant.
 
-   `GOLDEN_MODE=drift` against the merge base always (`CLAUDE.md` rule 3).
-   `python3 tests/structure.py` runs before every push.
+   `GOLDEN_MODE=drift` against the merge base always (`CLAUDE.md` rule 3);
+   `python3 tests/structure.py` before every push.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
-   the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
-   of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
-   with that tip and `date -u`. The code head goes to `handoff/<topic>`, the
-   body to the orphan `handoff-body/<topic>` by `seat/body_push.sh`, which
-   runs `review_packet.py handoff`'s offline refusals; answer each before the
-   push. That push is the handoff; `handoff_push.sh` opens the PR and writes the row.
+   the evidence describes one tree, and either makes a new one — **the body
+   included**, because a figure that is a function of `origin/main`'s tip is
+   false the moment `main` moves; stamp it with that tip and `date -u`. The code
+   head goes to `handoff/<topic>`, the body to the orphan `handoff-body/<topic>`
+   by `seat/body_push.sh`, whose offline `review_packet.py handoff` refusals you
+   answer first. That push is the handoff; `handoff_push.sh` opens the PR.
 
    **The handoff freezes the branch.** Until then, merge `origin/main` (never
    rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
    conflict or the head is `DIRTY` (`nudge.md` step 9). A delta re-applied to
    a branch cut from an older base is diffed line by line against its
-   sibling's head, or a stale copy reverts it (#2368). After it, the head is the reviewer's measuring surface and **only the orchestrator, the
-   merge-main bot or `--carry` moves it**: a head that moves mid-review invalidates measurements taken,
-   and the reviewer cannot tell which of its numbers still describe the tree.
+   sibling's head, or a stale copy reverts it (#2368). After it, the head is
+   the reviewer's measuring surface and **only the orchestrator, the merge-main
+   bot or `--carry` moves it**: a mid-review move leaves the reviewer unable to
+   tell which numbers still describe the tree.
    **A conflict with main after it is resolved by merge, never a re-cut**
    (tvofi, 2026-10-01): the orchestrator merges `origin/main` into the head, or
    hands you a semantic one to merge alike; the same reviewer judges that delta
-   alone (`fix-review.md` step 12).
-
-   Landing the pull request is the **orchestrator's**, or a merge-and-release
-   seat it starts.
+   alone (`fix-review.md` step 12). Landing is the **orchestrator's** or its release seat's.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured
-   (a `--carry` head: no re-take; name bot reds), and carries every executed number,
-   each in `## Figures` with its command.
+   (a `--carry` head: no re-take; name bot reds), and carries every executed
+   number in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
-   Only a count whose rule is written down is re-derivable (#373: one census, three counts).
-   **Name the instrument you re-ran, and its scope.** If the block you are clearing
-   was demonstrated with an *instance*, your verification may not be a search for
-   that instance — it must check the property the phenomenon states, not the property
-   the block's text states: name a rule that enumerates the class's seams (a command,
+   Only a count whose rule is written down is re-derivable (#373: one census,
+   three counts). **Name the instrument you re-ran, and its scope.** If the
+   block you are clearing was demonstrated with an *instance*, your verification
+   may not be a search for that instance — it must check the property the
+   phenomenon states, not the property the block's text states: name a rule that enumerates the class's seams (a command,
    not a description), run it, and put every seam it returns in `## Figures` against
    its disposition — closed in this diff, already guarded, or a distinct finding named
-   by id. An un-dispositioned returned seam is an open seam, class not closed. If no such instrument
-   exists, say so, and say what you did instead. This is step 11 applied to your own instrument: one
-   inherited from the finder is keyed to the instance it demonstrated (#592's root cause).
+   by id. An un-dispositioned seam is an open seam, class not closed. If no such
+   instrument exists, say so and what you did instead. This is step 11 applied to
+   your own instrument: one inherited from the finder is keyed to the instance it
+   demonstrated (#592's root cause).
    For a P2 finding, the rule step 8 names is a registry entry in `tests/entities.py`'s P2
    owners block (fact, shape, owner, dispositions), landed in the same PR, not a one-shot
    command. Where the fact has no syntactic shape (physics consistency, failure signalling,
@@ -136,78 +145,71 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     Correcting prose a script emits leaves the script emitting the old text on
     its next run, so the correction is undone rather than kept (#539). Grep for
     the wrong form across the whole tree before deciding what to edit.
-    **A generator fixed without being run is a claim, not a fix**: run it and
-    paste what it now emits, with the same
-    run at the merge base as the control. Distinguish text that *instructs*
-    from a record that *recounts* — a measurement record stays as written.
+    **A generator fixed without being run is a claim, not a fix**: run it,
+    paste what it now emits, and run it at the merge base as the control.
+    Text that *instructs* differs from a record that *recounts*: a measurement
+    record stays as written.
 11. **A check pins the artifact it reads, not the one it is named for.** The
     #546 check read the constant `apply_topology`'s schema is built from, so a
     schema that stopped agreeing with it was invisible (#550). Read the
-    registered artifact, as `tests/entities.py` does.
-    Then probe a key the read does **not** name: under `extra=vol.ALLOW_EXTRA`
-    the read set is still exactly right while the schema accepts anything, so
-    the probe is the reader's own null control.
+    registered artifact, as `tests/entities.py` does. Then probe a key the read
+    does **not** name: under `extra=vol.ALLOW_EXTRA` the read set is still
+    exactly right while the schema accepts anything, so the probe is the
+    reader's own null control.
 
     **Say where a check encodes a design choice** (#546's settled which of two
-    artifacts was authoritative). Prejudging is legitimate — saying so is what
-    stops the next seat reading a legitimate tightening as a bug.
+    artifacts was authoritative): saying so stops the next seat reading a
+    legitimate tightening as a bug.
 
 12. **The seam a method belongs to is its entry in `tests/seam_map.json`
     (#1539, 548c818), not its name.** A new or renamed coordinator method is
     refused by the ratchet until you add its entry by hand, in the same diff,
     with the seam you chose. Never run `--seed-seam-map`: it re-derives every
     entry from the retired name rule. Before pricing an extraction, say which
-    seam each candidate method carries in the map.
+    seam each candidate carries in the map.
 
 13. **`tests/hastub` is not Home Assistant, and a green test may pin the stub.**
     `tests/ha_contract.py` records each stub symbol's fidelity and runs its
-    contracts against both the stub and, nightly, the real package. **Before asserting
-    that a test proves a production property, check whether the stub is what
+    contracts against the stub and, nightly, the real package. **Before
+    asserting that a test proves a production property, check whether the stub
     satisfied it.**
 
     If your work depends on a symbol's upstream behaviour, add or read its
-    contract rather than assuming; if you must extend the stub, argue the
-    fidelity against upstream rather than shaping it to what your test needs —
-    that shape is exactly the one that agrees with a wrong implementation.
+    contract; if you extend the stub, argue the fidelity against upstream, not
+    what your test needs — that shape agrees with a wrong implementation.
 
 14. **An allow-list is keyed on something, and your entry silences everything
     that key matches.** Before adding a case to a pin, a baseline or a
     suppression list, name the key's fields, name the property that makes your
     own occurrence legitimate, then key the occurrence the pin exists to catch
-    and compare the two. Equal keys mean the entry blinds the pin at the site
-    it watches, and the answer is to change the route until no entry is needed,
-    or to widen the key until the two separate — never to add it and note the
-    risk. #714 declined a `KNOWN_BLOCKING` entry keyed on (call, file,
-    snippet): no field carries the caller, so it would equally have matched
-    that line reached from a coroutine (#525).
+    and compare the two. Equal keys blind the pin at the site it watches, and
+    the answer is to change the route until no entry is needed, or to widen the
+    key until the two separate — never to add it and note the risk.
 
     **A fix that changes the route leaves the reported text where it was, so
     name the route.** #714 rerouted the caller and left `worker.wait(timeout=2)`
-    in place: grepping the report's own call, file and snippet finds them
-    unchanged and reads the defect as open, and grepping for their absence
-    finds nothing and reads the same. Anchor the claim to what moved: branch,
-    registration, frame count.
+    in place: grepping the report's call, file and snippet reads the defect as
+    open, and grepping for their absence finds nothing and reads the same.
+    Anchor the claim to what moved: branch, registration, frame count.
 
 15. **A bitwise-parity claim over numpy reductions is per-architecture.**
     `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`, and neither is a
-    reduction over a row VIEW of a batched array one over the fresh array
-    the scalar expression builds: numpy's pairwise loop takes alignment and
-    stride as inputs, per backend (#948: arm64 parity, x86_64 drift, at the
-    96-step production width only). Where the contract is bitwise, run the
-    SCALAR EXPRESSION per row, on the
-    fresh per-row arrays that expression's own elementwise ops allocate —
-    batch only what is elementwise end to end — and drive the parity grid
-    at the production width.
+    reduction over a row VIEW of a batched array one over the fresh array the
+    scalar expression builds: numpy's pairwise loop takes alignment and stride
+    as inputs, per backend (#948: arm64 parity, x86_64 drift, at the 96-step
+    production width only). Where the contract is bitwise, run the SCALAR
+    EXPRESSION per row, on the fresh per-row arrays that expression's own
+    elementwise ops allocate — batch only what is elementwise end to end — and
+    drive the parity grid at the production width.
 
     The same rule holds one level up and across interpreter versions: a
-    reduction whose scalar form is a PYTHON BUILTIN is compensated
-    arithmetic on CPython 3.12+ — builtin `sum` is Neumaier — and no
-    vectorized accumulation reproduces it (#948: 1-2 ulp, red on CI's 3.14
-    runner, green on 3.11, whose `sum` is plain).
-    Make the twin call the scalar closure's own function per row, and put
-    detector rows on the parity grid that separate the two summations
-    (measured: ~12% of random three-term sums), so the interpreter class
-    that diverges — CI's — runs the detector.
+    reduction whose scalar form is a PYTHON BUILTIN is compensated arithmetic
+    on CPython 3.12+ — builtin `sum` is Neumaier — and no vectorized
+    accumulation reproduces it (#948: 1-2 ulp, red on CI's 3.14 runner, green
+    on 3.11, whose `sum` is plain). Make the twin call the scalar closure's own
+    function per row, and put detector rows on the parity grid that separate
+    the two summations (measured: ~12% of random three-term sums), so the
+    interpreter class that diverges — CI's — runs the detector.
 
     A per-row twin removes re-entry, not work; when it is the fix for a
     recomputation finding, re-measure the finding's cost on the fixed tree and
@@ -243,13 +245,13 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     - a group's architect note (`orchestrator.md` section 5) followed; a departure is raised, not made.
 
     Cost is no reason to take the worse fix; the preamble's scope still binds,
-    and a fix that cannot be sound within it stops and asks the orchestrator.
-    An improvement claim names its mechanism, which the reviewer removes as the
+    and a fix not sound within it stops and asks the orchestrator. An
+    improvement claim names its mechanism, which the reviewer removes as the
     null control (`fix-review.md` step 14). Never move a metric by a change
     that does not improve the code: a mechanical split, code moved to an
-    unmeasured path, a triage on a killable mutant, or cases enumerated where
-    a structural fix exists (#1874, #2345: a spelling list, three review
-    rounds, class still open).
+    unmeasured path, a triage on a killable mutant, or cases enumerated where a
+    structural fix exists (#1874, #2345: a spelling list, three review rounds,
+    class still open).
 18. **What a later round or seat reruns, or a body figure needs reproduced,
     lands in the same pull request** (tvofi, 2026-10-03): a harness in
     `dev/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`,
@@ -273,14 +275,11 @@ never a pull-request body — decision 0010, true under either merge method).
 the single class named by `COORDINATOR_CLASS_NAME`; the rest from every parsed
 module. A method added outside that **class** moves none of the first group, so
 the payment question does not arise there. *Class*, not file: `coordinator.py`
-holds several, and adding a method, call and attribute to `CoordinatorContext` moves no row.
-Derive the split (what `measure()` keys by that name) at your merge base; never carry it.
-`max_class_loc` is a span: a docstring line costs what a code line does.
+holds several; `CoordinatorContext` additions move no row. Derive the split at your merge base.
 
 **An empty payment pool is a halt only where a payment was owed.** Let
 `python3 tests/structure.py` name what moved at your merge base. Outside the
-coordinator class a split usually moves the maxima *down* -- which the gate still
-refuses until you re-record them.
+coordinator class a split moves the maxima *down*; re-record them.
 
 A raise is the owner's, confirmed before the push (`CLAUDE.md` rule 2); zero
 headroom is no veto on new functionality or the better fix (#398). **The ask and the PR body list every
@@ -296,19 +295,20 @@ Name the destination in your PR body — which brief, contract, carry file or
 roster received it — so the reviewer checks the destination rather than takes
 your word.
 
+**A finding in your own group's seam is built in this PR, not carried.**
+`Carry: <own group>` only names a pending owner or orchestrator ruling, or a
+split part the approved plan names.
+
 ## Before you hand off: answer any check your branch turned red
 
-`defect-root-cause.md`'s second trigger fires on your own PR: name each check
-that went red in the body and answer it there — the cheaper detector and its
-standing cost, or the finding that none exists. `UNDER-SCOPED` and `INHERITED
-CLAIMS` are answered by naming them (`ci-autofix.md`). You are naming the
-trigger, not analysing it; the analysis is `root-cause.md`'s seat.
+`defect-root-cause.md`'s second trigger fires on your own PR, as its Enforcement section states.
+`UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them (`ci-autofix.md`).
 
 ## Past three rounds, re-cut rather than repair
 
 The owner's rule. At the **fourth** round, replace the body under a `## Re-cut`
 note, which `bus.sh dispatch` requires: the headings `.github/PULL_REQUEST_TEMPLATE.md`
-requires, the arms that fire, and only figures re-taken in that pass. Round history is deleted, not
-restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
+requires, the arms that fire, and only figures re-taken in that pass. Round
+history is deleted, not restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
 tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**:
 the orchestrator splits or closes it.

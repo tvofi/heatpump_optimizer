@@ -184,9 +184,8 @@ def _wood_view(cheap_steps, off_steps=(), config=None):
     return build_wood_fuel_view(
         _WOOD_READY if config is None else config,
         prices=[4.0 if i in cheap_steps else 1.0 for i in range(n)],
-        outdoor=[0.0] * n,
+        cops=[3.0] * n,
         runs=[i not in off_steps for i in range(n)],
-        cop_at=lambda _t: 3.0,
         timestamps=_STAMPS,
         forecast_kw=[],
         local_tz=_tz.utc,
@@ -248,9 +247,8 @@ _CET = _tz(_td(hours=1))
 _local = build_wood_fuel_view(
     _WOOD_READY,
     prices=[4.0 if i in (22, 23) else 1.0 for i in range(30)],
-    outdoor=[0.0] * 30,
+    cops=[3.0] * 30,
     runs=[True] * 30,
-    cop_at=lambda _t: 3.0,
     timestamps=_STAMPS,
     forecast_kw=[],
     local_tz=_CET,
@@ -578,5 +576,99 @@ if _Env is not None:
         and _late_before is True and _late_after is False and _late_set is True,
         repr((_late_before, _late_after, _late_set)),
     )
+
+# The pump-heat price is derated at the plan's own draw (R10-PARTLOAD-RESIDUE,
+# #3182 carry 2's fourth seam). Driven through the coordinator's one entry,
+# ``wood_fuel_from_parts``, on production ``ThermalParameters``: band 1-3 kW,
+# derate 0.1, so a step drawing 3 kW delivers its heat at COP 3 * 0.9 = 2.7.
+# At 2.85 SEK/kWh the linear price is 0.95 (< wood's 1.0) and the derated one
+# 1.0556 (> 1.0): wood is cheaper there only once the draw is read. A step at
+# the 1 kW floor keeps factor 1, and derate 0 is the null. The space share
+# sits at the floor, so only the total (space plus hot water) is derated.
+from types import SimpleNamespace as _NS
+
+from heatpump_optimizer.thermal_model import ThermalParameters as _TP
+from heatpump_optimizer.thermal_model import partload_factor as _plf
+from heatpump_optimizer.wood_fuel import wood_fuel_from_parts as _from_parts
+
+
+def _parts_view(derate, space, dhw, tank=None, partload_at=_plf, n_out=None,
+                price=2.85):
+    tp = _TP(min_electrical_power=1.0, max_electrical_power=3.0,
+             cop_partload_derate=derate)
+    n = len(_STAMPS)
+    result = _NS(
+        timestamps=_STAMPS, prices=[price] * n,
+        outdoor_temps=[0.0] * (n if n_out is None else n_out),
+        heat_pump_on_schedule=[True] * n,
+        power_schedule=space, dhw_power_schedule=dhw,
+    )
+    return _from_parts(
+        _WOOD_READY, external_heat=_NS(suppressing=False),
+        opt_config=_NS(dt_hours=1.0, min_temp=20.0), thermal_params=tp,
+        thermal_model=_NS(compute_cop=lambda _t: 3.0),
+        current_state=_NS(wood_tank_temperature=tank), result=result,
+        local_tz=_tz.utc, partload_at=partload_at,
+    )
+
+
+def _count(derate, draw, **kw):
+    n = len(_STAMPS)
+    return _parts_view(derate, [1.0] * n, [draw - 1.0] * n, **kw).get(
+        "cheaper_hour_count")
+
+
+_N = len(_STAMPS)
+_wood_counts = [_count(0.1, 3.0), _count(0.1, 1.0), _count(0.0, 3.0)]
+R.check(
+    "the wood advisor prices pump heat at the derated COP of the plan's own "
+    "draw (space plus hot water): every step at max power reads wood-cheaper, "
+    "none at the floor draw, none at derate 0",
+    _wood_counts == [_N, 0, 0],
+    repr(_wood_counts),
+)
+# Edges of the draw read. 1.5 kW derates to 0.975 (0.95 / 0.975 < 1.0, not
+# cheaper) and 2.5 kW to 0.925 (1.027, cheaper), so each reading of a missing
+# draw is told apart from its alternative.
+_edges = [
+    # no partload_at (the default): the view prices at the COP alone
+    _count(0.1, 3.0, partload_at=None),
+    # a non-finite space draw is 0 kW, so the step draws its 1.5 kW hot water
+    _parts_view(0.1, [float("nan")] * _N, [1.5] * _N).get("cheaper_hour_count"),
+    # no hot-water schedule is 0 kW of hot water
+    _parts_view(0.1, [1.5] * _N, None).get("cheaper_hour_count"),
+    # a plan 6 steps shorter than the outdoor list: the tail keeps its COP
+    _parts_view(0.1, [1.0] * (_N - 6), [2.0] * (_N - 6), n_out=_N).get(
+        "cheaper_hour_count"),
+]
+R.check(
+    "the derate reads only what the plan publishes: no partload_at, a "
+    "non-finite space draw (0 kW), a missing hot-water schedule (0 kW) and "
+    "steps past the plan's schedules (no factor) price as stated",
+    _edges == [0, 0, 0, _N - 6],
+    repr(_edges),
+)
+# The night scan reads the same derated COP: a low tank (25 C over a 20 C
+# floor) is told to light only where the derated pump heat is dearer than wood.
+_night = [_parts_view(d, [1.0] * _N, [2.0] * _N, tank=25.0).get(
+    "night_advice", {}).get("action")
+          for d in (0.1, 0.0)]
+R.check(
+    "the night advice prices pump heat at the derated COP of the plan's own "
+    "draw: light at derate 0.1, no advice at derate 0",
+    _night == ["light", None],
+    repr(_night),
+)
+# With no outdoor forecast the night scan keeps its flat COP 3 (no draw read):
+# at 3.3 SEK/kWh the pump heat is 1.1, dearer than wood's 1.0, so it lights;
+# at 2.7 it is 0.9 and it does not.
+_no_out = [_parts_view(0.1, [1.0] * _N, [2.0] * _N, tank=25.0, n_out=0, price=p).get(
+    "night_advice", {}).get("action") for p in (3.3, 2.7)]
+R.check(
+    "with no outdoor forecast the night advice prices pump heat at a flat "
+    "COP of 3: light at 3.3 SEK/kWh, no advice at 2.7",
+    _no_out == ["light", None],
+    repr(_no_out),
+)
 
 sys.exit(R.close("wood-advisor checks"))

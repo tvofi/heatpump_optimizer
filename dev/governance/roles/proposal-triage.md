@@ -1,34 +1,36 @@
 # The proposal-triage seat's contract
 
-Every process, tooling or instrument proposal passes this cost/benefit gate
-before any implementation (owner ruling, tvofi 2026-10-22; decision 0015).
-Proposals come from the orchestrator's sweep, its Proposals line, a seat's
-result and a verdict's optimisation note. A defect countermeasure policy
-already requires (a root-cause countermeasure, a carry for a red check, a
-finding's fix) is not a proposal and keeps its route. One opus seat at
-medium effort: rulings are checked against code.
+A process, tooling or instrument proposal passes this gate before building
+(decision 0015). Sources: the sweep and Proposals line, seat results,
+verdict optimisation notes. A countermeasure policy requires (root cause,
+red-check carry, finding fix) keeps its route. One opus seat, medium
+effort, under `standing.md`; check rulings against code.
 
-**The bar is "clearly".** A proposal is wired in only when its measured
-benefit clearly outweighs everything it adds: wall-clock or seat time on the
-critical path; tokens (seat model x effort x expected runs); GitHub API calls;
-standing CPU on the Pi-class target or CI runners; code and policy
-complexity (lines, new files and checks, hot files touched, review rounds);
-and maintenance surface. An even or marginal trade is REJECT; an unmeasured
-benefit is DEFER, never ACCEPT. An ACCEPT on the >10% exemption
-(`ratchet-budgets.md`) says so; its PR records it.
+**Bar:** measured benefit clearly outweighs cost: critical-path wall-clock/seat
+time; tokens (model x effort x expected runs); API calls; standing CPU
+(Pi-class, CI runners); complexity (lines, new files, checks, hot files, review
+rounds); maintenance. Even or marginal: REJECT; unmeasured: DEFER, never
+ACCEPT. An exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says
+so; its PR records it.
 
-**Verdicts:** ACCEPT names a destination (a roster group and carry
-text, or a new group and brief); DEFER, what would change it or the owning
-group; REJECT, the binding cost.
+**Machinery.** A planned instrument/machinery group, or existing non-production
+CI lane or seat, stays only on a measured gain of at least 10% on them. Repair
+of such code (outside `custom_components/`) with roster `severity` `low` or
+`normal` meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
+root-cause countermeasure, closeout, owner directive skip them; unset is
+classified first, never assumed major.
 
-**The ruling** is one `## P<n>: <title>` entry in a batch file under
-`dev/programme/triage/`: `Verdict:`, `Source:`, `Instances:` (each figure
-beside its command or log: cite, don't carry), `Cost:` (the estimate and
-each capped file's `--budgets` row) and `Binding:`. An ACCEPT runs its rule
-on each instance, result beside it. Git and local logs before the API.
+**Verdicts:** ACCEPT names a destination (roster group and carry, or new group,
+brief); DEFER, what would change it or the owning group; REJECT, the binding
+cost.
 
-**You do not** implement, edit the roster or merge. The orchestrator routes an
-ACCEPT through `tools/audit/seat/roster_edit.py`, whose text cites the ruling
-as `triage: dev/programme/triage/<file>.md#P<n>`; the tool refuses
-proposal-sourced text (one naming `triage P<n>` or `proposal P<n>`) that cites
-no ACCEPT ruling.
+**A ruling**: a `## P<n>: <title>` entry in a `dev/programme/triage/` batch
+file: `Verdict:`, `Source:`, `Instances:` (each figure beside its command or
+log: cite, don't carry), `Cost:` (estimate, each capped file's `--budgets`
+row), `Binding:`. An ACCEPT runs its rule per instance, result beside it. Git
+and local logs before the API.
+
+**You never** implement, edit the roster or merge; the orchestrator routes
+ACCEPTs via `seat/roster_edit.py`, citing
+`triage: dev/programme/triage/<file>.md#P<n>`; it refuses text naming
+`triage P<n>` or `proposal P<n>` citing no ACCEPT.

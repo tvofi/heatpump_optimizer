@@ -46,7 +46,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f]
+//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f] [--required-file f]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -410,6 +410,7 @@ const LOOP_CHECK_NAMES = [
   // `## Friction` section and the histogram keying nothing, which is the
   // silent shape the shared parser replaced.
   { name: 'checkPrBody', file: 'policy_lint.mjs', kind: 'return' },
+  { name: 'figureBlockProblems', file: 'policy_lint.mjs', kind: 'return' },
   { name: 'frictionEntries', file: 'policy_lint.mjs', kind: 'return' },
   // The histogram's KEYING, which is a second silent shape beside the grammar's:
   // `frictionEntries` decides what an entry IS, `frictionKey` decides which key
@@ -1971,7 +1972,7 @@ function resolvePrFromCommit(subject, rows) {
 
 // Where a disposition may live. CLAUDE.md's programme-tracking section names
 // exactly these two: the Delivery-status table in the plan of record, and the
-// living handover. #201 is deliberately NOT one of them -- it is the volatile
+// living handover. #3394 (#201 before it) is deliberately NOT one of them -- it is the volatile
 // half of the split, free to post at any moment and not in the tree, so a check
 // that accepted it would be satisfiable by something no later seat can read
 // from a checkout.
@@ -2822,8 +2823,11 @@ const FRICTION_FAMILIES = [
   // One obligation under three class words (#2437, R10-RCA-FRICTION-RESIDUE
   // section 5): the root-cause check the fix reviewer enforces, split by what
   // went wrong with the body's answer. Measured v7.0.4..origin/main: 5, 6 and
-  // 12 pull requests under the three words.
-  { name: 'root-cause', members: ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded'] },
+  // 12 pull requests under the three words. `red-checks` is the fourth
+  // spelling of the same unanswered-body block: #3252 twice (the body's
+  // `## Red checks` names none of the head's concluded reds), v7.1.5..origin/main
+  // (R10-RCA-OTHER-UNTAUGHT.md section 3, R10-RCA-FRICTION-OTHER-FAMILY-P2.md).
+  { name: 'root-cause', members: ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded', 'red-checks'] },
 ]
 
 // THE DERIVED FAMILY (#2436, R10-RCA-FRICTION-RESIDUE section 4). The reviewer
@@ -4032,6 +4036,33 @@ function assertAcceptance(derived) {
     }
   }
 
+  // The figure-block arm: a rendered block in `## Figures` passes; each rule
+  // draws exactly its own error; free-form figures with no block are the null
+  // control. Bodies are the healthy good.md with its Figures section swapped.
+  {
+    const own = fs.readFileSync(path.join(prepr, 'good.md'), 'utf8')
+    const figs = own.slice(own.indexOf('## Figures'), own.indexOf('## Red checks'))
+    const H = 'a'.repeat(40)
+    const blk = (attrs) => `<!-- figure-block: scope-line${attrs} -->\n~~~text\nx\n~~~\n<!-- /figure-block -->`
+    const good = blk(` mb=${H} head=${H}`)
+    const cases = [
+      ['a rendered block', `## Figures\n\n${good}\n\n`, null],
+      ['free-form figures, no block (null control)', figs, null],
+      ['a malformed marker', `## Figures\n\n<!-- figure-block: Scope -->\n`, 'does not parse'],
+      ['an unclosed block', `## Figures\n\n${good.replace('<!-- /figure-block -->', '')}\n`, 'never closed'],
+      ['a block outside Figures', `${figs}## Notes\n\n${good}\n\n`, 'outside'],
+      ['another head', `## Figures\n\n${blk(` mb=${H} head=${'b'.repeat(40)}`)}\n\n`, 'another head'],
+      ['an unrendered marker', `## Figures\n\n${blk('')}\n\n`, 'unrendered'],
+    ]
+    for (const [label, text, needle] of cases) {
+      const errs = figureBlockProblems(own.replace(figs, text), { head: H })
+      if (needle ? errs.length !== 1 || !errs[0].includes(needle) : errs.length) {
+        console.log(`\nFIXTURE VACUOUS: the figure-block arm on ${label} drew ${errs.length} error(s) (${errs.map((e) => e.slice(0, 80)).join(' | ')}); it must draw ${needle ? `exactly one, naming \`${needle}\`` : 'none'}`)
+        return 1
+      }
+    }
+  }
+
   // The attribution arm (R10-FLY-NO-FOOTERS): attribution.md is a healthy body
   // plus the footer and a session link, so the arm and only the arm fires on
   // it; good-claude-ai.md names claude.ai in another sense and quotes the
@@ -4499,6 +4530,94 @@ function assertAcceptance(derived) {
       console.log(`\nFIXTURE VACUOUS: MAIN_STATE_REPORTERS (${label}): red ${JSON.stringify(redNames)} over paths ${JSON.stringify(paths)} owed answers for ${JSON.stringify(got)}, not ${JSON.stringify(owed)}; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone`)
       rc = 1
     }
+  }
+  // ONLY A REQUIRED RED IS OWED (owner ruling 2026-11-07). The set is the
+  // train's at the recorded ruleset ([gate]): the fixture's gate_required plus
+  // `gate`, what `merge_train.py owed-reds` prints for it. A main-graded
+  // reporter red and a non-required check go unnamed even on a diff touching
+  // the reporter's own script; a required unit, prepr's job-name prediction and
+  // a code-scanning alert stay owed (the arm). The mutant -- every concluded
+  // red treated as required -- owes all six and fails it.
+  pins += 4
+  const RC = JSON.parse(fs.readFileSync(path.join(HERE, 'fixtures', 'required-contexts.json'), 'utf8'))
+  const REQ = new Set([...RC.contexts, ...RC.gate_required])
+  const owedOf = (findings) => findings.map((f) => /check `([^`]+)` is red/.exec(f.message)?.[1]).filter(Boolean)
+  const MIXED = ['tests / nightly-status', 'governance / delivery-status', 'docs / links',
+    'tests / fast (3.14)', 'budget-raise-gate', 'code-scanning alert 7 (py/x)']
+  const reqGot = owedOf(checkPrBody(unnamed, { head: ZERO, red: MIXED, paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: REQ }))
+  if (reqGot.join('|') !== 'tests / fast (3.14)|budget-raise-gate|code-scanning alert 7 (py/x)') {
+    console.log(`\nFIXTURE VACUOUS: with the required set known, red ${JSON.stringify(MIXED)} owed answers for ${JSON.stringify(reqGot)}; only the required unit, the job-name prediction and the alert are owed`)
+    rc = 1
+  }
+  // The null control: a body that names every red is refused for none, with or
+  // without the set, and never reads it (the read is lazy).
+  // The body goes in a private directory (CodeQL js/insecure-temporary-file):
+  // a predictable name in the shared tmpdir can be pre-planted or symlinked.
+  const namedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'prbody-named-'))
+  let reads = 0
+  let namedWith, namedWithout
+  try {
+    const namedAll = path.join(namedDir, 'body.md')
+    fs.writeFileSync(namedAll, fs.readFileSync(path.join(ROOT, unnamed), 'utf8').replace(/## Red checks\n[^#]*/, `## Red checks\n${MIXED.map((n) => `- \`${n}\`: answered.`).join('\n')}\n\n`))
+    namedWith = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'], required: () => { reads += 1; return REQ } }))
+    namedWithout = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'] }))
+  } finally {
+    fs.rmSync(namedDir, { recursive: true, force: true })
+  }
+  if (namedWith.length || namedWithout.length || reads) {
+    console.log(`\nFIXTURE VACUOUS: a body naming every red was refused for ${JSON.stringify([...namedWith, ...namedWithout])} (set read ${reads} time(s)); naming every red behaves as before the ruling`)
+    rc = 1
+  }
+  // An unreadable set (the thunk's null) is the rule as it stood: the same
+  // owed list REPORTER_CASES pins for the reporter's own script.
+  const unreadSet = owedOf(checkPrBody(unnamed, { head: ZERO, red: ['tests / nightly-status', 'docs / links'], paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: () => null }))
+  if (unreadSet.join('|') !== 'tests / nightly-status|docs / links') {
+    console.log(`\nFIXTURE VACUOUS: an unreadable required set owed ${JSON.stringify(unreadSet)}, not both reds; the relaxation must fail closed`)
+    rc = 1
+  }
+  // THE OWNER'S OWN FAIL-CLOSED ARM, DRIVEN THROUGH THE SPAWN (fix review
+  // round 1). requiredSet -> requiredFromTrain against a stub tree whose
+  // merge_train.py stands in for `owed-reds`: exit 2 with a REFUSE line on
+  // stdout is no set, so every red is owed; the mutant dropping
+  // `r.status !== 0` reads the REFUSE line as a one-name set and owes nothing.
+  // Null control: the same stub exiting 0 with one required name owes that one
+  // only, which proves the stub, not a fallback, answered.
+  pins += 2
+  const stubRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'owed-reds-stub-'))
+  const stubTrain = path.join(stubRoot, 'tools', 'audit', 'seat', 'merge_train.py')
+  fs.mkdirSync(path.dirname(stubTrain), { recursive: true })
+  const STUB_RED = ['tests / nightly-status', 'docs / links', 'tests / fast (3.14)']
+  const viaStub = (src) => {
+    fs.writeFileSync(stubTrain, src)
+    const stubNotes = []
+    return { owed: owedOf(checkPrBody(unnamed, { head: ZERO, red: STUB_RED, paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: () => requiredSet(null, stubNotes, stubRoot) })), stubNotes }
+  }
+  const refused = viaStub('import sys\nprint("REFUSE proof: HTTP 403")\nsys.exit(2)\n')
+  const readOne = viaStub('print("tests / fast (3.14)")\n')
+  fs.rmSync(stubRoot, { recursive: true, force: true })
+  if (refused.owed.join('|') !== STUB_RED.join('|') || !refused.stubNotes.some((n) => n.includes('required-set: REFUSE proof: HTTP 403'))) {
+    console.log(`\nFIXTURE VACUOUS: an owed-reds that exits 2 with a REFUSE line owed ${JSON.stringify(refused.owed)} (notes ${JSON.stringify(refused.stubNotes)}), not every red; a refused read must leave every red owed`)
+    rc = 1
+  }
+  if (readOne.owed.join('|') !== 'tests / fast (3.14)' || readOne.stubNotes.length) {
+    console.log(`\nFIXTURE VACUOUS: an owed-reds that exits 0 naming tests / fast (3.14) owed ${JSON.stringify(readOne.owed)}; the stub tree did not answer`)
+    rc = 1
+  }
+  // No unnamed red, no read: an empty red list never calls the owner.
+  let reads0 = 0
+  checkPrBody(unnamed, { head: ZERO, red: [], paths: ['tests/x.py'], required: () => { reads0 += 1; return REQ } })
+  if (reads0) { console.log('\nFIXTURE VACUOUS: a run with no red read the required set'); rc = 1 }
+  // Every temporary path this file builds sits under a private mkdtempSync
+  // directory: a bare `path.join(os.tmpdir(), ...)` names a file in the shared
+  // tmpdir, which another user can pre-plant (CodeQL js/insecure-temporary-file,
+  // alert 52). The scan reads this file's own source, so the old shape fails it.
+  pins += 1
+  const tmpSites = fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n')
+    .map((l, i) => [i + 1, l]).filter(([, l]) => /path\.join\(os\.tmpdir\(\)/.test(l) && !/^\s*\/\//.test(l))
+  const bareTmp = tmpSites.filter(([, l]) => !/mkdtempSync\(path\.join\(os\.tmpdir\(\)/.test(l))
+  if (!tmpSites.length || bareTmp.length) {
+    console.log(`\nFIXTURE VACUOUS: ${tmpSites.length ? `line(s) ${bareTmp.map(([n]) => n).join(', ')} join a name onto the shared tmpdir outside mkdtempSync` : 'no os.tmpdir() site found; the scan read nothing'}; a temporary file goes inside a private mkdtempSync directory`)
+    rc = 1
   }
   // Both markers on SHAPE, for the reason `enumSkipLine`'s pin above gives: they
   // carry no finding, so no count can see them. The skip line is the only thing
@@ -6199,13 +6318,16 @@ function assertAcceptance(derived) {
       const filedAlone = mk([['ci-red', [1, 2, 3]], ['body-stale', [4]]])
       const f = fam(filedAlone, UNTAUGHT_FAMILY)
       const rcFam = fam(mk([['root-cause-unanswered', [1]], ['root-cause-detectable', [2]], ['root-cause-unrecorded', [3]]]), 'root-cause')
+      const rcSpelled = fam(mk([['red-checks', [1]], ['root-cause-detectable', [2]], ['root-cause-unrecorded', [3]]]), 'root-cause')
+      const rcNull = fam(mk([['root-cause-detectable', [1]], ['root-cause-unrecorded', [2]]]), 'root-cause')
       if (
+        !rcSpelled || rcSpelled.prs.size !== 3 || !rcNull || rcNull.prs.size !== 2 ||
         !u || u.prs.size !== 3 || u.union !== 3 || fam(taughtOnly, UNTAUGHT_FAMILY) ||
         !f || f.prs.size !== 1 || f.union !== 4 || f.filed.join() !== 'ci-red' ||
         statsFamilies(split).some((x) => x.name === UNTAUGHT_FAMILY) ||
         !rcFam || rcFam.prs.size !== 3 || fam(taughtOnly, 'root-cause')
       ) {
-        console.log('\nFIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; taught and passing words out; a word filing alone subtracted; no derived list given -> no row; root-cause 1+1+1 -> 3)')
+        console.log('\nFIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; taught and passing words out; a word filing alone subtracted; no derived list given -> no row; root-cause 1+1+1 -> 3; `red-checks` is a member: red-checks+detectable+unrecorded -> 3, and the same window without it -> 2)')
         rc = 1
       }
     }
@@ -6739,6 +6861,49 @@ function reporterInputsTouched(paths, existing) {
   const rows = (existing ?? paths).filter((p) => DELIVERY_ROW.test(p))
   return [...new Set([...paths.filter((p) => REPORTER_INPUTS.has(p)), ...rows])].sort()
 }
+// ONLY A REQUIRED RED OWES AN ANSWER (owner ruling tvofi, 2026-11-07: "not
+// having anything block because of unnamed reds that is non required"). The
+// required set is the one the merge train judges -- merge_train.py's `judged`
+// over `gating_names` of main-protect-checks, read live -- and it is read
+// through that owner (`merge_train.py owed-reds`), never a list copied here.
+// A red is owed when its name is in that set, or is the job half of a name in
+// it (prepr.sh's offline predictions ride `--red budget-raise-gate` and
+// `--red mutation`, the jobs of `budget-raise-gate / budget-raise-gate` and
+// `tests / mutation`), or is a code-scanning alert (alert_list.py's lines:
+// no check run, and owner ruling R-10 B made each one a red to answer). A set
+// that cannot be read leaves every red owed, MAIN_STATE_REPORTERS' exemption
+// included, which is the rule as it stood: the relaxation fails closed.
+const ALERT_RED = /^code-scanning alert \d+ /
+function redOwed(name, required) {
+  if (ALERT_RED.test(name) || required.has(name)) return true
+  for (const r of required) if (r.split(' / ').length === 2 && r.split(' / ')[1] === name) return true
+  return false
+}
+
+// The live set, through its owner; { names } or { why }. `--required-file`
+// (one name per line) replaces the read for a caller that already holds it.
+// `root` is the tree whose merge_train.py answers: the checkout (in CI, the
+// base's copy, which pr-contract restores), or the acceptance's stub tree.
+function requiredFromTrain(root = ROOT) {
+  const r = spawnSync('python3', [path.join(root, 'tools', 'audit', 'seat', 'merge_train.py'), 'owed-reds'],
+    { cwd: root, encoding: 'utf8', timeout: 120000 })
+  const names = (r.stdout ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
+  if (r.status !== 0 || !names.length) return { why: (r.stdout || r.stderr || String(r.error ?? `rc ${r.status}`)).trim().split('\n').pop() }
+  return { names }
+}
+
+// checkPrBody's `required` thunk body: the Set, or null (every red owed) with a
+// skip note when neither the file nor the owner yields a name.
+function requiredSet(requiredFile, notes, root = ROOT) {
+  let got
+  if (requiredFile != null) {
+    try { got = { names: fs.readFileSync(requiredFile, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean) } } catch { got = { why: `--required-file ${requiredFile}: unreadable` } }
+  } else got = requiredFromTrain(root)
+  if (got.names?.length) return new Set(got.names)
+  notes.push(`  skip    required-set: ${got.why ?? 'empty'} -- every red is owed an answer this run, as before the 2026-11-07 ruling`)
+  return null
+}
+
 const RED_HISTORY_PAGE = 100
 const RED_HISTORY_MAX_PAGES = 10
 
@@ -6913,7 +7078,46 @@ function dependabotYmlAt(base) {
   try { return fs.readFileSync(path.join(ROOT, '.github', 'dependabot.yml'), 'utf8') } catch { return '' }
 }
 
-function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null } = {}) {
+// The offline half of the figure-block contract (tools/pr/figure_block.py is the
+// grammar's owner and `verify` the rendering half; this runs no instrument).
+// Same line scan as figure_block.parse: an open marker that does not parse, a
+// block never closed or opened inside another, a block outside `## Figures`, a
+// block rendered at another head or never rendered, a name the base's registry
+// does not hold.
+const FIGURE_OPEN = /^<!-- figure-block: ([a-z][a-z0-9-]*)((?: [a-z]+=[0-9a-f]{40})*) -->$/
+const FIGURE_CLOSE = '<!-- /figure-block -->'
+function figureBlockProblems(body, { base = '', head = '' } = {}) {
+  const msgs = []
+  const lines = body.split('\n')
+  const inFigures = new Set((sections(body).get('Figures') ?? '').split('\n'))
+  const headOk = /^[0-9a-f]{40}$/.test(head) && !/^0{40}$/.test(head)
+  let registry
+  if (base) {
+    try {
+      registry = Object.keys(JSON.parse(execFileSync('git', ['show', `${base}:tools/pr/figure_registry.json`], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })).instruments ?? {})
+    } catch { registry = undefined }
+  }
+  for (let i = 0; i < lines.length; i++) {
+    const m = FIGURE_OPEN.exec(lines[i])
+    if (!m) {
+      if (lines[i].startsWith('<!-- figure-block')) msgs.push(`line ${i + 1}: a figure-block marker that does not parse: ${JSON.stringify(lines[i].slice(0, 80))}`)
+      continue
+    }
+    let j = i + 1
+    while (j < lines.length && lines[j] !== FIGURE_CLOSE && !lines[j].startsWith('<!-- figure-block')) j++
+    if (j >= lines.length) { msgs.push(`line ${i + 1}: figure-block ${m[1]} is never closed`); break }
+    if (lines[j] !== FIGURE_CLOSE) { msgs.push(`line ${j + 1}: a figure-block opens inside another`); i = j - 1; continue }
+    if (!inFigures.has(lines[i]) || !inFigures.has(lines[j])) msgs.push(`line ${i + 1}: figure-block ${m[1]} lies outside \`## Figures\``)
+    const headAttr = /(?:^| )head=([0-9a-f]{40})/.exec(m[2])?.[1]
+    if (headOk && headAttr === undefined) msgs.push(`line ${i + 1}: figure-block ${m[1]} is unrendered: run figure_block.py refresh`)
+    else if (headOk && headAttr !== head) msgs.push(`line ${i + 1}: figure-block ${m[1]} names another head (${headAttr.slice(0, 12)}, this is ${head.slice(0, 12)}): run figure_block.py refresh`)
+    if (registry && !registry.includes(m[1])) msgs.push(`line ${i + 1}: figure-block ${m[1]} is not registered at base`)
+    i = j
+  }
+  return msgs
+}
+
+function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null, required = null } = {}) {
   // A Dependabot pull request answers the dependency-bump contract instead
   // (tools/policy/dependabot_contract.mjs); every other author, the full one.
   if (author != null && DEPENDABOT_AUTHORS.has(author)) {
@@ -7026,14 +7230,19 @@ function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], pat
   // but naming it is mechanical, and naming it is what gets skipped.
   const redSec = (secs.get('Red checks') ?? '').trim()
   const touched = reporterInputsTouched(paths, existing)
-  for (const name of red) {
-    if (redSec.includes(name) || (MAIN_STATE_REPORTERS.has(name) && !touched.length)) continue
+  const silent = red.filter((name) => !redSec.includes(name))
+  const req = silent.length && typeof required === 'function' ? required() : required
+  for (const name of silent) {
+    if (req instanceof Set && !redOwed(name, req)) continue
+    if (!(req instanceof Set) && MAIN_STATE_REPORTERS.has(name) && !touched.length) continue
     const why = MAIN_STATE_REPORTERS.has(name)
       ? ` It grades \`main\`, but this diff touches what it reads (${touched.join(', ')}), so the red may be this pull request's own.`
       : ''
     out.push({ severity: 'error', check: 'pr-body', where: bodyPath,
       message: `check \`${name}\` is red and \`## Red checks\` does not name it.${why} Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.` })
   }
+
+  for (const message of figureBlockProblems(body, { base, head })) out.push({ severity: 'error', check: 'pr-body', where: bodyPath, message })
 
   return out
 }
@@ -7127,7 +7336,11 @@ function cmdPrBody(args) {
       return 1
     }
   }
-  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits })
+  // Read only when a red goes unnamed (checkPrBody calls it lazily), so a body
+  // naming every red, or a run with none, reaches no network at all.
+  const requiredFile = val('--required-file')
+  const required = () => requiredSet(requiredFile, notes)
+  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits, required })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)

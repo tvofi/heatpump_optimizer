@@ -1517,6 +1517,9 @@ def test_reload_handover_expiry(R: Results) -> None:
     class _StashCoord:
         def __init__(self) -> None:
             self.data = payload
+            # Unload hands the coordinator's own config to the off restore;
+            # nothing was written here, so no consumer reads it.
+            self.effective_config = None
 
         async def async_shutdown(self) -> None:
             return None

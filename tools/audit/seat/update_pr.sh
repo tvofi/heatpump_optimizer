@@ -11,8 +11,9 @@
 # `fix/` and then less `-pr` (the first that origin holds). The body is a file here, so a missing
 # handoff-body/<topic> is no refusal; its tip is what names a body sha as one.
 # One run per branch, open_pr.sh's included (pr_args.sh's pr_branch_lock): a second run while one holds
-# the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass); no
-# other stop exits 75. A stopped (TERM/INT/HUP, to the run or its whole group) run reaps its push's whole tree and ends
+# the branch's lock ($WT.lock) exits 75, BUSY, having changed nothing (cloud_relay.sh retries it on its next pass), and so
+# does a branch checked out in a worktree that is not this run's, or a worktree of it holding unpushed commits (pr_busy:
+# a live train's worktree is not a permanent refusal, carry 8); no other stop exits 75. A stopped (TERM/INT/HUP, to the run or its whole group) run reaps its push's whole tree and ends
 # (pr_args.sh's pr_exit_trap); the lock is freed only once that push has ended, a SIGKILLed run's too (pr_push_hold).
 # The lock's holder leaves $WT detached once that push has ended, not holding the branch, a SIGKILLed
 # run's too; a merge the run left stopped on a conflict is aborted first (P276).
@@ -62,12 +63,16 @@ git fetch -q origin "$BR" main
 pr_tools_fresh  # the checkout holding these tools, against the main just fetched (pr_args.sh)
 OWN=$(git worktree list | grep -F "[$BR]" | awk '{print $1}' | grep "^$P/" || true); for o in $OWN; do  # another instrument's clean worktree on the branch is detached, never one holding work origin lacks
   [ "$o" = "$WT" ] && continue; [ -z "$(git -C $o status --porcelain)" ] || continue
-  git merge-base --is-ancestor "$(git -C $o rev-parse HEAD)" "origin/$BR" || pr_refuse "worktree $o holds commits of $BR that origin/$BR lacks (unpushed work, e.g. a PR's row): not detaching it"  # mut:unpushed
+  git merge-base --is-ancestor "$(git -C $o rev-parse HEAD)" "origin/$BR" || pr_busy "worktree $o holds commits of $BR that origin/$BR lacks (unpushed work, e.g. a PR's row): not detaching it"  # mut:unpushed
   git -C $o checkout -q --detach
 done
-git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && { echo "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"; exit 1; }
-[ -d $WT ] && git worktree remove --force $WT
-git worktree add -q -B "$BR" $WT origin/$BR; cd $WT
+git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && pr_busy "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"  # mut:elsewhere
+# One checkout per pull request (carry 6): the worktree an earlier run left is reset onto the branch and reused, not
+# removed and cut again; anything that cannot be reset falls back to the removal.
+if [ -e "$WT/.git" ]; then git -C "$WT" merge --abort 2>/dev/null || :; fi
+RE=; if [ -e "$WT/.git" ] && git -C "$WT" checkout -q -f -B "$BR" "origin/$BR" 2>/dev/null && git -C "$WT" clean -fdq 2>/dev/null; then RE=1; fi  # mut:updreusewt
+if [ -z "$RE" ]; then [ ! -d $WT ] || git worktree remove --force $WT; git worktree add -q -B "$BR" $WT origin/$BR; fi
+cd $WT
 G="git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com"
 LIVE=$(git rev-parse HEAD)  # the pull request's head as origin holds it
 N=${PR_N:-$(gh pr list -R $R --head "$BR" --state open --json number -q '.[0].number')}

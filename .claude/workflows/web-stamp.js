@@ -1,9 +1,9 @@
-// One stamp per wave, then the wave's record on #201 and in the two
+// One stamp per wave, then the wave's record on #3394 and in the two
 // planning documents. See .claude/workflows/web-fragments.md for the shared
 // prompt block below, which is hand-copied into every web-*.js.
 export const meta = {
   name: 'web-stamp',
-  description: 'Stamp main once for everything merged since the last tag, then record the wave on #201 and in the plan of record',
+  description: 'Stamp main once for everything merged since the last tag, then record the wave on #3394 and in the plan of record',
   phases: [{ title: 'Stamp' }, { title: 'Record' }],
 }
 const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
@@ -168,7 +168,7 @@ phase('Record')
 const record = await agent(`Record wave ${wave} of the open-issues program. ${GH_READ} ${GH_WRITE} ${WT('claude-web/record-wave-' + wave, 'origin/main')}
 These groups merged: ${JSON.stringify(merged)}. The release is ${stamp?.version ? 'v' + stamp.version : 'not stamped yet'}.
 Update the Delivery-status record: each wave row in dev/programme/plan-2026-09-open-issues.md's frozen table gets its release and a status; a merged pull request no row records gets its own file dev/programme/delivery/<N>.md, a line anchored \`- [#N](…/pull/N)\` and its state, never a new table row, which policy_lint refuses past the freeze. Update dev/programme/register/audit-2026-09.md: set each finding's status cell to "fixed (PR #N)" or "released (vX.Y.Z)" -- where a status cell and a body paragraph disagree, the cell is the truth, so change the cell. Open the pull request (docs are INERT, so the gate scopes to almost nothing; still run PYTHONPATH=tests/hastub python3 tests/entities.py, which checks that no tracked file is unclassified) and merge it once its checks are green.
-Then post one comment on issue #201: a table of group, issues, PR, verdict and release for this wave, and one paragraph on anything that surprised you -- a correction to a brief, a number that did not reproduce, a rule that bit. Return {pr, comment_url}.`,
+Then post one comment on issue #3394: a table of group, issues, PR, verdict and release for this wave, and one paragraph on anything that surprised you -- a correction to a brief, a number that did not reproduce, a rule that bit. Return {pr, comment_url}.`,
   { model: 'sonnet', effort: 'medium', label: 'record', phase: 'Record', schema: { type: 'object', required: ['pr'] } })
 
 return { stamp, record }

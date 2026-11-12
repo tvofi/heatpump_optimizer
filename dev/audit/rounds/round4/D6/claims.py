@@ -51,7 +51,8 @@ against a document that is CORRECT.
     RESULT claims_false=0
     RESULT claims_stale=0
     RESULT claims_unverifiable=2    (1 with --links; the checker runs the default)
-    RESULT config_defaults_compared=93   (76 until #937's rows landed; 82
+    RESULT config_defaults_compared=97   (94 until R10-COMBI-TANK's combi rows on
+                                         the building table; 93 until R10-GENERIC-HEAT-CURVE's offset rows; 76 until #937's rows landed; 82
                                          until #1067's solver half documented
                                          the flow-curve lift option's default;
                                          83 until #1067's silent-mode half
@@ -77,7 +78,8 @@ against a document that is CORRECT.
                                          R10-FACTORY-RESET's "What to reset",
                                          a select Default row on the Reset to
                                          factory defaults table)
-    RESULT config_ranges_compared=101    (76 until #937's rows landed; 86
+    RESULT config_ranges_compared=104    (102 until R10-COMBI-TANK's effectiveness
+                                         and potable-volume Range rows; 101 until R10-GENERIC-HEAT-CURVE's band row; 76 until #937's rows landed; 86
                                          until #1067's silent-mode half
                                          documented the derate's range; 87
                                          until its frequency half documented
@@ -89,7 +91,7 @@ against a document that is CORRECT.
                                          Range row on the expert thermal-model
                                          table; 101 with R10-USER-DOCS-FINAL's
                                          per-field rows on the options pages)
-    RESULT arch_modules_on_disk=86       (85 until R10-WHY-NOW-WIDGET's slot_drivers.py; 84 until R10-GRADE-DRIVERS's driving_grade.py; 83 until R10-ADVISOR-WHATIF's plan_slots.py; 82 until R10-HEAT-METER's heat_energy.py; 81 until R10-LEARNER-ETA's learner_progress.py; 80 until R10-ADVISOR's price_tiles.py; 79 until R10-DIAG-REPLAY's replay_doc.py; 78 until R10-PUMP-MODEL's plan_step.py; 77 until R10-N-log-flood's log_latch.py; 76 until R10-FAHRENHEIT's issues.py; 75 until the live-fix wave's early_cutoff.py; 74 until the live power clamp's draw_range.py; 72 until R9-UX-9's flow_meter.py and R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_modules_on_disk=89       (88 until R10-DUTY-SWITCH-RESTART-LEARNING's duty_switch.py; 86 until R10-GENERIC-HEAT-CURVE's heat_curve.py and off_restore.py; 85 until R10-WHY-NOW-WIDGET's slot_drivers.py; 84 until R10-GRADE-DRIVERS's driving_grade.py; 83 until R10-ADVISOR-WHATIF's plan_slots.py; 82 until R10-HEAT-METER's heat_energy.py; 81 until R10-LEARNER-ETA's learner_progress.py; 80 until R10-ADVISOR's price_tiles.py; 79 until R10-DIAG-REPLAY's replay_doc.py; 78 until R10-PUMP-MODEL's plan_step.py; 77 until R10-N-log-flood's log_latch.py; 76 until R10-FAHRENHEIT's issues.py; 75 until the live-fix wave's early_cutoff.py; 74 until the live power clamp's draw_range.py; 72 until R9-UX-9's flow_meter.py and R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          65 until #1588's pump_arbiter.py; 64
                                          until #1408's store.py;
@@ -115,13 +117,13 @@ against a document that is CORRECT.
                                          bytes of, so nothing compared these
                                          numbers to a run between 2026-09-17
                                          and then)
-    RESULT arch_map_listed=86            (84 until R10-GRADE-DRIVERS's driving_grade.py; 83 until R10-ADVISOR-WHATIF's plan_slots.py; 82 until R10-HEAT-METER's heat_energy.py; 81 until R10-LEARNER-ETA's learner_progress.py; 80 until R10-ADVISOR's price_tiles.py; 79 until R10-DIAG-REPLAY's replay_doc.py; 78 until R10-PUMP-MODEL's plan_step.py; 77 until R10-N-log-flood's log_latch.py; 76 until R10-FAHRENHEIT's issues.py; 75 until the live-fix wave's early_cutoff.py; 74 until the live power clamp's draw_range.py; 72 until R9-UX-9's flow_meter.py and R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_map_listed=89            (88 until R10-DUTY-SWITCH-RESTART-LEARNING's duty_switch.py; 86 until R10-GENERIC-HEAT-CURVE's heat_curve.py and off_restore.py; 84 until R10-GRADE-DRIVERS's driving_grade.py; 83 until R10-ADVISOR-WHATIF's plan_slots.py; 82 until R10-HEAT-METER's heat_energy.py; 81 until R10-LEARNER-ETA's learner_progress.py; 80 until R10-ADVISOR's price_tiles.py; 79 until R10-DIAG-REPLAY's replay_doc.py; 78 until R10-PUMP-MODEL's plan_step.py; 77 until R10-N-log-flood's log_latch.py; 76 until R10-FAHRENHEIT's issues.py; 75 until the live-fix wave's early_cutoff.py; 74 until the live power clamp's draw_range.py; 72 until R9-UX-9's flow_meter.py and R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          was 45; 11 were missing; 66 with
                                          #1588's pump_arbiter.py added to
                                          architecture.md's module map)
     RESULT arch_map_missing=0            (was 11)
-    RESULT ha_module_level_importers=28  (27 until the live-fix wave's early_cutoff.py imports
+    RESULT ha_module_level_importers=31  (30 until R10-DUTY-SWITCH-RESTART-LEARNING's duty_switch.py; 28 until R10-GENERIC-HEAT-CURVE's heat_curve.py and off_restore.py; 27 until the live-fix wave's early_cutoff.py imports
                                          homeassistant.core at module level;
                                          26 until R9-DBG-1's debugger.py imports
                                          homeassistant.core at module level;
@@ -884,7 +886,7 @@ eq("C39", "docs/architecture.md:module map",
 # audit baseline the hardcoded "false" was right, and after #939 it would
 # have been a lie that no run could clear.
 def _map_entry(text, module):
-    m = re.search(rf"{module}\.py\s+#([^\n]*)\n((?:│[^\n]*#[^\n]*\n)*)", text)
+    m = re.search(rf"(?<!\w){module}\.py\s+#([^\n]*)\n((?:│[^\n]*#[^\n]*\n)*)", text)
     if m is None:
         return ""
     return " ".join([m.group(1)] + re.findall(r"#([^\n]*)", m.group(2)))
@@ -1058,8 +1060,8 @@ eq("C73", "docs/ecl110.md", "displace_min default -20, displace_max default +20"
    (const.DEFAULT_ECL110_DISPLACE_MIN, const.DEFAULT_ECL110_DISPLACE_MAX))
 eq("C74", "docs/ecl110.md", "ecl110_pid_time_constant_hours default 1.5 h", CMD,
    1.5, const.DEFAULT_ECL110_PID_TIME_CONSTANT)
-eq("C75", "docs/ecl110.md", "All eight settings live on the Heat curve control page", CMD,
-   8, len([1 for m, _ in _presented_fields(PAGES["heat_curve"])
+eq("C75", "docs/ecl110.md", "All eleven settings live on the Heat curve control page", CMD,
+   11, len([1 for m, _ in _presented_fields(PAGES["heat_curve"])
            if str(getattr(m, "schema", m)) != "after_save"]))
 eq("C76", "docs/ecl110.md", "the peak guard publishes the plan's displace minus 2 °C",
    CMD, 2.0, const.PEAK_GUARD_DISPLACE_NUDGE_C)
@@ -1338,8 +1340,8 @@ claim("C112", "strings.json + translations/*.json",
                str({k: len(v) for k, v in _missing.items()}))
       + f", extra={ {k: len(v) for k, v in _extra.items()} }",
       "true" if not any(_missing.values()) and not any(_extra.values()) else "false")
-eq("C113", "README.md", "entity names are translated into English and Swedish", CMD,
-   ["en", "sv"], sorted(TRANS))
+eq("C113", "README.md", "entity names are translated into English, Swedish and German", CMD,
+   ["de", "en", "sv"], sorted(TRANS))
 # The climate entity deliberately carries no translation key: with
 # ``_attr_has_entity_name`` and ``_attr_name = None`` it takes the device name.
 _untranslated = sorted(

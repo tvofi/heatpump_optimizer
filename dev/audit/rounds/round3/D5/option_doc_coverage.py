@@ -92,14 +92,22 @@ EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
     its row in docs/configuration.md in the same commit. R10-WOOD-NOTIFY
     moved them once more, 203 -> 204 and 236 -> 237: the wood lighting lead
     time on the wood page, with its row in docs/configuration.md in the same
-    commit. This block is an
+    commit. R10-HOTFIX-COP-UNMEASURED moved them once more, 204 -> 207 and
+    237 -> 240: the power and thermal power meter source selects and the
+    hot-water coverage switch on the entities_metering page, with their rows
+    in docs/configuration.md in the same commit. R10-MIN-POWER-FLOOR moved
+    them once more, 207 -> 208 and 240 -> 241: the compressor modulation
+    select on the thermal model page, with its row in docs/configuration.md
+    in the same commit. R10-COMBI-TANK (#3225) moved them 211 -> 216 and
+    244 -> 250: the building page's combi section (one section key, five
+    fields), each with its row. This block is an
     ASSERTION `tests/harness_headers.py` executes the script against, and it
     is reached by a shell-out the closure recorder cannot see, so it does not
     go red on a pull request: it is re-measured in the commit that changes
     what the script prints, or main's forced-full run finds it):
-    RESULT option_fields_rendered=204 count
+    RESULT option_fields_rendered=216 count   (211 until R10-COMBI-TANK's five combi fields; 208 until R10-GENERIC-HEAT-CURVE's three heat_curve fields)
     RESULT option_fields_undocumented=0 count
-    RESULT option_schema_keys_rendered=237 count
+    RESULT option_schema_keys_rendered=250 count   (244 until R10-COMBI-TANK; 241 until R10-GENERIC-HEAT-CURVE)
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=8 count      (tolerance: exact;
     moved 6 -> 8 by #1645/F8.1: the Services section's `simulate_plan`

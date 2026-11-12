@@ -7,7 +7,7 @@ import { makeCardContext, CLAIM_FILE, parseClaims, claimVersionError, frozenDate
          CARD_PATH as CLAIMED_CARD_PATH, CAPTURE_SOURCES,
          justifiesSolverClaim, justifiesCardClaim, movesClaimable,
          threeDotFiles, claimsAreThisBranchs, sameClaimMap, judgeCardClaims,
-         historyApi, historyFixture, HISTORY_IDS, flushHistory,
+         historyApi, historyFixture, HISTORY_IDS, flushHistory, AD_PRONE_NAME, cardNames,
          withActuals, realisticHistory, haStamp, HA_HISTORY_ROW_KEYS } from "./card_rig.mjs";
 
 // Plan payload written by tests/plan_view.py earlier in the run. The path is
@@ -237,6 +237,7 @@ if (!Card) { console.error("FAIL: card not registered"); process.exit(1); }
 // Module-level functions the tests call directly, reached the way the setup
 // constants already are: by name, in the card's own realm (#136, PR 9).
 const fn = (name) => vm.runInContext(name, ctx);
+
 const reasonHtml = fn("reasonHtml");
 const sharedTooltipHtml = fn("sharedTooltipHtml");
 const extraFields = fn("extraFields");
@@ -361,6 +362,67 @@ function check(name, cond, detail) {
     if (detail) console.log("        " + detail);
     fails++;
   }
+}
+
+// R10-I18N-DE: every dictionary in STRINGS is key-for-key with `en`, names
+// every one of en's {placeholders}, and adds none but a listed one. L() falls back to English per key, so a key a
+// translation lacks renders English mid-sentence and no render check sees it;
+// an extra key is a translation nobody can reach; a dropped placeholder loses
+// a number. The languages are STRINGS' own keys, never a list kept here.
+{
+  const names = (s) => new Set([...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]));
+  // A translation may word a sentence around a placeholder English leaves
+  // out, but only one the call site fills: each such extra is listed here by
+  // language, key and placeholder, so an entry cannot excuse any other.
+  // (Design choice: dropping one of en's placeholders is always refused.)
+  const EXTRA_OK = new Set([
+    // L(detailKey, { verdict, ... }) passes verdict to both detail keys; sv
+    // words the unchanged case "oförändrad jämfört med ...".
+    "sv:stats.delta_detail_same:verdict",
+  ]);
+  const parity = (tables) => {
+    const out = [];
+    for (const [lang, t] of Object.entries(tables)) {
+      if (lang === "en") continue;
+      for (const k of Object.keys(tables.en)) {
+        if (!(k in t)) out.push(`${lang}: missing ${k}`);
+        else {
+          const want = names(tables.en[k]), have = names(t[k]);
+          for (const n of want) if (!have.has(n)) out.push(`${lang}: ${k} drops {${n}}`);
+          for (const n of have) if (!want.has(n) && !EXTRA_OK.has(`${lang}:${k}:${n}`)) out.push(`${lang}: ${k} adds {${n}}`);
+        }
+      }
+      for (const k of Object.keys(t)) if (!(k in tables.en)) out.push(`${lang}: extra ${k}`);
+    }
+    return out;
+  };
+  const tables = JSON.parse(JSON.stringify(fn("STRINGS")));
+  const langs = Object.keys(tables).filter((l) => l !== "en");
+  const bad = parity(tables);
+  check("every card language is key-for-key with en and keeps en's placeholders",
+    langs.length >= 2 && bad.length === 0, `${langs.join(",")}: ${bad.slice(0, 6).join("; ")}`);
+  // Null controls: a planted missing key, dropped placeholder and extra key in
+  // each translated table fail the same function, and the unplanted copy passes.
+  const fails = (mut) => { const c = JSON.parse(JSON.stringify(tables)); mut(c); return parity(c).length > 0; };
+  const k0 = Object.keys(tables.en).find((k) => /\{\w+\}/.test(tables.en[k]));
+  check("and a planted missing key, dropped or unlisted extra placeholder, or extra key in any language fails it (null controls)",
+    !fails(() => {}) && langs.every((lang) =>
+      fails((c) => { delete c[lang][k0]; })
+      && fails((c) => { c[lang][k0] = c[lang][k0].replace(/\{\w+\}/, ""); })
+      && fails((c) => { c[lang]["zz.planted"] = "x"; })
+      && fails((c) => { c[lang][k0] += " {zz_planted}"; })),
+    `planted on ${k0} in ${langs.join(",")}`);
+  // hass.language carries a region ("de-DE"); setLanguage must reach every
+  // dictionary through the prefix, and an unknown one must fall back to en.
+  const active = (raw) => { vm.runInContext(`setLanguage(${JSON.stringify(raw)})`, ctx); return vm.runInContext("ACTIVE_LANG", ctx); };
+  const reached = Object.keys(tables).filter((lang) => active(`${lang}-XX`) === lang);
+  const deTab = active("de-DE") === "de" ? vm.runInContext('L("header.tab_setup")', ctx) : null;
+  const fallback = active("xx-YY");
+  active("en");
+  check("a region-tagged hass.language reaches every card dictionary, de-DE included, and an unknown one falls back to en",
+    reached.length === Object.keys(tables).length && deTab === tables.de["header.tab_setup"]
+    && deTab !== tables.en["header.tab_setup"] && fallback === "en",
+    `reached ${reached.join(",")}; de-DE tab ${deTab}; xx-YY -> ${fallback}`);
 }
 
 // --- The navigation surface, declared once (R10-DEEPLINK) ------------------
@@ -1459,6 +1521,52 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
   /width: min\(96vw, calc\([^)]*\), 1700px\)/.test(cardSrc),
   `cap ${vm.runInContext("DIALOG_FONT_PX_MAX", ctx)}, 1700 px -> ${dlgOf(1700)} px`);
 
+// R10-HOTFIX-CARD-HEALTH-TEXT: no class or id the card writes may be a name
+// an ad blocker's generic element-hiding rules target. EasyList's
+// `##.adv-text` and `##.adv-label` (AdGuard Base carries both) hid every
+// Health and Advisor label on the owner's v7.1.11 install (rca
+// r10-card-health-text, third pass). The lists change daily, so the barrier
+// is a deny set of ad-list-prone stems, not a copy of any list: a name that
+// is one of them, or starts with one followed by `-` or `_`. The names read
+// are every class and id attribute value, every className assignment and
+// classList argument, and every `.name` / `#name` token anywhere in the
+// card's source (cardNames in tests/card_rig.mjs, the one reader). The
+// browser lane's blockerHide is the rendered proof of the same property.
+{
+  // The deny pattern over a generated spelling corpus: every stem in three
+  // cases, bare and with each separator and suffix, must be refused; the
+  // near misses (a stem glued to a letter, or a word that merely contains
+  // one) must not.
+  const stems = ["ad", "ads", "adv", "advert", "banner", "sponsor", "promo"];
+  const cases = (s) => [s, s.toUpperCase(), s[0].toUpperCase() + s.slice(1)];
+  const deny = [], allow = [];
+  for (const stem of stems) {
+    for (const s of cases(stem)) {
+      deny.push(s);
+      for (const sep of ["-", "_"]) for (const suf of ["", "text", "label", "x-y", "1"]) deny.push(`${s}${sep}${suf}`);
+      for (const glue of ["x", "ice", "ent", "1"]) allow.push(`${s}${glue}`, `${s}${glue}-text`);
+      allow.push(`x-${s}`, `x${s}`, `fact-${s}`);
+    }
+  }
+  allow.push("address", "add", "adjust", "header", "badge", "advice-text", "promote", "fact-text", "fact-label", "health-row");
+  const missed = deny.filter((n) => !AD_PRONE_NAME.test(n));
+  const wrong = allow.filter((n) => AD_PRONE_NAME.test(n));
+  check("the ad-list-prone name pattern refuses every stem spelling and no near miss",
+    missed.length === 0 && wrong.length === 0,
+    `${deny.length} refused, ${allow.length} allowed; missed: ${missed.join(", ")}; wrongly refused: ${wrong.join(", ")}`);
+  // The extractor reads each route a name reaches the DOM by.
+  const probe = new Set(cardNames(`<i class="a b-\${x}"></i><p id='c'></p>x.className = "d";` +
+    ` el.classList.toggle("e", on); const css = \`.f .g:hover, #h {}\`;`).map(([, n]) => n));
+  const routes = ["a", "b-", "c", "d", "e", "f", "g", "h"].filter((n) => !probe.has(n));
+  check("the card-name extractor reads class, id, className, classList and selector names",
+    routes.length === 0, `not read: ${routes.join(", ")}`);
+  const names = new Set(cardNames(cardSrc).map(([, n]) => n));
+  const prone = [...names].filter((n) => AD_PRONE_NAME.test(n)).sort();
+  check("no class or id in the card is a name generic ad-blocker hide rules target",
+    names.size >= 100 && prone.length === 0,
+    `${names.size} names read; ad-list-prone: ${prone.join(", ")}`);
+}
+
 // R10-CARD-VOICE, the harmony study's other carries (probe/card-harmony-
 // design 6aea0d10, HARMONY.md section 4), read off the card's own stylesheet:
 // the rule each names, not a restatement of it.
@@ -1467,8 +1575,8 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
   // H1 (b): no caption role on either surface renders under the ramp's
   // smallest step, 12 px.
   const captions = [".legend-note", ".hl-caveat", ".sb-text", ".viewctl button",
-    ".setup-hint", ".setup-result", ".setup-dest", ".adv-basis", ".adv-note",
-    ".adv-text .adv-sub", ".health-mark", ".whatif .wi-hint", ".adv-row.unpriced .adv-value"];
+    ".setup-hint", ".setup-result", ".setup-dest", ".fact-basis", ".fact-note",
+    ".fact-text .fact-sub", ".health-mark", ".whatif .wi-hint", ".fact-row.unpriced .fact-value"];
   const unfloored = captions.filter((c) =>
     !/font-size: max\(12px, 0\.\d+em\)/.test(ruleOf(c)));
   check("every caption role is floored at the ramp's 12 px step",
@@ -1481,12 +1589,19 @@ check("and its ceiling is reachable inside the dialog's 1700 px cap",
     /dialog\.expanded \.layout-bar button \{ font-size: 1rem; \}/.test(cardSrc),
     ruleOf("dialog.expanded .layout-bar button"));
   // H3a, H3b: the rows' surface is their ink's pair, the heading the card's
-  // 600.
-  check("the health and advisor rows take the surface their ink is drawn for",
-    [".health-row", ".adv-inbox-row"].every((c) =>
-      /background: var\(--hpo-surface-2, #f7f9fb\)/.test(ruleOf(c)) &&
-      !/secondary-background-color/.test(ruleOf(c))),
-    [".health-row", ".adv-inbox-row"].map((c) => ruleOf(c).trim()).join(" | "));
+  // 600. The pair is asserted in ONE rule: the rule that gives a row the
+  // darkMode-literal --hpo-surface-2 also re-points its text at the ink
+  // literals. Asserting the surface alone passed while the rows drew the
+  // theme's text on it at 1.24:1 (906fee95e, R10-HOTFIX-CARD-HEALTH-TEXT);
+  // tests/card_browser.mjs's themeMismatch measures what is painted.
+  const listing = (sel) => [...cardSrc.matchAll(/([^{};`]+)\{([^{}]*)\}/g)]
+    .filter((m) => m[1].split(",").map((x) => x.trim()).includes(sel)).map((m) => m[2]);
+  const paired = (decl) => /background: var\(--hpo-surface-2, #f7f9fb\)/.test(decl) &&
+    /--hpo-text: var\(--hpo-ink, #212121\)/.test(decl) && /--hpo-text-2: var\(--hpo-ink-2, #727272\)/.test(decl);
+  check("the health and advisor rows take their surface and its ink from one rule",
+    [".health-row", ".fact-inbox-row"].every((c) => listing(c).some(paired) &&
+      !listing(c).some((d) => /secondary-background-color/.test(d))),
+    [".health-row", ".fact-inbox-row"].map((c) => `${c}: ${listing(c).map((d) => d.trim()).join(" + ")}`).join(" | "));
   check("the health headings are the card's 600, not the user agent's 700",
     /font-weight: 600/.test(ruleOf(".health-h")), ruleOf(".health-h"));
   // H4: the replay drawing scrolls on a phone instead of shrinking its
@@ -2848,6 +2963,34 @@ check("the hand-scheduled reason has a label",
     rcpWoodNote(rcpWood("sv-SE")) === "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte." &&
     !/receipt-wood-note/.test(rcpPage),
     `${rcpWoodNote(rcpWood("en"))} | ${rcpWoodNote(rcpWood("sv-SE"))}`);
+  // R10-SAV-METER-FLOOR: a month whose booked reference fell under the meter
+  // floor states no saving; the receipt and the table say why, in en and sv.
+  // The null control is the page above: no row under the floor, no note.
+  const rcpFloor = (lang) => {
+    const st = JSON.parse(JSON.stringify(rcpStates));
+    Object.assign(st["sensor.heat_pump_optimizer_monthly_savings"].attributes.savings_months[0],
+      { savings_sek: null, savings_pct: null, below_meter_floor: true });
+    const c = build(st);
+    c.hass = { states: st, language: lang };
+    c._onCardClick({});
+    c.dialog.page = "savings";
+    c._render();
+    return collect(c.shadowRoot).join("\n");
+  };
+  const rcpFloorNotes = (page) => [
+    (page.match(/receipt-floor-note">([^<]*)/) || [])[1] || "",
+    (page.match(/savings-floor-note"[^>]*>([^<]*)/) || [])[1] || "",
+    (page.match(/savings-floor">([^<]*)/) || [])[1] || "",
+  ];
+  const rcpFloorEn = rcpFloorNotes(rcpFloor("en"));
+  const rcpFloorSv = rcpFloorNotes(rcpFloor("sv-SE"));
+  const floorEn = "No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.";
+  const floorSv = "Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.";
+  check("a month under the meter floor states no saving and says why on the receipt and the table (en, sv); none above it",
+    rcpFloorEn[0] === floorEn && rcpFloorEn[1] === floorEn && rcpFloorEn[2] === "no saving stated" &&
+    rcpFloorSv[0] === floorSv && rcpFloorSv[1] === floorSv && rcpFloorSv[2] === "inget sparande anges" &&
+    !/floor-note|savings-floor/.test(rcpPage) && !/Saved 148\.00/.test(rcpFloor("en")),
+    JSON.stringify([rcpFloorEn, rcpFloorSv]));
   check("UX-6: the money goes by reason, largest first",
     /Where the money went/.test(rcpPage) &&
     rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
@@ -3719,7 +3862,7 @@ check("the hand-scheduled reason has a label",
   const row = adv.shadowRoot.querySelector(
     '[data-key="buffer_tank_temp_entity"]');
   check("each suggestion is its own 24px-floor button",
-    !!row && row.tagName === "BUTTON" && row.classList.contains("adv-row"),
+    !!row && row.tagName === "BUTTON" && row.classList.contains("fact-row"),
     "a ranked list whose rows cannot be acted on is a report, not advice");
   if (row) await Promise.all(
     (row._listeners.click || []).map((f) => f({ stopPropagation() {} })));
@@ -3744,11 +3887,11 @@ check("the hand-scheduled reason has a label",
   const donePage = collect(done.shadowRoot).join("\n");
   // Only one dialog exists at a time, and the done card never saw the
   // advisor attribute, so the absence below is the page's own answer.
-  // The markup form is what counts: the stylesheet text names .adv-row
+  // The markup form is what counts: the stylesheet text names .fact-row
   // in every render, rows or not.
   check("with no candidates the advisor page says so in as many words",
     /already configured/.test(donePage)
-    && !/class="adv-row/.test(donePage),
+    && !/class="fact-row/.test(donePage),
     "an absent attribute must read as 'nothing to suggest', not as silence");
 
   // Swedish: the page is a first-class citizen of the card's i18n.
@@ -3769,7 +3912,7 @@ check("the hand-scheduled reason has a label",
   // under the floor on day one. Anchored to the definition itself: the
   // name also appears in prose comments later in the file.
   check("the advisor rows sit in the html target floor's selector list",
-    /\.adv-row/.test(
+    /\.fact-row/.test(
       cardSrc.slice(cardSrc.indexOf("const htmlTargetFloor"),
         cardSrc.indexOf("const htmlTargetFloor") + 450)),
     "a new HTML control joins the floor or ships below it");
@@ -3885,7 +4028,7 @@ const restartStates = (patch = {}) => {
   };
   const degreeOf = (down, up) => {
     const h = mkInbox(tileStates(down, up)).html();
-    const row = h.split('class="adv-inbox-row').find((r) => /data-act="try_degree"/.test(r)) || "";
+    const row = h.split('class="fact-inbox-row').find((r) => /data-act="try_degree"/.test(r)) || "";
     return { h, row };
   };
   const shot = degreeOf(-140, -266);
@@ -3974,7 +4117,7 @@ const restartStates = (patch = {}) => {
   check("a null configured valve target is no row, not a move from 0",
     !/data-act="apply_valve"/.test(mkInbox(nv).html()));
   const ns = restartStates({ current_scale: null });
-  const nsRow = mkInbox(ns).html().split('class="adv-inbox-row').find((r) => /data-act="adopt_refit"/.test(r)) || "";
+  const nsRow = mkInbox(ns).html().split('class="fact-inbox-row').find((r) => /data-act="adopt_refit"/.test(r)) || "";
   check("a null current scale reads as a dash in the refit row, not 0.00",
     /—/.test(nsRow) && !/0\.00/.test(nsRow), nsRow.slice(0, 300));
 
@@ -4014,12 +4157,12 @@ const restartStates = (patch = {}) => {
   // #2257 item 7: no URL reaches an options-flow step, so each row names the
   // step its button's entry link leads to, and the button links this entry.
   check("each enable-to-see row names the options step that turns it on",
-    /Wood-stove timing<span class="adv-sub">Configure → Advanced settings → Heating system and heat storage/.test(page)
-    && /Fuse size<span class="adv-sub">Configure → Grid peak tariff/.test(page)
-    && /Compressor frequency<span class="adv-sub">Configure → Advanced settings → Power and solar sensors/.test(page));
+    /Wood-stove timing<span class="fact-sub">Configure → Advanced settings → Heating system and heat storage/.test(page)
+    && /Fuse size<span class="fact-sub">Configure → Grid peak tariff/.test(page)
+    && /Compressor frequency<span class="fact-sub">Configure → Advanced settings → Power and solar sensors/.test(page));
   const ntStep = mkInbox(noTiles).html();
   check("the price-of-a-degree opt-in names Savings vs comfort",
-    /Price of a degree<span class="adv-sub">Configure → Savings vs comfort/.test(ntStep));
+    /Price of a degree<span class="fact-sub">Configure → Savings vs comfort/.test(ntStep));
   {
     const o = mkInbox(inboxStates());
     o.c.hass.callWS = async (msg) => ({ entity_id: msg.entity_id, config_entry_id: "01JADVISORENTRY" });
@@ -4768,7 +4911,7 @@ const restartStates = (patch = {}) => {
       check("the Undo label goes through the translation layer, both ways",
         /"setup\.undo_layout": "Undo"/.test(cardSrc) &&
         /"setup\.undo_layout": "Ångra"/.test(cardSrc) &&
-        (cardSrc.match(/"setup\.undo_layout_aria":/g) || []).length === 2,
+        (cardSrc.match(/"setup\.undo_layout_aria":/g) || []).length === Object.keys(fn("STRINGS")).length,
         "a hard-coded English string is a string the Swedish card keeps");
 
       // One drag and one new pipe: both halves of the working set moved.
@@ -5039,7 +5182,7 @@ const restartStates = (patch = {}) => {
     check("the Tidy up label goes through the translation layer, both ways",
       /"setup\.tidy_layout": "Tidy up"/.test(cardSrc) &&
       /"setup\.tidy_layout": "Städa upp"/.test(cardSrc) &&
-      (cardSrc.match(/"setup\.tidy_layout_aria":/g) || []).length === 2);
+      (cardSrc.match(/"setup\.tidy_layout_aria":/g) || []).length === Object.keys(fn("STRINGS")).length);
   }
 }
 
@@ -5284,16 +5427,18 @@ const restartStates = (patch = {}) => {
       })()
     ));
 
-  // A language without a dictionary falls back to English wholesale.
-  const de = new Card();
-  de.setConfig({ type: "custom:heatpump-optimizer-card" });
-  de.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
-    language: "de-DE" };
-  const deDump = collect(de.shadowRoot).join("\n");
+  // A language without a dictionary falls back to English wholesale. (This
+  // used German as the unknown language until R10-I18N-DE gave it one.)
+  const unk = new Card();
+  unk.setConfig({ type: "custom:heatpump-optimizer-card" });
+  unk.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    language: "xx-YY" };
+  const unkDump = collect(unk.shadowRoot).join("\n");
   check("an unknown language falls back to English",
-    deDump.includes("Electricity price") &&
-    deDump.includes("Heat pump plan") &&
-    !/Elpris/.test(deDump));
+    !fn("STRINGS").xx &&
+    unkDump.includes("Electricity price") &&
+    unkDump.includes("Heat pump plan") &&
+    !/Elpris|Strompreis/.test(unkDump));
 
   // Currency: published by the plan sensor as `currency`, shown on the price
   // axis and in the legend chip; absent, the SEK fallback holds.
@@ -5898,7 +6043,7 @@ function ctxL(card, key) {
   // grade the input does not carry.
   const CODES = {
     envelope: ["no_house_model", "heat_loss_learning", "heat_loss_refit_disagrees"],
-    machine: ["cop_watch_learning"],
+    machine: ["cop_unmeasurable", "cop_watch_learning"],
     operation: ["no_scored_day", "free_price_reset"],
   };
   const LABEL = { envelope: "House", machine: "Heat pump", operation: "Driving" };
@@ -12013,13 +12158,31 @@ check("without an indoor reading the corner now label is absent",
     /Solved 12 min ago/.test(page) && /Next solve in 18 min/.test(page) && /1\.4 s/.test(page)
     && /\d+ steps/.test(page), page.slice(page.indexOf("health-plan"), page.indexOf("health-plan") + 600));
   const pill = h.match(/<span data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
-  check("the header pill reads 1 input stale (warn)",
-    !!pill && pill[2] === "warn" && pill[3] === "1 input stale", JSON.stringify(pill));
+  check("the header pill reads 1 input problem (warn)",
+    !!pill && pill[2] === "warn" && pill[3] === "1 input problem", JSON.stringify(pill));
   const two = healthStates();
   two[BIN].attributes.problems.push({ input: "dhw_temp_entity", entity_id: "sensor.tank",
     problem: "unavailable", age_minutes: null, max_age_minutes: 60 });
   const pill2 = mkHealth(two).html().match(/data-health-pill="(\w+)" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
-  check("two failing inputs read 2 inputs stale", !!pill2 && pill2[3] === "2 inputs stale", JSON.stringify(pill2));
+  check("two failing inputs read 2 input problems", !!pill2 && pill2[3] === "2 input problems", JSON.stringify(pill2));
+  // R10-HOTFIX-CARD-HEALTH-TEXT: the pill counts every problem kind, so it
+  // names none. One unavailable input and nothing stale: a pill reading
+  // "stale" over a page with no Stale row is the contradiction the owner
+  // reported, in every shipped language.
+  const unav = healthStates();
+  unav[BIN].attributes.problems = [{ input: "dhw_temp_entity", entity_id: "sensor.tank",
+    problem: "unavailable", age_minutes: null, max_age_minutes: 60 }];
+  const unavPills = ["en", "sv", "de"].map((lang) => {
+    const uh = mkHealth(unav, lang).html();
+    const p = uh.match(/data-health-pill="\w+" class="status-pill tone-(\w+)"[^>]*>([^<]*)</);
+    const staleWord = fn("STRINGS")[lang]["health.stale"];
+    return { lang, tone: p && p[1], text: p && p[2], staleWord,
+      staleRow: (pageOf(uh).match(new RegExp(`>${staleWord}<`, "g")) || []).length };
+  });
+  check("one unavailable input: the pill counts it and does not call it stale (en, sv, de)",
+    unavPills.every((u) => u.tone === "warn" && /^1\b/.test(u.text || "") && u.staleRow === 0 &&
+      !(u.text || "").toLowerCase().includes(u.staleWord.toLowerCase().slice(0, 5))),
+    JSON.stringify(unavPills));
   check("an unavailable input says so in words",
     /Unavailable/.test(pageOf(mkHealth(two).html())));
   const ok = healthStates();
@@ -12165,7 +12328,7 @@ check("without an indoor reading the corner now label is absent",
 
   const sv = mkHealth(healthStates(), "sv-SE").html();
   check("the Health page and pill speak Swedish",
-    /Indata/.test(sv) && /1 indata inaktuell/.test(sv) && /Hälsa/.test(sv) && /Ladda ner diagnostik/.test(sv));
+    /Indata/.test(sv) && /1 indataproblem/.test(sv) && /Hälsa/.test(sv) && /Ladda ner diagnostik/.test(sv));
   check("the card never reads a disabled-by-default sensor for the Health page",
     !/_contract_comparison|_dhw_heavy_day|_wood_burn_advisor|_measured_power/.test(
       cardSrc.slice(cardSrc.indexOf("const HEALTH_WAITING"), cardSrc.indexOf("const HEALTH_WAITING") + 600)));
@@ -12219,7 +12382,7 @@ check("without an indoor reading the corner now label is absent",
   // the English table. So each code's own key is read from both tables directly.
   const strings = fn("STRINGS");
   const keyOf = (code) => (code === "stale" ? "health.stale" : `health.p_${code}`);
-  for (const lang of ["en", "sv"]) {
+  for (const lang of Object.keys(strings)) {
     const missing = codes.filter((k) => !(typeof strings[lang][keyOf(k)] === "string" && strings[lang][keyOf(k)].trim()));
     check(`every published problem code has its own words in the card's ${lang} table`,
       missing.length === 0, missing.join(","));
@@ -12259,17 +12422,19 @@ check("without an indoor reading the corner now label is absent",
       /Vedtankens toppgivare/.test(rowText(svh, "wood_tank_top_entity"))
       && /Framledningstemperatur/.test(rowText(svh, "heat_pump_supply_temp_entity")), rowText(svh, "wood_tank_top_entity"));
     check("UX-HEALTH A: a key the table does not name reads Input with its entity id, never a name from the key",
-      /Input<span class="adv-sub">sensor\.my_thing/.test(rowText(en, "mystery_entity")) && !/mystery/.test(rowText(en, "mystery_entity").replace(/data-health-input="mystery_entity"/, "")),
+      /Input<span class="fact-sub">sensor\.my_thing/.test(rowText(en, "mystery_entity")) && !/mystery/.test(rowText(en, "mystery_entity").replace(/data-health-input="mystery_entity"/, "")),
       rowText(en, "mystery_entity"));
     // The equality: one label per options-flow field per language, the
     // owning page's (never the quick_setup / modbus_prefill shortcuts), and
     // the card's label is it less the language's optional marker.
     const SHORTCUT = new Set(["quick_setup", "modbus_prefill"]);
-    const STRIP = { en: [" (optional)"], sv: [" (valfri)", " (valfritt)"] };
-    const FILES = { en: "custom_components/heatpump_optimizer/strings.json",
-      sv: "custom_components/heatpump_optimizer/translations/sv.json" };
+    const STRIP = { en: [" (optional)"], sv: [" (valfri)", " (valfritt)"], de: [" (optional)"] };
+    const FILES = { en: "custom_components/heatpump_optimizer/strings.json" };
     const tbl = fn("STRINGS");
-    for (const lang of ["en", "sv"]) {
+    for (const lang of Object.keys(tbl)) if (lang !== "en") FILES[lang] = `custom_components/heatpump_optimizer/translations/${lang}.json`;
+    check("UX-HEALTH A: every card language names its optional-field marker",
+      Object.keys(tbl).every((lang) => STRIP[lang]), `${Object.keys(tbl).join(",")} against ${Object.keys(STRIP).join(",")}`);
+    for (const lang of Object.keys(tbl).filter((l) => STRIP[l])) {
       const json = JSON.parse(fs.readFileSync(FILES[lang], "utf8"));
       const fields = {};
       const walk = (n, path) => {
@@ -12337,13 +12502,16 @@ check("without an indoor reading the corner now label is absent",
         },
       });
       const esc = fn("esc");
-      for (const [lang, noData] of [["en", /with no samples|dash means/], ["sv", /utan mätningar|streck betyder/]]) {
+      const NO_DATA = { en: /with no samples|dash means/, sv: /utan mätningar|streck betyder/, de: /ohne Messwerte|Strich bedeutet/ };
+      check("hover spec: every card language names its no-data wording",
+        Object.keys(fn("STRINGS")).every((lang) => NO_DATA[lang]), Object.keys(NO_DATA).join(","));
+      for (const [lang, noData] of Object.entries(NO_DATA)) {
         const m = modelOf(bare, lang);
         const strings = fn("STRINGS")[lang];
         const ids = [...m.matchAll(/data-model-row="([^"]+)"/g)].map((x) => x[1]);
         const bad = ids.filter((id) => {
           const title = (new RegExp(`data-model-row="${id}"[^>]*title="([^"]*)"`).exec(m) || [])[1] || "";
-          const reason = (/<span class="adv-sub">([^<]*)</.exec(rowOf(m, id)) || [])[1] || "";
+          const reason = (/<span class="fact-sub">([^<]*)</.exec(rowOf(m, id)) || [])[1] || "";
           const metric = strings[`health.metric_${id}`];
           return !metric || !title.includes(esc(metric)) || !noData.test(metric)
             || !reason || !title.includes(reason);
@@ -12380,7 +12548,7 @@ check("without an indoor reading the corner now label is absent",
     sc[`${PFX}_plan_optimization_score`].attributes.reasons.overall = "heat_loss_learning";
     const scoreRow = pageOf(mkHealth(sc).html());
     check("UX-HEALTH D: the waiting score says its own sensor's reason",
-      /Optimization score<span class="adv-sub">Still learning the house&#39;s heat loss\.|Optimization score<span class="adv-sub">Still learning the house's heat loss\./.test(scoreRow),
+      /Optimization score<span class="fact-sub">Still learning the house&#39;s heat loss\.|Optimization score<span class="fact-sub">Still learning the house's heat loss\./.test(scoreRow),
       scoreRow.slice(scoreRow.indexOf("Optimization score"), scoreRow.indexOf("Optimization score") + 120));
 
     // Carry 14: the score's hover explains every sub-score's metric, not
@@ -12415,9 +12583,15 @@ check("without an indoor reading the corner now label is absent",
     const both = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "awaiting_draw_evidence", cop_refusal: "duty_floor" });
     check("UX-HEALTH E: the learner's own refusal is said before the gate's wait for draw evidence",
       /ran too little/.test(both) && !/Waiting to see whether/.test(both), both);
-    const awaiting = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "awaiting_draw_evidence" });
-    check("UX-HEALTH E: with no refusal the gate's wait for draw evidence is said",
-      /Waiting to see whether the power draw follows the plan/.test(awaiting), awaiting);
+    // R10-HOTFIX-COP-UNMEASURED: no heat reading, or an estimated input, is
+    // said as never measurable here, not as data still to come.
+    const noHeat = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "not_measurable",
+      cop_refusal: "awaiting_draw_evidence" });
+    const estimated = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "estimated_inputs" });
+    check("UX-HEALTH E: a COP this install cannot measure says so and names what would measure it, never 'not enough data yet'",
+      /COP cannot be measured on this install: it has no heat reading/.test(noHeat)
+      && /COP cannot be measured on this install: its power or heat reading is the pump's own estimate/.test(estimated)
+      && ![noHeat, estimated].some((row) => /Not enough COP data yet/.test(row)), `${noHeat}\n${estimated}`);
     const aged = copRow({ scale: 0.97, watched_buckets: 2, measured_cop_at: new Date(FROZEN - 2 * 3600e3).toISOString() });
     check("UX-HEALTH E: the latched COP shows its age", /Measured 2 h ago/.test(aged), aged);
     check("UX-HEALTH E: a watched COP still reads Normal (null control)",
@@ -12427,14 +12601,14 @@ check("without an indoor reading the corner now label is absent",
       /Normal \(COP scale 1\.02\)/.test(hm) && /Measured by the heat meter/.test(hm), hm);
     const nm = modelStates({ cop: { scale: 1.0, watched_buckets: 3, cop_observability: "not_measurable" } });
     const nmPage = pageOf(mkHealth(nm).html());
-    const learnCop = (/Heat pump COP<span class="adv-sub">([^<]*)</.exec(nmPage) || [])[1] || "";
+    const learnCop = (/Heat pump COP<span class="fact-sub">([^<]*)</.exec(nmPage) || [])[1] || "";
     check("UX-HEALTH E: the learning row says the same COP reason as the model row",
-      /^Not measurable here/.test(learnCop) && !/Needs a power meter/.test(nmPage), learnCop);
+      /^COP cannot be measured on this install/.test(learnCop) && !/Needs a power meter/.test(nmPage), learnCop);
     // Every code the COP gate and the heat counter publish has words in both
     // languages; the count is asserted non-zero so a grep miss cannot pass.
     const pySrc = ["accuracy.py", "heat_energy.py"].map((f) => fs.readFileSync(`custom_components/heatpump_optimizer/${f}`, "utf8")).join("\n");
     const copCodes = [...pySrc.matchAll(/^(?:COP_(?:HEAT|DRAW|NOT|NO_ELECTRIC)[A-Z_]*|COP_REFUSED_[A-Z_]+|SPAN_REFUSED_[A-Z_]+) = "(\w+)"/gm)].map((m) => m[1]);
-    for (const lang of ["en", "sv"]) {
+    for (const lang of Object.keys(fn("STRINGS"))) {
       const missing = copCodes.filter((c) => !fn("STRINGS")[lang][`health.cop_reason_${c}`]);
       check(`UX-HEALTH E: every published COP code has its own ${lang} words`,
         copCodes.length > 0 && missing.length === 0, `${copCodes.length} codes; missing ${missing.join(",")}`);
@@ -13354,10 +13528,16 @@ check("without an indoor reading the corner now label is absent",
   check("why-now: Swedish words, hover and percent spacing",
     sv.includes(SV["whynow.title"]) && sv.includes("↑ +57 %") && sv.includes(fn("esc")(SV["whynow.metric"]))
     && sv.includes("Prisrang") && sv.includes("Bortaläge") && sv.includes("driver mot drift") && sv.includes("driver mot vila"), sv.slice(0, 600));
+  const de = withWhy(why, "de-DE");
+  const DE = fn("STRINGS.de");
+  check("why-now: German words, hover and percent spacing",
+    de.includes(DE["whynow.title"]) && de.includes("↑ +57 %") && de.includes(fn("esc")(DE["whynow.metric"]))
+    && de.includes("Preisrang") && de.includes("Abwesenheit") && de.includes("drängt zum Laufen") && de.includes("drängt zum Pausieren"), de.slice(0, 600));
   build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // leave the module back in English
   const whyKeys = (lang) => Object.keys(fn(`STRINGS.${lang}`)).filter((k) => k.startsWith("whynow.")).sort();
-  check("why-now: every en string has its sv twin, and every driver code has a label and an explanation",
-    JSON.stringify(whyKeys("en")) === JSON.stringify(whyKeys("sv"))
+  const whyLangs = Object.keys(fn("STRINGS"));
+  check("why-now: every en string has its twin in every card language, and every driver code has a label and an explanation",
+    whyLangs.every((lang) => JSON.stringify(whyKeys("en")) === JSON.stringify(whyKeys(lang)))
     && ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].every((c) => EN[`whynow.driver_${c}`] && EN[`whynow.explain_${c}`])
     // The roster brief's wording, verbatim (R10-WHY-NOW-WIDGET carry 1).
     && ["Price rank", "Comfort floor", "Mold guard", "Away", "Forecast"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => EN[`whynow.driver_${c}`]).join()
@@ -13367,7 +13547,7 @@ check("without an indoor reading the corner now label is absent",
     // claim a share decides the hour (fix review of #3274, finding 1).
     && !/decides the hour/.test(EN["whynow.metric"]) && EN["whynow.metric"].includes("can still do the opposite")
     && fn("STRINGS.sv")["whynow.metric"].includes("ändå göra tvärtom"),
-    `${whyKeys("en")} | ${whyKeys("sv")}`);
+    whyLangs.map((lang) => `${lang}: ${whyKeys(lang)}`).join(" | "));
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

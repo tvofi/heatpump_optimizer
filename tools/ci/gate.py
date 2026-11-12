@@ -23,7 +23,8 @@ REQUIRED is keyed by event class (contract item 4). The 17 contexts of ruleset
 23698884 are renamed `<file stem> / <job>`; `arch-score / arch-score` joins
 when the diff reaches custom_components/ (D-2); on `push`, every job whose
 failure reddens today's Tests push run joins (B3, enumerated from tests.yml by
-the harness's `b3` arm, never from memory). `tests / arch-instrument`, the
+the harness's `b3` arm, never from memory) except PUSH_REPORT_ONLY's ci-ratchet,
+which the push summary reports in one line and never grades. `tests / arch-instrument`, the
 architecture-score pair's own job beside `fast` (P2b, U5b), is a tests name
 like the rest: required on pull requests and push alike.
 
@@ -43,8 +44,10 @@ only to runs not yet `judging` (judging() reads a deferring run's skipped
 `pr-contract` caller as a unit it never ran, r10-gate-busy-defer-2), and two
 runs whose gates have both started are broken by id (`busy`): the lower decides,
 the higher defers to it. Where a lagging listing still makes two gates defer
-to each other, both are red, and settle re-runs both once each has concluded:
-a gate re-run after every source finished is final, so settle cannot loop.
+to each other, both are red, and settle re-runs both once each has concluded.
+Settle re-runs a gate at most once per source change, and a skipped job is no
+source: GitHub re-stamps it at every gate re-run (sweep.py's module doc;
+R10-HOTFIX-SWEEP-SETTLE-LOOP, where reading those stamps looped two runs).
 """
 from __future__ import annotations
 
@@ -63,7 +66,12 @@ import ghapi  # noqa: E402
 from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
                      run_jobs, title, workset)
 
-PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet", "ci-ratchet")}      # B3
+PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet")}      # B3
+# The push-only job that is graded on its own and never fails the gate: a red
+# ci-ratchet is a debt the follow-up pays, and the merge it grades already
+# happened (tests.yml: "Not a required context"). It still runs, and
+# machinery_line() reports its conclusion.
+PUSH_REPORT_ONLY = {"tests": ("ci-ratchet",)}
 CODE = {u: UNITS[u] for u in CODE_UNITS}
 BODY = {u: UNITS[u] for u in BODY_UNITS}
 ATTEMPT_CAP = 45     # GitHub fails a run's 51st attempt; the hooks never take a run past 45 (4.3)
@@ -188,10 +196,20 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         u, n = name.split(" / ", 1)
         required.setdefault(u, []).append(n)
     me = {"id": ctx["run_id"], "title": title(kind, pr, base, ctx.get("sha", "")), "status": "completed",
-          "jobs": api["jobs"]}
+          "jobs": api["jobs"], "starts": api.get("starts") or {}}
+
+    def fresh(r, names):
+        """A unit's source order: the run whose jobs for it started LATEST read the head's live
+        state last (arch-score and budget-raise-gate read the PR at their start), then the higher
+        id. GitHub numbers a same-second push and body edit out of order (r10-ci-edit-runner:
+        the edit run lower in 27 of 94 pairs), and a re-run executes a lower run's unit afresh.
+        This run's own unit while its listing lags is never displaced: its needs ran it."""
+        if r is me and any((r["jobs"].get(f"{unit} / {n}") or ("",))[0] != "completed" for n in names):
+            return "~", r["id"]
+        return max(((r.get("starts") or {}).get(f"{unit} / {n}") or "" for n in names), default=""), r["id"]
     for unit, names in required.items():
         src = None
-        for r in sorted(others + [me], key=lambda r: r["id"], reverse=True):
+        for r in sorted(others + [me], key=lambda r: fresh(r, names), reverse=True):
             if r["status"] == "action_required":
                 continue
             t = parse_title(r["title"])
@@ -204,6 +222,9 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
             js = [r["jobs"].get(f"{unit} / {n}") for n in names]
             if r is not me and all(j is not None and j[1] == "skipped" for j in js):
                 continue                    # a unit that run deferred (C3) judged nothing: no source
+            if r is not me and all(j is not None and j[1] in ("cancelled", "success") for j in js) and any(
+                    j[1] == "cancelled" for j in js):
+                continue                    # a cancelled unit judged nothing whole; a red beside it is the source
             if r is me or all(j is not None and j[0] == "completed" for j in js):
                 src = r                     # this run's own unit always counts (its needs ran it)
                 break
@@ -233,9 +254,10 @@ def _pull(get, repo: str, pr: str) -> dict:
 def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     """Every Actions and pulls read the predicate needs, in one place: the last step."""
     repo, (_, pr, _) = ctx["repo"], derive(ctx)
-    jobs = run_jobs(get, repo, ctx["run_id"])
+    starts: dict = {}
+    jobs = run_jobs(get, repo, ctx["run_id"], starts)
     status, conclusion = jobs.get("prelude") or (None, None)
-    api = {"prelude": {"status": status, "conclusion": conclusion, **claim},
+    api = {"prelude": {"status": status, "conclusion": conclusion, **claim}, "starts": starts,
            "jobs": jobs, "reaches_cc": reaches_cc, "live_pr": None, "open_pr_heads": set()}
     if pr and ctx["event_name"] != "merge_group":
         lp = _pull(get, repo, pr)
@@ -244,9 +266,13 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     elif ctx["event_name"] == "workflow_dispatch":
         api["open_pr_heads"] = {p["head"]["sha"] for p in ghapi.paginate(f"repos/{repo}/pulls", {"state": "open"}, get=get)}
     runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": ctx["head"]}, get=get)
-    api["runs_at_head"] = [{"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
-                            "jobs": {} if r["status"] == "action_required" else run_jobs(get, repo, r["id"])}
-                           for r in runs if r["id"] != ctx["run_id"]]
+    api["runs_at_head"] = []
+    for r in runs:
+        if r["id"] != ctx["run_id"]:
+            st: dict = {}
+            api["runs_at_head"].append({"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
+                                        "starts": st, "jobs": {} if r["status"] == "action_required"
+                                        else run_jobs(get, repo, r["id"], st)})
     return api
 
 
@@ -255,6 +281,14 @@ def reaches_custom_components(base: str, head: str) -> bool:
     p = subprocess.run(["git", "diff", "--name-only", f"origin/{base}...{head}", "--", "custom_components/"],
                        capture_output=True, text=True)
     return p.returncode != 0 or bool(p.stdout.strip())
+
+
+def machinery_line(jobs: dict, owed) -> str:
+    """The push summary's one report-only line: the conclusion of every job of
+    this run no class requires (the instrument self-tests, ci-ratchet, the
+    other non-required jobs). It changes no verdict."""
+    rest = [f"{k}={v[1] or v[0]}" for k, v in sorted(jobs.items()) if k not in owed]
+    return "machinery (report-only, never gating): " + (", ".join(rest) or "no other job listed")
 
 
 def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
@@ -273,7 +307,10 @@ def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=
         lagged = lagged or why
         sleep(POLL_S)
     owed = {n for names in REQUIRED.values() for n in names} | {"prelude", "gate"}
-    notes = [f"{k}: {v[1] or v[0]}" for k, v in sorted(api["jobs"].items()) if k not in owed]
+    if ctx["event_name"] == "push":
+        notes = [machinery_line(api["jobs"], owed)]
+    else:
+        notes = [f"{k}: {v[1] or v[0]}" for k, v in sorted(api["jobs"].items()) if k not in owed]
     if lagged:                                   # the listing lagged this run: say so (RCA countermeasure 4)
         notes.append(f"listing lag: {lagged[0]} re-read for {int(now() - t0)} s")
     return ("PASS" if ok else f"FAIL {why[0]}"), why, notes
@@ -368,7 +405,8 @@ def self_test() -> int:
     fixture = json.loads((HERE.parent / "policy" / "fixtures" / "required-contexts.json").read_text())
     check("D-2: arch-score only when the diff reaches custom_components/",
           set(REQUIRED["pr-cc"]) - set(REQUIRED["pr"]), {"arch-score / arch-score"})
-    check("B3: push owes the Tests push run's ratchets", {"tests / ci-ratchet", "tests / coverage-ratchet"} <= set(REQUIRED["push"]), True)
+    check("B3: push owes coverage-ratchet and no longer ci-ratchet (report-only)",
+          ("tests / coverage-ratchet" in REQUIRED["push"], "tests / ci-ratchet" in gate_required()), (True, False))
     check("push owes no closure-scope and no body unit", [x for x in REQUIRED["push"] if "closure-scope" in x
                                                             or x.split(" / ")[0] in BODY], [])
     check("arch-instrument is required on every event class (U5b)",
@@ -399,6 +437,23 @@ def self_test() -> int:
     extra = green + [{"name": "tests / nightly-status", "status": "completed", "conclusion": "failure"}]
     check("a red job no class requires is reported, never gating", judge(ctx, claim, fake(extra), cc)[::2],
           ("PASS", ["tests / nightly-status: failure"]))
+    pctx = context("push", {}, {**env, "GITHUB_SHA": head})
+    pclaim = {"kind": "code", "pr": ""}
+    pgreen = [{"name": "prelude", "status": "completed", "conclusion": "success"}] + [
+        {"name": x, "status": "completed", "conclusion": "success", "id": 1} for x in REQUIRED["push"]]
+    ratchet_red = pgreen + [{"name": "tests / ci-ratchet", "status": "completed", "conclusion": "failure"}]
+    check("null: a push with every job green prints the machinery line and passes",
+          judge(pctx, pclaim, fake(pgreen), cc)[::2],
+          ("PASS", ["machinery (report-only, never gating): no other job listed"]))
+    check("a push with ci-ratchet red passes and reports it in the one machinery line",
+          judge(pctx, pclaim, fake(ratchet_red + [{"name": "tests / selftest", "status": "completed",
+                                                   "conclusion": "success"}]), cc)[::2],
+          ("PASS", ["machinery (report-only, never gating): tests / ci-ratchet=failure, tests / selftest=success"]))
+    cov_red = [dict(j, conclusion="failure") if j["name"] == "tests / coverage-ratchet" else j for j in ratchet_red]
+    check("a push with coverage-ratchet red still fails", judge(pctx, pclaim, fake(cov_red), cc)[0],
+          "FAIL tests / coverage-ratchet: failure (this run)")
+    check("on a pull request the notes stay one line per job, no machinery line",
+          [x for x in judge(ctx, claim, fake(green + ratchet_red[-1:]), cc)[2] if x.startswith("machinery")], [])
     red = [dict(j, conclusion="failure") if j["name"] == "tests / closures" else j for j in green]
     check("a red required job", judge(ctx, claim, fake(red), cc)[0], "FAIL tests / closures: failure (this run)")
     skip = [dict(j, conclusion="skipped") if j["name"] == "tests / browser" else j for j in green]
@@ -428,6 +483,33 @@ def self_test() -> int:
     check("a newer held run is neither waited on nor a source", gate({**ctx, "action": "edited"}, {
         **api, "prelude": {"conclusion": "success", "kind": "edit", "pr": "7"}, "jobs": body,
         "runs_at_head": [older, held]}), (True, []))
+    # R10-HOTFIX-GATE-REDISPATCH-LOOP arm 1 (#3445): cancelling a newer redundant run left its jobs
+    # completed and started latest, so it was the source and the gate read CANCELLED at the head.
+    eapi = {**api, "prelude": {"conclusion": "success", "kind": "edit", "pr": "7"}, "jobs": body}
+    ectx1 = {**ctx, "action": "edited"}
+    tests_jobs = [k for k in jobs if k.startswith("tests / ")]
+
+    def newer(conclude):
+        return {"id": 95, "title": title("code", "7", "main"), "status": "completed", "starts": {k: "9" for k in jobs},
+                "jobs": {k: (("completed", conclude(k)) if k in tests_jobs else v) for k, v in jobs.items()}}
+    check("a newer cancelled run over an older green one at the head is no source: green",
+          gate(ectx1, {**eapi, "runs_at_head": [older, newer(lambda k: "cancelled")]}), (True, []))
+    check("null: a newer failed run over an older green one is the source: red",
+          gate(ectx1, {**eapi, "runs_at_head": [older, newer(lambda k: "failure")]}),
+          (False, [f"{k}: failure (run 95)" for k in tests_jobs]))
+    first = tests_jobs[0]
+    check("null: a newer run whose unit failed once and fail-fast cancelled the rest is the source: red",
+          gate(ectx1, {**eapi, "runs_at_head": [older, newer(lambda k: "failure" if k == first else "cancelled")]}),
+          (False, [f"{k}: {'failure' if k == first else 'cancelled'} (run 95)" for k in tests_jobs]))
+    check("a newer run cancelled after part of its unit passed is no source either: the older green judges",
+          gate(ectx1, {**eapi, "runs_at_head": [older, newer(lambda k: "success" if k == first else "cancelled")]}),
+          (True, []))
+    oldred = {**older, "jobs": {k: (("completed", "failure") if k in tests_jobs else v) for k, v in jobs.items()}}
+    check("null: a newer green run over an older red one is the source: green",
+          gate(ectx1, {**eapi, "runs_at_head": [oldred, newer(lambda k: "success")]}), (True, []))
+    check("null: with only the cancelled run at the head the unit has no source: red",
+          "tests: no run at this head judged base 'main'" in gate(ectx1, {**eapi, "runs_at_head": [
+              newer(lambda k: "cancelled")]})[1], True)
     dctx = context("workflow_dispatch", {"inputs": {}}, env)
     dapi = {**api, "prelude": {"conclusion": "success", "kind": "code", "pr": ""}, "jobs": jobs, "runs_at_head": []}
     check("an unnamed dispatch at an open PR's head is refused", gate(dctx, {**dapi, "open_pr_heads": {"M"}})[1],
@@ -534,6 +616,13 @@ def self_test() -> int:
              "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in lagging}} for i in (lo, hi)]
     check("busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower",
           (busy({**ctx, "run_id": lo}, pair), busy({**ctx, "run_id": hi}, pair)), ([], [lo]))
+    # #3244 at a2582125, attempt 2: three edit gates started 21:46:18-20Z, after the code run's gate
+    # went green (21:45:53Z), and each deferred to the other two under pinned program 9cbd7dd0 (before
+    # #3246), so none judged. With every caller's listing lagging, the ids still leave one judging.
+    trio = [{**pair[0], "id": i} for i in (42286558101, 42286624031, 42293328283)]
+    check("busy-defer, three gates (#3244): the lowest defers to none, each other only to the gates below it",
+          [busy({**ctx, "run_id": r["id"]}, trio) for r in trio],
+          [[], [trio[0]["id"]], [trio[0]["id"], trio[1]["id"]]])
     honest = [{**r, "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in at_gate}} for r in pair]
     check("busy-defer-2: listed as GitHub lists it (`pr-contract` skipped), neither started gate waits on the other",
           (busy({**ctx, "run_id": lo}, honest), busy({**ctx, "run_id": hi}, honest)), ([], []))
@@ -608,6 +697,24 @@ def self_test() -> int:
     get, naps, nap, now = scene([red_edit])
     check("C3: the edit run's red arch-score (the latest body) is the code gate's source, not its own older green",
           verdict(ctx, get, nap, now), "FAIL arch-score / arch-score: failure (run 101)")
+    # r10-ci-edit-runner 27233708: GitHub numbered the edit run BELOW its code run (27 of 94 same-second
+    # pairs), so the code run's own arch-score shadowed the edit run's read of the latest body by id alone.
+    def stamped(jobs, at):
+        return [dict(j, started_at=at.get(j["name"], "2026-11-01T10:00:00Z")) for j in jobs]
+    arch = "arch-score / arch-score"
+    for label, at, want in (("started after the code run's own", "2026-11-01T10:05:00Z",
+                             "FAIL arch-score / arch-score: failure (run 99)"),
+                            ("null: started before it", "2026-11-01T09:55:00Z", "PASS")):
+        get, naps, nap, now = scene([{**red_edit, "id": 99, "jobs": stamped(red_edit["jobs"], {arch: at})}],
+                                    mine=stamped(green, {}))
+        check(f"source order: a LOWER-id edit run's red arch-score {label} -> the code gate reads the later start",
+              verdict(ctx, get, nap, now), want)
+    lagged = [dict(j, status="queued", conclusion=None, started_at=None) if j["name"] == arch else j
+              for j in stamped(green, {})]
+    get, naps, nap, now = scene([{**done_edit, "id": 101, "jobs": stamped(done_edit["jobs"], {arch: "2026-11-01T10:05:00Z"})}],
+                                mine=lagged)
+    check("source order null: this run's own unit, listed lagging, is never displaced by a later sibling's green",
+          verdict(ctx, get, nap, now), "FAIL arch-score / arch-score: PENDING (this run)")
     for label, red, want in (("green", (), "PASS"),
                              ("its pr-contract red", ("pr-contract / pr-contract",),
                               "FAIL pr-contract / pr-contract: failure (run 99)")):

@@ -106,17 +106,17 @@ KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
     "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived", "handoff-body-unapplied": "derived", "handoff-hold-stale": "derived",
     "design-build": "derived", "review-owed": "derived", "record-owed": "derived",
-    "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
-    "seat-no-return": "derived",
+    "probe-refused": "derived", "handoff-verdict-held": "derived", "confirm-owed": "derived", "push-stuck": "derived",
+    "seat-no-return": "derived", "carry-fold": "derived",
     "fixer-round": "derived", "recut": "derived", "train-parked": "derived", "dirty": "derived",
-    "red-unowned": "derived", "body-ahead": "derived", "fire-owed": "derived",
+    "red-unowned": "derived", "body-ahead": "derived", "fire-owed": "derived", "blocked-stop": "derived",
     "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
     "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
 }
 PR_KEYED = ("reviewer-fire", "verdict-unposted", "approve-held-runs", "dispatch")
 ARMS = (("refs/heads/probe/", "probe-ref"), ("refs/heads/handoff-body/", "handoff-no-pr"),
         ("refs/heads/handoff/", "handoff-no-pr"), ("refs/heads/design-verdict/", "design-build"),
-        ("refs/heads/review/", "confirm-owed"))
+        ("refs/heads/review/", "confirm-owed"), ("refs/heads/handoff-wip/", "blocked-stop"))
 STATE_REF = re.compile(r"^audit-r\d+-(?:plan|roster)$")
 RELAY_WRITE = re.compile(r"\b(ledger_open|level_line) ([a-z-]+) ")
 VERDICT = re.compile(r"^Fix review: (?:merge|blocked) ([0-9a-f]{40})(?: |$)")
@@ -645,8 +645,8 @@ def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_b
     With `recarry(prior, head, n)` (git_recarry): a head that differs from a
     head of a `merge` verdict, or a dispatched head, of the PR only by clean
     merges of main, or only by the PR's own delivery row, prints
-    `CARRY: #N <head12>` instead (P90; the ancestor-recarry test of
-    standing-tick.md). A head is a prior only while its newest verdict is a
+    `CARRY: #N <head12>` instead (P90; the ancestor-recarry test is
+    `git_recarry` below). A head is a prior only while its newest verdict is a
     merge, or it is dispatched with no verdict yet: a blocked verdict's head is
     no prior, though bus.sh's dispatch record holds it too (only a merge
     verdict carries; fix-review.md step 12)."""
@@ -836,6 +836,8 @@ def self_test() -> int:
     with tempfile.TemporaryDirectory() as d:
         D = Path(d)
         # ---- dispositions: classification, import, last per ref
+        check("a handoff-wip tip classifies as a blocked stop, not a handoff",
+              classify("refs/heads/handoff-wip/x") == "blocked-stop")
         check("each of the five arms classifies", [classify(f"refs/heads/{p}/x") for p in
               ("probe", "handoff", "handoff-body", "design-verdict", "review")]
               == ["probe-ref", "handoff-no-pr", "handoff-no-pr", "design-build", "confirm-owed"])

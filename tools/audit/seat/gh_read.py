@@ -2,6 +2,8 @@
 """The bounded retry of GitHub READS for the seat's Python instruments (R10-FLY-GH-READ-RETRY).
 
     printf '%s' "$stderr" | python3 tools/audit/seat/gh_read.py --classify   # exit 0: transient
+    printf '%s' "$stderr" | python3 tools/audit/seat/gh_read.py --classify-git   # git's, exit 0: transient
+    python3 tools/audit/seat/gh_read.py --git-retry git fetch -q origin main     # git under run_git_retry
 
 `self_test()` runs inside record_row.py's self-test, which CI runs; this file
 has no self-test entry point of its own to wire.
@@ -30,6 +32,7 @@ its self-test drives both over its alternatives table and compares them.
 from __future__ import annotations
 
 import email.utils
+import json
 import http.client
 import re
 import sys
@@ -50,6 +53,12 @@ GO_STATUS = re.compile(r"^HTTP (?P<code>[0-9]{3})(: .*)? \(https?://[^ ]+\)$")
 #: A transport failure: Go's `Get "https://...": ` (`Post` is `gh pr view`'s
 #: GraphQL query, a read), or gh's `error connecting to `.
 TRANSPORT = re.compile(r'^(Get|Post) "https?://[^"]*": |^error connecting to ')
+#: A body that is not JSON, with no status line: gh's `--jq` parsing what a
+#: failing front end sent (#2579's pr-contract run 39681234360, job
+#: 119504172159: `invalid character 'S' looking for beginning of value`, and a
+#: sibling read a second earlier answered). GitHub's refusals are JSON, so
+#: this is no refusal; a status line, when gh prints one, still decides.
+NON_JSON = re.compile(r"^invalid character '.{1,6}' looking for beginning of value$")
 SECONDARY = "secondary rate limit"
 #: What a 403 names when it is a rate-limit response, primary or secondary.
 RATE_LIMIT = "rate limit"
@@ -57,6 +66,44 @@ RATE_LIMIT = "rate limit"
 #: short one alone or attached (`-fbody=x`), a long one alone or with `=`.
 SHORT_FIELD_FLAGS = ("-f", "-F")
 LONG_FIELD_FLAGS = ("--field", "--raw-field", "--input")
+
+
+#: R10-TRAIN-MERGE-LOOP-2: a `git fetch`/`git push` is GitHub transport too.
+#: git's own stderr, measured: smart-HTTP and socket failures a later call rides out.
+GIT_TRANSIENT = re.compile(
+    r"returned error: 5\d\d|RPC failed; HTTP 5\d\d|unexpected disconnect while reading sideband"
+    r"|early EOF|the remote end hung up unexpectedly|Connection reset by peer|Could not resolve host"
+    r"|Failed to connect|Operation timed out|GnuTLS recv error|SSL_ERROR_SYSCALL|unable to access.*timed? ?out")
+#: A refusal or a rejected update: never retried, whatever else the output says.
+GIT_REFUSED = re.compile(
+    r"non-fast-forward|\[rejected\]|Permission denied|Authentication failed|\b40[34]\b"
+    r"|couldn't find remote ref|protected branch hook declined|stale info|remote rejected")
+
+
+def git_transient(output: str) -> bool:
+    """git's stderr on a failed fetch/push -> True when another call may ride it out."""
+    return not GIT_REFUSED.search(output) and bool(GIT_TRANSIENT.search(output))
+
+
+GIT_TRIES = 3
+
+
+def run_git_retry(run, argv, sleep, log=lambda line: None, **kw):
+    """`run(argv)` for a git fetch/push, repeated up to GIT_TRIES times (settling 5/15 s)
+    while the failure is git_transient; a rejection or a success answers at once.
+    merge_train.py's fetches and pushes, and `--git-retry`'s shell callers, share it."""
+    for n in range(1, GIT_TRIES + 1):
+        code, o = run(argv, **kw)
+        if not code or n == GIT_TRIES or not git_transient(o):
+            return code, o
+        log(f"{' '.join(argv)[:120]}: git {n}/{GIT_TRIES}: {' '.join(o.split())[:120]}")
+        sleep(READ_SLEEP_S * 3 ** (n - 1))
+
+
+def _run_captured(argv):
+    import subprocess
+    p = subprocess.run(argv, capture_output=True, text=True)
+    return p.returncode, p.stdout + p.stderr
 
 
 def http_transient(code: int, line: str) -> bool:
@@ -70,7 +117,7 @@ def gh_transient(text: str) -> bool:
     """gh's output on a failed read -> True when another read may ride it out.
 
     The last whole status line decides: it is the response gh read last. With
-    none, a transport line on any line does."""
+    none, a transport line, or a body that did not parse as JSON, on any line does."""
     status = None
     for line in text.splitlines():
         m = GH_STATUS.search(line) or GO_STATUS.search(line)
@@ -78,7 +125,7 @@ def gh_transient(text: str) -> bool:
             status = (int(m.group("code")), line)
     if status is not None:
         return http_transient(*status)
-    return any(TRANSPORT.search(line) for line in text.splitlines())
+    return any(TRANSPORT.search(line) or NON_JSON.search(line) for line in text.splitlines())
 
 
 def gh_wait(text: str) -> float | None:
@@ -160,6 +207,39 @@ def retry(attempt, wait_for, sleep, note=lambda line: None):
         delay *= 3
 
 
+#: One page of a paged list, GitHub's maximum, and the walk's bound: past
+#: MAX_PAGES full pages the read refuses rather than return a truncated list.
+PER_PAGE = 100
+MAX_PAGES = 100
+
+
+def read_pages(read, path: str, key: str = "", per_page: int = PER_PAGE, max_pages: int = MAX_PAGES):
+    """Every item of the paged list at <path> -> (code, items, why); items is
+    None and why the failure on a failed, unparseable or unbounded walk.
+
+    Page by explicit `page=N`, never `gh api --paginate`: that follows the Link
+    header, which names `repositories/<id>/...`, and a cloud seat's proxy
+    answers that URL 403 (S14-CLOUD-CLASSIFY-PAGINATE: `merge_train.py
+    classify` exited 2 on it). A short page ends the walk. `read` is the
+    caller's runner -- `merge_train`'s carries this file's retry rule -- and
+    <key> names the list in an object page (`check_runs`), "" an array page."""
+    sep = "&" if "?" in path else "?"
+    items: list = []
+    for n in range(1, max_pages + 1):
+        code, out = read(["gh", "api", f"{path}{sep}per_page={per_page}&page={n}",
+                          "--jq", f".{key}[]" if key else ".[]"])
+        if code:
+            return code, None, out
+        try:
+            page = [json.loads(x) for x in out.splitlines() if x.strip()]
+        except ValueError:
+            return 1, None, f"page {n} of {path} is not JSON: {one_line(out)[-120:]}"
+        items += page
+        if len(page) < per_page:  # mut:short-page
+            return 0, items, ""
+    return 1, None, f"{path}: more than {max_pages} pages of {per_page}: refused, not truncated"
+
+
 def one_line(failure) -> str:
     return " ".join(str(failure).split())
 
@@ -224,7 +304,13 @@ def ALTERNATIVES() -> set[str]:  # noqa: N802 -- named for the bash table's ALTS
     from pathlib import Path
     tree = ast.parse(Path(__file__).read_text())
     out = {"default"}
+    # git's rule (GIT_TRANSIENT, GIT_REFUSED) is a second classifier with its
+    # own table in merge_train.py's self-test; app_approve.sh's gh twin has none of it.
+    git = {id(n.value) for n in ast.walk(tree) if isinstance(n, ast.Assign)
+           and any(getattr(t, "id", "").startswith("GIT_") for t in n.targets)}
     for node in ast.walk(tree):
+        if id(node) in git:
+            continue
         if (isinstance(node, ast.Call) and getattr(node.func, "attr", "") == "compile"
                 and node.args and isinstance(node.args[0], ast.Constant)):
             out.update(_alternatives(node.args[0].value))
@@ -419,6 +505,15 @@ def self_test() -> int:
         (SECONDARY, False, "gh: secondary limit reached (HTTP 403)"),
         (SECONDARY, False, "gh: secondary rate exceeded (HTTP 403)"),
         (SECONDARY, False, "gh: secondary rate limit (HTTP 404)"),
+        (NON_JSON.pattern, True, "invalid character 'S' looking for beginning of value"),
+        (NON_JSON.pattern, True, "A new release of gh is available\ninvalid character '<' looking for beginning of value"),
+        (NON_JSON.pattern, True, "invalid character '\\x00' looking for beginning of value"),
+        (NON_JSON.pattern, False, "jq: invalid character 'S' looking for beginning of value"),
+        (NON_JSON.pattern, False, "invalid character 'S' looking for beginning of value at offset 1"),
+        (NON_JSON.pattern, False, "invalid character 'S' after top-level value"),
+        (NON_JSON.pattern, False, "invalid character '' looking for beginning of value"),
+        (NON_JSON.pattern, False, "invalid character 'Service' looking for beginning of value"),
+        (NON_JSON.pattern, False, "gh: Not Found (HTTP 404)\ninvalid character 'S' looking for beginning of value"),
         ("default", False, "something gh never says"), ("default", False, ""),
         ("default", False, "gh: Not Found (HTTP 404)\nerror connecting to api.github.com"),
     ]
@@ -458,6 +553,85 @@ def self_test() -> int:
                        (["git", "fetch", "origin"], False)):
         check(f"is_read({' '.join(argv)}) is {want}", is_read(argv) is want)
 
+    # git's rule (R10-TRAIN-MERGE-LOOP-2): the loop, its runner and the CLI the
+    # shell callers use. merge_train.py's self-test holds the classifier's table.
+    import contextlib
+    import io
+    outs, logs, slept = [(1, "error: RPC failed; HTTP 502"), (0, "ok")], [], []
+    got = run_git_retry(lambda argv: outs.pop(0), ["git", "fetch"], slept.append, logs.append)
+    check("run_git_retry: a 502 then success answers the success after one 5 s settle, logged once",
+          got == (0, "ok") and slept == [5] and len(logs) == 1 and "git 1/3" in logs[0])
+    code, o = _run_captured(["git", "--version"])
+    check("_run_captured: git's own output comes back, with its exit code", code == 0 and o.startswith("git version"))
+    for text, rc in (("fatal: unable to access 'u': The requested URL returned error: 502", 0),
+                     ("! [rejected] main -> main (non-fast-forward)", 1)):
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            stdin, sys.stdin = sys.stdin, io.StringIO(text)
+            try:
+                got = main(["--classify-git"])
+            finally:
+                sys.stdin = stdin
+        check(f"--classify-git exits {rc} on {text[:40]!r}", got == rc)
+    for argv, rc, want in ((["git", "--version"], 0, "git version"), (["git", "--no-such-flag"], 129, "unknown option")):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            got = main(["--git-retry", *argv])
+        check(f"--git-retry {' '.join(argv)}: rc {rc}, git's output on {'stdout' if rc == 0 else 'stderr'}",
+              got == rc and want in (out if rc == 0 else err).getvalue())
+    with contextlib.redirect_stderr(io.StringIO()):
+        check("--git-retry refuses an argv that is not git (usage, rc 2)", main(["--git-retry", "ls"]) == 2)
+
+    # S14-CLOUD-CLASSIFY-PAGINATE: a paged list read by explicit page number.
+    def server(sizes, key="check_runs"):
+        """A stub `gh api` serving len(sizes) pages of sizes[n-1] items; any
+        followed Link header (`--paginate`, or a repositories/<id> URL) is the
+        cloud proxy's 403."""
+        calls = []
+
+        def read(argv):
+            calls.append(argv)
+            a = " ".join(argv)
+            if "--paginate" in argv or "repositories/" in a:
+                return 1, "gh: Forbidden (HTTP 403)"
+            n = int(argv[2].rsplit("&page=", 1)[1])
+            base = sum(sizes[:n - 1])
+            page = [{"id": base + i} for i in range(sizes[n - 1] if n <= len(sizes) else 0)]
+            jq = argv[argv.index("--jq") + 1] if "--jq" in argv else ""
+            if jq not in (f".{key}[]", ".[]"):
+                return 1, f"unexpected --jq {jq!r}"
+            return 0, "".join(json.dumps(x) + "\n" for x in page)
+        return read, calls
+
+    read, calls = server([2, 2, 1])
+    code, items, why = read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs", per_page=2)
+    check("a three-page answer reads every item, in order, in 3 reads",
+          code == 0 and [x["id"] for x in items] == [0, 1, 2, 3, 4] and len(calls) == 3 and why == "")
+    check("each read names its page explicitly and follows no Link header (the stub 403s one)",
+          [c[2].rsplit("&page=", 1)[1] for c in calls] == ["1", "2", "3"]
+          and not any("--paginate" in c for c in calls))
+    read, calls = server([1])
+    code, items, _ = read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs", per_page=2)
+    check("null control: a one-page (short) answer makes exactly one read",
+          code == 0 and len(items) == 1 and len(calls) == 1)
+    read, calls = server([1])
+    read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs")
+    check("by default a page is GitHub's maximum, 100 (the page size a short page is judged against)",
+          calls[0][2] == "repos/o/r/commits/h/check-runs?per_page=100&page=1")
+    read, calls = server([2, 2, 0], key="")
+    code, items, _ = read_pages(read, "repos/o/r/pulls/1/reviews?state=x", per_page=2)
+    check("a full last page ends on the empty page after it; a query string is extended with &",
+          code == 0 and len(items) == 4 and len(calls) == 3
+          and calls[0][2].startswith("repos/o/r/pulls/1/reviews?state=x&"))
+    read, calls = server([2] * 9, key="")
+    code, items, why = read_pages(read, "repos/o/r/x", per_page=2, max_pages=3)
+    check("a walk past max_pages refuses, never truncates", code == 1 and items is None and "3 pages" in why)
+    code, items, why = read_pages(lambda argv: (4, "gh: Not Found (HTTP 404)"), "repos/o/r/x")
+    check("a failed read is the caller's failure: its code and its text, verbatim",
+          code == 4 and items is None and why == "gh: Not Found (HTTP 404)")
+    code, items, why = read_pages(lambda argv: (0, "{not json\n"), "repos/o/r/x")
+    check("an unparseable page is a failure (rc 1), never an empty list",
+          code == 1 and items is None and why.startswith("page 1 of repos/o/r/x is not JSON"))
+
     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -465,6 +639,13 @@ def self_test() -> int:
 def main(argv: list[str]) -> int:
     if argv == ["--classify"]:
         return 0 if gh_transient(sys.stdin.read()) else 1
+    if argv == ["--classify-git"]:
+        return 0 if git_transient(sys.stdin.read()) else 1
+    if argv[:1] == ["--git-retry"] and argv[1:2] == ["git"]:
+        code, o = run_git_retry(_run_captured, argv[1:], time.sleep,
+                                lambda line: print(f"gh_read: {line}", file=sys.stderr))
+        (sys.stderr if code else sys.stdout).write(o)
+        return code
     print(__doc__.split("\n\n")[0], file=sys.stderr)
     return 2
 

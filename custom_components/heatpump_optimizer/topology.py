@@ -258,12 +258,124 @@ _SV: dict[str, str] = {
         "Kostnad för sensorluckor (tomma platser, beräknad extrakostnad / månad)",
 }
 
+#: German, keyed and falling back the same way (R10-I18N-DE).
+_DE: dict[str, str] = {
+    "Outdoor temperature":
+        "Außentemperatur",
+    "Solar radiation":
+        "Sonneneinstrahlung",
+    "PV production":
+        "PV-Erzeugung",
+    "Indoor temperature":
+        "Innentemperatur",
+    "Lower floor temperature":
+        "Temperatur Untergeschoss",
+    "Floor loop return":
+        "Fußbodenkreis-Rücklauf",
+    "Heat pump switch":
+        "Wärmepumpenschalter",
+    "Power meter":
+        "Leistungsmesser",
+    "Energy meter":
+        "Energiezähler",
+    "Whole-house power":
+        "Gesamtleistung des Hauses",
+    "Operating mode":
+        "Betriebsart",
+    "Defrosting":
+        "Abtauen",
+    "Online status":
+        "Online-Status",
+    "Fault alarm":
+        "Störungsmeldung",
+    "Buffer tank temperature":
+        "Pufferspeichertemperatur",
+    "Valve target":
+        "Ventil-Sollwert",
+    "Hot water temperature":
+        "Warmwassertemperatur",
+    "Stove or flue sensor":
+        "Kaminofen- oder Abgassensor",
+    "Wood tank top":
+        "Holzspeicher oben",
+    "Wood tank bottom":
+        "Holzspeicher unten",
+    "Valve outlet temperature":
+        "Ventil-Auslasstemperatur",
+    "House: two zones":
+        "Haus: zwei Zonen",
+    "House: one zone":
+        "Haus: eine Zone",
+    "Heat pump":
+        "Wärmepumpe",
+    "Heat pump tank":
+        "Wärmepumpenspeicher",
+    "Buffer tank":
+        "Pufferspeicher",
+    "Mixing valve":
+        "Mischventil",
+    "Hot water tank":
+        "Warmwasserspeicher",
+    "Wood furnace tank":
+        "Holzkesselspeicher",
+    "Outside":
+        "Außen",
+    "not configured":
+        "nicht konfiguriert",
+    "used as a store up to":
+        "als Speicher genutzt bis",
+    "too small to store":
+        "zu klein zum Speichern",
+    "none (delivery is not throttled)":
+        "keine (Abgabe wird nicht gedrosselt)",
+    "(refilled through a coil in the wood tank)":
+        "(wird über eine Rohrwendel im Holzspeicher nachgeladen)",
+    "modelled as its own store":
+        "als eigener Speicher modelliert",
+    "(modelled as heat into the heat-pump tank)":
+        "(als Wärme in den Wärmepumpenspeicher modelliert)",
+    "No mixing valve":
+        "Kein Mischventil",
+    "One tank behind a valve":
+        "Ein Speicher hinter einem Ventil",
+    "Two tanks, one 4-way valve":
+        "Zwei Speicher, ein 4-Wege-Ventil",
+    "Valve on the radiators, slab fed direct":
+        "Ventil am Heizkörperkreis, Estrich direkt versorgt",
+    "Separate slab shunt":
+        "Separate Estrich-Beimischung",
+    "Everything the pump makes reaches the emitters; the tank is a pass-through with a standing loss.":
+        "Alles, was die Pumpe erzeugt, erreicht die Heizflächen; der Speicher ist nur ein Durchlauf mit Standverlust.",
+    "The valve regulates one shared flow to every circuit; wood heat, if any, is folded into the heat-pump tank.":
+        "Das Ventil regelt einen gemeinsamen Vorlauf für alle Kreise; Holzwärme wird, falls vorhanden, im Wärmepumpenspeicher mitgerechnet.",
+    "A wood tank beside the heat-pump tank; the valve draws wood-first while usable and feeds both floors in parallel.":
+        "Ein Holzspeicher neben dem Wärmepumpenspeicher; das Ventil nimmt zuerst Holzwärme, solange sie nutzbar ist, und versorgt beide Etagen parallel.",
+    "Only the radiator circuit sits behind the valve; the slab drinks raw tank water.":
+        "Nur der Heizkörperkreis liegt hinter dem Ventil; der Estrich bezieht ungemischtes Speicherwasser.",
+    "A second shunt on the slab circuit. Recorded as a known layout; not selectable until physics exists for it.":
+        "Eine zweite Beimischung im Estrichkreis. Als bekanntes Layout erfasst; nicht wählbar, bis es dafür ein Physikmodell gibt.",
+    "no throttling mixing valve configured":
+        "kein drosselndes Mischventil konfiguriert",
+    "a throttling mixing valve":
+        "ein drosselndes Mischventil",
+    "a throttling valve, two zones and a wood-tank top probe":
+        "ein drosselndes Ventil, zwei Zonen und ein Fühler oben am Holzspeicher",
+    "a throttling valve, two zones, and no wood-tank probe (no model exists for two tanks with a direct-fed slab)":
+        "ein drosselndes Ventil, zwei Zonen und kein Holzspeicher-Fühler (es gibt kein Modell für zwei Speicher mit direkt versorgtem Estrich)",
+    "not selectable: no model variant exists yet":
+        "nicht wählbar: noch keine Modellvariante vorhanden",
+    "Sensor-gap cost (empty slots, estimated extra / month)":
+        "Kosten der Sensorlücken (leere Slots, geschätzte Mehrkosten / Monat)",
+}
+
+#: The translated tables by language prefix; English is the key and needs none.
+_TRANSLATIONS: dict[str, dict[str, str]] = {"sv": _SV, "de": _DE}
+
 
 def _tr(text: str, language: str) -> str:
-    """``text`` in ``language`` ("sv"; anything else is English)."""
-    if (language or "en").lower().replace("_", "-").split("-")[0] == "sv":
-        return _SV.get(text, text)
-    return text
+    """``text`` in ``language`` (a ``_TRANSLATIONS`` prefix; anything else is English)."""
+    code = (language or "en").lower().replace("_", "-").split("-")[0]
+    return _TRANSLATIONS.get(code, {}).get(text, text)
 
 
 def _slot_extras(key: str, config: dict[str, Any]) -> dict[str, Any]:
@@ -395,6 +507,7 @@ def layout_edges(
     wood: bool,
     dhw_coil: bool = False,
     dhw: bool = False,
+    combi: bool = False,
 ) -> list[tuple[str, str]]:
     """The drawn edge set of a layout under this configuration's flags.
 
@@ -462,8 +575,10 @@ def layout_edges(
     # pipe entirely, leaving the tank floating unconnected (#40 feedback,
     # item 2) — with a coil, the only pipe shown was the wood one, which
     # implied the tank had no electric heat source at all.
+    # A combi store (#3225) makes hot water from the buffer's own water, so the
+    # hot water edge leaves the buffer, not the pump.
     if dhw:
-        edges.append(("heat_pump", "dhw_tank"))
+        edges.append(("buffer_tank" if combi else "heat_pump", "dhw_tank"))
     return edges
 
 
@@ -527,6 +642,7 @@ def describe_setup(
         wood=wood,
         dhw_coil=p.dhw_coil_active,
         dhw=p.dhw_enabled,
+        combi=p.combi_tank_active,
     )
     catalog = [
         {
@@ -553,6 +669,7 @@ def describe_setup(
                 wood=wood,
                 dhw_coil=p.dhw_coil_active,
                 dhw=p.dhw_enabled,
+                combi=p.combi_tank_active,
             )],
         }
         for layout in LAYOUTS.values()
@@ -562,6 +679,9 @@ def describe_setup(
         "language": language,
         "two_zone": p.two_zone_enabled,
         "dhw": p.dhw_enabled,
+        # Where hot water is made (#3225): "combi" is the buffer store through
+        # its exchanger, "tank" the separate hot water tank.
+        "dhw_source": "combi" if p.combi_tank_active else "tank",
         "valve_mode": p.mixing_valve_mode,
         # Additive (issue #40): the layout key the model resolved to, and
         # whether it runs the two-tank physics. Both renderers key off these
@@ -763,6 +883,17 @@ def dhw_coast_miss_sek(extra_kwh: float, price: float) -> float:
     return max(0.0, float(extra_kwh) * float(price))
 
 
+def _combi_store_probed(config: Mapping[str, Any]) -> bool:
+    """A combi store's buffer probe already reads the hot water's store (#3225).
+
+    One node: the seed takes the buffer probe for both levels, so a DHW probe
+    adds no information and its miss prices nothing.
+    """
+    return bool(config.get(CONF_BUFFER_TANK_TEMP_ENTITY)) and (
+        ThermalParameters.from_config(config).combi_tank_active
+    )
+
+
 def rank_sensor_gaps(
     config: Mapping[str, Any],
     *,
@@ -812,7 +943,7 @@ def rank_sensor_gaps(
         (
             CONF_DHW_TEMP_ENTITY,
             0.0
-            if config.get(CONF_DHW_TEMP_ENTITY)
+            if config.get(CONF_DHW_TEMP_ENTITY) or _combi_store_probed(config)
             else dhw_coast_miss_sek(dhw_extra_kwh, dhw_price),
         ),
     )

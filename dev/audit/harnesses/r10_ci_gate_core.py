@@ -18,8 +18,8 @@ gate_sim's ablations assign `G.judging`; the shim's `gate` installs whatever
 G.judging holds into the port for the call, so an ablation reaches the port.
 
 B3 FILL. The model predates amendment B3: its push rows carry no
-`tests / coverage`, `coverage-ratchet` or `ci-ratchet` job, which the port
-now requires on push. By default the shim adds each of those three, green,
+`tests / coverage` or `coverage-ratchet` job, which the port
+now requires on push. By default the shim adds each of those two, green,
 to a push run that lacks it (never over one it has); `--no-b3-fill` drops the
 fill, and the push rows must then fail naming exactly those names.
 
@@ -34,7 +34,7 @@ self-test is this name's null (a run without it FAILs naming it).
 port's REQUIRED is paired with; origin/main's until P2b), every job whose failure
 reddens the Tests push run (it runs on push and is not continue-on-error)
 and compares it with REQUIRED["push"]'s `tests / *` names; `--plant` drops
-`ci-ratchet` from REQUIRED first, and the parity must go red.
+`coverage-ratchet` from REQUIRED first, and the parity must go red (ci-ratchet is gate.py PUSH_REPORT_ONLY: enumerated, then set aside).
 
 `mutants` plants each predicate mutant below in tools/ci/gate.py (or, for
 `judging`, in tools/ci/prelude.py, where R10-GATE-DEFER moved it), runs the
@@ -188,12 +188,13 @@ def runs_on_push(cond: str) -> bool:
 
 def b3_arm(opts: list[str]) -> int:
     text = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
-    enumerated = b3_enumerate(text)
+    report_only = set(port.PUSH_REPORT_ONLY["tests"])       # runs on push, never fails the gate
+    enumerated = [n for n in b3_enumerate(text) if n not in report_only]
     required = [n.split(" / ", 1)[1] for n in port.REQUIRED["push"] if n.startswith("tests / ")]
     if "--plant" in opts:
-        required = [n for n in required if n != "ci-ratchet"]
+        required = [n for n in required if n != "coverage-ratchet"]
     print(f"b3: enumerated from .github/workflows/tests.yml: {enumerated}")
-    print(f"b3: REQUIRED['push'] tests / * {'(PLANT: ci-ratchet dropped) ' if '--plant' in opts else ''}: {sorted(required)}")
+    print(f"b3: REQUIRED['push'] tests / * {'(PLANT: coverage-ratchet dropped) ' if '--plant' in opts else ''}: {sorted(required)}")
     ok = enumerated == sorted(required)
     print(f"b3: parity {'GREEN' if ok else 'RED'}; only in tests.yml {sorted(set(enumerated) - set(required))}, "
           f"only in REQUIRED {sorted(set(required) - set(enumerated))}")
@@ -230,7 +231,11 @@ MUTANTS = [
      'return "gate" in (run.get("jobs") or {})'),
     # r10-gate-busy-defer-2: a never-expanded unit adds no source; the deferring gate waits like any other.
     ("M25 judging: a skipped caller read as owing its unit", '        if jobs.get(u, ("",))[0] == "completed":\n            continue', '        pass', PRELUDE),
-    ("M26 C3 at-once bound restored (#3263's red)", '        if ok or now() - t0 + POLL_S > bound:', '        if why == [deferral(waiting)] and claim.get("workset") is not None and claim["workset"] < workset(kind, pr):\n            bound = 0\n        if ok or now() - t0 + POLL_S > bound:'),
+    # r10-hotfix-gate-busy-defer-p5: a unit's source is the run whose jobs for it started last (27233708).
+    ("M27 source order by id alone", 'key=lambda r: fresh(r, names), reverse=True', 'key=lambda r: r["id"], reverse=True'),
+    ("M28 a lagging own unit displaced", '            return "~", r["id"]\n', '            pass\n'),
+    # M26 (C3's at-once bound restored, #3263's red) retired: #3287 (5c1fa41f) made every deferral at once,
+    # so the mutant's behaviour is the design and its `> bound:` anchor no longer exists.
 ]
 
 

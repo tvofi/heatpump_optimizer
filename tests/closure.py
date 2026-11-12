@@ -584,6 +584,16 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R10-FLY-REPLAN-DEFECTS: tests/entities.py runs the orchestrator tick's
+    # self-test, whose closure holds roster_lib.py (a roster_lib edit must run it).
+    # CI's closures-autofix refused: INERT and read. Same route as the files below:
+    # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
+    "tools/audit/seat/orchestrator_tick.py",
+    # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
+    # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
+    "tools/audit/seat/pr_cap.py",
+    "tools/policy/budget_raise_gate.py",
+    "tools/pr/app_approve.sh",
     # #2216: tests/entities.py reads the coverage stage, one of the three
     # HPO_CI_METRICS emitters, to pin that it keeps the metrics file from the
     # scripts it runs; left inside the tools/coverage/ prefix it would be
@@ -599,6 +609,10 @@ INERT_EXCEPT = (
     # merge: skip-merge-failed on this pair). Same route as the README above:
     # the tools/pr/ prefix stays INERT, the file moves to the recorded closure.
     "tools/pr/cancel_superseded.py",
+    # R10-BODY-CONTRACT-P3: the figure-block renderer and its registry; same route
+    # as cancel_superseded.py above (prefix INERT, file moves to the recorded closure).
+    "tools/pr/figure_block.py",
+    "tools/pr/figure_registry.json",
     # R10-CI-LAYOUT P2b: tests/entities.py imports U5's harness modules (`_u5_load`:
     # run_part.py, unitcheck.py) and opens codeql.yml's program tools/pr/codeql_scope.py
     # (U3's pins). CI's recording on probe #2656 (closures-autofix job 120356230438)
@@ -617,6 +631,13 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
+    # R10-TICK-LEVELS P2: roster_sync.py (already a recorded read above) imports
+    # the topic grammar's one owner in-process, so tests/entities.py's load of it
+    # opens this file. CI's closures job 128825445404 was UNDER-SCOPED on it and
+    # closures-autofix ended skip-merge-failed (INERT and read). Same route as
+    # plan_page.py: tools/audit/seat/ stays INERT, this file joins the recorded
+    # closure, so an edit to the grammar selects tests/entities.py.
+    "tools/audit/seat/topic_grammar.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
@@ -729,6 +750,19 @@ INERT_EXCEPT = (
     "tools/audit/seat/bus.sh",
     "tools/audit/seat/cloud_relay.sh",
     "tools/audit/seat/heartbeat.sh",
+    # R10-ARCH-DOCS (#2395): tests/doc_claims.py's machinery_edge_findings opens each file dev/README.md's
+    # machinery table cites, for the quoted text that performs the edge.
+    "tools/audit/seat/beat_jobs.py",
+    "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/instruments/beatd.py.md",
+    "tools/audit/seat/instruments/cloud_dispatch.py.md",
+    "tools/audit/seat/instruments/heartbeat.sh.md",
+    "tools/audit/seat/instruments/tick_loop.sh.md",
+    "tools/audit/seat/open_pr.sh",
+    "tools/audit/seat/postmerge.py",
+    "tools/audit/seat/roster_queue.py",
+    "tools/audit/seat/tick_loop.sh",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
@@ -793,6 +827,10 @@ INERT_EXCEPT = (
     "tools/policy/rules_sync.mjs",
     "tools/policy/vendor/markdown-it.min.js",
     "tools/policy/vendor/markdown-it.LICENSE",
+    # r10-hotfix-nonrequired-reds: tests/entities.py's _pcr_unrestored rule
+    # reads the source of every python3 program policy_lint.mjs spawns, and
+    # policy_lint.mjs spawns this one. An edit selects entities.py.
+    "tools/policy/budget_raise_gate.py",
     # #1240 (D13-03): tests/entities.py reads the wave script itself to
     # re-derive VERDICT_CLASSES and pin that the stats histogram's block-class
     # set is the one the wave teaches -- the stale-copy class of check this
@@ -986,6 +1024,9 @@ INERT_EXCEPT = (
     # prefix the way record_burst_replay.py did, so an edit selects
     # tests/features.py.
     "dev/audit/harnesses/r10_demand_overbook.py",
+    # R10-DEPENDABOT-3414-COMPAT: tests/entities.py imports this harness and
+    # runs its `--tree` reader over every hash lock, so an edit selects it.
+    "dev/audit/harnesses/dependabot_stale_hash.py",
 )
 
 

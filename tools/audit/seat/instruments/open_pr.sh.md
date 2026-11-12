@@ -34,5 +34,14 @@
   before its push. A main merge that conflicts is aborted and refused
   (`merging origin/main into <sha> conflicts`), so the clean worktree is
   released instead of kept as dirty.
+  A body carrying a generated figure block is re-rendered (`figure_block.py refresh`) at each
+  head the opener pushes: before the code push when the main merge moved the head, and always
+  before the row push, whose commit moves it; a refresh that fails refuses (nothing pushed at the
+  first, the PR closed with the reason at the second). A re-run after an open closed past its
+  second push first removes the left-over detached worktree and local branch when origin holds
+  all their commits, and refuses when it does not.
   `--self-test` runs `delivery_row.sh`'s, then
   `pr_args.sh`'s.
+  Once #N exists it runs `bus.sh rekey <topic> <N>`: a reviewer dispatched at the handoff
+  (`bus.sh dispatch-handoff`) becomes the PR's. rc 3 (none) is silent; another failure is
+  named and never fatal.

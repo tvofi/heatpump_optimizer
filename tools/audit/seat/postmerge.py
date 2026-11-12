@@ -8,7 +8,7 @@ Both merge paths (`merge_pr.sh`, and `merge_train.py`'s landing) call it once
 the merge is confirmed. It runs, in order, and a failure in any is printed as
 `OWED <step>: <why>` and never undoes the merge or stops the next step:
 
-  record   `record_beat.py`: one #201 line from the fixed template, posted by
+  record   `record_beat.py`: one record-issue line from the fixed template, posted by
            `tools/pr/gh_comment.py` with a byte-identical read-back.
   stage    `roster_sync.py --apply` derives the group's `done` stage from the
            merged pull request. A refused sync prints `set-stage owed <GROUP>
@@ -50,6 +50,16 @@ def steps(pr: int, repo: str, state_dir: Path, sha: str, group: str) -> "list[tu
     ]
 
 
+def refusal_detail(o: str) -> str:
+    """The step's last line, led by the lint ERROR lines a refusal printed: the
+    TOTAL line alone never named what the gate refused (P435)."""
+    lines = [ln.strip() for ln in o.strip().splitlines()]
+    if not lines:
+        return "no output"
+    errs = [ln for ln in lines if ln.startswith("ERROR")][:3]
+    return " | ".join(errs + [lines[-1]])[:300]
+
+
 def postmerge(pr: int, repo: str, state_dir: Path, dry: bool, retry: bool = False,
               run=rb.sh, out=print, roster=None) -> int:
     owed: "list[tuple[str, str]]" = []
@@ -69,7 +79,7 @@ def postmerge(pr: int, repo: str, state_dir: Path, dry: bool, retry: bool = Fals
             out(f"DRY-RUN {name}: " + " ".join(argv))
             continue
         code, o = run(argv)
-        last = o.strip().splitlines()[-1][:160] if o.strip() else "no output"
+        last = refusal_detail(o)
         if name == "main":
             out(f"main {last}")
             if code == 3:  # WAIT: the push's own checks are still running
@@ -120,9 +130,13 @@ def self_test() -> int:
 
     full = "c" * 40
     roster = {"groups": [{"group": "R10-X", "resume": {"branch": "fix/r10-x"}}]}
+    det = refusal_detail("x\n  ERROR   [G-1] cite: a.py:9 moved\nTOTAL: 1 error(s)\n")
+    check("refusal_detail leads with the lint ERROR line", "G-1" in det and det.endswith("TOTAL: 1 error(s)"), det)
+    check("refusal_detail of plain output is its last line (null control)",
+          refusal_detail("a\nb\n") == "b" and refusal_detail("") == "no output")
 
-    def fake(rc=None):
-        rc = rc or {}
+    def fake(rc=None, said=None):
+        rc, said = rc or {}, said or {}
         log = []
 
         def run(argv, stdin=None, cwd=None):
@@ -136,12 +150,12 @@ def self_test() -> int:
                 return 0, full + "\n"
             for key in ("gh_comment.py", "roster_sync.py", "state_docs.py", "classify", "ledger.py"):
                 if key in j:
-                    return rc.get(key, 0), f"{key} said" + (" REFUSED" if rc.get(key) else "")
+                    return rc.get(key, 0), said.get(key, f"{key} said" + (" REFUSED" if rc.get(key) else ""))
             return 0, ""
         return run, log
 
-    def go(rc=None, dry=False, retry=False):
-        run, log = fake(rc)
+    def go(rc=None, dry=False, retry=False, said=None):
+        run, log = fake(rc, said)
         lines = []
         with tempfile.TemporaryDirectory() as td:
             code = postmerge(7, rb.DEFAULT_REPO, Path(td), dry, retry, run, lines.append, roster)
@@ -154,7 +168,7 @@ def self_test() -> int:
                                               "merge_train.py classify")] == [1, 1, 1, 1], log)
     code, lines, log = go(dry=True)
     check("the dry run prints the exact comment and every command, runs none, exits 0",
-          code == 0 and lines[0] == f"DRY-RUN comment: Merged #7 {full} (R10-X). Closed issues: #5. Leaves #201 open."
+          code == 0 and lines[0] == f"DRY-RUN comment: Merged #7 {full} (R10-X). Closed issues: #5. Leaves #{rb.RECORD_ISSUE} open."
           and [l.split(":")[0] for l in lines[1:5]] == ["DRY-RUN command", "DRY-RUN stage", "DRY-RUN docs",
                                                          "DRY-RUN main"]
           and not any(k in c for c in log for k in ("gh_comment", "roster_sync", "state_docs", "classify", "ledger")),
@@ -171,6 +185,11 @@ def self_test() -> int:
     code, lines, _ = go({"roster_sync.py": 1})
     check("a refused stage names the resolved group: set-stage owed <GROUP> <merge sha>",
           f"set-stage owed R10-X {full}" in lines, lines)
+    gate = ("roster_edit: LINT GATE REFUSED the push\n  ERROR   [G-1] cite: a.py:9 moved\n\n"
+            "TOTAL: 1 error(s) across 1 file(s)\nthe commit is local at 0123 in /w; nothing pushed\n")
+    code, lines, _ = go({"roster_sync.py": 3}, said={"roster_sync.py": gate})
+    check("a stage refused by the lint gate owes its ERROR line, not only the last line (P435)",
+          any(l.startswith("OWED stage: rc 3: ") and "[G-1] cite: a.py:9" in l for l in lines), lines)
     code, lines, log = go({"classify": 3})
     check("main WAIT (checks still running) is printed, not owed", code == 0 and
           any(l.startswith("main ") for l in lines) and not any(l.startswith("OWED") for l in lines), lines)

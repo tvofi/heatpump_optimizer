@@ -15,6 +15,9 @@
 #            the `typing` job installs it: mypy, homeassistant and
 #            homeassistant-stubs; exported as HPO_TYPING_PYTHON, and asserted
 #            to import the lock's homeassistant pin, read from the lock
+#            (typing only: it has no scipy and no paho by design. The suites
+#            run under venv-ci with PYTHONPATH=tests/hastub, the stub standing
+#            in for Home Assistant; never put venv-ha first on PATH for them)
 #
 # The pins are read from the checkout, never restated here, so this script
 # cannot drift from the lock files; a lock edit reaches the next session.
@@ -28,7 +31,11 @@
 # the setup script, the variables its last line prints: PATH with venv-ci/bin
 # first, HPO_TYPING_PYTHON and OPENBLAS_CORETYPE. The profile is for login
 # shells; it prepends venv-ci/bin only when absent, so a PATH a caller
-# narrowed (a test's stub directory ahead of the venv) is left alone.
+# narrowed (a test's stub directory ahead of the venv) is left alone, and it
+# sets every other variable only where it is unset: a BASH_ENV naming it runs
+# it ahead of every nested bash, and an unconditional RUNNER_TEMP there
+# replaced the one each tests/entities.py harness hands its child
+# (dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md).
 # Where the variables are unset, .claude/hooks/session-start.sh appends
 # --variables, exported and quoted, to the harness's CLAUDE_ENV_FILE, which
 # the harness sources before each Bash call, and prints its `toolchain:` line
@@ -63,11 +70,11 @@ write_profile() { # profile, prefix
   cat > "$1" <<EOF
 # Written by tools/audit/seat/cloud-setup.sh, for login shells.
 case ":\$PATH:" in *":$2/venv-ci/bin:"*) ;; *) export PATH="$2/venv-ci/bin:\$PATH" ;; esac
-export HPO_TYPING_PYTHON="$2/venv-ha/bin/python"
-export OPENBLAS_CORETYPE=$CORETYPE
-export GIT_AUTHOR_NAME="$SEAT_NAME" GIT_AUTHOR_EMAIL="$SEAT_EMAIL"
-export GIT_COMMITTER_NAME="$SEAT_NAME" GIT_COMMITTER_EMAIL="$SEAT_EMAIL"
-export RUNNER_TEMP="$2/runner-temp"
+export HPO_TYPING_PYTHON="\${HPO_TYPING_PYTHON:-$2/venv-ha/bin/python}"
+export OPENBLAS_CORETYPE="\${OPENBLAS_CORETYPE:-$CORETYPE}"
+export GIT_AUTHOR_NAME="\${GIT_AUTHOR_NAME:-$SEAT_NAME}" GIT_AUTHOR_EMAIL="\${GIT_AUTHOR_EMAIL:-$SEAT_EMAIL}"
+export GIT_COMMITTER_NAME="\${GIT_COMMITTER_NAME:-$SEAT_NAME}" GIT_COMMITTER_EMAIL="\${GIT_COMMITTER_EMAIL:-$SEAT_EMAIL}"
+export RUNNER_TEMP="\${RUNNER_TEMP:-$2/runner-temp}"
 EOF
 }
 
@@ -145,6 +152,20 @@ self_test() (
   expect "variables prints RUNNER_TEMP" $?
   out=$(run bash -c '. "$1"; echo "$RUNNER_TEMP"' _ "$W/profile.sh")
   [ "$out" = "$P/runner-temp" ]; expect "the profile exports RUNNER_TEMP" $?
+  # Every name the profile exports, from a shell that sourced it against one that
+  # did not; PATH has its own arm above. Each must keep a caller's value through
+  # a BASH_ENV-sourced nested bash (R10-RCA-CLOUD-ENTITIES-ENV).
+  names=$(comm -13 <(run bash -c 'compgen -e' | sort) <(run bash -c '. "$1"; compgen -e' _ "$W/profile.sh" | sort) | grep -vx PATH)
+  [ "$(printf '%s\n' "$names" | grep -c .)" = 7 ]; expect "the profile exports seven names besides PATH" $?
+  out=$(run BASH_ENV="$W/profile.sh" bash -c 'echo "$RUNNER_TEMP"')
+  [ "$out" = "$P/runner-temp" ]; expect "control: a nested bash under BASH_ENV runs the profile" $?
+  kept=""
+  for n in $names; do
+    out=$(run "$n=caller" BASH_ENV="$W/profile.sh" bash -c 'printf %s "${!1}"' _ "$n")
+    [ "$out" = caller ] || kept="$kept $n=$out"
+  done
+  [ -z "$kept" ] || echo "     overwritten:$kept"
+  [ -z "$kept" ]; expect "under BASH_ENV a nested bash keeps every variable its caller set" $?
   n=$(printf '%s\n' "${vars[@]}" | grep -c '^GIT_\(AUTHOR\|COMMITTER\)_\(NAME\|EMAIL\)=')  # never-empty: vars is the seven-line output of variables, asserted above
   [ "$n" = 4 ]; expect "variables prints the four GIT_AUTHOR/COMMITTER exports" $?
   out=$(run bash -c '. "$1"; echo "$GIT_AUTHOR_NAME $GIT_AUTHOR_EMAIL $GIT_COMMITTER_NAME $GIT_COMMITTER_EMAIL"' _ "$W/profile.sh")

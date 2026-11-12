@@ -146,6 +146,14 @@ if [ "${1:-}" = "--self-test" ]; then
   # that it ASKS -- that every one of the seven lines is present and none is
   # empty. A hook that silently prints six lines instead of seven is the failure
   # mode here: nobody reads a missing line.
+  # THE CLOCK IS PINNED. `origin/main at:` is git's relative `%cr`, which moves
+  # with the wall clock; the byte comparisons below call the report in
+  # sequence, and one that straddles a tick of the clock ("2 minutes ago" to
+  # "3 minutes ago") fails two rows at once with no defect in the hook. Main
+  # 48af0864a failed that way minutes after its merge (R10-HOTFIX-MAIN-IST-RED).
+  # `GIT_TEST_DATE_NOW` is git's own pin, inherited by every `bash "$0"` below.
+  # A caller's pin stands, so a test can drive a ticking clock through it.
+  : "${GIT_TEST_DATE_NOW:=$(date +%s)}"; export GIT_TEST_DATE_NOW
   out=$(report)
   pass=0; fail=0
   st() { if printf '%s' "$out" | grep -E "$1" >/dev/null; then pass=$((pass+1)); printf '  ok   %s\n' "$2"

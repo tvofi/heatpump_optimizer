@@ -112,7 +112,7 @@ sys.path.insert(
 
 import voluptuous as vol  # noqa: E402
 
-from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
+from harness import FakeEntry, FakeHass, FakeState, Results, TRANSLATED_LANGS  # noqa: E402
 
 # The capture itself, imported rather than re-implemented: a fingerprint
 # copied into this file would pin this file's opinion of the golden, not the
@@ -2249,6 +2249,54 @@ async def options_advanced_pages():
         and not entry.options,
         f"errors={result.get('errors')} options={sorted(entry.options)}",
     )
+    # #3225 (R10-COMBI-TANK): the combi switch is judged by the model's own
+    # predicate over what would be stored, so a switch the model would ignore
+    # (here: no throttling valve) is refused rather than saved.
+    flow, entry, _ = fresh_options({const.CONF_DHW_ENABLED: True})
+    await flow.async_step_building(None)
+    result = await submit(
+        flow,
+        "building",
+        {**BUILDING_PAGE_ANSWERS, const.CONF_DHW_COMBI_TANK_ENABLED: True},
+    )
+    check(
+        "opt_building",
+        "error",
+        "a combi tank without the buffer store (no throttling valve) is refused, not saved (#3225)",
+        shows(result, "building")
+        and result.get("errors", {}).get(const.CONF_DHW_COMBI_TANK_ENABLED) == "combi_needs_store"
+        and const.CONF_DHW_COMBI_TANK_ENABLED not in entry.options,
+        f"errors={result.get('errors')} options={sorted(entry.options)}",
+    )
+    # Null control: the same switch over a store (a throttling valve, 504 l)
+    # is saved, and a changed type writes its preset's two numbers.
+    flow, entry, _ = fresh_options({const.CONF_DHW_ENABLED: True})
+    await flow.async_step_building(None)
+    await submit(
+        flow,
+        "building",
+        {
+            **BUILDING_PAGE_ANSWERS,
+            const.CONF_MIXING_VALVE_MODE: config_flow.mixing_valve.MODE_MANUAL,
+            const.CONF_BUFFER_TANK_VOLUME: 504.0,
+            const.CONF_DHW_COMBI_TANK_ENABLED: True,
+            const.CONF_DHW_COMBI_TANK_TYPE: "external_station",
+            const.CONF_COMBI_DHW_EFFECTIVENESS: 0.85,
+            const.CONF_COMBI_POTABLE_VOLUME_L: 40.0,
+        },
+    )
+    saved = dict(entry.options)
+    check(
+        "opt_building",
+        "happy",
+        "a combi tank over the buffer store is saved, and a changed type writes its preset (#3225)",
+        saved.get(const.CONF_DHW_COMBI_TANK_ENABLED) is True
+        and saved.get(const.CONF_COMBI_DHW_EFFECTIVENESS) == 0.75
+        and saved.get(const.CONF_COMBI_POTABLE_VOLUME_L) == 0.0
+        and config_flow.ThermalParameters.from_config({**BASE_ENTRY_DATA, **saved}).combi_tank_active,
+        f"options={saved}",
+    )
+
     flow, entry, _ = fresh_options()
     await flow.async_step_building(None)
     result = await submit(
@@ -2476,6 +2524,169 @@ async def options_advanced_pages():
         str({k: entry.options.get(k) for k in HEAT_CURVE_ANSWERS}),
     )
 
+    # R10-GENERIC-HEAT-CURVE: the offset entity's refusals. T2 is a
+    # plausibility check over the entity's own range; the collision refusal
+    # holds on whichever page saves the second half (ghc-r03).
+    from harness import FakeState as _ghc_fs
+    _offset = "number.heating_offset"
+    for _label, _attrs, _want in (
+        ("an offset whose range includes 0 saves", {"min": -20.0, "max": 20.0}, None),
+        ("an entity whose own range excludes 0 is refused (T2)", {"min": 20.0, "max": 70.0},
+         "heat_curve_not_offset"),
+        ("an entity with no state at save time is not judged at save (ghc-r08)", None, None),
+    ):
+        flow, entry, hass = fresh_options()
+        if _attrs is not None:
+            hass.states.set(_offset, _ghc_fs("0" if _want is None else "30", unit="K", attributes=_attrs))
+        await flow.async_step_heat_curve(None)
+        result = await submit(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset})
+        _got = (result.get("errors") or {}).get(const.CONF_HEAT_CURVE_DISPLACE_ENTITY)
+        check(
+            "opt_heat_curve", "error" if _want else "happy", _label,
+            _got == _want and (shows_menu(result, "advanced") == (_want is None)),
+            f"errors={result.get('errors')!r} type={result.get('type')!r}",
+        )
+    # The check's own return value, not the page's: the page reads a None
+    # from a deleted fall-through as "no errors", so only an equality with {}
+    # on the check itself tells "no error" from "no answer". The refusal row
+    # is the null control: the same call does return a non-empty dict.
+    for _label, _attrs, _want in (
+        ("no offset entity configured: the check returns exactly {}", False, {}),
+        ("an offset whose range includes 0: the check returns exactly {}",
+         {"min": -20.0, "max": 20.0}, {}),
+        ("null control: a range excluding 0 returns the refusal",
+         {"min": 20.0, "max": 70.0},
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_not_offset"}),
+    ):
+        _, _, hass = fresh_options()
+        _submit = {}
+        if _attrs is not False:
+            hass.states.set(_offset, _ghc_fs("0", unit="K", attributes=_attrs))
+            _submit = {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset}
+        _ret = await config_flow._heat_curve_errors(hass, _submit, {})
+        check(
+            "opt_heat_curve", "error" if _want else "happy", _label,
+            type(_ret) is dict and _ret == _want,
+            f"returned={_ret!r}",
+        )
+    flow, entry, hass = fresh_options({const.CONF_SPACE_SETPOINT_ENTITY: _offset})
+    await flow.async_step_heat_curve(None)
+    result = await submit(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset})
+    check(
+        "opt_heat_curve", "error",
+        "the heat-curve entity may not be an entity the optimizer already writes (ghc-r03)",
+        (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
+        repr(result.get("errors")),
+    )
+    flow, entry, hass = fresh_options({const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _offset})
+    await flow.async_step_building(None)
+    result = await submit(flow, "building", {const.CONF_MIXING_VALVE_WRITE_ENTITY: _offset})
+    check(
+        "opt_building", "error",
+        "and the same refusal where the other half is saved, on the building page (ghc-r03)",
+        (result.get("errors") or {}).get("base") == "heat_curve_entity_in_use",
+        repr(result.get("errors")),
+    )
+    # R10-GENERIC-HEAT-CURVE-PERSISTENT: kind persistent, its three rows and P7.
+    _persistent = {const.CONF_HEAT_CURVE_TARGET_KIND: const.HEAT_CURVE_KIND_PERSISTENT}
+    _rows = (const.CONF_HEAT_CURVE_PERSISTENT_BAND_K, const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY,
+             const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES)
+
+    def _hc_keys(current):
+        return {str(k) for k in config_flow._page_schema("heat_curve", current, FakeHass()).schema}
+
+    def _hc_refused(current, values):
+        try:
+            config_flow._page_schema("heat_curve", current, FakeHass())(values)
+        except Exception:  # noqa: BLE001 - voluptuous's Invalid
+            return True
+        return False
+
+    check(
+        "opt_heat_curve", "happy",
+        "kind persistent is accepted, beside offset",
+        not _hc_refused({}, {const.CONF_HEAT_CURVE_TARGET_KIND: "persistent"})
+        and not _hc_refused({}, {const.CONF_HEAT_CURVE_TARGET_KIND: "offset"})
+        and _hc_refused({}, {const.CONF_HEAT_CURVE_TARGET_KIND: "absolute"}),
+        "",
+    )
+    check(
+        "opt_heat_curve", "happy",
+        "its three rows are shown only once the stored kind is persistent",
+        not (set(_rows) & _hc_keys({})) and set(_rows) <= _hc_keys(_persistent),
+        f"offset={sorted(set(_rows) & _hc_keys({}))} persistent={sorted(set(_rows) & _hc_keys(_persistent))}",
+    )
+    _hc_sel = {str(k): dict(getattr(v, "config", {})) for k, v in
+               config_flow._page_schema("heat_curve", _persistent, FakeHass()).schema.items()}
+    check(
+        "opt_heat_curve", "happy",
+        "the rows' widgets: the band a box in K, the writes a slider of whole writes, the dwell a "
+        "slider in 15 min steps",
+        _hc_sel.get(const.CONF_HEAT_CURVE_PERSISTENT_BAND_K)
+        == {"min": 0.5, "max": 5.0, "step": "any", "mode": "box", "unit_of_measurement": "K"}
+        and _hc_sel.get(const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY)
+        == {"min": 0, "max": 48, "step": 1, "mode": "slider"}
+        and _hc_sel.get(const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES)
+        == {"min": 15, "max": 360, "step": 15, "mode": "slider", "unit_of_measurement": "min"},
+        repr({k: v for k, v in _hc_sel.items() if k in _rows}),
+    )
+    _range_rows = {
+        "band 0.4 K": {const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 0.4},
+        "band 5.5 K": {const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 5.5},
+        "49 writes a day": {const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: 49},
+        "-1 writes a day": {const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: -1},
+        "a 10 min dwell": {const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: 10},
+        "a 7 h dwell": {const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: 420},
+    }
+    _edges = {
+        "band 0.5 and 5 K": ({const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 0.5},
+                             {const.CONF_HEAT_CURVE_PERSISTENT_BAND_K: 5.0}),
+        "0 and 48 writes a day": ({const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: 0},
+                                  {const.CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY: 48}),
+        "a 15 min and a 6 h dwell": ({const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: 15},
+                                     {const.CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES: 360}),
+    }
+    check(
+        "opt_heat_curve", "error",
+        "the ranges are enforced: 0.5-5 K, 0-48 writes a day, 15 min-6 h, each edge accepted",
+        all(_hc_refused(_persistent, v) for v in _range_rows.values())
+        and not any(_hc_refused(_persistent, v) for pair in _edges.values() for v in pair),
+        f"accepted={[k for k, v in _range_rows.items() if not _hc_refused(_persistent, v)]} "
+        f"refused={[k for k, pair in _edges.items() if any(_hc_refused(_persistent, v) for v in pair)]}",
+    )
+    _stored = "number.curve_parallel_shift"
+    for _label, _state, _want in (
+        ("kind persistent: a parameter reading 22 inside 5..35 saves, T2 not applied", ("22", 5.0, 35.0), {}),
+        ("kind persistent: an entity with no state is refused (P7)", None,
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_unreadable"}),
+        ("kind persistent: an unavailable entity is refused (P7)", ("unavailable", 5.0, 35.0),
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_unreadable"}),
+        ("kind persistent: a reading above its own range is refused (P7)", ("40", 5.0, 35.0),
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}),
+        ("kind persistent: a reading below its own range is refused (P7)", ("4", 5.0, 35.0),
+         {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}),
+        ("kind persistent: a reading on its range's upper bound saves", ("35", 5.0, 35.0), {}),
+        ("kind persistent: a reading on its range's lower bound saves", ("5", 5.0, 35.0), {}),
+    ):
+        _, _, hass = fresh_options()
+        if _state is not None:
+            hass.states.set(_stored, _ghc_fs(_state[0], unit="°C", attributes={"min": _state[1], "max": _state[2]}))
+        _ret = await config_flow._heat_curve_errors(
+            hass, {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _stored, **_persistent}, {})
+        check("opt_heat_curve", "error" if _want else "happy", _label,
+              type(_ret) is dict and _ret == _want, f"returned={_ret!r}")
+    flow, entry, hass = fresh_options(_persistent)
+    hass.states.set(_stored, _ghc_fs("40", unit="°C", attributes={"min": 5.0, "max": 35.0}))
+    await flow.async_step_heat_curve(None)
+    result = await submit(flow, "heat_curve", {const.CONF_HEAT_CURVE_DISPLACE_ENTITY: _stored})
+    check(
+        "opt_heat_curve", "error",
+        "the page refuses the save with the stored kind persistent, and stores nothing (P7)",
+        (result.get("errors") or {}).get(const.CONF_HEAT_CURVE_DISPLACE_ENTITY) == "heat_curve_out_of_range"
+        and const.CONF_HEAT_CURVE_DISPLACE_ENTITY not in entry.options,
+        f"errors={result.get('errors')!r}",
+    )
+
 
 #: Distinguishable from every value a field could legitimately default to,
 #: ``None`` included.
@@ -2639,6 +2850,9 @@ async def entity_clear_survives_the_flow_manager():
         # The wood block renders only with its gate on, and the gate is a
         # field of the same page: seeding it drives the gated slots too.
         seed[config_flow.CONF_WOOD_FURNACE_ENABLED] = True
+        # The set-point limit sensors render only for a water unit, a field
+        # of the same page.
+        seed[config_flow.CONF_SPACE_SETPOINT_UNIT] = "return"
         for key in keys:
             flow, entry, _ = fresh_options(pre_options=seed)
             shown = await getattr(flow, f"async_step_{step}")(None)
@@ -4034,10 +4248,14 @@ async def options_cross_page_save_scope():
 #: revealed by this toggle. Seeded so the pages below cover those rows too;
 #: without it eight of the building page's fields never render and the
 #: assertions pass over a smaller tree than the flow really has. The per-day
-#: block (#1260) reveals on its own toggle the same way.
+#: block (#1260) reveals on its own toggle the same way, and so do the heat
+#: curve's kind persistent rows on their stored kind.
 REGISTRY_SEED = {
     const.CONF_WOOD_FURNACE_ENABLED: True,
     const.CONF_DHW_WINDOWS_BY_DAY: True,
+    const.CONF_HEAT_CURVE_TARGET_KIND: const.HEAT_CURVE_KIND_PERSISTENT,
+    # A water space set-point reveals its lift and ceiling.
+    const.CONF_SPACE_SETPOINT_UNIT: "flow",
 }
 
 
@@ -7032,7 +7250,7 @@ async def device_prefill_preview_texts():
         for name, rel in (
             ("strings.json", "strings.json"),
             ("en.json", "translations/en.json"),
-            ("sv.json", "translations/sv.json"),
+            *((f"{l}.json", f"translations/{l}.json") for l in TRANSLATED_LANGS),
         )
     }
 
@@ -7143,14 +7361,14 @@ async def device_prefill_preview_texts():
 
 
 def _shipped_catalogues():
-    """The three shipped string catalogues, keyed as the harnesses name them."""
+    """The shipped string catalogues, keyed as the harnesses name them."""
     root = pathlib.Path(__file__).resolve().parent.parent / "custom_components" / "heatpump_optimizer"
     return {
         name: json.loads((root / rel).read_text())
         for name, rel in (
             ("strings.json", "strings.json"),
             ("en.json", "translations/en.json"),
-            ("sv.json", "translations/sv.json"),
+            *((f"{l}.json", f"translations/{l}.json") for l in TRANSLATED_LANGS),
         )
     }
 

@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.5";
+const CARD_VERSION = "7.1.13";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -60,10 +60,11 @@ const BAND_TRACE_KEY = Symbol("band");
 // ---- i18n ------------------------------------------------------------------
 //
 // Every user-visible string lives here, keyed, with an English source text and
-// a Swedish translation. `L(key, vars)` looks the key up in the active
-// language, falls back to English for anything untranslated, and interpolates
-// `{name}` placeholders. The active language follows `hass.language`
-// ("sv-SE" -> "sv"); anything without a dictionary renders in English.
+// a Swedish and a German translation, each key-for-key with `en`.
+// `L(key, vars)` looks the key up in the active language, falls back to
+// English for anything untranslated, and interpolates `{name}` placeholders.
+// The active language follows `hass.language` ("sv-SE" -> "sv", "de-DE" ->
+// "de"); anything without a dictionary renders in English.
 //
 // Deliberately NOT translated: entity ids, config keys, service and attribute
 // names, CSS classes, data-* attributes, wire enums (reason codes, place ids,
@@ -99,8 +100,8 @@ const STRINGS = {
     "health.limit": "limit {limit}",
     "health.no_age": "no reading",
     "health.pill_ok": "All inputs fresh",
-    "health.pill_one": "1 input stale",
-    "health.pill_other": "{n} inputs stale",
+    "health.pill_one": "1 input problem",
+    "health.pill_other": "{n} input problems",
     "health.solved": "Solved {age} ago",
     "health.next_solve": "Next solve in {age}",
     "health.next_due": "Next solve due now",
@@ -138,6 +139,7 @@ const STRINGS = {
     "health.input_lower_floor_temp_entity": "Lower floor temperature sensor",
     "health.input_mixing_valve_target_entity": "Valve target sensor",
     "health.input_mixing_valve_write_entity": "Valve control entity",
+    "health.input_heat_curve_displace_entity": "Heat-curve offset entity",
     "health.input_outdoor_temp_entity": "Outdoor temperature sensor",
     "health.input_price_entity": "Price sensor (Nord Pool or similar)",
     "health.input_pv_export_price_entity": "Export compensation entity",
@@ -145,6 +147,8 @@ const STRINGS = {
     "health.input_solar_radiation_entity": "Solar radiation sensor",
     "health.input_space_circulation_pump_entity": "Heating circulation pump switch",
     "health.input_space_setpoint_entity": "Space-heating set-point entity",
+    "health.input_space_setpoint_high_limit_entity": "Controller's maximum set-point sensor",
+    "health.input_space_setpoint_low_limit_entity": "Controller's minimum set-point sensor",
     "health.input_valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve",
     "health.input_vvc_pump_entity": "Hot water circulation pump switch",
     "health.input_weather_entity": "Weather forecast",
@@ -209,8 +213,9 @@ const STRINGS = {
     "health.model_unobservable": "Not observable without a power meter.",
     "health.cop_measured": "Measured {age} ago.",
     "health.cop_reason_heat_metered": "Measured by the heat meter.",
-    "health.cop_reason_draw_follows_plan": "Read from the power draw, which follows the plan.",
-    "health.cop_reason_not_measurable": "Not measurable here: without a heat meter the power draw does not follow the plan closely enough to read efficiency from.",
+    "health.cop_reason_not_measurable": "COP cannot be measured on this install: it has no heat reading, and without one the efficiency shown is the model's own. A heat energy meter or a thermal power meter covering the heating circuit, hot water included, would measure it.",
+    "health.cop_reason_estimated_inputs": "COP cannot be measured on this install: its power or heat reading is the pump's own estimate, so heat over power is the vendor model's COP. A real heat meter and power meter, the hot-water circuit included, would measure it.",
+    "health.cop_reason_no_heat_reading": "The heat meter gave no usable reading in the interval.",
     "health.cop_reason_awaiting_draw_evidence": "Waiting to see whether the power draw follows the plan.",
     "health.cop_reason_no_electric_meter": "Needs a power or energy meter on the heat pump.",
     "health.cop_reason_no_measured_power": "Waiting for a power reading from the heat pump.",
@@ -328,6 +333,8 @@ const STRINGS = {
     "savings.col_pct": "%",
     "savings.estimated": "estimated",
     "savings.old_basis": "old basis",
+    "savings.below_meter_floor": "no saving stated",
+    "savings.meter_floor_note": "No saving is stated for a month whose baseline used under half the energy the meter recorded: a baseline that low is a fault, not a saving.",
     "savings.wood_note": "The saving includes heat from wood. Firewood's cost is not counted.",
     "savings.empty": "No settled savings months yet.",
     "receipt.closed": "{month} \u00b7 closed",
@@ -702,6 +709,7 @@ const STRINGS = {
     "setup.buffer_too_small": "too small to store",
     "setup.no_valve_caption": "no mixing valve: delivery is not throttled",
     "setup.box_dhw_tank": "Hot water tank",
+    "setup.dhw_combi_caption": "made in the buffer tank (combi)",
     "setup.dhw_coil_caption": "refilled through a wood tank coil",
     "setup.dhw_coil_preheats": "preheats the mains water",
     "setup.dhw_coil_off": "coil configured, not modelled",
@@ -845,11 +853,13 @@ const STRINGS = {
       "era. 50 is typical for that type and era; above is tighter, below " +
       "leakier. Never 0 — that is only for no data.",
     "score.part_machine":
-      "Heat pump: the measured COP — heat delivered per kWh of electricity " +
-      "— in each 3 °C outdoor band, against the pump's own history in that " +
-      "band. 100 is matching its history; each point below is a lasting " +
-      "COP shortfall (see the COP health diagnostics). A band is watched " +
-      "once it holds 20 samples; no grade yet means no band does — not a zero.",
+      "Heat pump: the measured COP — heat delivered per kWh of electricity, " +
+      "from a heat meter over a power meter, neither an estimate — in each " +
+      "3 °C outdoor band, against the pump's own history in that band. 100 " +
+      "is matching its history; each point below is a lasting COP shortfall " +
+      "(see the COP health diagnostics). A band is watched once it holds 20 " +
+      "samples; no grade yet means no band does — not a zero. Without a " +
+      "metered heat reading there is no grade at all.",
     "score.part_operation":
       "Driving: whether the plan buys at the cheap hours. Each day's " +
       "energy is priced against that day's flat mean spot price — buying " +
@@ -864,6 +874,8 @@ const STRINGS = {
     "score.reason_heat_loss_refit_disagrees":
       "The learned heat loss disagrees with recent days; a refit is on offer.",
     "score.reason_cop_watch_learning": "Not enough COP data yet to watch the heat pump.",
+    "score.reason_cop_unmeasurable":
+      "COP cannot be measured on this install, so the heat pump is not graded: it needs a heat energy meter or a thermal power meter covering the heating circuit, hot water included, and a power meter, neither an estimate.",
     "score.reason_no_scored_day": "Waiting for the first scored day.",
     "score.reason_free_price_reset":
       "Reset after a run of free-price days; waiting for a priced day.",
@@ -984,8 +996,8 @@ const STRINGS = {
     "health.limit": "gräns {limit}",
     "health.no_age": "ingen avläsning",
     "health.pill_ok": "Alla indata aktuella",
-    "health.pill_one": "1 indata inaktuell",
-    "health.pill_other": "{n} indata inaktuella",
+    "health.pill_one": "1 indataproblem",
+    "health.pill_other": "{n} indataproblem",
     "health.solved": "Löst för {age} sedan",
     "health.next_solve": "Nästa lösning om {age}",
     "health.next_due": "Nästa lösning är försenad",
@@ -1023,6 +1035,7 @@ const STRINGS = {
     "health.input_lower_floor_temp_entity": "Givare för temperaturen på nedre plan",
     "health.input_mixing_valve_target_entity": "Givare för ventilens börvärde",
     "health.input_mixing_valve_write_entity": "Ventilens styrenhet",
+    "health.input_heat_curve_displace_entity": "Entitet för värmekurvans förskjutning",
     "health.input_outdoor_temp_entity": "Utomhusgivare",
     "health.input_price_entity": "Prissensor (Nord Pool eller liknande)",
     "health.input_pv_export_price_entity": "Entitet för ersättning",
@@ -1030,6 +1043,8 @@ const STRINGS = {
     "health.input_solar_radiation_entity": "Solinstrålningsgivare",
     "health.input_space_circulation_pump_entity": "Brytare för värmesystemets cirkulationspump",
     "health.input_space_setpoint_entity": "Börvärdesenhet för rumsuppvärmning",
+    "health.input_space_setpoint_high_limit_entity": "Givare för styrenhetens högsta börvärde",
+    "health.input_space_setpoint_low_limit_entity": "Givare för styrenhetens lägsta börvärde",
     "health.input_valve_outlet_temp_entity": "Temperatur efter shunten mellan ved- och värmepumpstank",
     "health.input_vvc_pump_entity": "Brytare för VVC-pump",
     "health.input_weather_entity": "Väderprognos",
@@ -1094,8 +1109,9 @@ const STRINGS = {
     "health.model_unobservable": "Går inte att observera utan effektmätare.",
     "health.cop_measured": "Mätt för {age} sedan.",
     "health.cop_reason_heat_metered": "Mätt med värmemängdsmätaren.",
-    "health.cop_reason_draw_follows_plan": "Avläst från effektuttaget, som följer planen.",
-    "health.cop_reason_not_measurable": "Går inte att mäta här: utan värmemängdsmätare följer effektuttaget inte planen tillräckligt nära för att verkningsgraden ska kunna avläsas.",
+    "health.cop_reason_not_measurable": "COP går inte att mäta i den här installationen: den saknar värmeavläsning, och utan en sådan är verkningsgraden modellens egen. En värmemängdsmätare eller värmeeffektmätare som omfattar värmekretsen, varmvattnet inräknat, skulle mäta den.",
+    "health.cop_reason_estimated_inputs": "COP går inte att mäta i den här installationen: dess effekt- eller värmeavläsning är pumpens egen uppskattning, så värme genom effekt är tillverkarmodellens COP. En verklig värmemätare och effektmätare, varmvattenkretsen inräknad, skulle mäta den.",
+    "health.cop_reason_no_heat_reading": "Värmemätaren gav ingen användbar avläsning under intervallet.",
     "health.cop_reason_awaiting_draw_evidence": "Väntar på att se om effektuttaget följer planen.",
     "health.cop_reason_no_electric_meter": "Behöver en effekt- eller energimätare på värmepumpen.",
     "health.cop_reason_no_measured_power": "Väntar på en effektavläsning från värmepumpen.",
@@ -1209,6 +1225,8 @@ const STRINGS = {
     "savings.col_pct": "%",
     "savings.estimated": "uppskattat",
     "savings.old_basis": "gammalt underlag",
+    "savings.below_meter_floor": "inget sparande anges",
+    "savings.meter_floor_note": "Inget sparande anges för en månad vars referens använde under hälften av den energi mätaren registrerade: en så låg referens är ett fel, inte ett sparande.",
     "savings.wood_note": "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte.",
     "savings.empty": "Inga avräknade sparandemånader ännu.",
     "receipt.closed": "{month} \u00b7 avslutad",
@@ -1559,6 +1577,7 @@ const STRINGS = {
     "setup.buffer_too_small": "för liten för att lagra",
     "setup.no_valve_caption": "ingen shuntventil: leveransen stryps inte",
     "setup.box_dhw_tank": "Varmvattentank",
+    "setup.dhw_combi_caption": "görs i ackumulatortanken (kombi)",
     "setup.dhw_coil_caption": "återfylls genom en slinga i vedtanken",
     "setup.dhw_coil_preheats": "förvärmer kallvattnet",
     "setup.dhw_coil_off": "slinga vald, inte modellerad",
@@ -1696,11 +1715,13 @@ const STRINGS = {
       "byggperioden. 50 är typiskt för den typen och perioden; över är " +
       "tätare, under läckigare. Aldrig 0 — det betyder bara inget underlag.",
     "score.part_machine":
-      "Värmepumpen: uppmätt COP — levererad värme per kWh el — i varje " +
-      "utomhusband om 3 °C, mot pumpens egen historik i det bandet. 100 är " +
-      "som historiken; varje poäng under är ett bestående COP-underskott " +
-      "(se COP-hälsodiagnostiken). Ett band bevakas när det har 20 prov; " +
-      "inget betyg ännu betyder att inget band har det — inte noll.",
+      "Värmepumpen: uppmätt COP — levererad värme per kWh el, från en " +
+      "värmemätare genom en effektmätare, ingen av dem en uppskattning — i " +
+      "varje utomhusband om 3 °C, mot pumpens egen historik i det bandet. " +
+      "100 är som historiken; varje poäng under är ett bestående " +
+      "COP-underskott (se COP-hälsodiagnostiken). Ett band bevakas när det " +
+      "har 20 prov; inget betyg ännu betyder att inget band har det — inte " +
+      "noll. Utan uppmätt värme finns inget betyg alls.",
     "score.part_operation":
       "Körningen: om planen köper på de billiga timmarna. Varje dags " +
       "energi prissätts mot dagens platta medelspotpris — 20 % under platt " +
@@ -1713,6 +1734,8 @@ const STRINGS = {
     "score.reason_heat_loss_refit_disagrees":
       "Den inlärda värmeförlusten stämmer inte med de senaste dagarna; en omanpassning erbjuds.",
     "score.reason_cop_watch_learning": "Ännu för lite COP-data för att bevaka värmepumpen.",
+    "score.reason_cop_unmeasurable":
+      "COP går inte att mäta i den här installationen, så värmepumpen betygsätts inte: det krävs en värmemängdsmätare eller värmeeffektmätare som omfattar värmekretsen, varmvattnet inräknat, och en effektmätare, ingen av dem en uppskattning.",
     "score.reason_no_scored_day": "Väntar på den första bedömda dagen.",
     "score.reason_free_price_reset":
       "Nollställd efter en rad dagar med gratis el; väntar på en dag med pris.",
@@ -1796,6 +1819,663 @@ const STRINGS = {
     "editor.currency": "Valuta",
     "editor.series": "Serier som visas som standard",
   },
+
+  de: {
+    "header.default_title": "Wärmepumpenplan",
+    "header.enlarge": "Vergrößern",
+    "header.enlarge_chart": "Diagramm vergrößern",
+    "header.tab_plan": "Plan",
+    "header.tab_setup": "Anlage",
+    "header.tab_savings": "Einsparungen",
+    "header.tab_advisor": "Ratgeber",
+    "header.tab_health": "Zustand",
+    "health.inputs": "Eingänge",
+    "health.plan": "Plan",
+    "health.learning": "Lernt noch",
+    "health.checklist": "Checkliste für den ersten Plan",
+    "health.fresh": "Aktuell",
+    "health.stale": "Veraltet",
+    "health.p_unavailable": "Nicht verfügbar",
+    "health.p_missing_entity": "Entität nicht gefunden",
+    "health.p_not_numeric": "Keine Zahl",
+    "health.p_implausible": "Außerhalb des Bereichs",
+    "health.p_unknown_value": "Unbekannter Zustand",
+    "health.p_not_boolean": "Kein Ja/Nein-Wert",
+    "health.p_unknown_unit": "Unbekannte Einheit",
+    "health.p_not_configured": "Nicht eingerichtet",
+    "health.ago": "vor {age}",
+    "health.limit": "Grenzwert {limit}",
+    "health.no_age": "kein Messwert",
+    "health.pill_ok": "Alle Eingänge aktuell",
+    "health.pill_one": "1 Eingangsproblem",
+    "health.pill_other": "{n} Eingangsprobleme",
+    "health.solved": "Berechnet vor {age}",
+    "health.next_solve": "Nächste Berechnung in {age}",
+    "health.next_due": "Nächste Berechnung jetzt fällig",
+    "health.steps": "{n} Schritte",
+    "health.solve_time": "{s} s",
+    "health.input_away_presence_entity": "Abwesenheitsanzeige",
+    "health.input_buffer_tank_temp_entity": "Temperatursensor Pufferspeicher",
+    "health.input_compressor_freq_entity": "Entität der Verdichterfrequenz",
+    "health.input_dhw_disinfection_switch_entity": "Desinfektionsschalter der Pumpe",
+    "health.input_dhw_inlet_entity": "Sensor für Kaltwasserzulauf",
+    "health.input_dhw_setpoint_entity": "Warmwasser-Sollwert-Entität der Wärmepumpe",
+    "health.input_dhw_temp_entity": "Temperatursensor Warmwasserspeicher",
+    "health.input_external_heat_entity": "Kaminofen- oder Abgassensor",
+    "health.input_floor_return_temp_entity": "Rücklauftemperatursensor Fußbodenheizung",
+    "health.input_flow_meter_entity": "Wasserdurchflusssensor",
+    "health.input_grid_fee_entity": "Live-Entgelt-Sensor",
+    "health.input_heat_pump_backup_heater_entity": "Zuheizer für Raumheizung",
+    "health.input_heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",
+    "health.input_heat_pump_defrost_entity": "Abtauen",
+    "health.input_heat_pump_dhw_booster_entity": "Heizstab im Warmwasserspeicher",
+    "health.input_heat_pump_energy_entity": "Energiezähler der Wärmepumpe",
+    "health.input_heat_pump_fault_entity": "Störungsmeldung",
+    "health.input_heat_pump_heat_energy_entity": "Wärmemengenzähler der Wärmepumpe",
+    "health.input_heat_pump_mode_entity": "Betriebsart der Wärmepumpe",
+    "health.input_heat_pump_online_entity": "Pumpe online",
+    "health.input_heat_pump_power_entity": "Leistungsmesser der Wärmepumpe",
+    "health.input_heat_pump_return_temp_entity": "Rücklauftemperatur",
+    "health.input_heat_pump_supply_temp_entity": "Vorlauftemperatur",
+    "health.input_heat_pump_switch_entity": "Ein/Aus-Schalter der Wärmepumpe",
+    "health.input_heat_pump_thermal_power_entity": "Thermischer Leistungsmesser der Wärmepumpe",
+    "health.input_holiday_calendar_entity": "Kalender für Feiertagsprofil",
+    "health.input_house_power_entity": "Leistungsmesser des ganzen Hauses",
+    "health.input_indoor_humidity_entity": "Raumfeuchtesensor",
+    "health.input_indoor_temp_entity": "Innentemperatursensor",
+    "health.input_lower_floor_temp_entity": "Temperatursensor Untergeschoss",
+    "health.input_mixing_valve_target_entity": "Zielwert-Sensor des Ventils",
+    "health.input_mixing_valve_write_entity": "Steuerentität des Ventils",
+    "health.input_heat_curve_displace_entity": "Offset-Entität der Heizkurve",
+    "health.input_outdoor_temp_entity": "Außentemperatursensor",
+    "health.input_price_entity": "Preissensor (Nord Pool oder ähnlich)",
+    "health.input_pv_export_price_entity": "Entität der Einspeisevergütung",
+    "health.input_pv_production_entity": "Sensor der Solarerzeugung",
+    "health.input_solar_radiation_entity": "Sensor für Sonneneinstrahlung",
+    "health.input_space_circulation_pump_entity": "Schalter der Heizungsumwälzpumpe",
+    "health.input_space_setpoint_entity": "Sollwert-Entität der Raumheizung",
+    "health.input_space_setpoint_high_limit_entity": "Sensor für den maximalen Sollwert des Reglers",
+    "health.input_space_setpoint_low_limit_entity": "Sensor für den minimalen Sollwert des Reglers",
+    "health.input_valve_outlet_temp_entity": "Temperatur nach dem Mischventil Holz/Wärmepumpe",
+    "health.input_vvc_pump_entity": "Schalter der Warmwasser-Zirkulationspumpe",
+    "health.input_weather_entity": "Wettervorhersage",
+    "health.input_wood_tank_bottom_entity": "Fühler unten am Holzspeicher",
+    "health.input_wood_tank_top_entity": "Fühler oben am Holzspeicher",
+    "health.learn_savings": "Einsparungen diesen Monat",
+    "health.learn_savings_why": "Wartet auf den ersten abgeschlossenen Monat",
+    "health.learn_cop": "COP der Wärmepumpe",
+    "health.learn_accuracy": "Prognosegenauigkeit",
+    "health.learn_accuracy_why": "Wartet auf das erste bewertete Intervall",
+    "health.learn_score": "Optimierungswert",
+    "health.learn_score_why": "Wartet auf den ersten bewerteten Tag",
+    "health.model": "Was das Modell gelernt hat",
+    "health.model_heat_loss": "Wärmeverlust des Hauses",
+    "health.model_solar": "Solargewinn",
+    "health.model_lower": "Untergeschoss",
+    "health.model_tank": "Auskühlung des Warmwasserspeichers",
+    "health.model_cop": "Effizienz der Wärmepumpe",
+    "health.model_gains": "Interne Wärmegewinne nach Stunde",
+    "health.model_house": "Das Haus",
+    "health.model_lower_floor": "Das Untergeschoss",
+    "health.model_from": "Aus {n} Messwerten gelernt.",
+    "health.model_estimate": "Noch die Schätzung aus den Einstellungen: noch keine Messwerte.",
+    "health.model_default": "Noch der Standardwert: noch keine Messwerte.",
+    "health.model_learning": "Lernt: {n} von etwa {need} Messwerten.",
+    "health.model_faster": "{what} verliert {pct} % schneller Wärme als in den Einstellungen geschätzt.",
+    "health.model_slower": "{what} verliert {pct} % langsamer Wärme als in den Einstellungen geschätzt.",
+    "health.model_as_set": "{what} verliert Wärme wie in den Einstellungen geschätzt.",
+    "health.model_w_per_k": "{v} W/K",
+    "health.model_window": "Fensterfaktor {v}",
+    "health.model_share": "{v} % der Schätzung aus den Einstellungen",
+    "health.model_per_hour": "{v} °C pro Stunde",
+    "health.model_cop_normal": "Normal (COP-Faktor {v})",
+    "health.model_cop_low": "Unter dem eigenen Verlauf",
+    "health.model_cop_fine": "Keine Anzeichen von Verschlechterung.",
+    "health.model_cop_alarm": "Sie liefert weniger Wärme pro kWh als früher; prüfe Filter, Abtauung und Durchfluss.",
+    "health.model_gains_peak": "Personen, Kochen und Geräte tragen gegen {hh}:00 Uhr zusammen {kw} kW bei.",
+    "health.support_title": "Stimmt etwas nicht?",
+    "health.support_detail": "„Diagnose herunterladen“ speichert eine Datei für einen Fehlerbericht: Sie enthält die letzte Diagnose, Eingangszustände, den aktuellen Plan und das, was das Modell gelernt hat, ohne Token, Namen, Personen, Kalender und Standorte.",
+    "health.act_diagnostics": "Diagnose herunterladen",
+    "health.check_price": "Preisquelle verbunden",
+    "health.check_weather": "Wettervorhersage verfügbar",
+    "health.check_indoor": "Raumtemperatursensor",
+    "health.check_control": "Wärmepumpensteuerung verbunden",
+    "health.check_power": "Leistungsmesser an der Wärmepumpe: macht die Einsparungen gemessen statt modelliert",
+    "health.check_insight": "Einige Analysesensoren sind standardmäßig deaktiviert; „Anzeigen“ listet die Entitäten dieser Integration auf, auch deaktivierte, und dort kannst du sie aktivieren",
+    "health.act_assign": "Zuweisen",
+    "health.act_show": "Anzeigen",
+    "health.input_other": "Eingang",
+    "health.learner_waiting": "Wartet: {why}.",
+    "health.learner_wait_colder": "es lernt, wenn es draußen kalt genug ist",
+    "health.learner_wait_darker": "es lernt in den dunklen Stunden",
+    "health.learner_wait_sunnier": "es lernt bei Sonnenschein",
+    "health.learner_waiting_any": "Wartet auf Bedingungen, unter denen es lernen kann.",
+    "health.learner_counting": "Lernt: {pct} % der benötigten Messwerte.",
+    "health.learner_eta": "Noch etwa {d} Tage bis zum Abschluss des Lernens.",
+    "health.learner_settling": "Pendelt sich auf seinen Wert ein: {pct} %.",
+    "health.learner_settling_any": "Pendelt sich auf seinen Wert ein.",
+    "health.model_unobservable": "Ohne Leistungsmesser nicht beobachtbar.",
+    "health.cop_measured": "Gemessen vor {age}.",
+    "health.cop_reason_heat_metered": "Vom Wärmemengenzähler gemessen.",
+    "health.cop_reason_not_measurable": "Die Leistungszahl (COP) lässt sich in dieser Installation nicht messen: Es gibt keinen Wärmewert, und ohne ihn ist die angezeigte Effizienz die des Modells. Ein Wärmemengenzähler oder ein Wärmeleistungszähler am Heizkreis, Warmwasser eingeschlossen, würde sie messen.",
+    "health.cop_reason_estimated_inputs": "Die Leistungszahl (COP) lässt sich in dieser Installation nicht messen: Der Leistungs- oder Wärmewert ist die eigene Schätzung der Wärmepumpe, Wärme geteilt durch Leistung ist also die COP des Herstellermodells. Ein echter Wärmemengenzähler und Leistungszähler, Warmwasserkreis eingeschlossen, würde sie messen.",
+    "health.cop_reason_no_heat_reading": "Der Wärmemengenzähler lieferte im Intervall keinen brauchbaren Wert.",
+    "health.cop_reason_awaiting_draw_evidence": "Wartet darauf, ob die Leistungsaufnahme dem Plan folgt.",
+    "health.cop_reason_no_electric_meter": "Benötigt einen Leistungs- oder Energiezähler an der Wärmepumpe.",
+    "health.cop_reason_no_measured_power": "Wartet auf einen Leistungswert der Wärmepumpe.",
+    "health.cop_reason_learners_frozen": "Das Lernen ist pausiert.",
+    "health.cop_reason_duty_floor": "Die Wärmepumpe lief im Intervall zu wenig für eine Beurteilung.",
+    "health.cop_reason_frost_band": "Im Frostbereich übersprungen, da die Abtauung die Messung verfälscht.",
+    "health.cop_reason_draw_distorted": "Die Leistungsaufnahme wurde im Intervall durch etwas anderes verfälscht.",
+    "health.cop_reason_tracking_gate": "Das Haus folgte dem Plan im Intervall nicht genau genug.",
+    "health.cop_reason_draw_off_ask": "Die Leistungsaufnahme wich von der Planvorgabe ab.",
+    "health.cop_reason_blended_duty": "Raumheizung und Warmwasser teilten sich das Intervall, daher lässt sich keines von beiden beurteilen.",
+    "health.cop_reason_modelled_cop": "Es lag nur eine modellierte, keine gemessene Effizienz vor.",
+    "health.cop_reason_observed_cop": "Die gemessene Effizienz lag außerhalb des plausiblen Bereichs.",
+    "health.cop_reason_span_open": "Wartet darauf, dass der Zählerzeitraum abgeschlossen wird.",
+    "health.cop_reason_unaligned_meters": "Wärme- und Leistungszähler wurden nicht zum selben Zeitpunkt abgelesen.",
+    "health.cop_reason_counter_reset": "Der Zählerstand des Wärmemengenzählers wurde zurückgesetzt.",
+    "health.cop_reason_counter_rollover": "Der Zählerstand des Wärmemengenzählers ist übergelaufen.",
+    "health.cop_reason_counter_resolution": "Der Zähler des Wärmemengenzählers ist für das Intervall zu grob.",
+    "health.cop_reason_span_too_long": "Der Zählerzeitraum war zu lang, um verwendet zu werden.",
+    "health.metric_heat_loss": "Wie schnell das Haus Wärme verliert, in Watt pro Grad Unterschied zwischen innen und außen. Höher bedeutet ein undichteres Haus; ohne Messwerte ist es die Schätzung aus den Einstellungen.",
+    "health.metric_solar": "Wie viel der Sonnenwärme die Fenster durchlassen, verglichen mit den Einstellungen. Über 1 lässt mehr herein; ohne Messwerte ist es der Wert aus den Einstellungen.",
+    "health.metric_lower": "Der Wärmeverlust des Untergeschosses als Anteil der Schätzung aus den Einstellungen. Über 100 % verliert mehr; ohne Messwerte ist es die Schätzung aus den Einstellungen.",
+    "health.metric_tank": "Wie schnell der Warmwasserspeicher bei ausgeschalteter Pumpe auskühlt, in °C pro Stunde. Niedriger bedeutet bessere Dämmung; ohne Messwerte ist es der Standardwert.",
+    "health.metric_cop": "Ob die Wärmepumpe noch so viel Wärme pro kWh liefert wie früher. Ein Strich bedeutet, dass sie noch nicht überwacht wird.",
+    "health.metric_gains": "Wärme von Personen, Kochen und Geräten nach Tagesstunde, in kW, die der Plan als kostenlose Heizung anrechnet. Höhere Balken bedeuten mehr kostenlose Wärme; ohne Messwerte rechnet der Plan nichts an.",
+    "health.debug_title": "Debug-Aufzeichnung",
+    "health.debug_off": "Aus. Wenn ein Fehlerbericht danach fragt, zeichnet „Start“ eine Woche an Zyklen in die Diagnosedatei auf.",
+    "health.debug_active": "Aufzeichnung läuft: bisher {rows} Datensätze, noch etwa {days} Tage.",
+    "health.debug_final": "Mit {rows} Datensätzen abgeschlossen. Lade die Diagnose herunter, um sie zu behalten.",
+    "health.debug_confirm": "Ein erneuter Start verwirft die abgeschlossene Aufzeichnung. Lade zuerst die Diagnose herunter, um sie zu behalten, und drücke dann erneut „Start“.",
+    "health.act_debug_start": "Start",
+    "advisor.heading": "Sensoren, die das Modell genauer machen würden",
+    "advisor.empty": "Jeder optionale Temperatursensor dieser Anlage ist bereits eingerichtet.",
+    "advisor.estimated": "geschätzt",
+    "advisor.basis_history": "Schätzung aus einer Wiedergabe, die auf der gemessenen Wärmeabgabe dieser Installation beruht.",
+    "advisor.basis_config": "Schätzung aus einer Wiedergabe mit den konfigurierten Standardwerten – noch keine gemessene Wärmeabgabe.",
+    "advisor.spread_note": "Wie weit die Temperaturprognosen des Modells auseinanderliegen können, bis dieser Sensor sie festlegt.",
+    "advisor.unpriced_heading": "Von dieser Schätzung nicht bewertet",
+    "advisor.reason_weather_backed": "Die Außentemperatur kommt bereits von der Wetter-Entität; diese Schätzung kann die zusätzliche Genauigkeit eines lokalen Fühlers nicht bewerten.",
+    "advisor.reason_state_estimate": "Speist eine Zustandsschätzung, keinen gelernten Modellparameter.",
+    "advisor.reason_no_clamped_parameter": "Seine Lernmodelle passen Größen an, für die diese Schätzung kein Messband hat.",
+    "advisor.act_hint": "Wähle einen Sensor, um ihn auf der Seite „Anlage“ zuzuweisen.",
+    "advisor.inbox_heading": "Lohnt sich",
+    "advisor.inbox_empty": "Nichts zu tun: Der Plan ist bereits so günstig, wie deine Einstellungen es erlauben.",
+    "advisor.optin_heading": "Mehr Ratschläge, sobald aktiviert",
+    "advisor.value_month": "≈ {value} {currency}/Monat",
+    "advisor.no_value": "keine Schätzung",
+    "advisor.waiting": "Lernt noch: {reason}",
+    "advisor.unavailable": "Dieser Ratschlag ist derzeit nicht verfügbar",
+    "advisor.gap_title": "Sensor „{label}“ hinzufügen",
+    "advisor.gap_detail": "Das Modell bewertet den fehlenden Sensor.",
+    "advisor.act_assign": "Sensor zuweisen",
+    "advisor.dhw_title": "Warmwasser-Sollwert {from} → {to} °C",
+    "advisor.dhw_detail": "Günstigster Sollwert, der deinen höchsten Verbrauch noch deckt.",
+    "advisor.act_schedule": "Zeitplan öffnen",
+    "advisor.valve_title": "Ventil-Sollwert {to} °C",
+    "advisor.valve_detail": "Jetzt {from} °C. {reason}",
+    "advisor.act_apply": "Anwenden",
+    "advisor.act_settings": "Einstellungen öffnen",
+    "advisor.degree_title": "Das Haus ein Grad kühler zu halten ist günstiger",
+    "advisor.degree_detail": "Es ein Grad wärmer zu halten kostet {up} {currency}/Monat mehr (Durchschnitt von {days} Tagen).",
+    "advisor.degree_unsettled": "Noch nicht angezeigt: In den letzten {days} Tagen ergaben ein Grad kühler und ein Grad wärmer nicht die Preisreihenfolge, die beim Heizen üblich ist.",
+    "advisor.act_degree": "Im Was-wäre-wenn testen",
+    "advisor.optin_degree": "Preis eines Grads",
+    "advisor.applied": "Ventil-Sollwert auf {to} °C gesetzt.",
+    "advisor.applied_setpoint": "Warmwasser-Sollwert auf {to} °C gesetzt.",
+    "advisor.apply_failed": "Anwenden nicht möglich: {error}",
+    "advisor.refit_title": "Wärmeverlustmodell bei {to} neu starten (jetzt {from})",
+    "advisor.refit_detail": "Neu angepasst aus {days} abgeschlossenen Tagen ({pairs} Intervalle) seit dem letzten Boost oder der letzten Wiederherstellung; etwa ±7–10 % Unsicherheit. Es ändert sich nichts, bis du zustimmst.",
+    "advisor.refit_wait_title": "Neuanpassung des Wärmeverlusts ausstehend",
+    "advisor.refit_wait_detail": "Die Vorhersagen driften. Eine Neuanpassung benötigt Belege aus {need} abgeschlossenen Tagen; bisher {days}.",
+    "advisor.restore_title": "Modell von {when} wiederherstellen",
+    "advisor.restore_detail": "Der letzte bekannte gute gelernte Zustand, gesichert vor Beginn der Drift.",
+    "advisor.act_adopt": "Neuanpassung übernehmen",
+    "advisor.act_restore": "Wiederherstellen",
+    "advisor.restarted": "Gelerntes Modell neu gestartet.",
+    "advisor.optin_wood": "Zeitpunkt für den Kaminofen",
+    "advisor.optin_fuse": "Sicherungsgröße",
+    "advisor.optin_frequency": "Verdichterfrequenz",
+    "advisor.step_tuning": "Konfigurieren → Einsparungen vs. Komfort",
+    "advisor.step_building": "Konfigurieren → Erweiterte Einstellungen → Heizsystem und Wärmespeicher",
+    "advisor.step_grid": "Konfigurieren → Netz-Spitzentarif",
+    "advisor.step_metering": "Konfigurieren → Erweiterte Einstellungen → Leistungs- und Solarsensoren",
+    "advisor.feedback_title": "Leistungs-, Energie-, Frequenz- oder Durchflusssensor der Wärmepumpe hinzufügen",
+    "advisor.feedback_detail": "Ohne einen solchen Sensor kann der Planer nicht sehen, was die Pumpe tatsächlich aufnimmt, und ohne ihn gibt es keine verlässliche Schätzung. Einer genügt: {list}.",
+    "advisor.feedback_power": "Leistung",
+    "advisor.feedback_energy": "Energie",
+    "advisor.feedback_frequency": "Verdichterfrequenz",
+    "advisor.feedback_flow": "Wassermassenstrom",
+    "advisor.act_dismiss": "Verwerfen",
+    "savings.col_month": "Monat",
+    "savings.col_baseline": "Referenz",
+    "savings.col_actual": "Tatsächlich",
+    "savings.col_savings": "Einsparung",
+    "savings.below_meter_floor": "keine Einsparung angegeben",
+    "savings.meter_floor_note": "Für einen Monat, dessen Referenz weniger als die Hälfte der vom Zähler erfassten Energie verbrauchte, wird keine Einsparung angegeben: Eine so niedrige Referenz ist ein Fehler, keine Einsparung.",
+    "savings.col_pct": "%",
+    "savings.estimated": "geschätzt",
+    "savings.old_basis": "alte Basis",
+    "savings.below_meter_floor": "keine Einsparung angegeben",
+    "savings.meter_floor_note": "Für einen Monat, dessen Referenz weniger als die Hälfte der vom Zähler erfassten Energie verbraucht hat, wird keine Einsparung angegeben: Eine so niedrige Referenz ist ein Fehler, keine Einsparung.",
+    "savings.wood_note": "Die Einsparung enthält Wärme aus Holz. Die Kosten für das Brennholz sind nicht berücksichtigt.",
+    "savings.empty": "Noch keine abgeschlossenen Einsparungsmonate.",
+    "receipt.closed": "{month} · abgeschlossen",
+    "receipt.saved": "{amount} {unit} ({pct}) gegenüber einem einfachen Thermostat gespart",
+    "receipt.col_line": "Posten",
+    "receipt.col_basis": "Grundlage",
+    "receipt.col_cost": "Kosten",
+    "receipt.line_spot": "Spot-Energie",
+    "receipt.line_grid_fee": "Netzentgelt Energie",
+    "receipt.line_capacity": "Leistungspreis",
+    "receipt.line_immersion": "Heizstab",
+    "receipt.line_dhw_booster": "Zuheizer Speicher",
+    "receipt.line_backup_heater": "Zuheizer",
+    "receipt.line_wear": "Verdichterverschleiß",
+    "receipt.total": "Gesamt",
+    "receipt.not_priced": "nicht bewertet",
+    "receipt.peak": "Spitze {kw} kW",
+    "receipt.starts": "{n} Starts",
+    "receipt.covers": "Umfasst {lines}. Der Einsparungswert vergleicht nur die Spotkosten.",
+    "receipt.by_reason": "Wohin das Geld ging",
+    "replay.title": "Gestern: der Plan gegenüber der Realität",
+    "replay.promised": "Vom Plan um {time} zugesagt",
+    "replay.measured": "Gemessen",
+    "replay.indoor": "Raumtemperatur",
+    "replay.cost": "Kosten",
+    "replay.cost_unit": "{unit}, kumuliert",
+    "replay.summary_temp": "Die Raumtemperatur wich im Mittel um {dev} °C von der Zusage ab.",
+    "replay.summary_cost": "Es kostete {measured} {unit} statt der zugesagten {promised} {unit}.",
+    "replay.no_meter": "Kein Leistungsmesser, daher wurden die Kosten nicht gemessen.",
+    "header.close": "Schließen",
+    "series.price": "Strompreis",
+    "series.dhw_slots": "Warmwasserbereitung",
+    "series.space_slots": "Raumheizung",
+    "series.actioned": "Umgesetzte Leistung",
+    "series.quiet_silent": "Ruhefenster",
+    "series.quiet_off": "Aus-Fenster",
+    "tooltip.actioned": "Umgesetzt",
+    "series.outdoor": "Außentemperatur",
+    "series.dhw_temp": "Temperatur Warmwasserspeicher",
+    "series.house_temp": "Haustemperatur",
+    "series.solar": "Sonneneinstrahlung",
+    "series.wood_slots": "Holzfeuer",
+    "wood.alert": "Holz zu verbrennen ist günstiger als mindestens eine verbleibende Wärmepumpenstunde.",
+    "away.toggle": "Abwesend",
+    "away.return": "Zurück",
+    "away.status_presence": "Abwesend (Anwesenheit)",
+    "setup.tanks": "Speicher",
+    "setup.tank_dhw": "Warmwasserspeicher",
+    "setup.tank_wood": "Holzspeicher",
+    "series.upper_floor": "Obergeschoss",
+    "series.lower_floor": "Untergeschoss",
+    "series.lower_floor_modelled": "Untergeschoss (modelliert)",
+    "legend.multi_trace_title": "{label} ({unit}) – ebenfalls dargestellt: {names}. Fahre über das Diagramm, um jede Kurve abzulesen.",
+    "series.dhw_band": "Warmwasser, erwarteter Fehler",
+    "series.dhw_band_note": "Gestrichelt: der erwartete Fehler des Modells, der weiter in der Zukunft größer wird. Fehlt, bis genug Verlauf vorliegt.",
+    "series.dhw_band_note_floored": "Gestrichelt: der erwartete Fehler des Modells, der weiter in der Zukunft größer wird. Innerhalb eines Bedarfsfensters ist die untere Grenze auf das Fensterminimum begrenzt. Fehlt, bis genug Verlauf vorliegt.",
+    "plan.now": "jetzt",
+    "plan.now_temp": "{temp} °C",
+    "plan.space_blocked": "Nur Warmwasser – keine Raumheizung: Die Hauskurve ist die Zusage des Plans, nicht das, was die Pumpe gerade ausführt.",
+    "plan.estimated_prices": "geschätzte Preise",
+    "plan.zoom_out": "Verkleinern",
+    "plan.zoom_in": "Vergrößern",
+    "plan.show_whole_plan": "Gesamten Plan anzeigen",
+    "plan.history_loading": "Verlauf wird geladen …",
+    "plan.history_unavailable": "Kein aufgezeichneter Verlauf für diese Sensoren – der Recorder ist möglicherweise aus, oder die Vergangenheit wurde nie aufgezeichnet.",
+    "plan.price_estimated": "Preis ist geschätzt, noch nicht veröffentlicht",
+    "plan.shared_step_tooltip": "Gemeinsamer Schritt: Die Pumpe wechselt zwischen den Kreisen – zuerst Warmwasser. Zusammen {kw} kW bleiben unter dem Maximum der Pumpe.",
+    "plan.shared_band_title": "Raumheizung und Warmwasser teilen sich diese Viertelstunden: Die Pumpe wechselt innerhalb jedes Schritts zwischen den Kreisen, zuerst Warmwasser. Deine gemeinsame Leistung überschreitet nie das Maximum der Wärmepumpe – das ist Zeitteilung, keine Doppelbelegung.",
+    "reasons.comfort_floor": "Mindesttemperatur halten",
+    "reasons.cheap_price": "Günstigste Stunden",
+    "reasons.preheat_weather": "Vorheizen vor kälterem Wetter",
+    "reasons.scheduled": "Haus auf Zieltemperatur halten",
+    "reasons.terminal_value": "Haus über den Planungshorizont hinaus warm halten",
+    "reasons.solar_surplus": "Solarüberschuss nutzen",
+    "reasons.dhw_window": "Warmwasser wird jetzt benötigt",
+    "reasons.dhw_ready": "Speicher für ein Bedarfsfenster vorbereiten",
+    "reasons.dhw_preheat": "Speicher laden, solange Strom günstig ist",
+    "reasons.legionella": "Legionellenschaltung",
+    "reasons.manual_plan": "Von dir eingeplant",
+    "reasons.pump_mode": "Durch den Betriebsmodus der Wärmepumpe pausiert (am Gerät selbst eingestellt)",
+    "reasons.pump_mode_dhw": "Kein Warmwasser: Der Betriebsmodus der Wärmepumpe – am Gerät eingestellt – kann kein Wasser erwärmen (nur Heizen oder Kühlen). Stelle das Gerät auf einen Modus mit Warmwasser um.",
+    "reasons.pump_mode_space": "Keine Heizung: Der Betriebsmodus der Wärmepumpe – am Gerät eingestellt – kann keine Räume beheizen (nur Warmwasser oder Kühlen). Stelle das Gerät auf einen Heizmodus um.",
+    "reasons.idle": "Heizt nicht",
+    "reasons.boost": "Ein von dir aktivierter Boost",
+    "reasons.comfort_mode": "Von dir gewählter Komfortmodus",
+    "reasons.system_identification": "Das Haus wird vermessen (Sprungantwort-Test)",
+    "reasons.untagged": "Kein Planschritt als Ursache zuzuordnen",
+    "why.space_off": "Raumheizung aus",
+    "why.dhw_off": "Warmwasser aus",
+    "why.both_off": "Raumheizung und Warmwasser aus",
+    "why.likely": "Wahrscheinlich, weil:",
+    "why.because": "Weil:",
+    "why.sub_other": "der andere Kanal die Kapazität hat",
+    "why.sub_fuse": "die Sicherungsgrenze das Heizen begrenzt",
+    "why.sub_solar": "der Plan auf Solarstrom wartet",
+    "why.sub_dearer": "diese Stunde teurer ist als die Stunden, die der Plan nutzt",
+    "why.sub_coasting": "die Temperatur über der Untergrenze liegt und der Plan daher ausläuft",
+    "why.price_rank": "{price} {unit} gehört zu den teuersten {pct} % des Plans (günstigster {min})",
+    "why.coast_space": "das Haus zehrt von gespeicherter Wärme {from}–{to}",
+    "why.coast_dhw": "der Speicher wurde {from}–{to} aufgeheizt",
+    "why.next_space": "der nächste Heizlauf ist um {time} bei {price} {unit}",
+    "why.next_dhw": "der nächste Warmwasserlauf ist um {time} bei {price} {unit}",
+    "why.tank_above": "der Speicher hat {temp} °C, über dem Warmwasser-Minimum von {min} °C",
+    "why.solar_ahead": "ab {time} wird ein Solarüberschuss von bis zu {kw} kW erwartet",
+    "slots.lane_dhw": "Warmwasser",
+    "slots.lane_space": "Heizung",
+    "slots.lane_wood": "Holz",
+    "menu.remove_slot_dhw": "Diesen Warmwasser-Slot entfernen",
+    "menu.remove_slot_space": "Diesen Heiz-Slot entfernen",
+    "menu.add_slot_dhw": "Hier einen Warmwasser-Slot hinzufügen",
+    "menu.add_slot_space": "Hier einen Heiz-Slot hinzufügen",
+    "menu.add_slot_wood": "Hier einen Holz-Slot hinzufügen",
+    "slots.no_plan_to_pin": "Noch kein Plan zum Fixieren.",
+    "slots.applying": "Wird angewendet …",
+    "slots.until_suffix": " bis {expiry}",
+    "slots.pinned_result": "Fixiert{until}. Diese Slots bleiben erhalten, sofern dadurch das Haus oder der Speicher nicht unter seine Grenzen fällt.",
+    "slots.clearing": "Wird aufgehoben …",
+    "slots.back_to_auto_result": "Zurück zur automatischen Planung.",
+    "slots.released_one": "{n} Slot wurde freigegeben, um das Haus oder den Speicher zu schützen.",
+    "slots.released_other": "{n} Slots wurden freigegeben, um das Haus oder den Speicher zu schützen.",
+    "slots.pinned_status": "Deine Slots sind fixiert{until}.",
+    "whatif.todays_slots": "Heutige Slots",
+    "whatif.slots_hint": "Zieh einen Slot unten im Diagramm entlang seiner Spur, um ihn zu verschieben, zieh eine Kante, um die Größe zu ändern, oder füge per Rechtsklick auf eine Spur Slots hinzu oder entferne sie. Mit „Anwenden“ werden sie für die nächsten {hours} Stunden fixiert.",
+    "whatif.zoom_limit_hint": "Vergrößert – das Bearbeiten endet am sichtbaren Rand. Zieh einen Slot an den Rand, um zu verschieben, oder {button}.",
+    "whatif.show_whole_plan_button": "den ganzen Plan anzeigen",
+    "whatif.apply_plan": "Diesen Plan anwenden",
+    "whatif.undo_changes": "Meine Änderungen verwerfen",
+    "whatif.back_to_auto": "Zurück zu automatisch",
+    "whatif.usual_schedule": "Mein üblicher Zeitplan",
+    "whatif.schedule_hint": "Das sind die wiederkehrenden Zeiten, nach denen der Optimierer jeden Tag plant, nicht nur heute.",
+    "whatif.heating_hours": "Heizzeiten",
+    "whatif.day_from": "Tag von",
+    "whatif.day_start_aria": "Heiztag beginnt",
+    "whatif.day_to": "bis",
+    "whatif.day_end_aria": "Heiztag endet",
+    "whatif.setback_hint": "Außerhalb dieser Zeiten gilt die Nachtabsenkung.",
+    "whatif.dhw_windows": "Warmwasser-Zeitfenster",
+    "whatif.window_start_aria": "Beginn Zeitfenster {n}",
+    "whatif.window_end_aria": "Ende Zeitfenster {n}",
+    "whatif.remove": "Entfernen",
+    "whatif.remove_window_aria": "Zeitfenster {n} entfernen",
+    "whatif.window_days_aria": "Tage Zeitfenster {n}",
+    "whatif.days_daily": "Jeden Tag",
+    "whatif.days_weekdays": "Werktage",
+    "whatif.days_weekend": "Wochenende",
+    "whatif.days_monday": "Montag",
+    "whatif.days_tuesday": "Dienstag",
+    "whatif.days_wednesday": "Mittwoch",
+    "whatif.days_thursday": "Donnerstag",
+    "whatif.days_friday": "Freitag",
+    "whatif.days_saturday": "Samstag",
+    "whatif.days_sunday": "Sonntag",
+    "whatif.no_windows_hint": "Keine Zeitfenster: Warmwasser wird nie verlangt, daher wird der Speicher nur über seinem Ruhe-Minimum gehalten.",
+    "whatif.add_window": "+ Zeitfenster hinzufügen",
+    "whatif.quiet_windows": "Leise Zeitfenster",
+    "whatif.quiet_hint": "„Leise“ begrenzt den Verdichter in diesen Stunden. „Aus“ bedeutet, dass der Plan im Zeitfenster weder Raumheizung noch Warmwasser einplant – es wird nichts zusätzlich geschrieben.",
+    "whatif.quiet_action_silent": "Leise",
+    "whatif.quiet_action_off": "Aus",
+    "whatif.quiet_action_aria": "Aktion Zeitfenster {n}",
+    "whatif.quiet_not_enforced": "nicht erzwungen",
+    "whatif.quiet_frac": "Leistungsanteil im Flüstermodus",
+    "whatif.quiet_frac_note": "Der Leistungsanteil beträgt noch 1,0, daher begrenzen Leise-Zeilen nichts, bis du ihn senkst.",
+    "whatif.add_quiet": "+ Zeitfenster hinzufügen",
+    "whatif.no_quiet_hint": "Keine Leise- oder Aus-Zeitfenster.",
+    "whatif.wood": "Holzfeuer",
+    "whatif.wood_liters": "Liter",
+    "whatif.add_wood_slot": "Holz-Slot hinzufügen",
+    "whatif.simulate": "Diese Slots simulieren",
+    "whatif.save_schedule": "Als meinen Zeitplan speichern",
+    "whatif.reset": "Zurücksetzen",
+    "whatif.idle_status": "Ändere eine Einstellung, um die Kosten zu sehen. Das Simulieren ändert nichts; beim Speichern wird dein konfigurierter Zeitplan ersetzt.",
+    "whatif.temperatures": "Temperaturen",
+    "whatif.temperatures_hint": "Wie warm das Haus während des Heiztags gehalten wird und wie weit der Warmwasserspeicher innerhalb eines Bedarfsfensters abkühlen darf. Beides wird wie der Zeitplan oben bepreist.",
+    "whatif.comfort_temp": "Komforttemperatur",
+    "whatif.dhw_min": "Warmwasser-Minimum",
+    "whatif.dhw_min_aria": "Mindesttemperatur Warmwasser",
+    "whatif.cap_no_setpoint": "Begrenzt auf {t}&nbsp;°C, weit genug unter dem Warmwasser-Sollwert, damit der Speicher Spielraum hat.",
+    "whatif.cap_with_setpoint": "Begrenzt auf {t}&nbsp;°C: ein Band von {band}&nbsp;°C unter dem Sollwert von {setpoint}&nbsp;°C, damit der Speicher Spielraum hat, statt seinem Ziel hinterherzujagen.",
+    "whatif.clamped_warning": "Dein gespeichertes Minimum von {a}&nbsp;°C liegt über dieser Grenze, daher zeigt der Regler {b}&nbsp;°C. Beim Speichern wird der niedrigere Wert übernommen.",
+    "whatif.confirm_overwrite": "Bestätigen: Zeitplan überschreiben",
+    "whatif.confirm_hint": "Dies ersetzt deine konfigurierten Heizzeiten, Warmwasser-Zeitfenster und Temperaturen und lädt die Integration neu. Zum Bestätigen erneut drücken.",
+    "whatif.saving": "Wird gespeichert …",
+    "whatif.saved_result": "Gespeichert. Der Optimierer lädt neu und plant nach dem neuen Zeitplan.",
+    "whatif.simulating": "Kosten werden berechnet …",
+    "whatif.same_cost": "<b>Etwa gleiche Kosten</b> wie der aktuelle Plan.",
+    "whatif.cheaper_per_month": "<b class=\"cheaper\">{amount} weniger pro Monat</b> als der aktuelle Plan.",
+    "whatif.dearer_per_month": "<b class=\"dearer\">{amount} mehr pro Monat</b> als der aktuelle Plan.",
+    "whatif.min_room_temp": "Kältester Wert im Haus: {t} °C",
+    "whatif.min_dhw_temp": "Niedrigste Speichertemperatur: {t} °C",
+    "whatif.compressor_starts_one": "{n} Verdichterstart",
+    "whatif.compressor_starts_other": "{n} Verdichterstarts",
+    "whatif.rate_limited": "<i>(vorherige Schätzung; Simulationen sind begrenzt)</i>",
+    "stats.no_plan_to_compare": "Noch keine Plandaten zum Vergleichen.",
+    "stats.cheaper": "günstiger",
+    "stats.dearer": "teurer",
+    "stats.the_same": "gleich",
+    "stats.delta_detail": "{verdict} als der gespeicherte Plan ({planned} → {edited}&nbsp;{currency}, geschätzt)",
+    "stats.delta_detail_same": "gleich wie der gespeicherte Plan ({planned} → {edited}&nbsp;{currency}, geschätzt)",
+    "time.tomorrow": "{time} morgen",
+    "time.on_weekday": "{time} am {weekday}",
+    "setup.not_published": "Die Anlagenbeschreibung wurde noch nicht veröffentlicht. Sie erscheint mit den Plan-Sensoren, nachdem die Integration geladen ist.",
+    "setup.editing_hint": "Zieh ein Kästchen, um es zu verschieben, zieh einen Anschluss, um zwei Kästchen zu verbinden, oder klicke auf eine Leitung, um sie zu entfernen. Nur eine Zeichnung, die einem unterstützten Aufbau entspricht, kann gespeichert werden.",
+    "setup.assign_hint": "Klicke auf einen Sensor, um ihn zuzuweisen oder zu löschen. Ein leerer Platz ist ein Sensor, den diese Anlage nutzen könnte, aber nicht hat; er wird absichtlich angezeigt.",
+    "setup.done_editing": "Bearbeitung beenden",
+    "setup.edit_layout": "Aufbau bearbeiten",
+    "setup.save_layout": "Aufbau speichern",
+    "setup.undo_layout": "Rückgängig",
+    "setup.undo_layout_aria": "Änderungen verwerfen und zum verwendeten Aufbau zurückkehren, im Editor bleiben",
+    "setup.tidy_layout": "Aufräumen",
+    "setup.tidy_layout_aria": "Die Kästchen wieder ordentlich in ihren Spalten anordnen",
+    "setup.verdict_match": "Entspricht {label}.",
+    "setup.verdict_req": "{label} – {requirement}.",
+    "setup.verdict_not_modelled": "{label} – bekannt, aber noch nicht modelliert, daher nicht auswählbar.",
+    "setup.verdict_needs": "{label} – benötigt {requirement}.",
+    "setup.verdict_cannot_store": "{label} – die aktuelle Konfiguration kann diesen Aufbau nicht speichern.",
+    "setup.no_catalog": "Für dieses System wurde kein Aufbaukatalog veröffentlicht.",
+    "setup.verdict_no_match": "Kein unterstützter Aufbau passt. Am nächsten: {label}.",
+    "setup.verdict_extra_edges": "Nicht enthalten: {edges}.",
+    "setup.verdict_missing_edges": "Fehlt: {edges}.",
+    "setup.saved_reloading": "{label} gespeichert. Wird neu geladen …",
+    "setup.svg_aria": "Konfigurierte Anlage",
+    "setup.pipe_remove_aria": "{label} – Eingabe oder Entf drücken, um diese Verbindung zu entfernen",
+    "setup.box_move_aria": "{label} – Pfeiltasten verschieben dieses Kästchen, Eingabe startet eine Verbindung zu einem anderen Kästchen",
+    "setup.box_connect_from_aria": "{label} – Verbindung wird hergestellt; Eingabe auf einem anderen Kästchen verbindet es, Escape bricht ab",
+    "places.heat_pump": "Wärmepumpe",
+    "places.buffer_tank": "Pufferspeicher",
+    "places.mixing_valve": "Mischventil",
+    "places.upper_zone": "Obergeschoss",
+    "places.lower_zone": "Untergeschoss",
+    "places.wood_tank": "Holzspeicher",
+    "places.wood_valve": "Holz-Mischventil",
+    "places.dhw_tank": "Warmwasserspeicher",
+    "places.slab_shunt": "Estrich-Beimischung",
+    "setup.box_hp_tank": "Wärmepumpenspeicher",
+    "setup.box_buffer_tank": "Pufferspeicher",
+    "setup.box_4way_valve": "4-Wege-Mischventil",
+    "setup.box_mixing_valve": "Mischventil",
+    "setup.box_outside": "Außen",
+    "setup.box_heat_pump": "Wärmepumpe",
+    "setup.box_wood_tank": "Holzkesselspeicher ({v} L)",
+    "setup.wood_caption": "modelliert als Wärmeeintrag in den Wärmepumpenspeicher",
+    "setup.buffer_stores": "speichert bis zu {t} °C",
+    "setup.buffer_too_small": "zu klein zum Speichern",
+    "setup.no_valve_caption": "kein Mischventil: Abgabe wird nicht gedrosselt",
+    "setup.box_dhw_tank": "Warmwasserspeicher",
+    "setup.dhw_combi_caption": "im Pufferspeicher bereitet (Kombi)",
+    "setup.dhw_coil_caption": "wird über eine Holzspeicher-Wendel nachgeladen",
+    "setup.dhw_coil_preheats": "wärmt das Leitungswasser vor",
+    "setup.dhw_coil_off": "Wendel konfiguriert, nicht modelliert",
+    "setup.dhw_coil_off_why": "benötigt den Zwei-Speicher-Aufbau",
+    "setup.dhw_coil_none": "keine Warmwasser-Wendel",
+    "setup.dhw_coil_none_why": "nur Holzwärme",
+    "setup.box_upper_floor": "Obergeschoss",
+    "setup.box_house": "Haus",
+    "setup.box_lower_floor": "Untergeschoss (Estrich)",
+    "setup.unavailable": "nicht verfügbar",
+    "setup.source_weather": "Wettervorhersage",
+    "setup.not_configured": "nicht konfiguriert",
+    "setup.click_to_assign_title": "{label} – zum Zuweisen klicken",
+    "setup.unset_count": "{n} optionale Eingänge nicht gesetzt",
+    "setup.unset_count_one": "1 optionaler Eingang nicht gesetzt",
+    "setup.fold_show": "Die {n} nicht gesetzten Eingänge anzeigen",
+    "setup.fold_hide": "Die {n} nicht gesetzten Eingänge ausblenden",
+    "setup.configure": "Konfigurieren",
+    "setup.configure_page": "Konfigurieren: {page}",
+    "setup.configure_dest": "„Konfigurieren“ öffnet diese Integration unter Einstellungen → Geräte & Dienste. Home Assistant hat keinen Link direkt auf eine Optionsseite, wähle dort daher Konfigurieren → {advanced} → die auf der Schaltfläche genannte Seite.",
+    "setup.page_advanced": "Erweiterte Einstellungen",
+    "setup.type_outside": "Außenluft",
+    "setup.type_heat_source": "Wärmequelle",
+    "setup.type_valve": "Mischventil",
+    "setup.type_store": "Wärmespeicher",
+    "setup.type_hot_water": "Warmwasserspeicher",
+    "setup.type_coil": "Wärmespeicher mit Warmwasser-Wendel",
+    "setup.type_coil_off": "Wärmespeicher mit nicht modellierter Warmwasser-Wendel",
+    "setup.type_radiator": "Heizkörperkreis",
+    "setup.type_slab": "Fußbodenheizungskreis (Estrich)",
+    "setup.page_entities": "Sensoren und Entitäten",
+    "setup.page_entities_pump": "Wärmepumpen-Telemetrie",
+    "setup.page_building": "Heizsystem und Wärmespeicherung",
+    "setup.page_hot_water_tank": "Warmwasserspeicher und Zulauf",
+    "setup.picker_aria": "Entität für {slot}",
+    "setup.picker_none": "(nicht konfiguriert)",
+    "setup.assign": "Zuweisen",
+    "setup.cancel": "Abbrechen",
+    "setup.picker_count": "{n} passende {domains}-Entitäten.",
+    "setup.picker_filter_placeholder": "Tippen, um die Liste einzugrenzen …",
+    "setup.picker_filter_aria": "Entitäten für {slot} filtern",
+    "setup.picker_showing": "{n} von {total} angezeigt – tippe, um einzugrenzen.",
+    "setup.picker_no_match": "Nichts passt zu „{q}“.",
+    "setup.picker_missing": "derzeit nicht verfügbar",
+    "setup.confirm_clear": "Bestätigen: diesen Sensor löschen",
+    "setup.confirm_clear_hint": "Dies entfernt {entity} aus „{label}“ und lädt die Integration neu. Drücke zum Bestätigen erneut auf Zuweisen.",
+    "setup.assigned_reloading": "{entity} zugewiesen. Wird neu geladen …",
+    "setup.cleared_reloading": "Gelöscht. Wird neu geladen …",
+    "setup.manual_setpoint": "Manueller Sollwert (°C)",
+    "setup.manual_setpoint_aria": "Manueller Ventil-Sollwert in Grad Celsius",
+    "setup.manual_setpoint_hint": "Wird verwendet, wenn kein Zielsensor zugewiesen ist. 0 verwendet die Obergrenze des Komfortbereichs.",
+    "setup.setpoint_reloading": "Sollwert {n} °C. Wird neu geladen …",
+    "errors.not_connected": "Nicht mit Home Assistant verbunden.",
+    "errors.invalid_window_time": "Das Warmwasser-Zeitfenster „{window}“ ist keine gültige Zeit.",
+    "errors.day_start_equals_end": "Der Heiztag beginnt und endet zur selben Stunde, sodass es gar keine Komfortzeit gäbe.",
+    "errors.could_not_apply": "Anwenden nicht möglich: {err}",
+    "errors.could_not_clear": "Aufheben nicht möglich: {err}",
+    "errors.could_not_save": "Speichern nicht möglich: {err}",
+    "errors.could_not_simulate": "Simulieren nicht möglich: {err}",
+    "errors.no_answer": "Keine Antwort vom Optimierer.",
+    "errors.could_not_save_layout": "Aufbau konnte nicht gespeichert werden: {err}",
+    "errors.could_not_assign": "Zuweisen nicht möglich: {err}",
+    "errors.diag_space": "Raumheizung",
+    "errors.diag_dhw": "Warmwasser",
+    "errors.no_plan_data": "Noch keine Plandaten verfügbar.",
+    "errors.diag_not_found": "{label}: keine Entität gefunden. Gesucht wurde <code>{id}</code>. Prüfe die Entitäts-ID unter Entwicklerwerkzeuge &gt; Zustände und setze <code>{kind}_entity</code> in der Kartenkonfiguration.",
+    "errors.diag_unavailable": "{label}: <code>{id}</code> ist {state}.",
+    "errors.diag_no_forecast": "{label}: <code>{id}</code> hat noch kein Prognose-Attribut. Es erscheint nach dem ersten Optimierungslauf.",
+    "errors.diag_empty_forecast": "{label}: <code>{id}</code> hat eine leere Prognose veröffentlicht.",
+    "errors.diag_out_of_window": "{label}: <code>{id}</code> hat {n} Punkte, aber keiner liegt im gewählten Zeitfenster.",
+    "errors.cfg_not_object": "heatpump-optimizer-card: Konfiguration muss ein Objekt sein",
+    "errors.cfg_space_entity": "heatpump-optimizer-card: 'space_entity' muss eine Entitäts-ID als Zeichenkette sein",
+    "errors.cfg_dhw_entity": "heatpump-optimizer-card: 'dhw_entity' muss eine Entitäts-ID als Zeichenkette sein",
+    "errors.cfg_solar_entity": "heatpump-optimizer-card: 'solar_entity' muss eine Entitäts-ID als Zeichenkette sein",
+    "errors.cfg_what_if": "heatpump-optimizer-card: 'what_if' muss true oder false sein",
+    "errors.cfg_hours": "heatpump-optimizer-card: 'hours' muss eine Zahl zwischen 1 und 168 sein",
+    "errors.cfg_title": "heatpump-optimizer-card: 'title' muss eine Zeichenkette sein",
+    "errors.cfg_series": "heatpump-optimizer-card: 'series' muss eine Map sein",
+    "errors.cfg_series_unknown": "heatpump-optimizer-card: unbekannte Serie '{k}' in 'series'",
+    "errors.cfg_series_visibility": "heatpump-optimizer-card: Sichtbarkeit der Serie '{k}' muss true oder false sein",
+    "errors.cfg_show_stats": "heatpump-optimizer-card: 'show_stats' muss true oder false sein",
+    "headline.savings": "Voraussichtliche Einsparung",
+    "headline.savings_title": "Geschätzte Einsparung des aktuellen Plans gegenüber unoptimiertem Heizen.",
+    "headline.savings_caveat": "ggü. unoptimiertem Heizen",
+    "headline.score": "Optimierungswert",
+    "headline.score_title": "Wie gut die gesamte Anlage eingerichtet ist und läuft, 0–100.",
+    "headline.score_click_hint": "Klicken, um zu sehen, woraus sich der Wert zusammensetzt.",
+    "score.part_overall": "Der Durchschnitt aller unten stehenden Werte, für die Belege vorliegen. Kein eigener Wert.",
+    "score.part_envelope": "Haus: der Wärmeverlust der Gebäudehülle in W/K, um die thermische Masse korrigiert, im Vergleich zu dem, was für den konfigurierten Haustyp und das Baujahr typisch ist. 50 ist typisch für diesen Typ und dieses Baujahr; darüber ist dichter, darunter undichter. Nie 0 – das gibt es nur bei fehlenden Daten.",
+    "score.part_machine": "Wärmepumpe: die gemessene Leistungszahl (COP) – abgegebene Wärme pro kWh Strom, aus einem Wärmemengenzähler über einem Leistungszähler, keiner davon eine Schätzung – in jedem 3-°C-Außentemperaturband im Vergleich zur eigenen Historie der Wärmepumpe in diesem Band. 100 bedeutet Übereinstimmung mit der Historie; jeder Punkt darunter ist ein anhaltendes COP-Defizit (siehe die COP-Zustandsdiagnose). Ein Band wird überwacht, sobald es 20 Messwerte enthält; noch keine Note heißt, dass kein Band so weit ist – keine Null. Ohne gemessenen Wärmewert gibt es gar keine Note.",
+    "score.part_operation": "Betrieb: ob der Plan in den günstigen Stunden einkauft. Die Energie jedes Tages wird mit dem flachen Mittel-Spotpreis dieses Tages verglichen – 20 % unter dem Flachpreis einzukaufen ergibt 100, auf oder über dem Flachpreis 0 – und die Note mittelt die letzten Tage. Keine Note heißt, dass noch kein bepreister Tag bewertet wurde – keine Null.",
+    "score.no_evidence": "Noch keine Belege – keine Null.",
+    "score.reason_no_house_model": "Kein Hausmodell: thermische Masse oder Wärmeverlust ist nicht konfiguriert.",
+    "score.reason_heat_loss_learning": "Der Wärmeverlust des Hauses wird noch gelernt.",
+    "score.reason_heat_loss_refit_disagrees": "Der gelernte Wärmeverlust weicht von den letzten Tagen ab; eine Neuanpassung steht zur Verfügung.",
+    "score.reason_cop_watch_learning": "Noch nicht genug COP-Daten, um die Wärmepumpe zu überwachen.",
+    "score.reason_cop_unmeasurable":
+      "Die Leistungszahl (COP) lässt sich in dieser Installation nicht messen, daher wird die Wärmepumpe nicht bewertet: Nötig sind ein Wärmemengenzähler oder ein Wärmeleistungszähler am Heizkreis, Warmwasser eingeschlossen, und ein Leistungszähler, keiner davon eine Schätzung.",
+    "score.reason_no_scored_day": "Warten auf den ersten bewerteten Tag.",
+    "score.reason_free_price_reset": "Zurückgesetzt nach einer Reihe von Tagen mit kostenlosem Strom; warten auf einen bepreisten Tag.",
+    "score.reason_first_scored_day": "Warten auf den ersten bewerteten Tag.",
+    "score.label_envelope": "Haus",
+    "score.driver_loss_vs_typical": "konfigurierter Wärmeverlust im Vergleich zum Typischen für Typ und Baujahr",
+    "score.driver_learned_heat_loss": "gelernter Wärmeverlust im Vergleich zum konfigurierten",
+    "score.driver_thermal_mass": "Korrektur der thermischen Masse",
+    "score.driver_typical": "typisch für Typ und Baujahr",
+    "score.driver_cop_shortfall": "COP unter der eigenen Historie",
+    "score.driver_cheap_hours": "Energie unter dem Tagesmittelpreis eingekauft",
+    "score.driver_dear_hours": "Energie über dem Tagesmittelpreis eingekauft",
+    "score.driver_earlier_days": "Tage, die bewertet wurden, bevor diese Einflussgrößen erfasst wurden",
+    "score.driver_typical_machine": "entspricht der eigenen COP-Historie",
+    "score.driver_typical_operation": "zum flachen Tagesmittelpreis eingekauft",
+    "score.evidence_bands": "Messwerte pro Außentemperaturband, {required} nötig: {bands}",
+    "score.evidence_band": "{lo} bis {hi} °C: {n} Messwerte",
+    "score.evidence_band_dhw": "{lo} bis {hi} °C Warmwasser: {n} Messwerte",
+    "score.evidence_empty": "noch keine COP-Messwerte",
+    "score.evidence_frozen": "{n} abgelehnt, während das Lernen eingefroren war",
+    "score.label_machine": "Wärmepumpe",
+    "score.label_operation": "Betrieb",
+    "headline.savings_pct": "({pct} %)",
+    "whynow.title": "Warum jetzt",
+    "whynow.metric":
+      "Die Gründe, die den Plan dieser Stunde bestimmen. Jede Zeile ist ein Grund: Der Pfeil zeigt, ob er die Wärmepumpe zum Laufen oder zum Pausieren drängt, und der Prozentwert ist sein Anteil am gesamten Einfluss in dieser Stunde. Ein hoher Anteil bedeutet, dass dieser Grund am stärksten drängt; der Plan wägt alle Stunden des Tages gegeneinander ab, daher kann die Wärmepumpe in dieser Stunde trotzdem das Gegenteil tun. Keine Daten bedeutet, dass der Optimierer für diese Stunde noch keinen Plan hat, zum Beispiel vor der ersten Berechnung oder solange die Preisprognose fehlt.",
+    "whynow.no_data": "Keine Daten",
+    "whynow.all_neutral": "Derzeit wirkt kein Grund.",
+    "whynow.dir_run": "drängt zum Laufen",
+    "whynow.dir_idle": "drängt zum Pausieren",
+    "whynow.dir_neutral": "derzeit ohne Einfluss",
+    "whynow.weight": "{sign}{w} %",
+    "whynow.driver_price_rank": "Preisrang",
+    "whynow.explain_price_rank":
+      "Wie günstig dieses Zeitfenster im Vergleich zum Rest des Plans ist: Das günstigste Zeitfenster drängt voll zum Laufen, das teuerste zum Pausieren.",
+    "whynow.driver_comfort_floor": "Komfortuntergrenze",
+    "whynow.explain_comfort_floor":
+      "Wie weit der Raum von der Mitte seines Komfortbereichs entfernt ist, oberhalb der Komfortuntergrenze: Unterhalb der Mitte drängt es zum Laufen, darüber zum Pausieren.",
+    "whynow.driver_mold_guard": "Schimmelschutz",
+    "whynow.explain_mold_guard":
+      "Wie weit der Schimmelschutz die niedrigste zulässige Temperatur in diesem Zeitfenster über das Komfortminimum anhebt; er drängt immer nur zum Laufen.",
+    "whynow.driver_away": "Abwesenheit",
+    "whynow.explain_away":
+      "Wie weit der Abwesenheitsmodus oder das Feiertagsprofil die niedrigste zulässige Temperatur absenkt; er drängt immer nur zum Pausieren.",
+    "whynow.driver_forecast": "Prognose",
+    "whynow.explain_forecast":
+      "Das Wetter dieses Zeitfensters im Vergleich zu den nächsten 8 Stunden: Kälter, windiger oder nasser in Zukunft drängt jetzt zum Laufen, mehr Sonne in Zukunft zum Pausieren.",
+    "tiles.price_now": "Preis jetzt",
+    "tiles.planned": "Geplante Heizung",
+    "tiles.planned_title": "Strom, den der aktuelle Plan über seinen Horizont zum Heizen verbraucht.",
+    "tiles.cost": "Plankosten",
+    "tiles.cost_title": "Was der Strom des aktuellen Plans über seinen Horizont kostet.",
+    "tiles.indoor": "Innen",
+    "status.heating": "Heizt gerade",
+    "status.idle": "Leerlauf",
+    "status.stale": "Plan veraltet",
+    "status.stale_title": "Seit mehr als {minutes} min kein neuer Plan. Im Automatik- und Sparmodus läuft die Wärmepumpe auf ihrer eigenen Kurve, bis eine Berechnung gelingt.",
+    "status.fallback": "Rückfall: eigene Kurve der Wärmepumpe",
+    "status.fallback_title": "Die Integration hat noch keinen Plan, daher läuft die Wärmepumpe auf ihrer eigenen Kurve.",
+    "status.manual": "Manueller Plan bis {time}",
+    "status.manual_open": "Manueller Plan",
+    "slots.slot_aria": "{lane} {start}–{end}. Eingabe für Aktionen, Entf zum Entfernen.",
+    "slots.lane_aria": "Spur {lane}. Eingabe drücken, um einen Slot hinzuzufügen.",
+    "editor.title": "Titel",
+    "editor.space_entity": "Plan-Sensor Raumheizung",
+    "editor.dhw_entity": "Plan-Sensor Warmwasser",
+    "editor.solar_entity": "Sensor Sonneneinstrahlung",
+    "editor.hours": "Anzuzeigende Stunden",
+    "editor.what_if": "Zeitplan-Editor anzeigen",
+    "editor.show_stats": "Kennzahlen im Kopfbereich anzeigen",
+    "editor.currency": "Währung",
+    "editor.series": "Standardmäßig angezeigte Serien",
+  },
 };
 
 // The active language. Module-level rather than per-instance because Home
@@ -1803,7 +2483,7 @@ const STRINGS = {
 // outside the class (fmtExpiry, edgeLabel) need it too.
 let ACTIVE_LANG = "en";
 
-/** "sv-SE" -> "sv"; anything without a dictionary falls back to English. */
+/** "sv-SE" -> "sv", "de-AT" -> "de"; anything without a dictionary falls back to English. */
 function setLanguage(raw) {
   const code = String(raw || "en").toLowerCase().split(/[-_]/)[0];
   ACTIVE_LANG = STRINGS[code] ? code : "en";
@@ -3709,7 +4389,11 @@ function setupSvgHtml(topo, ctx) {
     off: ["setup.dhw_coil_off", "setup.dhw_coil_off_why"],
     none: ["setup.dhw_coil_none", "setup.dhw_coil_none_why"],
   };
-  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"], [],
+  // A combi store (#3225) makes hot water from the buffer's own water: the
+  // box says so, and its pipe leaves the buffer rather than the pump.
+  const combi = topo.dhw_source === "combi";
+  if (topo.dhw) box(1, L("setup.box_dhw_tank"), ["dhw_tank"],
+    combi ? [L("setup.dhw_combi_caption")] : [],
     topo.wood && topo.wood.present ? coilWords[coilState].map((k) => L(k)) : []);
   box(2, L(topo.two_zone ? "setup.box_upper_floor" : "setup.box_house"),
     ["upper_zone"]);
@@ -4029,7 +4713,11 @@ function setupSvgHtml(topo, ctx) {
     // Electric hot water: the pump heats the DHW tank on every layout
     // (#40 feedback, item 2) — stale payloads deserve the pipe too.
     if (topo.dhw) {
-      pipe(findPlace("heat_pump"), findPlace("dhw_tank"), "hp-dhw");
+      if (topo.dhw_source === "combi") {
+        pipe(bufferBox, findPlace("dhw_tank"), "buffer-dhw");
+      } else {
+        pipe(findPlace("heat_pump"), findPlace("dhw_tank"), "hp-dhw");
+      }
     }
   }
 
@@ -4410,7 +5098,7 @@ function cardStyleBlock(darkMode) {
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
         /* The advisor page's ranked rows (#1269), the same HTML-button
            surface as the picker's controls: the same floor. */
-        .adv-row, .adv-act,
+        .fact-row, .fact-act,
         .hl-stat.hl-score,
         /* The headline score pill (#1388, R6-D4-01) joins the floor: it is a
            control -- role="button", tabindex="0" and a click handler open the
@@ -4521,12 +5209,18 @@ function cardStyleBlock(darkMode) {
       }
       /* A surface-2 block re-points the text tokens at the ink literals, so
          every descendant that reads --hpo-text or --hpo-text-2 is paired
-         with the surface it sits on, whatever the HA theme's own text. */
-      .tile, .hl-stat, .hl-narrative {
+         with the surface it sits on, whatever the HA theme's own text. The
+         one rule that puts a text block on --hpo-surface-2: a block given
+         the surface anywhere else drew the theme's text on it, which is how
+         the Health and Advisor rows read 1.24:1 under a dark theme HA
+         reports as darkMode false (906fee95e, R10-HOTFIX-CARD-HEALTH-TEXT). */
+      .tile, .hl-stat, .hl-narrative, .health-row, .fact-inbox-row {
         --hpo-text: var(--hpo-ink, #212121);
         --hpo-text-2: var(--hpo-ink-2, #727272);
         color: var(--hpo-text, #212121);
         background: var(--hpo-surface-2, #f7f9fb);
+      }
+      .tile, .hl-stat, .hl-narrative {
         border-radius: var(--hpo-radius-m, 12px);
         padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); min-width: 0;
       }
@@ -5102,12 +5796,16 @@ function cardStyleBlock(darkMode) {
         outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 2px;
       }
-      /* A pressed toggle says so in the ink and not only in the border: the
-         accent is the token measured against the card, and a 1 px border
-         moving is a state a reader can miss at a glance. */
+      /* A pressed toggle says so in the ink and not only in the border: a
+         1 px border moving is a state a reader can miss at a glance. The
+         accent ink is a darkMode literal, so it is drawn on the surface from
+         the same switch: on the theme's card surface it read 2.95:1 under a
+         dark theme HA reports as darkMode false, and 2.32:1 in the mirror
+         (R10-HOTFIX-CARD-HEALTH-TEXT). */
       .layout-edit-toggle.on {
         border-color: var(--hpo-primary, #03a9f4);
         color: var(--hpo-accent, #026aa8);
+        background: var(--hpo-surface-2, #f7f9fb);
       }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
@@ -5289,12 +5987,12 @@ function cardStyleBlock(darkMode) {
          an unpriced row's reason text is smaller rather than faded: it
          must stay readable as prose, not pass as a de-emphasised
          number. */
-      .advisor-page .adv-head {
+      .advisor-page .fact-head {
         display: flex; flex-wrap: wrap; gap: 4px 12px;
         align-items: baseline; justify-content: space-between;
         padding: 4px 0 2px 0;
       }
-      .adv-title { font-weight: 600; }
+      .fact-title { font-weight: 600; }
       .health-cols {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
         gap: 4px 16px; align-items: start;
@@ -5303,14 +6001,11 @@ function cardStyleBlock(darkMode) {
          takes the user agent's 700, the one bold heading in the card
          (H3b). */
       .health-h { margin: 12px 0 4px 0; font-size: 1em; font-weight: 600; }
-      /* The row's surface is the pair its ink is drawn for (H3a): the text is
-         the card's --hpo-text, so the surface is the card's --hpo-surface-2.
-         A theme's --secondary-background-color under the card's dark ink
-         read 1.20:1 wherever the theme does not define it. */
+      /* The row's surface and ink are the surface-2 pair (H3a), set by the
+         surface-2 block rule beside .tile. */
       .health-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--hpo-surface-2, #f7f9fb);
       }
       .health-support { margin-top: 12px; }
       /* "What the model has learned" (R9-UX-7): a tabular value and an
@@ -5341,25 +6036,25 @@ function cardStyleBlock(darkMode) {
       .health-row[data-done="true"] .health-mark {
         background: var(--hpo-ok-bg, #e8f1ed); border-color: transparent;
       }
-      /* The inbox rows (R9-UX-2): a surface-2 block with a title, a detail,
-         a tabular value and at most one action, which wraps under the text
-         on a narrow card. */
-      .adv-inbox-row {
+      /* The inbox rows (R9-UX-2): a surface-2 block (its surface and ink
+         from the block rule beside .tile) with a title, a detail, a tabular
+         value and at most one action, which wraps under the text on a
+         narrow card. */
+      .fact-inbox-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--hpo-surface-2, #f7f9fb);
       }
-      .adv-text { flex: 1 1 14em; min-width: 0; }
-      .adv-text .adv-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
-      .adv-act {
+      .fact-text { flex: 1 1 14em; min-width: 0; }
+      .fact-text .fact-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
+      .fact-act {
         font: inherit; cursor: pointer; padding: 0.3em 0.9em;
         color: inherit; background: none;
         border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
       }
-      .adv-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
-      .adv-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
-      .adv-row {
+      .fact-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .fact-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
+      .fact-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
+      .fact-row {
         display: flex; width: 100%; gap: 12px;
         align-items: center; justify-content: space-between;
         padding: 0.45em 0.7em; margin: 2px 0;
@@ -5369,16 +6064,16 @@ function cardStyleBlock(darkMode) {
         border-radius: 6px; cursor: pointer;
         font-variant-numeric: tabular-nums;
       }
-      .adv-row:hover { background: var(--secondary-background-color, #f5f5f5); }
-      .adv-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-label { flex: 1 1 auto; }
-      .adv-value { flex: 0 0 auto; text-align: right; }
-      .adv-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
-      .adv-unpriced-head {
+      .fact-row:hover { background: var(--secondary-background-color, #f5f5f5); }
+      .fact-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .fact-label { flex: 1 1 auto; }
+      .fact-value { flex: 0 0 auto; text-align: right; }
+      .fact-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
+      .fact-unpriced-head {
         font-weight: 600; padding: 14px 0 2px 0;
       }
-      .adv-unpriced-head + .adv-row .adv-value,
-      .adv-row.unpriced .adv-value {
+      .fact-unpriced-head + .fact-row .fact-value,
+      .fact-row.unpriced .fact-value {
         font-size: max(12px, 0.85em); max-width: 60%;
       }
 
@@ -9421,15 +10116,15 @@ function advisorRowHtml(host, row) {
     const text = row.status === "waiting"
       ? L("advisor.waiting", { reason: row.reason })
       : L("advisor.unavailable");
-    return `<div class="adv-inbox-row adv-${row.status}"><span class="adv-text">${esc(text)}</span></div>`;
+    return `<div class="fact-inbox-row fact-${row.status}"><span class="fact-text">${esc(text)}</span></div>`;
   }
   const value = row.value === null ? L("advisor.no_value")
     : L("advisor.value_month", {
       value: Math.round(row.value), currency: host.plan.currency() });
-  return `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(row.title)}<span class="adv-sub">${esc(row.detail)}</span></span>
-      <span class="adv-value">${esc(value)}</span>
-      ${row.act ? `<button type="button" class="adv-act" data-act="${row.act}"
+  return `<div class="fact-inbox-row">
+      <span class="fact-text">${esc(row.title)}<span class="fact-sub">${esc(row.detail)}</span></span>
+      <span class="fact-value">${esc(value)}</span>
+      ${row.act ? `<button type="button" class="fact-act" data-act="${row.act}"
         data-key="${esc(row.key || "")}" data-target="${row.target ?? ""}">${esc(L(act[row.act]))}</button>` : ""}
     </div>`;
 }
@@ -9464,26 +10159,26 @@ function feedbackGaps(plan) {
 
 function feedbackRowHtml(gaps) {
   const list = gaps.map((g) => `${L(`advisor.feedback_${g.class}`)} (${g.key})`).join(", ");
-  return `<div class="adv-inbox-row" data-advice="feedback">
-      <span class="adv-text">${esc(L("advisor.feedback_title"))}<span class="adv-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="adv-sub">${esc(L("advisor.step_metering"))}</span></span>
-      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
-      <button type="button" class="adv-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
+  return `<div class="fact-inbox-row" data-advice="feedback">
+      <span class="fact-text">${esc(L("advisor.feedback_title"))}<span class="fact-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="fact-sub">${esc(L("advisor.step_metering"))}</span></span>
+      <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+      <button type="button" class="fact-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
     </div>`;
 }
 
 function advisorInboxHtml(host) {
   const rows = advisorRows(host);
   const feedback = feedbackGaps(host.plan);
-  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}<span class="adv-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
-      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="fact-inbox-row">
+      <span class="fact-text">${esc(L(`advisor.optin_${id}`))}<span class="fact-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
+      <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
     </div>`).join("");
-  return `<div class="adv-head"><span class="adv-title">${esc(L("advisor.inbox_heading"))}</span></div>
+  return `<div class="fact-head"><span class="fact-title">${esc(L("advisor.inbox_heading"))}</span></div>
     ${(rows.length ? rows.map((r) => advisorRowHtml(host, r)).join("")
       : feedback.length ? ""
         : `<div class="empty">${esc(L("advisor.inbox_empty"))}</div>`)
       + (feedback.length ? feedbackRowHtml(feedback) : "")}
-    <div class="adv-head"><span class="adv-title">${esc(L("advisor.optin_heading"))}</span></div>
+    <div class="fact-head"><span class="fact-title">${esc(L("advisor.optin_heading"))}</span></div>
     ${optIn}`;
 }
 
@@ -9621,6 +10316,10 @@ function fmtMinutes(m) {
 function healthPillHtml(plan) {
   const st = inputProblemState(plan);
   if (!st || st.state === "unavailable" || st.state === "unknown") return "";
+  // Every problem kind counts (unavailable, out of range, stale, ...), one
+  // per Health-page row, so the words name no single kind: "stale" here
+  // contradicted a row whose own pill read "Unavailable"
+  // (R10-HOTFIX-CARD-HEALTH-TEXT).
   const n = ((st.attributes || {}).problems || []).length;
   const text = n === 0 ? L("health.pill_ok")
     : L(n === 1 ? "health.pill_one" : "health.pill_other", { n });
@@ -9648,8 +10347,8 @@ function inputAssigned(plan, key) {
 }
 
 function healthRow(attrs, title, detail, pill) {
-  return `<div class="health-row"${attrs}><span class="adv-text">${esc(title)}` +
-    `<span class="adv-sub">${esc(detail)}</span></span>${pill}</div>`;
+  return `<div class="health-row"${attrs}><span class="fact-text">${esc(title)}` +
+    `<span class="fact-sub">${esc(detail)}</span></span>${pill}</div>`;
 }
 
 function healthInputsHtml(plan) {
@@ -9745,7 +10444,7 @@ function healthModelTitle(id, reason) {
 function healthModelRow(id, title, detail, value, share, tone) {
   const pct = Math.round(Math.max(0, Math.min(1, Number(share) || 0)) * 100);
   return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}" title="${esc(healthModelTitle(id, detail))}">` +
-    `<span class="adv-text">${esc(title)}<span class="adv-sub">${esc(detail)}</span></span>` +
+    `<span class="fact-text">${esc(title)}<span class="fact-sub">${esc(detail)}</span></span>` +
     `<span class="model-value">${esc(value)}</span>` +
     `<span class="model-bar" aria-hidden="true"><span style="width:${pct}%"></span></span></div>`;
 }
@@ -9769,7 +10468,7 @@ function healthGainsRow(gains, learning) {
   const peak = L("health.model_gains_peak", { kw: top.toFixed(1), hh: String(at).padStart(2, "0") });
   const detail = learning ? `${learning.text} ${peak}` : peak;
   return `<div class="health-row model-row" data-model-row="gains" data-tone="ok" title="${esc(healthModelTitle("gains", detail))}">` +
-    `<span class="adv-text">${esc(L("health.model_gains"))}<span class="adv-sub">` +
+    `<span class="fact-text">${esc(L("health.model_gains"))}<span class="fact-sub">` +
     `${esc(detail)}</span></span>` +
     `<span class="gains-strip" aria-hidden="true">${bars}</span></div>`;
 }
@@ -9814,16 +10513,16 @@ function copState(cop) {
   const words = (code) => (STRINGS.en[`health.cop_reason_${code}`] !== undefined ? L(`health.cop_reason_${code}`) : null);
   const scale = readNumber(c.scale);
   if (c.alarm) return { value: L("health.model_cop_low"), reason: L("health.model_cop_alarm"), tone: "warn", watched: true };
-  if (obs === "not_measurable" || obs === "no_electric_meter") {
+  if (obs === "not_measurable" || obs === "no_electric_meter" || obs === "estimated_inputs") {
     return { value: "—", reason: words(obs), tone: "ok", watched: false };
   }
   if (readNumber(c.watched_buckets) > 0 && scale !== null) {
-    const source = obs === "heat_metered" || obs === "draw_follows_plan" ? words(obs) : "";
+    const source = obs === "heat_metered" ? words(obs) : "";
     return { value: L("health.model_cop_normal", { v: scale.toFixed(2) }),
       reason: [L("health.model_cop_fine"), source].filter(Boolean).join(" "), tone: "ok", watched: true };
   }
   return { value: "—", tone: "ok", watched: false,
-    reason: words(c.cop_refusal) || (obs === "awaiting_draw_evidence" && words(obs)) || scoreReasonText("cop_watch_learning") };
+    reason: words(c.cop_refusal) || scoreReasonText("cop_watch_learning") };
 }
 
 /** "What the model has learned" (R9-UX-7): the model status sensor's rows. */
@@ -9896,8 +10595,8 @@ function healthChecklistHtml(plan) {
   ];
   return `<h3 class="health-h">${esc(L("health.checklist"))}</h3>` + items.map(([id, done, act]) =>
     `<div class="health-row" data-check="${id}" data-done="${done}"><span class="health-mark">${done ? "✓" : ""}</span>` +
-    `<span class="adv-text">${esc(L(`health.check_${id}`))}</span>` +
-    (!done && act ? `<button type="button" class="adv-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
+    `<span class="fact-text">${esc(L(`health.check_${id}`))}</span>` +
+    (!done && act ? `<button type="button" class="fact-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
       `${esc(L(act === "assign" ? "health.act_assign" : "health.act_show"))}</button>` : "") + `</div>`).join("");
 }
 
@@ -9940,9 +10639,9 @@ function healthDebugHtml(host) {
   const text = host._debugArmed && state === "final" ? L("health.debug_confirm")
     : state === "active" ? L("health.debug_active", { rows, days })
       : state === "final" ? L("health.debug_final", { rows }) : L("health.debug_off");
-  return `<div class="health-row health-debug" data-debug="${state}"><span class="adv-text">${esc(L("health.debug_title"))}` +
-    `<span class="adv-sub">${esc(text)}</span></span>` +
-    (state === "active" ? "" : `<button type="button" class="adv-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
+  return `<div class="health-row health-debug" data-debug="${state}"><span class="fact-text">${esc(L("health.debug_title"))}` +
+    `<span class="fact-sub">${esc(text)}</span></span>` +
+    (state === "active" ? "" : `<button type="button" class="fact-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
     `</div>`;
 }
 
@@ -9962,9 +10661,9 @@ function healthPageHtml(host) {
     </div>
     ${healthInputsHtml(plan)}
     ${healthModelHtml(plan)}
-    <div class="health-row health-support"><span class="adv-text">${esc(L("health.support_title"))}
-      <span class="adv-sub">${esc(L("health.support_detail"))}</span></span>
-      <button type="button" class="adv-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
+    <div class="health-row health-support"><span class="fact-text">${esc(L("health.support_title"))}
+      <span class="fact-sub">${esc(L("health.support_detail"))}</span></span>
+      <button type="button" class="fact-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
     ${healthDebugHtml(host)}
     ${healthChecklistHtml(plan)}
     <div class="setup-result" role="status"></div></div>`;
@@ -10042,7 +10741,9 @@ function receiptHtml(st, rows, cur, wood) {
       }))}</div>${wood
         ? `<div class="receipt-sub receipt-wood-note">${esc(L("savings.wood_note"))}</div>`
         : ""}`
-    : "";
+    : row && row.below_meter_floor
+      ? `<div class="receipt-sub receipt-floor-note">${esc(L("savings.meter_floor_note"))}</div>`
+      : "";
   const covers = basis.map((n) => L(`receipt.line_${n}`).toLowerCase()).join(", ");
   const reasons = Object.entries(r.reasons || {})
     .filter(([, e]) => e && finiteNum(e.sek) && e.sek > 0)
@@ -10148,7 +10849,7 @@ function advisorPageHtml(host) {
   const spread = (row) => {
     const value = Number(row.spread_c);
     return Number.isFinite(value)
-      ? `±${value.toFixed(2)} °C <span class="adv-est">${esc(L("advisor.estimated"))}</span>`
+      ? `±${value.toFixed(2)} °C <span class="fact-est">${esc(L("advisor.estimated"))}</span>`
       : "—";
   };
   const isPriced = (row) => !!(row && row.priced);
@@ -10157,25 +10858,25 @@ function advisorPageHtml(host) {
   // Every quantified row carries the estimate badge and its spread; a row
   // the proxy cannot price renders its reason instead of a number, below
   // every ranked row, so it can never pose as one.
-  const rowHtml = (row) => `<button type="button" class="adv-row"
+  const rowHtml = (row) => `<button type="button" class="fact-row"
       data-key="${esc(String(row.key || ""))}">
-      <span class="adv-label">${esc(String(row.label || row.key || ""))}</span>
-      <span class="adv-value">${isPriced(row)
+      <span class="fact-label">${esc(String(row.label || row.key || ""))}</span>
+      <span class="fact-value">${isPriced(row)
         ? spread(row)
         : esc(L(`advisor.reason_${row.reason || "no_clamped_parameter"}`))}
       </span>
     </button>`;
   return `<div class="setup-page advisor-page">
     ${inbox}
-    <div class="adv-head">
-      <span class="adv-title">${esc(L("advisor.heading"))}</span>
-      <span class="adv-basis">${esc(L(
+    <div class="fact-head">
+      <span class="fact-title">${esc(L("advisor.heading"))}</span>
+      <span class="fact-basis">${esc(L(
         adv.basis === "history" ? "advisor.basis_history" : "advisor.basis_config"
       ))}</span>
     </div>
-    <div class="adv-note">${esc(L("advisor.spread_note"))}</div>
+    <div class="fact-note">${esc(L("advisor.spread_note"))}</div>
     ${priced.map(rowHtml).join("")}
-    ${unpriced.length ? `<div class="adv-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
+    ${unpriced.length ? `<div class="fact-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
     ${unpriced.map(rowHtml).join("")}
     <div class="setup-hint">${esc(L("advisor.act_hint"))}</div>
     <div class="setup-result" role="status"></div>
@@ -10187,7 +10888,7 @@ function advisorPageHtml(host) {
  * lane the card already owns, rather than a second one grown here. */
 function attachAdvisorPage(host, root) {
   attachAdvisorInbox(host, root);
-  for (const row of root.querySelectorAll(".adv-row")) {
+  for (const row of root.querySelectorAll(".fact-row")) {
     row.addEventListener("click", (ev) => {
       stop(ev);
       const key = row.dataset.key;
@@ -10220,7 +10921,7 @@ function attachAdvisorInbox(host, root) {
     const out = root.querySelector(".setup-result");
     if (out) out.textContent = text;
   };
-  for (const btn of root.querySelectorAll(".adv-act")) {
+  for (const btn of root.querySelectorAll(".fact-act")) {
     btn.addEventListener("click", async (ev) => {
       stop(ev);
       const act = btn.dataset.act;
@@ -15045,8 +15746,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const old = row.old_basis
         ? ` <span class="savings-est savings-old">${esc(L("savings.old_basis"))}</span>`
         : "";
+      const floor = row.below_meter_floor
+        ? ` <span class="savings-est savings-floor">${esc(L("savings.below_meter_floor"))}</span>`
+        : "";
       return `<tr class="${row.estimated ? "estimated" : ""}">
-        <td>${esc(String(row.month || ""))}${est}${old}</td>
+        <td>${esc(String(row.month || ""))}${est}${old}${floor}</td>
         <td class="num">${money(row.baseline_sek)}</td>
         <td class="num">${money(row.actual_sek)}</td>
         <td class="num">${mag(row.savings_sek)}<span class="sv-val">${money(row.savings_sek)}</span></td>
@@ -15060,6 +15764,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const woodNote = wood
       ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
       : "";
+    // R10-SAV-METER-FLOOR: a month withheld under the meter floor says why.
+    const floorNote = rows.some((r) => r && r.below_meter_floor)
+      ? `<div class="savings-floor-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.meter_floor_note"))}</div>`
+      : "";
     return `${top}<table class="savings-table">
       <thead><tr>
         <th>${esc(L("savings.col_month"))}</th>
@@ -15069,7 +15777,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         <th class="num">${esc(L("savings.col_pct"))}</th>
       </tr></thead>
       <tbody>${rows.map(tr).join("")}</tbody>
-    </table>${woodNote}`;
+    </table>${woodNote}${floorNote}`;
   }
 
   // The sensor advisor page's renderer and wiring live at module level

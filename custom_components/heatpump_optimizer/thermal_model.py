@@ -156,6 +156,13 @@ THERMAL_MASS_FLOOR: float = 0.1
 # it ``simulate_step`` subdivides only an extreme configuration.
 EULER_MONOTONE_MAX_RATIO: float = 1.0
 
+# Combi tank (#3225, R10-COMBI-TANK): one store of heating water serves the
+# space circuit and hot water through an exchanger whose effectiveness is
+# eps = (T_tap - T_in) / (T_store - T_in). The defaults are const.py's
+# internal-coil preset; a value below the floor is no real exchanger, and the
+# floor keeps the tap-to-store transform's divisor finite.
+COMBI_DHW_EFFECTIVENESS_FLOOR: float = 0.1
+
 
 def _holiday_dhw_windows(config: Mapping[str, Any]) -> list[Window] | None:
     spec = config.get(const.CONF_HOLIDAY_DHW_WINDOWS)
@@ -299,6 +306,41 @@ class ThermalParameters:
     # optimizer it must become a hard constraint, because comfort and tank
     # limits there are soft penalties and the solver would plan to boil it.
     buffer_max_temp: float = 70.0  # °C
+    # Combi tank (#3225): hot water is drawn from the buffer store through an
+    # exchanger of effectiveness eps holding `combi_potable_volume_l` litres.
+    dhw_combi_tank_enabled: bool = const.DEFAULT_DHW_COMBI_TANK_ENABLED
+    combi_dhw_effectiveness: float = const.DEFAULT_COMBI_DHW_EFFECTIVENESS
+    combi_potable_volume_l: float = const.DEFAULT_COMBI_POTABLE_VOLUME_L
+    dhw_combi_legionella_force: bool = const.DEFAULT_DHW_COMBI_LEGIONELLA_FORCE
+
+    @property
+    def combi_tank_active(self) -> bool:
+        """Whether the DHW tank is the buffer store (R10-COMBI-TANK)."""
+        return (
+            self.dhw_combi_tank_enabled and self.dhw_enabled
+            and self.buffer_is_store and not self.dhw_coil_active
+        )
+
+    @property
+    def legionella_cycle_active(self) -> bool:
+        """The flag's one behaviour read: a combi store at or under the potable limit runs no cycle unless forced."""
+        return self.dhw_legionella_enabled and (
+            not self.dhw_combi_tank_enabled or not self.combi_tank_active
+            or self.combi_potable_volume_l > const.COMBI_LEGIONELLA_POTABLE_LIMIT_L
+            or self.dhw_combi_legionella_force
+        )
+
+    @property
+    def buffer_store_volume(self) -> float:
+        """Store litres, combi's potable water included; off, no predicate per step."""
+        if self.dhw_combi_tank_enabled and self.combi_tank_active:
+            return self.buffer_tank_volume + self.combi_potable_volume_l
+        return self.buffer_tank_volume
+
+    @property
+    def dhw_store(self) -> DhwStore:
+        """The store every DHW recursion integrates: ``dhw_store_of``."""
+        return dhw_store_of(self)
 
     # --- Two-tank topology (issue #40) --------------------------------------
     #
@@ -598,7 +640,7 @@ class ThermalParameters:
     @property
     def buffer_tank_thermal_mass(self) -> float:
         """Thermal mass of buffer tank in kWh/°C."""
-        return self.buffer_tank_volume * WATER_SPECIFIC_HEAT
+        return self.buffer_store_volume * WATER_SPECIFIC_HEAT
 
     @property
     def buffer_tank_heat_loss_coefficient(self) -> float:
@@ -620,14 +662,15 @@ class ThermalParameters:
         # volume^(2/3), while the rate is UA/C and so falls as volume^(-1/3).
         # Clamping every size against a 35 L tank's numbers is what floored a
         # large accumulator an order of magnitude above its real standby loss.
-        key = (self.buffer_tank_volume, self.buffer_cooling_rate)
+        volume = self.buffer_store_volume
+        key = (volume, self.buffer_cooling_rate)
         cached = self._buffer_ua_cache
         if cached is not None and cached[0] == key:
             return cached[1]
-        low, high = buffer_cooling_rate_bounds(self.buffer_tank_volume)
+        low, high = buffer_cooling_rate_bounds(volume)
         rate = self.buffer_cooling_rate
         if rate <= 0.0:
-            rate = default_buffer_cooling_rate(self.buffer_tank_volume)
+            rate = default_buffer_cooling_rate(volume)
         # min/max rather than np.clip: this is a scalar, and np.clip on a
         # Python float costs about six microseconds, which at a few million
         # calls per solve is seconds for nothing.
@@ -832,37 +875,34 @@ class ThermalParameters:
         """The everyday charge limit: how hot a plan may take the tank.
 
         This is the user's own "Highest tank temperature to charge to", and
-        nothing else. Until v5.1.10 the disinfection temperature was folded
-        in here permanently, which turned a 60 °C hygiene setting into the
-        ceiling the cost planner spent every single day: pre-buying at the
-        night trough beats heating at the evening window even after standby
-        losses, and how far the plan over-charges is bounded by exactly this
-        number. A 52/60 pair therefore ran the tank to ~58 °C on a day with
-        no cycle due — the field did the opposite of what its help text
-        promises ("An upper limit on charging, not a target").
-
-        A disinfection cycle legitimately goes above this, but only while it
-        is running: the optimizer raises the ceiling per step around the
-        cycle it has actually scheduled, and ``dhw_hard_max_temp`` below is
-        the physical rating that bounds even that.
+        nothing else: with the disinfection temperature folded in (until
+        v5.1.10) the cost planner spent that ceiling every day, and a 52/60
+        pair ran the tank to ~58 °C with no cycle due. A cycle goes above it
+        only around the step it runs, to ``dhw_cycle_temp``.
         """
         return min(70.0, self.dhw_setpoint)
 
     @property
     def dhw_hard_max_temp(self) -> float:
-        """The tank's rating: the hottest this tank may ever be driven.
-
-        The everyday ceiling is a preference; this is physics, and it has to
-        stay above the disinfection temperature or the model would refuse
-        the very boost the hygiene cycle exists to deliver. ``simulate_dhw_step``
-        clamps to this, so a pinned plan, a replayed trajectory or a
-        legionella boost is bounded without the everyday limit silently
-        capping a cycle at the setpoint.
+        """The tank's rating, the hottest it may ever be driven: a cycle's
+        temperature where one runs, else the everyday ceiling. ``simulate_dhw_step``
+        clamps to it, so a pinned plan, a replay or a legionella boost is
+        bounded without the everyday limit capping a cycle at the set-point.
         """
-        top = self.dhw_setpoint
-        if self.dhw_legionella_enabled:
-            top = max(top, self.dhw_legionella_temp)
-        return min(70.0, top)
+        top = self.dhw_cycle_temp
+        return min(70.0, self.dhw_setpoint if top is None else top)
+
+    @property
+    def dhw_disinfection_temp(self) -> float | None:
+        """°C a disinfection cycle must reach; ``None`` where none runs, for every reader."""
+        return self.dhw_legionella_temp if self.legionella_cycle_active else None
+
+    @property
+    def dhw_cycle_temp(self) -> float | None:
+        """°C held through a cycle: the higher of the everyday set-point and the
+        disinfection temperature, as a cycle never lowers the tank; else ``None``."""
+        target = self.dhw_disinfection_temp
+        return None if target is None else max(self.dhw_setpoint, target)
 
     def effective_dhw_draw_pattern(self) -> list[float]:
         """Hourly draw multipliers restricted to the configured demand windows.
@@ -907,12 +947,7 @@ class ThermalParameters:
         The mapping is a table rather than ninety lines of near-identical
         ``config.get(KEY, DEFAULT)`` calls. Adding a parameter is one row, and
         a typo in a key or a default is visible by comparison with its
-        neighbours instead of buried in prose.
-
-        Split out of ``from_config`` (#225 stage 1) verbatim. What is left
-        there is the other half: the fields the table cannot express, because
-        they need validating, deriving from another field, or defaulting on
-        absence rather than on value.
+        neighbours instead of buried in prose. ``from_config`` holds the rest.
         """
         # field name -> the name its CONF_ key and DEFAULT_ value share in
         # ``const``, resolved by name so the table stays readable and a missing
@@ -971,6 +1006,8 @@ class ThermalParameters:
             "max_electrical_power": "HEAT_PUMP_MAX_POWER",
             "min_electrical_power": "HEAT_PUMP_MIN_POWER",
             "cop_partload_derate": "HEAT_PUMP_COP_PARTLOAD_DERATE",
+            "combi_dhw_effectiveness": "COMBI_DHW_EFFECTIVENESS",
+            "combi_potable_volume_l": "COMBI_POTABLE_VOLUME_L",
         }
 
         values = {
@@ -985,12 +1022,10 @@ class ThermalParameters:
             ("dhw_schedule_enabled", "DHW_SCHEDULE_ENABLED"),
             ("dhw_legionella_enabled", "DHW_LEGIONELLA_ENABLED"),
             ("dhw_elastic_legionella_enabled", "DHW_ELASTIC_LEGIONELLA_ENABLED"),
+            ("dhw_combi_tank_enabled", "DHW_COMBI_TANK_ENABLED"),
+            ("dhw_combi_legionella_force", "DHW_COMBI_LEGIONELLA_FORCE"),
         ):
-            values[name] = bool(
-                config.get(
-                    getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")
-                )
-            )
+            values[name] = bool(config.get(getattr(const, f"CONF_{key}"), getattr(const, f"DEFAULT_{key}")))
         return values
 
     @classmethod
@@ -1096,11 +1131,6 @@ class ThermalParameters:
                     const.CONF_RADIATOR_POWER_FRACTION,
                 )
             )
-        # A None value does NOT count as presence (v4.0.0 T3): clearing the
-        # DHW temperature sensor on the entities page writes the key back as
-        # None, and counting that as "configured" phantom-enabled hot water
-        # on entries that never had it. An empty string still counts — an
-        # empty ``dhw_windows`` legitimately means "learned windows".
         values["dhw_enabled"] = _dhw_enabled_from_config(config)
 
         # Demand windows: fall back to the default schedule when the stored
@@ -1132,6 +1162,14 @@ class ThermalParameters:
         return cls(**values)
 
 def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
+    """The explicit switch, else the presence of a hot water key.
+
+    A None value does NOT count as presence (v4.0.0 T3): clearing the DHW
+    temperature sensor on the entities page writes the key back as None, and
+    counting that as "configured" phantom-enabled hot water on entries that
+    never had it. An empty string still counts — an empty ``dhw_windows``
+    legitimately means "learned windows".
+    """
     if const.CONF_DHW_ENABLED in config:
         return bool(config[const.CONF_DHW_ENABLED])
     return any(
@@ -1267,6 +1305,9 @@ class InstallCapability:
     entity or sensor, read or write. ``measured_heat`` is a thermal power
     entity or a heat counter (fold e). ``heat_counter`` is the heat counter
     alone and ``electric_counter`` the electric counter its span divides by.
+    ``heat_estimated`` and ``power_estimated``: the heat and the electrical
+    figure a COP divides are a vendor's model, not a meter; ``heat_sees_dhw``:
+    the heat reading covers the hot-water circuit (``cop_measured``).
     (a), (c), (d) and (e) all read this probe.
     """
 
@@ -1276,11 +1317,47 @@ class InstallCapability:
     measured_heat: bool = False
     heat_counter: bool = False
     electric_counter: bool = False
+    heat_estimated: bool = False
+    power_estimated: bool = False
+    heat_sees_dhw: bool = False
+    on_off: bool = False
 
     def cop_electric(self) -> bool:
         """An electrical figure a COP divides by: a heat counter's span reads
         the electric counter, every other reading the power entity (#2262)."""
         return self.electric_counter if self.heat_counter else self.measured_power
+
+    def cop_measured(self, dhw: bool) -> bool:
+        """Heat over electricity on this install is a measured COP.
+
+        Both sides metered, neither a vendor's model: estimated heat over
+        estimated power is the vendor's own fitted COP, and either one alone is
+        the model on that side. A hot-water interval also needs a heat reading
+        declared to see that circuit. The interval's own heat reading is the
+        caller's to check: this is what the install can measure at all.
+        """
+        return (
+            self.measured_heat
+            and self.cop_electric()
+            and not (self.heat_estimated or self.power_estimated)
+            and (self.heat_sees_dhw or not dhw)
+        )
+
+    def cop_sample(self, heat_kw: float | None, dhw: bool) -> bool | None:
+        """Whether one folded interval is a measured COP (R10-HOTFIX-COP-UNMEASURED).
+
+        ``True`` for an interval's heat reading where this install measures
+        that curve (``cop_measured``): recorded and graded. ``False`` for no
+        heat slot, or an estimate: the plan's inference or the vendor's fitted
+        COP trains the COP scale alone (tvofi, 2026-11-07: "Training on
+        estimated power should be good enough and better than nothing though
+        so retain that"). ``None`` -- refuse -- for a configured thermal power
+        that read no heat, unavailable or negative: a missing input, never an
+        inference.
+        """
+        if heat_kw is None:
+            return None if self.measured_heat and not self.heat_counter else False
+        return self.cop_measured(dhw)
 
     def can_duty_cycle(self) -> bool:
         """A sub-minimum average is realizable.
@@ -1289,8 +1366,12 @@ class InstallCapability:
         that is not exactly a power switch plus a setpoint is not known to
         be unable to, so the duty-cycle reading stands. Switch plus setpoint
         and no frequency cannot: the compressor runs at or above its
-        modulation floor whenever the switch is on.
+        modulation floor whenever the switch is on. Neither can a compressor
+        declared on/off (``on_off``, from :func:`declared_modulation`),
+        whatever the surface.
         """
+        if self.on_off:
+            return False
         return (
             True
             if self.frequency or "frequency" in self.writes
@@ -1360,7 +1441,48 @@ def probe_install(config: Any) -> InstallCapability:
         ),
         heat_counter=bool(cfg.get(const.CONF_HEAT_ENERGY_ENTITY)),
         electric_counter=bool(cfg.get(const.CONF_ENERGY_ENTITY)),
+        # A counter outranks the entity on its side, and is read as metered.
+        heat_estimated=not cfg.get(const.CONF_HEAT_ENERGY_ENTITY) and _estimated(
+            cfg.get(const.CONF_THERMAL_POWER_SOURCE, const.DEFAULT_METER_SOURCE),
+            cfg.get(const.CONF_THERMAL_POWER_ENTITY)),
+        power_estimated=not cfg.get(const.CONF_HEAT_ENERGY_ENTITY) and _estimated(
+            cfg.get(const.CONF_POWER_SOURCE, const.DEFAULT_METER_SOURCE),
+            cfg.get(const.CONF_POWER_ENTITY)),
+        heat_sees_dhw=bool(cfg.get(const.CONF_HEAT_METER_SEES_DHW, const.DEFAULT_HEAT_METER_SEES_DHW)),
+        on_off=declared_modulation(cfg) is False,
     )
+
+
+def declared_modulation(config: Any) -> bool | None:
+    """Whether the user declared the compressor modulating, ``None`` undeclared.
+
+    The one reader of ``compressor_modulation`` and of the legacy
+    ``clamp_planned_levels`` (#3289): ``on_off`` -> ``False``,
+    ``modulating`` -> ``True``. ``auto`` or absent reads the legacy key,
+    ``true`` clamping (on/off) and ``false`` opting out (modulating); any
+    other value of either is undeclared, and the probe decides.
+    """
+    cfg = config or {}
+    mode = cfg.get(
+        const.CONF_COMPRESSOR_MODULATION, const.DEFAULT_COMPRESSOR_MODULATION
+    )
+    legacy = cfg.get(const.CONF_CLAMP_PLANNED_LEVELS)
+    return (
+        False if mode == const.COMPRESSOR_MODULATION_ON_OFF
+        else True if mode == const.COMPRESSOR_MODULATION_MODULATING
+        else False if legacy is True
+        else True if legacy is False
+        else None
+    )
+
+
+def _estimated(source: Any, entity_id: Any) -> bool:
+    """Whether ``entity_id`` is a vendor's estimate, by its ``source`` answer (``CONF_POWER_SOURCE``)."""
+    if source == const.METER_SOURCE_ESTIMATE:
+        return True
+    if source == const.METER_SOURCE_METER:
+        return False
+    return const.ESTIMATE_ID_MARK in str(entity_id or "").lower()
 
 
 def flow_setpoint_driven(config: Any) -> bool:
@@ -1375,7 +1497,7 @@ def flow_setpoint_driven(config: Any) -> bool:
     cfg = EntryConfig.from_mapping(config or {})
     return (
         cfg.pump_duty_mode == const.PUMP_DUTY_MODES[2]
-        and cfg.space_setpoint_unit == "flow"
+        and cfg.space_setpoint_unit in const.SPACE_SETPOINT_WATER_UNITS
         and not probe_install(cfg).plan_writes_power()
     )
 
@@ -1434,8 +1556,8 @@ def feedback_gaps(config: Any) -> list[dict[str, str]]:
 def duty_cycle_realizable(config: Any) -> bool:
     """The duty-cycle reading stands for this config.
 
-    ``clamp_planned_levels: false`` is the opt-out. Otherwise the probe
-    decides, and an absent key follows the probe.
+    A compressor declared modulating (:func:`declared_modulation`) is the
+    opt-out. Otherwise the probe decides, and an undeclared one follows it.
     """
     cfg = config or {}
     cap = probe_install(cfg)
@@ -1443,7 +1565,7 @@ def duty_cycle_realizable(config: Any) -> bool:
     # frequency-plus-power plant stay byte-identical (#1955).
     return (
         True
-        if cfg.get(const.CONF_CLAMP_PLANNED_LEVELS) is False
+        if declared_modulation(cfg) is True
         else True if cap.fully_metered() else cap.can_duty_cycle()
     )
 
@@ -1499,14 +1621,14 @@ def learner_unmetered(config: Any) -> str | None:
 
     No measured power, and the probe says the write surface cannot
     duty-cycle. A frequency install still learns from the commanded figure
-    (the compressor can realize it); an explicit clamp opt-out keeps
-    today's learner. Ranked with the boost freeze, after ventilation.
+    (the compressor can realize it); a compressor declared modulating
+    keeps today's learner. Ranked with the boost freeze, after ventilation.
     """
     cfg = config or {}
     cap = probe_install(cfg)
     return (
         None
-        if cfg.get(const.CONF_CLAMP_PLANNED_LEVELS) is False
+        if declared_modulation(cfg) is True
         else None
         if cap.measured_power or cap.can_duty_cycle()
         else UNMETERED_POWER_FREEZE
@@ -1572,15 +1694,43 @@ def project_planned_levels(power: Any, p_min: float, p_max: float) -> np.ndarray
     set is not the closed interval ``[p_min, p_max]``, which would force
     the pump on for the whole horizon.
     """
-    arr = np.asarray(power, dtype=float)
-    lo = float(p_min)
-    hi = float(p_max)
+    return _onto_band(np.asarray(power, dtype=float), float(p_min), float(p_max))
+
+
+def _onto_band(arr: np.ndarray, lo: Any, hi: Any) -> np.ndarray:
+    """``arr`` clipped to ``[0, hi]``, a value in ``(0, lo)`` raised to ``lo``.
+
+    ``lo`` and ``hi`` are floats or arrays broadcasting against ``arr``.
+    """
     capped = np.where(np.greater(arr, hi), hi, arr)
     nonneg = np.where(np.less(capped, 0.0), 0.0, capped)
     return np.where(
         np.logical_and(np.greater(nonneg, 0.0), np.less(nonneg, lo)),
         lo,
         nonneg,
+    )
+
+
+def project_space_against(
+    space: Any, dhw: Any, p_min: float, p_max: float
+) -> np.ndarray:
+    """Space heating onto what one on/off compressor leaves beside ``dhw``.
+
+    ``dhw`` is the DHW schedule already projected by
+    :func:`project_planned_levels`, an ``N`` vector; ``space`` is an ``N``
+    vector or a ``B x N`` matrix, broadcast row by row (#3289). One
+    compressor serves both channels, so per step space is clipped to
+    ``[0, p_max - dhw]`` and a value in ``(0, p_min - dhw)`` is raised to
+    that bound: the total lands in ``{0} ∪ [p_min, p_max]`` and DHW keeps
+    the level its planner booked. A negative bound needs no floor at 0: a
+    cap below 0 clips to 0, and a raise below 0 matches no running level.
+    With ``dhw`` zero this is :func:`project_planned_levels`. Design choice:
+    a shared scale on the total lost because it writes into the DHW plan the
+    space solve treats as fixed.
+    """
+    other = np.asarray(dhw, dtype=float)
+    return _onto_band(
+        np.asarray(space, dtype=float), float(p_min) - other, float(p_max) - other
     )
 
 
@@ -1607,14 +1757,20 @@ def _span_when(left: float | None, right: float | None, ready: bool) -> float:
 FLOW_MIN_LIFT_K = 5.0
 
 
-def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
+def modulation_floor_flow_c(
+    inlet_c: Any, gate_c: Any = None, lift_k: float = FLOW_MIN_LIFT_K
+) -> float | None:
     """The flow set-point for the modulation floor, °C, or ``None``.
 
     The measured inlet (the buffer tank behind a mixing valve, else the
-    return) plus :data:`FLOW_MIN_LIFT_K`. The set-point is a power
+    return) plus ``lift_k``: :data:`FLOW_MIN_LIFT_K`, or the configured
+    lift (:func:`configured_flow_min_lift_k`). The set-point is a power
     command (tvofi, 2026-10-19): the system water behind it rises slowly,
     so a set-point anchored anywhere but the water it heats commands a
-    power the plan never booked. ``gate_c`` is the set-point a step that
+    power the plan never booked. It is the open-loop half: a controller
+    that integrates on set-point minus inlet keeps ramping while the inlet
+    lags this value, so the arbiter closes it on measured power
+    (R10-WATER-SETPOINT-FEEDBACK). ``gate_c`` is the set-point a step that
     does not heat writes; the lift is taken from whichever of the two is
     higher, so a step that heats never writes the value that means off --
     on a tank at or below the gate it did (R10-SETPOINT-BOOST). ``None``
@@ -1624,7 +1780,7 @@ def modulation_floor_flow_c(inlet_c: Any, gate_c: Any = None) -> float | None:
     if inlet is None:
         return None
     gate = finite_float(gate_c)
-    return (inlet if gate is None or inlet > gate else gate) + FLOW_MIN_LIFT_K
+    return (inlet if gate is None or inlet > gate else gate) + float(lift_k)
 
 
 def flow_setpoint_for_level(
@@ -1685,12 +1841,38 @@ def flow_setpoint_for_level(
 
 
 def configured_flow_heat_c(config: Any, default: float | None = None) -> float:
-    """The heating-flow ceiling from config, else ``default`` (°C)."""
+    """The heating-flow ceiling from config, else ``default`` (°C).
+
+    An absent key reads as :data:`const.DEFAULT_FLOW_HEAT_C`, the value the
+    options flow shows for it, named at the read so the untouched-page proof
+    (``tests/config_flow_steps.py``) can see that storing it changes
+    nothing; ``default`` stands in for a stored value that is not a number.
+    Every caller passes ``pump_arbiter.FLOW_HEAT_C``, the same 55 °C.
+    """
     fallback = const.DEFAULT_FLOW_HEAT_C if default is None else default
-    raw = (config or {}).get(const.CONF_FLOW_HEAT_C, fallback)
+    raw = (config or {}).get(const.CONF_FLOW_HEAT_C, const.DEFAULT_FLOW_HEAT_C)
     number = finite_float(raw)
     return (
         float(fallback) if number is None else number
+    )
+
+
+def configured_flow_min_lift_k(config: Any) -> float:
+    """The modulation floor's lift over the measured inlet from config, K.
+
+    :data:`FLOW_MIN_LIFT_K` when absent, unreadable or not positive: a lift
+    of zero or less writes the inlet itself at the floor, which commands no
+    heat on a step the plan heats -- the value the floor exists to keep off
+    the entity. The options flow offers 0.5-15 K. A controller that takes
+    the set-point as its return-water target (through a smart-home
+    interface input, for one) modulates its compressor on the gap between
+    target and return, so the rated 5 K drives it to near full speed at the
+    plan's lowest level; such a controller wants about 1-2 K.
+    """
+    raw = (config or {}).get(const.CONF_FLOW_MIN_LIFT_K, FLOW_MIN_LIFT_K)
+    number = finite_float(raw)
+    return (
+        number if number is not None and number > 0.0 else FLOW_MIN_LIFT_K
     )
 
 def on_threshold_kw(params: ThermalParameters) -> float:
@@ -1787,6 +1969,194 @@ def _buffer_capacity(p: ThermalParameters) -> float:
     a vanishing configured mass falls back to the 35 L tank's 0.04."""
     c_buf = p.buffer_tank_thermal_mass
     return 0.04 if c_buf < 1e-6 else c_buf
+
+
+@dataclass(frozen=True, slots=True)
+class DhwStore:
+    """The store the hot-water recursions integrate (R10-COMBI-TANK design, Shape).
+
+    Off combi: the separate DHW tank's own values, and both transforms are the
+    identity (they return their argument, so every plan is byte-identical).
+    In combi: the buffer store, one mixed node, seen through the exchanger. A
+    limit stated at the tap enters the store frame through
+    ``store_temp_for_tap``; a store temperature reaches the tap through
+    ``tap_temp_for_store``. The legionella target is a store temperature
+    (standing water reaches the store's own), so it never passes through either.
+    """
+
+    capacity_kwh_per_c: float
+    ua_kw_per_c: float
+    volume_l: float
+    charge_max_temp: float
+    rating_max_temp: float
+    effectiveness: float
+    inlet_c: float
+    combi: bool
+
+    def store_temp_for_tap(self, tap_c: float) -> float:
+        """The store temperature at which the tap delivers ``tap_c``."""
+        if not self.combi:
+            return tap_c
+        return self.inlet_c + (tap_c - self.inlet_c) / self.effectiveness
+
+    def tap_temp_for_store(self, store_c: float) -> float:
+        """The tap temperature a store at ``store_c`` delivers."""
+        if not self.combi:
+            return store_c
+        return self.inlet_c + self.effectiveness * (store_c - self.inlet_c)
+
+    def space_flux(self, space_net_kw: np.ndarray | None) -> np.ndarray | None:
+        """The space side's net flux as this store sees it: a separate tank
+        shares no water with the space side, so for it the series is dead."""
+        return space_net_kw if self.combi else None
+
+
+def combi_store_of(p: ThermalParameters) -> DhwStore | None:
+    """The combi store, or None off combi: read once per walk, never per step."""
+    if not p.combi_tank_active:
+        return None
+    return dhw_store_of(p)
+
+
+def dhw_store_of(p: ThermalParameters) -> DhwStore:
+    """``ThermalParameters.dhw_store``: the separate tank, or the combi store.
+
+    In combi the capacity and loss are the buffer's (over the store volume,
+    potable water included), the charge limit and rating are the tighter of
+    the DHW and buffer ones, and an effectiveness that is not a number above
+    the floor reads as the floor, the guard ``ThermalParameters.clamp`` gives
+    every divisor.
+    """
+    if not p.combi_tank_active:
+        return DhwStore(
+            p.dhw_tank_thermal_mass, p.dhw_tank_heat_loss_coefficient,
+            p.dhw_tank_volume, p.dhw_max_temp, p.dhw_hard_max_temp, 1.0,
+            p.dhw_inlet_reference, False,
+        )
+    eps = float(p.combi_dhw_effectiveness)
+    eps = min(1.0, eps) if eps >= COMBI_DHW_EFFECTIVENESS_FLOOR else COMBI_DHW_EFFECTIVENESS_FLOOR
+    return DhwStore(
+        _buffer_capacity(p), p.buffer_tank_heat_loss_coefficient,
+        p.buffer_store_volume, min(p.dhw_max_temp, p.buffer_max_temp),
+        min(p.dhw_hard_max_temp, p.buffer_max_temp), eps,
+        p.dhw_inlet_reference, True,
+    )
+
+
+def store_step(
+    store: DhwStore, temp: float, heat_in_kw: float, draw_nominal_kw: float,
+    ambient_temp: float, dt_hours: float,
+) -> tuple[float, float, float, float]:
+    """One step of a hot-water store, the separate tank and the combi store
+    alike: ``(new temp, refused kW, floor-injected kW, draw kW)``.
+
+    ``heat_in_kw`` is everything entering the node but the draw and the
+    standing loss: the pump's DHW charge, plus in combi the space side's net
+    flux. The three rules, each booked so the step balances exactly,
+    ``C * dT = (heat_in - draw - loss - refused + injected) * dt``:
+
+    * The draw is the NOMINAL demand (volume heated from the inlet to the
+      setpoint) debited at the TAP temperature through ``dhw_draw_scale``. At
+      or above the 40 °C mixed-use temperature the tap mixes, so the enthalpy
+      removed stays nominal (the ``MixedHotWater`` convention); below it the
+      store delivers only the rise it holds. Referencing the setpoint instead
+      under-debited the 40..setpoint band by up to a third and booked the
+      deleted demand as savings (v4.0.5 review). Demand-side quantities (the
+      planner's ready-energy targets, the always-hot baseline) stay nominal.
+    * The rating clamps only the charging direction, and the refused heat is
+      booked, never deleted: the published trajectory replays pinned plans
+      and legionella boosts that no planner pre-clamped. The rating, not the
+      everyday charge limit, or a disinfection boost would silently fall short.
+    * The floor is the inlet or the surroundings, whichever is lower: an inlet
+      above ambient would make the floor a heat source with no physical
+      origin (R6-D2-02). With the scaled draw it is a no-op safety bound, and
+      any heat it does fabricate is booked.
+    """
+    capacity = store.capacity_kwh_per_c
+    if capacity <= 0.0:
+        return temp, 0.0, 0.0, 0.0
+    draw = draw_nominal_kw * dhw_draw_scale(store.tap_temp_for_store(temp), store.inlet_c)
+    d_temp = (heat_in_kw - draw - store.ua_kw_per_c * (temp - ambient_temp)) / capacity
+    cap = max(0.0, store.rating_max_temp - temp) / max(dt_hours, 1e-6)
+    refused = 0.0
+    if d_temp > cap:
+        refused, d_temp = (d_temp - cap) * capacity, cap
+    new_temp = temp + d_temp * dt_hours
+    floor = min(store.inlet_c, ambient_temp)
+    injected = 0.0
+    if new_temp < floor:
+        injected, new_temp = (floor - new_temp) * capacity / max(dt_hours, 1e-6), floor
+    return new_temp, refused, injected, draw
+
+
+def dhw_mixed_litres(p: ThermalParameters, tank_c: float, mixed_c: float) -> float:
+    """Litres of ``mixed_c`` water the hot-water store at ``tank_c`` holds (#28).
+
+    The separate tank: its volume delivered by displacement and mixed down,
+    ``V * (T - T_in) / (T_mix - T_in)``. A combi store, one mixed node: the
+    heat above the store temperature at which the tap stops reaching
+    ``mixed_c``, over what a litre of it takes from the inlet. The caller
+    refuses ``mixed_c`` within a kelvin of the inlet.
+    """
+    store = p.dhw_store
+    if not store.combi:
+        return p.dhw_tank_volume * max(0.0, tank_c - store.inlet_c) / (mixed_c - store.inlet_c)
+    usable_kwh = store.capacity_kwh_per_c * max(0.0, tank_c - store.store_temp_for_tap(mixed_c))
+    return usable_kwh / (WATER_SPECIFIC_HEAT * (mixed_c - store.inlet_c))
+
+
+def combi_dhw_net_kw(
+    model: ThermalModel, store: DhwStore, temp: float, dhw_power_kw: float,
+    draw_nominal_kw: float, outdoor_temp: float, humidity: float | None = None,
+) -> float:
+    """The hot-water side's net flux into a combi store at ``temp``, kW: the
+    pump's DHW charge at its COP less the draw debited at the tap
+    (``store_step``'s two terms). What the space step sees as
+    ``buffer_exo_kw``."""
+    return (
+        dhw_charge_kw(model, temp, dhw_power_kw, outdoor_temp, humidity)
+        - draw_nominal_kw * dhw_draw_scale(store.tap_temp_for_store(temp), store.inlet_c)
+    )
+
+
+def dhw_charge_kw(
+    model: ThermalModel, temp: float, dhw_power_kw: float, outdoor_temp: float,
+    humidity: float | None = None,
+) -> float:
+    """The heat a DHW draw of ``dhw_power_kw`` puts into a store at ``temp``,
+    at the DHW COP: the charge term of the separate tank and the combi store."""
+    cop = model.compute_cop_dhw(outdoor_temp, temp, humidity=humidity)
+    return float(cop * heat_per_cop_kw(model.params, dhw_power_kw))
+
+
+def combi_dhw_net_series(
+    model: ThermalModel, temps: Any, dhw_power: Any, draw_rates: Any,
+    outdoor_temps: Any, humidity: Any = None,
+) -> np.ndarray:
+    """``combi_dhw_net_kw`` per step along a DHW plan's own store trajectory
+    ``temps`` (length n + 1): the series the space solve takes as
+    ``WeatherSeries.buffer_exo_kw``."""
+    store = model.params.dhw_store
+    return np.array([
+        combi_dhw_net_kw(
+            model, store, float(temps[i]), float(dhw_power[i]), float(draw_rates[i]),
+            float(outdoor_temps[i]), None if humidity is None else float(humidity[i]))
+        for i in range(len(dhw_power))
+    ])
+
+
+def combi_space_net_kw(
+    store: DhwStore, buffer_temps: Any, dhw_net_kw: Any, dt_hours: float,
+) -> np.ndarray:
+    """The space side's net flux into a combi store, kW per step: what the
+    store gained along a space trajectory, plus its standing loss, less the
+    hot-water flux that trajectory was simulated with. The series the DHW
+    planner's recursions take as ``tank_exo_kw``, so heat moved by either side
+    is counted once and the loss once (R10-COMBI-TANK design, Solver)."""
+    temps = np.asarray(buffer_temps, dtype=float)
+    gained = store.capacity_kwh_per_c * np.diff(temps) / max(dt_hours, 1e-6)
+    loss = store.ua_kw_per_c * (temps[:-1] - TANK_ROOM_AMBIENT_TEMP)
+    return gained + loss - np.asarray(dhw_net_kw, dtype=float)
 
 
 def _valve_ua(p: ThermalParameters) -> float:
@@ -2223,6 +2593,21 @@ def power_for_heat_per_cop_kw(
     held = h / (1.0 - d)
     power = np.where(h <= p_min, h, np.where(held >= p_max, held, on_band))
     return float(power) if np.ndim(heat_per_cop) == 0 else power
+
+
+def refill_power_kwh(params: ThermalParameters, heat_per_cop_kwh: float, hours: float) -> float:
+    """The electrical kWh that buys back ``heat_per_cop_kwh`` (heat over COP)
+    as a steady draw over ``hours``: :func:`power_for_heat_per_cop_kw` at that
+    rate, so a refill above the modulation floor pays its part-load derate.
+
+    Sign-symmetric: a surplus is credited at the law a deficit is charged at.
+    The input itself, bit for bit, while the derate is 0 or ``hours`` is not
+    positive: the inverse passes ``abs`` through unchanged there (its own
+    ``band <= 0`` guard) and ``copysign`` restores the sign."""
+    return math.copysign(
+        power_for_heat_per_cop_kw(params, abs(heat_per_cop_kwh), hours=hours),
+        heat_per_cop_kwh,
+    )
 
 
 def added_power_for_heat_per_cop_kw(
@@ -2677,6 +3062,10 @@ class WeatherSeries:
     solar_radiation: np.ndarray | None = None
     humidity: np.ndarray | None = None
     external_heat_kw: np.ndarray | None = None
+    #: Combi store (R10-COMBI-TANK): the hot-water side's net flux into the
+    #: buffer, kW per step, signed; ``None`` off combi. Not weather, but like
+    #: ``external_heat_kw`` an exogenous flux the space physics consumes.
+    buffer_exo_kw: np.ndarray | None = None
 
     @classmethod
     def from_horizon(cls, h: Any) -> "WeatherSeries":
@@ -2698,21 +3087,13 @@ class ThermalModel:
 
     #: Per-step scratch for buffer cap refusal, written by the step function.
     _step_buffer_refused: float = 0.0
-    #: DHW analogue of the buffer's refused-heat ledger (v4.0.5). The DHW
-    #: step now clamps charging at the tank rating instead of trusting every
-    #: caller to pre-clamp, and heat the rating refuses is booked here (kW)
-    #: rather than silently deleted — the same reasoning as the buffer: a
-    #: trajectory that pays for deleted heat is merely wasteful in the model
-    #: but boils the tank on the real system.
+    #: The DHW step's three booked terms, kW (``store_step`` states the rules):
+    #: heat the rating refused (v4.0.5: a trajectory paying for deleted heat
+    #: boils the real tank), heat the inlet floor fabricated (non-zero is a
+    #: conservation bug, and the tests assert it), and the draw actually
+    #: debited, so accounting outside the model balances the step exactly.
     _step_dhw_refused: float = 0.0
-    #: Heat the inlet floor would have had to fabricate this step (kW). With
-    #: the temperature-dependent draw the floor is a genuine no-op safety
-    #: bound — the draw vanishes as the tank approaches the inlet — so any
-    #: non-zero value here is a conservation bug, and the tests assert it.
     _step_dhw_floor_injected: float = 0.0
-    #: The draw the DHW step actually debited (kW), after tank-temperature
-    #: scaling. Recorded so energy accounting outside the model can balance
-    #: the step exactly instead of assuming the nominal demand was met.
     _step_dhw_draw_kw: float = 0.0
     #: Wood-tank analogue of the buffer/DHW refused-heat ledgers (R5-D2-01).
     #: The 95 °C ceiling clamps the external-heat forecast's charge rate, and
@@ -3091,8 +3472,9 @@ class ThermalModel:
         # disinfection cycle is a few hours a week, and sizing the pre-heat
         # horizon off a temperature the tank only sees during one would
         # over-state how far ahead ordinary hot water may be bought.
-        top = max(p.dhw_max_temp, p.dhw_min_temp + 1.0)
-        floor = p.dhw_min_temp
+        store = p.dhw_store
+        floor = store.store_temp_for_tap(p.dhw_min_temp)
+        top = max(store.charge_max_temp, floor + 1.0)
         return self.dhw_coast_hours(top, floor)
 
     def dhw_coast_hours(
@@ -3116,8 +3498,8 @@ class ThermalModel:
         # One store, read twice (D2-01): `ua` is built from this same mass, so
         # `C/ua` is `delta/rate` by construction -- a floor on *either* is a
         # disagreement, not a guard. A zero coefficient is the only guard left.
-        c_dhw = p.dhw_tank_thermal_mass
-        ua = p.dhw_tank_heat_loss_coefficient
+        store = p.dhw_store
+        c_dhw, ua = store.capacity_kwh_per_c, store.ua_kw_per_c
         hot = from_temp - ambient_temp
         cold = to_temp - ambient_temp
         if hot <= 0.0:
@@ -3135,8 +3517,10 @@ class ThermalModel:
         ambient_temp: float = TANK_ROOM_AMBIENT_TEMP,
         dt_hours: float = 0.25,
         draw_power: float | None = None,
+        exo_kw: float = 0.0,
+        store: DhwStore | None = None,
     ) -> float:
-        """Simulate one time step of DHW tank dynamics.
+        """Simulate one time step of DHW tank dynamics (``store_step``).
 
         Args:
             dhw_temp: Current DHW tank temperature (°C)
@@ -3144,93 +3528,22 @@ class ThermalModel:
             hour_of_day: Current hour (0-24) for draw pattern
             ambient_temp: Ambient temperature near the tank (°C)
             dt_hours: Time step (hours)
-            draw_power: Pre-computed draw power (kW); avoids recomputing the
-                hourly pattern inside hot optimization loops.
+            draw_power: Pre-computed nominal draw power (kW); avoids recomputing
+                the hourly pattern inside hot optimization loops.
+            exo_kw: In combi, the space side's net flux into the shared store.
+            store: The parameters' ``dhw_store``, hoisted by a walk; None reads it.
 
         Returns:
-            New DHW tank temperature (°C)
+            New DHW tank temperature (°C); the refused, floor-injected and
+            debited heat of the step are booked on the ``_step_dhw_*`` ledgers.
         """
-        p = self.params
-        self._step_dhw_refused = 0.0
-        self._step_dhw_floor_injected = 0.0
-        self._step_dhw_draw_kw = 0.0
-        C_dhw = p.dhw_tank_thermal_mass
-        if C_dhw <= 0.0:
-            return dhw_temp
-
-        # Heat input from heat pump
-        q_in = dhw_power_thermal
-
-        # Heat drawn by consumption. The passed/pattern value is the NOMINAL
-        # demand — volume heated from the inlet to the setpoint — and that is
-        # what a tank at or above the setpoint genuinely supplies: mixing at
-        # the tap shrinks the drawn volume so the enthalpy removed stays
-        # exactly nominal (the `MixedHotWater` convention,
-        # coordinator._dhw_mixed_water). A colder tank cannot be debited
-        # energy referenced to a rise it does not hold, so the debit scales
-        # with the rise it can actually deliver:
-        #
-        #     q_eff = q_nominal · min(1, (T − inlet) / (T_use − inlet))
-        #
-        # with T_use the 40 °C mixed-water temperature: the tap draws MORE
-        # volume from a cooler tank to make the same mixed water, so the
-        # enthalpy removed stays exactly nominal all the way down to T_use,
-        # and only below it does the service itself degrade. Referencing the
-        # setpoint instead under-debited the 40..setpoint band — the very
-        # band cost optimization rides — by up to a third, and booked the
-        # deleted demand as savings (v4.0.5 review, blocker). Unscaled, a
-        # 30 °C tank was charged the full (setpoint − inlet) per litre and
-        # the inlet floor below silently refunded the fabricated deficit.
-        # Demand-side quantities (planner ready-energy targets, the
-        # always-hot baseline) stay nominal on purpose: what the user wants
-        # delivered does not shrink because the tank is cold.
-        q_draw = (
-            self.dhw_draw_rate(hour_of_day) if draw_power is None else draw_power
+        q_draw = self.dhw_draw_rate(hour_of_day) if draw_power is None else draw_power
+        (new_temp, self._step_dhw_refused, self._step_dhw_floor_injected,
+         self._step_dhw_draw_kw) = store_step(
+            self.params.dhw_store if store is None else store, dhw_temp,
+            dhw_power_thermal + exo_kw if exo_kw else dhw_power_thermal,
+            q_draw, ambient_temp, dt_hours,
         )
-        q_draw = q_draw * dhw_draw_scale(dhw_temp, p.dhw_inlet_reference)
-        self._step_dhw_draw_kw = q_draw
-
-        # Standby heat loss to ambient
-        q_loss = p.dhw_tank_heat_loss_coefficient * (dhw_temp - ambient_temp)
-
-        # Temperature change
-        dT = (q_in - q_draw - q_loss) / C_dhw
-
-        # The tank rating, enforced in the model itself rather than trusted
-        # to every caller's pre-clamp: the DHW planner's `_clamp_dhw_to_capacity`
-        # protects planned schedules, but the published trajectory also
-        # replays pinned plans and legionella boosts, and those paths could
-        # exceed the rating with no accounting. Same shape as the buffer
-        # clamp: only the charging direction is limited (a tank read above
-        # the rating cools at its physical rate, it is not snapped down),
-        # and the refused heat is booked, never deleted.
-        # The *rating*, not the everyday charge limit: a disinfection boost is
-        # meant to go above the user's charge limit, and clamping it here
-        # would make the cycle silently fail to reach temperature. The
-        # everyday limit is enforced per step by the planner instead.
-        dT_cap = max(0.0, p.dhw_hard_max_temp - dhw_temp) / max(dt_hours, 1e-6)
-        if dT > dT_cap:
-            self._step_dhw_refused = (dT - dT_cap) * C_dhw
-            dT = dT_cap
-        new_temp = dhw_temp + dT * dt_hours
-
-        # Physical bound: the tank cannot fall below its surroundings, which
-        # sit at `ambient_temp` (20 °C indoors), nor below the cold-water inlet
-        # it refills at — whichever is lower. With the scaled draw the floor is
-        # a genuine no-op safety bound: the draw vanishes as the tank
-        # approaches the inlet, and an inlet below ambient is warmed by its own
-        # standby "loss". The bound is clamped to ambient because an inlet
-        # above ambient would otherwise pin the tank there and turn the floor
-        # into a heat source with no physical origin (R6-D2-02). Any heat the
-        # bound does have to fabricate is booked so the energy balance stays
-        # honest instead of silently created.
-        floor = min(p.dhw_inlet_reference, ambient_temp)
-        if new_temp < floor:
-            self._step_dhw_floor_injected = (
-                (floor - new_temp) * C_dhw / max(dt_hours, 1e-6)
-            )
-            new_temp = floor
-
         return new_temp
 
     def simulate_dhw_only(
@@ -3241,11 +3554,13 @@ class ThermalModel:
         draw_rates: np.ndarray,
         dt_hours: float = 0.25,
         humidity: np.ndarray | None = None,
+        exo_kw: np.ndarray | None = None,
     ) -> np.ndarray:
         """Simulate the DHW tank alone (used for fast schedule planning).
 
         Returns an array of length ``n_steps + 1`` starting at ``initial_temp``.
-        ``humidity`` is the forecast series the published trajectory uses (#1520).
+        ``humidity`` is the forecast series the published trajectory uses (#1520);
+        ``exo_kw`` the combi store's space-side flux, per step (``simulate_dhw_step``).
         """
         schedule = np.asarray(dhw_power_schedule, dtype=float)
         n_steps = schedule.size
@@ -3259,6 +3574,7 @@ class ThermalModel:
             draw_rates,
             dt_hours=dt_hours,
             humidity=humidity,
+            exo_kw=exo_kw,
         )
 
     def extend_dhw_temps(
@@ -3270,6 +3586,7 @@ class ThermalModel:
         draw_rates: np.ndarray,
         dt_hours: float = 0.25,
         humidity: np.ndarray | None = None,
+        exo_kw: np.ndarray | None = None,
     ) -> np.ndarray:
         """Refresh ``temps[from_step + 1:]`` after the schedule changed there."""
         heat_per_cop = heat_per_cop_kw(self.params, np.asarray(dhw_power_schedule, dtype=float))
@@ -3278,6 +3595,7 @@ class ThermalModel:
         temp = float(temps[from_step])
         compute_cop = self.compute_cop_dhw
         simulate_step = self.simulate_dhw_step
+        store = self.params.dhw_store
         for i in range(from_step, heat_per_cop.size):
             cop = compute_cop(
                 outdoor[i], temp, humidity=None if humidity is None else humidity[i]
@@ -3288,6 +3606,8 @@ class ThermalModel:
                 hour_of_day=0.0,
                 dt_hours=dt_hours,
                 draw_power=draws[i],
+                exo_kw=0.0 if exo_kw is None else float(exo_kw[i]),
+                store=store,
             )
             temps[i + 1] = temp
         return temps
@@ -3310,6 +3630,7 @@ class ThermalModel:
         hour_of_day: float | None = None,
         measured_heat_kw: float | None = None,
         valve_target: float | None = None,
+        buffer_exo_kw: float = 0.0,
         _cop: float | None = None,
         _u_eff: float | None = None,
         _q_solar: float | None = None,
@@ -3375,7 +3696,7 @@ class ThermalModel:
         new_buf = state.buffer_tank_temperature
         if throttled:
             q_slab, dT_buf, refused = _single_valve_rates(
-                p, new_buf, state.slab_temperature, thermal_power,
+                p, new_buf, state.slab_temperature, thermal_power + buffer_exo_kw,
                 outdoor_temp, u_eff, valve_target, dt_hours,
             )
             thermal_power, new_buf = float(q_slab), float(new_buf + dT_buf * dt_hours)
@@ -3422,6 +3743,7 @@ class ThermalModel:
         humidity: float | None = None,
         hour_of_day: float | None = None,
         measured_heat_kw: float | None = None,
+        buffer_exo_kw: float = 0.0,
         _loss: tuple[float, float] | None = None,
     ) -> ThermalState:
         """Simulate one step with the two-zone model including buffer tank.
@@ -3471,6 +3793,8 @@ class ThermalModel:
             else measured_heat_kw
         )
         thermal_power = pump_heat_kw + (0.0 if two_tank else ext)
+        if throttled and buffer_exo_kw:
+            thermal_power += buffer_exo_kw
 
         u_upper, u_lower = (
             self._zone_loss(wind_speed, precipitation) if _loss is None else _loss
@@ -3599,6 +3923,7 @@ class ThermalModel:
         humidity: float | None = None,
         hour_of_day: float | None = None,
         measured_heat_kw: float | None = None,
+        buffer_exo_kw: float = 0.0,
     ) -> ThermalState:
         """Simulate one time step (dispatches to single or two-zone).
 
@@ -3619,7 +3944,8 @@ class ThermalModel:
         (``flow_meter.read_heat_output_kw``) refuses a reading that is stale,
         negative, of an unknown unit or no warmer than the return, and only
         the two interval learners, which replay one elapsed step, ever have
-        one to pass.
+        one to pass. ``buffer_exo_kw`` is ``WeatherSeries.buffer_exo_kw``'s
+        step, which joins the tank's input behind the valve.
         """
         # Only a throttled step books the buffer cap, so the scratch would
         # otherwise carry a stale value from an earlier step. The wood
@@ -3646,7 +3972,7 @@ class ThermalModel:
                     state, electrical_power, outdoor_temp,
                     wind_speed, precipitation, solar_radiation, dt_hours,
                     external_heat_kw, valve_target, humidity, hour_of_day,
-                    measured_heat_kw=measured_heat_kw,
+                    measured_heat_kw=measured_heat_kw, buffer_exo_kw=buffer_exo_kw,
                     _loss=(u_first, u_second),
                 )
             refused = 0.0
@@ -3657,7 +3983,7 @@ class ThermalModel:
                     wind_speed, precipitation, solar_radiation,
                     dt_hours / n_sub,
                     external_heat_kw, valve_target, humidity, hour_of_day,
-                    measured_heat_kw=measured_heat_kw,
+                    measured_heat_kw=measured_heat_kw, buffer_exo_kw=buffer_exo_kw,
                     _loss=(u_first, u_second),
                 )
                 refused += self._step_buffer_refused
@@ -3673,6 +3999,7 @@ class ThermalModel:
                 wind_speed, precipitation, solar_radiation, dt_hours,
                 external_heat_kw, humidity, hour_of_day,
                 measured_heat_kw=measured_heat_kw, valve_target=valve_target,
+                buffer_exo_kw=buffer_exo_kw,
                 _u_eff=u_first,
             )
         # Every sub-step below re-enters with the same outdoor, wind, rain,
@@ -3691,6 +4018,7 @@ class ThermalModel:
                 wind_speed, precipitation, solar_radiation, dt_hours / n_sub,
                 external_heat_kw, humidity, hour_of_day,
                 measured_heat_kw=measured_heat_kw, valve_target=valve_target,
+                buffer_exo_kw=buffer_exo_kw,
                 _cop=cop, _u_eff=u_first, _q_solar=q_solar,
             )
             refused += self._step_buffer_refused
@@ -3886,6 +4214,7 @@ class ThermalModel:
         solar_radiation = weather.solar_radiation
         humidity = weather.humidity
         external_heat_kw = weather.external_heat_kw
+        buffer_exo = weather.buffer_exo_kw
         n_steps = len(power_schedule)
 
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
@@ -3932,6 +4261,7 @@ class ThermalModel:
                     if start_hour is not None and hours_matter
                     else None
                 ),
+                buffer_exo_kw=0.0 if buffer_exo is None else float(buffer_exo[i]),
             )
             room_temps[i + 1] = state.room_temperature
             slab_temps[i + 1] = state.slab_temperature
@@ -4063,6 +4393,7 @@ class ThermalModel:
         solar_radiation = weather.solar_radiation
         humidity = weather.humidity
         external_heat_kw = weather.external_heat_kw
+        buffer_exo = weather.buffer_exo_kw
         n_steps = heat_per_cop.shape[1]
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
             n_steps, wind_speeds, precipitation, solar_radiation
@@ -4144,6 +4475,7 @@ class ThermalModel:
                 else 0.0
             )
             ext = np.maximum(0.0, ext_i)
+            exo_i = 0.0 if buffer_exo is None else float(buffer_exo[i])
             hum_i = float(humidity[i]) if humidity is not None else None
             hour_i = (
                 (start_hour + i * dt_hours) % 24.0
@@ -4175,6 +4507,8 @@ class ThermalModel:
                     thermal_power = (
                         cop * heat_per_cop_i + (0.0 if two_tank else ext)
                     )
+                    if throttled and exo_i:
+                        thermal_power = thermal_power + exo_i
                     if throttled:
                         target = (
                             vt if vt is not None
@@ -4312,8 +4646,8 @@ class ThermalModel:
                         # the store itself (#2500), the growth the
                         # production-call channel exempts.
                         q_slab, dT_sub, refused_sub = _single_valve_rates(
-                            p, T_buf, T_slab, thermal_power, out_i, u_first,
-                            vt, dt,
+                            p, T_buf, T_slab, thermal_power + exo_i, out_i,
+                            u_first, vt, dt,
                         )
                         refused_acc = refused_acc + refused_sub
                         thermal_power = q_slab
@@ -4377,10 +4711,8 @@ class ThermalModel:
         """Simulate full trajectory with coordinated space + DHW heating.
 
         Args:
-            dhw_draw_rates: Optional pre-computed per-step DHW draw power (kW).
-                Passing it avoids re-deriving the hourly pattern on every call,
-                which matters because the optimizer evaluates this thousands of
-                times per solve.
+            dhw_draw_rates: Optional pre-computed per-step DHW draw power (kW),
+                the planner's own series; None derives it from the pattern.
             coil_wood_read: Optional length-``n_steps`` array, filled with the
                 wood temperature each step's coil reduction reads: after that
                 step's space update, before the coil's drain -- a temperature
@@ -4391,11 +4723,12 @@ class ThermalModel:
 
         Returns:
             Tuple of (room_temps, slab_temps, upper_temps, lower_temps,
-                       dhw_temps, buffer_temps, wood_temps or None)
+                       dhw_temps, buffer_temps, wood_temps or None); a combi
+                       store is one node, so its dhw_temps are its buffer_temps.
         """
         # astuple: the arrays by reference, in the record's field order.
         (outdoor_temps, wind_speeds, precipitation, solar_radiation,
-         humidity, external_heat_kw) = astuple(weather)
+         humidity, external_heat_kw, _) = astuple(weather)
         n_steps = len(space_power_schedule)
 
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
@@ -4419,8 +4752,14 @@ class ThermalModel:
         # #53: the space step needs its hour only when a learned gains
         # profile exists — hoisted for the same reason as the coil flag.
         gains_hours_matter = self.params.internal_gains_profile is not None
+        # Combi: one node. The hot-water side's net flux joins the space
+        # step's tank input, so the two trajectories are one (R10-COMBI-TANK).
+        store = combi_store_of(self.params)
 
         for i in range(n_steps):
+            exo_i = 0.0 if store is None else combi_dhw_net_kw(
+                self, store, state.buffer_tank_temperature, dhw_power_schedule[i],
+                float(dhw_draw_rates[i]), outdoor_temps[i], _step_humidity(humidity, i))
             # Space heating simulation
             state = self.simulate_step(
                 state=state,
@@ -4440,12 +4779,11 @@ class ThermalModel:
                     if valve_targets is not None
                     else None
                 ),
-                humidity=(
-                    float(humidity[i]) if humidity is not None else None
-                ),
+                humidity=_step_humidity(humidity, i),
                 hour_of_day=(
                     current_hour % 24.0 if gains_hours_matter else None
                 ),
+                buffer_exo_kw=exo_i,
             )
 
             draw_i = float(dhw_draw_rates[i])
@@ -4459,24 +4797,20 @@ class ThermalModel:
                     state, draw_i, state.dhw_temperature, dt_hours
                 )
 
-            # DHW simulation (runs in parallel with space heating)
-            cop_dhw = self.compute_cop_dhw(
-                outdoor_temps[i],
-                state.dhw_temperature,
-                humidity=(
-                    float(humidity[i]) if humidity is not None else None
-                ),
-            )
-            dhw_thermal_power = cop_dhw * heat_per_cop_kw(self.params, dhw_power_schedule[i])
-
-            new_dhw = self.simulate_dhw_step(
-                dhw_temp=state.dhw_temperature,
-                dhw_power_thermal=dhw_thermal_power,
-                hour_of_day=current_hour % 24.0,
-                ambient_temp=TANK_ROOM_AMBIENT_TEMP,
-                dt_hours=dt_hours,
-                draw_power=draw_i,
-            )
+            if store is not None:
+                new_dhw = state.buffer_tank_temperature
+            else:
+                # DHW simulation (runs in parallel with space heating)
+                new_dhw = self.simulate_dhw_step(
+                    dhw_temp=state.dhw_temperature,
+                    dhw_power_thermal=dhw_charge_kw(
+                        self, state.dhw_temperature, dhw_power_schedule[i],
+                        outdoor_temps[i], _step_humidity(humidity, i)),
+                    hour_of_day=current_hour % 24.0,
+                    ambient_temp=TANK_ROOM_AMBIENT_TEMP,
+                    dt_hours=dt_hours,
+                    draw_power=draw_i,
+                )
             state.dhw_temperature = new_dhw
 
             room_temps[i + 1] = state.room_temperature

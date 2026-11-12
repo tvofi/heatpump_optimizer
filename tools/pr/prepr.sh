@@ -159,10 +159,13 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   # The merge queue's base sits between the two (round-9 process review item 2):
   # a `merge_group` run has no pull request and grades like one, never like main.
   # A ci.yml callee's dispatch naming a PR takes its base before `github.sha`.
-  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| \(inputs\.base && format\(.origin\/\{0\}., inputs\.base\)\))? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
+  if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ ((inputs\.restore_source|needs\.(prelude|gate)\.outputs\.restore_source|steps\.source\.outputs\.sha) \|\| )?github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| \(inputs\.base && format\(.origin\/\{0\}., inputs\.base\)\))? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
   # A workflow_call callee of ci.yml (R10-CI-LAYOUT P2b) adds the dispatched
   # PR's base, `format('origin/{0}', inputs.base)`: still never main's own SHA.
-  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
+  else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ ((inputs\.restore_source|needs\.(prelude|gate)\.outputs\.restore_source|steps\.source\.outputs\.sha) \|\| )?github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)?( \|\| format\(.origin\/\{0\}., inputs\.base\))? \}\}[[:space:]]*$/) expr = "pr"
+  # Either form may open with the restore source ci.yml's prelude resolves
+  # (R10-HOTFIX-RESTORE-BASE-SKEW): the merge commit's first parent, which the
+  # pull request cannot choose; any other leading alternative stays unclassified.
   # A listed restore (R9-RO-2) names its pathspecs on the `git diff` line.
   if ($0 ~ /git (checkout|diff --name-only -z .*) "\$PINNED" --( |$)/) { if (expr != "") pinstyle = expr; inpin = 1; next }
   if (inpin) {
@@ -252,6 +255,13 @@ pinned_touched() { # file of changed paths, pins (one per line)
     done <<<"$2"
   done <"$1"
   return 1
+}
+
+# Step 7a2's whole body, and --body-check's: a rendered figure block is re-rendered
+# from the base's registry at HEAD and compared (read-only, offline; pr-contract
+# runs the same verify). A body with no block passes untouched.
+figure_block_check() { # body file
+  python3 -I tools/pr/figure_block.py verify "$1" --base origin/main --head HEAD
 }
 
 # Step 7a's whole body, so `--self-test` drives the code the step runs rather
@@ -907,6 +917,10 @@ body_check() { # body file, head sha, title, paths file, red names...
   # refused here (policy_lint's raise arm reads the diff with the gate's own
   # raises_between), and at body_push.sh's --body-check, not first at the train.
   [ -n "${BASE:-}" ] && args+=(--base "$BASE")
+  # The required set a red is judged against (owner ruling tvofi 2026-11-07):
+  # policy_lint reads it live through `merge_train.py owed-reds` unless
+  # PREPR_REQUIRED_FILE names it -- the self-test's, so no fixture reads a ruleset.
+  [ -n "${PREPR_REQUIRED_FILE:-}" ] && args+=(--required-file "$PREPR_REQUIRED_FILE")
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi  # never-empty: args starts with the literal --pr-body list
   rc=$?
   rm -f "$ex"
@@ -1150,6 +1164,34 @@ moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 ski
   esac
   echo "$first -- $hint, or the fast job refuses it"
   return 1
+}
+
+# THE DIFF'S ADDED LINES MUTATED (R10-MUTANT-RUN-DRIVER, card 4; fixer.md step 2
+# makes running it the fixer's). `mutant_run.py --diff` applies its five
+# operators to each added Python line outside tests/ and dev/, the first
+# MUTANT_MAX (40) in file order, and runs MUTANT_CMD once per mutant. A run that
+# measured nothing -- the command failing on the unedited tree, a killed NULL, a
+# refusal -- is rc 1, never the "no survivor" an empty SURVIVED list would read
+# as: R10-FIXER-MD-SPELLING-CORPUS-P2 measured three of five fixer self-tests
+# failing in the git-archive copy, which `MUTANT_IN_PLACE=1` (`--in-place`) runs.
+mutants_line() { # tree root, base, command -> one line; rc 0 no survivor, 2 survivors (report only), 1 nothing measured, 3 skipped
+  [ -n "$3" ] || { echo "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call (fixer.md step 2)"; return 3; }
+  [ -f "$1/tools/audit/seat/mutant_run.py" ] || { echo "tools/audit/seat/mutant_run.py is not in this tree"; return 3; }
+  local out r n
+  out=$(cd "$1" && python3 -I tools/audit/seat/mutant_run.py --diff "$2...HEAD" --cmd "$3" \
+    --max-mutants "${MUTANT_MAX:-40}" --report-only ${MUTANT_IN_PLACE:+--in-place} 2>&1); r=$?
+  if [ "$r" -ne 0 ]; then
+    echo "mutant_run rc=$r measured nothing: $(grep -v '^SURVIVED ' <<<"$out" | grep . | tail -1 | cut -c1-160) -- fix MUTANT_CMD, or set MUTANT_IN_PLACE=1 for a self-test that needs a git checkout"
+    return 1
+  fi
+  n=$(grep -c '^SURVIVED ' <<<"$out")
+  if [ "$n" -gt 0 ]; then
+    grep '^SURVIVED ' <<<"$out"
+    echo "$n survivor(s) on the diff's added lines -- each owes a killing check or a line under ## Unpinned sites (fixer.md step 2)"
+    return 2
+  fi
+  echo "no survivor among the diff's first ${MUTANT_MAX:-40} mutant(s) under: $3" | cut -c1-200
+  return 0
 }
 
 # --- closure-reachability skips for the heavy steps ---------------------------
@@ -1781,6 +1823,9 @@ if [ "${1:-}" = "--body-check" ]; then
   fout=$(figures_check "$2" 2>&1); fr=$?
   if [ "$fr" -eq 0 ]; then echo "figures ok: $(tail -1 <<<"$fout")"; else echo "REFUSE figures: $(tail -1 <<<"$fout")"; fi
   [ "$r" -ne 0 ] || r=$fr
+  gout=$(figure_block_check "$2" 2>&1); gr=$?
+  if [ "$gr" -eq 0 ]; then echo "figure blocks ok: $(tail -1 <<<"$gout")"; else printf '%s\n' "$gout"; echo "REFUSE figure blocks: $(tail -1 <<<"$gout")"; fi
+  [ "$r" -ne 0 ] || r=$gr
   vline=$(privacy_line); vr=$?
   if [ "$vr" -eq 0 ]; then echo "ref_privacy ok: $vline"; else echo "REFUSE ref_privacy: $vline"; fi
   [ "$r" -ne 0 ] || r=$vr
@@ -1922,6 +1967,20 @@ if [ "${1:-}" = "--self-test" ]; then
   if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks 2>&1); fi
   r=$?; st "$r" 0 "this repository's own wired hooks pass (null control)"
   [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
+
+  # The session-start hook's self-test under a git whose clock advances 70 s per
+  # call: `origin/main at:` is git's relative `%cr`, so a self-test that
+  # compares two reports byte for byte fails on a clock tick, as main did
+  # minutes after a merge (R10-HOTFIX-MAIN-IST-RED, 22 passed 2 failed). The
+  # shim sets the clock only when the self-test has not pinned one, so the row
+  # passes when the self-test pins its own and fails when it does not.
+  tk=$(mktemp -d); mkdir -p "$tk/bin"; gt=$(command -v git)
+  printf '#!/bin/bash\nf="%s/clk"; n=$(( $(cat "$f" 2>/dev/null || echo 0) + 70 )); echo "$n" > "$f"\nexport GIT_TEST_DATE_NOW="${GIT_TEST_DATE_NOW:-$(( $(date +%%s) + n ))}"\nexec "%s" "$@"\n' "$tk" "$gt" > "$tk/bin/git"
+  chmod +x "$tk/bin/git"
+  hk=$(PATH="$tk/bin:$PATH" bash .claude/hooks/session-start.sh --self-test 2>&1); r=$?
+  st "$r" 0 "the session-start self-test passes while git's clock ticks between its reports (null control)"
+  [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
+  rm -rf "$tk"
 
   # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
   # spellings, not a pattern to compile -- `"*"` alone threw out of `RegExp`
@@ -2326,6 +2385,52 @@ EOS
   st "$r" 3 "a tree with no tests/layout.py skips, never refuses"
   rm -rf "${LR:?}"
 
+  # The diff-mutant step, driven through `mutants_line` over a throwaway repo
+  # holding THIS tree's mutant_run.py: a branch adds lib.py (two mutable lines)
+  # and a check under tests/ (never mutated) that pins both.
+  MR=$(mktemp -d)
+  mkdir -p "$MR/tools/audit/seat" "$MR/dev/audit/harnesses" "$MR/tests" "$MR/custom_components/heatpump_optimizer"
+  echo '{}' > "$MR/custom_components/heatpump_optimizer/manifest.json"  # mutant_guard's repo-root marker
+  cp tools/audit/seat/mutant_run.py "$MR/tools/audit/seat/"
+  cp dev/audit/harnesses/mutant_guard.py "$MR/dev/audit/harnesses/"
+  mg() { git -C "$MR" -c user.name=t -c user.email=t@t -c commit.gpgsign=false "$@"; }
+  (mg init -q && mg checkout -q -b main && mg add -A && mg commit -qm base) >/dev/null 2>&1
+  MB=$(mg rev-parse HEAD)
+  printf 'def f(x):\n    if x > 0:\n        return 1\n    return 0\n' > "$MR/lib.py"
+  printf 'import sys\nsys.path.insert(0, ".")\nfrom lib import f\nsys.exit(0 if [f(v) for v in (-2, 0, 1, 2)] == [0, 0, 1, 1] else 1)\n' > "$MR/tests/check.py"
+  (mg add -A && mg commit -qm branch) >/dev/null 2>&1
+  got=$(mutants_line "$MR" "$MB" "false"); r=$?
+  st "$r" 1 "a MUTANT_CMD failing on the unedited tree is refused, never read as no survivor"
+  case "$got" in *'BASELINE FAILS'*) st 1 1 "and the refusal quotes mutant_run's own reason";; *) st 0 1 "and the refusal quotes mutant_run's own reason";; esac
+  got=$(mutants_line "$MR" "$MB" "python3 tests/check.py"); r=$?
+  st "$r" 0 "a check killing every mutant of the added lines passes (null control)"
+  # A check that needs the checkout (git) fails the archive copy's baseline and
+  # passes in place: the case MUTANT_IN_PLACE exists for, measured on 3379.
+  got=$(mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
+  st "$r" 1 "a check needing a git checkout measures nothing in the archive copy, and is refused"
+  got=$(MUTANT_IN_PLACE=1 mutants_line "$MR" "$MB" "sh -c 'git rev-parse HEAD >/dev/null && python3 tests/check.py'"); r=$?
+  st "$r" 0 "the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes"
+  # BSD/macOS wc pads its count ("       0"); the comparison is a string compare, so
+  # it runs under a padding wc first on PATH, which Linux CI never sees (P676).
+  # Both stubs ignore the host wc's width (strip, then emit one fixed form), so the
+  # check is the same on GNU and BSD hosts: PW pads to 8, PN never pads.
+  PW=$(mktemp -d); PN=$(mktemp -d)
+  printf '#!/bin/sh\nn=$(/usr/bin/wc "$@" | tr -d " ")\nprintf "%%8s\\n" "$n"\n' > "$PW/wc"
+  printf '#!/bin/sh\n/usr/bin/wc "$@" | tr -d " "\n' > "$PN/wc"
+  chmod +x "$PW/wc" "$PN/wc"
+  st "$(PATH="$PW:$PATH"; printf 'x\n' | wc -l)" "       1" "the padding wc stub pads its count, so the next comparison is measured under it (null control)"
+  st "$(PATH="$PN:$PATH"; printf 'x\n' | wc -l)" "1" "the non-padding wc stub does not pad its count (null control)"
+  st "$(PATH="$PW:$PATH"; mg status --porcelain | wc -l | tr -d ' ')" 0 "and the in-place run leaves the work tree clean, under a wc that pads its count"
+  st "$(PATH="$PN:$PATH"; mg status --porcelain | wc -l | tr -d ' ')" 0 "and the in-place run leaves the work tree clean, under a wc that does not pad"
+  rm -rf "${PW:?}" "${PN:?}"
+  got=$(mutants_line "$MR" "$MB" "true"); r=$?
+  st "$r" 2 "a command killing nothing reports its survivors, report only"
+  nl=$(cd "$MR" && python3 -I tools/audit/seat/mutant_run.py --diff "$MB...HEAD" --cmd true --list | grep -c '^MUTANT lib.py:')
+  st "$(grep -c '^SURVIVED lib.py:' <<<"$got"):$(grep -c '^SURVIVED' <<<"$got")" "$nl:$nl" "and names every listed mutant of lib.py, none of tests/check.py"
+  got=$(mutants_line "$MR" "$MB" ""); r=$?
+  st "$r" 3 "MUTANT_CMD unset skips"
+  rm -rf "${MR:?}"
+
   # The raw-git check, driven through `throwaway_line` over a shared clone of
   # THIS tree (so the check's allow-list finds the files it names and no entry
   # reads stale): a raw `git init` committed into an instrument self-test is the
@@ -2357,6 +2462,8 @@ EOS
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
   case "$flow" in *'moved_line "'*) true ;; *) false ;; esac
   st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
+  case "$flow" in *'mutants_line "$PWD" "$BASE" "${MUTANT_CMD:-}"'*) true ;; *) false ;; esac
+  st $? 0 "the diff-mutant step calls mutants_line, so a MUTANT_CMD that measures nothing is refused before the push"
   case "$flow" in *'throwaway_line "'*) true ;; *) false ;; esac
   st $? 0 "the repository-build step calls throwaway_line, so a raw build is refused ahead of the handoff"
   case "$flow" in *'"$BASE" HEAD "$UNPINNED_SITES"'*) true ;; *) false ;; esac
@@ -2724,12 +2831,16 @@ EOS
     && echo row > dev/programme/delivery/9999.md && $G add -A && $G commit -qm rowadd \
     && $G checkout -q -b rowedit rowadd && echo edited > dev/programme/delivery/9999.md \
     && $G commit -qam rowedit) >/dev/null 2>&1
+  # An EMPTY required file is an unreadable set, so these two arms drive the
+  # exemption as it stood before the 2026-11-07 ruling; the third gives the set.
+  : > "$CLM/req-unread"; echo gate > "$CLM/req-gate"
   row_red() { (cd "$CLM/r" && git checkout -q "$1" \
     && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
-    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" "governance / delivery-status" \
+    && BASE=$2 PREPR_REQUIRED_FILE=$3 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" "governance / delivery-status" \
     >/dev/null 2>&1; echo $?); }
-  st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
-  st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"
+  st "$(row_red rowadd fork "$CLM/req-unread")" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
+  st "$(row_red rowedit rowadd "$CLM/req-unread")" 1 "and still owes it when the diff edits a row the base had (null control)"
+  st "$(row_red rowedit rowadd "$CLM/req-gate")" 0 "under a read required set, delivery-status is owed nothing even on an edited base row (tvofi 2026-11-07)"
 
   mkdir "$CLM/ok" "$CLM/under" "$CLM/dead"
   python3 - "$CLM" <<'PY'
@@ -2922,11 +3033,11 @@ EOF
     && $G add -A && $G commit -qm pfunc \
     && $G checkout -q -b pinert origin/main && echo "# planted" > dev/audit/harnesses/zz_planted.py \
     && $G add -A && $G commit -qm pinert \
-    && $G checkout -q -b pexsib origin/main && echo "# planted" >> tools/audit/seat/orchestrator_tick.py \
+    && $G checkout -q -b pexsib origin/main && echo "# planted" >> tools/audit/seat/ci_critpath.py \
     && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('record_row','roster_lib','tmp_paths')];c.write_closures(c.CLOSURES,p)" \
     && $G commit -qam pexsib \
     && $G checkout -q -b pglobsib pexsib \
-    && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('pr_cap','pulse','sweep_render')];c.write_closures(c.CLOSURES,p)" \
+    && PYTHONPATH=tests/hastub python3 -c "import sys,json;sys.path[:0]=['tests'];import closure as c;p=json.loads(c.CLOSURES.read_text());p['inert_reads']['tests/zz_reader.py']=['tools/audit/seat/'+n+'.py' for n in ('plan_audit','pulse','sweep_render')];c.write_closures(c.CLOSURES,p)" \
     && $G commit -qam pglobsib \
     && $G checkout -q -b pleft origin/main \
     && PYTHONPATH=tests/hastub python3 -c "import sys,json,pathlib as P;sys.path[:0]=['tests'];import closure as c;t=json.loads(c.CLOSURES.read_text());h='tests/harness_headers.py';f=next(x for x in t['inert_reads'][h] if x.startswith('dev/audit/harnesses/') and x not in t['closures'][h] and c.is_inert(x));p=P.Path('tests/closure.py');s=p.read_text();p.write_text(s.replace('INERT_EXCEPT = (\\n','INERT_EXCEPT = (\\n    \\'%s\\',\\n'%f,1));P.Path('$PDX/left').write_text(f)" \
@@ -2973,7 +3084,7 @@ EOF
   st $? 0 "and 6d's step line names --apply-inert, not ci-autofix.md's wait, when every red is an INERT READS"
   got=$(predict_at pexsib); grep -q 'INERT READS tests/zz_reader.py' <<<"$got"
   st $? 1 "6d reads no glob from three listed siblings that left INERT, which a glob never files there (R10-CI-LAYOUT-P1)"
-  got=$(predict_at pglobsib); grep -q 'PREDICT tests / closures .*INERT READS tests/zz_reader.py: tools/audit/seat/orchestrator_tick.py' <<<"$got"
+  got=$(predict_at pglobsib); grep -q 'PREDICT tests / closures .*INERT READS tests/zz_reader.py: tools/audit/seat/ci_critpath.py' <<<"$got"
   st $? 0 "and predicts it from three listed INERT siblings, the same plant otherwise (null control)"
   LEFT=$(cat "$PDX/left" 2>/dev/null)
   got=$(predict_at pleft); [ -n "$LEFT" ] && grep -qF "PREDICT tests / closures UNDER-SCOPED tests/harness_headers.py: $LEFT leaves INERT" <<<"$got" && grep -q '^rc=1$' <<<"$got"
@@ -3070,12 +3181,12 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
     && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
   st $? 0 "and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)"
-  # CARRY 11: body_push runs carry_audit.py landed after the packet; rc 1 pushes nothing, rc 3 pushes.
+  # CARRY 11: body_push runs carry_audit.py landed after the packet; rc 1 pushes nothing and body_push exits 4 (CARRY-LANDED alone, the relay folds it), rc 3 pushes.
   printf '#!/bin/bash\necho "CARRY-MISSING R10-X body item 0123abcd: not in its brief or carries"; exit %s\n' 1 > "$PDX/ld1"
   printf '#!/bin/bash\necho "carry_audit: UNREAD the roster"; exit %s\n' 3 > "$PDX/ld3"
   was=$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)
   got=$(HPO_HANDOFF_LANDED="bash $PDX/ld1" lpush)
-  grep -q '^CARRY-MISSING R10-X body item 0123abcd' <<<"$got" && grep -q '^rc=1$' <<<"$got" \
+  grep -q '^CARRY-MISSING R10-X body item 0123abcd' <<<"$got" && grep -q '^rc=4$' <<<"$got" \
     && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" = "$was" ]
   st $? 0 "and refuses a body whose carry its group does not hold, naming it and pushing nothing (CARRY 11)"
   got=$(HPO_HANDOFF_LANDED="bash $PDX/ld3" lpush)
@@ -3225,6 +3336,12 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   printf 'jobs:\n  callee:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || format(%s, inputs.base) }}\n        run: |\n          git checkout "$PINNED" -- \\\n            %s\n      - run: node .claude/workflows/pr_only.mjs\n' "'origin/{0}'" "'x.mjs'" > "$WF/callee.yml"
   [ -z "$(pinned_graders "$WF/callee.yml")$(pinned_paths "$WF/callee.yml")$(pin_read problems "$WF/callee.yml")" ]
   st $? 0 "a callee pin falling back to the dispatched PR's base is the PR-only class, not counted and not a problem"
+  sed 's/PINNED: \${{ /&inputs.restore_source || /' "$WF/callee.yml" > "$WF/callee-source.yml"
+  [ -z "$(pinned_graders "$WF/callee-source.yml")$(pinned_paths "$WF/callee-source.yml")$(pin_read problems "$WF/callee-source.yml")" ]
+  st $? 0 "and led by the restore source ci.yml's prelude resolves, it is still that class (R10-HOTFIX-RESTORE-BASE-SKEW)"
+  sed 's/PINNED: \${{ /&inputs.head || /' "$WF/callee.yml" > "$WF/callee-foreign.yml"
+  [ -n "$(pin_read problems "$WF/callee-foreign.yml")" ]
+  st $? 0 "and led by any other input, it stays unclassified (null control)"
   sed 's/format(.origin\/{0}., inputs.base)/inputs.base/' "$WF/callee.yml" > "$WF/callee-bare.yml"
   [ -n "$(pin_read problems "$WF/callee-bare.yml")" ]
   st $? 0 "and a bare \`inputs.base\` fallback, a branch name no checkout resolves, stays unclassified (null control)"
@@ -3240,7 +3357,7 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
   [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader called only above rc=0 is named"
-  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base; do
+  for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base restore-input restore-prelude restore-gate restore-step foreign-source; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
     PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY' || { st 1 0 "governance.yml perturbation ($pert) changes the file"; continue; }
 import os, sys
@@ -3260,6 +3377,11 @@ elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
     t = head + "\njobs:\n" + "".join("  " + l if l.strip() else l for l in body.splitlines(True))
 elif k == "renamed": t = s.replace("PINNED", "PIN")
 elif k == "queue-base": t = s.replace(cur, "PINNED: ${{ github.event.pull_request.base.sha || github.sha }}")
+elif k.startswith("restore-"):  # each source ci.yml's prelude resolves, as its readers name it
+    src = {"input": "inputs.restore_source", "prelude": "needs.prelude.outputs.restore_source",
+           "gate": "needs.gate.outputs.restore_source", "step": "steps.source.outputs.sha"}[k[8:]]
+    t = s.replace(cur, cur.replace("${{ ", "${{ " + src + " || "))
+elif k == "foreign-source": t = s.replace(cur, cur.replace("${{ ", "${{ inputs.head || "))
 else: t = s.replace("run: " + full, "run: |\n          if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I \\\n            dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi", 1)
 assert t != s, k
 open(p, "w").write(t)
@@ -3268,9 +3390,12 @@ PY
     st $? 1 "governance.yml perturbed ($pert), with step 3e's run deleted, is refused"
     # The reader reads a shape it knows rather than refusing it: with 3e's run
     # present, each of these passes (null control).
-    case $pert in x-flag|bare-python|uv-run|continuation|indent4|queue-base)
+    case $pert in x-flag|bare-python|uv-run|continuation|indent4|queue-base|restore-*)
       pinned_verdict "$PREPR_PATH" "$WF/wf/"*.yml >/dev/null
       st $? 0 "governance.yml perturbed ($pert), with step 3e's run present, passes (null control)" ;;
+    foreign-source)  # R10-HOTFIX-RESTORE-BASE-SKEW: only the resolver's source may lead
+      pinned_verdict "$PREPR_PATH" "$WF/wf/"*.yml >/dev/null
+      st $? 1 "governance.yml perturbed ($pert), with step 3e's run present, is still refused" ;;
     esac
   done
   # The last job of a file is flushed when the next file starts: its problem
@@ -3858,6 +3983,9 @@ EOF
   st "$r" 0 "and a row that writes into the tracked fixture dir changes it (null control)"
   case "$bc" in *'fout=$(figures_check "$2" 2>&1); fr=$?'*'[ "$r" -ne 0 ] || r=$fr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "--body-check runs step 7a's figure lint and refuses on its rc (carry 8)"
+  case "$bc" in *'gout=$(figure_block_check "$2" 2>&1); gr=$?'*'[ "$r" -ne 0 ] || r=$gr'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check runs figure_block_check and refuses on its rc (card 7)"
+  st "$(declare -f figure_block_check | grep -c 'figure_block.py verify')" 1 "figure_block_check calls figure_block.py verify"
   case "$bc" in *'vline=$(privacy_line); vr=$?'*'[ "$r" -ne 0 ] || r=$vr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "--body-check runs privacy_line and refuses on its rc (P78)"
   case "$bc" in *'bline=$(body_privacy_line "$2"); br=$?'*'[ "$r" -ne 0 ] || r=$br'*) r=0 ;; *) r=1 ;; esac
@@ -3866,10 +3994,13 @@ EOF
   pfh="/$(echo Users)/exampleuser"
   printf 'evidence: %s/proj/log\n' "$pfh" >"$WB/priv-bad.md"
   printf 'evidence: dev/audit/x.md and ~/proj/log\n' >"$WB/priv-ok.md"
-  got=$(HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-bad.md"); r=$?
+  # python3 may be a seat shim that resolves its venv under $HOME (macOS), so
+  # under the planted HOME it exits 127; the real interpreter's dir goes first.
+  pfp=$(dirname "$(python3 -I -c 'import sys; print(sys.executable)')"):$PATH
+  got=$(HOME=$pfh USER=exampleuser PATH=$pfp body_privacy_line "$WB/priv-bad.md"); r=$?
   st "$r" 1 "a body naming the host home directory is refused by body_privacy_line"
   st "$(printf 'REFUSE ref_privacy (body): %s' "$got" | cut -c1-26)" "REFUSE ref_privacy (body):" "and the line reads REFUSE ref_privacy (body)"
-  HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-ok.md" >/dev/null
+  HOME=$pfh USER=exampleuser PATH=$pfp body_privacy_line "$WB/priv-ok.md" >/dev/null
   st $? 0 "a body naming only repository-relative paths and ~/ text passes (null control)"
   case "$flow" in *'PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
@@ -4445,33 +4576,22 @@ if [ -s "$UNPINNED_SITES" ]; then
   say WARN "unpinned sites" "$(grep -c . "$UNPINNED_SITES") site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)"
 fi
 
-# --- 6d'. the diff's added lines mutated (R10-MUTANT-RUN-DRIVER, card 4), REPORT
-# ONLY: `mutant_run.py --diff` applies GUARD_OFF, RETURN_DEL, CMP_BOUND, CALL_DEL
-# and CONST_SWAP to each added Python line and runs MUTANT_CMD, the group's named
-# self-test or `features_block.py` call, once per mutant. Each survivor is a WARN
-# line the body answers (an equivalent one still owes a survivor_triage record);
-# nothing here refuses, and with MUTANT_CMD unset the step skips. The cap keeps
-# the in-tree tier fast; the heavy pass (MUTANT_MAX=0, all mutants) is a cloud
-# seat's.
+# --- 6d'. the diff's added lines mutated: `mutants_line` above. Survivors are a
+# WARN the body answers; a run that measured nothing refuses; MUTANT_CMD unset
+# skips. The cap keeps the in-tree tier fast; the heavy pass (MUTANT_MAX=0, all
+# mutants) is a cloud seat's.
 if [ -n "$REUSE" ]; then
   say skip "code-keyed steps" "PREPR_SKIP_CODE: diff mutants, no-copies"
 else
-if [ -z "${MUTANT_CMD:-}" ]; then
-  say skip "diff mutants" "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call to mutate the diff's added lines (report only)"
-elif [ ! -f tools/audit/seat/mutant_run.py ]; then
-  say skip "diff mutants" "tools/audit/seat/mutant_run.py is not in this tree"
-else
-  take_slot
-  MUT_OUT=$(python3 -I tools/audit/seat/mutant_run.py --diff "$BASE...HEAD" --cmd "$MUTANT_CMD" \
-    --max-mutants "${MUTANT_MAX:-40}" --report-only 2>&1)
-  MUT_N=$(printf '%s\n' "$MUT_OUT" | grep -c '^SURVIVED ')
-  if [ "$MUT_N" -gt 0 ]; then
-    printf '%s\n' "$MUT_OUT" | grep '^SURVIVED ' | sed 's/^/           /' >&2
-    say WARN "diff mutants" "$MUT_N survivor(s) on the diff's added lines -- the body answers each (report only)"
-  else
-    say ok "diff mutants" "no survivor: $(printf '%s\n' "$MUT_OUT" | tail -1 | cut -c1-120)"
-  fi
-fi
+[ -n "${MUTANT_CMD:-}" ] && take_slot
+MUT_OUT=$(mutants_line "$PWD" "$BASE" "${MUTANT_CMD:-}")
+case $? in
+  3) say skip "diff mutants" "$MUT_OUT" ;;
+  0) step "diff mutants" 0 "$MUT_OUT" ;;
+  2) grep '^SURVIVED ' <<<"$MUT_OUT" | sed 's/^/           /' >&2
+     say WARN "diff mutants" "$(tail -1 <<<"$MUT_OUT")" ;;
+  *) step "diff mutants" 1 "$MUT_OUT" ;;
+esac
 
 # --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
 # before the push. `copies_line` above. The scan reads the whole tree, so it
@@ -4578,10 +4698,19 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
   rm -f /tmp/prepr-fig.$$
 
+  # --- 7a2. every registered figure block is what the registry renders at HEAD.
+  figure_block_check "$BODY" >/tmp/prepr-fb.$$ 2>&1
+  step "figure blocks" $? "$(tail -1 /tmp/prepr-fb.$$)"
+  rm -f /tmp/prepr-fb.$$
+
   # --- 7e. every finding the body records names a destination on the round's
   # roster branch, freshly fetched (`carry_line` above): pr-contract's carry check.
   CARRY_LINE=$(carry_line "$BODY"); CARRY_RC=$?
   step "carry" "$CARRY_RC" "$CARRY_LINE"
+  # Carry 4: the live consumers (the only valid `Carry:` targets) and the group's class
+  # enumeration, as the fixer's brief renders them; informational, never a refusal.
+  CT_REF=$(python3 -I -c 'import sys; sys.path.insert(0, "tools/audit/seat"); import roster_lib as r; print(r.round_ref(r.git_in(".")) or "")' 2>/dev/null)
+  [ -z "$CT_REF" ] || while IFS= read -r l; do say info "carry targets" "$l"; done < <(python3 -I tools/audit/seat/roster_lib.py brief-lines "$CT_REF" "$(git branch --show-current 2>/dev/null)" 2>&1)
 
   # --- 7d. each unpinned site step 6d listed has its disposition (`unpinned_line`).
   UNPINNED_LINE=$(unpinned_line "$BODY" "$UNPINNED_SITES")

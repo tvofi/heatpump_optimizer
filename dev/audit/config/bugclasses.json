@@ -4600,6 +4600,24 @@
         "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md"
       ]
     },
+    "R10-RCA-OPEN-PREPR-SLOW": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "open_pr.sh ran the full prepr on three opens of 2026-11-10 (r10-process-slim-p2, r10-hotfix-record-issue-continuation, r10-arbiter-off-restore) where no Prepr: receipt reached the handoff-body tip, and the full prepr has outgrown the four-slot heavy cap set for it",
+      "trigger": "orchestrator-dispatched RCA: three opens past the caller's 3000 s bound or near it, 2026-11-10",
+      "date": "2026-11-10",
+      "status": "proposed",
+      "parts_missing": [
+        "fixer seat R10-PREPR-RESIDUE to build C1 to C4"
+      ],
+      "process_state": "C-A (c): body_push.sh's prepr_trailer keys the receipt to one checkout's git dir and to sha equality, so it drops receipts app_push.sh's reuse_verdict would accept (re-push from another checkout; a code head moved only by a clean merge of main); the never-receipted tips are not established. C-B (d): HEAVY_SLOTS = 4 was set in c09cf12010 for a prepr.sh under half its size at b0762725099f, and nothing the cap reads sees the growth",
+      "countermeasure": "proposed, routed to R10-PREPR-RESIDUE: C1 body_push.sh carries an ancestor receipt from the parent body tip (null control: a non-merge commit past it, reuse_verdict rc 1); C2 a Prepr-absent reason trailer; C3 elapsed seconds on prepr.sh step lines; C4 bound step 6d's GRADER replays (dev/audit/rca/open_prepr_6d.sh before and after). Refused for now: lowering HEAVY_SLOTS. Measured by dev/audit/rca/open_prepr_receipts.py (--self-test)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md"
+      ]
+    },
     "R10-RCA-PREPR-HEAD-GRADERS": {
       "class": "I3",
       "level": "instance-or-process",
@@ -4676,10 +4694,11 @@
       "parts_missing": [
         "the census's pass at the fix's head",
         "wiring the census as a tests/ script",
-        "the meter band"
+        "the meter floor",
+        "an inflated reference on a wood house has no meter oracle (owner ruling)"
       ],
       "process_state": "(c) step 6 ran and recorded 12/12 SOUND on the fixer's metric and population: the spread of step 0 across room and slab starts reads SOUND on a constant zero, no savings harness names a valve or a wood tank, and #2887's valved arm reads the horizon sum while the ledger books step 0",
-      "countermeasure": "proposed barrier: census of installs and tank states booked through get_current_action (red at v7.0.4, v7.1.1 and main), plus a meter band on the published row; at most 2.1 h/release against 6.8 h/release",
+      "countermeasure": "proposed barrier: census of installs and tank states booked through get_current_action (red at v7.0.4, v7.1.1 and main), plus a meter floor on the published row (R10-SAV-METER-FLOOR: booked reference kWh under METER_FLOOR 0.5 of metered kWh states no saving; its ceiling rejected by the owner's no-wood ruling, triage P387), so the high side has no meter oracle; at most 2.1 h/release against 6.8 h/release",
       "landed": null,
       "in_tree_home": "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md",
       "doc": [
@@ -4756,6 +4775,204 @@
       "in_tree_home": "dev/audit/rca/r10-gate-busy-defer-2.md",
       "doc": [
         "dev/audit/rca/r10-gate-busy-defer-2.md"
+      ]
+    },
+    "R10-RCA-CLOUD-ENTITIES-ENV": {
+      "class": null,
+      "level": "class",
+      "subject": "four cloud fixer handoffs blocked 2026-11-08 at prepr 6b (tests/entities.py exit 1, identical at main): the environment's BASH_ENV sources cloud-setup.sh's profile ahead of every nested bash, and since 44c51bfec7 (#3222) the profile exports RUNNER_TEMP unconditionally, so the Pages probe, release ZIP and covtrust harnesses' children lost their own RUNNER_TEMP; class: a BASH_ENV-sourced profile overwrites a caller-set variable (#2452, #2835 group, this)",
+      "trigger": "2 (red step: prepr closures refused 4 handoffs; dispatch-at-handoff-p2 blocked 4 h 20 min, fly-no-self-carry >= 39 min)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(d) the profile gained an unconditional RUNNER_TEMP export under a BASH_ENV no instruction asks for; the class's barriers (#2452 PATH arm, #2835 _stub_path_env) had units of one variable and the PATH stand-in helpers; shape B (ModuleNotFoundError) is (c), a re-run without PYTHONPATH=tests/hastub",
+      "countermeasure": "cloud-setup.sh's profile sets every variable but PATH only where unset, and a --self-test arm requires every exported name to keep a caller's value under BASH_ENV (red on the base profile, 7 names overwritten; green at head; 0.24-0.39 s); owner: remove BASH_ENV from the environment's variables and re-paste the setup script; prepr base-replay null control refused (868 s per failed recording, and it would have passed all four)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-CLOUD-ENTITIES-ENV.md"
+      ]
+    },
+    "R10-RCA-COP-UNMEASURED": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "R10-HOTFIX-COP-UNMEASURED (#3297): with no heat input cop_evidence infers COP as model x ask/draw, and a vendor-estimated thermal power entity was read as metered heat; both were recorded as the measured COP and fed the COP health watch, so the Health tab graded the model against itself from v4.0.0 (a63b576cd) to v7.1.5",
+      "trigger": "1 (release)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "the D1 provenance method step (owner-gated policy)",
+        "the planning counterpart: a study's 'not observable' ruling carried to every reader of the quantity (owner-gated)"
+      ],
+      "process_state": "(c) D1 hunts 'fabricated data as measured' with no method step; the round-10 P5 sweep read _cop_health_cusum and cleared it as 'an empirical per-bucket ... baseline, not a model residual'; STUDY R10-IDENT Q2 found 'COP is not observable without a heat meter' and R10-COP-GATE's brief carried it as a draw-follows-plan state whose null control named the learner only; each judged the sample clean, none traced its inputs",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_cop_unmeasured.py --check (rc 1 at v7.1.5 and main 73365699a, rc 0 at the fix 2d010b091, rc 2 on the skip control); proposed: a D1 provenance step, about 10 min a round against 1.2-1.5 h expected; refused: a CI-wide provenance type",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-COP-UNMEASURED.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-COP-UNMEASURED.md",
+        "dev/audit/harnesses/r10_rca_cop_unmeasured.py"
+      ]
+    },
+    "R10-RCA-GATE-DEFER-READ-FINAL": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3287 (5c1fa41fb) made gate.py's deferral red publish at once and left its re-judging to gate-sweep.yml's settle: five readers of the required gate conclusion at 73365699a (merge_train.py policy_refusal, orchestrator_tick.py one_pr/main, review_packet.py gate_digest, merge_pr.sh, nudge.md step 15) still read that provisional red as final; 41 at-once deferral reds on 18 heads of 13 sampled PRs in 11.8 h, red window median 32.2 min, decider-to-green max 1.5 min after a successful decider. Second finding: sweep.py undecided() counts the skipped jobs a job re-run re-stamps, so settle re-runs two red gates at one head in turn to ATTEMPT_CAP even on content reds (257 bot re-runs of content reds, 159 gate-job minutes, #3274's three runs at attempt 44)",
+      "trigger": "2 (red required check: gate), the third instance of the gate-deferral class (triage batch 136 P436)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "the barrier carried on R10-HOTFIX-TRAIN-DEFER-WAIT (P436): every reader of the gate conclusion through merge_train.py classify_at, with a structural self-test",
+        "settle re-runs only a deferral red, or undecided() ignores skipped jobs (tools/ci/sweep.py, R10-HOTFIX-GATE-BUSY-DEFER)",
+        "fixer step 8's reader rule extended to a writer that changes a conclusion's meaning (policy, the owner's)"
+      ],
+      "process_state": "(a) for the readers: fixer.md step 8's agreement.mjs rule fires on a change to a reader, never to a writer, agreement.mjs registers no gate-conclusion concept, and the brief and review questions were writer-side while the readers' group (#3290) merged 7 h later with no after edge; (c) for the settle loop: #3287's sweep_selftest census, race harness and no-loop argument ran over modelled job listings that never re-stamp a re-run's skipped jobs",
+      "countermeasure": "built: dev/audit/harnesses/r10_gate_defer_read_final.py census (deferral reds by program, red window, decider-to-green lag) and loop (replays #3274's recorded loop through a given sweep.undecided(): 129 of 129 re-runs predicted at 73365699a, 38 with skipped jobs dropped); proposed: P436's barrier and the settle predicate, carried to their owning groups",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-gate-defer-read-final.md",
+      "doc": [
+        "dev/audit/rca/r10-gate-defer-read-final.md",
+        "dev/audit/rca/r10-gate-busy-defer-2.md"
+      ]
+    },
+    "R10-RCA-RELAY-HANDOFF-STARVATION": {
+      "class": "N-relay-handoff-starvation",
+      "level": "instance-or-process",
+      "subject": "three returned handoffs (#3299, #3308, #3310) were not carried into their PRs for 20 to 60 minutes behind the relay's serial pass, and #3297's handoff sat HELD-VERDICT at a DIRTY head until released by hand",
+      "trigger": "third instance, 2026-11-08",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "owner decision on the freeze premise check and the relay pass bound; fixer seat to build them"
+      ],
+      "process_state": "(d) the serial relay pass and the verdict freeze were sound for a small round (short reuse updates, a verdicted head that stays mergeable); round 10's rate of main moves made every update a full prepr and left verdicted heads DIRTY, and neither process noticed its own premise change",
+      "countermeasure": "proposed: review_freeze not-frozen when merge-tree against main conflicts; a wall bound on handoff updates with probe_arm/confirm_arm independent of it; built and unwired: dev/audit/rca/relay_handoff_lag.py (red 40 min and real 61 min row, green 2 min, uncarried not scored)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-relay-handoff-starvation.md",
+      "doc": [
+        "dev/audit/rca/r10-relay-handoff-starvation.md"
+      ]
+    },
+    "R10-RCA-GATE-BUSY-DEFER-4": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "the merge train skipped #3293 (fefaa492), #3267 (cc6ee11f) and #3268 (64fe84b2) on `ci: red at the head: gate` while each head's code run was still in progress: gate.py publishes an edit run's deferral as a failed `gate` at once (fa921fd59, 2026-11-05; the wait cc100c275 restored for 8 h; published at once again by #3287, 52f9fc5b3), and merge_train.py classify, which reads a check run's conclusion alone and has done so since 9262e6f43 (2026-10-22), cannot tell a deferral from a verdict. 14 deferral gates on 14 heads in the 2 h 16 min after #3287 merged; the producer moved three times, the reader never",
+      "trigger": "2 (red required check: gate), third instance of the deferral-red class (#3246, #3278, this)",
+      "date": "2026-11-07",
+      "status": "proposed",
+      "parts_missing": [
+        "the classifier wait (tools/audit/seat/merge_train.py, PR #3290, unmerged, not this seat's)",
+        "the settle gap between the code run's green and gate-sweep's re-run of the edit gate",
+        "the readers outside classify: merge_pr.sh, merge_train.py policy_refusal, review_packet.py gate_digest, ci-watch.sh, orchestrator_tick.py one_pr"
+      ],
+      "process_state": "(c) #3287's replay and race harnesses and its review ran and passed; their unit is gate.py judge() and sweep over recorded listings, the producer. The review ran merge_train.py classify, read RED on a deferral at 16:55Z and waited, and the verdict records that as evidence; the same signature was attributed to the defect being fixed, as in #3278's RCA. No harness had a consumer of the published conclusion in its unit",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_gate_busy_defer_4.py replay of the three evidence heads' recorded listings through a chosen merge_train.py (defects=3 at origin/main dee8b413, 0 at #3290 a38bd141, 3 again with #3290's busy wait mutated out); proposed, not built: the readers outside classify read one shared deferral predicate, and the settle gap needs a wait keyed on the sweep, not a poll count",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-gate-busy-defer-4.md",
+      "doc": [
+        "dev/audit/rca/r10-gate-busy-defer-4.md"
+      ]
+    },
+    "R10-RCA-TOPIC-FAMILY": {
+      "class": "R10-TOPIC-FAMILY",
+      "level": "class",
+      "subject": "R10-TOPIC-FAMILY class: instruments keyed on an exact topic miss its split parts (3 instances, round 10)",
+      "trigger": "class (3 instances: triage P363, P370, P376)",
+      "date": "2026-11-02",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(a) the process did not exist: no policy or instrument defined the topic grammar",
+      "countermeasure": "tools/audit/seat/topic_grammar.py: one module owning pr_topic, family, family_refs, group_of and owner_topic, read by noreturn_arm, open_driver.py and roster_sync.py; self-test rows for a part return, a bare -<N> and a sibling-prefix topic, with a mutant for each",
+      "in_tree_home": "dev/audit/rca/topic-family.md",
+      "landed": null,
+      "doc": [
+        "dev/audit/rca/topic-family.md"
+      ]
+    },
+    "R10-RCA-SWEEP-SETTLE-LOOP": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3287 (52f9fc5b34, v7.1.6) added sweep.settle(); undecided() arm 1 reads a re-run's re-stamped SKIPPED jobs (GitHub re-stamps every skipped job of a run whose gate is re-run) as a source finishing after the sibling gate started, so two real-red gates at one head re-run each other to attempt 44 (1618 ci.yml re-attempts and 17 runs at the cap in the 16.6 h after the merge, against 428 and 0 in the 21.2 h before; the closed-loop replay of #3319's recorded attempts gives reruns=86 at origin/main and reruns=1 with arm 1 ignoring skipped jobs)",
+      "trigger": "1 (released: v7.1.6)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "A: the closed-loop convergence check in the sweep's self-test, carried to the R10-SWEEP-SETTLE-LOOP fixer",
+        "B: the attempt-watch beat row (attempt >= 20), to proposal triage"
+      ],
+      "process_state": "(c) #3287's self-test pinned 'the branch cannot loop' with one-pass nulls over hand-written units that carry no conclusion field and that a re-run never moves; its recorded replay ran one open-loop sweep over one attempt per run, though that fixture's attempt-10 rows showed the re-stamp; the review accepted the no-loop nulls and its live head re-ran green, which ends the loop at the first step",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_sweep_settle_loop.py replay (closed loop over recorded attempt transitions: reruns=86 max_attempt=44 at origin/main and 52f9fc5b34, reruns=1 on the candidate arm-1 copy and in the --no-restamp null, 0 before #3287) and its census arm (alarm 20: 0 runs before the merge, 32 after); proposed: A carried into the fix, B a beat row at 2.84 s per 1800 s pass",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-SWEEP-SETTLE-LOOP.md"
+      ]
+    },
+    "R10-RCA-STAMP-CLAIM-CONFLICT": {
+      "class": "N-stamp-claim-conflict",
+      "level": "instance-or-process",
+      "subject": "the v7.1.6 stamp (2a3c05644) emptied the claim files and left #3297, #3299 and #3308 refused by the claimnotes different-stamps guard; the same shape followed the v6.7.13, v6.7.17 and v7.1.0 stamps",
+      "trigger": "owner ruling 2026-11-08 (same shape three times)",
+      "date": "2026-11-08",
+      "status": "proposed",
+      "parts_missing": [
+        "owner approval of the claim-files.md sentence and the driver change"
+      ],
+      "process_state": "(a) no step handles a stamp-emptied claim base meeting a branch's added claim; the driver test uses a base with no claim line",
+      "countermeasure": "narrow the blanket stamp guard in merge_claim_decision: when the newer-stamp side carries no claim, decide per scenario; prototype resolves #3299 and #3308 and refuses the controls; about 18 h of seat time per 25 days against 0 s standing cost (estimate)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-STAMP-CLAIM-CONFLICT.md"
+      ]
+    },
+    "R10-RCA-ROSTER-DRAIN-REPLAY": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "the beat's roster-drain (#3197) delivers each queue line at least once: a pass killed at timeout_s 900 pushed ops but never wrote roster-done.json, and replayed index-keyed drop-carry ops re-resolved on the shifted carry list; census 43495fb61..c444a6995 on handoff/audit-r10-roster: 32 drops, 18 replays, 14 restored by hand, 4 lost",
+      "trigger": "assigned by the orchestrator 2026-11-10, beside R10-HOTFIX-ROSTER-DRAIN-REPLAY",
+      "date": "2026-11-10",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(d) drop-carry by index (9969e3ca8, 2026-10-18) was sound for a run-once hand caller; the beat's automatic drain made delivery at-least-once and nothing records which ops are replay-safe; the replay half is (c), roster_queue --mark's per-op barrier written to the beat's scratch queue, the hotfix's",
+      "countermeasure": "roster_queue.replay_unsafe refuses an index-keyed drop-carry/mark-carry on the single-op and batch paths (sub-microsecond a line by the harness's cost arm, at most one 120 s requeue per index line written, against >=600 s per occurrence at 8 of 14 index drops replayed); hand runs keep the index",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-rca-roster-drain-replay.md",
+      "doc": [
+        "dev/audit/rca/r10-rca-roster-drain-replay.md"
+      ]
+    },
+    "R10-RCA-DEPENDABOT-STALE-HASH": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "every grouped Dependabot pip pull request on tests/ in round 10 (#3088, #3323, #3414) carried pins whose version moved and whose --hash block stayed the previous version's (3, 5 and 1 pins); each stale pin is one whose name==version a lock comment also spelled and Dependabot rewrote (9 of 9 stale, 0 of 61 fresh), and #3147's re-apply planted the comments behind 5 of the later 6",
+      "trigger": "third instance (the #3408 forward-carry)",
+      "date": "2026-11-11",
+      "status": "proposed",
+      "parts_missing": [
+        "the lock-comment rewording and the --tree check wired into the suite (R10-DEPENDABOT-3414-COMPAT)"
+      ],
+      "process_state": "(c) the re-apply process in .github/dependabot.yml (never edit, re-apply by the header's compile) was followed by #3147 and #3408 and read clean, yet its own comments recording holds and overrides as name==version are what Dependabot rewrites without rehashing the next week",
+      "countermeasure": "built: dev/audit/harnesses/dependabot_stale_hash.py census (rc 1 at the three Dependabot heads, rc 0 at the three re-apply commits and four npm/actions heads) and --tree precondition guard (rc 1 at d08ed31049, 17 exposed; rc 0 on the reworded tree; 0.05 s); carried: reword the comments and run --tree in the suite. Lower schedule and a recompile workflow refused by the cost test",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-rca-dependabot-stale-hash.md",
+      "doc": [
+        "dev/audit/rca/r10-rca-dependabot-stale-hash.md"
+      ]
+    },
+    "R10-RCA-PUSHER-CENSUS-ESCAPE": {
+      "class": "R10-SELFTEST-RED-INTRODUCED",
+      "level": "class",
+      "subject": "#3361 and #3425 merged governance / instrument-self-tests reds their own diffs introduced, inside 3.67 d of the 2026-11-07 owed-reds ruling",
+      "trigger": "class (3 instances by the root-cause seat, 2 merges re-measured)",
+      "date": "2026-11-11",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(d) the 2026-11-07 ruling removed the pr-contract backstop for non-required reds, rightly for reds inherited from main, and with it the backstop for reds a pull request introduces",
+      "countermeasure": "C1 built: merge_train.introduced_at, read by classify --pr and review_packet.py; fix-review.md step 11 blocks on it. C2 recorded fallback; C3, C4 and C5 refused",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md"
       ]
     }
   },
@@ -5238,7 +5455,7 @@
     "total": 6,
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_rca_sav_estimate.py census",
-    "detector_idea": "The census of installs and tank states as a tests/ script once the fix lands, plus a meter band on the published row (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md)",
+    "detector_idea": "The census of installs and tank states as a tests/ script once the fix lands, plus a meter floor on the published row (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md)",
     "barrier": null,
     "status": "detector",
     "nearest_existing": "P11",
@@ -5313,10 +5530,148 @@
     ],
     "non_round_note": "A process defect ruled by the owner on 2026-11-07, not an audit finding, not in register_rows.tsv, not counted in total. Reopen on a second code caller whose dispatch runs jobs it does not want.",
     "non_round_instances": [
-      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (26 dispatches, at most 15909 runner-min, 2026-10-26 to 2026-11-07)"
+      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (27 dispatches, at most 16916 runner-min, 2026-10-26 to 2026-11-07; re-measured at 73365699a, dev/audit/rca/r10-rca-flush-dispatch.md section 7)"
     ],
     "rca": [
       "R10-RCA-FLUSH-DISPATCH"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "N-relay-handoff-starvation": {
+    "kind": "instrument",
+    "mechanism": "A returned handoff waits for the relay's one serial, flock-held pass (handoff_arm waits on each update_pr.sh, whose merge-of-main path runs the full prepr), which also holds the verdict relay and confirm arms and blocks the TICK-STALE restart; and review_freeze holds a PR whose verdict or review is at a head that conflicts with main, so only a hand edit of cloud-handoff-release moves it",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 -I dev/audit/rca/relay_handoff_lag.py --repo . --since <unix> (refs only; --self-test is its null control)",
+    "detector_idea": null,
+    "barrier": null,
+    "barrier_refusal": null,
+    "status": "detector",
+    "nearest_existing": "N-orphaned-handoff",
+    "mechanism_difference": "N-orphaned-handoff's unit is a handoff ref with no pull request; here the PR exists and the obligation is on the level, and the delay is the lag between the handoff tip and the head that carries it, which no class measures",
+    "aliases": [
+      "new: a returned handoff waits behind one serial relay pass; a merge verdict at a DIRTY head freezes the update"
+    ],
+    "non_round_note": "A process defect on 2026-11-08, not an audit finding, not in register_rows.tsv, not counted in total. Reopen on a fourth instance, which owes a barrier decision from the owner (defect-root-cause.md).",
+    "non_round_instances": [
+      "#3308 r10-min-power-floor handoff ac28d7e88 (2026-11-08T09:12Z) carried 61 min later by a hand merge",
+      "#3299 r10-generic-heat-curve handoff 2eb13559c and #3310 r10-fly-triage-bar handoff eda3592e3: orchestrator-recorded 20 to 60 min, not re-derived from refs",
+      "#3297 r10-hotfix-cop-unmeasured handoff 68b0735be held HELD-VERDICT at a DIRTY head (merge-tree conflicts, 367 commits behind main), at least 93 min at 2026-11-08T10:24Z"
+    ],
+    "rca": [
+      "R10-RCA-RELAY-HANDOFF-STARVATION"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
+  },
+  "R10-TOPIC-FAMILY": {
+    "kind": "instrument",
+    "mechanism": "The topic is the join key between dispatch, return, PR and roster records, and nothing defined its grammar in one place: each instrument parsed the relation it needed from the exact string, so a split into <topic>-p<N> parts, which renames the topic partway through the work, missed at every join that crossed it (noreturn_arm false-fired SEAT ENDED NO RETURN after a seat returned on handoff/<topic>-p1; the opener logged NEEDS-TITLE for part topics)",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 P363",
+      "R10 P370",
+      "R10 P376"
+    ],
+    "per_round": {
+      "R10": 3
+    },
+    "total": 3,
+    "max_per_round": 3,
+    "detector": "tools/audit/seat/topic_grammar.py --self-test: its rows drive the family rule over the bare -<N> and sibling-prefix topics",
+    "detector_idea": null,
+    "barrier": "tools/audit/seat/topic_grammar.py, read by tools/audit/seat/cloud_relay.sh (noreturn_arm and the PR-topic strip), tools/audit/seat/open_driver.py and tools/audit/seat/roster_sync.py",
+    "status": "barriered",
+    "nearest_existing": null,
+    "mechanism_difference": "a join keyed on an exact string misses a renamed part; no value is stale or wrong, the key itself changed",
+    "aliases": [],
+    "non_round_instances": [],
+    "rca": [
+      "R10-RCA-TOPIC-FAMILY"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "R10-SELFTEST-RED-INTRODUCED": {
+    "kind": "instrument",
+    "mechanism": "A pull request merges a red its own diff introduced in governance / instrument-self-tests, a job in no required set (decision 0013's HPO_JOB_GRADES boundary): the 2026-11-07 ruling (234ff52c75) owes only a required check's red an answer, so the body names none, merge_train.py classify reads GREEN and no reviewer rule reads the job, and main goes red on the steps the diff broke",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 tools/audit/seat/merge_train.py introduced <head> --base <merge base>: each instrument-self-tests step red at the head and not at the base, rc 1 when any",
+    "detector_idea": null,
+    "barrier": "merge_train.introduced_at, read by merge_train.py classify --pr (RED with INTRODUCED lines, which bus.sh dispatch and a cloud reviewer's wait stop on) and tools/audit/seat/review_packet.py (introduced-red); fix-review.md step 11 makes it a block",
+    "status": "barriered",
+    "nearest_existing": null,
+    "mechanism_difference": "no check is skipped or stale and no required check is red: the red is on a job graded by no merge rule, and the ruling that freed inherited reds from an answer freed introduced ones too",
+    "aliases": [
+      "a PR merges a non-required self-test red its own diff introduced"
+    ],
+    "non_round_note": "Process incidents measured by the fixer of R10-INTRODUCED-REDS-BARRIER with the detector at each merge's second parent against the merge base of its parents, not audit findings, not counted in total. The root-cause seat counted 3 (#3425 twice, two causes); that attribution is carried in the RCA.",
+    "non_round_instances": [
+      "8652aa65ce #3361: 2 introduced at 825f549270 against b8f67a7751",
+      "ee64358be #3425: 4 introduced at c93903f075 against a7628041dc"
+    ],
+    "rca": [
+      "R10-RCA-PUSHER-CENSUS-ESCAPE"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-stamp-claim-conflict": {
+    "kind": "instrument",
+    "mechanism": "A release stamp empties both claim files and bumps claims-for; a branch forked before it whose base held claim lines and which added a claim is refused by the claimnotes driver's blanket different-stamps guard, so every claim-carrying open branch needs a hand resolution after each claim-deleting stamp.",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "git merge-tree --write-tree origin/main <head> prints MERGE-CLAIM: refused tests/golden/claimed_drift.txt with the different 'claims-for:' stamps text",
+    "detector_idea": null,
+    "barrier": null,
+    "status": "open",
+    "nearest_existing": "N-postreview-merge-red",
+    "mechanism_difference": "N-postreview-merge-red is a merge that reddens a reviewed head; here the merge cannot run at all (refused, the pull request goes DIRTY) and the cause is the driver's stamp guard meeting the stamp's own emptying of the list.",
+    "aliases": [
+      "new: a stamp that empties the claim files leaves open branches unmergeable"
+    ],
+    "non_round_note": "Process defect ruled by the owner on 2026-11-08, not an audit finding, not counted in total. Instances: stamp commits v6.7.13, v6.7.17, v7.1.0 and v7.1.6 (merge commits 8f30964ff, 45c04b7d6, 7790838ea, 68b0735be; #3297, #3299, #3308).",
+    "non_round_instances": [
+      "8f30964ff v6.7.13",
+      "45c04b7d6 v6.7.17",
+      "7790838ea v7.1.0",
+      "68b0735be v7.1.6 (#3297, #3299, #3308)"
+    ],
+    "rca": [
+      "R10-RCA-STAMP-CLAIM-CONFLICT"
     ],
     "rca_planned": [],
     "trigger": {

@@ -8,7 +8,12 @@
   request). When: before any `merge_train.py run`/`batch` — an admission-time
   refusal parks the entry here instead of stopping a live queue mid-run.
   Refusal: exit 1 unless every entry passed; the checks are the train's own
-  methods (`bot_tip`, `policy_gate`, `app_approve.sh --carry`), never new ones.
+  methods (`bot_tip`, `policy_admits`, `app_approve.sh --carry`), never new ones.
+  `policy_admits` is `policy_gate` as admission reaches it, after
+  `policy_approve`: under the train's `--mandate`, in force for policy merging,
+  the approval the train is due to post is judged unposted, so the policy head
+  passes; no mandate, or one revoked, expired or not scope `all`, still parks,
+  naming the mandate's reason (#3366). The pre-flight posts nothing.
   `merge_train.py --pre-flight` runs it inside the train, passing the two
   shapes the train now cures itself: a bot tip, and under `--free-holders` a
   holder `Train.freeable` clears.

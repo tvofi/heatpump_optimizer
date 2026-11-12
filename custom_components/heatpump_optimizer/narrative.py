@@ -82,7 +82,28 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "idle_coasting": "viloläge i {hours} h, över golvet och i medgång",
         "pump_mode": "blockerat av värmepumpens driftläge i {hours} h",
         "untagged": "{kwh} kWh utanför planen ({cost} {currency})",
+    },    "de": {
+        "cheap_price": "{kwh} kWh in den günstigsten Stunden für {cost} {currency}",
+        "comfort_floor": "das Halten der Mindesttemperatur kostete {kwh} kWh ({cost} {currency})",
+        "preheat_weather": "Vorheizen von {kwh} kWh vor kälterem Wetter ({cost} {currency})",
+        "scheduled": "das Halten des Hauses auf Zieltemperatur kostete {kwh} kWh ({cost} {currency})",
+        "terminal_value": "Haus über den Horizont hinaus warm gehalten: {kwh} kWh ({cost} {currency})",
+        "solar_surplus": "{kwh} kWh durch Solarüberschuss gedeckt ({cost} {currency})",
+        "dhw_window": "Warmwasser jetzt benötigt: {kwh} kWh ({cost} {currency})",
+        "dhw_ready": "Speicher für ein Bedarfsfenster bereit machen: {kwh} kWh ({cost} {currency})",
+        "dhw_preheat": "Speicher laden, solange Strom günstig ist: {kwh} kWh ({cost} {currency})",
+        "legionella": "die Legionellenschaltung benötigt {kwh} kWh ({cost} {currency})",
+        "manual_plan": "{kwh} kWh, die du selbst eingeplant hast ({cost} {currency})",
+        "idle": "{hours} h im Leerlauf",
+        "idle_other_channel": "{hours} h im Leerlauf, da der andere Kanal die Kapazität hat",
+        "idle_fuse": "{hours} h im Leerlauf, durch die Sicherung begrenzt",
+        "idle_solar": "{hours} h im Leerlauf, wartet auf Solarstrom",
+        "idle_dearer": "{hours} h im Leerlauf, teurer als die genutzten Stunden",
+        "idle_coasting": "{hours} h im Leerlauf, über der Untergrenze, das Haus zehrt von gespeicherter Wärme",
+        "pump_mode": "{hours} h durch die Betriebsart der Wärmepumpe gesperrt",
+        "untagged": "{kwh} kWh außerhalb des Plans ({cost} {currency})",
     },
+
 }
 
 

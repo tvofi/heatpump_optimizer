@@ -88,11 +88,11 @@ binds the seat to this file.
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
-| `delivery-status-tracking.md` | a PR's row as `dev/programme/delivery/<N>.md`, roster `resume`, and one #201 comment per state change — at each merge, not at session end; the record outranks any wave body |
+| `delivery-status-tracking.md` | a PR's row as `dev/programme/delivery/<N>.md`, roster `resume`, and one #3394 comment per state change — at each merge, not at session end; the record outranks any wave body |
 | `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges — a PR comment records it, it does not propagate it |
 | `gate-scoping.md` | how to run the scoped gate, the `gate_lock.py` lease, and never a full `derive_closures.sh` off Linux — that path replaced the Linux recordings and cost one lane most of its closure |
 | `ratchet-budgets.md` | three one-sided caps, because the floor prices a session that opens nothing and a split lowers it without deleting a line; re-record it only alongside a flat corpus and flat role caps |
-| `writing-for-agents.md` | what a sentence in the development record must carry to stay; `README.md` and the rest of `docs/` are outside it; and the one living handover, durable in the tree against volatile on #201 |
+| `writing-for-agents.md` | what a sentence in the development record must carry to stay; `README.md` and the rest of `docs/` are outside it; and the one living handover, durable in the tree against volatile on #3394 |
 
 ### Loaded when a pull-request event arrives
 
@@ -119,10 +119,10 @@ Under `dev/governance/roles/`.
 | `architect-planner.md` | P3 from round 11: triages verified findings, groups by owning seam, plans moves to the archscore target |
 | `plan-review.md` | attacks that plan; only `Plan review: approve` sends it to the owner |
 | `proposal-triage.md` | gates a process or tooling proposal on cost/benefit first |
-| `standing-tick.md` | reports only owed or new tick-board items |
+| `standing.md` | the standing seats' shared terms |
 | `standing-merge.md` | runs merges, critical path first, never choosing them |
 | `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
-| `standing-roster.md` | `roster_edit.py` ops only, behind the lint gate |
+| `standing-tick.md`, `standing-roster.md` | retired into beat rows |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
 | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |

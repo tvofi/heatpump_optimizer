@@ -24,8 +24,11 @@ named beside them.
 - **Audit class.** Yes: six instances in round 10, so a barrier is owed rather
   than a refusal.
 - **Countermeasure.** A two-part barrier. A census of installs and tank states in
-  CI, shown red on the defect, and a meter band on the published row, which is the
-  only part that reaches installs no fixture has.
+  CI, shown red on the defect, and a meter floor on the published row, which is the
+  only part that reaches installs no fixture has. Its ceiling is rejected (the
+  owner's no-wood ruling, triage `dev/programme/triage/s6-batch122.md#P387`), so
+  the class is not fully barriered: an inflated reference on a wood house has no
+  meter oracle.
 
 ## The cause, reproduced
 
@@ -222,8 +225,9 @@ release, over the eight release intervals v7.0.0 to v7.1.2.
   - 33 of the 757 touch `optimizer`, `thermal_model`, `ledger`, `mixing_valve` or
     `dhw_planner`: about 4 per release, and at 3 gate runs each, 12 PR runs.
   - (95 + 12) x 71 s = 2.1 h. At the CPU figure it is 0.6 h.
-- **cost(countermeasure, meter band): about zero.** One ratio per published row;
-  no CI lane.
+- **cost(countermeasure, meter floor): one fix group.** R10-SAV-METER-FLOOR, a
+  fixer seat and a reviewer seat; at run time one comparison per published row,
+  and no CI lane.
 
 **Verdict: passes**, by a factor of 3.2 contended and about 11 at CPU cost. The
 margin is modest for the census at its contended figure. The solve is the whole
@@ -264,20 +268,27 @@ The census covers enumerated installs only. "A harness's configurations are its
 parameters, not its population" (`fix-review.md`), so it cannot be the whole
 barrier, which is why part 2 exists.
 
-### 2. The meter band (production, proposed): the part that reaches the population
+### 2. The meter floor (production, R10-SAV-METER-FLOOR): the part that reaches the population
 
-`savings_months` gives each row's booked thermostat kWh over its metered kWh and
-publishes no percentage outside a band, saying why instead. `METER_BAND` is 0.5 to
-2.0, from one month of one install plus #2411's null, so it needs its own review.
+`savings_months` reads each row's booked thermostat kWh over its metered kWh and,
+where that is under `METER_FLOOR` (0.5, `ledger.py`) on a row of the current
+reference basis with at least `MIN_CALIBRATION_KWH` metered, publishes no saving
+and says why (`below_meter_floor`). The ceiling the band first had (2.0) is
+rejected under the owner's no-wood ruling: the reference holds no wood term, so
+wood raises the ratio without limit and a high ratio on a wood house cannot be
+told from wood by the meter. Do not build a ceiling without a measured instance
+above it on an install with no wood (triage P387).
 
-- **On the defect:** `ledger` reads 2026-09 at 3.30 and 2026-11 at 0.18, both `OUT
-  OF BAND`, and 2026-10 at 0.72, in band. It fires on the row of the 2026-10-14
-  report and on today's.
-- **Null:** #2411's flat-price loop reads 128.4 / 112.6 = 1.14, in band.
-- **Known limit:** it is coarse. It would not catch October's -23 %, and #2411's
-  pre-fix null at 1.78 is also in band.
-- **Owed:** the passing run on a fixed install's row, which the export cannot give
-  because the booked lines predate the fix.
+- **On the defect:** `ledger` reads 2026-09 at 3.30, above the floor and so not
+  caught, and 2026-11 under it. The 2026-11 figure (0.18 above) is this seat's
+  reading of the owner's export, which is on no ref; the R10-SAV-METER-FLOOR
+  fixer could not re-run the arm on it, so the figure is unverified, not
+  re-derived.
+- **Null:** the flat-price arm `valve-flat` of
+  `dev/audit/harnesses/r10_sav_wood_reference.py` publishes; its `meter-floor`
+  arm runs every valve and wood arm through the floor and asserts each publishes.
+- **Known limit:** a low-side check only. It would not catch October's -23 %, nor
+  any reference inflated above the meter.
 
 This changes production and what the card shows, so it needs its own fixer. It
 changes no policy. Nothing here asks for a rule change, and the #2411 state being
@@ -288,5 +299,5 @@ changes no policy. Nothing here asks for a rule change, and the #2411 state bein
 - **To the fix (`handoff/r10-hotfix-sav-estimate`):** the second cause (a fix on the
   wood term alone stays at 0, 0, 0, 0 on v7.1.x); valved installs with no wood; the
   already-booked rows; wiring the census.
-- **`notifier.py:90`** sends the row too, so the band must gate it as well as the
-  card and the sensor.
+- **`notifier.py` `_monthly_receipt`** sends the row too, so the floor gates it as
+  well as the card and the sensor: the event carries `saving_below_meter_floor`.

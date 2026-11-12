@@ -14,6 +14,9 @@
 # fails says ROWLESS, and update_pr.sh's ensure_row adds the row; #2719). Every exit's last act,
 # under the branch lock, is pr_release_wt (pr_args.sh): the worktree is detached at the pushed head,
 # removed with its branch when origin never had it, or kept and named (P-D, P64, P72).
+# Once the PR exists and its row is pushed (PR_ATTEMPT opened), the opener's checkout is collected
+# (pr_collect_wt, carry 6): update_pr.sh keeps the one per-PR checkout from then on, so a PR holds one
+# ~140 MB checkout, not two; a dirty or unpushed one is kept and named by pr_release_wt.
 # The tools are refused when origin/main is ahead of their checkout under tools/ (pr_tools_fresh).
 # The row is written and committed by delivery_row.sh's commit_row, the one
 # function update_pr.sh's ensure_row also calls (its header says why).
@@ -44,6 +47,7 @@ mkdir -p "$D"; cd "$M"
 # between the two pushes below and left the PR without its row (#2547, #2548); it now answers BUSY.
 pr_branch_lock "$(dirname -- "$D")/upd-${BR//\//-}.lock" "$BR" "$WT"  # mut:oplock
 PR_TIDY='pr_release_wt "$WT" "$BR" "${PR_PUSHED:-}"'  # set once the lock is this run's: a BUSY exit touches nothing
+PR_TIDY="$PR_TIDY"'; case "${PR_ATTEMPT:-}" in opened,PR=*) pr_collect_wt "$WT" "${PR_PUSHED:-}";; esac'  # mut:opcollect
 pr_handoff_tips "$T" 1
 # The attempt is the ledger's (R10-ORCH-LEDGER): `started` now, and on every exit, a stop
 # signal's included, `opened,PR=<n>` or `unopened` (bash's $? in an EXIT trap after a TERM is the
@@ -91,12 +95,33 @@ op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin ho
   printf '%s: ROW LANDED: #%s has its row on origin at %s, but the row push then failed (exit status %s); #%s is left open: %s\n' \
     "$PR_NAME" "$N" "$H" "$1" "$N" "${OP_WHY:-${PR_STOPPED_AT:-a stop signal after the push}}" >&2
 }
+op_figures() { # <p1|p2>: re-render the body's generated figure blocks at this worktree's head; a block names the head it was rendered at
+  grep -q '^<!-- figure-block: ' $D/body.md || return 0
+  python3 -I "$PRT/figure_block.py" refresh $D/body.md --base origin/main --head HEAD > $D/fig-$1.log 2>&1 && return 0
+  OP_WHY="the figure-block refresh at $1 failed:
+$(tail -n 20 $D/fig-$1.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
+}
+op_clear_leftover() { # a closed-after-p2 open leaves its branch and detached checkout; both go when origin holds all of them
+  git -C "$M" worktree prune
+  git -C "$M" fetch -q origin "refs/heads/$BR:refs/remotes/origin/$BR" 2>/dev/null || :
+  if git -C "$M" worktree list --porcelain | grep -qxF "worktree $WT"; then  # a stray unregistered directory still stops at worktree add
+    [ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ] && git -C "$WT" merge-base --is-ancestor HEAD "origin/$BR" 2>/dev/null \
+      || pr_refuse "a left-over checkout $WT holds work origin/$BR lacks; keep or remove it, then re-run"
+    git -C "$M" worktree remove --force "$WT"
+  fi
+  if git -C "$M" show-ref -q --verify refs/heads/$BR; then
+    git -C "$M" merge-base --is-ancestor "refs/heads/$BR" "origin/$BR" 2>/dev/null \
+      || pr_refuse "a left-over local branch $BR holds commits origin/$BR lacks; keep or remove it, then re-run"
+    git -C "$M" branch -qD $BR
+  fi
+}
 git fetch -q origin handoff/$T handoff-body/$T main
 pr_tools_fresh
 pr_code_in_handoff "$C" "$T"
 git cat-file -e "$PR_BT:BODY.md" 2>/dev/null || pr_refuse "handoff-body/$T ($PR_BT) holds no BODY.md"
 git show "$PR_BT:BODY.md" > $D/body.md
 python3 -I "$SEAT/pr_cap.py" info --repo $R  # mut:openinfo
+op_clear_leftover  # mut:opclear
 git worktree add -q -b $BR $WT $C
 cd $WT
 git fetch -q origin main
@@ -117,6 +142,7 @@ python3 "$PRT/ci_predict.py" --rekey-body $D/body.md --from $C || echo "open_pr:
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
+[ "$(git rev-parse HEAD)" = "$C" ] || op_figures p1 || pr_refuse "the figure-block refresh at the merged head failed; nothing is pushed"  # mut:opfig1
 RU=--reuse  # mut:opreuse
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" ${RU-} $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 pr_wait $! $D/p1.log
@@ -133,6 +159,7 @@ p,H,N,C=sys.argv[1:5]; s=open(p).read()
 s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
 open(p,'w').write(s)
 E
+op_figures p2 || pr_refuse "the figure-block refresh at the row head failed"  # mut:opfig2
 RO=--row-only  # mut:oprowonly
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 rc=0; wait $! || rc=$?
@@ -144,4 +171,8 @@ $({ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; } 2>/dev/null || :)"
 fi
 PR_PUSHED=$H
 PR_ATTEMPT=opened,PR=$N
+# DISPATCH AT THE HANDOFF (Carry 0): a reviewer already fired at handoff/$T holds a `topic:$T` record in
+# the worker registry; it becomes this pull request's, so its verdict can bind to #$N. rc 3 is "no
+# handoff dispatch", the ordinary case, and says nothing; a failure is named, never fatal (the PR is open).
+bash "$SEAT/bus.sh" rekey "$T" "$N" >&2 || [ $? = 3 ] || echo "$PR_NAME: bus.sh rekey $T $N failed; a reviewer dispatched at the handoff cannot post until it is re-keyed" >&2  # mut:rekey
 echo "PR=$N HEAD=$H AUTHOR=$(git log -1 --format='%an')"

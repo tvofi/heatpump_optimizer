@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:write_displace CMP_BOUND baa8340c",
+  "killed_by": "tests/features.py",
+  "old": "    if log_held(entry, \"heat_curve_write_cap\", len(held.writes) >= cap,",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if log_held(entry, \"heat_curve_write_cap\", len(held.writes) > cap,`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

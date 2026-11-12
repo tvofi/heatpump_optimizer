@@ -14,6 +14,7 @@
     python3 tools/audit/seat/roster_edit.py mark-carry  <group> <index | --match TEXT>
         implemented <sha> | moved <GROUP> | dismissed <reason>
     python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
+    python3 tools/audit/seat/roster_edit.py set-source  <group> <outside | ->
     python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
         [--set-hot <p,p | ->] [--cite <ref>@<sha>]
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
@@ -70,7 +71,8 @@ whose brief text the linter refuses is refused at the same gate, before
 anything reaches GitHub.
 
 Structural ops (wire-issue, unwire-issue, edit-brief, append-carry, set-after,
-drop-carry) run only through roster_queue.py, which sets HPO_ROSTER_LANE.
+drop-carry, set-source) run only through roster_queue.py, which sets
+HPO_ROSTER_LANE.
 
 Ops (all group ids must exist, except append-group which must not):
   set-stage    sets resume.stage (and resume.commit with --at-sha); `done`
@@ -127,7 +129,8 @@ name a `## P<n>:` entry whose `Verdict:` is ACCEPT. A citation that does not
 resolve is refused whether or not the text names a proposal.
 
   drop-carry   removes one carry entry by 0-based index or by the one entry
-               containing --match TEXT, refusing an absent carry, an index
+               containing --match TEXT (or, among several containing it, the
+               one equal to it), refusing an absent carry, an index
                out of range, no match and an ambiguous match; dropping the
                last entry leaves the `carry` list empty, never removing the
                key (27 of the 91 live groups carry `"carry": []`, and none
@@ -138,12 +141,20 @@ resolve is refused whether or not the text names a proposal.
                carry already marked. `implemented` records that the sha is
                on main; it is not a verification. A carry that sat on a
                closed group at roster_lib.CARRY_CUTOVER is legacy and needs
-               no mark.
+               no mark. A mark that leaves a `carries-open` group owing no
+               carry writes `done` as set-stage done would, HELD at
+               carries-open while it owns an open issue nothing else owns
+               (`close_discharged`, then the done hold);
   set-size     writes the group's own `size`, refusing a size the duration
                model (tools/plan/durations.json) does not key -- the
                `_size_why` check append-group runs -- and, with --cite, a
                cite whose ref does not hold the sha. The old size and the
                cite go to resume.note; the current size writes nothing.
+  set-source   writes the group's `source`, a word in roster_lib.SOURCES
+               (`outside`: an accepted outside request, which replan.py's
+               dispatch_tier ranks in the top tier), or `-` to remove the
+               key; the old value goes to resume.note, and the value already
+               held writes nothing.
   set-files    writes `files` (--add appends, --set-files replaces whole, `-`
                for none) and `hot_files` (--set-hot, `-` for none) for one
                existing group. A path new to `files` must be in the tree at
@@ -177,7 +188,7 @@ import carry_audit  # noqa: E402  the one owned-issue test (`orphaned`)
 import roster_lib  # noqa: E402  which roster: roster_lib.roster_path, the one owner
 import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
-SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
+SHA_RE = roster_lib.SHA_RE  # the one sha grammar, roster_lib.discharged reads it too
 # Historical path first, then the moved one: the same preference as
 # `test -f` in the graders. Which of the two exists is read from the
 # checkout being linted.
@@ -248,8 +259,9 @@ def _absorb_into(roster, group, into):
     if into == group:
         raise Refuse(f"set-stage: {group} cannot be absorbed into itself")
     hstage = (host.get("resume") or {}).get("stage")
-    if hstage in roster_lib.CARRY_CLOSED:
-        raise Refuse(f"set-stage: --into {into} is {hstage}, not a live group")
+    if not roster_lib.carry_receivable(host):
+        raise Refuse(f"set-stage: --into {into} is {hstage}, not a live group that can take "
+                     "its carries (roster_lib.carry_receivable)")
 
 
 #: The resume fields set-resume may write. stage and branch are the roster's
@@ -428,6 +440,23 @@ def op_append_group(roster, json_file, rel="", sizes=(), reason=None):
     roster.setdefault("groups", []).append(new)
 
 
+def op_set_source(roster, group, source):
+    """Write `source` (roster_lib.SOURCES), or drop it for `-`."""
+    g = _need(roster, group)
+    new = None if source == "-" else source
+    if new is not None and new not in roster_lib.SOURCES:
+        raise Refuse(f"set-source: {source!r} is not a source; one of "
+                     f"{', '.join(roster_lib.SOURCES)}, or - for none")
+    old = g.get("source")
+    if old == new:
+        return
+    if new is None:
+        del g["source"]
+    else:
+        g["source"] = new
+    _note_append(g, f"set-source {old or 'unset'} -> {new or 'unset'}")
+
+
 def op_edit_brief(roster, group, text):
     _need(roster, group)["brief"] = _text(text)
 
@@ -436,15 +465,22 @@ def op_append_carry(roster, group, text):
     g = _need(roster, group)
     resume = g.get("resume") or {}
     stage = resume.get("stage")
-    if stage in roster_lib.CARRY_CLOSED:
+    if not roster_lib.carry_receivable(g):
         into = resume.get("absorbed_into")
         raise Refuse(f"append-carry: {group} is {stage}"
                      + (f", absorbed into {into}: carry to {into}"
                         if stage == "absorbed" and into else
-                        "; carry to an open group"))
+                        "" if stage in roster_lib.CARRY_DEST_CLOSED else
+                        ", a receiver only (no PR, issue or fix; files [])")
+                     + "; a carry goes to the live group owning the seam, else the producing group keeps the fix")
     if resume.get("pr"):
         print(f"WARN carry to {group}: PR #{resume['pr']} is open on it")
     entry = _text(text)
+    mark = roster_lib.carry_mark(entry)
+    if mark:
+        raise Refuse(f"append-carry: the text already ends in a [{mark[0]}: "
+                     f"{mark[1]}] mark, which reads as discharged on arrival; "
+                     "strip it and let the discharging op write it")
     carry = g.setdefault("carry", [])
     if entry in carry:
         raise Refuse(f"{group} already carries that entry")
@@ -514,7 +550,9 @@ def op_drop_carry(roster, group, index=None, match=None):
 
 def _carry_index(g, index, match, op):
     """The one carry entry `op` names: by 0-based index or by the one entry
-    containing `match`; absent, out of range, unmatched and ambiguous refuse."""
+    containing `match`, or the one entry equal to it when several contain it
+    (a bare carry kept beside its "From #N, ..." duplicate); absent, out of
+    range, unmatched and ambiguous refuse."""
     group, carry = g.get("group"), g.get("carry") or []
     if not carry:
         raise Refuse(f"{op}: {group} carries nothing")
@@ -523,6 +561,9 @@ def _carry_index(g, index, match, op):
         if not hits:
             raise Refuse(f"{op}: no carry entry matches {match!r} "
                          f"in {group}")
+        exact = [i for i in hits if carry[i] == match]
+        if len(exact) == 1:
+            return exact[0]
         if len(hits) > 1:
             raise Refuse(f"{op}: {match!r} is ambiguous in {group}: "
                          f"entries {hits} match; pass an index")
@@ -559,9 +600,9 @@ def op_mark_carry(roster, group, index, match, kind, arg):
         if arg == group:
             raise Refuse(f"mark-carry: {group} cannot move a carry to itself")
         stage = (dest.get("resume") or {}).get("stage")
-        if stage in roster_lib.CARRY_CLOSED:
-            raise Refuse(f"mark-carry: moved {arg} is {stage}; a carry moves "
-                         "to an open group")
+        if not roster_lib.carry_receivable(dest):
+            raise Refuse(f"mark-carry: moved {arg} is {stage}, not a group that can take "
+                         "a carry (roster_lib.carry_receivable); a carry goes to the live group owning the seam, else the producing group keeps the fix")
     if kind == "dismissed" and not arg:
         raise Refuse("mark-carry: dismissed needs a reason")
     if "]" in arg:
@@ -593,11 +634,31 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
         op_set_after(roster, group, value)
     elif op == "drop-carry":
         op_drop_carry(roster, group, value, match)
+    elif op == "set-source":
+        op_set_source(roster, group, value)
     elif op == "mark-carry":
         kind, *arg = list(rest) or [""]
         op_mark_carry(roster, group, value, match, kind, " ".join(arg))
     else:
         op_append_carry(roster, group, value)
+
+
+def close_discharged(roster, group, legacy) -> bool:
+    """After a mark: a `carries-open` group the mark left owing no carry is
+    written as `set-stage done` writes it (`_closing`; the caller then runs
+    `hold_done`, so a group that would orphan an open issue stays held and the
+    issues are printed). It closes the record lag `roster_lib.discharged`
+    otherwise leaves for a hand `set-stage done` (tvofi 2026-11-07, proposal
+    1). Any other stage is untouched: an unmerged group's brief is undone."""
+    g = _need(roster, group)
+    resume = g.get("resume") or {}
+    if resume.get("stage") != HOLD_STAGE or roster_lib.pending_carries(g, legacy or {}):
+        return False
+    resume["stage"] = _closing(g, "done", legacy, "mark-carry")
+    _drop_stale_note(g, resume["stage"])
+    print(f"mark-carry {group}: the last pending carry is discharged: "
+          f"{HOLD_STAGE} -> {resume['stage']}")
+    return True
 
 
 #: What a closed stage is written as while its group would orphan an issue.
@@ -887,6 +948,22 @@ def ruling_reader(worktree, checkout):
 
 
 # ----------------------------------------------------------------- flow
+def _on_origin(checkout, wt, sha, branch) -> bool:
+    """Whether some origin ref holds `sha`. The local tracking refs go stale
+    when a rival writer pushes the roster branch, so a miss fetches the
+    branch once and asks again before an unpushed edit is declared."""
+    def held():
+        return bool(run(["git", "-C", str(wt), "for-each-ref", "--contains",
+                         sha, "--format=%(refname)",
+                         "refs/remotes/origin/"]).strip())
+    if held():
+        return True
+    subprocess.run(["git", "-C", str(checkout), "fetch", "-q", "origin",
+                    f"+refs/heads/{branch}:refs/remotes/origin/{branch}"],
+                   capture_output=True)
+    return held()
+
+
 def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
     """A throwaway DETACHED worktree at the branch's remote tip when one
     exists (so sequential edits accumulate), else at origin/<ref>; returns
@@ -909,9 +986,7 @@ def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
         if run(["git", "-C", str(wt), "status", "--porcelain"]).strip():
             raise Refuse(f"{wt} has uncommitted changes; refusing to reuse it")
         old = run(["git", "-C", str(wt), "rev-parse", "HEAD"]).strip()
-        if old != discard and not run(
-                ["git", "-C", str(wt), "for-each-ref", "--contains", old,
-                 "--format=%(refname)", "refs/remotes/origin/"]).strip():
+        if old != discard and not _on_origin(checkout, wt, old, branch):
             raise Refuse(f"{wt} HEAD {old[:12]} is on no origin ref; an "
                          "unpushed edit would be lost")
         run(["git", "-C", str(wt), "checkout", "-q", "--detach", base_sha])
@@ -997,8 +1072,27 @@ def brief_lint_script(lint_cwd) -> str | None:
     return None
 
 
-def lint_gate(checkout, lint_cwd, roster_path):
-    """brief_lint from a fresh origin/main checkout. Returns (ok, detail)."""
+ERROR_LINE = re.compile(r"^\s*ERROR\b.*$", re.M)
+TOTAL_N = re.compile(r"TOTAL: (\d+) error")
+
+
+def _lint_errors(out):
+    """(the ERROR lines of one lint run, whether they account for its TOTAL).
+    A failure the lines do not account for (a problem printed in another
+    shape) cannot be attributed to a write, so the gate refuses it whole."""
+    errs = [m.group(0).strip() for m in ERROR_LINE.finditer(out)]
+    m = TOTAL_N.search(out)
+    return errs, bool(m) and int(m.group(1)) == len(errs)
+
+
+def lint_gate(checkout, lint_cwd, roster_path, base_text=None):
+    """brief_lint from a fresh origin/main checkout. Returns (ok, detail).
+
+    With `base_text` (the roster as the write found it) the gate refuses only
+    the ERROR lines the same lint over that base does not print: a merge to
+    main that moves a line one brief cites must not stop a write that never
+    touches that brief (P435). Each pre-existing error is returned in `detail`
+    as a WARN naming its group, for the owner to re-pin."""
     run(["git", "-C", str(checkout), "fetch", "-q", "origin", "main"])
     main_sha = run(["git", "-C", str(checkout), "rev-parse", "origin/main"]).strip()
     made = None
@@ -1023,7 +1117,25 @@ def lint_gate(checkout, lint_cwd, roster_path):
         out = r.stdout + r.stderr
         ok = bool(TOTAL_OK.search(out))
         tail = "\n".join(out.strip().splitlines()[-3:])
-        return ok, tail
+        if ok or base_text is None:
+            return ok, tail
+        errs, whole = _lint_errors(out)
+        if not whole:
+            return False, tail
+        bdir = tempfile.mkdtemp(prefix="hpo-lint-base-")
+        try:
+            bpath = Path(bdir) / Path(roster_path).name
+            bpath.write_text(base_text, encoding="utf-8")
+            br = subprocess.run(["node", script, str(bpath)], cwd=lint_cwd,
+                                capture_output=True, text=True)
+            base_errs, _ = _lint_errors(br.stdout + br.stderr)
+        finally:
+            shutil.rmtree(bdir, ignore_errors=True)
+        new = [e for e in errs if e not in base_errs]
+        if new:
+            return False, "\n".join(new + [tail])
+        warn = "\n".join(f"WARN pre-existing, re-pin owed: {e}" for e in errs)
+        return True, warn
     finally:
         if made:
             run(["git", "-C", str(checkout), "worktree", "remove",
@@ -1067,8 +1179,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
             raise Refuse(str(e))
         path = Path(worktree) / rel
         print(f"roster: {rel} on {branch}")
-        roster = json.loads(path.read_text(encoding="utf-8"))
-        before = json.loads(path.read_text(encoding="utf-8"))
+        base_text = path.read_text(encoding="utf-8")
+        roster = json.loads(base_text)
+        before = json.loads(base_text)
         if not edit(roster, rel):
             return 0
         why = triage_refusal(added_texts(before, roster),
@@ -1086,7 +1199,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
         run(["git", "-C", str(worktree), "commit", "-q", "-am", msg])
         head = run(["git", "-C", str(worktree), "rev-parse", "HEAD"]).strip()
         refspec = f"{head}:refs/heads/{branch}"
-        ok, detail = lint_gate(checkout, lint_cwd, path)
+        ok, detail = lint_gate(checkout, lint_cwd, path, base_text)
+        if ok and detail:
+            print(detail, file=sys.stderr)
         if not ok:
             print(f"roster_edit: LINT GATE REFUSED the push\n{detail}\n"
                   f"the commit is local at {head[:12]} in {worktree} "
@@ -1101,6 +1216,11 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
                             "origin", refspec],
                            capture_output=True, text=True)
         if r.returncode == 0:
+            # our own push: the tracking ref must follow it, or the next op
+            # in this run finds HEAD on no origin ref
+            subprocess.run(["git", "-C", str(checkout), "update-ref",
+                            f"refs/remotes/origin/{branch}", head],
+                           capture_output=True)
             print(f"pushed {branch} at {head}")
             return 0
         why = (r.stderr or r.stdout).strip()[:400]
@@ -1128,7 +1248,7 @@ def build_parser():
     p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                   "edit-brief", "append-carry", "set-resume",
                                   "set-after", "drop-carry", "mark-carry",
-                                  "set-size", "set-files"))
+                                  "set-size", "set-files", "set-source"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("rest", nargs="*",
@@ -1148,7 +1268,9 @@ def build_parser():
                         "containing it")
     p.add_argument("--cite", help="set-size / set-files: <ref>@<sha>, a ref "
                    "that must hold the sha; recorded in resume.note")
-    p.add_argument("--add", nargs="+", help="set-files: paths appended to files")
+    p.add_argument("--add", nargs="+", action="extend",
+                   help="set-files: paths appended to files; repeatable "
+                        "(the default store action kept only the last list)")
     p.add_argument("--set-files", help="set-files: replace files whole "
                    "(comma list, - for none)")
     p.add_argument("--set-hot", help="set-files: replace hot_files whole "
@@ -1239,7 +1361,7 @@ def make_edit(a, value, rest):
             apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
             return True
         legacy = None
-        if a.op in ("set-stage", "set-resume"):
+        if a.op in ("set-stage", "set-resume", "mark-carry"):
             try:
                 legacy = roster_lib.read_legacy(a.worktree, rel)
             except roster_lib.RosterNotFound as e:
@@ -1247,14 +1369,16 @@ def make_edit(a, value, rest):
                              f"stage is written: {e}")
         apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
                  rel, sizes, legacy, rest, a.into, a.reason)
-        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
+        closed = a.op == "mark-carry" and close_discharged(roster, a.group, legacy)
+        if closed or a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
             try:
                 held = hold_done(roster, a.group, a.worktree, carry_audit.issue_reader(
                     roster.get("repo") or carry_audit.REPO, a.issue_state))
             except (ValueError, SystemExit) as e:  # carry_audit's refusals
                 raise Refuse(f"the done hold cannot read issue state: {e}")
             if held:
-                print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not {value}: "
+                print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not "
+                      f"{'done' if closed else value}: "
                       f"it owns open {', '.join(f'#{n}' for n in held)} with no other "
                       "live owner; wire each to its next owner or close it, then "
                       "set the stage again", file=sys.stderr)
@@ -1288,7 +1412,7 @@ def batch_edit(edits):
 # environment; the structural ops refuse any caller that does not carry it.
 LANE_ENV, LANE_VALUE = "HPO_ROSTER_LANE", "queue-runner"
 STRUCTURAL_OPS = ("wire-issue", "unwire-issue", "edit-brief", "append-carry",
-                  "set-after", "drop-carry")
+                  "set-after", "drop-carry", "set-source")
 
 
 def lane_refusal(op, group):
@@ -1424,6 +1548,35 @@ def _self_test() -> int:
     finally:
         os.chdir(here)
 
+    # --- the gate refuses only errors the base roster does not already carry (P435)
+    errlint = (
+        "import {readFileSync} from 'node:fs';\n"
+        "const t=readFileSync(process.argv[2],'utf8');\n"
+        "const e=[...t.matchAll(/__bad_(\\w+)__/g)].map(m=>m[1]);\n"
+        "for (const x of e) console.log(`  ERROR   [G-${x}] cite: a.py:${x} moved`);\n"
+        "console.log(`TOTAL: ${e.length} error(s) across 1 file(s)`);\n")
+    drv_e, lint_e = planted("gate-base", {new_rel: errlint})
+    rpath = lint_e / "roster-under-lint.json"
+    cur = "{}\n__bad_one__\n"
+    def base_gate(text, base):
+        rpath.write_text(text, encoding="utf-8")
+        return lint_gate(drv_e, str(lint_e), rpath, base)
+    ok, why = base_gate(cur + "other edit\n", cur)
+    check("lint gate: an unrelated write passes beside a pre-existing error, warning it",
+          ok and "WARN pre-existing" in why and "G-one" in why, why[:200])
+    ok, why = base_gate(cur + "__bad_two__\n", cur)
+    check("lint gate: the same write adding a bad citation is refused, naming it",
+          not ok and "G-two" in why.splitlines()[0], why[:200])
+    ok, why = base_gate("{}\nclean\n", "{}\nclean\n")
+    check("lint gate: a clean roster writes as before (null control)",
+          ok and why.startswith("TOTAL: 0"), why[:200])
+    ok, why = base_gate(cur, None)
+    check("lint gate: with no base text every error refuses (the old gate)",
+          not ok and "G-one" in why, why[:200])
+    ok, why = base_gate(cur, "{}\n")
+    check("lint gate: an error the base lacks refuses (an empty base set would pass it)",
+          not ok and "G-one" in why, why[:200])
+
     # The fixture's roster: one round, so the newest IS this path.
     FIXTURE_ROSTER = f"{roster_lib.ROSTERS_DIR}/wave-r9-groups.json"
     seed = Path(tmp, "seed")
@@ -1516,8 +1669,11 @@ def _self_test() -> int:
         cannot tell this op's refusal from argparse refusing the op itself,
         or one refusal from another that happens to fire first."""
         err = io.StringIO()
-        with contextlib.redirect_stderr(err):
-            rc = sysrc(lambda: edit(*args, **kw))
+        try:
+            with contextlib.redirect_stderr(err):
+                rc = sysrc(lambda: edit(*args, **kw))
+        except Exception:  # a crash is no refusal: a FAIL line, not a traceback that ends the run (C6)
+            return False
         return rc not in (0, None) and why in err.getvalue()
 
     def refusal(*args, **kw):
@@ -1684,6 +1840,9 @@ def _self_test() -> int:
           and branch_roster()["groups"][0]["carry"] == ["carry text one"])
     check("dup carry refused",
           edit("append-carry", "R9-A", "carry text one") == 2)
+    check("append-carry refuses text ending in a mark-shaped suffix",
+          edit("append-carry", "R9-A", "fresh text [implemented: abc123]") == 2
+          and branch_roster()["groups"][0]["carry"] == ["carry text one"])
     check("unknown group refused", edit("set-stage", "R9-ZZ", "done") == 2)
 
     # The triage gate (decision 0015). The ruling batch lands on origin/main;
@@ -1753,7 +1912,7 @@ def _self_test() -> int:
           and edit("drop-carry", "R9-B", None, match="no proposal") == 0
           and edit("drop-carry", "R9-B", None, match="lettered proposal") == 0
           and edit("drop-carry", "R9-B", None, match="P-value") == 0
-          and branch_roster()["groups"][1]["carry"] == [])
+          and branch_roster()["groups"][1].get("carry") == [])  # .get: a dropped key is a FAIL line, never a KeyError crash (C6)
 
     # set-resume: the resume free-text fields a session restarts from, through
     # the same load/modify/dump flow -- never a string splice.
@@ -1831,6 +1990,30 @@ def _self_test() -> int:
     check("set-after names no op flag",
           refuses("--match is a drop-carry flag", "set-after", "R9-B",
                   "R9-A", match="x"))
+
+    # set-source: the roster field replan.py's top tier reads
+    # (roster_lib.is_outside). Written, read back, cleared; an unknown word
+    # and an unknown group refused with nothing moved; a held value no-op.
+    def source_of(group):
+        return next(g for g in branch_roster()["groups"]
+                    if g["group"] == group).get("source", "absent")
+
+    check("set-source writes outside, read back from the pushed roster",
+          edit("set-source", "R9-B", "outside") == 0 and source_of("R9-B") == "outside"
+          and roster_lib.is_outside(next(g for g in branch_roster()["groups"]
+                                         if g["group"] == "R9-B")))
+    t0 = tip()
+    check("no-op set-source commits nothing",
+          edit("set-source", "R9-B", "outside") == 0 and tip() == t0)
+    check("set-source refuses a word outside roster_lib.SOURCES, moving nothing",
+          refuses("is not a source", "set-source", "R9-B", "audit") and tip() == t0)
+    check("set-source refuses an unknown group",
+          refuses("no roster group", "set-source", "R9-ZZ", "outside"))
+    check("set-source - removes the key, and the old value is in resume.note",
+          edit("set-source", "R9-B", "-") == 0 and source_of("R9-B") == "absent"
+          and "set-source outside -> unset" in (
+              next(g for g in branch_roster()["groups"]
+                   if g["group"] == "R9-B")["resume"].get("note") or ""))
 
     # set-size / set-files (R10-ROSTER-OPS-2 part 1): one op pair for the
     # carries that asked for set-size (with and without a cite), set-files
@@ -2062,6 +2245,19 @@ def _self_test() -> int:
           and carry_of("R9-B") == [])
     check("append-carry then drop-carry is byte-identical",
           bytes_at() == before_carry)
+    # CARRY-EXACT-MATCH: a bare carry whose text sits inside a sibling.
+    for text in ("From #7, body item X: item X", "item X",
+                 "zeta one", "zeta two"):
+        edit("append-carry", "R9-B", text)
+    check("drop-carry --match equal to a carry inside a sibling is that carry",
+          edit("drop-carry", "R9-B", None, match="item X") == 0
+          and carry_of("R9-B") == ["From #7, body item X: item X",
+                                   "zeta one", "zeta two"])
+    check("drop-carry --match equal to no carry and hitting two still refuses",
+          refuses("ambiguous", "drop-carry", "R9-B", None, match="zeta"))
+    check("drop-carry --match unique substring still resolves",
+          edit("drop-carry", "R9-B", None, match="body item") == 0
+          and carry_of("R9-B") == ["zeta one", "zeta two"])
 
     # THE CARRY LEDGER (#2733, carries 10 and 31). mark-carry discharges one
     # carry with a mark; set-stage done over a pending carry writes
@@ -2122,7 +2318,7 @@ def _self_test() -> int:
     edit("set-stage", "R9-B", "in-progress", branch="mark-1")
     edit("append-carry", "R9-B", "carry four", branch="mark-1")
     edit("append-carry", "R9-B", "carry five", branch="mark-1")
-    for closed in roster_lib.CARRY_CLOSED:
+    for closed in roster_lib.CARRY_DEST_CLOSED:  # the sink barrier: carries-open and refuted too
         edit("set-stage", "R9-A", closed, branch="mark-1",
              into="R9-B" if closed == "absorbed" else None)
         t1 = tip("mark-1")
@@ -2144,6 +2340,35 @@ def _self_test() -> int:
     check("mark-carry with a plain value lands (null control)",
           rc == 0 and at_mark("R9-B")["carry"][4] == "carry five [dismissed: ab]",
           (rc, out[-300:]))
+    # THE CLOSING ARM (tvofi 2026-11-07, proposal 1): a mark that discharges
+    # the last pending carry of a carries-open group writes what set-stage done
+    # writes -- done, or carries-open HELD while it owns an orphaned open issue.
+    check("mark-carry's last mark on an in-progress group leaves its stage (null control)",
+          at_mark("R9-B")["resume"]["stage"] == "in-progress"
+          and "last pending carry" not in out, (at_mark("R9-B")["resume"], out[-300:]))
+
+    def mark_a(text, issues="closed"):
+        return said(lambda: edit("mark-carry", "R9-A", None, branch="mark-1", match=text,
+                                 rest=("dismissed", "a fixture"), issues=issues))
+    for text in ("a one", "a two"):
+        edit("append-carry", "R9-A", text, branch="mark-1")
+    edit("set-stage", "R9-A", "done", branch="mark-1", at_sha="a" * 40)
+    rc, out = mark_a("a one")
+    check("mark-carry leaving one pending carry keeps carries-open (null control)",
+          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
+          and "last pending carry" not in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
+    rc, out = mark_a("a two")
+    check("mark-carry discharging the last pending carry of a carries-open group writes done",
+          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "done"
+          and "carries-open -> done" in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
+    edit("set-stage", "R9-A", "in-progress", branch="mark-1")
+    edit("append-carry", "R9-A", "a three", branch="mark-1")
+    edit("set-stage", "R9-A", "done", branch="mark-1")
+    rc, out = mark_a("a three", issues="open")
+    check("... and holds it carries-open, naming the issue, while it owns an orphaned open issue",
+          rc == 0 and at_mark("R9-A")["resume"]["stage"] == "carries-open"
+          and "HELD R9-A" in out and "#10" in out, (rc, at_mark("R9-A")["resume"], out[-300:]))
+    edit("set-stage", "R9-A", "in-progress", branch="mark-1")
     # The cut-over: a carry on a closed group at the cut-over commit is legacy
     # and never pending; one appended after it is.
     # A closed group that holds a carry can only be admitted whole (append-group
@@ -2161,7 +2386,7 @@ def _self_test() -> int:
         check("a legacy carry alone leaves set-stage done as done (null control)",
               rc == 0 and at_mark("R9-L")["resume"]["stage"] == "done",
               (rc, out[-300:]))
-        edit("set-stage", "R9-L", HOLD_STAGE, branch="mark-1")
+        edit("set-stage", "R9-L", "in-progress", branch="mark-1")  # a carries-open group takes no carry
         edit("append-carry", "R9-L", "post-cut-over carry", branch="mark-1")
         rc, out = said(lambda: edit("set-stage", "R9-L", "done", branch="mark-1"))
         check("a carry after the cut-over is pending beside a legacy one",
@@ -2172,6 +2397,16 @@ def _self_test() -> int:
         check("set-resume --field stage done reads the same rule",
               rc == 0 and at_mark("R9-L")["resume"]["stage"] == "carries-open"
               and "set-resume R9-L: done -> carries-open" in out, (rc, out[-300:]))
+        # mark-carry reads the cut-over too (review 3350): marking the one
+        # post-cut-over carry leaves only the legacy one, which is not
+        # pending, so the group closes. The null control is the check above:
+        # the same group with that carry unmarked stays carries-open.
+        rc, out = said(lambda: edit("mark-carry", "R9-L", None, branch="mark-1",
+                                    match="post-cut-over carry",
+                                    rest=("dismissed", "a fixture")))
+        check("mark-carry whose only unmarked carry left is legacy writes done",
+              rc == 0 and at_mark("R9-L")["resume"]["stage"] == "done"
+              and "carries-open -> done" in out, (rc, at_mark("R9-L")["resume"], out[-300:]))
         # An unreadable cut-over refuses the stage write and writes nothing
         # (review X6): read as "no legacy", the legacy carry would be pending.
         # The readable null is the "legacy carry alone" check above.
@@ -2267,6 +2502,22 @@ def _self_test() -> int:
     rc, out = said_w("append-carry", "R9-WN", "late carry")
     check("append-carry to an absorbed group with no host still refuses",
           rc == 2 and "R9-WN is absorbed" in out, (rc, out[-300:]))
+    # THE SINK BARRIER (R10-CARRY-SINK-BARRIER, tvofi 2026-11-10): a group whose PR
+    # merged (carries-open), a refuted one and a receiver-only one (no PR, brief,
+    # issue or fix) take no carry; the refusal names the rule.
+    wedit("append-group", "R9-WC", jgroup(
+        "R9-WC", resume={"stage": "carries-open", "branch": "handoff/wc", "pr": 77}))
+    wedit("append-group", "R9-WR", jgroup(
+        "R9-WR", resume={"stage": "refuted", "branch": "handoff/wr"}))
+    wedit("append-group", "R9-WS", jgroup(
+        "R9-WS", files=[], resume={"stage": "not-started", "branch": "handoff/ws"}))
+    for gid, said_as in (("R9-WC", "R9-WC is carries-open"), ("R9-WR", "R9-WR is refuted"),
+                         ("R9-WS", "R9-WS is not-started, a receiver only")):
+        t_w = branch_roster(W)
+        rc, out = said_w("append-carry", gid, "parked carry")
+        check(f"sink barrier: append-carry to {gid} refuses naming the rule and writes nothing",
+              rc == 2 and said_as in out and "live group owning the seam" in out
+              and branch_roster(W) == t_w, (rc, out[-300:]))
     rc, out = said_w("append-carry", "R9-WP", "pr carry")
     check("append-carry to a group with resume.pr appends and WARNs",
           rc == 0 and "WARN carry to R9-WP: PR #123 is open on it" in out
@@ -2326,6 +2577,10 @@ def _self_test() -> int:
     check("set-stage absorbed --into a done group is refused",
           refuses("not a live group", "set-stage", "R9-WX", "absorbed",
                   into="R9-WD", branch=W))
+    for host in ("R9-WC", "R9-WS"):
+        check(f"sink barrier: set-stage absorbed --into {host} is refused",
+              refuses("not a live group", "set-stage", "R9-WX", "absorbed",
+                      into=host, branch=W))
     check("--into on another stage is refused",
           refuses("--into is for stage absorbed", "set-stage", "R9-WX",
                   "done", into="R9-A", branch=W))
@@ -2499,7 +2754,7 @@ def _self_test() -> int:
     def racing(times):
         busy = []
 
-        def hooked(checkout, lint_cwd, roster_path):
+        def hooked(checkout, lint_cwd, roster_path, *rest):
             if not busy and len(rivals) < times:
                 rivals.append(f"rival carry {next(serial)}")
                 busy.append(1)
@@ -2512,7 +2767,7 @@ def _self_test() -> int:
                     busy.clear()
                 if rc_r != 0:
                     raise Refuse(f"self-test rival edit failed rc={rc_r}")
-            return real_lint(checkout, lint_cwd, roster_path)
+            return real_lint(checkout, lint_cwd, roster_path, *rest)
         return hooked
 
     def race_tip():
@@ -2704,13 +2959,91 @@ def _self_test() -> int:
     check("fetch_origin: several raced refs in one fetch are one race",
           got[0] == "ok" and got[1] == 2, got)
 
+    # --- a stale tracking ref is not an unpushed edit (P409)
+    wt_ = Path(tmp, "wt")
+    run(["git", "-C", str(drv), "fetch", "-q", "origin"])
+    head_ = tip()
+    run(["git", "-C", str(wt_), "checkout", "-q", "--detach", head_])
+    check("P409: the worktree head is on origin before the tracking ref goes stale",
+          _on_origin(drv, wt_, head_, "edit-1"))
+    for ref_ in run(["git", "-C", str(drv), "for-each-ref", "--format=%(refname)",
+                     "refs/remotes/origin/"]).split():
+        run(["git", "-C", str(drv), "update-ref", "-d", ref_])
+    check("P409: a stale tracking ref (a rival's push) passes after the one fetch",
+          _on_origin(drv, wt_, head_, "edit-1"))
+    run(["git", "-C", str(wt_), "commit", "-q", "--allow-empty", "-m", "unpushed"])
+    check("P409: a real unpushed commit still refuses (null control)",
+          not _on_origin(drv, wt_, run(["git", "-C", str(wt_), "rev-parse",
+                                        "HEAD"]).strip(), "edit-1"))
+    run(["git", "-C", str(wt_), "reset", "-q", "--hard", head_])
+    run(["git", "-C", str(drv), "update-ref", "-d", "refs/remotes/origin/edit-1"])
+    check("P409: two ops in one run both land after our own push",
+          more("set-resume", "R9-A", "first", "--field", "note") == 0
+          and more("set-resume", "R9-A", "second", "--field", "note") == 0
+          and "second" in (grp("R9-A").get("resume") or {}).get("note", "")
+          and subprocess.run(["git", "-C", str(drv), "rev-parse",
+                              "refs/remotes/origin/edit-1"],
+                             capture_output=True, text=True).stdout.strip() == tip())
+
+    # --- P435 through an op: write_roster hands the gate the roster it found,
+    # so a not-done brief already failing the lint (a merge moved the line it
+    # cites) does not stop an unrelated write; the same op adding a new bad
+    # citation still refuses. The lint is `errlint` (one ERROR per plant).
+    seed4 = Path(tmp, "seed4")
+    seed4.mkdir()
+    throwaway_git_init(seed4, "-q", "-b", "main")
+    (seed4 / BRIEF_LINT_NEW).parent.mkdir(parents=True)
+    (seed4 / BRIEF_LINT_NEW).write_text(errlint, encoding="utf-8")
+    r4 = {"groups": [{"group": "R9-A", "lane": "L1", "issues": [], "after": [],
+                      "brief": "cites __bad_one__", "resume": {}}]}
+    (seed4 / FIXTURE_ROSTER).parent.mkdir(parents=True, exist_ok=True)
+    (seed4 / FIXTURE_ROSTER).write_text(dump(r4), encoding="utf-8")
+    run(["git", "-C", str(seed4), "add", "-A"])
+    run(["git", "-C", str(seed4), "commit", "-q", "-m", "a pre-existing lint error"])
+    origin4 = Path(tmp, "origin4.git")
+    throwaway_git_clone(seed4, origin4, "-q", "--bare")
+    drv4 = Path(tmp, "drv4")
+    throwaway_git_clone(origin4, drv4, "-q")
+
+    def resume4(value, wt):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            rc = sysrc(lambda: main(
+                ["set-resume", "R9-A", value, "--field", "note",
+                 "--checkout", str(drv4), "--roster-ref", "main",
+                 "--branch", "edit-4", "--worktree", str(Path(tmp, wt)),
+                 "--lint-cwd", str(seed4), "--push"]))
+        return rc, err.getvalue()
+
+    def at4():
+        return subprocess.run(["git", "-C", str(origin4), "rev-parse", "-q", "--verify",
+                               "refs/heads/edit-4"], capture_output=True,
+                              text=True).stdout.strip()
+
+    rc, said = resume4("an unrelated note", "wt-p435")
+    landed = at4()
+    check("P435 op: set-resume beside a pre-existing lint error lands rc 0, warning it",
+          rc == 0 and bool(landed) and "WARN pre-existing" in said and "G-one" in said,
+          (rc, said[-300:]))
+    rc, said = resume4("adds __bad_two__", "wt-p435b")
+    named = said.split("LINT GATE REFUSED the push\n", 1)[-1].splitlines()[:1]
+    check("P435 op: the same op adding a new bad citation refuses rc 3, naming it first (null)",
+          rc == 3 and at4() == landed and named and "G-two" in named[0],
+          (rc, said[-300:]))
     shutil.rmtree(tmp, ignore_errors=True)
+    # --- repeated --add (P418): extend, never keep only the last list
+    for argv_, want_ in ((["--add", "a", "--add", "b"], ["a", "b"]),
+                         (["--add", "a", "b", "--add", "c"], ["a", "b", "c"]),
+                         (["--add", "a"], ["a"])):
+        check(f"set-files {' '.join(argv_)} parses to {want_}",
+              parse_op(["set-files", "G", "--worktree", "w"] + argv_)[0].add == want_)
     # --- the roster seat's lane (P215): structural ops need the queue runner's marker
     saved_lane = os.environ.pop(LANE_ENV, None)
     try:
         for op_, extra_ in (("append-carry", "lane text"), ("drop-carry", "0"),
                             ("wire-issue", "1"), ("unwire-issue", "1"),
-                            ("set-after", "[]"), ("edit-brief", "b")):
+                            ("set-after", "[]"), ("edit-brief", "b"),
+                            ("set-source", "outside")):
             rc_, err_ = refusal(op_, "R9-A", extra_)
             check(f"lane: {op_} without the marker is refused, naming the queue runner",
                   rc_ == 2 and "roster_queue.py" in err_ and "R9-A" in err_, (rc_, err_[-120:]))

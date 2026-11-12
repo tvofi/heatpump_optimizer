@@ -20,15 +20,16 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import narrative
+from . import duty_switch, narrative
 from . import topology
-from .accuracy import COP_NOT_MEASURABLE
+from .accuracy import COP_ESTIMATED, COP_NOT_MEASURABLE
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_ECL110_STATE_TOPIC,
+    CONF_HEAT_CURVE_DISPLACE_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_COP_SCALE,
@@ -60,12 +61,13 @@ if TYPE_CHECKING:
 else:
     _SensorMixinBase = object
 
-#: The ECL110 MQTT topics: any one stored means the hardware is in use, the
-#: arm-off rule `_ecl110_topic` states for the publish and subscribe seams.
+#: The heat-curve outputs: any one stored means the displace is commanded --
+#: the ECL110 MQTT topics, or the heat-curve entity (R10-GENERIC-HEAT-CURVE).
 ECL110_TOPIC_SLOTS = (
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_STATE_TOPIC,
+    CONF_HEAT_CURVE_DISPLACE_ENTITY,
 )
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
@@ -1721,6 +1723,10 @@ class ObservedCOPSensor(
         data = self._data()
         if not data.get("measured_power_available"):
             return "measured_power_entity"
+        if data.get("cop_observability") == COP_ESTIMATED:
+            # R10-HOTFIX-COP-UNMEASURED: a vendor's estimate on either side
+            # makes heat over power the vendor's own COP, never a measurement.
+            return "metered_inputs"
         if data.get("cop_observability") == COP_NOT_MEASURABLE:
             # #2262: the draw does not follow the plan's ask, so its ratio to
             # the ask is no COP; only a heat reading measures one here.
@@ -2777,7 +2783,8 @@ class CompressorStartsSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
                 "compressor_starts"
             )
         ) or {}
-        return dict(starts)
+        # Beside the counter it explains, and off the payload the goldens snapshot.
+        return {**starts, **duty_switch.starts_attributes(self.coordinator)}
 
 
 class FrequencyAdvisorSensor(

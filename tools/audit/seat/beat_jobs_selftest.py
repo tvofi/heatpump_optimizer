@@ -11,6 +11,7 @@ cases is reported failed, never killed.
 """
 from __future__ import annotations
 
+import collections
 import importlib.util
 import json
 import os
@@ -124,7 +125,8 @@ def cases(bj) -> dict[str, bool]:
         (s / "beatd").mkdir(parents=True)
         ov = {"repo": "o/r", "seat_ledger": str(s / "ledger"), "plan_json": str(s / "p.json"),
               "plan_slots": 10, "plan_seats": 99, "state_mirror": str(s / "mirror"),
-              "disk_floor_gib": 20, "seat_queues": "--seat-queue merge=" + str(s / "q")}
+              "disk_floor_gib": 20, "seat_queues": "--seat-queue merge=" + str(s / "q"),
+              "intake_since": "2026-11-01T00:00:00Z", "train_log": str(s / "train.log")}
         if overlay is not None:
             ov = overlay
         (s / "sweep-overlay.json").write_text(json.dumps(ov))
@@ -352,6 +354,56 @@ def cases(bj) -> dict[str, bool]:
     bj.roster_drain(c)
     res["roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"] = (
         shrank and f.ran("roster_queue.py") == 1 and "QUEUE-SHRANK" in digest(c))
+    # A pass beatd kills at timeout_s (SIGTERM mid-op) keeps the ops it applied before the kill.
+    class Killed(BaseException):
+        pass
+
+    ops = ("set-stage G1 done", "append-carry G2 @x", "drop-carry G3 1")
+    applied, kill, tick = collections.Counter(), {"at": 2}, {"t": 0.0, "step": 0.0}
+
+    def killable(argv):
+        tick["t"] += tick["step"]
+        if kill["at"] == sum(applied.values()) + 1:
+            raise Killed
+        applied[Path(argv[argv.index("--queue") + 1]).read_text().strip()] += 1
+        return roster("pushed 0123abcde")(argv)
+
+    def fresh_queue():
+        c, f = fresh(answers={"roster_queue.py": killable})
+        c.clock = lambda: tick["t"]
+        (c.state / "roster-drain.queue").write_text("".join(o + "\n" for o in ops))
+        return c, f
+    c, f = fresh_queue()
+    try:
+        bj.roster_drain(c)
+        died = False
+    except Killed:
+        died = applied == collections.Counter(ops[:1])
+    kill["at"] = 0
+    bj.roster_drain(c)
+    res["roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once"] = (
+        died and applied == collections.Counter(ops) and f.ran("roster_queue.py") == len(ops) + 1)
+    applied.clear()
+    c, f = fresh_queue()
+    bj.roster_drain(c)
+    bj.roster_drain(c)
+    res["roster-drain null: a pass that completes applies each op exactly once"] = (
+        applied == collections.Counter(ops) and f.ran("roster_queue.py") == len(ops))
+    # The pass starts no op past ROSTER_PASS_BUDGET_S, so beatd's timeout_s does not land mid-queue.
+    applied.clear()
+    budget = getattr(bj, "ROSTER_PASS_BUDGET_S", 0)  # 0 (absent) fails both budget cases, never crashes them
+    tick["step"] = budget / 2 + 1  # each op takes over half the budget
+    c, f = fresh_queue()
+    bj.roster_drain(c)
+    first = collections.Counter(applied)
+    bj.roster_drain(c)
+    res["roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes"] = (
+        first == collections.Counter(ops[:2]) and applied == collections.Counter(ops)
+        and f.ran("roster_queue.py") == len(ops))
+    tick["step"] = 0.0
+    row = [j for j in json.loads((HERE / "beatd.jobs.json").read_text())["jobs"] if j["name"] == "roster-drain"]
+    res["roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s"] = (
+        len(row) == 1 and 0 < 2 * budget <= row[0]["timeout_s"])
     c, f = fresh(answers={"roster_queue.py": roster("no op attempted: lint clone not provisioned")})
     (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
     bj.roster_drain(c)
@@ -381,6 +433,105 @@ def cases(bj) -> dict[str, bool]:
     res["plan-beat: replan is handed the plan, slots and seats"] = (
         arg(a, "--out") == str(c.state.parent / "p.json") or arg(a, "--out").endswith("p.json")) and (
         arg(a, "--slots") == "10" and arg(a, "--seats") == "99")
+    res["plan-beat null: no plan_coordinator_cap leaves replan its own default"] = "--coordinator-cap" not in a
+    c, f = fresh(overlay={"repo": "o/r", "plan_json": str(root / "pc.json"), "plan_slots": 10, "plan_seats": 99,
+                          "state_mirror": str(root / "pcm"), "plan_coordinator_cap": 3})
+    bj.plan_beat(c)
+    res["plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap"] = (
+        arg(f.calls[0], "--coordinator-cap") == "3")
+    c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", "")})
+    bj.plan_beat(c)
+    gh = [x for x in f.calls if x[0] == "gh"]
+    res["plan-beat: a state push that landed dispatches the Pages deploy on main, once"] = (
+        not files(c) and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"]
+        and arg(gh[0], "--ref") == "main" and arg(gh[0], "--repo") == "o/r")
+    c, f = fresh(answers={"state_docs.py": (0, "already current: handoff/audit-r10-plan at abc carries it\n", "")})
+    bj.plan_beat(c)
+    res["plan-beat null: an already-current state ref dispatches nothing"] = not any(x[0] == "gh" for x in f.calls)
+    c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", ""),
+                          "gh": (1, "", "HTTP 403: Resource not accessible\n")})
+    bj.plan_beat(c)
+    res["plan-beat: a refused Pages dispatch reaches the digest"] = digest(c).startswith(
+        "plan-beat: PAGES NOT DISPATCHED rc=1")
+
+    # outside-intake
+    c, f = fresh(answers={"outside_intake.py": (0, "", "")})
+    bj.outside_intake(c)
+    oi = next((x for x in f.calls if any(a.endswith("outside_intake.py") for a in x)), [])
+    res["outside-intake null: nothing owed writes nothing"] = not files(c) and f.ran("outside_intake.py") == 1
+    res["outside-intake: the instrument is handed the repo, the overlay's since and a cursor under state/"] = (
+        arg(oi, "--repo") == "o/r" and arg(oi, "--since") == "2026-11-01T00:00:00Z"
+        and (arg(oi, "--cursor") or "").endswith("state/outside-cursor.json") and "list" in oi)
+    line = "OUTSIDE #3226 owed=triage pr by=Bankaifan since=2026-11-05T11:36:11Z"
+    c, f = fresh(answers={"outside_intake.py": (1, "noise\n" + line + "\n", "")})
+    absent = "OUTSIDE #3226" not in digest(c)
+    bj.outside_intake(c)
+    res["outside-intake: each OUTSIDE line reaches the digest, nothing else"] = (
+        absent and digest(c).splitlines() == ["OUTSIDE #3226 owed=triage pr by=Bankaifan since=<t>"])
+    c, f = fresh(answers={"outside_intake.py": (2, "outside-intake: UNREADABLE Unreadable: gh api rc=1\n", "")})
+    bj.outside_intake(c)
+    res["outside-intake: rc 2 is UNREADABLE, never clean"] = digest(c).startswith("outside-intake: UNREADABLE")
+
+    # plan-beat hands the train log on to state_docs (the page's skips); none leaves the flag out
+    c, f = fresh()
+    bj.plan_beat(c)
+    sd = next((x for x in f.calls if any(a.endswith("state_docs.py") for a in x)), [])
+    c0, f0 = fresh(overlay={k: v for k, v in json.loads((c.state / "sweep-overlay.json").read_text()).items()
+                            if k != "train_log"})
+    bj.plan_beat(c0)
+    sd0 = next((x for x in f0.calls if any(a.endswith("state_docs.py") for a in x)), [])
+    res["plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"] = (
+        arg(sd, "--train-log") == str(c.state / "train.log") and sd0 and "--train-log" not in sd0)
+
+    # bottleneck
+    c, f = fresh(answers={"bottleneck_check.py": (0, "", "")})
+    bj.bottleneck(c)
+    bc = next((x for x in f.calls if any(a.endswith("bottleneck_check.py") for a in x)), [])
+    res["bottleneck null: no breach writes nothing"] = not files(c) and f.ran("bottleneck_check.py") == 1
+    res["bottleneck: the checker is handed the checkout, train_log, the plan's slot cap and a memory under state/"] = (
+        arg(bc, "--checkout") == str(c.repo) and arg(bc, "--train-log") == str(c.state / "train.log")
+        and arg(bc, "--wip-cap") == "10" and (arg(bc, "--memory") or "").endswith("state/bottleneck.json"))
+    trip = "BOTTLENECK: wip 20 in-progress vs cap 20 -- dispatch no new group; move review and merge work first"
+    blind = "BOTTLENECK-UNREADABLE: skip-share -- the train log holds no BATCH line"
+    c, f = fresh(answers={"bottleneck_check.py": (0, "noise\n" + trip + "\n" + blind + "\n", "")})
+    absent = "BOTTLENECK" not in digest(c)
+    bj.bottleneck(c)
+    res["bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"] = (
+        absent and digest(c).splitlines() == [trip, blind] and bj.read(c.digest / "new.txt").splitlines() == [trip, blind])
+    c, f = fresh(answers={"bottleneck_check.py": (1, "", "Traceback\nKeyError: 'slots'\n")})
+    bj.bottleneck(c)
+    res["bottleneck: a failed check is UNREADABLE, never clean"] = digest(c).startswith(
+        "bottleneck: UNREADABLE rc=1: KeyError")
+    c, f = fresh(overlay={"repo": "o/r", "plan_slots": 10}, answers={"bottleneck_check.py": (0, trip + "\n", "")})
+    bj.bottleneck(c)
+    res["bottleneck: an overlay without train_log is UNREADABLE and runs nothing"] = (
+        digest(c) == "bottleneck: UNREADABLE overlay lacks train_log\n" and f.ran("bottleneck_check.py") == 0)
+
+    # scorecard
+    sc_out = "A_gate 1\nK 2\n"
+    c, f = fresh(answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    sc = next((x for x in f.calls if any(a.endswith("scorecard.py") for a in x)), [])
+    res["scorecard null: a clean report leaves the digest empty and writes scorecard.txt"] = (
+        not digest(c) and f.ran("scorecard.py") == 1 and bj.read(c.state / "beatd" / "scorecard.txt") == sc_out)
+    res["scorecard: the instrument is handed report, its dir under state/, the train_log and the checkout"] = (
+        "report" in sc and arg(sc, "--dir") == str(c.state / "scorecard")
+        and arg(sc, "--train-log") == str(c.state / "train.log") and arg(sc, "--repo") == str(c.repo)
+        and "--sweep-record" not in sc)
+    ov = json.loads((c.state / "sweep-overlay.json").read_text())
+    c, f = fresh(overlay={**ov, "sweep_record": "/x/rec.json"}, answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    sc = next((x for x in f.calls if any(a.endswith("scorecard.py") for a in x)), [])
+    res["scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)"] = (
+        arg(sc, "--sweep-record") == "/x/rec.json")
+    c, f = fresh(answers={"scorecard.py": (1, sc_out, "Traceback\nKeyError: 'x'\n")})
+    bj.scorecard(c)
+    res["scorecard: a failed instrument is UNREADABLE, never written"] = (
+        digest(c) == "scorecard: UNREADABLE rc=1: KeyError: 'x'\n" and not (c.state / "beatd" / "scorecard.txt").exists())
+    c, f = fresh(overlay={"repo": "o/r", "plan_slots": 10}, answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    res["scorecard: an overlay without train_log is UNREADABLE and runs nothing"] = (
+        digest(c) == "scorecard: UNREADABLE overlay lacks train_log\n" and f.ran("scorecard.py") == 0)
 
     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
@@ -433,6 +584,25 @@ def cases(bj) -> dict[str, bool]:
     bj.plan_beat(c)
     res["plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"] = (
         pre and first and same and "PLAN MOVED" in digest(c))
+    def page_rc(rc, out, err, text):
+        def ans(argv):
+            if arg(argv, "--mirror") is None:
+                return 0, "", ""
+            m = Path(arg(argv, "--mirror"))
+            m.mkdir(parents=True, exist_ok=True)
+            (m / "PLAN.html").write_text(text)
+            return rc, out, err
+        return ans
+    c, f = fresh(answers={"state_docs.py": page_rc(0, "pushed handoff/audit-r10-plan at abc\n", "", "<p>moved</p>")})
+    bj.plan_beat(c)
+    gh = [x for x in f.calls if x[0] == "gh"]
+    res["plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"] = (
+        digest(c).startswith("plan-beat: PLAN MOVED") and len(gh) == 1 and gh[0][1:4] == ["workflow", "run", "pages.yml"])
+    c, f = fresh(answers={"state_docs.py": page_rc(1, "", "state_docs: PLAN.html UNAVAILABLE: stale plan\n", "<p>x</p>")})
+    bj.plan_beat(c)
+    res["plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"] = (
+        digest(c).startswith("plan-beat: PLAN UNAVAILABLE rc=1") and "PLAN MOVED" not in digest(c)
+        and c.memory("plan-page.json", "") == "")
     c, f = fresh()
     bj.plan_beat(c)
     res["plan-beat null: no mirrored page is no PLAN MOVED and no byte"] = not files(c)
@@ -798,10 +968,51 @@ MUTANTS = {
     "owed_rc1_dropped": ("    if rc == 1:\n", "    if rc == 9:\n", "owed-check: an UNACTIONED exit lands in new.txt"),
     "roster_no_mark": ("            done.add(key)  # applied", "            pass  # applied",
                        "roster-drain: a queue line drains once, is marked, and is not re-run"),
+    "roster_saved_at_pass_end": ("            holds.pop(key, None)\n            save()\n", "            holds.pop(key, None)\n",
+                                 "roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once"),
+    "roster_pass_unbounded": ("        if ctx.clock() - start >= ROSTER_PASS_BUDGET_S:", "        if False:",
+                              "roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes"),
+    "roster_budget_over_timeout": ("ROSTER_PASS_BUDGET_S = 450", "ROSTER_PASS_BUDGET_S = 451",
+                                   "roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s"),
     "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
-    "plan_rc1_silent": ('    if rc == 0:\n        page = read(', '    if rc in (0, 1):\n        page = read(',
+    "plan_cap_unread": ('    cap = ["--coordinator-cap", str(ctx.overlay["plan_coordinator_cap"])] if ctx.overlay.get("plan_coordinator_cap") else []',
+                        "    cap = []", "plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap"),
+    "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
                         "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
+    "moved_early_return": ('            lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed")',
+                           '            return write_job(ctx, "plan-beat", [f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed"])',
+                           "plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once"),
+    "moved_on_rc1": ("    if rc == 0:\n        page = read(", "    if rc in (0, 1):\n        page = read(",
+                     "plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory"),
+    "pages_never_dispatched": ('re.search(r"^pushed ", out, re.M)', "False",
+                               "plan-beat: a state push that landed dispatches the Pages deploy on main, once"),
+    "pages_always_dispatched": ('    if rc in (0, 1) and re.search(r"^pushed ", out, re.M):', "    if rc in (0, 1):",
+                                "plan-beat null: an already-current state ref dispatches nothing"),
+    "pages_refusal_silent": ("        if drc != 0:\n", "        if False:\n",
+                             "plan-beat: a refused Pages dispatch reaches the digest"),
+    "bottleneck_memory_dropped": ('                          "--memory", str(ctx.digest / "state" / "bottleneck.json"))',
+                                  '                          )',
+                                  "bottleneck: the checker is handed the checkout, train_log, the plan's slot cap and a memory under state/"),
+    "bottleneck_rc_clean": ('    if rc != 0:\n        return write_job(ctx, "bottleneck"', '    if False:\n        return write_job(ctx, "bottleneck"',
+                            "bottleneck: a failed check is UNREADABLE, never clean"),
+    "bottleneck_unreadable_dropped": ('ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
+                                      'ln.startswith(("BOTTLENECK: ",))',
+                                      "bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"),
+    "scorecard_rc_clean": ('    if rc != 0 or not out.strip():\n        return write_job(ctx, "scorecard"',
+                           '    if not out.strip():\n        return write_job(ctx, "scorecard"',
+                           "scorecard: a failed instrument is UNREADABLE, never written"),
+    "scorecard_sweep_dropped": ('if ctx.overlay.get("sweep_record"):', "if False:",
+                                "scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)"),
+    "scorecard_write_dropped": ('    atomic(ctx.state / "beatd" / "scorecard.txt", out)\n', "    pass\n",
+                                "scorecard null: a clean report leaves the digest empty and writes scorecard.txt"),
+    "plan_train_dropped": ('"--plan", plan, *train)', '"--plan", plan)',
+                           "plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"),
+    "outside_lines_dropped": ('if ln.startswith("OUTSIDE ")]', 'if ln.startswith("OUTSIDEX ")]',
+                              "outside-intake: each OUTSIDE line reaches the digest, nothing else"),
+    "outside_rc2_clean": ("    if rc in (0, 1):\n        return write_job(ctx, \"outside-intake\"",
+                          "    if rc in (0, 1, 2):\n        return write_job(ctx, \"outside-intake\"",
+                          "outside-intake: rc 2 is UNREADABLE, never clean"),
     "pulse_stopped_dropped": ('(?:STOPPED|UNREADABLE) ', '(?:UNREADABLE) ', "pulse: a STOPPED line reaches the digest"),
     "cancel_failure_dropped": ('r"could not cancel| rc=', 'r"could not cancelX| rc=',
                                "cancel-sweep: a failure reaches the digest"),
@@ -830,7 +1041,7 @@ MUTANTS = {
                            "roster-drain: a no-op-attempted report is retried on the next pass"),
     "plan_rc2_unavailable": ('word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"', 'word = "PLAN UNAVAILABLE"',
                              "plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE"),
-    "plan_replan_args_dropped": ('"--out", plan, "--slots", slots, "--seats", seats)', '"--out", plan)',
+    "plan_replan_args_dropped": ('"--out", plan, "--slots", slots, "--seats", seats, *cap)', '"--out", plan, *cap)',
                                  "plan-beat: replan is handed the plan, slots and seats"),
     "pulse_unreadable_ignored": ("    if rc not in (0, 1, 2) or not out:", "    if not out:",
                                  "pulse: an rc outside 0-2 is UNREADABLE, whatever it printed"),
@@ -856,7 +1067,7 @@ MUTANTS = {
     "roster_malformed_hold_retried": ('lines.append(f"roster: refused malformed hold line: {text}")\n                done.add(key)',
                                       'lines.append(f"roster: refused malformed hold line: {text}")',
                                       "roster-drain: a malformed hold line is refused once and marked, never re-printed"),
-    "plan_mirror_dropped": ('"--push", "--mirror", mirror, "--plan", plan)', '"--push", "--plan", plan)',
+    "plan_mirror_dropped": ('"--push", "--mirror", mirror, "--plan", plan, *train)', '"--push", "--plan", plan, *train)',
                             "plan-beat: state_docs is handed the mirror and the plan"),
     "pulse_ledger_dropped": ('        args += ["--launch-ledger", str(o["launch_ledger"])]', '        pass',
                              "pulse: launch_ledger is a --launch-ledger argument"),

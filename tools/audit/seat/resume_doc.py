@@ -81,7 +81,7 @@ def render(roster: dict, source: str, prs: list, traps: str) -> str:
     ready = []
     for g, gr in open_.items():
         deps = gr.get("after") or []
-        if all(a not in open_ for a in deps):
+        if not any(roster_lib.gates(G[a]) for a in deps if a in G):
             ready.append((depth[g], g, len(deps)))
     L += ["", "## Ready next", "",
           "Open groups whose after-edges are all done (or absent); "

@@ -1,8 +1,9 @@
 # `record_beat.py`
 
-- `record_beat.py` — posts one #201 line per merged pull request from a
+- `record_beat.py` — posts one record-issue line (`budget_raise_gate.RECORD_ISSUE`, #3394 since
+  #201's comment cap) per merged pull request from a
   fixed template (pull request, the full merge sha resolved from git, roster
-  group, issues the merge closed, "Leaves #201 open"), the body file under the
+  group, issues the merge closed, "Leaves #3394 open"), the body file under the
   state directory, through `tools/pr/gh_comment.py` with its byte-identical
   read-back. When: `postmerge.py` calls it; by hand for a merge the tick reads
   as unrecorded. Refusals: an unmerged pull request, a merge commit git cannot

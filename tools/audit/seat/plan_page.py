@@ -74,11 +74,18 @@ sys.path.insert(0, str(_SEAT))
 sys.path.insert(0, str(_SEAT.parents[1] / "plan"))
 import roster_lib  # noqa: E402 -- the one roster reader
 import replan  # noqa: E402 -- the one owner of plan.json and its freshness
+sys.path.insert(0, str(_SEAT.parent))
+import merge_throughput as mt  # noqa: E402 -- the flow board's computations
+import bottleneck_check  # noqa: E402 -- the one owner of the alert thresholds
 
 SELF = "tools/audit/seat/plan_page.py"
-# The round's tracking issue (CLAUDE.md's #201): the open-issue count leaves it
-# out, because it stays open for the whole programme by design.
-TRACKING_ISSUE = 201
+sys.path.insert(0, str(_SEAT.parents[1] / "policy"))
+from budget_raise_gate import RECORD_ISSUES  # noqa: E402 -- the one record-issue definition
+# The programme's record issues (#201, and its continuation past GitHub's
+# 2,500-comment cap): the open-issue count leaves them out, because they stay
+# open for the whole programme by design. The page names the live one.
+TRACKING_ISSUES = frozenset(RECORD_ISSUES)
+TRACKING_ISSUE = RECORD_ISSUES[-1]
 _ROUND_PREFIX = re.compile(r"\AR\d+-")
 _GROUP_ID = re.compile(r"\bR\d+(?:-[A-Z0-9]+)+\b")
 _DELIVERY_TITLE = re.compile(r"\A(R\d+-[A-Z0-9-]+):")
@@ -177,6 +184,17 @@ def merged_pr(group: str, commit: str | None, by_sha: dict, by_group: dict):
     return by_group.get(group)
 
 
+def _plain_key(key: list) -> str:
+    """A sort key (replan's `sort_key`, always a list) as plain values: a null
+    reads as a dash, never a Python repr."""
+    return ", ".join("—" if v is None else str(v) for v in key)
+
+
+def _wave_text(wave) -> str:
+    """A group's wave for a tooltip or attribute: a dash when it has none."""
+    return "—" if wave is None else str(wave)
+
+
 def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     """One row per roster group: status, PR, issues, blockers, schedule."""
     G = roster_lib.groups_of(roster)
@@ -187,8 +205,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     # clears an after-edge and drops a group from the schedule. `merged` is the
     # narrower class that renders done; an absorbed group stays held, naming
     # the group it went to.
-    done = {g for g in G if not roster_lib.is_open(G[g])}
-    merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES}
+    # A discharged group (replan's `discharged`: merged, carries-open, every
+    # carry marked) is closed in the plan, so it renders merged and clears the
+    # edges on it; the roster's own stage is left as written.
+    discharged = {g for g in G if (PG.get(g) or {}).get("discharged")}
+    done = {g for g in G if not roster_lib.is_open(G[g])} | discharged
+    merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES} | discharged
 
     open_pr: dict = {}
     for p in sorted(snap["open_prs"], key=lambda p: p["number"]):
@@ -207,11 +229,21 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         if g:
             by_group[g] = p["number"]  # the latest merge for the group
     state = {i["number"]: i for i in snap["issues"]}
+    # A hotfix that a critical-path group waits on holds the path, whether or
+    # not the longest chain runs through it: the same gating edges as `blk`.
+    # A discharged predecessor is in `done`, which the row's `hot` excludes.
+    gating_crit = {a for c in crit if c in G for a in G[c].get("after") or []
+                   if a in G and roster_lib.gates(G[a])}
 
     rows = []
     for g, entry in G.items():
         pg = PG[g]
-        blk = [a for a in entry.get("after") or [] if a in G and a not in done]
+        # An edge gates by the predecessor's stage (`roster_lib.gates`), except
+        # that a discharged predecessor is closed work, as replan reads it.
+        blk = [a for a in entry.get("after") or []
+               if a in G and a not in discharged and roster_lib.gates(G[a])]
+        if g in done:
+            blk = []  # a merged group waits on nothing (the legend's not-yet-done rule)
         part = sorted(delivered.get(g) or [])
         sfx = f", part merged #{', #'.join(map(str, part))}" if part else ""
         pr = ", ".join(f"#{n}" for n in open_pr.get(g, [])) or "—"
@@ -225,6 +257,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
                 label, pr = f"merged at {commit[:8]}", "merged"
             else:
                 label, pr = "folded into another group (no merge of its own)", "merged"
+            if g in discharged:
+                owed = [n for n in entry.get("issues") or []
+                        if (state.get(n) or {}).get("state") == "OPEN"]
+                label += ", every carry discharged" + (
+                    f"; record owed: close or re-own #{', #'.join(map(str, owed))}, "
+                    "then set-stage done" if owed else "; record owed: set-stage done")
         elif _stage(entry) in roster_lib.DISPOSITION:
             st = "held"
             into = entry.get("absorbed_into")
@@ -245,19 +283,20 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         rows.append({
             "g": g, "lane": pg["lane"], "st": st, "label": label, "pr": pr,
             # The tier is the plan's computed dispatch priority (replan.py's
-            # dispatch_tier: 1 main, 2 critical path and hotfixes, 3 production
-            # and instruments saving 12 h or more, 4 other instruments); a done
-            # group has none. Why it is that tier and why it starts when it
-            # does are the plan's own words (`tier_reason`, `start_reason`).
+            # dispatch_tier, named by replan.TIER_LEGEND); a done group has none.
+            # Why it is that tier and why it starts when it does are the plan's own words (`tier_reason`, `start_reason`).
             "tier": pg.get("tier"),
             "why": "; ".join(x for x in (
                 pg.get("tier_reason"), pg.get("start_reason"), pg.get("duration_basis"),
-                f"sort key {pg['sort_key']}" if pg.get("sort_key") else None) if x),
+                f"sort key {_plain_key(pg['sort_key'])}" if pg.get("sort_key") else None) if x),
             "issues": [(n, n in fixes, (state.get(n) or {}).get("state") != "CLOSED",
                         (state.get(n) or {}).get("title", ""))
                        for n in entry.get("issues") or []],
             "blk": blk, "desc": roster_lib.one_line_brief(entry, 170),
-            "crit": g in crit, "wave": None if g in done else pg["wave"],
+            "crit": g in crit,
+            "hot": g in gating_crit and g not in done and roster_lib.is_hotfix(entry),
+            "part": bool(part) and g not in done,
+            "wave": None if g in done else pg["wave"],
             "start": None if g in done else pg["start"],
             "finish": None if g in done else pg["finish"]})
         if pg.get("done"):  # the plan counts it done (absorbed): nothing to draw
@@ -273,9 +312,9 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
     it draws (a link crossing more than one lane or two hours is left to the
     ◆ marks and the caption)."""
     now = _t(plan["generated"]["start"])
-    # The axis runs to the last planned stamp: the round-close stamp lands
-    # after closure, and an axis ending at closure would not draw it.
-    end = max([_t(plan["summary"]["closure"])] + [_t(s["at"]) for s in plan["stamps"]]
+    # The axis runs to closure, which is the later of the round-close stamp and
+    # the last post-closure step, so no stamp lies past it.
+    end = max([_t(plan["summary"]["closure"])]
               + [_t(plan["summary"]["post_closure_finish"])
                  for _ in [0] if plan["summary"].get("post_closure_finish")])
     slots = plan["generated"]["caps"]["slots"]
@@ -335,11 +374,11 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
                 txt = name if room >= len(name) else (name[:room - 1] + "…" if room >= 4 else "")
                 when = r["s"].strftime("%a %d %b %H:%M")
                 parts.append(
-                    f'<g class="grp" data-st="{r["st"]}" data-name="{html.escape(name)}" '
+                    f'<g class="grp" data-st="{r["st"]}" data-part="{int(r["part"])}" data-name="{html.escape(name)}" '
                     f'data-state="{html.escape(r["label"])}" data-start="{when}" '
-                    f'data-eta="{r["finish"]}" data-wave="{r["wave"]}">'
+                    f'data-eta="{r["finish"]}" data-wave="{_wave_text(r["wave"])}">'
                     f'<title>{r["g"]}: {html.escape(r["label"])}, starts {when}, '
-                    f'ETA {r["finish"]}, wave {r["wave"]}</title>')
+                    f'ETA {r["finish"] or "—"}, wave {_wave_text(r["wave"])}</title>')
                 if w < 16:  # widen a narrow bar's hover target, not the bar
                     parts.append(f'<rect x="{x0 - 3:.1f}" y="{yy}" width="{w + 8:.1f}" '
                                  f'height="{RH}" fill="transparent"/>')
@@ -390,12 +429,13 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
     unplanned: set = set()
     wired: dict = {}
     for gid, entry in roster_lib.groups_of(roster).items():
-        for n in entry.get("issues") or []:
+        carried = list(dict.fromkeys([*(entry.get("issues") or []), *(entry.get("fixes") or [])]))
+        for n in carried:
             wired.setdefault(n, []).append(gid)
         pg = plan["groups"].get(gid)
         if not pg or not roster_lib.is_open(entry):
             continue
-        for n in entry.get("issues") or []:
+        for n in carried:
             if n not in open_now:
                 continue
             if not pg.get("finish"):
@@ -408,8 +448,26 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
     out = {"close_at": close_at, "unplanned": unplanned,
             "other": open_now - set(close_at) - unplanned}
     out["orphans"] = {n: sorted(wired.get(n, [])) for n in sorted(out["other"])
-                      if n != TRACKING_ISSUE}
+                      if n not in TRACKING_ISSUES}
     return out
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def _other_issues_sentence(proj: dict) -> str:
+    """The open issues on no open group, pluralised from the count; the
+    unplanned clause is dropped when none are listed."""
+    other, orphans = len(proj["other"]), len(proj["orphans"])
+    rec = ", ".join(f"#{n}" for n in RECORD_ISSUES if n in proj["other"])
+    head = _plural(other, "other open issue is", "other open issues are") + " on no open group"
+    if not other:
+        return "no other open issue is on no open group."
+    parts = ([f"{rec} (the record issue{'s' if rec.count('#') > 1 else ''})"] if rec else [])
+    if orphans:
+        parts.append(f"the {orphans} listed below as unplanned")
+    return head + (": " + " and ".join(parts) if parts else "") + "."
 
 
 def issues_section(roster: dict, plan: dict, snap: dict) -> str:
@@ -467,9 +525,9 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
     note = (f"Open issues carried by not-done roster groups, as GitHub had them at the plan's "
             f"start; each is projected to close at the planned finish of the last group "
             f"carrying it. {len(unplanned)} sit on groups with no planned finish and stay "
-            f"flat; {len(proj['other'])} other open issues are on no open group: "
-            f"#{TRACKING_ISSUE} (the tracking issue) and the "
-            f"{len(proj['orphans'])} listed below as unplanned.")
+            f"flat; {_other_issues_sentence(proj)} The status strip counts "
+            f"{len(open_now - TRACKING_ISSUES)} open issues, the record issues left out: the "
+            f"{total} drawn here plus the {len(proj['orphans'])} unplanned.")
     title = {i["number"]: i.get("title") or "" for i in snap["issues"]}
     orphans = "".join(
         f'<li class="unplanned">#{n} {html.escape(title.get(n, ""))}: unplanned: no open '
@@ -483,11 +541,96 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
 
 # --------------------------------------------------------------------- page
 
+def _hours(xs) -> str:
+    return "—" if not xs else f"{sorted(xs)[len(xs) // 2]:.1f} h (n {len(xs)})"
+
+
+def pill(st: str, label: str) -> str:
+    """The status pill. A "waiting on A, B, ..." label past three groups shows
+    the first three and "+N more"; the full list stays in `title`."""
+    pre = "waiting on "
+    names = label[len(pre):].split(", ") if label.startswith(pre) else []
+    if len(names) > 3:
+        shown = f'{pre}{", ".join(names[:3])} +{len(names) - 3} more'
+        return (f'<span class="pill {st}" title="{html.escape(label)}">'
+                f'{html.escape(shown)}</span>')
+    return f'<span class="pill {st}">{html.escape(label)}</span>'
+
+
+def flow_section(plan: dict, rows: list, flow: dict | None) -> str:
+    """The flow metrics (proposal 2, tvofi 2026-11-07): throughput against
+    takt, first-pass yield and the blocked-class mix, lead time per size,
+    in-progress WIP against the slot cap, merge-wait per PR and train skips
+    per batch, all `merge_throughput.bottleneck_metrics`; the breaches
+    `bottleneck_check.judge` prints; and the critical-path lane as the full
+    set, each group with its status. A source that cannot be read is
+    UNAVAILABLE with its reason, never a zero."""
+    e = html.escape
+    by = {r["g"]: r for r in rows}
+    lane = "".join(
+        f'<tr><td class="g">{e(short(g))}</td><td class="st">{pill(by[g]["st"], by[g]["label"])}</td><td class="mono">{e(by[g]["pr"])}</td>'
+        f'<td class="mono">{by[g]["finish"] or "—"}</td></tr>'
+        for g in plan["critical_path"] if g in by)
+    head = ('<section>\n  <h2>Flow</h2>\n'
+            f'  <h3>Critical-path lane ({len(plan["critical_path"])} groups, the plan\'s full set)</h3>\n'
+            '  <div class="scroll"><table><thead><tr><th>Group</th><th>Status</th><th>PR</th><th>ETA</th></tr></thead>'
+            f'<tbody>{lane or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n')
+    if flow is None:
+        return head + '  <p class="note">Flow metrics not drawn (--no-flow).</p>\n</section>\n'
+
+    def cell(pair, fmt):
+        v, why = pair
+        return f'<span class="na">UNAVAILABLE — {e(why)}</span>' if v is None else fmt(v)
+
+    takt = flow["takt"]
+    stats = [
+        ("Throughput, 6 h", cell(flow["closed"], lambda v: f"{v / 6:.2f}/h vs takt {takt:g}/h "
+                                 f"({v} groups closed; alert below {0.7 * takt:.2f}/h)")),
+        ("First-pass yield, 24 h", cell(flow["yield"], lambda v: (
+            f"{v[0] / v[1]:.2f} ({v[0]}/{v[1]}; alert below 0.6)" if v[1] else "0/0"))),
+        ("Blocked classes, 24 h", cell(flow["classes"], lambda v: ", ".join(
+            f"{k or 'unclassed'} {n} ({n / sum(v.values()):.0%})" for k, n in v.most_common()) or "none")),
+        ("Lead time per size, 24 h", cell(flow["lead"], lambda v: ", ".join(
+            f"{k} {_hours(xs)}" for k, xs in sorted(v[0].items())) or "no group merge")),
+        ("WIP, in progress", cell(flow["wip"], lambda v: f"{len(v)} vs cap {flow['wip_cap']}")),
+        ("Merge-wait, 24 h", cell(flow["merge_wait"], lambda v: (
+            f"median {_hours([r['hours'] for r in v[0]])}; alert above 2 h; "
+            f"{v[1]} merges with no verdict before them"))),
+    ]
+    strip = "".join(f'<tr><th>{e(k)}</th><td>{v}</td></tr>' for k, v in stats)
+    waits = flow["merge_wait"][0]
+    wait_rows = "".join(
+        f'<tr><td class="mono">#{r["pr"]}</td><td>{e(r["kind"])}</td>'
+        f'<td class="mono">{r["hours"]:.1f} h</td><td>{"yes" if r["at_head"] else "carried"}</td></tr>'
+        for r in sorted(waits[0], key=lambda r: -r["hours"])) if waits else ""
+    batches = flow["batches"][0] or []
+    batch_rows = "".join(
+        f'<tr><td class="mono">{e(b["tag"])}</td><td class="mono">{len(b["skips"])}/{b["queue"]}</td>'
+        f'<td>{e("; ".join(f"#{pr} {why}" for pr, why in b["skips"])) or "—"}</td>'
+        f'<td>{"done" if b["done"] else "running"}</td></tr>' for b in batches[-8:][::-1])
+    alerts = bottleneck_check.judge(flow)
+    alert = ("".join(f"<li class=\"mono\">{e(a)}</li>" for a in alerts)
+             if alerts else "<li>no metric past its threshold</li>")
+    return (head
+            + f'  <h3>Bottlenecks ({len(alerts)})</h3>\n  <ul class="alerts">{alert}</ul>\n'
+            + '  <p class="note">Each line suggests an action and takes none; the orchestrator '
+              'decides. Thresholds and their minimum samples are <code>bottleneck_check.THRESHOLDS</code>.</p>\n'
+            + f'  <h3>Flow metrics (to {e(str(flow["until"]))})</h3>\n  <div class="scroll"><table><tbody>{strip}</tbody></table></div>\n'
+            + '  <h3>Merge-wait per PR, 24 h (merge verdict to merge)</h3>\n'
+            + '  <div class="scroll"><table><thead><tr><th>PR</th><th>Kind</th><th>Wait</th><th>Verdict at merged head</th>'
+              f'</tr></thead><tbody>{wait_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n'
+            + '  <h3>Train skips per batch (latest 8)</h3>\n'
+            + '  <div class="scroll"><table><thead><tr><th>Batch (UTC)</th><th>Skipped</th><th>Why</th><th>State</th>'
+              f'</tr></thead><tbody>{batch_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n'
+            + "</section>\n")
+
+
 def _when(s: str) -> str:
     return _t(s).strftime("%a %d %b %H:%M")
 
 
-def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
+def render(roster: dict, roster_src: str, plan: dict, snap: dict,
+           flow: dict | None = None) -> str:
     """The page. Pure: every input is an argument."""
     rows = build_rows(roster, plan, snap)
     svg, drawn = swimlanes(plan, rows)
@@ -496,11 +639,15 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
     slots, every = caps["slots"], caps["stamp_every"]
     chain = plan["critical_path"]
     waves_of = {g: w["wave"] for w in plan["waves"] for g in w["groups"]}
-    counts = {k: sum(1 for r in rows if r["st"] == k)
-              for k in _STRIP}
+    counts = {k: sum(1 for r in rows if r["st"] == k) for k in _STRIP}
+    # One predicate for the strip and the row label: a not-done group with a
+    # merged part (a carries-open one included) is part merged.
+    counts["partial"] = sum(1 for r in rows if r["part"])
     open_iss = ("—" if snap.get("offline") else str(sum(
         1 for i in snap["issues"]
-        if i["state"] == "OPEN" and i["number"] != TRACKING_ISSUE)))
+        if i["state"] == "OPEN" and i["number"] not in TRACKING_ISSUES)))
+    n_open_rows = sum(1 for r in rows if r["st"] != "done")
+    n_sched = sum(1 for r in rows if r["st"] != "done" and r["finish"])
     order = {k: i for i, k in enumerate(("S", "M", "L", "XL"))}
     sizes = ", ".join(f"{k} {v:g} h" for k, v in sorted(
         model["sizes_hours"].items(), key=lambda kv: (order.get(kv[0], 99), kv[0])))
@@ -511,11 +658,13 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
         return f'<span class="{cls}" title="{e(title)}">#{n}</span>'
 
     trs = "".join(
-        f'<tr class="{r["st"]}" data-st="{r["st"]}"><td class="g">'
+        f'<tr class="{r["st"]}" data-st="{r["st"]}" data-part="{int(r["part"])}"><td class="g">'
         + ('<span class="cp" title="critical path">◆</span>' if r["crit"] else "")
+        + ('<span class="cp hotcp" title="hotfix blocking a critical-path group">▲</span>'
+           if r["hot"] else "")
         + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
         f'<td class="d">{e(r["desc"])}</td>'
-        f'<td><span class="pill {r["st"]}">{e(r["label"])}</span></td>'
+        f'<td class="st">{pill(r["st"], r["label"])}</td>'
         f'<td class="tier">{r["tier"] if r["tier"] is not None else "—"}</td>'
         f'<td class="mono">{e(r["pr"])}</td>'
         f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
@@ -544,12 +693,18 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
         "source": e(f'{roster_src} @ {gen["roster_blob"][:12]}'),
         "tracking": str(TRACKING_ISSUE), "open_iss": open_iss,
         "issues_chart": issues_section(roster, plan, snap),
+        "flow": flow_section(plan, rows, flow),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
         "svg": svg, "crit": crit or "—", "trs": trs, "stamps": stamps, "waves": waves,
+        "tier_legend": e(", ".join(f"{t} {w}" for t, w in sorted(replan.TIER_LEGEND.items()))),
         "slots": str(slots), "every": str(every),
         "slots_note": e(
-            f"Read from plan.json: {summ['groups_open']} open groups, {summ['batches']} "
-            f"merge batches, closure {summ['closure']}. A wave is the set of groups "
+            f"Read from plan.json: {summ['groups_open']} scheduled open groups (the lanes), "
+            f"of the {n_open_rows} the table lists as not merged; the other {n_open_rows - n_sched} "
+            f"are held without a schedule. {summ['batches']} "
+            f"merge batches, closure {summ['closure']}. The programme is closed only when "
+            f"{', '.join(summ.get('closure_conditions') or ['(conditions not in plan.json)'])}. "
+            f"A wave is the set of groups "
             f"dispatched at one instant; the next opens as soon as one of the {slots} "
             f"pull-request slots frees. Coordinator cap {caps['coordinator_cap']}; "
             f"{inherited} inherited in-progress coordinator groups are recorded in "
@@ -597,6 +752,19 @@ def _refuse(html_out: str, what: str, detail: list) -> int:
 
 # ---------------------------------------------------------------------- cli
 
+def flow_metrics(repo: str, ref: str, path: str, roster: dict, plan: dict,
+                 train_log: str | None) -> dict:
+    """`merge_throughput.bottleneck_metrics` over the roster this page drew,
+    WIP against the plan's own slot cap."""
+    crit, cwhy = mt.critical_read(Path(repo), ref, roster)
+    ctx = mt.FlowCtx(repo=Path(repo), tree="origin/main", remote="origin", roster=roster,
+                     roster_unavailable="", roster_ref=ref, roster_path=path, prefix="",
+                     record_prefix="record/", critical=crit, critical_unavailable=cwhy)
+    until = mt.flow_default_until(Path(repo), "origin/main", ref)
+    return mt.bottleneck_metrics(ctx, until, Path(train_log) if train_log else None,
+                                 int(plan["generated"]["caps"]["slots"]))
+
+
 def main(argv=None, fetch=fetch_github) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--plan")
@@ -610,6 +778,9 @@ def main(argv=None, fetch=fetch_github) -> int:
                    help="read GitHub state from this JSON file instead of gh")
     p.add_argument("--no-fetch", action="store_true",
                    help="read an origin/ roster ref as this clone has it")
+    p.add_argument("--train-log", default=None,
+                   help="the live merge train's train.log, for the skip measure")
+    p.add_argument("--no-flow", action="store_true", help="draw no flow metrics")
     p.add_argument("--self-test", action="store_true")
     a = p.parse_args(argv)
     if a.self_test:
@@ -635,7 +806,8 @@ def main(argv=None, fetch=fetch_github) -> int:
     roster = roster_lib.show_roster(a.repo, ref, path)
     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
             if a.github_snapshot else _fetch_or_offline(fetch, a.gh_repo))
-    page = render(roster, f"{ref}:{path}", plan, snap)
+    flow = None if a.no_flow else flow_metrics(a.repo, ref, path, roster, plan, a.train_log)
+    page = render(roster, f"{ref}:{path}", plan, snap, flow)
     Path(a.html).write_text(page, encoding="utf-8")
     print(f"wrote {a.html}: {len(roster_lib.groups_of(roster))} groups, "
           f"closure {plan['summary']['closure']}")
@@ -659,7 +831,7 @@ def _self_test() -> int:
             fails.append(f"{name} (got: {str(got)[:300]})")
 
     def grp(gid, lane, after=(), stage="not-started", branch="", commit=None,
-            issues=(), fixes=()):
+            issues=(), fixes=(), **kw):
         resume = {"stage": stage}
         if branch:
             resume["branch"] = branch
@@ -667,7 +839,7 @@ def _self_test() -> int:
             resume["commit"] = commit
         return {"group": gid, "lane": lane, "kind": "defect", "size": "S",
                 "after": list(after), "issues": list(issues), "fixes": list(fixes),
-                "brief": f"tvofi, 2026-01-01: Does {gid}. More.", "resume": resume}
+                "brief": f"tvofi, 2026-01-01: Does {gid}. More.", "resume": resume, **kw}
 
     roster = {"groups": [
         grp("R9-DONE-SHA", "CO", stage="done", commit="aaaaaaa1", issues=(11,), fixes=(11,)),
@@ -676,7 +848,8 @@ def _self_test() -> int:
         grp("R9-LIVE", "LE", stage="in-progress", branch="fix/r9-live-g", issues=(12,)),
         grp("R9-PART", "UX"),
         grp("R9-BLOCK", "UX", after=("R9-LIVE",)),
-        grp("R9-READY", "IN", after=("R9-DONE-SHA",), issues=(13,), fixes=(13,)),
+        grp("R9-READY", "IN", after=("R9-DONE-SHA",), issues=(13,), fixes=(13,),
+            source=roster_lib.OUTSIDE),
         dict(grp("R9-HELD", "IN", stage="absorbed"), absorbed_into="R9-DONE-SHA"),
     ]}
     snap = {
@@ -729,8 +902,13 @@ def _self_test() -> int:
     check("an open issue wired only to a done group, or to none, is an unplanned orphan "
           "naming the groups it was wired to",
           pr_["orphans"] == {6: ["R9-GONE"], 99: []}, pr_["orphans"])
-    check("the tracking issue is never an orphan",
-          TRACKING_ISSUE not in project_issues(ir, ip, {1, TRACKING_ISSUE})["orphans"])
+    fr = {"groups": [grp("R9-FIXONLY", "CO", fixes=(8,))]}
+    fp = project_issues(fr, {"groups": {"R9-FIXONLY": pg("2026-01-05T10:00:00Z")}}, {8})
+    check("an open issue wired only via `fixes` to an open group closes at its finish, "
+          "not an unplanned orphan",
+          fp["close_at"].get(8) == _t("2026-01-05T10:00:00Z") and not fp["orphans"], fp)
+    check("no record issue, #201 or its continuation, is ever an orphan",
+          not TRACKING_ISSUES & set(project_issues(ir, ip, {1, *TRACKING_ISSUES})["orphans"]))
     osec = issues_section(ir, dict(ip, generated={"start": "2026-01-05T00:00:00Z"},
                                    summary={"closure": "2026-01-07T00:00:00Z"}),
                           {"issues": [{"number": n, "title": f"t{n}", "state": "OPEN"}
@@ -849,6 +1027,52 @@ def _self_test() -> int:
             check("every template field is filled", "{{" not in page,
                   re.findall(r"\{\{\w+\}\}", page))
             check("the round comes from the roster path", "<h1>Round 9 Fix Plan</h1>" in page)
+
+            # PROPOSAL 1 (tvofi 2026-11-07): a merged carries-open group with
+            # every carry marked is closed in the plan and renders merged, with
+            # the record step it still owes; one unmarked carry keeps it held.
+            def dis_roster(carry):
+                return {"groups": roster["groups"] + [
+                    dict(grp("R9-DIS", "CO", stage="carries-open", commit="fffffff1",
+                             issues=(12,)), carry=carry),
+                    grp("R9-AFTER", "CO", after=("R9-DIS",))]}
+            for carry, want in ((["a [moved: R9-READY]", "b [dismissed: a duplicate]"], True),
+                                (["a [moved: R9-READY]", "b"], False)):
+                rd = dis_roster(carry)
+                pd = replan.build_plan(rd, durations, dict(replan.DEFAULT_CAPS), start,
+                                       "v1.0.0", round_n=9)
+                rr = {r["g"]: r for r in build_rows(rd, pd, snap)}
+                if want:
+                    check("discharged: rendered merged, naming the record step it owes",
+                          rr["R9-DIS"]["st"] == "done"
+                          and "every carry discharged" in rr["R9-DIS"]["label"]
+                          and "close or re-own #12" in rr["R9-DIS"]["label"]
+                          and rr["R9-AFTER"]["blk"] == [], (rr["R9-DIS"], rr["R9-AFTER"]["blk"]))
+                else:
+                    check("discharged (null): one unmarked carry keeps it held and its "
+                          "dependent blocked", rr["R9-DIS"]["st"] == "held"
+                          and rr["R9-AFTER"]["blk"] == ["R9-DIS"], (rr["R9-DIS"], rr["R9-AFTER"]))
+
+            # PROPOSAL 2: the flow section draws bottleneck_metrics' dict, the
+            # alert's lines, and the critical-path lane as the full set.
+            flow = bottleneck_check._fixture(
+                closed=(4, ""), batches=(None, "no train log named"),
+                merge_wait=(([{"pr": 7, "hours": 3.0, "kind": "group", "at_head": True}], 0), ""))
+            flow.update(until="2026-01-05 00:00:00+00:00", lead=(({"S": [1.5, 2.5]}, 0), ""))
+            fp = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json", plan, snap, flow)
+            check("flow: the alert's breach line is drawn",
+                  "BOTTLENECK: throughput 0.67/h" in fp and "<h3>Bottlenecks (2)</h3>" in fp,
+                  re.findall(r"BOTTLENECK[^<]*", fp))
+            check("flow: an unreadable source is UNAVAILABLE with its reason, the page is not",
+                  "BOTTLENECK-UNREADABLE: skip-share -- no train log named" in fp
+                  and "PLAN UNAVAILABLE" not in fp)
+            check("flow: the critical-path lane lists the plan's full set",
+                  f"Critical-path lane ({len(plan['critical_path'])} groups" in fp
+                  and all(f'<td class="g">{short(g)}</td>' in fp for g in plan["critical_path"]))
+            check("flow: merge-wait and WIP are drawn from the dict",
+                  "#7</td><td>group</td><td class=\"mono\">3.0 h" in fp and "19 vs cap 20" in fp)
+            check("flow (null): with no metrics the section says not drawn, no zero",
+                  "Flow metrics not drawn" in page and "BOTTLENECK" not in page)
             model = plan["generated"]["model"]
             check("the methodology states the plan's sizes and live fraction",
                   f"S {model['sizes_hours']['S']:g} h" in page
@@ -868,6 +1092,63 @@ def _self_test() -> int:
             check("critical-path groups carry the mark",
                   all(rows[g]["crit"] for g in plan["critical_path"])
                   and page.count('class="critmark"') == len(plan["critical_path"]))
+            # A hotfix that a critical-path group waits on is marked, on or off the chain.
+            import copy
+            cg = next(g for g in plan["critical_path"] if g != "R9-PART")
+            hot_roster = copy.deepcopy(roster)
+            for e_ in hot_roster["groups"]:
+                if e_["group"] == "R9-PART":
+                    e_["kind"] = "bug"
+                if e_["group"] == cg:
+                    e_["after"] = list(e_["after"]) + ["R9-PART"]
+            hot_rows = {r["g"]: r for r in build_rows(hot_roster, plan, snap)}
+            cold_roster = copy.deepcopy(hot_roster)
+            for e_ in cold_roster["groups"]:
+                if e_["group"] == "R9-PART":
+                    e_["kind"] = "defect"
+            cold_rows = {r["g"]: r for r in build_rows(cold_roster, plan, snap)}
+            def marked(roster_, plan_=plan):
+                """The rows whose rendered name cell carries the hotfix mark."""
+                return re.findall(r'class="cp hotcp" title="hotfix blocking a critical-path '
+                                  r'group">▲</span>([^<]*)<div', render(
+                                      roster_, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                                      plan_, snap))
+
+            def staged(stage):
+                r_ = copy.deepcopy(hot_roster)
+                for e_ in r_["groups"]:
+                    if e_["group"] == "R9-PART":
+                        e_["resume"] = dict(e_.get("resume") or {}, stage=stage)
+                return r_
+            nc = next(g for g, r in rows.items()
+                      if not r["crit"] and r["st"] != "done" and g != "R9-PART")
+            off_cp = copy.deepcopy(roster)
+            for e_ in off_cp["groups"]:
+                if e_["group"] == "R9-PART":
+                    e_["kind"] = "bug"
+                if e_["group"] == nc:
+                    e_["after"] = list(e_.get("after") or []) + ["R9-PART"]
+            dis_plan = copy.deepcopy(plan)
+            dis_plan["groups"]["R9-PART"]["discharged"] = True
+            check("a hotfix a critical-path group waits on is marked, on its row of the page",
+                  [g for g, r in hot_rows.items() if r["hot"]] == ["R9-PART"]
+                  and marked(hot_roster) == [short("R9-PART")], marked(hot_roster))
+            nulls = {"non-hotfix": marked(cold_roster), "no crit edge": marked(roster),
+                     "off-path edge": marked(off_cp) if roster_lib.is_hotfix(
+                         roster_lib.groups_of(off_cp)["R9-PART"]) and "R9-PART" in
+                     roster_lib.groups_of(off_cp)[nc]["after"] else ["fixture lost its edge"],
+                     "released (refuted)": marked(staged("refuted")),
+                     "closed (deferred)": marked(staged("deferred")),
+                     "discharged": marked(hot_roster, dis_plan)}
+            check("hotfix mark (null): a non-hotfix on the edge, a hotfix only an off-path "
+                  "group waits on, a released, a closed and a discharged predecessor mark no row",
+                  not any(nulls.values())
+                  and not any(r["hot"] for r in cold_rows.values())
+                  and not any(r["hot"] for r in rows.values()), str(nulls))
+            check("the closure conditions are stated on the page",
+                  "The programme is closed only when no open pull requests, no handoffs, "
+                  "no carries, no findings, no leads, only the coordination issue open." in page,
+                  re.findall(r"The programme is closed[^.]*\.", page))
             check("every open group's tier is shown, and a merged group's is not",
                   all(f'<td class="tier">{rows[g]["tier"]}</td>' in page
                       for g in rows if rows[g]["tier"] is not None)
@@ -875,8 +1156,16 @@ def _self_test() -> int:
                   and '<td class="tier">—</td>' in page
                   and '<th title="dispatch tier' in page,
                   {g: rows[g]["tier"] for g in rows})
-            check("the critical path is tier 2 and production tier 3 (the owner's order)",
-                  all(rows[g]["tier"] == replan.TIER_URGENT for g in plan["critical_path"])
+            check("an outside request off the critical path is the top tier, and its "
+                  "hover and the legend say so",
+                  "R9-READY" not in plan["critical_path"]
+                  and rows["R9-READY"]["tier"] == replan.TIER_TOP
+                  and "outside request" in rows["R9-READY"]["why"]
+                  and all(f"{t} {html.escape(w)}" in page
+                          for t, w in replan.TIER_LEGEND.items()),
+                  (rows["R9-READY"], plan["critical_path"]))
+            check("the critical path is the top tier and production tier 4 (the owner's order)",
+                  all(rows[g]["tier"] == replan.TIER_TOP for g in plan["critical_path"])
                   and any(rows[g]["tier"] == replan.TIER_PRODUCTION_WORK
                           for g in rows if scheduled(g)),
                   {g: rows[g]["tier"] for g in rows})
@@ -886,6 +1175,11 @@ def _self_test() -> int:
                       if rows[g]["st"] != "done" and scheduled(g)),
                   {g: rows[g]["why"] for g in rows})
             check("a planned stamp is drawn", 'class="stampline"' in page)
+            check("every planned stamp is drawn on the axis, the round-close one after "
+                  "closure included",
+                  page.count('class="stampline"') == len(plan["stamps"])
+                  and _t(plan["stamps"][-1]["at"]) >= _t(plan["summary"]["closure"]),
+                  (page.count('class="stampline"'), plan["stamps"], plan["summary"]["closure"]))
             check("the closure stamp renders as the round's major, kind round-close",
                   '<td class="mono">v9.0.0</td>' in page
                   and f'<td class="mono">{replan.ROUND_CLOSE}</td></tr>' in page
@@ -912,9 +1206,82 @@ def _self_test() -> int:
             sec = issues_section(roster, plan, snap)
             check("the issues chart is the first section, drawn from the open set",
                   0 <= page.find("Projected open issues") < page.find("<h2>Swimlanes")
-                  and "2 open now" in page and "1 other open issues are on no open group" in page
+                  and "2 open now" in page and "1 other open issue is on no open group: #3394 (the record issue)." in page
                   and "Unplanned: no open group" not in page
                   and sec.count("<polyline") == 1, re.findall(r"\d+ open now", page))
+            # Count sentence: pluralised from the count, the unplanned clause
+            # dropped when none are listed (carry 2).
+            one = _other_issues_sentence({"other": {201}, "orphans": {}})
+            many = _other_issues_sentence({"other": {201, 77, 78}, "orphans": {77: [], 78: []}})
+            check("the other-issues sentence for none says none, not a zero count",
+                  _other_issues_sentence({"other": set(), "orphans": {}})
+                  == "no other open issue is on no open group.")
+            held_n = sum(1 for g in rows if rows[g]["st"] != "done" and not scheduled(g))
+            check("the lede counts the open groups held without a schedule",
+                  held_n >= 1 and f"the other {held_n} are held without a schedule" in page,
+                  re.findall(r"the other \d+ are held", page))
+            check("the other-issues sentence is singular for one and drops the zero clause",
+                  one == "1 other open issue is on no open group: #201 (the record issue)."
+                  and "0 listed" not in one, one)
+            check("null control: several with unplanned orphans pluralise and keep the clause",
+                  many == "3 other open issues are on no open group: #201 (the record issue) "
+                  "and the 2 listed below as unplanned.", many)
+            # Wave None and a null in the sort key never render as Python (carry 3).
+            nowave = json.loads(json.dumps(plan))
+            nowave["groups"]["R9-BLOCK"].update(wave=None, sort_key=[None, 4, "R9-BLOCK"])
+            npage = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                           nowave, snap)
+            check("a group with no wave and a null in its sort key renders no None",
+                  'data-wave="None"' not in npage and "wave None" not in npage
+                  and "sort key [" not in npage and "None" not in
+                  "".join(re.findall(r"<svg.*?</svg>", npage, re.S))
+                  and "sort key —, 4, R9-BLOCK" in npage, re.findall(r".{30}None.{20}", npage)[:3])
+            check("null control: a group at a wave renders wave N and data-wave=N",
+                  re.search(r'data-wave="\d+"', page) and re.search(r"wave \d+</title>", page),
+                  re.findall(r'data-wave="[^"]*"', page)[:3])
+            # One predicate for the strip's part-merged count and the row label.
+            co_roster = {"groups": roster["groups"] + [grp("R9-CO", "CO", stage="carries-open")]}
+            co_snap = dict(snap, merged_prs=snap["merged_prs"] + [
+                {"number": 24, "title": "R9-CO: part one", "head_ref": "fix/r9-co-1",
+                 "merge_commit_sha": "f" * 40, "merged_at": "2026-01-04T00:00:00Z"}])
+            co_plan = json.loads(json.dumps(plan))
+            co_plan["groups"]["R9-CO"] = dict(co_plan["groups"]["R9-PART"])
+            co_rows = {r["g"]: r for r in build_rows(co_roster, co_plan, co_snap)}
+            co_page = render(co_roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                             co_plan, co_snap)
+            want_part = sum(1 for r in co_rows.values() if "part merged" in r["label"]
+                            and r["st"] != "done")
+            check("a carries-open group holding a merged part counts in the strip as its row does",
+                  co_rows["R9-CO"]["st"] == "held" and "part merged #24" in co_rows["R9-CO"]["label"]
+                  and want_part >= 2
+                  and f"<b>{want_part}</b><span>part merged, residual open</span>" in co_page,
+                  (want_part, re.findall(r"<b>\d+</b><span>part merged", co_page)))
+            check("null control: no part-merged group reads 0",
+                  "<b>0</b><span>part merged, residual open</span>" in render(
+                      roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                      plan, dict(snap, merged_prs=snap["merged_prs"][:2])))
+            check("the group note and the issues note state how the two counts relate",
+                  f"of the {sum(1 for r in build_rows(roster, plan, snap) if r['st'] != 'done')} "
+                  "the table lists as not merged" in page
+                  and "The status strip counts 2 open issues, the record issues left out: the 2 "
+                  "drawn here plus the 0 unplanned." in page, re.findall(r"status strip counts[^.]*", page))
+            # A markdown heading in a brief renders as plain text (carry 4).
+            hb = roster_lib.one_line_brief({"brief": "# Fixer brief\n\nDo the thing.\nMore."})
+            dr = {r["g"]: r for r in build_rows(
+                {"groups": [grp("R9-D", "CO", after=("R9-OPEN",), stage="done", commit="aaaaaaa1"),
+                            grp("R9-OPEN", "CO")]}, dict(plan, groups={
+                                "R9-D": plan["groups"]["R9-DONE-SHA"],
+                                "R9-OPEN": plan["groups"]["R9-READY"]}), snap)}
+            check("a done row lists no open group under Blocked by",
+                  dr["R9-D"]["blk"] == [], dr["R9-D"]["blk"])
+            check("the Part merged filter matches the held part-merged row",
+                  'data-part="1"' in co_page and "f==='partial'&&part==='1'" in co_page
+                  and 'data-part="1"' not in render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                                                    plan, dict(snap, merged_prs=snap["merged_prs"][:2])))
+            check("a description beginning '# Fixer brief' renders without the '#', lines joined",
+                  hb.startswith("Fixer brief") and "#" not in hb and "\n" not in hb, hb)
+            check("null control: a description with no heading is unchanged",
+                  roster_lib.one_line_brief({"brief": "Does X. More."}) == "Does X.")
             no_gh = {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
             check("no GitHub state: the chart is omitted with a note",
                   "Omitted" in issues_section(roster, plan, no_gh)
@@ -1021,10 +1388,15 @@ _TEMPLATE = """<!doctype html>
   --bg:#10171c; --panel:#162028; --fg:#e4ebef; --muted:#93a3ad; --line:#2a3842;
   --accent:#f07a42; --done:#5cc48a; --live:#5aa7e6; --ready:#d9b440; --blocked:#76848e; --partial:#b78be0;
   --done-bg:#173226; --live-bg:#152b3d; --ready-bg:#33290f; --blocked-bg:#1e2a32; --partial-bg:#2a1f38; color-scheme:dark}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);margin:0;padding:20px 16px 40px}
 main{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
 h1{font:700 2.1rem/1 var(--display);letter-spacing:.01em;margin:0}
 h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px}
+h3{font:600 1rem/1.2 var(--display);letter-spacing:.04em;margin:14px 0 8px}
+.alerts{margin:0;padding-left:1.2em}
+.alerts li{overflow-wrap:break-word}
+pre,code{white-space:pre-wrap;overflow-wrap:break-word}
 .sub{color:var(--muted);margin:6px 0 0}
 .strip{display:flex;flex-wrap:wrap;gap:10px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:120px;flex:1}
@@ -1032,6 +1404,8 @@ h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:upper
 .stat span{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .stat.end b{color:var(--accent);font-size:1.15rem;padding-top:6px}
 section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.scroll{max-width:100%}
+@media (max-width:480px){body{padding:14px 10px 32px}section{padding:12px}h1{font-size:1.7rem}}
 .scroll{overflow-x:auto}
 svg{display:block;font-family:var(--mono)}
 .grid{stroke:var(--line);stroke-width:1}
@@ -1068,9 +1442,11 @@ td.g{font:600 .85rem var(--mono);white-space:nowrap}
 td.d{min-width:260px;max-width:440px}
 .lanec{font:400 .72rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.82rem}
+.alerts li.mono{white-space:normal}
 .blk{color:var(--muted);font-size:.82rem;max-width:200px}
 .cp{color:var(--accent);margin-right:4px}
-.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:.78rem;white-space:nowrap;border:1px solid}
+.pill{display:inline-block;max-width:100%;box-sizing:border-box;border-radius:999px;padding:1px 9px;font-size:.78rem;line-height:1.35;white-space:normal;overflow-wrap:break-word;word-break:normal;border:1px solid}
+td.st{min-width:11rem}
 .pill.done{background:var(--done-bg);color:var(--done);border-color:var(--done)}
 .pill.live{background:var(--live-bg);color:var(--live);border-color:var(--live)}
 .pill.ready{background:var(--ready-bg);color:var(--ready);border-color:var(--ready)}
@@ -1102,11 +1478,12 @@ td.d{min-width:260px;max-width:440px}
   <div class="stat"><b>{{n_blocked}}</b><span>waiting on a group</span></div>
   <div class="stat"><b>{{n_partial}}</b><span>part merged, residual open</span></div>
   <div class="stat"><b>{{n_held}}</b><span>held by a disposition</span></div>
-  <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. #{{tracking}})</span></div>
+  <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. the record issues)</span></div>
   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
 </div>
 
 {{issues_chart}}
+{{flow}}
 <section>
   <h2>Swimlanes</h2>
   <div class="scroll">{{svg}}</div>
@@ -1137,10 +1514,10 @@ td.d{min-width:260px;max-width:440px}
     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
   </div>
   <div class="scroll"><table>
-    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 1 main, 2 critical path and hotfixes, 3 production and instruments saving 12 h or more, 4 other instruments by savings">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: {{tier_legend}}">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
     <tbody id="rows">{{trs}}</tbody>
   </table></div>
-  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 0 the computed critical path, 1 production, 2 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
+  <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: {{tier_legend}} (— for a merged group); an ETA's hover names the roster field that decided it. Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
 </section>
 
 <section>
@@ -1188,10 +1565,10 @@ td.d{min-width:260px;max-width:440px}
   });
   var bs=document.querySelectorAll('.filters button'), rows=document.querySelectorAll('#rows tr'),
       bars=document.querySelectorAll('svg g.grp'), hide=document.getElementById('hide-done'), f='all';
-  function shown(st){ return (f==='all'||st===f) && !(hide.checked && st==='done'); }
+  function shown(st,part){ return (f==='all'||st===f||(f==='partial'&&part==='1')) && !(hide.checked && st==='done'); }
   function apply(){
-    rows.forEach(function(r){ r.hidden=!shown(r.getAttribute('data-st')); });
-    bars.forEach(function(b){ b.style.display=shown(b.getAttribute('data-st'))?'':'none'; });
+    rows.forEach(function(r){ r.hidden=!shown(r.getAttribute('data-st'),r.getAttribute('data-part')); });
+    bars.forEach(function(b){ b.style.display=shown(b.getAttribute('data-st'),b.getAttribute('data-part'))?'':'none'; });
   }
   bs.forEach(function(b){b.addEventListener('click',function(){
     bs.forEach(function(x){x.setAttribute('aria-pressed',x===b?'true':'false')});

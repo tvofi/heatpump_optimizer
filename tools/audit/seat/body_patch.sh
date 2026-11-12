@@ -120,7 +120,7 @@ roster_ref_args() {
 # The contract arm: pr-contract's own policy_lint call, then the carry check.
 # Runs in the current directory (a worktree holding the head's objects).
 contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the pr-json carries)
-  local doc=$1 base=$2 head=$3 body=$4 title=${5:-} author
+  local doc=$1 base=$2 head=$3 body=$4 title=${5:-} author pn
   local d; d=$(mktemp -d "${TMPDIR:-/tmp}/body_patch.XXXXXX") || return 1
   if [ "$body" = - ]; then
     body=$d/live_body.md
@@ -141,6 +141,13 @@ contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the 
   local args=(--pr-body "$body" --head "$head" --base "$base" --title "$title" --author "$author"
               --paths-file "$d/files" --existing-file "$d/existing") name rc=0
   while IFS= read -r name; do args+=(--red "$name"); done < "$d/reds"
+  # A Dependabot pull request is judged on its commit list (dependency_bump's clause);
+  # without `--commits-file` its body can never be patched (#3088, 2026-11-01).
+  if [ "$author" = "dependabot[bot]" ]; then
+    pn=$(printf '%s' "$doc" | python3 -c 'import sys, json; print(json.load(sys.stdin).get("number") or "")')
+    gh api --paginate "repos/$REPO/pulls/$pn/commits" --jq '.[] | [.sha, (.author.login // ""), (.committer.login // ""), (.commit.verification.verified // false | tostring)] | @tsv' > "$d/commits" 2>/dev/null || { echo "body_patch: the commit list of the Dependabot pull request could not be read" >&2; rm -rf "$d"; return 1; } # mut:commitlist
+    args+=(--commits-file "$d/commits") # mut:commitsarg
+  fi
   # never-empty: args starts with the literal --pr-body list; the body cites paths of the head, not of this checkout
   BRIEF_LINT_TREE_REV=$head node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
   if roster_ref_args; then
@@ -312,6 +319,9 @@ case "$*" in
     prog=""; prev=""; for a in "$@"; do [ "$prev" = "--jq" ] && prog="$a"; prev="$a"; done
     jq -n --rawfile n "$STUB/reds" '{check_runs: ($n | split("\n") | map(select(. != "")) | map({name: ., status: "completed", conclusion: "failure"}))}' 2>/dev/null \
       | jq -r "$prog" ;;
+  "api --paginate repos/o/r/pulls/7/commits "*)
+    [ -f "$STUB/commits-fail" ] && exit 1
+    cp "$STUB/commits.tsv" "$STUB/commits.read" 2>/dev/null; cat "$STUB/commits.tsv" ;;
   *) exit 9 ;;
 esac
 STUB
@@ -319,7 +329,7 @@ cat > "$W/bin/node" <<'STUB'
 #!/bin/bash
 printf 'node %s\n' "$*" >> "$STUB/log"
 printf 'treerev %s\n' "${BRIEF_LINT_TREE_REV-unset}" >> "$STUB/log"
-prev=""; for a in "$@"; do [ "$prev" = "--paths-file" ] && cp "$a" "$STUB/paths"; [ "$prev" = "--existing-file" ] && cp "$a" "$STUB/existing"; prev="$a"; done
+prev=""; for a in "$@"; do [ "$prev" = "--commits-file" ] && cp "$a" "$STUB/commits.arg"; [ "$prev" = "--paths-file" ] && cp "$a" "$STUB/paths"; [ "$prev" = "--existing-file" ] && cp "$a" "$STUB/existing"; prev="$a"; done
 [ -f "$STUB/lint-fails" ] && { echo "policy_lint: REFUSE stub" >&2; exit 1; }
 exit 0
 STUB
@@ -457,6 +467,33 @@ run nobranch "$BP" --repo o/r 7 "$HEAD" "$W/body.md"
 st $? 0 "the branch proved absent on origin: the carry check runs without --roster-ref (null control)"
 st "$(grep -c '^carry_audit check --body ' "$W/nobranch/log")$(grep -c 'NOTE: handoff/audit-r10-roster does not exist' "$W/nobranch/err")" 11 "... and says so"
 git -C "$W/repo" remote set-url origin "$W/orig"
+# The roster ref is read, not just passed (R10-BODY-CONTRACT carry 0): the REAL carry_audit, a worktree
+# roster holding a group the round roster branch lacks, and main holding it too. The body's Carry: names
+# that group: with --roster-ref the branch's roster is the one read, so it is refused; the null control
+# (the branch holds the group) is accepted.
+mkdir -p "$W/orig/dev/programme/rosters"
+ROSTER_NEW='{"groups": [{"group": "R10-NEW", "issues": [], "fixes": [], "after": [], "resume": {"stage": "not-started"}, "brief": "b", "carry": []}]}'
+( cd "$W/orig" && throwaway_git_env && printf '%s' "$ROSTER_NEW" > dev/programme/rosters/wave-r10-groups.json \
+  && git add . && git commit -qm roster-with-new \
+  && cd "$W/repo" && git fetch -q origin main:refs/remotes/origin/main ) >/dev/null 2>&1
+mkdir -p "$W/repo/dev/programme/rosters"; printf '%s' "$ROSTER_NEW" > "$W/repo/dev/programme/rosters/wave-r10-groups.json"
+printf '## Head\n\n`%s`\n\n## Forward-carry\n\n- the store seam is missed by the census. Carry: R10-NEW\n' "$HEAD" > "$W/rbody.md"
+cp "$W/repo/tools/audit/carry_audit.py" "$W/carry_audit.stub"
+real_carry_audit() { cat > "$W/repo/tools/audit/carry_audit.py" <<PY
+import os, subprocess, sys
+sys.exit(subprocess.call([sys.executable, "-I", "$HERE/../carry_audit.py", "--git-dir", os.getcwd()] + sys.argv[1:]))
+PY
+}
+real_carry_audit
+mkcase rr; run rr "$BP" --repo o/r 7 "$HEAD" "$W/rbody.md"
+st $? 1 "REFUSE: the carry names a group the round roster branch lacks, though the worktree roster and main hold it (the real carry_audit reads the ref)"
+st "$(calls rr curl)" 0 "(and nothing minted)"
+git -C "$W/orig" branch -f handoff/audit-r10-roster main >/dev/null 2>&1
+mkcase rr2; run rr2 "$BP" --repo o/r 7 "$HEAD" "$W/rbody.md"
+st $? 0 "the same body, the branch holding the group: the real carry check accepts (null control)"
+cp "$W/carry_audit.stub" "$W/repo/tools/audit/carry_audit.py"
+git -C "$W/orig" branch -f handoff/audit-r10-roster "$(git -C "$W/orig" rev-parse main~1)" >/dev/null 2>&1
+
 mkcase checks; : > "$W/checks/checks-fail"
 run checks "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: the check runs cannot be listed (an empty list from a failed read is not 'no reds')"
 st "$(calls checks curl)" 0 "(and nothing minted)"
@@ -561,6 +598,8 @@ mutant dot2   '/# mut:threedot$/s/"\$base\.\.\.\$head"/"$base" "$head"/'
 mutant trb    '/# mut:titlereadback$/s/.*/same = True/'
 mutant tshp   '/# mut:titleshape$/s/.*/:/'
 mutant treerev '/# mut:contract$/s/BRIEF_LINT_TREE_REV=\$head //'
+mutant cmtl   '/# mut:commitlist$/s/ || {.*# mut:commitlist$/ || true/'
+mutant cmta   '/# mut:commitsarg$/s/.*/    :/'
 mutant tctr   '/# mut:titlecontract$/s/.*/    :/'
 MBP() { echo "$W/mut-$1/audit/seat/body_patch.sh"; }
 mkcase m1 "$MOVED"; run m1 "$(MBP head)" --repo o/r 7 "$HEAD" "$W/body.md"
@@ -573,6 +612,9 @@ mkcase m4; : > "$W/m4/carry-fails"; run m4 "$(MBP carry)" --repo o/r 7 "$HEAD" "
 st "$(calls m4 'curl PATCH')" 1 "MUTANT carry_audit arm deleted: the refused body is now SENT"
 mkcase m4b; run m4b "$(MBP rref)" --repo o/r 7 "$HEAD" "$W/body.md"
 st "$(grep -c '^carry_audit --roster-ref ' "$W/m4b/log")" 0 "MUTANT --roster-ref dropped: the carry check runs without the round roster (first assertion fails)"
+real_carry_audit; mkcase m4c; run m4c "$(MBP rref)" --repo o/r 7 "$HEAD" "$W/rbody.md"
+st $? 0 "MUTANT --roster-ref dropped: the real carry check reads main's roster and accepts the body the ref refuses (the real-roster control catches it)"
+cp "$W/carry_audit.stub" "$W/repo/tools/audit/carry_audit.py"
 mkcase m5; : > "$W/m5/mangle"; run m5 "$(MBP rb)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?
 st "$rc$(grep -c '^body_patch: OK' "$W/m5/out")" 01 "MUTANT body read-back deleted: a mangled body now reads OK"
 mkcase m6; : > "$W/m6/move-at-2"; run m6 "$(MBP rbhead)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?
@@ -597,6 +639,19 @@ st "$(calls m14 'curl PATCH')" 1 "MUTANT open-PR title contract deleted: a title
 
 mkcase m15; run m15 "$(MBP treerev)" --repo o/r 7 "$HEAD" "$W/body.md"
 st "$(grep -c "^treerev $HEAD\$" "$W/m15/log")" 0 "MUTANT BRIEF_LINT_TREE_REV dropped: policy_lint no longer runs at the head (the ok-run assertion catches it)"
+
+# A Dependabot pull request (#3088): its commit list reaches policy_lint as --commits-file.
+mkdep() { mkcase "$1"; printf 'sha1\tdependabot[bot]\tweb-flow\ttrue\n' > "$W/$1/commits.tsv"
+  python3 -c 'import json, sys; d = json.load(open(sys.argv[1])); d["user"]["login"] = "dependabot[bot]"; json.dump(d, open(sys.argv[1], "w"))' "$W/$1/live.json"; }
+mkdep dep; run dep "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 0 "a Dependabot pull request is patched"
+st "$(cat "$W/dep/commits.arg" 2>/dev/null)" "$(printf 'sha1\tdependabot[bot]\tweb-flow\ttrue')" "policy_lint gets the PR's commit list as --commits-file (Dependabot arm)"
+mkdep depf; : > "$W/depf/commits-fail"; run depf "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: a commit list that cannot be read is no list (never an empty file)"
+st "$(calls depf 'curl PATCH')" 0 "and nothing is sent"
+st "$([ -e "$W/ok/commits.arg" ] && echo passed || echo none)" none "null control: a non-Dependabot pull request is given no --commits-file"
+mkdep m16; run m16 "$(MBP cmta)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$([ -e "$W/m16/commits.arg" ] && echo passed || echo none)" none "MUTANT --commits-file dropped: the Dependabot arm no longer passes the list (the dep arm catches it)"
+mkdep m17; : > "$W/m17/commits-fail"; run m17 "$(MBP cmtl)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$(calls m17 'curl PATCH')" 1 "MUTANT commit-list read check deleted: an unreadable list now patches"
 
 echo "body_patch self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]

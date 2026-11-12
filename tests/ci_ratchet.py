@@ -649,21 +649,29 @@ def run_chain(r: dict) -> "list[str] | None":
     return chain[::-1]
 
 
-def gather_runs(out_file, *, repo=None, runner=None, window: int = PUSH_WINDOW) -> int:
+def gather_runs(out_file, *, repo=None, runner=None, window: int = PUSH_WINDOW, sleep=None) -> int:
     """The ci-ratchet job's runs.json: the newest `window` (PUSH_WINDOW when
     grading) push runs of ci.yml and the pre-umbrella tests.yml together, each
     with its jobs. Any failed read refuses by name: a short window is not a
-    fast one."""
+    fast one. Every read rides tools/audit/seat/gh_read.py's read rule (4 reads,
+    transient statuses only): main went red twice in a day (2026-11-10, -11) on
+    one HTTP 502 here, the grading step never having run."""
+    sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
+    import gh_read  # noqa: E402 -- the one read rule
     repo = repo or os.environ.get("GITHUB_REPOSITORY")
     if not repo:
         raise _refusal("--gather-runs needs GITHUB_REPOSITORY")
     run = runner or subprocess.run
 
     def api(*argv):
-        proc = run(["gh", "api", *argv], capture_output=True, text=True)
-        if proc.returncode != 0 or not (proc.stdout or "").strip():
-            raise _refusal(f"gh api {argv[-1]} failed (rc {proc.returncode}): "
-                           f"{(proc.stderr or '').strip()[:300]}")
+        def attempt():
+            proc = run(["gh", "api", *argv], capture_output=True, text=True)
+            if proc.returncode != 0 or not (proc.stdout or "").strip():
+                return proc, (proc.stderr or "").strip() or "gh printed nothing"
+            return proc, None
+        proc, failure, _n, why = gh_read.retry(attempt, gh_read.gh_wait, sleep or time.sleep)
+        if failure is not None:
+            raise _refusal(f"gh api {argv[-1]} failed (rc {proc.returncode}) {why}: {failure[:300]}")
         return proc.stdout
     runs = []
     for wf in PUSH_RUNS:
@@ -1156,10 +1164,34 @@ def self_test() -> int:
         ck("--gather-runs --window N keeps the newest N (a record's wider window)",
            n == 3 and sum("/jobs?" in a[-1] for a in reads) == 3
            and all("per_page=3" in a[-1] for a in reads if "/jobs?" not in a[-1]), msg or f"n={n}")
-        msg = refused(lambda: gather_runs(f, repo="o/r", runner=lambda argv, **_kw: subprocess.CompletedProcess(
+        naps = []
+        msg = refused(lambda: gather_runs(f, repo="o/r", sleep=naps.append, runner=lambda argv, **_kw: subprocess.CompletedProcess(
             argv, 1, "", "gh: HTTP 502")))
-        ck("a failed runs read refuses by name (a short window is not a fast one)",
-           "failed (rc 1)" in msg and "HTTP 502" in msg, msg or "no refusal")
+        ck("a sustained 502 on the runs read refuses by name after the read rule's 4 reads (a short window is not a fast one)",
+           "failed (rc 1)" in msg and "HTTP 502" in msg and len(naps) == 3, msg or "no refusal")
+        # R10-GH-READ-RESIDUE: one 502 on the jobs listing of one run (main red 2026-11-10, -11) is ridden out.
+        reads.clear()
+        flaky = []
+
+        def gh_502_once(argv, **kw):
+            if "/jobs?" in argv[-1] and not flaky:
+                flaky.append(argv)
+                return subprocess.CompletedProcess(argv, 1, "", "gh: HTTP 502")
+            return gh(argv, **kw)
+        n, msg = safe(lambda: gather_runs(f, repo="o/r", runner=gh_502_once, sleep=lambda _s: None))
+        ck("one injected 502 on a jobs listing still gathers the whole window",
+           n == 16 and len(flaky) == 1 and all("jobs" in r for r in json.loads(f.read_text())["workflow_runs"]
+                                               if run_kind(r) is not None), msg or f"n={n}")
+        reads.clear()
+        gone = []
+        naps.clear()
+
+        def gh_404(argv, **_kw):
+            gone.append(argv)
+            return subprocess.CompletedProcess(argv, 1, "", "gh: Not Found (HTTP 404)")
+        msg = refused(lambda: gather_runs(f, repo="o/r", runner=gh_404, sleep=naps.append))
+        ck("null control: a 404 refuses after one read, no sleep",
+           len(gone) == 1 and not naps and "HTTP 404" in msg, msg or "no refusal")
 
     # --- runner queue is not work (main red, CI job 121295715608) ----------
     # Run 40225415246, its timeline as the jobs API gave it (minutes from the

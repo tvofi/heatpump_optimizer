@@ -296,3 +296,55 @@ request's.
 - **The defect's issue:** this seat was told to post no comment. The
   **Root cause** section `defect-root-cause.md` asks for on the issue is
   therefore left to the orchestrator, who can copy this section.
+
+## 7. Re-measured after the instance fix (R10-RCA-STAMP-FLUSH-COST)
+
+A second root-cause seat, dispatched for the same owner ruling under the topic
+R10-RCA-STAMP-FLUSH-COST, re-measured this document at `origin/main`
+`73365699a` on 2026-11-08. That commit carries the instance fix, #3296 (merged
+`341da0721`, 2026-11-08T04:48:27Z). The seat writes no second document: one
+defect has one RCA, so its findings land here. Sections 2 to 6 stand: the cause,
+state (c), the reach and the cost-test verdicts are unchanged.
+
+- **One dispatch came after section 1's measurement.** Command:
+  `python3 -I dev/audit/harnesses/r10_rca_flush_dispatch.py runs 42382408131`
+  prints `RESULT runs=1 runner_min=1007 record_autofix_min=1 cancelled=0 lost_ledger_min=0`.
+  The run was created at 2026-11-07T14:36:39Z, before #3296 merged, and ran
+  every lane to `success`. No release tag follows it (`v7.1.5` was cut at
+  12:27Z), so this seat cannot attribute it to the stamp. It counts toward the
+  upper bound only.
+- **Since the flush shipped, corrected.** Command:
+  `since 2026-10-26T02:31:17Z` now prints
+  `RESULT runs=27 runner_min=16916 record_autofix_min=34 cancelled=7 lost_ledger_min=916`.
+  That is section 1's 26 runs and 15909 runner-min plus the one run above. So
+  2026-11-07 had 8 dispatches and 4564 runner-min, not 7 and 3557. Of those 8,
+  the 7 cancelled runs are the ones section 1 lists. The figures in section 5
+  move by the same 1007 runner-min. P(recurrence) at 0.1 per cycle gives about
+  28 runner-h per cycle, against section 5's 27. Neither verdict changes.
+- **No dispatch since the fix.** Command: `since 2026-11-08T04:48:27Z` prints
+  `RESULT runs=0`. As a null control, the same instrument found 27 dispatches
+  in the window above, so 0 is a reading rather than a blind read. The fix's
+  `lanes=beat` payload has not yet run in production. The next stamp's flush is
+  the first one: a run titled `Nightly record beat` that has `record-autofix`
+  as its only non-skipped job.
+- **The fix as landed.** At `73365699a`, `tools/release/stamp.py` has
+  `RECORD_BEAT_PAYLOAD = {"ref": "main", "inputs": {"lanes": "beat"}}`. At the
+  fix's merge base `d2e4d2d10`, the post was `json.dumps({"ref": "main"})`.
+  The `nightly.yml` `lanes` input and the `tests/entities.py` pin that section
+  5 premised P(recurrence) on are both in the tree.
+- **The class search, re-run.** Section 4's `git grep` rule, at `73365699a`,
+  finds the same code callers, and no new ones:
+  - `merge-main.yml`;
+  - the three `tests.yml` autofix jobs;
+  - `ci_probe.py`;
+  - `stamp.py`.
+
+  `merge_train.py`'s argv-tuple `DISPATCH` is still invisible to the grep, as
+  section 5 recorded, and is still in section 4's table. The one remaining
+  every-lane form is the hand recipe in `nightly.yml`'s header comment,
+  `gh workflow run nightly.yml --ref main`, which verifies a red. It wants
+  every lane. `stamp.py` names its one-lane hand form,
+  `gh workflow run nightly.yml -f lanes=beat`.
+- **Still owed:** the owner's decision on section 5's `proposal-triage.md` line
+  (`_rca` `parts_missing`), and the **Root cause** section on the defect's
+  issue, which section 6 left to the orchestrator.

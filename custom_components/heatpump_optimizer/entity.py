@@ -214,9 +214,22 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
     _PUBLISHED = (
         "native_value",
         "extra_state_attributes",
-        "current_temperature",
-        "target_temperature",
+        "native_current_temperature",
+        "native_target_temperature",
     )
+
+    #: The pre-native spelling of each native member a platform base gained
+    #: late. Home Assistant 2026.11 serves the climate temperatures under the
+    #: native names and logs every class still defining the old ones; the
+    #: supported floor reads only the old ones. Where no Home Assistant base
+    #: of the class carries the native member, the old name is installed as
+    #: the same member object, after the scrub, so the scrub covers whichever
+    #: name the running core reads.
+    _PRE_NATIVE = {
+        "native_current_temperature": "current_temperature",
+        "native_target_temperature": "target_temperature",
+        "_attr_native_temperature_unit": "_attr_temperature_unit",
+    }
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         """Wrap every subclass's published properties in the finite scrub.
@@ -249,6 +262,20 @@ class HeatPumpOptimizerEntity(CoordinatorEntity["HeatPumpOptimizerCoordinator"])
             scrubbed.__doc__ = prop.fget.__doc__
             setattr(scrubbed, "_finite_scrubbed", True)
             setattr(cls, name, property(scrubbed, prop.fset, prop.fdel))
+        for name, old in HeatPumpOptimizerEntity._PRE_NATIVE.items():
+            if not hasattr(cls, name):
+                continue
+            # Detected on the base, never on a version: a core whose platform
+            # base carries the native member reads it, and an old name here
+            # would be reported as deprecated.
+            member = name.removeprefix("_attr_")
+            if any(
+                member in vars(k)
+                for k in cls.__mro__
+                if k.__module__.partition(".")[0] == "homeassistant"
+            ):
+                continue
+            setattr(cls, old, getattr(cls, name))
 
     @property
     def device_info(self) -> DeviceInfo:

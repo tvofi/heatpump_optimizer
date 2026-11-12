@@ -4,7 +4,8 @@
     python3 -I tools/ci/prelude.py [--changed-from FILE] >> "$GITHUB_OUTPUT"
     python3 -I tools/ci/prelude.py --self-test
 
-Prints `key=value` lines: kind, pr, base, head, scope, legs, workset. It reads
+Prints `key=value` lines: kind, pr, base, head, scope, legs, workset,
+machinery, selftests. It reads
 the event from GITHUB_EVENT_NAME / GITHUB_EVENT_PATH and nothing else of the
 run. `derive` and `title` are also the gate's (gate.py derives the event's kind
 itself and only cross-checks this job's outputs) and `run-name`'s: ci.yml's
@@ -115,7 +116,8 @@ def context(event_name: str, ev: dict, env: dict) -> dict:
         "changes_base": bool((ev.get("changes") or {}).get("base")),
         "label": (ev.get("label") or {}).get("name", ""),
         "labels": [x.get("name") for x in pr.get("labels") or []],
-        "pr_number": str(pr.get("number") or ""), "base_ref": (pr.get("base") or {}).get("ref")
+        "pr_number": str(pr.get("number") or ""), "base_sha": (pr.get("base") or {}).get("sha") or "",
+        "base_ref": (pr.get("base") or {}).get("ref")
         or (mg.get("base_ref") or "").removeprefix("refs/heads/"),
         "queue_pr": q.group(1) if q else "",
         "input_pr": inputs.get("pr") or "", "input_base": inputs.get("base") or "",
@@ -193,10 +195,13 @@ def verify_dispatch(ctx: dict, get) -> str:
     return ""
 
 
-def run_jobs(get, repo: str, run_id) -> dict:
-    """A run's latest jobs, name -> (status, conclusion)."""
-    return {j["name"]: (j["status"], j["conclusion"]) for j in
-            ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)}
+def run_jobs(get, repo: str, run_id, starts=None) -> dict:
+    """A run's latest jobs, name -> (status, conclusion); `starts`, when given, is filled
+    name -> started_at (gate.gate's source order)."""
+    rows = ghapi.paginate(f"repos/{repo}/actions/runs/{run_id}/jobs", {"filter": "latest"}, get=get)
+    if starts is not None:
+        starts.update((j["name"], j.get("started_at")) for j in rows)
+    return {j["name"]: (j["status"], j["conclusion"]) for j in rows}
 
 
 def judging(run: dict) -> bool:
@@ -338,7 +343,17 @@ def proof_scope(ctx: dict, get, entries=None, changed=None) -> tuple[list[str], 
     return files, proven
 
 
-def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope) -> tuple[dict, str]:
+def selftest_scope(ctx: dict) -> str:
+    """instrument-self-tests' steps for a pull request (selftest_scope.py's rule):
+    'all', 'none' or their ids, from the PR's base...head diff and the table."""
+    import selftest_scope as st
+    if not ctx.get("base_sha") or not ctx.get("head"):
+        return "all"
+    return st.selection(ctx["base_sha"], ctx["head"])
+
+
+def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
+            selftests=selftest_scope) -> tuple[dict, str]:
     """(the outputs, '' or why the prelude fails)."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
@@ -350,6 +365,9 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
     out["machinery"] = "true" if ev != "pull_request" or machinery(changed) else "false"
+    # R10-CI-SELFTEST-SCOPE: only a pull request is scoped; every other event,
+    # a push to main above all, runs every step and re-measures them.
+    out["selftests"] = selftests(ctx) if ev == "pull_request" else "all"
     out["machinery_rowblind"] = "true" if ev != "pull_request" or machinery(changed, pr=pr) else "false"
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
@@ -572,6 +590,23 @@ def self_test() -> int:
     check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
+    # R10-CI-SELFTEST-SCOPE: the self-test steps are scoped on a pull request only.
+    seen = []
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live),
+                     selftests=lambda c: seen.append(c["head"]) or "none")
+    check("selftests: a pull request takes the scope rule's answer", (out["selftests"], seen), ("none", ["H"]))
+    check("selftests: a push runs every step (null control)",
+          outputs(ctx("push"), None, g(live), selftests=lambda c: "none")[0]["selftests"], "all")
+    import selftest_scope as _st
+    _real, _st.selection = _st.selection, lambda base, head: f"chosen {base} {head}"
+    try:
+        check("selftests: a pull request with no base sha runs every step (fail closed)",
+              selftest_scope(context("pull_request", {"pull_request": pr}, {})), "all")
+        check("selftests: with a base sha the PR's base...head goes to the scope rule",
+              selftest_scope(context("pull_request", {"pull_request": {**pr, "base": {"ref": "main", "sha": "B"}}},
+                                     {})), "chosen B H")
+    finally:
+        _st.selection = _real
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))
     check("legs from codeql_scope", json.loads(out["legs"]), {"actions": "skip", "javascript-typescript": "skip", "python": "skip"})
 

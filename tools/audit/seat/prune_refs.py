@@ -452,6 +452,12 @@ def remote_tags(remote: str, git=subprocess.run) -> dict:
     return out
 
 
+def sha_tag(tag: str, sha: str) -> str:
+    """The per-sha spelling of an archive tag: the same name with the tip's first
+    12 hex digits, for a ref whose plain name already tags a different tip."""
+    return f"{tag}.{sha[:12]}"
+
+
 def apply_plan_push(remote: str, actions: list, dry_run: bool,
                     untagged: frozenset = frozenset(), chunk: int = PUSH_CHUNK,
                     git=subprocess.run) -> list:
@@ -467,7 +473,10 @@ def apply_plan_push(remote: str, actions: list, dry_run: bool,
     chunk is `--atomic`: a ref that moved after the plan read it is not
     deleted, its whole chunk is refused (`delete-FAILED`) and the rest
     aborts, so no ref is ever deleted at a tip other than the one archived.
-    Zero GitHub API calls.
+    A tag name the remote already holds at ANOTHER sha (a lease refusal moved
+    the ref after its tag went up, or the name was reused) is not retargeted and
+    not refused: the new tip is archived under `sha_tag`, the old tag stays, and
+    the delete check accepts either spelling. Zero GitHub API calls.
     """
     tags = [(a, s) for v, a, s in actions if v == "tag"]
     deletes = [(a, s) for v, a, s in actions if v == "delete"]
@@ -482,6 +491,9 @@ def apply_plan_push(remote: str, actions: list, dry_run: bool,
         r = git(["git", "push", "-q", remote, *args], capture_output=True, text=True)
         return None if r.returncode == 0 else (r.stderr.strip()[:160] or "push refused")
 
+    if tags:
+        held = remote_tags(remote, git)
+        tags = [(sha_tag(a, s) if held.get(a, s) != s else a, s) for a, s in tags]
     for part in _chunks(tags, chunk):
         err = push([f"{s}:refs/tags/{a}" for a, s in part])
         if err:
@@ -490,7 +502,8 @@ def apply_plan_push(remote: str, actions: list, dry_run: bool,
         done += [("tag", f"{a}@{s}") for a, s in part]
     have = remote_tags(remote, git) if tags or deletes else {}
     missing = [n for n, s in deletes
-               if n not in untagged and have.get(archive_tag(n)) != s]
+               if n not in untagged
+               and s not in (have.get(archive_tag(n)), have.get(sha_tag(archive_tag(n), s)))]
     if missing:
         raise ApplyRefused(f"{len(missing)} ref(s) to delete lack their archive tag at "
                            f"the same sha on the remote, first {missing[0]}; nothing deleted")
@@ -749,15 +762,31 @@ def _self_test_git(results: list) -> None:
                apply_plan_push("origin", only_delete, False, frozenset({victim}),
                                git=runner) == [("delete", victim)]
                and victim not in heads(), results)
-        # a tag already on the remote at a DIFFERENT sha: the tag push is refused, abort
-        g("push", "-q", "origin", f"{plus_tip}:refs/tags/archive/fix/n1")
+        # the first refused tag push aborts the rest: no later chunk, no delete
         refs = heads()
         acts = [("tag", "archive/fix/n1", refs["fix/n1"]), ("tag", "archive/fix/n2", refs["fix/n2"]),
                 ("delete", "fix/n1", refs["fix/n1"]), ("delete", "fix/n2", refs["fix/n2"])]
-        out = apply_plan_push("origin", acts, False, chunk=1, git=runner)
+
+        def refusing(argv, **kw):
+            if "push" in argv and any("refs/tags/" in a for a in argv):
+                return subprocess.CompletedProcess(argv, 1, "", "refused")
+            return runner(argv, **kw)
+        out = apply_plan_push("origin", acts, False, chunk=1, git=refusing)
         _check("the first refused tag push aborts: no later chunk, no delete",
                out[-1][0] == "tag-FAILED" and len(out) == 1
                and "fix/n1" in heads() and "fix/n2" in heads(), results)
+        # a tag already on the remote at a DIFFERENT sha is not retargeted and not refused:
+        # the new tip is archived under its per-sha name, the old tag stays
+        g("push", "-q", "origin", f"{plus_tip}:refs/tags/archive/fix/n1")
+        out = apply_plan_push("origin", acts, False, chunk=1, git=runner)
+        have = remote_tags(origin)
+        _check("a tag held at another sha: the tip is archived under its per-sha name, then deleted",
+               ("tag", f"{sha_tag('archive/fix/n1', refs['fix/n1'])}@{refs['fix/n1']}") in out
+               and have.get(sha_tag("archive/fix/n1", refs["fix/n1"])) == refs["fix/n1"]
+               and "fix/n1" not in heads() and "fix/n2" not in heads(), results)
+        _check("...and the old tag is left at the old sha; the other tag keeps its plain name",
+               have.get("archive/fix/n1") == plus_tip
+               and have.get("archive/fix/n2") == refs["fix/n2"], results)
         _check("main is never deletable by the push arm",
                _refused(lambda: apply_plan_push("origin", [("delete", "main", base)], False,
                                                 git=runner), "never delete main", ApplyRefused),
@@ -779,6 +808,14 @@ def _self_test_git(results: list) -> None:
         _check("the moved ref's chunk is refused whole (atomic): its unmoved partner stays too",
                heads().get("fix/n4") == refs["fix/n4"]
                and not any(v == "delete" for v, _d in out), results)
+        # the re-plan at the moved tip: its plain tag name is held at the old sha
+        re_plan = [("tag", "archive/fix/n3", moved_tip), ("delete", "fix/n3", moved_tip)]
+        out = apply_plan_push("origin", re_plan, False, git=runner)
+        _check("a re-plan after a lease refusal archives the moved tip under a per-sha tag and deletes",
+               out == [("tag", f"{sha_tag('archive/fix/n3', moved_tip)}@{moved_tip}"), ("delete", "fix/n3")]
+               and "fix/n3" not in heads()
+               and remote_tags(origin).get("archive/fix/n3") == refs["fix/n3"]
+               and remote_tags(origin).get(sha_tag("archive/fix/n3", moved_tip)) == moved_tip, results)
         _check("null: the unmoved ref, planned alone at its live tip, archives and deletes",
                apply_plan_push("origin", lease[1:2] + lease[3:], False, git=runner)
                == [("tag", f"archive/fix/n4@{refs['fix/n4']}"), ("delete", "fix/n4")]

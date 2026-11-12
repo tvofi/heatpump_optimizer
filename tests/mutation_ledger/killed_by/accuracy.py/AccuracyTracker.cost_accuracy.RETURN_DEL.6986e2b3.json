@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/accuracy.py:AccuracyTracker.cost_accuracy RETURN_DEL 6986e2b3",
+  "killed_by": "tests/features.py",
+  "old": "        return round((total_pred - total_act) / total_act * 100.0, 2)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

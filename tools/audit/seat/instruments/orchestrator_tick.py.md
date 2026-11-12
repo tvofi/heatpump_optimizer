@@ -72,7 +72,7 @@
   prints every pass for each complete handoff no PR head carries, read by
   `bus.sh orphans --min-age-h 0` (a pull request behind its own newer handoff
   included, #2411); a run with no summary line is UNCHECKED, never a clean
-  zero. STATE's missing-row check, the closes check and the #201
+  zero. STATE's missing-row check, the closes check and the record-issue
   unrecorded-merge check enumerate merges through
   `tests/delivery_status.py`'s `parse_log` and `collect`, so a `<title> (#N)`
   merge counts as a merge (#2413, #2412, #2407). `--only CARRY`

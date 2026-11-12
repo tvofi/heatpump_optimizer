@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_init
+from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -46,6 +46,8 @@ from throwaway_git import throwaway_git_env, throwaway_git_init
 _PL_IMPORT = "import('./" + _layout_locate(".claude/workflows/policy_lint.mjs") + "')"
 _COUNTS_IMPORT = "import('./" + _layout_locate(".claude/workflows/counts.mjs") + "')"
 from harness import (
+    SHIPPED_LANGS,
+    TRANSLATED_LANGS,
     EagerHass,
     FakeCoordinator,
     FakeEntry,
@@ -683,7 +685,7 @@ R.check(
 # and its labels are copies. A copy that drifts from the home page's label
 # names one setting two ways, so each is compared, in both shipped languages.
 _prefill_drift = []
-for _lang_file in ("strings.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *(f"translations/{_l}.json" for _l in TRANSLATED_LANGS)):
     _lang_steps = json.loads((ROOT / _lang_file).read_text())["options"]["step"]
     for _pkey, _plabel in _lang_steps["modbus_prefill"]["data"].items():
         # A home page may group the field into a section() (#824-style), which
@@ -1234,7 +1236,7 @@ def _arch_entry(module: str) -> str:
     if _arch_map is None:
         return ""
     m = _re.search(
-        rf"{_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
+        rf"(?<!\w){_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
         rf"((?:│[^\n]*#[ \t]*[^\n]*\n)*)",
         _arch_map.group(1),
     )
@@ -3123,8 +3125,8 @@ R.check(
 _a3e_clim = _climate_platform.HeatPumpOptimizerClimate(_a3e_fake, ENTRY)
 R.check(
     "without an indoor reading climate does not publish the constructor default",
-    (not _a3e_clim.available) and _a3e_clim.current_temperature is None,
-    f"available={_a3e_clim.available} current={_a3e_clim.current_temperature!r}",
+    (not _a3e_clim.available) and _a3e_clim.native_current_temperature is None,
+    f"available={_a3e_clim.available} current={_a3e_clim.native_current_temperature!r}",
 )
 R.check(
     "the upper floor names where its number comes from",
@@ -3446,7 +3448,7 @@ def _d801_publications(config, cycles):
             if state is None:
                 state = getattr(entity, "is_on", None)
             if state is None:
-                state = getattr(entity, "current_temperature", None)
+                state = getattr(entity, "native_current_temperature", None)
             if state is not None:
                 out[f"{label}|state"] = state
             attrs = getattr(entity, "extra_state_attributes", None) or {}
@@ -4197,6 +4199,19 @@ def _p2_registry(sources):
 #: Facts no AST shape holds, each held by a census in another script that
 #: asserts its own reach. A registry entry here is the census's check text.
 _P2_CENSUSES = {
+    # R10-COMBI-TANK-STORE (#3225): the hot-water store is one view, its two
+    # sides exchange their flux, and only tap-stated limits pass through eps.
+    "combi_store_view": (
+        "tests/features.py", "combi_store_view census: outside thermal_model.py nothing reads"),
+    "combi_flux_live": (
+        "tests/features.py", "combi_flux_live census: every DHW walk the planner runs"),
+    "combi_tap_limit": (
+        "tests/features.py", "combi_tap_limit census: every tap-stated minimum the planner"),
+    # R10-COMBI-TANK PR B (#3225, design §L and §T.4).
+    "combi_legionella_gate": (
+        "tests/features.py", "combi_legionella_gate census: outside thermal_model.py no behaviour reads"),
+    "combi_type_branch": (
+        "tests/features.py", "combi_type_branch census: no preset slug outside const.py's table"),
     # #1747: the DHW mode block reached the first DHW build and not the
     # co-optimisation replan's (R9-RCA-1747); EG-B8's census holds it.
     "dhw_mode_blocked_at_every_build": (
@@ -4907,8 +4922,10 @@ _P6_TREES = {p.name: ast.parse(p.read_text()) for p in sorted(ROOT.glob("*.py"))
 _P6_WALKS = {name: list(ast.walk(tree)) for name, tree in _P6_TREES.items()}
 _P6_CATALOGUES = {
     "strings.json": json.loads((ROOT / "strings.json").read_text()),
-    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
-    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+    **{
+        f"{_l}.json": json.loads((ROOT / "translations" / f"{_l}.json").read_text())
+        for _l in SHIPPED_LANGS
+    },
 }
 _P6_ICONS = json.loads((ROOT / "icons.json").read_text())
 
@@ -6199,9 +6216,10 @@ R.check(
     == "measured_power_entity",
 )
 
-# R10-COP-GATE (#2262): where the draw does not follow the plan's ask and no
-# heat reading exists, a latched COP is no reading of this install: the sensor
-# waits for a heat meter instead of showing it. A heat counter's open span is
+# R10-COP-GATE (#2262), R10-HOTFIX-COP-UNMEASURED: where no heat reading
+# exists, or either reading is a vendor's estimate, a latched COP is no reading
+# of this install: the sensor waits for a heat meter, or for metered inputs,
+# instead of showing it. A heat counter's open span is
 # its own code beside a measured COP, never a refusal, and the latch's time
 # rides with it.
 _cg_cop = {
@@ -6210,7 +6228,7 @@ _cg_cop = {
         "cop_refusal": "span_open" if obs == "heat_metered" else "draw_off_ask",
         "measured_cop_at": "2026-10-24T03:00:00+00:00",
     }), ENTRY)
-    for obs in ("not_measurable", "heat_metered", "draw_follows_plan")
+    for obs in ("not_measurable", "heat_metered", "estimated_inputs")
 }
 _cg_view = {
     obs: (ent.available, ent.extra_state_attributes.get("waiting_for"),
@@ -6219,13 +6237,13 @@ _cg_view = {
     for obs, ent in _cg_cop.items()
 }
 R.check(
-    "a COP not measurable here waits for a heat meter; a heat-metered COP "
-    "between span closes stays measured with span_open as its code; a draw "
-    "that follows the plan keeps its COP (null); each carries its fold time",
+    "a COP not measurable here waits for a heat meter, one from estimated "
+    "inputs for metered ones; a heat-metered COP between span closes stays "
+    "measured with span_open as its code (null); each carries its fold time",
     _cg_view == {
         "not_measurable": (False, "heat_meter", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
         "heat_metered": (True, None, "span_open", "2026-10-24T03:00:00+00:00"),
-        "draw_follows_plan": (True, None, "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+        "estimated_inputs": (False, "metered_inputs", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
     },
     f"{_cg_view!r}",
 )
@@ -9983,8 +10001,10 @@ R.check(
 # say.)
 _CATALOGUES = {
     "strings.json": json.loads((ROOT / "strings.json").read_text()),
-    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
-    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+    **{
+        f"{_l}.json": json.loads((ROOT / "translations" / f"{_l}.json").read_text())
+        for _l in SHIPPED_LANGS
+    },
 }
 
 # Home Assistant has no way to grey a field out, so the page says in words
@@ -10020,14 +10040,17 @@ for _name, _data in _CATALOGUES.items():
 # substituted verbatim by the frontend and a step has nowhere valid to keep
 # a free-standing sentence. So the languages have to be checked here.
 R.check(
-    "the warning is carried in code, in both languages",
-    set(config_flow.PRESET_WARNING) == {"en", "sv"}
-    and all(len(v) > 80 for v in config_flow.PRESET_WARNING.values()),
-    "an English-only warning would ship untranslated to every Swedish user",
+    "the warning is carried in code, in every shipped language",
+    set(config_flow.PRESET_WARNING) == set(SHIPPED_LANGS)
+    and all(len(v) > 80 for v in config_flow.PRESET_WARNING.values())
+    and len(set(config_flow.PRESET_WARNING.values())) == len(SHIPPED_LANGS),
+    f"{sorted(config_flow.PRESET_WARNING)} against {SHIPPED_LANGS}: an English-only "
+    "warning would ship untranslated to every user of a translated catalogue",
 )
 R.check(
     "and an unknown language falls back to English rather than a KeyError",
-    config_flow.PRESET_WARNING.get("de", config_flow.PRESET_WARNING["en"])
+    "xx" not in config_flow.PRESET_WARNING
+    and config_flow.PRESET_WARNING.get("xx", config_flow.PRESET_WARNING["en"])
     == config_flow.PRESET_WARNING["en"],
     "a form must never fail to render",
 )
@@ -10080,7 +10103,7 @@ def all_keys(data, prefix=""):
 strings = json.loads((ROOT / "strings.json").read_text())
 files = {
     name: json.loads((ROOT / "translations" / f"{name}.json").read_text())
-    for name in ("en", "sv")
+    for name in SHIPPED_LANGS
 }
 # #1067 W1067-G5: the disinfection switch's repair, mode options and refusal.
 for _lang, _texts in (("strings", strings), *files.items()):
@@ -10117,7 +10140,7 @@ def leaf_values(data, prefix=""):
 # English text shipped is en.json's, not strings.json's. The key check above
 # read "exactly" while comparing keys only, and en.json's pump_duty_mode text
 # went stale beside an edited source. en.json is a copy of strings.json leaf
-# for leaf; sv.json is a translation, so only its keys are pinned.
+# for leaf; every other catalogue is a translation, so only its keys are pinned.
 def en_value_drift(source, en):
     """The dotted paths where en's leaf differs from the source's."""
     a, b = leaf_values(source), leaf_values(en)
@@ -10184,7 +10207,18 @@ _HISTORY_MARKERS = {
     "sv": re.compile(
         r"\b(?:som tidigare|som förut|dessförinnan var|fungerade tidigare|tidigare fungerade"
         r"|(?:den|det) gamla (?:regeln|beteendet|sättet)|förut|numera)\b", re.IGNORECASE),
+    # de: bare "früher" is excluded, because it is also "earlier" in time
+    # ("heats earlier"), which is current behaviour.
+    "de": re.compile(
+        r"\b(?:wie (?:bisher|zuvor|früher)|vormals|ehemals|bislang"
+        r"|(?:die|das) alte (?:Regel|Verhalten|Weise)|(?:der|dem) alten (?:Regel|Weise))\b",
+        re.IGNORECASE),
 }
+R.check(
+    "every shipped language names its change-history markers",
+    set(_HISTORY_MARKERS) == set(SHIPPED_LANGS),
+    f"{sorted(_HISTORY_MARKERS)} against {SHIPPED_LANGS}",
+)
 
 
 def _history_leaves(data, marker, prefix=""):
@@ -10232,27 +10266,29 @@ R.check(
     == "Create one at developer.tibber.com.",
     "the setup step already carries that pointer; reauth is the screen that needs it",
 )
-R.check(
-    "and the Swedish reauth pointer is actually translated",
-    files["sv"]["config"]["step"]["reauth_confirm"]["data_description"][
-        "tibber_token"
-    ]
-    != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
-        "tibber_token"
-    ],
-    "English copied into sv.json passes the key check and fails the user",
-)
+for _lang in TRANSLATED_LANGS:
+    R.check(
+        f"and the {_lang} reauth pointer is actually translated",
+        files[_lang]["config"]["step"]["reauth_confirm"]["data_description"][
+            "tibber_token"
+        ]
+        != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
+            "tibber_token"
+        ],
+        f"English copied into {_lang}.json passes the key check and fails the user",
+    )
 
 # #1534: the ECL110 MQTT QoS label was byte-identical English left in sv.json
 # (the key-identity check above passes on an untranslated copy the same way
 # the tibber_token case above does -- this is that same class of gap, named
 # by its own field).
-R.check(
-    "the ECL110 MQTT QoS label is actually translated in Swedish",
-    files["sv"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
-    != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
-    "English copied into sv.json passes the key check and fails the user",
-)
+for _lang in TRANSLATED_LANGS:
+    R.check(
+        f"the ECL110 MQTT QoS label is actually translated in {_lang}",
+        files[_lang]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
+        != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
+        f"English copied into {_lang}.json passes the key check and fails the user",
+    )
 
 # The stored-value warning is rendered on a form the user merely opened, so
 # an untranslated one is especially visible. It has to exist for both flows —
@@ -10264,12 +10300,13 @@ for _flow_name in ("config", "options"):
         strings[_flow_name]["error"].get(_warning),
         "a missing error string renders as the raw key",
     )
-    R.check(
-        f"and the Swedish {_flow_name} message is actually translated",
-        files["sv"][_flow_name]["error"].get(_warning)
-        not in (None, files["en"][_flow_name]["error"].get(_warning)),
-        "placeholder English left in a translation is worse than no translation",
-    )
+    for _lang in TRANSLATED_LANGS:
+        R.check(
+            f"and the {_lang} {_flow_name} message is actually translated",
+            files[_lang][_flow_name]["error"].get(_warning)
+            not in (None, files["en"][_flow_name]["error"].get(_warning)),
+            "placeholder English left in a translation is worse than no translation",
+        )
 
 menu = strings["options"]["step"]["init"]["menu_options"]
 advanced_menu = strings["options"]["step"]["advanced"]["menu_options"]
@@ -10281,12 +10318,13 @@ R.check(
 )
 
 for _step_id, _base in (("init", menu), ("advanced", advanced_menu)):
-    _sv_menu = files["sv"]["options"]["step"][_step_id]["menu_options"]
-    R.check(
-        f"the Swedish {_step_id} menu is actually translated",
-        sum(1 for k in _sv_menu if _sv_menu[k] == _base[k]) < len(_base) / 2,
-        "placeholder English left in a translation is worse than no translation",
-    )
+    for _lang in TRANSLATED_LANGS:
+        _tr_menu = files[_lang]["options"]["step"][_step_id]["menu_options"]
+        R.check(
+            f"the {_lang} {_step_id} menu is actually translated",
+            sum(1 for k in _tr_menu if _tr_menu[k] == _base[k]) < len(_base) / 2,
+            "placeholder English left in a translation is worse than no translation",
+        )
 
 # Every field a flow page presents needs a label and a description the
 # frontend actually finds, in every catalogue it may load. The frontend's rule
@@ -10385,7 +10423,7 @@ R.check(
     not _setup_render_errors,
     "; ".join(_setup_render_errors[:4]),
 )
-_catalogues = {"strings.json": strings, "en.json": files["en"], "sv.json": files["sv"]}
+_catalogues = {"strings.json": strings, **{f"{_l}.json": files[_l] for _l in SHIPPED_LANGS}}
 _sectioned_fields = sorted(f for f in _flow_fields if f[2])
 R.check(
     "the label walk reaches grouped fields in both flows",
@@ -10445,15 +10483,16 @@ for _section in ("data", "data_description"):
         bool(_wood_coil_en),
         f"missing from options.step.building at {_wood_coil_path}.{_section}",
     )
-    R.check(
-        f"and its Swedish {_section} is a real translation",
-        _frontend_flow_text(
-            files["sv"], "options", "building", _wood_coil_path, _section,
-            const.CONF_DHW_WOOD_COIL_ENABLED,
+    for _lang in TRANSLATED_LANGS:
+        R.check(
+            f"and its {_lang} {_section} is a real translation",
+            _frontend_flow_text(
+                files[_lang], "options", "building", _wood_coil_path, _section,
+                const.CONF_DHW_WOOD_COIL_ENABLED,
+            )
+            not in (None, _wood_coil_en),
+            f"English copied into {_lang}.json passes the key check and fails the user",
         )
-        not in (None, _wood_coil_en),
-        "English copied into sv.json passes the key check and fails the user",
-    )
 
 selectors = strings.get("selector", {})
 for key in ("building_structure", "building_era", "building_foundation", "emitter"):
@@ -10695,12 +10734,12 @@ R.check(
 )
 R.check(
     "the thermostat shows the user's target, not the per-step setpoint",
-    clim.target_temperature == clim.coordinator.target_temperature,
+    clim.native_target_temperature == clim.coordinator.target_temperature,
 )
 R.check(
     "current temperature reads the published payload",
-    clim.current_temperature == DATA["indoor_temperature"],
-    str(clim.current_temperature),
+    clim.native_current_temperature == DATA["indoor_temperature"],
+    str(clim.native_current_temperature),
 )
 asyncio.run(clim.async_set_hvac_mode(climate_mod.HVACMode.OFF))
 R.check(
@@ -11063,7 +11102,7 @@ R.check(
     "current_temperature is None with no coordinator data",
     climate_mod.HeatPumpOptimizerClimate(
         FakeCoordinator(None), clim._entry
-    ).current_temperature
+    ).native_current_temperature
     is None,
 )
 
@@ -12498,6 +12537,24 @@ R.check(
     ) is not None,
     _sav_bp_msg,
 )
+# R10-SAV-METER-FLOOR: the receipt states why a month under the meter floor has
+# no saving, in the card's savings.meter_floor_note words, guarded by the
+# event's own flag; the null leg is a month above the floor, which gets none.
+_sav_bp_floor = re.search(
+    r'"savings\.meter_floor_note": "([^"]+)"',
+    (_sav_bp_root / ROOT / "www/heatpump-optimizer-card.js").read_text(),
+).group(1)
+R.check(
+    "The notifications blueprint's monthly receipt says why a month under the meter floor states no saving, "
+    "in the card's words, and only for that month",
+    "saving_below_meter_floor" in _sav_notifier.EVENT_DATA[_sav_notifier.EVENT_MONTHLY_RECEIPT]
+    and _sav_bp_msg.count(_sav_bp_floor) == 1
+    and re.search(
+        r"\{%-? if data\.saving_below_meter_floor %\}\s*" + re.escape(_sav_bp_floor) + r"\s*\{%-? endif %\}",
+        _sav_bp_msg,
+    ) is not None,
+    _sav_bp_msg,
+)
 
 
 #: The one publisher whose attribute KEYS are data rather than API:
@@ -13017,21 +13074,24 @@ R.check(
     set(_ENTITY_STRINGS) == set(_used_keys),
     str(set(_ENTITY_STRINGS) ^ set(_used_keys)),
 )
-_sv_entities = json.loads(
-    (ROOT / "translations" / "sv.json").read_text()
-)["entity"]
-_untranslated = sum(
-    1
-    for _platform, _entries in _ENTITY_STRINGS.items()
-    for _key, _val in _entries.items()
-    if _sv_entities[_platform][_key]["name"] == _val["name"]
-)
+_tr_entities = {
+    _lang: json.loads((ROOT / "translations" / f"{_lang}.json").read_text())["entity"]
+    for _lang in TRANSLATED_LANGS
+}
+_sv_entities = _tr_entities["sv"]
 _total_names = sum(len(v) for v in _ENTITY_STRINGS.values())
-R.check(
-    "the Swedish entity names are actually translated",
-    _untranslated < _total_names / 4,
-    f"{_untranslated} of {_total_names} identical to English",
-)
+for _lang, _ents in _tr_entities.items():
+    _untranslated = sum(
+        1
+        for _platform, _entries in _ENTITY_STRINGS.items()
+        for _key, _val in _entries.items()
+        if _ents[_platform][_key]["name"] == _val["name"]
+    )
+    R.check(
+        f"the {_lang} entity names are actually translated",
+        _untranslated < _total_names / 4,
+        f"{_untranslated} of {_total_names} identical to English",
+    )
 
 # #797: English entity names follow one house style. The D8-03 instrument
 # (dev/audit/rounds/round3/D8/d8_ordering.py `_sentence_case`) counts a name as
@@ -13168,7 +13228,22 @@ _FAM_SV_TAIL = str.maketrans({"å": "z\u0001", "ä": "z\u0002", "ö": "z\u0003"}
 _FAM_COLLATION = {
     "en": lambda _n: _n.casefold(),
     "sv": lambda _n: _n.casefold().translate(_FAM_SV_TAIL),
+    # DIN 5007-1, the order HA's de frontend gives: an umlaut sorts as its
+    # base vowel (casefold already folds ß to ss).
+    "de": lambda _n: _n.casefold().translate(str.maketrans("äöü", "aou")),
 }
+R.check(
+    "every shipped language has a collation for the family check",
+    set(_FAM_COLLATION) == set(SHIPPED_LANGS),
+    f"{sorted(_FAM_COLLATION)} against {SHIPPED_LANGS}",
+)
+
+
+def _fam_name(_lang: str, _row: tuple) -> str:
+    """The row's entity name in ``_lang``, as the frontend shows it."""
+    if _lang == "en":
+        return _row[2]
+    return _tr_entities[_lang].get(_row[0], {}).get(_row[1], {}).get("name", f"~{_row[1]}")
 _FAM_OVERRIDES = const.ENTITY_FAMILY_OVERRIDES
 _FAM_UNKNOWN = sorted(
     _key for _key in _FAM_OVERRIDES if _key not in {k for _, k, _, _ in _FAM_ROWS}
@@ -13240,23 +13315,22 @@ R.check(
 # in either of these again -- still fails until its owner rules on it here.
 _FAM_SPLIT_ALLOWED = frozenset()
 _FAM_SPLIT = []
-for _lang in ("en", "sv"):
-    _name_at = 2 if _lang == "en" else 3
+for _lang in SHIPPED_LANGS:
     _order = [
         (_p, _k)
         for _p, _k, *_ in sorted(
-            _FAM_ROWS, key=lambda _r: _FAM_COLLATION[_lang](_r[_name_at])
+            _FAM_ROWS, key=lambda _r: _FAM_COLLATION[_lang](_fam_name(_lang, _r))
         )
     ]
     for _tok, _m in sorted(_FAM_FAMILIES.items()):
         _runs_n = _fam_runs(_order, _m)
         if _runs_n > 1 and (_lang, _tok) not in _FAM_SPLIT_ALLOWED:
             _names = sorted(
-                _r[_name_at] for _r in _FAM_ROWS if (_r[0], _r[1]) in _m
+                _fam_name(_lang, _r) for _r in _FAM_ROWS if (_r[0], _r[1]) in _m
             )
             _FAM_SPLIT.append(f"{_lang} {_tok!r}: {_runs_n} runs: {_names}")
 R.check(
-    "every declared family sorts as one contiguous run in en and sv (#1760)",
+    "every declared family sorts as one contiguous run in every shipped language (#1760)",
     not _FAM_SPLIT,
     "; ".join(_FAM_SPLIT),
 )
@@ -13556,26 +13630,28 @@ for _plat, _pins in sorted(_CLUSTER_PREFIXES.items()):
     for _prefix, _keys in sorted(_clusters.items()):
         if len(_keys) < 2:
             continue
-        _sv_names = [_sv_entities[_plat][_k]["name"] for _k in sorted(_keys)]
-        R.check(
-            f"the Swedish {_plat} names {_prefix!r} leads keep a lead token too (#1334)",
-            len(_lead_token(_sv_names)) >= 3,
-            f"lcp={_lead_token(_sv_names)!r} over {_sv_names}",
-        )
+        for _lang, _lang_ents in _tr_entities.items():
+            _tr_names = [_lang_ents[_plat][_k]["name"] for _k in sorted(_keys)]
+            R.check(
+                f"the {_lang} {_plat} names {_prefix!r} leads keep a lead token too (#1334)",
+                len(_lead_token(_tr_names)) >= 3,
+                f"lcp={_lead_token(_tr_names)!r} over {_tr_names}",
+            )
 for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_"):
-    _prefix_names = sorted(
-        _body["name"]
-        for _ents in _sv_entities.values()
-        for _key, _body in _ents.items()
-        if _key.startswith(_key_prefix)
-    )
-    if len(_prefix_names) < 2:
-        continue
-    R.check(
-        f"the Swedish {_key_prefix}* family's names keep a lead token (#1334)",
-        len(_lead_token(_prefix_names)) >= 3,
-        f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
-    )
+    for _lang, _lang_ents in _tr_entities.items():
+        _prefix_names = sorted(
+            _body["name"]
+            for _ents in _lang_ents.values()
+            for _key, _body in _ents.items()
+            if _key.startswith(_key_prefix)
+        )
+        if len(_prefix_names) < 2:
+            continue
+        R.check(
+            f"the {_lang} {_key_prefix}* family's names keep a lead token (#1334)",
+            len(_lead_token(_prefix_names)) >= 3,
+            f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
+        )
 
 # Belt-and-braces for the future: the four headline sensors advertise a
 # stable stat_kind attribute, same contract as plan_kind on the plan sensors.
@@ -16903,7 +16979,7 @@ R.check(
     "exactly one handover, with no date in its name",
     _handovers == ["dev/programme/HANDOVER.md"],
     f"found {_handovers or 'none'}; durable state belongs in the single "
-    "dev/programme/HANDOVER.md and volatile state on #201, never in both",
+    "dev/programme/HANDOVER.md and volatile state on #3394, never in both",
 )
 # `updated-for:` is the staleness half: a handover nobody has re-pointed since
 # the merge it describes is the failure mode, not one that has been deleted.
@@ -18766,18 +18842,69 @@ def _hb_stdlib_reads(spin: bool) -> str:
         child.wait()
 
 
+def _hb_stdlib_arm(reads, platform):
+    """The (spinning, idle) stdlib samples, or None where macOS refuses the task port.
+
+    One platform rule: only a ``PermissionError`` on darwin is a skip, printed with
+    its reason. Any other platform or exception still fails the run, and a bad
+    sample is not an exception at all, so the arm's checks still judge it.
+    """
+    try:
+        return reads(True), reads(False)
+    except PermissionError as exc:
+        if platform != "darwin":
+            raise
+        print(f"SKIP stdlib sampler control: macOS denies the task port ({exc})")
+        return None
+
+
+def _hb_denied(_spin):
+    raise PermissionError(1, "task_for_pid denied")
+
+
+def _hb_other(_spin):
+    raise OSError("other")
+
+
+def _hb_arm_run(reads, platform):
+    out, seen = _io.StringIO(), None
+    try:
+        with _hb_contextlib.redirect_stdout(out):
+            seen = _hb_stdlib_arm(reads, platform)
+    except Exception as exc:  # noqa: BLE001 - the control reads which one escaped
+        seen = type(exc).__name__
+    return seen, out.getvalue()
+
+
 if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
-    _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
-    _hb_reads = (
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
-        _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
-    )
+    _hb_skip, _hb_skip_out = _hb_arm_run(_hb_denied, "darwin")
+    _hb_lin, _ = _hb_arm_run(_hb_denied, "linux")
+    _hb_oth, _ = _hb_arm_run(_hb_other, "darwin")
+    _hb_bad, _ = _hb_arm_run(lambda spin: "in nothing" if spin else "", "linux")
     R.check(
-        "the stdlib sample of a real spinning process reads as the spin to the control, "
-        "and of the same process outside it does not",
-        _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
-        f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        "a task-port refusal is a printed skip on darwin only: linux and any other "
+        "exception still fail, and a bad sample is still judged by the arm",
+        _hb_skip is None and _hb_skip_out.count("SKIP stdlib sampler control:") == 1
+        and _hb_lin == "PermissionError" and _hb_oth == "OSError"
+        and _hb_bad == ("in nothing", "")
+        and _nightly.hb_control_reading(
+            {"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_bad[0]]})
+        != (True, True, True),
+        f"darwin={_hb_skip!r}/{_hb_skip_out!r} linux={_hb_lin!r} other={_hb_oth!r} bad={_hb_bad!r}",
     )
+    _hb_pair = _hb_stdlib_arm(_hb_stdlib_reads, sys.platform)
+    if _hb_pair is not None:
+        _hb_in, _hb_out = _hb_pair
+        _hb_reads = (
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_in]}),
+            _nightly.hb_control_reading({"max_gap": _HB_C, "dumps": ["in _hb_spin\nsampler rc=0:\n" + _hb_out]}),
+        )
+        R.check(
+            "the stdlib sample of a real spinning process reads as the spin to the control, "
+            "and of the same process outside it does not",
+            _hb_reads[0] == (True, True, True) and _hb_reads[1] == (True, True, False),
+            f"spinning: {_hb_reads[0]} {_hb_in[-160:]!r}; idle: {_hb_reads[1]} {_hb_out[-160:]!r}",
+        )
 else:
     R.check(
         "the stdlib sample of a real spinning process reads as the spin to the control "
@@ -20188,17 +20315,60 @@ _CI_EVENTS = {
 }
 
 
-def _ci_ctx(ev: str, payload: dict, outputs=None) -> "tuple[dict, dict]":
+def _ci_ctx(ev: str, payload: dict, outputs=None, actor="hpo-author[bot]") -> "tuple[dict, dict]":
     """(the expression context, prelude.context's) for one modelled event;
     `outputs` are the prelude's: a failed prelude's read as empty strings."""
     flat = _ghx_flat("github.event", payload, {})
     flat.update({"github.event_name": ev, "github.sha": _CI_SHA, "github.run_id": 99,
-                 "github.repository": "o/r"})
+                 "github.repository": "o/r", "github.actor": actor})
     flat.update({f"inputs.{k}": v for k, v in (payload.get("inputs") or {}).items()})
     pctx = _cip.context(ev, payload, {"GITHUB_SHA": _CI_SHA, "GITHUB_REPOSITORY": "o/r",
                                       "GITHUB_RUN_ID": "99"})
     flat.update({f"needs.prelude.outputs.{k}": v for k, v in (outputs or {}).items()})
     return flat, pctx
+
+
+# GitHub's shell for a `run:` block that names none: `bash -e {0}`. A harness
+# executing a step's own text runs it under this, never a bare `bash -c`, or a
+# bare call the step meant to classify ends the runner's step and passes the
+# harness's (gate-sweep's `out=$(...)`, R10-RCA-HOTFIX-BATCH-ERREXIT's I4).
+_GHA_RUN = ["bash", "-e", "-c"]
+
+
+def _stub_path_env(bindir, **extra: str) -> "dict[str, str]":
+    """This process's environment with ``bindir`` first on PATH and no BASH_ENV.
+
+    Every ``bash -c`` below finds a stand-in by PATH, and bash sources BASH_ENV
+    before the script: a cloud seat's profile there re-prepended its toolchain,
+    so the real ``python3`` shadowed the stand-in at every tree (#2835)."""
+    env = {k: v for k, v in os.environ.items() if k != "BASH_ENV"}
+    return {**env, "PATH": f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}", **extra}
+
+
+def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
+    with tempfile.TemporaryDirectory() as d:
+        fake = Path(d) / "python3"
+        fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
+        fake.chmod(0o755)
+        p = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=30,
+                            env=_stub_path_env(d, RUN_ID="123", FAKE_OUT=stdout, FAKE_RC=str(rc)))
+    return p.returncode, p.stdout
+
+
+_GS_CASES = [  # (program stdout, program rc) -> (the step fails, the annotation it must print)
+    ("SWEEP re-ran gate of run 1 (attempt 1, completed red)\nSWEEP-DONE run=2 reruns=1\n", 0, False, ""),
+    ("SKIP run 2: its gate is not green and newest-covering\n", 0, False, ""),
+    ("SWEEP-DONE run=2 reruns=0\n", 1, False, ""),
+    ("SWEEP re-ran gate of run 1\nRATE-LIMITED reset_epoch=99; no further re-runs before it\n", 1, True,
+     "::error title=RATE-LIMITED::"),
+    ("RATE-LIMITED reset_epoch=99; no further re-runs before it\n", 0, True, "::error title=RATE-LIMITED::"),
+    ("Traceback (most recent call last):\nRuntimeError: GET actions/runs/2: 500\n", 1, True,
+     "::error title=sweep failed::"),
+    ("", 0, True, "::error title=sweep failed::"),
+]
+
+
+_SELF_ACTOR = "github-actions[bot]"   # sweep.SWEEP_ACTOR: GitHub starts no workflow_run from its events
 
 
 def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
@@ -20271,6 +20441,26 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
             out.append(f"prelude output {k}={v!r} reads no key prelude.py prints")
     for k in sorted(set(re.findall(r"needs\.prelude\.outputs\.([\w-]+)", text)) - set(pre)):
         out.append(f"needs.prelude.outputs.{k} is read, and the prelude declares no such output")
+    # sweep-self (R10-HOTFIX-SWEEP-TOKEN-ACTOR): a run whose actor is the bot fires no
+    # workflow_run, so it sweeps itself after its gate, on its own run id; its `if:` is read per
+    # event and actor below.
+    sweep_self = jobs.get("sweep-self") or {}
+    if sweep_self.get("needs") not in ("gate", ["gate"]):
+        out.append(f"sweep-self needs {sweep_self.get('needs')!r}, not gate (it sweeps once its gate concluded)")
+    if sweep_self.get("permissions") != {"actions": "write", "contents": "read", "pull-requests": "read"}:
+        out.append(f"sweep-self permissions {sweep_self.get('permissions')!r}")
+    if not str(sweep_self.get("if", "")).startswith("${{ !cancelled() && "):
+        out.append("sweep-self's if: does not open with !cancelled(): a red gate, the deferral it must re-judge, "
+                   "would skip it")
+    prog = [s for s in sweep_self.get("steps") or [] if "tools/ci/gate.py --sweep" in str(s.get("run", ""))]
+    if len(prog) != 1 or (prog[0].get("env") or {}).get("RUN_ID") != "${{ github.run_id }}" \
+            or 'python3 -I tools/ci/gate.py --sweep --run "$RUN_ID"' not in str(prog[0].get("run")):
+        out.append("sweep-self: no one step runs `python3 -I tools/ci/gate.py --sweep --run \"$RUN_ID\"` on its own run id")
+    else:
+        for so, rc, fails, note in _GS_CASES:
+            got_rc, got_out = _gs_step_verdict(str(prog[0]["run"]), so, rc)
+            if (got_rc != 0) != fails or note not in got_out:
+                out.append(f"sweep-self: program ({so.splitlines()[-1:]!r}, rc {rc}) -> step rc {got_rc}")
     gate = jobs.get("gate") or {}
     steps = gate.get("steps") or []
     co = [s for s in steps if str(s.get("uses", "")).startswith("actions/checkout@")]
@@ -20297,10 +20487,16 @@ def _ci_umbrella_defects(doc: dict, text: str) -> "list[str]":
             runs = _ghx(jobs[j].get("if", "true"), _ci_ctx(ev, payload, outs)[0])
             if runs is not (j in ws):
                 out.append(f"{j} under {ev}/{a}: if reads {runs!r}, the workset {'names' if j in ws else 'omits'} it")
+        for actor in (_SELF_ACTOR, "hpo-author[bot]", "hpo-runs[bot]", "tvofi"):
+            runs = _ghx(sweep_self.get("if", "true"), _ci_ctx(ev, payload, outs, actor)[0])
+            if runs is not (actor == _SELF_ACTOR):
+                out.append(f"sweep-self under {ev}/{a}, actor {actor}: if reads {runs!r} "
+                           f"(want {actor == _SELF_ACTOR}: gate-sweep.yml's workflow_run sweeps every other actor)")
     return out
 
 
 _CI_DEFECTS = _ci_umbrella_defects(_CI_DOC, _CI_TEXT)
+_SELF_IF = "    if: ${{ !cancelled() && github.actor == 'github-actions[bot]' }}\n"
 # Null controls: each plant breaks one property and must be named.
 _CI_PLANTS = {
     "run-name without the labeled arms": _CI_TEXT.replace(
@@ -20337,6 +20533,18 @@ _CI_PLANTS = {
         "fetch-depth: 0", "fetch-depth: 1", 1) if "  gate:\n" in _CI_TEXT else _CI_TEXT,
     "an output prelude.py never prints": _CI_TEXT.replace(
         "steps.derive.outputs.scope }}", "steps.derive.outputs.gate_scope }}", 1),
+    "sweep-self on every actor": _CI_TEXT.replace(_SELF_IF, "    if: ${{ !cancelled() }}\n", 1),
+    "sweep-self on the triggering actor": _CI_TEXT.replace(
+        _SELF_IF, "    if: ${{ !cancelled() && github.triggering_actor == 'github-actions[bot]' }}\n", 1),
+    "sweep-self skipped on a red gate": _CI_TEXT.replace(
+        _SELF_IF, "    if: ${{ github.actor == 'github-actions[bot]' }}\n", 1),
+    "sweep-self before the gate": _CI_TEXT.replace("    needs: gate\n", "    needs: prelude\n", 1),
+    "sweep-self on another run's id": _CI_TEXT.replace(
+        "          RUN_ID: ${{ github.run_id }}\n        run: |\n          set -uo pipefail\n",
+        "          RUN_ID: ${{ github.event.workflow_run.id }}\n        run: |\n          set -uo pipefail\n", 1),
+    "sweep-self keyed on the exit code": _CI_TEXT.replace(
+        '          out=$(python3 -I tools/ci/gate.py --sweep --run "$RUN_ID" 2>&1) || true\n'
+        "          printf '%s\\n' \"$out\"\n", '          python3 -I tools/ci/gate.py --sweep --run "$RUN_ID"\n          exit $?\n', 1),
 }
 _CI_PLANT_MISSED = sorted(k for k, t in _CI_PLANTS.items()
                           if t == _CI_TEXT or not _ci_umbrella_defects(_yaml.safe_load(t) or {}, t))
@@ -20363,46 +20571,6 @@ R.check(
 # exits 1 on a rate limit and on a crash alike (P2a's forward-carry). The
 # step's own text is run under bash with a stand-in `python3` printing each
 # outcome, so the classification is measured, not read.
-# GitHub's shell for a `run:` block that names none: `bash -e {0}`. A harness
-# executing a step's own text runs it under this, never a bare `bash -c`, or a
-# bare call the step meant to classify ends the runner's step and passes the
-# harness's (gate-sweep's `out=$(...)`, R10-RCA-HOTFIX-BATCH-ERREXIT's I4).
-_GHA_RUN = ["bash", "-e", "-c"]
-
-
-def _stub_path_env(bindir, **extra: str) -> "dict[str, str]":
-    """This process's environment with ``bindir`` first on PATH and no BASH_ENV.
-
-    Every ``bash -c`` below finds a stand-in by PATH, and bash sources BASH_ENV
-    before the script: a cloud seat's profile there re-prepended its toolchain,
-    so the real ``python3`` shadowed the stand-in at every tree (#2835)."""
-    env = {k: v for k, v in os.environ.items() if k != "BASH_ENV"}
-    return {**env, "PATH": f"{bindir}{os.pathsep}{os.environ.get('PATH', '')}", **extra}
-
-
-def _gs_step_verdict(script: str, stdout: str, rc: int) -> "tuple[int, str]":
-    with tempfile.TemporaryDirectory() as d:
-        fake = Path(d) / "python3"
-        fake.write_text("#!/bin/sh\nprintf '%s' \"$FAKE_OUT\"\nexit \"$FAKE_RC\"\n")
-        fake.chmod(0o755)
-        p = _subprocess.run([*_GHA_RUN, script], capture_output=True, text=True, timeout=30,
-                            env=_stub_path_env(d, RUN_ID="123", FAKE_OUT=stdout, FAKE_RC=str(rc)))
-    return p.returncode, p.stdout
-
-
-_GS_CASES = [  # (program stdout, program rc) -> (the step fails, the annotation it must print)
-    ("SWEEP re-ran gate of run 1 (attempt 1, completed red)\nSWEEP-DONE run=2 reruns=1\n", 0, False, ""),
-    ("SKIP run 2: its gate is not green and newest-covering\n", 0, False, ""),
-    ("SWEEP-DONE run=2 reruns=0\n", 1, False, ""),
-    ("SWEEP re-ran gate of run 1\nRATE-LIMITED reset_epoch=99; no further re-runs before it\n", 1, True,
-     "::error title=RATE-LIMITED::"),
-    ("RATE-LIMITED reset_epoch=99; no further re-runs before it\n", 0, True, "::error title=RATE-LIMITED::"),
-    ("Traceback (most recent call last):\nRuntimeError: GET actions/runs/2: 500\n", 1, True,
-     "::error title=sweep failed::"),
-    ("", 0, True, "::error title=sweep failed::"),
-]
-
-
 def _gs_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
     on = doc.get("on", doc.get(True)) or {}
@@ -21793,22 +21961,37 @@ R.check(
     f"matchers={_DEPENDABOT_SCAN.get('manifests')} for {len(_DEPENDABOT_YAML)} entries",
 )
 # `Analyze (python)` is a required context, so a cancelled analysis fails the
-# pull request. Its runtime swings with runner load, and the 30-minute cap sat
-# inside that spread on 2026-10-20: three cancellations at the cap -- 2bd5e90f
-# 30:19, 11 minutes into query evaluation; 4e5801eb 30:09 and 916431ae 30:07,
-# both while uploading results -- while a rerun of 4e5801eb finished in 21.5
-# minutes (job 118701134345). 45 is the 30:19 worst case plus 14:41 of headroom
-# for that variance (45:00 - 30:19); the floor is a measurement, the margin a
-# design choice. The cap is pinned against the YAML (not left as prose in the
-# workflow) because a one-line edit shrinking it back is exactly what no other
-# check reads.
+# pull request. The cap is per leg, read from the matrix's `include` entries
+# (r10-hotfix-codeql-headroom, design note sections 1 and 3): python carries 75
+# because main's python job outgrew the 45-minute cap (extraction of
+# tests/features.py is the critical path; projected uncensored worst case about
+# 51 minutes, so 75 is that plus a deliberate stopgap margin); the two legs that
+# read about 40x under the cap stay at exactly 45, which is the null control
+# (a blanket raise would move them and fails here). The cap is pinned against
+# the YAML, not left as prose in the workflow, because a one-line edit
+# shrinking it back is exactly what no other check reads.
 _CODEQL_JOBS = (_yaml.safe_load(_CODEQL_YML) or {}).get("jobs") or {}
-_analyze_cap = (_CODEQL_JOBS.get("analyze") or {}).get("timeout-minutes")
+_analyze_job = _CODEQL_JOBS.get("analyze") or {}
+_analyze_cap = _analyze_job.get("timeout-minutes")
+_analyze_incl = (((_analyze_job.get("strategy") or {}).get("matrix") or {})
+                 .get("include")) or []
+_leg_caps = {e.get("language"): e.get("timeout") for e in _analyze_incl
+             if isinstance(e, dict)}
+_PY_WORST_CASE_MIN = 51
 R.check(
-    "codeql.yml's analyze cap clears the python leg's measured worst case",
-    isinstance(_analyze_cap, int) and _analyze_cap >= 45,
-    f"analyze timeout-minutes={_analyze_cap!r}; the python leg was cancelled "
-    "at 30:19 before the cap rose (2bd5e90f, 2026-10-20)",
+    "codeql.yml's analyze cap is per leg: python clears the measured worst case, the others stay at 45",
+    _analyze_cap == "${{ matrix.timeout }}"
+    and set(_leg_caps) == {"actions", "javascript-typescript", "python"}
+    and len(_analyze_incl) == 3
+    and type(_leg_caps["python"]) is int
+    and _leg_caps["python"] >= _PY_WORST_CASE_MIN
+    and _leg_caps["actions"] == 45 and type(_leg_caps["actions"]) is int
+    and _leg_caps["javascript-typescript"] == 45
+    and type(_leg_caps["javascript-typescript"]) is int,
+    f"timeout-minutes={_analyze_cap!r}; include caps={_leg_caps!r}; the python "
+    "leg was capped at 45.1 min on main (projected worst case ~51, design "
+    "r10-hotfix-codeql-headroom s1); actions and javascript-typescript read "
+    "p99 <= 2.3 min and stay 45",
 )
 # D-5: O17's INERT list is admitted only with the soundness step, which runs
 # on push and reads the leg's extracted source archive; and the `scope` job
@@ -21836,8 +22019,13 @@ _REPO_ROOT_CQ = pathlib.Path(__file__).resolve().parents[1]
 # under an ignore pattern is analyzable code being filtered out, refused.
 _CODEQL_INIT = [st for st in _CODEQL_STEPS
                 if str(st.get("uses", "")).startswith("github/codeql-action/init@")]
-_CODEQL_IGNORE = ((_yaml.safe_load((_CODEQL_INIT[0].get("with") or {}).get("config") or "")
-                   or {}).get("paths-ignore") or []) if _CODEQL_INIT else []
+# The config is one expression choosing between two JSON lists: the full-run list
+# (workflow scripts only) and the pull-request python list, which adds tests/ and
+# dev/. Both are read out of the registered text, not a constant.
+_CODEQL_CONFIG = str((_CODEQL_INIT[0].get("with") or {}).get("config") or "") if _CODEQL_INIT else ""
+_CODEQL_LISTS = [json.loads(m) for m in re.findall(r"'(\[[^']*\])'", _CODEQL_CONFIG)]
+_CODEQL_PR_LIST, _CODEQL_BASE_LIST = (_CODEQL_LISTS + [[], []])[:2]
+_CODEQL_IGNORE = list(_CODEQL_BASE_LIST)
 _CODEQL_IGNORED = {pat: sorted(str(p.relative_to(_REPO_ROOT_CQ)) for p in _REPO_ROOT_CQ.glob(pat)
                                if p.is_file() and not p.is_symlink())
                    for pat in _CODEQL_IGNORE}
@@ -21850,6 +22038,31 @@ R.check(
     "codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)",
     bool(_CODEQL_IGNORE) and all(_CODEQL_IGNORED.values()) and not _CODEQL_PARSEABLE,
     f"ignored={_CODEQL_IGNORED}; parseable under an ignore pattern={_CODEQL_PARSEABLE}",
+)
+# r10-codeql-pr-paths: the pull-request python list is the full-run list plus
+# tests/ and dev/, chosen only for a pull_request event on the python leg. Without
+# the event or language guard the full run would lose them too (null control: the
+# guard text removed reads False).
+_CODEQL_GUARD = "github.event_name == 'pull_request' && matrix.language == 'python'"
+# The whole expression is one anchored shape, `(<GUARD>) && '<PR>' || '<BASE>'`,
+# and is evaluated for every event x leg: only a pull_request on python gets the
+# tests/dev list, so main's push run keeps the full set. A negated or `|| true`
+# guard fails the anchor and, evaluated, the push rows (null control: both red).
+_CODEQL_SHAPE = re.fullmatch(
+    r"paths-ignore: \$\{\{ \(" + re.escape(_CODEQL_GUARD) + r"\) && '(\[[^']*\])' \|\| '(\[[^']*\])' \}\}\s*",
+    _CODEQL_CONFIG)
+_CODEQL_SELECTED = {(ev, lg): json.loads(_CODEQL_SHAPE.group(1 if (ev == "pull_request" and lg == "python") else 2))
+                    for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                    for lg in ("actions", "javascript-typescript", "python")} if _CODEQL_SHAPE else {}
+_CODEQL_EXPECT = {(ev, lg): (_CODEQL_PR_LIST if (ev == "pull_request" and lg == "python") else _CODEQL_BASE_LIST)
+                  for ev in ("push", "pull_request", "merge_group", "workflow_dispatch")
+                  for lg in ("actions", "javascript-typescript", "python")}
+R.check(
+    "codeql.yml: tests/ and dev/ are ignored on a pull request's python leg only; a full run ignores workflow scripts alone",
+    len(_CODEQL_LISTS) == 2 and _CODEQL_PR_LIST == _CODEQL_BASE_LIST + ["tests/**", "dev/**"]
+    and _CODEQL_CONFIG.count(_CODEQL_GUARD) == 1
+    and bool(_CODEQL_SHAPE) and _CODEQL_SELECTED == _CODEQL_EXPECT,
+    f"lists={_CODEQL_LISTS}; config={_CODEQL_CONFIG!r}; selected={_CODEQL_SELECTED}",
 )
 # A skipped leg uploads main's analysis of its category as a stand-in, so a
 # pull request carries every configuration main does and code scanning never
@@ -23566,6 +23779,23 @@ R.check(
     _lm_ok,
     "run `python3 tools/merge/ledger_merge.py --self-test` for the failing "
     "check names:\n" + _lm_detail,
+)
+
+# --- the orchestrator tick's self-test runs where roster_lib changes --------
+#
+# The tick reads roster_lib (`open_groups`, `groups_of`), and tools/ is INERT, so
+# no scoped script ran its self-test on a roster_lib.py change: CLOSED_STAGES
+# gaining `deferred` broke "PLAN: deferred E stays deferred" and only
+# governance's instrument-self-tests saw it (#3326). tests/closures.json puts
+# roster_lib.py in this script's closure, so running it here is the edge.
+_tick_run = subprocess.run(
+    [sys.executable, "-I", str(_closure.ROOT / "tools" / "audit" / "seat" / "orchestrator_tick.py"),
+     "--self-test"],
+    capture_output=True, text=True, cwd=str(_closure.ROOT), check=False)
+R.check(
+    "orchestrator_tick.py --self-test passes (it reads roster_lib's closed set)",
+    _tick_run.returncode == 0 and ", 0 failed" in _tick_run.stdout,
+    (_tick_run.stdout + _tick_run.stderr).strip()[-400:],
 )
 
 # --- #493: inherited card claims on a roster-only three-dot -----------------
@@ -25442,8 +25672,8 @@ from heatpump_optimizer import diagnostics as _diag_mod  # noqa: E402
 import json as _json
 
 # #509: what a household looks like in a diagnostics file. The coordinate is
-# full precision and its 1-decimal cell is a different string, so "the precise
-# value is absent" cannot pass just because the two happen to render the same;
+# full precision and its 1-decimal rounding is a different string, so the
+# redaction check also catches a rounded leftover, not only the exact value;
 # ``_DIAG_DEEP`` sits two levels down and inside a list, because the property
 # that stops the NEXT nested location from leaking is depth-independence, not a
 # rule about ``solar_location``; and the option-level coordinate differs from
@@ -25516,11 +25746,6 @@ def _diag_at(node, *path):
     return node
 
 
-# The setup data's own location: ``config`` is the live merge, where the
-# options' location replaces this one whole.
-_diag_location = _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION)
-_diag_location = _diag_location if isinstance(_diag_location, dict) else {}
-
 R.check(
     "the Tibber token never leaves the instance",
     _diag["config"].get(_CONF_TOKEN) == _HA_REDACTED
@@ -25544,45 +25769,27 @@ R.check(
     ),
 )
 R.check(
-    "the coordinate survives as a coarse cell rather than as a hole",
-    _diag_location.get("latitude") == round(_DIAG_LAT, 1)
-    and _diag_location.get("longitude") == round(_DIAG_LON, 1),
-    f"solar_location came back as {_diag_location!r}; support cannot see a "
-    f"swapped or wrong-country coordinate through a redacted one",
-)
-R.check(
-    "the documented coordinate precision is one decimal place",
-    getattr(_diag_mod, "COORDINATE_PLACES", None) == 1,
-    f"COORDINATE_PLACES is {getattr(_diag_mod, 'COORDINATE_PLACES', None)!r}",
-)
-R.check(
-    "the coarsening reaches a coordinate nested below the top level",
-    _diag_at(_diag, "config", "_deep", "sites", 0, "station", "latitude")
-    == round(_DIAG_LAT, 1),
-    "a coordinate two levels down, inside a list, came back as "
-    f"{_diag_at(_diag, 'config', '_deep', 'sites', 0, 'station', 'latitude')!r}",
-)
-R.check(
-    "the live config's coordinate, from options, is coarsened too",
-    _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION, "latitude")
-    == round(_DIAG_OPT_LAT, 1)
-    and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION, "longitude")
-    == round(_DIAG_OPT_LON, 1),
+    "the location is redacted whole, from data and from options, not coarsened",
+    _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
+    and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
+    and not any(
+        str(round(_c, 1)) in _blob
+        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+    ),
     repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)),
 )
-_diag_typed = _diag_at(_diag, "config", "_deep", "typed")
-_diag_typed = _diag_typed if isinstance(_diag_typed, dict) else {}
 R.check(
-    "a coordinate that is not a number is redacted rather than published",
-    _diag_typed.get("latitude") == _HA_REDACTED
-    and _diag_typed.get("longitude") == _HA_REDACTED
-    and "Storgatan 5, Solna" not in _blob,
-    f"a non-numeric coordinate came back as {_diag_typed!r}",
+    "a coordinate nested below the top level, inside a list, is redacted",
+    _diag_at(_diag, "config", "_deep", "sites", 0, "station")
+    == {"latitude": _HA_REDACTED, "longitude": _HA_REDACTED},
+    repr(_diag_at(_diag, "config", "_deep", "sites", 0, "station")),
 )
 R.check(
-    "a non-coordinate member of the location dict is left alone",
-    _diag_location.get("elevation") == "not-a-number",
-    "redaction reached a key that is not a coordinate",
+    "a coordinate that is not a number is redacted too (None stays None, as in Home Assistant)",
+    _diag_at(_diag, "config", "_deep", "typed")
+    == {"latitude": _HA_REDACTED, "longitude": None}
+    and "Storgatan 5, Solna" not in _blob,
+    f"a non-numeric coordinate came back as {_diag_at(_diag, 'config', '_deep', 'typed')!r}",
 )
 R.check(
     "the installation name the user typed never leaves the instance",
@@ -26231,23 +26438,23 @@ R.check(
 # And the translations themselves, in all three files. A missing state entry
 # renders the raw token -- exactly the defect D3 exists to remove.
 _state_string_errors = []
-_sv_ent = json.loads((ROOT / "translations" / "sv.json").read_text())["entity"]
 for _key, (_c, _states, _m) in _ENUM_SENSORS.items():
     _en_states = (_ENTITY_STRINGS["sensor"].get(_key) or {}).get("state") or {}
-    _sv_states = (_sv_ent["sensor"].get(_key) or {}).get("state") or {}
     if set(_en_states) != set(_states):
         _state_string_errors.append(
             f"{_key}: strings.json states {sorted(set(_en_states) ^ set(_states))}"
         )
-    if set(_sv_states) != set(_states):
-        _state_string_errors.append(
-            f"{_key}: sv.json states {sorted(set(_sv_states) ^ set(_states))}"
-        )
-    for _s in sorted(set(_en_states) & set(_sv_states)):
-        if _sv_states[_s] == _en_states[_s]:
-            _state_string_errors.append(f"{_key}.{_s} is identical in sv")
+    for _lang, _lang_ents in _tr_entities.items():
+        _tr_states = (_lang_ents["sensor"].get(_key) or {}).get("state") or {}
+        if set(_tr_states) != set(_states):
+            _state_string_errors.append(
+                f"{_key}: {_lang}.json states {sorted(set(_tr_states) ^ set(_states))}"
+            )
+        for _s in sorted(set(_en_states) & set(_tr_states)):
+            if _tr_states[_s] == _en_states[_s]:
+                _state_string_errors.append(f"{_key}.{_s} is identical in {_lang}")
 R.check(
-    "every enum option has an English and a translated Swedish state name",
+    "every enum option has an English and a translated state name in every language",
     not _state_string_errors,
     "; ".join(_state_string_errors[:6]),
 )
@@ -26788,28 +26995,29 @@ R.check(
 # Placeholder English left in a translation is worse than no translation: it
 # looks translated. Applied to descriptions as well as names, because the
 # descriptions are the long text and the easiest half to skip.
-_sv_services = _CATALOGUES["sv.json"].get("services") or {}
 _en_services = _CATALOGUES["en.json"].get("services") or {}
-_untranslated = []
-for _svc in sorted(set(_sv_services) & set(_en_services)):
-    for _k in _SERVICE_TEXT_KEYS:
-        if _sv_services[_svc].get(_k) == _en_services[_svc].get(_k):
-            _untranslated.append(f"{_svc}.{_k}")
-    _sv_f = _sv_services[_svc].get("fields") or {}
-    _en_f = _en_services[_svc].get("fields") or {}
-    for _fname in sorted(set(_sv_f) & set(_en_f)):
+for _lang in TRANSLATED_LANGS:
+    _tr_services = _CATALOGUES[f"{_lang}.json"].get("services") or {}
+    _untranslated = []
+    for _svc in sorted(set(_tr_services) & set(_en_services)):
         for _k in _SERVICE_TEXT_KEYS:
-            if _sv_f[_fname].get(_k) == _en_f[_fname].get(_k):
-                _untranslated.append(f"{_svc}.{_fname}.{_k}")
-R.check(
-    "the Swedish service text is actually translated",
-    # Non-emptiness is part of the claim: with no services section at all this
-    # compares two empty mappings and passes while saying nothing, which is the
-    # shape of check this repository keeps having to refute.
-    bool(_sv_services) and bool(_en_services) and not _untranslated,
-    f"{len(_untranslated)} identical of {len(_sv_services)} services: "
-    f"{_untranslated[:4]}",
-)
+            if _tr_services[_svc].get(_k) == _en_services[_svc].get(_k):
+                _untranslated.append(f"{_svc}.{_k}")
+        _tr_f = _tr_services[_svc].get("fields") or {}
+        _en_f = _en_services[_svc].get("fields") or {}
+        for _fname in sorted(set(_tr_f) & set(_en_f)):
+            for _k in _SERVICE_TEXT_KEYS:
+                if _tr_f[_fname].get(_k) == _en_f[_fname].get(_k):
+                    _untranslated.append(f"{_svc}.{_fname}.{_k}")
+    R.check(
+        f"the {_lang} service text is actually translated",
+        # Non-emptiness is part of the claim: with no services section at all this
+        # compares two empty mappings and passes while saying nothing, which is the
+        # shape of check this repository keeps having to refute.
+        bool(_tr_services) and bool(_en_services) and not _untranslated,
+        f"{len(_untranslated)} identical of {len(_tr_services)} services: "
+        f"{_untranslated[:4]}",
+    )
 
 # The catalogue describes services that exist. A row for a service nothing
 # registers is text no user can reach; one registered with no row is the
@@ -28611,7 +28819,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base", "machinery"],
+    == ["base", "machinery", "selftests"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
@@ -28955,7 +29163,27 @@ try:
     # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
     _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
     _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    # This row judges HEAD's blobs, not the working tree (a tree read would open every
+    # tools/*.sh and join this script's closure); `bare_array.py --check` with no ref
+    # reads the working tree. Planted control: one temp repo, a clean commit and an
+    # uncommitted bare edit -- HEAD reads clean, the tree reads red.
+    with _tempfile.TemporaryDirectory() as _ba_tmp:
+        _ba_cwd = os.getcwd()
+        try:
+            _ba_env = throwaway_git_init(_ba_tmp, "-q")
+            Path(_ba_tmp, "tools").mkdir()
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + "f x\n")
+            for _ba_args in (["add", "."], ["commit", "-qm", "c"]):
+                subprocess.run(["git", *_ba_args], cwd=_ba_tmp, env=_ba_env, check=True, capture_output=True)
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + 'f "${a[@]}"\n')
+            os.chdir(_ba_tmp)
+            with throwaway_git_environ():
+                _ba_uncommitted = (_ba.scan("HEAD"), _ba.scan())
+        finally:
+            os.chdir(_ba_cwd)
     _ba_rows = (
+        (_ba_uncommitted[0] == [] and len(_ba_uncommitted[1]) == 1,
+         "an uncommitted bare site is invisible to the HEAD scan this row runs and red to the tree scan"),
         (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
         (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
         (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
@@ -28974,7 +29202,7 @@ try:
 except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
     _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
 R.check(
-    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    "no tools/**/*.sh script, as committed at HEAD, expands a bare \"${array[@]}\"",
     not _ba_hits,
     "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
     "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
@@ -29604,7 +29832,9 @@ def _raf_job_ok(job: str) -> bool:
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
-        and "issues/201/comments" in job
+        and "from budget_raise_gate import RECORD_ISSUE" in job
+        and "issues/$RECORD_ISSUE/comments" in job
+        and "issues/201/comments" not in job
         and "if: always()" in job
         and pushes
         and all(_RAF_LEASE in p for p in pushes)
@@ -31203,7 +31433,7 @@ R.check(
                       "ci.yml": ["arch-score", "budget-raise-gate", "cancel-superseded",
                                  "codeql", "gate", "governance", "hassfest",
                                  "kernel-points", "pr-contract", "prelude", "refresh",
-                                 "tests", "validate"]},
+                                 "sweep-self", "tests", "validate"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -31610,7 +31840,7 @@ _RD_EVENTS = ({"github.event_name": "workflow_dispatch"},
 
 
 # A dispatch is never a push: the units it owes are gate.py's `no-pr` and `pr`
-# classes, so the push-only jobs (coverage, ci-ratchet) are not among them.
+# classes, so the push-only jobs (coverage, coverage-ratchet) are not among them.
 _RD_UNITS = sorted(set(_cig_required["pr"]) | set(_cig_required["no-pr"]))
 
 
@@ -31829,7 +32059,7 @@ def _brg_defects(text: str) -> "list[str]":
     if not all(re.search(r"python3 -I \.claude/workflows/budget_raise_gate\.py", runs[i])
                for i in gate):
         out.append("gate not under python3 -I")
-    # `issues: read`: the owner's recorded mandate is a comment on #201.
+    # `issues: read`: the owner's recorded mandate is a comment on a record issue.
     if doc.get("permissions") != {"contents": "read", "pull-requests": "read", "issues": "read"} or any(
             "permissions" in (j or {}) for j in jobs.values()):
         out.append(f"permissions {doc.get('permissions')}")
@@ -32008,8 +32238,8 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects(_PRW_UNDONE)})
 R.check(
     "and the same ci.yml and tests.yml with their restores and token hygiene undone are "
     "refused on each of the three autofix jobs (a workflow_call callee of a pull_request "
-    "workflow) and on ci.yml's cancel-superseded and refresh jobs (null control)",
-    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "tests.yml:claims-autofix",
+    "workflow) and on ci.yml's cancel-superseded, refresh and sweep-self jobs (null control)",
+    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "ci.yml:sweep-self", "tests.yml:claims-autofix",
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )
@@ -32136,6 +32366,73 @@ R.check(
     "(its precondition)",
     _TWP_LIVE != [] and _TWP_MATCHER_OFF == [],
     f"restores read: {len(_TWP_LIVE)}; the matcher disagrees with git on: {_TWP_MATCHER_OFF}",
+)
+
+
+# --- R10-HOTFIX-NONREQUIRED-REDS (fix review round 1): A PROGRAM PR-CONTRACT
+# RUNS IS THE BASE'S, SPAWNED ONES INCLUDED. pr-contract restores its check
+# source from the base so it runs no pull-request program (#1515, decision
+# 0013), but `policy_lint.mjs --pr-body` spawns `python3 <ROOT>/...py` for the
+# required set (`requiredFromTrain`: merge_train.py owed-reds). A spawned
+# program outside the restore list is the pull request's copy, and a diff
+# editing it alone answered its own required reds. The rule enumerates the
+# class: every `spawnSync('python3', [path.join(<root>, ...)` in policy_lint, and
+# each one's local closure -- a column-0 `import X`/`from X` with X.py beside
+# it, and a column-0 `NAME = ROOT / "path"` it reads -- must match a pathspec
+# of pr-contract's restore. A file read as text (stamp.py at :4780) is no spawn.
+_PCR_SPAWN = re.compile(r"spawnSync\('python3',\s*\[(?:'-I',\s*)?path\.join\((ROOT|root|HERE),\s*((?:'[^']+',\s*)*'[^']+\.py')\)")
+_PCR_IMPORT = re.compile(r"^(?:import|from)\s+([A-Za-z_]\w*)", re.M)
+_PCR_READ = re.compile(r"^[A-Z_][A-Z0-9_]*\s*=\s*ROOT\s*/\s*\"([^\"]+)\"", re.M)
+
+
+def _pcr_spawned(mjs: str) -> "list[str]":
+    # HERE is policy_lint's own directory; ROOT, and a `root` parameter, the tree.
+    return sorted({"/".join((["tools", "policy"] if m.group(1) == "HERE" else [])
+                            + [t.strip().strip("'") for t in m.group(2).split(",")]) for m in _PCR_SPAWN.finditer(mjs)})
+
+
+def _pcr_closure(roots) -> "list[str]":
+    seen, todo = set(), list(roots)
+    while todo:
+        f = todo.pop()
+        if f in seen:
+            continue
+        seen.add(f)
+        if not f.endswith(".py") or not Path(f).is_file():
+            continue
+        text = Path(f).read_text()
+        todo += [q for q in (str(Path(f).parent / f"{m}.py") for m in _PCR_IMPORT.findall(text))
+                 if Path(q).is_file()]
+        todo += _PCR_READ.findall(text)
+    return sorted(seen)
+
+
+def _pcr_unrestored(texts: dict, mjs: str) -> "tuple[list[str], list[str]]":
+    """(the closure, the files of it no pr-contract restore pathspec matches)."""
+    specs = [p for w, _l, sp, _d, _a in _twp_steps({"pr-contract.yml": texts["pr-contract.yml"]}) for p in sp]
+    files = _pcr_closure(_pcr_spawned(mjs))
+    return files, [f for f in files if not specs or not any(_twp_hit(p, f) for p in specs)]
+
+
+_PCR_MJS = Path("tools/policy/policy_lint.mjs").read_text()
+_PCR_FILES, _PCR_OPEN = _pcr_unrestored(_PRW_TEXTS, _PCR_MJS)
+R.check(
+    "every python3 program policy_lint.mjs spawns, with its local import and ROOT-read closure, is "
+    "restored from the base by pr-contract (merge_train.py owed-reds, gh_read.py, required-contexts.json)",
+    _PCR_OPEN == [] and "tools/audit/seat/merge_train.py" in _PCR_FILES
+    and "tools/audit/seat/gh_read.py" in _PCR_FILES
+    and "tools/policy/fixtures/required-contexts.json" in _PCR_FILES,
+    f"closure: {_PCR_FILES}; not restored: {_PCR_OPEN}",
+)
+_PCR_NULL = {k: _pcr_unrestored({"pr-contract.yml": _PRW_TEXTS["pr-contract.yml"].replace(f"'{k}' \\\n", "")},
+                                _PCR_MJS)[1] for k in ("tools/audit/seat/merge_train.py",
+                                                       "tools/audit/seat/gh_read.py",
+                                                       "tools/policy/fixtures/required-contexts.json")}
+R.check(
+    "and pr-contract with any one of those three pathspecs removed is refused on that file "
+    "(null control); a file read as text, stamp.py, is no spawn",
+    all(v == [k] for k, v in _PCR_NULL.items()) and "tools/release/stamp.py" not in _PCR_FILES,
+    f"refused per removed pathspec: {_PCR_NULL}",
 )
 
 
@@ -39564,11 +39861,29 @@ R.check(
 # RETURN_DEL is pinned to the first; planted on the second, which the cost
 # order would put second, the run must drive it first, find it did not kill,
 # and say so. A real end-to-end `--anchor` run belongs to the mutation lane.
-_MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 25b21b2f"
+_MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 86fae85d"
 _MUT_AN_REL = _MUT_AN.split(":")[0]
 _MUT_AN_KILL, _MUT_AN_PASS = "tests/stub_kills.py", "tests/stub_passes.py"
 _MUT_AN_BUDGETS = _mut.load_budgets()
 _MUT_AN_TEXT = (_mut.ROOT / _MUT_AN_REL).read_text()
+# The file a stubbed run clones: the live text, or a variant the check plants.
+_MUT_AN_BASE = {"text": _MUT_AN_TEXT}
+
+
+def _mut_an_nulled(text):
+    # `text` with the production null control written in, as the anchor run
+    # writes its own (`mutation_table.null_control`). The stub killer tells
+    # that edit from a mutant by this text, never by its marker words: the
+    # mutation lane's null control puts the same words into the live file
+    # whenever it lands in topology.py, and a marker search then read every
+    # mutant as a null control and killed none (#3331's null-control red).
+    with tempfile.TemporaryDirectory() as _d:
+        _p = Path(_d) / "anchor.py"
+        _p.write_text(text)
+        _nc = _mut.null_control(_p)
+    _lines = text.splitlines(True)
+    _lines[_nc["line"] - 1] = _nc["new"] + "\n"
+    return "".join(_lines)
 
 
 # The third stub reads no code at all: it is TRIAGE_JUDGE's ledger check in
@@ -39583,7 +39898,7 @@ _MUT_AN_ROWS = _mut.ledger_dir().relative_to(_mut.ROOT)
 
 def _mut_an_clone(dest, row=None):
     (dest / _MUT_AN_REL).parent.mkdir(parents=True, exist_ok=True)
-    (dest / _MUT_AN_REL).write_text(_MUT_AN_TEXT)
+    (dest / _MUT_AN_REL).write_text(_MUT_AN_BASE["text"])
     if row is not None:
         _at = dest / _MUT_AN_ROWS / _mut.ledger_relpath("killed_by", _MUT_AN)
         _at.parent.mkdir(parents=True, exist_ok=True)
@@ -39602,15 +39917,15 @@ def _mut_an_stale(cwd):
 
 def _mut_an_run(script, cwd, timeout, extra_args=None, extra_env=None):
     text = (cwd / _MUT_AN_REL).read_text()
-    red = ((script == _MUT_AN_KILL and text != _MUT_AN_TEXT
-            and "(null control)" not in text)
+    base = _MUT_AN_BASE["text"]
+    red = ((script == _MUT_AN_KILL and text not in (base, _mut_an_nulled(base)))
            or (script == _MUT_AN_JUDGE and _mut_an_stale(cwd)))
     return _mut.ScriptRun(1 if red else 0, 1 if red else 0, 0.1,
                           "  FAIL stub\n1 of 1 STUB CHECKS FAILED\n" if red
                           else "ok\n")
 
 
-def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
+def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS), text=_MUT_AN_TEXT):
     # The one row it re-drives, not the live ledger: main() refuses a ledger
     # that disagrees with the live inventory, so a whole-ledger stub went red
     # on ANY pinned line a mutant rewrote -- the vacuous kill (R10
@@ -39627,6 +39942,7 @@ def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
     _mut.clone_tree = lambda dest: _mut_an_clone(dest, _row)
     _mut.drop_tree = lambda dest: None
     _mut.run_script = _mut_an_run
+    _MUT_AN_BASE["text"] = text
     _log = tempfile.TemporaryFile("w+")
     try:
         with _pv_ctx.redirect_stdout(_log):
@@ -39635,6 +39951,7 @@ def _mut_anchor(pinned, drivers=(_MUT_AN_KILL, _MUT_AN_PASS)):
     finally:
         for _n, _v in _saved.items():
             setattr(_mut, _n, _v)
+        _MUT_AN_BASE["text"] = _MUT_AN_TEXT
     _log.seek(0)
     return _rc, _log.read()
 
@@ -39664,6 +39981,19 @@ R.check(
     and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_VAC[1],
     f"has pin={_MUT_AN_HAS} judge-pinned={_MUT_AN_VAC!r:.600} -- reproduced "
     "means the ledger judge read the mutant's own stale row as a kill",
+)
+# The same re-drive from a file the mutation lane's null control already
+# commented: every mutant of it carries the null control's words, so the stub
+# killer must still kill the real pin, and must still spare the run's own
+# null control (#3331's null-control red, where topology.py was in the diff).
+_MUT_AN_PRE = (_mut_anchor(_MUT_AN_KILL, text=_mut_an_nulled(_MUT_AN_TEXT))
+               if _MUT_AN_HAS else (None, ""))
+R.check(
+    "--anchor still reproduces the real pin when the anchored file already "
+    "carries the mutation lane's comment-only null control",
+    _MUT_AN_PRE[0] == 0
+    and "PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified" in _MUT_AN_PRE[1],
+    f"has pin={_MUT_AN_HAS} pre-nulled={_MUT_AN_PRE!r:.600}",
 )
 # The rows a rewrite invalidates, on the real ledger: a pinned line rewritten
 # equivalently (a trailing comment) loses exactly the rows pinned to it, and
@@ -40234,6 +40564,40 @@ R.check(
     and _pin_unhashed_lock("tests/requirements-ci.txt") is None,
     f"stripped={_pin_lock_problem('stripped', _PIN_STRIPPED)!r} "
     f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
+)
+
+# No lock comment spells a hash-pinned package `name==`. Dependabot rewrites
+# the version at every `name==` match in a lock, the comment included, and
+# leaves the hash block of a pin it matched twice at the old version, which
+# `--require-hashes` refuses: 9 of 9 stale pins of #3088, #3323 and #3414 had
+# that shape, 0 of 61 fresh ones (dev/audit/rca/r10-rca-dependabot-stale-hash.md).
+# Driven through the harness's own `--tree` reader, then its `exposed` over
+# the committed lock with one comment planted, which must read one pin.
+import contextlib as _dsh_ctx  # noqa: E402
+import importlib.util as _dsh_util  # noqa: E402
+import io as _dsh_io  # noqa: E402
+
+_dsh_spec = _dsh_util.spec_from_file_location(
+    "hpo_dependabot_stale_hash",
+    _closure.ROOT / "dev" / "audit" / "harnesses" / "dependabot_stale_hash.py")
+_dsh = _dsh_util.module_from_spec(_dsh_spec)
+_dsh_spec.loader.exec_module(_dsh)
+_dsh_out = _dsh_io.StringIO()
+with _dsh_ctx.redirect_stdout(_dsh_out):
+    _dsh_exposed = _dsh.tree(None)
+R.check(
+    "no lock comment names a hash-pinned package as `name==` (Dependabot stale hashes)",
+    _dsh_exposed == 0 and " files=0 " not in _dsh_out.getvalue(),
+    _dsh_out.getvalue().strip()[-600:] + ". Reword each to `name 1.2.3`, or "
+    "point at the pin line",
+)
+_DSH_LOCK = (_closure.ROOT / "tests" / "requirements-ci.txt").read_text()
+_DSH_PIN = re.search(_PIN_REQ.pattern, _DSH_LOCK, re.M)
+_dsh_planted = _dsh.exposed(f"# holds {_DSH_PIN.group(0)}\n" + _DSH_LOCK)
+R.check(
+    "stale-hash barrier arm: one planted `name==` comment reads exactly one pin",
+    len(_dsh_planted) == 1 and _dsh.exposed(_DSH_LOCK) == [],
+    f"planted={_dsh_planted} committed={_dsh.exposed(_DSH_LOCK)}",
 )
 
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
@@ -41235,6 +41599,78 @@ R.check(
     f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
 )
 
+# The round's plan page (R10-OUTSIDE-INTAKE): three steps, pinned by RUNNING
+# the two that move files and by their order. The page is staged from the
+# dispatched ref's tree BEFORE the release is checked out (a tag older than
+# plan_public.py could not stage it), the release checkout is skipped on a tag
+# push and takes the newest `v*` tag by version, never by string order, and
+# the page reaches `_site/plan/` only when a page was staged.
+_PG_PLAN = ("Stage the round's plan page", "Check out the release", "Add the round's plan page")
+
+
+def _pg_plan_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    steps = [s or {} for j in (doc.get("jobs") or {}).values() for s in ((j or {}).get("steps") or [])]
+    idx = {s.get("name"): i for i, s in enumerate(steps)}
+    if any(n not in idx for n in (*_PG_PLAN, _PG_STAGE, _PG_GUARD)):
+        return [f"a plan step is missing: {[n for n in _PG_PLAN if n not in idx]}"]
+    out: "list[str]" = []
+    st, co, add = (steps[idx[n]] for n in _PG_PLAN)
+    if not idx[_PG_PLAN[0]] < idx[_PG_PLAN[1]] < idx[_PG_STAGE] < idx[_PG_PLAN[2]] < idx[_PG_GUARD]:
+        out.append("plan steps out of order: stage the page, check out the release, "
+                   "stage the site, add the page, then the guard")
+    if "tools/audit/seat/plan_public.py stage" not in str(st.get("run", "")):
+        out.append("the plan page is not staged by plan_public.py")
+    if "ref_type != 'tag'" not in str(co.get("if", "")):
+        out.append("the release checkout is not skipped on a tag push")
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+        env = throwaway_git_init(repo, "-q")
+        for tag in ("v1.9.0", "v1.10.0", "x9"):
+            (repo / "f").write_text(tag)
+            subprocess.run(git + ["add", "f"], cwd=repo, check=True, env=env)
+            subprocess.run(git + ["commit", "-qm", tag], cwd=repo, check=True, env=env)
+            subprocess.run(git + ["tag", tag], cwd=repo, check=True, env=env)
+        rc = _pg_run(str(co.get("run", "")), repo)
+        if rc != 0 or (repo / "f").read_text() != "v1.10.0":
+            out.append(f"the release checkout took {(repo / 'f').read_text()!r} (rc={rc}), not v1.10.0")
+        (repo / "_site").mkdir()
+        if _pg_run(str(add.get("run", "")), repo) != 0 or (repo / "_site" / "plan").exists():
+            out.append("with no staged page, the add step put something at _site/plan")
+        # The stage step under the runner's own `-eo pipefail`, over a stub
+        # python3 and git: no page to publish (rc 2) warns and passes, a
+        # refused page (rc 1) is red.
+        stub = Path(tmp) / "bin"
+        stub.mkdir()
+        (stub / "git").write_text("#!/bin/sh\nexit 0\n")
+        for want_rc, py_rc in ((0, 2), (1, 1), (0, 0)):
+            (stub / "python3").write_text(f"#!/bin/sh\nexit {py_rc}\n")
+            for f in stub.iterdir():
+                f.chmod(0o755)
+            env = dict(os.environ, RUNNER_TEMP=tmp, GITHUB_OUTPUT=os.devnull, GITHUB_STEP_SUMMARY=os.devnull,
+                       PATH=f"{stub}{os.pathsep}{os.environ.get('PATH', '')}")
+            rc = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", str(st.get("run", ""))],
+                                cwd=repo, env=env, capture_output=True, text=True).returncode
+            if (rc != 0) != bool(want_rc):
+                out.append(f"the plan stage step exits {rc} when plan_public.py exits {py_rc}")
+        page = Path(tmp) / "plan-site" / "plan" / "index.html"
+        page.parent.mkdir(parents=True)
+        page.write_text("<!doctype html>plan")
+        if _pg_run(str(add.get("run", "")), repo) != 0 or not (repo / "_site/plan/index.html").is_file():
+            out.append("a staged page did not reach _site/plan/index.html")
+    return out
+
+
+_PG_PLAN_GOT = _pg_plan_defects(_PG_WF.read_text()) if _PG_WF.is_file() else ["no pages.yml"]
+R.check(
+    "the Pages workflow stages the round's plan page before it checks out the newest release, "
+    "and adds it under plan/ only when one was staged",
+    not _PG_PLAN_GOT,
+    "; ".join(_PG_PLAN_GOT[:4]),
+)
+
 # Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
 # script reads it, so an edit to it selects this script; it sets no gate
 # variable and runs no gate script, so it never forces FULL.
@@ -41504,7 +41940,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     "the latch itself, or latched by a guard the static rule cannot read "
     "(an outage counter, a transition notice, a once-per-attempt spacing, "
     "an lru_cache parsing an option once per distinct text)": {
-        ("log_latch.py", "log_held"): 2, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("log_latch.py", "log_held"): 2, ("issues.py", "note_price_outage"): 2,
         ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
         ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
         ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
@@ -41521,6 +41957,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_void_heat_loss_learners"): 1,
         ("coordinator.py", "_raise_cop_issue"): 1,
         ("coordinator.py", "_async_watch_learning_drift"): 1, ("ledger.py", "roll_receipts"): 1,
+        # R10-GENERIC-HEAT-CURVE-PERSISTENT: a baseline with no writer left is
+        # named once and disarmed in the same call, so it cannot repeat.
+        ("off_restore.py", "_restore_baseline"): 1,
     },
     "not reached per cycle: load, restore, migration, setup, frontend "
     "registration, a service call or shutdown": {
@@ -41542,11 +41981,14 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "async_factory_reset"): 1,
         ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
+        # R10-GENERIC-HEAT-CURVE-PERSISTENT (C4): once per baseline still
+        # owed when the entry is removed.
+        ("off_restore.py", "async_forget"): 1,
     },
     "one record per failed call, an event and not a held condition (the "
     "sweep's actuation handlers, and an unexpected exception per failed update)": {
         ("climate.py", "_async_publish_displace_from_current_action"): 1,
-        ("coordinator.py", "_publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
+        ("heat_curve.py", "publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
         ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
         ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
         ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,
@@ -41890,6 +42332,36 @@ R.check(
     "sensors all publish _evidence_attributes",
     _c2238_p6 == [{"c2238": "sentinel"}] * 3,
     f"{_c2238_p6}",
+)
+
+# --- The standing seats' shared terms live once, in `standing.md` ------------
+#
+# (a) every contract that shares them cites the file; (b) the file carries its
+# five headings, the alive-file directory, the bus read and the autofix-hold
+# predicate (all three job names, so deleting the sentence fails even with its
+# heading kept); (c) `fixer.md`, the contract `tools/pr/ci_predict.py`'s
+# BOOTSTRAP remedy cites, carries the remedy. A design choice: the cited name is
+# written here and not read from ci_predict.py, which is INERT (closure.py), so
+# reading it would make every edit of that instrument select this script.
+_SR = Path("dev/governance/roles")
+_SR_TEXT = lambda n: (_SR / n).read_text() if (_SR / n).is_file() else ""  # noqa: E731
+_SR_STANDING = _SR_TEXT("standing.md")
+_SR_FAIL = (
+    [f"a:{n}" for n in ("standing-merge.md", "standing-dispatch.md", "standing-tick.md",
+                        "standing-roster.md", "proposal-triage.md")
+     if "`standing.md`" not in _SR_TEXT(n)]
+    + [f"b:{t}" for t in ("## Wait", "## Reads", "## Autofix hold", "## Recycle", "## Alive files",
+                          "$HPO_STATE_DIR/alive/", "bus.sh orphans",
+                          "mutation-autofix", "closures-autofix", "claims-autofix")
+       if t not in _SR_STANDING]
+    + [f"c:fixer.md:{t}" for t in ("BOOTSTRAP", "0013") if t not in _SR_TEXT("fixer.md")]
+)
+R.check(
+    "the standing seats' shared terms are written once in standing.md, cited by "
+    "each standing contract, and fixer.md carries the BOOTSTRAP remedy and "
+    "decision 0013",
+    _SR_FAIL == [],
+    f"missing: {_SR_FAIL}",
 )
 
 

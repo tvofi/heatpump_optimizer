@@ -5,13 +5,18 @@
     python3 -I tools/audit/seat/open_driver.py --self-test
 
 A pass reads the board's `OWED <utc> handoff-no-pr refs/heads/handoff/<topic>
-<sha> [ct=<epoch>]` lines (an `OWED ... handoff-update` line or a
+<sha> [ct=<epoch>]` lines, bare or as the tick board flags them (`-> OWED: OWED ...`) (an `OWED ... handoff-update` line or a
 `handoff-body/` ref is not an open and is ignored), drops what must not open,
 orders the rest, and launches `open_pr.sh` detached for as many as the cap
 allows. The OPEN arm only: cloud_relay.sh's handoff arm owns update_pr.sh.
 
-SKIPPED (`SKIP <topic> <sha8> <reason>`): `moved` (origin's handoff tip is not
-the board's sha), `no-body` (no handoff-body/<topic>), `landed` (`ledger.py
+LIVE TIP (OPENER-LIVE-TIP, P603): the board is rewritten once per relay pass,
+so its sha can lag origin. When origin's handoff tip differs from the board's
+sha, the pass logs `RETIP <topic> <board sha8> -> <tip sha8>` and runs every
+check below, and the open, at the live tip; `ct` stays the board line's.
+
+SKIPPED (`SKIP <topic> <sha8> <reason>`): `moved` (origin has no handoff ref
+for the topic), `no-body` (no handoff-body/<topic>), `landed` (`ledger.py
 landed`, the classifier cloud_relay.sh and bus.sh orphans use), `fix-branch`
 (fix/<topic> or fix/<topic>-pr exists), `seen` (opened at this sha), `live`
 (its run is still going), `backoff` (a failed open waiting its turn), `stuck` (three
@@ -29,11 +34,15 @@ a stripped match, `<GROUP>: <topic words>` for an exact one.
 
 ORDER (P337 rule 2, P350): `open-priority.txt` lists topics, one per line (`#`
 comments), `open-cap.txt` the cap (default 2); both are re-read every pass. A
-critical-path topic (`roster_lib.critical_path`) is never behind a non-critical
-one, whatever the file says. Within the critical and the non-critical part a
+hotfix topic (R10-HOTFIX-*, or a group `roster_lib.is_hotfix` counts, which
+includes `kind` "bug"), then an outside one (`roster_lib.is_outside`) or a
+critical-path one (`roster_lib.critical_path`), one class unordered between
+them (owner rulings tvofi 2026-11-07, triage P420, and 2026-11-08), is never
+behind a topic of a later class, whatever the file says. Within a class a
 listed topic keeps its file order, and an OMITTED topic is slotted after the
-last listed topic of equal or higher default class (critical, R10-HOTFIX-*,
-record topics `triage-*`/`roster-*`, the rest), never after every listed topic.
+last listed topic of equal or higher default class (hotfix, outside or
+critical, record topics `triage-*`/`roster-*`, the rest), never after every
+listed topic.
 A board topic unstarted for more than 2 h prints `STARVED <topic> <sha8> <h>h`
 (age = now minus the handoff commit's ct).
 
@@ -50,7 +59,7 @@ fewer than three runs have failed every pass prints
 regex reads the `STUCK ` prefix). A new sha is a new key and starts fresh.
 Per-topic files are `t-<stem>.log`/`.rc`, so no topic name can equal
 `open-driver.log`; `stem` escapes `%` before `/` so two topics never share a stem.
-Log lines: START / RESULT rc=<n> / SKIP / NEEDS-TITLE / STARVED.
+Log lines: START / RESULT rc=<n> / SKIP / RETIP / NEEDS-TITLE / STARVED.
 """
 from __future__ import annotations
 
@@ -65,9 +74,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import roster_lib  # noqa: E402
+import topic_grammar  # noqa: E402
 
 REPO = "tvofi/heatpump_optimizer"
-BOARD_RE = re.compile(r"^OWED \S+ handoff-no-pr refs/heads/handoff/(\S+) ([0-9a-f]{40})(?: ct=(\d+|\?))?")
+# `-> OWED: ` is the tick board's flag on an owed level line (orchestrator_tick.py), the board the beat passes.
+BOARD_RE = re.compile(r"^(?:-> OWED: )?OWED \S+ handoff-no-pr refs/heads/handoff/(\S+) ([0-9a-f]{40})(?: ct=(\d+|\?))?")
 STARVE_S = 2 * 3600
 BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 1800, 7200, 3
 DEFAULT_CAP = 2
@@ -89,55 +100,47 @@ def parse_board(text: str) -> list:
     return out
 
 
-def names_group(body_head: str, group: str) -> bool:
-    """`group` appears as a whole name in the text: not inside a longer one."""
-    return re.search(r"(?<![A-Za-z0-9_-])%s(?![A-Za-z0-9_-])" % re.escape(group), body_head, re.I) is not None
+names_group, resolve = topic_grammar.names_group, topic_grammar.group_of  # the grammar's one owner
 
 
-def resolve(topic: str, groups, body_head: str, titles: dict | None = None) -> tuple:
-    """(group, title) or (None, why). `groups` are the roster's group ids."""
-    words = topic.replace("-", " ")
-    t = (titles or {}).get(topic)
-    if isinstance(t, dict) and t.get("group") and t.get("title"):
-        return t["group"], t["title"]
-    m = re.fullmatch(r"triage-s(\d+)-batch(\d+)", topic)
-    if m:
-        for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):
-            if g in groups:
-                return g, f"{g}: {words}"
-        return None, "NEEDS-TITLE"
-    up = topic.upper()
-    if up in groups:  # exact match always wins
-        return up, f"{up}: {words}"
-    for rx in (r"-p(\d+)", r"-(\d+)"):  # (ii) one trailing -p<N>, then (iii) one trailing -<N>
-        m = re.fullmatch(r"(.+)" + rx, topic)
-        if m and m.group(1).upper() in groups and names_group(body_head, m.group(1).upper()):
-            g = m.group(1).upper()
-            return g, f"{g} (part {m.group(2)}): {words}"
-    return None, "NEEDS-TITLE"
+SKIP_TOPIC_PREFIXES = ("triage-", "roster-")
 
 
-def default_class(topic: str, group: str | None, critical) -> int:
-    if group and roster_lib.norm_group(group) in critical:
-        return 0
+def default_class(topic: str, group: str | None, critical, outside=frozenset(),
+                  hotfix=frozenset()) -> int:
+    """0 hotfix, 1 outside or critical (one class, unordered between them), 2
+    record, 3 the rest. Owner rulings tvofi 2026-11-07 (triage P420) and
+    2026-11-08: hotfix, then the outside requests with the critical path, then
+    today's order. A hotfix is a hotfix topic or group name, or a group in
+    `hotfix` (`roster_lib.is_hotfix`, which also counts `kind` "bug")."""
     if topic.startswith("r10-hotfix-") or (group or "").startswith("R10-HOTFIX-"):
+        return 0
+    if group and roster_lib.norm_group(group) in hotfix:
+        return 0
+    if group and roster_lib.norm_group(group) in outside | critical:
         return 1
     return 2 if topic.startswith(("triage-", "roster-")) else 3
 
 
-def order(items, priority: list, critical) -> list:
-    """items: [(topic, group, ct)]. Critical first; a listed topic keeps its file order;
-    an omitted one slots after the last listed topic of equal or higher class."""
-    cls = {t: default_class(t, g, critical) for t, g, _ in items}
+#: Classes at or below this are fenced ahead of every other topic, in class
+#: order, whatever the priority file says: hotfix, then outside or critical.
+FENCED = 1
+
+
+def order(items, priority: list, critical, outside=frozenset(), hotfix=frozenset()) -> list:
+    """items: [(topic, group, ct)]. Hotfix, then outside or critical, first;
+    a listed topic keeps its file order within a class; an omitted one slots after
+    the last listed topic of equal or higher class."""
+    cls = {t: default_class(t, g, critical, outside, hotfix) for t, g, _ in items}
     idx = {t: i for i, t in enumerate(priority)}
 
     def pos(t):
         if t in idx:
             return float(idx[t])
-        above = [idx[u] for u in idx if u in cls and cls[u] <= cls[t] and (cls[u] == 0) == (cls[t] == 0)]
+        above = [idx[u] for u in idx if u in cls and cls[u] <= cls[t] and (cls[u] <= FENCED) == (cls[t] <= FENCED)]
         return max(above, default=-1) + 0.5
 
-    return sorted(items, key=lambda x: (cls[x[0]] != 0, pos(x[0]), cls[x[0]], x[2] or 0, x[0]))
+    return sorted(items, key=lambda x: (min(cls[x[0]], FENCED + 1), pos(x[0]), cls[x[0]], x[2] or 0, x[0]))
 
 
 def stem(topic: str) -> str:
@@ -262,6 +265,8 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     ros = world.roster()
     groups = set(roster_lib.groups_of(ros))
     critical = {roster_lib.norm_group(g) for g in roster_lib.critical_path(ros)}
+    outside = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_outside(g)}
+    hotfix = {roster_lib.norm_group(str(g.get("group") or "")) for g in ros.get("groups", []) if roster_lib.is_hotfix(g)}
     titles = _load(sd / "open-titles.json", {})
     priority = _lines(sd / "open-priority.txt")
     try:
@@ -273,7 +278,13 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
         def skip(why):
             skipped[topic] = why
             log(f"SKIP {topic} {sha[:8]} {why}")
-        if tips.get(f"refs/heads/handoff/{topic}") != sha:
+        live_tip = tips.get(f"refs/heads/handoff/{topic}")
+        if live_tip and live_tip != sha:  # the board lags a relay pass: check and open origin's live tip (P603)
+            log(f"RETIP {topic} {sha[:8]} -> {live_tip[:8]}")
+            sha = live_tip
+        if topic.startswith(SKIP_TOPIC_PREFIXES):  # mut:optopicskip
+            skip("batched")  # triage and roster changes wait and merge together with stamps (tvofi 2026-11-04)
+        elif live_tip is None:
             skip("moved")
         elif f"refs/heads/handoff-body/{topic}" not in tips:
             skip("no-body")
@@ -299,7 +310,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
     started = []
     live = len(runs)
     by_topic = {c[0]: c for c in cands}
-    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical):
+    for topic, g, ct in order([(c[0], c[1], c[2]) for c in cands], priority, critical, outside, hotfix):
         _, _, _, sha, title = by_topic[topic]
         if live >= cap:
             skipped[topic] = "cap"

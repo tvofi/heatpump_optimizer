@@ -90,6 +90,13 @@ jobs:
       # `instrument-self-tests`, and this job runs no pull-request program at
       # all. A file the base does not have cannot be restored, the limit
       # `policy-docs` states.
+      # A PROGRAM A RESTORED PROGRAM SPAWNS IS RESTORED WITH IT (R10-HOTFIX-
+      # NONREQUIRED-REDS, fix review round 1): `policy_lint.mjs --pr-body` reads
+      # the required set through `merge_train.py owed-reds`, so that file, the
+      # `gh_read.py` it imports and the `required-contexts.json` it reads are the
+      # base's too, or a diff editing merge_train.py would choose which reds it
+      # owes. tests/entities.py pins every python3 program policy_lint spawns,
+      # with its local import closure, to a pathspec of this list.
       - name: Restore the check source from the base commit
         env:
           # The event's base commit; a dispatch carries none, and falls back to
@@ -109,6 +116,9 @@ jobs:
             'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py' \
             'tools/audit/seat/roster_lib.py' \
+            'tools/audit/seat/merge_train.py' \
+            'tools/audit/seat/gh_read.py' \
+            'tools/policy/fixtures/required-contexts.json' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
             'tools/pr/*.py' \
@@ -360,6 +370,17 @@ jobs:
       - name: Every figure's command resolves at this head
         if: always()
         run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
+
+      # Generated figure blocks are re-rendered from an instrument the BASE's
+      # tools/pr/figure_registry.json names, run by the base's restored copy of
+      # the program (tools/pr/*.py) over the head's tree, read-only. A body with
+      # no block passes.
+      - name: Every figure block is what its registered instrument renders
+        if: always()
+        env:
+          PR_HEAD: ${{ steps.pr.outputs.head }}
+          PR_BASE: ${{ steps.pr.outputs.base }}
+        run: python3 -I tools/pr/figure_block.py verify /tmp/pr-body.md --base "$PR_BASE" --head "$PR_HEAD"
 
       # preflight.sh refuses a closing keyword whose number is not in the
       # intended list it is given. prepr.sh's step 7 derives it with this

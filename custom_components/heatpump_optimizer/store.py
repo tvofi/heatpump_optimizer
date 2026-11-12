@@ -263,6 +263,11 @@ _COUNT, _FLAG, _TEXT = Domain("int", 0), Domain("flag"), Domain("text")
 _AT, _AT0 = Domain("instant"), Domain("instant", null=True)
 _DAY, _DAY0, _MONTH = Domain("day"), Domain("day", null=True), Domain("month")
 _ABSENT = Domain("choice", null=True)  # ``None`` only: the channel is left automatic
+#: ``DutySwitchLearner.from_record`` reads a record whole or not at all: a
+#: half-kept row would be evidence nobody observed.
+_DUTY_SWITCH = "one invalid field empties the duty-switch learner"
+_DS_WEIGHT = Domain("real", 0.0, 1e6, whole=_DUTY_SWITCH)
+_DS_DAY = Domain("day", null=True, whole=_DUTY_SWITCH)
 _SHAPE = SHAPE_MAX / SHAPE_MIN
 _QUARTER = QUARTER_FACTOR_MAX / QUARTER_FACTOR_MIN
 _ROW = "the update path's cone repair clips and renormalises the whole row (observe_day)"
@@ -344,8 +349,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "measured_cop/curve_dhw": _FLAG, "measured_cop/dhw_temp": _N, "measured_cop/at": _AT0,
         # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
         "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
-        "cop_health_cusum/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
-        **{f"{k}_cusum/{f}": d for k in ("vent", "cop_health") for f, d in (
+        "cop_health_cusum_measured/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
+        **{f"{k}/{f}": d for k in ("vent_cusum", "cop_health_cusum_measured") for f, d in (
             ("tripped", _FLAG), ("evidence/#", _TEXT), ("last_fed", _AT0))},
         # The open-window detector's fit (#2241, Cusum._departure): None
         # until seeded; a cell no fit can hold drops the whole fit, which
@@ -353,8 +358,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "vent_cusum/reference": _ABSENT, "vent_cusum/reference/#": Domain("real", whole=_REFIT),
         "vent_cusum/reference_cov": _ABSENT, "vent_cusum/reference_cov/#": Domain(
             "real", -REFERENCE_PRIOR_COV, REFERENCE_PRIOR_COV, whole=_REFIT),
-        "cop_baseline/~": _TEXT, "cop_baseline/*/0": Domain("real", _POS),
-        "cop_baseline/*/1": Domain("int", 1),
+        "cop_baseline_measured/~": _TEXT, "cop_baseline_measured/*/0": Domain("real", _POS),
+        "cop_baseline_measured/*/1": Domain("int", 1),
         "immersion_events/#": _AT,
         "snow_accum_cm": _Z, "snow_accum_last": _AT0, "last_heavy_snow": _AT0,
         "capacity_envelope/~": Domain("int"), "capacity_envelope/*/0": Domain("real", _POS),
@@ -474,18 +479,35 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "block_dhw/until": _AT, "block_space/until": _AT,
     },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
+    # off_restore.py: each armed consumer and the baseline its restore writes,
+    # null for a consumer with a fixed neutral (the heat-curve offset: 0).
+    "off_restore": {"armed/~": _TEXT, "armed/*": Domain("real", null=True)},
     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
     "pump_duty": {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,
         # The silent switch (#1911) and the GCHV night-mode registers (#1913)
         # are held slots on the same record (``pump_arbiter._writable``).
         "written/silent/0": _FLAG,
+        # A loop move's dropped space write (``pump_arbiter._note_sent``).
+        "dropped/space_setpoint": _R,
         **{f"written/night_{e}_hour/0": Domain("int", 0, 23) for e in ("start", "end")},
         **{f"written/night_{e}_minute/0": Domain("int", 0, 59) for e in ("start", "end")},
         **{f"written/{k}/1": _AT for k in (
             "mode", "dhw_setpoint", "space_setpoint", "silent",
             "night_start_hour", "night_start_minute", "night_end_hour", "night_end_minute",
         )},
+    },
+    # duty_switch.py: per direction the decayed counts, latch, off times and tallies.
+    "duty_switch": {
+        f"directions/{d}/{leaf}": domain
+        for d in ("dhw_space", "space_dhw") for leaf, domain in {
+            "k": _DS_WEIGHT, "kept_w": _DS_WEIGHT,
+            "decayed_at": Domain("instant", null=True, whole=_DUTY_SWITCH),
+            "first_day": _DS_DAY, "last_day": _DS_DAY,
+            "usable": Domain("flag", whole=_DUTY_SWITCH),
+            "off_s/#": Domain("real", 0.0, 86400.0, whole=_DUTY_SWITCH),
+            **{t: Domain("int", 0, 10**9, whole=_DUTY_SWITCH) for t in ("stopped", "kept", "void", "censored")},
+        }.items()
     },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},

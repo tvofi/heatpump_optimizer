@@ -984,7 +984,7 @@
    ],
    [
     "heat_curve",
-    "Heat curve control (ECL110)"
+    "Heat curve control"
    ],
    [
     "factory_reset",
@@ -1043,6 +1043,8 @@
   "confirm": true,
   "curve_learning_enabled": true,
   "debug_collect_enabled": true,
+  "dhw_combi_legionella_force": true,
+  "dhw_combi_tank_enabled": true,
   "dhw_disinfection_switch_entity": "sensor.seed_dhw_disinfection_switch_entity",
   "dhw_elastic_legionella_enabled": true,
   "dhw_free_disinfection_enabled": true,
@@ -1063,6 +1065,8 @@
   "flow_meter_entity": "sensor.seed_flow_meter_entity",
   "fuse_guard_enabled": true,
   "grid_fee_entity": "sensor.seed_grid_fee_entity",
+  "heat_curve_displace_entity": "sensor.seed_heat_curve_displace_entity",
+  "heat_meter_sees_dhw": true,
   "heat_pump_backup_heater_entity": "sensor.seed_heat_pump_backup_heater_entity",
   "heat_pump_capacity_limited_entity": "sensor.seed_heat_pump_capacity_limited_entity",
   "heat_pump_defrost_entity": "sensor.seed_heat_pump_defrost_entity",
@@ -1231,6 +1235,61 @@
       "default": "'sensor.seed_space_circulation_pump_entity'",
       "required": "Optional",
       "selector": "EntitySelector"
+     }
+    },
+    "required": "str",
+    "selector": "section"
+   },
+   "combi": {
+    "config": {
+     "collapsed": "True"
+    },
+    "default": null,
+    "fields": {
+     "combi_dhw_effectiveness": {
+      "config": {
+       "max": "1.0",
+       "min": "0.1",
+       "mode": "'box'",
+       "step": "'any'"
+      },
+      "default": "0.85",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "combi_potable_volume_l": {
+      "config": {
+       "max": "500",
+       "min": "0",
+       "mode": "'box'",
+       "step": "'any'",
+       "unit_of_measurement": "'L'"
+      },
+      "default": "30.0",
+      "required": "Optional",
+      "selector": "NumberSelector"
+     },
+     "dhw_combi_legionella_force": {
+      "config": null,
+      "default": "True",
+      "required": "Optional",
+      "selector": "BooleanSelector"
+     },
+     "dhw_combi_tank_enabled": {
+      "config": null,
+      "default": "True",
+      "required": "Optional",
+      "selector": "BooleanSelector"
+     },
+     "dhw_combi_tank_type": {
+      "config": {
+       "mode": "'dropdown'",
+       "options": "['internal_coil', 'tank_in_tank', 'external_station', 'custom']",
+       "translation_key": "'dhw_combi_tank_type'"
+      },
+      "default": "'internal_coil'",
+      "required": "Optional",
+      "selector": "SelectSelector"
      }
     },
     "required": "str",
@@ -1991,7 +2050,7 @@
      "space_setpoint_unit": {
       "config": {
        "mode": "'dropdown'",
-       "options": "['indoor', 'flow']",
+       "options": "['indoor', 'flow', 'return']",
        "translation_key": "'space_setpoint_unit'"
       },
       "default": "'indoor'",
@@ -2138,6 +2197,12 @@
     },
     "default": null,
     "fields": {
+     "heat_meter_sees_dhw": {
+      "config": null,
+      "default": "True",
+      "required": "Optional",
+      "selector": "BooleanSelector"
+     },
      "heat_pump_energy_entity": {
       "config": {
        "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
@@ -2162,6 +2227,16 @@
       "required": "Optional",
       "selector": "EntitySelector"
      },
+     "heat_pump_power_source": {
+      "config": {
+       "mode": "'dropdown'",
+       "options": "['auto', 'meter', 'estimate']",
+       "translation_key": "'meter_source'"
+      },
+      "default": "'auto'",
+      "required": "Optional",
+      "selector": "SelectSelector"
+     },
      "heat_pump_thermal_power_entity": {
       "config": {
        "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
@@ -2169,6 +2244,16 @@
       "default": "'sensor.seed_heat_pump_thermal_power_entity'",
       "required": "Optional",
       "selector": "EntitySelector"
+     },
+     "heat_pump_thermal_power_source": {
+      "config": {
+       "mode": "'dropdown'",
+       "options": "['auto', 'meter', 'estimate']",
+       "translation_key": "'meter_source'"
+      },
+      "default": "'auto'",
+      "required": "Optional",
+      "selector": "SelectSelector"
      },
      "house_power_entity": {
       "config": {
@@ -2652,6 +2737,36 @@
     "default": "''",
     "required": "Optional",
     "selector": "type"
+   },
+   "heat_curve_displace_entity": {
+    "config": {
+     "filter": "[{'domain': ['number', 'input_number']}]"
+    },
+    "default": "'sensor.seed_heat_curve_displace_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_curve_offset_band_k": {
+    "config": {
+     "max": "5.0",
+     "min": "0.5",
+     "mode": "'box'",
+     "step": "'any'",
+     "unit_of_measurement": "'K'"
+    },
+    "default": "3.0",
+    "required": "Optional",
+    "selector": "NumberSelector"
+   },
+   "heat_curve_target_kind": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['offset', 'persistent']",
+     "translation_key": "'heat_curve_target_kind'"
+    },
+    "default": "'offset'",
+    "required": "Optional",
+    "selector": "SelectSelector"
    }
   },
   "hot_water": {
@@ -3468,6 +3583,16 @@
     "required": "Optional",
     "selector": "SelectSelector"
    },
+   "compressor_modulation": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['auto', 'on_off', 'modulating']",
+     "translation_key": "'compressor_modulation'"
+    },
+    "default": "'auto'",
+    "required": "Optional",
+    "selector": "SelectSelector"
+   },
    "heat_pump_cop_nominal": {
     "config": {
      "max": "6.0",
@@ -3958,6 +4083,61 @@
      "default": null,
      "required": "Optional",
      "selector": "EntitySelector"
+    }
+   },
+   "required": "str",
+   "selector": "section"
+  },
+  "combi": {
+   "config": {
+    "collapsed": "True"
+   },
+   "default": null,
+   "fields": {
+    "combi_dhw_effectiveness": {
+     "config": {
+      "max": "1.0",
+      "min": "0.1",
+      "mode": "'box'",
+      "step": "'any'"
+     },
+     "default": "0.85",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "combi_potable_volume_l": {
+     "config": {
+      "max": "500",
+      "min": "0",
+      "mode": "'box'",
+      "step": "'any'",
+      "unit_of_measurement": "'L'"
+     },
+     "default": "30.0",
+     "required": "Optional",
+     "selector": "NumberSelector"
+    },
+    "dhw_combi_legionella_force": {
+     "config": null,
+     "default": "False",
+     "required": "Optional",
+     "selector": "BooleanSelector"
+    },
+    "dhw_combi_tank_enabled": {
+     "config": null,
+     "default": "False",
+     "required": "Optional",
+     "selector": "BooleanSelector"
+    },
+    "dhw_combi_tank_type": {
+     "config": {
+      "mode": "'dropdown'",
+      "options": "['internal_coil', 'tank_in_tank', 'external_station', 'custom']",
+      "translation_key": "'dhw_combi_tank_type'"
+     },
+     "default": "'internal_coil'",
+     "required": "Optional",
+     "selector": "SelectSelector"
     }
    },
    "required": "str",
@@ -4582,7 +4762,7 @@
     "space_setpoint_unit": {
      "config": {
       "mode": "'dropdown'",
-      "options": "['indoor', 'flow']",
+      "options": "['indoor', 'flow', 'return']",
       "translation_key": "'space_setpoint_unit'"
      },
      "default": "'indoor'",
@@ -4729,6 +4909,12 @@
    },
    "default": null,
    "fields": {
+    "heat_meter_sees_dhw": {
+     "config": null,
+     "default": "False",
+     "required": "Optional",
+     "selector": "BooleanSelector"
+    },
     "heat_pump_energy_entity": {
      "config": {
       "filter": "[{'domain': ['sensor'], 'device_class': ['energy']}]"
@@ -4753,6 +4939,16 @@
      "required": "Optional",
      "selector": "EntitySelector"
     },
+    "heat_pump_power_source": {
+     "config": {
+      "mode": "'dropdown'",
+      "options": "['auto', 'meter', 'estimate']",
+      "translation_key": "'meter_source'"
+     },
+     "default": "'auto'",
+     "required": "Optional",
+     "selector": "SelectSelector"
+    },
     "heat_pump_thermal_power_entity": {
      "config": {
       "filter": "[{'domain': ['sensor'], 'device_class': ['power']}]"
@@ -4760,6 +4956,16 @@
      "default": null,
      "required": "Optional",
      "selector": "EntitySelector"
+    },
+    "heat_pump_thermal_power_source": {
+     "config": {
+      "mode": "'dropdown'",
+      "options": "['auto', 'meter', 'estimate']",
+      "translation_key": "'meter_source'"
+     },
+     "default": "'auto'",
+     "required": "Optional",
+     "selector": "SelectSelector"
     },
     "house_power_entity": {
      "config": {
@@ -5243,6 +5449,36 @@
    "default": "''",
    "required": "Optional",
    "selector": "type"
+  },
+  "heat_curve_displace_entity": {
+   "config": {
+    "filter": "[{'domain': ['number', 'input_number']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_curve_offset_band_k": {
+   "config": {
+    "max": "5.0",
+    "min": "0.5",
+    "mode": "'box'",
+    "step": "'any'",
+    "unit_of_measurement": "'K'"
+   },
+   "default": "3.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "heat_curve_target_kind": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['offset', 'persistent']",
+    "translation_key": "'heat_curve_target_kind'"
+   },
+   "default": "'offset'",
+   "required": "Optional",
+   "selector": "SelectSelector"
   }
  },
  "hot_water": {
@@ -5990,6 +6226,16 @@
     "translation_key": "'after_save'"
    },
    "default": "'menu'",
+   "required": "Optional",
+   "selector": "SelectSelector"
+  },
+  "compressor_modulation": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['auto', 'on_off', 'modulating']",
+    "translation_key": "'compressor_modulation'"
+   },
+   "default": "'auto'",
    "required": "Optional",
    "selector": "SelectSelector"
   },

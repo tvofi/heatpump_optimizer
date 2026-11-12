@@ -11,6 +11,8 @@ and the pinned-guess lower clamp (M11). The coordinator residual stays.
 """
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 import asyncio
 import sys
 from datetime import datetime, timedelta, timezone
@@ -21,7 +23,7 @@ sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
 
 import heatpump_optimizer.legionella as legionella_mod
-from harness import FakeHass, FakeState, Results, UTC
+from harness import FakeEntry, FakeHass, FakeState, Results, UTC
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
 from heatpump_optimizer.optimizer import _Horizon
 from heatpump_optimizer.thermal_model import ThermalState
@@ -163,7 +165,6 @@ def _runup_stops_at_the_ordinary_floor() -> bool:
             heat_loss_factors=np.ones(n_steps), forecast={}, t_start=0.0,
         ),
         params=params,
-        c_dhw=max(params.dhw_tank_thermal_mass, 0.05),
         draw_rates=np.zeros(n_steps),
         floor_temps=floor_temps,
         p_dhw_run=3.0,
@@ -364,6 +365,8 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
             }
             self._mode = const.MODE_AUTO
             self.stale = False
+            # The real coordinator carries its entry; duty_switch keys its store on it.
+            self.entry = SimpleNamespace(entry_id="guard_pins")
             self._current_action = {"mode": "eco"}
             t0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
             self._optimization_result = NS(
@@ -376,9 +379,9 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
                 params=NS(min_electrical_power=0.4),
                 curve_flow_temp=lambda _o: 34.2,
             )
-            self._thermal_params = NS(dhw_setpoint=48.0)
+            self._thermal_params = NS(dhw_setpoint=48.0, dhw_max_temp=48.0)
             self._current_state = NS(outdoor_temperature=2.0)
-            self.entry = NS(entry_id=f"gp{next(ids)}")
+            self.entry = FakeEntry(entry_id=f"gp{next(ids)}")
             self.hass.states.set(flag, FakeState("off"))
             for eid, st in states.items():
                 if eid != flag:
@@ -646,7 +649,8 @@ def _service_dispatch_pins() -> dict[str, bool]:
     from heatpump_optimizer import pump_arbiter
 
     class Coord:
-        pass
+        # The real coordinator carries its entry; duty_switch keys its store on it.
+        entry = SimpleNamespace(entry_id="guard_pins_slots")
 
     states = {
         "select.pump_mode": FakeState(
@@ -665,6 +669,7 @@ def _service_dispatch_pins() -> dict[str, bool]:
     def one(slot, value):
         coord = Coord()
         coord.hass = FakeHass(dict(states))
+        coord.entry = FakeEntry(entry_id=f"gp-write-{slot}")  # _write hands it to off_restore's arm
         inp = pump_arbiter.ArbiterInputs(
             hass=coord.hass, config=config, mode="auto", plan=None,
             plan_stale=False, entry_released=False, state=None, thermal=None,

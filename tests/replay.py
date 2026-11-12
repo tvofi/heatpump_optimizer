@@ -458,7 +458,11 @@ COST_DETECTION = 2.0
 #: timed slow lanes before it, 1.915-2.824, project to 1.256-1.853; the two
 #: after it read 1.880 and 1.391; sqrt(2) x the geometric midpoint of 1.256
 #: and 1.880 is 2.173, each edge 15.6 % inside the band (floor 1.087).
-#: Re-centre at the next timed week, not on one run.
+#: Re-centre at the next timed week, not on one run. Re-recorded down again
+#: for 17bb738485 (one BLAS ``ThreadpoolController``, #3349), which cut the
+#: synthetic cycle's CPU on CI's runners to 0.61-0.66x: every runner class,
+#: not only the classes drawn since, by projecting each pre-cut draw through
+#: the cut ``COST_CUTS`` declares (R10-HOTFIX-REPLAY-CLASS-CUT).
 #: ``owner-2026-10-30-away.json`` (R10-REPLAY-REAL-DAY), the same rule, sqrt(2)
 #: x the geometric midpoint of the readings' extremes, from the clean ``--one``
 #: replays of 2026-10-31/11-01: ``cpu_ratio`` over the Linux readings -- one CI
@@ -519,13 +523,13 @@ COST_RUNNER_CLASSES: dict[str, tuple[float, float]] = {
 #: Per fixture and runner class, the budgets that differ by class, from the
 #: same rule: sqrt(2) x the geometric midpoint of the class's clean draws.
 COST_CLASS_BUDGETS: dict[str, dict[str, dict[str, float]]] = {
-    "synthetic-dhw-only.json": {"ref23": {'cpu_ratio': 3.7539},
-                                "ref28": {'cpu_ratio': 3.189},
-                                "ref31": {'cpu_ratio': 3.2877},
-                                "ref38": {'cpu_ratio': 3.4579},
-                                "ref40": {'cpu_ratio': 3.9874},
-                                "ref47": {'cpu_ratio': 3.3424},
-                                "ref53": {'cpu_ratio': 2.076}},
+    "synthetic-dhw-only.json": {"ref23": {'cpu_ratio': 2.3796},
+                                "ref28": {'cpu_ratio': 2.0215},
+                                "ref31": {'cpu_ratio': 2.0841},
+                                "ref38": {'cpu_ratio': 2.192},
+                                "ref40": {'cpu_ratio': 2.5112},
+                                "ref47": {'cpu_ratio': 2.1188},
+                                "ref53": {'cpu_ratio': 1.316}},
 }
 #: Every CI draw on record: one row per job, fixture and run (``clean`` or a
 #: doubled arm) with its rulers and figures, harvested from the ``tests /
@@ -534,6 +538,33 @@ COST_CLASS_BUDGETS: dict[str, dict[str, dict[str, float]]] = {
 #: re-record appends the new jobs' rows and re-derives the tables.
 COST_DRAWS = ROOT / "tests" / "replay_cost_draws.tsv"
 COST_DRAW_FIGURES = ("ref_ms", "loop_ref_ms", "cpu_ratio", "peak_kib", "loop_cpu_ratio")
+#: Declared level cuts: a commit that moved one fixture's figure by a factor
+#: measured INTERLEAVED on one box (its parent against it, the R10-RCA-2205
+#: method), and the ``created`` time from which CI draws carry it.
+#: ``cost_draws`` projects every draw created before ``from`` by ``factor``,
+#: so the tables ``derive_cost_classes`` cuts, and the grading of every draw
+#: on record, describe the code as it now is: no class is centred on readings
+#: of code that no longer runs. ``from`` is the commit's own time, not its
+#: merge's: a pull request's CI draw carries its branch's code before main
+#: does (job 128866186676, #3349's, read 1.5508 at 2026-11-08T21:05:57Z;
+#: #3349 merged 2026-11-09T14:40:57Z). The ``cycle_cost:level_shift`` control
+#: refuses a class resting wholly on draws before a shift another class shows,
+#: unless a cut declared here explains it.
+COST_CUTS: tuple[dict, ...] = (
+    {"commit": "17bb738485", "fixture": "synthetic-dhw-only.json", "metric": "cpu_ratio",
+      "from": "2026-11-08T17:14:34Z", "factor": 0.6339,
+      # The CI runners' own: post-cut over the geometric midpoint of the
+      # class's pre-cut clean draws, ref40 1.7266 / (2.7594, 2.8809) = 0.6124
+      # (job 130240315059) and ref47 1.5508 / (2.2558, 2.4762) = 0.6562 (job
+      # 128866186676); the factor is their geometric midpoint, 3.4 % from each.
+      "evidence": "17bb738485^ against 17bb738485, the synthetic replay's clean "
+                  "cpu_ratio, alternating order, one 4-core Linux box (ruler "
+                  "26.7-31.0 ms): post/pre medians 0.87, not the CI classes' "
+                  "0.61-0.66. The cut removes a per-minimize library rescan whose "
+                  "cost is the runner's, not the code's, so the box bounds the "
+                  "direction and the factor is CI's; "
+                  "tools/audit/seat/replay_draws.py interleave re-runs the box arm"},
+)
 #: A class border is a gap of at least this between two consecutive job
 #: rulers. On the draws of ``COST_DRAWS`` the largest step the rule leaves
 #: inside a class is 1.70 ms (job 126631977357 to 127046649273) and the
@@ -735,16 +766,91 @@ def job_cost(name: str, clean: dict, arms: dict[str, dict],
                       *([notice] if notice else [])]}
 
 
-def cost_draws(path: Path = COST_DRAWS) -> dict[tuple[str, str], dict[str, dict[str, float]]]:
-    """``COST_DRAWS`` as (job, fixture) -> run -> its rulers and figures."""
+def _draw_rows(path: Path) -> list[dict[str, str]]:
     rows = path.read_text().splitlines()
     head = rows[0].split("\t")
+    return [dict(zip(head, line.split("\t"))) for line in rows[1:]]
+
+
+def cost_draws(path: Path = COST_DRAWS, cuts: tuple[dict, ...] | None = None,
+               ) -> dict[tuple[str, str], dict[str, dict[str, float]]]:
+    """``COST_DRAWS`` as (job, fixture) -> run -> its rulers and figures, each
+    figure a declared cut covers projected by its factor in a draw created
+    before the cut (``COST_CUTS``, read at the call); ``cuts=()`` reads the
+    table as recorded."""
+    cuts = COST_CUTS if cuts is None else cuts
     out: dict[tuple[str, str], dict[str, dict[str, float]]] = {}
-    for line in rows[1:]:
-        r = dict(zip(head, line.split("\t")))
-        out.setdefault((r["job"], r["fixture"]), {})[r["arm"]] = {
-            k: float(r[k]) for k in COST_DRAW_FIGURES}
+    for r in _draw_rows(path):
+        fig = {k: float(r[k]) for k in COST_DRAW_FIGURES}
+        for cut in cuts:
+            # A cut naming no figure projects nothing, and the shift it was
+            # declared for stays unexplained (``level_shift_offenders``).
+            if r["fixture"] == cut["fixture"] and r["created"] < cut["from"] \
+                    and cut["metric"] in fig:
+                fig[cut["metric"]] = round(fig[cut["metric"]] * cut["factor"], 4)
+        out.setdefault((r["job"], r["fixture"]), {})[r["arm"]] = fig
     return out
+
+
+def cost_draw_created(path: Path = COST_DRAWS) -> dict[str, str]:
+    """Each job of ``COST_DRAWS``: its run's ``created`` time (ISO, UTC)."""
+    return {r["job"]: r["created"] for r in _draw_rows(path)}
+
+
+def cost_class_jobs(draws: dict, name: str, gap_ms: float = COST_CLASS_GAP_MS,
+                    ) -> list[tuple[str, list[tuple[str, tuple[float, float], dict]]]]:
+    """``name``'s jobs of ``draws`` holding a clean run, sorted by job ruler
+    (``job_rulers``) and split into classes at every gap of at least
+    ``gap_ms``: (class name, [(job, rulers, runs)]), a class named ``ref`` +
+    its median job ruler."""
+    rulers = draw_rulers(draws)
+    jobs = sorted(((j, rulers[j], a) for (j, f), a in draws.items()
+                   if f == name and "clean" in a), key=lambda t: t[1][0])
+    groups = [[jobs[0]]]
+    for prev, cur in zip(jobs, jobs[1:]):
+        if cur[1][0] - prev[1][0] >= gap_ms:
+            groups.append([])
+        groups[-1].append(cur)
+    return [(f"ref{round(statistics.median(r for _, (r, _), _ in g))}", g) for g in groups]
+
+
+def level_shift_offenders(draws: dict, created: dict[str, str], name: str,
+                          cuts: tuple[dict, ...] | None = None,
+                          ) -> tuple[list[str], list[str]]:
+    """A re-record whose unit is the drawn class misses a cut no class has
+    drawn since (R10-RCA-REPLAY-CLASS-RERECORD, state c). Over ``draws`` as
+    recorded (``cost_draws(cuts=())``), each class of ``name`` and each metric
+    keyed by class: order its clean draws by ``created``; a level shift at T is
+    every draw at or after T under the floor (budget / 2, the
+    ``derive_cost_classes`` centring) that the draws before T derive. Every
+    other class must then hold a draw created at or after T, or the shift is
+    explained by a declared cut of ``cuts`` (``from`` after the shifted class's
+    last draw before T and at or before T, with a factor and its evidence), whose
+    projection every class carries. Returns (classes examined, offenders)."""
+    cuts = COST_CUTS if cuts is None else cuts
+    classes = cost_class_jobs(draws, name)
+    keyed = sorted({k for b in COST_CLASS_BUDGETS.get(name, {}).values() for k in b})
+    out: list[str] = []
+    for key in keyed:
+        series = {c: sorted((created[j], a["clean"][key]) for j, _, a in g)
+                  for c, g in classes}
+        for shifted, seq in series.items():
+            for i in range(1, len(seq)):
+                before = [v for _, v in seq[:i]]
+                floor = math.sqrt(COST_DETECTION * min(before) * max(before)) / 2
+                if not all(v < floor for _, v in seq[i:]):
+                    continue
+                at, last = seq[i][0], seq[i - 1][0]
+                if any(c["fixture"] == name and c["metric"] == key
+                       and last < c["from"] <= at and c.get("factor")
+                       and c.get("evidence") for c in cuts):
+                    break
+                out += [f"class {c} rests wholly on draws before the shift class "
+                        f"{shifted} shows at {at} ({key} under its floor {floor:.4g})"
+                        for c, other in series.items()
+                        if c != shifted and not any(t >= at for t, _ in other)]
+                break
+    return [c for c, _ in classes], out
 
 
 def derive_cost_classes(draws: dict, name: str, gap_ms: float = COST_CLASS_GAP_MS,
@@ -763,18 +869,12 @@ def derive_cost_classes(draws: dict, name: str, gap_ms: float = COST_CLASS_GAP_M
       clean draws it holds (4 decimals), the centring rule of ``COST_BUDGETS``.
 
     Returns (bands, class budgets, class-free budgets)."""
-    rulers = draw_rulers(draws)
-    jobs = sorted(((rulers[j], a) for (j, f), a in draws.items()
-                   if f == name and "clean" in a), key=lambda t: t[0][0])
-    groups = [[jobs[0]]]
-    for prev, cur in zip(jobs, jobs[1:]):
-        if cur[0][0] - prev[0][0] >= gap_ms:
-            groups.append([])
-        groups[-1].append(cur)
+    classes = cost_class_jobs(draws, name, gap_ms)
+    names = [n for n, _ in classes]
+    groups = [[(r, a) for _, r, a in g] for _, g in classes]
     rs = [[r for (r, _), _ in g] for g in groups]
     edges = ([rs[0][0] * 0.95] + [(a[-1] + b[0]) / 2 for a, b in zip(rs, rs[1:])]
              + [rs[-1][-1] * 1.05])
-    names = [f"ref{round(statistics.median(r))}" for r in rs]
     bands = {n: (round(lo, 2), round(hi, 2)) for n, lo, hi in zip(names, edges, edges[1:])}
 
     def centre(vals: list[float]) -> float:
@@ -1021,7 +1121,10 @@ def controls() -> list[tuple[str, bool, str]]:
     # the class its job's rulers name, and each doubled arm is over that
     # class's budget. Null: a draw moved across a border is mis-graded and
     # named -- job 127046649273 (ref47) moved over the ref47/ref53 border,
-    # and the lowest ref53 job, 125051003592, moved under it.
+    # and the lowest ref53 job, 125051003592, moved down into ref40. Not
+    # into ref47: since R10-HOTFIX-STRESS-MEM-PEAK's draw widened ref47
+    # downward, every ref53 draw grades clean there, so that move names
+    # nothing and could not show a border matters.
     def moved(job: str, to: float) -> dict:
         r = draw_rulers(draws)[job][0]
         return {(j, f): {k: {**c, "ref_ms": c["ref_ms"] * to / r} for k, c in a.items()}
@@ -1029,7 +1132,7 @@ def controls() -> list[tuple[str, bool, str]]:
 
     border = COST_RUNNER_CLASSES["ref53"][0]
     nulls = (draw_offenders(moved("127046649273", border + 1.0)),
-             draw_offenders(moved("125051003592", border - 1.0)))
+             draw_offenders(moved("125051003592", COST_RUNNER_CLASSES["ref47"][0] - 1.0)))
     off = draw_offenders(draws)
     per_class: dict[str, int] = {}
     for (j, f), a in draws.items():
@@ -1042,6 +1145,24 @@ def controls() -> list[tuple[str, bool, str]]:
                 f"{len({j for j, _ in draws})} jobs, {sum(len(a) for a in draws.values())} "
                 f"runs; {syn} jobs by class {per_class}; offenders {off[:4]}; "
                 f"nulls named {[n[:1] for n in nulls]}"))
+    # A level shift one class shows is either drawn by every other class or
+    # explained by a declared cut every class's projection carries
+    # (R10-RCA-REPLAY-CLASS-RERECORD). Null: the table as recorded, with one
+    # draw planted after every other in the lowest class at half its smallest
+    # reading and no cut declared, names every other class.
+    created = cost_draw_created()
+    examined, shifts = level_shift_offenders(cost_draws(cuts=()), created, syn)
+    low = cost_class_jobs(cost_draws(cuts=()), syn)[0][1][0]
+    plant = {**cost_draws(cuts=()), ("plant", syn): {"clean": {
+        **low[2]["clean"], "cpu_ratio": min(a["clean"]["cpu_ratio"] for _, _, a in
+                                            cost_class_jobs(cost_draws(cuts=()), syn)[0][1]) / 2}}}
+    when = max(created.values()) + "+"
+    planted = [o for o in level_shift_offenders(plant, {**created, "plant": when},
+                                                syn, cuts=())[1] if f"shows at {when}" in o]
+    res.append(("control:cycle_cost:level_shift",
+                not shifts and len(planted) == len(examined) - 1,
+                f"classes examined {examined}; offenders {shifts}; planted shift names "
+                f"{len(planted)} of {len(examined) - 1} other classes: {planted[:1]}"))
     # Each band is half open: its low edge is in it and its high edge is not.
     res.append(("control:cycle_cost:band_edges",
                 all(runner_class(syn, lo) == c and runner_class(syn, hi) != c
@@ -2603,8 +2724,8 @@ def sweep(entities: list, action: dict, errors: list[str], t: datetime) -> list[
                 state = e.hvac_mode
                 attrs = dict(e.extra_state_attributes or {})
                 attrs.update({"hvac_action": e.hvac_action,
-                              "current_temperature": e.current_temperature,
-                              "target_temperature": e.target_temperature,
+                              "current_temperature": e.native_current_temperature,
+                              "target_temperature": e.native_target_temperature,
                               # Not published: the value the climate entity is
                               # judged against, carried under a private key.
                               "_heat_pump_on": action.get("heat_pump_on")})

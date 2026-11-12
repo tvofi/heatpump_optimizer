@@ -27,8 +27,9 @@ Sections, each measured:
           sibling .rc; prepr.sh slots (nudge.md step 8's cap, mechanically).
   PRS     every open PR: the latest check-run per name at its head (transport
           truth: lowercase conclusions, latest-run-wins) as GREEN / RUN / RED;
-          RED not answered in the body's ## Red checks; missing delivery row
-          in the three-dot diff; a queue verdict with the head moved past it
+          a RED in `merge_train.py owed-reds`' set not answered in the body's
+          ## Red checks (every RED when that set is unreadable); missing
+          delivery row in the three-dot diff; a queue verdict with the head moved past it
           and no carry; DIRTY/BLOCKED mergeable state; ZERO check runs at a
           head (the bot-push shape -- approve_held_runs.sh, nudge.md step 11);
           required contexts absent at the head; twin open PRs at one head
@@ -77,7 +78,7 @@ Sections, each measured:
           is fixer work, and the orchestrator's duty is routing, not
           diagnosing; the
           mandate read (budget_raise_gate's own mandate_state, the one reader
-          -- the newest grammar-matching owner comment on #201 within
+          -- the newest grammar-matching owner comment on a record issue within
           --mandate-since-days, or exactly --mandate-id); action-pin drift
           (one action pinned at two refs across the workflow set); how far
           the checkout sits behind origin/main.
@@ -179,6 +180,9 @@ BODY_GRACE = datetime.timedelta(hours=1)
 CAP_ISSUES = 15
 #: OWED-handoff lines printed per pass (the earlier list's cap, kept).
 CAP_ORPHANS = 20
+# A triage or record batch topic is held by design -- no PR opens until the stamp sweep -- so it sorts after
+# every other stranded ref before the cap slice (14 of 20 capped lines were held, hiding 26 others).
+HELD_TOPIC = re.compile(r"^ORPHAN (?:triage|record)-\S*batch\S*")
 #: The OWED-handoff read. DESIGN CHOICE: no age window. bus.sh's default
 #: (--min-age-h 2) spares a ref pushed moments ago as a lane's in-flight push,
 #: but a handoff whose body ref exists is complete, and a level line that
@@ -828,6 +832,22 @@ class Tick:
         return bool(re.search(rf"#{n}(?!\d)|payload-(?:fix-)?{n}-r\d+\.json", line)) or any(
             t and re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", line, re.I) for t in topics)
 
+    def _disposed(self, ref: str, sha: str) -> bool:
+        """The obligations ledger holds a disposition for `ref` at exactly `sha` (an older sha
+        owes still). An unreadable ledger disposes nothing; the design-build pass names it."""
+        if getattr(self, "_disp", None) is None:
+            lg = _module("ledger_tick", "tools/audit/seat/ledger.py")
+            try:
+                self._disp = lg.dispositions(Path(self.relay_log).parent)
+            except lg.Unreadable:
+                self._disp = {}
+        return self._disp.get(ref, ("",))[0] == sha
+
+    def _blocked_md(self, sha: str) -> "str | None":
+        """BLOCKED.md at a handoff-wip tip, None when the tip holds none (or the read failed)."""
+        code, text = self.git(["show", f"{sha}:BLOCKED.md"])
+        return text if code == 0 else None
+
     def _seat_on(self, n: int, topics: list, heads: dict, kinds=("handoff-wip", "handoff", "handoff-body")) -> bool:
         """A seat is on a PR when, inside SEAT_WINDOW_MIN, a FIRED line names it, or a
         handoff-wip/, handoff/ or handoff-body/<topic> ref moved (`kinds` narrows the refs)."""
@@ -835,12 +855,20 @@ class Tick:
         for when, l in self._fired():
             if (when is None or when >= cutoff) and self._fire_names(n, topics, l):
                 return True
+        tg = _module("topic_grammar_tick", "tools/audit/seat/topic_grammar.py")
         for t in topics:
             for fam in kinds:
-                sha = heads.get(f"{fam}/{t}")
-                age = self._age_min(f"{fam}/{t}", sha) if sha else None
-                if age is not None and age <= SEAT_WINDOW_MIN:
-                    return True
+                refs = [f"{fam}/{t}"]
+                if fam == "handoff-wip":  # a split seat step-pushes under the family's topic (topic-family.md)
+                    refs += sorted(k for k in heads if k.startswith("handoff-wip/")
+                                   and k != refs[0] and tg.family(t).fullmatch(k[len("handoff-wip/"):]))  # mut:wipfamily
+                for ref in refs:
+                    sha = heads.get(ref)
+                    if fam == "handoff-wip" and sha and self._blocked_md(sha) is not None:  # mut:blockedseat
+                        continue  # a stop on a question is owed by blocked_stops, not a seat on the PR
+                    age = self._age_min(ref, sha) if sha else None
+                    if age is not None and age <= SEAT_WINDOW_MIN:
+                        return True
         return False
 
     @staticmethod
@@ -857,7 +885,9 @@ class Tick:
         fixer-round | waiting-on #M | owed | verdicted (MERGE-READY and its levels own it)
         | review-owed (REVIEW OWED owns it). `owed` prints one `OWED <kind> #N <head12>
         <reason>` line (kinds in ledger.KINDS, derived each pass, so a moved head closes
-        it), the critical-path groups' PRs first, then one count line."""
+        it), hotfix groups' PRs first, then accepted outside groups' and the critical-path
+        groups' as one rank, by number (`roster_lib.dispatch_rank`; owner rulings tvofi
+        2026-11-07, triage P420, and 2026-11-08), then the rest, then one count line."""
         heads = self._heads()
         if heads is None:
             self.unreadable(S, "owed buckets", "git ls-remote of the handoff refs failed")
@@ -892,14 +922,57 @@ class Tick:
             if bucket == "unreadable":
                 self.unreadable(S, "owed buckets", f"#{n}: {reason}")
             if bucket == "owed":
-                group = rl.group_for_branch(roster, branch) if rl is not None and roster else None
-                owed.append((0 if group in crit else 1, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
+                # A fork head's branch is no group's; the roster's resume.pr maps it
+                # (as merge_train._roster_group does).
+                group = (rl.group_for_branch(roster, branch) or rl.group_for_pr(roster, n)) if rl is not None and roster else None
+                rank = rl.dispatch_rank(roster, group, {rl.norm_group(str(c)) for c in crit}) if rl is not None and roster else 2  # RANK_OTHER, roster unread
+                owed.append((rank, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
         for _, _, text in sorted(owed):
             self.line(S, text, flag=True)
         self.line(S, "buckets: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none")
                   + ("; not bucketed: " + ", ".join(f"{k} {v}" for k, v in sorted(skipped.items()))
                      if skipped else ""))
         self.payloads(S)
+        self.blocked_stops(S, heads)
+
+    def _dispatch_newer(self, topic: str, sha: str) -> "bool | None":
+        """A `dispatch/fixer-<topic>` tip committed after the handoff-wip tip `sha`; None: a read failed."""
+        ref = f"refs/heads/dispatch/fixer-{topic}"
+        code, o = self.git(["ls-remote", "origin", ref])
+        if code:
+            return None
+        d = o.split()[0] if o.split() else ""
+        if not d:
+            return False
+        if self.git(["fetch", "-q", "origin", ref])[0]:
+            return None
+        times = []
+        for x in (d, sha):
+            c, ct = self.git(["log", "-1", "--format=%ct", x])
+            try:
+                times.append(int(ct.strip()) if c == 0 else None)
+            except ValueError:
+                times.append(None)
+        return None if None in times else times[0] > times[1]
+
+    def blocked_stops(self, S: str, heads: dict) -> None:
+        """A fixer stopped on a question: a handoff-wip/<topic> tip holding BLOCKED.md, with no
+        dispatch/fixer-<topic> newer than it and no ledger disposition at its sha, owes an answer."""
+        for key in sorted(heads):
+            if not key.startswith("handoff-wip/"):
+                continue
+            topic, sha = key[len("handoff-wip/"):], heads[key]
+            text = self._blocked_md(sha)
+            if text is None or self._disposed(f"refs/heads/{key}", sha):  # mut:blockeddisp
+                continue
+            newer = self._dispatch_newer(topic, sha)
+            if newer is None:
+                self.unreadable(S, "blocked stops", f"{topic}: git read of the dispatch ref failed")
+                continue
+            if newer:  # mut:blockednewer
+                continue
+            q = next((l.strip() for l in text.splitlines() if l.strip().lower().startswith("question")), "no Question line")
+            self.line(S, f"OWED blocked-stop {topic} {sha[:12]} {q}", flag=True)
 
     def _bucket(self, n, head, pr, topics, lines, last, ms, queue, parked, dispatched, heads, files,
                 open_n, roster, rl):
@@ -922,7 +995,9 @@ class Tick:
             except ValueError:
                 head_age = None
             in_head = self.git(["merge-base", "--is-ancestor", heads[f"handoff/{topic}"], head])[0] == 0
+            disposed = self._disposed(f"refs/heads/handoff-body/{body}", heads[f"handoff-body/{body}"])  # mut:bodydisp
             if (body_age is not None and head_age is not None and body_age < head_age and in_head
+                    and not disposed
                     and not self._seat_on(n, topics, heads, kinds=("handoff-wip", "handoff"))):
                 return "owed", f"handoff-body/{body} is newer than the head, repair done and unapplied", "body-ahead"
         if verdict_kind(last, head) == "blocked":
@@ -1117,6 +1192,20 @@ class Tick:
         except (mt.Stop, OSError, ValueError):  # fail closed: an unread raise is not reviewable
             return None
 
+    def _classify_red(self, head: str, runs: list, req: list) -> bool:
+        """True unless merge_train's own classify reads this head as other than RED
+        (a deferral red beside a busy run is WAIT there; carry 9, P455). Fail
+        closed to the tick's gate-conclusion reading: an unread classify is RED."""
+        def run(argv, cwd=None, stdin=None):
+            if argv[:1] == ["gh"]:
+                return self.gh(argv[1:])
+            return self.git(argv[1:]) if argv[:1] == ["git"] else (1, "the tick runs gh and git only")
+        try:
+            t = mt.Train(self.repo, Path("."), None, "", (), 0, run=run, log=lambda _m: None)
+            return t.classify_at(head, runs, req)[0] == "red"
+        except (mt.Stop, OSError, ValueError):
+            return True
+
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
         n, head = pr["number"], pr.get("headRefOid") or ""
@@ -1132,6 +1221,8 @@ class Tick:
             self._unsettled[n] = bool(run or red or not runs)
             self._red = getattr(self, "_red", {})
             self._red[n] = list(red)
+            if red and required is not None and not self._classify_red(head, runs, required):
+                self._red[n] = []
             if not runs:
                 self.line(S, f"#{n}: ZERO check runs at head (the bot-push "
                              "shape: run approve_held_runs.sh, not a fixer)",
@@ -1184,13 +1275,18 @@ class Tick:
         state = "GREEN" if not run and not red else (
             f"RUN:{','.join(run)}" if run else f"RED:{','.join(red)}")
         self.line(S, f"#{n} [{pr.get('headRefName')}] {state}")
-        if red:
+        # Only a red in the set `merge_train.py owed-reds` prints is owed an
+        # answer (defect-root-cause.md); an unreadable set keeps every red.
+        req = (getattr(self, "_req_pr", None) or required) if required is not None else None
+        owed = mt.judged(mt.gating_names(req)) if req is not None else red
+        owed_red = [r for r in red if r in owed]
+        if owed_red:
             code, o = self.gh(["pr", "view", str(n), "--repo", self.repo,
                                "--json", "body", "--jq", ".body"])
             if code:
                 self.unreadable(S, f"body of #{n}", o.strip()[-100:])
             else:
-                missing = [r for r in red
+                missing = [r for r in owed_red
                            if r not in self.body_section(o, "Red checks")]
                 if missing:
                     self.line(S, f"#{n}: RED unanswered in ## Red checks: "
@@ -1508,10 +1604,12 @@ class Tick:
         open_g = rl.open_groups(roster)
         self.line(S, f"{len(open_g)} open group(s) of {len(groups)}")
         for gid, g in groups.items():
-            if gid not in open_g:
-                continue
             stage = (g.get("resume") or {}).get("stage")
-            blockers = [a for a in (g.get("after") or []) if a in open_g]
+            # roster_lib closes refused and deferred groups (is_open is
+            # False), yet the tick still reports them: they stay deferred.
+            if gid not in open_g and stage not in DEFERRED_STAGES:
+                continue
+            blockers = [a for a in (g.get("after") or []) if a in groups and rl.gates(groups[a])]
             if stage in DEFERRED_STAGES or g.get("deferred") or g.get("refused"):
                 self.line(S, f"{gid}: deferred/refused (stage {stage}) -- "
                              "stays deferred")
@@ -1881,7 +1979,7 @@ class Tick:
         else:
             start = (self.now - datetime.timedelta(
                 days=self.mandate_since_days)).strftime("%Y-%m-%dT%H:%M:%SZ")
-            cands = self._thread(start)
+            cands = self._thread(g, start)
             if cands is None:
                 self._mandate_cached = None
                 return None
@@ -1891,14 +1989,15 @@ class Tick:
                      ((c.get("body") or "").strip().splitlines()
                       or [""])[0].strip())]
         if not cands:
-            self.line(S, f"no mandate-grammar comment by the owner on #201 in "
+            self.line(S, "no mandate-grammar comment by the owner on "
+                         f"{', '.join(f'#{n}' for n in g.RECORD_ISSUES)} in "
                          f"the last {self.mandate_since_days}d (searched live "
                          "this tick) -- policy and raise merges refuse",
                       flag=self.mandate_id is None)
             self._mandate_cached = None
             return None
         m = cands[-1]
-        thread = self._thread(m.get("created_at") or "", exclude=m.get("id"))
+        thread = self._thread(g, m.get("created_at") or "", exclude=m.get("id"))
         self._mandate_live = m.get("id")
         ok, why = g.mandate_state(m.get("id"), m, thread or [], self.now,
                                   self.now.isoformat(), when="tick",
@@ -1908,22 +2007,25 @@ class Tick:
         self._mandate_cached = out
         return out
 
-    def _thread(self, since: str, exclude=None) -> "list | None":
-        """The comments a revocation would live in: the tracking issue's
-        comments `since` an instant (merge_train._mandate_read's second
-        route). None: the read failed and is already reported."""
-        code, o = self.gh(["api", "--paginate", "--slurp",
-                           f"repos/{self.repo}/issues/201/comments"
-                           f"?per_page=100&since={since}"])
-        if code:
-            self.unreadable("MAIN", f"#201's comments since {since}",
-                            o.strip()[-100:])
-            return None
-        try:
-            out = [c for page in json.loads(o) for c in page]
-        except ValueError as e:
-            self.unreadable("MAIN", f"#201's comments since {since}", str(e)[:100])
-            return None
+    def _thread(self, g, since: str, exclude=None) -> "list | None":
+        """The comments a grant or a revocation would live in: every record
+        issue's (budget_raise_gate.RECORD_ISSUES, oldest first) comments
+        `since` an instant (merge_train._mandate_read's second route). None:
+        a read failed and is already reported."""
+        out = []
+        for n in g.RECORD_ISSUES:
+            code, o = self.gh(["api", "--paginate", "--slurp",
+                               f"repos/{self.repo}/issues/{n}/comments"
+                               f"?per_page=100&since={since}"])
+            if code:
+                self.unreadable("MAIN", f"#{n}'s comments since {since}",
+                                o.strip()[-100:])
+                return None
+            try:
+                out += [c for page in json.loads(o) for c in page]
+            except ValueError as e:
+                self.unreadable("MAIN", f"#{n}'s comments since {since}", str(e)[:100])
+                return None
         return [c for c in out if c.get("id") != exclude]
 
     def pins(self, S: str) -> None:
@@ -2028,7 +2130,7 @@ class Tick:
         return merges
 
     def unrecorded(self, S: str, since: str) -> None:
-        """Merges on main with no #201 comment carrying the merge sha: the
+        """Merges on main with no record-issue comment carrying the merge sha: the
         record beat's other half. Every merge owes one, a record merge too
         (the orchestrator writes one after each). The newest CAP_MERGES merges
         among main's last UNRECORDED_SCAN first-parent commits, read through
@@ -2049,13 +2151,13 @@ class Tick:
                                  "--jq", ".total_count",
                                  "-f", f"q={sha} repo:{self.repo} type:comment"])
             if code2:
-                self.unreadable(S, f"#201 search for {sha[:12]}",
+                self.unreadable(S, f"record search for {sha[:12]}",
                                 o2.strip()[-80:])
                 break
             if o2.strip() == "0":
                 unrec.append(sha[:12])
         if unrec:
-            self.line(S, "record beat owed: state_docs.py --push + #201 "
+            self.line(S, "record beat owed: state_docs.py --push + record-issue "
                          "comment for " + ", ".join(unrec), flag=True)
         if capped:
             self.line(S, f"unrecorded-merge check capped at {CAP_MERGES}; "
@@ -2237,6 +2339,7 @@ class Tick:
                 self.line(S, f"{len(gated)} group(s) blocked on owner "
                              f"disposition{age} -- surface them to the owner",
                           flag=True)
+            self.roster_invariants(S, rl)
         # throughput stall: verdicted+green entries, no train, no main progress
         if queue and not self._seat_procs(self.proc("merge_train.py"),
                                           "merge_train.py", python_only=True):
@@ -2335,13 +2438,15 @@ class Tick:
                          f"{len(stranded)} ORPHAN line(s)): OWED handoffs "
                          "UNCHECKED this pass, not confirmed empty", flag=True)
             return
+        stranded.sort(key=lambda l: bool(HELD_TOPIC.match(l)))  # stable: held last, each group in bus order
+        held = sum(bool(HELD_TOPIC.match(l)) for l in stranded)
         for l in stranded[:CAP_ORPHANS]:
             self.line(S, f"OWED handoff: {l[len('ORPHAN '):]} -- no PR head "
                          "carries it: open_pr.sh (opener), update_pr.sh "
                          "(update) or a human decision (review)", flag=True)
         if len(stranded) > CAP_ORPHANS:
             self.line(S, f"OWED handoffs capped at {CAP_ORPHANS} of "
-                         f"{len(stranded)}; the rest print next pass once "
+                         f"{len(stranded)} ({held} held, listed last); the rest print next pass once "
                          "these are discharged", flag=True)
         for l in out:
             if l.startswith("SUPERSEDED "):
@@ -2392,6 +2497,53 @@ class Tick:
             if len(rows) > CAP_CARRY:
                 self.line(S, f"  ... {len(rows) - CAP_CARRY} more; run the command above", flag=True)
         self.line(S, f"carry sweep: {summary[0]} (refs {', '.join(refs)}, last {self.carry_last})")
+
+    def roster_invariants(self, S: str, rl) -> None:
+        """#2733's routing invariants at tick level: `carry_audit.py roster`
+        over the tick's roster ref, with the open issues when `gh issue list`
+        answers. A stranded carry (a pending carry on a closed group) or an
+        unrouted open issue is flagged with the command, so neither
+        accumulates between sweeps. A tool that cannot be read is one
+        UNREADABLE line."""
+        if self._carry is None and not (ROOT / CARRY_AUDIT).is_file():
+            return
+        argv = ["--roster-ref", self._roster_ref(S, rl, announce=False), "roster"]
+        tmp = None
+        code, o = self.gh(["issue", "list", "--repo", self.repo, "--state", "open",
+                           "--limit", "500", "--json", "number"])
+        if code == 0:
+            try:
+                json.loads(o)
+                fd, tmp = tempfile.mkstemp(suffix=".json")
+                with os.fdopen(fd, "w") as fh:
+                    fh.write(o)
+                argv += ["--open-issues", tmp]
+            except ValueError:
+                pass
+        try:
+            rc, out = self.carry_run(argv)
+        except OSError as e:
+            self.unreadable(S, "roster invariants", str(e)[:80])
+            return
+        finally:
+            if tmp:
+                try:
+                    os.unlink(tmp)
+                except OSError:
+                    pass
+        summary = [l for l in out if l.startswith("CARRY-ROSTER:")]
+        if rc not in (0, 1) or not summary:
+            self.unreadable(S, "roster invariants", f"exit {rc}, "
+                            + (out[-1][:100] if out else "no output"))
+            return
+        if rc == 1:
+            rows = [l for l in out if l.startswith(("STRANDED", "ISSUE"))]
+            self.line(S, f"routing invariants broken ({summary[0][:120]}): "
+                         "route each with roster_edit.py "
+                         f"(`python3 -I {CARRY_AUDIT} {' '.join(argv[:3])}`)",
+                      flag=True)
+            for l in rows[:CAP_CARRY]:
+                self.line(S, f"  {l.strip()[:160]}", flag=True)
 
     # ----------------------------------------------------------------- ETA
     def eta(self) -> None:
@@ -2660,10 +2812,13 @@ def self_test() -> int:
         for n, body in bodies.items():
             gh.on((f"view {n} ", "--jq", ".body"), out=body)
         if with_mandate and gate_ok:
-            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         gh.on("rate_limit", out=json.dumps({"remaining": rate[0],
                                             "limit": rate[1]}))
         for pr, rv in (reviews or {}).items():
+            flat = [x for p in rv for x in (p if isinstance(p, list) else [p])]
+            gh.on(lambda argv, pr=pr: any(f"pulls/{pr}/reviews" in a and "page=" in a for a in argv),
+                  out="".join(json.dumps(x) + "\n" for x in flat))
             gh.on(f"pulls/{pr}/reviews", out=json.dumps(rv))
         # GitHub search answers GET only: a stub that 404s any search call
         # NOT carrying --method GET, so an arm fails loudly on the POST form
@@ -2722,6 +2877,8 @@ def self_test() -> int:
         git.on(("cat-file", "-e"), rc=1)  # rows missing unless a stub says otherwise
         kw.setdefault("relay_log", os.devnull)  # hermetic: never the host's relay log
         kw.setdefault("bus_state", str(tmp / "no-bus"))  # nor its dispatch record
+        # hermetic: never the real carry_audit; the routing-invariants read is clean
+        kw.setdefault("carry", lambda argv: (0, ["CARRY-ROSTER: stub; 0 stranded carry(ies)"]))
         t = Tick("o/r", str(kw.pop("checkout", ROOT)), queue=queue,
                  train_log=train_log, workers_file=workers, roster_file=roster,
                  gh=gh, git=git, proc=procs or (lambda pattern: []),
@@ -2839,6 +2996,63 @@ def self_test() -> int:
              not any("issues/7" in " ".join(c) for c in tg_cov._gh.calls)),
             ("an owner gate is flagged blocked on owner",
              any("1 group(s) blocked on owner" in x["text"] for x in tg_own.findings)),
+        ])
+        total, failed = total + a, failed + f
+        ri_calls: list = []
+        ri_out = ["STRANDED R10-X (absorbed) carry[0]: 'c'",
+                  "CARRY-ROSTER: r.json at origin/r10; 1 stranded carry(ies)"]
+        tg_roster_path = str(tmp / "ri-roster.json")
+        Path(tg_roster_path).write_text(json.dumps({"groups": [
+            {"group": "G-RI", "resume": {"stage": "not-started"}}]}))
+        tri = tick(queue=str(q16), roster=tg_roster_path, gh_extra=[(("issue", "list"), 0, '[{"number": 5}]')],
+                   carry=lambda argv: ri_calls.append(argv) or (1, ri_out))
+        tri.replan()
+        tri0 = tick(queue=str(q16), roster=tg_roster_path,
+                    carry=lambda argv: (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]))
+        tri0.replan()
+        a, f = check("REPLAN routing invariants at tick level", [
+            ("a stranded carry flags one line naming the command",
+             any("routing invariants broken" in x["text"] and "carry_audit.py" in x["text"]
+                 for x in tri.findings)),
+            ("the row is printed", any("STRANDED R10-X" in x["text"] for x in tri.findings)),
+            ("the roster call carries --open-issues when gh answers",
+             bool(ri_calls) and "--open-issues" in ri_calls[0] and "roster" in ri_calls[0]),
+            ("null: a clean roster flags nothing from the invariant",
+             not any("routing invariants" in x["text"] for x in tri0.findings)),
+        ])
+        total, failed = total + a, failed + f
+
+        def ri_tick(carry, gh_extra=None):
+            t_ = tick(queue=str(q16), roster=tg_roster_path, gh_extra=gh_extra or [], carry=carry)
+            try:
+                t_.replan()
+            except OSError:  # an escaped tool error is a missing line, read as a FAIL, not a crash
+                pass
+            return t_
+
+        def ri_unreadable(t_):
+            return (any("UNREADABLE: roster invariants" in x["text"] for x in t_.findings)
+                    and not any("routing invariants broken" in x["text"] for x in t_.findings))
+
+        def ri_raise(argv):
+            raise OSError("carry_audit.py: cannot exec")
+
+        ri_bad_calls: list = []
+        t_os = ri_tick(ri_raise)
+        ri_tick(lambda argv: ri_bad_calls.append(argv) or (0, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"]),
+                gh_extra=[(("issue", "list"), 0, "not json")])
+        a, f = check("REPLAN routing invariants: an unreadable tool is never clean", [
+            ("exit 2 with no summary (a REFUSED roster ref) is one UNREADABLE line",
+             ri_unreadable(ri_tick(lambda argv: (2, ["carry_audit: REFUSED cannot list origin/x"])))),
+            ("exit 2 with a summary is still UNREADABLE (the rc arm alone)",
+             ri_unreadable(ri_tick(lambda argv: (2, ["CARRY-ROSTER: r.json; 0 stranded carry(ies)"])))),
+            ("exit 0 with no summary is UNREADABLE (the summary arm alone)",
+             ri_unreadable(ri_tick(lambda argv: (0, ["something else"])))),
+            ("an OSError from the tool is one UNREADABLE line naming it",
+             ri_unreadable(t_os) and any("cannot exec" in x["text"] for x in t_os.findings)),
+            ("a non-JSON issue list drops --open-issues and still runs the roster call",
+             len(ri_bad_calls) == 1 and "roster" in ri_bad_calls[0]
+             and "--open-issues" not in ri_bad_calls[0]),
         ])
         total, failed = total + a, failed + f
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
@@ -3171,7 +3385,7 @@ def self_test() -> int:
         gh.on(f"commits/{H1}/check-runs",
               out=json.dumps(run_obj("tests", conclusion="failure")) + "\n"
               + json.dumps(run_obj("record-autofix", conclusion="failure")))
-        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
         t.main()
         a, f = check("MAIN", [
@@ -3207,7 +3421,7 @@ def self_test() -> int:
         gh.on(f"commits/{H1}/check-runs",
               out="\n".join(json.dumps(run_obj(n)) for n in ("tests", "closures"))
               + "".join("\n" + json.dumps(run_obj(j, conclusion="failure")) for j in on_push))
-        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
         t.main()
         a, f = check("MAIN D-1", [
@@ -3234,7 +3448,7 @@ def self_test() -> int:
             gh.on(f"commits/{H1}/check-runs", out="\n".join(
                 json.dumps(run_obj(n, conclusion="failure" if n in names_red else "success"))
                 for n in ("gate", "tests / closures", "tests / fast (3.14)", "record-autofix")))
-            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
             t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
             t.main()
             return [x["text"] for x in t.findings]
@@ -3276,7 +3490,7 @@ def self_test() -> int:
             gh.on("check-runs/119215715286/annotations",
                   rc=0 if ann is not None else 1,
                   out=json.dumps(ann) if ann is not None else "HTTP 502")
-            gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+            gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
             t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
             t.main()
             txt = [l["text"] for l in t.sections["MAIN"]]
@@ -3300,7 +3514,7 @@ def self_test() -> int:
         gh.on(f"commits/{H1}/check-runs", out=json.dumps(
             run_obj("tests", conclusion="cancelled", cid=119215715286)))
         gh.on("check-runs/119215715286/annotations", out=json.dumps([{"message": sup}]))
-        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(), now=NOW)
         t.main()
         txt = [l["text"] for l in t.sections["MAIN"]]
@@ -3346,7 +3560,7 @@ def self_test() -> int:
                 gh = Stub()
                 gh.on("issues/comments/", out=json.dumps(dict(
                     MAN, body=body, updated_at=MAN["created_at"])))
-                gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+                gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
                 t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=Stub(),
                          now=NOW, mandate_id=mid)
                 t.mandate("MAIN")
@@ -3476,7 +3690,7 @@ def self_test() -> int:
         a, f = check("unrecorded single-parent", [
             ("a single-parent `(#N)` merge with no #201 comment is named; a "
              "recorded merge and a direct push are not",
-             owed == ["record beat owed: state_docs.py --push + #201 comment for "
+             owed == ["record beat owed: state_docs.py --push + record-issue comment for "
                       + sq[:12]]),
             ("null control: every merge recorded names none",
              not any("record beat owed" in x["text"] for x in t2.findings)),
@@ -3551,7 +3765,7 @@ def self_test() -> int:
                 iso(NOW - datetime.timedelta(days=1)),
                 iso(NOW + datetime.timedelta(hours=1))))
             gh = Stub()
-            gh.on("issues/201/comments", out=json.dumps([[man_soon]]))
+            gh.on("issues/201/comments", out=json.dumps([[man_soon]])).on("/comments?per_page", out="[[]]")
             gh.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
             t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=lambda p: [],
                      now=NOW)
@@ -3559,6 +3773,35 @@ def self_test() -> int:
             a, f = check("mandate expiry", [
                 ("window under 2h flagged", any("renew" in x["text"]
                                                 for x in t.findings)),
+            ])
+            total, failed = total + a, failed + f
+
+        # ---- the record past #201's comment cap: every record issue is read ----
+        if gate_ok:
+            rec = g.RECORD_ISSUES[-1]
+            on_rec = dict(MAN, id=mid + 5, issue_url=MAN["issue_url"][:-3] + str(rec))
+            kill = {"id": mid + 9, "user": owner, "body": f"MANDATE REVOKED {mid}",
+                    "created_at": iso(NOW), "updated_at": iso(NOW),
+                    "issue_url": on_rec["issue_url"]}
+
+            def read(old, new):
+                gh = Stub()
+                gh.on("issues/201/comments", out=json.dumps([old]))
+                gh.on(f"issues/{rec}/comments", out=json.dumps([new]))
+                t = Tick("o/r", str(version), gh=gh, git=Stub(), proc=lambda p: [], now=NOW)
+                return t.mandate_read(), gh
+            got, gh = read([], [on_rec])
+            got201, _ = read([MAN], [kill])
+            got_ok, _ = read([MAN], [])
+            a, f = check("record issues", [
+                ("a grant on the continuation issue is found", bool(got) and got[1]["id"] == mid + 5 and got[3]),
+                ("both record issues are read", sorted(
+                    n for n in g.RECORD_ISSUES if any(f"issues/{n}/comments" in " ".join(c) for c in gh.calls))
+                 == sorted(g.RECORD_ISSUES)),
+                ("a #201 grant revoked on the continuation issue is not in force",
+                 bool(got201) and got201[1]["id"] == mid and not got201[3]),
+                ("null control: the same #201 grant with no revocation is in force",
+                 bool(got_ok) and got_ok[3]),
             ])
             total, failed = total + a, failed + f
 
@@ -3628,6 +3871,27 @@ def self_test() -> int:
                  and not l["flag"] for l in t.sections["REPLAN"])),
             ("the read carries no age window (a complete handoff is owed now)",
              bus_calls[-1] == ["orphans", "--min-age-h", "0"]),
+        ])
+        total, failed = total + a, failed + f
+        held14 = [f"ORPHAN {'triage' if i % 2 == 0 else 'record'}-s14-batch{i} {'a1' * 20} 5.0h uncovered=1 repair=opener" for i in range(14)]
+        live11 = [f"ORPHAN r10-live-{i} {'b2' * 20} 4.0h uncovered=1 repair=opener" for i in range(11)]
+        summ25 = ("orphans: 25 stranded, 0 superseded; skipped no-body=0 named=0 ancestor=0 young=0; "
+                  "origin main b87e8f1")
+        t = tick(bus_refs=held14 + live11 + [summ25], bus_rc=1)
+        t.orphans("REPLAN")
+        owed = [x["text"] for x in t.findings if x["text"].startswith("OWED handoff: ")]
+        capl = [x["text"] for x in t.findings if x["text"].startswith("OWED handoffs capped at")]
+        a, f = check("OWED handoffs held-last", [
+            ("25 stranded with 14 held: all 11 others print within the cap, held ones after them",
+             len(owed) == CAP_ORPHANS and all(f"r10-live-{i} " in owed[i] for i in range(11))
+             and "triage-s14-batch0 " in owed[11]),
+            ("the cap line counts the held refs",
+             len(capl) == 1 and "capped at 20 of 25 (14 held" in capl[0]),
+            ("null control: 11 live refs and no held ones print in bus order, no cap line",
+             (lambda t2: [x["text"].split()[2] for x in t2.findings if x["text"].startswith("OWED handoff: ")]
+              == [f"r10-live-{i}" for i in range(11)] and not any("capped" in x["text"] for x in t2.findings))(
+                 (lambda tt: (tt.orphans("REPLAN"), tt)[1])(
+                     tick(bus_refs=live11 + [summ25.replace("25", "11")], bus_rc=1)))),
         ])
         total, failed = total + a, failed + f
         t = tick(bus_refs=[BUS_CLEAR])
@@ -3760,6 +4024,25 @@ def self_test() -> int:
                 (f"NOT REVIEWABLE {'present' if want else 'absent'}",
                  any(x["text"].startswith("#71: NOT REVIEWABLE") for x in t.findings) == want)])
             total, failed = total + a, failed + f
+        # PRS: `RED unanswered` names only a red the body owes an answer (owner
+        # ruling tvofi 2026-11-07, defect-root-cause.md): merge_train's
+        # judged(gating_names(required)), as review_packet.unanswered_reds reads
+        # it. A NOT_GATING name in the ruleset owes none; under GATE a unit name
+        # does. An unreadable set keeps every red (the fallback; null control).
+        unit = json.loads(mt.REQUIRED_CONTEXTS.read_text())["gate_required"][0]
+        for label, req, reds, want in (
+                ("required set read", ["tests"], ["tests", "codeql"], {"tests"}),
+                ("NOT_GATING in the ruleset", ["tests", "delivery-status"],
+                 ["tests", "delivery-status"], {"tests"}),
+                ("a gate unit under GATE", [mt.GATE], [unit, "codeql"], {unit}),
+                ("unreadable set: every red (null control)", None, ["tests", "codeql"], {"tests", "codeql"})):
+            t = tick(prs=[pr_obj(77, H1)], runs_at={H1: [run_obj(r, conclusion="failure") for r in reds]},
+                     bodies={77: "## Red checks\n\nnone\n"})
+            t.one_pr("PRS", pr_obj(77, H1), None, req)
+            ru = [x["text"] for x in t.findings if x["text"].startswith("#77: RED unanswered")]
+            got = set(ru[0].split("## Red checks: ", 1)[1].split(", ")) if len(ru) == 1 else set()
+            a, f = check(f"PRS owed reds: {label}", [(f"RED unanswered names {sorted(want)}", got == want)])
+            total, failed = total + a, failed + f
         # PRS (d): a pull request's head is judged on every live required
         # context: a red pr-contract, read live from the ruleset, is not
         # reviewable (null control: the same head with pr-contract green).
@@ -3777,6 +4060,24 @@ def self_test() -> int:
                 (f"NOT REVIEWABLE {'names pr-contract' if want else 'absent'}",
                  (len(nr) == 1 and "pr-contract" in nr[0]) if want else not nr)])
             total, failed = total + a, failed + f
+        # carry 9 at the level that prints it: one_pr clears _red[n] when merge_train's
+        # classify reads WAIT; red stands on a RED read (null control) and on an
+        # unread classify (mt.Stop: fail closed).
+        def _stop(self, h, runs, req):
+            raise mt.Stop("classify", "unread")
+        _was9 = mt.Train.classify_at
+        try:
+            for label, stub, want in (("WAIT clears the red", lambda self, h, runs, req: ("wait", ["gate"], []), []),
+                                      ("RED keeps it (null control)", lambda self, h, runs, req: ("red", [], ["gate"]), ["gate"]),
+                                      ("an unread classify keeps it", _stop, ["gate"])):
+                mt.Train.classify_at = stub
+                t = tick(prs=[pr_obj(77, H1)], runs_at={H1: [run_obj("gate", conclusion="failure")]})
+                t.one_pr("PRS", pr_obj(77, H1), None, ["gate"])
+                a, f = check(f"carry 9 one_pr: {label}", [
+                    (f"_red[77] is {want}", t._red.get(77) == want)])
+                total, failed = total + a, failed + f
+        finally:
+            mt.Train.classify_at = _was9
         # PRS (d), P345: a budget raise is red at budget-raise-gate until the
         # owner's approval names its head, which follows the review. #3045's
         # shape (gate + budget-raise-gate red, one raise, the owner's approval
@@ -3848,7 +4149,8 @@ def self_test() -> int:
         h = lambda n: f"{n:040x}"
         def oboard2(specs, red=None, fired=None, refs=(), cts=None, files=None, queue_v=None,
                     train=None, body=None, bodies=None, disp=(), newer=None, newer_fail=(),
-                    extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False):
+                    extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False,
+                    show=None, dref=None, disposed=()):
             """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines).
             disp: PR numbers on bus.sh's dispatch record at their head; newer {n: minutes ago}: a
             handoff/<n> tip committed that long ago; newer_fail: PRs whose handoff ls-remote fails;
@@ -3870,7 +4172,13 @@ def self_test() -> int:
                 Path(fl).write_text(fired)
             board = [dict(pr_obj(n, h(n), ms=ms), body=(bodies or {}).get(n, "")) for n, ms, _, _ in specs]
             board += list(extra)
-            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl, bus_state=str(bus), roster=roster)
+            home = od / "relay"
+            home.mkdir()
+            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl, bus_state=str(bus), roster=roster,
+                     relay_log=str(home / "cloud-relay.log"))
+            lgm = _module("ledger_tick", "tools/audit/seat/ledger.py")
+            for dref_, dsha in disposed:
+                lgm.dispose(home, dref_, dsha, "body-patched")
             t._git.h[:0] = [(("ls-remote", "origin", ref.rsplit("/", 1)[0] + "/*"), 0, f"{sha}\trefs/heads/{ref}\n")
                             for ref, sha in refs] + [(("ls-remote",), 0, "")]
             t._git.h[:0] = [(("log", "-1", "--format=%ct", sha), 0, f"{int((NOW - timedelta(minutes=m)).timestamp())}\n")
@@ -3880,6 +4188,15 @@ def self_test() -> int:
                                for n in (newer or {})]
                             + [(("log", "-1", "--format=%ct", f"{n:x}".rjust(40, "d")), 0,
                                 f"{int((NOW - timedelta(minutes=m)).timestamp())}\n") for n, m in (newer or {}).items()])
+            t._git.h[:0] = [(("show", f"{sha}:BLOCKED.md"), 0, txt) for sha, txt in (show or {}).items()]
+            if dref:  # (topic, sha, minutes ago): the dispatch/fixer-<topic> tip
+                dt_, dsha, dm = dref
+                t._git.h[:0] = [(("ls-remote", "origin", f"refs/heads/dispatch/fixer-{dt_}"), 0,
+                                 f"{dsha}\trefs/heads/dispatch/fixer-{dt_}\n"),
+                                (("log", "-1", "--format=%ct", dsha), 0,
+                                 f"{int((NOW - timedelta(minutes=dm)).timestamp())}\n")]
+            else:
+                t._git.h[:0] = [(("ls-remote", "origin", "refs/heads/dispatch/fixer-"), 0, "")]
             if not ancestor:
                 t._git.h.insert(0, (("merge-base", "--is-ancestor"), 1, ""))
             t._readback = {str(n): ls for n, _, ls, _ in specs}
@@ -3902,8 +4219,17 @@ def self_test() -> int:
                          fired=f"{iso(NOW - timedelta(minutes=40))} FIRED payload-fix-82-r5.json\n")
         _, o_b = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
                          refs=[("handoff-wip/82", "e" * 40)], cts={"e" * 40: 5})
-        _, o_c = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
-                         fired=f"{iso(NOW - timedelta(hours=9))} FIRED payload-fix-82-r5.json\n")
+        t_c, o_c = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
+                           fired=f"{iso(NOW - timedelta(hours=9))} FIRED payload-fix-82-r5.json\n")
+        # carry 9 (P455): the red-unowned level reads merge_train's classify, not the gate conclusion
+        _was = mt.Train.classify_at
+        try:
+            mt.Train.classify_at = lambda self, h, runs, req: ("wait", ["gate"], [])
+            c9_wait = t_c._classify_red("a" * 40, [], ["gate"])
+            mt.Train.classify_at = lambda self, h, runs, req: ("red", [], ["gate"])
+            c9_red = t_c._classify_red("a" * 40, [], ["gate"])
+        finally:
+            mt.Train.classify_at = _was
         # P279: PARK lines after the last STARTED; P265 train bucket; card 8 re-cut
         pk = "STARTED train.sh pid 1 over #83\nPARK #83 preflight: policy\nTRAIN DONE\n"
         _, o_pk = oboard2([(83, "CLEAN", [f"Fix review: merge {h(83)}"], 5)], queue_v={83: h(83)}, train=pk)
@@ -3918,6 +4244,21 @@ def self_test() -> int:
         _, o_ba = oboard2([(85, "BLOCKED", [], 0)], **ba)
         _, o_ba0 = oboard2([(85, "BLOCKED", [], 0)], refs=ba["refs"], cts={h(85): 20, "b" * 40: 30})
         _, o_baf = oboard2([(85, "BLOCKED", [], 0)], fired=f"{iso(NOW - timedelta(minutes=10))} FIRED #85 r2\n", **ba)
+        # carry 13: a disposition at the body ref's sha clears BODY-AHEAD; an older sha still owes
+        _, o_bd = oboard2([(85, "BLOCKED", [], 0)], disposed=[("refs/heads/handoff-body/85", "b" * 40)], **ba)
+        _, o_bd0 = oboard2([(85, "BLOCKED", [], 0)], disposed=[("refs/heads/handoff-body/85", "a" * 40)], **ba)
+        # carry 14: a handoff-wip tip holding BLOCKED.md owes; a newer dispatch, a disposition or no file clears it
+        bl_tip, bl_txt = "e" * 40, "# Blocked\nQuestion: which seam owns the cap?\n"
+        bl = dict(refs=[("handoff-wip/blk", bl_tip)], cts={bl_tip: 60}, show={bl_tip: bl_txt})
+        _, o_bl = oboard2([], dref=("blk", "f" * 40, 600), **bl)
+        _, o_bl_new = oboard2([], dref=("blk", "f" * 40, 10), **bl)
+        _, o_bl_disp = oboard2([], dref=("blk", "f" * 40, 600), disposed=[(f"refs/heads/handoff-wip/blk", bl_tip)], **bl)
+        _, o_bl_nofile = oboard2([], refs=bl["refs"], cts=bl["cts"])
+        _, o_bl_red = oboard2([(86, "BLOCKED", [], 0)], red={86: ["gate"]}, dref=("86", "f" * 40, 600),
+                              refs=[("handoff-wip/86", bl_tip)], cts={bl_tip: 5}, show={bl_tip: bl_txt})
+        # carry 7: a family member's handoff-wip is a seat on the PR; a bare -<N> sibling's is not
+        _, o_fam = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]}, refs=[("handoff-wip/82-p1", "e" * 40)], cts={"e" * 40: 5})
+        _, o_fam2 = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]}, refs=[("handoff-wip/82-2", "e" * 40)], cts={"e" * 40: 5})
         # R10-TICK-LEVELS null controls: a DIRTY and red PR a bucket already owns prints no OWED line
         rec = getattr(_module("record_row_tick", "tools/audit/seat/record_row.py"), "RECORD_BRANCH", "record")
         bk_of = lambda t: t.sections["PRS"][-1]["text"]
@@ -3950,6 +4291,27 @@ def self_test() -> int:
                              red=gate_red(91), roster=str(orf))
         _, o_ae0 = oboard2([], extra=[gpr(91, "gb")], extra_read=(91,), red=gate_red(91), roster=str(orf))
         _, o_co = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
+        orf2 = tmp / "owed-roster-out.json"  # GB critical; GO outside, GH a hotfix, GZ plain
+        orf2.write_text(json.dumps({"groups": [
+            {"group": "GA", "resume": {"stage": "not-started"}},
+            {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
+            {"group": "GZ", "resume": {"stage": "not-started"}},
+            {"group": "GO", "source": "outside", "resume": {"stage": "not-started"}},
+            {"group": "GH", "kind": "bug", "resume": {"stage": "not-started"}}]}))
+        _, o_ro = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb"), gpr(102, "go"), gpr(103, "gh")],
+                          extra_read=(99, 100, 102, 103), roster=str(orf2))
+        _, o_rn = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
+        # A fork-head outside PR: its branch is no group's, the roster's resume.pr maps it (#3304 round 2)
+        def fork_roster(pr):
+            f = tmp / f"owed-roster-fork-{pr}.json"
+            f.write_text(json.dumps({"groups": [
+                {"group": "GA", "resume": {"stage": "not-started"}},
+                {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
+                {"group": "GO", "source": "outside", "resume": {"stage": "not-started", "pr": pr}}]}))
+            return str(f)
+        fork = lambda: pr_obj(98, h(98), ms="DIRTY", branch="patch-1")
+        _, o_fk = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 98), roster=fork_roster(98))
+        _, o_fk0 = oboard2([], extra=[gpr(100, "gb"), fork()], extra_read=(100, 98), roster=fork_roster(None))
         pd = tmp / "payloads"
         pd.mkdir()
         pf = pd / "payload-fix-86-r1.json"
@@ -3978,6 +4340,8 @@ def self_test() -> int:
              ("null: blocked at head for 1 h (inside the round) prints nothing", o_null == []),
             ("every open PR has exactly one bucket (count line sums to the PRs read)",
              bk.startswith("buckets: ") and sum(int(x.rsplit(" ", 1)[1]) for x in bk[9:].split(", ")) == 3),
+            ("carry 9: a deferral red classify reads WAIT is not red-unowned; a real RED still is (null control)",
+             c9_wait is False and c9_red is True),
             ("carry 6 arm (a): a payload-file FIRED line inside the window is a seat on it", o_a == []),
             ("carry 6 arm (b): handoff-wip moved inside the window is a seat on it", o_b == []),
             ("carry 6 null (c): neither, or a fire outside the window, is RED-UNOWNED",
@@ -3989,6 +4353,16 @@ def self_test() -> int:
              and o_r2 == [] and o_rc == [] and o_rm == []),
             ("carry 5 BODY-AHEAD: a body ref newer than the head owes; an older one, or a fire, does not",
              len(o_ba) == 1 and "body-ahead #85" in o_ba[0] and o_ba0 == [] and o_baf == []),
+            ("carry 7: a wip ref of a family member (-p1) is a seat; a bare -<N> sibling's is not",
+             not any("red-unowned" in x for x in o_fam) and any("red-unowned" in x for x in o_fam2)),
+            ("carry 13: a disposition at the body sha clears BODY-AHEAD; one at an older sha still owes",
+             o_bd == [] and len(o_bd0) == 1 and o_bd0[0].startswith("OWED body-ahead #85")),
+            ("carry 14: a BLOCKED.md tip owes, naming topic, sha and Question line",
+             len(o_bl) == 1 and o_bl[0] == f"OWED blocked-stop blk {bl_tip[:12]} Question: which seam owns the cap?"),
+            ("carry 14: a newer dispatch, a disposition at the sha, or a tip without the file owes nothing",
+             o_bl_new == [] and o_bl_disp == [] and o_bl_nofile == []),
+            ("carry 14: a red PR whose only move is a BLOCKED.md tip is still RED-UNOWNED",
+             any(x.startswith("OWED red-unowned #86") for x in o_bl_red)),
             ("carry 5 FIRE-OWED: a rendered payload with no FIRED line owes; one a FIRED line names does not",
              len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [] and fo_young == []),
             ("null: a DIRTY, red PR in train (a queue verdict, no merge verdict) prints no OWED, names the bucket",
@@ -4012,7 +4386,15 @@ def self_test() -> int:
             ("null: a DIRTY, red PR whose group is after an open group is waiting-on it; with no open PR there it is owed",
              o_ae == [] and "waiting-on 1" in bk_of(t_ae) and len(o_ae0) == 1 and "dirty #91" in o_ae0[0]),
             ("the critical-path group's OWED line prints before a lower-numbered PR's outside it",
-             len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1])])
+             len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1]),
+            ("a hotfix's OWED line prints first, then the outside and critical-path groups' as one "
+             "rank by number, then the rest",
+             [x.split()[2] for x in o_ro] == ["#103", "#100", "#102", "#99"]),
+            ("null control: a roster with no outside group and no hotfix orders as the critical path first",
+             [x.split()[2] for x in o_rn] == ["#100", "#99"] and [x.split()[2] for x in o_co] == ["#100", "#99"]),
+            ("a fork-head outside PR, mapped by resume.pr, shares the critical path's rank and orders by number "
+             "(#98 first); unrecorded, it is the other rank, after it",
+             [x.split()[2] for x in o_fk] == ["#98", "#100"] and [x.split()[2] for x in o_fk0] == ["#100", "#98"])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
@@ -4131,7 +4513,7 @@ def self_test() -> int:
         gh.on("check-runs/424243", out=json.dumps(
             {"summary": "skip-failed-recording: no bot commit is coming",
              "text": ""}))
-        gh.on("issues/201/comments", out=json.dumps([[MAN]]))
+        gh.on("issues/201/comments", out=json.dumps([[MAN]])).on("/comments?per_page", out="[[]]")
         gh.on("rate_limit", out=json.dumps({"remaining": 4000, "limit": 5000}))
         t = Tick("o/r", str(version), gh=gh, git=Stub(),
                  proc=lambda p: [], now=NOW)
@@ -4278,7 +4660,7 @@ def self_test() -> int:
         a, f = check("search GET", [
             ("record beat found via GET (no 404 unreadable)",
              any("record beat owed" in x["text"] for x in t.findings)
-             and not any("UNREADABLE" in x["text"] and "#201 search"
+             and not any("UNREADABLE" in x["text"] and "record search"
                          in x["text"] for x in t.findings)),
         ])
         total, failed = total + a, failed + f

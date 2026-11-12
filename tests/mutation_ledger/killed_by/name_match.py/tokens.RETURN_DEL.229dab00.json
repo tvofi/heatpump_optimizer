@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/name_match.py:tokens RETURN_DEL 229dab00",
+  "killed_by": "tests/features.py",
+  "old": "    return tuple(word for word in re.split(r\"[^a-z0-9]+\", spaced.lower()) if word)",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

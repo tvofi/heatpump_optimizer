@@ -27,7 +27,7 @@ from homeassistant.util import dt as dt_util
 from harness import FakeCoordinator, FakeEntry, FakeHass, Results
 from heatpump_optimizer import button as button_mod
 from heatpump_optimizer import debugger
-from heatpump_optimizer.const import CONF_DEBUG_COLLECT, DOMAIN
+from heatpump_optimizer.const import CONF_DEBUG_COLLECT, DOMAIN, LOCATION_KEYS
 from heatpump_optimizer.store import Domain, _scalar_domain, admitted, stored_fields
 
 R = Results("debug collection guards (#1939)")
@@ -932,6 +932,21 @@ R.check(
     and _check_download(replay) == [],
     str(_check_download(replay) if isinstance(replay, dict) else download["debug"]["manifest"]),
 )
+def _location_keys(node):
+    """Every key of ``LOCATION_KEYS`` in ``node``, at any depth."""
+    if isinstance(node, dict):
+        return {k for k in node if k in LOCATION_KEYS} | set().union(
+            *map(_location_keys, node.values()))
+    return set().union(*map(_location_keys, node)) if isinstance(node, list) else set()
+
+
+R.check(
+    "the download's replay half carries no part of the home location: no location key at "
+    "any depth, and the install's coordinate at neither the replay's two places nor one",
+    not _location_keys(replay)
+    and not any(t in json.dumps(replay) for t in ("59.3", "18.06", "18.1")),
+    f"{sorted(_location_keys(replay))} {json.dumps(replay.get('entry'))[:300]}",
+)
 R.check(
     "the replay half carries the entry's inputs and what it publishes, read through the "
     "recorder's history API: the state in force at the window's start, then the window; "
@@ -1471,11 +1486,11 @@ dt_util.freeze(None)
 debugger._COLLECTORS.clear()
 # -- R10-DIAG-REDACT: a redacted value is redacted wherever else it reaches ---
 # The download's redaction is keyed: ``tibber_token`` and ``name`` are blanked
-# and ``latitude``/``longitude`` coarsened. D15's production triage found
+# and ``latitude``/``longitude`` and ``solar_location`` blanked. D15's production triage found
 # dropped credential values surviving elsewhere in the same payload, so each
 # value the keyed passes remove is planted below in every section of the
 # download -- under an unredacted key, inside a message, as a key, and as a
-# number under a key the coarsening does not name -- and none may come back.
+# number under a key the keyed pass does not name -- and none may come back.
 NAME = "Villa Solbacken"
 EXACT = ("59.334591", "18.06324")  # the install's solar_location, as text
 OPTIONS_TOKEN = "tibber-options-fedcba9876543210"  # a token reauth saved in options
@@ -1566,9 +1581,11 @@ planted_paths = _carrying(planted_open)
 # section a later change adds is refused here until the fixture plants in it.
 # The exempt ones carry no text the install supplies: a constant, the names of
 # config keys, the version stamps, the export's clock, and the replay half, which ``seal`` refuses
-# rather than write with a dropped value in it (the checks above).
+# rather than write with a dropped value in it (the checks above). The heat-curve
+# record is numbers and the restore hook's own consumer keys: its entity is the
+# config section's (heat_curve.diagnostics).
 EXEMPT = {".exported_at", ".entry", ".config_overridden_by_options", ".domain",
-          ".debug.schema", ".debug.replay"}
+          ".debug.schema", ".debug.replay", ".heat_curve"}
 SECTIONS = {f".{key}" for key in planted_open if key != "debug"} | {
     f".debug.{key}" for key in planted_open["debug"]}
 _unplanted = sorted(section for section in SECTIONS - EXEMPT if not any(
@@ -1604,13 +1621,13 @@ R.check(
 _six = "x" * replay_doc.LEAK_MIN_CHARS
 R.check(
     "the value pass searches for a removed value at the leak check's shortest length and "
-    "not one character under it, for a coordinate only when the coarsening cut it, and "
+    "not one character under it, for a coordinate as for any other, and "
     "never for a flag",
     diagnostics_mod._private_values([{"name": _six, "x": [{"name": _six[1:]}],
                                       "tibber_token": True,
                                       "solar_location": {"latitude": -123.4,
                                                          "longitude": float(EXACT[1])}}])
-    == {_six, EXACT[1]},
+    == {_six, "-123.4", EXACT[1]},
     str(diagnostics_mod._private_values([{"name": _six, "x": [{"name": _six[1:]}]}])),
 )
 R.check(

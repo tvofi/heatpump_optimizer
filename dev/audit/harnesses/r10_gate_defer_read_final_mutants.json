@@ -1,0 +1,92 @@
+[
+ {
+  "name": "M1-scored-conclusion",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "if g[\"conclusion\"] != \"failure\":\n                    continue\n                if not g.get(\"defer_to\"):",
+  "new": "if g[\"conclusion\"] not in (\"failure\", \"cancelled\"):\n                    continue\n                if not g.get(\"defer_to\"):"
+ },
+ {
+  "name": "M2-program-split",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "\"at-once\" if r.returncode == 0 else \"waiting\"",
+  "new": "\"waiting\" if r.returncode == 0 else \"at-once\""
+ },
+ {
+  "name": "M3-green-after-red",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "if rr[\"head_sha\"] == r[\"head_sha\"] and t > done)",
+  "new": "if rr[\"head_sha\"] == r[\"head_sha\"] and t >= done)"
+ },
+ {
+  "name": "M4-green-earliest",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "green = later[0] if later else None",
+  "new": "green = later[-1] if later else None"
+ },
+ {
+  "name": "M5-green-same-head",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "if rr[\"head_sha\"] == r[\"head_sha\"] and t > done)",
+  "new": "if t > done)"
+ },
+ {
+  "name": "M6-attempt-first-after",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "return later[0] if later else max(ends)",
+  "new": "return later[-1] if later else max(ends)"
+ },
+ {
+  "name": "M7-attempt-end-gate",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "stamps = [ts(t)] + [ts(g[\"completed_at\"]) for g in gs if g.get(\"completed_at\")]",
+  "new": "stamps = [ts(t)]"
+ },
+ {
+  "name": "M8-loop-skipped-dropped",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "for j in js if j[\"conclusion\"] != \"skipped\"]",
+  "new": "for j in js]"
+ },
+ {
+  "name": "M9-loop-ended-by",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "done = [a for a in xa if x != y and end(xa[a]) <= s]",
+  "new": "done = [a for a in xa if x != y]"
+ },
+ {
+  "name": "M10-stale-rerun",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "stale if x['attempt'] > 1)",
+  "new": "stale if x['attempt'] >= 1)"
+ },
+ {
+  "name": "M11-stale-after-merge",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "x[\"program\"] == \"waiting\" and ts(x[\"red_at\"]) > ts(AT_ONCE_MERGED)",
+  "new": "x[\"program\"] == \"waiting\""
+ },
+ {
+  "name": "M12-residual-success",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "set(x['decider_verdict'].split(',')) == {'success'}",
+  "new": "x['decider_verdict']"
+ },
+ {
+  "name": "M13-lag-success-filter",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "and set((x[\"decider_verdict\"] or \"?\").split(\",\")) == {\"success\"}]",
+  "new": "and True]"
+ },
+ {
+  "name": "M14-erase-null-control",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "                g[\"defer_to\"] = None\n",
+  "new": "                pass\n"
+ },
+ {
+  "name": "M15-human-bots",
+  "file": "dev/audit/harnesses/r10_gate_defer_read_final.py",
+  "old": "and not x[\"by\"].endswith(\"[bot]\"))",
+  "new": ")"
+ }
+]

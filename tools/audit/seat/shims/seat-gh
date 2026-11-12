@@ -120,21 +120,22 @@ esac
   chmod 600 "$log"
 ) 2>/dev/null || true
 
-# The #201 comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
+# The record-issue comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
 # lives in that script alone, so a raw post bypassed it). DENY BY DEFAULT: a call that could
-# write a comment on the tracking issue is refused unless the caller is python running the
-# tree's own gh_comment.py (by real path); it is let through only when it is on an explicit
+# write a comment on a record issue (#201, or its continuation) is refused unless the caller is python running the
+# baked tree's gh_comment.py, or a checkout's tracked and unmodified one (by real path; below); it is let through only when it is on an explicit
 # list of calls that cannot. The list is gh's own command table, not a list of spellings:
 #   - no subcommand, or --version/--help alone: pass; any other leading flag: refused;
 #   - `issue`: view/list/status/create pass; comment, close, reopen, edit, delete, lock,
 #     unlock, pin, unpin, transfer and develop pass only with exactly one target that reads as
-#     a plain number other than the tracker, under gh's own flag table (an unknown flag, or a
+#     a plain number other than a tracker, under gh's own flag table (an unknown flag, or a
 #     short-flag cluster, is refused: it could be a value that moves the target); any other
 #     verb is refused;
-#   - `pr`: refused when any word reads as the tracker's number (a PR cannot be the issue,
+#   - `pr`: refused when any word reads as a tracker's number (a PR cannot be the issue,
 #     so this is belt and braces); otherwise passes;
 #   - `api`: a call with no body field, no --input, no method but GET and no header but
-#     Accept is a read and passes (flags read by gh api's own table, an unknown one refused);
+#     Accept is a read and passes (flags read by gh api's own table, an unknown one refused with its own "unknown gh api flag" message;
+#     the output-only --allow-escape-sequences is known);
 #     a write is refused at issues/<tracker>/comments, at an unreadable path, at
 #     issues/comments/<id> (a comment by id names no issue), and at graphql unless the
 #     document has no `mutation` or `subscription` and is not read from a file or --input;
@@ -146,7 +147,9 @@ esac
 # %-decoding and `.`/`..`/empty path segments, matched in lower case. Residual, by design: the caller test reads
 # `ps` args, which a caller writes (`exec -a`), so a deliberate spoof of the parent passes
 # (Carry: R10-RAISE-GATE-SHIM); the shim is a guard against a seat's habit, not an adversary.
-tracker=201
+# The trackers: budget_raise_gate.RECORD_ISSUES, the one definition (gh_calls.py's self-test
+# pins this line to it). #201 hit GitHub's 2,500-comment cap; the record continues in the last.
+trackers='201 3394'
 # gh_comment.py's own path: seat_venv.sh --install-shims bakes the tree's into the next
 # line; a shim run from its place in the tree derives it; anywhere else it stays empty,
 # and then no caller passes.
@@ -171,7 +174,7 @@ num() {
 }
 # norm <path>: the path's segments after %-decoding, dropping a URL's scheme and host, a query
 # or anchor, and `.`/`..`/empty segments, and lower-casing every letter (a path segment is
-# matched in lower case: `ISSUES/201/COMMENTS` is the tracker's), into NSEG; 1 when it cannot be read
+# matched in lower case: `ISSUES/201/COMMENTS` is a tracker's), into NSEG; 1 when it cannot be read
 norm() {
   local w=$1 IFS=/ seg
   local -a segs
@@ -223,7 +226,7 @@ issue_gate() {
     ''|view|list|status|create) return 0 ;;
     comment|close|reopen|edit|delete|lock|unlock|pin|unpin|transfer|develop)
       [ -z "$bad" ] && [ "${#pos[@]}" -eq 2 ] || return 1
-      t=$(num "${pos[1]}"); [ "$t" != '?' ] && [ "$t" != "$tracker" ] ;;
+      t=$(num "${pos[1]}"); [ "$t" != '?' ] && ! has "$trackers" "$t" ;;
     *) return 1 ;;
   esac
 }
@@ -231,12 +234,12 @@ pr_gate() {
   local a
   shift
   for a in "$@"; do
-    case $a in -*) ;; *) [ "$(num "$a")" = "$tracker" ] && return 1 ;; esac
+    case $a in -*) ;; *) has "$trackers" "$(num "$a")" && return 1 ;; esac
   done
   return 0
 }
 API_VAL='-q --jq -t --template -p --preview --hostname --cache'
-API_BOOL='--paginate --slurp -i --include --silent --verbose -h --help'
+API_BOOL='--paginate --slurp -i --include --silent --verbose -h --help --allow-escape-sequences'
 api_gate() {
   local a skip= path= meth= write= fields= unread= k t nxt low
   local -a pos=()
@@ -263,9 +266,9 @@ api_gate() {
       -H|--header) skip=h ;;
       --header=*) case ${a#*=} in [Aa]ccept:*) ;; *) write=1 ;; esac ;;
       -H?*) case ${a#-H} in [Aa]ccept:*) ;; *) write=1 ;; esac ;;
-      --*=*) has "$API_VAL" "${a%%=*}" || return 1 ;;
-      --*|-?) if has "$API_VAL" "$a"; then skip=v; elif ! has "$API_BOOL" "$a"; then return 1; fi ;;
-      -*) has "$API_VAL" "${a:0:2}" || return 1 ;;
+      --*=*) has "$API_VAL" "${a%%=*}" || { unk=${a%%=*}; return 1; } ;;
+      --*|-?) if has "$API_VAL" "$a"; then skip=v; elif ! has "$API_BOOL" "$a"; then unk=$a; return 1; fi ;;
+      -*) has "$API_VAL" "${a:0:2}" || { unk=${a:0:2}; return 1; } ;;
       *) pos+=("$a") ;;
     esac
   done
@@ -286,7 +289,7 @@ api_gate() {
         nxt=${NSEG[$((k + 1))]:-}
         [ "$nxt" = comments ] && return 1
         if [ "${NSEG[$((k + 2))]:-}" = comments ]; then
-          t=$(num "$nxt"); { [ "$t" != '?' ] && [ "$t" != "$tracker" ]; } || return 1
+          t=$(num "$nxt"); { [ "$t" != '?' ] && ! has "$trackers" "$t"; } || return 1
         fi ;;
     esac
     k=$((k + 1))
@@ -334,9 +337,25 @@ if [ -n "${hit:-}" ]; then
     done
     if [ -n "$script" ] && [ -n "$gcpy" ]; then
       a=$(rp "$script") && b=$(rp "$gcpy") && [ "$a" = "$b" ] && ok=1
+      # Another checkout's gh_comment.py (R10-GH-READ-RESIDUE, P449; SHIM-COMMENT-GUARD-ONE-CHECKOUT,
+      # P591): the daemons' PATH carries one install, and three live checkouts run seat tools.
+      # Admitted by real path <root>/tools/pr/gh_comment.py when <root> is a checkout of this
+      # repository (it tracks this shim) and the script is tracked and unmodified against HEAD,
+      # so its mandate_guard is the committed one. A file merely so named, an untracked one, or
+      # one with a local edit stays refused.
+      if [ -z "$ok" ] && [ -n "$a" ]; then
+        case $a in */tools/pr/gh_comment.py)
+          troot=${a%/tools/pr/gh_comment.py}
+          git -C "$troot" ls-files --error-unmatch tools/audit/seat/shims/seat-gh >/dev/null 2>&1 \
+            && git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1 \
+            && git -C "$troot" diff --quiet HEAD -- tools/pr/gh_comment.py >/dev/null 2>&1 \
+            && ok=1 ;;
+        esac
+      fi
     fi ;;
   esac
-  [ -n "$ok" ] || { echo "gh shim: a comment write on #$tracker goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused" >&2; exit 1; }
+  [ -z "$ok" ] && [ -n "${unk:-}" ] && { echo "gh shim: unknown gh api flag ${unk//[![:print:]]/?}; refused" >&2; exit 1; }
+  [ -n "$ok" ] || { echo "gh shim: a comment write on a record issue (#${trackers// /, #}) goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused" >&2; exit 1; }
 fi
 
 exec "$real" "$@"

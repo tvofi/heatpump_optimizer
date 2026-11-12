@@ -157,12 +157,20 @@ gh_transient() { # gh's stderr -> 0 when another read may ride the failure out
   printf '%s\n' "$1" | grep -qE '^Get "https?://[^"]*": |^error connecting to '
 }
 
-# read_with <var> <fetcher> <args...>: sets <var> to the fetcher's answer; on a
-# refusal or a spent budget returns 1 with GH_ERR holding its last stderr. A
-# fetcher prints the answer on stdout and, on a failure, gh's stderr shape.
-read_with() {
-  local _var=$1 _fetch=$2 _out _ef _try=1 _delay=$READ_SLEEP
-  shift 2
+# git's stderr -> 0 when another fetch may ride the failure out: gh_read.py's
+# git_transient, the one rule merge_train.py's own fetches and pushes retry on
+# (R10-TRAIN-MERGE-LOOP-2), read through its CLI rather than copied here.
+GH_READ_PY="$(dirname -- "${BASH_SOURCE[0]}")/../audit/seat/gh_read.py"
+git_transient() { printf '%s' "$1" | python3 "$GH_READ_PY" --classify-git; }
+
+# retry_with <classifier> <var> <fetcher> <args...>: sets <var> to the fetcher's
+# answer; on a refusal or a spent budget returns 1 with GH_ERR holding its last
+# stderr. A fetcher prints the answer on stdout and, on a failure, the stderr
+# shape its classifier reads: gh's for read_with, git's for a carry's fetch.
+read_with() { retry_with gh_transient "$@"; }
+retry_with() {
+  local _cls=$1 _var=$2 _fetch=$3 _out _ef _try=1 _delay=$READ_SLEEP
+  shift 3
   _ef=$(mktemp "${TMPDIR:-/tmp}/app_approve_read.XXXXXX") || { GH_ERR="could not create a temporary file"; return 1; }
   while :; do
     if _out=$("$_fetch" "$@" 2>"$_ef"); then
@@ -170,7 +178,7 @@ read_with() {
     fi
     GH_ERR=$(tr '\n' ' ' < "$_ef" | sed 's/ *$//')
     [ -n "$GH_ERR" ] || GH_ERR="gh failed with nothing on stderr"
-    if ! gh_transient "$(cat "$_ef")" || [ "$_try" -ge "$READ_TRIES" ]; then
+    if ! "$_cls" "$(cat "$_ef")" || [ "$_try" -ge "$READ_TRIES" ]; then
       rm -f "$_ef"
       [ "$_try" -eq 1 ] || GH_ERR="$GH_ERR (after $_try attempts)"
       return 1
@@ -542,8 +550,10 @@ else:
     why="the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
     vsha=$(printf '%s' "$vline" | sed -n 's/^Fix review: merge \([0-9a-f]\{40\}\)$/\1/p')
     [ -n "$vsha" ] || die "$why"
-    git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
-      || die "$why, and fetching main and the head to test a carry failed"
+    local _fetched
+    retry_with git_transient _fetched git fetch -q --no-tags origin \
+      "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
+      || die "$why, and fetching main and the head to test a carry failed: $GH_ERR"
     [ "$(git rev-parse refs/hpo-carry/head)" = "$sha" ] || die "$why, and the fetched head is not $sha"
     carried=$(carry "$vsha" "$sha" refs/hpo-carry/main) || die "$why, and it does not carry: $carried"
     evsha=$vsha
@@ -846,7 +856,20 @@ cat > "$W/bin/sleep" <<'STUB'
 #!/bin/bash
 printf 'sleep %s\n' "$*" >> "$STUB/log"
 STUB
-chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl" "$W/bin/sleep"
+# `git` is the real one, unless `$STUB/gitfail` queues one stderr line per
+# failing `git fetch` (consumed first to last): the carry path's transport
+# failure, without a network. No other case writes that file.
+REAL_GIT=$(command -v git) || exit 2
+cat > "$W/bin/git" <<STUB
+#!/bin/bash
+q="\$STUB/gitfail"
+if [ "\$1" = fetch ] && [ -s "\$q" ]; then
+  printf 'git fetch\n' >> "\$STUB/log"
+  head -1 "\$q" >&2; sed -i.bak 1d "\$q"; exit 128
+fi
+exec "$REAL_GIT" "\$@"
+STUB
+chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl" "$W/bin/sleep" "$W/bin/git"
 
 # The carry's fixture: a real repository whose `origin` is a local bare one,
 # so `git fetch` and the carry run for real and no case reaches the network.
@@ -1942,6 +1965,19 @@ run carry o/r 7 "$H_MERGE"; st $? 0 "a merge verdict at V is approved at a head 
 st "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["commit_id"], "(#1667)" in d["body"])' "$W/carry/posted.json")" \
    "$H_MERGE True" "at the live head, and the review says it was carried"
 st "$(grep -c "^app_approve: CARRY $V -> $H_MERGE" "$W/carry/out")" 1 "printing the carry it relied on"
+# R10-TRAIN-MERGE-LOOP-2: the carry's fetch rides git's own transient stderr
+# out on gh_read.py's git_transient, the rule merge_train.py's fetches use, and
+# refuses a rejection at once (the null control) and a spent budget with its count.
+GIT502="fatal: unable to access 'https://github.com/o/r/': The requested URL returned error: 502"
+setpr "$H_MERGE"; mkcase carryflaky open false "$H_MERGE" "$CARRYV"; printf '%s\n' "$GIT502" > "$W/carryflaky/gitfail"
+run carryflaky o/r 7 "$H_MERGE"; st $? 0 "a carry whose first fetch failed with git's 502 is fetched again and approved"
+st "$(grep -c '^git fetch$' "$W/carryflaky/log") $(grep -c '^sleep ' "$W/carryflaky/log")" "1 1" "after one transient failure and one settle"
+mkcase carryrej open false "$H_MERGE" "$CARRYV"; printf '%s\n' "fatal: couldn't find remote ref refs/pull/7/head" > "$W/carryrej/gitfail"
+run carryrej o/r 7 "$H_MERGE"; st $? 1 "REFUSE: a carry fetch git rejected is not fetched again (null control)"
+st "$(grep -c '^sleep ' "$W/carryrej/log") $(grep -c 'fetching main and the head to test a carry failed' "$W/carryrej/err")" "0 1" "at once, with no settle"
+mkcase carryspent open false "$H_MERGE" "$CARRYV"; printf '%s\n' "$GIT502" "$GIT502" "$GIT502" "$GIT502" "$GIT502" > "$W/carryspent/gitfail"
+run carryspent o/r 7 "$H_MERGE"; st $? 1 "REFUSE: a carry fetch still failing transiently when the read budget is spent"
+st "$(grep -c '^git fetch$' "$W/carryspent/log") $(grep -c 'after 4 attempts' "$W/carryspent/err")" "4 1" "after 4 fetches, naming the count"
 setpr "$H_EVIL"; mkcase nocarry open false "$H_EVIL" "$CARRYV"
 run nocarry o/r 7 "$H_EVIL"; st $? 1 "REFUSE: the verdict at V does not carry to a head one byte away (null control)"
 st "$(grep -c "does not carry" "$W/nocarry/err")" 1 "saying why"

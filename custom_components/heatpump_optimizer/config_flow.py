@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Awaitable, Callable, Iterable, Mapping
+from functools import partial
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
 
 import aiohttp
@@ -88,6 +89,23 @@ from .const import (
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_DISPLACE_SET_TOPIC,
+    CONF_HEAT_CURVE_DISPLACE_ENTITY,
+    CONF_HEAT_CURVE_OFFSET_BAND_K,
+    CONF_HEAT_CURVE_PERSISTENT_BAND_K,
+    CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES,
+    CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY,
+    CONF_HEAT_CURVE_TARGET_KIND,
+    DEFAULT_HEAT_CURVE_OFFSET_BAND_K,
+    DEFAULT_HEAT_CURVE_PERSISTENT_BAND_K,
+    DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES,
+    DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY,
+    DEFAULT_HEAT_CURVE_TARGET_KIND,
+    HEAT_CURVE_KIND_PERSISTENT,
+    HEAT_CURVE_OFFSET_BAND_RANGE_K,
+    HEAT_CURVE_PERSISTENT_BAND_RANGE_K,
+    HEAT_CURVE_PERSISTENT_MIN_DWELL_RANGE_MINUTES,
+    HEAT_CURVE_PERSISTENT_WRITES_PER_DAY_RANGE,
+    HEAT_CURVE_TARGET_KINDS,
     CONF_ECL110_STATE_TOPIC,
     CONF_ECL110_QOS,
     CONF_ECL110_RETAIN,
@@ -134,6 +152,18 @@ from .const import (
     CONF_RADIATOR_POWER_FRACTION,
     CONF_UPPER_FLOOR_AREA_RATIO,
     CONF_BUFFER_TANK_VOLUME,
+    COMBI_TANK_CUSTOM,
+    COMBI_TANK_PRESETS,
+    CONF_COMBI_DHW_EFFECTIVENESS,
+    CONF_COMBI_POTABLE_VOLUME_L,
+    CONF_DHW_COMBI_LEGIONELLA_FORCE,
+    CONF_DHW_COMBI_TANK_ENABLED,
+    CONF_DHW_COMBI_TANK_TYPE,
+    DEFAULT_COMBI_DHW_EFFECTIVENESS,
+    DEFAULT_COMBI_POTABLE_VOLUME_L,
+    DEFAULT_DHW_COMBI_LEGIONELLA_FORCE,
+    DEFAULT_DHW_COMBI_TANK_ENABLED,
+    DEFAULT_DHW_COMBI_TANK_TYPE,
     CONF_WINDOW_AREA,
     POSITIVE_PARAM_FLOOR,
     CONF_SOLAR_ORIENTATION_FACTOR,
@@ -180,6 +210,15 @@ from .const import (
     CONF_SPACE_SETPOINT_UNIT,
     DEFAULT_SPACE_SETPOINT_UNIT,
     SPACE_SETPOINT_UNITS,
+    SPACE_SETPOINT_WATER_UNITS,
+    CONF_FLOW_HEAT_C,
+    DEFAULT_FLOW_HEAT_C,
+    CONF_FLOW_MIN_LIFT_K,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
+    CONF_SPACE_SETPOINT_POWER_FEEDBACK,
+    DEFAULT_FLOW_MIN_LIFT_K,
+    DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_WIND_SENSITIVITY,
     CONF_RAIN_HEAT_LOSS_MULTIPLIER,
     CONF_OPTIMIZATION_INTERVAL,
@@ -355,6 +394,14 @@ from .const import (
     CONF_COMPRESSOR_FREQ_SENSOR,
     CONF_FLOW_METER_ENTITY,
     CONF_THERMAL_POWER_ENTITY,
+    CONF_THERMAL_POWER_SOURCE,
+    CONF_POWER_SOURCE,
+    CONF_HEAT_METER_SEES_DHW,
+    DEFAULT_HEAT_METER_SEES_DHW,
+    DEFAULT_METER_SOURCE,
+    METER_SOURCE_AUTO,
+    METER_SOURCE_ESTIMATE,
+    METER_SOURCE_METER,
     CONF_HEAT_ENERGY_ENTITY,
     CONF_COMPRESSOR_FREQ_MIN_HZ,
     CONF_COMPRESSOR_FREQ_MAX_HZ,
@@ -394,6 +441,9 @@ from .const import (
     DEFAULT_DEBUG_COLLECT,
     CONF_COMFORT_LEARNING_ENABLED,
     DEFAULT_COMFORT_LEARNING_ENABLED,
+    CONF_COMPRESSOR_MODULATION,
+    COMPRESSOR_MODULATIONS,
+    COMPRESSOR_MODULATION_AUTO,
     CONF_TWO_ZONE_MODE,
     TWO_ZONE_MODES,
     TWO_ZONE_MODE_AUTO,
@@ -410,6 +460,8 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
+from . import heat_curve
+from .inputs import number_reading
 from . import (
     comfort_band,
     device_prefill,
@@ -561,6 +613,21 @@ def _money(
     return _number(0, maximum * money_scale(currency), step, f"{currency}{per}")
 
 
+def _combi_preset_fill(cleaned: dict[str, Any], stored: Mapping[str, Any]) -> dict[str, Any]:
+    """A combi type chosen in this save writes its preset's two numbers (#3225).
+
+    Only a CHANGED type pre-fills, so numbers edited under a kept type stand,
+    and "custom" pre-fills nothing: the type is the flow's shortcut to the
+    two numbers the model reads, never a branch below it.
+    """
+    kind = cleaned.get(CONF_DHW_COMBI_TANK_TYPE)
+    preset = COMBI_TANK_PRESETS.get(kind) if isinstance(kind, str) else None
+    if preset is not None and kind != stored.get(CONF_DHW_COMBI_TANK_TYPE, DEFAULT_DHW_COMBI_TANK_TYPE):
+        cleaned[CONF_COMBI_DHW_EFFECTIVENESS] = preset.effectiveness
+        cleaned[CONF_COMBI_POTABLE_VOLUME_L] = preset.potable_volume_l
+    return cleaned
+
+
 def _number(
     minimum: float,
     maximum: float,
@@ -655,6 +722,7 @@ RANGE_ZONE_HEAT_LOSS: Final = (0.001, 1.0)
 PRESET_WARNING: Final = {
     "en": "Deriving from the building type is switched on, so saving Building type and emitters recalculates the house thermal mass, heat loss, slab mass and slab transfer below (and the two-zone values) from the questionnaire, overwriting whatever is here. Changing any of those fields to a different value switches the derivation off, so your value stays; simply saving this page again does not.",
     "sv": "Härledning från hustypen är påslagen, så när sidan Hustyp och värmesystem sparas räknas husets värmekapacitet, värmeförlust, plattans termiska massa och värmeöverföring nedan (samt tvåzonsvärdena) om från formuläret och skriver över det som står här. Ändrar du något av de fälten till ett annat värde stängs härledningen av, så att ditt värde blir kvar; att bara spara sidan igen gör det inte.",
+    "de": "Die Ableitung aus dem Gebäudetyp ist eingeschaltet. Beim Speichern der Seite „Gebäudetyp und Heizflächen“ werden deshalb die thermische Masse des Hauses, der Wärmeverlust sowie die thermische Masse und der Wärmeübergang des Estrichs unten (und die Zweizonenwerte) aus dem Fragebogen neu berechnet und überschreiben, was hier steht. Änderst du eines dieser Felder auf einen anderen Wert, wird die Ableitung ausgeschaltet und dein Wert bleibt erhalten; die Seite nur erneut zu speichern, genügt dafür nicht.",
 }
 
 # Everything ``presets.derive`` writes into the entry, in the order the
@@ -1066,6 +1134,17 @@ def _select(options: list[str], translation_key: str) -> selector.SelectSelector
         selector.SelectSelectorConfig(
             options=options,
             translation_key=translation_key,
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
+def _meter_source_selector() -> selector.SelectSelector:
+    """Meter, vendor estimate, or read from the entity's id (R10-HOTFIX-COP-UNMEASURED)."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[METER_SOURCE_AUTO, METER_SOURCE_METER, METER_SOURCE_ESTIMATE],
+            translation_key="meter_source",
             mode=selector.SelectSelectorMode.DROPDOWN,
         )
     )
@@ -1552,11 +1631,16 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("learning_features", "Advanced learning features", _ADVANCED),
     _P("grid_connection", "Fuse and peak guards", _ADVANCED),
     _P("grid_fees", "Transfer fees and contract", _ADVANCED),
-    _P("heat_curve", "Heat curve control (ECL110)", _ADVANCED),
+    _P("heat_curve", "Heat curve control", _ADVANCED),
     # R10-FACTORY-RESET: an action behind a confirmation, not a settings page;
     # last, so no one meets it on the way to a setting.
     _P("factory_reset", "Reset to factory defaults", _ADVANCED),
 )
+
+
+def _heat_curve_persistent(config: Mapping[str, Any]) -> bool:
+    """Kind persistent's rows: shown once the stored kind is persistent."""
+    return config.get(CONF_HEAT_CURVE_TARGET_KIND) == HEAT_CURVE_KIND_PERSISTENT
 
 
 def _single_zone(config: Mapping[str, Any]) -> bool:
@@ -1569,6 +1653,21 @@ def _single_zone(config: Mapping[str, Any]) -> bool:
     entry follows the zone keys exactly as the solve does.
     """
     return not ThermalParameters.from_config(config).two_zone_enabled
+
+
+def _water_space_setpoint(config: Mapping[str, Any]) -> bool:
+    """Whether the space set-point is declared a water temperature (a flow or
+    a return target), the only unit the pump-duty arbiter writes a heating
+    flow for, so the only one its lift and ceiling mean anything on. Keyed
+    on the unit alone, as the wood block is on its toggle: the unit select
+    renders beside the entity picker whatever it holds. An unknown stored
+    unit is not a water unit here, as it is not to ``EntryConfig``, which
+    parses it to the indoor default.
+    """
+    return (
+        config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT)
+        in SPACE_SETPOINT_WATER_UNITS
+    )
 
 
 #: Every field the options flow presents, in the order each page renders them.
@@ -1589,14 +1688,33 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities", CONF_LOWER_FLOOR_TEMP_ENTITY, _STORED, _entity_of('sensor', 'temperature'), group="plant"),
     _F("entities", CONF_SPACE_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="indoor"),
     _F("entities", CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT, _select(list(SPACE_SETPOINT_UNITS), 'space_setpoint_unit'), group="indoor"),
+    # The two ends of the heating flow the arbiter writes (#1955,
+    # R10-SETPOINT-POWER), revealed once the entity is a water set-point:
+    # the lift over the measured inlet at the modulation floor, and the
+    # ceiling at full power. Their defaults are today's constants, so an
+    # untouched page stores neither (``_ABSENT_FALLBACKS``).
+    _F("entities", CONF_FLOW_MIN_LIFT_K, DEFAULT_FLOW_MIN_LIFT_K, _number(0.5, 15, 0.5, 'K'), when=_water_space_setpoint, group="indoor"),
+    # The ceiling's minimum sits above pump_arbiter.FLOW_GATE_C (25 °C): a
+    # ceiling at the gate would write "off" on every heating step.
+    _F("entities", CONF_FLOW_HEAT_C, DEFAULT_FLOW_HEAT_C, _number(30, 70, 0.5, '°C'), when=_water_space_setpoint, group="indoor"),
+    # Closing that flow on the measured draw (R10-WATER-SETPOINT-FEEDBACK):
+    # on by default, and it acts only where a power meter is configured too.
+    _F("entities", CONF_SPACE_SETPOINT_POWER_FEEDBACK, DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK, selector.BooleanSelector(), when=_water_space_setpoint, group="indoor"),
+    # The controller's own limits on that set-point, where it publishes them
+    # (a Smart Home Interface's inputs 10104 and 10103): the loop stays inside them.
+    _F("entities", CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
+    _F("entities", CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY, _STORED, _entity_of('sensor', 'temperature'), when=_water_space_setpoint, group="indoor"),
     # -- entities_metering
     _F("entities_metering", CONF_SOLAR_RADIATION_ENTITY, _STORED, _entity_of('sensor'), group="solar"),
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
     _F("entities_metering", CONF_SOLAR_LOCATION, _Computed(lambda cur, hass: _default_location(hass, cur)), _solar_location_selector(), group="solar"),
     _F("entities_metering", CONF_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
+    _F("entities_metering", CONF_POWER_SOURCE, DEFAULT_METER_SOURCE, _meter_source_selector(), group="meters"),
     _F("entities_metering", CONF_THERMAL_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
+    _F("entities_metering", CONF_THERMAL_POWER_SOURCE, DEFAULT_METER_SOURCE, _meter_source_selector(), group="meters"),
     _F("entities_metering", CONF_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
     _F("entities_metering", CONF_HEAT_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
+    _F("entities_metering", CONF_HEAT_METER_SEES_DHW, DEFAULT_HEAT_METER_SEES_DHW, selector.BooleanSelector(), group="meters"),
     _F("entities_metering", CONF_HOUSE_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_ENTITY, _STORED, _entity_of('number'), group="compressor"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency'), group="compressor"),
@@ -1695,6 +1813,11 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_FLOW_CURVE_COP_ENABLED, DEFAULT_FLOW_CURVE_COP_ENABLED, selector.BooleanSelector(), group="valve"),
     _F("building", CONF_BUFFER_TANK_VOLUME, DEFAULT_BUFFER_TANK_VOLUME, _number(10, 1500, 5, 'L'), group="buffer"),
     _F("building", CONF_BUFFER_MAX_TEMP, DEFAULT_BUFFER_MAX_TEMP, _number(40, 90, 1, '°C', slider=True), group="buffer"),
+    _F("building", CONF_DHW_COMBI_TANK_ENABLED, DEFAULT_DHW_COMBI_TANK_ENABLED, selector.BooleanSelector(), group="combi"),
+    _F("building", CONF_DHW_COMBI_TANK_TYPE, DEFAULT_DHW_COMBI_TANK_TYPE, _select([*COMBI_TANK_PRESETS, COMBI_TANK_CUSTOM], 'dhw_combi_tank_type'), group="combi"),
+    _F("building", CONF_COMBI_DHW_EFFECTIVENESS, DEFAULT_COMBI_DHW_EFFECTIVENESS, _number(0.1, 1.0, 0.01), group="combi"),
+    _F("building", CONF_COMBI_POTABLE_VOLUME_L, DEFAULT_COMBI_POTABLE_VOLUME_L, _number(0, 500, 1, 'L'), group="combi"),
+    _F("building", CONF_DHW_COMBI_LEGIONELLA_FORCE, DEFAULT_DHW_COMBI_LEGIONELLA_FORCE, selector.BooleanSelector(), group="combi"),
     _F("building", CONF_WOOD_FURNACE_ENABLED, _Computed(lambda cur, hass: wood_furnace_on(cur)), bool, group="wood"),
     _F("building", CONF_VALVE_OUTLET_TEMP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_TANK_TOP_ENTITY, _STORED, _entity_of(['sensor']), when=wood_furnace_on, group="wood"),
@@ -1719,6 +1842,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("thermal_model", CONF_HEAT_PUMP_COP_NOMINAL, _SUGGESTED, _number(1.5, 6.0, 0.1)),
     _F("thermal_model", CONF_HEAT_PUMP_MAX_POWER, _SUGGESTED, _number(1, 20, 0.5, 'kW')),
     _F("thermal_model", CONF_HEAT_PUMP_MIN_POWER, _SUGGESTED, _number(0, 10, 0.5, 'kW')),
+    _F("thermal_model", CONF_COMPRESSOR_MODULATION, _Suggested(COMPRESSOR_MODULATION_AUTO), _select(list(COMPRESSOR_MODULATIONS), 'compressor_modulation')),
     _F("thermal_model", CONF_HEAT_PUMP_COP_PARTLOAD_DERATE, _SUGGESTED, _number(0, MAX_HEAT_PUMP_COP_PARTLOAD_DERATE, 0.01)),
     # -- thermal_model_zones
     _F("thermal_model_zones", CONF_TWO_ZONE_MODE, _Suggested(TWO_ZONE_MODE_AUTO), _select(list(TWO_ZONE_MODES), 'two_zone_mode'), group="mode"),
@@ -1756,6 +1880,14 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("heat_curve", CONF_ECL110_DISPLACE_MIN, DEFAULT_ECL110_DISPLACE_MIN, _number(-30, 0, 0.5, '°C')),
     _F("heat_curve", CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX, _number(0, 30, 0.5, '°C')),
     _F("heat_curve", CONF_ECL110_PID_TIME_CONSTANT, DEFAULT_ECL110_PID_TIME_CONSTANT, _number(0.25, 6.0, 0.25, 'h')),
+    # R10-GENERIC-HEAT-CURVE: the same displace through a number entity. Not
+    # climate: its target is absolute, and a whole-curve offset is a difference.
+    _F("heat_curve", CONF_HEAT_CURVE_DISPLACE_ENTITY, _STORED, _entity_of(['number', 'input_number'])),
+    _F("heat_curve", CONF_HEAT_CURVE_TARGET_KIND, DEFAULT_HEAT_CURVE_TARGET_KIND, _select(list(HEAT_CURVE_TARGET_KINDS), 'heat_curve_target_kind')),
+    _F("heat_curve", CONF_HEAT_CURVE_OFFSET_BAND_K, DEFAULT_HEAT_CURVE_OFFSET_BAND_K, _number(*HEAT_CURVE_OFFSET_BAND_RANGE_K, 0.5, 'K')),
+    _F("heat_curve", CONF_HEAT_CURVE_PERSISTENT_BAND_K, DEFAULT_HEAT_CURVE_PERSISTENT_BAND_K, _number(*HEAT_CURVE_PERSISTENT_BAND_RANGE_K, 0.5, 'K'), when=_heat_curve_persistent),
+    _F("heat_curve", CONF_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY, DEFAULT_HEAT_CURVE_PERSISTENT_WRITES_PER_DAY, _number(*HEAT_CURVE_PERSISTENT_WRITES_PER_DAY_RANGE, 1, slider=True), when=_heat_curve_persistent),
+    _F("heat_curve", CONF_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES, DEFAULT_HEAT_CURVE_PERSISTENT_MIN_DWELL_MINUTES, _number(*HEAT_CURVE_PERSISTENT_MIN_DWELL_RANGE_MINUTES, 15, 'min', slider=True), when=_heat_curve_persistent),
     # -- building_preset
     _F("building_preset", "", _DYNAMIC, _questionnaire_fields, group="questionnaire"),
     _F("building_preset", CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED, bool, group="derivation"),
@@ -2163,6 +2295,53 @@ def _prefill_offer_stored(hass: HomeAssistant) -> bool:
     )
 
 
+async def _heat_curve_errors(hass: Any, submit: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
+    """T2: an offset entity whose own range excludes 0 is no offset.
+
+    A plausibility check, not proof: an absolute curve point is caught only
+    where its integration declares a range without 0. An entity with no state
+    at save time is not judged here (ghc-r08); the arm refuses it at every
+    write by the same rule (``heat_curve.range_excludes_zero``). Kind
+    persistent instead (P7, a check that stores nothing): the entity must
+    read a value inside its own range, the baseline its first write captures.
+    """
+    merged = {**current, **submit}
+    entity_id = merged.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
+    reading = number_reading(hass, entity_id) if entity_id else None
+    if entity_id and merged.get(CONF_HEAT_CURVE_TARGET_KIND) == HEAT_CURVE_KIND_PERSISTENT:
+        if reading is None or reading.value is None:
+            return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_unreadable"}
+        if heat_curve.outside_own_range(reading):
+            return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_out_of_range"}
+        return {}
+    if reading is not None and heat_curve.range_excludes_zero(reading):
+        return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_not_offset"}
+    return {}
+
+
+#: The entities the optimizer writes besides the heat-curve one (ghc-r03).
+_WRITTEN_ENTITY_KEYS = (
+    CONF_SPACE_SETPOINT_ENTITY,
+    CONF_DHW_SETPOINT_ENTITY,
+    CONF_MIXING_VALVE_WRITE_ENTITY,
+    CONF_COMPRESSOR_FREQ_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+)
+
+
+def _written_entity_collision(merged: Mapping[str, Any]) -> dict[str, str]:
+    """The heat-curve entity may not be one the optimizer writes for another purpose.
+
+    Judged over the save merged onto the stored config, on every page that
+    saves either half (``_page``) and on the pre-fill save, so the refusal holds
+    whichever half was saved last (ghc-r03).
+    """
+    entity_id = merged.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
+    if entity_id and any(merged.get(key) == entity_id for key in _WRITTEN_ENTITY_KEYS):
+        return {"base": "heat_curve_entity_in_use"}
+    return {}
+
+
 def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
     """The refusals of the pages the suggested keys live on, for this save.
 
@@ -2197,7 +2376,7 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
             _power_errors(saved, current) or _partload_errors(saved, current)
         ).values():
             errors["base"] = problem
-    return errors
+    return errors or _written_entity_collision({**current, **saved})
 
 
 def _omit_unstored_computed(
@@ -2243,12 +2422,15 @@ def _omit_unstored_computed(
 #: The DHW pair is presence-inferred (either key switches hot-water planning
 #: on); the wood trio and the wood-valve probe publish ``None`` while absent;
 #: the Tibber token could not be shown equivalent, and the initial flow
-#: always stores it. ``tests/config_flow_steps.py`` derives this whole set
-#: and fails when it moves.
+#: always stores it; the two set-point limit sensors are read only inside a
+#: running feedback loop, which no refresh of an idle install reaches, so
+#: their absence is not shown equivalent either. ``tests/config_flow_steps.py``
+#: derives this whole set and fails when it moves.
 _ABSENT_IS_NOT_DEFAULT: Final = frozenset({
     CONF_DHW_WINDOWS, CONF_DHW_TANK_VOLUME,
     CONF_WOOD_TYPE, CONF_WOOD_PACKING, CONF_WOOD_FURNACE_EFFICIENCY,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY, CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,
     CONF_TIBBER_TOKEN,
 })
 
@@ -3221,6 +3403,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             cleaned = _clear_absent(flat, step_id, merged) if clear else flat
             if check is not None:
                 errors = await check(cleaned, current)
+            errors = errors or _written_entity_collision(merged)
             if not errors:
                 return await self._save_or_menu(
                     finish(cleaned, merged) if finish is not None else cleaned
@@ -3285,9 +3468,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         labels = {step: self._MENU_LABELS[step] for step in self._ADVANCED_MENU}
         return self.async_show_menu(
             step_id="advanced",
-            menu_options=await _translated_menu(
-                self.hass, "options", "advanced", labels
-            ),
+            menu_options=await _translated_menu(self.hass, "options", "advanced", labels),
         )
 
     async def async_step_setup_overview(
@@ -3571,7 +3752,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             user_input,
             clear=True,
             check=self._plumbing_errors,
-            finish=self._building_wood_flag,
+            finish=self._building_finish,
         )
 
     async def _plumbing_errors(
@@ -3580,9 +3761,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         """The write-target kind (#398) and the flow-curve lift (#1067), validated."""
         errors: dict[str, str] = {}
         merged = {**current, **submit}
+        params = ThermalParameters.from_config(merged)
         if (
             submit.get(CONF_MIXING_VALVE_WRITE_TARGET_KIND) == mixing_valve.WRITE_TARGET_FLOW
-            and not ThermalParameters.from_config(merged).two_zone_enabled
+            and not params.two_zone_enabled
         ):
             errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
         elif submit.get(CONF_FLOW_CURVE_COP_ENABLED) and mixing_valve.is_throttling(
@@ -3592,7 +3774,14 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             # the priced flow; the model refuses the curve lift there too, so
             # saving it would be a switch that does nothing.
             errors[CONF_FLOW_CURVE_COP_ENABLED] = "flow_curve_needs_direct_plant"
+        if merged.get(CONF_DHW_COMBI_TANK_ENABLED) and not params.combi_tank_active:
+            # #3225: judged by the model's own predicate, never a copy of it.
+            errors[CONF_DHW_COMBI_TANK_ENABLED] = "combi_needs_store"
         return errors
+
+    def _building_finish(self, cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
+        """The wood flag, then the combi type's pre-fill of its two numbers."""
+        return _combi_preset_fill(self._building_wood_flag(cleaned, merged), self._current)
 
     @staticmethod
     def _building_wood_flag(cleaned: dict[str, Any], merged: dict[str, Any]) -> dict[str, Any]:
@@ -3641,12 +3830,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def async_step_heat_curve(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Danfoss ECL110 heat-curve offset control over MQTT."""
-        return await self._page("heat_curve", user_input)
-
-    # ------------------------------------------------------------------
-    # Option pages added in v2.8.0
-    # ------------------------------------------------------------------
+        """Heat-curve offset control: ECL110 over MQTT, or a number entity."""
+        return await self._page("heat_curve", user_input, clear=True, check=partial(_heat_curve_errors, self.hass))
 
     async def async_step_building_preset(
         self, user_input: dict[str, Any] | None = None
@@ -3709,15 +3894,10 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def _silent_window_errors(
         self, submit: dict[str, Any], _current: dict[str, Any]
     ) -> dict[str, str]:
-        errors: dict[str, str] = {}
         problem = dhw_spec_problem(submit[CONF_SILENT_MODE_WINDOWS])
-        if problem is not None:
-            errors[CONF_SILENT_MODE_WINDOWS] = (
-                "silent_mode_window_too_short"
-                if problem == DHW_ERROR_TOO_SHORT
-                else problem
-            )
-        return errors
+        if problem == DHW_ERROR_TOO_SHORT:
+            problem = "silent_mode_window_too_short"
+        return {} if problem is None else {CONF_SILENT_MODE_WINDOWS: problem}
 
     async def async_step_grid_fees(
         self, user_input: dict[str, Any] | None = None

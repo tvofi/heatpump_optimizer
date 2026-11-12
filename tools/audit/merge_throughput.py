@@ -47,6 +47,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from collections import Counter
@@ -61,6 +62,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "seat"))
 import review_strength as rs  # noqa: E402
 import roster_lib  # noqa: E402
+import pr_cap  # noqa: E402 -- the one owner of the in-progress WIP count
 
 
 def load_rows(paths: list[str]) -> list[dict]:
@@ -333,9 +335,56 @@ def self_test() -> int:
         check("one listing is one merge (null)", analyze(runs_from_gh(load_rows(paths[:1])))["merges"], 1)
 
     failures += flow_self_test()
+    failures += bottleneck_self_test()
 
     print(f"{'FAILED' if failures else 'ok'}: merge_throughput.py self-test")
     return 1 if failures else 0
+
+
+def bottleneck_self_test() -> int:
+    """The train-log reader's arms (proposal 2): a planted log with two batches,
+    the skip reasons classed, the running batch not done; the null control (a
+    log of no batch is UNAVAILABLE, never zero skips); and the literals the
+    reader keys on, pinned in the writer, `merge_train.py`."""
+    failures = 0
+
+    def check(name, got, want):
+        nonlocal failures
+        ok = got == want
+        failures += not ok
+        print(f"  {'ok  ' if ok else 'FAIL'} {name}" + ("" if ok else f": got {got!r}, want {want!r}"))
+
+    log = "\n".join((
+        "train.sh: queue=q.json repo=o/r state=s pid=1 start=2026-11-07T14:39:36Z",
+        "BATCH 20261107-143937 pid=2 base=main queue=3 (#11 #12 #13) --overlap --skip-bad",
+        "SKIP #11 ci: #11 red at the head: gate",
+        "SKIP #12 ci: #12 red at its head: gate",
+        "SKIP #13 merge: [BRANCH-POLICY] not merged after 1 attempt(s) at 6f9cfc89",
+        "SKIP REPORT: 3 skipped of 3",
+        "BATCH 20261107-143937-b2 pid=2 base=main queue=1 (#14) --overlap --skip-bad",
+        "#14 MERGED " + "a" * 40,
+        "SKIP REPORT: 3 skipped of 4",
+        "BATCH 20261107-155156 pid=3 base=main queue=2 (#15 #16) --overlap --skip-bad",
+        "SKIP #15 recarry: #15 main does not merge without a resolution"))
+    got = train_batches(log)
+    check("train: one row per BATCH banner, the tag UTC",
+          [(b["tag"], b["queue"], b["prs"], b["at"].isoformat()) for b in got],
+          [("20261107-143937", 3, [11, 12, 13], "2026-11-07T14:39:37+00:00"),
+           ("20261107-143937-b2", 1, [14], "2026-11-07T14:39:37+00:00"),
+           ("20261107-155156", 2, [15, 16], "2026-11-07T15:51:56+00:00")])
+    check("train: skips by batch, the reason classed without numbers or shas",
+          [b["skips"] for b in got],
+          [[(11, "ci: red at the head: gate"), (12, "ci: red at the head: gate"),
+            (13, "merge: BRANCH-POLICY")], [],
+           [(15, "recarry: main does not merge without a resolution")]])
+    check("train: SKIP REPORT closes a batch; the running one is not done",
+          [b["done"] for b in got], [True, True, False])
+    check("train null control: a log with no BATCH line is UNAVAILABLE, never zero",
+          train_batches("train.sh: queue=q.json\nTRAIN DONE"), [])
+    src = (Path(__file__).resolve().parent / "seat" / "merge_train.py").read_text(encoding="utf-8")
+    for lit in TRAIN_LOG_LITERALS:
+        check(f"train: the writer still prints {lit[:40]!r}...", lit in src, True)
+    return failures
 
 
 def flow_self_test() -> int:
@@ -490,6 +539,23 @@ def flow_self_test() -> int:
         # C/tooling from the roster's own lane, everything else B.
         check("flow: WIP by flow lane", flow_wip(roster, ctx.critical),
               {"A": 1, "B": 0, "C": 0, "F": 1})
+        # 6 -- merge-wait (proposal 2): #1's merge verdict at 01:50 at its
+        # head, merged at 02:00; the three merges with no verdict are unmatched.
+        mw = flow_merge_wait(ctx, a, b)[0]
+        check("merge-wait: verdict to merge, at head; no verdict is unmatched",
+              ([(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], mw[1]),
+              ([(1, 0.17, True)], 3))
+        # its perturbation: a verdict after the merge is not the one it waited on
+        verdict(1, "merge", "f" * 40, T(4))
+        mw = flow_merge_wait(ctx, a, b)[0]
+        check("merge-wait: a verdict after the merge is not read",
+              [(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], [(1, 0.17, True)])
+        # and one: the latest verdict before the merge named another head (a
+        # recarry moved it): its wait is read, and it is not at the merged head
+        verdict(1, "merge", "e" * 40, T(1, 55))
+        mw = flow_merge_wait(ctx, a, b)[0]
+        check("merge-wait: a verdict on another head is read, not at head",
+              [(r["pr"], r["hours"], r["at_head"]) for r in mw[0]], [(1, 0.08, False)])
 
         # PERTURBATION 1 -- the record key is `record_prefix`, not a name.
         ctx_fix = replace(ctx, record_prefix="fix/")
@@ -957,7 +1023,7 @@ def _bus_verdicts(ctx: FlowCtx):
         if not m:
             continue
         out.append((int(m.group(1)), rs.when(stamp), m.group(2),
-                    m.group(4) or ""))
+                    m.group(4) or "", m.group(3)))
     out.sort(key=lambda v: v[1])
     return out
 
@@ -1086,6 +1152,137 @@ def critical_of(repo: Path, roster_ref: str | None, roster: dict | None) -> set 
     `critical_read`.
     """
     return critical_read(repo, roster_ref, roster)[0] or None
+
+
+# ------------------------------------------- the merge bottleneck (proposal 2)
+#
+# tvofi 2026-11-07, proposal 2: flow metrics on the plan page and an alert on
+# a bottleneck. Two measures the board lacked, for the bottleneck of the day:
+# how long a PR waits between its merge verdict and its merge, and how many
+# entries of a merge-train batch it skips, and why. Both are read here so the
+# page and the alert import one computation.
+
+def flow_merge_wait(ctx: FlowCtx, a: datetime, b: datetime):
+    """Per pull request merged into the tree in [a, b]: the hours from its
+    latest `merge` verdict on the bus at or before the merge to the merge.
+
+    `at_head` says whether that verdict named the merged head (False when a
+    recarry moved the head and the train carried the verdict). A merge with no
+    merge verdict before it (a record or autofix pull request) is counted as
+    unmatched, never as a zero wait.
+    """
+    moves = flow_moves(ctx, a, b)
+    if moves[0] is None:
+        return moves
+    try:
+        verdicts = _bus_verdicts(ctx)
+    except OSError as e:
+        return _na(f"bus unreadable: {e}")
+    if verdicts is None:
+        return _na("no review/verdict bus refs")
+    by_pr: dict = {}
+    for v in verdicts:
+        if v[2] == "merge":
+            by_pr.setdefault(v[0], []).append(v)
+    rows, unmatched = [], 0
+    for move in moves[0]["moves"]:
+        before = [v for v in by_pr.get(move["pr"], []) if v[1] <= move["t"]]
+        if not before:
+            unmatched += 1
+            continue
+        last = before[-1]
+        rows.append({"pr": move["pr"], "kind": move["kind"],
+                     "hours": round((move["t"] - last[1]).total_seconds() / 3600, 2),
+                     "at_head": last[4] == move["head"], "merged": move["t"]})
+    return _ok((rows, unmatched))
+
+
+#: The train log's lines, as `merge_train.py` writes them (`Train.batch`'s
+#: banner and `Train.skip`); the self-test pins each literal in that file.
+TRAIN_BATCH_RE = re.compile(
+    r"^BATCH (\d{8}-\d{6})(-b\d+)? pid=\d+ base=\S+ queue=(\d+) \(([^)]*)\)")
+TRAIN_SKIP_RE = re.compile(r"^SKIP #(\d+) ([a-z-]+): (.*)$")
+TRAIN_DONE_PREFIX = "SKIP REPORT: "
+TRAIN_LOG_LITERALS = ('f"BATCH {tag} pid={os.getpid()} base={self.base} queue={len(queue)} "',
+                      'self.log(f"SKIP #{pr} {phase}: " + (f"[{cls}] {why}" if cls else why))',
+                      'self.log(f"SKIP REPORT: {len(self.skipped)} skipped of {total}")')
+
+
+def skip_reason(phase: str, why: str) -> str:
+    """A skip's reason class: the phase, then the bracketed block class when the
+    train named one, else the reason with its PR numbers and shas dropped."""
+    m = re.match(r"\[([A-Z-]+)\]", why)
+    if m:
+        return f"{phase}: {m.group(1)}"
+    text = re.sub(r"#\d+\s*", "", why)
+    text = re.sub(r"\b[0-9a-f]{7,40}\b", "<sha>", text)
+    text = re.sub(r"\b(its|the) head\b", "the head", text)
+    return f"{phase}: {' '.join(text.split())[:60]}"
+
+
+def train_batches(text: str) -> list:
+    """Every batch in a train log, oldest first: its tag, start (the tag is
+    UTC), queue size and PRs, the skips logged before the next batch --
+    `(pr, reason class)` each -- and `done`, set by the batch's closing
+    `SKIP REPORT` line: a batch still running has no skip share yet."""
+    out = []
+    for line in text.splitlines():
+        m = TRAIN_BATCH_RE.match(line)
+        if m:
+            at = datetime.strptime(m.group(1), "%Y%m%d-%H%M%S").replace(tzinfo=timezone.utc)
+            out.append({"tag": m.group(1) + (m.group(2) or ""), "at": at,
+                        "queue": int(m.group(3)),
+                        "prs": [int(x) for x in re.findall(r"#(\d+)", m.group(4))],
+                        "skips": [], "done": False})
+            continue
+        if line.startswith(TRAIN_DONE_PREFIX) and out:
+            out[-1]["done"] = True
+            continue
+        m = TRAIN_SKIP_RE.match(line)
+        if m and out:
+            out[-1]["skips"].append((int(m.group(1)), skip_reason(m.group(2), m.group(3))))
+    return out
+
+
+def read_train_batches(log: Path | None):
+    """`train_batches` of the log at `log`, UNAVAILABLE when it cannot be read."""
+    if log is None:
+        return _na("no train log named")
+    try:
+        text = log.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        return _na(f"train log unreadable: {type(e).__name__}")
+    batches = train_batches(text)
+    return _ok(batches) if batches else _na("the train log holds no BATCH line")
+
+
+#: The windows the bottleneck measures use (proposal 2's thresholds name them).
+BOTTLENECK_HOURS = {"throughput": 6.0, "yield": 24.0, "merge_wait": 24.0}
+SKIP_BATCHES = 2
+
+
+def bottleneck_metrics(ctx: FlowCtx, until: datetime | None, train_log: Path | None,
+                       wip_cap: int) -> dict:
+    """The flow metrics the plan page draws and the bottleneck alert judges,
+    each `(value, reason)` and UNAVAILABLE as a None value, never a zero:
+    throughput over 6 h against takt, first-pass yield and the blocked-class mix
+    over 24 h, lead time per size over 24 h, in-progress WIP against `wip_cap`,
+    merge-wait per PR over 24 h, and the train's batches."""
+    out: dict = {"until": until, "wip_cap": wip_cap, "takt": TAKT_PER_HOUR}
+    if until is None:
+        why = "no window end: no readable ref tip"
+        for k in ("closed", "yield", "classes", "lead", "merge_wait"):
+            out[k] = _na(why)
+    else:
+        h = BOTTLENECK_HOURS
+        out["closed"] = flow_closed(ctx, until - timedelta(hours=h["throughput"]), until)
+        day = period(ctx, until - timedelta(hours=h["yield"]), until)
+        out["yield"], out["classes"], out["lead"] = day["yield"], day["classes"], day["lead"]
+        out["merge_wait"] = flow_merge_wait(ctx, until - timedelta(hours=h["merge_wait"]), until)
+    out["wip"] = (_na(ctx.roster_unavailable or "roster unreadable") if ctx.roster is None
+                  else _ok(pr_cap.wip_groups(ctx.roster)))
+    out["batches"] = read_train_batches(train_log)
+    return out
 
 
 def period(ctx: FlowCtx, a: datetime, b: datetime) -> dict:

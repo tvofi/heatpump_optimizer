@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import sys
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "ci"))
@@ -46,23 +47,62 @@ def pr_of(run):
     return parts[2] if len(parts) > 2 else ""
 
 
+#: The item ceiling ghapi.MAX_PAGES gives at 100 a page, kept at every page size.
+MAX_ITEMS = ghapi.MAX_PAGES * 100
+
+
 def pages(get, path, params):
     """Every item, paged by `page=` rather than the Link header (whose
-    repositories/<id> form some proxies refuse); ghapi.paginate's one-list rule."""
-    out = []
-    for n in range(1, ghapi.MAX_PAGES + 1):
-        st, _, doc = get(path, dict(params, per_page=100, page=n))
-        if st != 200 or not isinstance(doc, dict):
-            raise ghapi.ApiError(path, st, "")
-        items = next(v for v in doc.values() if isinstance(v, list))
-        out += items
-        if len(items) < 100:
-            return out
-    raise ghapi.ApiError(path, 200, "too many pages")
+    repositories/<id> form some proxies refuse); ghapi.paginate's one-list rule.
+    ghapi.get already retries a 5xx twice with backoff; one that persists
+    (run 40126133450: page 2 of per_page=100 answered 502, per_page=30 answered
+    200) restarts the listing at the next smaller page size; a 4xx raises.
+    Each size is bounded by MAX_ITEMS items, not MAX_PAGES pages: at 30 a page
+    MAX_PAGES is 1500 items, and a re-run run lists every attempt's jobs (run
+    42454528717: 1760)."""
+    for size in (100, 30):
+        out = []
+        for n in range(1, -(-MAX_ITEMS // size) + 1):
+            st, _, doc = get(path, dict(params, per_page=size, page=n))
+            if st >= 500 and size != 30:
+                break
+            if st != 200 or not isinstance(doc, dict):
+                raise ghapi.ApiError(path, st, "")
+            items = next(v for v in doc.values() if isinstance(v, list))
+            out += items
+            if len(items) < size:
+                return out
+        else:
+            raise ghapi.ApiError(path, 200, "too many pages")
+    raise AssertionError("unreachable")
 
 
-def jobs_all(get, rid):
-    return pages(get, f"repos/{REPO}/actions/runs/{rid}/jobs", {"filter": "all"})
+def jobs_all(get, rid, attempts=1):
+    """Every attempt's jobs. A run whose `filter=all` listing GitHub cannot page (run
+    42425147012, 16 attempts and 640 jobs: pages 2-6 answer HTTP 502 on every read) is read
+    one attempt at a time instead."""
+    try:
+        return pages(get, f"repos/{REPO}/actions/runs/{rid}/jobs", {"filter": "all"})
+    except ghapi.ApiError as e:
+        if e.status < 500:
+            raise
+        return [j for n in range(1, attempts + 1)
+                for j in pages(get, f"repos/{REPO}/actions/runs/{rid}/attempts/{n}/jobs", {})]
+
+
+CAP = 1000      # GitHub lists at most 1000 runs for a filtered query, silently
+
+
+def windows(since, until, days=1):
+    """[since, until) cut into `days`-long windows, so no listing reaches CAP unseen."""
+    def utc(x):
+        d = datetime.fromisoformat(x.replace("Z", "+00:00"))
+        return d if d.tzinfo else d.replace(tzinfo=timezone.utc)      # a bare date (--since 2026-10-22) is UTC
+    t, end = utc(since), utc(until)
+    while t < end:
+        nxt = min(t + timedelta(days=days), end)
+        yield t.strftime("%Y-%m-%dT%H:%M:%SZ"), nxt.strftime("%Y-%m-%dT%H:%M:%SZ")
+        t = nxt
 
 
 def measure(runs, jobs_of):
@@ -134,14 +174,83 @@ def selftest():
     want = dict(inverted=2, ordered=1, red_inverted=1, red_ordered=0, red_attempts=3, rerun=2, fresh=1, carried=1)
     bad = [k for k, v in want.items() if o[k] != v]
     rows_ok = [r[6] for r in o["rows"]] == [True, False]
-    print(f"selftest: {len(want) + 1} checks, {len(bad) + (not rows_ok)} failed{' ' + str(bad) if bad else ''}")
-    return 1 if bad or not rows_ok else 0
+    w = list(windows("2026-11-01", "2026-11-03T12:00:00Z"))
+    want_w = [("2026-11-01T00:00:00Z", "2026-11-02T00:00:00Z"), ("2026-11-02T00:00:00Z", "2026-11-03T00:00:00Z"),
+              ("2026-11-03T00:00:00Z", "2026-11-03T12:00:00Z")]
+    if w != want_w:
+        bad.append(f"windows: {w}")
+
+    def flaky(path, params):              # the 42425147012 shape: filter=all cannot page, per attempt can
+        if path.endswith("/runs/5/jobs"):
+            return (200, {}, {"jobs": [{}] * 100}) if params.get("page") == 1 else (502, {}, {})
+        if "/runs/5/attempts/" in path:
+            return 200, {}, {"jobs": [{"name": path.split("/")[-2]}]}
+        return 404, {}, {}
+
+    def caught(f):                         # a check whose call raises fails, it does not end the selftest
+        try:
+            return f()
+        except ghapi.ApiError as e:
+            return e
+    if caught(lambda: [j["name"] for j in jobs_all(flaky, 5, 3)]) != ["1", "2", "3"]:
+        bad.append("jobs_all: no per-attempt read after a 5xx")
+    try:
+        jobs_all(lambda path, params: (200, {}, {"jobs": []}) if "/attempts/" in path else (404, {}, {}), 5, 3)
+        bad.append("jobs_all: a 4xx was read around")
+    except ghapi.ApiError:
+        pass
+    calls = []
+
+    def fake(fail_p2_at):
+        def get(path, params):
+            calls.append((params["per_page"], params["page"]))
+            n, size = params["page"], params["per_page"]
+            if size == fail_p2_at and n == 2:
+                return 502, {}, {}
+            if path == "404":
+                return 404, {}, {}
+            total = 150
+            return 200, {}, {"jobs": list(range((n - 1) * size, min(n * size, total)))}
+        return get
+    got = caught(lambda: pages(fake(100), "x", {}))
+    pages_ok = got == list(range(150)) and calls == [(100, 1), (100, 2)] + [(30, i) for i in range(1, 7)]
+    calls.clear()
+    clean_ok = caught(lambda: pages(fake(0), "x", {})) == list(range(150)) and calls == [(100, 1), (100, 2)]
+    calls.clear()
+    try:
+        pages(fake(0), "404", {})
+        null_ok = False
+    except ghapi.ApiError as e:
+        null_ok = e.status == 404 and len(calls) == 1
+    # carry 5: the measured server, a 502 for any page over 50 jobs, serving 70 jobs.
+    asked = []
+
+    def server(total):
+        def get(path, params):
+            asked.append(params["per_page"])
+            if params["per_page"] > 50:
+                return 502, {}, None
+            lo = (params["page"] - 1) * params["per_page"]
+            return 200, {}, {"jobs": list(range(total))[lo:lo + params["per_page"]]}
+        return get
+
+    def paged(total):
+        asked.clear()
+        return caught(lambda: pages(server(total), "repos/o/r/actions/runs/1/jobs", {"filter": "all"}))
+    over50_ok = paged(70) == list(range(70)) and asked == [100, 30, 30, 30]
+    # run 42454528717's 1760 jobs, every attempt listed, behind the same 502 at 100 a page.
+    many_ok = paged(1760) == list(range(1760)) and asked == [100] + [30] * 59
+    pg = dict(fallback=pages_ok, clean=clean_ok, **{"4xx": null_ok}, over50=over50_ok, many1760=many_ok)
+    pbad = [k for k, v in pg.items() if not v]
+    print(f"selftest: {len(want) + 4 + len(pg)} checks, {len(bad) + (not rows_ok) + len(pbad)} failed"
+          f"{' ' + str(bad) if bad else ''}{'' if rows_ok else ' rows'}{' pages' + str(pbad) if pbad else ''}")
+    return 1 if bad or not rows_ok or pbad else 0
 
 
 def main(argv):
     ap = argparse.ArgumentParser()
     ap.add_argument("--since")
-    ap.add_argument("--until", default="*")
+    ap.add_argument("--until")
     ap.add_argument("--rows", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args(argv)
@@ -149,15 +258,22 @@ def main(argv):
         return selftest()
     if not a.since:
         ap.error("--since is required")
-    runs = pages(ghapi.get, f"repos/{REPO}/actions/workflows/ci.yml/runs",
-                 {"created": f"{a.since}..{a.until}", "event": "pull_request"})
+    until = a.until or datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    runs = []
+    for lo, hi in windows(a.since, until):
+        got = pages(ghapi.get, f"repos/{REPO}/actions/workflows/ci.yml/runs",
+                    {"created": f"{lo}..{hi}", "event": "pull_request"})
+        if len(got) >= CAP:
+            raise SystemExit(f"REFUSE {lo}..{hi} lists {len(got)} runs, GitHub's cap: a narrower window is owed")
+        runs += [r for r in got if r["id"] not in {x["id"] for x in runs}]   # a boundary second is in both
+    attempts = {r["id"]: r.get("run_attempt", 1) for r in runs}
     cache = {}
 
     def jobs_of(i):
         if i not in cache:
-            cache[i] = jobs_all(ghapi.get, i)
+            cache[i] = jobs_all(ghapi.get, i, attempts.get(i, 1))
         return cache[i]
-    print(f"ci.yml pull_request runs created {a.since}..{a.until}: {len(runs)}")
+    print(f"ci.yml pull_request runs created {a.since}..{until}: {len(runs)}")
     report(measure(runs, jobs_of), a.rows)
     return 0
 

@@ -23,3 +23,5 @@
   Refusal: an empty, padded or multi-line title, before any read; an open
   pull request whose live body the contract refuses under the new title;
   the same head, read-back and retry refusals as the body path.
+A Dependabot pull request's commit list (`gh api pulls/<n>/commits`) reaches policy_lint as
+`--commits-file`; a list that cannot be read refuses.

@@ -249,10 +249,12 @@ audited.
 
 ### Language and currency
 
-Every string the card draws lives in one table inside the card file, in English
-and Swedish — the same keys in both languages, with no Swedish entry missing.
+Every string the card draws lives in one table inside the card file, in English,
+Swedish and German — the same keys in every language, with no translated entry
+missing.
 The active
-language follows `hass.language`, so `sv-SE` selects Swedish and any language
+language follows `hass.language`, so `sv-SE` selects Swedish, `de-DE` (or
+`de-AT`, `de-CH`) selects German, and any language
 without a dictionary renders in English; a key missing from a translation falls
 back to its English text rather than to a blank. Switching the Home Assistant
 language re-renders the card without a reload. Times in axis labels and slot
@@ -263,7 +265,8 @@ names, reason codes, and the messages the card writes to the browser console.
 Those are contracts, not prose.
 
 The default title is localized too, so a Swedish install shows
-*Värmepumpsplan* where an English one shows *Heat pump plan*. Set `title:`
+*Värmepumpsplan* and a German one *Wärmepumpenplan* where an English one shows
+*Heat pump plan*. Set `title:`
 yourself and yours wins in every language.
 
 Prices are labelled with the first currency the card can find:
@@ -562,7 +565,13 @@ month is an estimate until it closes, and is badged as one; a month with no
 settled rows yet says so in words rather than drawing an empty table. The
 baseline has no wood, so where wood is configured the receipt and the table
 both say the saving includes heat from wood and that firewood's cost is not
-counted.
+counted. On a wood house the baseline is scaled to the meter over the hours
+wood did not heat, and only where too few of those were metered is it scaled
+by the whole month, upwards only. A month whose booked baseline used under
+half the energy the meter recorded (`METER_FLOOR` in `ledger.py`, over at least
+1 kWh metered) keeps its two columns and states no saving, with the reason in
+the table and on the receipt. That is a low-side check, not a validation of
+the figure: a baseline above it can still be wrong.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/savings-dark.png">
@@ -667,8 +676,10 @@ empty table is drawn.
 
 The **Health** tab answers "is the plan running on good data?" in one screen,
 and the dialog's header carries a pill that says the same on every tab: **All
-inputs fresh**, or **1 input stale** / **N inputs stale** in the warn colour.
-The pill appears once the **Input Problem** sensor has a state.
+inputs fresh**, or **1 input problem** / **N input problems** in the warn
+colour. It counts every input the **Input Problem** sensor lists,
+whatever the problem (stale, unavailable, out of range, ...); the input's row
+on the Health page names which. The pill appears once that sensor has a state.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/health-dark.png">
@@ -943,7 +954,7 @@ series:                                  # optional, initial per-series visibili
 | Option         | Type    | Default                        | Description |
 |----------------|---------|--------------------------------|-------------|
 | `type`         | string  | —                              | Must be `custom:heatpump-optimizer-card`. |
-| `title`        | string  | localized                      | Card header text. Left out, it is the built-in default for the frontend language (`Heat pump plan`, `Värmepumpsplan`). An explicit empty string renders no header text. |
+| `title`        | string  | localized                      | Card header text. Left out, it is the built-in default for the frontend language (`Heat pump plan`, `Värmepumpsplan`, `Wärmepumpenplan`). An explicit empty string renders no header text. |
 | `space_entity` | string  | `sensor.heat_pump_optimizer_plan_space_heating`, else auto-detected | Entity id of the space-heating plan sensor (its `forecast` attribute supplies `price`, `outdoor`, `space_power`, `room`, `upper`, `lower`). |
 | `dhw_entity`   | string  | `sensor.heat_pump_optimizer_plan_dhw_heating`, else auto-detected | Entity id of the DHW plan sensor (its `forecast` attribute supplies `dhw_power`, `dhw_temp`, the `dhw_temp_lo`/`dhw_temp_hi` expected-error band, and `price`/`outdoor` fallbacks). |
 | `solar_entity` | string  | `sensor.heat_pump_optimizer_solar_irradiance`, else auto-detected | Entity id of the solar irradiance sensor (its `forecast` attribute supplies `ghi`). |

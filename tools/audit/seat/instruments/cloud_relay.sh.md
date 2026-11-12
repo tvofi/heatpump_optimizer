@@ -62,8 +62,9 @@
   `cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]` is the
   orchestrator's whole beat as ONE entry point (it replaces the session-local
   `relay_watch.sh`): a driver calls it once per tick, or `--loop` repeats it
-  (default every 120 s). A pass runs the handoff arm, then the relay arm above,
-  then with `--confirm` the confirm arm, then the stuck arm. Stuck arm (a
+  (default every 120 s). A pass takes the one open-PR listing, then runs the relay arm above,
+  then with `--confirm` the confirm arm, then the handoff arm (its serial updates
+  come after a returned verdict is posted), then the stuck arm. Stuck arm (a
   report-only trial, triage P163): each branch lock held now whose recorded
   start epoch is older than `HPO_PUSH_STUCK_SECS` (default 900) prints
   `STUCK <branch> <pid> <age>s` (the lock's name, the run's pid) and is
@@ -141,11 +142,13 @@
   left unapplied while its body tip is newer than the PR head's commit) are
   published before the serial update loops, so a slow update cannot delay them.
   A failed update is noted in `cloud-handoff-failed` by
-  `<topic> <code-sha>` (a body-only one by `<topic> <code-sha> <body-sha>`, so
-  a new body re-triggers it), its reason, the update's last `REFUSE` line else
+  `<topic> <code-sha> <body-sha>` (so a new body re-triggers it), its reason, the update's last `REFUSE` line else
   its last line, kept beside it in `cloud-handoff-failed.why` (tab-separated),
   owed as `OWED <utc> handoff-update <ref> <sha> <why>` (the `<why>` is the line kept in `cloud-handoff-failed.why`) in `<log>.level` while
-  that entry matches, and retried only when the handoff (or body) moves. The
+  that entry matches, and retried only when the handoff (or body) moves, except a
+  refusal that is not of a body-content step (`ancestry reds`, `ci predict`): it reruns after
+  `HPO_RELAY_RETRY_BACKOFF` (1800 s), three runs at most (`cloud-handoff-failed.tries`), and is then
+  recorded and owed as above. A refusal of `unpinned sites`, `carry`, `figures` or the body contract is recorded at once. The
   update's output is held in a file until it ends, then replayed to the
   relay's stderr. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
@@ -182,3 +185,15 @@
   Confirm arm (P332): a relayed `review/<pr>` whose PR is not in the pass's
   open-PR listing prints `confirm skip #<pr>: not open` once and is settled,
   owed nothing; a failed listing skips nothing.
+  Handoff verdict arm (R10-DISPATCH-AT-HANDOFF Carry 0): `probe/revt-<topic>-<n8>` is a verdict
+  returned before the PR opened. With no `bus.sh rekey` yet it prints `HELD-NOPR` and is owed on
+  the level as `handoff-verdict-held` (never posted); once re-keyed it is relayed only when
+  `review_carry.py <handoff head> <PR head>` answers CARRY, else `HELD-STALE` names
+  `bus.sh dispatch <pr> <head>` and the ref is refused until disposed. `HPO_RELAY_PRHEAD` and
+  `HPO_RELAY_CARRY` replace the head read and the carry command (self-test stubs).
+  Pending-CI drafts (R10-CLOUD-POOL carry 5, moved to R10-DISPATCH-AT-HANDOFF): a verdict with a
+  `pending-ci: <why>` line (a reviewer whose review is done while CI at the head is pending) posts
+  only when `merge_train.py classify` reads the head GREEN; WAIT holds it (rc 75, one
+  `HELD-PENDING-CI` line, retried next pass), RED refuses it, and a PR head that moved since the
+  draft refuses it naming both heads. `HPO_RELAY_CLASSIFY` replaces the command. A fired session
+  with no return ref after the bounded window is `SEAT ENDED NO RETURN` (the no-return arm above).

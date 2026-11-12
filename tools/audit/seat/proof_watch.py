@@ -118,6 +118,20 @@ def parse_verdict(first: str) -> "tuple[str, str] | None":
     return None
 
 
+#: The nonce line bus.sh `dispatch` prints and a verdict carries, read as bus.sh's
+#: `verdict_nonce` reads it: the first WHOLE `bus-nonce: <32 hex>` line. Whole-line,
+#: so a finding quoting another round's nonce in prose is not this text's (PR 2465's
+#: merge verdict quotes round 2's). The one Python reader: cloud_dispatch.py and
+#: merge_train.py's stale-verdict guard call it, never a copy.
+NONCE_LINE = re.compile(r"^bus-nonce: ([0-9a-f]{32})$", re.M)
+
+
+def verdict_nonce(text: str) -> "str | None":
+    """The 32-hex nonce of the first whole `bus-nonce:` line in <text>, or None."""
+    m = NONCE_LINE.search(text)
+    return m.group(1) if m else None
+
+
 def _json_docs(raw: str) -> list:
     """What `gh api` prints: concatenated JSON documents, an array per page
     (plain --paginate) or one object per line (--jq '.check_runs[]')."""
@@ -397,7 +411,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--mode", choices=("app", "owner"), default="app",
                     help="the merge identity merge_pr.sh is handed (default %(default)s)")
     ap.add_argument("--mandate", default="",
-                    help="owner mode: the #201 mandate comment id merge_pr.sh reads live")
+                    help="owner mode: the record-issue mandate comment id merge_pr.sh reads live")
     ap.add_argument("--dry-run", action="store_true", help="run every guard, touch nothing")
     a = ap.parse_args(argv)
     if a.self_test:

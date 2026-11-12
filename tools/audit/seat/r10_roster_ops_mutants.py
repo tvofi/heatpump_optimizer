@@ -35,17 +35,22 @@ Plants, one per refusal of the two ops and per round-trip property:
          read (K8), and set-resume --field stage bypassing it (K9); a move
          to a closed group (K10), a value holding `]` (K11), and an
          unreadable cut-over read as no legacy by set-stage (K12).
-  L1-L6  roster_lib's predicate, under roster_lib.py --self-test: marks
+  L1-L8  roster_lib's predicate, under roster_lib.py --self-test: marks
          ignored (L1), legacy ignored (L2), every group's carries legacy at
          the cut-over (L3), absorbed not closed (L4), closing never
-         downgrades (L5), a mark read anywhere in the text (L6).
-  Y1-Y6  roster_sync: the merge bypassing the shared rule (Y1), an
+         downgrades (L5), a mark read anywhere in the text (L6), a carry
+         routed to a carries-open or refuted group (L7) or a sink (L8).
+  Y1-Y5  roster_sync: the merge bypassing the shared rule (Y1), an
          unreadable cut-over read as no legacy (Y2), the write path's
          re-derive without the legacy set (Y3), apply_plan writing the
-         stage without it (Y4), and the dry run's (Y5) and the write path's
-         (Y6) projection without it, which decides a same-pass Carry:.
+         stage without it (Y4), and the dry run's (Y5) projection without it,
+         which names a same-pass Carry:'s refusal. Y6, the write path's
+         projection without it, is retired as equivalent: since
+         R10-CARRY-SINK-BARRIER both stages it chooses between (done,
+         carries-open) refuse the carry, and the write path drops the
+         refusal text, so no output moves.
   R1-R5  carry_audit's roster arm: closed-only issues unreported (R1),
-         unlisted issues unreported (R2), #201 reported (R3), absorbed_into
+         unlisted issues unreported (R2), a record issue reported (R3), absorbed_into
          unnamed (R4), pull requests read as issues (R5).
   S1-S7  the vocabulary barrier (R10-ORCH-ROSTER-SCHEMA): each of the three
          stage-writing ops losing its classification check (S1 set-stage, S2
@@ -67,6 +72,12 @@ Plants, one per refusal of the two ops and per round-trip property:
            naming no live group (W12, W13) or needing none (W14), and a phase
            branch unresolved in roster_lib.group_for_branch (W15).
 
+    W18 append-carry's refusal of text already ending in a mark.
+    U1-U6 orchestrator_tick's roster_invariants never reads an unreadable
+           tool as clean: the guard dropped (U1), its rc arm (U2) or its
+           summary arm (U3) alone, the OSError branch silent (U4) or not
+           catching at all (U5), and a non-JSON issue list still passing
+           --open-issues (U6).
     W16-W17 the lane marker on structural ops (carry 15): the guard dropped
            (W16) and set-stage wrongly made structural (W17); Q13 is the
            queue runner not setting it.
@@ -107,6 +118,8 @@ LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
                     "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
 _MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
                    if ln.startswith("_CARRY_MARK = ")), "_CARRY_MARK missing")
+TICK = "tools/audit/seat/orchestrator_tick.py"
+RI_UNREAD = '            self.unreadable(S, "roster invariants"'
 DETACHED = ('g = next((x for x in roster.get("groups", []) '
             'if x.get("group") == group), {})')
 
@@ -175,7 +188,7 @@ PLANTS = {
            "                legacy = {}  # K8\n"),
     "K9": ('        value = _closing(g, value, legacy, "set-resume")\n',
            "        pass  # K9\n"),
-    "K10": ("        if stage in roster_lib.CARRY_CLOSED:\n",
+    "K10": ("        if not roster_lib.carry_receivable(dest):\n",
             "        if False:  # K10\n"),
     "K11": ('    if "]" in arg:\n', "    if False:  # K11\n"),
     "K12": ('raise Refuse(f"the carry cut-over is unreadable, so no "\n'
@@ -194,6 +207,10 @@ PLANTS = {
     # L6 reads the mark's grammar from roster_lib's own line: a second
     # spelling of it here would be the grammar written twice (agreement.mjs).
     "L6": (LIB, _MARK_LINE, _MARK_LINE.replace('\\Z")', '")') + "  # L6"),
+    "L7": (LIB, 'CARRY_DEST_CLOSED = CARRY_CLOSED + ("carries-open", "refuted")\n',
+           "CARRY_DEST_CLOSED = CARRY_CLOSED  # L7\n"),
+    "L8": (LIB, '    return res.get("stage") not in CARRY_DEST_CLOSED and not sink\n',
+           '    return res.get("stage") not in CARRY_DEST_CLOSED  # L8\n'),
     "Y1": (SYNC, '        closed, _ = roster_lib.closing_stage(g, "done", legacy or {})\n',
            '        closed = "done"  # Y1\n'),
     "Y2": (SYNC, '            raise Refuse(f"the carry cut-over is unreadable: {e}")\n',
@@ -206,12 +223,10 @@ PLANTS = {
            "  # Y4\n"),
     "Y5": (SYNC, "        apply_plan(projected, changes, [], legacy)\n        appends, refusals",
            "        apply_plan(projected, changes, [])  # Y5\n        appends, refusals"),
-    "Y6": (SYNC, "            apply_plan(projected, changes, [], legacy)\n            appends, _",
-           "            apply_plan(projected, changes, [])  # Y6\n            appends, _"),
     "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
            "        elif False:  # R1\n"),
     "R2": (AUDIT, "        if not by:\n", "        if False:  # R2\n"),
-    "R3": (AUDIT, "    for n in sorted(open_issues - {LOG_ISSUE}):\n",
+    "R3": (AUDIT, "    for n in sorted(open_issues - log_issues()):\n",
            "    for n in sorted(open_issues):  # R3\n"),
     "R4": (AUDIT, '        where = f"absorbed into {into}" if stage == "absorbed" and into else stage\n',
            "        where = stage  # R4\n"),
@@ -219,8 +234,8 @@ PLANTS = {
            '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
     "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
            "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
-    "H2": ('        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
-           '        if a.op == "set-stage":  # H2\n'),
+    "H2": ('        if closed or a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
+           '        if closed or a.op == "set-stage":  # H2\n'),
 }
 
 
@@ -271,7 +286,7 @@ PLANTS.update({
     "W3": ('        if (g.get("resume") or {}).get("stage") != "not-started":\n            continue\n', ""),
     "W4": ('    if clash and not (reason or "").strip():\n', "    if clash and reason is None:\n"),
     "W5": ('if not _is_index(f)}', "}"),
-    "W6": ("    if stage in roster_lib.CARRY_CLOSED:\n        into = resume.get",
+    "W6": ("    if not roster_lib.carry_receivable(g):\n        into = resume.get",
            "    if False:\n        into = resume.get"),
     "W7": ('    if resume.get("pr"):\n        print(f"WARN', '    if False:\n        print(f"WARN'),
     "W8": ('if stage == "absorbed" and into else', "if False else"),
@@ -279,7 +294,7 @@ PLANTS.update({
     "W10": ("            and OWED_NOTE_RE.search(note):\n", "            and not OWED_NOTE_RE.search(note):\n"),
     "W11": ('        why = privacy_refusal(added_texts(before, roster) + added_resume(before, roster))\n'
             '        if why:\n            raise Refuse(f"privacy gate: {why}; nothing written")\n', ""),
-    "W12": ('    if hstage in roster_lib.CARRY_CLOSED:\n', "    if False:\n"),
+    "W12": ('    if not roster_lib.carry_receivable(host):\n', "    if False:\n"),
     "W13": ('    if into == group:\n        raise Refuse(f"set-stage: {group} cannot be absorbed',
             '    if False:\n        raise Refuse(f"set-stage: {group} cannot be absorbed'),
     "W14": ('    if not into:\n        raise Refuse(f"set-stage: {group} absorbed needs',
@@ -307,9 +322,23 @@ PLANTS.update({
     "W16": ("    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:\n",
             "    if False:\n"),
     "W17": ('STRUCTURAL_OPS = ("wire-issue",', 'STRUCTURAL_OPS = ("set-stage", "wire-issue",'),
+    "W18": ("    if mark:\n        raise Refuse(f\"append-carry: the text already ends",
+            "    if False:\n        raise Refuse(f\"append-carry: the text already ends"),
     "Q13": (RQ, '    env["HPO_ROSTER_LANE"] = "queue-runner"', '    env["HPO_ROSTER_LANE"] = "x"'),
     "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
            '    if False:\n'),
+    "U1": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+           f"        if False:\n{RI_UNREAD}"),
+    "U2": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+           f"        if not summary:\n{RI_UNREAD}"),
+    "U3": (TICK, f"        if rc not in (0, 1) or not summary:\n{RI_UNREAD}",
+           f"        if rc not in (0, 1):\n{RI_UNREAD}"),
+    "U4": (TICK, f"        except OSError as e:\n{RI_UNREAD}, str(e)[:80])\n            return\n",
+           "        except OSError as e:\n            return\n"),
+    "U5": (TICK, f"        except OSError as e:\n{RI_UNREAD}, str(e)[:80])\n            return\n",
+           "        except ZeroDivisionError:\n            return\n"),
+    "U6": (TICK, "            except ValueError:\n                pass\n        try:\n            rc, out = self.carry_run(argv)\n",
+           '            except ValueError:\n                argv += ["--open-issues", "x"]\n        try:\n            rc, out = self.carry_run(argv)\n'),
 })
 
 
@@ -321,10 +350,16 @@ def parts(name):
     return plant if len(plant) == 3 else (TARGET,) + plant
 
 
+def fail_lines(stdout):
+    """A target's FAIL lines, indented or not: orchestrator_tick prints
+    `  FAIL <check>`, roster_edit `FAIL <check>`."""
+    return [ln.strip() for ln in stdout.splitlines() if ln.lstrip().startswith("FAIL ")]
+
+
 def target_self_test(target=TARGET):
     r = subprocess.run([sys.executable, "-I", target, "--self-test"], cwd=ROOT,
                        capture_output=True, text=True)
-    fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
+    fails = fail_lines(r.stdout)
     return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
 
 
@@ -377,6 +412,8 @@ def self_test():
            "      Traceback", "      boom"])
     ck("a survivor prints fails=0 and no tail",
        rendered(0, [], ["x"]) == ["RESULT mutant=X rc=0 fails=0"])
+    ck("an indented FAIL line is read; an ok line naming FAIL is not",
+       fail_lines("  FAIL a\nFAIL b\n  ok   FAIL-free c\n") == ["FAIL a", "FAIL b"])
     ck("no names selects every plant", select([]) == (list(PLANTS), []))
     ck("a named plant is kept", select(["A1"]) == (["A1"], []))
     ck("an unknown plant is returned for refusal",

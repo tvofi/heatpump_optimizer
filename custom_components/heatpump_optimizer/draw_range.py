@@ -405,8 +405,9 @@ def space_draw_kw(
 ) -> float | None:
     """The space circuit's metered draw over one interval, or ``None``.
 
-    The running draw apportioned by ``split``, the plan's (space, hot water)
-    ask as the pump could serve it. ``None`` with no reading, or one a
+    The running draw apportioned by ``split``, the interval's (space, hot
+    water) weights: the mode dwell's hours where observed, else the plan's ask
+    as the pump could serve it. ``None`` with no reading, or one a
     resistive element ``shared``; ``0.0`` while the pump's mode heats no
     rooms. Not gated on the pump drawing what it was asked: a pump drawing
     less is what this measures.

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_note_stop CLAMP_DROP aaba2bff",
+  "killed_by": "tests/features.py",
+  "old": "    held.stop_gap_k = gap if held.stop_gap_k is None else min(held.stop_gap_k, gap)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`held.stop_gap_k = gap if held.stop_gap_k is None else (held.stop_gap_k)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

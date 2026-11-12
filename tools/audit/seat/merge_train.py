@@ -436,6 +436,26 @@ def gating_names(required):
     return sorted(set(required) | set(owed))
 
 
+def judged(required) -> "list[str]":
+    """<required> less NOT_GATING: the names whose red the train counts. Over
+    `gating_names` of the live ruleset it is THE required set a red is judged
+    against -- `classify` here, and every `## Red checks` obligation through
+    `owed-reds` (owner ruling tvofi 2026-11-07: a red outside it owes no answer)."""
+    return [n for n in required if n not in NOT_GATING]
+
+
+def owed_reds(train) -> "tuple[int, str]":
+    """`owed-reds`: (rc, output). The names whose red a pull-request body owes
+    an answer, one per line, from the ruleset a PR head is judged against; an
+    unreadable ruleset is rc 2 and a REFUSE line, which policy_lint reads as no
+    set (every red owed, as before the ruling)."""
+    try:
+        req = train.required(pr_head=True)
+    except Stop as s:
+        return 2, f"REFUSE {s.step}: {s.why}"
+    return 0, "\n".join(judged(gating_names(req)))
+
+
 ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
             "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
             "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
@@ -483,7 +503,7 @@ def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str
     exactly when `red` is empty."""
     if required is None:
         raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
-    names = [n for n in required if n not in NOT_GATING]
+    names = judged(required)
     deferred = {GATE} if busy else set()
     pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending"
                      or (n in deferred and run_state(latest[n]) == "red"))
@@ -572,11 +592,125 @@ def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
         raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
     req = t.required(pr_head=not on_main)
     state, pending, red = t.classify_at(sha, runs, req)
+    line = f"{sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}"
+    if pr is not None and not on_main:
+        intro, how = t.introduced(sha, runs)
+        if intro:  # a finding of the pull request: RED whatever the required set reads
+            return 1, "\n".join([f"RED {line} introduced: {len(intro)}",
+                                  *(f"INTRODUCED {n}" for n in intro)])
+        if intro is None and state == "green":  # its job still runs: a hang reads WAIT, never GREEN
+            return 3, f"WAIT {line} introduced: pending ({how})"
     why = approval_owed(t, pr, sha, runs, req) if state == "red" and pr is not None else None
     if why:
         return 4, f"APPROVAL-OWED {sha} {why}"
-    return ({"green": 0, "red": 1, "wait": 3}[state],
-            f"{state.upper()} {sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
+    return {"green": 0, "red": 1, "wait": 3}[state], f"{state.upper()} {line}"
+
+
+# AN INTRODUCED SELF-TEST RED IS THE PULL REQUEST'S (R10-INTRODUCED-REDS-BARRIER,
+# dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md). SELFTESTS is in no required
+# set (decision 0013's HPO_JOB_GRADES boundary), so the 2026-11-07 ruling owes
+# its red no answer, and #3361 and #3425 merged reds their own diffs made. A
+# step red at the head and not at the merge base is the PR's finding; one red at
+# both is main's, inherited and still unowed.
+SELFTESTS = "governance / instrument-self-tests"
+#: The push-only step: SELFTEST_TRACE (strace) is set on a push to main alone,
+#: so its red is main's read-set table, never a pull request's diff.
+SELFTESTS_PUSH_ONLY = frozenset({"Refuse a self-test read set the committed table misses"})
+#: A commit's SELFTESTS check runs alone, one page: a main commit carries over
+#: 100 check runs, so an unfiltered first page can miss the job.
+SELFTESTS_RUNS = "check-runs?check_name=governance%20%2F%20instrument-self-tests&per_page=100"
+
+
+#: A step or job conclusion that is red: review_packet.RED, the repository's one
+#: definition (its self-test pins the two equal). A hang the pull request makes
+#: concludes the job timed_out with its running step cancelled.
+RED_CONCLUSIONS = frozenset({"failure", "cancelled", "timed_out", "action_required", "startup_failure"})
+#: A SELFTESTS job conclusion read clean at no job read (skipped: the prelude
+#: scoped it out); one in SELFTESTS_STEP_READ is read step by step; any other
+#: (a job-level cancelled, startup_failure, action_required) has no reading.
+SELFTESTS_CLEAN = frozenset({"success", "skipped", "neutral"})
+SELFTESTS_STEP_READ = frozenset({"failure", "timed_out"})
+#: The INTRODUCED name of a head job that timed out where its base's did not: a
+#: hang behind a step already red at the base hides every step after it.
+JOB_TIMED_OUT = "(the job concluded timed_out)"
+
+
+def selftest_job(runs) -> "dict | None":
+    """The latest SELFTESTS check run in a commit's check runs, concluded or not
+    (an Actions job's check-run id is its job id; a re-run's is higher), else None."""
+    mine = [r for r in runs or () if r.get("name") == SELFTESTS]
+    return max(mine, key=lambda r: int(r["id"])) if mine else None
+
+
+def _red_steps(steps) -> "set[str]":
+    return {s.get("name") for s in steps if s.get("conclusion") in RED_CONCLUSIONS}
+
+
+def introduced_reds(head_steps, base_steps) -> "list[str]":
+    """The SELFTESTS step names concluded red (RED_CONCLUSIONS) at the head and
+    not at the base, less SELFTESTS_PUSH_ONLY; pure. `base_steps` None (no base
+    run): every head red is introduced. A step skipped by scoping concluded
+    `skipped`, so it is never red on either side."""
+    def red(steps):
+        return _red_steps(steps) - SELFTESTS_PUSH_ONLY
+    return sorted(red(head_steps) - (red(base_steps) if base_steps is not None else set()))
+
+
+def _job_conclusion(job: dict) -> str:
+    return job.get("conclusion") if job.get("status") == "completed" else str(job.get("status"))
+
+
+def introduced_at(head_runs, base_runs, job_steps) -> "tuple[list[str] | None, str]":
+    """(introduced names, how read) from the head's check runs; `base_runs()`
+    reads the base's (None unreadable) and `job_steps(job id)` one job's steps
+    (None unreadable), each called only when the head's latest SELFTESTS job is
+    red. Names None: that job has not concluded (a wait). No run, or a clean
+    conclusion, is ([], ...) at no read. A job concluding timed_out where the
+    base's did not adds JOB_TIMED_OUT. Any input with no reading (unreadable, a
+    job-level cancelled, a red job with no red step) raises ValueError: fail
+    closed, never an empty list."""
+    hj = selftest_job(head_runs)
+    if hj is None:
+        return [], f"head {SELFTESTS}: no run"
+    hc = _job_conclusion(hj)
+    if hj.get("status") != "completed":
+        return None, f"head {SELFTESTS} job {hj['id']}: {hc}"
+    if hc in SELFTESTS_CLEAN:
+        return [], f"head {SELFTESTS}: {hc}"
+    if hc not in SELFTESTS_STEP_READ:
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc}, which reads no step: re-run it")
+    hs = job_steps(hj["id"])
+    if hs is None:
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} is unreadable")
+    if not _red_steps(hs):
+        raise ValueError(f"the head's {SELFTESTS} job {hj['id']} concluded {hc} with no red step")
+    runs = base_runs()
+    if runs is None:
+        raise ValueError("the base's check runs are unreadable")
+    bj = selftest_job(runs)
+    bs, bc = None, None
+    if bj is not None:
+        bc = _job_conclusion(bj)
+        if bc not in SELFTESTS_CLEAN | SELFTESTS_STEP_READ:
+            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is {bc}, which reads no step")
+        bs = job_steps(bj["id"])
+        if bs is None:
+            raise ValueError(f"the base's {SELFTESTS} job {bj['id']} is unreadable")
+    names = introduced_reds(hs, bs)
+    if hc == "timed_out" and bc != "timed_out":
+        names.insert(0, JOB_TIMED_OUT)
+    return names, (f"head job {hj['id']} {hc} base job "
+                   + (f"{bj['id']} {bc}" if bj else "none: every head red counts"))
+
+
+def introduced_cmd(t: "Train", head: str, base: "str | None") -> "tuple[int, str]":
+    """The `introduced` subcommand: INTRODUCED <step> lines and a summary,
+    rc 1 when any, 0 when none, 3 while the head's job runs; a Stop (unreadable) is rc 2."""
+    intro, against = t.introduced(head, None, base)
+    if intro is None:
+        return 3, f"introduced: pending at {head} {against}"
+    return (1 if intro else 0), "\n".join([*(f"INTRODUCED {n}" for n in intro),
+                                           f"introduced: {len(intro)} at {head} {against}"])
 
 
 #: The gate unit whose red, before the review, is every budget raise's state (K15 (d)).
@@ -908,6 +1042,12 @@ class Stop(Exception):
 # "Base branch was modified", the GraphQL "is not up to date" family).
 BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
+def runs_approved(runs: "list[dict]") -> bool:
+    """True when a head's pull_request runs listing has at least one run and
+    none still held action_required (its status or its conclusion)."""
+    return bool(runs) and not any("action_required" in (r.get("status"), r.get("conclusion")) for r in runs)
+
+
 BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: its pull_request runs are held
 STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
 ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
@@ -955,6 +1095,15 @@ class MainMoved(Stop):
 
     def __init__(self, step: str, why: str) -> None:
         super().__init__(step, why, cls=MAIN_MOVED)
+
+
+class HeadRed(Stop):
+    """A head's required contexts concluded red (step "ci"): <red> the names, <head> the sha.
+    Under --skip-bad a skip whose red holds GATE is the rejoin's candidate (`Train.rejoin`)."""
+
+    def __init__(self, why: str, head: str, red: "list[str]") -> None:
+        super().__init__("ci", why)
+        self.head, self.red = head, red
 
 
 def classified(s: Stop) -> str:
@@ -1011,7 +1160,7 @@ def policy_fixture_builders():
         created = iso(at + datetime.timedelta(minutes=from_min))
         until = "programme-end" if until_min is None else iso(at + datetime.timedelta(minutes=until_min))
         return {"id": MID, "user": own, "created_at": created, "updated_at": created,
-                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/{g.MANDATE_ISSUE}",
+                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/201",
                 "body": f"MANDATE: agents may approve as {g.OWNER_LOGIN}, scope {scope}, "
                         f"from {created} until {until}"}
 
@@ -1194,6 +1343,51 @@ def spool_edit_locked(t: "Train", pr: int, op: str) -> int:
     return 0
 
 
+def bus_registry() -> Path:
+    """bus.sh's worker registry, `$S/dispatched`, where `S=${HPO_BUS_STATE:-$HOME/.zcode/bus}`."""
+    return Path(os.environ.get("HPO_BUS_STATE") or Path.home() / ".zcode" / "bus") / "dispatched"
+
+
+def dispatch_order(registry: str, pr: int, head: str, nonce: str) -> "tuple[str, int] | None":
+    """(utc, line index) of <nonce>'s FIRST record for <pr> at <head> in bus.sh's
+    registry (`<pr> <head> <reviewer> <nonce> <utc> <model>`), its mint: a
+    `--nonce` re-record later is the same dispatch. None when no such record
+    exists or it predates the utc field. The registry is append-only, so the
+    index orders a same-second pair. A mint with no time is not dated by a
+    later re-record: the dispatch happened before that."""
+    for i, ln in enumerate(registry.splitlines()):
+        f = ln.split() + ["", ""]  # a short line reads as empty fields, never an IndexError
+        if f[:2] == [str(pr), head] and f[3] == nonce:
+            try:  # bus.sh writes `date -u +%FT%TZ`; anything else is no time
+                datetime.datetime.strptime(f[4], "%Y-%m-%dT%H:%M:%SZ")
+            except ValueError:
+                return None
+            return f[4], i
+    return None
+
+
+def stale_merge(pr: int, head: str, merge: "str | None", blocked: "list[str | None]", registry: str) -> "str | None":
+    """P393 (triage batch 127): the merge verdict at <head>, nonce <merge>, is
+    refused when a blocked verdict at the same head carries a different nonce
+    dispatched after it (a later reviewer's finding stands), and refused with
+    the reason when either dispatch time is missing. A blocked verdict posted
+    under the merge's own nonce is that reviewer's revision; None admits."""
+    for b in blocked:
+        if merge is not None and b == merge:
+            continue
+        mt = dispatch_order(registry, pr, head, merge) if merge else None
+        bt = dispatch_order(registry, pr, head, b) if b else None
+        if mt is None or bt is None:
+            return (f"stale merge verdict undecidable: a blocked verdict at {head[:12]} carries nonce "
+                    f"{(b or 'none')[:8]} and the merge verdict {(merge or 'none')[:8]}; "
+                    f"{'the merge' if mt is None else 'the blocked'} verdict's dispatch time is not in "
+                    f"bus.sh's registry ({bus_registry()})")
+        if mt < bt:
+            return (f"stale merge verdict: its nonce {merge[:8]} was dispatched at {mt[0]}, before the blocked "
+                    f"verdict's {b[:8]} at {bt[0]}, at the same head {head[:12]}: the later finding stands")
+    return None
+
+
 def already_held(pr: int, verdict: "str | None", seen: dict, spooled: "set[int]") -> "str | None":
     """THE admission rule `add` (`train_add`) and the drain (`Train.queue_take`)
     both apply (P129, P189, P291): None admits <pr> at <verdict>, else why it
@@ -1261,6 +1455,103 @@ def launch_detached(argv: "list[str]", state: Path) -> "tuple[int, str]":
     return 0, f"rc {p.poll()}: {tail[:200]}"
 
 
+def is_draft(t: "Train", pr: int) -> bool:
+    return t.out("gh", "pr", "view", str(pr), "--repo", t.repo, "--json", "isDraft", "--jq", ".isDraft") == "true"
+
+
+def undraft(t: "Train", pr: int, h: str, item: dict) -> None:
+    """Merge step, after the verdict carry, CI, row, tree grade and approval:
+    undraft a head RECORDED AS A DRAFT AT ADMISSION (`item["draft"]`, set by
+    `add`). A head drafted after admission is left alone. Stops, never
+    continues, when `gh pr ready` fails or the head is a draft again."""
+    if not item.get("draft") or not is_draft(t, pr):
+        return
+    t.log(f"UNDRAFT #{pr} {h[:12]}")
+    code, said = t.run(["gh", "pr", "ready", str(pr), "--repo", t.repo])
+    if code:
+        raise Stop("undraft", f"gh pr ready #{pr} failed: {said.strip()[-160:]}")
+    if is_draft(t, pr):
+        raise Stop("undraft", f"#{pr} is a draft again after gh pr ready")
+
+
+STILL_DRAFT = re.compile(r"still a draft", re.I)
+ROLLUP_PENDING = ("QUEUED", "IN_PROGRESS", "PENDING", "WAITING", "REQUESTED")
+
+
+def rollup_states(entries) -> "dict[str, str]":
+    """One state per context of a `statusCheckRollup`, never by list order
+    (P608: #3445 listed four FAILURE gates then an older SUCCESS last, and
+    last-listed-wins read green while GitHub blocked on the red). A context
+    with any unfinished entry is PENDING; otherwise the entry newest by
+    `completedAt`, else `startedAt`, stands (an equal stamp keeps the later
+    listed entry)."""
+    best: dict = {}
+    pending: set = set()
+    for i, c in enumerate(entries):
+        name = c.get("name") or c.get("context") or "?"
+        state = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        if (c.get("status") or state).upper() in ROLLUP_PENDING or state in ROLLUP_PENDING:
+            pending.add(name)
+        # GitHub's zero time (0001-...) on an unfinished run is no stamp
+        stamps = [x for x in (c.get("completedAt"), c.get("startedAt")) if x and not x.startswith("0001")]
+        stamp = stamps[0] if stamps else ""
+        if name not in best or (stamp, i) >= best[name][0]:
+            best[name] = ((stamp, i), state)
+    return {n: ("PENDING" if n in pending else v[1]) for n, v in best.items()}
+
+
+APPROVER_BOT = "hpo-approver[bot]"
+WAIT_GATES = (GATE, RAISE_GATE)
+
+
+def post_approval_wait(t: "Train", pr: int, head: str, poll: float, budget_s: float) -> int:
+    """`add --wait-post-approval`: block until <head> may be added. Polls every
+    <poll> s (t.sleep) for the approver App's `Fix review: merge <head>` comment
+    and its APPROVED review at <head>; `refs/pull/<pr>/head` must still be
+    <head> (else `HEAD MOVED, not adding`, rc 1); then every `gate` /
+    RAISE_GATE run started at or after the approval's submitted_at must have
+    completed -- a run that started before it does not count, and none yet is
+    a wait. Red (failure/cancelled) -> `GATE RED AFTER APPROVAL`, rc 2. Green:
+    `gh pr ready` on a draft, rc 0. <budget_s> spent (t.clock) -> `WAIT BUDGET
+    SPENT`, rc 3."""
+    start = t.clock()
+    while True:
+        code, ref = t.run(["gh", "api", f"repos/{t.repo}/git/ref/pull/{pr}/head", "--jq", ".object.sha"])
+        if code == 0 and ref.strip() != head:
+            t.log(f"HEAD MOVED, not adding #{pr}: refs/pull/{pr}/head is {ref.strip()[:12]}, not {head[:12]}")
+            return 1
+        why = "the ref could not be read" if code else ""
+        if not why:
+            try:
+                revs = t._reviews(pr, "the post-approval wait")
+            except Stop as s:
+                revs, why = [], s.why
+            at = max((r.get("submitted_at") or "" for r in revs if (r.get("user") or {}).get("login") == APPROVER_BOT
+                      and r.get("state") == "APPROVED" and r.get("commit_id") == head), default="")
+            code, cs, _ = t.pages(f"repos/{t.repo}/issues/{pr}/comments")
+            said = code == 0 and any((c.get("user") or {}).get("login") == APPROVER_BOT
+                                     and (c.get("body") or "").startswith(f"Fix review: merge {head}") for c in cs)
+            runs = t._check_runs(head) or []
+            mine = [c for c in runs if c.get("name") in WAIT_GATES and at and (c.get("started_at") or "") >= at]
+            if not (at and said):
+                why = why or "no approval review and verdict comment at the head yet"
+            elif any(c.get("status") == "completed" and c.get("conclusion") in ("failure", "cancelled") for c in mine):
+                t.log(f"GATE RED AFTER APPROVAL, not adding #{pr}")
+                return 2
+            elif not mine or any(c.get("status") != "completed" for c in mine):
+                why = "the gate re-run after the approval has not completed"
+            else:
+                if is_draft(t, pr) and t.run(["gh", "pr", "ready", str(pr), "--repo", t.repo])[0]:
+                    t.log(f"gh pr ready #{pr} failed, not adding")
+                    return 2
+                return 0
+        if t.clock() - start >= budget_s:
+            t.log(f"WAIT BUDGET SPENT for #{pr}: {why}; not adding")
+            return 3
+        t.log(f"WAIT #{pr}: {why}")
+        t.sleep(poll)
+
+
 def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
               settle: float = ADD_SETTLE_SECONDS, front: bool = False, ready: "list[dict] | None" = None) -> int:
     """`add`: load one verdicted pull request into the state dir's live train,
@@ -1310,6 +1601,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
             return 1
         entry = {k: item[k] for k in ("pr", "verdict", "verdict_comment", "issues", "priority") if item.get(k) is not None}
         entry["pr"] = int(pr)
+        if is_draft(t, int(pr)):
+            entry["draft"] = True
         if front:
             entry["front"] = True
         if live:
@@ -1348,6 +1641,48 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         return 0
 
 
+BASELINE_JOBS = 6  # completed same-name runs the one-job pulse takes its p50 and max from
+
+
+def one_job_pulse(runs, now: float) -> "str | None":
+    """`CI waits on 1 job: <name> <e>m of p50 <p>m / max <m>m (normal)` when exactly
+    one run of the listing is unfinished, else None. The baseline is the p50 and
+    max duration of the last BASELINE_JOBS completed runs of the same name in the
+    SAME listing (no extra API call); a name with none completed prints
+    `no baseline`. Elapsed over the max reads `over max`, never a verdict to
+    cancel (2026-11-11: two near-complete 2173-3623 s python jobs were cancelled
+    as hung)."""
+    runs = list(runs or ())
+    open_ = [r for r in runs if r.get("status") != "completed"]
+    if len(open_) != 1:
+        return None
+    job = open_[0]
+    name = job.get("name", "?")
+
+    def ts(v):
+        try:
+            return datetime.datetime.fromisoformat(v.replace("Z", "+00:00")).timestamp()
+        except (AttributeError, ValueError):
+            return None
+
+    def secs(r):
+        a, b = ts(r.get("started_at")), ts(r.get("completed_at"))
+        return None if a is None or b is None else b - a
+
+    done = sorted((r for r in runs if r.get("name") == name and r.get("status") == "completed"
+                   and secs(r) is not None), key=lambda r: r.get("completed_at") or "")
+    durs = sorted(secs(r) for r in done[-BASELINE_JOBS:])
+    start = ts(job.get("started_at"))
+    if start is None:
+        return f"CI waits on 1 job: {name} (not started)"
+    el = max(0.0, now - start)
+    if not durs:
+        return f"CI waits on 1 job: {name} {el / 60:.0f}m, no baseline"
+    p50 = durs[(len(durs) - 1) // 2]
+    return (f"CI waits on 1 job: {name} {el / 60:.0f}m of p50 {p50 / 60:.0f}m / "
+            f"max {durs[-1] / 60:.0f}m ({'normal' if el <= durs[-1] else 'over max'})")
+
+
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
@@ -1355,7 +1690,7 @@ class Train:
                  skip_bad: bool = False, overlap: bool = False,
                  approval_carry: bool = False, main_moved_tries: int = 0,
                  bot_prs: bool = False, pre_flight: bool = False,
-                 free_holders: bool = False, critical=None,
+                 free_holders: bool = False, critical=None, outside=None, hotfix=None,
                  clock: "callable" = time.monotonic, wall: "callable" = time.time, stamp: bool = False) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
@@ -1371,7 +1706,7 @@ class Train:
         self.run = run or self._run
         self.sleep, self.log, self.clock = sleep, log, clock
         self.wall = wall  # epoch seconds: the infra re-run's due time is a reset_epoch (V142)
-        self.run = self._reads_retried(self.run)
+        self.run = self._reads_retried(_jq_checked(self.run) if run and _JQ_CHECK else self.run)
         # `batch --skip-bad` only: a per-entry Stop is skipped and reported
         # rather than stopping the train. Default (False) stays fail-fast.
         self.skip_bad = skip_bad
@@ -1389,6 +1724,12 @@ class Train:
         # P289: is an entry on the critical path (item -> bool); the roster's
         # reading by default, a fixture's in the self-test.
         self.critical = critical or self._critical
+        # Is an entry an accepted outside contribution (item -> bool): its group by
+        # branch, else by `resume.pr` for a fork head; the roster's by default.
+        self.outside = outside or self._outside
+        # Is an entry's group a hotfix (`roster_lib.is_hotfix`), the --priority
+        # tier without the flag; the roster's by default.
+        self.hotfix = hotfix or self._hotfix
         self.cp_read: "tuple[dict, set] | None" = None  # (roster, critical ids), read once per run
         self.skipped: list[dict] = []
         self.approved: dict[int, str] = {}  # {pr: head} this run approved (P86: never twice at one head)
@@ -1422,6 +1763,8 @@ class Train:
         failure with the attempt count. Train 8 stopped on one unretried read
         of a head commit. Every other call, and every write, is `run`'s alone."""
         def retried(argv, **kw):
+            if argv[:2] in (["git", "fetch"], ["git", "push"]):  # transport, idempotent: a rejection is never retried
+                return gh_read.run_git_retry(run, argv, self.sleep, lambda line: self.log(f"merge_train: {line}"), **kw)
             if not gh_read.is_read(argv):
                 return run(argv, **kw)
 
@@ -1433,6 +1776,12 @@ class Train:
                 lambda line: self.log(f"merge_train: {' '.join(argv)[:120]}: {line}"))
             return code, (f"{o.rstrip()} {why}" if why else o)
         return retried
+
+    def pages(self, path: str, key: str = "") -> "tuple[int, list | None, str]":
+        """Every item of the paged list at <path>, by explicit page number
+        under the read rule (gh_read.read_pages): never `--paginate`, whose
+        followed Link header a cloud seat's proxy refuses."""
+        return gh_read.read_pages(self.run, path, key)
 
     def out(self, *argv: str, cwd: Path = ROOT, stdin: str | None = None) -> str:
         return self.run(list(argv), cwd=cwd, stdin=stdin)[1].strip()
@@ -1457,8 +1806,9 @@ class Train:
     # 2026-10-09 no such run was created at all (63084989/#2066 and
     # a9ba0b88/#2070: 4 dispatched runs each, the same 5 of the 17 required
     # contexts of main-protect-checks absent). The autofix job's approve step
-    # approves the held runs, fail-soft while its secrets are absent; this
-    # train does not read whether it did, so it still refuses such a tip.
+    # approves the held runs, fail-soft while its secrets are absent; bot_tip
+    # reads the head's pull_request runs and refuses only while none exists or
+    # one is still held action_required (an unreadable listing refuses too).
     # Dispatch cannot write those contexts: governance.yml answers
     # workflow_dispatch, but pr-contract.yml and budget-raise-gate.yml take
     # pull_request/merge_group only. An App push is a follow-up that does, and
@@ -1475,7 +1825,10 @@ class Train:
         if code or "\t" not in o:
             raise Stop("ci", f"the head commit at {h[:8]} could not be read: {o.strip()[-160:]}")
         who, _, subject = o.strip().partition("\t")
-        return subject if who in ("github-actions", "github-actions[bot]") else None
+        if who not in ("github-actions", "github-actions[bot]"):
+            return None
+        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}&event=pull_request", "workflow_runs")
+        return subject if code or not runs_approved(runs) else None
 
     def bot_refusal(self, pr: int, h: str, subject: str) -> Stop:
         return Stop("ci", f"#{pr} head {h[:8]} is a GITHUB_TOKEN push (github-actions[bot]: "
@@ -1601,23 +1954,56 @@ class Train:
         self.log(f"BOT #{n} not merged at {h[:8]} ({st[:80]}) refused: {said[:200]}")
         return None
 
+    def _roster_group(self, item: dict) -> "tuple[str | None, set]":
+        """(<item>'s roster group id or None, the critical-path ids): its branch
+        mapped by roster_lib.group_for_branch, else its pull request by
+        roster_lib.group_for_pr (a fork head carries no branch of ours); the
+        roster and the path read once per run at the roster's reader ref. A read
+        that raises is not retried per entry and is the caller's to catch."""
+        import roster_lib
+        if self.cp_read is None:
+            self.cp_read = ({}, set())  # first: a read that raises is not retried per entry
+            ref = roster_lib.reader_ref(str(ROOT), None)
+            self.cp_read = (roster_lib.show_roster(str(ROOT), ref),
+                            roster_lib.critical_path_groups(str(ROOT), ref) or set())
+        roster, crit = self.cp_read
+        gid = roster_lib.group_for_branch(roster, item.get("branch") or "")
+        if not gid and item.get("pr") is not None:
+            gid = roster_lib.group_for_pr(roster, item["pr"])
+        return gid, crit
+
     def _critical(self, item: dict) -> bool:
-        """P289: is <item>'s group on the critical path -- its branch mapped
-        by roster_lib.group_for_branch, the path read by critical_path_groups,
-        both at the roster's reader ref, once per run. Anything unread is
-        nothing critical: today's order, the record PR first."""
+        """P289: is <item>'s group on the critical path (`_roster_group`'s group
+        against its path). Anything unread is nothing critical: today's order,
+        the record PR first."""
         try:
             import roster_lib
-            if self.cp_read is None:
-                self.cp_read = ({}, set())  # first: a read that raises is not retried per entry
-                ref = roster_lib.reader_ref(str(ROOT), None)
-                self.cp_read = (roster_lib.show_roster(str(ROOT), ref),
-                                roster_lib.critical_path_groups(str(ROOT), ref) or set())
-            roster, crit = self.cp_read
-            gid = roster_lib.group_for_branch(roster, item.get("branch") or "")
+            gid, crit = self._roster_group(item)
             return bool(gid) and roster_lib.norm_group(gid) in crit
         except Exception:
             return False
+
+    def _roster_is(self, item: dict, pred: str) -> bool:
+        """Does `roster_lib.<pred>` hold for <item>'s group (`_roster_group`'s).
+        Anything unread is False: today's order."""
+        try:
+            import roster_lib
+            gid, _ = self._roster_group(item)
+            roster = self.cp_read[0]
+            return bool(gid) and any(getattr(roster_lib, pred)(g) for g in roster.get("groups", [])
+                                     if g.get("group") == gid)
+        except Exception:
+            return False
+
+    def _outside(self, item: dict) -> bool:
+        """Is <item>'s group an accepted outside contribution (owner ruling tvofi
+        2026-11-07, triage P420: `roster_lib.is_outside`)."""
+        return self._roster_is(item, "is_outside")
+
+    def _hotfix(self, item: dict) -> bool:
+        """Is <item>'s group a hotfix (`roster_lib.is_hotfix`: a HOTFIX name or
+        kind "bug"), which outranks outside (triage P420) with or without --priority."""
+        return self._roster_is(item, "is_hotfix")
 
     def carry_refusal(self, pr: int, verdict: str, h: str, o: str) -> Stop:
         """The `--carry` refusal, classified when its shape is the known one:
@@ -1635,28 +2021,79 @@ class Train:
                     f"after the verdict. Re-verdict at the live head {h[:8]}: the delta is {delta}",
                     cls=STALE_VERDICT_CARRY)
 
-    def _check_runs(self, h: str) -> "list[dict] | None":
-        """One paginated read of the check runs at <h>, parsed; None on a failed
-        or unparseable read (wait_ci's fetch, shared with main_green's
-        log-only overlap read)."""
-        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
-                              f"repos/{self.repo}/commits/{h}/check-runs?per_page=100"])
+    def _selftest_runs(self, h: str) -> "list[dict] | None":
+        """<h>'s SELFTESTS check runs, one read (SELFTESTS_RUNS); None when unreadable."""
+        code, raw = self.run(["gh", "api", f"repos/{self.repo}/commits/{h}/{SELFTESTS_RUNS}", "--jq", ".check_runs"])
         try:
-            return [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
+            runs = json.loads(raw) if code == 0 else None
         except ValueError:
             return None
+        return runs if isinstance(runs, list) else None
+
+    def _job_steps(self, job: int) -> "list[dict] | None":
+        """One read of an Actions job's steps (introduced_at's job-step read); None when unreadable."""
+        code, raw = self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{job}", "--jq", ".steps"])
+        try:
+            steps = json.loads(raw) if code == 0 else None
+        except ValueError:
+            return None
+        return steps if isinstance(steps, list) else None
+
+    def introduced(self, head: str, head_runs=None, base: "str | None" = None) -> "tuple[list[str] | None, str]":
+        """introduced_at at <head> against <base>, by default the merge base
+        `git merge-base origin/main <head>` (approval_owed's base), read only
+        when the head's job is red; a read that fails is a Stop, never an empty
+        list. <head_runs> spares the head's check-run read a caller already
+        made. Returns (names, what was read); names None while the job runs."""
+        runs = self._check_runs(head) if head_runs is None else head_runs
+        if runs is None:
+            raise Stop("selftests", f"the check runs at {head[:12]} could not be read")
+        at = [base]
+
+        def base_runs():
+            if at[0] is None:
+                code, out = self.run(["git", "merge-base", "origin/main", head])
+                if code or not is_sha(out.strip()):
+                    raise ValueError(f"no merge base for {head[:12]}: {out.strip()[:120]}")
+                at[0] = out.strip()
+            return self._selftest_runs(at[0])
+        try:
+            names, how = introduced_at(runs, base_runs, self._job_steps)
+        except ValueError as e:
+            raise Stop("selftests", f"{e}: an introduced red cannot be ruled out (fail closed)")
+        return names, f"against {at[0] or '-'}: {how}"
+
+    def _check_runs(self, h: str) -> "list[dict] | None":
+        """One paged read of the check runs at <h>, parsed; None on a failed
+        or unparseable read (wait_ci's fetch, shared with main_green's
+        log-only overlap read)."""
+        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{h}/check-runs", "check_runs")
+        return None if code else runs
+
+    def gate_deferred(self, h: str, red: "list[str]") -> "list[int]":
+        """The ids of the other workflow runs at <h> still unfinished when the
+        only red is GATE, else []. An edit run's gate fails by design while a
+        code run at the same head is unfinished ("still being judged; their
+        gate decides", gate.py `deferral`), and that run's own gate check-run
+        does not exist until every unit finishes (ci.yml: gate needs
+        pr-contract, which needs every unit), so the check-runs alone show a
+        final red. The sibling is read from actions/runs?head_sha, never from
+        check-run presence. A failed or unparseable read is [] (the red
+        stands, today's skip); `wait_ci`'s polls bound the wait."""
+        if red != [GATE]:
+            return []
+        code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}", "workflow_runs")
+        if code:
+            return []
+        return sorted(r["id"] for r in runs if isinstance(r.get("id"), int)
+                      and (r.get("status") or "") not in ("completed", "action_required", ""))
 
     def _gate_busy(self, h: str, check_runs) -> list:
         """gate_busy at <h> from one ci.yml runs listing by head sha. An
         unreadable listing reads no run busy, logged: the red stands as it did
         before this read existed -- a refusal, never a wait on a guess."""
-        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".workflow_runs[]",
-                              f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}&per_page=100"])
-        try:
-            ci_runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
-        except ValueError:
-            ci_runs = None
-        if ci_runs is None:
+        code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}", "workflow_runs")
+        if code:
             self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
             return []
         return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
@@ -1700,6 +2137,7 @@ class Train:
         start = self.clock()
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
+        graced = False
         held: list = []
         settle = 0
         for k in range(1, self.polls + 1):
@@ -1724,7 +2162,17 @@ class Train:
                     state = classify(last, only, busy)
                 _, pending, red = state
                 if not pending:
-                    return red
+                    sib = self.gate_deferred(h, red)
+                    if sib:
+                        graced = True
+                    elif graced and red == [GATE]:
+                        # the deciding run finished: gate.py re-runs the deferring gates
+                        # (its rerun cascade), which lists a beat later -- one more poll
+                        graced = False
+                    else:
+                        return red
+                    if sib:
+                        self.log(f"wait: gate red at {h[:8]} is a deferral while run(s) {sib} at this head are unfinished; waiting")
             if only is None and runs and len(runs) >= self.min_runs and all(
                     c.get("status") == "completed" for c in runs):
                 red = sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
@@ -1748,6 +2196,9 @@ class Train:
                     done = sum(c.get("status") == "completed" for c in runs or ())
                 self.log(f"beat: waiting {what} (poll {k}, t+{int(now - start)}s, "
                          f"required: {req}, concluded: {done}/{req})")
+                pulse = one_job_pulse(runs, self.wall())
+                if pulse:
+                    self.log(pulse)
                 due = now + HEARTBEAT_SECONDS
             # Sleep only until the next beat is due: POLL_SECONDS (300) behind
             # HEARTBEAT_SECONDS (240) held the first beat to the second poll,
@@ -1787,7 +2238,7 @@ class Train:
         return self.run(filt, stdin="".join(f + "\n" for f in files))[1].split()
 
     def _mandate_read(self, cid: int) -> "tuple[dict | None, list[dict]]":
-        """The cited comment (None on GitHub's 404) and the tracking issue's
+        """The cited comment (None on GitHub's 404) and every record issue's
         comments since it was written, where a revocation would be --
         budget_raise_gate._mandate's routes, run through `self.run` so the
         self-test answers them and nothing here touches the remote elsewhere."""
@@ -1798,16 +2249,17 @@ class Train:
                 return None, []
             raise Stop("policy", f"mandate {cid} could not be read: " + o.strip()[-160:])
         comment = json.loads(o)
-        if not str(comment.get("issue_url") or "").endswith(g.MANDATE_ISSUE_URL):
+        if not g.on_record_issue(comment):
             return comment, []
-        code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                            f"repos/{self.repo}/issues/{g.MANDATE_ISSUE}/comments"
-                            f"?per_page=100&since={comment.get('created_at')}"])
-        if code:
-            raise Stop("policy", "the mandate thread could not be read: " + o.strip()[-160:])
-        return comment, [c for page in json.loads(o) for c in page]
+        thread = []
+        for n in g.RECORD_ISSUES:
+            code, cs, why = self.pages(f"repos/{self.repo}/issues/{n}/comments?since={comment.get('created_at')}")
+            if code:
+                raise Stop("policy", f"the mandate thread on #{n} could not be read: " + why.strip()[-160:])
+            thread += cs
+        return comment, thread
 
-    def policy_gate(self, pr: int, h: str, files: list[str]) -> "str | None":
+    def policy_gate(self, pr: int, h: str, files: list[str], posting: "dict | None" = None) -> "str | None":
         """THE policy decision, ONE function so the run pass and the batch
         cannot drift (step 5; tvofi's ruling of 2026-10-09, #201 comment
         6083743563: the train lands policy under a valid mandate and falls
@@ -1833,7 +2285,9 @@ class Train:
              keeps the landing from reading as self-approval.
 
     Every refusal names which of these it found, and returns None; success
-    returns the mandate's own line for the log."""
+    returns the mandate's own line for the log. <posting>: the review
+    `policy_approve` would post at <h> (`policy_admits`, the pre-flight's
+    read), judged after the reviews read, as GitHub would list it."""
         pol = self.policy_paths(files)
         if not pol:
             return None
@@ -1852,11 +2306,10 @@ class Train:
                 read[cid] = self._mandate_read(cid)
             return read[cid]
         try:
-            code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                                f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
+            code, reviews, why = self.pages(f"repos/{self.repo}/pulls/{pr}/reviews")
             if code:
-                raise Stop("policy", head_pol + ": the reviews could not be read: " + o.strip()[-160:])
-            reviews = [r for page in json.loads(o) for r in page]
+                raise Stop("policy", head_pol + ": the reviews could not be read: " + why.strip()[-160:])
+            reviews += [posting] if posting else []
             ok, why = g.approval(reviews, h, mandate_fn, merge_mandate)
             if not ok:
                 raise Stop("policy", head_pol + ": " + (self._policy_move(h, pol, reviews) or why))
@@ -1901,11 +2354,10 @@ class Train:
                 f"({', '.join(moved)}): a fresh owner review, not a carry") if moved else ""
 
     def _reviews(self, pr: int, what: str) -> list[dict]:
-        code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                            f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
+        code, reviews, why = self.pages(f"repos/{self.repo}/pulls/{pr}/reviews")
         if code:
-            raise Stop("approve", f"the reviews could not be read for {what}: " + o.strip()[-160:])
-        return [r for page in json.loads(o) for r in page]
+            raise Stop("approve", f"the reviews could not be read for {what}: " + why.strip()[-160:])
+        return reviews
 
     def _body(self, pr: int) -> str:
         """The pull request's body; an unreadable one stops (a raise's
@@ -2013,12 +2465,8 @@ class Train:
                             "--body-file", str(bf)])
         if code:
             raise Stop("approve", "the carried review was refused: " + o[-200:])
-        try:
-            code, o = self.run(["gh", "api", "--paginate", "--slurp",
-                                f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
-            back = [r for page in json.loads(o) for r in page] if code == 0 else []
-        except ValueError:
-            back = []
+        code, back, _ = self.pages(f"repos/{self.repo}/pulls/{pr}/reviews")
+        back = [] if code else back
         if not any(r.get("state") == "APPROVED" and r.get("commit_id") == h
                    and (r.get("body") or "") == body for r in back):
             raise Stop("approve", "the carried approval did not read back byte-identical; "
@@ -2117,6 +2565,14 @@ class Train:
         self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), self.mandate, "approve")
         return "mandate"
 
+    def _agent_approval_body(self, h: str, item: dict, what: str, paths: "list[str]", under: str) -> str:
+        """The body `_post_agent_approval` posts, and the one `policy_admits` judges unposted."""
+        listed = ", ".join(f"`{p}`" for p in paths)
+        return (f"Agent approval for {what} {listed}, given by {self.role} under {under}, at head {h}.\n\n"
+                f"Basis: `Fix review: merge {item['verdict']}` (comment {item.get('verdict_comment', '?')}), carried to {h} "
+                f"by `app_approve.sh --carry` (the pull request's patch is the verdicted one's). CI at {h} is green"
+                + (f" apart from {', '.join('`%s`' % n for n in self.ignore)}, which grade main." if self.ignore else ".") + "\n")
+
     def _post_agent_approval(self, pr: int, h: str, item: dict, what: str, paths: "list[str]",
                              under: str, name: str) -> None:
         """THE one writer of an agent approval the train posts under a mandate
@@ -2124,11 +2580,7 @@ class Train:
         R10-TRAIN-UPGRADE): its body names the paths, the role, the mandate it
         is given under, the verdict and the head; the head is re-checked right
         before the post, and a refused post is a Stop."""
-        listed = ", ".join(f"`{p}`" for p in paths)
-        body = (f"Agent approval for {what} {listed}, given by {self.role} under {under}, at head {h}.\n\n"
-                f"Basis: `Fix review: merge {item['verdict']}` (comment {item.get('verdict_comment', '?')}), carried to {h} "
-                f"by `app_approve.sh --carry` (the pull request's patch is the verdicted one's). CI at {h} is green"
-                + (f" apart from {', '.join('`%s`' % n for n in self.ignore)}, which grade main." if self.ignore else ".") + "\n")
+        body = self._agent_approval_body(h, item, what, paths, under)
         bf = self.state / f"{name}{pr}.md"
         bf.write_text(body)
         if self.head(pr) != h:
@@ -2147,6 +2599,48 @@ class Train:
         cited = {int(a or b) for a, b in _mandate_gate().MANDATE_CITE.findall(label)}
         return cited.pop() if len(cited) == 1 else None
 
+    def policy_approval_due(self, pr: int, h: str, files: list[str]) -> "tuple[int | None, list[str], str]":
+        """Whether `policy_approve` posts step 5's approval at <h>: (mandate id,
+        policy paths, why). The id is None when nothing is posted, and <why>
+        then says why ('' when there is nothing to say: no policy path, no
+        --mandate, or the owner's approval already at <h>; or a refusal: the
+        owner's own latest CHANGES_REQUESTED, or a `gh` account that is not
+        the owner's). A read only -- the
+        one decision `policy_approve` posts on and `policy_admits` (the
+        pre-flight) judges with, so the two cannot drift."""
+        cid = self.mandate_id()
+        pol = self.policy_paths(files) if cid else []
+        if not pol:
+            return None, pol, ""
+        g = _mandate_gate()
+        if any(f.endswith(g.SUFFIX) for f in files):
+            # A budget file beside the policy: whether it raises is the owner's
+            # (0013, `raise_hold`), and this post must never stand in for that.
+            return None, pol, "the head changes a budget file, which stays the owner's"
+        if any(g._is_owner(r.get("user")) and r.get("state") == "APPROVED" and r.get("commit_id") == h
+               for r in self._reviews(pr, "the policy approval")):
+            return None, pol, ""  # the owner's approval is at the head already: never re-posted
+        own = [r for r in self._reviews(pr, "the policy approval")
+               if g._is_owner(r.get("user")) and not g.AGENT_DECLARED.search(r.get("body") or "")
+               and r.get("state") in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED")]
+        if own and own[-1].get("state") == "CHANGES_REQUESTED":
+            # `budget_raise_gate.approval`'s rule, which refuses a mandated approval over it.
+            return None, pol, (f"{g.OWNER_LOGIN}'s own latest decisive review is CHANGES_REQUESTED, "
+                               "which a mandated approval does not override")
+        code, login = self.run(["gh", "api", "user", "--jq", ".login"])
+        if code or login.strip() != g.OWNER_LOGIN:
+            # The post is the owner's review and the pre-flight judges it as the owner's: a
+            # `gh` account that is not the owner posts one `policy_gate` refuses at the merge.
+            return None, pol, (f"the gh account is {login.strip()[:40] or 'unreadable'}, not {g.OWNER_LOGIN}"
+                               if not code else "the gh account could not be read")
+        now = datetime.datetime.now(datetime.timezone.utc)
+        try:
+            live, why = g.mandate_state(cid, *self._mandate_read(cid), now, now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                                        "merge", g.MANDATE_COVERS_POLICY, "policy merging")
+        except Exception as e:  # fail closed: an unread mandate posts nothing, and policy_gate stops it
+            live, why = False, f"mandate {cid} could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})"
+        return (cid if live else None), pol, why
+
     def policy_approve(self, pr: int, h: str, item: dict, files: list[str]) -> None:
         """Step 5's approval, posted (R10-TRAIN-UPGRADE, triage P84): a head
         changing policy paths lands only on the owner's APPROVED review at
@@ -2154,34 +2648,44 @@ class Train:
         this nothing in the train posted one -- so a policy head left the train
         for a hand-run merge loop. Under a --mandate naming one comment id that
         `mandate_state` reads in force NOW for policy merging, with no owner
-        approval at <h> yet, the train posts one as the `gh` account, citing
-        `mandate comment <id>` (MANDATE_CITE's form). Every other case posts
-        nothing and `policy_gate` -- unchanged, the only judge, re-read at the
-        merge -- stops it exactly as before."""
-        cid = self.mandate_id()
-        pol = self.policy_paths(files) if cid else []
-        if not pol:
-            return
-        g = _mandate_gate()
-        if any(f.endswith(g.SUFFIX) for f in files):
-            # A budget file beside the policy: whether it raises is the owner's
-            # (0013, `raise_hold`), and this post must never stand in for that.
-            self.log(f"#{pr} no policy approval posted: the head changes a budget file, which stays the owner's")
-            return
-        if any(g._is_owner(r.get("user")) and r.get("state") == "APPROVED" and r.get("commit_id") == h
-               for r in self._reviews(pr, "the policy approval")):
-            return  # the owner's approval is at the head already: never re-posted
-        now = datetime.datetime.now(datetime.timezone.utc)
-        try:
-            live, why = g.mandate_state(cid, *self._mandate_read(cid), now, now.strftime("%Y-%m-%dT%H:%M:%SZ"),
-                                        "merge", g.MANDATE_COVERS_POLICY, "policy merging")
-        except Exception as e:  # fail closed: an unread mandate posts nothing, and policy_gate stops it
-            live, why = False, f"mandate {cid} could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__})"
-        if not live:
-            self.log(f"#{pr} no policy approval posted: {why}")
+        approval at <h> yet (`policy_approval_due`), the train posts one as the
+        `gh` account, citing `mandate comment <id>` (MANDATE_CITE's form). Every
+        other case posts nothing and `policy_gate` -- unchanged, the only judge,
+        re-read at the merge -- stops it exactly as before."""
+        cid, pol, why = self.policy_approval_due(pr, h, files)
+        if cid is None:
+            if why:
+                self.log(f"#{pr} no policy approval posted: {why}")
             return
         self._post_agent_approval(pr, h, item, "policy", pol, f"mandate comment {cid}", "policy")
         self.log(f"#{pr} policy approval posted at {h[:8]} under {why}")
+
+    def policy_admits(self, pr: int, h: str, item: dict, files: list[str]) -> "str | None":
+        """The pre-flight's policy read (R10-HOTFIX-TRAIN-POLICY-MANDATE, #3366):
+        `policy_gate` as admission will reach it, AFTER `policy_approve` -- with
+        the review the train is due to post (`policy_approval_due`) judged as
+        though posted, under the gh account the post would use, read as the
+        owner's as `policy_approve` itself relies on. Before this the train's
+        `--pre-flight` ran policy_gate alone, so a policy head the --mandate
+        carries PARKED on "no decisive review" before any approval could be
+        posted, and the re-add's re-run of the pre-flight refused it again at
+        the same verdict. Posts nothing; `land` re-reads the real reviews at
+        the merge. A refusal while a --mandate is set but posts nothing names
+        the mandate's own reason beside the gate's."""
+        cid, pol, why = self.policy_approval_due(pr, h, files)
+        posting = None
+        if cid is not None:
+            g = _mandate_gate()
+            posting = {"user": {"login": g.OWNER_LOGIN, "id": g.OWNER_ID, "type": g.OWNER_TYPE},
+                       "state": "APPROVED", "commit_id": h,
+                       "submitted_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                       "body": self._agent_approval_body(h, item, "policy", pol, f"mandate comment {cid}")}
+        try:
+            return self.policy_gate(pr, h, files, posting=posting)
+        except Stop as s:
+            if cid is None and why:
+                s.why = f"{s.why}; the train posts no approval under its --mandate: {why}"
+            raise
 
     def recarry(self, item: dict) -> str:
         """Step 1: the pull request's head, with `origin/main` merged in by
@@ -2205,7 +2709,8 @@ class Train:
         h = self.head(pr)
         if not is_sha(h):
             raise Stop("head", f"could not read the head: {h[:120]}")
-        if not self.contains_main(h):
+        item.pop("nr_base", None)
+        if not self.contains_main(h) and not self.merges_as_is(item, h):
             self.hold_refresh()  # a recarry is 5-15 min in app_push's prepr; --overlap's up-front loop is not a wait
             br = item.get("branch") or self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "headRefName", "--jq", ".headRefName")
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
@@ -2230,6 +2735,9 @@ class Train:
             code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
+            failed = next((ln.strip() for ln in o.splitlines() if ln.startswith("REMERGE FAILED")), None)
+            if failed:  # carry f7d2bf7c: git failed before any conflict, so nothing is owed a fixer
+                raise Stop("recarry", f"{failed}; run the train again once git answers")
             if "PUSHED" not in o:
                 # R9-RC-RECARRY-READBACK: app_push.sh --recarry confirms a race
                 # inside its own bounded read-back, so no PUSHED here is a real
@@ -2261,9 +2769,31 @@ class Train:
             raise self.bot_refusal(pr, h, bot)
         return h
 
+    def merges_as_is(self, item: dict, h: str) -> bool:
+        """Card 5 (tvofi, 2026-11-07): whether <h>, which lacks origin/main,
+        merges as it stands -- no recarry and no fresh CI run. True only when
+        RULESET requires no up-to-date branch (`strict_update` False: a strict
+        or unreadable policy recarries as before), no grade holds the car (a
+        held red is answered by a recarry and CI), git's merge of origin/main
+        and <h> is clean (a conflict is the one content reason to recarry), and
+        <h> is no GITHUB_TOKEN tip (whose cure is the recarry's App push). Then
+        item["nr_base"] is the merge base, the tree <h>'s CI read, and the
+        merge is graded against it at the merge (`grade_merge`)."""
+        pr = item["pr"]
+        if item.get("grade_held") or self.strict_update() is not False:
+            return False
+        got = self.merge_tree(self.git("rev-parse", "origin/main"), h)
+        if got is None or got[1] or self.bot_tip(h):
+            return False
+        item["nr_base"] = self.git("merge-base", "origin/main", h)
+        self.log(f"#{pr} no recarry: {h[:8]} merges with origin/main cleanly (merge tree {got[0][:8]}) and "
+                 f"{RULESET} requires no up-to-date branch; the proven head merges, graded at the merge")
+        return True
+
     def one(self, item: dict) -> None:
         self.hold_refresh()  # per item: a long item must not age the hold stale
-        self.serial(item, self.recarry(item), None)
+        h = self.recarry(item)
+        self.serial(item, h, item.get("nr_base"))
 
     def serial(self, item: dict, h: str, rb: "str | None") -> None:
         """`at_head`, recovering a MainMoved up to --main-moved-tries times: a
@@ -2287,7 +2817,8 @@ class Train:
                     raise
                 self.log(f"#{item['pr']} [MAIN-MOVED] {s.step}: {s.why}; recarry "
                          f"{n + 1}/{self.main_moved_tries} onto the new main, then CI again")
-                h, rb = self.recarry(item), None
+                h = self.recarry(item)
+                rb = item.get("nr_base")
             except Stop:
                 if item.pop("sweep_after", False):
                     self.sweep_bots()  # the entry stopped: the record PR waits no longer
@@ -2301,7 +2832,7 @@ class Train:
         caller lands entries one at a time, an earlier still-pending entry
         never jumped by a later eligible one."""
         h = item.get("rc_head") or self.recarry(item)
-        self.serial(item, h, item.get("rc_base"))
+        self.serial(item, h, item.get("rc_base") or item.get("nr_base"))
 
     def at_head(self, item: dict, h: str, rb: "str | None", req: "list[str] | None") -> None:
         """Steps 2-7 at a settled head: wait its CI, carry the verdict, land
@@ -2322,7 +2853,7 @@ class Train:
         red = [n for n in self.wait_ci(h, only=req) if n not in self.ignore]
         self.log(f"#{item['pr']} {h[:8]} ci red={red}")
         if red:
-            raise Stop("ci", "red at the head: " + ", ".join(red))
+            raise HeadRed("red at the head: " + ", ".join(red), h, red)
         if GATE in req:
             self.cross_check(item["pr"], h)
         self.run(["git", "fetch", "-q", "origin", h])
@@ -2387,13 +2918,13 @@ class Train:
             if under:
                 self.log(f"#{pr} policy head lands under {under}")
             self.log(f"#{pr} approved ({self.approve(pr, h, item, files)})")
-        self.run(["gh", "pr", "ready", str(pr), "--repo", self.repo])
+        undraft(self, pr, h, item)
         title = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "title", "--jq", ".title")
         pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
         self.unstale(h)
-        said, swept, carried = "(no output)", False, False
+        said, swept, carried, undrafted = "(no output)", False, False, False
         for k in range(1, self.merge_tries + 1):
             if k == 1:
                 self.review_settle(pr, h)
@@ -2415,6 +2946,15 @@ class Train:
             self.log(f"#{pr} merge attempt {k}/{self.merge_tries} refused (rc={code}): {said}")
             if BASE_MOVED.search(said):
                 raise MainMoved("merge", f"GitHub refused the merge because the base moved: {said}")
+            if STILL_DRAFT.search(said):
+                # P609: a draft is a state, not a race. Admitted as a draft: the
+                # train readies it once and attempts again; any other draft was
+                # drafted after admission (its author's) and is left as a hold.
+                if not item.get("draft") or undrafted:
+                    raise Stop("merge", f"#{pr} drafted after admission: left as a hold")
+                undrafted = True
+                undraft(self, pr, h, item)
+                continue
             if not swept and self.bot_prs:
                 # P191: a record PR that turned green mid-batch merges now, once
                 # per landing, and the existing recovery recarries this entry.
@@ -2450,7 +2990,7 @@ class Train:
         return st.split()[-1]
 
     def post_merge(self, pr: int) -> None:
-        """The rest of nudge.md step 12, by `postmerge.py` (the #201 line, the
+        """The rest of nudge.md step 12, by `postmerge.py` (the record-issue line, the
         roster stage, the state docs, main's suite state). Its OWED lines are
         logged and never undo or stop the merge; the tool itself opens the
         ledger's `postmerge-owed` event for a step that failed."""
@@ -2481,10 +3021,7 @@ class Train:
             d = None
         if not isinstance(d, dict):
             return f"the merge state could not be read ({o.strip()[-120:] or 'no output'})", True, False
-        last: dict = {}
-        for c in d.get("statusCheckRollup") or ():
-            last[c.get("name") or c.get("context") or "?"] = (
-                c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        last = rollup_states(d.get("statusCheckRollup") or ())
         red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED]
         pending = [n for n in req if n not in self.ignore and n not in red
                    and last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL")]
@@ -2563,7 +3100,7 @@ class Train:
             if not last_logged or waited - last_logged >= POLL_SECONDS:
                 last_logged = waited
                 self.log(f"#{pr} review run(s) {', '.join(open_)} at {h[:8]} still running; the merge waits "
-                         f"({int(waited)} s of {self.polls * (REVIEW_POLL_SECONDS + POLL_SECONDS)} s)")
+                         f"({int(waited)} s of {self.wait_cap_s()} s)")
 
     def release_worktrees(self) -> None:
         """Before the run's closing line (and again, a no-op, in `train`/`batch`'s
@@ -2683,6 +3220,17 @@ class Train:
     def preflight_entry(self, item: dict) -> "tuple[str, str, str]":
         """(status, step, why) of one entry under the same construction `preflight` uses."""
         return self.pre_flight_reader().entry(item)
+
+    def record_drafts(self, queue: list[dict]) -> None:
+        """P609: `item["draft"]` is `undraft`'s only licence and `add` alone set
+        it, so a `--queue` file or `build_queue` entry never carried it. One
+        `is_draft` read per entry lacking the key, at batch start (= admission);
+        a head drafted after this read is its author's and is left alone."""
+        if not self.real:
+            return
+        for item in queue:
+            if "draft" not in item:
+                item["draft"] = is_draft(self, int(item["pr"]))
 
     def preflight(self, queue: list[dict]) -> list[dict]:
         """`--pre-flight`: queue_pre_flight.py's admission reads over the whole
@@ -2846,13 +3394,9 @@ class Train:
         if tip is None:
             return f"no confirmed verdict on the bus (verdict/{n})"
         authors, vid = allow
-        code, o = self.run(["gh", "api", "--paginate", "--slurp", f"repos/{self.repo}/issues/{n}/comments?per_page=100"])
-        try:
-            cs = [c for page in json.loads(o) for c in page] if code == 0 else None
-        except (ValueError, TypeError):
-            cs = None
-        if cs is None:
-            return f"its comments could not be read: {o.strip()[-120:]}"
+        code, cs, why = self.pages(f"repos/{self.repo}/issues/{n}/comments")
+        if code:
+            return f"its comments could not be read: {why.strip()[-120:]}"
         vs = [c for c in cs if (c.get("user") or {}).get("login") in authors
               and (c.get("user") or {}).get("id") == vid and (c.get("body") or "").startswith("Fix review:")]
         if not vs:
@@ -2865,7 +3409,41 @@ class Train:
         got = proof_watch.parse_verdict(first)
         if got is None or got[0] != "merge":
             return f"the newest verdict is {got[0] if got else 'unparsed'}: {first[:120]}"
+        why = self.stale_verdict(n, tip, got[1])
+        if why:
+            return why
         return got[1], str(v.get("id"))
+
+    def stale_verdict(self, n: int, tip: str, head: str) -> "str | None":
+        """P393: None, or why the merge verdict at verdict/<n>'s <tip> is stale. Every
+        older `blocked <head>` commit on verdict/<n> is a finding at the same head;
+        `stale_merge` rules on their bus-nonces (VERDICT.md, which each verdict
+        commit carries as its review tree) against bus.sh's dispatch registry. An
+        unreadable history refuses: it is never read as no blocked verdict."""
+        import proof_watch
+        if self.run(["git", "fetch", "-q", "origin", f"verdict/{n}"])[0]:
+            return f"stale merge verdict undecidable: verdict/{n}'s history could not be read (fetch failed)"
+        code, o = self.run(["git", "log", "--format=%H%x00%s", tip])
+        if code:
+            return f"stale merge verdict undecidable: verdict/{n}'s history could not be read: {o.strip()[-120:]}"
+        blocked = []
+        for ln in o.splitlines():
+            c, _, subj = ln.partition("\x00")
+            m = re.match(rf"verdict: #{n} (.*)$", subj)
+            if c != tip and m and proof_watch.parse_verdict(m.group(1)) == ("blocked", head):
+                blocked.append(c)
+        if not blocked:
+            return None
+
+        def nonce(c: str) -> "str | None":
+            code, o = self.run(["git", "show", f"{c}:VERDICT.md"])
+            return None if code else proof_watch.verdict_nonce(o)
+
+        try:
+            registry = bus_registry().read_text()
+        except OSError:
+            registry = ""
+        return stale_merge(n, head, nonce(tip), [nonce(c) for c in blocked], registry)
 
     # ------------------------------------------------------------- the batch
     def git(self, *argv: str) -> str:
@@ -2877,16 +3455,27 @@ class Train:
     def tree(self, rev: str) -> str:
         return self.git("rev-parse", f"{rev}^{{tree}}")
 
-    def required(self, pr_head: bool = False) -> list[str]:
-        """The ruleset's required contexts, read live; less PR_ONLY unless
-        <pr_head> (a pull request's head carries those; main and a proof never)."""
+    def _checks_rule(self, field: str) -> "tuple[bool, str]":
+        """RULESET's required_status_checks rule's <field> (a jq path under
+        .parameters), read live: (read ok, the jq output)."""
         code, rid = self.run(["gh", "api", f"repos/{self.repo}/rulesets", "--jq",
                               f'.[] | select(.name == "{RULESET}") | .id'])
         code2, o = self.run(["gh", "api", f"repos/{self.repo}/rulesets/{rid.strip()}", "--jq",
-                             '.rules[] | select(.type == "required_status_checks")'
-                             ' | .parameters.required_status_checks[].context'])
+                             '.rules[] | select(.type == "required_status_checks") | .parameters' + field])
+        return not (code or code2 or not rid.strip().isdigit()), o
+
+    def strict_update(self) -> "bool | None":
+        """Whether RULESET requires a branch up to date before its merge
+        (`strict_required_status_checks_policy`), read live; None unreadable."""
+        ok, o = self._checks_rule(".strict_required_status_checks_policy")
+        return {"true": True, "false": False}.get(o.strip()) if ok else None
+
+    def required(self, pr_head: bool = False) -> list[str]:
+        """The ruleset's required contexts, read live; less PR_ONLY unless
+        <pr_head> (a pull request's head carries those; main and a proof never)."""
+        ok, o = self._checks_rule(".required_status_checks[].context")
         names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(() if pr_head else PR_ONLY))
-        if code or code2 or not rid.strip().isdigit() or not names:
+        if not ok or not names:
             raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
         return names
 
@@ -2921,7 +3510,7 @@ class Train:
         # composed-proof) must never hold a batch whose required set is green.
         red = [n for n in self.wait_ci(h, only=head_req) if n not in self.ignore]
         if red:
-            raise Stop("ci", f"#{pr} red at its head: " + ", ".join(red))
+            raise HeadRed(f"#{pr} red at its head: " + ", ".join(red), h, red)
         if self.real:
             o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
             if "CARRY: yes" not in o:
@@ -2989,9 +3578,8 @@ class Train:
         """The one entry whose own files lie in the closure of every script the
         proof's failing jobs name, under main's table or the proof's; None when
         no script is named (a job with no script) or more than one entry owns them."""
-        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
-                              f"repos/{self.repo}/commits/{sha}/check-runs?per_page=100"])
-        runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else []
+        code, runs, _ = self.pages(f"repos/{self.repo}/commits/{sha}/check-runs", "check_runs")
+        runs = [] if code else runs
         scripts: set[str] = set()
         for c in runs:
             if c.get("name") in red and c.get("conclusion") not in GREEN:
@@ -3251,13 +3839,8 @@ class Train:
             code, att = self.run(["gh", "api", f"repos/{self.repo}/actions/runs/{rid}", "--jq", ".run_attempt"])
             if code or att.strip() != "1":
                 continue
-            code, raw = self.run(["gh", "api", "--paginate", "--jq", ".jobs[]",
-                                  f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest&per_page=100"])
-            try:
-                failed = [j for j in (json.loads(x) for x in raw.splitlines() if x.strip())
-                          if j.get("conclusion") == "failure"] if code == 0 else []
-            except ValueError:
-                failed = []
+            code, jobs, _ = self.pages(f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest", "jobs")
+            failed = [] if code else [j for j in jobs if j.get("conclusion") == "failure"]
             logs = {j.get("id"): job_log(self.run, self.repo, j.get("id")) for j in failed}
             got = infra_due(1, failed, logs)
             if got is None:
@@ -3335,6 +3918,60 @@ class Train:
             if read_pid(self.state / QUEUE_OPEN) == os.getpid():
                 queue_seen_write(self.state, self._seen)
 
+    def rejoin_candidate(self, item: dict, s: Stop, rejoin: list) -> None:
+        """Card 1: queue a skip for `rejoin` when its Stop is a head red holding
+        GATE -- the deferral-shaped red a later read can turn GREEN; any other
+        skip is final, as before. The entry is kept as queued: a recarry it
+        rejoins with is its own."""
+        if isinstance(s, HeadRed) and GATE in s.red:
+            keep = {k: v for k, v in item.items() if k not in ("rc_head", "rc_base", "nr_base")}
+            rejoin.append((keep, s.head, self.clock()))
+
+    def wait_cap_s(self) -> int:
+        """The train's one wait cap in seconds, `polls` x (REVIEW_POLL_SECONDS +
+        POLL_SECONDS): the review-run wait's ceiling and the rejoin's bound."""
+        return self.polls * (REVIEW_POLL_SECONDS + POLL_SECONDS)
+
+    def rejoin(self, waiting: "list[tuple[dict, str, float]]", req: "list[str]") -> None:
+        """Card 1 (tvofi, 2026-11-07): each entry this batch SKIPped on a red
+        GATE rejoins the train, through the serial path, once its skipped head
+        classifies GREEN (`classify_at`, the reading `classify` prints) -- no
+        add and no merge seat. RED stays skipped (a real red never rejoins), and
+        so does a head still WAIT `wait_cap_s` after its skip, or one the branch
+        moved off (a new head owes a new verdict). It runs after the batch's own
+        merges, so no wait here holds one; a rejoin refused again is skipped
+        again, its earlier row replaced."""
+        cap = self.wait_cap_s()
+        while waiting:
+            later = []
+            for item, h, since in waiting:
+                pr = int(item["pr"])
+                if self.head(pr) != h:
+                    self.log(f"REJOIN #{pr}: the head moved off {h[:8]}; stays skipped")
+                    continue
+                runs = self._check_runs(h)
+                state = "wait" if runs is None else self.classify_at(h, runs, req)[0]
+                if state == "green":
+                    self.log(f"REJOIN #{pr}: GREEN at {h[:8]}, {int(self.clock() - since)} s after its skip; "
+                             "it rejoins this train")
+                    try:
+                        self.one(item)
+                    except Stop as s:
+                        if s.step == "main":
+                            raise
+                        self.skipped = [r for r in self.skipped if r["pr"] != pr]
+                        self.skip(pr, "post-merge" if self.is_merged(pr) else s.step, f"#{pr} {s.why}", s.cls)
+                elif state == "red":
+                    self.log(f"REJOIN #{pr}: RED at {h[:8]}; stays skipped (a real red never rejoins)")
+                elif self.clock() - since >= cap:
+                    self.log(f"REJOIN #{pr}: still WAIT at {h[:8]} past the {cap} s cap; stays skipped")
+                else:
+                    later.append((item, h, since))
+            waiting = later
+            if waiting:
+                self.hold_refresh()  # the rejoin's wait is a train wait: the record beat stays held
+                self.sleep(min(POLL_SECONDS, HEARTBEAT_SECONDS))
+
     def skip_report(self, total: int) -> None:
         """`--skip-bad`'s closing report: the skipped list under the state dir
         and one line the orchestrator's tooling can grep. An entry this train
@@ -3403,17 +4040,25 @@ class Train:
 
     def drain_order(self, added: "list[dict]") -> "list[dict]":
         """P312: a spool drains into the next batch in an explicit order: entries
-        added with `--priority` (HOTFIX) or `--front` (P112: the entry the spool
-        puts first) first, in spool order, then critical-path entries
-        (`self.critical`, the branch read only when two or more wait), then
-        arrival order. Python's sort is stable, so ties keep the spool's order."""
+        added with `--priority` (HOTFIX), a roster hotfix (`self.hotfix`) or
+        `--front` (P112: the entry the spool puts first) first, in spool order,
+        then outside entries (`self.outside`) and critical-path entries
+        (`self.critical`, the branch read only when two or more wait) as one
+        rank, unordered between them (owner rulings tvofi 2026-11-07, triage
+        P420, and 2026-11-08), then arrival order. An entry maps to its group by
+        branch, else by its pull request. Python's sort is stable, so ties keep
+        the spool's order."""
         if len(added) < 2:
             return added
-        def crit(e: dict) -> bool:
+        def item(e: dict) -> dict:
             b = e.get("branch") or self.out("gh", "pr", "view", str(e["pr"]), "--repo", self.repo,
                                            "--json", "headRefName", "--jq", ".headRefName").strip()
-            return bool(self.critical({"branch": b}))
-        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")), not crit(e)))  # mut:drain
+            return {"branch": b, "pr": e["pr"]}
+        items = {id(e): item(e) for e in added}
+        return sorted(added, key=lambda e: (not (e.get("priority") or e.get("front")
+                                                 or self.hotfix(items[id(e)])),  # mut:drain-hotfix
+                                            not (self.outside(items[id(e)])  # mut:drain-outside
+                                                 or self.critical(items[id(e)]))))  # mut:drain
 
     def queue_take(self, batches: "list[list[dict]]", k: int) -> bool:
         """Between batches: drain the spool into ONE new batch after those still
@@ -3566,6 +4211,7 @@ class Train:
         self.hold_refresh()  # before the sweep: the record beat waits for the batch
         self.branches: list[str] = []
         mine = len(self.skipped)  # this batch's skips start here: an earlier batch's never filter a re-added entry
+        rejoin: "list[tuple[dict, str, float]]" = []  # card 1: (entry, head, skipped at) per red-GATE skip
         try:
             mf = _fastpath()
             # P289: a batch holding a critical-path entry reads its base without
@@ -3579,6 +4225,7 @@ class Train:
             base = self.git("rev-parse", f"origin/{self.base}")
             req = self.required()
             self.main_green(base, req, "before admission")
+            self.record_drafts(queue)
             admitted = self.preflight(queue)
             graders = mf.grader_specs(mf.workflow_texts(base, git=lambda *a: self.git(*a)))
             # --skip-bad stops at the ENTRY: an admission refusal (a red head, a
@@ -3599,6 +4246,7 @@ class Train:
                     if s.step == "main":
                         raise
                     self.skip(int(item["pr"]), s.step, s.why, s.cls)
+                    self.rejoin_candidate(item, s, rejoin)
             serial = [a for a in entries if a["route"]]
             # --overlap: re-carry every serial entry UP FRONT, before anything
             # merges, pushing each branch so all their pull_request runs fire
@@ -3617,7 +4265,8 @@ class Train:
                 for a in todo:
                     self.log(f"#{a['pr']} overlap: recarry start")
                     try:
-                        a["rc_head"], a["rc_base"] = self.recarry(a), rb
+                        a["rc_head"] = self.recarry(a)
+                        a["rc_base"] = a.get("nr_base") or rb
                     except Stop as s:
                         if s.step == "main" or not self.skip_bad:
                             raise
@@ -3704,6 +4353,9 @@ class Train:
                             raise Stop(s.step, f"#{a['pr']} {s.why}", cls=s.cls) from None
                         self.skip(a["pr"], "post-merge" if self.is_merged(a["pr"]) else s.step,
                                   f"#{a['pr']} {s.why}", s.cls)
+                        self.rejoin_candidate(a, s, rejoin)
+            if rejoin and self.real:
+                self.rejoin(rejoin, head_req)
         except Stop as s:
             self.release_worktrees()  # before the closing lines, which stay last
             self.hold_release()
@@ -3802,6 +4454,8 @@ def sweep(t: Train, train_argv: "list[str]", add=train_add, ledger_log: "str | N
 
 
 def _self_test() -> int:
+    global _JQ_CHECK
+    _JQ_CHECK = True
     sys.path.insert(0, str(ROOT / "tests"))
     from throwaway_git import throwaway_git_env, throwaway_git_init
     passed = failed = 0
@@ -3850,6 +4504,14 @@ def _self_test() -> int:
                 return world.get("hold_create", (0, "{}"))
             if argv[:3] == ["gh", "auth", "token"]:
                 return 0, "tok"
+            if argv[:3] == ["gh", "pr", "ready"]:
+                world.setdefault("readied", []).append(argv[3])
+                if "ready_rc" in world:
+                    return world["ready_rc"]
+                world["is_draft"] = world.get("redraft", False)
+                return 0, ""
+            if "isDraft" in argv:
+                return 0, "true" if world.get("is_draft") else "false"
             if argv[:3] == ["gh", "pr", "view"] and argv[3] == "9":  # the record PR
                 return 0, ("e" * 40 if "headRefOid" in a else
                            "MERGED " + "9" * 40 if 9 in world.get("bot_merged", ()) else "OPEN None")
@@ -3901,6 +4563,8 @@ def _self_test() -> int:
                 if reads <= world.get("pending_reads", 0):
                     runs = [dict(c, status="in_progress") for c in runs]
                 return 0, "\n".join(json.dumps(c) for c in runs)
+            if argv[:2] == ["gh", "api"] and "event=pull_request" in a:  # bot_tip's runs read, post-jq
+                return world.get("bot_runs", (0, ""))
             if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
                 sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
                 subj = world.get("bot_tips", {}).get(sha)
@@ -3934,18 +4598,21 @@ def _self_test() -> int:
                     return 0, ""
                 return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "dev/governance/roles/fixer.md"))
             if argv[:2] == ["gh", "api"] and "/pulls/" in a and "/reviews" in a:
-                return 0, json.dumps([world.get("reviews", [])])
+                return 0, _jl(world.get("reviews", []))
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(world["mandate"])) if world.get("mandate") \
                     else (1, "gh: Not Found (HTTP 404)")
-            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
-                return 0, json.dumps([world.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
+                # every record issue is read; the fixture's thread is #201's
+                return 0, _jl(world.get("thread", []) if "/issues/201/" in a else [])
             if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
                 return (0, "7") if world.get("required", "fast\n") else (1, "HTTP 404")
             if "rulesets/7" in a:
                 return 0, world.get("required", "fast\n")
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
+            if argv[:3] == ["gh", "api", "user"]:  # the acting account
+                return 0, world.get("post_user", {"login": "orchestrator"})["login"]
             if argv[:3] == ["gh", "pr", "review"]:
                 # What GitHub would hold after the post: the next reviews read
                 # returns it -- unless the read-back is meant to fail.
@@ -3960,7 +4627,7 @@ def _self_test() -> int:
             if "state,mergeCommit" in a:
                 return 0, world["merge"].pop(0) if world.get("merge") else "MERGED " + "d" * 40
             if argv[:2] == ["gh", "api"] and re.search(r"/issues/\d+/comments", a):  # pre-flight's findings read
-                return 0, json.dumps([world.get("verdict_comments", [])])
+                return 0, _jl(world.get("verdict_comments", []))
             return 0, ""
         return run, calls
 
@@ -3975,6 +4642,7 @@ def _self_test() -> int:
         world.setdefault("contains", [])
         world.setdefault("runs", green)
         opts.setdefault("critical", lambda it: False)  # never the live roster in a fixture
+        opts.setdefault("outside", lambda it: False)
         lines: list[str] = []
         timeline: list[tuple[str, str]] = []  # calls and log lines, in order
         run, calls = fake(world)
@@ -4006,6 +4674,32 @@ def _self_test() -> int:
     def approved(calls) -> bool:
         return any(c[:3] == ["gh", "pr", "review"] for c in calls)
 
+    D = dict(item, draft=True)
+    ud = lambda ln: [x for x in ln if x.startswith("UNDRAFT")]
+    rc, lines, calls = go({"is_draft": True}, q=[dict(D)])
+    check("a head recorded as a draft at admission is undrafted once and merges",
+          rc == 0 and merged(calls) and ud(lines) == [f"UNDRAFT #7 {H0[:12]}"])
+    rc, lines, calls = go({}, q=[dict(D)])
+    check("undraft null: a non-draft head at the same step merges with no UNDRAFT line",
+          rc == 0 and merged(calls) and not ud(lines) and not any(c[:3] == ["gh", "pr", "ready"] for c in calls))
+    rc, lines, calls = go({"is_draft": True}, q=[dict(item)])
+    check("undraft null: a head drafted after admission (no draft:true in the item) is not undrafted",
+          not ud(lines) and not any(c[:3] == ["gh", "pr", "ready"] for c in calls))
+    rc, lines, calls = go({"is_draft": True, "carry": "CARRY: no"}, q=[dict(D)])
+    check("undraft null: a draft whose verdict does not carry to the head is not undrafted",
+          rc == 1 and not ud(lines) and not merged(calls))
+    rc, lines, calls = go({"is_draft": True, "runs": [{"name": "fast", "status": "in_progress", "started_at": "1"}],
+                           "pending_reads": 99}, q=[dict(D)])
+    check("undraft null: a draft with a pending required context is not undrafted",
+          rc == 1 and not ud(lines) and not merged(calls))
+    rc, lines, calls = go({"is_draft": True, "ready_rc": (1, "boom")}, q=[dict(D)])
+    # Keyed on each arm's own Stop: the failed ready's fixture leaves isDraft true, so
+    # the re-read arm would stop it too, under the same `undraft:` phase.
+    check("a failed gh pr ready is its own undraft Stop, naming the call and its output, no merge",
+          rc == 1 and "undraft: gh pr ready #7 failed: boom" in lines[-1] and not merged(calls))
+    rc, lines, calls = go({"is_draft": True, "redraft": True}, q=[dict(D)])
+    check("a head re-drafted after the call stops the run before the merge, as a draft again",
+          rc == 1 and "undraft: #7 is a draft again after gh pr ready" in lines[-1] and not merged(calls))
     rc, lines, calls = go({})
     check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
     check("a wait that settles on its first poll beats nothing (heartbeat null control)",
@@ -4052,7 +4746,38 @@ def _self_test() -> int:
           and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
           and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
           and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
-    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
+    # one-job pulse (R10-TICK-RESIDUE-P2 carry 0): the baseline is the same listing's completed same-name runs
+    def jr(name, st, a, b=None):
+        iso = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+        return {"name": name, "status": st, "started_at": iso(a), "completed_at": iso(b) if b is not None else None}
+    # completed in index order, so the 9000 s run is the OLDEST: the BASELINE_JOBS window drops it
+    hist = [jr("codeql / Analyze (python)", "completed", 10000 * i, 10000 * i + d)
+            for i, d in enumerate([9000, 2400, 2800, 3000, 3600, 2900, 2700])]
+    live = jr("codeql / Analyze (python)", "in_progress", 50000)
+    pl = one_job_pulse(hist + [live, jr("tests", "completed", 0, 60)], 50000 + 2460)
+    check("a one-unfinished listing prints the job, elapsed and its same-name p50/max baseline "
+          "(last 6 of 7: the oldest, 9000 s run falls out of the window, so max stays 60m)",
+          pl == "CI waits on 1 job: codeql / Analyze (python) 41m of p50 47m / max 60m (normal)")
+    check("elapsed past the max reads over max, a name with no completed run reads no baseline",
+          one_job_pulse(hist + [live], 50000 + 4000).endswith("(over max)")
+          and one_job_pulse([live], 50000 + 600) == "CI waits on 1 job: codeql / Analyze (python) 10m, no baseline")
+    check("null control: two unfinished jobs print no such line, and none unfinished neither",
+          one_job_pulse(hist + [live, jr("tests", "queued", 50000)], 51000) is None
+          and one_job_pulse(hist, 51000) is None)
+    # wait_ci itself logs the pulse beside the beat (a pulse built and never logged reads nothing)
+    iso0 = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": iso0(0), "completed_at": iso0(600)},
+            {"name": "fast", "status": "in_progress", "conclusion": None, "started_at": iso0(5000), "completed_at": None}]
+    ticks = iter([0, 240, 500])
+    lines = []
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=hung_run, sleep=lambda s: None, log=lines.append,
+                  polls=2, clock=lambda: next(ticks), wall=lambda: 5000 + 1200)
+        t.wait_ci(H0)
+    check("wait_ci logs the one-job pulse right after its beat, from the same listing",
+          len(lines) == 4 and lines[0].startswith("beat:") and lines[2].startswith("beat:")
+          and lines[1] == lines[3] == "CI waits on 1 job: fast 20m of p50 10m / max 10m (over max)")
+    hang = [{"name": "fast", "status": "completed", "conclusion": "success", "started_at": "1"}]
     ticks = iter([0, 240, 480, 700])
     lines = []
     with tempfile.TemporaryDirectory() as d:
@@ -4459,6 +5184,16 @@ def _self_test() -> int:
         check(f"policy post null: {name} posts nothing, and the policy stop is today's",
               rc == 1 and posts(calls) == 0 and "policy:" in lines[-1] and "no decisive review" in lines[-1]
               and not merged(calls))
+    # Carries 7/11 and 8/12 (R10-TRAIN-RESIDUE): the post and the pre-flight's simulation share
+    # `policy_approval_due`, so one refusal each covers both.
+    rc, lines, calls = go({**POL, "reviews": [], "mandate": mandate(NOW),
+                           "post_user": {"login": "someone-else", "id": 9, "type": "User"}}, mandate=str(MID))
+    check("policy post: a gh account that is not the owner posts nothing, and the stop names the account",
+          rc == 1 and posts(calls) == 0 and not merged(calls) and any("gh account is someone-else" in ln for ln in lines))
+    rc, lines, calls = go({**POL, "reviews": [{**owner_review(H0, NOW), "state": "CHANGES_REQUESTED", "body": ""}],
+                           "mandate": mandate(NOW), "post_user": OWNER}, mandate=str(MID))
+    check("policy post: the owner's own latest CHANGES_REQUESTED posts no mandated approval",
+          rc == 1 and posts(calls) == 0 and not merged(calls) and "CHANGES_REQUESTED" in lines[-1])
     rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW), "post_user": OWNER},
                           mandate=str(MID))
     check("policy post: an owner approval already at the head is not re-posted, and it lands",
@@ -4781,6 +5516,11 @@ def _self_test() -> int:
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "MERGE CONFLICT 7"})
     check("a recarry conflict stops it, named as one", rc == 1 and "without a resolution" in lines[-1] and not merged(calls))
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1], "remerge": "REMERGE FAILED 7 at fetch (rc=128)"})
+    check("carry f7d2bf7c: a remerge that failed before any conflict stops as a git failure -- never a "
+          "conflict, never read as a push that landed",
+          rc == 1 and "REMERGE FAILED 7 at fetch" in lines[-1] and "without a resolution" not in lines[-1]
+          and not merged(calls))
     rc, lines, calls = go({"contains": [False], "heads": [H0], "remerge": "REFUSE: body"})
     check("a recarry that pushed nothing and left the head where it was stops it (the refusal is real)",
           rc == 1 and "pushed nothing" in lines[-1] and not merged(calls))
@@ -4826,6 +5566,15 @@ def _self_test() -> int:
           "and the train goes on at the new head (null control for the refusal above)",
           rc == 0 and merged(calls) and any("recarry" in ln for ln in lines)
           and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+    for what, runs, merges in (("approved (completed/success)", (0, _jl([{"status": "completed", "conclusion": "success"}])), True),
+                               ("still held action_required", (0, _jl([{"status": "completed", "conclusion": "action_required"}])), False),
+                               ("held, status form", (0, _jl([{"status": "action_required", "conclusion": None}])), False),
+                               ("absent (no pull_request run)", (0, ""), False),
+                               ("unreadable listing", (1, "gh: HTTP 502"), False)):
+        rc, lines, calls = go({"bot_tips": {H0: BOT}, "bot_runs": runs})
+        check(f"carry 3: a bot head whose pull_request runs are {what} is "
+              + ("merged" if merges else "refused with the BOT-HEAD line"),
+              (rc == 0 and merged(calls)) if merges else (rc == 1 and "[BOT-HEAD]" in lines[-1] and not merged(calls)))
     # The route the stubs cannot see: the real remerge_main.sh pushes with --recarry.
     rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
     check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
@@ -4992,7 +5741,8 @@ def _self_test() -> int:
                                                                         "conclusion": "neutral", "started_at": "1"}]})
     check("skipped and neutral are green (null control)", rc == 0 and merged(calls))
     check("the CI read pages past the first 100 runs",
-          any("--paginate" in c and any("check-runs" in x for x in c) for c in calls))
+          any(any("check-runs" in x for x in c) and any(re.search(r"[?&]page=\d+", x) for x in c) for c in calls)
+          and not any("--paginate" in c for c in calls))
     rc, lines, calls = go({"contains": [True, True, False]})
     check("main moving after approval and before the merge stops it", rc == 1 and "merge:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"preflight": "  ok       policy corpus -- current"})
@@ -5095,15 +5845,270 @@ def _self_test() -> int:
     _stop_self_test(check)
     _unwind_self_test(check)
     _read_retry_self_test(check)
+    _git_retry_self_test(check)
     _review_settle_self_test(check)
+    _rollup_draft_self_test(check)
+    _gate_race_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
     _batch_self_test(check)
     _failed_marker_self_test(check)
     _add_self_test(check)
     _queue_self_test(check)
+    _stale_verdict_self_test(check)
+    _introduced_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _introduced_self_test(check) -> None:
+    """R10-INTRODUCED-REDS-BARRIER: a SELFTESTS step red at the head and not at
+    the base is INTRODUCED, `classify --pr` reads it RED, and every unreadable
+    input fails closed. The four cases: introduced, inherited, no base run, and
+    a step skipped by scoping; the push-only drift step never counts."""
+    H, B = "1" * 40, "2" * 40
+    drift = next(iter(SELFTESTS_PUSH_ONLY))
+
+    def job(i, concl="failure"):
+        return {"name": SELFTESTS, "id": i, "status": "completed", "conclusion": concl}
+
+    head_s = [{"name": "new red", "conclusion": "failure"}, {"name": "old red", "conclusion": "failure"},
+              {"name": "scoped", "conclusion": "skipped"}, {"name": drift, "conclusion": "failure"}]
+    base_s = [{"name": "new red", "conclusion": "success"}, {"name": "old red", "conclusion": "failure"},
+              {"name": "scoped", "conclusion": "failure"}, {"name": drift, "conclusion": "failure"}]
+    check("introduced: red at the head and not at the base is the PR's; one red at both is inherited",
+          introduced_reds(head_s, base_s) == ["new red"])
+    check("no base run: every head red counts, the push-only drift step still excluded",
+          introduced_reds(head_s, None) == ["new red", "old red"])
+    check("a step skipped by scoping at the head is not counted, though red at the base",
+          "scoped" not in introduced_reds(head_s, None) + introduced_reds(head_s, base_s))
+    check("null: the base subtraction is what clears an inherited red (the same head against itself reads 0)",
+          introduced_reds(head_s, head_s) == [])
+    check("the push-only drift step alone red at the head is never introduced",
+          introduced_reds([{"name": drift, "conclusion": "failure"}], None) == [])
+
+    def world(head_runs, base_runs, jobs, mb=B):
+        calls: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if argv[:2] == ["git", "merge-base"]:
+                return (0, mb + "\n") if mb else (128, "fatal: Not a valid commit name")
+            if a.endswith("rulesets --jq " + argv[-1]):
+                return 0, "7"
+            if "rulesets/7" in a:
+                return 0, "fast\n"
+            for sha, runs in ((H, head_runs), (B, base_runs)):
+                if f"commits/{sha}/{SELFTESTS_RUNS}" in a:  # the filtered read: one JSON array
+                    return (1, "HTTP 502") if runs is None else (0, json.dumps(
+                        [r for r in runs if r["name"] == SELFTESTS]))
+                if f"commits/{sha}/check-runs" in a:
+                    return (1, "HTTP 502") if runs is None else (0, "\n".join(json.dumps(r) for r in runs))
+            m = re.search(r"actions/jobs/(\d+)", a)
+            if m:
+                st = jobs.get(int(m.group(1)))
+                return (1, "HTTP 404") if st is None else (0, json.dumps(st))
+            return 1, "unexpected"
+        return Train("o/r", Path(tempfile.gettempdir()), None, "", (), 1, run=run, sleep=lambda s: None), calls
+
+    fast = {"name": "fast", "id": 5, "status": "completed", "conclusion": "success"}
+    t, calls = world([fast, job(11)], [job(21)], {11: head_s, 21: base_s})
+    rc, out = introduced_cmd(t, H, None)
+    check("introduced_cmd: rc 1, one INTRODUCED line per introduced step, base by git merge-base origin/main",
+          rc == 1 and out.splitlines()[0] == "INTRODUCED new red" and len(out.splitlines()) == 2
+          and f"against {B}: head job 11 failure base job 21 failure" in out
+          and any(c.startswith("git merge-base origin/main") for c in calls))
+    check("the cost: one job-step read per side, the base's SELFTESTS runs by one filtered read",
+          sum("actions/jobs/" in c for c in calls) == 2 and sum(f"commits/{B}/" in c for c in calls) == 1
+          and any(f"commits/{B}/{SELFTESTS_RUNS}" in c for c in calls))
+    rc, line = classify_cmd(t, H, 7, False)
+    check("classify --pr reads an introduced red RED with its INTRODUCED lines, the required set green",
+          rc == 1 and line.startswith(f"RED {H} pending: none red: none introduced: 1")
+          and "\nINTRODUCED new red" in line)
+    check("null: classify without --pr is unchanged (GREEN), and so is --main",
+          classify_cmd(t, H, None, False)[0] == 0 and classify_cmd(t, H, 7, True)[0] == 0)
+    t, calls = world([fast, job(11)], [job(21)], {11: base_s, 21: base_s})
+    check("null: a head red only where its base is (inherited) is GREEN under classify --pr, introduced rc 0",
+          classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
+    t, calls = world([fast, job(11)], [fast], {11: head_s})
+    check("no base run: every head red but the drift step is INTRODUCED",
+          introduced_cmd(t, H, B)[1].count("INTRODUCED") == 2)
+    t, calls = world([fast, job(11, "success")], None, {})
+    check("a head whose SELFTESTS concluded success costs no read beyond its check runs",
+          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c or "merge-base" in c for c in calls))
+    for why, w in (("the head's job", ([fast, job(11)], [job(21)], {21: base_s})),
+                   ("the base's job", ([fast, job(11)], [job(21)], {11: head_s})),
+                   ("the base's check runs", ([fast, job(11)], None, {11: head_s})),
+                   ("the merge base", ([fast, job(11)], [job(21)], {11: head_s, 21: base_s}, ""))):
+        t, _ = world(*w)
+        try:
+            classify_cmd(t, H, 7, False)
+            closed = False
+        except Stop as s:
+            closed = s.step == "selftests"
+        check(f"fail closed: {why} unreadable is a Stop (rc 2), never an empty list", closed)
+
+    # Beyond a `failure` conclusion (the r1 verdict's class): a hang the pull
+    # request makes concludes timed_out with its running step cancelled, a
+    # cancelled step can sit in a failed job, a head can carry a re-run, a job
+    # can still be running, and a job-level cancelled reads nothing.
+    hang = [{"name": "hang", "conclusion": "cancelled"}, {"name": "after", "conclusion": "skipped"}]
+    green = [{"name": "hang", "conclusion": "success"}, {"name": "after", "conclusion": "success"}]
+    t, _ = world([fast, job(11, "timed_out")], [job(21, "success")], {11: hang, 21: green})
+    rc, line = classify_cmd(t, H, 7, False)
+    check("a hang the PR makes (job timed_out, its step cancelled) is RED under classify --pr, step and timeout INTRODUCED",
+          rc == 1 and f"\nINTRODUCED {JOB_TIMED_OUT}" in line and "\nINTRODUCED hang" in line)
+    t, _ = world([fast, job(11)], [job(21, "success")], {11: hang, 21: green})
+    check("a cancelled step inside a failed job is INTRODUCED",
+          introduced_cmd(t, H, None)[1].splitlines()[0] == "INTRODUCED hang")
+    inherited = [{"name": "hang", "conclusion": "failure"}, {"name": "after", "conclusion": "skipped"}]
+    t, _ = world([fast, job(11, "timed_out")], [job(21)], {11: hang, 21: inherited})
+    out = introduced_cmd(t, H, None)[1]
+    check("a hang behind a step already red at the base: the timeout alone is INTRODUCED",
+          out.splitlines()[0] == f"INTRODUCED {JOB_TIMED_OUT}" and out.count("INTRODUCED") == 1)
+    t, _ = world([fast, job(11, "timed_out")], [job(21, "timed_out")], {11: hang, 21: hang})
+    check("null: a timeout the base had too, on the same step, is inherited (GREEN, introduced rc 0)",
+          classify_cmd(t, H, 7, False)[0] == 0 and introduced_cmd(t, H, None)[0] == 0)
+    t, _ = world([fast, job(11, "success"), job(12)], [job(21, "success")], {12: hang, 21: green})
+    check("a re-run at one head that went red: the latest run (highest id) is read, its red INTRODUCED",
+          introduced_cmd(t, H, None)[0] == 1)
+    t, calls = world([fast, job(11), job(12, "success")], [job(21, "success")], {11: hang, 21: green})
+    check("a re-run at one head that went green reads clean at no job read",
+          introduced_cmd(t, H, None)[0] == 0 and not any("actions/jobs" in c for c in calls))
+    running = {"name": SELFTESTS, "id": 12, "status": "in_progress", "conclusion": None}
+    t, calls = world([fast, job(11, "success"), running], [job(21, "success")], {})
+    rc, line = classify_cmd(t, H, 7, False)
+    check("a head job still running (a hang before its timeout) is WAIT under classify --pr (rc 3), never GREEN",
+          rc == 3 and line.startswith(f"WAIT {H}") and introduced_cmd(t, H, None)[0] == 3
+          and not any("actions/jobs" in c for c in calls))
+    t, _ = world([fast], [job(21, "success")], {})
+    check("null: a head with no instrument-self-tests run (the prelude skipped it) is GREEN",
+          classify_cmd(t, H, 7, False)[0] == 0)
+    for why, w in (("the head's job concluded cancelled", ([fast, job(11, "cancelled")], [job(21)], {11: hang, 21: green})),
+                   ("the head's job concluded startup_failure", ([fast, job(11, "startup_failure")], [job(21)], {})),
+                   ("the base's job concluded cancelled", ([fast, job(11)], [job(21, "cancelled")], {11: hang, 21: green})),
+                   ("a red head job with no red step", ([fast, job(11)], [job(21)], {11: green, 21: green}))):
+        t, _ = world(*w)
+        try:
+            classify_cmd(t, H, 7, False)
+            closed = False
+        except Stop as s:
+            closed = s.step == "selftests"
+        check(f"fail closed: {why} is a Stop (rc 2), never a clean read", closed)
+
+
+def _stale_verdict_self_test(check) -> None:
+    """P393 (R10-TRAIN-STALE-VERDICT-GUARD): a merge verdict at <head> whose
+    dispatch is older than a blocked verdict's at the same head is refused by
+    `posted_verdict`, so by the queue builder and `admit_add` alike. The bus is a
+    stubbed verdict/7 history; bus.sh's registry is a real file under a
+    temporary HPO_BUS_STATE."""
+    sys.modules.setdefault("merge_train", sys.modules[__name__])
+    import proof_watch
+    login, vid = (lambda a: (sorted(a[0])[0], a[1]))(proof_watch.verdict_allowlist(ROOT / "tools/pr/app_approve.sh"))
+    H, OTHER, T, BC, MC = "1" * 40, "3" * 40, "7" * 40, "b" * 40, "a" * 40
+    NM, NB = "a" * 32, "b" * 32
+    tmp = tempfile.TemporaryDirectory()
+
+    calls: list = []
+
+    def world(registry=None, blocked_head=H, blocked_nonce=NB, merge_nonce=NM, log_code=0, fetch_code=0):
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(argv)
+            if argv[:2] == ["git", "fetch"]:
+                # a successful fetch may still print (a redirect warning): its exit code decides
+                return (fetch_code, "fatal: couldn't find remote ref" if fetch_code else "warning: redirecting to https://x/")
+            if argv[:2] == ["git", "ls-remote"]:
+                return 0, f"{T}\trefs/heads/verdict/7\n"
+            if argv[:2] == ["gh", "api"] and "/comments" in a:
+                return 0, _jl([{"id": 42, "created_at": "2026-11-06T23:00:00Z",
+                                        "user": {"login": login, "id": vid},
+                                        "body": f"Fix review: merge {H}\n\nbus: verdict/7 at {T}, confirmed\n"}])
+            if argv[:2] == ["git", "log"]:  # verdict/7, newest first: the merge tip over a blocked one
+                return (log_code, "fatal: bad object" if log_code else
+                        f"{T}\x00verdict: #7 Fix review: merge {H}\n"
+                        f"{BC}\x00verdict: #7 Fix review: blocked {blocked_head} tests: red\n"
+                        f"{MC}\x00verdict: #7 Fix review: merge {OTHER}\n")
+            if argv[:2] == ["git", "show"] and argv[2].endswith(":VERDICT.md"):
+                n = {T: merge_nonce, BC: blocked_nonce}.get(argv[2].split(":")[0])
+                # A finding quoting the OTHER verdict's nonce in prose (PR 2465's shape) is not this one's.
+                quote = f"- a note on round 2's `bus-nonce: {NB if n != NB else NM}` line\n"
+                return (0, f"Fix review: x\n\n{quote}\nbus-nonce: {n}\n") if n else (0, f"Fix review: x\n\n{quote}")
+            if argv[:3] == ["gh", "pr", "view"]:
+                return 0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": H})
+            if argv[:2] == ["git", "diff"]:
+                return 0, f"a.py\n{ROW_DIR}/7.md"
+            if "--corpus-filter" in a:  # admit_add's policy read: no fixture file is policy
+                return 0, "\n".join(f for f in (stdin or "").split() if f == "CLAUDE.md")
+            return 0, ""
+        d = Path(tempfile.mkdtemp(dir=tmp.name))
+        if registry is not None:
+            (d / "dispatched").write_text("".join(ln + "\n" for ln in registry))
+        return run, d
+
+    def posted(**w):
+        run, d = world(**w)
+        was = os.environ.get("HPO_BUS_STATE")
+        os.environ["HPO_BUS_STATE"] = str(d)
+        try:
+            t = Train("o/r", Path("."), None, "", (), 1, run=run, log=lambda m: None)
+            return t.posted_verdict(7, T, ({login}, vid)), t.admit_add({"pr": 7, "verdict": H, "verdict_comment": "42"})
+        finally:
+            if was is None:
+                os.environ.pop("HPO_BUS_STATE", None)
+            else:
+                os.environ["HPO_BUS_STATE"] = was
+
+    rec = lambda n, at, h=H: f"7 {h} cmsg_R {n} {at} opus"  # noqa: E731  bus.sh dispatch's six fields
+    stale, stale_add = posted(registry=[rec(NM, "2026-11-06T20:50:26Z"), rec(NB, "2026-11-06T22:13:28Z")])
+    check("stale verdict: STALE -- a merge verdict dispatched before a blocked verdict at the same head is refused "
+          "(PR 3232's times), by posted_verdict and as admit_add's `verdict` rule",
+          isinstance(stale, str) and stale.startswith("stale merge verdict:") and "aaaaaaaa" in stale
+          and "bbbbbbbb" in stale and (stale_add or "").startswith("verdict: stale merge verdict:"))
+    later, later_add = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T23:40:00Z")])
+    check("stale verdict: LATER (null control) -- the merge verdict's dispatch after the blocked one's is admitted",
+          later == (H, "42") and later_add is None)
+    same, same_add = posted(registry=[], blocked_nonce=NM)
+    check("stale verdict: SAME (null control) -- one nonce posted both verdicts, admitted with no dispatch time read",
+          same == (H, "42") and same_add is None)
+    for name, w in (("the merge verdict's nonce has no registry record", {"registry": [rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("the blocked verdict's nonce has no registry record", {"registry": [rec(NM, "2026-11-06T20:50:26Z")]}),
+                    ("a pre-R10-ORCH-DISPATCH-REG record stops at the nonce",
+                     {"registry": [f"7 {H} cmsg_R {NM}", rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("a mint before the utc field is not dated by a later --nonce re-record",
+                     {"registry": [f"7 {H} cmsg_R {NM}", rec(NM, "2026-11-06T23:40:00Z"),
+                                   rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("a malformed time is no time", {"registry": [rec(NM, "2026-11-06T25:61:00Z"),
+                                                                 rec(NB, "2026-11-06T22:13:28Z")]}),
+                    ("no registry file on this machine", {"registry": None}),
+                    ("the blocked verdict carries no bus-nonce", {"registry": [rec(NM, "2026-11-06T23:40:00Z")],
+                                                                  "blocked_nonce": None}),
+                    ("a record at another head is not this nonce's dispatch",
+                     {"registry": [rec(NM, "2026-11-06T23:40:00Z", OTHER), rec(NB, "2026-11-06T22:13:28Z")]})):
+        got = posted(**w)[0]
+        check(f"stale verdict: a missing dispatch time is refused with its reason ({name})",
+              isinstance(got, str) and got.startswith("stale merge verdict undecidable:"))
+    tie = posted(registry=[rec(NM, "2026-11-06T22:13:28Z"), rec(NB, "2026-11-06T22:13:28Z")])[0]
+    tie_later = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T22:13:28Z")])[0]
+    check("stale verdict: a same-second tie is ordered by the registry's append order (refused, then admitted)",
+          isinstance(tie, str) and tie.startswith("stale merge verdict:") and tie_later == (H, "42"))
+    skew = posted(registry=[rec(NB, "2026-11-06T22:13:28Z"), rec(NM, "2026-11-06T20:50:26Z")])[0]
+    check("stale verdict: the dispatch time decides, not the registry's line order (a merge dispatch recorded "
+          "after the blocked one but timed before it is refused)",
+          isinstance(skew, str) and skew.startswith("stale merge verdict:"))
+    calls.clear()
+    other = posted(registry=None, blocked_head=OTHER)[0]
+    check("stale verdict: a blocked verdict at another head is not this head's finding (admitted, no nonce read)",
+          other == (H, "42") and any(c[:2] == ["git", "log"] for c in calls)  # the read ran: the null below is not vacuous
+          and not any(c[:2] == ["git", "show"] for c in calls))
+    unread = posted(registry=[], log_code=128)[0]
+    unfetched = posted(registry=[], fetch_code=128)[0]
+    check("stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict",
+          isinstance(unread, str) and "history could not be read" in unread
+          and isinstance(unfetched, str) and "could not be read (fetch failed)" in unfetched)
+    tmp.cleanup()
 
 
 def _failed_marker_self_test(check) -> None:
@@ -5203,7 +6208,7 @@ def _queue_self_test(check) -> None:
                 return 0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": h})
             if argv[:2] == ["gh", "api"] and "/comments" in a:
                 n = int(a.split("/issues/")[1].split("/")[0])
-                return 0, json.dumps([w["comments"].get(n, [])])
+                return 0, _jl(w["comments"].get(n, []))
             if "--carry" in argv:
                 i = argv.index("--carry")
                 return 0, w["carry"].get((argv[i + 1], argv[i + 2]), "app_approve: REFUSE: unknown pair")
@@ -5532,6 +6537,64 @@ def _queue_self_test(check) -> None:
           drain312(mk312(1, 4, prio=(4,))) == [4, 1])
     check("P312: priority, then critical path, then arrival: #4 (priority), #3 (critical), #1, #2",
           drain312(mk312(1, 2, 3, 4, prio=(4,))) == [4, 3, 1, 2])
+    # Owner rulings tvofi 2026-11-07 (triage P420) and 2026-11-08: priority or front,
+    # then outside and critical as one rank in arrival order, then the rest.
+    def drain420(entries, out=("out",), cp=("cp",), heads=None):
+        heads = heads or {1: "plain", 2: "cp", 3: "out", 4: "plain", 5: "out"}
+        def run(argv, cwd=ROOT, stdin=None):
+            return 0, heads[int(argv[3])] + "\n"
+        with tempfile.TemporaryDirectory() as dd:
+            t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None,
+                      critical=lambda it: it["branch"] in cp, outside=lambda it: it["branch"] in out)
+            return [e["pr"] for e in t.drain_order(entries)]
+    check("P420: an outside entry (#3) drains with a critical-path one (#2), in arrival order, behind "
+          "a priority one (#4) and ahead of a plain one (#1)",
+          drain420(mk312(1, 2, 3, 4, prio=(4,))) == [4, 2, 3, 1]
+          and drain420(mk312(1, 3, 2, 4, prio=(4,))) == [4, 3, 2, 1])
+    check("P420: outside and critical entries keep arrival order among themselves, ahead of the rest",
+          drain420(mk312(1, 2, 3, 5)) == [2, 3, 5, 1])
+    check("P420 null: no outside entry orders byte-identically to P312's priority, critical, arrival",
+          drain420(mk312(1, 2, 3, 4, prio=(4,)), out=()) == [4, 2, 1, 3])
+    # The live read: a fork head (a branch no group claims) maps through resume.pr.
+    ros420 = {"groups": [{"group": "R10-OUT", "source": "outside", "resume": {"pr": 31, "branch": "handoff/r10-out"}},
+                         {"group": "R10-INT", "resume": {"pr": 32}}]}
+    def live420(roster, *items):
+        with tempfile.TemporaryDirectory() as dd:
+            tl = Train("o/r", Path(dd), None, "", (), 1, run=lambda *a, **k: (0, ""), log=lambda m: None)
+            tl.cp_read = (roster, set())
+            return [tl._outside(it) for it in items]
+    forks = ({"branch": "handoff/r10-out", "pr": 99}, {"branch": "someone:main", "pr": 31},
+             {"branch": "someone:main", "pr": 32}, {"branch": "someone:main", "pr": 77}, {"branch": "someone:main"})
+    check("P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, "
+          "an unrecorded pull request and no pull request are not outside",
+          live420(ros420, *forks) == [True, True, False, False, False])
+    check("P420 _outside: a roster that cannot be read is internal, never outside",
+          live420(None, {"branch": "handoff/r10-out", "pr": 31}) == [False])
+    check("P420 _outside null: a roster with no source field has no outside entry",
+          live420({"groups": [{k: v for k, v in g.items() if k != "source"} for g in ros420["groups"]]}, *forks)
+          == [False] * 5)
+    # drain_order through the live reader: an entry with no branch of ours (a fork head)
+    # keeps its outside rank through `resume.pr`, so the item must carry the pull request.
+    def drain_live420(roster, entries, heads):
+        def run(argv, cwd=ROOT, stdin=None):
+            return 0, heads[int(argv[3])] + "\n"
+        with tempfile.TemporaryDirectory() as dd:
+            t = Train("o/r", Path(dd), None, "", (), 1, run=run, log=lambda m: None)
+            t.cp_read = (roster, set())
+            return [e["pr"] for e in t.drain_order(entries)]
+    ros_fork = {"groups": [{"group": "R10-F", "source": "outside", "resume": {"pr": 31}}]}
+    ent_fork = [{"pr": 7, "branch": "mine"}, {"pr": 31, "branch": "someone:main"}, {"pr": 8, "branch": "mine"}]
+    check("P420 drain_order: a fork-head outside entry (#31, branch no group claims) drains first through resume.pr",
+          drain_live420(ros_fork, ent_fork, {}) == [31, 7, 8])
+    ros_hf = {"groups": [{"group": "R10-F", "source": "outside", "resume": {"pr": 31}},
+                         {"group": "R10-HOTFIX-I", "kind": "instrument", "resume": {"pr": 8}}]}
+    check("P420 drain_order: a roster hotfix with no --priority flag (#8) drains ahead of an outside entry (#31)",
+          drain_live420(ros_hf, ent_fork, {}) == [8, 31, 7])
+    check("P420 drain_order null: the same group without a HOTFIX name drains behind the outside entry",
+          drain_live420({"groups": [ros_hf["groups"][0], {"group": "R10-I", "kind": "instrument", "resume": {"pr": 8}}]},
+                        ent_fork, {}) == [31, 7, 8])
+    check("P420 drain_order null: the same entries with no outside group keep arrival order",
+          drain_live420({"groups": [{"group": "R10-F", "resume": {"pr": 31}}]}, ent_fork, {}) == [7, 31, 8])
     check("P312 null: no priority and nothing critical keeps arrival order; one entry is untouched",
           drain312(mk312(1, 2, 4), cp=()) == [1, 2, 4] and drain312(mk312(2)) == [2])
     check("RECOMMENDED is the owner's six, each a flag batch accepts",
@@ -5544,6 +6607,190 @@ def _queue_self_test(check) -> None:
                                          auto_train_argv("o/r", tmp.name, None))
           and rc3 == 2 and len(seen_argv) == 2)
     tmp.cleanup()
+
+
+def _gate_race_self_test(check) -> None:
+    """The train gate race (2026-11-06, #3248's scene): the edit run's gate
+    failed at 14:55:47Z by design (gate.py `deferral`) while the code run
+    42237558473 was unfinished, its gate check-run listed only at 15:25:55Z.
+    `wait_ci` must wait while a sibling run at the head is unfinished and
+    still return a red gate once none is."""
+    H = "e" * 40
+    edit_gate = {"name": "gate", "status": "completed", "conclusion": "failure", "started_at": "2026-11-06T14:55:00Z",
+                 "id": 1, "check_suite": {"id": 11}}
+    code_gate = {"name": "gate", "status": "completed", "conclusion": "success", "started_at": "2026-11-06T15:25:00Z",
+                 "id": 2, "check_suite": {"id": 22}}
+
+    def world(checks, sibs):
+        calls: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if "check-runs" in a:
+                cur = checks[min(len(calls_cr), len(checks) - 1)]
+                calls_cr.append(1)
+                return 0, "\n".join(json.dumps(c) for c in cur)
+            if "actions/runs?head_sha=" in a:
+                cur = sibs[min(len(calls_sb), len(sibs) - 1)]
+                calls_sb.append(1)
+                return (cur if isinstance(cur, tuple) else (0, cur))
+            return 0, ""
+        calls_cr: list = []
+        calls_sb: list = []
+        return run, calls, calls_sb
+
+    def wait(checks, sibs, polls=4):
+        run, calls, calls_sb = world(checks, sibs)
+        with tempfile.TemporaryDirectory() as d:
+            t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls)
+            return t.wait_ci(H, only=[GATE]), calls_sb
+    busy = _jl([{"id": 42237558473, "status": "in_progress"}, {"id": 42237558635, "status": "completed"}])
+    done = _jl([{"id": 42237558473, "status": "completed"}, {"id": 42237558635, "status": "completed"}])
+    rerun_green = dict(edit_gate, conclusion="success", started_at="2026-11-06T15:26:00Z")
+    red, _ = wait([[edit_gate], [edit_gate], [rerun_green, code_gate]], [busy, done, done], polls=5)
+    check("a failed gate beside an unfinished sibling run is waited on, then through the cascade re-run's lag, "
+          "not returned red (the #3248 scene)", red == [])
+    red, _ = wait([[edit_gate]], [busy], polls=3)
+    check("a sibling run that never finishes ends as TIMEOUT, bounded by the polls", red == ["TIMEOUT"])
+    red, sb = wait([[edit_gate]], [done])
+    check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
+          red == [GATE] and len(sb) == 1)
+    red, sb = wait([[edit_gate]], [_jl([{"id": 42237558473, "status": "action_required"}, {"id": 42237558635, "status": "completed"}])])
+    check("a held sibling run (action_required) is not unfinished: the red gate returns on the first poll",
+          red == [GATE] and len(sb) == 1)
+    red, sb = wait([[edit_gate]], [(1, "boom")])
+    check("an unreadable runs listing leaves the red standing (today's skip)", red == [GATE] and len(sb) == 1)
+    unit = {"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}
+    run, calls, sb = world([[unit]], [busy])
+    with tempfile.TemporaryDirectory() as d:
+        r = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
+                  polls=3).wait_ci(H, only=["fast"])
+    check("a failed unit beside an unfinished sibling is final: only the gate defers", r == ["fast"] and not sb)
+
+
+def _rollup_draft_self_test(check) -> None:
+    """P608 (a rollup reads by newest entry, never list order) and P609 (a draft
+    is a state: undraft once when admitted as a draft, else a hold)."""
+    H = "b" * 40
+    ent = lambda st, at, run="COMPLETED": {"name": "gate", "status": run, "conclusion": st, "completedAt": at}  # noqa: E731
+    # #3445 7fb8680c: four FAILURE gates, the newest 09:29:14Z, then SUCCESS 09:23:45Z listed last
+    fails = [ent("FAILURE", f"2026-11-11T09:{m}:00Z") for m in ("10", "15", "20")] + [ent("FAILURE", "2026-11-11T09:29:14Z")]
+    frozen = fails + [ent("SUCCESS", "2026-11-11T09:23:45Z")]
+
+    def refusal(entries, ms="BLOCKED", rd="REVIEW_REQUIRED"):
+        def run(argv, cwd=ROOT, stdin=None):
+            if "statusCheckRollup" in " ".join(argv):
+                return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd, "statusCheckRollup": entries})
+            return 0, ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None)
+        t.required = lambda pr_head=False: ["gate"]
+        t.review_run_settling = lambda pr, h: False
+        return t.policy_refusal(3445, H)
+    for label, ents in (("in list order", frozen), ("reversed", frozen[::-1])):
+        why, wait, appr = refusal(ents)
+        check(f"P608 #3445's five gate entries {label}: red gate, not a missing review",
+              "required context(s) red at bbbbbbbb: gate" in why and wait is False and appr is False)
+    why, wait, _ = refusal([ent("SUCCESS", "2026-11-11T09:00:00Z"), ent("", "2026-11-11T10:29:00Z", "IN_PROGRESS")])
+    check("P608 a SUCCESS then an IN_PROGRESS entry is pending: wait", wait is True and "not yet green" in why)
+    ok = [ent("SUCCESS", f"2026-11-11T09:0{i}:00Z") for i in range(3)]
+    # M7: the unfinished entry is the OLDER one, a newer SUCCESS beside it
+    why, wait, _ = refusal([ent("", "2026-11-11T08:00:00Z", "IN_PROGRESS"), ent("SUCCESS", "2026-11-11T09:00:00Z")])
+    check("P608 an unfinished entry older than a SUCCESS still makes the context pending",
+          wait is True and "not yet green" in why)
+    # M8: GitHub's zero time on completedAt is no stamp: startedAt orders the entry
+    zero = {"name": "gate", "status": "COMPLETED", "conclusion": "SUCCESS",
+            "completedAt": "0001-01-01T00:00:00Z", "startedAt": "2026-11-11T10:00:00Z"}
+    check("P608 a zero-time completedAt falls back to startedAt: the newer entry stands, in either order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [ent("FAILURE", "2026-11-11T09:00:00Z"), zero], [zero, ent("FAILURE", "2026-11-11T09:00:00Z")]))
+          and rollup_states([zero, ent("FAILURE", "2026-11-11T11:00:00Z")]) == {"gate": "FAILURE"})
+    # M9: an entry with only startedAt is ordered by it
+    st = lambda c, at: {"name": "gate", "status": "COMPLETED", "conclusion": c, "startedAt": at}  # noqa: E731
+    check("P608 an entry with only startedAt is ordered by it, in either list order",
+          all(rollup_states(o) == {"gate": "SUCCESS"} for o in (
+              [st("FAILURE", "2026-11-11T09:00:00Z"), st("SUCCESS", "2026-11-11T09:30:00Z")],
+              [st("SUCCESS", "2026-11-11T09:30:00Z"), st("FAILURE", "2026-11-11T09:00:00Z")])))
+    check("P608 null: all-SUCCESS in any order reaches the review branch",
+          all("missing requirement is a review" in refusal(o)[0] for o in (ok, ok[::-1])))
+
+    # P609: land() on a head that is a draft
+    def world(draft_item, redraft=0):
+        calls, state = [], {"draft": True, "redraft": redraft}
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if a.startswith("gh pr ready"):
+                state["draft"] = False
+                return 0, ""
+            if "gh pr merge" in a:
+                if state["redraft"] > 0:  # the author drafts it again under the train
+                    state["redraft"] -= 1
+                    state["draft"] = True
+                state["merged"] = not state["draft"]
+                return (1, "Pull Request is still a draft") if state["draft"] else (0, "")
+            if "preflight" in a:
+                return 0, "clean\n"
+            return 0, ""
+        def out(*argv):
+            a = " ".join(argv)
+            if "isDraft" in a:
+                return "true" if state["draft"] else "false"
+            if "state,mergeCommit" in a:
+                return "MERGED abc" if state.get("merged") else "OPEN None"
+            return ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None, base="batch/x")
+        t.out, t.head, t.review_settle, t.unstale = out, (lambda pr: H), (lambda pr, h: None), (lambda h: None)
+        return t, calls
+    def land(item, **kw):
+        t, calls = world(item, **kw)
+        try:
+            t.land(7, H, item, [], lambda: None)
+        except Stop as s:
+            return s, calls
+        return None, calls
+    s, calls = land({"pr": 7, "draft": True})
+    check("P609 an admitted draft is readied once, then the merge attempts again",
+          s is None and sum(c.startswith("gh pr ready") for c in calls) == 1
+          and sum("gh pr merge" in c for c in calls) == 1)
+    s, calls = land({"pr": 7})
+    check("P609 a draft the train never admitted as one: one attempt, then the hold, no recarry",
+          s is not None and not isinstance(s, MainMoved) and "drafted after admission: left as a hold" in s.why
+          and sum("gh pr merge" in c for c in calls) == 1 and not any(c.startswith("gh pr ready") for c in calls))
+    s, calls = land({"pr": 7, "draft": True}, redraft=2)
+    check("P609 a draft again after the one ready: that hold after two attempts, never eight",
+          s is not None and "left as a hold" in s.why and sum("gh pr merge" in c for c in calls) == 2
+          and sum(c.startswith("gh pr ready") for c in calls) == 2)
+    t, calls = world({})
+    t.real = True
+    q = [{"pr": 7}, {"pr": 8, "draft": False}]
+    t.record_drafts(q)
+    check("P609 record_drafts reads once per entry lacking the key and keeps a recorded value",
+          q[0]["draft"] is True and q[1]["draft"] is False)
+    # M4: the batch itself records the key (the --queue / build_queue route)
+    t, calls = world({})
+    t.real = True
+    class _Halt(Exception):
+        pass
+    seen: list = []
+    def halt(q):
+        seen.extend(dict(i) for i in q)
+        raise _Halt
+    t.sweep_bots, t.required, t.main_green, t.preflight = (lambda: None), (lambda pr_head=False: []), (lambda *a: None), halt
+    t.git = lambda *a: H
+    t.state = Path(tempfile.mkdtemp())
+    try:
+        t._batch([{"pr": 7}], "t")
+    except _Halt:
+        pass
+    check("P609 a batch records the draft key on a key-less entry before admission",
+          len(seen) == 1 and seen[0].get("draft") is True)
+    t, calls = world({})
+    t.real, t.out = True, (lambda *a: "false")
+    q = [{"pr": 7}]
+    t.record_drafts(q)
+    check("P609 null: a non-draft entry is recorded False and makes no gh pr ready call",
+          q[0]["draft"] is False and not any(c.startswith("gh pr ready") for c in calls))
 
 
 def _review_settle_self_test(check) -> None:
@@ -5569,7 +6816,7 @@ def _review_settle_self_test(check) -> None:
                 return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd,
                                       "statusCheckRollup": [{"name": "gate", "conclusion": rollup}]})
             if "/reviews" in a:
-                return 0, json.dumps([list(reviews)])
+                return 0, _jl(list(reviews))
             return 0, ""
         t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleeps.append, log=lines.append,
                   polls=3, wall=lambda: NOW)
@@ -5606,6 +6853,40 @@ def _review_settle_self_test(check) -> None:
           and why(runs=[("77", "completed", 60)], reviews=[])[1] is False)
     got = why(runs=[("77", "completed", 60)], reviews=[appr], rollup="FAILURE")
     check("P331 (2) null: a required context red parks, never waits", got[1] is False and "red" in got[0])
+
+
+def _git_retry_self_test(check) -> None:
+    """R10 carry 7: git fetch/push ride out git's own transient stderr, and nothing else."""
+    for s in ("fatal: unable to access 'u': The requested URL returned error: 503", "error: RPC failed; HTTP 502 curl 22",
+              "error: RPC failed; HTTP 500", "fatal: the remote end hung up unexpectedly", "error: RPC failed; HTTP 504",
+              "fatal: unexpected disconnect while reading sideband packet", "fatal: early EOF",
+              "Connection reset by peer", "Could not resolve host: github.com", "Failed to connect to github.com",
+              "Operation timed out", "GnuTLS recv error (-54)", "OpenSSL SSL_ERROR_SYSCALL", "returned error: 502",
+              "fatal: unable to access 'u': Connection timed out"):
+        check(f"git transient: {s[:50]}", gh_read.git_transient(s))
+    for s in (" ! [rejected] main -> main (non-fast-forward)", "Permission denied (publickey)", "Authentication failed",
+              "returned error: 403", "returned error: 404", "fatal: couldn't find remote ref x",
+              "remote: error: protected branch hook declined", "! [rejected] (stale info)", "! [remote rejected] x",
+              "RPC failed; HTTP 502 but remote rejected"):
+        check(f"git not transient: {s[:50]}", not gh_read.git_transient(s))
+
+    def go(outs):
+        calls, sleeps = [], []
+
+        def run(argv, **kw):
+            calls.append(argv)
+            return outs.pop(0) if len(outs) > 1 else outs[0]
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleeps.append, log=lambda s: None)
+        return t.run(["git", "fetch", "-q", "origin", "main"]), len(calls), sleeps
+    bad = (1, "error: RPC failed; HTTP 502")
+    r, n, sl = go([bad, (0, "")])
+    check("git retry: a 502 then success -> success after 2 calls, settling 5 s", r[0] == 0 and n == 2 and sl == [5])
+    r, n, sl = go([(1, "! [rejected] main -> main (non-fast-forward)")])
+    check("git retry null: a rejection is 1 call, no settle", r[0] == 1 and n == 1 and sl == [])
+    r, n, sl = go([bad])
+    check("git retry: permanent failure returns the failure after 3 calls", r == bad and n == 3 and sl == [5, 15])
+    r, n, sl = go([(0, "")])
+    check("git retry null: a success is 1 call", r[0] == 0 and n == 1)
 
 
 def _read_retry_self_test(check) -> None:
@@ -6153,10 +7434,30 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
               for c, tt in (("failure", "RATE-LIMITED reset_epoch=1"), ("skipped", ""), ("neutral", "")))
           and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
+    owed = judged(gating_names([GATE, "nightly-status"]))
+    check("owed-reds: the required set is the ruleset's plus gate_required less NOT_GATING -- a unit is owed, "
+          "a NOT_GATING reporter the ruleset lists is not (null: tests / nightly-status is in neither)",
+          GATE in owed and "tests / fast (3.14)" in owed and "nightly-status" not in owed
+          and "tests / nightly-status" not in owed)
+    class _Req:  # owed-reds over a stub train: the PR-head ruleset, and a Stop
+        def __init__(self, got=None):
+            self.got, self.asked = got, []
+
+        def required(self, pr_head=False):
+            self.asked.append(pr_head)
+            if self.got is None:
+                raise Stop("ruleset", "unreadable")
+            return self.got
+    ok_t, bad_t = _Req([GATE, "nightly-status"]), _Req()
+    rc_ok, out_ok = owed_reds(ok_t)
+    check("owed-reds: rc 0 prints judged(gating_names) of the PR-head ruleset, one per line "
+          "(null: an unreadable ruleset is rc 2 and a REFUSE line, never an empty set)",
+          (rc_ok, out_ok.split("\n"), ok_t.asked) == (0, owed, [True])
+          and owed_reds(bad_t) == (2, "REFUSE ruleset: unreadable") and bad_t.asked == [True])
     names = gating_names([GATE])
     check("item 11: once the ruleset is [gate], a unit's red is classed REQUIRED by the fixture's gate_required "
           "(null: an old-layout ruleset passes through unchanged)",
-          GATE in names and "tests / closures" in names and "tests / ci-ratchet" in names
+          GATE in names and "tests / closures" in names and "tests / coverage-ratchet" in names
           and gating_names(["fast", "closures"]) == ["fast", "closures"] and gating_names(None) is None)
 
     H0 = "a" * 40  # go()'s head
@@ -6253,6 +7554,27 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             Train._run = saved
         return rc, buf.getvalue()
 
+    def owed_cli(ruleset) -> "tuple[int, str]":  # `owed-reds` through main, the ruleset faked as `cli` fakes it
+        def fake_run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if a.endswith("rulesets --jq " + argv[-1]):
+                return (0, "7") if ruleset else (1, "HTTP 404")
+            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+        saved, buf = Train._run, io.StringIO()
+        Train._run = staticmethod(fake_run)
+        try:
+            with contextlib.redirect_stdout(buf):
+                rc = main(["owed-reds"])
+        finally:
+            Train._run = saved
+        return rc, buf.getvalue()
+    rc_o, out_o = owed_cli(f"{GATE}\nnightly-status\n")
+    rc_u, out_u = owed_cli("")
+    check("owed-reds CLI: rc 0 prints the owed set, one name per line (null: an unreadable ruleset is rc 2, "
+          "a REFUSE line and no name)",
+          rc_o == 0 and out_o.split() and out_o.splitlines() == judged(gating_names([GATE, "nightly-status"]))
+          and rc_u == 2 and out_u.startswith("REFUSE ") and GATE not in out_u.splitlines())
+
     red_pc = [cr("fast"), cr("pr-contract", conclusion="failure")]
     check("K15 (d): a pull request's head with a required context concluded failure is RED, not reviewable "
           "(rc 1); PR_ONLY is empty under the umbrella, so main's tip reads the same runs RED too",
@@ -6308,13 +7630,13 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             if got is not None:
                 return got
             if "/reviews" in a:
-                return 0, json.dumps([reviews if reviews is not None else [owner_rv(OLD, now)]])
+                return 0, _jl(reviews if reviews is not None else [owner_rv(OLD, now)])
             if argv[:3] == ["gh", "pr", "view"]:
                 return 0, body
             if "issues/comments/" in a:
                 return 0, json.dumps(mandate_c(now))
             if "/comments" in a:
-                return 0, json.dumps([[]])
+                return 0, _jl([])
             return 1, "unexpected " + a
         saved, buf = Train._run, io.StringIO()
         Train._run = staticmethod(fake_run)
@@ -6700,6 +8022,12 @@ def _batch_self_test(check) -> None:
         runs = [{"name": n, "id": i, "status": "in_progress" if pend else "completed", "started_at": "1",
                  "conclusion": "failure" if over and n == w["ci_red"] else "success"}
                 for i, n in ((11, R0), (12, "policy-docs"))]
+        if w.get("gate_seq") is not None:  # the rejoin arms: GATE is required, its state per read
+            seq = w["gate_seq"].get(sha) or ["green"]
+            st = seq[min(w.get("cr_reads", {}).get(sha, 1), len(seq)) - 1]
+            runs.append({"name": GATE, "id": 17, "started_at": "1", "check_suite": {"id": 17},
+                         "status": "in_progress" if st == "wait" else "completed",
+                         "conclusion": None if st == "wait" else "failure" if st == "red" else "success"})
         if sha == w["base_sha"]:  # main's own push run writes every required context
             runs += [{"name": n, "id": 15, "status": "completed", "started_at": "1", "conclusion": "success"}
                      for n in w["required"].split() if n == "never-dispatched"]
@@ -6812,6 +8140,14 @@ def _batch_self_test(check) -> None:
                 return 0, "no script here"
             if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
                 return (0, "7") if w["required"] else (1, "HTTP 404")
+            if argv[:3] == ["gh", "api", "graphql"] and "statusCheckRollup" in a:  # A5's rollup: GitHub agrees
+                n = int(next(x for x in argv if x.startswith("pr="))[3:])
+                return 0, json.dumps({"data": {"repository": {"pullRequest": {"commits": {"nodes": [{"commit": {
+                    "oid": w["heads"][n], "statusCheckRollup": {"contexts": {"pageInfo": {"hasNextPage": False},
+                        "nodes": [{"__typename": "CheckRun", "name": GATE, "status": "COMPLETED",
+                                   "conclusion": "SUCCESS", "isRequired": True}]}}}}]}}}}})
+            if "rulesets/7" in a and "strict_required_status_checks_policy" in a:
+                return 0, w.get("strict", "true")  # today's world: an up-to-date branch is required
             if "rulesets/7" in a:
                 return 0, w["required"]
             if argv[:3] == ["gh", "workflow", "run"]:
@@ -6831,8 +8167,10 @@ def _batch_self_test(check) -> None:
                 n = a.split("/pulls/")[1].split("/")[0]
                 w.setdefault("reviews_reads", []).append(n)
                 rf = w.get("reviews_for")
-                return 0, json.dumps([(rf(w["heads"][int(n)]) if rf else [])
-                                      + [r for r in w.get("posted", []) if r["pr"] == int(n)]])
+                return 0, _jl((rf(w["heads"][int(n)]) if rf else [])
+                           + [r for r in w.get("posted", []) if r["pr"] == int(n)])
+            if argv[:3] == ["gh", "api", "user"]:  # the acting account: the owner's
+                return 0, _mandate_gate().OWNER_LOGIN
             if argv[:3] == ["gh", "pr", "review"]:  # posted as the owner's account, as `gh` is
                 gm = _mandate_gate()
                 w.setdefault("posted", []).append(
@@ -6842,8 +8180,8 @@ def _batch_self_test(check) -> None:
                 return 0, "reviewed"
             if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
                 return (0, json.dumps(w["mandate"])) if w.get("mandate") else (1, "gh: Not Found (HTTP 404)")
-            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
-                return 0, json.dumps([w.get("thread", [])])
+            if argv[:2] == ["gh", "api"] and any(f"/issues/{n}/comments" in a for n in _mandate_gate().RECORD_ISSUES):
+                return 0, _jl(w.get("thread", []) if "/issues/201/" in a else [])
             if "preflight.sh" in a:
                 return 0, "  clean    no refusal"
             if "worktree_gc.sh" in a:
@@ -6877,6 +8215,7 @@ def _batch_self_test(check) -> None:
             w["base_sha"] = g(w["R"], "rev-parse", base)[1]
             lines: list[str] = []
             opts.setdefault("critical", lambda it: False)  # never the live roster in a fixture
+            opts.setdefault("outside", lambda it: False)
             t = Train("o/r", Path(d) / "state", mandate, "the orchestrator", ignore, 1, run=stub(w),
                       sleep=lambda s: (w.setdefault("slept", []).append(s), w.get("on_sleep", lambda: None)()),
                       log=lambda ln: (lines.append(ln), w.get("on_log", lambda _ln: None)(ln)),
@@ -7241,6 +8580,47 @@ def _batch_self_test(check) -> None:
           "happens only after the earlier entries merged (recarry one, wait, merge, next)",
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2]
           and merges and recarries and min(merges) < min(recarries))
+    # CARD 5, NO RECARRY (R10-TRAIN-REJOIN-NO-RECARRY; tvofi 2026-11-07): under a ruleset requiring
+    # no up-to-date branch, a head whose merge with origin/main is clean merges as it stands -- the
+    # proven head, graded at the merge -- and only a merge-tree conflict (or a strict or unreadable
+    # policy) recarries.
+    for ov in (True, False):
+        v = dict(ovl)
+        w = go(v, base="main", setup=lambda w: (main_moved(w), w.update(remerge=True, strict="false",
+                                                                         verdicts=dict(w["heads"]))),
+               overlap=ov)
+        check(f"NO RECARRY (c){' --overlap' if ov else ''}: a clean merge tree against origin/main and an "
+              "unchanged proven head merge with no recarry, at the verdicted heads, each graded at its merge",
+              w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and not w.get("recarries")
+              and not any("recarry: main merged" in ln for ln in w["lines"])
+              and w["heads"] == w["verdicts"]
+              and all(any(ln.startswith(f"#{p} no recarry:") for ln in w["lines"]) for p in (1, 2))
+              and all(any(ln.startswith(f"#{p} grade: merge tree") and ln.endswith("green") for ln in w["lines"])
+                      for p in (1, 2)))
+    w = go({1: {".github/workflows/t.yml": "x\n"}}, base="main", overlap=True,
+           setup=lambda w: (main_moved(w), w.update(strict="false")))
+    check("NO RECARRY grades the un-recarried car against its merge base even when the batch moved nothing: "
+          "the merge tree with the foreign main is read before it lands",
+          w["rc"] == 0 and list(w["merged"]) == [1] and not w.get("recarries")
+          and any(ln.startswith("#1 grade: merge tree") and ln.endswith("green") for ln in w["lines"]))
+    for strict, why in (("true", "a strict policy"), ("", "an unreadable policy")):
+        w = go(ovl, base="main", setup=lambda w, s=strict: (main_moved(w), w.update(remerge=True, strict=s)),
+               overlap=True)
+        check(f"NO RECARRY null control: under {why} every serial head that lacks main is recarried, as today",
+              w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and sorted(w.get("recarries", [])) == [1, 2]
+              and not any(" no recarry:" in ln for ln in w["lines"]))
+
+    def main_conflicts(w):
+        (w["R"] / ".github/workflows/t.yml").write_text("main\n")
+        g(w["R"], "commit", "-qam", "main moved t.yml")
+    w = go({1: {".github/workflows/t.yml": "x\n"}, 2: {".github/workflows/u.yml": "y\n"}}, base="main",
+           setup=lambda w: (main_conflicts(w), w.update(remerge=True, strict="false")), overlap=True, skip_bad=True)
+    check("NO RECARRY null control (d): a merge-tree conflict against origin/main still recarries (the "
+          "recarry names the conflict), while the clean head beside it does not",
+          any("remerge_main.sh 1 " in c for c in w["calls_flat"])
+          and any(ln.startswith("SKIP #1 recarry:") and "main does not merge" in ln for ln in w["lines"])
+          and any(ln.startswith("#2 no recarry:") for ln in w["lines"]) and 2 in w["merged"]
+          and w.get("recarries", []) == [])
     w = go(ovl, base="main", setup=lambda w: (main_moved(w), w.update(remerge=True, pending_prs={1})),
            overlap=True)
     m1 = next((i for i, ln in enumerate(w["lines"]) if ln.startswith("#1 MERGED")), None)
@@ -7271,6 +8651,13 @@ def _batch_self_test(check) -> None:
           "none is possible); it recarries at its turn, after the earlier merges, and lands",
           w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and w.get("recarries") == [2]
           and any(ln.startswith("OVERLAP: recarrying #1 up front") for ln in w["lines"]))
+    w = go({1: {".github/workflows/t.yml": "x\n"}, 2: {"b.txt": "B\n"}, 3: {"a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.update(remerge=True, strict="false", bot_heads={w["heads"][2]: "ci: pin killed mutants"}),
+           overlap=True)
+    check("NO RECARRY keeps a bot head's cure: under a non-strict ruleset a GITHUB_TOKEN tip with a clean "
+          "merge tree is still recarried (the App push), and lands",
+          w["rc"] == 0 and list(w["merged"]) == [3, 1, 2] and w.get("recarries") == [2]
+          and not any(ln.startswith("#2 no recarry:") for ln in w["lines"]))
 
     # THE OVERLAP GRADE (R10-TRAIN-OVERLAP-GRADE): the third-instance barrier
     # (6077bf70e, 143e2d0ac, a2576fcb2 -- #2586 landed on a tree no CI had
@@ -7288,6 +8675,13 @@ def _batch_self_test(check) -> None:
           list(w["merged"]) == [1, 2] and w["rc"] == 1 and w.get("recarries") == [3]
           and any(ln.startswith("TRAIN STOPPED grade") for ln in w["lines"])
           and any("the recarry produced the same tree, so the car is held" in ln for ln in w["lines"]))
+    w2 = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "w\n"},
+             3: {"tests/golden/claimed_drift.txt": "c\n", "red.txt": "x\n"}},
+            base="main", setup=lambda w: w.update(remerge=True, strict="false"), overlap=True, main_moved_tries=1)
+    check("NO RECARRY never skips the recarry a graded red holds: under a non-strict ruleset the held car is "
+          "still recarried for CI, then stopped on the same tree",
+          list(w2["merged"]) == [1, 2] and w2["rc"] == 1 and w2.get("recarries") == [3]
+          and any("the recarry produced the same tree, so the car is held" in ln for ln in w2["lines"]))
     check("THE OVERLAP GRADE: the red arm read the MERGE tree -- #3's own file was in the graded "
           "worktree, and the grade ran once per moved base (the recarry's identical tree is cached, "
           "not re-run)",
@@ -7409,6 +8803,74 @@ def _batch_self_test(check) -> None:
           "merges (the default did not change)",
           w["rc"] == 1 and not w["merged"] and not w["pushed"]
           and any(ln.startswith("TRAIN STOPPED ci:") and "#2" in ln for ln in w["lines"]))
+    # CARD 1, THE REJOIN (R10-TRAIN-REJOIN-NO-RECARRY; tvofi 2026-11-07): an entry SKIPped on a red
+    # GATE rejoins this train once its head classifies GREEN, within `wait_cap_s` of the skip, with
+    # no add; a head reading RED, or still WAIT at the cap, stays skipped and holds no merge.
+    def gated(seq):
+        def setup(w):
+            w.update(required=f"{R0}\npolicy-docs\n{GATE}\n", gate_seq={w["heads"][2]: seq},
+                     remerge=True, h2=w["heads"][2])
+        return setup
+
+    def ticking():
+        t = [0.0]
+
+        def clock() -> float:
+            t[0] += 60.0
+            return t[0]
+        return clock
+    two = {1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}
+    w = go(two, base="main", skip_bad=True, setup=gated(["red", "wait", "green"]), clock=ticking())
+    rj = [ln for ln in w["lines"] if ln.startswith("REJOIN #2")]
+    check("REJOIN (a): an entry SKIPped on a red gate whose head turns GREEN within the cap rejoins the "
+          "train and merges, with no add; the skip is CURED and the train exits 0",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and any("GREEN" in ln for ln in rj)
+          and any(ln.startswith("SKIP #2 ci:") and "red at its head: gate" in ln for ln in w["lines"])
+          and any(ln.startswith("CURED #2") for ln in w["lines"]) and w["skip_json"] == []
+          and w["cr_reads"].get(w["h2"], 0) >= 3 and w["lines"][-1] == "TRAIN DONE")
+    w = go(two, base="main", skip_bad=True, setup=gated(["red"]), clock=ticking())
+    rj = [ln for ln in w["lines"] if ln.startswith("REJOIN #2")]
+    check("REJOIN null control (b): a head whose classify reads RED stays SKIPped -- never re-run, "
+          "never recarried, reported, rc 1",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and len(rj) == 1 and "RED" in rj[0]
+          and "stays skipped" in rj[0] and sum(ln.startswith("SKIP #2 ") for ln in w["lines"]) == 1
+          and not any(ln.startswith("#2 recarry") for ln in w["lines"])
+          and [s["pr"] for s in (w["skip_json"] or [])] == [2])
+    w = go(two, base="main", skip_bad=True, setup=gated(["red", "wait"]), clock=ticking())
+    rj = [i for i, ln in enumerate(w["lines"]) if ln.startswith("REJOIN #2")]
+    m1 = next((i for i, ln in enumerate(w["lines"]) if ln.startswith("#1 MERGED")), None)
+    check("REJOIN null control (b): a head that never leaves WAIT stops at the cap and does not hold the "
+          "batch -- #1 merged before the rejoin's first read, #2 stays skipped, the train ends",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and bool(rj) and m1 is not None and m1 < rj[0]
+          and "cap" in w["lines"][rj[-1]] and "stays skipped" in w["lines"][rj[-1]]
+          and w["cr_reads"].get(w["h2"], 0) <= 3 + 2 * (2 * (REVIEW_POLL_SECONDS + POLL_SECONDS)) // 60
+          and w["slept"].count(min(POLL_SECONDS, HEARTBEAT_SECONDS)) == w["cr_reads"].get(w["h2"], 0) - 2
+          and w["lines"][-1] == "TRAIN DONE" and [s["pr"] for s in (w["skip_json"] or [])] == [2])
+    w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["red", "green", "red"])(w), w.update(strict="false")),
+           clock=ticking())
+    check("REJOIN: a rejoin refused again (red at its own CI wait) is skipped again, its row replaced, "
+          "one row and one skip for #2",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and any(ln.startswith("REJOIN #2: GREEN") for ln in w["lines"])
+          and [s["pr"] for s in (w["skip_json"] or [])] == [2]
+          and "red at the head: gate" in (w["skip_json"] or [{}])[0].get("reason", "")
+          and any(ln == "SKIP REPORT: 1 skipped of 2" for ln in w["lines"]) and w["lines"][-1] == "TRAIN DONE")
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main", skip_bad=True,
+           setup=lambda w: (gated(["red", "green"])(w), w.update(strict="false")), clock=ticking())
+    check("REJOIN (a), serial: a serial entry SKIPped on a red gate at its turn rejoins once GREEN and merges",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
+          and any(ln.startswith("SKIP #2 ci: #2 red at the head: gate") for ln in w["lines"])
+          and any(ln.startswith("REJOIN #2: GREEN") for ln in w["lines"]))
+    w = go(two, base="main", skip_bad=True, clock=ticking(),
+           setup=lambda w: (gated(["red", "green"])(w), w.update(on_log=lambda ln: ln.startswith("SKIP #2")
+                                                                  and w["heads"].update({2: "f" * 40}))))
+    check("REJOIN: a skipped head the branch moved off does not rejoin -- a new head owes a new verdict",
+          w["rc"] == 1 and sorted(w["merged"]) == [1]
+          and any(ln.startswith("REJOIN #2: the head moved off") for ln in w["lines"])
+          and not any("GREEN" in ln for ln in w["lines"] if ln.startswith("REJOIN")))
+    w = go(two, base="main", skip_bad=True, setup=lambda w: (gated(["green"])(w), w["red"].add(w["h2"])),
+           clock=ticking())
+    check("REJOIN null control: a skip on a red that is not GATE is no rejoin candidate at all",
+          w["rc"] == 1 and sorted(w["merged"]) == [1] and not any(ln.startswith("REJOIN") for ln in w["lines"]))
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1, setup=redmain, skip_bad=True)
     w2 = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
             setup=lambda w: w.update(on_sleep=lambda: w["red"].add(w["base_sha"])), skip_bad=True)
@@ -7814,13 +9276,17 @@ def _add_self_test(check) -> None:
             got = budget_fixture(w.get("budgets"), argv, B)
             if got is not None:
                 return got
+            if "isDraft" in argv:
+                return 0, "true" if w.get("is_draft") else "false"
             if argv[:2] == ["git", "ls-remote"]:  # verdict/<pr>'s confirmed tip
                 return w.get("ls", (0, f"{T}\t{argv[-1]}\n"))
+            if argv[:2] == ["gh", "api"] and "/comments" in a and "comments" in w:
+                return w["comments"]
             if argv[:2] == ["gh", "api"] and "/comments" in a:  # its posting: merge at the added verdict
                 first = w.get("first", f"Fix review: merge {w.get('verdict', H)}")
-                return 0, json.dumps([[{"id": 42, "created_at": "2026-10-25T00:00:00Z",
+                return 0, _jl([{"id": 42, "created_at": "2026-10-25T00:00:00Z",
                                         "user": {"login": login, "id": vid},
-                                        "body": f"{first}\n\nbus: verdict/{w.get('pr', 7)} at {T}, confirmed\n"}]])
+                                        "body": f"{first}\n\nbus: verdict/{w.get('pr', 7)} at {T}, confirmed\n"}])
             if argv[:3] == ["gh", "pr", "view"]:
                 return w.get("view", (0, json.dumps({"state": "OPEN", "baseRefName": "main", "headRefOid": H})))
             if "--carry" in argv:
@@ -7832,7 +9298,7 @@ def _add_self_test(check) -> None:
             if "--corpus-filter" in a:
                 return 0, "\n".join(f for f in (stdin or "").split() if f == "CLAUDE.md")
             if argv[:2] == ["gh", "api"] and "/reviews" in a:
-                return 0, json.dumps([w.get("reviews", [])])
+                return 0, _jl(w.get("reviews", []))
             if argv[:2] == ["gh", "api"] and "/pulls/" in a:  # the body raise_hold justifies
                 return 0, ""
             if argv[:3] == ["gh", "pr", "view"]:
@@ -7858,6 +9324,8 @@ def _add_self_test(check) -> None:
              "base: #7 targets dev"),
             ("verdict", {"ls": (0, "")}, "verdict: no confirmed verdict on the bus (verdict/7)"),
             ("verdict", {"ls": (128, "fatal: unreachable")}, "verdict: the verdict bus could not be read"),
+            ("verdict", {"comments": (1, "gh: Not Found (HTTP 404)")},
+             "verdict: its comments could not be read: gh: Not Found (HTTP 404)"),
             ("verdict", {"first": f"Fix review: blocked {H} tests: red"}, "verdict: the newest verdict is blocked"),
             ("verdict", {"first": f"Fix review: merge {V}"},
              "verdict: the newest posted merge verdict names 222222222222, not the added 111111111111"),
@@ -7916,6 +9384,13 @@ def _add_self_test(check) -> None:
         check("add, a train live: the entry is spooled for its NEXT batch, nothing started (ADDED)",
               rc == 0 and len(got) == 1 and [e["pr"] for e in spool_read(st)[0]] == [8]
               and lines[-1].startswith("ADDED #8 to the live train"))
+        rc9, _ = add(st, 31, launch, is_draft=True)
+        rc10, _ = add(st, 32, launch)
+        sp = {e["pr"]: e for e in spool_read(st)[0]}
+        check("add records draft:true for a draft head at admission, and nothing for a non-draft",
+              sp[31].get("draft") is True and "draft" not in sp[32])
+        (st / QUEUE_SPOOL).unlink(missing_ok=True)
+        spool_append(st, {"pr": 8, "verdict": H, "verdict_comment": "42"})
         rc8, l8 = add(st, 8, launch)
         rc7, l7 = add(st, 7, launch)
         check("add is idempotent: a pull request spooled, or in the live train's batches, is ALREADY -- rc 0, "
@@ -8036,6 +9511,7 @@ def _add_self_test(check) -> None:
             p.wait()
         tmp.cleanup()
     _spool_edit_self_test(check, stub, H)
+    _post_approval_self_test(check)
 
 
 def _spool_edit_self_test(check, stub, H: str) -> None:
@@ -8212,6 +9688,79 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
         tmp.cleanup()
 
 
+def _post_approval_self_test(check) -> None:
+    """`add --wait-post-approval`: a fake gh, a fake clock; sleeping advances it."""
+    H, OLD, AT, NEW = "a" * 40, "2026-01-01T10:00:00Z", "2026-01-01T11:00:00Z", "2026-01-01T11:05:00Z"
+
+    def wait(runs_by_poll, ref=H, budget=10000.0, verdict="merge", comments=None):
+        clk, slept = [0.0], []
+
+        def run(argv, **kw):
+            j = " ".join(argv)
+            if "git/ref/pull" in j:
+                return 0, ref
+            if "/reviews" in j:
+                return 0, _jl([{"user": {"login": APPROVER_BOT}, "state": "APPROVED", "commit_id": H,
+                                       "submitted_at": AT}])
+            if "/comments" in j:
+                if comments is not None:
+                    return 0, comments
+                return 0, _jl([{"user": {"login": APPROVER_BOT}, "body": f"Fix review: {verdict} {H}\nn"}])
+            if "check-runs" in j:
+                rs = runs_by_poll[min(len(slept), len(runs_by_poll) - 1)]
+                return 0, "\n".join(json.dumps(r) for r in rs)
+            if "isDraft" in j:
+                return 0, "false"
+            return 0, ""
+
+        def sleep(s):
+            slept.append(s)
+            clk[0] += s
+        lines: list = []
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleep, log=lines.append, clock=lambda: clk[0])
+        return post_approval_wait(t, 7, H, 240, budget), slept, lines
+
+    def cr(at, status="completed", conclusion="success", name="gate"):
+        return {"name": name, "started_at": at, "status": status, "conclusion": conclusion}
+    old_green = cr(OLD)
+    rc, slept, _ = wait([[old_green, cr(NEW, "in_progress", None)], [old_green, cr(NEW)]])
+    check("post-approval wait: a gate run green BEFORE the approval plus one in progress after it waits "
+          "(slept), then adds when the new run completes", rc == 0 and len(slept) == 1)
+    rc, slept, lines = wait([[old_green, cr(NEW)]], verdict="blocked", budget=500)
+    check("post-approval wait: an approval review with no `Fix review: merge <head>` comment beside it "
+          "waits to the budget (rc 3), naming the missing verdict",
+          rc == 3 and "WAIT BUDGET SPENT" in lines[-1] and "verdict comment" in lines[-1])
+    rc, slept, lines = wait([[old_green, cr(NEW)]], comments="not json", budget=500)
+    check("post-approval wait: an unparseable comment listing is no verdict: it waits to the budget (rc 3)",
+          rc == 3 and "verdict comment" in lines[-1])
+    rc, slept, _ = wait([[old_green, cr(AT)]])
+    check("post-approval wait: a gate run started at the approval's own second counts as the re-run (adds, rc 0)",
+          rc == 0 and not slept)
+    rc, slept, _ = wait([[old_green]])
+    check("post-approval wait: only a pre-approval run is no re-run: it waits to the budget (rc 3)",
+          rc == 3 and bool(slept))
+    rc, slept, lines = wait([[old_green]], ref="b" * 40)
+    check("post-approval wait: a moved head exits 1 (HEAD MOVED), nothing slept",
+          rc == 1 and not slept and "HEAD MOVED" in lines[-1])
+    for conc in ("failure", "cancelled"):
+        rc, _, lines = wait([[cr(NEW, conclusion=conc, name=RAISE_GATE)]])
+        check(f"post-approval wait: a post-approval {conc} exits 2 (GATE RED AFTER APPROVAL)",
+              rc == 2 and "GATE RED AFTER APPROVAL" in lines[-1])
+    rc, slept, lines = wait([[cr(NEW, "in_progress", None)]], budget=500)
+    check("post-approval wait: past the budget it stops, rc 3, WAIT BUDGET SPENT",
+          rc == 3 and "WAIT BUDGET SPENT" in lines[-1] and len(slept) == 3)
+    import io
+    seen: list = []
+    real = globals()["train_add"]
+    globals()["train_add"] = lambda t_, item, argv, **kw: seen.append(item) or 0
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = main(["add", "7", H, "--state-dir", ".", "--repo", "o/r", "--auto"])
+    finally:
+        globals()["train_add"] = real
+    check("post-approval wait null: without the flag add never waits, it adds", rc == 0 and len(seen) == 1)
+
+
 def _parser() -> argparse.ArgumentParser:
     """The CLI parser, built apart from `main` so the self-test can pin the
     defaults a caller actually gets: both new flags off without the flag."""
@@ -8285,6 +9834,11 @@ def _parser() -> argparse.ArgumentParser:
                     help="HOTFIX: the spool's drain puts this entry before critical-path and arrival order (P312)")
     ad.add_argument("--stamp", action="store_true",
                     help="a stamp's add: a record pull request is added, not HELD-FOR-STAMP (carry 15)")
+    ad.add_argument("--wait-post-approval", action="store_true",
+                    help="first wait for the approver's verdict and approval at <verdict> and the gate re-run "
+                         "after it (rc 1 head moved, 2 red, 3 budget spent); then add")
+    ad.add_argument("--poll", type=float, default=240, help="--wait-post-approval: seconds between reads")
+    ad.add_argument("--budget-hours", type=float, default=3, help="--wait-post-approval: give up after this")
     ad.add_argument("--auto", action="store_true",
                     help="a started train is a bare train.sh launch (RECOMMENDED by default) with --mandate, "
                          "as the sweep's is: bus.sh's post calls this")
@@ -8308,6 +9862,16 @@ def _parser() -> argparse.ArgumentParser:
     c.add_argument("sha")
     c.add_argument("--main", action="store_true", help="<sha> is main's tip: PR_ONLY contexts are not judged")
     c.add_argument("--pr", type=int, help="the pull request <sha> heads: lets a RED read as APPROVAL-OWED (rc 4)")
+    i = sub.add_parser("introduced", parents=[common],
+                       help=f"the {SELFTESTS} steps red at <sha> and not at its merge base (or --base): "
+                            "INTRODUCED lines, rc 1 when any, 0 none, 3 its job still runs, 2 unreadable (fail closed)")
+    i.add_argument("sha")
+    i.add_argument("--base", help="the base commit (default: git merge-base origin/main <sha>)")
+    # The required set a `## Red checks` obligation is judged against
+    # (policy_lint.mjs --pr-body): the one owner, read live.
+    sub.add_parser("owed-reds", parents=[common],
+                   help="the check names whose red a pull-request body owes an answer, one per line: "
+                        "judged(gating_names(required(pr_head=True))); an unreadable ruleset is rc 2")
     return p
 
 
@@ -8344,6 +9908,10 @@ def main(argv: list[str]) -> int:
             return 2
         if a.remove:
             return spool_edit(t, a.pr, "remove")
+        if a.wait_post_approval and a.verdict:
+            rc = post_approval_wait(t, a.pr, a.verdict, a.poll, a.budget_hours * 3600)
+            if rc:
+                return rc
         if a.verdict is None:
             if a.front:
                 return spool_edit(t, a.pr, "front")
@@ -8358,6 +9926,18 @@ def main(argv: list[str]) -> int:
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
+    if a.cmd == "owed-reds":
+        rc, out = owed_reds(Train(a.repo, Path("."), None, "", (), a.min_runs))
+        print(out)
+        return rc
+    if a.cmd == "introduced":
+        try:
+            rc, out = introduced_cmd(Train(a.repo, Path("."), None, "", (), a.min_runs), a.sha, a.base)
+        except Stop as s:
+            print(f"REFUSE {s.step}: {s.why}")
+            return 2
+        print(out)
+        return rc
     if a.cmd in ("unstale", "classify"):
         # classify's stdout is its one verdict line; its deferral log goes to stderr
         t = Train(a.repo, Path("."), None, "", (), a.min_runs,
@@ -8399,6 +9979,29 @@ def main(argv: list[str]) -> int:
                      base=a.base, skip_bad=a.skip_bad, overlap=a.overlap, **opts).batch(queue, a.tag)
     return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
                  **opts).train(queue)
+
+
+#: Self-test only: Train wraps an injected `run` so a stub refuses a paged read
+#: whose `--jq` is not the object key the path serves (mutation proof for the
+#: `key` argument of Train.pages and each call site).
+_JQ_CHECK = False
+_PAGED_KEY = (("check-runs", "check_runs"), ("/jobs?", "jobs"), ("actions/", "workflow_runs"))
+
+
+def _jq_checked(run):
+    def checked(argv, *a, **k):
+        if argv[:2] == ["gh", "api"] and "--jq" in argv and re.search(r"[?&]page=\d+", argv[2]):
+            want = next((key for frag, key in _PAGED_KEY if frag in argv[2]), None)
+            jq = argv[argv.index("--jq") + 1]
+            if want and jq != f".{want}[]":
+                return 1, f"unexpected --jq {jq!r} for {argv[2]}"
+        return run(argv, *a, **k)
+    return checked
+
+
+def _jl(items) -> str:
+    """A paged read's stub answer: one compact JSON item per line (`--jq .[]`)."""
+    return "".join(json.dumps(x) + "\n" for x in items)
 
 
 if __name__ == "__main__":

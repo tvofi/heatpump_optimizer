@@ -62,16 +62,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.1.5
+# claims-for: 7.1.13
 #
-# v7.1.5: Bounded process worker wait (outside contribution #3232); round-10 machinery. The stamp empties the list; the
+# v7.1.13: Duty-switch restart learning, hot-water write range and charge limit. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-coord_all_features # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
-coord_dhw # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
-coord_grid_fee # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
-coord_minimal # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
-coord_two_zone # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the

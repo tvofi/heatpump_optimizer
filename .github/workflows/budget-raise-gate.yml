@@ -43,7 +43,7 @@ on:
 
 # Workflow-level and read-only, and the caller grants no more: the reviews list
 # needs `pull-requests: read`, the checkout `contents: read`, and the owner's
-# recorded mandate, a comment on #201, `issues: read`. No job widens it.
+# recorded mandate, a comment on a record issue, `issues: read`. No job widens it.
 permissions:
   contents: read
   pull-requests: read

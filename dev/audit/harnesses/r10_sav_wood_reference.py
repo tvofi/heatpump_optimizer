@@ -44,7 +44,20 @@ control loop, a fire's coupling on a real house, or the coordinator's
 per-interval re-plan (the hold is ``REPLAN`` intervals, a wider window for the
 meter to leave the plan than production's one).
 
-    PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py [--quick] [--no-settlement] [arm ...]
+R10-SAV-METER-FLOOR. Every wood loop passes the pending snapshot's
+``wood_heated``, so a wood month calibrates from the intervals wood did not
+heat. The harness has no detector: ``_wood_heated`` reads the plant's burn,
+active or within the detector's fading tail (``ExternalHeatConfig.decay_minutes``),
+and ignores its confirmation lag. ``--no-wood-flag`` books no flag, a month
+booked before the pair existed: the null control that must read what the merge
+base reads. ``meter-floor`` (asserted) runs the valve and wood closed loops and
+the wood-plant rows and requires each to publish; zeroes the booked reference
+(withheld) and drops the check (``METER_FLOOR`` 0: published); runs a month
+under ``MIN_CALIBRATION_KWH`` metered (published); and measures a resistive-heavy
+month, an immersion's kWh added to the meter at ``IMMERSION_SHARE`` of the pump's,
+printing booked over metered and whether the row is withheld.
+
+    PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py [--quick] [--no-settlement] [--no-wood-flag] [arm ...]
 """
 from __future__ import annotations
 
@@ -54,6 +67,8 @@ from datetime import datetime, timedelta
 import numpy as np
 
 from profiles import DT, house, prices, solve_inputs, weather
+from heatpump_optimizer import ledger as ledger_mod
+from heatpump_optimizer.external_heat import ExternalHeatConfig
 from heatpump_optimizer.ledger import MonthlyLedger
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer, OptimizationConfig, _floor_demand_at_target, _reference_cop,
@@ -70,6 +85,17 @@ DAYS = 1.0 if "--quick" in sys.argv else 2.0
 #: The null control for R10-SAV-COMFORT's stored-heat settlement: book the
 #: baseline and power alone, as before the plan step carried its readings.
 NO_SETTLEMENT = "--no-settlement" in sys.argv
+#: The null control for the wood-free calibration: no ``wood_heated`` booked.
+NO_WOOD_FLAG = "--no-wood-flag" in sys.argv
+#: The detector's fading tail after a burn, hours.
+FADE_H = ExternalHeatConfig().decay_minutes / 60.0
+
+
+def _wood_heated(ext, k: int, wood: bool):
+    """The pending snapshot's ``wood_heated`` at interval k: None with no wood."""
+    if not wood or NO_WOOD_FLAG:
+        return None
+    return bool(np.max(ext[max(0, k - int(round(FADE_H / DT))):k + 1]) > 0.0)
 VALVE_CFG = {
     "mixing_valve_mode": "manual", "mixing_valve_target": 21.0, "buffer_tank_volume": 750.0,
     "buffer_max_temperature": 56.0, "heat_pump_max_power": 4.0,
@@ -93,8 +119,14 @@ def _install(wood: bool, two_zone: bool = True):
     )), model
 
 
-def closed_loop(wood: bool, burn_kw, wood0, buf0: float, price: str = "flat", metered=None, foresee: bool = True):
-    """A solve per ``REPLAN`` on a plant equal to the model; the row and the terms."""
+def closed_loop(wood: bool, burn_kw, wood0, buf0: float, price: str = "flat", metered=None, foresee: bool = True,
+                zero_reference: bool = False, added_kwh: float = 0.0):
+    """A solve per ``REPLAN`` on a plant equal to the model; the row and the terms.
+
+    ``zero_reference`` books a 0 kW thermostat (the collapsed reference the
+    meter floor exists for); ``added_kwh`` adds that many kWh per interval to
+    the meter and the spot line, the pump's plan unchanged (an immersion).
+    """
     opt, model = _install(wood)
     total, hs = int(DAYS * 24 / DT), int(24 / DT)
     span = total + hs + 4
@@ -142,12 +174,13 @@ def closed_loop(wood: bool, burn_kw, wood0, buf0: float, price: str = "flat", me
         plan_heat += power * DT * model.compute_cop(
             float(out[k]), flow_temp=state.buffer_tank_temperature
         )
-        meter = power * DT * (1.0 if metered is None else metered(now))
+        meter = power * DT * (1.0 if metered is None else metered(now)) + added_kwh
         # The production snapshot: the plan step's settlement readings (stored
         # heat, comfort, steady COP), the baseline re-read from THIS state.
         step = {} if NO_SETTLEMENT else dict(_settlement_at(plan, k % REPLAN))
         led.observe_spot_and_settle_savings(
-            now, float(pr[k]), {**step, "baseline_kw": booked, "power": power}, meter, DT
+            now, float(pr[k]), {**step, "baseline_kw": 0.0 if zero_reference else booked, "power": power,
+                                "wood_heated": _wood_heated(ext, k, wood)}, meter, DT
         )
         led.add(now, "spot", kwh=meter, sek=meter * float(pr[k]))
         states.append((state, series))
@@ -157,7 +190,11 @@ def closed_loop(wood: bool, burn_kw, wood0, buf0: float, price: str = "flat", me
         )
         rooms.append(state.room_temperature)
     row = led.savings_months(datetime(2026, 2, 1), wood_configured=wood)[0]
+    booked_kwh, metered_kwh = led.line("2026-01", "savings_baseline")["kwh"], led.line("2026-01", "savings_actual")["kwh"]
     print(f"  row: baseline {row['baseline_sek']} actual {row['actual_sek']} saved {row['savings_sek']} pct {row['savings_pct']}")
+    print(f"  floor: booked over metered {booked_kwh / metered_kwh if metered_kwh > 0 else float('nan'):.3f}"
+          f" ({booked_kwh:.2f} / {metered_kwh:.2f} kWh); below_meter_floor {row.get('below_meter_floor')};"
+          f" calibration_basis {row.get('calibration_basis')}")
     print(f"  row: stored_heat_sek {row['stored_heat_sek']} comfort_sek {row['comfort_sek']}"
           f"{' (--no-settlement)' if NO_SETTLEMENT else ''}")
     # The month row's meter calibration, read off: what it does to the percent.
@@ -186,7 +223,7 @@ def closed_loop(wood: bool, burn_kw, wood0, buf0: float, price: str = "flat", me
     print(f"  plan kWh {plan_kwh:.2f} at COP {cop:.3f}; booked reference {ref_kwh:.2f} at COP {cop_ref_mean:.3f}; gap {ref_kwh - plan_kwh:+.2f}; mean room {room:.2f} C against 21.00")
     print(f"  comfort term {comfort:+.2f} kWh_e (the reference's warmer house); stored term {stored:+.2f} kWh_e (the plan's store change)")
     print(f"  residual: reference less comfort, plus stored, {settled:.2f} kWh against plan {plan_kwh:.2f}: {residual:+.2f} %")
-    return row, residual
+    return {**row, "metered_kwh": metered_kwh}, residual
 
 
 INSTALLS = {
@@ -308,10 +345,11 @@ def plant_loop(burn_kw, price: str, respond: bool = True, foresee: bool = False,
         drawn = _pump_response(model, state, power, args, float(ext[k]), target) if respond else power
         booked = float(opt._compute_baseline_power(series, state, DT)[0][0])
         step = {} if NO_SETTLEMENT else dict(_settlement_at(plan, k % REPLAN))
+        heated = _wood_heated(ext, k, True)
         for m, led in leds.items():
             meter = drawn * DT * m
             led.observe_spot_and_settle_savings(
-                now, float(pr[k]), {**step, "baseline_kw": booked, "power": power}, meter, DT
+                now, float(pr[k]), {**step, "baseline_kw": booked, "power": power, "wood_heated": heated}, meter, DT
             )
             led.add(now, "spot", kwh=meter, sek=meter * float(pr[k]))
         plan_kwh += power * DT
@@ -338,6 +376,7 @@ def wood_plant() -> None:
     print(f"  no fire ({price}): plan {base_plan:.2f} kWh, drawn {base_drawn:.2f} kWh")
     for m in METER_OVER_MODEL:
         print(f"    m {m}: pct {base_rows[m]['savings_pct']} calibration {base_rows[m]['meter_calibration']}"
+              f" ({base_rows[m].get('calibration_basis')})"
               f" error {_booking_error_pct(base_rows[m], m):+.2f} %; flat pct {flat_rows[m]['savings_pct']}")
     errs = {m: [] for m in METER_OVER_MODEL}
     for kw in FIRE_KW:
@@ -349,7 +388,8 @@ def wood_plant() -> None:
                 e = _booking_error_pct(rows[m], m) - _booking_error_pct(base_rows[m], m)
                 errs[m].append(e)
                 print(f"  fire {kw:4.1f} kW from {h0:02d}:00 ({fire_kwh:.1f} kWh_th): plan {plan_kwh:.2f} drawn {drawn_kwh:.2f};"
-                      f" m {m}: calibration {rows[m]['meter_calibration']} pct {rows[m]['savings_pct']}"
+                      f" m {m}: calibration {rows[m]['meter_calibration']} ({rows[m].get('calibration_basis')})"
+                      f" pct {rows[m]['savings_pct']}"
                       f" (no fire {base_rows[m]['savings_pct']}); booking error from the heat {e:+.2f} %")
     for m, e in errs.items():
         a = np.asarray(e)
@@ -362,8 +402,54 @@ def wood_plant() -> None:
                       for m in METER_OVER_MODEL))
 
 
+#: The resistive-heavy month: an immersion's kWh per interval, as a share of
+#: the valve-flat plan's mean pump kWh per interval.
+IMMERSION_SHARE = (0.5, 1.0, 1.5, 2.0)
+
+
+def meter_floor() -> bool:
+    """R10-SAV-METER-FLOOR's acceptance; rc 1 on any arm off its expectation."""
+    ok = True
+
+    def expect(name, row, withheld):
+        nonlocal ok
+        got = row.get("below_meter_floor") is True and row["savings_pct"] is None
+        bad = got != withheld
+        ok = ok and not bad
+        print(f"  {name}: {'withheld' if got else 'published'} (expected {'withheld' if withheld else 'published'})"
+              f" pct {row['savings_pct']}{' BAD' if bad else ''}")
+    for name in ("valve-flat", "valve-vary"):
+        expect(name, closed_loop(False, lambda t: 0.0, None, 30.0, "flat" if name == "valve-flat" else "winter_typical")[0], False)
+    for name, run in OWED.items():
+        if name != "wood-plant":
+            expect(name, run()[0], False)
+    for fire in (False, True):
+        burn = (lambda t: 12.0 if 17 <= t.hour < 17 + FIRE_HOURS else 0.0) if fire else (lambda t: 0.0)
+        rows, *_ = plant_loop(burn, "winter_typical")
+        for m, row in rows.items():
+            expect(f"wood-plant {'fire 12 kW 17:00' if fire else 'no fire'} m {m}", row, False)
+    flat_row, _ = closed_loop(False, lambda t: 0.0, None, 30.0, "flat")
+    expect("mutant: booked reference zeroed", closed_loop(False, lambda t: 0.0, None, 30.0, "flat", zero_reference=True)[0], True)
+    floor, ledger_mod.METER_FLOOR = ledger_mod.METER_FLOOR, 0.0
+    try:
+        expect("mutant: booked reference zeroed, check dropped (METER_FLOOR 0)",
+               closed_loop(False, lambda t: 0.0, None, 30.0, "flat", zero_reference=True)[0], False)
+    finally:
+        ledger_mod.METER_FLOOR = floor
+    expect("booked reference zeroed, metered under MIN_CALIBRATION_KWH",
+           closed_loop(False, lambda t: 0.0, None, 30.0, "flat", zero_reference=True,
+                       metered=lambda t: 0.0, added_kwh=0.5 / (DAYS * 24 / DT))[0], False)
+    # Measured, not asserted: the immersion's share at which the floor fires.
+    pump_kwh = flat_row["metered_kwh"]
+    for share in IMMERSION_SHARE:
+        row, _ = closed_loop(False, lambda t: 0.0, None, 30.0, "flat", added_kwh=share * pump_kwh / (DAYS * 24 / DT))
+        print(f"RESULT meter_floor_immersion_share{share}: below_meter_floor {row.get('below_meter_floor')} pct {row['savings_pct']}")
+    return ok
+
+
 ARMS = {
     "first": first_step,
+    "meter-floor": meter_floor,
     "valve-flat": lambda: valve_arm("flat"),
     "valve-vary": lambda: valve_arm("winter_typical"),
 }
@@ -385,7 +471,7 @@ OWED = {
 
 
 def main(argv: list[str]) -> int:
-    names = [a for a in argv if a not in ("--quick", "--no-settlement")] or list(ARMS)
+    names = [a for a in argv if a not in ("--quick", "--no-settlement", "--no-wood-flag")] or list(ARMS)
     failed = []
     for name in names:
         print(name)

@@ -20,11 +20,12 @@ What it reads
 The schedule
     List scheduling over the roster's `after` edges with six pull-request
     slots, the owner's dispatch priority first and longest-remaining-path
-    within a tier. The priority (tvofi 2026-10-26) is derived at every replan:
-    tier 0 is `critical_path()`'s output for the roster graph as it stands
-    (never a stored list), tier 1 a production-lane group, tier 2 everything
-    else, ranked within tier 2 by the roster's `savings` field (absent sorts
-    last). Height breaks ties within a tier. A group holds a slot from its
+    within a tier. The priority is `dispatch_tier`'s, derived at every replan
+    from the roster alone: main, then hotfixes, then the top tier (an
+    outside request or `critical_path()`'s output for the graph as it
+    stands, unordered between them), then production, and the other
+    instruments ranked by the roster's `savings` field (absent sorts last);
+    `TIER_LEGEND` names them. Height breaks ties within a tier. A group holds a slot from its
     start (the PR opens) to its finish (the PR merges). Groups whose fixer is
     already working (stage `in-progress`) were dispatched before the replan:
     up to six start at the replan instant in the same priority order, whatever
@@ -108,27 +109,32 @@ SELF = "tools/plan/replan.py"
 LANES = ("Learners", "Core model", "Product UX", "Replay", "Instruments", "Docs")
 PRODUCTION = ("Learners", "Core model", "Product UX")
 
-# The owner's dispatch priority (tvofi 2026-10-26): the critical path first,
-# then production, then everything else by the savings it carries. The tiers
-# are derived from the roster graph at every replan; none is stored.
-TIER_CRITICAL, TIER_PRODUCTION, TIER_OTHER = 0, 1, 2
-
 # The kind of the one stamp that closes the programme: the round's major.
 ROUND_CLOSE = "round-close"
 
 # A fixer already working. `queued` is not working: the plan dispatches it.
 LIVE_STAGES = ("in-progress", "fixing", "review", "in-review")
+#: The live stages whose build is finished: a group here starts from its
+#: review rounds, not from a fresh fixer start.
+REVIEW_STAGES = ("review", "in-review")
 
 DEFAULT_CAPS = {
-    "slots": 16,             # open pull requests: the owner's cap since 2026-10-31
-    "seats": 16,             # fixers working: one per open pull request
+    "slots": 20,             # open pull requests: the owner's cap since 2026-11-07
+    "seats": 20,             # fixers working: one per open pull request
     "coordinator_cap": 2,    # open pull requests touching coordinator.py
     "stamp_every": 3,        # production groups per patch stamp (tvofi 2026-10-26)
 }
 #: Where DEFAULT_CAPS' slots and seats come from, recorded in every plan that
 #: uses them: a plan drawn at a cap nobody chose must say whose cap it is.
-CAPS_PROVENANCE = ("tvofi 2026-10-31 (#201 comment 6544047621): 16 open pull "
-                   "requests; replan.py DEFAULT_CAPS")
+CAPS_PROVENANCE = ("tvofi 2026-11-07 (#201 comment 6707334933, superseding 6544047621): "
+                   "20 open pull requests; replan.py DEFAULT_CAPS")
+
+
+#: What "the programme is closed" means beyond the plan's last finish (tvofi
+#: 2026-11-07, #201): the plan states it beside `summary.closure`, which is only
+#: the schedule's own end.
+CLOSURE_CONDITIONS = ("no open pull requests", "no handoffs", "no carries", "no findings",
+                      "no leads", "only the coordination issue open")
 
 
 class PlanError(Exception):
@@ -206,10 +212,6 @@ def groups_of(roster: dict) -> dict:
 #: work lives in the group its resume note names.
 ABSORBED_RE = re.compile(r"absorbed into ([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)")
 
-#: The group that cuts the round's closing stamp; a group after it is post-closure.
-CLOSE_STAMP_MARK = "STAMP-ROUND-MAJOR"
-POST_CLOSE_STEP_RE = re.compile(r"after the .*\b(stamp|closeout)\b", re.I)
-
 
 def is_done(group: dict) -> bool:
     return not roster_lib.is_open(group)
@@ -229,24 +231,6 @@ def absorbers(G: dict) -> dict:
         out[n] = (into, None if into else
                   f"ADVISORY: {n} is absorbed but its resume note names no existing group")
     return out
-
-
-def post_closure_groups(G: dict, open_: set) -> set:
-    """Open groups that run after the round's closing stamp: an owner-step
-    whose next step is "after the ... stamp", a group whose `after` names the
-    closing-stamp group, and every group after one of those."""
-    post = {n for n in open_
-            if (G[n].get("kind") == "owner-step"
-                and POST_CLOSE_STEP_RE.search(str((G[n].get("resume") or {}).get("next_step") or "")))
-            or any(CLOSE_STAMP_MARK in a for a in G[n].get("after") or [])}
-    grew = True
-    while grew:
-        grew = False
-        for n in open_ - post:
-            if any(a in post for a in G[n].get("after") or []):
-                post.add(n)
-                grew = True
-    return post
 
 
 #: Paths that are instruments, CI or records, never the integration (tvofi
@@ -273,6 +257,16 @@ def _owned_lane(group: dict) -> str | None:
     return "Docs" if group.get("kind") == "doc" or user_docs else "Instruments"
 
 
+#: Group-name stems drawn as Instruments. A stem matches the group of that exact
+#: name or one named `<stem>-...`: a bare string prefix also took a stem's
+#: look-alikes (`R10-I1` priced `R10-I18N-DE`, an integration group, as an
+#: instrument).
+INSTRUMENT_NAME_STEMS = (
+    "R10-TICK", "R10-TRAIN", "R10-REF", "R10-D15", "R10-PREPR", "R10-GATE",
+    "R10-STALE", "R10-PRE-EDIT", "R10-POLICY", "R10-I1", "R10-ARCHSCORE",
+    "R10-STRUCTURE", "R10-BRIEFS")
+
+
 def roster_lane(group: dict) -> str:
     """The lane a group is drawn in and counted under for the stamp cadence.
 
@@ -286,10 +280,8 @@ def roster_lane(group: dict) -> str:
     k = group.get("kind")
     if g in ("R10-ARCH-DOCS", "R10-I5-DOCS"):
         return "Docs"
-    if k in ("instrument", "policy") or g.startswith(
-            ("R10-TICK", "R10-TRAIN", "R10-REF", "R10-D15", "R10-PREPR", "R10-GATE",
-             "R10-STALE", "R10-PRE-EDIT", "R10-POLICY", "R10-I1", "R10-ARCHSCORE",
-             "R10-STRUCTURE", "R10-BRIEFS")):
+    if k in ("instrument", "policy") or any(
+            g == p or g.startswith(p + "-") for p in INSTRUMENT_NAME_STEMS):
         return "Instruments"
     if "REPLAY" in g:
         return "Replay"
@@ -333,14 +325,19 @@ def touches_coordinator(group: dict) -> bool:
 
 # ----------------------------------------------------------------------- graph
 
-def dependency_graph(G: dict) -> tuple[dict, set, set]:
+def dependency_graph(G: dict, legacy: dict | None = None) -> tuple[dict, set, set]:
     """(open deps per open group, open set, done set).
 
     An `after` edge to a done group is satisfied and drops out. An `after`
     naming no group in the roster is refused: silently dropping it would make
-    a dependency look met when the roster has a typo.
+    a dependency look met when the roster has a typo. A discharged group
+    (`roster_lib.discharged` over `legacy`, the roster's cut-over carries: a
+    merged `carries-open` group every carry of which is marked) is done here:
+    no fixer work is left, so it takes no slot and clears its after-edges
+    (tvofi 2026-11-07, proposal 1).
     """
-    done = {n for n, g in G.items() if is_done(g)}
+    done = {n for n, g in G.items()
+            if is_done(g) or roster_lib.discharged(g, legacy or {})}
     open_ = set(G) - done
     deps = {}
     for n in open_:
@@ -348,7 +345,7 @@ def dependency_graph(G: dict) -> tuple[dict, set, set]:
         for a in G[n].get("after") or []:
             if a not in G:
                 raise PlanError(f"{n}: after-edge names no group: {a}")
-            if a in open_:
+            if a in open_ and roster_lib.gates(G[a]):
                 out.append(a)
         deps[n] = out
     return deps, open_, done
@@ -424,31 +421,52 @@ def critical_path(deps: dict, dur: dict, order: list) -> list:
     return chain
 
 
-#: The owner's priority order (standing directive, 2026-10-30), as tiers:
-#: 1 main (a red main or a main fix), 2 the critical path and hotfixes (user-
-#: reported production findings), 3 production work and instruments saving
-#: SAVING_TIER_HOURS or more, 4 every other instrument, ranked by its savings.
-TIER_MAIN, TIER_URGENT, TIER_PRODUCTION_WORK, TIER_INSTRUMENT = 1, 2, 3, 4
+#: The owner's priority order, as tiers. 1 main (a red main or a main fix):
+#: it blocks every merge, the top tier's included. 2 hotfixes (user-reported
+#: production findings): "all accepted outside issues or contributions should
+#: be prioritized higher than audit or owner submitted ones unless i call the
+#: owner one a hotfix" (tvofi 2026-11-07, triage P420). 3 the top tier (tvofi
+#: 2026-11-08: "landing the outside requests, and landing the critical path
+#: ... All of them have top priority ... in no particular order"): an
+#: outside request (`roster_lib.is_outside`) or the critical path, ordered
+#: among themselves by height alone; 11-08 keeps the 11-07 hotfix exception
+#: (mandate 6715477401). Below it the standing order (2026-10-30) continues:
+#: 4 production work and instruments saving SAVING_TIER_HOURS or more, 5
+#: every other instrument, ranked by its savings.
+TIER_MAIN, TIER_HOTFIX, TIER_TOP, TIER_PRODUCTION_WORK, TIER_INSTRUMENT = 1, 2, 3, 4, 5
 SAVING_TIER_HOURS = 12.0
+#: Each tier in words, for a reader of `tier` (the plan page's legend).
+TIER_LEGEND = {
+    TIER_MAIN: "main",
+    TIER_HOTFIX: "hotfixes",
+    TIER_TOP: "outside requests and the critical path, unordered",
+    TIER_PRODUCTION_WORK: f"production and instruments saving {SAVING_TIER_HOURS:g} h or more",
+    TIER_INSTRUMENT: "other instruments by savings",
+}
 
 
 def dispatch_tier(group: dict, on_cp: bool, savings: float | None) -> tuple[int, str]:
     """(tier, the roster fields that decided it) for one open group.
 
     Read from the roster alone: `kind` "main" or a `-MAIN-FIX`/`-MAIN-RED`
-    name is main; `on_cp` (`critical_path()`'s output, never a stored list),
-    a `kind` "bug" (the user-reported finding) or a HOTFIX-named production
-    group is urgent; `work_class` production, or an instrument whose
-    `savings` is at least SAVING_TIER_HOURS, is tier 3; else tier 4.
+    name is main; `roster_lib.is_hotfix` (a `kind` "bug" or a HOTFIX name, of
+    any work class) is a hotfix; `on_cp` (`critical_path()`'s output, never a
+    stored list) or a `source` of outside (`roster_lib.is_outside`, never a
+    list of names) is the top tier; `work_class` production, or an
+    instrument whose `savings` is at least SAVING_TIER_HOURS, is the
+    production tier; else the instrument tier.
     """
     g, k = group["group"], group.get("kind")
     if k == "main" or "-MAIN-FIX" in g or "-MAIN-RED" in g:
         return TIER_MAIN, f"main (kind {k!r}, name)"
     cls = work_class(group)
+    if roster_lib.is_hotfix(group):
+        return TIER_HOTFIX, f"hotfix (kind {k!r}, name)"
+    outside = "outside request (source)"
     if on_cp:
-        return TIER_URGENT, "critical path"
-    if k == "bug" or "HOTFIX" in g and cls == "production":
-        return TIER_URGENT, f"hotfix (kind {k!r}, name)"
+        return TIER_TOP, "critical path" + (f"; {outside}" if roster_lib.is_outside(group) else "")
+    if roster_lib.is_outside(group):
+        return TIER_TOP, outside
     if cls == "production":
         return TIER_PRODUCTION_WORK, "production (work_class)"
     if savings is not None and savings >= SAVING_TIER_HOURS:
@@ -458,17 +476,19 @@ def dispatch_tier(group: dict, on_cp: bool, savings: float | None) -> tuple[int,
     return TIER_INSTRUMENT, f"{cls} saving {savings:g} h"
 
 
-def dispatch_key(n: str, tier: dict, crit: set, savings: dict, height: dict,
+def dispatch_key(n: str, tier: dict, savings: dict, height: dict,
                  dur_min: dict) -> tuple:
-    """The dispatch order, lowest first: tier, the critical path first within
-    it, then (tier 4 only) savings descending with an unrecorded savings last,
-    then the tie-break that predates the tiers: height, duration, name. It is
-    a pure function of the plan's own fields (`plan.json` records it per
-    group as `sort_key`), so a reader can re-derive the order from the plan.
+    """The dispatch order, lowest first: tier, then (tier 5 only) savings
+    descending with an unrecorded savings last, then the tie-break that
+    predates the tiers: height, duration, name. Nothing ranks the critical
+    path within a tier: it holds the top tier with the outside requests, in
+    no particular order (tvofi 2026-11-08), so height decides. It is a pure
+    function of the plan's own fields (`plan.json` records it per group as
+    `sort_key`), so a reader can re-derive the order from the plan.
     """
     t = tier[n]
     sav = (-savings[n] if n in savings else float("inf")) if t == TIER_INSTRUMENT else 0.0
-    return (t, 0 if n in crit else 1, sav, -height[n], -dur_min[n], n)
+    return (t, sav, -height[n], -dur_min[n], n)
 
 
 # ------------------------------------------------------------- duration model
@@ -541,6 +561,13 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str,
         why += left_out
     else:
         hours, why = float(sizes[size]), f"{size}: sizes_hours"
+    if is_live and stage in REVIEW_STAGES and size in first:
+        # The build is done: what is left is the review rounds still to run, at
+        # least one, never more than a fresh fixer's remaining share.
+        left_rounds = max(rounds - 1, 1.0)
+        in_review = min(left_rounds * float(durations["round_hours"]),
+                        hours * float(durations.get("live_remaining_fraction", 0.7)))
+        return in_review, why + f", in {stage}: {left_rounds:.2f} review round(s) left"
     if is_live:
         hours *= float(durations.get("live_remaining_fraction", 0.7))
         why += ", working (live_remaining_fraction)"
@@ -744,11 +771,43 @@ def selftest_model() -> int:
     def tier_of(g, cp=False, sav=None):
         return dispatch_tier(g, cp, sav)[0]
     expect("main work is tier 1", tier_of(grp("R10-MAIN-FIX-X", kind="main")) == TIER_MAIN)
-    expect("the critical path is tier 2", tier_of(grp("I", kind="instrument"), cp=True) == TIER_URGENT)
-    expect("a user-reported bug (hotfix) is tier 2, off the critical path",
-           tier_of(grp("R10-HOTFIX-X", kind="bug")) == TIER_URGENT)
-    expect("production work is tier 3", tier_of(grp("P")) == TIER_PRODUCTION_WORK)
-    expect("an instrument saving 12 h is tier 3, one saving 11 h tier 4",
+    expect("main outranks the top tier, even an outside main fix",
+           tier_of(grp("R10-MAIN-FIX-X", kind="main", source="outside"), cp=True) == TIER_MAIN)
+    expect("the critical path is the top tier", tier_of(grp("I", kind="instrument"), cp=True) == TIER_TOP)
+    expect("an outside instrument is the top tier, off the critical path",
+           tier_of(grp("I", kind="instrument", source="outside")) == TIER_TOP)
+    expect("a user-reported bug (hotfix) is the hotfix tier, off the critical path",
+           tier_of(grp("R10-HOTFIX-X", kind="bug")) == TIER_HOTFIX)
+    # Owner rulings tvofi 2026-11-07 (triage P420) and 2026-11-08 (mandate
+    # 6715477401): main, hotfix, then outside and the critical path as one
+    # tier, then the rest in today's order.
+    expect("a hotfix ranks ahead of an outside group, which shares a tier with the critical path",
+           TIER_MAIN < tier_of(grp("R10-HOTFIX-X", kind="bug")) < tier_of(grp("OUT", source="outside"))
+           == tier_of(grp("I", kind="instrument"), cp=True) < TIER_PRODUCTION_WORK,
+           [tier_of(grp("R10-HOTFIX-X", kind="bug")), tier_of(grp("OUT", source="outside"))])
+    expect("an outside group that is also a hotfix is a hotfix",
+           tier_of(grp("R10-HOTFIX-O", kind="bug", source="outside")) == TIER_HOTFIX)
+    # A HOTFIX name is a hotfix of any work class, the order roster_lib.dispatch_rank
+    # gives every other reader (#3304 round 2: the base's production-only arm
+    # ranked an instrument-class hotfix below outside in the plan alone).
+    hx = build_plan({"groups": [grp("R10-HOTFIX-X", "S", "instrument"), grp("OUT", "S", source="outside")]},
+                    M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    HX = hx["groups"]  # OUT, the critical path by name, starts beside it exempt
+    expect("an instrument-class R10-HOTFIX group is the hotfix tier and holds the one real slot at t0 "
+           "ahead of an outside group, the order dispatch_rank gives",
+           tier_of(grp("R10-HOTFIX-X", kind="instrument")) == TIER_HOTFIX
+           and HX["R10-HOTFIX-X"]["slot"] == 0 and HX["R10-HOTFIX-X"]["start"] == iso(start, 0)
+           and not HX["R10-HOTFIX-X"].get("exempt") and HX["OUT"].get("exempt") is True
+           and [roster_lib.dispatch_rank({"groups": [grp("R10-HOTFIX-X", "S", "instrument"),
+                                                     grp("OUT", "S", source="outside")]}, n, set())
+                for n in ("R10-HOTFIX-X", "OUT")] == [roster_lib.RANK_HOTFIX, roster_lib.RANK_TOP],
+           {n: (HX[n]["start"], HX[n]["slot"], HX[n].get("exempt"), HX[n]["sort_key"][0]) for n in HX})
+    expect("null control: the same instrument without a HOTFIX name stays the instrument tier",
+           tier_of(grp("R10-FIX-X", kind="instrument")) == TIER_INSTRUMENT)
+    expect("production work is the production tier", tier_of(grp("P")) == TIER_PRODUCTION_WORK)
+    expect("a source other than outside is no top tier (null control)",
+           tier_of(grp("P", source="audit")) == tier_of(grp("P")) == TIER_PRODUCTION_WORK)
+    expect("an instrument saving 12 h is the production tier, one saving 11 h the instrument tier",
            tier_of(grp("I", kind="instrument"), sav=12) == TIER_PRODUCTION_WORK
            and tier_of(grp("I", kind="instrument"), sav=11) == TIER_INSTRUMENT)
     why = dispatch_tier(grp("I", kind="instrument"), False, None)[1]
@@ -756,27 +815,77 @@ def selftest_model() -> int:
     order = {"groups": [
         grp("CPA", "S", "instrument"), grp("CPB", "S", "instrument", after=["CPA"]),
         grp("CPC", "L", "instrument", after=["CPB"]),
-        grp("R10-HOTFIX-H", "L", "bug"), grp("PROD", "M"),
+        grp("R10-HOTFIX-H", "L", "bug"), grp("OUT", "S", source="outside"), grp("PROD", "M"),
         grp("HI", "S", "instrument", savings=9), grp("LO", "S", "instrument", savings=2),
         grp("NONE", "S", "instrument")]}
     po = build_plan(order, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
-    seq = sorted((g for g in po["groups"]), key=lambda n: po["groups"][n]["start"])
-    expect("dispatch follows the owner's order: critical path, hotfix, production, "
-           "instruments by savings, unrecorded savings last",
-           seq == ["CPA", "CPB", "CPC", "R10-HOTFIX-H", "PROD", "HI", "LO", "NONE"], seq)
+    # A ready critical-path group starts past a full cap (orchestrator.md
+    # section 5), so the owner's order reads off the real slots: the capped
+    # groups in start order, the critical path exempt beside them. OUT, an S
+    # outside group, is shorter than every critical-path tail, so height
+    # gives it the slot after the hotfix's.
+    P = po["groups"]
+    seq = sorted((n for n in P if not P[n].get("exempt")), key=lambda n: (P[n]["start"], n))
+    expect("dispatch follows the owner's order (tvofi 2026-11-07, 2026-11-08): hotfix, then "
+           "outside with the critical path, production, instruments by savings, unrecorded last",
+           seq == ["R10-HOTFIX-H", "OUT", "PROD", "HI", "LO", "NONE"], seq)
+    expect("the hotfix takes the free slot at t0 and the ready critical-path group starts "
+           "beside it past the cap, never ahead of it on the real slot",
+           P["R10-HOTFIX-H"]["start"] == iso(start, 0) and P["R10-HOTFIX-H"]["slot"] == 0
+           and P["CPA"]["start"] == iso(start, 0) and P["CPA"].get("exempt") is True
+           and all(P[n].get("exempt") is True for n in ("CPA", "CPB", "CPC")),
+           {n: (P[n]["start"], P[n]["slot"], P[n].get("exempt")) for n in P})
     keys = {n: po["groups"][n]["sort_key"] for n in po["groups"]}
     expect("each group's sort_key is in the plan and orders it the same way",
-           sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "CPA"
+           sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "R10-HOTFIX-H"
            and all(po["groups"][n]["tier_reason"] for n in keys), keys)
     # A critical-path tail (B, 18 h left) against a taller hotfix (H, 24 h):
-    # height alone dispatches H first; the owner's order puts B first.
+    # the hotfix outranks the critical path, so H takes the one free slot at
+    # once, and A, the path's head, still starts with it, exempt from the cap.
     tail = build_plan({"groups": [grp("A", "L", "instrument"),
                                   grp("B", "S", "instrument", after=["A"]),
                                   grp("H", "M", "bug")]}, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     T = tail["groups"]
-    expect("within tier 2 the critical path goes first, even its shorter tail",
-           tail["critical_path"] == ["A", "B"] and T["B"]["start"] < T["H"]["start"],
-           {n: (T[n]["start"], T[n]["sort_key"]) for n in T})
+    expect("a hotfix outranks the critical path, which still starts past the cap",
+           tail["critical_path"] == ["A", "B"] and T["H"]["sort_key"] < T["A"]["sort_key"]
+           and T["H"]["start"] == T["A"]["start"] == iso(start, 0)
+           and T["A"].get("exempt") is True and not T["H"].get("exempt"),
+           {n: (T[n]["start"], T[n]["sort_key"], T[n].get("exempt")) for n in T})
+    # The owner's top tier (tvofi 2026-11-07, 2026-11-08): an accepted outside
+    # request ranks with the critical path, unordered among them, ahead of a
+    # production group that is taller than it. The outside group (S) is
+    # shorter than PRODX (M) and on no critical path (CPX, L, is the path);
+    # PRODY is the same production group with no outside source: tier 4.
+    out = build_plan({"groups": [grp("CPX", "L"), grp("PRODX", "M"),
+                                 grp("OUTX", "S", source="outside"), grp("PRODY", "S")]},
+                     M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    O = out["groups"]
+    expect("an outside request is the top tier off the critical path, and dispatches "
+           "before a taller production group",
+           out["critical_path"] == ["CPX"] and O["OUTX"]["tier"] == TIER_TOP
+           and "outside request" in O["OUTX"]["tier_reason"]
+           and O["OUTX"]["start"] < O["PRODX"]["start"],
+           {n: (O[n]["tier"], O[n]["start"], O[n]["tier_reason"]) for n in O})
+    expect("null control: the same production group with no outside source stays below",
+           O["PRODY"]["tier"] == TIER_PRODUCTION_WORK and "outside" not in O["PRODY"]["tier_reason"]
+           and O["PRODX"]["start"] < O["PRODY"]["start"],
+           {n: (O[n]["tier"], O[n]["start"]) for n in O})
+    # Unordered within the top tier: height decides between an outside group
+    # and the critical path. CPA -> CPB is the path; once CPA merges, OUTT
+    # (M) is taller than the path's tail CPB (S), so OUTT takes the one free
+    # slot and CPB still starts at the same instant, past the cap.
+    unord = build_plan({"groups": [grp("CPA", "L"), grp("CPB", "S", after=["CPA"]),
+                                   grp("OUTT", "M", source="outside")]},
+                       M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
+    U = unord["groups"]
+    expect("within the top tier height orders an outside group and the critical path, "
+           "and the critical path is still exempt from the cap",
+           unord["critical_path"] == ["CPA", "CPB"]
+           and U["OUTT"]["tier"] == U["CPB"]["tier"] == TIER_TOP
+           and U["OUTT"]["sort_key"] < U["CPB"]["sort_key"]
+           and U["OUTT"]["start"] == U["CPB"]["start"] and U["CPB"].get("exempt") is True
+           and not U["OUTT"].get("exempt"),
+           {n: (U[n]["sort_key"], U[n]["start"], U[n].get("exempt")) for n in U})
     tie = build_plan({"groups": [grp("A1", "M"), grp("A2", "S")]}, M,
                      dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     expect("null control: two groups in one tier keep the height tie-break",
@@ -785,8 +894,8 @@ def selftest_model() -> int:
 
     # 5. caps: a call naming none draws at the owner's, and says so.
     nocaps = cli_caps(parse_args([]))
-    expect("a replan given no caps does not draw a 6-slot plan: the owner's 16, with provenance",
-           nocaps["slots"] == 16 and nocaps["seats"] == 16
+    expect("a replan given no caps does not draw a 6-slot plan: the owner's 20, with provenance",
+           nocaps["slots"] == 20 and nocaps["seats"] == 20
            and nocaps["provenance"] == CAPS_PROVENANCE, nocaps)
     given = cli_caps(parse_args(["--slots", "4"]))
     expect("null control: a cap given on the command line is used and named as given",
@@ -913,10 +1022,17 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     if why:
         raise PlanError(f"the round-close stamp: {why}")
     G = groups_of(roster)
-    deps, open_, done = dependency_graph(G)
+    deps, open_, done = dependency_graph(G, legacy)
+    discharged = {n for n in done if not is_done(G[n])}
+    # A group `after` a deferred one stays held behind it, unscheduled. A
+    # discharged group is closed work here as in `dependency_graph`: it is
+    # neither held nor holds, so it is left out of the view the hold reads.
+    live = {n: g for n, g in G.items() if n not in discharged}
+    held = roster_lib.held_behind_deferred(live)
+    open_ = open_ - set(held)
     # Groups after the round's closing stamp are scheduled after it and are
     # neither inside closure nor in any stamp's carries (carries 10, 11).
-    post = post_closure_groups(G, open_)
+    post = roster_lib.post_closure_groups(G, open_)
     open_all = open_
     open_ = open_all - post
     deps_post = {n: deps[n] for n in post}
@@ -980,7 +1096,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         tier[n], tier_why[n] = dispatch_tier(G[n], n in crit, savings.get(n))
 
     def priority(n: str):
-        return dispatch_key(n, tier, crit, savings, height, dur_min)
+        return dispatch_key(n, tier, savings, height, dur_min)
 
     slots = int(caps["slots"])
     seats = int(caps["seats"])
@@ -1016,6 +1132,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     patch = 0
     overflow_base = slots + 100
     exempt: set = set()         # critical-path groups started past the slots cap
+    exempt_coord: set = set()   # ... or past the coordinator cap
 
     def free_slot() -> int | None:
         # A slot is held from the start to the merge, not to the end of the
@@ -1036,12 +1153,13 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     def in_flight_coord() -> int:
         return sum(1 for n in list(running) + list(finished) if coord[n])
 
-    def pick(candidates, now: int):
-        """The owner's dispatch priority; coordinator cap on planned starts."""
+    def pick(candidates, now: int, cap_exempt: bool = False):
+        """The owner's dispatch priority; coordinator cap on planned starts,
+        which a critical-path candidate (`cap_exempt`) is not held by."""
         cc = in_flight_coord()
         best = None
         for n in candidates:
-            if coord[n] and n not in started and cc >= coord_cap:
+            if coord[n] and n not in started and cc >= coord_cap and not cap_exempt:
                 coord_held.add(n)
                 continue
             key = priority(n)
@@ -1071,28 +1189,35 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 inherited.add(n)
             ready.discard(n)
             pending.discard(n)
-        # A ready critical-path group starts now whatever the slots cap, as
-        # dispatch does (orchestrator.md section 5); it takes a free slot when
-        # one exists and an overflow slot otherwise, and is exempt from the cap.
-        while True:
-            n = pick(sorted(x for x in ready if x in crit), t)
+        # The real slots go in the dispatch order over every ready group, so a
+        # tier above the critical path (main, hotfix) takes a free slot ahead
+        # of it, and an outside group, which shares the critical path's top
+        # tier unordered (tvofi 2026-11-08), wins one by height.
+        while ready and free_slot() is not None:
+            n = pick(sorted(ready), t)
             if n is None:
                 break
             s = free_slot()
-            if s is None:
-                s = overflow_base + len(start_t)
-                exempt.add(n)
             start_t[n] = t
             slot_of[n] = s
             work_end[n] = t + dur_min[n]
             running[n] = (s, work_end[n])
             ready.discard(n)
             pending.discard(n)
-        while ready and free_slot() is not None:
-            n = pick(sorted(ready), t)
+        # A ready critical-path group the slots left waiting starts now
+        # whatever the cap, as dispatch does (orchestrator.md section 5), on an
+        # overflow slot (a free one only when the coordinator cap held the
+        # pick above), and is exempt from the cap.
+        while True:
+            n = pick(sorted(x for x in ready if x in crit), t, cap_exempt=True)
             if n is None:
                 break
+            if coord[n] and in_flight_coord() >= coord_cap:
+                exempt_coord.add(n)
             s = free_slot()
+            if s is None:
+                s = overflow_base + len(start_t)
+                exempt.add(n)
             start_t[n] = t
             slot_of[n] = s
             work_end[n] = t + dur_min[n]
@@ -1182,6 +1307,11 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         post_start[n] = ready_at
         post_end[n] = ready_at + post_dur[n]
 
+    # The programme closes at the LATER of the round-close stamp and the last
+    # post-closure step (the catalog PR): tvofi 2026-11-07, "not considered
+    # closed until both v.10.0.0 and the catalog PR has landed".
+    closure_at = max([stamps[-1]["at"]] + list(post_end.values()))
+
     # a wave is the set of groups the replan dispatches at one instant
     by_open: dict = {}
     for n in open_:
@@ -1245,6 +1375,16 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 "post_closure": True,
             }
             continue
+        if n in held:
+            groups_out[n] = {
+                "wave": None, "start": None, "finish": None, "slot": None,
+                "duration_minutes": 0, "size": G[n].get("size"), "lane": lane[n],
+                "tier": None, "level": None, "live": False, "inherited": False,
+                "coordinator": touches_coordinator(G[n]), "batch": None,
+                "stamp": None, "after": [], "done": True,
+                "held_behind": held[n],
+            }
+            continue
         if n in done:
             groups_out[n] = {
                 "wave": None, "start": None, "finish": None, "slot": None,
@@ -1254,6 +1394,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 "level": None, "live": False, "inherited": False,
                 "coordinator": touches_coordinator(G[n]), "batch": None,
                 "stamp": None, "after": [], "done": True,
+                **({"discharged": True} if n in discharged else {}),
             }
             if n in absorbed_by:
                 groups_out[n]["absorbed_into"] = absorbed_by[n][0]
@@ -1283,6 +1424,8 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         }
         if n in exempt:
             groups_out[n]["exempt"] = True
+        if n in exempt_coord:
+            groups_out[n]["exempt_coordinator"] = True
         if n in design_only:
             groups_out[n]["design_only"] = True
 
@@ -1291,7 +1434,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         # Expected arrivals over the plan's wall time, priced at the median
         # size: reported, not scheduled -- they are not groups yet.
         sz = sorted(float(v) for v in size_hours.values())
-        n_exp = inflow * closure / 60.0
+        n_exp = inflow * closure_at / 60.0
         arrivals = {"groups": round(n_exp, 2),
                     "work_hours": round(n_exp * sz[len(sz) // 2], 2)}
     peak_flight, peak_coord = peak_concurrency(groups_out, start)
@@ -1359,15 +1502,17 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "inherited_dependency_violations": inherited_deps,
         },
         "summary": {
-            "closure": iso(start, closure),
+            "closure": iso(start, closure_at),
             "closure_stamp": stamps[-1]["version"],
-            "wall_hours": round(closure / 60.0, 2),
+            "closure_conditions": list(CLOSURE_CONDITIONS),
+            "wall_hours": round(closure_at / 60.0, 2),
             "ci_minutes": ci,
             "gate_minutes": gate_report,
             "batches": len(batch_rows),
             "stamps": len(stamps),
             "groups_total": len(G),
             "groups_done": len(done),
+            "groups_discharged": len(discharged),
             "groups_open": len(open_all),
             "post_closure": sorted(post),
             "post_closure_finish": (iso(start, max(post_end.values())) if post_end else None),
@@ -1547,7 +1692,8 @@ def check_plan(plan: dict) -> list:
 
     # 3. coordinator cap: at most `coord_cap` PLANNED groups in flight; the
     #    inherited in-progress set is recorded and must match the groups.
-    coord = [(n, g) for n, g in in_round.items() if g.get("coordinator")]
+    coord = [(n, g) for n, g in in_round.items()
+             if g.get("coordinator") and not g.get("exempt_coordinator")]
     for t, _, _ in events:
         curc = sum(1 for n, g in coord
                    if not g.get("started")
@@ -1637,9 +1783,16 @@ def check_plan(plan: dict) -> list:
         bad.append("summary: stamp count disagrees with the stamps list")
     if s["groups_open"] != len(groups):
         bad.append("summary: open-group count disagrees with the groups list")
-    closure = max((mins(g["finish"]) for g in in_round.values()), default=0)
+    close_stamps = [x for x in plan.get("stamps", []) if x.get("kind") == ROUND_CLOSE]
+    post_fin = [mins(plan["groups"][n]["finish"]) for n in s.get("post_closure") or []
+                if n in plan["groups"]]
+    closure = max([mins(x["at"]) for x in close_stamps] + post_fin
+                  or [max((mins(g["finish"]) for g in in_round.values()), default=0)])
+    if s.get("closure_conditions") != list(CLOSURE_CONDITIONS):
+        bad.append("summary: closure_conditions is not the owner's closure conditions")
     if mins(s["closure"]) != closure:
-        bad.append("summary: closure is not the last group finish")
+        bad.append("summary: closure is not the later of the round-close stamp and the "
+                   "last post-closure group finish")
     if "model" in plan["generated"]:
         bad += model_refusals(plan["generated"]["model"])
     else:
@@ -1721,6 +1874,16 @@ def selftest() -> int:
            _lane([], kind="rca") == "Instruments")
     expect("lane: a tooling group with no files is Instruments",
            _lane([], kind="tooling") == "Instruments")
+    expect("lane: a stem names its exact group and its `<stem>-...` groups, "
+           "never a look-alike (R10-I18N-DE is not R10-I1's)",
+           roster_lane({"group": "R10-I1"}) == "Instruments"
+           and roster_lane({"group": "R10-TICK-GROUP-LINES"}) == "Instruments"
+           and roster_lane({"group": "R10-I18N-DE",
+                            "files": ["custom_components/heatpump_optimizer/translations/de.json"]})
+           == "Core model"
+           and roster_lane({"group": "R10-GATEWAY"}) == "Core model",
+           str([roster_lane({"group": g}) for g in
+                ("R10-I1", "R10-TICK-GROUP-LINES", "R10-I18N-DE", "R10-GATEWAY")]))
     expect("lane: a roster class instrument with no files is Instruments",
            roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
                         "class": "instrument"}) == "Instruments")
@@ -1758,6 +1921,29 @@ def selftest() -> int:
     pa = build_plan(absorbed, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("an absorbed group is closed work, not scheduled", pa["groups"]["X"].get("done") is True,
            str(pa["groups"].get("X")))
+    # Proposal 1 (tvofi 2026-11-07): a merged carries-open group whose every
+    # carry is marked is closed work, and its dependent no longer waits on it.
+    def carrying(carry):
+        return dict(roster, groups=roster["groups"] + [
+            {"group": "HD", "size": "L", "lane": "Core model", "kind": "defect", "after": [],
+             "carry": carry, "resume": {"stage": "carries-open", "commit": "0123abcd"}},
+            {"group": "HN", "size": "S", "lane": "Core model", "kind": "defect",
+             "after": ["HD"], "resume": {"stage": "not-started"}}])
+    marked = ["x [moved: A]", "y [implemented: 0123abcd]", "z [dismissed: a duplicate]"]
+    pd = build_plan(carrying(marked), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    expect("discharged: a merged carries-open group with every carry marked is closed, "
+           "takes no slot and clears its dependent's edge",
+           pd["groups"]["HD"].get("done") is True and pd["groups"]["HD"].get("discharged") is True
+           and pd["groups"]["HN"]["after"] == [] and pd["summary"]["groups_discharged"] == 1
+           and check_plan(pd) == [], str(pd["groups"]["HD"]))
+    po = build_plan(carrying(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    expect("discharged (null): one unmarked carry keeps it scheduled and its dependent waiting",
+           po["groups"]["HD"].get("done") is False and po["groups"]["HN"]["after"] == ["HD"]
+           and po["summary"]["groups_discharged"] == 0, str(po["groups"]["HD"]))
+    pl = build_plan(carrying(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND,
+                    legacy={"HD": frozenset({"w"})})
+    expect("discharged: a legacy carry is not owed (the cut-over is read)",
+           pl["groups"]["HD"].get("done") is True, str(pl["groups"]["HD"]))
     again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("deterministic: two runs are byte-identical",
            json.dumps(plan, sort_keys=True) == json.dumps(again, sort_keys=True))
@@ -1988,7 +2174,7 @@ def selftest() -> int:
            p5["groups"]["A"]["start"] > p5["groups"]["B"]["start"],
            f"A starts {p5['groups']['A']['start']}, B {p5['groups']['B']['start']}")
 
-    # The owner's dispatch priority (tvofi 2026-10-26): the critical path
+    # The owner's dispatch priority (`dispatch_tier`): the critical path
     # computed from the graph, then production, then the rest by the roster's
     # `savings`. The fixtures below fail on a key that sees remaining height
     # alone; the tiers are derived at each replan, never stored.
@@ -2036,9 +2222,10 @@ def selftest() -> int:
            and p8["groups"]["PROD"]["sort_key"] < p8["groups"]["TALL"]["sort_key"],
            str({g: p8["groups"][g]["sort_key"] for g in ("PROD", "TALL")}))
 
-    # Within tier 2 the roster's `savings` ranks; absent sorts last. CP owns
-    # the critical path so HI/LO/NONE are all tier 2. The size order (L, M, S)
-    # is the opposite of the savings order, so height alone would invert it.
+    # Within the instrument tier the roster's `savings` ranks; absent sorts
+    # last. CP owns the critical path so HI/LO/NONE all share that tier. The
+    # size order (L, M, S) is the opposite of the savings order, so height
+    # alone would invert it.
     save = {"groups": [
         {"group": "CP", "size": "XL", "lane": "IN", "kind": "instrument",
          "after": [], "resume": {"stage": "not-started"}},
@@ -2050,7 +2237,7 @@ def selftest() -> int:
          "after": [], "resume": {"stage": "not-started"}},
     ]}
     p9 = build_plan(save, durations, one, start, "v1.0.0", round_n=FIXTURE_ROUND)
-    expect("tier 2 ranks by savings, and absent savings sorts last",
+    expect("the instrument tier ranks by savings, and absent savings sorts last",
            p9["groups"]["HI"]["start"] < p9["groups"]["LO"]["start"]
            < p9["groups"]["NONE"]["start"],
            str({g: p9["groups"][g]["start"] for g in ("HI", "LO", "NONE")}))
@@ -2220,10 +2407,56 @@ def selftest() -> int:
            pc["groups"]["R10-CATALOG-PR"].get("post_closure") is True
            and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
            and pc["summary"]["post_closure"] == ["R10-CATALOG-PR"], str(pc["groups"]["R10-CATALOG-PR"]))
-    expect("post-closure: in no stamp's carries and outside summary.closure",
+    expect("post-closure: in no stamp's carries, and summary.closure is the later of the "
+           "stamp and the catalog step's finish (tvofi 2026-11-07), which starts no earlier "
+           "than the stamp",
            all("R10-CATALOG-PR" not in s["carries"] for s in pc["stamps"])
-           and pc["summary"]["closure"] == p0["summary"]["closure"]
-           and pc["stamps"] == p0["stamps"], str(pc["stamps"]))
+           and pc["summary"]["closure"] == pc["groups"]["R10-CATALOG-PR"]["finish"]
+           and pc["summary"]["closure"] > close_at
+           and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
+           and pc["stamps"] == p0["stamps"], str((pc["summary"]["closure"], pc["stamps"])))
+    # The fixture prices a round at 0 h, which would make every review price 0:
+    # these arms use a round of 1 h and S at the named expected rounds.
+    def rv(st, rounds=3.0, drop=()):
+        d = dict(durations, round_hours=1.0, review_rounds={**durations["review_rounds"], "S": rounds})
+        return group_hours(fx("RV", "S", stage=st), {k: v for k, v in d.items() if k not in drop},
+                           True, "<t>")[0]
+    expect("live stage: a group in review is priced by its review rounds left, below a fresh "
+           "fixer's remaining share; one in progress is not",
+           abs(rv("in-review") - 2.0) < 1e-9 and rv("in-review") == rv("review")
+           and rv("in-review") < rv("in-progress"),
+           str([rv(x) for x in ("in-review", "review", "in-progress")]))
+    expect("live stage (floor): fewer than two expected rounds still price one review round, "
+           "not the rounds themselves (max(rounds - 1, 1))",
+           abs(rv("in-review", 1.4) - 1.0) < 1e-9 and 1.4 < rv("in-progress", 1.4),
+           str((rv("in-review", 1.4), rv("in-progress", 1.4))))
+    unset = ("live_remaining_fraction",)
+    expect("live stage (cap): with no live_remaining_fraction recorded, review and progress "
+           "share the one 0.7 default, so many rounds left price as in progress",
+           rv("in-review", 99.0, unset) == rv("in-progress", 99.0, unset) < 98.0,
+           str((rv("in-review", 99.0, unset), rv("in-progress", 99.0, unset))))
+    gen_start = dt.datetime.strptime(pc["generated"]["start"], "%Y-%m-%dT%H:%M:%SZ")
+    expect("post-closure: wall_hours runs to summary.closure (the catalog finish), not the stamp",
+           abs(pc["summary"]["wall_hours"] * 60 - (
+               dt.datetime.strptime(pc["summary"]["closure"], "%Y-%m-%dT%H:%M:%SZ")
+               - gen_start).total_seconds() / 60) < 1.0
+           and pc["summary"]["wall_hours"] > p0["summary"]["wall_hours"],
+           str((pc["summary"]["wall_hours"], p0["summary"]["wall_hours"])))
+    expect("closure conditions: the plan states the owner's six (tvofi 2026-11-07), and --check "
+           "refuses a plan that drops them",
+           pc["summary"]["closure_conditions"] == [
+               "no open pull requests", "no handoffs", "no carries", "no findings",
+               "no leads", "only the coordination issue open"]
+           and any("closure_conditions" in b for b in check_plan(
+               dict(pc, summary=dict(pc["summary"], closure_conditions=[])))), "")
+    expect("post-closure (null): with no post-stamp group, closure is the stamp's at",
+           p0["summary"]["closure"] == p0["stamps"][-1]["at"], str(p0["summary"]["closure"]))
+    expect("post-closure (a): a plan whose closure drops the catalog step is refused by --check",
+           any("closure" in b for b in check_plan(
+               dict(pc, summary=dict(pc["summary"], closure=p0["summary"]["closure"])))), "")
+    ex = cli_caps(parse_args(["--slots", "7"]))
+    expect("slots 20 (null): an explicit --slots keeps its value, the seats stay the default",
+           ex["slots"] == 7 and ex["seats"] == DEFAULT_CAPS["seats"] == 20, str(ex))
     expect("post-closure (null): a production group with no stamp dependency is in the "
            "closing stamp's carries",
            pc["stamps"][-1]["carries"] == ["R10-A", "R10-B"], str(pc["stamps"][-1]))
@@ -2238,6 +2471,122 @@ def selftest() -> int:
     expect("overflow (null): the non-critical group past the cap waits and is not exempt",
            any(g["start"] > iso(start, 0) and not g.get("exempt")
                for n, g in ov["groups"].items() if n == "X3"), "none waited")
+
+    # 3b. the exemption holds against the coordinator cap too (orchestrator.md
+    # section 5: "regardless of every cap"); the slots cap alone is not enough.
+    def cfx(n, size="S", **kw):
+        return fx(n, size, files=["custom_components/heatpump_optimizer/coordinator.py"], **kw)
+    cc = mk([cfx("K1", stage="in-progress"), cfx("K2", stage="in-progress"),
+             cfx("X3", "L"), cfx("CP1", "XL"), fx("CP2", after=["CP1"])],
+            caps_=dict(caps, coordinator_cap=1))
+    expect("coordinator: a ready critical-path group starts at t=0 past a full "
+           "coordinator cap, flagged, and the plan passes --check",
+           cc["groups"]["CP1"]["start"] == iso(start, 0)
+           and cc["groups"]["CP1"].get("exempt_coordinator") is True
+           and check_plan(cc) == [],
+           str({n: g["start"] for n, g in cc["groups"].items()}) + str(check_plan(cc)))
+    expect("coordinator (null): the non-critical coordinator group still waits and "
+           "is not flagged",
+           cc["groups"]["X3"]["start"] > iso(start, 0)
+           and not cc["groups"]["X3"].get("exempt_coordinator")
+           and cc["groups"]["X3"]["start_reason"].startswith("coordinator cap 1"),
+           str(cc["groups"]["X3"]))
+    cq = mk([cfx("K1", stage="in-progress"), cfx("CP1", "XL"), fx("CP2", after=["CP1"])],
+            caps_=dict(caps, coordinator_cap=2))
+    expect("coordinator (null): inside the cap the critical-path group is not flagged",
+           not cq["groups"]["CP1"].get("exempt_coordinator"), str(cq["groups"]["CP1"]))
+    ce = mk([cfx("K1", stage="in-progress"), cfx("CP1", "XL"), fx("CP2", after=["CP1"])],
+            caps_=dict(caps, coordinator_cap=1))
+    expect("coordinator: a critical-path group is flagged exactly when the cap is "
+           "full (one in flight, cap 1), not only when it is exceeded",
+           ce["groups"]["CP1"].get("exempt_coordinator") is True
+           and ce["groups"]["CP1"]["start"] == iso(start, 0), str(ce["groups"]["CP1"]))
+    nocp = json.loads(json.dumps(cc))
+    nocp["groups"]["CP1"].pop("exempt_coordinator")
+    nocp["groups"]["X3"].update(start=nocp["groups"]["CP1"]["start"],
+                                finish=nocp["groups"]["CP1"]["finish"])
+    expect("coordinator: --check still refuses two planned coordinator groups in "
+           "flight when the critical-path one is unflagged",
+           any("coordinator cap" in b for b in check_plan(nocp)), str(check_plan(nocp)))
+
+    # 3b'. the flagged group overlaps a running one: --check must exclude it from
+    # the coordinator count (X3 runs while CP1, fed by D, starts flagged).
+    ov2 = mk([fx("D"), cfx("CP1", "XL", after=["D"]), fx("CP2", "XL", after=["CP1"]),
+              cfx("X3", "L")], caps_=dict(caps, coordinator_cap=1))
+    c1, x3 = ov2["groups"]["CP1"], ov2["groups"]["X3"]
+    expect("coordinator: --check passes a flagged critical-path start that overlaps "
+           "a running coordinator group (the flag is read)",
+           c1.get("exempt_coordinator") is True and x3["start"] < c1["start"] < x3["finish"]
+           and check_plan(ov2) == [], str((c1, x3, check_plan(ov2))))
+    ov3 = json.loads(json.dumps(ov2))
+    ov3["groups"]["CP1"].pop("exempt_coordinator")
+    expect("coordinator (null): the same overlap unflagged is refused",
+           any("coordinator cap" in b for b in check_plan(ov3)), str(check_plan(ov3)))
+
+    # 3c. after-edges by predecessor stage (owner ruling, mandate 6715477401): a
+    # refused or refuted predecessor never lands, so its dependent is released;
+    # a deferred one is postponed, not done, so its dependent (and that one's
+    # own) stays held behind it, unscheduled. refused and deferred are closed
+    # groups (roster_lib.CLOSED_STAGES), never scheduled; refuted stays open.
+    for st in ("refused", "deferred"):
+        rf = mk([fx("R10-A"), fx("R10-X", stage=st), fx("R10-Y", after=["R10-X"]),
+                 fx("R10-Z", after=["R10-Y"])])
+        held = st == "deferred"
+        expect(f"{st}: the group is closed and not scheduled",
+               rf["groups"]["R10-X"]["done"] and rf["groups"]["R10-X"]["start"] is None,
+               str(rf["groups"]["R10-X"]))
+        expect(f"{st}: its dependent is " + ("held behind it, with its own dependent"
+                                             if held else "released, not held"),
+               (rf["groups"]["R10-Y"]["start"] is None
+                and rf["groups"]["R10-Y"].get("held_behind") == "R10-X"
+                and rf["groups"]["R10-Z"].get("held_behind") == "R10-X") if held
+               else (rf["groups"]["R10-Y"]["start"] == iso(start, 0)
+                     and not rf["groups"]["R10-Y"].get("held_behind")),
+               str({n: (g["start"], g.get("held_behind")) for n, g in rf["groups"].items()}))
+        in_plan = {g for w in rf["waves"] for g in w["groups"]}
+        in_plan |= {g for b in rf["batches"] for g in b["groups"]}
+        expect(f"{st}: a held dependent is in no wave and no batch (build_plan drops "
+               "`held` from the open set; null: the released set is scheduled)",
+               ("R10-Y" in in_plan and "R10-Z" in in_plan) if not held
+               else not ({"R10-Y", "R10-Z"} & in_plan) and "R10-A" in in_plan,
+               str(sorted(in_plan)))
+    rt = mk([fx("R10-A"), fx("R10-X", stage="refuted"), fx("R10-Y", after=["R10-X"])])
+    expect("refuted: the group is still scheduled and its dependent is released",
+           not rt["groups"]["R10-X"]["done"] and rt["groups"]["R10-X"]["start"] is not None
+           and rt["groups"]["R10-Y"]["start"] == iso(start, 0)
+           and rt["groups"]["R10-Y"]["after"] == [], str(rt["groups"]))
+    rq = mk([fx("R10-A", after=["R10-Q"]), fx("R10-Q", stage="queued")])
+    expect("after (null): a queued predecessor still gates its dependent",
+           rq["groups"]["R10-A"]["after"] == ["R10-Q"]
+           and rq["groups"]["R10-A"]["start"] > rq["groups"]["R10-Q"]["start"],
+           str(rq["groups"]))
+    # 3d. merge resolution of the two rulings: a discharged group (proposal 1)
+    # behind a deferred one is closed work, so it is neither held nor holds its
+    # own dependent; one unmarked carry (null) leaves it open and held, and
+    # its dependent held in turn.
+    co = {"res": {"commit": "0123abcd"}, "carry": ["x [moved: A]"]}
+    dh = mk([fx("R10-A"), fx("R10-X", stage="deferred"),
+             fx("R10-D", stage="carries-open", after=["R10-X"], **co),
+             fx("R10-N", after=["R10-D"])])
+    expect("discharged behind deferred: closed and not held; its dependent released",
+           dh["groups"]["R10-D"].get("discharged") is True
+           and not dh["groups"]["R10-D"].get("held_behind")
+           and not dh["groups"]["R10-N"].get("held_behind")
+           and dh["groups"]["R10-N"]["start"] == iso(start, 0)
+           and dh["summary"]["groups_discharged"] == 1 and check_plan(dh) == [],
+           str({n: (g["start"], g.get("held_behind"), g.get("discharged"))
+                for n, g in dh["groups"].items()}))
+    co["carry"] = co["carry"] + ["w"]
+    dn = mk([fx("R10-A"), fx("R10-X", stage="deferred"),
+             fx("R10-D", stage="carries-open", after=["R10-X"], **co),
+             fx("R10-N", after=["R10-D"])])
+    expect("discharged behind deferred (null): one unmarked carry keeps it held, "
+           "and its dependent held behind the deferral",
+           dn["groups"]["R10-D"].get("held_behind") == "R10-X"
+           and dn["groups"]["R10-N"].get("held_behind") == "R10-X"
+           and dn["summary"]["groups_discharged"] == 0,
+           str({n: (g["start"], g.get("held_behind")) for n, g in dn["groups"].items()}))
+
 
     # 4. stamp cadence counts groups, not pull requests (carry 9)
     cad = [fx("P1", stage="done"), fx("P2", stage="done"), fx("Q1"), fx("Q2")]
@@ -2432,6 +2781,24 @@ def selftest() -> int:
         expect("since-tag: a clean merge's change is read against its first parent",
                got == ["R10-STORE-RACES"], str(got))
 
+    # --measure-sizes hands --sizes-via to size_durations.run: the module is a
+    # stub in sys.modules, so the mutation copies (no size_durations.py beside
+    # them) run this arm too, and no read reaches the network.
+    import types
+    from unittest import mock
+    vias = []
+    stub = types.SimpleNamespace(
+        SINCE="2026-10-12", DEFAULT_PERCENTILE=0.5,
+        run=lambda *a, **k: vias.append((a[7:8] or [k.get("via", "graphql")])[0])
+        or {"sizes_hours": {}})
+    with mock.patch.dict(sys.modules, {"size_durations": stub}), \
+            tempfile.TemporaryDirectory() as td:
+        for via in ("rest", "graphql"):
+            main(["--measure-sizes", "--sizes-via", via,
+                  "--out-durations", os.path.join(td, "d.json")])
+    expect("--measure-sizes --sizes-via rest reaches size_durations.run as via=rest "
+           "(null: graphql)", vias == ["rest", "graphql"], str(vias))
+
     gate = gate_minutes(durations)
     want_gate = 50.0 + 22.0 + 27.0 * (1.0 + 0.04)
     expect("the gate price includes the cancelled-leg rerun",
@@ -2479,18 +2846,26 @@ def selftest() -> int:
             ("earliest-attempt",
              _m("def _ingest_check_runs(", "lines, want) -> dict:"),
              _m("if prev is None or started ", '< prev["started"]:'), "if prev is None:"),
-            ("coordinator-cap", _m("def pick(candidates, ", "now: int):"),
-             _m("if coord[n] and n not in started ", "and cc >= coord_cap:"), "if False:"),
+            ("coordinator-cap",
+             _m("def pick(candidates, ", "now: int, cap_exempt: bool = False):"),
+             _m("if coord[n] and n not in started ", "and cc >= coord_cap and not cap_exempt:"),
+             "if False:"),
             ("tier-critical-path",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              "    if on_cp:", "    if False:"),
+            ("top-tier-unordered",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("n = pick(sorted(ready", "), t)"), "n = pick(sorted(ready & crit or ready), t)"),
             ("tier-production",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              _m('return TIER_PRODUCTION_WORK, "production ', '(work_class)"'),
              'return TIER_INSTRUMENT, "x"'),
             ("tier-hotfix",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
-             _m('if k == "bug" or "HOTFIX" in g ', 'and cls == "production":'), "if False:"),
+             "    if roster_lib.is_hotfix(group):", "    if False:"),
+            ("tier-outside",
+             _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
+             "    if roster_lib.is_outside(group):", "    if False:"),
             ("tier-main",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              _m('if k == "main" or "-MAIN-FIX" in g ', 'or "-MAIN-RED" in g:'), "if False:"),
@@ -2498,12 +2873,36 @@ def selftest() -> int:
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              _m("if savings is not None and savings >= ", "SAVING_TIER_HOURS:"), "if False:"),
             ("tier-savings",
-             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
+             _m("def dispatch_key(n: str, ", "tier: dict, savings: dict,"),
              _m('sav = (-savings[n] if n in savings ', 'else float("inf"))'), "sav = (0.0)"),
-            ("cp-first-in-tier",
+            ("cp-overflow-start",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             _m("n = pick(sorted(x for x in ready ", "if x in crit), t)"),
-             "n = pick(sorted(x for x in ready if False), t)"),
+             _m("n = pick(sorted(x for x in ready ", "if x in crit), t, cap_exempt=True)"),
+             "n = pick(sorted(x for x in ready if False), t, cap_exempt=True)"),
+            ("lane-stem-boundary",
+             _m("def roster_lane(group: ", "dict) -> str:"),
+             'g == p or g.startswith(p + "-") for p in INSTRUMENT_NAME_STEMS',
+             "g.startswith(p) for p in INSTRUMENT_NAME_STEMS"),
+            ("coordinator-cp-exempt",
+             _m("def pick(candidates, ", "now: int, cap_exempt: bool = False):"),
+             _m("and cc >= coord_cap ", "and not cap_exempt:"), "and cc >= coord_cap:"),
+            ("coordinator-cp-flag",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "exempt_coord.add(n)", "pass"),
+            ("check-ignores-flag",
+             _m("def check_plan(plan: ", "dict) -> list:"),
+             'g.get("coordinator") and not g.get("exempt_coordinator")]',
+             'g.get("coordinator")]'),
+            ("edge-releases-ruled",
+             _m("def dependency_graph(G: ", "dict, legacy: dict | None = None) -> tuple[dict, set, set]:"),
+             "if a in open_ and roster_lib.gates(G[a]):", "if a in open_:"),
+            ("deferred-holds-dependent",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "held = roster_lib.held_behind_deferred(live)", "held = {}"),
+            ("discharged-not-held",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("held = roster_lib.held_behind_deferred(", "live)"),
+             "held = roster_lib.held_behind_deferred(G)"),
             ("overflow-exempt",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              "exempt.add(n)", "pass"),
@@ -2574,9 +2973,9 @@ def selftest() -> int:
              "if inflow > 0:", "if inflow >= 0:"),
             ("inflow-rate",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             "n_exp = inflow * closure / 60.0", "n_exp = 1.0"),
+             "n_exp = inflow * closure_at / 60.0", "n_exp = 1.0"),
             ("height-tiebreak",
-             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
+             _m("def dispatch_key(n: str, ", "tier: dict, savings: dict,"),
              _m("sav, -height[n], ", "-dur_min[n], n)"), "sav, n)"),
             ("started-past-cap",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
@@ -2596,6 +2995,9 @@ def selftest() -> int:
             ("held-carry-model",
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m('if stage == HELD_STAGE and ', 'durations.get("carries_per_part"):'), "if False:"),
+            ("live-review-stage",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("if is_live and stage in REVIEW_STAGES ", "and size in first:"), "if False:"),
             ("rounds-explicit",
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m("hours = work + (rounds - 1) * ", 'float(durations["round_hours"])'),
@@ -2646,6 +3048,25 @@ def selftest() -> int:
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("while len(carry) >= ", "every:"), "while False:"),
+            ("review-min",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("left_rounds = max(rounds - 1, ", "1.0)"), "left_rounds = rounds"),
+            ("wall-hours",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('"wall_hours": round(closure_at ', "/ 60.0, 2),"),
+             '"wall_hours": round(closure / 60.0, 2),'),
+            ("closure-conditions",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('"closure_conditions": list(', 'CLOSURE_CONDITIONS),'),
+             '"closure_conditions": [],'),
+            ("closure-later-of",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("closure_at = max([stamps[-1][\"at\"]] + ", "list(post_end.values()))"),
+             "closure_at = max([stamps[-1][\"at\"]] + [])"),
+            ("closure-check-later-of",
+             _m("def check_plan(plan: dict", ") -> list:"),
+             _m("closure = max([mins(x[\"at\"]) for x in close_stamps] + ", "post_fin"),
+             "closure = max([mins(x[\"at\"]) for x in close_stamps] + []"),
             ("round-close-version",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("stamps.append({\"version\": closing, ", "\"at\": closure + closure_lead,"),
@@ -2674,6 +3095,9 @@ def selftest() -> int:
             ("freshness",
              _m("def stale_reason(plan: dict, ", "repo: str, ref: str | None = None,"),
              _m("if have != ", "want:"), "if False:"),
+            ("held-subtraction",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("open_ = open_ ", "- set(held)"), "open_ = open_"),
             ("gate-cancellation",
              _m("def gate_minutes(durations: ", "dict) -> float:"),
              _m("return fast + clo + ana * ", "(1.0 + p_cancel)"), "return fast + clo + ana"),
@@ -2846,6 +3270,8 @@ def parse_args(argv=None):
                         "(tools/plan/size_durations.py) into --out-durations")
     p.add_argument("--sizes-csv", default=None, help="--measure-sizes: write the raw rows here")
     p.add_argument("--prs-cache", default=None, help="--measure-sizes: read or write the fetch")
+    p.add_argument("--sizes-via", choices=("graphql", "rest"), default="graphql",
+                   help="--measure-sizes: the PR read (size_durations.READS)")
     p.add_argument("--out-durations", default=None)
     p.add_argument("--live-refs", default=None,
                    help="a saved `git ls-remote --heads` listing: liveness by evidence")
@@ -2881,7 +3307,7 @@ def main(argv=None) -> int:
         old = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
         got = size_durations.run(args.repo, args.roster_ref, args.repo_owner, size_durations.SINCE,
                                  args.prs_cache, args.sizes_csv,
-                                 size_durations.DEFAULT_PERCENTILE)
+                                 size_durations.DEFAULT_PERCENTILE, args.sizes_via)
         target.write_text(json.dumps({**old, **got}, indent=1, sort_keys=True) + "\n",
                           encoding="utf-8")
         print(f"measured sizes {got['sizes_hours']} -> {target}")

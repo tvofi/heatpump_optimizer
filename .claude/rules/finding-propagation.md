@@ -65,7 +65,7 @@ not at all.
   unevenly, and a reader who finds two versions trusts neither.
 - **The stage has no live roster group** → its own `dev/programme/carries/carry-<N>.json`,
   N the destination issue, and **creating it is part of the finding**. A group
-  at `resume.stage: done` is not a destination: nothing dispatches or lints it.
+  not `carry_receivable` is none: the seam's live owner is, else the producer (tvofi 2026-11-10).
   `brief_lint.mjs` states the fields and refuses a carry at an issue a live
   group covers, so no stage has two destinations.
 - **A sibling seam in the same stage** — an open seam the enumeration rule returns
@@ -74,8 +74,9 @@ not at all.
   not yet started, so a running stage's seam has none (#1345's fifth seam).
 
 **While two copies disagree, the newer one is right and the other is the bug.**
-Say which is which in the carry; the out-of-tree copy needs no pull request, so
-it is usually the newer.
+Say which is which in the carry; the out-of-tree copy is usually the newer.
+
+A carry routes to another stage or seam's owner, never the fixer's own (`fixer.md`).
 
 ## Enforcement
 
@@ -91,11 +92,10 @@ destination**: each `## Friction` and `## Forward-carry` line, non-blocking note
 or residual ends `Carry: <GROUP>|#<issue>|O<n>|dismissed: <reason>`. So does
 a finding in the orchestrator's out-of-tree ledger, which only the next session reads.
 `tools/audit/carry_audit.py` refuses a missing marker and a destination gone or
-done (`pr-contract`; the train's pre-flight).
+unreceivable (`pr-contract`; the train's pre-flight).
 
 **Name a destination that exists.** A carry to a file `git grep` cannot find is
 not a carry.
 
-**Verify the write landed.** A scripted edit matching nothing reports success
-(`str.replace`, `sed`); seven of nine carries once went missing. Read the destination back: `brief_lint.mjs` does it for a roster and a
+**Verify the write landed.** A scripted edit matching nothing reports success; read the destination back: `brief_lint.mjs` does it for a roster and a
 carry file, and nothing for a role contract.

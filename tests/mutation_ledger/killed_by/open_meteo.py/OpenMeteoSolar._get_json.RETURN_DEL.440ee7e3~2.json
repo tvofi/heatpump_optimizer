@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/open_meteo.py:OpenMeteoSolar._get_json RETURN_DEL 440ee7e3#2",
+  "killed_by": "tests/open_meteo.py",
+  "old": "            return None",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/open_meteo.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -1,5 +1,5 @@
 ---
-description: Keep programme Delivery-status and #201 current after each merge
+description: Keep programme Delivery-status and #3394 current after each merge
 paths:
   - "dev/programme/plan*.md"
   - ".claude/workflows/*-groups.json"
@@ -12,7 +12,7 @@ After each programme merge — wave group, tooling the plan tracks, or a closed 
 
 1. **The Delivery-status record** — the plan's frozen table plus one `dev/programme/delivery/<N>.md` per PR; authoritative vs wave body; if they disagree, fix it first.
 2. **`.claude/workflows/wave-*-groups.json` `resume` fields** — match measured `origin/main` (merged PR SHAs, open PR heads).
-3. **GitHub issue #201** — before each PR, merge or release, coordinate here; not a heartbeat.
+3. **Issue #3394** — before each PR, merge or release, coordinate here; not a heartbeat.
 4. **Every PR the programme has opened**, not only the ones a roster predicted. Hotfixes, instrument repairs, harness lanes, policy, and anything found *in passing* have no wave: give each **its own row and section**, never a wave it does not belong to.
 5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition**: an issue absent from the plan is unscheduled work. At each record, grep the plan for every open issue's number.
 

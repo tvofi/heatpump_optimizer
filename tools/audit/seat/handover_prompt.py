@@ -37,6 +37,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import roster_lib  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "policy"))
+from budget_raise_gate import RECORD_ISSUE  # noqa: E402  the one record-issue definition
 
 SELF = "tools/audit/seat/handover_prompt.py"
 NOT_STARTED = "not-started"
@@ -45,8 +47,9 @@ NOT_STARTED = "not-started"
 def ready_next(roster: dict) -> list:
     open_ = roster_lib.open_groups(roster)
     depth = roster_lib.depth_of(roster)
+    G = roster_lib.groups_of(roster)
     return sorted((depth[g], g) for g, gr in open_.items()
-                  if all(a not in open_ for a in gr.get("after") or []))
+                  if not any(roster_lib.gates(G[a]) for a in gr.get("after") or [] if a in G))
 
 
 def in_flight(roster: dict) -> list:
@@ -113,8 +116,8 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
               "them): " + (", ".join(ready) or "none.")]
     L += ["", "## Resume steps", "",
           "1. Read the resume doc's Roster and Ready next sections.",
-          "2. Claim one ready group and announce it on the tracking issue "
-          "#201 before opening work -- before each PR, merge and release, "
+          "2. Claim one ready group and announce it on the record issue "
+          f"#{RECORD_ISSUE} before opening work -- before each PR, merge and release, "
           "not only after a state change.",
           "3. Work at your own merge base; re-derive every figure you quote "
           "there. A figure from another seat's run is a claim, not a "
@@ -209,6 +212,16 @@ def _self_test() -> int:
         if not ok:
             failed.append(f"{name} (got: {got})")
 
+    def rg(gid, stage, after=()):
+        return {"group": gid, "after": list(after), "resume": {"stage": stage}}
+    # An after-edge by predecessor stage (roster_lib.gates): deferred holds,
+    # refused and refuted release.
+    for st, ready in (("deferred", ["P"]), ("refused", ["D", "P"]), ("refuted", ["D", "P"])):
+        rr = {"groups": [rg("P", st), rg("D", "not-started", ["P"])]}
+        got = sorted(g for _, g in ready_next(rr))
+        check(f"ready_next: a group after a {st} group is "
+              + ("held" if st == "deferred" else "released"),
+              got == [g for g in ready if g != "P" or st == "refuted"], got)
     roster = _fixture_roster()
     resume = ("# Resume (fixture)\n\n## Ready next\n\n"
               "- R9-C (wave 1, 0 satisfied edge(s))\n\n## Traps\n\nnone\n")
@@ -257,7 +270,7 @@ def _self_test() -> int:
           and "tvofi reviews" in text and "decision 0011" in text)
     check("done criteria", "resume.stage" in text and "dev/programme/delivery/" in text)
     check("resume steps", "Claim one ready group" in text
-          and "#201" in text)
+          and f"#{RECORD_ISSUE}" in text and "#201 " not in text)
     # Every repository path the prompt names is in the tree (#1990's RCA: a
     # move left the retired briefs directory here after its contracts went to
     # dev/governance/roles/). A templated `<N>` file is checked by its directory.

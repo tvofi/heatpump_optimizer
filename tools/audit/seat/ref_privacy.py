@@ -55,8 +55,15 @@ hostname):
                   [A-Za-z0-9._/-];
   host-email      (author and committer emails only) a private-use domain
                   (`.local`, `.lan`, `.internal`, ...) or this host's own
-                  name -- git's default identity is <user>@<hostname>. A
-                  public domain passes, so a noreply address does.
+                  name -- git's default identity is <user>@<hostname>.
+  unnumbered-email  (author and committer emails only, P408) an address outside
+                  the attributable grammar: `<digits>+<login>@users.noreply.github.com`
+                  (the seat's 70032254+tvofi included), `[<digits>+]<name>[bot]@users.noreply.github.com`,
+                  `noreply@github.com` as committer only, and an adopted
+                  contributor's own address named by `--adopt-email <addr>`
+                  (an author only). GitHub credits an unnumbered login to
+                  whoever holds it; a placeholder (`t@t`, `seat@users.noreply...`)
+                  credits nobody right. History is not rewritten; only added commits are judged.
 Commit messages, and comment bodies, are judged on ATTRIBUTION's classes too
 (a session link, a session or co-author trailer, the generated-by footer): no
 host's identity, but the owner's ban on a tool's attribution (2026-10-22). The
@@ -290,9 +297,44 @@ def _leaks(text: str, ident: Identity) -> list[str]:
     return found
 
 
-def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> str | None:
+#: The numbered noreply grammar (P408). GitHub credits `<login>@users.noreply.github.com`
+#: to whichever account holds that login, so an unnumbered one credits a stranger;
+#: the number pins the account. Anything outside this grammar, a placeholder
+#: (`t@t`, `fixer@invalid`) or a runner default included, is refused; `noreply@github.com`
+#: is the web-merge committer, so it is admitted as a committer only. The seat identity
+#: (70032254+tvofi@...) is a numbered address and needs no entry of its own.
+_NOREPLY = r"@users\.noreply\.github\.com"
+_NUMBERED = re.compile(r"\d+\+[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?" + _NOREPLY, re.I)
+_BOT = re.compile(r"(?:\d+\+)?[A-Za-z0-9](?:[A-Za-z0-9_-]*[A-Za-z0-9])?\[bot\]" + _NOREPLY, re.I)
+
+
+#: What a refused seat runs to self-correct (the coordinator's ruling). A plain
+#: `git config` inside a worktree writes the repository's shared config, so the
+#: per-worktree form is named; `--author` fixes one commit, and a committer
+#: needs the environment or `-c`.
+PIN_HINT = ("ref_privacy: pin the seat identity, then re-author the commits: "
+            "`git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com commit ...`, "
+            "or `git commit --author='tvofi <70032254+tvofi@users.noreply.github.com>'`, "
+            "or for a worktree `git config extensions.worktreeConfig true && git config --worktree user.email "
+            "70032254+tvofi@users.noreply.github.com` (a plain `git config` there writes the shared repo config); "
+            "then `git rebase --exec 'git commit --amend --no-edit --reset-author' <base>`.")
+
+
+def email_shape(email: str, committer: bool = False, adopted=()) -> list[str]:
+    """`unnumbered-email` when `email` is outside the attributable grammar, else [].
+    `adopted` is an outside contributor's own address, named per adoption: it
+    admits an author only, as the adopter is the committer of what it adopts."""
+    e = email.strip().strip("<>")
+    if (_NUMBERED.fullmatch(e) or _BOT.fullmatch(e) or (committer and e.casefold() == "noreply@github.com")
+            or (not committer and e.casefold() in {a.casefold() for a in adopted})):
+        return []
+    return ["unnumbered-email"]
+
+
+def refusal(ref: str, messages=(), ident: Identity | None = None, emails=(), adopted=()) -> str | None:
     """Why pushing `ref` with these commit messages and identities would publish the host,
-    or a message carries a tool's attribution, or None."""
+    or a message carries a tool's attribution, or an identity GitHub would misattribute
+    (`email_shape`), or None."""
     ident = ident or Identity.of_host()
     why = leaks(ref, ident)
     if not _REF_CHARS.match(ref):
@@ -304,7 +346,7 @@ def refusal(ref: str, messages=(), ident: Identity | None = None, emails=()) -> 
         if why:
             return f"{', '.join(why)} in {where}"
     for where, email in emails:
-        why = email_leaks(email, ident)
+        why = email_leaks(email, ident) or email_shape(email, "committer email" in where, adopted)
         if why:
             return f"{', '.join(why)} in {where}"
     return None
@@ -616,17 +658,23 @@ def added_lines(base: str, ref: str, cwd: Path = ROOT) -> list[tuple[str, int, s
     def run(*a: str) -> subprocess.CompletedProcess:
         return subprocess.run(["git", *a], cwd=cwd, capture_output=True)
 
-    names = run("diff", "--no-renames", "--name-only", "-z", base, ref)
+    names = run("diff", "--no-renames", "--name-status", "-z", base, ref)
     if names.returncode != 0:
         raise RuntimeError(f"git diff {base[:12]} {ref} exited {names.returncode}")
 
-    def lines(rev: str, path: str) -> list[str]:
+    def lines(rev: str, path: str, present: bool) -> list[str]:
+        # The diff's status names an absent side; a `git show` of one fails, and
+        # git lstat()s the worktree path to word that error -- a probe of each
+        # added file that selftest_scope's drift check measured on every merge.
+        if not present:
+            return []
         got = run("show", f"{rev}:{path}")
-        return blob_text(got.stdout).splitlines() if got.returncode == 0 else []  # absent: added or deleted whole
+        return blob_text(got.stdout).splitlines() if got.returncode == 0 else []
 
+    fields = names.stdout.decode("utf-8", "replace").split("\0")
     added, removed = [], set()
-    for path in filter(None, names.stdout.decode("utf-8", "replace").split("\0")):
-        old, new = lines(base, path), lines(ref, path)
+    for status, path in zip(fields[0::2], fields[1::2]):
+        old, new = lines(base, path, status != "A"), lines(ref, path, status != "D")
         was, now = {t.strip() for t in old}, {t.strip() for t in new}
         removed |= was - now
         added += [(path, n, t) for n, t in enumerate(new, 1) if t.strip() not in was]
@@ -749,13 +797,39 @@ def self_test() -> int:
        and email_leaks("t@seat.lan", fid) == ["host-email"])
     ok("and one at this host's own name, short or full",
        email_leaks("t@example-mbp", fid) == ["host-email"] and email_leaks("t@EXAMPLE-MBP.local", fid) == ["host-email"])
-    ok("a noreply address passes, even naming the account (the null control)",
+    ok("email_leaks (the host check) passes a noreply address, even naming the account; email_shape judges it",
        email_leaks("123+" + fake_name + "@users.noreply.github.com", fid) == []
        and email_leaks("hpo-fixer@users.noreply.github.com", fid) == [])
     ok("an @anthropic.com identity is refused, as the runner default is not a seat's",
        email_leaks("noreply@anthropic.com", fid) == ["anthropic-identity"]
        and email_leaks("x@mail.ANTHROPIC.com>", fid) == ["anthropic-identity"]
        and email_leaks("x@notanthropic.com", fid) == [])
+    # P408: the attributable-identity grammar. Each refused form, each admitted form.
+    refused = ["seat@users.noreply.github.com", "hpo-fixer@users.noreply.github.com",
+               "noreply@users.noreply.github.com", "t@t", "x@x", "fixer@invalid", "noreply@anthropic.com",
+               "hpo-author[bot]@example.com", "+tvofi@users.noreply.github.com", "70032254+@users.noreply.github.com",
+               "70032254+tvofi@users.noreply.github.com.evil.test", "x70032254+tvofi@users.noreply.github.com"]
+    bad = [e for e in refused if email_shape(e) != ["unnumbered-email"] or email_shape(e, True) != ["unnumbered-email"]]
+    ok("every placeholder or unnumbered form is refused, as author and as committer", not bad, str(bad))
+    allowed = ["70032254+tvofi@users.noreply.github.com", "476059+Bankaifan@users.noreply.github.com",
+               "41898282+github-actions[bot]@users.noreply.github.com", "hpo-author[bot]@users.noreply.github.com",
+               "331381602+hpo-author[bot]@users.noreply.github.com", "<70032254+tvofi@users.noreply.github.com>"]
+    ok("the seat identity, a numbered login and both bot shapes pass (the null control)",
+       all(email_shape(e) == [] for e in allowed), str([e for e in allowed if email_shape(e)]))
+    ok("noreply@github.com passes as a committer only",
+       email_shape("noreply@github.com", True) == [] and email_shape("noreply@github.com") == ["unnumbered-email"])
+    ok("an adopted contributor's own address passes only when named, and only as an author",
+       email_shape("jo@corp.example", False, ("JO@corp.example",)) == []
+       and email_shape("jo@corp.example", True, ("jo@corp.example",)) == ["unnumbered-email"]
+       and email_shape("jo@corp.example") == ["unnumbered-email"])
+    ok("refusal() names the commit's field",
+       "unnumbered-email in the author email of abc" in (refusal(
+           "fix/x", (), fid, [("the author email of abc", "seat@users.noreply.github.com")]) or ""))
+    ok("a Co-authored-by trailer is not judged, even naming an unnumbered address (the null control)",
+       refusal("fix/x", [("the message of abc", "x\n\nCo-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>\n"
+                          "Co-authored-by: A <seat@users.noreply.github.com>")], fid,
+               [("the author email of abc", "70032254+tvofi@users.noreply.github.com"),
+                ("the committer email of abc", "noreply@github.com")]) is None)
     bodyleak = "evidence: " + fake_home + "/.zcode/bus/verdicts/7/abc/evidence"
     ok("a comment body naming this host's home is refused (the bus evidence line)",
        (body_refusal(bodyleak, fid) or "").startswith("home-directory, account-name"), str(body_refusal(bodyleak, fid)))
@@ -851,6 +925,25 @@ def self_test() -> int:
         # R10-FLY-NO-FOOTERS end to end: an unpushed commit carrying the session
         # trailer is refused, and the same trailer on a commit origin already
         # holds is history, never charged.
+        # P408 end to end: author and committer are each judged; --adopt-email names one exception.
+        for who in ("AUTHOR", "COMMITTER"):
+            subprocess.run(["git", "commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author"],
+                           cwd=seat, check=True, env={**env, f"GIT_{who}_NAME": "seat", f"GIT_{who}_EMAIL": "seat@users.noreply.github.com"})
+            r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                                "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+            ok(f"the guard CLI refuses an unpushed commit whose {who.lower()} is an unnumbered noreply, exit 3",
+               r.returncode == 3 and f"unnumbered-email in the {who.lower()} email of" in r.stderr
+               and "user.email=70032254+tvofi@users.noreply.github.com" in r.stderr
+               and "--worktree user.email" in r.stderr and "--author=" in r.stderr, r.stderr.strip())
+            r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                                "--commits", "HEAD", "--adopt-email", "seat@users.noreply.github.com", "-C", seat],
+                               env=env, capture_output=True, text=True)
+            ok("and --adopt-email admits it as an author only", (r.returncode == 0) == (who == "AUTHOR"), r.stderr.strip())
+            subprocess.run(["git", "commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author"],
+                           cwd=seat, check=True, env=env)
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("and passes the numbered fixture identity (the null control)", r.returncode == 0, r.stderr.strip())
         g("commit", "-q", "--allow-empty", "-m", footer["session-trailer"])
         r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                             "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
@@ -1083,6 +1176,7 @@ def self_test() -> int:
         Path(td, "rec.log").write_text("clean\n" + stock)
         kept = "kept stock line from " + fake_home + "/kept\n"  # no other file gives it up
         Path(td, "keep.log").write_text(kept)
+        Path(td, "gone.log").write_text("retired line\n")  # deleted by the diff
         g("add", "-A"); g("commit", "-q", "-m", "base")
         base = g("rev-parse", "HEAD")
         Path(td, "rec.log").write_text("clean\n" + "File " + scratch + "/x.py\n")
@@ -1096,9 +1190,29 @@ def self_test() -> int:
         Path(td, "rounds", f"-Users-{fake_name}-proj", "x.log").write_text("ok\n")  # the leak is the NAME
         os.makedirs(Path(td, "fresh"))
         Path(td, "fresh", "ok.log").write_text("ok\n")
+        Path(td, "gone.log").unlink()
         g("add", "-A"); g("commit", "-q", "-m", "plant")
         g("update-ref", "refs/remotes/origin/main", base)
-        got_base, _, bad = content_check("HEAD", Path(td), fid)
+        real_run, shows = subprocess.run, []
+
+        def spy(argv, *a, **k):
+            got = real_run(argv, *a, **k)
+            if list(argv[:2]) == ["git", "show"]:
+                shows.append((argv[2], got.returncode))
+            return got
+        subprocess.run = spy
+        try:
+            got_base, _, bad = content_check("HEAD", Path(td), fid)
+        finally:
+            subprocess.run = real_run
+        # A failed `git show REV:path` lstat()s the worktree path to word its
+        # error, so on main's push the step probed each merge's added files and
+        # selftest_scope's drift check refused a new path on every merge.
+        ok("the content arm never shows a side the diff says is absent (an added file at the base, "
+           "a deleted one at the ref): git's error path probes the worktree",
+           shows and all(rc == 0 for _, rc in shows)
+           and not any(s.endswith((":moved.log", ":fresh/ok.log")) and s.startswith(base) for s, _ in shows)
+           and not any(s.endswith(":gone.log") and not s.startswith(base) for s, _ in shows), str(shows))
         ok("--check's content arm judges the diff from the merge base with origin/main", got_base == base)
         ok("and check() runs it (a pin by text: check() itself needs the real tree's pushers)",
            "content_check(ref)" in inspect.getsource(check))
@@ -1233,9 +1347,10 @@ def main(argv: list[str]) -> int:
         return 0
     if argv[:1] == ["guard"]:
         ref, messages, emails, rev, over, cwd, rest = None, [], [], None, None, None, argv[1:]
+        adopted: list[str] = []
         while rest:
             flag = rest[0]
-            if flag not in ("--ref", "--message", "--commits", "--over", "-C") or len(rest) < 2:
+            if flag not in ("--ref", "--message", "--commits", "--over", "--adopt-email", "-C") or len(rest) < 2:
                 print(f"ref_privacy: unknown or incomplete argument {flag!r}", file=sys.stderr)
                 return 2
             if flag == "--ref":
@@ -1246,6 +1361,8 @@ def main(argv: list[str]) -> int:
                 rev = rest[1]
             elif flag == "--over":
                 over = rest[1]
+            elif flag == "--adopt-email":
+                adopted.append(rest[1])
             else:
                 cwd = rest[1]
             rest = rest[2:]
@@ -1260,10 +1377,12 @@ def main(argv: list[str]) -> int:
             print(f"ref_privacy: REFUSE: could not read the commits the push publishes ({e}); nothing pushed",
                   file=sys.stderr)
             return 2
-        why = refusal(ref, messages, None, emails)
+        why = refusal(ref, messages, None, emails, adopted)
         if why:
             print(f"ref_privacy: REFUSE: {why} would publish this host or a tool's attribution; nothing pushed",
                   file=sys.stderr)
+            if "unnumbered-email" in why:
+                print(PIN_HINT, file=sys.stderr)
             return 3
         return 0
     print(__doc__.split("\n\n")[1], file=sys.stderr)

@@ -99,6 +99,13 @@ TOKEN_END = re.compile(r"[\s\"'`;,()\[\]]")
 
 # (file, text the line must contain, reason). Exact and per file.
 ALLOW = (
+    ("tools/pr/ci_predict.py", 'PR_BODY = "/tmp/pr-body.md"', "the runner-side file CI's pr-contract job writes and the predictor stands in for (R10-FLY-CIPREDICT-RESTORING)"),
+    ("tools/pr/ci_predict.py", '"/tmp/pr-commits.tsv": "empty"', "the runner-side file CI's pr-contract job writes and the predictor stands in for (R10-FLY-CIPREDICT-RESTORING)"),
+    ("tools/pr/ci_predict.py", '/tmp/pr-author.txt', "the runner-side file CI's pr-contract job writes and the predictor stands in for (R10-FLY-CIPREDICT-RESTORING)"),
+    ("tools/pr/ci_predict.py", '"/tmp/pr-commits.tsv": ""', "the runner-side file CI's pr-contract job writes and the predictor stands in for (R10-FLY-CIPREDICT-RESTORING)"),
+    ("tools/pr/ci_predict.py", '"/tmp/pr-existing.txt": paths(', "the runner-side file CI's pr-contract job writes and the predictor stands in for (R10-FLY-CIPREDICT-RESTORING)"),
+    ("tools/pr/ci_predict.py", 'bash p/pre.sh $INTENDED < /tmp/pr-body.md', "the runner-side file CI's pr-contract job writes, planted in the graders self-test's pr-contract-shaped workflow (R10-FLY-CIPREDICT-RESTORING)"),
+    ("tools/pr/ci_predict.py", 'p/lint.py --pr-body /tmp/pr-body.md', "the runner-side file CI's pr-contract job writes, planted in the graders self-test's pr-contract-shaped workflow (R10-FLY-CIPREDICT-RESTORING)"),
     ("tools/pr/gh_comment.py", "/private/tmp/claude-501/heatpump-optimizer-orchestrator/out/sync-201.md",
      "the literal body path of the #541 defect, kept as the fixture the poster must refuse"),
     ("tools/pr/gh_comment.py", '"/private/tmp/x/out/body.md"', "a fixture path the poster's self-test feeds it"),

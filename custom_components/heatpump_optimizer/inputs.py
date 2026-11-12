@@ -38,10 +38,11 @@ from __future__ import annotations
 
 import logging
 import math
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from collections.abc import Callable, Collection
-from typing import Any, Literal
+from typing import Any, Literal, NamedTuple
 from weakref import WeakKeyDictionary
 
 from .const import (
@@ -615,6 +616,34 @@ async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
     return True
 
 
+class NumberReading(NamedTuple):
+    """A number entity read in its OWN unit: no conversion applied.
+
+    For a target that is a difference, not a temperature (the heat-curve
+    offset): the absolute helpers read a kelvin entity's -2 as -275.15 degC.
+    ``value`` is None while the entity holds no reading.
+    """
+
+    value: float | None
+    unit: str
+    lo: float | None
+    hi: float | None
+
+
+def number_reading(hass: Any, entity_id: str) -> NumberReading | None:
+    """The entity's reading and declared range, raw; None with no state object."""
+    state = hass.states.get(entity_id)
+    if state is None:
+        return None
+    attrs = getattr(state, "attributes", None) or {}
+    raw = str(state.state).strip()
+    lo, hi = (finite_float(attrs.get(key)) for key in _NUMBER_RANGE_KEYS)
+    return NumberReading(
+        None if raw.lower() in _NO_SETPOINT else finite_float(raw),
+        str(attrs.get("unit_of_measurement") or "").strip(), lo, hi,
+    )
+
+
 async def write_setpoint_c(
     hass: Any, entity_id: str, value_c: float, rounding: str = "nearest"
 ) -> bool:
@@ -906,8 +935,7 @@ class InputReader:
             reading.problem = "missing_entity"
             return reading, None
 
-        raw = getattr(state, "state", None)
-        if raw is None or str(raw).lower() in _INVALID_STATES:
+        if not has_value(state):
             reading.problem = "unavailable"
             return reading, None
 
@@ -1105,6 +1133,108 @@ class InputReader:
             return reading
         reading.value = converted
         return reading
+
+
+def has_value(state: Any) -> bool:
+    """Whether ``state`` carries a value at all, before any guard judges it."""
+    raw = getattr(state, "state", None) if state is not None else None
+    return raw is not None and str(raw).lower() not in _INVALID_STATES
+
+
+#: The problems a state event can show have cleared: the entity was not in the
+#: state machine, or held no value. Age, plausibility and units are judged by
+#: the re-read, never by the event.
+RETURN_WATCHED_PROBLEMS: frozenset[str] = frozenset({"missing_entity", "unavailable"})
+
+
+class InputReturnWatch:
+    """Ask for a re-read as soon as an input the last read could not use returns.
+
+    A configured entity absent at one read -- an MQTT entity discovery has not
+    re-created yet when this integration starts or reloads -- otherwise stayed
+    ``missing_entity`` until the next scheduled update, one
+    ``optimization_interval`` later, with every learner frozen and the planner
+    steering from the value pinned before it. The watch reads nothing itself:
+    ``request`` asks the owner for a refresh, so the returned value passes
+    every guard a scheduled read applies, and one they reject keeps the
+    learners frozen.
+
+    Its edges are injected, as the reader's clock is: ``track(entity_ids,
+    action)`` subscribes ``action`` to those entities' state changes and
+    returns the unsubscribe; ``request()`` asks for a refresh. So this module
+    imports no Home Assistant and holds no reference to its owner.
+
+    A request can be dropped: Home Assistant's debouncer discards a call while
+    a cycle is in flight. So a return stays pending until a read has run after
+    it (``arm`` is that read's snapshot), and only a re-read that ran starts the
+    ``spacing_s`` hold. A second return before that read asks again; one inside
+    ``spacing_s`` of a re-read asks for nothing, which bounds a sensor flapping
+    between ``unavailable`` and a value at one extra update per interval.
+    """
+
+    def __init__(
+        self,
+        track: Callable[[list[str], Callable[[Any], None]], Callable[[], None]],
+        request: Callable[[], Any],
+        spacing_s: float,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.track = track
+        self.request = request
+        self.spacing_s = float(spacing_s)
+        self.clock = clock
+        self.released = False
+        self._entities: frozenset[str] = frozenset()
+        self._unsub: Callable[[], None] | None = None
+        self._pending: set[str] = set()
+        self._reread_at: dict[str, float] = {}
+
+    def arm(self, health: InputHealth) -> None:
+        """Take a read's snapshot: settle what it re-read, watch what it lacked."""
+        if self.released:
+            return
+        now = self.clock()
+        for entity_id in self._pending:
+            self._reread_at[entity_id] = now
+        self._pending.clear()
+        wanted = frozenset(
+            reading.entity_id
+            for reading in health.readings.values()
+            if reading.entity_id and reading.problem in RETURN_WATCHED_PROBLEMS
+        )
+        if wanted == self._entities:
+            return
+        self._drop()
+        self._entities = wanted
+        if wanted:
+            self._unsub = self.track(sorted(wanted), self._on_event)
+
+    def _on_event(self, event: Any) -> None:
+        data = getattr(event, "data", {})
+        entity_id = data.get("entity_id")
+        if (
+            self.released
+            or entity_id not in self._entities
+            or not has_value(data.get("new_state"))
+        ):
+            return
+        reread = self._reread_at.get(entity_id)
+        if reread is not None and self.clock() - reread < self.spacing_s:
+            return
+        self._pending.add(entity_id)
+        self.request()
+
+    def _drop(self) -> None:
+        unsub, self._unsub = self._unsub, None
+        if unsub is not None:
+            unsub()
+
+    def release(self) -> None:
+        """Drop the listener for good; a later ``arm`` registers nothing (#236)."""
+        self.released = True
+        self._drop()
+        self._entities = frozenset()
+        self._pending.clear()
 
 
 def health_summary(stale_keys: Collection[str], missing_keys: Collection[str]) -> str:

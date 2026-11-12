@@ -20,8 +20,8 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      RELEASE_NOTES.md -- the stamper writes the notes section by hand first.
   2. The `gate` job of HEAD's `ci.yml` push run has completed and succeeded
      (R10-CI-LAYOUT P2b, B3: on push gate.py owes every job whose failure
-     reddened the old Tests push run, ci-ratchet and coverage-ratchet
-     included), so a release never publishes ahead of the unscoped gate; a
+     reddened the old Tests push run, coverage-ratchet included; ci-ratchet
+     is report-only, gate.py's PUSH_REPORT_ONLY), so a release never publishes ahead of the unscoped gate; a
      HEAD with no ci.yml push run predates the umbrella and is read off its
      Tests push run instead (`tests_run_fallback`). --allow-red
      overrides, loudly, for a red main whose cause is already understood.
@@ -1273,7 +1273,7 @@ def self_test() -> int:
     g_ok = tests_gate("cafe", fetchers=world([ci_run], {41: [job("success"), job("failure", "tests / nightly-ha")]}))
     check("B3: the ci.yml push run's gate success is green, whatever the run concluded", g_ok[0])
     g_red = tests_gate("cafe", fetchers=world([ci_run], {41: [job("failure")]}))
-    check("B3: a red push gate (a red ci-ratchet reddens it) refuses, naming the gate",
+    check("B3: a red push gate (a red coverage-ratchet reddens it) refuses, naming the gate",
           not g_red[0] and "gate" in g_red[1] and "failure" in g_red[1])
     check("B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, "
           "cancelled, absent",
@@ -1289,6 +1289,89 @@ def self_test() -> int:
           fb[0] and "Tests run" in fb[1])
     check("fallback null: a pre-umbrella HEAD whose Tests run is red refuses",
           not tests_gate("cafe", fetchers=world([dict(tests_ok, conclusion="failure")], {}))[0])
+
+    # R10-FLY-GH-READ-RETRY carry 6: rule 2's two sources read under gh_read's
+    # rule. Each source is driven through its own production function with a
+    # stub transport; the stubs count calls and the sleeps are recorded.
+    import urllib.error
+
+    def rest(queue):
+        calls, sleeps = [], []
+
+        def opener(request, timeout=None):
+            calls.append(request.full_url)
+            item = queue.pop(0) if queue else b'{"ok": 1}'
+            if isinstance(item, BaseException):
+                raise item
+            return io.BytesIO(item)  # urlopen's answer is a context manager too
+        try:
+            got = get_rest("repos/o/r/x", opener=opener, sleep=sleeps.append)
+        except Exception as exc:  # noqa: BLE001 -- the refusal is the observation
+            got = exc
+        return got, len(calls), sleeps
+
+    def http(code, msg):
+        e = urllib.error.HTTPError(f"{GITHUB_API}/repos/o/r/x", code, msg, {}, None)
+        e.read = lambda: msg.encode()
+        return e
+    got, n, sleeps = rest([urllib.error.URLError("timed out")])
+    check("carry 6: get_rest, one transport failure then an answer: answered after exactly 2 reads",
+          got == {"ok": 1} and n == 2 and sleeps == [5])
+    got, n, sleeps = rest([http(502, "Bad Gateway"), http(500, "Server Error")])
+    check("carry 6: get_rest, a 502 then a 500 then an answer: answered after 3 reads, 5/15 s",
+          got == {"ok": 1} and n == 3 and sleeps == [5, 15])
+    got, n, sleeps = rest([http(404, "Not Found")])
+    check("carry 6: get_rest, a 404 refuses after exactly 1 read, unchanged and unslept",
+          isinstance(got, urllib.error.HTTPError) and got.code == 404 and n == 1 and sleeps == [])
+    got, n, sleeps = rest([b"<html>Unicorn</html>"])
+    check("carry 6: get_rest, a body that does not parse refuses after exactly 1 read",
+          isinstance(got, ValueError) and n == 1 and sleeps == [])
+    queue = [urllib.error.URLError("timed out"), ConnectionResetError(104, "reset"),
+             http(503, "Service Unavailable"), http(502, "Bad Gateway"), urllib.error.URLError("one too many")]
+    got, n, sleeps = rest(queue)
+    check("carry 6: get_rest, five transient failures, one past the budget: refused after exactly 4 reads",
+          isinstance(got, RuntimeError) and n == 4 and sleeps == [5, 15, 45])
+    check("carry 6: and the refusal names the last failure read and the attempt count",
+          "Bad Gateway" in str(got) and "(after 4 attempts)" in str(got))
+    def bad_gateway(request, timeout=None):
+        raise http(502, "Bad Gateway")
+    unreadable = tests_gate("cafe", which=lambda name: None, fetchers={
+        "rest": lambda path: get_rest(path, opener=bad_gateway, sleep=lambda s: None)})
+    check("carry 6: tests_gate over a spent get_rest names the last failure and the count in its verdict",
+          not unreadable[0] and "Bad Gateway" in unreadable[1] and "(after 4 attempts)" in unreadable[1])
+
+    def gh(queue):
+        calls, sleeps = [], []
+
+        def run(argv, **kw):
+            calls.append(argv)
+            if not (kw.get("text") is True and kw.get("capture_output") is True and kw.get("cwd") == ROOT):
+                raise AssertionError(f"get_gh must read text, captured, at the root: {kw}")
+            rc, err = queue.pop(0) if queue else (0, "")
+            return subprocess.CompletedProcess(argv, rc, '{"ok": 1}' if rc == 0 else "", err)
+        try:
+            got = get_gh("repos/o/r/x", run=run, sleep=sleeps.append)
+        except Exception as exc:  # noqa: BLE001 -- the refusal is the observation
+            got = exc
+        return got, calls, sleeps
+    EOF = 'Get "https://api.github.com/repos/o/r/x": EOF\n'
+    got, calls, sleeps = gh([(1, EOF)])
+    check("carry 6: get_gh, one transport failure then an answer: answered after exactly 2 reads",
+          got == {"ok": 1} and len(calls) == 2 and sleeps == [5] and calls[0] == ["gh", "api", "repos/o/r/x"])
+    got, calls, sleeps = gh([(1, "gh: Not Found (HTTP 404)\n")])
+    check("carry 6: get_gh, a 404 refuses after exactly 1 read, keeping gh's line",
+          isinstance(got, subprocess.CalledProcessError) and len(calls) == 1 and sleeps == []
+          and got.stderr == "gh: Not Found (HTTP 404)")
+    got, calls, sleeps = gh([(1, "gh: HTTP 502\n")] * 5)
+    check("carry 6: get_gh, five 502s, one past the budget: refused after exactly 4 reads",
+          isinstance(got, subprocess.CalledProcessError) and len(calls) == 4 and sleeps == [5, 15, 45])
+    check("carry 6: and tests_gate's last-line detail names the last error and the count",
+          got.stderr.splitlines()[-1] == "gh: HTTP 502 (after 4 attempts)")
+    fresh = subprocess.run([sys.executable, "-I", "-c", "import sys; sys.path.insert(0, sys.argv[1]); "
+                            "import stamp; print(stamp.read_rule().READ_TRIES)", str(ROOT / "tools" / "release")],
+                           capture_output=True, text=True)
+    check("carry 6: a fresh interpreter finds gh_read through read_rule alone",
+          fresh.returncode == 0 and fresh.stdout.strip() == "4")
 
     # The tag-push fallback is a control-flow contract, so it is pinned by
     # reading this file: a failed tag push must not raise past the caller,
@@ -2051,14 +2134,56 @@ def self_test() -> int:
 
 # --- rule 2's two sources ----------------------------------------------------
 
-def get_gh(path: str) -> dict:
-    return json.loads(sh("gh", "api", path))
+# Both are GitHub READS under gh_read.py's rule (R10-FLY-GH-READ-RETRY carry
+# 6): 4 reads settling 5/15/45 s, retrying only a transport failure, a 5xx, a
+# 429 or a secondary-limit 403; any other failure, and a body that does not
+# parse, refuses after its one read. Rule 2 reads the gate once, so one
+# transient read would otherwise refuse the stamp.
+
+def read_rule():
+    """gh_read, the seat's one read rule, from its own directory."""
+    sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
+    import gh_read
+    return gh_read
 
 
-def get_rest(path: str) -> dict:
+def _read_note(line: str) -> None:
+    print(f"stamp: {line}", file=sys.stderr)
+
+
+def get_gh(path: str, run=subprocess.run, sleep=time.sleep) -> dict:
+    gh_read = read_rule()
+    argv = ["gh", "api", path]
+
+    codes = []
+
+    def attempt():  # a failure is gh's stderr, which gh_wait classifies
+        done = run(argv, cwd=ROOT, text=True, capture_output=True)
+        codes.append(done.returncode)
+        return (done.stdout, None) if done.returncode == 0 else (None, (done.stderr or "").rstrip())
+    out, failure, _, why = gh_read.retry(attempt, gh_read.gh_wait, sleep, _read_note)
+    if failure is not None:  # the last complaint, with what stopped the loop on its line
+        raise subprocess.CalledProcessError(codes[-1], argv, None, " ".join((failure, why)).strip())
+    return json.loads(out)
+
+
+def get_rest(path: str, opener=None, sleep=time.sleep) -> dict:
+    gh_read = read_rule()
+    opener = opener or urllib.request.urlopen
     request = urllib.request.Request(f"{GITHUB_API}/{path}", headers=rest_headers(os.environ.get("GH_TOKEN")))
-    with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
-        return json.loads(response.read().decode("utf-8"))
+
+    def attempt():
+        try:
+            with opener(request, timeout=GATE_TIMEOUT_S) as response:
+                return response.read(), None
+        except Exception as exc:  # noqa: BLE001 -- urllib_wait classifies it; a refusal re-raises
+            return None, exc
+    raw, failure, _, why = gh_read.retry(attempt, gh_read.urllib_wait, sleep, _read_note)
+    if failure is not None:
+        if why:
+            raise RuntimeError(f"{gh_read.one_line(failure)} {why}") from failure
+        raise failure
+    return json.loads(raw.decode("utf-8"))
 
 
 def tests_gate(head: str, which=shutil.which, fetchers: dict | None = None) -> tuple[bool, str]:
