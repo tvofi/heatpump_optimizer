@@ -1,0 +1,5 @@
+ dev/programme/carries/carry-1774.json | 19 -------------------
+ dev/programme/carries/carry-201.json  |  7 -------
+ tests/closures.json                   |  1 -
+ tools/ci/selftest_closures.json       |  2 --
+ 4 files changed, 29 deletions(-)
