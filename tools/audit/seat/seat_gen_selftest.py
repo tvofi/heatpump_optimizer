@@ -68,11 +68,11 @@ def cases(check) -> None:
     ps = lambda pid: cmds.get(pid, "")
     with tempfile.TemporaryDirectory() as d:
         sd = Path(d)
-        check("lock: a free lock is taken", sg.lock(sd, 100, 5.0, ps)[0] == 0 and (sd / "session.lock").read_text() == "100 5\n")
-        check("lock null: the session's own pid is not a duplicate", sg.lock(sd, 100, 6.0, ps)[0] == 0)
+        check("lock: a free lock is taken", sg.lock(sd, 100, 50.0, ps, lambda pid, now: 7)[0] == 0 and (sd / "session.lock").read_text() == "100 7\n")
+        check("lock null: the session's own pid is not a duplicate", sg.lock(sd, 100, 6.0, ps, lambda pid, now: 7)[0] == 0)
         rc, msg = sg.lock(sd, 200, 7.0, ps)
         check("lock: a live other holder whose command is the session binary refuses, naming both pids",
-              rc == 1 and "100" in msg and "200" in msg and (sd / "session.lock").read_text() == "100 6\n")
+              rc == 1 and "100" in msg and "200" in msg and (sd / "session.lock").read_text() == "100 7\n")
         (sd / "session.lock").write_text("999 1\n")
         check("lock null: a dead holder pid is taken over", sg.lock(sd, 200, 8.0, ps)[0] == 0)
         (sd / "session.lock").write_text("300 1\n")
