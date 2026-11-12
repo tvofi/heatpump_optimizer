@@ -637,7 +637,8 @@ def _thermostat_held_state(
         return need(h) - valve_top_draw(model, h, outdoor, wind, rain)
 
     if short(held) > 0.0:
-        lo, hi = min(outdoor, target), target
+        # A shortfall needs heat, so the outdoor is below the target: the span is ordered.
+        lo, hi = outdoor, target
         for _ in range(_VALVE_HELD_BISECTIONS):
             mid = 0.5 * (lo + hi)
             lo, hi = (lo, mid) if short(_held_zones(model, state, weather0, mid)) > 0.0 else (mid, hi)
