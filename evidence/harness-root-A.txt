@@ -1,0 +1,2 @@
+ROOT /tmp/tmp.PFMo3l15LB/wtA is_wt True driver /tmp/tmp.PFMo3l15LB/wtA/tools/audit/seat/mutant_run.py
+COUNT 128 sha256 1184209ed55fcb5e149288179e53eb04c2e0bfbf15281641e4bb3cc2b02fc2ca

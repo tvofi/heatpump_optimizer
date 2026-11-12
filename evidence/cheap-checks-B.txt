@@ -1,0 +1,14 @@
+## at b49a16c2f7a11194e9eb2662d3e992c864c6fb7d
+STRUCTURE RATCHET PASSED
+CI PREDICT: no closures, fast, governance or instrument red predicted against 19baca76181c (a data-file read is not seen)
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+  why: the branch's own commits b49a16c2f change its content: b49a16c2f7a11194e9eb2662d3e992c864c6fb7d is not the reviewed head 3dccd18a95617b752a1be6fce24f5dc7df3bd57f merged onto 19baca76181cb019d9b1cfd93ee6bc0a08e20047
+  b49a16c2f  harness: mutant_run_diff_shards.py finds the checkout with the canonical repo_root walk, not a depth root
+review_carry: FRESH-REVIEW
