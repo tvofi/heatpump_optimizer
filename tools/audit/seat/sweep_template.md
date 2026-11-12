@@ -51,6 +51,7 @@ rendered text that no overlay value supplied.
 | `gantt_roster` | the roster the beat's `gantt` row reads, as `<branch>:<path>` (fetched to `refs/gantt/roster`, never a local branch) |
 | `gantt_acks` | the Gantt acks file `sweep_gantt.py --acks` reads, one `<ISO> <KEY> act\|defer\|accept [until=<ISO>] <reason>` line per answered slip |
 | `fire_ledger` | the session's fire ledger, one line per seat fired with its leading UTC stamp, which the `gantt` and `verdict-audit` rows hand on as `--fired` (a line within 12 h holds the pull request or topic it names) |
+| `sweep_record` | optional: the day's sweep record file, whose `recycle` lines of the standing dispatch and triage seats the `scorecard` row counts as K (absent: K prints unread) |
 | `train_glob` | the glob of live train logs `verdict_audit.py --train-glob` reads (a log modified within 3 h holds its queued pull requests) |
 | `train_log` | the live merge train's `train.log` (`$HOME/.local/state/hpo/merge_train/train.log`), which the beat's `bottleneck` and `plan-beat` rows hand on as `--train-log` (the skip-share alert and the plan page's train-skips table) |
 | `unheld_skip` | the skip file `verdict_audit.py --skip` reads, one `#<N> <ruling>` line per pull request held by an owner ruling |
