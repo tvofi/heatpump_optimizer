@@ -1,5 +1,0 @@
-RESULT baseline_fails=0
-RESULT mutants=18
-RESULT killed=18
-RESULT live_calls=2
-RESULT live_calls_shown=2

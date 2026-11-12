@@ -1,6 +1,0 @@
-31-  on the flag path publishes to `dispatch/<role>-<topic>`, else
-32-  `dispatch/<role>-rev-<PR>`, the same way; `dev/audit/harnesses/r10_flow_dispatch_mutants.py`
-33-  re-runs its mutants. When: dispatching a seat to the cloud runner;
-34:  paste the printed JSON as the trigger update, or fire the standing trigger
-35-  with the printed ref. The measured shape of a cloud seat:
-36-  every trigger update resends the full ccr and then `run`s it, never a
