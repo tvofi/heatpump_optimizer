@@ -131,10 +131,7 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
     # (``dhw_hard_max_temp``, rounded down), the ceiling the arbiter bounds
     # its own write by: a Fix above it would be written back below the floor
     # at the arbiter's next step and the notice stand for good.
-    if entity_id and pump is not None:
-        on_step_c = quantise_setpoint_c(hass, entity_id, floor, rounding="up", hi_c=params.dhw_hard_max_temp)
-    else:
-        on_step_c = floor
+    on_step_c = quantise_setpoint_c(hass, entity_id, floor, rounding="up", hi_c=params.dhw_hard_max_temp)
     # A reading that is the pump-duty arbiter's own write is a step decision,
     # not a set-point below the disinfection floor: the arbiter writes the
     # cycle's temperature itself on a cycle step (``pump_arbiter.dhw_gated``).
