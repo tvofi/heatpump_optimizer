@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:Direction.decay CMP_BOUND 225d3f33",
+  "old": "        if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) > 0.0:",
+  "reason": "equivalent: `>` to `>=` differs only when `when` is the stamp's own instant, and the guarded statement then assigns `self.decayed_at = when`, the instant it already holds; the weights were scaled by 0.5 ** 0 above it either way. The neighbouring bound, a stamp half a second old, is driven by tests/features.py (\"every aging moves the stamp\").",
+  "verdict": "equivalent"
+}
