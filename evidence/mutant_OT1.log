@@ -1,5 +1,0 @@
-  FAIL carry 9 one_pr: WAIT clears the red: _red[77] is []
-  FAIL P436 one_pr reads classify_at: WAIT: required red not raised
-  FAIL OWED buckets: carry 9: a deferral red classify reads WAIT is not red-unowned; a real RED still is (null control)
-orchestrator_tick self-test: 317 checks, 3 failed
-rc=1

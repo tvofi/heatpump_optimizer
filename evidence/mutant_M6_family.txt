@@ -1,8 +1,0 @@
-set() => merge_train self-test: 676 checks, 1 failed
-tuple() => merge_train self-test: 676 checks, 1 failed
-list() => merge_train self-test: 676 checks, 1 failed
-dict() => merge_train self-test: 676 checks, 0 failed
-frozenset() => merge_train self-test: 676 checks, 0 failed
-busy=set() => merge_train self-test: 676 checks, 1 failed
-0 => merge_train self-test: 676 checks, 1 failed
-{} => merge_train self-test: 676 checks, 0 failed
