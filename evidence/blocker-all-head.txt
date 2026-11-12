@@ -1,0 +1,7 @@
+browser chromium 153.0.8010.12
+  [without blocker rules (null control)] tile: seen 47, box-less 0
+  ok    R10 every text-bearing element on every dialog page keeps a layout box without blocker rules (null control)
+  [with 16214 generic selectors injected into the shadow root] tile: seen 47, box-less 0
+  ok    R10 every text-bearing element on every dialog page keeps a layout box with 16214 generic selectors injected into the shadow root
+
+ALL BROWSER CHECKS PASSED

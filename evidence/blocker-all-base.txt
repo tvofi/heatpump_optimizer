@@ -1,0 +1,57 @@
+browser chromium 153.0.8010.12
+  [without blocker rules (null control)] tile: seen 47, box-less 0
+  ok    R10 every text-bearing element on every dialog page keeps a layout box without blocker rules (null control)
+  [with 16214 generic selectors injected into the shadow root] tile: seen 47, box-less 0
+    DIALOG advisor span.adv-text <= self: .adv-text
+    DIALOG advisor span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG advisor span.adv-text <= self: .adv-text
+    DIALOG advisor span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG advisor span.adv-text <= self: .adv-text
+    DIALOG advisor span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG advisor span.adv-text <= self: .adv-text
+    DIALOG advisor span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG advisor span.adv-text <= self: .adv-text
+    DIALOG advisor span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG advisor span.adv-text <= self: .adv-text
+    DIALOG advisor span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG advisor span.adv-text <= self: .adv-text
+    DIALOG advisor span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG advisor span.adv-label <= self: .adv-label
+    DIALOG advisor span.adv-label <= self: .adv-label
+    DIALOG advisor span.adv-label <= self: .adv-label
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-sub <= ancestor span.adv-text: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+    DIALOG health span.adv-text <= self: .adv-text
+  FAIL  R10 every text-bearing element on every dialog page keeps a layout box with 16214 generic selectors injected into the shadow root
+        plan=81 setup=10 savings=22 advisor=46 health=59; reach {"pages":5,"health":59,"advisor":46}; box-less (49): advisor span.adv-text <= self: .adv-text, advisor span.adv-sub <= ancestor span.adv-text: .adv-text, advisor span.adv-text <= self: .adv-text, advisor span.adv-sub <= ancestor span.adv-text: .adv-text, advisor span.adv-text <= self: .adv-text, advisor span.adv-sub <= ancestor span.adv-text: .adv-text, advisor span.adv-text <= self: .adv-text, advisor span.adv-sub <= ancestor span.adv-text: .adv-text
+
+1 BROWSER CHECK(S) FAILED

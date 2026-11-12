@@ -1,0 +1,47 @@
+card at 61afd4f2: 256 names
+EasyList general hide: 13631 generic rules; (no stamp); https://raw.githubusercontent.com/easylist/easylist/master/easylist/easylist_general_hide.txt
+  class adv-label: .adv-label
+  class adv-text: .adv-text
+  class grid: .grid > .container > #aside-promotion
+  class panel: .panel.ad
+  targeted by a rule naming it alone (2): class adv-label, class adv-text
+AdGuard Base (chromium): 14005 generic rules; Version: 2.5.3.83; https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/platforms/extension/chromium/filters/2.txt
+  class adv-: .contentmovie > div[class^="ad"]
+  class adv-act: .contentmovie > div[class^="ad"]
+  class adv-basis: .contentmovie > div[class^="ad"]
+  class adv-est: .contentmovie > div[class^="ad"]
+  class adv-head: .contentmovie > div[class^="ad"]
+  class adv-inbox-row: .contentmovie > div[class^="ad"]
+  class adv-label: .adv-label, .contentmovie > div[class^="ad"]
+  class adv-note: .contentmovie > div[class^="ad"]
+  class adv-row: .contentmovie > div[class^="ad"]
+  class adv-sub: .contentmovie > div[class^="ad"]
+  class adv-text: .adv-text, .contentmovie > div[class^="ad"]
+  class adv-title: .contentmovie > div[class^="ad"]
+  class adv-unpriced-head: .contentmovie > div[class^="ad"]
+  class adv-value: .contentmovie > div[class^="ad"]
+  class advisor-page: .contentmovie > div[class^="ad"]
+  class grid: .grid > .container > #aside-promotion
+  class panel: .panel.ad
+  targeted by a rule naming it alone (2): class adv-label, class adv-text
+AdGuard Base (uBlock flavour): 14008 generic rules; Version: 2.5.3.83; https://raw.githubusercontent.com/AdguardTeam/FiltersRegistry/master/platforms/extension/ublock/filters/2.txt
+  class adv-: .contentmovie > div[class^="ad"]
+  class adv-act: .contentmovie > div[class^="ad"]
+  class adv-basis: .contentmovie > div[class^="ad"]
+  class adv-est: .contentmovie > div[class^="ad"]
+  class adv-head: .contentmovie > div[class^="ad"]
+  class adv-inbox-row: .contentmovie > div[class^="ad"]
+  class adv-label: .adv-label, .contentmovie > div[class^="ad"]
+  class adv-note: .contentmovie > div[class^="ad"]
+  class adv-row: .contentmovie > div[class^="ad"]
+  class adv-sub: .contentmovie > div[class^="ad"]
+  class adv-text: .adv-text, .contentmovie > div[class^="ad"]
+  class adv-title: .contentmovie > div[class^="ad"]
+  class adv-unpriced-head: .contentmovie > div[class^="ad"]
+  class adv-value: .contentmovie > div[class^="ad"]
+  class advisor-page: .contentmovie > div[class^="ad"]
+  class grid: .grid > .container > #aside-promotion
+  class panel: .panel.ad
+  targeted by a rule naming it alone (2): class adv-label, class adv-text
+uBlock filters: 45 generic rules; Last modified: %timestamp%; https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt
+  targeted by a rule naming it alone (0): none
