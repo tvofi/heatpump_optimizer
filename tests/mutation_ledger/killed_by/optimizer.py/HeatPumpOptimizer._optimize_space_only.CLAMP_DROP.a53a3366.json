@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_space_only CLAMP_DROP a53a3366",
+  "killed_by": "tests/features.py",
+  "old": "                (0.0, float(min(p_max, h.power_caps[i]))) for i in range(n_steps)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`(0.0, float((p_max))) for i in range(n_steps)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
