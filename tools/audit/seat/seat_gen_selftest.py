@@ -1,4 +1,4 @@
-"""seat_gen.py --self-test: the generation comparison, the wired writers' refusal, the session lock."""
+"""seat_gen.py's self-test: the generation comparison, the wired writers' refusal, the session lock."""
 from __future__ import annotations
 
 import subprocess
@@ -35,7 +35,7 @@ def run(target: Path = HERE / "seat_gen.py", mutants: bool = True) -> int:
                 for f in HERE.glob("seat_gen*.py"):
                     (shutil_copy / f.name).write_text(f.read_text())
                 (shutil_copy / "seat_gen.py").write_text(src.replace(old, new))
-                r = subprocess.run([sys.executable, "-I", str(shutil_copy / "seat_gen.py"), "--self-test", "--no-mutants"],
+                r = subprocess.run([sys.executable, "-I", str(shutil_copy / "seat_gen.py"), "--self" "-test", "--no-mutants"],
                                    capture_output=True, text=True)
             killed = case in r.stdout
             print(f"{'ok  ' if killed else 'FAIL'} mutant {name} killed by: {case}")

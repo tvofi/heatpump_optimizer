@@ -1724,6 +1724,8 @@ jobs:
             'tools/audit/seat/ref_privacy.py' \
             'tools/audit/seat/record_row.py' \
             'tools/audit/seat/roster_lib.py' \
+            'tools/audit/seat/seat_gen.py' \
+            'tools/audit/seat/seat_gen_selftest.py' \
             'tools/audit/seat/tmp_paths.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \
