@@ -65,6 +65,7 @@ def run(rid, created, status="completed", attempt=1, g="failure", gstatus="compl
     gate = {"id": rid * 10, "name": "gate", "status": gstatus, "conclusion": g if gstatus == "completed" else None,
             "started_at": started, "completed_at": started if gstatus == "completed" else None}
     return {"id": rid, "created_at": created, "status": status, "run_attempt": attempt, "gate": gate,
+            "conclusion": g if status == "completed" and gstatus == "completed" else None,
             "units": [{"name": f"u{k}", "completed_at": c} for k, c in enumerate(units or ())]}
 
 
@@ -75,7 +76,7 @@ def v_run(rid=9, created="3"):
 def finish(rid, g):
     def fn(w):
         r = w.runs[rid]
-        r["status"] = "completed"
+        r.update(status="completed", conclusion=g)
         r["gate"].update(status="completed", conclusion=g, completed_at=r["gate"]["started_at"])
     return fn
 
@@ -416,12 +417,22 @@ def run_checks():
     rc, out = w.sweep()
     ok("stale pin, no loop: a dispatched run created in the second the stale gate concluded is that fresh judge",
        w.posts == [] and "run 5 re-judges" in out)
-    w = pinned(run(1, "1"), run(5, "1"), v_run())
-    w.runs[5]["event"] = "workflow_dispatch"
-    w.runs[1]["gate"]["completed_at"] = "2"
-    w.sweep()
-    ok("stale pin null: a dispatched run created before the stale gate concluded is no fresh judge: dispatch",
-       dispatch in w.posts)
+    # R10-HOTFIX-GATE-REDISPATCH-LOOP arm 2 (#3446): re-running an old pull_request gate moved its
+    # completion past every dispatch's creation, so each sweep dispatched again at a head already judged.
+    for st, concl in (("completed", "success"), ("queued", None), ("in_progress", None)):
+        w = pinned(run(1, "1"), run(5, "1", status=st, g="success", gstatus=st), v_run())
+        w.runs[5]["event"] = "workflow_dispatch"
+        w.runs[1]["gate"]["completed_at"] = "8"
+        rc, out = w.sweep()
+        ok(f"stale pin, one judge per head: a dispatch listed {st}, created before the stale gate's re-run completed "
+           f"is the fresh judge; nothing dispatched", dispatch not in w.posts and "run 5 re-judges" in out)
+    for concl in ("failure", "cancelled"):
+        w = pinned(run(1, "1"), run(5, "1", g=concl), v_run())
+        w.runs[5]["event"] = "workflow_dispatch"
+        w.runs[1]["gate"]["completed_at"] = "8"
+        rc, out = w.sweep()
+        ok(f"stale pin null: with only a {concl} dispatch at the head it dispatches, once",
+           w.posts.count(dispatch) == 1 and "dispatches=1" in out)
     # #3400 at 7326025c (roster carry 1, R10-HOTFIX-SWEEP-TOKEN-ACTOR): the App-actor decider's sweep left the stale
     # edit red "to this sweep's dispatched run"; that run (actor the bot) went green, its check replaced no other
     # run's red, and its completion fired no workflow_run. Its own sweep-self re-runs the stale reds, once.

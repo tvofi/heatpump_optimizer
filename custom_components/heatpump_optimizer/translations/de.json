@@ -1778,6 +1778,10 @@
     }
   },
   "issues": {
+    "price_feed_stale": {
+      "title": "Strompreise sind veraltet",
+      "description": "Die Preisquelle hat keine neuen Preise geliefert ({error}). Der Optimierer plant mit den zuletzt veröffentlichten Preisen weiter, die den aktuellen Zeitpunkt noch abdecken. Sind sie aufgebraucht, wird der Optimierer nicht verfügbar, bis wieder Preise ankommen. Dieser Hinweis verschwindet von selbst, sobald ein Abruf gelingt."
+    },
     "cop_degradation": {
       "title": "Effizienz der Wärmepumpe ist gesunken",
       "description": "Die Wärmepumpe liefert unter gleichen Bedingungen etwa {shortfall_percent} % weniger Wärme pro kWh als früher, was bei aktuellen Preisen rund {cost_month} {currency} pro Monat kostet. Die üblichen Verdächtigen sind ein verstopfter Filter, zu wenig Kältemittel oder ein Abtauproblem – ein Blick lohnt sich, bevor die Saison kälter wird. Dieser Hinweis verschwindet von selbst, wenn sich die Effizienz erholt."

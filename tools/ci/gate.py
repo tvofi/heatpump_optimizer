@@ -216,6 +216,9 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
             js = [r["jobs"].get(f"{unit} / {n}") for n in names]
             if r is not me and all(j is not None and j[1] == "skipped" for j in js):
                 continue                    # a unit that run deferred (C3) judged nothing: no source
+            if r is not me and all(j is not None and j[1] in ("cancelled", "success") for j in js) and any(
+                    j[1] == "cancelled" for j in js):
+                continue                    # a cancelled unit judged nothing whole; a red beside it is the source
             if r is me or all(j is not None and j[0] == "completed" for j in js):
                 src = r                     # this run's own unit always counts (its needs ran it)
                 break
@@ -445,6 +448,33 @@ def self_test() -> int:
     check("a newer held run is neither waited on nor a source", gate({**ctx, "action": "edited"}, {
         **api, "prelude": {"conclusion": "success", "kind": "edit", "pr": "7"}, "jobs": body,
         "runs_at_head": [older, held]}), (True, []))
+    # R10-HOTFIX-GATE-REDISPATCH-LOOP arm 1 (#3445): cancelling a newer redundant run left its jobs
+    # completed and started latest, so it was the source and the gate read CANCELLED at the head.
+    eapi = {**api, "prelude": {"conclusion": "success", "kind": "edit", "pr": "7"}, "jobs": body}
+    ectx1 = {**ctx, "action": "edited"}
+    tests_jobs = [k for k in jobs if k.startswith("tests / ")]
+
+    def newer(conclude):
+        return {"id": 95, "title": title("code", "7", "main"), "status": "completed", "starts": {k: "9" for k in jobs},
+                "jobs": {k: (("completed", conclude(k)) if k in tests_jobs else v) for k, v in jobs.items()}}
+    check("a newer cancelled run over an older green one at the head is no source: green",
+          gate(ectx1, {**eapi, "runs_at_head": [older, newer(lambda k: "cancelled")]}), (True, []))
+    check("null: a newer failed run over an older green one is the source: red",
+          gate(ectx1, {**eapi, "runs_at_head": [older, newer(lambda k: "failure")]}),
+          (False, [f"{k}: failure (run 95)" for k in tests_jobs]))
+    first = tests_jobs[0]
+    check("null: a newer run whose unit failed once and fail-fast cancelled the rest is the source: red",
+          gate(ectx1, {**eapi, "runs_at_head": [older, newer(lambda k: "failure" if k == first else "cancelled")]}),
+          (False, [f"{k}: {'failure' if k == first else 'cancelled'} (run 95)" for k in tests_jobs]))
+    check("a newer run cancelled after part of its unit passed is no source either: the older green judges",
+          gate(ectx1, {**eapi, "runs_at_head": [older, newer(lambda k: "success" if k == first else "cancelled")]}),
+          (True, []))
+    oldred = {**older, "jobs": {k: (("completed", "failure") if k in tests_jobs else v) for k, v in jobs.items()}}
+    check("null: a newer green run over an older red one is the source: green",
+          gate(ectx1, {**eapi, "runs_at_head": [oldred, newer(lambda k: "success")]}), (True, []))
+    check("null: with only the cancelled run at the head the unit has no source: red",
+          "tests: no run at this head judged base 'main'" in gate(ectx1, {**eapi, "runs_at_head": [
+              newer(lambda k: "cancelled")]})[1], True)
     dctx = context("workflow_dispatch", {"inputs": {}}, env)
     dapi = {**api, "prelude": {"conclusion": "success", "kind": "code", "pr": ""}, "jobs": jobs, "runs_at_head": []}
     check("an unnamed dispatch at an open PR's head is refused", gate(dctx, {**dapi, "open_pr_heads": {"M"}})[1],
