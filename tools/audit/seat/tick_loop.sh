@@ -56,6 +56,13 @@
 # HPO_TICK_CMD replace the relay script and the tick command (the self-test's stubs).
 set -uo pipefail
 HERE=$(cd "$(dirname -- "$0")" && pwd)
+# The seat bin dir (seat_venv.sh --install-shims; $HPO_STATE_DIR/bin) goes first on the
+# PATH every child inherits -- orchestrator_tick.py, cloud_relay.sh, the sweep's train --
+# so their gh is the logging shim (GH-BUCKET-SPENDER-UNLOGGED: the tick was ~21% of a
+# spent bucket, unlogged). Once: a restart's exec inherits it already first.
+SEAT_BIN=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/bin
+case $PATH in "$SEAT_BIN":*) ;; *) PATH=$SEAT_BIN:$PATH ;; esac  # mut:seatbin
+export PATH
 
 # The relay holder: takes <out>.relay.lock (flock, non-blocking; 75 when held), runs
 # the relay with its output in <out>.relay.log, then writes "<rc> <started-utc>" to
@@ -151,8 +158,13 @@ sweep_pass() { # <out>: one merge-train sweep when one is due; prints its TICK-S
 }
 
 tick_pass() { # <out> [tick args...]: one pass; prints the banner
-  local out=$1 relay rrc trc tmp now code behind stale; shift
+  local out=$1 relay rrc trc tmp now code behind stale g; shift
   relay=${HPO_TICK_RELAY:-$HERE/cloud_relay.sh}
+  # GH-BUCKET-SPENDER-UNLOGGED: a pass whose children's gh is not the shim spends unlogged.
+  g=$(command -v gh)
+  [ -n "$g" ] && sed -n '2{p;q;}' "$g" 2>/dev/null | grep -qxF '# hpo-gh-shim' \
+    || printf 'TICK-GH %s gh=%s: not the seat gh shim; this pass'"'"'s gh calls are not logged (seat_venv.sh --install-shims %s)\n' \
+      "$(date -u +%FT%TZ)" "${g:-none}" "$SEAT_BIN"
   mkdir -p "$(dirname -- "$out")"
   fresh_check "$out"
   if [ -n "$stale" ]; then
@@ -185,6 +197,22 @@ tick_loop_self_test() (
   chmod +x "$t/tick.sh"
   printf '#!/bin/bash\necho "hb $*" >> "%s/hb"; exit "${HB_RC:-0}"\n' "$t" > "$t/hb.sh"
   export HPO_TICK_HEARTBEAT=$t/hb.sh
+  # The seat bin dir under a scratch state dir, holding a gh that carries the shim marker,
+  # so a host whose gh is not the shim (CI's) prints no TICK-GH line in the rows below.
+  mkdir -p "$t/state/bin" "$t/bare/bin"; export HPO_STATE_DIR=$t/state
+  printf '#!/bin/sh\n# hpo-gh-shim\nexit 0\n' > "$t/state/bin/gh"; chmod +x "$t/state/bin/gh"
+  # GH-BUCKET-SPENDER-UNLOGGED: the children run with the seat bin dir first on PATH.
+  printf '#!/bin/bash\nprintf "%%s\\n" "$PATH" > "%s/path"; command -v gh > "%s/gh"; echo BOARD\n' "$t" "$t" > "$t/pathtick.sh"
+  out=$(HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/pathtick.sh" bash "$0" --once --out "$t/b.txt")
+  case $(cat "$t/path") in "$t/state/bin:"*) [ "$(cat "$t/gh")" = "$t/state/bin/gh" ] && ! printf '%s\n' "$out" | grep -q '^TICK-GH' ;; *) false ;; esac
+  ck "the tick's child PATH starts with the seat bin dir, whose gh shim it finds; no TICK-GH line" $?
+  out=$(PATH="$t/state/bin:$PATH" HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/pathtick.sh" bash "$0" --once --out "$t/b.txt")
+  [ "$(tr ':' '\n' < "$t/path" | grep -cx "$t/state/bin")" = 1 ]
+  ck "a PATH already led by the seat bin dir (a restart's exec) is not prepended twice" $?
+  out=$(HPO_STATE_DIR=$t/bare HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/pathtick.sh" bash "$0" --once --out "$t/b.txt")
+  g=$(cat "$t/gh"); printf '%s\n' "$out" | grep -Eq "^TICK-GH [0-9T:-]+Z gh=${g:-none}: not the seat gh shim" \
+    && [ "$(printf '%s\n' "$out" | grep -c '^TICK-')" = 2 ]
+  ck "a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner" $?
   # The rows before the freshness rows run from no checkout: never the real one, whose
   # fetch and checkout a restart would move.
   mkdir "$t/nogit"; export HPO_TICK_CODE_DIR=$t/nogit GIT_CEILING_DIRECTORIES=$t

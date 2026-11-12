@@ -146,7 +146,7 @@ HOT_FILES = ("tools/audit/seat/pr_args.sh", "tools/audit/seat/update_pr.sh",
 RED = {"failure", "cancelled", "timed_out", "action_required", "startup_failure"}
 LEDGER = "tests/mutation_ledger"
 SIGNALS = ("carry-audit", "figure-lint", "moved-head", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file",
-           "handoff-not-applied", "carry-landed")
+           "handoff-not-applied", "carry-landed", "introduced-red")
 
 
 def git(*a: str, cwd: Path | None = None, check: bool = True) -> str:
@@ -222,6 +222,51 @@ def required_reading(pr: int, head: str) -> tuple[str, str]:
         return word, m.group(1) or ""
     last = ([ln for ln in (r.stdout + r.stderr).splitlines() if ln.strip()] or [""])[-1]
     return "RED", f"classify unreadable (rc {r.returncode}): {last[:200]}"
+
+
+def introduced_reading(head: str, base: str, read=None) -> tuple[list[str], str]:
+    """(INTRODUCED step names, how read) of the head's instrument-self-tests job
+    against the merge base's, by merge_train.introduced_at: the one rule, which
+    `classify --pr` reads too: one filtered check-run read per side and one
+    job-step read per side through `gh`, and only the head's listing when its
+    job is not red. An input with no reading (unreadable, a job-level cancelled,
+    a job still running) is ([], "unreadable: ..."), which `build` refuses: fail closed."""
+    import merge_train
+    read = read or gh
+
+    def get(path):
+        try:
+            return read(path)
+        except Unavailable:
+            return None
+
+    def selftest_runs(sha):  # filtered: the head's unfiltered first page can miss the job
+        got = get(f"repos/{REPO}/commits/{sha}/{merge_train.SELFTESTS_RUNS}")
+        return got.get("check_runs") if isinstance(got, dict) and isinstance(got.get("check_runs"), list) else None
+
+    def job_steps(job):
+        got = get(f"repos/{REPO}/actions/jobs/{job}")
+        return got.get("steps") if isinstance(got, dict) and isinstance(got.get("steps"), list) else None
+
+    runs = selftest_runs(head)
+    if runs is None:
+        return [], "unreadable: the head's instrument-self-tests check runs: an introduced red cannot be ruled out (fail closed)"
+    try:
+        names, how = merge_train.introduced_at(runs, lambda: selftest_runs(base), job_steps)
+    except ValueError as e:
+        return [], f"unreadable: {e}: an introduced red cannot be ruled out (fail closed)"
+    if names is None:
+        return [], f"unreadable: {how} has not concluded: an introduced red cannot be ruled out (fail closed)"
+    return names, how
+
+
+def ci_facts(pr: int, head: str, base: str, read=None) -> dict:
+    """gather's check-run keys at <head>: the gate digest, classify's reading of
+    a required red, and the INTRODUCED reading against <base>; `read` replaces gh."""
+    read = read or gh
+    gate = gate_digest(read(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", []))
+    return {"gate": gate, "required_read": required_reading(pr, head) if set(gate[2]) & set(REQUIRED) else None,
+            "introduced": introduced_reading(head, base, read)}
 
 
 def head_named(body: str, head: str, base: str) -> bool:
@@ -638,6 +683,12 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         else:
             refusals.append(f"required-red: required context `{n}` concluded failure at {head}"
                             + (f" (merge_train.py classify --pr reads {word} {why})" if why else ""))
+    intro, intro_why = facts.get("introduced") or ([], "")
+    for n in intro:
+        refusals.append(f"introduced-red: INTRODUCED `{n}`: a step of the non-required instrument-self-tests job red at "
+                        f"{head} and not at the base ({intro_why}), a finding of this pull request (fix-review.md)")
+    if intro_why.startswith("unreadable"):
+        refusals.append(f"introduced-red: {intro_why}")
     for w in facts["host"]:
         refusals.append(f"host-path: {w}")
     refusals += facts.get("unlanded", [])
@@ -701,9 +752,8 @@ def gather(a) -> dict:
         rref = fetch_roster_ref(None)
         on_roster, carries_at = roster_carry_reader(handoff_topics(branch), rref)
         unlanded = unlanded_carries(cites, carries_at, on_roster)
-    runs = gh(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", [])
-    gate = gate_digest(runs)
-    read = required_reading(a.pr, head) if set(gate[2]) & set(REQUIRED) else None
+    ci = ci_facts(a.pr, head, base)
+    gate = ci["gate"]
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
     frc, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
     red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
@@ -713,7 +763,7 @@ def gather(a) -> dict:
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
     open_prs, boarded = hot_prs(touched)
     return {
-        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "required_read": read,
+        "pr": a.pr, "head": head, "base": base, "body": body, **ci,
         "branch": branch, "unlanded": unlanded, "head_named": named,
         "carry_rc": crc, "carry_out": cout, "figure_out": fout, "figure_rc": frc,
         "pr_head": (pr.get("head") or {}).get("sha"),
@@ -1341,6 +1391,76 @@ def _self_test() -> int:
     except Unavailable:
         ok = True
     check("UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal", ok)
+
+    # R10-INTRODUCED-REDS-BARRIER: an instrument-self-tests step red at the head
+    # and not at the base refuses as INTRODUCED; inherited, no base run, a step
+    # skipped by scoping and an unreadable job each read as the rule says.
+    import merge_train
+    drift = next(iter(merge_train.SELFTESTS_PUSH_ONLY))
+
+    def reader(head_steps, base_steps, base_job=True, broken=(), head_concl=None, base_concl="failure"):
+        reads: list[str] = []
+
+        def read(path):
+            reads.append(path)
+            if any(b in path for b in broken):
+                raise Unavailable(f"gh api {path}: HTTP 502")
+            if path.endswith(f"commits/{H}/{merge_train.SELFTESTS_RUNS}"):
+                return {"check_runs": [{"name": merge_train.SELFTESTS, "id": 1, "status": "completed",
+                                        "conclusion": head_concl or ("failure" if head_steps else "success")}]}
+            if path.endswith(f"commits/{B}/{merge_train.SELFTESTS_RUNS}"):
+                return {"check_runs": [{"name": merge_train.SELFTESTS, "id": 2, "status": "completed",
+                                        "conclusion": base_concl}] if base_job else []}
+            return {"steps": head_steps if path.endswith("/jobs/1") else base_steps}
+        return read, reads
+
+    hs = [{"name": "census", "conclusion": "failure"}, {"name": "render", "conclusion": "failure"},
+          {"name": "scoped", "conclusion": "skipped"}, {"name": drift, "conclusion": "failure"}]
+    bs = [{"name": "census", "conclusion": "success"}, {"name": "render", "conclusion": "failure"},
+          {"name": "scoped", "conclusion": "failure"}, {"name": drift, "conclusion": "failure"}]
+    read, reads = reader(hs, bs)
+    got = introduced_reading(H, B, read)
+    check("introduced: the head's red the base lacks is INTRODUCED, the inherited one is not, by 2 job-step reads",
+          got[0] == ["census"] and sum("/actions/jobs/" in p for p in reads) == 2)
+    check("no base run: every head red but the push-only drift step counts; skipped is never red",
+          introduced_reading(H, B, reader(hs, bs, base_job=False)[0])[0] == ["census", "render"])
+    read, reads = reader([], bs)
+    check("a head whose job did not conclude failure costs one listing and no job read",
+          introduced_reading(H, B, read)[0] == [] and len(reads) == 1)
+    for why, broken in (("the head's job", ("/jobs/1",)), ("the base's job", ("/jobs/2",)),
+                        ("the base's listing", (f"commits/{B}/",)), ("the head's listing", (f"commits/{H}/",))):
+        got = introduced_reading(H, B, reader(hs, bs, broken=broken)[0])
+        check(f"fail closed: {why} unreadable refuses introduced-red, never reads clean",
+              got[0] == [] and refused("introduced-red", introduced=got))
+    r_i = build({**clean, "introduced": (["census"], "head job 1 base job 2")})[0]
+    check("build: an INTRODUCED step is an introduced-red refusal naming the step",
+          len(r_i) == 1 and r_i[0].startswith("introduced-red: INTRODUCED `census`"))
+    check("null: an inherited-only head (nothing introduced) refuses nothing",
+          build({**clean, "introduced": introduced_reading(H, B, reader(bs, bs)[0])})[0] == [])
+    check("one notion of red: merge_train.RED_CONCLUSIONS is this file's RED", merge_train.RED_CONCLUSIONS == RED)
+    hang = [{"name": "census", "conclusion": "cancelled"}, {"name": "render", "conclusion": "skipped"}]
+    ok_s = [{"name": "census", "conclusion": "success"}, {"name": "render", "conclusion": "success"}]
+    got = introduced_reading(H, B, reader(hang, ok_s, head_concl="timed_out", base_concl="success")[0])
+    check("a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused",
+          got[0] == [merge_train.JOB_TIMED_OUT, "census"]
+          and [r.split("`")[1] for r in build({**clean, "introduced": got})[0]] == got[0])
+    got = introduced_reading(H, B, reader(hang, ok_s, base_concl="success")[0])
+    check("a cancelled step inside a failed job is INTRODUCED", got[0] == ["census"])
+    for why, concl in (("a job-level cancelled", "cancelled"), ("a job still running", "in_progress")):
+        read, reads = reader(hang, ok_s, head_concl=concl)
+        if concl == "in_progress":
+            def read(path, _r=read):
+                got = _r(path)
+                for r in got.get("check_runs") or ():
+                    r["status"], r["conclusion"] = "in_progress", None
+                return got
+        got = introduced_reading(H, B, read)
+        check(f"fail closed: {why} at the head refuses introduced-red, never reads clean",
+              got[0] == [] and refused("introduced-red", introduced=got))
+    facts = ci_facts(7, H, B, reader(hs, bs)[0])
+    check("gather's ci_facts carries the INTRODUCED reading build refuses (M9: its wiring)",
+          facts["introduced"][0] == ["census"] and facts["required_read"] is None
+          and refused("introduced-red", introduced=facts["introduced"]))
 
     print(f"review_packet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
