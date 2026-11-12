@@ -19,7 +19,7 @@ Scope beyond the brief's two files, by the orchestrator's ruling of 2026-11-12: 
 
 ## Head
 
-3dccd18a95617b752a1be6fce24f5dc7df3bd57f, measured on macOS (Darwin, arm64) with origin/main 19baca76181cb019d9b1cfd93ee6bc0a08e20047 as merge base, at 2026-11-12T17:35Z. `tools/audit/seat/mutant_run.py` is byte-identical between d823c55e4d, where the mutant figures were taken, and this head: `git diff --quiet d823c55e4d HEAD -- tools/audit/seat/mutant_run.py && echo IDENTICAL` prints `IDENTICAL`.
+b49a16c2f7a11194e9eb2662d3e992c864c6fb7d. Every figure below was measured at its parent 3dccd18a95617b752a1be6fce24f5dc7df3bd57f, and so was the `Prepr:` receipt (full `tools/pr/prepr.sh`, rc 0, at 3dccd18a95); the delta to this head is one file, `dev/audit/harnesses/mutant_run_diff_shards.py`, which now finds the checkout with the canonical `repo_root` walk in place of `Path(__file__).resolve().parents[3]`. That delta answers a red the scoped gate found after the first handoff: `tests/harness_headers.py`'s inline scan refused the depth root (`harness_headers.inline_scan()` rc 1 at 3dccd18a95, rc 0 at this head). No full prepr was re-run at this head. 3dccd18a95 was measured on macOS (Darwin, arm64) with origin/main 19baca76181cb019d9b1cfd93ee6bc0a08e20047 as merge base, at 2026-11-12T17:35Z. `tools/audit/seat/mutant_run.py` is byte-identical between d823c55e4d, where the mutant figures were taken, 3dccd18a95 and this head: `git diff --quiet d823c55e4d HEAD -- tools/audit/seat/mutant_run.py && echo IDENTICAL` prints `IDENTICAL`.
 
 ## Mutation proof
 
@@ -113,7 +113,7 @@ Cleanup, 2. Equivalent in outcome: each `sleep 30` child then exits by itself, a
 
 ## Figures
 
-<!-- figure-block: scope-line mb=19baca76181cb019d9b1cfd93ee6bc0a08e20047 head=3dccd18a95617b752a1be6fce24f5dc7df3bd57f -->
+<!-- figure-block: scope-line mb=19baca76181cb019d9b1cfd93ee6bc0a08e20047 head=b49a16c2f7a11194e9eb2662d3e992c864c6fb7d -->
 ~~~text
 MODE: SCOPED -- 1 script(s) run, 32 scoped out.
 ~~~
@@ -136,7 +136,7 @@ What only Linux CI can confirm, none of which this macOS seat measured:
 
 ## Red checks
 
-none
+- `tests / fast (3.14)`: read at pull-request head 6b16a9f896 (which carries 3dccd18a95) it was still in progress, so this is the red the scoped gate predicts there, not one read from CI: `tests/harness_headers.py` fails `every inlined walk matches the canonical helper and no depth root remains` with `FAIL depth seams: dev/audit/harnesses/mutant_run_diff_shards.py:29: ROOT = Path(__file__).resolve().parents[3]`. Cause: the harness added in this pull request took its root by depth. Fixed at this head (rc 1 to rc 0, above). Cheaper detector: `harness_headers.inline_scan()` on a diff that adds or edits a file under `dev/audit/harnesses/`; it takes seconds, and neither `tools/pr/prepr.sh` nor `tools/pr/ci_predict.py` runs it today, so the only detector before CI is the scoped gate's `run_always` tail. This seat ran that gate after the handoff, which is the process slip.
 
 The red this hotfix answers was not a CI check: it was `tools/pr/prepr.sh --self-test` on the macOS host, which Linux CI cannot see. The cheaper detector is now in the tree: the self-test's no-procfs leg and its `MUTANT_RUN_PROCFS` driver run execute the macOS path on Linux CI in `instrument-self-tests`, at a few seconds per run, so a reader that works only with `/proc` fails there before it reaches a macOS seat.
 
