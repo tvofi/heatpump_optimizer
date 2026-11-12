@@ -592,6 +592,9 @@ INERT_EXCEPT = (
     # R10-CI-PRIORITY-PAUSE: that self-test reads the tier setting (owed-line ranks);
     # dev/audit/ is INERT by prefix, so the file moves to the recorded closure.
     "dev/audit/config/ci_priority.json",
+    # ... and it runs both new modules' self-tests (tools/audit/seat/ stays INERT otherwise).
+    "tools/audit/seat/ci_pause.py",
+    "tools/audit/seat/ci_priority.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",
