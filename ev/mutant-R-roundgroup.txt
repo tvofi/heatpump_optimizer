@@ -1,0 +1,11 @@
+RESULT mutant=M0 failed=0 verdict=baseline
+RESULT mutant=R-roundgroup failed=1 verdict=killed
+     FAIL landed: an own-group status line whose group is on the round's roster branch only lands nothing
+UNMAPPED seg_dests l344 call .match[`*_]*dismissed\s*:\s*(.*)", rest, re.I)
+UNMAPPED seg_dests l345 test pm and GROUP_TOK.match(pm.group(1).strip("`*_().:"))
+UNMAPPED seg_dests l345 operand pm
+UNMAPPED seg_dests l345 operand GROUP_TOK.match(pm.group(1).strip("`*_().:"))
+UNMAPPED seg_dests l345 call .match_TOK.match(pm.group(1).strip("`*_().:"))
+UNMAPPED seg_dests l345 call .strippm.group(1).strip("`*_().:")
+RESULT sites=200 unmapped=6 mutants=271 survived=0
+rc=1

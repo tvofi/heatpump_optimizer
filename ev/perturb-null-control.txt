@@ -1,0 +1,8 @@
+FAIL branch fix/r10-pr resolves to the PR group R10-PR (the workflow passes --branch, not --pr-group)
+FAIL branch fix/r10-pr-pr resolves to the PR group R10-PR (the workflow passes --branch, not --pr-group)
+FAIL branch fix/r10-nothing resolves to the PR group None (the workflow passes --branch, not --pr-group)
+FAIL check --branch resolves the PR group, so a closed destination lists its valid targets
+FAIL landed: an own-group item naming one of its carries by index lands nothing and is a status line
+FAIL landed: a status line whose own group is on neither roster still refuses (null control)
+carry_audit self-test: 417 checks, 6 failed
+rc=1
