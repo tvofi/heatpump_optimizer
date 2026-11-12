@@ -135,13 +135,16 @@ def base_runs_the_gate() -> None:
     stub = ('import sys\nfrom pathlib import Path\n'
             'if "--self-test" not in sys.argv:\n    print("SAW " + Path("tests/structure.py").read_text().strip())\n')
 
-    def run(base_has_gate: bool) -> str:
+    def run(base_has_gate: bool) -> tuple[str, bool]:
         with tempfile.TemporaryDirectory(prefix="archscore-plant-") as tmp:
-            repo, env = Path(tmp) / "r", {**os.environ, "RUNNER_TEMP": str(Path(tmp) / "t")}
-            (Path(tmp) / "t").mkdir()
+            repo, runner_temp = Path(tmp) / "r", Path(tmp) / "t"
+            runner_temp.mkdir()
             (repo / "tests").mkdir(parents=True)
             g = ["git", "-C", str(repo)]
-            env = {**env, **throwaway_git_init(repo, "-q")}
+            # RUNNER_TEMP last: throwaway_git_init's env copies os.environ, whose
+            # RUNNER_TEMP (a seat's, or a runner's) would take the step's worktree
+            # out of this temp dir, and a second run then finds it already there.
+            env = {**throwaway_git_init(repo, "-q"), "RUNNER_TEMP": str(runner_temp)}
             (repo / "tests" / "structure.py").write_text("BASE\n")
             if base_has_gate:
                 (repo / "tools" / "audit" / "archscore").mkdir(parents=True)
@@ -159,13 +162,15 @@ def base_runs_the_gate() -> None:
             # The step under its own shell, GitHub's default `bash -e {0}`.
             r = subprocess.run(["bash", "-e", "-c", script], cwd=repo, capture_output=True, text=True,
                                env={**env, "PR_BASE": base, "PR_HEAD": head})
-            return r.stdout + r.stderr
+            return r.stdout + r.stderr, (runner_temp / "base").is_dir()
 
     attributes_do_not_hide_code()
-    out = run(True)
+    out, own_temp = run(True)
     R.check("arch-score.yml: a head edit to tests/structure.py is not what the gate loads (the #2068 plant)",
             re.search(r"^SAW BASE$", out, re.M) is not None and "PLANT" not in out, out[-300:])
-    out = run(False)
+    R.check("the #2068 plant's base worktree lands in its own RUNNER_TEMP, not the caller's",
+            own_temp, out[-300:])
+    out, _ = run(False)
     R.check("and a base with no gate.py is the adoption: the head's copy runs once (null control)",
             re.search(r"^SAW PLANT$", out, re.M) is not None, out[-300:])
 
