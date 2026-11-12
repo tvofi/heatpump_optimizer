@@ -1,18 +1,19 @@
-Fix review: merge dee7a1fa45bb9a4b2843ef0ce6c26fac6094bae8
+Fix review: merge 1b44f40575abf76c4d55f16dd96cbbbbb2436ba7
 
-bus-nonce: 47cc22d78dca2e0db5318c5d3f39b4b1
+bus-nonce: 00e6569209581bc10a1c92aa09e41849
+pending-ci: gate (classify printed WAIT, pending, gate red: none)
 
-Scoped body re-check only; head unchanged since the previous block (review commit 77cee4db), no code or mutants re-run.
+Continuation of the finished review at 0cd785173433173b4f6e9d16a1b161bef464c516, which stands. The head moved only by one automatic merge of origin/main, so the review carries.
 
 ## Evidence
 
-- classify at the head: GREEN, pending none, red none, rc=0 (ev/classify.txt).
-- merge-tree against origin/main: see ev/merge-tree.txt (rc recorded there).
-- owed-reds (ev/owed-reds.txt) prints the required-context set, not a per-PR red list: it takes no --pr/--head, and no listed context is red at this head. The two reds the previous run listed are green: governance / wave-script success (job 129840403888) and tests / fast (3.14) success (job 129840406342).
-- Required contexts at the head: pr-contract success on the latest run (job 129840450841 at 12:44:35Z, and 129839268293 at 12:49Z); the 12:28:58Z failure (129840407903) is the one the body explains. gate success, also on the runs of 12:50-12:52Z. budget-raise-gate, arch-score, hassfest, codeql, tests/* all success. governance / delivery-status failed but is outside the required set (owner ruling 2026-11-09), so it is not a block.
-- Body ## Red checks answers wave-script: cause (the roster_edit.py to roster_lib.py registration move on main made the grammar UNREGISTERED), process state (base skew, cured by the main merge), countermeasure (ci_predict.py wave-script arm, standing cost nil) and a recorded dismissal.
-- Body wording finding resolved: tests / fast (3.14) now names the stress.py memory reading (typical_slab/shoulder 3.9 MiB vs 1.8 MiB) fixed by #3406, and separates the earlier de.json / C112 red (#3378). It carries a cause, a cheaper-detector statement (none) and a dismissal.
-- The pr-contract and delivery-status entries are answered as well.
+- Scope: the delta 0cd785173433..1b44f40575abf76c4d55f16dd96cbbbbb2436ba7 is one merge commit whose second parent 046736a49f8c is an ancestor of origin/main (ev/parents.txt). No fixer commit; `git log 0cd785173433..1b44f40575abf76c4d55f16dd96cbbbbb2436ba7 --not origin/main` lists only that merge.
+- `review_carry.py 0cd785173433 1b44f40575abf76c4d55f16dd96cbbbbb2436ba7` prints CARRY (ev/review-carry.txt).
+- Branch's own diff, merge-base 61afd4f2db10..0cd785173433 against merge-base 046736a49f8c..1b44f40575abf76c4d55f16dd96cbbbbb2436ba7: every added and removed line is identical, 16 files, 489 insertions and 7 deletions (ev/added-removed-old.txt, ev/added-removed-new.txt). Only main's own changes entered.
+- The merge touched tests/closures.json by the ledger merge driver and no other resolution.
+- `git merge-tree --write-tree origin/main 1b44f40575abf76c4d55f16dd96cbbbbb2436ba7` is clean (ev/merge-tree.txt); origin/main is 046736a49f8c, the head's second parent, so the head is not behind main.
+- No production (custom_components/) file is in the delta, so nothing widens the review (fix-review.md step 12).
+- CI: classify at this head printed `WAIT 1b44f40575abf76c4d55f16dd96cbbbbb2436ba7 pending: gate red: none` on both polls, about 100 s apart (ev/classify.txt); no red.
 
 ## Findings
 
