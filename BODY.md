@@ -30,13 +30,19 @@ Carry numbers in this body are 0-based roster indexes, as the part-1 dispatch gi
 - Carry 24: left for a later part; it stays on the roster.
 - Carry 26: left for a later part; it stays on the roster.
 - Carry 27: left for a later part; it stays on the roster.
-- Carry 28: not built in this part; the roster marks it moved to R10-SEAT-IDENTITY-P5 (open_driver.py, outside this part's file).
+- Carry 28: left for a later part; it stays on the roster.
 
 The cause of the observed wrong checkout is still unproven. The private ref removes the FETCH_HEAD candidate. The assertion turns any other cause into an OWED line that names both heads, where at the base the push went through from the wrong head.
 
 ## Head
 
-bb3933b18fc35aea81c755dceb5e59eb07d3224d, on merge base f24d107bd7aa170bea7419251a4b7f4f48b732f6; origin/main's tip when measured was ee64358be7eeccaec5178a923cb3b83a18a924a0 (2026-11-11T12:17Z), and `git merge-tree --write-tree origin/main HEAD` reported no conflict, so main was not merged.
+5cea9cd73165121d5117ecd7cca8fa236770d0cd, on merge base f24d107bd7aa170bea7419251a4b7f4f48b732f6; `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main was not merged.
+
+## Round 4
+
+The governance / instrument-self-tests step "Show the cloud dispatcher refusing its own fixtures" was red at 6d4be3faca (`cloud_dispatch self-test: 169 checks, 1 failed`) and green at the merge base. Cause, this diff's own: the check `a handoff-wip push is invisible to cloud_relay.sh's handoff arm and bus.sh orphans; handoff/ is not (null)` in `tools/audit/seat/cloud_dispatch.py` pinned `len(globs) == 4`, the count of handoff globs it reads out of `cloud_relay.sh` and `bus.sh`. This diff's `carry_fold_arm` lists `refs/heads/handoff/*` a second time, so the count read 5 with no new glob. The check now de-duplicates the globs and pins `len(globs) == 2`, the set the handoff machinery lists; its wip-invisible and handoff-visible assertions are unchanged. `python3 -I tools/audit/seat/cloud_dispatch.py --self-test` now prints `169 checks, 0 failed`; `bash tools/audit/seat/cloud_relay.sh --self-test` prints `452 checks, 0 failed`. `tests/closures.json` is re-recorded by `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` (entities `rc` 1 to 0).
+
+The four `FAIL wrapper: a gated step runs under strace` lines are not this diff's: it touches neither `tools/ci/selftest_scope.py` nor the wrapper, and `python3 -I tools/ci/selftest_scope.py --self-test` prints `117 checks, 0 failed` here.
 
 ## Round 3
 
@@ -73,13 +79,14 @@ Failing test first: the head's self-test with merge base f24d107bd7's `carry_fol
 - mutants, round-3 spec, 14 KILLED, 1 SURVIVED (`r3-folded-skip-off`), NULL SURVIVED at d6a35eb044, then `rv-privref-not-deleted` and `r3-folded-skip-off` KILLED, NULL SURVIVED at bb3933b18f: the `mutant_run.py` command above
 - base lines 805 (`carry_fold_arm`), 818 (wip fetch), 838 (`FETCH_HEAD`), 843 (`cloud-folded`), 849 (`level_set carry-fold`): `git show a7628041dc:tools/audit/seat/cloud_relay.sh | grep -n 'carry_fold_arm() {\|FETCH_HEAD\|level_set carry-fold'`
 - gate scope `MODE: SCOPED -- 1 script(s) run`, which is `tests/doc_claims.py`: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`. `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` printed `ALL 315 checks PASSED`.
+- cloud_dispatch self-test `169 checks, 0 failed`: `python3 -I tools/audit/seat/cloud_dispatch.py --self-test`
 - pre-PR: `PREPR_SKIP_CLOSURES=1 tools/pr/prepr.sh <body>`, under the owner's standing ruling for an interpreter with no `homeassistant` module (`python3 -c "import homeassistant"` raises `ModuleNotFoundError` here). Without the skip, the closures step refused `tests/harness_headers.py` as UNDER-SCOPED, left to CI. `./tests/derive_closures.sh --single tests/harness_headers.py` at bb3933b18f, run in a scratch worktree, left `tests/closures.json` unchanged (`git status --short` printed nothing). `ci_predict` predicted no closures red.
 - structure: `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`
 - architecture: `python3 tools/audit/archscore/score.py --diff f24d107bd7 HEAD` printed `Architecture score: dS +0.0000 NULL`
 
 ## Red checks
 
-none
+none owed (`merge_train.py owed-reds` does not list governance / instrument-self-tests). The step was red at the previous head on a count pin this diff invalidated; the detector is the check itself, `cloud_dispatch.py --self-test`, which caught it. It did not run before the first handoff because `prepr.sh` skips self-tests for programs it does not name. The pin now counts the set of globs, so a repeated listing cannot trip it.
 
 ## Forward-carry
 
