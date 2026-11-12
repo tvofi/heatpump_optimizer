@@ -123,7 +123,7 @@ esac
 # The record-issue comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
 # lives in that script alone, so a raw post bypassed it). DENY BY DEFAULT: a call that could
 # write a comment on a record issue (#201, or its continuation) is refused unless the caller is python running the
-# tree's own gh_comment.py (by real path); it is let through only when it is on an explicit
+# baked tree's gh_comment.py, or a checkout's tracked and unmodified one (by real path; below); it is let through only when it is on an explicit
 # list of calls that cannot. The list is gh's own command table, not a list of spellings:
 #   - no subcommand, or --version/--help alone: pass; any other leading flag: refused;
 #   - `issue`: view/list/status/create pass; comment, close, reopen, edit, delete, lock,
@@ -337,18 +337,19 @@ if [ -n "${hit:-}" ]; then
     done
     if [ -n "$script" ] && [ -n "$gcpy" ]; then
       a=$(rp "$script") && b=$(rp "$gcpy") && [ "$a" = "$b" ] && ok=1
-      # Another tree's gh_comment.py (R10-GH-READ-RESIDUE, P449): the daemons' PATH carries one
-      # install, run from any checkout. Admitted by real path when it is the tracked
-      # tools/pr/gh_comment.py of a worktree git registers beside the baked tree's; a file
-      # merely so named, in a directory git does not list, stays refused.
+      # Another checkout's gh_comment.py (R10-GH-READ-RESIDUE, P449; SHIM-COMMENT-GUARD-ONE-CHECKOUT,
+      # P591): the daemons' PATH carries one install, and three live checkouts run seat tools.
+      # Admitted by real path <root>/tools/pr/gh_comment.py when <root> is a checkout of this
+      # repository (it tracks this shim) and the script is tracked and unmodified against HEAD,
+      # so its mandate_guard is the committed one. A file merely so named, an untracked one, or
+      # one with a local edit stays refused.
       if [ -z "$ok" ] && [ -n "$a" ]; then
         case $a in */tools/pr/gh_comment.py)
-          troot=${a%/tools/pr/gh_comment.py} broot=${gcpy%/tools/pr/gh_comment.py}
-          if [ "$broot" != "$gcpy" ] && git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1; then
-            while IFS= read -r wl; do
-              [ "$wl" = "worktree $troot" ] && ok=1
-            done < <(git -C "$broot" worktree list --porcelain 2>/dev/null)
-          fi ;;
+          troot=${a%/tools/pr/gh_comment.py}
+          git -C "$troot" ls-files --error-unmatch tools/audit/seat/shims/seat-gh >/dev/null 2>&1 \
+            && git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1 \
+            && git -C "$troot" diff --quiet HEAD -- tools/pr/gh_comment.py >/dev/null 2>&1 \
+            && ok=1 ;;
         esac
       fi
     fi ;;
