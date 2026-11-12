@@ -965,7 +965,7 @@ export function checkCarryShape(file, data, findings, roster) {
 const LEGACY_CONTROL_CAP = 14
 const LEGACY_CONTROL_FILES = new Set([
   'carry-1067.json', 'carry-1336.json', 'carry-1395.json', 'carry-1398.json', 'carry-1412.json',
-  'carry-1454.json', 'carry-1459.json', 'carry-1463.json', 'carry-1644.json', 'carry-1645.json',
+  'carry-1454.json', 'carry-1459.json', 'carry-1463.json', 'carry-1644.json',
   'carry-1659.json', 'carry-1660.json', 'carry-201.json', 'carry-752.json',
 ])
 
