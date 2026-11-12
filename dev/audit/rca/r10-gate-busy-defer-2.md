@@ -102,7 +102,7 @@ in time, as they did live, and the arm refuses a fixture where they do not.
 
 In every pre-fix row, the replay gives the same deferral ids the live logs print.
 #3246's program decides all three pairs. The lower gate passes at once beside
-the higher's started gate. Under that program, in #3261, the higher gate waits one poll, then passes.
+the higher's started gate. Under that program, in #3261, the higher gate waits one poll, then passes. (Superseded at `5c1fa41fb`: that gate now publishes the deferral at once, and gate-sweep's `settle` re-runs it; `dev/audit/rca/r10-gate-defer-read-final.md` measures that program. §5.2's fresh dispatch stays needed, because `settle` re-runs through the same job-rerun API, so a re-run of a run created before a fix merges replays the old pinned program.)
 Under #3276's `judging()` the higher gate no longer waits at all (naps 0 and 0).
 Since #3287 (`5c1fa41fb`), no deferring gate waits: it publishes the deferral red at once,
 and `gate-sweep.yml`'s `settle` re-runs it. The three pairs still decide through that
