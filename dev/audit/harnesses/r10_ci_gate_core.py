@@ -18,8 +18,8 @@ gate_sim's ablations assign `G.judging`; the shim's `gate` installs whatever
 G.judging holds into the port for the call, so an ablation reaches the port.
 
 B3 FILL. The model predates amendment B3: its push rows carry no
-`tests / coverage`, `coverage-ratchet` or `ci-ratchet` job, which the port
-now requires on push. By default the shim adds each of those three, green,
+`tests / coverage` or `coverage-ratchet` job, which the port
+now requires on push. By default the shim adds each of those two, green,
 to a push run that lacks it (never over one it has); `--no-b3-fill` drops the
 fill, and the push rows must then fail naming exactly those names.
 
@@ -34,7 +34,7 @@ self-test is this name's null (a run without it FAILs naming it).
 port's REQUIRED is paired with; origin/main's until P2b), every job whose failure
 reddens the Tests push run (it runs on push and is not continue-on-error)
 and compares it with REQUIRED["push"]'s `tests / *` names; `--plant` drops
-`ci-ratchet` from REQUIRED first, and the parity must go red.
+`coverage-ratchet` from REQUIRED first, and the parity must go red (ci-ratchet is gate.py PUSH_REPORT_ONLY: enumerated, then set aside).
 
 `mutants` plants each predicate mutant below in tools/ci/gate.py (or, for
 `judging`, in tools/ci/prelude.py, where R10-GATE-DEFER moved it), runs the
@@ -188,12 +188,13 @@ def runs_on_push(cond: str) -> bool:
 
 def b3_arm(opts: list[str]) -> int:
     text = (ROOT / ".github" / "workflows" / "tests.yml").read_text()
-    enumerated = b3_enumerate(text)
+    report_only = set(port.PUSH_REPORT_ONLY["tests"])       # runs on push, never fails the gate
+    enumerated = [n for n in b3_enumerate(text) if n not in report_only]
     required = [n.split(" / ", 1)[1] for n in port.REQUIRED["push"] if n.startswith("tests / ")]
     if "--plant" in opts:
-        required = [n for n in required if n != "ci-ratchet"]
+        required = [n for n in required if n != "coverage-ratchet"]
     print(f"b3: enumerated from .github/workflows/tests.yml: {enumerated}")
-    print(f"b3: REQUIRED['push'] tests / * {'(PLANT: ci-ratchet dropped) ' if '--plant' in opts else ''}: {sorted(required)}")
+    print(f"b3: REQUIRED['push'] tests / * {'(PLANT: coverage-ratchet dropped) ' if '--plant' in opts else ''}: {sorted(required)}")
     ok = enumerated == sorted(required)
     print(f"b3: parity {'GREEN' if ok else 'RED'}; only in tests.yml {sorted(set(enumerated) - set(required))}, "
           f"only in REQUIRED {sorted(set(required) - set(enumerated))}")
