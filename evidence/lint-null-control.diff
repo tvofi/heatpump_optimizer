@@ -1,0 +1,3 @@
+228a229,230
+> LEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart
+> 

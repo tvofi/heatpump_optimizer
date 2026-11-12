@@ -1,0 +1,8 @@
+  heavy slot: taken slot=0 label=derive-25068 expires_at=2026-11-12T17:39:41.845601+00:00
+lane plan: 1 lane(s) for 1 script(s), bound 4
+  lane 1 (867.9s recorded): tests/entities.py
+  [17:09:41] record tests/entities.py 
+  [17:26:25] done   tests/entities.py (exit 0)
+
+recorded into /tmp/tmp.jivl4QDyHL/rec; tests/closures.json left untouched (--record-only)
+rc=0
