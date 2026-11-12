@@ -2,9 +2,18 @@ Round-10 protection census, repair of the blocked review at 23d7ac26: the 17 req
 
 ## Head
 
-`5d647dd055d7e08e1073bedbe570257c606b98b3` is this PR's head, unchanged: it is the `closures-autofix` bot commit (`ci: re-record closures`) on top of `b7a838c1ef516f840530eb85b4c94c6fdfdab0f1`, which merges the authored code head `6e8db8d8c12e480181e730bd30e01da3c97b733f`. This body repairs the `## Red checks` answer only; no tracked file and no code ref moves.
+`b131ad0ad8c8e8e9710681160a8b539ab88137ff` is the head: authored code head `6e8db8d8c12e480181e730bd30e01da3c97b733f` merged with `origin/main` `8c10361eb1fea539dc5acb8f7442eac2810faa47`. The merge is the only change; no authored file moves.
 
-6e8db8d8c12e480181e730bd30e01da3c97b733f
+b131ad0ad8c8e8e9710681160a8b539ab88137ff
+
+## Repair of `instrument-self-tests` (INTRODUCED: Show the tick loop refusing its own fixtures)
+
+Reproduced the step (`bash tools/audit/seat/tick_loop.sh --self-test`, `env -u BASH_ENV`) at both trees:
+
+- at the old head (`6e8db8d8`, merge base `14f227c5`): `FAIL a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner`, `tick_loop self-test: 30 checks, 1 failed`.
+- at that head merged with `origin/main` `8c10361e`: `tick_loop self-test: 30 checks, 0 failed`.
+
+This diff does not cause it: it adds `CENSUS.md`, `main_reds.py` and one `tests/closures.json` line, and touches nothing `tick_loop.sh --self-test` reads. The failing check is a defect in the older `tools/audit/seat/tick_loop.sh` that main already repaired (`e899dde4ab`, "tick children get the seat bin dir; shim admits any clean checkout"). The repair is therefore the merge itself, and no patch or BLOCKED.md was needed. The hotfix group R10-HOTFIX-TICK-SELFTEST-CHECKOUT (`handoff-wip/r10-hotfix-tick-selftest-checkout` 3f05e504) is not a predecessor of this PR. `instrument-self-tests` is not in `merge_train.py owed-reds`, so it is explained here and owes no `## Red checks` entry.
 
 ## Mutation proof
 
