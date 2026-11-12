@@ -1,5 +1,4 @@
 OK       0.1s launch
-OK     901.5s prepr
+OK     991.7s prepr
 OK       0.0s unread
-selftest_scope: recorded 1 step(s) into /tmp/claude-0/-home-user-heatpump-optimizer/be312add-be04-5648-910e-810ed3318892/scratchpad/rec.json; 0 failed [], 0 broken trace(s)
-rc=0
+selftest_scope: recorded 1 step(s) into /tmp/tmp.8oBhtr8lhM/rec.json; 0 failed [], 0 broken trace(s)

@@ -1,3 +1,0 @@
-  ok   role_pack.py's self-test passes: every role clean, every rule's mutant refused
-
-24 passed, 0 failed
