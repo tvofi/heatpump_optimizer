@@ -1,0 +1,6 @@
+--- pattern at head: does the UNREAD branch fire when gh fails?
+UNREAD NOT fired; raw=''
+--- carry_audit landed on the empty body this yields:
+landed rc=0
+--- base pattern:
+UNREAD fired (base)
