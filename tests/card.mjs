@@ -1128,18 +1128,20 @@ check("#2257: a schedule estimate's money is the range between its two pricings 
   && /an estimate at the day's average weather and price that leaves out the optimizer's load shifting\./.test(resultText)
   && !/in steady state/.test(resultText));
 {
-  const money = (answer) => whatIf.whatIf.summary({ ...simResult, ...answer }).replace(/<[^>]+>/g, "");
+  // The summary's own markup is matched as it is built: stripping tags out of
+  // it is the shape of an HTML sanitiser (the note at `tableOf` below).
+  const money = (answer) => whatIf.whatIf.summary({ ...simResult, ...answer });
+  const opens = (amount, rest) => new RegExp(`^<div><b class="[a-z-]+">${amount}</b> ${rest}`);
   check("#2257: two pricings that round to one amount, or no second pricing, show one number, still as the estimate",
-    /^43 less per month than the current plan, an estimate/.test(money({ monthly_steady_cost_delta_shifted: -42.9 }))
-    && /^43 less per month than the current plan, an estimate/.test(money({ monthly_steady_cost_delta_shifted: null })));
+    opens("43 less per month", "than the current plan, an estimate").test(money({ monthly_steady_cost_delta_shifted: -42.9 }))
+    && opens("43 less per month", "than the current plan, an estimate").test(money({ monthly_steady_cost_delta_shifted: null })));
   check("#2257: a dearer schedule estimate orders its range small to large",
-    /^12–19 more per month than the current plan, an estimate/.test(
+    opens("12–19 more per month", "than the current plan, an estimate").test(
       money({ monthly_steady_cost_delta: 18.6, monthly_steady_cost_delta_shifted: 12.1 })));
   const pair = { ...simResult, monthly_steady_cost_delta: 13.0 };
   delete pair.monthly_steady_cost_delta_shifted;
   check("#2257: an answer priced by the two held plans has no second pricing and reads as steady state, one number",
-    /^13 more per month than the current plan, in steady state\./.test(
-      whatIf.whatIf.summary(pair).replace(/<[^>]+>/g, "")));
+    opens("13 more per month", "than the current plan, in steady state\\.").test(whatIf.whatIf.summary(pair)));
   const none = { ...simResult };
   delete none.monthly_steady_cost_delta;
   delete none.monthly_steady_cost_delta_shifted;
