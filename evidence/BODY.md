@@ -15,11 +15,26 @@ Polish of the non-expanded card. Each change is listed with why. The ordering re
 
 ## Head
 
-82e14f6d8fb87fc65dd993d1cadbd35883090f07, a merge of origin/main ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e into bbad7959ae2bacf68d01f190f28e87f849932179; merge base ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e (origin/main's tip; measured 2026-11-11 14:45 UTC).
+8c45afd38f2378350bd2e532b68da28e7f682f0e, a merge of origin/main d72963a719438f2dcf370de92a71f6630804ff2e into 82e14f6d8fb87fc65dd993d1cadbd35883090f07; merge base d72963a719438f2dcf370de92a71f6630804ff2e (origin/main's tip; measured 2026-11-12 06:44 UTC).
 
-## Repair round 2
+## Repair round 3 (merge repair)
 
-The second review blocked `root-cause-unanswered` at bbad7959ae2bacf68d01f190f28e87f849932179: `tests / fast (3.14)` was red and `## Red checks` read none, and `env_drift --all` refused the branch for lacking #3398's combi leaves. This round merges origin/main (no conflict; `git merge-tree --write-tree origin/main bbad7959ae2bacf68d01f190f28e87f849932179` printed a tree and no conflict) and changes no line of its own. Main's delta to the card file is the setup diagram's combi caption and pipe, disjoint from the fold code. Steps 2-8 were re-run at 82e14f6d8fb87fc65dd993d1cadbd35883090f07: `## Figures` and the round-2 mutants below.
+The merge train refused 82e14f6d8fb87fc65dd993d1cadbd35883090f07: `git merge-tree --write-tree origin/main 82e14f6d8fb87fc65dd993d1cadbd35883090f07` (claimnotes driver installed) reported two conflicts, not the one the dispatch named.
+
+- `tests/golden/card_claimed_drift.txt`: the driver refused `CONFLICTING CLAIMS` (base stamp 7.1.10, main 7.1.11, branch 7.1.10) because both sides rewrote the claims of the same 44 scenarios; main's lines are R10-HOTFIX-CARD-HEALTH-TEXT's. Resolution: main's file verbatim (stamp `claims-for: 7.1.11`, its v7.1.11 note, R10-HOTFIX-CARD-HEALTH-TEXT's block) plus this branch's R10-CARD-COLLAPSE block unchanged. Neither side's line was dropped or rewritten. The claim set was re-derived at the merged tree, not copied: `node tests/card_drift.mjs origin/main` (after `tests/plan_view.py`) reports 44 states moved and claimed, `editor_schema` identical, rc 0. That is the same 44 the R10-CARD-COLLAPSE block names, so it claims exactly the moved set. Control that main's lines excuse nothing for this diff: with the file restored to `git show origin/main:tests/golden/card_claimed_drift.txt`, the same command prints 44 `DRIFT ... (unclaimed)` lines and `card_drift: 44 problem(s)`, rc 1. Read-back: `git diff origin/main HEAD -- tests/golden/card_claimed_drift.txt` is 53 added lines and 0 removed (this branch's block); `git diff 82e14f6d8fb87fc65dd993d1cadbd35883090f07 HEAD -- tests/golden/card_claimed_drift.txt` is only the stamp, the v7.1.11 note and the R10-HOTFIX-CARD-HEALTH-TEXT block. No value-bearing fixture was recorded.
+- `tests/card_browser.mjs`: both sides added a cell at the same place, this branch's `cardCollapse` and main's `blockerHide` (R10-HOTFIX-CARD-HEALTH-TEXT). Resolution keeps both, `cardCollapse` first; both call sites merged without conflict. Read-back: the added and removed lines of `git diff origin/main HEAD -- tests/card_browser.mjs` equal, as sorted sets, those of `git diff ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e 82e14f6d8fb87fc65dd993d1cadbd35883090f07 -- tests/card_browser.mjs` (this branch's own delta), so nothing of main's cell was lost and nothing new was written; `node --check` passes.
+
+No other line changed. Steps 2-8 were re-run at 8c45afd38f2378350bd2e532b68da28e7f682f0e: `## Figures
+
+All at 8c45afd38f2378350bd2e532b68da28e7f682f0e, merge base d72963a719438f2dcf370de92a71f6630804ff2e, 2026-11-12 06:44 UTC, Python 3.14.7, `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`.
+- `python3 tests/closure.py select --diff d72963a719438f2dcf370de92a71f6630804ff2e --workdir "$D"`: `MODE: SCOPED -- 12 script(s) run, 21 scoped out.` Every script in `scope.run` exits 0, `tests/features.py` included (`ALL 5294 FEATURE CHECKS PASSED`), `tests/card.mjs` `ALL CARD CHECKS PASSED`, `tests/card_drift.mjs` `card_drift: 44 state(s) moved and claimed, 1 identical`. `run_always` lines: `python3 tests/env_drift.py --claims-only origin/main` printed `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` printed `ALL 118 closure shrink pins PASSED`; `python3 tests/layout.py` rc 0.
+- `python3 tests/env_drift.py --all`: rc 0, `NO STALE FIXTURE`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 tools/audit/archscore/score.py --diff d72963a719438f2dcf370de92a71f6630804ff2e`: `Architecture score: dS +0.0000 NULL`. An earlier head read `card_clone_copies` 103 -> 108. That was paid by merging the narrative summary into `narrativeParts`, adding one `weightOf` helper, and passing one `{score, narrative, whynow}` disclosure argument to `headlineHtml`.
+- `git diff --quiet d72963a719438f2dcf370de92a71f6630804ff2e...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json && echo untouched`: printed.
+- `PYTHONPATH=tests/hastub node tests/card_browser.mjs` (the second conflicted file): `ALL BROWSER CHECKS PASSED`, rc 0, no `FAIL` line; both `cardCollapse`'s collapse checks (light and dark) and `blockerHide`'s two `keeps a layout box` arms (null control and injected rules) ran.
+
+## Red checks` read none, and `env_drift --all` refused the branch for lacking #3398's combi leaves. This round merges origin/main (no conflict; `git merge-tree --write-tree origin/main bbad7959ae2bacf68d01f190f28e87f849932179` printed a tree and no conflict) and changes no line of its own. Main's delta to the card file is the setup diagram's combi caption and pipe, disjoint from the fold code. Steps 2-8 were re-run at 82e14f6d8fb87fc65dd993d1cadbd35883090f07: `## Figures` and the round-2 mutants below.
 
 ## Repair round 1
 
@@ -107,7 +122,7 @@ All at 82e14f6d8fb87fc65dd993d1cadbd35883090f07, merge base ceb3070ccb49fe6dfc9d
 
 ## Red checks
 
-- `tests / fast (3.14)`: main's red, not this branch's. The failing check is `tests/features.py`'s `combi_type_branch census` (vendor hits in `const.py`, `heat_curve.py`, `pump_arbiter.py`, `thermal_model.py`). Control: the same `PYTHONPATH=tests/hastub GOLDEN_MODE=drift python3 tests/features.py` at origin/main ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e prints the identical FAIL line and `1 of 5237 FEATURE CHECKS FAILED`, rc 1; `git diff --name-only ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e...HEAD -- '*.py' | grep custom_components` prints nothing, so this branch touches no file the census reads. Cheaper detector for this PR: none exists, because the branch did not cause the defect; the cause, its process state and countermeasure are owned by #3466 (the repair, on the merge train). Carry: #3466
+- `tests / fast (3.14)`: main's red, not this branch's. The failing check is `tests/features.py`'s `combi_type_branch census` (vendor hits in `const.py`, `heat_curve.py`, `pump_arbiter.py`, `thermal_model.py`). Control: the same `PYTHONPATH=tests/hastub GOLDEN_MODE=drift python3 tests/features.py` at origin/main ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e prints the identical FAIL line and `1 of 5237 FEATURE CHECKS FAILED`, rc 1; `git diff --name-only ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e...HEAD -- '*.py' | grep custom_components` prints nothing, so this branch touches no file the census reads. Cheaper detector for this PR: none exists, because the branch did not cause the defect; the cause, its process state and countermeasure are owned by #3466 (the repair, on the merge train). Carry: #3466 At this head the same command passes (`ALL 5294 FEATURE CHECKS PASSED`): #3466's repair is on main d72963a719438f2dcf370de92a71f6630804ff2e.
 
 ## Forward-carry
 

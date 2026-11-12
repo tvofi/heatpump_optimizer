@@ -1,7 +1,0 @@
-15180:    this._folds = { narrative: false, whynow: false };
-15569:      headlineHtml(this.plan, this._config, { score: this._scoreOpen, ...this._folds });
-15667:        this._folds = { ...this._folds, [key]: !this._folds[key] };
-14742:        if (again && typeof again.focus === "function") again.focus();
-15670:        if (again && typeof again.focus === "function") again.focus();
-15226:  set hass(hass) {
-16202:  set hass(hass) {
