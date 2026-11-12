@@ -1,5 +1,7 @@
 Part 2 of R10-SUITE-ENV-RESIDUE, body item ec93383a (and its duplicate): `tests/throwaway_git.py` and its shell twin `tests/throwaway_git.sh` set `GIT_CONFIG_GLOBAL` to `/dev/null`, which makes git die with `bad config line 1 in file /dev/null` (`git init` exit 128) wherever `/dev/null` holds bytes. Both now point at an emptied per-process `mktemp` file (the python side removes it at exit). The first cut used a fixed per-uid temp path and `tmp_paths.py --check` refused it (`tmpdir-fixed`), so it was replaced.
 
+Carry dispositions (roster state read, not built here): Carry 0 dismissed on the roster (superseded by its own rule); Carry 1 implemented; Carry 2 implemented; Carry 3 implemented; Carry 4 dismissed on the roster (premise gone). Carry 5 and Carry 6 are built in this pull request.
+
 ## Head
 
 7d55d16d97926797c5cdaf33eea2b6a981ee75b2, measured on a worktree cut from 8c10361eb1fea539dc5acb8f7442eac2810faa47. Reproduction: not reproduced in this cloud container. `/dev/null` here is the normal empty char device (`ls -l /dev/null`: `crw-rw-rw- 1 root root 1, 3`), and `GIT_CONFIG_GLOBAL=/dev/null git init` exits 0, as did `tests/entities.py`'s throwaway-git section and `stop-selfcheck.sh --self-test` (29 passed) at the base. The failure mechanism is reproduced instead with a non-empty file as the global config (see Null control).
@@ -26,9 +28,8 @@ none
 
 ## Forward-carry
 
-- Carry 0 (R10-FLY-SUITE-ENV-FLAKES nightly respawn), 4 (stress mem peak), 1-3 are marked implemented or dismissed on the roster; nothing is built for them here. Carry: dismissed: already marked implemented or dismissed on the roster
-- Carries 5 and 6 (ec93383a) are built here. Carry: dismissed: built in this pull request
+none
 
 ## Friction
 
-- gate-scoping: cost: `prepr.sh`'s closure recording of `tests/entities.py` under strace did not finish in 17+ min in the cloud image. Carry: R10-SUITE-ENV-RESIDUE
+- gate-scoping: cost: `prepr.sh`'s closure recording of `tests/entities.py` under strace did not finish in 17+ min in the cloud image. Carry: dismissed: a slow strace recording of one script in this image is one occurrence, not a recurring class (defect-root-cause.md); recorded here only
