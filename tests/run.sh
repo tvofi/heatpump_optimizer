@@ -541,6 +541,8 @@ lane_units() {
   # selectable script left out of every lane fails the gate twice: unwired
   # at the start, and never-ran at the accounting.
   run "$PYTHON" tests/block_duty.py
+  # The .gitignore config/ rule stays root-anchored (R10-PREPR-RESIDUE).
+  run "$PYTHON" tests/gitignore_config.py
   # #1413: derive the claim set from the reader docs and the fact set from
   # code, fail-closed on a contradiction -- the stale-prose class (D5-01/D6-01/
   # D6-03). Own script so the claim shapes are scanned, not enumerated.
