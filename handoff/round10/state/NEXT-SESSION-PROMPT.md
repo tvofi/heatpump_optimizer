@@ -27,7 +27,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-GH-READ-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-STANDING-CONTRACTS-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-CARRY-AUDIT-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-CARRY-AUDIT-P5 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SUITE-ENV-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SAV-VALUATION-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -52,7 +52,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-CARD-HEALTH-TEXT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PREPR-WC-PAD (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-MACH-SCORECARD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-PROTECTION-CENSUS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-TICK-SELFTEST-CHECKOUT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-MUTANT-RUN-DARWIN (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -62,7 +61,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-MACOS-SELFTEST-LANE (stage in-progress, branch `fix/r10-hotfix-macos-selftest-lane`): `git fetch origin fix/r10-hotfix-macos-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-TRAIN-CONTEXT-PAGES (stage in-progress, branch `fix/r10-hotfix-train-context-pages`): `git fetch origin fix/r10-hotfix-train-context-pages && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-ARCH-DOCS, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-RESTART-LEARNING, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-LEGACY-CONTROL-DATA, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-MUTANT-RUN-DARWIN, R10-HOTFIX-OPENPR-HOST-REFUSAL, R10-HOTFIX-PLAN-OWNER-PRICE, R10-HOTFIX-PREPR-WC-PAD, R10-HOTFIX-TICK-SELFTEST-CHECKOUT, R10-HOTFIX-TRAIN-CONTEXT-PAGES, R10-MACH-SCORECARD, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PROTECTION-CENSUS, R10-RCA-CARD-HEALTH-TEXT, R10-RELAY-ARM-ORDER, R10-REVIEW-DISPATCH-RESIDUE, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE-P2, R10-TRAIN-RESIDUE-P2, R10-USER-DOCS-VERIFY
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-ARCH-DOCS, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-RESTART-LEARNING, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-LEGACY-CONTROL-DATA, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-MUTANT-RUN-DARWIN, R10-HOTFIX-OPENPR-HOST-REFUSAL, R10-HOTFIX-PLAN-OWNER-PRICE, R10-HOTFIX-PREPR-WC-PAD, R10-HOTFIX-TICK-SELFTEST-CHECKOUT, R10-HOTFIX-TRAIN-CONTEXT-PAGES, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-PROTECTION-CENSUS, R10-RCA-CARD-HEALTH-TEXT, R10-RELAY-ARM-ORDER, R10-REVIEW-DISPATCH-RESIDUE, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE-P2, R10-TRAIN-RESIDUE-P2, R10-USER-DOCS-VERIFY
 
 ## Resume steps
 
