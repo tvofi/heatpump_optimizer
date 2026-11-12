@@ -19,7 +19,11 @@ The brief's carries:
 
 ## Head
 
-2e5cad3b03888993a595dd5649a63ddaa05a196a, cut from `origin/main` 14f227c5bd0eb80855b21055cc668857a5f820b4, which is also the merge base. The fix and its check are 8bd0eae9. a8d91109 orders the bisection span (`min()` dropped) and deletes the two moved pins. 4f4f3f1e adds the three triage rows. 2e5cad3b adds the check's 14 C and 16 C rows, which kill three of prepr's diff-mutant survivors (`## Unpinned sites`). No production figure below moves between 8bd0eae9 and this head: the span change is equivalent wherever the bisection runs. The block was re-run at 2e5cad3b (`ALL 5 FEATURES BLOCK PASSED`). Measured 2026-11-12 (UTC). VERSION, the manifest and RELEASE_NOTES are untouched.
+`11dc22c875d08470487f8f4baad8c8692bf2ac9d` is `mutation-autofix`'s commit `ci: pin killed mutants` on top of `00a7af72471a8a864b9830848cf4d948080d01a2`. It adds four `killed_by` rows and touches no other file (`git diff --stat 00a7af7247 11dc22c875`: 4 files, 24 insertions, all under `tests/mutation_ledger/killed_by/`). This repair adds no commit: the head is the autofix's.
+
+`00a7af72471a8a864b9830848cf4d948080d01a2` merges origin/main `19baca7618` into the authored code head `2e5cad3b03888993a595dd5649a63ddaa05a196a` (an automatic merge by the orchestrator's script; no resolution was needed).
+
+2e5cad3b03888993a595dd5649a63ddaa05a196a, cut from `origin/main` 14f227c5bd0eb80855b21055cc668857a5f820b4. The fix and its check are 8bd0eae9. a8d91109 orders the bisection span (`min()` dropped) and deletes the two moved pins. 4f4f3f1e adds the three triage rows. 2e5cad3b adds the check's 14 C and 16 C rows, which kill three of prepr's diff-mutant survivors (`## Unpinned sites`). No production figure below moves between 8bd0eae9 and this head: the span change is equivalent wherever the bisection runs. The block was re-run at 2e5cad3b (`ALL 5 FEATURES BLOCK PASSED`). Production figures measured 2026-11-12 (UTC); the repair's figures re-taken at 11dc22c8 against origin/main 8c10361e, 2026-11-12 (UTC). VERSION, the manifest and RELEASE_NOTES are untouched.
 
 ## Mutation proof
 
@@ -39,10 +43,11 @@ At the base 14f227c5 the new check FAILs (`1 of 5 FEATURES BLOCK FAILED`). At th
 - Unvalved installs return before the valve branch. The tank temperature reads the same `zoned(...)` call at a level target as before (`h.room_temperature` equals the target), so a curve that holds the target is bitwise unchanged.
 - Flat-price null (mandatory): `valve-flat` is the flat-price arm. Its residual carries no price term, and the store term is price-independent (-34.85 on both arms at the base, -0.30 on both at the head).
 - Zero-derate control for Carry 1 and Carry 2: `null rows not zero 0` from both companions at the head.
+- Unpinned-site ratchet (the repair's figure): at 00a7af72 CI printed `2612 unpinned site(s) against 2608 at the ratchet base`, 4 added by this diff; at 11dc22c8 the same instrument prints `2608 unpinned site(s) of 7242 candidate sites, 2608 at the ratchet base 19baca76...`. The 00a7af72 reading is the control: the same command on the tree without the autofix's four rows reads the four sites unpinned.
 
 ## Figures
 
-<!-- figure-block: scope-line mb=14f227c5bd0eb80855b21055cc668857a5f820b4 head=2e5cad3b03888993a595dd5649a63ddaa05a196a -->
+<!-- figure-block: scope-line mb=19baca76181cb019d9b1cfd93ee6bc0a08e20047 head=11dc22c875d08470487f8f4baad8c8692bf2ac9d -->
 ~~~text
 MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
@@ -62,30 +67,43 @@ MODE: SCOPED -- 27 script(s) run, 6 scoped out.
   - `_start_gap_cost`: closed in this diff. It reads the same function, so the start's stored-heat settlement now values the gap against the equilibrium the thermostat keeps.
   - The definition itself.
   - No other reader exists.
-- **Structure**: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
-- **Gate**: `tests/closure.py select --diff 14f227c5` prints `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` at 8bd0eae9 prints `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN` (exit 0), including `ALL 5299 FEATURE CHECKS PASSED`, `ALL 2709 ENTITY CHECKS PASSED` and `ALL 116 STRESS CHECKS PASSED`.
+- **Unpinned-site ratchet** at 11dc22c8: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --scope changed --base origin/main --max 10 --jobs 3` (CI's `tests / mutation` command) prints `2608 unpinned site(s) of 7242 candidate sites, 2608 at the ratchet base 19baca76181cb019d9b1cfd93ee6bc0a08e20047; the ledger agrees with the deterministic inventory`, and no `ADDED UNPINNED` line. The local run's mutant draws were stopped at the 30-minute background bound after its baselines and null control (`NULL_COMMENT survived every driver`); the mutant verdicts are CI's at the same head (`## Red checks`).
+- **Structure**: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` at 11dc22c8.
+- **Gate**: `tests/closure.py select --diff 19baca76` prints `MODE: SCOPED -- 27 script(s) run, 6 scoped out.` at 11dc22c8. `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` at 8bd0eae9 prints `29 TEST SCRIPT(S) PASSED; 5 SCOPED OUT AND NOT RUN` (exit 0), including `ALL 5299 FEATURE CHECKS PASSED`, `ALL 2709 ENTITY CHECKS PASSED` and `ALL 116 STRESS CHECKS PASSED`.
 
 ## Red checks
 
-- `mutation` at 4f4f3f1ef05f: red by construction on the 4 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
-  - Root-cause answer: the cheaper detector exists and ran. `prepr.sh` step 6d (`tools/pr/ci_predict.py`) listed every site locally, at no added standing cost. Each site has a disposition under `## Unpinned sites`: three triaged as equivalent in this diff, four killed (measured) and left to `mutation-autofix` to pin. Nothing further to build: a red by construction until the lane pins is the ratchet's intended route.
+- `tests / mutation` at 00a7af72 (job 131279233005, run 43245625153): `MUTATION TABLE REFUSED -- 2612 unpinned site(s) against 2608 at the ratchet base 19baca76..., 4 of them added by this diff`, the four `ADDED UNPINNED` sites optimizer.py:596 CLAMP_DROP, :639 GUARD_OFF, :649 CMP_BOUND and thermal_model.py:2302 RETURN_DEL. All four were killed and measured before the push and left to `mutation-autofix` (`## Unpinned sites`), which pinned all four in 11dc22c8. At 11dc22c8 the unpinned count equals the base (`## Figures`, Unpinned-site ratchet), and `tests / mutation` is green (job 131317100996, run 43256638000: `MUTATION TABLE PASSED`).
+  - Survivors at 11dc22c8, from that job's table (`3 survivor(s) of 4 evaluated = 0.0% (3 triaged equivalent, raw 75.0%), cap 20.0%`), each with its disposition:
+    - optimizer.py:602 CONST `_VALVE_HELD_BISECTIONS = 40`: triaged equivalent, `survivor_triage/optimizer.py/@module.CONST.b8c7cb71.json`.
+    - optimizer.py:639 CMP_BOUND `if short(held) > 0.0:`: triaged equivalent, `survivor_triage/optimizer.py/_thermostat_held_state.CMP_BOUND.42081e68.json`.
+    - optimizer.py:644 CMP_BOUND, the bisection step's `> 0.0`: triaged equivalent, `survivor_triage/optimizer.py/_thermostat_held_state.CMP_BOUND.745fa965.json`.
+    - thermal_model.py:2302 RETURN_DEL: killed by `tests/features.py` (`PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced`).
+  - The triages were written by hand in 4f4f3f1e with their reasons (`## Unpinned sites`), not by automation; no survivor is left without a disposition.
+  - Root-cause answer: the cheaper detector exists and ran. `prepr.sh` step 6d (`tools/pr/ci_predict.py`) listed every site locally, at no added standing cost, and each had a disposition before the push. A red until the lane pins is the ratchet's intended route for a `custom_components/` kill (`ci-autofix.md`); nothing further to build.
+- `gate` at 00a7af72 (job 131283135569, run 43245635284): `FAIL run(s) [43245625153] at this head are still being judged; their gate decides` -- `tools/ci/gate.py`'s `deferral()`, which defers to the lower-numbered run at the same head. That run's own verdict was red on `tests / mutation` (above) and on `arch-score / arch-score`, which failed on `gh: HTTP 503` fetching the pull request (job 131279233398), a GitHub API outage outside this repository, owner GitHub. The gate red carries no cause of its own: it is the deferral to those two reds. `arch-score / arch-score` at 11dc22c8 is green (job 131317102626).
+  - Root-cause answer: no cheaper detector exists. The gate red is derived from the two reds above, each answered there; the 503 is an outside service, detectable only at the call it failed.
+- `gate` at 11dc22c8 (job 131354606349, run 43256638000): `FAIL run(s) [43256618046] at this head are still being judged; their gate decides`, the same `deferral()`. Run 43256618046's open unit was `pr-contract / pr-contract`, red on the previous body (next item).
+  - Root-cause answer: derived, as above; it carries no cause of its own.
+- `pr-contract / pr-contract` at 11dc22c8 (job 131353666654): `PR-BODY: 3 error(s)` on the previous body, which `## Red checks` did not name `arch-score / arch-score` or `tests / mutation` in, and whose scope-line figure block named head 00a7af72 (`figure_block.py verify`: `1 refused`). This body names both reds and its block names 11dc22c8; `tools/pr/prepr.sh --body-check` on it prints `PR-BODY: 0 error(s)` and `figure_block verify: 1 block(s), 0 refused` at 11dc22c8.
+  - Root-cause answer: the cheaper detector exists and is the one that cleared this body: `prepr.sh --body-check` (seconds, run before every body push). The previous body predates the autofix commit and the arch-score 503, so no local run could have seen them; a body re-written after the autofix lands is `ci-autofix.md`'s route. Nothing further to build.
 
 ## Unpinned sites
 
 Each site is on `custom_components/`, the lane `mutation-autofix` mutates. A kill marked "measured" was read with the group's block run standalone (`## Mutation proof`'s command).
 
-- custom_components/heatpump_optimizer/optimizer.py:596 CLAMP_DROP: pinned by `mutation-autofix` (measured: the held-state check and its null control FAIL; at its old anchor `tests/stress.py` killed it)
+- custom_components/heatpump_optimizer/optimizer.py:596 CLAMP_DROP: pinned by `mutation-autofix` in 11dc22c8 (`killed_by/optimizer.py/_held_zones.CLAMP_DROP.afb64a55.json`; measured: the held-state check and its null control FAIL)
 - custom_components/heatpump_optimizer/optimizer.py:602 CONST: triage `survivor_triage/optimizer.py/@module.CONST.b8c7cb71.json` (equivalent; 80 measured, block passes)
 - custom_components/heatpump_optimizer/optimizer.py:639 CMP_BOUND: triage `survivor_triage/optimizer.py/_thermostat_held_state.CMP_BOUND.42081e68.json` (equivalent; measured, block passes)
-- custom_components/heatpump_optimizer/optimizer.py:639 GUARD_OFF: pinned by `mutation-autofix` (measured, M1)
+- custom_components/heatpump_optimizer/optimizer.py:639 GUARD_OFF: pinned by `mutation-autofix` in 11dc22c8 (`killed_by/optimizer.py/_thermostat_held_state.GUARD_OFF.42081e68.json`; measured, M1)
 - custom_components/heatpump_optimizer/optimizer.py:644 CMP_BOUND: triage `survivor_triage/optimizer.py/_thermostat_held_state.CMP_BOUND.745fa965.json` (equivalent; measured, block passes)
-- custom_components/heatpump_optimizer/optimizer.py:649 CMP_BOUND: pinned by `mutation-autofix` (measured: `PYTHONPATH=tests/hastub python3 tests/features.py` under the mutant prints `1 of 5299 FEATURE CHECKS FAILED`, FAIL `behind a valve at zero demand the held tank keeps its measured temperature, ...`, against `ALL 5299 FEATURE CHECKS PASSED` unmutated)
-- custom_components/heatpump_optimizer/thermal_model.py:2302 RETURN_DEL: pinned by `mutation-autofix` (measured: the block raises `TypeError`)
+- custom_components/heatpump_optimizer/optimizer.py:649 CMP_BOUND: pinned by `mutation-autofix` in 11dc22c8 (`killed_by/optimizer.py/_thermostat_held_state.CMP_BOUND.4aa37f7d.json`; measured: `PYTHONPATH=tests/hastub python3 tests/features.py` under the mutant prints `1 of 5299 FEATURE CHECKS FAILED`, FAIL `behind a valve at zero demand the held tank keeps its measured temperature, ...`, against `ALL 5299 FEATURE CHECKS PASSED` unmutated)
+- custom_components/heatpump_optimizer/thermal_model.py:2302 RETURN_DEL: pinned by `mutation-autofix` in 11dc22c8 (`killed_by/thermal_model.py/valve_top_draw.RETURN_DEL.21d92eb4.json`; measured: the block raises `TypeError`)
 
 `prepr.sh`'s diff mutants (`MUTANT_CMD` = the block above) at 4f4f3f1e left 8 survivors. Each, with its disposition at this head:
-- optimizer.py:596 CONST_SWAP `max(1.0, q_floor)`: killed at this head by the 14/16 C rows (FAIL, dS -0.075 to -0.1875).
-- optimizer.py:639 CONST_SWAP `short(held) > 1.0`: killed at this head (the two-zone 14 C shortfall is under 1 kW; FAIL, single-zone 14 C dS -0.1438).
-- optimizer.py:649 CONST_SWAP `held_need > 1.0`: killed at this head (two-zone 16 C, FAIL, dS -0.1749).
+- optimizer.py:596 CONST_SWAP `max(1.0, q_floor)`: killed by the 14/16 C rows (FAIL, dS -0.075 to -0.1875).
+- optimizer.py:639 CONST_SWAP `short(held) > 1.0`: killed (the two-zone 14 C shortfall is under 1 kW; FAIL, single-zone 14 C dS -0.1438).
+- optimizer.py:649 CONST_SWAP `held_need > 1.0`: killed (two-zone 16 C, FAIL, dS -0.1749).
 - optimizer.py:602 CONST_SWAP `_VALVE_HELD_BISECTIONS = 41`: equivalent, as the CONST triage row argues (41 narrows the bracket by half of 2**-40).
 - optimizer.py:634 CONST_SWAP `need`'s dt 0.25 to 0.5: equivalent. At level zones the demand's pull-back and slab-charge terms are zero, so dt multiplies nothing; measured: block passes.
 - optimizer.py:639 and 644 CMP_BOUND: the triage rows above.
