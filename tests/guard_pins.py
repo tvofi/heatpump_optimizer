@@ -375,7 +375,7 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
                 params=NS(min_electrical_power=0.4),
                 curve_flow_temp=lambda _o: 34.2,
             )
-            self._thermal_params = NS(dhw_setpoint=48.0)
+            self._thermal_params = NS(dhw_setpoint=48.0, dhw_max_temp=48.0)
             self._current_state = NS(outdoor_temperature=2.0)
             self.entry = FakeEntry(entry_id=f"gp{next(ids)}")
             self.hass.states.set(flag, FakeState("off"))
