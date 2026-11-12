@@ -36,7 +36,7 @@ Dropped from the contributor's branch: the closures commit and the deployment-sh
 
 ## Head
 
-5dea8264f2c8712c15725884d00b99eea5b48d24, measured on origin/main 26072317b5556a2baa1ff562d8fbbc9588e2ba5c (merge base) at 2026-11-12T09:46Z.
+701a18e26661a8c8ef416ae3bc1e9b7df2049d8a, measured on origin/main 19baca76181cb019d9b1cfd93ee6bc0a08e20047 at 2026-11-12T14:12Z. It is review round 1's head 5dea8264f2c8, plus the repair commit d94be70cc39e, the merge of origin/main 6e100ef69802 (24b879dc7cb3), the `tests/entities.py` closure re-derived by `--single` (42c2717d0c0b), the merge of origin/main 2b4515dc5282 (ebf11f1265c5, seat tooling only), and the merge of origin/main 19baca76181c (701a18e26661). At this head the group's mutation command passes. The ten mutants below were re-applied and all ten killed. The scoped gate, the closed-loop harness (phase 7 and phase 0 tables byte-identical to the round-1 head's) and `prepr.sh` were re-run.
 
 ## Mutation proof
 
@@ -85,6 +85,24 @@ At 07a83211d7 step 6d' listed one more, `supply_hold.py` CONST_SWAP `getattr(par
 
 Command: `python3 mut_final.py mutant_cmd.sh` (scratch drivers, one-off; `mutant_cmd.sh` is the two `features_block.py` calls named in `## Figures`). `prepr.sh` step 6d' ran the same command over its drawn mutants (`MUTANT_CMD`).
 
+Review round 1 returned `blocked: mutation-vacuous`: ten mutants of added or moved lines survived the group's mutation command and the whole `tests/features.py`. Each now has a killing check in `tests/features.py` ("which writes are held: ...", "step tick, held write: ...", "an install with no power switch: ..."), shaped on the reviewer's `probe_block.py`. The tenth, `supply_switch`'s `if entity else None`, is equivalent under `FakeStates`, whose `get(None)` is `None`. Upstream `StateMachine.get(None)` raises, because a miss retries `entity_id.lower()`. The new contract "StateMachine.get(None) raises" in `tests/ha_contract.py` pins that (`expect="real"`). The no-switch install drives `_write_supply` on a `Coord` with no `heat_pump_switch_entity`, through a states double that reads as upstream does. Each mutant was applied in place, one at a time, at the head, and run against the group's mutation command:
+
+```
+KILLED    1 supply_hold.py: 'return (inp.mode not in (MODE_AUTO, MODE_ECONOMY)' -> 'return (False' | FAIL which writes are held: a fixed mode (comfort) passes an OFF three minutes into a run -> (False, False)  [(None, True)]
+KILLED    2 supply_hold.py: 'return (inp.mode not in (MODE_AUTO, MODE_ECONOMY)' -> 'return (inp.mode != MODE_AUTO' | FAIL which writes are held: economy is a plan mode: an OFF three minutes into a run is held -> (None, True)  [(False, False)]
+KILLED    3 supply_hold.py: 'or boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNE' -> 'or boosts.active(CHANNEL_DHW, now))' | FAIL which writes are held: a live space boost passes an ON three minutes into a pause -> (True, False)  [(None, True)]
+KILLED    4 supply_hold.py: 'or boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNE' -> 'or boosts.active(CHANNEL_SPACE, now))' | FAIL which writes are held: a live DHW boost passes an ON three minutes into a pause -> (True, False)  [(None, True)]
+KILLED    5 supply_hold.py: 'in ("dhw", "both") and tank_reason' -> '== "dhw" and tank_reason' | FAIL which writes are held: rule three: a both step with the tank below its minimum is exempt -> (True, False, 'both')  [(None, True, 'both')]
+KILLED    6 supply_hold.py: 'if nxt - now >= MIN_RUN or' -> 'if nxt - now >= MIN_RUN - timedelta(minutes=1) or' | FAIL which writes are held: rule three: an ON at minute 6, one tick inside MIN_RUN of an OFF step, is skipped -> (None, True)  [(True, False)]
+KILLED    7 pump_arbiter.py: 'if on is None and held.supply_held and not inp.entry_release' -> 'if on is None and held.supply_held:' | FAIL step tick, held write: the entry released: no write, the hold dropped  [([False], True)]
+KILLED    8 pump_arbiter.py: 'if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_sta' -> 'if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or not inp.acti' | FAIL step tick, held write: a stale plan: no write, the hold dropped  [([False], True)]
+KILLED    9 pump_arbiter.py: 'if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_sta' -> 'if inp.mode != MODE_AUTO or inp.plan_stale or not inp.action' | FAIL step tick, held write: economy with no plan retries the action's OFF  [([], False)]
+KILLED   10 pump_arbiter.py: 'heat_pump_switch_entity\n    return inp.hass.states.get(entit' -> 'heat_pump_switch_entity\n    return inp.hass.states.get(entit' | FAIL an install with no power switch: the gate writes and holds nothing, and raises nothing  [AttributeError("'NoneType' object has no attribute 'lowe
+10 of 10 killed
+```
+
+Command: `python3 mut10.py mutant_cmd.sh`. `mut10.py` is a scratch driver, one-off, and holds the ten replacements the verdict names. The checks above it are unchanged at the head. `prepr.sh` step 6d' printed `no survivor among the diff's first 40 mutant(s)` at the head, under the same command run in its own working directory (`## Friction`). The ten were re-applied at this head with the same result.
+
 Red without the fix, the contributor's design at the head's tests: the one-clock checks, the empty-plan retry, system identification, the climate target, the learners' freeze, rule three's tank exemption and the unreadable, unknown and future-stamped switch each name a mutant above that reverts that change.
 
 ## Null control
@@ -98,12 +116,12 @@ Red without the fix, the contributor's design at the head's tests: the one-clock
 
 ## Figures
 
-- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) bash tests/run.sh`. `MODE: SCOPED -- 24 script(s) run, 9 scoped out` at the head. At a489aaaa18 its one red was `tests/features.py`, on the `interval_held` None-config defect fixed in 39ef0fcb68. At the head it prints `26 TEST SCRIPT(S) PASSED; 8 SCOPED OUT AND NOT RUN`.
-- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2709 ENTITY CHECKS PASSED` at the merge base and at 4200c4f921. Before the `switch_age` and ledger fixes it failed `state_age` (P2) and two stale ledger marks.
-- `PYTHONPATH=tests/hastub python3 tests/structure.py`: no breach. `max_class_loc` was recorded at 7919, down from 7921. `duplication_copies` was held at its budget by `pump_arbiter.supply_switch`.
-- `PYTHONPATH=tests/hastub python3 tests/ha_contract.py` and `/opt/hpo/venv-ha/bin/python tests/ha_contract.py --contracts-only`: 0 FAIL lines under either provider.
+- Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) bash tests/run.sh`. `MODE: SCOPED -- 24 script(s) run, 9 scoped out` at the head, which prints `26 TEST SCRIPT(S) PASSED; 8 SCOPED OUT AND NOT RUN`.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2709 ENTITY CHECKS PASSED` at the head, inside the scoped gate run. `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` at the merge recorded the closure's `rc` as 0 (it was 1) and changed nothing else.
+- `PYTHONPATH=tests/hastub python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` at the head. `max_class_loc` was recorded at 7919, down from 7921. `duplication_copies` was held at its budget by `pump_arbiter.supply_switch`.
+- `PYTHONPATH=tests/hastub python3 tests/ha_contract.py` and `/opt/hpo/venv-ha/bin/python tests/ha_contract.py --contracts-only`: 0 FAIL lines under either provider at the head. The new contract "StateMachine.get(None) raises" reads `ok` against real Home Assistant and "still divergent under the stub" under `tests/hastub`.
 - Closures: `GOLDEN_REF=origin/main ./tests/derive_closures.sh --scripts-from scripts.txt --record-only --out-dir rec`, then `python3 tests/closure.py merge --in-dir rec --partial --allow-failures`, on Linux. `supply_hold.py` joins the 22 closures that read the coordinator or the early cut-off, and no closure loses a file (a set diff of `closures` against origin/main).
-- Closed loop, phase 7: `SUPPLY_HOLD=1 PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/early_cutoff_closed_loop.py NULL` (and `HOT`, `LIGHT`). sha1 of the harness at the head: 39a4867b2afda697d041add836d69a9fd3e37401.
+- Closed loop, phase 7: `SUPPLY_HOLD=1 PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/early_cutoff_closed_loop.py NULL` (and `HOT`, `LIGHT`). sha1 of the harness at the head: 39a4867b2afda697d041add836d69a9fd3e37401. Re-run at the head: the phase-7 and phase-0 tables are byte-identical to the round-1 head's (`diff o7 n7 && echo PHASE7-IDENTICAL` printed PHASE7-IDENTICAL, and the same for phase 0).
 
 ```
 NULL    winter_typical gate off held/day   0.0 episodes   0  writes   8  short runs  1 pauses  2  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    1.4 kWh  room min 19.99  tank min 35.00
@@ -137,7 +155,7 @@ LIGHT   flat           gate off held/day   0.0 episodes   0  writes  17  short r
 LIGHT   flat           gate on  held/day   0.0 episodes   0  writes  17  short runs  0 pauses  0  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump   29.5 kWh  room min 19.02  tank min 35.00
 ```
 
-- Rule three's share: the same command run through `no_rule3.py`, a scratch driver that sets `supply_hold._ends_soon = lambda *_a: False` and then runs the harness.
+- Rule three's share, measured at 5dea8264f2c8 and not re-run: the same command run through `no_rule3.py`, a scratch driver that sets `supply_hold._ends_soon = lambda *_a: False` and then runs the harness.
 
 ```
 NULL    winter_typical gate off held/day   0.0 episodes   0  writes   8  short runs  1 pauses  2  booked-not-delivered   0.00 kWh  run-past-stop   0.00 kWh  pump    1.4 kWh  room min 19.99  tank min 35.00
@@ -156,7 +174,7 @@ LIGHT   flat           gate on  held/day   9.0 episodes   4  writes  22  short r
 
 The harness fixes the tank at 35.0 degC, so its tank minimum is not informative. Rule three's tank exemption is pinned by the `features.py` checks "rule three: a hot-water step ...", not by this harness.
 
-<!-- figure-block: scope-line mb=26072317b5556a2baa1ff562d8fbbc9588e2ba5c head=5dea8264f2c8712c15725884d00b99eea5b48d24 -->
+<!-- figure-block: scope-line mb=19baca76181cb019d9b1cfd93ee6bc0a08e20047 head=701a18e26661a8c8ef416ae3bc1e9b7df2049d8a -->
 ~~~text
 MODE: SCOPED -- 24 script(s) run, 9 scoped out.
 ~~~
@@ -175,13 +193,13 @@ Each site is killed by the group's mutation command (`prepr.sh` step 6d', no sur
 - `custom_components/heatpump_optimizer/early_cutoff.py:272 GUARD_OFF`: pinned by mutation-autofix
 - `custom_components/heatpump_optimizer/early_cutoff.py:274 CMP_BOUND`: pinned by mutation-autofix
 - `custom_components/heatpump_optimizer/early_cutoff.py:274 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1823 BOOLOP`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1823 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1827 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1833 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1844 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1846 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1859 RETURN_DEL`: pinned by mutation-autofix
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1831 BOOLOP`: pinned by mutation-autofix
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1831 GUARD_OFF`: pinned by mutation-autofix
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1835 GUARD_OFF`: pinned by mutation-autofix
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1841 GUARD_OFF`: pinned by mutation-autofix
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1852 GUARD_OFF`: pinned by mutation-autofix
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1854 RETURN_DEL`: pinned by mutation-autofix
+- `custom_components/heatpump_optimizer/pump_arbiter.py:1867 RETURN_DEL`: pinned by mutation-autofix
 - `custom_components/heatpump_optimizer/supply_hold.py:78 GUARD_OFF`: pinned by mutation-autofix
 - `custom_components/heatpump_optimizer/supply_hold.py:83 GUARD_OFF`: pinned by mutation-autofix
 - `custom_components/heatpump_optimizer/supply_hold.py:85 CMP_BOUND*2`: pinned by mutation-autofix
@@ -204,7 +222,7 @@ Each site is killed by the group's mutation command (`prepr.sh` step 6d', no sur
 
 ## Red checks
 
-- `mutation` at 5dea8264f2c8: red by construction on the 35 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push. No cheaper detector is owed: `prepr.sh` step 6d' already drives these sites locally with the group's mutation command, and its survivors are killed above.
+- `mutation` at 701a18e26661: red by construction on the 35 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push. No cheaper detector is owed: `prepr.sh` step 6d' already drives these sites locally with the group's mutation command, and its survivors are killed above.
 
 ## Forward-carry
 
@@ -212,4 +230,4 @@ none
 
 ## Friction
 
-none
+- prepr.sh: unclear: `MUTANT_IN_PLACE=1`, which `fixer.md` step 2 prescribes for a checkout, leaks from the caller into `prepr.sh --self-test`. Its assertion "a check needing a git checkout measures nothing in the archive copy, and is refused" leaves the variable at its default, so it ran in place, got rc 0 and refused the step (541 passed, 1 failed). The same self-test passes at origin/main with the variable unset. The final run here leaves it unset and points step 6d' at a copy of the group's mutation command that runs in its own working directory (the archive copy). The self-test then printed `542 passed, 0 failed`. Carry: dismissed: outside this repair's brief, named in the seat's result for the orchestrator to route
