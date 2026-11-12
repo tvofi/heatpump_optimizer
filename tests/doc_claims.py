@@ -4475,6 +4475,16 @@ def check_surface_coverage() -> None:
     classes = collections.Counter(r["class"] for r in rows)
     R.check("every surface class enumerates from the tree (anchor)", set(classes) == set(_HOMES),
             ", ".join(f"{c}={classes.get(c, 0)}" for c in _HOMES))
+    from heatpump_optimizer import config_flow
+
+    # A `_Suggested` default's fallback is the default a fresh entry shows; read as <computed>, its Default cell
+    # would be compared against nothing (fix review of r10-user-docs-verify, block 2).
+    suggested = {f.key: f.default.fallback for f in config_flow._OPTION_FIELDS
+                 if isinstance(f.default, config_flow._Suggested)}
+    by_id = {r["id"]: r["value"] for r in rows if r["class"] == "option"}
+    R.check("every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)",
+            bool(suggested) and all(by_id.get(k) == v and v != _COMPUTED for k, v in suggested.items()),
+            repr({k: (v, by_id.get(k)) for k, v in suggested.items()}))
     bad = surface_findings(rows)
     R.check("every surface has its home, or a reasoned exemption that still names one",
             not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
