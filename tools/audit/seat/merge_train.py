@@ -6772,9 +6772,31 @@ BLIND_CLASSIFY_READERS = {
 }
 
 
+def _busy_blind(call: "ast.Call") -> bool:
+    """Whether a `classify(...)` call reads no busy evidence: no third argument
+    and no `busy=`, or one that is a literal None or an empty literal (the
+    default `()`, `[]`, `{}`, `set()`), which is as blind as omitting it. A name
+    or call there is a reading and is not counted. A starred argument is unknown
+    and counts as a reading."""
+    if any(isinstance(a, ast.Starred) for a in call.args) or any(k.arg is None for k in call.keywords):
+        return False
+    arg = call.args[2] if len(call.args) >= 3 else next((k.value for k in call.keywords if k.arg == "busy"), None)
+    if arg is None:
+        return True
+    if isinstance(arg, ast.Constant):
+        return arg.value is None
+    if isinstance(arg, (ast.Tuple, ast.List, ast.Set)):
+        return not arg.elts
+    if isinstance(arg, ast.Dict):
+        return not arg.keys
+    return isinstance(arg, ast.Call) and isinstance(arg.func, ast.Name) and arg.func.id in ("set", "list", "tuple") \
+        and not arg.args and not arg.keywords
+
+
 def blind_classify_readers(text: str) -> dict:
-    """{enclosing function: count} of `classify(...)` calls in <text> with fewer
-    than three arguments (no `busy`), outside any self-test function."""
+    """{enclosing function: count} of `classify(...)` calls in <text> whose
+    `busy` argument is absent or a literal empty/None (`_busy_blind`), outside
+    any self-test function."""
     out: dict = {}
 
     def walk(n, fn):
@@ -6783,7 +6805,7 @@ def blind_classify_readers(text: str) -> dict:
             if isinstance(c, ast.Call):
                 f = c.func
                 nm = f.id if isinstance(f, ast.Name) else f.attr if isinstance(f, ast.Attribute) else ""
-                if nm == "classify" and len(c.args) + len(c.keywords) < 3 and not any("self_test" in x for x in fn):
+                if nm == "classify" and _busy_blind(c) and not any("self_test" in x for x in fn):
                     out[".".join(fn) or "<top>"] = out.get(".".join(fn) or "<top>", 0) + 1
             walk(c, nf)
     walk(ast.parse(text), [])
@@ -6804,6 +6826,16 @@ def _gate_reader_barrier_self_test(check) -> None:
           blind_classify_readers("def f():\n    return classify(l, r)\n") == {"f": 1}
           and blind_classify_readers("def f():\n    return classify(l, r, busy)\n") == {}
           and blind_classify_readers("def _x_self_test():\n    classify(l, r)\n") == {})
+    # item 3: a busy argument that carries no reading is as blind as none
+    blind_spellings = ("classify(l, r, ())", "classify(l, r, None)", "classify(l, r, busy=None)", "classify(l, r, [])",
+                       "classify(l, r, busy=())", "classify(l, r, set())", "classify(l, r, {})", "mt.classify(l, r, None)")
+    check("P436 barrier null: a literal empty or None `busy` is as blind as no `busy` "
+          f"({len(blind_spellings)} spellings)",
+          all(blind_classify_readers(f"def f():\n    return {sp}\n") == {"f": 1} for sp in blind_spellings))
+    check("P436 barrier null: a `busy` that is a name, a call or a keyword reading is not counted",
+          all(blind_classify_readers(f"def f():\n    return {sp}\n") == {}
+              for sp in ("classify(l, r, busy)", "classify(l, r, busy=b)", "classify(l, r, self.gate_busy(h))",
+                         "classify(l, r, *a)", "classify(l, r, **kw)")))
     sh = (seat / "merge_pr.sh").read_text()
     check("P436 barrier: merge_pr.sh's raw latest-check red read is followed by a classify WAIT-wait before RED",
           sh.index('conclusion=="failure"') < sh.index("merge_train.py} classify") < sh.index('echo "RED: $red"'))
@@ -6853,6 +6885,31 @@ def _rollup_draft_self_test(check) -> None:
               [st("SUCCESS", "2026-11-11T09:30:00Z"), st("FAILURE", "2026-11-11T09:00:00Z")])))
     check("P608 null: all-SUCCESS in any order reaches the review branch",
           all("missing requirement is a review" in refusal(o)[0] for o in (ok, ok[::-1])))
+
+    # a failing gate with NO passing sibling entry: only the unfinished-run arm (`gate_deferred`) can wait
+    def refusal_sib(entries, sibs):
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "statusCheckRollup" in a:
+                return 0, json.dumps({"mergeStateStatus": "BLOCKED", "reviewDecision": "REVIEW_REQUIRED",
+                                      "statusCheckRollup": entries})
+            if "actions/runs?head_sha=" in a:
+                return 0, _jl(sibs)
+            return 0, ""
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None)
+        t.required = lambda pr_head=False: ["gate"]
+        t.review_run_settling = lambda pr, h: False
+        return t.policy_refusal(3445, H)
+    lone = [ent("FAILURE", "2026-11-11T09:10:00Z")]
+    why, wait, appr = refusal_sib(lone, [{"id": 7, "status": "in_progress"}])
+    check("item 4.2 a lone failing gate beside an unfinished sibling run waits with the deferral reason",
+          wait is True and appr is False and "is a deferral at bbbbbbbb" in why)
+    why, wait, appr = refusal_sib(lone, [{"id": 7, "status": "completed"}])
+    check("item 4.2 null: the same lone failing gate with every sibling run finished is a red, not a wait",
+          wait is False and appr is False and "required context(s) red at bbbbbbbb: gate" in why)
+    why, wait, appr = refusal_sib(lone, [])
+    check("item 4.2 null: a lone failing gate with no sibling run is a red, not a wait",
+          wait is False and "required context(s) red at bbbbbbbb: gate" in why)
 
     # P609: land() on a head that is a draft
     def world(draft_item, redraft=0):

@@ -261,6 +261,11 @@ G
   [ "$(cat "$T/flow.rc")" = 0 ] && [ "$(cat "$T/cls.n")" = 3 ] && grep -q '^pr merge 42' "$T/gh2.log"
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a gate red that classify reads WAIT, then GREEN, is waited out and merges"
   else fail=$((fail + 1)); echo "  FAIL a gate red that classify reads WAIT, then GREEN, is waited out and merges ($(tail -1 "$T/flow.out"))"; fi
+  HPO_MERGE_CLASSIFY_POLLS=2 clsflow 0 gate
+  [ "$(cat "$T/flow.rc")" = 2 ] && grep -q '^TIMEOUT: classify still WAIT after 2 polls' "$T/flow.out" \
+    && ! grep -q '^RED:' "$T/flow.out" && ! grep -q '^pr merge' "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a classify still WAIT after the last poll exits 2 TIMEOUT, not RED, and does not merge"
+  else fail=$((fail + 1)); echo "  FAIL a classify still WAIT after the last poll exits 2 TIMEOUT, not RED, and does not merge ($(tail -1 "$T/flow.out"))"; fi
   clsflow 1 gate
   [ "$(cat "$T/flow.rc")" != 0 ] && grep -q '^RED: gate' "$T/flow.out" && ! grep -q '^pr merge' "$T/gh2.log"
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: a gate red classify reads RED refuses RED and does not merge"
@@ -316,6 +321,8 @@ if [ -n "$red" ]; then
          [ "$crc" = 3 ] || break
          echo "WAIT: $cls"; sleep 60
        done
+       # classify still WAIT after the last poll is no verdict: report the bound, never a RED
+       [ "$crc" = 3 ] && { echo "TIMEOUT: classify still WAIT after ${HPO_MERGE_CLASSIFY_POLLS:-20} polls (not a red): $red"; exit 2; }
        [ "$crc" = 0 ] || { echo "RED: $red"; exit 1; }
        echo "DEFERRAL RED CLEARED (classify GREEN): $red" ;;
   esac
