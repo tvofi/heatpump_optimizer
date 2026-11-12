@@ -1,0 +1,18 @@
+== MAIN 2b4515dc: 15 refusal(s) over 83 measured step(s)
+   UNDER-SCOPED step policy-lint-mutants: probes misses ['dev/audit/config/.gitattributes', 'dev/governance/config/.gitattributes', 'dev/governance/config/cfr_exclusions.json']
+   UNDER-SCOPED step field-coverage: files misses ['tools/pr/figure_block.py', 'tools/site/day_chart.mjs']
+   UNDER-SCOPED step verdict-bus: probes misses ['tools/pr/figure_registry.json']
+   UNDER-SCOPED step push-names-the-host: files misses ['tools/pr/figure_block.py']
+   UNDER-SCOPED step selftest-wiring: files misses ['tools/audit/seat/r10_disinfection_setpoint_mutants.py', 'tools/pr/figure_block.py', 'tools/site/day_chart.mjs']
+   UNDER-SCOPED step features-block: probes misses ['tools', 'tools/audit', 'tools/audit/seat']
+   UNDER-SCOPED step features-block: dirs misses ['tools/audit/seat']
+   UNDER-SCOPED step mutant-driver: probes misses ['check_stm.py']
+   UNDER-SCOPED step programme-pulse: files misses ['tools/audit/seat/gh_read.py', 'tools/audit/seat/merge_train.py']
+   UNDER-SCOPED step programme-pulse: probes misses ['tools/policy/policy_lint.mjs']
+   UNDER-SCOPED step programme-pulse: dirs misses ['tools/audit/seat']
+   UNDER-SCOPED step review-packet: probes misses ['tools/pr/figure_registry.json']
+   UNDER-SCOPED step tick-loop: probes misses ['.gitmodules', 'tools/.git', 'tools/HEAD', 'tools/audit/.git', 'tools/audit/HEAD', 'tools/audit/seat/.git', 'tools/audit/seat/HEAD']
+   UNDER-SCOPED step tick-loop: it read the index, the table says not
+   UNDER-SCOPED step tick-loop: it read the objects, the table says not
+== HEAD f5a2c9cb: 0 refusal(s) over 83 measured step(s)
+unmeasured gated: ['alert-lister-mutants', 'beatd', 'carry-check-and-the', 'ci-predictor', 'ci-prelude', 'ci-probe-instrument', 'code-scanning-alert-lister', 'code-scanning-wait', 'figure-census', 'figure-check', 'gantt-and-verdict-audit', 'gate-predicate', 'gate-sweep', 'github-rest-client', 'hooks-setup', 'local-alert-lister', 'merge-train', 'offline-spy', 'open-pr', 'pin-rule', 'pr-args', 'prepr', 'ruleset-cut-over-instrument', 'selftest-scope', 'selftest-scope-mutants', 'survivor-list', 'sweep-driver', 'throwaway-git-helper', 'train-launcher', 'update-pr']
