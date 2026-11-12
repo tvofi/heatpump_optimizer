@@ -192,3 +192,4 @@ custom_components/heatpump_optimizer/coordinator.py:10750:        advice = model
   DRAWN roster_edit.py -> roster branch: lines 1195
   DRAWN state_docs.py -> state documents and plan page: lines 266 268 279 283
   DRAWN tick_loop.sh -> board file: lines 170
+rc=0

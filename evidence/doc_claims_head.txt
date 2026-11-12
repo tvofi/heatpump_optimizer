@@ -1,5 +1,0 @@
-  ok   red fixture: an exemption that matches no fragment is a finding
-
-ALL 342 checks PASSED
-0 of 0 marker(s) due
-rc=0

@@ -1,8 +1,0 @@
-mutant drop arrow [opr -->|"runs"| busx]: FAIL lines=2
-mutant drop arrow [opr -->|"writes"| ledger]: FAIL lines=2
-mutant drop arrow [train -->|"writes"| pr]: FAIL lines=2
-mutant row quote [rekey "$T" "$N"]: FAIL lines=2
-mutant row quote ["$SEAT/ledger.py" attempt "refs/heads/handoff/$T"]: FAIL lines=2
-mutant row quote [["gh", "pr", "ready", str(pr), "--repo", t.repo]]: FAIL lines=2
-mutant row quote [or fire the standing trigger]: FAIL lines=2
-null (restored): FAIL lines=0
