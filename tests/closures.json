@@ -4052,6 +4052,8 @@
    "tools/audit/seat/review_strength.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/roster_queue.py",
+   "tools/audit/seat/scorecard.py",
+   "tools/audit/seat/scorecard_selftest.py",
    "tools/audit/seat/seat_gen.py",
    "tools/audit/seat/seat_gen_selftest.py",
    "tools/audit/seat/selftest_wiring.py",

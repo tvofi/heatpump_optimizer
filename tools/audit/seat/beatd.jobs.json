@@ -297,6 +297,24 @@
       "env_pass": [],
       "class": null,
       "kind": "periodic"
+    },
+    {
+      "name": "scorecard",
+      "argv": [
+        "python3",
+        "-I",
+        "tools/audit/seat/beat_jobs.py",
+        "scorecard",
+        "--state",
+        "$S"
+      ],
+      "cwd": "orch",
+      "interval_s": 86400,
+      "timeout_s": 600,
+      "heartbeat_s": null,
+      "env_pass": [],
+      "class": null,
+      "kind": "periodic"
     }
   ]
 }
