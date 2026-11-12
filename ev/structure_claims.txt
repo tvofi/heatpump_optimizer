@@ -1,0 +1,7 @@
+$ claim files vs merge base
+(empty = byte-identical)
+$ structure.py
+  ok   seam_cut_total 421 <= 421
+
+STRUCTURE RATCHET PASSED
+rc=0

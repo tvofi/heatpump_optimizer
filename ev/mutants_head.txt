@@ -1,0 +1,52 @@
+KILLED   supply_hold.py: MIN_RUN boundary < -> <= | FAIL a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN  [[(0, 
+KILLED   supply_hold.py: MIN_PAUSE boundary < -> <= | FAIL a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE  [[(
+KILLED   supply_hold.py: MIN_RUN 10 -> 11 | FAIL a run someone else started three minutes ago is held on until MIN_RUN of the switch's own stamp  [[(8, 't
+KILLED   supply_hold.py: MIN_RUN 10 -> 9 | FAIL a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN  [[(0, 
+KILLED   supply_hold.py: MIN_PAUSE 10 -> 11 | FAIL a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE  [[(
+KILLED   supply_hold.py: MIN_PAUSE 10 -> 9 | FAIL a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE  [[(
+KILLED   supply_hold.py: rule3 boundary >= -> > | FAIL rule three: null control: the same ON at minute 5, MIN_RUN before the boundary -> (True, False)  [(None, 
+SURVIVED supply_hold.py: rule3 window one tick shorter | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+SKIP     supply_hold.py: drop MIN_PAUSE (pattern count 0)
+KILLED   supply_hold.py: drop MIN_RUN | FAIL with no plan, an OFF held three minutes into a run lands at MIN_RUN  [[(0, 'turn_off')]]
+KILLED   supply_hold.py: drop rule three | FAIL rule three: a space step, ON at minute 7 before an OFF step -> (None, True)  [(True, False)]
+KILLED   supply_hold.py: no reset of supply_held per write | FAIL a run someone else started three minutes ago is held on until MIN_RUN of the switch's own stamp  [[(7, 't
+KILLED   supply_hold.py: rule3: next step None treated as off | FAIL a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE  [[(
+KILLED   supply_hold.py: rule3: ignore next step's command | FAIL a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE  [[(
+SURVIVED supply_hold.py: rule3 exemption: both dropped | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: rule3 exemption: dhw dropped | FAIL rule three: a hot-water step with the tank below its minimum -> (True, False)  [(None, True)]
+KILLED   supply_hold.py: rule3 exemption removed | FAIL rule three: a hot-water step with the tank below its minimum -> (True, False)  [(None, True)]
+SURVIVED supply_hold.py: passes: economy treated as non-plan | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+SURVIVED supply_hold.py: passes: mode never passes | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+SURVIVED supply_hold.py: passes: space boost dropped | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+SURVIVED supply_hold.py: passes: dhw boost dropped | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+KILLED   supply_hold.py: unknown state readable | FAIL stop: an OFF to a switch reading unknown passes -> (False, False)  [(None, True)]
+KILLED   supply_hold.py: unavailable state readable | FAIL stop: an OFF to a switch reading unavailable passes -> (False, False)  [(None, True)]
+KILLED   supply_hold.py: running read as on only | FAIL a climate target reading heat three minutes is held on until MIN_RUN  [[(0, 'turn_off')]]
+KILLED   supply_hold.py: future stamp not refused | FAIL stop: an OFF to a switch stamped ahead of the clock passes -> (False, False)  [(None, True)]
+KILLED   supply_hold.py: freeze span one interval | FAIL interval_held: a write held 59 minutes ago on a 30-minute interval is frozen  [False]
+KILLED   supply_hold.py: freeze span boundary | FAIL interval_held: null control: 60 minutes ago is not  [True]
+KILLED   supply_hold.py: held_at not stamped | FAIL an interval in which the gate held a write freezes the learners with the supply_held reason  [None]
+KILLED   supply_hold.py: rule3 next step from now | FAIL rule three: a space step, ON at minute 7 before an OFF step -> (None, True)  [(True, False)]
+KILLED   supply_hold.py: disinfection exemption dropped | rc
+KILLED   supply_hold.py: sysid passes dropped | FAIL system identification: an OFF three minutes into a run is written at once  [[(7, 'turn_off')]]
+SURVIVED pump_arbiter.py: retry ignores released | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+KILLED   pump_arbiter.py: action retry without held | FAIL the step tick writes the switch at the boundary of each step whose command changes  [[(15, 'turn_off'), (
+KILLED   pump_arbiter.py: no action retry | FAIL with no plan, an OFF held three minutes into a run lands at MIN_RUN  [[]]
+KILLED   pump_arbiter.py: no retry of same command | FAIL a pause someone else started three minutes ago is held off until MIN_PAUSE of the switch's own stamp  [[]
+KILLED   pump_arbiter.py: held flag survives a dropped command | FAIL step tick, held write: the optimizer switched off: no write, the hold dropped  [([], True)]
+KILLED   pump_arbiter.py: tick never retries within step | FAIL after a Home Assistant restart a supply found on is held for MIN_RUN of its restart stamp, then switched 
+KILLED   pump_arbiter.py: action retry ignores mode/stale | FAIL a write held back is not retried once the optimizer is switched off  [[(0, 'turn_on'), (5, 'turn_off')]]
+SURVIVED pump_arbiter.py: action retry ignores stale plan | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+SURVIVED pump_arbiter.py: action retry: economy dropped | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+SKIP     pump_arbiter.py: supply_switch: no entity guard (pattern count 2)
+SKIP     coordinator.py: no learner freeze (pattern count 0)
+KILLED   coordinator.py: held logged as blocked skip | FAIL a held OFF is not logged as the cooling or blocked-mode skip  [["Not switching switch.hp off: mode Unknow
+KILLED   early_cutoff.py: cut-off: unknown run allowed |   FAIL a switch with no change stamp is an unknown run and is not cut
+KILLED   early_cutoff.py: cut-off MIN_ON boundary |   FAIL the min_on guard is a strict < (a switch on exactly MIN_ON is not held)  [min_on]
+KILLED   early_cutoff.py: cut-off: tank exemption dropped |   FAIL a tank below its minimum exempts the step
+KILLED   early_cutoff.py: cut-off MIN_OFF doubled |   FAIL null control: the same cycle past MIN_OFF turns it on as the plan says  [[('switch', 'turn_off')]]
+35 killed, 9 survived
+KILLED   supply_hold.py: drop MIN_PAUSE | FAIL a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE  [[(
+SURVIVED pump_arbiter.py: supply_switch: no entity guard | ALL 76 FEATURES BLOCK PASSED / ALL 60 FEATURES BLOCK PASSED
+KILLED   coordinator.py: no learner freeze | FAIL an interval in which the gate held a write freezes the learners with the supply_held reason  [None]
+2 killed, 1 survived
