@@ -7,19 +7,24 @@ R10-REVIEW-DISPATCH-RESIDUE part 3 of 6 (topic r10-review-dispatch-residue-p3): 
 
 The mutant harness `dev/audit/harnesses/r10_flow_dispatch_mutants.py` was stale at the merge base: it aborted at its third mutant (`abort: brief-drop's pattern occurs 0 times`). Four patterns no longer matched (brief-drop, cli-nonce-dropped, cli-model-fixed, cli-overlay-dropped); they are re-aimed at the current text. A mutant may now name `roster_lib.py` as a fourth element.
 
-Not built in this part: Carry 1, Carry 4, Carry 5, Carry 6, Carry 7, Carry 10, Carry 11, Carry 12, Carry 14, Carry 15, Carry 16, Carry 17, Carry 18, Carry 19, Carry 20, Carry 21, Carry 22, Carry 23, Carry 24, Carry 25, Carry 26. Each belongs to another part of this group's split (triage P551, by file); part 3 answers none of them. Carry 0 is not listed here because the review packet does not hold it open.
+Not built in this part: Carry 1, Carry 4, Carry 5, Carry 6, Carry 7, Carry 10, Carry 11, Carry 12, Carry 14, Carry 15, Carry 16, Carry 17, Carry 18, Carry 19, Carry 20, Carry 21, Carry 22, Carry 23, Carry 24, Carry 25, Carry 26, Carry 29, Carry 30, Carry 31, Carry 32, Carry 33. Each belongs to another part of this group's split (triage P551, by file); part 3 answers none of them. Carry 0 is not listed here because the review packet does not hold it open.
 - Carry 27 and Carry 28: left for a later part; each stays on the roster.
 
 Round 3 (this repair): the round-2 rewrite of the part-topic line had left the harness's `part-topic-dropped` pattern at no occurrence, so the drive aborted. It is re-aimed at the current line. The self-test gains R10-ALIAS (another id whose branch is `handoff/r10-clash-p3`) and R10-SELF-P2 (a part topic equal to its own id, which publishes), so the predicate's topic and self halves die alone. Three diff-mode production survivors the review listed are now killed: the fold's `len(parts) > 1` guard (`part_split` over one and two indices, through `split_any` so the mutant fails a named check rather than the run), the runs printer's first gap (`part_split([0, 2, 3]) == "0+2-3"`), and `--part` without `--group` (the CLI arm). The two production survivors left are answered under `## Unpinned sites`.
 
+Round 4 (this repair, the block `mutation-vacuous: fixer-guard-off readback-nonce legacy-refusal-swallow`): three pins in the self-test, each also a harness entry. `fixer-guard-off`: a non-fixer seat (probe) of the 21-carry group dispatches unrefused, beside the fixer's refusal as the null. `readback-nonce`: the flag-path reviewer uses a 16-character nonce, and the prompt must name `probe/rev-7-<first eight>` twice (push and read-back) and never the longer form. `legacy-refusal-swallow`: a cut-over sha the clone cannot read, on the `--part` path, must refuse with the cut-over text rather than crash.
+
 ## Head
 
-d95a3490ef0a1ae41a1bd20095f665a44e40d40a, on merge base cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf; origin/main at ee64358be7eeccaec5178a923cb3b83a18a924a0 (2026-11-11), against which `git merge-tree --write-tree origin/main HEAD` is clean, so no merge.
+9b6fdcd4fc6953d4387b7b2b31aad138bcf92a45, on merge base cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf; origin/main at ee64358be7eeccaec5178a923cb3b83a18a924a0 (2026-11-11), against which `git merge-tree --write-tree origin/main HEAD` is clean, so no merge.
 
 ## Mutation proof
 
 `python3 dev/audit/harnesses/r10_flow_dispatch_mutants.py`, run end to end in the worktree at the head: each mutant applied alone, `cloud_dispatch.py --self-test` run, the file restored. This part's mutants, as that run printed them:
 
+- `RESULT mutant=fixer-guard-off failed=1 verdict=killed` -- `FAIL a seat that is not the fixer's dispatches a group of 21 pending carries unrefused (null: the fixer refuses)`
+- `RESULT mutant=readback-nonce failed=1 verdict=killed` -- `FAIL the verdict ref and its read-back both carry the nonce's first eight characters, not the whole nonce`
+- `RESULT mutant=legacy-refusal-swallow failed=1 verdict=killed` -- `FAIL a --part dispatch whose cut-over roster the clone cannot read refuses naming the cut-over, not crashing`
 - `RESULT mutant=brief-drop failed=11 verdict=killed` -- `FAIL a group with no carry, consumer or enumeration renders its brief and `After:` alone (the null control)`
 - `RESULT mutant=part-collision-off failed=1 verdict=killed` -- `FAIL a part whose topic is another group's id (R10-CLASH-P2) or branch (R10-ALIAS) refuses naming it; part 1, a free part and a part that is its own group's id (R10-SELF-P2) publish`
 - `RESULT mutant=cli-nonce-dropped failed=3 verdict=killed` -- `FAIL --group forwards --nonce to dispatch_group`
@@ -69,9 +74,11 @@ Failing test first: at b64fbe44, `part-coll-topic-off` (the topic side replaced 
 
 ## Figures
 
-- `python3 dev/audit/harnesses/r10_flow_dispatch_mutants.py` at the head: `RESULT mutants=63 survived=0`, rc=0; `RESULT mutant=M0 failed=0 verdict=null-ok`; 5 `verdict=CRASHED` (parent-drop, topic-to-id, head-ignored, roster-repo-ignored, pointer-off: pre-existing mutants, none of this part's); each of this part's is `verdict=killed` with the FAIL line under Mutation proof.
+- `python3 dev/audit/harnesses/r10_flow_dispatch_mutants.py` at the head: `RESULT mutants=66 survived=0`, rc=0; `RESULT mutant=M0 failed=0 verdict=null-ok`; 5 `verdict=CRASHED` (parent-drop, topic-to-id, head-ignored, roster-repo-ignored, pointer-off: pre-existing mutants, none of this part's); each of this part's is `verdict=killed` with the FAIL line under Mutation proof.
 - Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+
+- `node tools/policy/agreement.mjs --py-json` at the head prints `refused=2` (merge-subject-pr on b64fbe44a and 73acdd0b6, local merges of earlier rounds already in main's history through #3450); at origin/main e59e21fe it prints `refused=0`. This repair adds no merge commit.
 
 ## Red checks
 
@@ -83,4 +90,4 @@ none
 
 ## Friction
 
-- review-packet-brief-carries: contradiction: `review_packet.py handoff` refused this part's body for group carries the part's brief says to answer none of (`REFUSE brief-carries: carry 1 is not named in the body`). A `--part` brief (Carry 13) states the same instruction, so every part body must restate the other parts' carries until the packet reads the part's own range. Carry: R10-REVIEW-DISPATCH-RESIDUE
+- review-packet-brief-carries: contradiction: `review_packet.py handoff` refused this part's body for group carries the part's brief says to answer none of (`REFUSE brief-carries: carry 1 is not named in the body`). A `--part` brief (Carry 13) states the same instruction, so every part body must restate the other parts' carries until the packet reads the part's own range. Carry: dismissed: the group is carries-open with no live owner of review_packet.py's range reading, and this part's brief forbids building another part's carry; the restated list in this body satisfies the packet, and the contradiction stays visible to the next part's seat here
