@@ -1215,7 +1215,7 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
         return PumpCommand(None, None, None)
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
-    mode = _mode_for(mode_state, duty)
+    mode = _mode_for(inp, duty)
     space = _space_target(inp, result, now, duty)
     if _flow_unit(inp.config):
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
@@ -1231,8 +1231,8 @@ def _disinfecting(inp: ArbiterInputs, duty: str | None) -> str | None:
     return "both" if duty == "space" and inp.disinfecting else duty
 
 
-def _mode_for(mode_state: Any, duty: str | None) -> str | None:
-    """The mode row of the module table for ``duty``, offered by ``mode_state``.
+def _mode_for(inp: ArbiterInputs, duty: str | None) -> str | None:
+    """The mode row of the module table for ``duty``, as the pass's select offers it.
 
     Idle writes no mode. The mode last written served the duty that just
     finished, whose thermostat the plan has just satisfied, so it is the one
@@ -1241,6 +1241,7 @@ def _mode_for(mode_state: Any, duty: str | None) -> str | None:
     satisfy. The DHW-only lease keeps counting across idle (``_leased``).
     A single duty the select does not offer is Heating + DHW, where offered.
     """
+    mode_state, duty = _slot_state(inp, "mode"), _disinfecting(inp, duty)
     if duty == "idle" or pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         return None
     single = {"space": pump_mode.MODE_HEAT, "dhw": pump_mode.MODE_DHW}.get(duty or "")
@@ -1767,8 +1768,8 @@ def _served(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     return _without_block(coord, _share(coord, inp, duty, now), now)
 
 
-async def _lead_mode(coord: Any, now: datetime) -> None:
-    """Write the step's mode while the power switch still reads off (#3420, part E).
+async def _lead_mode(coord: Any, on: bool) -> None:
+    """On a switch-on, write the step's mode while the switch still reads off (#3420, part E).
 
     A pass writes nothing while the switch reads off (:func:`_pump_off`), so
     the mode used to follow a switch-on by up to a tick and the pump started
@@ -1777,16 +1778,16 @@ async def _lead_mode(coord: Any, now: datetime) -> None:
     the switch-on compares and writes them as before. A failed write is
     logged by :func:`_write` and holds nothing: the switch follows at once.
     """
-    held = state_for(coord)
-    if duty_mode(coord.arbiter_inputs().config) != DUTY_CONTROL:
+    now, held = dt_util.now(), state_for(coord)
+    if not on or duty_mode(coord.arbiter_inputs().config) != DUTY_CONTROL:
         return
     async with held.lock:
         await _load(coord)
         inp = coord.arbiter_inputs()
         if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held):
             return
-        duty = _disinfecting(inp, _served(coord, inp, _step_duty(coord, held, inp, now), now))
-        await _write(coord, inp, "mode", _mode_for(_slot_state(inp, "mode"), duty), now)
+        duty = _step_duty(coord, held, inp, now)
+        await _write(coord, inp, "mode", _mode_for(inp, _served(coord, inp, duty, now)), now)
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
@@ -1843,8 +1844,7 @@ async def write_supply(coord: Any, entity_id: str, on: bool) -> None:
     step owes ahead of it (:func:`_lead_mode`); every other write is
     :func:`switch_supply` alone, as before.
     """
-    if on:
-        await _lead_mode(coord, dt_util.now())
+    await _lead_mode(coord, on)
     await switch_supply(coord.hass, entity_id, on)
 
 

@@ -82055,7 +82055,8 @@ from dataclasses import replace as _mb_replace
 
 
 async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via="cycle",
-                  select="Heating", fail=False, cut=False, optimizer="auto", space=False):
+                  select="Heating", fail=False, cut=False, optimizer="auto", space=False,
+                  disinfect=False):
     """Ordered (domain, service) calls of one switch write, through the real coordinator.
 
     The plan is "-d": idle at 05:45, hot water only at 06:00 (``space``:
@@ -82065,14 +82066,15 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
     06:00 with the optimizer in ``optimizer`` (``released``: auto, the
     entry unloaded). ``cut``: an early cut-off at
     05:58 holds the switch-on (MIN_OFF). Also returns the contexts the
-    learner was told of.
+    learner was told of, and the options the select was sent. ``disinfect``:
+    the pass reads a held disinfection.
     """
     ticks, told = [], []
     armed, noted, owed = _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
     _mb_ds.note_mode_write = lambda rec, when, old, new, ctx: (told.append((rec, ctx)), noted(rec, when, old, new, ctx))
     if not lead:
-        async def _none(_coord, _now):
+        async def _none(_coord, _on):
             return None
         _sa_pa._lead_mode = _none
     hass = FakeHass({
@@ -82088,6 +82090,9 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
         data["heat_pump_mode_entity"] = "select.pump_mode"
     coord = Coord(hass, FakeEntry(data=data, entry_id=f"mb{next(_PA_IDS)}"))  # a fresh store each run
     coord._mode = "auto"
+    if disinfect:
+        _mb_inputs = coord.arbiter_inputs
+        coord.arbiter_inputs = lambda: _mb_replace(_mb_inputs(), disinfecting=True)
     t0 = _SA_T0 - timedelta(minutes=15)
     coord._optimization_result = SimpleNamespace(
         timestamps=[t0, _SA_T0], power_schedule=[0.0, 1.5 if space else 0.0],
@@ -82117,7 +82122,7 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
             _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
             await coord._apply_action()
         calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
-        return calls, told
+        return calls, told, [data["option"] for d, _s, data in hass.services.calls if d == "select"]
     finally:
         _sa_dt.freeze(None)
         _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
@@ -82186,6 +82191,17 @@ R.check(
     "null control: write_supply with the switch off and the optimizer on writes the mode first",
     _mb_direct[("off", "auto")] == [("select", "select_option"), ("switch", "turn_on")],
     f"{_mb_direct}",
+)
+_mb_dis = {dis: _asyncio.run(_mb_run(via="direct", space=True, disinfect=dis))[2] for dis in (True, False)}
+R.check(
+    "the mode written ahead of a switch-on for a heating step under a held disinfection is Heating + DHW",
+    _mb_dis[True] == ["Heating + DHW"],
+    f"{_mb_dis}",
+)
+R.check(
+    "null control: the same heating step with no disinfection leads with Heating",
+    _mb_dis[False] == ["Heating"],
+    f"{_mb_dis}",
 )
 _mb_nulls = {
     "no mode entity": {"mode_entity": False},
