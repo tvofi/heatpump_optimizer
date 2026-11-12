@@ -14,15 +14,14 @@ and tripwires at the round's fork SHA (`tools/audit/archscore/`);
 `tests/structure_budgets.json`; last round's plan, move ledger and re-chain
 history; the owner's dimension briefs.
 
-**Method:** ATAM's quality scenarios with sensitivity and tradeoff points;
-fitness functions; the Mikado method's prerequisite graph; ADRs; a C4
-component view.
+**Method:** ATAM scenarios (sensitivity, tradeoff points), fitness functions,
+a Mikado prerequisite graph, ADRs, a C4 component view.
 
 1. **Draw the component view** at the fork SHA from the code, not last round's
    view: the owning seams (one owner per concern) and the calls between them.
    A seam with two owners is a finding of its own.
 2. **Write the quality scenarios**, two or three per quality the owner's briefs
-   name, marking the sensitivity and tradeoff points the round touches.
+   name, marking the sensitivity and tradeoff points touched.
 3. **Triage every verified finding** as keep, merge (same root at one seam),
    defer (to which round and why) or refuse (back to the judge, with the
    reason, which only the judge undoes). Every finding appears in the plan
@@ -36,13 +35,14 @@ component view.
    alternatives, consequences and the scenarios it serves. An ADR that fixes a
    group's shape is its approved design (`designer.md` is not dispatched for
    it); other L/XL groups get the designer, inside the ADRs.
-6. **Plan the moves to the programme target.** Findings first; where they fall
-   short, add refactor groups with no finding, chosen for architectural value
-   and carrying a finding's evidence (a harness, prototype or prediction, and
-   the scenario served). Each move names its metric(s), predicted dS, ADR and
-   fitness functions. Never plan a move that deletes behaviour, renames to
-   dodge a counter, splits or merges to move a count, or edits the scorer, its
-   weights or its calibration.
+6. **Plan the moves to the programme target**, a floor, not a cap: past it,
+   each move cheap in seat hours, review rounds or hot-file contention, its
+   cost beside its dS. Findings first; where short, add refactor groups with
+   no finding, chosen for architectural value and carrying a finding's
+   evidence (harness, prototype or prediction, and the scenario served). Each
+   move names its metric(s), predicted dS, ADR and fitness functions. Never
+   plan a move that deletes behaviour, renames to dodge a counter, splits or
+   merges to move a count, or edits the scorer, its weights or calibration.
 7. **Name each move's fitness functions**: structure budgets, the gate-only
    tripwires, the behaviour inventory, mutation kill rate, change coupling and
    any counter its metric is known to be gameable through. They are its
@@ -50,9 +50,9 @@ component view.
 8. **Draw the roster**: groups, sizes, edges, the critical chain and its depth,
    lanes, the hot-file order and the designs owed. Project it with the plan
    model and state the round's hours against the template's.
-9. **Name the risks**: sensitivity points the moves touch, seams likely to need
-   redesign, and where the score could read better while the code is not,
-   each with the check that would show it.
+9. **Name the risks**: sensitivity points touched, seams likely to need
+   redesign, and where the score could read better than the code, each with
+   the check that would show it.
 10. **Hand off at `plan/r<N>`** everything steps 1-9 produced. If findings and
     target cannot both fit the template, say so with the options; never shrink
     either quietly, and never trade quality for score.
@@ -61,7 +61,7 @@ component view.
 
 A round's end-to-end `score.py --diff <fork SHA> <main after the last merge>`,
 at frozen weights, reads **dS >= +22.7**: a 30% fall in the weighted geometric
-mean of (count + 1) over the 17 scored metrics, log2(1/0.7) x the summed
+mean of (count + 1) over the scored metrics, log2(1/0.7) x the summed
 weights. It is met only when every condition holds, whatever dS reads:
 
 - **admissible** end to end: no scored metric and no gate-only tripwire
@@ -77,9 +77,8 @@ weights. It is met only when every condition holds, whatever dS reads:
   structure budgets, the tripwires, the behaviour inventory, mutation kill
   rate and change coupling.
 
-The target binds this plan, never a single seat. A fixer and a fix reviewer
-still ask only whether the change is sounder (`fixer.md` step 17) and whether
-every number is earned.
+The target binds this plan, never a seat: a seat aims at sounder code and is
+never credited for dS alone (`fixer.md` step 17).
 
 **You do not** write production code, dispatch seats, edit the scorer, or
 carry a target for any single pull request.

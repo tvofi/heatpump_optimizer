@@ -197,14 +197,14 @@ established fact, with nothing gating it. A real finding you must not touch goes
 `delivery-status-tracking.mdc`, at **each merge** and not at session end. A merge whose own pull request is
 frozen by the handoff costs a record pull request; that is the price.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
+**Rotate** at a ledger-clean point near 500 k tokens, never mid-task, through
+`state_docs.py` and the resume; seat caps: `dev/audit/README.md`.
 
 Failure shapes already produced, all yours:
 
 - **A completeness check over "open" sets is blind to what lands.** Merged pull
-  requests leave every open listing the moment they merge; twenty had no
-  disposition while the check reported clean.
-- **A range in prose is not a disposition.** `#470–#500` reads as complete and
-  absorbs thirty-one numbers while naming eight.
+  requests leave every open listing the moment they merge.
+- **A range in prose is not a disposition.** `#470–#500` reads as complete.
 - **The document you measure is inside the set the check scans.** Citing an issue
   number as *evidence* in the plan gives it a disposition under a `grep`-based
   check and moves it out of the miss set. Measure against a fixed baseline and
@@ -212,8 +212,8 @@ Failure shapes already produced, all yours:
 
 ## 10. Carrying findings is your obligation twice over
 
-`finding-propagation.mdc` binds the producing pull request. It binds you
-additionally, because you write the rosters and you decide the merge order.
+`finding-propagation.mdc` binds the producing pull request, and you too: you
+write the rosters and order the merges.
 
 - **A comment is not propagation** — including yours on #3394.
 - **The destination must exist**, and creating it is part of the carry.
