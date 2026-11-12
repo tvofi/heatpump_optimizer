@@ -42,6 +42,31 @@ MUTANTS = {
     "M5-sum-never-clears": (
         "            self.space_settle_until, self.space_boosted = None, timedelta(0)\n",
         "            self.space_settle_until = None\n"),
+    # The fix review's survivors at 594238bf, by its numbering.
+    "X1-sum-cleared-under-live-overlay": (
+        "                and CHANNEL_SPACE not in self.until and self.mode_since is None):\n",
+        "                and self.mode_since is None):\n"),
+    "X2-sum-cleared-under-live-mode": (
+        "                and CHANNEL_SPACE not in self.until and self.mode_since is None):\n",
+        "                and CHANNEL_SPACE not in self.until):\n"),
+    "X3-start-restamped-on-extension": (
+        "            if channel == CHANNEL_SPACE and not self.active(channel, now):\n",
+        "            if channel == CHANNEL_SPACE:\n"),
+    "X4-mode-exit-not-saved": (
+        "        if old == MODE_BOOST:\n            _schedule_persist(coord)\n",
+        "        if False:\n            _schedule_persist(coord)\n"),
+    "X5-cycle-saves-only-on-release": (
+        "    if released or held.space_settle_until != tail:\n",
+        "    if released:\n"),
+    "X7-tail-shortened": (
+        "        if held is None or utc_elapsed_seconds(until, held) > 0:\n",
+        "        if True:\n"),
+    "X11-negative-sum-restored": (
+        "not isinstance(hours, bool) and 0.0 <= hours < math.inf else None)",
+        "not isinstance(hours, bool) and hours < math.inf else None)"),
+    "X13-mode-entry-keeps-spent-sum": (
+        "        if live:\n            self._clear_spent(now)\n",
+        "        if live:\n            pass\n"),
 }
 
 

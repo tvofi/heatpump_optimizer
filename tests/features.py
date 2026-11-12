@@ -81411,6 +81411,121 @@ R.check(
     f"{_bt_returns}",
 )
 
+# Fix review (blocked 594238bf), X1: a press in the tail's last two hours keeps
+# the overlay live past the tail's end, and the sum is not cleared while it is
+# live, so that press adds to it. Null control: ``_bt_after`` above, the same
+# press after the tail ran out, sums only itself.
+_bt_x1, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_x1_tail = _bt_x1.space_settle_until
+_bt_x1.set(boost_mod.CHANNEL_SPACE, True, _bt_x1_tail - timedelta(hours=1))
+_bt_x1.expire(_bt_x1_tail + timedelta(minutes=30))
+_bt_x1_mid = (_bt_x1.space_settle_until, _bt_x1.space_boosted)
+_bt_x1.set(boost_mod.CHANNEL_SPACE, False, _bt_x1_tail + timedelta(minutes=50))
+# X2: the same over the mode surface, a mode held past an earlier overlay's tail.
+_bt_x2 = boost_mod.BoostState()
+_bt_x2.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_x2.set(boost_mod.CHANNEL_SPACE, False, NOW + _bt_20)
+_bt_x2.note_mode(True, NOW + timedelta(minutes=21))
+_bt_x2.expire(NOW + timedelta(hours=13))
+_bt_x2.note_mode(False, NOW + timedelta(hours=14))
+R.check(
+    "the boosted sum is not cleared while an overlay or the mode is live past an earlier "
+    "boost's tail, so the live boost adds to it, over both surfaces",
+    _bt_x1_mid == (_bt_x1_tail, 3 * _bt_20)
+    and _bt_x1.space_boosted == 3 * _bt_20 + timedelta(minutes=110)
+    and _bt_x1.space_settle_until == _bt_x1_tail + timedelta(minutes=50) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_x2.space_boosted == _bt_20 + timedelta(hours=14) - timedelta(minutes=21)
+    and _bt_x2.space_settle_until == NOW + timedelta(hours=14) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_x1_mid} {_bt_x1} {_bt_x2}",
+)
+
+# X3: a press that finds the overlay live extends it and keeps its start, so the
+# sum counts the whole boost. X13: entering the mode clears a spent sum, as a
+# press does. Null control: a single press sums its own length (``_bt_one``).
+_bt_x3 = boost_mod.BoostState()
+_bt_x3.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_x3.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=1))
+_bt_x3.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=2))
+_bt_x13, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_x13_spent = _bt_x13.space_settle_until
+_bt_x13.note_mode(True, _bt_x13_spent + timedelta(hours=1))
+_bt_x13.note_mode(False, _bt_x13_spent + timedelta(hours=1, minutes=30))
+R.check(
+    "an extended overlay sums from its first press; the mode entered after a spent tail "
+    "sums only itself",
+    _bt_x3.space_boosted == timedelta(hours=2) and _bt_x3.space_since == NOW
+    and _bt_x13.space_boosted == timedelta(minutes=30),
+    f"{_bt_x3} {_bt_x13}",
+)
+
+# X7: ``settle`` never shortens a running tail (an end stamped before a clock
+# step back); a later end lengthens it, even by half a second (null control).
+_bt_x7 = boost_mod.BoostState(space_settle_until=NOW + boost_mod.SPACE_SETTLE_TAIL)
+_bt_x7.settle(NOW - timedelta(hours=1), NOW - timedelta(hours=2))
+_bt_x7_kept = _bt_x7.space_settle_until
+_bt_x7.settle(NOW + timedelta(milliseconds=500), NOW)
+R.check(
+    "a settle ending before the running tail's end leaves it; one ending later moves it",
+    _bt_x7_kept == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_x7.space_settle_until == NOW + timedelta(milliseconds=500) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_x7_kept} {_bt_x7}",
+)
+
+# X11: the store does not hold ``boosted_h`` to its domain on load, so the
+# restore does: a negative, NaN or infinite sum is unknown; zero and a sum under
+# one hour restore as stored (null controls).
+def _bt_hours(raw):
+    st = boost_mod.BoostState()
+    boost_mod._restore_settle(st, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                    "boosted_h": raw}}, NOW)
+    return st.space_boosted
+
+
+R.check(
+    "a restored boosted sum outside [0, inf) is unknown; 0 and 0.5 h restore as stored",
+    [_bt_hours(h) for h in (-1.0, float("nan"), float("inf"), True, 0.0, 0.5)]
+    == [None, None, None, None, timedelta(0), timedelta(minutes=30)],
+    f"{[_bt_hours(h) for h in (-1.0, float('nan'), float('inf'), True, 0.0, 0.5)]}",
+)
+
+# X4 and X5: the two saves of a tail. Leaving the boost mode saves the tail it
+# starts (``note_mode_change``); a cycle whose expiry starts a tail saves it
+# (``apply``). Null controls: entering the mode, a change between two other
+# modes and a cycle that changes nothing schedule no save.
+_bt_saved = []
+_bt_sched = boost_mod._schedule_persist
+boost_mod._schedule_persist = _bt_saved.append
+try:
+    _bt_mc = _BtCoord()
+    boost_mod.note_mode_change(_bt_mc, _fb_const.MODE_AUTO, boost_mod.MODE_BOOST, NOW)
+    _bt_enter = list(_bt_saved)
+    boost_mod.note_mode_change(_bt_mc, _fb_const.MODE_AUTO, _fb_const.MODE_ECONOMY, NOW)
+    _bt_other = list(_bt_saved)
+    boost_mod.note_mode_change(_bt_mc, boost_mod.MODE_BOOST, _fb_const.MODE_AUTO, NOW + timedelta(hours=1))
+    _bt_left = list(_bt_saved)
+    _bt_left_payload = boost_mod._store_payload(boost_mod.held_for(_bt_mc))
+    _bt_saved.clear()
+    _bt_ac = _BlockFloorCoord(None)
+    _bt_ac_now = dt_util.now()
+    boost_mod.held_for(_bt_ac).set(boost_mod.CHANNEL_SPACE, True, _bt_ac_now - timedelta(hours=3))
+    boost_mod.apply(_bt_ac, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
+    _bt_cycle = list(_bt_saved)
+    _bt_cycle_payload = boost_mod._store_payload(boost_mod.held_for(_bt_ac))
+    boost_mod.apply(_bt_ac, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
+    _bt_quiet = _bt_saved[len(_bt_cycle):]
+finally:
+    boost_mod._schedule_persist = _bt_sched
+R.check(
+    "leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save "
+    "carrying the tail and its sum; entering the mode, another mode change and a quiet "
+    "cycle schedule none",
+    _bt_enter == [] and _bt_other == [] and _bt_left == [_bt_mc]
+    and _bt_left_payload.get("space_settle", {}).get("boosted_h") == 1.0
+    and _bt_cycle == [_bt_ac] and _bt_quiet == []
+    and _bt_cycle_payload.get("space_settle", {}).get("boosted_h") == 2.0,
+    f"{_bt_enter} {_bt_other} {_bt_left} {_bt_left_payload} {_bt_cycle} {_bt_quiet} {_bt_cycle_payload}",
+)
+
 
 # A hot-water charge inside a counter span (the dwell saw it): the cycle has no
 # space interval, yet the span stays clean where the counter is declared to see
