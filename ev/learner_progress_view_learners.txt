@@ -1,0 +1,22 @@
+            bool(config.solar_aperture_learning_enabled), counts["solar"],
+            lambda n: n >= SOLAR_APERTURE_MIN_SAMPLES, _solar_aperture_walked,
+            solar_wait, rates["solar"],
+        ),
+        # Counts the house learner's samples until its gate opens; the profile
+        # has no count of its own past it, so settling carries no progress.
+        "gains": LearnerInputs(
+            bool(config.internal_gains_learning_enabled), counts["house"],
+            internal_gains_gate_open, None, house_wait, rates["house"],
+        ),
+    }
+    return {name: learner_progress(inputs, frozen) for name, inputs in learners.items()}
+        # #2508: no room entity is the raw freeze, so it ranks before the
+        # ventilation pass-through below and leaves no counter span clean.
+        raw = learner_room_unread(ctx._config) or self._learning_frozen(
+            CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY)
+        heat_kw, clean, frozen, fold = _replay_gate(self, interval, span_heat_kw, raw)
+        prior_at = self._last_house_sample_time
+        interval = self._close_fabric_interval()
+        clean = {"lower": await self._async_learn_lower_floor_loss(interval)}
+        clean["house"] = await self._async_learn_house_heat_loss(interval)
+

@@ -1,0 +1,18 @@
+M0-null (a comment line): exit 0, 0 check(s) red
+M1-card-arm-removed (learnerPhase has no frozen arm): exit 1, 0 check(s) red
+M2-frozen-below-the-weather-wait: exit 1, 1 check(s) red
+    FAIL P3 null control: with nothing holding the learners the payload is main's -- no frozen_until key, the weather wait still shown; held by the boost it is froz
+M3-end-key-outside-the-frozen-phase: exit 1, 1 check(s) red
+    FAIL P3 null control: with nothing holding the learners the payload is main's -- no frozen_until key, the weather wait still shown; held by the boost it is froz
+M4-payload-passes-no-freeze: exit 1, 1 check(s) red
+    FAIL P3 one source, wired: the payload's learner phases read the freeze the learners recorded this cycle (the published learner_freeze_reason), with its end fro
+M5-hot-water-and-buffer-probes-pause: exit 1, 1 check(s) red
+    FAIL P3 census: the boost, an open window and an unusable reading pause the learner; the early cut-off, unmetered power, an unread room and the pump's own state
+M6-global-mode-given-an-end: exit 1, 1 check(s) red
+    FAIL P3 one source: another reason has no boost end; the global boost mode has none either, though a tail is running; the same tail outside the mode is the end;
+M7-skip-reason-formatted-before-the-level-check: exit 1, 1 check(s) red
+    FAIL P3 null control: a skip reason is passed to the logger as an argument, so with DEBUG off nothing is formatted and the gate's value is returned unchanged
+M8-span-line-with-no-counter: exit 1, 1 check(s) red
+    FAIL P3 null control: an install with no heat counter closes no span and logs no span line at DEBUG; a span the counter closed logs one line, its refusal and th
+MUTANTS: UNEXPECTED
+rc=1
