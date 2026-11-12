@@ -1,0 +1,4 @@
+X10 >= -> >: SURVIVED rc=0 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] []
+X14 stamps[0] -> stamps[-1]: KILLED rc=1 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] ['FAIL P608 an entry with two valid stamps is dated by completedAt, not startedAt']
+X16 drop context fallback: KILLED rc=1 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] ['FAIL P608 a status-context entry (context key, no name) is keyed by its context']
+X17 drop real guard in record_drafts: KILLED rc=1 ['  ("find -exec", _run("find tools -name \'*.sh\' -exec {} \\;")),'] ['FAIL P609 record_drafts on a rehearsal (real false) reads nothing and records nothing']

@@ -1,0 +1,276 @@
+  ok   bump patch
+  ok   bump minor
+  ok   round close: 7.1.0 closing round 10 stamps 10.0.0
+  ok   round close: a round not above the current major refuses
+  ok   round close: a round the roster disagrees with refuses
+  ok   round close: a roster that cannot be read refuses, never defaults
+  ok   round close: combined with --bump refuses
+  ok   bump major refuses, naming --round-close
+  ok   bump() itself has no major arm, so no caller can skip next_version
+  ok   bump minor on 7.0.5 gives 7.1.0, patch 7.0.6, through next_version
+  ok   neither flag refuses
+  ok   roster round: the newest roster's round, read through roster_lib, None when absent
+  ok   tag order
+  ok   notes: first section found
+  ok   notes: wrong version is None
+  ok   merged prs
+  ok   subjects: a merge commit names its pull request
+  ok   subjects: a squash subject names its pull request
+  ok   subjects: an issue reference is not a merged pull request
+  ok   subjects: a trailing issue list is not read as one number
+  ok   subjects: the stamper's own commit carries none
+  ok   subjects: #16 is not read out of (#165)
+  ok   merged prs: both shapes, and nothing invented
+  ok   subjects: a title-subject merge is numbered from a body Merge pull request line
+  ok   subjects: Fixes #N in the body is not a merged pull request
+  ok   window: the format carries the body so a title-subject merge is readable
+  ok   rule 4: a title-subject merge is demanded by number, not only by sha
+  ok   rule 4: notes naming that number pass
+  ok   window: the log is first-parent
+  ok   window: the log spans last tag to head
+  ok   window: the format carries sha, parents, subject and body
+  ok   window: a merge is recognised by its parent count
+  ok   window: a body carrying the separator keeps it
+  ok   window: an empty log is an empty window
+  ok   window: an unreadable line refuses, it is not dropped
+  ok   window: an all-unreadable log refuses rather than reading empty
+  ok   blind: a healthy window raises no alarm
+  ok   blind: a healthy window names no unattributable merge
+  ok   blind: a merge with no number in its subject is named, not dropped
+  ok   blind: a named merge is refused by name, not by the empty-set alarm
+  ok   blind: a window that attributed nothing at all refuses
+  ok   blind: an empty window is not blind, it is empty
+  ok   blind: a window holding only the stamper's own commit is not blind
+  ok   rule 4: complete notes pass
+  ok   rule 4: notes omitting a merge are refused, naming it
+  ok   rule 4: an issue number is never demanded of the notes
+  ok   rule 4: an unattributable merge refuses, naming its sha
+  ok   rule 4: naming that sha in the notes clears it
+  ok   rule 4: a window it could attribute nothing in refuses
+  ok   rule 4: an empty window passes, as it did before
+  ok   direct push: a single-parent commit beside a real merge is named
+  ok   direct push: the merge beside it is not
+  ok   direct push: the stamp's own commit is never named
+  ok   direct push: a squash commit citing its own PR is not named
+  ok   direct push: an empty window names nothing
+  ok   rule 4: the window comes from window_log_args
+  ok   rule 4: the call site builds no log of its own
+  ok   rule 4: the verdict comes from rule4_problem
+  ok   claims: old stamp read
+  ok   claims: one bare claim deleted
+  ok   claims: new stamp present
+  ok   claims: may-drift kept
+  ok   claims: old reason gone
+  ok   claims: no bare lines
+  ok   claims: may-drift survives without a blank line
+  ok   claims: suspended entries restored, the stale note dropped
+  ok   claims: a note after the reason block ends it and keeps its continuation
+  ok   claims: an entry below the claims is restored in place
+  ok   claims: a malformed suspension refuses (no tail)
+  ok   claims: a malformed suspension refuses (two notes)
+  ok   card: old version read
+  ok   card: new version written
+  ok   card: missing constant refuses
+  ok   notes: #16 is not covered by #165
+  ok   tags: pre-release tags are ignored
+  ok   bump base: a hand tag above VERSION is the base, so the next patch is 7.1.3
+  ok   bump base: no tag above VERSION leaves VERSION the base
+  ok   bump base: a non-release tag is ignored
+  ok   last stamp: a tag whose tree VERSION is not its name is skipped
+  ok   last stamp: a newest tag its tree stamps is the last stamp
+  ok   last stamp: non-release and VERSION-less tags are skipped, none is None
+  ok   release tree: a stamped tree releases (v7.1.1 at 7.1.1)
+  ok   release tree: a tag over another VERSION refuses (v7.1.2 at 7.1.1)
+  ok   release tree: a manifest that disagrees refuses
+  ok   release tree: notes without the tag's own section refuse
+  ok   release publish: an asset read back on the third read is published
+  ok   release publish: an asset on the first read is published at once
+  ok   release publish: an asset never read back fails after 5 reads, unpublished
+  ok   rule 2: the rest query
+  ok   rule 2: a token becomes a bearer header
+  ok   rule 2: no token, no header (the repository is public)
+  ok   rule 2: the payload reduces to gh's shape
+  ok   rule 2: another workflow's run is not the gate
+  ok   rule 2: a completed success is green
+  ok   rule 2: a red run refuses, naming the conclusion
+  ok   rule 2: a run still going is counted, not awaited
+  ok   rule 2: no run at all
+  ok   rule 2: the reduced shape is the one verdict
+  ok   rule 2: the five newest Tests runs
+  ok   rule 2: gh is used when it is installed
+  ok   rule 2: rest is used when gh is absent
+  ok   rule 2: a source that cannot answer refuses, it does not raise
+  ok   B3: the ci.yml push run's gate success is green, whatever the run concluded
+  ok   B3: a red push gate (a red coverage-ratchet reddens it) refuses, naming the gate
+  ok   B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, cancelled, absent
+  ok   B3: a gate still running is not green
+  ok   B3: once HEAD has a ci.yml push run, a green Tests run there does not stand in for a red gate
+  ok   fallback: a pre-umbrella HEAD (no ci.yml push run) is read off its Tests push run
+  ok   fallback null: a pre-umbrella HEAD whose Tests run is red refuses
+stamp: read 1/4: <urlopen error timed out>; sleeping 5s
+  ok   carry 6: get_rest, one transport failure then an answer: answered after exactly 2 reads
+stamp: read 1/4: HTTP Error 502: Bad Gateway; sleeping 5s
+stamp: read 2/4: HTTP Error 500: Server Error; sleeping 15s
+  ok   carry 6: get_rest, a 502 then a 500 then an answer: answered after 3 reads, 5/15 s
+  ok   carry 6: get_rest, a 404 refuses after exactly 1 read, unchanged and unslept
+  ok   carry 6: get_rest, a body that does not parse refuses after exactly 1 read
+stamp: read 1/4: <urlopen error timed out>; sleeping 5s
+stamp: read 2/4: [Errno 104] reset; sleeping 15s
+stamp: read 3/4: HTTP Error 503: Service Unavailable; sleeping 45s
+  ok   carry 6: get_rest, five transient failures, one past the budget: refused after exactly 4 reads
+  ok   carry 6: and the refusal names the last failure read and the attempt count
+stamp: read 1/4: HTTP Error 502: Bad Gateway; sleeping 5s
+stamp: read 2/4: HTTP Error 502: Bad Gateway; sleeping 15s
+stamp: read 3/4: HTTP Error 502: Bad Gateway; sleeping 45s
+  ok   carry 6: tests_gate over a spent get_rest names the last failure and the count in its verdict
+stamp: read 1/4: Get "https://api.github.com/repos/o/r/x": EOF; sleeping 5s
+  ok   carry 6: get_gh, one transport failure then an answer: answered after exactly 2 reads
+  ok   carry 6: get_gh, a 404 refuses after exactly 1 read, keeping gh's line
+stamp: read 1/4: gh: HTTP 502; sleeping 5s
+stamp: read 2/4: gh: HTTP 502; sleeping 15s
+stamp: read 3/4: gh: HTTP 502; sleeping 45s
+  ok   carry 6: get_gh, five 502s, one past the budget: refused after exactly 4 reads
+  ok   carry 6: and tests_gate's last-line detail names the last error and the count
+  ok   carry 6: a fresh interpreter finds gh_read through read_rule alone
+  ok   tag push: the failure is caught, not raised
+  ok   tag push: a failed tag push does not roll the commit back
+  ok   tag push: the caller can tell it apart from success
+  ok   tag push: the recovery names the Release workflow
+  ok   push: --push alone is today's command, unchanged
+  ok   push: over the key, the target is the SSH URL
+  ok   push: over the key, origin is never named
+  ok   push: over the key, no config is written or overridden
+  ok   push: the ssh command reaches the subprocess environment
+  ok   push: the caller's environment is kept beside it
+  ok   push: the ssh command pins the key, the host file and strict checking
+  ok   push: the ssh command is exactly the measured one, options in order
+  ok   push: a path with a space is quoted, not split
+  ok   push: a refused key push raises
+  ok   push: a refused key push is never retried as origin
+  ok   push: after a key push, origin is fetched so origin/main shows the stamp
+  ok   push: a failed refresh is reported, not raised
+  ok   key: a 600 key and a pinned host file pass
+  ok   key: a missing key refuses, naming it
+  ok   key: a missing known_hosts refuses, naming it
+  ok   key: a key readable by others refuses, naming the mode
+  ok   key: a key that is not exactly 600 refuses
+  ok   key: a host file others can rewrite refuses
+  ok   key: an empty key path refuses
+  ok   key: a known_hosts path with 'sp ace' refuses before push time
+  ok   key: a key path with 'sp ace' refuses before push time
+  ok   key: a known_hosts path with "quo'te" refuses before push time
+  ok   key: a key path with "quo'te" refuses before push time
+  ok   key: a known_hosts path with 'dq"te' refuses before push time
+  ok   key: a key path with 'dq"te' refuses before push time
+  ok   key: a known_hosts path with 'tab\tbed' refuses before push time
+  ok   key: a key path with 'tab\tbed' refuses before push time
+  ok   key: a known_hosts path with 'pct%h' refuses before push time
+  ok   key: a key path with 'pct%h' refuses before push time
+  ok   push: main pushes the branch and the tag only through push_via
+  ok   push: both pushes carry the key arguments
+  ok   push: the key is checked before rule 1, and a problem refuses
+  ok   title: a title naming a host path is refused (#2310)
+  ok   title: an ordinary title passes (the null control)
+  ok   title: main refuses through title_refusal before rule 1
+  ok   push: an empty --push-key is checked, not skipped as falsy
+  ok   push: main refreshes origin after a key push
+  ok   push: the refresh runs before the tag push
+  ok   claims self-check: the command is main's push-run check against HEAD^1
+  ok   claims self-check: exit 0 passes
+  ok   claims self-check: exit 1 refuses, carrying the refusal
+  ok   claims self-check: a crash is not a pass
+  ok   claims self-check: a check that cannot start refuses
+  ok   rows gate: the command is the token-free disposition instrument, over this window
+  ok   rows gate: with no tag yet it asks over the whole of origin/main
+  ok   rows gate: the stamp's head is passed to the instrument, one window with rule 4
+  ok   rows gate: disposition_gate forwards its head to the command
+  ok   rows gate: main's rule 5 passes the stamp head
+  ok   record beat: the dispatch payload carries lanes=beat on main
+  ok   record beat: dispatch_record_beat posts lanes=beat
+  ok   rows gate: a rowless window refuses, carrying the instrument's own list
+  ok   rows gate: a fully rowed window clears
+  ok   rows gate: a crash is not a pass
+  ok   rows gate: a check that cannot start refuses
+  ok   rows gate: an uncleared window with no override refuses
+  ok   rows gate: --allow-rowless warns, carries the instrument's list, and proceeds
+  ok   rows gate: a cleared window proceeds with the instrument's summary line
+  ok   rows gate: main() runs the disposition gate, before the manifest rule
+  ok   rows gate: main() hands the verdict to the driven decision, and refuses it
+  ok   record-class: the three record path classes together classify
+  ok   record-class: each class alone classifies
+  ok   record-class: one code file beside a delivery row breaks the class
+  ok   record-class: an empty diff fails closed and keeps owing its row
+  ok   record-class: the classes are exact, not prefixes
+  ok   rows: the instrument's pending line parses to pr and sha
+  ok   rows: an overdue line parses the same way
+  ok   rows: the verdict line, the skip marker and prose parse to nothing
+  ok   rows: a malformed rowless line refuses, it is not read as none
+  ok   rows gate: a window whose only rowless merge is record-class proceeds, naming it
+  ok   rows gate: a rowless merge that is not record-class still refuses
+  ok   rows gate: a rowless list that parsed to nothing refuses as before
+  ok   rows gate: --allow-rowless still warns when nothing is exempt
+  ok   rows gate: a cleared window proceeds quietly, as before
+  ok   throwaway repo: git itself reads auto-maintenance as off, so no detached repack outlives the directory
+  ok   record-class: a record-only merge classifies, from real git objects
+  ok   record-class: a code merge beside its delivery row does not classify
+  ok   record-class: a sha git cannot resolve fails closed, not crashes
+  ok   rows gate: main() parses the rowless list and classifies each merge
+  ok   rows gate: main() cross-checks the parse against rule 4's window
+  ok   rows gate: main() hands the partition to the driven decision
+  ok   register: the generator is claims.py, run from ROOT
+  ok   register: the stub is put on PYTHONPATH, the caller's kept after it
+  ok   register: a generator that exits 0 passes
+  ok   register: a generator that fails refuses, naming its last line
+  ok   register: a generator that cannot start refuses
+  ok   claims self-check: a refused stamp commit pushes nothing
+  ok   claims self-check: a refused stamp commit is undone to the pre-stamp head
+  ok   claims self-check: a refused stamp exits non-zero, printing the refusal
+  ok   claims self-check: a good stamp still pushes the branch, then the tag, over the key
+  ok   claims self-check: a good stamp is not undone
+  ok   claims self-check: it runs before the first push
+  ok   claims self-check: a local stamp without --push is checked and undone too
+  ok   undo: the local tag is gone
+  ok   undo: HEAD is the pre-stamp commit
+  ok   undo: the stamp's other writes are reverted
+  ok   undo: the notes are kept, uncommitted
+  ok   claims self-check: main publishes only through publish_stamp, after the tag
+  ok   claims self-check: --dry-run's help says it skips the claims check
+  ok   claims self-check: --dry-run returns before the commit and the self-check
+  ok   register: main re-records the register before it commits, and stages it
+  ok   register: its failure path restores the stamp's writes and keeps the notes
+  ok   register dry run: the generator runs in a copy, not the checkout
+  ok   register dry run: the copy carries the stamped version and claim files
+  ok   register dry run: the copy is removed after the run
+  ok   register dry run: the default runner's working directory is the copy, not the checkout
+  ok   register dry run: a generator that fails refuses, as the real stamp does
+  ok   register dry run: main calls it before returning from --dry-run
+  ok   stamp message: ref_privacy's own reader finds no attribution in it
+  ok   flush: a window owing a row dispatches nightly.yml first, then waits on main and returns the record merge that landed
+  ok   flush: nothing owed dispatches nothing and waits for nothing (null control)
+  ok   flush: a refused dispatch waits for nothing and merges nothing
+  ok   flush: a record merge that never lands times out after at most FLUSH_MAX_DISPATCHES dispatches, each FLUSH_REDISPATCH_S apart
+  ok   flush: and never re-dispatches while the record pull request is not ready
+  ok   flush: a planted live hold is named, announced once, and spends no dispatch
+  ok   flush: a dispatch sent before the hold appeared is taken back and sent again once it clears, and the flush still merges
+  ok   flush: an absent hold changes nothing (null control): FLUSH_MAX_DISPATCHES, no hold named
+  ok   flush: a mutant dispatching under a live hold exhausts FLUSH_MAX_DISPATCHES, and is caught
+  ok   hold: a young one is live with sha, age and pid; a stale one, a future-dated one and an absent ref read as no hold
+  ok   hold: the bound is nightly.yml's own HOLD_MAX_AGE_S by source read, not a literal here
+  ok   flush: the owed set is rule 5's rowless merges less the record-class ones; a cleared window owes nothing
+  ok   flush: the notes gain one line naming the flushed record pull request, inside the new section, so rule 4 finds it
+  ok   flush: the stamp's default path flushes an owed window, moves to the merged main, names the record pull request in the notes and waits for its gate
+  ok   flush: a window owing nothing never reaches the flush (null control)
+  ok   flush: a dry run dispatches nothing and tells rule 5 what the stamp would flush
+  ok   flush: --no-flush, and a flush that saw no record merge, leave the head and the notes for rule 5 to refuse
+  ok   flush: main runs it after rule 3 and before rule 4, and a dry run's deferral reaches rule 5 only as that deferral
+  ok   flush: the flushed head's gate is waited for while it runs, and read once settled
+  ok   bump base: main() reads it after the tag fetch and bumps from it
+  ok   last stamp: main() anchors rules flush, 4 and 5 on the last stamped tag
+  ok   round close: main takes the version from next_version, the round from the roster
+STAMP HOLD refs/heads/stamp-hold cccccccc: the train waits
+  ok   stamp hold: a pushing stamp force-pushes a fresh commit to the hold ref, and deletes it on exit
+STAMP HOLD refs/heads/stamp-hold cccccccc: the train waits
+  ok   stamp hold: a refusal inside still releases the ref
+  ok   stamp hold: null control, unarmed (no --push, a dry run) pushes nothing
+  ok   stamp hold: main arms it for --push and not --dry-run only
+RESULT stamp_self_test=pass
