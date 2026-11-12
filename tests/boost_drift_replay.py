@@ -100,9 +100,13 @@ TAIL_POLICIES = {
     "scaled": boost_mod.settle_tail,
 }
 PRESS_ARMS = {
-    f"press_{minutes}x{count}_{policy}": f"press:{minutes}:{count}:{policy}"
+    f"{kind}_{minutes}x{count}_{policy}": f"{kind}:{minutes}:{count}:{policy}"
     for minutes, count in ((10, 1), (30, 1), (60, 1), (120, 1), (10, 4))
     for policy in TAIL_POLICIES
+    # ``freeze``: the same presses and tails with the true house driven by the
+    # plan throughout -- the freeze with no boost heat behind it, the null
+    # control separating the walk the skipped samples cause from the heat's.
+    for kind in ("press", "freeze")
 }
 
 
@@ -332,7 +336,7 @@ def cycle(st: dict, i: int, surface: str) -> None:
             "displace_value": 0.0,
             "space_reason": "plan",
         })
-    press = press_windows(surface, day_index) if surface.startswith("press:") else []
+    press = press_windows(surface, day_index) if surface.startswith(("press:", "freeze:")) else []
     step_h = DT_MIN / 60.0
     # The share of this cycle a press held the overlay: the true house is
     # driven by the overlay for that share, by the plan for the rest.
@@ -371,6 +375,8 @@ def cycle(st: dict, i: int, surface: str) -> None:
         boost_applied = want if house_state.room_temperature < setpoint - 0.1 else want * 0.35
         applied = (press_frac * boost_applied + (1.0 - press_frac) * plan_applied
                    if press_frac > 0.0 else applied)
+    elif surface.startswith("freeze:"):
+        applied = float(result.power_schedule[0]) if house_state.room_temperature < 23.0 - 0.1 else 0.0
     house_state = house.simulate_step(
         house_state, applied, outdoor_now,
         wind_speed=2.0, precipitation=0.0,
@@ -444,7 +450,7 @@ def replay(arms: dict, two_zone: bool = False,
     for arm, surface in arms.items():
         st = copy.deepcopy(shared)
         production = boost_mod.settle_tail
-        if surface.startswith("press:"):
+        if surface.startswith(("press:", "freeze:")):
             boost_mod.settle_tail = TAIL_POLICIES[surface.split(":")[3]]
         try:
             for i in range(fork, n_cycles):
@@ -876,7 +882,7 @@ def main() -> int:
     for arm, walk in walks.items():
         print(f"  WALK {arm}: worst {walk[0]:+.4f}, final {walk[1]:+.4f}, daily {outs[arm]['daily']}")
     whole = walks.get("press_120x1_full")
-    for arm in (a for a in walks if a.endswith("_scaled")):
+    for arm in (a for a in walks if a.startswith("press_") and a.endswith("_scaled")):
         R.check(
             f"{arm}: the scaled tail walks the scale no further than the whole "
             "window under the full tail",
