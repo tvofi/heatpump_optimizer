@@ -119,10 +119,22 @@ def _age(inp: ArbiterInputs, value: bool, now: datetime) -> timedelta | None:
     """
     switch = supply_switch(inp)
     state = getattr(switch, "state", None)
-    since = getattr(switch, "last_changed", None)
-    if state in _UNREADABLE or (state != "off") is value or since is None:
+    if state in _UNREADABLE or (state != "off") is value:
         return None
-    since = dt_util.as_utc(since)
+    return switch_age(switch, now)
+
+
+def switch_age(switch: Any, now: datetime) -> timedelta | None:
+    """How long the switch has held its value, by its ``last_changed``, or ``None``.
+
+    The run length is the age of the VALUE: ``inputs.state_stamp`` answers
+    when the entity was last heard from, which a re-reported ``on`` resets.
+    A stamp missing or ahead of ``now`` is unknowable, never 0 (#775).
+    """
+    since = getattr(switch, "last_changed", None)
+    if since is None:
+        return None
+    since, now = dt_util.as_utc(since), dt_util.as_utc(now)
     return None if since > now else now - since
 
 

@@ -80,8 +80,8 @@ from .boost import CHANNEL_DHW, CHANNEL_SPACE, BoostState
 from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
-from .pump_arbiter import ArbiterInputs, step_duty, switch_supply
-from .supply_hold import MIN_PAUSE, MIN_RUN, tank_reason
+from .pump_arbiter import ArbiterInputs, step_duty, supply_switch, switch_supply
+from .supply_hold import MIN_PAUSE, MIN_RUN, switch_age, tank_reason
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -264,15 +264,14 @@ def _cycle_guard(inp: ArbiterInputs, held: CutoffState, now: datetime) -> str | 
     """The short-cycle guards: once per cycle, a minimum run, a minimum stop."""
     if held.cut_this_cycle:
         return "already_cut"
-    switch = inp.hass.states.get(EntryConfig.from_mapping(inp.config).heat_pump_switch_entity)
+    switch = supply_switch(inp)
     if getattr(switch, "state", None) != "on":
         return "switch_not_on"
-    since = getattr(switch, "last_changed", None)
-    utc = dt_util.as_utc(now)
     # A missing stamp, or one ahead of the clock, is an unknown run (#775).
-    if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(since) < MIN_ON:
+    run = switch_age(switch, now)
+    if run is None or run < MIN_ON:
         return "min_on"
-    if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+    if held.cycle_end is None or held.cycle_end - dt_util.as_utc(now) < MIN_OFF:
         return "min_off"
     return None
 

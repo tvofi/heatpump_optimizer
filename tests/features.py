@@ -82177,6 +82177,7 @@ for _ms_name, _ms_args, _ms_want in (
     ("an OFF to a switch reading unknown passes", ("unknown", 3), (False, False)),
     ("an OFF to a switch stamped ahead of the clock passes", ("on", -3), (False, False)),
     ("null control: an OFF to a switch on three minutes is held", ("on", 3), (None, True)),
+    ("an OFF to a switch stamped this instant is held (age 0, not unknown)", ("on", 0), (None, True)),
 ):
     _ms_got = _sh_stop(*_ms_args)
     R.check(f"stop: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
