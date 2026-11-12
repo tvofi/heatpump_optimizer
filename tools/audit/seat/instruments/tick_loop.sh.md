@@ -20,8 +20,11 @@
   non-numeric `--interval` or an unknown option; a failing relay pass or tick
   is reported and the loop goes on. `--self-test` drives it over stubs.
   The self-test reads and moves no checkout but scratch clones of its own:
-  before its first row it drops the repository the caller's environment
-  names (`GIT_DIR`) and every `HPO_TICK_*` it holds, points
+  `--self-test` re-runs it under `env -i` carrying only `SELFTEST_ENV`
+  (`PATH`, `TMPDIR` (else `/tmp`), the nesting flag and `offline_spy.py`'s two
+  from the caller; `HOME` scratch), and its rows' entry point refuses any other exported
+  name, so no caller variable (`GIT_DIR`, an `HPO_TICK_*`,
+  `HPO_HEARTBEAT_REMOTE`, a stub's control) reaches a row; it points
   `HPO_TICK_CODE_DIR` at scratch, and it runs
   itself whole from a branch and a detached clone behind origin/main to
   pin that, so it is safe from any checkout, whatever origin/main does.
