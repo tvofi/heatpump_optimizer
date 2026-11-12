@@ -64,3 +64,26 @@ def clear_issue(hass: Any, issue_id: str) -> None:
         ir.async_delete_issue(hass, DOMAIN, issue_id)
     except Exception as err:  # noqa: BLE001 - clearing is best-effort
         _LOGGER.debug("Could not clear %s: %s", issue_id, err)
+
+
+def note_price_outage(
+    hass: Any, reason: str, cycles: int, exc_info: bool, covering: list[float] | bool
+) -> bool:
+    """Log one failed price fetch, raise its repair, and say whether planning goes on.
+
+    ``covering``: the last published prices still covering now (falsy when none
+    do, or for a refused token). While they do, planning goes on and the failure
+    is a warning plus the ``price_feed_stale`` repair; otherwise the update fails
+    and it is an error. ``cycles`` counts this one: only an outage's first cycle
+    logs above DEBUG (D10-09).
+    """
+    bridged = bool(covering)
+    if cycles > 1:
+        _LOGGER.debug("Tibber still failing (%s)", reason)
+    elif bridged:
+        _LOGGER.warning("%s; planning on the last published prices", reason)
+    else:
+        _LOGGER.error("%s", reason, exc_info=exc_info)
+    if bridged:  # once raised it stays through the failed update; recovery clears it
+        set_issue(hass, "price_feed_stale", True, placeholders={"error": reason})
+    return bridged

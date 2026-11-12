@@ -12,6 +12,8 @@ draws is re-derived by running it, not by reading a body.
     replay_draws.py parse --cache DIR --out FILE.tsv
     replay_draws.py window --cache DIR --runs N --until 2026-11-05T23:59:59Z
     replay_draws.py grade --job ID [--ruler MS] [--clean-from ARM]
+    replay_draws.py shift [--table FILE.tsv] [--no-cuts]
+    replay_draws.py interleave --pre DIR --post DIR [--pairs N]
 
 ``fetch`` lists the runs (newest first), each run's jobs on every page and
 every attempt, and downloads each concluded job's log once into ``DIR``,
@@ -24,6 +26,14 @@ grades one job of ``tests/replay_cost_draws.tsv`` exactly as the lane does
 (``replay.job_cost``) and exits 1 iff a clean run offends or a doubled arm is
 not over budget: ``--ruler`` moves the job's ruler (a draw moved across a
 border), ``--clean-from cpu`` grades the doubled arm as if it were clean.
+``shift`` runs ``replay.level_shift_offenders`` over a draw table (default the
+committed one; ``--table`` reads another, e.g. one ``git show <sha>:`` wrote),
+prints the classes examined and every class resting wholly on draws before a
+shift, and exits 1 iff it names one; ``--no-cuts`` drops ``COST_CUTS``.
+``interleave`` measures a declared cut's factor on this box: the synthetic
+fixture's clean replay (``replay.py --one``) in two checkouts, a commit's parent
+(``--pre``) and the commit (``--post``), ``N`` pairs in alternating order,
+printing each run's ``cpu_ratio`` and ruler and the ratio of the medians.
 Needs an authenticated ``gh``.
 """
 from __future__ import annotations
@@ -176,6 +186,48 @@ def grade(job: str, ruler: float | None, clean_from: str | None) -> int:
     return 1 if bad else 0
 
 
+def shift(table: Path | None, cuts: bool) -> int:
+    root = Path(__file__).resolve().parents[3]
+    sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
+    import replay
+    path = table or replay.COST_DRAWS
+    out = 0
+    for name in replay.COST_CLASS_BUDGETS:
+        examined, offenders = replay.level_shift_offenders(
+            replay.cost_draws(path, cuts=()), replay.cost_draw_created(path), name,
+            cuts=replay.COST_CUTS if cuts else ())
+        print(f"{name}: classes examined {len(examined)} {examined}")
+        for o in offenders:
+            print(f"  {o}")
+        out |= bool(offenders)
+    return out
+
+
+def interleave(pre: Path, post: Path, pairs: int) -> int:
+    import os
+    import statistics
+    got: dict[str, list[float]] = {"pre": [], "post": []}
+    for i in range(pairs):
+        for arm in (("pre", "post") if i % 2 == 0 else ("post", "pre")):
+            tree = pre if arm == "pre" else post
+            run = subprocess.run(
+                [sys.executable, "tests/replay.py", "--one", "tests/replay/synthetic-dhw-only.json"],
+                cwd=tree, capture_output=True, text=True,
+                env={**os.environ, "PYTHONPATH": "tests/hastub"})
+            line = next((ln for ln in run.stdout.splitlines()
+                         if ln.startswith("<<<replay-json>>>")), None)
+            if line is None:
+                print(f"pair {i + 1} {arm}: no replay-json line (exit {run.returncode})")
+                return 2
+            cost = json.loads(line[len("<<<replay-json>>>"):])["cost"]
+            got[arm].append(cost["cpu_ratio"])
+            print(f"pair {i + 1} {arm} cpu_ratio {cost['cpu_ratio']} ref_ms {cost['ref_ms']:.2f}",
+                  flush=True)
+    a, b = statistics.median(got["pre"]), statistics.median(got["post"])
+    print(f"medians pre {a} post {b}; post/pre {b / a:.4f}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -194,7 +246,18 @@ def main(argv: list[str] | None = None) -> int:
     g.add_argument("--job", required=True)
     g.add_argument("--ruler", type=float)
     g.add_argument("--clean-from", choices=("cpu", "memory", "loop"))
+    h = sub.add_parser("shift")
+    h.add_argument("--table", type=Path)
+    h.add_argument("--no-cuts", action="store_true")
+    i = sub.add_parser("interleave")
+    i.add_argument("--pre", type=Path, required=True)
+    i.add_argument("--post", type=Path, required=True)
+    i.add_argument("--pairs", type=int, default=12)
     args = ap.parse_args(argv)
+    if args.cmd == "interleave":
+        return interleave(args.pre, args.post, args.pairs)
+    if args.cmd == "shift":
+        return shift(args.table, not args.no_cuts)
     if args.cmd == "grade":
         return grade(args.job, args.ruler, args.clean_from)
     if args.cmd == "fetch":

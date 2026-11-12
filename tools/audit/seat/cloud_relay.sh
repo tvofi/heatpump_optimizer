@@ -82,7 +82,7 @@
 #
 # `pass` is the orchestrator's whole beat, ONE entry point a driver calls once
 # (and takes over relay_watch.sh, which was session-local). A pass runs two arms,
-# and with --confirm a third.
+# and with --confirm a third, in the order probe, confirm, handoff (R10-RELAY-ARM-ORDER).
 #   handoff arm: for every OPEN pull request, topic = headRefName less a leading
 #     `fix/` and a trailing `-pr`. If handoff-body/<topic> and handoff/<topic>
 #     exist and handoff/<topic> is NOT an ancestor of the PR head, it runs
@@ -427,14 +427,13 @@ confirm_arm() { # one pass over review/* tips the relay delivered: confirm each 
   git ls-remote origin 'refs/heads/review/*' > "$state/cloud-reviews.$$" || { echo "cloud_relay: ls-remote of review/* failed; will retry" >&2; rm -f "$state/cloud-reviews.$$"; return 0; }
   : > "$state/cloud-level-confirm.$$"
   # P332: a verdict posts only on an open PR (app_comment.sh), so one on a closed or merged PR is
-  # skipped, not owed. The open PRs are this pass's handoff-arm listing, else one listing here; a
+  # skipped, not owed. The open PRs are this pass's one listing (pass() takes it ahead of every arm), else one listing here; a
   # failed listing skips nothing (every tip stays owed as before).
   local open=""
   if [ -f "$state/cloud-prs-open.$$" ]; then open=$(cut -f1 "$state/cloud-prs-open.$$"); open=${open:-none}
   else open=$( { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
     else gh pr list -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --state open --limit 100 --json number,headRefName,headRefOid \
       -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } | cut -f1) && open=${open:-none} || open=""; fi
-  rm -f "$state/cloud-prs-open.$$"
   while read -r sha ref; do
     pr=${ref#refs/heads/review/}; case $pr in ''|*[!0-9]*) continue;; esac
     # only what this relay delivered: a reviewer of the orchestrator's own waits for its thread read
@@ -551,6 +550,11 @@ body_only_owed() { # <pr> <topic> <body sha> <head> <why>: a body-only handoff l
   echo "cloud_relay: BODY-ONLY #$1 handoff-body/$2 ${3:0:12} is newer than head ${4:0:12} and not applied: $5"
   level_line handoff-body-unapplied "refs/heads/handoff-body/$2" "$3" "#$1 $5" >> "$state/cloud-level-bodyonly.$$"
 }
+open_prs() { # the open PRs, `<number> <head ref> <head sha>` tab-separated: HPO_RELAY_PRS or gh
+  if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
+  else gh pr list -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --state open --limit 100 --json number,headRefName,headRefOid \
+    -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi
+}
 handoff_level() { # the handoff-no-pr and hold-stale levels, derived from this pass's listings (called before the serial update loop)
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} l
   # a hold-file line whose PR is no longer open (merged or closed) is stale: it holds nothing and is never expired
@@ -581,11 +585,10 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
   held_prs=$(hold_list) || { level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set handoff-hold-malformed "$state/cloud-level-hold.$$"; return 2; }
   released=$(hold_list "$(release_file)") || { level_line handoff-hold-malformed "$(release_file)" - >> "$state/cloud-level-hold.$$"; level_set handoff-hold-malformed "$state/cloud-level-hold.$$"; return 2; }
   level_set handoff-hold-malformed "$state/cloud-level-hold.$$"
-  { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
-    else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
-      -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } > "$state/cloud-prs.$$" \
-    || { echo "cloud_relay: could not list open PRs; will retry" >&2; rm -f "$state/cloud-prs.$$"; return 0; }
-  [ -z "${CONFIRM:-}" ] || cp -f "$state/cloud-prs.$$" "$state/cloud-prs-open.$$"  # this pass's open PRs, for confirm_arm (P332)
+  # R10-RELAY-ARM-ORDER: the listing is pass()'s, taken once ahead of every arm; a lone call lists here
+  if [ -f "$state/cloud-prs-open.$$" ]; then cp -f "$state/cloud-prs-open.$$" "$state/cloud-prs.$$"
+  else open_prs > "$state/cloud-prs.$$" \
+    || { echo "cloud_relay: could not list open PRs; will retry" >&2; rm -f "$state/cloud-prs.$$"; return 0; }; fi
   git ls-remote origin 'refs/heads/handoff/*' 'refs/heads/handoff-body/*' > "$state/cloud-hrefs.$$" \
     || { echo "cloud_relay: could not list handoff refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$"; return 0; }
   # one listing of the verdicts per pass, outside the loop: an unread listing would update a merge-verdicted head
@@ -857,7 +860,13 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
   case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
   while :; do
     echo "cloud_relay: state dir ${HPO_STATE_DIR:-$HOME/.local/state/hpo}, ledger ${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relayed, log $(relay_log)"
-    handoff_arm; carry_fold_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
+    # R10-RELAY-ARM-ORDER: a returned verdict posts before the serial updates run (handoff_arm blocks on
+    # each update_pr.sh and a full prepr). The one open-PR listing is taken first, for confirm_arm and handoff_arm;
+    # a failed listing leaves no file and each arm lists for itself.
+    local pst=${HPO_STATE_DIR:-$HOME/.local/state/hpo}; mkdir -p "$pst"
+    open_prs > "$pst/cloud-prs-open.$$" 2>/dev/null || rm -f "$pst/cloud-prs-open.$$"
+    probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; handoff_arm; carry_fold_arm; rm -f "$pst/cloud-prs-open.$$"
+    stuck_arm; noreturn_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
 }
 
 self_test() {
@@ -1696,6 +1705,32 @@ $cfo2") $(calls 67)" = "1 1"
   mk 68 $h $h $n; printf '68 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"
   HPO_RELAY_PRS=$failprs pass --confirm --log "$LOG" >/dev/null 2>&1
   chk "null control: with the open-PR listing failed, the same shape on #68 stays owed" 0 grep -q "confirm-owed refs/heads/review/68 " "$LV"
+  # R10-RELAY-ARM-ORDER: a returned verdict posts before the serial updates start. The stub handoff_arm
+  # records how many POSTED lines for #71 the log holds when it BEGINS, and how often it ran.
+  printf '#!/bin/sh\nfor p in 71; do printf "%%s\\tfix/ao-%%s\\t%s\\n" $p $p; done\n' "$N40" > "$t/open71.sh"; chmod +x "$t/open71.sh"
+  CF_FAILS=0; export HPO_RELAY_CONFIRM=$t/cf.sh; mk 71 $h $h $n; printf '71 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"
+  rm -f "$t/ao.seen" "$t/ao.runs"
+  aorun() { ( handoff_arm() { echo run >> "$t/ao.runs"; grep -c '^POSTED .* 71 ' "$LOG" >> "$t/ao.seen"; }
+    HPO_RELAY_PRS=$t/open71.sh; pass --confirm --log "$LOG" ) >/dev/null 2>&1; }
+  aorun
+  chk "a verdict returned before the pass is POSTED before handoff_arm starts" 0 test "$(cat "$t/ao.seen")" = 1
+  aorun
+  chk "null control: with no new probe ref the second pass posts nothing more" 0 test "$(grep -c '^POSTED .* 71 ' "$LOG")" = 1
+  chk "and handoff_arm still ran once per pass" 0 test "$(wc -l < "$t/ao.runs" | tr -d ' ')" = 2
+  chk "the pass leaves no listing file behind" 0 test -z "$(ls "$t/state" | grep '^cloud-prs-open\.')"
+  # the arm order itself: every arm stubbed to log its name; under --confirm and without it
+  aoord() { ( for a in probe_arm confirm_arm handoff_arm carry_fold_arm stuck_arm noreturn_arm; do eval "$a() { echo $a >> \"\$t/ao.order\"; }"; done
+    HPO_RELAY_PRS=$t/open71.sh; pass "$@" --log "$LOG" ) >/dev/null 2>&1; tr '\n' ' ' < "$t/ao.order"; }
+  rm -f "$t/ao.order"; AOO=$(aoord --confirm)
+  chk "pass --confirm runs the arms probe, confirm, handoff, carry_fold, stuck, noreturn in that order" 0 test "$AOO" = "probe_arm confirm_arm handoff_arm carry_fold_arm stuck_arm noreturn_arm "
+  rm -f "$t/ao.order"; CONFIRM= AOO=$(aoord)
+  chk "null control: without --confirm the same order holds with confirm_arm absent" 0 test "$AOO" = "probe_arm handoff_arm carry_fold_arm stuck_arm noreturn_arm "
+  # the one listing is reused: a counting lister runs once per pass under --confirm, with the real handoff_arm
+  printf '#!/bin/sh\necho x >> "%s/lister.calls"\nprintf "71\\tfix/ao-71\\t%s\\n"\n' "$t" "$N40" > "$t/cnt71.sh"; chmod +x "$t/cnt71.sh"
+  rm -f "$t/lister.calls"; ( HPO_RELAY_PRS=$t/cnt71.sh; pass --confirm --log "$LOG" ) >/dev/null 2>&1
+  chk "one pass under --confirm lists the open PRs once (handoff_arm and confirm_arm reuse the listing)" 0 test "$(wc -l < "$t/lister.calls" 2>/dev/null | tr -d ' ')" = 1
+  rm -f "$t/lister.calls"; ( HPO_RELAY_PRS=$t/cnt71.sh; handoff_arm ) >/dev/null 2>&1
+  chk "null control: a lone handoff_arm lists for itself, once" 0 test "$(wc -l < "$t/lister.calls" 2>/dev/null | tr -d ' ')" = 1
   CONFIRM=; CF_FAILS=0; unset HPO_RELAY_CONFIRM; HPO_RELAY_PRS=$t/lister.sh; LOG=$t/pass.log
   # R10-PUSHER-REAP: a relay TERMed mid-update ends the update's whole tree. The
   # update stub records itself and a two-level sleep tree by pid, then blocks.
