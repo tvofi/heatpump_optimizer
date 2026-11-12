@@ -27,13 +27,14 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CARRY-AUDIT-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SUITE-ENV-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-SAV-VALUATION-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DUTY-SWITCH-RESTART-LEARNING (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DEPENDABOT-3414-COMPAT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-CHARGE-SETTLE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-ECL110-MQTT-OFF-NEUTRAL (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DISINFECTION-SETPOINT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -44,6 +45,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-OPENER-UNBLOCK (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-CARD-HEALTH-TEXT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-PREPR-WC-PAD (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-GATE-PUSH-RATCHET (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-MACH-SCORECARD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-PROTECTION-CENSUS (stage in-progress): no branch pushed yet, so nothing to fetch
