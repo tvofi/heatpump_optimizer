@@ -34,9 +34,7 @@ from .const import (
     BOOST_SPACE_SETTLE_TAIL_HOURS,
     DOMAIN,
     ECONOMY_ABSOLUTE_FLOOR,
-    HOUSE_LOSS_MAX_SAMPLE_HOURS,
     MODE_BOOST,
-    PUMP_MIN_ON_MINUTES,
     SPACE_PUMP_FLOOR_MARGIN_C,
 )
 from .dhw_schedule import DHWWindowError, hour_in_windows, parse_windows
@@ -61,55 +59,19 @@ RELEASE_SYSID = "a measurement experiment is running"
 RELEASE_STALE = "the plan is stale"
 #: Installed by the pump arbiter. boost does not import that module.
 _cold_lease: Any = None
-#: #1935: how long after a full two-hour space overlay ends the interval
-#: learners stay frozen. The replay integrates from a plant state propagated
-#: open-loop from the PLAN's trajectory, so the slab heat the overlay added --
-#: real in the house, absent from the model's -- keeps every replay residual
-#: warm-side until the slab coupling re-equilibrates. The slab's own time
-#: constant at the default parameters is C/H = 5.0/0.8 = 6.25 h, and the
-#: gate arm measured the pre-study's 2 h guess insufficient on its own
-#: (-34 % on the scale across two boost days, with the window freeze
-#: already holding); two time constants clear ~86 % of the divergence.
+#: #1935: how long after a space overlay ends the interval learners stay
+#: frozen, whatever time it ran. The replay integrates from a plant state
+#: propagated open-loop from the PLAN's trajectory, so the slab heat the
+#: overlay added -- real in the house, absent from the model's -- keeps every
+#: replay residual warm-side until the slab coupling re-equilibrates. The
+#: slab's own time constant at the default parameters is C/H = 5.0/0.8 =
+#: 6.25 h, and the gate arm measured the pre-study's 2 h guess insufficient
+#: on its own (-34 % on the scale across two boost days, with the window
+#: freeze already holding); two time constants clear ~86 % of the divergence.
+#: Not scaled to a shorter boost's length: no scaled tail tried kept every
+#: press arm of dev/audit/harnesses/boost_press_tail_walk.py inside the whole
+#: window's walk under this tail.
 SPACE_SETTLE_TAIL = timedelta(hours=BOOST_SPACE_SETTLE_TAIL_HOURS)
-#: How fast the tail shortens with the boost: per e-fold of the boosted
-#: time, half the slab constant the full tail is two of. The full constant
-#: (equal residual) was measured on tests/boost_drift_replay.py's press arms:
-#: a quarter-window press walked the scale ~3x as far as the whole window
-#: under the full tail; at half, a shorter boost is held until its divergence
-#: is ``sqrt(boosted / window)`` of the full window's residual.
-_SETTLE_SLOPE = SPACE_SETTLE_TAIL / 4
-#: The shortest tail: the interval learners' longest sample. A boost cancelled
-#: inside one cycle leaves neither the overlay nor the interval tag at the next
-#: learner run, and a counter span opened before the press would replay across
-#: it; held this long, every interval and span that overlaps the boost carries
-#: a frozen cycle.
-_SETTLE_FLOOR = timedelta(hours=HOUSE_LOSS_MAX_SAMPLE_HOURS)
-_BOOST_WINDOW = timedelta(hours=BOOST_HOURS)
-#: The least time a press is priced at: a press that starts the compressor
-#: runs it for the pump's minimum on-time, however soon it is cancelled.
-_PRESS_MIN = timedelta(minutes=PUMP_MIN_ON_MINUTES)
-
-
-def settle_tail(boosted: timedelta | None) -> timedelta:
-    """The settling tail a space boost that ran for ``boosted`` owes.
-
-    The divergence an overlay leaves is the heat it added, at most the
-    nameplate times its length, and it decays with the slab's constant. The
-    full window's tail leaves ``e**-2`` of that window's divergence; a shorter
-    boost owes ``tail + _SETTLE_SLOPE * ln(boosted / window)``, never longer
-    than the full window's and never shorter than ``_SETTLE_FLOOR``. ``None``,
-    a length nobody saw begin, owes the full tail.
-    """
-    if boosted is None:
-        return SPACE_SETTLE_TAIL
-    ratio = boosted / _BOOST_WINDOW
-    if ratio >= 1.0:
-        return SPACE_SETTLE_TAIL
-    if ratio <= 0.0:
-        return _SETTLE_FLOOR
-    return max(_SETTLE_FLOOR, SPACE_SETTLE_TAIL + _SETTLE_SLOPE * math.log(ratio))
-
-
 #: The freeze reason ``_learning_frozen`` reports while the space overlay
 #: (channel or global mode) is live or settling (#1935).
 FREEZE_REASON = "boost_space"
@@ -150,33 +112,33 @@ class BoostState:
     blocked: dict[str, datetime] = field(default_factory=dict)
     #: #1935: when the space overlay's settling tail ends -- set when the
     #: overlay ends (expiry or cancel) and when the global boost mode is
-    #: left, ``settle_tail`` of how long it ran. Persisted: the replay
+    #: left, ``SPACE_SETTLE_TAIL`` from that end. Persisted: the replay
     #: baseline is gone after a restart, but the slab heat is not, so every
     #: replay after the first one would fold it.
     space_settle_until: datetime | None = None
     #: When the space overlay, and the global boost mode, went live; ``None``
-    #: unseen (a mode restored as boost), which owes the full tail.
+    #: unseen (a mode restored as boost), which makes ``space_boosted`` unknown.
     space_since: datetime | None = None
     mode_since: datetime | None = None
 
     #: The boosted time, over both surfaces, that ended since the learners
-    #: were last free of a boost: boosts add up, so a tail is priced on the
-    #: sum, not on the last boost alone. ``None`` once a start nobody saw is
-    #: in it, which owes the full tail. Cleared only by ``_clear_spent``.
+    #: were last free of a boost: boosts add up, so the heat a tail must clear
+    #: is that of the sum, not of the last boost alone. Recorded and persisted
+    #: with the tail; no tail is priced on it yet. ``None`` once a start nobody
+    #: saw is in it. Cleared only by ``_clear_spent``.
     space_boosted: timedelta | None = timedelta(0)
 
     def settle(self, end: datetime, since: datetime | None) -> None:
         """Start the tail a space boost live from ``since`` until ``end`` owes.
 
-        Priced on the boosted time accumulated with it, each boost at no
-        less than ``_PRESS_MIN``. Never shortens a tail already running: a
-        short boost pressed inside a long one's tail leaves the longer.
+        Adds the time it ran to ``space_boosted``. Never shortens a tail
+        already running (a clock stepped back leaves the later end).
         """
         if since is None or self.space_boosted is None:
             self.space_boosted = None
         else:
-            self.space_boosted += max(_PRESS_MIN, timedelta(seconds=utc_elapsed_seconds(end, since)))
-        until = utc_shift(end, settle_tail(self.space_boosted))
+            self.space_boosted += timedelta(seconds=utc_elapsed_seconds(end, since))
+        until = utc_shift(end, SPACE_SETTLE_TAIL)
         held = self.space_settle_until
         if held is None or utc_elapsed_seconds(until, held) > 0:
             self.space_settle_until = until
@@ -585,7 +547,7 @@ def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) -> 
     until = _parse_until(tail.get("until")) if isinstance(tail, Mapping) else None
     if until is not None and dt_util.as_utc(until) > dt_util.as_utc(now):
         held.space_settle_until = until
-        # Unreadable boosted time reads as a start nobody saw: the full tail.
+        # Unreadable boosted time reads as a start nobody saw: unknown.
         hours = tail.get("boosted_h")
         held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
                               and not isinstance(hours, bool) and 0.0 <= hours < math.inf else None)

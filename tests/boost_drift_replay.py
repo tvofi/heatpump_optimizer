@@ -88,31 +88,16 @@ FROZEN_SPAN = (boost_mod.BOOST_HOURS
                + SETTLE_TAIL.total_seconds() / 3600.0)
 
 
-#: R10-OUTSIDE-LEARNER-ROBUSTNESS-P2's measurement, argv-only (not the gate):
-#: at each window start a space press through the channel switch, held
-#: ``minutes`` and then cancelled (a press of the whole window expires
-#: instead), ``count`` presses one cycle apart, under one tail policy patched
-#: over production's ``settle_tail``: ``none`` owes no tail, ``full`` the full
-#: tail whatever the length (main's rule), ``scaled`` production's own.
-TAIL_POLICIES = {
-    "none": lambda boosted: timedelta(0),
-    "full": lambda boosted: boost_mod.SPACE_SETTLE_TAIL,
-    "scaled": boost_mod.settle_tail,
-}
-PRESS_ARMS = {
-    f"{kind}_{minutes}x{count}_{policy}": f"{kind}:{minutes}:{count}:{policy}"
-    for minutes, count in ((10, 1), (30, 1), (60, 1), (120, 1), (10, 4))
-    for policy in TAIL_POLICIES
-    # ``freeze``: the same presses and tails with the true house driven by the
-    # plan throughout -- the freeze with no boost heat behind it, the null
-    # control separating the walk the skipped samples cause from the heat's.
-    for kind in ("press", "freeze")
-}
-
-
+# Press surfaces, driven only by dev/audit/harnesses/boost_press_tail_walk.py
+# (not the gate): ``press:<minutes>:<count>`` presses the space overlay
+# through the channel switch at each window start, held ``minutes`` and then
+# cancelled (a press of the whole window expires instead), ``count`` presses
+# one cycle apart; ``freeze:<minutes>:<count>`` runs the same presses with the
+# true house driven by the plan throughout, so the freeze has no boost heat
+# behind it.
 def press_windows(surface: str, day_index: int) -> list[tuple[float, float]]:
     """The ``(start, end)`` local hours a ``press:`` surface boosts on this day."""
-    _kind, minutes, count, _policy = surface.split(":")
+    _kind, minutes, count = surface.split(":")
     if day_index not in BOOST_DAYS:
         return []
     return [
@@ -449,14 +434,8 @@ def replay(arms: dict, two_zone: bool = False,
     outs = {}
     for arm, surface in arms.items():
         st = copy.deepcopy(shared)
-        production = boost_mod.settle_tail
-        if surface.startswith(("press:", "freeze:")):
-            boost_mod.settle_tail = TAIL_POLICIES[surface.split(":")[3]]
-        try:
-            for i in range(fork, n_cycles):
-                cycle(st, i, surface)
-        finally:
-            boost_mod.settle_tail = production
+        for i in range(fork, n_cycles):
+            cycle(st, i, surface)
         outs[arm] = arm_summary(arm, st)
     return outs
 
@@ -541,16 +520,6 @@ def check_fork() -> None:
             diverged is None and len(traces[surface]) == fork,
             f"first differing cycle {diverged} of {fork}",
         )
-
-
-def scale_walk(out: dict) -> tuple[float, float]:
-    """The house heat-loss scale's walk from the 03:00 row before the first
-    window: the largest relative excursion on any later daily row, signed,
-    and the final value's."""
-    daily = out["daily"]
-    pre = daily[BOOST_DAYS[0] - 1]
-    later = [v / pre - 1.0 for d, v in sorted(daily.items()) if d >= BOOST_DAYS[0]]
-    return max(later, key=abs, default=0.0), out["hh_final"] / pre - 1.0
 
 
 def check_arm(
@@ -842,7 +811,7 @@ def main() -> int:
     outs.update(replay({a: followups[a] for a in todo if a in followups},
                        two_zone=True))
     channel_out = None
-    for arm in (a for a in todo if a not in PRESS_ARMS):
+    for arm in todo:
         out = outs[arm]
         if arm in followups:
             worst = max(
@@ -877,18 +846,6 @@ def main() -> int:
         check_arm(out, boosted=arms[arm] != "none")
         if arms[arm] == "channel":
             channel_out = out
-    outs.update(replay({a: PRESS_ARMS[a] for a in todo if a in PRESS_ARMS}))
-    walks = {arm: scale_walk(outs[arm]) for arm in todo if arm in PRESS_ARMS or arm == "null_no_boost"}
-    for arm, walk in walks.items():
-        print(f"  WALK {arm}: worst {walk[0]:+.4f}, final {walk[1]:+.4f}, daily {outs[arm]['daily']}")
-    whole = walks.get("press_120x1_full")
-    for arm in (a for a in walks if a.startswith("press_") and a.endswith("_scaled")):
-        R.check(
-            f"{arm}: the scaled tail walks the scale no further than the whole "
-            "window under the full tail",
-            whole is not None and abs(walks[arm][0]) <= abs(whole[0]),
-            f"{walks[arm]} vs {whole}",
-        )
     if channel_out is not None:
         check_record(channel_out)
     check_freeze_units()

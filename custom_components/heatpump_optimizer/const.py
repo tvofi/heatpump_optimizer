@@ -1055,15 +1055,10 @@ DHW_LEGIONELLA_HOLD_MINUTES: Final = 20.0
 # ever recorded, and the countdown latches overdue for ever. Long enough that
 # any healthy tank finishes well inside it; far shorter than the interval.
 DHW_LEGIONELLA_BOOST_MAX_HOURS: Final = 12.0
-#: The longest settling tail a space boost owes the interval learners (#1935;
-#: ``boost.settle_tail`` scales it to the boost's length).
+#: The settling tail a space boost owes the interval learners, hours, whatever
+#: time it ran (#1935): ``boost.SPACE_SETTLE_TAIL`` and the store's look-ahead
+#: for the persisted tail.
 BOOST_SPACE_SETTLE_TAIL_HOURS: Final = 12.0
-#: The interval learners' longest sample, hours: the coordinator's sample bound
-#: and ``boost.settle_tail``'s floor, which must hold every sample a boost overlaps.
-HOUSE_LOSS_MAX_SAMPLE_HOURS: Final = 1.5
-#: The shortest run the early cut may end, minutes: the early cut's ``MIN_ON``
-#: and the least time ``boost.settle_tail`` prices a press at.
-PUMP_MIN_ON_MINUTES: Final = 10.0
 #: #20 — events per window before the p90 fully replaces the mean (ramp).
 DHW_QUANTILE_MIN_EVENTS: Final = 8
 #: #18 — day-type samples at which the blend is half day-type, half pooled.
