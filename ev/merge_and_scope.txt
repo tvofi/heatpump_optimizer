@@ -1,0 +1,31 @@
+## three-dot over VERSION/manifest/notes/golden/budgets:
+## resolution delta vs auto-merge of 112f0d77 and origin/main (e3e3b12f):
+ tests/features.py | 54 +++++++++++++++++++++++++++++++++++++++++++++++++-----
+ 1 file changed, 49 insertions(+), 5 deletions(-)
+## branch-only production delta 112f0d77..head:
+ 16 files changed, 347 insertions(+), 106 deletions(-)
+ 16 files changed, 347 insertions(+), 106 deletions(-)
+## merge-tree origin/main 19baca76181cb019d9b1cfd93ee6bc0a08e20047 2e1e33a70a4c09db239d8814e3a645a90d9a2cfd:
+b0f6690f3192607fb1e28da0de12fb6c9c3c823c
+rc=0
+## owed-reds:
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+gate
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
