@@ -12496,9 +12496,9 @@ check("without an indoor reading the corner now label is absent",
     const dayEdge = (plusDays, h, m) => { const d = new Date(); d.setDate(d.getDate() + plusDays); d.setHours(h, m, 0, 0); return d; };
     const rowAt = (d) => rowOf(modelOf(metered(lp({ phase: "frozen", progress: 0.02, waiting_for: "boost_space",
       frozen_until: d.toISOString(), samples: 1 }))), "heat_loss");
-    check("P3: an end past midnight shows the day (tomorrow), an end later today only the clock time",
-      /Paused after a boost until/.test(rowAt(dayEdge(0, 23, 30))) && !/tomorrow/i.test(rowAt(dayEdge(0, 23, 30)))
-      && /tomorrow/i.test(rowAt(dayEdge(1, 0, 30))), `${rowAt(dayEdge(0, 23, 30))} | ${rowAt(dayEdge(1, 0, 30))}`);
+    check("P3: an end past midnight shows the day, not the clock time alone: the same time on two days reads differently",
+      /Paused after a boost until/.test(rowAt(dayEdge(1, 23, 30))) && rowAt(dayEdge(1, 23, 30)) !== rowAt(dayEdge(2, 23, 30))
+      && /on \w+day/.test(rowAt(dayEdge(2, 23, 30))), `${rowAt(dayEdge(1, 23, 30))} | ${rowAt(dayEdge(2, 23, 30))}`);
     check("UX-HEALTH D: a learner that is off has no row",
       !/data-model-row="gains"/.test(modelOf(metered({ learner_progress: { gains: { phase: "off", samples: 0 } } }))));
     // The owner's hover spec (carry 14): every score and scale hover says what
