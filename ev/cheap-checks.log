@@ -1,0 +1,33 @@
+head 19c3f4f85cad138f99c63309ac1717ae8d601439 mb 005eed2573da9e946fa4838de147401d0ff36cc1
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+--- doc_claims
+
+ALL 343 checks PASSED
+rc=0
+--- structure
+
+STRUCTURE RATCHET PASSED
+--- version
+(empty above = untouched)
+--- close sites
+tools/audit/seat/gh_calls.py:589:            ("gh pr close 201 --comment", ["pr", "close", "201", "--comment", "x"]),
+tools/audit/seat/open_pr.sh:80:  gh pr close "$N" -R $R >/dev/null && closed=1 || :  # mut:rowclose
+--- host_refusal callers
+tools/audit/seat/instruments/open_pr.sh.md:33:  head's stays open too, and is decided by measurement (`pr_host_refusal`, `pr_args.sh`): when the
+tools/audit/seat/open_pr.sh:75:  if op_host_refusal; then
+tools/audit/seat/open_pr.sh:92:# A refused row push is the host's, not the head's, only by measurement (pr_host_refusal, pr_args.sh):
+tools/audit/seat/open_pr.sh:95:op_host_refusal() {
+tools/audit/seat/open_pr.sh:97:  pr_host_refusal "$WT" $D/p2.log "${H:-}" "$(git -C "$WT" rev-parse -q --verify 'origin/main^{commit}' 2>/dev/null || :)" "$(dirname -- "$D")/selftest-main"
+tools/audit/seat/pr_args.sh:212:pr_host_refusal() { # <checkout> <refusal log> <refused head> <origin/main sha> <cache dir>: 0 = the host's, 1 = the head's
+--- owed reds
+tests / mutation
+tests / typing
+validate / validate-hacs
+2:  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+3:  changed files (3), measured against the recorded closures in tests/closures.json:
+8:      RUN   tests/doc_claims.py
+10:      SKIP  tests/arch_score.py  (closure: 166 files, no changed file is in its measured closure)
+11:      SKIP  tests/arch_score_head.py  (closure: 133 files, no changed file is in its measured closure)
