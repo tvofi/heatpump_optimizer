@@ -353,7 +353,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-CIPREDICT-GAPS | FLY | 1 | done | - | sonnet/opus | - | Two reds prepr's CI-predict step should have predicted and did not, both in tools/pr/ci_predict.py, the cheaper detector for CI reds (defect-root-cause.md). |  |
 | R10-RCA-JIDOKA-YIELD | IN | 1 | done | - | sonnet/opus | - | From triage P309 (root-cause probe R10-RCA-JIDOKA-YIELD, filed by the orchestrator s8 2026-10-30): the RCA's own countermeasure M1, plus landing the RCA. |  |
 | R10-FLY-BASH-KILL-GUARD | IN | 1 | done | - | sonnet/opus | - | From triage P323 (orchestrator s8, 2026-10-31): a seat ran `pkill -f` with an empty pattern while restarting its watch loop. |  |
-| R10-USER-DOCS-VERIFY | DOCS | 2 | not-started | #3139 | opus/opus | - | Split from R10-USER-DOCS-FINAL (tvofi, 2026-10-31: "split USER-DOCS-FINAL"). |  |
+| R10-USER-DOCS-VERIFY | DOCS | 2 | not-started | #3139, #3398 | opus/opus | - | Split from R10-USER-DOCS-FINAL (tvofi, 2026-10-31: "split USER-DOCS-FINAL"). |  |
 | R10-HOTFIX-PREHEAT-LABEL | CORE | 1 | done | - | opus/opus | - | Hotfix from a live user defect. |  |
 | R10-HOTFIX-AWAY-PRESENCE | CORE | 1 | done | #3117 | opus/opus | - | Hotfix from a live user defect. |  |
 | R10-AUDIT-COVERAGE-ENDGAME | IN | 1 | done | #3102 | opus/opus | - | Pre-study: the design note on the design/r10-audit-coverage ref. |  |
