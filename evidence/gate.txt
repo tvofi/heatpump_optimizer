@@ -1,0 +1,19 @@
+  MODE: SCOPED -- 4 script(s) run, 29 scoped out.
+  changed files (2), measured against the recorded closures in tests/closures.json:
+      tests/throwaway_git.py
+      tests/throwaway_git.sh
+      RUN   tests/arch_score.py
+      RUN   tests/doc_claims.py
+      RUN   tests/entities.py
+      RUN   tests/layout.py
+STRUCTURE RATCHET PASSED
+ tests/throwaway_git.py | 72 ++++++++++++++++++++++++++++++++++++++++++++++++--
+ tests/throwaway_git.sh |  8 +++++-
+ 2 files changed, 77 insertions(+), 3 deletions(-)
+tests / mutation
+tests / typing
+validate / validate-hacs
+  c3fa2b58f  throwaway git: the self-test's create probe removes what it made if the path ever becomes creatable
+review_carry: FRESH-REVIEW
+layout rc=0 4s: layout self-test: ok
+doc_claims rc=0 17s: ALL 343 checks PASSED

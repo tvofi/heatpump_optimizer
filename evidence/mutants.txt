@@ -1,0 +1,9 @@
+head c3fa2b58fda798284ee4ae335989bb3cb5ab9616, python3 tests/throwaway_git.py --self-test after each sed mutant, restored with git checkout
+N1 py GIT_CONFIG_GLOBAL=os.devnull: 49 checks, 1 failed
+N2 sh GIT_CONFIG_GLOBAL=/dev/null: 49 checks, 1 failed
+N3 sh path "${BASH_SOURCE[0]}/no-global-config" unresolved: 49 checks, 1 failed
+N5 sh reuses inherited GIT_CONFIG_GLOBAL: 49 checks, 1 failed
+R1 py reuses inherited GIT_CONFIG_GLOBAL: 49 checks, 1 failed
+R2 sh GIT_CONFIG_GLOBAL="$(mktemp)" (residue class): 49 checks, 2 failed
+R3 py NO_GLOBAL_CONFIG = mkstemp path (residue class): 49 checks, 3 failed
+after all: git status clean, no tests/no-global-config left

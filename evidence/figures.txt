@@ -1,0 +1,6 @@
+  ok   the shell twin's clone writes both keys and leaves the caller's shell untouched
+throwaway_git self-test: 49 checks, 0 failed
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+29 passed, 0 failed
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 8c10361eb1fe
+residue files: 0
