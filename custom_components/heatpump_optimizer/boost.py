@@ -177,15 +177,15 @@ class BoostState:
     def freeze_end(self) -> datetime | None:
         """When the learners' boost freeze ends: the live overlay's end plus its tail, else the running tail.
 
-        A forecast while the overlay is live: ``settle`` priced at the
-        overlay's end on the sum it would then hold, so a cancel moves it
-        earlier and a second press later. ``None`` with no overlay and no
-        tail. A tail already running from an earlier boost is kept when it
-        outlasts the live overlay's.
+        A forecast while the overlay is live: run to its end, the overlay
+        has boosted its whole window, which ``settle_tail`` prices at the full
+        tail. A cancel re-prices it on the time that ran (earlier), a second
+        press moves it later. ``None`` with no overlay and no tail. A tail
+        already running from an earlier boost is kept when it outlasts the
+        live overlay's.
         """
         end = self.until.get(CHANNEL_SPACE)
-        projected = None if end is None else utc_shift(
-            end, settle_tail(self._boosted_with(end, self.space_since)))
+        projected = None if end is None else utc_shift(end, SPACE_SETTLE_TAIL)
         held = self.space_settle_until
         if projected is None or (held is not None and utc_elapsed_seconds(held, projected) > 0):
             return held
