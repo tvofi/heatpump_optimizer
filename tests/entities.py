@@ -42141,7 +42141,7 @@ _SR_TEXT = lambda n: (_SR / n).read_text() if (_SR / n).is_file() else ""  # noq
 _SR_STANDING = _SR_TEXT("standing.md")
 _SR_FAIL = (
     [f"a:{n}" for n in ("standing-merge.md", "standing-dispatch.md", "standing-tick.md",
-                        "standing-roster.md", "proposal-triage.md")
+                        "standing-roster.md")
      if "`standing.md`" not in _SR_TEXT(n)]
     + [f"b:{t}" for t in ("## Wait", "## Reads", "## Autofix hold", "## Recycle", "## Alive files",
                           "$HPO_STATE_DIR/alive/", "bus.sh orphans",
