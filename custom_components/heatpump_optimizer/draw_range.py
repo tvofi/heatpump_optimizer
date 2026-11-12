@@ -34,7 +34,7 @@ it judged were asked by a plan priced on the old figures.
 from __future__ import annotations
 
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Deque
 
 import numpy as np
@@ -145,6 +145,15 @@ class DrawRange:
     )
     #: Overdraws of the learned top since the store's newest sample.
     overdraws: int = 0
+    #: ``(drawn_kw, epoch_s)`` per running sample asked at or under the
+    #: configured floor (within ``AGREE_TOLERANCE``), oldest first: the pump
+    #: asked for its least. Keyed to ``config`` like the window; lapses like
+    #: the ceiling store. Never against the learned floor, which would ratchet
+    #: on a meter that reads a little high: a plan asking the learned floor
+    #: files nothing, so the store lapses and the configured figure returns.
+    floor: Deque[tuple[float, float]] = field(
+        default_factory=lambda: deque(maxlen=WINDOW)
+    )
 
     def idle_kw(self) -> float | None:
         """The learned idle draw, or ``None`` while too few readings."""
@@ -175,6 +184,17 @@ class DrawRange:
         if not 0.0 <= now_s - newest <= CEILING_LAPSE_DAYS * 86400.0:
             return None  # lapsed, or stamped ahead of the clock: age unknowable
         return self._ceiling_median()
+
+    def learned_min_kw(self, now_s: float) -> float | None:
+        """The ``LOW_PERCENTILE`` of the floor store's draws, kW, raw.
+
+        ``None`` below ``MIN_SAMPLES`` samples taken within
+        ``CEILING_LAPSE_DAYS`` before ``now_s``: an old sample lapses on its own
+        age, so a lapsed store cannot come back on one fresh one. Asks above the
+        floor never enter, so a cold week's high draws cannot raise it.
+        """
+        fresh = [d for d, t in self.floor if 0.0 <= now_s - t <= CEILING_LAPSE_DAYS * 86400.0]
+        return float(np.percentile(fresh, LOW_PERCENTILE)) if len(fresh) >= MIN_SAMPLES else None
 
     def _ceiling_median(self) -> float:
         return float(np.median([d for d, _ in self.ceiling]))
@@ -271,13 +291,15 @@ class DrawRange:
 
     def observe(
         self, drawn_kw: float, asked_kw: float, cfg_min: float, cfg_max: float,
-        command: tuple[float, float] | None = None,
+        command: tuple[float, float] | None = None, when_s: float | None = None,
     ) -> None:
         """Fold one running sample and update the latch.
 
         ``command`` is the sample's ``(written_c, ceiling_c)``. A commanded
         sample meeting evidence stored without commands drops it, as a
         changed configuration does: what capped those draws is unknown.
+        ``when_s``, epoch seconds, files a sample asked at or under the
+        configured floor into the floor store.
         """
         configured = (float(cfg_min), float(cfg_max))
         legacy = command is not None and not self.commands_known
@@ -286,6 +308,9 @@ class DrawRange:
             self.commands.clear()
             self.engaged = False
             self.config = configured
+            self.floor.clear()
+        if when_s is not None and 0.0 < asked_kw <= (1.0 + AGREE_TOLERANCE) * cfg_min and drawn_kw > self.above_idle_kw():
+            self.floor.append((float(drawn_kw), float(when_s)))
         self.commands_known = True
         self.samples.append((float(drawn_kw), float(asked_kw)))
         self.commands.append(command)
@@ -333,6 +358,7 @@ class DrawRange:
             "idle": [round(v, 3) for v in self.idle],
             "ceiling": [[round(d, 3), t] for d, t in self.ceiling],
             "overdraws": self.overdraws,
+            **({"floor": [[round(d, 3), t] for d, t in self.floor]} if self.floor else {}),
         }
 
     @classmethod
@@ -355,6 +381,7 @@ class DrawRange:
         if not (np.isfinite(lo) and np.isfinite(hi)):
             return out
         out.config = (lo, hi)
+        out.floor.extend(_stored_ceiling({"ceiling": data.get("floor")}))
         out.engaged = data.get("engaged") is True
         raw = data.get("samples")
         rows = raw if isinstance(raw, list) else []
@@ -525,6 +552,7 @@ def fold(
     defrost: bool,
     command: Any = None,
     experiment_s: float | None = None,
+    when_s: float | None = None,
 ) -> None:
     """Fold one interval into ``draw`` when it is a running sample.
 
@@ -541,7 +569,8 @@ def fold(
     action adopted since -- else ``None``. Such an interval that
     ``takes_ceiling`` goes to the ceiling store and NOT to the window, so no
     experiment's draw can trip the window's latch; every other interval
-    folds into the window as before.
+    folds into the window as before. ``when_s`` is the interval's start,
+    epoch seconds, for the floor store (``DrawRange.observe``).
     """
     space, dhw = split
     if drawn_kw is not None and not (frozen or distorted or defrost) and command is not None and command.written_c <= command.gate_c + GATE_TOLERANCE_K and not planned_draw_runs(dhw, modulation_floor=0.0):
@@ -556,6 +585,7 @@ def fold(
         draw.observe(
             drawn_kw, space, params.min_electrical_power, params.max_electrical_power,
             None if command is None else (command.written_c, command.ceiling_c),
+            when_s,
         )
 
 
@@ -620,6 +650,10 @@ class SolveBand:
     learned_max_kw: float | None = None
     samples: int = 0
     since_s: float | None = None
+    #: Where ``min_kw`` came from (``configured`` or ``metered_floor``) and
+    #: the floor store's sample count.
+    floor_source: str = "configured"
+    floor_samples: int = 0
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -631,11 +665,14 @@ class SolveBand:
             "learned_max_kw": None if self.learned_max_kw is None else round(self.learned_max_kw, 3),
             "samples": self.samples,
             "since_s": self.since_s,
+            "floor_source": self.floor_source,
+            "floor_samples": self.floor_samples,
         }
 
 
 def solve_band(
-    draw: DrawRange, params: Any, cap: InstallCapability, now_s: float
+    draw: DrawRange, params: Any, cap: InstallCapability, now_s: float,
+    engaged: bool = False,
 ) -> SolveBand:
     """The ``(min, max)`` a solve books: the configured figures, or the
     ceiling store's learned top where it measured the pump below them.
@@ -647,7 +684,31 @@ def solve_band(
     Where the plan writes the power itself the draw is the plan's echo and
     the configured figures stand. The hub keeps the configured figures: a
     caller applies ``max_kw`` and ``min_kw`` to its solve copy only.
+
+    On an ``engaged`` solve (one that plans runs) the bottom is raised, never
+    lowered, to the floor store's learned floor where that is more than
+    ``AGREE_TOLERANCE`` above the configured one, and never above the top:
+    the pump asked for its least and drew more.
     """
+    band = _top_band(draw, params, cap, now_s)
+    floor = draw.learned_min_kw(now_s)
+    cfg_min = float(params.min_electrical_power)
+    if (
+        not engaged or cap.plan_writes_power() or floor is None
+        or draw.config != (cfg_min, float(params.max_electrical_power))
+        or floor <= (1.0 + AGREE_TOLERANCE) * cfg_min
+    ):
+        return band
+    return replace(
+        band, min_kw=min(floor, band.max_kw), floor_source="metered_floor",
+        floor_samples=len(draw.floor),
+    )
+
+
+def _top_band(
+    draw: DrawRange, params: Any, cap: InstallCapability, now_s: float
+) -> SolveBand:
+    """``solve_band`` before the floor: the configured or probed top."""
     cfg_min = float(params.min_electrical_power)
     cfg_max = float(params.max_electrical_power)
     since = draw.ceiling_since()

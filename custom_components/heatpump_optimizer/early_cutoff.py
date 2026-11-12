@@ -81,15 +81,13 @@ from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
 from .pump_arbiter import ArbiterInputs, step_duty, switch_supply
+#: The shortest run a cut may end, and stop it may cause: the plan's own (``runs``).
+from .runs import MIN_OFF, MIN_ON
 
 _LOGGER = logging.getLogger(__name__)
 
 #: Kelvin above the threshold's base before the pump is cut (decision 0.5 K).
 MARGIN_K = 0.5
-#: The shortest run a cut may end; the plan's own step is 15 minutes.
-MIN_ON = timedelta(minutes=10)
-#: The shortest stop a cut may cause before the next cycle can restart it.
-MIN_OFF = timedelta(minutes=10)
 
 
 #: The ``_learning_frozen`` reason for an interval the cut-off ended early.

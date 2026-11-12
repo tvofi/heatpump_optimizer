@@ -319,6 +319,9 @@ _ACCURACY: dict[str, Domain | str] = {
     # its interval's start in epoch seconds, and the overdraws since.
     "draw/ceiling/#/0": _RUNNING_KW,
     "draw/ceiling/#/1": _R,
+    # honest-starts-and-runs P3: running draws asked at the configured floor.
+    "draw/floor/#/0": _RUNNING_KW,
+    "draw/floor/#/1": _R,
     "draw/overdraws": _COUNT,
     "draw/engaged": Domain("flag", whole=_DRAW_KEY),
     "draw/config/#": Domain("real", whole=_DRAW_KEY),

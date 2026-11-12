@@ -1,12 +1,12 @@
 {
- "class_excess_loc": 17526,
+ "class_excess_loc": 17497,
  "const_modules_over_50": 3,
  "coordinator_attrs": 139,
  "coordinator_multiassigned_attrs": 108,
  "coordinator_private_reach": 0,
  "dead_methods": 0,
  "dead_top_level_symbols": 1,
- "duplication_copies": 9,
+ "duplication_copies": 8,
  "functions_cc_over_15": 26,
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
@@ -16,6 +16,6 @@
  "methods_over_150": 15,
  "methods_over_200": 8,
  "name_kept_members": 38,
- "recorded_at": "cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf",
+ "recorded_at": "870238eb2194c99ae1ad6f1f78e0665e838c70f3",
  "seam_cut_total": 421
 }

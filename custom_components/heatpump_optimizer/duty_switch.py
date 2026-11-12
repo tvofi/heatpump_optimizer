@@ -499,3 +499,23 @@ def starts_attributes(coord: Any) -> dict[str, float]:
     """The compressor-starts sensor's duty-switch attributes; a pump never arbitrated reads empty."""
     rec = _RECORDS.get(coord)
     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
+
+
+def planner_reading(coord: Any) -> tuple[dict[str, float], bool | None]:
+    """What a solve reads of this pump (R10-DUTY-SWITCH-PLANNER-PRICE).
+
+    Per direction, the probability that the switch stops the running
+    compressor while that direction is usable, else 0.0, under the
+    ``OptimizationConfig`` field that prices it: a pump with no evidence, or
+    one whose switches keep the compressor running, plans as before. And the
+    running signal's settled class, ``None`` where none is listened to.
+    """
+    rec = _RECORDS.get(coord)
+    if rec is None:
+        return {}, None
+    d = rec.learner.directions
+    return {
+        field: (d[name].p if d[name].usable else 0.0)
+        for field, name in (("duty_stop_to_space", "dhw_space"), ("duty_stop_to_dhw", "space_dhw"))
+    }, rec.tracker.settled
+
