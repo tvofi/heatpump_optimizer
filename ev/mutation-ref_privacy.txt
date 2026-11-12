@@ -1,0 +1,9 @@
+At ab764c5862fb9aacf2f29b5d0b61f97022bc609c, detached worktree.
+Unmutated: python3 -I tools/audit/seat/ref_privacy.py --self-test -> ref_privacy self-test: 109 checks, 0 failed
+Mutant: line 252 `if domain == "anthropic.com" ...` -> `if False and domain == "anthropic.com" ...`
+  FAIL an @anthropic.com identity is refused, as the runner default is not a seat's
+  FAIL the guard CLI refuses an unpushed commit whose author is the runner's Claude identity, exit 3
+  FAIL the guard CLI refuses an unpushed commit whose committer is the runner's Claude identity, exit 3
+  FAIL body_push refuses a handoff head authored by a runner default, and writes no body ref
+ref_privacy self-test: 109 checks, 4 failed
+Restored; git status clean.

@@ -1,0 +1,22 @@
+reviewed head: ab764c5862fb9aacf2f29b5d0b61f97022bc609c
+--- is-ancestor of origin/main (2ced371c1af5581c47dc6163b53c29ee15347a3d):
+yes
+--- main merge carrying it:
+d1cab99a11ea3a1d92976f0355f9eb3ee68cd259 Thu Nov 5 18:45:58 2026 +0100 Merge pull request #3222 from tvofi/fix/r10-seat-identity-guards
+parents: 8b49d50b0a4c3eebee0edeb6ec98aa365e3d004f 09c5e9710cd179f7d5b382965fe4e188da5f2ac5
+--- PR branch first-parent after head:
+09c5e9710 e5c33700f 8b49d50b0 | Merge remote-tracking branch 'origin/main' into fix/r10-seat-identity-guards
+e5c33700f 645f009eb 8bf45e5dc | Merge remote-tracking branch 'origin/main' into fix/r10-seat-identity-guards
+645f009eb 97cbe20b0 ab764c586 | Merge commit 'ab764c5862fb9aacf2f29b5d0b61f97022bc609c' into fix/r10-seat-identity-guards
+97cbe20b0 749a3161d cd0dd1691 | Merge remote-tracking branch 'origin/main' into fix/r10-seat-identity-guards
+--- prior verdict refs:
+probe/rev-3222-8c62c7fb Thu Nov 5 08:20:30 2026 +0000 verdict 3222 749a3161dbbc18db74050036f96bc40acea1e0d1
+Fix review: blocked 749a3161dbbc18db74050036f96bc40acea1e0d1 root-cause-unrecorded: governance / instrument-self-tests and governance / policy-docs are red at this head and unnamed in ## Red checks; pr-contract refuses the body
+probe/rev-3222-fc0e797f Thu Nov 5 15:19:59 2026 +0000 verdict 3222 645f009eb00999f26bb93b469412e5ef8c21e0d7
+Fix review: merge 645f009eb00999f26bb93b469412e5ef8c21e0d7
+--- dispatch commits:
+b11bf0bd19271389aa69f2a076dfd9258624bd2d Thu Nov 12 06:28:59 2026 +0100 dispatch: dispatch/reviewer-r10-seat-identity-guards
+27deb8132adde5fa9bec29542f496c3ef23890c5 Thu Nov 12 06:28:55 2026 +0100 dispatch: dispatch/reviewer-r10-seat-identity-guards
+--- merge-tree --write-tree origin/main head:
+484e6cabed19f6e19fed444fe3a63998dd22b656
+rc=0
