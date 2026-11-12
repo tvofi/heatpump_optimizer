@@ -5938,6 +5938,12 @@ def _self_test() -> int:
         check(f"the real outside.py: {name} parks the fork head [OUTSIDE] with the contract's own words, nothing "
               "merged or approved", rc == 1 and not merged(calls) and not approved(calls) and "[OUTSIDE]" in lines[-1]
               and said in lines[-1] and len(w["gate"].asked) == 1)
+    for rc_said in (1, 3):
+        w = {"pull": THEIRS, "gate": OutsideStub()}
+        w["gate"].check = lambda *a, rc_said=rc_said, **k: (rc_said, [f"OUTSIDE: #7 by contributor (id 1) at {H0}: 1 class-F"])
+        got, calls, _ = seat(w, step6)
+        check(f"fork head: `check` exiting {rc_said} parks [OUTSIDE] even beside an admission-shaped line -- only rc 0 admits",
+              parked(got, "the outside contract refuses") and not asked_app(calls))
     # Carry 23: class O holds paths under tests/ no CODEOWNERS line owns, where app_approve.sh
     # answers "app". The contract is read again at every step 6, the shortcuts included.
     w = {"pull": THEIRS, "gate": OutsideStub((True, "class O: the mandate is in force"),
