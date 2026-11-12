@@ -7579,7 +7579,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     names = gating_names([GATE])
     check("item 11: once the ruleset is [gate], a unit's red is classed REQUIRED by the fixture's gate_required "
           "(null: an old-layout ruleset passes through unchanged)",
-          GATE in names and "tests / closures" in names and "tests / ci-ratchet" in names
+          GATE in names and "tests / closures" in names and "tests / coverage-ratchet" in names
           and gating_names(["fast", "closures"]) == ["fast", "closures"] and gating_names(None) is None)
 
     H0 = "a" * 40  # go()'s head
