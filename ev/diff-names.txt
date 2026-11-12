@@ -1,0 +1,3 @@
+tools/audit/seat/instruments/open_pr.sh.md
+tools/audit/seat/open_pr.sh
+tools/audit/seat/pr_args.sh
