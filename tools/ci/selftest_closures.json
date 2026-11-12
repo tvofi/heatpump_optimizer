@@ -349,7 +349,6 @@
     "custom_components/heatpump_optimizer/button.py",
     "custom_components/heatpump_optimizer/flow_meter.py",
     "dev/programme/carries/**",
-    "dev/programme/rosters/wave-r10-groups.json",
     "tests/closure.py",
     "tests/closures.json",
     "tests/layout.json",
@@ -373,7 +372,6 @@
     "config",
     "dev/audit/rca/R10-RCA-INERT-PREDICT.md",
     "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
-    "dev/programme/rosters",
     "objects",
     "refs",
     "tests",
@@ -382,6 +380,7 @@
     "tools/ci",
     "tools/policy",
     "tools/pr",
+    "tools/pr/figure_block.py",
     "tools/pr/preflight.sh",
     "tools/pr/prepr.sh",
     "tools/release"
@@ -389,7 +388,6 @@
    "dirs": [
     ".github/workflows",
     "dev/programme/carries",
-    "dev/programme/rosters",
     "tests",
     "tests/hastub",
     "tools/audit",
@@ -399,6 +397,8 @@
     "tools/policy",
     "tools/release"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "?",
     "add",
@@ -417,9 +417,7 @@
     "stash",
     "update-ref",
     "write-tree"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "ci-prelude": {
    "run_sha": "493783248b75a0de7544a6396b62a2bc2021aee6f8aa2b790cbfc7183cf607f0",
