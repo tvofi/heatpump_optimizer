@@ -23250,9 +23250,9 @@
    },
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "14f227c5bd0eb80855b21055cc668857a5f820b4",
     "last_step": null,
     "next_step": "design review of the note at design/R10-PRODUCT-PAGE-REDESIGN (size L, decision 0014); fixer only on Design review: approve; no predecessor",
     "note": "feature triage f3 for the orchestrator, 2026-11-11: owner decision of 2026-11-11 routed as a new group, because no not-started group edits the page's layout; the dashboard card redesign is declined in the same decision and no card work is routed; overlap admitted (R10-USER-DOCS-VERIFY): feature triage f3 2026-11-11: owner decision 2026-11-11, product page redesign as a new fable group; shares only tests/doc_claims.py with R10-USER-DOCS-VERIFY, which is set to run after it | set-files files ['docs/index.html', 'tests/doc_claims.py', 'tests/closure.py', 'tests/closures.json', 'dev/audit/harnesses'] -> ['docs/index.html', 'tests/doc_claims.py', 'tests/closure.py', 'tests/closures.json', 'dev/audit/harnesses', '.github/workflows/governance.yml', 'tools/ci/selftest_closures.json']",
