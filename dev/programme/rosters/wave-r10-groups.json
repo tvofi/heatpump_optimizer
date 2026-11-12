@@ -13066,7 +13066,7 @@
     "R10-PRODUCT-PAGE-REDESIGN"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-user-docs-verify",
     "commit": null,
     "last_step": null,
