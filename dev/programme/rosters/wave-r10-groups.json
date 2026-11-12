@@ -23790,7 +23790,7 @@
     "Carry 2: Part 3 of outside pull request 3435, the refusal reasons at DEBUG and the frozen learner phase with the card in three languages (heat_energy.py, learner_progress.py, payload.py, the card script, tests/card.mjs), is not in this diff. It is its own roster group by feature triage ruling P613, built after part 2 from the same commit. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "deferred",
     "branch": null,
     "commit": null,
     "last_step": null,
