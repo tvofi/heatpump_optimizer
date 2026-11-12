@@ -12384,7 +12384,10 @@ def _cb_type_branches():
 # offset controller's integration name (heat_curve.py) and a research
 # citation for the offset band (const.py), neither a tank type; this branch
 # adds none (`git grep -ciE` over the package's Python sums to 4 on both).
-_CB_VENDOR_BASE = 4
+# R10-HOTFIX-COMBI-CENSUS-MAIN-RED: main at cbd23f1c read 6, two more landed
+# by merges the census never ran beside; all six now name the behaviour, so
+# the base is 0 and any vendor name is growth.
+_CB_VENDOR_BASE = 0
 
 
 _cb_hits, _cb_vendor = _cb_type_branches()
@@ -62215,6 +62218,55 @@ R.check(
     f"7 beside a 23-long profile / 7 with no profile / -3: {_chg_restored}",
 )
 
+
+# The draw fold persists a tick only above a 1e-4 kWh churn floor, for the
+# energy it folds and for the energy a recovery takes back alike: a tick AT
+# the floor saves nothing (the floor is strict), one ulp above it saves. Each
+# arm opens the occurrence with a zero tick first, so no occurrence closes and
+# the floor alone decides. The inputs are searched, not derived from the
+# fold's formula: the probe needs a drop whose booked energy is exactly 1e-4.
+def _chg_floor_saves(arm, above):
+    learner = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))._dhw_learner
+    learner._params().dhw_enabled = True
+    learner.cooling_rate = 0.0
+    learner._external_heat_active = lambda: False
+    saves = [0]
+
+    async def _save_draws():
+        saves[0] += 1
+
+    learner.async_save_draws = _save_draws
+    now = dt_util.now().replace(hour=8, minute=0, second=0, microsecond=0)
+    _aio.run(learner.async_fold_draw_stats(now, 50.0, 0.0, 1.0))
+    saves[0] = 0
+    floor = 1e-4 if not above else _ct_math.nextafter(1e-4, 1.0)
+    if arm == "fold":
+        cap = learner._params().dhw_store.capacity_kwh_per_c
+        drop = floor / cap
+        for _ in range(64):
+            if drop * cap == floor:
+                break
+            drop = _ct_math.nextafter(drop, 1.0 if drop * cap < floor else 0.0)
+        else:
+            return "no drop books exactly the floor"
+        _aio.run(learner.async_fold_draw_stats(now, 50.0, drop, 1.0))
+    else:
+        learner.draw_stats._open_charge_kwh = learner.draw_stats._open_kwh = floor
+        _aio.run(learner.async_fold_draw_stats(now, 50.0, 0.0, 1.0, recovered_k=1.0))
+    return saves[0]
+
+
+_chg_floor = {
+    arm: (_chg_floor_saves(arm, False), _chg_floor_saves(arm, True)) for arm in ("fold", "take")
+}
+R.check(
+    "the draw fold saves a tick only strictly above its 1e-4 kWh floor, folded or taken back",
+    _chg_floor == {"fold": (0, 1), "take": (0, 1)},
+    f"saves at the floor / one ulp above (control), per arm: {_chg_floor}",
+)
+
 # A zero-capacity tank is the input the floors were hiding. With the capacity
 # read raw, four of the seams below divide by it, so each has to decline to
 # plan rather than raise. Pre-fix this arm answers "ZeroDivisionError": the
@@ -72001,10 +72053,10 @@ R.check(
 _dbg_dsnap = ((_dbg_dg.get("debug") or {}).get("payload_snapshots") or [{}])[0].get("data", {})
 R.check(
     "DBG-1 Download diagnostics carries the bundle through its own redaction: a name "
-    "is redacted and a coordinate coarsened inside a payload snapshot",
+    "and a coordinate are redacted inside a payload snapshot",
     _dbg_dg.get("debug", {}).get("schema") == "hpo-debug/1"
     and _dbg_dsnap.get("name") == _DBG_REDACTED
-    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": 59.3, "longitude": 18.1},
+    and _dbg_dsnap.get("solar_diagnostics") == {"latitude": _DBG_REDACTED, "longitude": _DBG_REDACTED},
     str(_dbg_dsnap)[:300],
 )
 R.check(
