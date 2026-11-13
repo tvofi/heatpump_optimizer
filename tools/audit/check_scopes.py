@@ -6,10 +6,19 @@ Exit 0 only if every dimension passes and coverage passes; each failure prints t
 twice or not at all. Coverage: every tracked path at --ref is in some dimension's universe or
 matches one entry of scopes.json's `_coverage_excluded` (glob -> reason), never both, and every
 entry matches some path; a path in neither is refused by name, so no path goes unmeasured.
+Territory: coverage is satisfied by ANY dimension's universe, so a file one dimension must read
+can sit only in another's. Each dimension therefore declares `territory`, the globs of what its
+brief makes it read, and every tracked path they match must be a file some seat of THAT dimension
+owns; a glob matching nothing, and a dimension declaring neither `territory` nor a reasoned
+`_territory_pending` entry, are refused. A pending entry is refused once its dimension carries a
+`ledger` key: it waits on the pull request that adds one, and expires when that lands.
 Null control: --self-test duplicates one seat's block and empties another's, drops D10's
 universe, strips the tests/ and blueprints/ globs, and excludes a covered path; it exits 0 only
 when the checker refuses each perturbed file by the path it names. It also runs the default
-invocation as a subprocess, on the live scopes (rc 0) and without D4's and D6's blueprints globs (rc 1).
+invocation as a subprocess, on the live scopes (rc 0) and with every blueprints glob dropped (rc 1).
+The territory arms narrow D7's and D8's universes to their pre-territory shape (no card, no
+datetime.py) and must be refused naming those two files; they also drop a declaration, plant a
+dead glob and give a pending dimension a ledger.
 Harness citations: a harness under dev/audit/harnesses/ whose header names a dimension brief
 (`D<k>.md`) implements that brief's rule, so the brief must cite the harness's path; each one
 that does not is refused by name.
@@ -127,6 +136,46 @@ def coverage(scopes, tree, quiet=False):
             print(f"   exclusion carries no reason: {g}")
     return ok, unclassified
 
+def territory(scopes, tree, quiet=False):
+    """Per dimension, the tracked paths its `territory` globs match that no seat
+    of it owns. Returns (ok, {dim: [unowned paths]})."""
+    pending = {k: v for k, v in scopes.get("_territory_pending", {}).items() if not k.startswith("_")}
+    ok, unowned_by = True, {}
+    for dim, d in scopes.items():
+        if dim.startswith("_"):
+            continue
+        errs, unowned, files = [], [], set()
+        if dim in pending:
+            if "territory" in d:
+                errs.append("declares territory and is also pending")
+            if not str(pending[dim]).strip():
+                errs.append("pending with no reason")
+            if "ledger" in d:
+                errs.append("pending, but its ledger has landed: declare territory")
+        elif "territory" not in d:
+            errs.append("declares no territory and is not pending")
+        else:
+            _, files_of = resolver(d, tree)
+            owned = set().union(*[files_of(b) for blocks in d["seats"].values() for b in blocks])
+            files = match(tree, d["territory"])
+            unowned = sorted(files - owned)
+            errs += [f"territory glob matches no tracked path: {g}" for g in d["territory"] if not match(tree, [g])]
+        bad = bool(errs or unowned)
+        ok &= not bad
+        unowned_by[dim] = unowned
+        if not quiet:
+            state = "pending" if dim in pending and not bad else ("FAIL" if bad else "ok")
+            print(f"{state} territory {dim} globs={len(d.get('territory', []))} files={len(files)} unowned={len(unowned)}")
+            for e in errs:
+                print(f"   {dim} {e}")
+            for f in unowned:
+                print(f"   {dim} territory file owned by no seat of {dim}: {f}")
+    for dim in sorted(set(pending) - set(scopes)):
+        ok = False
+        if not quiet:
+            print(f"FAIL territory {dim}: pending names no dimension")
+    return ok, unowned_by
+
 
 BRIEF_DIR = "dev/governance/dimensions/"
 HARNESS_DIR = "dev/audit/harnesses/"
@@ -154,16 +203,18 @@ def read_harnesses(repo, ref, tree):
 
 def verdict(scopes, tree, loc, harnesses, briefs, quiet=False):
     """The default run's answer: every dimension disjoint and complete, the
-    tree covered, and every brief-named harness cited by its brief."""
+    tree covered, each dimension's territory owned by its own seats, and every
+    brief-named harness cited by its brief."""
     out = io.StringIO()
     with contextlib.redirect_stdout(out if quiet else sys.stdout):
         ok = check(scopes, tree, loc)
         cov_ok, _ = coverage(scopes, tree)
+        ter_ok, _ = territory(scopes, tree)
         bad = uncited_harnesses(harnesses, briefs)
         print(f"{'ok' if not bad else 'FAIL'} harness citations: {len(bad)} harness(es) implementing a brief's rule the brief does not cite")
         for h, b in bad:
             print(f"   {h} names {b} in its header; {b} does not cite it")
-    return ok and cov_ok and not bad
+    return ok and cov_ok and ter_ok and not bad
 
 
 def main():
@@ -253,6 +304,34 @@ def main():
         cov["null control: optimizer.py covered"] = nulls in tree and nulls not in live_unc
         print(f"   coverage arms dead/unreasoned exclusion: refused={cov['an exclusion naming nothing']}/{cov['an exclusion with no reason']}")
         print(f"   coverage arm exclude a covered path: refused={not ok_tc}; null control {nulls} covered={cov['null control: optimizer.py covered']}")
+        # Territory arms. D7 and D8 with the universes they had before the
+        # check existed: the card and datetime.py are in other dimensions'
+        # universes, so coverage passes and only territory names them.
+        CARD, DT = PKG + "www/heatpump-optimizer-card.js", PKG + "datetime.py"
+        narrow = copy.deepcopy(scopes)
+        narrow["D7"]["universe"] = [PKG + "*.py"]
+        narrow["D8"]["universe"] = [PKG + "{sensor,binary_sensor,climate,switch,button,entity}.py"]
+        t_ok, t_un = territory(narrow, tree, quiet=True)
+        cov["territory: D7 without the card and D8 without datetime.py are refused by name"] = (
+            not t_ok and CARD in t_un["D7"] and DT in t_un["D8"] and coverage(narrow, tree, quiet=True)[0])
+        undeclared = copy.deepcopy(scopes)
+        undeclared["D2"].pop("territory", None)
+        dead_t = copy.deepcopy(scopes)
+        dead_t["D2"]["territory"] = dead_t["D2"].get("territory", []) + ["no/such/dir/**"]
+        landed = copy.deepcopy(scopes)
+        for k in landed.get("_territory_pending", {}):
+            if not k.startswith("_"):
+                landed[k]["ledger"] = {}
+        has_pending = any(not k.startswith("_") for k in scopes.get("_territory_pending", {}))
+        cov["territory: an undeclared dimension is refused"] = not territory(undeclared, tree, quiet=True)[0]
+        cov["territory: a glob naming nothing is refused"] = not territory(dead_t, tree, quiet=True)[0]
+        cov["territory: a pending dimension whose ledger landed is refused"] = (not has_pending) or not territory(landed, tree, quiet=True)[0]
+        live_t, live_un = territory(scopes, tree, quiet=True)
+        cov["null control: the live territory passes with the card and datetime.py in the tree"] = (
+            live_t and CARD in tree and DT in tree and not live_un["D7"] and not live_un["D8"])
+        print(f"   territory arms: narrowed D7/D8 refused by name={cov['territory: D7 without the card and D8 without datetime.py are refused by name']}, "
+              f"undeclared={cov['territory: an undeclared dimension is refused']}, dead glob={cov['territory: a glob naming nothing is refused']}, "
+              f"ledger landed={cov['territory: a pending dimension whose ledger landed is refused']}, live passes={live_t}")
         # Harness citations: a harness naming D15.md in its header, against a
         # brief that cites it (null control) and one that does not.
         planted = {HARNESS_DIR + "planted.py": '"""Planted: D15.md step 1 rule."""\n'}
@@ -272,13 +351,14 @@ def main():
                     "and refuses an uncited brief-named harness": uncited_refused})
         print(f"   default verdict: live {live}, no D10 refused {no_d10_refused}, uncited refused {uncited_refused}")
         # The default invocation, run whole as a subprocess of this file with
-        # --repo/--ref: the live scopes exit 0, and the scopes with D4's and D6's
-        # blueprints/** globs dropped exit 1 naming a blueprint, both printing
+        # --repo/--ref: the live scopes exit 0, and the scopes with every
+        # blueprints/** glob dropped exit 1 naming a blueprint, both printing
         # verdict()'s citation line. So coverage cannot fall out of main()'s exit
         # code, and that exit is verdict()'s, whose citation arm is pinned above.
         no_bp = copy.deepcopy(scopes)
-        for k in ("D4", "D6"):
-            no_bp[k]["universe"] = [g for g in no_bp[k]["universe"] if not g.startswith("blueprints/")]
+        for k, d in no_bp.items():
+            if not k.startswith("_"):
+                d["universe"] = [g for g in d["universe"] if not g.startswith("blueprints/")]
         def default_run(sc):
             with tempfile.NamedTemporaryFile("w", suffix=".json") as fh:
                 json.dump(sc, fh)
@@ -288,7 +368,7 @@ def main():
         run_live, run_bp = default_run(scopes), default_run(no_bp)
         cited = " harness citations: "
         cov["the default invocation exits 0 on the live scopes"] = run_live.returncode == 0 and cited in run_live.stdout
-        cov["and exits 1 without D4's and D6's blueprints globs"] = (run_bp.returncode == 1 and cited in run_bp.stdout
+        cov["and exits 1 with every blueprints glob dropped"] = (run_bp.returncode == 1 and cited in run_bp.stdout
             and "in no universe and not excluded: blueprints/" in run_bp.stdout)
         print(f"   default invocation: live rc={run_live.returncode}, blueprints dropped rc={run_bp.returncode}")
         good = not any(res) and all(cov.values())

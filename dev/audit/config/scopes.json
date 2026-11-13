@@ -1,5 +1,5 @@
 {
- "_rule": "Finder scopes: three seats per dimension from round 10 (tvofi 2026-10-14), each a theme of its dimension's brief. A seat is a list of blocks {files, steps, axis?}; files are globs over `git ls-tree -r --name-only <baseline>` (`*` stops at `/`, `**` crosses it) or the word \"rest\" (every universe file no seat of the dimension names explicitly for those steps). mode \"cells\": every (file, step, axis value) in universe x steps x axis is owned by exactly one seat. mode \"files\": every universe file by exactly one seat, every step by at least one. check_scopes.py enforces both and prints each seat's LOC; re-run it at the baseline, never carry its numbers.",
+ "_rule": "Finder scopes: three seats per dimension from round 10 (tvofi 2026-10-14), each a theme of its dimension's brief. A seat is a list of blocks {files, steps, axis?}; files are globs over `git ls-tree -r --name-only <baseline>` (`*` stops at `/`, `**` crosses it) or the word \"rest\" (every universe file no seat of the dimension names explicitly for those steps). mode \"cells\": every (file, step, axis value) in universe x steps x axis is owned by exactly one seat. mode \"files\": every universe file by exactly one seat, every step by at least one. `territory` is what the dimension's brief makes it read: every tracked path its globs match is a file a seat of that dimension owns, so a file cannot sit only in another dimension's universe. check_scopes.py enforces all three and prints each seat's LOC; re-run it at the baseline, never carry its numbers.",
  "_pkg": "custom_components/heatpump_optimizer",
  "_coverage_excluded": {
   "_rule": "Tracked paths no dimension measures, each with its reason; check_scopes.py refuses a path in no universe and not here, an entry here that also names a covered path, and an entry that names nothing.",
@@ -9,15 +9,20 @@
   "docs/design/**": "dated design records of shipped features; the user docs D5 and D6 measure are what describes them now",
   "docs/site/fonts/**": "vendored font files and their SIL OFL licence texts; no behaviour and no claim",
   "tests/golden/**": "value-bearing golden fixtures, claimed and never re-derived by a finder (CLAUDE.md rule 3); the scripts that read them are in D3's and D11's universes",
-  "tests/mutation_ledger/**": "recorded mutation outcomes and survivor triage; tests/mutation_table.py, which reads them, is measured",
-  "{LICENSE,NOTICE}": "licence and attribution text; no behaviour and no claim a dimension can test"
+  "tests/mutation_ledger/**": "recorded mutation outcomes and survivor triage; tests/mutation_table.py, which reads them, is measured"
+ },
+ "_territory_pending": {
+  "_rule": "Dimensions whose territory another pull request declares, each with its reason; check_scopes.py refuses an entry once its dimension carries a `ledger` key.",
+  "D5": "R10-D5-D6-FULL-SCOPE re-cuts D5 to a text ledger and declares its territory with it",
+  "D6": "R10-D5-D6-FULL-SCOPE re-cuts D6 to a text ledger, RELEASE_NOTES.md included, and declares its territory with it"
  },
  "D0": {
   "mode": "cells",
   "universe": [
-   "custom_components/heatpump_optimizer/optimizer.py",
-   "custom_components/heatpump_optimizer/thermal_model.py",
-   "custom_components/heatpump_optimizer/coordinator.py"
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/*.py"
   ],
   "steps": [
    "M1",
@@ -104,13 +109,18 @@
   "universe": [
    "custom_components/heatpump_optimizer/*.py"
   ],
+  "territory": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
   "steps": [
    "M1",
    "M2",
    "M3",
    "M4",
    "M5",
-   "M6"
+   "M6",
+   "M7",
+   "M8"
   ],
   "seats": {
    "s1": [
@@ -131,7 +141,8 @@
      ],
      "steps": [
       "M2",
-      "M3"
+      "M3",
+      "M7"
      ]
     }
    ],
@@ -142,7 +153,8 @@
      ],
      "steps": [
       "M5",
-      "M6"
+      "M6",
+      "M8"
      ]
     }
    ]
@@ -151,6 +163,9 @@
  "D2": {
   "mode": "cells",
   "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "territory": [
    "custom_components/heatpump_optimizer/*.py"
   ],
   "steps": [
@@ -205,14 +220,23 @@
    "tests/fixtures/**",
    "tests/replay/**",
    "tests/replay_cost_draws.tsv",
-   "tests/pwlane/*.json"
+   "tests/pwlane/*.json",
+   "tests/*.{json,txt}",
+   "tests/hastub/**"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js",
+   "tests/*.{py,mjs,sh,json,txt}",
+   "tests/hastub/**"
   ],
   "steps": [
    "M1",
    "M2",
    "M3",
    "M4",
-   "M5"
+   "M5",
+   "M6"
   ],
   "seats": {
    "s1": [
@@ -225,7 +249,8 @@
       "M2",
       "M3",
       "M4",
-      "M5"
+      "M5",
+      "M6"
      ]
     }
    ],
@@ -239,7 +264,8 @@
       "M2",
       "M3",
       "M4",
-      "M5"
+      "M5",
+      "M6"
      ]
     }
    ],
@@ -251,7 +277,8 @@
       "M2",
       "M3",
       "M4",
-      "M5"
+      "M5",
+      "M6"
      ]
     }
    ]
@@ -262,9 +289,17 @@
   "universe": [
    "custom_components/heatpump_optimizer/www/**",
    "custom_components/heatpump_optimizer/{config_flow,quick_setup,prefill_offer}.py",
+   "custom_components/heatpump_optimizer/{repairs,notifier,narrative,frontend,issues}.py",
    "custom_components/heatpump_optimizer/{strings,icons}.json",
    "custom_components/heatpump_optimizer/translations/*.json",
    "custom_components/heatpump_optimizer/services.yaml",
+   "blueprints/**"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/www/**",
+   "custom_components/heatpump_optimizer/{config_flow,quick_setup,prefill_offer,repairs,notifier,narrative,frontend,issues}.py",
+   "custom_components/heatpump_optimizer/{strings,icons}.json",
+   "custom_components/heatpump_optimizer/translations/*.json",
    "blueprints/**"
   ],
   "steps": [
@@ -432,7 +467,12 @@
  "D7": {
   "mode": "cells",
   "universe": [
-   "custom_components/heatpump_optimizer/*.py"
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js"
   ],
   "steps": [
    "M1",
@@ -485,14 +525,22 @@
  "D8": {
   "mode": "cells",
   "universe": [
-   "custom_components/heatpump_optimizer/{sensor,binary_sensor,climate,switch,button,entity}.py"
+   "custom_components/heatpump_optimizer/{sensor,binary_sensor,climate,switch,button,datetime,entity,narrative}.py",
+   "custom_components/heatpump_optimizer/{strings,icons}.json",
+   "custom_components/heatpump_optimizer/translations/*.json"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/{sensor,binary_sensor,climate,switch,button,datetime,entity,narrative}.py",
+   "custom_components/heatpump_optimizer/{strings,icons}.json",
+   "custom_components/heatpump_optimizer/translations/*.json"
   ],
   "steps": [
    "M1",
    "M2",
    "M3",
    "M4",
-   "M5"
+   "M5",
+   "M6"
   ],
   "seats": {
    "s1": [
@@ -512,7 +560,8 @@
       "**"
      ],
      "steps": [
-      "M3"
+      "M3",
+      "M6"
      ]
     }
    ],
@@ -532,6 +581,10 @@
  "D9": {
   "mode": "cells",
   "universe": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js"
+  ],
+  "territory": [
    "custom_components/heatpump_optimizer/*.py",
    "custom_components/heatpump_optimizer/www/*.js"
   ],
@@ -566,7 +619,8 @@
      ],
      "axis": [
       "retained_bytes",
-      "payload_bytes"
+      "payload_bytes",
+      "renders_per_gesture"
      ]
     }
    ],
@@ -588,14 +642,26 @@
     "gil_hold",
     "loop_thread_work",
     "retained_bytes",
-    "payload_bytes"
+    "payload_bytes",
+    "renders_per_gesture"
    ]
   }
  },
  "D10": {
   "mode": "cells",
   "universe": [
-   "custom_components/heatpump_optimizer/**"
+   "custom_components/heatpump_optimizer/**",
+   "README.md",
+   "docs/*.md",
+   "tests/*.{py,mjs,sh}",
+   "hacs.json"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/**",
+   "README.md",
+   "docs/*.md",
+   "tests/*.{py,mjs,sh}",
+   "hacs.json"
   ],
   "steps": [
    "M1",
@@ -686,7 +752,20 @@
    ".gitignore",
    "SECURITY.md",
    "VERSION",
-   "RELEASE_NOTES.md"
+   "RELEASE_NOTES.md",
+   "{LICENSE,NOTICE}",
+   "hacs.json",
+   "custom_components/heatpump_optimizer/manifest.json"
+  ],
+  "territory": [
+   ".github/**",
+   ".claude/**",
+   "tools/**",
+   "dev/governance/**",
+   "CLAUDE.md",
+   "{LICENSE,NOTICE}",
+   "custom_components/heatpump_optimizer/manifest.json",
+   "tests/requirements-*.txt"
   ],
   "steps": [
    "M1",
@@ -733,7 +812,16 @@
  "D12": {
   "mode": "cells",
   "universe": [
-   "custom_components/heatpump_optimizer/*.py"
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "blueprints/**"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "blueprints/**"
   ],
   "steps": [
    "M1",
@@ -782,6 +870,7 @@
  "D13": {
   "mode": "cells",
   "universe": [],
+  "territory": [],
   "steps": [
    "M1",
    "M2",
@@ -829,6 +918,7 @@
  "D14": {
   "mode": "cells",
   "universe": [],
+  "territory": [],
   "steps": [
    "M1",
    "M2",
@@ -915,6 +1005,7 @@
  "D15": {
   "mode": "cells",
   "universe": [],
+  "territory": [],
   "steps": [
    "M1",
    "M2",
@@ -958,6 +1049,107 @@
      "steps": [
       "M7",
       "M8"
+     ]
+    }
+   ]
+  }
+ },
+ "D16": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3",
+      "M4",
+      "M5"
+     ]
+    }
+   ]
+  }
+ },
+ "D17": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/services.yaml",
+   "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "README.md",
+   "docs/*.md",
+   "blueprints/**"
+  ],
+  "territory": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/services.yaml",
+   "custom_components/heatpump_optimizer/strings.json",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "README.md",
+   "docs/*.md",
+   "blueprints/**"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4"
      ]
     }
    ]
