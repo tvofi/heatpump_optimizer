@@ -69,4 +69,3 @@ ok   and nothing was minted or posted
 ok   an unmoved head posts with no carry line (null control)
 ok   and prints none
 app_comment self-test: 70 checks, 0 failed
-rc=0

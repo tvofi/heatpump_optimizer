@@ -106,4 +106,3 @@ ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaa
   ok   the census reads both sinks of the relay (ledger_open events, level_line levels)
   ok   every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
 ledger self-test: 103 checks, 0 failed
-rc=0

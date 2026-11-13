@@ -1,0 +1,43 @@
+missing probes: ['tools/audit', 'tools/audit/seat', 'tools/package.json', 'tools/policy', 'tools/policy/fixtures', 'tools/policy/package.json', 'tools/policy/vendor', 'tools/policy/vendor/package.json', 'tools/pr/app_comment.sh', 'tools/pr/figure_registry.json']
+head verdict-bus files under tools: ['tools/**'] index True objects True | main index True objects True
+A:tools/audit -> MODE: SCOPED -- 90 step(s) run verdict-bus-in-plan=True
+D:tools/audit -> MODE: SCOPED -- 90 step(s) run verdict-bus-in-plan=True
+M:tools/audit -> MODE: SCOPED -- 21 step(s) run verdict-bus-in-plan=True
+A:tools/audit/seat -> MODE: SCOPED -- 89 step(s) run verdict-bus-in-plan=True
+D:tools/audit/seat -> MODE: SCOPED -- 89 step(s) run verdict-bus-in-plan=True
+M:tools/audit/seat -> MODE: SCOPED -- 21 step(s) run verdict-bus-in-plan=True
+A:tools/package.json -> MODE: SCOPED -- 39 step(s) run verdict-bus-in-plan=True
+D:tools/package.json -> MODE: SCOPED -- 39 step(s) run verdict-bus-in-plan=True
+M:tools/package.json -> MODE: SCOPED -- 21 step(s) run verdict-bus-in-plan=True
+A:tools/policy -> MODE: SCOPED -- 52 step(s) run verdict-bus-in-plan=True
+D:tools/policy -> MODE: SCOPED -- 52 step(s) run verdict-bus-in-plan=True
+M:tools/policy -> MODE: SCOPED -- 21 step(s) run verdict-bus-in-plan=True
+A:tools/policy/fixtures -> MODE: SCOPED -- 49 step(s) run verdict-bus-in-plan=True
+D:tools/policy/fixtures -> MODE: SCOPED -- 49 step(s) run verdict-bus-in-plan=True
+M:tools/policy/fixtures -> MODE: SCOPED -- 22 step(s) run verdict-bus-in-plan=True
+A:tools/policy/package.json -> MODE: SCOPED -- 49 step(s) run verdict-bus-in-plan=True
+D:tools/policy/package.json -> MODE: SCOPED -- 49 step(s) run verdict-bus-in-plan=True
+M:tools/policy/package.json -> MODE: SCOPED -- 22 step(s) run verdict-bus-in-plan=True
+A:tools/policy/vendor -> MODE: SCOPED -- 49 step(s) run verdict-bus-in-plan=True
+D:tools/policy/vendor -> MODE: SCOPED -- 49 step(s) run verdict-bus-in-plan=True
+M:tools/policy/vendor -> MODE: SCOPED -- 22 step(s) run verdict-bus-in-plan=True
+A:tools/policy/vendor/package.json -> MODE: SCOPED -- 49 step(s) run verdict-bus-in-plan=True
+D:tools/policy/vendor/package.json -> MODE: SCOPED -- 49 step(s) run verdict-bus-in-plan=True
+M:tools/policy/vendor/package.json -> MODE: SCOPED -- 23 step(s) run verdict-bus-in-plan=True
+A:tools/pr/app_comment.sh -> MODE: SCOPED -- 46 step(s) run verdict-bus-in-plan=True
+D:tools/pr/app_comment.sh -> MODE: SCOPED -- 46 step(s) run verdict-bus-in-plan=True
+M:tools/pr/app_comment.sh -> MODE: SCOPED -- 29 step(s) run verdict-bus-in-plan=True
+A:tools/pr/figure_registry.json -> MODE: SCOPED -- 43 step(s) run verdict-bus-in-plan=True
+D:tools/pr/figure_registry.json -> MODE: SCOPED -- 43 step(s) run verdict-bus-in-plan=True
+M:tools/pr/figure_registry.json -> MODE: SCOPED -- 22 step(s) run verdict-bus-in-plan=True
+A:tools/audit/carry_audit.py -> MODE: SCOPED -- 51 step(s) run verdict-bus-in-plan=True
+D:tools/audit/carry_audit.py -> MODE: SCOPED -- 51 step(s) run verdict-bus-in-plan=True
+M:tools/audit/carry_audit.py -> MODE: SCOPED -- 39 step(s) run verdict-bus-in-plan=True
+A:tools/audit/seat/a1_dispatch_arms.sh -> MODE: SCOPED -- 74 step(s) run verdict-bus-in-plan=True
+D:tools/audit/seat/a1_dispatch_arms.sh -> MODE: SCOPED -- 74 step(s) run verdict-bus-in-plan=True
+M:tools/audit/seat/a1_dispatch_arms.sh -> MODE: SCOPED -- 29 step(s) run verdict-bus-in-plan=True
+A:tools/audit/seat/autofix_statuses.sh -> MODE: SCOPED -- 74 step(s) run verdict-bus-in-plan=True
+D:tools/audit/seat/autofix_statuses.sh -> MODE: SCOPED -- 74 step(s) run verdict-bus-in-plan=True
+M:tools/audit/seat/autofix_statuses.sh -> MODE: SCOPED -- 29 step(s) run verdict-bus-in-plan=True
+null control M:docs/README.md -> MODE: SCOPED -- 20 step(s) run True
+plan keys: ['mode', 'why', 'ids']
