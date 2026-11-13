@@ -1,0 +1,202 @@
+== control, no edit: exit 0, 0 red
+== optimizer: a candidate is tried with no requirement to hold it to: 1 red
+     an incumbent with no requirement to hold a candidate to gets no candidate: the pass the control adopts from returns the incumbent without a solve
+== optimizer: a candidate pass that raises is not caught: 1 red
+     the section stopped: RuntimeError: the planner's tank walk failed
+== learner: no count cap: 3 red
+     the decayed count is held at the cap, twice the on-threshold: forty bookings an hour apart end on it and none leaves it above (to 1e-9, the rounding of two scaled addends)
+     the cap scales both counts alike: a stop booked on six of ten leaves p at seven of eleven
+     from p = 1 at the cap the latch holds after twelve kept episodes and drops at the thirteenth, each multiplying p by 10/11
+== learner: the cap scales the stops alone: 4 red
+     the decayed count is held at the cap, twice the on-threshold: forty bookings an hour apart end on it and none leaves it above (to 1e-9, the rounding of two scaled addends)
+     the cap scales both counts alike: a stop booked on six of ten leaves p at seven of eleven
+     from p = 1 at the cap the latch holds after twelve kept episodes and drops at the thirteenth, each multiplying p by 10/11
+     a capped record round-trips through its stored form
+== learner: the cap is three times the on-threshold: 4 red
+     the decayed count is held at the cap, twice the on-threshold: forty bookings an hour apart end on it and none leaves it above (to 1e-9, the rounding of two scaled addends)
+     the cap scales both counts alike: a stop booked on six of ten leaves p at seven of eleven
+     from p = 1 at the cap the latch holds after twelve kept episodes and drops at the thirteenth, each multiplying p by 10/11
+     with no episodes a capped direction is latched at 28 days and not the day after
+== learner: the read ignores the latch: 2 red
+     the read returns zeros while a direction is unlatched, its off times with it
+     null controls from learner state: an empty learner, one under its on-threshold and an install whose every switch was kept each read a plan identical to today's on all three install classes
+== learner: the read swaps the directions: 3 red
+     six stopping switches over two days, each off 501 s, latch the direction and the planner reads the acceptance fixture's pairs from the learner
+     a latched direction reads its own p and median off time in its own slot, hot water to heating first, and no off time while every stop's was censored
+     and that arm has something to detect: the latched learner's read returns the priced plan on every install class
+== learner: the read hands the off time of the other direction: 3 red
+     six stopping switches over two days, each off 501 s, latch the direction and the planner reads the acceptance fixture's pairs from the learner
+     a latched direction reads its own p and median off time in its own slot, hot water to heating first, and no off time while every stop's was censored
+     and that arm has something to detect: the latched learner's read returns the priced plan on every install class
+== leaf: the hot-water-to-heating switch reads the other direction: 18 red
+     a hot-water step into a heating step at equal draw costs the cycling term nothing and weighs p x draw / p_max as a switch
+     the stop adds the smaller of the two levels across a boundary
+     the objective's term is cycling_cost x that weight, a float for one plan and one entry per row for a batch
+     a pump under 1 kW weighs its switch like any other: p x draw / p_max at a maximum draw of 0.5 kW
+     acceptance: priced on the contributor's table the plan carries a lower summed switch weight, on a duty-cycle and on a modulating clamped install
+     at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+     fixed-speed: step_duty inside a charged step returns space, and the leaf weighs the block end into it p x 1 from the result's own schedules and floor
+     a priced plan with a priced switch tries exactly one more hot-water plan, the first build's own arguments plus the ban, and no unpriced solve builds one
+     the ban holds: the candidate's schedule is zero on every banned step, on builds whose min-run stage rewrote the plan
+     the guard's fixture is the one it names: the incumbent holds a priced switch after the disinfection run-up and the ban forbids the run-up step
+     control: the same candidate with the shortfall reading zero is adopted on its lower score, with the requirement returned beside it
+     a candidate that does not score lower is refused after its solve, and the incumbent's requirement and availability are put back
+     the same candidate with each of those steps pinned at 0.5, which the planner's pin rule forces on, is solved and adopted on its lower score
+     a candidate lower by exactly the 1e-9 margin, and so by no more than it, is a tie: refused after its solve, as _co_optimize refuses its own
+     the incumbent's tank is walked once: the read past its excused step is handed the first walk's temperatures
+     the plan's duty floor reaches the switch weight: heating under the floor after a block is no leg and no switch
+     fixed-speed: what pricing a cycle adds to a plan's score is the cycling term plus cycling_cost x the switch weight of the shipped levels
+     null control: the same install with the store's hot water in its own tank reaches the banned build
+== leaf: the switch weight takes the larger neighbouring draw: 3 red
+     the stop adds the smaller of the two levels across a boundary
+     at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+     the plan's duty floor reaches the switch weight: heating under the floor after a block is no leg and no switch
+== leaf: the in-step weight draws the smaller circuit, not the combined draw: 2 red
+     a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run at the step's combined level
+     a both step followed by heating is one switch, not two: its last leg is already heating
+== leaf: the weight is not divided by the maximum draw: 11 red
+     a hot-water step into a heating step at equal draw costs the cycling term nothing and weighs p x draw / p_max as a switch
+     the stop adds the smaller of the two levels across a boundary
+     the reverse order is the other direction: unpriced with a zero there, priced by its own probability
+     a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run at the step's combined level
+     a both step followed by heating is one switch, not two: its last leg is already heating
+     the objective's term is cycling_cost x that weight, a float for one plan and one entry per row for a batch
+     a pump under 1 kW weighs its switch like any other: p x draw / p_max at a maximum draw of 0.5 kW
+     fixed-speed: step_duty inside a charged step returns space, and the leaf weighs the block end into it p x 1 from the result's own schedules and floor
+     a priced plan with a priced switch tries exactly one more hot-water plan, the first build's own arguments plus the ban, and no unpriced solve builds one
+     the ban holds: the candidate's schedule is zero on every banned step, on builds whose min-run stage rewrote the plan
+     the plan's duty floor reaches the switch weight: heating under the floor after a block is no leg and no switch
+== leaf: a small hot-water share no longer collapses to heating: 8 red
+     a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run at the step's combined level
+     a both step followed by heating is one switch, not two: its last leg is already heating
+     the leaf's legs are what step_duty and _share serve over the probe grid, floor unset and set: idle, one duty, both collapse edges and two legs
+     and the grid holds what it claims: two-leg cells under both floors, fewer with the floor set, and both exact collapse edges (shares of 5 and 10 minutes)
+     the same agreement on the levels a clamped install ships: a modulating pump keeps two-leg steps, each circuit at or above p_min
+     null control: with no duty floor (a duty-cycle install) the same arrays charge the both step itself, so the floor is what moved the charge
+     at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+     the edge fixture is the one it names: 1.5 kW of hot water under a third of p_max, and the starts straddle a change in the legs
+== leaf: a small heating share no longer collapses to hot water: 10 red
+     a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run at the step's combined level
+     a both step followed by heating is one switch, not two: its last leg is already heating
+     the leaf's legs are what step_duty and _share serve over the probe grid, floor unset and set: idle, one duty, both collapse edges and two legs
+     and the grid holds what it claims: two-leg cells under both floors, fewer with the floor set, and both exact collapse edges (shares of 5 and 10 minutes)
+     the same agreement on the levels a clamped install ships: a modulating pump keeps two-leg steps, each circuit at or above p_min
+     the block's own last step when it is a two-leg step, and then not the step after
+     acceptance: priced on the contributor's table the plan carries a lower summed switch weight, on a duty-cycle and on a modulating clamped install
+     at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+     the edge fixture is the one it names: 1.5 kW of hot water under a third of p_max, and the starts straddle a change in the legs
+     a priced install whose plan holds no priced switch builds no candidate
+== leaf: the leg classification ignores the duty floor: 5 red
+     the leaf's legs are what step_duty and _share serve over the probe grid, floor unset and set: idle, one duty, both collapse edges and two legs
+     and the grid holds what it claims: two-leg cells under both floors, fewer with the floor set, and both exact collapse edges (shares of 5 and 10 minutes)
+     the same agreement on the levels a clamped install ships: a modulating pump keeps two-leg steps, each circuit at or above p_min
+     on a modulating clamped install heating shipped under p_min beside hot water takes no charge: the stop is charged to the heating step after the both step, and no charged step ships heating under the floor
+     the plan's duty floor reaches the switch weight: heating under the floor after a block is no leg and no switch
+== leaf: a pump with no maximum draw is not returned early: 1 red
+     a pump with no maximum draw weighs every row zero, one finite entry per row and not per step, on the rows the priced pair weighs above
+== leaf: a negative learned value is kept: 1 red
+     a non-finite, negative, over-one or misshapen learned pair reads as zero
+== leaf: a learned value on its upper bound reads as zero: 23 red
+     a non-finite, negative, over-one or misshapen learned pair reads as zero
+     on a modulating clamped install no charged step ships heating under the floor: a start under p_min after a block is charged only once it ships at p_min or above
+     on a modulating clamped install heating shipped under p_min beside hot water takes no charge: the stop is charged to the heating step after the both step, and no charged step ships heating under the floor
+     null control: with no duty floor (a duty-cycle install) the same arrays charge the both step itself, so the floor is what moved the charge
+     a start that is idle, or below zero, in the step after a block charges nothing; the same block followed by heating charges that step
+     with no vector a space solve gets the two objectives it handed in, the same objects, and today's bound; with one it gets them bound to the vector
+     and the nulls have something to detect: with the contributor's pair the plan moves on every install class
+     acceptance: priced on the contributor's table the plan carries a lower summed switch weight, on a duty-cycle and on a modulating clamped install
+     on the duty-cycle install the solved heating in every charged step is at most avail x p_max - dhw, and a charged step exists
+     fixed-speed: every shipped total is 0 or p_max and the plan's duty floor is p_min, with a hot-water block followed by a charged heating step
+     fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max
+     a priced plan with a priced switch tries exactly one more hot-water plan, the first build's own arguments plus the ban, and no unpriced solve builds one
+     the ban holds: the candidate's schedule is zero on every banned step, on builds whose min-run stage rewrote the plan
+     control: the same candidate with the shortfall reading zero is adopted on its lower score, with the requirement returned beside it
+     a candidate that does not score lower is refused after its solve, and the incumbent's requirement and availability are put back
+     the same candidate with each of those steps pinned at 0.5, which the planner's pin rule forces on, is solved and adopted on its lower score
+     a candidate lower by exactly the 1e-9 margin, and so by no more than it, is a tie: refused after its solve, as _co_optimize refuses its own
+     the incumbent's tank is walked once: the read past its excused step is handed the first walk's temperatures
+     modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild
+     modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+     modulating clamped: the predicted cost is the energy of the delivered draw, not of the shipped level
+     fixed-speed: what pricing a cycle adds to a plan's score is the cycling term plus cycling_cost x the switch weight of the shipped levels
+     null control: the same install with the store's hot water in its own tank reaches the banned build
+== leaf: the early return is one entry per step, not per row: 1 red
+     a pump with no maximum draw weighs every row zero, one finite entry per row and not per step, on the rows the priced pair weighs above
+== optimizer: no priced direction still returns a pair: 1 red
+     and it is no operand at all with a zero pair, a zero cycling cost or no hot-water plan
+== leaf: the charged step is the hot-water block's last step: 9 red
+     a block end charges one step, the one holding the heating leg that follows it: the step after the block when heating starts there, not the block's last
+     on a modulating clamped install no charged step ships heating under the floor: a start under p_min after a block is charged only once it ships at p_min or above
+     on a modulating clamped install heating shipped under p_min beside hot water takes no charge: the stop is charged to the heating step after the both step, and no charged step ships heating under the floor
+     a start that is idle, or below zero, in the step after a block charges nothing; the same block followed by heating charges that step
+     with no vector a space solve gets the two objectives it handed in, the same objects, and today's bound; with one it gets them bound to the vector
+     fixed-speed: every shipped total is 0 or p_max and the plan's duty floor is p_min, with a hot-water block followed by a charged heating step
+     fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max
+     modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+     a priced install whose plan holds no priced switch builds no candidate
+== leaf: the delivered draw is keyed on the clamped install: 10 red
+     a duty-cycle install carries the lost time on the bound, a clamped one on the delivered draw, and neither moves anything with no vector
+     on a duty-cycle install the delivered draw is the shipped array itself
+     in a charged two-leg step the stop takes its share of the combined level from the heating draw, and never below zero
+     on the duty-cycle install the solved heating in every charged step is at most avail x p_max - dhw, and a charged step exists
+     fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max
+     a relaxed start carrying a vector is charged on its unrounded level, the rounded objective on the level that ships
+     modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild
+     modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+     modulating clamped: the predicted cost is the energy of the delivered draw, not of the shipped level
+     a priced install whose plan holds no priced switch builds no candidate
+== leaf: the delivered draw loses only the space share: 3 red
+     in a charged two-leg step the stop takes its share of the combined level from the heating draw, and never below zero
+     at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+     modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild
+== optimizer: the switch term is handed the delivered draw: 2 red
+     fixed-speed: what pricing a cycle adds to a plan's score is the cycling term plus cycling_cost x the switch weight of the shipped levels
+     fixed-speed: the batch objective is the scalar one bit for bit with a priced pair and a vector
+== optimizer: the simulation is handed the shipped draw: 3 red
+     at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+     the scalar and the batch objective both price the energy of the delivered draw plus hot water, and agree bit for bit with a vector
+     fixed-speed: the batch objective is the scalar one bit for bit with a priced pair and a vector
+== optimizer: the energy cost is handed the shipped draw: 2 red
+     the scalar and the batch objective both price the energy of the delivered draw plus hot water, and agree bit for bit with a vector
+     fixed-speed: the batch objective is the scalar one bit for bit with a priced pair and a vector
+== optimizer: the publication drops the solve's availability vector: 5 red
+     fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max
+     modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild
+     modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+     modulating clamped: the predicted cost is the energy of the delivered draw, not of the shipped level
+     the scalar and the batch objective both price the energy of the delivered draw plus hot water, and agree bit for bit with a vector
+== planner: the placement ban is not OR'd into forced_off: 2 red
+     at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+     the section stopped: IndexError: too many indices for array: array is 0-dimensional, but 1 were indexed
+== optimizer: a candidate short of its requirement is adopted: 1 red
+     a banned candidate that scores lower but falls short of its returned requirement where the incumbent holds its own is refused before any solve, and the incumbent's requirement and availability stay in place
+== optimizer: a candidate with hot water on a banned step is adopted: 2 red
+     a candidate with hot water on a banned step no pin forces on is refused before any solve
+     any hot water on a banned step refuses the candidate, 0.8 kW as much as a full block
+== optimizer: the candidate is adopted on a higher score: 8 red
+     at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+     on the duty-cycle install the solved heating in every charged step is at most avail x p_max - dhw, and a charged step exists
+     fixed-speed: every shipped total is 0 or p_max and the plan's duty floor is p_min, with a hot-water block followed by a charged heating step
+     fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max
+     control: the same candidate with the shortfall reading zero is adopted on its lower score, with the requirement returned beside it
+     a candidate that does not score lower is refused after its solve, and the incumbent's requirement and availability are put back
+     the same candidate with each of those steps pinned at 0.5, which the planner's pin rule forces on, is solved and adopted on its lower score
+     fixed-speed: what pricing a cycle adds to a plan's score is the cycling term plus cycling_cost x the switch weight of the shipped levels
+== leaf: the lost share is not capped at one: 1 red
+     the lost share is p x off seconds over the step, capped at the whole step, and only hot water to heating carries one
+== leaf: the lost share ignores the stop probability: 1 red
+     the lost share is p x off seconds over the step, capped at the whole step, and only hot water to heating carries one
+== optimizer: the co-optimisation headroom ignores the availability vector: 1 red
+     the co-optimisation reads the charged bound: on a duty-cycle install heating at avail x p_max - dhw in a charged step is pinned, and the replan is built against a full compressor there and nowhere else
+== optimizer: the availability vector is classified with no duty floor: 1 red
+     on a modulating clamped install heating shipped under p_min beside hot water takes no charge: the stop is charged to the heating step after the both step, and no charged step ships heating under the floor
+== optimizer: the candidate pass runs on a combi store: 1 red
+     on a combi store the candidate pass asks its planner nothing and returns the incumbent, its requirement and its availability in place, on an incumbent holding a priced switch
+== optimizer: the co-optimisation headroom is handed no duty floor: 1 red
+     null controls: the same heating with no vector, or with the vector on a clamped install whose bound carries no lost time, is under its bound and builds no replan; at the uncharged bound each of the two builds one
+== arbiter: the share serves the legs in reverse order: 3 red
+     the leaf's legs are what step_duty and _share serve over the probe grid, floor unset and set: idle, one duty, both collapse edges and two legs
+     the same agreement on the levels a clamped install ships: a modulating pump keeps two-leg steps, each circuit at or above p_min
+     at the exact minute the hot-water share ends the arbiter serves heating (a strict <, as before the rule moved)
+RESULT mutants_not_killed=0
+rc=0
