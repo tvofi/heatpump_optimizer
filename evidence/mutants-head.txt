@@ -1,0 +1,16 @@
+PLANT import alias: KILLED   read refused: BlindRead: classify from ('tools/audit/seat/merge_train.py', '_planted') with bus
+PLANT rebinding: KILLED   read refused: BlindRead: classify from ('tools/audit/seat/merge_train.py', '_planted') with bus
+PLANT getattr: KILLED   read refused: BlindRead: classify from ('tools/audit/seat/merge_train.py', '_planted') with bus
+PLANT functools.partial: KILLED   read refused: BlindRead: classify from ('tools/audit/seat/merge_train.py', '_planted') with bus
+PLANT a function named *self_test*: KILLED   read refused: BlindRead: classify from ('tools/audit/seat/merge_train.py', '_planted_self_test'
+PLANT a module outside the four: KILLED   read refused: BlindRead: classify from ('custom_components/elsewhere.py', '_planted') with busy
+RESULT plants=6 survived=0
+BASELINE failed=0 []
+KILLED   FINAL accepted from any frame | P436 barrier: each of the 9 planted deferral-blind readers, planted in each of 4 (+2)
+KILLED   any value accepted as busy (None, (), a list) | P436 barrier: each of the 9 planted deferral-blind readers, planted in each of 4 (+0)
+KILLED   an empty Busy minted anywhere | P436 barrier: each of the 9 planted deferral-blind readers, planted in each of 4 (+0)
+KILLED   FINAL frame read one level too shallow (classify itself) | P436 barrier null: a FINAL read from each FINAL_READERS frame is read, not refus (+0)
+KILLED   frames keyed by basename, not repo path | P436 barrier null: an unregistered frame sharing a registered qualname, file bas (+0)
+KILLED   frames keyed by path only | P436 barrier: each of the 9 planted deferral-blind readers, planted in each of 4 (+2)
+RESULT mutants=6 survived=0 stale=0 baseline_failed=0
+rc=0

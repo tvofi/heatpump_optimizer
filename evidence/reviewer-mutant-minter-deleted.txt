@@ -1,0 +1,8 @@
+  ok   P590 a rollup holding a success gate and a deferral failure gate (FAILURE first) waits, with no review wording
+  ok   P436 A: a gate FAILURE while a ci.yml run is unfinished is a deferral wait (reason names it)
+  ok   P436 A null: the same gate FAILURE with no unfinished ci.yml run is red, never a wait
+  FAIL P436 barrier: each of the 9 planted deferral-blind readers, planted in each of 4 modules, refuses a red gate (BlindRead, or TypeError for no busy) -- passed: [('busy rebound to an empty Busy', 'merge_train.py'), ('busy rebound to an empty Busy', 'orchestrator_tick.py'), ('busy rebound to an empty Busy', 'a module outside the seat'), ('busy rebound to an empty Busy', 'a module outside the tree')]
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
