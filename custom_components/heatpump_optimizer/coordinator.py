@@ -6694,7 +6694,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             state.lower_floor_temperature = state.room_temperature
         self._audit_lower_floor_sensor()
         self._audit_comfort_band()
-        self._audit_valve_target()
 
         # A smart valve's target, when the integration can see it: where the
         # valve regulates to is what tells the model whether it is throttling
@@ -7672,27 +7671,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         Reported rather than migrated. These are the user's own numbers and
         only they know which one is wrong -- silently rewriting a comfort
         target to make an inequality hold is exactly the kind of help nobody
-        asked for. The plan keeps running meanwhile: the bounds are priced
-        rather than fenced, so a contradictory band is a plan in permanent
-        violation, not a crash.
+        asked for. The plan keeps running: the bounds are priced, not fenced.
+        The valve-target notice (``mixing_valve.audit_target``) rides here too.
         """
         found = comfort_band.violations({}, getattr(self, "_ctx", self)._config)
         problem = comfort_band.describe(found) if found else None
         self._config_notices.report(self.hass, "comfort_band_contradiction", problem,
                                     {"problem": problem} if problem else None)
-
-    def _audit_valve_target(self) -> None:
-        """Say so when the mixing-valve target is above the comfort ceiling.
-
-        Reported, never refused: a target above comfort can be deliberate.
-        Derived from configuration, so it reaches existing entries.
-        """
-        params = self._thermal_params
-        target, ceiling = params.mixing_valve_target, params.comfort_ceiling
-        high = mixing_valve.target_above_comfort(target, ceiling)
-        self._config_notices.report(
-            self.hass, "valve_target_above_comfort", (target, ceiling) if high else None,
-            {"target": f"{target:g}", "ceiling": f"{ceiling:g}"} if high else None)
+        mixing_valve.audit_target(self._config_notices, self.hass, self._thermal_params)
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(

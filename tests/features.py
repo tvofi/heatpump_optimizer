@@ -86800,8 +86800,8 @@ def _vt_issues(target, **extra):
     if target is not None:
         cfg["mixing_valve_target"] = target
     c = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=cfg))
-    c._audit_valve_target()
-    c._audit_valve_target()
+    c._audit_comfort_band()
+    c._audit_comfort_band()
     return [i for i in getattr(c.hass, "issues", []) if i[1] == "valve_target_above_comfort"]
 
 
