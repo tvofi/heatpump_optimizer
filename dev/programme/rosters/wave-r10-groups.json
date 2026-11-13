@@ -13067,9 +13067,9 @@
     "R10-PRODUCT-PAGE-REDESIGN"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-user-docs-verify",
-    "commit": null,
+    "commit": "83e4e83d77593c609905dd76971ff72d69bb9229",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done; run locally",
     "note": "split from R10-USER-DOCS-FINAL, tvofi 2026-10-31. tvofi 2026-11-01 approved card 10: after-edges narrowed from the 103 groups to the 44 non-instrument ones; instrument groups change no user-facing feature | set-files files ['README.md', 'docs/setup.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/automations.md', 'docs/dashboard-card.md', 'docs/ecl110.md', 'tests/doc_claims.py'] -> ['README.md', 'docs/setup.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/automations.md', 'docs/dashboard-card.md', 'docs/ecl110.md', 'tests/doc_claims.py', 'docs/img/readme/mermaid_figures.json'] | set-files files ['README.md', 'docs/setup.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/automations.md', 'docs/dashboard-card.md', 'docs/ecl110.md', 'tests/doc_claims.py', 'docs/img/readme/mermaid_figures.json'] -> ['README.md', 'docs/setup.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/automations.md', 'docs/dashboard-card.md', 'docs/ecl110.md', 'tests/doc_claims.py', 'docs/img/readme/mermaid_figures.json', 'docs/img/brand/coffee.svg']",
@@ -21518,8 +21518,8 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
-    "commit": null,
+    "stage": "done",
+    "commit": "76b4fdcdb66efe9ecb876194bfdbd2c83d414511",
     "branch": "fix/r10-card-collapse",
     "last_step": null,
     "next_step": "dispatch fixer after R10-HOTFIX-COP-UNMEASURED merges (shared hot file: the card)",
@@ -22763,10 +22763,11 @@
    "architect_note": "",
    "brief": "triage: dev/programme/triage/s6-batch168.md#P582 at 2dc8f58c5c. Owner ruling (orchestrator under mandate 6715477401, scope all, 2026-11-11): when the optimizer is turned off or unloaded, no actuator arm may leave the pump displaced, MQTT included; W7's 'MQTT byte-identical' was a scope limit, not a product decision. This is R10-GENERIC-HEAT-CURVE-PERSISTENT's carry 6 (ghc-d02, body item 711d4be1), re-homed here. Static read at main a7628041dc: heat_curve.publish (heat_curve.py:237-262) publishes the MQTT topics on every call and mode_off gates only the entity arm (:260); coordinator.async_publish_current_action returns on MODE_OFF without publishing (coordinator.py:7721-7725), as does _async_peak_guard_transition (:8866), so the last displace published before off stays the topic's last command (retained when the user enables the retain option, CONF_ECL110_RETAIN at const.py:700, whose default DEFAULT_ECL110_RETAIN is False at const.py:1600). (1) FIRST measure, on the MQTT ECL110 arm, the value standing on the displace and command topics after MODE_OFF and after unload, retained or last published, with retain on and off; null control: the entity arm, which off_restore restores to its baseline (3402, heat_curve.py:151). (2) If a non-zero displace stands: publish displace 0 on both paths (the MODE_OFF transition and the off_restore unload path, one hook, never a second owner of unload), failing test first, mutation proof per path, entity arm unchanged. (3) If already neutral: record the command and its output and dismiss with that evidence. (4) Also re-read #3299's merged diff (20d96598c9 on main) and re-check design carries ghcp-03 and ghcp-r3's citations at origin/main (3402 re-checked them only at e066a630).",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
     "note": "overlap admitted (R10-USER-DOCS-VERIFY, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID): s14 orchestrator 2026-11-11 under mandate 6715477401: R10-GENERIC-HEAT-CURVE-PERSISTENT carry 6 (ghc-d02) re-homed, triage s6-batch168.md#P582",
-    "pr": 3534
+    "pr": 3534,
+    "commit": "727e37e7b1e5d669d8b37541aae62e9224d988e5"
    }
   },
   {
@@ -24528,9 +24529,9 @@
    "architect_note": "",
    "brief": "Replacement for Dependabot pull request 3483 (pip group in tests, 8 updates), red at head 08d58a81 on tests / typing: the bot moved homeassistant-stubs 2026.9.3 to 2026.10.0 past the pin tests/typing_budgets.json ruler records and tests/typing_ruler.py enforces (job 130852340607: FAIL homeassistant-stubs is pinned at 2026.9.3, REFUSING to measure). Third compat replacement of this Dependabot group (3323, 3414, 3483), so it carries the class barrier (triage: dev/programme/triage/s6-batch221.md#P674 at 22602eca3d). (1) Re-lock tests/requirements-typing.txt through its header compile with the 7 other bumps of 3483 (bleak, cronsim, httpcore2, httpx2, regex, truststore, zeroconf), homeassistant-stubs held at 2026.9.3. (2) In .github/dependabot.yml, the /tests pip entry gets ignore entries for homeassistant-stubs and mypy, the two pins ruler records, with a comment that moving either is a deliberate re-record of the typing census (#504), never a bot bump. Demonstration: tests / typing green at the head with the ruler printing ok homeassistant-stubs is pinned at 2026.9.3; null control: the same compile without the hold reproduces the FAIL line. (3) Close Dependabot pull request 3483 as superseded by this group pull request after the merge. Not critical path.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "101cb402ac50438416840185c11b1c2598818854",
     "last_step": null,
     "next_step": "fixer (sonnet), then sonnet review; close Dependabot pull request 3483 as superseded after the merge; waits for a slot under the over-20 rule",
     "note": "orchestrator 2026-11-12: authorised P674 (a) new group, wired to Dependabot pull request 3483",
@@ -25150,9 +25151,9 @@
    "architect_note": "",
    "brief": "HOTFIX, two serial pull requests. Orchestrator ruling 2026-11-12 on the advisor-steady-start branch stopped at BOOTSTRAP: a registration literal sits inside a pinned grader, so repairing a listed carry needs a grader edit that the same pull request cannot make green. This is the BOOTSTRAP class; the body names it.\n\nPart 1: in tools/policy/brief_lint.mjs, move the legacy-control file list (LEGACY_CONTROL_FILES) out of the grader's literal into a new JSON data file beside the grader, which is not pinned by the grader's own checks and which the grader reads. The cap (LEGACY_CONTROL_CAP) stays a literal in the grader. The entries are unchanged, so the base's copy and the head's agree and nothing reddens. Null control: the lint's output on origin/main's tree is byte-identical before and after the move. Add a self-test arm that a listed-but-clean file is still refused, with its mutant, killed. Failing test first.\n\nPart 2, after part 1 is on main: repair the first control of dev/archive/carries/carry-1412.json to name dhw_planner.py with no line number. The repair exists as commit 815f99a3faea7305d5ef9c85ef801d740bd54bb0 on the advisor-steady-start handoff-wip branch; cite it in prose, take the content, do not merge the branch. Delist the carry from the data file. Then survey every other listed file for a control citation that resolves only by line-number accident (body item 00444e5b of the advisor-steady-start branch), and report each as finding or clean.\n\nOut of scope: changing the cap, adding entries, any other grader change.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "fix/r10-hotfix-legacy-control-data",
-    "commit": null,
+    "commit": "dd1f5e4a34db6597b8153f65647f1a281ec31e9d",
     "last_step": null,
     "next_step": "dispatch a sonnet fixer now",
     "note": "orchestrator ruling 2026-11-12",
@@ -25281,9 +25282,9 @@
    "architect_note": "",
    "brief": "HOTFIX. Defect: the merge train required-check read stops at the first page of contexts. In merge_train.py the read returns unread with the reason that there are more contexts than one page and it did not read them whole, so a green approved head with a long check-run list is classed as its own skip and its re-add is refused. Measured evidence from the ruling: PR 3449 (under the earlier P638 reopening condition) and PR 3479, which needed a direct merge as a deadlock; three PRs in about two days were each green and approved and each needed a hand direct merge; one direct merge moved main under a waiting proof batch and cost a re-prove (MAIN-MOVED). The P638 reopening condition holds: the redispatch-loop hotfix is done and a green verdicted entry was still skipped.\n\nFix: read every page of the contexts under the gh_read rule, so a head with more than one page of check-runs is classified on all of them. One extra API call per extra page, only on such heads. The arm that names the QUEUED context instead of guessing a review is deferred to round 11 and is out of scope; BRANCH_POLICY is already re-admitted.\n\nSelf-test arm in merge_train.py: a faked listing with a required context on page 2 that is red must read RED, and with that context green must read GREEN. Null control: a one-page listing is unchanged and makes the same single read. Red-then-green demonstration: show the arm red on origin/main (unread), then green with the fix; mutate the page loop to stop after page 1 and show the arm kill it.\n\nTriage: P765 ACCEPT round 10 (batch 246)",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-hotfix-train-context-pages",
-    "commit": null,
+    "commit": "7eadd75f3c420404aabc83d4b05f9691f3e49136",
     "last_step": null,
     "next_step": "dispatch a sonnet fixer now",
     "note": "triage batch 246 P765 ACCEPT round 10; overlap admitted (R10-CI-PRIORITY-PAUSE): triage batch 246 P765 ACCEPT round 10: train reads every page of required contexts",
@@ -25752,9 +25753,9 @@
    "brief": "HOTFIX, Nightly is red and tests / nightly-status reddens the required gate on every code PR. Defect: Nightly run 43358851739 (workflow_dispatch at main e4ca2d940e), jobs nightly-ha (stable) 131667291235 and nightly-ha (2025.2.0) 131667291292, step 'Run ./.github/actions/nightly-ha' (python tests/nightly_ha.py), both print verbatim: 'FAIL a4:failed  [last_update_success=True]'; 'FAIL a4:unavailable  [50 still published: [entity ids, see the job log]]'; 'FAIL a4:buttons  [clickable after fail: [entity ids, see the job log]]'; 'FAIL a4:no_stale  [stale: [entity ids, see the job log]]'; 'FAILED: 5 of 65 checks: [a4:failed, a4:unavailable, a4:buttons, a4:no_stale, run:exit_status]'. Same five in run 43204237855 (head 4596f721f6, first red); last green nightly-ha: schedule run 43130126209 at 47788534da, 2026-11-12T00:49Z. Cause (established from the code path): PR #3454 (merge 2ced371c1a, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, merged 2026-11-12T04:54Z, inside the window) changed coordinator._tibber_fetch_failed so a failed fetch raises UpdateFailed only when the last published prices no longer cover now (issues.note_price_outage, _known_prices_for); otherwise it bridges with a WARNING and the price_feed_stale repair. tests/nightly_ha.py _async_check_a4 breaks the fake Tibber with HTTP 500 right after a successful fetch of a 72-hour curve starting now-2h (_hourly_prices), so the cache covers now, the refresh succeeds, and every a4 check that presumes UpdateFailed fails. This is a harness defect against an intended, accepted product change -- not a product regression and not an HA/dependency change (both HA versions fail identically). Candidates ruled out: no other merge in 47788534da..4596f721f6 touches UpdateFailed/last_update_success (git diff of coordinator.py in the window), and the only entity.py/nightly_ha.py change (#3460) touches no availability path. Fix (tests/nightly_ha.py only; product code untouched; no revert of #3454, which would delete accepted working functionality): split A4 into two real-boundary phases. (1) New check a4:bridged: with the source broken while published prices cover now, last_update_success stays True, the price_feed_stale repair is in HA's issue registry, and entities stay available -- pins #3454's contract on real HA. (2) Exhaust the published prices at the counterparty, not by poking coordinator._prices: the fake server gains a mode that answers 200 with a curve that ended before now (e.g. _hourly_prices(now - 3 days)), one refresh takes it, then the 500 break runs the existing a4:failed/unavailable/buttons/no_stale unchanged, then restore and a4:recovered. Take 'before' records ahead of phase 2. Add a4:bridged to A4_INSIDE and to the tests/entities.py nightly roster/self-tests (the check_a4_* offline self-tests near the 'a4:failed fails when last_update_success stayed True' line) with a positive and a negative case. Update the nightly_ha.py module docstring (the Tibber bullet says the 500 always raises UpdateFailed; the A4 paragraph says it breaks Tibber with HTTP 500) and keep _a4_update_failed_traceback valid. If pull_prices refuses an expired curve as not-ok, state it and use the next real-boundary means; never set last_update_success or _prices from the harness. Verification and null control the body must show: a dispatched Nightly on the branch (gh workflow run nightly.yml --ref <branch>) where both nightly-ha jobs print 0 FAIL lines and a4:failed/unavailable/buttons/no_stale/recovered/bridged all ok; on main the same jobs print the five FAIL lines above (cite run 43358851739). Mutation control: with issues.note_price_outage forced to return False (bridging disabled) a4:bridged fails while a4:failed still passes; with the expired-curve step skipped a4:failed fails again with last_update_success=True. Must NOT change: anything under custom_components/, the other 60 checks' names and outcomes, log:no_integration_traceback ok, the a4 check functions' predicates. Root-cause trigger (defect-root-cause.md, red required gate): answer in the body why #3454's PR lane did not run nightly-ha (it runs only on schedule/dispatch), and whether a cheaper detector exists -- e.g. a pull-request rule that dispatches nightly-ha when a diff touches _tibber_fetch_failed/_fetch_tibber_prices or other names the A4 path reaches, or an offline entities.py self-test that drives _async_check_a4's premise against the coordinator -- with its standing cost, or record that none is worth building.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "61ed5144da5032fd4e491fd1d44b3286159a9d55",
     "last_step": null,
     "next_step": "cloud fixer (sonnet); verification needs a dispatched Nightly on the branch (Docker + HA image)",
     "note": "intake: Nightly nightly-ha red since run 43204237855 (2026-11-12T10:52Z); nightly-status reddens gate on every code PR; diagnosis seat r10s6/s14 nightly-ha-diag",
