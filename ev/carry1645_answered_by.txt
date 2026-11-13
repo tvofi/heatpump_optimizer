@@ -1,0 +1,24 @@
+# carry-1645 answered_by audit at head b560375dbd86ee7411f1df04f501ad0ed104f7d2
+## 3807ccae6b tests/doc_claims.py 466-471 (the recorded answered_by of entry 0)
+    from heatpump_optimizer import config_flow, const
+
+    text = DOCS["configuration.md"]
+    section = text.split("## Initial setup", 1)[1].split("\n## ", 1)[0]
+
+    async def _first_two_screens():
+## log -S of the guarded form on origin/main
+16e8fef927d65b5893b947afdcc2a94acaa3cd9d Fri Oct 2 00:32:06 2026 +0000 I5 barrier arms, anchor guards, py.typed arm; re-record structure budgets
+## 16e8fef927 message
+I5 barrier arms, anchor guards, py.typed arm; re-record structure budgets
+
+tests/doc_claims.py: the I5 class barrier's arms (entity prose, card
+private names, catalog units, option labels, options-page census,
+corpus-wide multi-start count) beside F8.3's service-fields arm; F8.1's
+and F8.2's anchor lookups fail by name instead of raising
+(carry-1645.json); qs_py_typed_files gets its check (RCA-BULK-3).
+tools/audit/bugclasses.json: I5 and N-structure-blind name their
+detector and barrier. The three coordinator properties R9-EG-B2 deletes
+## d39f764 (recorded answered_by of entry 1)
+d39f764db576376534842a83931c29569d7f87ee Mon Sep 28 12:59:16 2026 +0200 tests: the five F8.3 arms red at base, and the #1668 name-sort block
+## doc_claims
+at a49c3d5c07: ALL 343 checks PASSED; at head b560375dbd: ALL 348 checks PASSED

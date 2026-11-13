@@ -1,0 +1,37 @@
+Fix review: blocked b560375dbd86ee7411f1df04f501ad0ed104f7d2 introduced-red: deleting five carry files turns tests/entities.py's #2227 cited-program arm red (cited 2 < floor 3, no carry-cited program); also carry-1645 answered_by misrecorded and carry-201 entry 22 half dropped
+
+bus-nonce: 64411a88a0bb7c939bc96bc741f037e2
+
+## Block
+
+Round 1, at head b560375dbd86ee7411f1df04f501ad0ed104f7d2.
+
+0. **Introduced red in tests/entities.py, the arm "every program live policy or a carry's remeasure tells a seat to run ... loads and resolves the paths it opens (#2227)"** (tests/entities.py:34182-34191). Its floors are `len(_SP_CITED) >= 3` and at least one cited program cited by a carry. At the merge base 2a083d235e the arm is `ok` with 5 cited programs, 4 of them cited by carry-201.json (corpus_churn.py, dora_cfr.py, codeowners_gap.py, dora_keys.py). At the head it is `FAIL [policy files 51, carries 1, cited 2 ...]`: carry-1645.json's remeasures cite no program, so both floors fail (ev/entities_2227_arm.txt; same command at both ends, `PYTHONPATH=tests/hastub env -u BASH_ENV python3 tests/entities.py`). The body does not mention this arm. prepr.sh's scoped entities run is the cheaper detector, and it should have shown this before the handoff. The arm's floor needs a deliberate disposition in this PR: a remaining carry whose remeasure cites a program, or a re-scoped floor with its reason, which touches a gate file and is policy-adjacent. Either is a change to the arm's measured population that a reviewer must see, not something to wave through.
+
+1. **carry-1645.json `answered_by` records the wrong commits** (the only lines this PR adds to a durable record). Entry 0 says that the answer to the unguarded `text.split("## Initial setup", 1)[1]` and the unguarded `re.search(...).group(1)` is `3807ccae6b`. At 3807ccae6b, `tests/doc_claims.py:469` is the unguarded split the entry describes (ev/carry1645_answered_by.txt). 3807ccae is the defect's **origin**, not its answer. The guarded form (`_section(...)`, `if m is None: return`) first appears on origin/main in `16e8fef927d65b5893b947afdcc2a94acaa3cd9d` ("I5 barrier arms, anchor guards ... F8.1's and F8.2's anchor lookups fail by name instead of raising (carry-1645.json)"). Entry 1's `answered_by` = `d39f764db5` is the commit that *landed* the five F8.3 arms, which is the entry's `from`. That entry's brief asks that they be folded into the barrier, and 16e8fef927 is the commit that folded them ("beside F8.3's service-fields arm"). The body's gloss on 3807ccae, "anchor-guarded check_initial_setup_menu / check_simulate_plan_fields", is false at that commit. Both entries are substantively answered at the head (guards present; doc_claims `ALL 348 checks PASSED`). Only the recorded SHA is wrong. Repair: set both `answered_by` to 16e8fef927d65b5893b947afdcc2a94acaa3cd9d (or show a different answering commit), and correct the body row.
+   Perturbation of the PR's own control: the control checks only `git merge-base --is-ancestor`. It reads green for 3807ccae, which is the defect's own commit. So it does not distinguish an answering commit from any older ancestor, and the 40-zero plant shows only that a non-commit is caught.
+2. **carry-201 entry 22 is discharged as "answered, removed" by f76f55901f, but only its first half is answered.** f76f559 makes `critical_path_minutes` report-only, which answers the owner's re-record-or-pay decision. The same brief carries a second, separate item: "a robustness follow-up from the #3201 review: window_work_minutes unions timing-inferred need edges across the window ... Keeping only edges to the workflow's declared `needs:` would close it; it is not built here." (ev/carry201_entry22_brief.txt). At the head, `tests/ci_ratchet.py` still infers edges by timing (`QUEUE_EPS`, lines 564-569; `needs[...]` unioned at 736-738; ev/ci_ratchet_555_575_at_head.txt). The follow-up is not on the roster (the 31 re-homed texts do not include it), so deleting carry-201.json drops it with no destination. The metric is now report-only, so this is a misleading printed number rather than a gate defect. Re-homing it to R11-INTAKE-R10-RESIDUE (or recording that it is moot under report-only, with the reason) resolves this; either is a one-row change.
+
+Nothing else blocks: the other 34 dispositions re-derive (below).
+
+## Findings
+
+- Follow-up: dev/audit/harnesses/cop_duty_floor.py:23 (a live harness docstring) still cites dev/programme/carries/carry-2065.json, which this PR deletes. The entry's text now lives on the roster group R11-INTAKE-R10-RESIDUE. RCA and register files cite carry-201.json and carry-1922.json too, but those are historical records and are left as written. Re-point the harness docstring when the residue group lands. Carry: R11-INTAKE-R10-RESIDUE
+- Follow-up: the window_work_minutes timing-inferred-edge robustness item from carry-201 entry 22 (block item 2) needs a destination. Carry: R11-INTAKE-R10-RESIDUE
+
+## Evidence
+
+- RESULT entries-at-merge-base: 6 files, 36 entries (1645:2, 1922:6, 201:25, 2065:1, 2066:1, 2075:1), read from 2a083d235e. This matches the body. 5345766b41 is an ancestor of the head; the merge base is 2a083d235e.
+- RESULT roster-readback: 31 of 31 re-homed entries found by brief text in the named destination group's `carry` list at 7b6c179895 and again at the roster tip 83f016606c (ev/roster_readback.txt, my own reader ev/rb.py, not roster_queue.py): 30 in R11-INTAKE-R10-RESIDUE, 1 (carry-2075[0]) in R10-OUTSIDE-CONTRIBUTOR-CYCLE.
+- RESULT answered-ancestry: 3807ccae, d39f764, d4e3eb0c, 0bfec38f, f76f5590 are all ancestors of origin/main.
+- RESULT 201[13] answered: no WAVES.json or hand-cut wave JSON in tools/, tests/ or .github/ at the head.
+- RESULT 201[18] answered: the `audit-dispatch` row is at tools/audit/seat/beat_jobs.py:91,136,592.
+- RESULT doc_claims: ALL 343 checks PASSED at a49c3d5c07 (the body's figure, which re-derives) and ALL 348 at the head, after the main merge.
+- RESULT figure-not-re-derived: I did not run the body's "measured NOT answered" spot figures (min3_running_folded=3/15, selfmod_independent_4kw=0.789).
+- RESULT merge-tree: rc 0 against origin/main 5288db5dad, so it merges cleanly (ev/merge_tree.txt).
+- RESULT version: VERSION, the manifest and RELEASE_NOTES.md are untouched (the diff covers 9 files: carries, the delivery row, tests/closures.json, tools/ci/selftest_closures.json).
+- RESULT mutation: n/a, no production line. The planted wrong-but-ancestor SHA (3807ccae) passes the body's control; see block item 1.
+- RESULT policy-drift: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
+- RESULT entities.py (`PYTHONPATH=tests/hastub env -u BASH_ENV`; venv-ha lacks `paho`): run at both ends, and the #2227 arm is `ok` at the base and FAIL at the head (block item 0). Other FAIL lines in this container (hb:positive_control, hb:changed_save, a3/a4 planted rows) are host or self-test lines. I did not attribute them to this PR, and CI's run is the authority for them.
+- RESULT CI: `merge_train.py classify` printed `WAIT b560375dbd86ee7411f1df04f501ad0ed104f7d2 pending: gate red: none` on every poll. review_packet refused with `introduced-red: unreadable` while instrument-self-tests was in progress. This verdict is a block on content, so it does not wait on CI.
+- Head named in the body = the head measured = b560375dbd86ee7411f1df04f501ad0ed104f7d2.

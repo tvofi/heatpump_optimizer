@@ -1,0 +1,21 @@
+            raise _refusal(f"{kind} push run {r.get('id')} job {j.get('name')!r} "
+                           "has no conclusion; whether its work prices is unknown "
+                           "(fail closed)")
+    if any(counted(str(j.get("name") or "")) and j.get("conclusion") == "cancelled"
+           for j in ran):
+        return None
+    ran.sort(key=lambda j: (_at(j["created_at"]), _at(j["completed_at"])))
+    walked: list[dict] = []
+    for j in ran:
+        ready = _at(j["created_at"]).timestamp() + QUEUE_EPS
+        before = [i for i, w in enumerate(walked) if w["completed"] <= ready]
+        base, pred = 0.0, None
+        if before:
+            last = max(walked[i]["completed"] for i in before)
+            near = [i for i in before if walked[i]["completed"] >= last - QUEUE_EPS]
+            pred = max(near, key=lambda i: walked[i]["end"])
+            base = walked[pred]["end"]
+        name = str(j.get("name") or "")
+        work = max(0.0, (_at(j["completed_at"]) - _at(j["started_at"])).total_seconds())
+        walked.append({"name": name, "work": work, "end": base + work,
+                       "completed": _at(j["completed_at"]).timestamp(),

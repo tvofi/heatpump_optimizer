@@ -1,0 +1,11 @@
+## head b560375dbd86ee7411f1df04f501ad0ed104f7d2 (PYTHONPATH=tests/hastub env -u BASH_ENV python3 tests/entities.py)
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md: runs
+  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
+  FAIL every program live policy or a carry's remeasure tells a seat to run, under a historical prefix, loads and resolves the paths it opens (#2227)  [policy files 51, carries 1, cited 2 (floors: an arm that finds nothing is not a pass); faults []; commands naming no file []]
+## merge base 2a083d235e8a7549ac54acc8ecc8cf24f6eb8112
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md, dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
+  cited  dev/audit/rounds/round5/D11/seat-b/corpus_churn.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round5/D13/seat-a/dora_cfr.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
+  ok   every program live policy or a carry's remeasure tells a seat to run, under a historical prefix, loads and resolves the paths it opens (#2227)
