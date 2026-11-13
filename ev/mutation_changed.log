@@ -1,0 +1,6 @@
+  2626 unpinned site(s) of 7175 candidate sites, 2626 at the ratchet base cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: no production code line added or modified against the base
+  no production file in scope; nothing to mutate
+
+MUTATION TABLE PASSED (empty scope)
+rc=0
