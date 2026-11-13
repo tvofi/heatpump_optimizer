@@ -17,6 +17,12 @@ that does not is refused by name.
 steps, axis values, file. `rest` is resolved here, so a finder is handed files, not a rule.
 .claude/workflows/audit-find.js runs the check, coverage included, in its Prepare step and refuses the
 round on rc != 0.
+--round <N> adds the start evaluation (dev/governance/decisions/0017-objective-function.md): round
+N starts only when round N-1's OBJECTIVE.json and round N's EVALUATION.json are in the tree at
+--ref, every term is read or NO-READ with its reason, every object file has a verdict with
+evidence from an evaluator who is not its reviewer, and every card carries the owner's decision,
+an accepted one merged at --ref. Each gap is refused by the path or id it names; audit-find.js
+passes its round. --self-test drives a complete record (passes) and one perturbation per rule.
 """
 import argparse, contextlib, copy, io, itertools, json, re, subprocess, sys, tempfile
 from pathlib import Path
@@ -165,6 +171,99 @@ def verdict(scopes, tree, loc, harnesses, briefs, quiet=False):
             print(f"   {h} names {b} in its header; {b} does not cite it")
     return ok and cov_ok and not bad
 
+OBJECTIVE = "dev/audit/config/objective.json"
+VERDICTS = ("keep", "change", "remove")
+DECISIONS = ("accepted", "rejected", "deferred")
+
+
+def evaluation_gaps(rnd, tree, show, merged):
+    """Why round `rnd` may not start, one line per gap, [] when it may.
+    `show(path)` is the file's text at the ref; `merged(sha)` says whether the
+    ref contains that commit. The terms and the object globs come from
+    OBJECTIVE at the ref, so the record is checked against the definition it
+    was written under, and neither list is carried here."""
+    spec = json.loads(show(OBJECTIVE))
+    prev = f"dev/audit/rounds/round{rnd - 1}/OBJECTIVE.json"
+    path = f"dev/audit/rounds/round{rnd}/EVALUATION.json"
+    gaps = []
+    if prev not in tree:
+        gaps.append(f"{prev} is not in the tree: round {rnd - 1}'s close wrote no record to evaluate")
+    else:
+        terms = json.loads(show(prev)).get("terms", {})
+        for t in spec["terms"]:
+            row = terms.get(t)
+            if not isinstance(row, dict):
+                gaps.append(f"{prev} has no term {t}")
+            elif "value" in row and not str(row.get("enumerator", "")).strip():
+                gaps.append(f"{prev} term {t} carries a value and no enumerator")
+            elif "value" not in row and not str(row.get("no_read", "")).strip():
+                gaps.append(f"{prev} term {t} is neither read nor NO-READ with its reason")
+    if path not in tree:
+        return gaps + [f"{path} is not in the tree: the start evaluation has not run"]
+    ev = json.loads(show(path))
+    if ev.get("round") != rnd or ev.get("reads") != prev:
+        gaps.append(f"{path} is not round {rnd}'s evaluation of {prev}")
+    seat, rev = (str(ev.get(k, "")).strip() for k in ("evaluator", "reviewer"))
+    if not seat or not rev or seat == rev or "orchestrator" in (seat, rev):
+        gaps.append(f"{path} evaluator {seat!r} and reviewer {rev!r} must be two seats, neither the orchestrator")
+    cards, rows = ev.get("cards", {}), ev.get("objects", {})
+    for f in sorted(match(tree, spec["objects"].values())):
+        row = rows.get(f)
+        if not isinstance(row, dict) or row.get("verdict") not in VERDICTS:
+            gaps.append(f"{path} has no keep/change/remove verdict for {f}")
+        elif not str(row.get("evidence", "")).strip():
+            gaps.append(f"{path} verdict for {f} carries no evidence")
+        elif row["verdict"] != "keep" and row.get("card") not in cards:
+            gaps.append(f"{path} {row['verdict']} verdict for {f} names no card")
+    for cid, card in sorted(cards.items()):
+        if card.get("decision") not in DECISIONS:
+            gaps.append(f"{path} card {cid} carries no owner decision")
+        elif card["decision"] == "accepted" and not (card.get("merged") and merged(card["merged"])):
+            gaps.append(f"{path} card {cid} is accepted and not merged at this ref")
+    return gaps
+
+
+def evaluation_self_test(tree, show):
+    """{arm: held}. A complete record over the live object files passes; each
+    perturbation of it is refused by the path, term or card it names, checked
+    alone so none masks another."""
+    spec = json.loads(show(OBJECTIVE))
+    prev, path = "dev/audit/rounds/round7/OBJECTIVE.json", "dev/audit/rounds/round8/EVALUATION.json"
+    objs = sorted(match(tree, spec["objects"].values()))
+    terms = {t: {"value": 1, "enumerator": "cmd"} for t in spec["terms"]}
+    terms[spec["terms"][-1]] = {"no_read": "no ledger"}
+    good = {"round": 8, "reads": prev, "evaluator": "evaluator-r8", "reviewer": "plan-review-r8",
+            "objects": {f: {"verdict": "keep", "evidence": "e"} for f in objs},
+            "cards": {"C1": {"decision": "accepted", "merged": "abc"}, "C2": {"decision": "rejected"}}}
+    good["objects"][objs[0]] = {"verdict": "change", "evidence": "e", "card": "C1"}
+    def run(ev=good, tm=terms, drop=(), merged=lambda sha: sha == "abc"):
+        files = {OBJECTIVE: show(OBJECTIVE), prev: json.dumps({"terms": tm}), path: json.dumps(ev)}
+        t = (tree | set(files)) - set(drop)
+        return evaluation_gaps(8, t, lambda f: files[f], merged)
+    def edit(fn, base=good):
+        c = copy.deepcopy(base)
+        fn(c)
+        return c
+    only = lambda gaps, needle: len(gaps) == 1 and needle in gaps[0]
+    t0, t9 = spec["terms"][0], spec["terms"][-1]
+    return {
+        "a complete record passes": bool(objs) and run() == [],
+        "every object class has a file": all(match(tree, [g]) for g in spec["objects"].values()),
+        "a missing evaluation is refused": only(run(drop=[path]), path + " is not in the tree"),
+        "a missing previous record is refused": only(run(drop=[prev]), prev + " is not in the tree"),
+        "a missing term is refused": only(run(tm={k: v for k, v in terms.items() if k != t0}), "no term " + t0),
+        "a value with no enumerator is refused": only(run(tm=edit(lambda c: c[t0].pop("enumerator"), terms)), t0 + " carries a value"),
+        "a NO-READ with no reason is refused": only(run(tm=edit(lambda c: c[t9].update(no_read=" "), terms)), t9 + " is neither"),
+        "another round's record is refused": only(run(edit(lambda c: c.update(round=9))), "is not round 8's"),
+        "one seat as evaluator and reviewer is refused": only(run(edit(lambda c: c.update(reviewer="evaluator-r8"))), "two seats"),
+        "the orchestrator as evaluator is refused": only(run(edit(lambda c: c.update(evaluator="orchestrator"))), "two seats"),
+        "an object with no verdict is refused": only(run(edit(lambda c: c["objects"].pop(objs[-1]))), "verdict for " + objs[-1]),
+        "a verdict with no evidence is refused": only(run(edit(lambda c: c["objects"][objs[-1]].update(evidence=""))), objs[-1] + " carries no evidence"),
+        "a change with no card is refused": only(run(edit(lambda c: c["objects"][objs[0]].pop("card"))), objs[0] + " names no card"),
+        "an undecided card is refused": only(run(edit(lambda c: c["cards"]["C2"].pop("decision"))), "card C2 carries no owner decision"),
+        "an accepted card not merged is refused": only(run(merged=lambda sha: False), "card C1 is accepted and not merged"),
+    }
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -180,7 +279,11 @@ def main():
     ap.add_argument("--scopes", default=str(_repo / _locate_scopes("dev/audit/config/scopes.json", root=_repo)))
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--seat", help="print the cells this seat (D<k>-s<n>) owns and exit")
+    ap.add_argument("--round", type=int, help="also refuse this round's start without its start evaluation")
     a = ap.parse_args()
+    show = lambda f: subprocess.check_output(["git", "-C", a.repo, "show", f"{a.ref}:{f}"], text=True)
+    merged = lambda sha: subprocess.run(["git", "-C", a.repo, "merge-base", "--is-ancestor", str(sha), a.ref],
+                                        capture_output=True).returncode == 0
     tree = set(subprocess.check_output(["git", "-C", a.repo, "ls-tree", "-r", "--name-only", a.ref], text=True).split())
     loc = {}
     for f in tree:
@@ -279,22 +382,39 @@ def main():
         no_bp = copy.deepcopy(scopes)
         for k in ("D4", "D6"):
             no_bp[k]["universe"] = [g for g in no_bp[k]["universe"] if not g.startswith("blueprints/")]
-        def default_run(sc):
+        def default_run(sc, *more):
             with tempfile.NamedTemporaryFile("w", suffix=".json") as fh:
                 json.dump(sc, fh)
                 fh.flush()
                 return subprocess.run([sys.executable, str(Path(__file__).resolve()), "--repo", a.repo,
-                                       "--ref", a.ref, "--scopes", fh.name], capture_output=True, text=True)
+                                       "--ref", a.ref, "--scopes", fh.name, *more], capture_output=True, text=True)
         run_live, run_bp = default_run(scopes), default_run(no_bp)
         cited = " harness citations: "
         cov["the default invocation exits 0 on the live scopes"] = run_live.returncode == 0 and cited in run_live.stdout
         cov["and exits 1 without D4's and D6's blueprints globs"] = (run_bp.returncode == 1 and cited in run_bp.stdout
             and "in no universe and not excluded: blueprints/" in run_bp.stdout)
         print(f"   default invocation: live rc={run_live.returncode}, blueprints dropped rc={run_bp.returncode}")
+        # The start evaluation: the rules as a function, then the default
+        # invocation whole. Round 1 has no evaluation and never will, so
+        # --round 1 exits 1 naming the file while the run without --round
+        # (above) exits 0: the refusal is --round's and reaches the exit code.
+        ev = evaluation_self_test(tree, show)
+        cov.update({"evaluation: " + k: v for k, v in ev.items()})
+        run_r1 = default_run(scopes, "--round", "1")
+        cov["--round exits 1 with no evaluation in the tree"] = (run_r1.returncode == 1 and cited in run_r1.stdout
+            and "FAIL start evaluation" in run_r1.stdout and "round1/EVALUATION.json is not in the tree" in run_r1.stdout)
+        print(f"   evaluation arms: {sum(ev.values())}/{len(ev)} held; --round 1 rc={run_r1.returncode}")
         good = not any(res) and all(cov.values())
         print("SELF-TEST", "passed (every perturbed scope refused)" if good else
               f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]}; coverage arms {cov})")
         sys.exit(0 if good else 1)
-    sys.exit(0 if verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree)) else 1)
+    ok = verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree))
+    if a.round is not None:
+        gaps = evaluation_gaps(a.round, tree, show, merged)
+        print(f"{'ok' if not gaps else 'FAIL'} start evaluation round={a.round}: {len(gaps)} gap(s)")
+        for g in gaps:
+            print(f"   {g}")
+        ok = ok and not gaps
+    sys.exit(0 if ok else 1)
 
 main()

@@ -1,0 +1,12 @@
+{
+  "_rule": "The objective function's machine-read half: dev/governance/decisions/0017-objective-function.md defines every term and object class named here, and tools/audit/check_scopes.py --round reads this file at the baseline. terms are in decision order, layer 1 first; objects maps an object class to the glob whose files are its objects. Only the owner changes this file (CODEOWNERS).",
+  "terms": ["escapes", "injected", "product_green", "coverage", "lead_time", "closure_slip", "tokens_per_change"],
+  "layers": {"escapes": 1, "injected": 1, "product_green": 1, "coverage": 1, "lead_time": 2, "closure_slip": 2, "tokens_per_change": 3},
+  "objects": {
+    "dimension": "dev/governance/dimensions/D*.md",
+    "role": "dev/governance/roles/*.md",
+    "rule": "dev/governance/rules/*.md",
+    "instrument": "tools/audit/seat/instruments/*.md",
+    "gate": ".github/workflows/*.yml"
+  }
+}
