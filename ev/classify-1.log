@@ -1,0 +1,3 @@
+RED 5d2c0a30ec65f2d4d4f5976ee50937737e19c089 pending: none red: none introduced: 1
+INTRODUCED Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+rc=1
