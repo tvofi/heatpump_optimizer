@@ -1,6 +1,6 @@
 {
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_share GUARD_OFF 4f254e46",
+  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:availability GUARD_OFF 7944d7be",
   "killed_by": "tests/features.py",
-  "old": "    if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:",
+  "old": "    if not lost > 0:",
   "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 }
