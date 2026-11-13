@@ -4,7 +4,7 @@ The label becomes "Room temperature the mixing circuit holds" and its descriptio
 
 ## Head
 
-`3d3716aa344ae55374eb3a911872d9e6a17202a5`
+`d710600251b5e4be6d8a754c6ef4d97f61329877`
 
 ## Mutation proof
 
@@ -16,11 +16,15 @@ On the unmodified tree a target of 0, unset, 21, 23 (at the ceiling) and 23.5 un
 
 ## Figures
 
-none
+- Architecture score, `python3 tools/audit/archscore/score.py --diff e4ca2d940efd1e87912d80cb3ebddf8240ba0729 HEAD~1` (the previous head, 3d1e538d): `dS -0.0006 WORSENS (inadmissible: coord_footprint 2506->2507)`, the red check reproduced.
+- Same command with the final head, `... --diff e4ca2d940efd1e87912d80cb3ebddf8240ba0729` (tree): `Architecture score: dS +0.0000 NULL`, so coord_footprint is not above its merge-base value of 2506.
+- `tools/pr/prepr.sh` on the committed head d710600251b5e4be6d8a754c6ef4d97f61329877: rc=0, no refusal.
 
 ## Red checks
 
-- `mutation`: red by construction on the 2 predicted sites under `## Unpinned sites` (CI's mutation predictor, not a mutant run by this seat). The cheaper detector is the one that predicted it, prepr.sh step 7d, at no standing cost; I did not run the mutants. By reading, the features check at target 30 over ceiling 23 kills the return deletion and the null control at a target equal to the ceiling (23) kills the bound change, and `mutation-autofix` pins killed sites after the push.
+- `tests / mutation`: red by construction on the 2 predicted sites under `- `arch-score / arch-score`: the previous head's `_audit_comfort_band` called `mixing_valve.audit_target` with `getattr(self, "_ctx", self)._thermal_params` inline, a call as an argument, which footprint.py does not read as delegation, so it counted one coordinator statement. The head now binds `ctx = getattr(self, "_ctx", self)` once (the form `_audit_lower_floor` already uses, which the scorer reads as an alias) and passes `ctx._thermal_params`, so the call is plain delegation. The same binding also serves the existing `comfort_band.violations` read. Payment taken (option 1): no statement moved or deleted and no behaviour changed; the label text and the notice are untouched. The cheaper detector is the arch-score step at the handoff (`score.py --diff`, seconds, no standing cost); it was not run before the first handoff, and the fixer contract's step 17 names it, so this was state (b), not followed. Run at this handoff.
+
+## Unpinned sites` (CI's mutation predictor, not a mutant run by this seat). The cheaper detector is the one that predicted it, prepr.sh step 7d, at no standing cost; I did not run the mutants. By reading, the features check at target 30 over ceiling 23 kills the return deletion and the null control at a target equal to the ceiling (23) kills the bound change, and `mutation-autofix` pins killed sites after the push.
 
 ## Unpinned sites
 
