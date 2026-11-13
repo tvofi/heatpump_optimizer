@@ -781,10 +781,13 @@ def shrink_drops(base: dict | None, head: dict | None, deleted: set[str], remain
     return out
 
 
-def table_base(root: Path, env: dict | None = None) -> str | None:
-    """The revision the guard compares against: SELFTEST_BASE; else the merge
-    base with the pull request's base branch (GITHUB_BASE_REF, whose checkout
-    is a merge commit); else the first parent (a push to main). None without one."""
+def table_base(root: Path, env: dict | None = None) -> tuple[str | None, str]:
+    """(revision, problem): the revision the guard compares against --
+    SELFTEST_BASE; else the merge base with the pull request's base branch
+    (GITHUB_BASE_REF, whose checkout is a merge commit); else the first parent
+    (a push to main); None without one. A named base that does not resolve is
+    the problem, never a pass: a shallow or base-less checkout would otherwise
+    leave the guard unevaluated and `static` green."""
     env = os.environ if env is None else env
     cands = []
     if env.get("SELFTEST_BASE"):
@@ -794,10 +797,11 @@ def table_base(root: Path, env: dict | None = None) -> str | None:
     for c in cands:
         r = subprocess.run(["git", "merge-base", c, "HEAD"], cwd=root, capture_output=True, text=True)
         if r.returncode == 0 and r.stdout.strip():
-            return r.stdout.strip()
-        return None             # a named base that cannot be resolved is not guessed around
+            return r.stdout.strip(), ""
+        return None, (f"UNRESOLVED base {c}: no merge base with HEAD, so the table's shrink cannot be "
+                      f"judged -- fetch it (a shallow checkout has none); it is not guessed around")
     r = subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD^1"], cwd=root, capture_output=True, text=True)
-    return r.stdout.strip() if r.returncode == 0 else None
+    return (r.stdout.strip() if r.returncode == 0 else None), ""
 
 
 def shrink_gaps(root: Path, base: str | None) -> list[str]:
@@ -935,7 +939,8 @@ def static_check(root: Path = ROOT) -> int:
         if why:
             problems.append(f"STALE {TABLE}: {why} -- re-record the changed step(s) with "
                             f"`python3 {SELF} record --step ID`")
-    problems += shrink_gaps(root, table_base(root))
+    base, unresolved = table_base(root)
+    problems += [unresolved] if unresolved else shrink_gaps(root, base)
     for p in problems:
         print(f"  {p}")
     print(f"selftest_scope static: {len(gated_ids(steps))} gated step(s), {len(problems)} problem(s)")
@@ -1644,6 +1649,10 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
     dir_b, dir_h = {"steps": {"a": ent([], [], ["t"])}}, {"steps": {"a": ent()}}
     ck("shrink_drops: a directory whose every file the diff deleted is exempt, one with a survivor is not",
        shrink_drops(dir_b, dir_h, {"t/x"}, set()) == [] and len(shrink_drops(dir_b, dir_h, {"t/x"}, {"t/y"})) == 1)
+    probe_b, probe_dir = {"steps": {"a": ent([], ["t/q"])}}, {"steps": {"a": ent([], [], ["t"])}}
+    ck("shrink_drops: a probe whose directory the head lists is kept, the same head without it is not",
+       shrink_drops(probe_b, probe_dir, set(), {"t/x"}) == []
+       and len(shrink_drops(probe_b, {"steps": {"a": ent([], [], ["u"])}}, set(), {"t/x"})) == 1)
     ck("shrink_drops: a probe of a path that exists nowhere is still a drop",
        len(shrink_drops(held, {"steps": {"a": ent(["f1", "f2"], [], ["d1"], ["rev-list"], True, True)}},
                         set(), set())) == 1)
@@ -1694,9 +1703,49 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("shrink_gaps: with no base, or a diff that leaves the table alone, there is nothing to judge",
            shrink_gaps(gr, None) == [] and shrink_gaps(gr, gitc("rev-parse", "HEAD")) == [])
         ck("table_base: the first parent without a named base, the merge base with one",
-           table_base(gr, {}) == gitc("rev-parse", "HEAD^1")
-           and table_base(gr, {"SELFTEST_BASE": b0}) == b0
-           and table_base(gr, {"GITHUB_BASE_REF": "nonesuch"}) is None)
+           table_base(gr, {}) == (gitc("rev-parse", "HEAD^1"), "")
+           and table_base(gr, {"SELFTEST_BASE": b0}) == (b0, ""))
+        ck("table_base: a named base that does not resolve is a problem, not a base",
+           all(table_base(gr, e)[0] is None and table_base(gr, e)[1].startswith(f"UNRESOLVED base {n}")
+               for e, n in (({"GITHUB_BASE_REF": "nonesuch"}, "origin/nonesuch"),
+                            ({"SELFTEST_BASE": "nonesuch"}, "nonesuch"))))
+
+        def static_at(base: str) -> tuple[int, str]:
+            out = io.StringIO()
+            os.environ["SELFTEST_BASE"] = base
+            try:
+                with contextlib.redirect_stdout(out):
+                    rc = main(["static"], gr)
+            finally:
+                del os.environ["SELFTEST_BASE"]
+            return rc, out.getvalue()
+        rc_ok, out_ok = static_at(gitc("rev-parse", "HEAD"))
+        rc_un, out_un = static_at("nonesuch")
+        n_ok, n_un = (o.count("\n  ") + o.startswith("  ") for o in (out_ok, out_un))
+        ck(f"static: a base that does not resolve adds one problem line ({n_ok} -> {n_un}, rc {rc_un}); "
+           f"one that resolves adds none (null control: the fixture's own lines only)",
+           "UNRESOLVED" not in out_ok and "SHRUNK" not in out_ok and f"{n_ok} problem(s)" in out_ok
+           and rc_un == 1 and "UNRESOLVED base nonesuch" in out_un and n_un == n_ok + 1
+           and f"{n_un} problem(s)" in out_un)
+
+        # The prune CLI, the one sanctioned way a read leaves the table: it
+        # writes the table, and refuses a drop the entry does not hold with the
+        # file left byte-identical (the valid drop beside it is not applied).
+        (gr / TABLE).write_text(json.dumps(held))
+        before = (gr / TABLE).read_bytes()
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc_unk = main(["prune", "--step", "a", "--drop", "files:f2", "--drop", "files:nope"], gr)
+            rc_nostep = main(["prune", "--step", "zz", "--drop", "files:f1"], gr)
+        ck("prune: an unknown drop or step is refused (rc 1), naming it, the table byte-identical",
+           rc_unk == 1 and rc_nostep == 1 and "files:nope" in err.getvalue()
+           and "no step zz" in err.getvalue() and (gr / TABLE).read_bytes() == before)
+        rc_pr = main(["prune", "--step", "a", "--drop", "files:f2", "--drop", "objects:"], gr)
+        after = load_table(gr / TABLE)
+        ck("prune: a held drop writes the table, less exactly that read",
+           rc_pr == 0 and after is not None and after["steps"]["a"]["files"] == ["f1"]
+           and not after["steps"]["a"]["objects"] and after["steps"]["a"]["index"]
+           and after["steps"]["a"]["dirs"] == ["d1"] and after["steps"]["b"]["files"] == ["g1"])
 
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
