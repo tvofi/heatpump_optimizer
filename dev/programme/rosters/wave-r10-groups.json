@@ -26812,6 +26812,51 @@
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run"
    }
+  },
+  {
+   "group": "R11-PRE-ACK-COMPLETION",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
+   "files": [
+    "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/sweep_gantt.py",
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13 on decision card P14 (yes): an acknowledgement of an owed item names the event that closes it and is renewed twice at most before it escalates; a gantt accept carries an expiry; a proposal candidate carries an id. Includes proposal candidate PC-1113-02: the tick prints a line for a group whose pull request merged and that has pending carries and no seat (thirteen such groups stood idle on 2026-11-13, some for over two days). Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 8a. The owner ruled the same day that this is built at the beginning of round 11, before the finders run.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-pre-ack-completion",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
+    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R11-INTAKE-R10-RESIDUE): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run"
+   }
   }
  ]
 }
