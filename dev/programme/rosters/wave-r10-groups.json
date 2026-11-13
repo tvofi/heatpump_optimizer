@@ -25789,6 +25789,50 @@
     "next_step": null,
     "note": "orchestrator s14 intake 2026-11-13: chain block on PR 3481; diagnosis at seat/briefs-3481"
    }
+  },
+  {
+   "group": "R10-HOTFIX-UPDATEPR-FIGURE-REFRESH",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/update_pr.sh",
+    "tools/audit/seat/pr_args.sh",
+    "tools/audit/seat/instruments/update_pr.sh.md",
+    "tools/ci/selftest_closures.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, blocks chain pull requests (triage seat triage-1113, proposal T4). Defect: tools/audit/seat/update_pr.sh never re-renders a body's generated figure blocks, so the body it hands on names a head the pull request no longer has and the pre-PR body check refuses with 'figure-block scope-line names another head'. Two paths carry it. (1) The moved-head path: the merge of the handoff code sha, the merge of origin/main and the own-row commit each move the head, and the body is pushed as written. (2) The body-only path (HPO_UPDATE_BODY_ONLY, run by the handoff arm of tools/audit/seat/cloud_relay.sh): the head is unmoved, but a handoff body's block names the authored code head while the pull request head is a merge of main, so body_patch.sh refuses on every relay pass. Measured instances on 2026-11-12 and 2026-11-13: pull request 3510 (critical path) and pull request 3511 on the moved-head path, pull request 3511 again on the relay's body-only path on two passes, and pull request 3505's body patched by hand. The analogue is already in the tree: open_pr.sh's op_figures runs tools/pr/figure_block.py refresh on the body at each head it pushes, and a failed refresh refuses with nothing pushed. Fix: in update_pr.sh, when the body carries a figure block, run the same refresh at the head the run will push or patch, on both paths (before the push on the moved-head path, before body_patch.sh on the body-only path); a failed refresh refuses through pr_refuse and pushes or patches nothing; a body with no figure block is untouched. Reuse the refresh tool; do not add a second renderer. A local patch for path (1) only, with its macOS self-test logs, is at hpo-seats/r10s6/updpr-figfix (update_pr-figure-refresh.diff) under the orchestrator's home directory: read it, do not copy it blind, and extend it to path (2). Self-test, in pr_args.sh's self-test where update_pr.sh's arms live: a moved head with a figure block pushes a body whose block names the new head; a body-only run with a block naming another head patches a body naming the live head; a failing refresh pushes and patches nothing; a body without a block is byte-identical. Each new predicate line carries a mut tag its arm kills. Add one line to tools/audit/seat/instruments/update_pr.sh.md. The update-pr step of the instrument self-tests job will read the refresh tool, so record that step's entry in tools/ci/selftest_closures.json on Linux at current origin/main by union with the committed table (never replace), and show the scope check's summary line at zero refusals for that step. Null control: an update of a pull request whose body has no figure block runs exactly as today (same pushed body bytes). Before and after the body must show: the refusal reproduced at the merge base on a fixture body, and gone at the head.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud fixer (sonnet)",
+    "note": "intake: block on chain pull requests (3510 critical path, 3511), triage-1113 T4; overlap admitted by seam (R10-SEAT-SCRIPT-OUTPUT, R10-NUDGE-RETIRE also list update_pr.sh; R10-HOTFIX-SELFTEST-SCOPE-RERECORD and R10-SELFTEST-SCOPE-UNION-GUARD edit the scope table: record the update-pr entry by union at the merge base the fixer holds); cutoff: no pull request in review by 2026-11-14T12:00Z moves it to round 11 unbuilt; overlap admitted (R10-NUDGE-RETIRE, R10-SELFTEST-SCOPE-UNION-GUARD): triage seat/triage-1113 T4 ACCEPT-R10: six refusals in one night from a body whose figure block names another head after update_pr; cutoff no PR in review by 2026-11-14T12:00Z -> round 11"
+   }
   }
  ]
 }
