@@ -80,16 +80,16 @@ from .boost import CHANNEL_DHW, CHANNEL_SPACE, BoostState
 from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
 from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
-from .pump_arbiter import ArbiterInputs, step_duty, switch_supply
+from .pump_arbiter import ArbiterInputs, step_duty, supply_switch, switch_supply
+from .supply_hold import MIN_PAUSE, MIN_RUN, switch_age, tank_reason
 
 _LOGGER = logging.getLogger(__name__)
 
 #: Kelvin above the threshold's base before the pump is cut (decision 0.5 K).
 MARGIN_K = 0.5
-#: The shortest run a cut may end; the plan's own step is 15 minutes.
-MIN_ON = timedelta(minutes=10)
-#: The shortest stop a cut may cause before the next cycle can restart it.
-MIN_OFF = timedelta(minutes=10)
+#: The shortest run a cut may end, and the shortest stop a cut may cause
+#: before the next cycle can restart it: the supply gate's own minimums.
+MIN_ON, MIN_OFF = MIN_RUN, MIN_PAUSE
 
 
 #: The ``_learning_frozen`` reason for an interval the cut-off ended early.
@@ -238,12 +238,7 @@ def _plant_exempt(inp: ArbiterInputs) -> str | None:
     # Exempt only if it exists AND reads on, not either.
     if flag is not None and parse_bool(getattr(flag, "state", None)):
         return "defrost"
-    params, state = inp.params, inp.state
-    if getattr(params, "dhw_enabled", False) and float(state.dhw_temperature) < float(
-        params.dhw_min_temp
-    ):
-        return "tank_cold"
-    return None
+    return tank_reason(inp)
 
 
 def threshold(inp: ArbiterInputs, opt_config: Any, now: datetime) -> float:
@@ -269,15 +264,14 @@ def _cycle_guard(inp: ArbiterInputs, held: CutoffState, now: datetime) -> str | 
     """The short-cycle guards: once per cycle, a minimum run, a minimum stop."""
     if held.cut_this_cycle:
         return "already_cut"
-    switch = inp.hass.states.get(EntryConfig.from_mapping(inp.config).heat_pump_switch_entity)
+    switch = supply_switch(inp)
     if getattr(switch, "state", None) != "on":
         return "switch_not_on"
-    since = getattr(switch, "last_changed", None)
-    utc = dt_util.as_utc(now)
     # A missing stamp, or one ahead of the clock, is an unknown run (#775).
-    if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(since) < MIN_ON:
+    run = switch_age(switch, now)
+    if run is None or run < MIN_ON:
         return "min_on"
-    if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+    if held.cycle_end is None or held.cycle_end - dt_util.as_utc(now) < MIN_OFF:
         return "min_off"
     return None
 
