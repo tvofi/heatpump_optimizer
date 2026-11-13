@@ -25670,7 +25670,9 @@
    "findings": [],
    "architect_note": "",
    "brief": "Round 11, deferred. Holding group for round-10 residuals that no live round-10 group owns and that do not move the round-10 closure (orchestrator intake rule, 2026-11-12: a new round-10 group only for a production defect, a red required check on main, a block on a chain pull request or an owner instruction). Not a work unit as it stands: the round-11 architect (architect-planner.md) triages each carry below and re-homes it to the group that owns its seam, or refuses it with a reason; this group closes when it holds no carry. Each carry states its origin group, its measurement and what a fix would owe. Re-measure every carried figure at your own merge base.",
-   "carry": [],
+   "carry": [
+    "From r10-ci-priority-pause, body item d76fe7a3: Carry 9 (item 7bd3e57f), name the process sending `@tvofi` cancels at live heads, then land P267's bounded pause or refuse at that seat's cancel path: the pause is built here (`ci_pause.py`, Carry 1) but the sender naming and the landing check against R10-TRAIN-MERGE-LOOP-2 were not established in this part; re-home it with the round-11 residue. Carry: R11-INTAKE-R10-RESIDUE (items d76fe7a3)"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": null,
