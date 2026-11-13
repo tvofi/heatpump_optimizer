@@ -1,0 +1,6 @@
+detached worktree at 17afc3f532cbc00e84f8c22957cb9a12d362b160, clean (git status --short: 0 lines)
+before: HEAD 17afc3f532cbc00e84f8c22957cb9a12d362b160, tools/pr/outside.py present
+bash tools/audit/seat/tick_loop.sh --self-test -> tick_loop self-test: 30 checks, 0 failed, rc 0
+after:  HEAD 5288db5dadbffbaf83cb4ed258a669d46c3224fe (= origin/main then), tools/pr/outside.py absent
+python3 -I tools/pr/outside.py --self-test -> python3: can't open file '.../wt2/tools/pr/outside.py': [Errno 2] No such file or directory
+CI job 131862706312 (run 43418196748), log lines: 9932 'HEAD is now at 7f652687e4 Merge 17afc3f532cbc00e84f8c22957cb9a12d362b160 into 0cc5647545d27a7d49e6eb2d5c283238322177c0'; 17768 (11:57:20Z) 'tick_loop self-test: 30 checks, 0 failed'; 19249 (11:59:30Z) python3: can't open file '/home/runner/work/heatpump_optimizer/heatpump_optimizer/tools/pr/outside.py': [Errno 2] No such file or directory; 19250 '##[error]Process completed with exit code 2.' (the job's only ##[error] line)

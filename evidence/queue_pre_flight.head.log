@@ -68,4 +68,3 @@ merge_train: gh api repos/o/r/issues/7/comments?per_page=100&page=1 --jq .[]: re
   ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
   ok   the mandate reader the budget arm reads is in the tree
 queue_pre_flight self-test: 53 checks, 0 failed
-rc=0

@@ -349,4 +349,3 @@ ok   REFUSE: the same head when it is only refs/pull/7/head (a fork's)
 ok   saying why
 ok   and nothing was minted or posted
 app_approve self-test: 350 checks, 0 failed
-rc=0
