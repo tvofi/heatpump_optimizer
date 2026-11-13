@@ -40,7 +40,7 @@ pr_code_sha_shape "$2"
 export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)
 T=$1; C=$2; TITLE=$3; G=$4; shift 4; ISS="$*"
-D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
+pr_state_root; D=$PR_STATE/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
 # A topic's opener worktree $WT is shared by every opener of the topic (a seat's hand run, open_driver.py's), so the
 # branch it holds names the lock of the run holding it. A second opener adopts that branch and meets the first's lock
 # (BUSY) before it writes the shared body.md, not a -pr lock of its own. A detached worktree holds no branch: a
