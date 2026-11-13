@@ -1874,7 +1874,6 @@
     "dev/governance/roles/root-cause.md",
     "dev/governance/roles/verifier.md",
     "dev/programme/carries/carry-1645.json",
-    "dev/programme/carries/carry-1774.json",
     "dev/programme/carries/carry-201.json",
     "tests/layout.json",
     "tools/**"
@@ -3620,7 +3619,6 @@
     "dev/programme/.gitattributes",
     "dev/programme/carries/.gitattributes",
     "dev/programme/carries/carry-1645.json",
-    "dev/programme/carries/carry-1774.json",
     "dev/programme/carries/carry-201.json",
     "dev/programme/delivery",
     "dev/programme/register/.gitattributes",
