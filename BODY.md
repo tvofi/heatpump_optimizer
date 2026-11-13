@@ -16,7 +16,9 @@ Carry 6: built; it overrides Carry 4 and the pause's cancel: verdicted, spooled 
 
 ## Head
 
-ec3c6b8b29f1a5207c3315c6ee7d6b1f07f99335 (code, with origin/main 2bfa2f5fb7990303fe90465d1f1ae7888897d89a merged in), first built at 232af53a9fb1c583d324d4288a11697685f9763e and measured then against origin/main 61afd4f2db10341ab9b86583944402b206eb4c78 at 2026-11-11T23:26Z. The self-tests in Figures ran on the tree at 4e9eb7424e; the head adds one commit touching only tests/closure.py and tests/closures.json: tests/closure.py INERT_EXCEPT gains the lines `tools/audit/seat/ci_priority.py` and `tools/audit/seat/ci_pause.py` (`dev/audit/config/ci_priority.json` was already named), and tests/closures.json gains those three entries under tests/entities.py, recorded by `derive_closures.sh --record-only` then `closure.py merge --partial --allow-failures` (the only entities.py failures were the cloud HA-stub a*/hb checks and the unclassified-file check this commit clears).
+fbdfd5ddf25f8bd98e2a2dfc17b08bc5969ebad1 (code: handoff head ec3c6b8b29f1a5207c3315c6ee7d6b1f07f99335 with origin/main e4ca2d940efd1e87912d80cb3ebddf8240ba0729 merged in), first built at 232af53a9fb1c583d324d4288a11697685f9763e. The earlier head's only change after the build was tests/closure.py INERT_EXCEPT gaining `tools/audit/seat/ci_priority.py` and `tools/audit/seat/ci_pause.py` and tests/closures.json gaining their entries under tests/entities.py.
+
+Merge resolution: the one content conflict was `tools/audit/seat/roster_edit.py`, the `op` choices of `build_parser`: this branch added `set-field`, main added `set-price`. Resolved as the union (`"set-source", "set-field", "set-price"`); the merged file reads back both ops' functions (`op_set_field` with its dispatch and `--field` checks, `op_set_price` with `--price-cite`), both self-test blocks, and `STRUCTURAL_OPS` as on this branch (main's does not lane-guard `set-price`). `tests/closures.json` merged through the ledger merge driver with no conflict.
 
 ## Mutation proof
 
@@ -26,6 +28,8 @@ Each mutant applied to production text, `--self-test` run, text restored (driver
 - ` or pr in protected` -> ` or False` (drop the verdict/train check): fails "priority: a queued priority run cancels ... not ... verdicted ones", "priority carry 6: a queued run of a verdicted/spooled/train PR is never selected" and the cancel/re-run check.
 - `ci_priority.may_pause(...)` guard -> `if False:` in `ci_pause.pick` (drop the CP guard): fails "the critical-path tail is never paused".
 - `p["n"] in held or` removed (drop the train-head/train-held guard): fails "carry 6: a verdicted PR ... train-held one" and "the train head is never a victim".
+
+Merge re-check: with `"set-field",` removed from the choices the roster_edit self-test fails ("set-field class is accepted", "set-field source with a word outside SOURCES is refused"); with `"set-price"` broken it fails ("set-price stores the citation stripped ..."); restored, `roster_edit.py --self-test` prints 310 checks, 0 failed.
 
 ## Null control
 
@@ -40,6 +44,8 @@ The unmodified tree (origin/main) has no tier rule, no pause, no zombie memory: 
 - Structure: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` (the new code lives in new modules, not in `coordinator.py`; `merge_train.py` gained one call per hook and four small methods).
 - Enumeration for the class "something that re-runs or dispatches CI for a PR head", by grep of `rerun|dispatches` over `tools/`: `merge_train.Train.unstale` (train/`merge_pr.sh` PRs only: protected by carry 6 (i)), `Train.infra_rerun` (main), `tools/ci/sweep.py` and `gate.py` (run inside Actions, no queue view), `ci_probe.py` (manual). None is held by this PR; the hold in carry 6 (ii) is the sweep's own re-run, which fires only when no priority run is queued.
 
+Figures re-run on the merged head: ci_pause 14, ci_priority 12, merge_train 670, orchestrator_tick 317, roster_lib 92, roster_edit 310, cancel_superseded 58 checks, each 0 failed; beat_jobs_selftest rc 0. `tools/pr/prepr.sh` at the merged head: `PRE-PR: fbdfd5ddf25f... rc=0`, merged structure ratchet passed, CI predict no red; closures skipped (CI re-records). `carry_audit.py landed` on this body: 0 missing.
+
 ## Red checks
 
 `none` owed in `merge_train.py owed-reds`' set. The merge-repair: origin/main (#3471) conflicted in `merge_train.py`'s self-test; both sides' blocks are kept (the pause feed check and the one-job pulse checks), and the merged file reads back both `_ci_pause` and `one_job_pulse` in production. `dev/audit/config/ci_priority.json` was never in the built commit (the `config/` ignore rule); it is now tracked (`git add -f`) with the values the design docs and the self-tests fix, and `merge_train.py`, `ci_pause.py` and `ci_priority.py` self-tests print `0 failed`. prepr's last run still predicts reds outside the owed set, in CI-autofix's class: `tests / fast` UNCLASSIFIED and `tests / closures` UNDER-SCOPED for that file and `ci_priority.py` (read by `orchestrator_tick.py`'s self-test through `tests/entities.py`). The file is on `INERT_EXCEPT`; the closure recording cannot finish here (no homeassistant, `tests/entities.py` a3 checks fail), so closures-autofix records it in CI.
@@ -50,6 +56,9 @@ The unmodified tree (origin/main) has no tier rule, no pause, no zombie memory: 
 - Backfill of `source`/`hotfix`/`savings_source` on the live roster groups (carry 3 item 4: R10-UX-HEALTH, R10-ROUND-PLAYBOOK, the `Owner-reported` briefs) is a roster write this seat may not make; `append-group` refusing a group without `source` takes effect for new groups only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL
 - Enabling `priority_cancel` needs the after measure above. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL
 - `roster_lib.is_hotfix` still treats `kind == "bug"` as a hotfix beside `hotfix: true` and the name rule (the existing dispatch-rank checks pin it); carry 3 defines it as the flag or the name only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL
+- Carry 9 (item 7bd3e57f), name the process sending `@tvofi` cancels at live heads, then land P267's bounded pause or refuse at that seat's cancel path: the pause is built here (`ci_pause.py`, Carry 1) but the sender naming and the landing check against R10-TRAIN-MERGE-LOOP-2 were not established in this part; re-home it with the round-11 residue. Carry: R11-INTAKE-R10-RESIDUE
+- Carry 10 (item dfa8b375), three live checks on a test fork (update-branch identity, app_approve end to end, class-O commit_id): this seat has no `gh`, no App key and no fork pull request, so it cannot run them. Carry: R11-INTAKE-R10-RESIDUE
+- Carry 11 (item 6e06de7f), three residuals in the gate-conclusion readers of `merge_train.py` and `orchestrator_tick.py` (a read bypassing `classify`, an empty `Busy` built from made-up runs, refusal only at run time): new code outside this part's brief. Carry: R11-INTAKE-R10-RESIDUE
 
 ## Friction
 
