@@ -664,7 +664,6 @@ class SetpointGrid(NamedTuple):
         """
         low, high = self.low_c, self.high_c
         value = max(value, floor, low if low is not None else floor)
-        value = min(value, high) if high is not None else value
         lows = [v for v in (lo, low) if v is not None]
         highs = [high] if high is not None else []
         # The entity's range outranks a caller's ceiling: a write under its
