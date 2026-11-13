@@ -1,0 +1,349 @@
+## merge-base
+3038b9deaf915a4b3defedd52307f5c57e574a50
+ad95665ea3162167a93b92879c618db5c3a18c93
+## parents of head and 21b69d9
+a98d895577770cd84ad8baa3114d6fbfb895a455 21b69d9a97d8b4b2072546d8adb4b67865f8c11d 3038b9deaf915a4b3defedd52307f5c57e574a50
+21b69d9a97d8b4b2072546d8adb4b67865f8c11d 17afc3f532cbc00e84f8c22957cb9a12d362b160 ce3542125d4655ecc5f86e5214c77c26d5525d89
+## log R..HO
+ce3542125d 17afc3f532 governance.yml: run the outside-contract self-test before tick-loop
+## names R..HO
+ .github/workflows/governance.yml | 24 ++++++++++++------------
+ 1 file changed, 12 insertions(+), 12 deletions(-)
+## diff R..HO
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index ee201f395c..392dc00ffe 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -1219,6 +1219,18 @@ jobs:
+           python3 -I tools/audit/seat/state_docs.py --self-test | tee "$RUNNER_TEMP/state-docs-self-test.txt"
+           grep -Eq '^state_docs self-test: all checks passed$' "$RUNNER_TEMP/state-docs-self-test.txt"
+ 
++      # Decision 0017: admission, the three path classes, class O in both forms
++      # against every writer under the owner's account, the approve subcommand,
++      # and the two workflow pins (no contributor-named value in a run: block;
++      # the fork conjunct on tests.yml's laneskip step), over a faked gh.
++      - name: Show the outside-contributor contract (tools/pr/outside.py) refusing its own fixtures
++        id: outside-contract
++        if: ${{ !cancelled() && steps.scope.outputs.outside-contract == 'true' }}
++        run: |
++          set -o pipefail
++          python3 -I tools/pr/outside.py --self-test | tee "$RUNNER_TEMP/outside-self-test.txt"
++          grep -Eq '^outside self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/outside-self-test.txt"
++
+       - name: Show the tick loop refusing its own fixtures
+         id: tick-loop
+         if: ${{ !cancelled() && steps.scope.outputs.tick-loop == 'true' }}
+@@ -1404,18 +1416,6 @@ jobs:
+           python3 -I tools/audit/seat/survivor_list.py --self-test | tee "$RUNNER_TEMP/survivor-list-self-test.txt"
+           grep -Eq '^survivor_list self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/survivor-list-self-test.txt"
+ 
+-      # Decision 0017: admission, the three path classes, class O in both forms
+-      # against every writer under the owner's account, the approve subcommand,
+-      # and the two workflow pins (no contributor-named value in a run: block;
+-      # the fork conjunct on tests.yml's laneskip step), over a faked gh.
+-      - name: Show the outside-contributor contract (tools/pr/outside.py) refusing its own fixtures
+-        id: outside-contract
+-        if: ${{ !cancelled() && steps.scope.outputs.outside-contract == 'true' }}
+-        run: |
+-          set -o pipefail
+-          python3 -I tools/pr/outside.py --self-test | tee "$RUNNER_TEMP/outside-self-test.txt"
+-          grep -Eq '^outside self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/outside-self-test.txt"
+-
+       - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
+         id: ci-probe-instrument
+         if: ${{ !cancelled() && steps.scope.outputs.ci-probe-instrument == 'true' }}
+## remerge 21b69d9
+21b69d9a97d8b4b2072546d8adb4b67865f8c11d
+## remerge head
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (232 entries)
+  closures.tests/harness_headers.py: merged as a set (411 entries)
+  re-run the gate that owns this file before pushing
+a98d895577770cd84ad8baa3114d6fbfb895a455
+## step order at head
+65:      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+68:          # cited tag; a shallow checkout answers "no" for every one of them.
+79:      # themselves taken from that pull request: `actions/checkout` with no
+132:      - name: Restore the check source from the base commit
+141:          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+162:          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+166:      - name: Refuse a Cursor rule that is not the generated form of its source
+177:      - name: Refuse a check script no CODEOWNERS pattern owns
+187:      - name: Lint the policy corpus
+196:      - name: Refuse a prompt fragment that has drifted from its canonical text
+199:      - name: Report what the linter found
+211:      - name: Refuse a window of merges past the machinery caps
+220:      - name: Refuse a hook that is missing, unwired, or fails its own self-test
+242:      - name: Refuse a governance check input field no check reads
+266:  # answer: the job is outside `merge_train.py owed-reds` (tvofi, 2026-11-07).
+305:      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+316:      - name: Choose the self-tests this diff reaches
+338:      # `settle` rewrites the index after the checkout's last second, so no
+339:      # traced step's first `git status` re-reads the files the checkout wrote
+341:      - name: Install strace for the read-set measurement
+368:      - name: Start the five slowest self-tests beside the rest of the job
+435:      - name: Refuse a corpus or record-mode check that survives its own deletion
+440:      - name: Show the fragment check refusing its own perturbation
+451:      - name: Show the lane-skip decision refusing every unsafe skip
+460:      - name: Show the probe bridge deriving the reference and refusing without a probed run
+466:      # page carrying a host path or a tool's attribution) and the outside
+469:      - name: Show the plan page stager refusing a page it may not publish
+474:      - name: Show the outside intake owing, answering once and refusing its fixtures
+475:        id: outside-intake
+476:        if: steps.scope.outputs.outside-intake == 'true'
+477:        run: python3 -I tools/audit/seat/outside_intake.py --self-test
+482:      - name: Show the bottleneck alert tripping each rule once and silent on its null control
+489:      - name: Show the scorecard holding each of its ten lines to its null control
+497:      - name: Show field coverage refusing each shape it exists to refuse
+505:      - name: Show the product page's day generator holding its planner invariants
+517:      - name: Show the comment poster refusing every body it cannot vouch for
+538:      - name: Show the record-predicate sweep refusing its own perturbations
+543:      - name: Show the push script's decisions refusing their own fixtures
+555:      - name: Show the App push refusing its own fixtures
+562:      - name: Show the App approval refusing its own fixtures
+570:      - name: Show the merge-main bot refusing its own fixtures
+579:      - name: Show the superseded-run canceller refusing its own fixtures
+584:      - name: Show the figure-block renderer refusing its own fixtures
+595:      - name: Show the Dependabot merge decision refusing its own fixtures
+603:      - name: Show the dependency-graph census refusing its own fixtures
+610:      - name: Show the App verdict poster refusing its own fixtures
+618:      - name: Show the verdict bus refusing its own fixtures
+629:      - name: Show the budget-raise gate refusing its own fixtures
+641:      - name: Show the machinery ratchet refusing its own fixtures
+653:      - name: Show the CodeQL leg scope refusing every unsafe skip
+665:      - name: Show the merge fast path refusing its own fixtures
+680:      - name: Show the P3 move ledger and holdout check refusing their own fixtures
+696:      - name: Refuse a temp or machine path in a tracked script or decision
+706:      - name: Refuse a bare array expansion in a set -u script
+720:      - name: Refuse a push that names the host, and an unregistered pusher
+732:      - name: Render the sweep template, and the policy re-read predicate
+748:      - name: Show the orchestrator tick deciding its own fixtures
+770:      - name: Refuse a self-testing seat instrument that no step runs
+779:      - name: Show the review-strength enumerator deciding its own fixtures
+790:      - name: Show the critical-path and flow instruments deciding their own fixtures
+804:      - name: Show the body PATCH refusing its own fixtures
+816:      # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
+822:      # fixtures or over this checkout, and a refusal names the program.
+823:      - name: Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+824:        id: self-tests-outside-seat
+825:        if: ${{ !cancelled() && steps.scope.outputs.self-tests-outside-seat == 'true' }}
+853:      - name: Show the CI watcher refusing its own fixtures
+861:      - name: Show the cloud dispatcher refusing its own fixtures
+869:      - name: Show the cloud relay refusing its own fixtures
+880:      - name: Show the obligations ledger refusing its own fixtures
+890:      - name: Show the post-merge record line refusing its own fixtures
+898:      - name: Show the post-merge bookkeeping refusing its own fixtures
+906:      - name: Show the roster queue runner refusing its own fixtures
+914:      - name: Show the owed-line reader refusing a stale board and a lapsed acknowledgement
+922:      - name: Show the topic grammar refusing a bare number and a prefix as family members
+930:      - name: Show the detached launcher refusing its own fixtures
+938:      - name: Show the delivery-row writer refusing its own fixtures
+946:      - name: Show the failure-log reader refusing its own fixtures
+954:      - name: Show the features block refusing its own fixtures
+962:      - name: Show the mutant driver killing, sparing and restoring its own fixtures
+970:      - name: Show the handoff push and its row writer refusing their own fixtures
+979:      - name: Show the handover prompt refusing its own fixtures
+987:      - name: Show the PR merger refusing its own fixtures
+995:      - name: Show the moved-path reader refusing its own fixtures
+1003:      - name: Show the plan table refusing its own fixtures
+1011:      - name: Show the gantt drift reader refusing its own fixtures
+1019:      - name: Show the plan page refusing its own fixtures
+1027:      - name: Show the dispatch cap refusing its own fixtures
+1035:      - name: Show the open driver refusing its own fixtures
+1043:      - name: Show the proof watcher refusing its own fixtures
+1051:      - name: Show the ref pruner refusing its own fixtures
+1059:      - name: Show the round closeout refusing its own fixtures
+1067:      - name: Show the programme pulse refusing its own fixtures
+1075:      - name: Show the record-row generator refusing its own fixtures
+1083:      - name: Show the workflow read runner refusing its own fixtures
+1091:      - name: Show the resume renderer refusing its own fixtures
+1099:      - name: Show the review packet refusing its own fixtures
+1107:      - name: Show the review carry deciding its own fixtures
+1115:      - name: Show the roster editor refusing its own fixtures
+1127:      - name: Show the roster-ops mutation harness pinning its own plants
+1138:      - name: Show the stamp round-close mutation harness pinning its own plants
+1148:      - name: Show the ledger mutation harness pinning its own plants
+1158:      - name: Show the mandate-guard mutation harness pinning its own plants
+1166:      - name: Show the roster library refusing its own fixtures
+1174:      - name: Show the roster-sync reconciler refusing its own fixtures
+1182:      - name: Show the twin-run reader refusing its own fixtures
+1190:      - name: Show the seat venv recipe refusing its own fixtures
+1198:      - name: Show the gh call-log shim refusing its own fixtures
+1206:      - name: Show the cloud setup profile refusing its own fixtures
+1214:      - name: Show the state-doc writer refusing its own fixtures
+1226:      - name: Show the outside-contributor contract (tools/pr/outside.py) refusing its own fixtures
+1227:        id: outside-contract
+1228:        if: ${{ !cancelled() && steps.scope.outputs.outside-contract == 'true' }}
+1231:          python3 -I tools/pr/outside.py --self-test | tee "$RUNNER_TEMP/outside-self-test.txt"
+1232:          grep -Eq '^outside self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/outside-self-test.txt"
+1234:      - name: Show the tick loop refusing its own fixtures
+1239:          bash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"
+1240:          grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"
+1242:      - name: Show the heartbeat andon refusing its own fixtures
+1249:      - name: Show the beat's job rows refusing their own fixtures
+1257:      - name: Show the hook installer refusing its own fixtures
+1265:      - name: Show the offline spy refusing its own fixtures
+1279:      - name: Refuse a throwaway git repository built without the shared helper
+1293:      - name: Show the merge train refusing its own fixtures
+1307:      - name: Show the carry check and the queue pre-flight refusing their own fixtures
+1319:      - name: Show the train launcher refusing its own fixtures
+1324:      - name: Show the figure check refusing its own fixtures
+1329:      - name: Show the figure census pinning its counting rule
+1338:      - name: Show the pin rule refusing every probe and admitting its controls
+1345:      - name: Show the GitHub REST client (tools/ci/ghapi.py) refusing its own fixtures
+1353:      - name: Show the CI prelude (tools/ci/prelude.py) refusing its own fixtures
+1361:      - name: Show the gate predicate (tools/ci/gate.py) refusing its own fixtures
+1369:      - name: Show the gate sweep (tools/ci/sweep.py) refusing its own fixtures
+1377:      - name: Show the code-scanning alert lister (tools/ci/alert_list.py) refusing its own fixtures
+1385:      - name: Show the ruleset cut-over instrument (tools/ci/ruleset_cutover.py) refusing its own fixtures
+1393:      - name: Show the sweep driver (tools/audit/seat/sweep_driver.py) refusing its own fixtures
+1401:      - name: Show the beat's Gantt and verdict-audit instruments (sweep_gantt.py, verdict_audit.py) refusing their own fixtures
+1411:      - name: Show the survivor-list check (tools/audit/seat/survivor_list.py) refusing its own fixtures
+1419:      - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
+1427:      - name: Show the code-scanning wait (tools/ci/codescan_wait.py) driving alert_list over fakes
+1435:      - name: Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
+1443:      - name: Show the local alert lister (tools/pr/local_alerts.py) refusing its own fixtures
+1453:      - name: Show the alert lister's mutants each refused by its self-test
+1462:      - name: Show the pre-PR self-check refusing its own fixtures
+1469:      - name: Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+1479:      - name: Show the PR argument builder refusing its own fixtures
+1488:      - name: Show the supervised beat refusing its own fixtures
+1497:      - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+1511:      - name: Show the self-test scope (tools/ci/selftest_scope.py) refusing its own fixtures
+1522:      - name: Show the self-test scope refusing each mutant of its trace rules
+1532:      - name: Refuse a self-test read set the committed table misses
+1542:      - name: Keep this run's measured read sets
+1552:      - name: Refuse a detached self-test whose status no step read
+1579:      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+1594:      # `actions/checkout` gives no guarantee about remote-tracking refs, and a
+1597:      - name: Put origin/main where the matrix looks for it
+1602:      # matrix clones this checkout at the commit it is given, so a restore
+1605:      - name: Restore the check source from the base commit
+1615:          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+1651:          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+1652:          # The base driver names '.claude/workflows/policy_lint.mjs'. A checkout
+1654:          # measures. This pull request's driver resolves the file the checkout
+1659:            git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
+1667:          git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
+1677:      - name: Require each declared environment shape to produce its declared outcome
+1696:      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+1708:      - name: Restore the check source from the base commit
+1717:          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+1765:          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+1769:      - name: Drive the wave script's branching
+1789:      - name: Refuse two readers of one concept that disagree
+1801:      - name: Show the agreement lane refusing each shape it exists to refuse
+1812:      - name: Check the bug-class register against the rounds in the tree
+1825:  # the checkout is a merge of the branch into main and the branch's own commits
+1880:      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+1882:          # The window is `<last version tag>..origin/main`. A shallow checkout
+1899:      - name: GITHUB_TOKEN rate limit before the window walk
+1915:      - name: Choose the window
+1952:      - name: Every merged pull request has a disposition
+1972:      - name: Friction and verdict histograms
+1984:      # and the checkout/setup steps can; the histogram and sunset steps never
+2001:      - name: Show the friction filer refusing its own fixtures
+2015:      - name: File the recurring-friction issues the histogram named
+2022:      - name: Rules that have outlived their reason
+2029:      - name: GITHUB_TOKEN rate limit after the window walk
+2059:      - name: Report the refusal on the run summary
+2164:      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+2189:      - name: Report what is pending and what is overdue a row
+2195:          git checkout "$PINNED" -- \
+2224:    # workflow floor a job-level block replaces, for the checkout.
+2236:      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+2245:      - name: Regenerate the ledger and put it in #201's region
+## conflict
+LEDGER-MERGE: resolved tests/closures.json
+e1989d7d05850ecf34546293936bc240f0ad5951
+100644 73c05f681508d309b106218fc01f838ab66e0795 1	tools/pr/ci_predict.py
+100644 d0c6b0cf8f131fc35b5021de6c31a36aa315806e 2	tools/pr/ci_predict.py
+100644 6ab068ddf6ff73799966006057aafb681ea9cbbd 3	tools/pr/ci_predict.py
+
+Auto-merging tests/closures.json
+Auto-merging tools/pr/ci_predict.py
+CONFLICT (content): Merge conflict in tools/pr/ci_predict.py
+664:<<<<<<< origin/main
+665-def fetch_round_rosters(run) -> None:
+666-    """CI's pr-contract fetches the round rosters' remote-tracking refs; a
+667-    --shared clone's own origin/handoff/* are root's local branches, so take
+668-    root's refs/remotes/origin ones. A glob matching nothing is harmless."""
+669-    run("git", "fetch", "-q", "--no-tags", "origin",
+670-        "+refs/remotes/origin/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster")
+671-=======
+672-ROSTER_REF = re.compile(r"refs/remotes/origin/handoff/audit-r\d+-roster")
+673-
+674-
+675-def round_roster_refs(root: Path) -> "list[tuple[str, str]]":
+676-    """(ref, sha) of each round roster branch this checkout has fetched. CI's
+677-    pr-contract fetches `handoff/audit-r*-roster` before its carry check
+678-    (pr-contract.yml), and a clone inherits no remote-tracking ref: without
+679-    these, a `Carry:` to a group that lives only on the round's branch is
+680-    predicted red where CI routes it (carry_audit.load_dests skips an absent
+681-    round ref in silence)."""
+682-    out = git(root, "for-each-ref", "--format=%(objectname) %(refname)", "refs/remotes/origin/handoff/") or ""
+683-    return [(name, sha) for sha, _, name in (ln.partition(" ") for ln in out.splitlines()) if ROSTER_REF.fullmatch(name)]
+684->>>>>>> a98d895577770cd84ad8baa3114d6fbfb895a455
+685-
+686-
+687-def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = None) -> tuple[str, subprocess.CompletedProcess | None]:
+688-    """Run `steps` (each a function of the tree, its runner and a scratch
+689-    directory) where CI's pull-request run of `job` runs them: the merge of
+--
+709:<<<<<<< origin/main
+710-        fetch_round_rosters(run)  # mut:roundrefs
+711-=======
+712-        for name, sha in round_roster_refs(root):  # the refs CI's own fetch gives the job
+713-            run("git", "update-ref", name, sha)
+714->>>>>>> a98d895577770cd84ad8baa3114d6fbfb895a455
+715-        run("git", "checkout", "-q", "--detach", tip)
+716-        if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
+717-            return "unmerged", None
+718-        shutil.rmtree(r / ".claude" / "workflows" / "vendor", ignore_errors=True)
+719-        specs = agreement_py.restore_specs((r / (workflow or agreement_py.WORKFLOW)).read_text(), job)
+720-        (tmp / "pinned.list").write_text(run("git", "diff", "--no-renames", "--name-only", "-z", EMPTY_TREE, tip, "--", *specs).stdout)
+721-        run("git", "checkout", tip, f"--pathspec-from-file={tmp / 'pinned.list'}", "--pathspec-file-nul")
+722-        out = None
+723-        for step in steps:
+724-            out = step(r, run, tmp)
+725-            if out.returncode:
+726-                break
+727-        return "ran", out
+728-    finally:
+729-        shutil.rmtree(tmp, ignore_errors=True)
+730-
+731-
+732-def keyed_jobs(root: Path, base_ref: str) -> tuple[str, dict[str, list[str]], object]:
+733-    """(the base tip, each restoring job the diff keys -> its `restored_hit`,
+734-    agreement_py) -- the tip "" when the base or the workflow does not resolve."""
+--
+1470:<<<<<<< origin/main
+1471-    bad += roundref_self_test(root)
+1472-=======
+1473-    bad += roster_ref_self_test()
+1474->>>>>>> a98d895577770cd84ad8baa3114d6fbfb895a455
+1475-    gate = root / "tools" / "ci" / "gate.py"
+1476-    if gate.exists():
+1477-        sys.path.insert(0, str(root / "tools" / "ci"))
+1478-        import gate as g
+1479-        pinned = set(g.REQUIRED["pr"])
+1480-        # instrument-self-tests is no required context: its red blocks no merge, and is
+1481-        # predicted because a red check is still owed an answer (defect-root-cause.md).
+1482-        miss = [v for k, v in JOB.items() if k not in ("carry", "instrument") and v not in pinned]
+1483-        print(f"  {'ok  ' if not miss else 'FAIL'} every JOB value is a name gate.REQUIRED owes{' -- ' + str(miss) if miss else ''}")
+1484-        bad += bool(miss)
+1485-    print(f"ci_predict self-test: {bad} failed")
+1486-    return 1 if bad else 0
+1487-
+1488-
+1489-def roundref_self_test(root: Path) -> int:
+1490-    """ci_tree_run's clone gets root's refs/remotes/origin round-roster refs,
+1491-    not root's stale local branch (fail-before / pass-after), a null with the
+1492-    remote-tracking ref absent, and the call line itself pinned."""
+1493-    import inspect
+1494-    import shutil
+1495-    import tempfile
+## main changes to ci_predict since 3038b9d
+68e1704e2b Opener hotfix: a second opener on a topic meets the first's lock, and ci_predict's tree clone carries the round-roster refs
+## branch changes to ci_predict
+365d2bb236 ci_predict: the predictor's tree holds the round roster refs CI fetches
