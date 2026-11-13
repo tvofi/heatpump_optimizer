@@ -1251,13 +1251,12 @@ def cycle_write(hass: Any, config: Any, params: Any) -> CycleWrite | None:
     (``pump_duty_mode``), or no hot-water set-point entity with a state.
     """
     written = _cycle_c(hass, config, params) if duty_mode(config) == DUTY_CONTROL else None
-    if written is None:
-        return None
     target = float(params.dhw_legionella_temp)
     below = _bounded_on(hass, config, "dhw_setpoint", target, rounding="down")
     above = _bounded_on(hass, config, "dhw_setpoint", target, rounding="up")
-    step = setpoint_step(hass, _entities(config)["dhw_setpoint"])
-    return CycleWrite(written, float(below), float(above), step)
+    if written is None or below is None or above is None:
+        return None
+    return CycleWrite(written, below, above, setpoint_step(hass, _entities(config)["dhw_setpoint"]))
 
 
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:

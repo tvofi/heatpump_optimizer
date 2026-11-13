@@ -93,8 +93,9 @@ class OffStepNotice:
         write = cycle_write(self.hass, config, params) if cycle else None
         free = EntryConfig.from_mapping(config).dhw_free_disinfection_enabled
         margin = CREDIT_HOLD_MARGIN_K if free else CREDIT_INSTANT_MARGIN_K
-        short = write is not None and write.written_c < target - margin
-        signature = (target, write.written_c, write.step, write.below_c, write.above_c) if short else None
+        signature = None
+        if write is not None and write.written_c < target - margin:
+            signature = (target, write.written_c, write.step, write.below_c, write.above_c)
         if signature == self.signature:
             return
         self.signature = signature
