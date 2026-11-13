@@ -344,7 +344,6 @@ flowchart TB
     train -->|"writes"| pr
     train -->|"runs"| post
     post -->|"runs"| rsync
-    post -->|"runs"| docs
     post -->|"writes"| ledger
     rsync -->|"runs"| redit
     hb -->|"writes"| hbref
@@ -399,7 +398,6 @@ cites any file but that script.
 | merge_train.py | writes | pull request | `tools/audit/seat/merge_train.py`: `["gh", "pr", "ready", str(pr), "--repo", t.repo]` |
 | merge_train.py | runs | postmerge.py | `tools/audit/seat/merge_train.py`: `tool("postmerge"), str(pr), "--repo"` |
 | postmerge.py | runs | roster_sync.py | `tools/audit/seat/postmerge.py`: `/roster_sync.py", "--repo", repo, "--apply"` |
-| postmerge.py | runs | state_docs.py | `tools/audit/seat/postmerge.py`: `/state_docs.py", "--repo", repo, "--push"` |
 | postmerge.py | writes | obligations ledger | `tools/audit/seat/postmerge.py`: `"open", "postmerge-owed"` |
 | roster_sync.py | runs | roster_edit.py | `tools/audit/seat/roster_sync.py`: `roster_edit.write_roster(` |
 | heartbeat.sh --once | writes | heartbeat ref | `tools/audit/seat/heartbeat.sh`: `"$c:refs/heads/$REF"` |
