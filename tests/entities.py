@@ -34171,6 +34171,29 @@ _SP_CITED = _sp_cited((f, _sp_source(f)) for f in _SP_POLICY)
 # retired path is tests/layout.py's `reference` arm; a command is this arm's.
 _SP_REMEASURES = [(f, "\n".join(_sp_remeasures(json.loads(_sp_source(f) or "{}"))))
                   for f in _SP_CARRIES]
+# A carry file is retired by delivering its entries into a roster group's
+# `carry` list (#3553), so the arm follows those entries there: the newest
+# roster IN THE TREE, named by roster_lib's `roster_path` (offline, never a
+# ref). A retired file's entries must be in that roster before the file is
+# deleted, or the floors below read the deletion as a carry citing nothing.
+# Only an entry marked as delivered from a file (`carry-<N> entry <K> (file
+# removed)`) is read -- a DESIGN CHOICE: the roster's other carries are free
+# prose that also cites round harnesses kept out of the tree by rule (run from
+# the baseline export, fixer.md step 3), which this arm would refuse as
+# programs that do not exist here; a carry file's `remeasure` never did.
+_SP_REHOMED = re.compile(r"\bcarry-\d+ entry \d+ \(file removed\)")
+_sp_rl_spec = _rr_util.spec_from_file_location(
+    "hpo_roster_lib_sp", _closure.ROOT / "tools" / "audit" / "seat" / "roster_lib.py")
+_sp_rl = _rr_util.module_from_spec(_sp_rl_spec)
+_sp_rl_spec.loader.exec_module(_sp_rl)
+_SP_ROSTER = _sp_rl.roster_path(".")
+_SP_ROSTER_CARRIES = [
+    (f"{_SP_ROSTER}#{_sp_g}[{_sp_i}]", _sp_c)
+    for _sp_g, _sp_e in _sp_rl.groups_of(json.loads(_sp_source(_SP_ROSTER))).items()
+    for _sp_i, _sp_c in enumerate(_sp_e.get("carry") or [])
+    if isinstance(_sp_c, str) and _SP_REHOMED.search(_sp_c)]
+_SP_CARRY_SOURCES = {*_SP_CARRIES, *(f for f, _ in _SP_ROSTER_CARRIES)}
+_SP_REMEASURES += _SP_ROSTER_CARRIES
 _SP_STALE_RUN = _sp_moved_spellings(_SP_REMEASURES)
 for _sp_p, _sp_by in _sp_cited(_SP_REMEASURES).items():
     _SP_CITED.setdefault(_sp_p, []).extend(_sp_by)
@@ -34182,9 +34205,10 @@ R.check(
     "every program live policy or a carry's remeasure tells a seat to run, under a "
     "historical prefix, loads and resolves the paths it opens (#2227)",
     len(_SP_POLICY) >= 20 and len(_SP_CARRIES) >= 1
-    and sum(any(c in _SP_CARRIES for c in v) for v in _SP_CITED.values()) >= 1
+    and sum(any(c in _SP_CARRY_SOURCES for c in v) for v in _SP_CITED.values()) >= 1
     and len(_SP_CITED) >= 3 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN,
-    f"policy files {len(_SP_POLICY)}, carries {len(_SP_CARRIES)}, cited {len(_SP_CITED)} "
+    f"policy files {len(_SP_POLICY)}, carries {len(_SP_CARRIES)}, roster carries "
+    f"{len(_SP_ROSTER_CARRIES)} ({_SP_ROSTER}), cited {len(_SP_CITED)} "
     f"(floors: an arm that finds nothing is not a pass); "
     f"faults {[f for v in _SP_FAULTS.values() for f in v]}; commands naming no file "
     f"{[f'{c}: {w} (now {p})' for c, w, p in _SP_STALE_RUN]}",
@@ -34349,7 +34373,7 @@ R.check(
 # pins the mechanism rather than a copy of the closure table: a source that is
 # still INERT is the #357 contradiction the worktree read would create, and one
 # that selects no script (or the whole suite) is the skip that hid the finding.
-_sp_sources = [*_SP_CARRIES, *_SP_POLICY]
+_sp_sources = [*_SP_CARRIES, _SP_ROSTER, *_SP_POLICY]
 import closure as _sp_closure  # the arm block runs standalone under its driver (fix-review)
 _sp_inert = sorted(f for f in _sp_sources if _sp_closure.is_inert(f))
 _sp_select = {f: _sp_closure.select([f]) for f in _sp_sources}
