@@ -1,10 +1,24 @@
-KILLED prune-cli-no-write :: selftest_scope self-test: 141 checks, 1 failed
-KILLED prune-cli-ignores-unknown :: selftest_scope self-test: 141 checks, 1 failed
-KILLED probe-dir-ancestor-removed :: selftest_scope self-test: 141 checks, 1 failed
-KILLED unresolved-empty :: selftest_scope self-test: 141 checks, 2 failed
-KILLED unresolved-dropped-in-static :: selftest_scope self-test: 141 checks, 1 failed
-KILLED unresolved-falls-through :: selftest_scope self-test: 141 checks, 2 failed
-SURVIVED prune-table-none-pass :: selftest_scope self-test: 141 checks, 0 failed
-KILLED prune-unknown-rc0 :: selftest_scope self-test: 141 checks, 1 failed
-KILLED probe-dir-any-dir :: selftest_scope self-test: 141 checks, 4 failed
-SURVIVED table-untouched-skip-removed :: selftest_scope self-test: 141 checks, 0 failed
+KILLED prune-cli-no-write :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED prune-cli-ignores-unknown :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED probe-dir-ancestor-removed :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+SURVIVED table-untouched-skip-removed(equivalent-r1) :: rc=0 selftest_scope self-test: 141 checks, 0 failed
+KILLED flags-not-unioned :: rc=1 selftest_scope self-test: 141 checks, 3 failed
+KILLED probes-not-filtered :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED flag-drop-unchecked :: rc=1 selftest_scope self-test: 141 checks, 5 failed
+KILLED dir-survivor-ignored :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED deleted-set-empty :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED first-parent-none :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED dirs-kept-always :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED gitlist-kept-always :: rc=1 selftest_scope self-test: 141 checks, 5 failed
+KILLED record-replaces :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED unresolved-is-no-problem :: rc=1 selftest_scope self-test: 141 checks, 2 failed
+KILLED unresolved-falls-through-to-first-parent :: rc=1 selftest_scope self-test: 141 checks, 2 failed
+KILLED static-ignores-unresolved :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED static-runs-guard-never :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED prune-unknown-rc0 :: rc=1 selftest_scope self-test: 141 checks, 1 failed
+KILLED prune-writes-before-refusing :: rc=1 selftest_scope: not in the table, nothing written: ['files:f2']
+KILLED prune-unknown-step-accepted :: rc=1 selftest_scope self-test: 141 checks, 2 failed
+KILLED prune-list-drop-noop :: rc=1 selftest_scope self-test: 141 checks, 2 failed
+KILLED prune-flag-noop :: rc=1 selftest_scope self-test: 141 checks, 2 failed
+KILLED prune-unknown-kind-accepted :: rc=1 selftest_scope self-test: 141 checks, 2 failed
+KILLED merge-base-only-first-cand :: rc=1 selftest_scope self-test: 141 checks, 3 failed

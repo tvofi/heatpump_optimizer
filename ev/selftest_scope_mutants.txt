@@ -111,4 +111,3 @@
      FAIL wrapper: its UNTRACED list is UNGATED
    selftest_scope self-test: 141 checks, 2 failed
 SELFTEST-SCOPE MUTANTS: every mutant refused
-rc=0
