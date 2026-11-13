@@ -1,0 +1,4 @@
+  ok    user text: the invalid-window error names no channel, in every card language
+
+ALL CARD CHECKS PASSED
+rc=0
