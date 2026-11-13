@@ -463,9 +463,9 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
       local v=$t/victim-$1.git; rm -f "$t/shadow"; throwaway_git_init "$v" -q --bare || return 1
       out=$(export HPO_HEARTBEAT_REMOTE=$v TICK_RC=1
         case $1 in
-          func) . "$t/execfn"; export -f exec; "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
-          bashenv) BASH_ENV=$t/execfn "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
-          none) "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
+          (func) . "$t/execfn"; export -f exec; "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
+          (bashenv) BASH_ENV=$t/execfn "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
+          (none) "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
         esac 2>&1); src=$?
       refs=$(git -C "$v" for-each-ref | grep -c .); }
     for c in func bashenv; do
