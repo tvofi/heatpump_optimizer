@@ -1,0 +1,11 @@
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+order=tick outside head=17afc3f532cbc00e84f8c22957cb9a12d362b160 origin/main=5288db5dadbffbaf83cb4ed258a669d46c3224fe
+loop-file commits head..main: 6
+--- before tick HEAD=17afc3f532cbc00e84f8c22957cb9a12d362b160
+tick_loop self-test: 30 checks, 0 failed
+rc=0
+--- before outside HEAD=5288db5dadbffbaf83cb4ed258a669d46c3224fe
+python3: can't open file '/tmp/tmp.f7OUKpH2uH/c/tools/pr/outside.py': [Errno 2] No such file or directory
+rc=2
+--- end HEAD=5288db5dadbffbaf83cb4ed258a669d46c3224fe

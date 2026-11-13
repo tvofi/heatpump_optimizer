@@ -1,0 +1,6 @@
+NOTE body item bcebe285: dismissed:built in this diff as a written precondition on the first allowlist entry, not left to a later stage
+NOTE body item 655f9a82: dismissed:built in this diff as a written precondition on the first allowlist entry, not left to a later stage
+NOTE body item 7bc2ab13: R10-GATE-DEFER-BARRIER
+NOTE body item 2f95bb35: dismissed:outside this group's seam; the existing readers refuse non-anchored patterns or live inside a shell heredoc, and folding them is its own change
+NOTE body item 0b2d38a5: dismissed:a harness setting of the dispatching session, not a repository rule
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
