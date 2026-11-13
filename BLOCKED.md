@@ -1,0 +1,8 @@
+Question: body_push.sh refuses REVIEW-PACKET at handoff head becbe652ab6b321a680e5b45b61bfd897f2e0669 because the dispatch prompt names no carry: `git show 8604341a12f05cb9c0abe30381721aaa510c3ada:PROMPT.md` (refs/heads/dispatch/fixer-r10-prepr-residue-p2) has no `^Carry N:` line, so review_packet.py's handoff_carries (tools/audit/seat/review_packet.py:613-623) falls back to every live R10-PREPR-RESIDUE carry and refuses carries 0-20 and 22-25 as unnamed. This part owns Carry 21 only. Will the relay add `Carry 21: <text>` to the dispatch PROMPT.md (or otherwise scope the packet) and re-run body_push.sh? I did not name the other 25 carries in the body: doing so only to match the regex would work around the refusal.
+
+State: the code is on refs/heads/handoff/r10-prepr-residue-p2 at becbe652 (fast-forward from 2d030bdf). `tools/pr/prepr.sh <body>` at that head: rc=0, receipt written. The body, which passes `prepr.sh --body-check` (rc=0), is at refs/heads/handoff-wip/r10-prepr-residue-p2-body b2135ac9de46133cd483e0980d7708beb5b35b4c (kept there by body_push.sh). The reviewer's driver at 0b407606: G3, G5, G5b, P7 and P8 KILLED; P9 NOT-APPLIED (the export it deletes is removed); its inverse P9b KILLED; NULL SURVIVED. Self-tests: prepr 550 passed, 0 failed (548 at a81d7f15, 542 at the base); gate_priority 21 checks, 0 failed.
+
+body_push output (verbatim tail):
+review-packet handoff: R10-PREPR-RESIDUE at becbe652ab6b, 26 live, 26 dispatched carries, 25 refused
+body_push: the review packet refuses this head at the handoff (above); answer each, push the code, then the body
+body_push: REFUSED REVIEW-PACKET
