@@ -1,0 +1,3 @@
+  ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
+
+ALL 2711 ENTITY CHECKS PASSED

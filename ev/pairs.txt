@@ -1,0 +1,4 @@
+RESULT e23124ff6e45bac1d48b4a775dad555a37965355 at_floor=154 of 528 comparable=406 prod_files=110 block_duty=74
+RESULT 1dd030c424ec0b81274287d65ef2ba084e40702d at_floor=162 of 528 comparable=406 prod_files=110 block_duty=91
+joined [('tests/arch_score_head.py', 'tests/block_duty.py'), ('tests/block_duty.py', 'tests/config_flow_steps.py'), ('tests/block_duty.py', 'tests/deployment_shape.py'), ('tests/block_duty.py', 'tests/doc_claims.py'), ('tests/block_duty.py', 'tests/entities.py'), ('tests/block_duty.py', 'tests/env_drift.py'), ('tests/block_duty.py', 'tests/features.py'), ('tests/block_duty.py', 'tests/golden.py'), ('tests/block_duty.py', 'tests/harness_headers.py')]
+left [('tests/block_duty.py', 'tests/card.mjs')]

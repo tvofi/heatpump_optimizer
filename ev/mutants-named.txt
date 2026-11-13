@@ -1,0 +1,133 @@
+M1 lift owner returns the configured lift: KILLED rc=1 2 failing
+    FAIL a heating hysteresis above the configured lift is the lift  [predicate false]
+    FAIL a heating hysteresis above the lift moves the floor write to return + hysteresis  [predicate false]
+M2 drop_unstartable >= to >: KILLED rc=1 1 failing
+    FAIL a tank exactly at the start temperature does not start  [predicate false]
+M3 ledger not-startable branch removed: KILLED rc=1 2 failing
+    FAIL an idle hot water step on a tank above the start temperature is not-startable  [predicate false]
+    FAIL an idle hot water step on a tank exactly at the start temperature is not-startable  [predicate false]
+M4 repair places without the start mask: KILLED rc=1 1 failing
+    FAIL what the start condition bars is re-bought where the pump starts: the tank is no further under its minimum with a 4 K hysteresis than with none  [predicate false]
+M5 startable_steps < to <=: KILLED rc=1 1 failing
+    FAIL a tank exactly at the start temperature, not charging, does not start  [predicate false]
+M6 a zero hysteresis is a start condition: KILLED rc=1 2 failing
+    FAIL no target, or a hysteresis that is missing, zero or negative, is no start temperature  [predicate false]
+    FAIL with no or zero hysteresis no step has a start temperature  [predicate false]
+M7 the difference reader ignores the unit's scale: KILLED rc=1 1 failing
+    FAIL a hysteresis in degF is scaled by 5/9, not offset  [predicate false]
+M8 the cycle step judged against the everyday target: KILLED rc=1 4 failing
+    FAIL each step's start temperature is its own target less the hysteresis, the cycle step the cycle's  [predicate false]
+    FAIL a cycle on the first step is judged against its own target; one past the horizon moves no step  [predicate false]
+    FAIL on a stepped entity each step's start temperature is the written target less the hysteresis  [predicate false]
+    FAIL null control: with no set-point entity the same parameters start below 58 and 62 less the hysteresis  [predicate false]
+M9 notice at a minimum equal to the start temperature: KILLED rc=1 1 failing
+    FAIL a minimum exactly at the start temperature raises nothing  [predicate false]
+M10 place_startable returns without the final drop: KILLED rc=1 2 failing
+    FAIL a repair that keeps re-placing the unstartable plan still leaves a plan with none, in bounded rounds  [predicate false]
+    FAIL a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge  [predicate false]
+M11 coordinator does not read the options: KILLED rc=1 2 failing
+    FAIL the coordinator's input read puts both hysteresis sensors into the state  [predicate false]
+    FAIL the coordinator's input read puts the hot-water set-point entity's grid into the state  [predicate false]
+M12 the floor write ignores the hysteresis: KILLED rc=1 1 failing
+    FAIL a heating hysteresis above the lift moves the floor write to return + hysteresis  [predicate false]
+M13 the planner ignores the hysteresis: KILLED rc=1 2 failing
+    FAIL with a 4 K hysteresis no planned charge after step 0 begins at or above 51 degC  [predicate false]
+    FAIL handed the 5 degC entity's grid, no planned charge after step 0 begins at or above 51 degC  [predicate false]
+M14 ledger start ignores the written target: KILLED rc=1 3 failing
+    FAIL the ledger's start temperature on the stepped entity is the planner's  [predicate false]
+    FAIL the ledger's start temperature on a booked cycle step is the cycle's less the hysteresis  [predicate false]
+    FAIL with no set-point entity to write, the ledger's start is the plan step's target less the hysteresis  [predicate false]
+M15 delta reader accepts above the maximum: KILLED rc=1 1 failing
+    FAIL a hysteresis outside 0 to 20 K, unavailable, in a non-temperature unit, unset or unknown is no reading  [predicate false]
+M16 a run at step 0 is judged too: KILLED rc=1 3 failing
+    FAIL a charge begun above its start temperature is dropped whole; the first step and a cooled tank's run are kept  [predicate false]
+    FAIL a run is judged against its own step's start temperature (a disinfection step's is higher)  [predicate false]
+    FAIL a run at the first step is kept on a warm tank, with nothing planned at the horizon's end  [predicate false]
+M17 the round bound is nine: KILLED rc=1 1 failing
+    FAIL a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge  [predicate false]
+M18 a cycle on the first step is not a cycle step: KILLED rc=1 1 failing
+    FAIL a cycle on the first step is judged against its own target; one past the horizon moves no step  [predicate false]
+M19 a run at the second step is not judged: KILLED rc=1 1 failing
+    FAIL a run that begins at the second step on a warm tank is dropped  [predicate false]
+M20 the loop never ends early: KILLED rc=1 1 failing
+    FAIL a repair that changes nothing ends the loop: one round to drop, one to see the plan stand  [predicate false]
+M21 a cycle past the horizon is written: KILLED rc=1 1 failing
+    FAIL a cycle on the first step is judged against its own target; one past the horizon moves no step  [IndexError: index 3 is out of bounds for axis 0 with size 3]
+M22 the shared clamp zeroes a step on the runnable block: KILLED rc=1 1 failing
+    FAIL a step the capacity clamp leaves below a runnable block is zeroed; one on the block, to the 1e-9 the rule allows, is kept  [predicate false]
+M23 no step is a cycle step for the write or the ledger: KILLED rc=1 15 failing
+    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
+    FAIL every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too  [predicate false]
+    FAIL the cycle's temperature is the thermal parameters' own answer, not a copy  [predicate false]
+    FAIL an off-step disinfection temperature above the everyday set-point is written on the step at or below it, never above the tank's hard maximum  [predicate false]
+    FAIL a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum  [predicate false]
+    FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
+M24 the set-point check never reaches the start notice: KILLED rc=1 1 failing
+    FAIL the set-point check's own entry raises it: evaluate() reaches the start notice  [predicate false]
+M25 the notice judges the cycle's target: KILLED rc=1 1 failing
+    FAIL the start temperature is the everyday target's even with a disinfection cycle active  [predicate false]
+M26 a hysteresis under one kelvin is none: KILLED rc=1 1 failing
+    FAIL a hysteresis under one kelvin is still a start condition  [predicate false]
+M27 pinned hot water is not held to the tank's capacity: KILLED rc=1 1 failing
+    FAIL a day with hot water pinned on at every step is still held to the tank's charge limit of 55 degC  [predicate false]
+M28 the write and the ledger ignore the entity's grid: KILLED rc=1 10 failing
+    FAIL an off-step disinfection temperature above the everyday set-point is written on the step at or below it, never above the tank's hard maximum  [predicate false]
+    FAIL a cycle whose temperature is an off-step everyday set-point (the disinfection temperature at or below it) writes the step at or below it, as 49a45dd8 and the same in
+    FAIL an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard maximum is the everyday set-point there (the everyday step's own neares
+    FAIL an off-step everyday set-point is written on the step at or below it, never rounded up (everyday 58, step 5: 55, not 60; everyday 60.7, step 1: 60), the cycle idle o
+    FAIL a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses  [predicate false]
+    FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
+M29 the planner ignores the entity's grid: KILLED rc=1 2 failing
+    FAIL on a stepped entity each step's start temperature is the written target less the hysteresis  [predicate false]
+    FAIL handed the 5 degC entity's grid, no planned charge after step 0 begins at or above 51 degC  [predicate false]
+M30 the notice ignores the entity's grid: KILLED rc=1 1 failing
+    FAIL the notice judges the written target: an everyday 58 on a 5 degC step starts below 51, not 54  [predicate false]
+M31 the notice is raised with hot water disabled: KILLED rc=1 1 failing
+    FAIL with hot water disabled no minimum raises it, whatever the hysteresis reads  [predicate false]
+M32 the everyday target ignores the charge limit: KILLED rc=1 10 failing
+    FAIL an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard maximum is the everyday set-point there (the everyday step's own neares
+    FAIL no no-cycle write exceeds the charge limit (dhw_max_temp), the cycle enabled and not running or disabled, over every step size and everyday set-point on and off the 
+    FAIL an off-step everyday set-point is written on the step at or below it, never rounded up (everyday 58, step 5: 55, not 60; everyday 60.7, step 1: 60), the cycle idle o
+    FAIL a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses  [predicate false]
+    FAIL the everyday step target never exceeds the charge limit (dhw_max_temp, 70 over a 72 set-point)  [predicate false]
+    FAIL precondition: an everyday 58 on a 5 degC step is written 55, its cycle of 62 written 60  [predicate false]
+M33 the cycle's target ignores the hard maximum: KILLED rc=1 4 failing
+    FAIL an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard maximum is the everyday set-point there (the everyday step's own neares
+    FAIL a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum  [predicate false]
+    FAIL no cycle write exceeds the tank's hard maximum, over every step size and the disinfection temperature below, at and above the everyday set-point, on and off the step
+    FAIL the cycle's step target never exceeds the tank's hard maximum (70 over a 72 disinfection temperature)  [predicate false]
+M34 the input read leaves the grid off the state: KILLED rc=1 3 failing
+    FAIL on a stepped entity each step's start temperature is the written target less the hysteresis  [predicate false]
+    FAIL handed the 5 degC entity's grid, no planned charge after step 0 begins at or above 51 degC  [predicate false]
+    FAIL the coordinator's input read puts the hot-water set-point entity's grid into the state  [predicate false]
+M35 the step after a charge the pump would not start is startable: KILLED rc=1 1 failing
+    FAIL a charge begun after the first step on a warm tank is one the pump does not start: neither its steps nor the step after it are startable  [predicate false]
+M36 a charge at the first step carries nothing on: KILLED rc=1 1 failing
+    FAIL the step after a charge kept at the first step continues it; the kept step itself is not added to  [predicate false]
+M37 no charge under way carries on: KILLED rc=1 4 failing
+    FAIL a step is startable where it opens on a tank below its start temperature or follows a charge under way  [predicate false]
+    FAIL the step after a charge kept at the first step continues it; the kept step itself is not added to  [predicate false]
+    FAIL a charge the pump starts carries on: every step of it after the first, and the step after it  [predicate false]
+    FAIL a charge the pump did not start is under way from the step that opens below the start temperature  [predicate false]
+M38 an entity with no state has a grid: KILLED rc=1 1 failing
+    FAIL a set-point entity with no state has no grid, and the target is then the one before any step  [predicate false]
+M39 with no entity the target ignores its bound: KILLED rc=1 2 failing
+    FAIL the everyday step target never exceeds the charge limit (dhw_max_temp, 70 over a 72 set-point)  [predicate false]
+    FAIL the cycle's step target never exceeds the tank's hard maximum (70 over a 72 disinfection temperature)  [predicate false]
+M40 the hot-water write goes to an entity with no state: KILLED rc=1 2 failing
+    FAIL null control: no hot-water set-point entity is no hot-water write on any row  [predicate false]
+    FAIL with no set-point entity to write, the ledger's start is the plan step's target less the hysteresis  [predicate false]
+M41 the bound is handed to the grid as the value's own: KILLED rc=1 3 failing
+    FAIL a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses  [predicate false]
+    FAIL a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum  [predicate false]
+    FAIL no cycle write exceeds the tank's hard maximum, over every step size and the disinfection temperature below, at and above the everyday set-point, on and off the step
+M42 a charge kept at the first step is itself startable on a warm tank: KILLED rc=1 1 failing
+    FAIL the step after a charge kept at the first step continues it; the kept step itself is not added to  [predicate false]
+M43 the notice is never raised: KILLED rc=1 5 failing
+    FAIL a minimum above the start temperature raises dhw_minimum_above_start with its figures  [predicate false]
+    FAIL the start temperature is the everyday target's even with a disinfection cycle active  [predicate false]
+    FAIL the set-point check's own entry raises it: evaluate() reaches the start notice  [predicate false]
+    FAIL with hot water disabled no minimum raises it, whatever the hysteresis reads  [predicate false]
+    FAIL the notice judges the written target: an everyday 58 on a 5 degC step starts below 51, not 54  [predicate false]
+NULL comment-only change: SURVIVED rc=0 0 failing
+rc=0 HEAD=1dd030c424ec0b81274287d65ef2ba084e40702d
