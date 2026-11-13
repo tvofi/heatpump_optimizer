@@ -25780,7 +25780,8 @@
     "From #3564 (r10-config-flow-text-verify), body item 86aa4096: docs/how-it-works.md:822 says the planned start count is published. No sensor carries it. Carry: R11-INTAKE-R10-RESIDUE (items 86aa4096)",
     "From #3564 (r10-config-flow-text-verify), body item a64a0285: docs/configuration.md:1083 does not say the price estimate is on by default. Carry: R11-INTAKE-R10-RESIDUE (items a64a0285)",
     "From #3564 (r10-config-flow-text-verify), body item b30f48ba: custom_components/heatpump_optimizer/setpoint_check.py:6 has the docstring \"Space set-point is never recommended.\", stale under Control. Carry: R11-INTAKE-R10-RESIDUE (items b30f48ba)",
-    "From #3564 (r10-config-flow-text-verify), body item 6f36db0c: custom_components/heatpump_optimizer/presets.py:11 has a docstring saying \"three answerable\" questions; the questionnaire has six. Carry: R11-INTAKE-R10-RESIDUE (items 6f36db0c)"
+    "From #3564 (r10-config-flow-text-verify), body item 6f36db0c: custom_components/heatpump_optimizer/presets.py:11 has a docstring saying \"three answerable\" questions; the questionnaire has six. Carry: R11-INTAKE-R10-RESIDUE (items 6f36db0c)",
+    "From #3564 (r10-config-flow-text-verify), body item bb5336e8: custom_components/heatpump_optimizer/config_flow.py, setup step `device_prefill`: the second form renders `after_save` and `self._data.update(saved)` probably stores it into entry data, a stray key. The help text now says the choice has no effect there. Carry: R11-INTAKE-R10-RESIDUE (items bb5336e8)"
    ],
    "resume": {
     "stage": "not-started",
