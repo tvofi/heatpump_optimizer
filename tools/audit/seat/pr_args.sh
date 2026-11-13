@@ -59,6 +59,16 @@ pr_code_in_handoff() { # <sha> <topic>: after the fetch of handoff/<topic>; PR_H
   [ "$1" != "$PR_BT" ] || pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT); it is the tip of handoff-body/$2: that is the BODY sha; pass the CODE sha"  # mut:body
   pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT), and it is not the tip of handoff-body/$2 (${PR_BT:-absent})"  # mut:ancestor
 }
+pr_state_root() { # sets PR_STATE: the state dir ($HPO_STATE_DIR, default ~/.local/state/hpo), its pr/ created, as its physical path
+  # git records and lists a worktree by its physical path (`git worktree list --porcelain`), so every path
+  # open_pr.sh and update_pr.sh derive from the state dir and match against that list (mut:opreg, the
+  # left-over guard, mut:elsewhere, update_pr.sh's own-worktree scan) is built on this one spelling: a
+  # symlinked component, a trailing slash or a `/./` segment in $HPO_STATE_DIR otherwise matches nothing,
+  # silently (#3549's review). `cd -P && pwd -P`, not realpath: macOS's /bin/bash 3.2 and BSD tools run this.
+  PR_STATE=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
+  mkdir -p "$PR_STATE/pr" || pr_refuse "cannot create the state dir $PR_STATE/pr"
+  PR_STATE=$(CDPATH= cd -P -- "$PR_STATE" && pwd -P) || pr_refuse "cannot resolve the state dir $PR_STATE"  # mut:stateroot
+}
 pr_busy() { printf '%s: BUSY: %s; nothing was changed, run again when it ends\n' "${PR_NAME:-pr}" "$*" >&2; exit 75; }  # a stop that is a live run's, not a permanent refusal (carry 8)
 pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it
   local rc=0 o
@@ -1293,6 +1303,71 @@ STUB
   ck "  mutant mut:opcollect (its line deleted): open_pr.sh never asks for the collection" $?
   racerun oprowonly; [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
   ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
+  # R10-HOTFIX-OPENER-REFUSALS: two openers on one topic (a seat's hand run, open_driver.py's) share the
+  # topic-keyed state dir and its body.md, but the lock was keyed on the branch, and a second run renamed
+  # itself fix/<topic>-pr whenever the first's worktree add had made a local fix/<topic>: it took another lock,
+  # rewrote body.md from handoff-body without the head note, and refused later, while the first run's prepr
+  # read the overwritten body. dualrun starts open_pr.sh r twice, neither with BR_FIXED, the second while the
+  # first is in its second push; the main merge has moved the head, so the first's body.md carries a head note.
+  # Expected: the second is BUSY (75) and body.md is byte-identical. lonerun is the null control: one run
+  # beside a stale local fix/r and no registered worktree still takes the -pr name.
+  dualcopy() { # <mutant|->: the arm's scripts, with the mutant's line deleted
+    local g
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+  }
+  dualreset() { # <state dir> <stub dir>: no state, branch or worktree of the topic r survives, main one commit ahead
+    rm -rf "$1" "$2" "$t/s$i"; mkdir -p "$1" "$2"
+    git -C "$m" worktree prune; git -C "$m" branch -qD fix/r fix/r-pr 2>/dev/null; git -C "$o" branch -qD fix/r fix/r-pr 2>/dev/null
+    printf 'y\n' > "$o/yy" && git -C "$o" add yy && git -C "$o" -c user.name=t -c user.email=t@t commit -q -m "main moved"
+  }
+  dualend() { # <state dir>
+    reap; git -C "$m" worktree remove --force "$1/pr/r/wt" 2>/dev/null; git -C "$m" worktree prune; git -C "$o" reset -q --hard "$base"; true
+  }
+  spell() { # <physical dir> <-|link|slash|dot>: another spelling of that dir (#3549's review: git lists the physical one)
+    case $2 in
+      link) ln -sfn "$1" "$1.link"; printf '%s\n' "$1.link" ;;
+      slash) printf '%s/\n' "$1" ;;
+      dot) printf '%s/./%s\n' "${1%/*}" "${1##*/}" ;;
+      *) printf '%s\n' "$1" ;;
+    esac
+  }
+  dualrun() { # <mutant|-> [<spelling>]: rc of the second opener in $t/rc2, body.md before and after it in $t/bd1 and $t/bd2
+    local sd=$t/dual-state sdir=$t/dual-stub k=0 op sp
+    dualreset "$sd" "$sdir"; rm -f "$sd.link"; sd=$(cd "$sd" && pwd -P); dualcopy "$1"; sp=$(spell "$sd" "${2:--}")
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sp STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout1" 2>&1 & op=$!
+    while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+    cksum < "$sd/pr/r/body.md" > "$t/bd1"
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sp STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout2" 2>&1; echo $? > "$t/rc2"
+    cksum < "$sd/pr/r/body.md" > "$t/bd2"
+    touch "$sdir/release"; wait "$op"; echo $? > "$t/rc1"
+    dualend "$sd"
+  }
+  lonerun() { # the null control: a stale local fix/r, no registered worktree, one run
+    local sd=$t/lone-state sdir=$t/lone-stub
+    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); dualcopy -; touch "$sdir/release"
+    git -C "$m" branch -f fix/r "$base"
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout3" 2>&1; echo $? > "$t/rc3"
+    git -C "$o" cat-file -e fix/r-pr:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/lrow" || echo 0 > "$t/lrow"
+    dualend "$sd"
+  }
+  dualrun -; [ "$(cat "$t/rc2")" = 75 ] && grep -qF "BUSY" "$t/dout2" && [ "$(cat "$t/bd1")" = "$(cat "$t/bd2")" ] && [ "$(cat "$t/rc1")" = 0 ] && grep -q '^PR=5 ' "$t/dout1"
+  ck "open_pr: a second opener on a topic whose opener worktree is registered is BUSY (75), body.md byte-identical, the first opens" $?
+  dualrun opreg; [ "$(cat "$t/rc2")" != 75 ] && [ "$(cat "$t/bd1")" != "$(cat "$t/bd2")" ]
+  ck "  mutant mut:opreg (its line deleted): the second opener takes the -pr lock, is not BUSY, and rewrites body.md (the defect)" $?
+  lonerun; [ "$(cat "$t/rc3")" = 0 ] && [ "$(cat "$t/lrow")" = 1 ]
+  ck "  null control: a lone opener beside a stale local fix/r and no registered worktree still takes fix/r-pr" $?
+  # #3549's review: git lists the opener worktree by its physical path, so a state dir spelled otherwise
+  # (a symlinked component, a trailing slash, a `/./` segment) left OP_REG empty and the defect live.
+  # pr_state_root (pr_args.sh) resolves it once; each spelling is the live case above, and the symlink
+  # spelling with that resolution deleted is the defect again.
+  for sp in link slash dot; do
+    dualrun - $sp; [ "$(cat "$t/rc2")" = 75 ] && grep -qF "BUSY" "$t/dout2" && [ "$(cat "$t/bd1")" = "$(cat "$t/bd2")" ] && [ "$(cat "$t/rc1")" = 0 ] && grep -q '^PR=5 ' "$t/dout1"
+    ck "open_pr: the state dir spelled $sp: a second opener is BUSY (75), body.md byte-identical, the first opens" $?
+  done
+  dualrun stateroot link; [ "$(cat "$t/rc2")" != 75 ] && [ "$(cat "$t/bd1")" != "$(cat "$t/bd2")" ]
+  ck "  mutant mut:stateroot (its line deleted): through a symlinked state dir the second opener is not BUSY and rewrites body.md (the defect)" $?
   # R10-HOTFIX-OPENPR-FIGURE-REFRESH: a figure block names the head it was rendered at, so the body
   # open_pr.sh pushes needs it re-rendered at each head it pushes (p1 when the main merge moved the
   # head, p2 always: the row commit moves it). The stub pusher is lint's figure-block head check; the
@@ -1309,6 +1384,9 @@ if [ -n "$h" ]; then
   [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr RUNS: the body changed"
 else
   [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr SKIPPED: only the row"
+fi
+if [ "$n" = 1 ] && [ "$(git -C "$wt" rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then  # the main merge moved the head: the ## Head section names it
+  sed -n '/^## Head/,/^## Figures/p' "$body" | grep -q "$(git -C "$wt" rev-parse HEAD)" || { echo "app_push: REFUSE: ## Head does not name HEAD"; exit 1; }
 fi
 git -C "$wt" push -q -f origin "$br" || exit 1  # -f: a re-run's merge commit is not the first run's; the real pusher's refusal of that is outside this arm
 [ "$n" != 1 ] || echo "app_push: PUSHED to $br; pull request #5 is open"
@@ -1345,6 +1423,8 @@ STUB
   ck "open_pr: a body with a figure block opens (both pushes land, the row is present), the main merge having moved the head" $?
   figrun opfig2 block; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ] && grep -qF "figure-block scope-line names another head" "$t/fo" "$t/fp2" 2>/dev/null
   ck "  mutant mut:opfig2 (its line deleted): the row push is refused, naming another head, and the PR is closed" $?
+  figrun headnote block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "## Head does not name HEAD" "$t/fo"
+  ck "  mutant mut:headnote (its line deleted): the head note is missing, so the code push is refused for a ## Head that does not name HEAD" $?
   figrun opfig1 block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "figure-block scope-line names another head" "$t/fo"
   ck "  mutant mut:opfig1 (its line deleted): the code push is refused at the merged head, with nothing pushed" $?
   figrun - none; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ] && grep -qF "ROW-ONLY: prepr SKIPPED" "$t/fp2"
@@ -1762,9 +1842,9 @@ STUB
   ck "  mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)" $?
   # Only committed work is detached from a worktree: one holding commits origin lacks is refused
   # (the old reset would have dropped them); one whose HEAD origin has is detached as before.
-  unpushed() { # <mutant> <commit: 1|0>
-    local sd=$t/unp-$1-$2 g
-    rm -rf "$sd" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr/u"; sd=$(cd "$sd" && pwd -P)
+  unpushed() { # <mutant> <commit: 1|0> [<spelling> of the state dir update_pr.sh is given]
+    local sd=$t/unp-$1-$2-${3:--} g
+    rm -rf "$sd" "$sd.link" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr/u"; sd=$(cd "$sd" && pwd -P)
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
@@ -1772,7 +1852,7 @@ STUB
     git -C "$m" fetch -q origin fix/u && git -C "$m" worktree add -q -b fix/u "$sd/pr/u/wt" origin/fix/u || return 1
     [ "$2" = 0 ] || { printf 'row\n' > "$sd/pr/u/wt/row" && git -C "$sd/pr/u/wt" add row && git -C "$sd/pr/u/wt" commit -q -m row; }
     cp "$t/body.md" "$t/bU.md"
-    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    HPO_STATE_DIR=$(spell "$sd" "${3:--}") bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
     git -C "$sd/pr/u/wt" symbolic-ref -q HEAD > "$t/attached" 2>&1 || echo detached > "$t/attached"
     reap; git -C "$m" worktree remove --force "$sd/pr/u/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-u" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; true
   }
@@ -1787,6 +1867,13 @@ STUB
   unpushed - 0
   [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outu" && ! grep -qF "(unpushed work" "$t/outu"
   ck "null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push" $?
+  # #3549's review, update_pr.sh's side: its own-worktree scan (`grep "^$P/"`) and mut:elsewhere match git's
+  # physical list, so a symlinked state dir left that clean worktree on the branch and the run BUSY.
+  unpushed - 0 link
+  [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outu" && ! grep -qF "checked out elsewhere" "$t/outu"
+  ck "update_pr: through a symlinked state dir, that worktree is detached as before and the run reaches its push" $?
+  unpushed stateroot 0 link; [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "checked out elsewhere" "$t/outu"
+  ck "  mutant mut:stateroot (its line deleted): through a symlinked state dir the worktree stays on the branch and the run is BUSY (the defect)" $?
   # The row-only arm (R10-ROW-ONLY-UPDATE): a head that is the live head plus one commit (here code
   # sha `-` adding the row) asks app_push.sh for --row-only, whose own verdict decides whether a
   # full prepr is owed; a head merging new code asks for --reuse instead (P386), never --row-only.
