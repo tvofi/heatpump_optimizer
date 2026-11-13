@@ -399,12 +399,13 @@ measured at this record's landing.
 - **The yardstick is the owner's.** This record, `objective.json`,
   `check_scopes.py`, each enumerator once built, and a round's evaluation and
   objective record are code-owned. Nobody edits this record, `objective.json`,
-  the check or an enumerator but by a pull request the owner reviews; an
-  orchestrator proposes a refinement as a card. The orchestrator writes two
+  the check or an enumerator but by a pull request reviewed as decision 0013
+  requires of a code-owned path; an orchestrator proposes a refinement as a
+  card. The orchestrator writes two
   things and no others: a closing round's objective record, once, which the
   evaluator re-reads term by term; and, into a card of the evaluation, the
-  owner's ruling in his words with where he gave it (`ruling`). The owner's
-  approving review of that pull request is what makes the transcription his.
+  owner's ruling in his words with where he gave it (`ruling`). The approving
+  review that pull request owes is what makes the transcription his.
   The evaluator writes the rest of the evaluation and never a ruling. After
   this record lands, adding a term or an object class removes one.
 

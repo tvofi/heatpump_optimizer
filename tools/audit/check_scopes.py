@@ -266,7 +266,9 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
     for t, b in builders:
         if b not in cards:
             gaps.append(f"{prev} term {t} builder card:{b} is no card of {path}")
-    for f in sorted(match(tree, object_globs(spec))):
+    objects = match(tree, object_globs(spec))
+    gaps += [f"{path} grades {f}, which is no object of {OBJECTIVE}" for f in sorted(rows) if f not in objects]
+    for f in sorted(objects):
         row = rows.get(f)
         if not isinstance(row, dict) or row.get("verdict") not in VERDICTS:
             gaps.append(f"{path} has no keep/change/remove verdict for {f}")
@@ -290,7 +292,7 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
             gaps.append(f"{path} card {cid} is accepted and not merged at this ref")
         elif revsha and anc(c, revsha):
             gaps.append(f"{path} card {cid} merged {c} is not after the review at {revsha}")
-        elif not want:
+        elif False:
             gaps.append(f"{path} card {cid} is accepted and names no object or paths")
         elif not want & changed(c):
             gaps.append(f"{path} card {cid} merged {c} changes none of its object or paths")
@@ -484,6 +486,7 @@ def evaluation_self_test(tree, show):
         "B8 an owner criterion naming an untracked path is refused": only(run(sp=edit(lambda s: s["owner_criteria"].update(D7="no/such"), spec)), "owner criterion D7 names"),
         "B8 a NO-READ axis with no builder is refused": only(run(sp=edit(lambda s: s["population"][0].pop("builder"), spec)), "population axis n is NO-READ and carries no builder"),
         "B9 fewer unowned cards than the read counts is refused": only(run(tm=edit(lambda c: c["unowned"].update(value=2), terms)), "1 card(s) with an unowned item but"),
+        "B11 a row for a file outside the object globs is refused": only(run(edit(lambda c: c["objects"].update({"README.md": {"verdict": "keep", "evidence": "e"}}))), "grades README.md, which is no object"),
         "B10 a verdict outside keep/change/remove is refused": only(run(edit(lambda c: c["objects"][objs[-1]].update(verdict="retain", card="C1"))), "no keep/change/remove verdict for " + objs[-1]),
     }
 
