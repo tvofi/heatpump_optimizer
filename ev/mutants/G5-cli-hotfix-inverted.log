@@ -1,0 +1,5 @@
+cmd: python3 tools/pr/gate_priority.py --self-test
+diff: tools/pr/gate_priority.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc: 0
+gate_priority self-test: 17 checks, 0 failed
