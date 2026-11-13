@@ -1,4 +1,15 @@
-13:30:03 reviewed[rc=0] RED abf3b4f9e1ef38c519fc9b707bce14e9fce2909a pending: none red: gate  | live=7bd0caac80cbf9464a6091e62f39d0e7283627ee [rc=0] RED 7bd0caac80cbf9464a6091e62f39d0e7283627ee pending: gate red: none introduced: 1 INTRODUCED Show the tick loop refusing its own fixtures 
-13:31:43 reviewed[rc=0] RED abf3b4f9e1ef38c519fc9b707bce14e9fce2909a pending: none red: gate  | live=7bd0caac80cbf9464a6091e62f39d0e7283627ee [rc=0] RED 7bd0caac80cbf9464a6091e62f39d0e7283627ee pending: gate red: none introduced: 1 INTRODUCED Show the tick loop refusing its own fixtures 
-13:33:19 reviewed[rc=0] RED abf3b4f9e1ef38c519fc9b707bce14e9fce2909a pending: none red: gate  | live=7bd0caac80cbf9464a6091e62f39d0e7283627ee [rc=0] RED 7bd0caac80cbf9464a6091e62f39d0e7283627ee pending: gate red: none introduced: 1 INTRODUCED Show the tick loop refusing its own fixtures 
-POLLDONE
+15:50:25 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+15:51:38 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+15:52:50 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+15:54:03 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+15:55:15 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+15:56:27 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+15:57:40 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+15:58:52 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+16:00:05 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+16:01:17 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+16:02:30 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+16:03:42 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+16:04:55 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+16:06:07 rc=3 WAIT 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: gate red: none
+16:07:20 rc=1 RED 10d8f0433b00382ac991373f3eb2feaeaec57500 pending: none red: gate

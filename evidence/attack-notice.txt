@@ -1,8 +1,0 @@
-RESULT house() as it stands dhw_enabled True setpoint 55.0 min 45.0 hysteresis 2 -> False {'floor': '45.0', 'start': '53.0', 'target': '55.0', 'hysteresis': '2.0'}
-RESULT house() as it stands dhw_enabled True setpoint 55.0 min 45.0 hysteresis 4 -> False {'floor': '45.0', 'start': '51.0', 'target': '55.0', 'hysteresis': '4.0'}
-RESULT house() as it stands dhw_enabled True setpoint 55.0 min 45.0 hysteresis 10 -> False {'floor': '45.0', 'start': '45.0', 'target': '55.0', 'hysteresis': '10.0'}
-RESULT house() as it stands dhw_enabled True setpoint 55.0 min 45.0 hysteresis 20 -> True {'floor': '45.0', 'start': '35.0', 'target': '55.0', 'hysteresis': '20.0'}
-RESULT hot water explicitly disabled dhw_enabled False setpoint 55.0 min 45.0 hysteresis 2 -> False {'floor': '45.0', 'start': '53.0', 'target': '55.0', 'hysteresis': '2.0'}
-RESULT hot water explicitly disabled dhw_enabled False setpoint 55.0 min 45.0 hysteresis 4 -> False {'floor': '45.0', 'start': '51.0', 'target': '55.0', 'hysteresis': '4.0'}
-RESULT hot water explicitly disabled dhw_enabled False setpoint 55.0 min 45.0 hysteresis 10 -> False {'floor': '45.0', 'start': '45.0', 'target': '55.0', 'hysteresis': '10.0'}
-RESULT hot water explicitly disabled dhw_enabled False setpoint 55.0 min 45.0 hysteresis 20 -> False {'floor': '45.0', 'start': '35.0', 'target': '55.0', 'hysteresis': '20.0'}

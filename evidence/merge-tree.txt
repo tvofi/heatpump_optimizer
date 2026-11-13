@@ -1,30 +1,15 @@
-b1d9f59e400147289a8f7ba3106c7f1aba58d2bf
-rc=0 origin/main=5288db5dadbffbaf83cb4ed258a669d46c3224fe
-LEDGER-MERGE: resolved tests/structure_budgets.json
-  class_excess_loc: 17523 + both deltas = 17511
-  re-run the gate that owns this file before pushing
-MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
-LEDGER-MERGE: resolved tests/closures.json
-  closures.tests/block_duty.py: merged as a set (118 entries)
-  re-run the gate that owns this file before pushing
-3c5ce7c7782f52c54078034d86627219b0a0e5ee
-100644 ef3b25f6994e21383c6666be2437be6a6c6a8555 1	tests/deployment_shape.py
-100644 05ea531ba6a9db3ae364a707e3f012bfffa24283 2	tests/deployment_shape.py
-100644 b1df6b758411417365dad55ef4e580b8aec6d886 3	tests/deployment_shape.py
+head 10d8f0433b00382ac991373f3eb2feaeaec57500
+origin/main 154dbb4c61652135381ce66646d23f7109d1c142
+git merge-tree --write-tree origin/main 10d8f0433b00382ac991373f3eb2feaeaec57500
+1a2f8c78a4f24dcf7d112ef7f91b2a3d78898e7b
+rc=0
 
-Auto-merging README.md
-Auto-merging custom_components/heatpump_optimizer/coordinator.py
-Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
-Auto-merging custom_components/heatpump_optimizer/strings.json
-Auto-merging custom_components/heatpump_optimizer/translations/de.json
-Auto-merging custom_components/heatpump_optimizer/translations/en.json
-Auto-merging custom_components/heatpump_optimizer/translations/sv.json
-Auto-merging custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
-Auto-merging docs/configuration.md
-Auto-merging tests/closures.json
-Auto-merging tests/deployment_shape.py
-CONFLICT (content): Merge conflict in tests/deployment_shape.py
-Auto-merging tests/features.py
-Auto-merging tests/golden/claimed_drift.txt
-Auto-merging tests/structure_budgets.json
-rc=1 origin/main=cfa868394685dbb2360844aec43d7a8cac4736ab (re-taken before the push)
+review_carry: abf3b4f9e -> 10d8f0433  main=origin/main
+  branch-only commits: 4
+  why: ac3e2559adcf6c3166398519f5cb64006c354c79 is not the automatic merge of its parents
+  7bd0caac8  ci: pin killed mutants
+  ac3e2559a  Merge origin/main cfa8683946 into fix/r10-outside-dhw-start-hysteresis
+  667a8e552  Merge commit 'ac3e2559adcf6c3166398519f5cb64006c354c79' into fix/r10-outside-dhw-start-hysteresis
+  10d8f0433  Merge remote-tracking branch 'origin/main' into fix/r10-outside-dhw-start-hysteresis
+review_carry: FRESH-REVIEW
+review_carry rc=1
