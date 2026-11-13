@@ -1,0 +1,26 @@
+[
+ {
+  "name": "redsecs-validate-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "case $redsecs in ''|*[!0-9]*) echo \"cloud_relay: HPO_RELAY_PENDING_RED_SECS must be seconds; the pending-ci draft is held\" >&2; return 75;; esac",
+  "new": ":"
+ },
+ {
+  "name": "nr-rev-window-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ \"$age\" -gt \"$rlim\" ] && [ \"$age\" -le \"$win\" ] || continue  # mut:noreturnrevage",
+  "new": "[ \"$age\" -gt \"$rlim\" ] || continue"
+ },
+ {
+  "name": "nr-rev-revt-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "\"refs/heads/probe/rev-*-$rn8\" \"refs/heads/probe/revt-*-$rn8\"",
+  "new": "\"refs/heads/probe/rev-*-$rn8\""
+ },
+ {
+  "name": "nr-rev-lsremote-fail-continue",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "\"refs/heads/probe/revt-*-$rn8\" > \"$state/cloud-nrr.$$\" || continue",
+  "new": "\"refs/heads/probe/revt-*-$rn8\" > \"$state/cloud-nrr.$$\" || :"
+ }
+]
