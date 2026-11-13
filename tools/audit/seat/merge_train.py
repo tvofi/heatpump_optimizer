@@ -274,6 +274,7 @@ merge bot PRs automatically"; run and batch):
 from __future__ import annotations
 
 import argparse
+import ast
 import contextlib
 import datetime
 import fcntl
@@ -526,18 +527,83 @@ def rollup_walk(fetch, head: str, max_pages: int = gh_read.MAX_PAGES):
     return merged
 
 
-def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
+#: P436's barrier lives in `classify` itself, so no caller list exists to be
+#: incomplete: a reader names how it read deferral, and the read is judged at
+#: run time by its value and its caller's frame, whatever spelling, alias,
+#: getattr, partial or module reached the call. `busy` is required: a `Busy`
+#: (gate.py's reading at the head), or FINAL, a read that ignores deferral,
+#: accepted only from the frames registered in FINAL_READERS. Anything else --
+#: no busy, None, (), a plain list -- raises BlindRead.
+class FinalRead:
+    """The type of FINAL, the one value a read ignoring deferral passes as `busy`."""
+
+    def __repr__(self) -> str:
+        return type(self).__name__
+
+
+FINAL = FinalRead()
+
+#: The frames whose FINAL read is a decision, keyed (repo path, co_qualname) of
+#: the function calling `classify`.
+FINAL_READERS = {
+    ("tools/audit/seat/merge_train.py", "approval_owed"): "re-reads a head whose approval is owed: a deferral there is the policy gate's, not this read's",
+    ("tools/audit/seat/merge_train.py", "Train.classify_at"): "the first read of the two-step: a red GATE is re-read against busy/sweep right after",
+    ("tools/audit/seat/merge_train.py", "Train.wait_ci"): "the first read of the poll: a red GATE is re-read against busy right after",
+    ("tools/audit/seat/merge_train.py", "Train.main_green"): "main's tip: a push to main runs the full code run, no edit-run deferral exists there",
+    ("tools/audit/seat/orchestrator_tick.py", "Tick._classify_reading"): "the fallback when classify_at cannot run: a red stays red (fail closed)",
+}
+
+#: The functions that read a head's runs, the only frames that may mint an EMPTY
+#: Busy ("nothing at this head is busy" is a reading; a non-empty Busy only
+#: ever turns a red into a wait, so it is minted anywhere).
+BUSY_MINTERS = frozenset({("tools/audit/seat/merge_train.py", "gate_busy"),
+                          ("tools/audit/seat/merge_train.py", "gate_rerunning"),
+                          ("tools/audit/seat/merge_train.py", "Train._gate_busy")})
+
+
+class BlindRead(TypeError):
+    """A read of the gate conclusion that states no deferral reading."""
+
+
+def caller_frame(depth: int) -> "tuple[str, str]":
+    """(repo path, co_qualname) of the function <depth> frames above the caller of
+    this function; a file outside ROOT keeps its absolute path, so no
+    registered key matches it."""
+    code = sys._getframe(depth + 1).f_code
+    path = Path(code.co_filename).resolve()
+    rel = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else str(path)
+    return rel, code.co_qualname
+
+
+class Busy(list):
+    """gate.py's `busy` at one head: the ci.yml run ids still adding a source.
+    Non-empty, a red GATE is a wait; empty, it is final -- so an empty one is
+    minted only by BUSY_MINTERS."""
+
+    def __init__(self, ids=()):
+        super().__init__(ids)
+        if not self and caller_frame(1) not in BUSY_MINTERS:
+            raise BlindRead(f"an empty Busy minted at {caller_frame(1)}, which reads no runs")
+
+
+def classify(latest: dict, required, busy) -> "tuple[str, list[str], list[str]]":
     """(state, pending, red) over the required contexts less NOT_GATING, each
     on its latest run: 'red' when any concluded non-green, else 'wait' while
     any is pending or has no run yet, else 'green'. A red GATE is pending
-    while `busy` (gate_busy: a ci.yml run at the head still adding a source)
-    is non-empty. `required` None (a ruleset that could not be read) raises
-    ValueError: a refusal, never green. A head is reviewable (K15 (d))
-    exactly when `red` is empty."""
+    while `busy` (a Busy) is non-empty; FINAL reads it red, from a
+    FINAL_READERS frame only (BlindRead otherwise). `required` None (a ruleset
+    that could not be read) raises ValueError: a refusal, never green. A head is
+    reviewable (K15 (d)) exactly when `red` is empty."""
+    if isinstance(busy, Busy):
+        deferred = {GATE} if busy else set()
+    elif busy is FINAL and caller_frame(1) in FINAL_READERS:
+        deferred = set()
+    else:
+        raise BlindRead(f"classify from {caller_frame(1)} with busy={busy!r}: pass gate_busy's Busy, "
+                        "or FINAL from a FINAL_READERS frame")
     if required is None:
         raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
     names = judged(required)
-    deferred = {GATE} if busy else set()
     pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending"
                      or (n in deferred and run_state(latest[n]) == "red"))
     red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red" and n not in deferred)
@@ -582,7 +648,7 @@ def gate_busy(ci_runs, check_runs) -> list:
             for r in ci_runs]
     # The train is no run: gate.py's tie-break between two gates (a LATER run
     # whose gate started) has no train side, so run_id is past every id.
-    return _gate_py().busy({"run_id": float("inf")}, runs)
+    return Busy(_gate_py().busy({"run_id": float("inf")}, runs))
 
 
 def gate_rerunning(ci_runs, check_runs) -> list:
@@ -592,8 +658,8 @@ def gate_rerunning(ci_runs, check_runs) -> list:
     `busy` reads it judging. Its red is the one being re-judged."""
     done = {(c.get("check_suite") or {}).get("id") for c in gate_suites(check_runs or ())
             if c.get("status") == "completed"}
-    return sorted(r["id"] for r in ci_runs
-                  if r.get("status") not in ("completed", "action_required") and r.get("check_suite_id") in done)
+    return Busy(sorted(r["id"] for r in ci_runs
+                  if r.get("status") not in ("completed", "action_required") and r.get("check_suite_id") in done))
 
 
 def sweep_settling(check_runs, now: float) -> bool:
@@ -615,6 +681,12 @@ def sweep_settling(check_runs, now: float) -> bool:
 #: One poll (HEARTBEAT_SECONDS) covers the sweep's start; a sweep that never
 #: re-runs it leaves the red standing, read one poll later.
 SWEEP_SETTLE_POLLS = 1
+
+#: How long after its run_started_at a started ci.yml run at a deferring head is
+#: waited on past `polls`: the longest job ceiling in ci.yml (prelude, 150 min),
+#: one named constant in place of reading each job's timeout-minutes. A wait on
+#: a run past it, or on a queued one, is bounded by `polls` alone (TIMEOUT).
+CODE_RUN_DEADLINE_SECONDS = 150 * 60
 
 
 def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
@@ -763,7 +835,7 @@ def approval_owed(train: "Train", pr: int, head: str, runs, required) -> "str | 
     the three-dot names from git. A read that fails or a raise_hold Stop is
     None: fail closed, the head stays not reviewable. The merge state is
     untouched: `classify` and the train judge as before."""
-    red = set(classify(latest_runs(runs), gating_names(required))[2])
+    red = set(classify(latest_runs(runs), gating_names(required), FINAL)[2])
     if RAISE_GATE not in red or red - {GATE, RAISE_GATE}:
         return None
     if not gate_raise_only(train, runs):
@@ -1539,6 +1611,22 @@ def rollup_states(entries) -> "dict[str, str]":
     return {n: ("PENDING" if n in pending else v[1]) for n, v in best.items()}
 
 
+def rollup_red_after_pass(entries, name: str) -> bool:
+    """True when every `name` entry that passed AND the newest failed one carry a
+    stamp (`completedAt`, else `startedAt`) and the failure is strictly newer than
+    every pass: a red that landed after the last green, never a deferral."""
+    def stamp(c):
+        xs = [x for x in (c.get("completedAt"), c.get("startedAt")) if x and not x.startswith("0001")]
+        return xs[0] if xs else ""
+    passes, fails = [], []
+    for c in entries:
+        if (c.get("name") or c.get("context") or "?") != name:
+            continue
+        st = (c.get("conclusion") or c.get("state") or c.get("status") or "").upper()
+        (passes if st == "SUCCESS" else fails if st in POLICY_RED else []).append(stamp(c))
+    return bool(fails and passes and all(passes) and all(fails) and max(fails) > max(passes))
+
+
 APPROVER_BOT = "hpo-approver[bot]"
 WAIT_GATES = (GATE, RAISE_GATE)
 
@@ -2157,9 +2245,9 @@ class Train:
         code, runs, _ = self.pages(f"repos/{self.repo}/commits/{h}/check-runs", "check_runs")
         return None if code else runs
 
-    def gate_deferred(self, h: str, red: "list[str]") -> "list[int]":
-        """The ids of the other workflow runs at <h> still unfinished when the
-        only red is GATE, else []. An edit run's gate fails by design while a
+    def gate_deferred_runs(self, h: str, red: "list[str]") -> "list[tuple]":
+        """The (id, status, run_started_at) of the other workflow runs at <h> still
+        unfinished when the only red is GATE, else []. An edit run's gate fails by design while a
         code run at the same head is unfinished ("still being judged; their
         gate decides", gate.py `deferral`), and that run's own gate check-run
         does not exist until every unit finishes (ci.yml: gate needs
@@ -2172,17 +2260,33 @@ class Train:
         code, runs, _ = self.pages(f"repos/{self.repo}/actions/runs?head_sha={h}", "workflow_runs")
         if code:
             return []
-        return sorted(r["id"] for r in runs if isinstance(r.get("id"), int)
+        return sorted((r["id"], (r.get("status") or "").strip(), (r.get("run_started_at") or "").strip())
+                      for r in runs if isinstance(r.get("id"), int)
                       and (r.get("status") or "") not in ("completed", "action_required", ""))
 
-    def _gate_busy(self, h: str, check_runs) -> list:
+    def _sibling_in_deadline(self, rows) -> bool:
+        """Whether a deferral's deciding run is STARTED (in_progress) and still
+        inside CODE_RUN_DEADLINE_SECONDS of its run_started_at: such a wait is
+        bounded by that run's own deadline, not by `polls` (#3398 ran 5863 s and
+        concluded success; polls=24 is ~5832 s). A run still queued, past its
+        deadline, or with no readable start keeps the polls bound."""
+        for _rid, st, started in rows:
+            try:
+                t0 = datetime.datetime.fromisoformat(started.replace("Z", "+00:00")).timestamp()
+            except (ValueError, AttributeError):
+                continue
+            if st == "in_progress" and 0 <= self.wall() - t0 <= CODE_RUN_DEADLINE_SECONDS:
+                return True
+        return False
+
+    def _gate_busy(self, h: str, check_runs) -> Busy:
         """gate_busy at <h> from one ci.yml runs listing by head sha. An
         unreadable listing reads no run busy, logged: the red stands as it did
         before this read existed -- a refusal, never a wait on a guess."""
         code, ci_runs, _ = self.pages(f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}", "workflow_runs")
         if code:
             self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
-            return []
+            return Busy()
         return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
 
     def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
@@ -2192,10 +2296,10 @@ class Train:
         readers (the `classify` subcommand, proof_watch), none of which re-reads
         a RED. `wait_ci`, which polls, takes the same settle as SWEEP_SETTLE_POLLS."""
         last = latest_runs(runs or ())
-        state = classify(last, required)
+        state = classify(last, required, FINAL)
         if GATE not in state[2]:
             return state
-        busy = self._gate_busy(h, runs) or (["sweep"] if sweep_settling(runs, self.wall()) else [])
+        busy = self._gate_busy(h, runs) or (Busy(["sweep"]) if sweep_settling(runs, self.wall()) else None)
         return classify(last, required, busy) if busy else state
 
     def wait_ci(self, h: str, only: "list[str] | None" = None,
@@ -2227,17 +2331,20 @@ class Train:
         graced = False
         held: list = []
         settle = 0
-        for k in range(1, self.polls + 1):
+        k, deferring, last_def = 0, [], 0
+        while k < self.polls or (last_def and not deferring and k <= last_def + 2) or self._sibling_in_deadline(deferring):
+            k += 1
+            deferring = []
             runs = self._check_runs(h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
-                state = classify(last, only)
+                state = classify(last, only, FINAL)
                 if GATE in state[2]:
                     busy = self._gate_busy(h, runs)
                     if not busy and settle < SWEEP_SETTLE_POLLS and any(
                             run_state(c) == "green" for c in gate_suites(runs)):
                         settle += 1
-                        busy = ["sweep"]
+                        busy = Busy(["sweep"])
                     if busy != held:
                         held = busy
                         if busy == ["sweep"]:
@@ -2249,7 +2356,10 @@ class Train:
                     state = classify(last, only, busy)
                 _, pending, red = state
                 if not pending:
-                    sib = self.gate_deferred(h, red)
+                    rows = self.gate_deferred_runs(h, red)
+                    sib = [r[0] for r in rows]
+                    deferring = rows
+                    last_def = k if rows else last_def
                     if sib:
                         graced = True
                     elif graced and red == [GATE]:
@@ -3116,21 +3226,41 @@ class Train:
             d = None
         if not isinstance(d, dict):
             return f"the merge state could not be read ({o.strip()[-120:] or 'no output'})", True, False
-        last = rollup_states(d.get("statusCheckRollup") or ())
-        red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED]
+        entries = d.get("statusCheckRollup") or ()
+        last = rollup_states(entries)
+        seen: dict = {}
+        for c in entries:
+            nm = c.get("name") or c.get("context") or "?"
+            seen.setdefault(nm, set()).add((c.get("conclusion") or c.get("state") or c.get("status") or "").upper())
+        # A deferral gate (gate.py `deferral`) fails at once beside a gate that
+        # passed (a CI review run's), and collapsing by name hides it (P590):
+        # the same-named contexts are read together, and a failing GATE beside
+        # a passing one, or while `_gate_busy` (classify_at's reading: gate.py's
+        # `busy` over the ci.yml runs, not any unfinished workflow) names a run,
+        # is a deferral. A failure stamped strictly newer than every pass is a
+        # real red (P608: #3445). The deferral is only the gate's own: the other
+        # required contexts are read below, so a red beside it is still named.
+        deferral = bool(GATE in req and GATE not in self.ignore and seen.get(GATE, set()) & set(POLICY_RED)
+                        and ((("SUCCESS" in seen[GATE]) and not rollup_red_after_pass(entries, GATE))
+                             or self._gate_busy(h, self._check_runs(h))))
+        red = [n for n in req if n not in self.ignore and last.get(n) in POLICY_RED and not (deferral and n == GATE)]
         pending = [n for n in req if n not in self.ignore and n not in red
-                   and last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL")]
+                   and (last.get(n) not in ("SUCCESS", "SKIPPED", "NEUTRAL") or (deferral and n == GATE))]
         ms, rd = d.get("mergeStateStatus") or "?", d.get("reviewDecision") or "none"
         state = f"mergeStateStatus {ms}, reviewDecision {rd}"
         if red:
             return f"required context(s) red at {h[:8]}: {', '.join(red)} ({state})", False, False
         if pending:
-            return f"required context(s) not yet green at {h[:8]}: {', '.join(pending)} ({state})", True, False
+            why = " -- gate is a deferral: its deciding run settles it" if deferral else ""
+            return f"required context(s) not yet green at {h[:8]}: {', '.join(pending)}{why} ({state})", True, False
         if rd in ("REVIEW_REQUIRED", "CHANGES_REQUESTED") or ms == "BLOCKED":
             if self.review_run_settling(pr, h):
                 return (f"{state}: every required context is green and the approver's approval sits at "
                         f"{h[:8]}, whose `CI review` run is unfinished or ended under {REVIEW_SETTLE_SECONDS} s "
                         "ago: the policy has not caught up"), True, False
+            if rd == "APPROVED":  # a review exists: only its last-push rule can be unmet
+                return (f"{state}: every required context is green and a review exists, so the missing "
+                        f"requirement is an approval of the last push, at the moved head {h[:8]}"), False, True
             return (f"{state}: every required context is green, so the missing requirement is a review "
                     f"at {h[:8]}"), False, rd != "CHANGES_REQUESTED"
         return f"{state}, every required context green: no cause read", False, False
@@ -3944,7 +4074,7 @@ class Train:
         # flight is a wait, never red, and only RED carries `why` (K15).
         if self.overlap:
             runs = self._check_runs(tip)
-            state, pending, red = classify(latest_runs(runs or ()), req)
+            state, pending, red = classify(latest_runs(runs or ()), req, FINAL)
             if runs is None:
                 self.log(f"OVERLAP: {self.base} at {tip[:12]}: check runs unreadable; --overlap does not wait")
             elif state == "red":
@@ -6025,6 +6155,7 @@ def _self_test() -> int:
     _review_settle_self_test(check)
     _rollup_draft_self_test(check)
     _gate_race_self_test(check)
+    _gate_reader_barrier_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
     _batch_self_test(check)
@@ -6816,10 +6947,13 @@ def _gate_race_self_test(check) -> None:
         calls_sb: list = []
         return run, calls, calls_sb
 
-    def wait(checks, sibs, polls=4):
+    NOW = 1_800_000_000.0
+
+    def wait(checks, sibs, polls=4, wall=None):
         run, calls, calls_sb = world(checks, sibs)
         with tempfile.TemporaryDirectory() as d:
-            t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls)
+            t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls,
+                      wall=wall or (lambda: NOW))
             return t.wait_ci(H, only=[GATE]), calls_sb
     busy = _jl([{"id": 42237558473, "status": "in_progress"}, {"id": 42237558635, "status": "completed"}])
     done = _jl([{"id": 42237558473, "status": "completed"}, {"id": 42237558635, "status": "completed"}])
@@ -6829,6 +6963,34 @@ def _gate_race_self_test(check) -> None:
           "not returned red (the #3248 scene)", red == [])
     red, _ = wait([[edit_gate]], [busy], polls=3)
     check("a sibling run that never finishes ends as TIMEOUT, bounded by the polls", red == ["TIMEOUT"])
+    def iso(ago):
+        return datetime.datetime.fromtimestamp(NOW - ago, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    started = lambda st, ago: _jl([{"id": 42237558473, "status": st, "run_started_at": iso(ago)}])
+    red, sb = wait([[edit_gate]] * 8 + [[rerun_green, code_gate]],
+                   [started("in_progress", 5000)] * 7 + [done], polls=3)
+    check("carry 4 (1): a STARTED sibling run inside its deadline is waited on past `polls` (#3398: 5863 s, "
+          "polls=24 is ~5832 s), not TIMEOUT", red == [] and len(sb) > 3)
+    red, _ = wait([[edit_gate]], [started("queued", 5000)], polls=3)
+    check("carry 4 (1) null: a QUEUED sibling keeps the polls bound (TIMEOUT)", red == ["TIMEOUT"])
+    red, sb = wait([[edit_gate]], [started("in_progress", CODE_RUN_DEADLINE_SECONDS + 60)], polls=3)
+    check("carry 4 (1) null: a started sibling past its deadline keeps the polls bound (TIMEOUT)",
+          red == ["TIMEOUT"] and len(sb) == 3)
+    ceiling = max(int(m) for m in re.findall(r"timeout-minutes:\s*(\d+)", (ROOT / ".github/workflows/ci.yml").read_text()))
+    check("carry 4 (1): CODE_RUN_DEADLINE_SECONDS is ci.yml's longest job ceiling (timeout-minutes) in seconds, "
+          "read from the registered artifact", CODE_RUN_DEADLINE_SECONDS == ceiling * 60)
+    with tempfile.TemporaryDirectory() as d:  # the deadline's edges, read directly: [0, CODE_RUN_DEADLINE_SECONDS] inclusive
+        tb = Train("o/r", Path(d), None, "", (), 1, run=lambda *a, **k: (0, ""), sleep=lambda s: None,
+                   log=lambda s: None, polls=3, wall=lambda: NOW)
+        edge = lambda st, ago: tb._sibling_in_deadline([(1, st, iso(ago))])  # noqa: E731
+        check("carry 4 (1) edges: a started run is inside its deadline at 0 s and at exactly the deadline, outside "
+              "one second past it, and a queued or unreadable-start one is never inside",
+              edge("in_progress", 0) is True and edge("in_progress", CODE_RUN_DEADLINE_SECONDS) is True
+              and edge("in_progress", CODE_RUN_DEADLINE_SECONDS + 1) is False and edge("queued", 5) is False
+              and tb._sibling_in_deadline([(1, "in_progress", "")]) is False)
+    tick = iter(range(10 ** 6))
+    red, sb = wait([[edit_gate]], [started("in_progress", 5000)], polls=3, wall=lambda: NOW + 600 * next(tick))
+    check("carry 4 (1): a started sibling that never finishes ends at its deadline as TIMEOUT, never unbounded "
+          "(the wall advances 600 s a read)", red == ["TIMEOUT"] and 3 < len(sb) < 40)
     red, sb = wait([[edit_gate]], [done])
     check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
           red == [GATE] and len(sb) == 1)
@@ -6843,6 +7005,101 @@ def _gate_race_self_test(check) -> None:
         r = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
                   polls=3).wait_ci(H, only=["fast"])
     check("a failed unit beside an unfinished sibling is final: only the gate defers", r == ["fast"] and not sb)
+
+
+#: One planted reader per spelling every review found passing a caller scan:
+#: (name, source). Each defines `reader(latest, required)` reading the gate
+#: conclusion with no deferral; `_F` is FINAL, the only spelling of that read.
+PLANTED_READERS = [
+    ("direct call", "def reader(latest, required):\n    return classify(latest, required, _F)\n"),
+    ("import alias", "def reader(latest, required):\n    from merge_train import classify as judge\n    return judge(latest, required, _F)\n"),
+    ("rebinding", "judge = classify\ndef reader(latest, required):\n    return judge(latest, required, _F)\n"),
+    ("getattr", "import sys\ndef reader(latest, required):\n    return getattr(sys.modules['merge_train'], 'classify')(latest, required, _F)\n"),
+    ("functools.partial", "import functools\ndef reader(latest, required):\n    return functools.partial(classify, latest, required)(_F)\n"),
+    ("a function named *self_test*", "def reader_self_test(latest, required):\n    return classify(latest, required, _F)\nreader = reader_self_test\n"),
+    ("busy omitted", "def reader(latest, required):\n    return classify(latest, required)\n"),
+    ("busy a literal ()", "def reader(latest, required):\n    return classify(latest, required, ())\n"),
+    ("busy rebound to an empty Busy", "def reader(latest, required):\n    b = Busy()\n    return classify(latest, required, b)\n"),
+]
+
+
+def plant(src: str, filename: str) -> dict:
+    """<src> run as a module of its own whose code objects carry <filename>, with
+    merge_train's names in scope: its functions' frames are <filename>'s."""
+    ns = {k: v for k, v in globals().items() if not k.startswith("__")} | {"_F": FINAL, "__name__": "planted"}
+    exec(compile(src, filename, "exec"), ns)
+    return ns
+
+
+def _gate_reader_barrier_self_test(check) -> None:
+    sys.modules.setdefault("merge_train", sys.modules[__name__])
+    red_gate = latest_runs([{"name": GATE, "status": "completed", "conclusion": "failure", "started_at": "1"}])
+    here = str(Path(__file__).resolve())
+
+    def blind(fn) -> bool:
+        try:
+            fn(red_gate, [GATE])
+        except TypeError:  # BlindRead, or a missing busy: either refuses
+            return True
+        return False
+    places = {"merge_train.py": here, "orchestrator_tick.py": str(ROOT / "tools/audit/seat/orchestrator_tick.py"),
+              "a module outside the seat": str(ROOT / "custom_components/elsewhere.py"),
+              "a module outside the tree": "/nonexistent/elsewhere.py"}
+    passed = [(name, where) for name, src in PLANTED_READERS for where, f in places.items()
+              if not blind(plant(src, f)["reader"])]
+    check(f"P436 barrier: each of the {len(PLANTED_READERS)} planted deferral-blind readers, planted in each of "
+          f"{len(places)} modules, refuses a red gate (BlindRead, or TypeError for no busy) -- passed: {passed[:4]}", not passed)
+    def at(path: str, qual: str):
+        """A FINAL reader whose frame is (path, qual)."""
+        cls, _, fn = qual.rpartition(".")
+        body = f"def {fn}(latest, required):\n    return classify(latest, required, _F)\n"
+        if cls:
+            body = f"class {cls}:\n    @staticmethod\n" + "".join(f"    {ln}\n" for ln in body.splitlines())
+        ns = plant(body, str(ROOT / path))
+        return getattr(ns[cls], fn) if cls else ns[fn]
+    refused = [k for k in FINAL_READERS if blind(at(*k))]
+    check(f"P436 barrier null: a FINAL read from each FINAL_READERS frame is read, not refused -- refused: {refused}",
+          not refused)
+    defs = {}
+    for path, qual in FINAL_READERS:
+        tree = ast.parse((ROOT / path).read_text())
+        quals = {f"{c.name}.{f.name}" for c in tree.body if isinstance(c, ast.ClassDef)
+                 for f in c.body if isinstance(f, ast.FunctionDef)}
+        defs[(path, qual)] = qual in quals | {f.name for f in tree.body if isinstance(f, ast.FunctionDef)}
+    check(f"P436 barrier: every FINAL_READERS key names a function in its file -- stale: {[k for k, v in defs.items() if not v]}",
+          all(defs.values()))
+    minted = plant("def gate_busy():\n    return Busy()\n", here)["gate_busy"]()
+    check("P436 barrier: an empty Busy is minted by a BUSY_MINTERS frame and reads the red final; a non-empty "
+          "Busy minted anywhere defers it; gate_busy over no runs is an empty Busy",
+          classify(red_gate, [GATE], minted) == ("red", [], [GATE])
+          and classify(red_gate, [GATE], Busy([7])) == ("wait", [GATE], [])
+          and gate_busy([], []) == [] and isinstance(gate_busy([], []), Busy))
+    check("P436 barrier null: an unregistered frame sharing a registered qualname, file basename or path is refused (the key is repo path and qualname)",
+          blind(at("tools/audit/seat/proof_watch.py", "approval_owed"))
+          and blind(at("tools/audit/seat/merge_train.py", "Tick._classify_reading"))
+          and blind(at("dev/audit/harnesses/merge_train.py", "approval_owed")))
+    try:
+        at("tools/audit/seat/proof_watch.py", "approval_owed")(red_gate, [GATE])
+        said = ""
+    except BlindRead as e:
+        said = str(e)
+    check("P436 barrier: a refusal names the caller's frame and the busy it was given, FINAL by its type name -- "
+          f"{said[:120]}", "'tools/audit/seat/proof_watch.py', 'approval_owed'" in said and "busy=FinalRead:" in said)
+    stamped = lambda n, st, at: {"name": n, "conclusion": st, "completedAt": at}  # noqa: E731
+    G1, G2 = "2026-11-12T09:00:00Z", "2026-11-12T10:00:00Z"
+    check("P608 rollup_red_after_pass: a failure strictly newer than the pass is real, an equal stamp is a deferral "
+          "(no order proves the red landed later), the other name's entries are never read, and an unstamped entry is no proof",
+          rollup_red_after_pass([stamped("gate", "SUCCESS", G1), stamped("gate", "FAILURE", G2)], "gate") is True
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G2)], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G1)], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G1), stamped("gate", "FAILURE", G2),
+                                     stamped("other", "SUCCESS", "2026-11-12T12:00:00Z")], "gate") is True
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", G2), stamped("gate", "FAILURE", G1),
+                                     stamped("other", "FAILURE", "2026-11-12T12:00:00Z")], "gate") is False
+          and rollup_red_after_pass([stamped("gate", "SUCCESS", ""), stamped("gate", "FAILURE", G2)], "gate") is False)
+    sh = (ROOT / "tools/audit/seat/merge_pr.sh").read_text()
+    check("P436 barrier: merge_pr.sh's raw latest-check red read is followed by a classify WAIT-wait before RED",
+          sh.index('conclusion=="failure"') < sh.index("merge_train.py} classify") < sh.index('echo "RED: $red"'))
 
 
 def _rollup_draft_self_test(check) -> None:
@@ -7054,10 +7311,15 @@ def _review_settle_self_test(check) -> None:
     H, NOW = "b" * 40, 1_000_000.0
     iso = lambda ago: datetime.datetime.fromtimestamp(NOW - ago, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")  # noqa: E731
 
-    def world(runs, reviews=(), rollup="SUCCESS", ms="BLOCKED", rd="APPROVED", open_reads=0):
+    def world(runs, reviews=(), rollup="SUCCESS", ms="BLOCKED", rd="APPROVED", open_reads=0, ci=(), every=(),
+              req=("gate",)):
         sleeps, lines, reads = [], [], [0]
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
+            if "workflows/ci.yml/runs?head_sha=" in a:  # the ci.yml runs `_gate_busy` reads
+                return 0, _jl(list(ci))
+            if "actions/runs?head_sha=" in a:  # EVERY workflow's runs: not the deferral's reading
+                return 0, _jl(list(every))
             if "actions/runs?event=pull_request_review" in a:
                 reads[0] += 1
                 if open_reads:  # #3031's shape: unfinished for the first <open_reads> reads
@@ -7065,13 +7327,14 @@ def _review_settle_self_test(check) -> None:
                 return 0, "\n".join(f"{i} {st} {iso(ago)}" for i, st, ago in runs)
             if "statusCheckRollup" in a:
                 return 0, json.dumps({"mergeStateStatus": ms, "reviewDecision": rd,
-                                      "statusCheckRollup": [{"name": "gate", "conclusion": rollup}]})
+                                      "statusCheckRollup": [r if isinstance(r, dict) else {"name": "gate", "conclusion": r}
+                                                            for r in ([rollup] if isinstance(rollup, str) else rollup)]})
             if "/reviews" in a:
                 return 0, _jl(list(reviews))
             return 0, ""
         t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleeps.append, log=lines.append,
                   polls=3, wall=lambda: NOW)
-        t.required = lambda pr_head=False: ["gate"]
+        t.required = lambda pr_head=False: list(req)
         return t, sleeps, lines, reads
     appr = {"state": "APPROVED", "commit_id": H, "user": {"login": APPROVER_LOGIN}}
     # (1) the wait is time-bounded: 3 fast polls, then POLL_SECONDS ones, then the merge proceeds
@@ -7097,13 +7360,48 @@ def _review_settle_self_test(check) -> None:
     check("P331 (2) an unfinished run counts as settling", why(runs=[("77", "in_progress", 10)], reviews=[appr])[1] is True)
     got = why(runs=[("77", "completed", 600)], reviews=[appr])
     check("P331 (2) null: the run ended long ago (#2968's missing owner review): parked as a review owed, "
-          "as before", got[1] is False and got[2] is True and "missing requirement is a review" in got[0])
+          "as an approval owed at the moved head (reviewDecision APPROVED: a last-push rule, never 'a review')",
+          got[1] is False and got[2] is True and "last push" in got[0] and "is a review" not in got[0])
+    got = why(runs=[("77", "completed", 600)], reviews=[appr], rd="REVIEW_REQUIRED")
+    check("P590 null: REVIEW_REQUIRED keeps the review wording", got[1] is False and "missing requirement is a review" in got[0])
     check("P331 (2) null: no review run at the head parks", why(runs=[], reviews=[appr])[1] is False)
     check("P331 (2) null: a settling run but no approver approval at that head parks",
           why(runs=[("77", "completed", 60)], reviews=[dict(appr, commit_id="c" * 40)])[1] is False
           and why(runs=[("77", "completed", 60)], reviews=[])[1] is False)
     got = why(runs=[("77", "completed", 60)], reviews=[appr], rollup="FAILURE")
     check("P331 (2) null: a required context red parks, never waits", got[1] is False and "red" in got[0])
+    # P590: a CI review run's passing gate beside the edit run's deferral failure gate
+    for order in (["SUCCESS", "FAILURE"], ["FAILURE", "SUCCESS"]):
+        got = why(runs=[("77", "completed", 600)], reviews=[appr], rollup=order)
+        check(f"P590 a rollup holding a success gate and a deferral failure gate ({order[0]} first) waits, "
+              "with no review wording", got[1] is True and got[2] is False and "deferral" in got[0]
+              and "review" not in got[0].split("(")[0])
+    # P436: a deferral gate is the gate's own, read as classify_at reads it (gate.py's `busy` over the
+    # ci.yml runs); every other required context is still read, and an unrelated unfinished workflow is
+    # no deferral. Each case drives policy_refusal; its null is the reading it must not give.
+    FAIL = lambda n, at: {"name": n, "conclusion": "FAILURE", "completedAt": at}  # noqa: E731
+    code_q, other = [{"id": 5, "status": "queued"}], [{"id": 9, "name": "codeql", "status": "in_progress"}]
+    both = ("gate", "tests / fast (3.14)")
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T09:55:00Z")], ci=code_q)
+    check("P436 A: a gate FAILURE while a ci.yml run is unfinished is a deferral wait (reason names it)",
+          got[1] is True and "deferral" in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T09:55:00Z")])
+    check("P436 A null: the same gate FAILURE with no unfinished ci.yml run is red, never a wait",
+          got[1] is False and "red" in got[0] and "deferral" not in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T09:55:00Z"), FAIL("gate", "2026-11-12T11:00:00Z")],
+              every=other)
+    check("P436 B: a real gate red beside an unrelated unfinished workflow (not a ci.yml run) is red",
+          got[1] is False and "red" in got[0] and "deferral" not in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T11:00:00Z")], every=other)
+    check("P436 B': a lone real gate red beside an unrelated unfinished workflow is red",
+          got[1] is False and "red" in got[0] and "deferral" not in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[FAIL("gate", "2026-11-12T09:55:00Z"), FAIL(both[1], "2026-11-12T10:10:00Z")],
+              ci=code_q, req=both)
+    check("P436 C: another required context red beside a deferral gate is named, and the refusal does not wait",
+          got[1] is False and "red at" in got[0] and both[1] in got[0] and "gate," not in got[0] and "deferral" not in got[0])
+    got = why(runs=[], reviews=[appr], rollup=[{"name": "gate", "conclusion": "SUCCESS"}, FAIL(both[1], "2026-11-12T10:10:00Z")],
+              req=both)
+    check("P436 C null: the same other-context red with a green gate is named red", got[1] is False and both[1] in got[0])
 
 
 def _git_retry_self_test(check) -> None:
@@ -7409,9 +7707,9 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
         check(f"defer-wait table: {what} (gate_busy == gate.py busy == {want})", gate_busy(ci_runs, crs) == own == want)
     check("defer-wait: classify reads a red gate as pending while busy, red without (null: a red non-gate context "
           "stays red whatever is busy)",
-          classify(latest_runs([edit_red]), [GATE], [C]) == ("wait", [GATE], [])
-          and classify(latest_runs([edit_red]), [GATE]) == ("red", [], [GATE])
-          and classify(latest_runs([cr("fast", conclusion="failure")]), ["fast"], [C])[0] == "red")
+          classify(latest_runs([edit_red]), [GATE], Busy([C])) == ("wait", [GATE], [])
+          and classify(latest_runs([edit_red]), [GATE], gate_busy([], [])) == ("red", [], [GATE])
+          and classify(latest_runs([cr("fast", conclusion="failure")]), ["fast"], Busy([C]))[0] == "red")
     code_gate_live = unit(GATE, 2, "in_progress", started="15:20")
     code_gate_green = unit(GATE, 2, started="15:20")
     scene = [  # one frame per check-runs read, i.e. per poll
@@ -7623,20 +7921,20 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
                       cr("record", conclusion="failure"), cr("record-autofix", conclusion="failure")])
     check("K15 (a): main e7c66485's shape -- required contexts in flight, record and record-autofix red -- "
           "reads wait, never red, even with record listed as required",
-          classify(e7, req) == ("wait", ["mutation", "typing"], []))
+          classify(e7, req, gate_busy([], [])) == ("wait", ["mutation", "typing"], []))
     check("K15 (a): every required context green reads green; a non-required red is not counted",
           classify(latest_runs([cr("fast"), cr("mutation"), cr("typing"), cr("codeql", conclusion="failure")]),
-                   req) == ("green", [], []))
+                   req, gate_busy([], [])) == ("green", [], []))
     check("K15 (a): a failed required context reads red while another is still in flight",
           classify(latest_runs([cr("fast", conclusion="failure"), cr("mutation", "in_progress"), cr("typing")]),
-                   req) == ("red", ["mutation"], ["fast"]))
+                   req, gate_busy([], [])) == ("red", ["mutation"], ["fast"]))
     check("K15 (a): judged on the latest run of each context -- a re-run that went green clears the red",
           classify(latest_runs([cr("fast", conclusion="failure"), cr("fast", started="2"), cr("mutation"),
-                                cr("typing")]), req)[0] == "green")
+                                cr("typing")]), req, gate_busy([], []))[0] == "green")
     check("K15 (a): a required context with no run yet is wait, never green",
-          classify(latest_runs([cr("fast"), cr("mutation")]), req) == ("wait", ["typing"], []))
+          classify(latest_runs([cr("fast"), cr("mutation")]), req, gate_busy([], [])) == ("wait", ["typing"], []))
     try:
-        classify(e7, None)
+        classify(e7, None, gate_busy([], []))
         refused = False
     except ValueError:
         refused = True
@@ -7676,17 +7974,17 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
                        ("(ii) an older green gate suite beside a newer red one",
                         [gt("success", 1, "1"), gt("failure", 2, "2")])):
         check(f"A5 {what} reads RED, never green (the worst suite stands)",
-              classify(latest_runs(runs), [GATE]) == ("red", [], [GATE]))
+              classify(latest_runs(runs), [GATE], gate_busy([], [])) == ("red", [], [GATE]))
     check("A5 null: two green gate suites read green, and a red attempt re-run green inside ONE suite is green",
-          classify(latest_runs([gt("success", 1, "1"), gt("success", 2, "2")]), [GATE])[0] == "green"
-          and classify(latest_runs([gt("failure", 1, "1"), gt("success", 1, "2")]), [GATE])[0] == "green")
+          classify(latest_runs([gt("success", 1, "1"), gt("success", 2, "2")]), [GATE], gate_busy([], []))[0] == "green"
+          and classify(latest_runs([gt("failure", 1, "1"), gt("success", 1, "2")]), [GATE], gate_busy([], []))[0] == "green")
     check("A5: a gate suite still running beside a red one is a wait, not yet a verdict",
-          classify(latest_runs([gt("failure", 1, "1"), gt(None, 2, "2", "in_progress")]), [GATE])[0] == "wait")
+          classify(latest_runs([gt("failure", 1, "1"), gt(None, 2, "2", "in_progress")]), [GATE], gate_busy([], []))[0] == "wait")
     check("A5/A1 item 4: a RATE-LIMITED gate (gate.py exit 3, a failed job) is red; so is a skipped or neutral "
           "gate, which judged nothing (null: a skipped non-gate context still reads green)",
-          all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
+          all(classify(latest_runs([gt(c, title=tt)]), [GATE], gate_busy([], []))[0] == "red"
               for c, tt in (("failure", "RATE-LIMITED reset_epoch=1"), ("skipped", ""), ("neutral", "")))
-          and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
+          and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"], gate_busy([], []))[0] == "green")
     owed = judged(gating_names([GATE, "nightly-status"]))
     check("owed-reds: the required set is the ruleset's plus gate_required less NOT_GATING -- a unit is owed, "
           "a NOT_GATING reporter the ruleset lists is not (null: tests / nightly-status is in neither)",
