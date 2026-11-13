@@ -874,9 +874,12 @@ writes, at every 15-minute plan step:
   over it until you turn it off (outside the entity's own minimum and
   maximum, the nearest value it takes); a value set while it is off is read again
   when it next writes. A reading equal to the optimizer's own last write is
-  never taken as yours: after an upgrade from a version without this, the
-  set-point is not written until it reads anything else, so set it on the
-  pump once. The mode and the hot-water set-point are not restored.
+  never taken as yours: after an upgrade from a version without this, the value
+  restored is the one the optimizer holds when the plan is not in charge (35 °C
+  or the weather curve for a water set-point, the planned room temperature for
+  an indoor one), and the optimizer writes the set-point from its first pass
+  as before. Set it on the pump once while the optimizer is on to have your own
+  value restored instead. The mode and the hot-water set-point are not restored.
 - **A write the pump does not hold is retried.** If the value written back
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or
