@@ -41,7 +41,7 @@ SEAT=$(cd "$(dirname -- "$0")" && pwd); PRT=$(cd "$(dirname -- "$0")/../../pr" &
 pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
 [ "$2" = - ] || pr_code_sha_shape "$2"
 [ -f "$3" ] || pr_refuse "no body file at $3"
-M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); P=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr; mkdir -p "$P"
+M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); pr_state_root; P=$PR_STATE/pr  # physical: matched against git worktree list below
 BR=$1; C=$2; B=$3; shift 3; ISS="$*"; R=tvofi/heatpump_optimizer
 WT=$P/upd-${BR//\//-}
 # The EXIT trap goes first, so the lock (pr_branch_lock) is freed by it after the reap: bash runs it
