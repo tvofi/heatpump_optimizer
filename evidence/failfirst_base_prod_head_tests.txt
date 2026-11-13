@@ -1,0 +1,83 @@
+
+=== features block ===
+
+-- pump-duty arbiter — mode and set-points per plan step, held while the optimizer is active
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 21.4 degC; set its unit to Flow temperature. Not writing it.
+  ok   #2351: an indoor set-point whose minimum is exactly the tolerance above the room target is written; one beyond it is refused as a declared flow set-point
+  ok   null control: a DHW-only mode blocks space heat in observe, and under control with the optimizer off
+  ok   the arbiter's own DHW-only write does not block space heat in the next solve
+  ok   …while capability, which the learners read, still says the pump is not heating
+  ok   a hot-water-only step writes DHW only, the configured hot-water set-point and the space gate
+  ok   the space step at the next boundary writes heating only and the heating flow, and nothing else
+  ok   a space block on a space step serves the idle row, not heating
+  ok   a block on both channels serves idle: the mode select is not written
+  ok   a DHW block stays idle through the hot-water lease instead of handing space heat back
+  ok   a space block keeps the lease expiry on hot water, not the baseline's both duties
+  ok   with no DHW-only mode (GCHV Modbus) the space set-point is the gate, at the entity's minimum
+  ok   a differing reading inside the fork's echo window is not rewritten yet
+  ok   a change the arbiter did not make is written back at once, and the optimizer stays on
+  ok   a rewrite the pump holds is the end of it: no warning, nothing written again
+  ok   a later change over a rewrite that held is written back again, still with no warning
+  ok   switching the optimizer off writes nothing, not even the baseline, and nothing over a person's setting
+  ok   a hot-water-only stretch is released to Heating + DHW past the 90-minute lease
+  ok   below the cold rail the lease is 30 minutes
+  ok   at exactly the cold rail the lease is the 90-minute one, not the cold one
+  ok   a stale plan gets the baseline, never a hot-water-only step
+  ok   unloading writes the baseline over a mode the arbiter still owns
+  ok   off and observe write nothing, and off subscribes to nothing
+  ok   a pump in a cooling mode is left alone: cooling is the user's season
+  ok   a set-point reading that differs 25 s after the write is a device report, and is written back
+  ok   outside the plan's horizon there is no step, so no duty
+  ok   a cooling mode is never the arbiter's, and a heating-only mode in observe still blocks hot water
+  ok   an indoor space set-point gets the step's planned room temperature, and none without one
+  ok   a heating flow above the entity's maximum is clamped to it
+  ok   an experiment's zero step and a missing plan never write hot water only
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 40.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+  ok   a disinfection hold keeps a both step on Heating + DHW, and so does comfort
+  ok   a both step writes DHW only for its hot-water share of the 15 minutes, then heating only
+  ok   a share under the minimum sub-slot goes to the other duty for the whole step
+  ok   with no single-duty mode (Modbus) a both step keeps Heat + DHW; a boost's both step is not split
+  ok   the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold
+  ok   a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while off
+  ok   a block drops that duty: a space step goes idle, a both step keeps heating, and a stale plan releases the block onto the baseline
+  ok   a space draw below half the pump's minimum is not a space duty: the step stays hot water only
+  ok   a space step ends the lease: the next hot-water stretch gets its own 90 minutes
+  ok   a half-degree change, one step of the pump's own set-point, is written back
+  ok   a changed space set-point is written back too
+  ok   switching the optimizer off leaves the pump as it was, and what a person sets while it is off is theirs
+  ok   unloading with the optimizer off writes nothing; null control: with it on, the baseline
+  ok   R10-ARBITER-OFF-RESTORE: switching the optimizer off writes the space set-point's baseline back, once, and nothing else, its record saved once; null control: with the arbiter not controlling, off writes nothing
+  ok   R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the release writes the fallback row without the space set-point over it
+  ok   R10-ARBITER-OFF-RESTORE: the baseline survives a restart: off after it restores 53, not the 25 the optimizer wrote
+Pump duty: number.water_set reads 30.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
+  FAIL R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the person's own is captured, written over, and restored on off  [_pa_up_first=[] _pa_up_sent=0 _pa_up.writes()=[] / _pa_up_n_first=[25] _pa_up_n_sent=1 _pa_up_n.writes()=[('number', 'set_value', 31)]]
+Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
+Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
+Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
+Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
+  FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step, and a space step, write the 55 degC ceiling in one pass from a persisted own write of 25 equal to the reading with no baseline armed, in memory and loaded from the store; null control: the same passes with no record write 55 too  [_pa_stuck_rows={('-', True, False): [], ('-', True, True): [], ('s', False, False): [], ('s', False, True): []} _pa_stuck_null={('-', True): [55], ('s', False): [55]}]
+Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
+  FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK (R10-RCA-SETPOINT-LATCH-DEADLOCK (b)): a stuck install turned Off (nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too  [_pa_stuck_cycle()=(0, 55.0, 1, [25]) _pa_dropped_over(55.0, 25.0)=25.0 _pa_dropped_over(55.0, 40.0)=55.0]
+Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
+Pump duty: number.water_set reads 25.0, the optimizer's own last write, which is no baseline to restore on off; not writing it until it is set at the controller
+  FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is restored as set  [_pa_stuck_off()=(0, []) _pa_stuck_off('40')=(1, [40])]
+  ok   R10-ARBITER-OFF-RESTORE: a space set-point a person sets between writes becomes the baseline off restores; null controls: the reading the entity held before the write (a refused write) and a reading after the pump was switched off (its own reset) leave the baseline at 53
+  ok   R10-ARBITER-OFF-RESTORE: a reading inside the echo grace, and one that holds the write, are no edit: off restores 53
+Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the optimizer: 55.0); retrying
+  ok   R10-ARBITER-OFF-RESTORE: a second differing reading is a write the pump does not take, never a second edit: off restores the first edit, 40, not 41
+  ok   R10-ARBITER-OFF-RESTORE: an edit outside the entity's own range is adopted bounded to it: off restores 63 for a reading of 70; null control: 40, inside it, is restored as read
+  ok   R10-ARBITER-OFF-RESTORE: a reading exactly ECHO_GRACE_S after the write is past the grace and adopted; null control: one a second inside it is not, and off restores 53
+  ok   R10-ARBITER-OFF-RESTORE: the space set-point's baseline is saved before the arbiter's first write to it is sent (write-ahead); null control: the store held no baseline before that pass
+  ok   R10-ARBITER-OFF-RESTORE: an install with no space set-point has no restorer (the hook's 'None unconfigured'); null control: one with it has
+  ok   R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, a restart captures it again and the next off restores it
+
+4 of 57 FEATURES BLOCK FAILED
+rc=1
