@@ -1,0 +1,14 @@
+  FAIL update_pr: a moved head with a figure block pushes a body whose block names the new head
+  FAIL update_pr: a failing refresh at the head to push refuses and pushes nothing
+  FAIL update_pr: a body-only run over a block naming the code head patches a body naming the live head
+  FAIL   mutant mut:updfig2 (its line deleted): body_patch.sh is handed a block naming another head and refuses
+  FAIL update_pr: a failing refresh on the body-only path refuses and patches nothing
+  ok   host_refusal: the same FAIL rows under another exit status (the head's run stops short) are the head's
+  ok   host_refusal: an environment fault (exit 3, no FAIL row) on both trees is the host's
+  ok   null control: a fetch git rejected is not fetched again (a second fetch would have succeeded), and is named REMERGE FAILED at fetch, never MERGE CONFLICT (carry f7d2bf7c)
+  ok   remerge_main: a push that pushed nothing prints its REFUSE, FAIL and full-log lines and names its kept log, which exists after exit
+  ok     mutant mut:remergegrep (its line deleted): the FAIL and full-log lines are lost
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 251 checks, 5 failed
+rc=1
+rc=1

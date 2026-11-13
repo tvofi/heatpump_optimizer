@@ -1,3 +1,0 @@
-review_packet: REFUSE introduced-red: INTRODUCED `Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures`: a step of the non-required instrument-self-tests job red at 5d2c0a30ec65f2d4d4f5976ee50937737e19c089 and not at the base (head job 131858573499 failure base job 131807475579 failure), a finding of this pull request (fix-review.md)
-review-packet: ~/review-packet.md
-rc=1
