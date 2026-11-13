@@ -1,0 +1,20 @@
+KILLED flags-not-unioned :: selftest_scope self-test: 136 checks, 3 failed
+KILLED probes-not-filtered :: selftest_scope self-test: 136 checks, 1 failed
+KILLED flag-drop-unchecked :: selftest_scope self-test: 136 checks, 5 failed
+KILLED dir-survivor-ignored :: selftest_scope self-test: 136 checks, 1 failed
+KILLED deleted-set-empty :: selftest_scope self-test: 136 checks, 1 failed
+KILLED first-parent-none :: selftest_scope self-test: 136 checks, 1 failed
+KILLED named-base-fallthrough :: selftest_scope self-test: 136 checks, 1 failed
+SURVIVED table-untouched-skip-removed :: selftest_scope self-test: 136 checks, 0 failed
+SURVIVED probe-dir-ancestor-removed :: selftest_scope self-test: 136 checks, 0 failed
+KILLED dirs-kept-always :: selftest_scope self-test: 136 checks, 1 failed
+Traceback (most recent call last):
+  File "<stdin>", line 2, in <module>
+AssertionError: anchor count 0
+NOANCHOR gitlist-kept-always
+KILLED prune-flag-noop :: selftest_scope self-test: 136 checks, 1 failed
+KILLED base-unreadable-json-pass :: selftest_scope self-test: 136 checks, 3 failed
+KILLED gitlist-kept-always :: selftest_scope self-test: 136 checks, 5 failed
+SURVIVED prune-cli-no-write :: selftest_scope self-test: 136 checks, 0 failed
+SURVIVED prune-cli-ignores-unknown :: selftest_scope self-test: 136 checks, 0 failed
+KILLED record-replaces-when-full :: KeyError: 'b'
