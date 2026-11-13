@@ -1199,14 +1199,7 @@ def self_test() -> int:
         g("rm", "-q", "tmp_add.txt")
         g("commit", "-qm", "remove it again")
         emt = g("rev-parse", "HEAD")
-        check("landed: an add-then-remove tip with an empty net diff lands as empty (carry 20)",
-              landed(gw, mn, emt) == "empty" and not covered(gw, mn, emt))
-        g("checkout", "-qb", "work19", mn)
-        rl = put("real_new.txt", "one real uncovered line\n", "a real uncovered add")
-        check("null control: a tip with one real uncovered line stays None (carry 20)", landed(gw, mn, rl) is None)
-        check("null control: a failing diff read (rc != 0) is not empty (carry 20)",
-              not empty_net(lambda a: (1, "") if a[0] == "diff" else gw(a), mn, emt))
-        g("checkout", "-q", "main")
+        rl = put("real_new.txt", "one real uncovered line\n", "one real uncovered add on the empty pair")
         g("checkout", "-qb", "work7", gb)
         mv = put("moved.txt", "same bytes\n", "add a file")
         g("checkout", "-qb", "work8", gb)
@@ -1248,6 +1241,18 @@ def self_test() -> int:
         put("evil.txt", "E\n", "a merge with a resolution of its own")
         check("null control: a merge carrying its own resolution is not merges-only",
               landed(gw, m_a, g("rev-parse", "HEAD"), [fixh], content=False) is None)
+        # Carry 20, one oracle so that no setup line above can be dropped unread: an add-then-remove tip lands as
+        # empty; the same pair plus one real line stays None; a failing merge-base read (whose output, here, would
+        # diff empty) or a failing diff read is not empty; and landed's reasons are exactly the two declared tuples.
+        bad_rc, _ = gw(["merge-base", "--no-such-option"])
+        check("carry 20: an empty net diff lands as empty; one real line, an unreadable merge-base or diff does not;"
+              " the reasons driven here are ANCESTRY_WHY + CONTENT_WHY",
+              landed(gw, mn, emt) == "empty" and not covered(gw, mn, emt) and landed(gw, mn, rl) is None
+              and empty_net(gw, mn, emt) and bad_rc
+              and not empty_net(lambda a: (bad_rc, mn) if a[0] == "merge-base" else gw(a), mn, emt)
+              and not empty_net(lambda a: gw(a + ["--no-such-option"]) if a[0] == "diff" else gw(a), mn, emt)
+              and {landed(gw, mn, anc), landed(gw, m_a, tipm, [fixh]), landed(gw, rvm, rv), landed(gw, mn, emt),
+                   landed(gw, mn, cov)} == {*ANCESTRY_WHY, *CONTENT_WHY})
         g("checkout", "-q", "main")
         hr = [tuple(l.split()) for l in g("ls-remote", "origin", "refs/heads/handoff/*",
                                            "refs/heads/handoff-body/*").splitlines()]
