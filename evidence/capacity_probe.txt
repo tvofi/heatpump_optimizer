@@ -1,7 +1,0 @@
-mode,draws>0.02,power_at_max,held_at_21 ('manual', False, False, False) 6 eg(tz,hp,vt,out,dS,room) (False, 4.0, 25.0, -15.0, 0.0, 19.954)
-mode,draws>0.02,power_at_max,held_at_21 ('manual', False, False, True) 33 eg(tz,hp,vt,out,dS,room) (True, 4.0, 25.0, -5.0, 0.0, 21.0)
-mode,draws>0.02,power_at_max,held_at_21 ('manual', False, True, False) 1 eg(tz,hp,vt,out,dS,room) (False, 4.0, 25.0, -25.0, 0.0, 18.563)
-mode,draws>0.02,power_at_max,held_at_21 ('manual', False, True, True) 2 eg(tz,hp,vt,out,dS,room) (False, 4.0, 40.0, -25.0, 0.0, 21.0)
-mode,draws>0.02,power_at_max,held_at_21 ('manual', True, True, True) 6 eg(tz,hp,vt,out,dS,room) (True, 4.0, 25.0, -25.0, -1.076, 21.0)
-mode,draws>0.02,power_at_max,held_at_21 ('none', False, False, True) 38 eg(tz,hp,vt,out,dS,room) (True, 4.0, 25.0, -5.0, 0.0, 21.0)
-mode,draws>0.02,power_at_max,held_at_21 ('none', True, True, True) 10 eg(tz,hp,vt,out,dS,room) (True, 4.0, 25.0, -25.0, -1.072, 21.0)

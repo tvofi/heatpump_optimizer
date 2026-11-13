@@ -1,0 +1,6 @@
+review_carry: dc727c4d8 -> ed39d3ae1  main=origin/main
+  branch-only commits: 2
+  why: 1 of 2 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  85f677041  ci: pin killed mutants
+  ed39d3ae1  Merge remote-tracking branch 'origin/main' into fix/r10-sav-valuation-residue-pr
+review_carry: CARRY
