@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-13T15:57:30+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-13T16:00:40+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,9 +8,9 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 1 / 1.0 | 32 / 24.0 |
 | fly-ins closed | 2 | 16 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 1 / 2 | 30 / 5 / 3 / 16 |
-| first-pass fix-review yield | 1/1 (1.00) | 23/41 (0.56) |
-| blocked-class mix | conflict:1, introduced-red:1 | architecture-unsound:1, claim-false:1, class-open:9, conflict:1, dropped-entries:1, evidence-cut:1, introduced-red:3, main-conflict:1, merge-conflict:1, mutation-survivor:1, mutation-survivors:1, mutation-vacuous:5, self-test-red:2 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 2 / 2 | 30 / 5 / 4 / 16 |
+| first-pass fix-review yield | 1/1 (1.00) | 24/42 (0.57) |
+| blocked-class mix | conflict:1 | architecture-unsound:1, claim-false:1, class-open:9, conflict:1, dropped-entries:1, evidence-cut:1, introduced-red:3, main-conflict:1, merge-conflict:1, mutation-survivor:1, mutation-survivors:1, mutation-vacuous:5, self-test-red:2 |
 | lead time per size (h, n/p50/max) | M n=1 p50=50.97 max=50.97 | L n=2 p50=26.19 max=35.09; M n=12 p50=29.24 max=53.48; S n=16 p50=9.08 max=18.31 |
 
 ### WIP by flow lane (snapshot at the window's end)
