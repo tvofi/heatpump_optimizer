@@ -1,7 +1,0 @@
-rc=3 09:33:09 WAIT 9b811fdcefc6e0ff80c4bc78013d23d7f087be45 pending: gate red: none
-rc=3 09:34:20 WAIT 9b811fdcefc6e0ff80c4bc78013d23d7f087be45 pending: gate red: none
-rc=3 09:35:33 WAIT 9b811fdcefc6e0ff80c4bc78013d23d7f087be45 pending: gate red: none
-rc=3 09:36:44 WAIT 9b811fdcefc6e0ff80c4bc78013d23d7f087be45 pending: gate red: none
-rc=3 09:37:56 WAIT 9b811fdcefc6e0ff80c4bc78013d23d7f087be45 pending: gate red: none
-rc=3 09:39:08 WAIT 9b811fdcefc6e0ff80c4bc78013d23d7f087be45 pending: gate red: none
-rc=0 09:40:20 GREEN 9b811fdcefc6e0ff80c4bc78013d23d7f087be45 pending: none red: none
