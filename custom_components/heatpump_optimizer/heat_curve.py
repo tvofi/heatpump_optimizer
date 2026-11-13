@@ -66,6 +66,8 @@ _LOGGER = logging.getLogger(__name__)
 
 #: The restore hook's key for this arm.
 CONSUMER = "heat_curve"
+#: The MQTT arm's off-restore key: a neutral consumer, restored to displace 0.
+MQTT_CONSUMER = "heat_curve_mqtt"
 #: The domains a whole-curve offset is written through.
 DOMAINS = ("number", "input_number")
 #: A difference in the entity's unit per kelvin. No unit is kelvin: a bare
@@ -151,6 +153,33 @@ def _persistent_restored(entry: Any, entity_id: str, value: float) -> None:
 off_restore.register_consumer(CONSUMER, _restorer, write=write_setpoint)
 
 
+def _mqtt_restorer(config: Any) -> off_restore.Restorer | None:
+    """The MQTT arm's restore: displace 0 on whichever ECL110 topics are configured.
+
+    Owner ruling (mandate 6715477401, 2026-11-11): no actuator arm leaves the
+    pump displaced once the optimizer lets go. A topic holds its last publish
+    -- retained when the user enabled retain -- so the off and unload restore
+    publishes the neutral there, through the one restore hook the entity arm
+    uses. The legacy body's ``heat_pump_on`` is True: the optimizer stops
+    holding supply off, it does not command it off.
+    """
+    set_topic, command_topic = config.ecl110_displace_set_topic, config.ecl110_command_topic
+    if not set_topic and not command_topic:
+        return None
+
+    async def write_neutral(hass: Any, _topic: str, value: float) -> None:
+        displace_int = int(value)
+        payload = ecl110_legacy_payload("off_restore", True, displace_int, {"mode": "off"})
+        if not await publish_ecl110_topics(hass, set_topic, command_topic, config.ecl110_mqtt_qos,
+                                           config.ecl110_mqtt_retain, displace_int, payload):
+            raise RuntimeError("an ECL110 topic refused the neutral displace")
+
+    return off_restore.Restorer(set_topic or command_topic, write_neutral, neutral=0.0)
+
+
+off_restore.register_consumer(MQTT_CONSUMER, _mqtt_restorer)
+
+
 def ecl110_legacy_payload(
     reason: str,
     heat_pump_on: bool,
@@ -190,14 +219,14 @@ async def publish_ecl110_topics(
     retain: Any,
     displace_int: int,
     legacy_payload: Ecl110Payload,
-) -> None:
+) -> bool:
     """Write the displace command to whichever ECL110 topics are configured.
 
     Each arm swallows its own MQTT failure, so a broken legacy topic never
-    suppresses the direct ``/set`` write that supersedes it.
+    suppresses the direct ``/set`` write that supersedes it. True when every
+    configured topic took its publish.
     """
-    if not set_topic and not command_topic:
-        return
+    sent = True
 
     # Preferred path: write plain numeric payload directly to /set topic.
     if set_topic:
@@ -214,6 +243,7 @@ async def publish_ecl110_topics(
                 blocking=True,
             )
         except Exception as err:
+            sent = False
             _LOGGER.error("Error publishing ECL110 direct displace MQTT command: %s", err)
 
     # Backward compatibility path: optional legacy JSON command topic.
@@ -231,7 +261,9 @@ async def publish_ecl110_topics(
                 blocking=True,
             )
         except Exception as err:
+            sent = False
             _LOGGER.error("Error publishing ECL110 legacy MQTT command: %s", err)
+    return sent
 
 
 async def publish(
@@ -246,8 +278,10 @@ async def publish(
     """Fan one displace out: the MQTT arms first, then the entity arm.
 
     ``entry`` keys the arm's record and its latches, so the coordinator
-    carries no attribute and is not handed in.
+    carries no attribute and is not handed in. Either arm is armed for the
+    off restore before it writes.
     """
+    await off_restore.async_arm(hass, entry, config, MQTT_CONSUMER)  # no topic: no restorer, a no-op
     await publish_ecl110_topics(
         hass,
         config.ecl110_displace_set_topic,

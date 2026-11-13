@@ -355,6 +355,25 @@ function build(states, config) {
   return card;
 }
 
+// R10-CARD-COLLAPSE: the series chips and their dashed-line notes render only
+// in the expanded dialog, so a check about the legend reads it there; the
+// dialog closes again so the card is left as the check found it.
+function expandedDump(c) {
+  c.dialog.open();
+  const d = collect(c.shadowRoot).join("\n");
+  c.dialog.close();
+  return d;
+}
+// The headline's two folds are collapsed by default (R10-CARD-COLLAPSE); a
+// check about their content opens them through their own header buttons.
+function unfolded(c) {
+  for (const k of ["narrative", "whynow"]) {
+    const h = c.shadowRoot.querySelector(`[data-fold="${k}"]`);
+    if (h && h.getAttribute("aria-expanded") === "false") h.dispatchEvent({ type: "click", stopPropagation() {} });
+  }
+  return collect(c.shadowRoot).join("\n");
+}
+
 let fails = 0;
 function check(name, cond, detail) {
   console.log((cond ? "  ok  " : "  FAIL") + "  " + name);
@@ -520,7 +539,8 @@ const dump = collect(card.shadowRoot).join("\n");
 check("renders an <svg>", /<svg/.test(dump));
 check("draws polyline/path data", /(<polyline|<path)/.test(dump));
 check("draws heating bars", /<rect/.test(dump));
-check("legend has all eight series", ["Electricity price","DHW heating","Space heating","Actioned power","Outdoor temperature","DHW tank temperature","House temperature","Solar irradiance"].every(l=>dump.includes(l)));
+const scenario1Legend = expandedDump(card);
+check("legend has all eight series", ["Electricity price","DHW heating","Space heating","Actioned power","Outdoor temperature","DHW tank temperature","House temperature","Solar irradiance"].every(l=>scenario1Legend.includes(l)));
 check("shows a cost or energy summary", /kWh|SEK/.test(dump));
 check("default entity ids match a real install", !/No plan data available yet/.test(dump));
 
@@ -618,9 +638,10 @@ check("and the layout editor is still the card's own, not Lovelace's",
   && typeof hui.layoutEditor.attach === "function");
 check("the dialog carries its own chart", (opened.match(/<svg/g) || []).length >
   (collapsed.match(/<svg/g) || []).length);
-// data-key also appears on series paths, so count the legend containers.
+// data-key also appears on series paths, so count the legend containers: one,
+// the dialog's own, since the folded card carries none (R10-CARD-COLLAPSE).
 check("the dialog carries its own legend and close button",
-  /class="close"/.test(opened) && (opened.match(/class="legend"/g) || []).length === 2);
+  /class="close"/.test(opened) && (opened.match(/class="legend"/g) || []).length === 1);
 
 // The enlarged chart has room for an hourly time axis rather than every third
 // hour, so it must not be a pixel-identical copy of the inline one.
@@ -1439,6 +1460,17 @@ for (const hours of [12, 24, 48]) {
       `${labelledGrid[0]} (${covered(labelledGrid[0]) ? "labelled" : "BARE"}) and ` +
       `${labelledGrid[labelledGrid.length - 1]} ` +
       `(${covered(labelledGrid[labelledGrid.length - 1]) ? "labelled" : "BARE"})`);
+    // R10-CARD-COLLAPSE polish: a clamped label's neighbour keeps at least
+    // half the gap the centred labels get at this step, so the end of the
+    // axis does not read as one run of text ("06:00 AM08:00 AM").
+    const gaps = labels.slice(1).map((l, i) => ({ gap: l.left - labels[i].right,
+      clamped: l.anchor !== "middle" || labels[i].anchor !== "middle" }));
+    const centred = gaps.filter((g) => !g.clamped).map((g) => g.gap).sort((x, y) => x - y);
+    const typical = centred.length ? centred[Math.floor(centred.length / 2)] : 0;
+    const tight = gaps.filter((g) => g.clamped && g.gap < typical / 2 - 0.01);
+    check(`the ${where} time axis spaces a clamped label at least half its usual gap`,
+      centred.length > 0 && tight.length === 0,
+      `typical ${typical.toFixed(1)}u, beside a clamp: ${gaps.filter((g) => g.clamped).map((g) => g.gap.toFixed(1)).join(", ")}`);
   }
 }
 
@@ -5431,10 +5463,11 @@ const restartStates = (patch = {}) => {
   sv.setConfig({ type: "custom:heatpump-optimizer-card" });
   sv.hass = { states: svStates, language: "sv-SE" };
   const svDump = collect(sv.shadowRoot).join("\n");
+  const svLegend = expandedDump(sv);
   check("hass.language sv-SE renders the legend in Swedish",
     ["Elpris", "Varmvattenberedning", "Uppvärmning", "Utetemperatur",
-     "Innetemperatur", "Solinstrålning"].every((l) => svDump.includes(l)),
-    svDump.match(/class="legend"[\s\S]{0,400}/)?.[0]);
+     "Innetemperatur", "Solinstrålning"].every((l) => svLegend.includes(l)),
+    svLegend.match(/class="legend"[\s\S]{0,400}/)?.[0]);
   check("the default title localizes too (it is not baked in at setConfig)",
     /Värmepumpsplan/.test(svDump) && !/Heat pump plan/.test(svDump));
   check("reason codes explain themselves in Swedish",
@@ -5464,7 +5497,7 @@ const restartStates = (patch = {}) => {
   unk.setConfig({ type: "custom:heatpump-optimizer-card" });
   unk.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
     language: "xx-YY" };
-  const unkDump = collect(unk.shadowRoot).join("\n");
+  const unkDump = expandedDump(unk);
   check("an unknown language falls back to English",
     !fn("STRINGS").xx &&
     unkDump.includes("Electricity price") &&
@@ -5687,7 +5720,7 @@ function ctxL(card, key) {
   });
   const full = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), ...statStates() };
   const hl = build(full);
-  const hlDump = collect(hl.shadowRoot).join("\n");
+  const hlDump = unfolded(hl);
   check("headline shows the projected savings in the sensor's unit",
     /class="headline"/.test(hlDump) && /Projected savings/.test(hlDump) &&
     /12\.34 SEK \(8%\)/.test(hlDump),
@@ -5764,7 +5797,7 @@ function ctxL(card, key) {
       "sensor.heat_pump_optimizer_plan_narrative": {
         state: "preheat_weather", attributes: { language: lang, ...attrs } } });
     const rows = (d) => d.match(/<li class="nl[^"]*">.*?<\/li>/g) || [];
-    const dump = (st, cfg) => (collect(build(st, cfg).shadowRoot).join("\n")
+    const dump = (st, cfg) => (unfolded(build(st, cfg))
       .match(/<ul class="hl-narrative">.*?<\/ul>/s) || [""])[0];
 
     const d = dump(withNarr({ items, lines }));
@@ -5805,7 +5838,7 @@ function ctxL(card, key) {
     const dsv = collect(build(withNarr({ items, lines }, "sv"), {}).shadowRoot).join("\n");
     svHl.hass = { states: withNarr({ items, lines }, "sv"), language: "sv-SE" };
     check("narrative: labels follow the card language",
-      /Förvärmer inför kallare väder/.test(collect(svHl.shadowRoot).join("\n")));
+      /Förvärmer inför kallare väder/.test(unfolded(svHl)));
     build(full);
 
     // The stylesheet: the number column never wraps and aligns, the panel is
@@ -7852,7 +7885,7 @@ const slotHit = (card, key) => {
     (lg.match(new RegExp(`<button[^>]*data-key="${key}"`, "g")) || []).length;
   const zc = build(twoZone());
   const zdump = collect(zc.shadowRoot).join("\n");
-  const zlegend = legendOf(zdump);
+  const zlegend = legendOf(expandedDump(zc));
 
   // The regression the owner reported. Three lines are drawn — the count
   // below proves the drop rule kept all three — and the legend still gets
@@ -7914,7 +7947,7 @@ const slotHit = (card, key) => {
   // copies would put three identical rows in the tooltip for a house with one
   // zone, so an exact duplicate is dropped instead.
   const oneZone = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true));
-  const olegend = legendOf(collect(oneZone.shadowRoot).join("\n"));
+  const olegend = legendOf(expandedDump(oneZone));
   check("a single-zone house still gets one house-temperature chip",
     chipsFor(olegend, "house_temp") === 1 && !/Upper floor/.test(olegend),
     olegend);
@@ -7947,8 +7980,8 @@ const slotHit = (card, key) => {
   // The distinction reaches the legend too, without costing a second chip.
   check("the chip's title carries the modelled wording as well",
     /also drawn: Upper floor, Lower floor \(modelled\)/.test(
-      legendOf(collect(modelled.shadowRoot).join("\n"))),
-    legendOf(collect(modelled.shadowRoot).join("\n")));
+      legendOf(expandedDump(modelled))),
+    legendOf(expandedDump(modelled)));
 
   // Swedish, like every other user-visible string on this card.
   const svZone = new Card();
@@ -7957,7 +7990,7 @@ const slotHit = (card, key) => {
   const svTip = hovered(svZone);
   check("the zone traces are named in Swedish too",
     /Övre plan/.test(svTip) && /Nedre plan \(modellerad\)/.test(svTip), svTip);
-  const svLegend = legendOf(collect(svZone.shadowRoot).join("\n"));
+  const svLegend = legendOf(expandedDump(svZone));
   check("and the Swedish legend says one thing, in Swedish",
     chipsFor(svLegend, "house_temp") === 1 &&
     /ritas också: Övre plan, Nedre plan \(modellerad\)/.test(svLegend),
@@ -8032,7 +8065,11 @@ const slotHit = (card, key) => {
     // scenarios switch series off; these assertions are about the band.
     c.legend.hidden = {};
     c.hass = { states, ...(lang ? { language: lang } : {}) };
-    return { card: c, dump: collect(c.shadowRoot).join("\n") };
+    // The folded card's dump, with the expanded dialog's legend after it: the
+    // path counts below read the one inline chart, the legend checks the
+    // chips and notes that render only in the dialog (R10-CARD-COLLAPSE).
+    const closed = collect(c.shadowRoot).join("\n");
+    return { card: c, dump: `${closed}\n${legendOnly(expandedDump(c))}` };
   };
   const dhwPaths = (dump) =>
     [...dump.matchAll(/<path class="series" data-key="dhw_temp"[^>]*>/g)]
@@ -8291,11 +8328,14 @@ const slotHit = (card, key) => {
   // `_onLegendClick` reads `currentTarget`, which the stub's dispatch does
   // not set, so the handler is called directly with the chip as its target.
   const clickChip = (c, key) => {
+    c.dialog.open();
     const el = chipFor(c, key);
     for (const f of el._listeners.click || []) {
       f({ currentTarget: el, stopPropagation() {}, preventDefault() {} });
     }
-    return collect(c.shadowRoot).join("\n");
+    c.dialog.close();
+    const closed = collect(c.shadowRoot).join("\n");
+    return `${closed}\n${legendOnly(expandedDump(c))}`;
   };
   const toggled = mkCard(null);
   const hiddenDump = clickChip(toggled.card, "dhw_temp");
@@ -8658,7 +8698,7 @@ const slotHit = (card, key) => {
     outWinPub.length > 0 && outWinPub.every((p) =>
       winLoAt.get(Date.parse(p.t)) === p.dhw_temp_lo),
     `${outWinPub.length} outside-window plotted steps`);
-  const winNote = (collect(winCard.shadowRoot).join("\n").match(
+  const winNote = (expandedDump(winCard).match(
     /<p class="legend-note" id="hpo-note-[^"]*dhw_temp">([^<]*)<\/p>/) || ["", ""])[1];
   check("the floored-band legend names the window-minimum floor",
     /floored at the window minimum|window minimum/.test(winNote), winNote);
@@ -10284,6 +10324,8 @@ const STOCK_THEMES = {
   c.legend.hidden = { solar: true };
   c._sig = null;
   c._render();
+  // The chips are the expanded dialog's alone (R10-CARD-COLLAPSE).
+  c.dialog.open();
   const chips = chipsIn(c);
 
   check("every legend chip publishes its toggle state as aria-pressed",
@@ -10326,11 +10368,11 @@ const STOCK_THEMES = {
     `chip aria-describedby=${dhwChip && dhwChip.describedBy}, ` +
     `note id=${noteFor && noteFor.getAttribute("id")}`);
 
-  // The dialog renders a SECOND legend beside the inline one, in the same
-  // shadow root, so an id minted per series is minted twice. Duplicate ids
-  // make aria-describedby ambiguous -- the defect this item exists to remove,
-  // not to introduce -- and each chip has to point at the note in its own
-  // copy.
+  // The dialog used to render a SECOND legend beside the inline one, in the
+  // same shadow root, so an id minted per series was minted twice. Duplicate
+  // ids make aria-describedby ambiguous. The folded card now renders no
+  // legend at all (R10-CARD-COLLAPSE), so the dialog's is the one copy: the
+  // ids stay unique and each chip still points at its own note.
   {
     const two = build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true), { title: "c2-legend-two" });
     two.legend.hidden = {};
@@ -10338,11 +10380,12 @@ const STOCK_THEMES = {
     two.dialog.open();
     const d = collect(two.shadowRoot).join("\n");
     const copies = d.split('class="legend"').slice(1);
-    check("the dialog really does render a second legend beside the inline one",
-      copies.length === 2, `${copies.length} legend container(s)`);
+    check("the expanded card renders exactly one legend, the dialog's",
+      copies.length === 1 && d.indexOf('class="legend"') > d.indexOf("<dialog"),
+      `${copies.length} legend container(s)`);
     const ids = [...d.matchAll(/<p class="legend-note" id="([^"]+)"/g)].map((m) => m[1]);
     check("every note id in the shadow root is unique",
-      ids.length === 2 && new Set(ids).size === ids.length, ids.join(", "));
+      ids.length === 1 && new Set(ids).size === ids.length, ids.join(", "));
     check("and each chip describes the note in its own copy of the legend",
       copies.every((copy) => {
         const id = (/<p class="legend-note" id="([^"]+)"/.exec(copy) || [])[1];
@@ -10366,6 +10409,7 @@ const STOCK_THEMES = {
   plain.legend.hidden = {};
   plain._sig = null;
   plain._render();
+  plain.dialog.open();
   check("a card with no expected-error band renders no note",
     plain.shadowRoot.querySelectorAll(".legend-note").length === 0);
   check("and no chip claims a description that is not there",
@@ -10807,7 +10851,7 @@ const STOCK_THEMES = {
     !!actioned && actioned.hasData &&
       fieldPointsOf(seriesOf(idle.c, "space_slots"), "space_power")
         .some((p) => p.t <= beforeForecast && p.v > 0));
-  const actionDump = collect(idle.c.shadowRoot).join("\n");
+  const actionDump = expandedDump(idle.c);
   check("the actioned series has a legend chip",
     /data-key="actioned"/.test(actionDump));
   check("the legend offers exactly one chip per series",
@@ -13526,8 +13570,8 @@ check("without an indoor reading the corner now label is absent",
     c.hass = { states: st, ...(lang ? { language: lang } : {}) };
     if (c.connectedCallback) c.connectedCallback();
     c.hass = { states: st, ...(lang ? { language: lang } : {}) };
-    const dump = collect(c.shadowRoot).join("\n");
-    return (dump.match(/<div class="score-breakdown why-now"[\s\S]*?<\/div><\/div>\s*<\/div>/) || dump.match(/<div class="score-breakdown why-now"[\s\S]{0,4000}/) || [""])[0];
+    const dump = unfolded(c);
+    return (dump.match(/<div class="hl-fold[^"]*" data-fold-block="whynow">[\s\S]*?<\/div><\/div>\s*<\/div>/) || dump.match(/<div class="hl-fold[^"]*" data-fold-block="whynow">[\s\S]{0,4000}/) || [""])[0];
   };
   const why = { t: "2026-01-15T12:00:00+00:00", drivers: [
     { code: "price_rank", direction: "run", weight: 57.1 },
@@ -13579,6 +13623,159 @@ check("without an indoor reading the corner now label is absent",
     && !/decides the hour/.test(EN["whynow.metric"]) && EN["whynow.metric"].includes("can still do the opposite")
     && fn("STRINGS.sv")["whynow.metric"].includes("ändå göra tvärtom"),
     whyLangs.map((lang) => `${lang}: ${whyKeys(lang)}`).join(" | "));
+}
+
+// --- R10-CARD-COLLAPSE: two folds, and chips only while expanded ------------
+// Owner request (2026-11-09): the per-reason breakdown and the "Why now"
+// panel fold, collapsed by default, each behind a header button carrying
+// aria-expanded and a one-line summary that stays visible while folded; the
+// series chips and the dashed-line notes render only in the expanded dialog.
+{
+  const items = [
+    { reason: "preheat_weather", kwh: 4.0, sek: 1.22, hours: 4 },
+    { reason: "dhw_preheat", kwh: 1.3, sek: 0.44, hours: 1 },
+    { reason: "idle", kwh: 0, sek: 0, hours: 23 },
+  ];
+  const lines = ["pre-heating 4.0 kWh before colder weather (1.22 SEK)",
+    "charging the tank while electricity is cheap: 1.3 kWh (0.44 SEK)",
+    "idle for 23.0 h"];
+  const why = { t: "2026-01-15T12:00:00+00:00", drivers: [
+    { code: "away", direction: "idle", weight: -42.9 },
+    { code: "price_rank", direction: "run", weight: 57.1 },
+  ] };
+  const states = (narr, whyNow, lang = "en") => {
+    const st = { ...mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+      "sensor.heat_pump_optimizer_optimization_score": {
+        state: "82", attributes: { envelope: 90, machine: 75 } },
+      "sensor.heat_pump_optimizer_predicted_savings": {
+        state: "12.34", attributes: { unit_of_measurement: "SEK" } },
+      "sensor.heat_pump_optimizer_plan_narrative": {
+        state: "preheat_weather", attributes: { language: lang, ...narr } } };
+    st[DEFAULT_SPACE] = { ...st[DEFAULT_SPACE],
+      attributes: { ...st[DEFAULT_SPACE].attributes, why_now: whyNow } };
+    return st;
+  };
+  const card = build(states({ items, lines }, why));
+  const dump = () => collect(card.shadowRoot).join("\n");
+  const head = (k) => card.shadowRoot.querySelector(`[data-fold="${k}"]`);
+  const shut = dump();
+  check("collapse: both folds render a header button, collapsed by default",
+    /<button type="button" class="hl-fold-head" data-fold="narrative" aria-expanded="false"/.test(shut)
+    && /<button type="button" class="hl-fold-head" data-fold="whynow" aria-expanded="false"/.test(shut),
+    (shut.match(/<div class="headline">[\s\S]{0,1500}/) || [""])[0]);
+  check("collapse: a folded section renders no body",
+    !/class="hl-narrative"/.test(shut) && !/data-block="why-now"/.test(shut));
+  check("collapse: the narrative summary is the rows' kWh and cost total, visible while folded",
+    /data-fold="narrative"[^>]*>[\s\S]*?hl-fold-sum">5\.3 kWh · 1\.66 SEK in total</.test(shut), shut.slice(0, 0));
+  check("collapse: the why-now summary is its strongest driver, visible while folded",
+    /data-fold="whynow"[^>]*>[\s\S]*?hl-fold-sum">Price rank ↑ \+57%</.test(shut));
+  let stopped = 0, cardOpened = false;
+  card._onCardClick = () => { cardOpened = true; };
+  head("narrative").dispatchEvent({ type: "click", stopPropagation() { stopped++; } });
+  const open1 = dump();
+  check("collapse: a click opens its own fold and only that one",
+    /data-fold="narrative" aria-expanded="true"/.test(open1) && /<ul class="hl-narrative">/.test(open1)
+    && /data-fold="whynow" aria-expanded="false"/.test(open1) && !/data-block="why-now"/.test(open1));
+  check("collapse: the toggle does not reach the card's open-on-click", stopped === 1 && !cardOpened);
+  check("collapse: focus returns to the rebuilt header",
+    card.shadowRoot.activeElement === head("narrative"));
+  head("whynow").dispatchEvent({ type: "click", stopPropagation() {} });
+  check("collapse: the why-now fold opens to its rows",
+    /data-fold="whynow" aria-expanded="true"/.test(dump()) && /data-block="why-now"[\s\S]*data-part="price_rank"/.test(dump()));
+  head("narrative").dispatchEvent({ type: "click", stopPropagation() {} });
+  check("collapse: a second click folds it again",
+    /data-fold="narrative" aria-expanded="false"/.test(dump()) && !/class="hl-narrative"/.test(dump()));
+  // Fold state is the card's, not the hass object's: a fresh hass whose data
+  // moved (so the card does rebuild; the savings figure is the witness) keeps
+  // both open folds open.
+  head("narrative").dispatchEvent({ type: "click", stopPropagation() {} });
+  const moved = states({ items, lines }, why);
+  moved["sensor.heat_pump_optimizer_predicted_savings"] = {
+    state: "98.76", attributes: { unit_of_measurement: "SEK" } };
+  card.hass = { states: moved };
+  const after = dump();
+  check("collapse: a hass refresh rebuilds the card and keeps each fold as it was",
+    /98[.,]76/.test(after) && !/12[.,]34/.test(after)
+    && /data-fold="narrative" aria-expanded="true"/.test(after) && /<ul class="hl-narrative">/.test(after)
+    && /data-fold="whynow" aria-expanded="true"/.test(after) && /data-block="why-now"/.test(after),
+    (after.match(/<div class="headline">[\s\S]{0,600}/) || [""])[0]);
+  // With the dialog open the headline renders twice; a press on the dialog's
+  // copy returns focus to the dialog's rebuilt copy, never the card's behind it.
+  const dc = build(states({ items, lines }, why));
+  dc._onCardClick({});
+  const dHeads = () => [...dc.shadowRoot.querySelectorAll("[data-fold]")];
+  const nBefore = dHeads().length;
+  dHeads()[2].dispatchEvent({ type: "click", stopPropagation() {} });
+  const rebuilt = dHeads();
+  check("collapse: focus returns to the dialog's copy of the pressed header",
+    nBefore === 4 && rebuilt.length === 4 && dc.shadowRoot.activeElement === rebuilt[2]
+    && rebuilt[2].getAttribute("aria-expanded") === "true",
+    `heads ${nBefore} -> ${rebuilt.length}; activeElement is index ${rebuilt.indexOf(dc.shadowRoot.activeElement)}`);
+  // The design decision against id/aria-controls: with the headline rendered
+  // twice, an id would be minted twice. Null control: the fold heads number 4.
+  const dlgDump = collect(dc.shadowRoot).join("\n");
+  const ids = [...dlgDump.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+  const dupIds = ids.filter((v, i) => ids.indexOf(v) !== i);
+  check("collapse: the doubly rendered headline mints no id and no aria-controls",
+    (dlgDump.match(/data-fold="/g) || []).length === 4 && !/aria-controls=/.test(dlgDump) && dupIds.length === 0,
+    `duplicate ids: ${[...new Set(dupIds)].join(", ")}`);
+  dc.dialog.close();
+  // Order on the folded card: savings and score, the two folds, then the chart.
+  const iSave = shut.indexOf("12.34"), iNarr = shut.indexOf('data-fold="narrative"'),
+    iWhy = shut.indexOf('data-fold="whynow"'), iChart = shut.indexOf('class="chartwrap');
+  check("collapse: the folds sit after the savings figure and before the chart",
+    iSave >= 0 && iSave < iNarr && iNarr < iWhy && iWhy < iChart, `${iSave} ${iNarr} ${iWhy} ${iChart}`);
+  // The two stylesheet rules the polish states: a divider under the last fold,
+  // and a summary that wraps rather than ellipsises.
+  const sumRule = (shut.match(/\.hl-fold-sum\s*\{[^}]*\}/) || [""])[0];
+  check("collapse: a rule under the last fold closes the headline off from the chart",
+    /\.hl-fold:last-child\s*\{\s*border-bottom:\s*1px solid/.test(shut));
+  check("collapse: the fold summary wraps and never ellipsises",
+    /overflow-wrap:\s*anywhere/.test(sumRule) && !/nowrap|text-overflow|overflow:\s*hidden/.test(sumRule), sumRule);
+  // The folded card draws what the dialog's chips last saved: hiding a series
+  // in the dialog hides it on the card, and on a card built afterwards.
+  const cv = build(states({ items, lines }, why));
+  const priceOn = (c) => (collect(c.shadowRoot).join("\n").match(/data-key="price"/g) || []).length;
+  // Earlier checks share the saved legend state, so the starting visibility is
+  // read, not assumed; the check holds for whichever way the chip flips it.
+  const hidBefore = !!cv.legend.hidden.price, shownBefore = priceOn(cv);
+  cv.dialog.open();
+  const chipPrice = { currentTarget: { getAttribute: (k) => (k === "data-key" ? "price" : null) } };
+  cv.legend.onChipClick(chipPrice);
+  cv.dialog.close();
+  const hidAfter = !!cv.legend.hidden.price;
+  const shownAfter = priceOn(cv), shownFresh = priceOn(build(states({ items, lines }, why)));
+  const drawn = (n, hid) => (hid ? n === 0 : n > 0);
+  check("collapse: the folded card keeps the visibility the dialog's chips last saved",
+    hidAfter !== hidBefore && drawn(shownBefore, hidBefore) && drawn(shownAfter, hidAfter) && drawn(shownFresh, hidAfter),
+    `hidden ${hidBefore} -> ${hidAfter}; drawn ${shownBefore} -> ${shownAfter}, fresh card ${shownFresh}`);
+  cv.legend.onChipClick(chipPrice); // the saved state as the earlier checks left it
+  // A fold's summary when the rows cannot be totalled: the first published line.
+  const raw = collect(build(states({ lines }, undefined)).shadowRoot).join("\n");
+  check("collapse: unpaired lines summarise as the first line; no why_now as the no-data line",
+    /data-fold="narrative"[^>]*>[\s\S]*?hl-fold-sum">pre-heating 4\.0 kWh before colder weather \(1\.22 SEK\)</.test(raw)
+    && /data-fold="whynow"[^>]*>[\s\S]*?hl-fold-sum">No data</.test(raw));
+  // Chips and the dashed-line notes: the dialog only.
+  const plain = build(states({ items, lines }, why));
+  const closedDump = collect(plain.shadowRoot).join("\n");
+  check("collapse: the folded card renders no series chip and no legend",
+    !/class="chip/.test(closedDump) && !/class="legend"/.test(closedDump) && !/class="legend-note"/.test(closedDump));
+  plain._onCardClick({});
+  const dlg = (collect(plain.shadowRoot).join("\n").match(/<dialog[\s\S]*$/) || [""])[0];
+  check("collapse: the expanded dialog carries the chips and the legend",
+    /class="legend"/.test(dlg) && (dlg.match(/class="chip/g) || []).length >= 3);
+  // Every new string in every card language.
+  const foldKeys = (lang) => Object.keys(fn(`STRINGS.${lang}`)).filter((k) => k.startsWith("fold.")).sort();
+  check("collapse: every fold string has its twin in en, sv and de",
+    foldKeys("en").length >= 3 && ["sv", "de"].every((l) => JSON.stringify(foldKeys(l)) === JSON.stringify(foldKeys("en"))),
+    ["en", "sv", "de"].map((l) => `${l}: ${foldKeys(l)}`).join(" | "));
+  const sv = new Card();
+  sv.setConfig({ type: "custom:heatpump-optimizer-card" });
+  sv.hass = { states: states({ items, lines }, why, "sv"), language: "sv-SE" };
+  const svDump = collect(sv.shadowRoot).join("\n");
+  check("collapse: the headers speak the card language",
+    svDump.includes(fn("STRINGS.sv")["fold.narrative_title"]) && svDump.includes("Varför nu") && /totalt/.test(svDump));
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // back to English
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");

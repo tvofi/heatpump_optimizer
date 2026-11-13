@@ -1,3 +1,56 @@
+## v7.1.14
+
+**Patch stamp: duty-switch restart learning part B, mode before supply on, ECL110 MQTT off-neutral, and user-docs corrections; the rest is tooling.**
+
+### #3530 The pump arbiter writes the step's mode ahead of a supply switch-on (R10-MODE-BEFORE-SUPPLY-ON)
+
+The arbiter now writes the step's mode before it switches the supply on (#3420 part E).
+
+### #3534 The ECL110 MQTT off state is neutral (R10-ECL110-MQTT-OFF-NEUTRAL)
+
+The ECL110 topic publish drops its dead early return; the off arm needs no topic guard of its own.
+
+### #3524 The duty-switch learner publishes p and whole-episode n (R10-DUTY-SWITCH-RESTART-LEARNING, part B)
+
+The learner publishes the restart probability and the whole-episode count, with N_ON pinned as a decayed weight.
+
+### #3513 User docs verified (R10-USER-DOCS-VERIFY)
+
+Docs now state the mold-safe range as uncapped with the floor held at the target, and a two-probe average for a stratified combi store as an estimate of its mean.
+
+### Developer tooling, CI and audit machinery only
+
+#3515, #3535, #3492, #3377, #3510, #3533, #3498, #3522, #3503, #3523.
+
+### Record only
+
+#3537, #3527 (delivery rows, autofix).
+
+
+## v7.1.13
+
+**Patch stamp: 24 merges since v7.1.12, stamped on the owner's order.** The user-visible changes are a duty-switch learner that records how the pump behaves after a hot-water-to-space mode write, and a hot-water write that now respects the entity's range and the user's own charge limit.
+
+### #3461 The duty-switch learner observes mode switches and restarts (R10-DUTY-SWITCH-RESTART-LEARNING, part A)
+
+Built from a finding by Bankaifan on an alpha innotec LWDV 91-1/3: after a mode write from hot water to space heating the compressor can stop within seconds and stay off for about eight minutes. A new learner, beside the start counter, observes when the compressor runs, records each mode write with its context, estimates per direction how often the compressor stops and for how long, keeps the estimate in its own per-pump store and publishes the counts and durations as sensor attributes. Nothing reads the estimate yet: plans and writes are unchanged until the later parts land.
+
+### #3497 The hot-water write respects the entity's range and the charge limit (R10-OUTSIDE-DISINFECTION-SETPOINT, follow-up to #3452)
+
+The entity's own minimum now outranks a caller's ceiling, so a write below the minimum on the step is no longer refused. With no cycle running, the everyday set-point is written on the step at or below the charge limit instead of rounded up past it. The disinfection-floor notice rounds its floor on the step and never above the tank's hard maximum, so its Fix cannot be written back below the floor.
+
+### #3509 Card Health text test (R10-HOTFIX-CARD-HEALTH-TEXT, follow-up to #3485)
+
+Browser test coverage for the Health and Advisor labels; no change to the card itself.
+
+### Developer tooling, CI and audit machinery only
+
+#3507 (closeout prep), #3518 (mutant run on Darwin hotfix), #3493 (carry audit, part 5), #3502 (Mach scorecard), #3484 (opener unblock hotfix), #3506 (main prepr read-set hotfix, part 2), #3448 (review dispatch residue, part 1), #3428 (plan page residue), #3500 (gate push ratchet), #3430 (architecture docs), #3501 (open-PR figure refresh hotfix), #3479 (prepr residue).
+
+### Triage and delivery rows (record only)
+
+#3382, #3386, #3387, #3388, #3390, #3391, #3381 (triage batches); #3504, #3517 (delivery rows, autofix).
+
 ## v7.1.12
 
 **Patch stamp: 40 merges since v7.1.11, stamped on the owner's order.** The user-visible changes are a hot-water learner that no longer books the dip after a charge start as a draw, a price outage that no longer stops steering while the last prices still cover now, hot-water disinfection written at its own temperature, the optimizer's off switch restoring the pump's space set-point, a climate entity that works on both old and new Home Assistant cores, a dashboard card whose Health labels survive ad blockers, and a rebuilt product page.
