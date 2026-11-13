@@ -53,7 +53,8 @@ ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaa
   ok   disposing the verdict ref at its sha closes it
   ok   REVIEW OWED: of reviewed, dispatched and neither, exactly the one with neither
   ok   a PR whose comments were not read owes nothing it cannot know
-  FAIL REVIEW OWED skips a head its newest merge verdict carries to (a clean main merge); a branch-own commit after it is owed (null control)
+  ok   REVIEW OWED skips a head its newest merge verdict carries to (a clean main merge); a branch-own commit after it is owed (null control)
+  ok   with origin's branch heads unreadable the same carried head is owed (fail closed)
   ok   a newest verdict that is blocked carries nothing
   ok   a head that is a verdicted head plus one main merge prints CARRY
   ok   null control: the same head without the recarry test is REVIEW OWED
@@ -104,5 +105,5 @@ ledger: import refused: 'OWED 2026-10-21T07:00:00Z 11 frobnicate aaaaaaaaaaaaaaa
   ok   null control: an opener that ends records opened,PR=<n>
   ok   the census reads both sinks of the relay (ledger_open events, level_line levels)
   ok   every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
-ledger self-test: 102 checks, 1 failed
-rc=1
+ledger self-test: 103 checks, 0 failed
+rc=0

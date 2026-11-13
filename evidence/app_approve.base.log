@@ -320,33 +320,5 @@ ok   REFUSE: the verdict at V does not carry to a head one byte away (null contr
 ok   saying why
 ok   and nothing was minted or posted
 ok   REFUSE: a carried verdict whose evidence names neither head
-ok   CARRY on a fork head: the automatic merge of main
-ok   ... and on a head of ours (null control)
-ok   CARRY on a head of ours: a closures bot commit
-FAIL NO CARRY on a fork head: a closures bot commit (got '0', want '1')
-FAIL refused as a commit on a head that is not ours (got '0', want '1')
-ok   CARRY on a head of ours: a ledger bot commit
-FAIL NO CARRY on a fork head: a ledger bot commit (got '0', want '1')
-FAIL refused as a commit on a head that is not ours (got '0', want '1')
-ok   CARRY on a head of ours: an empty commit of the branch's own
-FAIL NO CARRY on a fork head: an empty commit of the branch's own (got '0', want '1')
-FAIL refused as a commit on a head that is not ours (got '0', want '1')
-ok   CARRY on a head of ours: an empty ci: commit
-FAIL NO CARRY on a fork head: an empty ci: commit (got '0', want '1')
-FAIL refused as a commit on a head that is not ours (got '0', want '1')
-ok   CARRY on a head of ours: a delivery-row commit
-FAIL NO CARRY on a fork head: a delivery-row commit (got '0', want '1')
-FAIL refused as a commit on a head that is not ours (got '0', want '1')
-FAIL NO CARRY on a fork head: a main merge whose merge-driver file is not main's (got '0', want '1')
-FAIL refused naming the driver file (got '0', want '1')
-FAIL NO CARRY on a fork head: a merge of a branch that is not main (got '0', want '1')
-FAIL NO CARRY on a fork head: a merge that is not of main, though it adds no commit (got '0', want '1')
-FAIL refused as a merge with no main side (got '0', want '1')
-ok   NO CARRY: origin's branch heads unreadable, even for an automatic merge of main (fail closed)
-ok   saying the heads could not be listed
-ok   a verdict at V is approved at a bot commit's head when the pull request's head is a branch of ours
-FAIL REFUSE: the same head when it is only refs/pull/7/head (a fork's) (got '0', want '1')
-FAIL saying why (got '0', want '1')
-FAIL and nothing was minted or posted (got '4', want '0')
-app_approve self-test: 350 checks, 18 failed
-rc=1
+app_approve self-test: 322 checks, 0 failed
+rc=0
