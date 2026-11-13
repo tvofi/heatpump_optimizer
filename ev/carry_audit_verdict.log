@@ -1,0 +1,13 @@
+NOTE body item 893e80d2: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
+NOTE body item b30e2dd2: R10-DUTY-SWITCH-RESTART-LEARNING-PR-B
+NOTE body item 15a1ad97: R10-OUTSIDE-DHW-START-HYSTERESIS
+NOTE body item 9436130d: dismissed:an archived carry, observed once and not reproduced at this head
+NOTE body item d869cfd4: dismissed:the price of a measured closure, paid once
+NOTE body item 544bd2af: dismissed:repaired in this pull request's harness
+NOTE body item fde618ff: dismissed:sequencing decided by the orchestrator, no rule change asked
+NOTE body item 2bd21913: dismissed:one failure in three runs, not reproduced, cause not established
+NOTE body item cd80793f: dismissed:the driver restores on SIGTERM and SIGINT, and a SIGKILL cannot be caught
+NOTE body item 9a58e3f6: dismissed:two instances in one group, under the third-instance threshold of CLAUDE.md's recurring-error rule; a third goes to root-cause with these two named
+NOTE body item 74596a0c: dismissed:the price of proving a survivor, paid once
+CARRY-AUDIT: 11 finding item(s): 11 routed, 0 unrouted, 0 bad destination(s)
+rc=0

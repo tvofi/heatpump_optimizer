@@ -1,0 +1,50 @@
+== merge dcbfa3a29a22e3e08c0d6b9d1a0c82b1850d091d p1=ec56d126d6bd4a4d9ef15c855e05e0e71a07cc54 p2=5288db5dadbffbaf83cb4ed258a669d46c3224fe base=7eadd75f3c420404aabc83d4b05f9691f3e49136
+auto-merge rc=1 conflicted: tests/features.py 
+committed merge vs auto-merge tree (numstat):
+58	61	tests/features.py
+== merge a79a9f8bfa6c2fa7415c70b04ba6ecfc85244cfd p1=dcbfa3a29a22e3e08c0d6b9d1a0c82b1850d091d p2=3038b9deaf915a4b3defedd52307f5c57e574a50 base=5288db5dadbffbaf83cb4ed258a669d46c3224fe
+auto-merge rc=1 conflicted: custom_components/heatpump_optimizer/coordinator.py dev/audit/rounds/round4/D6/claims.md dev/audit/rounds/round4/D6/claims.py docs/architecture.md tests/deployment_shape.py 
+committed merge vs auto-merge tree (numstat):
+1	5	custom_components/heatpump_optimizer/coordinator.py
+2	2	dev/audit/rounds/round4/D6/claims.json
+2	7	dev/audit/rounds/round4/D6/claims.md
+2	10	dev/audit/rounds/round4/D6/claims.py
+2	10	docs/architecture.md
+8	13	tests/deployment_shape.py
+== merge a5a7d36423b5c3e54e32372c757703f9c00e8c7a p1=baf029f82426e2b8a7a997ee2722353b840f2b3e p2=a79a9f8bfa6c2fa7415c70b04ba6ecfc85244cfd base=0731b358778a41773977635cedc24dd0ae340e64
+auto-merge rc=0 conflicted: 
+committed merge vs auto-merge tree (numstat):
+== merge baf029f82426e2b8a7a997ee2722353b840f2b3e p1=e36f8af6f1b1949c5d8b2590c5669a4ded2ff71f p2=0731b358778a41773977635cedc24dd0ae340e64 base=36da41115decd0c1b6375d07c713fcb1c59c4935
+auto-merge rc=0 conflicted: 
+committed merge vs auto-merge tree (numstat):
+== merge 07bd4ba031ce4934df99bf0d2a921a4fb75689c9 p1=a5a7d36423b5c3e54e32372c757703f9c00e8c7a p2=154dbb4c61652135381ce66646d23f7109d1c142 base=3038b9deaf915a4b3defedd52307f5c57e574a50
+auto-merge rc=0 conflicted: 
+committed merge vs auto-merge tree (numstat):
+features.py at dcbfa3a: parent ec56d126d6 lines absent from the merge=0
+features.py at dcbfa3a: parent 5288db5dad lines absent from the merge=7
+[nothing reads the estimate. The learner is driven directly] base7eadd75=1 branch_ec56d12=0 main_5288db5=1
+[Both controls hold by construction: only the arbiter] base7eadd75=1 branch_ec56d12=0 main_5288db5=1
+[sensor (which publishes) name the module, and neither reads the estimate] base7eadd75=1 branch_ec56d12=0 main_5288db5=1
+[only the arbiter and the sensor name duty_switch, through its report] base7eadd75=1 branch_ec56d12=0 main_5288db5=1
+[never a read of the estimate; the module imports neither] base7eadd75=1 branch_ec56d12=0 main_5288db5=1
+[_ds_readers == \["pump_arbiter.py", "sensor.py"\]] base7eadd75=1 branch_ec56d12=0 main_5288db5=1
+[{_ds_readers} {_ds_uses} {_ds_own}] base7eadd75=1 branch_ec56d12=0 main_5288db5=1
+RESULT features_union_branch_lines_absent=0 main_lines_absent=7 (all 7 are base lines this branch had already rewritten before the merge)
+== a79a9f8 coordinator.py combined diff
+diff --cc custom_components/heatpump_optimizer/coordinator.py
+index eeb0a5f861,a362be579d..d7503a17af
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@@ -256,7 -256,7 +256,7 @@@ from .accuracy import 
+  )
+  from .comfort_learning import ComfortLearner, OverrideEvent
+  from .defrost import DefrostDerate, DefrostWindow, in_frost_band
+- from . import duty_switch, early_cutoff, pump_arbiter, pump_signals
+ -from . import early_cutoff, pump_arbiter, pump_signals, supply_hold
+++from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
+  from . import issues, setpoint_check
+  from . import quiet_windows
+  from . import price_tiles
+== features.py at a79a9f8: lines absent per parent
+parent dcbfa3a29a: 9
+parent 3038b9deaf: 7
