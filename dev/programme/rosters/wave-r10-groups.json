@@ -22742,7 +22742,8 @@
     "stage": "carries-open",
     "branch": null,
     "note": "overlap admitted (R10-USER-DOCS-VERIFY, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID): s14 orchestrator 2026-11-11 under mandate 6715477401: R10-GENERIC-HEAT-CURVE-PERSISTENT carry 6 (ghc-d02) re-homed, triage s6-batch168.md#P582",
-    "pr": 3534
+    "pr": 3534,
+    "commit": "727e37e7b1e5d669d8b37541aae62e9224d988e5"
    }
   },
   {
