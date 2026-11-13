@@ -4726,6 +4726,8 @@ _FLOW_DD = "options.step.entities_pump.data_description.pump_duty_mode"
 
 def flow_number_pins() -> list[tuple[str, str, float]]:
     """``(dotted key, regex with one number group, the production value)``."""
+    import math
+
     from heatpump_optimizer import const, curve_learning, flow_lift, thermal_model
     from heatpump_optimizer import pump_arbiter as pa
 
@@ -4740,8 +4742,11 @@ def flow_number_pins() -> list[tuple[str, str, float]]:
         (_FLOW_DD, r"(\d+) °C on steps that do not", pa.FLOW_GATE_C),
         (_FLOW_DD, r"the hot water one to (\d+) °C", pa.DHW_GATE_C),
         (_FLOW_DD, r"toward (\d+) °C \(or the Minimum lift", thermal_model.FLOW_MIN_LIFT_K),
+        # The realised worst case, not MAX_DOWN_PER_WEEK: STEP_K every
+        # DAYS_PER_STEP days lands three steps in one 7-day window (D6-s2-03).
         ("options.step.learning_features.sections.model.data_description.curve_learning_enabled",
-         r"at most (half) a degree per week", curve_learning.MAX_DOWN_PER_WEEK),
+         r"at most (six tenths) of a degree per week",
+         curve_learning.STEP_K * math.ceil(7 / curve_learning.DAYS_PER_STEP)),
         ("options.step.tuning.sections.risk.data_description.confidence_margins_enabled",
          r"capped at (\d+(?:\.\d+)?) °C", const.CONFIDENCE_MARGIN_CAP_C),
         ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
@@ -4764,7 +4769,7 @@ def flow_number_pins() -> list[tuple[str, str, float]]:
 
 def flow_number_findings(texts: dict, pins: list) -> list[str]:
     """Each pin whose sentence is absent, or quotes a number its symbol does not hold."""
-    words = {"half": 0.5}
+    words = {"six tenths": 0.6}
     bad = []
     for key, pattern, value in pins:
         node = texts
@@ -4775,7 +4780,7 @@ def flow_number_findings(texts: dict, pins: list) -> list[str]:
             bad.append(f"{key}: no sentence matches {pattern!r}")
             continue
         quoted = words.get(match.group(1)) or float(match.group(1))
-        if quoted != float(value):
+        if abs(quoted - float(value)) > 1e-9:
             bad.append(f"{key}: quotes {match.group(1)}, the code holds {value}")
     return bad
 

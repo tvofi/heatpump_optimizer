@@ -1446,7 +1446,7 @@
             },
             "data_description": {
               "capacity_curve_enabled": "The nameplate maximum is a laboratory number. This learns how much heat the pump has actually delivered at each outdoor temperature and plans within it, so a cold-snap plan stops promising output the machine has never produced. It can only trim optimism — at least 60% of nameplate always stays available.",
-              "curve_learning_enabled": "Most heat curves were set once, conservatively, by an installer who never came back. This learns a standing correction from days that held comfort with room to spare — creeping cooler by at most half a degree per week, and snapping back to the installer's curve instantly on any comfort miss. It can only cool an over-hot curve, never heat.",
+              "curve_learning_enabled": "Most heat curves were set once, conservatively, by an installer who never came back. This learns a standing correction from days that held comfort with room to spare — creeping cooler by at most six tenths of a degree per week, and snapping back to the installer's curve instantly on any comfort miss. It can only cool an over-hot curve, never heat.",
               "internal_gains_learning_enabled": "People, cooking and appliances heat the house on a daily rhythm the flat constant cannot see. This learns a per-hour profile from dark-hour prediction errors, gently tethered to the configured value so it stays a refinement, not a rewrite.",
               "solar_aperture_learning_enabled": "Window area and shading are configured guesses. This compares sunny-hour predictions with what actually happened and scales the solar gain accordingly, between a third and double the configured value."
             }

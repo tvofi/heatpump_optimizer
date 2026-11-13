@@ -2,8 +2,8 @@
  "merge_base": "154dbb4c61652135381ce66646d23f7109d1c142",
  "rule": "distinct English texts of 40+ characters under config, options, selector in strings.json at the merge base (flow_claims.py distinct)",
  "verdicts": {
-  "true": 285,
-  "false": 28,
+  "true": 286,
+  "false": 27,
   "stale": 12,
   "unverifiable": 4,
   "no-claim": 40
@@ -3527,14 +3527,12 @@
   {
    "key": "options.step.learning_features.sections.model.data_description.curve_learning_enabled",
    "n_keys": 1,
-   "claim": "Creeps cooler by at most six tenths of a degree per week; instant snap-back on miss; never heats",
+   "claim": "creeps cooler by at most six tenths of a degree per week (first pass false against MAX_DOWN_PER_WEEK = 0.5; refuted: the realised worst case is STEP_K 0.2 K every DAYS_PER_STEP 3 days, three steps in one 7-day window, D6-s2-03, corrected to 0.6 by b1024f9ef3)",
    "evidence": [
-    "custom_components/heatpump_optimizer/curve_learning.py:45",
-    "custom_components/heatpump_optimizer/curve_learning.py:123-128"
+    "custom_components/heatpump_optimizer/curve_learning.py:43 MAX_DOWN_PER_WEEK",
+    "custom_components/heatpump_optimizer/curve_learning.py:121-136 _step_down"
    ],
-   "verdict": "false",
-   "why": "MAX_DOWN_PER_WEEK is 0.5, not 0.6.",
-   "correction": "Most heat curves were set once, conservatively, by an installer who never came back. This learns a standing correction from days that held comfort with room to spare — creeping cooler by at most half a degree per week, and snapping back to the installer's curve instantly on any comfort miss. It can only cool an over-hot curve, never heat.",
+   "verdict": "true",
    "pinned": "check_flow_text_claims (figures)"
   },
   {
