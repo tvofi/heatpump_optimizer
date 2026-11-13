@@ -4342,6 +4342,7 @@
    "dev/audit/harnesses/r10_thermal_power_option.py",
    "dev/audit/harnesses/r10_tick_drivers.py",
    "dev/audit/harnesses/r10_tick_owed_level.py",
+   "dev/audit/harnesses/r10_tick_selftest_checkout.sh",
    "dev/audit/harnesses/r10_tick_train_mutants.sh",
    "dev/audit/harnesses/r10_tick_which_roster.py",
    "dev/audit/harnesses/r10_title_seam.sh",
