@@ -39,7 +39,9 @@ M14 ledger start ignores the written target: KILLED rc=1 3 failing
     FAIL with no set-point entity to write, the ledger's start is the plan step's target less the hysteresis  [predicate false]
 M15 delta reader accepts above the maximum: KILLED rc=1 1 failing
     FAIL a hysteresis outside 0 to 20 K, unavailable, in a non-temperature unit, unset or unknown is no reading  [predicate false]
-M16 a run at step 0 is judged too: KILLED rc=1 1 failing
+M16 a run at step 0 is judged too: KILLED rc=1 3 failing
+    FAIL a charge begun above its start temperature is dropped whole; the first step and a cooled tank's run are kept  [predicate false]
+    FAIL a run is judged against its own step's start temperature (a disinfection step's is higher)  [predicate false]
     FAIL a run at the first step is kept on a warm tank, with nothing planned at the horizon's end  [predicate false]
 M17 the round bound is nine: KILLED rc=1 1 failing
     FAIL a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge  [predicate false]
@@ -128,3 +130,4 @@ M43 the notice is never raised: KILLED rc=1 5 failing
     FAIL with hot water disabled no minimum raises it, whatever the hysteresis reads  [predicate false]
     FAIL the notice judges the written target: an everyday 58 on a 5 degC step starts below 51, not 54  [predicate false]
 NULL comment-only change: SURVIVED rc=0 0 failing
+rc=0 HEAD=1dd030c424ec0b81274287d65ef2ba084e40702d
