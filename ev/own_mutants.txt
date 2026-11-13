@@ -1,0 +1,10 @@
+KILLED prune-cli-no-write :: selftest_scope self-test: 141 checks, 1 failed
+KILLED prune-cli-ignores-unknown :: selftest_scope self-test: 141 checks, 1 failed
+KILLED probe-dir-ancestor-removed :: selftest_scope self-test: 141 checks, 1 failed
+KILLED unresolved-empty :: selftest_scope self-test: 141 checks, 2 failed
+KILLED unresolved-dropped-in-static :: selftest_scope self-test: 141 checks, 1 failed
+KILLED unresolved-falls-through :: selftest_scope self-test: 141 checks, 2 failed
+SURVIVED prune-table-none-pass :: selftest_scope self-test: 141 checks, 0 failed
+KILLED prune-unknown-rc0 :: selftest_scope self-test: 141 checks, 1 failed
+KILLED probe-dir-any-dir :: selftest_scope self-test: 141 checks, 4 failed
+SURVIVED table-untouched-skip-removed :: selftest_scope self-test: 141 checks, 0 failed

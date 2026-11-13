@@ -1,0 +1,1 @@
+REFUSE selftests: the base's governance / instrument-self-tests job 131833357705 is cancelled, which reads no step: an introduced red cannot be ruled out (fail closed)
