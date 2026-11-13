@@ -88370,6 +88370,37 @@ R.check(
     _p3_off_ok and _p3_lp.log_skip(False, "x", "y") is False,
     "",
 )
+# The counter's two DEBUG lines at both ends of the level. DEBUG on: a span the
+# meter refused logs its refusal once; one with no refusal logs nothing (null
+# control). DEBUG off: ``log_close`` formats nothing, so a value whose
+# formatting raises passes through.
+class _P3BoomFmt:
+    def __format__(self, spec): raise AssertionError("formatted with DEBUG off")
+_p3_cap2 = _P3Lines()
+_p3_he_log.addHandler(_p3_cap2)
+try:
+    _p3_he_log.setLevel(_p3_logging.DEBUG)
+    _p3_refused = _p3_he.close_span(_p3_ns(settle=lambda *_a: None, refusal="unaligned"), {}, (1.0, 0.0), "s",
+                                    NOW, 3.0, "u", lambda *a: "iv")
+    _p3_he.close_span(_p3_ns(settle=lambda *_a: None, refusal=None), {}, (1.0, 0.0), "s", NOW, 3.0, "u",
+                      lambda *a: "iv")
+    _p3_he_log.setLevel(_p3_logging.WARNING)
+    try:
+        _p3_he.log_close(_p3_ns(energy=_p3_ns(hours=_P3BoomFmt()), refusal=None),
+                         _p3_ns(refusal=None, space_kw=_P3BoomFmt(), house=True, lower=False))
+        _p3_close_off_ok = True
+    except AssertionError:  # formatted with DEBUG off: the check below goes red
+        _p3_close_off_ok = False
+finally:
+    _p3_he_log.removeHandler(_p3_cap2)
+    _p3_he_log.setLevel(_p3_he_was)
+R.check(
+    "P3: at DEBUG a span the heat counter refused logs its refusal once and one with no refusal "
+    "logs nothing; with DEBUG off a closed span's line formats nothing",
+    _p3_refused == _p3_he.NO_SPAN and _p3_cap2.lines == ["Heat counter span refused: unaligned"]
+    and _p3_close_off_ok,
+    f"{_p3_cap2.lines} {_p3_close_off_ok}",
+)
 
 
 # R10-OUTSIDE-VALVE-TARGET-LABEL (pull request 3529, Bankaifan, follow-up comment
