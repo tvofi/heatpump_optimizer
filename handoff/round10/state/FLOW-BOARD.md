@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-13T01:28:50+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-13T01:38:15+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -10,14 +10,14 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 | fly-ins closed | 0 | 10 |
 | main moves: group-carrying / record / roster-edit / fly-in | 0 / 1 / 0 / 0 | 37 / 6 / 0 / 10 |
 | first-pass fix-review yield | 2/3 (0.67) | 23/40 (0.57) |
-| blocked-class mix | class-open:2 | body-not-applied:1, carry-dismissal-unsupported:1, census-misclassified:2, claim-false:1, class-open:9, evidence-cut:1, findings-unresolved:1, harness:2, head-moved:1, introduced-red:1, mutation-survivor:1, mutation-vacuous:5, prior-findings-open:1, regression:1, root-cause-detectable:1, scope-overlap:1, self-test-red:1, trace-gap:1 |
+| blocked-class mix | class-open:1 | body-not-applied:1, carry-dismissal-unsupported:1, census-misclassified:2, claim-false:1, class-open:9, evidence-cut:1, findings-unresolved:1, harness:1, head-moved:1, introduced-red:1, mutation-survivor:1, mutation-vacuous:5, prior-findings-open:1, regression:1, root-cause-detectable:1, scope-overlap:1, self-test-red:1, trace-gap:1 |
 | lead time per size (h, n/p50/max) | none | L n=6 p50=19.22 max=36.53; M n=12 p50=33.37 max=105.45; S n=19 p50=15.27 max=28.30 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 0 | 45 | 6 | 0 |
+| 0 | 46 | 6 | 0 |
 
 ## Rules
 
