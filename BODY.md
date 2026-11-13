@@ -25,6 +25,27 @@ R10-HOTFIX-FLOW-SETPOINT-STUCK: a production hotfix for a defect the owner (tvof
 
 **Owner workaround on v7.1.12 to v7.1.15.** This was checked against origin/main code in the hastub stub and is unverified on hardware. Set the flow set-point entity once by hand to any value but 25, e.g. 40, while Optimizer active is on. The next arbiter pass, within a minute, writes the plan's target again, and Optimizer off later restores 40. Probe: `probe/workaround.py` in this seat's scratch directory under the session's state directory (`seat/hotfix-flow-setpoint/`), out of tree; the orchestrator holds the path for the reviewer.
 
+**Repair round (review verdict held at 90eb45f69f; CI red at the pull-request head a02783d44d).** The delta from the reviewed head is limited to five things:
+- the doc sentence, with no history phrase;
+- the six mutation pins;
+- one strengthened check;
+- #3404's mutant harness re-anchored;
+- no production code.
+
+The doc sentence in docs/configuration.md:
+- Before: "..., and the optimizer writes the set-point from its first pass as before. Set it on the pump once while the optimizer is on to have your own value restored instead."
+- After: "..., and the optimizer writes the set-point from its first pass. Set it on the pump once while the optimizer is on to have your own value restored instead."
+
+The strengthened check is `R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, a restart captures it again and the next off restores it, 25, not the baseline row's 35`. Before, it compared only the restore count, which no longer tells a record the restore dropped from one it kept: a kept record now substitutes 35 instead of refusing the write. Without the value, #3404's M09, M10 and M11 survived on this branch.
+
+`dev/audit/harnesses/r10_arbiter_off_restore_mutants.py` (#3404's mutation proof) refused at 90eb45f69f: seven mutants named old text this branch rewrote. Each is re-anchored on its new line with the same intent:
+- M02, M11, M13, M23 and M37 are re-anchored as they were.
+- M03 now drops the own-write check.
+- M35, renamed `M35_forget_drops_own_write`, forgets the own write that Off now keeps.
+- M36 is retired: Off's guard no longer reads the dropped write, by design.
+
+Its seam block also ended at the first `_fb_floor = _fb_sim(`, which #3469 added before every Carry 8 check. At origin/main 154dbb4c61 that left all 16 seam mutants alive (20 killed, 19 survived, NULLs included). The block now ends at the replay's `_fb_floor = _fb_sim(clamp=(26.4`, with the `off_restore` prelude its checks read. The harness's run at the head is under Mutation proof.
+
 ## What PR 3404 guaranteed, and what this changes
 
 The owner asked (2026-11-13) that the hold-off v7.1.12 introduced on purpose is not broken. This table covers every guarantee #3404 (merge 1aeaf273a4) stated, in its release-note entry and in docs/configuration.md, and every check it added to tests/features.py. A guard_pins.py change in the same pull request only gave its fixtures a weak-referenceable entry. Each row was run at this head in the pump-duty arbiter block (57 of 57 pass) or the feedback seam block (53 of 53 pass).
@@ -75,9 +96,9 @@ Root cause per dev/governance/rules/defect-root-cause.md: the defect reached v7.
 
 ## Head
 
-90eb45f69f511811ddd2ed9e7c6570ab8b2abdd1
+2d99a7b04b4fff4db0b4168c913882121b2825c6
 
-Branched from origin/main 154dbb4c61 (merge base). `git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main c67c1933be (after #3526), with `tests/closures.json` resolved as a set by its ledger driver; no main merge was needed. Against the open pull requests, the merge-tree of this head shows no conflict in tests/features.py or pump_arbiter.py:
+The reviewed head was 90eb45f69f511811ddd2ed9e7c6570ab8b2abdd1; this head fast-forwards it with the repair commits only. Branched from origin/main 154dbb4c61 (merge base). `git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main c67c1933be (after #3526), with `tests/closures.json` resolved as a set by its ledger driver; no main merge was needed. Against the open pull requests, the merge-tree of this head shows no conflict in tests/features.py or pump_arbiter.py:
 - #3526, #3531 and #3511 merge clean.
 - #3532 conflicts in coordinator.py only, and identically against origin/main.
 - #3481 conflicts in dev/audit/rounds/round4/D6/claims.md and claims.py, docs/architecture.md and tests/deployment_shape.py, all identically against origin/main.
@@ -96,6 +117,8 @@ Failing first, at origin/main 154dbb4c61's production code with this branch's te
 
 At an earlier head the `_LOGGER.info` guard (`if baseline is not None:`) survived as an equivalent mutant. The guard is now `if own:`, which also decides the baseline, so its mutant is killed.
 
+Repair round: `python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py` at 790d5e66ce printed 35 KILLED. The two SURVIVED lines are the NULLs; the one other survivor, M35, belonged to the seam block, whose checks never reach `_forget`. M35 moved to the arbiter block, and a mutant_run spec run there printed `SURVIVED NULL` then `KILLED M35_forget_drops_own_write`. At origin/main 154dbb4c61 the same harness printed 20 KILLED and 19 SURVIVED: all 16 seam mutants plus 2 NULLs, before the seam block's end marker was fixed.
+
 ## Null control
 
 - With no persisted record, the same boost and space-step passes write 55 at origin/main and at the head (`_pa_stuck_null`).
@@ -112,25 +135,25 @@ The generated scope-line block is left out of this body: update_pr.sh verifies i
 
 ## Red checks
 
-- `tests / mutation` at 90eb45f69f51: red by construction on the 6 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push. Cheaper detector: none is needed for this red: `mutant_run.py --diff` above already killed all 14 mutants, and the red only waits for the lane to record the pins.
+Each check that was red on a commit of this branch (pull request #3561, head a02783d44d), answered per dev/governance/rules/defect-root-cause.md:
 
-## Unpinned sites
-
-Each is an added production line the committed ledger cannot yet name (`python3 tools/pr/ci_predict.py`, the ADDED UNPINNED lines). The pump-duty arbiter block of tests/features.py drives every function they sit in, and the Mutation proof above kills each. The lane pins what it kills after the push.
-
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1492 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1623 BOOLOP`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1623 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1645 GUARD_OFF`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1650 RETURN_DEL`: pinned by mutation-autofix
-- `custom_components/heatpump_optimizer/pump_arbiter.py:1764 GUARD_OFF`: pinned by mutation-autofix
-
-The four pins ci_predict named STALE PIN (lines this branch rewrote: `_arbitrate` GUARD_OFF 59013da4, `_arm_space` RETURN_DEL cbe69d47, `_held_back` BOOLOP and RETURN_DEL 605f504a) are deleted in commit 920fa2e031.
+- `tests / fast (3.14)`: `tests/doc_claims.py` failed `no user page carries a history phrase outside a reasoned exemption`. The cause was docs/configuration.md, the sentence this branch added, which ended "... writes the set-point from its first pass as before." Fixed by commit `R10-HOTFIX-FLOW-SETPOINT-STUCK: configuration.md states the upgrade write with no history phrase (doc_claims)`; `tests/doc_claims.py` now prints `ALL 348 checks PASSED`.
+  - Cheaper detector: `tests/doc_claims.py` itself, 9 s, which prepr's scoped gate runs when a diff reaches it.
+  - Why the handoff missed it: the handoff's prepr ran with its gate scoped by `tests/closures.json`, and the scope did not select doc_claims.py for a docs/configuration.md edit. This seat did not read the MODE line's script list, so it did not see that.
+  - Standing cost of the fix: run `tests/doc_claims.py` by hand whenever a user page changes, 9 s. That is now in this seat's practice; no new check is proposed.
+- `tests / mutation`: MUTATION TABLE REFUSED, 6 unpinned sites added by this diff.
+  - All 6 are now pinned by `python3 tests/mutation_table.py --pin-killed --base origin/main` (scripts `tests/features.py` and `tests/guard_pins.py`, timeout 3600 s). Each row reads killed: `_arbitrate` GUARD_OFF, `_arm_space` GUARD_OFF and RETURN_DEL, `_held_back` BOOLOP and RETURN_DEL, `_own_space_write` RETURN_DEL.
+  - `ci_predict.py --base origin/main` now predicts no red.
+  - Cheaper detector: ci_predict's ADDED UNPINNED lines, which prepr printed as a WARN at the handoff.
+  - Why the handoff missed it: the body answered them "pinned by mutation-autofix", trusting the bot. The bot could not pin them (next row).
+- `tests / mutation-autofix`: AUTOFIX skip-measure-failed. The two `mutation-pins` shard jobs of run 43484654646 measured the baseline first, and `tests/doc_claims.py` read rc=1 there: "the baseline is already red in tests/doc_claims.py, so no mutant's verdict means anything". So the same doc sentence made the bot's measure fail, and no bot commit followed.
+  - Cheaper detector: the same doc_claims.py run as the first row; no separate one exists.
+- `arch-score / arch-score`, `governance / instrument-self-tests`, `tests / briefs`, `tests / nightly-status`: red on main commits that the pull-request branch's merge of origin/main (c91412dfb9) brought into its ancestry, not on any commit of this diff. For example, `governance / instrument-self-tests` is red at main 154dbb4c61 itself, on its trace-record rows. They grade `main` and are the orchestrator's there (`defect-root-cause.md`, Enforcement). At this branch's own commits, `arch-score` passed at a02783d44d: no failure there names it.
+- `pr-contract`: red at a02783d44d with the two reds above in the branch's ancestry and the body not naming them. This section answers it.
 
 ## Forward-carry
 
 - The `space_setpoint_unit` description in strings.json and its translations ends "this integration never recommends a space set-point". That is true of a recommendation but reads like the sentence this pull request corrects. It was left as written to keep this hotfix to the sentence the owner quoted. Carry: R11-INTAKE-R10-RESIDUE
-- `dev/audit/harnesses/r10_arbiter_off_restore_mutants.py` (#3404's mutation proof) names mutants whose `old` text this pull request changes: the `space_baseline_own` log line, `_arm_space`'s return and `_held_back`'s call. That harness refuses those mutants before running. It is a closed group's record, not re-run here. Carry: R11-INTAKE-R10-RESIDUE
 
 ## Friction
 
