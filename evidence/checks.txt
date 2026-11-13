@@ -1,7 +1,0 @@
-head 3bdc73b33650a4b40fd713d11e43c74c4e80272b
-(1) rev-parse 3bdc73b33650a4b40fd713d11e43c74c4e80272b:dev/programme/triage/s6-batch130.md = bacfa839a434ab4c2e685274fb0c5e3c9eae3e80 ; origin/main(444cf62 at merge)/same path = bacfa839a434ab4c2e685274fb0c5e3c9eae3e80
-(2) git merge-tree --write-tree 6d347c73 444cf62 -> tree 8cef8779; git diff --name-status vs head tree: only M dev/programme/triage/s6-batch130.md
-    (against current origin/main 7888005f the diff is main's newer commits only, expected; merge-tree origin/main head is conflict-free)
-scope: diff vs merge-base: dev/programme/delivery/3377.md plus rosters/triage only
-(4) classify: WAIT pending: gate red: none (polled ~1h); packet digest: tests / coverage in_progress, gate failure (aggregate, classify decides)
-packet advisory: handoff-not-applied (expected handoff-snapshot advisory)
