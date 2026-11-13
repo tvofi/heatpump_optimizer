@@ -1,0 +1,4 @@
+1
+2234
+grep_rc=1
+90c6bc3b0756475e28d4ace8d8e31c4788474933:custom_components/heatpump_optimizer/strings.json:1
