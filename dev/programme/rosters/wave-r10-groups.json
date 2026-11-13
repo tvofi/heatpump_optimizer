@@ -26675,6 +26675,52 @@
     "next_step": "cloud fixer; reviewer; owner review (policy)",
     "note": "intake: owner instruction 2026-11-13; must merge before round 11 finders start; builds on R10-D5-D6-FULL-SCOPE for scopes.json; overlap admitted (R10-D5-D6-FULL-SCOPE, R11-PRE-RULINGS-FILE, R11-PRE-OBJECTIVE-FUNCTION): owner instruction 2026-11-13: all dimension-audit changes incl. two new dimensions before round 11 (re-queue: first brief cited a path not in the tree)"
    }
+  },
+  {
+   "group": "R11-PRE-SHARED-FILES",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
+   "files": [
+    "tests/closures.json",
+    "tests/structure_budgets.json",
+    "tests/features.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "fable",
+   "reviewerModel": "fable",
+   "model": {
+    "fixer": "fable",
+    "reviewer": "fable",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13 on decision card P9 (yes, design first): shared files stop coupling every pull request. The closures table, the structure budgets and the instruments index are generated after merge instead of edited inside pull requests, and the features test script is split by module. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 4 row 5 and section 6 row b1 (shared files touched by most production merges; several main absorbs per fix branch). Design first (size L): the design says how the two refusing rules that read those files stay enforced. Shown by main absorbs per pull request, as the flow instrument prints it. The owner ruled the same day that this is built at the beginning of round 11, before the finders run.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-pre-shared-files",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
+    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run"
+   }
   }
  ]
 }
