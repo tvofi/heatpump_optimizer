@@ -26915,7 +26915,9 @@
    "findings": [],
    "architect_note": "",
    "brief": "Owner ruling 2026-11-13 on decision card R2 (yes, render on change): the plan page is rendered and committed when scope or order changes, not every 30 minutes, and each replan appends closure, scope and capacity to a data file so the closure history is data. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 8d and the removals list. The owner ruled the same day that this is built at the beginning of round 11, before the finders run.",
-   "carry": [],
+   "carry": [
+    "Owner instruction 2026-11-13 (tvofi, verbatim: \"The plan html for round 10 should also not show the round 11 groups\"): a round s plan page and its closure figure cover that round s groups only. Groups that belong to the next round (its pre-finder groups, its intake group, groups deferred to it) are neither drawn nor counted in closure; at most one line says how many are queued for the next round. Null control: a roster with a next-round group renders the same closure and the same lanes as the roster without it."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "fix/r11-pre-plan-render",
