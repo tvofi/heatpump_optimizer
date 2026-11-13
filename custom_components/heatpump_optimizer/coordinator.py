@@ -7716,13 +7716,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             mode_off=self._mode == MODE_OFF,
         )
 
-    async def async_publish_current_action(self, reason: str = "optimizer") -> None:
-        """Publish MQTT command for the currently selected optimizer action."""
+    async def async_publish_current_action(self, reason: str = "optimizer", heat_pump_on: bool | None = None) -> None:
+        """Publish the current action's MQTT command; ``heat_pump_on``, given, is the cycle's switch write."""
         if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
             return
         await self.async_publish_ecl110_command(
             displace_value=float(action.get("displace_value", 0.0)),
-            heat_pump_on=bool(action.get("heat_pump_on", False)),
+            heat_pump_on=bool(action.get("heat_pump_on", False)) if heat_pump_on is None else heat_pump_on,
             reason=reason,
         )
 
@@ -7819,7 +7819,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Between cycles the step tick writes each step's change (#2492).
         pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)
         # The ECL110 displace command
-        await self.async_publish_current_action(reason="scheduled_update")
+        await self.async_publish_current_action(reason="scheduled_update", heat_pump_on=on)
 
     async def _write_supply(self, on: bool) -> None:
         """Write the supply switch: the cycle's and the step tick's one gate.
