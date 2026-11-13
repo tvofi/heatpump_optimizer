@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-13T08:55:47+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-13T08:56:22+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,16 +8,16 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 3 / 1.0 | 23 / 24.0 |
 | fly-ins closed | 0 | 12 |
-| main moves: group-carrying / record / roster-edit / fly-in | 4 / 0 / 1 / 0 | 29 / 5 / 2 / 12 |
-| first-pass fix-review yield | 0/1 (0.00) | 22/38 (0.58) |
-| blocked-class mix | mutation-vacuous:1 | architecture-unsound:1, census-misclassified:2, claim-false:1, class-open:9, dropped-entries:1, evidence-cut:1, findings-unresolved:1, head-moved:1, introduced-red:1, mutation-survivor:1, mutation-vacuous:5, prior-findings-open:1, regression:1, root-cause-detectable:1, self-test-red:1 |
-| lead time per size (h, n/p50/max) | L n=1 p50=26.19 max=26.19; M n=1 p50=14.07 max=14.07; S n=2 p50=4.68 max=15.62 | L n=5 p50=26.19 max=36.53; M n=8 p50=33.37 max=36.87; S n=16 p50=14.99 max=28.30 |
+| main moves: group-carrying / record / roster-edit / fly-in | 3 / 0 / 1 / 0 | 29 / 5 / 2 / 12 |
+| first-pass fix-review yield | 0/1 (0.00) | 22/37 (0.59) |
+| blocked-class mix | mutation-vacuous:1 | architecture-unsound:1, census-misclassified:2, claim-false:1, class-open:9, dropped-entries:1, evidence-cut:1, findings-unresolved:1, head-moved:1, introduced-red:1, mutation-survivor:1, mutation-vacuous:5, prior-findings-open:1, root-cause-detectable:1, self-test-red:1 |
+| lead time per size (h, n/p50/max) | L n=1 p50=26.19 max=26.19; S n=2 p50=4.68 max=15.62 | L n=5 p50=26.19 max=36.53; M n=8 p50=33.37 max=36.87; S n=16 p50=14.99 max=28.30 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 0 | 43 | 5 | 0 |
+| 0 | 55 | 7 | 1 |
 
 ## Rules
 
