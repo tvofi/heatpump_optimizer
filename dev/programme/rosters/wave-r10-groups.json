@@ -25587,6 +25587,52 @@
     "note": "triage ACCEPT round 10 (audit-class barrier, part C); cutoff 2026-11-14T18:00Z else round 11; overlap admitted (R10-NUDGE-RETIRE): triage ruling 2026-11-13: audit-class barrier C; shares tools/ci/selftest_closures.json with R10-HOTFIX-SELFTEST-SCOPE-RERECORD, ordered after it",
     "pr": null
    }
+  },
+  {
+   "group": "R11-SELFTEST-SCOPE-MAIN-UNION-RERECORD",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-SELFTEST-SCOPE-UNION-GUARD"
+   ],
+   "files": [
+    ".github/workflows/governance.yml",
+    "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_closures.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Round 11, deferred. Triage ruling 2026-11-13 on the root-cause analysis of the self-test scope table drift (six drift hotfix groups in round 10, five sharing one cause; an audit class, so a class barrier is owed). Countermeasure A of that analysis: when the drift step of the instrument self-tests job refuses on a push to main, a bot re-records the refused steps by union from that run's own traces and lands the table through the record autofix route, so no hotfix seat is needed. It edits .github/workflows/governance.yml, a code-owned path. Demonstration owed: the job red on a planted unrecorded read and green after the bot commit, and a null control where a green push writes nothing. Depends on the union behaviour of the record command landed by R10-SELFTEST-SCOPE-UNION-GUARD. The analysis is to land as dev/audit/rca with a bugclasses.json entry naming it, in this group's pull request if round 10 did not land it. Re-measure the refusal attribution at your own merge base.",
+   "carry": [],
+   "resume": {
+    "stage": "deferred",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "round 11 plan",
+    "note": "triage ruling s14/seat/triage-selftest-scope/RULING.md: A accepted for round 11; overlap admitted (R10-NUDGE-RETIRE, R10-SELFTEST-SCOPE-UNION-GUARD): triage ruling 2026-11-13: barrier A accepted for round 11, deferred",
+    "pr": null
+   }
   }
  ]
 }
