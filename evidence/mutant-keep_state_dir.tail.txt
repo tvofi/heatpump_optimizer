@@ -1,0 +1,12 @@
+  ok   mutant gantt_wip_refspec_dropped killed by: gantt: a handoff-wip tip is fetched and reaches sweep_gantt beside the handoff tip
+  ok   mutant gantt_ledger_not_copied killed by: gantt: the fire ledger is copied whole for sweep_gantt (null: no fire_ledger copies nothing)
+  ok   mutant fold_counter_to_set killed by: fold: a duplicated line is one more line, new.txt and a new stamp
+  ok   mutant need_accepts_empty killed by: a row whose overlay key is empty says so, and runs nothing
+  ok   mutant fold_new_kept_stale killed by: fold: a fold that added nothing empties new.txt, and leaves the stamp
+  ok   mutant darwin_gate_dropped killed by: darwin-selftest null: a non-Darwin host runs nothing and writes nothing
+  ok   mutant darwin_first_fail_is_last_line killed by: darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
+  ok   mutant darwin_tip_not_skipped killed by: darwin-selftest: an unchanged tip is skipped
+  ok   mutant darwin_red_dropped killed by: darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
+  ok   mutant darwin_lease_not_released killed by: darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
+beat_jobs self-test: 217 checks, 0 failed
+rc=0

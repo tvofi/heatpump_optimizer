@@ -1,0 +1,12 @@
+  File "/tmp/tmp.qNGksgisd7/mut/no_take/tools/audit/seat/beat_jobs.py", line 745, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/tmp.qNGksgisd7/mut/no_take/tools/audit/seat/beat_jobs.py", line 730, in main
+    return beat_jobs_selftest.run(Path(__file__), mutants="--no-mutants" not in argv)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.qNGksgisd7/mut/no_take/tools/audit/seat/beat_jobs_selftest.py", line 1208, in run
+    res = cases(bj)
+  File "/tmp/tmp.qNGksgisd7/mut/no_take/tools/audit/seat/beat_jobs_selftest.py", line 986, in cases
+    take = next(i for i, a in enumerate(f.calls) if "slot-take" in a)
+StopIteration
+rc=1
