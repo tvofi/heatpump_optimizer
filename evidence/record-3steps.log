@@ -1,7 +1,0 @@
-OK       0.0s launch
-OK      11.0s field-coverage
-OK     771.1s prepr
-OK       0.0s beatd
-OK       0.0s unread
-selftest_scope: recorded 3 step(s) into /tmp/claude-0/-home-user-heatpump-optimizer/4e722175-a51e-5035-9af7-ba85c345a4f1/scratchpad/rec.json; 0 failed [], 0 broken trace(s)
-rc=0

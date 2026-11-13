@@ -1,0 +1,110 @@
+diff --git a/tools/ci/selftest_closures.json b/tools/ci/selftest_closures.json
+index 7268f7a9f3..d56ec9a60d 100644
+--- a/tools/ci/selftest_closures.json
++++ b/tools/ci/selftest_closures.json
+@@ -2674,6 +2674,7 @@
+     "custom_components/heatpump_optimizer/button.py",
+     "custom_components/heatpump_optimizer/flow_meter.py",
+     "dev/programme/carries/**",
++    "dev/programme/rosters/wave-r10-groups.json",
+     "tests/closure.py",
+     "tests/closures.json",
+     "tests/layout.json",
+@@ -2697,6 +2698,7 @@
+     "config",
+     "dev/audit/rca/R10-RCA-INERT-PREDICT.md",
+     "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
++    "dev/programme/rosters",
+     "objects",
+     "refs",
+     "tests",
+@@ -2713,6 +2715,7 @@
+    "dirs": [
+     ".github/workflows",
+     "dev/programme/carries",
++    "dev/programme/rosters",
+     "tests",
+     "tests/hastub",
+     "tools/audit",
+@@ -3778,8 +3781,10 @@
+     "tools/site"
+    ],
+    "index": false,
+-   "objects": false,
+-   "git": []
++   "objects": true,
++   "git": [
++    "?"
++   ]
+   },
+   "detached-launcher": {
+    "run_sha": "9939770d9063bef477dcb8e556f4dbde93b73d8dadb3cdc2b2d95f458f2bba0f",
+@@ -6359,6 +6364,7 @@
+    "files": [
+     ".claude/hooks/**",
+     ".claude/settings.json",
++    ".gitattributes",
+     ".github/workflows/**",
+     ".gitignore",
+     "CLAUDE.md",
+@@ -6378,6 +6384,7 @@
+     "tests/card_drift.mjs",
+     "tests/closure.py",
+     "tests/closures.json",
++    "tests/env_drift.py",
+     "tests/gate_lock.py",
+     "tests/harness_headers.py",
+     "tests/layout.json",
+@@ -6397,6 +6404,7 @@
+     "tools/audit/seat/review_packet.py",
+     "tools/audit/seat/roster_lib.py",
+     "tools/audit/worktree_gc.sh",
++    "tools/merge/ledger_merge.py",
+     "tools/policy/brief_lint.mjs",
+     "tools/policy/budget_raise_gate.py",
+     "tools/policy/counts.mjs",
+@@ -8639,6 +8647,7 @@
+    "index": false,
+    "objects": true,
+    "git": [
++    "?",
+     "merge-base"
+    ]
+   },
+@@ -8866,8 +8875,10 @@
+    ],
+    "dirs": [],
+    "index": false,
+-   "objects": false,
+-   "git": []
++   "objects": true,
++   "git": [
++    "?"
++   ]
+   },
+   "tick-loop": {
+    "run_sha": "5f955a1a0af7d2c83832dac4de5dfa3ad2fe9112ea4c94d88f749650d9f7ded8",
+@@ -9192,6 +9203,7 @@
+     "dev/governance/config/policy_budgets.json",
+     "dev/governance/roles/fix-review.md",
+     "dev/programme/carries/**",
++    "dev/programme/rosters/wave-r10-groups.json",
+     "tests/card_drift.mjs",
+     "tests/closures.json",
+     "tests/layout.json",
+@@ -9248,6 +9260,7 @@
+     ".mailmap",
+     "config",
+     "dev/governance/dimensions",
++    "dev/programme/rosters",
+     "objects",
+     "package.json",
+     "packed-refs",
+@@ -9268,6 +9281,7 @@
+    "dirs": [
+     "dev/governance/dimensions",
+     "dev/programme/carries",
++    "dev/programme/rosters",
+     "tests",
+     "tools/audit/seat"
+    ],
