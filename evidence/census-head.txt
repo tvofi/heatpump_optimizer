@@ -1,0 +1,9 @@
+candidates 7375
+modules 89
+colliding keys 232
+kinds Counter({'CMP_BOUND': 161, 'CLAMP_DROP': 71})
+by kind Counter({'GUARD_OFF': 3148, 'RETURN_DEL': 1570, 'CMP_BOUND': 1204, 'CLAMP_DROP': 650, 'BOOLOP': 555, 'CONST': 243, 'RAISE_DEL': 5})
+INSTANCE custom_components/heatpump_optimizer/optimizer.py:3656 CLAMP_DROP 2
+collisions keyed with new 0
+{'kind': 'CLAMP_DROP', 'file': 'custom_components/heatpump_optimizer/optimizer.py', 'line': 3656, 'old': '            solar_fraction = min(future_solar_6_12h / max(typical_heat_loss * 6, 0.1), 1.0)', 'new': '            solar_fraction = (future_solar_6_12h / max(typical_heat_loss * 6, 0.1))', 'anchor': 'custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CLAMP_DROP 22184b9a'}
+{'kind': 'CLAMP_DROP', 'file': 'custom_components/heatpump_optimizer/optimizer.py', 'line': 3656, 'old': '            solar_fraction = min(future_solar_6_12h / max(typical_heat_loss * 6, 0.1), 1.0)', 'new': '            solar_fraction = min(future_solar_6_12h / (typical_heat_loss * 6), 1.0)', 'anchor': 'custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._analyze_forecast_trajectory CLAMP_DROP 22184b9a'}
