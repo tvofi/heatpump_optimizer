@@ -1048,6 +1048,7 @@
   "dhw_disinfection_switch_entity": "sensor.seed_dhw_disinfection_switch_entity",
   "dhw_elastic_legionella_enabled": true,
   "dhw_free_disinfection_enabled": true,
+  "dhw_hysteresis_entity": "sensor.seed_dhw_hysteresis_entity",
   "dhw_inlet_entity": "sensor.seed_dhw_inlet_entity",
   "dhw_legionella_enabled": true,
   "dhw_quantile_targets_enabled": true,
@@ -1110,6 +1111,7 @@
   "solar_aperture_learning_enabled": true,
   "solar_radiation_entity": "sensor.seed_solar_radiation_entity",
   "space_circulation_pump_entity": "sensor.seed_space_circulation_pump_entity",
+  "space_hysteresis_entity": "sensor.seed_space_hysteresis_entity",
   "space_setpoint_entity": "sensor.seed_space_setpoint_entity",
   "staleness_watchdog_enabled": true,
   "system_identification_enabled": true,
@@ -2315,6 +2317,14 @@
     "required": "Optional",
     "selector": "SelectSelector"
    },
+   "dhw_hysteresis_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor', 'number', 'input_number']}]"
+    },
+    "default": "'sensor.seed_dhw_hysteresis_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
    "heat_pump_backup_heater_entity": {
     "config": {
      "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
@@ -2396,6 +2406,14 @@
     "default": "'off'",
     "required": "Optional",
     "selector": "SelectSelector"
+   },
+   "space_hysteresis_entity": {
+    "config": {
+     "filter": "[{'domain': ['sensor', 'number', 'input_number']}]"
+    },
+    "default": "'sensor.seed_space_hysteresis_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
    }
   },
   "factory_reset": {
@@ -5027,6 +5045,14 @@
    "required": "Optional",
    "selector": "SelectSelector"
   },
+  "dhw_hysteresis_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor', 'number', 'input_number']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
   "heat_pump_backup_heater_entity": {
    "config": {
     "filter": "[{'domain': ['binary_sensor', 'switch', 'input_boolean', 'sensor']}]"
@@ -5108,6 +5134,14 @@
    "default": "'off'",
    "required": "Optional",
    "selector": "SelectSelector"
+  },
+  "space_hysteresis_entity": {
+   "config": {
+    "filter": "[{'domain': ['sensor', 'number', 'input_number']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
   }
  },
  "factory_reset": {
