@@ -2,7 +2,7 @@ R10-REVIEW-DISPATCH-RESIDUE part 6. Carry 25: the handoff's brief-carries check 
 
 ## Head
 
-d81c7c9da4757917c2344c4d85417caf1f82f55c
+037bc7a75d8645a33ca34b7b10e1e24bf20d83d6
 
 ## Mutation proof
 
@@ -53,7 +53,11 @@ none
 
 ## Red checks
 
-none
+Code CI at 9b811fd (run 43407655615) was red on three jobs; each was run again at origin/main and at the head.
+
+- `governance / instrument-self-tests` (`python3 -I tools/audit/check_scopes.py --self-test --repo .`): FAIL D1 `owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M1', None) by ['s1', 's2']`, and the same for D2. It prints the same FAIL lines at origin/main (universe 89 files, 71927 loc there against 71728 here) and at the head, so it is main's, not this branch's; this branch touches neither the scopes file nor check_scopes.py. Not fixed here; reported in RESULT for the orchestrator to route. Cheaper detector: the self-test is already the cheapest detector, and it is a 1-minute job; the finding is that a main push should have run it and gone red, which is the orchestrator's to answer.
+- `tests / briefs` (`node tools/policy/brief_lint.mjs`): CI took the linter from the PR base commit and the rosters from the merge ref; that linter did not yet exempt carry-1067.json (no path to a harness; `lift_consistency.py` not in the tree). origin/main's `b4a663ebe5` moved the legacy-control list to `tools/policy/legacy_control_files.json`, which carry-1067 is on. After merging origin/main into the head, `brief_lint.mjs` prints 0 errors for carry-1067.json and for every file this branch touches; the head before the merge also printed 0 locally with its own linter. Cause: a branch cut before main's fix, tested against a pinned linter. Cheaper detector: `prepr.sh` already runs brief_lint; its standing cost is the full-corpus pass (about 2 minutes). The finding is that prepr cannot see the pinned base linter, so a stale branch needs a merge of main, not another detector.
+- `pr-contract` (PR-BODY, 1 error): the `## Head` section named d81c7c9, the handoff tip, not the head the check ran on, and `## Red checks` said `none` while three checks were red. Cause: the body was written before the merge head existed. Cheaper detector: `policy_lint.mjs --pr-body` with `--head <sha>`, which `prepr.sh` runs; this repair runs it at the final head.
 
 ## Forward-carry
 
