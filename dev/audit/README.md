@@ -27,7 +27,7 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | phase | entry | exit | instrument | contract | artefact |
 |---|---|---|---|---|---|
 | 1 mandate and rulings | the prior round's final state comment on #201 | the owner's mandate comment, scope and expiry, and rulings on #201 | `tools/policy/budget_raise_gate.py` reads a mandate's state | `dev/governance/decisions/0013-verdicts-post-as-the-approver-app.md`, `CLAUDE.md` | the mandate comment id |
-| 2 dimensions and finders | a pinned baseline SHA | every scope reported | `.claude/workflows/audit-find.js`, `tools/audit/check_scopes.py` over `dev/audit/config/scopes.json` | `dev/governance/roles/COMMON.md`, `dev/governance/dimensions/` | reports under `dev/audit/rounds/` |
+| 2 dimensions and finders | a baseline SHA pinned after `evaluator.md`'s evaluation | every scope reported | `.claude/workflows/audit-find.js`, `tools/audit/check_scopes.py` over `dev/audit/config/scopes.json` | `dev/governance/roles/COMMON.md`, `dev/governance/dimensions/` | reports under `dev/audit/rounds/` |
 | 3 verify and judge | the finders' reports | every finding judged, classes swept | `.claude/workflows/audit-verify.js` | `verifier.md`, `judge.md`, `dev/governance/rules/defect-root-cause.md` | the round's judge record, `dev/audit/config/bugclasses.json` |
 | 4 P3 plan and owner approval | the judged register | `Plan review: approve`, then the owner's approval | `.claude/workflows/audit-plan.js`, `tools/audit/archscore/`, `tools/audit/seat/plan_audit.py` | `architect-planner.md`, `plan-review.md`, decision 0015 | the plan branch, ADRs |
 | 5 roster and waves | the approved plan | the roster lints clean | `tools/audit/seat/roster_edit.py`, `tools/policy/brief_lint.mjs` | `standing-roster.md`, `dev/governance/rules/brief-citations.md` | `dev/programme/rosters/`, `critical-path.json` |
@@ -38,7 +38,7 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 10 post-merge beat and state docs | a merge | row, handover and state docs current | `tools/audit/seat/postmerge.py`, `tools/audit/seat/beatd.py`, `tools/audit/seat/state_docs.py` | `dev/governance/rules/delivery-status-tracking.md` | `dev/programme/delivery/`, `dev/programme/HANDOVER.md`, a #201 comment |
 | 11 stamps | merges since the last tag | the tag pushed | `tools/release/stamp.py`, `.claude/workflows/web-stamp.js` | `orchestrator.md` section 13 | the tag and release notes |
 | 12 projections and extension | a wave edge | the plan re-projected; a new group appended | `tools/plan/replan.py`, `tools/audit/seat/plan_page.py`, `tools/audit/seat/flow_metrics.py` | `orchestrator.md` section 2b | the projection, a roster group |
-| 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201 |
+| 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201; the round's objective record |
 
 Lessons (triage batch 141, P545): stack a later part only under the stack
 study's conditions, at the parent's merge verdict, never its handoff (round
@@ -261,9 +261,8 @@ moves.
   L-BFGS-B starts (`_multi_start_minimize`), in `_lbfgsb_restart` and at the
   DHW-to-space seam; grep, never count them.
 
-`check_scopes.py` proves `scopes.json`'s seats disjoint and complete, every
-tracked path in a universe or on `_coverage_excluded`, and a harness naming a
-brief cited by it.
+`check_scopes.py` refuses a round on `scopes.json`'s seats, tree coverage, an
+uncited harness and, by `--round`, a missing start evaluation.
 
 ## Harnesses that read moved paths are retired
 
