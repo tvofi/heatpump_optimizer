@@ -1,0 +1,18 @@
+SURVIVED tools/audit/seat/cloud_dispatch.py:873 CALL_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:876 CONST_SWAP  subprocess.run(["git", "-C", str(work), "cat-file", "-e", vtip3], capture_output=True).returncode != 1)
+SURVIVED tools/audit/seat/cloud_dispatch.py:872 STMT_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:874 STMT_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:875 STMT_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:878 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1156 CONST_SWAP  brief_carries(hand, 7, two) == ([2, 3], [], base_txt) and brief_carries(gen, 6, "Carry 2: a\n") == ([2, 3], [3], base_txt))
+SURVIVED tools/audit/seat/review_packet.py:1158 CONST_SWAP  brief_carries(full5, 6, two) == (list(range(5)), [0, 1, 4], "") and brief_carries(None, 3, "") == (3, [0, 1, 2], ""))
+SURVIVED tools/audit/seat/review_packet.py:1170 CONST_SWAP  g.update(git=lambda *a, **k: "f" * 41 + "\n", repo=lambda: Path("."), fetch_roster_ref=lambda r: "R",
+SURVIVED tools/audit/seat/review_packet.py:1172 CONST_SWAP  roster_carry_reader=lambda t, r: (lambda sha: True, lambda sha: 1))
+SURVIVED tools/audit/seat/review_packet.py:1175 CONST_SWAP  roster_lib.groups_of = lambda r: {"G": {"carry": [1] * 6}}
+SURVIVED tools/audit/seat/review_packet.py:1186 CALL_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1187 CALL_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1155 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1157 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1193 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1195 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1197 STMT_DEL  pass

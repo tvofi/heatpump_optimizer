@@ -1,21 +1,3 @@
-== merge-tree origin/main (b5057b052558163c499f74426ba26e541475db8f) 2e160c0c9b0cb4b00bdbd5f17defd63bfcfbfbee
-87edde0b7967602a0ecb214c6934de1e4532a573
+origin/main 7eadd75f3c420404aabc83d4b05f9691f3e49136
+0f05587356ed740be7f2e2383456cd8fa189e472
 rc=0
-== merge-tree refs/pull/3533/head (faf867698456ab3519425c9c360e2b80b3a40dbe) 2e160c0c9b0cb4b00bdbd5f17defd63bfcfbfbee
-87edde0b7967602a0ecb214c6934de1e4532a573
-rc=0
-== 3533 files vs its merge base
-RESULT refs/pull/3533/head faf8676984 IS an ancestor of origin/main b5057b0525
-b5057b0525 Merge pull request #3533 from tvofi/fix/r10-review-dispatch-residue-p3-pr
-faf8676984 record: the delivery row for #3533
-9262e6f43d ci-layout P2b U9a: the seat readers read the umbrella's gate
-== #3533 own diff vs the p6 merge base:
- dev/audit/harnesses/r10_flow_dispatch_mutants.py |  5 +++++
- dev/programme/delivery/3533.md                   |  1 +
- tools/audit/seat/cloud_dispatch.py               | 13 +++++++++++--
- 3 files changed, 17 insertions(+), 2 deletions(-)
-== merge-tree p6 head vs 3533 rel. to p6 base, textual check
-rc=0
-@@ -934,6 +934,13 @@ def _group_checks(check) -> None:
-@@ -1147,7 +1154,7 @@ def _group_checks(check) -> None:
-@@ -1155,7 +1162,9 @@ def _group_checks(check) -> None:

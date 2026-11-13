@@ -15,6 +15,16 @@ M = [  # (name, file, old, new, cmd)
  ("c10 string branch returns none", "tools/audit/seat/review_strength.py", "(model if isinstance(model, str) else", "(None if isinstance(model, str) else", "rs"),
  ("NULL (identical replacement)", "tools/audit/seat/review_strength.py", "if isinstance(model, str) else", "if isinstance(model, str) else", "rs"),
 ]
+M[-1:-1] = [
+ ("r2 brief_carries unnamed over live, not scoped (654)", "tools/audit/seat/review_packet.py", "return carries, unnamed_carries(body, carries), base", "return carries, unnamed_carries(body, live), base", "rp"),
+ ("r2 brief_carries unnamed always empty (654)", "tools/audit/seat/review_packet.py", "return carries, unnamed_carries(body, carries), base", "return carries, [], base", "rp"),
+ ("r2 brief_carries base dropped from return (654)", "tools/audit/seat/review_packet.py", "return carries, unnamed_carries(body, carries), base", "return carries, unnamed_carries(body, carries), \"\"", "rp"),
+ ("r2 handoff passes no prompt (858)", "tools/audit/seat/review_packet.py", "brief_carries(prompt, live, body)", "brief_carries(None, live, body)", "rp"),
+ ("r2 handoff passes live 0 (858)", "tools/audit/seat/review_packet.py", "brief_carries(prompt, live, body)", "brief_carries(prompt, 0, body)", "rp"),
+ ("r2 handoff drops unnamed (863)", "tools/audit/seat/review_packet.py", "boarded, a.topic, anc), unnamed,", "boarded, a.topic, anc), [],", "rp"),
+ ("r2 handoff drops base (864)", "tools/audit/seat/review_packet.py", "roster_carry_reader([a.topic], ref))), base)", "roster_carry_reader([a.topic], ref))), \"\")", "rp"),
+ ("r2 c24 fetch by sha, not ref (681)", "tools/audit/seat/cloud_dispatch.py", '            _git(repo_dir, "fetch", "-q", "origin", vref)\n', '            _git(repo_dir, "fetch", "-q", "origin", vtip[0])\n', "cd"),
+]
 CMD = {"rp": ["python3", "tools/audit/seat/review_packet.py", "--self-test"],
        "cd": ["python3", "-I", "tools/audit/seat/cloud_dispatch.py", "--self-test"],
        "rs": ["python3", "tools/audit/seat/review_strength.py", "--self-test"]}

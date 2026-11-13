@@ -1,0 +1,40 @@
+SURVIVED tools/audit/seat/cloud_dispatch.py:875 STMT_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:878 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:654 RETURN_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1156 CONST_SWAP  brief_carries(hand, 7, two) == ([2, 3], [], base_txt) and brief_carries(gen, 6, "Carry 2: a\n") == ([2, 3], [3], base_txt))
+SURVIVED tools/audit/seat/review_packet.py:1158 CONST_SWAP  brief_carries(full5, 6, two) == (list(range(5)), [0, 1, 4], "") and brief_carries(None, 3, "") == (3, [0, 1, 2], ""))
+SURVIVED tools/audit/seat/review_packet.py:1170 CONST_SWAP  g.update(git=lambda *a, **k: "f" * 41 + "\n", repo=lambda: Path("."), fetch_roster_ref=lambda r: "R",
+SURVIVED tools/audit/seat/review_packet.py:1172 CONST_SWAP  roster_carry_reader=lambda t, r: (lambda sha: True, lambda sha: 1))
+SURVIVED tools/audit/seat/review_packet.py:1175 CONST_SWAP  roster_lib.groups_of = lambda r: {"G": {"carry": [1] * 6}}
+SURVIVED tools/audit/seat/review_packet.py:1178 CONST_SWAP  with tempfile.NamedTemporaryFile("w", suffix=".md", delete=True) as f:
+SURVIVED tools/audit/seat/review_packet.py:1179 CALL_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1184 CALL_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1186 CALL_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1187 CALL_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1188 RETURN_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1194 CONST_SWAP  rc_h == 2 and err_h.count("brief-carries") == 1 and "carry 3 is not named" in err_h and base_txt in err_h)
+SURVIVED tools/audit/seat/review_packet.py:1196 CONST_SWAP  rc_g == 1 and err_g == "")
+SURVIVED tools/audit/seat/review_packet.py:1198 CONST_SWAP  rc_n == 2 and err_n.count("brief-carries") == 4 and base_txt not in err_n)
+SURVIVED tools/audit/seat/review_packet.py:652 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:653 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:858 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:862 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1154 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1155 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1157 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1166 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1167 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1169 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1170 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1173 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1174 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1175 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1176 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1180 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1182 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1190 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1191 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1192 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1193 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1195 STMT_DEL  pass
+SURVIVED tools/audit/seat/review_packet.py:1197 STMT_DEL  pass
