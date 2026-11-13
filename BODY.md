@@ -96,7 +96,34 @@ Re-check only these hunks; every other file auto-merged. The conflict is with #3
 
 ## Head
 
-dcf5e329dceabbf35716800fbacf4e2ff58741bd (`handoff/r10-process-slim-p2`): merge repair 7. e5193663 merges origin/main a18e2e9d00b17a0349f29938a469d1bc3edd1ae3 into b8bbe6ad (5f95f406 with BLOCKED.md removed); dcf5e329 restores four self-test lines of main's (below). Measured at origin/main a18e2e9d, 2026-11-12T22:18Z. `git merge-tree --write-tree origin/main 1ce773ca` reported `CONFLICT (content)` in `tests/gate_lock.py` and `tools/audit/seat/bus.sh` (PR #3451 read `dirty`), so the merge was owed (`fixer.md` step 6). After it, `git merge-tree --write-tree origin/main HEAD` exits 0.
+0f4d2ba3532e8af685dc28b9e08294ef8b43b4f3 (`handoff/r10-process-slim-p2`): merge repair 8, the reconcile round after the merge verdict at dcf5e329 (`Fix review: merge dcf5e329...`). It starts from the PR head 07941da7b5cbbf86cef28dd2632eb3bc0c870708 and holds two plain merge commits: 73cc4201 merges origin/main 0731b358778a41773977635cedc24dd0ae340e64, and 0f4d2ba3 merges origin/main cfa868394685dbb2360844aec43d7a8cac4736ab. `git merge-tree --write-tree --name-only origin/main 07941da7` listed conflicts in `dev/audit/README.md`, `dev/audit/harnesses/r10_seat_selftests_mutants.py` and `dev/governance/roles/proposal-triage.md`. Main then moved, and `git merge-tree --write-tree origin/main 73cc4201` listed conflicts in `dev/audit/README.md`, `tools/audit/seat/handoff_push.sh` and `tools/pr/ci_predict.py`, so the second merge was required too. Each file below was read back in the merged tree against both parents. No other hunk was written by hand. `tests/closures.json` was resolved by the `ledgermerge` driver (`closures.tests/entities.py: merged as a set`).
+
+**Merge of 0731b358 (73cc4201): three conflicts.**
+- **`dev/audit/README.md`.** Main reworded the standing-set and production-share paragraphs. This branch removed the triage-seat clause and the `proposal-triage.md` citations, because it retires that seat (card C6(a)). The union keeps main's wording and does not restore the retired seat's clause or citations.
+- **`dev/audit/harnesses/r10_seat_selftests_mutants.py`.** Each side added entries to the mutant-to-self-test map: this branch added `body_push-5`/`-6` and main added `roster_lib-1`/`-2`. The union keeps all four. Run at 0f4d2ba3 with `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py body_push-5 body_push-6 roster_lib-1 roster_lib-2 S35 S36`, every mutant is killed and the run ends `RESULT survivors=0`:
+  - `== roster_lib-1 roster_lib.py: KILLED rc=1`
+  - `== roster_lib-2 roster_lib.py: KILLED rc=1`
+  - `== S35 handoff_push.sh: KILLED rc=1 | handoff_push self-test: 6 checks, 3 failed`
+  - `== S36 handoff_push.sh: KILLED rc=1 | handoff_push self-test: 6 checks, 2 failed`
+  - `== body_push-5 tools/audit/seat/body_push.sh: KILLED rc=1`
+  - `== body_push-6 tools/audit/seat/body_push.sh: KILLED rc=1`
+- **`dev/governance/roles/proposal-triage.md`.** Main reworded the file and added one rule: "Blocking no production merge: LOG, bar the exemption in `dev/audit/README.md`". This branch deletes the file (card C6(a)), so it stays deleted. That rule is the one clause of main's that the slimmed text would otherwise lose. It is kept in the merged `dev/audit/README.md`, which reads: "A proposal is accepted only when its friction blocks a production merge, else ruled LOG."
+
+**Merge of cfa86839 (0f4d2ba3): three conflicts.**
+- **`dev/audit/README.md`, the exemption sentence.** Main raised the exemption bar from 10% to 20% and kept the `(`proposal-triage.md`)` citation. This branch dropped that citation. The union keeps main's 20% bar and the LOG rule, and leaves out the citation of the retired file. Main's added citation of `dev/governance/rules/ratchet-budgets.md` merged automatically and is present.
+- **`tools/audit/seat/handoff_push.sh`, the `--self-test` dispatch.** Main added the `pr_bounded` self-test bound (`[ -n "${PR_BOUND:-}" ] || { ... pr_bounded handoff_push ...; }`). This branch removed the `delivery_row.sh --self-test` call, because it took the row writer out of this script (card C5). The union keeps main's bound and keeps the call removed. `bash tools/audit/seat/handoff_push.sh --self-test` exits 0.
+- **`tools/pr/ci_predict.py` `self_test()`.** Both registrations are kept: `step_replay_self_test(root)` from this branch and `roundref_self_test(root)` from main.
+
+**Checks re-run at 0f4d2ba3:**
+- `node tools/policy/policy_lint.mjs` prints `TOTAL: 0 error(s) across 50 policy file(s)`, and `--budgets` exits 0.
+- `node tools/policy/rules_sync.mjs --check` exits 0, and so does `node tools/policy/brief_lint.mjs`.
+- These self-tests exit 0: `body_push.sh`, `bus.sh`, `handoff_push.sh`, `merge_train.py` (`722 checks, 0 failed`), `outside_intake.py` and `postmerge.py` (`18 checks, 0 failed`).
+- `tests/entities.py` could not be run in this seat. Neither venv here has its full dependencies: venv-ci lacks `homeassistant` and venv-ha lacks `paho`. `prepr.sh` and `pr-contract` run it.
+- No `*_budgets.json` value is raised over main. This branch's only budget file is `dev/governance/config/policy_budgets.json`, and `--budgets` passes on the merged tree.
+
+**Null control for the proposal-triage arm.** `policy_lint` prints TOTAL 0 at the merged head. It also prints TOTAL 0 with main's LOG sentence removed from `dev/audit/README.md`, and TOTAL 0 with main's `proposal-triage.md` restored. So the linter counts nothing in main's side of that file: no check arm covers it. The rule's presence is shown by reading the merged file back, as quoted above.
+
+Repair 7's head: dcf5e329dceabbf35716800fbacf4e2ff58741bd (`handoff/r10-process-slim-p2`): merge repair 7. e5193663 merges origin/main a18e2e9d00b17a0349f29938a469d1bc3edd1ae3 into b8bbe6ad (5f95f406 with BLOCKED.md removed); dcf5e329 restores four self-test lines of main's (below). Measured at origin/main a18e2e9d, 2026-11-12T22:18Z. `git merge-tree --write-tree origin/main 1ce773ca` reported `CONFLICT (content)` in `tests/gate_lock.py` and `tools/audit/seat/bus.sh` (PR #3451 read `dirty`), so the merge was owed (`fixer.md` step 6). After it, `git merge-tree --write-tree origin/main HEAD` exits 0.
 
 **What changed since the last merge verdict (4b43164c), for the same reviewer.** The rule: for each file in `git diff --name-only ef579d9b 4b43164c` ∪ `git diff --name-only origin/main HEAD`, compare the sorted `+`/`-` line set of the branch's own diff at 4b43164c (`git diff ef579d9b 4b43164c -- F`, ef579d9b its merge base) with the branch's own diff now (`git diff origin/main HEAD -- F`). 44 files; it prints `CHANGED` for exactly six, and every other file's own diff is line-identical to the reviewed one:
 - `dev/governance/rules/defect-root-cause.md`, its generated `.claude/rules/defect-root-cause.md` and `.cursor/rules/defect-root-cause.mdc`, and `dev/governance/roles/fix-review.md`: repair 5's union with main's R10-INTRODUCED-REDS-BARRIER and its cap payment (repair 5's head note below; unchanged since).
