@@ -1,0 +1,5 @@
+== P7 humidity ignored
+0
+== P8 made->need_kw
+0
+RESULT probe2: cases 560, bad 0, draws<-0.02 0, worst |dS| +0.0325 kWh_th at ('manual', True, None, 3.0, 25.0, -30.0, -11.842, 3.0, 3.0), max sag 32.842 K

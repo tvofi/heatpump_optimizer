@@ -1,0 +1,9 @@
+RESULT census: cases 1728 of 1728, worst first-step dS +0.0000 kWh_th at ('manual', True, None, 9.0, 21.0, -25.0, 18.539, 7.617), over 0.02 kWh_th 0
+RESULT control two-zone -25 C mode=none pump 4.0 kW: held room -1.577 power 4.000 first-step dS +0.0000 kWh_th
+RESULT control two-zone -25 C mode=none pump 9.0 kW: held room 21.000 power 8.085 first-step dS +0.0000 kWh_th
+RESULT control two-zone -25 C mode=manual pump 4.0 kW: held room -0.928 power 4.000 first-step dS +0.0000 kWh_th
+RESULT control two-zone -25 C mode=manual pump 9.0 kW: held room 21.000 power 8.076 first-step dS +0.0000 kWh_th
+
+real	0m1.282s
+user	0m1.817s
+sys	0m0.044s
