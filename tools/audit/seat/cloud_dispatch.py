@@ -228,7 +228,7 @@ def _pointer(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, r
 
 
 def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, brief: str,
-            design: str = "", reviewed_head: str = "") -> str:
+            design: str = "", reviewed_head: str = "", verdict: tuple = ()) -> str:
     first = _seat_line(role, repo, pr, head, topic, nonce) + " " + FOOTER_BAN
     pin = (f"Before any commit, pin the seat identity: `git config user.name {SEAT_NAME} && git config "
            f"user.email {SEAT_EMAIL}`. ") if role in COMMITTING_ROLES else ""
@@ -347,7 +347,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"tools/audit/seat/bus.sh push-design {topic} <design.md>`, which pushes "
             f"refs/heads/design/{topic}; that push is the return signal, and the design/{topic} tip "
             "is the SHA you hand off. You may push only to that ref. Open no pull request, push no "
-            "handoff ref and write no delivery row.")
+            "handoff ref and write no delivery row."
+            + (f" The design reviewer's verdict is at design-verdict/{topic}, commit {verdict[0]}, "
+               f"first line `{verdict[1]}`: read it first, answer every point in a new design.md pushed "
+               f"on top of design/{topic}, and do not restart." if verdict else ""))
     elif role == "design-reviewer":
         body = (
             "Role: read dev/governance/roles/design-review.md from main, and follow it exactly. "
@@ -359,7 +362,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"and run `bash tools/audit/seat/bus.sh push-design-verdict {topic} <verdict.md>`, which "
             f"pushes refs/heads/design-verdict/{topic} and refuses a design that has moved; that push "
             "is the return signal. You may push only to that ref. Write no design, open no pull "
-            "request and push no code.")
+            "request and push no code."
+            + (round_context(topic, design, verdict) if verdict else ""))
     else:
         body = (
             "Role: a read-only probe. Measure what the brief below asks against the tree at "
@@ -380,7 +384,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
 
 def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str = "",
            topic: str = "", nonce: str = "", brief: str = "", publish_ref: str = "",
-           design: str = "", pin: str = "", reviewed_head: str = "") -> dict:
+           design: str = "", pin: str = "", reviewed_head: str = "", verdict: tuple = ()) -> dict:
     """The payload; with `publish_ref`, its event is the stub naming PROMPT.md at commit
     `pin` of that ref (`publish_seat`)."""
     if role not in ROLES:
@@ -408,7 +412,7 @@ def render(role: str, head: str, *, env_id: str, model: str, repo: str, pr: str 
     if publish_ref and not is_head(pin):
         raise Refusal("a published seat's stub needs the 40-hex commit holding its PROMPT.md")
     text = (_pointer(role, repo, pr, head, topic, nonce, publish_ref, pin) if publish_ref
-            else _prompt(role, repo, pr, head, topic, nonce, brief, design, reviewed_head))
+            else _prompt(role, repo, pr, head, topic, nonce, brief, design, reviewed_head, verdict))
     payload = {"job_config": {"ccr": {
         "environment_id": env_id,
         "session_context": {
@@ -574,6 +578,18 @@ def publish_seat(repo_dir: str, ref: str, role: str, head: str, **args) -> dict:
     return payload
 
 
+def round_context(group_id: str, design: str, verdict: tuple) -> str:
+    """What a later-round design reviewer is given: the round (the verdict ref's
+    commit count plus one), the last verdict's commit and first line, and the range
+    from the design that line names to the design tip. A first round has no verdict
+    ref and renders none of it."""
+    sha, first, count = verdict
+    prev = first.split()[3:4]  # `Design review: <word> <design sha> ...`
+    rng = f" Review what changed: `git diff {prev[0]}..{design}`." if prev and prev[0] != design else ""
+    return (f" This is round {count + 1}: the previous verdict is at design-verdict/{group_id}, commit {sha}, "
+            f"first line `{first}` (`git show {sha}:verdict.md`).{rng}")
+
+
 def design_tip(repo_dir: str, group_id: str) -> str:
     """The 40-hex tip of `design/<group>` on origin, or "" when the designer has pushed none."""
     out = _git(repo_dir, "ls-remote", "origin", f"refs/heads/design/{group_id}").split()[:1]
@@ -657,7 +673,15 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         design = design_tip(repo_dir, group_id)
         if not design:
             raise Refusal(f"no design/{group_id} on origin to review")
-    args = dict(design=design, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
+    verdict = ()
+    if role in ("designer", "design-reviewer"):  # a revise routes the next round to the verdict commit, pinned by SHA
+        vref = f"refs/heads/design-verdict/{group_id}"
+        vtip = _git(repo_dir, "ls-remote", "origin", vref).split()[:1]
+        if vtip:
+            _git(repo_dir, "fetch", "-q", "origin", vref)
+            verdict = (vtip[0], _git(repo_dir, "show", f"{vtip[0]}:verdict.md").split("\n", 1)[0],
+                       int(_git(repo_dir, "rev-list", "--count", vtip[0]).strip()))
+    args = dict(design=design, verdict=verdict, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
                 pr=pr, topic=topic,
                 brief=group_brief(group, roster, fixer=role == "fixer") + (f"\n{pline}\n" if pline else ""),
                 reviewed_head=reviewed_head)
@@ -822,6 +846,8 @@ def _group_checks(check) -> None:
               "bus.sh push-design R10-BIG" in dtext and "refs/heads/design/R10-BIG" in dtext
               and "only to that ref" in dtext and "Open no pull request" in dtext
               and "send no code to any ref" not in dtext)
+        check("a designer's text names no design-verdict ref while none exists (null control)",
+              "design-verdict/" not in dtext)
         git(work, "push", "-q", "origin", f"{tip}:refs/heads/design/R10-BIG")
         rref = dispatch("R10-BIG", "design-reviewer")
         rtext = fetched(rref, "PROMPT.md")
@@ -829,9 +855,28 @@ def _group_checks(check) -> None:
               rref == "dispatch/design-reviewer-R10-BIG" and f"Design review: approve {tip}" in rtext
               and tip in rtext and "dev/governance/roles/design-review.md" in rtext
               and "push-design-verdict R10-BIG" in rtext and "only to that ref" in rtext)
+        check("a first-round design reviewer's text names no round and no verdict ref (null control)",
+              "This is round" not in rtext and "design-verdict/R10-BIG, commit" not in rtext)
         check("a fixer is still refused with a design and no verdict", refused("R10-BIG", design_exempt=""))
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: revise {tip} class-open\n"})
         check("a fixer is refused on a `revise` verdict", refused("R10-BIG"))
+        vtip = git(work, "ls-remote", "origin", "refs/heads/design-verdict/R10-BIG").split()[0]
+        dref = dispatch("R10-BIG", "designer")  # over the existing dispatch/designer-R10-BIG ref
+        dtext2 = fetched(dref, "PROMPT.md")
+        check("a designer's text pins the revise verdict's own commit and first line",
+              dref == ref and vtip != tip and vtip in dtext2 and f"Design review: revise {tip} class-open" in dtext2)
+        rtext2 = fetched(dispatch("R10-BIG", "design-reviewer"), "PROMPT.md")
+        check("a design reviewer after one revise is told round 2, the verdict commit, its first line and the diff range",
+              "round 2" in rtext2 and vtip in rtext2 and f"Design review: revise {tip} class-open" in rtext2
+              and f"git diff {tip}..{tip}" not in rtext2)
+        vclone = work.parent / "vclone"  # a second clone: this verdict commit is on origin and not in `work` until fetched
+        throwaway_git_clone(origin, vclone, "-q", "--no-checkout")
+        vtip3 = _publish(str(vclone), "design-verdict/R10-BIG", {"verdict.md": f"Design review: revise {'b' * 40} class-open\n"})
+        check("the fixture's third verdict commit is absent from the dispatching clone before the dispatch (the fetch is observable)",
+              subprocess.run(["git", "-C", str(work), "cat-file", "-e", vtip3], capture_output=True).returncode != 0)
+        rtext3 = fetched(dispatch("R10-BIG", "design-reviewer"), "PROMPT.md")
+        check("a second revise names round 3 and the range from the design it names to the design tip",
+              "round 3" in rtext3 and f"git diff {'b' * 40}..{tip}" in rtext3 and vtip3 in rtext3)
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {'a' * 40}\n"})
         check("a fixer is refused on an approval of a design that has since moved", refused("R10-BIG"))
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {tip}\n"})
@@ -917,6 +962,13 @@ def _group_checks(check) -> None:
             check("a part past the split, a part of a group of five or fewer, and a part for another role refuse",
                   "splits into 4 parts" in why_any("R10-SPLIT", part=5) and "five or fewer" in why_any("R10-FIVE", part=1)
                   and "fixer's" in why_any("R10-SPLIT", "probe", part=2))
+            check("a seat that is not the fixer's dispatches a group of 21 pending carries unrefused (null: the fixer refuses)",
+                  not why_any("R10-SPLIT", "probe") and "21 pending carries" in why_any("R10-SPLIT"))
+            roster_lib.CARRY_CUTOVER[roster_lib.roster_path(str(work), roster_lib.reader_ref(str(work), None), None)] = "0" * 40
+            lwhy = why_any("R10-SPLIT", part=2)
+            check("a --part dispatch whose cut-over roster the clone cannot read refuses naming the cut-over, not crashing",
+                  lwhy.startswith("cannot read ") and "0" * 40 in lwhy and "Error" not in lwhy)
+            roster_lib.CARRY_CUTOVER.clear()
             fwhy = why_any("R10-FIVE")
             ftext = "" if fwhy else fetched("dispatch/fixer-" + _topic_of(five), "PROMPT.md")
             check("five pending carries (a moved sixth not counted) dispatch unrefused, the brief byte-identical (null control)",
@@ -1105,13 +1157,14 @@ def _group_checks(check) -> None:
               not published and "someone" not in git(work, "ls-remote", str(origin)))
         # A step push matches no glob the handoff machinery lists, read from its own source.
         # (carry_fold_arm lists handoff-wip/* on purpose, to read a BLOCKED.md; it moves no PR, so it is not a handoff glob)
-        globs = ([g for g in re.findall(r"'(refs/heads/handoff[^'*]*\*)'", (HERE / "cloud_relay.sh").read_text())
+        # (the same glob listed by two arms is one glob: the pin is the set the handoff machinery lists, not how often)
+        globs = list(dict.fromkeys([g for g in re.findall(r"'(refs/heads/handoff[^'*]*\*)'", (HERE / "cloud_relay.sh").read_text())
                   if not g.startswith(f"refs/heads/{WIP_NS}/")]
-                 + re.findall(r'"\+(refs/heads/handoff[^:"*]*\*):', (HERE / "bus.sh").read_text()))
+                 + re.findall(r'"\+(refs/heads/handoff[^:"*]*\*):', (HERE / "bus.sh").read_text())))
         git(work, "push", "-q", str(origin), f"{tip}:refs/heads/{WIP_NS}/r10-x", f"{tip}:refs/heads/handoff/r10-x")
         listed = git(work, "ls-remote", str(origin), *globs)
         check("a handoff-wip push is invisible to cloud_relay.sh's handoff arm and bus.sh orphans; handoff/ is not (null)",
-              len(globs) == 4 and f"refs/heads/{WIP_NS}/" not in listed and "refs/heads/handoff/r10-x" in listed)
+              len(globs) == 2 and f"refs/heads/{WIP_NS}/" not in listed and "refs/heads/handoff/r10-x" in listed)
         git(work, "push", "-q", str(origin), f":refs/heads/{WIP_NS}/r10-x", ":refs/heads/handoff/r10-x")
         # The pinned identity passes ref_privacy --commits; a machine's domain does not (null control).
         bare_env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_AUTHOR_", "GIT_COMMITTER_"))}
@@ -1129,7 +1182,7 @@ def _group_checks(check) -> None:
               judged(SEAT_EMAIL) == (0, SEAT_EMAIL + "\n") and judged("seat@build.local")[0] == 3)
         out = io.StringIO()
         with contextlib.chdir(work), contextlib.redirect_stdout(out):
-            rc = main(["--role", "reviewer", "--head", rhead, "--pr", "7", "--nonce", "abc123", "--publish",
+            rc = main(["--role", "reviewer", "--head", rhead, "--pr", "7", "--nonce", "abc123def4567890", "--publish",
                        "--env-id", "env_x", "--model", "m-1", "--repo", "owner/name"])
         try:
             msg = fetched("dispatch/reviewer-rev-7", "PROMPT.md")
@@ -1137,7 +1190,9 @@ def _group_checks(check) -> None:
             msg = ""
         check("a reviewer's flag-path --publish publishes to dispatch/reviewer-rev-<PR> and points there",
               rc == 0 and " of dispatch/reviewer-rev-7 (`git fetch origin " in content(out.getvalue())
-              and msg.startswith("CLOUD REVIEWER") and "Bus nonce: abc123." in msg)
+              and msg.startswith("CLOUD REVIEWER") and "Bus nonce: abc123def4567890." in msg)
+        check("the verdict ref and its read-back both carry the nonce's first eight characters, not the whole nonce",
+              msg.count("refs/heads/probe/rev-7-abc123de`") == 2 and "rev-7-abc123def" not in msg)
         # Two sources, never one: the roster from the round's roster branch
         # (O17), the head from main. The branch is one commit ahead of main
         # with its own brief, so either swap shows.

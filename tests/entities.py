@@ -1236,7 +1236,7 @@ def _arch_entry(module: str) -> str:
     if _arch_map is None:
         return ""
     m = _re.search(
-        rf"{_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
+        rf"(?<!\w){_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
         rf"((?:│[^\n]*#[ \t]*[^\n]*\n)*)",
         _arch_map.group(1),
     )
@@ -3125,8 +3125,8 @@ R.check(
 _a3e_clim = _climate_platform.HeatPumpOptimizerClimate(_a3e_fake, ENTRY)
 R.check(
     "without an indoor reading climate does not publish the constructor default",
-    (not _a3e_clim.available) and _a3e_clim.current_temperature is None,
-    f"available={_a3e_clim.available} current={_a3e_clim.current_temperature!r}",
+    (not _a3e_clim.available) and _a3e_clim.native_current_temperature is None,
+    f"available={_a3e_clim.available} current={_a3e_clim.native_current_temperature!r}",
 )
 R.check(
     "the upper floor names where its number comes from",
@@ -3448,7 +3448,7 @@ def _d801_publications(config, cycles):
             if state is None:
                 state = getattr(entity, "is_on", None)
             if state is None:
-                state = getattr(entity, "current_temperature", None)
+                state = getattr(entity, "native_current_temperature", None)
             if state is not None:
                 out[f"{label}|state"] = state
             attrs = getattr(entity, "extra_state_attributes", None) or {}
@@ -3904,7 +3904,8 @@ def _p2_registry(sources):
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
              owners=["inputs.py::state_stamp"], dispositions={
-                 "early_cutoff.py::_cycle_guard":
+                 # The supply gate's and the early cut-off's one clock.
+                 "supply_hold.py::switch_age":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
                      "last heard from, which a re-reported 'on' resets",
@@ -10734,12 +10735,12 @@ R.check(
 )
 R.check(
     "the thermostat shows the user's target, not the per-step setpoint",
-    clim.target_temperature == clim.coordinator.target_temperature,
+    clim.native_target_temperature == clim.coordinator.target_temperature,
 )
 R.check(
     "current temperature reads the published payload",
-    clim.current_temperature == DATA["indoor_temperature"],
-    str(clim.current_temperature),
+    clim.native_current_temperature == DATA["indoor_temperature"],
+    str(clim.native_current_temperature),
 )
 asyncio.run(clim.async_set_hvac_mode(climate_mod.HVACMode.OFF))
 R.check(
@@ -11102,7 +11103,7 @@ R.check(
     "current_temperature is None with no coordinator data",
     climate_mod.HeatPumpOptimizerClimate(
         FakeCoordinator(None), clim._entry
-    ).current_temperature
+    ).native_current_temperature
     is None,
 )
 
@@ -11113,7 +11114,7 @@ R.check(
 _pub_fails = FakeCoordinator(DATA)
 
 
-async def _raise_publish(reason=None):
+async def _raise_publish(reason=None, heat_pump_on=None):
     raise OSError("mqtt unreachable")
 
 
@@ -17772,6 +17773,7 @@ R.check(
     set(_nightly.A4_INSIDE) <= set(_nightly.INSIDE_CHECKS)
     and set(_nightly.A4_INSIDE)
     == {
+        "a4:bridged",
         "a4:failed",
         "a4:unavailable",
         "a4:buttons",
@@ -17794,6 +17796,49 @@ R.check(
     and "send_response(500)" in _a4_serve_src
     and "send_response(401)" not in _a4_serve_src,
     "A4 must go through the Tibber counterparty (E57), not the FakeCoordinator poke",
+)
+# The price source is exhausted at the counterparty (a 200 with an ended curve,
+# which pull_prices accepts), never by writing the coordinator's prices.
+_a4_end_src = _inspect.getsource(_nightly.end_price_curve)
+R.check(
+    "A4 exhausts the published prices at the counterparty, not the coordinator",
+    "end_price_curve(True)" in _a4_walk_src
+    and "end_price_curve(False)" in _a4_walk_src
+    and "_prices" not in _a4_walk_src
+    and "_PRICE_CURVE_ENDED" in _a4_end_src
+    and "_PRICE_CURVE_ENDED" in _a4_serve_src
+    and "_ENDED_CURVE_AGE" in _a4_serve_src
+    and _nightly._ENDED_CURVE_AGE >= _nightly.timedelta(days=1),
+    "A4 phase 2 must reach UpdateFailed through the fake Tibber's ended curve",
+)
+_a4_bridge_before = [
+    {"entity_id": "sensor.a", "state": "1"},
+    {"entity_id": "button.b", "state": "unknown"},
+]
+_a4_bridge_up = [dict(r) for r in _a4_bridge_before]
+_a4_bridge_down = [
+    {"entity_id": "sensor.a", "state": "unavailable"},
+    {"entity_id": "button.b", "state": "unavailable"},
+]
+_a4_br_ok = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_ok, True, True, _a4_bridge_before, _a4_bridge_up)
+_a4_br_failed = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_failed, False, True, _a4_bridge_before, _a4_bridge_up)
+_a4_br_norepair = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_norepair, True, False, _a4_bridge_before, _a4_bridge_up)
+_a4_br_down = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_down, True, True, _a4_bridge_before, _a4_bridge_down)
+_a4_br_empty = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_empty, True, True, (), _a4_bridge_up)
+R.check(
+    "a4:bridged fails a failed update, a missing repair, an unavailable entity and an empty before-set",
+    all(
+        "a4:bridged" in c.failures()
+        for c in (_a4_br_failed, _a4_br_norepair, _a4_br_down, _a4_br_empty)
+    )
+    and "a4:bridged" not in _a4_br_ok.failures(),
+    f"ok={_a4_br_ok.results.get('a4:bridged')} failed={_a4_br_failed.results.get('a4:bridged')} "
+    f"norepair={_a4_br_norepair.results.get('a4:bridged')} down={_a4_br_down.results.get('a4:bridged')}",
 )
 _a4_failed_ok = _nightly.Checks()
 _nightly.check_a4_failed(_a4_failed_ok, False)
@@ -17885,7 +17930,7 @@ R.check(
     "and passing A4 checks still keep their detail",
     all(
         v[1]
-        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok)
+        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok, _a4_br_ok)
         for n, v in c.results.items()
         if n.startswith("a4:")
     ),
@@ -31850,7 +31895,7 @@ _RD_EVENTS = ({"github.event_name": "workflow_dispatch"},
 
 
 # A dispatch is never a push: the units it owes are gate.py's `no-pr` and `pr`
-# classes, so the push-only jobs (coverage, ci-ratchet) are not among them.
+# classes, so the push-only jobs (coverage, coverage-ratchet) are not among them.
 _RD_UNITS = sorted(set(_cig_required["pr"]) | set(_cig_required["no-pr"]))
 
 
@@ -40576,6 +40621,40 @@ R.check(
     f"committed={_pin_unhashed_lock('tests/requirements-ci.txt')!r}",
 )
 
+# No lock comment spells a hash-pinned package `name==`. Dependabot rewrites
+# the version at every `name==` match in a lock, the comment included, and
+# leaves the hash block of a pin it matched twice at the old version, which
+# `--require-hashes` refuses: 9 of 9 stale pins of #3088, #3323 and #3414 had
+# that shape, 0 of 61 fresh ones (dev/audit/rca/r10-rca-dependabot-stale-hash.md).
+# Driven through the harness's own `--tree` reader, then its `exposed` over
+# the committed lock with one comment planted, which must read one pin.
+import contextlib as _dsh_ctx  # noqa: E402
+import importlib.util as _dsh_util  # noqa: E402
+import io as _dsh_io  # noqa: E402
+
+_dsh_spec = _dsh_util.spec_from_file_location(
+    "hpo_dependabot_stale_hash",
+    _closure.ROOT / "dev" / "audit" / "harnesses" / "dependabot_stale_hash.py")
+_dsh = _dsh_util.module_from_spec(_dsh_spec)
+_dsh_spec.loader.exec_module(_dsh)
+_dsh_out = _dsh_io.StringIO()
+with _dsh_ctx.redirect_stdout(_dsh_out):
+    _dsh_exposed = _dsh.tree(None)
+R.check(
+    "no lock comment names a hash-pinned package as `name==` (Dependabot stale hashes)",
+    _dsh_exposed == 0 and " files=0 " not in _dsh_out.getvalue(),
+    _dsh_out.getvalue().strip()[-600:] + ". Reword each to `name 1.2.3`, or "
+    "point at the pin line",
+)
+_DSH_LOCK = (_closure.ROOT / "tests" / "requirements-ci.txt").read_text()
+_DSH_PIN = re.search(_PIN_REQ.pattern, _DSH_LOCK, re.M)
+_dsh_planted = _dsh.exposed(f"# holds {_DSH_PIN.group(0)}\n" + _DSH_LOCK)
+R.check(
+    "stale-hash barrier arm: one planted `name==` comment reads exactly one pin",
+    len(_dsh_planted) == 1 and _dsh.exposed(_DSH_LOCK) == [],
+    f"planted={_dsh_planted} committed={_dsh.exposed(_DSH_LOCK)}",
+)
+
 # --- the replay lane's cheap half, on every pull request (round 8, move 2) ---
 #
 # `tests/replay.py` replays recorded days nightly. What it would take a night to
@@ -41916,7 +41995,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     "the latch itself, or latched by a guard the static rule cannot read "
     "(an outage counter, a transition notice, a once-per-attempt spacing, "
     "an lru_cache parsing an option once per distinct text)": {
-        ("log_latch.py", "log_held"): 2, ("coordinator.py", "_tibber_fetch_failed"): 1,
+        ("log_latch.py", "log_held"): 2, ("issues.py", "note_price_outage"): 2,
         ("coordinator.py", "_weather_fetch_failed"): 1, ("coordinator.py", "_tibber_start_reauth"): 1,
         ("coordinator.py", "_check_pump_mode_expired"): 1, ("coordinator.py", "_update_current_state"): 1,
         ("coordinator.py", "_detect_outage"): 1, ("coordinator.py", "_note_worker_fallback"): 1,
@@ -42308,6 +42387,36 @@ R.check(
     "sensors all publish _evidence_attributes",
     _c2238_p6 == [{"c2238": "sentinel"}] * 3,
     f"{_c2238_p6}",
+)
+
+# --- The standing seats' shared terms live once, in `standing.md` ------------
+#
+# (a) every contract that shares them cites the file; (b) the file carries its
+# five headings, the alive-file directory, the bus read and the autofix-hold
+# predicate (all three job names, so deleting the sentence fails even with its
+# heading kept); (c) `fixer.md`, the contract `tools/pr/ci_predict.py`'s
+# BOOTSTRAP remedy cites, carries the remedy. A design choice: the cited name is
+# written here and not read from ci_predict.py, which is INERT (closure.py), so
+# reading it would make every edit of that instrument select this script.
+_SR = Path("dev/governance/roles")
+_SR_TEXT = lambda n: (_SR / n).read_text() if (_SR / n).is_file() else ""  # noqa: E731
+_SR_STANDING = _SR_TEXT("standing.md")
+_SR_FAIL = (
+    [f"a:{n}" for n in ("standing-merge.md", "standing-dispatch.md", "standing-tick.md",
+                        "standing-roster.md", "proposal-triage.md")
+     if "`standing.md`" not in _SR_TEXT(n)]
+    + [f"b:{t}" for t in ("## Wait", "## Reads", "## Autofix hold", "## Recycle", "## Alive files",
+                          "$HPO_STATE_DIR/alive/", "bus.sh orphans",
+                          "mutation-autofix", "closures-autofix", "claims-autofix")
+       if t not in _SR_STANDING]
+    + [f"c:fixer.md:{t}" for t in ("BOOTSTRAP", "0013") if t not in _SR_TEXT("fixer.md")]
+)
+R.check(
+    "the standing seats' shared terms are written once in standing.md, cited by "
+    "each standing contract, and fixer.md carries the BOOTSTRAP remedy and "
+    "decision 0013",
+    _SR_FAIL == [],
+    f"missing: {_SR_FAIL}",
 )
 
 

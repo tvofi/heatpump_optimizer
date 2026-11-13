@@ -15,6 +15,9 @@
 #            the `typing` job installs it: mypy, homeassistant and
 #            homeassistant-stubs; exported as HPO_TYPING_PYTHON, and asserted
 #            to import the lock's homeassistant pin, read from the lock
+#            (typing only: it has no scipy and no paho by design. The suites
+#            run under venv-ci with PYTHONPATH=tests/hastub, the stub standing
+#            in for Home Assistant; never put venv-ha first on PATH for them)
 #
 # The pins are read from the checkout, never restated here, so this script
 # cannot drift from the lock files; a lock edit reaches the next session.
@@ -185,7 +188,7 @@ self_test() (
 case ${1:-} in
   --variables) variables "$PREFIX"; exit 0 ;;
   --check) check "$PREFIX"; exit $? ;;
-  --self-test) self_test; exit $? ;;
+  --self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded cloud_setup bash "$0" --self-test; }; self_test; exit $? ;;
   "") ;;
   *) echo "usage: cloud-setup.sh [--variables | --check | --self-test]" >&2; exit 2 ;;
 esac

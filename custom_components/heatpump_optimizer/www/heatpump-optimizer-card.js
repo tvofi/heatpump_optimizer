@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.11";
+const CARD_VERSION = "7.1.15";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -100,8 +100,8 @@ const STRINGS = {
     "health.limit": "limit {limit}",
     "health.no_age": "no reading",
     "health.pill_ok": "All inputs fresh",
-    "health.pill_one": "1 input stale",
-    "health.pill_other": "{n} inputs stale",
+    "health.pill_one": "1 input problem",
+    "health.pill_other": "{n} input problems",
     "health.solved": "Solved {age} ago",
     "health.next_solve": "Next solve in {age}",
     "health.next_due": "Next solve due now",
@@ -147,6 +147,8 @@ const STRINGS = {
     "health.input_solar_radiation_entity": "Solar radiation sensor",
     "health.input_space_circulation_pump_entity": "Heating circulation pump switch",
     "health.input_space_setpoint_entity": "Space-heating set-point entity",
+    "health.input_space_setpoint_high_limit_entity": "Controller's maximum set-point sensor",
+    "health.input_space_setpoint_low_limit_entity": "Controller's minimum set-point sensor",
     "health.input_valve_outlet_temp_entity": "Temperature after the wood/heat-pump mixing valve",
     "health.input_vvc_pump_entity": "Hot water circulation pump switch",
     "health.input_weather_entity": "Weather forecast",
@@ -905,6 +907,11 @@ const STRINGS = {
     // The percent is a template because the spacing is orthographic:
     // English sets "(8%)", Swedish "(8 %)".
     "headline.savings_pct": "({pct}%)",
+    // R10-CARD-COLLAPSE: the headline's two folds. The why-now fold reuses
+    // its own "whynow.title"; the narrative fold's rows total in one line.
+    "fold.narrative_title": "Plan by reason",
+    "fold.narrative_total": "{kwh} kWh · {cost} in total",
+    "fold.hint": "Click to show or hide the details.",
     "whynow.title": "Why now",
     "whynow.metric":
       "The reasons weighing on this hour's plan. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason pushes hardest; the plan weighs the whole day's hours together, so the heat pump can still do the opposite this hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
@@ -994,8 +1001,8 @@ const STRINGS = {
     "health.limit": "gräns {limit}",
     "health.no_age": "ingen avläsning",
     "health.pill_ok": "Alla indata aktuella",
-    "health.pill_one": "1 indata inaktuell",
-    "health.pill_other": "{n} indata inaktuella",
+    "health.pill_one": "1 indataproblem",
+    "health.pill_other": "{n} indataproblem",
     "health.solved": "Löst för {age} sedan",
     "health.next_solve": "Nästa lösning om {age}",
     "health.next_due": "Nästa lösning är försenad",
@@ -1041,6 +1048,8 @@ const STRINGS = {
     "health.input_solar_radiation_entity": "Solinstrålningsgivare",
     "health.input_space_circulation_pump_entity": "Brytare för värmesystemets cirkulationspump",
     "health.input_space_setpoint_entity": "Börvärdesenhet för rumsuppvärmning",
+    "health.input_space_setpoint_high_limit_entity": "Givare för styrenhetens högsta börvärde",
+    "health.input_space_setpoint_low_limit_entity": "Givare för styrenhetens lägsta börvärde",
     "health.input_valve_outlet_temp_entity": "Temperatur efter shunten mellan ved- och värmepumpstank",
     "health.input_vvc_pump_entity": "Brytare för VVC-pump",
     "health.input_weather_entity": "Väderprognos",
@@ -1755,6 +1764,9 @@ const STRINGS = {
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
+    "fold.narrative_title": "Planen per skäl",
+    "fold.narrative_total": "{kwh} kWh · {cost} totalt",
+    "fold.hint": "Klicka för att visa eller dölja detaljerna.",
     "whynow.title": "Varför nu",
     "whynow.metric":
       "Skälen som väger på den här timmens plan. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet driver hårdast; planen väger hela dygnets timmar mot varandra, så värmepumpen kan ändå göra tvärtom den här timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
@@ -1843,8 +1855,8 @@ const STRINGS = {
     "health.limit": "Grenzwert {limit}",
     "health.no_age": "kein Messwert",
     "health.pill_ok": "Alle Eingänge aktuell",
-    "health.pill_one": "1 Eingang veraltet",
-    "health.pill_other": "{n} Eingänge veraltet",
+    "health.pill_one": "1 Eingangsproblem",
+    "health.pill_other": "{n} Eingangsprobleme",
     "health.solved": "Berechnet vor {age}",
     "health.next_solve": "Nächste Berechnung in {age}",
     "health.next_due": "Nächste Berechnung jetzt fällig",
@@ -1890,6 +1902,8 @@ const STRINGS = {
     "health.input_solar_radiation_entity": "Sensor für Sonneneinstrahlung",
     "health.input_space_circulation_pump_entity": "Schalter der Heizungsumwälzpumpe",
     "health.input_space_setpoint_entity": "Sollwert-Entität der Raumheizung",
+    "health.input_space_setpoint_high_limit_entity": "Sensor für den maximalen Sollwert des Reglers",
+    "health.input_space_setpoint_low_limit_entity": "Sensor für den minimalen Sollwert des Reglers",
     "health.input_valve_outlet_temp_entity": "Temperatur nach dem Mischventil Holz/Wärmepumpe",
     "health.input_vvc_pump_entity": "Schalter der Warmwasser-Zirkulationspumpe",
     "health.input_weather_entity": "Wettervorhersage",
@@ -2420,6 +2434,9 @@ const STRINGS = {
     "score.label_machine": "Wärmepumpe",
     "score.label_operation": "Betrieb",
     "headline.savings_pct": "({pct} %)",
+    "fold.narrative_title": "Plan nach Grund",
+    "fold.narrative_total": "{kwh} kWh · {cost} insgesamt",
+    "fold.hint": "Klicken, um die Details ein- oder auszublenden.",
     "whynow.title": "Warum jetzt",
     "whynow.metric":
       "Die Gründe, die den Plan dieser Stunde bestimmen. Jede Zeile ist ein Grund: Der Pfeil zeigt, ob er die Wärmepumpe zum Laufen oder zum Pausieren drängt, und der Prozentwert ist sein Anteil am gesamten Einfluss in dieser Stunde. Ein hoher Anteil bedeutet, dass dieser Grund am stärksten drängt; der Plan wägt alle Stunden des Tages gegeneinander ab, daher kann die Wärmepumpe in dieser Stunde trotzdem das Gegenteil tun. Keine Daten bedeutet, dass der Optimierer für diese Stunde noch keinen Plan hat, zum Beispiel vor der ersten Berechnung oder solange die Preisprognose fehlt.",
@@ -5092,7 +5109,7 @@ function cardStyleBlock(darkMode) {
         .whatif .wi-win-days, .whatif .wi-viewreset, .sp-actions button,
         /* The advisor page's ranked rows (#1269), the same HTML-button
            surface as the picker's controls: the same floor. */
-        .adv-row, .adv-act,
+        .fact-row, .fact-act,
         .hl-stat.hl-score,
         /* The headline score pill (#1388, R6-D4-01) joins the floor: it is a
            control -- role="button", tabindex="0" and a click handler open the
@@ -5203,12 +5220,18 @@ function cardStyleBlock(darkMode) {
       }
       /* A surface-2 block re-points the text tokens at the ink literals, so
          every descendant that reads --hpo-text or --hpo-text-2 is paired
-         with the surface it sits on, whatever the HA theme's own text. */
-      .tile, .hl-stat, .hl-narrative {
+         with the surface it sits on, whatever the HA theme's own text. The
+         one rule that puts a text block on --hpo-surface-2: a block given
+         the surface anywhere else drew the theme's text on it, which is how
+         the Health and Advisor rows read 1.24:1 under a dark theme HA
+         reports as darkMode false (906fee95e, R10-HOTFIX-CARD-HEALTH-TEXT). */
+      .tile, .hl-stat, .hl-narrative, .health-row, .fact-inbox-row {
         --hpo-text: var(--hpo-ink, #212121);
         --hpo-text-2: var(--hpo-ink-2, #727272);
         color: var(--hpo-text, #212121);
         background: var(--hpo-surface-2, #f7f9fb);
+      }
+      .tile, .hl-stat, .hl-narrative {
         border-radius: var(--hpo-radius-m, 12px);
         padding: var(--hpo-space-2, 8px) var(--hpo-space-3, 12px); min-width: 0;
       }
@@ -5298,6 +5321,39 @@ function cardStyleBlock(darkMode) {
         display: grid; gap: var(--hpo-space-2, 8px) var(--hpo-space-5, 24px);
         grid-template-columns: repeat(auto-fit,
           minmax(max(min(100%, 348px), calc(50% - 13px)), 1fr));
+      }
+      /* R10-CARD-COLLAPSE: a fold is a full-width header button (title
+         left, its one-line summary right) over a body drawn only
+         while open. Transparent on the card's own surface, so it reads as a
+         row of the headline, not a second tile. */
+      .hl-fold { display: flex; flex-direction: column; min-width: 0; }
+      /* A rule under the last fold closes the headline off from the chart. */
+      .hl-fold:last-child { border-bottom: 1px solid var(--hpo-divider, #e0e0e0); }
+      .hl-fold-head {
+        display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
+        width: 100%; min-height: 32px; margin: 0; box-sizing: border-box;
+        padding: 4px var(--hpo-space-3, 12px) 4px 4px;
+        background: none; border: 0; border-top: 1px solid var(--hpo-divider, #e0e0e0);
+        color: var(--hpo-text, #212121); font: inherit;
+        font-size: var(--hpo-text-sm, 13px); text-align: left; cursor: pointer;
+      }
+      .hl-fold-head:focus-visible {
+        outline: 2px solid var(--hpo-primary, #03a9f4); outline-offset: -2px;
+        border-radius: 4px;
+      }
+      .hl-fold-chev {
+        flex: none; width: 6px; height: 6px; margin: 0 4px;
+        border-right: 2px solid var(--hpo-text-2, #727272);
+        border-bottom: 2px solid var(--hpo-text-2, #727272);
+        transform: rotate(-45deg); transition: transform 0.15s;
+      }
+      .hl-fold.unfolded .hl-fold-chev { transform: rotate(45deg); }
+      .hl-fold-title { flex: none; font-weight: 600; }
+      /* Wraps rather than ellipsises: a clipped summary would hide the very
+         line the folded section is reduced to (the P9 grid's clip rule). */
+      .hl-fold-sum {
+        flex: 1; min-width: 0; text-align: right; overflow-wrap: anywhere;
+        color: var(--hpo-text-2, #727272); font-variant-numeric: tabular-nums;
       }
       .nl {
         display: grid; grid-template-columns: minmax(0, 1fr) auto;
@@ -5784,12 +5840,16 @@ function cardStyleBlock(darkMode) {
         outline: 2px solid var(--hpo-primary, #03a9f4);
         outline-offset: 2px;
       }
-      /* A pressed toggle says so in the ink and not only in the border: the
-         accent is the token measured against the card, and a 1 px border
-         moving is a state a reader can miss at a glance. */
+      /* A pressed toggle says so in the ink and not only in the border: a
+         1 px border moving is a state a reader can miss at a glance. The
+         accent ink is a darkMode literal, so it is drawn on the surface from
+         the same switch: on the theme's card surface it read 2.95:1 under a
+         dark theme HA reports as darkMode false, and 2.32:1 in the mirror
+         (R10-HOTFIX-CARD-HEALTH-TEXT). */
       .layout-edit-toggle.on {
         border-color: var(--hpo-primary, #03a9f4);
         color: var(--hpo-accent, #026aa8);
+        background: var(--hpo-surface-2, #f7f9fb);
       }
       .layout-bar button[disabled] { opacity: 0.45; cursor: default; }
       .layout-verdict {
@@ -5971,12 +6031,12 @@ function cardStyleBlock(darkMode) {
          an unpriced row's reason text is smaller rather than faded: it
          must stay readable as prose, not pass as a de-emphasised
          number. */
-      .advisor-page .adv-head {
+      .advisor-page .fact-head {
         display: flex; flex-wrap: wrap; gap: 4px 12px;
         align-items: baseline; justify-content: space-between;
         padding: 4px 0 2px 0;
       }
-      .adv-title { font-weight: 600; }
+      .fact-title { font-weight: 600; }
       .health-cols {
         display: grid; grid-template-columns: repeat(auto-fit, minmax(16em, 1fr));
         gap: 4px 16px; align-items: start;
@@ -5985,14 +6045,11 @@ function cardStyleBlock(darkMode) {
          takes the user agent's 700, the one bold heading in the card
          (H3b). */
       .health-h { margin: 12px 0 4px 0; font-size: 1em; font-weight: 600; }
-      /* The row's surface is the pair its ink is drawn for (H3a): the text is
-         the card's --hpo-text, so the surface is the card's --hpo-surface-2.
-         A theme's --secondary-background-color under the card's dark ink
-         read 1.20:1 wherever the theme does not define it. */
+      /* The row's surface and ink are the surface-2 pair (H3a), set by the
+         surface-2 block rule beside .tile. */
       .health-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--hpo-surface-2, #f7f9fb);
       }
       .health-support { margin-top: 12px; }
       /* "What the model has learned" (R9-UX-7): a tabular value and an
@@ -6023,25 +6080,25 @@ function cardStyleBlock(darkMode) {
       .health-row[data-done="true"] .health-mark {
         background: var(--hpo-ok-bg, #e8f1ed); border-color: transparent;
       }
-      /* The inbox rows (R9-UX-2): a surface-2 block with a title, a detail,
-         a tabular value and at most one action, which wraps under the text
-         on a narrow card. */
-      .adv-inbox-row {
+      /* The inbox rows (R9-UX-2): a surface-2 block (its surface and ink
+         from the block rule beside .tile) with a title, a detail, a tabular
+         value and at most one action, which wraps under the text on a
+         narrow card. */
+      .fact-inbox-row {
         display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
         padding: 0.6em 0.8em; margin: 4px 0; border-radius: 12px;
-        background: var(--hpo-surface-2, #f7f9fb);
       }
-      .adv-text { flex: 1 1 14em; min-width: 0; }
-      .adv-text .adv-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
-      .adv-act {
+      .fact-text { flex: 1 1 14em; min-width: 0; }
+      .fact-text .fact-sub { display: block; font-size: max(12px, 0.85em); opacity: 0.8; }
+      .fact-act {
         font: inherit; cursor: pointer; padding: 0.3em 0.9em;
         color: inherit; background: none;
         border: 1px solid var(--hpo-divider, currentColor); border-radius: 6px;
       }
-      .adv-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
-      .adv-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
-      .adv-row {
+      .fact-act:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .fact-basis { font-size: max(12px, 0.85em); opacity: 0.75; }
+      .fact-note { font-size: max(12px, 0.85em); padding: 0 0 8px 0; }
+      .fact-row {
         display: flex; width: 100%; gap: 12px;
         align-items: center; justify-content: space-between;
         padding: 0.45em 0.7em; margin: 2px 0;
@@ -6051,16 +6108,16 @@ function cardStyleBlock(darkMode) {
         border-radius: 6px; cursor: pointer;
         font-variant-numeric: tabular-nums;
       }
-      .adv-row:hover { background: var(--secondary-background-color, #f5f5f5); }
-      .adv-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
-      .adv-label { flex: 1 1 auto; }
-      .adv-value { flex: 0 0 auto; text-align: right; }
-      .adv-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
-      .adv-unpriced-head {
+      .fact-row:hover { background: var(--secondary-background-color, #f5f5f5); }
+      .fact-row:focus-visible { outline: 2px solid var(--hpo-primary, #03a9f4); }
+      .fact-label { flex: 1 1 auto; }
+      .fact-value { flex: 0 0 auto; text-align: right; }
+      .fact-est { font-weight: 400; opacity: 0.75; margin-left: 0.35em; }
+      .fact-unpriced-head {
         font-weight: 600; padding: 14px 0 2px 0;
       }
-      .adv-unpriced-head + .adv-row .adv-value,
-      .adv-row.unpriced .adv-value {
+      .fact-unpriced-head + .fact-row .fact-value,
+      .fact-row.unpriced .fact-value {
         font-size: max(12px, 0.85em); max-width: 60%;
       }
 
@@ -8504,6 +8561,12 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   // closer than this to its neighbour is refused; the halving is there so an
   // interval that divides exactly cannot be refused for a rounding error.
   const minLabelGap = (size * 0.6) / 2;
+  // Beside a CLAMPED label the bar is half the gap the centred labels
+  // actually get at this step (R10-CARD-COLLAPSE polish): the clamp spends up
+  // to half a label of that gap, and a neighbour kept at the bare minimum read
+  // as one run ("06:00 AM08:00 AM") beside the even pitch of the rest.
+  const pitchGap = every * unitsPerHour - (labelWidth - size * 0.6);
+  const clampedGap = Math.max(minLabelGap, pitchGap / 2);
 
   const out = [];
   const labels = [];
@@ -8562,7 +8625,8 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   const kept = [];
   for (const lab of labels) {
     let drop = false;
-    while (kept.length && lab.left - kept[kept.length - 1].right < minLabelGap) {
+    while (kept.length && lab.left - kept[kept.length - 1].right <
+      (lab.clamped || kept[kept.length - 1].clamped ? clampedGap : minLabelGap)) {
       if (!lab.clamped) {
         drop = true;
         break;
@@ -9746,28 +9810,53 @@ function breakdownRow({ key, label, valueText, muted = false, barPct = null, sub
  * direction mark and signed share of the push; one line when every driver
  * is neutral, the no-data line when the attribute is absent. Derives
  * nothing: the weights and directions are the solver's. */
-function whyNowHtml(plan) {
+function whyNowParts(plan) {
   const why = plan.attrRaw("why_now", null);
   const drivers = knownCodes(why && why.drivers, "whynow.driver_");
   const mark = { run: "↑", idle: "↓" };
+  const weightOf = (d) => Math.round(Number(d.weight) || 0);
+  const valueOf = (d) => `${mark[d.direction] || "·"} ${L("whynow.weight", {
+    sign: weightOf(d) > 0 ? "+" : weightOf(d) < 0 ? "−" : "", w: Math.abs(weightOf(d)) })}`;
+  // The folded line: the driver pushing hardest, else what the rows would say.
+  const lead = drivers.filter((d) => mark[d.direction])
+    .reduce((a, d) => (!a || Math.abs(weightOf(d)) > Math.abs(weightOf(a)) ? d : a), null);
+  const summary = !drivers.length ? L("whynow.no_data")
+    : lead ? `${L(`whynow.driver_${lead.code}`)} ${valueOf(lead)}` : L("whynow.all_neutral");
   const rows = !drivers.length
     ? `<div class="sb-text">${esc(L("whynow.no_data"))}</div>`
     : drivers.every((d) => d.direction === "neutral")
       ? `<div class="sb-text">${esc(L("whynow.all_neutral"))}</div>`
       : drivers.map((d) => {
-        const w = Math.round(Number(d.weight) || 0);
         const label = L(`whynow.driver_${d.code}`);
-        const valueText = `${mark[d.direction] || "·"} ${L("whynow.weight", { sign: w > 0 ? "+" : w < 0 ? "−" : "", w: Math.abs(w) })}`;
+        const valueText = valueOf(d);
         const dir = L(`whynow.dir_${mark[d.direction] ? d.direction : "neutral"}`);
         return breakdownRow({
           key: d.code, label, valueText, muted: d.direction === "neutral",
-          barPct: Math.abs(w), sub: [["sb-text", dir]],
+          barPct: Math.abs(weightOf(d)), sub: [["sb-text", dir]],
           title: `${label}: ${dir}, ${valueText}\n${L(`whynow.explain_${d.code}`)}\n${L("whynow.metric")}`,
         });
       }).join("");
-  return `<div class="score-breakdown why-now" data-block="why-now" title="${esc(L("whynow.metric"))}">` +
-    `<div class="sb-head"><span class="sb-name">${esc(L("whynow.title"))}</span></div>${rows}</div>`;
+  return {
+    summary,
+    body: `<div class="score-breakdown why-now" data-block="why-now" title="${esc(L("whynow.metric"))}">${rows}</div>`,
+  };
 }
+
+/** One headline fold (R10-CARD-COLLAPSE): a header button that names the
+* section and carries its one-line summary whether unfolded or not, and the
+ * body only while unfolded -- genuinely unrendered when folded, as the dialog's hidden
+ * pages are. No id/aria-controls: the headline renders twice in one shadow
+ * root (card and Plan page), and the body follows its button directly. */
+function foldHtml(key, title, summary, unfolded, body, hover) {
+  return `<div class="hl-fold${unfolded ? " unfolded" : ""}" data-fold-block="${key}">` +
+    `<button type="button" class="hl-fold-head" data-fold="${key}" aria-expanded="${unfolded ? "true" : "false"}" ` +
+    `title="${esc(hover ? `${hover}\n${L("fold.hint")}` : L("fold.hint"))}">` +
+    `<span class="hl-fold-chev" aria-hidden="true"></span>` +
+    `<span class="hl-fold-title">${esc(title)}</span>` +
+    `<span class="hl-fold-sum">${esc(summary)}</span></button>` +
+    (unfolded ? body : "") + `</div>`;
+}
+
 
 /** One sub-score's hover: its grade or reason, its drivers or what it
  * waits on, and its metric in plain words -- the headline's line for it. */
@@ -9798,13 +9887,23 @@ function savingsUnit(plan, statKey) {
  * whole list when `items` is absent or does not pair one to one with
  * `lines` (the integration skips an item it has no sentence for, so a length
  * mismatch means the pairing is unknown) -- every line still shows (R9-UX-1).
+ *
+ * The summary is the folded section's one line (R10-CARD-COLLAPSE): the
+ * rows' kWh and cost total when every line pairs with a numeric item, else
+ * the first published line.
  */
-function narrativeRows(plan, narrative, lines) {
+function narrativeParts(plan, narrative, lines) {
   const items = narrative && narrative.attributes && narrative.attributes.items;
   const paired = Array.isArray(items) && items.length === lines.length;
   const unit = savingsUnit(plan, "_plan_predicted_savings");
   const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v).toFixed(d) : null);
-  return lines
+  const totals = paired && items.every((it) => it && num(it.kwh, 1) !== null && num(it.sek, 2) !== null)
+    ? items.reduce((t, it) => ({ kwh: t.kwh + Number(it.kwh), sek: t.sek + Number(it.sek) }), { kwh: 0, sek: 0 })
+    : null;
+  const summary = totals
+    ? L("fold.narrative_total", { kwh: totals.kwh.toFixed(1), cost: `${totals.sek.toFixed(2)} ${unit}` })
+    : lines[0] || "";
+  const rows = lines
     .map((line, i) => {
       const it = paired && items[i] ? items[i] : {};
       const key = REASON_LABELS[it.reason];
@@ -9822,6 +9921,7 @@ function narrativeRows(plan, narrative, lines) {
         `<span class="nl-num">${num2}</span></li>`;
     })
     .join("");
+  return { rows, summary };
 }
 
 /** The compact stats row under the header, or nothing at all.
@@ -9831,7 +9931,7 @@ function narrativeRows(plan, narrative, lines) {
  * between optimizer runs, and old integrations publish none of them. A row
  * with nothing to say renders no chrome rather than an empty strip.
  */
-function headlineHtml(plan, cfg, scoreOpen) {
+function headlineHtml(plan, cfg, shown = {}) {
   if (!cfg.show_stats) return "";
   const items = [];
 
@@ -9893,7 +9993,8 @@ function headlineHtml(plan, cfg, scoreOpen) {
   const lines = Array.isArray(published)
     ? published.filter((l) => typeof l === "string" && l)
     : [];
-  const rows = narrativeRows(plan, narrative, lines);
+  const { rows, summary } = narrativeParts(plan, narrative, lines);
+  const why = whyNowParts(plan);
 
   if (!items.length && !lines.length) return "";
   const stats = items
@@ -9914,9 +10015,10 @@ function headlineHtml(plan, cfg, scoreOpen) {
     .join("");
   return `<div class="headline">
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
-      ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
-      ${rows ? `<ul class="hl-narrative">${rows}</ul>` : ""}
-      ${whyNowHtml(plan)}
+      ${shown.score && score !== null ? scoreBreakdownHtml(plan) : ""}
+      ${rows ? foldHtml("narrative", L("fold.narrative_title"), summary,
+        !!shown.narrative, `<ul class="hl-narrative">${rows}</ul>`) : ""}
+      ${foldHtml("whynow", L("whynow.title"), why.summary, !!shown.whynow, why.body, L("whynow.metric"))}
     </div>`;
 }
 
@@ -10103,15 +10205,15 @@ function advisorRowHtml(host, row) {
     const text = row.status === "waiting"
       ? L("advisor.waiting", { reason: row.reason })
       : L("advisor.unavailable");
-    return `<div class="adv-inbox-row adv-${row.status}"><span class="adv-text">${esc(text)}</span></div>`;
+    return `<div class="fact-inbox-row fact-${row.status}"><span class="fact-text">${esc(text)}</span></div>`;
   }
   const value = row.value === null ? L("advisor.no_value")
     : L("advisor.value_month", {
       value: Math.round(row.value), currency: host.plan.currency() });
-  return `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(row.title)}<span class="adv-sub">${esc(row.detail)}</span></span>
-      <span class="adv-value">${esc(value)}</span>
-      ${row.act ? `<button type="button" class="adv-act" data-act="${row.act}"
+  return `<div class="fact-inbox-row">
+      <span class="fact-text">${esc(row.title)}<span class="fact-sub">${esc(row.detail)}</span></span>
+      <span class="fact-value">${esc(value)}</span>
+      ${row.act ? `<button type="button" class="fact-act" data-act="${row.act}"
         data-key="${esc(row.key || "")}" data-target="${row.target ?? ""}">${esc(L(act[row.act]))}</button>` : ""}
     </div>`;
 }
@@ -10146,26 +10248,26 @@ function feedbackGaps(plan) {
 
 function feedbackRowHtml(gaps) {
   const list = gaps.map((g) => `${L(`advisor.feedback_${g.class}`)} (${g.key})`).join(", ");
-  return `<div class="adv-inbox-row" data-advice="feedback">
-      <span class="adv-text">${esc(L("advisor.feedback_title"))}<span class="adv-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="adv-sub">${esc(L("advisor.step_metering"))}</span></span>
-      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
-      <button type="button" class="adv-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
+  return `<div class="fact-inbox-row" data-advice="feedback">
+      <span class="fact-text">${esc(L("advisor.feedback_title"))}<span class="fact-sub">${esc(L("advisor.feedback_detail", { list }))}</span><span class="fact-sub">${esc(L("advisor.step_metering"))}</span></span>
+      <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+      <button type="button" class="fact-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
     </div>`;
 }
 
 function advisorInboxHtml(host) {
   const rows = advisorRows(host);
   const feedback = feedbackGaps(host.plan);
-  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
-      <span class="adv-text">${esc(L(`advisor.optin_${id}`))}<span class="adv-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
-      <button type="button" class="adv-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
+  const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="fact-inbox-row">
+      <span class="fact-text">${esc(L(`advisor.optin_${id}`))}<span class="fact-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
+      <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
     </div>`).join("");
-  return `<div class="adv-head"><span class="adv-title">${esc(L("advisor.inbox_heading"))}</span></div>
+  return `<div class="fact-head"><span class="fact-title">${esc(L("advisor.inbox_heading"))}</span></div>
     ${(rows.length ? rows.map((r) => advisorRowHtml(host, r)).join("")
       : feedback.length ? ""
         : `<div class="empty">${esc(L("advisor.inbox_empty"))}</div>`)
       + (feedback.length ? feedbackRowHtml(feedback) : "")}
-    <div class="adv-head"><span class="adv-title">${esc(L("advisor.optin_heading"))}</span></div>
+    <div class="fact-head"><span class="fact-title">${esc(L("advisor.optin_heading"))}</span></div>
     ${optIn}`;
 }
 
@@ -10303,6 +10405,10 @@ function fmtMinutes(m) {
 function healthPillHtml(plan) {
   const st = inputProblemState(plan);
   if (!st || st.state === "unavailable" || st.state === "unknown") return "";
+  // Every problem kind counts (unavailable, out of range, stale, ...), one
+  // per Health-page row, so the words name no single kind: "stale" here
+  // contradicted a row whose own pill read "Unavailable"
+  // (R10-HOTFIX-CARD-HEALTH-TEXT).
   const n = ((st.attributes || {}).problems || []).length;
   const text = n === 0 ? L("health.pill_ok")
     : L(n === 1 ? "health.pill_one" : "health.pill_other", { n });
@@ -10330,8 +10436,8 @@ function inputAssigned(plan, key) {
 }
 
 function healthRow(attrs, title, detail, pill) {
-  return `<div class="health-row"${attrs}><span class="adv-text">${esc(title)}` +
-    `<span class="adv-sub">${esc(detail)}</span></span>${pill}</div>`;
+  return `<div class="health-row"${attrs}><span class="fact-text">${esc(title)}` +
+    `<span class="fact-sub">${esc(detail)}</span></span>${pill}</div>`;
 }
 
 function healthInputsHtml(plan) {
@@ -10427,7 +10533,7 @@ function healthModelTitle(id, reason) {
 function healthModelRow(id, title, detail, value, share, tone) {
   const pct = Math.round(Math.max(0, Math.min(1, Number(share) || 0)) * 100);
   return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}" title="${esc(healthModelTitle(id, detail))}">` +
-    `<span class="adv-text">${esc(title)}<span class="adv-sub">${esc(detail)}</span></span>` +
+    `<span class="fact-text">${esc(title)}<span class="fact-sub">${esc(detail)}</span></span>` +
     `<span class="model-value">${esc(value)}</span>` +
     `<span class="model-bar" aria-hidden="true"><span style="width:${pct}%"></span></span></div>`;
 }
@@ -10451,7 +10557,7 @@ function healthGainsRow(gains, learning) {
   const peak = L("health.model_gains_peak", { kw: top.toFixed(1), hh: String(at).padStart(2, "0") });
   const detail = learning ? `${learning.text} ${peak}` : peak;
   return `<div class="health-row model-row" data-model-row="gains" data-tone="ok" title="${esc(healthModelTitle("gains", detail))}">` +
-    `<span class="adv-text">${esc(L("health.model_gains"))}<span class="adv-sub">` +
+    `<span class="fact-text">${esc(L("health.model_gains"))}<span class="fact-sub">` +
     `${esc(detail)}</span></span>` +
     `<span class="gains-strip" aria-hidden="true">${bars}</span></div>`;
 }
@@ -10578,8 +10684,8 @@ function healthChecklistHtml(plan) {
   ];
   return `<h3 class="health-h">${esc(L("health.checklist"))}</h3>` + items.map(([id, done, act]) =>
     `<div class="health-row" data-check="${id}" data-done="${done}"><span class="health-mark">${done ? "✓" : ""}</span>` +
-    `<span class="adv-text">${esc(L(`health.check_${id}`))}</span>` +
-    (!done && act ? `<button type="button" class="adv-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
+    `<span class="fact-text">${esc(L(`health.check_${id}`))}</span>` +
+    (!done && act ? `<button type="button" class="fact-act" data-act="${act}"${act === "assign" ? ' data-key="heat_pump_power_entity"' : ""}>` +
       `${esc(L(act === "assign" ? "health.act_assign" : "health.act_show"))}</button>` : "") + `</div>`).join("");
 }
 
@@ -10622,9 +10728,9 @@ function healthDebugHtml(host) {
   const text = host._debugArmed && state === "final" ? L("health.debug_confirm")
     : state === "active" ? L("health.debug_active", { rows, days })
       : state === "final" ? L("health.debug_final", { rows }) : L("health.debug_off");
-  return `<div class="health-row health-debug" data-debug="${state}"><span class="adv-text">${esc(L("health.debug_title"))}` +
-    `<span class="adv-sub">${esc(text)}</span></span>` +
-    (state === "active" ? "" : `<button type="button" class="adv-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
+  return `<div class="health-row health-debug" data-debug="${state}"><span class="fact-text">${esc(L("health.debug_title"))}` +
+    `<span class="fact-sub">${esc(text)}</span></span>` +
+    (state === "active" ? "" : `<button type="button" class="fact-act" data-act="debug_start">${esc(L("health.act_debug_start"))}</button>`) +
     `</div>`;
 }
 
@@ -10644,9 +10750,9 @@ function healthPageHtml(host) {
     </div>
     ${healthInputsHtml(plan)}
     ${healthModelHtml(plan)}
-    <div class="health-row health-support"><span class="adv-text">${esc(L("health.support_title"))}
-      <span class="adv-sub">${esc(L("health.support_detail"))}</span></span>
-      <button type="button" class="adv-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
+    <div class="health-row health-support"><span class="fact-text">${esc(L("health.support_title"))}
+      <span class="fact-sub">${esc(L("health.support_detail"))}</span></span>
+      <button type="button" class="fact-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>
     ${healthDebugHtml(host)}
     ${healthChecklistHtml(plan)}
     <div class="setup-result" role="status"></div></div>`;
@@ -10832,7 +10938,7 @@ function advisorPageHtml(host) {
   const spread = (row) => {
     const value = Number(row.spread_c);
     return Number.isFinite(value)
-      ? `±${value.toFixed(2)} °C <span class="adv-est">${esc(L("advisor.estimated"))}</span>`
+      ? `±${value.toFixed(2)} °C <span class="fact-est">${esc(L("advisor.estimated"))}</span>`
       : "—";
   };
   const isPriced = (row) => !!(row && row.priced);
@@ -10841,25 +10947,25 @@ function advisorPageHtml(host) {
   // Every quantified row carries the estimate badge and its spread; a row
   // the proxy cannot price renders its reason instead of a number, below
   // every ranked row, so it can never pose as one.
-  const rowHtml = (row) => `<button type="button" class="adv-row"
+  const rowHtml = (row) => `<button type="button" class="fact-row"
       data-key="${esc(String(row.key || ""))}">
-      <span class="adv-label">${esc(String(row.label || row.key || ""))}</span>
-      <span class="adv-value">${isPriced(row)
+      <span class="fact-label">${esc(String(row.label || row.key || ""))}</span>
+      <span class="fact-value">${isPriced(row)
         ? spread(row)
         : esc(L(`advisor.reason_${row.reason || "no_clamped_parameter"}`))}
       </span>
     </button>`;
   return `<div class="setup-page advisor-page">
     ${inbox}
-    <div class="adv-head">
-      <span class="adv-title">${esc(L("advisor.heading"))}</span>
-      <span class="adv-basis">${esc(L(
+    <div class="fact-head">
+      <span class="fact-title">${esc(L("advisor.heading"))}</span>
+      <span class="fact-basis">${esc(L(
         adv.basis === "history" ? "advisor.basis_history" : "advisor.basis_config"
       ))}</span>
     </div>
-    <div class="adv-note">${esc(L("advisor.spread_note"))}</div>
+    <div class="fact-note">${esc(L("advisor.spread_note"))}</div>
     ${priced.map(rowHtml).join("")}
-    ${unpriced.length ? `<div class="adv-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
+    ${unpriced.length ? `<div class="fact-unpriced-head">${esc(L("advisor.unpriced_heading"))}</div>` : ""}
     ${unpriced.map(rowHtml).join("")}
     <div class="setup-hint">${esc(L("advisor.act_hint"))}</div>
     <div class="setup-result" role="status"></div>
@@ -10871,7 +10977,7 @@ function advisorPageHtml(host) {
  * lane the card already owns, rather than a second one grown here. */
 function attachAdvisorPage(host, root) {
   attachAdvisorInbox(host, root);
-  for (const row of root.querySelectorAll(".adv-row")) {
+  for (const row of root.querySelectorAll(".fact-row")) {
     row.addEventListener("click", (ev) => {
       stop(ev);
       const key = row.dataset.key;
@@ -10904,7 +11010,7 @@ function attachAdvisorInbox(host, root) {
     const out = root.querySelector(".setup-result");
     if (out) out.textContent = text;
   };
-  for (const btn of root.querySelectorAll(".adv-act")) {
+  for (const btn of root.querySelectorAll(".fact-act")) {
     btn.addEventListener("click", async (ev) => {
       stop(ev);
       const act = btn.dataset.act;
@@ -15086,6 +15192,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Whether the score breakdown panel is open (#2). Instance state, not
     // DOM state, so it survives the shadow-root rebuild every refresh does.
     this._scoreOpen = false;
+    // Which headline folds are open (R10-CARD-COLLAPSE): closed by default,
+    // instance state for the same reason as `_scoreOpen`.
+    this._folds = { narrative: false, whynow: false };
     // Away tick the user just made, until hass confirms the switch entity.
     // Undefined means follow the entity. Without this the picker waits on
     // a plan-sensor hass update that may be half an hour away.
@@ -15429,7 +15538,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.dialog.pickDefaultPage(anyData);
     const savingsTile =
       this.dialog.expanded && this.dialog.activePage() === "savings";
-    const legend = savingsTile ? "" : this.legend.html(this._series, "card-");
+    // The series chips and their dashed-line notes are the expanded view's
+    // alone (R10-CARD-COLLAPSE, owner 2026-11-09): the folded card shows the
+    // chart as the saved toggles leave it, and the dialog's Plan page is
+    // where they change.
 
     // The setup page is drawn from configuration alone: `sensor.py` publishes
     // `setup_topology` with no plan at all, saying so in as many words --
@@ -15471,7 +15583,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // dialog's plan page, which otherwise showed the chart without them.
     const stats =
       tilesHtml(this.plan, this._config, indoorState(this), Date.now()) +
-      headlineHtml(this.plan, this._config, this._scoreOpen);
+      headlineHtml(this.plan, this._config, { score: this._scoreOpen, ...this._folds });
 
     // The dialog is a sibling of ha-card, not a child, so a click inside it
     // never bubbles into the card's own open-on-click handler. Rendered
@@ -15526,7 +15638,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
           }
         </div>
         ${stats}
-        ${legend}
         ${body}
       </ha-card>
       ${dialog}
@@ -15561,6 +15672,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this._render();
       });
     }
+
+    // The headline folds (R10-CARD-COLLAPSE): native buttons, so Enter and
+    // Space arrive as this click. stopPropagation for the same reason as the
+    // score's; focus goes back to the rebuilt copy of the header pressed.
+    const heads = [...this.shadowRoot.querySelectorAll("[data-fold]")];
+    heads.forEach((foldHead, i) => {
+      foldHead.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const key = foldHead.getAttribute("data-fold");
+        this._folds = { ...this._folds, [key]: !this._folds[key] };
+        this._render();
+        const again = [...this.shadowRoot.querySelectorAll("[data-fold]")][i];
+        if (again && typeof again.focus === "function") again.focus();
+      });
+    });
 
     const card = this.shadowRoot.querySelector("ha-card");
     if (card && expandable) card.addEventListener("click", this._onCardClick);

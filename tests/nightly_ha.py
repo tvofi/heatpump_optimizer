@@ -32,8 +32,9 @@ WHAT THIS LANE DOES NOT COVER, stated the way ``deployment_shape.py`` states
 its own limit:
 
 * **Tibber.** Prices are the one input whose absence stops a solve outright
-  (``_fetch_tibber_prices`` raises ``UpdateFailed``), and the real endpoint
-  needs a live account. ``api.tibber.com`` is redirected to a local TLS server
+  (``_fetch_tibber_prices`` raises ``UpdateFailed`` once the last published
+  prices no longer cover now; while they do, a failed fetch is bridged), and
+  the real endpoint needs a live account. ``api.tibber.com`` is redirected to a local TLS server
   in the container by ``--add-host``, whose certificate is added to the trust
   store the shared aiohttp session uses. Production code is not patched: the
   real URL, the real session and real TLS are exercised; only the counterparty
@@ -86,7 +87,10 @@ this merge base by listing those identifiers (not by carrying a filed total):
 E71, E33, E19, E45, E6, E74, E73, E77, E47, E113, E137, E138, E78, E7, E119.
 A4's named set is the §4 A4 row, listed (not a carried total): E57, E76, E30,
 E77, E75, E72. It breaks the Tibber counterparty (HTTP 500, not 401 -- 401
-starts reauth) and does not poke ``last_update_success``. The counts are
+starts reauth) in two phases and does not poke ``last_update_success`` or the
+coordinator's prices: with the last published prices still covering now the
+500 is bridged (``a4:bridged``, #3454); once the counterparty has answered 200
+with a curve that ended before now, the 500 fails the update. The counts are
 bullet-level, stable in ranking and about +/-15 in absolute terms; the two
 largest classes in the record -- solver numbers and card geometry, 68 escapes
 between them -- are out of this lane's reach by construction, so this is the
@@ -169,7 +173,14 @@ LOG_NAME = "home-assistant.log"
 
 TIBBER_HOST = "api.tibber.com"
 # HTTP 500, not 401: 401 starts reauth (D10-08) and is a different path from E57.
+# The 500 raises UpdateFailed only once the published prices no longer cover now;
+# before that it is bridged (see _PRICE_CURVE_ENDED).
 _PRICE_SOURCE_BROKEN = False
+# A 200 whose curve ended before now: the counterparty answers, but nothing it
+# published covers the present (the only way, short of poking the coordinator,
+# to exhaust the last published prices; pull_prices applies no expiry filter).
+_PRICE_CURVE_ENDED = False
+_ENDED_CURVE_AGE = timedelta(days=3)
 
 MARKER = "<<<nightly-ha-json>>>"
 
@@ -196,6 +207,7 @@ A4_NAMED_ESCAPES = (
     "E57", "E76", "E30", "E77", "E75", "E72",
 )
 A4_INSIDE = (
+    "a4:bridged",
     "a4:failed",
     "a4:unavailable",
     "a4:buttons",
@@ -387,6 +399,7 @@ OUTSIDE_CHECKS = (
     "log:no_new_blocking_call",
     "log:blocking_pin_not_stale",
     "log:blocking_positive_control",
+    "log:no_deprecated_member",
 )
 
 FORBIDDEN = {
@@ -395,6 +408,9 @@ FORBIDDEN = {
 }
 
 TRACEBACK_HEAD = "Traceback (most recent call last):"
+
+#: Home Assistant's ``migrate_deprecated_entity_members`` report.
+DEPRECATED_MEMBER = "provides the deprecated"
 
 # The repairs that mean the solve route itself is in trouble. Named rather than
 # "the integration raised nothing", because a defaults-only entry with no
@@ -1348,6 +1364,12 @@ def break_price_source(broken: bool) -> None:
     _PRICE_SOURCE_BROKEN = bool(broken)
 
 
+def end_price_curve(ended: bool) -> None:
+    """Make the Tibber counterparty answer 200 with a curve that ended before now."""
+    global _PRICE_CURVE_ENDED
+    _PRICE_CURVE_ENDED = bool(ended)
+
+
 def _a4_records(hass, entry) -> list[dict]:
     from homeassistant.helpers import entity_registry as er
 
@@ -1466,8 +1488,59 @@ def check_a4_recovered(
     )
 
 
+def _a4_issue_raised(hass, issue_id: str) -> bool:
+    from homeassistant.helpers import issue_registry as ir
+
+    return (PACKAGE_NAME, issue_id) in ir.async_get(hass).issues
+
+
+def check_a4_bridged(
+    checks: Checks,
+    last_update_success: object,
+    repair_raised: bool,
+    before: list[dict] | tuple[dict, ...],
+    after: list[dict] | tuple[dict, ...],
+) -> None:
+    """A failed fetch while published prices still cover now is bridged.
+
+    The update stays successful, the ``price_feed_stale`` repair is in the
+    registry and nothing that was published has gone unavailable. Encodes the
+    accepted contract of #3454; the fault below it is a4:failed's.
+    """
+    published = _a4_published(before)
+    after_by = {r["entity_id"]: r for r in after}
+    gone = [
+        r["entity_id"]
+        for r in published
+        if after_by.get(r["entity_id"], {}).get("state") in (None, "unavailable")
+    ]
+    ok = last_update_success is True and bool(repair_raised) and bool(published) and not gone
+    checks.check(
+        "a4:bridged",
+        ok,
+        (
+            f"bridged: last_update_success=True, price_feed_stale raised, "
+            f"{len(published)} entities available"
+            if ok
+            else (
+                f"last_update_success={last_update_success!r} "
+                f"price_feed_stale_raised={bool(repair_raised)} "
+                f"unavailable={sorted(gone)[:8] or ('none-published-before' if not published else 'none')}"
+            )
+        ),
+    )
+
+
 async def _async_check_a4(checks: Checks, hass, entry) -> None:
-    """Break the price source, assert unavailability, restore, assert recovery."""
+    """Two real-boundary phases against the Tibber counterparty, then recovery.
+
+    1. Break the source (HTTP 500) while the last published prices still cover
+       now: the failure is bridged (``a4:bridged``).
+    2. Exhaust the published prices at the counterparty -- it answers 200 with
+       a curve that ended before now, which the price pull accepts -- then
+       break the source: the update fails (``a4:failed`` and the rest).
+    Neither phase sets ``last_update_success`` or the coordinator's price cache.
+    """
     coordinator = getattr(entry, "runtime_data", None)
     if coordinator is None:
         for name in A4_INSIDE:
@@ -1479,11 +1552,31 @@ async def _async_check_a4(checks: Checks, hass, entry) -> None:
         try:
             await coordinator.async_refresh()
             await hass.async_block_till_done()
+            check_a4_bridged(
+                checks,
+                getattr(coordinator, "last_update_success", False),
+                _a4_issue_raised(hass, "price_feed_stale"),
+                before,
+                _a4_records(hass, entry),
+            )
+        except Exception as err:  # noqa: BLE001 - a raise is the A4 failure
+            checks.check("a4:bridged", False, f"{type(err).__name__}: {err}")
+        try:
+            # The ended curve is taken on a working source; its own refresh
+            # is not asserted, only what the 500 does once nothing covers now.
+            break_price_source(False)
+            end_price_curve(True)
+            await coordinator.async_refresh()
+            await hass.async_block_till_done()
+            before_failure = _a4_records(hass, entry)
+            break_price_source(True)
+            await coordinator.async_refresh()
+            await hass.async_block_till_done()
             broken = _a4_records(hass, entry)
             check_a4_failed(checks, getattr(coordinator, "last_update_success", True))
             check_a4_unavailable(checks, broken)
             check_a4_buttons(checks, broken)
-            check_a4_no_stale(checks, before, broken)
+            check_a4_no_stale(checks, before_failure, broken)
         except Exception as err:  # noqa: BLE001 - a raise is the A4 failure
             for name in A4_INSIDE:
                 if name == "a4:recovered" or name in checks.results:
@@ -1491,6 +1584,7 @@ async def _async_check_a4(checks: Checks, hass, entry) -> None:
                 checks.check(name, False, f"{type(err).__name__}: {err}")
     finally:
         break_price_source(False)
+        end_price_curve(False)
         # No return in here: it would discard whatever is still in flight
         # from the try, a cancellation included (PEP 765, D7-s3-51).
         try:
@@ -2511,7 +2605,8 @@ def _serve_prices(workdir: Path) -> None:
                 self.send_header("Content-Length", "0")
                 self.end_headers()
                 return
-            body = _tibber_body(datetime.now().astimezone())
+            now = datetime.now().astimezone()
+            body = _tibber_body(now - _ENDED_CURVE_AGE if _PRICE_CURVE_ENDED else now)
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
@@ -3390,7 +3485,8 @@ def check_blocking_positive_control(checks: Checks, probe_text: str) -> None:
 
 
 def _a4_update_failed_traceback(block: str) -> bool:
-    """A4 breaks Tibber with HTTP 500; UpdateFailed is the designed raise.
+    """A4's phase 2 breaks Tibber with HTTP 500 after an ended curve; UpdateFailed
+    is the designed raise.
 
     Newer Home Assistant logs that raise with a traceback naming this
     package. That is the coordinator doing its job, not an integration
@@ -3410,6 +3506,20 @@ def _scan_pin(checks: Checks, text: str) -> None:
             not hits,
             f"{len(hits)} line(s)" + (f", first: {hits[0][:200]}" if hits else ""),
         )
+    # A core that moved an entity API to new names logs, once per class,
+    # every class of this package still defining the old one, then stops
+    # reading it at the stated removal (the climate temperatures, 2026.11).
+    # The line is a WARNING with no traceback, so nothing above sees it.
+    hits = [
+        line
+        for line in text.splitlines()
+        if DEPRECATED_MEMBER in line and PACKAGE_NAME in line
+    ]
+    checks.check(
+        "log:no_deprecated_member",
+        not hits,
+        f"{len(hits)} line(s)" + (f", first: {hits[0][:200]}" if hits else ""),
+    )
     # A blocking-call report is a WARNING that carries a stack, not an
     # exception, so the stack after one belongs to the pin below rather than
     # to this check -- otherwise #525 would read as an integration crash.

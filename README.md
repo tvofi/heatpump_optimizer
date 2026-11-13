@@ -978,7 +978,9 @@ Every field, default and range:
 `custom:heatpump-optimizer-card` charts electricity price, planned hot water and
 space heating slots, outdoor temperature, solar irradiance and the predicted tank
 and house temperatures on one shared time axis. Each series has a legend chip
-that toggles it, hovering a slot shows why it was planned, and the stretch of the
+in the enlarged view that toggles it, the plan's breakdown by reason and the
+reasons behind the current hour fold open under the headline, hovering a slot
+shows why it was planned, and the stretch of the
 horizon whose prices are estimated rather than published is shaded. Click the
 card to enlarge it: the plan becomes two editable lanes you can drag, stretch,
 add to and remove from, with a running total and an **Apply this plan** button
@@ -1053,6 +1055,7 @@ Each clears itself once the cause is gone.
 - **Learned model was restored from a snapshot** — the drift above happened while every input looked healthy, so the learners were rolled back automatically. Nothing is required.
 - **Frequency control stood down** — the compressor frequency kept diverging from the commanded value, so frequency control fell back to observe. Check the entity, then switch the frequency mode to observe, save, and back to control.
 - **Optimization keeps failing; the plan is going stale** — several solves in a row failed. Once the plan is a few intervals old the pump is handed back to its own heating curve. Look for a lost price or weather connection, or a solver error in the log.
+- **Electricity prices are outdated** — a price fetch failed, and the optimizer keeps planning on the last published prices while they still cover the current time. Once they run out it becomes unavailable until prices arrive again. Check the price source, its token or the price entity.
 - **Planning fell back to the slow in-process solver** — the separate solver process could not be used, so Home Assistant may feel briefly unresponsive on each solve. Attach the reported cause and the log to a bug report.
 - **Floor return temperature sensor is not reporting** — the slab temperature is carried forward from the plan's prediction until the sensor reads again. Check the entity, or clear the slot.
 - **Heat pump operating mode entity is not reporting** — the plan stops being held to the last mode it read. Check the entity, or clear the slot.
@@ -1069,6 +1072,7 @@ Each clears itself once the cause is gone.
 - **A configured grid fee is negative** — almost always a sign slip. Correct it on **Transfer fees and contract**.
 - **The downstairs temperature is modelled, not measured** — two-zone planning without a lower-floor thermometer. Assign the *Lower floor temperature sensor* to remove it.
 - **Your comfort temperatures contradict each other** — the stored band cannot all be met at once, for example a target above the warmest acceptable temperature. Fix the band on **Comfort and temperatures**.
+- **Valve target above comfort** — the mixing-valve target is read as the room temperature the circuit holds, not a water temperature, and it is above the top of your comfort band. Nothing is changed (it can be deliberate, for example slab charging); if it is a flow temperature, set the room temperature or 0 on **Mixing valve**.
 - **The heat pump's hot water set-point is below the configured temperature** — the pump's own set-point stops it reaching the disinfection or minimum temperature. The notice's fix writes the needed value to the pump's entity.
 - **The space-heating set-point entity is not reporting** — the set-point entity is missing or unreadable. Check it, or clear the slot.
 - **The heat pump does not hold a setting the optimizer wrote** — the pump reads back something else after two writes. To change the pump by hand, turn **Optimizer Active** off first.

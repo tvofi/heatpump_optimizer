@@ -1,7 +1,0 @@
-Question: the merge of origin/main (e4ca2d940efd) into the handoff head is done and proved; the code head fbdfd5ddf25f8bd98e2a2dfc17b08bc5969ebad1 is pushed to handoff/r10-ci-priority-pause. prepr.sh rc=0, every touched self-test 0 failed, carry_audit landed on the old body 0 missing. body_push.sh now refuses REVIEW-PACKET: the roster entry for R10-CI-PRIORITY-PAUSE grew three carries since the earlier handoff, and the body must name them (`Carry N`). Which disposition do you want?
-
-- carry 9: already re-homed in its own text to R10-TRAIN-MERGE-LOOP-2 (P267 bounded pause, sender of @tvofi cancels). Fold as moved.
-- carry 10 (from r10-outside-contributor-cycle-p2, item dfa8b375): three live checks on a test fork (update-branch identity, app_approve end to end, class-O commit_id). This seat has no gh or App key, so it cannot run them. Needs a seat with live access, or a Carry to a group that has it.
-- carry 11 (from r10-gate-defer-barrier, item 6e06de7f): three residuals in merge_train.py / orchestrator_tick.py gate-conclusion readers (a read bypassing classify, empty Busy built from made-up runs, refusal only at run time). New code, outside my brief ("do not change code"). Needs either a new fix pass on this group or a Carry to another group.
-
-The refused body (head-refreshed, merge resolution named, carries 0-8 as before) is kept at refs/heads/handoff-wip/r10-ci-priority-pause-body; add carry lines for 9-11 with your chosen destinations and re-run body_push.sh. Nothing else is outstanding.

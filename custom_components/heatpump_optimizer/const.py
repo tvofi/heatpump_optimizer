@@ -835,6 +835,14 @@ DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
 #: unit and a power meter, the only installs it acts on.
 CONF_SPACE_SETPOINT_POWER_FEEDBACK: Final = "space_setpoint_power_feedback"
 DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
+#: The controller's own lower and upper limit on the water set-point it is
+#: sent, each as an optional sensor: the feedback loop stays inside the pair
+#: instead of finding each limit by having a write cut. On a heat pump's
+#: Smart Home Interface they are inputs 10104 (minimum return target,
+#: parameter 979) and 10103 (return limit, parameter 87), which clamp
+#: register 10001 (#3372 comment 6756915104). Unset, nothing reads them.
+CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY: Final = "space_setpoint_low_limit_entity"
+CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY: Final = "space_setpoint_high_limit_entity"
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
@@ -1047,6 +1055,10 @@ DHW_LEGIONELLA_HOLD_MINUTES: Final = 20.0
 # ever recorded, and the countdown latches overdue for ever. Long enough that
 # any healthy tank finishes well inside it; far shorter than the interval.
 DHW_LEGIONELLA_BOOST_MAX_HOURS: Final = 12.0
+#: The settling tail a space boost owes the interval learners, hours, whatever
+#: time it ran (#1935): ``boost.SPACE_SETTLE_TAIL`` and the store's look-ahead
+#: for the persisted tail.
+BOOST_SPACE_SETTLE_TAIL_HOURS: Final = 12.0
 #: #20 — events per window before the p90 fully replaces the mean (ramp).
 DHW_QUANTILE_MIN_EVENTS: Final = 8
 #: #18 — day-type samples at which the blend is half day-type, half pooled.
@@ -1868,6 +1880,8 @@ INPUT_PLAUSIBLE_RANGE_C: Final = {
     CONF_WOOD_TANK_BOTTOM_ENTITY: WATER_RANGE_C,
     CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: WATER_RANGE_C,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: WATER_RANGE_C,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY: WATER_RANGE_C,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY: WATER_RANGE_C,
     CONF_EXTERNAL_HEAT_ENTITY: FLUE_RANGE_C,
 }
 

@@ -262,8 +262,11 @@ jobs:
   # included. Here they share a job with no grader. `HPO_JOB_GRADES: nothing`
   # tells `codeowners_gap.py` so, and its `--check` refuses the marker on a
   # job a required context names: a self-test grades the program the pull
-  # request carries, never the pull request. A red here is still a red check
-  # at the head, which `pr-contract` makes the body answer.
+  # request carries, never the pull request. A red here owes no `## Red checks`
+  # answer: the job is outside `merge_train.py owed-reds` (tvofi, 2026-11-07).
+  # A step red at the head and not at the merge base is INTRODUCED
+  # (`merge_train.py classify --pr`, `review_packet.py`): a finding of the pull
+  # request, which the fix reviewer blocks on; one red at both is main's.
   instrument-self-tests:
     # R10-CI-SLIM C7(a): not a required name, so it skips whole on a pull
     # request whose every changed file is product (prelude.machinery).
@@ -481,6 +484,13 @@ jobs:
         if: steps.scope.outputs.bottleneck-alert == 'true'
         run: python3 -I tools/audit/seat/bottleneck_check.py --self-test
 
+      # The convergence scorecard's ten report-only lines: each rule held to its
+      # null control over planted inputs, offline, and one mutant per predicate.
+      - name: Show the scorecard holding each of its ten lines to its null control
+        id: scorecard
+        if: steps.scope.outputs.scorecard == 'true'
+        run: python3 -I tools/audit/seat/scorecard.py --self-test
+
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.
@@ -488,6 +498,14 @@ jobs:
         id: field-coverage
         if: steps.scope.outputs.field-coverage == 'true'
         run: if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs --self-test; else node tools/policy/field_coverage.mjs --self-test; fi
+
+      # The product page's illustrative day (R10-PRODUCT-PAGE-REDESIGN): the toy
+      # planner's invariants, which tests/doc_claims.py also runs beside the
+      # page comparison whenever a diff reaches the page or the generator.
+      - name: Show the product page's day generator holding its planner invariants
+        id: day-chart
+        if: steps.scope.outputs.day-chart == 'true'
+        run: node tools/site/day_chart.mjs --self-test
 
       # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
       # well-formed comment object (#541 comment 5625671141). The countermeasure
@@ -562,6 +580,14 @@ jobs:
         id: superseded-run-canceller
         if: steps.scope.outputs.superseded-run-canceller == 'true'
         run: python3 tools/pr/cancel_superseded.py --self-test
+
+      - name: Show the figure-block renderer refusing its own fixtures
+        id: figure-block
+        if: steps.scope.outputs.figure-block == 'true'
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/figure_block.py --self-test | tee "$RUNNER_TEMP/figure-block-self-test.txt"
+          grep -Eq '^figure_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/figure-block-self-test.txt"
 
       # The Dependabot auto-merge decision (dependabot-automerge.yml): patch and
       # minor merge, a major is left, and a code-owned path withholds the App's

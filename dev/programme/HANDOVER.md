@@ -67,6 +67,23 @@ line (`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.
   writes its `closed, superseded` row). A seat's edit to a generated row takes
   that pull request off the automerge path.
 
+**Carry 42 delta re-read** (R10-ROUND-PLAYBOOK-FINAL part 2): each merged diff
+read three-dot against `dev/audit/README.md`'s phase table, lessons, closure and
+round-11 sections. An open pull request is read at its head (`refs/pull/<n>/head`).
+R10-CLOSEOUT-PREP re-checks the four open ones at closure, one line each.
+
+- R10-CARRY-AUDIT-P5, d1def1ea63: nothing (`carry_audit.py` marker parsing; phase 8 names the instrument only).
+- R10-GATE-DEFER-BARRIER, open #3499 at e3622cb3d8: nothing (`merge_train.py` defer logic; phase 9 names the instrument only).
+- R10-GH-READ-RESIDUE, 45a8b828a4 and 0b276e8c0c: nothing.
+- R10-PLAN-PAGE-RESIDUE, 19baca7618: nothing (`DEFAULT_CAPS` still in `tools/plan/replan.py`).
+- R10-PREPR-RESIDUE, 6e100ef698: nothing.
+- R10-PROCESS-SLIM, open #3451 at 07941da7b5: nothing (`handoff_push.sh` writes no delivery row; the README states no row writer).
+- R10-REVIEW-DISPATCH-RESIDUE, c71d3f6e89, a7887485de, 43e9547455 and b5057b0525: nothing (relay fold memo; the fixer's pending-carries refusal in `cloud_dispatch.py`).
+- R10-SEAT-IDENTITY-P5, open #3491 at ece5ee3b58: nothing folded; its seat-generation instrument is not on main, so the README cannot cite it yet.
+- R10-SEAT-SCRIPT-OUTPUT, open #3490 at 0e64c66e3b: nothing.
+- R10-STANDING-CONTRACTS-P2, 47788534da, fefd58c898 and 8a550692da: nothing (the README already keeps the merge and dispatch seats).
+- R10-SUITE-ENV-RESIDUE, ce6bb87e7a: nothing.
+
 ## The seats and who may do what
 
 - **Identity** (decisions 0011, 0013; `CLAUDE.md`). Pull requests are authored
@@ -80,11 +97,12 @@ line (`git log --first-parent --format='%h %s' v7.0.0..origin/main | grep ' v7\.
   the owner and beats `git config` and `-c`. Check `git log -1
   --format='%an <%ae>'` after each commit.
 - **Standing seats**, each on its own contract in `dev/governance/roles/`:
-  `standing-tick.md` (lists owed items, never acts), `standing-merge.md`
-  (operates the train, never chooses what merges), `standing-dispatch.md`
-  (dispatch, relay, verdict confirm), `standing-roster.md` (`roster_edit.py`
-  ops behind the lint gate), plus `proposal-triage.md` (opus; a proposal gets a
-  ruling before it is routed). The orchestrator sends queue lines and acts on
+  `standing-merge.md` (operates the train, never chooses what merges) and
+  `standing-dispatch.md` (dispatch, relay, verdict confirm), plus
+  `proposal-triage.md` (opus; a proposal gets a ruling before it is routed).
+  The tick and roster seats are retired into the `tick-digest` and
+  `roster-drain` beat rows (`standing-tick.md`, `standing-roster.md`): read the
+  digest, queue roster ops for the job. The orchestrator sends queue lines and acts on
   reports; `tools/audit/seat/pulse.py` and the sweep's liveness step restart an
   absent one. **The orchestrator never runs `train.sh add`, a roster op or a
   dispatch inline** (tvofi, 2026-10-21 and 2026-10-27): it confirms a verdict on

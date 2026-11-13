@@ -59,6 +59,16 @@ pr_code_in_handoff() { # <sha> <topic>: after the fetch of handoff/<topic>; PR_H
   [ "$1" != "$PR_BT" ] || pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT); it is the tip of handoff-body/$2: that is the BODY sha; pass the CODE sha"  # mut:body
   pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT), and it is not the tip of handoff-body/$2 (${PR_BT:-absent})"  # mut:ancestor
 }
+pr_state_root() { # sets PR_STATE: the state dir ($HPO_STATE_DIR, default ~/.local/state/hpo), its pr/ created, as its physical path
+  # git records and lists a worktree by its physical path (`git worktree list --porcelain`), so every path
+  # open_pr.sh and update_pr.sh derive from the state dir and match against that list (mut:opreg, the
+  # left-over guard, mut:elsewhere, update_pr.sh's own-worktree scan) is built on this one spelling: a
+  # symlinked component, a trailing slash or a `/./` segment in $HPO_STATE_DIR otherwise matches nothing,
+  # silently (#3549's review). `cd -P && pwd -P`, not realpath: macOS's /bin/bash 3.2 and BSD tools run this.
+  PR_STATE=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
+  mkdir -p "$PR_STATE/pr" || pr_refuse "cannot create the state dir $PR_STATE/pr"
+  PR_STATE=$(CDPATH= cd -P -- "$PR_STATE" && pwd -P) || pr_refuse "cannot resolve the state dir $PR_STATE"  # mut:stateroot
+}
 pr_busy() { printf '%s: BUSY: %s; nothing was changed, run again when it ends\n' "${PR_NAME:-pr}" "$*" >&2; exit 75; }  # a stop that is a live run's, not a permanent refusal (carry 8)
 pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it
   local rc=0 o
@@ -188,6 +198,48 @@ pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's chec
   why="STALE CHECKOUT $h behind origin/main $o by $n commit(s) touching tools/audit/seat tools/pr"
   [ -n "${HPO_ALLOW_STALE_TOOLS:-}" ] || pr_refuse "$why: update the checkout holding $d, or set HPO_ALLOW_STALE_TOOLS=1"  # mut:stale
   printf '%s: NOTICE: %s; HPO_ALLOW_STALE_TOOLS is set, so this run goes on\n' "${PR_NAME:-pr}" "$why" >&2
+}
+# Whose refusal a refused row push is (R10-HOTFIX-OPENPR-HOST-REFUSAL): the HOST's only when the refused
+# step, run again here on the refused head and on a pristine origin/main tree, fails the same way at
+# both -- one exit status, one set of FAIL rows. It is measured, never read from the refusal's text
+# or the diff's paths: #3508 was closed for a self-test that failed on the orchestrator host at
+# origin/main too, and a path guard on prepr.sh called a head that broke any other self-test input
+# the host's. The log only names WHICH step refused; prepr's self-test is the one step with a form
+# that runs on a tree alone, so a row naming any other step (a body, figure or carry check reads the
+# head's body) is the head's. Both trees are detached worktrees under <cache>, run alike, and each
+# measurement owns its tree: a directory mktemp makes for that one call, which no other run names,
+# removes or reuses (two refusals measured at once in one shared tree read each other's files, and
+# called a head's break the host's). A run that did not end whole is no measurement: its tree gone
+# or off <sha> when the self-test returns, or the self-test ended by a signal. Main's answer is
+# kept per origin/main sha in <cache>/<sha>.sig, written from a whole run under this process's own
+# name and renamed into place, one run per main move; whatever cannot be measured (no tree of its
+# own, no worktree, no self-test in the tree, no cache directory) is the head's, and closes. A run
+# killed mid-measurement leaves its <cache>/tree.* directory: nothing here removes another run's.
+pr_step_sig() { # <checkout> <sha> <scratch dir> -> the self-test's exit status and FAIL rows at <sha>; rc 1 = not measured
+  local w st rc=0 out="" at
+  w=$(mktemp -d "$3/tree.XXXXXX" 2>/dev/null) || return 1  # ret:sigpriv
+  git -C "$1" worktree add -q --detach "$w" "$2" >/dev/null 2>&1 || { rm -rf "$w"; false; } || return 1  # ret:sigtree
+  st=tools/pr/prepr.sh
+  [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh  # the copy tools/pr/prepr.sh itself runs when a tree holds one  # mut:sigold
+  if [ -f "$w/$st" ]; then out=$(cd "$w" && PYTHONPATH=tests/hastub bash "$st" --self-test 2>&1) || rc=$?; else rc=unrun; fi
+  at=$(git -C "$w" rev-parse -q --verify HEAD 2>/dev/null) || at=gone
+  git -C "$1" worktree remove --force "$w" >/dev/null 2>&1 || :; rm -rf "$w" || :
+  [ "$rc" != unrun ] || return 1  # ret:signone
+  [ "$at" = "$(git -C "$1" rev-parse -q --verify "$2^{commit}" 2>/dev/null)" ] || return 1  # ret:sigwhole
+  [ "$rc" -le 128 ] || return 1  # ret:sigkilled
+  printf 'rc=%s\n' "$rc"; grep -E '^  FAIL ' <<<"$out" | sort -u || :
+}
+pr_host_refusal() { # <checkout> <refusal log> <refused head> <origin/main sha> <cache dir>: 0 = the host's, 1 = the head's
+  local c=$5 other sh sm
+  other=$(grep REFUSE "$2" 2>/dev/null | grep -vE '^  REFUSE +self-test( |$)|^app_push: REFUSE: the body did not pass tools/pr/prepr\.sh' | grep -c . || :)
+  [ "$other" = 0 ] || return 1  # mut:hostother
+  grep -qE '^  REFUSE +self-test( |$)' "$2" 2>/dev/null || return 1  # mut:hostrows
+  [ -n "$3" ] && [ -n "$4" ] && mkdir -p "$c" 2>/dev/null || return 1  # ret:hostdir
+  sh=$(pr_step_sig "$1" "$3" "$c") || return 1  # ret:hosthead
+  sm=$(cat "$c/$4.sig" 2>/dev/null) || sm=  # mut:hostcache
+  [ -n "$sm" ] || { sm=$(pr_step_sig "$1" "$4" "$c") && printf '%s\n' "$sm" > "$c/$4.tmp.$$" && { rm -f "$c"/*.sig; mv -f "$c/$4.tmp.$$" "$c/$4.sig"; }; } || return 1  # ret:hostmain
+  [ "${sh%%$'\n'*}" != rc=0 ] || return 1  # mut:hostfails
+  [ "$sh" = "$sm" ]  # mut:hostsame
 }
 pr_push_failed() { # <log>: a refused push names its refusal, or its log's tail
   grep -E 'REFUSE' "$1" >&2 || tail -n 20 "$1" >&2 || true
@@ -1182,7 +1234,11 @@ D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; case $1 in --row-only|--reuse) shi
 wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
 case $n in
   1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
-  2) [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
+  2) for k in selftest:'  REFUSE   self-test             FAIL x' stmix:'  REFUSE   self-test             FAIL x
+  REFUSE   pr-body               no heading' body:'  REFUSE   pr-body               no heading'; do
+       [ ! -e "$D/p2${k%%:*}" ] || { printf '  ok       figures               fine\n%s\napp_push: REFUSE: the body did not pass tools/pr/prepr.sh\n' "${k#*:}"; exit 1; }
+     done
+     [ ! -e "$D/p2fail" ] || { echo "app_push: REFUSE: the body did not pass tools/pr/prepr.sh"; exit 1; }
      [ ! -e "$D/p2postfail" ] || { git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: REFUSE: the body PATCH on #5 was refused; the branch IS pushed as the App"; exit 1; }
      : > "$D/p2started"; k=0; while [ ! -e "$D/release" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
      [ "$(git -C "$wt" rev-parse HEAD)" = "$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null)" ] \
@@ -1247,6 +1303,138 @@ STUB
   ck "  mutant mut:opcollect (its line deleted): open_pr.sh never asks for the collection" $?
   racerun oprowonly; [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
   ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
+  # R10-HOTFIX-OPENER-REFUSALS: two openers on one topic (a seat's hand run, open_driver.py's) share the
+  # topic-keyed state dir and its body.md, but the lock was keyed on the branch, and a second run renamed
+  # itself fix/<topic>-pr whenever the first's worktree add had made a local fix/<topic>: it took another lock,
+  # rewrote body.md from handoff-body without the head note, and refused later, while the first run's prepr
+  # read the overwritten body. dualrun starts open_pr.sh r twice, neither with BR_FIXED, the second while the
+  # first is in its second push; the main merge has moved the head, so the first's body.md carries a head note.
+  # Expected: the second is BUSY (75) and body.md is byte-identical. lonerun is the null control: one run
+  # beside a stale local fix/r and no registered worktree still takes the -pr name.
+  dualcopy() { # <mutant|->: the arm's scripts, with the mutant's line deleted
+    local g
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+  }
+  dualreset() { # <state dir> <stub dir>: no state, branch or worktree of the topic r survives, main one commit ahead
+    rm -rf "$1" "$2" "$t/s$i"; mkdir -p "$1" "$2"
+    git -C "$m" worktree prune; git -C "$m" branch -qD fix/r fix/r-pr 2>/dev/null; git -C "$o" branch -qD fix/r fix/r-pr 2>/dev/null
+    printf 'y\n' > "$o/yy" && git -C "$o" add yy && git -C "$o" -c user.name=t -c user.email=t@t commit -q -m "main moved"
+  }
+  dualend() { # <state dir>
+    reap; git -C "$m" worktree remove --force "$1/pr/r/wt" 2>/dev/null; git -C "$m" worktree prune; git -C "$o" reset -q --hard "$base"; true
+  }
+  spell() { # <physical dir> <-|link|slash|dot>: another spelling of that dir (#3549's review: git lists the physical one)
+    case $2 in
+      link) ln -sfn "$1" "$1.link"; printf '%s\n' "$1.link" ;;
+      slash) printf '%s/\n' "$1" ;;
+      dot) printf '%s/./%s\n' "${1%/*}" "${1##*/}" ;;
+      *) printf '%s\n' "$1" ;;
+    esac
+  }
+  dualrun() { # <mutant|-> [<spelling>]: rc of the second opener in $t/rc2, body.md before and after it in $t/bd1 and $t/bd2
+    local sd=$t/dual-state sdir=$t/dual-stub k=0 op sp
+    dualreset "$sd" "$sdir"; rm -f "$sd.link"; sd=$(cd "$sd" && pwd -P); dualcopy "$1"; sp=$(spell "$sd" "${2:--}")
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sp STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout1" 2>&1 & op=$!
+    while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+    cksum < "$sd/pr/r/body.md" > "$t/bd1"
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sp STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout2" 2>&1; echo $? > "$t/rc2"
+    cksum < "$sd/pr/r/body.md" > "$t/bd2"
+    touch "$sdir/release"; wait "$op"; echo $? > "$t/rc1"
+    dualend "$sd"
+  }
+  lonerun() { # the null control: a stale local fix/r, no registered worktree, one run
+    local sd=$t/lone-state sdir=$t/lone-stub
+    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); dualcopy -; touch "$sdir/release"
+    git -C "$m" branch -f fix/r "$base"
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout3" 2>&1; echo $? > "$t/rc3"
+    git -C "$o" cat-file -e fix/r-pr:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/lrow" || echo 0 > "$t/lrow"
+    dualend "$sd"
+  }
+  dualrun -; [ "$(cat "$t/rc2")" = 75 ] && grep -qF "BUSY" "$t/dout2" && [ "$(cat "$t/bd1")" = "$(cat "$t/bd2")" ] && [ "$(cat "$t/rc1")" = 0 ] && grep -q '^PR=5 ' "$t/dout1"
+  ck "open_pr: a second opener on a topic whose opener worktree is registered is BUSY (75), body.md byte-identical, the first opens" $?
+  dualrun opreg; [ "$(cat "$t/rc2")" != 75 ] && [ "$(cat "$t/bd1")" != "$(cat "$t/bd2")" ]
+  ck "  mutant mut:opreg (its line deleted): the second opener takes the -pr lock, is not BUSY, and rewrites body.md (the defect)" $?
+  lonerun; [ "$(cat "$t/rc3")" = 0 ] && [ "$(cat "$t/lrow")" = 1 ]
+  ck "  null control: a lone opener beside a stale local fix/r and no registered worktree still takes fix/r-pr" $?
+  # #3549's review: git lists the opener worktree by its physical path, so a state dir spelled otherwise
+  # (a symlinked component, a trailing slash, a `/./` segment) left OP_REG empty and the defect live.
+  # pr_state_root (pr_args.sh) resolves it once; each spelling is the live case above, and the symlink
+  # spelling with that resolution deleted is the defect again.
+  for sp in link slash dot; do
+    dualrun - $sp; [ "$(cat "$t/rc2")" = 75 ] && grep -qF "BUSY" "$t/dout2" && [ "$(cat "$t/bd1")" = "$(cat "$t/bd2")" ] && [ "$(cat "$t/rc1")" = 0 ] && grep -q '^PR=5 ' "$t/dout1"
+    ck "open_pr: the state dir spelled $sp: a second opener is BUSY (75), body.md byte-identical, the first opens" $?
+  done
+  dualrun stateroot link; [ "$(cat "$t/rc2")" != 75 ] && [ "$(cat "$t/bd1")" != "$(cat "$t/bd2")" ]
+  ck "  mutant mut:stateroot (its line deleted): through a symlinked state dir the second opener is not BUSY and rewrites body.md (the defect)" $?
+  # R10-HOTFIX-OPENPR-FIGURE-REFRESH: a figure block names the head it was rendered at, so the body
+  # open_pr.sh pushes needs it re-rendered at each head it pushes (p1 when the main merge moved the
+  # head, p2 always: the row commit moves it). The stub pusher is lint's figure-block head check; the
+  # stub figure_block.py rewrites each head= to the worktree's HEAD (the real one has its own self-test).
+  if [ ! -e "$t/fixf" ]; then
+    git -C "$o" checkout -q -b handoff/f "$base" && mkdir -p "$o/tools/pr" && printf 'f\n' > "$o/f" \
+      && cat > "$o/tools/pr/app_push.sh" <<'STUB'
+#!/bin/bash
+D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; flag=; case $1 in --row-only|--reuse) flag=$1; shift ;; esac
+wt=$2; br=$3; body=$4; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
+h=$(grep -o '^<!-- figure-block: [a-z-]* mb=[0-9a-f]* head=[0-9a-f]*' "$body" | grep -o 'head=.*' | cut -c6-)
+if [ -n "$h" ]; then
+  [ "$h" = "$(git -C "$wt" rev-parse HEAD)" ] || { echo "app_push: REFUSE: figure-block scope-line names another head ($h)"; exit 1; }
+  [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr RUNS: the body changed"
+else
+  [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr SKIPPED: only the row"
+fi
+if [ "$n" = 1 ] && [ "$(git -C "$wt" rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then  # the main merge moved the head: the ## Head section names it
+  sed -n '/^## Head/,/^## Figures/p' "$body" | grep -q "$(git -C "$wt" rev-parse HEAD)" || { echo "app_push: REFUSE: ## Head does not name HEAD"; exit 1; }
+fi
+git -C "$wt" push -q -f origin "$br" || exit 1  # -f: a re-run's merge commit is not the first run's; the real pusher's refusal of that is outside this arm
+[ "$n" != 1 ] || echo "app_push: PUSHED to $br; pull request #5 is open"
+exit 0
+STUB
+    git -C "$o" add f tools/pr/app_push.sh && git -C "$o" commit -q -m "code f" && git -C "$o" checkout -q main && touch "$t/fixf"
+  fi
+  codeF=$(git -C "$o" rev-parse handoff/f)
+  printf 'import re, subprocess, sys\nf = sys.argv[sys.argv.index("refresh") + 1]\nh = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()\nt = re.sub(r"head=[0-9a-f]{40}", "head=" + h, open(f).read())\nopen(f, "w").write(t)\n' > "$m/tools/pr/figure_block.py"
+  figbody() { # <block|none>: handoff-body/f carries a body with a figure block naming the code head, or none
+    local blob tree
+    if [ "$1" = block ]; then blob=$(printf '## Head\n\nthe body\n\n## Figures\n\n<!-- figure-block: scope-line mb=%s head=%s -->\n~~~text\nx\n~~~\n<!-- /figure-block -->\n' "$codeF" "$codeF" | git -C "$o" hash-object -w --stdin)
+    else blob=$(printf '## Head\n\nthe body\n' | git -C "$o" hash-object -w --stdin); fi
+    tree=$(printf '100644 blob %s\tBODY.md\n' "$blob" | git -C "$o" mktree)
+    git -C "$o" update-ref refs/heads/handoff-body/f "$(git -C "$o" -c user.name=t -c user.email=t@t commit-tree "$tree" -m body)"
+  }
+  figrun() { # <mutant|-> <block|none> [keep]: open_pr.sh f with main moved on; "keep" re-runs over the last run's leftovers
+    local sd=$t/fig-state sdir=$t/fig-stub g
+    if [ "${3:-}" != keep ]; then
+      rm -rf "$sd" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/f fix/f-pr 2>/dev/null; git -C "$o" branch -qD fix/f fix/f-pr 2>/dev/null
+      mkdir -p "$sd"; git -C "$m" branch -f fix/f "$base"
+    fi
+    sd=$(cd "$sd" && pwd -P); rm -rf "$sdir"; mkdir -p "$sdir"; figbody "$2"
+    printf 'z\n' > "$o/zz" && git -C "$o" add zz && git -C "$o" -c user.name=t -c user.email=t@t commit -q -m "main file"
+    for g in open_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+    HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" f "$codeF" T G > "$t/fo" 2>&1; echo $? > "$t/frc"
+    git -C "$o" cat-file -e fix/f-pr:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/frow" || echo 0 > "$t/frow"
+    cp "$sd/pr/f/p2.log" "$t/fp2" 2>/dev/null || : > "$t/fp2"
+    git -C "$o" reset -q --hard "$base"; true
+  }
+  figrun - block; [ "$(cat "$t/frc")" = 0 ] && grep -q '^PR=5 ' "$t/fo" && [ "$(cat "$t/frow")" = 1 ]
+  ck "open_pr: a body with a figure block opens (both pushes land, the row is present), the main merge having moved the head" $?
+  figrun opfig2 block; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ] && grep -qF "figure-block scope-line names another head" "$t/fo" "$t/fp2" 2>/dev/null
+  ck "  mutant mut:opfig2 (its line deleted): the row push is refused, naming another head, and the PR is closed" $?
+  figrun headnote block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "## Head does not name HEAD" "$t/fo"
+  ck "  mutant mut:headnote (its line deleted): the head note is missing, so the code push is refused for a ## Head that does not name HEAD" $?
+  figrun opfig1 block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "figure-block scope-line names another head" "$t/fo"
+  ck "  mutant mut:opfig1 (its line deleted): the code push is refused at the merged head, with nothing pushed" $?
+  figrun - none; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ] && grep -qF "ROW-ONLY: prepr SKIPPED" "$t/fp2"
+  ck "  null control: a body with no figure block opens as before and its row push skips prepr" $?
+  # An open closed after its second push leaves the local branch and the detached worktree; the next run's
+  # worktree add -b failed on them. The re-run must clear what origin already holds.
+  figrun opfig2 block; figrun - block keep; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ]
+  ck "open_pr: a re-run after an open closed at its row push clears the left-over branch and worktree and opens" $?
+  figrun opfig2 block; figrun opclear block keep; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ]
+  ck "  mutant mut:opclear (its line deleted): the re-run fails at git worktree add -b on the left-over branch (the defect)" $?
   # R10-FLOW-BODY-ONLY parts (a) and (b), ruling R4: update_pr.sh merges origin/main only when the PR
   # is DIRTY or the merge would conflict, and a head the run leaves unmoved is re-bodied by
   # body_patch.sh (here a stub, HPO_BODY_PATCH) with no push. handoff/v carries a push stub that
@@ -1372,7 +1560,8 @@ GH
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
-    case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; *) touch "$sdir/p2fail" ;; esac
+    case ${2:-} in edit) touch "$sdir/editfail" ;; postpush) touch "$sdir/p2postfail" ;; selftest) touch "$sdir/p2selftest" ;; host) touch "$sdir/p2selftest" "$sdir/hostfail" ;; stmix|body) touch "$sdir/p2$2" "$sdir/hostfail" ;;
+      stalefig) touch "$sdir/hostfail" "$sdir/figfail"; mkdir -p "$sd/pr/r" && printf '  REFUSE   self-test             FAIL x\n' > "$sd/pr/r/p2.log" ;; *) touch "$sdir/p2fail" ;; esac
     touch "$sdir/p3ok"; cp "$t/body.md" "$t/bR.md"
     PATH="$t/rowless-bin:$PATH" HPO_STATE_DIR=$sd STUB_DIR=$sdir BR=fix/r BR_FIXED=1 bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/outo" 2>&1; echo $? > "$t/rco"
     git -C "$sd/pr/r/wt" symbolic-ref -q HEAD >/dev/null 2>&1 && echo branch > "$t/opwt" || echo detached > "$t/opwt"
@@ -1417,6 +1606,214 @@ GH
   rowless rowreset
   [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 0 ]
   ck "  mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)" $?
+  # A refusal that is the host's, not the head's (R10-HOTFIX-OPENPR-HOST-REFUSAL), is decided by
+  # measurement: pr_host_refusal runs prepr's self-test on the refused head and on a pristine
+  # origin/main tree, and only one exit status and one set of FAIL rows at both is the host's.
+  # The stand-in self-test below fails on every tree under a host fault ($STUB_DIR/hostfail), and
+  # on a tree holding a tracked file whose last line is the marker: the head's own break.
+  cat > "$t/st-stub.sh" <<'STUB'
+#!/bin/bash
+[ "${1:-}" = --self-test ] || exit 0
+git rev-parse HEAD >> "$STUB_DIR/struns"
+if [ -d "$STUB_DIR/meet" ]; then # two runs at once: wait here, inside the tree, until a second run is inside its own
+  : > "$STUB_DIR/meet/$$"; i=0
+  until [ "$(ls "$STUB_DIR/meet" | wc -l)" -ge 2 ]; do sleep 0.1; i=$((i + 1)); [ "$i" -lt 600 ] || { : > "$STUB_DIR/alone"; break; }; done
+fi
+! grep -qxF "$(git rev-parse HEAD)" "$STUB_DIR/gone" 2>/dev/null || rm -rf "$PWD"
+[ ! -e "$STUB_DIR/killed" ] || kill -KILL $$
+[ ! -e "$STUB_DIR/hostenv" ] || { echo "ENVIRONMENT: the box is short of space"; exit 3; }
+r=0
+[ ! -e "$STUB_DIR/hostfail" ] || { echo "  FAIL a tool this host lacks (got 127, wanted 0)"; r=1; }
+git ls-files >/dev/null 2>&1 || { echo "  FAIL the tree this run reads is gone"; r=1; }
+[ ! -e crash ] || exit 2
+[ "${PYTHONPATH:-}" = tests/hastub ] || { echo "  FAIL not run the way prepr runs its self-test"; r=1; }
+while read -r f; do [ "$(tail -n 1 "$f")" != "# BROKEN" ] || { echo "  FAIL $f reads broken" >&2; r=1; }; done < <(git ls-files)
+# a tree above main prints the host's row twice: one set of rows, not one text
+[ ! -e "$STUB_DIR/hostfail" ] || [ "$(wc -l < README.md)" -le 1 ] || echo "  FAIL a tool this host lacks (got 127, wanted 0)"
+echo "self-test: rc $r"; exit $r
+STUB
+  # The inputs are prepr's own enumeration, its function evaluated from its text at this checkout:
+  # every path the refused step reads, derived where step 3h derives it and never carried here.
+  hrin=$(cd "$src/../../.." && PREPR_PATH=tools/pr/prepr.sh && eval "$(sed -n '/^SELFTEST_FIXTURES=/,/^}/p' tools/pr/prepr.sh)" && selftest_inputs)
+  hro=$t/hr/o; hrc=$t/hr/cache; mkdir -p "$t/hr/stub"
+  { throwaway_git_init "$hro" -q -b main && printf 'a\n' > "$hro/README.md" && git -C "$hro" add -A \
+    && git -C "$hro" commit -q -m root && hrroot=$(git -C "$hro" rev-parse HEAD) \
+    && mkdir -p "$hro/tools/pr" && cp "$t/st-stub.sh" "$hro/tools/pr/prepr.sh" \
+    && while read -r p; do
+         case $p in ''|tools/pr/prepr.sh) continue ;; */) p=${p}x.md ;; esac
+         mkdir -p "$hro/$(dirname -- "$p")" && printf 'a\n' > "$hro/$p"
+       done <<<"$hrin" \
+    && git -C "$hro" add -A && git -C "$hro" commit -q -m main && hrmain=$(git -C "$hro" rev-parse HEAD); } || ck "host_refusal: fixture" 1
+  hrhead() { # <path> <appended last line> -> the sha of a head, one commit on main, changing that path
+    git -C "$hro" checkout -q --detach "$hrmain" && printf '%s\n' "$2" >> "$hro/$1" && git -C "$hro" add -A \
+      && git -C "$hro" commit -q -m "head: $1" && git -C "$hro" rev-parse HEAD
+  }
+  hrlib() { # <-|mutant|ret:tag|shared>: the library the next hrrun sources; ret:<tag> turns that line's `|| return 1` into `|| return 0`
+    case $1 in
+      -) cp "$src/pr_args.sh" "$t/hr/lib.sh" ;;
+      ret:*) sed "/# $1\$/s/|| return 1/|| return 0/" "$src/pr_args.sh" > "$t/hr/lib.sh" ;;
+      # one tree for every measurement, replaced by whichever run starts next: the blocked head's pr_step_sig
+      shared) sed '/# ret:sigpriv$/s|w=.*|w=$3/tree; git -C "$1" worktree remove --force "$w" >/dev/null 2>\&1; rm -rf "$w"; mkdir -p "$w"|' "$src/pr_args.sh" > "$t/hr/lib.sh" ;;
+      *) grep -v "# mut:$1\$" "$src/pr_args.sh" > "$t/hr/lib.sh" ;;
+    esac
+  }
+  hrrun() { # <head sha> [main sha] [log] -> pr_host_refusal's status
+    STUB_DIR=$t/hr/stub bash -c '. "$1"; pr_host_refusal "$2" "$3" "$4" "$5" "$6"' _ "$t/hr/lib.sh" "$hro" "${3:-$t/hr/st.log}" "$1" "${2:-$hrmain}" "$hrc" </dev/null
+  }
+  hr() { hrlib "$1"; shift; hrrun "$@"; } # <-|mutant|ret:tag|shared> <head sha> [main sha] [log]
+  hrpair() { # <-|shared> <first head> <second head>: measured at once, the first inside its self-test when the second starts; statuses in $t/hr/rc1, rc2
+    local pid i=0
+    rm -rf "$t/hr/stub/meet" "$t/hr/stub/alone"; mkdir -p "$t/hr/stub/meet"; hrlib "$1"
+    ( hrrun "$2"; echo $? > "$t/hr/rc1" ) & pid=$!
+    until [ -n "$(ls "$t/hr/stub/meet")" ] || [ "$i" -ge 600 ]; do sleep 0.1; i=$((i + 1)); done
+    hrrun "$3"; echo $? > "$t/hr/rc2"; wait "$pid"; rm -rf "$t/hr/stub/meet"
+  }
+  hrruns() { grep -c "^$1\$" "$t/hr/stub/struns" 2>/dev/null || :; }
+  printf '  ok       figures               fine\n  REFUSE   self-test             12 checks, 1 failed   FAIL x\napp_push: REFUSE: the body did not pass tools/pr/prepr.sh\n' > "$t/hr/st.log"
+  printf 'app_push: REFUSE: the body did not pass tools/pr/prepr.sh\n' > "$t/hr/none.log"
+  printf '  REFUSE   self-test             FAIL x\n  REFUSE   pr-body               no heading\n' > "$t/hr/mix.log"
+  touch "$t/hr/stub/hostfail"
+  hclean=$(hrhead README.md "a second line")
+  hr - "$hclean"
+  ck "host_refusal: a self-test failing the same way on the refused head and on a pristine origin/main tree is the host's" $?
+  nin=0; nhead=0
+  while read -r p <&3; do
+    case $p in '') continue ;; */) p=${p}x.md ;; esac
+    nin=$((nin + 1)); hbroke=$(hrhead "$p" "# BROKEN") && ! hr - "$hbroke" && nhead=$((nhead + 1))
+  done 3<<<"$hrin"
+  grep -qxF tools/policy/policy_lint.mjs <<<"$hrin" && grep -qxF tools/pr/prepr.sh <<<"$hrin" && [ "$nin" -gt 3 ] && [ "$nhead" = "$nin" ]
+  ck "host_refusal: null control: a head breaking any one path prepr's own selftest_inputs returns ($nhead of $nin, prepr.sh and policy_lint.mjs among them) is the head's, under the same host fault" $?
+  [ "$(hrruns "$hrmain")" = 1 ] && [ "$(hrruns "$hclean")" = 1 ]
+  ck "host_refusal: origin/main was measured once across all of those refusals (its answer is kept per main sha), each head once" $?
+  hr hostsame "$hbroke"
+  ck "  mutant mut:hostsame (its line deleted): the head's own break is called the host's" $?
+  hrmain2=$(hrhead README.md "main moved")
+  hr - "$hclean" "$hrmain2" && hr - "$hclean" "$hrmain2" && [ "$(hrruns "$hrmain2")" = 1 ] && [ "$(cd "$hrc" && echo *.sig)" = "$hrmain2.sig" ]
+  ck "host_refusal: a main that moved is measured again, once, and the answer for the old sha is dropped" $?
+  rm -rf "$hrc" "$t/hr/stub/struns"; hr hostcache "$hclean" && hr hostcache "$hclean" && [ "$(hrruns "$hrmain")" = 2 ]
+  ck "  mutant mut:hostcache (its line deleted): main is measured again on every refusal" $?
+  rm -f "$t/hr/stub/hostfail"; rm -rf "$hrc"
+  ! hr - "$hbroke"
+  ck "host_refusal: null control: with no host fault, the head's own break is the head's" $?
+  ! hr - "$hclean"
+  ck "host_refusal: a refusal the re-run does not reproduce (the self-test passes on both trees) is not the host's" $?
+  hr hostfails "$hclean"
+  ck "  mutant mut:hostfails (its line deleted): two passing runs agree, and the refusal is called the host's" $?
+  touch "$t/hr/stub/hostfail"; rm -rf "$hrc"
+  hcrash=$(hrhead crash "x")
+  ! hr - "$hcrash"
+  ck "host_refusal: the same FAIL rows under another exit status (the head's run stops short) are the head's" $?
+  ! hr - "$hclean" "" "$t/hr/none.log" && ! hr - "$hclean" "" "$t/hr/missing.log"
+  ck "host_refusal: a log naming no refused self-test row, or no log, is the head's (no step to measure)" $?
+  hr hostrows "$hclean" "" "$t/hr/none.log"
+  ck "  mutant mut:hostrows (its line deleted): a refusal naming no step is measured as the self-test's" $?
+  ! hr - "$hclean" "" "$t/hr/mix.log"
+  ck "host_refusal: a self-test row beside another step's REFUSE row is the head's, though the self-test fails alike on main" $?
+  hr hostother "$hclean" "" "$t/hr/mix.log"
+  ck "  mutant mut:hostother (its line deleted): the other step's refusal is called the host's" $?
+  rm -f "$t/hr/stub/hostfail"; touch "$t/hr/stub/hostenv"; rm -rf "$hrc"
+  hr - "$hclean"
+  ck "host_refusal: an environment fault (exit 3, no FAIL row) on both trees is the host's" $?
+  rm -f "$t/hr/stub/hostenv"; touch "$t/hr/stub/hostfail"; rm -rf "$hrc"
+  # What cannot be measured is the head's: each arm's mutant turns its `|| return 1` into `|| return 0`
+  # (the handoff review's mutdiffread, on the line that then read the diff, survived).
+  bad=0000000000000000000000000000000000000001
+  rm -rf "$hrc"; ! hr - "$hrroot" "$hrmain" && [ -z "$(ls "$hrc")" ]; r=$?; hr ret:hosthead "$hrroot" "$hrmain"
+  ck "host_refusal: a head whose tree holds no self-test is not measured, so the head's, and main is not run for it; mutant ret:hosthead calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$hclean" "$hrroot" && [ -z "$(ls "$hrc")" ]; r=$?; rm -rf "$hrc"; hr ret:hostmain "$hclean" "$hrroot"
+  ck "host_refusal: a main whose tree holds no self-test is not measured, so the head's, and no answer is kept for it; mutant ret:hostmain calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$hrroot" "$hrroot"; r=$?; rm -rf "$hrc"; hr ret:signone "$hrroot" "$hrroot"
+  ck "host_refusal: no self-test on either tree is no agreement; mutant ret:signone reads two unrun steps as one failure" $(( r || $? ))
+  rm -rf "$hrc"; ! hr - "$bad" "$bad" && [ -z "$(ls "$hrc")" ]; r=$?; rm -rf "$hrc"; hr ret:sigtree "$bad" "$bad"
+  ck "host_refusal: no tree at either sha is no agreement, and the directory made for one is removed; mutant ret:sigtree reads two missing trees as one failure" $(( r || $? ))
+  rm -rf "$hrc"; printf 'x\n' > "$t/hr/blocked"; hrc=$t/hr/blocked
+  ! hr - "$hclean"; r=$?; hr ret:hostdir "$hclean"
+  ck "host_refusal: a cache directory that cannot be made measures nothing, so the head's; mutant ret:hostdir calls it the host's" $(( r || $? ))
+  hrc=$t/hr/cache
+  mkdir -p "$t/hr/nomk" && printf '#!/bin/bash\nexit 1\n' > "$t/hr/nomk/mktemp" && chmod +x "$t/hr/nomk/mktemp"
+  rm -rf "$hrc"; ! PATH="$t/hr/nomk:$PATH" hr - "$hclean"; r=$?; rm -rf "$hrc"; PATH="$t/hr/nomk:$PATH" hr ret:sigpriv "$hclean"
+  ck "host_refusal: a run that gets no tree of its own (mktemp fails) measures nothing, so the head's; mutant ret:sigpriv calls it the host's" $(( r || $? ))
+  # tools/pr/prepr.sh runs its copy at tools/audit/prepr.sh when a tree holds one (its step 3h), and so does the measurement.
+  hold=$(git -C "$hro" checkout -q --detach "$hrmain" && mkdir -p "$hro/tools/audit" && git -C "$hro" mv tools/pr/prepr.sh tools/audit/prepr.sh \
+    && git -C "$hro" commit -q -m "head: the self-test at its copy path" && git -C "$hro" rev-parse HEAD)
+  rm -rf "$hrc"; [ -n "$hold" ] && hr - "$hold"; r=$?; rm -rf "$hrc"; ! hr sigold "$hold"
+  ck "host_refusal: a head holding the self-test only at tools/audit/prepr.sh, not tools/pr/prepr.sh, is measured there, and is the host's; mutant mut:sigold (its line deleted) finds no self-test, so the head's" $(( r || $? ))
+  # A run that did not end whole is no measurement, and main's answer is never kept from one.
+  rm -rf "$hrc"; printf '%s\n' "$hclean" "$hrmain" > "$t/hr/stub/gone"
+  ! hr - "$hclean"; r=$?; rm -rf "$hrc"; hr ret:sigwhole "$hclean"
+  ck "host_refusal: trees removed under both runs fail alike, and are not measured, so the head's; mutant ret:sigwhole calls it the host's" $(( r || $? ))
+  rm -rf "$hrc"; printf '%s\n' "$hrmain" > "$t/hr/stub/gone"
+  ! hr - "$hclean" && [ -d "$hrc" ] && [ -z "$(ls "$hrc")" ]; r=$?; hr ret:sigwhole "$hclean"; [ -f "$hrc/$hrmain.sig" ]
+  ck "host_refusal: a main run whose tree was removed under it keeps no answer for main; mutant ret:sigwhole keeps the disturbed run's" $(( r || $? ))
+  rm -rf "$hrc" "$t/hr/stub/gone"; touch "$t/hr/stub/killed"
+  ! hr - "$hclean"; r=$?; rm -rf "$hrc"; hr ret:sigkilled "$hclean"
+  ck "host_refusal: a self-test ended by a signal on both trees is not measured, so the head's; mutant ret:sigkilled calls it the host's" $(( r || $? ))
+  rm -rf "$hrc" "$t/hr/stub/killed"
+  # Two refusals measured at once (the second block: one tree shared by every measurement). The
+  # stand-in waits inside its tree until the other run is inside its own, so the runs overlap.
+  hclean2=$(hrhead README.md "another second line")
+  hr - "$hclean"; hrpair - "$hclean" "$hclean2"
+  [ "$(cat "$t/hr/rc1")" = 0 ] && [ "$(cat "$t/hr/rc2")" = 0 ] && [ ! -e "$t/hr/stub/alone" ] && [ "$(ls "$hrc")" = "$hrmain.sig" ] \
+    && [ "$(git -C "$hro" worktree list | wc -l)" = 1 ]
+  ck "host_refusal: two host refusals measured at once, each in a tree of its own, are both the host's, and no tree outlives its run" $?
+  hrpair shared "$hclean" "$hclean2"
+  [ "$(cat "$t/hr/rc1")" = 1 ] && [ ! -e "$t/hr/stub/alone" ]
+  ck "  mutant shared (one tree for every measurement): the host refusal whose tree the other run replaced is called the head's (#3508's defect)" $?
+  rm -rf "$hrc"; git -C "$hro" worktree prune; hrpair - "$hbroke" "$hclean"
+  [ "$(cat "$t/hr/rc1")" = 1 ] && [ "$(cat "$t/hr/rc2")" = 0 ] && [ ! -e "$t/hr/stub/alone" ] && [ "$(ls "$hrc")" = "$hrmain.sig" ] \
+    && [ "$(cat "$hrc/$hrmain.sig")" = "$(printf 'rc=1\n  FAIL a tool this host lacks (got 127, wanted 0)')" ] && hr - "$hclean" && ! hr - "$hbroke"
+  ck "host_refusal: with no answer kept for main, a head's own break and a host refusal measured at once are the head's and the host's, and the answer kept for main is the unraced one" $?
+  # The opener's own path. Before origin/main holds a self-test, nothing can be measured and the PR closes.
+  hostleft() { # the PR stays open, one ROWLESS line, nothing commented, a non-zero exit, the row owed to update_pr.sh
+    [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 0 ] && [ "$(cat "$t/commented")" = 0 ] \
+      && [ "$(grep -c 'open_pr: ROWLESS' "$t/outo")" = 1 ] && grep -qF "update_pr.sh fix/r - <body>" "$t/outo" \
+      && ! grep -qF "open_pr: CLOSED" "$t/outo" && [ "$(cat "$t/opwt")" = detached ]
+  }
+  hostclosed() { [ "$(cat "$t/rco")" != 0 ] && [ "$(cat "$t/closed")" = 1 ] && grep -qF "open_pr: CLOSED: #5 at" "$t/outo" && ! grep -qF ROWLESS "$t/outo"; }
+  rowless - host
+  hostclosed
+  ck "open_pr: a self-test refusal no tree can re-run (origin/main holds no self-test) still closes the PR" $?
+  export HPO_ALLOW_STALE_TOOLS=1  # the fixture's main gains tools/pr/prepr.sh below, ahead of the tools checkout
+  git -C "$o" checkout -q main && mkdir -p "$o/tools/pr" && cp "$t/st-stub.sh" "$o/tools/pr/prepr.sh" \
+    && git -C "$o" add tools/pr/prepr.sh && git -C "$o" commit -q -m "main: a self-test"
+  rowless - host
+  hostleft && grep -qF "fails the same way on this host on a pristine origin/main tree" "$t/outo"
+  ck "open_pr: a row push refused only by prepr's self-test, which fails the same way on a pristine origin/main tree, leaves the PR open, naming the owed row (one ROWLESS line, non-zero exit)" $?
+  rowless - selftest
+  hostclosed
+  ck "  null control: the same refusal with no host fault to reproduce it still closes the PR" $?
+  rowless - body
+  hostclosed
+  ck "  null control: a body-contract REFUSE row still closes the PR, under the host fault" $?
+  rowless - stmix
+  hostclosed
+  ck "  null control: a self-test row beside another REFUSE row still closes the PR, under the host fault" $?
+  rowless hostother stmix; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
+  ck "  mutant mut:hostother (its line deleted): a mixed log leaves the PR open" $?
+  # A head-caused refusal still closes: the branch's own commit breaks a file the self-test reads.
+  git -C "$o" checkout -q -b handoff/g "$codeR" && printf '# BROKEN\n' > "$o/st-input" \
+    && git -C "$o" add st-input && git -C "$o" commit -q -m "code g breaks a self-test input" \
+    && git -C "$o" update-ref refs/heads/handoff/r "$(git -C "$o" rev-parse handoff/g)" && git -C "$o" checkout -q main
+  codeS=$codeR; codeR=$(git -C "$o" rev-parse handoff/r)
+  rowless - host
+  hostclosed
+  ck "  null control: a self-test refusal the head's own commit causes still closes the PR, under the host fault" $?
+  rowless hostsame host; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
+  ck "  mutant mut:hostsame (its line deleted): the head's own self-test red leaves the PR open" $?
+  codeR=$codeS; git -C "$o" update-ref refs/heads/handoff/r "$codeR"; git -C "$o" branch -qD handoff/g
+  # A p2 log an earlier run of the topic left is not this run's refusal: the opener stops at its
+  # figure refresh at the row head, before its own row push, and the stale self-test row is not read.
+  printf '## Head\n\nthe body\n\n<!-- figure-block: x -->\n' > "$t/bodyF.md"
+  bodyF=$(git -C "$o" commit-tree "$(printf '100644 blob %s\tBODY.md\n' "$(git -C "$o" hash-object -w "$t/bodyF.md")" | git -C "$o" mktree)" -m "body: figures")
+  git -C "$o" update-ref refs/heads/handoff-body/r "$bodyF"
+  printf 'import os, sys\nsys.exit(1 if os.path.exists(os.path.join(os.environ.get("STUB_DIR", "."), "figfail")) and os.path.exists("dev/programme/delivery/5.md") else 0)\n' > "$m/tools/pr/figure_block.py"
+  rowless - stalefig
+  hostclosed && grep -qF "figure-block refresh at the row head failed" "$t/outo"
+  ck "open_pr: a stop before this run's own row push closes the PR, whatever self-test row an earlier run's log holds" $?
+  rowless hoststale stalefig; [ "$(cat "$t/closed")" = 0 ] && grep -qF ROWLESS "$t/outo"
+  ck "  mutant mut:hoststale (its line deleted): the earlier run's log is measured and the PR is left open" $?
+  rm -f "$m/tools/pr/figure_block.py"; git -C "$o" update-ref refs/heads/handoff-body/r "$body"
+  git -C "$o" reset -q --hard HEAD~1; unset HPO_ALLOW_STALE_TOOLS
   # A conflicted main merge was left in the opener's worktree, and pr_release_wt kept it as dirty
   # work (carry 8); the opener now aborts its own merge and refuses, and the clean worktree, which
   # origin never had, is removed with its branch. main gains a conflicting `b` for this arm only.
@@ -1445,9 +1842,9 @@ GH
   ck "  mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)" $?
   # Only committed work is detached from a worktree: one holding commits origin lacks is refused
   # (the old reset would have dropped them); one whose HEAD origin has is detached as before.
-  unpushed() { # <mutant> <commit: 1|0>
-    local sd=$t/unp-$1-$2 g
-    rm -rf "$sd" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr/u"; sd=$(cd "$sd" && pwd -P)
+  unpushed() { # <mutant> <commit: 1|0> [<spelling> of the state dir update_pr.sh is given]
+    local sd=$t/unp-$1-$2-${3:--} g
+    rm -rf "$sd" "$sd.link" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr/u"; sd=$(cd "$sd" && pwd -P)
     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
@@ -1455,7 +1852,7 @@ GH
     git -C "$m" fetch -q origin fix/u && git -C "$m" worktree add -q -b fix/u "$sd/pr/u/wt" origin/fix/u || return 1
     [ "$2" = 0 ] || { printf 'row\n' > "$sd/pr/u/wt/row" && git -C "$sd/pr/u/wt" add row && git -C "$sd/pr/u/wt" commit -q -m row; }
     cp "$t/body.md" "$t/bU.md"
-    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+    HPO_STATE_DIR=$(spell "$sd" "${3:--}") bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
     git -C "$sd/pr/u/wt" symbolic-ref -q HEAD > "$t/attached" 2>&1 || echo detached > "$t/attached"
     reap; git -C "$m" worktree remove --force "$sd/pr/u/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-u" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; true
   }
@@ -1470,6 +1867,13 @@ GH
   unpushed - 0
   [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outu" && ! grep -qF "(unpushed work" "$t/outu"
   ck "null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push" $?
+  # #3549's review, update_pr.sh's side: its own-worktree scan (`grep "^$P/"`) and mut:elsewhere match git's
+  # physical list, so a symlinked state dir left that clean worktree on the branch and the run BUSY.
+  unpushed - 0 link
+  [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outu" && ! grep -qF "checked out elsewhere" "$t/outu"
+  ck "update_pr: through a symlinked state dir, that worktree is detached as before and the run reaches its push" $?
+  unpushed stateroot 0 link; [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "checked out elsewhere" "$t/outu"
+  ck "  mutant mut:stateroot (its line deleted): through a symlinked state dir the worktree stays on the branch and the run is BUSY (the defect)" $?
   # The row-only arm (R10-ROW-ONLY-UPDATE): a head that is the live head plus one commit (here code
   # sha `-` adding the row) asks app_push.sh for --row-only, whose own verdict decides whether a
   # full prepr is owed; a head merging new code asks for --reuse instead (P386), never --row-only.

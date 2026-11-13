@@ -259,10 +259,16 @@ def in_domain(domain: Domain, value: Any) -> bool:
 #: Shorthands for the table below.
 _POS = math.nextafter(0.0, 1.0)
 _R, _Z, _N = Domain("real"), Domain("real", 0.0), Domain("real", null=True)
+_Z0 = Domain("real", 0.0, null=True)
 _COUNT, _FLAG, _TEXT = Domain("int", 0), Domain("flag"), Domain("text")
 _AT, _AT0 = Domain("instant"), Domain("instant", null=True)
 _DAY, _DAY0, _MONTH = Domain("day"), Domain("day", null=True), Domain("month")
 _ABSENT = Domain("choice", null=True)  # ``None`` only: the channel is left automatic
+#: ``DutySwitchLearner.from_record`` reads a record whole or not at all: a
+#: half-kept row would be evidence nobody observed.
+_DUTY_SWITCH = "one invalid field empties the duty-switch learner"
+_DS_WEIGHT = Domain("real", 0.0, 1e6, whole=_DUTY_SWITCH)
+_DS_DAY = Domain("day", null=True, whole=_DUTY_SWITCH)
 _SHAPE = SHAPE_MAX / SHAPE_MIN
 _QUARTER = QUARTER_FACTOR_MAX / QUARTER_FACTOR_MIN
 _ROW = "the update path's cone repair clips and renormalises the whole row (observe_day)"
@@ -283,7 +289,7 @@ _DRAW_KEY = "the configuration keys the record: unreadable, the samples and the 
 _RUNNING_KW = Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf))
 
 _ACCURACY: dict[str, Domain | str] = {
-    "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),
+    "samples/#/t": _AT, "samples/#/predicted_power_kw": _Z0,
     **{f"samples/#/{k}": _N for k in (
         "actual_power_kw", "predicted_temp", "actual_temp", "actual_cost", "outdoor_temp",
         "humidity", "solar_radiation", "cop_residual")},
@@ -470,8 +476,11 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "disinfection_owned/#": _TEXT, "disinfection_latched": _FLAG,
     },
     "boost": {
-        "dhw/until": _AT, "space/until": _AT,
+        "dhw/until": _AT, "space/until": _AT, "space/since": _AT,
         "block_dhw/until": _AT, "block_space/until": _AT,
+        # #1935: the settling tail runs past the overlay's own two hours.
+        "space_settle/until": Domain("instant", ahead_h=c.BOOST_SPACE_SETTLE_TAIL_HOURS),
+        "space_settle/boosted_h": _Z0,
     },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
     # off_restore.py: each armed consumer and the baseline its restore writes,
@@ -483,12 +492,26 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         # The silent switch (#1911) and the GCHV night-mode registers (#1913)
         # are held slots on the same record (``pump_arbiter._writable``).
         "written/silent/0": _FLAG,
+        # A loop move's dropped space write (``pump_arbiter._note_sent``).
+        "dropped/space_setpoint": _R,
         **{f"written/night_{e}_hour/0": Domain("int", 0, 23) for e in ("start", "end")},
         **{f"written/night_{e}_minute/0": Domain("int", 0, 59) for e in ("start", "end")},
         **{f"written/{k}/1": _AT for k in (
             "mode", "dhw_setpoint", "space_setpoint", "silent",
             "night_start_hour", "night_start_minute", "night_end_hour", "night_end_minute",
         )},
+    },
+    # duty_switch.py: per direction the decayed counts, latch, off times and tallies.
+    "duty_switch": {
+        f"directions/{d}/{leaf}": domain
+        for d in ("dhw_space", "space_dhw") for leaf, domain in {
+            "k": _DS_WEIGHT, "kept_w": _DS_WEIGHT,
+            "decayed_at": Domain("instant", null=True, whole=_DUTY_SWITCH),
+            "first_day": _DS_DAY, "last_day": _DS_DAY,
+            "usable": Domain("flag", whole=_DUTY_SWITCH),
+            "off_s/#": Domain("real", 0.0, 86400.0, whole=_DUTY_SWITCH),
+            **{t: Domain("int", 0, 10**9, whole=_DUTY_SWITCH) for t in ("stopped", "kept", "void", "censored")},
+        }.items()
     },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},
@@ -500,7 +523,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "snapshots/#/alarmed_at_capture": _FLAG,
         "snapshots/#/unhealthy_input": Domain("text", null=True),
         "snapshots/#/accuracy/samples": Domain("int", 0, HISTORY_LENGTH),
-        "snapshots/#/accuracy/temperature_mae": Domain("real", 0.0, null=True),
+        "snapshots/#/accuracy/temperature_mae": _Z0,
         **{f"snapshots/#/accuracy/{k}": _N for k in (
             "temperature_bias", "power_ratio", "cost_error_percent")},
         "snapshots/#/accuracy/realised_cost": _R, "snapshots/#/accuracy/predicted_cost": _R,

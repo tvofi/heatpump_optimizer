@@ -21,10 +21,15 @@ actions/runs/<id>/cancel for its active runs at its live head, recorded in
 and main have no queued check-run, on every train exit and at every train start;
 a record whose head moved is dropped unrun.
 
-CARRY 6: cancelling drained no priority run in the one measurement taken (the
-2026-11-11 local shim), so the setting's `priority_cancel` is false by default:
-a binding limit then logs `PAUSE-HELD` once and cancels nothing. Turning it on
-needs the before/after measure the pull request body states.
+The pause is the owner's P267 rule and is not governed by the setting's
+`priority_cancel`, which switches only the sweep's cancels of queued runs
+(carry 6; orchestrator ruling on the review of #3560).
+
+CARRY 6 (ii), the hold: `hold(h)` names a queued run of a priority pull request
+(a `never_cancel` tier) while the pull request at <h> is not one; the train asks
+it before each re-run it starts (`Train.hold_reruns`). Main's tip is no pull
+request and is read as `main-push`, never held. An unreadable listing holds
+nothing.
 """
 from __future__ import annotations
 
@@ -112,10 +117,6 @@ class CiPause:
         setting = self.setting or ci_priority.load_setting()
         if age < setting["pause_queued_min"] or now - self.last < setting["pause_gap_min"] * 60:
             return
-        if not setting["priority_cancel"]:
-            self._note(("held", h), f"PAUSE-HELD at {h[:8]}: a job has been queued {int(age)} min, "
-                                    "priority_cancel is off (carry 6): nothing cancelled")
-            return
         self.last = now
         victim = self.pick(h, setting)
         if victim is None:
@@ -147,8 +148,8 @@ class CiPause:
             return None
         return any(str(c.get("body") or "").startswith("Fix review: merge") for page in got for c in page)
 
-    def pick(self, h: str, setting: dict) -> "tuple[int, str, list[int]] | None":
-        """(pr, head, active run ids) of the worst-ranked pausable pull request, or None."""
+    def _open(self, why: str) -> "tuple[list, dict, set] | None":
+        """(open pull requests as {n, sha, ref, fork}, roster, critical path), or None, noted once."""
         code, out = self.t.run(["gh", "api", "--paginate", "--jq",
                                 '.[] | {n: .number, sha: .head.sha, ref: .head.ref, fork: (.head.repo.full_name != "'
                                 + self.t.repo + '")}',
@@ -158,23 +159,59 @@ class CiPause:
         try:
             prs = [json.loads(x) for x in out.splitlines() if x.strip()]
             roster, crit = self._roster()
-        except Exception as e:  # noqa: BLE001 - an unreadable roster pauses nothing
-            self._note(("unread", str(e)[:40]), f"PAUSE unreadable: {str(e)[:120]}")
+        except Exception as e:  # noqa: BLE001 - an unreadable roster pauses and holds nothing
+            self._note(("unread", str(e)[:40]), f"{why} unreadable: {str(e)[:120]}")
             return None
+        return prs, roster, crit
+
+    def _tier(self, p: dict, roster: dict, crit: set, setting: dict) -> "tuple[str, tuple]":
+        """(tier, rank) of open pull request <p>; a group-less one is tier1 when it touches custom_components/."""
+        group = rl.group_for_branch(roster, p["ref"]) or rl.group_for_pr(roster, p["n"])
+        prod = False
+        if not group:
+            fs = self._api("--paginate", "--jq", "[.[].filename]", f"repos/{self.t.repo}/pulls/{p['n']}/files?per_page=100")
+            prod = isinstance(fs, list) and any(str(f).startswith("custom_components/") for f in fs)
+        return (ci_priority.tier(group, crit, roster, setting, touches_production=prod),
+                ci_priority.rank(group, crit, roster, setting, touches_production=prod))
+
+    def hold(self, h: str) -> "str | None":
+        """Carry 6 (ii): why a re-run at <h> waits -- the open pull request at <h> is not a priority
+        tier and a priority pull request has a run queued -- or None. Main's tip (no open pull
+        request at <h>) reads as `main-push`; anything unreadable holds nothing."""
+        got = self._open("HOLD")
+        if got is None:
+            return None
+        prs, roster, crit = got
+        setting = self.setting or ci_priority.load_setting()
+        mine = [p for p in prs if p["sha"] == h]
+        if ci_priority.is_priority(self._tier(mine[0], roster, crit, setting)[0] if mine else "main-push", setting):
+            return None
+        code, out = self.t.run(["gh", "api", "--paginate", "--jq", '.workflow_runs[] | {id, b: .head_branch}',
+                                f"repos/{self.t.repo}/actions/runs?status=queued&per_page=100"])
+        if code:
+            return None
+        by_ref = {p["ref"]: p for p in prs if not p["fork"]}
+        for r in sorted((json.loads(x) for x in out.splitlines() if x.strip()), key=lambda r: int(r["id"])):
+            p = by_ref.get(r.get("b"))
+            if p is not None and ci_priority.is_priority(self._tier(p, roster, crit, setting)[0], setting):
+                return f"priority #{p['n']} run {r['id']} is queued"
+        return None
+
+    def pick(self, h: str, setting: dict) -> "tuple[int, str, list[int]] | None":
+        """(pr, head, active run ids) of the worst-ranked pausable pull request, or None."""
+        got = self._open("PAUSE")
+        if got is None:
+            return None
+        prs, roster, crit = got
         held = set(self.t.protected_prs()) | {p["n"] for p in prs if p["sha"] == h}
         scored = []
         for p in prs:
             if p["n"] in held or p["fork"]:
                 continue
-            group = rl.group_for_branch(roster, p["ref"]) or rl.group_for_pr(roster, p["n"])
-            prod = False
-            if not group:
-                fs = self._api("--paginate", "--jq", "[.[].filename]", f"repos/{self.t.repo}/pulls/{p['n']}/files?per_page=100")
-                prod = isinstance(fs, list) and any(str(f).startswith("custom_components/") for f in fs)
-            t = ci_priority.tier(group, crit, roster, setting, touches_production=prod)
+            t, rank = self._tier(p, roster, crit, setting)
             if not ci_priority.may_pause(t, setting):
                 continue
-            scored.append((ci_priority.rank(group, crit, roster, setting, touches_production=prod), p))
+            scored.append((rank, p))
         for _, p in sorted(scored, key=lambda x: (x[0], x[1]["n"]), reverse=True):
             if self._verdicted(p["n"]) is not False:
                 continue  # a verdict, or comments that could not be read: never a victim
@@ -240,6 +277,7 @@ def _self_test() -> int:
             self.state, self.repo, self.posts, self.logs = Path(state), "o/r", [], []
             self.now, self.verdicted, self.prot, self.moved = NOW, set(), set(), set()
             self.active = {"c" * 40: [1], "d" * 40: [2], "e" * 40: [3, 4], "f" * 40: [5]}
+            self.queued: "list | None" = []
 
         def wall(self):
             return self.now
@@ -261,6 +299,8 @@ def _self_test() -> int:
                 num = int(c.split("issues/")[1].split("/")[0])
                 body = "Fix review: merge x" if num in self.verdicted else "hello"
                 return 0, json.dumps([[{"body": body}]])
+            if "/actions/runs?status=queued" in c:
+                return (1, "") if self.queued is None else (0, "\n".join(json.dumps(r) for r in self.queued))
             if "/actions/runs?head_sha=" in c:
                 sha = c.split("head_sha=")[1].split("&")[0]
                 return 0, " ".join(map(str, self.active.get(sha, [])))
@@ -321,8 +361,19 @@ def _self_test() -> int:
         f, p = mk()
         p.setting = {**setting, "priority_cancel": False}
         p.poll(queued(6), HEAD)
-        check("carry 6 default: priority_cancel off holds, cancels nothing, says so once",
-              f.posts == [] and sum(x.startswith("PAUSE-HELD") for x in f.logs) == 1)
+        check("the pause is not the sweep's switch: with priority_cancel off a head job queued 6 min still pauses #13",
+              f.posts == ["actions/runs/5/cancel"] and p.read()[0]["pr"] == 13)
+        # Carry 6 (ii): the hold the train asks before a re-run.
+        f, p = mk()
+        f.queued = [{"id": 900, "b": "fix/low"}, {"id": 901, "b": "fix/cp"}]
+        check("hold: a non-priority head (#13) waits while priority #10 has a run queued, naming it",
+              p.hold("f" * 40) == "priority #10 run 901 is queued")
+        check("hold: a priority head (#10, critical path) never waits", p.hold("c" * 40) is None)
+        check("hold: main's tip (no open pull request at it) never waits", p.hold("9" * 40) is None)
+        f.queued = [{"id": 900, "b": "fix/low"}]
+        check("hold null: only non-priority runs queued holds nothing", p.hold("f" * 40) is None)
+        f.queued = None
+        check("hold: an unreadable queue listing holds nothing", p.hold("f" * 40) is None)
         f, p = mk()
         p.poll(queued(6), HEAD)
         f.moved = {13}

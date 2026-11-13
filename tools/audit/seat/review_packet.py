@@ -146,7 +146,7 @@ HOT_FILES = ("tools/audit/seat/pr_args.sh", "tools/audit/seat/update_pr.sh",
 RED = {"failure", "cancelled", "timed_out", "action_required", "startup_failure"}
 LEDGER = "tests/mutation_ledger"
 SIGNALS = ("carry-audit", "figure-lint", "moved-head", "head-note", "structure", "red-unanswered", "required-red", "host-path", "hot-file",
-           "handoff-not-applied", "carry-landed")
+           "handoff-not-applied", "carry-landed", "introduced-red")
 
 
 def git(*a: str, cwd: Path | None = None, check: bool = True) -> str:
@@ -222,6 +222,51 @@ def required_reading(pr: int, head: str) -> tuple[str, str]:
         return word, m.group(1) or ""
     last = ([ln for ln in (r.stdout + r.stderr).splitlines() if ln.strip()] or [""])[-1]
     return "RED", f"classify unreadable (rc {r.returncode}): {last[:200]}"
+
+
+def introduced_reading(head: str, base: str, read=None) -> tuple[list[str], str]:
+    """(INTRODUCED step names, how read) of the head's instrument-self-tests job
+    against the merge base's, by merge_train.introduced_at: the one rule, which
+    `classify --pr` reads too: one filtered check-run read per side and one
+    job-step read per side through `gh`, and only the head's listing when its
+    job is not red. An input with no reading (unreadable, a job-level cancelled,
+    a job still running) is ([], "unreadable: ..."), which `build` refuses: fail closed."""
+    import merge_train
+    read = read or gh
+
+    def get(path):
+        try:
+            return read(path)
+        except Unavailable:
+            return None
+
+    def selftest_runs(sha):  # filtered: the head's unfiltered first page can miss the job
+        got = get(f"repos/{REPO}/commits/{sha}/{merge_train.SELFTESTS_RUNS}")
+        return got.get("check_runs") if isinstance(got, dict) and isinstance(got.get("check_runs"), list) else None
+
+    def job_steps(job):
+        got = get(f"repos/{REPO}/actions/jobs/{job}")
+        return got.get("steps") if isinstance(got, dict) and isinstance(got.get("steps"), list) else None
+
+    runs = selftest_runs(head)
+    if runs is None:
+        return [], "unreadable: the head's instrument-self-tests check runs: an introduced red cannot be ruled out (fail closed)"
+    try:
+        names, how = merge_train.introduced_at(runs, lambda: selftest_runs(base), job_steps)
+    except ValueError as e:
+        return [], f"unreadable: {e}: an introduced red cannot be ruled out (fail closed)"
+    if names is None:
+        return [], f"unreadable: {how} has not concluded: an introduced red cannot be ruled out (fail closed)"
+    return names, how
+
+
+def ci_facts(pr: int, head: str, base: str, read=None) -> dict:
+    """gather's check-run keys at <head>: the gate digest, classify's reading of
+    a required red, and the INTRODUCED reading against <base>; `read` replaces gh."""
+    read = read or gh
+    gate = gate_digest(read(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", []))
+    return {"gate": gate, "required_read": required_reading(pr, head) if set(gate[2]) & set(REQUIRED) else None,
+            "introduced": introduced_reading(head, base, read)}
 
 
 def head_named(body: str, head: str, base: str) -> bool:
@@ -570,12 +615,43 @@ def prompt_carries(prompt: str | None) -> list[int] | None:
     there is no prompt or it holds none: the carries the fixer was dispatched
     with, which a roster appended to afterwards does not change (S14)."""
     found = sorted({int(m) for m in re.findall(r"^Carry (\d+):", prompt or "", re.M)})
-    return found or None
+    assigned = part_carries(prompt)
+    return assigned or found or None
+
+
+def part_carries(prompt: str | None) -> list[int] | None:
+    """The indexes a split part is assigned, or None when the prompt has no part
+    line. Two spellings: the hand line `This part: Carries 25, 24, 10 (0-based
+    roster indexes` and the generated `Part k of N: build carries 15-17+19-20`
+    (`cloud_dispatch.part_split`'s runs). The prompt holds every roster carry
+    under the generated line, so the part line, not the `Carry N:` count, scopes it."""
+    text = prompt or ""
+    hand = re.search(r"^This part: Carries ([0-9, ]+?) \(0-based roster indexes", text, re.M)
+    if hand:
+        return sorted({int(n) for n in re.findall(r"\d+", hand.group(1))}) or None
+    gen = re.search(r"^Part \d+ of \d+: build carries ([0-9+-]+);", text, re.M)
+    if not gen:
+        return None
+    out: set[int] = set()
+    for run in gen.group(1).split("+"):
+        lo, _, hi = run.partition("-")
+        out.update(range(int(lo), int(hi or lo) + 1))
+    return sorted(out) or None
 
 
 def handoff_carries(prompt: str | None, live: int):
     """What `unnamed_carries` checks: the dispatched PROMPT's indexes, else the live roster count."""
     return prompt_carries(prompt) or live
+
+
+def brief_carries(prompt: str | None, live: int, body: str) -> tuple[object, list[int], str]:
+    """The handoff's brief-carries step, pure: (the carries checked, the indexes
+    the body leaves unnamed, the refusal's base text). The base names the part
+    line only when the dispatch PROMPT carries one, so the refusal says why a
+    carry outside a part is not demanded."""
+    carries = handoff_carries(prompt, live)
+    base = " -- demanded by the dispatch PROMPT's part line" if part_carries(prompt) else ""
+    return carries, unnamed_carries(body, carries), base
 
 
 def dispatch_prompt(topic: str) -> str | None:
@@ -591,12 +667,12 @@ def dispatch_prompt(topic: str) -> str | None:
 
 
 def handoff_refusals(structure: str | None, hot: list[str], unnamed: list[int],
-                     unlanded: list[str] | None = None) -> list[str]:
+                     unlanded: list[str] | None = None, base: str = "") -> list[str]:
     """The refusals that need no CI run: the packet's `structure` and `hot-file`,
     and the handoff's `brief-carries` count (P256). One spelling for both callers."""
     out = [f"structure: tests/structure.py refuses the head merged with main: {structure}"] if structure else []
     out += [f"hot-file: {w}" for w in hot]
-    out += [f"brief-carries: carry {i} is not named in the body (`Carry N`)" for i in unnamed]
+    out += [f"brief-carries: carry {i} is not named in the body (`Carry N`){base}" for i in unnamed]
     return out + (unlanded or [])
 
 
@@ -638,6 +714,12 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
         else:
             refusals.append(f"required-red: required context `{n}` concluded failure at {head}"
                             + (f" (merge_train.py classify --pr reads {word} {why})" if why else ""))
+    intro, intro_why = facts.get("introduced") or ([], "")
+    for n in intro:
+        refusals.append(f"introduced-red: INTRODUCED `{n}`: a step of the non-required instrument-self-tests job red at "
+                        f"{head} and not at the base ({intro_why}), a finding of this pull request (fix-review.md)")
+    if intro_why.startswith("unreadable"):
+        refusals.append(f"introduced-red: {intro_why}")
     for w in facts["host"]:
         refusals.append(f"host-path: {w}")
     refusals += facts.get("unlanded", [])
@@ -701,9 +783,8 @@ def gather(a) -> dict:
         rref = fetch_roster_ref(None)
         on_roster, carries_at = roster_carry_reader(handoff_topics(branch), rref)
         unlanded = unlanded_carries(cites, carries_at, on_roster)
-    runs = gh(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", [])
-    gate = gate_digest(runs)
-    read = required_reading(a.pr, head) if set(gate[2]) & set(REQUIRED) else None
+    ci = ci_facts(a.pr, head, base)
+    gate = ci["gate"]
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
     frc, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
     red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
@@ -713,7 +794,7 @@ def gather(a) -> dict:
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
     open_prs, boarded = hot_prs(touched)
     return {
-        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "required_read": read,
+        "pr": a.pr, "head": head, "base": base, "body": body, **ci,
         "branch": branch, "unlanded": unlanded, "head_named": named,
         "carry_rc": crc, "carry_out": cout, "figure_out": fout, "figure_rc": frc,
         "pr_head": (pr.get("head") or {}).get("sha"),
@@ -773,13 +854,14 @@ def handoff(a) -> int:
         raise Unavailable(f"cannot read the roster at {ref}: {e}")
     gid = roster_lib.group_for_branch(roster, f"handoff/{a.topic}")
     live = len(roster_lib.groups_of(roster)[gid].get("carry") or []) if gid else 0
-    carries = handoff_carries(dispatch_prompt(a.topic), live)
+    prompt = dispatch_prompt(a.topic)
+    carries, unnamed, base = brief_carries(prompt, live, body)
     open_prs, boarded = hot_prs(touched)
     anc = lambda sha: subprocess.run(  # noqa: E731
         ["git", "merge-base", "--is-ancestor", sha, head], cwd=repo(), capture_output=True).returncode == 0
     refusals = handoff_refusals(structure_at_merge(a.main, head),
-                                handoff_hot(touched, open_prs, boarded, a.topic, anc), unnamed_carries(body, carries),
-                                unlanded_carries(landed_cites(body), *reversed(roster_carry_reader([a.topic], ref))))
+                                handoff_hot(touched, open_prs, boarded, a.topic, anc), unnamed,
+                                unlanded_carries(landed_cites(body), *reversed(roster_carry_reader([a.topic], ref))), base)
     for x in refusals:
         print(f"review_packet: REFUSE {x}", file=sys.stderr)
     print(f"review-packet handoff: {gid or 'no group'} at {head[:12]}, {live} live, {carries if isinstance(carries, int) else len(carries)} dispatched carries, {len(refusals)} refused")
@@ -1050,6 +1132,70 @@ def _self_test() -> int:
           and handoff_carries(None, 3) == 3 and unnamed_carries("Carry 0: a\nCarry 1: b\n", handoff_carries(None, 3)) == [2])
     check("S14 brief-carries: with a 21-carry PROMPT and 27 live carries the check runs over the PROMPT's 21",
           handoff_carries(prompt21, 27) == list(range(21)))
+    full5 = "".join(f"Carry {i}: t\n" for i in range(5))
+    hand = full5 + "This part: Carries 3, 2 (0-based roster indexes, texts verbatim below).\n"
+    gen = full5 + "Part 2 of 3: build carries 2-3; the others are later parts dispatched at this part's handoff; answer none of them\n"
+    gen2 = full5 + "Part 1 of 2: build carries 0-1+4; the others are later parts dispatched at this part's handoff; answer none of them\n"
+    two = "Carry 2: a\nCarry 3: b\n"
+    check("P593 brief-carries: a part assigned {2,3} (hand line) of a 5-carry prompt demands Carry 2 and Carry 3 only",
+          prompt_carries(hand) == [2, 3] and unnamed_carries(two, handoff_carries(hand, 5)) == []
+          and unnamed_carries("Carry 2: a\n", handoff_carries(hand, 5)) == [3])
+    check("P593 brief-carries: the generated `Part k of N: build carries <runs>` line scopes alike, runs joined by +",
+          prompt_carries(gen) == [2, 3] and unnamed_carries(two, handoff_carries(gen, 5)) == []
+          and prompt_carries(gen2) == [0, 1, 4] and unnamed_carries("Carry 0: a\nCarry 1: b\n", handoff_carries(gen2, 5)) == [4])
+    check("P593 brief-carries: a carry appended after dispatch (live 6, prompt holds 5) is not demanded",
+          unnamed_carries(two, handoff_carries(hand, 6)) == [])
+    check("P593 brief-carries null: no part line demands all 5 of the prompt; no prompt demands the live count",
+          prompt_carries(full5) == list(range(5)) and part_carries(full5) is None
+          and unnamed_carries(two, handoff_carries(full5, 5)) == [0, 1, 4] and handoff_carries(None, 5) == 5)
+    check("P593 brief-carries: the refusal names its base only when given one",
+          handoff_refusals(None, [], [3], None, " -- x") == ["brief-carries: carry 3 is not named in the body (`Carry N`) -- x"]
+          and handoff_refusals(None, [], [3]) == ["brief-carries: carry 3 is not named in the body (`Carry N`)"])
+    base_txt = " -- demanded by the dispatch PROMPT's part line"
+    check("brief_carries: a part line (hand, then generated) scopes the check and the refusal names it",
+          brief_carries(hand, 6, two) == ([2, 3], [], base_txt) and brief_carries(gen, 6, "Carry 2: a\n") == ([2, 3], [3], base_txt))
+    check("brief_carries null: a prompt with no part line demands every prompt carry and names no base",
+          brief_carries(full5, 5, two) == (list(range(5)), [0, 1, 4], "") and brief_carries(None, 3, "") == (3, [0, 1, 2], ""))
+
+    def drive_handoff(prompt: str | None, body_text: str) -> tuple[int, str]:
+        """`handoff()` over stubbed edges: the wiring of the brief-carries step, end to end."""
+        import contextlib
+        import io
+        import roster_lib
+        import types
+        g = globals()
+        saved = {k: g[k] for k in ("git", "repo", "fetch_roster_ref", "dispatch_prompt", "hot_prs",
+                                   "structure_at_merge", "roster_carry_reader")}
+        rl = {k: getattr(roster_lib, k) for k in ("show_roster", "group_for_branch", "groups_of")}
+        g.update(git=lambda *a, **k: "f" * 40 + "\n", repo=lambda: Path("."), fetch_roster_ref=lambda r: "R",
+                 dispatch_prompt=lambda t: prompt, hot_prs=lambda t: ([], set()), structure_at_merge=lambda m, h: None,
+                 roster_carry_reader=lambda t, r: (lambda sha: True, lambda sha: 0))
+        roster_lib.show_roster = lambda r, ref, path=None: {}
+        roster_lib.group_for_branch = lambda r, b: "G"
+        roster_lib.groups_of = lambda r: {"G": {"carry": [0] * 6}}
+        err = io.StringIO()
+        try:
+            with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False) as f:
+                f.write(body_text)
+            ns = types.SimpleNamespace(body=f.name, main="main", roster_ref=None, topic="t")
+            with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+                rc = handoff(ns)
+        finally:
+            g.update(saved)
+            for k, v in rl.items():
+                setattr(roster_lib, k, v)
+            os.unlink(f.name)
+        return rc, err.getvalue()
+
+    rc_h, err_h = drive_handoff(hand, "Carry 2: a\n")
+    rc_g, err_g = drive_handoff(gen, two)
+    rc_n, err_n = drive_handoff(None, two)
+    check("handoff driven: a part-line prompt (hand) refuses the one unnamed assigned carry, naming the part line",
+          rc_h == 1 and err_h.count("brief-carries") == 1 and "carry 3 is not named" in err_h and base_txt in err_h)
+    check("handoff driven: a part-line prompt (generated) with its assigned carries named passes, 5 outside ignored",
+          rc_g == 0 and err_g == "")
+    check("handoff driven null: no prompt falls to the live 6, refusing the four unnamed with no base text",
+          rc_n == 1 and err_n.count("brief-carries") == 4 and base_txt not in err_n)
     check("brief-carries null: a group with no carries passes", unnamed_carries("", 0) == [])
     check("brief-carries: `carry 1` does not name carry 10, and `Carry [10]` does",
           unnamed_carries("Carry 1: x\n", 11)[-1] == 10 and 10 not in unnamed_carries("Carry [10]: x\n", 11))
@@ -1341,6 +1487,76 @@ def _self_test() -> int:
     except Unavailable:
         ok = True
     check("UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal", ok)
+
+    # R10-INTRODUCED-REDS-BARRIER: an instrument-self-tests step red at the head
+    # and not at the base refuses as INTRODUCED; inherited, no base run, a step
+    # skipped by scoping and an unreadable job each read as the rule says.
+    import merge_train
+    drift = next(iter(merge_train.SELFTESTS_PUSH_ONLY))
+
+    def reader(head_steps, base_steps, base_job=True, broken=(), head_concl=None, base_concl="failure"):
+        reads: list[str] = []
+
+        def read(path):
+            reads.append(path)
+            if any(b in path for b in broken):
+                raise Unavailable(f"gh api {path}: HTTP 502")
+            if path.endswith(f"commits/{H}/{merge_train.SELFTESTS_RUNS}"):
+                return {"check_runs": [{"name": merge_train.SELFTESTS, "id": 1, "status": "completed",
+                                        "conclusion": head_concl or ("failure" if head_steps else "success")}]}
+            if path.endswith(f"commits/{B}/{merge_train.SELFTESTS_RUNS}"):
+                return {"check_runs": [{"name": merge_train.SELFTESTS, "id": 2, "status": "completed",
+                                        "conclusion": base_concl}] if base_job else []}
+            return {"steps": head_steps if path.endswith("/jobs/1") else base_steps}
+        return read, reads
+
+    hs = [{"name": "census", "conclusion": "failure"}, {"name": "render", "conclusion": "failure"},
+          {"name": "scoped", "conclusion": "skipped"}, {"name": drift, "conclusion": "failure"}]
+    bs = [{"name": "census", "conclusion": "success"}, {"name": "render", "conclusion": "failure"},
+          {"name": "scoped", "conclusion": "failure"}, {"name": drift, "conclusion": "failure"}]
+    read, reads = reader(hs, bs)
+    got = introduced_reading(H, B, read)
+    check("introduced: the head's red the base lacks is INTRODUCED, the inherited one is not, by 2 job-step reads",
+          got[0] == ["census"] and sum("/actions/jobs/" in p for p in reads) == 2)
+    check("no base run: every head red but the push-only drift step counts; skipped is never red",
+          introduced_reading(H, B, reader(hs, bs, base_job=False)[0])[0] == ["census", "render"])
+    read, reads = reader([], bs)
+    check("a head whose job did not conclude failure costs one listing and no job read",
+          introduced_reading(H, B, read)[0] == [] and len(reads) == 1)
+    for why, broken in (("the head's job", ("/jobs/1",)), ("the base's job", ("/jobs/2",)),
+                        ("the base's listing", (f"commits/{B}/",)), ("the head's listing", (f"commits/{H}/",))):
+        got = introduced_reading(H, B, reader(hs, bs, broken=broken)[0])
+        check(f"fail closed: {why} unreadable refuses introduced-red, never reads clean",
+              got[0] == [] and refused("introduced-red", introduced=got))
+    r_i = build({**clean, "introduced": (["census"], "head job 1 base job 2")})[0]
+    check("build: an INTRODUCED step is an introduced-red refusal naming the step",
+          len(r_i) == 1 and r_i[0].startswith("introduced-red: INTRODUCED `census`"))
+    check("null: an inherited-only head (nothing introduced) refuses nothing",
+          build({**clean, "introduced": introduced_reading(H, B, reader(bs, bs)[0])})[0] == [])
+    check("one notion of red: merge_train.RED_CONCLUSIONS is this file's RED", merge_train.RED_CONCLUSIONS == RED)
+    hang = [{"name": "census", "conclusion": "cancelled"}, {"name": "render", "conclusion": "skipped"}]
+    ok_s = [{"name": "census", "conclusion": "success"}, {"name": "render", "conclusion": "success"}]
+    got = introduced_reading(H, B, reader(hang, ok_s, head_concl="timed_out", base_concl="success")[0])
+    check("a hang the PR makes (job timed_out, step cancelled) is INTRODUCED: the step and the timeout, refused",
+          got[0] == [merge_train.JOB_TIMED_OUT, "census"]
+          and [r.split("`")[1] for r in build({**clean, "introduced": got})[0]] == got[0])
+    got = introduced_reading(H, B, reader(hang, ok_s, base_concl="success")[0])
+    check("a cancelled step inside a failed job is INTRODUCED", got[0] == ["census"])
+    for why, concl in (("a job-level cancelled", "cancelled"), ("a job still running", "in_progress")):
+        read, reads = reader(hang, ok_s, head_concl=concl)
+        if concl == "in_progress":
+            def read(path, _r=read):
+                got = _r(path)
+                for r in got.get("check_runs") or ():
+                    r["status"], r["conclusion"] = "in_progress", None
+                return got
+        got = introduced_reading(H, B, read)
+        check(f"fail closed: {why} at the head refuses introduced-red, never reads clean",
+              got[0] == [] and refused("introduced-red", introduced=got))
+    facts = ci_facts(7, H, B, reader(hs, bs)[0])
+    check("gather's ci_facts carries the INTRODUCED reading build refuses (M9: its wiring)",
+          facts["introduced"][0] == ["census"] and facts["required_read"] is None
+          and refused("introduced-red", introduced=facts["introduced"]))
 
     print(f"review_packet self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0

@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.11
+# claims-for: 7.1.15
 #
-# v7.1.11: Water set-point feedback, combi store configuration, diagnostics without the location. The stamp empties the list; the
+# v7.1.15: Supply minimum run and pause, valve target label, boost settling, card folds. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -781,3 +781,24 @@
 # COP is metered heat over a power meter, neither an estimate, and that without
 # a metered heat reading there is no grade at all. Only score_open moves; the
 # other 44 states are identical.
+
+# R10-HOTFIX-CARD-HEALTH-TEXT: the card stylesheet's surface-2 block rule now
+# lists .health-row and .adv-inbox-row (surface and ink in one rule; the two
+# row rules lose their own background), the pressed .layout-edit-toggle.on
+# gains the --hpo-surface-2 background, and the comments beside them change.
+# card_drift captures the whole shadow root, so every state that renders the
+# stylesheet moves: 44 of 45 (editor_schema renders none and is identical).
+# health_page also moves its header chip text, "1 input stale" -> "1 input
+# problem" (the chip counts every problem kind). The card's adv-* classes are
+# renamed fact-* (EasyList's generic ##.adv-text and ##.adv-label hid them),
+# which moves the same 44 states' stylesheet and the Advisor and Health
+# markup; no text or value moves with the rename.
+
+# R10-CARD-COLLAPSE (owner request 2026-11-09): the headline's plan-by-reason
+# list and Why-now panel become folds, collapsed by default (a header button
+# with aria-expanded and a summary line; the body unrendered), and the series
+# chips with their dashed-line notes render only in the expanded dialog. The
+# fold rules join the stylesheet every card render carries, so every state
+# that renders the card moves; the inline states also lose the card-copy
+# legend and show the two fold headers in place of the list and panel.
+# editor_schema renders no card and is identical.

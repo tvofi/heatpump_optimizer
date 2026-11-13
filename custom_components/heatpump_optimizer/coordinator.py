@@ -256,7 +256,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import early_cutoff, pump_arbiter, pump_signals
+from . import early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
 from . import price_tiles
@@ -1123,14 +1123,14 @@ def _replay_gate(
 ) -> tuple[float | None, bool, str | None, bool]:
     """A fabric learner's ``(heat kW, span clean, freeze, folds)`` for one run (#2261).
 
-    ``raw`` is the learner's ``_learning_frozen`` answer. The rule is
-    :func:`heat_energy.replay_gate`'s, on the freeze without and with this
-    run's measured heat and on whether the span folds the scale alone.
+    ``raw`` is the learner's ``_learning_frozen`` answer; the rule, and the
+    inputs it reads, are :func:`heat_energy.replay_gate`'s.
     """
     cfg, heat_kw = _ctx_of(coord)._config, _interval_measured_heat_kw(coord)
     return heat_energy.replay_gate(
         span_heat_kw, interval, replay_freeze(raw, cfg, 0.0), replay_freeze(raw, cfg, heat_kw), heat_kw,
-        heat_energy.meter_of(coord).spans_own_scale)
+        heat_energy.meter_of(coord), coord._commanded_split(), probe_install(cfg).heat_sees_dhw,
+        coord._immersion_active or coord._pump_signals.electric_heat.resistive_heat)
 
 
 async def _async_earn_heat_basis(coord: Any, heat_kw: float | None) -> None:
@@ -3493,10 +3493,11 @@ def _tail_freeze(coord: Any) -> str | None:
     ran the commanded power; its reason comes first, in this one function,
     because the slab observer ignores only the unmetered reason and must
     see the cut (live-fix design note A2).
+    A held supply write ran other than the plan too (``supply_hold``).
     """
     if early_cutoff.state_for(coord).interval_cut:
         return early_cutoff.FREEZE_CUT
-    return learner_unmetered(
+    return supply_hold.freeze_reason(pump_arbiter.state_for(coord)) or learner_unmetered(
         getattr(getattr(coord, "_ctx", coord), "_config", None)
     )
 
@@ -6067,7 +6068,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         try:
             await self._update_current_state()
 
-            # Raises UpdateFailed on any failure -- see _fetch_tibber_prices.
+            # Raises UpdateFailed once no published price covers now -- see _fetch_tibber_prices.
             await self._fetch_tibber_prices()
 
             # Fetch weather forecast (full 24h for solar, wind, rain, temp)
@@ -6531,10 +6532,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
         await self._accuracy_store.async_wait_for_read()
-        if self._mode == MODE_BOOST and mode != MODE_BOOST:
-            # #1935: the mode surface's settling tail — same plant-state
-            # divergence the channel overlay's leaves behind.
-            boost.note_mode_boost_ended(self)
+        boost.note_mode_change(self, self._mode, mode)  # #1935: the mode's settling tail
         await off_restore.async_mode_change(self.hass, self.entry, _ctx_of(self)._config, self._mode, mode)
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
@@ -6961,9 +6959,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def _fetch_tibber_prices(self) -> None:
         """Fetch electricity prices (Tibber or a price entity).
 
-        A failed fetch raises :class:`UpdateFailed` (D10-07). Entity
-        sources never start reauthentication. The outage latch (D10-09)
-        is unchanged.
+        A failed fetch raises :class:`UpdateFailed` (D10-07) only once the
+        last published prices no longer cover now; entity sources never
+        start reauthentication.
         """
         cfg = getattr(self, "_ctx", self)._config
         hass = self.hass
@@ -6993,29 +6991,27 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
 
     def _tibber_fetch_failed(self, reason: str, *, exc_info: bool = False, auth: bool = False) -> None:
-        """Record one failed price fetch: log once, raise as a failed update.
+        """Record one failed price fetch and raise it as a failed update.
 
-        D10-09: an outage lasting a day used to print the same ERROR on
-        every cycle. The first failure logs ERROR; the rest log DEBUG until
-        a fetch succeeds again, which logs the outage's length at INFO.
+        Last published prices still covering now bridge it instead: a warning
+        and the ``price_feed_stale`` repair; a refused token always fails.
+        Only an outage's first cycle logs above DEBUG (D10-09); a recovered
+        fetch logs the outage's length at INFO.
         """
-        if not self._tibber_outage_cycles:
-            _LOGGER.error("%s", reason, exc_info=exc_info)
-        else:
-            _LOGGER.debug("Tibber still failing (%s)", reason)
         self._tibber_outage_cycles += 1
-        if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
-            self._tibber_start_reauth()
-            _raise_auth_failed("tibber_auth_failed", reason, error=reason)
-        _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
+        if not issues.note_price_outage(self.hass, reason, self._tibber_outage_cycles, exc_info,
+                                        not auth and self._known_prices_for([plan_step_start(dt_util.now())])):
+            if auth:  # D10-s1-03: Home Assistant stops retrying and asks for a token
+                self._tibber_start_reauth()
+                _raise_auth_failed("tibber_auth_failed", reason, error=reason)
+            _raise_update_failed("tibber_fetch_failed", reason, None, error=reason)
 
     def _tibber_fetch_recovered(self) -> None:
         """Clear the outage latch after a successful fetch."""
         if self._tibber_outage_cycles:
-            _LOGGER.info(
-                "Tibber prices recovered after %d failed cycle(s)",
-                self._tibber_outage_cycles,
-            )
+            _LOGGER.info("Tibber prices recovered after %d failed cycle(s)",
+                         self._tibber_outage_cycles)
+            issues.clear_issue(self.hass, "price_feed_stale")
         self._tibber_outage_cycles = 0
         # A later revocation of the (new) token deserves its own flow.
         self._tibber_reauth_started = False
@@ -7670,17 +7666,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         whatever it was given, so a single tap on its top notch stored a target
         one degree above the ceiling, and nothing said a word.
 
-        Reported rather than migrated. These are the user's own numbers and
-        only they know which one is wrong -- silently rewriting a comfort
-        target to make an inequality hold is exactly the kind of help nobody
-        asked for. The plan keeps running meanwhile: the bounds are priced
-        rather than fenced, so a contradictory band is a plan in permanent
-        violation, not a crash.
+        Reported rather than migrated: only the user knows which number is
+        wrong, and silently rewriting a comfort target to make an inequality
+        hold is help nobody asked for. The plan keeps running: the bounds are
+        priced, not fenced. The valve-target notice rides here too.
         """
-        found = comfort_band.violations({}, getattr(self, "_ctx", self)._config)
+        ctx = getattr(self, "_ctx", self)
+        found = comfort_band.violations({}, ctx._config)
         problem = comfort_band.describe(found) if found else None
         self._config_notices.report(self.hass, "comfort_band_contradiction", problem,
                                     {"problem": problem} if problem else None)
+        mixing_valve.audit_target(self._config_notices, self.hass, ctx._thermal_params)
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(
@@ -7718,13 +7714,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             mode_off=self._mode == MODE_OFF,
         )
 
-    async def async_publish_current_action(self, reason: str = "optimizer") -> None:
-        """Publish MQTT command for the currently selected optimizer action."""
+    async def async_publish_current_action(self, reason: str = "optimizer", heat_pump_on: bool | None = None) -> None:
+        """Publish the current action's MQTT command; ``heat_pump_on``, given, is the cycle's switch write."""
         if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
             return
         await self.async_publish_ecl110_command(
             displace_value=float(action.get("displace_value", 0.0)),
-            heat_pump_on=bool(action.get("heat_pump_on", False)),
+            heat_pump_on=bool(action.get("heat_pump_on", False)) if heat_pump_on is None else heat_pump_on,
             reason=reason,
         )
 
@@ -7816,24 +7812,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                           self._plan_age_minutes() or 0.0, self._solve_failures)
             return
 
-        on = bool(self._current_action.get("heat_pump_on", False))
+        on = pump_arbiter.cycle_supply(self.arbiter_inputs(), boost.held_for(self), bool(self._current_action.get("heat_pump_on", False)))
         await self._write_supply(on)
         # Between cycles the step tick writes each step's change (#2492).
         pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)
         # The ECL110 displace command
-        await self.async_publish_current_action(reason="scheduled_update")
+        await self.async_publish_current_action(reason="scheduled_update", heat_pump_on=on)
 
     async def _write_supply(self, on: bool) -> None:
-        """Write the supply switch: the cycle's and the step tick's one gate.
-
-        A cut-off holds the pump off for MIN_OFF across an early refresh.
-        """
-        value = pump_arbiter.supply_write(
-            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)
+        """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
+        held = pump_arbiter.state_for(self)
+        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
+            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
-            await pump_arbiter.switch_supply(self.hass, switch_entity, value)
-        elif switch_entity:
+            await pump_arbiter.write_supply(self, switch_entity, value)
+        elif switch_entity and not held.supply_held:
             _LOGGER.debug(
                 "Not switching %s off: mode %s is cooling or blocks both "
                 "channels, so an empty plan is this integration's doing "

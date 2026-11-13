@@ -472,7 +472,7 @@ The temperatures the schedule holds the tank to:
 | Hot water temperature you need | 45 °C | 35–55 | Guaranteed inside the time frames. Must be at least 5 °C below the charge limit, or the plan sits in permanent slight violation. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
 | Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |
-| Heat pump DHW set-point entity | none | `number` / `input_number` / `climate` | Optional. The pump's own DHW set-point, used to notice when it cannot be read and, with **Pump duty control** at Control, written with the hot water set-point above. |
+| Heat pump DHW set-point entity | none | `number` / `input_number` / `climate` / `water_heater` | Optional. The pump's own DHW set-point, used to notice when it cannot be read and, with **Pump duty control** at Control, written with the hot water set-point above. |
 | Run an anti-legionella cycle | on | on/off | Because the tank spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
 | Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. |
 | Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
@@ -526,7 +526,7 @@ device page and on the card, not here.
 |---|---|---|---|
 | Away indicator | none | `person`, `device_tracker`, `calendar`, `binary_sensor` | Polarity is handled for you: a person being *not home* still means away when the Plan-page toggle is off. |
 | Holiday-profile calendar | none | a `calendar` | When this calendar is on, holiday comfort and holiday hot-water windows replace the weekday/weekend pair for that day. Away setback still wins if away is active. |
-| Temperature while away | 16.0 °C | 5–21, 0.5 steps | Low enough to save, high enough to protect the house and its plumbing. |
+| Temperature while away | 16.0 °C | 5–21, 0.5 steps | Low enough to save, high enough to protect the house and its plumbing. With the mold guard on, the mold-safe temperature outranks it and can hold the room near the comfort target in a humid house, so away then saves little space-heating energy ([Away and the mold guard](how-it-works.md#away-and-holiday-mode)). |
 | Hot water minimum while away | 20.0 °C | 10–55 | The anti-legionella cycle still runs, timed to finish before you get back. |
 
 ### Quick setup
@@ -627,6 +627,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Minimum lift above the inlet water (`flow_min_lift_k`) | 5 K | 0.5–15 K, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at the plan's lowest power is the measured inlet water plus this (see [Pump duty control](#pump-duty-control)). |
 | Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written. A stored value at or below the 25 °C gate is read as 55 °C. |
 | Follow the planned power on the measured draw (`space_setpoint_power_feedback`) | On | on / off | Shown when the unit above is *Flow* or *Return temperature*; acts only when a heat-pump power sensor is configured too. Closes the heating value on the measured draw (see [Pump duty control](#pump-duty-control)). Off writes the inlet plus the lift. |
+| Controller's minimum set-point sensor (`space_setpoint_low_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the lowest value the controller accepts for the set-point entity (a Luxtronik through ha-luxtronik-shi: “Temperature: return target minimum”, input 10104). *Follow the planned power* then never sends a value below it (see [Pump duty control](#pump-duty-control)). Empty changes nothing. |
+| Controller's maximum set-point sensor (`space_setpoint_high_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the controller accepts (a Luxtronik: “Temperature: return limit”, input 10103). *Follow the planned power* then never sends a value above it. Empty changes nothing. |
 
 ### Power and solar sensors
 
@@ -798,8 +800,19 @@ writes, at every 15-minute plan step:
     of its Smart Home Interface, parameter 979) and its return limit (input
     10103, parameter 87), both of which ha-luxtronik-shi publishes as
     sensors ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
-    This integration does not read them: it takes the two limits from the
-    value the controller reports back after a write.
+    Name them as the two optional limit sensors on **Sensors and
+    entities** (`space_setpoint_low_limit_entity`,
+    `space_setpoint_high_limit_entity`) and the loop stays inside them, so
+    no write is cut. A limit sensor is read whatever its age, since a
+    setting reports only when it changes; one that is unavailable, not a
+    number or outside −20 to 100 °C is left out, and so are both when the
+    lower is not below the upper. An upper limit below the lowest heating
+    value (the gate plus one step of the set-point entity) is left out
+    too: the gate is the value that means off, and no heating step writes
+    it. They bound the loop alone: the first
+    write of a run is the inlet plus the lift either way. Without them the
+    two limits are taken from the value the controller reports back after
+    a write.
 - **For an *Indoor temperature* entity** each of the three is the step's
   planned room temperature, clamped to the entity's range (5 °C as the gate
   where the mode offers no hot-water-only option). An entity whose own
@@ -813,7 +826,7 @@ writes, at every 15-minute plan step:
   step is *Heating + DHW*, so the planned anti-legionella cycle can run. A
   heating-only mode the optimizer wrote does not stop the next plan from making
   hot water, and the "set-point below the disinfection temperature" notice does
-  not fire on the optimizer's own hot water gate.
+  not fire on the optimizer's own hot water gate (see below).
 - **Idle steps leave the mode alone.** The mode on the pump served the duty
   that just finished, whose thermostat the plan has just satisfied, so it is
   the least likely to start anything; *Heating + DHW* would arm both.
@@ -838,7 +851,7 @@ writes, at every 15-minute plan step:
   returns — unless the room is already at or above the step's planned room
   temperature, when a warm house needs no space heat. A stale plan, comfort
   mode, a system-identification experiment and unloading the integration
-  all get the fallback row. A boost switch adds its own duty to the plan's
+  all get the fallback row, the space set-point apart (see below). A boost switch adds its own duty to the plan's
   step: *Boost Space Heating* alone writes *Heating*, *DHW Boost* alone
   writes *DHW (Hot Water)*, and a step that also wants the other duty
   writes *Heating + DHW*. Boost mode writes *Heating + DHW* with the
@@ -848,9 +861,22 @@ writes, at every 15-minute plan step:
   a change made on the pump, in an app, by a schedule, or the pump's own reset —
   is written back at once. To change the pump by hand, turn **Optimizer
   active** off first: from then on nothing is written to the pump, not even
-  the fallback row, until you turn it back on. Readings in the first
+  the fallback row, until you turn it back on — except the space set-point,
+  restored once as described next. Readings in the first
   20 seconds after a write are not counted: the tuya_heat_pump integration
   shows the value it sent for about 8 seconds whatever the pump reports.
+- **Turning it off restores your space set-point.** Before its first write
+  to the space-heating set-point entity, the optimizer reads the value there
+  and keeps it, across restarts too. Turning **Optimizer active** off, and
+  every unload (a reload after an options change, a disable, Home Assistant
+  stopping), writes that value back. A value you set on the pump while the
+  optimizer is on becomes the one restored, though the optimizer still writes
+  over it until you turn it off (outside the entity's own minimum and
+  maximum, the nearest value it takes); a value set while it is off is read again
+  when it next writes. A reading equal to the optimizer's own last write is
+  never taken as yours: after an upgrade from a version without this, the
+  set-point is not written until it reads anything else, so set it on the
+  pump once. The mode and the hot-water set-point are not restored.
 - **A write the pump does not hold is retried.** If the value written back
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or
@@ -859,6 +885,15 @@ writes, at every 15-minute plan step:
   reads off, nothing is compared or written: switched off, a pump can report
   set-points of its own (a Tuya pump reads 25 °C). Once it is on, a reset that
   is still there is written back like any other difference.
+- **A disinfection cycle writes its own temperature.** While the plan's step
+  runs the anti-legionella cycle, or the integration holds the pump's
+  disinfection switch on, the hot water set-point written is the disinfection
+  temperature, or the everyday set-point where that is higher, on the
+  entity's step rounded up and never above the entity's maximum. Because the
+  optimizer writes the cycle's temperature itself, the "set-point below the
+  disinfection temperature" notice does not fire on any hot water set-point
+  the optimizer wrote; it still fires on a value set by anybody else, and,
+  with *Control* off, on the pump's own set-point.
 - **Its own mode is not a pump limit.** A mode the optimizer wrote does not
   stop the next plan from heating the house or making hot water, even when the
   pump has not shown it yet or after a restart; one set by anybody else
@@ -891,16 +926,16 @@ catalog below keys off.
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Mixing valve | No mixing valve | No mixing valve · Set by hand · Read from a sensor · Commanded by the optimizer | *Set by hand* is a valve you set yourself and tell the integration about. *Read from a sensor* means it can see the target but not change it. *Commanded* writes the recommended target through the control entity below. |
-| Valve target temperature | 0 °C | 0–30, 0.5 steps | The indoor temperature the valve holds. **0 means "use the top of your comfort band"**, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus. |
+| Room temperature the mixing circuit holds | 0 °C | 0–30, 0.5 steps | This is the indoor temperature, not a water temperature: never enter a flow temperature here. A value above the top of your comfort band raises a repair notice (it can be deliberate, for example slab charging, so nothing is refused or changed). **0 means "use the top of your comfort band"**, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus. |
 | Valve target sensor | none | a temperature sensor | Reads the valve's target instead of using the fixed value above. |
 | Valve control entity | none | `number`, `input_number` or `climate` | Required for *Commanded by the optimizer*. Written after each planning cycle, and only when the answer changes. |
 | What the control entity expects | Indoor temperature | Indoor temperature / Flow temperature | A declaration, not a write. *Indoor temperature* — a room set-point — is what has always been written, and the safe default. *Flow temperature* is for a valve or heat-pump controller whose set-point is a water temperature, derived from the same flow curve the model already uses for a dumb valve. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. |
 | Price the supply temperature lift (no mixing valve) | off | on/off | For a plant with **no** mixing valve, where the pump feeds the emitters directly. When on, every plan and cost accounts for the pump working harder to make hotter water: the supply temperature is the model's own weather curve plus the offset learned from the *Supply (flow) water temperature* sensor, if you set one. With that sensor the efficiency health watch also judges the pump at a common water temperature, so a hotter supply is not reported as a failing compressor, and it skips any interval where the sensor has no fresh reading — **so while that sensor is dead the watch does not judge space heating at all**. Readings judged this way keep their own baseline, so switching the option or the sensor on or off starts that baseline afresh rather than comparing unlike numbers. **The learned offset is capped at 15 °C**, so on a plant whose supply runs well above the modelled curve only part of the extra work is priced. The lift is only charged above a 35 °C supply. Refused together with a throttling valve, whose tank temperature already sets the price. |
 | Buffer tank size | 35 L | 10–1500, 5 steps | The tank between pump and circuits. It is only planned around as a store when a throttling valve exists and the volume is at least 100 L; below that it holds less than one optimizer step of heat. |
 | Maximum buffer tank temperature | 70 °C | 40–90 | A hard ceiling. The tank is never charged above this, however cheap electricity is. |
-| Hot water is made from the buffer tank (combi tank) | off | on/off | For one tank of heating water that serves both heating and hot water with no separate hot water tank: a multifunction or hygiene store with an internal coil, a tank-in-tank, or a fresh-water station on the buffer. The buffer and the hot water are then planned as **one** store, so its heat is counted once. Refused unless the buffer is a store (a throttling valve and at least 100 L), hot water is on and no wood coil heats the hot water. Enter the tank's heating-water volume as the buffer size. For the buffer cooling rate, prefer the datasheet's ErP standing loss S in watts at 65 °C: the loss per kelvin is S / 45 K, assuming a 20 °C room. Example: 111 W over 504 L is 2.47 W/K, about 0.106 °C/h at the 25 K reference. One probe is read as the whole tank's mean, so point the buffer sensor at the middle well (with a hot water sensor only, that one is used). Two tanks in one shell, a buffer section under a hot water section, are not a combi tank: set them up as two tanks. While it is on, the hot water energy sensor counts the heat pump's hot-water-mode charge of the shared tank, which includes heat the heating later draws from it: it is one store, so no meter can split it by use. |
+| Hot water is made from the buffer tank (combi tank) | off | on/off | For one tank of heating water that serves both heating and hot water with no separate hot water tank: a multifunction or hygiene store with an internal coil, a tank-in-tank, or a fresh-water station on the buffer. The buffer and the hot water are then planned as **one** store, so its heat is counted once. Refused unless the buffer is a store (a throttling valve and at least 100 L), hot water is on and no wood coil heats the hot water. Enter the tank's heating-water volume as the buffer size. For the buffer cooling rate, prefer the datasheet's ErP standing loss S in watts at 65 °C: the loss per kelvin is S / 45 K, assuming a 20 °C room. Example: 111 W over 504 L is 2.47 W/K, about 0.106 °C/h at the 25 K reference. One probe is read as the whole tank's mean, so point the buffer sensor at the middle well (with a hot water sensor only, that one is used). A tall, stratified store without a middle well has no single probe that reads its mean, and a top probe alone reads high, so the plan believes the tank holds more heat than it does. Make the buffer temperature entity a template sensor averaging a top and a bottom probe instead. That average is an estimate of the mean, not the mean itself: the temperature between the two probes does not change in a straight line. As an example, not a guarantee: on one user's 600 L store the top and bottom probes differed by a median 24.8 K, and the top probe alone overstated the stored heat by about 9 kWh. Two tanks in one shell, a buffer section under a hot water section, are not a combi tank: set them up as two tanks. While it is on, the hot water energy sensor counts the heat pump's hot-water-mode charge of the shared tank, which includes heat the heating later draws from it: it is one store, so no meter can split it by use. |
 | How the tank makes hot water | Internal coil | Internal coil / Tank-in-tank / Fresh-water station / Custom | Changing it fills in the two numbers below (coil 0.85 and 30 L, tank-in-tank 0.95 and 150 L, station 0.75 and 0 L); edit them afterwards, or choose Custom. A multifunction store with a 40 L coil is Internal coil with 40 L. |
-| Exchanger effectiveness | 0.85 | 0.1–1 | (tap − cold inlet) / (tank − cold inlet) at your usual draw flow. It moves the tank temperature a tap minimum needs (45 °C at the tap from a 10 °C inlet needs 51.2 °C in the tank at 0.85); the legionella target stays a tank temperature. A station's effectiveness falls with flow (one table: 0.88 at 16 L/min, 0.58 at 38 L/min), so read it at your typical flow; manufacturers recommend at most 60 °C on the primary side. |
+| Exchanger effectiveness | 0.85 | 0.1–1 | (tap − cold inlet) / (tank − cold inlet) at your usual draw flow. It moves the tank temperature a tap minimum needs (45 °C at the tap from a 10 °C inlet needs 51.2 °C in the tank at 0.85); the legionella target stays a tank temperature. A station's effectiveness falls with flow (one table: 0.88 at 16 L/min, 0.58 at 38 L/min), so read it at your typical flow; manufacturers recommend at most 60 °C on the primary side. **To measure yours:** charge the tank, then let hot water run at full flow for a few minutes with a thermometer in the stream, until the tap temperature stops changing; read the tank sensor the optimizer uses at the same moment (the ratio belongs to that sensor, wherever it sits in the tank); then let the cold tap run until it settles and enter that reading as *Cold water inlet temperature* (Hot water tank and inlet), or fit a sensor on the cold pipe and set *Cold water inlet sensor*. Divide as above. Do this with a fully charged tank: when the tank is warmer at the top than at the sensor, as after a few showers, the same install read 1.10–1.15 against 0.96 when full. Read the tap value in the stream, not on the pipe, and a hot tank (50 °C and up) gives a larger difference to divide by and so a steadier result than a cool one. |
 | Drinking water held inside the tank | 30 L | 0–500 | The coil's content or the inner tank (about 100–250 L); 0 for a station. It adds to the store's heat capacity. |
 | Run the legionella cycle anyway | off | on/off | With 3 L or less of drinking water in the tank there is none standing to disinfect, so the cycle defaults off there; this forces it on. Drinking-water rules still expect delivery at 60 °C (large systems) or 50 °C (small). |
 | Temperature after the wood/heat-pump mixing valve | none | a sensor | With the tank sensors, this says how much of the heating a fire is covering right now, so electric heat can stand down by that much instead of all-or-nothing. |
@@ -959,7 +994,7 @@ the per-floor numbers live on **Two-zone model**.
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | House thermal mass | the setup value | 0.5–80 kWh/°C | Heat stored per degree by the room air, furnishings and light fabric. |
-| Heat loss coefficient | the setup value | 0.01–1.0 kW/°C | Heat lost per degree of indoor-outdoor difference. |
+| Heat loss coefficient | the setup value | 0.01–1.0 kW/°C | Heat lost per degree of indoor-outdoor difference. Not shown while the two-zone model is on, which uses each zone's own heat loss instead. |
 | Slab floor thermal mass | the setup value | 0.1–60 kWh/°C | Heat stored per degree by the slab or the radiator circuit. |
 | Slab-to-room heat transfer | the setup value | 0.02–5.0 kW/°C | How fast that store gives its heat to the room. |
 | Heat pump nominal COP | the setup value | 1.5–6.0 | Units of heat per unit of electricity under normal conditions. |

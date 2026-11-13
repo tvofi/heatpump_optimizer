@@ -15047,6 +15047,7 @@ _FR_STORES = {
     "dhw_legionella": "kept: the last disinfection, a safety fact",
     "notifier": "kept: which notices were sent",
     "pump_duty": "kept: what was last written to the pump",
+    "duty_switch": "kept: what duty switches did to this pump's compressor, observed facts",
     "debug": "kept: a diagnostics collection",
     "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
 }
@@ -19311,7 +19312,7 @@ R.check(
 _published = []
 async def _rec_ecl(**kw):
     _published.append(kw)
-async def _rec_plan(reason="optimizer"):
+async def _rec_plan(reason="optimizer", heat_pump_on=None):
     _published.append({"reason": reason})
 _c.async_publish_ecl110_command = _rec_ecl
 _c.async_publish_current_action = _rec_plan
@@ -28162,7 +28163,7 @@ R.check(
 _g_pub: list[str] = []
 
 
-async def _g_rec(reason="optimizer"):
+async def _g_rec(reason="optimizer", heat_pump_on=None):
     _g_pub.append(reason)
 
 
@@ -30176,7 +30177,7 @@ from heatpump_optimizer.const import (  # noqa: E402
     PRICE_SOURCE_TIBBER as _PRICE_SOURCE_TIBBER,
 )
 
-# D10-07: a failed price fetch must FAIL the update. Every failure path used
+# D10-07: a failed price fetch with no covering prices must FAIL the update. Every failure path used
 # to return silently, so last_update_success never moved and the entities
 # stayed available forever behind stale prices. The stub's session getter
 # raises, which is exactly one such failure.
@@ -30222,6 +30223,111 @@ R.check(
     _tib._tibber_outage_cycles == 0,
     f"cycles: {_tib._tibber_outage_cycles}",
 )
+
+# Price outage with still-valid prices: the failed fetch is bridged (warning +
+# repair), the update does not fail; once the old prices no longer cover now
+# the update fails again, and a recovered fetch clears the repair. Null
+# controls: a healthy fetch raises no repair, a refused token still fails.
+import logging as _logging_pf  # noqa: E402
+import sys as _sys_pf  # noqa: E402
+from homeassistant.util import dt as _dtu_pf  # noqa: E402
+
+_pf_mod = _sys_pf.modules[type(_tib).__module__]
+_pf_pull = _pf_mod.pull_prices
+_pf_session = _pf_mod.async_get_clientsession
+_pf_now = _dtu_pf.now().replace(minute=0, second=0, microsecond=0)
+
+
+def _pf_rows(hours):
+    return [{"total": 0.3, "starts_at": (_pf_now + timedelta(hours=h)).isoformat()} for h in hours]
+
+
+def _pf_fetch(verdict=None, payload=None):
+    """One price fetch; ``verdict`` scripts ``pull_prices``, None keeps the stub's failure."""
+    if verdict is not None:
+        async def _scripted(*_a, **_k):
+            return verdict, payload
+        _pf_mod.pull_prices = _scripted
+        _pf_mod.async_get_clientsession = lambda _hass: None
+    try:
+        _asyncio.run(_tib._fetch_tibber_prices())
+    except Exception as err:  # noqa: BLE001 - the class is the assertion
+        return err
+    finally:
+        _pf_mod.pull_prices = _pf_pull
+        _pf_mod.async_get_clientsession = _pf_session
+    return None
+
+
+class _PfLevels(_logging_pf.Handler):
+    def emit(self, record):
+        _pf_levels.append(record.levelname)
+
+
+_pf_levels: list = []
+_pf_handler = _PfLevels()
+_logging_pf.getLogger("heatpump_optimizer").addHandler(_pf_handler)
+_pf_issue_ids = lambda: [i[1] for i in getattr(_tib.hass, "issues", [])]  # noqa: E731
+
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_pf_raised = _pf_fetch("ok", _pf_rows((0, 1, 2)))
+R.check(
+    "null control: a healthy price fetch neither fails the update nor raises the price_feed_stale repair",
+    _pf_raised is None and _pf_issue_ids() == [] and _tib._tibber_outage_cycles == 0,
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_tib._prices = _pf_rows((-1, 0, 1, 2))
+_pf_levels.clear()
+_pf_raised = _pf_fetch()
+R.check(
+    "a failed price fetch while the last prices still cover now does not fail the update",
+    _pf_raised is None and _tib._tibber_outage_cycles == 1 and len(_tib._prices) == 4,
+    f"raised {_pf_raised!r}, cycles {_tib._tibber_outage_cycles}",
+)
+R.check(
+    "...and raises the price_feed_stale repair, logging a WARNING and no ERROR",
+    _pf_issue_ids() == ["price_feed_stale"] and "WARNING" in _pf_levels and "ERROR" not in _pf_levels,
+    f"issues {_pf_issue_ids()}, levels {_pf_levels}",
+)
+_pf_raised = _pf_fetch("ok", _pf_rows((0, 1, 2)))
+R.check(
+    "a recovered fetch clears the repair and the outage latch",
+    _pf_raised is None and _pf_issue_ids() == [] and _tib._tibber_outage_cycles == 0,
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_pf_fetch()  # bridged again: the repair is up when the prices run out below
+_tib._prices = _pf_rows((-5, -4, -3))
+_pf_levels.clear()
+_pf_raised = _pf_fetch()
+R.check(
+    "null control: prices that no longer cover now fail the update again, and the repair stays",
+    type(_pf_raised).__name__ == "UpdateFailed" and _pf_issue_ids() == ["price_feed_stale"],
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_tib._prices = []
+_pf_levels.clear()
+_pf_fetch()
+R.check(
+    "null control: an outage with no covering prices logs ERROR on its first cycle and raises no repair",
+    "ERROR" in _pf_levels and _pf_issue_ids() == [],
+    f"levels {_pf_levels}, issues {_pf_issue_ids()}",
+)
+_tib._tibber_outage_cycles = 0
+_tib._prices = _pf_rows((-1, 0, 1, 2))
+_pf_raised = _pf_fetch("reauth", "token refused")
+R.check(
+    "null control: a refused token fails the update although prices still cover now, and raises no price_feed_stale repair",
+    type(_pf_raised).__name__ == "ConfigEntryAuthFailed" and "price_feed_stale" not in _pf_issue_ids(),
+    f"raised {_pf_raised!r}, issues {_pf_issue_ids()}",
+)
+_logging_pf.getLogger("heatpump_optimizer").removeHandler(_pf_handler)
+_tib.hass.issues = []
+_tib._tibber_outage_cycles = 0
+_tib._tibber_reauth_started = False
+_tib._prices = []
 
 # #216 (round-2 D10-B): the latch must OWN the outage's logging. The four
 # in-try failure verdicts (401/403, HTTP != 200, GraphQL errors, no homes)
@@ -42497,6 +42603,147 @@ R.check(
     "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
 )
 
+# The off rule reaches the MQTT arm (owner ruling under mandate 6715477401,
+# 2026-11-11): no actuator arm leaves the pump displaced. What stands on each
+# ECL110 topic -- its last publish, retained or not -- is displace 0 after
+# MODE_OFF and after unload, through the same restore hook as the entity arm.
+import json as _gm_json  # noqa: E402
+
+
+def _gm_standing(coord):
+    """Each topic's last displace and retain flag; the entity arm's last write."""
+    stand = {}
+    for dom, svc, d in coord.hass.services.calls:
+        if dom == "mqtt":
+            body = d["payload"] if d["topic"] == "ecl/set" else _gm_json.loads(d["payload"])["command"]["displace"]
+            stand[d["topic"]] = (int(body), d["retain"])
+        elif svc == "set_value":
+            stand["entity"] = d["value"]
+    return stand
+
+
+_gm = {}
+for _gm_retain in (False, True):
+    for _gm_path in ("mode_off", "unload"):
+        _gmc = _ghc_coord(entry_id=f"ghc_mqtt_{_gm_retain}_{_gm_path}", ecl110_displace_set_topic="ecl/set",
+                          ecl110_command_topic="ecl/cmd", ecl110_mqtt_retain=_gm_retain)
+        _ghc_pub(_gmc, -3.0)
+        if _gm_path == "mode_off":
+            _asyncio.run(_gmc.async_set_mode(_ghc_off, refresh=False))
+        else:
+            _gmc.entry.runtime_data = _gmc
+            _asyncio.run(_ghc_unload(_gmc.hass, _gmc.entry))
+        _gm[_gm_retain, _gm_path] = _gm_standing(_gmc)
+R.check(
+    "MODE_OFF and unload leave displace 0 standing on both ECL110 topics, retain on and off",
+    all(s == {"ecl/set": (0, r), "ecl/cmd": (0, r), "entity": 0} for (r, _), s in _gm.items()),
+    repr(_gm),
+)
+_gm_neutral = [_gm_json.loads(d["payload"]) for dom, _, d in _gmc.hass.services.calls
+               if dom == "mqtt" and d["topic"] == "ecl/cmd"][-1]
+R.check(
+    "the legacy neutral body releases supply: heat_pump_on true, displace 0, reason off_restore",
+    _gm_neutral["command"] == {"type": "ecl110_control", "heat_pump_on": True, "displace": 0}
+    and _gm_neutral["reason"] == "off_restore",
+    repr(_gm_neutral),
+)
+_gmt = _ghc_coord(entity=None, entry_id="ghc_mqtt_none")
+R.check(
+    "publish_ecl110_topics with no topic configured publishes nothing and reports success",
+    _asyncio.run(_ghc.publish_ecl110_topics(_gmt.hass, None, None, 1, False, 0, {})) is True
+    and _ghc_mqtt(_gmt) == [],
+    repr(_ghc_mqtt(_gmt)),
+)
+_gmn = _ghc_coord(entity=None, entry_id="ghc_mqtt_never", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmn.async_set_mode(_ghc_off, refresh=False))
+_gmx = _ghc_coord(entity=None, entry_id="ghc_mqtt_once", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmx, 2.0)
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "an MQTT arm never published is not restored; one published is restored once, not per off",
+    _ghc_mqtt(_gmn) == [] and _ghc_mqtt(_gmx) == [("ecl/set", "2"), ("ecl/set", "0")]
+    and _ghc_restore.diagnostics(_gmx.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "%r %r %r" % (_ghc_mqtt(_gmn), _ghc_mqtt(_gmx), _ghc_restore.diagnostics(_gmx.entry)),
+)
+
+# A topic refusing the neutral is a failed restore: latched, still armed, so the
+# next off or unload tries again; either topic's refusal counts.
+_gm_fail = {}
+for _gm_bad in ("ecl/set", "ecl/cmd"):
+    _gmf = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_refused_{_gm_bad}", ecl110_displace_set_topic="ecl/set",
+                      ecl110_command_topic="ecl/cmd")
+    _ghc_pub(_gmf, 2.0)
+    _gmf_call = _gmf.hass.services.async_call
+
+    async def _gmf_refuse(domain, service, data, *a, _bad=_gm_bad, _call=_gmf_call, **k):
+        if domain == "mqtt" and data.get("topic") == _bad:
+            raise RuntimeError("broker gone")
+        return await _call(domain, service, data, *a, **k)
+
+    _gmf.hass.services.async_call = _gmf_refuse
+    _asyncio.run(_gmf.async_set_mode(_ghc_off, refresh=False))
+    _gm_fail[_gm_bad] = _ghc_restore.diagnostics(_gmf.entry)
+R.check(
+    "a topic refusing the neutral leaves the MQTT arm armed and counts no restore",
+    all(d["armed"] == [_ghc.MQTT_CONSUMER] and d["restores"] == 0 for d in _gm_fail.values()),
+    repr(_gm_fail),
+)
+
+# Topics cleared after the arm: the entity is no longer the optimizer's to write,
+# so the restore disarms it unwritten and counts nothing (off_restore's rule for
+# a consumer no longer configured).
+_gmc_armed = _ghc_coord(entity=None, entry_id="ghc_mqtt_cleared", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmc_armed, 2.0)
+_gmc_bare = _ghc_coord(entity=None, entry_id="ghc_mqtt_bare")
+_asyncio.run(_ghc_restore.async_restore(_gmc_armed.hass, _gmc_armed.entry, _gmc_bare.effective_config, "unload"))
+R.check(
+    "an MQTT arm whose topics were cleared is disarmed unwritten, no restore counted",
+    _ghc_mqtt(_gmc_armed) == [("ecl/set", "2")]
+    and _ghc_restore.diagnostics(_gmc_armed.entry) == {"armed": [], "restores": 0, "last_restore": None},
+    "%r %r" % (_ghc_mqtt(_gmc_armed), _ghc_restore.diagnostics(_gmc_armed.entry)),
+)
+
+# Carry 30ec8edf (2): the legacy payload's heat_pump_on is the cycle's own
+# switch write. A cycle landing a step late is ``cycle_supply`` answering the
+# landing step's command against the action's; the null control is the same
+# cycle inside its step, where the two agree.
+from heatpump_optimizer import pump_arbiter as _gm_arb  # noqa: E402
+from heatpump_optimizer.const import MODE_COMFORT as _gm_comfort  # noqa: E402
+
+
+def _gm_cycle(late):
+    """(the switch writes, the legacy payload's heat_pump_on) of one _apply_action."""
+    coord = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_cycle_{late}", ecl110_command_topic="ecl/cmd")
+    coord._mode = _gm_comfort
+    coord._current_action = {"mode": "comfort", "heat_pump_on": False, "displace_value": 2.0}
+    switch = []
+
+    async def _record(on):
+        switch.append(on)
+
+    coord._write_supply = _record
+    real = _gm_arb.cycle_supply
+    if late:
+        _gm_arb.cycle_supply = lambda _inp, _boosts, on, now=None: not on
+    try:
+        _asyncio.run(coord._apply_action())
+    finally:
+        _gm_arb.cycle_supply = real
+    return switch, [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(coord)]
+
+
+_gm_inside, _gm_late = _gm_cycle(False), _gm_cycle(True)
+_gmd = _ghc_coord(entity=None, entry_id="ghc_mqtt_default_on", ecl110_command_topic="ecl/cmd")
+_gmd._mode, _gmd._current_action = _gm_comfort, {"mode": "comfort", "displace_value": 1.0}
+_asyncio.run(_gmd.async_publish_current_action())
+_gm_default = [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(_gmd)]
+R.check(
+    "the legacy payload's heat_pump_on is the switch's write, inside its step and a step late; no write and no key: off",
+    _gm_inside == ([False], [False]) and _gm_late == ([True], [True]) and _gm_default == [False],
+    "inside=%r late=%r default=%r" % (_gm_inside, _gm_late, _gm_default),
+)
+
 # A crash: the write was armed and persisted, the process died unrestored. The
 # next coordinator for the same entry restores it at its first off, before
 # writing anything itself.
@@ -49253,7 +49500,7 @@ _RC2_ROWS = [
     (_C.HeatPumpOptimizerClimate, "async_turn_on", (), ("mode", "off"), ("hvac_mode", _C.HVACMode.AUTO)),
     (_C.HeatPumpOptimizerClimate, "async_set_hvac_mode", (_C.HVACMode.HEAT,), ("mode", "auto"), ("hvac_mode", _C.HVACMode.HEAT)),
     (_C.HeatPumpOptimizerClimate, "async_set_preset_mode", ("economy",), ("mode", "auto"), ("preset_mode", "economy")),
-    (_C.HeatPumpOptimizerClimate, "async_set_temperature", ({"temperature": 21.5},), ("mode", "auto"), ("target_temperature", 21.5)),
+    (_C.HeatPumpOptimizerClimate, "async_set_temperature", ({"temperature": 21.5},), ("mode", "auto"), ("native_target_temperature", 21.5)),
     (_rc2_dt.AwayReturnDateTime, "async_set_value", (_RC2_RETURN,), ("away", True), ("native_value", _RC2_RETURN)),
 ]
 # The buttons share one PARALLEL_UPDATES slot, so a press that awaits a solve
@@ -61388,7 +61635,7 @@ R.check(
 def _p8_setpoint(state):
     hass = _FakeHass({"number.dhw_sp": state})
     hass.issues = []
-    params = _p8_ns(dhw_min_temp=55.0, dhw_legionella_enabled=False, legionella_cycle_active=False, dhw_legionella_temp=60.0)
+    params = _r9f12_tp(dhw_min_temp=55.0, dhw_legionella_enabled=False, dhw_legionella_temp=60.0)
     _p8_sp._dhw(hass, {_SP_DHW_ENT: "number.dhw_sp"}, params)
     return [i for i in hass.issues if i[1] == _SP_ISSUE_DHW]
 
@@ -62012,6 +62259,261 @@ R.check(
     "floor makes the first read as a 43.1 L tank heat",
 )
 
+# A charge start makes the tank reading FALL (the loading transient), and the
+# reading recovers once the charge stops; a draw does not recover. Each case
+# drives one learner on a pinned clock, samples 5 min apart (a sub-production
+# cadence; the production ones are below), and reads (the open draw occurrence in kWh,
+# usage-profile points). Pre-fix the dip is booked on the heated interval and
+# taught as usage on the settle interval; a fix that drops every
+# charge-affected interval instead loses the real draw. "dip" recovers; "draw"
+# is the same fall that stays down: it must keep what main booked. "edge" dips
+# on the interval ending exactly DHW_CHARGE_SETTLE_HOURS after the heated
+# sample, still inside the window. "space": a compressor start for SPACE
+# heating never sets the plan's DHW flag, the learner's only heating input,
+# so the dip is learned exactly as on main -- the null control.
+def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,), saturday=False, step_min=5):
+    import sys as _sys
+    import types as _types
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    coord._thermal_params.dhw_enabled = True
+    coord._thermal_params.dhw_schedule_enabled = False  # one all-day window
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    published, heating = [], [False]
+    learner._publish = lambda **k: published.append(k)
+    learner._heating_active = lambda: heating[0]
+    saved = [None]
+
+    async def _save_draws():
+        saved[0] = learner.draw_stats.as_dict()["open_kwh"]
+
+    learner.async_save_draws = _save_draws
+    module = _sys.modules[type(learner).__module__]
+    real_dt = module.dt_util
+    start = dt_util.now().replace(hour=start_hm[0], minute=start_hm[1], second=0)
+    if saturday:
+        start += timedelta(days=(5 - start.weekday()) % 7)
+    clock = [start]
+    module.dt_util = _types.SimpleNamespace(now=lambda: clock[0])
+    try:
+        for i, temp in enumerate(temps):
+            clock[0] = start + timedelta(minutes=step_min * i)
+            heating[0] = charged and i in heated_at
+            _aio.run(learner.async_learn_dynamics(temp))
+    finally:
+        module.dt_util = real_dt
+    stats = learner.draw_stats.as_dict()
+    closed = [e for v in stats["reservoirs"].values() for e in v]
+    return (
+        round(stats["open_kwh"], 4), len(published), closed,
+        list(learner.daytype_samples), saved[0] == stats["open_kwh"],
+    )
+
+
+_chg_dip = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0))
+_chg_draw = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0))
+_chg_edge = _chg_seq((50.0, 50.0, 50.0, 50.0, 48.0, 49.5, 50.0, 50.0))
+_chg_space = _chg_seq((50.0, 50.0, 48.0, 47.0, 48.5, 50.0, 50.0), charged=False)
+_chg_space_draw = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0), charged=False)
+# The recovery crosses midnight: the rise in the tick that opens the next
+# day's occurrence still reaches the dip in the day it closes, and a later
+# rise takes nothing from the new day (a closed occurrence is final).
+_chg_midnight = _chg_seq((50.0, 50.0, 47.0, 47.0, 48.5, 50.0, 50.0), start_hm=(23, 40))
+# A draw before the charge, then the device heats on past the plan slot:
+# those rises are no dip recovering, and must not take back the draw, which
+# the charge never folded.
+_chg_reheat = _chg_seq((50.0, 47.0, 47.0, 47.0, 49.0, 51.0, 51.0), heated_at=(2,))
+# An 8 K draw during the charge, then 8 K of reheat past the slot: the take
+# back stops at the dip bound, DHW_CHARGE_DIP_MAX_K, and 3 K stays booked.
+_chg_cap = _chg_seq((50.0, 50.0, 42.0, 42.0, 46.0, 50.0, 50.0))
+# A 4 K draw during a three-sample charge, then the charge heats 2 K back:
+# a heated rise is charge heat, not a dip recovering, so the draw stays
+# booked as on main (4 K beside "draw"'s 3 K).
+_chg_heated_rise = _chg_seq(
+    (50.0, 50.0, 46.0, 48.0, 48.0, 48.0, 48.0, 48.0), heated_at=(1, 2, 3)
+)
+# A 3 K settle drop that recovers only 1 K: the usage learner still learns
+# the 2 K left, at the interval's own length, once the charge closes.
+_chg_partial = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0))
+# "draw", then a later 1 K rise after the charge has closed: a closed charge
+# takes nothing back.
+# The same partial recovery on a Saturday teaches the weekend day type.
+_chg_partial_sat = _chg_seq((50.0, 50.0, 50.0, 47.0, 48.0, 48.0, 48.0), saturday=True)
+_chg_late = _chg_seq((50.0, 50.0, 48.0, 47.0, 47.0, 47.0, 47.0, 48.0))
+_chg_reheat_ctl = _chg_seq((50.0, 47.0, 47.0, 47.0, 47.0, 47.0, 47.0), heated_at=(2,))
+# The learner runs once per coordinator refresh, optimization_interval: 30 min
+# by default, 10-120 min. At those cadences the interval ENDING at the first
+# heated sample holds the draw made before the charge: a 3 K draw, then a 4 K
+# dip under 1 K of charge heat that recovers. Only the draw may stay booked,
+# as in the same trace with no dip (truth); pre-fix the recovery took back
+# part of that draw. The no-charge control keeps main's dip-inflated booking.
+def _chg_cadence(step_min, dip=True, charged=True):
+    temps = (50.0, 47.0, 44.0 if dip else 48.0, 48.0, 48.0)
+    return _chg_seq(temps, charged=charged, start_hm=(7, 0), step_min=step_min)[0]
+
+
+_chg_cad = {
+    step: (_chg_cadence(step), _chg_cadence(step, dip=False), _chg_cadence(step, charged=False))
+    for step in (10, 15, 30)
+}
+R.check(
+    "at the learner's production cadences a charge-start dip's recovery takes back "
+    "no draw made before the charge",
+    all(abs(d - t) < 0.01 and n > t + 0.5 for d, t, n in _chg_cad.values()),
+    f"cadence min: (dip open kWh, truth, no DHW charge on record (control)) {_chg_cad}",
+)
+
+# The take-back is bounded twice: by the charge-folded energy left in the open
+# occurrence, and by DHW_CHARGE_DIP_MAX_K per charge, not per interval. "esc":
+# a 3 K draw before the charge, a 1 K dip and two 1 K settle rises: the second
+# rise finds nothing left to take, and the draw stays as with no dip at all
+# (_chg_reheat_ctl). "cap3": an 8 K fall on the charge, then three 3 K rises in
+# the settle window: 5 K is taken and 3 K stays booked, as in "draw".
+_chg_esc = _chg_seq((50.0, 47.0, 47.0, 46.0, 47.0, 48.0, 48.0), heated_at=(2,))
+_chg_cap3 = _chg_seq((50.0, 50.0, 42.0, 45.0, 48.0, 51.0, 51.0))
+R.check(
+    "a charge's take-back stops at the energy its charge folded and at the dip bound",
+    abs(_chg_esc[0] - _chg_reheat_ctl[0]) < 0.01 and abs(_chg_cap3[0] - _chg_draw[0]) < 0.01,
+    f"(open kWh, ...) a 1 K dip recovering 2 K after a draw {_chg_esc} vs no dip (control) "
+    f"{_chg_reheat_ctl}; three 3 K rises after an 8 K fall {_chg_cap3} vs a 3 K draw {_chg_draw}",
+)
+
+R.check(
+    "a charge-start dip that recovers is learned as neither a draw nor usage, "
+    "and a draw that does not recover keeps what main booked",
+    _chg_dip[0] < 0.05 and _chg_dip[1] == 0
+    and _chg_edge[0] < 0.05 and _chg_edge[1] == 0
+    and _chg_draw[0] > 0.5 and _chg_draw[1] == 1
+    and _chg_space[0] > 0.5 and _chg_space[1] == 2
+    and abs(_chg_draw[0] - _chg_space_draw[0]) < 0.05
+    and _chg_midnight[0] == 0.0 and 0.0 < _chg_midnight[2][0] < _chg_draw[0]
+    and _chg_reheat[0] > 0.5 and abs(_chg_reheat[0] - _chg_reheat_ctl[0]) < 0.05
+    and abs(_chg_cap[0] - _chg_draw[0]) < 0.05
+    and _chg_heated_rise[0] > _chg_draw[0] + 0.1
+    and _chg_partial[1] == 1 and 0.0 < _chg_partial[0] < _chg_draw[0]
+    and abs(_chg_late[0] - _chg_draw[0]) < 0.05
+    and _chg_partial[3] == [1, 0] and _chg_partial_sat[3] == [0, 1]
+    and _chg_dip[4] and _chg_partial[4],
+    f"(open kWh, usage points) dip {_chg_dip}, dip at the window edge {_chg_edge}, "
+    f"draw that stays down {_chg_draw}, the dip with no DHW charge on record "
+    f"(control) {_chg_space}, the draw with none (control) {_chg_space_draw}, "
+    f"(new day open kWh, -, [closed day]) recovery across midnight {_chg_midnight}, "
+    f"a draw then heating past the slot {_chg_reheat} vs no reheat (control) "
+    f"{_chg_reheat_ctl}, an 8 K draw and 8 K of reheat {_chg_cap}, a draw then "
+    f"charge heat {_chg_heated_rise}, a 3 K settle drop recovering 1 K "
+    f"{_chg_partial}, on a Saturday {_chg_partial_sat}, a rise after the charge "
+    f"closed {_chg_late}; [weekday, weekend] day counts, and whether the last "
+    f"save holds the final open kWh, are the last two fields",
+)
+
+
+# The cooling learner reads the same flag: a 30-min interval that STARTED on a
+# heated sample is no standby decay. The same interval with no charge on
+# record is the control that proves it learnable (one cooling sample).
+def _chg_cooling(started_heated):
+    coord = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))
+    learner = coord._dhw_learner
+    learner.cooling_rate = 0.3
+    learner._heating_active = lambda: False
+    now = dt_util.now()
+    learner.last_temp_sample, learner.last_sample_time = 50.0, now - timedelta(minutes=30)
+    learner.heating_since_sample = started_heated
+    _aio.run(learner.async_learn_dynamics(49.8))
+    return learner.cooling_samples
+
+
+_chg_cool = (_chg_cooling(True), _chg_cooling(False))
+R.check(
+    "a 30-min interval that started on a heated DHW sample teaches no cooling",
+    _chg_cool == (0, 1),
+    f"cooling samples from a 30-min interval started heated / not (control) {_chg_cool}",
+)
+
+# The snapshot restore and the store loader now share one day-type reader, so
+# a snapshot whose day count overflows int() (inf) restores a zero count, as
+# the loader already did, rather than raising out of apply_payload. A finite
+# count is the control that still restores as stored. A snapshot restore
+# keeps a day type whose profile is absent or not 24 long as it was, its
+# count included, and a negative count is clamped to zero.
+def _chg_restore(count, profile=(1.0,) * 24):
+    learner = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))._dhw_learner
+    payload = {"hourly_profile": [1.0] * 24, "profile_weekend_samples": count}
+    if profile is not None:
+        payload["profile_weekend"] = list(profile)
+    try:
+        learner.apply_payload(payload)
+    except OverflowError:
+        return "OverflowError"
+    return learner.daytype_samples[1], len(learner.profile_weekend)
+
+
+_chg_restored = (
+    _chg_restore(float("inf")), _chg_restore(7), _chg_restore(7, (1.0,) * 23),
+    _chg_restore(7, None), _chg_restore(-3),
+)
+R.check(
+    "a snapshot restore takes an overflowing day-type count as zero, as the loader does, "
+    "and keeps a day type with a malformed profile as it was",
+    _chg_restored == ((0, 24), (7, 24), (0, 24), (0, 24), (0, 24)),
+    f"(weekend day count, profile length) restored from inf / 7 (control) / "
+    f"7 beside a 23-long profile / 7 with no profile / -3: {_chg_restored}",
+)
+
+
+# The draw fold persists a tick only above a 1e-4 kWh churn floor, for the
+# energy it folds and for the energy a recovery takes back alike: a tick AT
+# the floor saves nothing (the floor is strict), one ulp above it saves. Each
+# arm opens the occurrence with a zero tick first, so no occurrence closes and
+# the floor alone decides. The inputs are searched, not derived from the
+# fold's formula: the probe needs a drop whose booked energy is exactly 1e-4.
+def _chg_floor_saves(arm, above):
+    learner = Coord(FakeHass(), _r7d203_entry(
+        data={"tibber_token": "x", "weather_entity": "weather.home"},
+    ))._dhw_learner
+    learner._params().dhw_enabled = True
+    learner.cooling_rate = 0.0
+    learner._external_heat_active = lambda: False
+    saves = [0]
+
+    async def _save_draws():
+        saves[0] += 1
+
+    learner.async_save_draws = _save_draws
+    now = dt_util.now().replace(hour=8, minute=0, second=0, microsecond=0)
+    _aio.run(learner.async_fold_draw_stats(now, 50.0, 0.0, 1.0))
+    saves[0] = 0
+    floor = 1e-4 if not above else _ct_math.nextafter(1e-4, 1.0)
+    if arm == "fold":
+        cap = learner._params().dhw_store.capacity_kwh_per_c
+        drop = floor / cap
+        for _ in range(64):
+            if drop * cap == floor:
+                break
+            drop = _ct_math.nextafter(drop, 1.0 if drop * cap < floor else 0.0)
+        else:
+            return "no drop books exactly the floor"
+        _aio.run(learner.async_fold_draw_stats(now, 50.0, drop, 1.0))
+    else:
+        learner.draw_stats._open_charge_kwh = learner.draw_stats._open_kwh = floor
+        _aio.run(learner.async_fold_draw_stats(now, 50.0, 0.0, 1.0, recovered_k=1.0))
+    return saves[0]
+
+
+_chg_floor = {
+    arm: (_chg_floor_saves(arm, False), _chg_floor_saves(arm, True)) for arm in ("fold", "take")
+}
+R.check(
+    "the draw fold saves a tick only strictly above its 1e-4 kWh floor, folded or taken back",
+    _chg_floor == {"fold": (0, 1), "take": (0, 1)},
+    f"saves at the floor / one ulp above (control), per arm: {_chg_floor}",
+)
+
 # A zero-capacity tank is the input the floors were hiding. With the capacity
 # read raw, four of the seams below divide by it, so each has to decline to
 # plan rather than raise. Pre-fix this arm answers "ZeroDivisionError": the
@@ -62401,6 +62903,7 @@ import asyncio as _pa_aio  # noqa: E402
 from types import SimpleNamespace as _PaNS  # noqa: E402
 
 from heatpump_optimizer import pump_arbiter as _pa  # noqa: E402
+from harness import FakeEntry as _pa_entry  # noqa: E402
 from heatpump_optimizer.const import MODE_AUTO as _PA_AUTO, MODE_OFF as _PA_OFF  # noqa: E402
 
 _PA_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
@@ -62442,10 +62945,13 @@ class _PaCoord:
         self._thermal_model = _PaNS(
             params=_PaNS(min_electrical_power=0.4), curve_flow_temp=lambda _o: 34.2
         )
-        self._thermal_params = _PaNS(dhw_setpoint=48.0)
+        # No disinfection cycle: the arbiter reads the cycle's temperature only on a cycle step.
+        self._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None)
         self._current_state = _PaNS(outdoor_temperature=2.0)
         # One store key per coordinator: the storage stub outlives FakeHass.
-        self.entry = _PaNS(entry_id=f"pa{next(_PA_IDS)}")
+        # A FakeEntry, weak-referenceable as a real entry is: off_restore
+        # keys its record on it (R10-ARBITER-OFF-RESTORE).
+        self.entry = _pa_entry(entry_id=f"pa{next(_PA_IDS)}")
         self.set_modes = []
 
     def _plan_is_stale(self):
@@ -63020,6 +63526,259 @@ R.check(
     and ("select", "select_option", "Heating + DHW") in _pa_onun.writes(),
     f"{_pa_offun.writes()} / {_pa_onun.writes()}",
 )
+
+# R10-ARBITER-OFF-RESTORE (tvofi, 2026-11-07, "Arbiter too"): off and unload
+# restore the space set-point to the person's baseline, through off_restore.
+from heatpump_optimizer import off_restore as _pa_or  # noqa: E402
+
+
+def _pa_space(coord):
+    """The values written to the space set-point, in order."""
+    return [data["value"] for _d, _sv, data in coord.hass.services.calls
+            if data.get("entity_id") == "number.water_set"]
+
+
+def _pa_turn_off(coord):
+    """The coordinator's own path into Off: the hook's restore, then the mode, then a pass."""
+    coord.entry.runtime_data = coord
+    sent = _pa_aio.run(_pa_or.async_mode_change(coord.hass, coord.entry, coord._config, coord._mode, _PA_OFF))
+    coord._mode = _PA_OFF
+    _pa_run(coord, 45)
+    return sent
+
+
+_pa_ro = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_ro)                          # baseline 53 captured, the gate 25 written
+_pa_ro_sent = _pa_turn_off(_pa_ro)
+_pa_ro_written = dict(_pa.state_for(_pa_ro).written)
+from homeassistant.helpers.storage import SAVE_COUNTS as _pa_saves  # noqa: E402
+_pa_ro_key = f"heatpump_optimizer_{_pa_ro.entry.entry_id}_pump_duty"
+_pa_ro_saved = _pa_saves.get(_pa_ro_key, 0)
+_pa_run(_pa_ro, 46)
+_pa_run(_pa_ro, 47)
+_pa_ro_resaved = _pa_saves.get(_pa_ro_key, 0) - _pa_ro_saved
+_pa_ro_null = _PaCoord(_PA_TUYA, duty="observe")
+_pa_settled(_pa_ro_null)
+_pa_ro_null_sent = _pa_turn_off(_pa_ro_null)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: switching the optimizer off writes the space set-point's baseline back, "
+    "once, and nothing else, its record saved once; null control: with the arbiter not controlling, off writes nothing",
+    _pa_ro_sent == 1 and _pa_space(_pa_ro) == [53.0] and len(_pa_ro.writes()) == 1
+    and _pa_ro_written == {} and _pa_ro_resaved == 0
+    and _pa_ro_null_sent == 0 and _pa_ro_null.writes() == [],
+    f"{_pa_ro_sent=} {_pa_ro.writes()=} {_pa_ro_written=} {_pa_ro_resaved=} / {_pa_ro_null_sent=} {_pa_ro_null.writes()=}",
+)
+_pa_ru = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_ru)
+_pa_ru.entry.runtime_data = _pa_ru
+_pa_ru_sent = _pa_aio.run(_pa_or.async_restore(_pa_ru.hass, _pa_ru.entry, _pa_ru._config, "unload"))
+_pa_aio.run(_pa.release(_pa_ru))
+R.check(
+    "R10-ARBITER-OFF-RESTORE: unloading restores the space baseline and the release writes the "
+    "fallback row without the space set-point over it",
+    _pa_ru_sent == 1 and _pa_space(_pa_ru) == [53.0]
+    and ("select", "select_option", "Heating + DHW") in _pa_ru.writes(),
+    f"{_pa_ru_sent=} {_pa_ru.writes()=}",
+)
+# Persisted: a restart's new coordinator, entry and hass restore the baseline
+# read before the first write, never the optimizer's own value it now reads.
+_pa_rr = _PaCoord(_PA_TUYA)
+_pa_settled(_pa_rr)
+_pa_rr2 = _PaCoord(_PA_TUYA)
+_pa_rr2.entry = _pa_entry(entry_id=_pa_rr.entry.entry_id)
+_pa_rr2.device("number.water_set", "25")
+_pa_rr2_sent = _pa_turn_off(_pa_rr2)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: the baseline survives a restart: off after it restores 53, not the 25 "
+    "the optimizer wrote",
+    _pa_rr2_sent == 1 and _pa_space(_pa_rr2) == [53.0],
+    f"{_pa_rr2_sent=} {_pa_rr2.writes()=}",
+)
+
+
+def _pa_upgraded(reading):
+    """A record from before the restore existed: the arbiter wrote 30, the entity reads ``reading``."""
+    coord = _PaCoord(_PA_TUYA)
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (30.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", reading)
+    _pa_run(coord, 2)
+    first = _pa_space(coord)
+    coord.hass.services.calls.clear()
+    return coord, first, _pa_turn_off(coord)
+
+
+_pa_up, _pa_up_first, _pa_up_sent = _pa_upgraded("30")
+_pa_up_n, _pa_up_n_first, _pa_up_n_sent = _pa_upgraded("31")
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as "
+    "the baseline, and the write waits; null control: a reading of the person's own is captured, "
+    "written over, and restored on off",
+    _pa_up_first == [] and _pa_up_sent == 0 and _pa_space(_pa_up) == []
+    and _pa_up_n_first == [25.0] and _pa_up_n_sent == 1 and _pa_space(_pa_up_n) == [31.0],
+    f"{_pa_up_first=} {_pa_up_sent=} {_pa_up.writes()=} / {_pa_up_n_first=} {_pa_up_n_sent=} "
+    f"{_pa_up_n.writes()=}",
+)
+
+
+def _pa_between(reading, switch_off=False, then=None):
+    """Baseline 53; the gate 25, then a space step's target; then the entity reads ``reading``.
+
+    ``then``: a second differing reading, after the rewrite the pump did not take.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    _pa_settled(coord)
+    _pa_settled(coord, 30)
+    if switch_off:
+        with_config(coord, {"heat_pump_switch_entity": "switch.hp"})
+        coord.hass.states.set("switch.hp", FakeState("off"))
+        _pa_settled(coord, 31)
+        coord.device("switch.hp", "on")
+    coord.device("number.water_set", reading)
+    _pa_run(coord, 33)
+    if then is not None:
+        coord.device("number.water_set", then)
+        _pa_run(coord, 35)
+    coord.hass.services.calls.clear()
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a space set-point a person sets between writes becomes the baseline off "
+    "restores; null controls: the reading the entity held before the write (a refused write) and a "
+    "reading after the pump was switched off (its own reset) leave the baseline at 53",
+    _pa_between("40") == (1, [40.0]) and _pa_between("25") == (1, [53.0])
+    and _pa_between("40", switch_off=True) == (1, [53.0]),
+    f"{_pa_between('40')=} {_pa_between('25')=} {_pa_between('40', switch_off=True)=}",
+)
+_pa_echo = _PaCoord(_PA_TUYA, duties="dds-s")
+_pa_settled(_pa_echo)
+_pa_settled(_pa_echo, 30)
+_pa_echo_target = _pa.state_for(_pa_echo).written["space_setpoint"][0]
+_pa_echo.device("number.water_set", "40")
+_pa_aio.run(_pa.apply(_pa_echo, _PA_T0 + timedelta(minutes=30, seconds=10)))
+_pa_echo.device("number.water_set", str(_pa_echo_target))
+_pa_run(_pa_echo, 33)
+_pa_echo.hass.services.calls.clear()
+_pa_echo_sent = _pa_turn_off(_pa_echo)
+_pa_same = _PaCoord(_PA_TUYA, duties="dds-s")
+_pa_settled(_pa_same)
+_pa_settled(_pa_same, 30)
+_pa_run(_pa_same, 33)
+_pa_same.hass.services.calls.clear()
+_pa_same_sent = _pa_turn_off(_pa_same)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading inside the echo grace, and one that holds the write, are no "
+    "edit: off restores 53",
+    _pa_echo_sent == 1 and _pa_space(_pa_echo) == [53.0]
+    and _pa_same_sent == 1 and _pa_space(_pa_same) == [53.0],
+    f"{_pa_echo_target=} {_pa_space(_pa_echo)=} {_pa_space(_pa_same)=}",
+)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a second differing reading is a write the pump does not take, never a "
+    "second edit: off restores the first edit, 40, not 41",
+    _pa_between("40", then="41") == (1, [40.0]),
+    f"{_pa_between('40', then='41')=}",
+)
+# #3402 item 5b825bae: an adopted baseline is a value the entity takes, or
+# off writes one it refuses. number.water_set declares min 25, max 63.
+R.check(
+    "R10-ARBITER-OFF-RESTORE: an edit outside the entity's own range is adopted bounded to it: off "
+    "restores 63 for a reading of 70; null control: 40, inside it, is restored as read",
+    _pa_between("70") == (1, [63.0]) and _pa_between("40") == (1, [40.0]),
+    f"{_pa_between('70')=} {_pa_between('40')=}",
+)
+
+
+def _pa_at_grace(after_s):
+    """Baseline 53, the space write, then 40 read ``after_s`` seconds past the grace's start."""
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    _pa_settled(coord)
+    _pa_settled(coord, 30)
+    stamp = _pa.state_for(coord).written["space_setpoint"][1]
+    coord.device("number.water_set", "40")
+    _pa_aio.run(_pa.apply(coord, stamp + timedelta(seconds=after_s)))
+    coord.hass.services.calls.clear()
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: a reading exactly ECHO_GRACE_S after the write is past the grace and "
+    "adopted; null control: one a second inside it is not, and off restores 53",
+    _pa_at_grace(_pa.ECHO_GRACE_S) == (1, [40.0]) and _pa_at_grace(_pa.ECHO_GRACE_S - 1) == (1, [53.0]),
+    f"{_pa_at_grace(_pa.ECHO_GRACE_S)=} {_pa_at_grace(_pa.ECHO_GRACE_S - 1)=}",
+)
+# #3402 item 648c3c80, the write-ahead order: the baseline is on disk before
+# the space write is sent, so a crash between the two still restores it.
+import json as _pa_json  # noqa: E402
+
+from homeassistant.helpers.storage import _DISK as _pa_disk  # noqa: E402
+
+_pa_wa = _PaCoord(_PA_TUYA)
+_pa_wa_key = f"heatpump_optimizer_{_pa_wa.entry.entry_id}_off_restore"
+_pa_wa_seen = []
+_pa_wa_call = _pa_wa.hass.services.async_call
+
+
+async def _pa_wa_spy(domain, service, data=None, **kwargs):
+    if (data or {}).get("entity_id") == "number.water_set":
+        _pa_wa_seen.append(_pa_json.loads(_pa_disk.get(_pa_wa_key) or "{}").get("armed", {}).get(_pa.CONSUMER))
+    return await _pa_wa_call(domain, service, data, **kwargs)
+
+
+_pa_wa.hass.services.async_call = _pa_wa_spy
+_pa_wa_before = _pa_disk.get(_pa_wa_key)
+_pa_settled(_pa_wa)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: the space set-point's baseline is saved before the arbiter's first "
+    "write to it is sent (write-ahead); null control: the store held no baseline before that pass",
+    _pa_wa_before is None and _pa_wa_seen[:1] == [{"entity_id": "number.water_set", "value": 53.0}],
+    f"{_pa_wa_before=} {_pa_wa_seen=}",
+)
+R.check(
+    "R10-ARBITER-OFF-RESTORE: an install with no space set-point has no restorer (the hook's "
+    "'None unconfigured'); null control: one with it has",
+    _pa._restorer(EntryConfig.from_mapping({"pump_duty_mode": "control"})) is None
+    and _pa._restorer(_pa_wa._config) is not None,
+    f"{_pa._restorer(EntryConfig.from_mapping({'pump_duty_mode': 'control'}))=}",
+)
+
+
+def _pa_restored_twice(via):
+    """A baseline equal to the plan's own value (25), restored by ``via``, then a restart.
+
+    The restore drops the space slot from the arbiter's persisted record, so
+    after the restart the next arm captures 25 again rather than refusing it
+    as the optimizer's own last write. A space-only install, whose record holds
+    nothing else, so no other slot's write saves it.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="dds-s")
+    with_config(coord, {"heat_pump_mode_entity": "", "dhw_setpoint_entity": ""})
+    coord.device("number.water_set", "25")
+    _pa_settled(coord)                       # 25 captured, and the gate 25 written: the last write
+    coord.entry.runtime_data = coord
+    if via == "off":
+        _pa_turn_off(coord)
+    else:
+        _pa_aio.run(_pa_or.async_restore(coord.hass, coord.entry, coord._config, "unload"))
+        _pa_aio.run(_pa.release(coord))
+    again = _PaCoord(_PA_TUYA, duties="dds-s")
+    again._config = coord._config
+    again.entry = _pa_entry(entry_id=coord.entry.entry_id)
+    again.device("number.water_set", "25")
+    _pa_run(again, 0)
+    _pa_run(again, 30)
+    again.hass.services.calls.clear()
+    return _pa_turn_off(again)
+
+
+R.check(
+    "R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, "
+    "a restart captures it again and the next off restores it",
+    _pa_restored_twice("unload") == 1 and _pa_restored_twice("off") == 1,
+    f"{_pa_restored_twice('unload')=} {_pa_restored_twice('off')=}",
+)
 _pa_subs = _PaCoord(_PA_TUYA)
 _pa_run(_pa_subs, 1)
 _pa_run(_pa_subs, 2)
@@ -63049,8 +63808,8 @@ R.check(
     f"{_pa_heat_own.writes()} {_pa_heat_sig.mode_owned=}",
 )
 _pa_mbs = _PaCoord(_PA_MODBUS, duties="s")
-_pa_mbs._thermal_params = _PaNS(
-    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, legionella_cycle_active=True, dhw_legionella_temp=60.0
+_pa_mbs._thermal_params = _r9f12_tp(
+    dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
 )
 _pa_settled(_pa_mbs, 1)
 _p8_sp.evaluate(_pa_mbs, lambda pump: _pa.dhw_gated(_pa_mbs, pump))
@@ -63761,7 +64520,7 @@ R.check(
     f"{_pa_ingate.writes()}",
 )
 
-# dhw_gated: only the arbiter's own gate, still reading as written, is excused.
+# dhw_gated: only the arbiter's own write, still reading as written, is excused.
 _pa_gate = _PaCoord(_PA_MODBUS, duties="s")
 _pa_run(_pa_gate, 1)
 _pa_full = _PaCoord(_PA_TUYA, duties="d")
@@ -63772,8 +64531,8 @@ R.check(
     f"{_pa.state_for(_pa_gate).written=}",
 )
 R.check(
-    "a written set-point at the configured value is no gate, so it excuses nothing",
-    not _pa.dhw_gated(_pa_full, 48.0),
+    "a written set-point at the configured value is the arbiter's too: it writes the cycle itself, so it is excused",
+    _pa.dhw_gated(_pa_full, 48.0) and not _pa.dhw_gated(_pa_full, 46.0),
     f"{_pa.state_for(_pa_full).written=}",
 )
 
@@ -66482,7 +67241,7 @@ async def _f11_midsolve(away: bool):
                 refresh=False)
         ent = _f11_climate.HeatPumpOptimizerClimate(c, entry)
         published: list = []
-        c.async_add_listener(lambda: published.append(ent.target_temperature))
+        c.async_add_listener(lambda: published.append(ent.native_target_temperature))
         seen: list = []
         solve = _f11_cm._await_optimize
 
@@ -66495,7 +67254,7 @@ async def _f11_midsolve(away: bool):
         with _f11_mock.patch.object(_f11_cm, "_await_optimize", _wrapped):
             dt_util.freeze(t0 + timedelta(minutes=15))
             await c.async_run_optimization()
-        return seen, ent.target_temperature
+        return seen, ent.native_target_temperature
     finally:
         dt_util.freeze(None)
 
@@ -68941,9 +69700,9 @@ for _f25_valve, _f25_kw in (
     _f25_cap = {}
     _f25_real_builder = _f21_optmod._terminal_row_cost
 
-    def _f25_cap_builder(refill, cop_end, cop_buffer, stores):
-        built = _f25_real_builder(refill, cop_end, cop_buffer, stores)
-        _f25_cap["args"] = (refill, cop_end, cop_buffer, stores)
+    def _f25_cap_builder(refill, cop_end, cop_buffer, stores, law=None):
+        built = _f25_real_builder(refill, cop_end, cop_buffer, stores, law)
+        _f25_cap["args"] = (refill, cop_end, cop_buffer, stores, law)
         _f25_cap["spec"] = built[1]
         return built
 
@@ -76216,7 +76975,7 @@ class _EcCoord(_PaCoord):
         self._optimization_result = _ec_plan(duties, planned)
         self._current_action = {"heat_pump_on": True}
         self._thermal_params = _PaNS(
-            dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=False, dhw_setpoint=48.0)
+            dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=False, dhw_setpoint=48.0, dhw_max_temp=48.0)
         self._current_state = _PaNS(
             dhw_temperature=50.0, lower_floor_temperature=21.0, outdoor_temperature=2.0)
         self.entry = FakeEntry_ec(entry_id=f"ec{next(_PA_IDS)}")
@@ -76728,7 +77487,7 @@ R.check(
 # 275 two-zone cold lower floor: the cut is blocked when a second zone is below target.
 _ec_zone = _EcCoord()
 _ec_zone._thermal_params = _PaNS(
-    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0)
+    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0, dhw_max_temp=48.0)
 _ec_zone._current_state = _PaNS(
     dhw_temperature=50.0, lower_floor_temperature=18.0, outdoor_temperature=2.0)
 _ec_zone.arm()
@@ -76742,7 +77501,7 @@ R.check(
 # 275 CMP_BOUND: _second_zone_cold at the exact lower == limit - MARGIN_K boundary.
 _ec_sz = _EcCoord()
 _ec_sz._thermal_params = _PaNS(
-    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0)
+    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0, dhw_max_temp=48.0)
 _ec_sz._current_state = _PaNS(
     dhw_temperature=50.0, lower_floor_temperature=21.0, outdoor_temperature=2.0)
 R.check(
@@ -76846,7 +77605,7 @@ def _df_write(slot, entity, state, instance, value_c):
     """What the arbiter's ``_write`` hands the service for ``value_c`` degC."""
     hass = _df_hass({entity: state}, instance)
     coord = _DfCoord()
-    coord.hass, coord.entry = hass, _DfNS(entry_id=f"df{next(_df_ids)}")
+    coord.hass, coord.entry = hass, _pa_entry(entry_id=f"df{next(_df_ids)}")
     inp = _DfNS(hass=hass, config={f"{slot}_entity": entity})
     _df_aio.run(_df_pa._write(coord, inp, slot, value_c, _DF_T0))
     calls = [c for c in hass.services.calls if (c[2] or {}).get("entity_id") == entity]
@@ -76937,7 +77696,7 @@ def _df_dhw_command(entity, state, instance, setpoint_c):
         hass=hass, config=EntryConfig.from_mapping({"dhw_setpoint_entity": entity}),
         mode="auto", plan=None, plan_stale=False, entry_released=False,
         state=_DfNS(outdoor_temperature=2.0), thermal=None,
-        params=_DfNS(dhw_setpoint=setpoint_c), action={}, measured_power_kw=None,
+        params=_DfNS(dhw_setpoint=setpoint_c, dhw_max_temp=setpoint_c), action={}, measured_power_kw=None,
         disinfecting=False,
     )
     return _df_pa.desired(None, inp, "dhw", _DF_T0).dhw_setpoint
@@ -77064,8 +77823,8 @@ _df_space_hass = _df_strict_hass({"number.space": FakeState("unavailable")})
 _df_sc.evaluate(_DfNS(
     hass=_df_space_hass,
     effective_config={"space_setpoint_entity": "number.space"},
-    thermal_params=_DfNS(dhw_min_temp=45.0, dhw_legionella_enabled=False, legionella_cycle_active=False,
-                         dhw_legionella_temp=60.0),
+    thermal_params=_r9f12_tp(dhw_min_temp=45.0, dhw_legionella_enabled=False,
+                             dhw_legionella_temp=60.0),
 ))
 R.check(
     "a set-point slot with no entity id reads nothing, before any state lookup, "
@@ -80512,6 +81271,617 @@ R.check(
 )
 
 
+# #1935 follow-up (R10-OUTSIDE-LEARNER-ROBUSTNESS-P2): every space boost owes
+# the full settling tail from its own end, whatever time it ran (no scaled
+# tail kept every press arm of dev/audit/harnesses/boost_press_tail_walk.py
+# inside the whole window's walk); the time it ran is summed and persisted.
+def _bt_state(ran, *, cancel=True):
+    st = boost_mod.BoostState()
+    st.set(boost_mod.CHANNEL_SPACE, True, NOW)
+    if cancel:
+        st.set(boost_mod.CHANNEL_SPACE, False, NOW + ran)
+    else:
+        st.expire(NOW + ran)
+    return st
+
+
+_bt_click, _bt_full = _bt_state(timedelta(seconds=38)), _bt_state(timedelta(hours=3), cancel=False)
+_bt_nested = _bt_state(timedelta(hours=2), cancel=False)
+_bt_nested.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=3))
+_bt_nested.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=3, seconds=38))
+R.check(
+    "a 38 s boost cancelled owes the full tail from its end and sums its 38 s; a window "
+    "run to its end settles 12 h from that end (null control); a click inside a long "
+    "tail adds to it, so the full tail runs again from the click's end",
+    _bt_click.space_settle_until == NOW + timedelta(seconds=38) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_click.space_boosted == timedelta(seconds=38)
+    and _bt_full.space_settle_until == NOW + timedelta(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_nested.space_settle_until == NOW + timedelta(hours=3, seconds=38) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_click.space_settle_until} {_bt_full.space_settle_until} {_bt_nested.space_settle_until}",
+)
+_bt_restored = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_restored, {
+    "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat()},
+    "space": {"until": (NOW + timedelta(hours=1)).isoformat(), "since": (NOW - timedelta(hours=1)).isoformat()},
+}, NOW)
+_bt_down = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_down, {"space": {"until": (NOW - timedelta(hours=1)).isoformat(),
+                                               "since": (NOW - timedelta(hours=3)).isoformat()}}, NOW)
+_bt_spent = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_spent, {"space_settle": {"until": (NOW - timedelta(minutes=1)).isoformat()}}, NOW)
+R.check(
+    "a restart restores a running settling tail and the live overlay's start, an "
+    "overlay that ended while Home Assistant was down owes its tail; a spent tail "
+    "is not restored (null control)",
+    _bt_restored.space_settle_until == NOW + timedelta(hours=9)
+    and _bt_restored.space_since == NOW - timedelta(hours=1)
+    and _bt_down.space_settle_until == NOW - timedelta(hours=1) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_down.space_since is None  # a start is held only while its overlay is live
+    and _bt_spent.space_settle_until is None,
+    f"{_bt_restored} {_bt_down} {_bt_spent}",
+)
+_bt_store = _he_store._tries().get("boost", {})
+_bt_hdom = _bt_store.get("space_settle", {}).get("boosted_h", {}).get("")
+R.check(
+    "the boost store declares the settling tail's lead past the overlay's two hours, and a "
+    "boosted sum of any length from zero, or unknown; a negative one is out of its domain",
+    getattr(_bt_store.get("space_settle", {}).get("until", {}).get(""), "ahead_h", None)
+    == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS
+    and [_he_store.in_domain(_bt_hdom, v) for v in (0.0, 0.5, None, -0.1)] == [True, True, True, False],
+    f"{_bt_store.get('space_settle')}",
+)
+
+
+# R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (a): boosts add up. Three 20-minute presses
+# back to back, each cancelled, added the heat of one hour-long boost: the sum
+# records one hour and the tail runs from the last end, so they owe no less
+# than one boost of their summed length; a mode boost and an overlay back to
+# back add up the same way. Null control: one 20-minute press alone sums 20.
+def _bt_series(spans, gap=timedelta(minutes=1)):
+    st, at = boost_mod.BoostState(), NOW
+    for surface, ran in spans:
+        if surface == "mode":
+            st.note_mode(True, at)
+            st.note_mode(False, at + ran)
+        else:
+            st.set(boost_mod.CHANNEL_SPACE, True, at)
+            st.set(boost_mod.CHANNEL_SPACE, False, at + ran)
+        at = at + ran + gap
+    return st, at - gap
+
+
+_bt_20 = timedelta(minutes=20)
+_bt_three, _bt_three_end = _bt_series([("space", _bt_20)] * 3)
+_bt_mixed, _bt_mixed_end = _bt_series([("mode", timedelta(minutes=30)), ("space", timedelta(minutes=30))])
+_bt_one, _bt_one_end = _bt_series([("space", _bt_20)])
+R.check(
+    "short boosts back to back owe no less than one boost of their summed length, "
+    "over both surfaces; one short boost alone sums only itself (null control)",
+    _bt_three.space_settle_until == _bt_three_end + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_three.space_boosted == 3 * _bt_20
+    and _bt_mixed.space_settle_until == _bt_mixed_end + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mixed.space_boosted == timedelta(hours=1)
+    and _bt_one.space_settle_until == _bt_one_end + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_one.space_boosted == _bt_20,
+    f"{_bt_three} {_bt_mixed} {_bt_one}",
+)
+
+
+# (a) The sum clears only once a tail ran out with no boost live: a short press
+# after the series' tail is spent sums only itself (null control for a sum
+# that never clears); a press inside the tail adds to it.
+_bt_after, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_spent_at = _bt_after.space_settle_until
+_bt_after.expire(_bt_spent_at + timedelta(minutes=1))
+_bt_after.set(boost_mod.CHANNEL_SPACE, True, _bt_spent_at + timedelta(minutes=1))
+_bt_after.set(boost_mod.CHANNEL_SPACE, False, _bt_spent_at + timedelta(minutes=21))
+_bt_inside, _bt_inside_end = _bt_series([("space", _bt_20)] * 3)
+_bt_inside.set(boost_mod.CHANNEL_SPACE, True, _bt_inside_end + timedelta(hours=1))
+_bt_inside.set(boost_mod.CHANNEL_SPACE, False, _bt_inside_end + timedelta(hours=1, minutes=20))
+R.check(
+    "the boosted sum clears once its tail ran out with nothing live, and not before",
+    _bt_after.space_settle_until == _bt_spent_at + timedelta(minutes=21) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_after.space_boosted == _bt_20
+    and _bt_inside.space_boosted == 4 * _bt_20
+    and _bt_inside.space_settle_until
+    == _bt_inside_end + timedelta(hours=1, minutes=20) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_after} {_bt_inside}",
+)
+
+# (d) The mode's start is not persisted: a mode restored as boost has no start,
+# so leaving it makes the sum unknown (fail closed) and owes the full tail.
+# Null control: a mode entered in this run and left after 30 minutes sums 30.
+_bt_mode_restored = boost_mod.BoostState()
+_bt_mode_restored.note_mode(False, NOW)
+_bt_mode_seen = boost_mod.BoostState()
+_bt_mode_seen.note_mode(True, NOW - timedelta(minutes=30))
+_bt_mode_seen.note_mode(False, NOW)
+R.check(
+    "a boost mode restored with no start leaves an unknown sum when left; one seen to "
+    "start sums its own length; both owe the full tail",
+    _bt_mode_restored.space_settle_until == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mode_restored.space_boosted is None
+    and _bt_mode_seen.space_settle_until == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mode_seen.space_boosted == timedelta(minutes=30),
+    f"{_bt_mode_restored} {_bt_mode_seen}",
+)
+
+# The boosted sum survives a restart with its tail; an unreadable sum reads
+# as unknown. Null control: a store main wrote (no tail, no start) restores the
+# live overlay with an unseen start.
+_bt_rs = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_rs, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                    "boosted_h": 1.0}}, NOW)
+_bt_rs.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_rs.set(boost_mod.CHANNEL_SPACE, False, NOW + _bt_20)
+_bt_rbad = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_rbad, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                      "boosted_h": "x"}}, NOW)
+_bt_main = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_main, {"space": {"until": (NOW + timedelta(hours=1)).isoformat()}}, NOW)
+R.check(
+    "a restart keeps the boosted sum with the tail; an unreadable sum is unknown; "
+    "a store main wrote restores with no start and no tail",
+    _bt_rs.space_boosted == timedelta(hours=1) + _bt_20
+    and _bt_rs.space_settle_until == NOW + _bt_20 + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_rbad.space_boosted is None
+    and _bt_main.space_since is None and _bt_main.space_settle_until is None,
+    f"{_bt_rs} {_bt_rbad} {_bt_main}",
+)
+
+# Null control: an install that never boosted, or only blocked, persists the
+# payload main persists; one with a tail adds only the tail record and the start.
+_bt_never = boost_mod.BoostState(blocked={boost_mod.CHANNEL_DHW: NOW + timedelta(hours=1)})
+_bt_live = boost_mod.BoostState()
+_bt_live.set(boost_mod.CHANNEL_SPACE, True, NOW)
+R.check(
+    "a boost store from an install that never boosted is main's payload, field for field",
+    boost_mod._store_payload(boost_mod.BoostState()) == {}
+    and boost_mod._store_payload(_bt_never) == {"block_dhw": {"until": (NOW + timedelta(hours=1)).isoformat()}}
+    and boost_mod._store_payload(_bt_live) == {"space": {"until": (NOW + timedelta(hours=2)).isoformat(),
+                                                   "since": NOW.isoformat()}}
+    and set(boost_mod._store_payload(_bt_click)) == {"space_settle"},
+    f"{boost_mod._store_payload(_bt_never)} {boost_mod._store_payload(_bt_live)} {boost_mod._store_payload(_bt_click)}",
+)
+
+# (f) A tail further ahead than its declared look-ahead (a clock stepped back)
+# is bounded by the store to that look-ahead, not trusted; one inside it loads
+# unchanged. Null control: the same stamp under the overlay's own field is held
+# to the store's two-hour lead.
+_bt_bound = NOW + boost_mod._MAX_LEAD
+_bt_far = (NOW + timedelta(hours=30)).isoformat()
+_bt_near = (NOW + timedelta(hours=11)).isoformat()
+_bt_loaded = _he_store._bound_instants(
+    {"space_settle": {"until": _bt_far}, "space": {"until": _bt_far}},
+    _bt_bound, "boost", None, [], (), _he_store._tries()["boost"])
+_bt_kept = _he_store._bound_instants(
+    {"space_settle": {"until": _bt_near}}, _bt_bound, "boost", None, [], (), _he_store._tries()["boost"])
+R.check(
+    "a persisted tail past its declared look-ahead is bounded to it; one inside loads unchanged",
+    _bt_loaded["space_settle"]["until"]
+    == (_bt_bound + timedelta(hours=_fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS)).isoformat()
+    and _bt_loaded["space"]["until"] == _bt_bound.isoformat()
+    and _bt_kept["space_settle"]["until"] == _bt_near,
+    f"{_bt_loaded} {_bt_kept}",
+)
+
+# (f) Both directions of the boost store, through ``restore`` itself at
+# ``BOOST_STORE_VERSION`` unchanged: this build's payload (tail, boosted sum,
+# start) read by main's loader -- ``restore`` without ``_restore_settle``, the
+# only line this part added to it -- keeps main's overlay and block, and a
+# payload main wrote restores here with the overlay and no tail. Null control:
+# the same payload through this build's own loader also restores the tail.
+import asyncio as _bt_asyncio  # noqa: E402
+
+
+class _BtCoord:
+    pass
+
+
+class _BtStore:
+    def __init__(self, payload):
+        self.payload = payload
+
+    async def async_load(self):
+        return self.payload
+
+
+def _bt_load(payload, *, main_loader):
+    coord, saved = _BtCoord(), (boost_mod._store, boost_mod._restore_settle)
+    boost_mod._store = lambda _coord: _BtStore(payload)
+    if main_loader:
+        boost_mod._restore_settle = lambda *_a: None
+    try:
+        _bt_asyncio.run(boost_mod.restore(coord))
+    finally:
+        boost_mod._store, boost_mod._restore_settle = saved
+    return boost_mod.held_for(coord)
+
+
+_bt_now = dt_util.now()
+_bt_ours = boost_mod.BoostState()
+_bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(hours=3))
+_bt_ours.set(boost_mod.CHANNEL_SPACE, False, _bt_now - timedelta(hours=2))
+_bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(minutes=5))
+_bt_ours.blocked[boost_mod.CHANNEL_DHW] = _bt_now + timedelta(hours=1)
+_bt_ours_payload = boost_mod._store_payload(_bt_ours)
+_bt_down_main = _bt_load(_bt_ours_payload, main_loader=True)
+_bt_up = _bt_load({"space": {"until": (_bt_now + timedelta(hours=1)).isoformat()}}, main_loader=False)
+_bt_same = _bt_load(_bt_ours_payload, main_loader=False)
+R.check(
+    "a boost store this build wrote loads in main's loader with main's overlay and block; "
+    "one main wrote loads here with no tail; this build's loader keeps the tail (null control)",
+    set(_bt_ours_payload) == {"space", "block_dhw", "space_settle"}
+    and _bt_down_main.until == _bt_ours.until and _bt_down_main.blocked == _bt_ours.blocked
+    and _bt_down_main.space_settle_until is None
+    and set(_bt_up.until) == {boost_mod.CHANNEL_SPACE} and _bt_up.space_settle_until is None
+    and _bt_up.space_since is None
+    and _bt_same.space_settle_until == _bt_ours.space_settle_until
+    and _bt_same.space_since == _bt_ours.space_since
+    and _bt_same.space_boosted == timedelta(hours=1),
+    f"{_bt_ours_payload} {_bt_down_main} {_bt_up} {_bt_same}",
+)
+
+# (e) ``heat_loss_refit`` waits ``SPACE_SETTLE_TAIL`` after the last
+# boost-tagged pair (a pair carries no boost length), and every boost length,
+# cancelled or expired, owes exactly that tail from its end: the refit never
+# reads evidence the interval learners refused. Null control: a mutant tail
+# shorter for a short boost turns it red (the body's mutation table).
+_bt_window_min = int(60 * boost_mod.BOOST_HOURS)
+_bt_sweep = [
+    _bt_state(timedelta(minutes=m), cancel=m < _bt_window_min).space_settle_until
+    - (NOW + timedelta(minutes=min(m, _bt_window_min)))
+    for m in range(1, 2 * _bt_window_min, 7)
+]
+R.check(
+    "every boost length, cancelled inside the window or expired past it, owes the full "
+    "tail the refit waits",
+    set(_bt_sweep) == {boost_mod.SPACE_SETTLE_TAIL} and len(_bt_sweep) == len(range(1, 2 * _bt_window_min, 7)),
+    f"{sorted(set(_bt_sweep))}",
+)
+
+# Null control: the order of the freeze reasons in ``_learning_frozen`` is main's.
+import ast as _bt_ast  # noqa: E402
+import inspect as _bt_inspect  # noqa: E402
+import textwrap as _bt_tw  # noqa: E402
+_bt_returns = [
+    _bt_ast.unparse(n.value) for n in sorted(_bt_ast.walk(_bt_ast.parse(_bt_tw.dedent(_bt_inspect.getsource(
+        _he_cm.HeatPumpOptimizerCoordinator._learning_frozen)))), key=lambda n: getattr(n, "lineno", 0))
+    if isinstance(n, _bt_ast.Return)
+]
+R.check(
+    "the freeze reasons keep main's order, the boost's after ventilation and before the tail freeze",
+    _bt_returns == ["'external_heat_source'", "signals.freeze_reason", "'defrosting'",
+                    "f'{reading.problem}:{key}'", "'ventilation'", "boost.FREEZE_REASON",
+                    "_tail_freeze(self)"],
+    f"{_bt_returns}",
+)
+
+# Fix review (blocked 594238bf), X1: a press in the tail's last two hours keeps
+# the overlay live past the tail's end, and the sum is not cleared while it is
+# live, so that press adds to it. Null control: ``_bt_after`` above, the same
+# press after the tail ran out, sums only itself.
+_bt_x1, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_x1_tail = _bt_x1.space_settle_until
+_bt_x1.set(boost_mod.CHANNEL_SPACE, True, _bt_x1_tail - timedelta(hours=1))
+_bt_x1.expire(_bt_x1_tail + timedelta(minutes=30))
+_bt_x1_mid = (_bt_x1.space_settle_until, _bt_x1.space_boosted)
+_bt_x1.set(boost_mod.CHANNEL_SPACE, False, _bt_x1_tail + timedelta(minutes=50))
+# X2: the same over the mode surface, a mode held past an earlier overlay's tail.
+_bt_x2 = boost_mod.BoostState()
+_bt_x2.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_x2.set(boost_mod.CHANNEL_SPACE, False, NOW + _bt_20)
+_bt_x2.note_mode(True, NOW + timedelta(minutes=21))
+_bt_x2.expire(NOW + timedelta(hours=13))
+_bt_x2.note_mode(False, NOW + timedelta(hours=14))
+R.check(
+    "the boosted sum is not cleared while an overlay or the mode is live past an earlier "
+    "boost's tail, so the live boost adds to it, over both surfaces",
+    _bt_x1_mid == (_bt_x1_tail, 3 * _bt_20)
+    and _bt_x1.space_boosted == 3 * _bt_20 + timedelta(minutes=110)
+    and _bt_x1.space_settle_until == _bt_x1_tail + timedelta(minutes=50) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_x2.space_boosted == _bt_20 + timedelta(hours=14) - timedelta(minutes=21)
+    and _bt_x2.space_settle_until == NOW + timedelta(hours=14) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_x1_mid} {_bt_x1} {_bt_x2}",
+)
+
+# X3: a press that finds the overlay live extends it and keeps its start, so the
+# sum counts the whole boost. X13: entering the mode clears a spent sum, as a
+# press does. Null control: a single press sums its own length (``_bt_one``).
+_bt_x3 = boost_mod.BoostState()
+_bt_x3.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_x3.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=1))
+_bt_x3.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=2))
+_bt_x13, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_x13_spent = _bt_x13.space_settle_until
+_bt_x13.note_mode(True, _bt_x13_spent + timedelta(hours=1))
+_bt_x13.note_mode(False, _bt_x13_spent + timedelta(hours=1, minutes=30))
+R.check(
+    "an extended overlay sums from its first press; the mode entered after a spent tail "
+    "sums only itself",
+    _bt_x3.space_boosted == timedelta(hours=2) and _bt_x3.space_since == NOW
+    and _bt_x13.space_boosted == timedelta(minutes=30),
+    f"{_bt_x3} {_bt_x13}",
+)
+
+# X7: ``settle`` never shortens a running tail (an end stamped before a clock
+# step back); a later end lengthens it, even by half a second (null control).
+_bt_x7 = boost_mod.BoostState(space_settle_until=NOW + boost_mod.SPACE_SETTLE_TAIL)
+_bt_x7.settle(NOW - timedelta(hours=1), NOW - timedelta(hours=2))
+_bt_x7_kept = _bt_x7.space_settle_until
+_bt_x7.settle(NOW + timedelta(milliseconds=500), NOW)
+R.check(
+    "a settle ending before the running tail's end leaves it; one ending later moves it",
+    _bt_x7_kept == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_x7.space_settle_until == NOW + timedelta(milliseconds=500) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_x7_kept} {_bt_x7}",
+)
+
+# X11: the store does not hold ``boosted_h`` to its domain on load, so the
+# restore does: a negative, NaN or infinite sum is unknown; zero and a sum under
+# one hour restore as stored (null controls).
+def _bt_hours(raw):
+    st = boost_mod.BoostState()
+    boost_mod._restore_settle(st, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                    "boosted_h": raw}}, NOW)
+    return st.space_boosted
+
+
+R.check(
+    "a restored boosted sum outside [0, inf) is unknown; 0 and 0.5 h restore as stored",
+    [_bt_hours(h) for h in (-1.0, float("nan"), float("inf"), True, 0.0, 0.5)]
+    == [None, None, None, None, timedelta(0), timedelta(minutes=30)],
+    f"{[_bt_hours(h) for h in (-1.0, float('nan'), float('inf'), True, 0.0, 0.5)]}",
+)
+
+# X4 and X5: the two saves of a tail. Leaving the boost mode saves the tail it
+# starts (``note_mode_change``); a cycle whose expiry starts a tail saves it
+# (``apply``). Null controls: entering the mode, a change between two other
+# modes and a cycle that changes nothing schedule no save.
+_bt_saved = []
+_bt_sched = boost_mod._schedule_persist
+boost_mod._schedule_persist = _bt_saved.append
+try:
+    _bt_mc = _BtCoord()
+    boost_mod.note_mode_change(_bt_mc, _fb_const.MODE_AUTO, boost_mod.MODE_BOOST, NOW)
+    _bt_enter = list(_bt_saved)
+    boost_mod.note_mode_change(_bt_mc, _fb_const.MODE_AUTO, _fb_const.MODE_ECONOMY, NOW)
+    _bt_other = list(_bt_saved)
+    boost_mod.note_mode_change(_bt_mc, boost_mod.MODE_BOOST, _fb_const.MODE_AUTO, NOW + timedelta(hours=1))
+    _bt_left = list(_bt_saved)
+    _bt_left_payload = boost_mod._store_payload(boost_mod.held_for(_bt_mc))
+    _bt_saved.clear()
+    _bt_ac = _BlockFloorCoord(None)
+    _bt_ac_now = dt_util.now()
+    boost_mod.held_for(_bt_ac).set(boost_mod.CHANNEL_SPACE, True, _bt_ac_now - timedelta(hours=3))
+    boost_mod.apply(_bt_ac, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
+    _bt_cycle = list(_bt_saved)
+    _bt_cycle_payload = boost_mod._store_payload(boost_mod.held_for(_bt_ac))
+    boost_mod.apply(_bt_ac, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
+    _bt_quiet = _bt_saved[len(_bt_cycle):]
+finally:
+    boost_mod._schedule_persist = _bt_sched
+R.check(
+    "leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save "
+    "carrying the tail and its sum; entering the mode, another mode change and a quiet "
+    "cycle schedule none",
+    _bt_enter == [] and _bt_other == [] and _bt_left == [_bt_mc]
+    and _bt_left_payload.get("space_settle", {}).get("boosted_h") == 1.0
+    and _bt_cycle == [_bt_ac] and _bt_quiet == []
+    and _bt_cycle_payload.get("space_settle", {}).get("boosted_h") == 2.0,
+    f"{_bt_enter} {_bt_other} {_bt_left} {_bt_left_payload} {_bt_cycle} {_bt_quiet} {_bt_cycle_payload}",
+)
+
+# The fixer's own pass over every added line: the tail runs out at its own
+# instant, not a second either side (a press at the instant sums only itself, a
+# press half a second before adds to the series); a spent tail is cleared by the
+# expiry itself, so a quiet install stores main's payload again; a press that
+# finds the tail spent clears the sum without an expiry first; leaving the mode
+# frees the sum to clear.
+_bt_at, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_at.set(boost_mod.CHANNEL_SPACE, True, _bt_at.space_settle_until)
+_bt_before, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_before.set(boost_mod.CHANNEL_SPACE, True, _bt_before.space_settle_until - timedelta(milliseconds=500))
+_bt_before.set(boost_mod.CHANNEL_SPACE, False, _bt_before.space_settle_until + timedelta(minutes=10))
+_bt_quiet_st, _ = _bt_series([("space", _bt_20)])
+_bt_quiet_st.expire(_bt_quiet_st.space_settle_until + timedelta(minutes=1))
+_bt_noexp, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_noexp_at = _bt_noexp.space_settle_until + timedelta(minutes=1)
+_bt_noexp.set(boost_mod.CHANNEL_SPACE, True, _bt_noexp_at)
+_bt_noexp.set(boost_mod.CHANNEL_SPACE, False, _bt_noexp_at + _bt_20)
+_bt_modeleft, _bt_modeleft_end = _bt_series([("mode", timedelta(minutes=30))])
+_bt_modeleft.expire(_bt_modeleft.space_settle_until + timedelta(minutes=1))
+R.check(
+    "the tail runs out at its own instant; a spent tail clears on expiry and a quiet install "
+    "stores main's payload; a press after a spent tail sums only itself; a left mode lets "
+    "its sum clear",
+    _bt_at.space_boosted == timedelta(0)
+    and _bt_before.space_boosted == 3 * _bt_20 + timedelta(minutes=10, milliseconds=500)
+    and (_bt_quiet_st.space_settle_until, _bt_quiet_st.space_boosted) == (None, timedelta(0))
+    and boost_mod._store_payload(_bt_quiet_st) == {}
+    and _bt_noexp.space_boosted == _bt_20
+    and (_bt_modeleft.mode_since, _bt_modeleft.space_settle_until) == (None, None),
+    f"{_bt_at} {_bt_before} {_bt_quiet_st} {_bt_noexp} {_bt_modeleft}",
+)
+
+# Restore at the boundaries: a tail ending at the restart's instant is spent,
+# and an overlay that ended more than a tail before the restart owes nothing.
+# Null control: ``_bt_down`` above, ended an hour before, owes its tail.
+_bt_r_now = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_r_now, {"space_settle": {"until": NOW.isoformat(), "boosted_h": 1.0}}, NOW)
+_bt_r_old = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_r_old, {"space": {"until": (NOW - timedelta(hours=13)).isoformat(),
+                                                "since": (NOW - timedelta(hours=14)).isoformat()}}, NOW)
+R.check(
+    "a restored tail ending now is spent; an overlay ended over a tail before the restart owes none",
+    (_bt_r_now.space_settle_until, _bt_r_now.space_boosted) == (None, timedelta(0))
+    and (_bt_r_old.space_settle_until, _bt_r_old.space_boosted) == (None, timedelta(0)),
+    f"{_bt_r_now} {_bt_r_old}",
+)
+
+# ``persist`` saves ``_store_payload`` through the boost store's own key and
+# version. Null control: the payload saved is the one a quiet state builds.
+_bt_saves = []
+
+
+class _BtSaveStore:
+    def __init__(self, real):
+        self.real = real
+
+    async def async_save(self, data):
+        _bt_saves.append((self.real._key, self.real._version, data))
+
+
+_bt_pc = _BtCoord()
+_bt_pc.hass, _bt_pc.entry = FakeHass(), type("_BtEntry", (), {"entry_id": "bt"})()
+boost_mod.held_for(_bt_pc).settle(NOW, NOW - _bt_20)
+_bt_real_store = boost_mod._store
+boost_mod._store = lambda c: _BtSaveStore(_bt_real_store(c))
+try:
+    _bt_asyncio.run(boost_mod.persist(_bt_pc))
+finally:
+    boost_mod._store = _bt_real_store
+R.check(
+    "persist saves the store payload under the boost store's key and version",
+    _bt_saves == [(f"{boost_mod.DOMAIN}_bt_boost", boost_mod.BOOST_STORE_VERSION,
+                   boost_mod._store_payload(boost_mod.held_for(_bt_pc)))]
+    and "space_settle" in _bt_saves[0][2],
+    f"{_bt_saves}",
+)
+
+# The coordinator's mode change reaches ``note_mode_change``: leaving the boost
+# mode through ``async_set_mode`` starts the tail and sums the mode's time.
+# Null control: entering it starts no tail.
+_bt_cc = _sr_coord()
+_bt_asyncio.run(_bt_cc.async_set_mode(boost_mod.MODE_BOOST, refresh=False))
+_bt_cc_in = (boost_mod.held_for(_bt_cc).mode_since is not None, boost_mod.held_for(_bt_cc).space_settle_until)
+_bt_asyncio.run(_bt_cc.async_set_mode(_fb_const.MODE_AUTO, refresh=False))
+_bt_cc_held = boost_mod.held_for(_bt_cc)
+R.check(
+    "async_set_mode into the boost mode marks its start, and out of it starts the tail",
+    _bt_cc_in == (True, None)
+    and _bt_cc_held.mode_since is None and _bt_cc_held.space_settle_until is not None
+    and _bt_cc_held.space_boosted is not None,
+    f"{_bt_cc_in} {_bt_cc_held}",
+)
+
+
+# A hot-water charge inside a counter span (the dwell saw it): the cycle has no
+# space interval, yet the span stays clean where the counter is declared to see
+# the hot water, because the charge's own steps are subtracted at the close.
+# Null controls: the counter declared blind to hot water, an immersion element
+# on, and a cycle the dwell saw on space, keep today's refusal.
+def _he_bridge(sees_dhw, duty=_he.DHW, immersion=False, backup=False, counter=True):
+    coord = _t2_house(**{_HE_KEY: "sensor.he", _fb_const.CONF_HEAT_METER_SEES_DHW: sees_dhw})
+    meter = _he.meter_of(coord)
+    meter.counter, meter.cycle = counter, (NOW - timedelta(hours=0.5), NOW)
+    meter.dwell.observe(NOW - timedelta(hours=1), duty, None)
+    meter.dwell.observe(NOW, duty, None)
+    coord._immersion_active = immersion
+    coord._pump_signals = replace(
+        coord._pump_signals, electric_heat=replace(coord._pump_signals.electric_heat, backup_heater=backup))
+    return _he_cm._replay_gate(coord, None, None, None)[1]
+
+
+_he_bridges = (_he_bridge(True), _he_bridge(False), _he_bridge(True, immersion=True),
+               _he_bridge(True, backup=True), _he_bridge(True, duty=_he.SPACE), _he_bridge(True, counter=False))
+R.check(
+    "a counter span carries a hot-water cycle the dwell saw when the counter sees "
+    "the hot water; blind to it, with the immersion or the pump's backup heater on, "
+    "on space, or with no counter configured it gates",
+    _he_bridges == (True, False, False, False, False, False),
+    f"{_he_bridges}",
+)
+
+
+def _he_dhw_span(charge):
+    """Two half-hour cycles, 2 kWh on space; with ``charge`` the second is a 5 kWh hot-water charge."""
+    m, reads, duties = _he.HeatEnergyMeter(), (10.0, 12.0, 17.0 if charge else 14.0), (
+        pump_mode.MODE_HEAT, pump_mode.MODE_DHW if charge else pump_mode.MODE_HEAT, pump_mode.MODE_HEAT)
+    ev = None
+    for i, (kwh, duty) in enumerate(zip(reads, duties)):
+        at = NOW + timedelta(hours=0.5 * i)
+        changed = at - timedelta(hours=1) if i == 0 else (at if duty != duties[i - 1] else None)
+        m.observe_mode(at, duty, True, changed)
+        m.observe_counters(at, kwh, None, configured=True, cadence_h=0.5, bounds_h=_HE_BOUNDS, max_heat_kw=30.0)
+        ev = m.settle({"house": True, "lower": True}, (2.0, 0.0), ("s", at)) or ev
+    return ev
+
+
+_he_dhw_ev = _he_dhw_span(True)
+_he_dhw_heat = _he.span_heat(_he_dhw_ev, 3.0)
+_he_dry_heat = _he.span_heat(_he_dhw_span(False), 3.0)
+R.check(
+    "a span's hot water is the charge cycle's own counter step, not its share of "
+    "the hours: a 5 kWh charge in a 7 kWh hour leaves 2 kW of space heat, where a "
+    "time split reads 3.5 (null control: no charge reads all its heat as space)",
+    _he_dhw_ev is not None and abs(_he_dhw_ev.energy.dhw_kwh - 5.0) < 1e-9
+    and abs(_he_dhw_heat.space_kw - 2.0) < 1e-9
+    and abs(_he_dry_heat.space_kw - _he_dry_heat.heat_kw) < 1e-12,
+    f"{_he_dhw_ev} {_he_dhw_heat} {_he_dry_heat}",
+)
+R.check(
+    "null control: a span with no charge folds no hot water and reads all its heat as space, "
+    "and a fresh meter (no counter, no dwell) bridges no hot-water cycle",
+    _he_dhw_span(False).energy.dhw_kwh == 0.0
+    and not _he.HeatEnergyMeter().bridges_hot_water((0.0, 1.0), True, False),
+    f"{_he_dhw_span(False)}",
+)
+_he_all_dhw = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=_he_dhw_ev.energy.heat_kwh))
+R.check(
+    "a span whose heat all went to hot water reads 0 kW of space heat, a measurement, not a refusal",
+    _he.span_heat(_he_all_dhw, 3.0).space_kw == 0.0,
+    f"{_he.span_heat(_he_all_dhw, 3.0)}",
+)
+_he_odd = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=8.0))
+_he_blind = _he_dhw_ev._replace(energy=_he_dhw_ev.energy._replace(dhw_kwh=None))
+R.check(
+    "a span with more hot water than heat, or a charge whose steps went unaccounted, "
+    "reads no space figure rather than a guess",
+    _he.span_heat(_he_odd, 3.0).space_kw is None and _he.span_heat(_he_blind, 3.0).space_kw is None,
+    f"{_he.span_heat(_he_odd, 3.0)} {_he.span_heat(_he_blind, 3.0)}",
+)
+
+
+def _he_unobs_spans(unobserved, charge=True):
+    """Two spans of half-hour reads, 1 kWh per space step; with ``charge`` the
+    step to read 3 is a 5 kWh hot-water charge the dwell saw. The mode reads at
+    ``unobserved`` are not live, so a span holding one reads the plan's split.
+    Sample bounds of 0.5-6 h close the spans at reads 11 and 22, 5.5 h each."""
+    m, kwh, out = _he.HeatEnergyMeter(), 10.0, []
+    duties = [pump_mode.MODE_DHW if charge and i == 2 else pump_mode.MODE_HEAT for i in range(23)]
+    for i, duty in enumerate(duties):
+        kwh += 0.0 if i == 0 else (5.0 if charge and i == 3 else 1.0)
+        at = NOW + timedelta(hours=0.5 * i)
+        changed = at - timedelta(hours=1) if i == 0 else (at if duty != duties[i - 1] else None)
+        m.observe_mode(at, duty, i not in unobserved, changed)
+        m.observe_counters(at, kwh, None, configured=True, cadence_h=0.5, bounds_h=(0.5, 6.0), max_heat_kw=30.0)
+        ev = m.settle({"house": True, "lower": True}, (1.0, 0.0), ("s", at))
+        out += [(ev, _he.span_heat(ev, 3.0))] if ev is not None else []
+    return out
+
+
+_he_unobs = {k: _he_unobs_spans(*k) for k in (((), True), ((6, 17), True), ((1,), True), ((6,), False))}
+_he_unobs_first = {k: v[0][1] for k, v in _he_unobs.items()}
+R.check(
+    "a span that carried a hot-water charge the dwell saw reads no space figure once "
+    "one mode read in it, after the charge or before it, was not live: the plan's "
+    "whole-unit rule would read the charge as space heat; the next span, with no "
+    "charge and a read not live, reads all its heat as space again (null controls: "
+    "all reads live subtracts the charge's own step; no charge reads all its heat as space)",
+    [len(v) for v in _he_unobs.values()] == [2, 2, 2, 2]
+    and not _he_unobs[((6, 17), True)][0][0].attribution.observed
+    and not _he_unobs[((1,), True)][0][0].attribution.observed
+    and _he_unobs_first[((6, 17), True)].heat_kw is not None
+    and _he_unobs_first[((6, 17), True)].space_kw is None and _he_unobs_first[((1,), True)].space_kw is None
+    and not _he_unobs[((6, 17), True)][1][0].attribution.observed
+    and _he_unobs[((6, 17), True)][1][1].space_kw == _he_unobs[((6, 17), True)][1][1].heat_kw is not None
+    and abs(_he_unobs_first[((), True)].space_kw - 10.0 / _he_unobs[((), True)][0][0].energy.hours) < 1e-9
+    and _he_unobs_first[((6,), False)].space_kw == _he_unobs_first[((6,), False)].heat_kw is not None,
+    f"{[(k, [(sh, ev.energy) for ev, sh in v]) for k, v in _he_unobs.items()]}",
+)
+
+
 # The earned basis. A thermal-power install's first replay of a measured heat
 # earns ``measured_heat``: the void path resets the scale before that fold, the
 # basis is saved, and a later fold does not void again. Null controls: the
@@ -80742,12 +82112,13 @@ R.check(
     and _he_fine == ("iv", True, True, None),
     f"{_he_coarse!r} {_he_fine!r}",
 )
+_he_owns = _he.HeatEnergyMeter(counter=True, earned=True)
 R.check(
     "a span run folds its own heat with no freeze; a per-cycle run reads the "
     "cycle's heat and folds unless the span owns the scale",
-    _he.replay_gate(2.5, None, "stale:indoor_temp_entity", "stale:indoor_temp_entity", 1.0, True)
+    _he.replay_gate(2.5, None, "stale:indoor_temp_entity", "stale:indoor_temp_entity", 1.0, _he_owns, (1.0, 0.0), False, False)
     == (2.5, False, None, True)
-    and _he.replay_gate(None, "iv", None, None, 1.0, True) == (1.0, True, None, False),
+    and _he.replay_gate(None, "iv", None, None, 1.0, _he_owns, (1.0, 0.0), False, False) == (1.0, True, None, False),
 )
 
 
@@ -81022,7 +82393,7 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
     hass = FakeHass({
-        "switch.hp": FakeState("off", last_updated=_SA_T0),
+        "switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1)),
         "sensor.hp_power": FakeState("0.0", unit="kW", last_updated=_SA_T0),
     })
     coord = Coord(hass, FakeEntry(data={
@@ -81053,8 +82424,11 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
             for domain, service, _data in hass.services.calls:
                 if domain == "switch":
                     writes.append((m, service))
-                    hass.states.set("switch.hp", FakeState(
-                        "on" if service == "turn_on" else "off", last_updated=now))
+                    # A write that leaves the state keeps last_changed, as
+                    # StateMachine.async_set does (the supply gate reads it).
+                    new = "on" if service == "turn_on" else "off"
+                    if hass.states.get("switch.hp").state != new:
+                        hass.states.set("switch.hp", FakeState(new, last_updated=now))
             hass.services.calls.clear()
             on = hass.states.get("switch.hp").state == "on"
             hass.states.set("sensor.hp_power", FakeState("1.5" if on else "0.0", unit="kW", last_updated=now))
@@ -81115,7 +82489,7 @@ async def _sa_guarded(guard=None):
     ticks, dropped = [], []
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: dropped.append(fn)))[1]
-    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
     switch = {} if guard == "no_switch" else {"heat_pump_switch_entity": "switch.hp"}
     coord = Coord(hass, FakeEntry(data={**_LC_DATA, **switch, "pump_duty_mode": "observe"}))
     coord._mode = "auto"
@@ -81308,6 +82682,226 @@ R.check(
     _sa_mid["07:15"] == ["turn_on"],
     f"{_sa_mid}",
 )
+# #3420 part E (Bankaifan): a switch-on writes the step's mode first. A pass
+# writes nothing while the switch reads off, so the mode followed the
+# switch-on by up to a tick and a Luxtronik started in the last duty. The
+# cycle and the step tick both switch through ``write_supply``. Each null
+# control is the same run with ``_lead_mode`` replaced by a no-op (today's
+# order): where the lead owes nothing, the service calls and their order are
+# identical; where it owes the mode, the no-op run has no mode before the switch.
+from heatpump_optimizer import duty_switch as _mb_ds
+from dataclasses import replace as _mb_replace
+
+
+async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via="cycle",
+                  select="Heating", fail=False, cut=False, optimizer="auto", space=False,
+                  disinfect=False, since=-60, after=0):
+    """Ordered (domain, service) calls of one switch write, through the real coordinator.
+
+    The plan is "-d": idle at 05:45, hot water only at 06:00 (``space``:
+    heating only, which a cut-off holds and hot water is exempt from). ``via`` cycle
+    runs ``_apply_action`` at 06:00; tick runs the cycle at 05:45 (OFF) and
+    the step tick at 06:00; direct calls ``write_supply(..., True)`` alone at
+    06:00 with the optimizer in ``optimizer`` (``released``: auto, the
+    entry unloaded). ``cut``: an early cut-off at
+    05:58 holds the switch-on (MIN_OFF). Also returns the contexts the
+    learner was told of, and the options the select was sent. ``disinfect``:
+    the pass reads a held disinfection. ``since``: minutes from 06:00 at which
+    the switch took its state (an hour back by default, so no minimum run or
+    pause holds the write; -2 holds a switch-on until 06:08). ``after``: the
+    step ticks then fire each minute to 06:00 + ``after``, and a fifth value
+    maps each such minute to its ordered calls.
+    """
+    ticks, told = [], []
+    armed, noted, owed = _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    _mb_ds.note_mode_write = lambda rec, when, old, new, ctx: (told.append((rec, ctx)), noted(rec, when, old, new, ctx))
+    if not lead:
+        async def _none(_coord, _on):
+            return None
+        _sa_pa._lead_mode = _none
+    hass = FakeHass({
+        "switch.hp": FakeState(switch, last_updated=_SA_T0 + timedelta(minutes=since)),
+        "select.pump_mode": FakeState(select, attributes={"options": list(_PA_TUYA)}),
+    })
+    if fail:
+        async def _refuse(call):
+            raise RuntimeError("select refused")
+        hass.services.async_register("select", "select_option", _refuse)
+    data = {**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": duty}
+    if mode_entity:
+        data["heat_pump_mode_entity"] = "select.pump_mode"
+    coord = Coord(hass, FakeEntry(data=data, entry_id=f"mb{next(_PA_IDS)}"))  # a fresh store each run
+    coord._mode = "auto"
+    if disinfect:
+        _mb_inputs = coord.arbiter_inputs
+        coord.arbiter_inputs = lambda: _mb_replace(_mb_inputs(), disinfecting=True)
+    t0 = _SA_T0 - timedelta(minutes=15)
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[t0, _SA_T0], power_schedule=[0.0, 1.5 if space else 0.0],
+        dhw_power_schedule=[0.0, 0.0 if space else 2.0],
+        optimal_setpoints=[21.0, 21.0],
+    )
+    try:
+        if via == "tick":
+            _sa_dt.freeze(t0)
+            coord._last_optimization = t0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+            await coord._apply_action()
+            hass.states.set("switch.hp", FakeState(switch, last_updated=t0))
+        hass.services.calls.clear()
+        _sa_dt.freeze(_SA_T0)
+        if cut:
+            _sa_ec.state_for(coord).cut_at = _SA_T0 - timedelta(minutes=2)
+        if via == "direct":
+            coord._mode = "auto" if optimizer == "released" else optimizer
+            coord._entry_released = optimizer == "released"
+            await _sa_pa.write_supply(coord, "switch.hp", True)
+        elif via == "tick":
+            for tick in list(ticks):
+                await tick(_SA_T0)
+        else:
+            coord._last_optimization = _SA_T0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
+            await coord._apply_action()
+        calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        options = [data["option"] for d, _s, data in hass.services.calls if d == "select"]
+        later = {}
+        for minute in range(1, after + 1):
+            hass.services.calls.clear()
+            _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+            for tick in list(ticks):
+                await tick(_SA_T0 + timedelta(minutes=minute))
+            later[minute] = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        return (calls, told, options, _sa_pa.state_for(coord).loaded) + ((later,) if after else ())
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
+
+
+_mb_on = {via: _asyncio.run(_mb_run(via=via)) for via in ("cycle", "tick")}
+_mb_off = {via: _asyncio.run(_mb_run(lead=False, via=via)) for via in ("cycle", "tick")}
+R.check(
+    "a cycle that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["cycle"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['cycle'][0]}",
+)
+R.check(
+    "a step tick that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["tick"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['tick'][0]}",
+)
+R.check(
+    "null control: without the lead the same cycle and tick switch on with no mode before it",
+    all(_mb_off[via][0] == [("switch", "turn_on")] for via in ("cycle", "tick")),
+    f"{ {via: _mb_off[via][0] for via in _mb_off} }",
+)
+_mb_ctx = [ctx for _rec, ctx in _mb_on["cycle"][1]]
+R.check(
+    "the mode written ahead of a switch-on is reported with the supply off, opening no learner episode",
+    len(_mb_ctx) == 1 and _mb_ctx[0].void_cause() == "supply_off"
+    and _mb_on["cycle"][1][0][0].learner.episode is None,
+    f"{_mb_ctx}",
+)
+R.check(
+    "null control: the same context with the supply on is not voided by the supply",
+    bool(_mb_ctx) and _mb_replace(_mb_ctx[0], supply_on=True).void_cause() != "supply_off",
+    f"{_mb_ctx}",
+)
+_mb_fail = _asyncio.run(_mb_run(fail=True))
+R.check(
+    "a mode write that fails ahead of a switch-on holds nothing: the switch follows in the same write",
+    _mb_fail[0] == [("select", "select_option"), ("switch", "turn_on")] and _mb_fail[1] == [],
+    f"{_mb_fail}",
+)
+# The lead sits behind the cycle's gate (``_write_supply``): a switch-on the
+# gate holds back writes no mode either, so a held supply-on never leaves a
+# mode written ahead of a switch that does not follow.
+_mb_cut = _asyncio.run(_mb_run(cut=True, space=True))[0]
+_mb_uncut = _asyncio.run(_mb_run(space=True))[0]
+R.check(
+    "a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut == [("switch", "turn_off")],
+    f"{_mb_cut}",
+)
+R.check(
+    "null control: the same heating step with no cut on record writes the mode, then the switch",
+    _mb_uncut == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_uncut}",
+)
+# The same rows with the minimum pause engaged (``supply_hold.hold_supply``,
+# the switch off since 05:58): the hold sits ahead of ``write_supply`` in
+# ``_write_supply``, so a held switch-on writes no mode, and the step tick's
+# retry runs through the same gate, so the switch-on that lands at 06:08
+# writes the mode immediately before the switch, on that tick and no other.
+_mb_cut_held = _asyncio.run(_mb_run(cut=True, space=True, since=-2))[0]
+_mb_held = _asyncio.run(_mb_run(space=True, since=-2, after=12))
+R.check(
+    "with the minimum pause engaged too, a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut_held == [("switch", "turn_off")],
+    f"{_mb_cut_held}",
+)
+R.check(
+    "a cycle switch-on the minimum pause holds back writes no mode and no switch",
+    _mb_held[0] == [],
+    f"{_mb_held[0]}",
+)
+R.check(
+    "a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick",
+    {m: c for m, c in _mb_held[4].items() if c} == {8: [("select", "select_option"), ("switch", "turn_on")]},
+    f"{_mb_held[4]}",
+)
+_mb_direct = {
+    (sw, opt): _asyncio.run(_mb_run(via="direct", switch=sw, optimizer=opt))[0]
+    for sw, opt in (("off", "auto"), ("on", "auto"), ("off", "off"), ("off", "released"))
+}
+R.check(
+    "write_supply with the switch already on, the optimizer off or the entry released writes the switch alone",
+    all(_mb_direct[k] == [("switch", "turn_on")] for k in (("on", "auto"), ("off", "off"), ("off", "released"))),
+    f"{_mb_direct}",
+)
+R.check(
+    "null control: write_supply with the switch off and the optimizer on writes the mode first",
+    _mb_direct[("off", "auto")] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_direct}",
+)
+# The lead loads the persisted record before its write, as a pass does, so
+# the pass's own load cannot overwrite the record of the mode just written.
+_mb_loaded = {duty: _asyncio.run(_mb_run(via="direct", duty=duty))[3] for duty in ("control", "observe")}
+R.check(
+    "a lead write loads the persisted record before it writes",
+    _mb_loaded["control"] is True,
+    f"{_mb_loaded}",
+)
+R.check(
+    "null control: write_supply on duty mode observe loads nothing",
+    _mb_loaded["observe"] is False,
+    f"{_mb_loaded}",
+)
+_mb_dis = {dis: _asyncio.run(_mb_run(via="direct", space=True, disinfect=dis))[2] for dis in (True, False)}
+R.check(
+    "the mode written ahead of a switch-on for a heating step under a held disinfection is Heating + DHW",
+    _mb_dis[True] == ["Heating + DHW"],
+    f"{_mb_dis}",
+)
+R.check(
+    "null control: the same heating step with no disinfection leads with Heating",
+    _mb_dis[False] == ["Heating"],
+    f"{_mb_dis}",
+)
+_mb_nulls = {
+    "no mode entity": {"mode_entity": False},
+    "duty mode observe": {"duty": "observe"},
+    "supply already on": {"switch": "on", "select": "Heating"},
+}
+for _mb_name, _mb_kw in _mb_nulls.items():
+    _mb_with = {via: _asyncio.run(_mb_run(via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    _mb_without = {via: _asyncio.run(_mb_run(lead=False, via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    R.check(
+        f"null control, {_mb_name}: the service calls and their order are today's",
+        _mb_with == _mb_without and any(("switch", "turn_on") in c for c in _mb_with.values()),
+        f"with {_mb_with}; without {_mb_without}",
+    )
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
 _sa_record = {"written": {
@@ -81324,6 +82918,1870 @@ R.check(
         "heatpump_optimizer_e_pump_duty", {"written": {"silent": ["on", _SA_T0.isoformat()]}}
     ) == ["written/silent/0"],
     f"{_sa_store.off_domain('heatpump_optimizer_e_pump_duty', _sa_record)}",
+)
+
+
+R.section("supply switch: the cycle writes the step it lands in")
+# The cycle's write lands in the step after the one its action was cut for
+# (a reload's cold solve, the price tile, the fuse advisor before the write):
+# it writes the plan's command for the step it lands in, not the action's.
+# The null control is the same cycle inside the action's own step.
+async def _ms_stale(minute):
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=[1.5, 0.0],
+        dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
+    armed = _sa_pa.async_track_time_interval
+    _sa_pa.async_track_time_interval = lambda *_a: (lambda: None)
+    try:
+        _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+        coord._last_optimization = _SA_T0
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 1.5})
+        await coord._apply_action()
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+    return [s for d, s, _d in hass.services.calls if d == "switch"]
+
+
+_ms_late, _ms_own = _asyncio.run(_ms_stale(15.5)), _asyncio.run(_ms_stale(2))
+R.check(
+    "a cycle whose ON action was cut in the last step writes the OFF of the step it lands in",
+    _ms_late == ["turn_off"],
+    f"{_ms_late}",
+)
+R.check(
+    "null control: the same cycle inside the action's own step writes its ON",
+    _ms_own == ["turn_on"],
+    f"{_ms_own}",
+)
+
+
+# --- the other direction, and the null controls (our commit on the adopted one) ---
+# ``_ms_cycle`` runs one ``_apply_action`` at ``minute`` past the plan start with
+# the action cut for step 0 and returns every service call in order. ``cut`` is
+# the stale write ``cycle_supply`` exists to correct; ``main`` swaps in main's
+# behaviour (the action's own value) as the control for the null checks.
+_ms_main = lambda _inp, _boosts, on, now=None: on
+
+
+async def _ms_cycle(minute, *, sched=(1.5, 0.0), cut=True, mode="auto", boosted=False,
+                    sysid=False, age_minutes=0, main=False):
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = mode
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)], power_schedule=list(sched),
+        dhw_power_schedule=[0.0, 0.0], optimal_setpoints=[21.0, 21.0])
+    armed, real = _sa_pa.async_track_time_interval, _sa_pa.cycle_supply
+    _sa_pa.async_track_time_interval = lambda *_a: (lambda: None)
+    if main:
+        _sa_pa.cycle_supply = _ms_main
+    try:
+        _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+        coord._last_optimization = _SA_T0 - timedelta(minutes=age_minutes)
+        _sa_boost.adopt_plan(coord, {"heat_pump_on": cut, "power": 1.5 if cut else 0.0})
+        if sysid:
+            coord._current_action = {**coord._current_action, "mode": "system_identification"}
+        if boosted:
+            _sa_boost.held_for(coord).until[_sa_boost.CHANNEL_SPACE] = _SA_T0 + timedelta(hours=2)
+        await coord._apply_action()
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+        _sa_pa.cycle_supply = real
+    return [(d, s, dict(x)) for d, s, x in hass.services.calls]
+
+
+_ms_sw = lambda calls: [s for d, s, _x in calls if d == "switch"]
+_ms_up = _asyncio.run(_ms_cycle(15.5, sched=(0.0, 1.5), cut=False))
+_ms_up_own = _asyncio.run(_ms_cycle(2, sched=(0.0, 1.5), cut=False))
+R.check(
+    "a cycle whose OFF action was cut in the last step writes the ON of the step it lands in",
+    _ms_sw(_ms_up) == ["turn_on"],
+    f"{_ms_up}",
+)
+R.check(
+    "null control: the same OFF-planned cycle inside the action's own step writes its OFF",
+    _ms_sw(_ms_up_own) == ["turn_off"],
+    f"{_ms_up_own}",
+)
+# Null control: a write landing in the action's own step issues the same calls
+# in the same order as main (the action's value written as cut), in a plan mode,
+# a fixed mode, under a stale plan, a live boost and system identification.
+for _ms_name, _ms_kw in (
+    ("economy plan mode", {"mode": "economy"}),
+    ("auto plan mode, OFF cut", {"cut": False, "sched": (0.0, 1.5)}),
+    ("fixed comfort mode", {"mode": "comfort"}),
+    ("stale plan", {"age_minutes": 600}),
+    ("live boost (the overlay has made the action ON)", {"boosted": True, "cut": True}),
+    ("system identification", {"sysid": True, "cut": False}),
+):
+    _ms_a = _asyncio.run(_ms_cycle(2, **_ms_kw))
+    _ms_b = _asyncio.run(_ms_cycle(2, main=True, **_ms_kw))
+    R.check(
+        f"null control: {_ms_name}, a write in the action's own step issues main's calls in order",
+        _ms_a == _ms_b,
+        f"{_ms_a} != {_ms_b}",
+    )
+# Where step_supply does not speak, the action stands even when the write lands
+# in a later step: a fixed mode, system identification, a live boost (ON, as the
+# overlay makes the action).
+for _ms_name, _ms_kw, _ms_want in (
+    ("a fixed mode", {"mode": "comfort", "cut": True}, ["turn_on"]),
+    ("system identification", {"sysid": True, "cut": True}, ["turn_on"]),
+    ("a live boost over an OFF step", {"boosted": True, "cut": True}, ["turn_on"]),
+):
+    _ms_got = _ms_sw(_asyncio.run(_ms_cycle(15.5, **_ms_kw)))
+    R.check(
+        f"{_ms_name}: a write landing in the later step keeps its own command",
+        _ms_got == _ms_want,
+        f"{_ms_got}",
+    )
+
+
+R.section("supply switch: minimum run and pause, restart")
+# A re-solve, a cycle or a step tick inside a step must neither stop the
+# compressor minutes after it started nor start it minutes after it stopped
+# (``supply_hold.hold_supply``): the gate holds the write back and the step
+# tick writes it once MIN_RUN / MIN_PAUSE has passed. Both are measured on the
+# switch's own ``last_changed``, whoever moved it. The real coordinator writes;
+# each tick fires every minute.
+import importlib
+import logging
+
+_sh = importlib.import_module(_sa_pa.__package__ + ".supply_hold")
+_sh_coord_mod = importlib.import_module(_sa_pa.__package__ + ".coordinator")
+
+_sh_off = lambda _held, _inputs, _boosts, value, now=None: value  # main: no gate
+
+
+async def _ms_run(duties, switch, events, until=20, off_at=None, entity="switch.hp",
+                  plan=True, sysid=False, gate=True, every=False):
+    """Switch writes by minute from 06:00 for a plan of ``duties`` (``s`` on).
+
+    ``switch`` is the switch's state and since-minute at 06:00 (negative is
+    before); ``events`` maps a minute to the action the cycle adopts there;
+    at ``off_at`` the optimizer is switched off. ``plan=False`` runs with no
+    plan, ``sysid`` under system identification, ``gate=False`` with main's
+    write (no gate); ``every`` returns every service call, not only the
+    switch's, and the learners' freeze reason at the end.
+    """
+    ticks = []
+    armed, real = _sa_pa.async_track_time_interval, _sh_coord_mod.supply_hold.hold_supply
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    if not gate:
+        _sh_coord_mod.supply_hold.hold_supply = _sh_off
+    domain = entity.split(".", 1)[0] if entity else None
+    hass = FakeHass({} if not entity else {entity: FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": entity, "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
+        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties)) if plan else None
+    writes, frozen = [], None
+    try:
+        for m in range(until + 1):
+            now = _SA_T0 + timedelta(minutes=m)
+            _sa_dt.freeze(now)
+            coord._last_optimization = now
+            coord._mode = "off" if off_at is not None and m >= off_at else coord._mode
+            if m in events:
+                _sa_boost.adopt_plan(coord, {"heat_pump_on": events[m], "power": 1.5 * events[m]})
+                if sysid:
+                    coord._current_action = {**coord._current_action, "mode": "system_identification"}
+                if plan:
+                    coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
+                await coord._apply_action()
+            for tick in ([] if m in events else list(ticks)):
+                await tick(now)
+            for d, service, data in hass.services.calls:
+                if every:
+                    writes.append((m, d, service, dict(data)))
+                if d == domain and data.get("entity_id") == entity:
+                    writes.append((m, service)) if not every else None
+                    on = service == "turn_on"
+                    new = ("heat" if on else "off") if domain == "climate" else ("on" if on else "off")
+                    if hass.states.get(entity).state != new:  # async_set keeps last_changed
+                        hass.states.set(entity, FakeState(new, last_updated=now))
+            hass.services.calls.clear()
+        frozen = _sh_coord_mod._tail_freeze(coord)
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+        _sh_coord_mod.supply_hold.hold_supply = real
+    return (writes, frozen) if every else writes
+
+
+# The cycle at 06:00 switches on; a re-solve at 06:03 turns the step off.
+_ms_short = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
+_ms_long = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14))
+R.check(
+    "a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN",
+    _ms_short == [(0, "turn_on"), (10, "turn_off")],
+    f"{_ms_short}",
+)
+_ms_off = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, off_at=5))
+R.check(
+    "a write held back is not retried once the optimizer is switched off",
+    _ms_off == [(0, "turn_on")],
+    f"{_ms_off}",
+)
+R.check(
+    "null control: the same re-solve twelve minutes into the run switches it off at once",
+    _ms_long == [(0, "turn_on"), (12, "turn_off")],
+    f"{_ms_long}",
+)
+# A re-solve at 06:12 switches the run off; one at 06:15 turns the next step on.
+_ms_pause = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 15: True}, until=25))
+_ms_rest = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 23: True}, until=25))
+R.check(
+    "a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE",
+    _ms_pause == [(0, "turn_on"), (12, "turn_off"), (22, "turn_on")],
+    f"{_ms_pause}",
+)
+R.check(
+    "null control: the same re-solve eleven minutes into the pause switches it on at once",
+    _ms_rest == [(0, "turn_on"), (12, "turn_off"), (23, "turn_on")],
+    f"{_ms_rest}",
+)
+# One clock: a run or a pause the gate did not write (a boost, a fixed mode,
+# the user, the cut-off) is measured on the switch's own stamp like one it
+# wrote. The switch reads on, or off, since 05:57.
+_ms_user_run = _asyncio.run(_ms_run("--", ("on", -3), {0: False}, until=12))
+_ms_user_pause = _asyncio.run(_ms_run("ss", ("off", -3), {0: True}, until=12))
+R.check(
+    "a run someone else started three minutes ago is held on until MIN_RUN of the switch's own stamp",
+    _ms_user_run == [(7, "turn_off")],
+    f"{_ms_user_run}",
+)
+R.check(
+    "a pause someone else started three minutes ago is held off until MIN_PAUSE of the switch's own stamp",
+    _ms_user_pause == [(7, "turn_on")],
+    f"{_ms_user_pause}",
+)
+# A restart of Home Assistant stamps the switch at the restart (the
+# ``StateMachine.async_set`` contract in tests/ha_contract.py): the pump reads
+# as a run started then and is held on for MIN_RUN. A reload of the
+# integration keeps the stamp: an hour-old run is switched off at once.
+_ms_boot = _asyncio.run(_ms_run("--", ("on", 0), {0: False}, until=12))
+_ms_reload = _asyncio.run(_ms_run("--", ("on", -60), {0: False}, until=12))
+R.check(
+    "after a Home Assistant restart a supply found on is held for MIN_RUN of its restart stamp, then switched off",
+    _ms_boot == [(10, "turn_off")],
+    f"{_ms_boot}",
+)
+R.check(
+    "null control: after a reload an hour-old run is switched off at once",
+    _ms_reload == [(0, "turn_off")],
+    f"{_ms_reload}",
+)
+# A held write the plan gives no command for (no plan) is retried with the
+# action's own value at the minimum, not dropped until the next cycle.
+_ms_noplan = _asyncio.run(_ms_run("--", ("on", -3), {0: False}, until=12, plan=False))
+R.check(
+    "with no plan, an OFF held three minutes into a run lands at MIN_RUN",
+    _ms_noplan == [(7, "turn_off")],
+    f"{_ms_noplan}",
+)
+# System identification passes the gate: a step-response edge is not delayed.
+_ms_sysid = _asyncio.run(_ms_run("ss", ("on", -3), {0: False}, until=12, sysid=True))
+R.check(
+    "system identification: an OFF three minutes into a run is written at once",
+    _ms_sysid == [(0, "turn_off")],
+    f"{_ms_sysid}",
+)
+# A climate target reads heat / off; its run is held like a switch's.
+_ms_clim = _asyncio.run(_ms_run("--", ("heat", -3), {0: False}, until=12, entity="climate.hp"))
+_ms_clim_old = _asyncio.run(_ms_run("--", ("heat", -60), {0: False}, until=12, entity="climate.hp"))
+R.check(
+    "a climate target reading heat three minutes is held on until MIN_RUN",
+    _ms_clim == [(7, "turn_off")],
+    f"{_ms_clim}",
+)
+R.check(
+    "null control: a climate target heating an hour is switched off at once",
+    _ms_clim_old == [(0, "turn_off")],
+    f"{_ms_clim_old}",
+)
+# The learners: an interval with a held write ran other than the plan, so
+# ``_learning_frozen`` names it (``supply_hold.FREEZE_HELD``); the null
+# control is the same run with no write held.
+_ms_fz_held = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, every=True))[1]
+_ms_fz_free = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14, every=True))[1]
+R.check(
+    "an interval in which the gate held a write freezes the learners with the supply_held reason",
+    _ms_fz_held == _sh.FREEZE_HELD,
+    f"{_ms_fz_held!r}",
+)
+R.check(
+    "null control: the same interval with no write held does not",
+    _ms_fz_free != _sh.FREEZE_HELD,
+    f"{_ms_fz_free!r}",
+)
+# Null control, owed: with every write on a step boundary and no restart, the
+# service calls and their order are identical to main's (the gate off); an
+# install with no supply switch is untouched by the gate.
+for _ms_name, _ms_args, _ms_kw in (
+    ("writes on step boundaries", ("s-s-", ("off", -60), {0: True, 15: False, 30: True, 45: False}), {"until": 59}),
+    ("a plan the step tick moves", ("s-ss", ("off", -60), {0: True}), {"until": 59}),
+    ("no supply switch", ("s-s-", ("off", -60), {0: True, 3: False, 15: False, 31: True}), {"until": 40, "entity": None}),
+):
+    _ms_a = _asyncio.run(_ms_run(*_ms_args, every=True, **_ms_kw))[0]
+    _ms_b = _asyncio.run(_ms_run(*_ms_args, every=True, gate=False, **_ms_kw))[0]
+    R.check(
+        f"null control: {_ms_name}, the gate issues main's service calls in main's order",
+        _ms_a == _ms_b and (_ms_kw.get("entity", 1) is None or _ms_a),
+        f"{_ms_a} != {_ms_b}",
+    )
+
+
+# Rule three: an ON that starts a run the plan ends within MIN_RUN is skipped,
+# except on a hot-water step whose tank is below its minimum or under a
+# disinfection hold (``supply_hold.tank_reason``, the early cut-off's own).
+def _sh_inputs(minute, *, dhw=False, cold=False, disinfecting=False, state="off", nodhw=False):
+    hass = FakeHass({"switch.hp": FakeState(state, last_updated=_SA_T0 - timedelta(hours=1))})
+    plan = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)],
+        power_schedule=[0.0 if dhw else 1.5, 0.0], dhw_power_schedule=[1.5 if dhw else 0.0, 0.0])
+    return lambda: _sa_pa.ArbiterInputs(
+        hass=hass, config={"heat_pump_switch_entity": "switch.hp"}, mode="auto", plan=plan,
+        plan_stale=False, entry_released=False,
+        state=SimpleNamespace(dhw_temperature=40.0 if cold == "edge" else 35.0 if cold else 50.0),
+        thermal=None, params=SimpleNamespace(dhw_min_temp=40.0) if nodhw else SimpleNamespace(dhw_enabled=True, dhw_min_temp=40.0),
+        action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=disinfecting)
+
+
+_sh_none = SimpleNamespace(active=lambda _c, _n: False)
+
+
+def _sh_start(minute, **kw):
+    held = _sa_pa.ArbiterState()
+    got = _sh.hold_supply(held, _sh_inputs(minute, **kw), _sh_none, True, _SA_T0 + timedelta(minutes=minute))
+    return got, held.supply_held
+
+
+for _ms_name, _ms_min, _ms_kw, _ms_want in (
+    ("a space step, ON at minute 7 before an OFF step", 7, {}, (None, True)),
+    ("null control: the same ON at minute 5, MIN_RUN before the boundary", 5, {}, (True, False)),
+    ("a hot-water step with the tank warm", 7, {"dhw": True}, (None, True)),
+    ("a hot-water step with the tank below its minimum", 7, {"dhw": True, "cold": True}, (True, False)),
+    ("a hot-water step under a disinfection hold", 7, {"dhw": True, "disinfecting": True}, (True, False)),
+    ("a space step with the tank below its minimum", 7, {"cold": True}, (None, True)),
+    ("null control: the switch already on", 7, {"state": "on"}, (True, False)),
+    ("an unreadable switch", 7, {"state": "unavailable"}, (True, False)),
+    ("a hot-water step with the tank exactly at its minimum (not below)", 7, {"dhw": True, "cold": "edge"}, (None, True)),
+    ("a cold tank on params with no dhw_enabled field is not exempt", 7, {"dhw": True, "cold": True, "nodhw": True}, (None, True)),
+):
+    _ms_got = _sh_start(_ms_min, **_ms_kw)
+    R.check(f"rule three: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# A write of None (cooling, both channels blocked) is passed and marks nothing
+# held, even on a run three minutes old.
+_sh_nheld = _sa_pa.ArbiterState()
+_sh_nin = _sh_inputs(7, state="on")
+_sh_nin().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+_sh_ngot = (_sh.hold_supply(_sh_nheld, _sh_nin, _sh_none, None, _SA_T0 + timedelta(minutes=7)), _sh_nheld.supply_held, _sh_nheld.held_until)
+R.check("a write of None passes and marks nothing held", _sh_ngot == (None, False, None), f"{_sh_ngot}")
+
+
+# A held write whose command is gone (the optimizer switched off) is dropped
+# by the step tick, flag and all; the null control keeps it in a plan mode.
+async def _sh_tick(mode):
+    held = _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    inp = _sa_pa.ArbiterInputs(**{**vars(inp), "mode": mode, "plan": None, "action": {"heat_pump_on": False}})
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return wrote, held.supply_held
+
+
+for _ms_name, _ms_mode, _ms_want in (
+    ("the optimizer switched off: no write, the hold dropped", "off", ([], False)),
+    ("null control: a plan mode with no plan retries the action's OFF", "auto", ([False], True)),
+):
+    _ms_got = _asyncio.run(_sh_tick(_ms_mode))
+    R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# An unreadable switch passes an OFF the gate would hold on a readable one;
+# a stamp ahead of the clock is an unknown age and holds nothing (#775).
+def _sh_stop(state, minutes_ago):
+    held = _sa_pa.ArbiterState()
+    inputs = _sh_inputs(7, state=state)
+    inputs().hass.states.set("switch.hp", FakeState(state, last_updated=_SA_T0 + timedelta(minutes=7 - minutes_ago)))
+    got = _sh.hold_supply(held, inputs, _sh_none, False, _SA_T0 + timedelta(minutes=7))
+    return got, held.supply_held
+
+
+for _ms_name, _ms_args, _ms_want in (
+    ("an OFF to a switch reading unavailable passes", ("unavailable", 3), (False, False)),
+    ("an OFF to a switch reading unknown passes", ("unknown", 3), (False, False)),
+    ("an OFF to a switch stamped ahead of the clock passes", ("on", -3), (False, False)),
+    ("null control: an OFF to a switch on three minutes is held", ("on", 3), (None, True)),
+    ("an OFF to a switch stamped this instant is held (age 0, not unknown)", ("on", 0), (None, True)),
+):
+    _ms_got = _sh_stop(*_ms_args)
+    R.check(f"stop: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# The learners' freeze spans two plan intervals from the last held write,
+# fixed at the hold from its config; a config with no interval reads the default
+# interval, and nothing held reads nothing.
+def _sh_fz_hold(config):
+    held, inputs = _sa_pa.ArbiterState(), _sh_inputs(7, state="on")
+    inputs().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+    inp = _sa_pa.ArbiterInputs(**{**vars(inputs()), "config": config})
+    _sh.hold_supply(held, lambda: inp, _sh_none, False, _SA_T0 + timedelta(minutes=7))
+    return held
+
+
+_sh_fz = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp", "optimization_interval": 30})
+_sh_fz_dflt = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp"})
+_SH_FZ_AT = _SA_T0 + timedelta(minutes=7)
+for _ms_name, _ms_got, _ms_want in (
+    ("nothing held reads nothing", _sh.freeze_reason(_sa_pa.ArbiterState(), _SA_T0), None),
+    ("a write held 59 minutes ago on a 30-minute interval is frozen", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=59)), _sh.FREEZE_HELD),
+    ("null control: 60 minutes ago is not", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=60)), None),
+    ("a config with no interval reads the default", _sh_fz_dflt.held_until - _SH_FZ_AT, 2 * timedelta(minutes=_sa_pa.EntryConfig.from_mapping({}).optimization_interval)),
+):
+    R.check(f"freeze_reason: {_ms_name}", _ms_got == _ms_want, f"{_ms_got!r}")
+
+
+# A held write is not logged as the blocked-mode skip it is not.
+class _ShLog(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.seen = []
+
+    def emit(self, record):
+        self.seen.append(record.getMessage())
+
+
+_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
+_sh_coord_mod._LOGGER.addHandler(_sh_log)
+_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+try:
+    _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
+finally:
+    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
+    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+_sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
+R.check(
+    "a held OFF is not logged as the cooling or blocked-mode skip",
+    _sh_skips == [],
+    f"{_sh_skips}",
+)
+
+
+
+async def _sh_blocked_write():
+    hass = FakeHass({"switch.hp": FakeState("on", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "space_blocked": True, "dhw_blocked": True})
+    _sa_dt.freeze(_SA_T0)
+    try:
+        await coord._write_supply(False)
+    finally:
+        _sa_dt.freeze(None)
+    return [c for c in hass.services.calls if c[0] == "switch"]
+
+
+_sh_log.seen.clear()
+_sh_coord_mod._LOGGER.addHandler(_sh_log)
+_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+try:
+    _sh_bcalls = _asyncio.run(_sh_blocked_write())
+finally:
+    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
+    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+_sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
+R.check(
+    "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
+    _sh_bcalls == [] and len(_sh_bskips) == 1,
+    f"{_sh_bcalls} {_sh_bskips}",
+)
+
+
+# Which writes the gate holds, one input changed at a time against a held
+# write: the plan modes and the boosts (``supply_hold._passes``), rule
+# three's window one tick inside it and its hot-water exemption on a "both"
+# step (``_ends_soon``), and the step tick's retry where the cycle would
+# write nothing (``supply_tick``, ``_action_supply``).
+def _sh_at(minute, value, since_min, state, mode="auto", boosts=None):
+    held = _sa_pa.ArbiterState()
+    base = _sh_inputs(minute, state=state)()
+    base.hass.states.set("switch.hp", FakeState(state, last_updated=_SA_T0 + timedelta(minutes=since_min)))
+    inp = _sa_pa.ArbiterInputs(**{**vars(base), "mode": mode})
+    got = _sh.hold_supply(held, lambda: inp, boosts or _sh_none, value, _SA_T0 + timedelta(minutes=minute))
+    return got, held.supply_held
+
+
+def _sh_both(cold):
+    held = _sa_pa.ArbiterState()
+    inp = _sh_inputs(7, dhw=True, cold=cold)()
+    inp.plan.power_schedule[0] = 1.5
+    got = _sh.hold_supply(held, lambda: inp, _sh_none, True, _SA_T0 + timedelta(minutes=7))
+    return got, held.supply_held, _sa_pa.step_duty(inp.plan, _SA_T0 + timedelta(minutes=7))
+
+
+_sh_boost_mod = importlib.import_module(_sa_pa.__package__ + ".boost")
+_sh_boost = lambda ch: SimpleNamespace(active=lambda c, _n: c == ch)  # noqa: E731
+for _ms_name, _ms_got, _ms_want in (
+    ("economy is a plan mode: an OFF three minutes into a run is held", _sh_at(12, False, 9, "on", mode="economy"), (None, True)),
+    ("a fixed mode (comfort) passes an OFF three minutes into a run", _sh_at(12, False, 9, "on", mode="comfort"), (False, False)),
+    ("a live space boost passes an ON three minutes into a pause", _sh_at(2, True, -1, "off", boosts=_sh_boost(_sh_boost_mod.CHANNEL_SPACE)), (True, False)),
+    ("a live DHW boost passes an ON three minutes into a pause", _sh_at(2, True, -1, "off", boosts=_sh_boost(_sh_boost_mod.CHANNEL_DHW)), (True, False)),
+    ("null control: no boost holds that ON", _sh_at(2, True, -1, "off"), (None, True)),
+    ("rule three: an ON at minute 6, one tick inside MIN_RUN of an OFF step, is skipped", _sh_start(6), (None, True)),
+    ("rule three: a both step with the tank below its minimum is exempt", _sh_both(True), (True, False, "both")),
+    ("rule three: null control: a both step with the tank warm is skipped", _sh_both(False), (None, True, "both")),
+):
+    R.check(f"which writes are held: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+async def _sh_tick_over(**over):
+    held = _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    inp = _sa_pa.ArbiterInputs(**{**vars(inp), "plan": None, "action": {"heat_pump_on": False}, **over})
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return wrote, held.supply_held
+
+
+for _ms_name, _ms_over, _ms_want in (
+    ("the entry released: no write, the hold dropped", {"entry_released": True}, ([], False)),
+    ("a stale plan: no write, the hold dropped", {"plan_stale": True}, ([], False)),
+    ("economy with no plan retries the action's OFF", {"mode": "economy"}, ([False], True)),
+):
+    _ms_got = _asyncio.run(_sh_tick_over(**_ms_over))
+    R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# An install with no power switch: the gate reads no switch. Upstream's
+# ``StateMachine.get`` lowers a missed entity id, so ``get(None)`` raises
+# (tests/ha_contract.py, "StateMachine.get(None) raises"); FakeStates returns
+# None, so this install's states read as upstream's do.
+class _ShUpstreamStates:
+    def __init__(self, states):
+        self._states = dict(states)
+
+    def get(self, entity_id):
+        return self._states.get(entity_id) or self._states.get(entity_id.lower())
+
+    def set(self, entity_id, state):
+        self._states[entity_id] = state
+
+
+async def _sh_no_switch():
+    hass = FakeHass({})
+    hass.states = _ShUpstreamStates({})
+    coord = Coord(hass, FakeEntry(data=dict(_LC_DATA)))
+    coord._mode = "auto"
+    _sa_dt.freeze(_SA_T0 + timedelta(minutes=3))
+    try:
+        await coord._write_supply(True)
+        await coord._write_supply(False)
+    finally:
+        _sa_dt.freeze(None)
+    return [c for c in hass.services.calls if c[0] == "switch"], _sa_pa.state_for(coord).supply_held
+
+
+try:
+    _sh_ns = _asyncio.run(_sh_no_switch())
+except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
+    _sh_ns = repr(_sh_err)
+R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
+        _sh_ns == ([], False), f"{_sh_ns}")
+
+
+from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
+from heatpump_optimizer import wear as _ds_wear  # noqa: E402
+from heatpump_optimizer import pump_mode as _ds_pm  # noqa: E402
+import json  # noqa: E402
+from pathlib import Path as _DsPath  # noqa: E402
+from harness import FakeCoordinator as _DsFakeCoord, FakeEntry as _DsFakeEntry  # noqa: E402
+
+R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
+# A hot water -> heating mode write while the compressor runs stops it on some
+# pumps (Bankaifan, pull request 3420). Part A observes, estimates, persists
+# and publishes; nothing reads the estimate. The learner is driven directly
+# with the install's own table, then through ``pump_arbiter.apply`` and the
+# listener ``duty_switch`` arms.
+_DS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
+_DS_OPTS = ("Heating", "DHW (Hot Water)", "Heating + DHW")
+_DS_DHW, _DS_HEAT = _ds_pm.MODE_DHW, _ds_pm.MODE_HEAT
+
+
+def _ds_ctx(at, **over):
+    """A context that counts: heated return, demand, the plan stays, nothing else explains a stop."""
+    return _ds_mod.SwitchContext(**{
+        "mode_written_at": at, "last_write_at": at, "inlet_c": 44.2, "water_setpoint_c": 32.0,
+        "source_leg_s": 17 * 60.0, "target_demand": True, "plan_stays": True, **over})
+
+
+def _ds_switch(learner, at, stop_s=None, restart_s=None, old=_DS_DHW, new=_DS_HEAT, **over):
+    """One switch at ``at``: an optional stop and restart, seconds after it; passes every minute."""
+    ctx = _ds_ctx(at, **over)
+    learner.mode_write(at, old, new, True, ctx)
+    marks = sorted(m for m in {stop_s, restart_s, *range(60, 241, 60)} if m is not None)
+    for mark in marks:
+        when = at + timedelta(seconds=mark)
+        if mark == stop_s:
+            learner.edge(when, False)
+        elif mark == restart_s:
+            learner.edge(when, True)
+        else:
+            learner.note_pass(when, ctx, False)
+    return learner
+
+
+# The contributor's table, 2026-11-10 (design.md, "Finding").
+_ds_day = datetime(2026, 11, 10, tzinfo=UTC)
+_ds_tab = _ds_mod.DutySwitchLearner()
+_ds_switch(_ds_tab, _ds_day.replace(hour=14, minute=2, second=53), stop_s=19, restart_s=19 + 492)
+_ds_switch(_ds_tab, _ds_day.replace(hour=14, minute=18, second=53), stop_s=12, inlet_c=43.6, source_leg_s=180.0)
+# Row 2: the arbiter wrote the mode again before the restart.
+_ds_tab.mode_write(_ds_day.replace(hour=14, minute=30), _DS_HEAT, _DS_DHW, False,
+                   _ds_ctx(_ds_day.replace(hour=14, minute=30)))
+_ds_switch(_ds_tab, _ds_day.replace(hour=15, minute=0, second=1), stop_s=12, restart_s=12 + 510, inlet_c=51.0)
+for _ds_h, _ds_m in ((3, 32), (13, 45), (14, 15)):
+    # Into hot water the inlet is never over a set-point: the source leg's age gates it (verdict n10).
+    _ds_switch(_ds_tab, _ds_day.replace(hour=_ds_h, minute=_ds_m, second=40), old=_DS_HEAT, new=_DS_DHW,
+               inlet_c=24.0, water_setpoint_c=32.0, source_leg_s=600.0)
+# The 14 s leg: the return is not heated, and without a return sensor the leg is too short.
+_ds_switch(_ds_tab, _ds_day.replace(hour=13, minute=29, second=53), stop_s=19, inlet_c=33.0)
+_ds_switch(_ds_tab, _ds_day.replace(hour=13, minute=29, second=53), stop_s=19, inlet_c=None, source_leg_s=14.0)
+_ds_switch(_ds_tab, _ds_day.replace(hour=13, minute=29, second=53), old=_DS_HEAT, new=_DS_DHW, source_leg_s=14.0)
+_ds_d2s, _ds_s2d = _ds_tab.directions["dhw_space"], _ds_tab.directions["space_dhw"]
+R.check(
+    "the table replays as three stops (one censored, two off times) and three kept; the 14 s leg counts nothing",
+    (_ds_d2s.stopped, _ds_d2s.kept, _ds_d2s.censored, _ds_d2s.void, _ds_d2s.off_s) == (3, 0, 1, 0, [492.0, 510.0])
+    and (_ds_s2d.stopped, _ds_s2d.kept, _ds_s2d.void, _ds_s2d.off_s) == (0, 3, 0, [])
+    and abs(_ds_d2s.p - 1.0) < 1e-12 and _ds_s2d.p == 0.0 and _ds_d2s.median_off_s == 501.0
+    and _ds_tab.episode is None,
+    f"{_ds_d2s} {_ds_s2d}",
+)
+R.check(
+    "null control: the 14 s leg with a heated return, or a full leg without a return sensor, does count",
+    _ds_switch(_ds_mod.DutySwitchLearner(), _ds_day, stop_s=19, restart_s=500).directions["dhw_space"].stopped == 1
+    and _ds_switch(_ds_mod.DutySwitchLearner(), _ds_day, stop_s=19, restart_s=500, inlet_c=None,
+                   source_leg_s=60.0).directions["dhw_space"].stopped == 1
+    and _ds_switch(_ds_mod.DutySwitchLearner(), _ds_day, stop_s=19, restart_s=500,
+                   inlet_c=34.0).directions["dhw_space"].stopped == 1,
+)
+def _ds_opens(args, **over):
+    l = _ds_mod.DutySwitchLearner()
+    l.mode_write(_ds_day, *args, _ds_ctx(_ds_day, **over))
+    return l.episode is not None
+
+
+R.check(
+    "a switch opens an episode only between the two single duties, while running, with demand, on the "
+    "plan and with nothing else to explain a stop; a re-send opens nothing",
+    _ds_opens((_DS_DHW, _DS_HEAT, True)) and _ds_opens((_DS_HEAT, _DS_DHW, True))
+    and [_ds_opens(args, **over) for args, over in (
+        ((_DS_DHW, _DS_HEAT, True), {"target_demand": False}),
+        ((_DS_DHW, _DS_HEAT, True), {"plan_stays": False}),
+        ((_DS_DHW, _DS_HEAT, False), {}),
+        ((None, _DS_HEAT, True), {}),
+        ((_DS_HEAT, _DS_HEAT, True), {}),
+        ((_ds_pm.MODE_HEAT_DHW, _DS_HEAT, True), {}),
+        ((_DS_DHW, _ds_pm.MODE_HEAT_DHW, True), {}),
+        ((_DS_DHW, _DS_HEAT, True), {"defrosting": True}),
+    )] == [False] * 8,
+)
+
+
+def _ds_voided(cause):
+    """(void, stopped) after a switch that stops at 19 s, with ``cause`` applied."""
+    at = _ds_day
+    l = _ds_mod.DutySwitchLearner()
+    ctx = _ds_ctx(at)
+    l.mode_write(at, _DS_DHW, _DS_HEAT, True, ctx)
+    if cause == "before the stop":
+        l.note_pass(at + timedelta(seconds=10), _ds_ctx(at, defrosting=True), False)
+    if cause == "stopped before the write":
+        l.edge(at - timedelta(seconds=5), False)
+    l.edge(at + timedelta(seconds=19), False)
+    after = at + timedelta(seconds=60)
+    if cause == "signal lost":
+        l.edge(after, None)
+    elif cause == "another mode write":
+        pass
+    elif isinstance(cause, dict):
+        l.note_pass(after, _ds_ctx(at, **cause), False)
+    else:
+        l.note_pass(after, ctx, False)
+    if cause == "another mode write before the stop":
+        pass
+    l.edge(at + timedelta(seconds=500), True)
+    d = l.directions["dhw_space"]
+    return d.void, d.stopped
+
+
+_DS_CAUSES = (
+    {"supply_on": False}, {"plan_control": False}, {"defrosting": True}, {"disinfecting": True},
+    {"boost_held": True}, {"electric_heat": True}, {"fault": True}, {"loop_moved": True},
+    {"mode_written_at": None}, {"mode_written_at": _ds_day + timedelta(seconds=30)},
+    "signal lost", "before the stop", "stopped before the write",
+)
+_ds_voids = [_ds_voided(c) for c in _DS_CAUSES]
+R.check(
+    "each void cause in turn turns the stopped episode void: supply off, a non-plan mode, defrost, "
+    "disinfection, boost, an electric heater, a fault, 3405's loop, a person's change, a foreign write, a lost signal",
+    _ds_voids == [(1, 0)] * len(_DS_CAUSES) and _ds_mod.SwitchContext().void_cause() is None,
+    f"{list(zip(_DS_CAUSES, _ds_voids))}",
+)
+R.check(
+    "null control: the same switch with no cause books the stop",
+    _ds_voided(None) == (0, 1),
+    f"{_ds_voided(None)}",
+)
+
+
+def _ds_midway(step):
+    """A switch whose window or off time ``step`` cuts into; (void, stopped, kept, censored, off)."""
+    at, l = _ds_day, _ds_mod.DutySwitchLearner()
+    l.mode_write(at, _DS_DHW, _DS_HEAT, True, _ds_ctx(at))
+    step(l, at)
+    d = l.directions["dhw_space"]
+    return d.void, d.stopped, d.kept, d.censored, d.off_s
+
+
+def _ds_stopped_then(l, at, then):
+    l.edge(at + timedelta(seconds=19), False)
+    l.note_pass(at + timedelta(seconds=60), _ds_ctx(at), False)
+    then(l, at + timedelta(seconds=120))
+
+
+R.check(
+    "inside the window another mode write (a re-send included) voids; a stop past the window is kept; "
+    "a pending change holds the expiry back",
+    _ds_midway(lambda l, at: l.mode_write(at + timedelta(seconds=30), None, _DS_HEAT, True, _ds_ctx(at))) == (1, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.edge(at + timedelta(seconds=181), False)) == (0, 0, 1, 0, [])
+    and _ds_midway(lambda l, at: l.edge(at + timedelta(seconds=180), False)) == (0, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=179), _ds_ctx(at), False)) == (0, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=180), _ds_ctx(at), True)) == (0, 0, 0, 0, [])
+    and _ds_midway(lambda l, at: l.note_pass(at + timedelta(seconds=180), _ds_ctx(at), False)) == (0, 0, 1, 0, []),
+)
+R.check(
+    "an attributed stop keeps its count and loses its off time to a later write of any slot, "
+    "the supply switch or a lost signal",
+    all(_ds_midway(lambda l, at, then=then: _ds_stopped_then(l, at, then)) == (0, 1, 0, 1, []) for then in (
+        lambda l, t: l.note_pass(t, _ds_ctx(_ds_day, last_write_at=t - timedelta(seconds=30)), False),
+        lambda l, t: l.note_pass(t, _ds_ctx(_ds_day, supply_on=False), False),
+        lambda l, t: l.edge(t, None),
+        lambda l, t: l.mode_write(t, _DS_HEAT, _DS_DHW, False, _ds_ctx(t)),
+    ))
+    and _ds_midway(lambda l, at: _ds_stopped_then(
+        l, at, lambda l, t: (l.note_pass(t, _ds_ctx(_ds_day), False), l.edge(t, True)))) == (0, 1, 0, 0, [101.0]),
+)
+
+
+
+def _ds_opened(stopped=False):
+    """A learner with the episode open at ``_ds_day``, optionally stopped at 19 s and checked at 60 s."""
+    l = _ds_mod.DutySwitchLearner()
+    l.mode_write(_ds_day, _DS_DHW, _DS_HEAT, True, _ds_ctx(_ds_day))
+    if stopped:
+        l.edge(_ds_day + timedelta(seconds=19), False)
+        l.note_pass(_ds_day + timedelta(seconds=60), _ds_ctx(_ds_day), False)
+    return l
+
+
+def _ds_after(seconds):
+    return _ds_day + timedelta(seconds=seconds)
+
+
+_ds_stale_latch = _ds_opened(stopped=True)
+_ds_stale_latch.directions["space_dhw"] = _DsStale = _ds_mod.Direction(
+    k=6.0, decayed_at=_ds_day - timedelta(days=60), first_day=_ds_day.date(),
+    last_day=_ds_day.date() + timedelta(days=1), usable=True)
+_ds_returns = {
+    "an edge with no episode open": _ds_mod.DutySwitchLearner().edge(_ds_day, False),
+    "a start edge before any stop": _ds_opened().edge(_ds_after(10), True),
+    "the stop edge itself, booked only when the episode closes": _ds_opened().edge(_ds_after(19), False),
+    "a pass over a stopped episode that moves nothing": _ds_opened(stopped=True).note_pass(
+        _ds_after(120), _ds_ctx(_ds_day), False),
+    "a re-send that voids the open episode": _ds_opened().mode_write(_ds_after(30), None, _DS_HEAT, True, _ds_ctx(_ds_day)),
+    "a pass that voids it": _ds_opened().note_pass(_ds_after(60), _ds_ctx(_ds_day, fault=True), False),
+    "a pass over a stopped episode on which another direction's latch falls": _ds_stale_latch.note_pass(
+        _ds_after(120), _ds_ctx(_ds_day), False),
+}
+_ds_early = _ds_opened()
+_ds_early.edge(_ds_after(10), True)
+R.check(
+    "each learner call returns whether the stored record changed, which is what the caller saves on; a start "
+    "edge before any stop is not read as the stop",
+    list(_ds_returns.values()) == [False, False, False, False, True, True, True]
+    and _ds_early.episode is not None and _ds_early.episode.stop_at is None
+    and _ds_stale_latch.episode is not None and not _DsStale.usable,
+    f"{_ds_returns}",
+)
+
+
+def _ds_stop_at(seconds):
+    """(void, the episode's stop second) after a stop edge ``seconds`` from the write."""
+    l = _ds_opened()
+    l.edge(_ds_after(seconds), False)
+    return l.directions["dhw_space"].void, None if l.episode is None else (l.episode.stop_at - _ds_day).total_seconds()
+
+
+R.check(
+    "a stop edge at the write's own instant, or half a second after it, is the switch's; one before it voids. "
+    "A write stamped at the stop's own instant censors nothing; one half a second after it does",
+    [_ds_stop_at(s) for s in (0.0, 0.5, -0.001)] == [(0, 0.0), (0, 0.5), (1, None)]
+    and [_ds_midway(lambda l, at, lag=lag: _ds_stopped_then(l, at, lambda l, t: (
+        l.note_pass(t, _ds_ctx(_ds_day, last_write_at=at + timedelta(seconds=19 + lag)), False), l.edge(t, True))))
+        for lag in (0.0, 0.5)] == [(0, 1, 0, 0, [101.0]), (0, 1, 0, 1, [])],
+    f"{[_ds_stop_at(s) for s in (0.0, 0.5, -0.001)]}",
+)
+
+
+def _ds_opens_on(**gates):
+    l = _ds_mod.DutySwitchLearner()
+    l.mode_write(_ds_day, _DS_DHW, _DS_HEAT, True, _ds_mod.SwitchContext(inlet_c=44.2, water_setpoint_c=32.0, **gates))
+    return l.episode is not None
+
+
+R.check(
+    "a gate the arbiter did not state is a gate not passed: demand alone or the plan alone opens nothing; "
+    "a learner nobody fed has no usable direction, p of nothing is 0 and its span is no day",
+    [_ds_opens_on(target_demand=True), _ds_opens_on(plan_stays=True), _ds_opens_on(target_demand=True, plan_stays=True)]
+    == [False, False, True]
+    and not any(d.usable for d in _ds_mod.DutySwitchLearner().directions.values())
+    and (_ds_mod.Direction().p, _ds_mod.Direction(k=0.5).p, _ds_mod.Direction().span_days) == (0.0, 1.0, 0),
+)
+
+# The edge tracker and the classifier (``wear``).
+_ds_run = _ds_wear.compressor_running
+R.check(
+    "the running class: the frequency at its floor, else the meter at its threshold; an absent or "
+    "non-finite reading is no signal, never stopped, and the meter never stands in for the frequency",
+    [_ds_run(hz, None, None, True) for hz in (40.0, _ds_wear.RUNNING_FLOOR_HZ, 0.99, 0.0, None, float("nan"))]
+    == [True, True, False, False, None, None]
+    and [_ds_run(None, kw, 0.5, False) for kw in (0.5, 0.49, None, float("inf"))] == [True, False, None, None]
+    and _ds_run(None, 2.0, 0.5, True) is None and _ds_run(40.0, None, 0.5, False) is None
+    and _ds_run(None, 2.0, None, False) is None,
+)
+
+
+def _ds_tracker(*events, settled=True):
+    """The edges ``events`` of (seconds, class or ``"pass"``) confirm, and the settled class."""
+    tr = _ds_wear.EdgeTracker(settled=settled)
+    out = []
+    for s, what in events:
+        when = _DS_T0 + timedelta(seconds=s)
+        edge = tr.confirm(when) if what == "pass" else tr.note(when, what)
+        if edge is not None:
+            out.append((int((edge[0] - _DS_T0).total_seconds()), edge[1]))
+    return out, tr.settled
+
+
+R.check(
+    "a one-frame zero is no edge; a final zero no event follows is confirmed by the pass, at its own time",
+    _ds_tracker((0, False), (5, True), (60, "pass")) == ([], True)
+    and _ds_tracker((0, False), (29, "pass")) == ([], True)
+    and _ds_tracker((0, False), (30, "pass")) == ([(0, False)], False)
+    and _ds_tracker((0, False), (10, False), (31, False)) == ([(0, False)], False)
+    and _ds_tracker((0, False), (10, None), (35, "pass")) == ([], True)
+    and _ds_tracker((0, False), (10, None), (40, "pass")) == ([(10, None)], None)
+    and _ds_tracker((0, True), (30, "pass"), settled=None) == ([(0, True)], True),
+)
+
+# The gates and the latch.
+_DS_D = _ds_mod.Direction
+
+
+def _ds_dir(k, n, usable=False, days=2):
+    first = _ds_day.date()
+    return _DS_D(k=k, kept_w=n - k, first_day=first, last_day=first + timedelta(days=days - 1), usable=usable)
+
+
+def _ds_latched(d):
+    d.decay(_ds_day)
+    return d.usable
+
+
+R.check(
+    "usable switches on at n >= 5 spanning two days with p >= 0.5, and not below any of the three",
+    [_ds_latched(d) for d in (
+        _ds_dir(2.5, 5.0), _ds_dir(2.5, 4.99), _ds_dir(2.49, 5.0), _ds_dir(5.0, 5.0, days=1), _ds_dir(40.0, 40.0),
+    )] == [True, False, False, False, True],
+)
+R.check(
+    "once on it stays on until n < 2.5 or p < 0.3",
+    [_ds_latched(d) for d in (
+        _ds_dir(2.5, 2.5, True), _ds_dir(2.49, 2.49, True), _ds_dir(3.0, 10.0, True), _ds_dir(2.99, 10.0, True),
+        _ds_dir(2.0, 4.0, True),
+    )] == [True, False, True, False, True],
+)
+_ds_aged = _DS_D(k=3.0, kept_w=4.0, decayed_at=_ds_day, first_day=_ds_day.date(), last_day=_ds_day.date())
+_ds_aged.decay(_ds_day + timedelta(days=14))
+_ds_fell = _ds_dir(6.0, 6.0, True)
+_ds_fell.decayed_at = _ds_day
+_ds_fell_moved = _ds_fell.decay(_ds_day + timedelta(days=28))
+_ds_fell.book(_ds_day + timedelta(days=28), True, None)
+_ds_ahead = _DS_D(k=3.0, kept_w=4.0, decayed_at=_ds_day + timedelta(days=1))
+_ds_fifth, _ds_fourth, _ds_diluted = _ds_dir(4.0, 4.0), _ds_dir(3.0, 3.0), _ds_dir(3.0, 10.0, True)
+_ds_fifth.book(_ds_day + timedelta(days=1), True, None)
+_ds_fourth.book(_ds_day + timedelta(days=1), True, None)
+_ds_diluted.book(_ds_day + timedelta(days=1), False, None)
+_ds_old = _ds_mod.DutySwitchLearner()
+_ds_old.directions["dhw_space"] = _DS_D(k=3.0, kept_w=4.0, decayed_at=_ds_day, stopped=3, kept=4)
+_ds_old_pub = [_ds_old.published(_ds_day + timedelta(days=days)) for days in (0, 14)]
+_ds_fine = _ds_mod.DutySwitchLearner()
+_ds_fine.directions["dhw_space"] = _DS_D(k=1.0, kept_w=2.0, stopped=1, kept=2, off_s=[100.25])
+_ds_fine.directions["space_dhw"] = _DS_D(void=1)
+_ds_fine_pub = _ds_fine.published(_ds_day)
+_ds_halved = _DS_D(k=4.0, decayed_at=_ds_day, first_day=_ds_day.date(), last_day=_ds_day.date())
+_ds_halved.book(_ds_day + timedelta(days=14), True, None)
+_ds_days = _ds_dir(1.0, 1.0, days=1)
+_ds_days.book(_ds_day + timedelta(days=3), True, None)
+_ds_days.book(_ds_day + timedelta(days=1), True, None)
+_ds_stamped = _DS_D(k=4.0, decayed_at=_ds_day)
+_ds_stamped.decay(_ds_day + timedelta(seconds=0.5))
+R.check(
+    "decay halves n in 14 days and leaves p unchanged; a direction that fell under 2.5 does not switch on "
+    "at one fresh episode; a stamp ahead of the clock decays nothing",
+    abs(_ds_aged.n - 3.5) < 1e-12 and abs(_ds_aged.p - 3.0 / 7.0) < 1e-12
+    and _ds_fell_moved and not _ds_fell.usable and abs(_ds_fell.n - 2.5) < 1e-9
+    and _ds_ahead.weights(_ds_day) == (3.0, 7.0),
+    f"{_ds_aged} {_ds_fell}",
+)
+def _ds_span(first_days_ago, stops=6):
+    """(span days, usable, first day's age) after ``stops`` stops on one day, a first one that many days before."""
+    d, today = _DS_D(), _ds_day + timedelta(days=400)
+    if first_days_ago is not None:
+        d.book(today - timedelta(days=first_days_ago), True, 100.0)
+    for i in range(stops):
+        d.book(today + timedelta(minutes=10 * i), True, 100.0)
+    return d.span_days, d.usable
+
+
+_ds_span_idle = _ds_dir(1.0, 1.0)
+_ds_span_idle.decayed_at = _ds_day
+_ds_span_moves = [_ds_span_idle.decay(_ds_day + timedelta(days=days)) for days in (14, 14.01, 15)]
+R.check(
+    "the span ages with the evidence: once a direction's weight is under SPAN_FLOOR_N its days are forgotten, "
+    "so one year-old stop and six on a single day span one day and are not usable, as a fresh learner's six; "
+    "null control, a first stop one half-life old still anchors the span",
+    [_ds_span(age) for age in (365, 14.01, None)] == [(1, False)] * 3
+    and [_ds_span(age) for age in (14, 1)] == [(15, True), (2, True)]
+    # Forgetting the days is a change of the stored record, reported once.
+    and _ds_span_moves == [False, True, False] and _ds_span_idle.span_days == 0
+    and (_ds_span_idle.first_day, _ds_span_idle.last_day) == (None, None)
+    and abs(_ds_mod.SPAN_FLOOR_N - 0.5) < 1e-12,
+    f"{[_ds_span(age) for age in (365, 14.01, 14, 1, None)]} {_ds_span_moves}",
+)
+R.check(
+    "the latch is judged at the booking itself: a stop taking n from 4 to 5 switches a direction on, one "
+    "taking it from 3 to 4 does not, and a kept episode taking p under 0.3 switches one off",
+    (_ds_fifth.usable, _ds_fourth.usable, _ds_diluted.usable) == (True, False, False),
+    f"{_ds_fifth} {_ds_fourth} {_ds_diluted}",
+)
+R.check(
+    "the median off time is the middle of an odd list and the mean of the middle two of an even one; a booking "
+    "ages the counts to its own time first, and every aging moves the stamp",
+    [_DS_D(off_s=offs).median_off_s for offs in ([3.0, 1.0, 2.0], [4.0, 1.0, 3.0, 2.0], [7.0], [])] == [2.0, 2.5, 7.0, None]
+    and abs(_ds_halved.n - 3.0) < 1e-12 and _ds_halved.decayed_at == _ds_day + timedelta(days=14)
+    and _ds_stamped.decayed_at == _ds_day + timedelta(seconds=0.5)
+    # A later booking moves the last day on; one dated before it does not move it back.
+    and (_ds_days.span_days, _ds_days.first_day) == (4, _ds_day.date()),
+    f"{_ds_halved} {_ds_stamped}",
+)
+_ds_third = _ds_mod.DutySwitchLearner(
+    {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}).published(_ds_day)
+R.check(
+    "p publishes to two places, n as whole episodes (down, never up) and the median to one place; a direction "
+    "holding only a void publishes a span of no day",
+    (_ds_fine_pub["duty_switch_dhw_space_p"], _ds_fine_pub["duty_switch_dhw_space_n"],
+     _ds_fine_pub["duty_switch_dhw_space_median_off_s"], _ds_fine_pub["duty_switch_space_dhw_span_days"])
+    == (0.33, 3.0, 100.2, 0)
+    and (_ds_third["duty_switch_dhw_space_p"], _ds_third["duty_switch_dhw_space_n"]) == (0.5, 0.0)
+    and "duty_switch_dhw_space_k" not in _ds_fine_pub,
+    f"{_ds_fine_pub} {_ds_third}",
+)
+R.check(
+    "the published n is aged to the reading's time, p and the tallies are not",
+    [(pub["duty_switch_dhw_space_p"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
+     for pub in _ds_old_pub] == [(0.43, 7.0, 3), (0.43, 3.0, 3)],
+    f"{_ds_old_pub}",
+)
+# Carry c7d068a1 (reviewer's probe attr_churn): age alone moved the attributes. A day of quarter-hour reads of
+# six stops an hour apart, from six hours on: nothing moves; null control, the decayed weight to two places
+# that the attributes published before moves within the same reads, so the reads do span a decay.
+_ds_churn = _ds_mod.DutySwitchLearner()
+for _ds_i in range(6):
+    _ds_churn.directions["dhw_space"].book(_ds_day + timedelta(hours=_ds_i), True, 60.0)
+_ds_reads = [_ds_day + timedelta(hours=6, minutes=15 * _ds_i) for _ds_i in range(96)]
+_ds_churn_pubs = [_ds_churn.published(t) for t in _ds_reads]
+_ds_churn_raw = [round(_ds_churn.directions["dhw_space"].weights(t)[1], 2) for t in _ds_reads]
+_ds_churn_month = {_ds_churn.published(_ds_day + timedelta(hours=6 + 6 * _ds_i))["duty_switch_dhw_space_n"]
+                   for _ds_i in range(4 * 60)}
+R.check(
+    "age alone moves no published attribute within a day, and moves n only a whole episode at a time; null "
+    "control, the decayed weight read to two places moves within the same day's reads",
+    sum(a != b for a, b in zip(_ds_churn_pubs, _ds_churn_pubs[1:])) == 0
+    and sum(a != b for a, b in zip(_ds_churn_raw, _ds_churn_raw[1:])) > 0
+    and _ds_churn_month == {5.0, 4.0, 3.0, 2.0, 1.0, 0.0},
+    f"{_ds_churn_pubs[0]} {sorted(_ds_churn_month)}",
+)
+# Carry ef5d3875 (reviewer's probe fifth_episode): N_ON is a decayed weight, not a count of episodes. Five
+# stops ten hours apart weigh under N_ON and leave the direction off; the sixth switches it on. Control: the
+# check above, where a stop taking an undecayed n from 4 to 5 switches it on.
+_ds_spread = _DS_D()
+_ds_spread_on = []
+for _ds_i in range(6):
+    _ds_spread.book(_ds_day + timedelta(hours=10 * _ds_i), True, 60.0)
+    _ds_spread_on.append(_ds_spread.usable)
+R.check(
+    "N_ON is a weight: five stops ten hours apart, spanning two days, stay off at a weight under five; a sixth "
+    "switches the direction on",
+    _ds_spread_on == [False] * 5 + [True] and _ds_mod.N_ON == 5.0,
+    f"{_ds_spread_on} {_ds_spread}",
+)
+
+# Restart: the dict round trip, the strict load, the cap.
+_ds_saved = _ds_tab.stored_record()
+_ds_tab.directions["dhw_space"].usable = True
+_ds_saved_on = _ds_tab.stored_record()
+_ds_back = _ds_mod.DutySwitchLearner.from_record(json.loads(json.dumps(_ds_saved_on)))
+
+
+def _ds_bad(path, value, drop=False):
+    doc = json.loads(json.dumps(_ds_saved_on))
+    node = doc
+    for key in path[:-1]:
+        node = node[key]
+    if drop:
+        del node[path[-1]]
+    else:
+        node[path[-1]] = value
+    return doc
+
+
+_DS_ROW = ("directions", "dhw_space")
+_DS_MALFORMED = [None, [], {}, {"directions": []}, _ds_bad(_DS_ROW, None, drop=True),
+                 _ds_bad(("directions", "both_space"), _ds_saved_on["directions"]["dhw_space"]),
+                 _ds_bad((*_DS_ROW, "extra"), 1), _ds_bad((*_DS_ROW, "k"), None, drop=True)] + [
+    _ds_bad((*_DS_ROW, leaf), value) for leaf, value in (
+        ("k", 1e7), ("k", -0.1), ("k", "3"), ("kept_w", float("nan")), ("kept_w", float("inf")), ("kept_w", 1e7),
+        ("kept_w", True), ("kept_w", -1.0),
+        ("off_s", [1.0] * 33), ("off_s", [-1.0]), ("off_s", [86401.0]), ("off_s", "x"), ("off_s", [None]),
+        ("stopped", True), ("void", -1), ("censored", 1.5), ("kept", 10**9 + 1), ("usable", 1), ("usable", None),
+        ("decayed_at", "yesterday"), ("decayed_at", 5), ("first_day", "2026-13-01"), ("first_day", None),
+        ("last_day", "2026-11-09"),
+    )]
+_ds_empty = _ds_mod.DutySwitchLearner()
+_ds_loads = [_ds_mod.DutySwitchLearner.from_record(doc) == _ds_empty for doc in _DS_MALFORMED]
+_ds_many = _ds_mod.DutySwitchLearner()
+for _ds_i in range(40):
+    _ds_switch(_ds_many, _ds_day + timedelta(minutes=20 * _ds_i), stop_s=12, restart_s=12 + 100 + _ds_i)
+R.check(
+    "a restart keeps counts, days, off times and the latch through the dict round trip",
+    _ds_back == _ds_tab and _ds_back.directions["dhw_space"].usable
+    and not _ds_mod.DutySwitchLearner.from_record(_ds_saved).directions["dhw_space"].usable
+    and _sa_store.off_domain("heatpump_optimizer_e_duty_switch", _ds_saved_on) == [],
+    f"{_ds_back}",
+)
+# The loader's bounds and the store's registered domain are one rule, at both ends.
+_ds_edges = [_ds_bad((*_DS_ROW, leaf), value) for leaf, value in (
+    ("off_s", [0.0, 86400.0]), ("off_s", [1.0] * 32), ("kept", 10**9), ("k", 1e6), ("kept_w", 0.0))] + [
+    _ds_mod.DutySwitchLearner().stored_record()]
+R.check(
+    "a record on its bounds (a zero and a one-day off time, a full off list, a tally of 10**9, a weight of "
+    "1e6) and an empty learner's own (no stamp, no day) load whole and are inside the store's registered domain",
+    all(_ds_mod.DutySwitchLearner.from_record(doc).stored_record() == doc
+        and _sa_store.off_domain("heatpump_optimizer_e_duty_switch", doc) == [] for doc in _ds_edges),
+    f"{[_sa_store.off_domain('heatpump_optimizer_e_duty_switch', doc) for doc in _ds_edges]}",
+)
+R.check(
+    f"each of {len(_DS_MALFORMED)} malformed or out-of-bounds payloads loads an empty learner, whole",
+    all(_ds_loads),
+    f"{[i for i, ok in enumerate(_ds_loads) if not ok]}",
+)
+R.check(
+    "the off list never exceeds its cap and drops the oldest",
+    _ds_many.directions["dhw_space"].off_s == [float(100 + i) for i in range(8, 40)]
+    and len(_ds_many.directions["dhw_space"].off_s) == _ds_mod.OFF_SAMPLES_MAX == 32
+    and _ds_many.directions["dhw_space"].stopped == 40,
+)
+
+
+def _ds_saturated_at(decayed_at):
+    """A learner usable in both directions at p = 1, its counts last aged at ``decayed_at``."""
+    l = _ds_mod.DutySwitchLearner()
+    for d in l.directions.values():
+        d.k, d.decayed_at = 40.0, decayed_at
+        d.first_day, d.last_day, d.usable, d.off_s = _ds_day.date(), _ds_day.date() + timedelta(days=5), True, [900.0] * 8
+    return l
+
+
+class _DsArb:
+    """The arbiter's coordinator surface: a both step split hot water first, then a space step."""
+
+    def __init__(self, extra=None, entry_id=None):
+        self.hass = FakeHass({
+            "select.pump_mode": FakeState("Heating + DHW", attributes={"options": list(_DS_OPTS)}),
+            "sensor.freq": FakeState("40"),
+            "binary_sensor.defrost": FakeState("on"),
+        })
+        self._config = {
+            "pump_duty_mode": "control", "heat_pump_mode_entity": "select.pump_mode",
+            "compressor_freq_sensor": "sensor.freq", **(extra or {}),
+        }
+        self.plan = SimpleNamespace(
+            timestamps=[_DS_T0, _DS_T0 + timedelta(minutes=15)], power_schedule=[1.0, 1.5],
+            dhw_power_schedule=[1.0, 0.0], optimal_setpoints=[21.0, 21.0])
+        self.params = SimpleNamespace(
+            dhw_setpoint=48.0, dhw_max_temp=60.0, dhw_cycle_temp=None, min_electrical_power=1.0,
+            max_electrical_power=5.0)
+        # A FakeEntry, weak-referenceable as a real entry is: off_restore keys its record on it.
+        self.entry = _DsFakeEntry(entry_id=entry_id or f"ds{id(self)}")
+        self.passes = 0
+        self.mode, self.disinfecting, self.room_c = "auto", False, 20.0
+        self.defrosting, self.tank_c, self.action = None, 45.0, {"heat_pump_on": True}
+
+    def arbiter_inputs(self):
+        self.passes += 1
+        return _sa_pa.ArbiterInputs(
+            hass=self.hass, config=self._config, mode=self.mode, plan=self.plan, plan_stale=False,
+            entry_released=False, state=SimpleNamespace(
+                outdoor_temperature=2.0, room_temperature=self.room_c, dhw_temperature=self.tank_c),
+            thermal=SimpleNamespace(params=self.params), params=self.params,
+            action=self.action, measured_power_kw=None, disinfecting=self.disinfecting,
+            defrosting=self.defrosting)
+
+
+def _ds_fire(c, value):
+    c.hass.states.set("sensor.freq", FakeState(value))
+    for ids, action in list(getattr(c.hass, "state_listeners", [])):
+        if "sensor.freq" in ids:
+            action(SimpleNamespace(data={"new_state": c.hass.states.get("sensor.freq")}))
+
+
+def _ds_episode(freq, extra=None, until=18, c=None, person=None, hook=None, every=60):
+    """Drive a split step; ``freq`` maps a minute to a frequency state. Returns
+    (the dhw->space row, every service call, the coordinator). ``hook`` is
+    (second, what to do to the install then); a pass runs each ``every`` seconds
+    and the pump echoes every slot written."""
+    c = c or _DsArb(extra)
+
+    async def run():
+        for s in range(60, until * 60 + 1, 15):
+            now = _DS_T0 + timedelta(seconds=s)
+            _sa_dt.freeze(now)
+            if s / 60 in freq:
+                _ds_fire(c, freq[s / 60])
+            if person is not None and s == person[0]:
+                c.hass.states.set("select.pump_mode", FakeState(person[1], attributes={"options": list(_DS_OPTS)}))
+            if hook is not None and s == hook[0]:
+                hook[1](c, now)
+            if s % every == 0:
+                await _sa_pa.apply(c, now)
+                written = _sa_pa.state_for(c).written
+                if "mode" in written:
+                    c.hass.states.set("select.pump_mode", FakeState(
+                        next(o for o in _DS_OPTS if _sa_pa.pump_mode.resolve(o) == written["mode"][0]),
+                        attributes={"options": list(_DS_OPTS)}))
+                for slot in ("dhw_setpoint", "space_setpoint"):
+                    if slot in written:
+                        c.hass.states.set(c._config[f"{slot}_entity"], FakeState(
+                            str(written[slot][0]), unit="°C", attributes={"min": 5.0, "max": 70.0, "step": 0.5}))
+    try:
+        _asyncio.run(run())
+    finally:
+        _sa_dt.freeze(None)
+    d = _ds_mod.record_for(c).learner.directions["dhw_space"]
+    return (d.stopped, d.kept, d.void, d.censored, d.off_s), list(c.hass.services.calls), c
+
+
+# Hot water to 00:07:30, heating from the 00:08 pass; the compressor stops at
+# 00:08:15 and starts again at 00:16:30.
+_ds_stop, _ds_stop_calls, _ds_c = _ds_episode({8.25: "0", 16.5: "35"})
+_ds_kept, _ds_kept_calls, _ds_kc = _ds_episode({})
+_ds_void, _, _ = _ds_episode({8.25: "0", 16.5: "35"}, {"heat_pump_defrost_entity": "binary_sensor.defrost"})
+_ds_lost, _, _ = _ds_episode({8.25: "unavailable", 16.5: "35"})
+R.check(
+    "through the arbiter: a dhw->space mode write while running that stops the compressor inside the "
+    "window books a stop and its off time",
+    _ds_stop == (1, 0, 0, 0, [495.0]),
+    f"{_ds_stop}",
+)
+R.check(
+    "null control: the same write with the compressor running on books a kept episode",
+    _ds_kept == (0, 1, 0, 0, []),
+    f"{_ds_kept}",
+)
+R.check(
+    "a defrost flag on the pump opens nothing; an unavailable frequency voids the open episode",
+    _ds_void == (0, 0, 0, 0, []) and _ds_lost == (0, 0, 1, 0, []),
+    f"{_ds_void} {_ds_lost}",
+)
+# A person switches the pump back to hot water at 00:08:30; ``hold`` drops the
+# record at the 00:09 pass and the arbiter re-sends Heating: no record, so the
+# write passes ``_write``'s unchanged-value return and reaches the learner.
+_ds_resend, _ds_resend_calls, _ = _ds_episode({}, until=11, person=(8 * 60 + 30, "DHW (Hot Water)"))
+R.check(
+    "a person's change and the re-send that answers it void the episode instead of booking it kept",
+    _ds_resend == (0, 0, 1, 0, [])
+    and [d["option"] for _dom, svc, d in _ds_resend_calls if svc == "select_option"].count("Heating") == 2,
+    f"{_ds_resend} {_ds_resend_calls}",
+)
+# What the learner judges by is read by the arbiter, so each rule is driven
+# at the install: the reading that carries it is changed and the same stop
+# replayed. A cause appears at 00:08:30, after the write and the stop.
+_DS_STOP = {8.25: "0", 16.5: "35"}
+_DS_FLAGS = {"heat_pump_switch_entity": "switch.pump", "heat_pump_backup_heater_entity": "binary_sensor.backup",
+             "heat_pump_dhw_booster_entity": "binary_sensor.booster", "heat_pump_fault_entity": "binary_sensor.fault"}
+
+
+def _ds_reads(entity, word, **stamp):
+    return lambda c, now: c.hass.states.set(entity, FakeState(word, **{k: now - v for k, v in stamp.items()}))
+
+
+_DS_AT_INSTALL = {
+    "supply_off": _ds_reads("switch.pump", "off"),
+    "not_plan_control": lambda c, now: setattr(c, "mode", "comfort"),
+    "disinfection": lambda c, now: setattr(c, "disinfecting", True),
+    "boost": lambda c, now: _sa_boost.held_for(c).set(_sa_boost.CHANNEL_DHW, True, now),
+    "electric_heat (backup heater)": _ds_reads("binary_sensor.backup", "on"),
+    "electric_heat (hot-water booster)": _ds_reads("binary_sensor.booster", "on"),
+    "fault": _ds_reads("binary_sensor.fault", "on"),
+    # The loop's own record, as ``_feedback_sent`` leaves it once it moved the target.
+    "feedback_loop": lambda c, now: setattr(_sa_pa.state_for(c), "feedback", _sa_pa.FeedbackRun(now, 30.0, now, sent_c=31.0)),
+}
+_ds_at_install = {name: _ds_episode(_DS_STOP, _DS_FLAGS, hook=(510, do))[0] for name, do in _DS_AT_INSTALL.items()}
+_ds_flags_quiet = _ds_episode(_DS_STOP, _DS_FLAGS, hook=(510, lambda c, now: [
+    _ds_reads(e, "off")(c, now) for e in ("binary_sensor.backup", "binary_sensor.booster", "binary_sensor.fault")]))[0]
+_ds_flag_stale = _ds_episode(_DS_STOP, _DS_FLAGS, hook=(510, _ds_reads(
+    "binary_sensor.fault", "on", last_updated=timedelta(hours=2))))[0]
+R.check(
+    "through the arbiter, each reading that could stop the compressor by itself voids the stop: the supply "
+    "switch off, a mode the plan does not command, disinfection, a boost, either electric heater, a fault, "
+    "the feedback loop's moved target",
+    _ds_at_install == {name: (0, 0, 1, 0, []) for name in _DS_AT_INSTALL},
+    f"{_ds_at_install}",
+)
+R.check(
+    "null control: the same install with every flag reading off books the stop, and so does a fault flag "
+    "that reads on but stale",
+    _ds_flags_quiet == _ds_flag_stale == (1, 0, 0, 0, [495.0]),
+    f"{_ds_flags_quiet} {_ds_flag_stale}",
+)
+
+# The count gates' inputs, read at the mode write. Where the space set-point
+# is a water temperature (unit return or flow; the command's is the 55 degC
+# heating ceiling here) and a return sensor reads, the heated test is the inlet
+# over that set-point, at ``HEATED_MARGIN_K`` exactly. On the default indoor
+# unit the set-point is the planned room temperature (21), which any running
+# pump's return is over, so there, and without a return sensor, the test is the
+# age of the mode record the write replaced, at ``SOURCE_LEG_MIN_S`` exactly.
+def _ds_plan(*steps):
+    """A plan of (start second, space kW, hot-water kW) steps."""
+    return SimpleNamespace(
+        timestamps=[_DS_T0 + timedelta(seconds=s) for s, _space, _dhw in steps],
+        power_schedule=[space for _s, space, _dhw in steps], dhw_power_schedule=[dhw for _s, _space, dhw in steps],
+        optimal_setpoints=[21.0] * len(steps))
+
+
+def _ds_gate(freq=_DS_STOP, plan=None, return_c=None, room_c=20.0, unit=None, **run):
+    """The dhw->space row of one stop on an install with set-point entities and, optionally, a return
+    sensor and a declared space set-point ``unit`` (the default is indoor)."""
+    c = _DsArb({"space_setpoint_entity": "number.space", "dhw_setpoint_entity": "number.dhw",
+                **({"heat_pump_return_temp_entity": "sensor.ret"} if return_c is not None else {}),
+                **({"space_setpoint_unit": unit} if unit else {})})
+    c.plan, c.room_c = plan or c.plan, room_c
+    c.hass.states.set("sensor.ret", FakeState(str(return_c), unit="°C"))
+    for entity in ("number.space", "number.dhw"):
+        c.hass.states.set(entity, FakeState("30", unit="°C", attributes={"min": 5.0, "max": 70.0, "step": 0.5}))
+    return _ds_episode(freq, c=c, **run)[0]
+
+
+_DS_LEG_STOP = {2.25: "0", 9.0: "35"}
+_ds_gates = {
+    "the room at its planned set-point: no demand": _ds_gate(room_c=21.0),
+    "the plan leaves the target duty inside the stop window": _ds_gate(
+        plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0), (659, 0.0, 1.0)), every=30),
+    **{f"a {unit} set-point and a return 1.9 K over it, after a seven-minute leg": _ds_gate(return_c=56.9, unit=unit)
+       for unit in ("return", "flow")},
+    "an indoor set-point, a return 9 K over the room's, and a 30 s leg": _ds_gate(
+        _DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (90, 1.5, 0.0)), return_c=30.0, every=30),
+    "no return sensor and a 30 s leg": _ds_gate(_DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (90, 1.5, 0.0)), every=30),
+}
+_ds_gates_open = {
+    "the room under its planned set-point": _ds_gate(room_c=20.9),
+    "the plan stays one second past the window": _ds_gate(
+        plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0), (661, 0.0, 1.0), (720, 1.5, 0.0)), every=30),
+    **{f"a {unit} set-point and a return 2.0 K over it": _ds_gate(return_c=57.0, unit=unit) for unit in ("return", "flow")},
+    "an indoor set-point, the same return, and a 60 s leg": _ds_gate(
+        _DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (120, 1.5, 0.0)), return_c=30.0, every=30),
+    "an indoor set-point and a return only 0.5 K over the room's, after a seven-minute leg": _ds_gate(return_c=21.5),
+    "no return sensor and a 60 s leg": _ds_gate(_DS_LEG_STOP, _ds_plan((0, 0.0, 1.0), (120, 1.5, 0.0)), every=30),
+}
+R.check(
+    "through the arbiter, a mode write opens no episode without demand on the target duty, when the plan "
+    "leaves that duty inside the stop window, on a return under the heated margin over the command's water "
+    "set-point (unit return or flow), or, on an indoor set-point whatever the return reads and with no "
+    "return sensor, on a replaced mode record younger than the least source leg",
+    _ds_gates == {name: (0, 0, 0, 0, []) for name in _ds_gates},
+    f"{_ds_gates}",
+)
+R.check(
+    "null control: each gate one step the other side of its bound books the stop",
+    [row[:3] for row in _ds_gates_open.values()] == [(1, 0, 0)] * len(_ds_gates_open) and len(_ds_gates_open) == 7,
+    f"{_ds_gates_open}",
+)
+
+
+def _ds_install(freq=_DS_STOP, direction="dhw_space", plan=None, hook=None, **reads):
+    """One direction's row on the bare install, with the coordinator's ``reads`` set from the start."""
+    c = _DsArb()
+    c.plan = plan or c.plan
+    for name, value in reads.items():
+        setattr(c, name, value)
+    _ds_episode(freq, c=c, hook=hook)
+    d = _ds_mod.record_for(c).learner.directions[direction]
+    return d.stopped, d.kept, d.void, d.censored, d.off_s
+
+
+# An install that knows a defrost only through the interval flag (``PumpSignals.defrosting``), no entity.
+_ds_interval = {
+    "from the start": _ds_install(defrosting=True),
+    "from 00:08:30, after the stop": _ds_install(hook=(510, lambda c, now: setattr(c, "defrosting", True))),
+    "never (the flag reads False)": _ds_install(defrosting=False),
+}
+R.check(
+    "through the arbiter, a defrost known only by the interval flag opens nothing, and one that begins after "
+    "the stop voids it; null control, the flag reading False books the stop",
+    list(_ds_interval.values()) == [(0, 0, 0, 0, []), (0, 0, 1, 0, []), (1, 0, 0, 0, [495.0])],
+    f"{_ds_interval}",
+)
+_ds_modes = {mode: _ds_install(mode=mode) for mode in ("economy", "auto", "comfort")}
+R.check(
+    "through the arbiter, Economy is a plan-control mode like Auto: the stop books in both; null control, "
+    "Comfort commands no single duty and books nothing",
+    _ds_modes == {"economy": (1, 0, 0, 0, [495.0]), "auto": (1, 0, 0, 0, [495.0]), "comfort": (0, 0, 0, 0, [])},
+    f"{_ds_modes}",
+)
+# Heating to 00:08, then hot water; the compressor runs on. The tank's set-point is 48.
+_ds_to_dhw = _ds_plan((0, 1.5, 0.0), (480, 0.0, 1.0))
+_ds_tank = {tank_c: _ds_install({}, "space_dhw", _ds_to_dhw, tank_c=tank_c) for tank_c in (47.9, 48.0, None)}
+R.check(
+    "through the arbiter, a space->dhw write counts only on hot-water demand: a tank at its set-point, or "
+    "unread, opens nothing; null control, a tank 0.1 K under it books the kept episode",
+    _ds_tank == {47.9: (0, 1, 0, 0, []), 48.0: (0, 0, 0, 0, []), None: (0, 0, 0, 0, [])}
+    and _ds_install({}, "dhw_space", _ds_to_dhw) == (0, 0, 0, 0, []),
+    f"{_ds_tank}",
+)
+
+
+# A write the plan's current step does not hold: a system-identification
+# experiment starts at 00:08 and commands heating, whatever the plan books.
+def _ds_experiment(c, now):
+    c.action = {"mode": "system_identification", "power": 2.0, "heat_pump_on": True}
+
+
+_ds_off_plan = {
+    "hot water at the write, heating before the window ends": _ds_install(
+        plan=_ds_plan((0, 0.0, 1.0), (600, 1.5, 0.0)), hook=(480, _ds_experiment)),
+    "heating at the write and at the window's end": _ds_install(
+        plan=_ds_plan((0, 0.0, 1.0), (480, 1.5, 0.0)), hook=(480, _ds_experiment)),
+}
+R.check(
+    "through the arbiter, a mode write the plan's step at the write does not hold opens nothing, though the "
+    "plan holds the duty by the window's end; null control, the same write on a step that holds it books the stop",
+    list(_ds_off_plan.values()) == [(0, 0, 0, 0, []), (1, 0, 0, 0, [495.0])],
+    f"{_ds_off_plan}",
+)
+# A later write of another slot, while the pump is off, costs the stop its off time.
+_ds_censor = _ds_gate(hook=(630, lambda c, now: setattr(c.params, "dhw_setpoint", 50.0)))
+R.check(
+    "through the arbiter, a set-point written between the stop and the restart censors the off time; "
+    "null control, the same install with no such write keeps it",
+    _ds_censor == (1, 0, 0, 1, []) and _ds_gate() == (1, 0, 0, 0, [495.0]),
+    f"{_ds_censor} {_ds_gate()}",
+)
+
+
+class _DsSaves:
+    """A store that counts its writes and keeps the last."""
+
+    def __init__(self):
+        self.saved = []
+
+    async def async_load(self):
+        return None
+
+    async def async_save(self, data):
+        self.saved.append(json.loads(json.dumps(data)))
+
+
+# The pass ages the latches: a usable direction left alone for sixty days is
+# switched off by the next pass, which saves that once and not again.
+_ds_idle = _DsArb()
+_ds_idle_rec = _ds_mod.record_for(_ds_idle)
+_ds_idle_rec.store = _DsSaves()
+_ds_idle_rec.learner, _ds_idle_rec.loaded = _ds_saturated_at(_DS_T0 - timedelta(days=60)), True
+for _ds_m in (1, 2, 3):
+    _asyncio.run(_sa_pa.apply(_ds_idle, _DS_T0 + timedelta(minutes=_ds_m)))
+_ds_idle_saved = _ds_idle_rec.store.saved
+_ds_fresh = _DsArb()
+_ds_fresh_rec = _ds_mod.record_for(_ds_fresh)
+_ds_fresh_rec.store = _DsSaves()
+_ds_fresh_rec.learner, _ds_fresh_rec.loaded = _ds_saturated_at(_DS_T0), True
+_asyncio.run(_sa_pa.apply(_ds_fresh, _DS_T0 + timedelta(minutes=1)))
+R.check(
+    "an arbiter pass switches off a usable direction whose evidence aged away, and saves the record once "
+    "for that change, not on every pass; null control, a direction aged one minute stays usable and saves nothing",
+    len(_ds_idle_saved) == 1 and not any(row["usable"] for row in _ds_idle_saved[0]["directions"].values())
+    and not _ds_idle_rec.dirty
+    and _ds_fresh_rec.store.saved == [] and all(d.usable for d in _ds_fresh_rec.learner.directions.values()),
+    f"{len(_ds_idle_saved)} {_ds_fresh_rec.store.saved}",
+)
+
+
+class _DsFlaky(_DsSaves):
+    """A store whose first ``fails`` reads, or saves, raise."""
+
+    def __init__(self, load_fails=0, save_fails=0):
+        super().__init__()
+        self.load_fails, self.save_fails = load_fails, save_fails
+
+    async def async_load(self):
+        self.load_fails -= 1
+        if self.load_fails >= 0:
+            raise OSError("disk")
+        return None
+
+    async def async_save(self, data):
+        self.save_fails -= 1
+        if self.save_fails >= 0:
+            raise OSError("disk")
+        await super().async_save(data)
+
+
+# Nothing is saved over a record that could not be read, and a save that
+# failed is owed until one lands.
+_ds_unread = _ds_mod._Record(None, _DsFlaky(load_fails=1), dirty=True)
+_asyncio.run(_ds_mod.note_pass(_ds_unread, _DS_T0, _ds_mod.SwitchContext()))
+_ds_unread_first = (_ds_unread.loaded, list(_ds_unread.store.saved))
+_asyncio.run(_ds_mod.note_pass(_ds_unread, _DS_T0, _ds_mod.SwitchContext()))
+_ds_unsaved = _ds_mod._Record(None, _DsFlaky(save_fails=1), dirty=True)
+_asyncio.run(_ds_mod.note_pass(_ds_unsaved, _DS_T0, _ds_mod.SwitchContext()))
+_ds_unsaved_first = (_ds_unsaved.dirty, list(_ds_unsaved.store.saved))
+_asyncio.run(_ds_mod.note_pass(_ds_unsaved, _DS_T0, _ds_mod.SwitchContext()))
+R.check(
+    "a pass whose read of the record failed saves nothing over it, and the next pass reads and saves; a save "
+    "that failed leaves the change owed, and the next pass lands it",
+    _ds_unread_first == (False, []) and _ds_unread.loaded and len(_ds_unread.store.saved) == 1
+    and _ds_unsaved_first == (True, []) and not _ds_unsaved.dirty and len(_ds_unsaved.store.saved) == 1,
+    f"{_ds_unread_first} {_ds_unsaved_first}",
+)
+# The listener is armed once per pump, not at all without a signal entity,
+# and letting go of a pump that was never arbitrated is not an error.
+_ds_twice = _DsArb()
+_ds_twice_rec = _ds_mod.record_for(_ds_twice)
+for _ds_i in range(2):
+    _ds_mod.attach(_ds_twice_rec, *_sa_pa._running_signal(_ds_twice.arbiter_inputs()))
+_ds_deaf = _DsArb({"compressor_freq_sensor": None})
+_ds_mod.attach(_ds_mod.record_for(_ds_deaf), *_sa_pa._running_signal(_ds_deaf.arbiter_inputs()))
+_ds_never = _DsArb({"pump_duty_mode": "off"})
+_asyncio.run(_sa_pa.apply(_ds_never, _DS_T0))
+_ds_mod.record_for(_ds_never).tracker.settled = True
+_asyncio.run(_sa_pa.apply(_ds_never, _DS_T0))
+R.check(
+    "the listener is armed once however often the arbiter attaches, and not at all with no signal entity; "
+    "duty mode off on a pump never arbitrated, or never attached, raises nothing and forgets nothing",
+    sum("sensor.freq" in ids for ids, _a in _ds_twice.hass.state_listeners) == 1
+    and (_ds_mod.record_for(_ds_deaf).unsub, _ds_mod.record_for(_ds_deaf).reader) == (None, None)
+    and not getattr(_ds_deaf.hass, "state_listeners", [])
+    and _ds_mod.record_for(_ds_never).tracker.settled is True,
+)
+# Duty mode off with an episode open: the episode is dropped uncounted, not
+# left to be judged against a signal nobody listens to.
+_ds_open_row, _, _ds_open_c = _ds_episode({}, until=8)
+_ds_open_before = _ds_mod.record_for(_ds_open_c).learner.episode
+_ds_open_c._config = {**_ds_open_c._config, "pump_duty_mode": "off"}
+_asyncio.run(_sa_pa.apply(_ds_open_c, _DS_T0 + timedelta(minutes=9)))
+R.check(
+    "detaching with an episode open drops it uncounted and forgets the running class",
+    _ds_open_before is not None and _ds_open_before.direction == "dhw_space"
+    and _ds_mod.record_for(_ds_open_c).learner.episode is None
+    and _ds_mod.record_for(_ds_open_c).tracker == _ds_wear.EdgeTracker() and _ds_open_row == (0, 0, 0, 0, [])
+    and _ds_mod.record_for(_ds_open_c).learner.directions["dhw_space"].void == 0,
+    f"{_ds_open_before}",
+)
+_ds_reader = _sa_pa._running_signal(_ds_c.arbiter_inputs())
+_ds_words = []
+for _ds_word in ("unavailable", "unknown", "abc", "", "0", "0.5", "1", "40"):
+    _ds_c.hass.states.set("sensor.freq", FakeState(_ds_word))
+    _ds_words.append(_ds_run(*_ds_reader[1]()))
+_ds_meter = _DsArb({"compressor_freq_sensor": None, "heat_pump_power_entity": "sensor.kw"})
+_ds_meter.hass.states.set("sensor.kw", FakeState("0.4", unit="kW"))
+_ds_meter_reader = _sa_pa._running_signal(_ds_meter.arbiter_inputs())
+_ds_meter_low = _ds_run(*_ds_meter_reader[1]())
+_ds_meter.hass.states.set("sensor.kw", FakeState("0.6", unit="kW"))
+R.check(
+    "the arbiter's reader: unavailable, unknown and non-numeric frequency states are no signal; without a "
+    "frequency sensor the meter reads against on_threshold_kw; with neither nothing is listened to",
+    _ds_reader[0] == "sensor.freq" and _ds_words == [None, None, None, None, False, False, True, True]
+    and _ds_meter_reader[0] == "sensor.kw" and (_ds_meter_low, _ds_run(*_ds_meter_reader[1]())) == (False, True)
+    and _sa_pa._running_signal(_DsArb({"compressor_freq_sensor": None}).arbiter_inputs())[0] is None,
+    f"{_ds_words} {_ds_meter_low}",
+)
+_ds_quiet = _DsArb()
+_asyncio.run(_sa_pa.apply(_ds_quiet, _DS_T0 + timedelta(minutes=1)))
+_ds_quiet_passes = _ds_quiet.passes
+for _ds_word in ("0", "40", "0", "unavailable", "40"):
+    _ds_fire(_ds_quiet, _ds_word)
+_ds_quiet._config = {**_ds_quiet._config, "pump_duty_mode": "off"}
+_ds_armed = _ds_mod.record_for(_ds_quiet).unsub is not None
+_asyncio.run(_sa_pa.apply(_ds_quiet, _DS_T0 + timedelta(minutes=2)))
+R.check(
+    "the listener is the learner's own and triggers no arbiter pass; duty mode off detaches it",
+    _ds_armed and _ds_quiet.passes == _ds_quiet_passes + 1 and _ds_mod.record_for(_ds_quiet).unsub is None
+    and not any("sensor.freq" in ids for ids, _a in getattr(_ds_quiet.hass, "state_listeners", [])),
+    f"{_ds_quiet.passes=} {_ds_quiet_passes=}",
+)
+def _ds_shape(learner):
+    """A learner's stored record less the decay stamp, the counts to three places."""
+    return {name: {**row, "decayed_at": None, "k": round(row["k"], 3), "kept_w": round(row["kept_w"], 3)}
+            for name, row in learner.stored_record()["directions"].items()}
+
+
+# Restart: a second coordinator on the same entry reads the record back on its first pass.
+_ds_again = _DsArb(entry_id=_ds_c.entry.entry_id)
+_asyncio.run(_sa_pa.apply(_ds_again, _DS_T0 + timedelta(minutes=19)))
+R.check(
+    "the learned state survives a restart in its own store, per config entry, and the arbiter's record holds none of it",
+    _ds_shape(_ds_mod.record_for(_ds_again).learner) == _ds_shape(_ds_mod.record_for(_ds_c).learner)
+    and _ds_mod.record_for(_ds_again).learner.directions["dhw_space"].off_s == [495.0]
+    and _ds_mod.record_for(_ds_kc).learner.directions["dhw_space"].stopped == 0
+    and not [f for f in _sa_pa.ArbiterState.__dataclass_fields__ if "duty_switch" in f or f in ("duty", "hold")],
+)
+
+# The record loads on the first pass. A read that fails is tried again on the
+# next pass, and a mode write reported before the load is dropped.
+_ds_late = _DsArb()
+_ds_late_rec = _ds_mod.record_for(_ds_late)
+_ds_late_store = _ds_late_rec.store
+
+
+class _DsNoDisk:
+    async def async_load(self):
+        raise OSError("disk")
+
+
+_ds_late_rec.store = _DsNoDisk()
+_asyncio.run(_ds_mod.note_pass(_ds_late_rec, _DS_T0, _ds_mod.SwitchContext()))
+_ds_late_rec.store = _ds_late_store
+_ds_late_rec.tracker.settled = True
+_ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+_ds_late_before = (_ds_late_rec.loaded, _ds_late_rec.learner.episode)
+_asyncio.run(_ds_mod.note_pass(_ds_late_rec, _DS_T0, _ds_ctx(_DS_T0)))
+_ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+R.check(
+    "a failed read of the record is not marked loaded and is read again; a mode write before the load is dropped",
+    _ds_late_before == (False, None) and _ds_late_rec.loaded and _ds_late_rec.learner.episode is not None,
+    f"{_ds_late_before} {_ds_late_rec.loaded} {_ds_late_rec.learner.episode}",
+)
+# Only a mode write is a mode write: a set-point landing in ``_write`` reports
+# nothing, where the same call for the mode slot ends the open episode. And a
+# change of the running class still inside its debounce opens nothing.
+_ds_late_held = _sa_pa.state_for(_ds_late)
+_ds_late_held.written["mode"] = (_DS_HEAT, _DS_T0)
+_ds_late_rec.loaded = True
+_sa_pa._report_write(_ds_late_rec, _sa_boost.held_for(_ds_late), _ds_late_held, _ds_late.arbiter_inputs(), "space_setpoint", (30.0, _DS_T0), _DS_T0, None)
+_ds_slot_kept = _ds_late_rec.learner.episode is not None
+_sa_pa._report_write(_ds_late_rec, _sa_boost.held_for(_ds_late), _ds_late_held, _ds_late.arbiter_inputs(), "mode", None, _DS_T0, None)
+_ds_late_rec.tracker.pending = (False, _DS_T0)
+_ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+_ds_pending_open = _ds_late_rec.learner.episode
+_ds_late_rec.tracker.pending = None
+_ds_mod.note_mode_write(_ds_late_rec, _DS_T0, _DS_DHW, _DS_HEAT, _ds_ctx(_DS_T0))
+R.check(
+    "a set-point write reports nothing to the learner and a mode write does; a pending change of the "
+    "running class opens no episode",
+    _ds_slot_kept and _ds_late_rec.learner.directions["dhw_space"].void == 1 and _ds_pending_open is None
+    and _ds_late_rec.learner.episode is not None,
+    f"{_ds_slot_kept} {_ds_late_rec.learner.directions['dhw_space'].void} {_ds_pending_open}",
+)
+
+
+# Null controls (design.md, evidence 5 and 6): nothing reads the estimate, so
+# an empty learner and one saturated at p = 1 give the same commands.
+def _ds_saturated():
+    return _ds_saturated_at(None)
+
+
+def _ds_commands(learner, freq, plan=None):
+    """Every service call of a run whose learner starts as ``learner``, and the duty per minute."""
+    c = _DsArb()
+    if plan is not None:
+        c.plan = plan
+    rec = _ds_mod.record_for(c)
+    rec.learner, rec.loaded = learner, True
+    split = "".join(
+        str(_sa_pa._share(c, c.arbiter_inputs(), "both", _DS_T0 + timedelta(minutes=m)))[0] for m in range(15))
+    _row, calls, _c = _ds_episode(freq, c=c)
+    return calls, split, rec.learner.directions["dhw_space"].usable
+
+
+_ds_plain = _ds_commands(_ds_mod.DutySwitchLearner(), {})
+_ds_full = _ds_commands(_ds_saturated(), {})
+R.check(
+    "null control, an install where no switch stops the compressor: the split order and every written "
+    "command are identical between an empty learner and one saturated at p = 1",
+    _ds_plain[:2] == _ds_full[:2] and _ds_plain[0] != [] and _ds_plain[1] == "d" * 8 + "s" * 7
+    and _ds_full[2] and not _ds_plain[2],
+    f"{_ds_plain[1]} {_ds_full[1]}",
+)
+_ds_plain_stop = _ds_commands(_ds_mod.DutySwitchLearner(), {8.25: "0", 16.5: "35"})
+_ds_full_stop = _ds_commands(_ds_saturated(), {8.25: "0", 16.5: "35"})
+R.check(
+    "and so are they on the install whose switch does stop it: part A changes no write at either end of its evidence",
+    _ds_plain_stop[:2] == _ds_full_stop[:2] == _ds_plain[:2],
+    f"{_ds_plain_stop[1]} {_ds_full_stop[1]}",
+)
+# Flat prices: ``tests/golden/flat_prices.json``'s scenario is solved here
+# (its floats are not compared with the recording, which only a canonical BLAS
+# reproduces), and each of its first both steps is actuated under either learner.
+import ast as _ds_ast  # noqa: E402
+import golden as _ds_golden  # noqa: E402
+
+_ds_flat = _ds_golden.capture("flat_prices", dict(_ds_golden.SCENARIOS["flat_prices"]))
+_ds_flat_both = [i for i, (s, d) in enumerate(zip(_ds_flat["power_schedule"], _ds_flat["dhw_power_schedule"]))
+                 if s > 0 and d > 0][:4]
+
+
+def _ds_flat_plan(i):
+    return SimpleNamespace(
+        timestamps=[_DS_T0, _DS_T0 + timedelta(minutes=15)],
+        power_schedule=[_ds_flat["power_schedule"][i], 1.5], dhw_power_schedule=[_ds_flat["dhw_power_schedule"][i], 0.0],
+        optimal_setpoints=[21.0, 21.0])
+
+
+_ds_flat_runs = [[_ds_commands(l, {}, _ds_flat_plan(i))[:2] for i in _ds_flat_both]
+                 for l in (_ds_mod.DutySwitchLearner(), _ds_saturated())]
+R.check(
+    "null control, a flat-price day: each both step of the flat scenario's plan is split and written "
+    "identically under an empty and a saturated learner",
+    len(set(_ds_flat["prices"])) == 1 and _ds_flat_both != [] and _ds_flat_runs[0] == _ds_flat_runs[1]
+    and all(calls != [] for calls, _split in _ds_flat_runs[0]),
+    f"{[split for _c, split in _ds_flat_runs[0]]} {[split for _c, split in _ds_flat_runs[1]]}",
+)
+# Both controls hold by construction: only the arbiter (which reports) and the
+# sensor (which publishes) name the module, and neither reads the estimate.
+_ds_pkg = _DsPath("custom_components/heatpump_optimizer")
+_ds_readers = sorted(
+    p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
+        isinstance(n, _ds_ast.ImportFrom) and (n.module == "duty_switch" or any(a.name == "duty_switch" for a in n.names))
+        for n in _ds_ast.walk(_ds_ast.parse(p.read_text()))))
+_ds_uses = sorted({
+    n.attr for name in ("pump_arbiter.py", "sensor.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
+    if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch"})
+_ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
+           if isinstance(n, _ds_ast.ImportFrom) and n.level == 1} | {
+    a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
+    if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
+R.check(
+    "only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and "
+    "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
+    _ds_readers == ["pump_arbiter.py", "sensor.py"]
+    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
+                     "starts_attributes"]
+    and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
+    and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
+    f"{_ds_readers} {_ds_uses} {_ds_own}",
+)
+# Published on the compressor-starts sensor, beside the counter, off the payload.
+from heatpump_optimizer import sensor as _ds_sensor  # noqa: E402
+
+_ds_pub = _DsFakeCoord({"insight": {"compressor_starts": {"lifetime": 412, "month": 31}}, "measured_power_available": True})
+_ds_attrs0 = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
+_ds_mod._RECORDS[_ds_pub] = _ds_mod._Record(None, None, learner=_ds_tab)
+_ds_attrs = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
+_DS_KEYS = {f"duty_switch_{d}_{k}" for d in _ds_mod.DIRECTIONS
+            for k in ("p", "n", "stopped", "kept", "void", "censored", "span_days")}
+R.check(
+    "the starts sensor's attributes are the counter's alone until a direction has an observation; then, per "
+    "direction, only p, n, stopped, kept, void, censored, span days and (once one exists) the median off "
+    "seconds, all numeric",
+    set(_ds_attrs0) == {"lifetime", "month"}
+    and set(_ds_attrs) == {"lifetime", "month"} | _DS_KEYS | {"duty_switch_dhw_space_median_off_s"}
+    and all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in _ds_attrs.values())
+    and (_ds_attrs["duty_switch_dhw_space_stopped"], _ds_attrs["duty_switch_dhw_space_censored"],
+         _ds_attrs["duty_switch_dhw_space_median_off_s"], _ds_attrs["duty_switch_space_dhw_kept"],
+         _ds_attrs["duty_switch_dhw_space_span_days"]) == (3, 1, 501.0, 3, 1)
+    and "duty_switch" not in json.dumps(_ds_pub.data),
+    f"{_ds_attrs}",
+)
+
+
+_ds_kept_span = _DS_D()
+for _ds_i in range(3):
+    _ds_kept_span.book(_ds_day + timedelta(seconds=_ds_i), False, None)
+_ds_stop_span = _DS_D()
+for _ds_i in range(3):
+    _ds_stop_span.book(_ds_day + timedelta(seconds=_ds_i), True, 60.0)
+_ds_kept_moves = [_ds_kept_span.decay(_ds_day + timedelta(days=days)) for days in (1 / 1440, 30, 40)]
+_ds_stop_moves = [_ds_stop_span.decay(_ds_day + timedelta(days=days)) for days in (1 / 1440, 30, 40)]
+R.check(
+    "the span floor reads a direction's whole weight, kept episodes included: three kept and no stop keep "
+    "their day a minute later and report no change, and lose it, reported once, only when n falls under "
+    "SPAN_FLOOR_N; null control, three stops read the same",
+    _ds_kept_moves == [False, False, True] and _ds_stop_moves == [False, False, True]
+    and (_ds_kept_span.k, _ds_kept_span.span_days) == (0.0, 0)
+    and _ds_kept_span.n < _ds_mod.SPAN_FLOOR_N <= 3.0 * 0.5 ** (30 / _ds_mod.HALF_LIFE_DAYS),
+    f"{_ds_kept_moves} {_ds_stop_moves} {_ds_kept_span}",
+)
+
+
+def _ds_wrapped(readings, writes_at=0.0, defrost_from=None, before=(), fresh=False):
+    """Through the record: (seconds after the write, frequency Hz) readings, a pass every 15 s to 600 s.
+
+    The signal reads running ten minutes before the write unless the first reading says otherwise, or, when
+    ``fresh``, the record is just loaded and no reading or pass precedes ``before``'s; ``before``
+    holds (seconds before the write, frequency Hz) readings taken after the settling pass with no pass between
+    them and the write; a defrost reads on from the pass at ``defrost_from`` seconds when given; returns
+    (episode opened at the write, stopped, kept, void, off times) for hot water to heating."""
+    rec = _ds_mod._Record(None, _DsSaves())
+    rec.loaded = True
+    hz = [readings[0][1]]
+    rec.reader = lambda: (hz[0], None, None, True)
+    if not fresh:
+        _ds_mod.note_signal(rec, _DS_T0 - timedelta(minutes=10))
+        _asyncio.run(_ds_mod.note_pass(rec, _DS_T0 - timedelta(minutes=5), _ds_ctx(None)))
+    for lead, value in before:
+        hz[0] = value
+        _ds_mod.note_signal(rec, _DS_T0 - timedelta(seconds=lead))
+    ctx = _ds_ctx(_DS_T0)
+    _ds_mod.note_mode_write(rec, _DS_T0 + timedelta(seconds=writes_at), _DS_DHW, _DS_HEAT, ctx)
+    opened = rec.learner.episode is not None
+    marks = sorted({*(at for at, _ in readings[1:]), *range(15, 601, 15)})
+    for mark in marks:
+        when = _DS_T0 + timedelta(seconds=mark)
+        for at, value in readings[1:]:
+            if at == mark:
+                hz[0] = value
+                _ds_mod.note_signal(rec, when)
+        if mark % 15 == 0:
+            defrost = defrost_from is not None and mark >= defrost_from
+            _asyncio.run(_ds_mod.note_pass(rec, when, _ds_ctx(_DS_T0, defrosting=True) if defrost else ctx))
+    d = rec.learner.directions["dhw_space"]
+    return opened, d.stopped, d.kept, d.void, d.off_s
+
+
+# A stop read in the window's last debounce is still pending at the pass on the window's end.
+_DS_LATE_STOP = _ds_mod.STOP_WINDOW_S - _ds_mod.wear.EDGE_DEBOUNCE_S / 2.0
+R.check(
+    "through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on "
+    "the window's end keeps the episode open and books the stop once confirmed; null control, with no stop "
+    "read the same passes book it kept",
+    _ds_wrapped([(0, 50.0), (_DS_LATE_STOP, 0.0), (480, 50.0)]) == (True, 1, 0, 0, [480.0 - _DS_LATE_STOP])
+    and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
+    and _DS_LATE_STOP % 15 == 0 and 0.0 < _DS_LATE_STOP < _ds_mod.STOP_WINDOW_S,  # read on a pass, pending at the next
+    f"{_ds_wrapped([(0, 50.0), (_DS_LATE_STOP, 0.0), (480, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
+)
+R.check(
+    "through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing, "
+    "though the signal then reads stopped inside the window and running later (no signal is never "
+    "evidence); null control, the same readings with the compressor read running at the write book the stop",
+    _ds_wrapped([(0, None), (60, 0.0), (300, 50.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)]) == (True, 1, 0, 0, [240.0]),
+    f"{_ds_wrapped([(0, None), (60, 0.0), (300, 50.0)])} {_ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)])}",
+)
+R.check(
+    "through duty_switch.note_mode_write, a mode write while the compressor is read stopped opens nothing and "
+    "books nothing, whether it stays stopped or starts inside the window (no compressor ran across the switch); "
+    "null control, the same passes with the compressor read running at the write book it kept",
+    _ds_wrapped([(0, 0.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 0.0), (60, 50.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, []),
+    f"{_ds_wrapped([(0, 0.0)])} {_ds_wrapped([(0, 0.0), (60, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
+)
+# A start read inside the debounce before the write is still pending at it; the compressor is settled stopped.
+_DS_START_LEAD = 10.0
+R.check(
+    "through duty_switch.note_mode_write, a mode write while the compressor is settled stopped and a start read "
+    "inside the debounce before it is still pending opens nothing and books nothing, whether the start holds "
+    "or reads zero again 15 s after the write (only a settled running compressor is evidence); null control, "
+    "the same passes with the compressor settled running at the write book it kept",
+    _ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)]) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
+    and 0.0 < _DS_START_LEAD < _ds_mod.wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
+    f"{_ds_wrapped([(0, 0.0)], before=[(_DS_START_LEAD, 50.0)])} "
+    f"{_ds_wrapped([(0, 0.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)])} {_ds_wrapped([(0, 50.0)])}",
+)
+# Home Assistant 2025.2 runs Python 3.13, which evaluates the arbiter's annotations at import; 3.14 defers them.
+from heatpump_optimizer import pump_arbiter as _ds_pa  # noqa: E402
+import typing as _ds_typing  # noqa: E402
+
+
+def _ds_hints(*fns):
+    """The resolved annotations of each function, or the error resolving them raised."""
+    try:
+        return tuple(_ds_typing.get_type_hints(fn) for fn in fns)
+    except (NameError, AttributeError) as err:
+        return repr(err)
+
+
+def _ds_unbound(reader: "_DsNoSuchReader") -> None:  # noqa: F821
+    """A seam annotated with a name no module binds: the null control of the check below."""
+
+
+_ds_seams = _ds_hints(_ds_pa._running_signal, _ds_mod.attach)
+R.check(
+    "the reader's annotations resolve, as Python 3.13 resolves the arbiter's at import: _running_signal returns "
+    "and attach takes the one reader type; null control, a seam annotated with a name no module binds does not "
+    "resolve",
+    isinstance(_ds_seams, tuple)
+    and _ds_seams[0]["return"] == tuple[str | None, _ds_seams[1]["reader"]]
+    and isinstance(_ds_hints(_ds_unbound), str),
+    f"{_ds_seams} {_ds_hints(_ds_unbound)}",
+)
+# A restart: a record just loaded is unsettled, and its first reading, inside the debounce before the write, is pending.
+R.check(
+    "through duty_switch.note_mode_write, a mode write on a record just loaded whose first reading, 50 Hz, "
+    "came inside the debounce before the write and is still pending opens nothing and books nothing, whether "
+    "the reading holds or reads zero 15 s after the write (only a settled running compressor is evidence); "
+    "null control, the same passes with the compressor settled running at the write book it kept",
+    _ds_wrapped([(0, 50.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 50.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True) == (False, 0, 0, 0, [])
+    and _ds_wrapped([(0, 50.0)]) == (True, 0, 1, 0, [])
+    and 0.0 < _DS_START_LEAD < _ds_mod.wear.EDGE_DEBOUNCE_S,  # pending at the write, not yet confirmed
+    f"{_ds_wrapped([(0, 50.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True)} "
+    f"{_ds_wrapped([(0, 50.0), (15, 0.0)], before=[(_DS_START_LEAD, 50.0)], fresh=True)} "
+    f"{_ds_wrapped([(0, 50.0)])}",
+)
+# A stop read 60 s after the write is confirmed by the pass one debounce later, on a clean context.
+_DS_CONFIRM_AT = 60 + _ds_mod.wear.EDGE_DEBOUNCE_S
+R.check(
+    "through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it: a "
+    "defrost that first reads on the pass after the confirming one does not void it, and the stop is booked; "
+    "null control, the same stop with no defrost and a restart at 300 s books one stop of 240 s",
+    _ds_wrapped([(0, 50.0), (60, 0.0)], defrost_from=_DS_CONFIRM_AT + 15) == (True, 1, 0, 0, [])
+    and _ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)]) == (True, 1, 0, 0, [240.0])
+    and _DS_CONFIRM_AT % 15 == 0,  # the confirming pass is a pass, the defrost reads on the next
+    f"{_ds_wrapped([(0, 50.0), (60, 0.0)], defrost_from=_DS_CONFIRM_AT + 15)} "
+    f"{_ds_wrapped([(0, 50.0), (60, 0.0), (300, 50.0)])}",
 )
 
 
@@ -81376,9 +84834,9 @@ class _CpArb:
             timestamps=[_CP_T0], power_schedule=list(power_schedule),
             dhw_power_schedule=[0.0], optimal_setpoints=[21.0],
         )
-        self._thermal_params = _CpNS(dhw_setpoint=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
+        self._thermal_params = _CpNS(dhw_setpoint=48.0, dhw_max_temp=48.0, min_electrical_power=1.0, max_electrical_power=5.0)
         self._thermal_model = _CpNS(params=self._thermal_params, curve_flow_temp=lambda _o: 34.2)
-        self.entry = _CpNS(entry_id=f"cp{id(self)}")
+        self.entry = _pa_entry(entry_id=f"cp{id(self)}")
 
     def _plan_is_stale(self):
         return False
@@ -83490,6 +86948,153 @@ R.check(
 )
 
 
+# --- R10-SAV-VALUATION-RESIDUE: stored heat bought back at the part-load law ---
+from heatpump_optimizer import optimizer as _svr_optmod  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _SVR_OPT,
+    OptimizationConfig as _SVR_CFG,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _SVR_MODEL,
+    ThermalParameters as _SVR_PARAMS,
+    ThermalState as _SVR_STATE,
+    power_for_heat_per_cop_kw as _svr_inverse,
+)
+
+_SVR_HOURS = 0.25 * 96 * 0.25  # the cheapest quarter of the 24 h, 15 min horizon
+
+
+def _svr_opt(derate):
+    p = _SVR_PARAMS(min_electrical_power=0.5, max_electrical_power=6.0)
+    p.cop_partload_derate = derate
+    return _SVR_OPT(_SVR_MODEL(p), _SVR_CFG(horizon_hours=24, time_step_minutes=15)), p
+
+
+def _svr_state(t):
+    return _SVR_STATE(room_temperature=t, slab_temperature=t + 4.0, outdoor_temperature=-5.0,
+                      upper_floor_temperature=t, lower_floor_temperature=t,
+                      buffer_tank_temperature=30.0, dhw_temperature=50.0)
+
+
+def _svr_figures(derate):
+    opt, p = _svr_opt(derate)
+    prices, out = np.linspace(0.5, 2.0, 96), np.full(96, -5.0)
+    cost, batch = opt._terminal_cost(prices, out)
+    cold = np.full(96, 12.0)
+    term = cost(cold, cold, cold, cold, None)
+    row = batch({k: cold[None, :] for k in ("room", "slab", "upper", "lower", "buffer")})[0]
+    # A deficit whose refill rate sits on the band, below max power.
+    mild = np.full(96, 20.6)
+    band = cost(mild, mild, mild, mild, None)
+    warm_end, cold_end = _svr_state(21.0), _svr_state(12.0)
+    charge = opt._deferred_energy_cost(warm_end, cold_end, prices, out)
+    credit = opt._deferred_energy_cost(cold_end, warm_end, prices, out)
+    rp = float(np.percentile(prices, 25)) * opt.config.price_weight
+    return dict(term=term, band=band, row=row, charge=charge, credit=credit, rp=rp, p=p, opt=opt)
+
+
+_svr_lin, _svr_der = _svr_figures(0.0), _svr_figures(0.2)
+
+
+def _svr_law(fig, key):
+    hpc = _svr_lin[key] / fig["rp"]
+    return fig["rp"] * np.copysign(
+        float(_svr_inverse(fig["p"], abs(hpc), hours=_SVR_HOURS)), hpc)
+
+
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: under a part-load derate the terminal cost and "
+    "the deferred settlement buy stored heat back at the same law, the tree's "
+    "own inverse at the deficit spread over the cheapest quarter of the "
+    "horizon; the batch twin agrees bit for bit, a surplus is credited at the "
+    "law a deficit is charged; null control: with no derate both laws are "
+    "None and the figures are the linear ones",
+    _svr_der["term"] > _svr_lin["term"] > 0.0
+    and abs(_svr_der["term"] - _svr_law(_svr_der, "term")) <= 1e-9 * _svr_der["term"]
+    and 1.0 < _svr_der["band"] / _svr_lin["band"] < 1.0 / (1.0 - 0.2)
+    and abs(_svr_der["band"] - _svr_law(_svr_der, "band")) <= 1e-9 * _svr_der["band"]
+    and _svr_der["row"] == _svr_der["term"] and _svr_lin["row"] == _svr_lin["term"]
+    and _svr_der["charge"] > _svr_lin["charge"] > 0.0
+    and abs(_svr_der["charge"] - _svr_law(_svr_der, "charge")) <= 1e-9 * _svr_der["charge"]
+    and _svr_der["credit"] == -_svr_der["charge"]
+    and _svr_optmod._refill_law(_svr_lin["p"], 96, 0.25) is None
+    and _svr_optmod._refill_law(_svr_der["p"], 96, 0.25) is not None,
+    f"linear {({k: _svr_lin[k] for k in ('term', 'band', 'row', 'charge', 'credit')})} "
+    f"derated {({k: _svr_der[k] for k in ('term', 'band', 'row', 'charge', 'credit')})}",
+)
+
+
+def _svr_valved(derate):
+    """A valved two-zone install (manual valve, a tank past
+    BUFFER_STORE_MIN_VOLUME, cop_flow_carnot), so the tank is a store whose
+    deficit converts at its own flow-derated COP: ``_terminal_row_cost``'s
+    split buffer/building arm, which the single-sum figures above never reach."""
+    p = _SVR_PARAMS(min_electrical_power=0.5, max_electrical_power=6.0, two_zone_enabled=True,
+                    mixing_valve_mode="manual", buffer_tank_volume=300.0, cop_flow_carnot=True)
+    p.cop_partload_derate = derate
+    opt = _SVR_OPT(_SVR_MODEL(p), _SVR_CFG(horizon_hours=24, time_step_minutes=15))
+    seen, real = {}, _svr_optmod._terminal_row_cost
+
+    def spy(refill_price, cop_end, cop_buffer, stores, law=None):
+        seen.update(cop_end=cop_end, cop_buffer=cop_buffer,
+                    buffer="buffer" in [s[1] for s in stores])
+        return real(refill_price, cop_end, cop_buffer, stores, law)
+
+    _svr_optmod._terminal_row_cost = spy
+    try:
+        prices, out = np.linspace(0.5, 2.0, 96), np.full(96, -5.0)
+        cost, batch = opt._terminal_cost(prices, out)
+    finally:
+        _svr_optmod._terminal_row_cost = real
+    cold, tank = np.full(96, 12.0), np.full(96, 20.0)
+    term = cost(cold, cold, cold, cold, tank)
+    row = batch({"room": cold[None, :], "slab": cold[None, :], "upper": cold[None, :],
+                 "lower": cold[None, :], "buffer": tank[None, :]})[0]
+    rp = float(np.percentile(prices, 25)) * opt.config.price_weight
+    return dict(term=term, row=row, rp=rp, p=p, **seen)
+
+
+_svr_vlin, _svr_vder = _svr_valved(0.0), _svr_valved(0.2)
+_svr_vhpc = _svr_vlin["term"] / _svr_vder["rp"]
+_svr_vlaw = _svr_vder["rp"] * float(_svr_inverse(_svr_vder["p"], _svr_vhpc, hours=_SVR_HOURS))
+
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: on a valved install, where the tank's deficit "
+    "converts at its own flow-derated COP (the split buffer/building arm of "
+    "_terminal_row_cost), the derated terminal cost is the same part-load law "
+    "applied to the split linear figure, and its batch row equals the scalar; "
+    "precondition: the tank is a store and cop_buffer differs from cop_end; "
+    "null control: with no derate the figure is the split linear one",
+    _svr_vder["buffer"] and _svr_vder["p"].buffer_is_store
+    and _svr_vder["cop_buffer"] != _svr_vder["cop_end"]
+    and _svr_vder["term"] > _svr_vlin["term"] > 0.0
+    and abs(_svr_vder["term"] - _svr_vlaw) <= 1e-9 * _svr_vder["term"]
+    and _svr_vder["row"] == _svr_vder["term"] and _svr_vlin["row"] == _svr_vlin["term"],
+    f"linear {(_svr_vlin['term'], _svr_vlin['row'])} derated "
+    f"{(_svr_vder['term'], _svr_vder['row'])} law {_svr_vlaw} "
+    f"cop_end {_svr_vder.get('cop_end')} cop_buffer {_svr_vder.get('cop_buffer')}",
+)
+
+from heatpump_optimizer.thermal_model import refill_power_kwh as _svr_refill  # noqa: E402
+
+# refill_power_kwh's own contract, read directly: its callers reach it only
+# through _refill_law, which returns None with no derate, so they cannot read
+# either arm of its guard. Inputs on the band, below max power over the hours.
+_svr_pass = (
+    _svr_refill(_svr_lin["p"], 7.3, _SVR_HOURS), _svr_refill(_svr_lin["p"], -7.3, _SVR_HOURS),
+    _svr_refill(_svr_der["p"], 7.3, 0.0), _svr_refill(_svr_der["p"], 7.3, -1.0),
+)
+_svr_bent = _svr_refill(_svr_der["p"], 7.3, _SVR_HOURS)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: refill_power_kwh returns its input bit for bit "
+    "with no derate (either sign) and over no hours, where no rate exists to "
+    "derate; null control: with a derate over the stated hours the same input "
+    "pays more",
+    _svr_pass == (7.3, -7.3, 7.3, 7.3) and _svr_bent > 7.3,
+    f"pass-through {_svr_pass} derated {_svr_bent}",
+)
+
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on
@@ -83516,6 +87121,8 @@ _FB_T0 = datetime(2026, 1, 12, 8, 0, tzinfo=UTC)
 _FB_SET = "number.fb_return_set"
 _FB_RETURN = "sensor.fb_return"
 _FB_IDS = __import__("itertools").count()
+_FB_LIMIT_KEYS = ("space_setpoint_low_limit_entity", "space_setpoint_high_limit_entity")
+_FB_LIMITS = ("sensor.fb_low_limit", "sensor.fb_high_limit")
 
 
 class _FbCoord:
@@ -83523,7 +87130,7 @@ class _FbCoord:
     flag the simulation sets each pass."""
 
     def __init__(self, *, unit="return", power_entity=True, feedback=None, lift=0.5,
-                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None):
+                 ceiling=32.0, plan_kw=0.53, step=0.1, mode=None, limits=(None, None)):
         self.hass = FakeHass({
             _FB_SET: FakeState("26.0", attributes={"min": 15, "max": 45, "step": step}),
             _FB_RETURN: FakeState("25.9", unit="°C"),
@@ -83533,6 +87140,13 @@ class _FbCoord:
             "space_setpoint_unit": unit, "heat_pump_return_temp_entity": _FB_RETURN,
             "flow_min_lift_k": lift, "flow_heat_c": ceiling,
         }
+        # The controller's own limits on the set-point as sensors (a Luxtronik's
+        # inputs 10104 and 10103): a FakeState, or a state string, per side.
+        for key, entity, limit in zip(_FB_LIMIT_KEYS, _FB_LIMITS, limits):
+            if limit is not None:
+                config[key] = entity
+                self.hass.states.set(entity, limit if isinstance(limit, FakeState)
+                                     else FakeState(str(limit), unit="°C"))
         if power_entity:
             config["heat_pump_power_entity"] = "sensor.fb_power"
         if feedback is not None:
@@ -83548,9 +87162,10 @@ class _FbCoord:
         self._thermal_model = _PaNS(
             params=_PaNS(min_electrical_power=0.53), curve_flow_temp=lambda _o: 34.0)
         self._thermal_params = _PaNS(
-            dhw_setpoint=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
+            dhw_setpoint=48.0, dhw_max_temp=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
         self._current_state = _PaNS(outdoor_temperature=4.0, room_temperature=21.0)
-        self.entry = _PaNS(entry_id=f"fb{next(_FB_IDS)}")
+        # Weak-referenceable, as a real entry is: a space write arms off_restore.
+        self.entry = _pa_entry(entry_id=f"fb{next(_FB_IDS)}")
         self.power = None
         self.defrosting = False
 
@@ -83733,6 +87348,228 @@ R.check(
     "the miss and the repair are today's",
     bool(_fb_basecut["issues"]),
     f"issues at {_fb_basecut['issues'][:3]}",
+)
+
+# Part 3 (#3372 comment 6756915104): the two limits as optional sensors. Read,
+# they bound the loop before it writes, so the controller never has to cut.
+_FB_STEP_UP = {"plan_kw": [0.53] * 8 + [1.2] * 16, "clamp": (10.0, 27.6)}
+_fb_limit_hi = _fb_sim(limits=(None, 27.6), **_FB_STEP_UP)
+_fb_run = _fb_limit_hi["held"].feedback
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3, return limit 27.6 degC read from its sensor: no "
+    "write passes it, so the controller cuts nothing, and no repair is raised",
+    bool(_fb_limit_hi["writes"]) and max(w[1] for w in _fb_limit_hi["writes"]) <= 27.6
+    and _fb_run is not None and _fb_run.cut_hi_c is None and not _fb_limit_hi["issues"],
+    f"highest write {max((w[1] for w in _fb_limit_hi['writes']), default=None)}, "
+    f"cut {None if _fb_run is None else _fb_run.cut_hi_c}, issues {_fb_limit_hi['issues'][:3]}",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 null control: the same block with no limit "
+    "sensor writes past 27.6 degC before the cut is read back",
+    max(w[1] for w in _fb_clamped["writes"]) > 27.6,
+    f"highest write {max(w[1] for w in _fb_clamped['writes'])}",
+)
+# The lower side: a block at 1.2 kW, then 0.53 kW, with a 28.0 degC minimum
+# return target that the wind-down from the start programme runs into.
+_FB_STEP_DOWN = {"plan_kw": [1.2] * 8 + [0.53] * 16, "ceiling": 40.0, "clamp": (28.0, 50.0)}
+_fb_floor_blind = _fb_sim(**_FB_STEP_DOWN)
+_fb_floor = _fb_sim(limits=(28.0, None), **_FB_STEP_DOWN)
+_fb_run = _fb_floor["held"].feedback
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3, minimum return target 28.0 degC read from its "
+    "sensor: no write goes below it and the controller cuts nothing",
+    bool(_fb_floor["writes"]) and min(w[1] for w in _fb_floor["writes"]) >= 28.0
+    and _fb_run is not None and _fb_run.cut_lo_c is None and not _fb_floor["issues"],
+    f"lowest write {min((w[1] for w in _fb_floor['writes']), default=None)}, "
+    f"cut {None if _fb_run is None else _fb_run.cut_lo_c}, issues {_fb_floor['issues'][:3]}",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 null control: the same block with no limit "
+    "sensor writes below 28.0 degC and is cut there",
+    min(w[1] for w in _fb_floor_blind["writes"]) < 28.0
+    and _fb_floor_blind["held"].feedback.cut_lo_c == 28.0,
+    f"lowest write {min(w[1] for w in _fb_floor_blind['writes'])}, "
+    f"cut {_fb_floor_blind['held'].feedback.cut_lo_c}",
+)
+# A limit that cannot be used is absent, never guessed: an unavailable or
+# non-numeric sensor, a fault code outside any water's range, and a pair
+# that is crossed (the two sensors swapped) write what no sensor writes.
+_fb_blind = _fb_clamped["writes"]
+_fb_unusable = {
+    label: _fb_sim(limits=limits, **_FB_STEP_UP)["writes"] == _fb_blind
+    for label, limits in (
+        ("unavailable", (None, "unavailable")),
+        ("not a number", (None, "limit")),
+        ("fault code above", (850.0, None)),
+        ("fault code below", (None, -50.0)),
+        ("crossed", (27.6, 10.0)),
+        ("equal", (27.6, 27.6)),
+    )
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3: an unavailable, non-numeric or implausible limit "
+    "sensor, and a crossed or equal pair, write exactly what no limit sensor writes",
+    all(_fb_unusable.values()) and len(_fb_blind) > 10,
+    f"same as no sensor: {_fb_unusable}, {len(_fb_blind)} writes",
+)
+# A limit is a setting: its sensor reports on change only, so a reading days
+# old is still the limit (only ``unavailable`` says the source is gone).
+_fb_old = FakeState("27.6", unit="°C", last_updated=_FB_T0 - timedelta(days=30),
+                    last_reported=_FB_T0 - timedelta(days=30))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3: a limit last reported 30 days ago still bounds "
+    "the loop",
+    _fb_sim(limits=(None, _fb_old), **_FB_STEP_UP)["writes"] == _fb_limit_hi["writes"],
+)
+# The limits act on the loop alone (I1, I3): today's target is not moved by
+# them, so an install the loop does not act on writes the same with them.
+_fb_limit_cells = {
+    label: _fb_sim(minutes=60, limits=(27.0, 27.6), **kw)["writes"]
+    == _fb_sim(minutes=60, **kw)["writes"]
+    for label, kw in (
+        ("indoor", {"unit": "indoor"}),
+        ("no power entity", {"power_entity": False}),
+        ("option off", {"feedback": False}),
+    )
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: an indoor unit, no power entity or the option "
+    "off writes the same with both limit sensors as with neither",
+    all(_fb_limit_cells.values()),
+    f"same: {_fb_limit_cells}",
+)
+_fb_first = _fb_sim(minutes=20, limits=(27.0, None))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I3: the first write of a run is today's inlet "
+    "plus the lift, also below a read minimum (the controller's cut and the repair "
+    "are today's)",
+    bool(_fb_first["writes"]) and abs(_fb_first["writes"][0][1] - (25.9 + 0.5)) < 0.05,
+    f"first write {_fb_first['writes'][:1]}",
+)
+# The gate is the value that means off, so no controller upper limit may bring
+# a heating write to it (I2), whatever its sensor reads: below the gate, at it,
+# or between it and the entity's next step, fresh or 30 days old. A limit under
+# the lowest heating write is not a heating limit and writes what no sensor
+# writes; one a step or more above the gate is used, and still clears the gate.
+_FB_GATE_OFFSETS_K = (-5.0, -0.1, -0.01, 0.0, 0.004, 0.01, 0.05, 0.09, 0.1, 0.15, 0.3)
+_fb_gate_blind = {unit: _fb_sim(unit=unit, **_FB_STEP_UP) for unit in ("return", "flow")}
+_fb_gate_c = {unit: _fb_pa._gate_c(run["coord"].arbiter_inputs())
+              for unit, run in _fb_gate_blind.items()}
+_fb_gate_low, _fb_gate_same = {}, {}
+for _unit, _gate in _fb_gate_c.items():
+    for _label, _limit in (
+        *((f"{_off:+}", round(_gate + _off, 3)) for _off in _FB_GATE_OFFSETS_K),
+        ("30 days old", FakeState(str(_gate), unit="°C",
+                                  last_updated=_FB_T0 - timedelta(days=30),
+                                  last_reported=_FB_T0 - timedelta(days=30))),
+    ):
+        _sent = _fb_sim(unit=_unit, limits=(None, _limit), **_FB_STEP_UP)["writes"]
+        _fb_gate_low[_unit, _label] = min((w[1] for w in _sent), default=None)
+        _fb_gate_same[_unit, _label] = _sent == _fb_gate_blind[_unit]["writes"]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: a high-limit sensor reading below the gate, at "
+    "it or just above it, fresh or 30 days old, never brings a write to the gate or below "
+    "it, on a return and on a flow target",
+    len(_fb_gate_low) == 2 * (len(_FB_GATE_OFFSETS_K) + 1)
+    and all(low is not None and low > _fb_gate_c[unit]
+            for (unit, _label), low in _fb_gate_low.items()),
+    f"gate {_fb_gate_c}, lowest write at or below it: "
+    f"{ {k: v for k, v in _fb_gate_low.items() if v is None or v <= _fb_gate_c[k[0]]} }",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2 null control: with no limit sensor the lowest "
+    "write is above the gate too, so a write at the gate is the sensor's doing",
+    all(min(w[1] for w in run["writes"]) > _fb_gate_c[unit] and len(run["writes"]) > 10
+        for unit, run in _fb_gate_blind.items()),
+    f"lowest blind write { {u: min(w[1] for w in r['writes']) for u, r in _fb_gate_blind.items()} }",
+)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: a high limit under the lowest heating write "
+    "(the gate plus one entity step) writes exactly what no limit sensor writes; one at "
+    "that write or above it is used",
+    all(same == (label == "30 days old" or float(label) < 0.1 - 1e-9)
+        for (_unit, label), same in _fb_gate_same.items()),
+    f"same as no sensor: {_fb_gate_same}",
+)
+
+
+def _fb_loop_write(unit, step, *, high=None, cut_hi=None, w_c=26.0, inlet=25.9):
+    """One loop pass past the start hold: ``(what _feedback returns, the gate)``."""
+    coord = _FbCoord(unit=unit, step=step, limits=(None, high), plan_kw=1.2)
+    coord.power = 1.0
+    coord.hass.states.get(_FB_RETURN).state = f"{inlet:.2f}"
+    inp = coord.arbiter_inputs()
+    now = _FB_T0 + timedelta(minutes=10)
+    held = _fb_pa.state_for(coord)
+    held.feedback = _fb_pa.FeedbackRun(
+        _FB_T0, w_c, now - timedelta(minutes=1), running=True, cut_hi_c=cut_hi)
+    base = _fb_pa._flow_target(inp, "space", now)
+    return _fb_pa._feedback(held, inp, now, base, True), _fb_pa._gate_c(inp)
+
+
+# The same property on every sibling of the sensor in the loop's upper bound
+# and at every entity step: the sensor, the readback cut, and both, each on a
+# grid across the gate, under a target above, at and below it.
+_fb_grid = [
+    (unit, step, source, off, w_off, inlet)
+    for unit in ("return", "flow") for step in (0.1, 0.5, 1.0)
+    for source in ("sensor", "cut", "both")
+    for off in (-8.0, -1.0, -0.3, -0.1, -0.01, 0.0, 0.005, 0.01, 0.05, 0.1, 0.3, 0.5, 1.0, 2.0)
+    for w_off in (-3.0, 0.0, 0.05, 6.0) for inlet in (17.0, 25.9, 31.0)
+]
+_fb_grid_bad = []
+for _unit, _step, _source, _off, _w_off, _inlet in _fb_grid:
+    _gate = _fb_gate_c[_unit]
+    _lim = round(_gate + _off, 3)
+    _out, _g = _fb_loop_write(
+        _unit, _step, high=_lim if _source != "cut" else None,
+        cut_hi=_lim if _source != "sensor" else None, w_c=_gate + _w_off, inlet=_inlet)
+    if _out is None or _g != _gate or _out <= _gate:
+        _fb_grid_bad.append((_unit, _step, _source, _off, _w_off, _inlet, _out))
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2: no controller upper limit, read from its "
+    "sensor, from a readback cut or from both, on any entity step, makes a loop pass "
+    "return the gate or below it",
+    len(_fb_grid) == 2 * 3 * 3 * 14 * 4 * 3 and not _fb_grid_bad,
+    f"{len(_fb_grid_bad)} of {len(_fb_grid)} at or below the gate, first {_fb_grid_bad[:4]}",
+)
+# The sibling write paths of the space set-point (the indoor target, today's
+# open-loop target with the loop off or unmetered, the gate of a step that
+# does not heat, the start hold) read neither sensor: a high limit that binds
+# the loop, and one at the gate, change none of their writes.
+_FB_SIBLINGS = (
+    ("indoor", {"unit": "indoor", "minutes": 60}),
+    ("no power entity", {"power_entity": False, "minutes": 60}),
+    ("option off", {"feedback": False, "minutes": 60}),
+    ("no heating planned", {"plan_kw": 0.0, "minutes": 60}),
+    ("start hold", {"minutes": 5}),
+)
+_fb_sibling_blind = {label: _fb_sim(**kw)["writes"] for label, kw in _FB_SIBLINGS}
+_fb_sibling_same = {
+    (label, high): _fb_sim(limits=(None, high), **kw)["writes"] == _fb_sibling_blind[label]
+    for label, kw in _FB_SIBLINGS for high in (24.0, 20.0, 15.0)
+}
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1: the indoor target, an unmetered or switched-off "
+    "loop, a step that does not heat and the start hold each write the same under a high "
+    "limit that binds the loop, one at the gate and one below it as with no sensor",
+    all(_fb_sibling_same.values()) and all(_fb_sibling_blind.values()),
+    f"same: {_fb_sibling_same}, writes { {k: len(v) for k, v in _fb_sibling_blind.items()} }",
+)
+_fb_loop_bound = _fb_sim(minutes=60, limits=(None, 24.0))["writes"]
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I1 null control: the same 24.0 degC limit moves "
+    "the loop's own writes, so the sibling paths are unmoved by not reading it",
+    _fb_loop_bound != _fb_sim(minutes=60)["writes"]
+    and min(w[1] for w in _fb_loop_bound) == 24.0,
+    f"lowest write under the limit {min((w[1] for w in _fb_loop_bound), default=None)}",
+)
+_fb_used = _fb_loop_write("return", 0.1, high=24.0, w_c=30.0)
+R.check(
+    "R10-WATER-SETPOINT-FEEDBACK part 3 I2 null control: the same pass with a limit well "
+    "above the gate returns that limit, so the grid's passes reach the upper bound",
+    _fb_used[0] == 24.0 and _fb_used[1] == 20.0,
+    f"returned {_fb_used}",
 )
 
 
@@ -84123,6 +87960,151 @@ R.check(
     _fb_ends == (True, True),
     f"low end {_fb_ends[0]}, high end {_fb_ends[1]}",
 )
+# The off restore's edit adoption (R10-ARBITER-OFF-RESTORE's _edited) reads the
+# space slot before hold does, so a controller's clamp of a loop write is
+# _clamp_cut's and never a person's baseline: a 26.0 cut of a 25.0 -> 27.0
+# loop move sits more than the hold tolerance from both ends. Control: a 24.0
+# reading outside the bracket, and the same 26.0 with no loop run, are edits.
+def _fb_edit(observed, run=True):
+    held = _fb_pa.ArbiterState()
+    held.written["space_setpoint"] = (27.0, _FB_NOW - timedelta(seconds=_fb_pa.ECHO_GRACE_S))
+    held.space_before = 25.0
+    if run:
+        held.feedback = _fb_running(3600, 0, prev_c=25.0, sent_c=27.0)
+    return _fb_pa._edited(held, observed, _FB_NOW)
+
+
+_fb_edits = (_fb_edit(26.0), _fb_edit(24.0), _fb_edit(26.0, run=False))
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK: a controller's cut of a "
+    "loop write (26.0 inside a 25.0 -> 27.0 move) is not adopted as the person's "
+    "baseline; a reading outside the bracket, or with no loop run, still is",
+    _fb_edits == (False, True, True),
+    f"cut {_fb_edits[0]}, outside {_fb_edits[1]}, no run {_fb_edits[2]}",
+)
+# Roster Carry 8 of R10-ARBITER-OFF-RESTORE, live since #3405 merged: the off
+# restore's own-write refusal (_arm_space) reads the arbiter's last space
+# write, and a loop move drops that record so the move is sent (_note_sent).
+# The dropped record is the run's prev_c, kept until a write replaces it, so
+# an unarmed key (an upgrade) never captures the optimizer's own 26.0 as the
+# person's baseline, after one loop move or a second one with no write
+# between. A restore ends the run with the record (_space_restored). Control:
+# the same 26.0 reading on an arbiter that never wrote is captured.
+import asyncio as _fb_aio  # noqa: E402
+
+
+def _fb_own(moves, wrote=True):
+    coord = _FbCoord()
+    held = _fb_pa.state_for(coord)
+    if wrote:
+        held.written["space_setpoint"] = (26.0, _FB_NOW)
+        held.feedback = _fb_running(3600, 0)
+    for target in moves:
+        _fb_pa._note_sent(held, held.feedback, target, 26.4)
+    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    return sent, coord, held
+
+
+_fb_own_one, _fb_own_two, _fb_own_none = _fb_own([25.8]), _fb_own([25.8, 25.6]), _fb_own([], wrote=False)
+_fb_rs_coord, _fb_rs_held = _fb_own([25.8])[1:]
+_fb_rs_coord.entry.runtime_data = _fb_rs_coord
+_fb_pa._space_restored(_fb_rs_coord.entry, _FB_SET, 26.0)
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8): a loop move's "
+    "dropped record still refuses the optimizer's own 26.0 as an unarmed key's baseline, "
+    "after one move and after two with no write between; a restore ends the run; an "
+    "arbiter that never wrote captures it",
+    _fb_own_one[0] is False and _fb_own_two[0] is False and _fb_own_two[2].feedback.prev_c == 26.0
+    and _fb_rs_held.feedback is None and _fb_own_none[0] is True,
+    f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
+    f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
+)
+# Round 2 of Carry 8 (#3404's verdict at 4a5abf4a): the loop run ends on
+# paths that are neither a write nor a restore -- a pass off the loop
+# (_feedback, base or inlet missing), a compressor stop (a fresh run), a run
+# last seen past the window (a fresh run) -- and a restart drops the run too.
+# Each happens while the dropped record is held, so the own-write fact lives
+# on ArbiterState.dropped, which only a write, a restore or a release ends.
+# Controls: each path is shown to end the run (no prev_c after it), and a
+# never-written arbiter still captures (the check above).
+
+
+def _fb_own_after(end):
+    sent, coord, held = _fb_own([25.8])
+    end(coord, held)
+    held = _fb_pa.state_for(coord)  # a restart's is a fresh state
+    run = held.feedback
+    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    return sent, None if run is None else run.prev_c, after
+
+
+def _fb_end_stale(coord, held):
+    held.feedback.seen = _FB_NOW - timedelta(seconds=_FB_WIN_S + 60)
+    coord.power = 1.5
+    _fb_pa._feedback(held, coord.arbiter_inputs(), _FB_NOW, 26.4, True)
+
+
+def _fb_end_restart(coord, held):
+    _fb_aio.run(_fb_pa._persist(coord))
+    _fb_pa._STATES.pop(coord, None)
+    _fb_aio.run(_fb_pa._load(coord))
+
+
+def _fb_end_stop(coord, held):
+    coord.power = 0.0
+    _fb_pa._feedback(held, coord.arbiter_inputs(), _FB_NOW, 26.4, True)
+
+
+_fb_own_ends = {
+    "off pass": _fb_own_after(lambda c, h: _fb_pa._feedback(h, c.arbiter_inputs(), _FB_NOW, 26.4, False)),
+    "no base": _fb_own_after(lambda c, h: _fb_pa._feedback(h, c.arbiter_inputs(), _FB_NOW, None, True)),
+    "compressor stop": _fb_own_after(_fb_end_stop),
+    "stale run": _fb_own_after(_fb_end_stale),
+    "restart": _fb_own_after(_fb_end_restart),
+}
+print("CARRY8-RUN-ENDS", _fb_own_ends)
+R.check(
+    "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the "
+    "own-write refusal survives every end of the loop run while the dropped write is "
+    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart",
+    all(sent is False and prev is None and after is False for sent, prev, after in _fb_own_ends.values()),
+    f"(before, run prev_c after, after) {_fb_own_ends}",
+)
+# Where the fact stops mattering or ends: once the person moves the
+# controller (25.0) the arm captures and the write lands, after which the
+# armed key never consults it -- the controller reading 26.0 again with the
+# record gone is not refused; a restore (_space_restored) and a release (Off
+# forgets the record, even one that is only the dropped write) end it, and
+# a stored value the arbiter could not have written is not loaded.
+# Control: before each, the fact is held.
+_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8])
+_fb_wr_before = dict(_fb_wr_held.dropped)
+_fb_wr_coord.hass.states.set(_FB_SET, FakeState("25.0", attributes={"min": 15, "max": 45, "step": 0.1}))
+_fb_aio.run(_fb_pa._write(_fb_wr_coord, _fb_wr_coord.arbiter_inputs(), "space_setpoint", 25.8, _FB_NOW))
+_fb_wr_written = _fb_wr_held.written.pop("space_setpoint", (None,))[0]
+_fb_wr_coord.hass.states.set(_FB_SET, FakeState("26.0", attributes={"min": 15, "max": 45, "step": 0.1}))
+_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET))
+_fb_junk = _FbCoord()
+_fb_aio.run(_fb_pa._store(_fb_junk).async_save({"written": {}, "dropped": {"space_setpoint": "26.0 degC"}}))
+_fb_aio.run(_fb_pa._load(_fb_junk))
+_fb_off_coord, _fb_off_held = _fb_own([25.8])[1:]
+_fb_off_held.written.clear()
+_fb_off_before = dict(_fb_off_held.dropped)
+_fb_off_coord._mode = _PA_OFF
+_fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter_inputs(),
+                              _fb_pa.DUTY_CONTROL, _FB_NOW))
+R.check(
+    "R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write is not consulted "
+    "once a write lands on the armed key, and ends when a restore writes the baseline or "
+    "Off releases the pump",
+    _fb_wr_before == {"space_setpoint": 26.0} and _fb_wr_written == 25.8 and _fb_wr_after is True
+    and _fb_rs_held.dropped == {}
+    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {}
+    and _fb_pa.state_for(_fb_junk).dropped == {},
+    f"write {_fb_wr_before}, wrote {_fb_wr_written}, armed after {_fb_wr_after}, "
+    f"restore {_fb_rs_held.dropped}, off {_fb_off_before} -> {_fb_off_held.dropped}, "
+    f"unwritable on disk {_fb_pa.state_for(_fb_junk).dropped}",
+)
 # R1's lower side in the replay: a 26.4 degC minimum return target (parameter
 # 979) clamps the loop's first wind-down, whose writes stay under it until a
 # reading leaves the hold tolerance and is adopted as a cut; the cut then
@@ -84140,6 +88122,64 @@ R.check(
     and not _fb_floor["issues"],
     f"cut {None if _fb_floor_run is None else _fb_floor_run.cut_lo_c}, under {_fb_under}, "
     f"issues {_fb_floor['issues'][:3]}",
+)
+
+# R10-OUTSIDE-VALVE-TARGET-LABEL (pull request 3529, Bankaifan, follow-up comment
+# 6840023148): the mixing-valve target is the ROOM temperature the circuit holds. A flow
+# temperature typed there silently drives a combi plan, so a target above the comfort
+# ceiling raises a notice. The solve is not changed: the notice is the whole fix.
+def _vt_dhw_kwh(target):
+    p = _ct_params(mixing_valve_target=target)
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15,
+                                               target_temp=21.0, min_temp=19.0, max_temp=23.0))
+    r = opt.optimize(inputs=solve_inputs(
+        initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                                   buffer_tank_temperature=50.0, dhw_temperature=50.0,
+                                   outdoor_temperature=0.0),
+        prices=_CT_PRICES, outdoor_temps=np.full(96, 0.0), wind_speeds=np.zeros(96),
+        precipitation=np.zeros(96), solar_radiation=np.zeros(96),
+        start_time=datetime(2026, 1, 15)))
+    return float(np.sum(r.dhw_power_schedule)) * 0.25, list(r.dhw_power_schedule)
+
+
+_vt_0, _vt_0_sched = _vt_dhw_kwh(0.0)
+_vt_30, _vt_30_sched = _vt_dhw_kwh(30.0)
+_vt_23, _vt_23_sched = _vt_dhw_kwh(23.0)
+R.check(
+    "valve target: on a combi entry a flow temperature typed as the target (30) moves the "
+    "planned hot-water energy against 0, the trap the notice names; null control: the same "
+    "target replans identically (the notice reads the plan, never changes it)",
+    _vt_30_sched != _vt_0_sched and _vt_30_sched == _vt_dhw_kwh(30.0)[1],
+    f"0={_vt_0} 30={_vt_30} 23={_vt_23}",
+)
+
+
+def _vt_issues(target, **extra):
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home",
+           "max_temperature": 23.0, **extra}
+    if target is not None:
+        cfg["mixing_valve_target"] = target
+    c = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=cfg))
+    c._audit_comfort_band()
+    c._audit_comfort_band()
+    return [i for i in getattr(c.hass, "issues", []) if i[1] == "valve_target_above_comfort"]
+
+
+_vt_hot = _vt_issues(30.0)
+R.check(
+    "valve target: a configured target above the comfort ceiling raises one repair, once "
+    "across two cycles, naming the target and the ceiling",
+    len(_vt_hot) == 1
+    and _vt_hot[0][2].get("translation_key") == "valve_target_above_comfort"
+    and _vt_hot[0][2]["translation_placeholders"] == {"target": "30", "ceiling": "23"},
+    str(_vt_hot),
+)
+R.check(
+    "valve target null control: unset, 0, and any target at or under the ceiling raise "
+    "no notice (a deliberate slab charge is not refused, only named when above)",
+    not _vt_issues(None) and not _vt_issues(0.0) and not _vt_issues(21.0)
+    and not _vt_issues(23.0) and not _vt_issues(23.5, max_temperature=24.0),
+    "a plausible target raised a notice",
 )
 
 sys.exit(R.close("FEATURE CHECKS"))

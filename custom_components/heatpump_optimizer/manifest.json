@@ -25,5 +25,5 @@
     "scipy>=1.10.0",
     "threadpoolctl>=3.5.0"
   ],
-  "version": "7.1.11"
+  "version": "7.1.15"
 }
