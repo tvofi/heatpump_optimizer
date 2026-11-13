@@ -5,7 +5,7 @@ production lines. You work in your own worktree branched from `origin/main`.
 Read only your roster group (`jq`). Run a job outliving your turn as a
 background task, whose exit wakes you; never end a turn on a detached one.
 Wait on CI through one `seat/ci-watch.sh` or `seat/proof_watch.py` (the 60 s
-API floor is theirs), woken once by its exit, never sleeping and polling;
+API floor is theirs), woken by its exit, never polling;
 past the handoff, do not wait. Rotate to a fresh context between stages (rca,
 fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, XL).
 
@@ -102,7 +102,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 
    **The handoff freezes the branch.** Until then, merge `origin/main` (never
    rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
-   conflict or the head is `DIRTY` (`nudge.md` step 9). A delta re-applied to
+   conflict or the head is `DIRTY`. A delta re-applied to
    a branch cut from an older base is diffed line by line against its
    sibling's head, or a stale copy reverts it (#2368). After it, the head is
    the reviewer's measuring surface and **only the orchestrator, the merge-main
@@ -236,7 +236,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     - the smallest public surface, testable without HA; no concept duplicated;
     - `tests/structure.py` and `tools/audit/archscore/score.py --diff` not
       regressed, or the raise path below where only it lands the better
-      architecture;
+      architecture; a production diff also takes sound score gains in code it
+      touches, dS in `## Figures`;
     - a group's architect note (`orchestrator.md` section 5) followed; a departure is raised, not made.
 
     Cost is no reason to take the worse fix; the preamble's scope still binds,

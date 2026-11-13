@@ -174,6 +174,31 @@ reason, ordered by spend, then the hours the plan leaves idle. The lines are
 the narrative sensor's own, already in Home Assistant's language. Set
 `show_stats: false` to leave out both rows.
 
+Clicking the score opens its breakdown: one row per part of the score, each
+followed by the drivers that moved it, in points — for the heat pump, a COP
+below its own history, or *matches its own COP history*; for the driving,
+energy bought below or above that day's mean price, or *bought at the day's
+flat mean price*; for the house, its configured heat loss against what is
+typical for its type and era, and the learned heat loss against the
+configured one. A heat pump part that has no grade yet shows its evidence
+instead: the COP samples per outdoor temperature band against the number
+needed, and how many were refused while learning was frozen. *No evidence
+yet — not a zero.* marks a part with nothing to grade. Hovering a row repeats
+its line and says what that part measures. The drivers come from the score
+sensor's `machine_drivers`, `operation_drivers` and `envelope_drivers`
+attributes, and the evidence from `machine_evidence`.
+
+The row also carries **Why now**: the reasons weighing on the current hour's
+plan, one line each, largest first, read from the space-heating plan
+sensor's `why_now` attribute. Each line names the reason — **Price rank**,
+**Comfort floor**, **Mold guard**, **Away** or **Forecast** — with an arrow
+(↑ pushes the heat pump toward running, ↓ toward idle, · no effect now) and its
+share of the hour's total push in percent; hovering a line explains the
+reason. The plan weighs the whole day's hours together, so the heat pump can
+still do the opposite of the strongest push this hour. *No data* means the
+optimizer has no plan for this hour yet, before the first solve or while the
+price forecast is missing.
+
 Every part is optional, because every source sensor is. The score has no
 value until enough history exists, the savings sensors go blank between
 optimizer runs. A row with nothing
@@ -205,7 +230,6 @@ anti-legionella cycle, and so on — or simply keeping the house at target, whic
 is what an ordinary slot says; it never borrows the weather pre-heat label. Without this an unexpected slot is indistinguishable from a
 bug.
 
-<!-- [target: R10-ARCH-SHAPES-CLASSIFIER] -->
 ### Why a step is idle
 
 <picture>
@@ -214,7 +238,9 @@ bug.
 </picture>
 
 Hovering a step where a channel is not heating says why the plan left it
-idle. When the plan publishes an exact reason for that step the heading says
+idle. A channel counts as heating only on a step where the plan runs the pump,
+space heating and hot water together above 0.1 kW, and that channel's own
+share is above 0.05 kW; a smaller planned draw is idle, not a slow run. When the plan publishes an exact reason for that step the heading says
 *Because* and the list is that reason: the other channel has the capacity,
 the fuse limit caps heating, the plan is waiting for solar, the hour is
 dearer than the hours used, or the temperature is above the floor and the
@@ -671,7 +697,6 @@ When every optional temperature sensor is already configured, that part of the
 page says exactly that; the integration publishes no ranking at all, and no
 empty table is drawn.
 
-<!-- [target: R10-UX-HEALTH] -->
 ## The health page
 
 The **Health** tab answers "is the plan running on good data?" in one screen,
@@ -683,12 +708,24 @@ on the Health page names which. The pill appears once that sensor has a state.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/health-dark.png">
-  <img alt="The Health tab: an Inputs column with a stale outdoor temperature row (its age and limit) and fresh indoor and hot-water rows, a Plan column with when the plan was solved, the next solve, its steps and the solve time, and a Still learning block with savings and COP waiting; under them a What the model has learned block whose rows each carry a value, its samples in words and an evidence bar, the house heat loss reading 142 W/K and 8 % faster than the settings estimate, solar gain at a window scale of 1.15 and still learning, hot-water tank cooling at 0.9 °C per hour, heat pump efficiency normal at a COP scale of 0.97 and a 24-bar internal-gains strip peaking around 18:00; then a Something looks wrong? row with a Download diagnostics button and a first-plan checklist with Assign and Show buttons" src="img/card/health-light.png">
+  <img alt="The Health tab: a Plan column solved 12 minutes ago with the next solve, its 96 steps and the solve time, and a Still learning column with savings waiting for the first settled month; an Inputs row with a stale outdoor temperature sensor (its age and its limit) and fresh indoor and hot-water sensors; a What the model has learned block whose rows each carry a value, their evidence in words and a bar: house heat loss 142 W/K, not observable without a power meter, solar gain at a window scale of 1.15 and still learning, hot-water tank cooling at 0.9 °C per hour, heat pump efficiency normal at a COP scale of 0.97, and a 24-bar internal-gains strip peaking around 18:00; a Something looks wrong? row with a Download diagnostics button, a Debug collection row with a Start button, and the six-item first-plan checklist, three ticked, with Assign on the power meter and Show on the insight sensors" src="img/card/health-light.png">
 </picture>
 
 *Everything here is read from the integration's sensors; the card computes no
-figure of its own.*
+figure of its own.* The page shows, top to bottom:
 
+- **Plan**, beside **Still learning**. The plan row says when the plan was
+  solved, when the next solve is due, how many steps it holds and how long the
+  solve took (the Optimization Status sensor's `solve_time_ms`). Its pill reads
+  **Stale** once the plan is past the limit the header's own status pill uses.
+  **Still learning** lists the sensors that are enabled by default and wait
+  for evidence, each with its reason in words: savings (the first settled
+  month), heat pump COP (a power meter, then some running time), prediction
+  accuracy (the first scored interval) and the optimization score (the first
+  scored day). Home Assistant hides an unavailable entity's attributes, so the
+  card cannot read the sensor's own `waiting_for` code and the reason is keyed
+  by the sensor. A sensor that has a value is not listed; with nothing waiting
+  the block is absent.
 - **Inputs.** One row per input the integration has read, with its age. A
   failing input says what is wrong in words (stale, unavailable, entity not
   found, not a number, outside its plausible range, unrecognised state, not a
@@ -697,43 +734,50 @@ figure of its own.*
   come from the Input Problem sensor's `problems` and `input_ages_minutes`
   attributes. The integration does not publish which fallback the plan uses
   for a failing input, so the page does not say.
-- **Plan.** When the plan was solved, when the next solve is due, how many
-  steps it holds and how long the solve took (the Optimization Status sensor's
-  `solve_time_ms`). The pill reads **Stale** once the plan is past the limit
-  the header's own status pill uses.
-- **Still learning.** The sensors that are enabled by default and unavailable
-  because they wait for evidence, each with its reason in words: savings
-  (the first settled month), heat pump COP (a power meter, then some running
-  time), prediction accuracy (the first scored interval) and the optimization
-  score (the first scored day). Home Assistant hides an unavailable entity's
-  attributes, so the card cannot read the sensor's own `waiting_for` code and
-  the reason is keyed by the sensor. A sensor that has a value is not listed;
-  with nothing waiting the block is absent.
 - **What the model has learned.** Read from the **Learning Model Status**
   sensor's attributes, one row per learner with its value, its evidence in
-  words and a bar: the house heat loss in W/K and how much faster or slower
-  the house loses heat than the settings estimated; solar gain as a window
-  scale, with "Learning: 6 of about 30 samples" until the learner has the
-  evidence it needs; the lower floor, once learned; the hot-water tank's
-  cooling in °C per hour, on a plant with a tank; and heat pump efficiency,
-  which turns to **Below its own history** in the warn colour when the COP
-  health watch raises its alarm. With internal-gains learning on, a 24-hour
-  bar strip shows the learned gains per hour and names the peak. The block is
-  absent while the sensor is unavailable. The counts are samples, not days:
-  the learners count accepted observations.
-- **Something looks wrong?** **Download diagnostics** opens the integration's
-  page in Home Assistant; the diagnostics download is in that page's menu. The
-  file holds the last diagnosis, the input states, a plan summary (counts and
-  totals, no per-step series) and the learning view, with the token, the entry
-  name, every `person.*` and `calendar.*` entity id and the precise location
-  removed.
+  words and a bar:
+  - **House heat loss** in W/K and how much faster or slower the house loses
+    heat than the settings estimated. Without a power meter on the heat pump
+    the row says *Not observable without a power meter.* and its bar stays
+    empty.
+  - **Solar gain** as a window scale, with "Learning: 6 of about 30 samples"
+    until the learner has the evidence it needs.
+  - **Lower floor**, once learned.
+  - **Hot-water tank cooling** in °C per hour, on a plant with a tank.
+  - **Heat pump efficiency**: *Normal* with its COP scale and *No sign of
+    degradation.* while the COP health watch is quiet, with *Measured by the
+    heat meter.* where a heat meter measures the COP; **Below its own
+    history** in the warn colour when the watch raises its alarm. On an
+    install that cannot measure a COP the value is a dash and the row says
+    why: no heat reading, a heat or power reading that is the pump's own
+    estimate, or no power meter (see
+    [COP, and the tracking-error gate](how-it-works.md#cop-and-the-tracking-error-gate)).
+  - With internal-gains learning on, **Internal gains by hour**, a 24-bar
+    strip of the learned gains per hour that names the peak.
+
+  The block is absent while the sensor is unavailable. The counts are
+  samples, not days: the learners count accepted observations.
+- **Something looks wrong?** **Download diagnostics** saves the integration's
+  diagnostics file for a bug report; if the card cannot fetch it, the button
+  opens the integration's page in Home Assistant, whose menu has the same
+  download. The file holds the last diagnosis, the input states, a plan
+  summary (counts and totals, no per-step series) and the learning view, with
+  the token, the entry name, every `person.*` and `calendar.*` entity id and
+  the location removed.
+- **Debug collection.** Off until a bug report asks for one: **Start**
+  records a week of cycles into the diagnostics file, and the row counts the
+  records and the days left. Once it has finished, the first press of
+  **Start** only warns that starting again discards the finished collection;
+  download the diagnostics first, then press it again.
 - **First-plan checklist.** Price source connected, weather forecast
   available (from the Optimization Status sensor's counts), an indoor
   temperature sensor, and heat pump control connected are ticked from what the
   card can read; **Assign** on the power meter opens the Setup page's picker
   for that slot. The insight sensors that are off by default are mentioned
   without a count, because the card cannot see which are disabled; **Show**
-  opens the integration's settings.
+  opens this integration's entity list, disabled entities included, where
+  they can be turned on.
 
 ## The setup page
 

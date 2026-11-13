@@ -879,6 +879,11 @@ async function cardPages({ browser, check, plan, out }) {
       // space-heating step, so the "likely because" hover (R9-UX-1) is
       // documented from the code rather than from a hand capture.
       for (const view of ["tile", "plan", "plan-why", "setup", "savings", "advisor", "health"]) {
+        // The dialog is sized to the viewport and scrolls inside; at 860 px the
+        // Health page clipped its first-plan checklist after one item
+        // (R10-USER-DOCS-VERIFY), so that page is taken tall enough to show all
+        // of it.
+        await page.setViewportSize({ width: 1100, height: view === "health" ? HEALTH_VIEWPORT_H : 860 });
         await page.goto("about:blank");
         await page.addScriptTag({ path: CARD_SRC });
         await page.evaluate(([themeCss, st, dark, view]) => {
@@ -966,6 +971,7 @@ async function cardPages({ browser, check, plan, out }) {
     figureDrift(moved, taken).length === 1 && !figureDrift(taken, taken).length);
 }
 
+const HEALTH_VIEWPORT_H = 1300;
 const FIGURES_MANIFEST = "pages.json";
 const FIGURES_COMMENT = "Written by HPO_PAGES_OUT=docs/img/card node tests/card_browser.mjs beside the pictures it takes; "
   + "tests/card_browser.mjs compares the live card to it (P40) and tests/doc_claims.py compares each PNG to it. "
