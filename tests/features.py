@@ -87154,8 +87154,8 @@ R.check(
     and np.flatnonzero(_dsp_r16_both_dc < 1.0).tolist() == [1],
     f"{_dsp_r16_both_dc}",
 )
-# The start profile is clipped into [0, p_max] before it is read, never raised:
-# a step the start leaves idle after a block holds no heating leg to charge.
+# The start profile is capped at what hot water leaves and never raised: a step
+# the start leaves idle after a block holds no heating leg to charge.
 _dsp_idle_after = _dsp_om._stop_availability(
     _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, -0.4, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]), 5.5
 )
@@ -87168,6 +87168,54 @@ R.check(
     _dsp_idle_after is None
     and _dsp_run_after is not None and np.flatnonzero(_dsp_run_after < 1.0).tolist() == [2],
     f"{_dsp_idle_after}, {_dsp_run_after}",
+)
+# The cap is the reading's own: a start that asks for heating beside hot water
+# at p_max ships none there, so that step holds no heating leg and the idle step
+# after it charges nothing. Beside a block that leaves room the same start is a
+# two-leg step, and charged.
+_dsp_full_blk = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 5.5, 0.0, 0.0]), 5.5
+)
+_dsp_part_blk = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 2.5, 0.0, 0.0]), 5.5
+)
+R.check(
+    "heating asked beside hot water at p_max is no heating leg: nothing is "
+    "charged; beside a block that leaves room the same start is charged there",
+    _dsp_full_blk is None
+    and _dsp_part_blk is not None and np.flatnonzero(_dsp_part_blk < 1.0).tolist() == [1],
+    f"{_dsp_full_blk}, {_dsp_part_blk}",
+)
+# The reading takes the start as it comes: the cap, the running threshold and
+# the clamped projection already read a value under zero as idle and one over
+# p_max as the cap, so clipping the start into [0, p_max] first moves no step
+# of it, on either install kind. The grid holds starts outside the band, and
+# blocks that charge a step, or the comparison would be of nothing.
+import itertools as _dsp_it  # noqa: E402
+
+_DSP_BAND_STARTS = [np.array(s) for s in _dsp_it.product((-0.4, 0.0, 1.0, 3.0, 9.0), repeat=4)]
+_DSP_BAND_TANKS = [np.array(t) for t in ((0.0, 2.5, 0.0, 0.0), (4.4, 0.0, 5.5, 0.0), (0.0, 0.0, 2.0, 2.0))]
+
+
+def _dsp_band_read(clamp, start, tank):
+    avail = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR, _DSP_OFF, clamp=clamp), start, tank, 5.5)
+    return None if avail is None else avail.tolist()
+
+
+_dsp_band_rows = [
+    (_dsp_band_read(clamp, start, tank), _dsp_band_read(clamp, np.clip(start, 0.0, 5.5), tank), start)
+    for clamp in (False, True) for tank in _DSP_BAND_TANKS for start in _DSP_BAND_STARTS
+]
+_dsp_band_moved = [(raw, clipped, start.tolist()) for raw, clipped, start in _dsp_band_rows if raw != clipped]
+R.check(
+    "a start outside [0, p_max] reads as the same start clipped into it, on a "
+    "duty-cycle and on a clamped install; the grid holds starts outside the "
+    "band and readings that charge a step",
+    not _dsp_band_moved
+    and any(raw is not None for raw, _, _ in _dsp_band_rows)
+    and any(raw is None for raw, _, _ in _dsp_band_rows)
+    and sum(bool(np.any((start < 0.0) | (start > 5.5))) for _, _, start in _dsp_band_rows) > len(_dsp_band_rows) // 2,
+    f"{len(_dsp_band_moved)} of {len(_dsp_band_rows)} moved, first {_dsp_band_moved[:1]}",
 )
 R.check(
     "the bound is what hot water leaves and never under zero: 0.5 kW beside "
