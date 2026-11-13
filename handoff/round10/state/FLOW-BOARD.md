@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-13T13:39:30+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-13T13:48:52+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 2 / 1.0 | 29 / 24.0 |
+| roster groups closed vs takt | 3 / 1.0 | 30 / 24.0 |
 | fly-ins closed | 0 | 14 |
-| main moves: group-carrying / record / roster-edit / fly-in | 3 / 1 / 0 / 0 | 29 / 6 / 2 / 14 |
-| first-pass fix-review yield | 1/3 (0.33) | 23/39 (0.59) |
-| blocked-class mix | introduced-red:1, merge-conflict:1, mutation-vacuous:1, self-test-red:1 | architecture-unsound:1, claim-false:1, class-open:9, dropped-entries:1, evidence-cut:1, head-moved:1, introduced-red:2, merge-conflict:1, mutation-survivor:1, mutation-survivors:1, mutation-vacuous:4, root-cause-detectable:1, self-test-red:2 |
-| lead time per size (h, n/p50/max) | M n=2 p50=5.78 max=30.88; S n=1 p50=3.99 max=3.99 | L n=3 p50=35.09 max=36.53; M n=11 p50=22.08 max=53.48; S n=15 p50=9.08 max=18.31 |
+| main moves: group-carrying / record / roster-edit / fly-in | 2 / 1 / 0 / 0 | 30 / 6 / 2 / 14 |
+| first-pass fix-review yield | 2/4 (0.50) | 24/40 (0.60) |
+| blocked-class mix | introduced-red:1, merge-conflict:1, mutation-vacuous:1, self-test-red:1 | architecture-unsound:1, claim-false:1, class-open:9, dropped-entries:1, evidence-cut:1, introduced-red:1, merge-conflict:1, mutation-survivor:1, mutation-survivors:1, mutation-vacuous:4, root-cause-detectable:1, self-test-red:2 |
+| lead time per size (h, n/p50/max) | S n=2 p50=3.04 max=3.99 | L n=3 p50=35.09 max=36.53; M n=11 p50=22.08 max=53.48; S n=16 p50=9.08 max=18.31 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 0 | 35 | 4 | 0 |
+| 0 | 34 | 4 | 0 |
 
 ## Rules
 
