@@ -1,4 +1,0 @@
-SURVIVED NULL
-KILLED B-drop-carry
-KILLED B-pr-ignored
-rc=0

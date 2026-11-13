@@ -1,2 +1,0 @@
-SURVIVED tools/audit/seat/ledger.py:1248 STMT_DEL  pass
-rc=1
