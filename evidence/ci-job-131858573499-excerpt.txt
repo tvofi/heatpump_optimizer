@@ -1,0 +1,12 @@
+instrument-self-tests job 131858573499 at head 5d2c0a30ec65f2d4d4f5976ee50937737e19c089, step "Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures" (via get_job_logs, tail):
+  ok     mutant mut:opclear (its line deleted): the re-run fails at git worktree add -b on the left-over branch (the defect)
+  FAIL update_pr: a moved head with a figure block pushes a body whose block names the new head
+  ok     mutant mut:updfig1 (its line deleted): the push carries a block naming another head and is refused
+  FAIL update_pr: a failing refresh at the head to push refuses and pushes nothing
+  FAIL update_pr: a body-only run over a block naming the code head patches a body naming the live head
+  FAIL   mutant mut:updfig2 (its line deleted): body_patch.sh is handed a block naming another head and refuses
+  FAIL update_pr: a failing refresh on the body-only path refuses and patches nothing
+  ok   null control: a body with no figure block never reaches the refresh and is pushed as before
+  ok   null control: a body-only run over a body with no figure block never reaches the refresh
+pr_args self-test: 251 checks, 5 failed
+##[error]Process completed with exit code 1.
