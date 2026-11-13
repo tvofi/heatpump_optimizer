@@ -1,33 +1,54 @@
-Fix review: blocked fbde1675681fb1f8f86e971b923070e8a62b382f class-open: SPY_REAL_GIT carried from the caller lets a caller's git run inside the offline_spy row and reach a remote while that row prints network=0 remote_git=0; HPO_STATE_DIR (off the allowlist) reaches every row through the PATH computed before the env -i re-exec
+Fix review: blocked c17c11af72a8af22fc19e5cd7360bf8adf0acabe merge-conflict: git merge-tree --write-tree origin/main 5288db5dad c17c11af72a8af22fc19e5cd7360bf8adf0acabe conflicts in tools/audit/seat/tick_loop.sh, where main's 38aee2235a wraps the --self-test argument arm in pr_bounded and this head deletes that arm; the round-4 class itself is closed at this head
 
-bus-nonce: e37fc82251df41bf64e5648719428115
+bus-nonce: 7ed37fb3ee97986606a70a94e4e2eb06
 
 ## Block
 
-Round 3, a delta review of fb218fa5f7..fbde167568 (no production `custom_components/` change, so the scope stays the delta). The repair closes the class by construction only for names that are not on the allowlist and are read after the re-exec. Two channels from the caller still reach rows, both measured at this head from a detached worktree, each beside the plain run as its control (`ev/selftest_plain.txt`: 39 checks, 0 failed, real 1m30s, no attacker script referenced):
-
-- **`SPY_REAL_GIT` (on `SELFTEST_ENV`, carried from the caller).** `offline_spy.py:159` takes `real_git = os.environ.get("SPY_REAL_GIT") or shutil.which("git")`, and its PATH git wrapper ends `exec "$SPY_REAL_GIT" "$@"`. So the row that is supposed to prove "no network or remote-git call leaves it" runs every git call through whatever the caller named.
-  - `SPY_REAL_GIT=/tmp/evil/netgit bash tools/audit/seat/tick_loop.sh --self-test`: the attacker's git ran 148 times, and each run tried `/usr/bin/git ls-remote https://127.0.0.1:9/hb.git` (148 `attempted-remote rc=128`, `ev/netgit_log.txt`). The row `...passes under offline_spy.py: no network call, no remote git call, its git calls seen` printed `ok`, and the self-test printed `39 checks, 0 failed` with rc 0 (`ev/attack_spy_netgit.txt`). A remote call left the self-test and the row meant to rule that out stayed green. The spy counts what its wrapper parses, not what the binary it execs does.
-  - `SPY_REAL_GIT=/bin/false`: that row went `FAIL`, giving `39 checks, 1 failed` with rc 1 (`ev/attack_spy_false.txt`). A caller variable changes a row's verdict.
-  - `SPY_REAL_GIT=/tmp/evil/git` (a logging pass-through): 148 calls of caller code inside the row, 19 of them push, fetch or ls-remote, with a green result (`ev/attack_spy_real_git.txt`).
-  - Repair direction (not prescribed): the spy row runs `offline_spy.py` with `SPY_REAL_GIT` and `SPY_LOG` unset, or carries them only when the self-test is itself running under a spy wrapper. Add a row that sets `SPY_REAL_GIT` in the caller to a git that reaches a remote, and require the spy row to stay sound.
-- **`HPO_STATE_DIR` (off the allowlist) and `HOME`, through `PATH`.** `tick_loop.sh:63-65` prepends `${HPO_STATE_DIR:-$HOME/.local/state/hpo}/bin` to PATH at the script's top, in the caller's environment, before `selftest_allowlisted` runs. `env -i PATH="$PATH"` then carries that directory into every row.
-  - `HPO_STATE_DIR=/tmp/evil/state` (`bin/git` a logging pass-through): the caller's git ran 943 times across the rows, including 114 fetches and the nested clones, and the self-test printed `39 checks, 0 failed` (`ev/attack_state_dir.txt`, `ev/state_dir_git_log.txt`).
-  - The body dispositions `HPO_STATE_DIR` as "read at the script's top for PATH ... Every nested row sets it". That covers the nested runs, not the outer rows, which inherit the caller-derived PATH. So `tools/audit/seat/instruments/tick_loop.sh.md`'s "no caller variable ... reaches a row" is false at this head.
-  - Repair direction: the self-test computes its rows' PATH from the caller's PATH before the seat-bin prepend, or strips that prefix. Pin it with a caller `HPO_STATE_DIR` whose `bin/git` is detectable.
-
-This seat built the attack scripts (`/tmp/evil/{git,netgit}`), not the finder. Their text is `ev/attack_evil_git.sh` and `ev/attack_netgit.sh`.
+- **Merge conflict with main.** `git merge-tree --write-tree origin/main c17c11af72a8af22fc19e5cd7360bf8adf0acabe` exits 1 against origin/main 5288db5dadbffbaf83cb4ed258a669d46c3224fe with `CONFLICT (content): Merge conflict in tools/audit/seat/tick_loop.sh` (`ev/merge_tree.txt`). The pull request reads `mergeable_state: dirty` too.
+  - Since the merge base b6577827b4, main has changed one line of this file in 38aee2235a ("seat scripts: quiet train output by default with --verbose, and pr_bounded in 12 seat self-tests", merged by d3e955485a). It changed the argument loop's `--self-test) tick_loop_self_test; exit ;;` into `--self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded tick_loop bash "$0" --self-test; }; tick_loop_self_test; exit ;;` (`ev/main_ticks.txt`).
+  - This head deletes that arm, because the arm is the round-4 fail-open.
+- **This conflict is not mechanical.** Taking main's line puts back a `--self-test` arm that runs the rows in the caller's environment. That is round 4's harm. The `failopen` mutant shape shows it, and rows (a) and (b) would then depend only on the refusal line.
+  - Also, `PR_BOUND` is a caller variable, so `env -i` drops it. A `pr_bounded` placed before the re-exec would re-enter `--self-test` unbounded on every run.
+  - The resolution has to keep `--self-test` free of any row-running arm. It needs to put main's bound somewhere it survives the `env -i` re-exec, for example on the `--self-test-rows` entry or as the re-exec's argv. Then it re-runs `whole`, `envi`, `failopen` and the `channels` arm at the merged head.
+  - The resolution is not prescribed here.
+- Everything else in scope is judged below. A re-review after the merge can confirm the resolution and the re-run arms as a delta.
 
 ## Evidence
 
-- Head reviewed: fbde1675681fb1f8f86e971b923070e8a62b382f (`ev/HEAD.txt`). It was re-read before return: `handoff/r10-hotfix-tick-selftest-checkout` and `handoff-wip/...` both point at it, and BODY.md's `Code:` line names it (handoff-body ec0df4aeba).
-- Round: third. Scope: the delta `git diff fb218fa5f7 fbde167568`, which touches `tools/audit/seat/tick_loop.sh`, its instrument page and the harness. There is no production delta, so no widening.
-- Mutation proof, re-run with the fixer's in-tree harness `dev/audit/harnesses/r10_tick_selftest_checkout.sh` at the head:
-  - `envi`: 2 rows FAIL, the every-variable nested row and the spy row (`ev/mut_envi.txt`).
-  - `allowlist`: `39 checks, 1 failed`, the refusal row (`ev/mut_allowlist.txt`).
-  - Both match the body. The guards are not vacuous. The block is about channels the guards do not cover.
-- `git merge-tree --write-tree origin/main fbde167568`: rc 0, no conflict (`ev/merge_tree.txt`).
-- VERSION, the manifest version and RELEASE_NOTES.md are untouched against the merge base (`ev/version_untouched.txt` is empty).
-- No pull request exists and no CI has run at this head. There is no review packet, no check run to read, and no red that `merge_train.py owed-reds` could name.
-- `env -u BASH_ENV python3 tests/entities.py` could not run in this container: venv-ci lacks `homeassistant`, and venv-ha lacks `paho` (`ev/entities.txt`). It is unverified here and left to CI.
-- I did not re-derive the body's other figures (load-average timings near 40, the S31 and S34 counts, CI step times): they are host-specific to the fixer's host. The plain self-test time here is real 1m30s, which matches the body's quoted `real 1m30s`.
+- **Head and scope.** The head reviewed is c17c11af72a8af22fc19e5cd7360bf8adf0acabe (`ev/HEAD.txt`), from a detached worktree.
+  - The rendered packet reads `## Review scope: full`, because no `verdict/<pr>` ref names 510c46643055. The round-4 verdict lives on a probe ref at 4b74a2492e. This seat's brief asks for a delta review against it.
+  - Three-dot from the merge base touches only `tools/audit/seat/tick_loop.sh`, its instrument page, the harness, `tests/closures.json` and `dev/programme/delivery/3520.md`.
+  - No `custom_components/` line moves, so the scope does not widen. `VERSION`, the manifest, `RELEASE_NOTES.md` and `tests/golden/` are untouched (`ev/version_untouched.txt` is empty).
+- **Review packet** (`ev/review-packet.md`): `REFUSE introduced-red: unreadable`, because `instrument-self-tests` was queued. classify decides, see CI below.
+- **The class is closed at this head.** Round 4's own drivers were re-run on a scratch copy of the head's five files, with `HPO_HEARTBEAT_REMOTE` set to a fresh bare repository and `TICK_RC=1`.
+  - Control: `tick_loop self-test: 41 checks, 0 failed`, rc 0, victim holds no ref.
+  - Exported `exec`: `line 67: refused: --self-test refused: the env -i re-exec did not replace this process ...; no row ran`, rc 1, no ref.
+  - `BASH_ENV` `exec`: the same refusal, rc 1, `victim refs: 0`. The shadow log holds the skipped `/usr/bin/env -i ... --self-test-rows` call, so the shadow was taken and then refused.
+  - Files: `ev/attack_exec_func.sh`, `ev/attack_bashenv.sh`, `ev/r4_driver_func.txt`, `ev/r4_driver_bashenv.txt`.
+  - Round 4 at 510c466430, same drivers: `38 checks, 18 failed`, and the victim took `heartbeat/orchestrator`.
+- **Why the class is closed, not the one name.** `tick_loop_self_test` has exactly one caller, `tick_loop.sh:492` (`--self-test-rows)`). The argument loop has no `--self-test` arm, so an unknown `--self-test` hits `*)` and exits 2. A `--self-test` run now reaches a row only through the `env -i` re-exec, whatever stops the re-exec.
+- **This seat's own channels beyond the fixer's set** (`ev/extra_channels.txt`). Each run used the same victim set-up through `BASH_ENV`.
+  - `readonly refused=x` plus exec shadow: rc 2, 0 rows, 0 refs.
+  - `declare -i refused` plus exec shadow: rc 2, 0 rows, 0 refs.
+  - In both, the refusal line itself is defeated, but the second layer (the deleted arm, then `*)`) refuses. Only `cd`, `dirname` and `pwd` run in between (lines 68-104). This sits inside the body's disclosed `BASH_ENV`-code limit.
+  - `alias exec=:` under `expand_aliases`: rc 1, the refusal.
+  - Exported `exit` plus exec shadow: rc 1, the refusal. An expansion error runs no `exit` lookup.
+  - `set -E` with an ERR trap: rc 1, the refusal.
+  - `execfail`: rc 0, 41 rows, 0 refs. The exec succeeded.
+  - An alias of the reserved word `case` (`set -- --self-test-rows; case`): rc 2 at `unknown argument --self-test-rows`, 0 rows, 0 refs. This one does enter `tick_loop_self_test` in the caller's process. It is hostile caller code rewriting the script's own words, which the body's disclosed limit names ("runs `--self-test-rows` itself"). It is not a seam a line of this script can close.
+- **Mutation proof**, re-run with the in-tree harness at the head, one arm per run (`ev/harness_arms.txt`). Every row the body reports reproduces:
+  - `whole: 41 checks, 0 failed rc=0`
+  - `envi`: the refusal, rc=1
+  - `carry: 1 failed` (poison row, 90 names)
+  - `pathfirst: 1 failed`
+  - `failopen: 2 failed` (fail closed func and bashenv)
+  - `pipefail: 8 failed`
+- **The `channels` arm** reproduces the body's ten lines and its four null controls (fn 4, bashenv 4, env 1, path 1), with a corpus of 85 names (`ev/harness_arms.txt`).
+- **Shape arms**: branch, detached and gitdir each read `behind=1: 31 checks, 0 failed HEAD-UNMOVED`. shim and level each read `behind=0 ... 0 failed HEAD-UNMOVED`.
+- **entities.py**: `PYTHONPATH=tests/hastub env -u BASH_ENV python3 tests/entities.py` printed `ALL 2709 ENTITY CHECKS PASSED`, rc 0 (`ev/entities.txt`). An earlier run without `PYTHONPATH` failed on the import of `homeassistant`, as the body's command anticipates.
+- **CI.** `merge_train.py classify` printed `WAIT c17c11af72a8af22fc19e5cd7360bf8adf0acabe pending: gate red: none` (rc 3) twice, about 10 minutes apart (`ev/classify1.txt`, `ev/classify2.txt`). This seat's dispatch says not to wait on CI. `merge_train.py owed-reds` is in `ev/owed_reds.txt`. No red was read, and the body's `## Red checks: none` has nothing to answer.
+- **Not re-derived:**
+  - the body's `real 1m42.892s`, which is a host timing
+  - its `pr_args`, `offline_spy`, `bare_array`, `selftest_wiring`, `tmp_paths`, `brief_lint`, `structure.py` and `doc_claims.py` lines
+  - `closure.py select`
+- **Body figures that were checked** match this head: 41 checks, 3 rows added, 90 derived names, the mutation table, the channels table and the entities count.
