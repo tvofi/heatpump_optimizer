@@ -23,7 +23,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    corpus (case, quoting, glued options, delimiters, wrapping) with the corpus
    size named in the body; a spelling the reviewer finds is added to it.
    A `git archive` copy fails the #363 `recorded_at` check, and a self-test
-   needing a checkout, on every mutant, baseline included (#1713, #1723).
+   needing a checkout, on every mutant, baseline included.
    **The diff's survivors are yours before the handoff; `--pin-killed` is
    `ci-autofix.md`'s.** Set `prepr.sh`'s `MUTANT_CMD` to the group's self-test
    or a `features_block.py` call (`MUTANT_IN_PLACE=1` for a checkout); it draws only
@@ -41,8 +41,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    reports unverified, not refused. A harness measuring what the fix rightly
    leaves alone reads flat at both ends: say so, and add a sha1-cited companion
    applying the tree's own rule to the same inputs, reading the defect at the
-   baseline and not at the head (#1506, #1561, #1571). A fold deleting a name
-   the harness drives leaves only its count arm readable at the head;
+   baseline and not at the head. A fold deleting a name the harness drives
+   leaves only its count arm readable at the head;
    the fixer ports the rest, as its own (`fix-review.md` step 9; #2365).
    **Every quantified claim carries a null control, not only cost, gain and
    time**: a count, a percentage, an "every" or a "none" is a measurement, owed
@@ -116,8 +116,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    (a `--carry` head: no re-take; name bot reds), and carries every executed
    number in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
-   Only a count whose rule is written down is re-derivable (#373: one census,
-   three counts). **Name the instrument you re-ran, and its scope.** If the
+   Only a count whose rule is written down is re-derivable. **Name the instrument you re-ran, and its scope.** If the
    block you are clearing was demonstrated with an *instance*, your verification
    may not be a search for that instance — it must check the property the
    phenomenon states, not the property the block's text states: name a rule that enumerates the class's seams (a command,
@@ -139,12 +138,11 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
    no such correction exists.** Delete on sight, not as a last resort, when
-   the claim is only motivation or scaffolding the finished text doesn't
-   need (#386).
+   the claim is only motivation or scaffolding the finished text doesn't need.
 10. **If the wrong text is generated, fix the generator first, and run it.**
     Correcting prose a script emits leaves the script emitting the old text on
-    its next run, so the correction is undone rather than kept (#539). Grep for
-    the wrong form across the whole tree before deciding what to edit.
+    its next run, so the correction is undone rather than kept. Grep for the
+    wrong form across the whole tree before deciding what to edit.
     **A generator fixed without being run is a claim, not a fix**: run it,
     paste what it now emits, and run it at the merge base as the control.
     Text that *instructs* differs from a record that *recounts*: a measurement
@@ -196,8 +194,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`, and neither is a
     reduction over a row VIEW of a batched array one over the fresh array the
     scalar expression builds: numpy's pairwise loop takes alignment and stride
-    as inputs, per backend (#948: arm64 parity, x86_64 drift, at the 96-step
-    production width only). Where the contract is bitwise, run the SCALAR
+    as inputs, per backend. Where the contract is bitwise, run the SCALAR
     EXPRESSION per row, on the fresh per-row arrays that expression's own
     elementwise ops allocate — batch only what is elementwise end to end — and
     drive the parity grid at the production width.
@@ -205,11 +202,9 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     The same rule holds one level up and across interpreter versions: a
     reduction whose scalar form is a PYTHON BUILTIN is compensated arithmetic
     on CPython 3.12+ — builtin `sum` is Neumaier — and no vectorized
-    accumulation reproduces it (#948: 1-2 ulp, red on CI's 3.14 runner, green
-    on 3.11, whose `sum` is plain). Make the twin call the scalar closure's own
+    accumulation reproduces it. Make the twin call the scalar closure's own
     function per row, and put detector rows on the parity grid that separate
-    the two summations (measured: ~12% of random three-term sums), so the
-    interpreter class that diverges — CI's — runs the detector.
+    the two summations, so the interpreter class that diverges — CI's — runs the detector.
 
     A per-row twin removes re-entry, not work; when it is the fix for a
     recomputation finding, re-measure the finding's cost on the fixed tree and
@@ -249,9 +244,7 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     improvement claim names its mechanism, which the reviewer removes as the
     null control (`fix-review.md` step 14). Never move a metric by a change
     that does not improve the code: a mechanical split, code moved to an
-    unmeasured path, a triage on a killable mutant, or cases enumerated where a
-    structural fix exists (#1874, #2345: a spelling list, three review rounds,
-    class still open).
+    unmeasured path, a triage on a killable mutant, or cases enumerated where a structural fix exists.
 18. **What a later round or seat reruns, or a body figure needs reproduced,
     lands in the same pull request** (tvofi, 2026-10-03): a harness in
     `dev/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`,
@@ -313,11 +306,9 @@ history is deleted, not restated — except a **disclosed self-correction** (`de
 tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**:
 the orchestrator splits or closes it.
 
-**The rule never applies when the gap is mechanical only** (tvofi, 2026-11-09).
-`bus.sh dispatch` reads the class of the latest blocked verdict and dispatches
-past the third round, with no `## Re-cut` note, when it is mechanical: `ci-red`,
-`red-unanswered`, a body or contract gap, `conflict`, `head-moved`, a carry, an
-ungated step. A CI-only block (`ci-red`, `ci-wait`, `ci-pending`, a cancelled
-run) is mechanical and does not count toward the three-round rule. A judgement
-class (`harness`, `null-control`, `mutation-vacuous`, `class-open`, `defect`,
-`claims`, a ruling, a budget), an unknown class or an unreadable log refuses as above.
+**Never for a mechanical-only gap** (tvofi, 2026-11-09): `bus.sh dispatch` reads the
+latest block's class and dispatches with no `## Re-cut` when it is `ci-red`,
+`red-unanswered`, body or contract, `conflict`, `head-moved`, a carry or an ungated
+step. A CI-only block (`ci-red`, `ci-wait`, `ci-pending`, a cancelled run) is
+mechanical and does not count toward the three-round rule; a judgement class, an
+unknown one or an unreadable log refuses.
