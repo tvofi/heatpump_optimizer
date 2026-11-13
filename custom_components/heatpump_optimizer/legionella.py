@@ -52,7 +52,7 @@ DHW_LEGIONELLA_RETRY_HOURS = 24.0
 
 #: How far under the disinfection temperature a tank reading still credits a
 #: cycle, K: at once, or held for ``DHW_LEGIONELLA_HOLD_MINUTES`` under free
-#: disinfection (#24). ``check_step`` judges the cycle's own write by the same.
+#: disinfection (#24). ``OffStepNotice`` judges the cycle's own write by the same.
 CREDIT_INSTANT_MARGIN_K = 1.0
 CREDIT_HOLD_MARGIN_K = 0.5
 
@@ -65,6 +65,54 @@ def days_since_confirmed(
         return None
     age_h = utc_elapsed_seconds(now, last_cycle) / 3600.0
     return int(age_h // 24.0) if age_h > interval_days * 24.0 else None
+
+
+class OffStepNotice:
+    """Say so before a cycle runs when the entity's step leaves it uncreditable.
+
+    The arbiter writes a cycle on the hot-water entity's step at or below
+    ``dhw_hard_max_temp`` (``pump_arbiter.cycle_write``, its own answer); a
+    write under the credit threshold in force can never complete, so the
+    cycle is credited nothing and retried daily. ``dhw_legionella_off_step``
+    names it with the two on-step temperatures the user can pick, in place of
+    ``dhw_legionella_unreachable``, whose hardware advice does not apply to a
+    rounding gap: raising this takes that one down, and the guard raises it
+    not while this stands. Not persistent: derived from configuration, and
+    re-raised on the next cycle while it stands.
+    """
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self.hass = hass
+        #: (disinfection temp, write, step, below, above) as last raised, or None.
+        self.signature: tuple[float, ...] | None = None
+
+    def check(self, params: ThermalParameters, config: dict[str, Any]) -> None:
+        """Raise, rewrite or clear the notice for the parameters in force."""
+        target = float(params.dhw_legionella_temp)
+        cycle = bool(params.dhw_enabled and params.legionella_cycle_active)
+        write = cycle_write(self.hass, config, params) if cycle else None
+        free = EntryConfig.from_mapping(config).dhw_free_disinfection_enabled
+        margin = CREDIT_HOLD_MARGIN_K if free else CREDIT_INSTANT_MARGIN_K
+        short = write is not None and write.written_c < target - margin
+        signature = (target, write.written_c, write.step, write.below_c, write.above_c) if short else None
+        if signature == self.signature:
+            return
+        self.signature = signature
+        if signature is not None:
+            clear_issue(self.hass, "dhw_legionella_unreachable")
+        target, written, step, below, above = signature or (0.0,) * 5
+        set_issue(
+            self.hass,
+            "dhw_legionella_off_step",
+            signature is not None,
+            placeholders={
+                "legionella_temp": f"{target:g}",
+                "written": f"{written:g}",
+                "step": f"{step:g}",
+                "below": f"{below:g}",
+                "above": f"{above:g}",
+            },
+        )
 
 
 class LegionellaGuard:
@@ -129,9 +177,7 @@ class LegionellaGuard:
         #: The (disinfection temp, charge limit, interval) the ceiling notice
         #: was last raised for, so it is only rewritten when the pair changes.
         self.ceiling_notice: tuple[float, float, float] | None = None
-        #: The (disinfection temp, write, step, below, above) the off-step
-        #: notice was last raised for, or None when none is.
-        self.step_notice: tuple[float, ...] | None = None
+        self.off_step = OffStepNotice(hass)
         #: Signature of the "disinfection is blocked by the pump's mode"
         #: notice currently raised, or None when none is. Coarsened to whole
         #: overdue days so a worsening situation updates the text without
@@ -341,12 +387,9 @@ class LegionellaGuard:
 
         # Did the observer credit a completed cycle while this boost ran? That
         # is the only evidence of success there is, and it is the same test on
-        # both sides of the free-disinfection flag. Reading the peak instead
-        # (`peak >= target - 1.0`) disagreed with the observer's own rule
-        # (`target - 0.5`, held for DHW_LEGIONELLA_HOLD_MINUTES): a cycle
-        # peaking in [59.0, 59.5) was neither credited nor recorded, no notice
-        # was raised, and `hours_since` stayed pinned at its overdue value
-        # while the cycle was re-commanded on every single solve.
+        # both sides of the free-disinfection flag. The peak against
+        # CREDIT_INSTANT_MARGIN_K disagreed with the hold rule: a cycle peaking
+        # in [59.0, 59.5) went uncredited, unrecorded and re-commanded per solve.
         credited = (
             self.last_cycle is not None
             and started is not None
@@ -493,7 +536,7 @@ class LegionellaGuard:
         if dhw_temp is not None:
             await self.async_track(dhw_temp)
         self.disinfect.observe(reader)
-        self.check_step()
+        self.off_step.check(self._params(), self._config)
         await self.async_track_cycle(dhw_temp)
         self.check_ceiling()
         self.check_overdue()
@@ -561,46 +604,6 @@ class LegionellaGuard:
             },
         )
 
-    def check_step(self) -> None:
-        """Say so before a cycle runs when the entity's step leaves it uncreditable.
-
-        The arbiter writes a cycle on the hot-water entity's step at or below
-        ``dhw_hard_max_temp`` (``pump_arbiter.cycle_write``, its own answer);
-        a write under the credit threshold in force can never complete, so the
-        cycle is credited nothing and retried daily. Named here, with the two
-        on-step temperatures the user can pick, in place of
-        ``dhw_legionella_unreachable``, whose hardware advice does not apply
-        to a rounding gap: while this stands that one is not raised, and
-        raising this takes it down. Not persistent: it is derived from
-        configuration and re-raised on the next cycle while it stands.
-        """
-        params = self._params()
-        target = float(params.dhw_legionella_temp)
-        cycle = bool(params.dhw_enabled and params.legionella_cycle_active)
-        write = cycle_write(self.hass, self._config, params) if cycle else None
-        free = EntryConfig.from_mapping(self._config).dhw_free_disinfection_enabled
-        margin = CREDIT_HOLD_MARGIN_K if free else CREDIT_INSTANT_MARGIN_K
-        short = write is not None and write.written_c < target - margin
-        signature = (target, write.written_c, write.step, write.below_c, write.above_c) if short else None
-        if signature == self.step_notice:
-            return
-        self.step_notice = signature
-        if signature is not None:
-            self.clear_unreachable_issue()
-        target, written, step, below, above = signature or (0.0,) * 5
-        set_issue(
-            self.hass,
-            "dhw_legionella_off_step",
-            signature is not None,
-            placeholders={
-                "legionella_temp": f"{target:g}",
-                "written": f"{written:g}",
-                "step": f"{step:g}",
-                "below": f"{below:g}",
-                "above": f"{above:g}",
-            },
-        )
-
     def raise_unreachable_issue(
         self, peak: float, target: float
     ) -> None:
@@ -608,15 +611,12 @@ class LegionellaGuard:
 
         Silent failure is the worst outcome available here: the user believes
         the tank is being disinfected weekly and it is not. Persistent, because
-        the fact survives a restart in the store. Not while the off-step
-        notice stands (``check_step``): that one names the cause.
+        the fact survives a restart in the store; cleared under ``off_step``.
         """
-        if self.step_notice is not None:
-            return
         set_issue(
             self.hass,
             "dhw_legionella_unreachable",
-            True,
+            self.off_step.signature is None,
             persistent=True,
             placeholders={"reached": f"{peak:.1f}", "target": f"{target:.0f}"},
         )
