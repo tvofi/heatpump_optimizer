@@ -279,15 +279,10 @@ def drop_unstartable(
     """
     plan = np.array(plan, dtype=float)
     on = plan > 0.0
-    i = 1
-    while i < plan.size:
-        if not on[i] or on[i - 1]:
-            i += 1
-            continue
+    for i in np.flatnonzero(on[1:] & ~on[:-1]) + 1:
         end = i + int(np.argmin(np.append(on[i:], False)))
         if temps_of(plan)[i] >= start_below[i]:
             plan[i:end] = 0.0
-        i = end
     return plan
 
 
