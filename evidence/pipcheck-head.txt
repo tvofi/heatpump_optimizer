@@ -1,0 +1,7 @@
+homeassistant 2026.11.0 has requirement astral==2.2, but you have astral 3.2.
+homeassistant 2026.11.0 has requirement SQLAlchemy==2.0.54, but you have sqlalchemy 2.1.8.
+homeassistant 2026.11.0 has requirement uv==0.13.6, but you have uv 0.13.7.
+homeassistant-stubs 2026.9.3 has requirement homeassistant==2026.9.3, but you have homeassistant 2026.11.0.
+botocore 1.43.126 has requirement python-dateutil<3.0.0,>=2.1, but you have python-dateutil 4.0.0.
+hass-nabucasa 2.8.1 has requirement acme==5.7.0, but you have acme 5.9.0.
+pipcheck-rc=1
