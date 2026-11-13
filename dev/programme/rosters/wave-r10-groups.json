@@ -26383,6 +26383,52 @@
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move"
    }
+  },
+  {
+   "group": "R11-PRE-MACHINERY-LIMITER",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "process",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
+   "files": [
+    "dev/governance/config/machinery_budgets.json",
+    "tools/audit/machinery_ratchet.py",
+    "dev/governance/roles/proposal-triage.md",
+    "dev/governance/rules/ratchet-budgets.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13 on decision card P2 (declining cap, one in one out, severity route narrowed): the machinery ratchet becomes a target that declines over a round instead of a record of the status quo; a new gate enters only when one leaves; and a machinery proposal may skip the cost-benefit bar on severity only for a red required check on main or a blocked production pull request. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 6 row a2. Policy pull request for the owner s review; state the schedule and its enumerator. Must merge before round 11 finders start.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-pre-machinery-limiter",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
+    "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move"
+   }
   }
  ]
 }
