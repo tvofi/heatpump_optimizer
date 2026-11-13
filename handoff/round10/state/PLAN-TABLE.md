@@ -558,7 +558,7 @@ New S group (no carry_receivable group lists mutant_run.py). |  |
 Orchestrator ruling under mandate 6715477401 (scope all), recorded in P606. |  |
 | R10-OUTSIDE-SUPPLY-STALE-STEP | CORE | 1 | done | #3457 | sonnet/opus | - | Outside pull request 3457 by Bankaifan (fork head 875e3e0f32 at acceptance; re-read it with git ls-remote origin refs/pull/3457/head), accepted into round 10... |  |
 | R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE | CORE | 1 | in-progress | #3456 | opus/opus | - | Outside pull request 3456 by Bankaifan (fork head 659ca850e7 at acceptance; re-read it with git ls-remote origin refs/pull/3456/head), accepted into round 10... |  |
-| R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 | CORE | 1 | in-progress | #3435 | opus/opus | - | Part 2 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
+| R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 | CORE | 1 | carries-open | #3435 | opus/opus | - | Part 2 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
 | R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 | CORE | 2 | in-progress | #3435 | sonnet/opus | - | Part 3 of outside pull request 3435 by Bankaifan (fork head f47199b654 at acceptance; re-read it with git ls-remote origin refs/pull/3435/head), split from R... |  |
 | R10-HOTFIX-REPLAY-CLASS-CUT | C | 1 | done | - | opus/opus | - | triage: dev/programme/triage/s6-batch193.md#P615 at 9698b45f58
 
@@ -618,7 +618,7 @@ Instrument fix, S. |  |
 | R10-HOTFIX-NIGHTLY-HA | IN | 1 | done | - | sonnet/opus | - | HOTFIX, Nightly is red and tests / nightly-status reddens the required gate on every code PR. |  |
 | R10-HOTFIX-CARRY-1412-CONTROL | IN | 1 | not-started | - | sonnet/opus | - | HOTFIX, blocks open pull request 3481 (R10-ADVISOR-STEADY-START): its tests / briefs job is red with 'LEGACY-CONTROL VACUOUS: carry-1412.json: its controls l... |  |
 | R10-HOTFIX-UPDATEPR-FIGURE-REFRESH | IN | 1 | in-progress | - | sonnet/opus | - | HOTFIX, blocks chain pull requests (triage seat triage-1113, proposal T4). |  |
-| R10-HOTFIX-OPENER-REFUSALS | IN | 1 | not-started | - | sonnet/opus | - | HOTFIX, two opener refusals that were not the body's fault (root-cause seat R10-RCA-OPENER-REFUSALS, 2026-11-13). |  |
+| R10-HOTFIX-OPENER-REFUSALS | IN | 1 | in-progress | - | sonnet/opus | - | HOTFIX, two opener refusals that were not the body's fault (root-cause seat R10-RCA-OPENER-REFUSALS, 2026-11-13). |  |
 
 ## ETA
 
