@@ -1,0 +1,1 @@
+[{"name": "M4_unload_restore", "file": "custom_components/heatpump_optimizer/__init__.py", "old": "        await (await _async_lazy(hass, \"off_restore\")).async_restore(\n", "new": "        (lambda *a, **k: None)(\n"}]

@@ -1,0 +1,5 @@
+SURVIVED NULL
+KILLED M1_arm_call
+KILLED M2_switch_on
+KILLED M7_raise
+KILLED M13_neutral_true
