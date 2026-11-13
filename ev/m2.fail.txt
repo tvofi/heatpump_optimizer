@@ -1,0 +1,1 @@
+  FAIL valve target null control: unset, 0, and any target at or under the ceiling raise no notice (a deliberate slab charge is not refused, only named when above)  [a plausible target raised a notice]

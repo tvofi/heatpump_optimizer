@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 4e3fc5eb6f..9b3e15e660 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -7677,8 +7677,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         problem = comfort_band.describe(found) if found else None
+         self._config_notices.report(self.hass, "comfort_band_contradiction", problem,
+                                     {"problem": problem} if problem else None)
+-        mixing_valve.audit_target(
+-            self._config_notices, self.hass, getattr(self, "_ctx", self)._thermal_params)
+ 
+     def _current_grid_fee(self, when: datetime) -> float:
+         return self._grid_fee_schedule().current_fee(

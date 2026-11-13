@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/mixing_valve.py b/custom_components/heatpump_optimizer/mixing_valve.py
+index 0beace9193..cc176a426c 100644
+--- a/custom_components/heatpump_optimizer/mixing_valve.py
++++ b/custom_components/heatpump_optimizer/mixing_valve.py
+@@ -119,7 +119,7 @@ def target_above_comfort(target: float, comfort_ceiling: float) -> bool:
+     flow temperature typed where a room temperature belongs (pull request
+     3529). The solve reads the target unchanged either way.
+     """
+-    return target > comfort_ceiling
++    return target >= comfort_ceiling
+ 
+ 
+ def audit_target(notices: Any, hass: Any, params: Any) -> None:

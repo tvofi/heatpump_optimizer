@@ -1,0 +1,40 @@
+  ok   judge_batch: --shard k/n for n = 2 and 3 splits the input into disjoint shards whose union is the input
+  ok   judge_batch: a perturbation that edits a tracked file is flagged on its row and put back, so the next finding reads the tree it would read alone, and the tree is clean after the batch
+  ok   judge_batch: an edit the command STAGED is restored from HEAD, not from the index it staged, and a new EMPTY file (and its new directory) is noticed and removed; the row says restored only when the re-snapshot agrees
+  ok   judge_batch: a harness that takes flock itself under the batch's label (gate_lock.py flock-wrap, run.sh's route onto stress.py) runs, and does not wait out the timeout
+  ok   EG-B2: no entity platform reads a coordinator private member or keeps its own merged copy of the entry's data and options
+  ok   EG-B2: the private-read scan names a planted reach of each spelling and none of their public twins (the scan's null control)
+  ok   EG-B2: the unique id and the pinned object id are assigned in the entity base's one rule, and in no platform file
+  ok   EG-B2: every coordinator view the surfaces read is a read-only property
+  ok   EG-B2: on a real coordinator each view is the very member it names, and effective_config is the merged entry the platforms used to copy
+  ok   EG-B6: no collaborator module reaches a coordinator private member; its inputs arrive as explicit parameters or a published view (#1739)
+  ok   EG-B6: the collaborator reach scan names a planted reach of each spelling and none of their published twins (the scan's null control)
+  ok   EG-B3: every merge source in the payload producers is resolved
+  ok   EG-B3: Payload declares exactly the keys the producers publish
+  ok   EG-B3: Insight and CompressorStarts declare the keys _insight_view writes
+  ok   the Pages workflow deploys on a release tag, is gated on Pages being enabled, and stages the published set and never a markdown file
+  ok   and a staging that copies docs/ wholesale, or a guard that refuses nothing, is refused (null controls)
+  ok   the Pages workflow stages the round's plan page before it checks out the newest release, and adds it under plan/ only when one was staged
+  ok   pages.yml is not a gate file, and is classified
+  ok   and a deploy outside the github-pages environment, or a build job that inherits the deploy grant, is refused (null controls)
+  ok   and an `if:` calling any status function is refused, one planted spelling each (null controls)
+  ok   EG-B3b: every view the assembler merges returns a slice Payload inherits
+  ok   EG-B3b: _build_data_dict returns Payload and casts nothing
+  ok   EG-B3b: every payload key an entity reads is declared in Payload
+  ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
+  ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
+  ok   R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count
+  ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held
+  ok   the record job's three modes are all found, so the wiring check below reads something
+  ok   every record-job invocation of --record, --stats and --sunset passes the same --window-cache file
+  ok   Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()
+  ok   the record job's push arm reads --record alone: --stats, --sunset and the filer wait on the window step's report
+  ok   the window step reports on the schedule, a dispatch and the stamp, never an ordinary push
+  ok   record_burst_replay counts demand as record + enumerate + rest, never the record job alone
+  ok   every InputReader key is an options-flow entity field, so the Health card has its label
+  ok   the machinery ratchet reads every key of the tracked machinery_budgets.json, and refuses a key it does not read
+  ok   R10-CLONE-2238 P6: the accuracy, contract-comparison and frequency-advisor sensors all publish _evidence_attributes
+  ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
+
+ALL 2709 ENTITY CHECKS PASSED
+rc=0

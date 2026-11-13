@@ -1,0 +1,14 @@
+3d3716aa^{tree} da2b991171cf6630a2f957f3640b3b50214807e7
+918f38cc^{tree} da2b991171cf6630a2f957f3640b3b50214807e7
+merge-tree origin/main cb19a23063b3539f813828eb5d171f5bbb7c737a: rc=0
+auto merge 3d3716aa+e4ca2d94 tree 87707655518e21d03908b5dccca1136c9fa7b9df vs b1682f29 tree 87707655518e21d03908b5dccca1136c9fa7b9df
+cb19a23063 tree=b384fc6b9f697255b13f0b63f288de761312d934 author=70032254+tvofi@users.noreply.github.com committer=70032254+tvofi@users.noreply.github.com record: the delivery row for #3536
+b1682f29ac tree=87707655518e21d03908b5dccca1136c9fa7b9df author=70032254+tvofi@users.noreply.github.com committer=70032254+tvofi@users.noreply.github.com Merge remote-tracking branch 'origin/main' into fix/r10-outside-valve-target-label-2
+3d3716aa34 tree=da2b991171cf6630a2f957f3640b3b50214807e7 author=70032254+tvofi@users.noreply.github.com committer=70032254+tvofi@users.noreply.github.com Home the valve-target repair on the README and read the params through the context
+2aff83199b tree=3db9bdae758e0442777b68fd0483d8cd74996445 author=70032254+tvofi@users.noreply.github.com committer=70032254+tvofi@users.noreply.github.com Keep the valve-target notice out of the coordinator class
+8f8fa64ecf tree=fe9069754be05268c2c1a0ea6e73c6358c0804e5 author=70032254+tvofi@users.noreply.github.com committer=70032254+tvofi@users.noreply.github.com Name the mixing-valve target as a room temperature and notice one above the comfort ceiling
+ba25baa7d5 tree=6cf7effa66e7ca94d76b31e7da7bc610ffbd5e59 author=476059+Bankaifan@users.noreply.github.com committer=70032254+tvofi@users.noreply.github.com docs: measure effectiveness on a fully charged tank
+dc5ef2d555 tree=378e2a3f2b2ed0748eaf9da64b3beccf7f5e04ea author=476059+Bankaifan@users.noreply.github.com committer=70032254+tvofi@users.noreply.github.com docs: measure the effectiveness against the sensor the optimizer reads
+091b777390 tree=f3558a7b38366c6f98df11d72af617e78e74652e author=476059+Bankaifan@users.noreply.github.com committer=70032254+tvofi@users.noreply.github.com docs: explain how to measure the combi exchanger effectiveness
+guard head rc=0
+guard null-control (unnumbered author planted on a probe commit over head) rc=3
