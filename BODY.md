@@ -1,10 +1,10 @@
 R10-REVIEW-DISPATCH-RESIDUE part 5: Carry 17 (the carry-fold memo recognises an unchanged refused body by its BODY.md blob), Carry 20 (`landed()` reads an empty net diff as landed), Carry 11 (a mechanical-only block is exempt from the three-round rule), Carry 28 (`dispatch-handoff` re-keys a known PR).
 
-Repair round for the first review's `blocked` verdict (mutation-vacuous, at 676d726d27c4a5400d86c331bba87190bd34534c; VERDICT.md at 99f876fb9a2d79f9f7e0f382227b221db635e3b1). All measurements below are at the head given below, 2026-11-13.
+Repair round 3: the review of 8382e2aa25cb blocked red-unanswered on `tests / briefs`. The branch is merged with origin/main (e23124ff6e45, 2026-11-13 18:0xZ), the one case where a main merge is the repair. All measurements below are at the head given below, 2026-11-13.
 
 ## Head
 
-f779168acc9cb030a44743a4c8a9fb177ff5c0c6
+440ae4033125a7c10560104231f49f8989734821
 
 ## Policy
 
@@ -70,10 +70,13 @@ Each spec run's NULL mutant (the unedited tree) SURVIVED, for both bus and relay
 
 - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 51 policy file(s)` (rc 0). `--budgets`: rc 0. Scope: the policy corpus.
 - The self-test check counts and mutant totals are as printed above. Instrument: the three `--self-test` commands and `mutant_run.py`. Scope: the three files named.
-- `git merge-tree --write-tree origin/main HEAD` printed one tree, with no conflict.
+- `git merge-tree --write-tree origin/main 8382e2aa25` printed one tree, no conflict; `git merge origin/main` then merged cleanly into 440ae4033125.
+- `node tools/policy/brief_lint.mjs` at 440ae4033125 exited 0; its last lines were `LEGACY-CONTROL ok: ... the legacy set is within its cap and each member still needs the exemption`, `LEGACY-LISTED-CLEAN ok ...` and `PLAYBOOK ok ...`. `grep -n LEGACY_CONTROL_FILES tools/policy/brief_lint.mjs` shows `const LEGACY_CONTROL_FILES = readLegacyControlFiles()`, main's file-based list (`tools/policy/legacy_control_files.json`).
+- `bash tools/pr/prepr.sh` on the committed merged head: rc 0, no REFUSE, FAIL or SURVIVED line (brief_lint step ran: ok).
 
 ## Red checks
 
+- `tests / briefs` (run 43461406948, job 132009362217, on the PR merge ref): `LEGACY-CONTROL VACUOUS: carry-1412.json: its controls lint clean without the exemption: remove it from LEGACY_CONTROL_FILES`. INTRODUCED by a stale base, not by this diff's files: the head 8382e2aa25 kept the inline LEGACY_CONTROL_FILES set in tools/policy/brief_lint.mjs listing carry-1412.json, while main delisted it in d65839f2e2 (PR 3552) and moved the list to tools/policy/legacy_control_files.json in b4a663ebe5; neither is an ancestor of 8382e2aa25. Fixed by merging origin/main; brief_lint exits 0 (see `## Figures`). Cheaper-detector answer: prepr step 3f runs brief_lint only when a pinned path changed; this branch changed none of them, so it did not run there at 8382e2aa25, and the detector is a stale base the fixer contract does not re-check (fixer.md step 6 merges only on conflict). Process state: detector exists, did not fire. Countermeasure: none built; brief_lint ran here after the merge. Null control: I could not reproduce the refusal. `git merge-tree --write-tree origin/main 8382e2aa25` at today's main, built into a commit and linted in a worktree, exits 0, because main's two commits now both merge in; the CI merge ref was formed against a main without b4a663ebe5.
 - `governance / policy-docs`: INTRODUCED at 676d726d by the fixer.md `files_tokens` overrun (5229 > 5216). Fixed by the payment under `## Policy`, and policy_lint TOTAL 0 at this head.
 - `governance / env-matrix`: INTRODUCED, with the same cause as policy-docs, and fixed by the same payment.
 - `tests / fast (3.14)`: INTRODUCED. The failing check is `tests/entities.py`'s template-arm check, whose live arm runs the whole policy_lint and so failed on the same budget error. It is fixed by the same payment (see `### Answer to the block` item 2).
