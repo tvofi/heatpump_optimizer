@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_shutdown BOOLOP b98974e6",
+  "killed_by": "tests/features.py",
+  "old": "        if refresh is not None and refresh is not asyncio.current_task():",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if refresh is not None or refresh is not asyncio.current_task():`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

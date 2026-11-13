@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.14
+# claims-for: 7.1.15
 #
-# v7.1.14: duty-switch restart learning B, mode before supply on, ECL110 off-neutral, user docs. The stamp empties the list; the
+# v7.1.15: Supply minimum run and pause, valve target label, boost settling, card folds. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -802,47 +802,3 @@
 # that renders the card moves; the inline states also lose the card-copy
 # legend and show the two fold headers in place of the list and panel.
 # editor_schema renders no card and is identical.
-no_plan  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-no_plan_expanded  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-plan_inline  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-plan_inline_sv  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-plan_short_window  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-custom_title_currency  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-hidden_series  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-score_open  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-expanded_plan  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-what_if_off  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-expanded_zoomed  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-draft_dirty_menu_open  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-draft_mid_drag  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-whatif_edited  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-whatif_weekly  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-override_active  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-shared_steps  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-shared_steps_hover  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-tooltip_hover  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-coarse_pointer  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-reduced_motion  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-setup_single_buffer  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-setup_two_tank  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-setup_coil  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-advisor_page  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-savings_page  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-savings_empty  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-health_page  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-setup_not_published  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-advisor_empty  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-layout_editing_dragged  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-layout_editing_tidy  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-picker_open_filtered  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-wood_alert  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-wood_lane  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-wood_whatif  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-away_toggle  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-away_return  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-away_status  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-history_panned  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-history_deep_panned  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-history_no_power  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-history_unavailable  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
-history_pending  # R10-CARD-COLLAPSE: fold rules in its stylesheet; inline legend and headline sections as above, where it renders them
