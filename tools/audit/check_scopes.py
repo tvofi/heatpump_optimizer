@@ -218,7 +218,7 @@ def evaluation_gaps(rnd, tree, show, merged):
     for cid, card in sorted(cards.items()):
         if card.get("decision") not in DECISIONS:
             gaps.append(f"{path} card {cid} carries no owner decision")
-        elif card["decision"] == "accepted" and not (card.get("merged") and merged(card["merged"])):
+        elif card.get("decision") == "accepted" and not (card.get("merged") and merged(card["merged"])):
             gaps.append(f"{path} card {cid} is accepted and not merged at this ref")
     return gaps
 
