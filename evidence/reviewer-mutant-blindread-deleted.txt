@@ -1,8 +1,0 @@
-  ok   P590 a rollup holding a success gate and a deferral failure gate (FAILURE first) waits, with no review wording
-  ok   P436 A: a gate FAILURE while a ci.yml run is unfinished is a deferral wait (reason names it)
-  ok   P436 A null: the same gate FAILURE with no unfinished ci.yml run is red, never a wait
-  FAIL P436 barrier: each of the 9 planted deferral-blind readers, planted in each of 4 modules, refuses a red gate (BlindRead, or TypeError for no busy) -- passed: [('direct call', 'merge_train.py'), ('direct call', 'orchestrator_tick.py'), ('direct call', 'a module outside the seat'), ('direct call', 'a module outside the tree')]
-  FAIL P436 barrier null: an unregistered frame sharing a registered qualname, file basename or path is refused (the key is repo path and qualname)
-  FAIL P436 barrier: a refusal names the caller's frame and the busy it was given, FINAL by its type name -- 
-  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
-  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)

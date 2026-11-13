@@ -1,0 +1,89 @@
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+remerge CONFLICT (content): Merge conflict in tools/audit/seat/merge_train.py
+index 6c61557665..babda830aa 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -494,7 +494,39 @@ def platform_gate(payload, head: str) -> "tuple[str, str]":
+     return "green", f"{len(gates)} required gate run(s) pass"
+ 
+ 
+-<<<<<<< e3622cb3d8 (Merge commit 'df4af48ad90561c6259435441507f1451cad3913' into fix/r10-gate-defer-barrier)
++def rollup_walk(fetch, head: str, max_pages: int = gh_read.MAX_PAGES):
++    """Every page of the rollup's contexts as ONE ROLLUP_Q-shaped payload
++    (R10-HOTFIX-TRAIN-CONTEXT-PAGES): a required context past the first 100 was
++    never seen, and platform_gate read such a head `unread`, a green approved
++    head refused. `fetch(cursor)` is one read (None for the first page) and
++    returns the parsed answer or raises ValueError/OSError; the walk follows
++    `endCursor` and stops on the first page whose answer carries no rollup or
++    is at another head, returning that payload for platform_gate to call
++    unread. A walk past <max_pages> returns the merge with hasNextPage still
++    true: refused as unread, never truncated. One read per page, so a head of
++    one page makes the one read it always did."""
++    merged, cursor = None, None
++    for _ in range(max_pages):
++        payload = fetch(cursor)
++        try:
++            commit = payload["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]
++            ctx = commit["statusCheckRollup"]["contexts"]
++            more, cursor = ctx["pageInfo"]["hasNextPage"], ctx["pageInfo"].get("endCursor")
++        except (KeyError, IndexError, TypeError):
++            return payload
++        if commit.get("oid") != head:
++            return payload
++        if merged is None:
++            merged = payload
++        else:
++            have = merged["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"]["contexts"]
++            have["nodes"] = list(have["nodes"]) + list(ctx["nodes"])
++            have["pageInfo"] = ctx["pageInfo"]
++        if not more or not cursor:
++            return merged
++    return merged
++
++
+ #: P436's barrier lives in `classify` itself, so no caller list exists to be
+ #: incomplete: a reader names how it read deferral, and the read is judged at
+ #: run time by its value and its caller's frame, whatever spelling, alias,
+@@ -555,42 +587,6 @@ class Busy(list):
+ 
+ 
+ def classify(latest: dict, required, busy) -> "tuple[str, list[str], list[str]]":
+-=======
+-def rollup_walk(fetch, head: str, max_pages: int = gh_read.MAX_PAGES):
+-    """Every page of the rollup's contexts as ONE ROLLUP_Q-shaped payload
+-    (R10-HOTFIX-TRAIN-CONTEXT-PAGES): a required context past the first 100 was
+-    never seen, and platform_gate read such a head `unread`, a green approved
+-    head refused. `fetch(cursor)` is one read (None for the first page) and
+-    returns the parsed answer or raises ValueError/OSError; the walk follows
+-    `endCursor` and stops on the first page whose answer carries no rollup or
+-    is at another head, returning that payload for platform_gate to call
+-    unread. A walk past <max_pages> returns the merge with hasNextPage still
+-    true: refused as unread, never truncated. One read per page, so a head of
+-    one page makes the one read it always did."""
+-    merged, cursor = None, None
+-    for _ in range(max_pages):
+-        payload = fetch(cursor)
+-        try:
+-            commit = payload["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]
+-            ctx = commit["statusCheckRollup"]["contexts"]
+-            more, cursor = ctx["pageInfo"]["hasNextPage"], ctx["pageInfo"].get("endCursor")
+-        except (KeyError, IndexError, TypeError):
+-            return payload
+-        if commit.get("oid") != head:
+-            return payload
+-        if merged is None:
+-            merged = payload
+-        else:
+-            have = merged["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"]["contexts"]
+-            have["nodes"] = list(have["nodes"]) + list(ctx["nodes"])
+-            have["pageInfo"] = ctx["pageInfo"]
+-        if not more or not cursor:
+-            return merged
+-    return merged
+-
+-
+-def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
+->>>>>>> 3b9749dac5 (Merge pull request #3528 from tvofi/fix/r10-suite-env-residue-p2)
+     """(state, pending, red) over the required contexts less NOT_GATING, each
+     on its latest run: 'red' when any concluded non-green, else 'wait' while
+     any is pending or has no run yet, else 'green'. A red GATE is pending

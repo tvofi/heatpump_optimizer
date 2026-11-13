@@ -1,8 +1,0 @@
-PLANT import alias: SURVIVED read red, block green
-PLANT rebinding: SURVIVED read red, block green
-PLANT getattr: SURVIVED read red, block green
-PLANT functools.partial: SURVIVED read red, block green
-PLANT a function named *self_test*: SURVIVED read red, block green
-PLANT a module outside the four: SURVIVED read red, block green
-RESULT plants=6 survived=6
-rc=1
