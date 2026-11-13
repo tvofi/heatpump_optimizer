@@ -22,6 +22,7 @@ produced a plan byte-identical to one that could not store at all.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any
 
 # --- Modes -----------------------------------------------------------------
 #
@@ -107,6 +108,26 @@ def flow_setpoint(
     """
     q_hold = heat_loss_coefficient * max(0.0, target_temp - outdoor_temp)
     return target_temp + q_hold / max(emitter_ua, 1e-6)
+
+
+def target_above_comfort(target: float, comfort_ceiling: float) -> bool:
+    """Whether a configured valve target sits above the top of the comfort band.
+
+    The target is the ROOM temperature the mixing circuit holds, and 0 means
+    "use the ceiling". A value above the ceiling can be deliberate (slab
+    charging), so this is a notice and never a refusal; its usual cause is a
+    flow temperature typed where a room temperature belongs (pull request
+    3529). The solve reads the target unchanged either way.
+    """
+    return target > comfort_ceiling
+
+
+def audit_target(notices: Any, hass: Any, params: Any) -> None:
+    """Raise or clear the repair for a valve target above the comfort ceiling."""
+    target, ceiling = params.mixing_valve_target, params.comfort_ceiling
+    high = target_above_comfort(target, ceiling)
+    notices.report(hass, "valve_target_above_comfort", (target, ceiling) if high else None,
+                   {"target": f"{target:g}", "ceiling": f"{ceiling:g}"} if high else None)
 
 
 def emitter_delivery(*, mix_temp: float, zone_temp: float, ua: float) -> float:
