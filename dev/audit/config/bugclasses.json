@@ -85,7 +85,7 @@
     }
   },
   "_source": "v2, 2026-09-28: one-time enumeration and classification of every surviving finding of rounds 1-9 (alt/register/rows_v2.tsv: 486 rows from the A1 enumeration plus 88 survivors the round-8 findings.tsv omitted, missing_rows.tsv / RECON.md; A1 flags and three RCA-seat moves applied, each recorded in its row), folded with the inventory of every RCA conducted (alt/register/rca_inventory.json) and the bulk RCAs owed by the rebuild (alt/rca/RCA-BULK-{1,2,3}.md). v1 was seeded from the round-8 classification of rounds 1-7 and never received a round-8 member. Counts derive from rows_v2.tsv by build_v2.py.",
-  "_status": "open: no detector; detector: a command enumerates every seam; barriered: that command is a CI check.",
+  "_status": "open: no detector; detector: a command enumerates every seam; barriered: that command is a CI check. A barriered class carries barriered_at: the date its barrier merged on main, or null where no merge derives (fold_ledger.py check refuses a missing key).",
   "_counting": "An instance is a judged survivor or an instance counted beyond it (a sweep, RCA or fixer seat found the seam and it is not the judged site); non_round_instances are incidents and screens, listed, not counted. trigger.per_round is the rule in force (defect-root-cause.md:87-91); trigger.cross_round is the proposed clause (>=3 over any 3 consecutive rounds, or >=5 total while open), owner-gated in R9-EG-R1.",
   "P1": {
     "kind": "production",

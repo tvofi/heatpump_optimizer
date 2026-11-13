@@ -27,7 +27,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`head_note.py` (tools/pr/)](instruments/head_note.py.md) — prefixes a note under a body's `## Head` heading, found as `checkPrBody`'s `sections()` reads it (outside a fence, `##`, whitespace, `Head`)
 - [`role_pack.py` (tools/policy/)](instruments/role_pack.py.md) — renders one seat's policy pack: its role contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim, in one file
 - [`approve_held_runs.sh`](instruments/approve_held_runs.sh.md) — approves the workflow runs GitHub holds `action_required` on a branch
-- [`check_scopes.py`](instruments/check_scopes.py.md) — proves the finder scopes are disjoint and complete within each dimension
+- [`check_scopes.py`](instruments/check_scopes.py.md) — proves the finder scopes are disjoint and complete within each dimension, and each dimension's territory inside its own seats' files
+- [`enumerate.py`](instruments/enumerate.py.md) — prints one audit universe, one item per line: a finder's denominator
+- [`convergence.py`](instruments/convergence.py.md) — records found, fixed, injected and escaped per round and dimension
 - [`fold_ledger.py`](instruments/fold_ledger.py.md) — folds a round's JUDGE.json and sweeps into `bugclasses.json`
 - [`judge_batch.py`](instruments/judge_batch.py.md) — re-runs every finding's harness, perturbation and null control serially under the gate lease
 - [`machinery_ratchet.py`](instruments/machinery_ratchet.py.md) — caps the nonproduction merges and the nonproduct churn per product line in main's newest merge window, graded in `governance.yml`'s `policy-docs`

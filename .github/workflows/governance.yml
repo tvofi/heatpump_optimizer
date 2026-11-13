@@ -827,6 +827,8 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/archscore/gate.py --self-test
           python3 -I tools/audit/check_scopes.py --self-test --repo .
+          python3 -I tools/audit/enumerate.py --self-test
+          python3 -I tools/audit/convergence.py --self-test
           # merge_throughput.py's `flow` subcommand (R10-FLOW-BOARD) rides
           # this same self-test: the fixture's exact counts, the unchanged
           # fixture's null control, and a named arm per classification

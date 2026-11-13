@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Per round and per dimension: found, fixed, injected, escaped, each with its denominator.
+fixed = this dimension's rostered finding ids whose group is done, over all its rostered ids.
 
 Usage (from the repo root):
   python3 -I tools/audit/convergence.py report --round N --roster FILE [--rotation FILE] [--out-json]
@@ -60,13 +61,13 @@ def dkey(d):
 
 
 def compute(n, roster, rotation):
-    """{dimension: {universe, examined, found, fixed, fix_groups_done, injected, escaped}}; universe None when unrecorded."""
+    """{dimension: {universe, examined, found, rostered, fixed, fix_groups_done, injected, escaped}}; universe None when unrecorded."""
     groups = roster["groups"]
     fg = sum(1 for g in groups if done(g) and g.get("findings"))
     rows = {}
 
     def row(d):
-        return rows.setdefault(d, dict(universe=None, examined=None, found=0, fixed=0, fix_groups_done=fg, injected=0, escaped=0))
+        return rows.setdefault(d, dict(universe=None, examined=None, found=0, rostered=0, fixed=0, fix_groups_done=fg, injected=0, escaped=0))
 
     for d, e in rotation.items():
         r = (e.get("rounds") or {}).get(str(n)) if re.fullmatch(r"D\d+", d) and isinstance(e, dict) else None
@@ -87,8 +88,10 @@ def compute(n, roster, rotation):
                 x["injected"] += 1
     for g in groups:
         for f in g.get("findings") or []:
-            if f.split("-")[0] in rows and done(g):
-                rows[f.split("-")[0]]["fixed"] += 1
+            if f.split("-")[0] in rows:
+                rows[f.split("-")[0]]["rostered"] += 1
+                if done(g):
+                    rows[f.split("-")[0]]["fixed"] += 1
     return dict(sorted(rows.items(), key=lambda kv: dkey(kv[0])))
 
 
@@ -96,12 +99,12 @@ def fmt(d, x):
     u = "?" if x["universe"] is None else x["universe"]
     e = "?" if x["examined"] is None else x["examined"]
     f, s = x["found"], x["escaped"]
-    return (f"{d} universe={u} examined={e} found={f} fixed={x['fixed']}/{f} "
+    return (f"{d} universe={u} examined={e} found={f} fixed={x['fixed']}/{x['rostered']} "
             f"injected={x['injected']}/{x['fix_groups_done']} escaped={s}/{f + s}")
 
 
 def total(rows):
-    t = {k: sum(x[k] for x in rows.values()) for k in ("found", "fixed", "injected", "escaped")}
+    t = {k: sum(x[k] for x in rows.values()) for k in ("found", "rostered", "fixed", "injected", "escaped")}
     owned = [x for d, x in rows.items() if d != "none"]
     for k in ("universe", "examined"):
         t[k] = None if any(x[k] is None for x in owned) else sum(x[k] for x in owned)
@@ -199,6 +202,11 @@ def self_test():
             "TOTAL universe=? examined=? found=4 fixed=2/4 injected=2/1 escaped=4/8"]
     got = report(11, ros, rot).split("\n")
     expect("report: exact lines (? for a depth word, N-2 fix not injected, none line)", got == want)
+    # arm: fixed never exceeds rostered, even when a done group holds ids the yield does not count
+    ros2 = {"groups": [grp("A", findings=["D1-s1-01", "D1-s1-02", "D1-s1-03"]), grp("C", findings=["D1-s1-04", "D1-s1-05"])]}
+    d1 = compute(11, ros2, rot)["D1"]
+    expect("fixed <= rostered where fixed ids exceed found", d1["found"] == 3 and d1["fixed"] == 5 and d1["rostered"] == 5
+           and d1["fixed"] <= d1["rostered"] and report(11, ros2, rot).split("\n")[0].split(" fixed=")[1].startswith("5/5 "))
     # the "none" line carries fix_groups_done too; spelled out above, so the want is the contract
     # arm 4: record writes the reported numbers; a differing overwrite is refused without --replace
     with tempfile.TemporaryDirectory() as t:
