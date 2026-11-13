@@ -10755,70 +10755,78 @@ R.check("null control: the disinfection repair reworded to 'six hours' is one fi
 # returns to logs, script and automation traces and API callers. This round judged the catalogue's message, so the
 # fallback may state nothing that message does not: its literal fragments, in order, spell exactly the catalogue's
 # English message, each of the fallback's own placeholders standing for any text (the catalogue's placeholder, or a
-# word it spells out, as "three" for REFIT_SETTLED_DAYS, which the numbers row above pins). A key passed through a
-# parameter is read at every call of its function; a computed message (`str(err)`, `comfort_band.describe(...)`) is
-# owed a catalogue message that is one placeholder alone, so the fallback and the translation say the same text.
-def _ut_fallback_findings(sources: dict, catalogue: dict) -> tuple[int, list[str]]:
-    read, out = 0, []
+# word it spells out, as "three" for REFIT_SETTLED_DAYS, which the numbers row above pins). A key or message passed
+# through a parameter of the raising function is read at every call of it, as a pair. A computed message (`str(err)`,
+# `comfort_band.describe(...)`, a caller's `reason`) has no literal of its own to judge; it is counted, not matched.
+def _ut_fallback_findings(sources: dict, catalogue: dict) -> tuple[int, int, list[str]]:
+    matched, computed, out = 0, 0, []
     for name, text in sorted(sources.items()):
         tree = ast.parse(text)
         calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
         for fn in [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
             params = [a.arg for a in fn.args.args]
+
+            def passed(node, call):
+                """The node a parameter-named ``node`` is bound to at ``call``, else ``node`` itself."""
+                if not (isinstance(node, ast.Name) and node.id in params):
+                    return node
+                at = params.index(node.id)
+                return next((k.value for k in call.keywords if k.arg == node.id),
+                            call.args[at] if at < len(call.args) else None)
+
             for node in ast.walk(fn):
                 if not (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)):
                     continue
                 kw = {k.arg: k.value for k in node.exc.keywords}
                 if "translation_key" not in kw:
                     continue
-                where, key = f"{name}:{node.lineno}", kw["translation_key"]
-                if isinstance(key, ast.Constant):
-                    keys = [key.value]
-                elif isinstance(key, ast.Name) and key.id in params:
-                    at = params.index(key.id)
-                    passed = [next((k.value for k in c.keywords if k.arg == key.id),
-                                   c.args[at] if at < len(c.args) else None)
-                              for c in calls if c.func.id == fn.name]
-                    keys = [p.value for p in passed if isinstance(p, ast.Constant)]
-                    if not passed or len(keys) != len(passed):
-                        out.append(f"{where}: the translation key {key.id} is not a literal at every call of {fn.name}")
+                key, msg = kw["translation_key"], node.exc.args[0] if node.exc.args else None
+                through = any(isinstance(n, ast.Name) and n.id in params for n in (key, msg))
+                sites = [c for c in calls if c.func.id == fn.name] if through else [None]
+                if not sites:
+                    out.append(f"{name}:{node.lineno}: {fn.name} passes its key or message through, and nothing calls it")
+                for call in sites:
+                    k, m = (n if call is None else passed(n, call) for n in (key, msg))
+                    where = f"{name}:{node.lineno if call is None else call.lineno}"
+                    if not (isinstance(k, ast.Constant) and isinstance(k.value, str)):
+                        out.append(f"{where}: the translation key {ast.unparse(k) if k else None} is not a literal")
                         continue
-                else:
-                    out.append(f"{where}: the translation key {ast.unparse(key)} is read from nowhere this rule reads")
-                    continue
-                msg = node.exc.args[0] if node.exc.args else None
-                if isinstance(msg, ast.Constant) and isinstance(msg.value, str):
-                    parts = [msg.value]
-                elif isinstance(msg, ast.JoinedStr):
-                    parts = [v.value if isinstance(v, ast.Constant) else None for v in msg.values]
-                else:
-                    parts = None
-                for k in keys:
-                    want = (catalogue.get(k) or {}).get("message")
+                    want = (catalogue.get(k.value) or {}).get("message")
                     if want is None:
-                        out.append(f"{where}: no catalogue message for {k}")
-                    elif parts is None:
-                        if not _re.fullmatch(r"\{\w+\}", want):
-                            out.append(f"{where}: a computed fallback, but {k}'s catalogue message is {want!r}")
-                    elif not _re.fullmatch("".join(".+?" if p is None else _re.escape(p) for p in parts), want, _re.S):
-                        out.append(f"{where}: the fallback {ast.unparse(msg)[:90]!r} is not {k}'s message {want!r}")
-                    read += 1
-    return read, out
+                        out.append(f"{where}: no catalogue message for {k.value}")
+                        continue
+                    if isinstance(m, ast.Constant) and isinstance(m.value, str):
+                        parts = [m.value]
+                    elif isinstance(m, ast.JoinedStr):
+                        parts = [v.value if isinstance(v, ast.Constant) else None for v in m.values]
+                    else:
+                        computed += 1
+                        continue
+                    if _re.fullmatch("".join(".+?" if p is None else _re.escape(p) for p in parts), want, _re.S):
+                        matched += 1
+                    else:
+                        out.append(f"{where}: the fallback {ast.unparse(m)[:90]!r} is not {k.value}'s message {want!r}")
+    return matched, computed, out
 
 
 _UT_PY = {p.name: p.read_text() for p in sorted(ROOT.glob("*.py"))}
-_ut_read, _ut_bad = _ut_fallback_findings(_UT_PY, _UT_STRINGS["exceptions"])
+_ut_matched, _ut_computed, _ut_bad = _ut_fallback_findings(_UT_PY, _UT_STRINGS["exceptions"])
 R.check("every raise that passes a translation key falls back to English its catalogue message states (anchor: at "
-        "least 30 read)", _ut_read >= 30 and not _ut_bad, f"{_ut_read} read; " + "; ".join(_ut_bad[:4]))
+        "least 30 literal fallbacks matched)", _ut_matched >= 30 and not _ut_bad,
+        f"{_ut_matched} matched, {_ut_computed} computed; " + "; ".join(_ut_bad[:4]))
 _ut_planted = dict(_UT_PY)
 _ut_planted["services.py"] = _UT_PY["services.py"].replace(
     "settings and learned state are \"\n                \"unchanged, and only the undo snapshot the reset takes first was saved",
     "nothing was changed")
 _ut_planted["debugger.py"] = _UT_PY["debugger.py"].replace('translation_key="debug_collect_inactive"',
                                                            'translation_key="planted_unknown_key"')
-R.check("null control: the factory reset's merge-base fallback ('nothing was changed') and a key the catalogue lacks "
-        "are two findings", len(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[1]) == 2,
-        repr(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[1]))
+_ut_planted["coordinator.py"] = _UT_PY["coordinator.py"].replace(
+    '_raise_update_failed("update_failed", f"Error updating data: {err}"',
+    '_raise_update_failed("update_failed", f"Planted: nothing was changed: {err}"', 1)
+R.check("null control: the factory reset's merge-base fallback ('nothing was changed'), a key the catalogue lacks and "
+        "a planted message passed through _raise_update_failed are three findings",
+        len(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[2]) == 3,
+        repr(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[2]))
 
 
 R.check("simulate_plan is documented", "simulate_plan" in services)
