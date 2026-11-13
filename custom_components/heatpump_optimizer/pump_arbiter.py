@@ -1274,16 +1274,20 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    boosts = boost.held_for(coord)
-    boosted = inp.mode == MODE_BOOST or boosts.active(boost.CHANNEL_SPACE, now)
-    space = _space_target(inp, result, now, duty, boosted=boosted)
-    if _flow_unit(inp.config):
-        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boosts))
+    water = _flow_unit(inp.config)
+    space = _space_target(inp, result, now, duty, boosted=water and _space_boosted(coord, inp, now))
+    if water:
+        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
         return PumpCommand(mode, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
         return PumpCommand(mode, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
     return PumpCommand(mode, dhw, space, silent)
+
+
+def _space_boosted(coord: Any, inp: ArbiterInputs, now: datetime) -> bool:
+    """A space boost or the global boost mode is live: the level :func:`_level_kw` maps is the band top."""
+    return inp.mode == MODE_BOOST or boost.held_for(coord).active(boost.CHANNEL_SPACE, now)
 
 
 def _disinfecting(inp: ArbiterInputs, duty: str | None) -> str | None:
