@@ -2,14 +2,7 @@ cmd: bash tools/pr/prepr.sh --self-test
 diff: tools/pr/prepr.sh | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 rc: 2
-rry_audit reads as unrouted, pushing nothing
-  ok   and pushes a body the lint passes (null control: the same body without the session link)
-  ok   and that body's commit names the handoff head it describes in a Code: trailer (V147)
-  ok   a result body, with no handoff/<topic>, names no Code: (null control)
-  ok   and refuses a body the review packet's handoff refusals refuse, naming the signal and pushing nothing (P256)
-  ok   and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)
-  ok   and refuses a body whose carry its group does not hold, naming it and pushing nothing (CARRY 11)
-  ok   and pushes, saying so, when the roster cannot be read (rc 3 is never a refusal)
+ot be read (rc 3 is never a refusal)
   ok   and refuses a body pushed from a checkout that is not the head at handoff/<topic>
   ok   6d stays quiet on a new selectable script: the derive plans its recording by construction (C1)
   ok   6d predicts ADDED UNPINNED for a guard the diff adds with no pin
@@ -259,15 +252,17 @@ rry_audit reads as unrouted, pushing nothing
   ok   (a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps
   ok   (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each
   ok   (a) a run with a body removes an earlier receipt first, so one that writes none leaves none
-  FAIL (hotfix) a roster-classed hotfix branch prints the scope line and defaults both skips on (got |unset|unset, wanted hotfix scope|hotfix|1)
-  FAIL (hotfix) null control: a non-hotfix branch prints nothing and sets neither skip (got hotfix scope|hotfix|1, wanted |unset|unset)
-  FAIL (hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays (got ||unset, wanted hotfix scope||1)
-  FAIL (hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays (got |unset|, wanted hotfix scope|hotfix|)
-  ok   (hotfix) explicit values pass through unchanged and, both set, nothing is printed
+  FAIL (hotfix) a roster-classed hotfix branch prints the scope line and the hotfix code-steps line (never a receipt claim), and defaults both skips on in this shell only (got |unset|unset|unset,unset, wanted hotfix scope=fix/any is a hotfix group's branch;code steps=hotfix scope;|hotfix|1|unset,unset)
+  FAIL (hotfix) null control: a non-hotfix branch prints nothing and sets neither skip (got hotfix scope=fix/any is a hotfix group's branch;code steps=hotfix scope;|hotfix|1|unset,unset, wanted |unset|unset|unset,unset)
+  FAIL (hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays (got ||unset|unset,unset, wanted hotfix scope=fix/any is a hotfix group's branch;||1|unset,unset)
+  FAIL (hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays (got |unset||unset,unset, wanted hotfix scope=fix/any is a hotfix group's branch;code steps=hotfix scope;|hotfix||unset,unset)
+  ok   (hotfix) explicit values pass through unchanged and, both set, no scope line; a caller's own value is still a receipt reuse
+  ok   (hotfix) end to end: hotfix_class answers 1 for the roster's hotfix group only, through gate_priority.py --hotfix
+  ok   (hotfix) null control: the same fixture's lease priority is 2 and 1, so the 1 / 0 above is the class, not the priority
   ok   (hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE
 
-544 passed, 4 failed
+546 passed, 4 failed
 [1]-  Done                    "$@" >> "$log" 2>&1
 [1]-  Done                    "$@" >> "$log" 2>&1
 [1]-  Done                    "$@" >> "$log" 2>&1
-tools/pr/prepr.sh: eval: line 4006: syntax error: unexpected end of file
+tools/pr/prepr.sh: eval: line 4016: syntax error: unexpected end of file

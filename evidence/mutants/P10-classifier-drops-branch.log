@@ -1,11 +1,8 @@
 cmd: bash tools/pr/prepr.sh --self-test
-diff: tools/pr/prepr.sh | 1 -
- 1 file changed, 1 deletion(-)
-rc: 0
- harness's session-link line under Friction by the attribution arm alone, pushing nothing (R10-FLY-NO-FOOTERS)
-  ok   and refuses a body whose Forward-carry the lint passes and carry_audit reads as unrouted, pushing nothing
-  ok   and pushes a body the lint passes (null control: the same body without the session link)
-  ok   and that body's commit names the handoff head it describes in a Code: trailer (V147)
+diff: tools/pr/prepr.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc: 2
+iler (V147)
   ok   a result body, with no handoff/<topic>, names no Code: (null control)
   ok   and refuses a body the review packet's handoff refusals refuse, naming the signal and pushing nothing (P256)
   ok   and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)
@@ -260,15 +257,17 @@ rc: 0
   ok   (a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps
   ok   (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each
   ok   (a) a run with a body removes an earlier receipt first, so one that writes none leaves none
-  ok   (hotfix) a roster-classed hotfix branch prints the scope line and defaults both skips on
+  ok   (hotfix) a roster-classed hotfix branch prints the scope line and the hotfix code-steps line (never a receipt claim), and defaults both skips on in this shell only
   ok   (hotfix) null control: a non-hotfix branch prints nothing and sets neither skip
   ok   (hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays
   ok   (hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays
-  ok   (hotfix) explicit values pass through unchanged and, both set, nothing is printed
+  ok   (hotfix) explicit values pass through unchanged and, both set, no scope line; a caller's own value is still a receipt reuse
+  FAIL (hotfix) end to end: hotfix_class answers 1 for the roster's hotfix group only, through gate_priority.py --hotfix (got 0 0 0 0 0 , wanted 1 0 0 0 0 )
+  ok   (hotfix) null control: the same fixture's lease priority is 2 and 1, so the 1 / 0 above is the class, not the priority
   ok   (hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE
 
-548 passed, 0 failed
+549 passed, 1 failed
 [1]-  Done                    "$@" >> "$log" 2>&1
 [1]-  Done                    "$@" >> "$log" 2>&1
 [1]-  Done                    "$@" >> "$log" 2>&1
-tools/pr/prepr.sh: eval: line 4005: syntax error: unexpected end of file
+tools/pr/prepr.sh: eval: line 4016: syntax error: unexpected end of file
