@@ -25540,6 +25540,53 @@
     "note": "intake: red required check on main, 2026-11-13T01:22Z; overlap admitted (R10-NUDGE-RETIRE): main red: instrument-self-tests drift check, 20 refusals at f47250150a33; touches only the measured table",
     "pr": null
    }
+  },
+  {
+   "group": "R10-SELFTEST-SCOPE-UNION-GUARD",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-HOTFIX-SELFTEST-SCOPE-RERECORD"
+   ],
+   "files": [
+    "tools/ci/selftest_scope.py",
+    "tools/ci/selftest_scope_mutants.sh",
+    "tools/ci/selftest_closures.json",
+    "dev/audit/config/bugclasses.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "AUDIT-CLASS BARRIER, part C of the root-cause analysis R10-RCA-SELFTEST-SCOPE-DRIFT (triage ACCEPT, round 10). Start only after R10-HOTFIX-SELFTEST-SCOPE-RERECORD has merged; base on that main. Cause being closed: the measured table tools/ci/selftest_closures.json is repaired by hand re-records, and the record subcommand of tools/ci/selftest_scope.py replaces a step's entry with one recording (at origin/main the record function ends by starting from the old steps only under --step, else from an empty dict, then updating with the new measurement), so a re-record taken at a stale base drops reads main measures. Merges #3409, #3419 and #3506 dropped 660, 8 and 10 entries; 6 of the 20 drift refusals at f47250150a were such drops. Two changes. (1) record unions: in both the per-step and the whole-table mode it keeps every read the committed entry holds and adds the new measurement; removing a read becomes a separate, explicit operation the operator must name. Over-approximation is already documented as safe in the tool's header. (2) A table-shrink guard: when a diff changes the table, refuse every files, probes, dirs or git item, and every index or objects flag, that the head's entry drops relative to the base's entry for the same step, unless the same diff deletes that path; a step removed from the workflow is not a drop. Put the guard in the existing static subcommand, which governance.yml already runs in the scope's own self-test step on every pull request that touches the table (the table is in GATE_FILES, so that run is FULL); do not edit any workflow and do not add a job step. On a push to main compare against the first parent. Because the guard reads the base's table, the self-test step's measured reads change: re-record that step on Linux with strace, by the new union record, in this same pull request, and show the drift check clean for it. Tests: a failing test first for each change (recording one step over an entry holding a read the new trace lacks keeps that read; a fixture diff that drops an entry is refused and one that deletes the path is not). Mutants in tools/ci/selftest_scope_mutants.sh, each killed: restoring the replace semantics; removing the deletion exemption. Demonstration the body must show: the guard over every first-parent merge that touched the table from ba6fd7e8b0^ to f47250150a refuses exactly #3409, #3419 and #3506 and passes the other 12, including #3507 (its deletion is exempt); that is the null control, it must neither fire on additive merges nor skip. Then list its result on every later table-touching merge up to the base, the RERECORD merge included, and explain any it refuses. Add one class for this mechanism to dev/audit/config/bugclasses.json naming the RCA, so tools/audit/fold_ledger.py check tracks it; part A (main re-records mechanically) is ruled to round 11 and is not this group. No budget raise; re-check the ratchets. Cutoff: if this group has no pull request in review by 2026-11-14T18:00Z the orchestrator moves it to round 11; do not let it hold the round-10 closure.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch cloud fixer (sonnet, Linux) after R10-HOTFIX-SELFTEST-SCOPE-RERECORD merges",
+    "note": "triage ACCEPT round 10 (audit-class barrier, part C); cutoff 2026-11-14T18:00Z else round 11; overlap admitted (R10-NUDGE-RETIRE): triage ruling 2026-11-13: audit-class barrier C; shares tools/ci/selftest_closures.json with R10-HOTFIX-SELFTEST-SCOPE-RERECORD, ordered after it",
+    "pr": null
+   }
   }
  ]
 }
