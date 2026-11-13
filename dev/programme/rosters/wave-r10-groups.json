@@ -26338,6 +26338,51 @@
     "next_step": "cloud opus fixer; opus reviewer; owner review (policy)",
     "note": "intake: owner instruction 2026-11-13; must land before round 11's finders start"
    }
+  },
+  {
+   "group": "R11-PRE-TOOLCHAIN-PIN",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
+   "files": [
+    "tools/audit/seat/beat_jobs.py",
+    "tools/release/stamp.py",
+    "dev/governance/roles/orchestrator.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "fable",
+   "reviewerModel": "fable",
+   "model": {
+    "fixer": "fable",
+    "reviewer": "fable",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13 on decision card P1 (yes): seats and the beat run their tools from a promoted stable ref instead of the tip of main, main reports product status and machinery status separately, and no release is stamped on a red product status. Evidence and the measured problem: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 6 row a1. Design first (size L). Done when the product-green share of the last 20 main push runs is printed by an instrument and the promotion step is tracked and self-tested. Must merge before round 11 finders start.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-pre-toolchain-pin",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
+    "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move"
+   }
   }
  ]
 }
