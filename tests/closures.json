@@ -4558,6 +4558,7 @@
    "dev/audit/rounds/round10/intake/intake.py",
    "dev/audit/rounds/round10/intake/normalise.py",
    "dev/audit/rounds/round10/intake/quiet.sh",
+   "dev/audit/rounds/round10/protection-census/main_reds.py",
    "dev/audit/rounds/round10/study-ident/collect_q1.py",
    "dev/audit/rounds/round10/study-ident/eta_rolling.py",
    "dev/audit/rounds/round10/study-ident/ident_rolling.py",
@@ -5101,7 +5102,7 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 340.3
+   "seconds": 150.2
   },
   "tests/card.mjs": {
    "rc": 0,
@@ -5113,7 +5114,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 13.6
+   "seconds": 29.8
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -5133,7 +5134,7 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 55.0
+   "seconds": 17.9
   },
   "tests/entities.py": {
    "rc": 0,
@@ -5145,7 +5146,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 392.2
+   "seconds": 531.8
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -5157,7 +5158,7 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 0.4
+   "seconds": 0.9
   },
   "tests/guard_pins.py": {
    "rc": 0,
@@ -5201,7 +5202,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 1060.0
+   "seconds": 443.5
   },
   "tests/structure.py": {
    "rc": 0,
@@ -5209,11 +5210,11 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 15.8
+   "seconds": 0.4
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 54.2
+   "seconds": 21.5
   },
   "tests/wood_advisor.py": {
    "rc": 0,
