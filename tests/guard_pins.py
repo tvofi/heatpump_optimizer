@@ -768,6 +768,91 @@ def _r10_arch_shapes_pins() -> dict[str, bool]:
     }
 
 
+_STEP_ISSUE = "dhw_legionella_off_step"
+#: The config flow's integer sliders (``config_flow.py``'s everyday and
+#: disinfection selectors) on a 30-80 degC number of each step: every row
+#: whose disinfection temperature is above the everyday set-point.
+_SLIDER_STEPS = (0.1, 0.5, 1, 2, 5)
+
+
+def _slider_rows():
+    for step in _SLIDER_STEPS:
+        for disinfection in range(55, 71):
+            for everyday in range(40, min(65, disinfection - 1) + 1):
+                yield step, float(everyday), float(disinfection)
+
+
+def _step_notice(everyday, disinfection, step, *, hold=False, cycle=True,
+                 entity="number.dhw", duty="control", attrs=None):
+    """The off-step notice's placeholders after one observe pass, or None."""
+    params = ThermalParameters(
+        dhw_setpoint=everyday, dhw_legionella_temp=disinfection,
+        dhw_legionella_enabled=cycle, dhw_enabled=True,
+    )
+    states = {} if entity is None else {
+        entity: FakeState("50", attributes=attrs or {"min": 30, "max": 80, "step": step}),
+    }
+    config = {"pump_duty_mode": duty, "dhw_setpoint_entity": entity,
+              "dhw_free_disinfection_enabled": hold}
+    hass = FakeHass(states)
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params, config, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    asyncio.run(guard.async_observe(None, None))
+    raised = [i for i in getattr(hass, "issues", []) if i[1] == _STEP_ISSUE]
+    return raised[-1][2].get("translation_placeholders") if raised else None
+
+
+def _slider_count(*, hold=False, on_step=None, steps=_SLIDER_STEPS):
+    n = 0
+    for step, everyday, disinfection in _slider_rows():
+        if step not in steps:
+            continue
+        if on_step is not None and on_step != (abs(disinfection / step - round(disinfection / step)) < 1e-9):
+            continue
+        n += _step_notice(everyday, disinfection, step, hold=hold) is not None
+    return n
+
+
+def _off_step_notice_pins() -> dict[str, bool]:
+    """R10-DISINFECTION-STEP-NOTICE: a cycle write the entity's step leaves short of credit is named before it runs.
+
+    The arbiter writes a cycle on the step at or below ``dhw_hard_max_temp``
+    (``pump_arbiter.cycle_write``); where that write is under the credit
+    threshold in force (target less 1.0, or less 0.5 under free
+    disinfection) the guard raises ``dhw_legionella_off_step`` with the
+    configured, written and on-step temperatures, in place of the
+    after-the-fact ``dhw_legionella_unreachable``. Counts are over the
+    slider grid of ``_slider_rows``: the product ruling's 201 (instant, all
+    at step 5) and 436 (hold) of 1750; the 1314 on-step rows raise none.
+    """
+    out: dict[str, bool] = {}
+    case = _step_notice(55.0, 62.0, 5)
+    out["55/62 on step 5 is named: 62 configured, 60 written, 60 and 65 on the step"] = case == {
+        "legionella_temp": "62", "written": "60", "step": "5", "below": "60", "above": "65",
+    }
+    out["the slider grid raises 201 under the instant rule"] = _slider_count() == 201
+    out["the slider grid raises 436 under the hold rule"] = _slider_count(hold=True) == 436
+    out["the instant rule's 201 are all at step 5"] = _slider_count(steps=(5,)) == 201
+    out["null: the 1314 on-step slider rows raise none, either rule"] = (
+        _slider_count(on_step=True) == 0 and _slider_count(on_step=True, hold=True) == 0
+    )
+    out["null: steps 0.1 and 0.5 raise none, either rule"] = (
+        _slider_count(steps=(0.1, 0.5)) == 0 and _slider_count(steps=(0.1, 0.5), hold=True) == 0
+    )
+    out["null: the cycle disabled raises none"] = _step_notice(55.0, 62.0, 5, cycle=False) is None
+    out["null: no set-point entity raises none"] = _step_notice(55.0, 62.0, 5, entity=None) is None
+    out["null: an arbiter that writes nothing (observe) raises none"] = (
+        _step_notice(55.0, 62.0, 5, duty="observe") is None
+    )
+    out["null: the stock 55/60 raises none on any step"] = all(
+        _step_notice(55.0, 60.0, s, hold=h) is None for s in _SLIDER_STEPS for h in (False, True)
+    )
+    return out
+
+
 def main() -> int:
     R = Results("Guard pins (#805 non-coordinator)")
     R.check(
@@ -823,6 +908,8 @@ def main() -> int:
         R.check(f"R9-SW-2 {name}", ok)
     for name, ok in _r10_arch_shapes_pins().items():
         R.check(f"R10-ARCH-SHAPES {name}", ok)
+    for name, ok in _off_step_notice_pins().items():
+        R.check(f"R10-DISINFECTION-STEP-NOTICE {name}", ok)
     return R.close("GUARD PIN CHECKS")
 
 
