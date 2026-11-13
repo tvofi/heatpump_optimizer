@@ -26959,6 +26959,49 @@
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R11-PRE-TOOLCHAIN-PIN, R11-PRE-ROUND-METRICS, R11-PRE-TOKEN-LEDGER): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run"
    }
+  },
+  {
+   "group": "R10-PLAYBOOK-ROUND-START",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-ROUND-PLAYBOOK-FINAL"
+   ],
+   "files": [
+    "dev/audit/README.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner instruction 2026-11-13, his words: \"Make sure the future rounds can use the audit playbook even with the addition of the objective function and the improved audit dimension. It should also make the round orchestrator pick up the carries and pre-finder carries from the previous round. Also, related to scope during a round, outside and owner filed findings and requests should always fold into the ongoing round if not explicitly deferred by the owner or outsider\". This group adds the round-start section to the round playbook (dev/audit/README.md), after R10-ROUND-PLAYBOOK-FINAL s own parts have merged: (1) a round run from the playbook alone must work after the objective function and the widened dimensions land, so the playbook names, in order, the round-start steps they add (evaluate every dimension, the process and its machinery against the objective function from the previous round s records; decision cards to the owner; accepted changes merged before finders; the finder denominator rule and the dispatch of the previous round s unreached remainder; the two added dimensions; D11 and D13 every round) by pointing at the policy file or role contract that owns each, never by restating it, so a later change to one does not strand the playbook; where an owning file does not exist yet at this group s head, the playbook names the roster group that lands it and that group s pull request adds the pointer; (2) the first step of a round, before anything else is planned, is the pickup: the orchestrator reads the previous round s intake group and its carries, every group the previous round left open or deferred, and the pre-finder groups queued for this round (ids beginning with the round s number and the pre-finder marker), states each one s disposition (scheduled into this round s plan, built before finders, refused with a reason), and the round start is refused by its instrument while any is undispositioned; give the enumerator; (3) scope during a round: a finding or request filed by the owner or by an outside user folds into the ongoing round, unless the owner or that outside user explicitly defers it; state how the deferral is recorded (who, when, their words) and that silence is not a deferral. Null control for (2): a planted undispositioned carry refuses the round start; a clean roster passes. Policy change: the owner s approving review, or the mandate s, before merging. Carried here because R10-ROUND-PLAYBOOK-FINAL is carries-open and receives no new carry.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-playbook-round-start",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (S) once R10-ROUND-PLAYBOOK-FINAL s open part merges",
+    "note": "intake: owner instruction 2026-11-13 (playbook usable with the objective function and widened dimensions; pickup of previous round carries and pre-finder groups; outside and owner items fold into the round); overlap admitted (R11-PRE-OBJECTIVE-FUNCTION): owner instruction 2026-11-13: playbook round-start section; R10-ROUND-PLAYBOOK-FINAL is carries-open and refused the carry"
+   }
   }
  ]
 }
