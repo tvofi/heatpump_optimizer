@@ -1,0 +1,33 @@
+review_carry: 4b43164c0 -> dcf5e329d  main=origin/main
+  branch-only commits: 29
+  why: e5193663b5bbb0a717ef48f192097976d13cf853 is not the automatic merge of its parents
+  c4a2af87b  BLOCKED: r10-process-slim-p2 at e24d9e408c6c (prepr ci predict: carry destination R10-CLOSEOUT-INSTRUMENTS not on main's roster)
+  4b068b494  BLOCKED: r10-process-slim-p2 carry destination done, head conflicts with main
+  e3d995a46  WIP r10-process-slim-p2: merged head 25bc7471a0386ad028b02db9feb0b6c89f80210d
+  27d906b81  BLOCKED: r10-process-slim-p2 at 25bc7471 (body_push: review packet hot-file, #3245 unboarded merge verdict)
+  9da3716f5  WIP r10-process-slim-p2: merged head 6671786843048c52ea7c11373c1e074e4aa8f187
+  0239be915  BLOCKED: r10-process-slim-p2 at 66717868 (body_push: review packet hot-file, #3366 unboarded merge verdict)
+  1bb0892f9  BLOCKED: carry for item 17762ad2 not landed on the roster
+  f2adb70a0  WIP r10-process-slim-p2: merged head b371fe04f8edb6e38ccd8bc01a7be72561ca2c38
+  25b1ed8f7  WIP r10-process-slim-p2: head 9da744f716f5b3a2999e961f6ec61f3bc7dfc398
+  4a7c0b8df  BLOCKED: r10-process-slim-p2 at 9da744f7 (body_push: review packet hot-file, #3384 unboarded merge verdict)
+  74d407e32  WIP r10-process-slim-p2: merged head d094fbc5ccf43038fde6c351ab34d2ac4239acb6
+  f1dd6bb41  BLOCKED r10-process-slim-p2: repair already on the PR head
+  e094f48ca  WIP r10-process-slim-p2: repair 3 step at 03047e4257651aa6b866764d2cde3f6c12a60bd2
+  1a46d36ec  WIP r10-process-slim-p2: step at 9c5485e367c7ce78d54a31155d31f43f8fe9f58b
+  84da79a76  WIP r10-process-slim-p2: step at 63c62197e9935d6cb0fb4e71afef058d85a97903
+  4dfe2f4f6  WIP r10-process-slim-p2: step at e9e70ff2c5bd6cf90b5e61e946735456c0677411
+  4bc2f3bc0  Merge remote-tracking branch 'origin/main' into fix/r10-process-slim-p2
+  9efb4daf8  Merge origin/main 0b276e8c into r10-process-slim-p2 (merge repair)
+  ecb360398  WIP r10-process-slim-p2: step at 9efb4daf8be91abd9347b00666de5800d96a609c
+  1b45b89b9  BLOCKED r10-process-slim-p2: question on the predicted tick-loop red
+  dea9f4ca8  r10-process-slim-p2: remove BLOCKED.md (orchestrator ruling answered)
+  8301a5f25  Merge origin/main fc2a7edc into r10-process-slim-p2 (merge repair)
+  f26a28392  Merge origin/main 4596f721 into r10-process-slim-p2 (merge repair)
+  5f95f406e  r10-process-slim-p2: re-record tests/entities.py closure at f26a2839 (rc 1 -> 0, file set unchanged)
+  0ab850c2f  BLOCKED r10-process-slim-p2: tick_loop restart arm moved the detached head during prepr
+  1ce773ca8  BLOCKED r10-process-slim-p2: correct which steps ran at the head
+  b8bbe6ad1  r10-process-slim-p2: remove BLOCKED.md (re-fire answers it: prepr runs in a throwaway worktree)
+  e5193663b  Merge origin/main a18e2e9d into r10-process-slim-p2 (merge repair 7)
+  dcf5e329d  bus.sh: main's four CARRY-LANDED dispatch arms as main wrote them
+review_carry: FRESH-REVIEW
