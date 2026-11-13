@@ -2002,6 +2002,10 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   awk -v e=$(( $(date +%s) - 3601 )) '$1 == "cf-k" { $5 = e } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
   carry_fold_arm >/dev/null 2>&1
   chk "a record an hour old no longer stands over a new kept commit" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 4
+  cfref handoff-wip/cf-l BLOCKED.md "the fixer is stuck, again"; carry_fold_arm >/dev/null 2>&1
+  awk '$1 == "cf-l" { $6 = ""; $7 = ""; gsub(/  +/, " ") } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
+  : > "$t/fetches"; cfo=$(git() { [ "$1" != fetch ] || echo "$*" >> "$t/fetches"; command git "$@"; }; carry_fold_arm 2>&1)
+  chk "a memo record from before the blob and tip fields is judged again, not read with shifted fields" 0 grep -q "handoff-wip/cf-l\$" "$t/fetches"
   unset HPO_RELAY_FOLD HPO_RELAY_BODYPUSH; cd "$t/w" || exit 1
   cd / && rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
