@@ -1,0 +1,11 @@
+2026-11-13T11:59:30.4846550Z ##[group]Run set -o pipefail
+2026-11-13T11:59:30.4846845Z [36;1mset -o pipefail[0m
+2026-11-13T11:59:30.4847218Z [36;1mpython3 -I tools/pr/outside.py --self-test | tee "$RUNNER_TEMP/outside-self-test.txt"[0m
+2026-11-13T11:59:30.4847805Z [36;1mgrep -Eq '^outside self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/outside-self-test.txt"[0m
+2026-11-13T11:59:30.4891994Z shell: /usr/bin/bash --noprofile --norc tools/ci/selftest_step.sh {0}
+2026-11-13T11:59:30.4892303Z env:
+2026-11-13T11:59:30.4892479Z   HPO_JOB_GRADES: nothing
+2026-11-13T11:59:30.4892707Z   SELFTEST_TRACE: 
+2026-11-13T11:59:30.4893046Z ##[endgroup]
+2026-11-13T11:59:30.5041309Z python3: can't open file '/home/runner/work/heatpump_optimizer/heatpump_optimizer/tools/pr/outside.py': [Errno 2] No such file or directory
+2026-11-13T11:59:30.5078260Z ##[error]Process completed with exit code 2.

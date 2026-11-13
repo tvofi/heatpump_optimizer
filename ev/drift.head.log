@@ -1,0 +1,7 @@
+RESULT drift(head table, measured=main727): 1 refusal(s), 9 note(s)
+  REFUSE UNMEASURED step outside-contract: this run left no trace of it
+RESULT drift(head table, measured=reviewed59cc): 0 refusal(s), 9 note(s)
+RESULT drift(head table, measured=head-self): 0 refusal(s), 0 note(s)
+RESULT perturbation, all of main727 measured, tools/** removed from head verdict-bus: 2 refusal(s)
+  REFUSE UNDER-SCOPED step verdict-bus: files misses ['tools/audit/carry_audit.py', 'tools/audit/seat/a1_dispatch_arms.sh', 'tools/audit/seat/autofix_statuses.sh', 'tools/audit/seat/body_patch.sh', 'tools/audit/seat/body_push.sh', 'tools/audit/seat/bus.sh', 'tools/audit/seat/ci-watch.sh', 'tools/audit/seat/c
+  REFUSE UNMEASURED step outside-contract: this run left no trace of it
