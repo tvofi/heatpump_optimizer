@@ -921,6 +921,14 @@ def hysteresis_checks() -> None:
           and inputs_mod.setpoint_grid(FakeHass({}), None) is None
           and tm.dhw_step_target_c(ThermalParameters(dhw_setpoint=58.0), False, None) == 58.0)
 
+    grid_of = inputs_mod.SetpointGrid
+    check("a grid holds a write at its caller's floor, which is no part of the entity's range, and at the "
+          "entity's minimum where that is higher",
+          lambda: grid_of("°C", 1.0, None, None).bounded(20.0, 25.0) == 25.0
+          and grid_of("°C", 1.0, 30.0, 65.0).bounded(20.0, 25.0) == 30.0
+          and grid_of("°C", 1.0, 30.0, 65.0).bounded(20.0, 35.0) == 35.0
+          and grid_of("°C", 1.0, None, None).bounded(20.0) == 20.0)
+
     # 5c. The planner judges against what is written: a stepped entity.
     stepped = ThermalParameters(dhw_setpoint=58.0, dhw_legionella_temp=62.0, dhw_legionella_enabled=True)
     five = _dhw_snap(configured=58.0, disinfection=62.0, attrs=_step(5))
