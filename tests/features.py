@@ -63611,14 +63611,54 @@ def _pa_upgraded(reading):
 
 _pa_up, _pa_up_first, _pa_up_sent = _pa_upgraded("30")
 _pa_up_n, _pa_up_n_first, _pa_up_n_sent = _pa_upgraded("31")
+# Re-pinned by R10-HOTFIX-FLOW-SETPOINT-STUCK: this check pinned "the write
+# waits", which on an upgrade held every space write, boosts included, until a
+# person set the controller. The own write is still never the baseline; the
+# baseline row's hold (35 degC: the curve's 34.2 under the rated hold) is.
 R.check(
     "R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as "
-    "the baseline, and the write waits; null control: a reading of the person's own is captured, "
-    "written over, and restored on off",
-    _pa_up_first == [] and _pa_up_sent == 0 and _pa_space(_pa_up) == []
+    "the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the "
+    "person's own is captured, written over, and restored on off",
+    _pa_up_first == [25.0] and _pa_up_sent == 1 and _pa_space(_pa_up) == [35.0]
     and _pa_up_n_first == [25.0] and _pa_up_n_sent == 1 and _pa_space(_pa_up_n) == [31.0],
     f"{_pa_up_first=} {_pa_up_sent=} {_pa_up.writes()=} / {_pa_up_n_first=} {_pa_up_n_sent=} "
     f"{_pa_up_n.writes()=}",
+)
+
+
+# R10-HOTFIX-FLOW-SETPOINT-STUCK (tvofi, 2026-11-13, a Rotenso on v7.1.15 held
+# at 25 degC through a boost): from any persisted arbiter state, a space step
+# or a boost under Control writes the space set-point within one pass. The
+# states: a record equal to the reading with no baseline armed, in memory and
+# loaded from the pre-#3404 store shape (an upgrade, then a restart).
+def _pa_stuck(duties, record, boost=False, stored=False):
+    """The space writes of one pass at minute 1; ``record`` the persisted last write or None."""
+    coord = _PaCoord(_PA_TUYA, duties=duties)
+    coord.device("number.water_set", "25")
+    at = _PA_T0 - timedelta(hours=1)
+    if record is not None and stored:
+        _pa_aio.run(_pa._store(coord).async_save({"written": {"space_setpoint": [record, at.isoformat()]}}))
+    elif record is not None:
+        held = _pa.state_for(coord)
+        held.loaded = True
+        held.written["space_setpoint"] = (record, at)
+    if boost:
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    _pa_run(coord, 1)
+    return _pa_space(coord)
+
+
+_pa_stuck_rows = {
+    (duties, boost, stored): _pa_stuck(duties, 25.0, boost, stored)
+    for duties, boost in (("-", True), ("s", False)) for stored in (False, True)
+}
+_pa_stuck_null = {(duties, boost): _pa_stuck(duties, None, boost) for duties, boost in (("-", True), ("s", False))}
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step, and a space step, write the 55 degC "
+    "ceiling in one pass from a persisted own write of 25 equal to the reading with no baseline armed, "
+    "in memory and loaded from the store; null control: the same passes with no record write 55 too",
+    all(v == [55.0] for v in _pa_stuck_rows.values()) and all(v == [55.0] for v in _pa_stuck_null.values()),
+    f"{_pa_stuck_rows=} {_pa_stuck_null=}",
 )
 
 
@@ -87993,7 +88033,7 @@ R.check(
 import asyncio as _fb_aio  # noqa: E402
 
 
-def _fb_own(moves, wrote=True):
+def _fb_own(moves, wrote=True, arm=True):
     coord = _FbCoord()
     held = _fb_pa.state_for(coord)
     if wrote:
@@ -88001,23 +88041,35 @@ def _fb_own(moves, wrote=True):
         held.feedback = _fb_running(3600, 0)
     for target in moves:
         _fb_pa._note_sent(held, held.feedback, target, 26.4)
-    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET, _FB_NOW)) if arm else None
     return sent, coord, held
 
 
+def _fb_baseline(coord):
+    """The space baseline the off restore holds, or None when unarmed."""
+    armed = _fb_aio.run(_pa_or.async_armed_entry(coord.hass, coord.entry, _fb_pa.CONSUMER))
+    return None if armed is None else armed["value"]
+
+
+# Re-pinned by R10-HOTFIX-FLOW-SETPOINT-STUCK: the own write is no longer
+# refused, which held the write; the baseline row's 30.0 (the rated 35 in
+# return terms, under the 32 ceiling) is captured in its place.
 _fb_own_one, _fb_own_two, _fb_own_none = _fb_own([25.8]), _fb_own([25.8, 25.6]), _fb_own([], wrote=False)
 _fb_rs_coord, _fb_rs_held = _fb_own([25.8])[1:]
 _fb_rs_coord.entry.runtime_data = _fb_rs_coord
 _fb_pa._space_restored(_fb_rs_coord.entry, _FB_SET, 26.0)
 R.check(
     "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8): a loop move's "
-    "dropped record still refuses the optimizer's own 26.0 as an unarmed key's baseline, "
-    "after one move and after two with no write between; a restore ends the run; an "
-    "arbiter that never wrote captures it",
-    _fb_own_one[0] is False and _fb_own_two[0] is False and _fb_own_two[2].feedback.prev_c == 26.0
-    and _fb_rs_held.feedback is None and _fb_own_none[0] is True,
-    f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
-    f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
+    "dropped record still keeps the optimizer's own 26.0 from an unarmed key's baseline, "
+    "after one move and after two with no write between, and the write is sent; a restore "
+    "ends the run; an arbiter that never wrote captures it",
+    _fb_own_one[0] is True and _fb_baseline(_fb_own_one[1]) == 30.0
+    and _fb_own_two[0] is True and _fb_baseline(_fb_own_two[1]) == 30.0
+    and _fb_own_two[2].feedback.prev_c == 26.0
+    and _fb_rs_held.feedback is None and _fb_own_none[0] is True and _fb_baseline(_fb_own_none[1]) == 26.0,
+    f"one {_fb_own_one[0]} {_fb_baseline(_fb_own_one[1])}, two {_fb_own_two[0]} {_fb_baseline(_fb_own_two[1])} "
+    f"(prev {_fb_own_two[2].feedback.prev_c}), restored run {_fb_rs_held.feedback}, "
+    f"never wrote {_fb_own_none[0]} {_fb_baseline(_fb_own_none[1])}",
 )
 # Round 2 of Carry 8 (#3404's verdict at 4a5abf4a): the loop run ends on
 # paths that are neither a write nor a restore -- a pass off the loop
@@ -88030,12 +88082,12 @@ R.check(
 
 
 def _fb_own_after(end):
-    sent, coord, held = _fb_own([25.8])
+    _sent, coord, held = _fb_own([25.8], arm=False)
     end(coord, held)
     held = _fb_pa.state_for(coord)  # a restart's is a fresh state
     run = held.feedback
-    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
-    return sent, None if run is None else run.prev_c, after
+    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET, _FB_NOW))
+    return _fb_baseline(coord), None if run is None else run.prev_c, after
 
 
 def _fb_end_stale(coord, held):
@@ -88065,10 +88117,11 @@ _fb_own_ends = {
 print("CARRY8-RUN-ENDS", _fb_own_ends)
 R.check(
     "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the "
-    "own-write refusal survives every end of the loop run while the dropped write is "
-    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart",
-    all(sent is False and prev is None and after is False for sent, prev, after in _fb_own_ends.values()),
-    f"(before, run prev_c after, after) {_fb_own_ends}",
+    "own-write fact survives every end of the loop run while the dropped write is "
+    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart: "
+    "the arm after it sends the write and captures 30.0, not the own 26.0",
+    all(after is True and prev is None and baseline == 30.0 for baseline, prev, after in _fb_own_ends.values()),
+    f"(baseline, run prev_c after, after) {_fb_own_ends}",
 )
 # Where the fact stops mattering or ends: once the person moves the
 # controller (25.0) the arm captures and the write lands, after which the
@@ -88077,13 +88130,13 @@ R.check(
 # forgets the record, even one that is only the dropped write) end it, and
 # a stored value the arbiter could not have written is not loaded.
 # Control: before each, the fact is held.
-_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8])
+_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8], arm=False)
 _fb_wr_before = dict(_fb_wr_held.dropped)
 _fb_wr_coord.hass.states.set(_FB_SET, FakeState("25.0", attributes={"min": 15, "max": 45, "step": 0.1}))
 _fb_aio.run(_fb_pa._write(_fb_wr_coord, _fb_wr_coord.arbiter_inputs(), "space_setpoint", 25.8, _FB_NOW))
 _fb_wr_written = _fb_wr_held.written.pop("space_setpoint", (None,))[0]
 _fb_wr_coord.hass.states.set(_FB_SET, FakeState("26.0", attributes={"min": 15, "max": 45, "step": 0.1}))
-_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET))
+_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET, _FB_NOW))
 _fb_junk = _FbCoord()
 _fb_aio.run(_fb_pa._store(_fb_junk).async_save({"written": {}, "dropped": {"space_setpoint": "26.0 degC"}}))
 _fb_aio.run(_fb_pa._load(_fb_junk))
