@@ -658,6 +658,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 |---|---|---|---|
 | Heat pump operating mode | from setup | the pump's mode entity | Read only unless **Pump duty control** is set to Control. Left empty, the optimizer assumes the pump can do everything. |
 | Pump duty control | Off | Off / Observe / Control | Whether the optimizer tells the pump which duty to serve on each plan step. See [Pump duty control](#pump-duty-control) below. |
+| Heating start hysteresis | none | `sensor` / `number` / `input_number`, K | Optional. The pump's own heating start hysteresis, a temperature difference; the heating floor's lift is never below it. |
+| Hot water start hysteresis | none | `sensor` / `number` / `input_number`, K | Optional. The pump's own hot water start hysteresis, a temperature difference; the plan places no charge on a tank at or above the hot water target less this. |
 | Defrosting | from setup | a binary sensor | On while the pump reverses to melt frost off the outdoor coil. |
 | Pump online | from setup | a binary sensor | On while the pump is actually reachable. |
 | Fault alarm | from setup | a binary sensor | On while the pump is reporting a fault. Only whether there is a fault is used. |
@@ -754,7 +756,7 @@ writes, at every 15-minute plan step:
     effect (the return target less the hysteresis) is input 10107 of its Smart Home Interface, which
     ha-luxtronik-shi publishes as its *Demand border* sensor
     ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
-    This integration does not read it. On the install this was written for, a
+    The *Heating start hysteresis* option above takes the hysteresis itself; for a controller that publishes only this threshold, give it a template sensor of the return target minus the threshold. On the install this was written for, a
     0.5 K lift held 26–31 Hz once running, 1–1.5 K ramped to 73–81 Hz. For a low-temperature floor
     heating, 0.5–2 K and 30–40 °C may be a starting point; check them against the compressor's
     frequency and power.
@@ -894,6 +896,18 @@ writes, at every 15-minute plan step:
   disinfection temperature" notice does not fire on any hot water set-point
   the optimizer wrote; it still fires on a value set by anybody else, and,
   with *Control* off, on the pump's own set-point.
+- **The pump's start hysteresis, if you name it.** *Hot water start hysteresis*
+  (K): the pump starts a charge only once the tank is below its target less
+  this, so the plan places no charge on a warmer tank and buys what the hot
+  water minimum still needs at a step the pump will start; the step's target is
+  the disinfection temperature on a disinfection step and the hot water
+  set-point on any other. A charge planned for the current step is kept, as it
+  may already be running. A hot water minimum above the start temperature
+  cannot be held by such a pump: the plan shows the tank under it and a repair
+  notice says so. *Heating start hysteresis* (K): on a flow or return set-point
+  the lift over the measured water at the lowest planned level is never below
+  it. Both are temperature differences (K or °C as they stand, °F scaled, 0 to
+  20 K); left empty, nothing changes.
 - **Its own mode is not a pump limit.** A mode the optimizer wrote does not
   stop the next plan from heating the house or making hot water, even when the
   pump has not shown it yet or after a restart; one set by anybody else
@@ -902,7 +916,7 @@ writes, at every 15-minute plan step:
 **Observe** writes nothing. In *Observe* and *Control* the optimizer keeps a
 ledger of the last 24 hours: per 15-minute step, the duty the plan wanted
 against what the pump did, and a verdict — *delivered*, *space-instead*,
-*dhw-instead*, *idle-instead*, *unknown* or *baseline* (no plan duty). What the
+*dhw-instead*, *idle-instead*, *not-startable* (a hot-water step left idle on a tank at or above the pump's own start temperature), *unknown* or *baseline* (no plan duty). What the
 pump did is read from what the integration already reads: the **power
 entity** (running or not), the operating mode (*DHW (Hot Water)*) and the
 **tank temperature** (a rise of 0.5 °C over the step counts as hot water).
