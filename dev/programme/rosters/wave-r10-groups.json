@@ -25147,7 +25147,9 @@
     "note": "orchestrator ruling 2026-11-12",
     "pr": 3525
    },
-   "carry": []
+   "carry": [
+    "From r10-advisor-steady-start, body item 526f4054: tools/policy/brief_lint.mjs `assertLegacyControl` reads a legacy carry as repaired when its controls lint clean, and a control whose only error is a stale path:line citation lints clean whenever an unrelated line holding the anchor word drifts into the one-line window (this pull request, carry-1412.json, anchor `p_max`). The files left in `LEGACY_CONTROL_FILES` were not surveyed for the same shape. Control to carry: for each member, the carry linted with `legacy: new Set()` and its errors listed by kind; a member whose errors are all of kind `path:line` can turn any later diff's `tests / briefs` red the same way. The destination's brief on handoff/audit-r10-roster 0ff6f3368a already names this survey as its part 2 and cites this item by its earlier id 00444e5b. Carry: R10-HOTFIX-LEGACY-CONTROL-DATA (items 526f4054)"
+   ]
   },
   {
    "group": "R10-HOTFIX-OPENPR-HOST-REFUSAL",
