@@ -43,6 +43,8 @@ absent or malformed file means no group is critical.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import os
 import subprocess
 import sys
@@ -266,6 +268,45 @@ def _self_test() -> int:
         check("is_hotfix ignores the lease override and fails closed (False) on a failed fetch",
               not is_hotfix("handoff/r10-other", repo=str(repo), ref=live, fetch=False)
               and not is_hotfix("handoff/r10-hot", repo=str(repo), fetch=True))
+
+        def cli(branch: str) -> tuple[int, str]:
+            """``main(["--hotfix", ...])`` and its stdout: the line prepr's hotfix_class reads."""
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = main(["--hotfix", "--branch", branch, "--repo", str(repo),
+                           "--ref", live, "--no-fetch"])
+            return rc, buf.getvalue()
+
+        hot_out_crit_none = ("handoff/r10-hot", "handoff/r10-out", "handoff/r10-crit", "fix/none")
+        check("--hotfix prints 1 for the hotfix group's branch, 0 for an outside, a critical and an unmapped one",
+              [cli(b) for b in hot_out_crit_none] == [(0, "1\n"), (0, "0\n"), (0, "0\n"), (0, "0\n")],
+              [cli(b) for b in hot_out_crit_none])
+
+        # The except arm: a roster read that raises (not a failed fetch, which returns
+        # before the read) must fail closed -- not a hotfix, so a full prepr; priority 0.
+        def hot_answers() -> tuple[bool, int, tuple[int, str]]:
+            return (is_hotfix("handoff/r10-hot", repo=str(repo), ref=live, fetch=False),
+                    derived("handoff/r10-hot"), cli("handoff/r10-hot"))
+
+        real_show = roster_lib.show_roster
+
+        def unreadable(*_a, **_k):
+            raise ValueError("fixture: an unreadable roster")
+
+        roster_lib.show_roster = unreadable
+        try:
+            raised = hot_answers()
+        finally:
+            roster_lib.show_roster = real_show
+        check("a roster read that raises fails closed: not a hotfix, priority 0, --hotfix prints 0",
+              raised == (False, 0, (0, "0\n")), raised)
+        check("null control: the same read, restored, is (True, 2, '1')",
+              hot_answers() == (True, 2, (0, "1\n")), hot_answers())
+        check("the default is the fetched live read: with no origin to fetch, the hotfix branch fails closed",
+              not is_hotfix("handoff/r10-hot", repo=str(repo))
+              and derived_priority("handoff/r10-hot", repo=str(repo)) == 0
+              and is_hotfix("handoff/r10-hot", repo=str(repo), fetch=False),
+              (is_hotfix("handoff/r10-hot", repo=str(repo)), derived_priority("handoff/r10-hot", repo=str(repo))))
         check("a group that resolves but is not listed stays normal (null control)",
               derived("handoff/r10-other") == 0, derived("handoff/r10-other"))
         check("a branch that maps to no group stays normal",

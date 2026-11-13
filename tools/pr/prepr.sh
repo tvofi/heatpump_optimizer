@@ -1767,17 +1767,23 @@ merged_steps() { # body, unpinned-site key file -> step lines
 # UNSET variable takes the default: a caller's value, set empty included, wins per variable.
 # The scope is code and closures; the merged-tree structure ratchet, ci predict and the body
 # and contract checks (`merged_steps`, steps 1a-1a3, 6, 7) stay, as under any PREPR_SKIP_CODE.
+# The defaults are not exported: only this shell reads them, and a child (the self-test step,
+# a merged-tree command) must not inherit a skip the roster chose for this run alone.
 hotfix_class() { # branch -> 1 when the roster classes its group a hotfix, else 0
   python3 tools/pr/gate_priority.py --hotfix --branch "$1" 2>/dev/null
 }
-hotfix_scope() { # branch -> exports the unset skips; prints one line when it scoped
+hotfix_scope() { # branch -> sets the unset skips (this shell's, never exported); prints one line when it scoped
   if [ -n "${PREPR_SKIP_CODE+x}" ] && [ -n "${PREPR_SKIP_CLOSURES+x}" ]; then return 0; fi
   [ "$(hotfix_class "$1")" = 1 ] || return 0
   HOTFIX_SCOPED=1
   [ -n "${PREPR_SKIP_CODE+x}" ] || PREPR_SKIP_CODE=hotfix
   [ -n "${PREPR_SKIP_CLOSURES+x}" ] || PREPR_SKIP_CLOSURES=1
-  export PREPR_SKIP_CODE PREPR_SKIP_CLOSURES
   say ok "hotfix scope" "$1 is a hotfix group's branch: code and closure steps skipped; merged structure, ci predict, body and contract checks run (a caller's PREPR_SKIP_CODE / PREPR_SKIP_CLOSURES, set empty included, wins)"
+}
+
+code_steps_line() { # REUSE -> the main flow's code-steps line; HOTFIX_SCOPED names the roster's default
+  if [ -n "${HOTFIX_SCOPED:-}" ] && [ "$1" = hotfix ]; then say ok "code steps" "hotfix scope: no heavy slot, and the steps keyed to the code alone are dropped"
+  elif [ -n "$1" ]; then say ok "code steps" "reused from the receipt at ${1:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"; fi
 }
 
 selftest_owed() { # changed-paths file -> 0 when a changed path is a self-test input
@@ -1936,6 +1942,10 @@ selftest_tmp_root() {
 # (merge base, gate mode, version edit, claim files) are demonstrated by the
 # `pr-contract` job running this script on every pull request.
 if [ "${1:-}" = "--self-test" ]; then
+  # The rows set or leave unset these two themselves; a caller exporting one
+  # (update_pr.sh exports PREPR_SKIP_CLOSURES=1) must not reach a fixture child
+  # shell, where an assignment to an exported name keeps it exported.
+  unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES
   # Every throwaway repository below takes the shared helper: auto-maintenance
   # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
   . tests/throwaway_git.sh || exit 2
@@ -4143,18 +4153,47 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo left)" "" "(a) a run with a body removes an earlier receipt first, so one that writes none leaves none"
   # Carry 21: a hotfix group's branch defaults to the scoped run, decided once from the
   # roster's class (`hotfix_class`, gate_priority.py --hotfix), never from the branch name.
-  hs() { # classifier answer -> "<scope line>|<PREPR_SKIP_CODE>|<PREPR_SKIP_CLOSURES>", the caller's env as set
+  # hs: the main flow's own sequence (hotfix_scope, then REUSE and code_steps_line) under a
+  # stubbed classifier. Each say prints "<label>=<message up to its first colon>;"; then the
+  # two skips as this shell holds them, and as a child process sees them (never exported).
+  hs() { # classifier answer -> "<say lines>|<CODE>|<CLOSURES>|<child CODE>,<child CLOSURES>"
     local cls=$1
     ( hotfix_class() { printf '%s' "$cls"; }
-      say() { printf '%s' "$2"; }
+      say() { printf '%s=%s;' "$2" "${3%%:*}"; }
+      HOTFIX_SCOPED=""
       hotfix_scope fix/any
-      printf '|%s|%s' "${PREPR_SKIP_CODE-unset}" "${PREPR_SKIP_CLOSURES-unset}" )
+      code_steps_line "${PREPR_SKIP_CODE:-}"
+      printf '|%s|%s|%s' "${PREPR_SKIP_CODE-unset}" "${PREPR_SKIP_CLOSURES-unset}" \
+        "$(bash -c 'printf "%s,%s" "${PREPR_SKIP_CODE-unset}" "${PREPR_SKIP_CLOSURES-unset}"')" )
   }
-  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 1) )" "hotfix scope|hotfix|1" "(hotfix) a roster-classed hotfix branch prints the scope line and defaults both skips on"
-  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 0) )" "|unset|unset" "(hotfix) null control: a non-hotfix branch prints nothing and sets neither skip"
-  st "$( (unset PREPR_SKIP_CLOSURES; PREPR_SKIP_CODE=; hs 1) )" "hotfix scope||1" "(hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays"
-  st "$( (unset PREPR_SKIP_CODE; PREPR_SKIP_CLOSURES=; hs 1) )" "hotfix scope|hotfix|" "(hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays"
-  st "$( (PREPR_SKIP_CODE=abc; PREPR_SKIP_CLOSURES=x; hs 1) )" "|abc|x" "(hotfix) explicit values pass through unchanged and, both set, nothing is printed"
+  HSL="hotfix scope=fix/any is a hotfix group's branch;"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 1) )" "${HSL}code steps=hotfix scope;|hotfix|1|unset,unset" "(hotfix) a roster-classed hotfix branch prints the scope line and the hotfix code-steps line (never a receipt claim), and defaults both skips on in this shell only"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 0) )" "|unset|unset|unset,unset" "(hotfix) null control: a non-hotfix branch prints nothing and sets neither skip"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; PREPR_SKIP_CODE=; hs 1) )" "${HSL}||1|unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; PREPR_SKIP_CLOSURES=; hs 1) )" "${HSL}code steps=hotfix scope;|hotfix||unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays"
+  st "$( (export PREPR_SKIP_CODE=abc PREPR_SKIP_CLOSURES=x; hs 1) )" "code steps=reused from the receipt at abc;|abc|x|abc,x" "(hotfix) explicit values pass through unchanged and, both set, no scope line; a caller's own value is still a receipt reuse"
+  # End to end, the seam the stub above skips: hotfix_class runs the real
+  # gate_priority.py --hotfix against a fixture roster published as a local origin, so
+  # the CLI's answer and the flag prepr passes are both under test. Only the hotfix
+  # group's branch answers 1; an outside, a critical-path, a plain and an unmapped
+  # branch answer 0 (gate priority would give the first two 1 and the hotfix 2).
+  HC=$(mktemp -d)
+  ( set -e; throwaway_git_env; cd "$HC"; throwaway_git_init . -q -b main
+    export GIT_AUTHOR_NAME=st GIT_AUTHOR_EMAIL=st@st GIT_COMMITTER_NAME=st GIT_COMMITTER_EMAIL=st@st
+    mkdir -p dev/programme/rosters
+    printf '%s\n' '{"groups": [{"group": "R10-HOT", "kind": "bug", "resume": {"branch": "handoff/r10-hot"}},
+      {"group": "R10-OUT", "source": "outside", "resume": {"branch": "handoff/r10-out"}},
+      {"group": "R10-CRIT", "resume": {"branch": "handoff/r10-crit"}},
+      {"group": "R10-OTHER", "resume": {"branch": "handoff/r10-other"}}]}' > dev/programme/rosters/wave-r10-groups.json
+    printf '%s\n' '{"at": "2026-10-20T00:00:00Z", "critical": ["R10-CRIT"]}' > dev/programme/rosters/critical-path.json
+    git add -A; git commit -q -m roster
+    git branch handoff/audit-r10-roster
+    git remote add origin "$HC"; git fetch -q origin ) >/dev/null 2>&1
+  ln -s "$PWD/tools" "$HC/tools"
+  hcl() { (cd "$HC" && for b in handoff/r10-hot handoff/r10-out handoff/r10-crit handoff/r10-other fix/none; do printf '%s ' "$(hotfix_class "$b")"; done); }
+  st "$(hcl)" "1 0 0 0 0 " "(hotfix) end to end: hotfix_class answers 1 for the roster's hotfix group only, through gate_priority.py --hotfix"
+  st "$(cd "$HC" && unset HPO_GATE_PRIORITY && python3 tools/pr/gate_priority.py --branch handoff/r10-hot; python3 tools/pr/gate_priority.py --branch handoff/r10-out)" "$(printf '2\n1')" "(hotfix) null control: the same fixture's lease priority is 2 and 1, so the 1 / 0 above is the class, not the priority"
+  rm -rf "$HC"
   st "$(awk '/^hotfix_scope "\$\(git rev-parse --abbrev-ref HEAD/{a=NR} /^REUSE=/{b=NR} END{print (a>0 && b>a) ? "ok" : "late"}' "$PREPR_PATH")" ok "(hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE"
   rm -rf "$RQ"
 
@@ -4231,8 +4270,7 @@ summary_start
 HOTFIX_SCOPED=""
 hotfix_scope "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
 REUSE=${PREPR_SKIP_CODE:-}
-if [ -n "$HOTFIX_SCOPED" ] && [ "$REUSE" = hotfix ]; then say ok "code steps" "hotfix scope: no heavy slot, and the steps keyed to the code alone are dropped"
-elif [ -n "$REUSE" ]; then say ok "code steps" "reused from the receipt at ${REUSE:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"; fi
+code_steps_line "$REUSE"
 
 # --- 1a. no transport file in any commit the branch adds (`transport_in_ancestry`).
 TRANSPORT=$(transport_in_ancestry "$BASE" HEAD)
