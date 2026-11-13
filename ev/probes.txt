@@ -1,0 +1,10 @@
+RESULT P0 control: all 13 terms NO-READ 'x', all 168 objects keep, no cards: 0 gap(s) -> ACCEPTED
+RESULT P1 evaluator named 'orchestrator-r10': 0 gap(s) -> ACCEPTED
+RESULT P2 evaluator 'the orchestrator', reviewer 'Orchestrator': 0 gap(s) -> ACCEPTED
+RESULT P3 accepted card 'merged' at the repository's root commit: 0 gap(s) -> ACCEPTED
+RESULT P4 a value whose enumerator is 'by hand': 0 gap(s) -> ACCEPTED
+RESULT P5 a value of null with an enumerator: 0 gap(s) -> ACCEPTED
+RESULT P6 a remove on NO-READ evidence (0017 s3: never on a NO-READ): 0 gap(s) -> ACCEPTED
+RESULT P7 an unowned item / missing owner criterion with no card (0017 s6 'yields a card'): 0 gap(s) -> ACCEPTED
+RESULT P8 an object row outside the globs, no evidence: 0 gap(s) -> ACCEPTED
+objects by class: {'dimension': 16, 'role': 19, 'rule': 10, 'instrument': 105, 'gate': 18} total 168
