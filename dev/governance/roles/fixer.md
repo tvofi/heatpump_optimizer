@@ -312,3 +312,12 @@ requires, the arms that fire, and only figures re-taken in that pass. Round
 history is deleted, not restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
 tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**:
 the orchestrator splits or closes it.
+
+**The rule never applies when the gap is mechanical only** (tvofi, 2026-11-09).
+`bus.sh dispatch` reads the class of the latest blocked verdict and dispatches
+past the third round, with no `## Re-cut` note, when it is mechanical: `ci-red`,
+`red-unanswered`, a body or contract gap, `conflict`, `head-moved`, a carry, an
+ungated step. A CI-only block (`ci-red`, `ci-wait`, `ci-pending`, a cancelled
+run) is mechanical and does not count toward the three-round rule. A judgement
+class (`harness`, `null-control`, `mutation-vacuous`, `class-open`, `defect`,
+`claims`, a ruling, a budget), an unknown class or an unreadable log refuses as above.
