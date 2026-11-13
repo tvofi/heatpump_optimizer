@@ -1,8 +1,0 @@
-REFUSED  empty Busy() outside minter BlindRead an empty Busy minted at ('tools/audit/seat/<stdin>', '<lambda>'), which reads no
-REFUSED  subclass of Busy, empty BlindRead an empty Busy minted at ('tools/audit/seat/<stdin>', '<lambda>'), which reads no
-SURVIVED Busy.__new__ bypass red
-SURVIVED non-empty Busy then .clear() red
-SURVIVED copy of minted empty red
-REFUSED  FINAL instance new BlindRead classify from ('tools/audit/seat/<stdin>', '<lambda>') with busy=FinalRead: pass
-SURVIVED minted empty gate_busy([],[]) (body-disclosed) red
-SURVIVED non-empty Busy (allowed: wait) wait
