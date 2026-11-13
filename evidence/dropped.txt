@@ -1,0 +1,18 @@
+== head 5603c8cc84cdb09a5920ea670a6108587dbf1dbb
+dropped=0 base_steps=114 head_steps=114
+== null control 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9
+DROPPED entry ci-predictor files dev/programme/rosters/wave-r10-groups.json
+DROPPED entry ci-predictor probes dev/programme/rosters
+DROPPED entry ci-predictor dirs dev/programme/rosters
+DROPPED entry dependency-graph-census git ?
+DROPPED flag dependency-graph-census objects
+DROPPED entry prepr files .gitattributes
+DROPPED entry prepr files tests/env_drift.py
+DROPPED entry prepr files tools/merge/ledger_merge.py
+DROPPED entry temp-or-machine-path git ?
+DROPPED entry throwaway-git-helper git ?
+DROPPED flag throwaway-git-helper objects
+DROPPED entry verdict-bus files dev/programme/rosters/wave-r10-groups.json
+DROPPED entry verdict-bus probes dev/programme/rosters
+DROPPED entry verdict-bus dirs dev/programme/rosters
+dropped=14 base_steps=114 head_steps=114

@@ -1,31 +1,23 @@
-Fix review: blocked 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9 dropped-entries: the re-record replaced 16 entries and dropped 9 live path entries and 2 objects flags that the merge base recorded
+Fix review: merge 5603c8cc84cdb09a5920ea670a6108587dbf1dbb
 
-bus-nonce: 7f488e9cfb81a64ca599531388fe0267
-
-Round 1 (first review of this PR). Measured head: 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9, merge base e4ca2d940efd1e87912d80cb3ebddf8240ba0729.
-
-## Block
-
-1. Dropped entries (the dispatch's check 1). I compared tools/ci/selftest_closures.json at the merge base and at the head, per step and per dimension (ev/dropped-entries.txt). These entries are present at the base, absent at the head, and name paths that still exist in the tree at the head. The head does not cover any of them under `covers()`:
-   - ci-predictor files `dev/programme/rosters/wave-r10-groups.json`; probes `dev/programme/rosters`; dirs `dev/programme/rosters`
-   - verdict-bus files `dev/programme/rosters/wave-r10-groups.json`; probes `dev/programme/rosters`; dirs `dev/programme/rosters`
-   - prepr files `.gitattributes`, `tests/env_drift.py`, `tools/merge/ledger_merge.py`
-   - dependency-graph-census `objects` true -> false; throwaway-git-helper `objects` true -> false. These are not path entries, but drift() refuses them as UNDER-SCOPED if main reads the object store again, and selection narrows for both steps.
-   - Excluded from this block: `git` entry `?` was dropped from dependency-graph-census, temp-or-machine-path and throwaway-git-helper. It is not a path.
-   Why the drops happened: the body's method was "only the entries whose measurement was not a subset of the committed one were replaced". That replaces each of the 16 entries with a single recording, which is the replace-not-union pattern behind the drops in #3409, #3419 and #3506. The three prepr files are exactly the reads a CI run on main measured before (the R10-HOTFIX-SELFTEST-SCOPE-UNION brief on the roster quotes them). My own record of prepr on this seat did not read `.gitattributes` either, so the read depends on the seat and main will measure it again. The body also says itself that review-packet read wave-r10-groups.json in only one of its two recordings, yet ci-predictor's and verdict-bus's reads of that file were not kept.
-   Remedy: restore every listed entry, i.e. union the base entry with the new measurement for each of the 16 steps. Re-run the comparison above, which should print no DROPPED line for a live path or a flag.
-2. Root-cause trigger answer (the dispatch's check 3) is incomplete. `## Red checks` names one merge, as `74fd1a9a49`. That is a merge of main into the fix/r10-mach-scorecard branch, not main's merge; main's merge is e4ba9412b2 (#3502), which added tools/audit/seat/scorecard.py. The body names no merge for the other unrecorded reads, and `git log --diff-filter=A` attributes them:
-   - docs/design/2026-11-10-duty-switch-restart-learning and tests/mutation_ledger/{killed_by,survivor_triage}/duty_switch.py: #3461 (005eed2573)
-   - dev/audit/rounds/round10/protection-census: #3503 (4869f1656b)
-   The answer to the cheaper-detector question is present ("none that stays cheap", with a cost of about 30 minutes for a per-PR strace), so step 11 of fix-review.md is answered. The orchestrator's check asked for the merges, though, and the body names only one, under the wrong SHA.
+bus-nonce: 0d27075020de392eb61d45ae165d1f9f
+pending-ci: arch-score / arch-score, budget-raise-gate / budget-raise-gate, codeql / Analyze (actions), codeql / Analyze (javascript-typescript), codeql / Analyze (python), governance / delivery-status, governance / env-matrix, governance / instrument-self-tests, governance / policy-docs, governance / wave-script, hassfest / hassfest, tests / briefs, tests / closure-scope, tests / mutation, tests / nightly-status, validate / validate-hacs
 
 ## Evidence
 
-- Refusals answered (the dispatch's check 2). `python3 -I tools/ci/selftest_scope.py --self-test` at the head printed `selftest_scope self-test: 117 checks, 0 failed`. This host has strace, so I ran `record --step prepr --step field-coverage --step beatd` at the head: 0 failed, 0 broken traces; prepr took 771 s (ev/record-3steps.log, ev/record-3steps.json). `check` needs a trace directory and record deletes its traces, so I applied the module's own `drift()` to that measurement instead. Against the head table it printed 0 refusals for all three steps. As a control, against the merge-base table it printed 4 refusals: field-coverage misses scorecard.py and scorecard_selftest.py, prepr misses 4 dirs, beatd misses probes `<string>` and `beatd.py`, and beatd reads the objects (ev/checks.txt). For those three steps the head answers the refusals. I did not re-measure the other 13.
-- Forward-carry (the dispatch's check 4). Group R10-SELFTEST-SCOPE-UNION-GUARD is on origin/handoff/audit-r10-roster at 9e7bdd2d42e4cabe1b6ddb1bb095a28a60359625, with after: R10-HOTFIX-SELFTEST-SCOPE-RERECORD. Its brief makes record union. carry_audit at the head: 1 item, routed. The body's `## Head` records that the orchestrator re-routed it.
-- `git merge-tree --write-tree origin/main 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9`: rc 0, no conflict.
-- VERSION, the manifest and the RELEASE_NOTES.md heading are untouched. The three-dot diff is tools/ci/selftest_closures.json and dev/programme/delivery/3535.md only.
-- Mutation proof: n/a as the body states, because the diff writes no production line. The drift control above stands in for it.
-- Figures: the body's `## Figures` is none. I re-derived "16 entries changed" and "98 of 114 byte-identical": 16 steps differ, the other 98 are identical.
-- tests/entities.py: not run. With `env -u BASH_ENV` under /opt/hpo/venv-ci/bin/python3 it fails at import with `ModuleNotFoundError: No module named 'homeassistant'` from tests/harness.py:29. That is an environment fault on this seat, not a finding about the head.
-- CI: `merge_train.py classify 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9 --pr 3535` printed `WAIT ... pending: gate red: none` on two runs. Because the verdict is a block I did not wait further.
+Round 2 of review (a delta review). Round 1 blocked head 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9 as dropped-entries. The repair under review is the range 4f61c74a..5603c8cc. The head 5603c8cc is a merge of b06e830153c7b9888cf4fccaae00f175690cb283 into 4f61c74a, and the two trees are identical (both 2466b32f71afcc5a9ad84c3d5e3faa6fc03f9c3e). The merge base with origin/main is e4ca2d940efd1e87912d80cb3ebddf8240ba0729.
+
+- Required control (no dropped entries). Command: `python3 ev/dropped.py e4ca2d940efd1e87912d80cb3ebddf8240ba0729 5603c8cc84cdb09a5920ea670a6108587dbf1dbb`, where e4ca2d94 is the result of `git merge-base origin/main HEAD`. For each step, the script checks that every top-level key, step key and field key at the merge base is still at the head. It also checks every entry in files, probes, dirs and git. An entry is excused only if its path is no longer a file or directory in the head's tree. It counts an `index` or `objects` flag that was true at the base and is no longer true as dropped. Head result: `dropped=0 base_steps=114 head_steps=114`. No entry was excused. Output: ev/dropped.txt.
+- Null control: the same command run on 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9 prints `dropped=14`. That is 9 path entries (ci-predictor and verdict-bus rosters as file, probe and dir; prepr `.gitattributes`, `tests/env_drift.py` and `tools/merge/ledger_merge.py`), 3 `?` git markers (dependency-graph-census, temp-or-machine-path, throwaway-git-helper) and 2 objects flags (dependency-graph-census, throwaway-git-helper). This matches round 1's block and the repair commit's subject exactly.
+- Delta shape: `git diff 4f61c74a 5603c8cc` changes only tools/ci/selftest_closures.json, with 18 insertions and 4 deletions. All 4 deleted lines are `"objects": false` / `"git": []` lines that the delta replaces with `true` / `["?"]`. No measured entry is removed. Only 6 steps change from round 1 to the head, and each is a step listed in the block. Diff: ev/delta.diff.
+- Body figure re-derived: the body says 98 entries untouched by round 1 are still byte-identical to the merge base. At the head, 98 steps are equal between the base and round 1, and all 98 are equal at the head.
+- `python3 -I tools/ci/selftest_scope.py --self-test` at the head: `selftest_scope self-test: 117 checks, 0 failed`, the same figure the body quotes (ev/selftest.txt). `selftest_scope.py static`: `114 gated step(s), 0 problem(s)` (ev/static.txt).
+- Mutation proof: the change is a measured data file. A deleted entry is the mutant, and the dropped-entries control above is what kills it: the round-1 table, which lacks the 14 entries, prints 14. The push-to-main drift step (a fresh strace) is the production detector. It cannot be re-run on this seat.
+- Merge check: `git merge-tree --write-tree origin/main 5603c8cc84cdb09a5920ea670a6108587dbf1dbb` returns tree 97864b480175001e263edfd38ce6d2d0cfdb54f5 with rc 0, so there is no conflict (ev/merge-tree.txt).
+- Packet carry audit at the head: `CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)`. The body's carries route to R10-SELFTEST-SCOPE-UNION-GUARD, which is on origin/handoff/audit-r10-roster.
+- `env -u BASH_ENV python3 tests/entities.py` could not run on this seat. Under venv-ci it fails on the missing `homeassistant` import. Under venv-ha it fails on the missing `paho` import from homeassistant's mqtt component (ev/entities.txt). The cause is the seat's environment, not the tree: the delta adds no tracked file, so the classification check is unaffected. Its figure is not re-derived here.
+- CI: `merge_train.py classify 5603c8cc84cdb09a5920ea670a6108587dbf1dbb --pr 3535` exited 3 twice, more than 60 s apart, both times printing `WAIT 5603c8cc84cdb09a5920ea670a6108587dbf1dbb pending: gate red: none` (ev/classify1.txt, ev/classify2.txt). The packet lists every required context as queued. Per the dispatch, I did not wait: the relay posts this verdict once CI is green at this head.
+
+## Findings
+
+none

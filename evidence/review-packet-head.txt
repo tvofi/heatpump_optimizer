@@ -1,0 +1,40 @@
+# Review packet #3535
+head: 5603c8cc84cdb09a5920ea670a6108587dbf1dbb
+base: e4ca2d940efd1e87912d80cb3ebddf8240ba0729
+
+Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
+
+## Gate digest: pending
+arch-score / arch-score id=131697189481 queued
+arm id=131692883555 skipped
+budget-raise-gate / budget-raise-gate id=131697189415 queued
+cancel-superseded id=131695125605 queued
+codeql / Analyze (actions) id=131697189319 queued
+codeql / Analyze (javascript-typescript) id=131697189227 queued
+codeql / Analyze (python) id=131697189271 queued
+governance / delivery-status id=131697189483 queued
+governance / delivery-status-publish id=131697191150 skipped
+governance / env-matrix id=131697189505 queued
+governance / instrument-self-tests id=131697189518 queued
+governance / policy-docs id=131697189405 queued
+governance / record id=131697190755 skipped
+governance / wave-script id=131697189419 queued
+hassfest / hassfest id=131697189239 queued
+kernel-points id=131697191054 skipped
+prelude id=131695125286 queued
+refresh id=131695125658 queued
+tests / briefs id=131697189313 queued
+tests / closure-scope id=131697189334 queued
+tests / mutation id=131697189398 queued
+tests / nightly-status id=131697189354 queued
+validate / validate-hacs id=131697189250 queued
+
+## Refusals
+introduced-red: unreadable: head governance / instrument-self-tests job 131697189518: queued has not concluded: an introduced red cannot be ruled out (fail closed)
+
+## Advisories
+none
+
+## carry_audit at the head
+NOTE body item e5766f5a: R10-SELFTEST-SCOPE-UNION-GUARD: R10-SELFTEST-SCOPE-UNION-GUARD resolved on origin/handoff/audit-r10-roster
+NOTE body item 108ad3ad: R10-SELFTEST-SCOPE-UNION-GUARD: R10-SELFTEST-SCOPE-UNION-GUARD resolved on origin/handoff/audit-r10-roster
