@@ -507,6 +507,32 @@ def cases(bj) -> dict[str, bool]:
     res["bottleneck: an overlay without train_log is UNREADABLE and runs nothing"] = (
         digest(c) == "bottleneck: UNREADABLE overlay lacks train_log\n" and f.ran("bottleneck_check.py") == 0)
 
+    # scorecard
+    sc_out = "A_gate 1\nK 2\n"
+    c, f = fresh(answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    sc = next((x for x in f.calls if any(a.endswith("scorecard.py") for a in x)), [])
+    res["scorecard null: a clean report leaves the digest empty and writes scorecard.txt"] = (
+        not digest(c) and f.ran("scorecard.py") == 1 and bj.read(c.state / "beatd" / "scorecard.txt") == sc_out)
+    res["scorecard: the instrument is handed report, its dir under state/, the train_log and the checkout"] = (
+        "report" in sc and arg(sc, "--dir") == str(c.state / "scorecard")
+        and arg(sc, "--train-log") == str(c.state / "train.log") and arg(sc, "--repo") == str(c.repo)
+        and "--sweep-record" not in sc)
+    ov = json.loads((c.state / "sweep-overlay.json").read_text())
+    c, f = fresh(overlay={**ov, "sweep_record": "/x/rec.json"}, answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    sc = next((x for x in f.calls if any(a.endswith("scorecard.py") for a in x)), [])
+    res["scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)"] = (
+        arg(sc, "--sweep-record") == "/x/rec.json")
+    c, f = fresh(answers={"scorecard.py": (1, sc_out, "Traceback\nKeyError: 'x'\n")})
+    bj.scorecard(c)
+    res["scorecard: a failed instrument is UNREADABLE, never written"] = (
+        digest(c) == "scorecard: UNREADABLE rc=1: KeyError: 'x'\n" and not (c.state / "beatd" / "scorecard.txt").exists())
+    c, f = fresh(overlay={"repo": "o/r", "plan_slots": 10}, answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    res["scorecard: an overlay without train_log is UNREADABLE and runs nothing"] = (
+        digest(c) == "scorecard: UNREADABLE overlay lacks train_log\n" and f.ran("scorecard.py") == 0)
+
     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
     (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
@@ -1024,6 +1050,13 @@ MUTANTS = {
     "bottleneck_unreadable_dropped": ('ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
                                       'ln.startswith(("BOTTLENECK: ",))',
                                       "bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"),
+    "scorecard_rc_clean": ('    if rc != 0 or not out.strip():\n        return write_job(ctx, "scorecard"',
+                           '    if not out.strip():\n        return write_job(ctx, "scorecard"',
+                           "scorecard: a failed instrument is UNREADABLE, never written"),
+    "scorecard_sweep_dropped": ('if ctx.overlay.get("sweep_record"):', "if False:",
+                                "scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)"),
+    "scorecard_write_dropped": ('    atomic(ctx.state / "beatd" / "scorecard.txt", out)\n', "    pass\n",
+                                "scorecard null: a clean report leaves the digest empty and writes scorecard.txt"),
     "plan_train_dropped": ('"--plan", plan, *train)', '"--plan", plan)',
                            "plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"),
     "outside_lines_dropped": ('if ln.startswith("OUTSIDE ")]', 'if ln.startswith("OUTSIDEX ")]',

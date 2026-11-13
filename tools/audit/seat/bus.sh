@@ -228,18 +228,27 @@ signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is th
 
 carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and roster ops on stderr); else 0
   # An unread body or roster is said and the dispatch goes on: the gate cannot judge it.
-  local b out rc
+  local b out rc raw ref topic=()
   b=$(mktemp) || return 0
-  if ! ${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '.body // ""' > "$b" 2>/dev/null; then
+  # one call reads the head ref (its topic is the pull request's own group: the own-carry status
+  # exemption needs it) and the body; a reader that returns the body alone yields no topic
+  # `&& echo x` keeps gh's own status (`; echo x` would replace it) and the body's trailing newlines
+  if ! raw=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '"HEADREF:" + .head.ref + "\n" + (.body // "")' 2>/dev/null && echo x); then
     echo "BUS carry-landing UNREAD #$1: the body could not be read; the dispatch goes on" >&2; rm -f "$b"; return 0
   fi
+  raw=${raw%x}
+  if [[ $raw == HEADREF:* ]]; then
+    ref=${raw%%$'\n'*}; ref=${ref#HEADREF:}; raw=${raw#*$'\n'}
+    [ -n "$ref" ] && topic=(--topic "$(python3 -I "$ROOT/tools/audit/seat/topic_grammar.py" pr-topic "$ref")")  # mut:landtopic
+  fi
+  printf '%s' "$raw" > "$b"
   out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
-    landed --body "$b" --pr "#$1" 2>&1); rc=$?
+    landed --body "$b" --pr "#$1" ${topic[@]+"${topic[@]}"} 2>&1); rc=$?
   case $rc in
     0) ;;
     1) printf '%s\n' "$out" >&2
        python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
-         land-ops --body "$b" --pr "#$1" 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
+         land-ops --body "$b" --pr "#$1" ${topic[@]+"${topic[@]}"} 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
     *) printf 'BUS carry-landing UNREAD #%s: %s; the dispatch goes on\n' "$1" "$(tail -n 1 <<< "$out")" >&2 ;;
   esac
   rm -f "$b"; [ "$rc" != 1 ]  # mut:landed
@@ -1098,7 +1107,7 @@ P
   # the state dir it had, which its shim resolves under the real home.
   RH=$HOME
   run() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r \
-           HPO_BUS_LEDGER=$W/ledger/cloud-relay.log HPO_BUS_GH="bash $W/ghstub" HPO_BUS_PACKER="bash $W/packer" \
+           HPO_BUS_LEDGER=$W/ledger/cloud-relay.log HPO_BUS_GH="${BUS_GH:-bash $W/ghstub}" HPO_BUS_PACKER="bash $W/packer" \
            HPO_BUS_CLASSIFY="bash $W/classifier" HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
            HPO_IDENTITY_DIR=${BUS_ID:-$W/ap} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
   seat() { BUS_ID=$W/noid run "$@"; }
@@ -2113,6 +2122,28 @@ B
   out=$(run dispatch 7 "$h1" cmsg_L2); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
   expect "and dispatches once the group's carries name the pull request (P310, the null control)" $?
+  # R10-CARRY-AUDIT-P5 carry 4 / P605: a part-N body's `Carry N: not built here. Carry: <own group>` line
+  # is a status when the pull request's head ref resolves to that group; the topic reaches carry_audit.
+  printf '#!/bin/bash\nprintf "HEADREF:%%s\\n" "$HEADREF"; cat "%s/body31"\n' "$W" > "$W/ghstub2"
+  printf '## Forward-carry\n\n- Carry 0: not built in this part. Carry: R10-LIVE\n' > "$W/body31"
+  lroster '["From #99: the store seam."]'
+  out=$(HEADREF=fix/r10-live BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L3 2>&1); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+  expect "a body's own-group status line passes when the head ref is the group's branch (CARRY-LANDED-OWN-TOPIC)" $?
+  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L4 2>&1); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q '^CARRY-MISSING R10-LIVE'
+  expect "null control: the same line under another group's head ref is still refused" $?
+  out=$(BUS_GH=false run dispatch 7 "$h1" cmsg_L5 2>&1); rc=$?
+  echo "$out" | grep -q 'BUS carry-landing UNREAD #7: the body could not be read'
+  expect "an unreadable body is still reported by carry_landed, and the dispatch goes on (CARRY-LANDED-UNREAD)" $?
+  # the `&& echo x` sentinel keeps a body's last character: `R10-LIVEx` names no group, so the gate has
+  # nothing to land and the dispatch goes on; with the sentinel gone `${raw%x}` cuts it to `R10-LIVE`,
+  # which holds no carry (lroster '[]'), and the dispatch is refused CARRY-MISSING
+  printf '## Forward-carry\n\n- The census misses the store seam. Carry: R10-LIVEx\n' > "$W/body31"
+  lroster '[]'
+  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L6 2>&1); rc=$?
+  [ $rc = 0 ] && ! echo "$out" | grep -q 'CARRY-MISSING' && echo "$out" | grep -q '^bus-nonce: '
+  expect "a body ending in a literal x is read whole, not cut by the sentinel strip (CARRY-LANDED-SENTINEL)" $?
   printf '## Summary\nround four, repaired\n' > "$W/body31"
   git -C "$W/seat" push -q -f origin "$m0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
   # P102: a second watcher over the same state directory refuses, naming the holder; a dead
