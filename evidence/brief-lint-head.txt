@@ -150,13 +150,13 @@ TOTAL: 0 error(s) across 45 file(s)
   ERROR   [W1-G5] path: HARNESSES.md: not in the tree, and not present at its cited tag ref(s) [c398fc8, de668be, 757e164, audit-round2-evidence]
   WARNING [W1-G5] path:line: tools/audit/README.md:244-255: no anchor text extracted near the citation; line range only
   WARNING [W1-G5] path:line: tests/stress.py:1024: no anchor text extracted near the citation; line range only
-  ERROR   [W1-G6] path:line: optimizer.py:366-373: '_multi_start_minimize' not found near custom_components/heatpump_optimizer/optimizer.py:366-373; found at line 1058 instead
+  ERROR   [W1-G6] path:line: optimizer.py:366-373: '_multi_start_minimize' not found near custom_components/heatpump_optimizer/optimizer.py:366-373; found at line 1327 instead
   ERROR   [W1-G8] metric: 'methods 255 <= 255' cites a literal value for dead_methods; #411 rule 4: a fixer must re-measure at their own merge base, a literal is always an error
   ERROR   [W1-G8] metric: 'attrs 176 <= 176' cites a literal value for coordinator_attrs; #411 rule 4: a fixer must re-measure at their own merge base, a literal is always an error
   ERROR   [W1-G13] path: tools/audit/round2/D4/card_geometry.mjs: not in the tree, and not present at its cited tag ref(s) [291ae76, 2385df6]
   WARNING [W1-G14] path: card.js: not in the tree and no tag cited; could be shorthand for custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js, dev/audit/rounds/round10/D11/s2/scorecard_hand.py, dev/audit/rounds/round10/D5/s2/card_banner.py, dev/audit/rounds/round10/D7/s3/card_dead_fn.mjs, dev/audit/rounds/round10/D7/s3/card_dead_fn.sh -- verify by hand
-  ERROR   [W1-G14] path:line: tests/entities.py:6042-6062: 'does not run ahead' not found near tests/entities.py:6042-6062; found at line 22456 instead
-  ERROR   [W1-G14] version: VERSION 6.3.9 cited; live VERSION is 7.1.14
+  ERROR   [W1-G14] path:line: tests/entities.py:6042-6062: 'does not run ahead' not found near tests/entities.py:6042-6062; found at line 22501 instead
+  ERROR   [W1-G14] version: VERSION 6.3.9 cited; live VERSION is 7.1.15
   WARNING [W1-G15] path:line: env_drift.py:934-948: no anchor text extracted near the citation; line range only
   ERROR   [W1-G9] path: model_sanity.py: not in the tree, and no tag SHA is cited alongside it
   ERROR   [W1-G9] path:line (anchored): thermal_model.wood_share:1152 (custom_components/heatpump_optimizer/thermal_model.py): none of [break] found near custom_components/heatpump_optimizer/thermal_model.py:1152, or anywhere else in the file
@@ -222,6 +222,8 @@ CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, 
 CONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the legacy files are left out
 
 LEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption
+
+LEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart
 
 TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
 
