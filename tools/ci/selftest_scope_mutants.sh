@@ -52,7 +52,16 @@ scope_mutant "static skips the settle check" 'problems = wiring_gaps(steps) + se
 scope_mutant "record replaces the committed entry again" 'entries[sid] = union_entry(entries.get(sid), m)' 'entries[sid] = m'
 scope_mutant "the shrink guard exempts nothing deleted" 'and (k == "git" or not gone(x))' 'and (k == "git" or True)'
 scope_mutant "the shrink guard exempts every drop" 'and (k == "git" or not gone(x))' 'and (k == "git" or gone(x))'
-scope_mutant "static never runs the shrink guard" 'problems += shrink_gaps(root, table_base(root))' 'problems += []'
+scope_mutant "static never runs the shrink guard" 'problems += [unresolved] if unresolved else shrink_gaps(root, base)' 'problems += [unresolved] if unresolved else []'
+scope_mutant "the shrink guard keeps no probe by its listed directory" 'covers(files, x)
+                or any(a in dirs for a in _ancestors(x)),' 'covers(files, x),'
+scope_mutant "prune writes nothing" 'write_table(root / TABLE, entries, root)
+        return 0' 'return 0'
+scope_mutant "prune accepts an unknown drop" '        if unknown:
+            print(f"selftest_scope: not in the table' '        if False:
+            print(f"selftest_scope: not in the table'
+scope_mutant "an unresolvable named base resolves to no problem" 'return None, (f"UNRESOLVED base {c}' 'return None, "" and (f"UNRESOLVED base {c}'
+scope_mutant "static drops the unresolved-base problem" 'problems += [unresolved] if unresolved else' 'problems += [] if unresolved else'
 workflow_mutant "CI never settles the index" 'python3 -I tools/ci/selftest_scope.py settle' 'true'
 workflow_mutant "CI swallows a failed settle" 'python3 -I tools/ci/selftest_scope.py settle' 'python3 -I tools/ci/selftest_scope.py settle || true'
 wrapper_mutant "only launch untraced (the incident's wrapper)" 'case "$UNTRACED" in *" ${GITHUB_ACTION:-} "*)' 'case " launch " in *" ${GITHUB_ACTION:-} "*)'
