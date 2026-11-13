@@ -4040,7 +4040,8 @@
  },
  "inert_reads": {
   "tests/doc_claims.py": [
-   "docs/site/docs.css"
+   "docs/site/docs.css",
+   "tools/audit/seat/instruments/merge_train.py.md"
   ],
   "tests/entities.py": [
    "LICENSE",
