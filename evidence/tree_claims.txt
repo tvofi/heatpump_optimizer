@@ -1,0 +1,134 @@
+## round10 dir
+dev/audit/rounds/round10/CATCHUP-JUDGE.json
+dev/audit/rounds/round10/CATCHUP-JUDGE.md
+dev/audit/rounds/round10/CATCHUP-VERIFY.json
+dev/audit/rounds/round10/CATCHUP-VERIFY.md
+dev/audit/rounds/round10/D0/leads/tail_floor_own_bounds.py
+dev/audit/rounds/round10/D0/s1/REPORT.md
+dev/audit/rounds/round10/D0/s1/grid_dhw0.out
+dev/audit/rounds/round10/D0/s1/race.py
+dev/audit/rounds/round10/D0/s2/REPORT.md
+dev/audit/rounds/round10/D0/s2/ftol_race.out
+dev/audit/rounds/round10/D0/s2/ftol_race.py
+dev/audit/rounds/round10/D0/s2/ftol_race_1e-10.out
+dev/audit/rounds/round10/D0/s2/grid_race.out
+dev/audit/rounds/round10/D0/s2/grid_race.py
+dev/audit/rounds/round10/D0/s2/mpc_mask.out
+dev/audit/rounds/round10/D0/s2/mpc_mask.py
+dev/audit/rounds/round10/D0/s2/mpc_mask_ftol.out
+dev/audit/rounds/round10/D0/s3/REPORT.md
+dev/audit/rounds/round10/D0/s3/decomp.py
+dev/audit/rounds/round10/D0/s3/decomp_cold.out
+     77 dev/audit/rounds/round10
+      3 dev/audit/rounds/round10/D0
+      1 dev/audit/rounds/round10/D0/leads
+      3 dev/audit/rounds/round10/D0/s1
+      9 dev/audit/rounds/round10/D0/s2
+     11 dev/audit/rounds/round10/D0/s3
+      7 dev/audit/rounds/round10/D1
+      5 dev/audit/rounds/round10/D1/s1
+     10 dev/audit/rounds/round10/D1/s2
+      3 dev/audit/rounds/round10/D1/s3
+      1 dev/audit/rounds/round10/D10
+      1 dev/audit/rounds/round10/D10/leads
+      5 dev/audit/rounds/round10/D10/s1
+      2 dev/audit/rounds/round10/D10/s2
+      3 dev/audit/rounds/round10/D10/s3
+      1 dev/audit/rounds/round10/D11
+      1 dev/audit/rounds/round10/D11/leads
+      2 dev/audit/rounds/round10/D11/s1
+      2 dev/audit/rounds/round10/D11/s2
+      2 dev/audit/rounds/round10/D11/s3
+## tools exist
+N tools/audit/scorecard.py
+Y tools/audit/seat/scorecard.py
+Y tools/audit/seat/flow_metrics.py
+Y tools/audit/seat/review_strength.py
+Y tools/audit/machinery_ratchet.py
+N tools/audit/seat/machinery_ratchet.py
+N tools/audit/governance_cost.py
+N tools/audit/seat/governance_cost.py
+Y tests/ha_contract.py
+Y dev/audit/config/bugclasses.json
+Y tools/audit/seat/instruments/scorecard.py.md
+Y tools/audit/seat/instruments/machinery_ratchet.py.md
+Y tools/audit/seat/instruments/check_scopes.py.md
+dev/audit/harnesses/r10_machinery_ratchet_mutants.py
+dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py
+dev/audit/harnesses/r10_train_overlap_grade_p4_mutants.py
+dev/audit/rounds/round10/D11/s2/scorecard_hand.py
+dev/audit/rounds/round4/D11/standards_scorecard.py
+dev/audit/rounds/round8/evidence/D11/s2_scorecard.py
+dev/audit/rounds/round8/evidence/D5/v1_stepnum_overlap.py
+tests/mutation_ledger/killed_by/dhw_schedule.py/overlap_fraction.CLAMP_DROP.cee7f580.json
+tests/mutation_ledger/killed_by/dhw_schedule.py/overlap_fraction.CLAMP_DROP.e982a2d6.json
+tests/mutation_ledger/killed_by/dhw_schedule.py/overlap_fraction.RETURN_DEL.cee7f580.json
+tests/mutation_ledger/killed_by/quiet_windows.py/_overlaps.BOOLOP.e798a0b3.json
+tests/mutation_ledger/killed_by/quiet_windows.py/_overlaps.CMP_BOUND.e798a0b3.json
+tests/mutation_ledger/killed_by/quiet_windows.py/_overlaps.RETURN_DEL.e798a0b3.json
+tests/mutation_ledger/killed_by/quiet_windows.py/overlap_problem.GUARD_OFF.569d717f.json
+tests/mutation_ledger/killed_by/quiet_windows.py/overlap_problem.GUARD_OFF.8a6c7642.json
+tests/mutation_ledger/killed_by/quiet_windows.py/overlap_problem.GUARD_OFF.8a6c7642~2.json
+tests/mutation_ledger/killed_by/quiet_windows.py/overlap_problem.GUARD_OFF.c8dae14f.json
+tests/mutation_ledger/killed_by/quiet_windows.py/overlap_problem.GUARD_OFF.d252a256.json
+tests/mutation_ledger/killed_by/quiet_windows.py/overlap_problem.RETURN_DEL.da9e8e97.json
+tools/audit/archscore/planted/cases.py
+0013-verdicts-post-as-the-approver-app.md
+0014-design-seats-and-the-end-of-0012s-moratorium.md
+0015-the-architects-plan-seam-grouping-and-standing-seats.md
+0016-a-major-version-is-a-closed-audit-round.md
+0017-objective-function.md
+## flags
+tools/audit/seat/flow_metrics.py:5:    python3 tools/audit/seat/flow_metrics.py [--fetch] --window FROM..UNTIL \\
+tools/audit/seat/flow_metrics.py:160:    ap.add_argument("--window", metavar="FROM..UNTIL")
+tools/audit/seat/flow_metrics.py:174:        ap.error("--window FROM..UNTIL, --roster REF:PATH and --prefix are required")
+tools/audit/seat/review_strength.py:6:        --window E=2026-10-15T12:37Z..2026-10-19T14:50Z \\
+tools/audit/machinery_ratchet.py:698:    ap.add_argument("--measure", action="store_true", help="print the metrics and, with --bands, each band")
+tools/audit/machinery_ratchet.py:704:                    help="with --measure: W in place of the budgets file's, for a tree that has none")
+tools/audit/seat/scorecard.py:22:  A_gate   share of the last 20 concluded (success or failure) main runs whose
+tools/audit/seat/scorecard.py:39:  H        hotfix-token merges among the last 50 code merges (class production
+tools/audit/seat/scorecard.py:49:  E        escapes: roster groups whose source is `outside`, and hotfix or bug
+tools/audit/seat/scorecard.py:105:        return ["A_gate  unread (no concluded main run)", "A_run   unread (no concluded main run)"]
+tools/audit/seat/scorecard.py:110:    return [f"A_gate  {gate_part}  (unread {g['unread']} of {len(ok)}; window {ok[0]['t']} .. {ok[-1]['t']})",
+tools/audit/seat/scorecard.py:239:    out += line_a(runs, gate) if runs else ["A_gate  unread (runs.json)", "A_run   unread (runs.json)"]
+## COMMON bug class
+75:8. **A stop-rule class**: `bug` (the code does something wrong) or `hygiene`
+## audit-find round var
+30:const round = args?.round
+166:const ROUND_DIR = `dev/audit/rounds/round${round}`
+215:7. From ${repo}, run \`python3 tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --round ${round}\` and return its exit status as scopes_rc (an integer, read from the shell, never inferred from the text) and its complete output as scopes_out.
+216:Return JSON {exportDir, worktrees: {<seat id>: <absolute path>} for the seats of step 2, python, node, rotation_ok, rotation_note, scopes_ok, scopes_note, scopes_rc, scopes_out}.`,
+217:  { label: 'prepare', schema: { type: 'object', required: ['exportDir', 'worktrees', 'python', 'rotation_ok', 'scopes_ok', 'scopes_rc', 'scopes_out'], properties: { exportDir: { type: 'string' }, worktrees: { type: 'object' }, python: { type: 'string' }, node: { type: 'string' }, rotation_ok: { type: 'boolean' }, rotation_note: { type: 'string' }, scopes_ok: { type: 'boolean' }, scopes_note: { type: 'string' }, scopes_rc: { type: 'integer' }, scopes_out: { type: 'string' } } } },
+226:if (prep.scopes_rc !== 0) throw new Error(`check_scopes.py --ref ${baseline} exited ${JSON.stringify(prep.scopes_rc)}, not 0; fix dev/audit/config/scopes.json before the round:\n${prep.scopes_out ?? ''}`)
+## D12/D0 briefs
+29:   or a dynamic program on a coarsened grid) as an outer bound on the same
+34:4. **The grid**: every price profile × weather profile in `tests/profiles.py`
+38:5. **Null control**: the same race at `profiles.prices("flat")`. A gap that
+39:   survives flat prices is not price optimality; name what it is. A real
+58:  too (#2612: non-flat +0.15 %, flat null -0.79 %, 1 of 6 cells worse). A
+60:  closed-loop money that does not fall on a flat price, in
+64:- Report SEK/day only beside the flat-price arm and the bill share; a 1 %
+8:not only on one reference install.
+12:An install the tree already claims to support — a hydronic layout, DHW or
+32:2. **Installation axes.** For each cell: hydronic layout (single-zone,
+38:3. **Heat-pump axes.** On/off versus modulating (the frequency map and the
+## oracle
+dev/audit/harnesses/r10_ci_gate_core.py
+dev/audit/harnesses/r10_demand_overbook.py
+dev/audit/harnesses/r10_sav_wood_reference.py
+dev/audit/harnesses/r10_sweep_driver_arm.py
+tests/entities.py
+tests/features.py
+tests/finite_boundary.py
+tests/ha_floor.py
+tests/mutation_ledger/killed_by/tariff.py/PeakTracker._close_window.GUARD_OFF.b2570371.json
+tests/mutation_table.py
+## mandate text in 0013
+79:    which there shares the base's cache scope (the documented pwn-request
+252:  `MANDATE: agents may approve as tvofi, scope <code-owned|budget-raise|all>,
+271:  `tvofi`, posted on another issue or repository, scoped `code-owned`, or not the grammar; a
+299:  raises (scope `budget-raise` or `all`, read as the amendment above reads it),
+## objects not covered
+243
+105
+159
