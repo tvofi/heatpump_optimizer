@@ -45,7 +45,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-LEGACY-CONTROL-DATA (stage carries-open, branch `fix/r10-hotfix-legacy-control-data`): `git fetch origin fix/r10-hotfix-legacy-control-data && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-MACOS-SELFTEST-LANE (stage in-progress, branch `fix/r10-hotfix-macos-selftest-lane`): `git fetch origin fix/r10-hotfix-macos-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-OUTSIDE-VALVE-TARGET-LABEL (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-VALVE-TARGET-LABEL (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SELFTEST-SCOPE-RERECORD (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-UPDATEPR-FIGURE-REFRESH (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-OPENER-REFUSALS (stage in-progress): no branch pushed yet, so nothing to fetch
