@@ -1,4 +1,0 @@
-rev fbde1675681fb1f8f86e971b923070e8a62b382f
-allowlist: tick_loop self-test: 39 checks, 1 failed rc=1
-    FAIL the rows' entry point run with a name off the allowlist refuses before any row, naming it
-rc=0

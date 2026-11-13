@@ -1,0 +1,79 @@
+### whole
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+whole: tick_loop self-test: 41 checks, 0 failed rc=0
+### rc=0
+### envi
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+envi: /tmp/tmp.n3RtpffO78/m-envi/tools/audit/seat/tick_loop.sh: line 67: refused: --self-test refused: the env -i re-exec did not replace this process (a caller function named exec?); no row ran rc=1
+### rc=0
+### carry
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+carry: tick_loop self-test: 41 checks, 1 failed rc=1
+    FAIL the poison row: the 90 names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call
+### rc=0
+### pathfirst
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+pathfirst: tick_loop self-test: 41 checks, 1 failed rc=1
+    FAIL the poison row: the 90 names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call
+### rc=0
+### failopen
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+failopen: tick_loop self-test: 41 checks, 2 failed rc=1
+    FAIL fail closed (func): a caller function named exec that skips the env -i re-exec ends in a refusal, no row run, the HPO_HEARTBEAT_REMOTE repository holding no ref
+    FAIL fail closed (bashenv): a caller function named exec that skips the env -i re-exec ends in a refusal, no row run, the HPO_HEARTBEAT_REMOTE repository holding no ref
+### rc=0
+### pipefail
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+pipefail: tick_loop self-test: 41 checks, 8 failed rc=1
+    FAIL a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+      nested FAIL: a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+    FAIL the self-test run from a branch checkout behind origin/main passes and does not move its HEAD
+      nested FAIL: a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+    FAIL the self-test run from a detached checkout behind origin/main passes and does not move its HEAD
+      nested FAIL: a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+    FAIL the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD
+    FAIL the poison row: the 90 names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call
+    FAIL null control: the same caller with no function named exec runs every row under env -i, passes, and touches no repository it names
+    FAIL the self-test's rows pass under offline_spy.py: no network call, no remote git call, their git calls seen
+      nested FAIL: a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match
+    FAIL null control: a branch checkout at origin/main (behind 0) passes and stays put
+### rc=0
+### channels
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+channels bashenv-all: tick_loop self-test: 41 checks, 0 failed rc=0 fn-calls=0 victim-refs=0
+channels env: tick_loop self-test: 41 checks, 0 failed rc=0 fn-calls=0 victim-refs=0
+channels fn-all: tick_loop self-test: 41 checks, 0 failed rc=0 fn-calls=0 victim-refs=0
+channels fn-exec: /tmp/tmp.v9WtNmAZva/src/tools/audit/seat/tick_loop.sh: line 67: refused: --self-test refused: the env -i re-exec did not replace this process (a caller function named exec?); no row ran rc=1 fn-calls=1 victim-refs=0
+channels ifs: tick_loop self-test: 41 checks, 0 failed rc=0 fn-calls=0 victim-refs=0
+channels noexec:  rc=0 fn-calls=0 victim-refs=0
+channels opts: tick_loop self-test: 41 checks, 0 failed rc=0 fn-calls=0 victim-refs=0
+channels path: tick_loop self-test: 41 checks, 0 failed rc=0 fn-calls=0 victim-refs=0
+channels posix: /usr/bin/bash: `exec': is a special builtin rc=2 fn-calls=0 victim-refs=0
+channels shellopts-posix: tick_loop self-test: 41 checks, 0 failed rc=0 fn-calls=0 victim-refs=0
+channels null control fn: fn-calls=4
+channels null control bashenv: fn-calls=4
+channels null control env: fn-calls=1
+channels null control path: fn-calls=1
+channels corpus: 85 function names
+### rc=0
+### branch
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+branch behind=1: tick_loop self-test: 31 checks, 0 failed HEAD-UNMOVED
+### rc=0
+### detached
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+detached behind=1: tick_loop self-test: 31 checks, 0 failed HEAD-UNMOVED
+### rc=0
+### gitdir
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+gitdir behind=1: tick_loop self-test: 31 checks, 0 failed HEAD-UNMOVED
+### rc=0
+### shim
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+shim behind=0: tick_loop self-test: 31 checks, 0 failed HEAD-UNMOVED
+### rc=0
+### level
+rev c17c11af72a8af22fc19e5cd7360bf8adf0acabe
+level behind=0: tick_loop self-test: 31 checks, 0 failed HEAD-UNMOVED
+### rc=0
+DONE
