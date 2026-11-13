@@ -20905,7 +20905,7 @@
    "architect_note": "",
    "brief": "GitHub-read residue after #3361: app_push.sh push retry on git_transient (reuse gh_read.run_git_retry), the unattributed core-bucket drain (P449), and codescan_wait.settled() failing closed on a partial re-run whose carried-over jobs list no steps. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "note": "set-files files ['tools/pr/app_push.sh', 'tools/ci/codescan_wait.py', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/shims'] -> ['tools/pr/app_push.sh', 'tools/ci/codescan_wait.py', 'tools/audit/seat/gh_calls.py', 'tools/audit/seat/shims', 'tools/audit/seat/merge_train.py']",
     "pr": 3427,
