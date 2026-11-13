@@ -1942,6 +1942,10 @@ selftest_tmp_root() {
 # (merge base, gate mode, version edit, claim files) are demonstrated by the
 # `pr-contract` job running this script on every pull request.
 if [ "${1:-}" = "--self-test" ]; then
+  # The rows set or leave unset these two themselves; a caller exporting one
+  # (update_pr.sh exports PREPR_SKIP_CLOSURES=1) must not reach a fixture child
+  # shell, where an assignment to an exported name keeps it exported.
+  unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES
   # Every throwaway repository below takes the shared helper: auto-maintenance
   # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
   . tests/throwaway_git.sh || exit 2
@@ -4165,8 +4169,8 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   HSL="hotfix scope=fix/any is a hotfix group's branch;"
   st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 1) )" "${HSL}code steps=hotfix scope;|hotfix|1|unset,unset" "(hotfix) a roster-classed hotfix branch prints the scope line and the hotfix code-steps line (never a receipt claim), and defaults both skips on in this shell only"
   st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 0) )" "|unset|unset|unset,unset" "(hotfix) null control: a non-hotfix branch prints nothing and sets neither skip"
-  st "$( (unset PREPR_SKIP_CLOSURES; PREPR_SKIP_CODE=; hs 1) )" "${HSL}||1|unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays"
-  st "$( (unset PREPR_SKIP_CODE; PREPR_SKIP_CLOSURES=; hs 1) )" "${HSL}code steps=hotfix scope;|hotfix||unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; PREPR_SKIP_CODE=; hs 1) )" "${HSL}||1|unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; PREPR_SKIP_CLOSURES=; hs 1) )" "${HSL}code steps=hotfix scope;|hotfix||unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays"
   st "$( (export PREPR_SKIP_CODE=abc PREPR_SKIP_CLOSURES=x; hs 1) )" "code steps=reused from the receipt at abc;|abc|x|abc,x" "(hotfix) explicit values pass through unchanged and, both set, no scope line; a caller's own value is still a receipt reuse"
   # End to end, the seam the stub above skips: hotfix_class runs the real
   # gate_priority.py --hotfix against a fixture roster published as a local origin, so
