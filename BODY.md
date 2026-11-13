@@ -7,9 +7,23 @@ Carry 7: `noreturn_arm` also lists `dispatch/reviewer-*`. A reviewer dispatch ol
 
 Architecture: all four extend the seams that exist (the pending-ci block, `probe_arm`'s `disposed` check, `noreturn_arm`'s level) with no parallel mechanism; two small helpers (`pending_red_seen`, `pending_red_clear`) hold the RED record. Alternative refused for 23: recording the clock in `cloud-relayed.refused-why`, which only exists after the refusal it is meant to delay. Policy edits: none.
 
+## Review block answered (round 2, blocked 740e6074 on four surviving mutants)
+
+Each reviewer mutant spec (`ev/mutants.json` of probe/rev-3541-7c9edde1, run unchanged, `mutant_run.py --spec ... --cmd 'bash tools/audit/seat/cloud_relay.sh --self-test' --copy-tree`) before at 740e6074 (ev/mutant_run.*.log) and after at this head. No predicate was unreachable, so none was removed and none is routed elsewhere; production text is unchanged from 740e6074.
+
+- redsecs-validate-off: SURVIVED -> KILLED. Pinned by a non-numeric `HPO_RELAY_PENDING_RED_SECS` at a GREEN head holding (rc 75), saying why and posting nothing; null control: a numeric bound at the same GREEN head posts.
+- nr-rev-window-off: SURVIVED -> KILLED. Pinned by reviewer #3402 dispatched 200000 s ago staying silent; null control: #3339 (6000 s) fires in the same pass.
+- nr-rev-revt-off: SURVIVED -> KILLED. Pinned by reviewer #3403 returned as `probe/revt-<topic>-<n8>` staying silent; null control: #3339 with no return ref fires.
+- nr-rev-lsremote-fail-continue: SURVIVED -> KILLED. Pinned by a pass whose return listing fails (a `git` shell function failing `ls-remote` on `probe/rev-*`) owing no reviewer; null control: the same dispatches fire in the unfailed pass.
+- NULL: SURVIVED, as required.
+
+The four arms add 6 checks (482 -> 488). Fixer steps re-opened: 2 (the four mutants above), 5 (`python3 tests/structure.py`, `prepr.sh` below); 3, 4 and 8 describe the same single-file diff and are unchanged.
+
+Roster carries outside this part (part 2 builds only Carry 7, Carry 21, Carry 23 and Carry 30, the set it was dispatched with; the rest are not its findings and none is dropped here): Carry 0, Carry 1, Carry 2, Carry 3, Carry 4, Carry 5, Carry 6, Carry 8, Carry 9, Carry 10, Carry 11, Carry 12, Carry 13, Carry 14, Carry 15, Carry 16, Carry 17, Carry 18, Carry 19, Carry 20, Carry 22, Carry 24, Carry 25, Carry 26, Carry 27, Carry 28, Carry 29, Carry 31, Carry 32.
+
 ## Head
 
-bdf1dc827e2d6d99050de2d2df8e82fd6034606c, cut from origin/main caacd43b4ee1b1ce849fbc92590e0b2191e6c02c, measured 2026-11-13T06:18Z.
+7d09eae1ba3ab2ab5a7ed2b84a087d6c5d6ef128, descending from 740e6074cf5bace0302c7f2896b72149c918f010 (the blocked head), cut from origin/main caacd43b4ee1b1ce849fbc92590e0b2191e6c02c, measured 2026-11-13 (`date -u`).
 
 ## Mutation proof
 
@@ -35,7 +49,7 @@ The unmodified tree at the merge base: `bash tools/audit/seat/cloud_relay.sh --s
 
 ## Figures
 
-- `bash tools/audit/seat/cloud_relay.sh --self-test` at merge base caacd43b4e: 452 checks, 0 failed; at the head: 482 checks, 0 failed (30 new arms, count of `ok` lines the command prints).
+- `bash tools/audit/seat/cloud_relay.sh --self-test` at merge base caacd43b4e: 452 checks, 0 failed; at the head: 488 checks, 0 failed (36 new arms, count of `ok` lines the command prints).
 - `python3 tests/structure.py`: run at the head, see prepr below.
 
 ## Red checks
