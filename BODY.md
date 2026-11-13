@@ -48,6 +48,8 @@ Part 2 (`r10-outside-contributor-cycle-p2`) was built before this part published
 
 ## Head
 
+**Merge resolution: this head is `9dd758296703483f65f6ff6f4688c82103e19df2`, `origin/main` 727e37e7b1e5d669d8b37541aae62e9224d988e5 merged into 59cc5f8b1b609d1338b99b192ed757214c1bd8e7.** One file conflicted, `tools/ci/selftest_closures.json` (the `verdict-bus` entry: the branch's `tools/**` against main's file list). It is resolved by `tools/ci/selftest_scope.py`'s union rule through its own `collapse` and `compact_probes` (no strace host was available, so no `record` ran); the entries both sides changed (ci-predictor, field-coverage, open-pr, policy-lint-mutants, pr-args, selftest-wiring, update-pr, verdict-bus) each cover both sides' reads, and `selftest_scope.py static` reads 0 problems. The merge base with `origin/main` is now main's tip. The figures and mutation proof above were taken at 7e7accbe and are not re-taken here.
+
 `7e7accbe20b04db5754720fb5360f25231003faf`
 
 Merge base with `origin/main`: 4145f2852642fd0b5ccb8b7af60d41e896a5eea3, main's tip when it was merged (`git merge-base origin/main HEAD`).
