@@ -26611,6 +26611,54 @@
     "next_step": "cloud fable fixer fired 2026-11-13; fable reviewer; owner review (policy)",
     "note": "intake: owner instruction 2026-11-13; post-stamp edge so round 10 closure does not move; drafting starts now; overlap admitted (R10-D5-D6-FULL-SCOPE, R11-PRE-TOOLCHAIN-PIN, R11-PRE-RULINGS-FILE): owner instruction 2026-11-13: define the objective function and add its round-start evaluation to the audit process"
    }
+  },
+  {
+   "group": "R10-DIMENSIONS-FULL-COVERAGE",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "process",
+   "severity": "medium",
+   "size": "L",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-D5-D6-FULL-SCOPE"
+   ],
+   "files": [
+    "dev/governance/roles/COMMON.md",
+    "dev/audit/config/finding.schema.json",
+    "dev/audit/config/scopes.json",
+    "dev/audit/config/rotation.json",
+    "tools/audit/check_scopes.py",
+    "CLAUDE.md"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "fable",
+   "reviewerModel": "fable",
+   "model": {
+    "fixer": "fable",
+    "reviewer": "fable",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner rulings 2026-11-13: every audit dimension covers its whole scope each round with a reported denominator, two new dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect), D11 and D13 run every round, and the round records what it found, fixed, injected and let escape. Owed, one policy pull request for the owner s review, landing the round 10 dimension coverage audit (commit 6ca3bfb7142be1ccb0d5275041c41d5eae3c8ddc on the ref handoff-wip/r10-dimension-coverage-audit) as its evidence: the denominator rule in dev/governance/roles/COMMON.md and the finding schema, the unreached remainder dispatched again next round, the brief edits the audit lists, the two new dimension briefs as drafts for the owner s wording, a territory check in tools/audit/check_scopes.py, and the convergence records.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-dimensions-full-coverage",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud fixer; reviewer; owner review (policy)",
+    "note": "intake: owner instruction 2026-11-13; must merge before round 11 finders start; builds on R10-D5-D6-FULL-SCOPE for scopes.json; overlap admitted (R10-D5-D6-FULL-SCOPE, R11-PRE-RULINGS-FILE, R11-PRE-OBJECTIVE-FUNCTION): owner instruction 2026-11-13: all dimension-audit changes incl. two new dimensions before round 11 (re-queue: first brief cited a path not in the tree)"
+   }
   }
  ]
 }
