@@ -60,8 +60,10 @@ re-typed. `approve` is the one writer of the machinery's form.
 """
 import argparse
 import ast
+import contextlib
 import datetime
 import importlib.util
+import io
 import json
 import os
 import re
@@ -966,6 +968,67 @@ def self_test() -> int:
            "approve REFUSE: the mandate gone between the post and the read-back, so the landed review is not reported as approved")
         ro = reset(paths=OP); ro[f"repos/{R}/pulls/{PR}"] = "ERR"; rc, posts, out = ap()
         st((rc, posts, "an unread fact refuses" in out), (1, 0, True), "approve REFUSE: the pull request unreadable")
+
+        # --- the command line: main() itself, every option by an answer that needs it ---
+        def cli(*argv):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(io.StringIO()):
+                try:
+                    rc = main(list(argv))
+                except SystemExit as e:
+                    rc = ("exit", e.code)
+            return rc, buf.getvalue()
+
+        def at_ref(ref, **kw):  # the allowlist and CODEOWNERS readable at `ref` alone
+            reset(**kw); world["files"] = {(ref, k): v for k, v in world["files"].items()}
+
+        BASE = ("--repo", R, "--pr", str(PR))
+        HM = ("--head", H, "--mandate", str(MID))
+        reset(); st(cli("cross", *BASE), (0, f"CROSS-REPOSITORY #{PR}: head repository bankaifan/heatpump_optimizer, not {R}\n"),
+                    "cli cross: a fork's head prints its line and exits 0")
+        reset(head_repo=R); st(cli("cross", *BASE)[0], 3, "cli cross: a head of ours exits 3")
+        reset(); st(cli("classify", "--pr", str(PR), "tools/x.py", "README.md", f"dev/programme/delivery/{PR}.md"),
+                    (0, f"R tools/x.py\nF README.md\nF dev/programme/delivery/{PR}.md\n"),
+                    "cli classify: one line per path, the delivery row free for the --pr named, exit 0")
+        reset(); del world["files"][CODEOWNERS]; rc, out = cli("classify", "--pr", str(PR), "README.md")
+        st((rc, out.startswith("REFUSE: ")), (1, True), "cli classify REFUSE: CODEOWNERS unreadable exits 1")
+        at_ref("origin/main"); st(cli("classify", "--pr", str(PR), "README.md")[0], 0, "cli classify reads origin/main when no --ref is given")
+        at_ref("origin/other")
+        st((cli("classify", "--pr", str(PR), "README.md")[0], cli("classify", "--pr", str(PR), "--ref", "origin/other", "README.md")[0]), (1, 0),
+           "cli classify: --ref names the ref the rules are read at")
+        at_ref("origin/main"); rc, out = cli("check", *BASE, "--no-fetch")
+        st((rc, f"OUTSIDE: #{PR}" in out, fetched()), (0, True, []), "cli check: admitted at origin/main by default, and --no-fetch fetches nothing")
+        at_ref("origin/other")
+        st((cli("check", *BASE, "--no-fetch")[0], cli("check", *BASE, "--no-fetch", "--ref", "origin/other")[0]), (1, 0),
+           "cli check: --ref names the ref the contract is read at")
+        reset(); st((cli("check", *BASE)[0], fetched()), (0, FETCH), "cli check: without --no-fetch the head is fetched")
+        ro = reset(); ro[f"repos/{R}/issues/comments/31"] = {"user": BK, "issue_url": f"https://api.github.com/repos/{R}/issues/8"}
+        st((cli("check", *BASE, "--no-fetch")[0], cli("check", *BASE, "--no-fetch", "--comment", "31")[0]), (0, 1),
+           "cli check: --comment hands the verdict comment to the contract")
+        reset(reviews=[], paths=OP); rc, out = cli("check", *BASE, "--no-fetch", "--early")
+        st((cli("check", *BASE, "--no-fetch")[0], rc, out.startswith("PENDING:")), (1, 0, True), "cli check: --early turns an owed class-O read from a refusal into PENDING")
+        with tempfile.TemporaryDirectory() as td:
+            pj, notjson = os.path.join(td, "pull.json"), os.path.join(td, "bad.json")
+            Path(pj).write_text(json.dumps(pull())); Path(notjson).write_text("{not json")
+            reset(reviews=[], paths=OP); rc, out = cli("check", *BASE, "--no-fetch", "--early", "--pull-json", pj)
+            st((rc, out.startswith("PENDING:"), world["log"]), (0, True, []), "cli check: --pull-json judges the file and makes no gh call")
+            for bad in (pj + ".absent", notjson):
+                reset(); st(cli("check", *BASE, "--no-fetch", "--early", "--pull-json", bad), (1, f"REFUSE: {bad} is not a readable JSON file\n"),
+                            f"cli check REFUSE: --pull-json {os.path.basename(bad)} exits 1, never falling back to the API")
+        reset(paths=OP); rc, out = cli("approve", *BASE, "--head", "abc", "--mandate", str(MID))
+        st((rc, out, world["log"]), (1, "REFUSE: --head takes a 40-hex commit\n", []), "cli approve REFUSE: a --head that is no 40-hex commit, before any read")
+        reset(paths=OP); rc, out = cli("approve", *BASE, *HM)
+        st((rc, out.startswith("APPROVED: "), world["routes"][RV][-1]["body"], fetched()), (0, True, AB, FETCH),
+           "cli approve: posts the default role's body at --head under --mandate, fetching the head")
+        reset(paths=OP); rc, out = cli("approve", *BASE, *HM, "--no-fetch", "--role", "another seat")
+        st((rc, "given by another seat," in world["routes"][RV][-1]["body"], fetched()), (0, True, []), "cli approve: --role is the role written, and --no-fetch fetches nothing")
+        reset(paths=OP); rc, out = cli("approve", *BASE, "--head", H, "--no-fetch")
+        st((rc, "never defaulted" in out), (1, True), "cli approve REFUSE: no --mandate is no mandate")
+        at_ref("origin/other", paths=OP); first = cli("approve", *BASE, *HM, "--no-fetch")[0]
+        st((first, cli("approve", *BASE, *HM, "--no-fetch", "--ref", "origin/other")[0]), (1, 0), "cli approve: --ref names the ref, origin/main by default")
+        for argv in ((), ("check", "--pr", str(PR)), ("check", "--repo", R), ("classify", "README.md"), ("cross", "--pr", str(PR)),
+                     ("cross", "--repo", R), ("approve", "--pr", str(PR), "--head", H), ("approve", "--repo", R, "--head", H), ("approve", *BASE)):
+            reset(); st(cli(*argv)[0], ("exit", 2), f"cli: {' '.join(argv) or 'no subcommand'} exits 2: a required argument is never defaulted")
     finally:
         subprocess.run = real_run
         carries, show, changed, git = real
