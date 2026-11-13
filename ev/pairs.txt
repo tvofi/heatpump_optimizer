@@ -1,0 +1,4 @@
+RESULT 154dbb4c61 scripts=33 pairs=528 comparable=406 at_floor=154 prod_files=109 block_duty=73 empty=['tests/arch_score.py', 'tests/ha_contract.py', 'tests/layout.py', 'tests/md_tables.mjs']
+RESULT 10d8f0433b scripts=33 pairs=528 comparable=406 at_floor=162 prod_files=109 block_duty=90 empty=['tests/arch_score.py', 'tests/ha_contract.py', 'tests/layout.py', 'tests/md_tables.mjs']
+joined [('tests/arch_score_head.py', 'tests/block_duty.py'), ('tests/block_duty.py', 'tests/config_flow_steps.py'), ('tests/block_duty.py', 'tests/deployment_shape.py'), ('tests/block_duty.py', 'tests/doc_claims.py'), ('tests/block_duty.py', 'tests/entities.py'), ('tests/block_duty.py', 'tests/env_drift.py'), ('tests/block_duty.py', 'tests/features.py'), ('tests/block_duty.py', 'tests/golden.py'), ('tests/block_duty.py', 'tests/harness_headers.py')]
+left [('tests/block_duty.py', 'tests/card.mjs')]
