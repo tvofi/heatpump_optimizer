@@ -1,3 +1,31 @@
+## v7.1.15
+
+**Patch stamp: 16 merges since v7.1.14 (`git log --first-parent --merges --format=%h v7.1.14..HEAD | wc -l`): the supply switch now keeps its minimum run and pause, the mixing-valve target is labelled as a room temperature, boosts keep the learners clean while their heat settles, and the dashboard card folds its detail sections; the rest is tooling.**
+
+### #3512 The supply switch keeps a minimum run and a minimum pause (R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE)
+
+A re-solve, a cycle, a restart or a late write landing inside a plan step can no longer switch the supply off after a very short run or on after a very short pause, or start a run the plan ends straight away. A held write is retried each minute and lands once its minimum has passed; the intervals that ran differently from the plan are not learned from.
+
+### #3536 The mixing-valve target says it is a room temperature (R10-OUTSIDE-VALVE-TARGET-LABEL)
+
+The option is now named "Room temperature the mixing circuit holds" and its help states it is an indoor temperature, never a flow temperature. A value above the top of your comfort band raises a repair notice (nothing is changed, since it can be deliberate); README and the configuration docs say the same.
+
+### #3505 Boosts no longer leave slab heat in the learners (R10-OUTSIDE-LEARNER-ROBUSTNESS-P2)
+
+After a space boost or the global boost mode ends, the learners stay frozen for a settling tail while the heat the boost put into the floor slab dies away, and that tail survives a restart. Installs that never boost store exactly what they did before.
+
+### #3441 The card folds its detail sections and moves the legend (R10-CARD-COLLAPSE)
+
+On the dashboard card, "Plan by reason" and "Why now" start folded under a one-line summary and open with a click, Enter or Space. The legend chips and their footnote now live in the enlarged view only; the tile shows the chart with the series you last left switched on.
+
+### Developer tooling, CI and audit machinery only
+
+#3552, #3550, #3490, #3541, #3528, #3545, #3516, #3525, #3543, #3540.
+
+### Record only
+
+#3548, #3542 (delivery rows, autofix).
+
 ## v7.1.14
 
 **Patch stamp: duty-switch restart learning part B, mode before supply on, ECL110 MQTT off-neutral, and user-docs corrections; the rest is tooling.**
