@@ -21152,7 +21152,7 @@
    "architect_note": "",
    "brief": "Part 5 of R10-BODY-CONTRACT, carry_audit.py only: an indented Carry continuation and a quoted Carry phrase (pinned by the seven refused verdicts), and NONBLOCK section scoping (P440). Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "pr": 3493,
     "commit": "d1def1ea63078aa58cc56f9d323ca60f732464bb"
