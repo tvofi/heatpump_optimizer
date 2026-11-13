@@ -1,0 +1,59 @@
+RESULT mutant=h-D5-2to1 tree=head rc=1 226 passed, 1 failed 1 skip-line
+  FAIL ...and the cadence is otherwise read from the round number (D5 off at 11, on at 12; D0 on at 11; D11 and D13 follow their CADENCE ent
+RESULT mutant=h-D11-3to2 tree=head rc=0 227 passed, 0 failed 1 skip-line
+RESULT mutant=h-D13-3to2 tree=head rc=0 227 passed, 0 failed 1 skip-line
+RESULT mutant=h-D11-3to1 tree=head rc=0 227 passed, 0 failed 1 skip-line
+RESULT mutant=b-D11-3to2 tree=base rc=0 226 passed, 0 failed 0 skip-line
+RESULT mutant=h-schema-admit-D16 tree=head rc=1 226 passed, 1 failed 1 skip-line
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"ti
+RESULT mutant=b-schema-admit-D16 tree=base rc=1 223 passed, 3 failed 0 skip-line
+  FAIL scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no) /^D(1[0-6]|[0-9])-s[0-9]+$/
+  FAIL a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control) /^(D(1[0-6]|[0
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"ti
+RESULT mutant=h-schema-admit-D18 tree=head rc=1 224 passed, 3 failed 1 skip-line
+  FAIL scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no) /^D(1[0-8]|[0-9])-s[0-9]+$/
+  FAIL a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control) /^(D(1[0-8]|[0
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"ti
+RESULT mutant=p-gaps-empty tree=p2 rc=1 242 passed, 11 failed 0 skip-line
+  FAIL denominatorGaps refuses a step with no row []
+  FAIL denominatorGaps refuses two rows for one step []
+  FAIL denominatorGaps refuses an empty enumerator []
+  FAIL denominatorGaps refuses examined above universe []
+  FAIL denominatorGaps refuses a non-integer universe []
+  FAIL denominatorGaps refuses examined below universe with nothing listed not reached []
+  FAIL denominatorGaps refuses examined equal to universe with a not_reached list []
+  FAIL denominatorGaps refuses an absent coverage []
+  FAIL denominatorGaps refuses a carried item left unanswered []
+  FAIL denominatorGaps refuses an overdue carried item answered not_reached []
+  FAIL a seat whose report carries no denominator is dispatched twice, ends missing, and intake does not run {"n":1,"missing":[],"error":""}
+RESULT mutant=p-carryOf-empty tree=p2 rc=1 241 passed, 4 failed 0 skip-line
+  FAIL carryOf at round 11 reads round 10: the whole step for M1, "a" aged 2 for M3, the unfinished entry for M2; nothing for deep M2, "b" n
+  FAIL ...at round 10 it reads round 9 only: a and b, each aged 1 []
+  FAIL seatCarry numbers C1.. in order and keeps only the seat's steps []
+  FAIL the denominator threw: Cannot read properties of undefined (reading 'overdue')
+RESULT mutant=p-gaps-renamed tree=p2 rc=1 226 passed, 2 failed 0 skip-line
+  FAIL a schema that requires a denominator has a driver that enforces one (carryOf, seatCarry, denominatorGaps in the DISPATCH block) schem
+  FAIL the denominator threw: D.denominatorGaps is not a function
+RESULT mutant=p-overdue-false tree=p2 rc=1 252 passed, 1 failed 0 skip-line
+  FAIL seatCarry marks the age-2 item overdue at bound 3, not at bound 4, not with no rotate [false,false,false]
+RESULT mutant=p-D11-1to3 tree=p2 rc=1 252 passed, 1 failed 0 skip-line
+  FAIL the cadence: D11, D13, D16 and D17 run at round 11, D5 does not [["D11",false],["D13",true],["D16",true],["D17",true],["D5",false]]
+RESULT mutant=p-D13-1to3 tree=p2 rc=1 252 passed, 1 failed 0 skip-line
+  FAIL the cadence: D11, D13, D16 and D17 run at round 11, D5 does not [["D11",true],["D13",false],["D16",true],["D17",true],["D5",false]]
+RESULT mutant=p-schema-drop-enumerator tree=p2 rc=1 226 passed, 1 failed 1 skip-line
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"ti
+RESULT mutant=p-schema-refuse-D17 tree=p2 rc=1 250 passed, 3 failed 0 skip-line
+  FAIL scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no) /^D(1[0-6]|[0-9])-s[0-9]+$/
+  FAIL a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control) /^(D(1[0-6]|[0
+  FAIL the finder's return schema is finding.schema.json itself, $refs inlined, plus report_path (its enums and types reach the finder) {"ti
+RESULT mutant=p-ledger-drops-carried tree=p2 rc=1 252 passed, 1 failed 0 skip-line
+  FAIL a carried item answered not_reached stays in the ledger under its original words, beside the seat's own not_reached {"m41":"M1","nr":
+dev/audit/config/finding.schema.json sites 1
+.claude/workflows/audit-find.js sites 1
+RESULT mutant=p-dual-drop-enumerator(schema+inlined copy) tree=p2 rc=0 227 passed, 0 failed 1 skip-line
+RESULT mutant=p-dual-drop-enumerator+gaps-empty tree=p2 rc=0 227 passed, 0 failed
+0
+RESULT mutant=head-dual-admit-D16(schema+inlined copy) tree=head rc=0 227 passed, 0 failed
+RESULT mutant=base-dual-admit-D16(schema+inlined copy) tree=base rc=1 224 passed, 2 failed
+  FAIL scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no) /^D(1[0-6]|[0-9])-s[0-9]+$/
+  FAIL a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control) /^(D
