@@ -15,7 +15,7 @@ and change nothing.
 3. **Card each `change` and `remove`**: the object, the term it moves and by
    how much, the null control, the cost. The orchestrator's contract and the
    standing seats are objects like any other.
-4. **Write** the evaluation 0017 section 5 specifies, hand off at `eval/r<N>`,
+4. **Write** the evaluation 0017 section 6 specifies, hand off at `eval/r<N>`,
    return `Evaluation: <sha>`.
 
 **The reviewer**, a second seat, re-runs the read behind every `remove` and
