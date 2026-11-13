@@ -101,6 +101,7 @@ handoff_push_self_test() (
 )
 
 if [ "${1:-}" = --self-test ]; then
+  [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded handoff_push bash "$0" --self-test; }  # pr_args.sh's self-test bound
   handoff_push_self_test; exit $?
 fi
 # A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
