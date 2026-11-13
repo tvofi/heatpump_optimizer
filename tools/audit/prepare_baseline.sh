@@ -246,7 +246,7 @@ strip_earlier_rounds "$EXPORT"
 # drifting apart again. D14 joined because it mutates production to prove its
 # detectors move and runs them at pre-fix commits (dev/governance/dimensions/D14.md).
 # D15 joined because its perturbations edit production (dev/governance/dimensions/D15.md).
-ISOLATED_DIMS="D0 D1 D3 D9 D11 D13 D14 D15 D16"
+ISOLATED_DIMS="D0 D3 D9 D11 D13 D14 D15"
 
 for dim in $ISOLATED_DIMS; do
   wt="$PARENT/audit-r${ROUND}-${dim}"

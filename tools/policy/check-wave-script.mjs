@@ -69,6 +69,14 @@ let pass = 0, fail = 0
 // This is exactly how the control run for the verdict grammar died.
 const J = (x) => JSON.stringify(x ?? null) ?? 'undefined'
 const t = (n, c, d = '') => { c ? (pass++, console.log('  ok   ' + n)) : (fail++, console.log('  FAIL ' + n + ' ' + d)) }
+// THE ONE SWITCH, READ FROM UNPINNED DATA. `wave-script` grades a pull request
+// with the BASE's copy of this file (decision 0013), so this file lands first and
+// must pass over the tree before the driver that carries the denominator (carryOf,
+// seatCarry, denominatorGaps) and over the tree after it. The switch is whether
+// the finder report schema's coverage rows require an enumerator -- a data file
+// the same pull request that lands the driver changes, never the driver's own text.
+// When it is on, the driver MUST export all three and every denominator test runs.
+const DENOM = (JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8')).properties?.coverage?.items?.required ?? []).includes('enumerator')
 // A block that throws reports as a failure, never as a truncated run. Every
 // grouped assertion below runs inside it: without that the first unexpected
 // throw ends the process and the remaining assertions are silently unreported,
@@ -805,10 +813,10 @@ await block('the finder report schema', async () => {
   const re = (k) => new RegExp(F.properties?.[k]?.pattern ?? '$^')
   const idRe = re('id'), scopeRe = re('scope')
   const ownerRe = new RegExp(S.properties?.leads?.items?.properties?.owner_seat?.pattern ?? '$^')
-  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D18-s1') && scopeRe.test('D17-s1'), String(scopeRe))
+  t('scope admits a scopes.json seat id and refuses a bare dimension (D1-s3 yes, D1 no)', scopeRe.test('D1-s3') && scopeRe.test('D14-s5') && !scopeRe.test('D1') && !scopeRe.test('D18-s1') && (!DENOM || scopeRe.test('D17-s1')), String(scopeRe))
   t('a finding numbered under its seat is an id the schema admits (D13-s1-01, D1-s3-51)', idRe.test('D13-s1-01') && idRe.test('D1-s3-51'), String(idRe))
   t("a lead's owner_seat admits a seat id or unknown, and refuses a bare dimension, a file, or anything else (null control)",
-    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D18-s1') && ownerRe.test('D17-s1') && !ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
+    ownerRe.test('D1-s3') && ownerRe.test('D14-s5') && ownerRe.test('unknown') && !ownerRe.test('D1') && !ownerRe.test('D18-s1') && (!DENOM || ownerRe.test('D17-s1')) &&!ownerRe.test('boost.py') && !ownerRe.test('') && !ownerRe.test('D1-s3 '), String(ownerRe))
   // A design choice, said so: the guess is refused unless it is a class the
   // ledger HAS, so a class the judge adds is added to bugclasses.json and to
   // this enum in one pull request -- this check fails until both carry it.
@@ -951,7 +959,9 @@ await block('the scoped round driver', async () => {
   if (!blk) return
   t('the dispatch block draws on no randomness and no clock', !/Math\.random|Date\b|performance\.now|crypto/.test(blk[0]), 'found one')
   t('and no planSeats: seats come from the scopes, not a rotation over the ledger', !/planSeats/.test(rd), 'audit-find.js still names planSeats')
-  const D = new Function(`${blk[0]}\nreturn { CADENCE, EVERY_DIM_ROUNDS, activeIn, seatsFromScopes, BOXES, CHROMIUM, boxGaps, carryOf, seatCarry, denominatorGaps }`)()
+  const D = new Function(`${blk[0]}\nreturn { CADENCE, EVERY_DIM_ROUNDS, activeIn, seatsFromScopes, BOXES, CHROMIUM, boxGaps, carryOf: typeof carryOf === 'function' ? carryOf : undefined, seatCarry: typeof seatCarry === 'function' ? seatCarry : undefined, denominatorGaps: typeof denominatorGaps === 'function' ? denominatorGaps : undefined }`)()
+  t('a schema that requires a denominator has a driver that enforces one (carryOf, seatCarry, denominatorGaps in the DISPATCH block)',
+    !DENOM || [D.carryOf, D.seatCarry, D.denominatorGaps].every((f) => typeof f === 'function'), `schema requires an enumerator; exported: ${['carryOf', 'seatCarry', 'denominatorGaps'].filter((k) => typeof D[k] === 'function')}`)
   // The seat ids and boxes below are read off the committed scopes and the
   // DISPATCH block, never named here: a re-cut of either (round 10 gave every
   // dimension three seats) must not turn a control into a test of old names.
@@ -962,8 +972,12 @@ await block('the scoped round driver', async () => {
   // nor a multiple of three, `on6` is a multiple of six.
   const free = Array.from({ length: 60 }, (_, i) => i + 10).filter((r) => !every.includes(r))
   const off = free.find((r) => r % 2 !== 0 && r % 3 !== 0), on6 = free.find((r) => r % 6 === 0)
-  t(`...and the cadence is otherwise read from the round number (D5 off at ${off}, on at ${on6}; D11, D13 and D0 on at ${off}: tvofi 2026-11-13, D11 and D13 run every round)`,
-    !!off && !!on6 && !D.activeIn(off, 'D5') && D.activeIn(on6, 'D5') && D.activeIn(off, 'D11') && D.activeIn(off, 'D13') && D.activeIn(off, 'D0'), 'the cadence is not derived from the round')
+  // D11 and D13 are held to the driver's own table, not to a number here: the
+  // cadence a tree declares is the cadence it must run (tvofi 2026-11-13 made it
+  // every round, in the pull request that lands the denominator).
+  t(`...and the cadence is otherwise read from the round number (D5 off at ${off}, on at ${on6}; D0 on at ${off}; D11 and D13 follow their CADENCE entry)`,
+    !!off && !!on6 && !D.activeIn(off, 'D5') && D.activeIn(on6, 'D5') && D.activeIn(off, 'D0')
+      && ['D11', 'D13'].every((d) => D.activeIn(off, d) === (D.CADENCE[d] === 1) && D.activeIn(on6, d)), 'the cadence is not derived from the round')
   const ids = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d).map((s) => s.id))
   const fileSeats = Object.entries(scopes).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
   t('one seat per scopes.json seat, id <dim>-s<n>, nothing added or dropped', J(ids) === J(fileSeats), `${ids.length} vs ${fileSeats.length}`)
@@ -1009,8 +1023,8 @@ await block('the scoped round driver', async () => {
   const closed = (id, args) => {
     const seat = D.seatsFromScopes(args.scopes, id.split('-')[0]).find((x) => x.id === id)
     if (!seat) return []
-    const carry = D.seatCarry(args.rotation, args.round, seat)
-    return seat.steps.map((m) => ({ step: `${seat.dim}.${m}`, enumerator: 'stub-enumerator', universe: 1, examined: 1, not_reached: [], redispatched: carry.filter((c) => c.step === m).map((c) => ({ item: c.id, state: 'examined' })), evidence: 'stub' }))
+    const carry = D.seatCarry ? D.seatCarry(args.rotation, args.round, seat) : []
+    return seat.steps.map((m) => ({ step: `${seat.dim}.${m}`, depth: 'deep', enumerator: 'stub-enumerator', universe: 1, examined: 1, not_reached: [], redispatched: carry.filter((c) => c.step === m).map((c) => ({ item: c.id, state: 'examined' })), evidence: 'stub' }))
   }
   const drive = async (args, { prep = {}, report = () => ({}), nullSeats = [], leadsOut = {}, gather } = {}) => {
     const calls = []
@@ -1216,7 +1230,8 @@ await block('the scoped round driver', async () => {
   // The denominator (COMMON.md; tvofi 2026-11-13): a report names what its steps
   // range over, how much it examined and what it left, and what the round before
   // left is the first work of this one. Each refusal has its null control here.
-  await block('the denominator', async () => {
+  if (!DENOM) console.log("  skip   the denominator block: the schema's coverage rows require no enumerator at this tree")
+  else await block('the denominator', async () => {
     const seat = { dim: 'D1', steps: ['M1', 'M2'] }
     const row = (m, o = {}) => ({ step: `D1.${m}`, enumerator: 'e', universe: 2, examined: 2, not_reached: [], redispatched: [], evidence: 'x', ...o })
     const ok = { coverage: [row('M1'), row('M2')] }

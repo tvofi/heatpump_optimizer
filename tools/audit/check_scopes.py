@@ -346,6 +346,7 @@ def main():
         live = verdict(scopes, tree, loc, hs, bs, quiet=True)
         no_d10_refused = not verdict(no_d10, tree, loc, hs, bs, quiet=True)
         uncited_refused = not verdict(scopes, tree, loc, {**hs, **planted}, {**bs, "D15": "no citation"}, quiet=True)
+        cov["the default verdict refuses a territory gap"] = not verdict(narrow, tree, loc, hs, bs, quiet=True)
         cov.update({"the default verdict passes the live scopes": live,
                     "and refuses them without D10's universe": no_d10_refused,
                     "and refuses an uncited brief-named harness": uncited_refused})
