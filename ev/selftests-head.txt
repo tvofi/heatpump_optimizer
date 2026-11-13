@@ -1,0 +1,5 @@
+at 2e160c0c9b0cb4b00bdbd5f17defd63bfcfbfbee:
+python3 tools/audit/seat/review_packet.py --self-test        -> review_packet self-test: 128 checks, 0 failed
+python3 -I tools/audit/seat/cloud_dispatch.py --self-test    -> cloud_dispatch self-test: 172 checks, 0 failed
+python3 tools/audit/seat/review_strength.py --self-test      -> review_strength self-test: 117 checks, 0 failed
+driver: python3 tools/audit/seat/mutant_run.py --diff caacd43b4e...<head> --path <file> --cmd "<file's own --self-test>" (copy-tree for cloud_dispatch and review_strength; --in-place ...HEAD for review_packet, whose self-test fails BASELINE in a git-archive copy)
