@@ -25783,7 +25783,8 @@
     "From #3564 (r10-config-flow-text-verify), body item a64a0285: docs/configuration.md:1083 does not say the price estimate is on by default. Carry: R11-INTAKE-R10-RESIDUE (items a64a0285)",
     "From #3564 (r10-config-flow-text-verify), body item b30f48ba: custom_components/heatpump_optimizer/setpoint_check.py:6 has the docstring \"Space set-point is never recommended.\", stale under Control. Carry: R11-INTAKE-R10-RESIDUE (items b30f48ba)",
     "From #3564 (r10-config-flow-text-verify), body item 6f36db0c: custom_components/heatpump_optimizer/presets.py:11 has a docstring saying \"three answerable\" questions; the questionnaire has six. Carry: R11-INTAKE-R10-RESIDUE (items 6f36db0c)",
-    "From #3564 (r10-config-flow-text-verify), body item bb5336e8: custom_components/heatpump_optimizer/config_flow.py, setup step `device_prefill`: the second form renders `after_save` and `self._data.update(saved)` probably stores it into entry data, a stray key. The help text now says the choice has no effect there. Carry: R11-INTAKE-R10-RESIDUE (items bb5336e8)"
+    "From #3564 (r10-config-flow-text-verify), body item bb5336e8: custom_components/heatpump_optimizer/config_flow.py, setup step `device_prefill`: the second form renders `after_save` and `self._data.update(saved)` probably stores it into entry data, a stray key. The help text now says the choice has no effect there. Carry: R11-INTAKE-R10-RESIDUE (items bb5336e8)",
+    "From #3563 (r10-user-text-verify-card), body item 753b6610: `docs/dashboard-card.md` (Savings receipt paragraph) still says the savings figure \"compares spot cost only\". `ledger.py` prices both sides at `spot + fee_per_kwh`, the fact `receipt.covers` now states. Re-measure: `git grep -n 'spot cost only' docs`. Carry: R11-INTAKE-R10-RESIDUE (items 753b6610)"
    ],
    "resume": {
     "stage": "not-started",
