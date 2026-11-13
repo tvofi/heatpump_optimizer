@@ -1,0 +1,68 @@
+[
+ {
+  "name": "B-drop-ci-red",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-ci-wait",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-ci-pending",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-ci-cancelled",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending red-unanswered body contract conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-red-unanswered",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled body contract conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-body",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered contract conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-contract",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-conflict",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-head-moved",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-carry-missing",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry ungated \""
+ },
+ {
+  "name": "B-drop-carry",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing ungated \""
+ }
+]

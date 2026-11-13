@@ -1,1 +1,0 @@
-TOTAL: 0 error(s) across 51 policy file(s)

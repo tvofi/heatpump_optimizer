@@ -1,14 +1,8 @@
 SURVIVED NULL
-KILLED R-oldformat-guard-off
-KILLED R-oldformat-dash-off
-KILLED R-tip-cmp-off
-KILLED R-blob-cmp-off
-KILLED R-ttl-off
-SURVIVED R-fb-len-off
-SURVIVED R-foldfailed-off
+KILLED R-foldfailed-off
 KILLED R-pushfailed-off
-SURVIVED R-first-epoch
-KILLED R-blob-unrecorded
-SURVIVED R-tip-unrecorded-foldfailed
-KILLED R-tip-unrecorded-pushfailed
-KILLED R-owed-line-dropped
+KILLED R-first-epoch
+KILLED R-tip-unrecorded-foldfailed
+KILLED R-ttl-off
+KILLED R-blob-cmp-off
+rc=0
