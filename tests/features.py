@@ -82046,6 +82046,226 @@ R.check(
     _sa_mid["07:15"] == ["turn_on"],
     f"{_sa_mid}",
 )
+# #3420 part E (Bankaifan): a switch-on writes the step's mode first. A pass
+# writes nothing while the switch reads off, so the mode followed the
+# switch-on by up to a tick and a Luxtronik started in the last duty. The
+# cycle and the step tick both switch through ``write_supply``. Each null
+# control is the same run with ``_lead_mode`` replaced by a no-op (today's
+# order): where the lead owes nothing, the service calls and their order are
+# identical; where it owes the mode, the no-op run has no mode before the switch.
+from heatpump_optimizer import duty_switch as _mb_ds
+from dataclasses import replace as _mb_replace
+
+
+async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via="cycle",
+                  select="Heating", fail=False, cut=False, optimizer="auto", space=False,
+                  disinfect=False, since=-60, after=0):
+    """Ordered (domain, service) calls of one switch write, through the real coordinator.
+
+    The plan is "-d": idle at 05:45, hot water only at 06:00 (``space``:
+    heating only, which a cut-off holds and hot water is exempt from). ``via`` cycle
+    runs ``_apply_action`` at 06:00; tick runs the cycle at 05:45 (OFF) and
+    the step tick at 06:00; direct calls ``write_supply(..., True)`` alone at
+    06:00 with the optimizer in ``optimizer`` (``released``: auto, the
+    entry unloaded). ``cut``: an early cut-off at
+    05:58 holds the switch-on (MIN_OFF). Also returns the contexts the
+    learner was told of, and the options the select was sent. ``disinfect``:
+    the pass reads a held disinfection. ``since``: minutes from 06:00 at which
+    the switch took its state (an hour back by default, so no minimum run or
+    pause holds the write; -2 holds a switch-on until 06:08). ``after``: the
+    step ticks then fire each minute to 06:00 + ``after``, and a fifth value
+    maps each such minute to its ordered calls.
+    """
+    ticks, told = [], []
+    armed, noted, owed = _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    _mb_ds.note_mode_write = lambda rec, when, old, new, ctx: (told.append((rec, ctx)), noted(rec, when, old, new, ctx))
+    if not lead:
+        async def _none(_coord, _on):
+            return None
+        _sa_pa._lead_mode = _none
+    hass = FakeHass({
+        "switch.hp": FakeState(switch, last_updated=_SA_T0 + timedelta(minutes=since)),
+        "select.pump_mode": FakeState(select, attributes={"options": list(_PA_TUYA)}),
+    })
+    if fail:
+        async def _refuse(call):
+            raise RuntimeError("select refused")
+        hass.services.async_register("select", "select_option", _refuse)
+    data = {**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": duty}
+    if mode_entity:
+        data["heat_pump_mode_entity"] = "select.pump_mode"
+    coord = Coord(hass, FakeEntry(data=data, entry_id=f"mb{next(_PA_IDS)}"))  # a fresh store each run
+    coord._mode = "auto"
+    if disinfect:
+        _mb_inputs = coord.arbiter_inputs
+        coord.arbiter_inputs = lambda: _mb_replace(_mb_inputs(), disinfecting=True)
+    t0 = _SA_T0 - timedelta(minutes=15)
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[t0, _SA_T0], power_schedule=[0.0, 1.5 if space else 0.0],
+        dhw_power_schedule=[0.0, 0.0 if space else 2.0],
+        optimal_setpoints=[21.0, 21.0],
+    )
+    try:
+        if via == "tick":
+            _sa_dt.freeze(t0)
+            coord._last_optimization = t0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+            await coord._apply_action()
+            hass.states.set("switch.hp", FakeState(switch, last_updated=t0))
+        hass.services.calls.clear()
+        _sa_dt.freeze(_SA_T0)
+        if cut:
+            _sa_ec.state_for(coord).cut_at = _SA_T0 - timedelta(minutes=2)
+        if via == "direct":
+            coord._mode = "auto" if optimizer == "released" else optimizer
+            coord._entry_released = optimizer == "released"
+            await _sa_pa.write_supply(coord, "switch.hp", True)
+        elif via == "tick":
+            for tick in list(ticks):
+                await tick(_SA_T0)
+        else:
+            coord._last_optimization = _SA_T0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
+            await coord._apply_action()
+        calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        options = [data["option"] for d, _s, data in hass.services.calls if d == "select"]
+        later = {}
+        for minute in range(1, after + 1):
+            hass.services.calls.clear()
+            _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+            for tick in list(ticks):
+                await tick(_SA_T0 + timedelta(minutes=minute))
+            later[minute] = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        return (calls, told, options, _sa_pa.state_for(coord).loaded) + ((later,) if after else ())
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
+
+
+_mb_on = {via: _asyncio.run(_mb_run(via=via)) for via in ("cycle", "tick")}
+_mb_off = {via: _asyncio.run(_mb_run(lead=False, via=via)) for via in ("cycle", "tick")}
+R.check(
+    "a cycle that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["cycle"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['cycle'][0]}",
+)
+R.check(
+    "a step tick that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["tick"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['tick'][0]}",
+)
+R.check(
+    "null control: without the lead the same cycle and tick switch on with no mode before it",
+    all(_mb_off[via][0] == [("switch", "turn_on")] for via in ("cycle", "tick")),
+    f"{ {via: _mb_off[via][0] for via in _mb_off} }",
+)
+_mb_ctx = [ctx for _rec, ctx in _mb_on["cycle"][1]]
+R.check(
+    "the mode written ahead of a switch-on is reported with the supply off, opening no learner episode",
+    len(_mb_ctx) == 1 and _mb_ctx[0].void_cause() == "supply_off"
+    and _mb_on["cycle"][1][0][0].learner.episode is None,
+    f"{_mb_ctx}",
+)
+R.check(
+    "null control: the same context with the supply on is not voided by the supply",
+    bool(_mb_ctx) and _mb_replace(_mb_ctx[0], supply_on=True).void_cause() != "supply_off",
+    f"{_mb_ctx}",
+)
+_mb_fail = _asyncio.run(_mb_run(fail=True))
+R.check(
+    "a mode write that fails ahead of a switch-on holds nothing: the switch follows in the same write",
+    _mb_fail[0] == [("select", "select_option"), ("switch", "turn_on")] and _mb_fail[1] == [],
+    f"{_mb_fail}",
+)
+# The lead sits behind the cycle's gate (``_write_supply``): a switch-on the
+# gate holds back writes no mode either, so a held supply-on never leaves a
+# mode written ahead of a switch that does not follow.
+_mb_cut = _asyncio.run(_mb_run(cut=True, space=True))[0]
+_mb_uncut = _asyncio.run(_mb_run(space=True))[0]
+R.check(
+    "a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut == [("switch", "turn_off")],
+    f"{_mb_cut}",
+)
+R.check(
+    "null control: the same heating step with no cut on record writes the mode, then the switch",
+    _mb_uncut == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_uncut}",
+)
+# The same rows with the minimum pause engaged (``supply_hold.hold_supply``,
+# the switch off since 05:58): the hold sits ahead of ``write_supply`` in
+# ``_write_supply``, so a held switch-on writes no mode, and the step tick's
+# retry runs through the same gate, so the switch-on that lands at 06:08
+# writes the mode immediately before the switch, on that tick and no other.
+_mb_cut_held = _asyncio.run(_mb_run(cut=True, space=True, since=-2))[0]
+_mb_held = _asyncio.run(_mb_run(space=True, since=-2, after=12))
+R.check(
+    "with the minimum pause engaged too, a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut_held == [("switch", "turn_off")],
+    f"{_mb_cut_held}",
+)
+R.check(
+    "a cycle switch-on the minimum pause holds back writes no mode and no switch",
+    _mb_held[0] == [],
+    f"{_mb_held[0]}",
+)
+R.check(
+    "a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick",
+    {m: c for m, c in _mb_held[4].items() if c} == {8: [("select", "select_option"), ("switch", "turn_on")]},
+    f"{_mb_held[4]}",
+)
+_mb_direct = {
+    (sw, opt): _asyncio.run(_mb_run(via="direct", switch=sw, optimizer=opt))[0]
+    for sw, opt in (("off", "auto"), ("on", "auto"), ("off", "off"), ("off", "released"))
+}
+R.check(
+    "write_supply with the switch already on, the optimizer off or the entry released writes the switch alone",
+    all(_mb_direct[k] == [("switch", "turn_on")] for k in (("on", "auto"), ("off", "off"), ("off", "released"))),
+    f"{_mb_direct}",
+)
+R.check(
+    "null control: write_supply with the switch off and the optimizer on writes the mode first",
+    _mb_direct[("off", "auto")] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_direct}",
+)
+# The lead loads the persisted record before its write, as a pass does, so
+# the pass's own load cannot overwrite the record of the mode just written.
+_mb_loaded = {duty: _asyncio.run(_mb_run(via="direct", duty=duty))[3] for duty in ("control", "observe")}
+R.check(
+    "a lead write loads the persisted record before it writes",
+    _mb_loaded["control"] is True,
+    f"{_mb_loaded}",
+)
+R.check(
+    "null control: write_supply on duty mode observe loads nothing",
+    _mb_loaded["observe"] is False,
+    f"{_mb_loaded}",
+)
+_mb_dis = {dis: _asyncio.run(_mb_run(via="direct", space=True, disinfect=dis))[2] for dis in (True, False)}
+R.check(
+    "the mode written ahead of a switch-on for a heating step under a held disinfection is Heating + DHW",
+    _mb_dis[True] == ["Heating + DHW"],
+    f"{_mb_dis}",
+)
+R.check(
+    "null control: the same heating step with no disinfection leads with Heating",
+    _mb_dis[False] == ["Heating"],
+    f"{_mb_dis}",
+)
+_mb_nulls = {
+    "no mode entity": {"mode_entity": False},
+    "duty mode observe": {"duty": "observe"},
+    "supply already on": {"switch": "on", "select": "Heating"},
+}
+for _mb_name, _mb_kw in _mb_nulls.items():
+    _mb_with = {via: _asyncio.run(_mb_run(via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    _mb_without = {via: _asyncio.run(_mb_run(lead=False, via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    R.check(
+        f"null control, {_mb_name}: the service calls and their order are today's",
+        _mb_with == _mb_without and any(("switch", "turn_on") in c for c in _mb_with.values()),
+        f"with {_mb_with}; without {_mb_without}",
+    )
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
 _sa_record = {"written": {
@@ -83048,21 +83268,56 @@ R.check(
     and (_ds_days.span_days, _ds_days.first_day) == (4, _ds_day.date()),
     f"{_ds_halved} {_ds_stamped}",
 )
+_ds_third = _ds_mod.DutySwitchLearner(
+    {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}).published(_ds_day)
 R.check(
-    "k and n publish to two places and the median to one; a direction holding only a void publishes a span of no day",
-    (_ds_fine_pub["duty_switch_dhw_space_k"], _ds_fine_pub["duty_switch_dhw_space_n"],
+    "p publishes to two places, n as whole episodes (down, never up) and the median to one place; a direction "
+    "holding only a void publishes a span of no day",
+    (_ds_fine_pub["duty_switch_dhw_space_p"], _ds_fine_pub["duty_switch_dhw_space_n"],
      _ds_fine_pub["duty_switch_dhw_space_median_off_s"], _ds_fine_pub["duty_switch_space_dhw_span_days"])
-    == (1.0, 3.0, 100.2, 0)
-    and _ds_mod.DutySwitchLearner(
-        {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}
-    ).published(_ds_day)["duty_switch_dhw_space_k"] == 0.33,
-    f"{_ds_fine_pub}",
+    == (0.33, 3.0, 100.2, 0)
+    and (_ds_third["duty_switch_dhw_space_p"], _ds_third["duty_switch_dhw_space_n"]) == (0.5, 0.0)
+    and "duty_switch_dhw_space_k" not in _ds_fine_pub,
+    f"{_ds_fine_pub} {_ds_third}",
 )
 R.check(
-    "the published k and n are aged to the reading's time, the tallies are not",
-    [(pub["duty_switch_dhw_space_k"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
-     for pub in _ds_old_pub] == [(3.0, 7.0, 3), (1.5, 3.5, 3)],
+    "the published n is aged to the reading's time, p and the tallies are not",
+    [(pub["duty_switch_dhw_space_p"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
+     for pub in _ds_old_pub] == [(0.43, 7.0, 3), (0.43, 3.0, 3)],
     f"{_ds_old_pub}",
+)
+# Carry c7d068a1 (reviewer's probe attr_churn): age alone moved the attributes. A day of quarter-hour reads of
+# six stops an hour apart, from six hours on: nothing moves; null control, the decayed weight to two places
+# that the attributes published before moves within the same reads, so the reads do span a decay.
+_ds_churn = _ds_mod.DutySwitchLearner()
+for _ds_i in range(6):
+    _ds_churn.directions["dhw_space"].book(_ds_day + timedelta(hours=_ds_i), True, 60.0)
+_ds_reads = [_ds_day + timedelta(hours=6, minutes=15 * _ds_i) for _ds_i in range(96)]
+_ds_churn_pubs = [_ds_churn.published(t) for t in _ds_reads]
+_ds_churn_raw = [round(_ds_churn.directions["dhw_space"].weights(t)[1], 2) for t in _ds_reads]
+_ds_churn_month = {_ds_churn.published(_ds_day + timedelta(hours=6 + 6 * _ds_i))["duty_switch_dhw_space_n"]
+                   for _ds_i in range(4 * 60)}
+R.check(
+    "age alone moves no published attribute within a day, and moves n only a whole episode at a time; null "
+    "control, the decayed weight read to two places moves within the same day's reads",
+    sum(a != b for a, b in zip(_ds_churn_pubs, _ds_churn_pubs[1:])) == 0
+    and sum(a != b for a, b in zip(_ds_churn_raw, _ds_churn_raw[1:])) > 0
+    and _ds_churn_month == {5.0, 4.0, 3.0, 2.0, 1.0, 0.0},
+    f"{_ds_churn_pubs[0]} {sorted(_ds_churn_month)}",
+)
+# Carry ef5d3875 (reviewer's probe fifth_episode): N_ON is a decayed weight, not a count of episodes. Five
+# stops ten hours apart weigh under N_ON and leave the direction off; the sixth switches it on. Control: the
+# check above, where a stop taking an undecayed n from 4 to 5 switches it on.
+_ds_spread = _DS_D()
+_ds_spread_on = []
+for _ds_i in range(6):
+    _ds_spread.book(_ds_day + timedelta(hours=10 * _ds_i), True, 60.0)
+    _ds_spread_on.append(_ds_spread.usable)
+R.check(
+    "N_ON is a weight: five stops ten hours apart, spanning two days, stay off at a weight under five; a sixth "
+    "switches the direction on",
+    _ds_spread_on == [False] * 5 + [True] and _ds_mod.N_ON == 5.0,
+    f"{_ds_spread_on} {_ds_spread}",
 )
 
 # Restart: the dict round trip, the strict load, the cap.
@@ -83727,10 +83982,10 @@ _ds_attrs0 = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_st
 _ds_mod._RECORDS[_ds_pub] = _ds_mod._Record(None, None, learner=_ds_tab)
 _ds_attrs = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
 _DS_KEYS = {f"duty_switch_{d}_{k}" for d in _ds_mod.DIRECTIONS
-            for k in ("k", "n", "stopped", "kept", "void", "censored", "span_days")}
+            for k in ("p", "n", "stopped", "kept", "void", "censored", "span_days")}
 R.check(
     "the starts sensor's attributes are the counter's alone until a direction has an observation; then, per "
-    "direction, only k, n, stopped, kept, void, censored, span days and (once one exists) the median off "
+    "direction, only p, n, stopped, kept, void, censored, span days and (once one exists) the median off "
     "seconds, all numeric",
     set(_ds_attrs0) == {"lifetime", "month"}
     and set(_ds_attrs) == {"lifetime", "month"} | _DS_KEYS | {"duty_switch_dhw_space_median_off_s"}
