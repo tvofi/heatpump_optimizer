@@ -13068,9 +13068,9 @@
     "R10-PRODUCT-PAGE-REDESIGN"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-user-docs-verify",
-    "commit": null,
+    "commit": "83e4e83d77593c609905dd76971ff72d69bb9229",
     "last_step": null,
     "next_step": "dispatch a fixer once every `after` group is done; run locally",
     "note": "split from R10-USER-DOCS-FINAL, tvofi 2026-10-31. tvofi 2026-11-01 approved card 10: after-edges narrowed from the 103 groups to the 44 non-instrument ones; instrument groups change no user-facing feature | set-files files ['README.md', 'docs/setup.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/automations.md', 'docs/dashboard-card.md', 'docs/ecl110.md', 'tests/doc_claims.py'] -> ['README.md', 'docs/setup.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/automations.md', 'docs/dashboard-card.md', 'docs/ecl110.md', 'tests/doc_claims.py', 'docs/img/readme/mermaid_figures.json'] | set-files files ['README.md', 'docs/setup.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/automations.md', 'docs/dashboard-card.md', 'docs/ecl110.md', 'tests/doc_claims.py', 'docs/img/readme/mermaid_figures.json'] -> ['README.md', 'docs/setup.md', 'docs/configuration.md', 'docs/how-it-works.md', 'docs/automations.md', 'docs/dashboard-card.md', 'docs/ecl110.md', 'tests/doc_claims.py', 'docs/img/readme/mermaid_figures.json', 'docs/img/brand/coffee.svg']",
@@ -18219,7 +18219,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-round-playbook-final",
     "note": "split from R10-ROUND-PLAYBOOK by owner ruling tvofi 2026-11-07, coordination issue comment 6707334933; overlap admitted (R10-ROUND-PLAYBOOK): split of R10-ROUND-PLAYBOOK by owner ruling, coordination issue comment 6707334933 | set-files files ['dev/audit/README.md', 'CLAUDE.md'] -> ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md'] | set-files files ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md'] -> ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md', 'dev/governance/dimensions/D13.md']",
     "pr": 3510,
@@ -21519,8 +21519,8 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
-    "commit": null,
+    "stage": "done",
+    "commit": "76b4fdcdb66efe9ecb876194bfdbd2c83d414511",
     "branch": "fix/r10-card-collapse",
     "last_step": null,
     "next_step": "dispatch fixer after R10-HOTFIX-COP-UNMEASURED merges (shared hot file: the card)",
@@ -25152,9 +25152,9 @@
    "architect_note": "",
    "brief": "HOTFIX, two serial pull requests. Orchestrator ruling 2026-11-12 on the advisor-steady-start branch stopped at BOOTSTRAP: a registration literal sits inside a pinned grader, so repairing a listed carry needs a grader edit that the same pull request cannot make green. This is the BOOTSTRAP class; the body names it.\n\nPart 1: in tools/policy/brief_lint.mjs, move the legacy-control file list (LEGACY_CONTROL_FILES) out of the grader's literal into a new JSON data file beside the grader, which is not pinned by the grader's own checks and which the grader reads. The cap (LEGACY_CONTROL_CAP) stays a literal in the grader. The entries are unchanged, so the base's copy and the head's agree and nothing reddens. Null control: the lint's output on origin/main's tree is byte-identical before and after the move. Add a self-test arm that a listed-but-clean file is still refused, with its mutant, killed. Failing test first.\n\nPart 2, after part 1 is on main: repair the first control of dev/archive/carries/carry-1412.json to name dhw_planner.py with no line number. The repair exists as commit 815f99a3faea7305d5ef9c85ef801d740bd54bb0 on the advisor-steady-start handoff-wip branch; cite it in prose, take the content, do not merge the branch. Delist the carry from the data file. Then survey every other listed file for a control citation that resolves only by line-number accident (body item 00444e5b of the advisor-steady-start branch), and report each as finding or clean.\n\nOut of scope: changing the cap, adding entries, any other grader change.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "fix/r10-hotfix-legacy-control-data",
-    "commit": null,
+    "commit": "dd1f5e4a34db6597b8153f65647f1a281ec31e9d",
     "last_step": null,
     "next_step": "dispatch a sonnet fixer now",
     "note": "orchestrator ruling 2026-11-12",
@@ -25283,9 +25283,9 @@
    "architect_note": "",
    "brief": "HOTFIX. Defect: the merge train required-check read stops at the first page of contexts. In merge_train.py the read returns unread with the reason that there are more contexts than one page and it did not read them whole, so a green approved head with a long check-run list is classed as its own skip and its re-add is refused. Measured evidence from the ruling: PR 3449 (under the earlier P638 reopening condition) and PR 3479, which needed a direct merge as a deadlock; three PRs in about two days were each green and approved and each needed a hand direct merge; one direct merge moved main under a waiting proof batch and cost a re-prove (MAIN-MOVED). The P638 reopening condition holds: the redispatch-loop hotfix is done and a green verdicted entry was still skipped.\n\nFix: read every page of the contexts under the gh_read rule, so a head with more than one page of check-runs is classified on all of them. One extra API call per extra page, only on such heads. The arm that names the QUEUED context instead of guessing a review is deferred to round 11 and is out of scope; BRANCH_POLICY is already re-admitted.\n\nSelf-test arm in merge_train.py: a faked listing with a required context on page 2 that is red must read RED, and with that context green must read GREEN. Null control: a one-page listing is unchanged and makes the same single read. Red-then-green demonstration: show the arm red on origin/main (unread), then green with the fix; mutate the page loop to stop after page 1 and show the arm kill it.\n\nTriage: P765 ACCEPT round 10 (batch 246)",
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-hotfix-train-context-pages",
-    "commit": null,
+    "commit": "7eadd75f3c420404aabc83d4b05f9691f3e49136",
     "last_step": null,
     "next_step": "dispatch a sonnet fixer now",
     "note": "triage batch 246 P765 ACCEPT round 10; overlap admitted (R10-CI-PRIORITY-PAUSE): triage batch 246 P765 ACCEPT round 10: train reads every page of required contexts",
@@ -25865,12 +25865,13 @@
    "brief": "HOTFIX, blocks chain pull requests (triage seat triage-1113, proposal T4). Defect: tools/audit/seat/update_pr.sh never re-renders a body's generated figure blocks, so the body it hands on names a head the pull request no longer has and the pre-PR body check refuses with 'figure-block scope-line names another head'. Two paths carry it. (1) The moved-head path: the merge of the handoff code sha, the merge of origin/main and the own-row commit each move the head, and the body is pushed as written. (2) The body-only path (HPO_UPDATE_BODY_ONLY, run by the handoff arm of tools/audit/seat/cloud_relay.sh): the head is unmoved, but a handoff body's block names the authored code head while the pull request head is a merge of main, so body_patch.sh refuses on every relay pass. Measured instances on 2026-11-12 and 2026-11-13: pull request 3510 (critical path) and pull request 3511 on the moved-head path, pull request 3511 again on the relay's body-only path on two passes, and pull request 3505's body patched by hand. The analogue is already in the tree: open_pr.sh's op_figures runs tools/pr/figure_block.py refresh on the body at each head it pushes, and a failed refresh refuses with nothing pushed. Fix: in update_pr.sh, when the body carries a figure block, run the same refresh at the head the run will push or patch, on both paths (before the push on the moved-head path, before body_patch.sh on the body-only path); a failed refresh refuses through pr_refuse and pushes or patches nothing; a body with no figure block is untouched. Reuse the refresh tool; do not add a second renderer. A local patch for path (1) only, with its macOS self-test logs, is at hpo-seats/r10s6/updpr-figfix (update_pr-figure-refresh.diff) under the orchestrator's home directory: read it, do not copy it blind, and extend it to path (2). Self-test, in pr_args.sh's self-test where update_pr.sh's arms live: a moved head with a figure block pushes a body whose block names the new head; a body-only run with a block naming another head patches a body naming the live head; a failing refresh pushes and patches nothing; a body without a block is byte-identical. Each new predicate line carries a mut tag its arm kills. Add one line to tools/audit/seat/instruments/update_pr.sh.md. The update-pr step of the instrument self-tests job will read the refresh tool, so record that step's entry in tools/ci/selftest_closures.json on Linux at current origin/main by union with the committed table (never replace), and show the scope check's summary line at zero refusals for that step. Null control: an update of a pull request whose body has no figure block runs exactly as today (same pushed body bytes). Before and after the body must show: the refusal reproduced at the merge base on a fixture body, and gone at the head.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "cloud fixer (sonnet)",
-    "note": "intake: block on chain pull requests (3510 critical path, 3511), triage-1113 T4; overlap admitted by seam (R10-SEAT-SCRIPT-OUTPUT, R10-NUDGE-RETIRE also list update_pr.sh; R10-HOTFIX-SELFTEST-SCOPE-RERECORD and R10-SELFTEST-SCOPE-UNION-GUARD edit the scope table: record the update-pr entry by union at the merge base the fixer holds); cutoff: no pull request in review by 2026-11-14T12:00Z moves it to round 11 unbuilt; overlap admitted (R10-NUDGE-RETIRE, R10-SELFTEST-SCOPE-UNION-GUARD): triage seat/triage-1113 T4 ACCEPT-R10: six refusals in one night from a body whose figure block names another head after update_pr; cutoff no PR in review by 2026-11-14T12:00Z -> round 11"
+    "note": "intake: block on chain pull requests (3510 critical path, 3511), triage-1113 T4; overlap admitted by seam (R10-SEAT-SCRIPT-OUTPUT, R10-NUDGE-RETIRE also list update_pr.sh; R10-HOTFIX-SELFTEST-SCOPE-RERECORD and R10-SELFTEST-SCOPE-UNION-GUARD edit the scope table: record the update-pr entry by union at the merge base the fixer holds); cutoff: no pull request in review by 2026-11-14T12:00Z moves it to round 11 unbuilt; overlap admitted (R10-NUDGE-RETIRE, R10-SELFTEST-SCOPE-UNION-GUARD): triage seat/triage-1113 T4 ACCEPT-R10: six refusals in one night from a body whose figure block names another head after update_pr; cutoff no PR in review by 2026-11-14T12:00Z -> round 11",
+    "pr": 3546
    }
   },
   {
