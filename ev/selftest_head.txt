@@ -1,0 +1,2 @@
+bare_array self-test: ok
+
