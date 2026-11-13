@@ -150,6 +150,12 @@ MUTANTS: list[tuple[str, str, str, str]] = [
      "or not opt.config.cycling_cost > 0:"),
     ("optimizer: the co-optimisation headroom is handed no duty floor", PKG + "optimizer.py",
      "p_max, dhw_power, self._space_avail, _duty_floor(self))", "p_max, dhw_power, self._space_avail, None)"),
+    # Repair round 2: the two clamps left on the line the availability reads
+    # its start through, the mutation table's CLAMP_DROP twins of one anchor.
+    ("optimizer: the start is read with no cap beside hot water", PKG + "optimizer.py",
+     "np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),", "(start),"),
+    ("optimizer: the start is capped at zero in every step", PKG + "optimizer.py",
+     "np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),", "np.minimum(start, (0.0)),"),
     ("arbiter: the share serves the legs in reverse order", PKG + "pump_arbiter.py",
      "return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]",
      "return legs[-1][0] if (now - result.timestamps[i]) < first_ends else legs[0][0]"),
