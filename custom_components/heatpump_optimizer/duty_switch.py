@@ -27,7 +27,8 @@ the registry takes the pump's :class:`_Record`, never the coordinator.
 **Estimate.** Per direction two decayed counts, ``k`` stops over ``n``
 episodes (stored as the stopped and the kept weight), half-life :data:`HALF_LIFE_DAYS`: decay scales both alike, so
 ``p = k / n`` never moves with age and only ``n`` falls. ``usable`` latches on
-at :data:`N_ON` episodes spanning :data:`SPAN_DAYS_ON` days with ``p`` at
+at a decayed weight of :data:`N_ON`, not a count (five stops ten hours apart
+weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with ``p`` at
 :data:`P_ON`, and off under :data:`N_OFF` or :data:`P_OFF`. The span is of
 the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
 forgotten with it. Every threshold
@@ -354,14 +355,17 @@ class DutySwitchLearner:
     def published(self, when: datetime) -> dict[str, float]:
         """Counts and durations per direction, flat and numeric. A direction
         nothing was observed in publishes no key, and no off time yet is no
-        key: an install that never switches duty while running reads as before."""
+        key: an install that never switches duty while running reads as before.
+
+        Age alone moves ``n`` only, and only by a whole episode: ``n`` is the
+        whole episodes still weighing, and ``p`` does not decay (``k`` is ``p``
+        times ``n``, so it is not published)."""
         out: dict[str, float] = {}
         for name, d in self.directions.items():
             if not (d.stopped or d.kept or d.void):
                 continue
-            k, n = d.weights(when)
             row: dict[str, float | None] = {
-                "k": round(k, 2), "n": round(n, 2),
+                "p": round(d.p, 2), "n": float(math.floor(d.weights(when)[1])),
                 "stopped": d.stopped, "kept": d.kept, "void": d.void, "censored": d.censored,
                 "median_off_s": None if d.median_off_s is None else round(d.median_off_s, 1),
                 "span_days": d.span_days,
