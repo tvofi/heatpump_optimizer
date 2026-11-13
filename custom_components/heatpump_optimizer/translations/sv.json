@@ -796,7 +796,7 @@
             "data": {
               "flow_curve_cop_enabled": "Prissätt framledningstemperaturens lyft (ingen shuntventil)",
               "mixing_valve_mode": "Shuntventil",
-              "mixing_valve_target": "Ventilens börvärde",
+              "mixing_valve_target": "Rumstemperatur som blandningskretsen håller",
               "mixing_valve_target_entity": "Givare för ventilens börvärde",
               "mixing_valve_write_entity": "Ventilens styrenhet",
               "mixing_valve_write_target_kind": "Vad styrenheten förväntar sig"
@@ -804,7 +804,7 @@
             "data_description": {
               "flow_curve_cop_enabled": "Av som standard. För en anläggning utan shuntventil, där pumpen matar radiatorerna eller golvslingorna direkt. När det är på räknar planer och kostnader med att pumpen arbetar hårdare för att göra varmare vatten: framledningstemperaturen tas från modellens egen framledningskurva, plus den avvikelse som lärs in från givaren för framledningstemperatur om du har en. Med den givaren bedömer också vakten för verkningsgraden pumpen vid en gemensam vattentemperatur, så att en varmare framledning inte rapporteras som en kompressor som går sönder, och den hoppar över varje intervall där givaren saknar en färsk avläsning, så medan givaren är otillgänglig bedömer vakten inte uppvärmningen alls. Den inlärda avvikelsen är begränsad till 15 °C, så på en anläggning vars framledning ligger långt över modellens kurva prissätts bara en del av det extra arbetet. Inte tillgängligt med shuntventil, där tankens temperatur redan bestämmer priset.",
               "mixing_valve_mode": "\"Ställs in för hand\" är en ventil du själv ställer in; ange nedan vad du ställde den på. \"Läs från givare\" innebär att integrationen kan se börvärdet men inte ändra det. \"Styrs av optimeraren\" skriver det rekommenderade börvärdet till ventilens egen styrning via styrenheten nedan.",
-              "mixing_valve_target": "Inomhustemperaturen ventilen håller. Lämna på 0 för att använda toppen av ditt komfortintervall, vilket är den rekommenderade inställningen: byggnaden laddas först utan verkningsgradsförlust, och tanken tar bara överskottet.",
+              "mixing_valve_target": "Detta är inomhustemperaturen som blandningskretsen håller, inte en vattentemperatur: ange aldrig en framledningstemperatur här. Lämna på 0 för att använda toppen av ditt komfortintervall, vilket är den rekommenderade inställningen: byggnaden laddas först utan verkningsgradsförlust, och tanken tar bara överskottet.",
               "mixing_valve_target_entity": "Valfritt. Läser ventilens börvärde i stället för det fasta värdet ovan.",
               "mixing_valve_write_entity": "Krävs för \"Styrs av optimeraren\": den number- eller climate-entitet som ventilens styrning exponerar. Optimeraren skriver sitt rekommenderade börvärde dit efter varje planeringscykel, och bara när svaret ändras.",
               "mixing_valve_write_target_kind": "\"Inomhustemperatur\" är rätt för ett rums-/termostatbörvärde, och är vad som alltid har skrivits — det säkra standardvalet. \"Framledningstemperatur\" är för en ventil eller värmepumpsstyrning vars börvärde är en vattentemperatur: optimeraren räknar fram den från samma flödeskurva den redan använder för en dum ventil. Välj \"Framledningstemperatur\" först när du har bekräftat att entiteten förväntar sig en vattentemperatur — riktat mot ett flödesbörvärde skulle \"Inomhustemperatur\" beställa ungefär 21 °C till en enhet som förväntar sig 35-45 °C och kraftigt underuppvärma huset."
@@ -1861,6 +1861,10 @@
     "lower_floor_modelled": {
       "title": "Temperaturen på nedre plan är modellerad, inte uppmätt",
       "description": "Tvåzonsplanering är på och ingen givare för nedre plan är konfigurerad, så nedre zonen utgår från rumsgivaren och räknas därefter fram av den termiska modellen — kurvan “Nedre plan (modellerad)” i plandiagrammet. Så måste zonen planeras utan givare, och det är inget returgivaren kan bidra med: returvattnet ligger 3–9 K över rummet det värmer, så det används till uppskattningen av plattan, vilket är det som det verkligen är ett mått på. Det en modellerad zon inte kan göra är att korrigera sig själv, så under en lång köldperiod kan den glida ifrån det verkliga nedre planet. Ange “Givare för temperaturen på nedre plan” under zonalternativen så sluts den kretsen; då försvinner meddelandet."
+    },
+    "valve_target_above_comfort": {
+      "title": "Ventilens börvärde över komfortintervallet",
+      "description": "Blandningsventilens börvärde är {target} °C, vilket ligger över toppen av ditt komfortintervall på {ceiling} °C. Värdet läses som inomhustemperaturen som blandningskretsen håller, inte som en vattentemperatur, så en framledningstemperatur som skrivs där får planen att värma huset mot den, och med en kombitank kan den förbruka varmvattnet till det. Ingenting har ändrats åt dig: ett börvärde över komfort kan vara avsiktligt, till exempel vid laddning av betongplatta. Om det inte är det, sätt det till din rumstemperatur eller 0 (toppen av komfortintervallet); meddelandet försvinner vid nästa cykel."
     },
     "comfort_band_contradiction": {
       "title": "Dina komforttemperaturer motsäger varandra",
