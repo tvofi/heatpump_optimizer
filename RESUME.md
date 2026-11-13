@@ -6,6 +6,11 @@ R10-DIMENSIONS-FULL-COVERAGE is split in two by decision 0013's Consequences (a 
 
 What p2 still owes before its own handoff, in order:
 
+0. The roster group's two dispatched carries, which the dispatch payload did not snapshot and this seat read only at the handoff (`jq` of the group on `origin/handoff/audit-r10-roster`):
+   - Carry 0: add to the defect group's `cause` what FOUND the defect (a finder dimension, a reviewer, CI on main, the owner, an outside user) beside what caused it, in `tools/audit/convergence.py` (`check`, `report`, self-test), `root-cause.md` section 6 and `orchestrator.md` section 13; and make `tools/audit/seat/scorecard.py`'s `E` line split escapes by `cause.dimension` from that one field, not a second mechanism. Evidence the carry cites: the process convergence audit at d5d7ff8187, findings Q-E1 and Q-E2.
+   - Carry 1: in `dev/audit/README.md`'s playbook, a pointer at the finder phase (phase 2) to `COMMON.md`'s "The denominator" and `tools/audit/enumerate.py`, beside the phase 13 pointer already there; and a dry read in the body: from the playbook alone a new orchestrator reaches the step and the instrument that enforces it. If R10-ROUND-PLAYBOOK-FINAL has not merged, carry the pointer to it. The same instruction says outside and owner-filed findings fold into the running round unless explicitly deferred; `orchestrator.md` section 2 still says a round's scope freezes at its register, which this group has not edited.
+   Both raise per-file caps again (`policy_budgets.json`).
+
 1. p1 merged to main. Then `git merge origin/main` into the WIP head (the grader file is identical on both sides) and `node tools/policy/check-wave-script.mjs` at the merged head.
 2. `tools/pr/prepr.sh <P2-BODY.md>` clean. Its last run, before the split, predicted these reds; the state of each:
    - `GRADER check-wave-script.mjs REFUSED by the base's copy` (BOOTSTRAP): answered by p1. Re-check after step 1; it must be gone.
