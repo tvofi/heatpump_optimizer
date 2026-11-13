@@ -1,3 +1,0 @@
-RED b53bbf1604a3720aeb665a3b51219eb54df1fe6a pending: gate red: none introduced: 1
-INTRODUCED Show the tick loop refusing its own fixtures
-rc=1
