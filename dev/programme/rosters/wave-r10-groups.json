@@ -26239,6 +26239,47 @@
     "next_step": "cloud opus fixer; opus reviewer",
     "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY): owner ruling 2026-11-13: do option 1 (verify all user-facing production text against code behaviour) in round 10"
    }
+  },
+  {
+   "group": "R10-USER-TEXT-VERIFY-CARD",
+   "lane": "IN",
+   "kind": "production",
+   "class": "bug",
+   "severity": "high",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. This group owns the dashboard card: every user-visible string the card renders. Owed, one pull request: enumerate the card's visible strings mechanically with a null control showing the enumerator misses none; judge each behaviour claim against the code that decides it in the card and in the Python feeding it, never against a comment, with the table kept as a tracked record under dev/audit/rounds/round10/; correct each false or stale string in every language the card carries; pin each mechanically checkable claim in the card's own test script; carry anything false outside the card to the round-11 intake.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-user-text-verify-card",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud opus fixer; opus reviewer",
+    "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap"
+   }
   }
  ]
 }
