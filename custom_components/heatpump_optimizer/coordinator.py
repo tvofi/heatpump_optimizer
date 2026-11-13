@@ -7665,17 +7665,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         whatever it was given, so a single tap on its top notch stored a target
         one degree above the ceiling, and nothing said a word.
 
-        Reported rather than migrated. These are the user's own numbers and
-        only they know which one is wrong -- silently rewriting a comfort
-        target to make an inequality hold is exactly the kind of help nobody
-        asked for. The plan keeps running meanwhile: the bounds are priced
-        rather than fenced, so a contradictory band is a plan in permanent
-        violation, not a crash.
+        Reported rather than migrated: only the user knows which number is
+        wrong, and silently rewriting a comfort target to make an inequality
+        hold is help nobody asked for. The plan keeps running: the bounds are
+        priced, not fenced. The valve-target notice rides here too.
         """
-        found = comfort_band.violations({}, getattr(self, "_ctx", self)._config)
+        ctx = getattr(self, "_ctx", self)
+        found = comfort_band.violations({}, ctx._config)
         problem = comfort_band.describe(found) if found else None
         self._config_notices.report(self.hass, "comfort_band_contradiction", problem,
                                     {"problem": problem} if problem else None)
+        mixing_valve.audit_target(self._config_notices, self.hass, ctx._thermal_params)
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(

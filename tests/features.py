@@ -87622,4 +87622,62 @@ R.check(
     f"issues {_fb_floor['issues'][:3]}",
 )
 
+# R10-OUTSIDE-VALVE-TARGET-LABEL (pull request 3529, Bankaifan, follow-up comment
+# 6840023148): the mixing-valve target is the ROOM temperature the circuit holds. A flow
+# temperature typed there silently drives a combi plan, so a target above the comfort
+# ceiling raises a notice. The solve is not changed: the notice is the whole fix.
+def _vt_dhw_kwh(target):
+    p = _ct_params(mixing_valve_target=target)
+    opt = _StoreOpt(ThermalModel(p), _StoreCfg(horizon_hours=24, time_step_minutes=15,
+                                               target_temp=21.0, min_temp=19.0, max_temp=23.0))
+    r = opt.optimize(inputs=solve_inputs(
+        initial_state=ThermalState(room_temperature=21.0, slab_temperature=23.0,
+                                   buffer_tank_temperature=50.0, dhw_temperature=50.0,
+                                   outdoor_temperature=0.0),
+        prices=_CT_PRICES, outdoor_temps=np.full(96, 0.0), wind_speeds=np.zeros(96),
+        precipitation=np.zeros(96), solar_radiation=np.zeros(96),
+        start_time=datetime(2026, 1, 15)))
+    return float(np.sum(r.dhw_power_schedule)) * 0.25, list(r.dhw_power_schedule)
+
+
+_vt_0, _vt_0_sched = _vt_dhw_kwh(0.0)
+_vt_30, _vt_30_sched = _vt_dhw_kwh(30.0)
+_vt_23, _vt_23_sched = _vt_dhw_kwh(23.0)
+R.check(
+    "valve target: on a combi entry a flow temperature typed as the target (30) moves the "
+    "planned hot-water energy against 0, the trap the notice names; null control: the same "
+    "target replans identically (the notice reads the plan, never changes it)",
+    _vt_30_sched != _vt_0_sched and _vt_30_sched == _vt_dhw_kwh(30.0)[1],
+    f"0={_vt_0} 30={_vt_30} 23={_vt_23}",
+)
+
+
+def _vt_issues(target, **extra):
+    cfg = {"tibber_token": "x", "weather_entity": "weather.home",
+           "max_temperature": 23.0, **extra}
+    if target is not None:
+        cfg["mixing_valve_target"] = target
+    c = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=cfg))
+    c._audit_comfort_band()
+    c._audit_comfort_band()
+    return [i for i in getattr(c.hass, "issues", []) if i[1] == "valve_target_above_comfort"]
+
+
+_vt_hot = _vt_issues(30.0)
+R.check(
+    "valve target: a configured target above the comfort ceiling raises one repair, once "
+    "across two cycles, naming the target and the ceiling",
+    len(_vt_hot) == 1
+    and _vt_hot[0][2].get("translation_key") == "valve_target_above_comfort"
+    and _vt_hot[0][2]["translation_placeholders"] == {"target": "30", "ceiling": "23"},
+    str(_vt_hot),
+)
+R.check(
+    "valve target null control: unset, 0, and any target at or under the ceiling raise "
+    "no notice (a deliberate slab charge is not refused, only named when above)",
+    not _vt_issues(None) and not _vt_issues(0.0) and not _vt_issues(21.0)
+    and not _vt_issues(23.0) and not _vt_issues(23.5, max_temperature=24.0),
+    "a plausible target raised a notice",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
