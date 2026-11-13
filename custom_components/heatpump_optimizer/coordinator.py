@@ -7829,7 +7829,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
-            await pump_arbiter.switch_supply(self.hass, switch_entity, value)
+            await pump_arbiter.write_supply(self, switch_entity, value)
         elif switch_entity and not held.supply_held:
             _LOGGER.debug(
                 "Not switching %s off: mode %s is cooling or blocks both "
