@@ -1,0 +1,7 @@
+  File "/opt/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/components/mqtt/debug_info.py", line 15, in <module>
+    from .models import DATA_MQTT, PublishPayloadType
+  File "/opt/hpo/venv-ha/lib/python3.14/site-packages/homeassistant/components/mqtt/models.py", line 12, in <module>
+    from paho.mqtt.client import MQTTMessage
+ModuleNotFoundError: No module named 'paho'
+rc=1
+base rc=1 (same environment failure => not the head's)

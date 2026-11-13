@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 33a1683bbd..2643e673f8 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -1317,7 +1317,7 @@ STUB
+   }
+   dualrun() { # <mutant|->: rc of the second opener in $t/rc2, body.md before and after it in $t/bd1 and $t/bd2
+     local sd=$t/dual-state sdir=$t/dual-stub k=0 op
+-    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); dualcopy "$1"
++    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); ln -sfn "$sd" "$t/dual-link"; sd=$t/dual-link; dualcopy "$1"  # PERTURB: state dir via a symlink
+     env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout1" 2>&1 & op=$!
+     while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+     cksum < "$sd/pr/r/body.md" > "$t/bd1"
