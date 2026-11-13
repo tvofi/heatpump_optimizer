@@ -1,0 +1,61 @@
+M1 lift owner returns the configured lift: KILLED rc=1 2 failing
+    FAIL a heating hysteresis above the configured lift is the lift  [predicate false]
+    FAIL a heating hysteresis above the lift moves the floor write to return + hysteresis  [predicate false]
+M2 drop_unstartable >= to >: KILLED rc=1 1 failing
+    FAIL a tank exactly at the start temperature does not start  [predicate false]
+M3 ledger not-startable branch removed: KILLED rc=1 2 failing
+    FAIL an idle hot water step on a tank above the start temperature is not-startable  [predicate false]
+    FAIL an idle hot water step on a tank exactly at the start temperature is not-startable  [predicate false]
+M4 repair places without the start mask: KILLED rc=1 1 failing
+    FAIL what the start condition bars is re-bought where the pump starts: the tank is no further under its minimum with a 4 K hysteresis than with none  [predicate false]
+M5 startable_steps < to <=: KILLED rc=1 1 failing
+    FAIL a tank exactly at the start temperature, not charging, does not start  [predicate false]
+M6 a zero hysteresis is a start condition: KILLED rc=1 2 failing
+    FAIL no target, or a hysteresis that is missing, zero or negative, is no start temperature  [predicate false]
+    FAIL with no or zero hysteresis no step has a start temperature  [predicate false]
+M7 the difference reader ignores the unit's scale: KILLED rc=1 1 failing
+    FAIL a hysteresis in degF is scaled by 5/9, not offset  [predicate false]
+M8 the cycle step judged against the everyday target: KILLED rc=1 2 failing
+    FAIL each step's start temperature is its own target less the hysteresis, the cycle step the cycle's  [predicate false]
+    FAIL a cycle on the first step is judged against its own target; one past the horizon moves no step  [predicate false]
+M9 notice at a minimum equal to the start temperature: KILLED rc=1 1 failing
+    FAIL a minimum exactly at the start temperature raises nothing  [predicate false]
+M10 place_startable returns without the final drop: KILLED rc=1 2 failing
+    FAIL a repair that keeps re-placing the unstartable plan still leaves a plan with none, in bounded rounds  [predicate false]
+    FAIL a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge  [predicate false]
+M11 coordinator does not read the options: KILLED rc=1 1 failing
+    FAIL the coordinator's input read puts both hysteresis sensors into the state  [predicate false]
+M12 the floor write ignores the hysteresis: KILLED rc=1 1 failing
+    FAIL a heating hysteresis above the lift moves the floor write to return + hysteresis  [predicate false]
+M13 the planner ignores the hysteresis: KILLED rc=1 1 failing
+    FAIL with a 4 K hysteresis no planned charge after step 0 begins at or above 51 degC  [predicate false]
+M14 ledger start ignores the written target: KILLED rc=1 2 failing
+    FAIL the ledger's start temperature on a booked cycle step is the cycle's less the hysteresis  [predicate false]
+    FAIL with no set-point entity to write, the ledger's start is the plan step's target less the hysteresis  [predicate false]
+M15 delta reader accepts above the maximum: KILLED rc=1 1 failing
+    FAIL a hysteresis outside 0 to 20 K, unavailable, in a non-temperature unit, unset or unknown is no reading  [predicate false]
+M16 a run at step 0 is judged too: KILLED rc=1 1 failing
+    FAIL a run at the first step is kept on a warm tank, with nothing planned at the horizon's end  [predicate false]
+M17 the round bound is nine: KILLED rc=1 1 failing
+    FAIL a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge  [predicate false]
+M18 a cycle on the first step is not a cycle step: KILLED rc=1 1 failing
+    FAIL a cycle on the first step is judged against its own target; one past the horizon moves no step  [predicate false]
+M19 a run at the second step is not judged: KILLED rc=1 1 failing
+    FAIL a run that begins at the second step on a warm tank is dropped  [predicate false]
+M20 the loop never ends early: KILLED rc=1 1 failing
+    FAIL a repair that changes nothing ends the loop: one round to drop, one to see the plan stand  [predicate false]
+M21 a cycle past the horizon is written: KILLED rc=1 1 failing
+    FAIL a cycle on the first step is judged against its own target; one past the horizon moves no step  [IndexError: index 3 is out of bounds for axis 0 with size 3]
+M22 the shared clamp zeroes a step on the runnable block: KILLED rc=1 1 failing
+    FAIL a step the capacity clamp leaves below a runnable block is zeroed; one on the block, to the 1e-9 the rule allows, is kept  [predicate false]
+M23 the ledger's fallback target is unset: KILLED rc=1 1 failing
+    FAIL with no set-point entity to write, the ledger's start is the plan step's target less the hysteresis  [predicate false]
+M24 the set-point check never reaches the start notice: KILLED rc=1 1 failing
+    FAIL the set-point check's own entry raises it: evaluate() reaches the start notice  [predicate false]
+M25 the notice judges the cycle's target: KILLED rc=1 1 failing
+    FAIL the start temperature is the everyday target's even with a disinfection cycle active  [predicate false]
+M26 a hysteresis under one kelvin is none: KILLED rc=1 1 failing
+    FAIL a hysteresis under one kelvin is still a start condition  [predicate false]
+M27 pinned hot water is not held to the tank's capacity: KILLED rc=1 1 failing
+    FAIL a day with hot water pinned on at every step is still held to the tank's charge limit of 55 degC  [predicate false]
+NULL comment-only change: SURVIVED rc=0 0 failing

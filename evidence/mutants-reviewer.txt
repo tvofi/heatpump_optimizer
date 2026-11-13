@@ -1,0 +1,34 @@
+O1 startable_steps: the step after a charging step is not startable: KILLED rc=1 1 failing
+    FAIL a step opens on a tank below its start temperature, or follows or is a charge  [predicate false]
+O2 startable_steps: a step already charging is not startable: SURVIVED rc=0 0 failing
+O3 everyday step target ignores the charge limit: SURVIVED rc=0 0 failing
+O4 cycle step target ignores the hard maximum: SURVIVED rc=0 0 failing
+O5 a unit-less number is no reading: KILLED rc=1 1 failing
+    FAIL a hysteresis with no unit is taken as K  [predicate false]
+O6 ledger not-startable >= to >: KILLED rc=1 1 failing
+    FAIL an idle hot water step on a tank exactly at the start temperature is not-startable  [predicate false]
+O7 place_startable re-buys without dropping first: KILLED rc=1 2 failing
+    FAIL a repair that changes nothing ends the loop: one round to drop, one to see the plan stand  [predicate false]
+    FAIL what the start condition bars is re-bought where the pump starts: the tank is no further under its minimum with a 4 K hysteresis than with none  
+O8 the two options are swapped: KILLED rc=1 1 failing
+    FAIL the coordinator's input read puts both hysteresis sensors into the state  [predicate false]
+O9 an unstartable run loses only its first step: KILLED rc=1 4 failing
+    FAIL a charge begun above its start temperature is dropped whole; the first step and a cooled tank's run are kept  [predicate false]
+    FAIL a repair that changes nothing ends the loop: one round to drop, one to see the plan stand  [predicate false]
+O10 not-startable for any actual: KILLED rc=1 1 failing
+    FAIL a hot water step that ran the space pump on a warm tank is space-instead  [predicate false]
+O11 not-startable for any planned duty: KILLED rc=1 1 failing
+    FAIL a planned both step idle above the start temperature is idle-instead  [predicate false]
+O12 Kelvin delta read with the absolute offset: KILLED rc=1 7 failing
+    FAIL a hysteresis in K reads as it stands  [predicate false]
+    FAIL a hysteresis in degF is scaled by 5/9, not offset  [TypeError: unsupported operand type(s) for -: 'NoneType' and 'float']
+O13 start_flow lift is the hysteresis alone: KILLED rc=1 2 failing
+    FAIL a heating hysteresis at or below the configured lift, or none, leaves the configured lift  [predicate false]
+    FAIL null control: a hysteresis below the lift, or none, writes what a state without the attribute writes  [predicate false]
+O14 notice placeholder-free: issue never raised: KILLED rc=1 3 failing
+    FAIL a minimum above the start temperature raises dhw_minimum_above_start with its figures  [predicate false]
+    FAIL the start temperature is the everyday target's even with a disinfection cycle active  [predicate false]
+O15 ledger row start_below not recorded: KILLED rc=1 3 failing
+    FAIL the ledger's start temperature is the written set-point less the hysteresis  [KeyError: 'start_below']
+    FAIL the ledger's start temperature on a booked cycle step is the cycle's less the hysteresis  [KeyError: 'start_below']
+NULL: SURVIVED rc=0 0 failing
