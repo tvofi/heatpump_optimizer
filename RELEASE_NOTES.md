@@ -1,3 +1,32 @@
+## v7.1.14
+
+**Patch stamp: duty-switch restart learning part B, mode before supply on, ECL110 MQTT off-neutral, and user-docs corrections; the rest is tooling.**
+
+### #3530 The pump arbiter writes the step's mode ahead of a supply switch-on (R10-MODE-BEFORE-SUPPLY-ON)
+
+The arbiter now writes the step's mode before it switches the supply on (#3420 part E).
+
+### #3534 The ECL110 MQTT off state is neutral (R10-ECL110-MQTT-OFF-NEUTRAL)
+
+The ECL110 topic publish drops its dead early return; the off arm needs no topic guard of its own.
+
+### #3524 The duty-switch learner publishes p and whole-episode n (R10-DUTY-SWITCH-RESTART-LEARNING, part B)
+
+The learner publishes the restart probability and the whole-episode count, with N_ON pinned as a decayed weight.
+
+### #3513 User docs verified (R10-USER-DOCS-VERIFY)
+
+Docs now state the mold-safe range as uncapped with the floor held at the target, and a two-probe average for a stratified combi store as an estimate of its mean.
+
+### Developer tooling, CI and audit machinery only
+
+#3515, #3535, #3492, #3377, #3510, #3533, #3498, #3522, #3503, #3523.
+
+### Record only
+
+#3537, #3527 (delivery rows, autofix).
+
+
 ## v7.1.13
 
 **Patch stamp: 24 merges since v7.1.12, stamped on the owner's order.** The user-visible changes are a duty-switch learner that records how the pump behaves after a hot-water-to-space mode write, and a hot-water write that now respects the entity's range and the user's own charge limit.
