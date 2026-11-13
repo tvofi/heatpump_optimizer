@@ -26135,7 +26135,7 @@ R.check(
     "one solve refreshes exactly one tile, in rotation",
     list(price_tiles.book(_ctile2)) == ["target_minus_1"]
     and _ctile2._insight_view()["price_tiles"]["target_minus_1"]["monthly_cost_delta"] == -40.0
-    and price_tiles._CURSORS.get(_ctile2, 0) == 1,
+    and price_tiles.rotation(_ctile2).cursor == 1,
 )
 
 
@@ -26158,7 +26158,7 @@ R.check(
     "#1753: the tile solves through the user-limit-free path, so its turn "
     "is always spent",
     _ctile2_limited_seen.get("limited") is False
-    and price_tiles._CURSORS.get(_ctile2, 0) == 2,
+    and price_tiles.rotation(_ctile2).cursor == 2,
     str(_ctile2_limited_seen),
 )
 R.check(
@@ -26385,7 +26385,7 @@ _ctile4.async_simulate = _fake_sim_err
 _asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
-    price_tiles._CURSORS.get(_ctile4, 0) == 1 and not price_tiles.book(_ctile4),
+    price_tiles.rotation(_ctile4).cursor == 1 and not price_tiles.book(_ctile4),
 )
 
 # Turning the flag off retires the published tiles too.
@@ -32083,7 +32083,7 @@ async def _st_tiles():
             await coord._maybe_refresh_price_tile(record)
         out["clock_first"] = (tuple(b - a for a, b in zip(before, seams.counts())), sorted(price_tiles.book(coord)))
         price_tiles.book(coord).clear()
-        price_tiles._STEADY_TAKEN[coord] -= timedelta(hours=6)
+        price_tiles.rotation(coord).steady_taken -= timedelta(hours=6)
         # The rotation position is whatever the seeding solve left it at.
         for _ in names:
             before, had = seams.counts(), {k: len(v.get("days", [])) for k, v in price_tiles.book(coord).items()}
@@ -32109,9 +32109,9 @@ async def _st_tiles():
                 await coord._maybe_refresh_price_tile(record)
             out["clock_" + label] = (tuple(b - a for a, b in zip(before, seams.counts())),
                                      price_tiles.book(coord)["power_cap_75"]["computed_at"] != stamp)
-        # A turn stamped ahead of the reading clock, on an owner of its own.
-        owner, cap = type("_StOwner", (), {})(), [("power_cap_75", {"power_cap_kw": 1.0})]
-        out["clock_behind"] = [price_tiles.take(owner, cap, start + age) is not None for age in (
+        # A turn stamped ahead of the reading clock, on a rotation of its own.
+        turn, cap = price_tiles.Rotation(), [("power_cap_75", {"power_cap_kw": 1.0})]
+        out["clock_behind"] = [price_tiles.take(turn, cap, start + age) is not None for age in (
             timedelta(0), -timedelta(seconds=1), timedelta(0))]
     return out
 
@@ -53510,10 +53510,10 @@ def _t3_tile(answer, **config):
 _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
 R.check(
     "a spec that raises advances the cursor, so it cannot block the other tiles",
-    price_tiles._CURSORS.get(_t3_tile_boom, 0) == 1
+    price_tiles.rotation(_t3_tile_boom).cursor == 1
     and dict(price_tiles.book(_t3_tile_boom)) == {}
     and _t3_tile_boom._t3_escaped is None,
-    f"cursor {price_tiles._CURSORS.get(_t3_tile_boom, 0)} tiles "
+    f"cursor {price_tiles.rotation(_t3_tile_boom).cursor} tiles "
     f"{dict(price_tiles.book(_t3_tile_boom))!r} -- leaving the cursor put would "
     "retry the same failing spec every solve and the other two would never "
     "be computed again",
@@ -53527,13 +53527,13 @@ _t3_tile_good = _t3_tile(
 )
 R.check(
     "an errored answer advances the cursor but publishes nothing; a good one publishes",
-    price_tiles._CURSORS.get(_t3_tile_error, 0) == 1
+    price_tiles.rotation(_t3_tile_error).cursor == 1
     and dict(price_tiles.book(_t3_tile_error)) == {}
-    and price_tiles._CURSORS.get(_t3_tile_good, 0) == 1
+    and price_tiles.rotation(_t3_tile_good).cursor == 1
     and sorted(price_tiles.book(_t3_tile_good)) == ["target_minus_1"],
-    f"errored -> cursor {price_tiles._CURSORS.get(_t3_tile_error, 0)}, tiles "
+    f"errored -> cursor {price_tiles.rotation(_t3_tile_error).cursor}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_error))!r}; good -> cursor "
-    f"{price_tiles._CURSORS.get(_t3_tile_good, 0)}, tiles "
+    f"{price_tiles.rotation(_t3_tile_good).cursor}, tiles "
     f"{sorted(price_tiles.book(_t3_tile_good))!r}",
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)

@@ -64,6 +64,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from typing import Any, TypedDict, cast
 from weakref import WeakKeyDictionary
@@ -110,32 +111,43 @@ def book(owner: Any) -> dict[str, dict[str, Any]]:
     return _BOOKS.setdefault(owner, {})
 
 
-#: Each coordinator's rotation position; not persisted.
-_CURSORS: WeakKeyDictionary[Any, int] = WeakKeyDictionary()
+@dataclass
+class Rotation:
+    """One coordinator's tile rotation; not persisted, so a restart starts at
+    the first tile and waits one clock before a steady refresh."""
+
+    #: The position of the next spec.
+    cursor: int = 0
+    #: When the steady tile last took its turn, or first came up for one.
+    steady_taken: datetime | None = None
 
 
-#: When each coordinator's steady tile last took its turn, or first came up
-#: for one; not persisted, so a restart waits one clock before a refresh.
-_STEADY_TAKEN: WeakKeyDictionary[Any, datetime] = WeakKeyDictionary()
+_ROTATIONS: WeakKeyDictionary[Any, Rotation] = WeakKeyDictionary()
+
+
+def rotation(owner: Any) -> Rotation:
+    """``owner``'s rotation, created on first use; ``take`` moves it."""
+    return _ROTATIONS.setdefault(owner, Rotation())
 
 
 def take(
-    owner: Any, specs: list[tuple[str, dict[str, float]]], now: datetime,
+    turn: Rotation, specs: list[tuple[str, dict[str, float]]], now: datetime,
 ) -> tuple[str, dict[str, float]] | None:
-    """``owner``'s next spec, or None on the turn of a steady tile still inside
-    its clock, which its first turn starts. The rotation moves before the
-    solve, so a failing or cancelled spec cannot block the others: it is
+    """The rotation's next spec, or None on the turn of a steady tile still
+    inside its clock, which its first turn starts. The rotation moves before
+    the solve, so a failing or cancelled spec cannot block the others: it is
     retried on the next pass, the steady one at its next clock, since the
     clock counts turns taken and not answers. A turn stamped ahead of ``now``
     has no age (#775) and is taken."""
-    cursor = _CURSORS.get(owner, 0)
-    _CURSORS[owner] = cursor + 1
+    cursor = turn.cursor
+    turn.cursor = cursor + 1
     name, overrides = specs[cursor % len(specs)]
     if "power_cap_kw" in overrides:
-        taken = _STEADY_TAKEN.setdefault(owner, now)
-        if 0.0 <= (now - taken).total_seconds() < STEADY_REFRESH_HOURS * 3600.0:
+        if turn.steady_taken is None:
+            turn.steady_taken = now
+        if 0.0 <= (now - turn.steady_taken).total_seconds() < STEADY_REFRESH_HOURS * 3600.0:
             return None
-        _STEADY_TAKEN[owner] = now
+        turn.steady_taken = now
     return name, overrides
 
 

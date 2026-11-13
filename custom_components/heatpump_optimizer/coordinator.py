@@ -10700,7 +10700,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             price_tiles.book(self).clear()
             return
         specs = price_tiles.specs(record.config, record.params.max_electrical_power)
-        if (spec := price_tiles.take(self, specs, dt_util.now())) is None:
+        if (spec := price_tiles.take(price_tiles.rotation(self), specs, dt_util.now())) is None:
             return
         name, overrides = spec
         try:

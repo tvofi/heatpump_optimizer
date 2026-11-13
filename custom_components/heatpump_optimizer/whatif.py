@@ -146,10 +146,7 @@ _STATES: WeakKeyDictionary[Any, WhatIfState] = WeakKeyDictionary()
 
 def state_for(owner: Any) -> WhatIfState:
     """``owner``'s what-if state, created on first use."""
-    held = _STATES.get(owner)
-    if held is None:
-        held = _STATES[owner] = WhatIfState()
-    return held
+    return _STATES.setdefault(owner, WhatIfState())
 
 
 def limited_answer(held: WhatIfState, now: datetime) -> dict[str, Any] | None:
