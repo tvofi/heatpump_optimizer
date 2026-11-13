@@ -34,8 +34,8 @@ VERDICTS = {"true", "false", "stale", "unverifiable"}
 HEADER = ["unit", "line", "kind", "command", "result", "verdict", "truth"]
 SENT = re.compile(r"(?<=[.!?])[\"')\]]*\s+(?=[A-Z0-9`*\[(\"'])")
 BLOCK_START = re.compile(r"^\s*(#{1,6}\s|[-*+]\s|\d+[.)]\s|\||>)")
-WORDS = re.compile(r"[A-Za-z]{2,}")
-PROSE = re.compile(r"[A-Za-z]{2,}[,.:;!?]?\s+[A-Za-z]{2,}")
+WORDS = re.compile(r"[^\W\d_]{2,}")
+PROSE = re.compile(r"[^\W\d_]{2,}[,.:;!?]?\s+[^\W\d_]{2,}")
 CSS = re.compile(r"[\w-]+\s*:\s*[^;{}]+;")
 
 
