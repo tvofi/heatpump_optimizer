@@ -82059,7 +82059,7 @@ from dataclasses import replace as _mb_replace
 
 async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via="cycle",
                   select="Heating", fail=False, cut=False, optimizer="auto", space=False,
-                  disinfect=False):
+                  disinfect=False, since=-60, after=0):
     """Ordered (domain, service) calls of one switch write, through the real coordinator.
 
     The plan is "-d": idle at 05:45, hot water only at 06:00 (``space``:
@@ -82070,7 +82070,11 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
     entry unloaded). ``cut``: an early cut-off at
     05:58 holds the switch-on (MIN_OFF). Also returns the contexts the
     learner was told of, and the options the select was sent. ``disinfect``:
-    the pass reads a held disinfection.
+    the pass reads a held disinfection. ``since``: minutes from 06:00 at which
+    the switch took its state (an hour back by default, so no minimum run or
+    pause holds the write; -2 holds a switch-on until 06:08). ``after``: the
+    step ticks then fire each minute to 06:00 + ``after``, and a fifth value
+    maps each such minute to its ordered calls.
     """
     ticks, told = [], []
     armed, noted, owed = _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode
@@ -82081,7 +82085,7 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
             return None
         _sa_pa._lead_mode = _none
     hass = FakeHass({
-        "switch.hp": FakeState(switch, last_updated=_SA_T0),
+        "switch.hp": FakeState(switch, last_updated=_SA_T0 + timedelta(minutes=since)),
         "select.pump_mode": FakeState(select, attributes={"options": list(_PA_TUYA)}),
     })
     if fail:
@@ -82125,8 +82129,15 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
             _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
             await coord._apply_action()
         calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
-        return calls, told, [data["option"] for d, _s, data in hass.services.calls if d == "select"], \
-            _sa_pa.state_for(coord).loaded
+        options = [data["option"] for d, _s, data in hass.services.calls if d == "select"]
+        later = {}
+        for minute in range(1, after + 1):
+            hass.services.calls.clear()
+            _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+            for tick in list(ticks):
+                await tick(_SA_T0 + timedelta(minutes=minute))
+            later[minute] = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        return (calls, told, options, _sa_pa.state_for(coord).loaded) + ((later,) if after else ())
     finally:
         _sa_dt.freeze(None)
         _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
@@ -82181,6 +82192,28 @@ R.check(
     "null control: the same heating step with no cut on record writes the mode, then the switch",
     _mb_uncut == [("select", "select_option"), ("switch", "turn_on")],
     f"{_mb_uncut}",
+)
+# The same rows with the minimum pause engaged (``supply_hold.hold_supply``,
+# the switch off since 05:58): the hold sits ahead of ``write_supply`` in
+# ``_write_supply``, so a held switch-on writes no mode, and the step tick's
+# retry runs through the same gate, so the switch-on that lands at 06:08
+# writes the mode immediately before the switch, on that tick and no other.
+_mb_cut_held = _asyncio.run(_mb_run(cut=True, space=True, since=-2))[0]
+_mb_held = _asyncio.run(_mb_run(space=True, since=-2, after=12))
+R.check(
+    "with the minimum pause engaged too, a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut_held == [("switch", "turn_off")],
+    f"{_mb_cut_held}",
+)
+R.check(
+    "a cycle switch-on the minimum pause holds back writes no mode and no switch",
+    _mb_held[0] == [],
+    f"{_mb_held[0]}",
+)
+R.check(
+    "a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick",
+    {m: c for m, c in _mb_held[4].items() if c} == {8: [("select", "select_option"), ("switch", "turn_on")]},
+    f"{_mb_held[4]}",
 )
 _mb_direct = {
     (sw, opt): _asyncio.run(_mb_run(via="direct", switch=sw, optimizer=opt))[0]
