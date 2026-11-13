@@ -1025,7 +1025,7 @@ def cases(bj) -> dict[str, bool]:
     (wt_tree / "tools/audit/seat").mkdir(parents=True)
     (wt_tree / ".github/workflows").mkdir(parents=True)
     for nm in ("wired.py", "unwired.py"):
-        (wt_tree / "tools/audit/seat" / nm).write_text("#" + " self-" + "test\n")
+        (wt_tree / "tools/audit/seat" / nm).write_text("x = '--self" + "-test'\n")
     (wt_tree / ".github/workflows/w.yml").write_text("jobs:\n  j:\n    steps:\n      - run: python3 tools/audit/seat/wired.py --self" + "-test\n")
     res["darwin-selftest: the wired filter drops a self-test no workflow runs (null: both are seat self-tests)"] = \
         real.darwin_instruments(wt_tree) == ["audit/seat/wired.py"] \
