@@ -1,0 +1,24 @@
+{
+ "_comment": [
+  "Carry destination for the round-5 governance/record findings (#201, the audit",
+  "programme's standing tracking issue). R10-CLOSEOUT-PREP part 2 re-homed or",
+  "discharged every other entry this file held; the one left is the",
+  "R10-HOTFIX-CI-CRITPATH-4 entry, whose owner decision (re-record or pay",
+  "critical_path_minutes) f76f55901f answered by making the metric report-only,",
+  "while its second item -- window_work_minutes keeping only declared `needs:`",
+  "edges -- is not built and has no roster destination. Kept whole, unanswered.",
+  "Shape and required fields: .claude/rules/finding-propagation.md. Linted by",
+  "tools/policy/brief_lint.mjs (the `briefs` CI job)."
+ ],
+ "issue": 201,
+ "stage": "the next seat that changes tests/ci_ratchet.py's critical-path measurement (window_work_minutes, critical_path_minutes, QUEUE_EPS) or re-grades it with tools/audit/seat/probe_bridge.py",
+ "carries": [
+  {
+   "from": "R10-HOTFIX-CI-CRITPATH-4: critical_path_minutes priced on each heavy job's own runner probe (tests/host_probe.py, tests/ci_ratchet.py PROBE_REFERENCE_S)",
+   "effect": "invalidates",
+   "control": "The grade never sees its own run (status in_progress), so the push that merges this change grades the sixteen runs before it, none carrying a probe step: dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py section 6 reads that window at 29.067 against 21.983 + 1.3. The first push after it grades its merge run probed; with each of #3201's two fully green probed CI runs (41862133797, 41862145105) standing in for the merge run, replay.py section 6 reads 25.644 and 25.993, still over 23.283, because `tests / closures` prices about 1400 reference-host seconds probed (its two fast-host runs, probes 22 s) where the budget's window priced it at its fastest draw, 1117 s. The control that the constant is load-bearing: the one-machine 17.50 / 18.92 reads the same windows at 22.252 and 22.633, green, which is why tools/audit/seat/probe_bridge.py --self-test now refuses any PROBE_REFERENCE_S the committed fleet record does not re-derive.",
+   "remeasure": "On each push after the merge, read the `tests / ci-ratchet` step's critical_path_minutes line. Once eight or more probed push runs exist, run `python3 tools/audit/seat/probe_bridge.py --repo tvofi/heatpump_optimizer` and compare its implied PROBE_REFERENCE_S with the tree's (`python3 tools/audit/seat/probe_bridge.py` prints the committed record's). Re-run replay.py section 6 on a fleet.json holding those push runs.",
+   "brief": "For the seat that merges R10-HOTFIX-CI-CRITPATH-4 and the owner: the merge commit's own `tests / ci-ratchet` reads GREW critical_path_minutes (29.067, no probed run in its window), and the pushes after it are predicted to keep reading GREW near 25.6-26.0 on the fleet-derived unit, not to clear: the budget 21.983 was recorded on each heavy job's fastest draw, below the fleet's fast-class host for `tests / closures`. No constant may be moved to clear it (probe_bridge.py --self-test refuses one the fleet record does not re-derive). The decision is the owner's under CLAUDE.md rule 2: re-record critical_path_minutes in the probed unit once a fully probed window exists (reason in the commit message), or pay it by cutting work on the closures / ci-ratchet path. Separately, a robustness follow-up from the #3201 review: window_work_minutes unions timing-inferred need edges across the window, so one run's coincidence (a job created as an unrelated job ended, within QUEUE_EPS) becomes an edge for the whole window; replay.py section 6's paths carry `budget-raise-gate` or `validate-hacs` (about 30 s) ahead of `tests / closures` that way. Keeping only edges to the workflow's declared `needs:` would close it; it is not built here."
+  }
+ ]
+}
