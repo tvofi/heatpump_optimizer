@@ -1,0 +1,19 @@
+Fix review: blocked 5d2c0a30ec65f2d4d4f5976ee50937737e19c089 introduced-red: instrument-self-tests step "Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures" is red at the head and not at the base; the 5 FAIL rows are this PR's own update_pr figure-refresh arms
+
+bus-nonce: a64ab4024544a06f2b66e10d48d5f750
+
+## Block
+
+- Round 1 (re-fire of the first review: same nonce, same head; no earlier verdict on probe/rev-3546-*).
+- `merge_train.py classify 5d2c0a30ec65f2d4d4f5976ee50937737e19c089 --pr 3546` exits 1: `RED 5d2c0a30ec65f2d4d4f5976ee50937737e19c089 pending: none red: none introduced: 1` / `INTRODUCED Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures`. `review_packet.py` refuses on the same signal (`introduced-red`, head job 131858573499 against base job 131807475579). Under fix-review.md step 11 an INTRODUCED instrument-self-tests step is the PR's own finding and a block.
+- Job 131858573499's log (ev/ci-job-131858573499-excerpt.txt) reads `pr_args self-test: 251 checks, 5 failed`. All five FAIL rows are arms this diff adds to tools/audit/seat/pr_args.sh (R10-HOTFIX-UPDATEPR-FIGURE-REFRESH): the moved-head arm, the failing-refresh-at-push arm, the body-only arm, the mut:updfig2 mutant arm and the failing-refresh-on-body-only arm. The mut:updfig1 arm and both no-block null controls pass. A FAIL on the positive arm means the main path is not proven in CI, and the mut:updfig2 arm failing means that mutant's kill is not shown either.
+- My own run at this head in a cloud container, `bash tools/audit/seat/pr_args.sh --self-test`, gives `251 checks, 0 failed` (rc 0, 4m55s; ev/selftest-head-local.tail.txt). So the new arms depend on the host: they pass here and fail on the CI runner. Every arm that fails in CI writes a figure block into the body, and both arms with no block pass. That points at the stubbed `tools/pr/figure_block.py` / `$PRT` resolution or at the `ubp.sh` body_patch stub as they behave on the runner. I did not establish the cause: CI keeps none of the arm's `$t/out`. The fixer owes a diagnosis and a fix that turns the step green on the runner, plus the body's `## Red checks` answer (defect-root-cause.md: the cheaper detector, which is this self-test run locally and which passed, so the gap is host parity).
+
+## Evidence
+
+- Head reviewed: 5d2c0a30ec65f2d4d4f5976ee50937737e19c089 (ev/HEAD.txt). `git ls-remote origin refs/pull/3546/head` returned the same SHA just before the push (ev/live-head.txt).
+- Merge base 7eadd75f3c420404aabc83d4b05f9691f3e49136. `git merge-tree --write-tree origin/main <head>` with the claimnotes driver installed exits 0, so no conflict (ev/merge-tree.txt).
+- VERSION, the manifest version and RELEASE_NOTES.md are untouched in the three-dot diff (ev/version-untouched.txt).
+- The diff covers update_pr.sh (`upd_figures`, called before body_patch.sh on the body-only path and before app_push.sh on the push path), its instrument note, the pr_args.sh arms, tools/ci/selftest_closures.json (entries collapsed to `D/**` globs, which only widen the closure, plus `dev/programme/delivery/5.md`) and the delivery row. An extractor read confirmed that app_push.sh pushes the local commit objects unchanged (HEAD==tip guard and read-back), and that no commit or HEAD move follows `upd_figures "at the head to push"` in update_pr.sh. So the block is rendered at the head actually pushed, matching open_pr.sh's op_figures (which also passes `--head HEAD`). That part of the design is sound and is not what blocks.
+- Required checks: classify reports `pending: none red: none`. `merge_train.py owed-reds` does not list instrument-self-tests, so the block rests only on step 11's INTRODUCED clause.
+- Mutation proof: not re-run independently at this round. The block is decided by CI, and the PR's own mutant arms are among the reds on the runner.

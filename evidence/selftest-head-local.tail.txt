@@ -1,0 +1,40 @@
+  ok   null control: update_pr with code sha 'ea1383b' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
+  ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
+  ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
+  ok   update_pr: a run whose merge stops conflicted leaves its worktree clean, detached at origin/fix/k, and fix/k free for a second worktree
+  ok     mutant mut:holdabort (its line deleted): the conflicted merge stays, and the worktree still holds fix/k
+  ok   null control: a run whose merge is clean keeps the merged code head under its HEAD, nothing aborted or reset
+  ok   remerge_main fixture: an origin whose main conflicts with rk
+  ok   remerge_main: a conflicting main is named MERGE CONFLICT and leaves the worktree clean at origin/rk, released unforced, rk free
+  ok     mutant mut:remergeabort (its line deleted): the conflicted merge stays, and the worktree is not released
+  ok   null control: remerge_main on a clean merge keeps that merge (HEAD's parents origin/rc and origin/main), nothing aborted
+  ok   remerge_main: a fetch failing once with git's 502 is fetched again, and the clean merge is kept
+  ok   null control: a fetch git rejected is not fetched again (a second fetch would have succeeded), and is named REMERGE FAILED at fetch, never MERGE CONFLICT (carry f7d2bf7c)
+  ok     mutant mut:remergeconflict (its line deleted): a rejected fetch is misreported as MERGE CONFLICT
+  ok   remerge_main: a push that pushed nothing prints its REFUSE, FAIL and full-log lines and names its kept log, which exists after exit
+  ok     mutant mut:remergegrep (its line deleted): the FAIL and full-log lines are lost
+  ok   null control: a push that printed PUSHED prints as before, keeps no log and names none
+  ok   update_pr: the push's git gc --auto runs in the foreground, as part of the push, so nothing it starts outlives the push holding its lock
+  ok     mutant mut:fggc (its line deleted): git detaches that gc, which keeps the push's fd 9 once the push has ended
+  ok   pr_bounded: a self-test past its bound is ended, its whole session with it, and exits 124 saying so
+  ok     mutant mut:dogend (its line deleted): the bound passes and nothing ends the self-test, which runs on
+  ok   pr_bounded: a self-test that exits leaving a child is reaped on exit, keeping its status
+  ok     mutant mut:boundreap (its line deleted): the child outlives the self-test
+  ok   pr_bounded: a SIGKILLed supervisor's self-test is ended all the same, by its watchdog
+  ok     mutant mut:dogend (its line deleted): the SIGKILLed supervisor's self-test runs on
+  ok   pr_bounded: a SIGKILL to its caller's whole group still ends the self-test, 0 survivors in either session
+  ok     mutant mut:dogsid (its line deleted): the group kill takes the watchdog too and the self-test runs on
+  ok   every # mut: line is a whole statement, never one continued from the line above
+  ok   null control: a # mut: line continued from the line above is named
+  ok   open_pr: a pull request that opens re-keys the topic's handoff dispatch to it (bus.sh rekey <topic> <pr>)
+  ok   open_pr: null control: no handoff dispatch (rc 3) says nothing and does not fail the open
+  ok   open_pr: a failed re-key is named, never fatal (the pull request is already open)
+  ok     mutant mut:rekey (its line deleted) re-keys nothing
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 251 checks, 0 failed
+
+real	4m55.251s
+user	1m4.835s
+sys	0m23.398s
+rc=0
