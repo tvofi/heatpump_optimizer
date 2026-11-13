@@ -1,48 +1,47 @@
-Carry 21: a hotfix group's branch runs a scoped prepr by default (owner instruction, tvofi 2026-11-09: "hotfixes should have aggressively scoped or no prepr"). The scope is decided once in `tools/pr/prepr.sh`, from the roster's class of the branch's group, and one line says so. A non-hotfix branch runs as before.
+Carry 21 repair: pin the hotfix-scope classifier seam that the first review at a81d7f15 found uncovered. The scoped-prepr behaviour is unchanged; this round adds the self-test checks that kill the six surviving mutants the reviewer's driver named, and pins the one fail-closed property (`_rank`'s `except`) the skip now rests on.
+
+## Review scope
+
+`git diff a81d7f15293fc2101f42e48ade37ef7022c35517 becbe652ab6b321a680e5b45b61bfd897f2e0669` -- the two instrument files, plus the `tests/closures.json` re-record of `tests/harness_headers.py` prepr asked for (its rc field 1 to 0; membership unchanged). The hotfix-scope decision is unchanged; the one deliberate behaviour change is the P9 fix (the two skip defaults are no longer `export`ed, since every reader is in prepr's own shell and no child depends on inheriting a roster-chosen skip):
+
+- `tools/pr/gate_priority.py`: new self-test arms that drive `main(["--hotfix", ...])` and read its stdout, and one that makes `roster_lib.show_roster` raise so `_rank`'s `except` arm is exercised and shown fail-closed. No change to `_rank`, `is_hotfix`, `derived_priority` or the CLI.
+- `tools/pr/prepr.sh`: the main flow's code-steps line is lifted into `code_steps_line` so the self-test drives the same branch the main flow runs; the hotfix-scope self-test now runs the real `hotfix_class` (through `gate_priority.py --hotfix`) end to end against a fixture roster; the two skip defaults are no longer `export`ed (only this shell reads them, and a child must not inherit a skip chosen for one run). The hotfix-scope decision itself is byte-for-byte the decision at a81d7f15.
 
 ## Head
 
-`2d030bdffb0634e826e9a0d9cd95f050bd127901`
-
-## What changed, and which seam
-
-- `tools/pr/gate_priority.py`: a new `is_hotfix` and a `--hotfix` flag. The roster lookup `derived_priority` already did is now one helper, `_rank`, that both read; `is_hotfix` is true only when `roster_lib.dispatch_rank` answers `RANK_HOTFIX`. `$HPO_GATE_PRIORITY` and `.gate-priority` are not consulted: they order the lease and say nothing about the group.
-- `tools/pr/prepr.sh`: `hotfix_scope` runs before `REUSE` is read from `PREPR_SKIP_CODE`. On a hotfix branch it sets `PREPR_SKIP_CODE=hotfix` and `PREPR_SKIP_CLOSURES=1` for the variables that are unset, and prints one `hotfix scope` line. Everything a `PREPR_SKIP_CODE` run already kept still runs: merged-tree structure ratchet, ci predict on the merged tree, the transport, claims and body and contract checks, the carry check.
-
-**Rule for an explicit caller value.** Each variable is judged alone. A value the caller set wins, set-empty included (empty means that part runs in full). When both are set the classifier is not asked at all.
-
-**Why the roster key and not the `fix/r10-hotfix-*` topic pattern.** The carry named the pattern; the roster's class is the one the gate lease already trusts, so this extends that seam rather than adding a second string match. A roster read that fails answers "not a hotfix", so a failed read gives a full prepr, never a skipped one; a topic pattern would skip on a name alone. Alternative that lost: matching the topic in bash, which would disagree with `dispatch_rank` the first time a hotfix group used another branch name.
-
-**Placement.** The brief put the step beside step 1b0. `REUSE` is read before step 1b0 and gates it, so the step sits just ahead of the `REUSE=` read; it still precedes step 1b, so a scoped run takes no heavy slot.
-
-## Receipt, and the gate lease
-
-- A scoped run writes no `hpo-prepr-receipt` (the existing `PREPR_SKIP_CODE` rule, unchanged here). On a hotfix branch `app_push.sh --reuse` therefore has no receipt of a full run to reuse; it takes the full path or a caller-set value. The receipt rule is not changed in this part.
-- `tests/gate_lock.py`'s `_priority_cases` runs inside that file's own self-test, which prepr's `self-test` step runs; a scoped run skips that step (the verbose scoped run at the merge base printed no `self-test`, `heavy slot` or `gate priority` line), so the scoped run does not reach `_priority_cases`. That file is not edited here.
+`becbe652ab6b321a680e5b45b61bfd897f2e0669`
 
 ## Mutation proof
 
-Each mutant re-created by hand in a checkout copy of the head, one at a time, and run against `bash tools/pr/prepr.sh --self-test` (the `gate_priority.py` one against `python3 tools/pr/gate_priority.py --self-test`):
+The block was: the PR's own seven mutants (M1-M7) were killed, but the seam carrying the whole behaviour -- prepr's `hotfix_class` calling `gate_priority.py --hotfix`, and the CLI printing `is_hotfix` -- had no test. The prepr self-test stubbed `hotfix_class`; the gate_priority self-test called `is_hotfix()` directly, never `main(["--hotfix", ...])`. The reviewer's driver (`ev/driver.py` in the verdict evidence) named six survivors. Re-run at this head (driver HEAD set to this branch, plus one added mutant P9b), five of the six are KILLED, P9's target line no longer exists, its inverse P9b is KILLED, and the NULL control survives; P1-P6, G1, G2 and G4 stay KILLED:
 
-    M1-class-pred: KILLED      (the roster predicate made always-true)
-    M2-code-unset: KILLED      (the unset test on PREPR_SKIP_CODE dropped)
-    M3-clos-unset: KILLED      (the unset test on PREPR_SKIP_CLOSURES dropped)
-    M4-bothset: KILLED         (the both-set early return removed)
-    M5-isHotfix: KILLED        (is_hotfix equality inverted)
-    M6-scopeline: KILLED       (the scope line not printed)
-    M7-order: KILLED           (the call before the REUSE read removed)
-    NULL: SURVIVED             (a comment-only edit, the control)
+    G5-cli-hotfix-inverted        KILLED  (gate_priority main prints int(not is_hotfix(...)))
+    G5b-cli-hotfix-inverted-prepr KILLED  (same mutant, against prepr.sh --self-test, via the real hotfix_class)
+    P8-classifier-asks-priority   KILLED  (hotfix_class calls --branch without --hotfix: a critical-path branch would scope, a hotfix would not)
+    G3-except-fails-open          KILLED  (_rank's except returns RANK_HOTFIX: a failed read must be "not a hotfix", so a full prepr)
+    P7-HOTFIX_SCOPED-dropped      KILLED  (HOTFIX_SCOPED=1 deleted: the code-steps line falsely claims a receipt reuse)
+    P9-export-dropped             NOT-APPLIED (the export is removed at this head: no reader needs it, every one is in prepr's own shell)
+    P9b-export-readded            KILLED  (the driver's added inverse: re-adding the export fails the child-sees-unset arms)
+    NULL-comment-only             SURVIVED (the control)
+
+Driver run against 0b407606 (the closures re-record after it changes no driven file). The PR's base seven (M1-M7 = P1-P6, G1) stay killed.
+
+`G3` was no fail-open, only an unpinned fail-closed property the skip rests on; `P9` was a real leak. `_rank`'s `except` already returned `None` (fail-closed) at a81d7f15, but nothing exercised the raise -- the fail-closed self-test arm reached it only through a `fetch=True` path that returns before the `try` body raises; the new arm stubs `show_roster` to raise and asserts `is_hotfix` is False, `derived_priority` 0 and `--hotfix` prints `0`. `P9`'s `export` leaked the roster-chosen skip to any child process (the self-test step, a merged-tree command); the defaults are now set unexported, and a new arm checks a child sees both unset.
+
+`mutant_run.py --diff <merge-base>...HEAD --cmd '<self-test>'` over the added Python reports survivors only in the inline self-test region (STMT_DEL of a `check(...)` call, CONST_SWAP of a redundant `fetch=`/`ref=` keyword in a fixture call) and in `_rank`'s pre-existing `None`-return guards (lines the base PR added, unchanged here); a mutation of an assertion line cannot be killed by the suite asserting it, and the `_rank` guards are equivalent under the fixtures (every fixture resolves a roster ref and a listed group). The behaviour-bearing seam is pinned by the reviewer-driver kills above and the self-test counts below; the residual mutant_run survivors are test-region and equivalent, answered here, not a behavioural gap.
 
 ## Null control
 
-The null control for the carry is the non-hotfix branch: the arm `(hotfix) null control: a non-hotfix branch prints nothing and sets neither skip` passes at the merge base and at the head, and the full prepr is unchanged for it. An explicit caller value winning on a hotfix branch is its own arms (empty `PREPR_SKIP_CODE`, empty `PREPR_SKIP_CLOSURES`, both set). At the merge base the arms were red: 4 of the 6 new arms failed (`hotfix_scope: command not found`); the two null arms passed there because no step exists to misfire, which is the expected null-control answer.
+The carry's null control is the non-hotfix branch: the `(hotfix) null control: a non-hotfix branch prints nothing and sets neither skip` arm passes, and the full prepr is unchanged for it. End to end, the `(hotfix) null control: the same fixture's lease priority is 2 and 1` arm shows the fixture's gate priorities are 2 (hotfix) and 1 (outside), so `hotfix_class`'s 1 / 0 is the class, not the priority. For the fail-closed fix, the null is the unbroken read, restored: `(True, 2, '1')` for the hotfix branch after `show_roster` is restored.
 
 ## Figures
 
-- `bash tools/pr/prepr.sh --self-test`: merge base before the step, 544 passed, 4 failed; head, 548 passed, 0 failed.
-- `python3 tools/pr/gate_priority.py --self-test`: 17 checks, 0 failed at the head.
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED; budgets unchanged.
-- A scoped run measured at the merge base, `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, took 28 s of wall clock on this checkout and printed `merged structure` and `ci predict` as `ok`. The full-run cost named in the carry (about 40 minutes for the de.json hotfix) is the carry's figure, not re-measured here.
+- `python3 tools/pr/gate_priority.py --self-test`: 21 checks, 0 failed at this head (17 at a81d7f15: +4 arms -- the `--hotfix` CLI, the raising read, the restore null, the fetched default).
+- `bash tools/pr/prepr.sh --self-test`: 550 passed, 0 failed at this head (548 at a81d7f15, 542 at the merge base 7eadd75f).
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED; no budget file touched.
+- `python3 tools/audit/seat/bare_array.py --check`: clean.
+- `python3 tools/pr/ci_predict.py`: no closures, fast, governance or instrument red predicted.
+- `git merge-tree --write-tree origin/main HEAD`: one tree, no conflict.
 
 ## Red checks
 
