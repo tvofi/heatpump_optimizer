@@ -35,10 +35,12 @@ class Fake:
     """A runner answering per tool basename; records every argv."""
 
     def __init__(self, answers=None):
-        self.answers, self.calls = dict(answers or {}), []
+        self.answers, self.calls, self.cwds, self.envs = dict(answers or {}), [], [], []
 
     def __call__(self, argv, cwd, env):
         self.calls.append(list(argv))
+        self.cwds.append(cwd)
+        self.envs.append(env)
         tool = next((Path(a).name for a in argv if a.endswith((".py", ".sh"))), argv[0])
         if argv[0] == "git":
             tool = "git"
@@ -990,6 +992,26 @@ def cases(bj) -> dict[str, bool]:
     res["darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes"] = \
         take < add < first_run < drop and "--detach" in f.calls[add] and "worktree" in f.calls[-2] and "remove" in f.calls[-2] \
         and "slot-release" in f.calls[-1] and not any(m in a for a in git for m in MOVES)
+    wtp = c.digest / "state" / "darwin-selftest-wt"
+    runs = [i for i, a in enumerate(f.calls) if a[-1] == "--self-test"]
+    res["darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout"] = \
+        len(runs) == 2 and all(f.cwds[i] == wtp and f.cwds[i] != c.repo for i in runs)
+    res["darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR"] = \
+        len(runs) == 2 and all("HPO_STATE_DIR" not in f.envs[i] for i in runs) and "HPO_STATE_DIR" in c.env
+    c, f = darwin(extra={"git": lambda a: (0, tipa + "\n", "") if "rev-parse" in a
+                         else (128, "", "fatal: bad dir\n") if "worktree" in a and "add" in a else (0, "", "")})
+    bj.darwin_selftest(c)
+    ok1 = digest(c).startswith("darwin-selftest: UNREADABLE worktree rc=128") and f.ran("prepr.sh") == 0 \
+        and any("slot-release" in a for a in f.calls)
+    f.answers["git"] = git_tip(tipa)
+    bj.darwin_selftest(c)
+    res["darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried"] = \
+        ok1 and f.ran("prepr.sh") == 1
+    c, f = darwin(extra={"gate_lock.py": (1, "", "no slot\n")})
+    bj.darwin_selftest(c)
+    res["darwin-selftest: a slot-take that fails is UNREADABLE and runs nothing"] = \
+        digest(c).startswith("darwin-selftest: UNREADABLE slot-take rc=1: no slot") and f.ran("prepr.sh") == 0 \
+        and f.ran("mutant_run.py") == 0
     c, f = darwin(extra={"git": (128, "", "fatal: bad ref\n")})
     bj.darwin_selftest(c)
     res["darwin-selftest: an unreadable origin/main is UNREADABLE and runs nothing"] = \
@@ -999,6 +1021,15 @@ def cases(bj) -> dict[str, bool]:
         and bj.first_fail("", "", 7) == "rc=7 with no output"
     real = load(Path(bj.__file__) if hasattr(bj, "__file__") else HERE / "beat_jobs.py", "beat_jobs_real_instruments")
     got = real.darwin_instruments(HERE.parents[2])
+    wt_tree = Path(tempfile.mkdtemp())
+    (wt_tree / "tools/audit/seat").mkdir(parents=True)
+    (wt_tree / ".github/workflows").mkdir(parents=True)
+    for nm in ("wired.py", "unwired.py"):
+        (wt_tree / "tools/audit/seat" / nm).write_text("# self-test\nif '--self-test' in argv: pass\n")
+    (wt_tree / ".github/workflows/w.yml").write_text("jobs:\n  j:\n    steps:\n      - run: python3 tools/audit/seat/wired.py --self-test\n")
+    res["darwin-selftest: the wired filter drops a self-test no workflow runs (null: both self-test)"] = \
+        real.darwin_instruments(wt_tree) == ["audit/seat/wired.py"] \
+        and sorted(__import__("sys").modules["selftest_wiring"].self_testing(wt_tree)) == ["audit/seat/unwired.py", "audit/seat/wired.py"]
     res["darwin-selftest: the wired set is the real tree's seat self-tests, mutant_run.py among them"] = \
         "audit/seat/mutant_run.py" in got and all(p.startswith("audit/seat/") for p in got)
 
@@ -1198,6 +1229,17 @@ MUTANTS = {
                                "darwin-selftest: an unchanged tip is skipped"),
     "darwin_red_dropped": ('            if rc != 0:\n                lines.append', '            if False:\n                lines.append',
                            "darwin-selftest: a red self-test is one RED line naming it and its first FAIL line"),
+    "darwin_cwd_repo": ("            rc, out, err = ctx.run(argv, wt, env)", "            rc, out, err = ctx.run(argv, ctx.repo, env)",
+                        "darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout"),
+    "darwin_keep_state_dir": ('if k != "HPO_STATE_DIR"}', 'if True}',
+                              "darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR"),
+    "darwin_wired_filter_dropped": (" and p in wired]", "]",
+                                    "darwin-selftest: the wired filter drops a self-test no workflow runs (null: both self-test)"),
+    "darwin_remember_on_wt_fail": ('        if rc != 0:\n            return write_job(ctx, "darwin-selftest",\n                             [f"darwin-selftest: UNREADABLE worktree',
+                                   '        if rc != 0:\n            ctx.remember("darwin-selftest.json", {"tip": tip})\n            return write_job(ctx, "darwin-selftest",\n                             [f"darwin-selftest: UNREADABLE worktree',
+                                   "darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried"),
+    "darwin_slot_take_ignored": ("    if rc != 0:  # no lease", "    if False:  # no lease",
+                                 "darwin-selftest: a slot-take that fails is UNREADABLE and runs nothing"),
     "darwin_lease_not_released": ('        ctx.run([*gate, "slot-release"', '        (lambda *a: None)([*gate, "slot-release"',
                                   "darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes"),
 }
