@@ -2,7 +2,7 @@ cmd: python3 tools/pr/gate_priority.py --self-test
 diff: tools/pr/gate_priority.py | 3 +--
  1 file changed, 1 insertion(+), 2 deletions(-)
 rc: 1
-gate_priority self-test: 17 checks, 6 failed
+gate_priority self-test: 21 checks, 6 failed
 FAIL a listed group gets priority with no env and no marker (got: 0)
 FAIL a hotfix outranks an outside group, which shares the critical path's band (owner rulings 2026-11-07, 2026-11-08) (got: [0, 2, 0])
 FAIL an outside group needs no critical-path set; a malformed set drops only the critical 1 (got: )

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reviewer's mutation driver for PR #3547 at a81d7f15 (reviewer-built, not the finder's).
+"""Reviewer's mutation driver for PR #3547 at b53bbf16, round 2 (reviewer-built, not the finder's).
 
 Each mutant: a fresh detached worktree at the head, one exact text replacement
 (asserted to match exactly once), then the named self-test. KILLED = non-zero rc
@@ -12,8 +12,8 @@ import subprocess
 import sys
 
 REPO = "/home/user/heatpump_optimizer"
-HEAD = "a81d7f15293fc2101f42e48ade37ef7022c35517"
-OUT = os.path.expanduser("~/ev/mutants")
+HEAD = "b53bbf1604a3720aeb665a3b51219eb54df1fe6a"
+OUT = "/tmp/claude-0/-home-user-heatpump-optimizer/c81d69a2-09f8-5381-9ac0-13d15ec079a0/scratchpad/rev/ev/mutants"
 GP = "tools/pr/gate_priority.py"
 PS = "tools/pr/prepr.sh"
 GP_TEST = ["python3", GP, "--self-test"]
@@ -62,9 +62,24 @@ MUTANTS = [
     ("P8-classifier-asks-priority", PS,
      '  python3 tools/pr/gate_priority.py --hotfix --branch "$1" 2>/dev/null\n',
      '  python3 tools/pr/gate_priority.py --branch "$1" 2>/dev/null\n', PS_TEST),
-    ("P9-export-dropped", PS,
-     '  export PREPR_SKIP_CODE PREPR_SKIP_CLOSURES\n',
-     '', PS_TEST),
+    ("P9r-export-readded", PS,
+     '  [ -n "${PREPR_SKIP_CLOSURES+x}" ] || PREPR_SKIP_CLOSURES=1\n',
+     '  [ -n "${PREPR_SKIP_CLOSURES+x}" ] || PREPR_SKIP_CLOSURES=1\n  export PREPR_SKIP_CODE PREPR_SKIP_CLOSURES\n', PS_TEST),
+    ("P10-classifier-drops-branch", PS,
+     '  python3 tools/pr/gate_priority.py --hotfix --branch "$1" 2>/dev/null\n',
+     '  python3 tools/pr/gate_priority.py --hotfix 2>/dev/null\n', PS_TEST),
+    ("P11-codesteps-drops-hotfix-eq", PS,
+     '  if [ -n "${HOTFIX_SCOPED:-}" ] && [ "$1" = hotfix ]; then',
+     '  if [ -n "${HOTFIX_SCOPED:-}" ]; then', PS_TEST),
+    ("P12-codesteps-drops-scoped-test", PS,
+     '  if [ -n "${HOTFIX_SCOPED:-}" ] && [ "$1" = hotfix ]; then',
+     '  if [ "$1" = hotfix ]; then', PS_TEST),
+    ("P13-main-uses-inline-receipt-line", PS,
+     'code_steps_line "$REUSE"\n',
+     '[ -z "$REUSE" ] || say ok "code steps" "reused from the receipt at ${REUSE:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"\n', PS_TEST),
+    ("G6-cli-ignores-ref", GP,
+     "print(int(is_hotfix(branch, repo=args.repo, ref=args.ref, fetch=not args.no_fetch)))",
+     "print(int(is_hotfix(branch, repo=args.repo, ref=None, fetch=not args.no_fetch)))", GP_TEST),
     ("NULL-comment-only", PS,
      '# A hotfix group\'s branch runs the scoped prepr by default',
      '# (null) A hotfix group\'s branch runs the scoped prepr by default', PS_TEST),
