@@ -362,7 +362,8 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"and run `bash tools/audit/seat/bus.sh push-design-verdict {topic} <verdict.md>`, which "
             f"pushes refs/heads/design-verdict/{topic} and refuses a design that has moved; that push "
             "is the return signal. You may push only to that ref. Write no design, open no pull "
-            "request and push no code.")
+            "request and push no code."
+            + (round_context(topic, design, verdict) if verdict else ""))
     else:
         body = (
             "Role: a read-only probe. Measure what the brief below asks against the tree at "
@@ -577,6 +578,18 @@ def publish_seat(repo_dir: str, ref: str, role: str, head: str, **args) -> dict:
     return payload
 
 
+def round_context(group_id: str, design: str, verdict: tuple) -> str:
+    """What a later-round design reviewer is given: the round (the verdict ref's
+    commit count plus one), the last verdict's commit and first line, and the range
+    from the design that line names to the design tip. A first round has no verdict
+    ref and renders none of it."""
+    sha, first, count = verdict
+    prev = first.split()[3:4]  # `Design review: <word> <design sha> ...`
+    rng = f" Review what changed: `git diff {prev[0]}..{design}`." if prev and prev[0] != design else ""
+    return (f" This is round {count + 1}: the previous verdict is at design-verdict/{group_id}, commit {sha}, "
+            f"first line `{first}` (`git show {sha}:verdict.md`).{rng}")
+
+
 def design_tip(repo_dir: str, group_id: str) -> str:
     """The 40-hex tip of `design/<group>` on origin, or "" when the designer has pushed none."""
     out = _git(repo_dir, "ls-remote", "origin", f"refs/heads/design/{group_id}").split()[:1]
@@ -661,12 +674,13 @@ def dispatch_group(role: str, group_id: str, model: str, *, repo_dir: str = ".",
         if not design:
             raise Refusal(f"no design/{group_id} on origin to review")
     verdict = ()
-    if role == "designer":  # a revise routes the round-2 designer to the verdict commit, pinned by SHA
+    if role in ("designer", "design-reviewer"):  # a revise routes the next round to the verdict commit, pinned by SHA
         vref = f"refs/heads/design-verdict/{group_id}"
         vtip = _git(repo_dir, "ls-remote", "origin", vref).split()[:1]
         if vtip:
-            _git(repo_dir, "fetch", "-q", "origin", vtip[0])
-            verdict = (vtip[0], _git(repo_dir, "show", f"{vtip[0]}:verdict.md").split("\n", 1)[0])
+            _git(repo_dir, "fetch", "-q", "origin", vref)
+            verdict = (vtip[0], _git(repo_dir, "show", f"{vtip[0]}:verdict.md").split("\n", 1)[0],
+                       int(_git(repo_dir, "rev-list", "--count", vtip[0]).strip()))
     args = dict(design=design, verdict=verdict, env_id=known["env_id"], model=model, repo=roster.get("repo") or known["repo"],
                 pr=pr, topic=topic,
                 brief=group_brief(group, roster, fixer=role == "fixer") + (f"\n{pline}\n" if pline else ""),
@@ -841,6 +855,8 @@ def _group_checks(check) -> None:
               rref == "dispatch/design-reviewer-R10-BIG" and f"Design review: approve {tip}" in rtext
               and tip in rtext and "dev/governance/roles/design-review.md" in rtext
               and "push-design-verdict R10-BIG" in rtext and "only to that ref" in rtext)
+        check("a first-round design reviewer's text names no round and no verdict ref (null control)",
+              "This is round" not in rtext and "design-verdict/R10-BIG, commit" not in rtext)
         check("a fixer is still refused with a design and no verdict", refused("R10-BIG", design_exempt=""))
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: revise {tip} class-open\n"})
         check("a fixer is refused on a `revise` verdict", refused("R10-BIG"))
@@ -849,6 +865,14 @@ def _group_checks(check) -> None:
         dtext2 = fetched(dref, "PROMPT.md")
         check("a designer's text pins the revise verdict's own commit and first line",
               dref == ref and vtip != tip and vtip in dtext2 and f"Design review: revise {tip} class-open" in dtext2)
+        rtext2 = fetched(dispatch("R10-BIG", "design-reviewer"), "PROMPT.md")
+        check("a design reviewer after one revise is told round 2, the verdict commit, its first line and the diff range",
+              "round 2" in rtext2 and vtip in rtext2 and f"Design review: revise {tip} class-open" in rtext2
+              and f"git diff {tip}..{tip}" not in rtext2)
+        _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: revise {'b' * 40} class-open\n"})
+        rtext3 = fetched(dispatch("R10-BIG", "design-reviewer"), "PROMPT.md")
+        check("a second revise names round 3 and the range from the design it names to the design tip",
+              "round 3" in rtext3 and f"git diff {'b' * 40}..{tip}" in rtext3)
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {'a' * 40}\n"})
         check("a fixer is refused on an approval of a design that has since moved", refused("R10-BIG"))
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {tip}\n"})
