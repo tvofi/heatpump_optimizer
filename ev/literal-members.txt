@@ -1,0 +1,20 @@
+1370:// in one set. `carry-990001.json` is a CORRECT carry and must produce NOTHING
+1373:// `carry-990002.json` is malformed in one way per rule, `carry-990003.json`
+1374:// carries nothing at all, and `carry-990004.json` is filed at an issue a
+1379:  { file: 'carry-990002.json', kind: 'carry', needle: '`issue` is 990009 but the filename says 990002' },
+1380:  { file: 'carry-990002.json', kind: 'carry', needle: '`stage` is missing' },
+1381:  { file: 'carry-990002.json', kind: 'carry', needle: 'carry 0: `from` is missing' },
+1382:  { file: 'carry-990002.json', kind: 'carry', needle: 'carry 0: `control` is missing' },
+1383:  { file: 'carry-990002.json', kind: 'carry', needle: 'carry 0: `remeasure` is missing' },
+1384:  { file: 'carry-990002.json', kind: 'carry', needle: 'carry 1: `brief` is missing' },
+1385:  { file: 'carry-990002.json', kind: 'carry', needle: '`effect` is "worth knowing"' },
+1388:  { file: 'carry-990002.json', kind: 'path', needle: 'no_such_carry_probe.py' },
+1389:  { file: 'carry-990003.json', kind: 'carry', needle: '`carries` is empty' },
+1390:  { file: 'carry-990004.json', kind: 'carry', needle: 'already has a live roster group (wave-probe-groups.json PROBE-G1)' },
+1394:function carryControlFindings(control, name = 'carry-999999.json') {
+1398:    const fx = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'carry-990001.json'), 'utf8'))
+1436:  for (const name of ['carry-990001.json', 'carry-990002.json', 'carry-990003.json', 'carry-990004.json']) {
+1440:    if (name === 'carry-990001.json') {
+1484:    const model = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'carry-990001.json'), 'utf8'))
+1513:  const clean = path.join(FIXTURES, 'carry-990001.json')
+1515:  const bad = path.join(tmp, 'carry-990001.json')

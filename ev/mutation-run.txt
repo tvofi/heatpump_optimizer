@@ -1,0 +1,32 @@
+== head
+exit=0
+222:CONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the legacy files are left out
+224:LEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption
+== mutant
+ tools/policy/brief_lint.mjs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+exit=1
+248:CONTROL VACUOUS: carry control:
+249-  the legacy set is empty, so the narrowing is unexercised
+250-
+251-LEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption
+== mutant2: drop the empty-set arm
+exit=1
+248:CONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the legacy files are left out
+250:LEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption
+== null control: part2 data
+ dev/programme/carries/carry-1645.json  |   8 +-
+ dev/programme/carries/carry-1922.json  |  52 ---------
+ dev/programme/carries/carry-201.json   | 190 ++-------------------------------
+ dev/programme/carries/carry-2065.json  |  17 ---
+ dev/programme/carries/carry-2066.json  |  17 ---
+ dev/programme/carries/carry-2075.json  |  31 ------
+ dev/programme/delivery/3553.md         |   1 +
+ tests/closures.json                    |   5 +-
+ tests/entities.py                      |  30 +++++-
+ tools/ci/selftest_closures.json        |   8 --
+ tools/policy/brief_lint.mjs            |   8 +-
+ tools/policy/legacy_control_files.json |   1 -
+ 12 files changed, 50 insertions(+), 318 deletions(-)
+
+[exited with code 0]

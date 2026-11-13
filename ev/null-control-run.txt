@@ -1,0 +1,14 @@
+== part2 data + head linter
+exit=0
+208:CONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the legacy files are left out
+210:LEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption
+== part2 data + main linter
+exit=1
+208:CONTROL VACUOUS: carry control:
+209-  a legacy carry file is refused (the narrowing): names no path to the harness or command that re-establishes it; a bare figure or section name is not an enumerator
+210-
+211:LEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption
+212-
+213-LEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart
+
+[exited with code 0]
