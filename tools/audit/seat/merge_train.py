@@ -456,8 +456,8 @@ def owed_reds(train) -> "tuple[int, str]":
     return 0, "\n".join(judged(gating_names(req)))
 
 
-ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
-            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
+ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!,$after:String){repository(owner:$o,name:$n){pullRequest(number:$pr){"
+            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100,after:$after){pageInfo{hasNextPage endCursor} "
             "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
             "... on StatusContext{context state isRequired(pullRequestNumber:$pr)}}}}}}}}}}")
 PLATFORM_PASS = ("SUCCESS", "NEUTRAL", "SKIPPED")
@@ -491,6 +491,39 @@ def platform_gate(payload, head: str) -> "tuple[str, str]":
     if bad:
         return "red", f"{len(bad)} of {len(gates)} required gate run(s) concluded {', '.join(map(str, bad))}"
     return "green", f"{len(gates)} required gate run(s) pass"
+
+
+def rollup_walk(fetch, head: str, max_pages: int = gh_read.MAX_PAGES):
+    """Every page of the rollup's contexts as ONE ROLLUP_Q-shaped payload
+    (R10-HOTFIX-TRAIN-CONTEXT-PAGES): a required context past the first 100 was
+    never seen, and platform_gate read such a head `unread`, a green approved
+    head refused. `fetch(cursor)` is one read (None for the first page) and
+    returns the parsed answer or raises ValueError/OSError; the walk follows
+    `endCursor` and stops on the first page whose answer carries no rollup or
+    is at another head, returning that payload for platform_gate to call
+    unread. A walk past <max_pages> returns the merge with hasNextPage still
+    true: refused as unread, never truncated. One read per page, so a head of
+    one page makes the one read it always did."""
+    merged, cursor = None, None
+    for _ in range(max_pages):
+        payload = fetch(cursor)
+        try:
+            commit = payload["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]
+            ctx = commit["statusCheckRollup"]["contexts"]
+            more, cursor = ctx["pageInfo"]["hasNextPage"], ctx["pageInfo"].get("endCursor")
+        except (KeyError, IndexError, TypeError):
+            return payload
+        if commit.get("oid") != head:
+            return payload
+        if merged is None:
+            merged = payload
+        else:
+            have = merged["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"]["contexts"]
+            have["nodes"] = list(have["nodes"]) + list(ctx["nodes"])
+            have["pageInfo"] = ctx["pageInfo"]
+        if not more or not cursor:
+            return merged
+    return merged
 
 
 def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
@@ -1647,6 +1680,54 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         return 0
 
 
+# Quiet output hides only this named chatter: every other line is a key line (a
+# merge, an OWED obligation, a failing check name, a SKIP the throughput reader
+# parses) and prints, so a line a later edit adds shows by default.
+QUIET_CHATTER = (
+    (r"beat: waiting ", "beat: waiting for CI (poll 3, t+720s, required: 4, concluded: 2/4)"),
+    (r"merge_train: ", "merge_train: git fetch origin main: retry 2 after rc=128"),
+    (r"wait: gate red at \S+ is a deferral", "wait: gate red at abcd1234 is a deferral while run(s) 55 are running"),
+    (r"#\d+ recarry START", "#12 recarry START (branch fix/x)"),
+    (r"#\d+ recarry: ", "#12 recarry: main merged, head abcd1234; pushed"),
+    (r"#\d+ overlap: recarry start", "#12 overlap: recarry start"),
+    (r"#\d+ \w+ platform gate=green", "#12 abcd1234 platform gate=green: all rollups green"),
+    (r"(released|deleted) ", "released worktree wt-12"),
+    (r"grade \S+ \S+: ok", "grade batch-1 abcd1234: ok (41s)"),
+)
+QUIET_CHATTER_RE = re.compile("|".join(f"(?:{p})" for p, _ in QUIET_CHATTER))
+QUIET_TAIL = 20
+
+
+def quiet_log(full: Path, out=print, tail: int = QUIET_TAIL):
+    """The train's quiet log (owner card 2026-10-24): every line goes to `full`;
+    stdout gets every line but the named chatter (QUIET_CHATTER), and a
+    `TRAIN STOPPED` line first prints the last `tail` chatter lines, the
+    failing step's tail. `--verbose`/TRAIN_VERBOSE=1 skips it."""
+    held: list[str] = []
+    fh = open(full, "a", buffering=1)
+
+    def log(m) -> None:
+        m = str(m)
+        fh.write(m + "\n")
+        if QUIET_CHATTER_RE.match(m):
+            held.append(m)
+            del held[:-tail]
+            return
+        if "TRAIN STOPPED" in m:
+            for h in held:
+                out("  | " + h)
+            held.clear()
+        out(m)
+    out(f"quiet output: the full log is {full} (--verbose or TRAIN_VERBOSE=1 prints it)")
+    return log
+
+
+def wire_quiet(a, opts: dict) -> None:
+    """Quiet is the default; `--verbose` or TRAIN_VERBOSE=1 restores the stream."""
+    if not (a.verbose or os.environ.get("TRAIN_VERBOSE") == "1"):
+        opts["log"] = quiet_log(Path(a.state_dir) / "train-full.log")
+
+
 BASELINE_JOBS = 6  # completed same-name runs the one-job pulse takes its p50 and max from
 
 
@@ -2222,10 +2303,17 @@ class Train:
         required-check evaluation must say the same, or the entry stops. A
         rollup that cannot be read is no agreement."""
         owner, name = self.repo.split("/")
-        code, o = self.run(["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
-                            "-f", f"o={owner}", "-f", f"n={name}"])
+        def fetch(cursor):
+            argv = ["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
+                    "-f", f"o={owner}", "-f", f"n={name}"] + (["-f", f"after={cursor}"] if cursor else [])
+            code, o = self.run(argv)
+            if code:
+                raise OSError(o.strip()[-160:])
+            return json.loads(o)
         try:
-            state, why = platform_gate(json.loads(o), h) if code == 0 else ("unread", o.strip()[-160:])
+            state, why = platform_gate(rollup_walk(fetch, h), h)
+        except OSError as e:
+            state, why = "unread", str(e)
         except ValueError:
             state, why = "unread", "the rollup answer is not JSON"
         self.log(f"#{pr} {h[:8]} platform gate={state}: {why}")
@@ -4596,6 +4684,11 @@ def _self_test() -> int:
                 return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
+                if "rollup_pages" in world:  # a paged listing: the answer follows the `after=` cursor asked
+                    cur = next((x[6:] for x in argv if x.startswith("after=")), None)
+                    world.setdefault("rollup_cursors", []).append(cur)
+                    world.setdefault("rollup_queries", []).append(next((x[6:] for x in argv if x.startswith("query=")), ""))
+                    return world["rollup_pages"](cur)
                 return world.get("rollup", (1, "HTTP 502"))
             if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
                 world["ci_list_reads"] = world.get("ci_list_reads", 0) + 1
@@ -7606,6 +7699,49 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           platform_gate(rollup(ok_g, oid="f" * 40), H0)[0] == "unread"
           and platform_gate(rollup(ok_g, more=True), H0)[0] == "unread"
           and platform_gate({"data": None}, H0)[0] == "unread")
+    # R10-HOTFIX-TRAIN-CONTEXT-PAGES: a required context on page 2 is judged, never skipped.
+    def pager(*pages, oid=H0, oid_late=None):
+        """A faked listing: page k answers pages[k]; reads records the cursors asked."""
+        reads = []
+
+        def fetch(cursor):
+            reads.append(cursor)
+            k = 0 if cursor is None else int(cursor)
+            pl = rollup(oid=oid_late if k and oid_late else oid, more=k + 1 < len(pages), extra=pages[k])
+            pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+                "contexts"]["pageInfo"]["endCursor"] = str(k + 1)
+            return pl
+        return fetch, reads
+    filler = [dict(nonreq, name=f"x{i}") for i in range(3)]
+    gate_p1 = {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": "SUCCESS", "isRequired": True}
+    late = lambda c: {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": c, "isRequired": True}
+    f_red, r_red = pager(filler, [late("FAILURE")])
+    f_grn, r_grn = pager(filler, [late("SUCCESS")])
+    f_one, r_one = pager([gate_p1] + filler)
+    f_old, r_old = pager([gate_p1], [late("SUCCESS")], oid="f" * 40)
+    f_inf, _ = pager(*([[gate_p1]] * (gh_read.MAX_PAGES + 2)))
+    f_mid, r_mid = pager([gate_p1], [late("FAILURE")], oid_late="f" * 40)
+    got_red = platform_gate(rollup_walk(f_red, H0), H0)[0]
+    got_grn = platform_gate(rollup_walk(f_grn, H0), H0)[0]
+    check("A5 platform: a required context on page 2 that is red reads RED, green reads GREEN "
+          "(null: the one-page head makes the same single read, [None]; a walk past the page cap "
+          "and a later page at another head are unread)",
+          (got_red, got_grn) == ("red", "green") and r_red == r_grn == [None, "1"]
+          and platform_gate(rollup_walk(f_one, H0), H0)[0] == "green" and r_one == [None]
+          and platform_gate(rollup_walk(f_inf, H0), H0)[0] == "unread"
+          and platform_gate(rollup_walk(f_old, H0), H0)[0] == "unread")
+    check("A5 platform: a later page whose oid differs from the first page's is unread, never merged in "
+          "(null: the same listing at one oid reads red from its page 2)",
+          platform_gate(rollup_walk(f_mid, H0), H0)[0] == "unread" and r_mid == [None, "1"]
+          and platform_gate(rollup_walk(pager([gate_p1], [late("FAILURE")])[0], H0), H0)[0] == "red")
+    f_p1red, _ = pager([late("FAILURE")], [late("SUCCESS")])
+    f_p1oth, _ = pager([dict(nonreq, isRequired=True)], [late("SUCCESS")])
+    f_p2red, _ = pager([gate_p1], [dict(nonreq, isRequired=True)])
+    check("A5 platform: the merge keeps page 1's nodes: a red required gate, or another required context, on page 1 "
+          "reads RED though page 2's rerun is green (null: a red other-required context on page 2 reads red too)",
+          platform_gate(rollup_walk(f_p1red, H0), H0)[0] == "red"
+          and platform_gate(rollup_walk(f_p1oth, H0), H0)[0] == "red"
+          and platform_gate(rollup_walk(f_p2red, H0), H0)[0] == "red")
     gate_req = {"required": f"{GATE}\n"}
     for what, w, merges in (
             ("train green, GitHub green: it merges", dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g)))), True),
@@ -7619,6 +7755,25 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
+    def train_pages(cursor):  # page 2 (cursor "1") carries a red required gate; page 1 alone is green
+        k = 0 if cursor is None else int(cursor)
+        pl = rollup(ok_g if k == 0 else ("COMPLETED", "FAILURE"), more=k == 0)
+        pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+            "contexts"]["pageInfo"]["endCursor"] = "1"
+        return 0, json.dumps(pl)
+    w = dict(gate_req, runs=[gt()], rollup_pages=train_pages)
+    rc, lines, calls = go(w)
+    check("A5 serial: the train passes each page's endCursor on the next read, so a red required gate on "
+          "page 2 stops the merge (null: a one-page rollup is read once, with no cursor, and merges)",
+          not merged(calls) and w["rollup_cursors"][:2] == [None, "1"] and "red" in " ".join(lines))
+    w = dict(gate_req, runs=[gt()], rollup_pages=lambda c: (0, json.dumps(rollup(ok_g))))
+    rc, lines, calls = go(w)
+    check("A5 serial: the query the train sends asks for the page cursor and takes the `after` argument "
+          "(a real GitHub would otherwise serve page 1 forever, or refuse the unused variable)",
+          bool(w["rollup_queries"]) and all("endCursor" in q and "contexts(first:100,after:$after)" in q
+                                            for q in w["rollup_queries"]))
+    check("A5 serial null: a one-page rollup is read once, with no cursor, and merges",
+          merged(calls) and w["rollup_cursors"] == [None])
     _defer_wait_self_test(check, go, merged, cr, gt, gate_req, json.dumps(rollup(ok_g, ok_g)))
     rc, lines, calls = go({})  # go()'s default: the ruleset ["fast"], green runs
     check("A5 null: an old-layout ruleset (no gate) makes no platform read", rc == 0 and merged(calls)
@@ -9881,6 +10036,103 @@ def _post_approval_self_test(check) -> None:
     finally:
         globals()["train_add"] = real
     check("post-approval wait null: without the flag add never waits, it adds", rc == 0 and len(seen) == 1)
+    # Quiet output: only the named chatter is held; every key line prints; a stop shows the tail.
+    import io
+    with tempfile.TemporaryDirectory() as qd:
+        shown: list[str] = []
+        ql = quiet_log(Path(qd) / "full.log", out=shown.append, tail=2)
+        for m in ("#1 recarry START (branch a)", "wait: gate red at abc is a deferral", "#2 recarry START (branch b)",
+                  "TRAIN STOPPED #2 gate: red", "TRAIN DONE"):
+            ql(m)
+        full = (Path(qd) / "full.log").read_text().splitlines()
+        check("quiet log: every line reaches the full log", len(full) == 5)
+        check("quiet log: chatter is not shown until a stop", "#1 recarry START" not in " ".join(shown))
+        check("quiet log: a stop shows the failing step's tail, bounded, then itself",
+              shown[1:4] == ["  | wait: gate red at abc is a deferral", "  | #2 recarry START (branch b)",
+                             "TRAIN STOPPED #2 gate: red"] and shown[-1] == "TRAIN DONE")
+        shown.clear()
+        ql2 = quiet_log(Path(qd) / "f2.log", out=shown.append)
+        for m in ("#3 recarry START (branch c)", "#3 merged", "#4 recarry START (branch d)"):
+            ql2(m)
+        check("quiet log: a key line that is not a stop does not flush the held chatter",
+              shown[1:] == ["#3 merged"])
+        # every chatter member hides its own real line (a dropped member shows it); the list is not vacuous
+        for pat, sample in QUIET_CHATTER:
+            shown.clear()
+            quiet_log(Path(qd) / "f3.log", out=shown.append)(sample)
+            check(f"quiet log: chatter {pat!r} is hidden", len(shown) == 1 and re.match(pat, sample) is not None)
+        check("quiet log: the chatter list is the nine named members, none dropped", len(QUIET_CHATTER) == 9)
+        # key lines, spelled as merge_train.py's own f-strings write them, all print
+        keys = ("#12 MERGED abcd1234 at 5d6e7f80", "#12 post-merge steps OWED (rc=1); the merge stands",
+                "#12 post-merge: record row OWED", "#12 abcd1234 ci red=tests / unit,tests / mutation",
+                "#12 dropped to serial: the proof is red at tests / unit", "serial: #13 #14",
+                "SKIP #12 admission: [gate] tests / unit red", "STALE tests / unit at abcd1234: stale",
+                "OVERLAP: main at abcd1234 is RED (tests / unit)", "REJOIN #12: GREEN at abcd1234, 40 s",
+                "INFRA-RED tests / unit run 9: rate-limited", "LEFT #12: not eligible", "QUEUE #12 verdict abc comment 5",
+                "[MAIN-MOVED] before #12's merge: re-proving", "rehearsal: serial #13", "grade batch-1 abcd1234: RED (41s)",
+                "TRAIN DONE", "TRAIN STOPPED #12 gate: red", "PRE-FLIGHT: 3 of 4 admitted", "BATCH DONE b: 1 more",
+                "SKIP REPORT: 1 skipped of 3", "REFUSE add: x", "FRONT #12: spool", "NOT RUN #14")
+        for k in keys:
+            shown.clear()
+            quiet_log(Path(qd) / "f4.log", out=shown.append)(k)
+            check(f"quiet log: key line {k[:30]!r} prints", shown[1:] == [k])
+        skips = [k for k in keys if k.startswith("SKIP #")]
+        shown.clear()
+        quiet_log(Path(qd) / "f5.log", out=shown.append)(skips[0])
+        check("quiet log: a SKIP line reaches stdout in the shape merge_throughput's TRAIN_SKIP_RE parses",
+              shown[1:] == [skips[0]] and skips[0].startswith("SKIP #12 admission: "))
+        # the entry point wires it: a seeded stop exits the same in quiet and verbose, quiet keeps its key lines
+        qf = Path(qd) / "q.json"
+        qf.write_text("[]")
+
+        class _SeededTrain:
+            def __init__(self, *a, log=print, **kw):
+                self.log = log
+
+            def train(self, queue):
+                for m in ("#1 recarry START (branch a)", "#1 MERGED abcd1234", "#2 post-merge steps OWED (rc=1); the merge stands",
+                          "SKIP #3 admission: red", "#4 abcd1234 ci red=tests / unit", "TRAIN STOPPED #4 gate: tests / unit red"):
+                    self.log(m)
+                return 1
+
+        real_train = globals()["Train"]
+        globals()["Train"] = _SeededTrain
+        try:
+            res = {}
+            for mode, extra, env in (("quiet", [], None), ("verbose-flag", ["--verbose"], None), ("verbose-env", [], "1")):
+                buf = io.StringIO()
+                old = os.environ.get("TRAIN_VERBOSE")
+                if env:
+                    os.environ["TRAIN_VERBOSE"] = env
+                else:
+                    os.environ.pop("TRAIN_VERBOSE", None)
+                try:
+                    sd = Path(qd) / mode
+                    sd.mkdir()
+                    with contextlib.redirect_stdout(buf):
+                        rc = main(["run", str(qf), "--state-dir", str(sd), "--repo", "o/r", *extra])
+                finally:
+                    if old is None:
+                        os.environ.pop("TRAIN_VERBOSE", None)
+                    else:
+                        os.environ["TRAIN_VERBOSE"] = old
+                res[mode] = (rc, buf.getvalue(), (sd / "train-full.log").exists())
+        finally:
+            globals()["Train"] = real_train
+        qrc, qout, qlog = res["quiet"]
+        check("quiet run: the exit code on a seeded stop equals verbose's, flag and env",
+              qrc == res["verbose-flag"][0] == res["verbose-env"][0] == 1)
+        check("quiet run: main wires the quiet log (a full log is written, chatter held to the stop's tail)",
+              qlog and "  | #1 recarry START" in qout and qout.index("  | #1 recarry START") > qout.index("#4 abcd1234 ci red"))
+        check("quiet run: the merge, OWED, SKIP and failing-check lines all print",
+              all(x in qout for x in ("#1 MERGED abcd1234", "#2 post-merge steps OWED", "SKIP #3 admission: red",
+                                      "#4 abcd1234 ci red=tests / unit", "TRAIN STOPPED #4")))
+        check("verbose run: the stream is unfiltered and writes no quiet log (flag and env)",
+              all(not res[m][2] and res[m][1].splitlines()[0] == "#1 recarry START (branch a)"
+                  for m in ("verbose-flag", "verbose-env")))
+    check("quiet log: --verbose is a parser flag, off by default",
+          _parser().parse_args(["batch", "q"]).verbose is False
+          and _parser().parse_args(["batch", "q", "--verbose"]).verbose is True)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -9899,6 +10151,8 @@ def _parser() -> argparse.ArgumentParser:
                                  "one mandate, re-post that approval at h under a mandate RE-READ in force at "
                                  "the merge; a re-post that fails its byte-identical read-back is a stop. "
                                  "Default: off -- a budget stop stops, however clean the recarry was.")
+    train_opts.add_argument("--verbose", action="store_true",
+                            help="print every progress line (default: key lines, the full log in the state dir)")
     train_opts.add_argument("--main-moved-tries", type=int, default=MAIN_MOVED_TRIES,
                             help="a foreign merge that moves main under a settled head is recovered this many "
                                  "times per entry (serial: recarry and wait CI again; batch: re-prove what is "
@@ -10096,6 +10350,7 @@ def main(argv: list[str]) -> int:
     ignore = tuple(a.ignore_red) if a.ignore_red else ("tests / nightly-status",)
     opts = dict(approval_carry=a.approval_carry, main_moved_tries=a.main_moved_tries,
                 bot_prs=a.bot_prs, pre_flight=a.pre_flight, free_holders=a.free_holders)
+    wire_quiet(a, opts)
     if a.cmd == "batch":
         return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
                      base=a.base, skip_bad=a.skip_bad, overlap=a.overlap, **opts).batch(queue, a.tag)
