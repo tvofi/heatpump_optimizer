@@ -33,7 +33,7 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 5 roster and waves | the approved plan | the roster lints clean | `tools/audit/seat/roster_edit.py`, `tools/policy/brief_lint.mjs` | `standing-roster.md`, `dev/governance/rules/brief-citations.md` | `dev/programme/rosters/`, `critical-path.json` |
 | 6 dispatch under the lane caps | after-edges merged; the roster stage compared with the merged pull requests naming the group, so only arms not on main are briefed | a seat running | `tools/audit/seat/pr_cap.py dispatch-gate`, `tools/audit/seat/cloud_dispatch.py` | `standing-dispatch.md`, `orchestrator.md` sections 5 and 5b | the trigger payload |
 | 7 fixer and review, cloud seats and relay | a dispatched brief | a verdict at a frozen head | `tools/audit/seat/cloud-setup.sh`, `tools/pr/prepr.sh`, `tools/audit/seat/body_push.sh`, `tools/audit/seat/handoff_push.sh`, `tools/audit/seat/cloud_relay.sh` | `fixer.md`, `fix-review.md`, `designer.md`, `design-review.md`, `root-cause.md` | the handoff refs, the pull request, its verdict |
-| 8 carries | a finding that changes a later stage | the carry in that stage's brief | `tools/audit/carry_auditX.py`, `tools/audit/fold_ledger.py`, `tools/audit/seat/carry_fold.py` | `dev/governance/rules/finding-propagation.md` | the roster carry or `dev/programme/carries/` |
+| 8 carries | a finding that changes a later stage | the carry in that stage's brief | `tools/audit/carry_audit.py`, `tools/audit/fold_ledger.py`, `tools/audit/seat/carry_fold.py` | `dev/governance/rules/finding-propagation.md` | the roster carry or `dev/programme/carries/` |
 | 9 the hourly merge pitch | verdicted pull requests | merged, one train batch | `tools/audit/seat/train.sh`, `tools/audit/seat/merge_train.py`, `tools/audit/seat/merge_pr.sh` | `standing-merge.md`, `orchestrator.md` section 11 | merges on main |
 | 10 post-merge beat and state docs | a merge | row, handover and state docs current | `tools/audit/seat/postmerge.py`, `tools/audit/seat/beatd.py`, `tools/audit/seat/state_docs.py` | `dev/governance/rules/delivery-status-tracking.md` | `dev/programme/delivery/`, `dev/programme/HANDOVER.md`, a #201 comment |
 | 11 stamps | merges since the last tag | the tag pushed | `tools/release/stamp.py`, `.claude/workflows/web-stamp.js` | `orchestrator.md` section 13 | the tag and release notes |
@@ -107,7 +107,7 @@ against a measured baseline and a null control
   R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE, R10-FLOW-BODY-ONLY (a)). Context: the Lean flow
   pre-study, section K9 (out of the tree).
 - Intake's baseline: R10-PROTECTION-CENSUS's result,
-  `dev/audit/rounds/round10/protection-census/CENSUS.md`. On it, B1
+  `dev/audit/rounds/round10/protection-census/`. On it, B1
   (triage batch 245, P740) opens the round unless ordered into round 10: on an
   all-product diff `briefs`, `policy-docs` and `wave-script` turn advisory, and
   `blueprints/` joins the product predicate.
