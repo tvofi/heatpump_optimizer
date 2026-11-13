@@ -165,6 +165,7 @@ from . import boost, duty_switch, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
+    CONF_FLOW_HEAT_C,
     CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
     CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
@@ -176,6 +177,7 @@ from .const import (
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
     DOMAIN,
+    FLOW_HEAT_C_MAX,
     MODE_AUTO,
     MODE_BOOST,
     MODE_ECONOMY,
@@ -665,11 +667,12 @@ def _level_kw(inp: ArbiterInputs, now: datetime, boosted: bool) -> float | None:
 
     The experiment's commanded power where the action is the experiment's
     (:func:`_experiment_kw`). Under a live space boost or the global boost
-    mode (``boosted``), the band's top: a boost replaces the plan's power for
-    the space channel with the maximum (``boost.overlay``), so the plan's own
-    partial level for the step is not the one served, and mapped it wrote a
-    set-point between the floor and the ceiling (tvofi, 2026-11-13: 41, then
-    43, during a boost; R10-HOTFIX-BOOST-FLOW-CEILING). Else the plan step's.
+    mode with a ceiling to write (``boosted``, :func:`_boost_ceiling_c`), the
+    band's top: a boost replaces the plan's power for the space channel with
+    the maximum (``boost.overlay``), so the plan's own partial level for the
+    step is not the one served, and mapped it wrote a set-point between the
+    floor and the ceiling (tvofi, 2026-11-13: 41, then 43, during a boost;
+    R10-HOTFIX-BOOST-FLOW-CEILING). Else the plan step's.
     """
     if (kw := _experiment_kw(inp)) is not None:
         return kw
@@ -892,6 +895,32 @@ def _or_hold(floor_c: float | None, config: Any) -> float:
     return _as_target(config, FLOW_HOLD_C) if floor_c is None else floor_c
 
 
+def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
+    """The space water set-point a live boost writes, °C in the entity's own terms, or ``None``.
+
+    The set-point entity's own maximum (tvofi, 2026-11-13: "set at the
+    maximum value"), capped by a ``flow_heat_c`` the person stored (an
+    untouched page stores none, so a stored one is theirs) and by the
+    controller's upper-limit sensor where it reads (:func:`_setpoint_limits_c`).
+    The maximum and the cap are both in the entity's own terms, so a return
+    target is not moved. ``None``, and the boost follows the planned level as
+    before, where the maximum does not read, sits at or below the gate, or
+    sits above :data:`~.const.FLOW_HEAT_C_MAX`, the highest ceiling the options
+    offer: such an entity is no heating-flow set-point to drive to its top.
+    """
+    entity = _entities(inp.config)["space_setpoint"]
+    high = setpoint_range_c(inp.hass, entity)[1] if entity else None
+    if high is None or not _gate_floor_c(inp.config) < high <= FLOW_HEAT_C_MAX:
+        return None
+    caps = [high]
+    if CONF_FLOW_HEAT_C in inp.config:
+        caps.append(_heat_ceiling_c(inp.config))
+    limit = _setpoint_limits_c(inp)[1]
+    if limit is not None and limit > _gate_floor_c(inp.config):
+        caps.append(limit)
+    return min(caps)
+
+
 def _flow_target(
     inp: ArbiterInputs, duty: str | None, now: datetime, *, boosted: bool = False,
 ) -> float | None:
@@ -905,8 +934,10 @@ def _flow_target(
     at full power, sliding to the measured inlet plus a minimum lift
     (``flow_min_lift_k``, else ``thermal_model.FLOW_MIN_LIFT_K``) at the
     modulation floor, so the pump's own water thermostat can realize a
-    lower level. The level is :func:`_level_kw`'s: the band top under a
-    boost (``boosted``), so a boost writes the ceiling on every step.
+    lower level. Under a boost (``boosted``) with a ceiling to write
+    (:func:`_boost_ceiling_c`), the level is the band top and the ceiling
+    that one, so a boost writes it on every step: at the band top the level
+    formula gives the ceiling exactly.
     With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`, in
     return terms on a return target (:func:`_as_target`), as is the
     fallback's hold below. A
@@ -918,14 +949,15 @@ def _flow_target(
     """
     if duty in ("space", "both"):
         p_min, p_max = _band_kw(inp)
-        heat_c = _heat_ceiling_c(inp.config)
+        boost_c = _boost_ceiling_c(inp) if boosted else None
+        heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
         floor_c = _or_hold(modulation_floor_flow_c(
             _flow_inlet_c(inp), _gate_c(inp), configured_flow_min_lift_k(inp.config),
         ), inp.config)
         return _bounded(
             inp,
             "space_setpoint",
-            flow_setpoint_for_level(_level_kw(inp, now, boosted), p_min, p_max, heat_c, floor_c),
+            flow_setpoint_for_level(_level_kw(inp, now, boost_c is not None), p_min, p_max, heat_c, floor_c),
             _gate_floor_c(inp.config),
             lo=min(floor_c, heat_c),
             hi=heat_c,
