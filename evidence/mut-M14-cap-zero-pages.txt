@@ -1,0 +1,14 @@
+mutant M14-cap-zero-pages: '    for _ in range(max_pages):' -> '    for _ in range(1):'
+rc=1
+  FAIL A5 platform: a required context on page 2 that is red reads RED, green reads GREEN (null: the one-page head makes the same single read, [None]; a walk past the page cap and a later page at another head are unread)
+  FAIL A5 platform: a later page whose oid differs from the first page's is unread, never merged in (null: the same listing at one oid reads red from its page 2)
+  FAIL A5 platform: the merge keeps page 1's nodes: a red required gate, or another required context, on page 1 reads RED though page 2's rerun is green (null: a red other-required context on page 2 reads red too)
+  FAIL A5 serial: the train passes each page's endCursor on the next read, so a red required gate on page 2 stops the merge (null: a one-page rollup is read once, with no cursor, and merges)
+  ok   settle gap null: a content FAIL of the code gate leaves no green suite, no settle -- RED at once
+  ok   #3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+  ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+  ok   a script that failed a check keeps the plain FAILED line
+  ok   FAILED_SCRIPT names the script from the crash line and from the failed-check line
+merge_train self-test: 662 checks, 4 failed
