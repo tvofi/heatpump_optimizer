@@ -1,0 +1,10 @@
+== 6caf7df2faf4848a36fba6030901d309af58695f
+RESULT house learner, recorded reason 'stale:lower_floor_temp_entity': phase counting -> frozen
+RESULT house learner, recorded reason 'unavailable:lower_floor_temp_entity': phase counting -> frozen
+RESULT house learner, recorded reason 'stale:dhw_temp_entity': phase counting -> counting
+RESULT house learner, recorded reason 'stale:indoor_temp_entity': phase counting -> frozen
+== 1f96fec41c9b3c96f5bc98da4f0637ed1a54e1f3
+RESULT house learner, recorded reason 'stale:lower_floor_temp_entity': phase counting -> frozen
+RESULT house learner, recorded reason 'unavailable:lower_floor_temp_entity': phase counting -> frozen
+RESULT house learner, recorded reason 'stale:dhw_temp_entity': phase counting -> frozen
+RESULT house learner, recorded reason 'stale:indoor_temp_entity': phase counting -> frozen

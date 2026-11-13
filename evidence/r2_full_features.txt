@@ -1,0 +1,4 @@
+R2 (freeze_end: 'if projected is None:') full tests/features.py at 1f96fec41c9b3c96f5bc98da4f0637ed1a54e1f3
+  ok   a pump command that FAILED is not remembered as done
+ALL 5481 FEATURE CHECKS PASSED
+rc=0
