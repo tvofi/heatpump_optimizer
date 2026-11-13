@@ -939,7 +939,7 @@ def hysteresis_checks() -> None:
 
     # 6. Which steps the pump starts.
     startable = planner.startable_steps
-    check("a step opens on a tank below its start temperature, or follows or is a charge",
+    check("a step is startable where it opens on a tank below its start temperature or follows a charge under way",
           lambda: list(startable(np.array([0, 0, 1, 0, 0.]), np.array([54, 52, 50, 53, 50.9, 50.]),
                                  np.full(5, 51.0))) == [False, False, True, True, True])
     check("a tank exactly at the start temperature, not charging, does not start",
