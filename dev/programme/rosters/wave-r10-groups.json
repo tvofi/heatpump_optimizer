@@ -26194,6 +26194,51 @@
     "next_step": "same local opus fixer, stacked on the stuck-set-point handoff",
     "note": "intake: owner report 2026-11-13 (boost writes 43, not 55); production defect on a released version; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK): owner report 2026-11-13: space boost writes a partial flow set-point (41, 43) instead of the ceiling; production defect, latent since v6.7.17"
    }
+  },
+  {
+   "group": "R10-USER-TEXT-VERIFY-STRINGS",
+   "lane": "IN",
+   "kind": "production",
+   "class": "bug",
+   "severity": "high",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/services.yaml",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/translations/de.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. This group owns every user-visible string outside the config and options flows and outside the dashboard card: the entity, services, issues and exceptions keys of custom_components/heatpump_optimizer/strings.json and every translation, custom_components/heatpump_optimizer/services.yaml, and user-visible text built in Python. Owed, one pull request: enumerate mechanically; judge each behaviour claim against the code that decides it, never against a comment, with the table kept as a tracked record under dev/audit/rounds/round10/; correct each false or stale string in every language as a real translation; pin each mechanically checkable claim with a test; state a planted-false-sentence null control; carry anything false outside the scope to the round-11 intake unless it misleads about what is written to the pump.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-user-text-verify-strings",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud opus fixer; opus reviewer",
+    "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY): owner ruling 2026-11-13: do option 1 (verify all user-facing production text against code behaviour) in round 10"
+   }
   }
  ]
 }
