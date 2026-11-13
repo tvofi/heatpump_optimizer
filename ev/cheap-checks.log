@@ -1,0 +1,7 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  changed files (5), measured against the recorded closures in tests/closures.json:
+      dev/audit/harnesses/r10_hotfix_openpr_host_refusal_mutants.json
+      dev/programme/delivery/3515.md
+
+STRUCTURE RATCHET PASSED
