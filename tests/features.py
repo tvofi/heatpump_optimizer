@@ -85830,6 +85830,25 @@ R.check(
     {k: round(h.room_temperature, 4) for k, (h, _, _) in _svh_caps.items() if k[2] == 9.0},
 )
 
+# A warm day under a pump too small for the tank's standing loss: unreachable
+# needs no zone heat there, so the held zones stay at the target, never above.
+_svh_warm_p = _SVR_PARAMS.from_config(_svh_house(
+    two_zone=True, dhw=False, buffer_tank_volume=2000.0, heat_pump_max_power=0.01))
+_svh_warm = _svh_held(
+    _SVR_MODEL(_svh_warm_p),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=25.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=80.0),
+    _SVH_WS(outdoor_temps=np.array([25.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: outdoors above the target, a pump unable to "
+    "cover the tank's standing loss leaves the held zones at the target, not "
+    "at the outdoor temperature",
+    _svh_warm.room_temperature == 21.0,
+    round(_svh_warm.room_temperature, 4),
+)
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on
