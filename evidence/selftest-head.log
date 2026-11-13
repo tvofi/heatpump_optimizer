@@ -84,7 +84,7 @@
   ok   and is not tried a fourth time
   ok   the refusal is owed in the level file, once, with its reason
   ok   a refusal of the ref itself (rc 2) is refused at once, with its reason
-ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the tick reads /tmp/cloud_relay_st.GhhetA/state
+ledger: dispose wrote to /tmp/cloud_relay_st.gxsFgE, not the default home; the tick reads /tmp/cloud_relay_st.gxsFgE/state
   ok   a disposed refusal is not owed
   ok   with the real bus.sh push-verdict the relay passes
   ok   and confirms the remote tip as carrying its verdict tree
@@ -103,7 +103,7 @@ ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the t
   ok   dispose --log FILE (the CLI) takes the ref
   ok   and drops its line from the level beside that log
   ok   null control: an undisposed rev- ref is relayed (pushed for #5)
-ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the tick reads /tmp/cloud_relay_st.GhhetA/state
+ledger: dispose wrote to /tmp/cloud_relay_st.gxsFgE, not the default home; the tick reads /tmp/cloud_relay_st.gxsFgE/state
   ok   a rev- ref disposed at its sha is not relayed: nothing pushed, review/5 unmoved
   ok   null control: a disposed ref whose tip moved is relayed at the new sha
   ok   a handoff verdict whose topic has no pull request is reported HELD-NOPR
@@ -117,7 +117,7 @@ ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the t
   ok   null control: the same verdict over a head that carries is relayed at the handoff head, on #71
   ok   and the carry predicate was asked handoff-head then PR-head
   ok   and its ref and sha are recorded as relayed
-ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the tick reads /tmp/cloud_relay_st.GhhetA/state
+ledger: dispose wrote to /tmp/cloud_relay_st.gxsFgE, not the default home; the tick reads /tmp/cloud_relay_st.gxsFgE/state
   ok   Carry 30: a revt- ref disposed at its sha is not relayed either
   ok   and a disposed revt- ref that moved is relayed at its new sha (null control)
   ok   a pending-ci draft over a WAIT head is held (rc 75), one HELD-PENDING-CI line naming the context
@@ -141,6 +141,8 @@ ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the t
   ok   a WAIT read between two REDs clears the record (a check ran, so the clock restarts)
   ok   RED past the bound refuses (rc 2), prints the OWED re-dispatch line, posts nothing
   ok   and the first RED read never refuses, whatever the bound (null control: nothing to age yet)
+  ok   a non-numeric HPO_RELAY_PENDING_RED_SECS holds the pending-ci draft (rc 75), says why, and posts nothing even at GREEN
+  ok   null control: a numeric bound at the same GREEN head posts
   ok   a handoff with no body ref does nothing
   ok   a handoff ahead of its PR runs update_pr with branch and code sha
   ok   the issues come from the body's closing keywords
@@ -356,8 +358,8 @@ ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the t
   ok   null control: a handoff committed after its topic's merge stays owed
   ok   a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)
   ok   a handoff-body ref with no open PR is OWED
-ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the tick reads /tmp/cloud_relay_st.GhhetA/state
-ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the tick reads /tmp/cloud_relay_st.GhhetA/state
+ledger: dispose wrote to /tmp/cloud_relay_st.gxsFgE, not the default home; the tick reads /tmp/cloud_relay_st.gxsFgE/state
+ledger: dispose wrote to /tmp/cloud_relay_st.gxsFgE, not the default home; the tick reads /tmp/cloud_relay_st.gxsFgE/state
   ok   disposed no-PR refs are not owed
   ok   a disposed no-PR ref that moved is OWED again
   ok   a failed PR listing leaves the level as it was (unknown is not 'nothing owed')
@@ -393,7 +395,7 @@ ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the t
   ok   and owes nothing
   ok   an undispatched review is owed once in the level after two passes (null control)
   ok   and confirm never runs on it
-ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the tick reads /tmp/cloud_relay_st.GhhetA/state
+ledger: dispose wrote to /tmp/cloud_relay_st.gxsFgE, not the default home; the tick reads /tmp/cloud_relay_st.gxsFgE/state
   ok   a disposed review is not owed
   ok   a review/<pr> tip the relay did not push is left to the orchestrator (null control)
   ok   and owes nothing
@@ -446,6 +448,10 @@ ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the t
   ok   a reviewer whose PR head moved since the dispatch is silent
   ok   a reviewer dispatched 4000 s ago (under 5400 s) is silent
   ok   the bounds are distinct: a fixer dispatched 6000 s ago (under 7200 s) is silent beside the reviewers
+  ok   a reviewer dispatched past HPO_RELAY_NORETURN_WINDOW_SECS (172800 s) is silent (null control: #3339 at 6000 s fires)
+  ok   a reviewer whose verdict came back as a handoff probe/revt-<topic>-<n8> is silent (null control: #3339 has no return ref)
+  ok   null control for both: the unreturned in-window reviewer #3339 still fires in the same pass
+  ok   a failed return listing owes no reviewer (unknown is not owed; null control: the same dispatches fire in the pass above)
   ok   null control (carry 14): a sequential fold pushes the body from a worktree at handoff/cf-a's tip
   ok   a CARRY-LANDED-only block is folded by carry_fold.py on the kept body
   ok   ... and body_push.sh re-runs on the same body
@@ -486,5 +492,5 @@ ledger: dispose wrote to /tmp/cloud_relay_st.GhhetA, not the default home; the t
   ok   ... with no cloud-folded entry
   ok   ... no FOLDED announcement
   ok   ... and no body_push.sh run
-cloud_relay self-test: 482 checks, 0 failed
+cloud_relay self-test: 488 checks, 0 failed
 rc=0
