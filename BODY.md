@@ -2,6 +2,8 @@ Hotfix: main is red on governance / instrument-self-tests (run 43337393276, job 
 
 ## Head
 
+Orchestrator re-routed this carry from R10-NUDGE-RETIRE to R10-SELFTEST-SCOPE-UNION-GUARD (the table's record path is that group's).
+
 4a013ff156a4e499ec806b1ac99f2776c506e982, cut from origin/main 4869f1656b892a1aee8afc7db4dbd9feff06ad1c.
 
 ## Mutation proof
@@ -26,7 +28,7 @@ instrument-self-tests (drift step, run 43337393276). Which merges added the unre
 
 ## Forward-carry
 
-none
+Carry 0: beatd and review-packet entries in tools/ci/selftest_closures.json are unions of two differing recordings, so a group that retires or moves a file they read (R10-NUDGE-RETIRE) re-records those two with `record --step` twice and unions, not once. Carry: R10-SELFTEST-SCOPE-UNION-GUARD
 
 ## Friction
 
