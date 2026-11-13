@@ -1,0 +1,9 @@
+  ok   host_refusal: the same FAIL rows under another exit status (the head's run stops short) are the head's
+  ok   host_refusal: an environment fault (exit 3, no FAIL row) on both trees is the host's
+  ok   null control: a fetch git rejected is not fetched again (a second fetch would have succeeded), and is named REMERGE FAILED at fetch, never MERGE CONFLICT (carry f7d2bf7c)
+  ok   remerge_main: a push that pushed nothing prints its REFUSE, FAIL and full-log lines and names its kept log, which exists after exit
+  ok     mutant mut:remergegrep (its line deleted): the FAIL and full-log lines are lost
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 251 checks, 0 failed
+rc=0
+rc=0
