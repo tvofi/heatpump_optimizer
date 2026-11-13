@@ -1,0 +1,9 @@
+selftest_scope self-test: 145 checks, 0 failed
+rc=0
+selftest_scope self-test: 145 checks, 0 failed
+rc=0
+selftest_scope static: 114 gated step(s), 0 problem(s)
+rc=0
+mutants rc=0
+31
+SELFTEST-SCOPE MUTANTS: every mutant refused

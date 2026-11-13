@@ -1,0 +1,4 @@
+ .claude/workflows/audit-find.js      |  9 ++---
+ dev/audit/config/bugclasses.json     | 64 +++++++++++++++++++-----------------
+ dev/audit/config/finding.schema.json |  6 +---
+ 3 files changed, 37 insertions(+), 42 deletions(-)

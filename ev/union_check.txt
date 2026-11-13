@@ -1,0 +1,8 @@
+bugclasses expected==head: True missing: set() extra: set() P adds {'R10-SELFTEST-TABLE-SHRINK'} M adds {'N-provisional-gate-red-read-final'} removed set()
+schema expected==head: True missing: set() extra: set() P adds {'R10-SELFTEST-TABLE-SHRINK'} M adds {'N-provisional-gate-red-read-final'} removed set()
+entries differing from both sides: []
+content differs from its source side: _rca
+schema enum == bugclasses ids + new: False
+# reviewer note: the two last lines above are artefacts of the naive check: `_rca` is a dict of RCA entries; per-key comparison
+# shows only R10-RCA-SELFTEST-SCOPE-DRIFT changed (from P), all other `_`-keys equal on every side; and the enum equals the
+# non-underscore class ids plus `new` (True when `_`-prefixed metadata keys are excluded).

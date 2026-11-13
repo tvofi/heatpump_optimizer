@@ -1,0 +1,19 @@
+LEDGER-MERGE: refused dev/audit/config/bugclasses.json: a side is not in its writer's own JSON format
+f9643f606c1d21a287f8951df8e2d72ca6d785f3
+100644 af87bea8d7b9f4077ff13c98f2888c4ce189b0a3 1	.claude/workflows/audit-find.js
+100644 d8a2f9d5a0ed547f7b556c796bce4e30cc443c95 2	.claude/workflows/audit-find.js
+100644 250259eb5983325d4e48c61e5e706e10fd70d2ee 3	.claude/workflows/audit-find.js
+100644 9e1cc0e41854bf822ef81c8315dd971f815a53ff 1	dev/audit/config/bugclasses.json
+100644 10cb0db1d394319c7cc189eb419dedf92c00b359 2	dev/audit/config/bugclasses.json
+100644 91d2658e6b2be803be93cf8d4ca44b6f04b54a70 3	dev/audit/config/bugclasses.json
+100644 93d063f422441875ee2966fda552bb37660bd8f7 1	dev/audit/config/finding.schema.json
+100644 323c1a47e20ee63ef6c81befc5ea5df265dede7d 2	dev/audit/config/finding.schema.json
+100644 be74a6e93cdc92dee7d5261da9137c91b2a1d768 3	dev/audit/config/finding.schema.json
+
+Auto-merging .claude/workflows/audit-find.js
+CONFLICT (content): Merge conflict in .claude/workflows/audit-find.js
+Auto-merging dev/audit/config/bugclasses.json
+CONFLICT (content): Merge conflict in dev/audit/config/bugclasses.json
+Auto-merging dev/audit/config/finding.schema.json
+CONFLICT (content): Merge conflict in dev/audit/config/finding.schema.json
+Auto-merging tools/ci/selftest_closures.json
