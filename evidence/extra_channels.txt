@@ -1,7 +1,0 @@
-readonly: rc=2 last=[# tick_loop.sh --self-test] rows=0 victim-refs=0
-declarei: rc=2 last=[# tick_loop.sh --self-test] rows=0 victim-refs=0
-alias: rc=1 last=[/tmp/tmp.io67EAireU/r4/src/tools/audit/seat/tick_loop.sh: line 67: refused: --self-test refused: the env -i re-exec did not replace this process (a caller funct] rows=0 victim-refs=0
-aliascase: rc=2 last=[tick_loop self-test: unknown argument --self-test-rows] rows=0 victim-refs=0
-execfail: rc=0 last=[tick_loop self-test: 41 checks, 0 failed] rows=41 victim-refs=0
-nounset_exit: rc=1 last=[/tmp/tmp.io67EAireU/r4/src/tools/audit/seat/tick_loop.sh: line 67: refused: --self-test refused: the env -i re-exec did not replace this process (a caller funct] rows=0 victim-refs=0
-errtrap: rc=1 last=[/tmp/tmp.io67EAireU/r4/src/tools/audit/seat/tick_loop.sh: line 67: refused: --self-test refused: the env -i re-exec did not replace this process (a caller funct] rows=0 victim-refs=0
