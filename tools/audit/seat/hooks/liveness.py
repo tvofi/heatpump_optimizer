@@ -17,6 +17,19 @@ This hook runs at both events and prints, on stdout (which the session reads):
                  neither digest/digest.txt nor beatd/journal.log moved within
                  HPO_DIGEST_STALE_MIN (default 30): digest.txt is rewritten only on
                  a change, so a quiet board is judged by the beat's own journal;
+  RESTARTED      beatd, the one supervisor, was DEAD: it is relaunched through
+                 daemonize.py from the cwd, HPO_* environment and argv beatd.py
+                 recorded in beatd/launch.json, the seat venv's bin first on PATH
+                 (else `auto-restart FAILED`); no other loop is ever relaunched;
+  DEAD relay     cloud_relay.sh's log (cloud-relay.log) older than
+                 HPO_RELAY_STALE_MIN (default 15, three tick passes): the relay
+                 runs inside tick_loop.sh's pass, so no standalone process is sought;
+  MISSING        a checkout the state names (orch-checkout and the *checkout* keys
+                 of sweep-overlay.json) that is not a directory;
+  READ-PROOF     the policy corpus at origin/main is written to policy-corpus.txt,
+                 its last line a `--prove <sha256>` command; a compact-owed marker
+                 stands, and the UserPromptSubmit event re-raises the obligation
+                 every prompt until `liveness.py --state S --prove <sha256>` clears it;
   the digest     digest/digest.txt, verbatim;
   ARM            the one instruction line: restart what is reported dead, check the
                  standing seats, re-arm the wake loop (exit on a new
@@ -27,6 +40,7 @@ It never fails the session: an unreadable input prints UNREADABLE for that part.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import subprocess
@@ -51,6 +65,66 @@ def _env_min(name: str, default: float) -> float:
         return default
 
 
+CORPUS = ("CLAUDE.md", "dev/governance/roles/orchestrator.md", "tools/audit/seat/INSTRUMENTS.md")
+
+
+def _git(repo: str, *args: str) -> str | None:
+    r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else None
+
+
+def write_corpus(state: Path, repo: str) -> str | None:
+    """The policy corpus at origin/main in one file; returns the sha256 of its body, or None."""
+    names = list(CORPUS)
+    rules = _git(repo, "ls-tree", "-r", "--name-only", "origin/main", ".claude/rules/")
+    if rules is None:
+        return None
+    names += rules.split()
+    body = ""
+    for n in names:
+        t = _git(repo, "show", f"origin/main:{n}")
+        if t is None:
+            return None
+        body += f"=== {n} ===\n{t}\n"
+    sha = hashlib.sha256(body.encode()).hexdigest()
+    (state / "policy-corpus.txt").write_text(
+        body + f"PROOF: python3 -I {Path(__file__).resolve()} --state {state} --prove {sha}\n")
+    (state / "compact-owed").write_text(sha + "\n")
+    return sha
+
+
+def prove(state: Path, sha: str) -> int:
+    try:
+        want = (state / "compact-owed").read_text().strip()
+    except OSError:
+        print("no read-proof owed")
+        return 0
+    if sha.strip() != want:
+        print("READ-PROOF refused: the sha256 is not the corpus file's; read policy-corpus.txt to its last line")
+        return 1
+    (state / "compact-owed").unlink()
+    print("read-proof accepted")
+    return 0
+
+
+def restart_beatd(state: Path, repo: str) -> str:
+    """Relaunch beatd from its recorded launch; never any other loop."""
+    try:
+        rec = json.loads((state / "beatd" / "launch.json").read_text())
+        argv, cwd, env = rec["argv"], rec["cwd"], rec["env"]
+        assert isinstance(argv, list) and argv and Path(cwd).is_dir()
+        cmd = [sys.executable, "-I", str(SEAT / "daemonize.py"), "--log", str(state / "beatd" / "restart.log"), "--cwd", cwd]
+        for k, v in env.items():
+            cmd += ["--env", f"{k}={v}"]
+        venv = state / "venv-ci" / "bin"
+        if venv.is_dir():
+            cmd += ["--path-prepend", str(venv)]
+        r = subprocess.run([*cmd, "--", *argv], capture_output=True, text=True)
+        return "RESTARTED beatd" if r.returncode == 0 else "auto-restart FAILED beatd: daemonize refused"
+    except (OSError, ValueError, KeyError, TypeError, AssertionError) as e:
+        return f"auto-restart FAILED beatd: {type(e).__name__}"
+
+
 def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
     marker = state / "orch-checkout"
     try:
@@ -60,6 +134,10 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
     if not repo or not Path(repo).is_dir():
         return []
     out: list[str] = []
+    if event == "UserPromptSubmit":
+        if (state / "compact-owed").exists():
+            out.append(f"READ-PROOF owed: read {state / 'policy-corpus.txt'} to its last line and run the PROOF command there")
+        return out
     py = sys.executable
     stamp = state / "policy-reread.stamp"
     if event == "PostCompact":
@@ -74,6 +152,9 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
         elif r.returncode != 0 or not r.stdout.strip().startswith("OK"):
             out.append("POLICY-REREAD owed: re-read CLAUDE.md, the rules and the role contracts from fresh origin/main, "
                        f"then policy_reread_check.py --stamp {stamp} --write-stamp")
+    owed = event == "PostCompact" or any(ln.startswith("POLICY-REREAD") for ln in out)
+    if owed and write_corpus(state, repo):
+        out.append(f"READ-PROOF owed: read {state / 'policy-corpus.txt'} to its last line and run the PROOF command there")
     b = subprocess.run([py, "-I", str(SEAT / "beatd.py"), "status", "--state", str(state), "--repo", repo],
                        capture_output=True, text=True)
     if b.returncode == 2 or not b.stdout.strip():
@@ -87,6 +168,19 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
                 out.append(f"ALARM job {f[1]} {f[2]}")
         elif ln.startswith(("DOWN ", "ALERT ", "STALE-CODE", "UNREADABLE")):
             out.append(("DEAD beatd " + ln[5:]) if ln.startswith("DOWN ") else f"ALARM {ln}")
+            if ln.startswith("DOWN "):
+                out.append(restart_beatd(state, repo))
+    relay = state / "cloud-relay.log"
+    age = _age_min(relay, now)
+    if age is not None and age > _env_min("HPO_RELAY_STALE_MIN", 15):
+        out.append(f"DEAD relay {relay.name} age_min={int(age)}")
+    names = {"orch-checkout": repo}
+    try:
+        ov = json.loads((state / "sweep-overlay.json").read_text())
+        names.update({k: v for k, v in ov.items() if "checkout" in k and isinstance(v, str)})
+    except (OSError, ValueError, AttributeError):
+        pass
+    out += [f"MISSING checkout {k} {v}" for k, v in sorted(names.items()) if not Path(v).is_dir()]
     alive_stale = _env_min("HPO_ALIVE_STALE_MIN", 120)
     ad = state / "alive"
     for p in sorted(ad.iterdir()) if ad.is_dir() else []:
@@ -111,9 +205,11 @@ def report(state: Path, event: str, transcript: str, now: float) -> list[str]:
 def main(argv: list[str]) -> int:
     state = os.environ.get("HPO_STATE_DIR", "")
     if argv[:1] == ["--state"] and len(argv) > 1:
-        state = argv[1]
+        state, argv = argv[1], argv[2:]
     if not state:
         return 0
+    if argv[:1] == ["--prove"] and len(argv) > 1:
+        return prove(Path(state), argv[1])
     event, transcript = "", ""
     try:
         if not sys.stdin.isatty():

@@ -32,6 +32,7 @@ its self-test drives both over its alternatives table and compares them.
 from __future__ import annotations
 
 import email.utils
+import json
 import http.client
 import re
 import sys
@@ -204,6 +205,39 @@ def retry(attempt, wait_for, sleep, note=lambda line: None):
         note(f"read {n}/{READ_TRIES}: {one_line(failure)}; sleeping {settle:g}s")
         sleep(settle)
         delay *= 3
+
+
+#: One page of a paged list, GitHub's maximum, and the walk's bound: past
+#: MAX_PAGES full pages the read refuses rather than return a truncated list.
+PER_PAGE = 100
+MAX_PAGES = 100
+
+
+def read_pages(read, path: str, key: str = "", per_page: int = PER_PAGE, max_pages: int = MAX_PAGES):
+    """Every item of the paged list at <path> -> (code, items, why); items is
+    None and why the failure on a failed, unparseable or unbounded walk.
+
+    Page by explicit `page=N`, never `gh api --paginate`: that follows the Link
+    header, which names `repositories/<id>/...`, and a cloud seat's proxy
+    answers that URL 403 (S14-CLOUD-CLASSIFY-PAGINATE: `merge_train.py
+    classify` exited 2 on it). A short page ends the walk. `read` is the
+    caller's runner -- `merge_train`'s carries this file's retry rule -- and
+    <key> names the list in an object page (`check_runs`), "" an array page."""
+    sep = "&" if "?" in path else "?"
+    items: list = []
+    for n in range(1, max_pages + 1):
+        code, out = read(["gh", "api", f"{path}{sep}per_page={per_page}&page={n}",
+                          "--jq", f".{key}[]" if key else ".[]"])
+        if code:
+            return code, None, out
+        try:
+            page = [json.loads(x) for x in out.splitlines() if x.strip()]
+        except ValueError:
+            return 1, None, f"page {n} of {path} is not JSON: {one_line(out)[-120:]}"
+        items += page
+        if len(page) < per_page:  # mut:short-page
+            return 0, items, ""
+    return 1, None, f"{path}: more than {max_pages} pages of {per_page}: refused, not truncated"
 
 
 def one_line(failure) -> str:
@@ -546,6 +580,57 @@ def self_test() -> int:
               got == rc and want in (out if rc == 0 else err).getvalue())
     with contextlib.redirect_stderr(io.StringIO()):
         check("--git-retry refuses an argv that is not git (usage, rc 2)", main(["--git-retry", "ls"]) == 2)
+
+    # S14-CLOUD-CLASSIFY-PAGINATE: a paged list read by explicit page number.
+    def server(sizes, key="check_runs"):
+        """A stub `gh api` serving len(sizes) pages of sizes[n-1] items; any
+        followed Link header (`--paginate`, or a repositories/<id> URL) is the
+        cloud proxy's 403."""
+        calls = []
+
+        def read(argv):
+            calls.append(argv)
+            a = " ".join(argv)
+            if "--paginate" in argv or "repositories/" in a:
+                return 1, "gh: Forbidden (HTTP 403)"
+            n = int(argv[2].rsplit("&page=", 1)[1])
+            base = sum(sizes[:n - 1])
+            page = [{"id": base + i} for i in range(sizes[n - 1] if n <= len(sizes) else 0)]
+            jq = argv[argv.index("--jq") + 1] if "--jq" in argv else ""
+            if jq not in (f".{key}[]", ".[]"):
+                return 1, f"unexpected --jq {jq!r}"
+            return 0, "".join(json.dumps(x) + "\n" for x in page)
+        return read, calls
+
+    read, calls = server([2, 2, 1])
+    code, items, why = read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs", per_page=2)
+    check("a three-page answer reads every item, in order, in 3 reads",
+          code == 0 and [x["id"] for x in items] == [0, 1, 2, 3, 4] and len(calls) == 3 and why == "")
+    check("each read names its page explicitly and follows no Link header (the stub 403s one)",
+          [c[2].rsplit("&page=", 1)[1] for c in calls] == ["1", "2", "3"]
+          and not any("--paginate" in c for c in calls))
+    read, calls = server([1])
+    code, items, _ = read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs", per_page=2)
+    check("null control: a one-page (short) answer makes exactly one read",
+          code == 0 and len(items) == 1 and len(calls) == 1)
+    read, calls = server([1])
+    read_pages(read, "repos/o/r/commits/h/check-runs", "check_runs")
+    check("by default a page is GitHub's maximum, 100 (the page size a short page is judged against)",
+          calls[0][2] == "repos/o/r/commits/h/check-runs?per_page=100&page=1")
+    read, calls = server([2, 2, 0], key="")
+    code, items, _ = read_pages(read, "repos/o/r/pulls/1/reviews?state=x", per_page=2)
+    check("a full last page ends on the empty page after it; a query string is extended with &",
+          code == 0 and len(items) == 4 and len(calls) == 3
+          and calls[0][2].startswith("repos/o/r/pulls/1/reviews?state=x&"))
+    read, calls = server([2] * 9, key="")
+    code, items, why = read_pages(read, "repos/o/r/x", per_page=2, max_pages=3)
+    check("a walk past max_pages refuses, never truncates", code == 1 and items is None and "3 pages" in why)
+    code, items, why = read_pages(lambda argv: (4, "gh: Not Found (HTTP 404)"), "repos/o/r/x")
+    check("a failed read is the caller's failure: its code and its text, verbatim",
+          code == 4 and items is None and why == "gh: Not Found (HTTP 404)")
+    code, items, why = read_pages(lambda argv: (0, "{not json\n"), "repos/o/r/x")
+    check("an unparseable page is a failure (rc 1), never an empty list",
+          code == 1 and items is None and why.startswith("page 1 of repos/o/r/x is not JSON"))
 
     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0

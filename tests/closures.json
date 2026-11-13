@@ -208,6 +208,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -365,6 +366,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -465,6 +467,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -565,6 +568,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -679,6 +683,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -795,6 +800,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -927,6 +933,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -1049,6 +1056,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -1183,6 +1191,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -1251,6 +1260,8 @@
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
    "dev/README.md",
+   "dev/governance/roles/fix-review.md",
+   "dev/governance/roles/nudge.md",
    "dev/programme/rosters/wave-r10-groups.json",
    "docs/architecture.md",
    "docs/automations.md",
@@ -1344,13 +1355,30 @@
    "tools/audit/archscore/metrics/__init__.py",
    "tools/audit/archscore/metrics/card.py",
    "tools/audit/archscore/metrics/common.py",
+   "tools/audit/seat/beat_jobs.py",
+   "tools/audit/seat/body_push.sh",
    "tools/audit/seat/bus.sh",
+   "tools/audit/seat/cloud_dispatch.py",
    "tools/audit/seat/cloud_relay.sh",
    "tools/audit/seat/heartbeat.sh",
+   "tools/audit/seat/instruments/beatd.py.md",
+   "tools/audit/seat/instruments/cloud_dispatch.py.md",
+   "tools/audit/seat/instruments/heartbeat.sh.md",
+   "tools/audit/seat/instruments/tick_loop.sh.md",
    "tools/audit/seat/ledger.py",
+   "tools/audit/seat/merge_train.py",
+   "tools/audit/seat/open_pr.sh",
+   "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/roster_edit.py",
+   "tools/audit/seat/roster_queue.py",
+   "tools/audit/seat/roster_sync.py",
+   "tools/audit/seat/state_docs.py",
+   "tools/audit/seat/tick_loop.sh",
+   "tools/ci/gate.py",
    "tools/policy/rules_sync.mjs",
    "tools/release/stamp.py",
    "tools/site/build_docs.mjs",
+   "tools/site/day_chart.mjs",
    "tools/site/package-lock.json",
    "tools/site/package.json"
   ],
@@ -1483,6 +1511,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -1613,7 +1642,6 @@
    "dev/governance/roles/verifier.md",
    "dev/programme/HANDOVER.md",
    "dev/programme/carries/carry-1645.json",
-   "dev/programme/carries/carry-1774.json",
    "dev/programme/carries/carry-1922.json",
    "dev/programme/carries/carry-201.json",
    "dev/programme/carries/carry-2065.json",
@@ -1893,8 +1921,10 @@
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/governance_cost.py",
    "tools/audit/seat/bare_array.py",
+   "tools/audit/seat/beat_jobs.py",
    "tools/audit/seat/ci_pause.py",
    "tools/audit/seat/ci_priority.py",
+   "tools/audit/seat/cloud_dispatch.py",
    "tools/audit/seat/gh_read.py",
    "tools/audit/seat/handover_prompt.py",
    "tools/audit/seat/ledger.py",
@@ -1902,6 +1932,7 @@
    "tools/audit/seat/orchestrator_tick.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/plan_table.py",
+   "tools/audit/seat/postmerge.py",
    "tools/audit/seat/pr_cap.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/queue_pre_flight.py",
@@ -1910,6 +1941,7 @@
    "tools/audit/seat/resume_doc.py",
    "tools/audit/seat/roster_edit.py",
    "tools/audit/seat/roster_lib.py",
+   "tools/audit/seat/roster_queue.py",
    "tools/audit/seat/roster_sync.py",
    "tools/audit/seat/state_docs.py",
    "tools/audit/seat/tmp_paths.py",
@@ -2003,6 +2035,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -2197,6 +2230,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -2349,6 +2383,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -2490,6 +2525,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -2677,6 +2713,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -2843,6 +2880,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -3232,6 +3270,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -3400,6 +3439,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -3501,6 +3541,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -3649,6 +3690,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -3742,6 +3784,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -3866,6 +3909,7 @@
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/driving_grade.py",
+   "custom_components/heatpump_optimizer/duty_switch.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -4010,6 +4054,8 @@
    "tools/audit/seat/review_strength.py",
    "tools/audit/seat/roster_lib.py",
    "tools/audit/seat/roster_queue.py",
+   "tools/audit/seat/scorecard.py",
+   "tools/audit/seat/scorecard_selftest.py",
    "tools/audit/seat/selftest_wiring.py",
    "tools/audit/seat/survivor_list.py",
    "tools/audit/seat/sweep_driver.py",
@@ -4071,14 +4117,19 @@
    "dev/audit/harnesses/livehead_cancels.py",
    "dev/audit/harnesses/merge_subject_guard_block.mjs",
    "dev/audit/harnesses/mutant_guard.py",
+   "dev/audit/harnesses/mutant_run_diff_shards.py",
    "dev/audit/harnesses/nightly_drain_breakdown.py",
+   "dev/audit/harnesses/prepr_slot_nested.py",
    "dev/audit/harnesses/pulse_replay.py",
    "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
    "dev/audit/harnesses/r10_advisor_degree.py",
    "dev/audit/harnesses/r10_advisor_residue.py",
    "dev/audit/harnesses/r10_anchor_vacuous.py",
    "dev/audit/harnesses/r10_arbiter_off_restore_mutants.py",
+   "dev/audit/harnesses/r10_arch_docs_enumerate.py",
+   "dev/audit/harnesses/r10_arch_docs_evidence.py",
    "dev/audit/harnesses/r10_arch_docs_first_mutants.py",
+   "dev/audit/harnesses/r10_arch_docs_mutants.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
    "dev/audit/harnesses/r10_away_presence_listener.py",
    "dev/audit/harnesses/r10_band_census.py",
@@ -4134,9 +4185,11 @@
    "dev/audit/harnesses/r10_critpath_archive_parity.py",
    "dev/audit/harnesses/r10_dead_rate_limit.py",
    "dev/audit/harnesses/r10_demand_overbook.py",
+   "dev/audit/harnesses/r10_dhw_charge_settle_p90.py",
    "dev/audit/harnesses/r10_dhw_lift_law_grid.py",
    "dev/audit/harnesses/r10_diag_ages_export.py",
    "dev/audit/harnesses/r10_disinfection_setpoint.py",
+   "dev/audit/harnesses/r10_duty_switch_section.py",
    "dev/audit/harnesses/r10_envmatrix_noremote.sh",
    "dev/audit/harnesses/r10_errexit_capture.py",
    "dev/audit/harnesses/r10_fahrenheit_setpoints.py",
@@ -4212,6 +4265,7 @@
    "dev/audit/harnesses/r10_plan_page_mutants.py",
    "dev/audit/harnesses/r10_policy_lint_family_mutants.py",
    "dev/audit/harnesses/r10_prepr_cap_lease_mutants.py",
+   "dev/audit/harnesses/r10_product_page.mjs",
    "dev/audit/harnesses/r10_pusher_reap_launch_mutants.sh",
    "dev/audit/harnesses/r10_raise_paths.sh",
    "dev/audit/harnesses/r10_ratio_anchor.py",
@@ -4243,6 +4297,8 @@
    "dev/audit/harnesses/r10_sav_null_settled.py",
    "dev/audit/harnesses/r10_sav_null_terms.py",
    "dev/audit/harnesses/r10_sav_receipt_render.py",
+   "dev/audit/harnesses/r10_sav_residual_attribution.py",
+   "dev/audit/harnesses/r10_sav_valuation_residue.py",
    "dev/audit/harnesses/r10_sav_volume.py",
    "dev/audit/harnesses/r10_sav_wood_reference.py",
    "dev/audit/harnesses/r10_savings_upgrade_month.py",
@@ -4505,6 +4561,7 @@
    "dev/audit/rounds/round10/intake/intake.py",
    "dev/audit/rounds/round10/intake/normalise.py",
    "dev/audit/rounds/round10/intake/quiet.sh",
+   "dev/audit/rounds/round10/protection-census/main_reds.py",
    "dev/audit/rounds/round10/study-ident/collect_q1.py",
    "dev/audit/rounds/round10/study-ident/eta_rolling.py",
    "dev/audit/rounds/round10/study-ident/ident_rolling.py",
@@ -5048,7 +5105,7 @@
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 340.3
+   "seconds": 150.2
   },
   "tests/card.mjs": {
    "rc": 0,
@@ -5060,7 +5117,7 @@
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 13.6
+   "seconds": 29.8
   },
   "tests/debug_collect.py": {
    "rc": 0,
@@ -5080,10 +5137,10 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 55.0
+   "seconds": 17.9
   },
   "tests/entities.py": {
-   "rc": 1,
+   "rc": 0,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
@@ -5092,7 +5149,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 1207.9
+   "seconds": 531.8
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -5104,7 +5161,7 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 0.4
+   "seconds": 0.9
   },
   "tests/guard_pins.py": {
    "rc": 0,
@@ -5115,7 +5172,7 @@
    "seconds": 0.2
   },
   "tests/harness_headers.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 118.2
   },
   "tests/layout.py": {
@@ -5148,7 +5205,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 1060.0
+   "seconds": 443.5
   },
   "tests/structure.py": {
    "rc": 0,
@@ -5156,11 +5213,11 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 15.8
+   "seconds": 0.4
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 54.2
+   "seconds": 21.5
   },
   "tests/wood_advisor.py": {
    "rc": 0,
