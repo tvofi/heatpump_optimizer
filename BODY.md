@@ -6,6 +6,8 @@ Product check before relying on the ended curve: `pull_prices` -> `prices_from_t
 
 ## Head
 
+1dee0df2a4193d29fedd22e5d322717737a37c53 (code head: 94e45e79312352005bd46af581fa286bd3583342 plus a clean `git merge --no-edit origin/main` of b5057b052558163c499f74426ba26e541475db8f, no conflicts, no code changed beyond the merge; base b5057b052558163c499f74426ba26e541475db8f).
+
 94e45e79312352005bd46af581fa286bd3583342 (code head, measured at this SHA; base bc58019d01b3072e02bfd30cdf052dd715f2945c).
 
 ## Mutation proof
@@ -25,6 +27,8 @@ On main, the unmodified harness prints the five FAIL lines of run 43358851739. T
 - `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2711 ENTITY CHECKS PASSED` at the code head before the final docstring-only commit's re-run; the re-run after it also passed.
 - `bash tools/pr/prepr.sh` (no body) at 94e45e79312352005bd46af581fa286bd3583342: `PRE-PR ... rc=0`, every step ok, `diff mutants` skipped (MUTANT_CMD unset; the change adds no `.py` line outside `tests/`).
 - the count of checks is whatever `tests/nightly_ha.py` roster prints; no count is claimed.
+
+- At the merged head 1dee0df2a4193d29fedd22e5d322717737a37c53 (re-taken): `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2711 ENTITY CHECKS PASSED`; `bash tools/pr/prepr.sh` (no body) printed `PRE-PR: 1dee0df2a4193d29fedd22e5d322717737a37c53 ... rc=0`, gate `MODE: SCOPED`. The mutation-proof driver runs and the null control above were measured at 94e45e79 and are unchanged by the merge (it touches no file under `tests/nightly_ha.py` or `custom_components/`; `git diff --name-only 94e45e79 HEAD` lists only the mutation ledger, `tools/audit/seat/cloud_dispatch.py`, `dev/audit/harnesses/r10_flow_dispatch_mutants.py`, `dev/programme/delivery/3533.md`).
 
 ## Red checks
 
