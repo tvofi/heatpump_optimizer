@@ -16,7 +16,7 @@ Retires `dev/governance/roles/nudge.md` (roster group R10-NUDGE-RETIRE) on the o
 
 ## Head
 
-`8dea2560d280b2a2c85131e4dd0135ae1460f2d8`, measured on origin/main `154dbb4c61652135381ce66646d23f7109d1c142` (`date -u`: 2026-11-13T15:15Z); `git merge-tree --write-tree origin/main HEAD` prints one tree, no conflict. Merge base `154dbb4c61652135381ce66646d23f7109d1c142`.
+`dba8633b185887790711632c01500bca4b03f4bc`, measured on origin/main `e23124ff6e45bac1d48b4a775dad555a37965355` (`date -u`: 2026-11-13T22:10Z); `git merge-tree --write-tree origin/main HEAD` prints one tree, no conflict. Merge base `e23124ff6e45bac1d48b4a775dad555a37965355` (origin/main merged in).
 
 ## Mutation proof
 
@@ -67,7 +67,7 @@ The diff's survivors that `prepr.sh` reports with `MUTANT_CMD` set to `postmerge
 
 ## Red checks
 
-none
+- `tests / closures`: `INERT READS UNDER-APPROXIMATED`, pair `tests/doc_claims.py: tools/audit/seat/instruments/merge_train.py.md`; `closures-autofix` ended `skip-merge-failed`, so the repair was owed manually. Repaired: that path added under `inert_reads` for `tests/doc_claims.py` in `tests/closures.json` (one line; `ci_predict.py --apply-inert` wrote nothing). Root cause: the cheaper detector (prepr step 6d / `ci_predict.py`, a few seconds) did not see it: it prints `no closures red predicted` at this head, its own text saying a data-file read is not seen, and `doc_claims.py` reads this instrument doc as data. So no detector exists for this read class, and the handoff could not carry the repair; the manual entry follows the CI-named pair. Closures were not re-derived here (full derive off Linux is forbidden); CI's recording confirms it.
 
 ## Forward-carry
 
