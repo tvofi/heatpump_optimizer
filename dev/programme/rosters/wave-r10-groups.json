@@ -26903,6 +26903,51 @@
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R11-INTAKE-R10-RESIDUE, R11-PRE-TOKEN-LEDGER): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run"
    }
+  },
+  {
+   "group": "R11-PRE-PLAN-RENDER",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
+   "files": [
+    "tools/audit/seat/plan_page.py",
+    "tools/audit/seat/beat_jobs.py",
+    "tools/audit/seat/state_docs.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13 on decision card R2 (yes, render on change): the plan page is rendered and committed when scope or order changes, not every 30 minutes, and each replan appends closure, scope and capacity to a data file so the closure history is data. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 8d and the removals list. The owner ruled the same day that this is built at the beginning of round 11, before the finders run.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-pre-plan-render",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
+    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R11-PRE-TOOLCHAIN-PIN, R11-PRE-ROUND-METRICS, R11-PRE-TOKEN-LEDGER): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run"
+   }
   }
  ]
 }
