@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/comfort_learning.py:ComfortLearner._maybe_adjust GUARD_OFF aa2965ad",
+  "killed_by": "tests/features.py",
+  "old": "        if abs(self.evidence) < EVIDENCE_THRESHOLD:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
