@@ -25684,6 +25684,51 @@
     "note": "created 2026-11-13 by the s14 orchestrator to receive R10-CI-PRIORITY-PAUSE roster carries 10 and 11; overlap admitted (R10-NUDGE-RETIRE): holding group for round-10 residuals with no live owner; round-11 architect re-homes each carry",
     "pr": null
    }
+  },
+  {
+   "group": "R10-HOTFIX-NIGHTLY-HA",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tests/nightly_ha.py",
+    "tests/entities.py"
+   ],
+   "hot_files": [
+    "tests/entities.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, Nightly is red and tests / nightly-status reddens the required gate on every code PR. Defect: Nightly run 43358851739 (workflow_dispatch at main e4ca2d940e), jobs nightly-ha (stable) 131667291235 and nightly-ha (2025.2.0) 131667291292, step 'Run ./.github/actions/nightly-ha' (python tests/nightly_ha.py), both print verbatim: 'FAIL a4:failed  [last_update_success=True]'; 'FAIL a4:unavailable  [50 still published: [entity ids, see the job log]]'; 'FAIL a4:buttons  [clickable after fail: [entity ids, see the job log]]'; 'FAIL a4:no_stale  [stale: [entity ids, see the job log]]'; 'FAILED: 5 of 65 checks: [a4:failed, a4:unavailable, a4:buttons, a4:no_stale, run:exit_status]'. Same five in run 43204237855 (head 4596f721f6, first red); last green nightly-ha: schedule run 43130126209 at 47788534da, 2026-11-12T00:49Z. Cause (established from the code path): PR #3454 (merge 2ced371c1a, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, merged 2026-11-12T04:54Z, inside the window) changed coordinator._tibber_fetch_failed so a failed fetch raises UpdateFailed only when the last published prices no longer cover now (issues.note_price_outage, _known_prices_for); otherwise it bridges with a WARNING and the price_feed_stale repair. tests/nightly_ha.py _async_check_a4 breaks the fake Tibber with HTTP 500 right after a successful fetch of a 72-hour curve starting now-2h (_hourly_prices), so the cache covers now, the refresh succeeds, and every a4 check that presumes UpdateFailed fails. This is a harness defect against an intended, accepted product change -- not a product regression and not an HA/dependency change (both HA versions fail identically). Candidates ruled out: no other merge in 47788534da..4596f721f6 touches UpdateFailed/last_update_success (git diff of coordinator.py in the window), and the only entity.py/nightly_ha.py change (#3460) touches no availability path. Fix (tests/nightly_ha.py only; product code untouched; no revert of #3454, which would delete accepted working functionality): split A4 into two real-boundary phases. (1) New check a4:bridged: with the source broken while published prices cover now, last_update_success stays True, the price_feed_stale repair is in HA's issue registry, and entities stay available -- pins #3454's contract on real HA. (2) Exhaust the published prices at the counterparty, not by poking coordinator._prices: the fake server gains a mode that answers 200 with a curve that ended before now (e.g. _hourly_prices(now - 3 days)), one refresh takes it, then the 500 break runs the existing a4:failed/unavailable/buttons/no_stale unchanged, then restore and a4:recovered. Take 'before' records ahead of phase 2. Add a4:bridged to A4_INSIDE and to the tests/entities.py nightly roster/self-tests (the check_a4_* offline self-tests near the 'a4:failed fails when last_update_success stayed True' line) with a positive and a negative case. Update the nightly_ha.py module docstring (the Tibber bullet says the 500 always raises UpdateFailed; the A4 paragraph says it breaks Tibber with HTTP 500) and keep _a4_update_failed_traceback valid. If pull_prices refuses an expired curve as not-ok, state it and use the next real-boundary means; never set last_update_success or _prices from the harness. Verification and null control the body must show: a dispatched Nightly on the branch (gh workflow run nightly.yml --ref <branch>) where both nightly-ha jobs print 0 FAIL lines and a4:failed/unavailable/buttons/no_stale/recovered/bridged all ok; on main the same jobs print the five FAIL lines above (cite run 43358851739). Mutation control: with issues.note_price_outage forced to return False (bridging disabled) a4:bridged fails while a4:failed still passes; with the expired-curve step skipped a4:failed fails again with last_update_success=True. Must NOT change: anything under custom_components/, the other 60 checks' names and outcomes, log:no_integration_traceback ok, the a4 check functions' predicates. Root-cause trigger (defect-root-cause.md, red required gate): answer in the body why #3454's PR lane did not run nightly-ha (it runs only on schedule/dispatch), and whether a cheaper detector exists -- e.g. a pull-request rule that dispatches nightly-ha when a diff touches _tibber_fetch_failed/_fetch_tibber_prices or other names the A4 path reaches, or an offline entities.py self-test that drives _async_check_a4's premise against the coordinator -- with its standing cost, or record that none is worth building.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud fixer (sonnet); verification needs a dispatched Nightly on the branch (Docker + HA image)",
+    "note": "intake: Nightly nightly-ha red since run 43204237855 (2026-11-12T10:52Z); nightly-status reddens gate on every code PR; diagnosis seat r10s6/s14 nightly-ha-diag",
+    "pr": null
+   }
   }
  ]
 }
