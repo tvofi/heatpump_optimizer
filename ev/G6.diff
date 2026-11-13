@@ -1,0 +1,13 @@
+diff --git a/tools/pr/gate_priority.py b/tools/pr/gate_priority.py
+index f793091d6b..68907e85fd 100644
+--- a/tools/pr/gate_priority.py
++++ b/tools/pr/gate_priority.py
+@@ -364,7 +364,7 @@ def main(argv: list[str] | None = None) -> int:
+         return _self_test()
+     branch = args.branch if args.branch is not None else _current_branch(args.repo)
+     if args.hotfix:
+-        print(int(is_hotfix(branch, repo=args.repo, ref=args.ref, fetch=not args.no_fetch)))
++        print(int(is_hotfix(branch, repo=args.repo, ref=None, fetch=not args.no_fetch)))
+         return 0
+     print(priority_for_branch(branch, repo=args.repo, ref=args.ref,
+                               fetch=not args.no_fetch))
