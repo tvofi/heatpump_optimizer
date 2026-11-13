@@ -140,6 +140,18 @@ def _forced_off_with(
     return forced_off | mask
 
 
+def _with_placement_ban(
+    forced_off: np.ndarray | None, ban: np.ndarray | None, n_steps: int
+) -> np.ndarray | None:
+    """``forced_off`` with a caller's placement ban OR'd in; unchanged with none.
+
+    The optimizer's duty-switch candidate enters here and nowhere else: unlike
+    ``off_steps`` a ban moves no disinfection step, and a manual force-on pin
+    inside it still wins, because the pins are overlaid after the placement.
+    """
+    return forced_off if ban is None else _forced_off_with(forced_off, ban, n_steps)
+
+
 def _legionella_off_mask(off_steps: Any, n_steps: int) -> np.ndarray | None:
     """The Off window as a horizon mask, or None when there is no window."""
     if off_steps is None:
@@ -267,15 +279,10 @@ def drop_unstartable(
     """
     plan = np.array(plan, dtype=float)
     on = plan > 0.0
-    i = 1
-    while i < plan.size:
-        if not on[i] or on[i - 1]:
-            i += 1
-            continue
+    for i in np.flatnonzero(on[1:] & ~on[:-1]) + 1:
         end = i + int(np.argmin(np.append(on[i:], False)))
         if temps_of(plan)[i] >= start_below[i]:
             plan[i:end] = 0.0
-        i = end
     return plan
 
 
@@ -1069,6 +1076,7 @@ class DhwPlanner:
         off_steps: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
         tank_exo_kw: np.ndarray | None = None,
+        placement_ban: np.ndarray | None = None,
     ) -> tuple[DhwPlan, np.ndarray]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -1197,6 +1205,7 @@ class DhwPlanner:
             # remain. Not a pin: the window is a scheduled decision, so the
             # pin-safety release loop in ``optimize`` never frees these.
             forced_off = _forced_off_with(forced_off, off_steps, n_steps)
+        forced_off = _with_placement_ban(forced_off, placement_ban, n_steps)
 
         # Pre-heating is allowed anywhere in the horizon: the planners price the
         # standby losses of storing heat, so an early cheap hour wins only when

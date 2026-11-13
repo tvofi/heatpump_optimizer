@@ -2360,6 +2360,17 @@ def valve_hold_temperature(
     return float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
 
 
+def valve_top_draw(
+    model: "ThermalModel", state: ThermalState, outdoor_temp: float,
+    wind_speed: float, precipitation: float,
+) -> float:
+    """The most the emitters can draw behind the valve, kW: the tank at the
+    curve's top (or ``buffer_max_temp``), past which a hotter tank adds nothing."""
+    circuits = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    return _circuit_draw(circuits, model.params.buffer_max_temp)
+
+
 def valve_charge_demand(
     model: "ThermalModel", state: ThermalState, need_kw: float,
     outdoor_temp: float, wind_speed: float, precipitation: float,
