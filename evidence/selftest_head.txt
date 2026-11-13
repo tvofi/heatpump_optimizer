@@ -1,3 +1,0 @@
-  ok   fail closed: the base's job concluded cancelled is a Stop (rc 2), never a clean read
-  ok   fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
-merge_train self-test: 680 checks, 0 failed

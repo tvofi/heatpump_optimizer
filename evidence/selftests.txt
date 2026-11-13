@@ -1,0 +1,18 @@
+== python3 tools/audit/seat/merge_train.py --self-test
+rc=0
+  ok   fail closed: a red head job with no red step is a Stop (rc 2), never a clean read
+merge_train self-test: 679 checks, 0 failed
+== python3 tools/audit/seat/orchestrator_tick.py --self-test
+rc=0
+orchestrator_tick self-test: 317 checks, 0 failed
+== bash tools/audit/seat/merge_pr.sh --self-test
+rc=0
+  ok   null control: no red at the head never asks classify
+merge_pr self-test: 26 checks, 0 failed
+== python3 tests/structure.py
+rc=0
+
+STRUCTURE RATCHET PASSED
+== python3 tests/env_drift.py --claims-only origin/main
+rc=0
+claims hygiene: origin/main ok
