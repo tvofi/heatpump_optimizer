@@ -1,0 +1,15 @@
+head 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9 vs merge base e4ca2d940efd1e87912d80cb3ebddf8240ba0729, per step, dims files/probes/dirs/git and flags
+DROPPED ci-predictor files 'dev/programme/rosters/wave-r10-groups.json' live-in-tree=True head-covers(files)=False
+DROPPED ci-predictor probes 'dev/programme/rosters' live-in-tree=True head-covers(files)=False
+DROPPED ci-predictor dirs 'dev/programme/rosters' live-in-tree=True head-covers(files)=False
+DROPPED dependency-graph-census git '?' live-in-tree=False head-covers(files)=False
+DROPPED-FLAG dependency-graph-census objects True->False
+DROPPED prepr files '.gitattributes' live-in-tree=True head-covers(files)=False
+DROPPED prepr files 'tests/env_drift.py' live-in-tree=True head-covers(files)=False
+DROPPED prepr files 'tools/merge/ledger_merge.py' live-in-tree=True head-covers(files)=False
+DROPPED temp-or-machine-path git '?' live-in-tree=False head-covers(files)=False
+DROPPED throwaway-git-helper git '?' live-in-tree=False head-covers(files)=False
+DROPPED-FLAG throwaway-git-helper objects True->False
+DROPPED verdict-bus files 'dev/programme/rosters/wave-r10-groups.json' live-in-tree=True head-covers(files)=False
+DROPPED verdict-bus probes 'dev/programme/rosters' live-in-tree=True head-covers(files)=False
+DROPPED verdict-bus dirs 'dev/programme/rosters' live-in-tree=True head-covers(files)=False
