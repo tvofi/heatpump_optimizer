@@ -67,8 +67,9 @@ case ${1:-} in --self-test) exec /usr/bin/env -i PATH="/usr/local/bin:/usr/bin:/
 case ${1:-} in --self-test) refused=; refused=${refused:?--self-test refused: the env -i re-exec did not replace this process (a caller function named exec?); no row ran} ;; esac  # mut:selftest-failclosed
 # pr_args.sh's self-test bound, taken inside the cleaned environment: the rows re-exec once through
 # pr_bounded (a session of their own, PR_SELFTEST_SECONDS's default deadline, reaped on exit) before
-# their scratch HOME is made; PR_BOUND, which pr_bounded sets, guards the second entry.
-case ${1:-} in --self-test-rows) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded tick_loop "$BASH" "$0" "$@"; } ;; esac  # mut:selftest-bound
+# their scratch HOME is made; PR_BOUND, which pr_bounded sets, guards the second entry. A bound that
+# does not take (pr_args.sh absent, pr_bounded not replacing this process) refuses: no unbounded row.
+case ${1:-} in --self-test-rows) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh" && pr_bounded tick_loop "$BASH" "$0" "$@"; echo "tick_loop self-test: refused: pr_args.sh's bound did not take (pr_args.sh missing or pr_bounded failed); no row ran" >&2; exit 1; } ;; esac  # mut:selftest-bound
 set -uo pipefail
 case ${1:-} in --self-test-rows)  # the rows' HOME and TMPDIR: fresh, the caller's never
   SELFTEST_TMP=$(mktemp -d) || exit 1; export HOME=$SELFTEST_TMP/home TMPDIR=$SELFTEST_TMP/tmp

@@ -61,10 +61,10 @@ sha=$(git -C "$top" rev-parse --verify -q "$rev^{commit}") || { echo "no commit 
 d=$(mktemp -d) || exit 2
 trap 'rm -rf "$d"' EXIT
 L=tools/audit/seat/tick_loop.sh
-extract() { # <dir>: <rev>'s five files, in a directory that is no checkout
+extract() { # <dir>: <rev>'s six files, in a directory that is no checkout
   local f; mkdir -p "$1/tools/audit/seat" "$1/tests"
-  for f in "$L" tools/audit/seat/heartbeat.sh tools/audit/seat/ref_privacy.py tools/audit/seat/offline_spy.py tests/throwaway_git.sh; do
-    git -C "$top" show "$sha:$f" > "$1/$f" || exit 2
+  for f in "$L" tools/audit/seat/heartbeat.sh tools/audit/seat/ref_privacy.py tools/audit/seat/offline_spy.py tests/throwaway_git.sh tools/audit/seat/pr_args.sh; do
+    git -C "$top" show "$sha:$f" > "$1/$f" 2>/dev/null || [ "$f" = tools/audit/seat/pr_args.sh ] || exit 2
   done
 }
 extract "$d/src"
