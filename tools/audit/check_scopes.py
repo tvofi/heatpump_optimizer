@@ -292,7 +292,7 @@ def evaluation_gaps(rnd, tree, show, merged, anc, changed):
             gaps.append(f"{path} card {cid} is accepted and not merged at this ref")
         elif revsha and anc(c, revsha):
             gaps.append(f"{path} card {cid} merged {c} is not after the review at {revsha}")
-        elif False:
+        elif not want:
             gaps.append(f"{path} card {cid} is accepted and names no object or paths")
         elif not want & changed(c):
             gaps.append(f"{path} card {cid} merged {c} changes none of its object or paths")
@@ -448,7 +448,7 @@ def evaluation_self_test(tree, show):
     card = lambda k, **kw: edit(lambda c: c["cards"][k].update(kw))
     return {
         "a complete record passes": bool(objs) and run() == [],
-        "every object class has a file": all(match(tree, [g]) for g in object_globs(spec)),
+        "every object class has a file": all(match(tree, [g]) and match(tree, [g]) <= set(objs) for v in spec["objects"].values() for g in ([v] if isinstance(v, str) else v)),
         "a missing evaluation is refused": only(run(drop=[path]), path + " is not in the tree"),
         "a missing previous record is refused": only(run(drop=[prev]), prev + " is not in the tree"),
         "a missing term is refused": only(run(tm={k: v for k, v in terms.items() if k != t0}), "no term " + t0),
@@ -478,7 +478,7 @@ def evaluation_self_test(tree, show):
         "B5 a null value is refused": only(run(tm=edit(lambda c: c[t0].update(value=None), terms)), t0 + " value is not a number"),
         "B5 an enumerator naming no tracked file is refused": only(run(tm=edit(lambda c: c[t0].update(enumerator="by hand"), terms)), t0 + " enumerator names no file"),
         "B5 a dict of numbers is a value": run(tm=edit(lambda c: c[t0].update(value={"a": 1}), terms)) == [],
-        "B6 a NO-READ naming nothing that would read it is refused": only(run(tm=edit(lambda c: c[t9].pop("would_read"), terms)), t9 + " NO-READ carries no would_read"),
+        "B6 a NO-READ naming nothing that would read it is refused": only(run(tm=edit(lambda c: c[t9].pop("would_read"), terms)), t9 + " NO-READ carries no would_read") and only(run(tm=edit(lambda c: c[t9].pop("builder"), terms)), t9 + " NO-READ carries no builder"),
         "B6 a builder card the evaluation lacks is refused": only(run(tm=edit(lambda c: c[t9].update(builder="card:C9"), terms)), "card:C9 is no card"),
         "B7 a removal on a NO-READ is refused": only(run(edit(lambda c: c["objects"][objs[-1]].update(verdict="remove", evidence=" NO-READ x", card="C2"))), "rests on a NO-READ"),
         "B8 an unset threshold with no card is refused": only(run(card("C2", threshold="band")), "threshold floor is unset"),
