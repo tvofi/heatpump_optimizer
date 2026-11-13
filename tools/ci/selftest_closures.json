@@ -123,6 +123,7 @@
   "bare-array-expansion": {
    "run_sha": "88034369e109a71b0f038cb5eea66a1b3947a7c215421e4cd0f53cff38d2578b",
    "files": [
+    "tests/throwaway_git.py",
     "tools/audit/prepare_baseline.sh",
     "tools/audit/repo_root.sh",
     "tools/audit/seat/a1_dispatch_arms.sh",
@@ -165,9 +166,15 @@
     "tools/pr/push.sh"
    ],
    "probes": [
-    "."
+    ".",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
    ],
-   "dirs": [],
+   "dirs": [
+    "tests"
+   ],
    "index": true,
    "objects": false,
    "git": []
@@ -2704,6 +2711,7 @@
     "commit-tree",
     "describe",
     "diff",
+    "fetch",
     "log",
     "ls-tree",
     "merge",
@@ -3609,6 +3617,7 @@
     "tests/mutation_ledger/killed_by/draw_range.py",
     "tests/mutation_ledger/killed_by/drift.py",
     "tests/mutation_ledger/killed_by/driving_grade.py",
+    "tests/mutation_ledger/killed_by/duty_legs.py",
     "tests/mutation_ledger/killed_by/duty_switch.py",
     "tests/mutation_ledger/killed_by/early_cutoff.py",
     "tests/mutation_ledger/killed_by/entity.py",
@@ -5084,6 +5093,7 @@
     "-c",
     ".",
     "config",
+    "dev/programme/delivery/5.md",
     "objects",
     "packed-refs",
     "refs",
@@ -6282,6 +6292,7 @@
     "-c",
     ".",
     "config",
+    "dev/programme/delivery/5.md",
     "objects",
     "packed-refs",
     "refs",
@@ -6979,6 +6990,7 @@
     "tests/mutation_ledger/killed_by/draw_range.py",
     "tests/mutation_ledger/killed_by/drift.py",
     "tests/mutation_ledger/killed_by/driving_grade.py",
+    "tests/mutation_ledger/killed_by/duty_legs.py",
     "tests/mutation_ledger/killed_by/duty_switch.py",
     "tests/mutation_ledger/killed_by/early_cutoff.py",
     "tests/mutation_ledger/killed_by/entity.py",
@@ -7292,6 +7304,7 @@
    "index": false,
    "objects": true,
    "git": [
+    "?",
     "diff",
     "merge-base",
     "show"
@@ -8506,6 +8519,7 @@
     "tests/mutation_ledger/killed_by/draw_range.py/.gitattributes",
     "tests/mutation_ledger/killed_by/drift.py/.gitattributes",
     "tests/mutation_ledger/killed_by/driving_grade.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/duty_legs.py/.gitattributes",
     "tests/mutation_ledger/killed_by/duty_switch.py/.gitattributes",
     "tests/mutation_ledger/killed_by/early_cutoff.py/.gitattributes",
     "tests/mutation_ledger/killed_by/entity.py/.gitattributes",
