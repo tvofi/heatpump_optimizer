@@ -25779,7 +25779,8 @@
     "From #3564 (r10-config-flow-text-verify), body item 452440fb: docs/configuration.md:155 says valve settings work only in two-zone. Only a Flow temperature write target needs it. Carry: R11-INTAKE-R10-RESIDUE (items 452440fb)",
     "From #3564 (r10-config-flow-text-verify), body item 86aa4096: docs/how-it-works.md:822 says the planned start count is published. No sensor carries it. Carry: R11-INTAKE-R10-RESIDUE (items 86aa4096)",
     "From #3564 (r10-config-flow-text-verify), body item a64a0285: docs/configuration.md:1083 does not say the price estimate is on by default. Carry: R11-INTAKE-R10-RESIDUE (items a64a0285)",
-    "From #3564 (r10-config-flow-text-verify), body item b30f48ba: custom_components/heatpump_optimizer/setpoint_check.py:6 has the docstring \"Space set-point is never recommended.\", stale under Control. Carry: R11-INTAKE-R10-RESIDUE (items b30f48ba)"
+    "From #3564 (r10-config-flow-text-verify), body item b30f48ba: custom_components/heatpump_optimizer/setpoint_check.py:6 has the docstring \"Space set-point is never recommended.\", stale under Control. Carry: R11-INTAKE-R10-RESIDUE (items b30f48ba)",
+    "From #3564 (r10-config-flow-text-verify), body item 6f36db0c: custom_components/heatpump_optimizer/presets.py:11 has a docstring saying \"three answerable\" questions; the questionnaire has six. Carry: R11-INTAKE-R10-RESIDUE (items 6f36db0c)"
    ],
    "resume": {
     "stage": "not-started",
