@@ -772,6 +772,14 @@ def cases(bj) -> dict[str, bool]:
     a = f.calls[0]
     res["cancel-sweep: a non-zero exit is a line, never silence, and gets --repo"] = (
         digest(c) == "cancel-sweep: rc=1: boom\n" and arg(a, "--repo") == "o/r")
+    c, f = fresh(overlay={"repo": "o/r", "train_state": "/st/train"},
+                 answers={"cancel_superseded.py": (0, summ, "")})
+    bj.cancel_sweep(c)
+    c2, f2 = fresh(answers={"cancel_superseded.py": (0, summ, "")})
+    bj.cancel_sweep(c2)
+    res["cancel-sweep: the overlay's train_state is passed as --train-state with --priority; none without it"] = (
+        arg(f.calls[0], "--train-state") == "/st/train" and "--priority" in f.calls[0]
+        and "--train-state" not in f2.calls[0])
 
     # disk
     c, f = fresh(free=lambda: 50.0)
