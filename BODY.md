@@ -10,9 +10,46 @@ What is built, by owner:
 
 ## Head
 
-4ac1ef3155f97f5df2b1f32c3b49d949081dc2a7
+7e68a0f1ca540c1d99292b55db36627d4568a749
 
-The merge base is 005eed2573da9e946fa4838de147401d0ff36cc1 (`git merge-base origin/main HEAD`), holding pull request 3461. `origin/main` is at f47250150a33d5f3e8502a50ec056cd821f1408b (2026-11-13T01:28:50+01:00, read 2026-11-13T01:54Z) and `git merge-tree --write-tree origin/main HEAD` exits 0, so it is not merged again. Every comparison below is three-dot against the merge base. Every figure in this body was re-taken at this head unless its line names another.
+The merge base is 36da41115decd0c1b6375d07c713fcb1c59c4935 (`git merge-base origin/main HEAD`). `origin/main` is at 8a550692da2c80d7ea7f5f26a9c95fc81090a841 (2026-11-13T08:10:33+01:00, read 2026-11-13T07:57Z) and `git merge-tree --write-tree origin/main HEAD` exits 0, so it is not merged again. Every comparison below is three-dot against the merge base.
+
+This head descends from the pull request head e36f8af6f1b1949c5d8b2590c5669a4ded2ff71f: the round-1 handoff 4ac1ef3155f9, the merge of main into it (fc6677a930), the lane's pin commit, and this round's two commits. A figure whose line names 4ac1ef3155f9, ee89d50b2bf9, cade4a8d12e2 or 3af3edaabd9b was taken there and stands as written; every other figure in this body was re-taken at this head.
+
+## Repair round 2
+
+`tests / mutation` was red on the pull request head e36f8af6f1b1 after the lane's pin commit. `python3 tests/mutation_table.py --scope changed --base origin/main --max 10 --jobs 3` there, the job's own command:
+
+~~~text
+    ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:223 CLAMP_DROP*3: np.minimum(np.clip(start, 0.0, p_max), np.maximum(0.0, p_max - dhw_plan)
+MUTATION TABLE REFUSED -- 2526 unpinned site(s) against 2525 at the ratchet base 36da41115decd0c1b6375d07c713fcb1c59c4935, 3 of them added by this diff.
+~~~
+
+So the pin commit left exactly one anchor: the three clamps of one line of `_stop_availability`, which the ledger keys as one (`tests/mutation_table.py`, `anchor_sites`: file, scope, operator, line text), and a row is written for an anchor only when every site under it is killed.
+
+- Dropping `np.clip(start, 0.0, p_max)` is an equivalent mutant. The cap beside it is at most `p_max` wherever hot water is not negative; `duty_legs._runs` reads a value under zero as not running; `thermal_model._onto_band` clips under zero and over the cap on a clamped install. Measured before the edit, on the three one-clamp-dropped lines against the original, 20000 random profiles of 3 to 8 steps (starts drawn from under zero to over `p_max` and NaN, hot water from under zero to over `p_max`), each on both install kinds: the dropped clip moved 0 of 40000 readings; null control, the same corpus moved 11481 readings with the outer `np.minimum` dropped and 29816 with the `np.maximum` dropped. The probe was a scratch script; what it measured is in the tree as the grid check below.
+- The other two are killable, and the outer one was killed before this round ("a priced install whose plan holds no priced switch builds no candidate" goes red on it). The equivalent twin alone kept the anchor unpinned, which is why the lane pinned every other site and not this one.
+
+A triage record was not the answer, for the reason this body gives for `priced_pair` under Review round 1: the record's key is the anchor, so an `equivalent` verdict on it would cover the two killable clamps beside the clip (`fixer.md` step 14, equal keys). The clip is removed instead: the line is `np.minimum(start, np.maximum(0.0, p_max - dhw_plan))`, holding two clamps a check kills, and no value the callers can produce moves. Two section checks are added to `tests/features.py`:
+
+- "heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there", the cap's own check.
+- "a start outside [0, p_max] reads as the same start clipped into it, on a duty-cycle and on a clamped install; the grid holds starts outside the band and readings that charge a step": `_stop_availability` on each of 625 starts (five values per step, two of them outside the band, four steps) against three hot-water plans on both install kinds, compared with the same call on the clipped start. This is the property the removed clip stated, held by a check instead of by a line no check could see.
+
+The comment over the round-1 check that read "clipped into [0, p_max] before it is read" now reads "capped at what hot water leaves".
+
+Mutation proof of the two checks, each edit made to the line in f29d7543caf3's tree and the section run (`env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_price_section.py`), then restored:
+
+~~~text
+the line replaced by `(start),` (the cap dropped): exit 1, 3 red
+  FAIL heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there
+  FAIL a start outside [0, p_max] reads as the same start clipped into it, on a duty-cycle and on a clamped install; the grid holds starts outside the band and readings that charge a step
+  FAIL a priced install whose plan holds no priced switch builds no candidate
+the line replaced by `np.minimum(start, (0.0)),` (the floor's first argument): exit 1, 13 red
+~~~
+
+Both edits are in the harness's list now (Mutation proof). The ledger: `python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3` at f29d7543caf3 ended `PIN KILLED: 2 pinned, 0 left unpinned`, both sites killed by `tests/features.py` whole, its null control (`optimizer.py:135 NULL_COMMENT`) surviving every driver; the row is `tests/mutation_ledger/killed_by/optimizer.py/_stop_availability.CLAMP_DROP.13234cde.json`.
+
+The dispatch brief for this round says "Do not edit production code beyond what a killing test requires (none expected)". Read as forbidding the one-line removal, it would change `fixer.md` step 14 ("the answer is to change the route until no entry is needed, or to widen the key until the two separate, never to add it and note the risk") and step 17 ("a triage on a killable mutant"): that reading is recorded as pending owner confirmation and not acted on. Read as written, the removal is what the two killing checks require, since no check can hold a pin on an anchor that includes an equivalent site.
 
 ## Review round 1, answered
 
@@ -22,7 +59,7 @@ The verdict on ee89d50b2bf9 (`probe/revt-r10-duty-switch-planner-price-3e2877f0`
 - R9, `_stop_availability` classifying with no duty floor: killed by "on a modulating clamped install heating shipped under p_min beside hot water takes no charge: the stop is charged to the heating step after the both step, and no charged step ships heating under the floor", on the reviewer's arrays (heating 1.0 beside hot water 2.0, then heating 2.5; design-verdict item r16). Null control: "with no duty floor (a duty-cycle install) the same arrays charge the both step itself, so the floor is what moved the charge".
 - R11, the combi exclusion of `_avoid_priced_switches` removed: killed by "on a combi store the candidate pass asks its planner nothing and returns the incumbent, its requirement and its availability in place, on an incumbent holding a priced switch". Null control: "the same install with the store's hot water in its own tank reaches the banned build". The pass is called directly on a combi `ThermalParameters` with the guard fixture's incumbent, as design test 6's refusal is; no solved combi fixture was looked for.
 
-`python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_price_section.py'` at this head, the `old` and `new` of R5, R9 and R11 copied from the reviewer's `ev/reviewer_mutants.py`:
+`python3 tools/audit/seat/mutant_run.py --spec <spec> --cmd 'env PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_duty_switch_price_section.py'` at 4ac1ef3155f9, the `old` and `new` of R5, R9 and R11 copied from the reviewer's `ev/reviewer_mutants.py`:
 
 ~~~text
 SURVIVED NULL
@@ -39,7 +76,7 @@ The class, not the three: `python3 tools/audit/seat/mutant_run.py --diff 005eed2
 | survivor (line at the run's head) | disposition |
 |---|---|
 | `optimizer.py` `_stop_availability`, `if not lost > 0: return None`: GUARD_OFF, CMP_BOUND, RETURN_DEL | the line was dead: `duty_legs.availability` makes the same test first thing. Removed. |
-| `optimizer.py` `_stop_availability`, `np.clip(start, 0.0, p_max)` CONST_SWAP | killed: "a start that is idle, or below zero, in the step after a block charges nothing; the same block followed by heating charges that step" |
+| `optimizer.py` `_stop_availability`, `np.clip(start, 0.0, p_max)` CONST_SWAP | killed at 4ac1ef3155f9: "a start that is idle, or below zero, in the step after a block charges nothing; the same block followed by heating charges that step". The clip is removed in repair round 2. |
 | `optimizer.py` `_with_stop_availability`, `if avail is None:` GUARD_OFF, its return RETURN_DEL | killed: "with no vector a space solve gets the two objectives it handed in, the same objects, and today's bound; with one it gets them bound to the vector" |
 | `optimizer.py` `_avoid_priced_switches`, the pin threshold `>= 0.5`: CMP_BOUND, CONST_SWAP | killed: "the same candidate with each of those steps pinned at 0.5, which the planner's pin rule forces on, is solved and adopted on its lower score" |
 | `optimizer.py` `_avoid_priced_switches`, `plan.schedule[ban & ~forced_on] > 0` CONST_SWAP | killed: "any hot water on a banned step refuses the candidate, 0.8 kW as much as a full block" |
@@ -58,7 +95,7 @@ The class, not the three: `python3 tools/audit/seat/mutant_run.py --diff 005eed2
 
 The two production lines removed and the one rewritten change no value on any input the callers make; every round-1 harness mutant whose text still exists is killed over them, and both null-control families pass (Mutation proof).
 
-Outside the section, `python3 tools/audit/seat/mutant_run.py --spec <spec> --in-place --cmd 'env PYTHONPATH=tests/hastub python3 tests/features.py'` at this head:
+Outside the section, `python3 tools/audit/seat/mutant_run.py --spec <spec> --in-place --cmd 'env PYTHONPATH=tests/hastub python3 tests/features.py'` at 4ac1ef3155f9:
 
 ~~~text
 # first invocation, O1 to O4; interrupted by a container restart after O2, the mutated file restored with git checkout
@@ -80,7 +117,7 @@ and `python3 tools/audit/seat/mutant_run.py --diff 005eed2573da9e946fa4838de1474
 ## Brief carries
 
 - Carry 0 (from r10-duty-switch-restart-learning, item 3656875b) and Carry 1 (from 3461, item 036facc8), the same finding: done in the tree. The reader is added with its first caller: `duty_switch.planner_fields` is called from `_solve_hubs`, so `tests/structure.py`'s `dead_top_level_symbols` row does not move (Figures). The planner reads no published key: it reads the learner's `Direction.usable`, `.p` and `.median_off_s` through `DutySwitchLearner.planner_pairs`, and an unlatched or never-observed direction reads zeros, which price nothing; the section's check "the read returns zeros while a direction is unlatched, its off times with it" and the mutant "learner: the read ignores the latch" pin it.
-- Carry 2 (from r10-duty-switch-restart-learning-pr-b-p2, item c3ad1545): nothing to resolve at this head, and the rule stands for the merge that comes second. Neither part is on `origin/main`: `git grep -c "def split\|N_CAP" origin/main -- custom_components/heatpump_optimizer/duty_switch.py` prints nothing at f47250150a33, and `git merge-tree --write-tree origin/main HEAD` exits 0 (null control: the same grep at this head prints a count, the cap this branch adds). This round is repair only and adds nothing to the cap: it is held at booking, as round 1 built it. If the sibling merges first, the conflict is resolved by merge into this head under the carry's rule (the leg order and the whole-step decision in `duty_legs.py`'s leg rule, the cap held on decay as well as at booking), with the sibling's two section checks as the control; if this merges first, the same rule binds the sibling.
+- Carry 2 (from r10-duty-switch-restart-learning-pr-b-p2, item c3ad1545): nothing to resolve at this head, and the rule stands for the merge that comes second. Neither part is on `origin/main`: `git grep -c "def split\|N_CAP" origin/main -- custom_components/heatpump_optimizer/duty_switch.py` prints nothing at 8a550692da2c, and `git merge-tree --write-tree origin/main HEAD` exits 0 (null control: the same grep at this head prints a count, the cap this branch adds). This round is repair only and adds nothing to the cap: it is held at booking, as round 1 built it. If the sibling merges first, the conflict is resolved by merge into this head under the carry's rule (the leg order and the whole-step decision in `duty_legs.py`'s leg rule, the cap held on decay as well as at booking), with the sibling's two section checks as the control; if this merges first, the same rule binds the sibling.
 
 ## Design items, answered
 
@@ -125,12 +162,12 @@ leaf: the hot-water-to-heating switch reads the other direction: 18 red
 leaf: the switch weight takes the larger neighbouring draw: 3 red
 leaf: the in-step weight draws the smaller circuit, not the combined draw: 2 red
 leaf: the weight is not divided by the maximum draw: 11 red
-leaf: a small hot-water share no longer collapses to heating: 8 red
-leaf: a small heating share no longer collapses to hot water: 10 red
+leaf: a small hot-water share no longer collapses to heating: 9 red
+leaf: a small heating share no longer collapses to hot water: 11 red
 leaf: the leg classification ignores the duty floor: 5 red
 leaf: a pump with no maximum draw is not returned early: 1 red
 leaf: a negative learned value is kept: 1 red
-leaf: a learned value on its upper bound reads as zero: 23 red
+leaf: a learned value on its upper bound reads as zero: 25 red
 leaf: the early return is one entry per step, not per row: 1 red
 optimizer: no priced direction still returns a pair: 1 red
 leaf: the charged step is the hot-water block's last step: 9 red
@@ -150,10 +187,12 @@ optimizer: the co-optimisation headroom ignores the availability vector: 1 red
 optimizer: the availability vector is classified with no duty floor: 1 red
 optimizer: the candidate pass runs on a combi store: 1 red
 optimizer: the co-optimisation headroom is handed no duty floor: 1 red
+optimizer: the start is read with no cap beside hot water: 3 red
+optimizer: the start is capped at zero in every step: 13 red
 arbiter: the share serves the legs in reverse order: 3 red
 ~~~
 
-Against round 1's list: "leaf: the zero-pair early return fires when either direction is unpriced" is gone with the clause it mutated; "leaf: a pump with no maximum draw is not returned early" now moves the bound of the one test left; two mutants of the rewritten `priced_pair` line and the reviewer's three (with R5b) are new.
+Against round 1's list: "leaf: the zero-pair early return fires when either direction is unpriced" is gone with the clause it mutated; "leaf: a pump with no maximum draw is not returned early" now moves the bound of the one test left; two mutants of the rewritten `priced_pair` line and the reviewer's three (with R5b) are new. Repair round 2 adds the two clamps of the start's line, "optimizer: the start is read with no cap beside hot water" and "optimizer: the start is capped at zero in every step".
 
 The coordinator's argument is outside the section. Its line `**duty_switch.planner_fields(self),` in `_solve_hubs` is the configuration copy's statement, one of the three mutants of the coordinator run under Review round 1, answered. The two checks that pin it, read at ee89d50b2bf9 by deleting the line in a second worktree and running `tests/features.py` whole (the reviewer re-derived it, `ev/features_coordinator_line_deleted.log`):
 
@@ -171,7 +210,7 @@ FAIL the arbiter and the sensor name duty_switch through its report, attach and 
 - The flat-price scenario and every other golden: `GOLDEN_MODE=drift PYTHONPATH=tests/hastub python3 tests/golden.py` ends `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE` against `origin/main`; `git diff --quiet origin/main...HEAD -- tests/golden` exits 0, so no golden and neither claim file is in the diff. `tests/golden/flat_prices.json` is among the fixtures that run reads.
 - Acceptance's own control: "null control: a zero pair weighs every one of those plans zero", and at the edges "with a zero pair the same starts return the arrays of a config that never heard of the fields".
 - Both ends of the learner's range: zero evidence reads zeros (above); on the clamp, "the decayed count is held at the cap", "from p = 1 at the cap the latch holds after twelve kept episodes and drops at the thirteenth" and "with no episodes a capped direction is latched at 28 days and not the day after".
-- This round's checks each carry their control in the section, named under Review round 1, answered: the vector removed and the floor set (R5), the floor removed (R9), the combi flag off (R11), heating present after the block (the start clip), a vector present (the null-path objectives).
+- This round's checks each carry their control in the section, named under Review round 1, answered: the vector removed and the floor set (R5), the floor removed (R9), the combi flag off (R11), heating present after the block (the idle start), a vector present (the null-path objectives).
 - Flat price: no figure in this round's delta is a price or a cost; the round-1 controls above are re-run at this head by the section and by the golden drift run (Figures).
 - The structure payment (read at ee89d50b2bf9; the hunk is untouched since): with the `_solve_hubs` clock hunk reverted in a second worktree (the three `dt_util.now()` reads restored, the argument kept), `python3 tests/structure.py` exits 1 on `max_class_loc`, one over its budget; at this head it exits 0.
 
@@ -183,9 +222,9 @@ FAIL the arbiter and the sensor name duty_switch through its report, attach and 
 - Structure: `python3 tests/structure.py` exits 0; `dead_top_level_symbols` and `max_class_loc` at their budgets, `class_excess_loc` recorded lower in this branch.
 - Architecture score: `python3 tools/audit/archscore/score.py --diff origin/main` prints `IMPROVES`, `coord_footprint` down and no row up.
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>` prints `MODE: SCOPED`. `env -u BASH_ENV GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` exits 0 at this head, the scripts the scope names passed and the scoped-out ones named as not run.
-- Mutants: the commands under Mutation proof and Review round 1, answered. The uncapped diff pass enumerates 224 mutants at this head (`mutant_run.py --diff 005eed2573da9e946fa4838de147401d0ff36cc1...HEAD --list`, one `MUTANT` line each); null control: the driver's own NULL mutant must survive (`SURVIVED NULL` in the two spec outputs), and the section harness run with no edit exits 0.
+- Mutants: the commands under Mutation proof, Repair round 2 and Review round 1, answered. The uncapped diff pass enumerates 224 mutants at this head (`mutant_run.py --diff 36da41115decd0c1b6375d07c713fcb1c59c4935...HEAD --list`, one `MUTANT` line each); null control: the driver's own NULL mutant must survive (`SURVIVED NULL` in the two spec outputs), and the section harness run with no edit exits 0.
 
-<!-- figure-block: scope-line mb=005eed2573da9e946fa4838de147401d0ff36cc1 head=4ac1ef3155f97f5df2b1f32c3b49d949081dc2a7 -->
+<!-- figure-block: scope-line mb=36da41115decd0c1b6375d07c713fcb1c59c4935 head=7e68a0f1ca540c1d99292b55db36627d4568a749 -->
 ~~~text
 MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 ~~~
@@ -193,86 +232,14 @@ MODE: SCOPED -- 28 script(s) run, 5 scoped out.
 
 ## Unpinned sites
 
-Each site below is added by this diff and carries no ledger record; `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main --only mutation` lists them at this head. The section harness's mutants and the uncapped diff pass above are this group's own kills of the same lines' behaviour; the ledger records are the lane's to write.
-
-- custom_components/heatpump_optimizer/coordinator.py:6229 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/coordinator.py:6229 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/dhw_planner.py:149 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:33 CONST: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:49 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:49 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:51 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:51 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:53 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:58 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:59 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:59 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:80 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:81 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:86 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:95 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:97 BOOLOP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:97 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:97 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:98 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:123 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:123 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:133 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:135 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:161 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:161 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:178 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:178 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:183 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:185 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:198 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:199 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:200 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:201 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:213 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:215 CLAMP_DROP: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:216 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:230 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:230 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:233 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:233 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_legs.py:236 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:224 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:390 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/duty_switch.py:528 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:203 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:203 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:216 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:223 CLAMP_DROP*3: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:226 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:248 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:250 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:271 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:273 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:290 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:290 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:294 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:296 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:301 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:353 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:353 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:361 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:361 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:371 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:383 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:391 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:396 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:396 GUARD_OFF: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:398 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/optimizer.py:402 RETURN_DEL: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1771 CMP_BOUND: pinned by mutation-autofix
-- custom_components/heatpump_optimizer/pump_arbiter.py:1771 RETURN_DEL: pinned by mutation-autofix
+None at this head. `python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3` at f29d7543caf3 opened with `PIN KILLED -- 2 new unpinned site(s)` and ended `PIN KILLED: 2 pinned, 0 left unpinned`; its row is in this head. Null control: the same table at e36f8af6f1b1 prints the `ADDED UNPINNED` line under Repair round 2 and exits 1. Every other site the diff adds holds a row the lane wrote in e36f8af6f1b1 (`git show --stat e36f8af6f1b1 -- tests/mutation_ledger`).
 
 The diff pass's survivors are dispositioned in the table under Review round 1, answered.
 
 ## Red checks
 
-- `mutation` (`tests / mutation`) at 4ac1ef3155f9: red by construction on the sites under `## Unpinned sites`, which the diff adds and no ledger record pins; `tools/pr/prepr.sh` step 6d predicted it before any push. Cheaper detector: step 6d itself, which named every site at no cost beyond the self-check; the kill runs that write a pin are the lane's own (`mutation-autofix` after the pull request exists), and nothing cheaper than them can pin a site.
+- `mutation` (`tests / mutation`) at 4ac1ef3155f9: red by construction on the sites the diff added with no ledger record; `tools/pr/prepr.sh` step 6d predicted it before any push, and the lane's pin commit e36f8af6f1b1 answered all but one anchor.
+- `mutation` (`tests / mutation`) at e36f8af6f1b1, after the pin commit: red on `optimizer.py:223 CLAMP_DROP*3` (Repair round 2). Cheaper detector: it exists and ran. `tools/pr/prepr.sh` step 6d named the site at the round-1 handoff, and the round-1 body answered it "pinned by mutation-autofix", a disposition step 6d accepts for any site and nothing had measured for this one: the lane can write a row only for an anchor whose every site a driver kills, and one of this anchor's three was equivalent. The uncapped diff pass could not show it either, because `mutant_run.py`'s operators do not drop a clamp (its mutant of the same call was a CONST_SWAP, killed). The detector that separates the two cases before a push is the table's own mutants of the site run against the group's section: one section run per site, 33 s measured at this head (`time` of the harness), against a pull-request round and the lane's shard run. Process state (c): the step ran, was followed, and did not produce a pinned site. This is the second anchor in this group shared by a killable and an equivalent site (`priced_pair` in round 1 was the first, found by the diff pass because its operator exists there). No countermeasure is built here; the finding is under Friction with its destination.
 
 ## Forward-carry
 
@@ -288,3 +255,5 @@ The diff pass's survivors are dispositioned in the table under Review round 1, a
 - fixer.md: cost: the group was built stacked on its predecessor's open head by ruling, then waited a day for pull request 3461; the merge of main was clean and every figure was re-taken at this head. Carry: dismissed: sequencing decided by the orchestrator, no rule change asked
 - fixer.md: unclear: `tests/entities.py` at this head exited 1 once in two whole runs, on "the location is redacted whole, from data and from options, not coarsened" and no other check, and exited 0 on the rerun and at 3af3edaabd9b; the diff touches nothing the check reads, and the first run shared the container with a `git fetch`. Carry: dismissed: one failure in three runs, not reproduced, cause not established
 - fixer.md: cost: an in-place `mutant_run.py` run killed by a container restart leaves its mutant in the working tree (one line of `duty_switch.py` here, restored by `git checkout` before anything was committed); the remaining in-place runs were made in a scratch worktree. Carry: dismissed: the driver restores on SIGTERM and SIGINT, and a SIGKILL cannot be caught
+- fixer.md: unclear: step 2's `## Unpinned sites` disposition "pinned by mutation-autofix" is accepted for a site with several mutants on one line (`*N` in step 6d's list), where it holds only if every one of them is killable; this group met an equivalent one twice (Red checks). A seat can check it by running the table's own mutants of a `*N` site against its section before choosing the disposition. Carry: dismissed: two instances in one group, under the third-instance threshold of CLAUDE.md's recurring-error rule; a third goes to root-cause with these two named
+- fixer.md: cost: `mutation_table.py --pin-killed` on an anchor holding an equivalent site drives it through every driver in play before it can report a survivor, `tests/features.py` whole among them; the drive at e36f8af6f1b1 was stopped by this seat after its null control and replaced by the corpus probe under Repair round 2. Carry: dismissed: the price of proving a survivor, paid once
