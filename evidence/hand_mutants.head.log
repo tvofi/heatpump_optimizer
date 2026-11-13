@@ -1,0 +1,60 @@
+SURVIVED NULL | rc 0 | outside self-test: 266 checks, 0 failed
+KILLED   owner_read: latest not APPROVED | rc 1 | outside self-test: 266 checks, 2 failed
+      FAIL class O REFUSE: a later CHANGES_REQUESTED voids the approval even when its own body carries the outside-read line (got 0, want 1)
+      FAIL class O REFUSE: and so does a later DISMISSED review carrying the line (got 0, want 1)
+KILLED   read_allowlist: not JSON | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL REFUSE: an allowlist that is not JSON, named as that (got (3, False), want (1, True))
+KILLED   read_allowlist: no list | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL REFUSE: an allowlist whose contributors is no list (never read as an empty one) (got (3, False), want (1, True))
+KILLED   pull_facts: other number | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL REFUSE: a pull request read under another number, on a diff that is otherwise admitted (got (0, False), want (1, True))
+KILLED   shape: no 40-hex head | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL REFUSE: a head that is no 40-hex commit (got (0, False), want (1, True))
+KILLED   other_pulls: commits pages | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL REFUSE: a second pull request at the head on the commit's SECOND page (got (0, False), want (1, True))
+KILLED   other_pulls: branch pages | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL REFUSE: a closed pull request of the head branch on the SECOND page (got (0, False), want (1, True))
+KILLED   check: fetch dropped | rc 1 | outside self-test: 266 checks, 2 failed
+      FAIL check(): by default the pull request's head is fetched from origin, by a refspec holding only the number (got (0, []), want (0, [('fetch', '-q', 
+      FAIL cli check: without --no-fetch the head is fetched (got (0, []), want (0, [('fetch', '-q', '--no-tags', 'origin', '+refs/pull/7/head:refs/hpo-outs
+KILLED   check: moved-head refusal | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL REFUSE: the fetched refs/pull head is not the head the API named (got (0, False), want (1, True))
+KILLED   check: reviews pages | rc 1 | ok   class O REFUSE: the review list unreadable
+KILLED   manifest_version: unparsed is ok | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL REFUSE: a manifest that parses at neither end is not read as an unchanged version (got 0, want 1)
+KILLED   approve: no mandate | rc 1 | outside self-test: 266 checks, 2 failed
+      FAIL approve REFUSE: no --mandate, refused as that and before any read (got (1, 0, False), want (1, 0, True))
+      FAIL cli approve REFUSE: no --mandate is no mandate (got (1, False), want (1, True))
+KILLED   approve: fetch dropped | rc 1 | outside self-test: 266 checks, 2 failed
+      FAIL approve(): handed no gate it loads this tree's, and by default fetches the head (got (0, []), want (0, [('fetch', '-q', '--no-tags', 'origin', '+
+      FAIL cli approve: posts the default role's body at --head under --mandate, fetching the head (got (0, True, 'Agent approval of the class-O paths of ou
+KILLED   approve: reviews pages (pre-post) | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL approve REFUSE, nothing posted: the owner's own CHANGES_REQUESTED on the SECOND page (got (1, 1), want (1, 0))
+KILLED   approve: body file kept | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL approve leaves no body file behind (got (0, True), want (0, False))
+KILLED   approve: post refusal | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL approve REFUSE: the reviews API refused the post, named as that (got (1, False), want (1, True))
+KILLED   approve: read-back pages | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL approve reads its own review back from the LAST page of the review list (got 1, want 0)
+KILLED   approve: owner_read after post | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL approve REFUSE: the mandate gone between the post and the read-back, so the landed review is not reported as approved (got (0, 1, False), want (1
+KILLED   approve: body read-back guard | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL approve REFUSE, nothing posted: a role whose words make the body cite a second mandate (got (1, 1, False), want (1, 0, True))
+KILLED   main: check --no-fetch ignored | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL cli check: admitted at origin/main by default, and --no-fetch fetches nothing (got (0, True, [('fetch', '-q', '--no-tags', 'origin', '+refs/pull/
+KILLED   main: check --comment dropped | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL cli check: --comment hands the verdict comment to the contract (got (0, 0), want (0, 1))
+KILLED   main: check --ref ignored | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL cli check: --ref names the ref the contract is read at (got (1, 1), want (1, 0))
+KILLED   main: --pull-json falls back | rc 1 | outside self-test: 266 checks, 2 failed
+      FAIL cli check REFUSE: --pull-json pull.json.absent exits 1, never falling back to the API (got (0, 'OUTSIDE: #7 by bankaifan (id 555001) at aaaaaaaaa
+      FAIL cli check REFUSE: --pull-json bad.json exits 1, never falling back to the API (got (0, 'OUTSIDE: #7 by bankaifan (id 555001) at aaaaaaaaaaaaaaaaa
+KILLED   main: approve --head shape | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL cli approve REFUSE: a --head that is no 40-hex commit, before any read (got (1, 'REFUSE: the live head is aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+KILLED   main: approve --role ignored | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL cli approve: --role is the role written, and --no-fetch fetches nothing (got (0, False, []), want (0, True, []))
+KILLED   main: approve --mandate required-less default | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL cli approve REFUSE: no --mandate is no mandate (got (1, False), want (1, True))
+KILLED   main: cross rc | rc 1 | outside self-test: 266 checks, 1 failed
+      FAIL cli cross: a head of ours exits 3 (got 0, want 3)
+RESULT hand mutants at 6a0a3a4d96c757c5d576fbce394c324452339b15: 0 survivor(s) of 27 (NULL apart)
