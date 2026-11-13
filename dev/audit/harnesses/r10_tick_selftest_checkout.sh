@@ -179,7 +179,7 @@ channels() { # every channel in parallel, one line each
   names+=(git mktemp python3 sed grep env bash head tr cat chmod mkdir cp rm mv date sleep timeout kill tail wc cut sort dirname pwd)
   run1() { # <channel> [env args...]: one whole self-test under that caller
     local c=$1 v=$x/victim-$1.git rc; shift
-    mkdir -p "$x/calls-$c"; git init -q --bare "$v"
+    mkdir -p "$x/calls-$c"; (throwaway_git_env; throwaway_git_init "$v" -q --bare) || return
     (cd "$x" && env HPO_HEARTBEAT_REMOTE="$v" TICK_RC=1 "$@" "$d/src/$L" --self-test) > "$x/$c.log" 2>&1; rc=$?
     echo "channels $c: $(tail -n 1 "$x/$c.log") rc=$rc fn-calls=$(ls "$x/calls-$c" | grep -c .) victim-refs=$(git -C "$v" for-each-ref | grep -c .)" > "$x/$c.line"; }
   fdefs() { # <channel>: the function corpus, as a BASH_ENV file's text
