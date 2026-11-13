@@ -1,0 +1,14 @@
+KILLED rc=1 fails=24 rule-off: no hit recorded
+KILLED rc=1 fails=8 led pattern also refused
+KILLED rc=1 fails=1 backquote no longer resets
+KILLED rc=1 fails=1 process substitution not opened
+KILLED rc=1 fails=1 dq not tracked
+KILLED rc=1 fails=2 heredoc not skipped
+KILLED rc=1 fails=1 then/do not command position
+SURVIVED rc=0 fails=0 backquote not command position
+KILLED rc=1 fails=1 ;;& not consumed whole
+KILLED rc=1 fails=2 scan drops case_sites
+KILLED rc=1 fails=2 comment not skipped
+KILLED rc=1 fails=9 esac in pat ignored
+KILLED rc=1 fails=1 param close missing
+KILLED rc=1 fails=1 --check prints empty line again
