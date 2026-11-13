@@ -380,6 +380,16 @@ def attempts(rows: list) -> dict:
 
 
 # ------------------------------------------------------------------- level
+def empty_net(git, main: str, tip: str) -> bool:
+    """tip's change against its merge-base with main is nothing, read cleanly: an add-then-remove pair
+    leaves no diff to carry. An unreadable merge-base or diff is not empty."""
+    rc, mb = git(["merge-base", main, tip])
+    if rc:
+        return False
+    rc, names = git(["diff", "--name-status", "--no-renames", mb.strip(), tip])
+    return rc == 0 and not names.strip()
+
+
 def covered(git, main: str, tip: str) -> bool:
     """Main carries every file tip's uncovered commits touch: the same bytes at
     the path; an added file's bytes elsewhere (a recovery moved it); a deletion
@@ -458,7 +468,7 @@ def reverse_applies(git, main: str, tip: str) -> bool:
                 and git(["apply", "--cached", "--check", patch], env)[0] != 0)
 
 
-ANCESTRY_WHY, CONTENT_WHY = ("ancestor", "merges-only"), ("reverse-apply", "content")
+ANCESTRY_WHY, CONTENT_WHY = ("ancestor", "merges-only"), ("reverse-apply", "empty", "content")
 
 
 def landed(git, main: str, tip: str, heads=(), ancestry: bool = True, content: bool = True) -> "str | None":
@@ -469,6 +479,7 @@ def landed(git, main: str, tip: str, heads=(), ancestry: bool = True, content: b
       merges-only    the only commits outside them are merges whose combined
                      diff is empty (no resolution of their own)
       reverse-apply  reverse_applies: the patch is on main, context and all
+      empty          the net change against the merge-base is nothing (an add-then-remove pair)
       content        covered: the change is on main under another commit"""
     if ancestry:
         rc, out = git(["rev-list", "--count", tip, "--not", main, *heads])
@@ -483,6 +494,8 @@ def landed(git, main: str, tip: str, heads=(), ancestry: bool = True, content: b
     if content:
         if reverse_applies(git, main, tip):
             return "reverse-apply"
+        if empty_net(git, main, tip):  # mut:emptynet
+            return "empty"
         if covered(git, main, tip):
             return "content"
     return None
@@ -1181,6 +1194,19 @@ def self_test() -> int:
         check("landed: a tip inside main reads ancestor, not merges-only", landed(gw, mn, anc) == "ancestor")
         check("landed: the re-applied hunk is content (reverse-apply cannot: forward applies too)",
               landed(gw, mn, cov) == "content" and not reverse_applies(gw, mn, cov))
+        g("checkout", "-qb", "work18", mn)
+        put("tmp_add.txt", "added then removed\n", "add a file")
+        g("rm", "-q", "tmp_add.txt")
+        g("commit", "-qm", "remove it again")
+        emt = g("rev-parse", "HEAD")
+        check("landed: an add-then-remove tip with an empty net diff lands as empty (carry 20)",
+              landed(gw, mn, emt) == "empty" and not covered(gw, mn, emt))
+        g("checkout", "-qb", "work19", mn)
+        rl = put("real_new.txt", "one real uncovered line\n", "a real uncovered add")
+        check("null control: a tip with one real uncovered line stays None (carry 20)", landed(gw, mn, rl) is None)
+        check("null control: a failing diff read (rc != 0) is not empty (carry 20)",
+              not empty_net(lambda a: (1, "") if a[0] == "diff" else gw(a), mn, emt))
+        g("checkout", "-q", "main")
         g("checkout", "-qb", "work7", gb)
         mv = put("moved.txt", "same bytes\n", "add a file")
         g("checkout", "-qb", "work8", gb)
