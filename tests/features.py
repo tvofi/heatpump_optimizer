@@ -63478,6 +63478,7 @@ _pa_bl_rows = {
         "max 60": {"entity_max": 60},
         "max 60, stored 50": {"entity_max": 60, "option": 50},
         "max 60, limit 52": {"entity_max": 60, "limit": 52},
+        "max 60, limit at the gate": {"entity_max": 60, "limit": 25},
         "max 90": {"entity_max": 90},
         "no max": {"entity_max": None},
         "return, max 45": {"entity_max": 45, "unit": "return"},
@@ -63485,13 +63486,15 @@ _pa_bl_rows = {
 }
 _pa_bl_idle = {how: _pa_boost_level("--", 0.0, how)[1] for how in (None, "channel", "mode")}
 _pa_bl_top = {how: _pa_boost_level("ss", 2.0, how)[1] for how in (None, "channel", "mode")}
-_pa_bl_want = {"max 55": 55, "max 60": 60, "max 60, stored 50": 50, "max 60, limit 52": 52, "return, max 45": 45}
+_pa_bl_want = {"max 55": 55, "max 60": 60, "max 60, stored 50": 50, "max 60, limit 52": 52,
+               "max 60, limit at the gate": 60, "return, max 45": 45}
 R.check(
     "R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's "
     "own maximum on a step the plan books at a partial 1.0 kW of a 0.4-2.0 kW band (55 for 55, 60 for 60, "
     "45 for a return target's 45, unmoved), capped by a stored flow_heat_c (50) and the controller's "
-    "upper-limit sensor (52); controls: the same step with no boost writes its partial value, below each "
-    "of them, and an entity maximum of 90 or none leaves a boost on that partial value",
+    "upper-limit sensor (52), never by a limit at the 25 degC gate, which leaves no heating value; controls: "
+    "the same step with no boost writes its partial value, below each of them, and an entity maximum of 90 "
+    "or none leaves a boost on that partial value",
     all(_pa_bl_rows[name]["channel"] == [want] and _pa_bl_rows[name]["mode"] == [want]
         and len(_pa_bl_rows[name][None]) == 1 and _pa_bl_rows[name][None][0] < want
         for name, want in _pa_bl_want.items())
