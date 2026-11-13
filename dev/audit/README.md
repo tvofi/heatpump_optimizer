@@ -1,26 +1,19 @@
 # The audit toolkit
 
-Everything the per-dimension audit runs on, so that a finding can be
-re-measured by someone who was not there: the briefs each auditor receives,
-the schema every finding must satisfy, the harness contract, and the three
-harnesses a judge still re-runs (the instruments section below). The register
-that records what came of it is `dev/programme/register/audit-2026-09.md`; the orchestration
-scripts are `.claude/workflows/audit-*.js`.
+Everything a round runs on, so a finding can be re-measured by someone who
+was not there: the playbook, the harness contract and the instruments a judge
+re-runs.
 
-Almost nothing here is read by the gate. `tests/closure.py`'s `INERT` tuple and
-its `INERT_EXCEPT` record which paths under `tools/` that covers and which it
-does not, including the one file here a test executes. Do not restate them.
+Which of these paths the gate reads is `tests/closure.py`'s `INERT` and
+`INERT_EXCEPT` to say; do not restate them.
 
 `CLAUDE.md` tables every brief under `dev/governance/` and says which one binds
 which seat; this file does not repeat that list. The rest of the layout:
 
 ```
-dev/audit/README.md           this file: the round playbook, the harness contract, the instruments kept live
 dev/audit/config/             finding.schema.json (a finding without evidence cannot be returned), scopes, ledgers
 dev/audit/rounds/round<N>/    a round's reports, harnesses and verdicts
 tools/audit/seat/             the stateless seat instruments; each carries --self-test
-tools/pr/preflight.sh         executed by tests/entities.py, so it is not INERT
-tools/release/stamp.py        the only way a version is assigned
 ```
 
 ## Running a round: the playbook
@@ -47,22 +40,33 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 12 projections and extension | a wave edge | the plan re-projected; a new group appended | `tools/plan/replan.py`, `tools/audit/seat/plan_page.py`, `tools/audit/seat/flow_metrics.py` | `orchestrator.md` section 2b | the projection, a roster group |
 | 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201 |
 
+Lessons (triage batch 141, P545): stack a later part only under the stack
+study's conditions, at the parent's merge verdict, never its handoff (round
+10's replay: 0.00 to 0.06 h gained in every arm); log a cloud fire by the
+session id `list_runs` shows about 2 min later, never by the trigger id, which
+later answers 404; an owner order with a trigger condition joins the
+orchestrator's pending list the turn it is given, and rotation carries it;
+`roster_edit.py append-carry` takes no `--reason`, and each queued op's drain
+refusal is read back, since a refused line is never retried. A shape
+classifier is driven over a spelling corpus (`fixer.md` step 2).
+
 Closure, the owner's sentence (tvofi, 2026-11-07): "The programme is not
 considered closed until both v.10.0.0 and the catalog PR has landed, there are
 no open prs, handoffs, carries, findings or leads, and only issue 201 is open".
+Its soak step (tvofi, 2026-11-11): round 10's last product merge gets a patch
+release that tvofi runs on their install during closeout; v10.0.0 is stamped
+only after tvofi says they opened the card's tabs on it, never without.
 
 **Round 10's final shape** (owner cards 1, 2 and 6, 2026-10-24):
 
-- The standing set is the triage seat (`proposal-triage.md`) plus the beat
-  jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing one
-  digest, `jobs/<row>` under the beat's state directory: the tick seat's job is
-  the `tick-digest` and `owed-check` rows, the roster seat's `roster-drain`; the
-  merge seat's is `train.sh` under `tools/audit/seat/daemonize.py`
-  (`standing-merge.md`); the dispatch and relay seat names no row yet and
-  stays (`standing-dispatch.md`). Owner, verbatim: "make sure the
-  retirement of the standing seats dont cause you to run things inline". A
-  seat's work moves to a beat job, never into the orchestrator's turns, and the
-  seat stays until its job is live and verified.
+- The standing set: the triage seat (`proposal-triage.md`) and the beat jobs
+  `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing digest
+  `jobs/<row>`: the tick seat's `tick-digest` and `owed-check`, the roster
+  seat's `roster-drain`; the merge seat runs `train.sh` under
+  `tools/audit/seat/daemonize.py`; the dispatch and relay seat has no row and
+  stays. Owner, verbatim: "make sure the retirement of the standing seats dont
+  cause you to run things inline": a seat stays until its job is live and
+  verified, and its work never moves into the orchestrator's turns.
 - Context rotation, a fresh context between stages (rca, fix, handoff), never
   mid-task or mid-merge: about 150 k tokens for mechanical, standing and relay
   seats, reviewers and S and M fixers; about 300 k for L and XL fixers,
@@ -74,32 +78,55 @@ no open prs, handoffs, carries, findings or leads, and only issue 201 is open".
   judgement class (harness, mutation-*, class-open, defect, claim-refuted)
   resumes the fixer.
 
-**Production share** (tvofi, 2026-11-01). From the v10.0.0 stamp, a change to
-the machinery (`tools/audit/`, `tools/pr/`, `tools/plan/`, `tools/policy/`,
-`.github/workflows/`, `dev/governance/`, seat scripts) merges only if it
-unblocks a named pull request touching `custom_components/` or fixes a red on
-main or on one; the rest waits for an instrument window the owner opens. The
-merge seat checks it at admission. The open-PR cap is the owner's: read it
-from `DEFAULT_CAPS` in `tools/plan/replan.py`. Of it, 10 slots (a fixed count,
-the owner's ruling, not a tree value) are reserved for pull requests touching
-`custom_components/`; a machinery PR never takes one, and a production PR is never refused for a machinery slot. A proposal is
-accepted only when its friction blocks a production merge, otherwise ruled
-LOG (`proposal-triage.md`). Exemption from all three: a proposal proving more
-than 10% on CI time, programme completion time, right-first-time rate or token
-usage, against a measured baseline and a null control.
+**Production share** (tvofi, 2026-11-01). From the v10.0.0 stamp the machinery
+(`tools/audit/`, `tools/pr/`, `tools/plan/`, `tools/policy/`,
+`.github/workflows/`, `dev/governance/`, seat scripts) is frozen: a change
+merges only if it unblocks a named pull request touching `custom_components/`
+or fixes a red, meaning the required `gate` job's on main (`tools/ci/gate.py`)
+or a self-test red its own pull request introduces, never one inherited from
+main; the rest waits for an instrument window the owner opens. Each round-11
+machinery group names its ground; the merge seat checks it at admission. Of the owner's open-PR cap (`DEFAULT_CAPS` in
+`tools/plan/replan.py`), 10 slots (the owner's count, not a tree value) are reserved for
+`custom_components/` pull requests; a machinery PR never takes one, nor a
+production one waits for a machinery slot. A proposal
+is accepted only when its friction blocks a production merge, else ruled LOG
+(`proposal-triage.md`). Exempt from all three: a proposal proving over 10% on
+CI time, programme completion time, right-first-time rate or token usage,
+against a measured baseline and a null control.
 
 **Round 11's opening plan carries:**
 
 - An owner decision on moving the repository to an organization so the native
-  merge queue can replace the train: a merge-queue ruleset returns HTTP 422 on
-  this user-owned repository (round 10's D13 probe report). Confirm plan and
-  visibility; weigh the HACS URL redirect, App installations, deploy key,
-  ruleset ids and owner-keyed instruments; after any transfer re-run the probe
-  for queue latency, `merge_group` gate names and CI minutes against the train;
-  then adopt or decline, and close each held group (R10-FLOW-RECORD-PITCH,
-  R10-FLY-ROW-HEAD-CARRY, R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE,
-  R10-FLOW-BODY-ONLY part (a)) the queue makes moot. Context: the Lean flow
+  merge queue replaces the train (a merge-queue ruleset returns HTTP 422 on a
+  user-owned repository; round 10's D13 probe). Weigh plan, visibility, the
+  HACS redirect, App installations, deploy key, ruleset ids and owner-keyed
+  instruments; after a transfer re-probe queue latency, `merge_group` gate
+  names and CI minutes against the train; adopt or decline, and close the held
+  groups the queue makes moot (R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY,
+  R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE, R10-FLOW-BODY-ONLY (a)). Context: the Lean flow
   pre-study, section K9 (out of the tree).
+- Intake's baseline: R10-PROTECTION-CENSUS's rows (each red check per round-10
+  production head: real catch, grader skew or infrastructure). On it, B1
+  (triage batch 245, P740) opens the round unless ordered into round 10: on an
+  all-product diff `briefs`, `policy-docs` and `wave-script` turn advisory, and
+  `blueprints/` joins the product predicate.
+- Retire the merge and dispatch seats into beat jobs (tvofi 2026-11-12;
+  R10-STANDING-CONTRACTS-P2 carries 9, 12-14), size L, design first: the train
+  (`train.sh`, `merge_train.py`) reports each pitch to the digest and retires
+  `standing-merge.md`; `standing-dispatch.md`'s dispatch half calls `bus.sh
+  dispatch`, never a second writer of the registry or reviewer-fire close. A
+  seat stops only after its job ran one real cycle beside it (one pitch merged,
+  the seat agreeing), never into the orchestrator's turns. Load, session s14
+  from 2026-11-11T01:02Z: 48 merges, 46 reviewer fires.
+- Every round-10 group at stage deferred reopens as written, brief and
+  carries kept (triage batches 238, 240 and 241 name them and the carries
+  re-homed to the groups owning `merge_train.py`,
+  `tools/pr/cancel_superseded.py` and `tests/entities.py`).
+- R10-ROUND-PLAYBOOK-FINAL's roster carries 17, 25, 26 and 35 to 41, as
+  written there: `pr_cap.py`'s production slots, the budget keys' moved paths,
+  D15's drawn-power gain, the stubs bump, R10-CI-PRIORITY-PAUSE's three, the
+  boost settling tail, R10-PREPR-RESIDUE's seven and
+  R10-PREPR-DARWIN-SELFTEST-LANE un-deferred as a macOS leg.
 - Benchmark cards G1-G10, accepted (G11 rejected), baseline instruments
   `flow_metrics.py` and `review_strength.py`: G1 a machinery budget of about
   40% of dispatched groups; G2 evidence tiers keyed on closures; G3 a
@@ -132,9 +159,9 @@ usage, against a measured baseline and a null control.
 - D15 reads the next bundle's `unhealthy_input` (only the newest snapshot
   carried it) and runs `dev/audit/harnesses/r10_scores_envelope.py --bundle PATH`.
 - Recorded decisions: #1763's P2/I5 split is not built (owner, 2026-10-20);
-  #1721's token-view detector stays unproven until an RCA refusal settles it.
-- `dev/audit/rca/harness-friction/rounds.py` takes one directory argument and
-  no `--stats` mode.
+  #1721's token-view detector stays unproven until an RCA refusal settles it;
+  a decision record is named by number, never by path, so none joins
+  `policy_lint`'s corpus.
 
 ## The harness contract
 
@@ -166,20 +193,16 @@ without reading the finding, so it has to carry everything:
   and `RESULT swapins=<count>` at the end of the measurement, the
   `thread_factor` beside every timing and memory RESULT — a block that
   carries none is defective however quiet the box (#950, round 4 D9-INST).
-  A RESULT whose `thread_factor` exceeds 1.05 is
-  rejected and re-taken; the factor is a BLAS signal, not a tax on real
-  threads. A harness that deliberately runs work on a second thread (the
-  real `ThreadPoolExecutor` the FakeHass trap below mandates) can never
-  satisfy the bare ratio — that thread's honest CPU lands in
-  `process_time` and not in `thread_time` (`h2_cycle.py`: 1.27–1.30 over
-  four re-takes, structural) — so it subtracts that thread's CPU, prints
-  the residual `(process_cpu - deliberate_thread_cpu)/thread_cpu` as the
-  `thread_factor` with the subtracted CPU as its own RESULT.
+  A `thread_factor` over 1.05 is a BLAS signal, rejected and re-taken. A
+  harness running deliberate work on a second thread (the FakeHass trap below)
+  can never meet the bare ratio (`h2_cycle.py`: 1.27–1.30 over four re-takes,
+  structural), so it subtracts that thread's CPU, prints the residual
+  `(process_cpu - deliberate_thread_cpu)/thread_cpu` as `thread_factor` and
+  the subtracted CPU as its own RESULT.
   **`load1` is quoted, not gated**: the round-2 judge measured this box's
-  ambient floor at 1.86 (best of ten retries: 1.55), so a
-  `load1 <= 1.5` bar is a stall, not a safeguard. What protects a timing
-  number is a *ratio* metric and a null control under the same load in
-  the same session. Quote the real `load1`; do not wait for 1.5.
+  ambient floor at 1.86 (best of ten retries: 1.55); a timing is protected by
+  a *ratio* metric and a null control under the same load in the same
+  session.
 - It hooks a named production symbol (`instrumented_symbol` in the finding)
   and moves under a named `perturbation`: a config change or a one-line
   production edit under which the number must change in a stated direction.
@@ -224,8 +247,6 @@ moves.
 - `tests/plan_view.py` writes a per-checkout plan payload under `/tmp` and
   every Node harness reads it; `card.mjs` alone falls back to an unhashed
   legacy path with a warning, the others fail. Set `HPO_PLANDATA` per harness.
-- `tests/setup_qa_render.mjs` writes SVGs to `../setup-qa/`, outside the
-  repository.
 - `tests/env_drift.py` runs `git worktree add` in the repository it is run
   from and refuses a ref that resolves to `HEAD`.
 - `tests/closure.py` globs `tests/*.py` and `tests/*.mjs` non-recursively;
@@ -236,9 +257,9 @@ moves.
 - `HeatPumpOptimizerSensorBase.__init_subclass__` wraps every subclass's
   `native_value` and `extra_state_attributes` in a non-finite scrub; deleting
   a per-sensor guard will not reproduce a non-finite publish.
-- The GIL yields in `optimizer.py` are two `sleep(0.002)` calls: one between
-  consecutive L-BFGS-B starts (`_multi_start_minimize`), one at the seam
-  between the DHW stage and the space stage. Neither sits inside an iteration.
+- `optimizer.py`'s GIL yields are its `sleep(0.002)` calls: between
+  L-BFGS-B starts (`_multi_start_minimize`), in `_lbfgsb_restart` and at the
+  DHW-to-space seam; grep, never count them.
 
 `check_scopes.py` proves `scopes.json`'s seats disjoint and complete, every
 tracked path in a universe or on `_coverage_excluded`, and a harness naming a
@@ -251,62 +272,37 @@ record, not re-run at `main`, unless a bug class's `detector` or `barrier`, or
 the latest round's `ISSUES.json` or `JUDGE.json`, cites it: then it is
 repaired, old path first. A seat re-running a retired one repairs it first.
 
-## Running the gate on the audit box
-
-Drift mode against the merge base, and the lease `run.sh` takes around
-`stress.py`, are `.claude/rules/gate-scoping.md`. A direct `stress.py` run
-takes no lease. A ratio cancels load, an absolute number does not.
-
 ## A defect in an instrument is a finding
 
-The audit measures the integration with instruments that are themselves code:
-`tests/hastub`, the gate's checks and budgets, the harness contract, the lint
-lanes, this toolkit. A defect your dimension's method meets in one of those is a
-finding **of your dimension**, under the same bar as any other — executed number,
-instrumented symbol, perturbation, metric definition, control — and not a
-paragraph of prose in your report.
+A defect your dimension's method meets in an instrument (`tests/hastub`, the
+gate's checks and budgets, the harness contract, the lint lanes, this toolkit)
+is a finding **of your dimension** under the same bar as any other, not prose
+in a report. It goes panel, judge, then issue, and **filing waits for the
+judge**, who re-measures with the accused instrument; a verifier who cannot
+make the accused check fire has not refuted it, and says which they could not
+separate. `CLAUDE.md`'s order still governs: a one-line instrument repair is
+made in place, with no issue.
 
-It travels the ordinary route: panel, judge, then an issue. **Filing waits for
-the judge**: the seat that finds an instrument defect is using the instrument it
-accuses, and the judge re-measures with it. A verifier who cannot make the
-accused check fire has not refuted the finding; say which you could not separate.
+## Rounds 1-3 are at a SHA
 
-`CLAUDE.md`'s order still governs — fix it, verify it independently if you
-cannot, file it only then — so a one-line instrument repair is made in place and
-needs no issue. What this refuses is the third outcome: a report nobody carries,
-met again next round.
-
-## A harness at the evidence tag may measure the tag, not your tree
-
-`audit-round2-evidence` harnesses disagree on the repository root: `D6/claims.py`
-measures the working directory, `D7/sysid_plant.py` the checkout its file lives
-in, so from the tag's worktree it measures the tag.
-**Copy a harness into the tree under test first**, say which root rule it used,
-and cite the SHA you ran, never the tag name: the round-2 numbers were recorded
-at `c398fc84`, and the tag, moved once by name, points at `757e164`. Which of
-those harnesses still run is `round2/HARNESSES.md` at `d5d8c4a`, final at that
-commit only.
-
-## Rounds 1-3 are at a tag
-
-`tools/audit/round1/` to `round3/`, three closed rounds' write-once evidence, are
-reachable in full at **`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`** (`origin/main`
-at v6.3.18, on `main`'s first-parent history); every number anything still acts
-on is in `dev/programme/register/audit-2026-09.md`. Cite that SHA, never a tag:
-
-    git show d5d8c4a:tools/audit/round2/JUDGE.md
-
-Round 2's executable harnesses are at `audit-round2-evidence` (`757e164`). The
-done rosters `wave-1b-groups.json`, `wave-2-groups.json` and `wave-3-groups.json`,
-with `web-phase0.js` and `triage-quiet-judges.json`, are at `d5d8c4a` too; their
-briefs record what a judge established and refuted, so read them before
-re-deriving anything a group in them settled.
+`tools/audit/round1/` to `round3/`, the done rosters `wave-1b-groups.json`,
+`wave-2-groups.json` and `wave-3-groups.json`, `web-phase0.js` and
+`triage-quiet-judges.json` are at
+**`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`** (`origin/main` at v6.3.18, on
+`main`'s first-parent history; `git show d5d8c4a:tools/audit/round2/JUDGE.md`);
+their briefs record what a judge established and refuted, so read them before
+re-deriving anything a group in them settled. Every number anything still acts
+on is in `dev/programme/register/audit-2026-09.md`. Round 2's harnesses are at
+`757e164` (which still run is `round2/HARNESSES.md` at `d5d8c4a`, final at
+that commit only), its numbers recorded at `c398fc84`; the tag `audit-round2-evidence` moved once, so cite the SHA. A
+harness's root rule varies (`D6/claims.py` measures the working directory,
+`D7/sysid_plant.py` its own checkout): copy it into the tree under test and say
+which it used.
 
 ## The four that stayed
 
-Each was added by a fix pull request *after* its round closed, and each is an
-instrument someone re-runs rather than a report someone reads. That is the whole
-of the rule: evidence is archived, instruments are kept.
+Each, added by a fix after its round closed, is an instrument someone re-runs:
+evidence is archived, instruments are kept.
 
 | file | metric | added by | who re-runs it |
 |---|---|---|---|
@@ -315,6 +311,5 @@ of the rule: evidence is archived, instruments are kept.
 | `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
 | `k1725_blas_kernel_gap.py` | the ftol check's arms and the R9-F2.1 P3 margins, per OpenBLAS kernel via `OPENBLAS_CORETYPE` | `613bff1b` (#1726, #1725) | anyone adding a knife-edge optimizer comparison (`tests/README.md`'s kernel rule) |
 
-All four drive production symbols and print `RESULT` lines under the harness
-contract in this file. `j5_gil.py` must never be run on
-`FakeHass`, whose executor runs inline and would measure nothing.
+All four drive production symbols under the harness contract; never run
+`j5_gil.py` on `FakeHass` (the first trap above).
