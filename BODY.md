@@ -36,6 +36,30 @@ Dropped from the contributor's branch: the closures commit and the deployment-sh
 
 ## Head
 
+390113cc661e798b946ebabd877a800a2aa9f5ed, measured on origin/main 17ae732a4e8b26f05bca901041a2a4d78434c6b2 (which carries #3530) at 2026-11-13T07:40Z. It is the handoff head 3d56953499ef plus this reconcile round: 754a2b022d (the merge of origin/main 17ae732a) 1e1dae07d7 (the #3420 part E rows with the minimum pause engaged) and 390113cc661e (the merge of the pull request's head d5eb9f80e2ea, which `prepr.sh`'s push-order step required; it changes the tree only by the existing line in `dev/programme/delivery/3512.md`, so the figures taken at 1e1dae07d7 below describe this tree's code). The reviewer's delta is `git diff d5eb9f80e2ea 390113cc661e798b946ebabd877a800a2aa9f5ed`. `git merge-tree --write-tree origin/main HEAD` against main fa9479e059f2 printed no conflict, so no second merge was made.
+
+### Reconcile with #3530 (R10-MODE-BEFORE-SUPPLY-ON)
+
+The merge conflicted in one hunk, `coordinator._write_supply`: #3530 changed the switch call to `pump_arbiter.write_supply(self, switch_entity, value)`, which writes the step's mode ahead of a switch-on (`pump_arbiter._lead_mode`), and this branch had changed the next line to `elif switch_entity and not held.supply_held:`. Both are kept: `supply_hold.hold_supply` stays ahead of the call, so a switch-on the hold returns `None` for reaches no mode write, and the step tick's retry of a held write (`pump_arbiter.supply_tick` -> `SupplyWiring.write` = `_write_supply`) runs through the same call, so a retried switch-on that lands writes the mode first. `supply_hold.py`'s rule and `write_supply`'s mode-then-switch order are unchanged. Every other file merged without conflict.
+
+Re-read at main 17ae732a, both groups' paths: `custom_components/heatpump_optimizer/pump_arbiter.py` (`write_supply`, `_lead_mode`, `switch_supply`, `supply_tick`), `coordinator.py` (`_apply_action`, `_write_supply`), `early_cutoff.py` (its cut writes OFF through `switch_supply` alone, and `_lead_mode` writes nothing for an OFF) and `tests/features.py`'s two sections. Writers of the supply switch after the merge, by `git grep -n -E 'switch_supply\(|write_supply\(' -- custom_components`, which also matches `_write_supply`'s own call in `_apply_action` and its definition: `write_supply` from `_write_supply` (gated, cycle and step tick), `switch_supply` from `write_supply` and from `early_cutoff`'s cut (OFF only, not gated, by design, as in the table below). No other caller.
+
+`tests/features.py`: `_mb_run` (#3530's rig) stamped the switch's state at 06:00 itself, which on this branch's clock is a pause zero minutes old and would engage the hold on every cycle row; it now takes `since`, an hour back by default, so #3530's rows engage no hold and their expected values are unchanged, and `after`, the step ticks fired each minute after the write. Three rows are added after "a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back":
+
+- "with the minimum pause engaged too, a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back" (switch off since 05:58);
+- "a cycle switch-on the minimum pause holds back writes no mode and no switch";
+- "a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick": the ticks 06:01 to 06:12 write only at 06:08, MIN_PAUSE after 05:58, and write `select_option` then `turn_on`.
+
+Null controls, in the same block: the same cycle with no hold engaged writes mode then switch on the first write ("null control: the same heating step with no cut on record writes the mode, then the switch", and "a cycle that switches the supply on writes the step's mode first, then the switch"), exactly as at #3530's head; the "null control, <case>: the service calls and their order are today's" rows (no mode entity, duty mode observe, supply already on) write nothing new.
+
+Carries in this group's roster brief (`dev/programme/rosters/wave-r10-groups.json` on `handoff/audit-r10-roster`):
+
+- Carry 1 (from r10-mode-before-supply-on, #3530 body item 50b08d86): built in this round. The hold stays inside `_write_supply` ahead of the switch call, the call is `pump_arbiter.write_supply(self, switch_entity, value)`, the control "a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back" is re-run with the hold engaged beside its null, and both groups' paths were re-read at main 17ae732a (above).
+- Carry 0: the same text without its item tag; dismissed in the roster as Carry 1's duplicate, answered by the same build.
+- Carry 2: the same text again, without its item tag or a disposition; a duplicate of Carry 1, answered by the same build.
+
+### Earlier rounds
+
 3d56953499ef23b0d51f2eee7d0cc782d05b572a, measured on origin/main 43e95474559ca8e2188830f8775c1ddf52df964a at 2026-11-12T19:22Z. It is the handoff head 701a18e26661 (review round 1's head 5dea8264f2c8, plus the repair commit d94be70cc39e, the merge of origin/main 6e100ef69802 (24b879dc7cb3), the `tests/entities.py` closure re-derived by `--single` (42c2717d0c0b), the merge of origin/main 2b4515dc5282 (ebf11f1265c5, seat tooling only), and the merge of origin/main 19baca76181c (701a18e26661).), plus this repair: 874cb0168230 (the learners' freeze as `supply_hold.freeze_reason`, which pays `coord_footprint`), 808f50df7f4c (`class_excess_loc` recorded one lower), the merge of the pull request's head b2dd262882a8 (mutation-autofix's pins), the merge of origin/main 43e95474559c (934f6d683eaf), a936a11d4604 (five pins whose sites 874cb0168230 removed) and 3d56953499ef (the four sites that replaced them, pinned). The reviewer's delta is `git diff 701a18e26661 3d56953499ef`.
 
 The merge of origin/main conflicted in six files, because main's `duty_switch.py` and this branch's `supply_hold.py` were both added beside `pump_arbiter.py`. The counts are summed (`docs/architecture.md`: 90 modules, 32 importing `homeassistant`; `claims.py`'s three RESULT lines and its table regenerated by `claims.py`; `tests/deployment_shape.py`: 109 package files) and `tests/features.py` keeps both added sections. The closure-pair census in `tests/deployment_shape.py`'s docstring is re-measured under `## Figures`.
@@ -43,6 +67,22 @@ The merge of origin/main conflicted in six files, because main's `duty_switch.py
 Re-run at this head: the six mutants below, the scoped gate, `tests/structure.py`, the architecture score, both `ha_contract.py` providers and the closed-loop harness. Not re-run: the 17-mutant block and the round-1 survivor blocks under `## Mutation proof`, whose lines this repair does not touch, and rule three's share.
 
 ## Mutation proof
+
+Reconcile round, each mutant applied by hand to `coordinator._write_supply` at 1e1dae07d7 and run against the #3420 part E block (`features_block.py` from "# #3420 part E (Bankaifan)" to "# The pump_duty record's held slots are declared", 20 checks; baseline `ALL 20 FEATURES BLOCK PASSED`), then restored:
+
+```
+M1 the hold after the mode write (_lead_mode on the pre-hold value, then hold_supply, then the bare switch write)
+  FAIL a cycle switch-on the minimum pause holds back writes no mode and no switch  [[('select', 'select_option')]]
+  FAIL a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick  [{1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [('switch', 'turn_on')], 9: [], 10: [], 11: [], 12: []}]
+2 of 20 FEATURES BLOCK FAILED
+M2 the retry of a held write calls the bare switch write (switch_supply when supply_held was set on entry)
+  FAIL a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick  [{1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [('switch', 'turn_on')], 9: [], 10: [], 11: [], 12: []}]
+1 of 20 FEATURES BLOCK FAILED
+```
+
+M1 does not fail the cut-off row with the pause engaged: an early cut turns the switch-on into an OFF before the hold, and `_lead_mode` writes nothing for an OFF, so that row passes under either order. The row M1 fails is the pause-held one, where the hold alone is what stops the switch-on. Driver: a scratch `mut.py` holding the two replacements, one-off.
+
+### Earlier rounds
 
 Every predicate the fix adds or moves, mutated by hand one at a time and run against the group's mutation command. That command runs two `features_block.py` blocks: the supply-switch sections from "supply switch at step boundaries (#2492, R10-SAV-ACTUATION)" to the ceiling probe, and the early cut-off's section.
 
@@ -129,6 +169,17 @@ Red without the fix, the contributor's design at the head's tests: the one-clock
 
 ## Figures
 
+Re-taken at 1e1dae07d72c3dd62411decd93b37f9f71d9505f (tree equal to 390113cc661e798b946ebabd877a800a2aa9f5ed but for the delivery row) on merge base 17ae732a4e8b, 2026-11-13:
+
+- Scoped gate: `GATE_SCOPE=auto bash tests/run.sh` printed `MODE: SCOPED -- 24 script(s) run, 9 scoped out.` and `1 TEST SCRIPT(S) FAILED`, the one being `tests/golden.py`, run without `GOLDEN_MODE=drift`. Re-run as the contract states, `GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) python3 tests/golden.py` printed `NO UNCLAIMED DRIFT: 56 scenario(s) checked against 17ae732a4e8b26f05bca901041a2a4d78434c6b2` and `NO STALE FIXTURE`, exit 0. `tests/features.py` passed inside the gate (488 s).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` (with `env -u BASH_ENV`): `ALL 2709 ENTITY CHECKS PASSED`, inside the gate run.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; no budget re-recorded or raised.
+- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: `Architecture score: dS +0.0000 NULL`.
+- The #3420 part E block alone (`features_block.py` from "# #3420 part E (Bankaifan)" to "# The pump_duty record's held slots are declared"): `ALL 20 FEATURES BLOCK PASSED`; the two mutants under `## Mutation proof` turn it red.
+- The group's mutation command, two `features_block.py` blocks: from `R.section("supply switch at step boundaries (#2492` to `R.section("duty-switch restart learning, part A`, and the early cut-off's section to `R.section("°F set-points: one unit rule`: `ALL 108 FEATURES BLOCK PASSED` and `ALL 60 FEATURES BLOCK PASSED`.
+
+Measured at 3d56953499ef and not re-taken (this round changes no line they read but `_write_supply`'s switch call):
+
 - Scoped gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) bash tests/run.sh`. `MODE: SCOPED -- 24 script(s) run, 9 scoped out` at the head, which prints `26 TEST SCRIPT(S) PASSED; 8 SCOPED OUT AND NOT RUN`.
 - `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2709 ENTITY CHECKS PASSED` at the head, inside the scoped gate run. `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` at the merge recorded the closure's `rc` as 0 (it was 1) and changed nothing else.
 - `PYTHONPATH=tests/hastub python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` at the head. `max_class_loc` was recorded at 7919, down from 7921. `duplication_copies` was held at its budget by `pump_arbiter.supply_switch`.
@@ -191,7 +242,7 @@ The harness fixes the tank at 35.0 degC, so its tank minimum is not informative.
 - Unpinned sites: `python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --scripts tests/features.py` at a936a11d4604 printed `PIN KILLED -- 4 new unpinned site(s)` and `PIN KILLED: 4 pinned, 0 left unpinned`, with the comment-only null control `supply_hold.py:59 NULL_COMMENT` surviving `tests/features.py`. Before a936a11d4604 the same command refused: `MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory`, naming the five pins that commit drops.
 - Closure-pair census (`tests/deployment_shape.py`'s docstring): pairs of scripts whose closures in `tests/closures.json` share a Jaccard index of 0.80 or more over their `custom_components/` files. The rule reads 148 at both parents of the merge (b2dd262882a8's side and origin/main), which is the figure each docstring carried, and 154 on the merged recording.
 
-<!-- figure-block: scope-line mb=43e95474559ca8e2188830f8775c1ddf52df964a head=3d56953499ef23b0d51f2eee7d0cc782d05b572a -->
+<!-- figure-block: scope-line mb=17ae732a4e8b26f05bca901041a2a4d78434c6b2 head=390113cc661e798b946ebabd877a800a2aa9f5ed -->
 ~~~text
 MODE: SCOPED -- 24 script(s) run, 9 scoped out.
 ~~~
