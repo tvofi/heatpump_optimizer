@@ -64,7 +64,11 @@ Carry: dismissed: equivalent mutants and self-test fixture constants on lines th
 
 ## Red checks
 
-None owed at this head: no CI run exists here before the pull request moves to it.
+No CI run exists at this head yet. Every failed job of the six failed `CI code` runs on `fix/r10-gate-defer-barrier` (PR heads 1aec0e574b, 44e0b74b55 twice, ba5d3b2527, 27f37247b9, 9e12d95124) was read, across all attempts. None is one of the four owed reds below; at those heads the owed reds were `arch-score / arch-score`, `pr-contract / pr-contract` and `gate` at 44e0b74b55, answered in the earlier rounds' bodies. The four below come from the ancestry the body check reads. Its base is the merge base of origin/main and this head, 8c10361eb1. The pull request's head 9e12d95124 merged origin/main f44e761c19 at dfa5bbf6e2, so the range 8c10361eb1..9e12d95124 holds 213 commits of main and of other pull requests that were merged into it. The four reds stand on those commits, and none was reached by a commit of this branch. Reds outside `merge_train.py owed-reds` (`tests / nightly-status`, `governance / instrument-self-tests` and the rest of the listed names) are not owed and not answered here.
+- `tests / fast (3.14)`: the "Run the suite" step failed at 112f0d777b (#3461's head, job 131159081242 of run 43210133740) and at 6b16a9f896 (#3518's head, job 131425968347 of run 43287618955). Neither commit is this branch's; each is answered on its own pull request, both merged before f44e761c19. Cheaper detector: none is owed here, because this branch did not turn the check red. The trigger in `defect-root-cause.md` belongs to the pull request that did.
+- `tests / coverage-ratchet`: the step "Ratchet the floor and the pragma count with the base's grader" failed at 112f0d777b (#3461's head, job 131175916370 of run 43210133740). That is not this branch's commit. Cheaper detector: none is owed here, for the same reason.
+- `governance / wave-script`: the failing commit was not identified within this seat's read budget. Established: it is not on any `fix/r10-gate-defer-barrier` run, read as above, and not on main's f44e761c19 push run 43325003990, whose only failed job is `governance / instrument-self-tests`. So it stands on another pull request's commit inside 8c10361eb1..f44e761c19. Cheaper detector: none is owed here, because this branch did not turn the check red. No cause is claimed.
+- `tests / mutation`: the same as `governance / wave-script`. The failing commit was not identified within the read budget. It is not on any of this branch's runs or on main's f44e761c19 push run, and at #3461's 2e1e33a70a all four `tests / mutation` runs concluded success. Cheaper detector: none is owed here, because this branch did not turn the check red. No cause is claimed.
 
 ## Forward-carry
 
@@ -73,7 +77,7 @@ None owed at this head: no CI run exists here before the pull request moves to i
 
 ## Friction
 
-none
+defect-root-cause: cost: the body check's ancestry arm (`prepr.sh` `ancestry_reds`) reads check runs from `git merge-base origin/main HEAD` at the handed-off head df4af48ad9, which is 8c10361eb1, while the pull request's head 9e12d95124 already merged f44e761c19. The arm therefore demanded answers for four reds on 213 commits of main and of other pull requests, which cost one refused body_push and a 40-read search. `policy_lint.mjs`'s own red-history read the correct 34 commits. Re-measure: `prepr.sh --body-check <body> --pr-branch fix/r10-gate-defer-barrier` at df4af48ad9 names checks that no `fix/r10-gate-defer-barrier` run failed.
 
 ## Approval
 
