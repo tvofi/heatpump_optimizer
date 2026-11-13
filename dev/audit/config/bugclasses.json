@@ -4974,6 +4974,22 @@
       "doc": [
         "dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md"
       ]
+    },
+    "R10-RCA-SELFTEST-SCOPE-DRIFT": {
+      "class": "R10-SELFTEST-TABLE-SHRINK",
+      "level": "class",
+      "subject": "hand re-records of tools/ci/selftest_closures.json at a stale base dropped reads main measures (#3409, #3419, #3506)",
+      "trigger": "audit-class barrier (round 10 triage ACCEPT)",
+      "date": "2026-11-13",
+      "status": "landed",
+      "parts_missing": [],
+      "process_state": "(d) the re-record was sound against the table it was taken from and its precondition, that the base had not moved, changed underneath it",
+      "countermeasure": "record unions over the committed entry, and static refuses a diff whose table drops a read the base names unless the diff deletes the path",
+      "landed": "R10-SELFTEST-SCOPE-UNION-GUARD",
+      "in_tree_home": "dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-SELFTEST-SCOPE-DRIFT.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5679,6 +5695,40 @@
       "cross_round": false,
       "barriered_any": false,
       "class_rca_on_record": false
+    }
+  },
+  "R10-SELFTEST-TABLE-SHRINK": {
+    "kind": "instrument",
+    "mechanism": "tools/ci/selftest_closures.json is repaired by hand re-records, and `record` replaced a step's entry with one recording, so a re-record taken at a stale base dropped reads main measures; a merge then fails the drift check or scopes the step too narrowly. #3409, #3419 and #3506 dropped 660, 8 and 10 entries; 6 of the 20 drift refusals at f47250150a were such drops.",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 -I tools/ci/selftest_scope.py static: a SHRUNK step line for each files, probes, dirs or git item and each index or objects flag the head's table drops against the base's (the first parent on a push to main), unless the diff deletes the path",
+    "detector_idea": null,
+    "barrier": "selftest_scope.union_record (record keeps every committed read; a read leaves only by the named `prune` operation) and selftest_scope.shrink_gaps (run by `static`, which governance.yml runs on every pull request touching the table), each pinned by a mutant in tools/ci/selftest_scope_mutants.sh",
+    "status": "barriered",
+    "nearest_existing": "R10-SELFTEST-RED-INTRODUCED",
+    "mechanism_difference": "R10-SELFTEST-RED-INTRODUCED is a step the diff turned red; here the diff turns nothing red at its own head, it narrows a measured table that a later diff is scoped by.",
+    "aliases": [
+      "a re-record at a stale base drops reads the table held"
+    ],
+    "non_round_note": "Process defect from R10-RCA-SELFTEST-SCOPE-DRIFT (triage ACCEPT, round 10), not an audit finding, not counted in total. Part A (main re-records mechanically) is ruled to round 11.",
+    "non_round_instances": [
+      "#3409: 660 entries",
+      "#3419: 8 entries",
+      "#3506: 10 entries"
+    ],
+    "rca": [
+      "R10-RCA-SELFTEST-SCOPE-DRIFT"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": true
     }
   }
 }

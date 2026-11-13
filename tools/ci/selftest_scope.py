@@ -5,6 +5,8 @@
     python3 -I tools/ci/selftest_scope.py select --change M:docs/x.md [--change A:PATH]...
     python3 -I tools/ci/selftest_scope.py ids
     python3 -I tools/ci/selftest_scope.py record [--step ID]... [--out PATH]
+    python3 -I tools/ci/selftest_scope.py prune --step ID --drop KIND:ITEM [--drop ...]
+    python3 -I tools/ci/selftest_scope.py static
     python3 -I tools/ci/selftest_scope.py check --traces DIR [--write PATH]
     python3 -I tools/ci/selftest_scope.py settle
     python3 -I tools/ci/selftest_scope.py --self-test [--wrapper PATH] [--workflow PATH]
@@ -698,6 +700,128 @@ def settle_index(root: Path, env: dict | None = None) -> int:
     return 1
 
 
+LIST_KINDS = ("files", "probes", "dirs", "git")
+FLAG_KINDS = ("index", "objects")
+
+
+def union_entry(old: dict | None, new: dict) -> dict:
+    """The committed entry with the new recording added: a record is taken at
+    one checkout and one trace, so it may miss a read the table holds from
+    another (R10-RCA-SELFTEST-SCOPE-DRIFT: replacing dropped 660, 8 and 10
+    entries in three merges). Over-approximation is safe, so no read leaves."""
+    old = old or {}
+    got = {k: sorted(set(old.get(k, ())) | set(new[k])) for k in LIST_KINDS}
+    got["probes"] = [p for p in got["probes"] if p not in set(got["files"])]
+    return {**new, **got, **{k: bool(old.get(k)) or bool(new[k]) for k in FLAG_KINDS}}
+
+
+def union_record(old: dict | None, measured: dict[str, dict], gated: set[str]) -> dict[str, dict]:
+    """The table `record` writes: every committed entry (a step not re-measured
+    stays as it is), each measured step unioned over its own, less steps the
+    workflow no longer gates -- a removed step is not a dropped read."""
+    entries = dict(old["steps"]) if old else {}
+    for sid, m in measured.items():
+        entries[sid] = union_entry(entries.get(sid), m)
+    return {k: v for k, v in entries.items() if k in gated}
+
+
+def prune_entries(table: dict, step: str, drops: list[str]) -> tuple[dict[str, dict], list[str]]:
+    """(entries, unknown): `table` less each `KIND:ITEM` of `step`, the one
+    way a read leaves the table (an index or objects flag is `KIND:` alone).
+    The shrink guard still refuses a drop of a path the diff does not delete."""
+    entries = {k: dict(v) for k, v in table["steps"].items()}
+    unknown = []
+    if step not in entries:
+        return entries, [f"no step {step}"]
+    for d in drops:
+        kind, _, item = d.partition(":")
+        if kind in FLAG_KINDS and not item and entries[step].get(kind):
+            entries[step][kind] = False
+        elif kind in LIST_KINDS and item in entries[step].get(kind, ()):
+            entries[step][kind] = [x for x in entries[step][kind] if x != item]
+        else:
+            unknown.append(d)
+    return entries, unknown
+
+
+def shrink_drops(base: dict | None, head: dict | None, deleted: set[str], remaining: set[str]) -> list[str]:
+    """What `head`'s table drops of `base`'s, step by step: each files, probes,
+    dirs or git item and each index or objects flag the base entry names that
+    the head's entry does not, unless the diff deletes the path (`deleted`; a
+    directory or `D/**` item whose every file went, given `remaining`, the
+    head's tracked files). A step the head does not gate or the base lacks is
+    not a drop. A base item is kept when the head names it, covers it with a
+    `D/**` entry, or reads it as a file (a probe), or lists its directory."""
+    if not base or not head:
+        return []
+    out = []
+
+    def gone(item: str) -> bool:
+        p = item[:-3] if item.endswith("/**") else item
+        return p in deleted or (any(d.startswith(p + "/") for d in deleted)
+                                and not any(r.startswith(p + "/") for r in remaining))
+    for sid, b in sorted(base["steps"].items()):
+        h = head["steps"].get(sid)
+        if h is None:
+            continue
+        files, dirs, probes = set(h.get("files", ())), set(h.get("dirs", ())), set(h.get("probes", ()))
+        kept = {"files": lambda x: covers(files, x),
+                "probes": lambda x: covers(probes, x) or covers(files, x)
+                or any(a in dirs for a in _ancestors(x)),
+                "dirs": lambda x: x in dirs,
+                "git": lambda x: x in set(h.get("git", ()))}
+        for k in LIST_KINDS:
+            miss = sorted(x for x in b.get(k, ()) if not kept[k](x) and (k == "git" or not gone(x)))
+            if miss:
+                out.append(f"SHRUNK step {sid}: the head's entry drops {len(miss)} {k} the base names, "
+                           f"e.g. {miss[0]} -- a re-record unions; a read leaves by `prune`, and only a "
+                           f"path this diff deletes may")
+        out += [f"SHRUNK step {sid}: the head's entry drops the {k} flag the base sets"
+                for k in FLAG_KINDS if b.get(k) and not h.get(k)]
+    return out
+
+
+def table_base(root: Path, env: dict | None = None) -> str | None:
+    """The revision the guard compares against: SELFTEST_BASE; else the merge
+    base with the pull request's base branch (GITHUB_BASE_REF, whose checkout
+    is a merge commit); else the first parent (a push to main). None without one."""
+    env = os.environ if env is None else env
+    cands = []
+    if env.get("SELFTEST_BASE"):
+        cands.append(env["SELFTEST_BASE"])
+    if env.get("GITHUB_BASE_REF"):
+        cands.append(f"origin/{env['GITHUB_BASE_REF']}")
+    for c in cands:
+        r = subprocess.run(["git", "merge-base", c, "HEAD"], cwd=root, capture_output=True, text=True)
+        if r.returncode == 0 and r.stdout.strip():
+            return r.stdout.strip()
+        return None             # a named base that cannot be resolved is not guessed around
+    r = subprocess.run(["git", "rev-parse", "--verify", "-q", "HEAD^1"], cwd=root, capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def shrink_gaps(root: Path, base: str | None) -> list[str]:
+    """The guard over `base`..HEAD in the repository at `root`: nothing when the
+    diff leaves the table alone or `base` has no readable table."""
+    if base is None:
+        return []
+    diff = subprocess.run(["git", "diff", "--no-renames", "--name-status", base, "HEAD"],
+                          cwd=root, capture_output=True, text=True)
+    if diff.returncode != 0:
+        return [f"UNREADABLE the diff {base[:12]}..HEAD: the table's shrink cannot be judged"]
+    rows = [l.split("\t", 1) for l in diff.stdout.splitlines() if "\t" in l]
+    if TABLE not in {p for _, p in rows}:
+        return []
+    shown = subprocess.run(["git", "show", f"{base}:{TABLE}"], cwd=root, capture_output=True, text=True)
+    try:
+        before = json.loads(shown.stdout) if shown.returncode == 0 else None
+    except ValueError:
+        before = None
+    tree = subprocess.run(["git", "ls-tree", "-r", "--name-only", "HEAD"], cwd=root, capture_output=True, text=True)
+    return shrink_drops(before, load_table(root / TABLE), {p for st, p in rows if st == "D"},
+                        set(tree.stdout.splitlines()))
+
+
 def record(root: Path, only: list[str] | None, out: Path) -> int:
     if shutil.which("strace") is None:
         print("selftest_scope: record needs strace (Linux)", file=sys.stderr)
@@ -738,10 +862,7 @@ def record(root: Path, only: list[str] | None, out: Path) -> int:
     shutil.rmtree(tmp, ignore_errors=True)    # gigabytes of traces on a full record
     for line in broken:
         print(line, flush=True)
-    old = load_table(out)
-    entries = dict(old["steps"]) if old and only else {}
-    entries.update(measured)
-    entries = {k: v for k, v in entries.items() if k in set(gated_ids(steps))}
+    entries = union_record(load_table(out), measured, set(gated_ids(steps)))
     write_table(out, entries, root)
     print(f"selftest_scope: recorded {len(measured)} step(s) into {out}; "
           f"{len(failed)} failed {failed}, {len(broken)} broken trace(s)")
@@ -814,6 +935,7 @@ def static_check(root: Path = ROOT) -> int:
         if why:
             problems.append(f"STALE {TABLE}: {why} -- re-record the changed step(s) with "
                             f"`python3 {SELF} record --step ID`")
+    problems += shrink_gaps(root, table_base(root))
     for p in problems:
         print(f"  {p}")
     print(f"selftest_scope static: {len(gated_ids(steps))} gated step(s), {len(problems)} problem(s)")
@@ -1475,6 +1597,107 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
     ck("settle_gaps: a settle only in launch, which starts traced steps, is refused",
        settle_gaps(job("apt\n", after=call)) != [])
 
+    # R10-SELFTEST-SCOPE-UNION-GUARD: `record` unions over the committed entry,
+    # and the table may not shrink in a diff (the null controls come first).
+    def ent(files=(), probes=(), dirs=(), git=(), index=False, objects=False, sha="s"):
+        return {"run_sha": sha, "files": list(files), "probes": list(probes), "dirs": list(dirs),
+                "git": list(git), "index": index, "objects": objects}
+    held = {"steps": {"a": ent(["f1", "f2"], ["p1"], ["d1"], ["rev-list"], True, True),
+                      "b": ent(["g1"]), "gone": ent(["h1"])}}
+    new_a = ent(["f2", "f3"], ["p2", "f3"], ["d2"], ["add"], False, False, sha="t")
+    got = union_record(held, {"a": new_a}, {"a", "b"})
+    ck("union_record: recording one step over an entry holding reads the trace lacks keeps them",
+       got["a"]["files"] == ["f1", "f2", "f3"] and got["a"]["probes"] == ["p1", "p2"]
+       and got["a"]["dirs"] == ["d1", "d2"] and got["a"]["git"] == ["add", "rev-list"]
+       and got["a"]["index"] and got["a"]["objects"] and got["a"]["run_sha"] == "t")
+    ck("union_record: a step not re-measured is kept, a step the workflow no longer gates is not",
+       got["b"] == held["steps"]["b"] and "gone" not in got)
+    ck("union_record: with no committed table the measurement is the entry",
+       union_record(None, {"a": new_a}, {"a"})["a"]["files"] == ["f2", "f3"])
+    pruned, unknown = prune_entries(held, "a", ["files:f1", "index:", "git:rev-list"])
+    ck("prune_entries: a named read leaves, nothing else does",
+       unknown == [] and pruned["a"]["files"] == ["f2"] and not pruned["a"]["index"]
+       and pruned["a"]["git"] == [] and pruned["a"]["objects"] and pruned["b"] == held["steps"]["b"])
+    ck("prune_entries: a read the entry does not hold is reported, not ignored",
+       prune_entries(held, "a", ["files:nope"])[1] == ["files:nope"]
+       and prune_entries(held, "zz", ["files:f1"])[1] == ["no step zz"])
+    head_add = {"steps": {**held["steps"], "a": union_entry(held["steps"]["a"], new_a)}}
+    ck("shrink_drops: an additive head drops nothing (null control)",
+       shrink_drops(held, head_add, set(), {"f1"}) == [])
+    head_drop = {"steps": {**held["steps"], "a": ent(["f2"], [], ["d1"], [], True, False)}}
+    miss = shrink_drops(held, head_drop, set(), {"f1"})
+    ck("shrink_drops: a head entry dropping a file, a probe, a git item and a flag is refused, each named",
+       len(miss) == 4 and all("SHRUNK step a" in m for m in miss)
+       and any("files" in m for m in miss) and any("probes" in m for m in miss)
+       and any("git" in m for m in miss) and any("objects flag" in m for m in miss))
+    left = shrink_drops(held, head_drop, {"f1", "p1"}, set())
+    ck("shrink_drops: the file and probe drops are exempt for paths the diff deletes, the rest stay",
+       len(left) == 2 and any("git" in m for m in left) and any("objects flag" in m for m in left))
+    ck("shrink_drops: a git item or a flag is never exempt by deletion",
+       len(shrink_drops(held, head_drop, {"f1", "p1", "rev-list"}, set())) == 2)
+    ck("shrink_drops: a step removed from the workflow, or a new one, is not a drop",
+       shrink_drops(held, {"steps": {"b": held["steps"]["b"]}}, set(), set()) == []
+       and shrink_drops({"steps": {}}, held, set(), set()) == [])
+    ck("shrink_drops: a file read now through a D/** entry, or a probe now a file, is kept",
+       shrink_drops({"steps": {"a": ent(["t/x", "t/y"], ["t/z"])}},
+                    {"steps": {"a": ent(["t/**", "t/z"])}}, set(), set()) == [])
+    dir_b, dir_h = {"steps": {"a": ent([], [], ["t"])}}, {"steps": {"a": ent()}}
+    ck("shrink_drops: a directory whose every file the diff deleted is exempt, one with a survivor is not",
+       shrink_drops(dir_b, dir_h, {"t/x"}, set()) == [] and len(shrink_drops(dir_b, dir_h, {"t/x"}, {"t/y"})) == 1)
+    ck("shrink_drops: a probe of a path that exists nowhere is still a drop",
+       len(shrink_drops(held, {"steps": {"a": ent(["f1", "f2"], [], ["d1"], ["rev-list"], True, True)}},
+                        set(), set())) == 1)
+    with tempfile.TemporaryDirectory() as td, throwaway_git_environ():
+        gr = Path(os.path.realpath(td))
+        env_g = throwaway_git_init(gr, "-q")
+
+        def gitc(*a):
+            return subprocess.run(["git", *a], cwd=gr, env=env_g, check=True, capture_output=True,
+                                  text=True).stdout.strip()
+
+        def commit(tbl, rm=()):
+            (gr / TABLE).parent.mkdir(parents=True, exist_ok=True)
+            (gr / TABLE).write_text(json.dumps(tbl))
+            (gr / "f1").write_text("x")
+            for r in rm:
+                (gr / r).unlink()
+            gitc("add", "-A")
+            gitc("commit", "-qm", "c")
+            return gitc("rev-parse", "HEAD")
+        b0 = commit(held)
+        commit(head_add)
+        ck("shrink_gaps: a committed additive table change passes (null control)", shrink_gaps(gr, b0) == [])
+        commit(head_drop)
+        fx = shrink_gaps(gr, b0)
+        ck("shrink_gaps: a committed diff dropping reads is refused",
+           len(fx) == 4 and all(x.startswith("SHRUNK step a") for x in fx))
+        (gr / "p1").write_text("x")
+        gitc("add", "p1")
+        gitc("commit", "-qm", "p1")
+        b1 = gitc("rev-parse", "HEAD")
+        commit(held)
+        b1 = gitc("rev-parse", "HEAD")
+        commit(head_drop, rm=("f1", "p1"))
+        ck("shrink_gaps: the same drops with the paths deleted by the diff leave only git and the flag",
+           len(shrink_gaps(gr, b1)) == 2)
+        (gr / WORKFLOW).parent.mkdir(parents=True, exist_ok=True)
+        (gr / WORKFLOW).write_text(wf)
+        out = io.StringIO()
+        os.environ["SELFTEST_BASE"] = b1
+        try:
+            with contextlib.redirect_stdout(out):
+                rc_sh = main(["static"], gr)
+        finally:
+            del os.environ["SELFTEST_BASE"]
+        ck("static: the shrink guard is part of it (rc 1, naming the step)",
+           rc_sh == 1 and "SHRUNK step a" in out.getvalue())
+        ck("shrink_gaps: with no base, or a diff that leaves the table alone, there is nothing to judge",
+           shrink_gaps(gr, None) == [] and shrink_gaps(gr, gitc("rev-parse", "HEAD")) == [])
+        ck("table_base: the first parent without a named base, the merge base with one",
+           table_base(gr, {}) == gitc("rev-parse", "HEAD^1")
+           and table_base(gr, {"SELFTEST_BASE": b0}) == b0
+           and table_base(gr, {"GITHUB_BASE_REF": "nonesuch"}) is None)
+
     # The live table names no landed retired path (tests/layout.py's guard
     # refuses a new reference to one, and a diff re-adding one), and the
     # list it is checked against is not empty (the check's own precondition).
@@ -1528,6 +1751,19 @@ def main(argv: list[str], root: Path = ROOT) -> int:
         only = [argv[k + 1] for k, a in enumerate(argv) if a == "--step"]
         out = Path(argv[argv.index("--out") + 1]) if "--out" in argv else root / TABLE
         return record(root, only or None, out.resolve())
+    if argv[:1] == ["prune"] and "--step" in argv and "--drop" in argv:
+        table = load_table(root / TABLE)
+        step = argv[argv.index("--step") + 1]
+        drops = [argv[k + 1] for k, a in enumerate(argv) if a == "--drop"]
+        if table is None:
+            print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
+            return 1
+        entries, unknown = prune_entries(table, step, drops)
+        if unknown:
+            print(f"selftest_scope: not in the table, nothing written: {unknown}", file=sys.stderr)
+            return 1
+        write_table(root / TABLE, entries, root)
+        return 0
     if argv[:1] == ["check"] and "--traces" in argv:
         write = Path(argv[argv.index("--write") + 1]) if "--write" in argv else None
         return check_cli(Path(argv[argv.index("--traces") + 1]), write, root)
