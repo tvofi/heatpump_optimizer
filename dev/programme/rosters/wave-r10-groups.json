@@ -26140,6 +26140,53 @@
     "next_step": "cloud opus fixer; opus reviewer",
     "note": "intake: owner instruction 2026-11-13 (this round); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK): owner instruction 2026-11-13: fold in a group this round to verify and correct all config flow text"
    }
+  },
+  {
+   "group": "R10-HOTFIX-BOOST-FLOW-CEILING",
+   "lane": "IN",
+   "kind": "production",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK"
+   ],
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "tests/features.py",
+    "docs/configuration.md"
+   ],
+   "hot_files": [
+    "features.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, production defect reported by the owner from his install on VERSION 7.1.15 (2026-11-13): with a space boost on, the flow set-point entity was written 41 and then 43 where the documented behaviour is the heating-flow ceiling (55, or the flow_heat_c option). Investigator's finding, measured by probe at the 7.1.15 tag: a space boost and the global boost mode change the step's duty but not its level; custom_components/heatpump_optimizer/pump_arbiter.py maps the flow target through flow_setpoint_for_level from the plan's own power_schedule, so a boost over a step the plan books at a partial positive power writes that step's partial set-point, and reaches the ceiling only over an idle step or one at maximum power. The boost overlay sets maximum power on the action only, which the arbiter never reads. Latent since the 6.7.17 tag (the commit that introduced flow_setpoint_for_level); the pinning test in tests/features.py runs only on an idle plan. README.md and docs/configuration.md both say boost applies maximum heat with the heating-flow ceiling. Owed: while a space boost or the global boost mode is live the space set-point is the ceiling on every step, partial ones included, clamped to the entity's range; a failing test first on a partial-power plan for the channel boost and for the global mode, with the idle and full-power cases as controls; the power-feedback loop stays off during boost; docs say what boost writes. Root cause for a released defect is answered in the body; serial after R10-HOTFIX-FLOW-SETPOINT-STUCK on the same seam.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-hotfix-boost-flow-ceiling",
+    "commit": null,
+    "last_step": null,
+    "next_step": "same local opus fixer, stacked on the stuck-set-point handoff",
+    "note": "intake: owner report 2026-11-13 (boost writes 43, not 55); production defect on a released version; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK): owner report 2026-11-13: space boost writes a partial flow set-point (41, 43) instead of the ceiling; production defect, latent since v6.7.17"
+   }
   }
  ]
 }
