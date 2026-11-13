@@ -26455,7 +26455,9 @@
    "findings": [],
    "architect_note": "",
    "brief": "Owner ruling 2026-11-13 on decision card P3 and P8 (yes): the scorecard gets a producer for its inputs and a row in the running job list, with lead-time percentiles per class, a time-to-restore line and a token line; a tracked per-round and per-week metrics instrument lands from the audit s scratch scripts; and the bottleneck alert prints the live value when it is more than a quarter worse than the value it first printed. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 6 rows a3 and a7. Null control: an empty input directory prints unread, never a value. Must merge before round 11 finders start.",
-   "carry": [],
+   "carry": [
+    "From r11-pre-objective-function, body item 0df1ac6e: The three groups that build the enumerators build to 0017 section 2's definitions (clock, windows, denominators, the NO-READ rule for a partial ledger), add each enumerator to `.github/CODEOWNERS` in the pull request that lands it, and return a definition they cannot meet as a card. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-ROUND-METRICS (items 0df1ac6e)"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "fix/r11-pre-round-metrics",
