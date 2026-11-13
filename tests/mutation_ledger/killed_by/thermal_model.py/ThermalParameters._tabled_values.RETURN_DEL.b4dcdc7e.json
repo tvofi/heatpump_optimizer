@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters._tabled_values RETURN_DEL b4dcdc7e",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        return values",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
