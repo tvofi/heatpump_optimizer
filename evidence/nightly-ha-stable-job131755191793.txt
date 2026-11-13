@@ -1,0 +1,11 @@
+tests / nightly-ha (stable) job 131755191793, checkout "Merge eeaa91d5bf60211f38d9a9d9d217a2e976ff8cc7 into 8a550692da", real HA image stable, conclusion success:
+  ok   a4:bridged  [bridged: last_update_success=True, price_feed_stale raised, 46 entities available]
+  ok   a4:failed  [last_update_success=False]
+  ok   a4:unavailable  [54 unavailable]
+  ok   a4:buttons  [6 button(s) unavailable]
+  ok   a4:no_stale  [50 pre-break value(s) gone]
+  ok   a4:recovered  [recovered 46 after last_update_success=True]
+  ok   run:exit_status  [the container exited 0]
+  ok   log:no_integration_traceback  [0 traceback(s) naming heatpump_optimizer]
+  ok   run:all_checks_ran  [66 of 66 ran; missing: []; undeclared: []]
+ALL 66 checks PASSED
