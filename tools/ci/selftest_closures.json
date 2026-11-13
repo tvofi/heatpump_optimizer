@@ -13,9 +13,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "app-approval": {
    "run_sha": "3ef1d085ae4e19ef74bdbdc0ca3474ec99634299b24b819a9239ec197b09ef16",
@@ -31,9 +31,9 @@
     ".",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "app-push": {
    "run_sha": "26cc360dafe7a744810e0897ce086c705735b348b8f5bc4834ff9f42326ae45b",
@@ -81,11 +81,11 @@
     "tools/policy/vendor",
     "tools/pr"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "merge-base"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "app-verdict-poster": {
    "run_sha": "c71974e46a67a03947b4fa59b07a99c75e6a8895c556223f837636fe1440ae70",
@@ -124,6 +124,7 @@
   "bare-array-expansion": {
    "run_sha": "88034369e109a71b0f038cb5eea66a1b3947a7c215421e4cd0f53cff38d2578b",
    "files": [
+    "tests/throwaway_git.py",
     "tools/audit/prepare_baseline.sh",
     "tools/audit/repo_root.sh",
     "tools/audit/seat/a1_dispatch_arms.sh",
@@ -166,12 +167,18 @@
     "tools/pr/push.sh"
    ],
    "probes": [
-    "."
+    ".",
+    "tests",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
    ],
-   "dirs": [],
-   "git": [],
+   "dirs": [
+    "tests"
+   ],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "beat-job-rows": {
    "run_sha": "277c2a90e900de88586526a82d6e3ca9ae9f278481064ce379d931a1d7e36364",
@@ -1388,22 +1395,7 @@
     "dev/audit/rounds/round4/D1/verify2_d102.py",
     "dev/audit/rounds/round4/D1/verify2_d1inst.py",
     "dev/audit/rounds/round4/D10",
-    "dev/audit/rounds/round4/D10/coverage_measure.sh",
-    "dev/audit/rounds/round4/D10/d10_own_D10-01.py",
-    "dev/audit/rounds/round4/D10/d10_own_D10-01.sh",
-    "dev/audit/rounds/round4/D10/d10_own_D10-02.py",
-    "dev/audit/rounds/round4/D10/d10_own_D10-03.py",
-    "dev/audit/rounds/round4/D10/log_when_unavailable.py",
-    "dev/audit/rounds/round4/D10/mypy_arms.sh",
-    "dev/audit/rounds/round4/D10/qs_rules.out.txt",
-    "dev/audit/rounds/round4/D10/qs_rules.py",
-    "dev/audit/rounds/round4/D10/quality_scale.draft.yaml",
-    "dev/audit/rounds/round4/D10/reports",
-    "dev/audit/rounds/round4/D10/reports/FINDER.md",
-    "dev/audit/rounds/round4/D10/verify-0-1.md",
-    "dev/audit/rounds/round4/D10/verify-0-2.md",
-    "dev/audit/rounds/round4/D10/verify-0-3.md",
-    "dev/audit/rounds/round4/D10/verify3",
+    "dev/audit/rounds/round4/D10/**",
     "dev/audit/rounds/round4/D10/verify3/**",
     "dev/audit/rounds/round4/D11",
     "dev/audit/rounds/round4/D11/d11_own_D11-01.py",
@@ -1665,9 +1657,7 @@
     "dev/audit/rounds/round4/resume_row.py",
     "dev/audit/rounds/round5",
     "dev/audit/rounds/round5-fix",
-    "dev/audit/rounds/round5-fix/R5-D7",
-    "dev/audit/rounds/round5-fix/R5-D7/learner_guard_ends.py",
-    "dev/audit/rounds/round5-fix/R5-INST-01",
+    "dev/audit/rounds/round5-fix/**",
     "dev/audit/rounds/round5-fix/R5-INST-01/**",
     "dev/audit/rounds/round5/D0",
     "dev/audit/rounds/round5/D0/seat-a",
@@ -1710,9 +1700,7 @@
     "dev/audit/rounds/round5/D4/seat-a",
     "dev/audit/rounds/round5/D4/seat-a/sweep.mjs",
     "dev/audit/rounds/round5/D7",
-    "dev/audit/rounds/round5/D7/seat-a",
-    "dev/audit/rounds/round5/D7/seat-a/sysid_step_bias.py",
-    "dev/audit/rounds/round5/D7/seat-b",
+    "dev/audit/rounds/round5/D7/**",
     "dev/audit/rounds/round5/D7/seat-b/**",
     "dev/audit/rounds/round5/D8",
     "dev/audit/rounds/round5/D8/seat-b",
@@ -2420,23 +2408,8 @@
     "tools/audit/seat/wt_sync.sh",
     "tools/audit/worktree_gc.sh",
     "tools/ci",
-    "tools/ci/alert_list.py",
-    "tools/ci/alert_list_mutants.sh",
-    "tools/ci/codescan_wait.py",
-    "tools/ci/fixtures",
-    "tools/ci/fixtures/gate_busy_defer_runs.json",
-    "tools/ci/fixtures/ruleset",
+    "tools/ci/**",
     "tools/ci/fixtures/ruleset/**",
-    "tools/ci/gate.py",
-    "tools/ci/ghapi.py",
-    "tools/ci/prelude.py",
-    "tools/ci/ruleset_cutover.py",
-    "tools/ci/selftest_closures.json",
-    "tools/ci/selftest_scope.py",
-    "tools/ci/selftest_scope_mutants.sh",
-    "tools/ci/selftest_step.sh",
-    "tools/ci/sweep.py",
-    "tools/ci/sweep_selftest.py",
     "tools/coverage",
     "tools/coverage/**",
     "tools/devices",
@@ -2567,6 +2540,7 @@
     "tools/audit/seat/body_push.sh",
     "tools/audit/seat/carry_fold.py",
     "tools/audit/seat/gh_read.py",
+    "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/roster_lib.py",
@@ -2579,9 +2553,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "bottleneck-alert": {
    "run_sha": "ed4dead33c2d118cec7a83aa53d6448d96c28ed9b4b8f3880bc9fb7d275eb144",
@@ -2595,9 +2569,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "budget-raise-gate": {
    "run_sha": "8e2afa7d1084b7223a39f0ef593e419b78e3a724781a06ccb99196801427962a",
@@ -2627,9 +2601,9 @@
     "tests",
     "tools/policy"
    ],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "carry-check-and-the": {
    "run_sha": "f974a043ac14814d7a3782bea1f5b9cfe6a2c26dbba0f5a88b81031484603058",
@@ -2738,6 +2712,7 @@
     "commit-tree",
     "describe",
     "diff",
+    "fetch",
     "log",
     "ls-tree",
     "merge",
@@ -2769,9 +2744,9 @@
     "tools/ci",
     "tools/pr"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "ci-probe-instrument": {
    "run_sha": "80189dc4b271d2c5242734dec361f9fa8920e2beb5a67d7965c979630570ca57",
@@ -2804,20 +2779,21 @@
     "tests",
     "tools/audit/seat"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "fetch",
     "maintenance",
     "rev-list"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "ci-watcher": {
    "run_sha": "820b4913eacfeeee41bc39a41bfb2b5cf11e5d7350295ebc90b3b3dc65d18da7",
    "files": [
     "tools/audit/seat/ci-watch.sh",
     "tools/audit/seat/gh_read.py",
-    "tools/audit/seat/merge_train.py"
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/pr_args.sh"
    ],
    "probes": [
     ".",
@@ -2829,9 +2805,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "cloud-dispatcher": {
    "run_sha": "e49c5d629ee31f1ed994740ee1ca890f3771bd1c231c59a91cab8b879ac0191e",
@@ -2915,18 +2891,20 @@
    "run_sha": "0a2fb43948f79c43c90c697eeff8b63e4c98d7ab176a35b3e06398f29fcd69a8",
    "files": [
     "tests/throwaway_git.sh",
-    "tools/audit/seat/cloud-setup.sh"
+    "tools/audit/seat/cloud-setup.sh",
+    "tools/audit/seat/pr_args.sh"
    ],
    "probes": [
     ".",
+    "tests",
     "tools",
     "tools/audit",
     "tools/audit/seat"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "code-scanning-alert-lister": {
    "run_sha": "4c9e65ae7052e1b039877a4cfeed610ecaf150af983cf72654f5abbf6c161cad",
@@ -2937,9 +2915,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "code-scanning-wait": {
    "run_sha": "919a02871862a9dee51633b9df10d74fea148fd920c3f71e01a60aec416a14ee",
@@ -2958,9 +2936,9 @@
    "dirs": [
     "tools/ci"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "codeql-leg-scope": {
    "run_sha": "949543911e071c99df910451558db232c5be07b3c50fd8b5c797aa510e2660e0",
@@ -2978,11 +2956,11 @@
    "dirs": [
     "tests"
    ],
+   "index": false,
+   "objects": true,
    "git": [
     "diff"
-   ],
-   "index": false,
-   "objects": true
+   ]
   },
   "comment-poster": {
    "run_sha": "9991c3bb0ea6050b48c71c087bd66e39bd2058e14bc412b8e0191c56fb27febe",
@@ -3007,9 +2985,9 @@
     "tools/policy",
     "tools/pr"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "critical-path-and-flow": {
    "run_sha": "0ba2529c06b1249ce07c70b8c93a13dea43c594e2cae1de8dc3daf1e3a2e2d1a",
@@ -3035,11 +3013,11 @@
     "tools/audit/seat",
     "tools/audit/seat/fixtures/ci_critpath"
    ],
+   "index": false,
+   "objects": true,
    "git": [
     "show"
-   ],
-   "index": false,
-   "objects": true
+   ]
   },
   "day-chart": {
    "run_sha": "baf2fd4638f92c6a5b8d925f01b49a3d02568db7ee93785ddb86c60126ce82a4",
@@ -3061,10 +3039,12 @@
    "files": [
     "tests/throwaway_git.sh",
     "tools/audit/seat/delivery_row.sh",
+    "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/ref_privacy.py"
    ],
    "probes": [
     ".",
+    "tests",
     "tools",
     "tools/audit",
     "tools/audit/seat"
@@ -3072,9 +3052,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "dependabot-merge-decision": {
    "run_sha": "a7d826e0398adb40091c4957951beec5a48cd9edba2f8729f222b5c07f562291",
@@ -3088,9 +3068,9 @@
     "tools/pr"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "dependency-graph-census": {
    "run_sha": "2fc275964d5628cecf27226ec91672f83abf35c8fd29a39db34fe589e240479d",
@@ -3638,6 +3618,7 @@
     "tests/mutation_ledger/killed_by/draw_range.py",
     "tests/mutation_ledger/killed_by/drift.py",
     "tests/mutation_ledger/killed_by/driving_grade.py",
+    "tests/mutation_ledger/killed_by/duty_legs.py",
     "tests/mutation_ledger/killed_by/duty_switch.py",
     "tests/mutation_ledger/killed_by/early_cutoff.py",
     "tests/mutation_ledger/killed_by/entity.py",
@@ -3689,6 +3670,7 @@
     "tests/mutation_ledger/killed_by/slot_drivers.py",
     "tests/mutation_ledger/killed_by/snapshots.py",
     "tests/mutation_ledger/killed_by/store.py",
+    "tests/mutation_ledger/killed_by/supply_hold.py",
     "tests/mutation_ledger/killed_by/switch.py",
     "tests/mutation_ledger/killed_by/sysid.py",
     "tests/mutation_ledger/killed_by/tariff.py",
@@ -3796,9 +3778,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "dispatch-cap": {
    "run_sha": "e142fa84a5fb375179e966f5d9a0bf6c3b83fe2ca152c16f90a04bc8c8ee2085",
@@ -3810,16 +3792,17 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "failure-log-reader": {
    "run_sha": "79b967aa875bee34c43b9c4194bda86510bdb0f9e98c3df4174bb87462f8852b",
    "files": [
     "tools/audit/seat/failure_logs.sh",
     "tools/audit/seat/gh_read.py",
-    "tools/audit/seat/merge_train.py"
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/pr_args.sh"
    ],
    "probes": [
     ".",
@@ -3831,9 +3814,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "features-block": {
    "run_sha": "b7aa6fd84535cc431422519c2871f860cb64a70b49eda145e6c5e9df4937aefc",
@@ -3870,12 +3853,16 @@
     "tests/delivery_status.py",
     "tests/derive_closures.sh",
     "tests/dom_stub.mjs",
+    "tests/entities.py",
     "tests/env_drift.py",
     "tests/features.py",
     "tests/finite_boundary.py",
+    "tests/gate_lock.py",
     "tests/golden.py",
+    "tests/ha_floor.py",
     "tests/harness.py",
     "tests/host_probe.py",
+    "tests/issue996_count.py",
     "tests/lane_skip.py",
     "tests/layout.json",
     "tests/layout.py",
@@ -3962,6 +3949,7 @@
     "tools/audit/seat/record_beat.py",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/ref_privacy.py",
+    "tools/audit/seat/remerge_main.sh",
     "tools/audit/seat/resume_doc.py",
     "tools/audit/seat/review_carry.py",
     "tools/audit/seat/review_packet.py",
@@ -4016,6 +4004,7 @@
     "tools/policy/figure_lint.mjs",
     "tools/policy/fragments_sync.mjs",
     "tools/policy/friction_issues.mjs",
+    "tools/policy/legacy_control_files.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/policy_lint_envmatrix.mjs",
     "tools/policy/policy_lint_mutants.mjs",
@@ -4109,9 +4098,9 @@
     "tools/policy/fixtures/figures"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "figure-check": {
    "run_sha": "385940e6e44c968a26113faff8251f21802f10fc64d3fecfbed2011e28f66b58",
@@ -4134,9 +4123,9 @@
     "tools/pr/prepr.sh"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "fragment-check": {
    "run_sha": "90a2ee3e4d234a1f84217fe48e0e88ef1d01dafc9a49c331c518bf0a43063d7b",
@@ -4224,9 +4213,9 @@
    "dirs": [
     ".claude/workflows"
    ],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "gantt-and-verdict-audit": {
    "run_sha": "d1f9161e487c99eb5be4378579e90ac6800a56240f6f3d5a8bd71abdc277e1ae",
@@ -4238,9 +4227,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "gantt-drift": {
    "run_sha": "166a86552d93555728edf76ea5296105cfd058e20150f8cc1dcd4d417cf9f209",
@@ -4251,9 +4240,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "gate-predicate": {
    "run_sha": "dbd1cf4a4f40114a4869ab0943a911f0f65164587b81ebe19d3336a05aae01d7",
@@ -4274,9 +4263,9 @@
    "dirs": [
     "tools/ci"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "gate-sweep": {
    "run_sha": "14332389bd39165ea708fc743382f9b3ce8bb13b261a96f1394443e1dabbf103",
@@ -4291,9 +4280,9 @@
    "dirs": [
     "tools/ci"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "gh-call-log-shim": {
    "run_sha": "f7b00abdc16649eff7027d19450a7c15669e548a86651f6ef8562e43e4c31489",
@@ -4309,9 +4298,9 @@
     ".",
     "tests"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "gh-read-run": {
    "run_sha": "e1e5f1991f49a10657c6a31af7ad709b63607e00b2da49b7313f4c8b05cb2214",
@@ -4341,9 +4330,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "handoff-push": {
    "run_sha": "6f2675909677bd166b3afeb42900c406946ff121e3decd3f80bb1927db92c038",
@@ -4361,6 +4350,7 @@
     "config",
     "objects",
     "refs",
+    "tests",
     "tests/env_drift.py",
     "tools",
     "tools/audit",
@@ -4370,9 +4360,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "handover-prompt": {
    "run_sha": "978bb964bf6f2b3577322b27c19093a8d35e6e9ed1da21d05f37a4dd47b0644f",
@@ -4409,6 +4399,7 @@
    "files": [
     "tests/throwaway_git.sh",
     "tools/audit/seat/heartbeat.sh",
+    "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/ref_privacy.py"
    ],
    "probes": [
@@ -4417,14 +4408,15 @@
     "objects",
     "packed-refs",
     "refs",
+    "tests",
     "tools",
     "tools/audit",
     "tools/audit/seat"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "hooks-setup": {
    "run_sha": "9f46638b450f0c1c11914f0ab66e131f73054dd3ce75d039a317d7657bb4a921",
@@ -4571,9 +4563,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "ledger-mutation-harness": {
    "run_sha": "0638a2c8c16dd37e4ee44287fd87c16b49ab5cf7999594462d4e205c0b71558d",
@@ -4594,9 +4586,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "local-alert-lister": {
    "run_sha": "310e0c54c961574777d44e6d821ca44ee2415edd85fdb4ba2baa5653bf7b55ca",
@@ -4612,9 +4604,9 @@
    "dirs": [
     "tools/ci"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "machinery-ratchet": {
    "run_sha": "27ea83021c2a8528abd0f1b88a9ebdb9dfa7346b4a8ca0609d11f72e80f2888d",
@@ -4631,9 +4623,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "mandate-guard-mutation-harness": {
    "run_sha": "27411fc800ebfa05d4598e2d1740983a5e83e1f46a2a31148907b16d01d310a6",
@@ -4649,9 +4641,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "merge-fast-path": {
    "run_sha": "6fc9020ca7715276e8de746b245c014d20a362b7392d89a8b8b4051850beafb2",
@@ -4681,9 +4673,9 @@
     "tests",
     "tools/audit"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "merge-main-bot": {
    "run_sha": "f78803bb77a7d5e82fc4e2272d206f64c6e029e0003fbbee5defebfcb90f295a",
@@ -4696,6 +4688,7 @@
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/dependabot_contract.mjs",
+    "tools/policy/legacy_control_files.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/render_md.mjs",
     "tools/policy/vendor/markdown-it.min.js",
@@ -4718,13 +4711,14 @@
     "tests",
     "tools/pr"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "merge-train": {
    "run_sha": "f79ca10ea5b68ac69e0666ca998dae7e3a7a0d3f7c9f1b9bfe1a52f010667c36",
    "files": [
+    ".gitattributes",
     ".github/workflows/ci.yml",
     ".github/workflows/nightly.yml",
     "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
@@ -4739,7 +4733,9 @@
     "tools/audit/merge_fastpath.py",
     "tools/audit/seat/gh_read.py",
     "tools/audit/seat/ledger.py",
+    "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/orchestrator_tick.py",
     "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/proof_watch.py",
     "tools/audit/seat/queue_pre_flight.py",
@@ -4765,13 +4761,13 @@
     "tools/ci",
     "tools/release"
    ],
+   "index": false,
+   "objects": true,
    "git": [
     "diff",
     "ls-tree",
     "show"
-   ],
-   "index": false,
-   "objects": true
+   ]
   },
   "moved-path-reader": {
    "run_sha": "5375b0fa5ad187f70df1285f4fc746f92b11055f02ad8c6d4361a43ec0781392",
@@ -4789,9 +4785,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "mutant-driver": {
    "run_sha": "8a12b8665684a89b1d235783bfcda1ebb1ccafa0299a5b924e594cc3ed18e62b",
@@ -4862,14 +4858,15 @@
     "config",
     "objects",
     "refs",
+    "tests",
     "tools",
     "tools/audit",
     "tools/audit/seat"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "open-driver": {
    "run_sha": "a40d900542b0c730d047b4001cadd56bed0c7c18e86c0ec66e9065f0f75f5f64",
@@ -4898,9 +4895,9 @@
     "tests",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "open-pr": {
    "run_sha": "2e72b01d52ab1335bcc6a6db4394748eb22981395369e23d9d38c81e856bc2a4",
@@ -5097,11 +5094,14 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
+    "dev/programme/delivery/5.md",
     "objects",
     "packed-refs",
     "refs",
+    "tests",
     "tests/env_drift.py",
     "tools",
     "tools/.gitattributes",
@@ -5180,11 +5180,11 @@
     "tools/audit/seat",
     "tools/ci"
    ],
+   "index": false,
+   "objects": true,
    "git": [
     "merge-base"
-   ],
-   "index": false,
-   "objects": true
+   ]
   },
   "outside-contract": {
    "run_sha": "025732c1856bbffa8a8875fef362950428daf1f6f935e1d4b723b42eb5e21c29",
@@ -5367,9 +5367,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "owed-line-reader": {
    "run_sha": "188ebdb9f5731a219d6cc2d96a08494415aeb1b5d68c579f1c25d4c697992e2d",
@@ -5380,9 +5380,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "p3-move-ledger-and": {
    "run_sha": "e7e5dd164671c2df456aec3377e7e82b9a039b6acef2d838ba2325504fb28eee",
@@ -5400,9 +5400,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "pin-rule": {
    "run_sha": "b6dfcf435a5771251bbbd2085b46d16057ce68105bf3fc4e891aefb63dd9dcde",
@@ -5427,9 +5427,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": true,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "plan-page": {
    "run_sha": "87be7bdeb72cf26e61fa3d08fdbf093158083de1b44904cad7a2b2f150cf5736",
@@ -5492,9 +5492,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "plan-table": {
    "run_sha": "2d928df151f580316fcbf48a195ec5c1d6b9dd3aefdaa7ba1a8334e19f930565",
@@ -5511,9 +5511,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "policy-lint-mutants": {
    "run_sha": "3e1b10dc363352e2251bc6cdc07107e2356a527ac64ad9c790f61a2c37015d9f",
@@ -5629,6 +5629,7 @@
     "tools/policy/fixtures/required-contexts.json",
     "tools/policy/fragments_sync.mjs",
     "tools/policy/friction_issues.mjs",
+    "tools/policy/legacy_control_files.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/policy_lint_envmatrix.mjs",
     "tools/policy/policy_lint_mutants.mjs",
@@ -6452,11 +6453,14 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
+    "dev/programme/delivery/5.md",
     "objects",
     "packed-refs",
     "refs",
+    "tests",
     "tests/env_drift.py",
     "tools",
     "tools/.gitattributes",
@@ -6497,6 +6501,7 @@
     "tools/audit/seat/gh_read.py",
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/pr_args.sh",
     "tools/policy/budget_raise_gate.py"
    ],
    "probes": [
@@ -6519,9 +6524,9 @@
     "tools/audit/seat",
     "tools/policy"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "prepr": {
    "run_sha": "81b5b27a77597fc4f4cc0ef7df3f26ae0c869c3a9ef9ae7a0b76c3db2b8af521",
@@ -6601,6 +6606,7 @@
     "tools/policy/fixtures/policy-rot/prepr/wrong-head.md",
     "tools/policy/fixtures/red-ancestry/**",
     "tools/policy/fixtures/required-contexts.json",
+    "tools/policy/legacy_control_files.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/render_md.mjs",
     "tools/policy/role_pack.py",
@@ -7148,6 +7154,7 @@
     "tests/mutation_ledger/killed_by/draw_range.py",
     "tests/mutation_ledger/killed_by/drift.py",
     "tests/mutation_ledger/killed_by/driving_grade.py",
+    "tests/mutation_ledger/killed_by/duty_legs.py",
     "tests/mutation_ledger/killed_by/duty_switch.py",
     "tests/mutation_ledger/killed_by/early_cutoff.py",
     "tests/mutation_ledger/killed_by/entity.py",
@@ -7199,6 +7206,7 @@
     "tests/mutation_ledger/killed_by/slot_drivers.py",
     "tests/mutation_ledger/killed_by/snapshots.py",
     "tests/mutation_ledger/killed_by/store.py",
+    "tests/mutation_ledger/killed_by/supply_hold.py",
     "tests/mutation_ledger/killed_by/switch.py",
     "tests/mutation_ledger/killed_by/sysid.py",
     "tests/mutation_ledger/killed_by/tariff.py",
@@ -7333,9 +7341,9 @@
     "tests",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "programme-pulse": {
    "run_sha": "9727fc2f45263c9c62fb3d38e423f05fc851d3f7df647baa2ae57be613cfc41f",
@@ -7383,9 +7391,9 @@
     "tools/audit/seat",
     "tools/ci"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "push-names-the-host": {
    "run_sha": "a492e10b008367971423622e5d3d5f84f6c9302f39c7a7504905ba3080bae85d",
@@ -7460,6 +7468,7 @@
    "index": false,
    "objects": true,
    "git": [
+    "?",
     "diff",
     "merge-base",
     "show"
@@ -7484,6 +7493,7 @@
     "tools/policy/fixtures/policy-rot/prepr/good.md",
     "tools/policy/fixtures/policy-rot/prepr/no-figures.md",
     "tools/policy/fixtures/policy-rot/prepr/wrong-head.md",
+    "tools/policy/legacy_control_files.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/render_md.mjs",
     "tools/policy/vendor/markdown-it.min.js",
@@ -7496,6 +7506,7 @@
     "objects",
     "package.json",
     "refs",
+    "tests",
     "tools",
     "tools/audit",
     "tools/audit/seat",
@@ -7510,12 +7521,12 @@
    "dirs": [
     "dev/governance/dimensions"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "merge-base",
     "show"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "record-predicate-sweep": {
    "run_sha": "f092f3910b4b4b6c698000cd683d2c7a0843a4a3788bfa108ae63f5b6f81d705",
@@ -7529,9 +7540,9 @@
     "tools/policy/record-predicate"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "record-row-generator": {
    "run_sha": "9a9a4ca26cb18dee16f8e861a3fc734dbb6ea002a7db16b4316b99ecbad449ec",
@@ -7553,6 +7564,7 @@
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/dependabot_contract.mjs",
+    "tools/policy/legacy_control_files.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/render_md.mjs",
     "tools/policy/vendor/markdown-it.min.js",
@@ -7583,11 +7595,11 @@
     "tools/audit/seat",
     "tools/release"
    ],
+   "index": true,
+   "objects": true,
    "git": [
     "diff"
-   ],
-   "index": true,
-   "objects": true
+   ]
   },
   "ref-pruner": {
    "run_sha": "e9a4011f002b3591593de2307fd743aa0477052bc058be6cff2970467a11f0b9",
@@ -7611,9 +7623,9 @@
     "tests",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "resume-renderer": {
    "run_sha": "78b863f6f1c6616877dd271c57f41953f997c677d1c4c4adfd177ccb35892f75",
@@ -7630,9 +7642,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "review-carry": {
    "run_sha": "02aaf8bcf11f88f6d26667091882c9f79e22ecdc327f914b0686f1d3f81f657d",
@@ -7685,6 +7697,7 @@
     "tools/policy/counts.mjs",
     "tools/policy/dependabot_contract.mjs",
     "tools/policy/fixtures/required-contexts.json",
+    "tools/policy/legacy_control_files.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/render_md.mjs",
     "tools/policy/vendor/markdown-it.min.js"
@@ -7743,9 +7756,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "roster-editor": {
    "run_sha": "69d134ca93555d9ce85205a52a5eb7ef397b6bf559866955924dc0fee3152065",
@@ -7770,9 +7783,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "roster-library": {
    "run_sha": "ef4cbcbdebfe734c9270dab5c152611820d5f1abdb65bb51f459535bf08e8287",
@@ -7790,9 +7803,9 @@
    "dirs": [
     "tests"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "roster-ops-mutation-harness": {
    "run_sha": "ff64ecaef9c502f634ec498485bc646c76e67e625d81961b0ab116701e85812d",
@@ -7812,9 +7825,9 @@
     "tools/audit/seat"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "roster-queue-runner": {
    "run_sha": "d5cd705b4d2a5ded00be29cdd0c36a43a31afc42011bdb9205b6cf665468041f",
@@ -7877,9 +7890,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "round-closeout": {
    "run_sha": "e63320b15f7e6afe184cddd447296bdc858f072014643de2b7db1af60929a6da",
@@ -7910,9 +7923,9 @@
     "tools/audit",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "ruleset-cut-over-instrument": {
    "run_sha": "8eade8ef98320d326fd120c27f5825f3096030e499f8d8be5f51a2f9a91e073e",
@@ -7931,9 +7944,9 @@
    "dirs": [
     "tools/ci"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "scorecard": {
    "run_sha": "3215c0b1f85e68b18dde7d804fdeca68363603e0bf8bb708323038e2801941ac",
@@ -7960,6 +7973,7 @@
     "tests/requirements-typing.txt",
     "tests/typing_budgets.json",
     "tools/audit/seat/cloud-setup.sh",
+    "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/seat_venv.sh",
     "tools/audit/seat/shims/**"
    ],
@@ -7967,9 +7981,9 @@
    "dirs": [
     "."
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "self-tests-outside-seat": {
    "run_sha": "f74f563517915a57fe460412e738e310a7b60174f1d47ff211e4ed8e856a3c3b",
@@ -8086,6 +8100,7 @@
     "tools/policy/fixtures/required-contexts.json",
     "tools/policy/fragments_sync.mjs",
     "tools/policy/friction_issues.mjs",
+    "tools/policy/legacy_control_files.json",
     "tools/policy/policy_lint.mjs",
     "tools/policy/policy_lint_envmatrix.mjs",
     "tools/policy/policy_lint_mutants.mjs",
@@ -8460,9 +8475,9 @@
     "tools/release"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "state-doc-writer": {
    "run_sha": "78e714c49c75381ec173e957096d960d7899d651c3167a99cbf70097d17ee208",
@@ -8526,9 +8541,9 @@
    "dirs": [
     "tools/pr"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "survivor-list": {
    "run_sha": "644c9178e34209c89b429f7eaa62936c767c0dae6fe9fb2401b395a3c883baed",
@@ -8570,9 +8585,9 @@
     "tools/audit/seat",
     "tools/ci"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "sweep-template": {
    "run_sha": "1d49f84bb509400c39fadeae7a53e0c6b2f3c504729c313b927bdc034000604c",
@@ -8606,9 +8621,9 @@
    "dirs": [
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "temp-or-machine-path": {
    "run_sha": "5de9df182b392af5fbf8cfe28d3fb7d5c980b09492dc638523bde313ec1770fb",
@@ -8671,6 +8686,7 @@
     "tests/mutation_ledger/killed_by/draw_range.py/.gitattributes",
     "tests/mutation_ledger/killed_by/drift.py/.gitattributes",
     "tests/mutation_ledger/killed_by/driving_grade.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/duty_legs.py/.gitattributes",
     "tests/mutation_ledger/killed_by/duty_switch.py/.gitattributes",
     "tests/mutation_ledger/killed_by/early_cutoff.py/.gitattributes",
     "tests/mutation_ledger/killed_by/entity.py/.gitattributes",
@@ -8722,6 +8738,7 @@
     "tests/mutation_ledger/killed_by/slot_drivers.py/.gitattributes",
     "tests/mutation_ledger/killed_by/snapshots.py/.gitattributes",
     "tests/mutation_ledger/killed_by/store.py/.gitattributes",
+    "tests/mutation_ledger/killed_by/supply_hold.py/.gitattributes",
     "tests/mutation_ledger/killed_by/switch.py/.gitattributes",
     "tests/mutation_ledger/killed_by/sysid.py/.gitattributes",
     "tests/mutation_ledger/killed_by/tariff.py/.gitattributes",
@@ -8826,221 +8843,12 @@
     "tests/throwaway_git.sh"
    ],
    "probes": [
-    ".",
-    ".claude/.gitattributes",
-    ".claude/hooks/.gitattributes",
-    ".claude/rules/.gitattributes",
-    ".claude/skills/.gitattributes",
-    ".claude/skills/steward/.gitattributes",
-    ".claude/workflows/.gitattributes",
-    "config",
-    "dev/.gitattributes",
-    "dev/audit/.gitattributes",
-    "dev/audit/harnesses/.gitattributes",
-    "dev/audit/harnesses/ci-version-edit/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_p1/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_p2_u1u2u7/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_u0c/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_u10/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_u11/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_u3/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_u4/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_u5/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_u6/.gitattributes",
-    "dev/audit/harnesses/r10_ci_layout_u8/.gitattributes",
-    "dev/audit/harnesses/r10_ci_slim/.gitattributes",
-    "dev/audit/harnesses/r10_gate_stale_jobs/.gitattributes",
-    "dev/audit/harnesses/r10_hotfix_ci_critpath_3/.gitattributes",
-    "dev/audit/harnesses/r10_hotfix_ci_critpath_4/.gitattributes",
-    "dev/audit/harnesses/r10_mutant_skip/.gitattributes",
-    "dev/audit/harnesses/r10_rca_ci_critpath_3/.gitattributes",
-    "objects",
-    "refs",
-    "tests",
-    "tests/.gitattributes",
-    "tests/fixtures/.gitattributes",
-    "tests/golden/.gitattributes",
-    "tests/hastub/.gitattributes",
-    "tests/hastub/homeassistant/.gitattributes",
-    "tests/hastub/homeassistant/components/.gitattributes",
-    "tests/hastub/homeassistant/components/recorder/.gitattributes",
-    "tests/hastub/homeassistant/helpers/.gitattributes",
-    "tests/hastub/homeassistant/util/.gitattributes",
-    "tests/mutation_ledger/.gitattributes",
-    "tests/mutation_ledger/killed_by/.gitattributes",
-    "tests/mutation_ledger/killed_by/__init__.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/accuracy.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/away.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/batchmath.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/battery.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/binary_sensor.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/boost.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/button.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/climate.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/comfort_band.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/comfort_learning.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/config_flow.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/const.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/coordinator.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/currency.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/curve_learning.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/datetime.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/debugger.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/defrost.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/device_prefill.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/dhw_draws.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/dhw_learning.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/dhw_planner.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/dhw_schedule.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/diagnosis.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/diagnostics.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/disinfection.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/draw_range.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/drift.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/driving_grade.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/duty_switch.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/early_cutoff.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/entity.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/entry_config.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/external_heat.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/flow_lift.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/flow_meter.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/freq_control.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/frontend.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/grid_fee.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/heat_curve.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/heat_energy.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/inputs.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/issues.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/learner_progress.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/ledger.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/legionella.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/log_latch.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/manual_plan.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/mixing_valve.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/modbus_prefill.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/name_match.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/narrative.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/notifier.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/off_restore.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/open_meteo.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/optimizer.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/plan_slots.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/plan_step.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/power_guard.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/prefill_offer.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/presets.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/price_model.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/price_tiles.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/process_worker.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/pump_arbiter.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/pump_mode.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/pump_schedule.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/pump_signals.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/pv.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/quick_setup.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/quiet_windows.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/repairs.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/replay_doc.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/sensor.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/services.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/setpoint_check.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/silent_mode.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/slot_drivers.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/snapshots.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/store.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/switch.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/sysid.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/tariff.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/thermal_model.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/topology.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/wear.py/.gitattributes",
-    "tests/mutation_ledger/killed_by/wood_fuel.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/accuracy.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/away.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/battery.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/binary_sensor.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/boost.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/config_flow.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/coordinator.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/debugger.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/dhw_planner.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/dhw_schedule.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/draw_range.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/drift.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/duty_switch.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/early_cutoff.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/entry_config.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/heat_curve.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/heat_energy.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/inputs.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/ledger.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/manual_plan.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/notifier.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/off_restore.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/optimizer.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/payload.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/pump_arbiter.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/pump_mode.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/quiet_windows.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/repairs.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/sensor.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/slot_drivers.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/store.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/sysid.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/tariff.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/thermal_model.py/.gitattributes",
-    "tests/mutation_ledger/survivor_triage/wood_fuel.py/.gitattributes",
-    "tests/pwlane/.gitattributes",
-    "tests/replay/.gitattributes",
-    "tools/.gitattributes",
-    "tools/audit/.gitattributes",
-    "tools/audit/archscore/.gitattributes",
-    "tools/audit/archscore/calibration/.gitattributes",
-    "tools/audit/archscore/metrics/.gitattributes",
-    "tools/audit/archscore/planted/.gitattributes",
-    "tools/audit/archscore/planted/perturb/.gitattributes",
-    "tools/audit/archscore/planted/redteam/.gitattributes",
-    "tools/audit/round4/**",
-    "tools/audit/seat/.gitattributes",
-    "tools/audit/seat/beatd_shims/.gitattributes",
-    "tools/audit/seat/fixtures/.gitattributes",
-    "tools/audit/seat/fixtures/beat_jobs/.gitattributes",
-    "tools/audit/seat/fixtures/ci_critpath/.gitattributes",
-    "tools/audit/seat/hooks/.gitattributes",
-    "tools/audit/seat/instruments/.gitattributes",
-    "tools/audit/seat/shims/.gitattributes",
-    "tools/ci/.gitattributes",
-    "tools/ci/fixtures/.gitattributes",
-    "tools/ci/fixtures/ruleset/.gitattributes",
-    "tools/coverage/.gitattributes",
-    "tools/devices/.gitattributes",
-    "tools/merge/.gitattributes",
-    "tools/plan/.gitattributes",
-    "tools/policy/.gitattributes",
-    "tools/policy/fixtures/.gitattributes",
-    "tools/policy/fixtures/figures/.gitattributes",
-    "tools/policy/fixtures/policy-loop/.gitattributes",
-    "tools/policy/fixtures/policy-rot/.gitattributes",
-    "tools/policy/fixtures/policy-rot/hooks/.gitattributes",
-    "tools/policy/fixtures/policy-rot/prepr/.gitattributes",
-    "tools/policy/fixtures/policy-rot/prepr/raise/.gitattributes",
-    "tools/policy/fixtures/policy-rot/prepr/raise/recorded/.gitattributes",
-    "tools/policy/fixtures/policy-rot/prepr/upstream/.gitattributes",
-    "tools/policy/fixtures/red-ancestry/.gitattributes",
-    "tools/policy/fixtures/red-ancestry/bare/.gitattributes",
-    "tools/policy/fixtures/red-ancestry/green/.gitattributes",
-    "tools/policy/fixtures/red-ancestry/red/.gitattributes",
-    "tools/policy/fixtures/roster-probe/.gitattributes",
-    "tools/policy/record-predicate/.gitattributes",
-    "tools/policy/vendor/.gitattributes",
-    "tools/pr/.gitattributes",
-    "tools/release/.gitattributes",
-    "tools/replay/.gitattributes",
-    "tools/site/.gitattributes"
+    "tools/audit/round4/**"
    ],
-   "dirs": [],
+   "dirs": [
+    ".",
+    "tests"
+   ],
    "index": false,
    "objects": true,
    "git": [
@@ -9052,6 +8860,8 @@
    "files": [
     "tests/throwaway_git.sh",
     "tools/audit/seat/heartbeat.sh",
+    "tools/audit/seat/offline_spy.py",
+    "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/ref_privacy.py",
     "tools/audit/seat/tick_loop.sh"
    ],
@@ -9061,6 +8871,7 @@
     "config",
     "objects",
     "refs",
+    "tests",
     "tools",
     "tools/.git",
     "tools/HEAD",
@@ -9089,9 +8900,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "train-launcher": {
    "run_sha": "355bdc1a9838e18c3149643e9127300c16aec234aa95e15e88d57bb5da836aeb",
@@ -9113,9 +8924,9 @@
     "tools/audit/seat/HEAD"
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "twin-run-reader": {
    "run_sha": "05d5e8a0774d34d43a926f9e8f18f1f73669f536617125148a2486baaf87907b",
@@ -9126,9 +8937,9 @@
     "."
    ],
    "dirs": [],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "update-pr": {
    "run_sha": "dfbf8038803e4743ee467e3e656bf0f20c07675e47ed36302f4cef35a276b277",
@@ -9325,11 +9136,14 @@
    ],
    "probes": [
     "-",
+    "-c",
     ".",
     "config",
+    "dev/programme/delivery/5.md",
     "objects",
     "packed-refs",
     "refs",
+    "tests",
     "tests/env_drift.py",
     "tools",
     "tools/.gitattributes",
