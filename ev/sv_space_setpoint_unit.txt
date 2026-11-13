@@ -1,0 +1,4 @@
+346:          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+365:          "space_setpoint_unit": "Föreslås som framledning när pumpens register för styrläge (100DH) står på vattentemperaturstyrning.",
+1
+82

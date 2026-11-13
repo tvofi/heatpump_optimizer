@@ -1,0 +1,12 @@
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL hot water disabled leaves the loop pump ON, never stuck off  [a configured pump abandoned in its last commanded state is a cold-loop trap]
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+ALL 137 DST / QUARTER-GRID CHECKS PASSED
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+
+real	3m50.025s
+user	3m14.293s
+sys	0m1.900s
+
+[exited with code 0]
