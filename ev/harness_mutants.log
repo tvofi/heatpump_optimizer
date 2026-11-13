@@ -1,0 +1,8 @@
+== roster_lib-1 roster_lib.py: KILLED rc=1 | TOTAL: 0 error(s) across 1 file(s)
+== roster_lib-2 roster_lib.py: KILLED rc=1 | AttributeError: 'NoneType' object has no attribute 'strip'
+== S35 handoff_push.sh: KILLED rc=1 | handoff_push self-test: 6 checks, 3 failed
+== S36 handoff_push.sh: KILLED rc=1 | handoff_push self-test: 6 checks, 2 failed
+== body_push-5 tools/audit/seat/body_push.sh: KILLED rc=1 | ref_privacy self-test: 125 checks, 1 failed
+== body_push-6 tools/audit/seat/body_push.sh: KILLED rc=1 | ref_privacy self-test: 125 checks, 1 failed
+RESULT survivors=0
+rc=0

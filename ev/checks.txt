@@ -1,0 +1,30 @@
+== policy_lint
+TOTAL: 0 error(s) across 50 policy file(s)
+== budgets
+rc=0
+== handoff_push
+  ok   a code head carrying a co-author trailer is refused, and nothing is pushed
+handoff_push self-test: 6 checks, 0 failed
+rc=0
+== ci_predict
+  ok   every JOB value is a name gate.REQUIRED owes
+ci_predict self-test: 0 failed
+rc=0
+== ci_predict regs
+1569:    bad += step_replay_self_test(root)
+1570:    bad += roundref_self_test(root)
+== harness map
+177:    ("roster_lib-1", "roster_lib.py", "or not minutes > 0 or", "or"),
+178:    ("roster_lib-2", "roster_lib.py", "if not isinstance(cite, str) or not cite.strip():", "if False:"),
+409:    ("body_push-1", "tools/audit/seat/body_push.sh",
+412:    ("body_push-2", "tools/audit/seat/body_push.sh",
+416:    ("body_push-3", "tools/audit/seat/body_push.sh", '[ -z "$HREF" ] || MSG=', '[ -n "$HREF" ] || MSG='),
+417:    ("body_push-4", "tools/audit/seat/body_push.sh", '  if [ "$lrc" = 1 ]; then  # mut:landed', '  if false; then'),
+421:    ("body_push-5", "tools/audit/seat/body_push.sh",
+424:    ("body_push-6", "tools/audit/seat/body_push.sh",
+735:           "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
+736:           "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh", "body_push-4": "tools/pr/prepr.sh",
+737:           "body_push-5": "tools/audit/seat/ref_privacy.py", "body_push-6": "tools/audit/seat/ref_privacy.py",
+739:           "roster_lib-1": "roster_edit.py", "roster_lib-2": "roster_edit.py"}
+== README LOG
+91:is accepted only when its friction blocks a production merge, else ruled LOG.
