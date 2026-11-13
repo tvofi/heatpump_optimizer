@@ -433,6 +433,12 @@ def cases(bj) -> dict[str, bool]:
     res["plan-beat: replan is handed the plan, slots and seats"] = (
         arg(a, "--out") == str(c.state.parent / "p.json") or arg(a, "--out").endswith("p.json")) and (
         arg(a, "--slots") == "10" and arg(a, "--seats") == "99")
+    res["plan-beat null: no plan_coordinator_cap leaves replan its own default"] = "--coordinator-cap" not in a
+    c, f = fresh(overlay={"repo": "o/r", "plan_json": str(root / "pc.json"), "plan_slots": 10, "plan_seats": 99,
+                          "state_mirror": str(root / "pcm"), "plan_coordinator_cap": 3})
+    bj.plan_beat(c)
+    res["plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap"] = (
+        arg(f.calls[0], "--coordinator-cap") == "3")
     c, f = fresh(answers={"state_docs.py": (0, "pushed handoff/audit-r10-plan at abc\n", "")})
     bj.plan_beat(c)
     gh = [x for x in f.calls if x[0] == "gh"]
@@ -500,6 +506,32 @@ def cases(bj) -> dict[str, bool]:
     bj.bottleneck(c)
     res["bottleneck: an overlay without train_log is UNREADABLE and runs nothing"] = (
         digest(c) == "bottleneck: UNREADABLE overlay lacks train_log\n" and f.ran("bottleneck_check.py") == 0)
+
+    # scorecard
+    sc_out = "A_gate 1\nK 2\n"
+    c, f = fresh(answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    sc = next((x for x in f.calls if any(a.endswith("scorecard.py") for a in x)), [])
+    res["scorecard null: a clean report leaves the digest empty and writes scorecard.txt"] = (
+        not digest(c) and f.ran("scorecard.py") == 1 and bj.read(c.state / "beatd" / "scorecard.txt") == sc_out)
+    res["scorecard: the instrument is handed report, its dir under state/, the train_log and the checkout"] = (
+        "report" in sc and arg(sc, "--dir") == str(c.state / "scorecard")
+        and arg(sc, "--train-log") == str(c.state / "train.log") and arg(sc, "--repo") == str(c.repo)
+        and "--sweep-record" not in sc)
+    ov = json.loads((c.state / "sweep-overlay.json").read_text())
+    c, f = fresh(overlay={**ov, "sweep_record": "/x/rec.json"}, answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    sc = next((x for x in f.calls if any(a.endswith("scorecard.py") for a in x)), [])
+    res["scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)"] = (
+        arg(sc, "--sweep-record") == "/x/rec.json")
+    c, f = fresh(answers={"scorecard.py": (1, sc_out, "Traceback\nKeyError: 'x'\n")})
+    bj.scorecard(c)
+    res["scorecard: a failed instrument is UNREADABLE, never written"] = (
+        digest(c) == "scorecard: UNREADABLE rc=1: KeyError: 'x'\n" and not (c.state / "beatd" / "scorecard.txt").exists())
+    c, f = fresh(overlay={"repo": "o/r", "plan_slots": 10}, answers={"scorecard.py": (0, sc_out, "")})
+    bj.scorecard(c)
+    res["scorecard: an overlay without train_log is UNREADABLE and runs nothing"] = (
+        digest(c) == "scorecard: UNREADABLE overlay lacks train_log\n" and f.ran("scorecard.py") == 0)
 
     # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
     c, f = fresh(answers={"roster_queue.py": (0, "", "")})
@@ -944,6 +976,8 @@ MUTANTS = {
                                    "roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s"),
     "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
+    "plan_cap_unread": ('    cap = ["--coordinator-cap", str(ctx.overlay["plan_coordinator_cap"])] if ctx.overlay.get("plan_coordinator_cap") else []',
+                        "    cap = []", "plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap"),
     "plan_rc1_silent": ("    if rc != 0:\n        said = ", "    if rc not in (0, 1):\n        said = ",
                         "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
     "moved_early_return": ('            lines.append(f"plan-beat: PLAN MOVED {Path(mirror) / \'PLAN.html\'} re-rendered; republish owed")',
@@ -965,6 +999,13 @@ MUTANTS = {
     "bottleneck_unreadable_dropped": ('ln.startswith(("BOTTLENECK: ", "BOTTLENECK-UNREADABLE: "))',
                                       'ln.startswith(("BOTTLENECK: ",))',
                                       "bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else"),
+    "scorecard_rc_clean": ('    if rc != 0 or not out.strip():\n        return write_job(ctx, "scorecard"',
+                           '    if not out.strip():\n        return write_job(ctx, "scorecard"',
+                           "scorecard: a failed instrument is UNREADABLE, never written"),
+    "scorecard_sweep_dropped": ('if ctx.overlay.get("sweep_record"):', "if False:",
+                                "scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)"),
+    "scorecard_write_dropped": ('    atomic(ctx.state / "beatd" / "scorecard.txt", out)\n', "    pass\n",
+                                "scorecard null: a clean report leaves the digest empty and writes scorecard.txt"),
     "plan_train_dropped": ('"--plan", plan, *train)', '"--plan", plan)',
                            "plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)"),
     "outside_lines_dropped": ('if ln.startswith("OUTSIDE ")]', 'if ln.startswith("OUTSIDEX ")]',
@@ -1000,7 +1041,7 @@ MUTANTS = {
                            "roster-drain: a no-op-attempted report is retried on the next pass"),
     "plan_rc2_unavailable": ('word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"', 'word = "PLAN UNAVAILABLE"',
                              "plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE"),
-    "plan_replan_args_dropped": ('"--out", plan, "--slots", slots, "--seats", seats)', '"--out", plan)',
+    "plan_replan_args_dropped": ('"--out", plan, "--slots", slots, "--seats", seats, *cap)', '"--out", plan, *cap)',
                                  "plan-beat: replan is handed the plan, slots and seats"),
     "pulse_unreadable_ignored": ("    if rc not in (0, 1, 2) or not out:", "    if not out:",
                                  "pulse: an rc outside 0-2 is UNREADABLE, whatever it printed"),

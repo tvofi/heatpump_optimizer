@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reader for the gh call log the seat gh shim writes (P284).
 
-    gh_calls.py --top [--since <utc>] [--limit N] [--log PATH]
+    gh_calls.py --top [--since <utc>] [--limit N] [--log PATH]   # rc 3: no call logged
     gh_calls.py --coverage [PID ...]
     gh_calls.py --self-test
 
@@ -10,7 +10,9 @@ by call count, over $HPO_STATE_DIR/gh-calls.log and its rotated .1 (default
 state root $HOME/.local/state/hpo). `--since` keeps lines whose UTC stamp is
 not before it; a stamp is the shim's `YYYY-MM-DDTHH:MM:SSZ`, and a value that
 is not one is refused, never read as "everything". A line the shim did not
-write is counted and reported, not ranked.
+write is counted and reported, not ranked. With no call logged in the window
+it prints one `gh_calls: UNATTRIBUTED:` line naming the gh PATH finds first,
+and whether it is the shim, and exits 3.
 
 --coverage names, for each given pid (default: every process whose command
 line holds a known daemon name), whether the `gh` its PATH finds first is the
@@ -85,18 +87,38 @@ def render_top(lines, since=None, limit=10):
     return "\n".join(out)
 
 
-def first_gh_is_shim(path: str):
-    """True/False: the first executable `gh` on PATH is/is not the shim; None: no gh."""
+def first_gh(path: str):
+    """The first executable `gh` on PATH, else None."""
     for d in path.split(":"):
         p = Path(d or ".") / "gh"
         if p.is_file() and os.access(p, os.X_OK):
-            try:
-                with open(p, errors="replace") as f:
-                    f.readline()
-                    return f.readline().rstrip("\n") == MARKER
-            except OSError:
-                return False
+            return p
     return None
+
+
+def first_gh_is_shim(path: str):
+    """True/False: the first executable `gh` on PATH is/is not the shim; None: no gh."""
+    p = first_gh(path)
+    if p is None:
+        return None
+    try:
+        with open(p, errors="replace") as f:
+            f.readline()
+            return f.readline().rstrip("\n") == MARKER
+    except OSError:
+        return False
+
+
+def top_report(lines, since, limit, path: str):
+    """(rc, text) for --top: the tables at rc 0, or -- no call logged since
+    <since> -- one UNATTRIBUTED line naming the gh that PATH finds, at rc 3.
+    Two "(none)" tables at rc 0 read as "nothing spent" while the bucket hit 0
+    (GH-BUCKET-SPENDER-UNLOGGED, 2026-11-11: no shim was installed)."""
+    if top(lines, since, limit)[3]:
+        return 0, render_top(lines, since, limit)
+    kind = "shim" if first_gh_is_shim(path) else "not the shim"
+    return 3, (f"gh_calls: UNATTRIBUTED: no call logged since {since or 'the log began'}; "
+               f"gh on PATH is {first_gh(path) or 'none'} ({kind})")
 
 
 def proc_path(pid):
@@ -575,38 +597,57 @@ def self_test():
             ("gh extension exec", ["extension", "exec", "x"]))
         for label, args in refused:
             check(f"{label} is refused", run(args).returncode == 1)
-        # R10-GH-READ-RESIDUE (P449): one install on the daemons' PATH, run from any checkout. The
-        # baked tree t1, a worktree t2 of it, a clone t3 git does not register beside it, and an
-        # untracked file t4 of the same name.
+        # R10-GH-READ-RESIDUE (P449, then SHIM-COMMENT-GUARD-ONE-CHECKOUT): one install on the
+        # daemons' PATH, run from any checkout of this repository -- a tree that tracks the shim
+        # -- whose gh_comment.py is tracked and unmodified, so its mandate_guard is the committed one.
         sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
         from throwaway_git import throwaway_git_clone, throwaway_git_init  # noqa: E402 -- the one throwaway-repo builder
         t1 = w / "t1"
         (t1 / "tools" / "pr").mkdir(parents=True)
         (t1 / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
+        (t1 / "tools" / "audit" / "seat" / "shims").mkdir(parents=True)
+        (t1 / "tools" / "audit" / "seat" / "shims" / "seat-gh").write_text(good)
         genv = throwaway_git_init(t1, "-q")
         for argv in (["add", "."], ["commit", "-qm", "x"], ["worktree", "add", "-q", str(w / "t2")]):
             subprocess.run(["git", *argv], cwd=t1, env=genv, check=True)
-        # t5: a registered worktree whose gh_comment.py git does not track (the tracked half of the rule)
+        # t5: a registered worktree whose gh_comment.py git does not track, in its HEAD or index
         subprocess.run(["git", "worktree", "add", "-q", str(w / "t5")], cwd=t1, env=genv, check=True)
-        subprocess.run(["git", "rm", "-q", "--cached", "tools/pr/gh_comment.py"], cwd=w / "t5", env=genv, check=True)
+        for argv in (["rm", "-q", "--cached", "tools/pr/gh_comment.py"], ["commit", "-qm", "untrack"]):
+            subprocess.run(["git", *argv], cwd=w / "t5", env=genv, check=True)
         throwaway_git_clone(t1, w / "t3", "-q")
         (w / "t4" / "tools" / "pr").mkdir(parents=True)
         (w / "t4" / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
+        # t6: a clone whose gh_comment.py carries a local edit (a mandate_guard removed, say)
+        throwaway_git_clone(t1, w / "t6", "-q")
+        (w / "t6" / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text() + "# edited\n")
+        # t7: a clean, tracked tools/pr/gh_comment.py in a repository that is not this one (no shim)
+        (w / "t7" / "tools" / "pr").mkdir(parents=True)
+        (w / "t7" / "tools" / "pr" / "gh_comment.py").write_text(gcs.read_text())
+        g7 = throwaway_git_init(w / "t7", "-q")
+        for argv in (["add", "."], ["commit", "-qm", "x"]):
+            subprocess.run(["git", *argv], cwd=w / "t7", env=g7, check=True)
         baked = good.replace("gcpy=@HPO_GH_COMMENT@\n", f"gcpy={t1}/tools/pr/gh_comment.py\n")
+
+        def via(tree, shim):
+            return run([], via=f"{py} -I {w / tree}/tools/pr/gh_comment.py {W}", shim_text=shim).returncode
         for label, tree, want_rc in (
                 ("the baked tree's own script", "t1", 7),
-                ("a second registered worktree's tracked script", "t2", 7),
-                ("null control: a clone git does not list beside the baked tree", "t3", 1),
-                ("null control: an untracked file of the same path and name", "t4", 1),
-                ("null control: a registered worktree whose script is not tracked", "t5", 1)):
-            check(f"second tree: {label}",
-                  run([], via=f"{py} -I {w / tree}/tools/pr/gh_comment.py {W}", shim_text=baked).returncode == want_rc)
-        guard_mut = baked.replace('[ "$wl" = "worktree $troot" ] && ok=1', 'ok=1')
-        check("mutant: the worktree registration dropped lets an unlisted clone through",
-              guard_mut != baked and run([], via=f"{py} -I {w / 't3'}/tools/pr/gh_comment.py {W}", shim_text=guard_mut).returncode == 7)
-        tr_mut = baked.replace(" && git -C \"$troot\" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1", "")
-        check("mutant: the tracked-file predicate dropped lets an untracked script in a registered worktree through",
-              tr_mut != baked and run([], via=f"{py} -I {w / 't5'}/tools/pr/gh_comment.py {W}", shim_text=tr_mut).returncode == 7)
+                ("a second registered worktree's clean tracked script", "t2", 7),
+                ("a second checkout git does not register beside the baked tree, clean", "t3", 7),
+                ("null control: an untracked file of the same path and name, outside any checkout", "t4", 1),
+                ("null control: a checkout whose script is not tracked", "t5", 1),
+                ("null control: the same file with a local edit", "t6", 1),
+                ("null control: a clean tracked script in a repository holding no seat-gh", "t7", 1)):
+            check(f"second tree: {label}", via(tree, baked) == want_rc)
+        for label, frag, tree in (
+                ("the tracked-file predicate dropped lets an untracked script through",
+                 ' && git -C "$troot" ls-files --error-unmatch tools/pr/gh_comment.py >/dev/null 2>&1', "t5"),
+                ("the unmodified predicate dropped lets a locally edited script through",
+                 ' && git -C "$troot" diff --quiet HEAD -- tools/pr/gh_comment.py >/dev/null 2>&1', "t6"),
+                ("the this-repository predicate dropped lets another repository's script through",
+                 ("ls-files --error-unmatch tools/audit/seat/shims/seat-gh", "ls-files tools/audit/seat/shims/seat-gh"), "t7")):
+            m = baked.replace(*frag) if isinstance(frag, tuple) else baked.replace(frag, "")
+            check(f"mutant: {label}", m != baked and via(tree, m) == 7)
         install(good)
         mut = good.replace("trackers='201 ", "trackers='0 ")
         check("mutant: the guard's issue number changed lets the planted post through",
@@ -654,6 +695,21 @@ def self_test():
                      ["api", "repos/o/r/ISSUES/201/comments", "-f", "body=x"])
         guard_mutant("path segments not lower-cased (comments segment)", "  w=$(printf '%s' \"$w\" | tr 'A-Z' 'a-z')\n", "",
                      ["api", "repos/o/r/issues/201/COMMENTS", "-f", "body=x"])
+        # R10-HOTFIX-SHIM-ESCAPES: gh api's output-only --allow-escape-sequences (merge_train.job_log
+        # always passes it) passes; an unknown flag is named as such, not as a comment write.
+        esc = ["api", "--allow-escape-sequences", "repos/o/r/actions/jobs/7/logs"]
+        check("--allow-escape-sequences on actions/jobs/7/logs passes", run(esc).returncode == 7)
+        r_ = run(["api", "--allow-escape-sequences", "repos/o/r/issues/201/comments", "-f", "body=x"])
+        check("the flag plus -f body=x on issues/201/comments is still refused as a comment write",
+              r_.returncode == 1 and b"comment write on a record issue" in r_.stderr)
+        r_ = run(["api", "--bogus", "repos/o/r/actions/jobs/7/logs"])
+        check("--bogus is refused with the unknown-flag message",
+              r_.returncode == 1 and r_.stderr == b"gh shim: unknown gh api flag --bogus; refused\n")
+        check("null control: a plain GET of a non-tracker path passes", run(["api", "repos/o/r/actions/jobs/7/logs"]).returncode == 7)
+        mut = good.replace(" --allow-escape-sequences'", "'")
+        check("mutant killed: --allow-escape-sequences dropped from API_BOOL (case 1 would fail)",
+              mut != good and run(esc, shim_text=mut).returncode == 1)
+        install(good)
         guard_mutant("a comment by id let through", '[ "$nxt" = comments ] && return 1', ":",
                      ["api", "-X", "PATCH", "repos/o/r/issues/comments/9", "-f", "body=x"])
         guard_mutant("issue close -c value not skipped (target read as the value)", "ISSUE_VAL='-b --body -F --body-file -R --repo -c --comment ", "ISSUE_VAL='-b --body -F --body-file -R --repo ",
@@ -718,6 +774,30 @@ def self_test():
         (w / "real" / "gh").chmod(0o700)
         check("a real gh ahead of the shim reads as not logged",
               first_gh_is_shim(f"{w / 'real'}:{w / 'own'}") is False)
+
+        # GH-BUCKET-SPENDER-UNLOGGED: an empty window is named, never two "(none)" tables at rc 0.
+        since = "2026-11-11T06:24:00Z"
+        rc, text = top_report([], since, 10, f"{w / 'real'}:{w / 'own'}")
+        check("an empty log with a non-shim gh first: rc 3 and the UNATTRIBUTED line naming it",
+              rc == 3 and text == f"gh_calls: UNATTRIBUTED: no call logged since {since}; "
+                                  f"gh on PATH is {w / 'real' / 'gh'} (not the shim)")
+        rc, text = top_report(sample[:1], since, 10, f"{w / 'real'}")
+        check("lines all before --since are no call logged: rc 3", rc == 3 and "UNATTRIBUTED" in text)
+        rc, text = top_report([], since, 10, f"{w / 'own'}")
+        check("the shim first and nothing logged still reads rc 3, naming the shim",
+              rc == 3 and text.endswith(f"gh on PATH is {w / 'own' / 'gh'} (shim)"))
+        rc, text = top_report([], None, 10, str(tools))
+        check("no gh on PATH at all is named, and no --since reads from the log's start",
+              rc == 3 and text.endswith("since the log began; gh on PATH is none (not the shim)"))
+        one = ["2026-11-11T06:30:00Z 1 orchestrator_tick.py api repos/o/r/pulls"]
+        rc, text = top_report(one, since, 10, f"{w / 'real'}")
+        check("null control: one logged call gives rc 0 and today's tables",
+              rc == 0 and text == render_top(one, since, 10) and "UNATTRIBUTED" not in text)
+        (w / "empty.log").write_text("")
+        r = subprocess.run([sys.executable, "-I", __file__, "--top", "--since", since, "--log", str(w / "empty.log")],
+                           capture_output=True, text=True, env={"PATH": f"{w / 'real'}:{tools}", "HOME": str(w)}, timeout=60)
+        check("the CLI exits 3 with the line on an empty window",
+              r.returncode == 3 and r.stdout.startswith("gh_calls: UNATTRIBUTED: no call logged since "))
     print(f"gh_calls self-test: {pass_n + fail_n} checks, {fail_n} failed")
     return 1 if fail_n else 0
 
@@ -748,11 +828,12 @@ def main(argv):
         return 0
     if "--top" in a:
         try:
-            print(render_top(read_lines(log), since, limit))
+            rc, text = top_report(read_lines(log), since, limit, os.environ.get("PATH", ""))
         except ValueError as e:
             print(f"gh_calls: {e}", file=sys.stderr)
             return 2
-        return 0
+        print(text)
+        return rc
     print(__doc__, file=sys.stderr)
     return 2
 

@@ -875,37 +875,34 @@ class ThermalParameters:
         """The everyday charge limit: how hot a plan may take the tank.
 
         This is the user's own "Highest tank temperature to charge to", and
-        nothing else. Until v5.1.10 the disinfection temperature was folded
-        in here permanently, which turned a 60 °C hygiene setting into the
-        ceiling the cost planner spent every single day: pre-buying at the
-        night trough beats heating at the evening window even after standby
-        losses, and how far the plan over-charges is bounded by exactly this
-        number. A 52/60 pair therefore ran the tank to ~58 °C on a day with
-        no cycle due — the field did the opposite of what its help text
-        promises ("An upper limit on charging, not a target").
-
-        A disinfection cycle legitimately goes above this, but only while it
-        is running: the optimizer raises the ceiling per step around the
-        cycle it has actually scheduled, and ``dhw_hard_max_temp`` below is
-        the physical rating that bounds even that.
+        nothing else: with the disinfection temperature folded in (until
+        v5.1.10) the cost planner spent that ceiling every day, and a 52/60
+        pair ran the tank to ~58 °C with no cycle due. A cycle goes above it
+        only around the step it runs, to ``dhw_cycle_temp``.
         """
         return min(70.0, self.dhw_setpoint)
 
     @property
     def dhw_hard_max_temp(self) -> float:
-        """The tank's rating: the hottest this tank may ever be driven.
-
-        The everyday ceiling is a preference; this is physics, and it has to
-        stay above the disinfection temperature or the model would refuse
-        the very boost the hygiene cycle exists to deliver. ``simulate_dhw_step``
-        clamps to this, so a pinned plan, a replayed trajectory or a
-        legionella boost is bounded without the everyday limit silently
-        capping a cycle at the setpoint.
+        """The tank's rating, the hottest it may ever be driven: a cycle's
+        temperature where one runs, else the everyday ceiling. ``simulate_dhw_step``
+        clamps to it, so a pinned plan, a replay or a legionella boost is
+        bounded without the everyday limit capping a cycle at the set-point.
         """
-        top = self.dhw_setpoint
-        if self.legionella_cycle_active:
-            top = max(top, self.dhw_legionella_temp)
-        return min(70.0, top)
+        top = self.dhw_cycle_temp
+        return min(70.0, self.dhw_setpoint if top is None else top)
+
+    @property
+    def dhw_disinfection_temp(self) -> float | None:
+        """°C a disinfection cycle must reach; ``None`` where none runs, for every reader."""
+        return self.dhw_legionella_temp if self.legionella_cycle_active else None
+
+    @property
+    def dhw_cycle_temp(self) -> float | None:
+        """°C held through a cycle: the higher of the everyday set-point and the
+        disinfection temperature, as a cycle never lowers the tank; else ``None``."""
+        target = self.dhw_disinfection_temp
+        return None if target is None else max(self.dhw_setpoint, target)
 
     def effective_dhw_draw_pattern(self) -> list[float]:
         """Hourly draw multipliers restricted to the configured demand windows.
@@ -1867,8 +1864,8 @@ def configured_flow_min_lift_k(config: Any) -> float:
     of zero or less writes the inlet itself at the floor, which commands no
     heat on a step the plan heats -- the value the floor exists to keep off
     the entity. The options flow offers 0.5-15 K. A controller that takes
-    the set-point as its return-water target (Luxtronik through its Smart
-    Home Interface, for one) modulates its compressor on the gap between
+    the set-point as its return-water target (through a smart-home
+    interface input, for one) modulates its compressor on the gap between
     target and return, so the rated 5 K drives it to near full speed at the
     plan's lowest level; such a controller wants about 1-2 K.
     """
@@ -2596,6 +2593,21 @@ def power_for_heat_per_cop_kw(
     held = h / (1.0 - d)
     power = np.where(h <= p_min, h, np.where(held >= p_max, held, on_band))
     return float(power) if np.ndim(heat_per_cop) == 0 else power
+
+
+def refill_power_kwh(params: ThermalParameters, heat_per_cop_kwh: float, hours: float) -> float:
+    """The electrical kWh that buys back ``heat_per_cop_kwh`` (heat over COP)
+    as a steady draw over ``hours``: :func:`power_for_heat_per_cop_kw` at that
+    rate, so a refill above the modulation floor pays its part-load derate.
+
+    Sign-symmetric: a surplus is credited at the law a deficit is charged at.
+    The input itself, bit for bit, while the derate is 0 or ``hours`` is not
+    positive: the inverse passes ``abs`` through unchanged there (its own
+    ``band <= 0`` guard) and ``copysign`` restores the sign."""
+    return math.copysign(
+        power_for_heat_per_cop_kw(params, abs(heat_per_cop_kwh), hours=hours),
+        heat_per_cop_kwh,
+    )
 
 
 def added_power_for_heat_per_cop_kw(

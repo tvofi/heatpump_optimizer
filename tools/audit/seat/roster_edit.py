@@ -129,7 +129,8 @@ name a `## P<n>:` entry whose `Verdict:` is ACCEPT. A citation that does not
 resolve is refused whether or not the text names a proposal.
 
   drop-carry   removes one carry entry by 0-based index or by the one entry
-               containing --match TEXT, refusing an absent carry, an index
+               containing --match TEXT (or, among several containing it, the
+               one equal to it), refusing an absent carry, an index
                out of range, no match and an ambiguous match; dropping the
                last entry leaves the `carry` list empty, never removing the
                key (27 of the 91 live groups carry `"carry": []`, and none
@@ -549,7 +550,9 @@ def op_drop_carry(roster, group, index=None, match=None):
 
 def _carry_index(g, index, match, op):
     """The one carry entry `op` names: by 0-based index or by the one entry
-    containing `match`; absent, out of range, unmatched and ambiguous refuse."""
+    containing `match`, or the one entry equal to it when several contain it
+    (a bare carry kept beside its "From #N, ..." duplicate); absent, out of
+    range, unmatched and ambiguous refuse."""
     group, carry = g.get("group"), g.get("carry") or []
     if not carry:
         raise Refuse(f"{op}: {group} carries nothing")
@@ -558,6 +561,9 @@ def _carry_index(g, index, match, op):
         if not hits:
             raise Refuse(f"{op}: no carry entry matches {match!r} "
                          f"in {group}")
+        exact = [i for i in hits if carry[i] == match]
+        if len(exact) == 1:
+            return exact[0]
         if len(hits) > 1:
             raise Refuse(f"{op}: {match!r} is ambiguous in {group}: "
                          f"entries {hits} match; pass an index")
@@ -2239,6 +2245,19 @@ def _self_test() -> int:
           and carry_of("R9-B") == [])
     check("append-carry then drop-carry is byte-identical",
           bytes_at() == before_carry)
+    # CARRY-EXACT-MATCH: a bare carry whose text sits inside a sibling.
+    for text in ("From #7, body item X: item X", "item X",
+                 "zeta one", "zeta two"):
+        edit("append-carry", "R9-B", text)
+    check("drop-carry --match equal to a carry inside a sibling is that carry",
+          edit("drop-carry", "R9-B", None, match="item X") == 0
+          and carry_of("R9-B") == ["From #7, body item X: item X",
+                                   "zeta one", "zeta two"])
+    check("drop-carry --match equal to no carry and hitting two still refuses",
+          refuses("ambiguous", "drop-carry", "R9-B", None, match="zeta"))
+    check("drop-carry --match unique substring still resolves",
+          edit("drop-carry", "R9-B", None, match="body item") == 0
+          and carry_of("R9-B") == ["zeta one", "zeta two"])
 
     # THE CARRY LEDGER (#2733, carries 10 and 31). mark-carry discharges one
     # carry with a mark; set-stage done over a pending carry writes

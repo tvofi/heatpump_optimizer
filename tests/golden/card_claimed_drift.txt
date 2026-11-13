@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.10
+# claims-for: 7.1.13
 #
-# v7.1.10: combi tank store and generic heat curve (outside #3225, #3284). The stamp empties the list; the
+# v7.1.13: Duty-switch restart learning, hot-water write range and charge limit. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -781,3 +781,15 @@
 # COP is metered heat over a power meter, neither an estimate, and that without
 # a metered heat reading there is no grade at all. Only score_open moves; the
 # other 44 states are identical.
+
+# R10-HOTFIX-CARD-HEALTH-TEXT: the card stylesheet's surface-2 block rule now
+# lists .health-row and .adv-inbox-row (surface and ink in one rule; the two
+# row rules lose their own background), the pressed .layout-edit-toggle.on
+# gains the --hpo-surface-2 background, and the comments beside them change.
+# card_drift captures the whole shadow root, so every state that renders the
+# stylesheet moves: 44 of 45 (editor_schema renders none and is identical).
+# health_page also moves its header chip text, "1 input stale" -> "1 input
+# problem" (the chip counts every problem kind). The card's adv-* classes are
+# renamed fact-* (EasyList's generic ##.adv-text and ##.adv-label hid them),
+# which moves the same 44 states' stylesheet and the Advisor and Health
+# markup; no text or value moves with the rename.

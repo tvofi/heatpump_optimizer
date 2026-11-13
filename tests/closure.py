@@ -609,6 +609,10 @@ INERT_EXCEPT = (
     # merge: skip-merge-failed on this pair). Same route as the README above:
     # the tools/pr/ prefix stays INERT, the file moves to the recorded closure.
     "tools/pr/cancel_superseded.py",
+    # R10-BODY-CONTRACT-P3: the figure-block renderer and its registry; same route
+    # as cancel_superseded.py above (prefix INERT, file moves to the recorded closure).
+    "tools/pr/figure_block.py",
+    "tools/pr/figure_registry.json",
     # R10-CI-LAYOUT P2b: tests/entities.py imports U5's harness modules (`_u5_load`:
     # run_part.py, unitcheck.py) and opens codeql.yml's program tools/pr/codeql_scope.py
     # (U3's pins). CI's recording on probe #2656 (closures-autofix job 120356230438)
@@ -746,6 +750,19 @@ INERT_EXCEPT = (
     "tools/audit/seat/bus.sh",
     "tools/audit/seat/cloud_relay.sh",
     "tools/audit/seat/heartbeat.sh",
+    # R10-ARCH-DOCS (#2395): tests/doc_claims.py's machinery_edge_findings opens each file dev/README.md's
+    # machinery table cites, for the quoted text that performs the edge.
+    "tools/audit/seat/beat_jobs.py",
+    "tools/audit/seat/body_push.sh",
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/instruments/beatd.py.md",
+    "tools/audit/seat/instruments/cloud_dispatch.py.md",
+    "tools/audit/seat/instruments/heartbeat.sh.md",
+    "tools/audit/seat/instruments/tick_loop.sh.md",
+    "tools/audit/seat/open_pr.sh",
+    "tools/audit/seat/postmerge.py",
+    "tools/audit/seat/roster_queue.py",
+    "tools/audit/seat/tick_loop.sh",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
@@ -1007,6 +1024,9 @@ INERT_EXCEPT = (
     # prefix the way record_burst_replay.py did, so an edit selects
     # tests/features.py.
     "dev/audit/harnesses/r10_demand_overbook.py",
+    # R10-DEPENDABOT-3414-COMPAT: tests/entities.py imports this harness and
+    # runs its `--tree` reader over every hash lock, so an edit selects it.
+    "dev/audit/harnesses/dependabot_stale_hash.py",
 )
 
 

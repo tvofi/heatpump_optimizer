@@ -645,8 +645,8 @@ def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_b
     With `recarry(prior, head, n)` (git_recarry): a head that differs from a
     head of a `merge` verdict, or a dispatched head, of the PR only by clean
     merges of main, or only by the PR's own delivery row, prints
-    `CARRY: #N <head12>` instead (P90; the ancestor-recarry test of
-    standing-tick.md). A head is a prior only while its newest verdict is a
+    `CARRY: #N <head12>` instead (P90; the ancestor-recarry test is
+    `git_recarry` below). A head is a prior only while its newest verdict is a
     merge, or it is dispatched with no verdict yet: a blocked verdict's head is
     no prior, though bus.sh's dispatch record holds it too (only a merge
     verdict carries; fix-review.md step 12)."""

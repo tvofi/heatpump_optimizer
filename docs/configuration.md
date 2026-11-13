@@ -627,6 +627,8 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Minimum lift above the inlet water (`flow_min_lift_k`) | 5 K | 0.5–15 K, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at the plan's lowest power is the measured inlet water plus this (see [Pump duty control](#pump-duty-control)). |
 | Heating flow ceiling (`flow_heat_c`) | 55 °C | 30–70 °C, 0.5 steps | Shown when the unit above is *Flow* or *Return temperature*. The heating value at full planned power, and the highest heating value written. A stored value at or below the 25 °C gate is read as 55 °C. |
 | Follow the planned power on the measured draw (`space_setpoint_power_feedback`) | On | on / off | Shown when the unit above is *Flow* or *Return temperature*; acts only when a heat-pump power sensor is configured too. Closes the heating value on the measured draw (see [Pump duty control](#pump-duty-control)). Off writes the inlet plus the lift. |
+| Controller's minimum set-point sensor (`space_setpoint_low_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the lowest value the controller accepts for the set-point entity (a Luxtronik through ha-luxtronik-shi: “Temperature: return target minimum”, input 10104). *Follow the planned power* then never sends a value below it (see [Pump duty control](#pump-duty-control)). Empty changes nothing. |
+| Controller's maximum set-point sensor (`space_setpoint_high_limit_entity`) | none | a temperature sensor | Shown when the unit above is *Flow* or *Return temperature*. Optional: the highest value the controller accepts (a Luxtronik: “Temperature: return limit”, input 10103). *Follow the planned power* then never sends a value above it. Empty changes nothing. |
 
 ### Power and solar sensors
 
@@ -798,8 +800,19 @@ writes, at every 15-minute plan step:
     of its Smart Home Interface, parameter 979) and its return limit (input
     10103, parameter 87), both of which ha-luxtronik-shi publishes as
     sensors ([the contributor's answers](https://github.com/tvofi/heatpump_optimizer/pull/3372#issuecomment-6756915104)).
-    This integration does not read them: it takes the two limits from the
-    value the controller reports back after a write.
+    Name them as the two optional limit sensors on **Sensors and
+    entities** (`space_setpoint_low_limit_entity`,
+    `space_setpoint_high_limit_entity`) and the loop stays inside them, so
+    no write is cut. A limit sensor is read whatever its age, since a
+    setting reports only when it changes; one that is unavailable, not a
+    number or outside −20 to 100 °C is left out, and so are both when the
+    lower is not below the upper. An upper limit below the lowest heating
+    value (the gate plus one step of the set-point entity) is left out
+    too: the gate is the value that means off, and no heating step writes
+    it. They bound the loop alone: the first
+    write of a run is the inlet plus the lift either way. Without them the
+    two limits are taken from the value the controller reports back after
+    a write.
 - **For an *Indoor temperature* entity** each of the three is the step's
   planned room temperature, clamped to the entity's range (5 °C as the gate
   where the mode offers no hot-water-only option). An entity whose own
@@ -813,7 +826,7 @@ writes, at every 15-minute plan step:
   step is *Heating + DHW*, so the planned anti-legionella cycle can run. A
   heating-only mode the optimizer wrote does not stop the next plan from making
   hot water, and the "set-point below the disinfection temperature" notice does
-  not fire on the optimizer's own hot water gate.
+  not fire on the optimizer's own hot water gate (see below).
 - **Idle steps leave the mode alone.** The mode on the pump served the duty
   that just finished, whose thermostat the plan has just satisfied, so it is
   the least likely to start anything; *Heating + DHW* would arm both.
@@ -838,7 +851,7 @@ writes, at every 15-minute plan step:
   returns — unless the room is already at or above the step's planned room
   temperature, when a warm house needs no space heat. A stale plan, comfort
   mode, a system-identification experiment and unloading the integration
-  all get the fallback row. A boost switch adds its own duty to the plan's
+  all get the fallback row, the space set-point apart (see below). A boost switch adds its own duty to the plan's
   step: *Boost Space Heating* alone writes *Heating*, *DHW Boost* alone
   writes *DHW (Hot Water)*, and a step that also wants the other duty
   writes *Heating + DHW*. Boost mode writes *Heating + DHW* with the
@@ -848,9 +861,22 @@ writes, at every 15-minute plan step:
   a change made on the pump, in an app, by a schedule, or the pump's own reset —
   is written back at once. To change the pump by hand, turn **Optimizer
   active** off first: from then on nothing is written to the pump, not even
-  the fallback row, until you turn it back on. Readings in the first
+  the fallback row, until you turn it back on — except the space set-point,
+  restored once as described next. Readings in the first
   20 seconds after a write are not counted: the tuya_heat_pump integration
   shows the value it sent for about 8 seconds whatever the pump reports.
+- **Turning it off restores your space set-point.** Before its first write
+  to the space-heating set-point entity, the optimizer reads the value there
+  and keeps it, across restarts too. Turning **Optimizer active** off, and
+  every unload (a reload after an options change, a disable, Home Assistant
+  stopping), writes that value back. A value you set on the pump while the
+  optimizer is on becomes the one restored, though the optimizer still writes
+  over it until you turn it off (outside the entity's own minimum and
+  maximum, the nearest value it takes); a value set while it is off is read again
+  when it next writes. A reading equal to the optimizer's own last write is
+  never taken as yours: after an upgrade from a version without this, the
+  set-point is not written until it reads anything else, so set it on the
+  pump once. The mode and the hot-water set-point are not restored.
 - **A write the pump does not hold is retried.** If the value written back
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or
@@ -859,6 +885,15 @@ writes, at every 15-minute plan step:
   reads off, nothing is compared or written: switched off, a pump can report
   set-points of its own (a Tuya pump reads 25 °C). Once it is on, a reset that
   is still there is written back like any other difference.
+- **A disinfection cycle writes its own temperature.** While the plan's step
+  runs the anti-legionella cycle, or the integration holds the pump's
+  disinfection switch on, the hot water set-point written is the disinfection
+  temperature, or the everyday set-point where that is higher, on the
+  entity's step rounded up and never above the entity's maximum. Because the
+  optimizer writes the cycle's temperature itself, the "set-point below the
+  disinfection temperature" notice does not fire on any hot water set-point
+  the optimizer wrote; it still fires on a value set by anybody else, and,
+  with *Control* off, on the pump's own set-point.
 - **Its own mode is not a pump limit.** A mode the optimizer wrote does not
   stop the next plan from heating the house or making hot water, even when the
   pump has not shown it yet or after a restart; one set by anybody else

@@ -62,8 +62,9 @@
   `cloud_relay.sh pass [--confirm] [--log FILE] [--loop [--interval N]]` is the
   orchestrator's whole beat as ONE entry point (it replaces the session-local
   `relay_watch.sh`): a driver calls it once per tick, or `--loop` repeats it
-  (default every 120 s). A pass runs the handoff arm, then the relay arm above,
-  then with `--confirm` the confirm arm, then the stuck arm. Stuck arm (a
+  (default every 120 s). A pass takes the one open-PR listing, then runs the relay arm above,
+  then with `--confirm` the confirm arm, then the handoff arm (its serial updates
+  come after a returned verdict is posted), then the stuck arm. Stuck arm (a
   report-only trial, triage P163): each branch lock held now whose recorded
   start epoch is older than `HPO_PUSH_STUCK_SECS` (default 900) prints
   `STUCK <branch> <pid> <age>s` (the lock's name, the run's pid) and is

@@ -2568,6 +2568,11 @@ def check_product_page() -> None:
         bad = [m for k, m in errs if k == kind]
         R.check(what, not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
     print(f"       ({counts})")
+    # The illustrative day is committed SVG that tools/site/day_chart.mjs owns: a page whose chart is not the
+    # generator's output, or a toy planner that broke its own invariants, is red here (R10-PRODUCT-PAGE-REDESIGN).
+    chart = subprocess.run(["node", str(SITE_CHART), "--self-test", "--check"], capture_output=True, text=True)
+    R.check("the page's illustrative chart is its generator's output, and the generator's self-test holds",
+            chart.returncode == 0, "; ".join((chart.stdout + chart.stderr).split("\n")[:4]))
     page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
     planted = page.replace("The heat-loss scale", "The heat-loss scale \u2026 the heat-loss scale", 1)
     R.check("an ellipsis planted in a claim is refused (null control)",
@@ -2597,6 +2602,7 @@ def check_product_page() -> None:
 # building nothing. The pages are then scanned for a third-party request.
 
 SITE_BUILD = ROOT / "tools" / "site" / "build_docs.mjs"
+SITE_CHART = ROOT / "tools" / "site" / "day_chart.mjs"
 _BUILD_CACHE: dict[str, dict] = {}
 
 
@@ -2704,7 +2710,9 @@ def check_site_request_controls() -> None:
             R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
     for name, tag in built_only:
         R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
-    card = page.replace('href="how-it-works.html"', f'href="{_SITE_REPO}docs/how-it-works.md"', 1)
+    # Keyed on the card's own data-doc: the page also links that sub-page from its story, where GitHub is no finding.
+    card = page.replace('data-doc="docs/how-it-works.md" href="how-it-works.html"',
+                        f'data-doc="docs/how-it-works.md" href="{_SITE_REPO}docs/how-it-works.md"', 1)
     R.check("product page: a docs card for a built document linked to GitHub is refused",
             card != page and any(k == "subpage" for k, _ in site_findings(card, pages=built["pages"])[0]))
     for name, css in (
@@ -3018,9 +3026,10 @@ def check_image_dimensions() -> None:
 # programme end, so some of what they name is not on main yet. Such an element
 # carries a marker naming the roster group that lands it; the grammar is the
 # approved design note's (dev/programme/designs/R10-ARCH-DOCS-FIRST.md, section 3).
-# Every predicate here holds before and after a named group lands: none reads a
-# group's stage except (c), which only prints. Resolving the markers is
-# R10-ARCH-DOCS's end-of-round check, not this one.
+# The predicates of `doc_wiring_findings` hold before and after a named group
+# lands: none reads a group's stage except (c), which only notes. A marker whose
+# groups are all done is refused by `due_marker_findings` (R10-ARCH-DOCS): the
+# page then states the tree, or is corrected where the landed shape differs.
 
 WIRING_DOCS = ("docs/architecture.md", "README.md", "dev/README.md")
 # The user pages R10-USER-DOCS-FINAL drafts and R10-USER-DOCS-VERIFY re-checks. README.md is in both sets.
@@ -3243,6 +3252,86 @@ def marker_placement_findings(rows: list[dict]) -> list[str]:
             for r in rows if r["scope"] == "user" and r["doc"] in WIRING_DOCS and r["doc"] not in USER_PAGES]
     out += [f"{r['doc']}:{r['line']}: {r['marker']} names no group in the roster" for r in rows
             if r["scope"] == "user" and "absent" in r["stages"].values()]
+    return out
+
+
+def due_marker_findings(rows: list[dict]) -> list[str]:
+    """A wiring marker whose every group is done describes the tree as still to come (R10-ARCH-DOCS, #2395). A
+    user-doc marker is R10-USER-DOCS-VERIFY's (`--markers --user`), and is left to it."""
+    return [f"{r['doc']}:{r['line']}: {r['marker']} names only done groups; state the tree and drop the marker"
+            for r in rows if r["due"] and r["scope"] == "wiring"]
+
+
+# The machinery figure's edges (owner direction, tvofi 2026-10-22). The figure under MACHINERY_HEADING draws one
+# labelled arrow per line, actor to target, and the table under it cites the code performing each. The table is the
+# registry, kept on the page it describes: no edge list lives here.
+MACHINERY_DOC = "dev/README.md"
+MACHINERY_HEADING = "### Its components"
+MACHINERY_VERBS = ("runs", "writes")
+_M_NODE = re.compile(r'^\s*([A-Za-z_]\w*)(\(\[|\[\(|\[)"([^"]*)"', re.M)
+_M_EDGE = re.compile(r'^\s*([A-Za-z_]\w*)\s*-->\|"([^"]*)"\|\s*([A-Za-z_]\w*)\s*$')
+_M_ARROW = re.compile(r"-{2,}>|-\.+->|={2,}>|---|~~~|--[ox]")
+_M_ROW = re.compile(r"^\|([^|\n]+)\|([^|\n]+)\|([^|\n]+)\|\s*`([^`\n]+)`: `([^`\n]+)`\s*\|\s*$", re.M)
+_M_KIND = {"([": "seat", "[(": "store", "[": "script"}
+
+
+def machinery_edge_findings(text: str, read) -> list[str]:
+    """What the machinery figure draws against the code its table cites. `read(path)` is a tracked file's text or None.
+
+    An arrow means the actor runs or writes its target, so: every arrow is one labelled line with a verb of
+    MACHINERY_VERBS; none starts at a store, `writes` ends at a store and `runs` does not; the arrows and the
+    table's rows are the same set, which is what refuses a reversed arrow; a row's quoted text is in the file it
+    cites; a script node names one script and its row cites that script's file, which refuses a row reversed with
+    its arrow and an edge that only a second file grouped into the node performs; and the figure has one entry, a
+    seat nothing points at. A node is named by its label's first line, and a script's file is that line's first
+    word."""
+    at = text.find(MACHINERY_HEADING + "\n")
+    if at < 0:
+        return [f"no {MACHINERY_HEADING!r} section"]
+    body = text[at + len(MACHINERY_HEADING):]
+    nxt = re.search(r"^#{1,3} ", body, re.M)
+    section = body[:nxt.start()] if nxt else body
+    fig = next((b for i, b in _FENCE.findall(section) if i.strip() == "mermaid"), None)
+    rows = [(a.strip(), v.strip(), b.strip(), f, q) for a, v, b, f, q in _M_ROW.findall(_FENCE.sub("", section))]
+    if fig is None or not rows:
+        return [f"{MACHINERY_HEADING!r} draws no figure" if fig is None else f"{MACHINERY_HEADING!r} cites no code"]
+    nodes = {i: (label.split("<br/>")[0].strip(), _M_KIND[shape], label) for i, shape, label in _M_NODE.findall(fig)}
+    name = {i: n for i, (n, _, _) in nodes.items()}
+    out = [f"two nodes are named {n!r}" for n in sorted({n for n in name.values() if list(name.values()).count(n) > 1})]
+    out += [f"{n}: a script node names one script, and this names {len(_FILE.findall(n))}"
+            for n, k, _ in nodes.values() if k == "script" and len(_FILE.findall(n)) != 1]
+    drawn: set[tuple[str, str, str]] = set()
+    for line in fig.splitlines():
+        if not _M_ARROW.search(re.sub(r'"[^"]*"', '""', line)):  # a label's `--once` is no arrow
+            continue
+        m = _M_EDGE.match(line)
+        if not m or m.group(1) not in nodes or m.group(3) not in nodes:
+            out.append(f"not one labelled arrow between two declared nodes: {line.strip()!r}")
+            continue
+        a, verb, b = m.group(1), m.group(2), m.group(3)
+        edge = f"{name[a]} -{verb}-> {name[b]}"
+        if verb not in MACHINERY_VERBS:
+            out.append(f"{edge}: the verb is not one of {', '.join(MACHINERY_VERBS)}")
+        if nodes[a][1] == "store":
+            out.append(f"{edge}: starts at a store, and a store does nothing")
+        elif (verb == "writes") != (nodes[b][1] == "store"):
+            out.append(f"{edge}: `writes` ends at a store and `runs` at an actor")
+        drawn.add((name[a], verb, name[b]))
+    cited = {(a, v, b) for a, v, b, _, _ in rows}
+    out += [f"{a} -{v}-> {b}: drawn, and no row cites the code that performs it" for a, v, b in sorted(drawn - cited)]
+    out += [f"{a} -{v}-> {b}: cited in the table and not drawn" for a, v, b in sorted(cited - drawn)]
+    kind = {n: (k, label) for n, k, label in nodes.values()}
+    for a, v, b, path, quote in rows:
+        src = read(path)
+        if src is None:
+            out.append(f"{a} -{v}-> {b}: cites `{path}`, which is not a tracked file")
+        elif quote not in src:
+            out.append(f"{a} -{v}-> {b}: `{path}` no longer holds {quote!r}")
+        if kind.get(a, ("", ""))[0] == "script" and path.rsplit("/", 1)[-1] != a.split()[0]:
+            out.append(f"{a} -{v}-> {b}: cites `{path}`, which is not the script the actor's node names")
+    entries = sorted(n for i, n in name.items() if nodes[i][1] != "store" and all(b != n for _, _, b in drawn))
+    if len(entries) != 1 or kind[entries[0]][0] != "seat":
+        out.append(f"the figure has one entry, a seat nothing points at; it has {entries}")
     return out
 
 
@@ -3525,8 +3614,7 @@ def check_doc_wiring() -> None:
     errs, notes = doc_wiring_findings(docs, tree, roster_stages, style)
     blocks = sum(1 for t in docs.values() for i, _ in _FENCE.findall(t) if i.strip() == "mermaid")
     marks = sum(len(_MARKER.findall(t)) for t in docs.values())
-    R.check("the marked documents draw mermaid blocks and carry markers (anchor)", blocks > 0 and marks > 0,
-            f"{blocks} block(s), {marks} marker(s)")
+    R.check("the marked documents draw mermaid blocks (anchor)", blocks > 0, f"{blocks} block(s), {marks} marker(s)")
     R.check("every path resolves or is marked, every marker names a roster group, every block is well formed",
             not errs, "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
     for n in notes:
@@ -3645,8 +3733,9 @@ def check_marker_census() -> None:
     docs = marker_docs()
     stages = roster_stages()
     rows = marker_census(docs, stages or {})
+    # no `> 0`: the end state of the round is a tree with no marker, and the fixtures below are the non-vacuity
     R.check("the resolver reads every marker in the wiring documents and the user pages, README.md once (anchor)",
-            len(rows) == sum(len(_MARKER.findall(re.sub(r"`[^`\n]+`", "", t))) for t in docs.values()) > 0
+            len(rows) == sum(len(_MARKER.findall(re.sub(r"`[^`\n]+`", "", t))) for t in docs.values())
             and set(docs) == set(WIRING_DOCS) | set(USER_PAGES), str(len(rows)))
     wiring = [r for r in rows if r["scope"] == "wiring"]
     print(f"       ({sum(r['due'] for r in wiring)} of {len(wiring)} wiring marker(s) name only done groups: "
@@ -3654,6 +3743,9 @@ def check_marker_census() -> None:
           f"{len(rows) - len(wiring)} user-doc marker(s): --markers --user)")
     bad = marker_placement_findings(rows) if stages is not None else []
     R.check("every marker sits on a page of its scope and names a roster group", not bad, "; ".join(bad[:4]))
+    due = due_marker_findings(rows)
+    R.check("no wiring marker names only done groups: each is resolved into a statement of the tree (#2395)",
+            not due, "; ".join(due[:4]) + (f" (+{len(due) - 4})" if len(due) > 4 else ""))
     readme = "# T\n\n- `a.py` lands [target: R10-A]\n\n| Row | Cell <!-- [target: R10-B] --> |\n"
     tagged = marker_census({"README.md": readme}, {"R10-A": "not-started", "R10-B": "done"})
     R.check("null control: a README with one wiring and one wrapped marker gives one row of each scope",
@@ -3671,8 +3763,88 @@ def check_marker_census() -> None:
     R.check("null control: a marker naming a not-started group is listed and not due; a quoted one is not a marker",
             [(r["line"], r["due"]) for r in null] == [(3, False)], repr(null))
     R.check("red fixture: a marker naming a done group is due", [r["due"] for r in red] == [True], repr(red))
+    R.check("red fixture: a due wiring marker is refused, and a not-yet-due one is not (null control)",
+            len(due_marker_findings(red)) == 1 and not due_marker_findings(null) and not due_marker_findings(both),
+            repr((due_marker_findings(red), due_marker_findings(null))))
+    wrapped = marker_census({"README.md": "# T\n\n| Row | Cell <!-- [target: R10-B] --> |\n"}, stub)
+    R.check("a due user-doc marker is left to its own resolver (null control)",
+            [r["due"] for r in wrapped] == [True] and not due_marker_findings(wrapped), repr(wrapped))
     R.check("a marker naming a done and a not-started group is not due until both land", [r["due"] for r in both] == [False],
             repr(both))
+
+
+def check_machinery_edges() -> None:
+    R.section("the machinery figure: every arrow runs from its actor, with the code that performs it (#2395)")
+    tree = _tracked()
+    text = (ROOT / MACHINERY_DOC).read_text()
+    errs = machinery_edge_findings(text, _read_tracked(tree))
+    R.check("every arrow is cited, every citation holds in the tree, and the figure has one entry", not errs,
+            "; ".join(errs[:4]) + (f" (+{len(errs) - 4})" if len(errs) > 4 else ""))
+
+    files = {"t/loop.sh": 'bash "$relay" pass\nmv "$tmp" "$out"\n', "t/relay.sh": "push_verdict\n",
+             "t/role.md": "the orchestrator starts the loop\n"}
+    base = (MACHINERY_HEADING + "\n\n```mermaid\nflowchart TB\n"
+            '    orch(["orchestrator<br/>a person"])\n    subgraph actors["actors"]\n        loop["loop.sh"]\n'
+            '        relay["relay.sh pass<br/>two arms"]\n    end\n    board[("board file")]\n    bus[("bus refs")]\n'
+            '    orch -->|"runs"| loop\n    loop -->|"runs"| relay\n    loop -->|"writes"| board\n'
+            '    relay -->|"writes"| bus\n```\n\n'
+            "| actor | verb | target | performed at |\n|---|---|---|---|\n"
+            "| orchestrator | runs | loop.sh | `t/role.md`: `the orchestrator starts the loop` |\n"
+            '| loop.sh | runs | relay.sh pass | `t/loop.sh`: `bash "$relay" pass` |\n'
+            '| loop.sh | writes | board file | `t/loop.sh`: `mv "$tmp" "$out"` |\n'
+            "| relay.sh pass | writes | bus refs | `t/relay.sh`: `push_verdict` |\n\n### Next\n\n| a | b | c | `x`: `y` |\n")
+    clean = machinery_edge_findings(base, files.get)
+    R.check("the clean fixture yields no finding (null control)", not clean, repr(clean))
+    # design choice: an entry is an actor. Reads are not drawn, so a store that no drawn arrow writes is no entry.
+    idle = machinery_edge_findings(base.replace('    bus[("bus refs")]\n', '    bus[("bus refs")]\n    held[("hold list")]\n'),
+                                   files.get)
+    R.check("a store no arrow reaches is not an entry: the clean fixture with one yields no finding (null control)",
+            'held[("hold list")]' not in base and not idle, repr(idle))
+    row = '| loop.sh | runs | relay.sh pass | `t/loop.sh`: `bash "$relay" pass` |'
+    plants = (
+        ("one arrow reversed", ('loop -->|"runs"| relay', 'relay -->|"runs"| loop'), "no row cites"),
+        ("an arrow reversed together with its row",
+         ('loop -->|"runs"| relay', 'relay -->|"runs"| loop', row, row.replace("| loop.sh | runs | relay.sh pass |",
+                                                                              "| relay.sh pass | runs | loop.sh |")),
+         "not the script the actor's node names"),
+        ("a row citing a file its node names only below the first line",
+         ('relay["relay.sh pass<br/>two arms"]', 'relay["relay.sh pass<br/>loop.sh"]',
+          "`t/relay.sh`: `push_verdict`", '`t/loop.sh`: `mv "$tmp" "$out"`'), "not the script the actor's node names"),
+        ("a node grouping two scripts", ('loop["loop.sh"]', 'loop["loop.sh, relay.sh"]'), "names one script"),
+        ("a script node that names no script", ('loop["loop.sh"]', 'loop["the loop"]'), "this names 0"),
+        ("a row citing a file whose name is only a part of its node's script name",
+         ('relay["relay.sh pass<br/>two arms"]', 'relay["cloud_relay.sh pass<br/>two arms"]',
+          "| relay.sh pass |", "| cloud_relay.sh pass |"), "not the script the actor's node names"),
+        ("a single entry that is a script, not a seat",
+         ('orch(["orchestrator<br/>a person"])', 'orch["orchestrator<br/>a person"]'), "one entry"),
+        ("a store drawn as the actor (is read by)", ('loop -->|"writes"| board', 'board -->|"writes"| loop'), "starts at a store"),
+        ("a verb that is not runs or writes", ('relay -->|"writes"| bus', 'relay -->|"reads"| bus'), "the verb"),
+        ("writes ending at an actor", ('loop -->|"runs"| relay', 'loop -->|"writes"| relay'), "ends at a store"),
+        ("an unlabelled arrow", ('loop -->|"runs"| relay', "loop --> relay"), "not one labelled arrow"),
+        ("a dashed arrow", ('loop -->|"runs"| relay', 'loop -.->|"runs"| relay'), "not one labelled arrow"),
+        ("a row with no arrow", ('    relay -->|"writes"| bus\n', ""), "not drawn"),
+        ("a cited line the code no longer holds", ("`push_verdict`", "`post_verdict`"), "no longer holds"),
+        ("a cited file that is not tracked", ("`t/relay.sh`", "`t/relax.sh`"), "not a tracked file"),
+        ("an actor nothing starts, a second entry", ('    orch -->|"runs"| loop\n', ""), "one entry"),
+        ("two nodes of one name", ('relay["relay.sh pass<br/>two arms"]', 'relay["loop.sh<br/>two arms"]'), "two nodes"),
+        ("a table whose rows cite nothing", ("`: `", "` `"), "cites no code"),
+        ("no figure", ("```mermaid", "```text"), "draws no figure"),
+        ("no section", (MACHINERY_HEADING, "### Its parts"), "section"),
+    )
+    for what, swaps, key in plants:
+        doc = base
+        for old, new_ in zip(swaps[::2], swaps[1::2]):
+            doc = doc.replace(old, new_)
+        got = machinery_edge_findings(doc, files.get)
+        R.check(f"red fixture: {what} is a finding", doc != base and any(key in g for g in got), repr(got))
+    # the page's own figure: reversing any one of its arrows is refused (the owner's null control, on the real figure)
+    arrows = [m.group(0) for m in re.finditer(r'^    \w+ -->\|"\w+"\| \w+$', text, re.M)]
+    live = 0
+    for a in arrows:
+        s, lab, d = re.match(r'    (\w+) (-->\|"\w+"\|) (\w+)', a).groups()
+        live += bool(machinery_edge_findings(text.replace(a, f"    {d} {lab} {s}", 1), _read_tracked(tree)))
+    R.check("reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)",
+            not errs and arrows and live == len(arrows), f"{live} of {len(arrows)}")
 
 
 def print_marker_census(argv: list[str]) -> int:
@@ -4528,6 +4700,7 @@ def main() -> int:
     check_doc_wiring()
     check_named_elements()
     check_marker_census()
+    check_machinery_edges()
     check_card_figures()
     check_coffee_button()
     check_readme_marketplace()

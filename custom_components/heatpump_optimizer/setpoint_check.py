@@ -75,9 +75,9 @@ def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
     Stateless and idempotent: no coordinator attribute. A second call with
     the same inputs leaves ``hass.issues`` at one entry per issue id.
     Never raises into the caller — a balky entity must not break a solve.
-    ``gated`` is the pump-duty arbiter's own hot-water gate (wired by the
-    coordinator, which owns both sides of the seam, #1739): a reading that
-    is the arbiter's own write is a step decision, not a mis-set point.
+    ``gated`` is whether a reading is the pump-duty arbiter's own hot-water
+    write (wired by the coordinator, which owns both sides of the seam,
+    #1739): that is a step decision, not a mis-set point.
     """
     try:
         _evaluate(coord, gated)
@@ -115,10 +115,9 @@ def _quiet(hass: Any, config: dict[str, Any]) -> None:
 
 
 def _dhw_floor(params: Any) -> float:
+    disinfection = params.dhw_disinfection_temp
     floor = float(params.dhw_min_temp)
-    if params.legionella_cycle_active:
-        floor = max(floor, float(params.dhw_legionella_temp))
-    return floor
+    return floor if disinfection is None else max(floor, float(disinfection))
 
 
 def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> None:
@@ -126,21 +125,26 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
     entity_id = EntryConfig.from_mapping(config).dhw_setpoint_entity or ""
     pump, unit = setpoint_and_unit(hass, entity_id) or (None, None)
     floor = _dhw_floor(params)
-    # The pump-duty arbiter's own space-only gate is a step decision, not
-    # a set-point below the disinfection floor (``pump_arbiter.dhw_gated``).
+    # The floor on the entity's step, in its own unit (#1513): rounded UP
+    # (#2805), as a floor written below itself is snapped down by the entity
+    # and re-raises this notice, and never above the tank's hard maximum
+    # (``dhw_hard_max_temp``, rounded down), the ceiling the arbiter bounds
+    # its own write by: a Fix above it would be written back below the floor
+    # at the arbiter's next step and the notice stand for good.
+    on_step_c = quantise_setpoint_c(hass, entity_id, floor, rounding="up", hi_c=params.dhw_hard_max_temp)
+    # A reading that is the pump-duty arbiter's own write is a step decision,
+    # not a set-point below the disinfection floor: the arbiter writes the
+    # cycle's temperature itself on a cycle step (``pump_arbiter.dhw_gated``).
     active = (
         bool(entity_id)
         and pump is not None
-        and pump < floor - MIXING_VALVE_WRITE_EPSILON
+        and pump < on_step_c - MIXING_VALVE_WRITE_EPSILON
         and not (gated and gated(pump))
     )
-    # ``target`` is degC for the notice's text; ``value`` is what Fix writes,
-    # in the entity's own unit (#1513) and on the entity's step rounded UP
-    # (#2805): a floor written below itself is snapped down by the entity and
-    # re-raises this notice. An on-step floor is unchanged.
+    # ``target`` is degC for the notice's text; ``value`` is what Fix writes:
+    # the floor on the step. An on-step floor at or below the ceiling is unchanged.
     data = None
     if active:
-        on_step_c = quantise_setpoint_c(hass, entity_id, floor, rounding="up")
         value = round(temperature_from_c(on_step_c, unit), 6)
         data = {"entity_id": entity_id, "target": floor, "value": value}
     placeholders = {

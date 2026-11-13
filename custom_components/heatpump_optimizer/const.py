@@ -60,6 +60,10 @@ CONF_LOWER_FLOOR_TEMP_ENTITY: Final = "lower_floor_temp_entity"
 # coordinate, so it can be used instead of (or alongside) a local sensor.
 CONF_SOLAR_FORECAST_SOURCE: Final = "solar_forecast_source"
 CONF_SOLAR_LOCATION: Final = "solar_location"
+#: The keys that carry a home location, at any depth: the solar-forecast
+#: location whole, and a coordinate anywhere else. No part of one leaves the
+#: instance in a diagnostics download, its debug bundle's replay half included.
+LOCATION_KEYS: Final = frozenset({CONF_SOLAR_LOCATION, "latitude", "longitude"})
 
 SOLAR_SOURCE_WEATHER: Final = "weather"
 SOLAR_SOURCE_OPEN_METEO: Final = "open_meteo"
@@ -809,8 +813,8 @@ SPACE_SETPOINT_UNITS: Final = ("indoor", "flow", "return")
 DEFAULT_SPACE_SETPOINT_UNIT: Final = "indoor"
 #: The units whose number is a water temperature: the pump-duty arbiter writes
 #: the same heating flow to either. "return" is a controller that takes the
-#: set-point as its return-water target (Luxtronik through its Smart Home
-#: Interface): the lift and ceiling below are its own, and only the values
+#: set-point as its return-water target (a smart-home interface input, on
+#: the reporting install): the lift and ceiling below are its own, and only the values
 #: the arbiter derives from a supply temperature (the rated hold, the weather
 #: curve) are moved down by the rated spread (``pump_arbiter._as_target``).
 SPACE_SETPOINT_WATER_UNITS: Final = ("flow", "return")
@@ -831,6 +835,14 @@ DEFAULT_FLOW_MIN_LIFT_K: Final = 5.0
 #: unit and a power meter, the only installs it acts on.
 CONF_SPACE_SETPOINT_POWER_FEEDBACK: Final = "space_setpoint_power_feedback"
 DEFAULT_SPACE_SETPOINT_POWER_FEEDBACK: Final = True
+#: The controller's own lower and upper limit on the water set-point it is
+#: sent, each as an optional sensor: the feedback loop stays inside the pair
+#: instead of finding each limit by having a write cut. On a heat pump's
+#: Smart Home Interface they are inputs 10104 (minimum return target,
+#: parameter 979) and 10103 (return limit, parameter 87), which clamp
+#: register 10001 (#3372 comment 6756915104). Unset, nothing reads them.
+CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY: Final = "space_setpoint_low_limit_entity"
+CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY: Final = "space_setpoint_high_limit_entity"
 #: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
 #: install. Absent follows the install probe (#1955).
 CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
@@ -1592,8 +1604,8 @@ DEFAULT_ECL110_PID_TIME_CONSTANT: Final = 1.5  # hours, first-order approximatio
 DEFAULT_HEAT_CURVE_TARGET_KIND: Final = HEAT_CURVE_KIND_OFFSET
 # The most the entity arm may offset the curve, K, either way; the user range is
 # 0.5 to 5 K. Web research handoff-body/r10-ghc-research 52f5a442, BODY.md, its
-# "Recommended defaults" row "O5a band | 3 K | 0.5 to 5 K": 5 K is Luxtronik's
-# own user correction (documented, a third-party app), 3 K an estimate between
+# "Recommended defaults" row "O5a band | 3 K | 0.5 to 5 K": 5 K is one
+# controller's own user correction (documented, a third-party app), 3 K an estimate between
 # that and SG-Ready's +1/+2 offset steps (NIBE, documented).
 DEFAULT_HEAT_CURVE_OFFSET_BAND_K: Final = 3.0
 HEAT_CURVE_OFFSET_BAND_RANGE_K: Final = (0.5, 5.0)
@@ -1864,6 +1876,8 @@ INPUT_PLAUSIBLE_RANGE_C: Final = {
     CONF_WOOD_TANK_BOTTOM_ENTITY: WATER_RANGE_C,
     CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: WATER_RANGE_C,
     CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: WATER_RANGE_C,
+    CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY: WATER_RANGE_C,
+    CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY: WATER_RANGE_C,
     CONF_EXTERNAL_HEAT_ENTITY: FLUE_RANGE_C,
 }
 
