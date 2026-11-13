@@ -481,9 +481,10 @@ pr_args_self_test() (
   # The programs under test are copied from a snapshot of them taken here, never from the live
   # checkout: a job step that moves the checkout mid-run (tick_loop.sh's restart onto origin/main)
   # would otherwise hand the later arms the base's copies (R10-HOTFIX-UPDATEPR-FIGURE-REFRESH).
-  # Only the files the arms copy in: an arm naming one not listed fails at its cp, never reads the tree.
+  # Only the files the arms copy in, and roster_lib.py, which pr_cap.py loads from beside itself: an arm
+  # naming one not listed fails at its cp, never reads the tree.
   seat=$t/seat; mkdir "$seat" && (cd "$src" && cp -p delivery_row.sh gh_read.py handoff_push.sh open_pr.sh \
-    pr_args.sh pr_cap.py ref_privacy.py remerge_main.sh update_pr.sh "$seat/") \
+    pr_args.sh pr_cap.py ref_privacy.py remerge_main.sh roster_lib.py update_pr.sh "$seat/") \
     || { echo "pr_args self-test: no snapshot of the programs under test"; rm -rf "$t"; return 1; }
   # The pusher stubs the reap arms drive read this directory ($T is open_pr's topic).
   REAP_DIR=$t; export REAP_DIR
