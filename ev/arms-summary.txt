@@ -1,0 +1,30 @@
+cp: '/tmp/tmp.vQfkFhxTJI/wt-origin_main/tools/policy/brief_lint.mjs' and '/tmp/tmp.vQfkFhxTJI/wt-origin_main/tools/policy/brief_lint.mjs' are the same file
+A-main-main grader=wt-origin_main data=wt-origin_main rc=0 VACUOUS=0
+B-head-main grader=wt-b56f70383712 data=wt-origin_main rc=0 VACUOUS=0
+C-head-p2 grader=wt-b56f70383712 data=wt-78325190f8 rc=0 VACUOUS=0
+D-main-p2 grader=wt-origin_main data=wt-78325190f8 rc=1 VACUOUS=1
+cp: '/tmp/tmp.vQfkFhxTJI/wt-b56f70383712/tools/policy/brief_lint.mjs' and '/tmp/tmp.vQfkFhxTJI/wt-b56f70383712/tools/policy/brief_lint.mjs' are the same file
+E-head-head grader=wt-b56f70383712 data=wt-b56f70383712 rc=0 VACUOUS=0
+{
+  "files": [
+    "carry-1067.json",
+    "carry-1336.json",
+    "carry-1395.json",
+    "carry-1398.json",
+    "carry-1454.json",
+    "carry-1459.json",
+    "carry-1463.json",
+    "carry-1644.json",
+
+{
+  "files": [
+    "carry-1067.json",
+    "carry-1336.json",
+    "carry-1395.json",
+    "carry-1398.json",
+    "carry-1454.json",
+    "carry-1459.json",
+    "carry-1463.json",
+    "carry-1644.json",
+
+[exited with code 0]

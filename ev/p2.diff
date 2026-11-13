@@ -1,0 +1,19 @@
+diff --git a/tools/policy/brief_lint.mjs b/tools/policy/brief_lint.mjs
+index 05198529c5..2a8c5e6754 100644
+--- a/tools/policy/brief_lint.mjs
++++ b/tools/policy/brief_lint.mjs
+@@ -1415,8 +1415,12 @@ function assertCarryControl() {
+   }
+   const good = carryControlFindings('dev/audit/harnesses/agreement_two_pr.mjs prints the count')
+   if (good.length) problems.push(`a control naming an existing harness is refused (null control): ${good[0].message}`)
+-  const legacy = carryControlFindings('the FUTURE-STATE section 2 figures', 'carry-201.json')
+-  if (legacy.length) problems.push(`a legacy carry file is refused (the narrowing): ${legacy[0].message}`)
++  // The legacy example is read from the set, not named: the set only shrinks, and a
++  // named member that leaves it would turn this narrowing check into a refusal.
++  const member = [...LEGACY_CONTROL_FILES].sort()[0]
++  if (!member) problems.push('the legacy set is empty, so the narrowing is unexercised')
++  const legacy = member ? carryControlFindings('the FUTURE-STATE section 2 figures', member) : []
++  if (legacy.length) problems.push(`a legacy carry file (${member}) is refused (the narrowing): ${legacy[0].message}`)
+   if (problems.length) {
+     console.log('\nCONTROL VACUOUS: carry control:')
+     for (const m of problems) console.log(`  ${m}`)
