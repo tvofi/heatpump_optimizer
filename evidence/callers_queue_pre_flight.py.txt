@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "/tmp/claude-0/-home-user-heatpump-optimizer/811a663c-06e9-5803-aca1-8e98bbc5f50f/scratchpad/wt/tools/audit/seat/queue_pre_flight.py", line 84, in <module>
-    import merge_train as mt  # noqa: E402  (same directory; the train's own words)
-    ^^^^^^^^^^^^^^^^^^^^^^^^
-ModuleNotFoundError: No module named 'merge_train'
-rc=1

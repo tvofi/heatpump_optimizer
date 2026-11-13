@@ -1,74 +1,55 @@
-Fix review: blocked 8e6e94427f86b0c15ecdbbe1ed639acc716737ee self-test-red: four instrument self-tests that run the real app_approve.sh --carry pass at the merge base and fail at this head (app_comment.sh 6, review_carry.py 4, ledger.py 1, merge_train.py 2); their fixtures carry heads that are no branch tip of origin
+Fix review: merge 384b43749ef0014033f8002b3c7b3aa178ef9f73
 
-bus-nonce: 3d4aac33b30751fa439eab5a58c6b19a
+bus-nonce: a0fb6d117b8c9682e028d9d8a2c89b33
+pending-ci: gate
 
-Round 1 of this part, at the handoff, before a pull request exists. No review packet and no CI exist for this head; every result below is this seat's own run in a detached worktree at 8e6e94427f86b0c15ecdbbe1ed639acc716737ee, with the merge base fc2a7edcf2be8847037d9e8dc5bde460977befa8 in a second worktree.
+Round 2 of this part, a delta review over the reviewed head 8e6e94427f86b0c15ecdbbe1ed639acc716737ee, from a detached worktree at 384b43749ef0014033f8002b3c7b3aa178ef9f73 with the merge base e59e21fee4629623f2f88ea83be76d527b7d0805 in a second worktree. The delta holds no `custom_components/` line, so the scope was not widened.
 
-## Block
+## Previous finding
 
-`carry()` in `tools/pr/app_approve.sh` now runs `git ls-remote --heads origin` and treats a head that is no branch tip of origin as not ours. Four other instruments call the real `--carry` inside their own `--self-test`, over fixture heads that are never pushed to `refs/heads/*`; the diff edits none of the four files. `instrument-self-tests` step red at the head and not at the merge base (fix-review.md step 11), each one:
+The round-1 block (self-test-red: four instrument self-tests red at the head and green at the merge base) is resolved. Each self-test, run by this seat at both ends:
 
-- `tools/pr/app_comment.sh --self-test` (governance.yml step `app-verdict-poster`): base 0 failed, head `67 checks, 6 failed`. First failing check: "a merge verdict posts at a pin-only head it carries to (P264)". Its fixture pushes the head only as `refs/pull/7/head`.
-- `tools/audit/seat/review_carry.py --self-test` (step `review-carry`): base 0 failed, head `29 checks, 4 failed`: "a re-cut merge of the branch's own previous head answers CARRY", "a revert and its re-apply answers CARRY (L6)", "and counts its two non-merge commits", "a claim file resolved to the union of both sides answers CARRY". The fixture's origin holds only `main`.
-- `tools/audit/seat/ledger.py --self-test` (step `obligations-ledger`): base 0 failed, head `102 checks, 1 failed`: "REVIEW OWED skips a head its newest merge verdict carries to (a clean main merge); a branch-own commit after it is owed (null control)". The fixture repository has no `origin` remote, so the listing fails closed.
-- `tools/audit/seat/merge_train.py --self-test` (step `merge-train`): base 0 failed, head `656 checks, 2 failed`: "add, a train live: a CARRIED single ... passes app_approve.sh --carry under the queue lock and is spooled for the NEXT batch (ADDED)" and its null control "a head carrying a non-main delta past its verdict is refused by the `carry` rule". No `origin` remote in the fixture.
+- `bash tools/pr/app_comment.sh --self-test`: base `67 checks, 0 failed`, head `70 checks, 0 failed`.
+- `python3 -I tools/audit/seat/review_carry.py --self-test`: base `29 checks, 0 failed`, head `32 checks, 0 failed`.
+- `python3 -I tools/audit/seat/ledger.py --self-test`: base `102 checks, 0 failed`, head `103 checks, 0 failed`.
+- `python3 tools/audit/seat/merge_train.py --self-test`: base `656 checks, 0 failed`, head `657 checks, 0 failed`.
 
-All four steps list `tools/pr/app_approve.sh` in `tools/ci/selftest_closures.json` at this head, so the scope selects them for this diff: the pull request would open red on them, and a forced-full `main` would be red after it. `tools/pr/prepr.sh` does not run the instrument self-tests, which is why the handoff did not see it.
+The repair is fixture code only; `carry()` in `tools/pr/app_approve.sh` is byte-identical between the two heads' patches (rule: for each path of `git diff --name-only fc2a7edcf2be8847037d9e8dc5bde460977befa8 8e6e94427f86b0c15ecdbbe1ed639acc716737ee`, the added and removed lines of its patch against its own merge base at each head, compared; only `tests/closures.json` and `tools/ci/selftest_closures.json` differ).
 
-The enumeration rule for the class: every caller of `app_approve.sh --carry` (`git grep -n -e '--carry' -- tools | grep app_approve`). Callers whose self-test I ran and found green at the head: `orchestrator_tick.py` (315 checks), `review_packet.py` (123), `cloud_relay.sh`, `bus.sh` (203), `outside.py` (212). `queue_pre_flight.py --self-test` under `python3 -I` stops on `ModuleNotFoundError: No module named 'merge_train'` at the head; I did not run it at the base, so it is not counted either way.
+## Delta
 
-The repair is the fixer's choice between giving those fixtures an origin branch at the carried head (as this diff's own `ourcarry` does inside app_approve's self-test) and a seam in `carry()`; either way the four self-tests are re-run at both ends and their closures re-recorded.
-
-## What this part defines for part 2
-
-In `tools/pr/outside.py`, imported by path:
-
-- `pull_facts(repo, pr, pull=None)` -> dict with keys `author`, `state`, `head_repo`, `head_ref`, `head_owner`, `head`, `base_repo`, `base_ref`.
-- `cross_repository(facts, repo)` -> bool, the one definition of a cross-repository head (`facts["head_repo"] != repo`; a head repository that is gone is cross-repository).
-- `check(repo, pr, ref, gate=None, fetch=True, early=False, comment=None, pull=None)` -> `(rc, lines)`: 0 admitted, 1 refused, 3 not an outside pull request.
-- `Rules(ref).classify(path, pr)` -> `"F"`, `"R"` or `"O"`; `Rules.is_owned`, `Rules.refused`, `Rules.free`.
-- `approve(repo, pr, head, mandate, ref, role, gate=None, fetch=True)` -> `(rc, lines)`; `owner_read(reviews, head, gate, repo, carry)`; `allowlisted(user, allow)`; `read_allowlist(ref)`; `carries(lsha, head, ref)`; the exception `Refuse`.
-- Shell form: `python3 -I tools/pr/outside.py cross --repo O/R --pr N` (rc 0 `CROSS-REPOSITORY`, rc 3 `SAME-REPOSITORY`, rc 1 `REFUSE:`), `check`, `classify`, `approve`.
-- Constants: `ALLOWLIST`, `CODEOWNERS`, `MANIFEST`, `HEAD_REF`, `READ_WORDS` ("Outside read:"), `READ_LINE`, `DECISIVE`.
-
-Data paths: the allowlist is `dev/governance/config/outside_contributors.json` (key `contributors`, entries with `login`, integer `id`, `since`, `decision`), read with `git show <ref>:<path>`; the fetched fork head is `refs/hpo-outside/<pr>`; `bus.sh adopt <pr> <comment id>` is the adoption entry and `policy_lint.mjs --outside-author <login>` its body-lint form.
-
-This part defines none of `Train.fork_head`, `Train.outside_contract` or `head_is_ours`; `tools/audit/seat/merge_train.py`, `remerge_main.sh` and `merge_pr.sh` are untouched by the diff.
-
-## Can this part alone stop the train
-
-Yes, as it stands, and for our own pull requests: the four red self-test steps above stop this pull request itself, and after it any pull request whose diff reaches one of those four closures.
-
-In production paths a same-repository pull request is otherwise unaffected, by reading and by measurement:
-
-- The train's four `--carry` calls (`merge_train.py` admission, add, the head wait, `admit_verdict`) pass the live `headRefOid`, which is a branch tip of origin for a same-repository head, so `ours` stays 1 and every arm below is the base's. The extra cost is one `git ls-remote --heads origin` per carry whose range holds a commit: 7216 heads, 0.63 s from this seat.
-- `policy_lint.mjs`: `outsideAdmission` returns before any spawn for the App (both spellings), Dependabot and an absent author. The base's copy of the linter, given this head's two new arguments, prints the same summary line as without them (`PR-BODY: 2 error(s)` both ways on the handoff body with no `--base`), so the head's `pr-contract.yml` line does not break the base's restored grader.
-- `tests.yml`: the added conjunct is true for a same-repository head and `HEAD_REF` holds the value the inline expression held.
-- A carry of a local head never pushed now refuses, with or without an `origin` remote; the body says so for non-merge commits. It holds for a merge of main too wherever the branch changes a merge-driver file, since on `ours=0` each such file must be main's bytes.
-
-For a fork pull request this part admits nothing at merge: the allowlist is empty and `check` answers rc 3.
+Branch-own commits in the delta: 6538f92df7 (the four fixtures), cb5e234a9d (`dev/audit/config/scopes.json`), 87b116dd7b, b16fe0ecc0 and 4dfedf6c3b (`tools/ci/selftest_closures.json`), 7e7accbe20 (`tests/closure.py`, `tests/closures.json`), 36c5e8f42e (the delivery row), and four merges of main. `git show --remerge-diff` on each merge: d5cd21ec0d, f161dfca4b and 384b43749e print only `LEDGER-MERGE: resolved tests/closures.json` and no hunk; 3d5d1a66b2 resolves one conflict, in `tools/ci/selftest_closures.json`.
 
 ## Evidence
 
-- `git merge-tree --write-tree origin/main 8e6e94427f86b0c15ecdbbe1ed639acc716737ee` with origin/main at 8c10361eb1fea539dc5acb8f7442eac2810faa47: rc 0, stderr `LEDGER-MERGE: resolved tests/closures.json`. No conflict.
-- `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`: empty, the contract read is current.
-- The head is still `refs/heads/handoff/r10-outside-contributor-cycle` on origin at the time of writing.
-- RESULT app_approve self-test at head: `350 checks, 0 failed`.
-- RESULT bus self-test at head: `203 checks, 0 failed`.
-- RESULT outside self-test at head: `212 checks, 0 failed`.
-- RESULT policy_lint self-test at head: rc 0, `FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes`.
-- RESULT ci_predict self-test at head: rc 0, `0 failed`.
-- RESULT mutant, app_approve.sh `|| ours=0` to `|| ours=1`: 18 checks fail, the first "NO CARRY on a fork head: a closures bot commit". Killed, as the body says.
-- RESULT mutant, outside.py `cross_repository` returning True: 3 checks fail ("REFUSE: a same-repository head", "cross: a head of ours is not (rc 3)", "approve REFUSE, nothing posted: a same-repository head"). Killed.
-- The body's other hand mutants (bus.sh, policy_lint.mjs, ci_predict.py, the remaining app_approve arms) were not re-run by this seat; the block does not turn on them.
-- outside.py's own added lines were not drawn by the final `prepr.sh` mutant draw, as the body discloses; I ran the one mutant above and no draw.
-- `node tools/policy/policy_lint.mjs --budgets`, the fix-review.md row: lines 140 of 140, tokens 2775 of 2775; the cap moved 2546 to 2775 in `policy_budgets.json`. The raise is real and is the owner's or his mandate's to approve; I did not judge the four payments.
-- `python3 tools/audit/archscore/score.py --diff fc2a7edcf2be8847037d9e8dc5bde460977befa8`: `Architecture score: dS +0.0000 NULL`, as the body quotes.
-- `VERSION`, `custom_components/`, `RELEASE_NOTES.md` and `tests/golden/` are untouched by the diff; no claim file moves.
-- `outside.py classify --pr 7 --ref HEAD`: F `dev/programme/delivery/7.md`, R `dev/programme/delivery/8.md`, F the manifest, F `docs/CONTRIBUTING.md`, F `docs/setup.md`, O `tests/entities.py`, R `tools/pr/outside.py`, F `README.md`, R `VERSION`.
-- The three live checks decision 0017 lists before the first allowlist entry were not run by this seat either: no fork and no owner credential here.
-- `budget-raise-gate` is the one red the body answers; no check run exists to read it against.
+- RESULT mutant M1 at the head, `tools/pr/app_approve.sh` line 303 `|| ours=0` to `|| ours=1`: `app_comment.sh` `70 checks, 3 failed` ("REFUSE: the same pin-only head when it is only refs/pull/7/head (a fork's)", "refused as a head that is not ours", "and nothing was minted or posted"); `review_carry.py` `32 checks, 2 failed` ("... answers FRESH-REVIEW", "it names the head as not ours"); `merge_train.py` `657 checks, 1 failed` ("a head on no branch of origin (a fork's) carrying an empty ci: commit past its verdict is refused ..."); `ledger.py` `103 checks, 0 failed`, as the body says it would be. Killed by three of four; logs `ev/M1.*.log`.
+- RESULT mutant M2 at the head, the unreadable-origin refusal replaced by a listing that names the head as a branch tip (fail open): `ledger.py` `103 checks, 1 failed`, "with origin's branch heads unreadable the same carried head is owed (fail closed)". Killed; `ev/M2.ledger.log`. My replacement text differs from the body's (`heads=""`); the same check kills both.
+- The body's first repair mutant (the fixtures put back to their pre-repair form) was not re-run here; round 1 measured those reds at 8e6e94427f86b0c15ecdbbe1ed639acc716737ee directly.
+- RESULT `python3 -I tools/audit/check_scopes.py --self-test --repo .`: `SELF-TEST passed` at the head; also passed at the merge base, which lacks `docs/CONTRIBUTING.md`.
+- RESULT `python3 tools/audit/seat/queue_pre_flight.py --self-test`: `53 checks, 0 failed` at both ends, the form `governance.yml` runs; round 1 had left it uncounted.
+- RESULT `bash tools/pr/app_approve.sh --self-test`: base `322 checks, 0 failed`, head `350 checks, 0 failed`.
+- RESULT `PYTHONPATH=tests/hastub env -u BASH_ENV python3 tests/entities.py` at the head: `ALL 2709 ENTITY CHECKS PASSED`, rc 0.
+- RESULT `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: `ALL 115 HARNESS HEADER CHECKS PASSED`, rc 0, at the head and at the merge base. The recorded `rc` the diff moves 1 to 0 in `tests/closures.json` is the rc the script exits with; main's table records 1 while the script exits 0 on main's tree here.
+- RESULT `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` at the head: `ALL 343 checks PASSED`, rc 0.
+- `git diff origin/main 384b43749ef0014033f8002b3c7b3aa178ef9f73 -- tests/closures.json`: three changed lines, `docs/CONTRIBUTING.md` added to two closures and that `rc`. `git diff --quiet 4145f2852642fd0b5ccb8b7af60d41e896a5eea3 3d5d1a66b2 -- tests/closures.json`: rc 0, the body's claim taken against the main it merged.
+- `tools/ci/selftest_closures.json`, the `steps` object at the head against origin/main key by key: one step only at the head (`outside-contract`), none only on main, twelve differing (`app-verdict-poster`, `ci-predictor`, `field-coverage`, `obligations-ledger`, `open-pr`, `policy-lint-mutants`, `pr-args`, `review-carry`, `self-tests-outside-seat`, `selftest-wiring`, `update-pr`, `verdict-bus`), no other top-level key differing. That is the body's thirteen.
+- The INERT exception in `tests/closure.py` was not mutated by this seat: its judge is CI's `tests / closures`, the check that went red on the earlier head.
+- `python3 tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`. `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
+- `node tools/policy/policy_lint.mjs --budgets`, the fix-review.md row at the head: lines 140 of 140, tokens 2775 of 2775; rc 0.
+- `python3 tools/audit/archscore/score.py --diff e59e21fee4629623f2f88ea83be76d527b7d0805`: `Architecture score: dS +0.0000 NULL`, the body's line.
+- `python3 -I tools/ci/selftest_scope.py select --base origin/main` at the head: rc 0, log `ev/selftest_scope.head.log`.
+- The raise is outside this round's delta and is unchanged since the reviewed head. I read the two paragraphs it buys and the four payments: both paragraphs bind a seat that reads this contract, and I found no fifth payment. That is a reading, with no archscore run per payment by this seat.
+- The body's `## Head` names 384b43749ef0014033f8002b3c7b3aa178ef9f73, the head measured, and `refs/pull/3514/head` on origin still read that sha at the last poll. Its line "Merge base with `origin/main`: 4145f2852642fd0b5ccb8b7af60d41e896a5eea3" is the merge base of the code head 7e7accbe20; at the pull request's head it is e59e21fee4629623f2f88ea83be76d527b7d0805.
+- `git merge-tree --write-tree origin/main 384b43749ef0014033f8002b3c7b3aa178ef9f73` with origin/main at e59e21fee4629623f2f88ea83be76d527b7d0805: rc 0. No conflict; the head contains main's tip.
+- `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`: empty by construction, the merge base is main's tip.
+- `VERSION`, `custom_components/`, `RELEASE_NOTES.md` and `tests/golden/` are not in `git diff --name-status origin/main 384b43749ef0014033f8002b3c7b3aa178ef9f73` (28 paths).
+- carry_audit at the head, from the packet: `5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)`.
+- The body's whole-set self-test run (114 steps, `verdict-bus` and `tick-loop` failing there) was not re-run here: it is CI's `governance / instrument-self-tests`.
+- CI at the head: `python3 tools/audit/seat/merge_train.py classify 384b43749ef0014033f8002b3c7b3aa178ef9f73 --pr 3514` printed `WAIT 384b43749ef0014033f8002b3c7b3aa178ef9f73 pending: gate red: none` (rc 3) on every read from 22:55 to 23:27 UTC, 2026-11-12, at least 65 s apart; this verdict is returned with `pending-ci`.
+- Check runs read once at 23:16 UTC (run 43323764289): `tests / typing`, `tests / mutation`, `tests / briefs`, `tests / closure-scope`, `governance / policy-docs`, `governance / wave-script`, `governance / delivery-status`, `hassfest / hassfest`, `validate / validate-hacs`, the three `codeql` analyses and `arch-score` concluded success; `governance / instrument-self-tests`, `governance / env-matrix`, `tests / coverage` and `tests / fast (3.14)` in progress; `tests / closures`, `tests / browser` and `tests / arch-instrument` queued. `governance / instrument-self-tests` and `tests / closures`, the two checks this round's repairs answer, had not concluded when I stopped, so neither is confirmed by CI in this verdict.
+- `budget-raise-gate / budget-raise-gate` concluded failure at the head: the approval the body's `## Red checks` answers, which follows a verdict. `tests / nightly-status` concluded failure and is outside the set `merge_train.py owed-reds` prints. A second run at the head, 43323765194, shows `gate` concluded failure at 23:15 with `pr-contract` skipped; I did not read its log, and classify still printed `red: none` after it.
+- `## Red checks` in the body names `budget-raise-gate`, `tests / closures`, `governance / instrument-self-tests` and `tests / nightly-status`, each with its detector answer; whether a `pr-contract` run at this head accepted the body is not known to this seat.
 
 ## Findings
 
-None beyond the block.
+None.
