@@ -25637,6 +25637,49 @@
     "note": "triage ruling s14/seat/triage-selftest-scope/RULING.md: A accepted for round 11; overlap admitted (R10-NUDGE-RETIRE, R10-SELFTEST-SCOPE-UNION-GUARD): triage ruling 2026-11-13: barrier A accepted for round 11, deferred",
     "pr": null
    }
+  },
+  {
+   "group": "R11-INTAKE-R10-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "rca",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Round 11, deferred. Holding group for round-10 residuals that no live round-10 group owns and that do not move the round-10 closure (orchestrator intake rule, 2026-11-12: a new round-10 group only for a production defect, a red required check on main, a block on a chain pull request or an owner instruction). Not a work unit as it stands: the round-11 architect (architect-planner.md) triages each carry below and re-homes it to the group that owns its seam, or refuses it with a reason; this group closes when it holds no carry. Each carry states its origin group, its measurement and what a fix would owe. Re-measure every carried figure at your own merge base.",
+   "carry": [],
+   "resume": {
+    "stage": "deferred",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "round 11 architect triage",
+    "note": "created 2026-11-13 by the s14 orchestrator to receive R10-CI-PRIORITY-PAUSE roster carries 10 and 11; overlap admitted (R10-NUDGE-RETIRE): holding group for round-10 residuals with no live owner; round-11 architect re-homes each carry",
+    "pr": null
+   }
   }
  ]
 }
