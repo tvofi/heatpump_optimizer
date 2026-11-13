@@ -60,7 +60,7 @@ The record is kept in this body and not under `tests/mutation_ledger/survivor_tr
 
 ## Null control
 
-Each spec run's NULL mutant (the unedited tree) SURVIVED, for both bus and relay. At this head, `bash tools/audit/seat/bus.sh --self-test` printed `bus self-test: 202 checks, 0 failed`, `bash tools/audit/seat/cloud_relay.sh --self-test` printed `cloud_relay self-test: 465 checks, 0 failed`, and `python3 tools/audit/seat/ledger.py --self-test` printed `ledger self-test: 103 checks, 0 failed`. Each production mutant above turns its self-test red. The per-carry nulls are unchanged from the first round:
+Each spec run's NULL mutant (the unedited tree) SURVIVED, for both bus and relay. At this head, `bash tools/audit/seat/bus.sh --self-test` printed `bus self-test: 202 checks, 0 failed`, `bash tools/audit/seat/cloud_relay.sh --self-test` printed `cloud_relay self-test: 501 checks, 0 failed`, and `python3 tools/audit/seat/ledger.py --self-test` printed `ledger self-test: 103 checks, 0 failed`. The cloud_relay figure was 465 at the earlier head 8382e2aa25 and is 501 at the merged head a60a65d873 (main's bdf1dc827e and 7d09eae1ba add 36 checks); it is corrected here. Every other figure was re-read at a60a65d873 and holds: bus 202 and ledger 103 by the commands above, and `node tools/policy/policy_lint.mjs` TOTAL 0 over 51 files, `--budgets` rc 0, `node tools/policy/brief_lint.mjs` rc 0. Each production mutant above turns its self-test red. The per-carry nulls are unchanged from the first round:
 - Carry 17: a stop with no record runs body_push.sh.
 - Carry 20: a tip with one real line stays None.
 - Carry 11: a fourth round after a proof-class or unknown-class block refuses.
