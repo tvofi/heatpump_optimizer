@@ -1,0 +1,29 @@
+### /root/wt (abf3b4f9e1)
+  ok   a real pass moves heartbeat/orchestrator on the remote
+  ok   null control: a refused push is printed with its reason and the pass still completes
+  ok   freshness null control: behind 0 is silent (code=<sha7> behind=0 on the banner) and does not exec
+  ok   freshness: a commit outside the loop's code paths is not counted (the path filter)
+  ok   freshness: behind within the bound and no change to the loop's own files relays, restarts nothing; the heartbeat says behind=1
+  ok   freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+  ok   freshness: a dirty tree prints the banner, skips the relay and is never moved
+  ok   freshness: a checked-out branch is never moved (restart needs a detached head)
+  ok   freshness: a pass already restarted does not exec again (at most once per pass)
+  ok   freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+  ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+tick_loop self-test: 30 checks, 0 failed
+exit=0
+### /root/wt-mb (0731b35877)
+  ok   a real pass moves heartbeat/orchestrator on the remote
+  ok   null control: a refused push is printed with its reason and the pass still completes
+  ok   freshness null control: behind 0 is silent (code=<sha7> behind=0 on the banner) and does not exec
+  ok   freshness: a commit outside the loop's code paths is not counted (the path filter)
+  ok   freshness: behind within the bound and no change to the loop's own files relays, restarts nothing; the heartbeat says behind=1
+  ok   freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+  ok   freshness: a dirty tree prints the banner, skips the relay and is never moved
+  ok   freshness: a checked-out branch is never moved (restart needs a detached head)
+  ok   freshness: a pass already restarted does not exec again (at most once per pass)
+  ok   freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+  ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+tick_loop self-test: 30 checks, 1 failed
+exit=0
+TICKDONE

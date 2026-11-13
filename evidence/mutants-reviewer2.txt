@@ -1,0 +1,39 @@
+P1 bounded: the entity's maximum is no ceiling (the deleted pre-clamp's only heir): KILLED tests/block_duty.py rc=1 1 failing
+    FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
+P2 bounded: the entity's minimum is not rounded up as a floor: KILLED tests/block_duty.py rc=1 1 failing
+    FAIL a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses  [predicate false]
+P3 bounded: a caller's ceiling under the entity's minimum is kept: KILLED tests/block_duty.py rc=1 1 failing
+    FAIL a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses  [predicate false]
+P4 the owner puts the value on the step but not in the entity's range: KILLED tests/block_duty.py rc=1 2 failing
+    FAIL a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses  [predicate false]
+    FAIL a disinfection temperature above the entity's range stays bounded at its maximum  [predicate false]
+P5 the planner's cycle step ignores the grid: KILLED tests/block_duty.py rc=1 1 failing
+    FAIL on a stepped entity each step's start temperature is the written target less the hysteresis  [predicate false]
+P6 the planner's everyday steps ignore the grid: KILLED tests/block_duty.py rc=1 2 failing
+    FAIL on a stepped entity each step's start temperature is the written target less the hysteresis  [predicate false]
+    FAIL handed the 5 degC entity's grid, no planned charge after step 0 begins at or above 51 degC  [predicate false]
+P7 a held disinfection switch is no cycle step: KILLED tests/block_duty.py rc=1 12 failing
+    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
+    FAIL the cycle's temperature is the thermal parameters' own answer, not a copy  [predicate false]
+P8 a booked cycle is no cycle step: KILLED tests/block_duty.py rc=1 7 failing
+    FAIL a commanded or held disinfection cycle writes its temperature, not the configured set-point  [predicate false]
+    FAIL every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too  [predicate false]
+P9 _bounded drops the caller's floor: SURVIVED tests/block_duty.py rc=0 0 failing
+P10 _bounded drops the caller's rounding: SURVIVED tests/block_duty.py rc=0 0 failing
+P11 _bounded drops the caller's lo: SURVIVED tests/block_duty.py rc=0 0 failing
+P12 a charge under way is any step that opens below its start, charging or not: KILLED tests/block_duty.py rc=1 2 failing
+    FAIL the step after a charge kept at the first step continues it; the kept step itself is not added to  [predicate false]
+    FAIL what the start condition bars is re-bought where the pump starts: the tank is no further under its minimum with a 4 K hysteresis than with none  [predicate false]
+P13 the first step is startable whenever it charges (the deleted term at step 0 only): KILLED tests/block_duty.py rc=1 1 failing
+    FAIL the step after a charge kept at the first step continues it; the kept step itself is not added to  [predicate false]
+P14 the state's grid is the hysteresis entity's: KILLED tests/block_duty.py rc=1 6 failing
+    FAIL each step's start temperature is its own target less the hysteresis, the cycle step the cycle's  [predicate false]
+    FAIL a cycle on the first step is judged against its own target; one past the horizon moves no step  [predicate false]
+P15 the notice reads hot water as always enabled when the hysteresis is large: KILLED tests/block_duty.py rc=1 1 failing
+    FAIL with hot water disabled no minimum raises it, whatever the hysteresis reads  [predicate false]
+P16 quantise_setpoint_c drops hi_c: KILLED tests/block_duty.py rc=1 1 failing
+    FAIL the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every step size and pair, and an off-step floor's repair stands down at t
+P17 on_step: the ceiling rounds to nearest, not down: KILLED tests/block_duty.py rc=1 11 failing
+    FAIL an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard maximum is the everyday set-point there (the everyday step's own neares
+    FAIL no no-cycle write exceeds the charge limit (dhw_max_temp), the cycle enabled and not running or disabled, over every step size and everyday set-point on and off the 
+NULL: SURVIVED tests/block_duty.py rc=0 0 failing

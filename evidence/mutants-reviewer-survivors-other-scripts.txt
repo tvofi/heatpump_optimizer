@@ -1,3 +1,0 @@
-O2 under tests/features.py: SURVIVED rc=0 339s RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-O3 under tests/features.py: SURVIVED rc=0 345s RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-driver stopped by the reviewer after O3 (bounded review time); O4 under tests/features.py and all three under tests/validate.py were not run

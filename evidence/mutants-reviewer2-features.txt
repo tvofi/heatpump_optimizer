@@ -1,0 +1,6 @@
+P9 _bounded drops the caller's floor: SURVIVED tests/features.py rc=0 0 failing
+P10 _bounded drops the caller's rounding: SURVIVED tests/features.py rc=0 0 failing
+P11 _bounded drops the caller's lo: KILLED tests/features.py rc=1 7 failing
+    FAIL a fractional inlet's floor rounds up through _flow_target: a 25.3 degC tank writes 31, not 30 (the floor 30.3 is a minimum); null: a whole 26 degC tank writes 31 unc
+    FAIL a 1.5 K lift over a 22 degC return takes the lift from the return, above the 20 degC return gate, and rounds up on a whole-degree entity to 24; a flow target's floor
+NULL: SURVIVED tests/features.py rc=0 0 failing

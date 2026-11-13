@@ -1,0 +1,54 @@
+### merge-tree origin/main=cfa868394685dbb2360844aec43d7a8cac4736ab abf3b4f9e1ef38c519fc9b707bce14e9fce2909a
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17523 + both deltas = 17511
+  re-run the gate that owns this file before pushing
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/block_duty.py: merged as a set (118 entries)
+  re-run the gate that owns this file before pushing
+3c5ce7c7782f52c54078034d86627219b0a0e5ee
+tests/deployment_shape.py
+
+Auto-merging README.md
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
+Auto-merging custom_components/heatpump_optimizer/strings.json
+Auto-merging custom_components/heatpump_optimizer/translations/de.json
+Auto-merging custom_components/heatpump_optimizer/translations/en.json
+Auto-merging custom_components/heatpump_optimizer/translations/sv.json
+Auto-merging custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+Auto-merging docs/configuration.md
+Auto-merging tests/closures.json
+Auto-merging tests/deployment_shape.py
+CONFLICT (content): Merge conflict in tests/deployment_shape.py
+Auto-merging tests/features.py
+Auto-merging tests/golden/claimed_drift.txt
+Auto-merging tests/structure_budgets.json
+rc=1
+### merge-tree origin/main=cfa868394685dbb2360844aec43d7a8cac4736ab 7bd0caac80cbf9464a6091e62f39d0e7283627ee
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  class_excess_loc: 17523 + both deltas = 17511
+  re-run the gate that owns this file before pushing
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/block_duty.py: merged as a set (118 entries)
+  re-run the gate that owns this file before pushing
+2ab22dc272fc65f5226cc1c68c20264334599450
+tests/deployment_shape.py
+
+Auto-merging README.md
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
+Auto-merging custom_components/heatpump_optimizer/strings.json
+Auto-merging custom_components/heatpump_optimizer/translations/de.json
+Auto-merging custom_components/heatpump_optimizer/translations/en.json
+Auto-merging custom_components/heatpump_optimizer/translations/sv.json
+Auto-merging custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+Auto-merging docs/configuration.md
+Auto-merging tests/closures.json
+Auto-merging tests/deployment_shape.py
+CONFLICT (content): Merge conflict in tests/deployment_shape.py
+Auto-merging tests/features.py
+Auto-merging tests/golden/claimed_drift.txt
+Auto-merging tests/structure_budgets.json
+rc=1
