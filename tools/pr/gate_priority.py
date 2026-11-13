@@ -288,8 +288,6 @@ def _self_test() -> int:
             return (is_hotfix("handoff/r10-hot", repo=str(repo), ref=live, fetch=False),
                     derived("handoff/r10-hot"), cli("handoff/r10-hot"))
 
-        check("null control: the hotfix branch's unbroken read is (True, 2, '1')",
-              hot_answers() == (True, 2, (0, "1\n")), hot_answers())
         real_show = roster_lib.show_roster
 
         def unreadable(*_a, **_k):
@@ -302,6 +300,13 @@ def _self_test() -> int:
             roster_lib.show_roster = real_show
         check("a roster read that raises fails closed: not a hotfix, priority 0, --hotfix prints 0",
               raised == (False, 0, (0, "0\n")), raised)
+        check("null control: the same read, restored, is (True, 2, '1')",
+              hot_answers() == (True, 2, (0, "1\n")), hot_answers())
+        check("the default is the fetched live read: with no origin to fetch, the hotfix branch fails closed",
+              not is_hotfix("handoff/r10-hot", repo=str(repo))
+              and derived_priority("handoff/r10-hot", repo=str(repo)) == 0
+              and is_hotfix("handoff/r10-hot", repo=str(repo), fetch=False),
+              (is_hotfix("handoff/r10-hot", repo=str(repo)), derived_priority("handoff/r10-hot", repo=str(repo))))
         check("a group that resolves but is not listed stays normal (null control)",
               derived("handoff/r10-other") == 0, derived("handoff/r10-other"))
         check("a branch that maps to no group stays normal",
