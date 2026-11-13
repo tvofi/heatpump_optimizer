@@ -2997,7 +2997,7 @@ class Train:
         return st.split()[-1]
 
     def post_merge(self, pr: int) -> None:
-        """The rest of nudge.md step 12, by `postmerge.py` (the record-issue line, the
+        """The post-merge bookkeeping, by `postmerge.py` (the record-issue line, the
         roster stage, the state docs, main's suite state). Its OWED lines are
         logged and never undo or stop the merge; the tool itself opens the
         ledger's `postmerge-owed` event for a step that failed."""
@@ -4451,7 +4451,7 @@ def auto_train_argv(repo: str, state: "str | Path", mandate: "str | None") -> "l
 def sweep(t: Train, train_argv: "list[str]", add=train_add, ledger_log: "str | None" = None) -> int:
     """One backstop sweep; its last line is `SWEEP HELD|REFUSED|DONE ...`. HELD:
     the obligations ledger holds an open `train-stop` (a stopped train is read
-    before anything reloads it: nudge.md step 3). Otherwise each entry
+    before anything reloads it: standing-merge.md). Otherwise each entry
     `build_queue` admits is handed to `add`, unless an earlier sweep handed it
     over at the same head. rc 2 on REFUSED: an unreadable ledger or pull request
     list, or an `add` that could not start a train."""

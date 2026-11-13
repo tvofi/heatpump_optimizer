@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""After a merge: the bookkeeping nudge.md step 12 used to hand an agent.
+"""After a merge: the bookkeeping no contract hands an agent (`standing-merge.md`).
 
     python3 tools/audit/seat/postmerge.py [--repo O/R] [--state-dir D] [--dry-run] [--retry] <PR>
     python3 tools/audit/seat/postmerge.py --self-test
@@ -199,9 +199,24 @@ def self_test() -> int:
     code, lines, log = go()
     check("without --retry a clean run closes nothing (null control)",
           not any("ledger.py" in c for c in log), log)
-    step12 = (ROOT / "dev/governance/roles/nudge.md").read_text().split("## 12.")[1].split("\n## ")[0]
-    check("nudge.md step 12 names no beat this tool runs (CARRY 3)",
-          not any(b in step12 for b in ("worktree_gc", "gh_comment", "roster_edit", "state_docs")), step12[:80])
+    # CARRY 3: a beat this tool runs is never also handed to an agent by the
+    # contract owning the post-merge bookkeeping, or it runs twice. The beats are
+    # read from `steps()` itself, so a step added there is checked here unedited.
+    def handed(text: str) -> "list[str]":
+        beats = {f"{rb.__name__}.py", "gh_comment.py"}
+        for _, argv, _ in steps(1, "o/r", Path("."), full, "R10-X"):
+            sub = argv[3] if len(argv) > 3 and not argv[3].startswith("-") else ""
+            beats.add(f"{Path(argv[2]).name} {sub}".strip())
+        return sorted(b for b in beats if b in text)
+    orch = (ROOT / "dev/governance/roles/orchestrator.md").read_text()
+    sec = orch.split("\n## 11.")[1].split("\n## ")[0] if "\n## 11." in orch else ""
+    owner = sec + (ROOT / "dev/governance/roles/standing-merge.md").read_text()
+    check("orchestrator.md section 11 still holds the after-each-merge duty this pin reads",
+          "After each merge" in sec, sec[:80])
+    check("orchestrator.md section 11 and standing-merge.md hand an agent no beat this tool runs (CARRY 3)",
+          handed(owner) == [], handed(owner))
+    check("a contract handing an agent `state_docs.py --push` is caught (null control)",
+          handed(owner + "\n- After each merge: run `state_docs.py --push`.") == ["state_docs.py"])
     print(f"postmerge self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
 

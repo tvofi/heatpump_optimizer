@@ -74,7 +74,7 @@ round adds its own directory rather than rewriting an earlier one.
 | `CLAUDE.md` | repository root | the index: names every policy file, the obligation each carries, and the role or dimension it binds |
 | `AGENTS.md` | repository root | the harness-neutral entry point; it defers to `CLAUDE.md` and states no policy of its own |
 | `tools/audit/seat/INSTRUMENTS.md` | `tools/audit/seat/` | the operator's guide to the seat instruments: what each does and which refusal saves you (usage, not policy) |
-| role contracts | `dev/governance/roles/` | one contract per role: `COMMON.md` (the finder's contract), `fixer.md`, `fix-review.md`, `designer.md`, `design-review.md`, `verifier.md`, `judge.md`, `root-cause.md`, `orchestrator.md`, `nudge.md` |
+| role contracts | `dev/governance/roles/` | one contract per role: `COMMON.md` (the finder's contract), `fixer.md`, `fix-review.md`, `designer.md`, `design-review.md`, `verifier.md`, `judge.md`, `root-cause.md`, `orchestrator.md` |
 | rules | `dev/governance/rules/` | the canonical rule files; `.claude/rules/` is generated from them by `node tools/policy/rules_sync.mjs`, never edited by hand |
 | dimension briefs | `dev/governance/dimensions/` | each in the owner's words: what the dimension measures and how |
 | decisions | `dev/governance/decisions/` | the ADRs: the identity split, the merge boundary, verdict authorship, the design seats |
@@ -191,8 +191,7 @@ The ruleset is the owner's. `tools/ci/ruleset_cutover.py` is the instrument
 that cut its required contexts over to `gate`: it saves a rollback copy, PUTs
 the ruleset's six writable keys, refuses with the difference where either half
 of the read-back fails, and `--rollback` PUTs the saved copy back.
-`dev/governance/roles/nudge.md` section 4 is the rule for reading it: the live
-ruleset every turn, never a remembered list.
+Read it live each time, never from a remembered list.
 
 ### The workflow files
 
@@ -360,7 +359,7 @@ cites any file but that script.
 | orchestrator | runs | fixer, reviewer and design seats | `tools/audit/seat/instruments/cloud_dispatch.py.md`: `or fire the standing trigger` |
 | orchestrator | runs | tick_loop.sh | `tools/audit/seat/instruments/tick_loop.sh.md`: `in place of a seat looping the tick` |
 | orchestrator | runs | beat_jobs.py | `tools/audit/seat/instruments/beatd.py.md`: `until a supervisor unit is applied it runs under` |
-| orchestrator | runs | merge_train.py | `dev/governance/roles/nudge.md`: `tools/audit/seat/merge_train.py run` |
+| orchestrator | runs | merge_train.py | `tools/audit/seat/instruments/merge_train.py.md`: `queued PRs merge through` |
 | orchestrator | runs | heartbeat.sh --watch | `tools/audit/seat/instruments/heartbeat.sh.md`: `the owner schedules a cloud task` |
 | orchestrator | writes | relay hold list | `tools/audit/seat/cloud_relay.sh`: `only the orchestrator writes or edits it` |
 | cloud_dispatch.py | writes | dispatch ref | `tools/audit/seat/cloud_dispatch.py`: `"push", "-q", "origin", f"{commit}:refs/heads/{ref}"` |
