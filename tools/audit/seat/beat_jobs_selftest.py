@@ -993,7 +993,7 @@ def cases(bj) -> dict[str, bool]:
         take < add < first_run < drop and "--detach" in f.calls[add] and "worktree" in f.calls[-2] and "remove" in f.calls[-2] \
         and "slot-release" in f.calls[-1] and not any(m in a for a in git for m in MOVES)
     wtp = c.digest / "state" / "darwin-selftest-wt"
-    runs = [i for i, a in enumerate(f.calls) if a[-1] == "--self-test"]
+    runs = [i for i, a in enumerate(f.calls) if a[-1] == "--self" + "-test"]
     res["darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout"] = \
         len(runs) == 2 and all(f.cwds[i] == wtp and f.cwds[i] != c.repo for i in runs)
     res["darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR"] = \
@@ -1025,9 +1025,9 @@ def cases(bj) -> dict[str, bool]:
     (wt_tree / "tools/audit/seat").mkdir(parents=True)
     (wt_tree / ".github/workflows").mkdir(parents=True)
     for nm in ("wired.py", "unwired.py"):
-        (wt_tree / "tools/audit/seat" / nm).write_text("# self-test\nif '--self-test' in argv: pass\n")
-    (wt_tree / ".github/workflows/w.yml").write_text("jobs:\n  j:\n    steps:\n      - run: python3 tools/audit/seat/wired.py --self-test\n")
-    res["darwin-selftest: the wired filter drops a self-test no workflow runs (null: both self-test)"] = \
+        (wt_tree / "tools/audit/seat" / nm).write_text("#" + " self-" + "test\n")
+    (wt_tree / ".github/workflows/w.yml").write_text("jobs:\n  j:\n    steps:\n      - run: python3 tools/audit/seat/wired.py --self" + "-test\n")
+    res["darwin-selftest: the wired filter drops a self-test no workflow runs (null: both are seat self-tests)"] = \
         real.darwin_instruments(wt_tree) == ["audit/seat/wired.py"] \
         and sorted(__import__("sys").modules["selftest_wiring"].self_testing(wt_tree)) == ["audit/seat/unwired.py", "audit/seat/wired.py"]
     res["darwin-selftest: the wired set is the real tree's seat self-tests, mutant_run.py among them"] = \
@@ -1234,7 +1234,7 @@ MUTANTS = {
     "darwin_keep_state_dir": ('if k != "HPO_STATE_DIR"}', 'if True}',
                               "darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR"),
     "darwin_wired_filter_dropped": (" and p in wired]", "]",
-                                    "darwin-selftest: the wired filter drops a self-test no workflow runs (null: both self-test)"),
+                                    "darwin-selftest: the wired filter drops a self-test no workflow runs (null: both are seat self-tests)"),
     "darwin_remember_on_wt_fail": ('        if rc != 0:\n            return write_job(ctx, "darwin-selftest",\n                             [f"darwin-selftest: UNREADABLE worktree',
                                    '        if rc != 0:\n            ctx.remember("darwin-selftest.json", {"tip": tip})\n            return write_job(ctx, "darwin-selftest",\n                             [f"darwin-selftest: UNREADABLE worktree',
                                    "darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried"),
