@@ -183,7 +183,7 @@ channels() { # every channel in parallel, one line each
     (cd "$x" && env HPO_HEARTBEAT_REMOTE="$v" TICK_RC=1 "$@" "$d/src/$L" --self-test) > "$x/$c.log" 2>&1; rc=$?
     echo "channels $c: $(tail -n 1 "$x/$c.log") rc=$rc fn-calls=$(ls "$x/calls-$c" | grep -c .) victim-refs=$(git -C "$v" for-each-ref | grep -c .)" > "$x/$c.line"; }
   fdefs() { # <channel>: the function corpus, as a BASH_ENV file's text
-    local i=0 n; for n in "${names[@]}"; do i=$((i + 1)); printf '%q() { >> %q; }\n' "$n" "$x/calls-$1/fn-$i-${n//[^a-z0-9]/_}"; done; }
+    local i=0 n; for n in "${names[@]}"; do i=$((i + 1)); printf '%s() { >> %q; }\n' "$n" "$x/calls-$1/fn-$i-${n//[^a-z0-9]/_}"; done; }
   while IFS= read -r c; do fenv+=("BASH_FUNC_${c%%()*}%%=()${c#*()}"); done < <(fdefs fn-all)
   printf 'exec() { if [ "${1:-}" = /usr/bin/env ]; then >> %q; return 0; fi; builtin exec "$@"; }\n' "$x/calls-shellopts-posix/exec" > "$x/execfn-posix"
   fdefs bashenv-all > "$x/bashenv-all"; echo ">> $x/calls-env/sourced" > "$x/envfile"
@@ -195,6 +195,15 @@ channels() { # every channel in parallel, one line each
   run1 noexec SHELLOPTS=noexec "$b" & run1 opts SHELLOPTS=errexit:nounset:xtrace BASHOPTS=execfail:extglob "$b" &
   run1 env ENV="$x/envfile" "$b" & run1 path PATH="$x/pbin:$PATH" "$b" & run1 ifs IFS=/ "$b" &
   wait; cat "$x"/*.line
+  # The null controls: each channel's instrument records a call when one is made.
+  local -a fctl=(); mkdir -p "$x/calls-fn-ctl" "$x/calls-bashenv-ctl" "$x/calls-env-ctl" "$x/calls-path-ctl" "$x/qbin"
+  while IFS= read -r c; do fctl+=("BASH_FUNC_${c%%()*}%%=()${c#*()}"); done < <(fdefs fn-ctl)
+  env "${fctl[@]}" "$b" -c 'cd /; git status; mktemp; exit 0'
+  fdefs bashenv-ctl > "$x/bashenv-ctl"; env BASH_ENV="$x/bashenv-ctl" "$b" -c 'cd /; git status; mktemp; exit 0'
+  echo ">> $x/calls-env-ctl/sourced" > "$x/envfile-ctl"; env ENV="$x/envfile-ctl" "$b" --posix -i -c : 2>/dev/null
+  printf '#!/bin/sh\n>> %q\n' "$x/calls-path-ctl/git" > "$x/qbin/git"; chmod +x "$x/qbin/git"; env PATH="$x/qbin:$PATH" "$b" -c 'git status'
+  for c in fn bashenv env path; do echo "channels null control $c: fn-calls=$(ls "$x/calls-$c-ctl" | grep -c .)"; done
+  echo "channels corpus: ${#names[@]} function names"
 }
 
 echo "rev $sha"
