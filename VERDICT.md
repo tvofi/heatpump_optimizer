@@ -1,22 +1,27 @@
-Fix review: blocked cde73e8b72fc563d515fd5ab66a6a12eec85698e class-open: open_pr.sh mut:opreg predicate matches the logical $WT against git's physical worktree path, so a state dir reached through a symlink silently keeps the defect
+Fix review: merge 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca
 
-bus-nonce: c04e83e9f6dd3d06bef25f6fb05f05da
+bus-nonce: 8110544170007c223912014b10cd1fc9
+pending-ci: gate
 
-## Block
+## Review
 
-Round 1. `tools/audit/seat/open_pr.sh` line `# mut:opreg` compares `worktree $WT`, with `WT=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr/$T/wt` unresolved, against `git worktree list --porcelain`, which prints the worktree's physical (symlink-resolved) path. Measured: `git worktree add` at `~/symt/link/wt`, where `link -> real`, lists `worktree /root/symt/real/wt`. Whenever any component of the state-dir path is a symlink, OP_REG is empty, the second opener falls through to the `-pr` rename, takes its own lock and rewrites the shared body.md: the defect this PR fixes. The new self-test hides this domain: `dualrun` resolves its state dir with `pwd -P` before calling open_pr.sh. Perturbation: the same `dualrun` with the state dir passed through a symlink to that same resolved directory (ev/perturb_symlink.diff) turns the live case red: `FAIL open_pr: a second opener on a topic whose opener worktree is registered is BUSY (75), body.md byte-identical, the first opens`, `pr_args self-test: 247 checks, 1 failed` (ev/open_pr_selftest_symlink_perturb.txt). The unperturbed head passes 247/0 (ev/open_pr_selftest_head.txt). The body's `Known gap` covers only the detached-worktree case and leaves this domain undispositioned. Owed: resolve the path before the match (for example, compare against the physical path of `$D` once it exists, or canonicalise both sides) with a self-test case that passes the state dir through a symlink, or disposition this domain in the body. The same logical-against-physical comparison already exists at `open_pr.sh` (`grep -qxF "worktree $WT"`, the stray-directory guard) and `update_pr.sh` (`mut:elsewhere`). This PR does not introduce those sites; whoever fixes the predicate should check them too.
+This is round 2, a delta review over the blocked head cde73e8b72fc563d515fd5ab66a6a12eec85698e. The delta is one authored commit, 4df50c054e4228f6f4e2b204a40d973e7f039fde, merged at the head, and it touches only `tools/audit/seat/pr_args.sh`, `open_pr.sh` and `update_pr.sh` (ev/delta_stat.txt). It touches no production code (custom_components/), so the scope does not widen (fix-review.md step 12).
+
+Round 1's class-open is closed. Round 1 found that `mut:opreg` compared the logical `$WT` with git's physical worktree path, and that the same logical-against-physical comparison sat in `op_clear_leftover` and `update_pr.sh` `mut:elsewhere`. `pr_state_root` now resolves the state root once with `cd -P && pwd -P`. `open_pr.sh` builds `D`/`WT` on it and `update_pr.sh` builds `P`/`WT` on it, so every site that compares against `git worktree list` uses the physical spelling. The perturbation round 1 asked for, a state dir passed through a symlink, is now a self-test arm (`dualrun - link`), and so are the trailing-slash and `/./` spellings. The update_pr.sh side has its own symlink arm.
 
 ## Evidence
 
-- Head reviewed: cde73e8b72fc563d515fd5ab66a6a12eec85698e (ev/HEAD.txt). It is still the live head of fix/r10-hotfix-opener-refusals per `git ls-remote` at verdict time. Base and merge base: 3b9749dac55a85c200005352c661198c982e5799. The roles diff merge-base...origin/main is empty, so the contract is current.
-- RESULT figure 1: `bash tools/audit/seat/open_pr.sh --self-test` at the head ends `pr_args self-test: 247 checks, 0 failed`, rc 0. This matches the body.
-- RESULT figure 2: `python3 tools/pr/ci_predict.py --self-test` at the head ends `ci_predict self-test: 0 failed`, rc 0. This matches the body.
-- Mutation `mut:opreg` and `mut:headnote`: the in-harness mutant arms pass at the head (the mutants are detected). I did not plant a separate opreg mutant: the symlink perturbation empties OP_REG the same way, and the live case goes red.
-- Mutation `mut:roundrefs` (my own): deleting the marked call line in ci_tree_run fails only the source-shape pin `ci_tree_run calls fetch_round_rosters on one # mut:roundrefs line` (rc 1, ev/mut_roundrefs.txt). Making `fetch_round_rosters` return early fails `fetch_round_rosters takes root's remote-tracking ref` (rc 1, ev/mut_fetch_noop.txt). The call site is pinned by source inspection, not behaviourally, and the body discloses this.
-- Refspec parity: pr-contract.yml fetches `+refs/heads/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster` from GitHub. The helper maps root's `refs/remotes/origin/...` to the same destination, which is the equivalent for a --shared local clone.
-- Null controls: the lone-run control passes at the head. Part 2's tracking=False null passes.
-- Merge with main: `git merge-tree --write-tree origin/main <head>` rc 0, no conflict (ev/merge_tree.txt).
-- VERSION, the manifest, RELEASE_NOTES.md, the golden and claim files, the budgets and closures.json are untouched (ev/untouched.txt, empty diff). The claim files are not touched, so no drift claim is owed.
-- tests/entities.py (env -u BASH_ENV) cannot run in this container: `ModuleNotFoundError: paho` under venv-ha (no homeassistant in venv-ci). The same failure occurs at the base, so it is environmental and not verified here; CI's run is the evidence (ev/entities_head.txt).
-- Finder's harness: none named. This is a hotfix from root cause R10-RCA-OPENER-REFUSALS, and the fixer's self-test arms are the only harness.
-- CI: classify printed `WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none` through 11:07 UTC (ev/classify_poll.txt). The verdict is blocked on the review itself, so I did not wait further. The review packet refused `introduced-red: unreadable` while instrument-self-tests was queued. No red has been read, so no `## Red checks` answer is owed.
+- Head reviewed: 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca (ev/HEAD.txt). Merge with main: `git merge-tree --write-tree origin/main <head>` rc 0, no conflict (ev/merge_tree.txt).
+- RESULT figure: `bash tools/audit/seat/open_pr.sh --self-test` at the head ends `pr_args self-test: 253 checks, 0 failed`, rc 0 (ev/selftest_head.txt). This matches the body's 253 (247 plus 6 round-2 arms).
+- My own mutants, independent of the in-harness `mut:` mechanism (ev/mutant_*.diff, ev/selftest_m*.txt):
+  - `mopen`: `open_pr.sh` `D` set back to `${HPO_STATE_DIR...}`. The link, slash and dot arms all FAIL: 3 failed, rc 1. Killed.
+  - `mupd`: `update_pr.sh` `P` set back to the logical path. `update_pr: through a symlinked state dir ...` FAILs: 1 failed, rc 1. Killed.
+  - `mlogical`: `pr_state_root` with `cd`/`pwd` in place of `cd -P`/`pwd -P`. The open_pr and update_pr symlink arms FAIL: 2 failed, rc 1. Killed. The slash and dot arms still pass under this mutant, as they should: logical `cd` already normalises those spellings, and only the symlink needs `-P`.
+- The body's class enumeration was checked against the diff. `$WT` and `$P` derive only from `$PR_STATE` in both scripts. I did not re-derive the sibling-file claim (`closeout.py`, `worktree_gc.sh` resolve both sides). Those files are outside this delta, and round 1 did not name them.
+- VERSION, the manifest, RELEASE_NOTES.md, the golden and claim files, the budgets and closures.json are untouched: the three-dot diff against the merge base is empty (ev/untouched.txt).
+- CI: `merge_train.py classify` printed `WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none` on every poll from 13:14 to 13:40 UTC (24 polls, ev/classify_poll.txt). No red has been read, so no `## Red checks` answer is owed. review_packet refused `introduced-red: unreadable` because instrument-self-tests was in progress at render time. classify decides, and it reported WAIT.
+
+## Friction
+
+- The Stop hook's policy_lint flagged 6 pre-existing citation errors in `tools/audit/README.md` (lines 288-296). This seat edited no file, and the working tree was clean.
+- `git ls-remote` once returned a transient 502 ("session scope unavailable").
