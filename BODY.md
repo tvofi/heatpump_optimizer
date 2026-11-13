@@ -15,15 +15,17 @@ Polish of the non-expanded card. Each change is listed with why. The ordering re
 
 ## Head
 
-`b09b5f9c611cba86c63ce4eedeb57c96e9bde984` (fix/r10-card-collapse) is a merge of origin/main `4145f2852642fd0b5ccb8b7af60d41e896a5eea3` into this PR's previous reviewed head `eda078bac41473246ff7d87a5736de58d64ad97a`. Merge base `4145f2852642fd0b5ccb8b7af60d41e896a5eea3` (origin/main's tip; measured 2026-11-12 21:03 UTC).
+`0e60a6f9a681992f4f983ee79dce2fa2d980c4d5` (fix/r10-card-collapse, the pull request's head ref). It is `b09b5f9c611cba86c63ce4eedeb57c96e9bde984`, this seat's merge of origin/main `4145f2852642fd0b5ccb8b7af60d41e896a5eea3` into the previous head `eda078bac41473246ff7d87a5736de58d64ad97a`, then merged into the PR branch (`a72f090b5b`) and a merge of origin/main `f44e761c19dc07fff222bbd6a323bdc847ea9f04` (the v7.1.13 stamp, `claims-for: 7.1.13` carried by that merge). This seat fast-forwarded to it and wrote no commit of its own beyond `b09b5f9c611cba86c63ce4eedeb57c96e9bde984`. Merge base `f44e761c19dc07fff222bbd6a323bdc847ea9f04`; origin/main's tip at measurement was `f47250150a` (a record-only merge after the stamp); `git merge-tree --write-tree origin/main 0e60a6f9a681992f4f983ee79dce2fa2d980c4d5` exits 0. Measured 2026-11-13 00:17 UTC.
 
-## Merge repair (round 5)
+## Merge repair (round 5, `tests/card_browser.mjs`)
 
-The merge train skipped this PR because `git merge-tree --write-tree origin/main eda078bac41473246ff7d87a5736de58d64ad97a` reported one conflict. Its resolution is listed below. No other line was written by hand, so the reviewer reads only this delta.
+`git merge 4145f2852642fd0b5ccb8b7af60d41e896a5eea3` into `eda078bac41473246ff7d87a5736de58d64ad97a` conflicted in `tests/card_browser.mjs` only: this branch added `cardCollapse` and its call, main added `themeLiveSwitch` (R10 live theme switch) and its call, at the same place. Resolution by union: both functions kept whole, one after the other, and both calls kept, `themeLiveSwitch` first. No other line was written by hand.
 
-- `tests/card_browser.mjs`: both sides added a new async function in the same place. This branch added `cardCollapse`, and main added `themeLiveSwitch` (R10-HOTFIX-CARD-HEALTH-TEXT carry 0). Resolution: union, with both functions kept whole, `cardCollapse` first and then `themeLiveSwitch`. Their call sites auto-merged and are both present: `await themeLiveSwitch(...)` after `themeMismatch`, and `await cardCollapse(...)` after `narrativeLayout`. Read-back: `git diff origin/main HEAD -- tests/card_browser.mjs` removes 2 lines. They are the `hidden_series` scenario line and the `.legend-chip, .chip` query, and both are among the removals of this branch's own `git diff $(git merge-base eda078bac41473246ff7d87a5736de58d64ad97a origin/main) eda078bac41473246ff7d87a5736de58d64ad97a` (`grep -c -F` counts 2). `git diff eda078bac41473246ff7d87a5736de58d64ad97a HEAD --stat -- tests/card_browser.mjs` prints `147 insertions(+), 34 deletions(-)`, which equals main's own diff of the file since the merge base. `node --check tests/card_browser.mjs` passes, and `grep -c` finds 0 conflict markers.
-
-Steps 2-8 were re-run at this head, giving the round-5 mutants under `## Mutation proof` and the `## Figures` below. Earlier rounds: round 4 merged the v7.1.12 stamp (below, at `30f1b6c8fe007b8d4400ba262e51fecd10afb4d2`).
+Read-back of both sides' clauses:
+- Branch side: the added and removed lines of `git diff 4145f2852642fd0b5ccb8b7af60d41e896a5eea3 b09b5f9c611cba86c63ce4eedeb57c96e9bde984 -- tests/card_browser.mjs` equal, as sorted sets, those of the branch's own `git diff cbe8d93bd8ef9b59626cfb939436af6e0678680e eda078bac41473246ff7d87a5736de58d64ad97a -- tests/card_browser.mjs` (124 lines each; `cmp` exit 0).
+- Main side: the added and removed lines of `git diff eda078bac41473246ff7d87a5736de58d64ad97a b09b5f9c611cba86c63ce4eedeb57c96e9bde984 -- tests/card_browser.mjs` equal, as sorted sets, main's own `git diff cbe8d93bd8ef9b59626cfb939436af6e0678680e 4145f2852642fd0b5ccb8b7af60d41e896a5eea3 -- tests/card_browser.mjs` (181 lines each; `cmp` exit 0).
+- Null control: one extra line appended to the merged set makes `cmp -s` exit non-zero.
+- Lane: `PYTHONPATH=tests/hastub node tests/card_browser.mjs` at `0e60a6f9a681992f4f983ee79dce2fa2d980c4d5` prints `ALL BROWSER CHECKS PASSED`, rc 0, with both sides' checks among them: 10 `ok` lines containing `collapse` and 7 starting `R10 live` (the six `R10 live light to dark` / `dark to light` checks and `R10 live switch starts on the light default theme with the Health dialog open`).
 
 ## Merge repair (round 4, v7.1.12 stamp)
 
@@ -34,7 +36,7 @@ Steps 2-8 were re-run at this head, giving the round-5 mutants under `## Mutatio
 - `custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js` auto-merged. Read-back: the added and removed lines of `git diff origin/main HEAD` equal, as sorted sets, the branch's own `git diff 0b276e8c0c 089bd3aa5b` for that file. So main's card change is kept, and nothing new was written.
 - `tests/closures.json`: `env -u BASH_ENV ./tests/derive_closures.sh --single tests/entities.py` re-recorded `tests/entities.py`'s `rc` from 1 to 0, and changed nothing else. It kept `tools/pr/figure_registry.json`, which it reported it would have dropped.
 
-Steps 2-8 were re-run at `30f1b6c8fe007b8d4400ba262e51fecd10afb4d2`, giving the round-4 mutants under `## Mutation proof` and the `## Figures` below. Earlier rounds: round 1 (pin-missing, below); round 2 merged origin/main without conflict; round 3 was a merge repair of `card_claimed_drift.txt` and `tests/card_browser.mjs` at `8c45afd38f2378350bd2e532b68da28e7f682f0e`.
+Steps 2-8 were re-run at round 4's head `30f1b6c8fe007b8d4400ba262e51fecd10afb4d2`, giving the round-4 mutants under `## Mutation proof` and the `## Figures` below. Earlier rounds: round 1 (pin-missing, below); round 2 merged origin/main without conflict; round 3 was a merge repair of `card_claimed_drift.txt` and `tests/card_browser.mjs` at `8c45afd38f2378350bd2e532b68da28e7f682f0e`.
 
 ## Repair round 1
 
@@ -64,7 +66,7 @@ Every behaviour this body claims, against the check that pins it (all in `tests/
 | a divider under the last fold | **new** `collapse: a rule under the last fold closes the headline off from the chart` | M8 |
 | ordering: savings, folds, chart | **new** `collapse: the folds sit after the savings figure and before the chart` | M12 |
 | clamped axis label's neighbour keeps half the usual gap | `the ... time axis spaces a clamped label at least half its usual gap` | M6 |
-| Enter, Tab and Space work in a real browser, light and dark | `tests/card_browser.mjs` `cardCollapse` | not re-run this round (no scope selects the lane; CI's `tests / browser` runs it) |
+| Enter, Tab and Space work in a real browser, light and dark | `tests/card_browser.mjs` `cardCollapse` | re-run in round 5: `ALL BROWSER CHECKS PASSED`, 10 `collapse` checks `ok` |
 | `translations/*.json` unchanged | `git diff --quiet ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e...HEAD -- custom_components/heatpump_optimizer/translations && echo "translations: no change"` printed `translations: no change in three-dot diff` | — (a diff fact) |
 
 Claims reworded rather than pinned: the old "survives every plan-refresh rebuild" now names what the new check drives (a hass-driven rebuild). The old ordering bullet named "header, tiles" and said the order was "kept". The check pins savings, then folds, then chart, so the bullet now states that order only. The old wrap bullet attributed the refusal to the P9 grid's clip rule. That rule measures clipping by an ancestor, not ellipsis itself (`unreachable()` in `tests/card_browser.mjs`), so the attribution is withdrawn and the stylesheet check carries the claim.
@@ -96,16 +98,18 @@ Round 2, re-run at 82e14f6d8fb87fc65dd993d1cadbd35883090f07 after the merge (`PY
 - M4, the fold handler's `again.focus()` line deleted: rc 1, `collapse: focus returns to the rebuilt header`, `collapse: focus returns to the dialog's copy of the pressed header`.
 - M2, the `this._folds = {...}` toggle line deleted: rc 1, 21 failing checks, the first `headline shows every narrative line`.
 
-Round 4, re-run at `30f1b6c8fe007b8d4400ba262e51fecd10afb4d2` after the v7.1.12 merge (`PYTHONPATH=tests/hastub node tests/card.mjs`, card file restored by `git checkout` after each):
+Round 4, re-run at 30f1b6c8fe007b8d4400ba262e51fecd10afb4d2 after the v7.1.12 merge (`PYTHONPATH=tests/hastub node tests/card.mjs`, card file restored by `git checkout` after each):
 - NULL, ` // null` appended to the fold handler's `again.focus()` line: rc 0, 0 failing checks.
 - R1, `this._folds = { narrative: false, whynow: false };` added to the card's `set hass`: rc 1, 1 failing check, `collapse: a hass refresh rebuilds the card and keeps each fold as it was`.
 - M4, the fold handler's `again.focus()` line deleted: rc 1, `collapse: focus returns to the rebuilt header`, `collapse: focus returns to the dialog's copy of the pressed header`.
 - M2, the `this._folds = {...}` toggle line deleted: rc 1, 21 failing checks, the first `headline shows every narrative line`.
 
-Round 5, re-run at `b09b5f9c611cba86c63ce4eedeb57c96e9bde984`, with each mutant run through both `PYTHONPATH=tests/hastub node tests/card.mjs` and `node tests/card_browser.mjs` (after `tests/plan_view.py`), and the card file restored by `git checkout` after each (`git diff --quiet` confirmed):
-- NULL, ` // null` appended to the fold handler's `this._folds = {...}` toggle line: card.mjs rc 0, card_browser.mjs rc 0, 0 FAIL lines in each.
-- M1, folds open by default (`_folds` initialised `{ narrative: true, whynow: true }`): card.mjs rc 1. card_browser.mjs rc 1, and among its FAILs are `collapse (light|dark): two header buttons, collapsed, no body, no chip and no note on the card`, `... Enter on the focused header opens its fold and keeps focus on it` and `... Tab then Space opens the why-now fold`.
-- M2, the toggle line deleted: card.mjs rc 1. card_browser.mjs rc 1, failing `collapse (light|dark): Enter on the focused header opens its fold and keeps focus on it` and `... Tab then Space opens the why-now fold`.
+Round 5, re-run at 0e60a6f9a681992f4f983ee79dce2fa2d980c4d5 (`python3 tests/plan_view.py`, then `PYTHONPATH=tests/hastub node tests/card.mjs`, card file restored by `git checkout` after each):
+- Unmutated: rc 0, `ALL CARD CHECKS PASSED`.
+- NULL, ` // null` appended to the fold handler's `again.focus()` line: rc 0, `ALL CARD CHECKS PASSED`.
+- R1, `this._folds = { narrative: false, whynow: false };` added to the card's `set hass`: rc 1, `1 CARD CHECK(S) FAILED`, `collapse: a hass refresh rebuilds the card and keeps each fold as it was`.
+- M4, the fold handler's `again.focus()` line deleted: rc 1, `2 CARD CHECK(S) FAILED`, `collapse: focus returns to the rebuilt header`, `collapse: focus returns to the dialog's copy of the pressed header`.
+- M2, the `this._folds = {...}` toggle line deleted: rc 1, `21 CARD CHECK(S) FAILED`, the first `headline shows every narrative line`.
 
 ## Null control
 
@@ -122,13 +126,14 @@ Each new check asserts its own precondition, so it cannot pass on an empty read:
 
 ## Figures
 
-All at `b09b5f9c611cba86c63ce4eedeb57c96e9bde984`, merge base 4145f2852642fd0b5ccb8b7af60d41e896a5eea3 (origin/main's tip), 2026-11-12 21:03 UTC, Python 3.14.7, `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`.
-- `python3 tests/closure.py select --diff 4145f2852642fd0b5ccb8b7af60d41e896a5eea3 --workdir "$D"`: `MODE: SCOPED -- 12 script(s) run, 21 scoped out.` Every script in `scope.run` exits 0: `tests/entities.py` (`env -u BASH_ENV`) `ALL 2709 ENTITY CHECKS PASSED`, `tests/features.py` `ALL 5362 FEATURE CHECKS PASSED`, `tests/card.mjs` `ALL CARD CHECKS PASSED`, `tests/card_drift.mjs` `card_drift: 44 state(s) moved and claimed, 1 identical`, `tests/golden.py` `NO STALE FIXTURE: 56 committed fixture(s)`, `tests/env_drift.py` `NO STALE FIXTURE: 5 committed fixture(s)`, `tests/arch_score_head.py`, `tests/deployment_shape.py`, `tests/doc_claims.py`, `tests/harness_headers.py`, `tests/md_tables.mjs` and `tests/plan_view.py` rc 0. The `run_always` lines: `python3 tests/env_drift.py --claims-only origin/main` printed `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` printed `ALL 118 closure shrink pins PASSED`; `python3 tests/layout.py` printed `layout self-test: ok`.
-- `node tests/card_browser.mjs` (the conflicted file; no scope selects it): rc 0, `ALL BROWSER CHECKS PASSED`. All 10 `collapse (light|dark)` checks from this branch print `ok`, and so do all 7 `R10 live` checks from main's `themeLiveSwitch`.
+All at `0e60a6f9a681992f4f983ee79dce2fa2d980c4d5`, merge base f44e761c19dc07fff222bbd6a323bdc847ea9f04, 2026-11-13 00:17 UTC, Python 3.14.7, `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`; each line is the script's last output line.
+- `python3 tests/closure.py select --diff f44e761c19dc07fff222bbd6a323bdc847ea9f04 --workdir "$D"`: `MODE: SCOPED -- 12 script(s) run, 21 scoped out.` Every script in `scope.run` exits 0: `tests/arch_score_head.py` `ALL 18 ARCHITECTURE SCORE HEAD CHECKS PASSED`, `tests/deployment_shape.py` `ALL DEPLOYMENT SHAPE CHECKS PASSED`, `tests/doc_claims.py` `ALL 343 checks PASSED`, `env -u BASH_ENV python3 tests/entities.py` `ALL 2709 ENTITY CHECKS PASSED`, `tests/env_drift.py` `NO STALE FIXTURE: 5 committed fixture(s) still match what this tree computes`, `tests/features.py` `ALL 5362 FEATURE CHECKS PASSED`, `tests/golden.py` `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`, `tests/harness_headers.py` `ALL 115 HARNESS HEADER CHECKS PASSED`, `tests/md_tables.mjs` `RESULT doc_misrendered_lines=0 count`, `tests/plan_view.py` `plan reason codes, price provenance and slot energy OK`, `tests/card.mjs` `ALL CARD CHECKS PASSED`, `tests/card_drift.mjs origin/main` `card_drift: 44 state(s) moved and claimed, 1 identical`.
+- The `run_always` lines: `python3 tests/env_drift.py --claims-only origin/main` printed `claims hygiene: origin/main ok`; `python3 tests/closure.py selftest` printed `ALL 118 closure shrink pins PASSED`; `python3 tests/layout.py` printed `layout self-test: ok`.
 - `python3 tests/env_drift.py --all`: `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `python3 tools/audit/archscore/score.py --diff 4145f2852642fd0b5ccb8b7af60d41e896a5eea3`: `Architecture score: dS +0.0000 NULL`.
-- `git diff --quiet 4145f2852642fd0b5ccb8b7af60d41e896a5eea3...HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json && echo untouched`: printed.
+- `python3 tools/audit/archscore/score.py --diff f44e761c19dc07fff222bbd6a323bdc847ea9f04`: `Architecture score: dS +0.0000 NULL`.
+- `tests/card_browser.mjs`: `ALL BROWSER CHECKS PASSED`, rc 0 (see the round-5 read-back).
+- `VERSION` and `card_claimed_drift.txt`'s `claims-for:` both read `7.1.13`, as does origin/main's `VERSION`.
 
 ## Red checks
 
@@ -141,3 +146,4 @@ none
 ## Friction
 
 none
+
