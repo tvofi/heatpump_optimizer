@@ -25460,7 +25460,7 @@
    "carry": [],
    "findings": [],
    "resume": {
-    "stage": "deferred",
+    "stage": "not-started",
     "branch": null,
     "commit": null,
     "last_step": null,
