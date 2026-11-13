@@ -1,0 +1,20 @@
+=== 10:59:40 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+=== 11:00:42 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+=== 11:01:43 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+=== 11:02:45 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+=== 11:03:47 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+=== 11:04:48 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+=== 11:05:50 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+=== 11:06:51 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+=== 11:07:53 rc=3
+WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
+
+[killed]
