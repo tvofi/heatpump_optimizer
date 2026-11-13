@@ -950,6 +950,17 @@ def static_check(root: Path = ROOT) -> int:
 # ---------------------------------------------------------------------------
 
 def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) -> int:
+    """The self-test under a controlled environment: the base selectors the
+    caller exported (GITHUB_BASE_REF on a pull_request event, SELFTEST_BASE) name
+    a ref the scratch fixtures lack, so they never reach a fixture call."""
+    held = {k: os.environ.pop(k) for k in ("GITHUB_BASE_REF", "SELFTEST_BASE") if k in os.environ}
+    try:
+        return _self_test(wrapper, workflow)
+    finally:
+        os.environ.update(held)
+
+
+def _self_test(wrapper: Path, workflow: Path) -> int:
     """The refusals, over fixtures; `wrapper` is the selftest_step.sh and
     `workflow` the live job's file under test (selftest_scope_mutants.sh hands
     either a mutant)."""

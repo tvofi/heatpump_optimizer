@@ -13,7 +13,12 @@ wrapper=tools/ci/selftest_step.sh
 workflow=.github/workflows/governance.yml
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+# The caller's base selectors (GITHUB_BASE_REF on a pull_request event) must not
+# reach a fixture: the baseline and every mutant below run with one exported to
+# a ref the scratch fixtures lack, and the environment-control mutant must fail.
 python3 -I "$src" --self-test > /dev/null || { echo "BASELINE RED: the unmutated self-test fails"; exit 1; }
+export GITHUB_BASE_REF=main SELFTEST_BASE=nonesuch
+python3 -I "$src" --self-test > /dev/null || { echo "BASELINE RED: the unmutated self-test fails under GITHUB_BASE_REF"; exit 1; }
 apply() { # <file> <old> <new> <out>: the file with old, present once, replaced by new
   python3 -I -c 'import sys; s=open(sys.argv[1]).read(); a, b = sys.argv[2], sys.argv[3]; assert s.count(a) == 1, a; open(sys.argv[4], "w").write(s.replace(a, b))' \
     "$1" "$2" "$3" "$4"
@@ -68,4 +73,5 @@ wrapper_mutant "only launch untraced (the incident's wrapper)" 'case "$UNTRACED"
 wrapper_mutant "no strace exec'd anyway" 'if ! command -v strace > /dev/null 2>&1; then' 'if false; then'
 wrapper_mutant "exit lines suppressed (-qq)" 'exec strace -f -q -y' 'exec strace -f -qq -y'
 wrapper_mutant "drift traced again" 'UNTRACED=" scope strace launch drift unread "' 'UNTRACED=" scope strace launch unread "'
+scope_mutant "the self-test leaks the caller's base selectors" 'held = {k: os.environ.pop(k) for k in ("GITHUB_BASE_REF", "SELFTEST_BASE") if k in os.environ}' 'held = {}'
 echo "SELFTEST-SCOPE MUTANTS: every mutant refused"
