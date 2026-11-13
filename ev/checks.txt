@@ -1,0 +1,12 @@
+selftest_scope --self-test at head:
+selftest_scope self-test: 117 checks, 0 failed
+
+drift() of my record (prepr, field-coverage, beatd) against head table: 0 refusals
+against merge-base table (control): 4 refusals
+  UNDER-SCOPED step field-coverage: files misses ['tools/audit/seat/scorecard.py', 'tools/audit/seat/scorecard_selftest.py']
+  UNDER-SCOPED step prepr: dirs misses ['dev/audit/rounds/round10/protection-census', 'docs/design/2026-11-10-duty-switch-restart-learning', 'tests/mutation_ledger/killed_by/duty_switch.py', 'tests/mutation_ledger/survivor_triage/duty_switch.py']
+  UNDER-SCOPED step beatd: probes misses ['<string>', 'beatd.py']
+  UNDER-SCOPED step beatd: it read the objects, the table says not
+
+merge-tree --write-tree origin/main 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9: rc=0
+classify: WAIT 4f61c74a526b4c1c82e32fd5c0453c93ff9c1db9 pending: gate red: none
