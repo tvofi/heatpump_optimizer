@@ -1660,6 +1660,8 @@ def _self_test(wrapper: Path, workflow: Path) -> int:
     dir_b, dir_h = {"steps": {"a": ent([], [], ["t"])}}, {"steps": {"a": ent()}}
     ck("shrink_drops: a directory whose every file the diff deleted is exempt, one with a survivor is not",
        shrink_drops(dir_b, dir_h, {"t/x"}, set()) == [] and len(shrink_drops(dir_b, dir_h, {"t/x"}, {"t/y"})) == 1)
+    ck("shrink_drops: a base or a head table that is missing judges nothing (the caller names the unreadable one)",
+       shrink_drops(None, held, set(), set()) == [] and shrink_drops(held, None, set(), set()) == [])
     glob_b, glob_h = {"steps": {"a": ent(["t/**"])}}, {"steps": {"a": ent()}}
     ck("shrink_drops: a D/** item whose directory the diff emptied is exempt, one with a survivor is not",
        shrink_drops(glob_b, glob_h, {"t/x"}, set()) == [] and len(shrink_drops(glob_b, glob_h, {"t/x"}, {"t/y"})) == 1)

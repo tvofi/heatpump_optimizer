@@ -79,4 +79,9 @@ scope_mutant "a D/** item read as a slice off by one" 'p = item[:-3] if item.end
 scope_mutant "an undiffable base passes the shrink guard" 'if diff.returncode != 0:
         return [f"UNREADABLE' 'if False:
         return [f"UNREADABLE'
+scope_mutant "the shrink guard judges a missing table" '    if not base or not head:
+        return []
+    out = []' '    if False:
+        return []
+    out = []'
 echo "SELFTEST-SCOPE MUTANTS: every mutant refused"
