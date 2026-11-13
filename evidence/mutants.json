@@ -1,0 +1,122 @@
+[
+ {
+  "name": "carry-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "if ${HPO_RELAY_CARRY:-python3 -I \"$HERE/review_carry.py\"} \"$head\" \"$live\" --verdict-only >/dev/null 2>&1; then",
+  "new": "if false; then"
+ },
+ {
+  "name": "carry-classifies-drafted",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "cl=$live; carried=",
+  "new": "cl=$head; carried="
+ },
+ {
+  "name": "red-bound-never",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ $(($(date +%s) - seen)) -ge \"$redsecs\" ]",
+  "new": "false"
+ },
+ {
+  "name": "red-refuses-first",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "if [ -n \"$seen\" ] && [ $(($(date +%s)",
+  "new": "if [ -z \"$seen\" ] || [ $(($(date +%s)"
+ },
+ {
+  "name": "red-hold-rc2",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "(classify RED)\"; return 75 ;;",
+  "new": "(classify RED)\"; return 2 ;;"
+ },
+ {
+  "name": "wait-no-clear",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "3) pending_red_clear \"$state\" \"$rkey\"; ",
+  "new": "3) "
+ },
+ {
+  "name": "green-no-clear",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "0|4) pending_red_clear \"$state\" \"$rkey\"; ",
+  "new": "0|4) "
+ },
+ {
+  "name": "rkey-no-head",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "rkey=\"$ref $sha $cl\"",
+  "new": "rkey=\"$ref $sha\""
+ },
+ {
+  "name": "redsecs-validate-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "case $redsecs in ''|*[!0-9]*) echo \"cloud_relay: HPO_RELAY_PENDING_RED_SECS must be seconds; the pending-ci draft is held\" >&2; return 75;; esac",
+  "new": ":"
+ },
+ {
+  "name": "owed-line-moved-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "        echo \"cloud_relay: OWED re-dispatch #$pr $live\"\n",
+  "new": ""
+ },
+ {
+  "name": "probe-dispose-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "    if disposed \"$ref\" \"$sha\"; then continue; fi  # mut:probedispose",
+  "new": "    :"
+ },
+ {
+  "name": "nr-rev-age-zero",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ \"$age\" -gt \"$rlim\" ] && [ \"$age\" -le \"$win\" ] || continue  # mut:noreturnrevage",
+  "new": "[ \"$age\" -gt 0 ] && [ \"$age\" -le \"$win\" ] || continue"
+ },
+ {
+  "name": "nr-rev-window-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ \"$age\" -gt \"$rlim\" ] && [ \"$age\" -le \"$win\" ] || continue  # mut:noreturnrevage",
+  "new": "[ \"$age\" -gt \"$rlim\" ] || continue"
+ },
+ {
+  "name": "nr-rev-ret-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ -s \"$state/cloud-nrr.$$\" ] && continue  # mut:noreturnrevret",
+  "new": "true"
+ },
+ {
+  "name": "nr-rev-revt-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "\"refs/heads/probe/rev-*-$rn8\" \"refs/heads/probe/revt-*-$rn8\"",
+  "new": "\"refs/heads/probe/rev-*-$rn8\""
+ },
+ {
+  "name": "nr-rev-moved-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ \"$rlive\" = \"$rhead\" ] || continue",
+  "new": "true"
+ },
+ {
+  "name": "nr-rev-level-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "        level_line seat-no-return \"$ref\" \"$sha\" \"SEAT ENDED NO RETURN reviewer",
+  "new": "        : level_line seat-no-return \"$ref\" \"$sha\" \"SEAT ENDED NO RETURN reviewer"
+ },
+ {
+  "name": "nr-rev-lsremote-fail-continue",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "\"refs/heads/probe/revt-*-$rn8\" > \"$state/cloud-nrr.$$\" || continue",
+  "new": "\"refs/heads/probe/revt-*-$rn8\" > \"$state/cloud-nrr.$$\" || :"
+ },
+ {
+  "name": "nr-rev-default-bound",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "rlim=${HPO_RELAY_NORETURN_REVIEWER_SECS:-5400}",
+  "new": "rlim=${HPO_RELAY_NORETURN_REVIEWER_SECS:-7200}"
+ },
+ {
+  "name": "red-default-bound",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "redsecs=${HPO_RELAY_PENDING_RED_SECS:-21600}",
+  "new": "redsecs=${HPO_RELAY_PENDING_RED_SECS:-0}"
+ }
+]
