@@ -1,0 +1,8 @@
+cmd: python3 tools/pr/gate_priority.py --self-test
+diff: tools/pr/gate_priority.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc: 1
+gate_priority self-test: 17 checks, 3 failed
+FAIL null control: with no outside group and no hotfix, the derived priority is the base's 1 / 0 (got: [1, 0, 2])
+FAIL is_hotfix: true for the hotfix group only; an outside, a critical and an unmapped branch are not (got: )
+FAIL a branch that maps to no group stays normal (got: 2)
