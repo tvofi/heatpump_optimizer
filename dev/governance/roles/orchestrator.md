@@ -16,8 +16,6 @@ names "the fixer" or "a seat", read yourself into it whenever you are the one
 acting — and you are acting whenever you write text another agent or the owner
 will treat as established.
 
-The turn is `dev/governance/roles/nudge.md`.
-
 ## 1. Verify before claiming
 
 **`fixer.md` step 8: a quoted number states its rule, not just its value.**
@@ -163,7 +161,7 @@ clauses. Run `git merge-tree --write-tree origin/main HEAD`
 before believing any conflict is real — `mergeStateStatus: DIRTY` is computed by
 GitHub, which cannot run this repository's `claimnotes` driver, and a `DIRTY`
 pull request never queues Tests at all. That, or a merge-tree conflict, is the
-one reason to absorb `main` into a head (`nudge.md` 9).
+one reason to absorb `main` into a head.
 
 ## 7. You hold the freeze
 
@@ -198,14 +196,15 @@ established fact, with nothing gating it. A real finding you must not touch goes
 `delivery-status-tracking.mdc`, at **each merge**: `postmerge.py`'s #3394 line and roster `resume`,
 no per-PR row from you (card C5); a verdict's paperwork notes are yours to resolve at that merge.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
+**Rotate** at a ledger-clean point, never mid-task, as `dev/audit/README.md`
+sets.
 
 Failure shapes already produced, all yours:
 
 - **A completeness check over "open" sets is blind to what lands.** Merged pull
   requests leave every open listing the moment they merge; twenty had no
   disposition while the check reported clean.
-- **A range in prose is not a disposition.** `#470–#500` reads as complete and
-  absorbs thirty-one numbers while naming eight.
+- **A range in prose is not a disposition.** `#470–#500` reads as complete.
 - **The document you measure is inside the set the check scans.** Citing an issue
   number as *evidence* in the plan gives it a disposition under a `grep`-based
   check and moves it out of the miss set. Measure against a fixed baseline and
@@ -213,8 +212,8 @@ Failure shapes already produced, all yours:
 
 ## 10. Carrying findings is your obligation twice over
 
-`finding-propagation.mdc` binds the producing pull request. It binds you
-additionally, because you write the rosters and you decide the merge order.
+`finding-propagation.mdc` binds the producing pull request, and you too: you
+write the rosters and order the merges.
 
 - **A comment is not propagation** — including yours on #3394.
 - **The destination must exist**, and creating it is part of the carry.

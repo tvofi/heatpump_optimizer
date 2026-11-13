@@ -14,6 +14,7 @@
     python3 tools/audit/seat/roster_edit.py mark-carry  <group> <index | --match TEXT>
         implemented <sha> | moved <GROUP> | dismissed <reason>
     python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
+    python3 tools/audit/seat/roster_edit.py set-price   <group> <minutes> --price-cite <the owner's words>
     python3 tools/audit/seat/roster_edit.py set-source  <group> <outside | ->
     python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
         [--set-hot <p,p | ->] [--cite <ref>@<sha>]
@@ -151,6 +152,12 @@ resolve is refused whether or not the text names a proposal.
                `_size_why` check append-group runs -- and, with --cite, a
                cite whose ref does not hold the sha. The old size and the
                cite go to resume.note; the current size writes nothing.
+  set-price    writes the group's owner-stated price, the planner's hours for it
+               (`replan.group_hours`): `owner_price_minutes` beside
+               `owner_price_cite`, the owner's words. Refuses a price without
+               a citation and a non-positive one -- `roster_lib.owner_price_why`,
+               the definition the planner reads; the old price and the
+               citation go to resume.note; the current price writes nothing.
   set-source   writes the group's `source`, a word in roster_lib.SOURCES
                (`outside`: an accepted outside request, which replan.py's
                dispatch_tier ranks in the top tier), or `-` to remove the
@@ -204,7 +211,9 @@ LABEL = r"P(?:\d+|-[A-Q])\b"
 PROPOSAL_RE = re.compile(rf"\b(?:triage|proposal)\s+{LABEL}", re.I)
 RULING_CITE_RE = re.compile(
     rf"\btriage:\s*(dev/programme/triage/[A-Za-z0-9_.-]+\.md)#({LABEL})")
-VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER)\b", re.M)
+#: LOG (proposal-triage.md, tvofi 2026-11-01): friction blocking no production merge,
+#: recorded and never routed, so it is read as itself, not as "unreadable".
+VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER|LOG)\b", re.M)
 
 
 #: One push plus two re-applications on a rival's new tip; past that the
@@ -794,6 +803,29 @@ def op_set_size(roster, group, size, sizes, rel="", cite=None, cite_check=None):
     _note_append(g, _cited(f"set-size {old or 'unset'} -> {size}", cite))
 
 
+def op_set_price(roster, group, minutes, price_cite):
+    """Write a group's owner-stated price (`roster_lib.OWNER_PRICE_MINUTES`
+    beside `OWNER_PRICE_CITE`), validated by `roster_lib.owner_price_why`."""
+    g = _need(roster, group)
+    try:
+        value = float(minutes)
+    except (TypeError, ValueError):
+        raise Refuse(f"set-price: {group}: minutes {minutes!r} is not a number")
+    if value == value and abs(value) != float("inf") and value == int(value):
+        value = int(value)
+    why = roster_lib.owner_price_why(value, price_cite)
+    if why:
+        raise Refuse(f"set-price: {group}: {why}")
+    price_cite = price_cite.strip()
+    old = g.get(roster_lib.OWNER_PRICE_MINUTES)
+    if old == value and g.get(roster_lib.OWNER_PRICE_CITE) == price_cite:
+        return
+    g[roster_lib.OWNER_PRICE_MINUTES] = value
+    g[roster_lib.OWNER_PRICE_CITE] = price_cite
+    _note_append(g, f"set-price {old if old is not None else 'unset'} -> {value} min "
+                    f"(cite {price_cite})")
+
+
 def _paths(spec, what):
     if spec == "-":
         return []
@@ -908,7 +940,7 @@ def privacy_refusal(texts):
 
 def ruling_verdict(src, pid):
     """The `Verdict:` of the `## <pid>:` entry in a triage batch file: ACCEPT,
-    REJECT or DEFER; None when no such entry; "unreadable" when it has no
+    REJECT, DEFER or LOG; None when no such entry; "unreadable" when it has no
     verdict line."""
     m = re.search(rf"^## {re.escape(pid)}:.*?$(.*?)(?=^## |\Z)", src, re.M | re.S)
     if not m:
@@ -1249,7 +1281,7 @@ def build_parser():
     p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                   "edit-brief", "append-carry", "set-resume",
                                   "set-after", "drop-carry", "mark-carry",
-                                  "set-size", "set-files", "set-source"))
+                                  "set-size", "set-files", "set-source", "set-price"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("rest", nargs="*",
@@ -1269,6 +1301,8 @@ def build_parser():
                         "containing it")
     p.add_argument("--cite", help="set-size / set-files: <ref>@<sha>, a ref "
                    "that must hold the sha; recorded in resume.note")
+    p.add_argument("--price-cite", help="set-price: the owner's words the "
+                   "price rests on; required")
     p.add_argument("--add", nargs="+", action="extend",
                    help="set-files: paths appended to files; repeatable "
                         "(the default store action kept only the last list)")
@@ -1324,6 +1358,8 @@ def parse_op(argv):
         p.error("--into is a set-stage flag")
     if a.reason is not None and a.op != "append-group":
         p.error("--reason is an append-group flag")
+    if a.op != "set-price" and a.price_cite is not None:
+        p.error("--price-cite is a set-price flag")
     if a.op not in ("set-size", "set-files") and a.cite:
         p.error("--cite is a set-size / set-files flag")
     if a.op != "set-files" and (a.add or a.set_files is not None
@@ -1358,6 +1394,9 @@ def make_edit(a, value, rest):
                     roster_lib.read_durations(a.worktree))
             except roster_lib.SchemaError as e:
                 raise Refuse(str(e))
+        if a.op == "set-price":
+            op_set_price(roster, a.group, value, a.price_cite)
+            return True
         if a.op in ("set-size", "set-files"):
             apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
             return True
@@ -1857,6 +1896,7 @@ def _self_test() -> int:
         "## P2: a second watcher\nVerdict: REJECT\nBinding: standing CPU\n\n"
         "## P3: no verdict line\nSource: sweep\n\n"
         "## P4: a later watcher\nVerdict: DEFER\nSource: sweep\n\n"
+        "## P5: friction off the production path\nVerdict: LOG\nSource: sweep\n\n"
         "## P-C: a lettered proposal\nVerdict: ACCEPT -> R9-B (carry)\n\n"
         "## P-D: a lettered reject\nVerdict: REJECT\n", encoding="utf-8")
     run(["git", "-C", str(seed), "add", "-A"])
@@ -1874,6 +1914,8 @@ def _self_test() -> int:
           refuses("REJECT", "append-carry", "R9-B", f"proposal P2: a watcher. triage: {ruling}#P2"))
     check("triage gate: a DEFER ruling is refused: only an ACCEPT is routed",
           refuses("DEFER", "append-carry", "R9-B", f"proposal P4: a watcher. triage: {ruling}#P4"))
+    check("triage gate: a LOG ruling is refused as LOG, never routed",
+          refuses("(LOG)", "append-carry", "R9-B", f"proposal P5: a watcher. triage: {ruling}#P5"))
     check("triage gate: an entry with no verdict line is refused",
           refuses("unreadable", "append-carry", "R9-B", f"proposal P3. triage: {ruling}#P3"))
     check("triage gate: a cited entry the batch lacks is refused",
@@ -2105,6 +2147,46 @@ def _self_test() -> int:
     check("set-size from a recorded size names the old one",
           more("set-size", "R9-B", value="S") == 0
           and "M -> S" in grp("R9-B")["resume"]["note"])
+
+    # set-price: the owner-stated price the planner reads (group_hours).
+    words = 'owner-stated price, test 2026-11-12: "Price it at 4h"'
+    t_sf = tip()
+    rc, said = more_refusal("set-price", "R9-A", "240")
+    check("set-price refuses a price with no citation, moving nothing",
+          rc == 2 and "citation" in said and tip() == t_sf, (rc, said[-200:]))
+    rc, said = more_refusal("set-price", "R9-A", "240", "--price-cite", "  ")
+    check("set-price refuses a blank citation",
+          rc == 2 and "citation" in said and tip() == t_sf, (rc, said[-200:]))
+    for bad in ("0", "-30", "abc", "inf"):
+        rc, said = more_refusal("set-price", "R9-A", bad, "--price-cite", words)
+        check(f"set-price refuses minutes {bad!r}, moving nothing",
+              rc == 2 and "minutes" in said and tip() == t_sf, (rc, said[-200:]))
+    check("set-price refuses an unknown group",
+          more_refusal("set-price", "R9-ZZ", "240", "--price-cite", words)[0] == 2
+          and "no roster group" in more_refusal(
+              "set-price", "R9-ZZ", "240", "--price-cite", words)[1])
+    before_p = grp("R9-A")
+    check("set-price with a citation lands both fields",
+          more("set-price", "R9-A", "--price-cite", words, value="240") == 0
+          and grp("R9-A").get("owner_price_minutes") == 240
+          and grp("R9-A").get("owner_price_cite") == words)
+    check("... recording it in resume.note and touching no other field",
+          "set-price unset -> 240 min" in grp("R9-A")["resume"]["note"]
+          and sans(grp("R9-A"), "owner_price_minutes", "owner_price_cite")
+          == sans(before_p, "owner_price_minutes", "owner_price_cite"))
+    check("what it wrote is a price the planner's reader accepts",
+          roster_lib.owner_price(grp("R9-A")) == (240.0, words))
+    t_sf = tip()
+    check("set-price to the price already held is byte-identical (null control)",
+          more("set-price", "R9-A", "--price-cite", words, value="240") == 0
+          and tip() == t_sf)
+    check("an unpriced group carries neither field (null control)",
+          "owner_price_minutes" not in grp("R9-B")
+          and roster_lib.owner_price(grp("R9-B")) is None)
+    check("set-price stores the citation stripped, and the stored text re-reads equal",
+          more("set-price", "R9-B", "--price-cite", f"  {words}\n", value="90") == 0
+          and grp("R9-B").get("owner_price_cite") == words
+          and roster_lib.owner_price(grp("R9-B")) == (90.0, words))
 
     t_sf = tip()
     rc, said = more_refusal("set-files", "R9-A", "--add", "no/such/path.py")
