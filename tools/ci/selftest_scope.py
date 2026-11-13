@@ -48,9 +48,13 @@ THE DRIFT CHECK, `check`, runs on every push to main over the traces that
 run took: it fails naming every step whose committed entry misses a file,
 probe, directory or flag the run measured, and every gated step with no
 entry. Over-approximation (an entry naming a file no longer read) is safe
-and is reported, not refused. `--write` saves the run's own measurement,
-which main uploads as the `selftest-closures` artifact: commit that file, or
-re-record with `record` (Linux, strace).
+and is reported, not refused. `--write` saves the table to commit, which
+main uploads as the `selftest-closures` artifact: the committed table unioned
+with this run's measurement, per step (lists unioned, flags OR'd, run_sha the
+run's; `union_entries`), because one run measures one environment and a read
+only another measured (a seat's Linux `record`: objects, index) is not stale
+for this run missing it. Commit that file, or re-record with `record` (Linux,
+strace) and union the same way.
 THE SETTLED INDEX, `settle`, runs untraced before any step is (CI's strace
 step; `record` itself): a fresh checkout leaves racily clean index entries,
 whose content the first index-refreshing git command re-reads, so without it
@@ -625,8 +629,12 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> t
         probes = set(e.get("probes", ()))
         misses = {
             "files": [f for f in m["files"] if not covers(have, f)],
+            # A probe under a directory the run listed is answered by that
+            # directory: excused here, refused once as a `dirs` miss when the
+            # table lacks it. So a measurement `write_table` compacted (the
+            # artifact) and the live one refuse the same lines.
             "probes": [p for p in m["probes"] if not covers(probes, p)
-                       and not any(a in dirs for a in _ancestors(p))],
+                       and not any(a in dirs or a in set(m["dirs"]) for a in _ancestors(p))],
             "dirs": sorted(set(m["dirs"]) - dirs)}
         refuse += [_under_scoped(sid, k, sorted(v)) for k, v in misses.items() if v]
         gone = {"files": [f for f in have if f not in set(m["files"]) and not (
@@ -710,9 +718,9 @@ def union_entry(old: dict | None, new: dict) -> dict:
     another (R10-RCA-SELFTEST-SCOPE-DRIFT: replacing dropped 660, 8 and 10
     entries in three merges). Over-approximation is safe, so no read leaves."""
     old = old or {}
-    got = {k: sorted(set(old.get(k, ())) | set(new[k])) for k in LIST_KINDS}
+    got = {k: sorted(set(old.get(k, ())) | set(new.get(k, ()))) for k in LIST_KINDS}
     got["probes"] = [p for p in got["probes"] if p not in set(got["files"])]
-    return {**new, **got, **{k: bool(old.get(k)) or bool(new[k]) for k in FLAG_KINDS}}
+    return {**new, **got, **{k: bool(old.get(k)) or bool(new.get(k)) for k in FLAG_KINDS}}
 
 
 def union_record(old: dict | None, measured: dict[str, dict], gated: set[str]) -> dict[str, dict]:
@@ -909,13 +917,23 @@ def write_table(out: Path, entries: dict[str, dict], root: Path = ROOT) -> None:
                                "steps": dict(sorted(entries.items()))}, indent=1) + "\n")
 
 
+def union_entries(table: dict | None, measured: dict[str, dict]) -> dict[str, dict]:
+    """Each measured step's entry unioned with the committed one by
+    `union_entry`, the one union `record` writes too: run_sha the measurement's.
+    A step the run did not measure keeps no entry (the measurement names every
+    gated step, else drift refuses UNMEASURED)."""
+    old = (table or {}).get("steps", {})
+    return {sid: union_entry(old.get(sid), m) for sid, m in measured.items()}
+
+
 def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT) -> int:
     steps = workflow_steps(root)
     gaps = wiring_gaps(steps)
     measured, broken = fold(trace_dir, steps, root)
+    table = load_table(root / TABLE)
     if write is not None:
-        write_table(write, measured, root)  # this run's measurement, to commit as the table
-    refuse, notes = drift(load_table(root / TABLE), measured, steps)
+        write_table(write, union_entries(table, measured), root)  # the table to commit
+    refuse, notes = drift(table, measured, steps)
     refuse = broken + refuse
     for line in gaps + refuse:
         print(f"  {line}")
@@ -950,6 +968,17 @@ def static_check(root: Path = ROOT) -> int:
 # ---------------------------------------------------------------------------
 
 def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) -> int:
+    """The self-test under a controlled environment: the base selectors the
+    caller exported (GITHUB_BASE_REF on a pull_request event, SELFTEST_BASE) name
+    a ref the scratch fixtures lack, so they never reach a fixture call."""
+    held = {k: os.environ.pop(k) for k in ("GITHUB_BASE_REF", "SELFTEST_BASE") if k in os.environ}
+    try:
+        return _self_test(wrapper, workflow)
+    finally:
+        os.environ.update(held)
+
+
+def _self_test(wrapper: Path, workflow: Path) -> int:
     """The refusals, over fixtures; `wrapper` is the selftest_step.sh and
     `workflow` the live job's file under test (selftest_scope_mutants.sh hands
     either a mutant)."""
@@ -1222,6 +1251,35 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("drift: a step this run did not trace is refused",
            drift(full_table, {k: v for k, v in measured.items() if k != "slow"}, st2)[0]
            == ["UNMEASURED step slow: this run left no trace of it"])
+        # The artifact `check --write` uploads is a compacted measurement: a
+        # probe under a directory the run listed is dropped. Drift over it and
+        # over the live measurement must refuse the same lines (the 33 against
+        # 34 gap of #3557's review).
+        dm = json.loads(json.dumps(measured))
+        dm["a"]["dirs"] += ["docs"]
+        dm["a"]["probes"] += ["docs/new.md"]
+        compacted = json.loads(json.dumps(dm))
+        compacted["a"]["probes"] = compact_probes(set(dm["a"]["probes"]), set(dm["a"]["dirs"]), set())
+        ck("drift: a probe under a directory the run listed is refused once, as the dirs miss, "
+           "live and compacted alike (null control: the compaction dropped it)",
+           "docs/new.md" not in compacted["a"]["probes"]
+           and drift(full_table, dm, st2)[0] == drift(full_table, compacted, st2)[0]
+           == ["UNDER-SCOPED step a: dirs misses ['docs']"])
+        # `check --write`'s table is the union: a planted committed read this
+        # run did not measure survives, and the run's own reads are added.
+        planted = json.loads(json.dumps(full_table))
+        planted["steps"]["b"].update(objects=True, files=["tools/x/only-elsewhere.py"],
+                                     probes=["tools/x/p.json"], git=["merge-base"])
+        planted["steps"]["gone"] = entry(st2[4], files=["x"])
+        planted["steps"]["a"]["run_sha"] = "old"
+        un = union_entries(planted, measured)
+        ck("union_entries keeps a committed read and flag the run did not measure, adds the run's, "
+           "takes the run's run_sha and drops an entry no step measured",
+           sorted(un) == ["a", "b", "slow"] and un["b"]["objects"] is True
+           and un["b"]["files"] == ["tools/x/only-elsewhere.py"] and un["b"]["git"] == ["merge-base"]
+           and un["b"]["probes"] == ["tools/x/p.json"] and un["a"]["index"] is True
+           and un["a"]["files"] == measured["a"]["files"] and un["a"]["run_sha"] == measured["a"]["run_sha"]
+           and drift({"steps": un}, measured, st2)[0] == [])
 
     # The edges a seat's run reaches but the cases above do not.
     ck("a duplicated step id is named", "DUPLICATE id a" in wiring_gaps(
@@ -1455,6 +1513,20 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("check: a table naming every read passes, and --write saves the measurement",
            rc_ok == 0 and "2 gated step(s), 0 refusal(s)" in out.getvalue()
            and (load_table(root / "m.json") or {}).get("steps", {}).get("a", {}).get("files") == ["tools/x/a.py"])
+        # --write writes the committed table unioned with the run: a planted
+        # committed read and flag this run did not measure survive the write.
+        was_table = (root / TABLE).read_text()
+        pt = json.loads(was_table)
+        pt["steps"]["slow"].update(objects=True, probes=["tools/x/planted.json"])
+        (root / TABLE).write_text(json.dumps(pt))
+        with contextlib.redirect_stdout(io.StringIO()):
+            main(["check", "--traces", str(tdir), "--write", str(root / "u.json")], root)
+        (root / TABLE).write_text(was_table)
+        us = (load_table(root / "u.json") or {}).get("steps", {})
+        ck("check --write: a planted committed read and flag the run did not measure survive the write",
+           us.get("slow", {}).get("objects") is True
+           and us.get("slow", {}).get("probes") == ["tools/x/planted.json"]
+           and us.get("a", {}).get("files") == ["tools/x/a.py"])
         (tdir / "step-slow.trace").write_text(whole(
             f'5 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>'))
         out = io.StringIO()
@@ -1649,6 +1721,11 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
     dir_b, dir_h = {"steps": {"a": ent([], [], ["t"])}}, {"steps": {"a": ent()}}
     ck("shrink_drops: a directory whose every file the diff deleted is exempt, one with a survivor is not",
        shrink_drops(dir_b, dir_h, {"t/x"}, set()) == [] and len(shrink_drops(dir_b, dir_h, {"t/x"}, {"t/y"})) == 1)
+    ck("shrink_drops: a base or a head table that is missing judges nothing (the caller names the unreadable one)",
+       shrink_drops(None, held, set(), set()) == [] and shrink_drops(held, None, set(), set()) == [])
+    glob_b, glob_h = {"steps": {"a": ent(["t/**"])}}, {"steps": {"a": ent()}}
+    ck("shrink_drops: a D/** item whose directory the diff emptied is exempt, one with a survivor is not",
+       shrink_drops(glob_b, glob_h, {"t/x"}, set()) == [] and len(shrink_drops(glob_b, glob_h, {"t/x"}, {"t/y"})) == 1)
     probe_b, probe_dir = {"steps": {"a": ent([], ["t/q"])}}, {"steps": {"a": ent([], [], ["t"])}}
     ck("shrink_drops: a probe whose directory the head lists is kept, the same head without it is not",
        shrink_drops(probe_b, probe_dir, set(), {"t/x"}) == []
@@ -1676,6 +1753,8 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         b0 = commit(held)
         commit(head_add)
         ck("shrink_gaps: a committed additive table change passes (null control)", shrink_gaps(gr, b0) == [])
+        ck("shrink_gaps: a base the repository cannot diff against is refused, not passed",
+           [x[:10] for x in shrink_gaps(gr, "0" * 40)] == ["UNREADABLE"])
         commit(head_drop)
         fx = shrink_gaps(gr, b0)
         ck("shrink_gaps: a committed diff dropping reads is refused",
@@ -1740,6 +1819,10 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("prune: an unknown drop or step is refused (rc 1), naming it, the table byte-identical",
            rc_unk == 1 and rc_nostep == 1 and "files:nope" in err.getvalue()
            and "no step zz" in err.getvalue() and (gr / TABLE).read_bytes() == before)
+        with tempfile.TemporaryDirectory() as empty, contextlib.redirect_stderr(io.StringIO()) as nerr:
+            rc_nt = main(["prune", "--step", "a", "--drop", "files:f2"], Path(empty))
+        ck("prune: a root with no readable table is refused (rc 1), naming it, and writes none",
+           rc_nt == 1 and "UNREADABLE" in nerr.getvalue() and not (Path(empty) / TABLE).exists())
         rc_pr = main(["prune", "--step", "a", "--drop", "files:f2", "--drop", "objects:"], gr)
         after = load_table(gr / TABLE)
         ck("prune: a held drop writes the table, less exactly that read",
@@ -1773,8 +1856,9 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
 def main(argv: list[str], root: Path = ROOT) -> int:
     opts = dict(zip(argv[1::2], argv[2::2]))
     if argv[:1] == ["--self-test"] and len(argv) % 2 == 1 and set(opts) <= {"--wrapper", "--workflow"}:
-        return self_test(Path(opts.get("--wrapper", ROOT / WRAPPER)).resolve(),
-                         Path(opts.get("--workflow", ROOT / WORKFLOW)).resolve())
+        rc = self_test(Path(opts.get("--wrapper", ROOT / WRAPPER)).resolve(),
+                       Path(opts.get("--workflow", ROOT / WORKFLOW)).resolve())
+        return rc if isinstance(rc, int) else 1  # a self-test that returned nothing did not pass
     if argv == ["ids"]:
         print(" ".join(gated_ids(workflow_steps(root))))
         return 0
