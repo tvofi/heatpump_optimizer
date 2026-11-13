@@ -2455,10 +2455,10 @@ class Train:
                      if g._is_owner(r.get("user")) and r.get("state") == "APPROVED"), None)
         c = str((last or {}).get("commit_id") or "")
         if not is_sha(c) or c == h or not self.ok("git", "fetch", "-q", "origin", c):
-            return type(self).__name__
+            return ""
         code, o = self.run(["git", "diff", "--no-renames", "--name-only", c, h])
         if code:
-            return type(self).__name__
+            return ""
         moved = [f for f in o.split() if f in pol]
         return (f"policy content changed after the owner's review at {c[:12]} "
                 f"({', '.join(moved)}): a fresh owner review, not a carry") if moved else ""
@@ -6995,7 +6995,7 @@ def _rollup_draft_self_test(check) -> None:
                 return "true" if state["draft"] else "false"
             if "state,mergeCommit" in a:
                 return "MERGED abc" if state.get("merged") else "OPEN None"
-            return type(self).__name__
+            return ""
         t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None, base="batch/x")
         t.out, t.head, t.review_settle, t.unstale = out, (lambda pr: H), (lambda pr, h: None), (lambda h: None)
         return t, calls
@@ -7220,7 +7220,7 @@ def _read_retry_self_test(check) -> None:
             fn()
         except Stop as e:
             return str(e)
-        return type(self).__name__
+        return ""
 
     def n(calls, key):
         return sum(key in c for c in calls)
