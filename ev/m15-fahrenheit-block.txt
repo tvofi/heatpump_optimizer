@@ -1,0 +1,12 @@
+== °F block, head
+  File "tests/features.py[block]", line 800, in <module>
+NameError: name '_s5_effective' is not defined
+1
+== °F block, M15 (desired drops water guard)
+=== features block ===
+TypeError: cannot create weak reference to 'NoneType' object
+  File "tests/features.py[block]", line 133, in <module>
+  File "tests/features.py[block]", line 129, in _df_dhw_command
+  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/pump_arbiter.py", line 1281, in desired
+  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/pump_arbiter.py", line 1293, in _space_boosted
+  File "/home/user/heatpump_optimizer/custom_components/heatpump_optimizer/boost.py", line 291, in held_for

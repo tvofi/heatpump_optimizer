@@ -1,0 +1,105 @@
+KILLED M1 _level_kw boost branch off
+  arbiter: rc=1 1 of 61 FEATURES BLOCK FAILED
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M2 _space_boosted -> False
+  arbiter: rc=1 5 of 61 FEATURES BLOCK FAILED
+      FAIL the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's hold  [[('s
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-top step wri
+      FAIL a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while off; a space b
+      FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum (R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 55 degC ceil
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M3 _space_boosted drop global mode
+  arbiter: rc=1 3 of 61 FEATURES BLOCK FAILED
+      FAIL the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's hold  [[('s
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-top step wri
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M4 _space_boosted drop space channel
+  arbiter: rc=1 4 of 61 FEATURES BLOCK FAILED
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-top step wri
+      FAIL a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while off; a space b
+      FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum (R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 55 degC ceil
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M5 default 55 caps too
+  arbiter: rc=1 5 of 61 FEATURES BLOCK FAILED
+      FAIL the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's hold  [[('s
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-top step wri
+      FAIL a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while off; a space b
+      FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum (R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 55 degC ceil
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M6 flow_heat_c cap dropped
+  arbiter: rc=1 1 of 61 FEATURES BLOCK FAILED
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M7 limit cap dropped
+  arbiter: rc=1 1 of 61 FEATURES BLOCK FAILED
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M8 FLOW_HEAT_C_MAX bound dropped
+  arbiter: rc=1 1 of 61 FEATURES BLOCK FAILED
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M9 min(caps)->max(caps)
+  arbiter: rc=1 1 of 61 FEATURES BLOCK FAILED
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M10 desired boosted=False
+  arbiter: rc=1 5 of 61 FEATURES BLOCK FAILED
+      FAIL the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's hold  [[('s
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-top step wri
+      FAIL a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while off; a space b
+      FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum (R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 55 degC ceil
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M11 heat_c ignores boost_c
+  arbiter: rc=1 5 of 61 FEATURES BLOCK FAILED
+      FAIL the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's hold  [[('s
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-top step wri
+      FAIL a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while off; a space b
+      FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum (R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 55 degC ceil
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M12 level band-top without a ceiling
+  arbiter: rc=1 1 of 61 FEATURES BLOCK FAILED
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M13 experiment precedence dropped
+  arbiter: rc=0 ALL 61 FEATURES BLOCK PASSED
+  ceiling-probe: rc=1 3 of 85 FEATURES BLOCK FAILED
+      FAIL the probe's step (the configured 5.0 kW maximum) is heating at the flow ceiling  [('space', 38, 'Heating')]
+      FAIL the fit's sized 1.5 kW step writes its own level, below the ceiling, from the action not the plan (whose step here is 5.0 kW)  [fit ('space', 38, 'Heating'
+      FAIL item D5: on a plan stamped with the learned band, the probe's configured 5.0 kW step still writes the heat level, and the fit's sized 1.5 kW step maps on t
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+KILLED M14 limit > gate -> >=
+  arbiter: rc=1 1 of 61 FEATURES BLOCK FAILED
+      FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a partial 1.0 k
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+SURVIVED M15 desired drops water guard
+  arbiter: rc=0 ALL 61 FEATURES BLOCK PASSED
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+SURVIVED S1 survivor gate < -> <=
+  arbiter: rc=0 ALL 61 FEATURES BLOCK PASSED
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
+SURVIVED S2 survivor _arm_space boosted=True
+  arbiter: rc=0 ALL 61 FEATURES BLOCK PASSED
+  ceiling-probe: rc=0 ALL 85 FEATURES BLOCK PASSED
+  fb-seam: rc=0 ALL 53 FEATURES BLOCK PASSED
