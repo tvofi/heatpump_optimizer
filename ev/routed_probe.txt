@@ -1,0 +1,13 @@
+== 1f96fec41c9b3c96f5bc98da4f0637ed1a54e1f3
+RESULT routed 'stale:lower_floor_temp_entity' card house: counting
+RESULT routed 'stale:lower_floor_temp_entity' card solar: counting
+RESULT routed 'stale:lower_floor_temp_entity' card gains: counting
+RESULT routed 'stale:lower_floor_temp_entity' card lower: frozen
+RESULT routed 'stale:dhw_temp_entity' card house: counting
+RESULT routed 'stale:dhw_temp_entity' card solar: counting
+RESULT routed 'stale:dhw_temp_entity' card gains: counting
+RESULT routed 'stale:dhw_temp_entity' card lower: counting
+RESULT routed 'stale:indoor_temp_entity' card house: frozen
+RESULT routed 'stale:indoor_temp_entity' card solar: frozen
+RESULT routed 'stale:indoor_temp_entity' card gains: frozen
+RESULT routed 'stale:indoor_temp_entity' card lower: frozen
