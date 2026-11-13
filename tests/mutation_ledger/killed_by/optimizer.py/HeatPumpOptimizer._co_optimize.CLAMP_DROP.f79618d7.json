@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._co_optimize CLAMP_DROP f79618d7",
+  "killed_by": "tests/env_drift.py",
+  "old": "            headroom = np.maximum(0.0, p_max - dhw_power)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`headroom = (0.0)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
+}
