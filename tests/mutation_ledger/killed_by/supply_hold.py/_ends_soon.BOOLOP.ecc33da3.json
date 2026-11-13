@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/supply_hold.py:_ends_soon BOOLOP ecc33da3",
-  "killed_by": "tests/features.py",
-  "old": "    return not (step_duty(inp.plan, now) in (\"dhw\", \"both\") and tank_reason(inp))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return not (step_duty(inp.plan, now) in (\"dhw\", \"both\") or tank_reason(inp))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

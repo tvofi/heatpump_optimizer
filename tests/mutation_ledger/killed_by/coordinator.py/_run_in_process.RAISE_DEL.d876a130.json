@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_run_in_process RAISE_DEL d876a130",
-  "killed_by": "tests/features.py",
-  "old": "                raise",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RAISE_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
-}

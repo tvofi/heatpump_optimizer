@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:CapacityTariff.marginal_price_per_kw GUARD_OFF 9b86f195",
-  "killed_by": "tests/features.py",
-  "old": "        if not self.enabled or self.peaks_averaged <= 0:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

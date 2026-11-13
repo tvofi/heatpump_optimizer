@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.observe_day_quarters GUARD_OFF 3dbd4039",
-  "killed_by": "tests/features.py",
-  "old": "        if not np.all(np.isfinite(values)):",
-  "reason": "Recorded by `mutation_table.py --drain` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

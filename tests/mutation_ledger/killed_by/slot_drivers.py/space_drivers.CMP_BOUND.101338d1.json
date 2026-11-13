@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:space_drivers CMP_BOUND 101338d1",
-  "killed_by": "tests/features.py",
-  "old": "        100.0 * push, total, out=np.zeros_like(push), where=total > 0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`100.0 * push, total, out=np.zeros_like(push), where=total >= 0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

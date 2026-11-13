@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/disinfection.py:DisinfectionSwitch.controlling BOOLOP a51fc8ed",
-  "killed_by": "tests/features.py",
-  "old": "        return self.entity_id is not None and self.mode == FREQ_MODE_CONTROL",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`return self.entity_id is not None or self.mode == FREQ_MODE_CONTROL`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:outside_own_range CMP_BOUND 1abe99c6",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "    return value is not None and ((lo is not None and value < lo) or (hi is not None and value > hi))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return value is not None and ((lo is not None and value <= lo) or (hi is not None and value > hi))`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
-}

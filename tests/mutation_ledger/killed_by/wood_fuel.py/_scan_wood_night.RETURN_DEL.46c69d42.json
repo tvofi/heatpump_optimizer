@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/wood_fuel.py:_scan_wood_night RETURN_DEL 46c69d42",
-  "killed_by": "tests/features.py",
-  "old": "    return best_i, expensive_next",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

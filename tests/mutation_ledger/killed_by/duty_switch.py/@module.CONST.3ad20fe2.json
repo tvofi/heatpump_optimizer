@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:<module> CONST 3ad20fe2",
-  "killed_by": "tests/features.py",
-  "old": "HEATED_MARGIN_K = 2.0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`HEATED_MARGIN_K = 4.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

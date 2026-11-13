@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:_window_slot CMP_BOUND 39ff0db0",
-  "killed_by": "tests/features.py",
-  "old": "    if window <= 60:",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if window < 60:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

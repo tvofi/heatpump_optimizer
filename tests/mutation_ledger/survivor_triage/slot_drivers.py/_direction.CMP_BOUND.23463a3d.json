@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/slot_drivers.py:_direction CMP_BOUND 23463a3d",
-  "old": "    return \"run\" if weight > 0 else \"idle\"",
-  "reason": "CMP_BOUND (`weight >= 0`) differs from `weight > 0` only at weight == 0.0, and the line above returns `neutral` for every |weight| < NEUTRAL_BELOW_PCT (0.5), so 0.0 never reaches this comparison; a NaN weight fails `abs(w) < 0.5`, `w > 0` and `w >= 0` alike and reads `idle` under both. Measured: `python3 tests/mutation_table.py --pin-killed --base origin/main` reported `slot_drivers.py:136 CMP_BOUND -- lives`; the GUARD_OFF and RETURN_DEL sites of `_direction` are killed by tests/features.py's `|weight| under 0.5 is neutral` check.",
-  "verdict": "equivalent"
-}

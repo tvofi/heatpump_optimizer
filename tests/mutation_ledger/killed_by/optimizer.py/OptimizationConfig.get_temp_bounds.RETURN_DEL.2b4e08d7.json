@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.get_temp_bounds RETURN_DEL 2b4e08d7",
-  "killed_by": "tests/plan_view.py",
-  "old": "        return (self.min_temp - 0.5, self.max_temp)",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
-}

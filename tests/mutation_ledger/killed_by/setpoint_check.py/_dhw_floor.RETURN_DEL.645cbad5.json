@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/setpoint_check.py:_dhw_floor RETURN_DEL 645cbad5",
-  "killed_by": "tests/block_duty.py",
-  "old": "    return floor if disinfection is None else max(floor, float(disinfection))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=4."
-}

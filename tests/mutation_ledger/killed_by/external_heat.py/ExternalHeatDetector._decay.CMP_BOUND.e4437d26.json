@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._decay CMP_BOUND e4437d26",
-  "killed_by": "tests/features.py",
-  "old": "        state.fading = remaining > 0.0",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`state.fading = remaining >= 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

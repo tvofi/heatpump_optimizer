@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:parse_day_overrides RETURN_DEL b4c5be4b",
-  "killed_by": "tests/features.py",
-  "old": "    return days if any(day is not None for day in days) else None",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
-}

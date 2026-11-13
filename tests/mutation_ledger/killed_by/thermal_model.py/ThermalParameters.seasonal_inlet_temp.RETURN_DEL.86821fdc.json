@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.seasonal_inlet_temp RETURN_DEL 86821fdc",
-  "killed_by": "tests/features.py",
-  "old": "        return float(self.dhw_inlet_temp - swing * np.cos(phase))",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

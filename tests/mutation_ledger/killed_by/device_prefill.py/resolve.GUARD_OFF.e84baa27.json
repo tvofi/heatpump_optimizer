@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/device_prefill.py:resolve GUARD_OFF e84baa27",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "            if pair in matched and role not in resolved:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=7."
-}

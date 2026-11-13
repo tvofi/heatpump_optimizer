@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/supply_hold.py:tank_reason RETURN_DEL 313b50d3",
-  "killed_by": "tests/features.py",
-  "old": "    return \"tank_cold\" if cold else None",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

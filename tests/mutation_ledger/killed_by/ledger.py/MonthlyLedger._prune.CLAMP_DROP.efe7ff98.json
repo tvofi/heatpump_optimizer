@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/ledger.py:MonthlyLedger._prune CLAMP_DROP efe7ff98",
-  "killed_by": "tests/features.py",
-  "old": "        for key in sorted(self.months)[: max(0, len(self.months) - KEEP_MONTHS)]:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`for key in sorted(self.months)[: (0)]:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

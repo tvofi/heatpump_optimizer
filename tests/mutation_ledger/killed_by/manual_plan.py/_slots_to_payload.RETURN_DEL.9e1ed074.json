@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/manual_plan.py:_slots_to_payload RETURN_DEL 9e1ed074",
-  "killed_by": "tests/manual_plan.py",
-  "old": "    return [{\"start\": s.isoformat(), \"end\": e.isoformat()} for s, e in slots]",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/manual_plan.py from rc=0 failed=0 to rc=1 failed=4."
-}

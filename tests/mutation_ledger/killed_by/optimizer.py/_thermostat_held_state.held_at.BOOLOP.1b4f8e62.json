@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_thermostat_held_state.held_at BOOLOP 1b4f8e62",
-  "killed_by": "tests/features.py",
-  "old": "        if valved and (h_need := need(h)) > 0.0:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if valved or (h_need := need(h)) > 0.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

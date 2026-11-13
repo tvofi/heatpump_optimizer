@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:lost_share CLAMP_DROP 2b3e0bf8",
-  "killed_by": "tests/features.py",
-  "old": "    return min(1.0, stop_probability[0] * off_seconds[0] / (step_minutes * 60.0))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
-}

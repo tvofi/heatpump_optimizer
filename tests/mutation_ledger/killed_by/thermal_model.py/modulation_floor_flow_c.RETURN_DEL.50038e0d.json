@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:modulation_floor_flow_c RETURN_DEL 50038e0d",
-  "killed_by": "tests/features.py",
-  "old": "    return (inlet if gate is None or inlet > gate else gate) + float(lift_k)",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling (the line's tail moved from `+ FLOW_MIN_LIFT_K` to `+ float(lift_k)`, retiring anchor 431e5f53). RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 of 4979 to rc=1 failed=11: every floor write falls back to the rated 35 degC hold, so the R10-SETPOINT-POWER inlet cells, the R10-SETPOINT-BOOST gate cells and the configured-lift and return-target checks all fail."
-}

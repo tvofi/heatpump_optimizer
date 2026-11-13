@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:Direction.decay BOOLOP 474af5b8",
-  "killed_by": "tests/features.py",
-  "old": "        aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`aged_out = self.first_day is not None or self.n < SPAN_FLOOR_N`) took tests/features.py from rc=0 failed=0 to rc=1 failed=9."
-}

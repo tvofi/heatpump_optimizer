@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch GUARD_OFF 073bc54f",
-  "killed_by": "tests/edge.py",
-  "old": "        if two_tank:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/edge.py from rc=0 failed=0 to rc=1 failed=1."
-}

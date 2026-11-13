@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_avoid_priced_switches CMP_BOUND 11566350",
-  "killed_by": "tests/features.py",
-  "old": "            if score < base - 1e-9:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if score <= base - 1e-9:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

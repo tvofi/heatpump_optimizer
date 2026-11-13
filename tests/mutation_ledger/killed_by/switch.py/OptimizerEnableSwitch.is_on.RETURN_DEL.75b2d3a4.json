@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/switch.py:OptimizerEnableSwitch.is_on RETURN_DEL 75b2d3a4",
-  "killed_by": "tests/features.py",
-  "old": "        return bool(self.coordinator.mode != MODE_OFF)",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

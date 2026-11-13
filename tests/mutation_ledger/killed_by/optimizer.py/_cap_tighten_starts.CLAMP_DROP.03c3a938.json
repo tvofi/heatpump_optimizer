@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_cap_tighten_starts CLAMP_DROP 03c3a938",
-  "killed_by": "tests/features.py",
-  "old": "    clipped = np.minimum(np.asarray(prev, dtype=float), power_caps)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`clipped = (np.asarray(prev, dtype=float))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

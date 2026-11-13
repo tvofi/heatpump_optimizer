@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:switch_weights_batch CLAMP_DROP 22691b9b",
-  "killed_by": "tests/features.py",
-  "old": "    across = stops * np.minimum(level[_BEFORE], level[_AFTER])",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`across = stops * (level[_BEFORE])`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

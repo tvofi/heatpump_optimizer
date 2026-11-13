@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_clamp_cut CMP_BOUND 8aa01955",
-  "old": "    if value > rec.prev_c:",
-  "reason": "CMP_BOUND (`if value >= rec.prev_c:`). The two operators differ only at value == rec.prev_c, which no call reaches. _clamp_cut reaches the comparison only with value == rec.sent_c and rec.prev_c not None. rec.sent_c and rec.prev_c are set together in one place, _note_sent, and only after its early return on `recorded[0] == out`, so prev_c (recorded[0]) != out; it sets sent_c to out or to None. Every other write sets sent_c to None: the FeedbackRun default, the start hold in _feedback, and _clamp_cut itself. So whenever sent_c is not None it differs from prev_c, and value == sent_c != prev_c. Measured: the R10-WATER-SETPOINT-FEEDBACK block of tests/features.py (35 checks) passes under this mutant, and kills the other 14 CI mutants at the 13 other sites #3405's fix review named.",
-  "verdict": "equivalent"
-}

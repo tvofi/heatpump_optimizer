@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:_heated CMP_BOUND 9e8f0199",
-  "killed_by": "tests/features.py",
-  "old": "        return ctx.inlet_c - ctx.water_setpoint_c >= HEATED_MARGIN_K",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return ctx.inlet_c - ctx.water_setpoint_c > HEATED_MARGIN_K`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

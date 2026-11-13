@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_switch_cost_fn.switch_cost RETURN_DEL 0f24df73",
-  "killed_by": "tests/features.py",
-  "old": "        return term if np.ndim(space) == 2 else float(term[0])",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

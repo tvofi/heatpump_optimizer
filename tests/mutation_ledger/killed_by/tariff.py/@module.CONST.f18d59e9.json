@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/tariff.py:<module> CONST f18d59e9",
-  "killed_by": "tests/env_drift.py",
-  "old": "_PEAK_SMOOTH_TAU = 0.05",
-  "reason": "Recorded by `mutation_table.py --drain`: CONST (`_PEAK_SMOOTH_TAU = 0.1`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
-}

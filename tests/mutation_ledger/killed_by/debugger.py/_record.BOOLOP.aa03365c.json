@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/debugger.py:_record BOOLOP aa03365c",
-  "killed_by": "tests/debug_collect.py",
-  "old": "            reported.isoformat() if reported and reported > state.last_updated else None)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: BOOLOP (`reported.isoformat() if reported or reported > state.last_updated else None)`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
-}

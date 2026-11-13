@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:write_cap_per_day RETURN_DEL 168b1046",
-  "killed_by": "tests/features.py",
-  "old": "    return int(2 * 1440 / max(1.0, float(config.optimization_interval)))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

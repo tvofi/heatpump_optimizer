@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange.observe GUARD_OFF cbc3e7e9",
-  "killed_by": "tests/structure.py",
-  "old": "        if self._disagrees(cfg_min):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against d5cd003111277faa3f2abd7fbe6c9157d2e48ed7: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
-}

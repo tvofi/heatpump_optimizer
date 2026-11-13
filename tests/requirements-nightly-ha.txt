@@ -1,9 +1,0 @@
-# The nightly-ha host's own addition (#1758): py-spy, which tests/nightly_ha.py
-# stages into the A15 heartbeat container to dump a stalled loop. Installed by
-# the nightly-ha job alone, beside tests/requirements-ci.txt; no other job
-# imports or runs it. The two Linux wheels only (the runner is x86_64): the
-# hashes are PyPI's published sha256 for py-spy 0.4.3's
-# manylinux_2_5_x86_64 and manylinux_2_17_aarch64 wheels.
-py-spy==0.4.3 \
-    --hash=sha256:8a4277225f470d394a85cca0cdd944bef87f0097b6f20150a6dd3ac2e92806b8 \
-    --hash=sha256:bbcec46930d464b3bfc142d6d02ade4dd8ad5627823263b3eff0280e80c7c132

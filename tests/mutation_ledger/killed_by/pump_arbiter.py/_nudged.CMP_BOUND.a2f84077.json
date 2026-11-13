@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_nudged CMP_BOUND a2f84077",
-  "killed_by": "tests/features.py",
-  "old": "    if abs(error) <= FEEDBACK_DEADBAND_SHARE * max(planned, floor):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if abs(error) < FEEDBACK_DEADBAND_SHARE * max(planned, floor):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

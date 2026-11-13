@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/presets.py:_radiator_fraction GUARD_OFF a227de33",
-  "killed_by": "tests/features.py",
-  "old": "    if preset.upper_emitter == EMITTER_RADIATORS:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
-}

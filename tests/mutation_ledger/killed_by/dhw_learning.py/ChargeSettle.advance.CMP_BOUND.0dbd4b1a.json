@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:ChargeSettle.advance CMP_BOUND 0dbd4b1a",
-  "killed_by": "tests/features.py",
-  "old": "        if obs[1] < 0:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if obs[1] <= 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

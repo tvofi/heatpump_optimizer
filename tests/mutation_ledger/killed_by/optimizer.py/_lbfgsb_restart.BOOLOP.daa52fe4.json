@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_lbfgsb_restart BOOLOP daa52fe4",
-  "killed_by": "tests/features.py",
-  "old": "    if np.isfinite(score) and (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if np.isfinite(score) or (prior - score) > _LBFGSB_RESTART_KEEP_REL * scale:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

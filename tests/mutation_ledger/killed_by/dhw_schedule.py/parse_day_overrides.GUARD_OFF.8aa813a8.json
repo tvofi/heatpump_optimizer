@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:parse_day_overrides GUARD_OFF 8aa813a8",
-  "killed_by": "tests/features.py",
-  "old": "    if not day_overrides_enabled(config):",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

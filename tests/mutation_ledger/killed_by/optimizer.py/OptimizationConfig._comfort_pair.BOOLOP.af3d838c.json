@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig._comfort_pair BOOLOP af3d838c",
-  "killed_by": "tests/features.py",
-  "old": "        if when is not None and when.weekday() >= 5:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if when is not None or when.weekday() >= 5:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

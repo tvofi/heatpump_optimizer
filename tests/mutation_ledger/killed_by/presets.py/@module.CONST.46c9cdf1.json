@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/presets.py:<module> CONST 46c9cdf1",
-  "killed_by": "tests/features.py",
-  "old": "_EMITTER_SLAB_MASS_PER_M2 = 0.045  # kWh/\u00b0C per m\u00b2 of floor-heated area",
-  "reason": "Recorded by `mutation_table.py --drain`: CONST (`_EMITTER_SLAB_MASS_PER_M2 = 0.09  # kWh/\u00b0C per m\u00b2 of floor-heated area`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

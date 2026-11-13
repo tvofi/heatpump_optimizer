@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._simulate_step_two_zone CLAMP_DROP e0a71206",
-  "killed_by": "tests/features.py",
-  "old": "            dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - wood_temp) / max(",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`dT_wood_cap = (0.0) / max(`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

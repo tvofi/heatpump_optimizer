@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/draw_range.py:<module> CONST 44f86dcd",
-  "killed_by": "tests/features.py",
-  "old": "IDLE_MARGIN = 1.25",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against d5cd003111277faa3f2abd7fbe6c9157d2e48ed7: CONST (`IDLE_MARGIN = 2.5`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

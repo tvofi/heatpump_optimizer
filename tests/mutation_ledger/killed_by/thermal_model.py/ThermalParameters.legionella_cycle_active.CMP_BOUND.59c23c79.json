@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.legionella_cycle_active CMP_BOUND 59c23c79",
-  "killed_by": "tests/features.py",
-  "old": "            or self.combi_potable_volume_l > const.COMBI_LEGIONELLA_POTABLE_LIMIT_L",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`or self.combi_potable_volume_l >= const.COMBI_LEGIONELLA_POTABLE_LIMIT_L`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

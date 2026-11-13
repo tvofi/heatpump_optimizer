@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:_cycle_guard GUARD_OFF 51f17766",
-  "killed_by": "tests/features.py",
-  "old": "    if held.cycle_end is None or held.cycle_end - dt_util.as_utc(now) < MIN_OFF:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

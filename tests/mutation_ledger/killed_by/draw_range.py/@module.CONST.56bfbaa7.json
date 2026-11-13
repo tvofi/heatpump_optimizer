@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/draw_range.py:<module> CONST 56bfbaa7",
-  "killed_by": "tests/features.py",
-  "old": "GATE_TOLERANCE_K = 0.25",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 0c298f6b542e6efa4c93941700b3a23b859f3f9a: CONST (`GATE_TOLERANCE_K = 0.5`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/driving_grade.py:fold CLAMP_DROP 53f5bf1a",
-  "killed_by": "tests/features.py",
-  "old": "    sample = float(np.clip(saved_fraction / FULL_SAVING, 0.0, 1.0)) * 100.0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`sample = float((saved_fraction / FULL_SAVING)) * 100.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

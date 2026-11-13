@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:dew_point_for_pressure RETURN_DEL b883fdf4",
-  "killed_by": "tests/features.py",
-  "old": "    return 243.12 * ln / (17.62 - ln)",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

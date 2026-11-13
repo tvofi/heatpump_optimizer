@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.async_learn_dynamics GUARD_OFF 34516705",
-  "killed_by": "tests/structure.py",
-  "old": "        if dt_h <= 0.02 or dt_h > DHW_COOLING_MAX_SAMPLE_HOURS:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
-}

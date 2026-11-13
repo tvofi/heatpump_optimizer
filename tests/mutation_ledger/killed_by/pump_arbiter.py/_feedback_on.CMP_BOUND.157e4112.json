@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_feedback_on CMP_BOUND 157e4112",
-  "killed_by": "tests/features.py",
-  "old": "        and planned is not None and top is not None and planned < float(top)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`and planned is not None and top is not None and planned <= float(top)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

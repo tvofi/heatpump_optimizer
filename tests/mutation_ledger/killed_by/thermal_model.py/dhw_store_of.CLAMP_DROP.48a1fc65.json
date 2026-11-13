@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:dhw_store_of CLAMP_DROP 48a1fc65",
-  "killed_by": "tests/features.py",
-  "old": "    eps = min(1.0, eps) if eps >= COMBI_DHW_EFFECTIVENESS_FLOOR else COMBI_DHW_EFFECTIVENESS_FLOOR",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`eps = (1.0) if eps >= COMBI_DHW_EFFECTIVENESS_FLOOR else COMBI_DHW_EFFECTIVENESS_FLOOR`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

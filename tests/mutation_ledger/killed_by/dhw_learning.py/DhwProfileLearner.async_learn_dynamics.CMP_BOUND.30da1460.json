@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_learning.py:DhwProfileLearner.async_learn_dynamics CMP_BOUND 30da1460",
-  "killed_by": "tests/features.py",
-  "old": "        weekend = now.weekday() >= 5",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`weekend = now.weekday() > 5`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/off_restore.py:consumer_state RETURN_DEL 88dc391f",
-  "killed_by": "tests/features.py",
-  "old": "    return {} if held is None else held.consumers.setdefault(key, {})",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

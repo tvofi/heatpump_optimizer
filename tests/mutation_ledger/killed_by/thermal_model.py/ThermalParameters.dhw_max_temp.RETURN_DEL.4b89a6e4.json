@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_max_temp RETURN_DEL 4b89a6e4",
-  "killed_by": "tests/guard_pins.py",
-  "old": "        return min(70.0, self.dhw_setpoint)",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

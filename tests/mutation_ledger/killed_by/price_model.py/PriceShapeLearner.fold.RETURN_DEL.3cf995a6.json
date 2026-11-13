@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeLearner.fold RETURN_DEL 3cf995a6",
-  "killed_by": "tests/features.py",
-  "old": "        return learned",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 9a1ce39c3e901c814fceb015f09eec75f1a5ef5f: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

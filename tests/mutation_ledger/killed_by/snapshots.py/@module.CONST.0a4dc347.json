@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/snapshots.py:<module> CONST 0a4dc347",
-  "killed_by": "tests/features.py",
-  "old": "BIAS_TRIP_DAYS = 5",
-  "reason": "Recorded by `mutation_table.py --drain`: CONST (`BIAS_TRIP_DAYS = 10`) took tests/features.py from rc=0 failed=0 to rc=1 failed=12."
-}

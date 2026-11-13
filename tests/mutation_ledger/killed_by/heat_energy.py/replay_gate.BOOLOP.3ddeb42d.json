@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/heat_energy.py:replay_gate BOOLOP 3ddeb42d",
-  "killed_by": "tests/features.py",
-  "old": "    return heat_kw, carried and unmeasured is None, frozen, not meter.spans_own_scale",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return heat_kw, carried or unmeasured is None, frozen, not meter.spans_own_scale`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

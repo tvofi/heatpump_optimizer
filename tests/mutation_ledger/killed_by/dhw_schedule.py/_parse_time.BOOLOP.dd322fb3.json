@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_parse_time BOOLOP dd322fb3",
-  "killed_by": "tests/guard_pins.py",
-  "old": "    if hour == 24 and minute == 0:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if hour == 24 or minute == 0:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=15."
-}

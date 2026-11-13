@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/inputs.py:normalize_power_kw RETURN_DEL 2b42ef0f",
-  "killed_by": "tests/features.py",
-  "old": "    return value * factor",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:Direction.weights CLAMP_DROP 15fb0b50",
-  "killed_by": "tests/features.py",
-  "old": "        age_s = max(0.0, utc_elapsed_seconds(when, self.decayed_at))",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`age_s = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

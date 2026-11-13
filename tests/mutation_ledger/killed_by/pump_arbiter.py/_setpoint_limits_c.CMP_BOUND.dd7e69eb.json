@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_setpoint_limits_c CMP_BOUND dd7e69eb",
-  "killed_by": "tests/features.py",
-  "old": "    if low is not None and high is not None and low >= high:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if low is not None and high is not None and low > high:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

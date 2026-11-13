@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/narrative.py:group_by_reason RETURN_DEL 6ec4a824",
-  "killed_by": "tests/features.py",
-  "old": "    return groups",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

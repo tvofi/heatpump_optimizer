@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_step_duty RETURN_DEL f88e335f",
-  "killed_by": "tests/structure.py",
-  "old": "    return _leased(inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
-}

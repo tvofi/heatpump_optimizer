@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met GUARD_OFF 56d3a582",
-  "killed_by": "tests/features.py",
-  "old": "        if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp):",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

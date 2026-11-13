@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:configured_flow_min_lift_k CMP_BOUND aae2aa8c",
-  "killed_by": "tests/features.py",
-  "old": "        number if number is not None and number > 0.0 else FLOW_MIN_LIFT_K",
-  "reason": "Recorded by applying the mutant on feat/water-setpoint-lift-ceiling. CMP_BOUND (`number >= 0.0`) took tests/features.py from rc=0 failed=0 of 4979 to rc=1 failed=1: a stored lift of 0.0 reads as 0.0 instead of the rated 5 K, in the check that refuses a lift that is not a positive finite number."
-}

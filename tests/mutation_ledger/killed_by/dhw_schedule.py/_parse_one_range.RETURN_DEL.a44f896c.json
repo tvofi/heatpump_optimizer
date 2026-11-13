@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_parse_one_range RETURN_DEL a44f896c",
-  "killed_by": "tests/guard_pins.py",
-  "old": "    return [(start, end)]",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

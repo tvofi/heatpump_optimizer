@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_draws.py:DrawStats.fold GUARD_OFF 7c3e03c5",
-  "killed_by": "tests/features.py",
-  "old": "        if (window_label, date_key) != (self._open_label, self._open_date):",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
-}

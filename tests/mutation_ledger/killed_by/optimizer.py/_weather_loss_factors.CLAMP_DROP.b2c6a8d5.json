@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_weather_loss_factors CLAMP_DROP b2c6a8d5",
-  "killed_by": "tests/features.py",
-  "old": "    base_loss = max(model.params.heat_loss_coefficient, 0.001)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`base_loss = (model.params.heat_loss_coefficient)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

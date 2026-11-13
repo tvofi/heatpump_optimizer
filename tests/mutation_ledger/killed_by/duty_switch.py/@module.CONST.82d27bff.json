@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:<module> CONST 82d27bff",
-  "killed_by": "tests/features.py",
-  "old": "HALF_LIFE_DAYS = 14.0",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`HALF_LIFE_DAYS = 28.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

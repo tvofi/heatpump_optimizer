@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:DutySwitchLearner.from_record RETURN_DEL ccad0325",
-  "killed_by": "tests/features.py",
-  "old": "            return cls({name: Direction.from_row(rows[name]) for name in DIRECTIONS})",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:OptimizationConfig.get_comfort_temp CMP_BOUND 5b24a953",
-  "killed_by": "tests/features.py",
-  "old": "        if start <= hour < end:",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`if start < hour < end:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
-}

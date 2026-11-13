@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/drift.py:Cusum.update BOOLOP 6f85c405",
-  "killed_by": "tests/features.py",
-  "old": "        if self.tripped and self.stat <= release_at:",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if self.tripped or self.stat <= release_at:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
-}

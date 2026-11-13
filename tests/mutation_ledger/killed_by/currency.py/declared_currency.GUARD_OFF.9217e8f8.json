@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/currency.py:declared_currency GUARD_OFF 9217e8f8",
-  "killed_by": "tests/features.py",
-  "old": "    if code is None and re.fullmatch(\"[A-Z]{3}\", money):  # not \"\u00d6RE\"",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:  # not \"\u00d6RE\"`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met GUARD_OFF 99eecfc1",
-  "killed_by": "tests/features.py",
-  "old": "        if price is None:  # no published price covers now (#2229)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 0570b86e9351dfeda88d630093cfe4d442a6d664: GUARD_OFF (`if False:  # no published price covers now (#2229)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

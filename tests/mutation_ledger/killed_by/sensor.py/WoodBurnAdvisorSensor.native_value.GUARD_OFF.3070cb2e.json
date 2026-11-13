@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:WoodBurnAdvisorSensor.native_value GUARD_OFF 3070cb2e",
-  "killed_by": "tests/wood_advisor.py",
-  "old": "        if not self.available:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/wood_advisor.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_schedule.py:_format_day_selector RETURN_DEL b73eba62",
-  "killed_by": "tests/guard_pins.py",
-  "old": "    return \",\".join(_DAY_TOKENS[d].capitalize() for d in ordered)",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

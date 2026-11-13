@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel.simulate_trajectory_batch CLAMP_DROP 41b35033",
-  "killed_by": "tests/features.py",
-  "old": "                        t_mix = np.minimum(supply, flow_set)",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`t_mix = (supply)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=19."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:space_headroom CLAMP_DROP f6750244",
-  "killed_by": "tests/plan_view.py",
-  "old": "        return np.maximum(0.0, p_max - dhw_kw)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (0.0)`) took tests/plan_view.py from rc=0 failed=0 to rc=1 failed=1."
-}

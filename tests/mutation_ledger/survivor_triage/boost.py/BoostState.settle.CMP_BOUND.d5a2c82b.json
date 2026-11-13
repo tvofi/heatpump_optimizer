@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState.settle CMP_BOUND d5a2c82b",
-  "old": "        if held is None or utc_elapsed_seconds(until, held) > 0:",
-  "reason": "Equivalent (CMP_BOUND, `>` to `>=`). The arms differ only when the new end `until` equals the held tail, and the body then assigns `until`, the instant `space_settle_until` already holds, so the tail does not change; `space_boosted` is summed before the guard on both arms. tests/features.py's check 'a settle ending before the running tail's end leaves it; one ending later moves it' drives both strict sides (an end earlier, an end 500 ms later), which kill GUARD_OFF, CONST_SWAP and the fix review's X7 (`if True:`).",
-  "verdict": "equivalent"
-}
