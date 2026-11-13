@@ -25966,6 +25966,48 @@
     "note": "intake: root-cause seat R10-RCA-OPENER-REFUSALS, 2026-11-13; three opener collisions and one false grader red tonight; overlap admitted (R10-HOTFIX-UPDATEPR-FIGURE-REFRESH): root-cause seat s14 rca-open-pr: two openers collide on one topic body; ci_predict reads a stale roster ref; blocks chain PR opens (intake rule: block on a chain PR)",
     "pr": 3549
    }
+  },
+  {
+   "group": "R10-HOTFIX-TICK-BASH32",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/audit/seat/tick_loop.sh",
+    "tools/audit/seat/bare_array.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, the tick loop refuses itself on the macOS host (orchestrator measurement, 2026-11-13T15:17Z): since PR 3520, /bin/bash -n on tools/audit/seat/tick_loop.sh fails under GNU bash 3.2.57 with a syntax error near ';;', at the self-test's fail-closed rows, where a case with unparenthesised patterns (func, bashenv, none) sits inside a $( ... ) command substitution, which bash 3.2 cannot parse. The running loop's freshness check, the line tagged with the # mut:syntax marker, runs bash -n on origin/main's copy, so every pass printed TICK-STALE and skipped the relay and sweep arms; CI runs bash 5 and never saw it. Fix: give every such pattern its leading parenthesis, keeping the self-test's mut markers and meaning, and prove /bin/bash -n plus the tick_loop.sh --self-test pass under bash 3.2. Barrier: extend tools/audit/seat/bare_array.py, already the tracked refuser of one bash-3.2-only failure across tools/**/*.sh, with a second rule refusing a case pattern without its leading parenthesis inside a command or process substitution, with a planted fixture, a null control and a mutant per predicate in its --self-test, and fix every other site its --check finds. Update tools/audit/seat/instruments/bare_array.py.md and the tools/audit/seat/INSTRUMENTS.md index line in the same change.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-hotfix-tick-bash32",
+    "commit": null,
+    "last_step": null,
+    "next_step": "local fixer (opus), macOS bash 3.2 host",
+    "note": "intake: orchestrator measurement 2026-11-13T15:17Z; TICK-STALE on every tick pass since PR 3520, relay and sweep arms skipped"
+   }
   }
  ]
 }
