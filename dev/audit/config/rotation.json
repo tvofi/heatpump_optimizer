@@ -1,8 +1,9 @@
 {
-  "_rule": "One entry per dev/governance/dimensions/D<k>.md. steps are its numbered method steps in order: a line opening `<n>. ` is step M<n>, and the id is D<k>.M<n>. rounds[<round>] holds seats (each seat's step list, deep focus first), coverage (step -> deep|spot|none), unfinished ([{step, what}]), returned (seat key -> findings accepted at intake), leads ({raised, converted}) and yield (step -> judge-surviving findings). audit-find.js writes each round's entry (from round 9 its seats come from dev/audit/config/scopes.json, not from this ledger); tools/policy/check-wave-script.mjs refuses a dimension or step the briefs and this file disagree on.",
+  "_rule": "One entry per dev/governance/dimensions/D<k>.md. steps are its numbered method steps in order: a line opening `<n>. ` is step M<n>, and the id is D<k>.M<n>. rounds[<round>] holds seats (each seat's step list, deep focus first), coverage (step -> {enumerator, universe, examined, not_reached}: the denominator COMMON.md requires, summed over the seats owning the step; rounds through 10 hold a depth word, deep|spot|none, recorded before it existed), unfinished ([{step, what}]), returned (seat key -> findings accepted at intake), leads ({raised, converted}) and yield (step -> judge-surviving findings). audit-find.js writes each round's entry (from round 9 its seats come from dev/audit/config/scopes.json, not from this ledger); tools/policy/check-wave-script.mjs refuses a dimension or step the briefs and this file disagree on. The next round's dispatch opens each seat with what its steps left: every not_reached item, every unfinished entry, and a step recorded as a depth word below deep. rotate (step -> {enumerator, bound, why}) declares a step whose universe one round cannot examine whole: its remainder is carried by name, and an item unreached for bound - 1 consecutive rounds must be examined in the next or the report is refused, so every cell is examined within bound rounds.",
   "_seeded": "Round 8's seat focuses and reports were not reachable from the local tree (they live in the cloud thread's project files), so every rounds map starts empty. Round 9 dispatches from dev/audit/config/scopes.json, not from this ledger.",
   "D0": {
     "steps": ["M1", "M2", "M3", "M4", "M5", "M6", "M7"],
+    "rotate": {"M4": {"enumerator": "python3 tools/audit/enumerate.py d0-grid", "bound": 6, "why": "each cell is a race of every challenger, a global method among them; a round's two grid seats race the price x weather plane at a share of the topology x DHW x plant x horizon planes, named by plane"}},
     "rounds": {
       "10": {
         "coverage": {
@@ -62,7 +63,7 @@
     }
   },
   "D1": {
-    "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
+    "steps": ["M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8"],
     "rounds": {
       "10": {
         "coverage": {
@@ -180,7 +181,8 @@
     }
   },
   "D3": {
-    "steps": ["M1", "M2", "M3", "M4", "M5"],
+    "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
+    "rotate": {"M1": {"enumerator": "python3 tools/audit/enumerate.py d3-sites --by-file", "bound": 4, "why": "every unrecorded or triaged site is a mutant pre-screened against its closure and the differential gate; the unit is the file, examined once every site in it has a ledger record or this round's mutant"}},
     "rounds": {
       "10": {
         "coverage": {
@@ -433,7 +435,7 @@
     }
   },
   "D8": {
-    "steps": ["M1", "M2", "M3", "M4", "M5"],
+    "steps": ["M1", "M2", "M3", "M4", "M5", "M6"],
     "rounds": {
       "10": {
         "coverage": {
@@ -693,6 +695,7 @@
   },
   "D14": {
     "steps": ["M1", "M2", "M3", "M4", "M5"],
+    "rotate": {"M2": {"enumerator": "python3 tools/audit/enumerate.py d14-classes --status open", "bound": 4, "why": "a detector that lists every seam of a class, re-finds its instances at pre-fix commits and moves under a re-introduction is seat-hours per class; the unit is the class"}},
     "rounds": {
       "10": {
         "coverage": {
@@ -801,5 +804,13 @@
         "yield": {}
       }
     }
+  },
+  "D16": {
+    "steps": ["M1", "M2", "M3", "M4", "M5"],
+    "rounds": {}
+  },
+  "D17": {
+    "steps": ["M1", "M2", "M3", "M4"],
+    "rounds": {}
   }
 }

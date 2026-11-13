@@ -224,10 +224,21 @@ def check(root, ledger_path=None, judge_files=None):
         h = e.get("in_tree_home")
         if h is not None and not _intree(root, h):
             bad.append(f"DANGLING: _rca[{r}].in_tree_home {h!r} is not a file under {RCA_DIR}")
+    undated = []
+    for cid, e in classes(led).items():
+        if e.get("status") != "barriered":
+            continue
+        v = e.get("barriered_at", ...)
+        if v is ...:
+            bad.append(f"NO-BARRIER-DATE: {cid} is barriered and has no barriered_at key (an ISO date, or null when none derives)")
+        elif v is None:
+            undated.append(f"UNDATED: {cid} barriered with no derivable barrier date")
+        elif not (isinstance(v, str) and re.fullmatch(r"\d{4}-\d{2}-\d{2}", v)):
+            bad.append(f"NO-BARRIER-DATE: {cid}.barriered_at is {v!r}, neither null nor YYYY-MM-DD")
     n = sum(derive(e)["total"] for e in classes(led).values())
     print(f"fold_ledger: {len(classes(led))} classes, {n} instances, {len(surv)} in-tree judge survivors "
           f"(rounds {sorted({r for r, _ in surv})}), {len(led.get('_rca', {}))} rca entries")
-    for b in bad:
+    for b in undated + bad:
         print(b)
     print(f"fold_ledger: {len(bad)} violation(s)")
     return 1 if bad else 0
@@ -469,6 +480,7 @@ def self_test():
     stale = _settle({"P1": _entry(["R2 D1-01"], rca=[]), "_rca": {}})
     stale["P1"]["status"] = "barriered"
     stale["P1"]["barrier"] = "a check"
+    stale["P1"]["barriered_at"] = "2026-10-01"
     rc, out = run_check(stale, J)
     with tempfile.TemporaryDirectory() as t:
         _plant(t, stale, J)
@@ -523,6 +535,16 @@ def self_test():
     rc, out = run_check(_settle({"P1": _entry(["R2 D1-01"], nearest_existing="P2", minted="R2"), "P3": _entry(["R2 a", "R2 b"], nearest_existing="P1", minted="R2"),
                                  "P2": _entry([]), "_rca": {}}), J)
     expect("null control: different nearest classes are separate", rc == 0)
+
+    bar = lambda **kw: _settle({"P1": _entry(["R2 D1-01"], status="barriered", barrier="a check", **kw), "_rca": {}})
+    rc, out = run_check(bar(), J)
+    expect("a barriered class with no barriered_at key is refused", rc == 1 and "NO-BARRIER-DATE: P1" in out)
+    rc, out = run_check(bar(barriered_at="2026-10-01"), J)
+    expect("null control: the same class with a date passes", rc == 0 and "NO-BARRIER-DATE" not in out)
+    rc, out = run_check(bar(barriered_at=None), J)
+    expect("a null barriered_at is listed UNDATED and not refused", rc == 0 and "UNDATED: P1" in out)
+    rc, out = run_check(bar(barriered_at="yesterday"), J)
+    expect("a barriered_at that is not YYYY-MM-DD is refused", rc == 1 and "NO-BARRIER-DATE: P1" in out)
 
     # MISSING-PATH: a barrier token under a tracked top-level directory resolves
     # or is refused; a slash-and-dot PR label and a ref are not paths (null controls).

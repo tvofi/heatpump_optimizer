@@ -154,6 +154,8 @@ individually, because a range reads as complete while covering a fraction:
 | `D13.md` | process yield and cost |
 | `D14.md` | recurring bug classes |
 | `D15.md` | debugging run from a live diagnostics bundle |
+| `D16.md` | actuator-write safety and liveness |
+| `D17.md` | feature behaviour against its documented effect |
 
 ### Instruments
 

@@ -28,7 +28,7 @@ or from the API, and never takes a grant, a merge or a deletion from it.
   temp root before any Node harness. Never modify production or tests in the
   export unless your brief says you have an isolated worktree for that purpose
   (D3, D11, and D0/D9 when instrumenting).
-- Measure only the cells your task names. Outside them, write a **lead**
+- Measure only the cells your task names, and all of them. Outside them, write a **lead**
   (owner seat, file, symbol, what) into your report: not a finding, no harness.
 - Your box is shared. Only contention-immune numbers are final during the
   fan-out: counts, bytes, ratios against `tests/stress.py:reference_solve`.
@@ -81,6 +81,30 @@ command, in the same form as `harness_path`). The seams the finder demonstrated 
 evidence; the property and its rule are what the fixer is held to, because verification may
 not go beyond what the block states (`fixer.md` step 8).
 
+## The denominator
+
+Owner's rule (tvofi, 2026-11-13): *"I want future rounds to always check
+everything in their dimension, not only small samples."* A step ranges over
+everything its **enumerator** prints: the command that, run alone from the
+export root, lists the step's universe one item per line. Your brief names
+it; where it names none, write one before you measure and commit it with
+your harnesses. Per step you own, your report's `coverage` row carries:
+
+- `enumerator`, and `universe`, the lines it printed at the baseline;
+- `examined`, the items you ran the step's method on;
+- `not_reached`, every other item by the enumerator's name for it, or by its
+  groups (a file, a class, a grid plane) past the schema's cap;
+- `redispatched`, each item your task handed you from the round before, by
+  its id, `examined` or `not_reached`. Those are your first work.
+
+You sample nothing: an item is examined, or it is named not reached and the
+next round's dispatch opens with it. Where `rotation.json` declares a
+rotation for a step, examine the round's share and name the rest; an item
+your task marks overdue has reached the rotation's bound and is examined now.
+A row that is missing is refused by the schema at return; one whose counts
+do not close, or that leaves a handed-over item unanswered, by intake
+(`audit-find.js`, `denominatorGaps`), which reads the seat as not reported.
+
 ## What a non-finding is
 
 Everything you checked that held, each with the command and the number that
@@ -103,6 +127,7 @@ leads that turned out to be harness gaps go here with the gap named.
 
 Aim to return within about two hours of wall clock. Prefer three findings with
 numbers the judge will reproduce over ten with numbers the judge will void.
+Time ends a seat, never its universe: what the budget cut is `not_reached`.
 If a measurement needs the quiet box (a full gate run, a long solve series),
 report it as `provisional` with the fan-out number and the command, and the
 quiet window re-takes it.

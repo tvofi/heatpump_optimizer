@@ -79,6 +79,9 @@ countermeasure that fails the test and is built anyway is a defect of its own.
 Write the **Root cause** section `defect-root-cause.md` specifies onto the
 defect's own issue, with the reproduction and the class search added.
 
-Return: the state (a-d), the cost-test verdict, and the countermeasure or the
-recorded refusal. Be brief and precise. Never assert a number you did
+Return: the state (a-d), the cost-test verdict, the countermeasure or the
+recorded refusal, and the defect's `cause` for its roster group:
+`{dimension, pr, round, by}` — the dimension whose brief owns the territory
+(`none` when no brief does), and `by: fix` with the pull request and round
+when a fix introduced it, else `feature`, `preexisting` or `unknown`. Be brief and precise. Never assert a number you did
 not measure.

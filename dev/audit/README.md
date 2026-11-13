@@ -38,7 +38,7 @@ or removed one goes red. Decision 0016 ties a round to its major version.
 | 10 post-merge beat and state docs | a merge | row, handover and state docs current | `tools/audit/seat/postmerge.py`, `tools/audit/seat/beatd.py`, `tools/audit/seat/state_docs.py` | `dev/governance/rules/delivery-status-tracking.md` | `dev/programme/delivery/`, `dev/programme/HANDOVER.md`, a #201 comment |
 | 11 stamps | merges since the last tag | the tag pushed | `tools/release/stamp.py`, `.claude/workflows/web-stamp.js` | `orchestrator.md` section 13 | the tag and release notes |
 | 12 projections and extension | a wave edge | the plan re-projected; a new group appended | `tools/plan/replan.py`, `tools/audit/seat/plan_page.py`, `tools/audit/seat/flow_metrics.py` | `orchestrator.md` section 2b | the projection, a roster group |
-| 13 closure | every phase drained | the criteria below hold | `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201 |
+| 13 closure | every phase drained | the criteria below hold; the round's four counts recorded | `tools/audit/convergence.py`, `tools/audit/seat/state_docs.py`, `tools/audit/seat/handover_prompt.py`, `tools/audit/seat/resume_doc.py` | `orchestrator.md` section 9 | the final state comment on #201 |
 
 Lessons (triage batch 141, P545): stack a later part only under the stack
 study's conditions, at the parent's merge verdict, never its handoff (round

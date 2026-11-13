@@ -276,6 +276,17 @@ instruments guide in `tools/audit/seat/` before any loop, watcher, relay or help
 - Seed or reconcile a stateful one's ledger first (`cloud_relay.sh`, the tick
   ledger): the relay over un-ledgered state replayed 80 stale refs.
 
+**A round closes on four counts** (tvofi, 2026-11-13: *"converge towards 0
+bugs"*). Write each defect group's `cause` when it merges, from the
+root-cause seat's return or, where none ran, the fixer's body. At the close,
+`python3 tools/audit/convergence.py record --round <N> --roster <roster>`
+writes `dev/audit/config/convergence.json`, refusing a done defect group with
+no `cause`; report its lines in the closing comment: per dimension found,
+fixed, injected, escaped, each over its denominator. A falling `found` is
+convergence only beside a flat or rising examined over universe and a
+falling `escaped`; a defect attributed to `none` is a missing dimension, and
+goes to the owner.
+
 Two things are the owner's, and both are `CLAUDE.md`'s: a **structural budget
 raise**, confirmed before the push; and **policy**, this file included, approved
 before merging — so open the pull request and surface it.
