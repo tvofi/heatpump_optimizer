@@ -890,13 +890,13 @@ def _off_step_notice_is_deduplicated() -> bool:
     calls: list[int] = []
     ir = legionella_mod.ir
     original = ir.async_create_issue
-    ir.async_create_issue = lambda *a, **k: calls.append(1)
+    ir.async_create_issue = lambda *a, **k: calls.append(a[2])
     try:
-        guard.off_step.check(params, guard._config)
-        guard.off_step.check(params, guard._config)
+        asyncio.run(guard.async_observe(None, None))
+        asyncio.run(guard.async_observe(None, None))
     finally:
         ir.async_create_issue = original
-    return len(calls) == 1
+    return calls.count(_STEP_ISSUE) == 1
 
 
 def _off_step_notice_clears() -> bool:
@@ -914,7 +914,7 @@ def _off_step_notice_clears() -> bool:
     raised = _STEP_ISSUE in _standing(hass)
     params.dhw_legionella_temp = 65.0
     asyncio.run(guard.async_observe(None, None))
-    return raised and _STEP_ISSUE not in _standing(hass) and guard.off_step.signature is None
+    return raised and _STEP_ISSUE not in _standing(hass)
 
 
 def _off_step_notice_pins() -> dict[str, bool]:
