@@ -1,41 +1,43 @@
-Fix review: merge dcf5e329dceabbf35716800fbacf4e2ff58741bd
+Fix review: blocked 467f58500d12be0b6907839a17be76432555851b introduced-red: tests / fast (3.14) fails tests/doc_claims.py because dev/README.md's machinery figure still cites the postmerge.py state_docs.py call that this diff deletes
 
-bus-nonce: c7bbf515da8d4ecdf04ef52cec5f7cdf
+bus-nonce: cfdd5337be09e2ec1773c5af44549e41
 
-## Scope
+## Block
 
-Round: a later round (the fourth merge verdict on #3451's line: 4c24160f, 9c5485e3, 4b43164c, now dcf5e329), judged as **its delta** from the reviewed head 4b43164c066faa16b508726512ca0314fb884edd (`fix-review.md` step 12). `review_carry.py 4b43164c dcf5e329` prints `FRESH-REVIEW` (ev/review_carry.txt), so the earlier verdict does not carry. The previous verdict (verdict/3451 at 7c163a48) records no findings, so none are owed resolution. The delta writes nothing under `custom_components/`, so nothing widens the scope. There is no review packet. There is no pull request at this head yet, so there is no CI to read: no required check has run at dcf5e329, step 11 has nothing to answer, and the train re-proves the head when the pull request is open.
+- **The red.** `merge_train.py classify 467f58500d12be0b6907839a17be76432555851b --pr 3451` ended `RED 467f58500d12be0b6907839a17be76432555851b pending: none red: gate` at 20:44:25Z (ev/classify.txt). Under the roll-up `gate`, the head's required runs read `tests / fast (3.14)` failure (job 132134194288) and `budget-raise-gate / budget-raise-gate` failure (job 132156990789). Both are in the set `merge_train.py owed-reds` prints (ev/owed_reds.txt). The budget-raise-gate red is the designed refusal that the body answers under `## Raise justification`. It is not the block.
+- **The red is this diff's.** Job 132134194288's log ends `1 TEST SCRIPT(S) FAILED`, and the failing script is `>>> FAILED: python3 tests/doc_claims.py`, `2 of 348 checks FAILED`. I re-ran it locally:
+  - At the head (worktree detached at 467f58500d): `python3 tests/doc_claims.py` prints `2 of 348 checks FAILED`, rc 1 (ev/doc_claims_head.log):
+    - `FAIL every arrow is cited, every citation holds in the tree, and the figure has one entry  [postmerge.py -runs-> state_docs.py: tools/audit/seat/postmerge.py no longer holds '/state_docs.py", "--repo", repo, "--push"']`
+    - `FAIL reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)  [45 of 45]`
+  - At origin/main e23124ff6e, the head's merge base: `ALL 348 checks PASSED`, rc 0 (ev/doc_claims_main.log).
+- **Cause.** This diff's `tools/audit/seat/postmerge.py` hunk deletes the `("docs", [*PY, f"{seat}/state_docs.py", "--repo", repo, "--push"], True)` step and adds the pin "postmerge runs no state_docs.py (the plan-beat owns the state docs)" (ev/postmerge_own.diff). `dev/README.md`, which this diff also edits (its step 6 "Record"), still draws the arrow `| postmerge.py | runs | state_docs.py | ... /state_docs.py", "--repo", repo, "--push" |` at line 402 (ev/readme_figure_rows.txt). R10-ARCH-DOCS (#2395, 62a7d7a57f) drew that figure, and doc_claims.py checks each of its arrows against the tree. The second FAIL is that check's anchor arm, which goes red with the first.
+- **The body's answer does not cover it.** `## Red checks` answers `tests / fast (3.14)` as main's `FAIL combi_type_branch census` in `tests/features.py`. At this head features.py is not the failing script, and main passes doc_claims.py. pr-contract (job 132154826504, success) checked that the check is named, not what the answer says (step 11), so this verdict does not grade the answer. The block is the introduced red itself. It is reachable earlier and cheaper: `python3 tests/doc_claims.py` at the head takes about 12 s of CI wall time (job log, "wall clock"). Whether `prepr.sh`'s scoped run selects it for a postmerge.py change is not measured here.
+- **Repair.** In the same diff, drop or redraw the `postmerge.py runs state_docs.py` arrow in `dev/README.md`'s machinery figure, and the line-281 `docs["state_docs.py"]` text if it describes postmerge, so that it matches the plan-beat ownership this diff states. Then re-run `python3 tests/doc_claims.py` to `ALL ... checks PASSED`. A policy-free docs fix inside the PR's own scope, so no new carry is needed.
 
 ## Evidence
 
-- Head: `git ls-remote origin refs/heads/handoff/r10-process-slim-p2` prints dcf5e329dceabbf35716800fbacf4e2ff58741bd, re-read before the push. The body's `## Head` names the same SHA. All checks below ran in a checkout detached at it (ev/HEAD.txt).
-- Merge with main: `git merge-tree --write-tree origin/main dcf5e329` exits 0 at origin/main f47250150a33d5f3e8502a50ec056cd821f1408b (ev/merge_tree.txt). It also exits 0 at the earlier origin/main f44e761c19; that run's `LEDGER-MERGE: resolved tests/closures.json` is the closures driver, not a claim file.
-- Role contracts current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
-- Own delta, re-derived under the body's rule. For each file in the union of the two own diffs, I compared the sorted `+`/`-` line set of the own diff at 4b43164c (base ef579d9b) with the own diff at dcf5e329 (base a18e2e9d). The union has 44 files and exactly six differ (ev/own_delta_files.txt): the three defect-root-cause.md copies, fix-review.md, tests/gate_lock.py and tools/audit/seat/bus.sh. This matches the body's "44 files ... exactly six".
-- tests/gate_lock.py has left the branch's own diff. Main's 80779d2e pins the same normal waiter with `_Env(None)`. a18e2e9d holds no `_Env("0")` (count 0), and the own diff of this file is empty, as the body states.
-- bus.sh delta: the self-test's `run()` keeps both sides of the conflict, this branch's `HPO_BUS_PENDING="bash $W/pending"` (C8) and main's `HPO_BUS_GH="${BUS_GH:-bash $W/ghstub}"`. Main's CARRY-LANDED arms are restored as main wrote them.
-  - `bash tools/audit/seat/bus.sh --self-test` at the head prints `bus self-test: 186 checks, 0 failed`, rc 0 (ev/bus_selftest_head.log). This matches the body's figure.
-- Mutation proof on the merge resolution. Each side was dropped in a throwaway worktree, and each kept side is load-bearing:
-  - PENDING stub removed: `186 checks, 6 failed`, rc 1. The failures are the C8 WAIT arms, the null control and P345 (ev/mutant_pending.log).
-  - `${BUS_GH:-...}` override reduced to main's old fixed stub: `186 checks, 2 failed`, rc 1. The failures are CARRY-LANDED-OWN-TOPIC and CARRY-LANDED-UNREAD (ev/mutant_gh.log).
-- `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2701 ENTITY CHECKS PASSED`, rc 0, in 7m59s (ev/entities_head.log). Its `FAIL` lines are the script's planted negative controls. Without `PYTHONPATH=tests/hastub` it stops at import (`No module named 'homeassistant'`); this is environment, not this diff.
-- Lints at the head:
-  - `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
-  - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`.
-  - `policy_lint.mjs --pr-body BODY.md`: `PR-BODY: 0 error(s)`. Its red-history row is a `skip`, because no head SHA was given.
-  - `brief_lint.mjs` exits clean.
-  - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-  - `carry_audit.py check --body BODY.md`: `6 routed, 0 unrouted, 0 bad destination(s)`, rc 0.
-- Versions and claims: `VERSION`, the manifest, both claim files and `RELEASE_NOTES.md` are byte-identical to the merge base a18e2e9d.
-- Required reds: `merge_train.py owed-reds` prints 22 checks, and `nightly-status` is not among them (ev/owed_reds.txt). The new parenthetical in step 11, "set (`nightly-status`)", is therefore true as an example of a red outside the set.
-- Policy sentences in the delta, each checked against what a seat must do (ev/policy_delta_own.diff):
-  - `fix-review.md`: "(card C5)" and "(card C4)" are shortened to "(C5)" and "(C4)", with the same obligation.
-  - Step 11's root-cause `Note:` text is re-wrapped with no change of class or route.
-  - Step 12 keeps head-moved as a block ("A head whose own diff moved under you is `blocked <sha> head-moved ...`"). This agrees with main's wording and with the C4 carry clause just above it, so a carried head is not head-moved and a moved own diff is.
-  - "Name the SHA you measured in the verdict" becomes "Check the SHA your verdict names". The first-line grammar still forces the measured SHA, so no obligation is lost.
-  - `defect-root-cause.md`: the Enforcement opening and the `nightly-status` sentence are re-worded with the same duties: the reviewer is the checker before `merge`, and the orchestrator fixes the lane and dispatches Nightly.
-  - Dropping `delivery-status` and "or drain the overdue rows" from main's sentence was already in the reviewed 4b43164c. It is consistent with this branch deleting the `governance / delivery-status` job.
-- nudge.md: this PR does not touch `dev/governance/roles/nudge.md`, and none of its own-diff lines present it as binding every orchestrator session.
-  - The three references in its own diff are context or citations to nudge.md steps (the CLAUDE.md `orchestrator.md` row "turn `nudge.md`", unchanged from main; the closures.json listing; sweep_template.md step citations).
-  - nudge.md's own scope line still reads "This file binds the Cursor orchestrators on grok and qwen. Any other agent uses it as the reference". `orchestrator.md:19` ("The turn is `dev/governance/roles/nudge.md`.") and `sweep_template.md:8` ("binds a Cursor orchestrator and is the reference for any other agent's timer") are byte-identical to origin/main.
-- Not re-derived at this head: the body's prepr figures, the tick-loop control (dcf5e329 -> 82af113b in a throwaway clone) and the 39-file shortstat against 0a803330. These are outside this delta and were not re-run here.
+- **Round.** This is a later round. The dispatch names the reviewed head 07941da7b5cbbf86cef28dd2632eb3bc0c870708. The packet's `## Review scope` reads `full`, because no verdict on verdict/3451 names 07941da7. The last merge verdict on the line is at dcf5e329dceabbf35716800fbacf4e2ff58741bd (verdict/3451 aafa0bd2), an ancestor of 07941da7. `review_carry.py` prints `FRESH-REVIEW` for both 07941da7 and dcf5e329 against the head. This is at least the fifth review round on #3451's line, so `fixer.md`'s re-cut rule applies from the fourth round. That is the orchestrator's call.
+- **Own-diff interdiff against the last merge verdict.** I took the `+`/`-` line set of the PR's own three-dot diff at dcf5e329 (base a18e2e9d) and compared it with the one at the head (base e23124ff6e) (ev/own_delta_vs_dcf5e329.txt). It differs only in removed lines of text that main reworded under the PR:
+  - `orchestrator.md`'s standing-set bullet and LOG sentence;
+  - the deleted `proposal-triage.md` (main's a75d2565 rewording).
+
+  Every added line is identical. The comparison against 07941da7 gives the same result. postmerge.py's own hunk is unchanged since dcf5e329, so the red arises from the interaction with main's figure, re-graded at this head.
+- **Merge resolutions (body `## Head`, repair 8), re-checked at the head:**
+  - **Main's LOG rule.** Main added "Blocking no production merge: LOG" to the deleted proposal-triage.md. It survives as `dev/audit/README.md:91` "is accepted only when its friction blocks a production merge, else ruled LOG." Body's null control reproduced: with that sentence removed, `policy_lint.mjs` still prints `TOTAL: 0 error(s) across 50 policy file(s)`. No lint arm covers it, as the body says.
+  - **Main's "LOG, evidence" verdict line.** Its grammar went with the file. The `## P<n>` ruling format had already been deleted at the reviewed dcf5e329 (card C6), so this merge loses nothing new.
+  - **The harness map.** It holds `roster_lib-1`/`-2` and `body_push-5`/`-6` (ev/checks.txt).
+    - `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py body_push-5 body_push-6 roster_lib-1 roster_lib-2 S35 S36` prints `RESULT survivors=0`, rc 0 (ev/harness_mutants.log). This matches the body.
+  - **The registrations.** `ci_predict.py` registers both `step_replay_self_test` and `roundref_self_test` (lines 1569-1570).
+    - `ci_predict.py --self-test` prints 0 failed.
+    - `handoff_push.sh --self-test` prints `6 checks, 0 failed`, rc 0.
+- **Cheap checks at the head:**
+  - `policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`.
+  - `--budgets`: rc 0 (ev/budgets.txt).
+  - `rules_sync.mjs --check`: `RULES-SYNC ok`.
+  - `brief_lint.mjs`: rc 0.
+  - `tests/structure.py`: `STRUCTURE RATCHET PASSED` (ev/structure.txt).
+- **Merge with main.** `git merge-tree --write-tree origin/main 467f58500d` exits 0 (ev/merge_tree.txt). origin/main e23124ff6e is the head's merge base.
+- **Versions.** The three-dot diff touches no `VERSION`, manifest, `RELEASE_NOTES.md`, claim file or `custom_components/` path. Its only `*_budgets.json` change is `dev/governance/config/policy_budgets.json`, which drops the two keys of the deleted file.
+- **Head.** The body's `## Head` names 467f58500d12be0b6907839a17be76432555851b. `refs/pull/3451/head` read 467f58500d before this push (ev/HEAD.txt).
+- **CI.** `instrument-self-tests` is a success at the head, so no INTRODUCED instrument red. The other required contexts are a success (ev/classify.txt, and the check-runs read at 20:44Z).
+- **Mutation.** The diff writes no `custom_components/` line. The production mutation lane `tests / mutation` is a success. The resolution's load-bearing entries are graded by the harness run above.
