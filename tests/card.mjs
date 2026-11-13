@@ -13854,6 +13854,39 @@ check("without an indoor reading the corner now label is absent",
   }
   check("user text: the refit row states the band_percent the refit publishes, in every card language",
     Number.isFinite(band) && bandBad.length === 0, `REFIT_BAND_PERCENT ${band}; wrong: ${bandBad.join(", ")}`);
+  // 5. The opt-in rows: the options page turns the price of a degree on, but
+  // no page turns the wood, fuse or frequency advisor on -- each is a sensor
+  // created disabled (sensor.py's `_attr_entity_registry_enabled_default =
+  // False` in its class) -- so those rows say to enable the sensor, and the
+  // degree row does not. The classes are named here: the card's ids are not
+  // sensor keys.
+  const sensorPy = read("sensor.py");
+  const offByDefault = (cls) => {
+    const at = sensorPy.indexOf(`class ${cls}(`);
+    const next = sensorPy.indexOf("\nclass ", at + 1);
+    return at >= 0 && /_attr_entity_registry_enabled_default = False/.test(sensorPy.slice(at, next < 0 ? undefined : next));
+  };
+  const optClass = { wood: "WoodBurnAdvisorSensor", fuse: "MonthlyPeakSensor", frequency: "FrequencyAdvisorSensor" };
+  const optInIds = fn("ADVISOR_OPT_IN");
+  const optBad = [];
+  for (const id of optInIds) if (!offByDefault(optClass[id])) optBad.push(`${id}: ${optClass[id]} is not disabled by default`);
+  for (const lang of langs) {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    c.hass = { states: inboxStates(), language: lang, callService: async () => {} };
+    c._onCardClick({});
+    c.dialog.page = "advisor";
+    c._render();
+    const rowsHtml = collect(c.shadowRoot).join("\n").split('class="fact-inbox-row');
+    const note = fn("esc")(tbl[lang]["advisor.optin_sensor_off"]);
+    for (const id of ["degree", ...optInIds]) {
+      const row = rowsHtml.find((r) => r.includes(fn("esc")(tbl[lang][`advisor.optin_${id}`])));
+      if (row === undefined) { if (id !== "degree") optBad.push(`${lang} ${id}: no row`); continue; }
+      if (row.includes(note) !== optInIds.includes(id)) optBad.push(`${lang} ${id}: note ${row.includes(note)}`);
+    }
+  }
+  check("user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language",
+    optInIds.length === 3 && optBad.length === 0, optBad.join("; "));
   build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // back to English
 }
 
