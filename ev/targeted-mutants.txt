@@ -1,0 +1,17 @@
+MUTANT gate-const-0.25: rc=1
+  FAIL  user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language
+MUTANT sv-gate-40: rc=1
+  FAIL  user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language
+MUTANT sv-window-hotwater: rc=1
+  FAIL  user text: the invalid-window error names no channel, in every card language
+MUTANT drop-quiet-find-both: rc=1
+  FAIL  user text: the invalid-window error names no channel, in every card language
+MUTANT drop-quiet-find-first: rc=0
+MUTANT de-page-building-old: rc=1
+  FAIL  user text: every setup.page_* and advisor.step_* names the options flow's own menu path, in every card language
+MUTANT sv-step-grid-badpage: rc=1
+  FAIL  user text: every setup.page_* and advisor.step_* names the options flow's own menu path, in every card language
+MUTANT de-json-menu-grid: rc=1
+  FAIL  user text: every setup.page_* and advisor.step_* names the options flow's own menu path, in every card language
+MUTANT modelled-floor-0.2: rc=1
+  FAIL  user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language
