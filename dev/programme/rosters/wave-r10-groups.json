@@ -25731,6 +25731,48 @@
     "note": "intake: Nightly nightly-ha red since run 43204237855 (2026-11-12T10:52Z); nightly-status reddens gate on every code PR; diagnosis seat r10s6/s14 nightly-ha-diag",
     "pr": null
    }
+  },
+  {
+   "group": "R10-HOTFIX-CARRY-1412-CONTROL",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "hotfix",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/archive/carries/carry-1412.json",
+    "tools/policy/brief_lint.mjs"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, blocks open pull request 3481 (R10-ADVISOR-STEADY-START): its tests / briefs job is red with 'LEGACY-CONTROL VACUOUS: carry-1412.json: its controls lint clean without the exemption: remove it from LEGACY_CONTROL_FILES'. Cause, measured by the diagnosis seat on 2026-11-13 (main green, the pull request tree red, same merge base): the first carry of dev/archive/carries/carry-1412.json cites a path and line in the optimizer module that moved long ago; the citation check accepts an anchor within one line of the cited line, and pull request 3481 adds 188 lines to that module, which puts an unrelated use of the same anchor name next to the cited line, so the stale control resolves by accident and the legacy exemption reads vacuous. The grader is restored from the base in CI, so the pull request cannot repair it in its own diff, and removing the exemption on main alone would redden main, where the control still fails. Repair, on main, in one pull request: (1) re-anchor the stale control of that carry so it no longer depends on a line number that any optimizer edit can shift: cite the symbol or a quoted phrase that exists in the tree today, re-measured as the carry's own remeasure text asks, never a guessed line; (2) once every control of the file lints clean with no exemption, remove carry-1412.json from the legacy control list in tools/policy/brief_lint.mjs and lower the list's cap by one if it has one. Controls the fixer must show: node tools/policy/brief_lint.mjs exits 0 at the new head; it also exits 0 on the new head merged with pull request 3481's head (git merge-tree, then a throwaway worktree: this is the case that is red today) and with a tree whose optimizer module has lines inserted above the old cited line (the null control: the result must not depend on line shifts); and the legacy check still refuses a vacuous entry (re-add the file name to the list in a scratch copy and show the VACUOUS refusal). Must not change: any other carry file, any other legacy entry, the linter's rules. brief_lint.mjs is a grader, so the pull request takes the serial merge route.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": null,
+    "note": "orchestrator s14 intake 2026-11-13: chain block on PR 3481; diagnosis at seat/briefs-3481"
+   }
   }
  ]
 }
