@@ -1,0 +1,4 @@
+13:30:03 reviewed[rc=0] RED abf3b4f9e1ef38c519fc9b707bce14e9fce2909a pending: none red: gate  | live=7bd0caac80cbf9464a6091e62f39d0e7283627ee [rc=0] RED 7bd0caac80cbf9464a6091e62f39d0e7283627ee pending: gate red: none introduced: 1 INTRODUCED Show the tick loop refusing its own fixtures 
+13:31:43 reviewed[rc=0] RED abf3b4f9e1ef38c519fc9b707bce14e9fce2909a pending: none red: gate  | live=7bd0caac80cbf9464a6091e62f39d0e7283627ee [rc=0] RED 7bd0caac80cbf9464a6091e62f39d0e7283627ee pending: gate red: none introduced: 1 INTRODUCED Show the tick loop refusing its own fixtures 
+13:33:19 reviewed[rc=0] RED abf3b4f9e1ef38c519fc9b707bce14e9fce2909a pending: none red: gate  | live=7bd0caac80cbf9464a6091e62f39d0e7283627ee [rc=0] RED 7bd0caac80cbf9464a6091e62f39d0e7283627ee pending: gate red: none introduced: 1 INTRODUCED Show the tick loop refusing its own fixtures 
+POLLDONE

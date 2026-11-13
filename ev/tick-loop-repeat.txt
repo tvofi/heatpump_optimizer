@@ -1,0 +1,5 @@
+run1 wt tick_loop self-test: 30 checks, 0 failed ||   ok   a failing relay pass is reported and the tick still runs; the tick's status is reported   ok   a failing heartbeat is printed, never silent, and the loop still exits cleanly 
+run1 wt-mb tick_loop self-test: 30 checks, 1 failed ||   FAIL a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner   ok   a failing relay pass is reported and the tick still runs; the tick's status is reported 
+run2 wt tick_loop self-test: 30 checks, 0 failed ||   ok   a failing relay pass is reported and the tick still runs; the tick's status is reported   ok   a failing heartbeat is printed, never silent, and the loop still exits cleanly 
+run2 wt-mb tick_loop self-test: 30 checks, 1 failed ||   FAIL a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner   ok   a failing relay pass is reported and the tick still runs; the tick's status is reported 
+TICK2DONE

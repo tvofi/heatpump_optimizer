@@ -1,0 +1,7 @@
+  ok   the coordinator's input read puts the hot-water set-point entity's grid into the state
+
+ALL 153 BLOCK DUTY CHECKS PASSED
+
+real	0m14.155s
+user	0m8.884s
+sys	0m0.139s
