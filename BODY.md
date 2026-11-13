@@ -1,47 +1,89 @@
-R10-REVIEW-DISPATCH-RESIDUE part 5: Carry 17 (the carry-fold memo recognises an unchanged refused body by its BODY.md blob), Carry 20 (`landed()` reads an empty net diff as landed), Carry 11 (a mechanical-only block is exempt from the three-round rule), Carry 28 (`dispatch-handoff` re-keys a known PR). Measured at the head below, 2026-11-13T06:40Z.
+R10-REVIEW-DISPATCH-RESIDUE part 5: Carry 17 (the carry-fold memo recognises an unchanged refused body by its BODY.md blob), Carry 20 (`landed()` reads an empty net diff as landed), Carry 11 (a mechanical-only block is exempt from the three-round rule), Carry 28 (`dispatch-handoff` re-keys a known PR).
+
+Repair round for the first review's `blocked` verdict (mutation-vacuous, at 676d726d27c4a5400d86c331bba87190bd34534c; VERDICT.md at 99f876fb9a2d79f9f7e0f382227b221db635e3b1). All measurements below are at the head given below, 2026-11-13.
 
 ## Head
 
-f71c5e6933496cf6a1b04ff2796b63802fbf5463
+f779168acc9cb030a44743a4c8a9fb177ff5c0c6
 
 ## Policy
 
-`dev/governance/roles/fixer.md`, "Past three rounds" section, one paragraph appended (Carry 11, owner directive tvofi 2026-11-09 18:35Z, "the split should never apply when the gap is mechanical only"). It names the exemption `bus.sh dispatch` now applies: the latest blocked verdict's class being mechanical (`ci-red`, `red-unanswered`, body or contract, `conflict`, `head-moved`, carry, ungated step) dispatches past the third round with no `## Re-cut` note. It also states the ruling carried here from a dismissed carry: a CI-only block (`ci-red`, `ci-wait`, `ci-pending`, a cancelled run) is mechanical and does not count toward the three-round rule. Judgement classes, unknown classes and an unreadable log refuse as before. For approval at the merge under the owner's mandate. No change to `standing-dispatch.md`: the dispatcher's command is unchanged (`--pr` is optional; a known PR is read from `<bus>/rekeyed`).
+`dev/governance/roles/fixer.md`, "Past three rounds" section, one paragraph appended (Carry 11, owner directive tvofi 2026-11-09 18:35Z, "the split should never apply when the gap is mechanical only"). It names every class `bus.sh` `MECHANICAL_CLASSES` exempts, so the text and the code list the same set: `red-unanswered`, `body`, `contract`, `conflict`, `head-moved`, `carry`, `carry-missing`, `ungated`, and the CI-only classes (`ci-red`, `ci-wait`, `ci-pending`, `ci-cancelled`). These are mechanical and do not count toward the three-round rule. A judgement class, an unknown class or an unreadable log refuses as before. This needs approval at the merge under the owner's mandate. `standing-dispatch.md` is unchanged.
 
-Budget payment, no raise: fixer.md sits at its line and token caps, so the paragraph is paid for by deleting nine parenthetical issue and measurement citations of resolved incidents from steps 1, 3, 8, 9, 10, 15 and 17 (the `#948`, `#1713`, `#1506`, `#373`, `#386`, `#539`, `#1874` tags and the "~12%" figure). No rule sentence was removed. `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 51 policy file(s)`.
+Budget payment, no raise. The paragraph is paid for by deleting resolved-incident citations from steps 1, 3, 8, 9, 10, 15 and 17, as in the first round. In this round, the step-8 gate-lease sentence is also shortened to a pointer to `gate-scoping.md`, which owns the queue, the wait bound and holding the lease by hand (writing-for-agents.md uniqueness). No rule sentence was removed. `node tools/policy/policy_lint.mjs` printed `TOTAL: 0 error(s) across 51 policy file(s)` (rc 0), and `--budgets` exited rc 0.
 
 ## Approval
 
-Pending: the owner's approving review at this head, which `main-protect-checks` requires for a code-owned path, and the merge-time approval of the `fixer.md` edit named under `## Policy`. No budget leaf is raised.
+Pending. Two approvals are needed: the owner's approving review at this head, which `main-protect-checks` requires for a code-owned path, and the merge-time approval of the `fixer.md` edit named under `## Policy`. No budget leaf is raised.
 
 ## What changed, and which seam it extends
 
-- Carry 17, `tools/audit/seat/cloud_relay.sh` `carry_fold_arm`/`fold_judge`. body_push.sh keeps each refused body as a new parentless commit, so the landed `cloud-fold-judged` memo, keyed on the kept commit, never hit (r10-train-residue: four kept commits, one blob). The memo line gains the BODY.md blob and the handoff/<topic> tip (`<topic> <wip> <body|-> <outcome> <epoch> <blob|-> <tip|-> [OWED]`); a fold-failed or push-failed record now also stands for a later kept body with the same stop, blob and tip, prints `OWED carry-fold <topic> unchanged since <utc>: <line>`, keeps its first epoch (so the 3600 s retry bound runs from the first failure) and its OWED level line is set again. A record in the old shape (no blob field) is judged again. Extended the one memo rather than the separate `cloud-fold-failed` file the carry proposes: a second state file would need its own TTL, level-line replay and old-record handling beside a memo that already has all three. P546 (handoff-wip `dispose()`) is dismissed per P580 and not built; `dispose()`/`disposed()` are untouched.
-- Carry 20, `tools/audit/seat/ledger.py`: `empty_net()` (merge-base ok and `diff --name-status` rc 0 and empty) and a named reason `empty` in `landed()`, ahead of `content`; rc != 0 stays not-landed. No "head newer than BLOCKED" rule.
-- Carry 11, `tools/audit/seat/bus.sh`: `mechanical_block()` reads the class of the latest blocked verdict's first line (`Fix review: blocked <head> <class>:`) against `MECHANICAL_CLASSES`, and `three_rounds()` returns 0 on it. Unknown class or failed read: refuses as before.
-- Carry 28, `tools/audit/seat/bus.sh` `dispatch_handoff`: after recording, calls the existing `rekey` when `--pr N` was given or `<bus>/rekeyed` holds a `<topic> <sha> <pr>` line. No API call, no `fix/<topic>` derivation. The sibling self-test region edit is limited to `36..40` added to the delivery-row fixture list.
+- Carry 17, `tools/audit/seat/cloud_relay.sh` `carry_fold_arm`/`fold_judge`. The memo line now records the BODY.md blob and the handoff/<topic> tip. A fold-failed or push-failed record stands for a later kept body with the same stop, blob and tip. It keeps its first epoch, so the 3600 s retry bound runs from the first failure, and it sets its OWED level line again. A record in the old shape is judged again. P546 is dismissed per P580 and not built.
+- Carry 20, `tools/audit/seat/ledger.py`: `empty_net()` and a named reason `empty` in `landed()`. A failing merge-base or diff read (rc != 0) stays not-landed.
+- Carry 11, `tools/audit/seat/bus.sh`: `mechanical_block()` reads the class of the latest blocked verdict against `MECHANICAL_CLASSES`, and `three_rounds()` dispatches past round three when that class is mechanical.
+- Carry 28, `tools/audit/seat/bus.sh` `dispatch_handoff`: re-keys through the existing `rekey` when `--pr N` was given or `<bus>/rekeyed` holds a numeric `<topic> <sha> <pr>` line. The last such line wins.
+
+### Answer to the block
+
+1. **Mutation-vacuous.** The reviewer's specs were rebuilt at this head by the reviewer's own `ev/spec/build.py`, with `ML` read from the file. Each spec then ran through `mutant_run.py` against its file's `--self-test`. Bus runs `--in-place`, because in the copy-tree mode the packet-renderer arm fails on an unedited tree (the NULL is killed there). Results:
+   - Bus, 20 mutants: every `B-drop-<class>` member is KILLED. A table-driven arm drives one case per class beside its null, and a drop of any single class fails it. `B-add-harness`, `B-exempt-off`, `B-rekeyed-lookup-off`, `B-rekeyed-numeric-guard`, `B-rekeyed-first-not-last`, `B-pr-numeric-off` and `B-pr-ignored` are KILLED. NULL SURVIVED.
+   - Relay, 12 mutants: `R-foldfailed-off`, `R-tip-unrecorded-foldfailed` and `R-first-epoch` are KILLED. The other eight reviewer mutants that still apply (`R-oldformat-guard-off`, `R-oldformat-dash-off`, `R-tip-cmp-off`, `R-blob-cmp-off`, `R-pushfailed-off`, `R-blob-unrecorded`, `R-tip-unrecorded-pushfailed`, `R-owed-line-dropped`) are KILLED. `R-ttl-off`, re-cut to the current line (`fold_memo_stands "$fo" "$fe" "$now" \` → `true \`), is KILLED. NULL SURVIVED.
+   - `B-rekey-call-off` / `B-rekey-fail-ignored`: the `|| die "...could not re-key"` tail was unreachable and is removed. `rekey` dies on every failure it can meet, and its only other non-zero exit (rc 3, no `topic:` record) cannot follow the append just above it. So `B-rekey-fail-ignored` has no site left. `B-rekey-call-off`, re-cut to the current call (`rekey "$t" "$pr" >&2` → `true >&2`), is KILLED.
+   - `R-fb-len-off`: the `[ "${#fb}" = 40 ]` test is removed, because the blob comparison subsumes it: a malformed `fb` never equals a 40-hex `blob`. So no site is left.
+   - `ledger.py` sites 387, 388, 471, 1202, 1204 and 1206-1209: KILLED. `mutant_run.py --diff 0723540391a1c431b6f91629485bc2f00d90a4e7...HEAD --path tools/audit/seat/ledger.py --cmd 'python3 tools/audit/seat/ledger.py --self-test'` prints no survivor from those sites. The new oracle drives a merge-base read with rc != 0 and asserts that `landed()`'s reasons are exactly `ANCESTRY_WHY + CONTENT_WHY` (with `empty`). That run's one survivor, `ledger.py:1248 STMT_DEL`, is triaged under `## Mutation proof`.
+2. **Required reds.**
+   - `governance / policy-docs` and `governance / env-matrix`: fixer.md is now within its `files_tokens` cap. `policy_lint` printed TOTAL 0 with rc 0, and `--budgets` exited rc 0. No cap is raised.
+   - `tests / fast (3.14)`: the job log (job 131786078626) reads `1 of 2709 ENTITY CHECKS FAILED` / `>>> FAILED: python3 tests/entities.py`. The failing check is "the template arm turns the acceptance red on a template that fails its own contract (and the real template keeps it green)" with `the real template -> rc=1 (must be 0)`. That check's live arm runs the whole `policy_lint.mjs`, so it goes red on any policy-lint error, and at 676d726d the only one was the fixer.md budget error. It is this branch's red, with the same cause as the two above, and it is fixed by the same payment: the live policy_lint run at this head exits 0. `tests/entities.py` cannot run end to end in this container (venv-ha lacks `paho`/`scipy`, and its Home Assistant `FakeConfig` lacks `path`), so this head's proof is the check's own input (policy_lint rc 0), not a full run.
+3. **Exempt set.** The code side moved. Carry 11 (roster, verbatim) lists the mechanical classes as "ci-red, red-unanswered, body/contract, conflict or head-moved, carry, ungated step", plus the carried ruling "a CI-only block (ci-red, ci-wait, ci-pending, a cancelled run) is mechanical". It names neither `root-cause-unanswered` nor `preflight-mismatch`, so those two are dropped from `MECHANICAL_CLASSES` and refuse as judgement or unknown classes do. fixer.md now names each member, and a bus self-test arm reads the class list out of fixer.md's paragraph and compares it with `MECHANICAL_CLASSES`. That arm is what kills `B-add-harness` and every `B-drop-*` mutant.
+
+The B1-B7 and R1-R5 behaviour the review re-confirmed is unchanged, and its mutants are all in the KILLED lists above.
 
 ## Mutation proof
 
-Every mutant applied in place to the handoff head, the named self-test run, then restored (`git status --short` empty). Null mutants append ` null` to the marker comment.
+The instrument is `tools/audit/seat/mutant_run.py`. The specs are the reviewer's, rebuilt at this head; the commands are as under `### Answer to the block` item 1. Totals:
+- `bus.sh`: 20 of 20 KILLED.
+- `cloud_relay.sh`: 12 of 12 KILLED.
+- `ledger.py` diff mode: every site KILLED except one.
 
-- Carry 17 relay: R1 kept-commit key (`&& false`) KILLED, 6 failed ("... is not pushed again", "the tick line says OWED, unchanged since the first failure", "a changed BODY.md blob runs body_push.sh again", "null control: the edited body kept again ...", "a moved handoff/<topic> tip ...", "a record an hour old ..."); R2 tip comparison dropped KILLED, 2 failed ("a moved handoff/<topic> tip with the same blob runs body_push.sh again", "a record an hour old ..."); R3 blob comparison dropped KILLED, 4 failed; R4 TTL dropped KILLED, 2 failed ("... and retried once it is", "a record an hour old ..."); R5 old-format guard dropped: survived the first arm set, then KILLED by the added arm ("a memo record from before the blob and tip fields is judged again, not read with shifted fields"); R0 null SURVIVED (462 checks, 0 failed).
-- Carry 20 ledger: L1 `if False:` KILLED ("landed: an add-then-remove tip with an empty net diff lands as empty (carry 20)"); L2 diff rc dropped KILLED ("null control: a failing diff read (rc != 0) is not empty (carry 20)"); L0 null SURVIVED (105 checks, 0 failed).
-- Carry 11 bus: B1 exemption removed KILLED (2 failed: ci-red, ci-wait dispatch arms); B2 class read oldest not latest KILLED (3 failed, incl. "only the LATEST block's class is read"); B3 `harness` added to the mechanical set KILLED (4 failed, incl. the existing re-cut refusals); B4 `ci-wait` dropped KILLED ("a CI-only wait block (ci-wait) is mechanical too"); B0 null SURVIVED (188 checks, 0 failed).
-- Carry 28 bus: B5 rekey call dropped KILLED (2 failed); B6 rekeyed lookup deleted KILLED ("a second dispatch-handoff for a topic already re-keyed to #55 ..."); B7 `--pr` ignored KILLED ("--pr 57 keys a fresh topic at dispatch").
+The one survivor, as its survivor_triage record:
+
+```json
+{
+  "anchor": "tools/audit/seat/ledger.py:1248 STMT_DEL",
+  "old": "        check(\"carry 20: an empty net diff lands as empty; one real line, an unreadable merge-base or diff does not; ...\",",
+  "reason": "Unkillable by construction: the mutant deletes the self-test's own carry-20 assertion (the check() call at 1248-1253), not a production line. No oracle can kill the deletion of itself. The production sites that assertion pins (ledger.py 387, 388, 471, 1202-1209) are each KILLED by it in the same diff-mode run.",
+  "verdict": "equivalent"
+}
+```
+
+The record is kept in this body and not under `tests/mutation_ledger/survivor_triage/`, because no record there anchors a `tools/` file and the site is test code.
 
 ## Null control
 
-Reds at the base: production lines reverted in a scratch copy of the handoff head, with the new self-test arms kept, `bash tools/audit/seat/bus.sh --self-test` printed `bus self-test: 188 checks, 4 failed`, `python3 -I tools/audit/seat/ledger.py --self-test` printed `ledger self-test: 105 checks, 1 failed`, `bash tools/audit/seat/cloud_relay.sh --self-test` printed `cloud_relay self-test: 462 checks, 6 failed`. Greens at the handoff head: `bus self-test: 188 checks, 0 failed`, `ledger self-test: 105 checks, 0 failed`, `cloud_relay self-test: 462 checks, 0 failed`. Per-carry nulls inside those: a stop with no record runs body_push.sh (17); a tip with one real uncovered line stays None and a failing diff read is not empty (20); a fourth round after a proof-class block, and after an unknown class, still refuses (11); a topic with no PR and no `--pr` stays `topic:`-only so HELD-NOPR is unchanged (28).
+Each spec run's NULL mutant (the unedited tree) SURVIVED, for both bus and relay. At this head, `bash tools/audit/seat/bus.sh --self-test` printed `bus self-test: 202 checks, 0 failed`, `bash tools/audit/seat/cloud_relay.sh --self-test` printed `cloud_relay self-test: 465 checks, 0 failed`, and `python3 tools/audit/seat/ledger.py --self-test` printed `ledger self-test: 103 checks, 0 failed`. Each production mutant above turns its self-test red. The per-carry nulls are unchanged from the first round:
+- Carry 17: a stop with no record runs body_push.sh.
+- Carry 20: a tip with one real line stays None.
+- Carry 11: a fourth round after a proof-class or unknown-class block refuses.
+- Carry 28: a topic with no PR stays `topic:`-only.
 
 ## Figures
 
-- `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED` at the handoff head; budgets flat, none re-recorded.
-- Mutant counts above are the lines each self-test printed (instrument: the three `--self-test` commands, scope: the files named).
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 51 policy file(s)` (rc 0). `--budgets`: rc 0. Scope: the policy corpus.
+- The self-test check counts and mutant totals are as printed above. Instrument: the three `--self-test` commands and `mutant_run.py`. Scope: the three files named.
+- `git merge-tree --write-tree origin/main HEAD` printed one tree, with no conflict.
 
 ## Red checks
 
-none
+- `governance / policy-docs`: INTRODUCED at 676d726d by the fixer.md `files_tokens` overrun (5229 > 5216). Fixed by the payment under `## Policy`, and policy_lint TOTAL 0 at this head.
+- `governance / env-matrix`: INTRODUCED, with the same cause as policy-docs, and fixed by the same payment.
+- `tests / fast (3.14)`: INTRODUCED. The failing check is `tests/entities.py`'s template-arm check, whose live arm runs the whole policy_lint and so failed on the same budget error. It is fixed by the same payment (see `### Answer to the block` item 2).
+- `governance / instrument-self-tests`: red in `selftest_scope`, which this diff does not touch. The reviewer could not classify it (base run in progress, classify rc 2). Not introduced by this branch's files. It is left to the train's re-proof on current main.
+
+Root cause, for the red-check trigger: the budget overrun reached CI because the first round's lint ran at f71c5e69, before the 676d726d delivery-row commit and main merge. That merge brought main's newer fixer.md text under the same cap. The cheaper detector already exists, in `prepr.sh`'s policy_lint step, if it is re-run after the merge. Its process state is that the detector exists but was not re-run. Countermeasure: none built. The fixer contract already re-executes steps 2-8 after any merge (fixer.md), and this round does.
+
+## Unpinned sites
+
+- `tools/audit/seat/ledger.py:1248 STMT_DEL` (the carry-20 `check()` call in the self-test): triaged equivalent, record under `## Mutation proof` — the mutant deletes the oracle itself; every production site it pins is KILLED.
 
 ## Forward-carry
 
