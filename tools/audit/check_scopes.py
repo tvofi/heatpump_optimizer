@@ -10,6 +10,12 @@ Null control: --self-test duplicates one seat's block and empties another's, dro
 universe, strips the tests/ and blueprints/ globs, and excludes a covered path; it exits 0 only
 when the checker refuses each perturbed file by the path it names. It also runs the default
 invocation as a subprocess, on the live scopes (rc 0) and without D4's and D6's blueprints globs (rc 1).
+Ledger dimensions (D5, D6): a dimension's `ledger` {step, max_units} caps each seat's text units
+(tools/audit/text_ledger.py, the dimension's own rule) over the files its blocks hold for that step,
+so a seat's cell is finishable; a seat over the cap is refused by name. Its `classify` globs and
+`static` map {glob: reason} draw the line between documentation the dimension measures and static
+records it leaves: every tracked path a `classify` glob matches is in the universe or one `static`
+glob, never both, and every `static` entry matches some such path and carries a reason.
 Harness citations: a harness under dev/audit/harnesses/ whose header names a dimension brief
 (`D<k>.md`) implements that brief's rule, so the brief must cite the harness's path; each one
 that does not is refused by name.
@@ -18,8 +24,12 @@ steps, axis values, file. `rest` is resolved here, so a finder is handed files, 
 .claude/workflows/audit-find.js runs the check, coverage included, in its Prepare step and refuses the
 round on rc != 0.
 """
-import argparse, contextlib, copy, io, itertools, json, re, subprocess, sys, tempfile
+import argparse, contextlib, copy, importlib.util, io, itertools, json, re, subprocess, sys, tempfile
 from pathlib import Path
+
+_spec = importlib.util.spec_from_file_location("text_ledger", Path(__file__).with_name("text_ledger.py"))
+text_ledger = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(text_ledger)
 
 def expand_braces(p):
     m = re.search(r"\{([^{}]*)\}", p)
@@ -57,7 +67,28 @@ def resolver(d, tree):
         return rest_for(b["steps"]) if b["files"] == "rest" else (match(uni, b["files"]) if d["universe"] else uni)
     return uni, files_of
 
-def check(scopes, tree, loc):
+def ledger_units(dim, d, files_of, units):
+    """{seat: units} over the files each seat's blocks hold for the ledger step."""
+    step = d["ledger"]["step"]
+    return {seat: sum(units(dim, f) for f in set().union(*[files_of(b) for b in blocks if step in b["steps"]] or [set()]))
+            for seat, blocks in d["seats"].items()}
+
+
+def classify_errors(d, tree, uni):
+    """The documentation line: classified paths in neither or both, static entries naming nothing or unreasoned."""
+    if "classify" not in d:
+        return []
+    cls = match(tree, d["classify"])
+    static = {g: match(cls, [g]) for g in d.get("static", {})}
+    stat = set().union(*static.values()) if static else set()
+    errs = [f"classified in neither universe nor static: {f}" for f in sorted(cls - uni - stat)]
+    errs += [f"static and in the universe: {f}" for f in sorted(stat & uni)]
+    errs += [f"static entry matches no classified path: {g}" for g, fs in sorted(static.items()) if not fs]
+    errs += [f"static entry carries no reason: {g}" for g in sorted(static) if not str(d["static"][g]).strip()]
+    return errs
+
+
+def check(scopes, tree, loc, units=lambda dim, f: 0):
     ok = True
     for dim, d in scopes.items():
         if dim.startswith("_"):
@@ -88,10 +119,19 @@ def check(scopes, tree, loc):
             dup = {k: v for k, v in owners.items() if len(v) > 1 and k[0] != "step"}
         missing = want - set(owners)
         extra = set(owners) - want
-        status = "ok" if not (dup or missing or extra) else "FAIL"
+        over, cls_errs, per_seat = [], classify_errors(d, tree, uni), {}
+        if "ledger" in d:
+            per_seat = ledger_units(dim, d, files_of, units)
+            over = [s for s, n in per_seat.items() if n > d["ledger"]["max_units"]]
+        status = "ok" if not (dup or missing or extra or over or cls_errs) else "FAIL"
         ok &= status == "ok"
-        sizes = ", ".join(f"{s}:{len(fs)}f/{sum(loc.get(f,0) for f in fs)}loc" for s, fs in seat_files.items())
+        sizes = ", ".join(f"{s}:{len(fs)}f/{sum(loc.get(f,0) for f in fs)}loc" + (f"/{per_seat[s]}u" if s in per_seat else "")
+                          for s, fs in seat_files.items())
         print(f"{status} {dim} mode={d['mode']} seats={len(d['seats'])} universe={len(uni)} [{sizes}]")
+        for s in over:
+            print(f"   over ledger.max_units {d['ledger']['max_units']}: {s} holds {per_seat[s]} units")
+        for e in cls_errs[:10]:
+            print(f"   {e}")
         for k in sorted(missing, key=str)[:10]:
             print(f"   unowned {k}")
         for k, v in sorted(dup.items(), key=str)[:10]:
@@ -152,18 +192,36 @@ def read_harnesses(repo, ref, tree):
     return harnesses, briefs
 
 
-def verdict(scopes, tree, loc, harnesses, briefs, quiet=False):
+def verdict(scopes, tree, loc, harnesses, briefs, quiet=False, units=lambda dim, f: 0):
     """The default run's answer: every dimension disjoint and complete, the
     tree covered, and every brief-named harness cited by its brief."""
     out = io.StringIO()
     with contextlib.redirect_stdout(out if quiet else sys.stdout):
-        ok = check(scopes, tree, loc)
+        ok = check(scopes, tree, loc, units)
         cov_ok, _ = coverage(scopes, tree)
         bad = uncited_harnesses(harnesses, briefs)
         print(f"{'ok' if not bad else 'FAIL'} harness citations: {len(bad)} harness(es) implementing a brief's rule the brief does not cite")
         for h, b in bad:
             print(f"   {h} names {b} in its header; {b} does not cite it")
     return ok and cov_ok and not bad
+
+
+def blob_units(repo, ref):
+    """units(dim, path): text_ledger's unit count of the file at ref, read once per file at ref."""
+    texts, cache = {}, {}
+    def text(f):
+        if f not in texts:
+            r = subprocess.run(["git", "-C", repo, "show", f"{ref}:{f}"], capture_output=True)
+            try:
+                texts[f] = r.stdout.decode("utf-8")
+            except UnicodeDecodeError:
+                texts[f] = ""
+        return texts[f]
+    def units(dim, f):
+        if (dim, f) not in cache:
+            cache[dim, f] = len(text_ledger.units_of(f, text(f), dim))
+        return cache[dim, f]
+    return units
 
 
 def main():
@@ -190,6 +248,7 @@ def main():
             except Exception:
                 pass
     scopes = json.load(open(a.scopes))
+    units = blob_units(a.repo, a.ref)
     if a.seat:
         dim, _, seat = a.seat.partition("-")
         d = scopes.get(dim)
@@ -260,11 +319,38 @@ def main():
             (HARNESS_DIR + "planted.py", BRIEF_DIR + "D15.md")]
         cov["null control: the brief citing it passes"] = uncited_harnesses(planted, {"D15": "run dev/audit/harnesses/planted.py"}) == []
         print(f"   harness-citation arms: {cov['a harness the brief does not cite is refused']}, null {cov['null control: the brief citing it passes']}")
+        # Ledger dimensions: the per-seat unit cap and the documentation line,
+        # each refused by what it must name, against text_ledger's real units.
+        def _q(bad):
+            o = io.StringIO()
+            with contextlib.redirect_stdout(o):
+                r = check({k: v for k, v in bad.items() if k in ("D5", "D6")}, tree, loc, units)
+            return r, o.getvalue()
+        live_l, _ = _q(scopes)
+        capped = copy.deepcopy(scopes); capped["D6"]["ledger"]["max_units"] = 1
+        r_cap, o_cap = _q(capped)
+        unstatic = copy.deepcopy(scopes); unstatic["D6"]["static"].pop("dev/archive/**")
+        r_un, o_un = _q(unstatic)
+        both = copy.deepcopy(scopes); both["D6"]["static"]["README.md"] = "perturbation: static and measured"
+        r_both, o_both = _q(both)
+        deadst = copy.deepcopy(scopes); deadst["D6"]["static"]["no/such/**.md"] = "perturbation: names nothing"
+        r_dead, _ = _q(deadst)
+        bare_st = copy.deepcopy(scopes); bare_st["D6"]["static"]["dev/archive/**"] = " "
+        r_bare, _ = _q(bare_st)
+        cov.update({
+            "null control: the live D5 and D6 pass the cap and the line": live_l,
+            "a seat over ledger.max_units is refused by name": not r_cap and "over ledger.max_units 1: s1 holds" in o_cap,
+            "a classified path in neither universe nor static is refused": not r_un and "classified in neither universe nor static: dev/archive/README.md" in o_un,
+            "a static path in the universe is refused": not r_both and "static and in the universe: README.md" in o_both,
+            "a static entry naming nothing is refused": not r_dead,
+            "a static entry with no reason is refused": not r_bare,
+        })
+        print(f"   ledger arms: live {live_l}, cap refused {not r_cap}, line refused {not r_un}/{not r_both}/{not r_dead}/{not r_bare}")
         # The default run's verdict, driven as a function: the live scopes pass
         # it, and dropping D10's universe or leaving a brief-named harness
         # uncited fails it. That pins verdict(), not the exit code main() returns.
         hs, bs = read_harnesses(a.repo, a.ref, tree)
-        live = verdict(scopes, tree, loc, hs, bs, quiet=True)
+        live = verdict(scopes, tree, loc, hs, bs, quiet=True, units=units)
         no_d10_refused = not verdict(no_d10, tree, loc, hs, bs, quiet=True)
         uncited_refused = not verdict(scopes, tree, loc, {**hs, **planted}, {**bs, "D15": "no citation"}, quiet=True)
         cov.update({"the default verdict passes the live scopes": live,
@@ -295,6 +381,6 @@ def main():
         print("SELF-TEST", "passed (every perturbed scope refused)" if good else
               f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]}; coverage arms {cov})")
         sys.exit(0 if good else 1)
-    sys.exit(0 if verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree)) else 1)
+    sys.exit(0 if verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree), units=units) else 1)
 
 main()
