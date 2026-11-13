@@ -76,7 +76,7 @@ const t = (n, c, d = '') => { c ? (pass++, console.log('  ok   ' + n)) : (fail++
 // the finder report schema's coverage rows require an enumerator -- a data file
 // the same pull request that lands the driver changes, never the driver's own text.
 // When it is on, the driver MUST export all three and every denominator test runs.
-const DENOM = (JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8')).properties?.coverage?.items?.required ?? []).includes('enumerator')
+const DENOM = (JSON.parse(fs.readFileSync(at('dev/audit/config/finding.schema.json'), 'utf8')).properties?.coverage?.items?.required ?? []).includes('enumerator')
 // A block that throws reports as a failure, never as a truncated run. Every
 // grouped assertion below runs inside it: without that the first unexpected
 // throw ends the process and the remaining assertions are silently unreported,
