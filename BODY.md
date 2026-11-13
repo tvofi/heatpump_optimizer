@@ -33,7 +33,9 @@ The generated scope-line block is left out of this body: update_pr.sh verifies i
 
 ## Head
 
-8c9dc2697a74ebb036f4dddb8557edd57664d8bd
+59bb0506a003221fe2af38f30ab20fac46d1b73d (reviewed head 8c9dc2697a74ebb036f4dddb8557edd57664d8bd, plus a clean merge of origin/main and the pin repoint)
+
+**Repair round.** Main's R10-DUTY-SWITCH-PLANNER-PRICE moved `SPLIT_MIN_MINUTES` from pump_arbiter to duty_legs, so `flow_number_pins` raised AttributeError; the one pin now reads `duty_legs.SPLIT_MIN_MINUTES` and no other claim changed. After the repoint `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` printed `ALL 354 checks PASSED`; with `SPLIT_MIN_MINUTES = 6.0` in duty_legs it printed `FAIL every quoted figure in the flow help (19 pins) is its constant's value  [options.step.entities_pump.data_description.pump_duty_mode: quotes 5, the code holds 6.0]` and `1 of 354 checks FAILED`; restored, rc 0 (null control).
 
 ## Mutation proof
 
@@ -64,7 +66,9 @@ No production Python was added. `mutant_run.py --diff` draws only added `.py` li
 
 ## Red checks
 
-none
+- `tests / fast (3.14)`: red on this pull request's earlier head 67ab6ad0 (run 43505062003, job 132161223217; the log ends `1 TEST SCRIPT(S) FAILED`, and its wall-clock table lists `11s  python3 tests/doc_claims.py`). The log API's tail did not reach the traceback, so the cause below is the reproduction of that job's script at 67ab6ad0, not a line read from the log: `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` at that head dies in `check_flow_text_claims` -> `flow_number_pins` (tests/doc_claims.py:4739) with `AttributeError: module 'heatpump_optimizer.pump_arbiter' has no attribute 'SPLIT_MIN_MINUTES'`. `SPLIT_MIN_MINUTES` is defined at duty_legs.py:33 at that head; main's R10-DUTY-SWITCH-PLANNER-PRICE moved it from pump_arbiter, and the pin still read the old module. It is fixed at 59bb0506: the pin reads `duty_legs.SPLIT_MIN_MINUTES`, and the script prints `ALL 354 checks PASSED` (see Repair round).
+- Root cause. The pin was written against a main that still held the constant in pump_arbiter, and the merge of the newer main carried a rename the pin could not see. Nothing in the branch changed, so no earlier gate in the seat's session could fire.
+- Cheaper detector. It exists and costs almost nothing: the same script, `PYTHONPATH=tests/hastub python3 tests/doc_claims.py`, run after merging origin/main into the branch. It took 17 s wall (12 s user) here at the failed head and printed the AttributeError above; the CI job logged 11 s for it. The `tests / fast (3.14)` job took 1525 s in total, so the local run is about 1% of it. Standing cost: one extra 17 s run after any merge of main on a branch that touches a pin file. The fixer's contract already runs `tools/pr/prepr.sh` at handoff, and the train re-proves the head on the current main; a merge by the orchestrator's script after that run is the gap this red fell through, and a detector run by the seat cannot close it. No new countermeasure is proposed for the one-off; the cause is recorded here.
 
 ## Forward-carry
 
