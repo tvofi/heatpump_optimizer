@@ -1323,6 +1323,11 @@ EOF
   echo 1 > "$t/cls"; relay 72 $n $h >/dev/null 2>&1; export HPO_RELAY_PENDING_RED_SECS=0; out=$(relay 72 $n $h 2>&1); rc=$?
   chk "RED past the bound refuses (rc 2), prints the OWED re-dispatch line, posts nothing" 0 test "$rc" = 2 -a ! -s "$t/pushed" -a -n "$(grep -m1 "^cloud_relay: OWED re-dispatch #72 $h$" <<< "$out")"
   chk "and the first RED read never refuses, whatever the bound (null control: nothing to age yet)" 0 test "$(rm -f "$t/state/cloud-pending-red"; relay 72 $n $h >/dev/null 2>&1; echo $?)" = 75
+  # a non-numeric bound is refused before classify is read: GREEN would otherwise post
+  rm -f "$t/state/cloud-relayed" "$t/pushed" "$t/state/cloud-pending-red"; mkp; echo 0 > "$t/cls"; export HPO_RELAY_PENDING_RED_SECS=abc; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "a non-numeric HPO_RELAY_PENDING_RED_SECS holds the pending-ci draft (rc 75), says why, and posts nothing even at GREEN" 0 test "$rc" = 75 -a ! -s "$t/pushed" -a -n "$(grep -m1 'HPO_RELAY_PENDING_RED_SECS must be seconds' <<< "$out")"
+  export HPO_RELAY_PENDING_RED_SECS=60; out=$(relay 72 $n $h 2>&1); rc=$?
+  chk "null control: a numeric bound at the same GREEN head posts" 0 test "$rc" = 0 -a "$(cat "$t/pushed")" = 72
   unset HPO_RELAY_PENDING_RED_SECS HPO_RELAY_CARRY; rm -f "$t/state/cloud-pending-red"
   unset HPO_RELAY_CLASSIFY HPO_RELAY_PRHEAD
   # the handoff arm (a bare origin holds PR branches, handoff/ and handoff-body/ refs)
@@ -1988,6 +1993,13 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   chk "a reviewer whose PR head moved since the dispatch is silent" 1 grep -q "reviewer #3400 " <<< "$nro"
   chk "a reviewer dispatched 4000 s ago (under 5400 s) is silent" 1 grep -q "reviewer #3401 " <<< "$nro"
   chk "the bounds are distinct: a fixer dispatched 6000 s ago (under 7200 s) is silent beside the reviewers" 1 grep -q " nr-mid " <<< "$nro"
+  nrv 3402 200000 0; nrv 3403 6000 0; nrc probe/revt-nr-topic-$(nrn 3403 | cut -c1-8) 60
+  nro=$(noreturn_arm 2>&1)
+  chk "a reviewer dispatched past HPO_RELAY_NORETURN_WINDOW_SECS (172800 s) is silent (null control: #3339 at 6000 s fires)" 1 grep -q "reviewer #3402 " <<< "$nro"
+  chk "a reviewer whose verdict came back as a handoff probe/revt-<topic>-<n8> is silent (null control: #3339 has no return ref)" 1 grep -q "reviewer #3403 " <<< "$nro"
+  chk "null control for both: the unreturned in-window reviewer #3339 still fires in the same pass" 0 grep -q "reviewer #3339 " <<< "$nro"
+  nro=$( git() { if [ "$1" = ls-remote ] && [[ "$*" == *"probe/rev-"* ]]; then return 1; fi; command git "$@"; }; noreturn_arm 2>&1)
+  chk "a failed return listing owes no reviewer (unknown is not owed; null control: the same dispatches fire in the pass above)" 1 grep -q "SEAT ENDED NO RETURN reviewer" <<< "$nro"
   unset HPO_RELAY_PRHEAD
   # THE CARRY-FOLD ARM (R10-CARRY-RESIDUE-2 carry 14): a BLOCKED.md naming CARRY-LANDED alone, with its body kept on
   # handoff-wip/<topic>-body, is folded (carry_fold.py) and re-pushed (body_push.sh); any other block prints a line and folds nothing.
