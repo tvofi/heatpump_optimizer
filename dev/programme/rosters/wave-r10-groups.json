@@ -26768,6 +26768,50 @@
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run"
    }
+  },
+  {
+   "group": "R11-PRE-RELAY-REBUILD",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
+   "files": [
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/tick_loop.sh"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13 on decision card P12 (yes): the relay posts a returned verdict without waiting behind a pull request update. Requirements the round 10 stalls show: verdict posting never queues behind an update; a slow update (a long pre-PR check inside the serial pass) or a refused one does not hold the pass; a pass standing inside one update past a bound prints a line the digest carries. Evidence: five stalls in round 10, up to 94 minutes, proposal candidate PC-1113-03, and the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 8c. Retires the local workaround (a second detached relay in watch mode). The owner ruled the same day that this is built at the beginning of round 11, before the finders run.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-pre-relay-rebuild",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
+    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run"
+   }
   }
  ]
 }
