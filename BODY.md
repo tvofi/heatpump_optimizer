@@ -174,11 +174,7 @@ With neither option set, and with a hysteresis of 0, the 18 solves print the `pl
 
 The brief's gap figures were taken at a7628041dc (54, 64, 65 of 114; 12.60 of 86.34 kWh); the Before line is the same rule re-measured at this merge base.
 
-<!-- figure-block: scope-line mb=bc58019d01b3072e02bfd30cdf052dd715f2945c head=356511ac9d92afa11f7e1d0dc6580000bbf759b6 -->
-~~~text
-MODE: SCOPED -- 30 script(s) run, 3 scoped out.
-~~~
-<!-- /figure-block -->
+The generated scope-line block is left out of this body: update_pr.sh verifies it against its own merge head, which no body can name in advance (R10-HOTFIX-UPDATEPR-FIGURE-REFRESH); the scope line is the gate's own MODE line at the head.
 
 ## Architecture score
 
