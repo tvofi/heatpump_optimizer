@@ -27112,6 +27112,47 @@
     "next_step": "designer (L) now; design review; fixer only on approve",
     "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE; owner 2026-11-13: design can be prepared now; overlap admitted (R10-START-COUNTER-EDGES, R11-OUTSIDE-HONEST-STARTS-RUNS, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING, R11-PRE-SHARED-FILES): owner 2026-11-13: design can be prepared now"
    }
+  },
+  {
+   "group": "R10-HOTFIX-ENTITIES-REDACTION-FLAKE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tests/entities.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, main is red (orchestrator, 2026-11-14): the entity-checks step of the fast tests failed once on the check named \"the location is redacted whole, from data and from options, not coarsened\" in tests/entities.py. Its rounded-coordinate search runs over the whole diagnostics output, which carries clock readings, so a timestamp can contain a rounded coordinate by chance. Owed: search the payload with the clock-bearing fields removed or the clock pinned, never the raw output; on failure print which string matched and where; a pinned-clock demonstration plus a null control that a real coarsened coordinate still fails; production code unchanged unless the coordinates are proven to leak.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-hotfix-entities-redaction-flake",
+    "commit": null,
+    "last_step": null,
+    "next_step": "local sonnet fixer running; handoff then opus reviewer",
+    "note": "intake: red required-family check on main at 50373173d486, tests / fast (3.14)"
+   }
   }
  ]
 }
