@@ -23112,7 +23112,9 @@
    },
    "source": "outside",
    "findings": [],
-   "carry": [],
+   "carry": [
+    "Owner ruling 2026-11-13 (tvofi, verbatim: \"Fire it now, and if it is not merged when the stamp is ready, it goes to round 11 rather than holding closure.\"): part D is un-deferred and built in round 10 from now. It never holds the v10.0.0 stamp: if its pull request is not merged when the stamp is ready, the group and its refs go to round 11. tests/features.py is also edited by the open set-point hotfixes (pull requests 3561, 3562) and 3532: merge origin/main before the handoff if git merge-tree shows a conflict."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": null,
