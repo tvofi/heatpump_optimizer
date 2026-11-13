@@ -856,6 +856,9 @@ writes, at every 15-minute plan step:
   writes *DHW (Hot Water)*, and a step that also wants the other duty
   writes *Heating + DHW*. Boost mode writes *Heating + DHW* with the
   heating-flow ceiling (55 °C, or `flow_heat_c`) rather than the fallback's.
+  On a flow or return set-point, *Boost Space Heating* and Boost mode both
+  write that ceiling on every step they cover, whatever power the plan
+  booked for the step.
 - **While Optimizer active is on, the optimizer holds what it wrote.** A
   reading of those three entities that differs from what the optimizer wrote —
   a change made on the pump, in an app, by a schedule, or the pump's own reset —
