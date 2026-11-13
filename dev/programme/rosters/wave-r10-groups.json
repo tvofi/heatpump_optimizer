@@ -26980,6 +26980,72 @@
     "next_step": "fixer (S) once R10-ROUND-PLAYBOOK-FINAL s open part merges",
     "note": "intake: owner instruction 2026-11-13 (playbook usable with the objective function and widened dimensions; pickup of previous round carries and pre-finder groups; outside and owner items fold into the round); overlap admitted (R11-PRE-OBJECTIVE-FUNCTION): owner instruction 2026-11-13: playbook round-start section; R10-ROUND-PLAYBOOK-FINAL is carries-open and refused the carry"
    }
+  },
+  {
+   "group": "R10-DOCS-STRINGS-RESIDUE",
+   "lane": "IN",
+   "kind": "production",
+   "class": "docs",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "docs/configuration.md",
+    "docs/how-it-works.md",
+    "docs/setup.md",
+    "docs/dashboard-card.md",
+    "custom_components/heatpump_optimizer/away.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/de.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "docs/img/card/advisor-dark.png",
+    "docs/img/card/advisor-light.png"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner question 2026-11-13: product work deferred to round 11 that can start now. This group builds the user-facing text residue the round left for the next one: each carry below is a doc sentence, a string or a translation that disagrees with the code. For each, read the code first and correct the text to what the code does (or, where the carry says the code is the defect, say so in the body and carry it to the live owner); every changed sentence gets its evidence line in the body. It never holds the v10.0.0 stamp: unmerged when the stamp is ready, it goes to round 11. The item from outside pull request 3529 part C credits its contributor in the body.",
+   "carry": [
+    "Moved from R10-OUTSIDE-VALVE-TARGET-LABEL carry 0 (0-based) on 2026-11-13; outside pull request 3529 is scheduled for round 11. P-OUTSIDE-3529-C: cherry-pick the contributor's branch docs/combi-effectiveness-measurement at 81b21d7733 (three commits: a 5-line recipe in the effectiveness description in strings.json, the en/de/sv translations and docs/configuration.md) with Bankaifan kept as author and our edits as later commits; the effectiveness bound of 0.1 to 1.0 and the model's clamp in thermal_model.py stay as they are, and the reviewer checks the recipe's sentence that the ratio belongs to the sensor the model reads against that clamp. Triage ruling recorded on pull request 3529.",
+    "From r10-hotfix-flow-setpoint-stuck, body item 86f47084: The `space_setpoint_unit` description in strings.json and its translations ends \"this integration never recommends a space set-point\". That is true of a recommendation but reads like the sentence this pull request corrects. It was left as written to keep this hotfix to the sentence the owner quoted. Carry: R11-INTAKE-R10-RESIDUE (items 86f47084)",
+    "From r10-config-flow-text-verify, body item 2de47db2: docs/configuration.md:530, docs/how-it-works.md:924 and the away.py module docstring say the anti-legionella cycle is timed to finish before the user returns. `AwayConfig.legionella_before_return` is never read. Carry: R11-INTAKE-R10-RESIDUE (items 2de47db2)",
+    "From r10-config-flow-text-verify, body item 9ae2be30: docs/configuration.md:1063 and docs/how-it-works.md:648 say the VVC loop pump runs only during the hot-water frames. With no frames, `pump_schedule.vvc_should_run` keeps it on. Carry: R11-INTAKE-R10-RESIDUE (items 9ae2be30)",
+    "From r10-config-flow-text-verify, body item 55051373: docs/configuration.md:1049 and docs/how-it-works.md:620 describe free disinfection as an opt-in credit. Any source is credited either way; the option adds the 20-minute hold. Carry: R11-INTAKE-R10-RESIDUE (items 55051373)",
+    "From r10-config-flow-text-verify, body item 4ab03548: docs/configuration.md:1102 says the open-window option lowers the target. It lowers the coldest acceptable temperature. Carry: R11-INTAKE-R10-RESIDUE (items 4ab03548)",
+    "From r10-config-flow-text-verify, body item af528396: docs/configuration.md:1115 says main fuse 0 keeps the headroom sensor dormant. The sensor follows the capacity-tariff peak. Carry: R11-INTAKE-R10-RESIDUE (items af528396)",
+    "From r10-config-flow-text-verify, body item 31878861: docs/configuration.md:1079 says the PV forecast corrects itself. Only the current step is replaced. Carry: R11-INTAKE-R10-RESIDUE (items 31878861)",
+    "From r10-config-flow-text-verify, body item 734b6d33: docs/setup.md:91 says the entry name is shown in front of every entity. Entities use the fixed device name. Carry: R11-INTAKE-R10-RESIDUE (items 734b6d33)",
+    "From r10-user-text-verify-card, body item 753b6610: `docs/dashboard-card.md` (Savings receipt paragraph) still says the savings figure \"compares spot cost only\". `ledger.py` prices both sides at `spot + fee_per_kwh`, the fact `receipt.covers` now states. Re-measure: `git grep -n 'spot cost only' docs`. Carry: R11-INTAKE-R10-RESIDUE (items 753b6610)",
+    "From r10-user-text-verify-card, body item f14f17f5: `docs/dashboard-card.md` (Advisor page) says the replay uses \"your install's measured delivery\". `topology.py` replays the mean measured electrical power, else half the configured maximum. Re-measure: `git grep -n 'measured delivery' docs`. Carry: R11-INTAKE-R10-RESIDUE (items f14f17f5)",
+    "From r10-user-text-verify-card, body item c7e69450: `docs/dashboard-card.md`'s Health picture alt text says \"waiting for the first settled month\", and the re-taken picture now shows \"the first month with a booked saving\". Re-measure: `git grep -n 'first settled month' docs`. Carry: R11-INTAKE-R10-RESIDUE (items c7e69450)",
+    "From r10-user-text-verify-card, body item a0e752f6: `docs/img/card/advisor-*.png` show the old basis line and fuse step. This host's render of the merge base already differs from the committed advisor, savings and setup figures, so they need a re-take on the host that recorded them. Re-measure: `cmp` of a `card_browser.mjs` `HPO_PAGES_OUT` render at the base against the committed PNGs. Carry: R11-INTAKE-R10-RESIDUE (items a0e752f6)",
+    "From r10-user-text-verify-card, body item 3bbcabdc: `translations/de.json`'s `grid` options page is titled \"Netz-Spitzentarif\", but its menu entry is \"Lastspitzentarif des Netzes\". The card now names the menu entry, the label a user clicks. One page should have one de name. Re-measure: compare `options.step.init.menu_options.grid` with `options.step.grid.title` in de.json. Carry: R11-INTAKE-R10-RESIDUE (items 3bbcabdc)"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-docs-strings-residue",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer (M), now",
+    "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE on the owner question 2026-11-13; overlap admitted (R10-DISINFECTION-STEP-NOTICE, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY, R10-HOTFIX-BOOST-FLOW-CEILING, R10-USER-TEXT-VERIFY-STRINGS): owner question 2026-11-13: startable product work moved from the round-11 intake group"
+   }
   }
  ]
 }
