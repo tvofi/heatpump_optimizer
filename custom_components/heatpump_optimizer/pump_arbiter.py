@@ -372,6 +372,10 @@ class ArbiterState:
     #: which a loop-lowered target stopped the compressor (:func:`_feedback`).
     feedback: FeedbackRun | None = None
     stop_gap_k: float | None = None
+    #: A supply write ``supply_hold`` held back; the step tick retries it.
+    supply_held: bool = False
+    #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
+    held_until: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -1940,17 +1944,30 @@ async def supply_tick(held: ArbiterState, wiring: SupplyWiring, now: datetime | 
     """
     now = now or dt_util.now()
     step = plan_step_start(now)
-    if held.supply is None or held.supply[0] == step:
+    if held.supply is None or (held.supply[0] == step and not held.supply_held):
         return
     inp = wiring.inputs()
-    if inp.entry_released:
-        return
-    on = step_supply(inp, wiring.boosts, now)
+    on = None if inp.entry_released else step_supply(inp, wiring.boosts, now)
+    if on is None and held.supply_held and not inp.entry_released:
+        on = _action_supply(inp)  # a held write the plan does not speak for
     if on is None:
+        held.supply_held = False  # a held write dies with its command
         return
     last, held.supply = held.supply[1], (step, on)
-    if on != last:
+    if on != last or held.supply_held:
         await wiring.write(on)
+
+
+def _action_supply(inp: ArbiterInputs) -> bool | None:
+    """The action's supply where the cycle would write it in a plan mode, or ``None``.
+
+    The retry for a held write :func:`step_supply` gives no command for (an
+    empty plan): a mode left, a stale plan or no action drops it, as the
+    cycle would write nothing.
+    """
+    if inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.plan_stale or not inp.action:
+        return None
+    return bool(inp.action.get("heat_pump_on"))
 
 
 def release_supply(held: ArbiterState) -> None:
@@ -1958,6 +1975,12 @@ def release_supply(held: ArbiterState) -> None:
     unsub, held.supply_unsub = held.supply_unsub, None
     if unsub is not None:
         unsub()
+
+
+def supply_switch(inp: ArbiterInputs) -> Any:
+    """The configured power switch's state object, or ``None``."""
+    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
+    return inp.hass.states.get(entity) if entity else None
 
 
 def _pump_off(inp: ArbiterInputs, held: ArbiterState) -> bool:
@@ -1969,9 +1992,7 @@ def _pump_off(inp: ArbiterInputs, held: ArbiterState) -> bool:
     never adopted as a person's edit: the space reading before the next
     write is forgotten here (:func:`_edited`).
     """
-    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
-    power = inp.hass.states.get(entity) if entity else None
-    off = getattr(power, "state", None) == "off"
+    off = getattr(supply_switch(inp), "state", None) == "off"
     held.space_before = None if off else held.space_before
     return off
 
