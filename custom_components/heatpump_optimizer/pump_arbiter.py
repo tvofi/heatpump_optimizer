@@ -625,13 +625,16 @@ def _planned_room(
 
 
 def _space_target(
-    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None
+    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None, *, boosted: bool = False
 ) -> float | None:
-    """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
+    """The plan's own space set-point for ``duty``; see :func:`_flow_target`.
+
+    ``boosted``: a space boost or the global boost mode is live (:func:`_level_kw`).
+    """
     entity = _entities(inp.config)["space_setpoint"]
     if _flow_unit(inp.config):
         log_held(inp.hass, f"space_target_flow_declared:{entity}", False)
-        return _flow_target(inp, duty, now)
+        return _flow_target(inp, duty, now, boosted=boosted)
     room = _planned_room(result, now)
     low = setpoint_range_c(inp.hass, entity)[0]
     # An "indoor" entity that cannot hold the room target is a flow
@@ -655,6 +658,24 @@ def _space_target(
 def _step_kw(result: Any, now: datetime) -> float | None:
     """The plan's space power for the step covering ``now``, or ``None``."""
     return finite_float(_planned_room(result, now, "power_schedule"))
+
+
+def _level_kw(inp: ArbiterInputs, now: datetime, boosted: bool) -> float | None:
+    """The space level a heating step's flow set-point maps (:func:`_flow_target`), kW.
+
+    The experiment's commanded power where the action is the experiment's
+    (:func:`_experiment_kw`). Under a live space boost or the global boost
+    mode (``boosted``), the band's top: a boost replaces the plan's power for
+    the space channel with the maximum (``boost.overlay``), so the plan's own
+    partial level for the step is not the one served, and mapped it wrote a
+    set-point between the floor and the ceiling (tvofi, 2026-11-13: 41, then
+    43, during a boost; R10-HOTFIX-BOOST-FLOW-CEILING). Else the plan step's.
+    """
+    if (kw := _experiment_kw(inp)) is not None:
+        return kw
+    if boosted:
+        return finite_float(_band_kw(inp)[1])
+    return _step_kw(inp.plan, now)
 
 
 def _experiment_kw(inp: ArbiterInputs) -> float | None:
@@ -871,7 +892,9 @@ def _or_hold(floor_c: float | None, config: Any) -> float:
     return _as_target(config, FLOW_HOLD_C) if floor_c is None else floor_c
 
 
-def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float | None:
+def _flow_target(
+    inp: ArbiterInputs, duty: str | None, now: datetime, *, boosted: bool = False,
+) -> float | None:
     """A flow set-point per duty: heat, gate, or the fallback's hold.
 
     The model's weather curve is a pricing curve, not a set-point: it sizes
@@ -882,7 +905,8 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     at full power, sliding to the measured inlet plus a minimum lift
     (``flow_min_lift_k``, else ``thermal_model.FLOW_MIN_LIFT_K``) at the
     modulation floor, so the pump's own water thermostat can realize a
-    lower level.
+    lower level. The level is :func:`_level_kw`'s: the band top under a
+    boost (``boosted``), so a boost writes the ceiling on every step.
     With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`, in
     return terms on a return target (:func:`_as_target`), as is the
     fallback's hold below. A
@@ -901,10 +925,7 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
         return _bounded(
             inp,
             "space_setpoint",
-            flow_setpoint_for_level(
-                _step_kw(inp.plan, now) if (kw := _experiment_kw(inp)) is None else kw,
-                p_min, p_max, heat_c, floor_c,
-            ),
+            flow_setpoint_for_level(_level_kw(inp, now, boosted), p_min, p_max, heat_c, floor_c),
             _gate_floor_c(inp.config),
             lo=min(floor_c, heat_c),
             hi=heat_c,
@@ -1221,9 +1242,11 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    space = _space_target(inp, result, now, duty)
+    boosts = boost.held_for(coord)
+    boosted = inp.mode == MODE_BOOST or boosts.active(boost.CHANNEL_SPACE, now)
+    space = _space_target(inp, result, now, duty, boosted=boosted)
     if _flow_unit(inp.config):
-        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
+        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boosts))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
         return PumpCommand(mode, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
