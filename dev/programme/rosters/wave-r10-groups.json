@@ -26050,6 +26050,52 @@
     "next_step": "local fixer (sonnet) running; handoff then opus reviewer",
     "note": "intake: red required-family check on main at 154dbb4c, CI run 43448248435 job 131963716179"
    }
+  },
+  {
+   "group": "R10-HOTFIX-FLOW-SETPOINT-STUCK",
+   "lane": "IN",
+   "kind": "production",
+   "class": "hotfix",
+   "severity": "critical",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/pump_arbiter.py",
+    "tests/features.py",
+    "custom_components/heatpump_optimizer/strings.json",
+    "docs/configuration.md"
+   ],
+   "hot_files": [
+    "features.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, critical production defect reported by the owner from his own install on VERSION 7.1.15 (2026-11-13): the configured space set-point entity sits at 25 and is never written again, boost included, so the pump barely heats. Fixer's code-read diagnosis: the off-restore work of pull request 3404, first shipped in the 7.1.12 tag, added a hold in custom_components/heatpump_optimizer/pump_arbiter.py that refuses every space set-point write while no off-restore baseline is armed and the entity reads the arbiter's own last persisted write; after an upgrade the persisted record is the idle gate value, the pump holds it, and nothing ever releases the hold, a restart included. tests/features.py pins the hold as intended and no test covers it releasing. Owed: from any persisted arbiter state a space-heating or boost step under Control writes the set-point within one arbiter pass; the off-restore guarantee is kept where it costs no heat; the test that pinned the deadlock is re-pinned and a boost-to-ceiling test starts with a persisted record; the config-flow sentence saying the entity is never written is made true in custom_components/heatpump_optimizer/strings.json and every translation, and docs/configuration.md says what an upgrade does. Root cause per the released-defect trigger runs in its own seat.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-hotfix-flow-setpoint-stuck",
+    "commit": null,
+    "last_step": null,
+    "next_step": "local opus fixer running; handoff, then opus reviewer, front of every queue",
+    "note": "intake: owner report 2026-11-13, production defect on a released version"
+   }
   }
  ]
 }
