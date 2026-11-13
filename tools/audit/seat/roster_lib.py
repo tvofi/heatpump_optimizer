@@ -128,6 +128,40 @@ def sizes(durations: dict) -> tuple:
     except (KeyError, TypeError) as e:
         raise SchemaError(f"{DURATIONS} carries no sizes_hours table: {e}")
 
+#: A group's owner-stated price (R10-HOTFIX-PLAN-OWNER-PRICE): minutes the
+#: owner ruled for the group, and the text of the ruling. The planner reads
+#: them (`replan.group_hours`), the editor writes them (`roster_edit set-price`),
+#: and both ask `owner_price_why` -- one definition of a writable price.
+OWNER_PRICE_MINUTES = "owner_price_minutes"
+OWNER_PRICE_CITE = "owner_price_cite"
+
+
+def owner_price_why(minutes, cite) -> str | None:
+    """Why (`minutes`, `cite`) is not an owner-stated price, or None. A price
+    is a positive number of minutes (a bool is no number) beside a non-blank
+    citation text: a price nobody can trace to the owner is a fabricated
+    measurement."""
+    if isinstance(minutes, bool) or not isinstance(minutes, (int, float)) \
+            or not minutes > 0 or minutes == float("inf"):
+        return f"an owner price is a positive number of minutes, not {minutes!r}"
+    if not isinstance(cite, str) or not cite.strip():
+        return "an owner price needs a citation text naming the owner's words"
+    return None
+
+
+def owner_price(group: dict) -> tuple[float, str] | None:
+    """(minutes, citation) of a group's owner-stated price, None when it has
+    none. One field without the other, or an invalid pair, is a SchemaError:
+    a half-written price is never read as no price."""
+    m, c = group.get(OWNER_PRICE_MINUTES), group.get(OWNER_PRICE_CITE)
+    if m is None and c is None:
+        return None
+    why = owner_price_why(m, c)
+    if why:
+        raise SchemaError(f"{group.get('group')}: {why}")
+    return float(m), c.strip()
+
+
 # WHICH ROSTER -- the one owner (R10-TICK b, d). Every seat tool that reads or
 # edits a roster asks `roster_path()`; none carries a path of its own. A round's
 # roster is `dev/programme/rosters/wave-r<N>-groups.json`, the programme-record
