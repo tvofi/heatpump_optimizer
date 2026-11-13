@@ -457,8 +457,8 @@ def owed_reds(train) -> "tuple[int, str]":
     return 0, "\n".join(judged(gating_names(req)))
 
 
-ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
-            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
+ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!,$after:String){repository(owner:$o,name:$n){pullRequest(number:$pr){"
+            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100,after:$after){pageInfo{hasNextPage endCursor} "
             "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
             "... on StatusContext{context state isRequired(pullRequestNumber:$pr)}}}}}}}}}}")
 PLATFORM_PASS = ("SUCCESS", "NEUTRAL", "SKIPPED")
@@ -492,6 +492,39 @@ def platform_gate(payload, head: str) -> "tuple[str, str]":
     if bad:
         return "red", f"{len(bad)} of {len(gates)} required gate run(s) concluded {', '.join(map(str, bad))}"
     return "green", f"{len(gates)} required gate run(s) pass"
+
+
+def rollup_walk(fetch, head: str, max_pages: int = gh_read.MAX_PAGES):
+    """Every page of the rollup's contexts as ONE ROLLUP_Q-shaped payload
+    (R10-HOTFIX-TRAIN-CONTEXT-PAGES): a required context past the first 100 was
+    never seen, and platform_gate read such a head `unread`, a green approved
+    head refused. `fetch(cursor)` is one read (None for the first page) and
+    returns the parsed answer or raises ValueError/OSError; the walk follows
+    `endCursor` and stops on the first page whose answer carries no rollup or
+    is at another head, returning that payload for platform_gate to call
+    unread. A walk past <max_pages> returns the merge with hasNextPage still
+    true: refused as unread, never truncated. One read per page, so a head of
+    one page makes the one read it always did."""
+    merged, cursor = None, None
+    for _ in range(max_pages):
+        payload = fetch(cursor)
+        try:
+            commit = payload["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]
+            ctx = commit["statusCheckRollup"]["contexts"]
+            more, cursor = ctx["pageInfo"]["hasNextPage"], ctx["pageInfo"].get("endCursor")
+        except (KeyError, IndexError, TypeError):
+            return payload
+        if commit.get("oid") != head:
+            return payload
+        if merged is None:
+            merged = payload
+        else:
+            have = merged["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"]["contexts"]
+            have["nodes"] = list(have["nodes"]) + list(ctx["nodes"])
+            have["pageInfo"] = ctx["pageInfo"]
+        if not more or not cursor:
+            return merged
+    return merged
 
 
 #: P436's barrier lives in `classify` itself, so no caller list exists to be
@@ -1021,6 +1054,12 @@ MAIN_MOVED_TRIES = 3
 # (a recarry or a poll), never a whole CI wait and never a whole batch. A
 # `batch/` rehearsal publishes nothing: it merges nothing into main.
 HOLD_REF = "refs/heads/train-hold"
+#: The reverse hold: a stamp (tools/release/stamp.py, `STAMP_HOLD_REF` there) publishes
+#: it while it runs; a merge attempt waits on it (`Train.stamp_hold_wait`), and a hold
+#: at or past STAMP_HOLD_MAX_AGE_S is a dead holder's and is taken over.
+STAMP_HOLD_REF = "refs/heads/stamp-hold"
+STAMP_HOLD_MAX_AGE_S = 7200
+STAMP_HOLD_POLL_S = 30
 #: The approver App's login (app_approve.sh's VERDICT_AUTHORS): its APPROVED
 #: review at a head is that head's approval, never posted twice (P86).
 APPROVER_LOGIN = "hpo-approver[bot]"
@@ -2326,10 +2365,17 @@ class Train:
         required-check evaluation must say the same, or the entry stops. A
         rollup that cannot be read is no agreement."""
         owner, name = self.repo.split("/")
-        code, o = self.run(["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
-                            "-f", f"o={owner}", "-f", f"n={name}"])
+        def fetch(cursor):
+            argv = ["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
+                    "-f", f"o={owner}", "-f", f"n={name}"] + (["-f", f"after={cursor}"] if cursor else [])
+            code, o = self.run(argv)
+            if code:
+                raise OSError(o.strip()[-160:])
+            return json.loads(o)
         try:
-            state, why = platform_gate(json.loads(o), h) if code == 0 else ("unread", o.strip()[-160:])
+            state, why = platform_gate(rollup_walk(fetch, h), h)
+        except OSError as e:
+            state, why = "unread", str(e)
         except ValueError:
             state, why = "unread", "the rollup answer is not JSON"
         self.log(f"#{pr} {h[:8]} platform gate={state}: {why}")
@@ -3040,6 +3086,7 @@ class Train:
                 self.review_settle(pr, h)
             else:
                 self.sleep(30)
+            self.stamp_hold_wait()
             guard()
             code, whole = self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge",
                                     "--match-head-commit", h])
@@ -3305,6 +3352,46 @@ class Train:
         self.log("TRAIN HOLD released" if not code else
                  f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
                  "it expires at the beat's own bound, or delete it by hand")
+
+    def stamp_hold_age(self) -> "float | None":
+        """Seconds since the stamp hold commit was made, or None when no hold
+        stands or its age is unknowable (unreadable, or dated ahead of this
+        clock). A negative age is returned as is: the caller reads it as live and
+        bounds it by its own poll count, since this hold guards main against a
+        merge and a slow train clock must not read a just-taken hold as absent.
+        Two reads: the ref, then its commit date."""
+        sha = self.out("gh", "api", f"repos/{self.repo}/git/ref/{STAMP_HOLD_REF.removeprefix('refs/')}",
+                       "--jq", ".object.sha").strip()
+        if not is_sha(sha):
+            return None
+        stamp = self.out("gh", "api", f"repos/{self.repo}/git/commits/{sha}", "--jq", ".committer.date").strip()
+        try:
+            age = time.time() - datetime.datetime.fromisoformat(stamp.replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            return None
+        return age
+
+    def stamp_hold_wait(self) -> None:
+        """Before a merge attempt: wait while a stamp holds main (STAMP-HOLD).
+        A hold at or past STAMP_HOLD_MAX_AGE_S is a dead holder's: taken over
+        and logged, not deleted. Only a real train (it merges into main) waits."""
+        if not self.real:
+            return
+        waited = 0
+        while True:
+            age = self.stamp_hold_age()
+            if age is None:
+                return
+            # a future-dated hold (a slower clock here) is live; the wait's own
+            # elapsed time bounds it where its age never would
+            if max(age, waited) >= STAMP_HOLD_MAX_AGE_S:
+                self.log(f"STAMP-HOLD taken over: {STAMP_HOLD_REF} is {int(max(age, waited))}s old, past "
+                         f"{STAMP_HOLD_MAX_AGE_S}s; its holder is dead")
+                return
+            self.log(f"STAMP-HOLD: a stamp is running ({int(age)}s old); no merge until it exits")
+            self.hold_refresh()  # the record beat reads train-hold stale at HOLD_MAX_AGE_S; this wait runs to 7200
+            self.sleep(STAMP_HOLD_POLL_S)
+            waited += STAMP_HOLD_POLL_S
 
     def unwind(self) -> None:
         """The closing lines of a train or batch, run once a stop is already
@@ -4679,6 +4766,11 @@ def _self_test() -> int:
                 return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
+                if "rollup_pages" in world:  # a paged listing: the answer follows the `after=` cursor asked
+                    cur = next((x[6:] for x in argv if x.startswith("after=")), None)
+                    world.setdefault("rollup_cursors", []).append(cur)
+                    world.setdefault("rollup_queries", []).append(next((x[6:] for x in argv if x.startswith("query=")), ""))
+                    return world["rollup_pages"](cur)
                 return world.get("rollup", (1, "HTTP 502"))
             if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
                 world["ci_list_reads"] = world.get("ci_list_reads", 0) + 1
@@ -7048,6 +7140,81 @@ def _rollup_draft_self_test(check) -> None:
     t.record_drafts(q)
     check("P609 null: a non-draft entry is recorded False and makes no gh pr ready call",
           q[0]["draft"] is False and not any(c.startswith("gh pr ready") for c in calls))
+    # Carry 1 (P447): a merge attempt waits while a stamp holds main.
+    def stamped(age_s, clears_after=None, real=True, refreshes=None, date=None):
+        t, calls = world({})
+        t.real = real
+        if refreshes is not None:
+            t.hold_armed, real_refresh = True, t.hold_refresh
+            t.hold_refresh = lambda: (refreshes.append(1), real_refresh())[1]
+        base_out, polls, logs = t.out, [0], []
+        def out(*argv):
+            a = " ".join(argv)
+            if "git/ref/heads/stamp-hold" in a:
+                gone = clears_after is not None and polls[0] >= clears_after
+                return "" if (age_s is None or gone) else "a" * 40
+            if "git/commits/" in a:
+                if date is not None:
+                    return date
+                when = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=age_s)
+                return when.strftime("%Y-%m-%dT%H:%M:%SZ")
+            return base_out(*argv)
+        def sleep(s):
+            polls[0] += 1
+        t.out, t.sleep, t.log = out, sleep, logs.append
+        t.policy_approve = t.policy_gate = t.approve = lambda *a, **k: None
+        try:
+            t.land(7, H, {"pr": 7}, [], lambda: None)
+        except Stop as e:
+            logs.append(f"STOP {e.why}")
+        return logs, calls, polls[0]
+    logs, calls, polls = stamped(60, clears_after=3)
+    held_at = [i for i, c in enumerate(calls) if "gh pr merge" in c]
+    check("stamp hold: a live hold logs STAMP-HOLD and waits, and the merge runs only after it clears",
+          sum(l.startswith("STAMP-HOLD:") for l in logs) == 3 and polls == 3 and len(held_at) == 1)
+    refreshed: list = []
+    logs, calls, polls = stamped(60, clears_after=3, refreshes=refreshed)
+    check("stamp hold: every poll of a held wait refreshes train-hold (the record beat reads it stale at 3600 s)",
+          polls == 3 and len(refreshed) == 3)
+    logs, calls, polls = stamped(-300, clears_after=3)
+    check("stamp hold: a future-dated hold (this clock behind the stamp's) is live, not absent",
+          polls == 3 and sum(l.startswith("STAMP-HOLD:") for l in logs) == 3)
+    logs, calls, polls = stamped(-300)
+    check("stamp hold: a future-dated hold that never clears is taken over by the wait's own poll count",
+          polls == STAMP_HOLD_MAX_AGE_S // STAMP_HOLD_POLL_S
+          and any(l.startswith("STAMP-HOLD taken over") for l in logs) and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(60, date="not-a-date")
+    check("stamp hold: an unreadable commit date is no wait (the age is unknowable), and the merge runs",
+          polls == 0 and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(None)
+    check("stamp hold: null control, no hold runs the merge as today with no wait",
+          not any("STAMP-HOLD" in l for l in logs) and polls == 0 and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(STAMP_HOLD_MAX_AGE_S + 5)
+    check("stamp hold: a hold past the age bound is a dead holder's, taken over, and the merge runs",
+          any(l.startswith("STAMP-HOLD taken over") for l in logs) and polls == 0
+          and any("gh pr merge" in c for c in calls))
+    logs, calls, polls = stamped(60, real=False)
+    check("stamp hold: a rehearsal batch (merges nothing into main) does not wait",
+          polls == 0 and not any("STAMP-HOLD" in l for l in logs))
+    # rollup_states and record_drafts pins (the P608/P609 survivors X10, X14, X16, X17)
+    ok_, bad_ = {"name": "g", "conclusion": "SUCCESS", "completedAt": "2026-01-02T00:00:00Z"}, {"name": "g", "conclusion": "FAILURE", "completedAt": "2026-01-02T00:00:00Z"}
+    check("P608 an equal stamp keeps the later listed entry, in both list orders",
+          rollup_states([ok_, bad_])["g"] == "FAILURE" and rollup_states([bad_, ok_])["g"] == "SUCCESS")
+    two = rollup_states([{"name": "g", "conclusion": "FAILURE", "startedAt": "2026-01-01T00:00:00Z", "completedAt": "2026-01-05T00:00:00Z"},
+                         {"name": "g", "conclusion": "SUCCESS", "startedAt": "2026-01-03T00:00:00Z", "completedAt": "2026-01-04T00:00:00Z"}])
+    check("P608 an entry with two valid stamps is dated by completedAt, not startedAt", two["g"] == "FAILURE")
+    check("P608 a status-context entry (context key, no name) is keyed by its context",
+          rollup_states([{"context": "ci/x", "state": "SUCCESS"}]) == {"ci/x": "SUCCESS"})
+    t, calls = world({})
+    t.real = False
+    t.out = lambda *a: calls.append("READ " + " ".join(a)) or "true"
+    q = [{"pr": 7}]
+    t.record_drafts(q)
+    check("P609 record_drafts on a rehearsal (real false) reads nothing and records nothing",
+          "draft" not in q[0] and not any(c.startswith("READ") for c in calls))
+    check("stamp hold: the ref names agree between the train and the stamp",
+          STAMP_HOLD_REF == "refs/heads/stamp-hold"
+          and 'STAMP_HOLD_REF = "refs/heads/stamp-hold"' in (ROOT / "tools/release/stamp.py").read_text())
 
 
 def _review_settle_self_test(check) -> None:
@@ -7782,6 +7949,49 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           platform_gate(rollup(ok_g, oid="f" * 40), H0)[0] == "unread"
           and platform_gate(rollup(ok_g, more=True), H0)[0] == "unread"
           and platform_gate({"data": None}, H0)[0] == "unread")
+    # R10-HOTFIX-TRAIN-CONTEXT-PAGES: a required context on page 2 is judged, never skipped.
+    def pager(*pages, oid=H0, oid_late=None):
+        """A faked listing: page k answers pages[k]; reads records the cursors asked."""
+        reads = []
+
+        def fetch(cursor):
+            reads.append(cursor)
+            k = 0 if cursor is None else int(cursor)
+            pl = rollup(oid=oid_late if k and oid_late else oid, more=k + 1 < len(pages), extra=pages[k])
+            pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+                "contexts"]["pageInfo"]["endCursor"] = str(k + 1)
+            return pl
+        return fetch, reads
+    filler = [dict(nonreq, name=f"x{i}") for i in range(3)]
+    gate_p1 = {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": "SUCCESS", "isRequired": True}
+    late = lambda c: {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": c, "isRequired": True}
+    f_red, r_red = pager(filler, [late("FAILURE")])
+    f_grn, r_grn = pager(filler, [late("SUCCESS")])
+    f_one, r_one = pager([gate_p1] + filler)
+    f_old, r_old = pager([gate_p1], [late("SUCCESS")], oid="f" * 40)
+    f_inf, _ = pager(*([[gate_p1]] * (gh_read.MAX_PAGES + 2)))
+    f_mid, r_mid = pager([gate_p1], [late("FAILURE")], oid_late="f" * 40)
+    got_red = platform_gate(rollup_walk(f_red, H0), H0)[0]
+    got_grn = platform_gate(rollup_walk(f_grn, H0), H0)[0]
+    check("A5 platform: a required context on page 2 that is red reads RED, green reads GREEN "
+          "(null: the one-page head makes the same single read, [None]; a walk past the page cap "
+          "and a later page at another head are unread)",
+          (got_red, got_grn) == ("red", "green") and r_red == r_grn == [None, "1"]
+          and platform_gate(rollup_walk(f_one, H0), H0)[0] == "green" and r_one == [None]
+          and platform_gate(rollup_walk(f_inf, H0), H0)[0] == "unread"
+          and platform_gate(rollup_walk(f_old, H0), H0)[0] == "unread")
+    check("A5 platform: a later page whose oid differs from the first page's is unread, never merged in "
+          "(null: the same listing at one oid reads red from its page 2)",
+          platform_gate(rollup_walk(f_mid, H0), H0)[0] == "unread" and r_mid == [None, "1"]
+          and platform_gate(rollup_walk(pager([gate_p1], [late("FAILURE")])[0], H0), H0)[0] == "red")
+    f_p1red, _ = pager([late("FAILURE")], [late("SUCCESS")])
+    f_p1oth, _ = pager([dict(nonreq, isRequired=True)], [late("SUCCESS")])
+    f_p2red, _ = pager([gate_p1], [dict(nonreq, isRequired=True)])
+    check("A5 platform: the merge keeps page 1's nodes: a red required gate, or another required context, on page 1 "
+          "reads RED though page 2's rerun is green (null: a red other-required context on page 2 reads red too)",
+          platform_gate(rollup_walk(f_p1red, H0), H0)[0] == "red"
+          and platform_gate(rollup_walk(f_p1oth, H0), H0)[0] == "red"
+          and platform_gate(rollup_walk(f_p2red, H0), H0)[0] == "red")
     gate_req = {"required": f"{GATE}\n"}
     for what, w, merges in (
             ("train green, GitHub green: it merges", dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g)))), True),
@@ -7795,6 +8005,25 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
+    def train_pages(cursor):  # page 2 (cursor "1") carries a red required gate; page 1 alone is green
+        k = 0 if cursor is None else int(cursor)
+        pl = rollup(ok_g if k == 0 else ("COMPLETED", "FAILURE"), more=k == 0)
+        pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+            "contexts"]["pageInfo"]["endCursor"] = "1"
+        return 0, json.dumps(pl)
+    w = dict(gate_req, runs=[gt()], rollup_pages=train_pages)
+    rc, lines, calls = go(w)
+    check("A5 serial: the train passes each page's endCursor on the next read, so a red required gate on "
+          "page 2 stops the merge (null: a one-page rollup is read once, with no cursor, and merges)",
+          not merged(calls) and w["rollup_cursors"][:2] == [None, "1"] and "red" in " ".join(lines))
+    w = dict(gate_req, runs=[gt()], rollup_pages=lambda c: (0, json.dumps(rollup(ok_g))))
+    rc, lines, calls = go(w)
+    check("A5 serial: the query the train sends asks for the page cursor and takes the `after` argument "
+          "(a real GitHub would otherwise serve page 1 forever, or refuse the unused variable)",
+          bool(w["rollup_queries"]) and all("endCursor" in q and "contexts(first:100,after:$after)" in q
+                                            for q in w["rollup_queries"]))
+    check("A5 serial null: a one-page rollup is read once, with no cursor, and merges",
+          merged(calls) and w["rollup_cursors"] == [None])
     _defer_wait_self_test(check, go, merged, cr, gt, gate_req, json.dumps(rollup(ok_g, ok_g)))
     rc, lines, calls = go({})  # go()'s default: the ruleset ["fast"], green runs
     check("A5 null: an old-layout ruleset (no gate) makes no platform read", rc == 0 and merged(calls)
