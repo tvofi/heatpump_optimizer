@@ -1,0 +1,6 @@
+20:37:59 rc=3 WAIT 467f58500d12be0b6907839a17be76432555851b pending: gate red: none
+20:39:16 rc=3 WAIT 467f58500d12be0b6907839a17be76432555851b pending: gate red: none
+20:40:34 rc=3 WAIT 467f58500d12be0b6907839a17be76432555851b pending: gate red: none
+20:41:51 rc=3 WAIT 467f58500d12be0b6907839a17be76432555851b pending: gate red: none
+20:43:08 rc=3 WAIT 467f58500d12be0b6907839a17be76432555851b pending: gate red: none
+20:44:25 rc=1 RED 467f58500d12be0b6907839a17be76432555851b pending: none red: gate

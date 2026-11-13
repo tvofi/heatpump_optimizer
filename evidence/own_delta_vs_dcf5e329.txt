@@ -1,0 +1,60 @@
+348,352c348,354
+< -- The standing set is the triage seat (`proposal-triage.md`) plus the beat
+< -  jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing one
+< +- The standing set is the beat jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing one
+< -LOG (`proposal-triage.md`). Exemption from all three: a proposal proving more
+< +LOG. Exemption from all three: a proposal proving more
+---
+> -- The standing set: the triage seat (`proposal-triage.md`) and the beat jobs
+> -  `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing digest
+> +- The standing set: the beat jobs `beatd.py` runs from `tools/audit/seat/beat_jobs.py`, each writing digest
+> -is accepted only when its friction blocks a production merge, else ruled LOG
+> -(`proposal-triage.md`). Exempt from all three: a proposal proving over 20% on
+> +is accepted only when its friction blocks a production merge, else ruled LOG.
+> +Exempt from all three: a proposal proving over 20% on
+512,516c514,517
+< -A process, tooling or instrument proposal passes this gate before building
+< -(decision 0015). Sources: the sweep and Proposals line, seat results,
+< -verdict optimisation notes. A countermeasure policy requires (root cause,
+< -red-check carry, finding fix) keeps its route. One opus seat, medium
+< -effort, under `standing.md`; check rulings against code.
+---
+> -A process, tooling or instrument proposal (sweep, seat results, verdict notes)
+> -passes this gate before building (decision 0015); a required countermeasure
+> -(root cause, red-check carry, finding fix) keeps its route. One opus seat,
+> -medium effort, under `standing.md`; check rulings against code.
+519c520
+< -time; tokens (model x effort x expected runs); API calls; standing CPU
+---
+> -time; tokens (model x effort x runs); API calls; standing CPU
+522,528c523,530
+< -ACCEPT. An exemption ACCEPT (over 20% on a `ratchet-budgets.md` measure) says
+< -so; its PR records it.
+< -
+< -**Machinery.** A planned instrument/machinery group, or existing non-production
+< -CI lane or seat, stays only on a measured gain of at least 10% on them. Repair
+< -of such code (outside `custom_components/`) with roster `severity` `low` or
+< -`normal` meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
+---
+> -ACCEPT. Blocking no production merge: LOG, bar the exemption in
+> -`dev/audit/README.md`. An exemption ACCEPT (over 20% on a
+> -`ratchet-budgets.md` measure) says so; its PR records it.
+> -
+> -**Machinery.** A planned machinery group, or a non-production CI lane or
+> -seat, stays only on a measured gain of at least 10% on them. Repair of such
+> -code (outside `custom_components/`) with roster `severity` `low` or `normal`
+> -meets both (over 20% to add); `medium`, `high`, `major`, `critical`,
+534c536
+< -cost.
+---
+> -cost; LOG, evidence.
+537,540c539,542
+< -file: `Verdict:`, `Source:`, `Instances:` (each figure beside its command or
+< -log: cite, don't carry), `Cost:` (estimate, each capped file's `--budgets`
+< -row), `Binding:`. An ACCEPT runs its rule per instance, result beside it. Git
+< -and local logs before the API.
+---
+> -file: `Verdict:`, `Source:`, `Instances:` (each figure with its command or
+> -log), `Cost:` (estimate, each capped file's `--budgets` row), `Binding:`. An
+> -ACCEPT runs its rule per instance, result beside it. Git and local logs
+> -before the API.
