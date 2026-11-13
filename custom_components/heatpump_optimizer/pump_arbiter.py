@@ -625,7 +625,7 @@ def _planned_room(
 
 
 def _space_target(
-    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None, *, boosted: bool = False
+    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None, *, boosted: bool
 ) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`.
 
@@ -1666,7 +1666,7 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
         and reading is not None and not _differs("space_setpoint", reading, last)
     baseline = None
     if own:
-        baseline = _space_target(inp, inp.plan, now, None)
+        baseline = _space_target(inp, inp.plan, now, None, boosted=False)
         _LOGGER.info("Pump duty: %s reads %s, the optimizer's own last write; turning the "
                      "optimizer off restores %s instead", entity, reading, baseline)
     held.space_before = reading

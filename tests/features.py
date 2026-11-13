@@ -63015,7 +63015,7 @@ _pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
 def _pa_bound_target(low):
     _pa_bound.hass.states.get("number.water_set").attributes = {"min": low, "max": 63}
     return _pa._space_target(
-        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space")
+        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space", boosted=False)
 
 
 _pa_bound_at = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE)
