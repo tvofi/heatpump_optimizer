@@ -45,6 +45,7 @@
   "_async_update_data": "core",
   "_async_watch_learning_drift": "learning",
   "_audit_comfort_band": "learning",
+  "_audit_valve_target": "learning",
   "_audit_grid_fee": "grid",
   "_audit_lower_floor_sensor": "core",
   "_baseline_house_load": "core",

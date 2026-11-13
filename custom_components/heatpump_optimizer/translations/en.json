@@ -796,7 +796,7 @@
             "data": {
               "flow_curve_cop_enabled": "Price the supply temperature lift (no mixing valve)",
               "mixing_valve_mode": "Mixing valve",
-              "mixing_valve_target": "Valve target temperature",
+              "mixing_valve_target": "Room temperature the mixing circuit holds",
               "mixing_valve_target_entity": "Valve target sensor",
               "mixing_valve_write_entity": "Valve control entity",
               "mixing_valve_write_target_kind": "What the control entity expects"
@@ -804,7 +804,7 @@
             "data_description": {
               "flow_curve_cop_enabled": "Off by default. For a system with no mixing valve, where the pump feeds the radiators or floor loops directly. When on, plans and costs account for the pump working harder to make hotter water: the supply temperature is taken from the model's own weather curve, plus the offset learned from the supply water temperature sensor if you have one. With that sensor, the efficiency health watch also judges the pump at a common water temperature, so a hotter supply is not reported as a failing compressor, and it skips any interval where the sensor has no fresh reading, so while that sensor is unavailable the watch does not judge space heating at all. The learned offset is capped at 15 °C, so on a system whose supply runs far above the model's curve only part of the extra work is priced. Not available with a mixing valve, whose tank temperature already sets the price.",
               "mixing_valve_mode": "\"Set by hand\" is a valve you configure yourself; tell the integration below what you set it to. \"Read from a sensor\" means the integration can see the target but not change it. \"Commanded by the optimizer\" writes the recommended target to the valve's own controller through the control entity below.",
-              "mixing_valve_target": "The indoor temperature the valve holds. Leave at 0 to use the top of your comfort band, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus.",
+              "mixing_valve_target": "This is the indoor air temperature the mixing circuit holds, not a water temperature: never enter a flow temperature here. Leave at 0 to use the top of your comfort band, which is the recommended setting: the building charges first at no efficiency cost, and the tank takes only the surplus.",
               "mixing_valve_target_entity": "Optional. Reads the valve's target rather than using the fixed value above.",
               "mixing_valve_write_entity": "Required for \"Commanded by the optimizer\": the number or climate entity your valve's controller exposes. The optimizer writes its recommended target there after each planning cycle, and only when the answer changes.",
               "mixing_valve_write_target_kind": "\"Indoor temperature\" is correct for a room/thermostat set-point, and is what has always been written — the safe default. \"Flow temperature\" is for a valve or heat-pump controller whose set-point is a water temperature: the optimizer derives it from the same flow curve it already uses for a dumb valve. Only choose \"Flow temperature\" once you have confirmed the entity expects a water temperature — pointed at a flow set-point, \"Indoor temperature\" would command roughly 21 °C to a device expecting 35-45 °C and badly underheat the house."
@@ -1861,6 +1861,10 @@
     "lower_floor_modelled": {
       "title": "The downstairs temperature is modelled, not measured",
       "description": "Two-zone planning is on and no lower-floor thermometer is configured, so the lower zone starts from the main room sensor and is carried forward by the thermal model — the “Lower floor (modelled)” trace on the plan chart. That is how the zone has to be planned without a sensor, and it is not something the floor-return sensor can supply: return water runs 3–9 K above the room it heats, so it drives the slab estimate, which is what it is genuinely a proxy for. What a modelled zone cannot do is correct itself, so over a long cold spell it can drift from the real downstairs. Assigning “Lower floor temperature sensor” under the zone options closes that loop; this notice clears when you do."
+    },
+    "valve_target_above_comfort": {
+      "title": "Valve target above comfort",
+      "description": "The mixing-valve target is {target} °C, which is above the {ceiling} °C top of your comfort band. That value is read as the indoor temperature the mixing circuit holds, not as a water temperature, so a flow temperature typed there makes the plan heat the house toward it, and with a combi tank it can spend the hot water on doing so. Nothing is changed for you: a target above comfort can be deliberate, for example slab charging. If it is not, set it to your room temperature or to 0 (the top of your comfort band); this notice clears on the next cycle."
     },
     "comfort_band_contradiction": {
       "title": "Your comfort temperatures contradict each other",

@@ -109,6 +109,18 @@ def flow_setpoint(
     return target_temp + q_hold / max(emitter_ua, 1e-6)
 
 
+def target_above_comfort(target: float, comfort_ceiling: float) -> bool:
+    """Whether a configured valve target sits above the top of the comfort band.
+
+    The target is the ROOM temperature the mixing circuit holds, and 0 means
+    "use the ceiling". A value above the ceiling can be deliberate (slab
+    charging), so this is a notice and never a refusal; its usual cause is a
+    flow temperature typed where a room temperature belongs (pull request
+    3529). The solve reads the target unchanged either way.
+    """
+    return target > comfort_ceiling
+
+
 def emitter_delivery(*, mix_temp: float, zone_temp: float, ua: float) -> float:
     """Heat one emitter circuit delivers at the mixed flow temperature, in kW.
 

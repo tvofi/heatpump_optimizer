@@ -796,7 +796,7 @@
             "data": {
               "flow_curve_cop_enabled": "Vorlauftemperaturanhebung bepreisen (kein Mischventil)",
               "mixing_valve_mode": "Mischventil",
-              "mixing_valve_target": "Zieltemperatur des Ventils",
+              "mixing_valve_target": "Raumtemperatur, die der Mischkreis hält",
               "mixing_valve_target_entity": "Zielwert-Sensor des Ventils",
               "mixing_valve_write_entity": "Steuerentität des Ventils",
               "mixing_valve_write_target_kind": "Was die Steuerentität erwartet"
@@ -804,7 +804,7 @@
             "data_description": {
               "flow_curve_cop_enabled": "Standardmäßig aus. Für eine Anlage ohne Mischventil, bei der die Pumpe die Heizkörper oder Fußbodenheizkreise direkt speist. Wenn aktiviert, berücksichtigen Pläne und Kosten, dass die Pumpe für heißeres Wasser härter arbeitet: Die Vorlauftemperatur ergibt sich aus der eigenen Wetterkurve des Modells plus dem Versatz, der aus dem Vorlauftemperatursensor gelernt wird, falls vorhanden. Mit diesem Sensor beurteilt die Effizienzüberwachung die Pumpe zudem bei einer gemeinsamen Wassertemperatur, sodass ein heißerer Vorlauf nicht als defekter Verdichter gemeldet wird, und sie überspringt jedes Intervall, in dem der Sensor keinen frischen Wert hat; solange der Sensor nicht verfügbar ist, beurteilt die Überwachung die Raumheizung also gar nicht. Der gelernte Versatz ist auf 15 °C begrenzt, sodass bei einer Anlage, deren Vorlauf weit über der Kurve des Modells liegt, nur ein Teil der Mehrarbeit bepreist wird. Nicht verfügbar mit Mischventil, dessen Speichertemperatur den Preis bereits festlegt.",
               "mixing_valve_mode": "„Von Hand eingestellt“ ist ein Ventil, das du selbst konfigurierst; teile der Integration unten mit, worauf du es eingestellt hast. „Von einem Sensor gelesen“ bedeutet, dass die Integration den Zielwert sehen, aber nicht ändern kann. „Vom Optimierer gesteuert“ schreibt den empfohlenen Zielwert über die Steuerentität unten in den eigenen Regler des Ventils.",
-              "mixing_valve_target": "Die Innentemperatur, die das Ventil hält. Bei 0 wird die Obergrenze deines Komfortbereichs verwendet, was die empfohlene Einstellung ist: Das Gebäude wird zuerst ohne Effizienzverlust geladen, und der Speicher nimmt nur den Überschuss.",
+              "mixing_valve_target": "Das ist die Raumlufttemperatur, die der Mischkreis hält, keine Wassertemperatur: Trage hier nie eine Vorlauftemperatur ein. Bei 0 wird die Obergrenze deines Komfortbereichs verwendet, was die empfohlene Einstellung ist: Das Gebäude wird zuerst ohne Effizienzverlust geladen, und der Speicher nimmt nur den Überschuss.",
               "mixing_valve_target_entity": "Optional. Liest den Zielwert des Ventils, statt den festen Wert oben zu verwenden.",
               "mixing_valve_write_entity": "Erforderlich für „Vom Optimierer gesteuert“: die Zahl- oder Climate-Entität, die der Regler deines Ventils bereitstellt. Der Optimierer schreibt seinen empfohlenen Zielwert nach jedem Planungszyklus dorthin, und nur wenn sich das Ergebnis ändert.",
               "mixing_valve_write_target_kind": "„Innentemperatur“ ist richtig für einen Raum-/Thermostat-Sollwert und wurde schon immer geschrieben – der sichere Standard. „Vorlauftemperatur“ gilt für einen Ventil- oder Wärmepumpenregler, dessen Sollwert eine Wassertemperatur ist: Der Optimierer leitet sie aus derselben Vorlaufkurve ab, die er bereits für ein einfaches Ventil verwendet. Wähle „Vorlauftemperatur“ nur, wenn du bestätigt hast, dass die Entität eine Wassertemperatur erwartet – bei einem Vorlauf-Sollwert würde „Innentemperatur“ etwa 21 °C an ein Gerät senden, das 35-45 °C erwartet, und das Haus stark unterheizen."
@@ -1861,6 +1861,10 @@
     "lower_floor_modelled": {
       "title": "Die Temperatur im Untergeschoss wird modelliert, nicht gemessen",
       "description": "Die Zwei-Zonen-Planung ist aktiv und es ist kein Thermometer für das Untergeschoss konfiguriert, daher startet die untere Zone vom Hauptraumsensor und wird vom thermischen Modell fortgeschrieben – die Kurve „Lower floor (modelled)“ im Plandiagramm. So muss die Zone ohne Sensor geplant werden, und der Fußboden-Rücklaufsensor kann sie nicht ersetzen: Das Rücklaufwasser ist 3–9 K wärmer als der beheizte Raum und speist daher die Estrich-Schätzung, wofür es tatsächlich ein Stellvertreter ist. Eine modellierte Zone kann sich nicht selbst korrigieren und kann daher bei langer Kälte vom echten Untergeschoss abweichen. Weise in den Zonenoptionen den „Lower floor temperature sensor“ zu, um diese Lücke zu schließen; dann verschwindet dieser Hinweis."
+    },
+    "valve_target_above_comfort": {
+      "title": "Ventilziel über dem Komfortbereich",
+      "description": "Das Ziel des Mischventils beträgt {target} °C und liegt damit über der Obergrenze deines Komfortbereichs von {ceiling} °C. Der Wert gilt als Raumtemperatur, die der Mischkreis hält, nicht als Wassertemperatur; eine dort eingetragene Vorlauftemperatur lässt den Plan das Haus darauf heizen, und mit einem Kombispeicher kann er dafür das Warmwasser aufbrauchen. Es wurde nichts für dich geändert: Ein Ziel über dem Komfortbereich kann Absicht sein, etwa beim Aufladen der Bodenplatte. Wenn nicht, setze es auf deine Raumtemperatur oder auf 0 (Obergrenze des Komfortbereichs); dieser Hinweis verschwindet im nächsten Zyklus."
     },
     "comfort_band_contradiction": {
       "title": "Deine Komforttemperaturen widersprechen sich",
