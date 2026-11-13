@@ -869,10 +869,14 @@ def _group_checks(check) -> None:
         check("a design reviewer after one revise is told round 2, the verdict commit, its first line and the diff range",
               "round 2" in rtext2 and vtip in rtext2 and f"Design review: revise {tip} class-open" in rtext2
               and f"git diff {tip}..{tip}" not in rtext2)
-        _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: revise {'b' * 40} class-open\n"})
+        vclone = work.parent / "vclone"  # a second clone: this verdict commit is on origin and not in `work` until fetched
+        throwaway_git_clone(origin, vclone, "-q", "--no-checkout")
+        vtip3 = _publish(str(vclone), "design-verdict/R10-BIG", {"verdict.md": f"Design review: revise {'b' * 40} class-open\n"})
+        check("the fixture's third verdict commit is absent from the dispatching clone before the dispatch (the fetch is observable)",
+              subprocess.run(["git", "-C", str(work), "cat-file", "-e", vtip3], capture_output=True).returncode != 0)
         rtext3 = fetched(dispatch("R10-BIG", "design-reviewer"), "PROMPT.md")
         check("a second revise names round 3 and the range from the design it names to the design tip",
-              "round 3" in rtext3 and f"git diff {'b' * 40}..{tip}" in rtext3)
+              "round 3" in rtext3 and f"git diff {'b' * 40}..{tip}" in rtext3 and vtip3 in rtext3)
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {'a' * 40}\n"})
         check("a fixer is refused on an approval of a design that has since moved", refused("R10-BIG"))
         _publish(str(work), "design-verdict/R10-BIG", {"verdict.md": f"Design review: approve {tip}\n"})
