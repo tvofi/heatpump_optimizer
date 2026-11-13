@@ -477,6 +477,7 @@ def evaluation_self_test(tree, show):
         "B4 paths stand for object": run(edit(lambda c: c["cards"]["C1"].update(object=None, paths=[ME]))) == [],
         "B5 a null value is refused": only(run(tm=edit(lambda c: c[t0].update(value=None), terms)), t0 + " value is not a number"),
         "B5 an enumerator naming no tracked file is refused": only(run(tm=edit(lambda c: c[t0].update(enumerator="by hand"), terms)), t0 + " enumerator names no file"),
+        "B5 an enumerator that is an interpreter and no file is refused": only(run(tm=edit(lambda c: c[t0].update(enumerator="python3 -I"), terms)), t0 + " enumerator names no file"),
         "B5 a dict of numbers is a value": run(tm=edit(lambda c: c[t0].update(value={"a": 1}), terms)) == [],
         "B6 a NO-READ naming nothing that would read it is refused": only(run(tm=edit(lambda c: c[t9].pop("would_read"), terms)), t9 + " NO-READ carries no would_read") and only(run(tm=edit(lambda c: c[t9].pop("builder"), terms)), t9 + " NO-READ carries no builder"),
         "B6 a builder card the evaluation lacks is refused": only(run(tm=edit(lambda c: c[t9].update(builder="card:C9"), terms)), "card:C9 is no card"),
