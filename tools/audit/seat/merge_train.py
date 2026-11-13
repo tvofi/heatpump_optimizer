@@ -2805,7 +2805,9 @@ class Train:
             if carried is None:
                 raise Stop("approve", f"code-owned and {why}")
             return carried
-        self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), self.mandate, "approve")
+        # A bare id reads "under <id>", which budget_raise_gate.MANDATE_CITE does not take as a citation.
+        under = f"mandate comment {self.mandate}" if re.fullmatch(r"\d{6,}", self.mandate) else self.mandate
+        self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), under, "approve")
         return "mandate"
 
     def _agent_approval_body(self, h: str, item: dict, what: str, paths: "list[str]", under: str) -> str:
@@ -4475,11 +4477,9 @@ class Train:
             return f"{s.step}: {s.why}"
         return None
 
-    def add_verdict(self, pr: int, v: str, item: dict) -> "str | None":
-        """`admit_add`'s `verdict` rule, the queue builder's own read: the newest
-        posted verdict on <pr> is verdict/<pr>'s tip and `merge` at <v>
-        (`posted_verdict`). An add naming no comment gets that verdict's id,
-        which the mandate approval quotes; one naming another is refused."""
+    def bus_posted(self, pr: int) -> "tuple[str, str] | str":
+        """`posted_verdict` at verdict/<pr>'s tip on the bus: the add check's read,
+        which `posted-verdict` gives merge_pr.sh."""
         sys.modules.setdefault("merge_train", sys.modules[__name__])  # proof_watch imports the train
         import proof_watch
         allow = proof_watch.verdict_allowlist(ROOT / "tools/pr/app_approve.sh")
@@ -4489,7 +4489,14 @@ class Train:
         if code:
             return f"the verdict bus could not be read: {o.strip()[-160:]}"
         tip = next((ln.split()[0] for ln in o.splitlines() if ln.split() and is_sha(ln.split()[0])), None)
-        got = self.posted_verdict(pr, tip, allow)
+        return self.posted_verdict(pr, tip, allow)
+
+    def add_verdict(self, pr: int, v: str, item: dict) -> "str | None":
+        """`admit_add`'s `verdict` rule, the queue builder's own read: the newest
+        posted verdict on <pr> is verdict/<pr>'s tip and `merge` at <v>
+        (`posted_verdict`). An add naming no comment gets that verdict's id,
+        which the mandate approval quotes; one naming another is refused."""
+        got = self.bus_posted(pr)
         if isinstance(got, str):
             return got
         if got[0] != v:
@@ -5537,6 +5544,16 @@ def _self_test() -> int:
     b = w["approve_body"]
     check("the mandate body names the label, role, paths, verdict comment and head",
           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
+    for mand, cited, name in (("5951564627", {5951564627}, "a bare numeric --mandate id"),
+                              ("https://github.com/o/r/issues/201#issuecomment-5951564627", {5951564627},
+                               "null control: a --mandate given as an issuecomment URL")):
+        w2 = {"approve": owned}
+        go(w2, mandate=mand)
+        b2 = w2["approve_body"]
+        check(f"the code-owned approval body for {name} is read by MANDATE_CITE as that comment id"
+              + (" and is worded `mandate comment <id>`" if mand.isdigit() else ", the label unchanged"),
+              {int(a or c) for a, c in _mandate_gate().MANDATE_CITE.findall(b2)} == cited
+              and (f"under mandate comment {mand}," in b2 if mand.isdigit() else f"under {mand}," in b2))
     rc, lines, calls = go({"approve": owned, "budgets": RAISE_FIXTURE,
                            "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
                           mandate="m")
@@ -10645,6 +10662,10 @@ def _parser() -> argparse.ArgumentParser:
     i.add_argument("--base", help="the base commit (default: git merge-base origin/main <sha>)")
     # The required set a `## Red checks` obligation is judged against
     # (policy_lint.mjs --pr-body): the one owner, read live.
+    pv = sub.add_parser("posted-verdict", parents=[common],
+                        help="`VERDICT <head> <comment id>` (rc 0) when the newest posted verdict on <pr> is "
+                             "verdict/<pr>'s tip and merge (the add check's read); else why not, rc 1")
+    pv.add_argument("pr", type=int)
     sub.add_parser("owed-reds", parents=[common],
                    help="the check names whose red a pull-request body owes an answer, one per line: "
                         "judged(gating_names(required(pr_head=True))); an unreadable ruleset is rc 2")
@@ -10702,6 +10723,13 @@ def main(argv: list[str]) -> int:
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
+    if a.cmd == "posted-verdict":
+        try:
+            got = Train(a.repo, Path("."), None, "", (), a.min_runs).bus_posted(a.pr)
+        except Stop as s:
+            got = f"{s.step}: {s.why}"
+        print(got if isinstance(got, str) else f"VERDICT {got[0]} {got[1]}")
+        return 1 if isinstance(got, str) else 0
     if a.cmd == "owed-reds":
         rc, out = owed_reds(Train(a.repo, Path("."), None, "", (), a.min_runs))
         print(out)
