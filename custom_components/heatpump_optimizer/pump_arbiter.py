@@ -1479,10 +1479,17 @@ def _forget(held: ArbiterState) -> None:
     nothing there, so the entity still reads the optimizer's number, and the
     arm after On must not capture it as the person's (:func:`_arm_space`).
     """
-    record = held.written.get("space_setpoint")
-    own = record[0] if record is not None else held.dropped.get("space_setpoint")
+    own = _own_space_write(held)
     held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None
     held.dropped = {} if own is None else {"space_setpoint": own}
+
+
+def _own_space_write(held: ArbiterState) -> Any:
+    """The arbiter's own last space write, or ``None``: its record, else the
+    one a loop move dropped to be sent (:func:`_note_sent`), which
+    ``held.dropped`` keeps across the run's end and an Off (:func:`_forget`)."""
+    record = held.written.get("space_setpoint")
+    return record[0] if record is not None else held.dropped.get("space_setpoint")
 
 
 def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
@@ -1631,14 +1638,12 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
     """
     armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
     reading = read_setpoint(inp.hass, entity)
-    record = held.written.get("space_setpoint")
-    # A loop move dropped the record to be sent (_note_sent); held.dropped
-    # keeps it across the run's end, which the loop resets on any stop.
-    last = record[0] if record is not None else held.dropped.get("space_setpoint")
+    last = _own_space_write(held)
     own = (armed is None or armed["entity_id"] != entity) and last is not None \
         and reading is not None and not _differs("space_setpoint", reading, last)
-    baseline = _space_target(inp, inp.plan, now, None) if own else None
-    if baseline is not None:
+    baseline = None
+    if own:
+        baseline = _space_target(inp, inp.plan, now, None)
         _LOGGER.info("Pump duty: %s reads %s, the optimizer's own last write; turning the "
                      "optimizer off restores %s instead", entity, reading, baseline)
     held.space_before = reading
