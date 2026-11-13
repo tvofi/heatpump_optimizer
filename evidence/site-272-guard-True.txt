@@ -1,0 +1,157 @@
+
+=== block duty ===
+  ok   BLOCK_HOURS is 2
+  ok   the boost lead stays two hours while both constants are 2
+  ok   a block is live until its own end and not after
+  ok   expiry at the end drops the block and does not settle a block
+  ok   a block dated more than two hours ahead is clamped to two hours
+  ok   a space block replacing a live boost sets the settling tail and clears the boost
+  ok   a DHW block replacing a boost does not set the space settling tail
+  ok   a later boost clears the block
+  ok   no block leaves the action unchanged
+  ok   a space block zeroes space power and not the supply switch
+  ok   a space block does not invent power_normalized
+  ok   a DHW block zeroes hot water
+  ok   no floor is a reason
+  ok   a due or overdue cycle inside the horizon releases DHW
+  ok   a cycle exactly at the horizon does not release
+  ok   a live disinfection hold releases DHW
+  ok   the tank at its minimum inside a window releases DHW
+  ok   the tank at its minimum outside a demand window does not release
+  ok   the room floor releases at the margin and not above it
+  ok   the cold rail releases a space block
+  ok   the cold rail is strict below its threshold
+  ok   a missing room below the rail counts
+  ok   sysid and a stale plan release a block
+  ok   no snapshot is not a reason
+  ok   a due cycle releases the block before the overlay and asks to persist
+  ok   a coordinator with no arbiter inputs has no release reason
+  ok   a non-mapping payload is not a legionella reason
+  ok   a planned demand window releases the tank floor
+  ok   restore keeps a future block and a future boost, not one dated now
+  ok   a block dated at this instant is not still live
+  ok   an already-expired block is not released
+  ok   a live block with no floor is kept
+  ok   turning a block on refreshes
+  ok   a due cycle refuses the on-press
+  ok   a block switch reads the block channel
+  ok   a boost switch does not read the block channel
+  ok   a boost switch reads the boost channel
+  ok   the block switch says why and the boost switch does not
+  ok   a block with no floor publishes no attribute
+  ok   the block press holds the block channel
+  ok   no block leaves the duty, including None
+  ok   a space block turns both into dhw, space into idle, and idle stays idle
+  ok   a DHW block turns both into space
+  ok   the cold lease is strict: a room at the plan is not below it
+  ok   the arbiter releases a block a floor forbids before it serves a duty
+  ok   both channels blocked is idle
+  ok   a commanded or held disinfection cycle writes its temperature, not the configured set-point
+  ok   a configured set-point above the disinfection temperature is never lowered to it
+  ok   every row a cycle step can take writes the cycle's temperature, the idle and baseline rows too
+  ok   the cycle's temperature is the thermal parameters' own answer, not a copy
+  ok   a cycle never lowers the tank: an everyday set-point above the disinfection temperature is the cycle's and the ceiling's
+  ok   an off-step disinfection temperature above the everyday set-point is written on the step at or below it, never above the tank's hard maximum
+  ok   a cycle whose temperature is an off-step everyday set-point (the disinfection temperature at or below it) writes the step at or below it, as 49a45dd8 and the same install's everyday step do
+  ok   an everyday set-point the nearest step rounds up is held below it on a cycle: the tank's hard maximum is the everyday set-point there (the everyday step's own nearest write is main's)
+  ok   no no-cycle write exceeds the charge limit (dhw_max_temp), the cycle enabled and not running or disabled, over every step size and everyday set-point on and off the step
+  ok   an off-step everyday set-point is written on the step at or below it, never rounded up (everyday 58, step 5: 55, not 60; everyday 60.7, step 1: 60), the cycle idle or disabled
+  ok   a charge limit below the entity's minimum writes the entity's minimum, never a value it refuses
+  ok   the hot-water repair's Fix never exceeds the tank's hard maximum it is judged against, over every step size and pair, and an off-step floor's repair stands down at the step below it
+  ok   a disinfection temperature above 70 degC is written at the tank's 70 degC hard maximum
+  ok   no cycle write exceeds the tank's hard maximum, over every step size and the disinfection temperature below, at and above the everyday set-point, on and off the step
+  ok   a disinfection temperature above the entity's range stays bounded at its maximum
+  ok   the space-only gate stays a gate on a booked step, but a held cycle turns it into Heating + DHW
+  ok   null control: a disabled cycle writes the everyday set-point on every row and booking
+  ok   a combi store at or under the potable limit runs no cycle: a booked or held step writes the everyday set-point, unless the cycle is forced (#3398's predicate, read through the cycle's owner)
+  ok   null control: an everyday set-point at or above the disinfection temperature is written as is
+  ok   null control: no hot-water set-point entity is no hot-water write on any row
+  ok   the arbiter's own everyday write raises no disinfection-floor repair: it writes the cycle itself
+  ok   a person's value beside the arbiter's write still raises the repair, its Fix on the floor
+  ok   null control: with no arbiter write the pump's own set-point must still permit the cycle
+  ok   null control: a disabled cycle and an everyday set-point at the disinfection temperature raise nothing
+  ok   a hysteresis in K reads as it stands
+  ok   a hysteresis in degF is scaled by 5/9, not offset
+  ok   a hysteresis in degC reads as it stands
+  ok   a hysteresis with no unit is taken as K
+  ok   the bounds of the hysteresis range, 20 K and 0 K, are readings
+  ok   a hysteresis outside 0 to 20 K, unavailable, in a non-temperature unit, unset or unknown is no reading
+  ok   a heating hysteresis above the configured lift is the lift
+  ok   a heating hysteresis at or below the configured lift, or none, leaves the configured lift
+  ok   null control: no hysteresis gives configured_flow_min_lift_k exactly
+  ok   the start temperature is the target less the hysteresis
+  ok   no target, or a hysteresis that is missing, zero or negative, is no start temperature
+  ok   a hysteresis under one kelvin is still a start condition
+  ok   precondition: the cycle is 60 over a 55 set-point, and absent where disabled
+  ok   the step target is the everyday set-point, or the cycle's on a cycle step
+  ok   null control: with no cycle active a cycle step holds the everyday set-point
+  ok   each step's start temperature is its own target less the hysteresis, the cycle step the cycle's
+  ok   a cycle on the first step is judged against its own target; one past the horizon moves no step
+  ok   with no or zero hysteresis no step has a start temperature
+  ok   the arbiter writes dhw_step_target_c: the everyday set-point with no cycle booked
+  ok   the arbiter writes dhw_step_target_c: the cycle's temperature on a booked legionella step
+  ok   the everyday step target never exceeds the charge limit (dhw_max_temp, 70 over a 72 set-point)
+  ok   the cycle's step target never exceeds the tank's hard maximum (70 over a 72 disinfection temperature)
+  ok   the arbiter's hot-water write is dhw_step_target_c on the entity's grid, over every step size, set-point, disinfection temperature and booking
+  ok   _dhw_write states no value and no bound of its own: it names none of the four parameters
+  ok   a set-point entity with no state has no grid, and the target is then the one before any step
+  ok   a grid holds a write at its caller's floor, which is no part of the entity's range, and at the entity's minimum where that is higher
+  ok   precondition: an everyday 58 on a 5 degC step is written 55, its cycle of 62 written 60
+  ok   on a stepped entity each step's start temperature is the written target less the hysteresis
+  ok   null control: with no set-point entity the same parameters start below 58 and 62 less the hysteresis
+  ok   the ledger's start temperature on the stepped entity is the planner's
+  ok   a step is startable where it opens on a tank below its start temperature or follows a charge under way
+  ok   a tank exactly at the start temperature, not charging, does not start
+  ok   the step after a charge kept at the first step continues it; the kept step itself is not added to
+  ok   a charge begun after the first step on a warm tank is one the pump does not start: neither its steps nor the step after it are startable
+  ok   a charge the pump starts carries on: every step of it after the first, and the step after it
+  ok   a charge the pump did not start is under way from the step that opens below the start temperature
+  ok   with no start condition every step is startable
+  FAIL a charge begun above its start temperature is dropped whole; the first step and a cooled tank's run are kept  [predicate false]
+  FAIL a tank exactly at the start temperature does not start  [predicate false]
+  FAIL a run is judged against its own step's start temperature (a disinfection step's is higher)  [predicate false]
+  ok   dropping unstartable charges does not mutate its input
+  FAIL a run that begins at the second step on a warm tank is dropped  [predicate false]
+  ok   a run at the first step is kept on a warm tank, with nothing planned at the horizon's end
+  ok   with no start temperature the repair's own answer stands and no trajectory is read
+  ok   a repair that keeps re-placing the unstartable plan still leaves a plan with none, in bounded rounds
+  FAIL a repair that changes nothing ends the loop: one round to drop, one to see the plan stand  [predicate false]
+  ok   a repair that never settles is asked the documented eight rounds, and what leaves still holds no unstartable charge
+  ok   an identity repair leaves the dropped plan
+  ok   a step the capacity clamp leaves below a runnable block is zeroed; one on the block, to the 1e-9 the rule allows, is kept
+  ok   precondition: with no hysteresis the plan begins a charge on a tank at or above 51 degC
+  FAIL with a 4 K hysteresis no planned charge after step 0 begins at or above 51 degC  [predicate false]
+  ok   null control: a zero hysteresis plans exactly as none
+  FAIL what the start condition bars is re-bought where the pump starts: the tank is no further under its minimum with a 4 K hysteresis than with none  [predicate false]
+  ok   precondition: judged against the unstepped 58, the plan begins a charge at or above the 51 degC a 5 degC entity's pump starts below
+  FAIL handed the 5 degC entity's grid, no planned charge after step 0 begins at or above 51 degC  [predicate false]
+  ok   a day with hot water pinned on at every step is still held to the tank's charge limit of 55 degC
+  ok   the ledger's start temperature is the written set-point less the hysteresis
+  ok   the ledger's start temperature on a booked cycle step is the cycle's less the hysteresis
+  ok   null control: with no hysteresis read the ledger has no start temperature
+  ok   an idle hot water step on a tank above the start temperature is not-startable
+  ok   an idle hot water step on a tank exactly at the start temperature is not-startable
+  ok   an idle hot water step on a tank below the start temperature is idle-instead
+  ok   an idle hot water step with no start temperature, or a row without the key, is idle-instead
+  ok   a planned both step idle above the start temperature is idle-instead
+  ok   a hot water step that ran the space pump on a warm tank is space-instead
+  ok   with no set-point entity to write, the ledger's start is the plan step's target less the hysteresis
+  ok   precondition: the floor write is the return plus the configured lift
+  ok   a heating hysteresis above the lift moves the floor write to return + hysteresis
+  ok   null control: a hysteresis below the lift, or none, writes what a state without the attribute writes
+  ok   precondition: the census finds a call of modulation_floor_flow_c outside thermal_model
+  ok   configured_flow_min_lift_k is referenced by no module but its owner
+  ok   every floor call outside thermal_model takes its lift from start_flow_min_lift_k
+  ok   a minimum above the start temperature raises dhw_minimum_above_start with its figures
+  ok   the start temperature is the everyday target's even with a disinfection cycle active
+  ok   the set-point check's own entry raises it: evaluate() reaches the start notice
+  ok   a minimum below the start temperature raises nothing
+  ok   a minimum exactly at the start temperature raises nothing
+  ok   with no hysteresis entity configured a minimum of 52 raises nothing
+  ok   with hot water disabled no minimum raises it, whatever the hysteresis reads
+  ok   the notice judges the written target: an everyday 58 on a 5 degC step starts below 51, not 54
+  ok   the coordinator's input read puts both hysteresis sensors into the state
+  ok   null control: with neither entity configured both state fields are None
+  ok   the coordinator's input read puts the hot-water set-point entity's grid into the state
+
+8 of 153 BLOCK DUTY CHECKS FAILED

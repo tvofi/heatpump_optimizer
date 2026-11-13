@@ -1,5 +1,5 @@
-a63a75b7251f97638e8ae3128859489a04c7aac8  dev/audit/harnesses/r10_dhw_start_hysteresis.py
-### /root/MB
+a63a75b7251f97638e8ae3128859489a04c7aac8  /tmp/claude-0/-home-user-heatpump-optimizer/143e3d94-c703-5f79-9f30-c8b437ff1023/scratchpad/wt/dev/audit/harnesses/r10_dhw_start_hysteresis.py
+### tree=mb args: 
 RESULT hysteresis=unset
 RESULT runs_not_at_step0=114 count
 RESULT runs_at_or_above_minus_2k=53 count
@@ -12,7 +12,8 @@ RESULT floor_deficit_k_steps=805.30 K*steps
 RESULT dhw_cost=120.13 price-units
 RESULT plan_sha1=4743e9638f485f3087887be84ff951ce2886cb21
 RESULT repair_rounds_max=none
-### .
+rc=0
+### tree=wt args: 
 RESULT hysteresis=unset
 RESULT runs_not_at_step0=114 count
 RESULT runs_at_or_above_minus_2k=53 count
@@ -25,7 +26,8 @@ RESULT floor_deficit_k_steps=805.30 K*steps
 RESULT dhw_cost=120.13 price-units
 RESULT plan_sha1=4743e9638f485f3087887be84ff951ce2886cb21
 RESULT repair_rounds_max=none
-### . --hysteresis 0
+rc=0
+### tree=wt args: --hysteresis 0
 RESULT hysteresis=0
 RESULT runs_not_at_step0=114 count
 RESULT runs_at_or_above_minus_2k=53 count
@@ -38,7 +40,8 @@ RESULT floor_deficit_k_steps=805.30 K*steps
 RESULT dhw_cost=120.13 price-units
 RESULT plan_sha1=4743e9638f485f3087887be84ff951ce2886cb21
 RESULT repair_rounds_max=none
-### . --hysteresis 4
+rc=0
+### tree=wt args: --hysteresis 4
 RESULT hysteresis=4
 RESULT runs_not_at_step0=84 count
 RESULT runs_at_or_above_minus_2k=0 count
@@ -51,33 +54,8 @@ RESULT floor_deficit_k_steps=751.01 K*steps
 RESULT dhw_cost=122.35 price-units
 RESULT plan_sha1=be1691057cf9e80ad2ba54a659addd10556493bc
 RESULT repair_rounds_max=3 of 26 placements
-### . --hysteresis 2
-RESULT hysteresis=2
-RESULT runs_not_at_step0=93 count
-RESULT runs_at_or_above_minus_2k=0 count
-RESULT runs_at_or_above_minus_4k=43 count
-RESULT runs_at_or_above_minus_6k=44 count
-RESULT kwh_planned=97.35 kWh
-RESULT kwh_at_or_above_minus_4k=12.73 kWh
-RESULT write_to_start_max_c=57.0 degC
-RESULT floor_deficit_k_steps=798.83 K*steps
-RESULT dhw_cost=120.85 price-units
-RESULT plan_sha1=cae511be1ac4be5dc533130ab134cc51037cc81c
-RESULT repair_rounds_max=3 of 28 placements
-### . --hysteresis 1
-RESULT hysteresis=1
-RESULT runs_not_at_step0=107 count
-RESULT runs_at_or_above_minus_2k=45 count
-RESULT runs_at_or_above_minus_4k=57 count
-RESULT runs_at_or_above_minus_6k=58 count
-RESULT kwh_planned=97.81 kWh
-RESULT kwh_at_or_above_minus_4k=13.55 kWh
-RESULT write_to_start_max_c=58.0 degC
-RESULT floor_deficit_k_steps=708.95 K*steps
-RESULT dhw_cost=120.84 price-units
-RESULT plan_sha1=0bad08c5739fc81c4bf4151c12a6da10c53e7755
-RESULT repair_rounds_max=4 of 28 placements
-### /root/MB --hysteresis 4
+rc=0
+### tree=mb args: --hysteresis 4
 RESULT hysteresis=unsupported
 RESULT runs_not_at_step0=114 count
 RESULT runs_at_or_above_minus_2k=53 count
@@ -90,7 +68,36 @@ RESULT floor_deficit_k_steps=805.30 K*steps
 RESULT dhw_cost=120.13 price-units
 RESULT plan_sha1=4743e9638f485f3087887be84ff951ce2886cb21
 RESULT repair_rounds_max=none
-### . --hysteresis 4 --setpoint 58 --step 5
+rc=0
+### tree=wt args: --hysteresis 2
+RESULT hysteresis=2
+RESULT runs_not_at_step0=93 count
+RESULT runs_at_or_above_minus_2k=0 count
+RESULT runs_at_or_above_minus_4k=43 count
+RESULT runs_at_or_above_minus_6k=44 count
+RESULT kwh_planned=97.35 kWh
+RESULT kwh_at_or_above_minus_4k=12.73 kWh
+RESULT write_to_start_max_c=57.0 degC
+RESULT floor_deficit_k_steps=798.83 K*steps
+RESULT dhw_cost=120.85 price-units
+RESULT plan_sha1=cae511be1ac4be5dc533130ab134cc51037cc81c
+RESULT repair_rounds_max=3 of 28 placements
+rc=0
+### tree=wt args: --hysteresis 1
+RESULT hysteresis=1
+RESULT runs_not_at_step0=107 count
+RESULT runs_at_or_above_minus_2k=45 count
+RESULT runs_at_or_above_minus_4k=57 count
+RESULT runs_at_or_above_minus_6k=58 count
+RESULT kwh_planned=97.81 kWh
+RESULT kwh_at_or_above_minus_4k=13.55 kWh
+RESULT write_to_start_max_c=58.0 degC
+RESULT floor_deficit_k_steps=708.95 K*steps
+RESULT dhw_cost=120.84 price-units
+RESULT plan_sha1=0bad08c5739fc81c4bf4151c12a6da10c53e7755
+RESULT repair_rounds_max=4 of 28 placements
+rc=0
+### tree=wt args: --hysteresis 4 --setpoint 58 --step 5
 RESULT hysteresis=4
 RESULT setpoint=58 step=5 written=55 degC
 RESULT runs_not_at_step0=63 count
@@ -104,35 +111,8 @@ RESULT floor_deficit_k_steps=425.11 K*steps
 RESULT dhw_cost=125.17 price-units
 RESULT plan_sha1=1fc6f15033a631bb8a956633e4856dcee23c3e65
 RESULT repair_rounds_max=3 of 26 placements
-### /root/R1 --hysteresis 4 --setpoint 58 --step 5
-RESULT hysteresis=4
-RESULT setpoint=58 step=5 unsupported written=55 degC
-RESULT runs_not_at_step0=57 count
-RESULT runs_at_or_above_minus_2k=12 count
-RESULT runs_at_or_above_minus_4k=13 count
-RESULT runs_at_or_above_minus_6k=15 count
-RESULT kwh_planned=105.50 kWh
-RESULT kwh_at_or_above_minus_4k=8.40 kWh
-RESULT write_to_start_max_c=57.7 degC
-RESULT floor_deficit_k_steps=389.46 K*steps
-RESULT dhw_cost=123.18 price-units
-RESULT plan_sha1=0f77b29016e3078cad3a8181ac9654f8f946edd4
-RESULT repair_rounds_max=2 of 27 placements
-### . --hysteresis 4 --setpoint 58
-RESULT hysteresis=4
-RESULT setpoint=58 step=none written=58 degC
-RESULT runs_not_at_step0=57 count
-RESULT runs_at_or_above_minus_2k=0 count
-RESULT runs_at_or_above_minus_4k=0 count
-RESULT runs_at_or_above_minus_6k=12 count
-RESULT kwh_planned=105.50 kWh
-RESULT kwh_at_or_above_minus_4k=0.00 kWh
-RESULT write_to_start_max_c=none
-RESULT floor_deficit_k_steps=389.46 K*steps
-RESULT dhw_cost=123.18 price-units
-RESULT plan_sha1=0f77b29016e3078cad3a8181ac9654f8f946edd4
-RESULT repair_rounds_max=2 of 27 placements
-### . --setpoint 58 --step 5
+rc=0
+### tree=wt args: --setpoint 58 --step 5
 RESULT hysteresis=unset
 RESULT setpoint=58 step=5 written=55 degC
 RESULT runs_not_at_step0=82 count
@@ -146,21 +126,8 @@ RESULT floor_deficit_k_steps=578.95 K*steps
 RESULT dhw_cost=123.25 price-units
 RESULT plan_sha1=c880bcc82f43b2ffa313f6627ef298b6c786c8e0
 RESULT repair_rounds_max=none
-### . --hysteresis 0 --setpoint 58 --step 5
-RESULT hysteresis=0
-RESULT setpoint=58 step=5 written=55 degC
-RESULT runs_not_at_step0=82 count
-RESULT runs_at_or_above_minus_2k=37 count
-RESULT runs_at_or_above_minus_4k=38 count
-RESULT runs_at_or_above_minus_6k=39 count
-RESULT kwh_planned=105.53 kWh
-RESULT kwh_at_or_above_minus_4k=8.89 kWh
-RESULT write_to_start_max_c=61.5 degC
-RESULT floor_deficit_k_steps=578.95 K*steps
-RESULT dhw_cost=123.25 price-units
-RESULT plan_sha1=c880bcc82f43b2ffa313f6627ef298b6c786c8e0
-RESULT repair_rounds_max=none
-### /root/MB --setpoint 58 --step 5
+rc=0
+### tree=mb args: --setpoint 58 --step 5
 RESULT hysteresis=unset
 RESULT setpoint=58 step=5 unsupported written=55 degC
 RESULT runs_not_at_step0=82 count
@@ -174,30 +141,4 @@ RESULT floor_deficit_k_steps=578.95 K*steps
 RESULT dhw_cost=123.25 price-units
 RESULT plan_sha1=c880bcc82f43b2ffa313f6627ef298b6c786c8e0
 RESULT repair_rounds_max=none
-### . --hysteresis 6
-RESULT hysteresis=6
-RESULT runs_not_at_step0=85 count
-RESULT runs_at_or_above_minus_2k=0 count
-RESULT runs_at_or_above_minus_4k=0 count
-RESULT runs_at_or_above_minus_6k=0 count
-RESULT kwh_planned=96.91 kWh
-RESULT kwh_at_or_above_minus_4k=0.00 kWh
-RESULT write_to_start_max_c=none
-RESULT floor_deficit_k_steps=733.54 K*steps
-RESULT dhw_cost=126.99 price-units
-RESULT plan_sha1=c82a81ff8969e80cfaed039e8af02a94ac4f14a5
-RESULT repair_rounds_max=2 of 27 placements
-### . --hysteresis 10
-RESULT hysteresis=10
-RESULT runs_not_at_step0=59 count
-RESULT runs_at_or_above_minus_2k=0 count
-RESULT runs_at_or_above_minus_4k=0 count
-RESULT runs_at_or_above_minus_6k=0 count
-RESULT kwh_planned=92.99 kWh
-RESULT kwh_at_or_above_minus_4k=0.00 kWh
-RESULT write_to_start_max_c=none
-RESULT floor_deficit_k_steps=870.55 K*steps
-RESULT dhw_cost=123.95 price-units
-RESULT plan_sha1=1060bda538bf29247d9ea73b0a6357d759949662
-RESULT repair_rounds_max=4 of 27 placements
-DONE
+rc=0
