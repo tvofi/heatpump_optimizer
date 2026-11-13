@@ -1,0 +1,12 @@
+SURVIVED NULL
+KILLED B-drop-ungated
+KILLED B-add-root-cause-unanswered
+KILLED B-add-preflight-mismatch
+KILLED B-add-harness
+KILLED B-exempt-off
+KILLED B-rekeyed-lookup-off
+KILLED B-rekeyed-numeric-guard
+KILLED B-rekeyed-first-not-last
+KILLED B-rekey-call-off
+KILLED B-pr-numeric-off
+rc=2

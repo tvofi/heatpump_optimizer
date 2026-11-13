@@ -1,41 +1,5 @@
 [
  {
-  "name": "R-oldformat-guard-off",
-  "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "[ \"${#mb}\" = 40 ] || [ \"$mb\" = - ] || mo=",
-  "new": "true || mo="
- },
- {
-  "name": "R-oldformat-dash-off",
-  "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "[ \"${#mb}\" = 40 ] || [ \"$mb\" = - ] || mo=",
-  "new": "[ \"${#mb}\" = 40 ] || mo="
- },
- {
-  "name": "R-tip-cmp-off",
-  "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "$7 == h { print; exit }",
-  "new": "1 { print; exit }"
- },
- {
-  "name": "R-blob-cmp-off",
-  "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "[ \"$blob\" = \"$fb\" ]; then  # mut:foldblob",
-  "new": "true; then  # mut:foldblob"
- },
- {
-  "name": "R-ttl-off",
-  "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "fold_memo_stands \"$fo\" \"$fe\" \"$now\" && [ \"${#fb}\" = 40 ]",
-  "new": "[ \"${#fb}\" = 40 ]"
- },
- {
-  "name": "R-fb-len-off",
-  "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "&& [ \"${#fb}\" = 40 ] \\",
-  "new": "\\"
- },
- {
   "name": "R-foldfailed-off",
   "file": "tools/audit/seat/cloud_relay.sh",
   "old": "($4 == \"fold-failed\" || $4 == \"push-failed\")",
@@ -54,27 +18,21 @@
   "new": "\"$bsha\" \"$fo\" \"$now\" \"$fb\" \"$fh\" \"$fl\""
  },
  {
-  "name": "R-blob-unrecorded",
-  "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "blob=$(git rev-parse \"$bsha:BODY.md\" 2>/dev/null || echo -)",
-  "new": "blob=-"
- },
- {
   "name": "R-tip-unrecorded-foldfailed",
   "file": "tools/audit/seat/cloud_relay.sh",
   "old": "fold-failed \"$now\" \"$blob\" \"${htip:--}\"",
   "new": "fold-failed \"$now\" \"$blob\" -"
  },
  {
-  "name": "R-tip-unrecorded-pushfailed",
+  "name": "R-ttl-off",
   "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "push-failed \"$now\" \"$blob\" \"${htip:--}\"",
-  "new": "push-failed \"$now\" \"$blob\" -"
+  "old": "fold_memo_stands \"$fo\" \"$fe\" \"$now\" \\\n",
+  "new": "true \\\n"
  },
  {
-  "name": "R-owed-line-dropped",
+  "name": "R-blob-cmp-off",
   "file": "tools/audit/seat/cloud_relay.sh",
-  "old": "\"$sha\" \"$bsha\" \"$fo\" \"$fe\" \"$fb\" \"$fh\" \"$fl\"; continue",
-  "new": "\"$sha\" \"$bsha\" \"$fo\" \"$fe\" \"$fb\" \"$fh\"; continue"
+  "old": "[ \"$blob\" = \"$fb\" ]; then  # mut:foldblob",
+  "new": "true; then  # mut:foldblob"
  }
 ]

@@ -1,2 +1,0 @@
-  ERROR   [budgets] tools/audit/briefs/fixer.md: about 5229 tokens across its lines exceeds its cap of 5216 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
-TOTAL: 1 error(s) across 51 policy file(s)
