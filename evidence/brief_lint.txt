@@ -1,0 +1,4 @@
+
+TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
+
+PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean
