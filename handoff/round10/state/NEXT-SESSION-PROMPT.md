@@ -14,10 +14,10 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-USER-DOCS-VERIFY (stage in-progress, branch `handoff/r10-user-docs-verify`): `git fetch origin handoff/r10-user-docs-verify && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-USER-DOCS-VERIFY (stage carries-open, branch `handoff/r10-user-docs-verify`): `git fetch origin handoff/r10-user-docs-verify && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CI-PRIORITY-PAUSE (stage in-progress, branch `handoff/r10-ci-priority-pause`): `git fetch origin handoff/r10-ci-priority-pause && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-ROUND-PLAYBOOK-FINAL (stage in-progress, branch `handoff/r10-round-playbook-final`): `git fetch origin handoff/r10-round-playbook-final && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ROUND-PLAYBOOK-FINAL (stage carries-open, branch `handoff/r10-round-playbook-final`): `git fetch origin handoff/r10-round-playbook-final && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SEAT-SCRIPT-OUTPUT (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -30,7 +30,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SUITE-ENV-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-CARD-COLLAPSE (stage in-progress, branch `fix/r10-card-collapse`): `git fetch origin fix/r10-card-collapse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-PREP (stage carries-open, branch `fix/r10-closeout-prep`): `git fetch origin fix/r10-closeout-prep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ECL110-MQTT-OFF-NEUTRAL (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -43,14 +42,14 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-TICK-SELFTEST-CHECKOUT (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-LEGACY-CONTROL-DATA (stage in-progress, branch `fix/r10-hotfix-legacy-control-data`): `git fetch origin fix/r10-hotfix-legacy-control-data && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-LEGACY-CONTROL-DATA (stage carries-open, branch `fix/r10-hotfix-legacy-control-data`): `git fetch origin fix/r10-hotfix-legacy-control-data && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-MACOS-SELFTEST-LANE (stage in-progress, branch `fix/r10-hotfix-macos-selftest-lane`): `git fetch origin fix/r10-hotfix-macos-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOTFIX-TRAIN-CONTEXT-PAGES (stage in-progress, branch `fix/r10-hotfix-train-context-pages`): `git fetch origin fix/r10-hotfix-train-context-pages && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-VALVE-TARGET-LABEL (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SELFTEST-SCOPE-RERECORD (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-UPDATEPR-FIGURE-REFRESH (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DUTY-SWITCH-PLANNER-PRICE, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE, R10-HOTFIX-CARRY-1412-CONTROL, R10-HOTFIX-LEGACY-CONTROL-DATA, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-OPENER-REFUSALS, R10-HOTFIX-SELFTEST-SCOPE-RERECORD, R10-HOTFIX-TICK-SELFTEST-CHECKOUT, R10-HOTFIX-TRAIN-CONTEXT-PAGES, R10-HOTFIX-UPDATEPR-FIGURE-REFRESH, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-OUTSIDE-VALVE-TARGET-LABEL, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-CARD-HEALTH-TEXT, R10-REVIEW-DISPATCH-RESIDUE, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DUTY-SWITCH-PLANNER-PRICE, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE, R10-HOTFIX-CARRY-1412-CONTROL, R10-HOTFIX-LEGACY-CONTROL-DATA, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-OPENER-REFUSALS, R10-HOTFIX-SELFTEST-SCOPE-RERECORD, R10-HOTFIX-TICK-SELFTEST-CHECKOUT, R10-HOTFIX-UPDATEPR-FIGURE-REFRESH, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-OUTSIDE-VALVE-TARGET-LABEL, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-CARD-HEALTH-TEXT, R10-REVIEW-DISPATCH-RESIDUE, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE
 
 ## Resume steps
 
