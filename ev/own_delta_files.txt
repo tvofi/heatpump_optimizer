@@ -1,0 +1,7 @@
+CHANGED .claude/rules/defect-root-cause.md
+CHANGED .cursor/rules/defect-root-cause.mdc
+CHANGED dev/governance/roles/fix-review.md
+CHANGED dev/governance/rules/defect-root-cause.md
+CHANGED tests/gate_lock.py
+CHANGED tools/audit/seat/bus.sh
+44
