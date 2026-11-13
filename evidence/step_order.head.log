@@ -1,0 +1,22 @@
+## trees
+261d1db301056411d8f205b3edc51255a1ee3d7b
+261d1db301056411d8f205b3edc51255a1ee3d7b
+## sorted-line diff of governance.yml R vs HO
+rc=0
+## governance.yml head vs HO
+(empty = same)
+## HEAD before
+a98d895577770cd84ad8baa3114d6fbfb895a455
+ad95665ea3162167a93b92879c618db5c3a18c93
+## outside
+outside self-test: 212 checks, 0 failed
+rc=0
+## HEAD after outside
+a98d895577770cd84ad8baa3114d6fbfb895a455
+## tick_loop
+  ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+tick_loop self-test: 30 checks, 0 failed
+rc=0
+## HEAD after tick_loop
+ad95665ea3162167a93b92879c618db5c3a18c93
+ls: cannot access 'tools/pr/outside.py': No such file or directory

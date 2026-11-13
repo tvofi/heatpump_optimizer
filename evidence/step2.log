@@ -1,0 +1,39 @@
+review_packet: REFUSE structure: tests/structure.py refuses the head merged with main: head does not merge cleanly with origin/main: ['100644 73c05f681508d309b106218fc01f838ab66e0795 1\ttools/pr/ci_predict.py', '100644 d0c6b0cf8f131fc35b5021de6c31a36aa315806e 2\ttools/pr/ci_predict.py']
+review_packet: REFUSE red-unanswered: concluded red check `pr-contract / pr-contract` is not named in ## Red checks
+review_packet: REFUSE required-red: required context `gate` concluded failure at a98d895577770cd84ad8baa3114d6fbfb895a455 (merge_train.py classify --pr reads RED pending: none red: gate)
+review-packet: ~/review-packet.md
+packet rc=0
+RED a98d895577770cd84ad8baa3114d6fbfb895a455 pending: none red: gate
+classify rc=1
+arch-score / arch-score
+budget-raise-gate / budget-raise-gate
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+gate
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+LEDGER-MERGE: resolved tests/closures.json
+e1989d7d05850ecf34546293936bc240f0ad5951
+100644 73c05f681508d309b106218fc01f838ab66e0795 1	tools/pr/ci_predict.py
+100644 d0c6b0cf8f131fc35b5021de6c31a36aa315806e 2	tools/pr/ci_predict.py
+100644 6ab068ddf6ff73799966006057aafb681ea9cbbd 3	tools/pr/ci_predict.py
+
+Auto-merging tests/closures.json
+Auto-merging tools/pr/ci_predict.py
+CONFLICT (content): Merge conflict in tools/pr/ci_predict.py
+mergetree rc=1
