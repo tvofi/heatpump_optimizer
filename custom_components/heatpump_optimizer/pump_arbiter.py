@@ -131,8 +131,10 @@ the planned duty against what the pump did, read from what the integration
 already reads -- the measured electrical draw (running or not), the mode
 select (DHW only) and the tank temperature (a rise of :data:`TANK_RISE_C`
 over the step is hot water). Each step is ``delivered``,
-``space-instead``, ``dhw-instead``, ``idle-instead``, ``unknown`` (no power
-meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
+``space-instead``, ``dhw-instead``, ``idle-instead``, ``not-startable`` (a
+hot-water step left idle on a tank at or above the pump's own start
+temperature, the step's target less ``dhw_hysteresis_entity``), ``unknown``
+(no power meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
 reads as hot water; a big draw can hide a tank rise. The last
 :func:`log_steps` steps and their counts are in the diagnostics; the ledger
 is not persisted. It is what decides whether control is worth turning on:
@@ -187,7 +189,8 @@ from .freq_control import defrost_interval, resolve_reading
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, state_power_kw, write_setpoint_c,
+    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c, state_power_kw,
+    write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
@@ -198,7 +201,9 @@ from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
 from .thermal_model import (
     configured_flow_heat_c,
-    configured_flow_min_lift_k,
+    dhw_start_below_c,
+    dhw_step_target_c,
+    start_flow_min_lift_k,
     FLOW_MIN_LIFT_K,
     flow_setpoint_driven,
     flow_setpoint_for_level,
@@ -586,29 +591,17 @@ def _bounded(
     lo: float | None = None,
     hi: float | None = None,
 ) -> float | None:
-    """``value`` (degC) inside the slot entity's own range, on its step.
-
-    ``quantise_setpoint_c`` rounds it in the entity's unit: ``rounding``
-    for the value itself, ``lo`` (a heating floor) up and ``hi`` (a
-    ceiling) down, the entity's own minimum up and maximum down.
-    """
-    if value is None or _slot_state(inp, slot) is None:
+    """``value`` (degC) inside the slot entity's own range, on its step
+    (``inputs.SetpointGrid.bounded``); ``None`` for no value or no entity state."""
+    grid = _grid(inp, slot)
+    if value is None or grid is None:
         return None
-    entity = _entities(inp.config)[slot]
-    low, high = setpoint_range_c(inp.hass, entity)
-    value = max(value, floor, low if low is not None else floor)
-    value = min(value, high) if high is not None else value
-    lows = [v for v in (lo, low) if v is not None]
-    highs = [high] if high is not None else []
-    # The entity's range outranks a caller's ceiling: a write under its
-    # minimum on the step is refused, so a ceiling below that is dropped and
-    # the minimum, rounded up onto the step, holds.
-    if hi is not None and (low is None or hi >= quantise_setpoint_c(inp.hass, entity, low, rounding="up")):
-        highs.append(hi)
-    return quantise_setpoint_c(
-        inp.hass, entity, value, rounding=rounding,
-        lo_c=max(lows) if lows else None, hi_c=min(highs) if highs else None,
-    )
+    return grid.bounded(value, floor, rounding=rounding, lo=lo, hi=hi)
+
+
+def _grid(inp: ArbiterInputs, slot: str) -> SetpointGrid | None:
+    """The grid a write to the slot's entity lands on, ``None`` with none."""
+    return setpoint_grid(inp.hass, _entities(inp.config)[slot])
 
 
 def _planned_room(
@@ -877,7 +870,8 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
     2026-09-26). A step that heats writes a flow that follows the planned
     level: :data:`FLOW_HEAT_C` (or the configured ceiling, ``flow_heat_c``)
     at full power, sliding to the measured inlet plus a minimum lift
-    (``flow_min_lift_k``, else ``thermal_model.FLOW_MIN_LIFT_K``) at the
+    (``thermal_model.start_flow_min_lift_k``: ``flow_min_lift_k``, never
+    below the pump's own heating start hysteresis where one is read) at the
     modulation floor, so the pump's own water thermostat can realize a
     lower level.
     With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`, in
@@ -893,7 +887,8 @@ def _flow_target(inp: ArbiterInputs, duty: str | None, now: datetime) -> float |
         p_min, p_max = _band_kw(inp)
         heat_c = _heat_ceiling_c(inp.config)
         floor_c = _or_hold(modulation_floor_flow_c(
-            _flow_inlet_c(inp), _gate_c(inp), configured_flow_min_lift_k(inp.config),
+            _flow_inlet_c(inp), _gate_c(inp),
+            start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
         ), inp.config)
         return _bounded(
             inp,
@@ -1184,26 +1179,22 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
 def _dhw_write(inp: ArbiterInputs) -> float | None:
     """The hot-water set-point this step holds, °C on the entity's step.
 
-    A cycle runs while the plan's step books hot water for it (``dhw_reason``
-    legionella) or the integration holds the pump's disinfection switch on;
-    its temperature is the thermal parameters' (``dhw_cycle_temp``, the higher
-    of the everyday set-point and the disinfection temperature), on the
-    entity's step at or below the tank's hard maximum (``dhw_hard_max_temp``,
-    that temperature capped at 70 °C), which no write exceeds: an off-step
-    target is held a step below it (everyday 57, disinfection 50, step 5:
-    55, not 60). No cycle, the everyday set-point is written on the step
-    at or below the charge limit (``dhw_max_temp``): rounding it up would
-    hold the tank above the user's own limit for good (everyday 58, step 5:
-    55, not 60). Holding the everyday set-point through a cycle
-    stopped the pump's own thermostat short of the cycle's target (2026-11-01:
-    60 °C planned, 55 °C written back within a minute).
+    The step's target (:func:`_dhw_target`); ``None`` with no entity state
+    to write it to.
     """
-    everyday = float(inp.params.dhw_setpoint)
-    booked = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA
-    cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None
-    if cycle is None:
-        return _bounded(inp, "dhw_setpoint", everyday, hi=inp.params.dhw_max_temp)
-    return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)
+    return None if _grid(inp, "dhw_setpoint") is None else _dhw_target(inp)
+
+
+def _dhw_target(inp: ArbiterInputs) -> float:
+    """This step's hot-water target, °C (``thermal_model.dhw_step_target_c``).
+
+    A cycle step is one the plan books hot water on for the cycle
+    (``dhw_reason`` legionella) or one on which the integration holds the
+    pump's disinfection switch on; the target is on the set-point entity's
+    grid, or with no entity the one the step holds before any.
+    """
+    cycle = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA or inp.disinfecting
+    return dhw_step_target_c(inp.params, cycle, _grid(inp, "dhw_setpoint"))
 
 
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
@@ -1686,6 +1677,7 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
             held.log.append(_verdict(row, tank))
         held.step = row = {"start": start, "planned": duty, "plan": inp.plan, "tank": tank,
                            "measured": False, "ran": False, "dhw_mode": False}
+        row["start_below"] = _dhw_start_below_c(inp)
     elif row["plan"] is not inp.plan:
         row["planned"], row["plan"] = duty, inp.plan
     power = inp.measured_power_kw
@@ -1694,6 +1686,33 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
         row["ran"] = row["ran"] or float(power) >= _ran_kw(inp)
     mode = pump_mode.resolve(getattr(_slot_state(inp, "mode"), "state", None))
     row["dhw_mode"] = row["dhw_mode"] or mode == pump_mode.MODE_DHW
+
+
+def _dhw_start_below_c(inp: ArbiterInputs) -> float | None:
+    """The tank temperature below which the pump starts this step's charge, °C.
+
+    The step's target (:func:`_dhw_target`) less the pump's hot-water start
+    hysteresis (``thermal_model.dhw_start_below_c``); ``None`` with none read.
+    """
+    hysteresis = getattr(inp.state, "dhw_start_hysteresis_k", None)
+    return None if hysteresis is None else dhw_start_below_c(_dhw_target(inp), hysteresis)
+
+
+def _not_startable(row: dict[str, Any]) -> bool:
+    """Whether the step's tank opened at or above the pump's start temperature.
+
+    Its own hysteresis then kept the pump off, so an idle hot-water step says
+    nothing about whether the pump obeys the plan (Bankaifan, #3440).
+    """
+    start, tank = row.get("start_below"), row["tank"]
+    return start is not None and tank is not None and float(tank) >= start
+
+
+def _missed(row: dict[str, Any], planned: str, actual: str) -> str:
+    """The verdict for a step that did something other than its plan."""
+    if planned == "dhw" and actual == "idle" and _not_startable(row):
+        return "not-startable"
+    return f"{actual}-instead"
 
 
 def _verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
@@ -1712,7 +1731,7 @@ def _verdict(row: dict[str, Any], tank: Any) -> dict[str, Any]:
     elif actual == planned or (planned == "both" and actual != "idle"):
         verdict = "delivered"
     else:
-        verdict = f"{actual}-instead"
+        verdict = _missed(row, planned, actual)
     return {"start": row["start"].isoformat(), "planned": planned,
             "actual": actual, "verdict": verdict}
 
