@@ -34,10 +34,12 @@
 #   pathfirst   the seat-bin PATH computed above the re-exec and carried by it (round 3's second channel)
 #   allowlist   the rows' entry point lets a name off the allowlist through (a rev before the re-cut)
 #   pipefail    the self-test's `set +o pipefail` deleted
+#   failopen    the refusal after the re-exec replaced by a run of the rows: a --self-test whose re-exec a
+#               caller's function named exec skipped runs every row in the caller's environment (round 4)
 # A mutant arm needs the `# mut:selftest-*` markers and says so on a <rev> without them.
 # No arm named runs the five shapes.
 set -uo pipefail
-rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail]...}; shift
+rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen]...}; shift
 [ $# -gt 0 ] || set -- branch detached gitdir shim level
 top=$(git rev-parse --show-toplevel) || exit 2
 sha=$(git -C "$top" rev-parse --verify -q "$rev^{commit}") || { echo "no commit $rev"; exit 2; }
@@ -142,6 +144,10 @@ elif arm == "allowlist":
     s[i] = s[i].replace('*" $v "*) ;; *)', '*) ;; *" $v "*)')
 elif arm == "pipefail":
     s.pop(marked("selftest-pipefail"))
+elif arm == "failopen":
+    i = marked("selftest-failclosed")
+    assert s[i].startswith("case ${1:-} in --self-test) refused=")
+    s[i] = 'case ${1:-} in --self-test) set -- --self-test-rows "${@:2}" ;; esac  # mut:selftest-failclosed'
 else:
     assert arm == "whole"
 open(p, "w").write("\n".join(s))
@@ -155,7 +161,7 @@ echo "rev $sha"
 for arm in "$@"; do
   case $arm in
     branch|detached|gitdir|shim|level) shape "$arm" ;;
-    whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail) mutant "$arm" ;;
+    whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen) mutant "$arm" ;;
     *) echo "unknown arm '$arm'"; exit 2 ;;
   esac
 done

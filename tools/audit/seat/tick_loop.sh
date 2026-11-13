@@ -57,8 +57,14 @@
 # --self-test re-runs itself before anything else runs, under env -i with no caller variable carried
 # at all: PATH a literal of system directories and this bash's own, HOME and TMPDIR fresh (below).
 # So nothing a caller exports, nor anything computed from it, reaches a row, and no list of names
-# has to keep up with what a row reads. Its rows run from --self-test-rows, the internal entry.
+# has to keep up with what a row reads. Its rows run from --self-test-rows, the internal entry, and
+# from nowhere else: the barrier fails closed. A --self-test still here was not replaced by the
+# re-exec -- a caller's function named exec (exported, or defined by a BASH_ENV file) shadowed the
+# builtin, or the exec failed -- and it refuses, rc 1, no row run, before any other command name is
+# looked up. The refusal is an expansion error, which runs no command a function could shadow and
+# ends a non-interactive bash.
 case ${1:-} in --self-test) exec /usr/bin/env -i PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${BASH%/*}" "$BASH" "$0" --self-test-rows "${@:2}" ;; esac  # mut:selftest-envi
+case ${1:-} in --self-test) refused=; refused=${refused:?--self-test refused: the env -i re-exec did not replace this process (a caller function named exec?); no row ran} ;; esac  # mut:selftest-failclosed
 set -uo pipefail
 case ${1:-} in --self-test-rows)  # the rows' HOME and TMPDIR: fresh, the caller's never
   SELFTEST_TMP=$(mktemp -d) || exit 1; export HOME=$SELFTEST_TMP/home TMPDIR=$SELFTEST_TMP/tmp
@@ -435,6 +441,31 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
     [ -n "$names" ] && printf '%s\n' "$out" | grep -Eq "^offline_spy: $t/poisoned.sh rc=0 network=0 remote_git=0 .* [|] tick_loop self-test: [1-9][0-9]* checks, 0 failed$" \
       && grep -q '^  env: PATH=' "$t/poison.out" && grep -q '^  row env: PATH=' "$t/poison.out" && ! grep -q -- "$nonce" "$t/poison.out"
     ck "the poison row: the $k names the script and its helpers read, each a sentinel in the caller's environment, reach no row's environment, arguments or output, and the run passes under offline_spy.py with no network or remote git call" $?
+    # The barrier fails closed. A caller's function named exec, exported or defined by a BASH_ENV file,
+    # skips the env -i re-exec (it logs the skipped call to $t/shadow, so the row sees the shadow taken);
+    # the caller also names a scratch bare repository as HPO_HEARTBEAT_REMOTE and sets TICK_RC=1, either
+    # of which a row run in the caller's environment would act on (round 4: 18 rows failed, the
+    # repository took a forced heartbeat/orchestrator). The run must refuse, run no row, and leave the
+    # repository holding no ref; the null control, the same caller without the function, passes.
+    printf 'exec() { if [ "${1:-}" = /usr/bin/env ]; then echo "shadowed: $*" >> %q; return 0; fi; builtin exec "$@"; }\n' "$t/shadow" > "$t/execfn"
+    shadowed() { # <func|bashenv|none>: the nested self-test under that caller; sets out, src, refs
+      local v=$t/victim-$1.git; rm -f "$t/shadow"; throwaway_git_init "$v" -q --bare || return 1
+      out=$(export HPO_HEARTBEAT_REMOTE=$v TICK_RC=1
+        case $1 in
+          func) . "$t/execfn"; export -f exec; "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
+          bashenv) BASH_ENV=$t/execfn "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
+          none) "$BASH" "$HERE/tick_loop.sh" --self-test --nested ;;
+        esac 2>&1); src=$?
+      refs=$(git -C "$v" for-each-ref | grep -c .); }
+    for c in func bashenv; do
+      shadowed $c
+      [ "$src" != 0 ] && [ -s "$t/shadow" ] && [ "$refs" = 0 ] && printf '%s\n' "$out" | grep -q -- '--self-test refused: the env -i re-exec' \
+        && ! printf '%s\n' "$out" | grep -q '^tick_loop self-test:'
+      ck "fail closed ($c): a caller function named exec that skips the env -i re-exec ends in a refusal, no row run, the HPO_HEARTBEAT_REMOTE repository holding no ref" $?
+    done
+    shadowed none
+    [ "$src" = 0 ] && [ ! -e "$t/shadow" ] && [ "$refs" = 0 ] && printf '%s\n' "$out" | grep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$'
+    ck "null control: the same caller with no function named exec runs every row under env -i, passes, and touches no repository it names" $?
     # The rows themselves under offline_spy.py, which counts every git call that can reach a remote
     # by its target URL; its SPY_REAL_GIT is the one it finds on this run's own PATH.
     printf '#!/bin/bash\nexec "%s" "%s/tick_loop.sh" --self-test-rows --nested\n' "$BASH" "$HERE" > "$t/spied.sh"
@@ -459,7 +490,6 @@ once=; sweep=; every=300; out=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/tick.txt
 while [ $# -gt 0 ]; do
   case $1 in
     --self-test-rows) shift; tick_loop_self_test "$@"; rc=$?; rm -rf "$SELFTEST_TMP"; exit $rc ;;
-    --self-test) shift; tick_loop_self_test "$@"; exit ;;  # reached only with the re-exec above taken out
     --once) once=1; shift ;;
     --sweep) sweep=1; shift ;;
     --interval) every=${2:-}; shift 2 || shift ;;
