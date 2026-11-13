@@ -165,7 +165,6 @@ from . import boost, duty_switch, issues, off_restore, pump_mode, quiet_windows
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
-    CONF_FLOW_HEAT_C,
     CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,
     CONF_HEAT_PUMP_DEFROST_ENTITY,
     CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,
@@ -176,6 +175,7 @@ from .const import (
     CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,
     CONF_SPACE_SETPOINT_POWER_FEEDBACK,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
+    DEFAULT_FLOW_HEAT_C,
     DOMAIN,
     FLOW_HEAT_C_MAX,
     MODE_AUTO,
@@ -899,9 +899,12 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
     """The space water set-point a live boost writes, °C in the entity's own terms, or ``None``.
 
     The set-point entity's own maximum (tvofi, 2026-11-13: "set at the
-    maximum value"), capped by a ``flow_heat_c`` the person stored (an
-    untouched page stores none, so a stored one is theirs) and by the
-    controller's upper-limit sensor where it reads (:func:`_setpoint_limits_c`).
+    maximum value"), capped by a heating ceiling (``flow_heat_c``) set to
+    anything but its default, and by the controller's upper-limit sensor
+    where it reads (:func:`_setpoint_limits_c`). The default caps nothing: an
+    absent key reads as it, and an untouched options page must change
+    nothing (``tests/config_flow_steps.py``), so a stored default cannot be
+    told from no setting.
     The maximum and the cap are both in the entity's own terms, so a return
     target is not moved. ``None``, and the boost follows the planned level as
     before, where the maximum does not read, sits at or below the gate, or
@@ -913,8 +916,8 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
     if high is None or not _gate_floor_c(inp.config) < high <= FLOW_HEAT_C_MAX:
         return None
     caps = [high]
-    if CONF_FLOW_HEAT_C in inp.config:
-        caps.append(_heat_ceiling_c(inp.config))
+    if (ceiling := _heat_ceiling_c(inp.config)) != DEFAULT_FLOW_HEAT_C:
+        caps.append(ceiling)
     limit = _setpoint_limits_c(inp)[1]
     if limit is not None and limit > _gate_floor_c(inp.config):
         caps.append(limit)
