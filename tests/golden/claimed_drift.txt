@@ -92,11 +92,6 @@
 # one was restored.
 #
 #
-# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
@@ -763,3 +758,18 @@
 # changes exactly two leaves (the plain and the seeded render of
 # dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
 # it, so every other fixture is byte-identical. Re-recorded in the committed file.
+# R10-SAV-VALUATION-RESIDUE part 2: behind a valve the reference is booked as
+# simulated from its held state, no longer re-spread by steady demand
+# (_apportion_by_steady_demand removed). Measured with env_drift against the
+# merge base in one environment: exactly these five valved fixtures move, each
+# in baseline_cost alone (plan leaves exempt, none judged); every unvalved
+# fixture is unmoved, which is the null. baseline_cost is a judged key a
+# may-drift entry cannot excuse, so these five entries are suspended for this
+# release (the wood_coil precedent); the stamp owes each back verbatim:
+# "# may-drift: <name> -- machine-sensitive; the DHW plan can reach it, per local optimum".
+# Direction per fixture, branch vs base:
+valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
+valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
+wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
+wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
+wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
