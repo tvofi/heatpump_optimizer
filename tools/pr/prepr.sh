@@ -1759,6 +1759,27 @@ merged_steps() { # body, unpinned-site key file -> step lines
   esac
 }
 
+# A hotfix group's branch runs the scoped prepr by default (tvofi, 2026-11-09: "hotfixes should
+# have aggressively scoped or no prepr"; the main de.json hotfix spent about 40 min in a full
+# one while 7 PRs waited). The class is the roster's, through gate_priority.py's own
+# derivation of the group's dispatch rank -- the one the gate lease already trusts -- so a
+# branch name alone never decides it, and an unreadable roster answers 0, a full run. Only an
+# UNSET variable takes the default: a caller's value, set empty included, wins per variable.
+# The scope is code and closures; the merged-tree structure ratchet, ci predict and the body
+# and contract checks (`merged_steps`, steps 1a-1a3, 6, 7) stay, as under any PREPR_SKIP_CODE.
+hotfix_class() { # branch -> 1 when the roster classes its group a hotfix, else 0
+  python3 tools/pr/gate_priority.py --hotfix --branch "$1" 2>/dev/null
+}
+hotfix_scope() { # branch -> exports the unset skips; prints one line when it scoped
+  if [ -n "${PREPR_SKIP_CODE+x}" ] && [ -n "${PREPR_SKIP_CLOSURES+x}" ]; then return 0; fi
+  [ "$(hotfix_class "$1")" = 1 ] || return 0
+  HOTFIX_SCOPED=1
+  [ -n "${PREPR_SKIP_CODE+x}" ] || PREPR_SKIP_CODE=hotfix
+  [ -n "${PREPR_SKIP_CLOSURES+x}" ] || PREPR_SKIP_CLOSURES=1
+  export PREPR_SKIP_CODE PREPR_SKIP_CLOSURES
+  say ok "hotfix scope" "$1 is a hotfix group's branch: code and closure steps skipped; merged structure, ci predict, body and contract checks run (a caller's PREPR_SKIP_CODE / PREPR_SKIP_CLOSURES, set empty included, wins)"
+}
+
 selftest_owed() { # changed-paths file -> 0 when a changed path is a self-test input
   awk 'NR==FNR { if ($0 ~ /\/$/) d[$0]=1; else f[$0]=1; next }
        ($0 in f) { hit=1; exit }
@@ -4120,6 +4141,21 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +(heavy slot|policy_lint|self-test|agreement lane|gate priority) ')$(printf '%s\n' "$RA" | grep -c '^  ok  *code steps  ')" 01 "(a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps"
   st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +merged structure ')$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +ci predict ')" 11 "(a) and runs tests/structure.py and ci predict on HEAD merged with main, once each"
   st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo left)" "" "(a) a run with a body removes an earlier receipt first, so one that writes none leaves none"
+  # Carry 21: a hotfix group's branch defaults to the scoped run, decided once from the
+  # roster's class (`hotfix_class`, gate_priority.py --hotfix), never from the branch name.
+  hs() { # classifier answer -> "<scope line>|<PREPR_SKIP_CODE>|<PREPR_SKIP_CLOSURES>", the caller's env as set
+    local cls=$1
+    ( hotfix_class() { printf '%s' "$cls"; }
+      say() { printf '%s' "$2"; }
+      hotfix_scope fix/any
+      printf '|%s|%s' "${PREPR_SKIP_CODE-unset}" "${PREPR_SKIP_CLOSURES-unset}" )
+  }
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 1) )" "hotfix scope|hotfix|1" "(hotfix) a roster-classed hotfix branch prints the scope line and defaults both skips on"
+  st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; hs 0) )" "|unset|unset" "(hotfix) null control: a non-hotfix branch prints nothing and sets neither skip"
+  st "$( (unset PREPR_SKIP_CLOSURES; PREPR_SKIP_CODE=; hs 1) )" "hotfix scope||1" "(hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays"
+  st "$( (unset PREPR_SKIP_CODE; PREPR_SKIP_CLOSURES=; hs 1) )" "hotfix scope|hotfix|" "(hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays"
+  st "$( (PREPR_SKIP_CODE=abc; PREPR_SKIP_CLOSURES=x; hs 1) )" "|abc|x" "(hotfix) explicit values pass through unchanged and, both set, nothing is printed"
+  st "$(awk '/^hotfix_scope "\$\(git rev-parse --abbrev-ref HEAD/{a=NR} /^REUSE=/{b=NR} END{print (a>0 && b>a) ? "ok" : "late"}' "$PREPR_PATH")" ok "(hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE"
   rm -rf "$RQ"
 
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
@@ -4192,8 +4228,11 @@ summary_start
 # at that code sha was found and the head is its clean merge with the live head
 # and main, so the steps keyed to the code alone are dropped and no heavy slot is
 # taken; the steps keyed to main, the body or the merge still run (`merged_steps`).
+HOTFIX_SCOPED=""
+hotfix_scope "$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
 REUSE=${PREPR_SKIP_CODE:-}
-[ -z "$REUSE" ] || say ok "code steps" "reused from the receipt at ${REUSE:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"
+if [ -n "$HOTFIX_SCOPED" ] && [ "$REUSE" = hotfix ]; then say ok "code steps" "hotfix scope: no heavy slot, and the steps keyed to the code alone are dropped"
+elif [ -n "$REUSE" ]; then say ok "code steps" "reused from the receipt at ${REUSE:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"; fi
 
 # --- 1a. no transport file in any commit the branch adds (`transport_in_ancestry`).
 TRANSPORT=$(transport_in_ancestry "$BASE" HEAD)
