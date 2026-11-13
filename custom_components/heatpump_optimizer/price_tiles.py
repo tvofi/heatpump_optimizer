@@ -46,6 +46,17 @@ published as the mean of its daily means over the last ``HORIZON_DAYS`` local
 days: one unusual day moves it by a thirtieth. The days are kept on the tile
 and persisted with the ledger, so a restart does not start the mean over.
 
+THE CAP TILE'S CLOCK (#2257). Its refresh is three solves where a degree
+tile's is one, and on every third scheduled solve that put a recorded day's
+cycle half again over its CPU budget (``tests/replay.py``, ``cycle_cost``).
+The steady figure starts from held rooms, so it moves with the horizon's
+prices and weather and not with the house: the tile is refreshed at most
+every ``STEADY_REFRESH_HOURS``, and between refreshes its turn in the
+rotation solves nothing and the tile stands as last recorded. The clock
+starts at a coordinator's first cap turn, which solves nothing either: one
+refresh in a timed cycle of that recorded day is by itself over the budget,
+and a start is when a host has least CPU to spare.
+
 The tiles live in a per-coordinator side table (``boost.py``'s discipline),
 so the coordinator class does not hold state it never computes with.
 """
@@ -70,6 +81,11 @@ MONTH_HOURS = 30.4 * 24.0
 #: purchase price. Present, None where that price is unusable, exactly when
 #: the steady figure is the schedule estimate; absent when it is the pair's.
 SHIFTED_KEY = "monthly_steady_cost_delta_shifted"
+
+#: The least time between two refreshes of a tile that reads the steady
+#: figure: four samples of the sliding price horizon in a tile's day, where
+#: the rotation took one every third solve.
+STEADY_REFRESH_HOURS = 6.0
 
 #: The tiles, in rotation order.
 TILE_NAMES = ("target_minus_1", "target_plus_1", "power_cap_75")
@@ -98,12 +114,29 @@ def book(owner: Any) -> dict[str, dict[str, Any]]:
 _CURSORS: WeakKeyDictionary[Any, int] = WeakKeyDictionary()
 
 
-def take(owner: Any, specs: list[tuple[str, dict[str, float]]]) -> tuple[str, dict[str, float]]:
-    """``owner``'s next spec. The rotation moves before the solve, so a failing
-    or cancelled spec cannot block the others: it is retried on the next pass."""
+#: When each coordinator's steady tile last took its turn, or first came up
+#: for one; not persisted, so a restart waits one clock before a refresh.
+_STEADY_TAKEN: WeakKeyDictionary[Any, datetime] = WeakKeyDictionary()
+
+
+def take(
+    owner: Any, specs: list[tuple[str, dict[str, float]]], now: datetime,
+) -> tuple[str, dict[str, float]] | None:
+    """``owner``'s next spec, or None on the turn of a steady tile still inside
+    its clock, which its first turn starts. The rotation moves before the
+    solve, so a failing or cancelled spec cannot block the others: it is
+    retried on the next pass, the steady one at its next clock, since the
+    clock counts turns taken and not answers. A turn stamped ahead of ``now``
+    has no age (#775) and is taken."""
     cursor = _CURSORS.get(owner, 0)
     _CURSORS[owner] = cursor + 1
-    return specs[cursor % len(specs)]
+    name, overrides = specs[cursor % len(specs)]
+    if "power_cap_kw" in overrides:
+        taken = _STEADY_TAKEN.setdefault(owner, now)
+        if 0.0 <= (now - taken).total_seconds() < STEADY_REFRESH_HOURS * 3600.0:
+            return None
+        _STEADY_TAKEN[owner] = now
+    return name, overrides
 
 
 def per_month(delta: float, horizon_hours: float) -> float:

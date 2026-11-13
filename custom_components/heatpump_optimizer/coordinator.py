@@ -10688,16 +10688,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return report
 
     async def _maybe_refresh_price_tile(self, record: SolveRecord) -> None:
-        """#39 (gated): refresh ONE tile after a scheduled solve.
+        """#39 (gated): refresh at most ONE tile after a scheduled solve.
 
-        One per solve, rotating, so a refresh costs one extra solve for a
-        degree tile and up to three for the cap tile, whose figure is the
-        steady one (#2257) — and through ``async_simulate``'s own solve
-        path and executor, never a second one. The tile solves on the
-        card's harness but never on its budget (``limited=False``, #1753):
-        it neither spends the user what-if's rate-limit slot nor writes
-        its answer into the card cache, so a card drag overlapping a tile
-        solve is answered fresh and keeps its answer and slot afterwards.
+        Rotating: one extra solve for a degree tile, three for the cap tile,
+        whose steady figure (#2257) ``price_tiles.take`` holds to its own
+        clock. Through ``async_simulate``'s own solve path and executor, on
+        the card's harness but never on its budget (``limited=False``, #1753):
+        no rate-limit slot of the user what-if spent and no card cache written,
+        so an overlapping card drag is answered fresh and keeps both.
         """
         if not getattr(self, "_ctx", self)._config.price_tiles_enabled:
             # Gate off means gone: stale what-if money left published
@@ -10705,7 +10703,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             price_tiles.book(self).clear()
             return
         specs = price_tiles.specs(record.config, record.params.max_electrical_power)
-        name, overrides = price_tiles.take(self, specs)
+        if (spec := price_tiles.take(self, specs, dt_util.now())) is None:
+            return
+        name, overrides = spec
         try:
             answer = await self.async_simulate(
                 dict(overrides), limited=False, base=record, steady="power_cap_kw" in overrides

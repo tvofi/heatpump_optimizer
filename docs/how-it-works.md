@@ -1276,6 +1276,9 @@ anticipating weather nobody has forecast. Everything below is built on those cod
 Optional price tiles also re-price the plan under the comfort schedule one degree
 lower, one higher, and power capped at 75%. One tile is refreshed per scheduled
 solve, in rotation, so a refresh costs one extra solve for a degree tile and up to three for the power-cap tile.
+The power-cap tile is refreshed at most every six hours, the first time six hours after a start:
+between refreshes its turn in the rotation solves nothing, and the tile keeps the figure and the
+time of its last refresh.
 A degree tile prices the degree held from a steady start (the thermostat
 baseline's difference), not the plan's spend from the house as it stands, which
 includes a one-off coast or heat-up. The cap tile, and the fuse advisor's bill
