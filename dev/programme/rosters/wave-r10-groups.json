@@ -26096,6 +26096,50 @@
     "next_step": "local opus fixer running; handoff, then opus reviewer, front of every queue",
     "note": "intake: owner report 2026-11-13, production defect on a released version"
    }
+  },
+  {
+   "group": "R10-CONFIG-FLOW-TEXT-VERIFY",
+   "lane": "IN",
+   "kind": "production",
+   "class": "bug",
+   "severity": "high",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/strings.json",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "custom_components/heatpump_optimizer/translations/de.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Added by the owner's instruction of 2026-11-13: verify and correct all config flow text, this round. The config-flow help for the space set-point entity in custom_components/heatpump_optimizer/strings.json said the optimizer never writes a recommended space set-point, false under pump duty mode Control; the owner read it on an install whose set-point was stuck (hotfix R10-HOTFIX-FLOW-SETPOINT-STUCK corrects that one sentence). Owed, one pull request: enumerate every user-visible string of the config flow and the options flow in strings.json and every translation by walking the JSON; judge each behaviour claim against the code that decides it, with the table kept as a tracked record under dev/audit/rounds/round10/; correct each false or stale string in strings.json and in every translation as a real translation; pin each mechanically checkable claim with a test; state a planted-false-sentence null control for the method; carry anything false outside the two flows to the round-11 intake unless it misleads about what is written to the pump.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-config-flow-text-verify",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud opus fixer; opus reviewer",
+    "note": "intake: owner instruction 2026-11-13 (this round); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK): owner instruction 2026-11-13: fold in a group this round to verify and correct all config flow text"
+   }
   }
  ]
 }
