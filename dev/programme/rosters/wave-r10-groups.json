@@ -25795,7 +25795,8 @@
     "From r10-config-flow-text-verify, body item 2de47db2: docs/configuration.md:530, docs/how-it-works.md:924 and the away.py module docstring say the anti-legionella cycle is timed to finish before the user returns. `AwayConfig.legionella_before_return` is never read. Carry: R11-INTAKE-R10-RESIDUE (items 2de47db2)",
     "From r10-config-flow-text-verify, body item 9ae2be30: docs/configuration.md:1063 and docs/how-it-works.md:648 say the VVC loop pump runs only during the hot-water frames. With no frames, `pump_schedule.vvc_should_run` keeps it on. Carry: R11-INTAKE-R10-RESIDUE (items 9ae2be30)",
     "From r10-config-flow-text-verify, body item 55051373: docs/configuration.md:1049 and docs/how-it-works.md:620 describe free disinfection as an opt-in credit. Any source is credited either way; the option adds the 20-minute hold. Carry: R11-INTAKE-R10-RESIDUE (items 55051373)",
-    "From r10-config-flow-text-verify, body item 4ab03548: docs/configuration.md:1102 says the open-window option lowers the target. It lowers the coldest acceptable temperature. Carry: R11-INTAKE-R10-RESIDUE (items 4ab03548)"
+    "From r10-config-flow-text-verify, body item 4ab03548: docs/configuration.md:1102 says the open-window option lowers the target. It lowers the coldest acceptable temperature. Carry: R11-INTAKE-R10-RESIDUE (items 4ab03548)",
+    "From r10-config-flow-text-verify, body item af528396: docs/configuration.md:1115 says main fuse 0 keeps the headroom sensor dormant. The sensor follows the capacity-tariff peak. Carry: R11-INTAKE-R10-RESIDUE (items af528396)"
    ],
    "resume": {
     "stage": "not-started",
