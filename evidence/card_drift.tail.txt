@@ -1,20 +1,3 @@
-(tail of a 17 MB log; full output not kept)
-n",9:"d"}>
-        -        <BUTTON aria-describedby="hpo-note-card-dhw_temp" aria-pressed="true" class="chip" data-key="dhw_temp" title="DHW tank temperature (°C) — also drawn: Hot water, expected error. Hover the chart to read each trace." type="button" classes=["chip"] dataset={key:"dhw_temp"}>
-        -          text="DHW tank temperature "
-        -          <SPAN class="dot" classes=["dot"] style={0:"b",1:"a",10:":",11:"v",12:"a",13:"r",14:"(",15:"-",16:"-",17:"h",18:"p",19:"o",2:"c",20:"-",21:"s",22:"e",23:"r",24:"i",25:"e",26:"s",27:"-",28:"d",29:"h",3:"k",30:"w",31:"_",32:"t",33:"e",34:"m",35:"p",36:",",37:" ",38:"#",39:"c",4:"g",40:"2",41:"4",42:"7",43:"7",44:"a",45:")",5:"r",6:"o",7:"u",8:"n",9:"d"}>
-        -        <BUTTON aria-pressed="true" class="chip" data-key="house_temp" title="House temperature (°C)" type="button" classes=["chip"] dataset={key:"house_temp"}>
-        -          text="House temperature "
-        -          <SPAN class="dot" classes=["dot"] style={0:"b",1:"a",10:":",11:"v",12:"a",13:"r",14:"(",15:"-",16:"-",17:"h",18:"p",19:"o",2:"c",20:"-",21:"s",22:"e",23:"r",24:"i",25:"e",26:"s",27:"-",28:"h",29:"o",3:"k",30:"u",31:"s",32:"e",33:"_",34:"t",35:"e",36:"m",37:"p",38:",",39:" ",4:"g",40:"#",41:"0",42:"0",43:"8",44:"3",45:"0",46:"0",47:")",5:"r",6:"o",7:"u",8:"n",9:"d"}>
-        -        <BUTTON aria-pressed="true" class="chip" data-key="solar" title="Solar irradiance (W/m²)" type="button" classes=["chip"] dataset={key:"solar"}>
-        -          text="Solar irradiance "
-        -          <SPAN class="dot" classes=["dot"] style={0:"b",1:"a",10:":",100:"x",101:")",11:"r",12:"e",13:"p",14:"e",15:"a",16:"t",17:"i",18:"n",19:"g",2:"c",20:"-",21:"l",22:"i",23:"n",24:"e",25:"a",26:"r",27:"-",28:"g",29:"r",3:"k",30:"a",31:"d",32:"i",33:"e",34:"n",35:"t",36:"(",37:"9",38:"0",39:"d",4:"g",40:"e",41:"g",42:",",43:"v",44:"a",45:"r",46:"(",47:"-",48:"-",49:"h",5:"r",50:"p",51:"o",52:"-",53:"s",54:"e",55:"r",56:"i",57:"e",58:"s",59:"-",6:"o",60:"s",61:"o",62:"l",63:"a",64:"r",65:",",66:" ",67:"#",68:"d",69:"4",7:"u",70:"5",71:"6",72:"1",73:"f",74:")",75:" ",76:"0",77:" ",78:"3",79:"p",8:"n",80:"x",81:",",82:"t",83:"r",84:"a",85:"n",86:"s",87:"p",88:"a",89:"r",9:"d",90:"e",91:"n",92:"t",93:" ",94:"3",95:"p",96:"x",97:" ",98:"6",99:"p"}>
-        -      <P class="legend-note" id="hpo-note-card-dhw_temp" classes=["legend-note"]>
-        -        text="Dashed: the model's expected error, which widens further ahead. Absent until there is enough history."
-             <DIV class="hist-note" role="status" classes=["hist-note"] style={0:"m",1:"a",10:" ",100:":",101:"v",102:"a",103:"r",104:"(",105:"-",106:"-",107:"s",108:"e",109:"c",11:".",110:"o",111:"n",112:"d",113:"a",114:"r",115:"y",116:"-",117:"b",118:"a",119:"c",12:"6",120:"k",121:"g",122:"r",123:"o",124:"u",125:"n",126:"d",127:"-",128:"c",129:"o",13:"e",130:"l",131:"o",132:"r",133:",",134:"r",135:"g",136:"b",137:"a",138:"(",139:"0",14:"m",140:",",141:"0",142:",",143:"0",144:",",145:".",146:"0",147:"6",148:")",149:")",15:";",150:";",151:"f",152:"o",153:"n",154:"t",155:"-",156:"s",157:"i",158:"z",159:"e",16:"p",160:":",161:".",162:"9",163:"e",164:"m",17:"a",18:"d",19:"d",2:"r",20:"i",21:"n",22:"g",23:":",24:".",25:"4",26:"5",27:"e",28:"m",29:" ",3:"g",30:".",31:"7",32:"e",33:"m",34:";",35:"b",36:"o",37:"r",38:"d",39:"e",4:"i",40:"r",41:"-",42:"l",43:"e",44:"f",45:"t",46:":",47:"3",48:"p",49:"x",5:"n",50:" ",51:"s",52:"o",53:"l",54:"i",55:"d",56:" ",57:"v",58:"a",59:"r",6:":",60:"(",61:"-",62:"-",63:"s",64:"e",65:"c",66:"o",67:"n",68:"d",69:"a",7:"0",70:"r",71:"y",72:"-",73:"t",74:"e",75:"x",76:"t",77:"-",78:"c",79:"o",8:" ",80:"l",81:"o",82:"r",83:",",84:"#",85:"8",86:"8",87:"8",88:")",89:";",9:"0",90:"b",91:"a",92:"c",93:"k",94:"g",95:"r",96:"o",97:"u",98:"n",99:"d"}>
-               text="Loading history…"
-             <DIV class="chartwrap pannable" classes=["chartwrap","pannable"]>
-        
 
 card_drift: 44 state(s) moved and claimed, 1 identical
 rc=0

@@ -1,37 +1,7 @@
-reviewed head R=8c45afd38f2378350bd2e532b68da28e7f682f0e base A=d72963a719438f2dcf370de92a71f6630804ff2e
-current head H=eda078bac41473246ff7d87a5736de58d64ad97a base B=cbe8d93bd8ef9b59626cfb939436af6e0678680e
-overlap (files touched by branch and by main A..B):
-custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
-docs/index.html
-tests/golden/card_claimed_drift.txt
---- 3-way auto merge of R onto B (merge-tree B R):
-rc-tree=MERGE-CLAIM: refused tests/golden/card_claimed_drift.txt
-rc=1
-H tree: 7d7b6d006e6551c7e7d94b415a4a23d12ed23f07
-diff auto-merge vs H:
-fatal: invalid object name 'MERGE-CLAIM'.
-rc=1
-stderr:
-MERGE-CLAIM: refused tests/golden/card_claimed_drift.txt
-CONFLICTING CLAIMS: both sides changed claims under different
-'claims-for:' stamps (base 7.1.11, this branch 7.1.12, incoming 7.1.11), so they describe different
-releases' diffs. Resolve it by hand: keep the claims that
-describe THIS branch's diff and delete the rest.
-stdout:
-68627bef0412d3f2761cdaa4e213b6d80896ac98
-100644 f0f381d57a3f95468ef30fe026bf8bd355610dfa 1	docs/index.html
-100644 c625dde049b9d490643ff502a9178451a57e88fb 2	docs/index.html
-100644 a520cf8499ddab9463e9a63d1aec516169073d14 3	docs/index.html
-100644 feb11761648028e8b3b81e912212e77d43177724 1	tests/golden/card_claimed_drift.txt
-100644 9adc00e68e7e4eceae63c6ee9262ff6d33b2c088 2	tests/golden/card_claimed_drift.txt
-100644 b87ba5729e8a9b195f12064a61493fdece7113e5 3	tests/golden/card_claimed_drift.txt
+4b4c1c80dcba608bf271898a85aa816772684c28
+100644 29ff1d2b0df6c17b51412e7e5283a5ff862e57eb 1	tests/card_browser.mjs
+100644 f40662f2392cd8a29bd1048d5b14092348c448ab 2	tests/card_browser.mjs
+100644 d70f6a6c04e05c21f0d729e0435185b94ed08838 3	tests/card_browser.mjs
 
-Auto-merging custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
-Auto-merging docs/index.html
-CONFLICT (content): Merge conflict in docs/index.html
-Auto-merging tests/golden/card_claimed_drift.txt
-CONFLICT (content): Merge conflict in tests/golden/card_claimed_drift.txt
---- auto-merge tree vs H:
- docs/index.html                     | 62 +------------------------------------
- tests/golden/card_claimed_drift.txt | 47 ----------------------------
- 2 files changed, 1 insertion(+), 108 deletions(-)
+Auto-merging tests/card_browser.mjs
+CONFLICT (content): Merge conflict in tests/card_browser.mjs
