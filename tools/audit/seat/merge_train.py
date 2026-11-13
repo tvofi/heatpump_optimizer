@@ -2148,6 +2148,7 @@ class Train:
         settle = 0
         for k in range(1, self.polls + 1):
             runs = self._check_runs(h)
+            self.pause_poll(runs, h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
                 state = classify(last, only)
@@ -3229,6 +3230,47 @@ class Train:
         with stop_ignored():
             self.release_worktrees()
             self.hold_release()
+            self.pause_resume("train exit")
+
+    # --- the CI pause (ci_pause.py: pause the lowest-priority PR's CI while the head's job queues) ---
+    def ci_pause(self):
+        """The train's one CiPause, built on first use; None when the module cannot load."""
+        if getattr(self, "_ci_pause", None) is None:
+            try:
+                if str(Path(__file__).resolve().parent) not in sys.path:
+                    sys.path.insert(0, str(Path(__file__).resolve().parent))
+                import ci_pause
+                self._ci_pause = ci_pause.CiPause(self)
+            except Exception as e:  # noqa: BLE001 - the pause is an optimisation, never a gate
+                self.log(f"PAUSE unavailable: {str(e)[:120]}")
+                self._ci_pause = False
+        return self._ci_pause or None
+
+    def protected_prs(self) -> "set[int]":
+        """Pull requests the pause may never touch: in the train's batches, in its spool, or seen with a verdict."""
+        out: set = set()
+        for batch in (getattr(self, "_queue", None) or {}).get("batches") or []:
+            out |= {int(e["pr"]) for e in batch if isinstance(e, dict) and str(e.get("pr", "")).isdigit()}
+        out |= {int(e["pr"]) for e in spool_read(self.state)[0]}
+        out |= {int(k) for k, v in (getattr(self, "_seen", None) or {}).items()
+                if str(k).isdigit() and isinstance(v, dict) and v.get("verdict")}
+        return out
+
+    def pause_poll(self, runs, h: str) -> None:
+        cp = self.ci_pause()
+        if cp is not None:
+            try:
+                cp.poll(runs, h)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"PAUSE error: {str(e)[:120]}")
+
+    def pause_resume(self, why: str) -> None:
+        cp = self.ci_pause()
+        if cp is not None:
+            try:
+                cp.resume_all(why)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"RESUME error: {str(e)[:120]}")
 
     def train(self, queue: list[dict]) -> int:
         try:
@@ -3240,6 +3282,7 @@ class Train:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.pause_resume("train start")
         self.hold_armed = True
         self.hold_refresh()  # before anything can merge: the record beat waits
         for item in self.preflight(queue):
@@ -4048,6 +4091,7 @@ class Train:
             return 1
         self.skipped = []
         total = 0
+        self.pause_resume("train start")  # a pause a dead train left (ci_pause.py)
         self._queue = {"batches": batches, "next": 0, "closed": False}
         try:
             while True:
@@ -4793,6 +4837,49 @@ def _self_test() -> int:
           and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
           and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
           and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
+    # R10-CI-PRIORITY-PAUSE: wait_ci feeds each poll's check-runs to the pause; unwind resumes.
+    import ci_pause as _cp
+    import datetime as _dt
+    pnow = 1_800_000_000.0
+    qrun = [{"name": "tests", "status": "queued", "conclusion": None, "id": 1,
+             "started_at": _dt.datetime.fromtimestamp(pnow - 600, _dt.timezone.utc).isoformat().replace("+00:00", "Z")}]
+    pposts: list[str] = []
+
+    def pause_run(argv, cwd=None, stdin=None):
+        c = " ".join(argv)
+        if "-X POST" in c:
+            pposts.append(c.split("repos/o/r/")[1])
+            return 0, ""
+        if "check-runs" in c:
+            return 0, "\n".join(json.dumps(x) for x in qrun)
+        if "/pulls?state=open" in c:
+            return 0, json.dumps({"n": 5, "sha": "b" * 40, "ref": "fix/low", "fork": False})
+        if "/comments" in c:
+            return 0, json.dumps([[{"body": "hi"}]])
+        if "/actions/runs?head_sha=" in c:
+            return 0, "77"
+        if "/pulls/5" in c:
+            return 0, json.dumps({"head": {"sha": "b" * 40}})
+        return 0, ""
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=pause_run, sleep=lambda s: None, log=lambda s: None,
+                  polls=1, wall=lambda: pnow)
+        t._ci_pause = _cp.CiPause(t, {**__import__("ci_priority").load_setting(), "priority_cancel": True},
+                                  ({"groups": [{"group": "LOW", "resume": {"branch": "fix/low"}, "class": "instrument"}]}, set()))
+        t.wait_ci(H0)
+        cancelled = list(pposts)
+        pposts.clear()
+        t.unwind()
+        resumed = list(pposts)
+        t_off = Train("o/r", Path(d), None, "", (), 1, run=pause_run, sleep=lambda s: None, log=lambda s: None,
+                      polls=1, wall=lambda: pnow)
+        pposts.clear()
+        t_off._ci_pause = False
+        t_off.wait_ci(H0)
+    check("wait_ci feeds its poll to the pause: a head job queued 10 min cancels the victim's run; "
+          "unwind re-runs its failed jobs; with the pause unavailable nothing is cancelled",
+          cancelled == ["actions/runs/77/cancel"] and resumed == ["actions/runs/77/rerun-failed-jobs"] and pposts == [])
+    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
     # one-job pulse (R10-TICK-RESIDUE-P2 carry 0): the baseline is the same listing's completed same-name runs
     def jr(name, st, a, b=None):
         iso = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()

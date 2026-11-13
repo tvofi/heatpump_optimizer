@@ -80,7 +80,9 @@ ROWS (the job table's `interval_s` in brackets):
                      `unheld_skip`); its UNHELD lines.
   pulse [300]        pulse.py into `S/beatd/pulse.txt`; its STOPPED and
                      UNREADABLE lines to the digest.
-  cancel-sweep [600] cancel_superseded.py `sweep --repo R`; failures only.
+  cancel-sweep [600] cancel_superseded.py `sweep --repo R --priority` (+ `--train-state
+                     <train_state>` when the overlay has one); failures only (a
+                     remembered 409 zombie is no failure).
   disk [900]         worktree_gc.sh when `/` has under `disk_floor_gib` free;
                      a line only if still under afterwards.
   opener [300]       open_driver.py `--board` (one pass; its state stays in
@@ -523,9 +525,14 @@ def cancel_sweep(ctx: Ctx) -> None:
     got = ctx.need("cancel-sweep", "repo")
     if got is None:
         return
-    rc, out, err = ctx.py("tools/pr/cancel_superseded.py", "sweep", "--repo", got[0])
+    extra = ["--priority"]
+    if ctx.overlay.get("train_state"):
+        extra += ["--train-state", str(ctx.overlay["train_state"])]
+    rc, out, err = ctx.py("tools/pr/cancel_superseded.py", "sweep", "--repo", got[0], *extra)
+    # A known zombie (a 409 run, remembered in cancel-zombies.json) prints `zombie <id>` once and is
+    # no failure; only a cancel or re-run that failed, an unreadable answer or a truncation is.
     bad = [ln for ln in out.splitlines()
-           if re.search(r"could not cancel| rc=-?\d+|unreadable|truncated", ln)]
+           if re.search(r"could not (?:cancel|re-run)| rc=-?\d+|unreadable|truncated", ln)]
     if rc != 0:
         bad.append(f"cancel-sweep: rc={rc}: {(err.strip().splitlines() or [''])[-1]}")
     write_job(ctx, "cancel-sweep", bad)
