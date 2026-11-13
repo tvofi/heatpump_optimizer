@@ -6,19 +6,10 @@ Never write to any branch except your return refs and refs/heads/handoff-wip/r10
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires; at most 5 inline search operations per prompt; never set FRUGAL_ALLOW_INLINE.
 
 Brief (snapshotted when this payload was rendered):
-# Repair round: R10 config-flow text verify (PR 3564), one pin repoint
+# Repair round 2: PR 3564 (config-flow text verify), body only
 
-Resume from handoff/r10-config-flow-text-verify at 8c9dc2697a74ebb036f4dddb8557edd57664d8bd (reviewed, verdict merge). The pull request head 67ab6ad0 is that head plus a clean merge of origin/main and its delivery row.
+Resume from handoff/r10-config-flow-text-verify at 59bb0506a003221fe2af38f30ab20fac46d1b73d. The code head is right and must not move. The 13 carries are now folded on the roster branch (carry audit: 13 routed, 0 unrouted), so CARRY-LANDED is cleared. The refused body is at handoff-wip/r10-config-flow-text-verify-body (fcee4d8c7d89).
 
-## The defect (from the fix review, measured)
-After main is merged in, `tests/doc_claims.py` exits 1 at tests/doc_claims.py:4739 with an AttributeError: the figure pin reads the split-minimum constant from the pump_arbiter module, and main commit 4a8115bc10 (R10-DUTY-SWITCH-PLANNER-PRICE) moved that constant to the duty_legs module. The pin on the head still reads the old module.
+body_push.sh now refuses with: `REFUSE ancestry reds: RED UNANSWERED (tests / fast (3.14)): check tests / fast (3.14) is red and ## Red checks does not name it`.
 
-## What to do
-1. Merge origin/main into the handoff head (this is the conflict-class case: the head is red on main without it). 
-2. Repoint that one pin to the module that now owns the constant; import the module the way the file already imports its siblings. Change nothing else in the claim set.
-3. Run `tests/doc_claims.py` (expect all checks passing), then the mutant the reviewer used: set the constant to 6 in its owning module and show the figure pin fails, restore, show it passes (null control).
-4. Hotfix-scoped prepr: `PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`; CI is the authority.
-5. Body: keep the existing body, update `## Head`, add one line under the section that lists corrections naming the repoint and the two runs. Keep every existing `Carry N` line.
-
-## Known and not yours
-The branch will textually conflict with PR 3561 in four string files once one of them merges (keep both lines); the orchestrator resolves that at merge order. Do not touch it.
+That red is on the pull request s earlier head 67ab6ad0: after main was merged in, `tests/doc_claims.py` raised an AttributeError at the split-minimum figure pin, because main commit 4a8115bc10 moved the constant from the pump_arbiter module to the duty_legs module and the pin still read the old one. Your previous round repointed it. Confirm that cause from the job log before writing it (do not take it from this brief), then in `## Red checks` name `tests / fast (3.14)` and answer the root-cause trigger truthfully: the cheaper detector (the same script run locally after merging main, with its measured seconds) and its standing cost, or the finding that none exists. Re-run body_push.sh until handoff-body/r10-config-flow-text-verify is published with `Code:` naming 59bb0506. Change nothing else.
