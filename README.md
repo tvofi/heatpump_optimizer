@@ -1072,11 +1072,13 @@ Each clears itself once the cause is gone.
 - **A configured grid fee is negative** — almost always a sign slip. Correct it on **Transfer fees and contract**.
 - **The downstairs temperature is modelled, not measured** — two-zone planning without a lower-floor thermometer. Assign the *Lower floor temperature sensor* to remove it.
 - **Your comfort temperatures contradict each other** — the stored band cannot all be met at once, for example a target above the warmest acceptable temperature. Fix the band on **Comfort and temperatures**.
+- **Valve target above comfort** — the mixing-valve target is read as the room temperature the circuit holds, not a water temperature, and it is above the top of your comfort band. Nothing is changed (it can be deliberate, for example slab charging); if it is a flow temperature, set the room temperature or 0 on **Mixing valve**.
 - **The heat pump's hot water set-point is below the configured temperature** — the pump's own set-point stops it reaching the disinfection or minimum temperature. The notice's fix writes the needed value to the pump's entity.
 - **The space-heating set-point entity is not reporting** — the set-point entity is missing or unreadable. Check it, or clear the slot.
 - **The heat pump does not hold a setting the optimizer wrote** — the pump reads back something else after two writes. To change the pump by hand, turn **Optimizer Active** off first.
 - **Stored learning could not be read** — stored data from another version could not be read, so that part of what was learned starts again from defaults. The integration keeps running.
 - **Silent windows are not enforced** — the capacity-limited slot is not a switch the integration can hold. Assign the pump's own night-mode switch, or remove the silent windows.
+- **The heat pump cannot hold the hot water minimum** — You named a *Hot water start hysteresis* entity, and the hot water minimum sits above the temperature the pump starts a charge at (its hot water target less that hysteresis). The plan places no charge the pump would not start, so it shows the tank falling under the minimum before each charge. Lower the minimum to the start temperature or less, raise the hot water set-point, or reduce the hysteresis on the pump.
 
 ## ECL110 heat-curve control
 
