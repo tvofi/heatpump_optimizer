@@ -25,3 +25,8 @@ The generated scope-line block is left out of this body: update_pr.sh verifies i
 Push each verified step to handoff-wip/r10-prepr-residue-p2; hand off at the first clean head on handoff/r10-prepr-residue-p2 (fast-forward), body through tools/audit/seat/body_push.sh; BLOCKED.md on the wip ref if you cannot proceed.
 
 Null control expected: a non-hotfix branch still runs the full prepr exactly as at the base (show the one line that says which scope ran, for a hotfix group's branch and for a non-hotfix one).
+
+THE CARRIES, verbatim:
+
+Carry 21: PART 2 ITEM unless the R10-PREPR-RESIDUE fixer dispatched 2026-11-11 00:24-00:28Z has not yet handed off when this carry lands: that fixer's brief was rendered before this carry, so a fixer already past handoff leaves it to the group's next part.
+From triage batch 141 (triage: dev/programme/triage/s6-batch141.md#P526 at aac4c4a441), queue line HOTFIX-PREPR-SCOPED, owner-directive route (tvofi 2026-11-09, verbatim: "hotfixes should have aggressively scoped or no prepr"). Measured: the main de.json hotfix spent about 40 min in a full prepr while 7 PRs waited. Decide the scope once, in tools/pr/prepr.sh: on a topic named fix/r10-hotfix-* (the branch every hotfix group uses), prepr defaults to PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1, keeps the merged-tree structure ratchet and the body/contract checks, and prints one line naming the hotfix scope; an explicit caller value still wins. The opener and the fixer prompt then need no edit. Self-test: a hotfix topic runs scoped and prints the line; the null control, a non-hotfix topic, runs the full prepr as today; a mutant on the topic predicate.
