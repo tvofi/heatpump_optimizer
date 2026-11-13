@@ -3904,7 +3904,8 @@ def _p2_registry(sources):
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
              owners=["inputs.py::state_stamp"], dispositions={
-                 "early_cutoff.py::_cycle_guard":
+                 # The supply gate's and the early cut-off's one clock.
+                 "supply_hold.py::switch_age":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
                      "last heard from, which a re-reported 'on' resets",
