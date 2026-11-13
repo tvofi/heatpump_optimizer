@@ -1,0 +1,9 @@
+eda..head stat:
+ 1 file changed, 147 insertions(+), 34 deletions(-)
+main own diff since old base:
+ 1 file changed, 147 insertions(+), 34 deletions(-)
+origin/main..head removed lines:
+-    S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["chip", "price"]] }),
+-    return [...root.querySelectorAll(".legend-chip, .chip")].map((el) => {
+markers:
+0

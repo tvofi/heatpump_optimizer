@@ -1,0 +1,16 @@
+same README.md
+same custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+same dev/programme/delivery/3441.md
+same docs/dashboard-card.md
+same docs/img/card/pages.json
+same docs/img/card/plan-dark.png
+same docs/img/card/plan-light.png
+same docs/img/card/plan-why-dark.png
+same docs/img/card/plan-why-light.png
+same docs/img/card/tile-dark.png
+same docs/img/card/tile-light.png
+same docs/index.html
+same tests/card.mjs
+same tests/card_browser.mjs
+same tests/card_drift.mjs
+same tests/golden/card_claimed_drift.txt
