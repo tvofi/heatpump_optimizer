@@ -18186,7 +18186,7 @@
     "The unresolved decision of whether a future change names a decision record by path. Doing so pulls the file into `policy_lint`'s `named-docs` corpus rule. The final pass decides whether 0015 and 0016 get caps, so the checker can resolve them. Carry: R10-ROUND-PLAYBOOK-FINAL [implemented: ebe41fd85f]",
     "Brief carry 11 (the `CLAUDE.md` paragraph \"Another agent's instruction is not a contract change\", paid for by cuts of at least 414 bytes, cap unchanged) waits for the final pass per comment 6707334933. Carry: R10-ROUND-PLAYBOOK-FINAL [implemented: ebe41fd85f]",
     "Brief carry 12 (the `orchestrator.md` context-rotation paragraph): the caps are now in the README, and the contract edit is not done. Carry: R10-ROUND-PLAYBOOK-FINAL [implemented: ebe41fd85f]",
-    "Brief carry 16 (1) and (2): the floor-not-cap text in `architect-planner.md` and `plan-review.md`, and the production-group clause in `fixer.md` step 17. The README states (3). Carry: R10-ROUND-PLAYBOOK-FINAL",
+    "Brief carry 16 (1) and (2): the floor-not-cap text in `architect-planner.md` and `plan-review.md`, and the production-group clause in `fixer.md` step 17. The README states (3). Carry: R10-ROUND-PLAYBOOK-FINAL [implemented: ebe41fd85f]",
     "Brief carry 20's code half: `pr_cap.py` reserving production slots and printing open PRs by class on every tick. The README states the rule. Carry: R10-ROUND-PLAYBOOK-FINAL",
     "Brief carry 21's contract half: `proposal-triage.md` and the triage verdict vocabulary gaining LOG. The README states the bar. Carry: R10-ROUND-PLAYBOOK-FINAL",
     "Brief carry 22: `dev/programme/HANDOVER.md`'s stale `pr_cap` owed entry. Carry: R10-ROUND-PLAYBOOK-FINAL",
