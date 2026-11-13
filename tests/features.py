@@ -63476,6 +63476,7 @@ _pa_bl_rows = {
     for name, kw in {
         "max 55": {"entity_max": 55},
         "max 60": {"entity_max": 60},
+        "max 70, the bound": {"entity_max": 70},
         "max 60, stored 50": {"entity_max": 60, "option": 50},
         "max 60, stored default 55": {"entity_max": 60, "option": 55},
         "max 60, limit 52": {"entity_max": 60, "limit": 52},
@@ -63487,12 +63488,13 @@ _pa_bl_rows = {
 }
 _pa_bl_idle = {how: _pa_boost_level("--", 0.0, how)[1] for how in (None, "channel", "mode")}
 _pa_bl_top = {how: _pa_boost_level("ss", 2.0, how)[1] for how in (None, "channel", "mode")}
-_pa_bl_want = {"max 55": 55, "max 60": 60, "max 60, stored 50": 50, "max 60, stored default 55": 60,
+_pa_bl_want = {"max 55": 55, "max 60": 60, "max 70, the bound": 70, "max 60, stored 50": 50, "max 60, stored default 55": 60,
                "max 60, limit 52": 52,
                "max 60, limit at the gate": 60, "return, max 45": 45}
 R.check(
     "R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's "
     "own maximum on a step the plan books at a partial 1.0 kW of a 0.4-2.0 kW band (55 for 55, 60 for 60, "
+    "70 for 70, FLOW_HEAT_C_MAX itself, "
     "45 for a return target's 45, unmoved), capped by a flow_heat_c set off its default (50, never the "
     "default 55, which an untouched page reads as) and the controller's "
     "upper-limit sensor (52), never by a limit at the 25 degC gate, which leaves no heating value; controls: "
