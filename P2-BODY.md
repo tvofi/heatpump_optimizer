@@ -24,7 +24,7 @@ Sibling group R10-D5-D6-FULL-SCOPE: `handoff/r10-d5-d6-full-scope` did not exist
 
 ## Head
 
-6f760d9fff396512697a986b15a553e79f8447a3 (WIP; re-take at the final head)
+74594227953ac1e76322cdc95f0462ed7a2f0d23 (WIP; re-take at the final head)
 
 ## Mutation proof
 
