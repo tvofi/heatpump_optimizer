@@ -1,0 +1,23 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:639 RETURN_DEL: return _flow_target(inp, duty, now, boosted=boosted)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:677 GUARD_OFF: if (kw := _experiment_kw(inp)) is not None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:679 GUARD_OFF: if boosted:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:681 RETURN_DEL: return _step_kw(inp.plan, now)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:916 CMP_BOUND*2: if high is None or not _gate_floor_c(inp.config) < high <= F
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:916 GUARD_OFF: if high is None or not _gate_floor_c(inp.config) < high <= F
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:919 GUARD_OFF: if (ceiling := _heat_ceiling_c(inp.config)) != DEFAULT_FLOW_
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:922 BOOLOP: if limit is not None and limit > _gate_floor_c(inp.config):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:922 CMP_BOUND: if limit is not None and limit > _gate_floor_c(inp.config):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:922 GUARD_OFF: if limit is not None and limit > _gate_floor_c(inp.config):
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:924 RETURN_DEL: return min(caps)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1281 BOOLOP: space = _space_target(inp, result, now, duty, boosted=water 
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1282 GUARD_OFF: if water:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1293 RETURN_DEL: return inp.mode == MODE_BOOST or boost.held_for(coord).activ
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1554 RETURN_DEL: return record[0] if record is not None else held.dropped.get
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1685 BOOLOP: return slot == "space_setpoint" and not await _arm_space(inp
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1685 RETURN_DEL: return slot == "space_setpoint" and not await _arm_space(inp
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1707 GUARD_OFF: if own:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1712 RETURN_DEL: return await off_restore.async_arm(inp.hass, entry, inp.conf
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1826 GUARD_OFF: if held.written or held.retry or held.space_before is not No
+CI PREDICT: 20 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against 154dbb4c6165 (a data-file read is not seen)
+rc=0

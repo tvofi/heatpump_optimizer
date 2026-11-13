@@ -1,0 +1,4 @@
+merge-base: 154dbb4c61652135381ce66646d23f7109d1c142
+first tag containing 0a58990088: archive/batch/20261010-152646-1
+0a58990088 feat(R9-SW-6): clamp unrealizable planned levels and follow the flow setpoint
+first release tag containing 0a58990088: v6.7.17
