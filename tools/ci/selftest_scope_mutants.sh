@@ -74,4 +74,9 @@ wrapper_mutant "no strace exec'd anyway" 'if ! command -v strace > /dev/null 2>&
 wrapper_mutant "exit lines suppressed (-qq)" 'exec strace -f -q -y' 'exec strace -f -qq -y'
 wrapper_mutant "drift traced again" 'UNTRACED=" scope strace launch drift unread "' 'UNTRACED=" scope strace launch unread "'
 scope_mutant "the self-test leaks the caller's base selectors" 'held = {k: os.environ.pop(k) for k in ("GITHUB_BASE_REF", "SELFTEST_BASE") if k in os.environ}' 'held = {}'
+scope_mutant "the self-test wrapper returns nothing" 'return _self_test(wrapper, workflow)' '_self_test(wrapper, workflow)'
+scope_mutant "a D/** item read as a slice off by one" 'p = item[:-3] if item.endswith("/**") else item' 'p = item[:-4] if item.endswith("/**") else item'
+scope_mutant "an undiffable base passes the shrink guard" 'if diff.returncode != 0:
+        return [f"UNREADABLE' 'if False:
+        return [f"UNREADABLE'
 echo "SELFTEST-SCOPE MUTANTS: every mutant refused"

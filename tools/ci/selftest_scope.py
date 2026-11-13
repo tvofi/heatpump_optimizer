@@ -1660,6 +1660,9 @@ def _self_test(wrapper: Path, workflow: Path) -> int:
     dir_b, dir_h = {"steps": {"a": ent([], [], ["t"])}}, {"steps": {"a": ent()}}
     ck("shrink_drops: a directory whose every file the diff deleted is exempt, one with a survivor is not",
        shrink_drops(dir_b, dir_h, {"t/x"}, set()) == [] and len(shrink_drops(dir_b, dir_h, {"t/x"}, {"t/y"})) == 1)
+    glob_b, glob_h = {"steps": {"a": ent(["t/**"])}}, {"steps": {"a": ent()}}
+    ck("shrink_drops: a D/** item whose directory the diff emptied is exempt, one with a survivor is not",
+       shrink_drops(glob_b, glob_h, {"t/x"}, set()) == [] and len(shrink_drops(glob_b, glob_h, {"t/x"}, {"t/y"})) == 1)
     probe_b, probe_dir = {"steps": {"a": ent([], ["t/q"])}}, {"steps": {"a": ent([], [], ["t"])}}
     ck("shrink_drops: a probe whose directory the head lists is kept, the same head without it is not",
        shrink_drops(probe_b, probe_dir, set(), {"t/x"}) == []
@@ -1687,6 +1690,8 @@ def _self_test(wrapper: Path, workflow: Path) -> int:
         b0 = commit(held)
         commit(head_add)
         ck("shrink_gaps: a committed additive table change passes (null control)", shrink_gaps(gr, b0) == [])
+        ck("shrink_gaps: a base the repository cannot diff against is refused, not passed",
+           [x[:10] for x in shrink_gaps(gr, "0" * 40)] == ["UNREADABLE"])
         commit(head_drop)
         fx = shrink_gaps(gr, b0)
         ck("shrink_gaps: a committed diff dropping reads is refused",
@@ -1784,8 +1789,9 @@ def _self_test(wrapper: Path, workflow: Path) -> int:
 def main(argv: list[str], root: Path = ROOT) -> int:
     opts = dict(zip(argv[1::2], argv[2::2]))
     if argv[:1] == ["--self-test"] and len(argv) % 2 == 1 and set(opts) <= {"--wrapper", "--workflow"}:
-        return self_test(Path(opts.get("--wrapper", ROOT / WRAPPER)).resolve(),
-                         Path(opts.get("--workflow", ROOT / WORKFLOW)).resolve())
+        rc = self_test(Path(opts.get("--wrapper", ROOT / WRAPPER)).resolve(),
+                       Path(opts.get("--workflow", ROOT / WORKFLOW)).resolve())
+        return rc if isinstance(rc, int) else 1  # a self-test that returned nothing did not pass
     if argv == ["ids"]:
         print(" ".join(gated_ids(workflow_steps(root))))
         return 0
