@@ -388,6 +388,30 @@ def _self_test() -> int:
         check("a leftover record is resumed at the next train's start",
               f2.posts == ["actions/runs/5/rerun-failed-jobs"] and not Path(td, PAUSED).exists())
         check("an unreadable started_at is no age", queued_minutes([{"status": "queued", "started_at": None}], NOW) is None)
+        check("queued_minutes is the oldest queued job's age in minutes, exactly",
+              queued_minutes(queued(6) + queued(2) + [{"status": "completed", "started_at": iso(NOW - 3600)}], NOW) == 6.0)
+        f, p = mk()
+        p.poll(queued(setting["pause_queued_min"]), HEAD)
+        check("a head job queued exactly pause_queued_min pauses (the bound is inclusive)", f.posts == ["actions/runs/5/cancel"])
+        f.posts.clear()
+        f.active["f" * 40] = []
+        f.now += setting["pause_gap_min"] * 60
+        p.poll(queued(9), HEAD)
+        check("exactly pause_gap_min after a pause the next pass may pause again", f.posts == ["actions/runs/3/cancel", "actions/runs/4/cancel"])
+        f, p = mk()
+        p._note("k", "one")
+        p._note("k", "two")
+        p._note("j", "three")
+        check("_note logs once per key", f.logs == ["one", "three"])
+        check("_api: a failed command, an unparsable answer and an empty one read as None, None and {}",
+              (p._api("nope"), (setattr(f, "run", lambda c: (0, "not json")), p._api("x"))[1],
+               (setattr(f, "run", lambda c: (0, "  ")), p._api("x"))[1]) == (None, None, {}))
+        Path(td, PAUSED).unlink(missing_ok=True)
+        p.write([])
+        sub = CiPause(Fake(Path(td) / "new" / "dir"), setting, (roster, crit))
+        sub.write([{"pr": 1, "run_ids": [2]}])
+        check("write: an empty list with no file is no error; a record lands in a state dir not yet made",
+              not Path(td, PAUSED).exists() and sub.read() == [{"pr": 1, "run_ids": [2]}])
     print(f"ci_pause self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
 
