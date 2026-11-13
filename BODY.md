@@ -10,6 +10,10 @@ What is built, by owner:
 
 ## Head
 
+ec56d126d6bd4a4d9ef15c855e05e0e71a07cc54
+
+This head merges `origin/main` at 7eadd75f3c420404aabc83d4b05f9691f3e49136 into 7e68a0f1ca540c1d99292b55db36627d4568a749 (merge commit fb6438b125cab5685cebd4067bcde480d7880eaa, no conflict), so the merge base is now 7eadd75f3c420404aabc83d4b05f9691f3e49136. It adds one commit that removes a ledger row main's nightly drain wrote (caacd43b4e, `ci: record nightly kills`): `optimizer.py:HeatPumpOptimizer._co_optimize CLAMP_DROP f79618d7`, pinned on `headroom = np.maximum(0.0, p_max - dhw_power)`, a line this branch replaced in 4a8115bc10 with `duty_legs.space_headroom(...)`. At the merge, `python3 tools/pr/ci_predict.py --base 7eadd75f3c42 --only mutation` printed `PREDICT ledger STALE PIN ...: disposition names no site the inventory generates`. The site no longer exists, so the row was deleted as ci_predict prescribes, not re-anchored. Its clamp now sits in `duty_legs.space_headroom`, whose two CLAMP_DROP sites are already pinned on this branch. At this head the same command prints no red. Figures below that name 7e68a0f1ca54 or an earlier SHA were taken there.
+
 7e68a0f1ca540c1d99292b55db36627d4568a749
 
 The merge base is 36da41115decd0c1b6375d07c713fcb1c59c4935 (`git merge-base origin/main HEAD`). `origin/main` is at 8a550692da2c80d7ea7f5f26a9c95fc81090a841 (2026-11-13T08:10:33+01:00, read 2026-11-13T07:57Z) and `git merge-tree --write-tree origin/main HEAD` exits 0, so it is not merged again. Every comparison below is three-dot against the merge base.
@@ -224,11 +228,7 @@ FAIL the arbiter and the sensor name duty_switch through its report, attach and 
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>` prints `MODE: SCOPED`. `env -u BASH_ENV GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` exits 0 at this head, the scripts the scope names passed and the scoped-out ones named as not run.
 - Mutants: the commands under Mutation proof, Repair round 2 and Review round 1, answered. The uncapped diff pass enumerates 224 mutants at this head (`mutant_run.py --diff 36da41115decd0c1b6375d07c713fcb1c59c4935...HEAD --list`, one `MUTANT` line each); null control: the driver's own NULL mutant must survive (`SURVIVED NULL` in the two spec outputs), and the section harness run with no edit exits 0.
 
-<!-- figure-block: scope-line mb=36da41115decd0c1b6375d07c713fcb1c59c4935 head=7e68a0f1ca540c1d99292b55db36627d4568a749 -->
-~~~text
-MODE: SCOPED -- 28 script(s) run, 5 scoped out.
-~~~
-<!-- /figure-block -->
+The generated scope-line block is left out of this body: update_pr.sh verifies it against its own merge head, which no body can name in advance (R10-HOTFIX-UPDATEPR-FIGURE-REFRESH); the scope line is the gate's own MODE line at the head.
 
 ## Unpinned sites
 
