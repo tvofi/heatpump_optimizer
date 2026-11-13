@@ -1,0 +1,67 @@
+MUTANT tools/audit/seat/cloud_dispatch.py:516 CONST_SWAP  PART_CARRIES = 6
+MUTANT tools/audit/seat/cloud_dispatch.py:518 CONST_SWAP  PART_FOLD = 3
+MUTANT tools/audit/seat/cloud_dispatch.py:525 CONST_SWAP  parts = [pending[i:i + PART_CARRIES] for i in range(1, len(pending), PART_CARRIES)]
+MUTANT tools/audit/seat/cloud_dispatch.py:526 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:526 CMP_BOUND  if len(parts) >= 1 and len(parts[-1]) <= PART_FOLD:
+MUTANT tools/audit/seat/cloud_dispatch.py:526 CONST_SWAP  if len(parts) > 2 and len(parts[-1]) <= PART_FOLD:
+MUTANT tools/audit/seat/cloud_dispatch.py:527 CONST_SWAP  parts[-3:] = [parts[-2] + parts[-1]]
+MUTANT tools/audit/seat/cloud_dispatch.py:529 CONST_SWAP  out, start = [], 1
+MUTANT tools/audit/seat/cloud_dispatch.py:530 CONST_SWAP  for j in range(2, len(idx) + 1):
+MUTANT tools/audit/seat/cloud_dispatch.py:531 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:531 CONST_SWAP  if j == len(idx) or idx[j] != idx[j - 2] + 1:
+MUTANT tools/audit/seat/cloud_dispatch.py:532 CALL_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:532 CONST_SWAP  out.append(str(idx[start]) if start == j - 2 else f"{idx[start]}-{idx[j - 1]}")
+MUTANT tools/audit/seat/cloud_dispatch.py:534 RETURN_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:535 RETURN_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:543 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:544 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:544 CMP_BOUND  if len(pending) < PART_CARRIES:
+MUTANT tools/audit/seat/cloud_dispatch.py:545 RETURN_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:548 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:548 CMP_BOUND  if len(pending) < PART_CARRIES:
+MUTANT tools/audit/seat/cloud_dispatch.py:551 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:551 CMP_BOUND  if not 1 < part <= len(parts):
+MUTANT tools/audit/seat/cloud_dispatch.py:551 CONST_SWAP  if not 2 <= part <= len(parts):
+MUTANT tools/audit/seat/cloud_dispatch.py:600 CONST_SWAP  carry_only: bool = True, record_pr: bool = False, reviewed_head: str = "",
+MUTANT tools/audit/seat/cloud_dispatch.py:601 CONST_SWAP  part: int = 1) -> str:
+MUTANT tools/audit/seat/cloud_dispatch.py:633 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:635 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:635 CMP_BOUND  if role == "fixer" and (part or len(group.get("carry") or []) >= PART_CARRIES):
+MUTANT tools/audit/seat/cloud_dispatch.py:641 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:641 CMP_BOUND  if part >= 1:
+MUTANT tools/audit/seat/cloud_dispatch.py:641 CONST_SWAP  if part > 2:
+MUTANT tools/audit/seat/cloud_dispatch.py:644 GUARD_OFF  if False:
+MUTANT tools/audit/seat/cloud_dispatch.py:764 CONST_SWAP  "carry": [f"Carry text {i}." for i in range(22)] + ["Built. [implemented: abc1234]"]}
+MUTANT tools/audit/seat/cloud_dispatch.py:765 CONST_SWAP  five = {"group": "R10-FIVE", "brief": "Five.\n", "carry": [f"Five {i}." for i in range(6)] + ["Gone. [moved: R10-X]"]}
+MUTANT tools/audit/seat/cloud_dispatch.py:767 CONST_SWAP  clash = {"group": "R10-CLASH", "brief": "Clash.\n", "carry": [f"Clash {i}." for i in range(14)]}
+MUTANT tools/audit/seat/cloud_dispatch.py:771 CONST_SWAP  "carry": [f"Self {i}." for i in range(9)]}
+MUTANT tools/audit/seat/cloud_dispatch.py:772 CALL_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:881 CALL_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:885 RETURN_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:887 RETURN_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:891 RETURN_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:893 RETURN_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:899 CONST_SWAP  p2 = dispatch("R10-SPLIT", part=3)
+MUTANT tools/audit/seat/cloud_dispatch.py:905 CONST_SWAP  and sum(ln == pline for ln in p2text.splitlines()) == 2 and p2text.endswith(pline + "\n"))
+MUTANT tools/audit/seat/cloud_dispatch.py:906 CONST_SWAP  cwhy = why_any("R10-CLASH", part=3)
+MUTANT tools/audit/seat/cloud_dispatch.py:907 CONST_SWAP  awhy = why_any("R10-CLASH", part=4)
+MUTANT tools/audit/seat/cloud_dispatch.py:912 CONST_SWAP  and not why_any("R10-CLASH", part=2) and p2 == "dispatch/fixer-r10-split-p2"
+MUTANT tools/audit/seat/cloud_dispatch.py:913 CONST_SWAP  and not why_any("R10-SELF-P2", part=3))
+MUTANT tools/audit/seat/cloud_dispatch.py:914 CONST_SWAP  p1text = fetched(dispatch("R10-SPLIT", part=2), "PROMPT.md")
+MUTANT tools/audit/seat/cloud_dispatch.py:918 CONST_SWAP  "splits into 4 parts" in why_any("R10-SPLIT", part=6) and "five or fewer" in why_any("R10-FIVE", part=1)
+MUTANT tools/audit/seat/cloud_dispatch.py:919 CONST_SWAP  and "fixer's" in why_any("R10-SPLIT", "probe", part=3))
+MUTANT tools/audit/seat/cloud_dispatch.py:922 CONST_SWAP  roster_lib.CARRY_CUTOVER[roster_lib.roster_path(str(work), roster_lib.reader_ref(str(work), None), None)] = "0" * 41
+MUTANT tools/audit/seat/cloud_dispatch.py:923 CONST_SWAP  lwhy = why_any("R10-SPLIT", part=3)
+MUTANT tools/audit/seat/cloud_dispatch.py:925 CONST_SWAP  lwhy.startswith("cannot read ") and "0" * 41 in lwhy and "Error" not in lwhy)
+MUTANT tools/audit/seat/cloud_dispatch.py:926 CALL_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:931 CONST_SWAP  + group_brief(five, {"groups": [five]}, fixer=False)) and "\nPart " not in ftext)
+MUTANT tools/audit/seat/cloud_dispatch.py:933 CONST_SWAP  [split_any(n) for n in (2, 2, 5, 6, 7, 8, 21, 22, 23)]
+MUTANT tools/audit/seat/cloud_dispatch.py:936 CONST_SWAP  and part_split([1, 1, 3, 4, 5, 6, 9]) == "0-1+3-6+9" and part_split([0, 2, 3]) == "0+2-3")
+MUTANT tools/audit/seat/cloud_dispatch.py:945 CONST_SWAP  crc == 1 and out.getvalue().strip() == "dispatch/fixer-r10-split-p3"
+MUTANT tools/audit/seat/cloud_dispatch.py:946 CONST_SWAP  and nrc == 3 and "--part applies only with --group" in err.getvalue())
+MUTANT tools/audit/seat/cloud_dispatch.py:948 CALL_DEL  pass
+MUTANT tools/audit/seat/cloud_dispatch.py:1149 CONST_SWAP  msg.count("refs/heads/probe/rev-7-abc123de`") == 3 and "rev-7-abc123def" not in msg)
+MUTANT tools/audit/seat/cloud_dispatch.py:1247 CONST_SWAP  value = "probe" if dest == "role" else (False if dest in switches else "7" if dest in ints else f"value-of-{dest}")
+MUTANT tools/audit/seat/cloud_dispatch.py:1260 CONST_SWAP  rc == 1 and (int(value) if dest in ints else value) in sent)
+MUTANT tools/audit/seat/cloud_dispatch.py:1354 CONST_SWAP  hv = render("reviewer", head, **base, topic="t-1", nonce="abc123")["job_config"]["ccr"]["events"][1]["data"]["message"]["content"]
+MUTANT tools/audit/seat/cloud_dispatch.py:1532 GUARD_OFF  if False:

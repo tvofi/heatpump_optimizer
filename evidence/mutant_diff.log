@@ -1,0 +1,14 @@
+SURVIVED tools/audit/seat/cloud_dispatch.py:600 CONST_SWAP  carry_only: bool = True, record_pr: bool = False, reviewed_head: str = "",
+SURVIVED tools/audit/seat/cloud_dispatch.py:635 CMP_BOUND  if role == "fixer" and (part or len(group.get("carry") or []) >= PART_CARRIES):
+SURVIVED tools/audit/seat/cloud_dispatch.py:767 CONST_SWAP  clash = {"group": "R10-CLASH", "brief": "Clash.\n", "carry": [f"Clash {i}." for i in range(14)]}
+SURVIVED tools/audit/seat/cloud_dispatch.py:771 CONST_SWAP  "carry": [f"Self {i}." for i in range(9)]}
+SURVIVED tools/audit/seat/cloud_dispatch.py:887 RETURN_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:893 RETURN_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:918 CONST_SWAP  "splits into 4 parts" in why_any("R10-SPLIT", part=6) and "five or fewer" in why_any("R10-FIVE", part=1)
+SURVIVED tools/audit/seat/cloud_dispatch.py:919 CONST_SWAP  and "fixer's" in why_any("R10-SPLIT", "probe", part=3))
+SURVIVED tools/audit/seat/cloud_dispatch.py:922 CONST_SWAP  roster_lib.CARRY_CUTOVER[roster_lib.roster_path(str(work), roster_lib.reader_ref(str(work), None), None)] = "0" * 41
+SURVIVED tools/audit/seat/cloud_dispatch.py:923 CONST_SWAP  lwhy = why_any("R10-SPLIT", part=3)
+SURVIVED tools/audit/seat/cloud_dispatch.py:931 CONST_SWAP  + group_brief(five, {"groups": [five]}, fixer=False)) and "\nPart " not in ftext)
+SURVIVED tools/audit/seat/cloud_dispatch.py:948 CALL_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:1247 CONST_SWAP  value = "probe" if dest == "role" else (False if dest in switches else "7" if dest in ints else f"value-of-{dest}")
+rc=0
