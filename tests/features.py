@@ -63662,6 +63662,29 @@ R.check(
 )
 
 
+def _pa_stuck_off(hand=None):
+    """Off after the released write from a persisted own 25: what the restore writes.
+
+    ``hand``: a value the person sets at the controller before the pass.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (25.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", "25" if hand is None else hand)
+    _pa_settled(coord, 1)
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds "
+    "restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is "
+    "restored as set",
+    _pa_stuck_off() == (1, [35.0]) and _pa_stuck_off("40") == (1, [40.0]),
+    f"{_pa_stuck_off()=} {_pa_stuck_off('40')=}",
+)
+
+
 def _pa_between(reading, switch_off=False, then=None):
     """Baseline 53; the gate 25, then a space step's target; then the entity reads ``reading``.
 
