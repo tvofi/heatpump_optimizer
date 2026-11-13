@@ -63427,6 +63427,60 @@ R.check(
     and ("number", "set_value", 35.0) in _pa_gb["comfort"].writes(),
     f"{_pa_gb['boost'].writes()} / {_pa_gb['comfort'].writes()}",
 )
+
+
+# R10-HOTFIX-BOOST-FLOW-CEILING (tvofi, 2026-11-13: a space boost wrote 41,
+# then 43, not his 55): a boost replaces the plan's power for the space
+# channel (boost.overlay), so the level the flow set-point maps is the band
+# top on every step, a partial one included. The band is ready here
+# (max_electrical_power set), which the idle-plan check above never needed.
+def _pa_boost_level(duties, kw, how=None, power_meter=False):
+    """The space writes of one pass on a plan booking ``kw`` on its space steps, band 0.4-2.0 kW.
+
+    ``how``: None, ``"channel"`` (Boost Space Heating) or ``"mode"`` (the global boost mode).
+    """
+    coord = _PaCoord(_PA_TUYA, duties=duties)
+    coord._optimization_result.power_schedule = [kw if c == "s" else 0.0 for c in duties]
+    coord._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None,
+                                  min_electrical_power=0.4, max_electrical_power=2.0)
+    if power_meter:
+        with_config(coord, {"heat_pump_power_entity": "sensor.hp_power", "space_setpoint_power_feedback": True})
+    if how == "channel":
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    elif how == "mode":
+        coord._mode = "boost"
+    _pa_run(coord, 1)
+    return coord, [v for d, _sv, v in coord.writes() if d == "number" and v != 48.0]
+
+
+_pa_bl = {
+    (duties, kw, how): _pa_boost_level(duties, kw, how)[1]
+    for duties, kw in (("ss", 1.0), ("ss", 2.0), ("--", 0.0))
+    for how in (None, "channel", "mode")
+}
+_pa_bl_fb, _ = _pa_boost_level("ss", 1.0, "channel", power_meter=True)
+_pa_bl_fb_on = _pa._feedback_on(_pa_bl_fb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
+                                boost_mod.held_for(_pa_bl_fb))
+_pa_bl_nb, _ = _pa_boost_level("ss", 1.0, None, power_meter=True)
+_pa_bl_nb_on = _pa._feedback_on(_pa_bl_nb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
+                                boost_mod.held_for(_pa_bl_nb))
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the 55 degC ceiling "
+    "on a step the plan books at a partial 1.0 kW of a 0.4-2.0 kW band; controls: the same step with "
+    "no boost writes its partial value, below 55, and an idle plan and a band-top plan write 55 with "
+    "or without a boost",
+    _pa_bl[("ss", 1.0, "channel")] == [55.0] and _pa_bl[("ss", 1.0, "mode")] == [55.0]
+    and len(_pa_bl[("ss", 1.0, None)]) == 1 and _pa_bl[("ss", 1.0, None)][0] < 55.0
+    and all(_pa_bl[("ss", 2.0, how)] == [55.0] for how in (None, "channel", "mode"))
+    and all(_pa_bl[("--", 0.0, how)] == [55.0] for how in ("channel", "mode")),
+    f"{_pa_bl=}",
+)
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: the power-feedback loop stays off during a space boost; "
+    "null control: on the same partial step with no boost it is on",
+    _pa_bl_fb_on is False and _pa_bl_nb_on is True,
+    f"{_pa_bl_fb_on=} {_pa_bl_nb_on=}",
+)
 R.check(
     "a boost writes its own single duty where the pump offers it, Heating + DHW "
     "where it does not or the other duty is due too, and nothing while off",
