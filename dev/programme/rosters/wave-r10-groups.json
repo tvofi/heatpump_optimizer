@@ -25505,9 +25505,9 @@
    ],
    "findings": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "0cc5647545d27a7d49e6eb2d5c283238322177c0",
     "last_step": null,
     "next_step": "fixer (size S, no design step): failing test first, then label, description, notice",
     "note": "not on the binding chain; rolls to round 11 at the freeze if unmerged; triage P-OUTSIDE-3529-B",
