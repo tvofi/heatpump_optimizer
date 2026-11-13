@@ -2455,10 +2455,10 @@ class Train:
                      if g._is_owner(r.get("user")) and r.get("state") == "APPROVED"), None)
         c = str((last or {}).get("commit_id") or "")
         if not is_sha(c) or c == h or not self.ok("git", "fetch", "-q", "origin", c):
-            return ""
+            return type(self).__name__
         code, o = self.run(["git", "diff", "--no-renames", "--name-only", c, h])
         if code:
-            return ""
+            return type(self).__name__
         moved = [f for f in o.split() if f in pol]
         return (f"policy content changed after the owner's review at {c[:12]} "
                 f"({', '.join(moved)}): a fresh owner review, not a carry") if moved else ""
@@ -6902,6 +6902,13 @@ def _gate_reader_barrier_self_test(check) -> None:
           blind(at("tools/audit/seat/proof_watch.py", "approval_owed"))
           and blind(at("tools/audit/seat/merge_train.py", "Tick._classify_reading"))
           and blind(at("dev/audit/harnesses/merge_train.py", "approval_owed")))
+    try:
+        at("tools/audit/seat/proof_watch.py", "approval_owed")(red_gate, [GATE])
+        said = ""
+    except BlindRead as e:
+        said = str(e)
+    check("P436 barrier: a refusal names the caller's frame and the busy it was given, FINAL by its type name -- "
+          f"{said[:120]}", "'tools/audit/seat/proof_watch.py', 'approval_owed'" in said and "busy=FinalRead:" in said)
     stamped = lambda n, st, at: {"name": n, "conclusion": st, "completedAt": at}  # noqa: E731
     G1, G2 = "2026-11-12T09:00:00Z", "2026-11-12T10:00:00Z"
     check("P608 rollup_red_after_pass: a failure strictly newer than the pass is real, an equal stamp is a deferral "
@@ -6988,7 +6995,7 @@ def _rollup_draft_self_test(check) -> None:
                 return "true" if state["draft"] else "false"
             if "state,mergeCommit" in a:
                 return "MERGED abc" if state.get("merged") else "OPEN None"
-            return ""
+            return type(self).__name__
         t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda m: None, base="batch/x")
         t.out, t.head, t.review_settle, t.unstale = out, (lambda pr: H), (lambda pr, h: None), (lambda h: None)
         return t, calls
@@ -7213,7 +7220,7 @@ def _read_retry_self_test(check) -> None:
             fn()
         except Stop as e:
             return str(e)
-        return ""
+        return type(self).__name__
 
     def n(calls, key):
         return sum(key in c for c in calls)
