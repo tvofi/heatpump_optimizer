@@ -26721,6 +26721,53 @@
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING): owner ruling 2026-11-13: these card items are fixed in the beginning of round 11 before the finders run"
    }
+  },
+  {
+   "group": "R11-PRE-HANDOFF-BOOKKEEPING",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "process",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
+   "files": [
+    "dev/governance/roles/fix-review.md",
+    "dev/governance/roles/fixer.md",
+    "tools/audit/seat/body_push.sh",
+    "tools/audit/carry_audit.py",
+    "tools/audit/seat/carry_fold.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13 on decision card P10 (yes): carry, body and red-check items are decided mechanically at the handoff, and a reviewer blocks only on product classes. Includes proposal candidate PC-1113-01: a cloud fixer stopped three times on 2026-11-13 because it may not write roster carries; a refused carry-landed check at handoff is folded onto the roster automatically and the body push retried, with no seat stopped. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 4 row 6 and section 6 row b2. Policy pull request for the owner s review (the fixer and reviewer contracts change). The owner ruled the same day that this is built at the beginning of round 11, before the finders run.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-pre-handoff-bookkeeping",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
+    "note": "intake: owner decision cards 2026-11-13 and his ruling the same day: fixed in the beginning of round 11 before the finders run"
+   }
   }
  ]
 }
