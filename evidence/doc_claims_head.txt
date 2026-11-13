@@ -80,7 +80,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/tmp/claude-0/-home-user-heatpump-optimizer/184fcfc0-52b2-5bd4-b44e-648a6b36dcce/scratchpad/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/tmp/tmp.RhUCICn2Ms/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
@@ -384,6 +384,7 @@
 
 -- every user-facing surface has its home in the user docs, default included (R10-USER-DOCS-FINAL)
   ok   every surface class enumerates from the tree (anchor)
+  ok   every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)
   ok   every surface has its home, or a reasoned exemption that still names one
        (517 surface(s), 516 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
   ok   red fixture: a service planted in services.yaml with no home is the one finding
@@ -443,8 +444,4 @@
   ok   red fixture: a history-sense "used to" is a finding
   ok   red fixture: an exemption that matches no fragment is a finding
 
-ALL 347 checks PASSED
-
-real	0m18.781s
-user	0m12.271s
-sys	0m0.668s
+ALL 348 checks PASSED
