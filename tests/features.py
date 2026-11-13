@@ -47258,9 +47258,7 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
 
 # Behind a valve, at zero demand (a warm, sunny step: the steady demand at
 # target is negative, clamped to 0). The held tank keeps its measured
-# temperature, since no temperature delivers a need of nothing; and a horizon
-# with no steady demand anywhere has no shape to spread its energy by, so the
-# simulated schedule stands as simulated.
+# temperature, since no temperature delivers a need of nothing.
 _hz_ws = _HbWSeries(
     outdoor_temps=np.full(4, 30.0), wind_speeds=np.zeros(4),
     precipitation=np.zeros(4), solar_radiation=np.full(4, 800.0),
@@ -47274,25 +47272,17 @@ _hz_held = _hb_held_state(_hz_opt.model, _HbState(
     room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=30.0,
     upper_floor_temperature=21.0, lower_floor_temperature=21.0, buffer_tank_temperature=37.5,
 ), _hz_ws, 21.0)
-_hz_sim = np.array([1.0, 2.0, 0.5, 0.0])
-try:
-    _hz_spread = _hz_opt._apportion_by_steady_demand(_hz_sim, _hz_ws, [21.0] * 4)
-except ZeroDivisionError as _hz_exc:
-    _hz_spread = _hz_exc
 R.check(
-    "behind a valve at zero demand the held tank keeps its measured temperature, "
-    "and a horizon with no steady demand keeps its simulated schedule",
-    _hz_held.buffer_tank_temperature == 37.5
-    and isinstance(_hz_spread, np.ndarray) and np.array_equal(_hz_spread, _hz_sim),
-    repr((_hz_held.buffer_tank_temperature, _hz_spread)),
+    "behind a valve at zero demand the held tank keeps its measured temperature",
+    _hz_held.buffer_tank_temperature == 37.5,
+    repr(_hz_held.buffer_tank_temperature),
 )
 
-# Behind a valve the reference spreads its energy by steady demand, and on a
-# small pump in a cold night with a sunny day the plain spread asked more than
-# the pump has (measured 1.23x on this house; R10-SAV-COMFORT carry fc24128d).
-# The spread holds such a step at the pump and gives its excess to the others
-# by the same demand, keeping the horizon's energy; the solve is seeded from
-# that reference unclamped, so every start lies inside its bounds.
+# Behind a valve, on a small pump in a cold night with a sunny day, a reference
+# spread by steady demand once asked more than the pump has (measured 1.23x on
+# this house; R10-SAV-COMFORT carry fc24128d). The thermostat's own steps are
+# capped at the pump, and the solve is seeded from that reference unclamped, so
+# every start lies inside its bounds.
 from heatpump_optimizer import optimizer as _hz_omod
 
 _hz_n = 96
@@ -47319,16 +47309,6 @@ def _hz_spy_ms(objective, starts, bounds, **kw):
 
 _hz_baselines = []
 _hz_orig_bp = _HbOpt._compute_baseline_power
-_hz_spreads = []
-_hz_orig_ap = _HbOpt._apportion_by_steady_demand
-
-
-def _hz_spy_ap(self, simulated, *a, **kw):
-    out = _hz_orig_ap(self, simulated, *a, **kw)
-    _hz_spreads.append((np.array(simulated, float), np.array(out, float)))
-    return out
-
-
 def _hz_spy_bp(self, *a, **kw):
     out = _hz_orig_bp(self, *a, **kw)
     _hz_baselines.append(float(np.max(out[0])))
@@ -47337,7 +47317,6 @@ def _hz_spy_bp(self, *a, **kw):
 
 _hz_omod._multi_start_minimize = _hz_spy_ms
 _HbOpt._compute_baseline_power = _hz_spy_bp
-_HbOpt._apportion_by_steady_demand = _hz_spy_ap
 try:
     _hz_copt.optimize(inputs=solve_inputs(
         initial_state=_HbState(
@@ -47353,7 +47332,6 @@ try:
 finally:
     _hz_omod._multi_start_minimize = _hz_orig_ms
     _HbOpt._compute_baseline_power = _hz_orig_bp
-    _HbOpt._apportion_by_steady_demand = _hz_orig_ap
 _hz_pmax = float(_hz_cpar.max_electrical_power)
 R.check(
     "behind a valve, the reference seeds the space solve only inside its bounds",
@@ -47361,74 +47339,42 @@ R.check(
     f"worst excess over a bound {max(_hz_seen, default=None)!r}",
 )
 R.check(
-    "behind a valve, the spread reference holds a step at the pump, never past it, "
-    "and keeps the simulated horizon's energy",
-    bool(_hz_spreads)
-    and all(float(np.max(o)) <= _hz_pmax + 1e-12 for _, o in _hz_spreads)
-    and all(abs(float(np.sum(o)) - float(np.sum(s))) < 1e-9 for s, o in _hz_spreads)
-    and any(int(np.sum(o >= _hz_pmax - 1e-12)) >= 2 for _, o in _hz_spreads)
-    and max(_hz_baselines, default=0.0) <= _hz_pmax + 1e-12,
-    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}; "
-    f"steps at the pump {[int(np.sum(o >= _hz_pmax - 1e-12)) for _, o in _hz_spreads]}",
+    "behind a valve, the reference reaches the pump and never passes it",
+    bool(_hz_baselines)
+    and abs(max(_hz_baselines) - _hz_pmax) <= 1e-12,
+    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}",
 )
-# Under the pump the spread keeps the demand's shape. Four steps, the last one
-# a -30 C step whose plain share of 0.8 pump-steps each would pass the pump:
-# it is held at the pump, and the other three share the rest as the same
-# multiple of their steady demand at target (read from the production helper).
-_hz_mws = _HbWSeries(
-    outdoor_temps=np.array([5.0, 0.0, -5.0, -30.0]), wind_speeds=np.zeros(4),
-    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+
+# Behind a valve the booked reference holds the state it starts from: the held
+# state's census (dev/audit/harnesses/r10_sav_held_capacity_census.py) reads a
+# first-step store change of 0, so step 0 is the thermostat's holding power,
+# not a store transient to re-spread. The day's weather varies, so a reference
+# re-spread by steady demand books step 0 off the holding power (R10-SAV-
+# VALUATION-RESIDUE carry 15: +11.11 kWh_th stored over the valve arm).
+_hv_ws = _HbWSeries(
+    outdoor_temps=np.full(_hz_n, -5.0) + np.where(_hz_day, 8.0, 0.0),
+    wind_speeds=np.zeros(_hz_n), precipitation=np.zeros(_hz_n),
+    solar_radiation=np.where(_hz_day, 400.0, 0.0),
 )
-_hz_mcap = float(_hz_par.max_electrical_power)
-_hz_msim = np.full(4, 0.8 * _hz_mcap)
-_hz_mout = _hz_opt._apportion_by_steady_demand(_hz_msim, _hz_mws, [21.0] * 4)
-_hz_mdem = np.array([_hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0)
-                     for t in _hz_mws.outdoor_temps])
-_hz_mr = _hz_mout[:3] / _hz_mdem[:3]
-# A horizon demanding little (under 1 kW summed) still has a shape: three
-# zero-demand steps and one mild one put all the energy on the mild one.
-_hz_lo = 21.0 - (_hz_par.internal_gains + 0.2) / _hz_par.heat_loss_coefficient
-_hz_lws = _HbWSeries(
-    outdoor_temps=np.array([30.0, 30.0, 30.0, _hz_lo]), wind_speeds=np.zeros(4),
-    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+_hv_start = _HbState(
+    room_temperature=19.5, slab_temperature=21.0, outdoor_temperature=-5.0,
+    upper_floor_temperature=19.5, lower_floor_temperature=19.5, buffer_tank_temperature=45.0,
 )
-_hz_ldem = [max(0.0, _hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0))
-            for t in _hz_lws.outdoor_temps]
-_hz_lout = _hz_opt._apportion_by_steady_demand(np.array([0.1, 0.2, 0.05, 0.0]), _hz_lws, [21.0] * 4)
-R.check(
-    "behind a valve, a horizon with a small steady demand spreads by it, not by the simulation",
-    0.0 < sum(_hz_ldem) < 1.0 and _hz_ldem[:3] == [0.0, 0.0, 0.0]
-    and np.allclose(_hz_lout, [0.0, 0.0, 0.0, 0.35], atol=1e-12),
-    f"demand {_hz_ldem!r} spread {_hz_lout!r}",
-)
-# A step whose share lands exactly at the pump is at it, not past it: three
-# zero-demand steps and one cold one, the horizon's energy one pump-step, keep
-# the spread (all of it on the cold step) rather than handing the horizon back
-# to the simulation, as a step held with no demand left to share would.
-_hz_eout = _hz_opt._apportion_by_steady_demand(
-    np.full(4, 0.25 * _hz_mcap), _HbWSeries(
-        outdoor_temps=np.array([30.0, 30.0, 30.0, -5.0]), wind_speeds=np.zeros(4),
-        precipitation=np.zeros(4), solar_radiation=np.zeros(4),
-    ), [21.0] * 4,
+_hv_power, _ = _hz_opt._compute_baseline_power(_hv_ws, _hv_start, 0.25, np.full(_hz_n, 21.0))
+_hv_held = _hb_held_state(_hz_opt.model, _hv_start, _hv_ws, 21.0)
+_hv_next = _hz_opt.model.simulate_step(
+    _hv_held, float(_hv_power[0]), -5.0, 0.0, 0.0, 0.0, dt_hours=0.25,
 )
 R.check(
-    "behind a valve, a step spread exactly to the pump keeps the spread",
-    _hz_eout.tolist() == [0.0, 0.0, 0.0, _hz_mcap],
-    repr(_hz_eout),
-)
-R.check(
-    "precondition: the cold step's plain share of the horizon passes the pump",
-    bool(np.all(_hz_mdem > 0.0))
-    and float(np.sum(_hz_msim)) * _hz_mdem[3] / float(np.sum(_hz_mdem)) > _hz_mcap,
-    repr(_hz_mdem),
-)
-R.check(
-    "behind a valve, a step spread past the pump is held there and the uncapped steps "
-    "share the rest by their steady demand",
-    _hz_mout[3] == _hz_mcap and float(np.max(_hz_mout[:3])) < _hz_mcap
-    and abs(float(np.sum(_hz_mout)) - float(np.sum(_hz_msim))) < 1e-9
-    and float(np.ptp(_hz_mr)) <= 1e-12 * float(np.max(_hz_mr)),
-    repr(_hz_mout),
+    "behind a valve, the booked reference's first step holds its held state",
+    0.0 < float(_hv_power[0]) < float(_hz_par.max_electrical_power)
+    and abs(_hv_next.room_temperature - _hv_held.room_temperature) < 1e-6
+    and abs(_hv_next.slab_temperature - _hv_held.slab_temperature) < 1e-6
+    and abs(_hv_next.buffer_tank_temperature - _hv_held.buffer_tank_temperature) < 1e-6,
+    f"power {float(_hv_power[0])!r}; room {_hv_held.room_temperature!r} -> "
+    f"{_hv_next.room_temperature!r}, slab {_hv_held.slab_temperature!r} -> "
+    f"{_hv_next.slab_temperature!r}, tank {_hv_held.buffer_tank_temperature!r} -> "
+    f"{_hv_next.buffer_tank_temperature!r}",
 )
 
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
