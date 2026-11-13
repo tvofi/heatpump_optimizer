@@ -46,6 +46,36 @@ Mutation: `mutant_run.py --diff HEAD~1...HEAD --cmd 'bash tools/pr/prepr.sh --se
 
 An extra probe, `HPO_GATE_PRIORITY=2` exported, gives 549/1 on "this repository's own wired hooks pass" (`.claude/hooks/pre-edit.sh`, 21 passed, 1 failed). Not in the brief's set, not measured at becbe652 or the merge base, cause not investigated.
 
+## Carry status
+
+This part builds carry 21 only (the round 1 and 2 diff above). Every other dispatched carry's disposition is the one its own text carries in the brief; none is built here:
+
+- Carry 0: dismissed: moved to round 11; not built in this part.
+- Carry 1: dismissed: moved to round 11; not built in this part.
+- Carry 2: dismissed: moved to round 11; not built in this part.
+- Carry 3: dismissed: moved to round 11; not built in this part.
+- Carry 4: implemented at 6e100ef6980216a81eaa0438bdc215d62b19271f; not built in this part.
+- Carry 5: moved: R11-INTAKE-R10-RESIDUE; not built in this part.
+- Carry 6: dismissed in pull request 3479; not built in this part.
+- Carry 7: dismissed: moved to round 11; not built in this part.
+- Carry 8: dismissed: superseded by carries 14 to 17; not built in this part.
+- Carry 9: dismissed: superseded by carries 14 to 17; not built in this part.
+- Carry 10: dismissed: superseded by carries 14 to 17; not built in this part.
+- Carry 11: dismissed: superseded by carries 14 to 17; not built in this part.
+- Carry 12: dismissed: duplicate of carry 20; not built in this part.
+- Carry 13: dismissed: moved to round 11; not built in this part.
+- Carry 14: moved: R11-INTAKE-R10-RESIDUE; not built in this part.
+- Carry 15: moved: R11-INTAKE-R10-RESIDUE; not built in this part.
+- Carry 16: moved: R11-INTAKE-R10-RESIDUE; not built in this part.
+- Carry 17: moved: R11-INTAKE-R10-RESIDUE; not built in this part.
+- Carry 18: dismissed: moved to round 11; not built in this part.
+- Carry 19: dismissed: roster instruction done; not built in this part.
+- Carry 20: moved: R11-INTAKE-R10-RESIDUE; not built in this part.
+- Carry 22: moved: R10-CARRY-AUDIT-P5; not built in this part.
+- Carry 23: moved: R10-CARRY-AUDIT-P5; not built in this part.
+- Carry 24: moved: R10-PROCESS-SLIM; not built in this part.
+- Carry 25: moved: R11-INTAKE-R10-RESIDUE; not built in this part.
+
 ## Figures
 
 - `python3 tools/pr/gate_priority.py --self-test`: 21 checks, 0 failed at this head (17 at a81d7f15: +4 arms -- the `--hotfix` CLI, the raising read, the restore null, the fetched default).
