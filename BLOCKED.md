@@ -1,17 +1,19 @@
-# BLOCKED: r10-closeout-prep-p2 repair round 1
+# BLOCKED: r10-closeout-prep-p2 repair round 2
 
-Question: tests/entities.py's #2227 cited-program arm (and its companion "the cited-program arm: ... codeowners_gap" check) needs at least 3 historical programs, one cited by a carry, and codeowners_gap.py among them. Every such citation came from carry-201 entries 0, 1, 3, 4 and 6, which are delivered to roster group R11-INTAKE-R10-RESIDUE (the review re-derived 31 of 31 re-homed entries there). No deleted carry is still live in a way that feeds the arm, so the arm's premise, that a carry cites a historical program, no longer holds. Which repair does the orchestrator rule: (a) extend the arm to read carry text from roster groups' `carry` lists as well as dev/programme/carries/, or (b) re-scope its floors with a recorded reason? Either one edits a gate check, which the brief reserves to the orchestrator.
+Question: the ruling's option (a) has `tests/entities.py`'s #2227 cited-program arm read carry text from the `carry` lists of the newest roster in the TREE. The tree's roster at this head does not yet hold the re-homed carry-201 entries 0, 1, 3, 4 and 6. Constraint 1 makes landing them the orchestrator's step: will the orchestrator land roster commit d17111784fd84306a83ba28224c9c507fab6b614 ("roster_edit batch of 33", on handoff/audit-r10-roster) on main, so a round-3 seat can merge origin/main and build the arm against it?
 
-## Evidence (PYTHONPATH=tests/hastub env -u BASH_ENV python3 tests/entities.py)
+## The precondition, measured
 
-- Merge base 2a083d235e: `ok ... (#2227)`, ALL 2711 ENTITY CHECKS PASSED. Cited: dora_keys.py (D13.md, carry-201), units.py (COMMON.md), corpus_churn.py, dora_cfr.py, codeowners_gap.py (each carry-201 only).
-- PR head b560375dbd: `FAIL ... (#2227) [policy files 51, carries 1, cited 2 ...]`, plus `FAIL the cited-program arm ... [units.py faults []; codeowners_gap holds 4 stale literal(s), opens-faults []]` (it requires codeowners_gap.py in _SP_CITED). 2 of 2711 failed.
-- Repair head db5861c0ae: carry-201 restored with its live entry 22 only, so carries=2. Both FAILs are unchanged (`cited 2`), because _sp_cited counts only paths under _SP_HIST and entry 22's remeasure cites tools/audit/seat/probe_bridge.py. Restoring entries 0/1/3/4/6 would mean keeping delivered carries only to feed the check, which the brief forbids.
+The reader is a short Python script over `git show <ref>:dev/programme/rosters/wave-r10-groups.json`. It takes group `R11-INTAKE-R10-RESIDUE` from the top-level `groups` list and collects N from every `carry` string that matches `carry-201 entry (\d+) \(file removed\)`.
 
-## Done on this ref (tree = db5861c0ae, descends from b560375dbd)
+- origin/main c7f2fe4270a9f106c640fb1258123034f9046c21: `git diff --quiet origin/main HEAD -- dev/programme/rosters/` exits 0, so the head's roster is main's. That reader finds carry-201 entries `[]` in R11-INTAKE-R10-RESIDUE (has 0,1,3,4,6: False).
+- d17111784f: entries [0..12, 14..17, 19..21, 23, 24] (has 0,1,3,4,6: True). `git log -S'carry-201 entry 0 (file removed)'` over handoff/audit-r10-roster names this commit as the one that adds them.
+- Roster tip 5db6c975a7159f0a59341ceb2a0ddb448e2ad046: same entries (True). d17111784f is its ancestor. `git merge-base --is-ancestor d17111784f origin/main` fails, so the commit is not on main. 133 roster-branch commits are not on main.
 
-1. carry-1645: both `answered_by` = 16e8fef927d65b5893b947afdcc2a94acaa3cd9d (ancestor of origin/main; adds `_section(...)` / `if m is None` guards and folds the F8.3 arms). Fixes block item 1.
-2. carry-201.json restored holding entry 22 whole and unanswered, byte-identical to the merge base. Its second item (window_work_minutes keeps only declared `needs:` edges) is unbuilt and was on no roster group. The carry-201 lines in tests/closures.json and tools/ci/selftest_closures.json are restored. Fixes block item 2. Re-homing it to R11-INTAKE-R10-RESIDUE instead is the alternative if (a) or (b) makes keeping the file pointless.
-3. tools/policy/legacy_control_files.json: carry-201.json dropped (LEGACY-LISTED-CLEAN refused it as vacuous). brief_lint.mjs's assertCarryControl takes its legacy example from the set instead of naming carry-201.json. `node tools/policy/brief_lint.mjs`: rc 0, TOTAL 0 error(s) across 41 file(s).
+Landing d17111784f or any later roster-branch tip satisfies the precondition. Per the brief, the roster file was not copied into this branch.
 
-Not run, pending the ruling: carry_audit.py, ci_predict.py, prepr.sh, the body.
+## Not done this round
+
+- The arm change is not committed. The planned shape: load `tools/audit/seat/roster_lib.py`, take `roster_path(".")` and `groups_of(...)`, and append each group's string `carry` entries to `_SP_REMEASURES`, named `<roster>#<group>[i]`, and to `_SP_CARRIES`. The floors stay unchanged. Without the roster commit on main it cannot be shown green at a head, so no proof was attempted.
+- No mutant run, ci_predict, brief_lint, carry_audit, prepr.sh or body. The tree is still round 1's db5861c0ae (carry-1645 answered_by = 16e8fef927; carry-201 entry 22 restored; legacy-control list edit), and it descends from b560375dbd.
+- This seat hit the frugal inline-operation guard (5 per prompt) before it could draft the arm. It did not set FRUGAL_ALLOW_INLINE.
