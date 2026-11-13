@@ -1,0 +1,38 @@
+[
+ {
+  "name": "R-foldfailed-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "($4 == \"fold-failed\" || $4 == \"push-failed\")",
+  "new": "($4 == \"push-failed\")"
+ },
+ {
+  "name": "R-pushfailed-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "($4 == \"fold-failed\" || $4 == \"push-failed\")",
+  "new": "($4 == \"fold-failed\")"
+ },
+ {
+  "name": "R-first-epoch",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "\"$bsha\" \"$fo\" \"$fe\" \"$fb\" \"$fh\" \"$fl\"",
+  "new": "\"$bsha\" \"$fo\" \"$now\" \"$fb\" \"$fh\" \"$fl\""
+ },
+ {
+  "name": "R-tip-unrecorded-foldfailed",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "fold-failed \"$now\" \"$blob\" \"${htip:--}\"",
+  "new": "fold-failed \"$now\" \"$blob\" -"
+ },
+ {
+  "name": "R-ttl-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "fold_memo_stands \"$fo\" \"$fe\" \"$now\" \\\n",
+  "new": "true \\\n"
+ },
+ {
+  "name": "R-blob-cmp-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ \"$blob\" = \"$fb\" ]; then  # mut:foldblob",
+  "new": "true; then  # mut:foldblob"
+ }
+]
