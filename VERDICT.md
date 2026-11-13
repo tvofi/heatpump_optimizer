@@ -1,0 +1,24 @@
+Fix review: merge 67ebee9d59ab35e448773f8f5d95b9bb04c60ed9
+
+bus-nonce: 8d40e95e1b98f4df246e1673cb6144d0
+
+## Findings
+
+- The carry-1412 control this PR rewrites still quotes counts that the head contradicts. The claim that the collision is specific to CLAMP_DROP is also false at the head. Re-run at 67ebee9d, the control's own census command gives these figures (ev/census-head.txt): 7375 candidates over 89 modules, not 3798 over 64. It finds 232 colliding keys, not 46: 71 CLAMP_DROP and 161 CMP_BOUND, an operator the control's five-operator null control does not list. The perturbation still holds, because keying on (file, line, kind, new) leaves 0 collisions, so the carry's prescription (key the populator on the mutation target) remains sufficient. But the brief field's "46 such lines exist, all CLAMP_DROP" would lead a populator to guard CLAMP_DROP lines only. The `brief` field also still describes the retired instance ("a dead inner clamp inside a real outer clamp"). This does not block: the counts predate this PR, the remeasure field already says not to trust them and to re-run, and this PR's claim (the instance and the delisting) holds. A populator acting on this carry must re-measure, and treat CMP_BOUND collisions as well as CLAMP_DROP, before it writes any `killed_by` disposition. Carry: dismissed: pre-existing figures in an archived carry (no live owner of #1412) whose remeasure field already makes re-deriving the census a precondition; this hotfix changes only the instance, which holds
+
+## Evidence
+
+- Round: first (no reviewed head). Head measured: 67ebee9d59ab35e448773f8f5d95b9bb04c60ed9, the PR body's `## Head` names the same SHA. Merge base 3b9749dac55a85c200005352c661198c982e5799. Roles under dev/governance/roles/ are unchanged on main.
+- Diff (three-dot): dev/archive/carries/carry-1412.json (control text only), tools/policy/legacy_control_files.json (carry-1412.json removed), dev/programme/delivery/3552.md (new delivery row). VERSION, the manifest and RELEASE_NOTES.md are untouched. No production code, golden or claim file is in the diff, so step 4 (env_drift) has nothing to compare.
+- Merge: `git merge-tree --write-tree origin/main 67ebee9d` at origin/main 5288db5dadbffbaf83cb4ed258a669d46c3224fe exits 0 with no conflict (ev/merge-tree.txt).
+- RESULT brief_lint head: `node tools/policy/brief_lint.mjs` rc=0; carry-1412.json 0 error(s), with LEGACY-CONTROL ok (ev/brief_lint-head.txt).
+- RESULT mutant m1 (restore the base control and keep the file delisted): rc=1, `optimizer.py:4671: 'p_max' not found near ...; found at line 32 instead`. Killed (ev/mutants.txt).
+- RESULT mutant m2 (put carry-1412.json back on the legacy list with the new control): rc=1, `LEGACY-CONTROL VACUOUS: carry-1412.json: its controls lint clean without the exemption`. Killed.
+- RESULT mutant m3 (my own mutant: replace the quoted statement with one absent from the tree): rc=1, two `symbol ... not found in the tracked tree` errors. Killed. The phrase anchor is checked by the linter through its snake_case symbols, so it is not just prose.
+- RESULT instance: the quoted statement is at custom_components/heatpump_optimizer/optimizer.py:3656 at the head. `mutation_table.inventory()` yields exactly two CLAMP_DROP candidates there. Both have the same `triage_key`, the same `old` and the same `anchor`, and they differ only in `new`. So the re-anchored instance holds what the control says of it (ev/census-head.txt).
+- Not re-derived: the body's before/after runs against main merged with refs/pull/3481/head and refs/pull/3511/head, and its ten-line insert/delete robustness run. I re-ran the two named mutants and the head run at this head only.
+- tests/entities.py (`env -u BASH_ENV`) could not run in this container. Under venv-ci it fails with `No module named 'homeassistant'`, and under venv-ha with `No module named 'paho'` (ev/entities-head.txt). This is an environment failure, not a verdict on the diff. I cite CI's closure and fast lanes for the new delivery row's classification instead.
+- Forward-carry: the body says none. The diff edits a carry's control and does not create a finding for a later stage, so none is owed beyond the finding below.
+- Step 14: the only "number" moved is the legacy set's membership, which drops from 14 at the base to 13 at the head (derived with json len at both SHAs), under cap 14. It is earned: m2 shows the member lints clean without the exemption, so the delisting is required, not gamed.
+- CI: `merge_train.py classify 67ebee9d59ab35e448773f8f5d95b9bb04c60ed9 --pr 3552` rc=0 `GREEN 67ebee9d59ab35e448773f8f5d95b9bb04c60ed9 pending: none red: none` (ev/classify-log.txt). No red at the head, so no `## Red checks` answer is owed by this review. The body answers the producing reds on #3481/#3511.
+- The review packet refused with `introduced-red: unreadable` only because instrument-self-tests was queued at render. Classify, which decides, is now GREEN.
