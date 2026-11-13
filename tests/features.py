@@ -88278,9 +88278,11 @@ def _p3_card(problem_key):
     _asyncio.run(c._async_learn_lower_floor_loss(interval))
     _asyncio.run(c._async_learn_house_heat_loss(interval))
     _asyncio.run(c._async_learn_buffer_cooling(40.0))
+    _p3_records[problem_key] = dict(c._learner_freezes)
     return {k: v["phase"] for k, v in c._learning_view()["learner_progress"].items()}
 
 
+_p3_records = {}
 _p3_null = _p3_card(None)
 _p3_seen = {k: _p3_card(k) for k in _p3_probes}
 _p3_bad = {
@@ -88298,6 +88300,18 @@ R.check(
     and set().union(*_p3_design.values()) <= set(_p3_probes)
     and len(_p3_seen) == len(_p3_probes) > len(set().union(*_p3_design.values())),
     f"mismatched {_p3_bad}; null {_p3_null}",
+)
+# The same driven runs, read at the record: the buffer learner records its own
+# probe under its own name, and the sensor publishes it, though no card learner
+# reads it; with no problem nothing is recorded (null control).
+_p3_buf_key = _p3_const.CONF_BUFFER_TANK_TEMP_ENTITY
+R.check(
+    "P3 census, driven: a stale buffer probe is recorded by the buffer learner under its own name "
+    "and published as the freeze reason; with no problem no learner records anything",
+    _p3_records[_p3_buf_key].get("buffer") == f"stale:{_p3_buf_key}"
+    and _p3_records[_p3_buf_key].get("house") is None and _p3_records[_p3_buf_key].get("lower") is None
+    and _p3_records[None] == {},
+    f"{_p3_records[_p3_buf_key]} null {_p3_records[None]}",
 )
 _p3_rec = _p3_lp.FreezeRecord()
 _p3_rec.note_freeze("house", "stale:indoor_temp_entity")
