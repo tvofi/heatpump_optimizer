@@ -1,0 +1,2 @@
+NOTE review 0 item 5c54a9f3: dismissed:pre-existing figures in an archived carry (no live owner of #1412) whose remeasure field already makes re-deriving the census a precondition; this hotfix changes only the instance, which holds
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)

@@ -1,0 +1,25 @@
+base=3b9749dac55a85c200005352c661198c982e5799
+m1-oldcontrol-delisted rc=1
+== dev/archive/carries/carry-1412.json ==
+  ERROR   [carry-1412.json carry 0 control] path:line: custom_components/heatpump_optimizer/optimizer.py:4671: 'p_max' not found near custom_components/heatpump_optimizer/optimizer.py:4671; found at line 32 instead
+  -- 1 error(s), 0 warning(s)
+
+== dev/archive/carries/carry-1454.json ==
+m2-newcontrol-listed rc=1
+== dev/archive/carries/carry-1412.json ==
+  -- 0 error(s), 0 warning(s)
+
+== dev/archive/carries/carry-1454.json ==
+  -- 0 error(s), 0 warning(s)
+LEGACY-CONTROL VACUOUS:
+  carry-1412.json: its controls lint clean without the exemption: remove it from LEGACY_CONTROL_FILES
+
+LEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart
+m3-garbage-phrase rc=1
+== dev/archive/carries/carry-1412.json ==
+  ERROR   [carry-1412.json carry 0 control] symbol: 'zzz_absent_stmt': not found in the tracked tree (no tag cited either)
+  ERROR   [carry-1412.json carry 0 control] symbol: 'nothing_here': not found in the tracked tree (no tag cited either)
+  -- 2 error(s), 0 warning(s)
+
+
+[exited with code 0]
