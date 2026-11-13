@@ -24503,7 +24503,7 @@
    "carry": [],
    "brief": "Root-cause seat (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md) beside R10-HOTFIX-CARD-HEALTH-TEXT, never inside it. No production code. Trigger: a defect reached a release (defect-root-cause.md, first trigger). The released v7.1.11 card renders the Health tab with every per-row label and description blank: input tile names, learned-model row labels and first-plan checklist texts. The owner reported it (tvofi, 2026-11-11 about 21:27Z, verbatim: \"Live bug on v7.1.11. All text in the \"Health\" Card tab is missing\").\n\nOwed: a named cause (the change and the mechanism that blanked the labels, taken from the fix's reproduction); the process state, one of the four in defect-root-cause.md; a cost test with numbers; and a countermeasure or a recorded refusal. Name specifically which gate should have caught blank labels before the stamp: the card browser test, a screenshot or golden diff, an accessibility or visible-text check, or the card's per-language catalogue check. For each one, say why it was green, measured on the v7.1.11 tree, not inferred. A check-shaped countermeasure shows that it fails on v7.1.11 and passes on the fix (null control: v7.1.10, if it is unaffected).",
    "resume": {
-    "stage": "not-started",
+    "stage": "refused",
     "branch": null
    }
   },
