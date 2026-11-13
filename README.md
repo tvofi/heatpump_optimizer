@@ -978,7 +978,9 @@ Every field, default and range:
 `custom:heatpump-optimizer-card` charts electricity price, planned hot water and
 space heating slots, outdoor temperature, solar irradiance and the predicted tank
 and house temperatures on one shared time axis. Each series has a legend chip
-that toggles it, hovering a slot shows why it was planned, and the stretch of the
+in the enlarged view that toggles it, the plan's breakdown by reason and the
+reasons behind the current hour fold open under the headline, hovering a slot
+shows why it was planned, and the stretch of the
 horizon whose prices are estimated rather than published is shaded. Click the
 card to enlarge it: the plan becomes two editable lanes you can drag, stretch,
 add to and remove from, with a running total and an **Apply this plan** button
@@ -1070,6 +1072,7 @@ Each clears itself once the cause is gone.
 - **A configured grid fee is negative** — almost always a sign slip. Correct it on **Transfer fees and contract**.
 - **The downstairs temperature is modelled, not measured** — two-zone planning without a lower-floor thermometer. Assign the *Lower floor temperature sensor* to remove it.
 - **Your comfort temperatures contradict each other** — the stored band cannot all be met at once, for example a target above the warmest acceptable temperature. Fix the band on **Comfort and temperatures**.
+- **Valve target above comfort** — the mixing-valve target is read as the room temperature the circuit holds, not a water temperature, and it is above the top of your comfort band. Nothing is changed (it can be deliberate, for example slab charging); if it is a flow temperature, set the room temperature or 0 on **Mixing valve**.
 - **The heat pump's hot water set-point is below the configured temperature** — the pump's own set-point stops it reaching the disinfection or minimum temperature. The notice's fix writes the needed value to the pump's entity.
 - **The space-heating set-point entity is not reporting** — the set-point entity is missing or unreadable. Check it, or clear the slot.
 - **The heat pump does not hold a setting the optimizer wrote** — the pump reads back something else after two writes. To change the pump by hand, turn **Optimizer Active** off first.
