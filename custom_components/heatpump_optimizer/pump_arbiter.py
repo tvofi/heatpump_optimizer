@@ -196,6 +196,7 @@ from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
 from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
+from .duty_legs import both_step_legs
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
 from .thermal_model import (
@@ -248,9 +249,6 @@ ISSUE_MANUAL = "pump_manual_change"
 ISSUE_IGNORED = "pump_write_ignored"
 #: How long an ignored write waits before it is sent again.
 RETRY_MINUTES = 5.0
-#: The shortest single-duty share of a both step; a shorter share goes to
-#: the other duty for the whole step (valve travel and compressor cycling).
-SPLIT_MIN_MINUTES = 5.0
 TANK_RISE_C = 0.5
 _STORE_VERSION = 1
 
@@ -1888,13 +1886,11 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
         return duty
     result = inp.plan
     i = bisect.bisect_right(result.timestamps, now) - 1
-    space, dhw = result.power_schedule[i], result.dhw_power_schedule[i]
-    dhw_min = PLAN_STEP_MINUTES * dhw / (space + dhw)
-    if dhw_min < SPLIT_MIN_MINUTES:
-        return "space"
-    if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
-        return "dhw"
-    return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
+    legs = both_step_legs(
+        result.power_schedule[i], result.dhw_power_schedule[i], PLAN_STEP_MINUTES
+    )
+    first_ends = timedelta(minutes=legs[0][1])
+    return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
