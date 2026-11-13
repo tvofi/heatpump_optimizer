@@ -1537,9 +1537,9 @@ async def _async_check_a4(checks: Checks, hass, entry) -> None:
     1. Break the source (HTTP 500) while the last published prices still cover
        now: the failure is bridged (``a4:bridged``).
     2. Exhaust the published prices at the counterparty -- it answers 200 with
-       a curve that ended before now, which ``pull_prices`` accepts -- then
+       a curve that ended before now, which the price pull accepts -- then
        break the source: the update fails (``a4:failed`` and the rest).
-    Neither phase sets ``last_update_success`` or ``_prices`` itself.
+    Neither phase sets ``last_update_success`` or the coordinator's price cache.
     """
     coordinator = getattr(entry, "runtime_data", None)
     if coordinator is None:
