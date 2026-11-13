@@ -1,0 +1,48 @@
+Fri Nov 13 20:59:29 UTC 2026
+HEAD 6a0a3a4d96c757c5d576fbce394c324452339b15
+## ci_predict blobs head/main
+d0c6b0cf8f131fc35b5021de6c31a36aa315806e
+d0c6b0cf8f131fc35b5021de6c31a36aa315806e
+## removed names
+rc=1
+## one helper
+tools/pr/ci_predict.py:664:def fetch_round_rosters(run) -> None:
+## custom_components vs main
+(empty above = identical)
+## version/claims vs main three-dot
+(end)
+## unchanged set P..H
+merge_train.py DIFFERS P..H
+outside.py same at e8c6bb0 and head
+## files common to PR diff and delta
+tests/closures.json
+tools/audit/seat/INSTRUMENTS.md
+tools/audit/seat/merge_train.py
+tools/ci/selftest_closures.json
+tools/pr/outside.py
+## outside.py numstat + hunks
+144	4	tools/pr/outside.py
+13
+534:def self_test() -> int:
+1113:def main(argv: "list[str]") -> int:
+@@ -62,0 +63 @@ import ast
+@@ -64,0 +66 @@ import importlib.util
+@@ -533 +535 @@ def self_test() -> int:
+@@ -576,0 +579,4 @@ def self_test() -> int:
+@@ -598,0 +605,3 @@ def self_test() -> int:
+@@ -602 +611,4 @@ def self_test() -> int:
+@@ -612,0 +625,2 @@ def self_test() -> int:
+@@ -614,0 +629,4 @@ def self_test() -> int:
+@@ -622,0 +641 @@ def self_test() -> int:
+@@ -632 +651,2 @@ def self_test() -> int:
+@@ -893,0 +914,118 @@ def self_test() -> int:
+@@ -896 +1034 @@ def self_test() -> int:
+@@ -934,0 +1073,2 @@ def self_test() -> int:
+## closures.json vs main
+--- a/tests/closures.json
++++ b/tests/closures.json
++   "docs/CONTRIBUTING.md",
++   "docs/CONTRIBUTING.md",
+## tick_loop blob head/main
+0b35a54fa4da8ad95a0d1f38a0c2d90c5dbdee94
+0b35a54fa4da8ad95a0d1f38a0c2d90c5dbdee94

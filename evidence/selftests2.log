@@ -1,0 +1,18 @@
+Fri Nov 13 21:04:25 UTC 2026
+HEAD before 6a0a3a4d96c757c5d576fbce394c324452339b15
+## ci_predict --self-test
+rc=0
+ci_predict self-test: 0 failed
+  ok   clone's round ref is the stale local branch before the fetch (tracking=True)
+  ok   fetch_round_rosters takes root's remote-tracking ref
+  ok   clone's round ref is the stale local branch before the fetch (tracking=False)
+  ok   fetch_round_rosters leaves the ref and does not raise
+  ok   ci_tree_run calls fetch_round_rosters on one `# mut:roundrefs` line
+HEAD after ci_predict 6a0a3a4d96c757c5d576fbce394c324452339b15
+## policy budgets
+rc=0
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+## structure
+rc=0
+STRUCTURE RATCHET PASSED

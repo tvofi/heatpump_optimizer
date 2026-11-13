@@ -1,0 +1,31 @@
+Fri Nov 13 20:56:53 UTC 2026
+APPROVAL-OWED 6a0a3a4d96c757c5d576fbce394c324452339b15 1 budget raise(s), first .claude/workflows/policy_budgets.json: files_tokens.tools/audit/briefs/fix-review.md: 2546 -> 2775 (a pinned value the gate cannot sign as routine): a raise is the owner's (0013): tvofi's approval is on 59cc5f8b1b60, not this head 6a0a3a4d96c7: an approval covers only the commit it was given on
+rc=4
+## owed-reds
+arch-score / arch-score
+budget-raise-gate / budget-raise-gate
+codeql / Analyze (actions)
+codeql / Analyze (javascript-typescript)
+codeql / Analyze (python)
+gate
+governance / env-matrix
+governance / policy-docs
+governance / wave-script
+hassfest / hassfest
+pr-contract / pr-contract
+tests / arch-instrument
+tests / briefs
+tests / browser
+tests / closure-scope
+tests / closures
+tests / coverage
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+Fri Nov 13 21:07:18 UTC 2026
+APPROVAL-OWED 6a0a3a4d96c757c5d576fbce394c324452339b15 1 budget raise(s), first .claude/workflows/policy_budgets.json: files_tokens.tools/audit/briefs/fix-review.md: 2546 -> 2775 (a pinned value the gate cannot sign as routine): a raise is the owner's (0013): tvofi's approval is on 59cc5f8b1b60, not this head 6a0a3a4d96c7: an approval covers only the commit it was given on
+rc=4
+e23124ff6e45bac1d48b4a775dad555a37965355	refs/heads/main
+6a0a3a4d96c757c5d576fbce394c324452339b15	refs/pull/3514/head

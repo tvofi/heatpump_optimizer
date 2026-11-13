@@ -1,0 +1,29 @@
+SURVIVED NULL | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED owner_read: latest not APPROVED | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED read_allowlist: not JSON | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED read_allowlist: no list | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED pull_facts: other number | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED shape: no 40-hex head | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED other_pulls: commits pages | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED other_pulls: branch pages | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED check: fetch dropped | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED check: moved-head refusal | rc 0 | outside self-test: 212 checks, 0 failed
+KILLED   check: reviews pages | rc 1 | ok   class O REFUSE: the review list unreadable
+SURVIVED manifest_version: unparsed is ok | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED approve: no mandate | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED approve: fetch dropped | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED approve: reviews pages (pre-post) | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED approve: body file kept | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED approve: post refusal | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED approve: read-back pages | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED approve: owner_read after post | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED approve: body read-back guard | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED main: check --no-fetch ignored | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED main: check --comment dropped | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED main: check --ref ignored | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED main: --pull-json falls back | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED main: approve --head shape | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED main: approve --role ignored | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED main: approve --mandate required-less default | rc 0 | outside self-test: 212 checks, 0 failed
+SURVIVED main: cross rc | rc 0 | outside self-test: 212 checks, 0 failed
+RESULT hand mutants at c3ab13d804964be813bef278b0fbcda564a2d34e: 26 survivor(s) of 27 (NULL apart)
