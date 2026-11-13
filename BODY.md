@@ -2,29 +2,35 @@ Closes the class behind R10-RCA-SELFTEST-SCOPE-DRIFT (part C; part A, main re-re
 
 ## Head
 
-Measured at `6a1966196c0e605653bccce7ccfdbfdffd9fda37` (code; parent `552638f8dc3a1c7f270448163d44df992c62dac2`), `origin/main` 5288db5dad at 2026-11-13T12:28:26Z. `git merge-tree --write-tree origin/main HEAD`: rc 0, no conflict, so no main merge.
+Measured at `ac5ca58c09440120bcc9e2f25cdd4fdf430f630b` (code; parent `ef7e3373e763942a38982c679541c5aa750b3935`), `origin/main` ad95665ea at 2026-11-13T15:14:21+01:00, merge base `3b9749dac55a`. `git merge-tree --write-tree origin/main HEAD` prints one tree (rc 0, no conflict), so no main merge. The generated scope-line block is left out of this body: update_pr.sh verifies it against its own merge head, which no body can name in advance (R10-HOTFIX-UPDATEPR-FIGURE-REFRESH); the scope line is the gate's own MODE line at the head.
 
 ## Review scope
 
-Round 2 repairs the round-1 block (`af9e2248ef`, mutation-vacuous) and nothing else: `git diff 552638f8dc3a1c7f270448163d44df992c62dac2 6a1966196c0e605653bccce7ccfdbfdffd9fda37` (two files, `tools/ci/selftest_scope.py` and `tools/ci/selftest_scope_mutants.sh`).
+Round 3 repairs the round-2 block (`ef7e3373e7`, introduced-red) and nothing else: `git diff ef7e3373e7 ac5ca58c09` (two files, `tools/ci/selftest_scope.py` and `tools/ci/selftest_scope_mutants.sh`, 48 insertions, 2 deletions).
 
-- Survivors (a) and (b): the self-test now drives `main(["prune", ...])` on a fixture table in the throwaway repo. A held drop writes the table less exactly that read (`files:f2`, `objects:`; `index`, `dirs` and step `b` unchanged). A call with one held and one unknown drop, and a call on an unknown step, both return rc 1 and name the drop, and the file stays byte-identical. The mixed call is deliberate: with `if False:`, the held drop gets written whatever format the file was in.
-- Survivor (c): `shrink_drops` gets a fixture where a base probe `t/q` is kept by a head that lists the directory `t`. Its null is the same head listing `u`, which is refused once.
-- Fail-open: `table_base` now returns `(revision, problem)`. A named base (`SELFTEST_BASE`, or `origin/$GITHUB_BASE_REF`) that does not resolve returns the problem `UNRESOLVED base <name>: ...`, and `static` prints it as a problem line (rc 1) instead of running `shrink_gaps(root, None)`, which passes. With no base named, the first-parent fallback is unchanged. Alternative considered and not taken: raising from `table_base`. That would put an exception path into `static`'s problem-list idiom for one case. A tuple keeps every refusal as a printed line.
+- Cause: under a pull_request event `GITHUB_BASE_REF=main` is set, and the fresh-table fixture is a scratch repository with no `origin/main`; `table_base` now reports `UNRESOLVED base origin/main`, adding a line to `static`. Fix at the cause: `self_test` pops `GITHUB_BASE_REF` and `SELFTEST_BASE` from `os.environ` for the whole run (`_self_test` is the old body) and restores them after, so no fixture call, old or new, sees the caller's selectors. `main`'s `--self-test` branch maps a self-test that returned nothing to rc 1.
+- Survivors of the diff mutation run (below) that were real holes got a check each: `D/**` slice in `shrink_drops`, an undiffable base in `shrink_gaps`, a missing table in `shrink_drops`, and the prune CLI over an unreadable table (rc 1, names UNREADABLE).
 
 ## Mutation proof
 
-`sh tools/ci/selftest_scope_mutants.sh` at the head: 25 mutants (rule: the `== ` lines it prints), each `self-test rc 1`, ending `SELFTEST-SCOPE MUTANTS: every mutant refused`, rc 0. The baseline (unmutated) self-test it runs first passes. Added this round, with the check each one fails:
+`sh tools/ci/selftest_scope_mutants.sh` at the head: 31 mutants (rule: the `== ` lines it prints), 31 `self-test rc 1`, ending `SELFTEST-SCOPE MUTANTS: every mutant refused`, rc 0. It first runs the baseline self-test with the caller's environment, then exports `GITHUB_BASE_REF=main SELFTEST_BASE=nonesuch` and runs the baseline again and every mutant under them. Added this round, with the check each fails:
 
-- "the shrink guard keeps no probe by its listed directory" (`or any(a in dirs for a in _ancestors(x))` deleted): FAIL `shrink_drops: a probe whose directory the head lists is kept, ...`
-- "prune writes nothing" (`write_table(root / TABLE, entries, root)` deleted): FAIL `prune: a held drop writes the table, less exactly that read`
-- "prune accepts an unknown drop" (`if unknown:` -> `if False:`): FAIL `prune: an unknown drop or step is refused (rc 1), naming it, the table byte-identical`
-- "an unresolvable named base resolves to no problem" (the problem string becomes `""`): FAIL `table_base: a named base that does not resolve is a problem, not a base` and `static: a base that does not resolve adds one problem line ...`
-- "static drops the unresolved-base problem" (`[unresolved] if unresolved` -> `[] if unresolved`): FAIL on the same `static` check.
+- "the self-test leaks the caller's base selectors" (`held = {}`, the environment control removed): FAIL `static, ids and select over a fresh table`, 1 failed. This is the mutant the brief asked for.
+- "the self-test wrapper returns nothing": rc 1 through `main`'s int guard.
+- "a D/** item read as a slice off by one": FAIL `shrink_drops: a D/** item whose directory the diff emptied is exempt, one with a survivor is not`
+- "an undiffable base passes the shrink guard": FAIL `shrink_gaps: a base the repository cannot diff against is refused, not passed`
+- "the shrink guard judges a missing table": TypeError, refused.
+- "prune goes on over an unreadable table": TypeError, refused.
 
-"static never runs the shrink guard" is re-anchored to the new `static` line and is still refused. A self-correction, disclosed: my first spelling of the unresolved-base mutant (`"" or (...)`) was vacuous, because it still evaluated to the problem string, and the script printed `NOT REFUSED`. It now reads `"" and (...)` and is refused.
+`python3 tools/audit/seat/mutant_run.py --diff $(git merge-base origin/main HEAD)...HEAD --cmd 'python3 tools/ci/selftest_scope.py --self-test'` at the head: 43 survivors (47 before this round's checks). Triage:
 
-The reviewer's own driver (`evidence/run.sh` of af9e2248ef, sha1 a2c6dee7c6e5f340d7aa72c862910185249aaa44), run at this head with the three survivors' mutations: `KILLED prune-cli-no-write`, `KILLED prune-cli-ignores-unknown` and `KILLED probe-dir-ancestor-removed`, each `141 checks, 1 failed`. Null for that driver (an identity substitution) prints `SURVIVED null-unmutated :: 141 checks, 0 failed`.
+- 37 are `STMT_DEL`/`CALL_DEL` of a `ck(...)` assertion or fixture-setup line inside the self-test body. Deleting an assertion cannot redden a suite that does not pin its own tally; equivalent by construction. Each assertion's rule has its own named mutant above or in the script.
+- `816` `split("\t", 2)`: equivalent, a `--name-status` row of a path without a tab splits to the same two parts. `817`/`818` (untouched-table skip): equivalent, an untouched table compares equal to itself (round 2's `table-untouched-skip-removed`). `1623` and `1680`: constants in a fixture's entry and a fixture git wrapper's `check=`; no behaviour differs. `1800` rc 2 vs 1 on a self-test returning nothing: both nonzero, equivalent.
+- CLI/`main()` branches: `record`, `prune` (unknown drop, unknown step, unreadable table, held drop), `check`, `select`, `static`, `ids`, unknown command (rc 2) and `--self-test` are each driven by a check; none of the 43 is on one.
+
+## Both environments
+
+`python3 -I tools/ci/selftest_scope.py --self-test`, unset: `selftest_scope self-test: 145 checks, 0 failed`. With `GITHUB_BASE_REF=main` exported: `selftest_scope self-test: 145 checks, 0 failed`. With `GITHUB_BASE_REF=main SELFTEST_BASE=nonesuch`: the same (144 checks, 0 failed measured before the last check was added; 145 after). At `ef7e3373e7` the first of those printed 141 checks, 1 failed.
 
 ## Null control
 
@@ -33,15 +39,24 @@ The reviewer's own driver (`evidence/run.sh` of af9e2248ef, sha1 a2c6dee7c6e5f34
 
 ## Figures
 
-- `python3 -I tools/ci/selftest_scope.py --self-test`: 141 checks, 0 failed (rule: its closing line).
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, no budget touched.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: FULL` (reason: `tools/ci/selftest_closures.json` changes the gate itself, inherited from round 1's table diff). That is left to CI, not reproduced here.
+- `python3 -I tools/ci/selftest_scope.py static` with `GITHUB_BASE_REF=main`: `114 gated step(s), 0 problem(s)`, rc 0.
+- `tools/pr/prepr.sh` once, last, at the head: `PRE-PR: ac5ca58c09440120bcc9e2f25cdd4fdf430f630b ... rc=0`.
 
 ## Brief carries
 
 The group's five roster carries (by array position), each answered at this head:
 
 - Carry 0 (beatd and review-packet are unions of two recordings, so a re-record must union): built in round 1. `record` unions over the committed entry (`union_record`). The R10-NUDGE-RETIRE instruction is under `## Forward-carry`.
+- Carry 1 (`record` replaces rather than unions): built in round 1 (`union_entry`/`union_record`), pinned by mutant "record replaces the committed entry again".
+- Carry 2 (re-record beatd and review-packet twice and union): superseded by the union `record` and the `prune` CLI, which this round pins. Routed to R10-NUDGE-RETIRE under `## Forward-carry`.
+- Carry 3 (`git` entry `?` dropped from three steps): restored by the union. The shrink guard now refuses any `git` item a diff drops, and no deletion exempts one (check "a git item or a flag is never exempt by deletion").
+- Carry 4 (tests/entities.py not runnable on the reviewer's seat): an environment fault, with no finding on the head and nothing to build.
+
+## Red checks
+
+The red at `ef7e3373e7` was `governance / instrument-self-tests` (job 131898295736): `FAIL static, ids and select over a fresh table`, `selftest_scope self-test: 141 checks, 1 failed`, and the mutants step `BASELINE RED`. Cheaper detector: run the two steps this diff touches, in the job's order (`python3 -I tools/ci/selftest_scope.py --self-test`, then `static`, then `sh tools/ci/selftest_scope_mutants.sh`), with `GITHUB_BASE_REF=main` exported; the first two take 5.8 s together and the first one alone reproduces the red. The mutants script now exports the variable itself, so even a run without it covers the case, and a mutant that removes the environment control reddens it.
+
+## Forward-carry`.
 - Carry 1 (`record` replaces rather than unions): built in round 1 (`union_entry`/`union_record`), pinned by mutant "record replaces the committed entry again".
 - Carry 2 (re-record beatd and review-packet twice and union): superseded by the union `record` and the `prune` CLI, which this round pins. Routed to R10-NUDGE-RETIRE under `## Forward-carry`.
 - Carry 3 (`git` entry `?` dropped from three steps): restored by the union. The shrink guard now refuses any `git` item a diff drops, and no deletion exempts one (check "a git item or a flag is never exempt by deletion").
