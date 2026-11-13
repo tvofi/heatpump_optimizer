@@ -66,14 +66,27 @@ Every process and machinery term below is instrumental to the state of
 Where the right column names the owner and no criterion is written down, the
 result is undecidable, not perfect: the evaluation cards the missing criterion.
 
+The supported population and the comfort bounds below were set by round 10's
+orchestrator under the owner's ruling (tvofi, 2026-11-13, verbatim: *"For 5,
+this is yours to set using your best judgement"*), each on the basis that it
+is what the code already accepts or enforces, so neither adds a claim the
+product does not make. The owner changes either at his review; neither is a
+tunable the evaluated round may loosen.
+
 **The three product terms.**
 
 - **`generality`**: the integration is right on every install of the supported
   population, with no behaviour correct only for the owner's hardware, tariff,
-  climate or configuration. The population is the product of these axes, each
-  enumerated in D12's scope: pump make and control interface; each optional
-  sensor and actuator present or absent; tariff and price shape; climate;
-  house and tank size; duty mode; language; Home Assistant version. A cell is
+  climate or configuration. **The supported population is every install the
+  integration's own configuration flow can complete at the head**: each pump
+  control kind, each tank and valve layout, each price source, each unit
+  system it accepts, enumerated from the code and the fixtures and never from
+  documentation. A shape the flow accepts and no fixture covers is a measured
+  gap in this term, not out of scope. Within it the cells are the product of
+  these axes, each enumerated in D12's scope: pump make and control interface;
+  each optional sensor and actuator present or absent; tariff and price shape;
+  climate; house and tank size; duty mode; language; Home Assistant version.
+  A cell is
   **examined** when one of four sources exercised it end to end: a simulation
   through the coordinator at that configuration, a recorded bundle from such
   an install replayed by D15, a contributor's install report, or a property
@@ -92,7 +105,12 @@ result is undecidable, not perfect: the evaluation cards the missing criterion.
   the actuator-write dimension the coverage audit proposes, which has no brief
   yet, and to D8 for the published reason.
 - **`regret`**: realised cost less the cost of the oracle plan for the same
-  prices, weather, house and comfort bounds. Perfect savings is zero regret
+  prices, weather, house and comfort bounds. **The comfort bounds are those
+  the product already enforces for the person**: the configured comfort range,
+  the hot-water minimum, the mold and legionella guards, the entity's own
+  limits. Savings are measured only among plans that hold every one; a plan
+  that buys savings by leaving a bound is a defect of `operation`, never a
+  saving. Perfect savings is zero regret
   against that same-information oracle. Regret against a perfect-foresight
   oracle is the stated upper bound on what any code could save, and is not a
   target. D0 owns it: its race against the oracle per grid cell, the
