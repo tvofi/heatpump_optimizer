@@ -316,8 +316,14 @@ def self_test():
        "feat/y")
     feat_merge = _t(seat, "rev-parse", "HEAD").strip()
 
-    def answer(rev, new, main="origin/main"):
-        return classify(seat, resolve_commit(seat, rev), resolve_commit(seat, new),
+    def answer(rev, new, main="origin/main", ours=True):
+        # app_approve.sh --carry asks origin whether the head is a branch tip
+        # of ours (decision 0017): a pull request of ours has its head on one,
+        # a fork's (ours=False) only on its pull ref.
+        head = resolve_commit(seat, new)
+        _t(seat, "push", "-q", "-f", "origin",
+           (head if ours else "") + ":refs/heads/carried-head")
+        return classify(seat, resolve_commit(seat, rev), head,
                         resolve_commit(seat, main))
 
     v, why, n, cs = answer(reviewed, merged)
@@ -353,6 +359,13 @@ def self_test():
     v, why, n, _ = answer(reviewed, reapplied)
     check("a revert and its re-apply answers CARRY (L6)", v, CARRY)
     check("and counts its two non-merge commits", "2 of 3" in why, True)
+    v, why, _, _ = answer(reviewed, reapplied, ours=False)
+    check("the same range on a head that is no branch tip of origin (a fork's) "
+          "answers FRESH-REVIEW", v, FRESH)
+    check("it names the head as not ours", "no branch tip of origin" in why, True)
+    v, _, _, _ = answer(reviewed, merged, ours=False)
+    check("a fork's head carries the automatic merge of main (null control)",
+          v, CARRY)
     _t(seat, "checkout", "-q", "-b", "fix/reapply-x", merged)
     with open(os.path.join(seat, "code.txt"), "w") as fh:
         fh.write("reviewed!\n")

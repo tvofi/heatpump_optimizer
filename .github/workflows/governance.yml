@@ -1219,6 +1219,18 @@ jobs:
           python3 -I tools/audit/seat/state_docs.py --self-test | tee "$RUNNER_TEMP/state-docs-self-test.txt"
           grep -Eq '^state_docs self-test: all checks passed$' "$RUNNER_TEMP/state-docs-self-test.txt"
 
+      # Decision 0017: admission, the three path classes, class O in both forms
+      # against every writer under the owner's account, the approve subcommand,
+      # and the two workflow pins (no contributor-named value in a run: block;
+      # the fork conjunct on tests.yml's laneskip step), over a faked gh.
+      - name: Show the outside-contributor contract (tools/pr/outside.py) refusing its own fixtures
+        id: outside-contract
+        if: ${{ !cancelled() && steps.scope.outputs.outside-contract == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/outside.py --self-test | tee "$RUNNER_TEMP/outside-self-test.txt"
+          grep -Eq '^outside self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/outside-self-test.txt"
+
       - name: Show the tick loop refusing its own fixtures
         id: tick-loop
         if: ${{ !cancelled() && steps.scope.outputs.tick-loop == 'true' }}
