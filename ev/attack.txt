@@ -1,0 +1,26 @@
+result attrs with legionella: []
+RESULT base hyst=None unstartable_runs=0 tank_peak_min=55.0 tank_peak_max=55.0 tank_min=42.0 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT base hyst=1.0 unstartable_runs=0 tank_peak_min=55.0 tank_peak_max=55.0 tank_min=42.3 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT base hyst=4.0 unstartable_runs=0 tank_peak_min=55.0 tank_peak_max=55.0 tank_min=42.3 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT base hyst=6.0 unstartable_runs=0 tank_peak_min=55.0 tank_peak_max=55.0 tank_min=42.5 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT base hyst=10.0 unstartable_runs=0 tank_peak_min=55.0 tank_peak_max=55.0 tank_min=42.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT base hyst=20.0 unstartable_runs=0 tank_peak_min=55.0 tank_peak_max=55.0 tank_min=34.6 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due hyst=None unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due hyst=1.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due hyst=4.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due hyst=6.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due hyst=10.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due hyst=20.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=34.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT external_heat hyst=None unstartable_runs=0 tank_peak_min=48.2 tank_peak_max=53.9 tank_min=33.7 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT external_heat hyst=1.0 unstartable_runs=0 tank_peak_min=48.6 tank_peak_max=53.9 tank_min=34.9 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT external_heat hyst=4.0 unstartable_runs=0 tank_peak_min=48.6 tank_peak_max=53.9 tank_min=34.9 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT external_heat hyst=6.0 unstartable_runs=0 tank_peak_min=48.8 tank_peak_max=53.9 tank_min=35.0 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT external_heat hyst=10.0 unstartable_runs=0 tank_peak_min=49.0 tank_peak_max=54.3 tank_min=35.0 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT external_heat hyst=20.0 unstartable_runs=0 tank_peak_min=49.7 tank_peak_max=54.0 tank_min=28.3 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due+ext hyst=None unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due+ext hyst=1.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due+ext hyst=4.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due+ext hyst=6.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due+ext hyst=10.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=43.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT cycle_due+ext hyst=20.0 unstartable_runs=0 tank_peak_min=60.0 tank_peak_max=60.0 tank_min=34.1 legionella_steps=[None, None, None, None, None, None, None, None] example=None
+RESULT total_unstartable 0
