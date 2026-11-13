@@ -82579,21 +82579,56 @@ R.check(
     and (_ds_days.span_days, _ds_days.first_day) == (4, _ds_day.date()),
     f"{_ds_halved} {_ds_stamped}",
 )
+_ds_third = _ds_mod.DutySwitchLearner(
+    {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}).published(_ds_day)
 R.check(
-    "k and n publish to two places and the median to one; a direction holding only a void publishes a span of no day",
-    (_ds_fine_pub["duty_switch_dhw_space_k"], _ds_fine_pub["duty_switch_dhw_space_n"],
+    "p publishes to two places, n as whole episodes (down, never up) and the median to one place; a direction "
+    "holding only a void publishes a span of no day",
+    (_ds_fine_pub["duty_switch_dhw_space_p"], _ds_fine_pub["duty_switch_dhw_space_n"],
      _ds_fine_pub["duty_switch_dhw_space_median_off_s"], _ds_fine_pub["duty_switch_space_dhw_span_days"])
-    == (1.0, 3.0, 100.2, 0)
-    and _ds_mod.DutySwitchLearner(
-        {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}
-    ).published(_ds_day)["duty_switch_dhw_space_k"] == 0.33,
-    f"{_ds_fine_pub}",
+    == (0.33, 3.0, 100.2, 0)
+    and (_ds_third["duty_switch_dhw_space_p"], _ds_third["duty_switch_dhw_space_n"]) == (0.5, 0.0)
+    and "duty_switch_dhw_space_k" not in _ds_fine_pub,
+    f"{_ds_fine_pub} {_ds_third}",
 )
 R.check(
-    "the published k and n are aged to the reading's time, the tallies are not",
-    [(pub["duty_switch_dhw_space_k"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
-     for pub in _ds_old_pub] == [(3.0, 7.0, 3), (1.5, 3.5, 3)],
+    "the published n is aged to the reading's time, p and the tallies are not",
+    [(pub["duty_switch_dhw_space_p"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
+     for pub in _ds_old_pub] == [(0.43, 7.0, 3), (0.43, 3.0, 3)],
     f"{_ds_old_pub}",
+)
+# Carry c7d068a1 (reviewer's probe attr_churn): age alone moved the attributes. A day of quarter-hour reads of
+# six stops an hour apart, from six hours on: nothing moves; null control, the decayed weight to two places
+# that the attributes published before moves within the same reads, so the reads do span a decay.
+_ds_churn = _ds_mod.DutySwitchLearner()
+for _ds_i in range(6):
+    _ds_churn.directions["dhw_space"].book(_ds_day + timedelta(hours=_ds_i), True, 60.0)
+_ds_reads = [_ds_day + timedelta(hours=6, minutes=15 * _ds_i) for _ds_i in range(96)]
+_ds_churn_pubs = [_ds_churn.published(t) for t in _ds_reads]
+_ds_churn_raw = [round(_ds_churn.directions["dhw_space"].weights(t)[1], 2) for t in _ds_reads]
+_ds_churn_month = {_ds_churn.published(_ds_day + timedelta(hours=6 + 6 * _ds_i))["duty_switch_dhw_space_n"]
+                   for _ds_i in range(4 * 60)}
+R.check(
+    "age alone moves no published attribute within a day, and moves n only a whole episode at a time; null "
+    "control, the decayed weight read to two places moves within the same day's reads",
+    sum(a != b for a, b in zip(_ds_churn_pubs, _ds_churn_pubs[1:])) == 0
+    and sum(a != b for a, b in zip(_ds_churn_raw, _ds_churn_raw[1:])) > 0
+    and _ds_churn_month == {5.0, 4.0, 3.0, 2.0, 1.0, 0.0},
+    f"{_ds_churn_pubs[0]} {sorted(_ds_churn_month)}",
+)
+# Carry ef5d3875 (reviewer's probe fifth_episode): N_ON is a decayed weight, not a count of episodes. Five
+# stops ten hours apart weigh under N_ON and leave the direction off; the sixth switches it on. Control: the
+# check above, where a stop taking an undecayed n from 4 to 5 switches it on.
+_ds_spread = _DS_D()
+_ds_spread_on = []
+for _ds_i in range(6):
+    _ds_spread.book(_ds_day + timedelta(hours=10 * _ds_i), True, 60.0)
+    _ds_spread_on.append(_ds_spread.usable)
+R.check(
+    "N_ON is a weight: five stops ten hours apart, spanning two days, stay off at a weight under five; a sixth "
+    "switches the direction on",
+    _ds_spread_on == [False] * 5 + [True] and _ds_mod.N_ON == 5.0,
+    f"{_ds_spread_on} {_ds_spread}",
 )
 
 # Restart: the dict round trip, the strict load, the cap.
@@ -83258,10 +83293,10 @@ _ds_attrs0 = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_st
 _ds_mod._RECORDS[_ds_pub] = _ds_mod._Record(None, None, learner=_ds_tab)
 _ds_attrs = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
 _DS_KEYS = {f"duty_switch_{d}_{k}" for d in _ds_mod.DIRECTIONS
-            for k in ("k", "n", "stopped", "kept", "void", "censored", "span_days")}
+            for k in ("p", "n", "stopped", "kept", "void", "censored", "span_days")}
 R.check(
     "the starts sensor's attributes are the counter's alone until a direction has an observation; then, per "
-    "direction, only k, n, stopped, kept, void, censored, span days and (once one exists) the median off "
+    "direction, only p, n, stopped, kept, void, censored, span days and (once one exists) the median off "
     "seconds, all numeric",
     set(_ds_attrs0) == {"lifetime", "month"}
     and set(_ds_attrs) == {"lifetime", "month"} | _DS_KEYS | {"duty_switch_dhw_space_median_off_s"}
