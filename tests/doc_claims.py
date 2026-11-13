@@ -4806,8 +4806,22 @@ def arbiter_slot_keys() -> dict[str, str]:
     }
 
 
-def flow_write_findings(texts: dict, slot_keys: dict) -> list[str]:
-    """Flow strings on (or named after) a written slot that say it is never written."""
+#: The one sentence another group owns: R10-HOTFIX-FLOW-SETPOINT-STUCK corrects
+#: it and its translations (the owner's brief for this group: leave it to that
+#: fix). Keyed on the exact false sentence, so the pass expires the moment that
+#: text changes and the key is then judged like every other; nothing to delete
+#: for either merge order. A design choice, not a tolerance: it silences
+#: nothing but that sentence while it is still the shipped one.
+_OWNED_ELSEWHERE = {
+    "options.step.entities.sections.indoor.data_description.space_setpoint_entity":
+        "The optimizer never writes a recommended space set-point.",
+}
+
+
+def flow_write_findings(texts: dict, slot_keys: dict, owned: dict | None = None) -> list[str]:
+    """Flow strings on (or named after) a written slot that say it is never written,
+    less a sentence ``owned`` names another group's while it is still shipped."""
+    owned = _OWNED_ELSEWHERE if owned is None else owned
     stems = {key.removesuffix("_entity") for key in slot_keys.values()}
     bad = []
 
@@ -4818,7 +4832,9 @@ def flow_write_findings(texts: dict, slot_keys: dict) -> list[str]:
         elif isinstance(node, str) and path[-2:-1] == ("data_description",):
             if any(path[-1].startswith(stem) for stem in stems) and _NEVER_WRITES.search(node) \
                     and "Control" not in node:
-                bad.append(".".join(path))
+                dotted = ".".join(path)
+                if owned.get(dotted, "\0") not in node:
+                    bad.append(dotted)
 
     for top in ("config", "options"):
         walk(texts.get(top, {}), (top,))
@@ -4846,6 +4862,9 @@ def check_flow_text_claims() -> None:
             not bad, "; ".join(bad))
     indoor = planted["options"]["step"]["entities"]["sections"]["indoor"]["data_description"]
     indoor["space_setpoint_unit"] = "The unit is a declaration: this integration never recommends a space set-point."
+    R.check("null: the other group's sentence is found once it is not exempted",
+            "options.step.entities.sections.indoor.data_description.space_setpoint_entity"
+            in flow_write_findings(texts, slots, owned={}))
     R.check("null: the pre-fix space set-point unit sentence is found",
             "options.step.entities.sections.indoor.data_description.space_setpoint_unit"
             in flow_write_findings(planted, slots))
