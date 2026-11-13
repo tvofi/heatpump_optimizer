@@ -1,0 +1,396 @@
+== c01f40f5c
+list 44
+0 From r10-ci-priority-pause, body item d76fe7a3: Carry 9 (item 7bd3e57f), name the process sending `@tvofi` cancels at live heads, then land P267's bounded pause or refuse at that seat's cancel path: the pause is built here (`ci_pause.py`, Carry 1) but the sender naming and the landing check against R10-TRAIN-MERGE-LOOP-2 were not established in this part; re-home it with the round-11 residue. Carry: R11-INTAKE-R10-RESIDUE (items d76fe7a3)
+
+1 From r10-ci-priority-pause, body item 98032839: Carry 10 (item dfa8b375), three live checks on a test fork (update-branch identity, app_approve end to end, class-O commit_id): this seat has no `gh`, no App key and no fork pull request, so it cannot run them. Carry: R11-INTAKE-R10-RESIDUE (items 98032839)
+
+2 From r10-ci-priority-pause, body item 97b9c91c: Carry 11 (item 6e06de7f), three residuals in the gate-conclusion readers of `merge_train.py` and `orchestrator_tick.py` (a read bypassing `classify`, an empty `Busy` built from made-up runs, refusal only at run time): new code outside this part's brief. Carry: R11-INTAKE-R10-RESIDUE (items 97b9c91c)
+
+3 Moved from R10-TRAIN-RESIDUE-P2 carry 20 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+TRAIN-WAIT-CAP-OUTAGE (triage: dev/programme/triage/s6-batch218.md#P659 at bb3a0e5b92), line numbers at 61afd4f2db. tools/audit/seat/merge_train.py's review-run wait (:2881-2893) adds each poll's sleep to `waited` whatever the poll read, against `wait_cap_s` (:3719-3722, polls x (REVIEW_POLL_SECONDS + POLL_SECONDS)). An unreadable listing ends the wait at once (`runs or ()` is empty), and the same cap gates a skipped head's rejoin (:3729-3733). Instance: the GitHub Webhooks/Actions incident 
+
+4 Moved from R10-RELAY-ARM-ORDER carry 1 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+RELAY-ARMS-FIRST CARRY CHECK (triage: dev/programme/triage/s6-batch202.md#P630 at ca76b1d0cf): the reviewer confirms that #3465's reorder of pass() in tools/audit/seat/cloud_relay.sh (probe_arm and confirm_arm before handoff_arm) covers the 2026-11-11 case, in which five handoff merge verdicts and review returns were held for over 45 min behind one #3462 update_pr (cloud-relay.log: last POSTED 13:21:59Z, none through 14:18Z), for every verdict present at a pass's start. Out of scope for #3465,
+
+5 Moved from R10-PREPR-RESIDUE carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Moved from R10-PREPR-CAP carry 28 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
+
+From r10-rca-ci-critpath-3, body item ce268b05: `prepr.sh` should run `harness_headers.inline_scan()`, or at least `depth_root_seams()`, and leave only the timed parts of `harness_headers.py` to CI, so a branch adding a harness under `dev/audit/` cannot reach CI red on a static, sub-second check. Lands in the prepr/ga
+
+6 Moved from R10-PREPR-RESIDUE carry 14 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3411, body item 41176b97: C1, from `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` section 6: - Change: `tools/audit/seat/body_push.sh` `prepr_trailer` takes the receipt from the local `hpo-prepr-receipt`, else from the parent body tip's one `Prepr:` trailer. It writes the receipt when the receipt's sha is an ancestor of the code head and its tree is that sha's tree. - Failing cases: a re-push from a second clone keeps the trailer. A clean merge of main past the receipt keeps it, and `reuse_ver
+
+7 Moved from R10-PREPR-RESIDUE carry 15 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3411, body item 300fa7f0: C2, from `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` section 6: - Change: `tools/audit/seat/body_push.sh` names, both in its no-trailer line and in a `Prepr-absent: <reason>` trailer on the body commit, which condition failed: no receipt file in this checkout; a receipt not an ancestor of the code head; a receipt whose tree is not its sha's; or no trailer on the parent tip. - Failing case: each of the four, planted, prints and writes its own reason. Before the fix,
+
+8 Moved from R10-PREPR-RESIDUE carry 16 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3411, body item fab9d1da: C3, from `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` section 6: - Change: `tools/pr/prepr.sh`'s step lines carry the step's elapsed seconds from bash's `$SECONDS`, with no spawn, and the final `PRE-PR:` line carries the run's. - Failing case: a step stubbed to sleep 2 s prints an elapsed of at least 2. Before the fix there is no field. - Null control: a no-op step prints 0 or 1, so the field times the step and not the run. - Carry: R10-PREPR-RESIDUE (items fab9d1da
+
+9 Moved from R10-PREPR-RESIDUE carry 17 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3411, body item e0b30357: C4, from `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` section 6: - Problem: the comment over `predict_line` in `tools/pr/prepr.sh` says step 6d "costs seconds". `bash dev/audit/rca/open_prepr_6d.sh 6671786843` measured 1561 s on a 4-CPU cloud container, against 40 s at the scoped `c19017d6`. - Change: correct the premise, and bound or leave to CI the GRADER replays that `instrument-self-tests` already runs, keeping SELF-TEST READS. - Proof: `open_prepr_6d.sh 6671786
+
+10 Moved from R10-PREPR-RESIDUE carry 20 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+ci_predict does not run the `run_always` `tests/harness_headers.py` over a new or changed `dev/audit/harnesses/*.py`. So a harness whose inlined `repo_root` drifts from `tools/audit/repo_root.py` passes prepr step 6d and `body_push.sh`'s predictor, and turns `tests / fast` red in CI (this PR, at f0b75645). Carry: R10-PREPR-RESIDUE
+
+11 Moved from R10-PREPR-RESIDUE carry 25 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+R10-PREPR-RESIDUE (triage: dev/programme/triage/s6-batch230.md#P698 at 2ced371c1a), line numbers at 2ced371c1a. tools/pr/ci_predict.py:666-692 `ci_tree_run` clones the checkout with tests/throwaway_git.py:151 `throwaway_git_clone` (plain `git clone --shared`), so the clone's refs/remotes/origin/* are the checkout's LOCAL refs/heads/*; only origin/main is reset to `tip`. A stale local handoff/audit-r10-roster made the predictor read an old roster as origin/ and refuse body_push/open (second inst
+
+12 Moved from R10-HOTFIX-PREPR-WC-PAD carry 0 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3487 (r10-hotfix-main-ist-prepr-scope), body item b4cbb682: The root-cause countermeasure (run `selftest_scope.py check` in prepr/ci_predict when a gated step's script changes) is unbuilt and tools/pr/prepr.sh is not touched here. Carry: R10-HOTFIX-PREPR-WC-PAD (items b4cbb682)
+
+13 Moved from R10-HOTFIX-PREPR-WC-PAD carry 2 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+`selftest_scope.py record` measures the recording seat's per-clone git config, so a seat whose hook already installed the merge drivers drops reads a fresh checkout makes, and any gated step that runs the session-start self-test can be narrowed the same way; `record` should run in a scratch clone with no `merge.*.driver` config or refuse while they are set, and a union path would also have made this repair mechanical. Every roster group that owned tools/ci/selftest_scope.py is done (R10-HO
+
+14 Moved from R10-STANDING-CONTRACTS-P2 carry 24 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-standing-contracts-p2, body item d6daec6a: fixer.md: cost: the layout guard refuses a re-wrapped line that keeps a retired `docs/decisions/` citation while policy_lint's citation-presence fixture needs that citation present, so the only passing edit leaves the line untouched; one prepr round and one closure re-record were spent finding it. Carry: R10-STANDING-CONTRACTS-P2 (item scp2-layout-vs-citation) (items d6daec6a)
+
+15 Moved from R10-CLOSEOUT-PREP carry 2 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+MACHINERY-CAPS-RECORD-DOWN (triage: dev/programme/triage/s6-batch218.md#P663 at bb3a0e5b92), line numbers at 61afd4f2db. `python3 tools/audit/machinery_ratchet.py --measure --head origin/main` read nonproduction_merges 498 at 61afd4f2db, against a cap of 521 with a band of 5 in dev/governance/config/machinery_budgets.json. That is more than the band below, and the file's `_comment` says to "re-record a cap down when the measurement falls more than its band below it". churn_per_kilo_product_lines
+
+16 ANCESTRY-REDS-PER-COMMIT-READS (triage seat triage-1113, proposal T5, 2026-11-13; round 11 by the orchestrator's intake rule). Defect: tools/pr/prepr.sh ancestry_reds (line 1401 at origin/main 5345766b41) reads repos/<repo>/commits/<sha>/check-runs with --paginate once for every commit of merge-base..<remote head>, and on an all-green branch reads each commit a second time for total_count. The call count therefore grows with the branch's ancestry, not with its CI runs. Evidence: on the round roster pull request (about 777 commits over its merge base) one update attempt read 767 calls in 6.6 min (orchestrator sweep 2026-11-12T23:36Z); two update_pr runs on that pull request made 3482 gh calls
+
+17 CLASS-OPEN-DOMAIN-UNIT (triage seat triage-1113, proposal T23, 2026-11-13, on the root-cause analysis R10-RCA-CLASS-OPEN-BLOCKS, countermeasure C4; round 11 by the orchestrator's intake rule). POLICY: dev/governance/roles/fixer.md is policy, so the owner approves before merge (CLAUDE.md). Defect: fix-review.md step 6 (line 29 at origin/main 5345766b41) blocks class-open on "a site or a predicate's unguarded domain"; fixer.md step 8 (line 123) asks only to "name a rule that enumerates the class's seams", and fixer.md never says domain (git show origin/main:dev/governance/roles/fixer.md | grep -c -i domain prints 0). Step 18 (line 259) keeps a reviewer's driver in scratch. Evidence (the RCA, r
+
+18 Moved from R10-SAV-VALUATION-RESIDUE carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-sav-valuation-residue, body item 78bf9246: The hot-water LP's secant (`_plan_dhw_min_cost`, flat 0.335995 / spread 0.202595 per day against the tree's inverse) is left: equal-slice segmentation measured worse in truth (`## Figures`). A segmented LP is legitimate only if, on `r10_partload_pricing.py`'s cells, the published plan's true hot-water cost does not rise at any derated cell and the `d = 0` rows stay bitwise. Pending the orchestrator's ruling on its owner. Carry: R10-SAV-
+
+19 Moved from R10-ADVISOR-STEADY-START carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From #3481, body item b4048305: The ruling's "one real high-spread price day" is not met: dev/audit/harnesses/r10_advisor_steady_bracket.py runs a synthetic peaks day, because the tree holds no recorded full price day and this seat has no network. Control to carry: the ratio line of that harness on a recorded day (`PRICES` gains a series); the precondition is only that the day is a recording. The range is already shown whatever that ratio reads. Carry: R10-ADVISOR-STEADY-START; Carry 3: l
+
+20 Moved from R10-ADVISOR-STEADY-START carry 6 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From #3481, body item 128b800e: Item pair-other-asks of the design: the hot-water ask reads +0.0 on `_solve_coord`, which has no tank (tests/features.py), so the pair's money for a hot-water, weight or floor ask alone is not measured for sign on a tanked fixture; docs/dashboard-card.md describes that branch as two plans from held starts and makes no sign claim for it. Carry: R10-ADVISOR-STEADY-START; Carry 4: landed at f4c4044aaa on the round roster (handoff/audit-r10-roster), carry_audit
+
+21 Moved from R10-ADVISOR-STEADY-START carry 7 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From #3481, body item c33b6f10: Items measured-fields, weekday-day and pv-price of the design are not measured: the schedule figure on a throttling-valve two-tank fixture, across a weekday-to-weekend change, and on a PV house (the mean price ignores surplus pricing); custom_components/heatpump_optimizer/price_tiles.py states what the figure uses. Carry: R10-ADVISOR-STEADY-START; Carry 5: landed at f4c4044aaa on the round roster (handoff/audit-r10-roster), carry_audit landed reports 0 miss
+
+22 Moved from R10-ROUND-PLAYBOOK-FINAL carry 17 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Brief carry 20's code half: `pr_cap.py` reserving production slots and printing open PRs by class on every tick. The README states the rule. Carry: R10-ROUND-PLAYBOOK-FINAL
+
+23 Moved from R10-ROUND-PLAYBOOK-FINAL carry 25 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+`policy_budgets.json`: stale: the README's caps are keyed `tools/audit/README.md`, a path the tree no longer has, and are matched through the move map. A reader grepping the new path finds no cap. Carry: R10-ROUND-PLAYBOOK-FINAL
+
+24 Moved from R10-ROUND-PLAYBOOK-FINAL carry 26 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Moved from R10-COP-GATE-E carry 1 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09): not measurable from the recorded fixtures (PR 3371); a round-11 D15 input that waits on named owner data. Write it into the round-11 list. Text verbatim:
+
+Re-routed from R10-COP-GATE-D carry 8 by the s12 carry-routing seat (2026-11-07). Original text: Unanswered residual of R10-CEILING-PROBE Carry 1, from #2465 (handoff-body/r10-ceiling-probe 61b216fc; orchestrator s9 2026-10-31). The ga
+
+25 Moved from R10-ROUND-PLAYBOOK-FINAL carry 31 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+R11-INTAKE-SCORECARD-PARAGRAPHS (triage: dev/programme/triage/s6-batch218.md#P668 at bb3a0e5b92), owner ruling (tvofi 2026-11-11, verbatim "I agree with all the recommendations.", study review Q3; this ruling is the policy approval). Add one paragraph each to dev/governance/dimensions/D11.md and D13.md. Each names the convergence scorecard (the tracked script the scorecard carry on R10-TICK-RESIDUE-P3 lands, cited by its tree path) and round 11's two measurement groups, and states that t
+
+26 Moved from R10-ROUND-PLAYBOOK-FINAL carry 35 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Round-11 opening list: Dependabot pip bump of homeassistant-stubs to 2026.10.0 (closed PR 3483) needs the typing pin 2026.9.3 and the mypy census re-recorded in one pull request; tests / typing refuses the bump alone.
+
+27 Moved from R10-ROUND-PLAYBOOK-FINAL carry 36 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-ci-priority-pause, body item 6614d45d: Backfill of `source`/`hotfix`/`savings_source` on the live roster groups (carry 3 item 4: R10-UX-HEALTH, R10-ROUND-PLAYBOOK, the `Owner-reported` briefs) is a roster write this seat may not make; `append-group` refusing a group without `source` takes effect for new groups only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL (items 6614d45d)
+
+28 Moved from R10-ROUND-PLAYBOOK-FINAL carry 37 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-ci-priority-pause, body item ebd4600d: Enabling `priority_cancel` needs the after measure above. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL (items ebd4600d)
+
+29 Moved from R10-ROUND-PLAYBOOK-FINAL carry 38 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-ci-priority-pause, body item 1655cf71: `roster_lib.is_hotfix` still treats `kind == "bug"` as a hotfix beside `hotfix: true` and the name rule (the existing dispatch-rank checks pin it); carry 3 defines it as the flag or the name only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL (items 1655cf71)
+
+30 Moved from R10-ROUND-PLAYBOOK-FINAL carry 39 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-outside-learner-robustness-p2, body item 4b518e5d: Round 11: the scaled settling tail. Measured on `dev/audit/harnesses/boost_press_tail_walk.py` (table above, both slopes, with the heat-free `freeze` twins as the null control): neither formula keeps every press arm within `press_120x1_full`'s |worst| on `tests/boost_drift_replay.py`'s replay. The freeze with no heat walks the scale as far as the press does (-0.0232 vs -0.0237), so the walk is the freeze's sample selection, not 
+
+31 Moved from R10-ROUND-PLAYBOOK-FINAL carry 40 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Round-11 opening list, moved from R10-PREPR-RESIDUE by the orchestrator ruling of 2026-11-12 (self-fed, would move closure): (1) extend prepr.sh body-check so a return is refused for the classes open_pr still refuses; (2) one grammar owner for Forward-carry between policy_lint.mjs and carry_audit.py; (3) ci_predict lacks the instrument-self-tests prediction behind an instrument-self-tests red; (4) a predicting detector for the HEAD-ONLY class, since step 7c reads pushed reds only; (5) ci
+
+32 Moved from R10-ROUND-PLAYBOOK-FINAL carry 41 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Round-11 opening list (or round 10 if the owner approves the macOS runner spend and the replan shows it does not move closure): un-defer R10-PREPR-DARWIN-SELFTEST-LANE with this widened brief. Root-cause ruling 2026-11-12 (class N-host-platform-unrun, four tools instances reached main in round 10: bus.sh bash 3.2 empty array in pull request 3055, the seat python3 shim under a planted HOME in 3343, the wc padding compare landed by 3455, and mutant_run reading /proc since 3475; analysis to
+
+33 Moved from R10-CI-PRIORITY-PAUSE carry 7 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+MAIN-CANCEL-BOUNDED (triage: dev/programme/triage/s6-batch218.md#P658 at bb3a0e5b92), line numbers at 61afd4f2db. Superseded main runs are cancelled by hand today (owner ruling 6, 2026-11-11, keeps the cancels): tools/pr/cancel_superseded.py refuses a main branch (:90-91, :153) and carry 4 exempts main runs. The longest row of consecutive cancelled ci.yml main push runs is 7 in the newest 100 and 6 in the newest 50 (Actions API, 2026-11-11 about 22:10Z; 142 main runs cancelled in all). After
+
+34 Moved from R10-GATE-DEFER-BARRIER carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+GATE-SWEEP-QUEUE-WAIT, in tools/audit/seat/merge_train.py (line numbers at cbd23f1c8b). The train's settle for gate-sweep's re-run of a deferred red gate is SWEEP_SETTLE_POLLS = 1 poll (:584; SWEEP_SETTLE_SECONDS :818, set from one measured 62 s start). At #3446's head 4cc5d8b962, sweep run 42987689816 was created at 08:31:17Z, 3 s after the green gate, but its job started at 08:41:55Z (runner queue under the concurrency cap). The train skipped #3446 as red: gate, the third gate-deferral sk
+
+35 Moved from R10-GATE-DEFER-BARRIER carry 7 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+GATE-BUSY-REQUEUED-NEEDS (triage: dev/programme/triage/s6-batch203.md#P632 at bd0632c987), in tools/ci/gate.py and tools/ci/prelude.py (line numbers at ceb3070ccb), the residual of R10-HOTFIX-GATE-REDISPATCH-LOOP (#3473). Re-running a gate also re-runs its skipped `needs` (run 43022147048 attempt 2: `pr-contract / pr-contract` queued 14:08:44Z, ran 14:12:53Z). While they are unfinished, judging() is false (prelude.py:217-218), so the run is busy() (gate.py:124-126), and every gate re-run be
+
+36 Moved from R10-GATE-DEFER-BARRIER carry 8 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+MERGE-PR-NO-REPOST (triage: dev/programme/triage/s6-batch215.md#P653 at b7b37bfda0), line numbers at 61afd4f2db. tools/audit/seat/merge_pr.sh:272-273 always posts the evidence VERDICT.md (plus an `Evidence:` line) through app_comment.sh before it merges, even when the bus has already posted that verdict for the head. A try that then fails leaves a newer verdict comment that is not verdict/<pr>'s tip text, and `merge_train.py add` refuses the PR (merge_train.py:3190). Instance: #3355, commen
+
+37 Moved from R10-GATE-DEFER-BARRIER carry 9 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-outside-contributor-cycle-p2, body item 283207ca: Carry 4: **Carry 14, round 3:** `_post_agent_approval`'s body under a bare `--mandate` id reads "under <id>", which `MANDATE_CITE` does not read as a citation. Whether it should say "mandate comment <id>" for our own heads is the train's wording, unchanged here. R10-GATE-DEFER-BARRIER is the live group on merge_train.py's approval path. Carry: R10-GATE-DEFER-BARRIER (items 283207ca)
+
+38 Moved from R10-GATE-DEFER-BARRIER carry 10 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-outside-contributor-cycle, body item 0036f828: `tools/audit/seat/tick_loop.sh --self-test` moves the HEAD of the checkout it runs in: run in a detached worktree it leaves that worktree on `origin/main`, and on a local branch it fails the check named under `## Figures`. Both hold at the merge base, so neither is this part's, and `tick_loop.sh` is outside this group. A seat that runs the whole self-test set in a detached worktree measures every later step on main's tree without bein
+
+39 Moved from R10-SEAT-SCRIPT-OUTPUT carry 3 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+tools/audit/seat/mutant_run.py docstring (DIFF MODE, an equivalent one still needs a survivor_triage record) and tools/audit/seat/instruments/mutant_run.py.md (an equivalent one still owes a survivor_triage record) tell a fixer to record a triage the ledger refuses for any site outside custom_components/: tests/mutation_table.py _TRIAGE_KEY admits only that prefix and any other key is MUTATION TABLE REFUSED ... malformed. Correct both to: a custom_components/ survivor owes a survivor_triage
+
+40 Moved from R10-GATE-DEFER-BARRIER carry 6 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+A5-ROLLUP-PAGES, in tools/audit/seat/merge_train.py (line numbers at cbd23f1c8b). ROLLUP_Q reads statusCheckRollup contexts(first:100) (:460), and platform_gate returns unread on hasNextPage (:480), which the train refuses as a disagreement. So a head with over 100 contexts (#3355 at dee7a1fa45: 114) can never merge by the train. Fix: page with after: while hasNextPage, bounded at 5 pages, and judge the union. A short or failed page stays unread. Self-test: a two-page rollup whose required 
+
+41 From r10-round-playbook-final-p2, body item 79a7c9ec: Carry 31's D11 and D13 paragraphs were not found in R11-INTAKE-R10-RESIDUE at the roster branch tip I read; the pointer bullet states their content. Carry: R11-INTAKE-R10-RESIDUE (items 79a7c9ec)
+
+42 From r10-round-playbook-final-p2, body item 9502b215: The README cites the census directory, not its CENSUS.md file: policy_lint's named-docs check refuses a named file with no cap or exclusion, and dev/governance/config/corpus_excluded.json is outside this part's files. The brief asked for the file path. Carry: R11-INTAKE-R10-RESIDUE (items 9502b215)
+
+43 From r10-round-playbook-final-p2, body item 25a6ec84: A grep found no logic in cloud_dispatch.py for phase 6's "only arms not on main are briefed"; not this part's scope. Carry: R11-INTAKE-R10-RESIDUE (items 25a6ec84)
+
+== 66b81ca477360c69f8f9dc84da868f8675bd0ec8
+list 76
+0 From r10-ci-priority-pause, body item d76fe7a3: Carry 9 (item 7bd3e57f), name the process sending `@tvofi` cancels at live heads, then land P267's bounded pause or refuse at that seat's cancel path: the pause is built here (`ci_pause.py`, Carry 1) but the sender naming and the landing check against R10-TRAIN-MERGE-LOOP-2 were not established in this part; re-home it with the round-11 residue. Carry: R11-INTAKE-R10-RESIDUE (items d76fe7a3)
+
+1 From r10-ci-priority-pause, body item 98032839: Carry 10 (item dfa8b375), three live checks on a test fork (update-branch identity, app_approve end to end, class-O commit_id): this seat has no `gh`, no App key and no fork pull request, so it cannot run them. Carry: R11-INTAKE-R10-RESIDUE (items 98032839)
+
+2 From r10-ci-priority-pause, body item 97b9c91c: Carry 11 (item 6e06de7f), three residuals in the gate-conclusion readers of `merge_train.py` and `orchestrator_tick.py` (a read bypassing `classify`, an empty `Busy` built from made-up runs, refusal only at run time): new code outside this part's brief. Carry: R11-INTAKE-R10-RESIDUE (items 97b9c91c)
+
+3 Moved from R10-TRAIN-RESIDUE-P2 carry 20 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+TRAIN-WAIT-CAP-OUTAGE (triage: dev/programme/triage/s6-batch218.md#P659 at bb3a0e5b92), line numbers at 61afd4f2db. tools/audit/seat/merge_train.py's review-run wait (:2881-2893) adds each poll's sleep to `waited` whatever the poll read, against `wait_cap_s` (:3719-3722, polls x (REVIEW_POLL_SECONDS + POLL_SECONDS)). An unreadable listing ends the wait at once (`runs or ()` is empty), and the same cap gates a skipped head's rejoin (:3729-3733). Instance: the GitHub Webhooks/Actions incident 
+
+4 Moved from R10-RELAY-ARM-ORDER carry 1 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+RELAY-ARMS-FIRST CARRY CHECK (triage: dev/programme/triage/s6-batch202.md#P630 at ca76b1d0cf): the reviewer confirms that #3465's reorder of pass() in tools/audit/seat/cloud_relay.sh (probe_arm and confirm_arm before handoff_arm) covers the 2026-11-11 case, in which five handoff merge verdicts and review returns were held for over 45 min behind one #3462 update_pr (cloud-relay.log: last POSTED 13:21:59Z, none through 14:18Z), for every verdict present at a pass's start. Out of scope for #3465,
+
+5 Moved from R10-PREPR-RESIDUE carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Moved from R10-PREPR-CAP carry 28 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
+
+From r10-rca-ci-critpath-3, body item ce268b05: `prepr.sh` should run `harness_headers.inline_scan()`, or at least `depth_root_seams()`, and leave only the timed parts of `harness_headers.py` to CI, so a branch adding a harness under `dev/audit/` cannot reach CI red on a static, sub-second check. Lands in the prepr/ga
+
+6 Moved from R10-PREPR-RESIDUE carry 14 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3411, body item 41176b97: C1, from `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` section 6: - Change: `tools/audit/seat/body_push.sh` `prepr_trailer` takes the receipt from the local `hpo-prepr-receipt`, else from the parent body tip's one `Prepr:` trailer. It writes the receipt when the receipt's sha is an ancestor of the code head and its tree is that sha's tree. - Failing cases: a re-push from a second clone keeps the trailer. A clean merge of main past the receipt keeps it, and `reuse_ver
+
+7 Moved from R10-PREPR-RESIDUE carry 15 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3411, body item 300fa7f0: C2, from `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` section 6: - Change: `tools/audit/seat/body_push.sh` names, both in its no-trailer line and in a `Prepr-absent: <reason>` trailer on the body commit, which condition failed: no receipt file in this checkout; a receipt not an ancestor of the code head; a receipt whose tree is not its sha's; or no trailer on the parent tip. - Failing case: each of the four, planted, prints and writes its own reason. Before the fix,
+
+8 Moved from R10-PREPR-RESIDUE carry 16 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3411, body item fab9d1da: C3, from `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` section 6: - Change: `tools/pr/prepr.sh`'s step lines carry the step's elapsed seconds from bash's `$SECONDS`, with no spawn, and the final `PRE-PR:` line carries the run's. - Failing case: a step stubbed to sleep 2 s prints an elapsed of at least 2. Before the fix there is no field. - Null control: a no-op step prints 0 or 1, so the field times the step and not the run. - Carry: R10-PREPR-RESIDUE (items fab9d1da
+
+9 Moved from R10-PREPR-RESIDUE carry 17 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3411, body item e0b30357: C4, from `dev/audit/rca/R10-RCA-OPEN-PREPR-SLOW.md` section 6: - Problem: the comment over `predict_line` in `tools/pr/prepr.sh` says step 6d "costs seconds". `bash dev/audit/rca/open_prepr_6d.sh 6671786843` measured 1561 s on a 4-CPU cloud container, against 40 s at the scoped `c19017d6`. - Change: correct the premise, and bound or leave to CI the GRADER replays that `instrument-self-tests` already runs, keeping SELF-TEST READS. - Proof: `open_prepr_6d.sh 6671786
+
+10 Moved from R10-PREPR-RESIDUE carry 20 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+ci_predict does not run the `run_always` `tests/harness_headers.py` over a new or changed `dev/audit/harnesses/*.py`. So a harness whose inlined `repo_root` drifts from `tools/audit/repo_root.py` passes prepr step 6d and `body_push.sh`'s predictor, and turns `tests / fast` red in CI (this PR, at f0b75645). Carry: R10-PREPR-RESIDUE
+
+11 Moved from R10-PREPR-RESIDUE carry 25 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+R10-PREPR-RESIDUE (triage: dev/programme/triage/s6-batch230.md#P698 at 2ced371c1a), line numbers at 2ced371c1a. tools/pr/ci_predict.py:666-692 `ci_tree_run` clones the checkout with tests/throwaway_git.py:151 `throwaway_git_clone` (plain `git clone --shared`), so the clone's refs/remotes/origin/* are the checkout's LOCAL refs/heads/*; only origin/main is reset to `tip`. A stale local handoff/audit-r10-roster made the predictor read an old roster as origin/ and refuse body_push/open (second inst
+
+12 Moved from R10-HOTFIX-PREPR-WC-PAD carry 0 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From 3487 (r10-hotfix-main-ist-prepr-scope), body item b4cbb682: The root-cause countermeasure (run `selftest_scope.py check` in prepr/ci_predict when a gated step's script changes) is unbuilt and tools/pr/prepr.sh is not touched here. Carry: R10-HOTFIX-PREPR-WC-PAD (items b4cbb682)
+
+13 Moved from R10-HOTFIX-PREPR-WC-PAD carry 2 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+`selftest_scope.py record` measures the recording seat's per-clone git config, so a seat whose hook already installed the merge drivers drops reads a fresh checkout makes, and any gated step that runs the session-start self-test can be narrowed the same way; `record` should run in a scratch clone with no `merge.*.driver` config or refuse while they are set, and a union path would also have made this repair mechanical. Every roster group that owned tools/ci/selftest_scope.py is done (R10-HO
+
+14 Moved from R10-STANDING-CONTRACTS-P2 carry 24 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-standing-contracts-p2, body item d6daec6a: fixer.md: cost: the layout guard refuses a re-wrapped line that keeps a retired `docs/decisions/` citation while policy_lint's citation-presence fixture needs that citation present, so the only passing edit leaves the line untouched; one prepr round and one closure re-record were spent finding it. Carry: R10-STANDING-CONTRACTS-P2 (item scp2-layout-vs-citation) (items d6daec6a)
+
+15 Moved from R10-CLOSEOUT-PREP carry 2 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+MACHINERY-CAPS-RECORD-DOWN (triage: dev/programme/triage/s6-batch218.md#P663 at bb3a0e5b92), line numbers at 61afd4f2db. `python3 tools/audit/machinery_ratchet.py --measure --head origin/main` read nonproduction_merges 498 at 61afd4f2db, against a cap of 521 with a band of 5 in dev/governance/config/machinery_budgets.json. That is more than the band below, and the file's `_comment` says to "re-record a cap down when the measurement falls more than its band below it". churn_per_kilo_product_lines
+
+16 ANCESTRY-REDS-PER-COMMIT-READS (triage seat triage-1113, proposal T5, 2026-11-13; round 11 by the orchestrator's intake rule). Defect: tools/pr/prepr.sh ancestry_reds (line 1401 at origin/main 5345766b41) reads repos/<repo>/commits/<sha>/check-runs with --paginate once for every commit of merge-base..<remote head>, and on an all-green branch reads each commit a second time for total_count. The call count therefore grows with the branch's ancestry, not with its CI runs. Evidence: on the round roster pull request (about 777 commits over its merge base) one update attempt read 767 calls in 6.6 min (orchestrator sweep 2026-11-12T23:36Z); two update_pr runs on that pull request made 3482 gh calls
+
+17 CLASS-OPEN-DOMAIN-UNIT (triage seat triage-1113, proposal T23, 2026-11-13, on the root-cause analysis R10-RCA-CLASS-OPEN-BLOCKS, countermeasure C4; round 11 by the orchestrator's intake rule). POLICY: dev/governance/roles/fixer.md is policy, so the owner approves before merge (CLAUDE.md). Defect: fix-review.md step 6 (line 29 at origin/main 5345766b41) blocks class-open on "a site or a predicate's unguarded domain"; fixer.md step 8 (line 123) asks only to "name a rule that enumerates the class's seams", and fixer.md never says domain (git show origin/main:dev/governance/roles/fixer.md | grep -c -i domain prints 0). Step 18 (line 259) keeps a reviewer's driver in scratch. Evidence (the RCA, r
+
+18 Moved from R10-SAV-VALUATION-RESIDUE carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-sav-valuation-residue, body item 78bf9246: The hot-water LP's secant (`_plan_dhw_min_cost`, flat 0.335995 / spread 0.202595 per day against the tree's inverse) is left: equal-slice segmentation measured worse in truth (`## Figures`). A segmented LP is legitimate only if, on `r10_partload_pricing.py`'s cells, the published plan's true hot-water cost does not rise at any derated cell and the `d = 0` rows stay bitwise. Pending the orchestrator's ruling on its owner. Carry: R10-SAV-
+
+19 Moved from R10-ADVISOR-STEADY-START carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From #3481, body item b4048305: The ruling's "one real high-spread price day" is not met: dev/audit/harnesses/r10_advisor_steady_bracket.py runs a synthetic peaks day, because the tree holds no recorded full price day and this seat has no network. Control to carry: the ratio line of that harness on a recorded day (`PRICES` gains a series); the precondition is only that the day is a recording. The range is already shown whatever that ratio reads. Carry: R10-ADVISOR-STEADY-START; Carry 3: l
+
+20 Moved from R10-ADVISOR-STEADY-START carry 6 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From #3481, body item 128b800e: Item pair-other-asks of the design: the hot-water ask reads +0.0 on `_solve_coord`, which has no tank (tests/features.py), so the pair's money for a hot-water, weight or floor ask alone is not measured for sign on a tanked fixture; docs/dashboard-card.md describes that branch as two plans from held starts and makes no sign claim for it. Carry: R10-ADVISOR-STEADY-START; Carry 4: landed at f4c4044aaa on the round roster (handoff/audit-r10-roster), carry_audit
+
+21 Moved from R10-ADVISOR-STEADY-START carry 7 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From #3481, body item c33b6f10: Items measured-fields, weekday-day and pv-price of the design are not measured: the schedule figure on a throttling-valve two-tank fixture, across a weekday-to-weekend change, and on a PV house (the mean price ignores surplus pricing); custom_components/heatpump_optimizer/price_tiles.py states what the figure uses. Carry: R10-ADVISOR-STEADY-START; Carry 5: landed at f4c4044aaa on the round roster (handoff/audit-r10-roster), carry_audit landed reports 0 miss
+
+22 Moved from R10-ROUND-PLAYBOOK-FINAL carry 17 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Brief carry 20's code half: `pr_cap.py` reserving production slots and printing open PRs by class on every tick. The README states the rule. Carry: R10-ROUND-PLAYBOOK-FINAL
+
+23 Moved from R10-ROUND-PLAYBOOK-FINAL carry 25 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+`policy_budgets.json`: stale: the README's caps are keyed `tools/audit/README.md`, a path the tree no longer has, and are matched through the move map. A reader grepping the new path finds no cap. Carry: R10-ROUND-PLAYBOOK-FINAL
+
+24 Moved from R10-ROUND-PLAYBOOK-FINAL carry 26 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Moved from R10-COP-GATE-E carry 1 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09): not measurable from the recorded fixtures (PR 3371); a round-11 D15 input that waits on named owner data. Write it into the round-11 list. Text verbatim:
+
+Re-routed from R10-COP-GATE-D carry 8 by the s12 carry-routing seat (2026-11-07). Original text: Unanswered residual of R10-CEILING-PROBE Carry 1, from #2465 (handoff-body/r10-ceiling-probe 61b216fc; orchestrator s9 2026-10-31). The ga
+
+25 Moved from R10-ROUND-PLAYBOOK-FINAL carry 31 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+R11-INTAKE-SCORECARD-PARAGRAPHS (triage: dev/programme/triage/s6-batch218.md#P668 at bb3a0e5b92), owner ruling (tvofi 2026-11-11, verbatim "I agree with all the recommendations.", study review Q3; this ruling is the policy approval). Add one paragraph each to dev/governance/dimensions/D11.md and D13.md. Each names the convergence scorecard (the tracked script the scorecard carry on R10-TICK-RESIDUE-P3 lands, cited by its tree path) and round 11's two measurement groups, and states that t
+
+26 Moved from R10-ROUND-PLAYBOOK-FINAL carry 35 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Round-11 opening list: Dependabot pip bump of homeassistant-stubs to 2026.10.0 (closed PR 3483) needs the typing pin 2026.9.3 and the mypy census re-recorded in one pull request; tests / typing refuses the bump alone.
+
+27 Moved from R10-ROUND-PLAYBOOK-FINAL carry 36 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-ci-priority-pause, body item 6614d45d: Backfill of `source`/`hotfix`/`savings_source` on the live roster groups (carry 3 item 4: R10-UX-HEALTH, R10-ROUND-PLAYBOOK, the `Owner-reported` briefs) is a roster write this seat may not make; `append-group` refusing a group without `source` takes effect for new groups only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL (items 6614d45d)
+
+28 Moved from R10-ROUND-PLAYBOOK-FINAL carry 37 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-ci-priority-pause, body item ebd4600d: Enabling `priority_cancel` needs the after measure above. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL (items ebd4600d)
+
+29 Moved from R10-ROUND-PLAYBOOK-FINAL carry 38 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-ci-priority-pause, body item 1655cf71: `roster_lib.is_hotfix` still treats `kind == "bug"` as a hotfix beside `hotfix: true` and the name rule (the existing dispatch-rank checks pin it); carry 3 defines it as the flag or the name only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL (items 1655cf71)
+
+30 Moved from R10-ROUND-PLAYBOOK-FINAL carry 39 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-outside-learner-robustness-p2, body item 4b518e5d: Round 11: the scaled settling tail. Measured on `dev/audit/harnesses/boost_press_tail_walk.py` (table above, both slopes, with the heat-free `freeze` twins as the null control): neither formula keeps every press arm within `press_120x1_full`'s |worst| on `tests/boost_drift_replay.py`'s replay. The freeze with no heat walks the scale as far as the press does (-0.0232 vs -0.0237), so the walk is the freeze's sample selection, not 
+
+31 Moved from R10-ROUND-PLAYBOOK-FINAL carry 40 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Round-11 opening list, moved from R10-PREPR-RESIDUE by the orchestrator ruling of 2026-11-12 (self-fed, would move closure): (1) extend prepr.sh body-check so a return is refused for the classes open_pr still refuses; (2) one grammar owner for Forward-carry between policy_lint.mjs and carry_audit.py; (3) ci_predict lacks the instrument-self-tests prediction behind an instrument-self-tests red; (4) a predicting detector for the HEAD-ONLY class, since step 7c reads pushed reds only; (5) ci
+
+32 Moved from R10-ROUND-PLAYBOOK-FINAL carry 41 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+Round-11 opening list (or round 10 if the owner approves the macOS runner spend and the replan shows it does not move closure): un-defer R10-PREPR-DARWIN-SELFTEST-LANE with this widened brief. Root-cause ruling 2026-11-12 (class N-host-platform-unrun, four tools instances reached main in round 10: bus.sh bash 3.2 empty array in pull request 3055, the seat python3 shim under a planted HOME in 3343, the wc padding compare landed by 3455, and mutant_run reading /proc since 3475; analysis to
+
+33 Moved from R10-CI-PRIORITY-PAUSE carry 7 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+MAIN-CANCEL-BOUNDED (triage: dev/programme/triage/s6-batch218.md#P658 at bb3a0e5b92), line numbers at 61afd4f2db. Superseded main runs are cancelled by hand today (owner ruling 6, 2026-11-11, keeps the cancels): tools/pr/cancel_superseded.py refuses a main branch (:90-91, :153) and carry 4 exempts main runs. The longest row of consecutive cancelled ci.yml main push runs is 7 in the newest 100 and 6 in the newest 50 (Actions API, 2026-11-11 about 22:10Z; 142 main runs cancelled in all). After
+
+34 Moved from R10-GATE-DEFER-BARRIER carry 5 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+GATE-SWEEP-QUEUE-WAIT, in tools/audit/seat/merge_train.py (line numbers at cbd23f1c8b). The train's settle for gate-sweep's re-run of a deferred red gate is SWEEP_SETTLE_POLLS = 1 poll (:584; SWEEP_SETTLE_SECONDS :818, set from one measured 62 s start). At #3446's head 4cc5d8b962, sweep run 42987689816 was created at 08:31:17Z, 3 s after the green gate, but its job started at 08:41:55Z (runner queue under the concurrency cap). The train skipped #3446 as red: gate, the third gate-deferral sk
+
+35 Moved from R10-GATE-DEFER-BARRIER carry 7 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+GATE-BUSY-REQUEUED-NEEDS (triage: dev/programme/triage/s6-batch203.md#P632 at bd0632c987), in tools/ci/gate.py and tools/ci/prelude.py (line numbers at ceb3070ccb), the residual of R10-HOTFIX-GATE-REDISPATCH-LOOP (#3473). Re-running a gate also re-runs its skipped `needs` (run 43022147048 attempt 2: `pr-contract / pr-contract` queued 14:08:44Z, ran 14:12:53Z). While they are unfinished, judging() is false (prelude.py:217-218), so the run is busy() (gate.py:124-126), and every gate re-run be
+
+36 Moved from R10-GATE-DEFER-BARRIER carry 8 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+MERGE-PR-NO-REPOST (triage: dev/programme/triage/s6-batch215.md#P653 at b7b37bfda0), line numbers at 61afd4f2db. tools/audit/seat/merge_pr.sh:272-273 always posts the evidence VERDICT.md (plus an `Evidence:` line) through app_comment.sh before it merges, even when the bus has already posted that verdict for the head. A try that then fails leaves a newer verdict comment that is not verdict/<pr>'s tip text, and `merge_train.py add` refuses the PR (merge_train.py:3190). Instance: #3355, commen
+
+37 Moved from R10-GATE-DEFER-BARRIER carry 9 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-outside-contributor-cycle-p2, body item 283207ca: Carry 4: **Carry 14, round 3:** `_post_agent_approval`'s body under a bare `--mandate` id reads "under <id>", which `MANDATE_CITE` does not read as a citation. Whether it should say "mandate comment <id>" for our own heads is the train's wording, unchanged here. R10-GATE-DEFER-BARRIER is the live group on merge_train.py's approval path. Carry: R10-GATE-DEFER-BARRIER (items 283207ca)
+
+38 Moved from R10-GATE-DEFER-BARRIER carry 10 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+From r10-outside-contributor-cycle, body item 0036f828: `tools/audit/seat/tick_loop.sh --self-test` moves the HEAD of the checkout it runs in: run in a detached worktree it leaves that worktree on `origin/main`, and on a local branch it fails the check named under `## Figures`. Both hold at the merge base, so neither is this part's, and `tick_loop.sh` is outside this group. A seat that runs the whole self-test set in a detached worktree measures every later step on main's tree without bein
+
+39 Moved from R10-SEAT-SCRIPT-OUTPUT carry 3 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+tools/audit/seat/mutant_run.py docstring (DIFF MODE, an equivalent one still needs a survivor_triage record) and tools/audit/seat/instruments/mutant_run.py.md (an equivalent one still owes a survivor_triage record) tell a fixer to record a triage the ledger refuses for any site outside custom_components/: tests/mutation_table.py _TRIAGE_KEY admits only that prefix and any other key is MUTATION TABLE REFUSED ... malformed. Correct both to: a custom_components/ survivor owes a survivor_triage
+
+40 Moved from R10-GATE-DEFER-BARRIER carry 6 (0-based) by the orchestrator s14 carry triage 2026-11-13 under the owner's 2026-11-12 ruling (self-fed work that moves closure goes to round 11). Text verbatim:
+
+A5-ROLLUP-PAGES, in tools/audit/seat/merge_train.py (line numbers at cbd23f1c8b). ROLLUP_Q reads statusCheckRollup contexts(first:100) (:460), and platform_gate returns unread on hasNextPage (:480), which the train refuses as a disagreement. So a head with over 100 contexts (#3355 at dee7a1fa45: 114) can never merge by the train. Fix: page with after: while hasNextPage, bounded at 5 pages, and judge the union. A short or failed page stays unread. Self-test: a two-page rollup whose required 
+
+41 From r10-round-playbook-final-p2, body item 79a7c9ec: Carry 31's D11 and D13 paragraphs were not found in R11-INTAKE-R10-RESIDUE at the roster branch tip I read; the pointer bullet states their content. Carry: R11-INTAKE-R10-RESIDUE (items 79a7c9ec)
+
+42 From r10-round-playbook-final-p2, body item 9502b215: The README cites the census directory, not its CENSUS.md file: policy_lint's named-docs check refuses a named file with no cap or exclusion, and dev/governance/config/corpus_excluded.json is outside this part's files. The brief asked for the file path. Carry: R11-INTAKE-R10-RESIDUE (items 9502b215)
+
+43 From r10-round-playbook-final-p2, body item 25a6ec84: A grep found no logic in cloud_dispatch.py for phase 6's "only arms not on main are briefed"; not this part's scope. Carry: R11-INTAKE-R10-RESIDUE (items 25a6ec84)
+
+44 From r10-closeout-prep-p2, body item 974eb8cb: carry-1922 entry 0 (file removed): R9-RO-9a (#2061), split out at its round 3 by the orchestrator under the three-round rule; for R9-RO-9b -- prepr step 6d refuses an INERT READS prediction, while ci-autofix.md assigns that repair to closures-autofix after the push, so a seat hand-edits tests/closures.json to pass the step (#2025 commit 387128bb; #2054, #2056). Make ci_predict warn only when CI re-records the named reading script, i.e. the INERT READS line's script is in closure.py affected(changed)['rederive'] or the case is full; refuse otherwise. Pin it in prepr --self-test with three plants: harness only (refuse), harness plus a file whose r
+
+45 From r10-closeout-prep-p2, body item 2d5abee2: carry-1922 entry 1 (file removed): R9-RO-10, the old-path sweep and the layout guard; newer than the R9-RO-5 entry below, and where they disagree this one is right -- When R9-RO-9 retires canon, in the same change: re-point docs/decisions/0010 and 0011 in orchestrator.md and fixer.md to dev/governance/decisions/; drop the canon tools/audit/README.md glob from ratchet-budgets.md (dev/audit/README.md stays), the canon tools/audit/briefs/** glob from defect-root-cause.md (dev/governance/** stays; policy_lint's rule-binding binds the 23 role and dimension files by that canon name, measured: 23 ERRORs without it), the canon tools/audit/briefs/fixer.m
+
+46 From r10-closeout-prep-p2, body item 2ad0b9e4: carry-1922 entry 2 (file removed): R9-RO-5, the governance lift -- R9-RO-9 drops the old-path lookup. In that same change, and not before, move each rule's paths globs off the canon spelling (tools/audit/briefs, docs/HANDOVER.md, docs/delivery, docs/plan) onto the paths the files have after R9-RO-5. A glob written only at the new path, while canon still spells listings the old way, is reported by rule-binding as matching no tracked file, on the restored grader as well as on the branch. Leaving the globs on the old spelling after canon is removed is the other failure: they then match nothing. The two edits are one edit. Carry: R11-INTAKE-R10-RESI
+
+47 From r10-closeout-prep-p2, body item 5edb22ae: carry-1922 entry 3 (file removed): R9-RO-8, the audit-evidence move -- R9-RO-9 moves tools/audit/round4/D11/governance_cost.py and d11lib.py under dev/audit/rounds/round4/D11/ (they stay at the old path through R9-RO-8 because the base agreement_py.py imports them there; drop the two INERT_EXCEPT entries, the entities.py path and the two closures.json entries in the same change) and rewrites the audit-find.js and audit-verify.js prompt and path text (seatDir, JUDGE, sweep, ISSUES, ledger, schema, scopes) together with check-wave-script.mjs's matching strings, only after main carries the updated graders. It also rewrites the leftovers listed unde
+
+48 From r10-closeout-prep-p2, body item 1feb2077: carry-1922 entry 4 (file removed): R9-RCA-1990 (#1990): R9-RO-6 and R9-RO-5 moved app_approve.sh, preflight.sh, app_comment.sh and the delivery rows, and five seat instruments kept the old paths -- A move re-points every seat instrument that invokes the moved path, in the move commit. merge_train.py resolves its scripts through its TOOLS table (old path first, then new) and ROW_DIR: a move edits those entries, and retiring an old lookup deletes only the old half of each tuple. Carry: R11-INTAKE-R10-RESIDUE (items 1feb2077)
+
+49 From r10-closeout-prep-p2, body item 02983cd3: carry-1922 entry 5 (file removed): R9-RCA-harness-path (#2072): three fix PRs (#2065, #2066, #2070) re-added the retired harness directory because CLAUDE.md and fixer.md still named it; the round-runner workflows name the same retired tree -- When R9-RO-9 retires canon, in the same change: re-point the round-runner workflows to dev/audit/rounds/round${round}/ and to dev/audit/config/finding.schema.json, then re-run the wave-script checks the workflows are graded by (prepr.sh step 4). Read the destination of each instrument from tests/layout.json, never from this entry. Carry: R11-INTAKE-R10-RESIDUE (items 02983cd3)
+
+50 From r10-closeout-prep-p2, body item 4f264267: carry-201 entry 0 (file removed): the round-5 D11-02 finding (#1301), whose fix is rule "rows" in tools/release/stamp.py -- the stamp now re-applies `record`'s own predicate to the window it is about to close -- Stamp-time precondition, not an opportunity: `tools/release/stamp.py` REFUSES to stamp when any merged pull request in the window it would close has no disposition row, and the only override is the explicit `--allow-rowless` flag, which prints the instrument's own output before proceeding. The rows it demands are the ones `record` demands, on the same two surfaces tests/delivery_status.py's DISPOSITION_FILES names. A stamp over a rowless
+
+51 From r10-closeout-prep-p2, body item 5cf71ed3: carry-201 entry 1 (file removed): the round-5 D13-01 finding (#1303), whose fix makes the CFR exclusion list a registered in-tree artifact that the instrument reads from the repository root, failing closed when it is absent -- Constraint on how the exclusion list is carried: it is ONE registered artifact at `dev/governance/config/cfr_exclusions.json`, a top-level object with an `excluded_jobs` map keyed by check-run name beside a `_comment`, in the shape dev/governance/config/policy_budgets.json takes. The instrument resolves it against the REPOSITORY, not against the seat, and raises when the map is missing or empty -- so a later round does not
+
+52 From r10-closeout-prep-p2, body item a39359c9: carry-201 entry 2 (file removed): the round-6 D11-02 finding (#1403), whose fix adds the `Restore the check source from the base commit` step to the `policy-docs` job of .github/workflows/governance.yml and the entry-point exit-status arm to tools/policy/policy_lint_mutants.mjs -- Constraint on any seat adding a corpus check or moving a step in the `policy-docs` job of .github/workflows/governance.yml. (1) A corpus check is a function inside tools/policy/policy_lint.mjs, named in that file's own lists of check names, never a module beside it: the new step restores the `.mjs` and `.py` programs under tools/policy/ plus tools/policy/vendor from th
+
+53 From r10-closeout-prep-p2, body item ad65f1ff: carry-201 entry 3 (file removed): the pull request fixing the round-6 D13-03 finding (#1407), which makes the round-4 DORA instrument (dev/audit/rounds/round4/D11/dora_keys.py, `cfr_keyings`) report the change-failure rate at BOTH keyings -- at the merge commit, where `dev/governance/config/cfr_exclusions.json` acts, and at the pull-request head, where a merge is gated -- and pins the pair in tests/entities.py -- Constraint on every change-failure rate a later round reports: the rate is TWO numbers -- the merge-keyed rate and the pull-request-head-keyed rate -- printed together and never one alone, because `dev/governance/config/cfr_exclusions.j
+
+54 From r10-closeout-prep-p2, body item a76b2d16: carry-201 entry 4 (file removed): the pull request fixing the round-7 D13-06 finding (#1476), which makes the same round-4 DORA instrument report the rate PER CHECK-RUN NAME at both keyings (dev/audit/rounds/round4/D11/dora_keys.py, `cfr_by_name`), and records `mutation` in dev/governance/config/cfr_exclusions.json's new `not_excluded` map as a name deliberately NOT on the list -- Constraint on how a later round reports the change-failure rate: per-name at both keyings, BESIDE the two aggregates and never instead of them. Two aggregate rates hide which name separates the surfaces, and here the whole difference is one name -- and the instrument c
+
+55 From r10-closeout-prep-p2, body item d245b092: carry-201 entry 5 (file removed): the v6.7.8 stamp hotfix (the pull request repairing main's red entities check after the stamp commit), whose fix restores the may-drift entry R9-F2.3 (#1723) suspended for its wood_coil claim -- which the stamp deleted without restoring -- and moves the R8-P3 coverage ruling into tests/env_drift.py's may_drift_coverage_error, executed by --claims-only -- Stamp-time precondition, not an opportunity: a stamp that empties the claim list owes every suspended may-drift entry back, verbatim, because a name may leave the may-drift list only while THIS release claims it (the R8-P3 ruling, option (a)) and the claim the s
+
+56 From r10-closeout-prep-p2, body item 7bef7da0: carry-201 entry 6 (file removed): PR #1879 (tools: programme instruments live in the tree, and a check refuses temp paths), whose tools/audit/seat/tmp_paths.py runs in governance.yml's non-grading instrument-self-tests job rather than in a required one -- Owed follow-up, two pull requests after #1879 merges: make tools/audit/seat/tmp_paths.py a pinned grader in a required governance.yml job, so a temp or machine path in a tracked script, workflow or decision record turns a required context red rather than the non-required instrument-self-tests. Step one declares it in tools/policy/field_coverage.mjs's DECLARED map (pinned, so it must land first)
+
+57 From r10-closeout-prep-p2, body item bfe7cc02: carry-201 entry 7 (file removed): RCA stale-pins (PR #2073, dev/audit/rca/R9-RCA-stale-pins.md): the frozen fixture tools/policy/fixtures/wave-1b-931dffe.json, pinned by REQUIRED_931DFFE's `wood_share:1152` entry in tools/policy/brief_lint.mjs, which requires a path:line (anchored) ERROR naming thermal_model.py:1152 and so depends on the production file's line layout -- The D11 round, or whichever seat next edits tools/policy/brief_lint.mjs: stop REQUIRED_931DFFE's `wood_share:1152` pin depending on the live line layout of custom_components/heatpump_optimizer/thermal_model.py, so an unrelated production edit cannot turn `briefs` red. Candidate r
+
+58 From r10-closeout-prep-p2, body item b43b0936: carry-201 entry 8 (file removed): RCA stale-pins review (PR #2073, round 1, reviewer observation on #2070): CI never runs a round instrument's `--perturb` arm, so an instrument under dev/audit/rounds/ that a production move breaks turns nothing red -- The D11 or D13 round: decide whether CI should run a round's `--perturb` arms, or whether instruments that CI never exercises are expected to rot, and record the decision. This is a different class from the stale-pin RCA (a local predictor porting half of a CI refusal): here no detector exists at any cost. Apply the cost test first, since 1704 mentions across dev/audit means a blanket run is likely
+
+59 From r10-closeout-prep-p2, body item 0112100b: carry-201 entry 9 (file removed): the pull request for R9-RC-BLAS-KERNEL-RED (#2114), which re-keyed the R9-F2.1 P3 storage check in tests/features.py off a race whose verdict is a property of the runner's BLAS kernel and onto the continuation's own gain, leaving that race measured and printed but not gating -- Price optimality is measured per kernel, and a shipped plan can be worse on the runner rather than in the solver. On this box the production multi-start ships a plan 0.307 SEK/day above the same solve warm-started from the half-price plan, where the Linux kernels of record measured the two within 0.0096 -- and the check's old bound, `j_pl
+
+60 From r10-closeout-prep-p2, body item 0d80b428: carry-201 entry 10 (file removed): the pull request fixing R9-ROW-STALE (#2111), which makes tools/audit/seat/record_row.py's `--plan` ask whether an existing row already tells the merge it records (`row_matches_merge`) rather than only whether a row exists (`has_row`), so the record-autofix beat now rewrites a stale row it previously left alone -- Constraint on record upkeep, and the owed action this lane leaves behind. The record-autofix beat (`tools/audit/seat/record_row.py`, driven by the `record-autofix` job) corrects ONLY the merges its tag window covers -- `--enumerate` reads `<last tag>..HEAD`, deliberately, since re-reading the whole hi
+
+61 From r10-closeout-prep-p2, body item c2bc6594: carry-201 entry 11 (file removed): the R10-RCA-NIGHTLY-PYSPY record (#2479), whose RCA is dev/audit/rca/nightly-ha-pyspy-timeout.md: the nightly-ha (stable) red is `hb:positive_control` failing when its single `py-spy dump --nonblocking` call times out at 30 s against CPython 3.14.6 / py-spy 0.4.2 -- Constraint, not an opportunity: `check_hb_positive_control` passes on ONE racy sample. A repair must not simply retry until it succeeds (that converts a measured red into a flaky green); it must either take the sample with a method whose failure is distinguishable from a real hang, or make the check's sample deterministic. The countermeasure the RCA
+
+62 From r10-closeout-prep-p2, body item b1d0e3c9: carry-201 entry 12 (file removed): the round-10 planning pull request that added tools/plan/replan.py; its cross-check of the out-of-tree plan documents against the roster found the wave table stale -- Constraint on the next planning seat: the wave plan is the schedule model's output, never a hand-written table. The dependency graph is the roster's after-edges, done-ness is the roster's stage, and a wave is a dispatch instant rather than a dependency depth. The out-of-tree wave table, drain note and hand-cut wave JSON are historical: they predate roster edits, cover fewer groups than the roster carries, and their critical path comes from edges t
+
+63 From r10-closeout-prep-p2, body item 38257757: carry-201 entry 14 (file removed): the round-10 planning pull request's cross-check of the drain note against the live board -- Constraint on a drain: the merge-mechanism rules in the drain note bind (batch by mechanism, recarry only inside the train, never rebase a head under review, serialise the coordinator file), but its pull-request inventory and batch schedule do not. Take what is open and in what order from the live board and the plan model; do not re-run a spent batch. Carry: R11-INTAKE-R10-RESIDUE (items 38257757)
+
+64 From r10-closeout-prep-p2, body item 2ed2eb26: carry-201 entry 15 (file removed): the round-10 planning pull request's cross-check of the roster's stored wave field against the depth its after-edges derive -- Constraint on the roster owner: the wave field must be set from the after-edges' derived depth at the next roster edit, or dropped. A reader must not take it as the schedule: the schedule is the model's wave (a dispatch instant) and the dependency depth is the model's level. Until the field is re-recorded it is stale metadata, and a plan built from it will put in-progress work in a later wave. Carry: R11-INTAKE-R10-RESIDUE (items 2ed2eb26)
+
+65 From r10-closeout-prep-p2, body item 68d05f47: carry-201 entry 16 (file removed): the round-10 root-cause seat for R10-RCA-ORCH-CONTINUITY (class N-silent-stop, #2557), whose countermeasure is the detector tools/audit/seat/pulse.py and whose record is dev/audit/rca/R10-RCA-ORCH-CONTINUITY.md -- Owner's call, not a seat's: choose the barrier the record's section 6 names -- (A, recommended) an hourly scheduled cloud probe at origin/main running `pulse.py --dump` that notifies the owner on exit 1 or 2, account configuration with no tree change; or (B) an hourly CI cron running `pulse.py`, which puts pulse.py and bus.sh on the required-check enforcement surface and whose failure mail reaches onl
+
+66 From r10-closeout-prep-p2, body item fa7badbe: carry-201 entry 17 (file removed): the round-10 root-cause seat for R10-RCA-ORCH-CONTINUITY (#2557), whose red-check answers had to read job logs from a cloud seat -- Constraint on any seat reading CI failures from a cloud seat: `failure_logs.sh` is inoperative there and exits 2 silently -- an exit 2 is not 'no red', it is 'not read'. Read the head with the REST pulls endpoint and the failing lines through the GitHub MCP job-log tool (.claude/workflows/web-fragments.md is the MCP mapping) until the script is fixed; a seat that maintains the script moves its head read to `gh api repos/<repo>/pulls/<n> --jq .head.sha` and re-measures the job-log r
+
+67 From r10-closeout-prep-p2, body item dd0a1868: carry-201 entry 19 (file removed): R10-FLY-YIELD-GUARD (#2765) and its round-1 fix review (review/2765, non-blocking finding 2): the guardrail's `unclassified` line, which routes a blocked word that is neither real nor taught for classifying instead of counting it as bookkeeping -- Constraint on the D13 seat of a later audit round, which owns REAL's list (REAL_CATCH and REAL_EXTRA in tools/audit/seat/review_strength.py): classify every word the guardrail's unclassified line names as real or bookkeeping, with the verdict that used it as evidence, and re-derive P0 under the new list in the same pull request. Widening REAL without re-deriving P0 mo
+
+68 From r10-closeout-prep-p2, body item bc01dd5c: carry-201 entry 20 (file removed): R10-DEPS-PIP-BUMP (the fixer-authored replacement of Dependabot #3088, the pip group of 2026-11-01): homeassistant-stubs held at 2026.9.3 while the rest of the group lands -- Constraint on the seat that moves the typing ruler off homeassistant-stubs, which Dependabot will keep proposing at 2026.10.0. The ruler's pinned pair is mypy plus homeassistant-stubs, and that pair stops existing: from 2026.10.0 the stubs are empty and the type source is the homeassistant package itself, so the pair becomes mypy plus homeassistant, recorded in tests/typing_budgets.json's ruler, and lock_disagreements, check_pins and the r
+
+69 From r10-closeout-prep-p2, body item 0f205fa8: carry-201 entry 21 (file removed): R10-DEPS-PIP-BUMP (the fixer-authored replacement of Dependabot #3088): the seat venv-ha assertion now reads the typing lock's homeassistant pin instead of the literal 2026.9.3 -- Owner action, once the pull request that moves the typing lock's homeassistant pin merges: re-paste tools/audit/seat/cloud-setup.sh from main into Project settings > Environment > Setup script. Until then the pasted copy asserts homeassistant 2026.9.3 against a venv-ha holding 2026.10.4, and under `set -euo pipefail` the setup script exits 1 after the install, which tools/audit/seat/cloud-setup.sh's own header says stops every session
+
+70 From r10-closeout-prep-p2, body item c0f01fa0: carry-201 entry 23 (file removed): #3288 (R10-TRAIN-MERGE-LOOP-2) body item 23779576, carried to R10-TRAIN-REJOIN-NO-RECARRY and passed on by its fixer: the count of BOT_HEAD stops in the train logs since 2026-10-20, and how many of those heads had their pull_request runs approved at refusal time -- The measure-first count of BOT_HEAD stops (and how many had approved pull_request runs at refusal time) is owed by the seat holding the train logs, not by a cloud fixer. Since R10-TRAIN-REJOIN-NO-RECARRY a non-strict ruleset no longer recarries a clean head, but a GITHUB_TOKEN tip is still recarried (Train.merges_as_is refuses a bot tip), so the BOT_
+
+71 From r10-closeout-prep-p2, body item 9f9f2e11: carry-201 entry 24 (file removed): #3498 (R10-TRAIN-RESIDUE-P2), the repair of its handoff 1012ff44: a re-recording of tests/entities.py taken in a cloud container was committed over-wide and turned three rows of the prepr.sh self-test red -- A Linux closure recording taken where the pid space can wrap during the run is void, wider than the script's read set; this is a second host condition beside the off-Linux one dev/governance/rules/gate-scoping.md names. Until the parser drops a pid at process exit, a cloud seat records only with the pid ceiling raised, and never commits a recording whose inert reads grow by more than its diff explains. tool
+
+72 From r10-closeout-prep-p2, body item 84e73ec4: carry-2065 entry 0 (file removed): #2066 (cop-floor): the COP and flow-lift duty floor keyed on the modulation floor; the cap at the observed running draw was deferred to 7b rather than kept as a local statistic -- Precondition for 7b: the floor both duty-floor readers take (ThermalParameters.flow_lift_power_floor_kw, read by coordinator _fold_measured_cop and _fold_flow_lift, and reported as cop_learner.power_floor_kw by accuracy.diagnostics_view) must be capped by the observed running draw's low end, the observed running draw #2065 lands (design note S4), never below thermal_model.on_threshold_kw. Without it an overstated modulation floor refu
+
+73 From r10-closeout-prep-p2, body item 35931f4b: carry-2066 entry 0 (file removed): #2066 round 4: before draw_range.follows_ask has evidence, a departure from the ask beyond COP_ASK_TOLERANCE folds wherever the ask and the draw clear the nameplate third, as base did; so a self-setting pump folds departures until the evidence arrives and only then is refused -- Precondition for fix 3: hold-then-replay. An interval departing from its ask before draw_range.follows_ask has evidence is held (not folded into cop_scale), and replayed once the evidence arrives: folded if the draw follows the ask, dropped if not. MeasuredCop.judge_ratio in accuracy.py is the one place the departure is judged; fix 3's 
+
+74 Issue 3369, the derived friction family `other (untaught) (family)`, over threshold in every window v7.1.8 to v7.1.13 (4-8 PRs). R10-RCA-OTHER-UNTAUGHT refused its singletons as noise; R10-RCA-FRICTION-OTHER-FAMILY-P2 section 1 left open whether `statsFamilies` should subtract declared-family members. Closing re-files it every tag. Decide the keying change, the vocabulary ruling, or a recorded refusal.
+
+75 R10-START-COUNTER-EDGES (part D of outside pull request 3420) is not buildable as briefed, measured at main 0cc5647545 by its fixer (BLOCKED.md at b73ac9fc98351e5067dc5f0be90bc3cefc01fa87 on handoff-wip/r10-start-counter-edges): part A edge tracker is attached only while the pump duty mode is not off, and off is the default, so feeding the start counter from it and deleting the sampled path stops start counting on every default install; the tracker has no immersion gate, so a meter-sourced install would book an element switch-on as a compressor start; the stored running flag has no counterpart in the tracker. The fixer recommends moving the running-signal listener and tracker into a per-coor
+
