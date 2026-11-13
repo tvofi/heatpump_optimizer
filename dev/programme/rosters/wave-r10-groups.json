@@ -21324,7 +21324,9 @@
    "issues": [
     2257
    ],
-   "fixes": [],
+   "fixes": [
+    2257
+   ],
    "findings": [],
    "class": "production",
    "severity": "medium",
