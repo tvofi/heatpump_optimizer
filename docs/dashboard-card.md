@@ -27,7 +27,7 @@ each panel with its own scale:
   - **House temperature** (smooth line; upper/lower zones drawn as dashed
     lines when the house is configured as two-zone)
 
-Every series has one clickable legend chip — one per series, including the
+Every series has one clickable legend chip in the enlarged view — one per series, including the
 house-temperature series when it draws its two zone lines as well, because
 visibility is per series and hiding one line of a series is not something the
 card can do. The chip's hover text names the extra traces that ride on it; the
@@ -52,7 +52,7 @@ protanopia or tritanopia, and every series reads at 3:1 against its panel.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/tile-dark.png">
-  <img alt="The dashboard tile: the dusk mark and title with an Idle status pill, a two-by-two grid of tiles reading price now, planned heating, plan cost and indoor temperature, the savings and score tiles, the five lines of the plan narrative, the plan chart, and the legend chips with the dashed-line footnote under them" src="img/card/tile-light.png">
+  <img alt="The dashboard tile: the dusk mark and title with an Idle status pill, a two-by-two grid of tiles reading price now, planned heating, plan cost and indoor temperature, the savings and score tiles, the folded Plan by reason and Why now headers with their one-line summaries, and the plan chart" src="img/card/tile-light.png">
 </picture>
 
 The screenshots on this page are the shipped card, rendered in a headless
@@ -95,6 +95,11 @@ view's Plan page.
 The legend is a row of compact chips, one per series; on a phone it is a
 single row you scroll sideways. Under it, a one-line footnote names what the
 dashed lines mean, with the full explanation further down this page.
+
+The chips and the footnote appear only in the enlarged view, on its Plan
+page: the dashboard tile shows the chart without them, drawn with the series
+you last left switched on there. Open the enlarged view to change which
+series are shown.
 
 ## Reading the chart
 
@@ -169,10 +174,22 @@ claim a precision the record has not earned.
 Under the stat tiles sits a second row: **projected savings** for the current
 plan, with the percentage beside it when the integration publishes one, and
 the **optimization score** out of 100, drawn as tiles like the ones above, then
-every line of the **plan narrative**: the energy and money spent for each
-reason, ordered by spend, then the hours the plan leaves idle. The lines are
-the narrative sensor's own, already in Home Assistant's language. Set
-`show_stats: false` to leave out both rows.
+two sections that start folded:
+
+- **Plan by reason** lists every line of the **plan narrative**: the energy
+  and money spent for each reason, ordered by spend, then the hours the plan
+  leaves idle. The lines are the narrative sensor's own, already in Home
+  Assistant's language. Folded, its header shows the total kWh and cost of
+  those rows, or the first line when the sensor publishes no figures to add.
+- **Why now** lists the reasons weighing on the current hour's plan — price
+  rank, comfort floor, forecast, mold guard, away — each with an arrow for
+  whether it pushes the heat pump to run or to idle and its share of the
+  push. Folded, its header shows the reason pushing hardest.
+
+Click a header, or focus it and press Enter or Space, to open or fold that
+section; each opens on its own, and screen readers hear whether it is
+expanded. Both start folded when the page loads. Set `show_stats: false` to
+leave out both rows.
 
 Clicking the score opens its breakdown: one row per part of the score, each
 followed by the drivers that moved it, in points — for the heat pump, a COP
@@ -324,9 +341,8 @@ hour also gets a vertical gridline in every panel. Zoom in, or plot fewer
 hours, and more of them are labelled. The editor, panning and zooming all work
 on that one time axis, whichever panel the pointer is over.
 
-Clicking a legend chip only toggles that series; it does not open the overlay.
-Toggles work inside the overlay too, and the visibility state is shared with the
-card underneath. Close it with the X, the Escape key, or by clicking outside it.
+Clicking a legend chip only toggles that series. The chips live in the
+overlay, and the visibility state is shared with the card underneath. Close it with the X, the Escape key, or by clicking outside it.
 
 The chart and the chrome around it scale differently, because they are
 different kinds of thing.
@@ -847,7 +863,8 @@ light and dark mode.
 ## Keyboard and screen readers
 
 Everything the card lets you click is a real button: the legend chips, the
-expand button in the header, the overlay's close button and its **Plan**,
+Plan by reason and Why now headers (which announce whether they are expanded),
+the expand button in the header, the overlay's close button and its **Plan**,
 **Setup**, **Savings** and **Advisor** tabs, the zoom controls, and the
 buttons in the schedule editor. They
 take focus in reading order and carry spoken labels rather than relying on
