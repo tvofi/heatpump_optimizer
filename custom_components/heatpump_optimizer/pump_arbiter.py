@@ -1472,7 +1472,17 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
 
 
 def _forget(held: ArbiterState) -> None:
-    held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None
+    """Let go of the pump: every record goes but the arbiter's own last space write.
+
+    That value stays on ``held.dropped`` until a restore replaces it on the
+    entity (:func:`_space_restored`): with no baseline armed, Off writes
+    nothing there, so the entity still reads the optimizer's number, and the
+    arm after On must not capture it as the person's (:func:`_arm_space`).
+    """
+    record = held.written.get("space_setpoint")
+    own = record[0] if record is not None else held.dropped.get("space_setpoint")
+    held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None
+    held.dropped = {} if own is None else {"space_setpoint": own}
 
 
 def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
@@ -1746,7 +1756,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         # person's the moment the optimizer lets go of it. The space
         # set-point's baseline is restored by off_restore (tvofi, 2026-11-07,
         # "Arbiter too"), before this pass; its record is dropped here.
-        if held.written or held.retry or held.dropped or held.space_before is not None:
+        if held.written or held.retry or held.space_before is not None:
             # A pending retry dies with control, and so does its warning.
             _forget(held)
             issues.clear_issue(coord.hass, ISSUE_IGNORED)

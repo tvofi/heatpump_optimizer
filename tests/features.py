@@ -63676,6 +63676,51 @@ def _pa_stuck_off(hand=None):
     return _pa_turn_off(coord), _pa_space(coord)
 
 
+
+
+def _pa_stuck_cycle():
+    """A stuck install (own 25 persisted, reading 25, nothing armed) turned Off and On again.
+
+    Returns what the Off restored, the space writes after On, and what a later Off restores.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (25.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", "25")
+    first = _pa_turn_off(coord)
+    coord._mode = _PA_AUTO
+    coord.hass.services.calls.clear()
+    _pa_settled(coord, 46)
+    coord.hass.services.calls.clear()
+    _pa_run(coord, 47)
+    on = _pa.state_for(coord).written.get("space_setpoint", (None,))[0]
+    coord.hass.services.calls.clear()
+    return first, on, _pa_turn_off(coord), _pa_space(coord)
+
+
+def _pa_dropped_over(written, dropped):
+    """The space writes of three passes from a written record over a dropped own 25, reading 25."""
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (written, _PA_T0 - timedelta(hours=1))
+    held.dropped["space_setpoint"] = dropped
+    coord.device("number.water_set", "25")
+    for minute in (1, 2, 3):
+        _pa_settled(coord, minute)
+    return float(coord.hass.states.get("number.water_set").state)
+
+
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK (R10-RCA-SETPOINT-LATCH-DEADLOCK (b)): a stuck install turned Off "
+    "(nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline "
+    "row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity "
+    "reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too",
+    _pa_stuck_cycle() == (0, 55.0, 1, [35.0])
+    and _pa_dropped_over(55.0, 25.0) == 55.0 and _pa_dropped_over(55.0, 40.0) == 55.0,
+    f"{_pa_stuck_cycle()=} {_pa_dropped_over(55.0, 25.0)=} {_pa_dropped_over(55.0, 40.0)=}",
+)
 R.check(
     "R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds "
     "restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is "
@@ -88149,9 +88194,11 @@ R.check(
 # Where the fact stops mattering or ends: once the person moves the
 # controller (25.0) the arm captures and the write lands, after which the
 # armed key never consults it -- the controller reading 26.0 again with the
-# record gone is not refused; a restore (_space_restored) and a release (Off
-# forgets the record, even one that is only the dropped write) end it, and
-# a stored value the arbiter could not have written is not loaded.
+# record gone is not refused; a restore (_space_restored) ends it, and a
+# stored value the arbiter could not have written is not loaded. Re-pinned by
+# R10-HOTFIX-FLOW-SETPOINT-STUCK: Off with no restore no longer ends it (the
+# entity still reads the optimizer's number, and the arm after On must not
+# take it as the person's), and a written record becomes the dropped one.
 # Control: before each, the fact is held.
 _fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8], arm=False)
 _fb_wr_before = dict(_fb_wr_held.dropped)
@@ -88163,7 +88210,7 @@ _fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_
 _fb_junk = _FbCoord()
 _fb_aio.run(_fb_pa._store(_fb_junk).async_save({"written": {}, "dropped": {"space_setpoint": "26.0 degC"}}))
 _fb_aio.run(_fb_pa._load(_fb_junk))
-_fb_off_coord, _fb_off_held = _fb_own([25.8])[1:]
+_fb_off_coord, _fb_off_held = _fb_own([25.8], arm=False)[1:]
 _fb_off_held.written.clear()
 _fb_off_before = dict(_fb_off_held.dropped)
 _fb_off_coord._mode = _PA_OFF
@@ -88171,11 +88218,11 @@ _fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter
                               _fb_pa.DUTY_CONTROL, _FB_NOW))
 R.check(
     "R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write is not consulted "
-    "once a write lands on the armed key, and ends when a restore writes the baseline or "
-    "Off releases the pump",
+    "once a write lands on the armed key, and ends when a restore writes the baseline; "
+    "Off with nothing restored keeps it",
     _fb_wr_before == {"space_setpoint": 26.0} and _fb_wr_written == 25.8 and _fb_wr_after is True
     and _fb_rs_held.dropped == {}
-    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {}
+    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {"space_setpoint": 26.0}
     and _fb_pa.state_for(_fb_junk).dropped == {},
     f"write {_fb_wr_before}, wrote {_fb_wr_written}, armed after {_fb_wr_after}, "
     f"restore {_fb_rs_held.dropped}, off {_fb_off_before} -> {_fb_off_held.dropped}, "
