@@ -210,7 +210,9 @@ LABEL = r"P(?:\d+|-[A-Q])\b"
 PROPOSAL_RE = re.compile(rf"\b(?:triage|proposal)\s+{LABEL}", re.I)
 RULING_CITE_RE = re.compile(
     rf"\btriage:\s*(dev/programme/triage/[A-Za-z0-9_.-]+\.md)#({LABEL})")
-VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER)\b", re.M)
+#: LOG (proposal-triage.md, tvofi 2026-11-01): friction blocking no production merge,
+#: recorded and never routed, so it is read as itself, not as "unreadable".
+VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER|LOG)\b", re.M)
 
 
 #: One push plus two re-applications on a rival's new tip; past that the
@@ -937,7 +939,7 @@ def privacy_refusal(texts):
 
 def ruling_verdict(src, pid):
     """The `Verdict:` of the `## <pid>:` entry in a triage batch file: ACCEPT,
-    REJECT or DEFER; None when no such entry; "unreadable" when it has no
+    REJECT, DEFER or LOG; None when no such entry; "unreadable" when it has no
     verdict line."""
     m = re.search(rf"^## {re.escape(pid)}:.*?$(.*?)(?=^## |\Z)", src, re.M | re.S)
     if not m:
@@ -1893,6 +1895,7 @@ def _self_test() -> int:
         "## P2: a second watcher\nVerdict: REJECT\nBinding: standing CPU\n\n"
         "## P3: no verdict line\nSource: sweep\n\n"
         "## P4: a later watcher\nVerdict: DEFER\nSource: sweep\n\n"
+        "## P5: friction off the production path\nVerdict: LOG\nSource: sweep\n\n"
         "## P-C: a lettered proposal\nVerdict: ACCEPT -> R9-B (carry)\n\n"
         "## P-D: a lettered reject\nVerdict: REJECT\n", encoding="utf-8")
     run(["git", "-C", str(seed), "add", "-A"])
@@ -1910,6 +1913,8 @@ def _self_test() -> int:
           refuses("REJECT", "append-carry", "R9-B", f"proposal P2: a watcher. triage: {ruling}#P2"))
     check("triage gate: a DEFER ruling is refused: only an ACCEPT is routed",
           refuses("DEFER", "append-carry", "R9-B", f"proposal P4: a watcher. triage: {ruling}#P4"))
+    check("triage gate: a LOG ruling is refused as LOG, never routed",
+          refuses("(LOG)", "append-carry", "R9-B", f"proposal P5: a watcher. triage: {ruling}#P5"))
     check("triage gate: an entry with no verdict line is refused",
           refuses("unreadable", "append-carry", "R9-B", f"proposal P3. triage: {ruling}#P3"))
     check("triage gate: a cited entry the batch lacks is refused",
