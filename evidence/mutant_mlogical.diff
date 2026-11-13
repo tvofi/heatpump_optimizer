@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 63c2e08c89..1ab427c000 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -67,7 +67,7 @@ pr_state_root() { # sets PR_STATE: the state dir ($HPO_STATE_DIR, default ~/.loc
+   # silently (#3549's review). `cd -P && pwd -P`, not realpath: macOS's /bin/bash 3.2 and BSD tools run this.
+   PR_STATE=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
+   mkdir -p "$PR_STATE/pr" || pr_refuse "cannot create the state dir $PR_STATE/pr"
+-  PR_STATE=$(CDPATH= cd -P -- "$PR_STATE" && pwd -P) || pr_refuse "cannot resolve the state dir $PR_STATE"  # mut:stateroot
++  PR_STATE=$(CDPATH= cd -- "$PR_STATE" && pwd) || pr_refuse "cannot resolve the state dir $PR_STATE"  # mut:stateroot
+ }
+ pr_busy() { printf '%s: BUSY: %s; nothing was changed, run again when it ends\n' "${PR_NAME:-pr}" "$*" >&2; exit 75; }  # a stop that is a live run's, not a permanent refusal (carry 8)
+ pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it

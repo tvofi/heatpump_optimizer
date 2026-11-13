@@ -1,6 +1,0 @@
-  ok   clone's round ref is the stale local branch before the fetch (tracking=True)
-  ok   fetch_round_rosters takes root's remote-tracking ref
-  ok   clone's round ref is the stale local branch before the fetch (tracking=False)
-  ok   fetch_round_rosters leaves the ref and does not raise
-  FAIL ci_tree_run calls fetch_round_rosters on one `# mut:roundrefs` line
-rc=1

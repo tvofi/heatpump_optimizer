@@ -1,39 +1,60 @@
 # Review packet #3549
-head: cde73e8b72fc563d515fd5ab66a6a12eec85698e
+head: 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca
 base: 3b9749dac55a85c200005352c661198c982e5799
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-arch-score / arch-score id=131843397075 queued
-arm id=131836392520 skipped
-budget-raise-gate / budget-raise-gate id=131843397007 queued
-cancel-superseded id=131836397547 queued
-codeql / Analyze (actions) id=131843396754 queued
-codeql / Analyze (javascript-typescript) id=131843396692 queued
-codeql / Analyze (python) id=131843396644 queued
-governance / delivery-status id=131843396759 queued
-governance / delivery-status-publish id=131843399039 skipped
-governance / env-matrix id=131843396899 queued
-governance / instrument-self-tests id=131843396781 queued
-governance / policy-docs id=131843396862 queued
-governance / record id=131843398385 skipped
-governance / wave-script id=131843397021 queued
-hassfest / hassfest id=131843396578 queued
-kernel-points id=131843398361 skipped
-prelude id=131836397806 queued
-refresh id=131836397853 queued
-tests / briefs id=131843396705 queued
-tests / closure-scope id=131843396715 queued
-tests / mutation id=131843396609 queued
-tests / nightly-status id=131843396619 queued
-validate / validate-hacs id=131843396668 success
+## Gate digest: red
+CodeQL id=131902096360 success
+arch-score / arch-score id=131902023220 success
+arm id=131901667706 skipped
+budget-raise-gate / budget-raise-gate id=131902023256 success
+cancel-superseded id=131901665244 success
+codeql id=131902025509 skipped
+codeql / Analyze (actions) id=131902006006 success
+codeql / Analyze (javascript-typescript) id=131902005944 success
+codeql / Analyze (python) id=131902005885 success
+gate id=131902876956 failure
+governance id=131902025285 skipped
+governance / delivery-status id=131902005987 success
+governance / delivery-status-publish id=131902009448 skipped
+governance / env-matrix id=131902006048 success
+governance / instrument-self-tests id=131902005754 in_progress
+governance / policy-docs id=131902005747 success
+governance / record id=131902009472 skipped
+governance / wave-script id=131902005874 success
+hassfest id=131902024850 skipped
+hassfest / hassfest id=131902005746 success
+kernel-points id=131902024814 skipped
+pr-contract id=131902878506 skipped
+prelude id=131901664796 success
+refresh id=131901665020 success
+sweep-self id=131904506459 skipped
+tests id=131902024583 skipped
+tests / arch-instrument id=131902549148 success
+tests / briefs id=131902006031 success
+tests / browser id=131902549127 success
+tests / claims-autofix id=131904131631 skipped
+tests / closure-scope id=131902006041 success
+tests / closures id=131902549164 in_progress
+tests / coverage id=131902549163 in_progress
+tests / fast (3.14) id=131902549146 success
+tests / mutation id=131902005978 success
+tests / mutation-autofix id=131902376693 skipped
+tests / mutation-pins id=131902376170 skipped
+tests / nightly-ha id=131902552238 skipped
+tests / nightly-status id=131902005929 success
+tests / replay id=131902552189 skipped
+tests / typing id=131902549107 success
+validate id=131902025015 skipped
+validate / validate-hacs id=131902005900 success
 
 ## Refusals
-introduced-red: unreadable: head governance / instrument-self-tests job 131843396781: queued has not concluded: an introduced red cannot be ruled out (fail closed)
+introduced-red: unreadable: head governance / instrument-self-tests job 131902005754: in_progress has not concluded: an introduced red cannot be ruled out (fail closed)
 
 ## Advisories
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
+required-wait: required context `gate` reads concluded failure at 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
 
 ## carry_audit at the head
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
@@ -43,8 +64,12 @@ ok         bash tools/audit/seat/open_pr.sh --self-test
              `tools/audit/seat/open_pr.sh` is in the tree at this head
   ok         python3 tools/pr/ci_predict.py --self-test
              `tools/pr/ci_predict.py` is in the tree at this head
+  unverified bash -n
+             bash with no script argument
+  ok         node tools/policy/brief_lint.mjs
+             `tools/policy/brief_lint.mjs` is in the tree at this head
 
-FIGURES: 2 resolved, 0 not verified, 0 refused
+FIGURES: 3 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -55,217 +80,161 @@ not run
 ## Mutation-ledger diff
 none
 
-## Review scope: full (first round: no --reviewed-head)
+## Review scope: delta (later round over the reviewed head cde73e8b72fc563d515fd5ab66a6a12eec85698e)
+Confirm each finding of the previous verdict is resolved, re-read the live required checks, and review the delta below. Widen only to exactly the already-reviewed code a delta touching production code (custom_components/) puts at risk of being affected in a non-obvious way CI would not detect, naming the path and the risk in the verdict; an instrument, test, policy or body delta never justifies a wider review (fix-review.md step 12).
 
-## Three-dot diff
-diff --git a/dev/programme/delivery/3549.md b/dev/programme/delivery/3549.md
-new file mode 100644
-index 0000000000..b2769f696d
---- /dev/null
-+++ b/dev/programme/delivery/3549.md
-@@ -0,0 +1 @@
-+- [#3549](https://github.com/tvofi/heatpump_optimizer/pull/3549) — **open**, R10-HOTFIX-OPENER-REFUSALS: open_pr.sh shares one body file across two runs, and ci_predict reads a stale roster ref (R10-HOTFIX-OPENER-REFUSALS)
+## Previous verdict at cde73e8b72fc563d515fd5ab66a6a12eec85698e
+Fix review: blocked cde73e8b72fc563d515fd5ab66a6a12eec85698e class-open: open_pr.sh mut:opreg predicate matches the logical $WT against git's physical worktree path, so a state dir reached through a symlink silently keeps the defect
+
+bus-nonce: c04e83e9f6dd3d06bef25f6fb05f05da
+
+## Block
+
+Round 1. `tools/audit/seat/open_pr.sh` line `# mut:opreg` compares `worktree $WT`, with `WT=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr/$T/wt` unresolved, against `git worktree list --porcelain`, which prints the worktree's physical (symlink-resolved) path. Measured: `git worktree add` at `~/symt/link/wt`, where `link -> real`, lists `worktree /root/symt/real/wt`. Whenever any component of the state-dir path is a symlink, OP_REG is empty, the second opener falls through to the `-pr` rename, takes its own lock and rewrites the shared body.md: the defect this PR fixes. The new self-test hides this domain: `dualrun` resolves its state dir with `pwd -P` before calling open_pr.sh. Perturbation: the same `dualrun` with the state dir passed through a symlink to that same resolved directory (ev/perturb_symlink.diff) turns the live case red: `FAIL open_pr: a second opener on a topic whose opener worktree is registered is BUSY (75), body.md byte-identical, the first opens`, `pr_args self-test: 247 checks, 1 failed` (ev/open_pr_selftest_symlink_perturb.txt). The unperturbed head passes 247/0 (ev/open_pr_selftest_head.txt). The body's `Known gap` covers only the detached-worktree case and leaves this domain undispositioned. Owed: resolve the path before the match (for example, compare against the physical path of `$D` once it exists, or canonicalise both sides) with a self-test case that passes the state dir through a symlink, or disposition this domain in the body. The same logical-against-physical comparison already exists at `open_pr.sh` (`grep -qxF "worktree $WT"`, the stray-directory guard) and `update_pr.sh` (`mut:elsewhere`). This PR does not introduce those sites; whoever fixes the predicate should check them too.
+
+## Evidence
+
+- Head reviewed: cde73e8b72fc563d515fd5ab66a6a12eec85698e (ev/HEAD.txt). It is still the live head of fix/r10-hotfix-opener-refusals per `git ls-remote` at verdict time. Base and merge base: 3b9749dac55a85c200005352c661198c982e5799. The roles diff merge-base...origin/main is empty, so the contract is current.
+- RESULT figure 1: `bash tools/audit/seat/open_pr.sh --self-test` at the head ends `pr_args self-test: 247 checks, 0 failed`, rc 0. This matches the body.
+- RESULT figure 2: `python3 tools/pr/ci_predict.py --self-test` at the head ends `ci_predict self-test: 0 failed`, rc 0. This matches the body.
+- Mutation `mut:opreg` and `mut:headnote`: the in-harness mutant arms pass at the head (the mutants are detected). I did not plant a separate opreg mutant: the symlink perturbation empties OP_REG the same way, and the live case goes red.
+- Mutation `mut:roundrefs` (my own): deleting the marked call line in ci_tree_run fails only the source-shape pin `ci_tree_run calls fetch_round_rosters on one # mut:roundrefs line` (rc 1, ev/mut_roundrefs.txt). Making `fetch_round_rosters` return early fails `fetch_round_rosters takes root's remote-tracking ref` (rc 1, ev/mut_fetch_noop.txt). The call site is pinned by source inspection, not behaviourally, and the body discloses this.
+- Refspec parity: pr-contract.yml fetches `+refs/heads/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster` from GitHub. The helper maps root's `refs/remotes/origin/...` to the same destination, which is the equivalent for a --shared local clone.
+- Null controls: the lone-run control passes at the head. Part 2's tracking=False null passes.
+- Merge with main: `git merge-tree --write-tree origin/main <head>` rc 0, no conflict (ev/merge_tree.txt).
+- VERSION, the manifest, RELEASE_NOTES.md, the golden and claim files, the budgets and closures.json are untouched (ev/untouched.txt, empty diff). The claim files are not touched, so no drift claim is owed.
+- tests/entities.py (env -u BASH_ENV) cannot run in this container: `ModuleNotFoundError: paho` under venv-ha (no homeassistant in venv-ci). The same failure occurs at the base, so it is environmental and not verified here; CI's run is the evidence (ev/entities_head.txt).
+- Finder's harness: none named. This is a hotfix from root cause R10-RCA-OPENER-REFUSALS, and the fixer's self-test arms are the only harness.
+- CI: classify printed `WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none` through 11:07 UTC (ev/classify_poll.txt). The verdict is blocked on the review itself, so I did not wait further. The review packet refused `introduced-red: unreadable` while instrument-self-tests was queued. No red has been read, so no `## Red checks` answer is owed.
+
+## Delta diff: git diff cde73e8b72fc563d515fd5ab66a6a12eec85698e 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca
 diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
-index 7f000786fd..0b14ad5890 100755
+index 0b14ad5890..2070d94970 100755
 --- a/tools/audit/seat/open_pr.sh
 +++ b/tools/audit/seat/open_pr.sh
-@@ -41,7 +41,13 @@ export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
+@@ -40,7 +40,7 @@ pr_code_sha_shape "$2"
+ export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
  M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)
  T=$1; C=$2; TITLE=$3; G=$4; shift 4; ISS="$*"
- D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
--git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ] && BR=$BR-pr  # a seat often holds a local branch of the default name
-+# A topic's opener worktree $WT is shared by every opener of the topic (a seat's hand run, open_driver.py's), so the
-+# branch it holds names the lock of the run holding it. A second opener adopts that branch and meets the first's lock
-+# (BUSY) before it writes the shared body.md, not a -pr lock of its own. A detached worktree holds no branch: a
-+# finished run's leftover, which takes the -pr name below as a lone run does.
-+OP_REG=$(git -C "$M" worktree list --porcelain | awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}')  # mut:opreg
-+if [ -n "${OP_REG:-}" ] && [ -z "${BR_FIXED:-}" ]; then BR=$OP_REG
-+elif git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ]; then BR=$BR-pr; fi  # a seat often holds a local branch of the default name
- mkdir -p "$D"; cd "$M"
- # The branch's lock, update_pr.sh's own, held to the end: cloud_relay's update_pr.sh detached this worktree
- # between the two pushes below and left the PR without its row (#2547, #2548); it now answers BUSY.
-@@ -145,7 +151,7 @@ MERGE_OK=; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.git
- PYTHONPATH="$PRT" python3 - $D/body.md $(git rev-parse HEAD) $C $(git rev-parse --short origin/main) <<'E0'
- import sys; from head_note import prefix
- p,H,C,M=sys.argv[1:5]; s=open(p).read()
--if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C))
-+if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C))  # mut:headnote
- open(p,'w').write(s)
- E0
- # A disposed `## Unpinned sites` key the merge only shifted is re-keyed in place (P70, P125): prepr's
+-D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
++pr_state_root; D=$PR_STATE/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
+ # A topic's opener worktree $WT is shared by every opener of the topic (a seat's hand run, open_driver.py's), so the
+ # branch it holds names the lock of the run holding it. A second opener adopts that branch and meets the first's lock
+ # (BUSY) before it writes the shared body.md, not a -pr lock of its own. A detached worktree holds no branch: a
 diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
-index 51d9fee02d..33a1683bbd 100644
+index 33a1683bbd..63c2e08c89 100644
 --- a/tools/audit/seat/pr_args.sh
 +++ b/tools/audit/seat/pr_args.sh
-@@ -1293,6 +1293,53 @@ STUB
-   ck "  mutant mut:opcollect (its line deleted): open_pr.sh never asks for the collection" $?
-   racerun oprowonly; [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
-   ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
-+  # R10-HOTFIX-OPENER-REFUSALS: two openers on one topic (a seat's hand run, open_driver.py's) share the
-+  # topic-keyed state dir and its body.md, but the lock was keyed on the branch, and a second run renamed
-+  # itself fix/<topic>-pr whenever the first's worktree add had made a local fix/<topic>: it took another lock,
-+  # rewrote body.md from handoff-body without the head note, and refused later, while the first run's prepr
-+  # read the overwritten body. dualrun starts open_pr.sh r twice, neither with BR_FIXED, the second while the
-+  # first is in its second push; the main merge has moved the head, so the first's body.md carries a head note.
-+  # Expected: the second is BUSY (75) and body.md is byte-identical. lonerun is the null control: one run
-+  # beside a stale local fix/r and no registered worktree still takes the -pr name.
-+  dualcopy() { # <mutant|->: the arm's scripts, with the mutant's line deleted
-+    local g
-+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
-+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
-+    done
+@@ -59,6 +59,16 @@ pr_code_in_handoff() { # <sha> <topic>: after the fetch of handoff/<topic>; PR_H
+   [ "$1" != "$PR_BT" ] || pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT); it is the tip of handoff-body/$2: that is the BODY sha; pass the CODE sha"  # mut:body
+   pr_refuse "code sha $1 is not an ancestor of origin/handoff/$2 ($PR_HT), and it is not the tip of handoff-body/$2 (${PR_BT:-absent})"  # mut:ancestor
+ }
++pr_state_root() { # sets PR_STATE: the state dir ($HPO_STATE_DIR, default ~/.local/state/hpo), its pr/ created, as its physical path
++  # git records and lists a worktree by its physical path (`git worktree list --porcelain`), so every path
++  # open_pr.sh and update_pr.sh derive from the state dir and match against that list (mut:opreg, the
++  # left-over guard, mut:elsewhere, update_pr.sh's own-worktree scan) is built on this one spelling: a
++  # symlinked component, a trailing slash or a `/./` segment in $HPO_STATE_DIR otherwise matches nothing,
++  # silently (#3549's review). `cd -P && pwd -P`, not realpath: macOS's /bin/bash 3.2 and BSD tools run this.
++  PR_STATE=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
++  mkdir -p "$PR_STATE/pr" || pr_refuse "cannot create the state dir $PR_STATE/pr"
++  PR_STATE=$(CDPATH= cd -P -- "$PR_STATE" && pwd -P) || pr_refuse "cannot resolve the state dir $PR_STATE"  # mut:stateroot
++}
+ pr_busy() { printf '%s: BUSY: %s; nothing was changed, run again when it ends\n' "${PR_NAME:-pr}" "$*" >&2; exit 75; }  # a stop that is a live run's, not a permanent refusal (carry 8)
+ pr_lock_busy() { # <lock-file> <branch> <worktree>: the holder did not take the lock: BUSY (75) when another holder has it
+   local rc=0 o
+@@ -1315,13 +1325,21 @@ STUB
+   dualend() { # <state dir>
+     reap; git -C "$m" worktree remove --force "$1/pr/r/wt" 2>/dev/null; git -C "$m" worktree prune; git -C "$o" reset -q --hard "$base"; true
+   }
+-  dualrun() { # <mutant|->: rc of the second opener in $t/rc2, body.md before and after it in $t/bd1 and $t/bd2
+-    local sd=$t/dual-state sdir=$t/dual-stub k=0 op
+-    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); dualcopy "$1"
+-    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout1" 2>&1 & op=$!
++  spell() { # <physical dir> <-|link|slash|dot>: another spelling of that dir (#3549's review: git lists the physical one)
++    case $2 in
++      link) ln -sfn "$1" "$1.link"; printf '%s\n' "$1.link" ;;
++      slash) printf '%s/\n' "$1" ;;
++      dot) printf '%s/./%s\n' "${1%/*}" "${1##*/}" ;;
++      *) printf '%s\n' "$1" ;;
++    esac
 +  }
-+  dualreset() { # <state dir> <stub dir>: no state, branch or worktree of the topic r survives, main one commit ahead
-+    rm -rf "$1" "$2" "$t/s$i"; mkdir -p "$1" "$2"
-+    git -C "$m" worktree prune; git -C "$m" branch -qD fix/r fix/r-pr 2>/dev/null; git -C "$o" branch -qD fix/r fix/r-pr 2>/dev/null
-+    printf 'y\n' > "$o/yy" && git -C "$o" add yy && git -C "$o" -c user.name=t -c user.email=t@t commit -q -m "main moved"
-+  }
-+  dualend() { # <state dir>
-+    reap; git -C "$m" worktree remove --force "$1/pr/r/wt" 2>/dev/null; git -C "$m" worktree prune; git -C "$o" reset -q --hard "$base"; true
-+  }
-+  dualrun() { # <mutant|->: rc of the second opener in $t/rc2, body.md before and after it in $t/bd1 and $t/bd2
-+    local sd=$t/dual-state sdir=$t/dual-stub k=0 op
-+    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); dualcopy "$1"
-+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout1" 2>&1 & op=$!
-+    while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
-+    cksum < "$sd/pr/r/body.md" > "$t/bd1"
-+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout2" 2>&1; echo $? > "$t/rc2"
-+    cksum < "$sd/pr/r/body.md" > "$t/bd2"
-+    touch "$sdir/release"; wait "$op"; echo $? > "$t/rc1"
-+    dualend "$sd"
-+  }
-+  lonerun() { # the null control: a stale local fix/r, no registered worktree, one run
-+    local sd=$t/lone-state sdir=$t/lone-stub
-+    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); dualcopy -; touch "$sdir/release"
-+    git -C "$m" branch -f fix/r "$base"
-+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout3" 2>&1; echo $? > "$t/rc3"
-+    git -C "$o" cat-file -e fix/r-pr:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/lrow" || echo 0 > "$t/lrow"
-+    dualend "$sd"
-+  }
-+  dualrun -; [ "$(cat "$t/rc2")" = 75 ] && grep -qF "BUSY" "$t/dout2" && [ "$(cat "$t/bd1")" = "$(cat "$t/bd2")" ] && [ "$(cat "$t/rc1")" = 0 ] && grep -q '^PR=5 ' "$t/dout1"
-+  ck "open_pr: a second opener on a topic whose opener worktree is registered is BUSY (75), body.md byte-identical, the first opens" $?
-+  dualrun opreg; [ "$(cat "$t/rc2")" != 75 ] && [ "$(cat "$t/bd1")" != "$(cat "$t/bd2")" ]
-+  ck "  mutant mut:opreg (its line deleted): the second opener takes the -pr lock, is not BUSY, and rewrites body.md (the defect)" $?
-+  lonerun; [ "$(cat "$t/rc3")" = 0 ] && [ "$(cat "$t/lrow")" = 1 ]
-+  ck "  null control: a lone opener beside a stale local fix/r and no registered worktree still takes fix/r-pr" $?
++  dualrun() { # <mutant|-> [<spelling>]: rc of the second opener in $t/rc2, body.md before and after it in $t/bd1 and $t/bd2
++    local sd=$t/dual-state sdir=$t/dual-stub k=0 op sp
++    dualreset "$sd" "$sdir"; rm -f "$sd.link"; sd=$(cd "$sd" && pwd -P); dualcopy "$1"; sp=$(spell "$sd" "${2:--}")
++    env -u BR -u BR_FIXED HPO_STATE_DIR=$sp STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout1" 2>&1 & op=$!
+     while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+     cksum < "$sd/pr/r/body.md" > "$t/bd1"
+-    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout2" 2>&1; echo $? > "$t/rc2"
++    env -u BR -u BR_FIXED HPO_STATE_DIR=$sp STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout2" 2>&1; echo $? > "$t/rc2"
+     cksum < "$sd/pr/r/body.md" > "$t/bd2"
+     touch "$sdir/release"; wait "$op"; echo $? > "$t/rc1"
+     dualend "$sd"
+@@ -1340,6 +1358,16 @@ STUB
+   ck "  mutant mut:opreg (its line deleted): the second opener takes the -pr lock, is not BUSY, and rewrites body.md (the defect)" $?
+   lonerun; [ "$(cat "$t/rc3")" = 0 ] && [ "$(cat "$t/lrow")" = 1 ]
+   ck "  null control: a lone opener beside a stale local fix/r and no registered worktree still takes fix/r-pr" $?
++  # #3549's review: git lists the opener worktree by its physical path, so a state dir spelled otherwise
++  # (a symlinked component, a trailing slash, a `/./` segment) left OP_REG empty and the defect live.
++  # pr_state_root (pr_args.sh) resolves it once; each spelling is the live case above, and the symlink
++  # spelling with that resolution deleted is the defect again.
++  for sp in link slash dot; do
++    dualrun - $sp; [ "$(cat "$t/rc2")" = 75 ] && grep -qF "BUSY" "$t/dout2" && [ "$(cat "$t/bd1")" = "$(cat "$t/bd2")" ] && [ "$(cat "$t/rc1")" = 0 ] && grep -q '^PR=5 ' "$t/dout1"
++    ck "open_pr: the state dir spelled $sp: a second opener is BUSY (75), body.md byte-identical, the first opens" $?
++  done
++  dualrun stateroot link; [ "$(cat "$t/rc2")" != 75 ] && [ "$(cat "$t/bd1")" != "$(cat "$t/bd2")" ]
++  ck "  mutant mut:stateroot (its line deleted): through a symlinked state dir the second opener is not BUSY and rewrites body.md (the defect)" $?
    # R10-HOTFIX-OPENPR-FIGURE-REFRESH: a figure block names the head it was rendered at, so the body
    # open_pr.sh pushes needs it re-rendered at each head it pushes (p1 when the main merge moved the
    # head, p2 always: the row commit moves it). The stub pusher is lint's figure-block head check; the
-@@ -1310,6 +1357,9 @@ if [ -n "$h" ]; then
- else
-   [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr SKIPPED: only the row"
- fi
-+if [ "$n" = 1 ] && [ "$(git -C "$wt" rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then  # the main merge moved the head: the ## Head section names it
-+  sed -n '/^## Head/,/^## Figures/p' "$body" | grep -q "$(git -C "$wt" rev-parse HEAD)" || { echo "app_push: REFUSE: ## Head does not name HEAD"; exit 1; }
-+fi
- git -C "$wt" push -q -f origin "$br" || exit 1  # -f: a re-run's merge commit is not the first run's; the real pusher's refusal of that is outside this arm
- [ "$n" != 1 ] || echo "app_push: PUSHED to $br; pull request #5 is open"
- exit 0
-@@ -1345,6 +1395,8 @@ STUB
-   ck "open_pr: a body with a figure block opens (both pushes land, the row is present), the main merge having moved the head" $?
-   figrun opfig2 block; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ] && grep -qF "figure-block scope-line names another head" "$t/fo" "$t/fp2" 2>/dev/null
-   ck "  mutant mut:opfig2 (its line deleted): the row push is refused, naming another head, and the PR is closed" $?
-+  figrun headnote block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "## Head does not name HEAD" "$t/fo"
-+  ck "  mutant mut:headnote (its line deleted): the head note is missing, so the code push is refused for a ## Head that does not name HEAD" $?
-   figrun opfig1 block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "figure-block scope-line names another head" "$t/fo"
-   ck "  mutant mut:opfig1 (its line deleted): the code push is refused at the merged head, with nothing pushed" $?
-   figrun - none; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ] && grep -qF "ROW-ONLY: prepr SKIPPED" "$t/fp2"
-diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
-index 73c05f6815..d0c6b0cf8f 100644
---- a/tools/pr/ci_predict.py
-+++ b/tools/pr/ci_predict.py
-@@ -661,6 +661,14 @@ def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
-     return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
- 
- 
-+def fetch_round_rosters(run) -> None:
-+    """CI's pr-contract fetches the round rosters' remote-tracking refs; a
-+    --shared clone's own origin/handoff/* are root's local branches, so take
-+    root's refs/remotes/origin ones. A glob matching nothing is harmless."""
-+    run("git", "fetch", "-q", "--no-tags", "origin",
-+        "+refs/remotes/origin/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster")
-+
-+
- def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = None) -> tuple[str, subprocess.CompletedProcess | None]:
-     """Run `steps` (each a function of the tree, its runner and a scratch
-     directory) where CI's pull-request run of `job` runs them: the merge of
-@@ -683,6 +691,7 @@ def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = No
-             return subprocess.run(a, cwd=r, env=env, input=input, capture_output=True, text=True)
- 
-         run("git", "update-ref", "refs/remotes/origin/main", tip)
-+        fetch_round_rosters(run)  # mut:roundrefs
-         run("git", "checkout", "-q", "--detach", tip)
-         if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
-             return "unmerged", None
-@@ -1400,6 +1409,7 @@ def self_test() -> int:
-     bad += mutant_self_test(root)
-     bad += null_control_self_test(root)
-     bad += graders_self_test(root)
-+    bad += roundref_self_test(root)
-     gate = root / "tools" / "ci" / "gate.py"
-     if gate.exists():
-         sys.path.insert(0, str(root / "tools" / "ci"))
-@@ -1414,6 +1424,60 @@ def self_test() -> int:
-     return 1 if bad else 0
- 
- 
-+def roundref_self_test(root: Path) -> int:
-+    """ci_tree_run's clone gets root's refs/remotes/origin round-roster refs,
-+    not root's stale local branch (fail-before / pass-after), a null with the
-+    remote-tracking ref absent, and the call line itself pinned."""
-+    import inspect
-+    import shutil
-+    import tempfile
-+    sys.path.insert(0, str(root / "tests"))
-+    from throwaway_git import throwaway_git_clone, throwaway_git_init
-+    ref = "refs/remotes/origin/handoff/audit-r10-roster"
-+    tmp = Path(tempfile.mkdtemp(prefix="hpo-ci-predict-roundref-"))
-+    bad = 0
-+
-+    def check(label, ok):
-+        nonlocal bad
-+        print(f"  {'ok  ' if ok else 'FAIL'} {label}")
-+        bad += not ok
-+    try:
-+        for tracking in (True, False):
-+            src = tmp / f"src{tracking}"
-+            senv = throwaway_git_init(src, "-q", "-b", "main")
-+
-+            def sgit(*a):
-+                return subprocess.run(a, cwd=src, env=senv, capture_output=True, text=True, check=True).stdout.strip()
-+            sgit("git", "commit", "-q", "--allow-empty", "-m", "stale")
-+            stale = sgit("git", "rev-parse", "HEAD")
-+            sgit("git", "branch", "handoff/audit-r10-roster")
-+            sgit("git", "commit", "-q", "--allow-empty", "-m", "newer")
-+            newer = sgit("git", "rev-parse", "HEAD")
-+            if tracking:
-+                sgit("git", "update-ref", ref, newer)
-+            r = tmp / f"clone{tracking}"
-+            env = throwaway_git_clone(src, r, "-q", "--shared", "--no-checkout")
-+
-+            def run(*a, input=None):
-+                return subprocess.run(a, cwd=r, env=env, input=input, capture_output=True, text=True)
-+
-+            def got():
-+                return run("git", "rev-parse", "-q", "--verify", ref).stdout.strip()
-+            check(f"clone's round ref is the stale local branch before the fetch (tracking={tracking})", got() == stale)
-+            try:
-+                fetch_round_rosters(run)
-+                raised = False
-+            except Exception:
-+                raised = True
-+            check(f"fetch_round_rosters {'takes root' + chr(39) + 's remote-tracking ref' if tracking else 'leaves the ref and does not raise'}",
-+                  not raised and got() == (newer if tracking else stale))
-+    finally:
-+        shutil.rmtree(tmp, ignore_errors=True)
-+    line = [l for l in inspect.getsource(ci_tree_run).splitlines() if "fetch_round_rosters" in l]
-+    check("ci_tree_run calls fetch_round_rosters on one `# mut:roundrefs` line", len(line) == 1 and "# mut:roundrefs" in line[0])
-+    return bad
-+
-+
- def graders_self_test(root: Path) -> int:
-     """The graders arm's key, population and run, with no load grammar to test.
- 
+@@ -1814,9 +1842,9 @@ STUB
+   ck "  mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)" $?
+   # Only committed work is detached from a worktree: one holding commits origin lacks is refused
+   # (the old reset would have dropped them); one whose HEAD origin has is detached as before.
+-  unpushed() { # <mutant> <commit: 1|0>
+-    local sd=$t/unp-$1-$2 g
+-    rm -rf "$sd" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr/u"; sd=$(cd "$sd" && pwd -P)
++  unpushed() { # <mutant> <commit: 1|0> [<spelling> of the state dir update_pr.sh is given]
++    local sd=$t/unp-$1-$2-${3:--} g
++    rm -rf "$sd" "$sd.link" "$t/s$i"; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; mkdir -p "$sd/pr/u"; sd=$(cd "$sd" && pwd -P)
+     for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
+       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+@@ -1824,7 +1852,7 @@ STUB
+     git -C "$m" fetch -q origin fix/u && git -C "$m" worktree add -q -b fix/u "$sd/pr/u/wt" origin/fix/u || return 1
+     [ "$2" = 0 ] || { printf 'row\n' > "$sd/pr/u/wt/row" && git -C "$sd/pr/u/wt" add row && git -C "$sd/pr/u/wt" commit -q -m row; }
+     cp "$t/body.md" "$t/bU.md"
+-    HPO_STATE_DIR=$sd bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
++    HPO_STATE_DIR=$(spell "$sd" "${3:--}") bash "$m/tools/audit/seat/update_pr.sh" fix/u - "$t/bU.md" > "$t/outu" 2>&1; echo $? > "$t/rcu"
+     git -C "$sd/pr/u/wt" symbolic-ref -q HEAD > "$t/attached" 2>&1 || echo detached > "$t/attached"
+     reap; git -C "$m" worktree remove --force "$sd/pr/u/wt" 2>/dev/null; git -C "$m" worktree remove --force "$sd/pr/upd-fix-u" 2>/dev/null; git -C "$m" worktree prune; git -C "$m" branch -qD fix/u 2>/dev/null; true
+   }
+@@ -1839,6 +1867,13 @@ STUB
+   unpushed - 0
+   [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outu" && ! grep -qF "(unpushed work" "$t/outu"
+   ck "null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push" $?
++  # #3549's review, update_pr.sh's side: its own-worktree scan (`grep "^$P/"`) and mut:elsewhere match git's
++  # physical list, so a symlinked state dir left that clean worktree on the branch and the run BUSY.
++  unpushed - 0 link
++  [ "$(cat "$t/attached")" = detached ] && grep -qF "update_pr: REFUSE: the push failed" "$t/outu" && ! grep -qF "checked out elsewhere" "$t/outu"
++  ck "update_pr: through a symlinked state dir, that worktree is detached as before and the run reaches its push" $?
++  unpushed stateroot 0 link; [ "$(cat "$t/attached")" = refs/heads/fix/u ] && grep -qF "checked out elsewhere" "$t/outu"
++  ck "  mutant mut:stateroot (its line deleted): through a symlinked state dir the worktree stays on the branch and the run is BUSY (the defect)" $?
+   # The row-only arm (R10-ROW-ONLY-UPDATE): a head that is the live head plus one commit (here code
+   # sha `-` adding the row) asks app_push.sh for --row-only, whose own verdict decides whether a
+   # full prepr is owed; a head merging new code asks for --reuse instead (P386), never --row-only.
+diff --git a/tools/audit/seat/update_pr.sh b/tools/audit/seat/update_pr.sh
+index 60a11a9b94..611d4360f3 100755
+--- a/tools/audit/seat/update_pr.sh
++++ b/tools/audit/seat/update_pr.sh
+@@ -41,7 +41,7 @@ SEAT=$(cd "$(dirname -- "$0")" && pwd); PRT=$(cd "$(dirname -- "$0")/../../pr" &
+ pr_need_args 3 $# "update_pr.sh <branch> <code-sha|-> <body-file> [issues...]"
+ [ "$2" = - ] || pr_code_sha_shape "$2"
+ [ -f "$3" ] || pr_refuse "no body file at $3"
+-M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); P=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr; mkdir -p "$P"
++M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd); pr_state_root; P=$PR_STATE/pr  # physical: matched against git worktree list below
+ BR=$1; C=$2; B=$3; shift 3; ISS="$*"; R=tvofi/heatpump_optimizer
+ WT=$P/upd-${BR//\//-}
+ # The EXIT trap goes first, so the lock (pr_branch_lock) is freed by it after the reap: bash runs it
 
 ## Before you return the verdict (P275)
 Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;

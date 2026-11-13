@@ -1,0 +1,4 @@
+ tools/audit/seat/open_pr.sh   |  2 +-
+ tools/audit/seat/pr_args.sh   | 53 +++++++++++++++++++++++++++++++++++--------
+ tools/audit/seat/update_pr.sh |  2 +-
+ 3 files changed, 46 insertions(+), 11 deletions(-)

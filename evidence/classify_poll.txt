@@ -1,20 +1,24 @@
-=== 10:59:40 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-=== 11:00:42 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-=== 11:01:43 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-=== 11:02:45 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-=== 11:03:47 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-=== 11:04:48 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-=== 11:05:50 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-=== 11:06:51 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-=== 11:07:53 rc=3
-WAIT cde73e8b72fc563d515fd5ab66a6a12eec85698e pending: gate red: none
-
-[killed]
+13:14:22 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:15:40 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:16:58 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:18:16 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:19:34 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:20:51 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:23:23 rc=3 merge_train: gh api repos/tvofi/heatpump_optimizer/rulesets --jq .[] | select(.name == "main-protect-checks") | .id: read 1/4: invalid character 'b' looking for beginning of value; sleeping 5s
+merge_train: gh api repos/tvofi/heatpump_optimizer/rulesets/23698884 --jq .rules[] | select(.type == "required_status_checks") | .par: read 1/4: invalid character 'b' looking for beginning of value; sleeping 5s
+merge_train: gh api repos/tvofi/heatpump_optimizer/rulesets/23698884 --jq .rules[] | select(.type == "required_status_checks") | .par: read 2/4: invalid character 'b' looking for beginning of value; sleeping 15s
+WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:24:55 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:26:52 rc=3 merge_train: gh api repos/tvofi/heatpump_optimizer/rulesets --jq .[] | select(.name == "main-protect-checks") | .id: read 1/4: invalid character 'b' looking for beginning of value; sleeping 5s
+merge_train: gh api repos/tvofi/heatpump_optimizer/rulesets/23698884 --jq .rules[] | select(.type == "required_status_checks") | .par: read 1/4: invalid character 'b' looking for beginning of value; sleeping 5s
+WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:28:26 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:29:50 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:31:07 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:32:24 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:33:41 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:34:59 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:36:16 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:37:33 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:38:50 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
+13:40:07 rc=3 WAIT 0e200f4995c2b708c75b5c2ba4307ef3e124a9ca pending: gate red: none
