@@ -1,0 +1,5 @@
+ONLY-COMMENT true entity.sensor.heat_pump_action.state.off ['/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:6312']
+ONLY-COMMENT true entity.sensor.plan_narrative.state.cheap_price ['/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2043']
+ONLY-COMMENT true entity.sensor.plan_narrative.state.terminal_value ['/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2038']
+ONLY-COMMENT true entity.sensor.learning_model_status.state_attributes.pump_max_power_source.state.configured ['/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:655']
+rows judged: 680 rows whose every resolvable .py citation is a comment: 4 unresolvable cites: 0 absolute-path cites: 132
