@@ -14,7 +14,8 @@
 set -uo pipefail
 R=tvofi/heatpump_optimizer
 # The self-test grades this script's own tree; a merge runs from the main checkout.
-if [ "${1:-}" = --self-test ]; then cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
+if [ "${1:-}" = --self-test ]; then [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded merge_pr bash "$0" --self-test; }  # pr_args.sh's self-test bound
+  cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
 else cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." || exit 1; fi
 SELF=$PWD/tools/audit/seat/merge_pr.sh
 

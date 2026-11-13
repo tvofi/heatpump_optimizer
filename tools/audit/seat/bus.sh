@@ -2260,6 +2260,6 @@ case ${1:-} in
   confirm) shift; confirm "$@" ;;
   post) shift; numeric "${1:-}" || die "post: give a pull-request number"; mkdir -p "$S"; post_verdict "$1" ;;
   orphans) shift; orphans "$@" ;;
-  --self-test) self_test ;;
+  --self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded bus bash "$0" --self-test; }; self_test ;;
   *) sed -n '2,8p' "$0" >&2; exit 2 ;;
 esac

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/presets.py:<module> CONST e7dda57a",
+  "killed_by": "tests/features.py",
+  "old": "_EMITTER_RADIATOR_TRANSFER_PER_M2 = 0.002  # kW/\u00b0C per m\u00b2 served",
+  "reason": "Recorded by `mutation_table.py --drain`: CONST (`_EMITTER_RADIATOR_TRANSFER_PER_M2 = 0.004  # kW/\u00b0C per m\u00b2 served`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

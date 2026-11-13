@@ -89,9 +89,10 @@ machinery group names its ground; the merge seat checks it at admission. Of the 
 `custom_components/` pull requests; a machinery PR never takes one, nor a
 production one waits for a machinery slot. A proposal
 is accepted only when its friction blocks a production merge, else ruled LOG.
-Exempt from all three: a proposal proving over 10% on
+Exempt from all three: a proposal proving over 20% on
 CI time, programme completion time, right-first-time rate or token usage,
-against a measured baseline and a null control.
+against a measured baseline and a null control
+(`dev/governance/rules/ratchet-budgets.md`).
 
 **Round 11's opening plan carries:**
 
@@ -104,8 +105,8 @@ against a measured baseline and a null control.
   groups the queue makes moot (R10-FLOW-RECORD-PITCH, R10-FLY-ROW-HEAD-CARRY,
   R10-FLY-CARRY-DOC-CONTEXT, R10-TRAIN-OVERLAP-GRADE, R10-FLOW-BODY-ONLY (a)). Context: the Lean flow
   pre-study, section K9 (out of the tree).
-- Intake's baseline: R10-PROTECTION-CENSUS's rows (each red check per round-10
-  production head: real catch, grader skew or infrastructure). On it, B1
+- Intake's baseline: R10-PROTECTION-CENSUS's result,
+  `dev/audit/rounds/round10/protection-census/`. On it, B1
   (triage batch 245, P740) opens the round unless ordered into round 10: on an
   all-product diff `briefs`, `policy-docs` and `wave-script` turn advisory, and
   `blueprints/` joins the product predicate.
@@ -121,11 +122,10 @@ against a measured baseline and a null control.
   carries kept (triage batches 238, 240 and 241 name them and the carries
   re-homed to the groups owning `merge_train.py`,
   `tools/pr/cancel_superseded.py` and `tests/entities.py`).
-- R10-ROUND-PLAYBOOK-FINAL's roster carries 17, 25, 26 and 35 to 41, as
-  written there: `pr_cap.py`'s production slots, the budget keys' moved paths,
-  D15's drawn-power gain, the stubs bump, R10-CI-PRIORITY-PAUSE's three, the
-  boost settling tail, R10-PREPR-RESIDUE's seven and
-  R10-PREPR-DARWIN-SELFTEST-LANE un-deferred as a macOS leg.
+- R11-INTAKE-R10-RESIDUE holds R10-ROUND-PLAYBOOK-FINAL's carries 17, 25, 26 and
+  35 to 41, as written on the roster. Carry 31 goes with it: one paragraph each
+  in `dev/governance/dimensions/D11.md` and `D13.md`, naming the convergence
+  scorecard and round 11's two measurement groups, exempt from the 20% bar.
 - Benchmark cards G1-G10, accepted (G11 rejected), baseline instruments
   `flow_metrics.py` and `review_strength.py`: G1 a machinery budget of about
   40% of dispatched groups; G2 evidence tiers keyed on closures; G3 a
