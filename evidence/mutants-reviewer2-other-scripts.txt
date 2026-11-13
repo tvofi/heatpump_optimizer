@@ -1,0 +1,3 @@
+P9 _bounded drops the caller's floor: SURVIVED tests/guard_pins.py rc=0 0 failing tests/manual_plan.py rc=0 0 failing tests/finite_boundary.py rc=0 0 failing tests/plan_view.py rc=0 0 failing
+P10 _bounded drops the caller's rounding: SURVIVED tests/guard_pins.py rc=0 0 failing tests/manual_plan.py rc=0 0 failing tests/finite_boundary.py rc=0 0 failing tests/plan_view.py rc=0 0 failing
+NULL: SURVIVED tests/guard_pins.py rc=0 0 failing tests/manual_plan.py rc=0 0 failing tests/finite_boundary.py rc=0 0 failing tests/plan_view.py rc=0 0 failing
