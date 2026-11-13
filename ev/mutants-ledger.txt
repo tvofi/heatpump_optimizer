@@ -1,0 +1,10 @@
+SURVIVED tools/audit/seat/ledger.py:387 GUARD_OFF  if False:
+SURVIVED tools/audit/seat/ledger.py:388 RETURN_DEL  pass
+SURVIVED tools/audit/seat/ledger.py:388 CONST_SWAP  return True
+SURVIVED tools/audit/seat/ledger.py:1204 CALL_DEL  pass
+SURVIVED tools/audit/seat/ledger.py:1206 CALL_DEL  pass
+SURVIVED tools/audit/seat/ledger.py:1208 CONST_SWAP  not empty_net(lambda a: (2, "") if a[0] == "diff" else gw(a), mn, emt))
+SURVIVED tools/audit/seat/ledger.py:1209 CALL_DEL  pass
+SURVIVED tools/audit/seat/ledger.py:471 STMT_DEL  pass
+SURVIVED tools/audit/seat/ledger.py:1202 STMT_DEL  pass
+SURVIVED tools/audit/seat/ledger.py:1207 STMT_DEL  pass

@@ -1,0 +1,7 @@
+review_packet: REFUSE red-unanswered: concluded red check `gate` is not named in ## Red checks
+review_packet: REFUSE red-unanswered: concluded red check `governance / env-matrix` is not named in ## Red checks
+review_packet: REFUSE red-unanswered: concluded red check `governance / policy-docs` is not named in ## Red checks
+review_packet: REFUSE red-unanswered: concluded red check `tests / fast (3.14)` is not named in ## Red checks
+review_packet: REFUSE required-red: required context `gate` concluded failure at 676d726d27c4a5400d86c331bba87190bd34534c (merge_train.py classify --pr reads RED classify unreadable (rc 2): REFUSE selftests: the base's governance / instrument-self-tests job 131782096598 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed))
+review_packet: REFUSE introduced-red: unreadable: the base's governance / instrument-self-tests job 131782096598 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+review-packet: ~/review-packet.md
