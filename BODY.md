@@ -1,5 +1,13 @@
 R10-GATE-DEFER-BARRIER, part 1 of 2 (carries 0-4): every call of `merge_train.classify` must state how it read the deferral of a red `gate`, and the function checks that itself when it runs. Carries 5-10 are part 2 and are not answered here.
 
+Carry map, unchanged since the last round except Carry 3's barrier:
+- Carry 0: `dev/audit/rca/r10-gate-busy-defer-2.md` section 1 is marked superseded.
+- Carry 1: `dev/audit/harnesses/r10_gate_defer_barrier.py`, the finder harness.
+- Carry 2: class `N-provisional-gate-red-read-final`, recorded as barriered in `bugclasses.json`.
+- Carry 3: the readers. The `orchestrator_tick` readers go through `classify_at`, `merge_pr.sh` waits out a classify WAIT, `nudge.md` step 15 reads through classify, and the barrier in `classify` itself is this pass's change.
+- Carry 4: `policy_refusal` reads `gate` contexts with the same name together, and `wait_ci`'s wait is bounded by the deadline of a started run.
+- Carry 5, Carry 6, Carry 7, Carry 8, Carry 9 and Carry 10 belong to part 2 and are not touched here. Carry 10's `tick_loop.sh` is not among this group's files, and no figure below was taken on a moved HEAD.
+
 ## Re-cut
 
 Option taken: **route every read through one function, so no caller list exists**. This replaces the per-call AST scan, which earlier rounds kept patching one spelling at a time. `classify` now checks its own callers when it runs, using the value it is given and the frame that called it. A static scan cannot see that frame, but every alias, rebinding, `getattr`, `functools.partial`, `*self_test*` name and outside module still has one.
