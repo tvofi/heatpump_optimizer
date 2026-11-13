@@ -25797,7 +25797,8 @@
     "From r10-config-flow-text-verify, body item 55051373: docs/configuration.md:1049 and docs/how-it-works.md:620 describe free disinfection as an opt-in credit. Any source is credited either way; the option adds the 20-minute hold. Carry: R11-INTAKE-R10-RESIDUE (items 55051373)",
     "From r10-config-flow-text-verify, body item 4ab03548: docs/configuration.md:1102 says the open-window option lowers the target. It lowers the coldest acceptable temperature. Carry: R11-INTAKE-R10-RESIDUE (items 4ab03548)",
     "From r10-config-flow-text-verify, body item af528396: docs/configuration.md:1115 says main fuse 0 keeps the headroom sensor dormant. The sensor follows the capacity-tariff peak. Carry: R11-INTAKE-R10-RESIDUE (items af528396)",
-    "From r10-config-flow-text-verify, body item 31878861: docs/configuration.md:1079 says the PV forecast corrects itself. Only the current step is replaced. Carry: R11-INTAKE-R10-RESIDUE (items 31878861)"
+    "From r10-config-flow-text-verify, body item 31878861: docs/configuration.md:1079 says the PV forecast corrects itself. Only the current step is replaced. Carry: R11-INTAKE-R10-RESIDUE (items 31878861)",
+    "From r10-config-flow-text-verify, body item 734b6d33: docs/setup.md:91 says the entry name is shown in front of every entity. Entities use the fixed device name. Carry: R11-INTAKE-R10-RESIDUE (items 734b6d33)"
    ],
    "resume": {
     "stage": "not-started",
