@@ -1,0 +1,6 @@
+head-table vs CI-artifact : 0 refusals
+head-table vs local-linux : 7 refusals
+    UNDER-SCOPED step app-push: it read the objects, the table says not
+    UNDER-SCOPED step throwaway-git-helper: it read the objects, the table says not
+union vs CI-artifact : 0 refusals
+union vs local-linux : 3 refusals

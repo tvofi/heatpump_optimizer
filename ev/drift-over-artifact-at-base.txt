@@ -1,0 +1,40 @@
+  UNDER-SCOPED step policy-lint-mutants: files misses ['tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step field-coverage: files misses ['tests/entities.py', 'tests/gate_lock.py', 'tests/ha_floor.py', 'tests/issue996_count.py', 'tools/audit/seat/remerge_main.sh', 'tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step push-script-decisions: files misses ['tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step push-script-decisions: probes misses ['tests']
+  UNDER-SCOPED step merge-main-bot: files misses ['tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step dependency-graph-census: dirs misses ['tests/mutation_ledger/killed_by/supply_hold.py']
+  UNDER-SCOPED step verdict-bus: files misses ['tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step temp-or-machine-path: probes misses ['tests/mutation_ledger/killed_by/supply_hold.py/.gitattributes']
+  UNDER-SCOPED step body-patch: files misses ['tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step self-tests-outside-seat: files misses ['tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step ci-watcher: files misses ['tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step delivery-row-writer: files misses ['tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step delivery-row-writer: probes misses ['tests']
+  UNDER-SCOPED step failure-log-reader: files misses ['tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step handoff-push: probes misses ['tests']
+  UNDER-SCOPED step pr-merger: files misses ['tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step record-row-generator: files misses ['tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step review-packet: files misses ['tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step seat-venv-recipe: files misses ['tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step cloud-setup-profile: files misses ['tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step cloud-setup-profile: probes misses ['tests']
+  UNDER-SCOPED step tick-loop: files misses ['tools/audit/seat/offline_spy.py', 'tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step tick-loop: probes misses ['tests']
+  UNDER-SCOPED step heartbeat-andon: files misses ['tools/audit/seat/pr_args.sh']
+  UNDER-SCOPED step heartbeat-andon: probes misses ['tests']
+  UNDER-SCOPED step offline-spy: probes misses ['tests']
+  UNDER-SCOPED step throwaway-git-helper: dirs misses ['.', 'tests']
+  UNDER-SCOPED step merge-train: files misses ['.gitattributes', 'tools/audit/seat/merge_pr.sh', 'tools/audit/seat/orchestrator_tick.py']
+  UNDER-SCOPED step prepr: files misses ['tools/policy/legacy_control_files.json']
+  UNDER-SCOPED step prepr: dirs misses ['tests/mutation_ledger/killed_by/supply_hold.py']
+  UNDER-SCOPED step open-pr: probes misses ['-c', 'tests']
+  UNDER-SCOPED step pr-args: probes misses ['-c', 'tests']
+  UNDER-SCOPED step update-pr: probes misses ['-c', 'tests']
+  note: over-scoped step dependency-graph-census: 1 dirs no longer measured
+  note: over-scoped step orchestrator-tick: 3 files no longer measured
+  note: over-scoped step orchestrator-tick: 1 dirs no longer measured
+  note: over-scoped step cloud-dispatcher: 2 files no longer measured
+  note: over-scoped step prepr: 1 files no longer measured
+  note: over-scoped step prepr: 1 dirs no longer measured
+fixer-drift: 114 gated 33 refusals
