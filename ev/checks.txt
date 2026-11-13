@@ -1,0 +1,12 @@
+merge-base 3150fe5e305ca4dfb0cbad54eb40bda6cf9a67bc
+## version/claim/notes paths touched (three-dot):
+(empty = untouched)
+## merge-tree
+2454f0047a429ecc1bebb087100c8af66bb50e1c
+rc=0
+## figure: pins moved vs b5057b05
+-bleak==3.0.2 \
++bleak==3.1.0 \
+-regex==2026.11.7 \
++regex==2026.11.9 \
+merge-tree vs origin/main 0723540391a1c431b6f91629485bc2f00d90a4e7 rc=0

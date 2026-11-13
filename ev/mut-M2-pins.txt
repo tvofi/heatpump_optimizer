@@ -1,0 +1,10 @@
+-cronsim==2.7 \
++cronsim==2.8 \
+-httpcore2==2.14.0 \
++httpcore2==2.16.0 \
+-httpx2==2.14.0 \
++httpx2==2.16.0 \
+-truststore==0.10.4 \
++truststore==0.10.5 \
+-zeroconf==0.152.0 \
++zeroconf==0.154.0 \
