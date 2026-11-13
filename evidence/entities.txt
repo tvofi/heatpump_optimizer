@@ -1,3 +1,0 @@
-  ok   the disposition refusal can set the record job's conclusion
-  ok   the ruleset reader's answer moves when a rule it does not require moves
-  ok   and it stays stable when nothing about the ruleset moved (null control)

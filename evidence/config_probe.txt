@@ -1,1 +1,0 @@
-RESULT probe: cases 1296, bad 0, worst first-step dS -1.0762 kWh_th at ('manual', True, None, 4.0, 25.0, -25.0, 21.0, 4.0), max sag 6.440 K
