@@ -22857,9 +22857,9 @@
    ],
    "findings": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "7aac3e7c044a6ea7c5e6f4271e7e563f2fdee424",
     "last_step": null,
     "next_step": "designer (size L): architect note at design/R10-OUTSIDE-DHW-START-HYSTERESIS deciding the four forks the brief names, both arms of outside pull request 3440 as one mechanism; design review; fixer only on Design review: approve and after R10-OUTSIDE-DISINFECTION-SETPOINT merges",
     "note": "s14 triage s14-9 for the orchestrator under mandate 6715477401, 2026-11-11: outside pull request 3440 by Bankaifan accepted into round 10, hot-water arm; space arm carried to R10-WATER-SETPOINT-FEEDBACK; overlap admitted (R10-USER-DOCS-VERIFY, R10-CARD-COLLAPSE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-DIAG-REDACT-LOCATION, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-OUTSIDE-DISINFECTION-SETPOINT): s14 orchestrator 2026-11-11 under mandate 6715477401: outside pull request 3440 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 top tier, no deferral); hot-water arm; space arm carried to R10-WATER-SETPOINT-FEEDBACK; overlap: pump_arbiter.py and tests/block_duty.py with R10-OUTSIDE-DISINFECTION-SETPOINT (after it), dhw_planner.py with R10-COMBI-TANK-PR-B in a different seam | set-size M -> L | set-files files ['custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/pump_arbiter.py', 'custom_components/heatpump_optimizer/inputs.py', 'custom_components/heatpump_optimizer/entry_config.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/config_flow.py', 'custom_components/heatpump_optimizer/strings.json', 'custom_components/heatpump_optimizer/translations/en.json', 'custom_components/heatpump_optimizer/translations/de.json', 'custom_components/heatpump_optimizer/translations/sv.json', 'custom_components/heatpump_optimizer/thermal_model.py', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js', 'docs/configuration.md', 'tests/block_duty.py', 'tests/features.py', 'tests/config_flow_steps.py', 'tests/golden/config_flow.json'] -> ['custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/pump_arbiter.py', 'custom_components/heatpump_optimizer/inputs.py', 'custom_components/heatpump_optimizer/entry_config.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/config_flow.py', 'custom_components/heatpump_optimizer/strings.json', 'custom_components/heatpump_optimizer/translations/en.json', 'custom_components/heatpump_optimizer/translations/de.json', 'custom_components/heatpump_optimizer/translations/sv.json', 'custom_components/heatpump_optimizer/thermal_model.py', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js', 'docs/configuration.md', 'tests/block_duty.py', 'tests/features.py', 'tests/config_flow_steps.py', 'tests/golden/config_flow.json', 'custom_components/heatpump_optimizer/setpoint_check.py']",
@@ -25230,7 +25230,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a sonnet fixer now",
-    "note": "triage batch 246 P744 ACCEPT round 10; overlap admitted (R10-CI-PRIORITY-PAUSE): triage batch 246 P744 ACCEPT round 10: local Darwin beat row runs instrument self-tests per tip"
+    "note": "triage batch 246 P744 ACCEPT round 10; overlap admitted (R10-CI-PRIORITY-PAUSE): triage batch 246 P744 ACCEPT round 10: local Darwin beat row runs instrument self-tests per tip",
+    "pr": 3565
    },
    "carry": []
   },
@@ -25335,7 +25336,8 @@
     "commit": null,
     "last_step": null,
     "next_step": null,
-    "note": "queued by orchestrator under owner instruction 2026-11-12"
+    "note": "queued by orchestrator under owner instruction 2026-11-12",
+    "pr": 3566
    },
    "brief": "Owner instruction, tvofi, 2026-11-12, verbatim: \"ok, correct any references to that script or remove it entirely\". Orchestrator ruling under the mandate (6715477401): remove dev/governance/roles/nudge.md entirely, and correct every reference to it. Why, measured at origin/main 870238eb21: its line 3 scopes it to the Cursor orchestrators on grok and qwen. It names none of tools/audit/seat/beatd.py, the digest, the standing seats, tools/audit/seat/cloud_dispatch.py or tools/audit/seat/roster_queue.py, and none of the merges that introduced those touched it. Its step 5 contradicts its step 3, and the lane caps in its step 16 contradict tools/audit/seat/pr_cap.py. A contract nobody maintains that other files still cite as the rule is a trap. What to do. (1) Delete dev/governance/roles/nudge.md. (2) tools/audit/seat/sweep_template.md: re-point every step citation to the contract that now owns the rule (dev/governance/roles/orchestrator.md, dev/governance/roles/standing-merge.md, dev/governance/roles/standing-dispatch.md, dev/governance/roles/standing.md) or state the rule in place; rewrite the page opening that names it as the turn for a Cursor orchestrator and the passage that cites it for keeping a date and a seat id out of tracked text; and drop it from the rule-file list in tools/audit/seat/instruments/sweep_template.md.md. Keep python3 -I tools/audit/seat/sweep_render.py --self-test green: it refuses a cited path that is not in the tree. (3) dev/governance/rules/gate-scoping.md: replace the citation of its cap section with the rule stated in place (the gate lease, not the tick count, is the cap), then regenerate the generated copies with node tools/policy/rules_sync.mjs (.cursor/rules/gate-scoping.mdc, .claude/rules/gate-scoping.md) and confirm its --check passes. (4) dev/governance/config/policy_budgets.json: remove the two per-file entries for the file and re-record the aggregate caps down by measurement (dev/governance/rules/ratchet-budgets.md: a deletion, so corpus and floor both fall; never a raise). (5) Every other live reference the enumeration below prints: dev/README.md, tests/gate_lock.py, tools/audit/seat/merge_pr.sh, tools/audit/seat/merge_train.py, tools/audit/seat/orchestrator_tick.py, tools/audit/seat/roster_edit.py, tools/audit/seat/update_pr.sh, tools/pr/prepr.sh and tools/audit/seat/postmerge.py. Comments cite the rule that now owns it (or drop the pointer). tools/audit/seat/postmerge.py is not a comment: its self-test reads the deleted file to split out step 12 and must be rewritten to pin the same claim against the contract that owns the post-merge bookkeeping (dev/governance/roles/orchestrator.md), with a null control, not simply dropped. Mutation sites in the diff are killed by the fixer. (6) Generated or derived lists: tests/closures.json, tools/ci/selftest_closures.json and tests/layout.json name the file. Do not run a full closure derivation off Linux (dev/governance/rules/gate-scoping.md); drop the stale entries by hand or let the closures autofix of dev/governance/rules/ci-autofix.md repair them, and for tests/layout.json open its consumer first and see whether the rename record for the deleted file must stay or go. (7) The liveness hook tools/audit/seat/hooks/liveness.py: at origin/main 870238eb21 a search for the file name finds no line about its scope there. Re-check at your merge base; if such a line and a self-test expectation exist by then, drop both, otherwise say so in the body. Precondition: R10-ROUND-PLAYBOOK-FINAL is to have removed the citations in CLAUDE.md, dev/governance/roles/orchestrator.md and dev/governance/roles/fixer.md. If any remain at your merge base, remove them here too and say so in the body. A record under dev/programme/ or dev/audit that mentions the file historically is left alone. Null control and enumeration, both outputs in the body: git grep -n 'nudge\\.md' over the tree outside dev/programme/triage, dev/programme/delivery and dev/audit prints nothing at the head (also exclude the roster JSON files under dev/programme/rosters, which are records) and prints the known set at the merge base. Owner gate: policy. Policy files change here, so the pull request merges on the owner approving review, or under mandate 6715477401 as the orchestrator ruling above. Do not touch VERSION or RELEASE_NOTES.md."
   },
@@ -26093,12 +26095,13 @@
    "brief": "HOTFIX, critical production defect reported by the owner from his own install on VERSION 7.1.15 (2026-11-13): the configured space set-point entity sits at 25 and is never written again, boost included, so the pump barely heats. Fixer's code-read diagnosis: the off-restore work of pull request 3404, first shipped in the 7.1.12 tag, added a hold in custom_components/heatpump_optimizer/pump_arbiter.py that refuses every space set-point write while no off-restore baseline is armed and the entity reads the arbiter's own last persisted write; after an upgrade the persisted record is the idle gate value, the pump holds it, and nothing ever releases the hold, a restart included. tests/features.py pins the hold as intended and no test covers it releasing. Owed: from any persisted arbiter state a space-heating or boost step under Control writes the set-point within one arbiter pass; the off-restore guarantee is kept where it costs no heat; the test that pinned the deadlock is re-pinned and a boost-to-ceiling test starts with a persisted record; the config-flow sentence saying the entity is never written is made true in custom_components/heatpump_optimizer/strings.json and every translation, and docs/configuration.md says what an upgrade does. Root cause per the released-defect trigger runs in its own seat.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-hotfix-flow-setpoint-stuck",
     "commit": null,
     "last_step": null,
     "next_step": "local opus fixer running; handoff, then opus reviewer, front of every queue",
-    "note": "intake: owner report 2026-11-13, production defect on a released version"
+    "note": "intake: owner report 2026-11-13, production defect on a released version",
+    "pr": 3561
    }
   },
   {
@@ -26137,12 +26140,13 @@
    "brief": "Added by the owner's instruction of 2026-11-13: verify and correct all config flow text, this round. The config-flow help for the space set-point entity in custom_components/heatpump_optimizer/strings.json said the optimizer never writes a recommended space set-point, false under pump duty mode Control; the owner read it on an install whose set-point was stuck (hotfix R10-HOTFIX-FLOW-SETPOINT-STUCK corrects that one sentence). Owed, one pull request: enumerate every user-visible string of the config flow and the options flow in strings.json and every translation by walking the JSON; judge each behaviour claim against the code that decides it, with the table kept as a tracked record under dev/audit/rounds/round10/; correct each false or stale string in strings.json and in every translation as a real translation; pin each mechanically checkable claim with a test; state a planted-false-sentence null control for the method; carry anything false outside the two flows to the round-11 intake unless it misleads about what is written to the pump.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-config-flow-text-verify",
     "commit": null,
     "last_step": null,
     "next_step": "cloud opus fixer; opus reviewer",
-    "note": "intake: owner instruction 2026-11-13 (this round); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK): owner instruction 2026-11-13: fold in a group this round to verify and correct all config flow text"
+    "note": "intake: owner instruction 2026-11-13 (this round); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK): owner instruction 2026-11-13: fold in a group this round to verify and correct all config flow text",
+    "pr": 3564
    }
   },
   {
@@ -26184,12 +26188,13 @@
    "brief": "HOTFIX, production defect reported by the owner from his install on VERSION 7.1.15 (2026-11-13): with a space boost on, the flow set-point entity was written 41 and then 43 where the documented behaviour is the heating-flow ceiling (55, or the flow_heat_c option). Investigator's finding, measured by probe at the 7.1.15 tag: a space boost and the global boost mode change the step's duty but not its level; custom_components/heatpump_optimizer/pump_arbiter.py maps the flow target through flow_setpoint_for_level from the plan's own power_schedule, so a boost over a step the plan books at a partial positive power writes that step's partial set-point, and reaches the ceiling only over an idle step or one at maximum power. The boost overlay sets maximum power on the action only, which the arbiter never reads. Latent since the 6.7.17 tag (the commit that introduced flow_setpoint_for_level); the pinning test in tests/features.py runs only on an idle plan. README.md and docs/configuration.md both say boost applies maximum heat with the heating-flow ceiling. Owed: while a space boost or the global boost mode is live the space set-point is the ceiling on every step, partial ones included, clamped to the entity's range; a failing test first on a partial-power plan for the channel boost and for the global mode, with the idle and full-power cases as controls; the power-feedback loop stays off during boost; docs say what boost writes. Root cause for a released defect is answered in the body; serial after R10-HOTFIX-FLOW-SETPOINT-STUCK on the same seam.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-hotfix-boost-flow-ceiling",
     "commit": null,
     "last_step": null,
     "next_step": "same local opus fixer, stacked on the stuck-set-point handoff",
-    "note": "intake: owner report 2026-11-13 (boost writes 43, not 55); production defect on a released version; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK): owner report 2026-11-13: space boost writes a partial flow set-point (41, 43) instead of the ceiling; production defect, latent since v6.7.17"
+    "note": "intake: owner report 2026-11-13 (boost writes 43, not 55); production defect on a released version; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK): owner report 2026-11-13: space boost writes a partial flow set-point (41, 43) instead of the ceiling; production defect, latent since v6.7.17",
+    "pr": 3562
    }
   },
   {
@@ -26229,12 +26234,13 @@
    "brief": "Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. This group owns every user-visible string outside the config and options flows and outside the dashboard card: the entity, services, issues and exceptions keys of custom_components/heatpump_optimizer/strings.json and every translation, custom_components/heatpump_optimizer/services.yaml, and user-visible text built in Python. Owed, one pull request: enumerate mechanically; judge each behaviour claim against the code that decides it, never against a comment, with the table kept as a tracked record under dev/audit/rounds/round10/; correct each false or stale string in every language as a real translation; pin each mechanically checkable claim with a test; state a planted-false-sentence null control; carry anything false outside the scope to the round-11 intake unless it misleads about what is written to the pump.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-user-text-verify-strings",
     "commit": null,
     "last_step": null,
     "next_step": "cloud opus fixer; opus reviewer",
-    "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY): owner ruling 2026-11-13: do option 1 (verify all user-facing production text against code behaviour) in round 10"
+    "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap; overlap admitted (R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY): owner ruling 2026-11-13: do option 1 (verify all user-facing production text against code behaviour) in round 10",
+    "pr": 3567
    }
   },
   {
@@ -26270,12 +26276,13 @@
    "brief": "Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. This group owns the dashboard card: every user-visible string the card renders. Owed, one pull request: enumerate the card's visible strings mechanically with a null control showing the enumerator misses none; judge each behaviour claim against the code that decides it in the card and in the Python feeding it, never against a comment, with the table kept as a tracked record under dev/audit/rounds/round10/; correct each false or stale string in every language the card carries; pin each mechanically checkable claim in the card's own test script; carry anything false outside the card to the round-11 intake.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-user-text-verify-card",
     "commit": null,
     "last_step": null,
     "next_step": "cloud opus fixer; opus reviewer",
-    "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap"
+    "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap",
+    "pr": 3563
    }
   },
   {
