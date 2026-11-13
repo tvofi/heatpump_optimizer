@@ -257,7 +257,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import early_cutoff, pump_arbiter, pump_signals
+from . import early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
 from . import price_tiles
@@ -3494,10 +3494,11 @@ def _tail_freeze(coord: Any) -> str | None:
     ran the commanded power; its reason comes first, in this one function,
     because the slab observer ignores only the unmetered reason and must
     see the cut (live-fix design note A2).
+    A held supply write ran other than the plan too (``supply_hold``).
     """
     if early_cutoff.state_for(coord).interval_cut:
         return early_cutoff.FREEZE_CUT
-    return learner_unmetered(
+    return supply_hold.freeze_reason(pump_arbiter.state_for(coord)) or learner_unmetered(
         getattr(getattr(coord, "_ctx", coord), "_config", None)
     )
 
@@ -7666,17 +7667,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         whatever it was given, so a single tap on its top notch stored a target
         one degree above the ceiling, and nothing said a word.
 
-        Reported rather than migrated. These are the user's own numbers and
-        only they know which one is wrong -- silently rewriting a comfort
-        target to make an inequality hold is exactly the kind of help nobody
-        asked for. The plan keeps running meanwhile: the bounds are priced
-        rather than fenced, so a contradictory band is a plan in permanent
-        violation, not a crash.
+        Reported rather than migrated: only the user knows which number is
+        wrong, and silently rewriting a comfort target to make an inequality
+        hold is help nobody asked for. The plan keeps running: the bounds are
+        priced, not fenced. The valve-target notice rides here too.
         """
-        found = comfort_band.violations({}, getattr(self, "_ctx", self)._config)
+        ctx = getattr(self, "_ctx", self)
+        found = comfort_band.violations({}, ctx._config)
         problem = comfort_band.describe(found) if found else None
         self._config_notices.report(self.hass, "comfort_band_contradiction", problem,
                                     {"problem": problem} if problem else None)
+        mixing_valve.audit_target(self._config_notices, self.hass, ctx._thermal_params)
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(
@@ -7820,16 +7821,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await self.async_publish_current_action(reason="scheduled_update", heat_pump_on=on)
 
     async def _write_supply(self, on: bool) -> None:
-        """Write the supply switch: the cycle's and the step tick's one gate.
-
-        A cut-off holds the pump off for MIN_OFF across an early refresh.
-        """
-        value = pump_arbiter.supply_write(
-            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)
+        """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
+        held = pump_arbiter.state_for(self)
+        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
+            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
             await pump_arbiter.write_supply(self, switch_entity, value)
-        elif switch_entity:
+        elif switch_entity and not held.supply_held:
             _LOGGER.debug(
                 "Not switching %s off: mode %s is cooling or blocks both "
                 "channels, so an empty plan is this integration's doing "
