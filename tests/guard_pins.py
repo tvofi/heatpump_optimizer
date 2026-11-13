@@ -899,6 +899,24 @@ def _off_step_notice_is_deduplicated() -> bool:
     return len(calls) == 1
 
 
+def _off_step_notice_clears() -> bool:
+    """Raised at 62 on step 5, then gone after one pass at 65 (and only then)."""
+    params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=62.0,
+                               dhw_legionella_enabled=True, dhw_enabled=True)
+    hass = FakeHass({"number.dhw": FakeState("50", attributes={"min": 30, "max": 80, "step": 5})})
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params,
+        {"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"}, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    asyncio.run(guard.async_observe(None, None))
+    raised = _STEP_ISSUE in _standing(hass)
+    params.dhw_legionella_temp = 65.0
+    asyncio.run(guard.async_observe(None, None))
+    return raised and _STEP_ISSUE not in _standing(hass) and guard.off_step.signature is None
+
+
 def _off_step_notice_pins() -> dict[str, bool]:
     """R10-DISINFECTION-STEP-NOTICE: a cycle write the entity's step leaves short of credit is named before it runs.
 
@@ -936,6 +954,7 @@ def _off_step_notice_pins() -> dict[str, bool]:
         _unreachable_yields_to_the_step_notice()
     )
     out["an unchanged off-step signature does not re-raise the notice"] = _off_step_notice_is_deduplicated()
+    out["the notice clears once the disinfection temperature is on the step"] = _off_step_notice_clears()
     out.update(_credit_edges())
     out["null: the cycle disabled raises none"] = _step_notice(55.0, 62.0, 5, cycle=False) is None
     out["null: hot water disabled raises none"] = _step_notice(55.0, 62.0, 5, dhw=False) is None
