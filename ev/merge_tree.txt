@@ -1,0 +1,13 @@
+5288db5dadbffbaf83cb4ed258a669d46c3224fe
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1012 entries)
+  re-run the gate that owns this file before pushing
+998ed15e82341424a9e431f0d73720dfb9b756b4
+100644 f3ce6b003e1e792e8493dc207d7f08747ca962e6 1	tools/audit/seat/tick_loop.sh
+100644 4ee07f793e808fc9e1647f8f58d092e3e5b5aab8 2	tools/audit/seat/tick_loop.sh
+100644 ffdc23d451fe52d6a5367b9e0dde7f215538bfeb 3	tools/audit/seat/tick_loop.sh
+
+Auto-merging tests/closures.json
+Auto-merging tools/audit/seat/tick_loop.sh
+CONFLICT (content): Merge conflict in tools/audit/seat/tick_loop.sh
+rc=1

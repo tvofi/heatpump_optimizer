@@ -1,0 +1,7 @@
+victim refs after (control):
+  ok   null control: a branch checkout at origin/main (behind 0) passes and stays put
+tick_loop self-test: 41 checks, 0 failed
+rc=0
+victim refs after (func):
+/tmp/tmp.io67EAireU/r4/src/tools/audit/seat/tick_loop.sh: line 67: refused: --self-test refused: the env -i re-exec did not replace this process (a caller function named exec?); no row ran
+rc=1
