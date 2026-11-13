@@ -501,7 +501,14 @@ def platform_gate(payload, head: str) -> "tuple[str, str]":
 #: (gate.py's reading at the head), or FINAL, a read that ignores deferral,
 #: accepted only from the frames registered in FINAL_READERS. Anything else --
 #: no busy, None, (), a plain list -- raises BlindRead.
-FINAL = type("FinalRead", (), {"__repr__": lambda _s: "FINAL", "__bool__": lambda _s: False})()
+class FinalRead:
+    """The type of FINAL, the one value a read ignoring deferral passes as `busy`."""
+
+    def __repr__(self) -> str:
+        return type(self).__name__
+
+
+FINAL = FinalRead()
 
 #: The frames whose FINAL read is a decision, keyed (repo path, co_qualname) of
 #: the function calling `classify`.
