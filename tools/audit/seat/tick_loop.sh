@@ -412,7 +412,7 @@ f = open(sys.argv[1], "a"); fcntl.flock(f, fcntl.LOCK_EX); open(sys.argv[1] + ".
   # skips this block.
   if [ -z "$nested" ]; then
     mkdir -p "$t/n/tools/audit/seat" "$t/n/tests"
-    cp "$HERE/tick_loop.sh" "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$t/n/tools/audit/seat/"
+    cp "$HERE/tick_loop.sh" "$HERE/heartbeat.sh" "$HERE/ref_privacy.py" "$HERE/pr_args.sh" "$t/n/tools/audit/seat/"
     cp "$HERE/../../../tests/throwaway_git.sh" "$t/n/tests/"
     throwaway_git_init "$t/n.git" -q --bare -b main && throwaway_git_init "$t/n" -q -b main
     git -C "$t/n" add -A && git -C "$t/n" commit -qm base && git -C "$t/n.git" fetch -q "$t/n" main:main
