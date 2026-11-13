@@ -40,9 +40,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-DUTY-SWITCH-RESTART-LEARNING-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DUTY-SWITCH-PLANNER-PRICE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-MODE-BEFORE-SUPPLY-ON (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-TRAIN-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-TICK-RESIDUE-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-RELAY-ARM-ORDER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-STALE-STEP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -51,7 +48,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-PREPR-WC-PAD (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-TICK-SELFTEST-CHECKOUT (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-MUTANT-RUN-DARWIN (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-LEGACY-CONTROL-DATA (stage in-progress, branch `fix/r10-hotfix-legacy-control-data`): `git fetch origin fix/r10-hotfix-legacy-control-data && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-OPENPR-HOST-REFUSAL (stage in-progress, branch `fix/r10-hotfix-openpr-host-refusal`): `git fetch origin fix/r10-hotfix-openpr-host-refusal && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-MACOS-SELFTEST-LANE (stage in-progress, branch `fix/r10-hotfix-macos-selftest-lane`): `git fetch origin fix/r10-hotfix-macos-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -59,7 +55,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-OUTSIDE-VALVE-TARGET-LABEL (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SELFTEST-SCOPE-RERECORD (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-PLANNER-PRICE, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-CARRY-1412-CONTROL, R10-HOTFIX-LEGACY-CONTROL-DATA, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-MUTANT-RUN-DARWIN, R10-HOTFIX-NIGHTLY-HA, R10-HOTFIX-OPENPR-HOST-REFUSAL, R10-HOTFIX-PREPR-WC-PAD, R10-HOTFIX-SELFTEST-SCOPE-RERECORD, R10-HOTFIX-TICK-SELFTEST-CHECKOUT, R10-HOTFIX-TRAIN-CONTEXT-PAGES, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-OUTSIDE-VALVE-TARGET-LABEL, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-CARD-HEALTH-TEXT, R10-RELAY-ARM-ORDER, R10-REVIEW-DISPATCH-RESIDUE, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-TICK-RESIDUE-P2, R10-TRAIN-RESIDUE-P2, R10-USER-DOCS-VERIFY
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CARD-COLLAPSE, R10-CARRY-AUDIT-P5, R10-CI-PRIORITY-PAUSE, R10-DEPENDABOT-3414-COMPAT, R10-DEPENDABOT-3483-COMPAT, R10-DUTY-SWITCH-PLANNER-PRICE, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FIXER-MD-SPELLING-CORPUS, R10-GATE-DEFER-BARRIER, R10-GH-READ-RESIDUE, R10-HOTFIX-CARD-HEALTH-TEXT, R10-HOTFIX-CARRY-1412-CONTROL, R10-HOTFIX-LEGACY-CONTROL-DATA, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-NIGHTLY-HA, R10-HOTFIX-OPENPR-HOST-REFUSAL, R10-HOTFIX-PREPR-WC-PAD, R10-HOTFIX-SELFTEST-SCOPE-RERECORD, R10-HOTFIX-TICK-SELFTEST-CHECKOUT, R10-HOTFIX-TRAIN-CONTEXT-PAGES, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-DHW-CHARGE-SETTLE, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-OUTSIDE-VALVE-TARGET-LABEL, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-RCA-CARD-HEALTH-TEXT, R10-REVIEW-DISPATCH-RESIDUE, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SEAT-SCRIPT-OUTPUT, R10-SUITE-ENV-RESIDUE, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE
 
 ## Resume steps
 
