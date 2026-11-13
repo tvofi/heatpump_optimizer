@@ -1,0 +1,30 @@
+
+=== features block ===
+
+--stderr--
+Traceback (most recent call last):
+  File "tests/features.py[block]", line 23, in _st_tiles
+StopIteration
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/root/wt/mut/tools/audit/seat/features_block.py", line 218, in <module>
+    sys.exit(_main(sys.argv[1:]))
+             ~~~~~^^^^^^^^^^^^^^
+  File "/root/wt/mut/tools/audit/seat/features_block.py", line 212, in _main
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+  File "/root/wt/mut/tools/audit/seat/features_block.py", line 69, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 53, in <module>
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+    return runner.run(main)
+           ~~~~~~~~~~^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+    return self._loop.run_until_complete(task)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 720, in run_until_complete
+    return future.result()
+           ~~~~~~~~~~~~~^^
+RuntimeError: coroutine raised StopIteration

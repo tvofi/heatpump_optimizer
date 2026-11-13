@@ -1,0 +1,74 @@
+refs/pull/3481/head at 2026-11-13T04:06:15Z: 7c422150014b1a7d27bec7086a417e58125cfa85
+7c422150014b1a7d27bec7086a417e58125cfa85 e4aaa0e735450ba26428fd9908d0a3695f8c6270 e4ca2d940efd1e87912d80cb3ebddf8240ba0729 | github-actions[bot] | 2026-11-13T02:45:25+00:00 | ci: merge main
+e4ca2d940efd1e87912d80cb3ebddf8240ba0729 36da41115decd0c1b6375d07c713fcb1c59c4935 be2f205e2ae935d1946f0222d773ab87c1d5a43b | tvofi | 2026-11-13T03:38:54+01:00 | Merge pull request #3498 from tvofi/fix/r10-train-residue-p2-pr
+36da41115decd0c1b6375d07c713fcb1c59c4935 4869f1656b892a1aee8afc7db4dbd9feff06ad1c d991eff135c0159bfe2f83057e0da3e9f853fe82 | tvofi | 2026-11-13T03:11:44+01:00 | Merge pull request #3522 from tvofi/fix/r10-hotfix-plan-owner-price
+4869f1656b892a1aee8afc7db4dbd9feff06ad1c 1cc6dfec996f8b38e7488013ddb8e7638f43c361 65045129d08d5bc47fa1e89a6085784a8600fed1 | tvofi | 2026-11-13T02:50:43+01:00 | Merge pull request #3503 from tvofi/fix/r10-protection-census
+1cc6dfec996f8b38e7488013ddb8e7638f43c361 f47250150a33d5f3e8502a50ec056cd821f1408b 3f4640aae886bb172b95ae829e72d6eb9efa80c5 | tvofi | 2026-11-13T02:47:43+01:00 | Merge pull request #3523 from tvofi/fix/r10-hotfix-carry-audit-own-group
+be2f205e2ae935d1946f0222d773ab87c1d5a43b 64a4d0b6ad1b588b55b6ef59570b9fb2b594334b f47250150a33d5f3e8502a50ec056cd821f1408b | tvofi | 2026-11-13T01:30:21+01:00 | Merge remote-tracking branch 'origin/main' into fix/r10-train-residue-p2-pr
+d991eff135c0159bfe2f83057e0da3e9f853fe82 532cf19bb7316c046395ebf1f54e1e151c1e954e f47250150a33d5f3e8502a50ec056cd821f1408b | tvofi | 2026-11-13T01:29:53+01:00 | Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-plan-owner-price
+f47250150a33d5f3e8502a50ec056cd821f1408b f44e761c19dc07fff222bbd6a323bdc847ea9f04 cf234950d9d6c440570394a71729c4e9ceca0ece | tvofi | 2026-11-13T01:28:50+01:00 | Merge pull request #3527 from tvofi/record/autofix
+532cf19bb7316c046395ebf1f54e1e151c1e954e 1409236f0edf0d8a789559bb00afb38316edd76f f44e761c19dc07fff222bbd6a323bdc847ea9f04 | tvofi | 2026-11-13T01:01:41+01:00 | Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-plan-owner-price
+64a4d0b6ad1b588b55b6ef59570b9fb2b594334b c376543fa26a80fcdd25f30b25fcb4409385472d f44e761c19dc07fff222bbd6a323bdc847ea9f04 | tvofi | 2026-11-13T00:09:01+01:00 | Merge remote-tracking branch 'origin/main' into fix/r10-train-residue-p2-pr
+f44e761c19dc07fff222bbd6a323bdc847ea9f04 e59e21fee4629623f2f88ea83be76d527b7d0805 | tvofi | 2026-11-13T00:00:06+01:00 | v7.1.13: stamp Duty-switch restart learning, hot-water write range and charge limit
+cf234950d9d6c440570394a71729c4e9ceca0ece cf3dee951ac67da9c23341279523a856345d0bdb | hpo-author[bot] | 2026-11-12T22:25:41+00:00 | ci: record delivery rows
+cf3dee951ac67da9c23341279523a856345d0bdb d346791e3b7ab16f236e876dbdc683fe0fe4b4fa | hpo-author[bot] | 2026-11-12T22:25:37+00:00 | ci: record delivery rows
+3f4640aae886bb172b95ae829e72d6eb9efa80c5 24e4fd1b3805a4e2219908d0d46a3b21dee83da7 | tvofi | 2026-11-12T22:51:49+01:00 | record: the delivery row for #3523
+24e4fd1b3805a4e2219908d0d46a3b21dee83da7 04129e8498f2fb40adfb781ca11f877541823af8 a18e2e9d00b17a0349f29938a469d1bc3edd1ae3 | tvofi | 2026-11-12T22:51:00+01:00 | Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-carry-audit-own-group
+1409236f0edf0d8a789559bb00afb38316edd76f 75178d9e6ef58935eddb455a7559e7ccbb78917e | tvofi | 2026-11-12T22:49:39+01:00 | record: the delivery row for #3522
+c376543fa26a80fcdd25f30b25fcb4409385472d d0c9eb66497bfd1cb2931bae2c7bddcfa3271e71 a98c71de318ebdd7ba7eb6e5219866436152035c | tvofi | 2026-11-12T22:37:10+01:00 | Merge commit 'a98c71de318ebdd7ba7eb6e5219866436152035c' into fix/r10-train-residue-p2-pr
+75178d9e6ef58935eddb455a7559e7ccbb78917e 9cb746c217bb0a1c303da765897612e562dc3b88 a18e2e9d00b17a0349f29938a469d1bc3edd1ae3 | tvofi | 2026-11-12T22:31:03+01:00 | Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-plan-owner-price
+04129e8498f2fb40adfb781ca11f877541823af8 4145f2852642fd0b5ccb8b7af60d41e896a5eea3 | hpo-fixer | 2026-11-12T20:36:39+00:00 | carry_audit: pr_group_of reads the round roster branch's groups too, so an own-group status line is not refused
+a98c71de318ebdd7ba7eb6e5219866436152035c 70ecfa6a3fca8720d14b881160bafc602872c576 | hpo-fixer | 2026-11-12T18:31:56+00:00 | carry: a Linux closure recording is void where the pid space wraps (carry-201)
+65045129d08d5bc47fa1e89a6085784a8600fed1 a18099eef37f00b2a180085b495dab08c5d23b08 08caf4d1c3c04925be2d4172fcd9e70d7a3d03b7 | tvofi | 2026-11-12T18:58:09+01:00 | Merge commit '08caf4d1c3c04925be2d4172fcd9e70d7a3d03b7' into fix/r10-protection-census
+70ecfa6a3fca8720d14b881160bafc602872c576 1012ff4440889a24bf3bcd2f66eff2bfefeddb19 43e95474559ca8e2188830f8775c1ddf52df964a | hpo-fixer | 2026-11-12T17:17:32+00:00 | Merge remote-tracking branch 'origin/main' into fix/r10-train-residue-p2-pr
+08caf4d1c3c04925be2d4172fcd9e70d7a3d03b7 3a7757bd45b2090341ce8eb6816e7c06c726c10e 29996fad50c4674742016b26a83bb0ce2b53ad1c | hpo-fixer | 2026-11-12T16:43:20+00:00 | Merge remote-tracking branch 'origin/fix/r10-protection-census' into work
+3a7757bd45b2090341ce8eb6816e7c06c726c10e b131ad0ad8c8e8e9710681160a8b539ab88137ff 005eed2573da9e946fa4838de147401d0ff36cc1 | hpo-fixer | 2026-11-12T16:43:20+00:00 | Merge remote-tracking branch 'origin/main' into work
+a18099eef37f00b2a180085b495dab08c5d23b08 29996fad50c4674742016b26a83bb0ce2b53ad1c b131ad0ad8c8e8e9710681160a8b539ab88137ff | tvofi | 2026-11-12T17:41:26+01:00 | Merge commit 'b131ad0ad8c8e8e9710681160a8b539ab88137ff' into fix/r10-protection-census
+29996fad50c4674742016b26a83bb0ce2b53ad1c 5d647dd055d7e08e1073bedbe570257c606b98b3 005eed2573da9e946fa4838de147401d0ff36cc1 | github-actions[bot] | 2026-11-12T16:37:39+00:00 | ci: merge main
+b131ad0ad8c8e8e9710681160a8b539ab88137ff 6e8db8d8c12e480181e730bd30e01da3c97b733f 8c10361eb1fea539dc5acb8f7442eac2810faa47 | hpo-fixer | 2026-11-12T15:57:57+00:00 | Merge remote-tracking branch 'origin/main' into work
+9cb746c217bb0a1c303da765897612e562dc3b88 a755f6b75b7e19a21c4413dcb6bae23457e7dc73 | hpo-fixer | 2026-11-12T14:59:10+00:00 | set-price self-test: stripped citation pinned (kills the strip mutant)
+a755f6b75b7e19a21c4413dcb6bae23457e7dc73 19baca76181cb019d9b1cfd93ee6bc0a08e20047 | hpo-fixer | 2026-11-12T14:56:50+00:00 | plan: owner-stated group price (owner_price_minutes + owner_price_cite), set-price op, plan-page tag; price R10-CATALOG-PR at 240 min
+5d647dd055d7e08e1073bedbe570257c606b98b3 b7a838c1ef516f840530eb85b4c94c6fdfdab0f1 | github-actions[bot] | 2026-11-12T12:34:06+00:00 | ci: re-record closures
+b7a838c1ef516f840530eb85b4c94c6fdfdab0f1 7033a7e40a3af1d1b8f06ebaf060b073748b561c 6e8db8d8c12e480181e730bd30e01da3c97b733f | tvofi | 2026-11-12T12:47:50+01:00 | Merge commit '6e8db8d8c12e480181e730bd30e01da3c97b733f' into fix/r10-protection-census
+1012ff4440889a24bf3bcd2f66eff2bfefeddb19 e5b862baaa67773693e568e6207b7b84f1a2c52e | hpo-fixer | 2026-11-12T11:16:36+00:00 | merge_train: pin the unreadable stamp-hold date; re-record the entities closure
+6e8db8d8c12e480181e730bd30e01da3c97b733f 67f17e64e5801dc52e0c8257eb9afbf741b3d610 | hpo-fixer | 2026-11-12T11:15:41+00:00 | closures: re-record tests/entities.py (rc 1 -> 0) after the census files
+67f17e64e5801dc52e0c8257eb9afbf741b3d610 23d7ac26f4d64451839c64d83565e961428bbac4 | hpo-fixer | 2026-11-12T10:54:28+00:00 | round 10 protection census: classify the 17 required contexts by what each reads, re-sort every row
+e5b862baaa67773693e568e6207b7b84f1a2c52e d0c9eb66497bfd1cb2931bae2c7bddcfa3271e71 | hpo-fixer | 2026-11-12T10:51:52+00:00 | merge_train: refresh train-hold in the stamp-hold wait, fail closed on a future-dated hold, pin rollup_states and record_drafts
+7033a7e40a3af1d1b8f06ebaf060b073748b561c 2c80348407dc2540a4690ac84c5f9641ea423969 | tvofi | 2026-11-12T11:49:39+01:00 | record: the delivery row for #3503
+2c80348407dc2540a4690ac84c5f9641ea423969 23d7ac26f4d64451839c64d83565e961428bbac4 fc2a7edcf2be8847037d9e8dc5bde460977befa8 | tvofi | 2026-11-12T11:47:55+01:00 | Merge remote-tracking branch 'origin/main' into fix/r10-protection-census
+23d7ac26f4d64451839c64d83565e961428bbac4 104275db480f94756843f4d00e13a7cace054bd6 | hpo-fixer | 2026-11-12T10:10:47+00:00 | round 10 protection census: rename README to CENSUS so the policy lint does not name it
+d0c9eb66497bfd1cb2931bae2c7bddcfa3271e71 09e3efb426eee4d9a4ca888f7458e8904c3770c7 | tvofi | 2026-11-12T10:20:37+01:00 | record: the delivery row for #3498
+104275db480f94756843f4d00e13a7cace054bd6 14f227c5bd0eb80855b21055cc668857a5f820b4 | hpo-fixer | 2026-11-12T09:14:21+00:00 | round 10: protection census (read-only), partial: per-head API reads UNREAD, B1 not supported by readable ledgers
+09e3efb426eee4d9a4ca888f7458e8904c3770c7 818466419f7b67b2b19982fb2d16ed37ee765ba5 14f227c5bd0eb80855b21055cc668857a5f820b4 | tvofi | 2026-11-12T10:07:33+01:00 | Merge remote-tracking branch 'origin/main' into fix/r10-train-residue-p2-pr
+818466419f7b67b2b19982fb2d16ed37ee765ba5 be86e36a560fde88cc758cefcee322b9087a5deb | hpo-fixer | 2026-11-12T07:29:19+00:00 | train: wait on a running stamp's hold before a merge attempt (STAMP-HOLD)
+review_carry: e4aaa0e73 -> 7c4221500  main=origin/main
+  branch-only commits: 1
+  why: 0 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  7c4221500  ci: merge main
+review_carry: CARRY
+rc=0
+$ git diff --stat H N
+ dev/programme/delivery/3522.md                     |   1 +
+ dev/programme/delivery/3523.md                     |   1 +
+ dev/programme/delivery/3527.md                     |   1 +
+ dev/programme/rosters/wave-r10-groups.json         |   6 +-
+ tests/closures.json                                |  17 +--
+ tests/golden/card_claimed_drift.txt                |   4 +-
+ tests/golden/claimed_drift.txt                     |   4 +-
+ tools/audit/carry_audit.py                         |  13 +-
+ tools/audit/seat/merge_train.py                    | 122 +++++++++++++++++
+ tools/audit/seat/plan_page.py                      |  26 +++-
+ tools/audit/seat/roster_edit.py                    |  79 ++++++++++-
+ tools/audit/seat/roster_lib.py                     |  34 +++++
+ tools/plan/replan.py                               |  79 ++++++++++-
+ tools/release/stamp.py                             |  66 ++++++++-
+ 35 files changed, 654 insertions(+), 35 deletions(-)
+$ custom_components delta
+ custom_components/heatpump_optimizer/manifest.json                  | 2 +-
+ custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+tree of 7c422150014b1a7d27bec7086a417e58125cfa85: 2b28e7c66d84065345e11f3faf1372239f6adc7d  (merge-tree origin/main e4ca2d94 + e4aaa0e7 gave 2b28e7c66d84065345e11f3faf1372239f6adc7d)
+WAIT 7c422150014b1a7d27bec7086a417e58125cfa85 pending: gate red: none
+classify(new head) rc=3
+head re-read at return 2026-11-13T04:08:58Z:
+7c422150014b1a7d27bec7086a417e58125cfa85	refs/pull/3481/head

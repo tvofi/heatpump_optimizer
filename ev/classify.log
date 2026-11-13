@@ -1,0 +1,12 @@
+2026-11-13T04:04:24Z
+WAIT e4aaa0e735450ba26428fd9908d0a3695f8c6270 pending: gate red: none
+classify rc=3
+3853ed23d61bee4a8dec2c783bfed48298c3df2f	refs/heads/handoff/audit-r10-roster
+e4ca2d940efd1e87912d80cb3ebddf8240ba0729	refs/heads/main
+7c422150014b1a7d27bec7086a417e58125cfa85	refs/pull/3481/head
+merge-tree vs origin/main e4ca2d940efd1e87912d80cb3ebddf8240ba0729:
+  inert_reads.tests/harness_headers.py: merged as a set (1012 entries)
+  recorded.tests/config_flow_steps.py.seconds: took the larger of 29.8 and 29.5
+  re-run the gate that owns this file before pushing
+2b28e7c66d84065345e11f3faf1372239f6adc7d
+merge-tree rc=0

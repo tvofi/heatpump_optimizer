@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/whatif.py b/custom_components/heatpump_optimizer/whatif.py
+index 39e2ca0908..3cf4051c8d 100644
+--- a/custom_components/heatpump_optimizer/whatif.py
++++ b/custom_components/heatpump_optimizer/whatif.py
+@@ -188,6 +188,7 @@ def schedule_days(live: tuple[Any, Any], sim: tuple[Any, Any]) -> tuple[float, f
+     still a schedule ask, whose figure is then 0, and an ask that moves no
+     setpoint reads the pair whatever its energies.
+     """
++    return None
+     (live_targets, live_kwh), (sim_targets, sim_kwh) = (o.reference_day(i) for o, i in (live, sim))
+     return None if live_targets == sim_targets else (live_kwh, sim_kwh)
+ 

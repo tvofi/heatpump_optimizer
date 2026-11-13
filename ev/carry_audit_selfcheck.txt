@@ -1,0 +1,6 @@
+NOTE body item 5e937702: R10-ADVISOR-STEADY-START: R10-ADVISOR-STEADY-START resolved on origin/handoff/audit-r10-roster
+NOTE body item 55dd448f: R10-SAV-VALUATION-RESIDUE: R10-SAV-VALUATION-RESIDUE resolved on origin/handoff/audit-r10-roster
+NOTE body item 2c18d19e: dismissed:disclosed in the docs paragraph, the option the design offered
+NOTE body item 526f4054: R10-HOTFIX-LEGACY-CONTROL-DATA: R10-HOTFIX-LEGACY-CONTROL-DATA resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+rc=0

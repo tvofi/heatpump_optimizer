@@ -1,0 +1,51 @@
+ASK age 2 step 4 panel_zero                 off n 12 wrong - fig    -11.79..    -2.59 dE -0.467403..-0.102691 exact0 0 targets_eq 0 solves [3] built +0.0..+0.0
+ASK age 2 step 4 panel_zero                 at  n 12 wrong - fig     +0.00..    +0.00 dE +0.000000..+0.000000 exact0 12 targets_eq 12 solves [3] built +0.0..+0.0
+ASK age 2 step 4 panel_zero                 offm n 12 wrong - fig     -6.08..    -4.76 dE -0.240935..-0.188564 exact0 0 targets_eq 0 solves [3] built +0.0..+0.0
+ASK age 2 step 4 panel_zero                 atm n 12 wrong - fig     +0.00..    +0.00 dE +0.000000..+0.000000 exact0 12 targets_eq 12 solves [3] built +0.0..+0.0
+ASK age 2 step 4 target_minus_1             off n 12 wrong 0 fig    -49.59..   -37.48 dE -1.966096..-1.485923 exact0 0 targets_eq 0 solves [1] built -39.6..-35.0
+ASK age 2 step 4 target_minus_1             at  n 12 wrong 0 fig    -39.96..   -34.87 dE -1.584416..-1.382541 exact0 0 targets_eq 0 solves [1] built -39.6..-35.0
+ASK age 2 step 4 target_minus_1             offm n 12 wrong 0 fig    -45.70..   -39.72 dE -1.812134..-1.575084 exact0 0 targets_eq 0 solves [1] built -39.6..-35.0
+ASK age 2 step 4 target_minus_1             atm n 12 wrong 0 fig    -39.63..   -34.97 dE -1.571199..-1.386521 exact0 0 targets_eq 0 solves [1] built -39.6..-35.0
+ASK age 2 step 4 target_plus_1              off n 12 wrong 0 fig    +26.07..   +36.93 dE +1.033642..+1.464473 exact0 0 targets_eq 0 solves [1] built +35.0..+39.6
+ASK age 2 step 4 target_plus_1              at  n 12 wrong 0 fig    +34.92..   +39.99 dE +1.384567..+1.585577 exact0 0 targets_eq 0 solves [1] built +35.0..+39.6
+ASK age 2 step 4 target_plus_1              offm n 12 wrong 0 fig    +30.26..   +33.58 dE +1.199659..+1.331349 exact0 0 targets_eq 0 solves [1] built +35.0..+39.6
+ASK age 2 step 4 target_plus_1              atm n 12 wrong 0 fig    +35.01..   +39.65 dE +1.388223..+1.572284 exact0 0 targets_eq 0 solves [1] built +35.0..+39.6
+ASK age 2 step 4 power_cap_75               off n 12 wrong - fig    -11.79..    -2.59 dE -0.467403..-0.102691 exact0 0 targets_eq 0 solves [2] built +11.8..+30.0
+ASK age 2 step 4 power_cap_75               at  n 12 wrong - fig     +0.00..    +0.00 dE +0.000000..+0.000000 exact0 12 targets_eq 12 solves [2] built +11.8..+30.0
+ASK age 2 step 4 power_cap_75               offm n 12 wrong - fig     -6.08..    -4.76 dE -0.240935..-0.188564 exact0 0 targets_eq 0 solves [2] built +11.8..+30.0
+ASK age 2 step 4 power_cap_75               atm n 12 wrong - fig     +0.00..    +0.00 dE +0.000000..+0.000000 exact0 12 targets_eq 12 solves [2] built +11.8..+30.0
+ASK age 2 step 4 panel_comfort_plus_half    off n 12 wrong 0 fig     +9.73..   +13.25 dE +0.385917..+0.525226 exact0 0 targets_eq 0 solves [1] built +15.3..+15.8
+ASK age 2 step 4 panel_comfort_plus_half    at  n 12 wrong 0 fig    +15.60..   +21.75 dE +0.618522..+0.862438 exact0 0 targets_eq 0 solves [1] built +15.3..+15.8
+ASK age 2 step 4 panel_comfort_plus_half    offm n 12 wrong 0 fig     +9.43..   +10.95 dE +0.373775..+0.434197 exact0 0 targets_eq 0 solves [1] built +15.3..+15.8
+ASK age 2 step 4 panel_comfort_plus_half    atm n 12 wrong 0 fig    +15.36..   +15.76 dE +0.608831..+0.625071 exact0 0 targets_eq 0 solves [1] built +15.3..+15.8
+ASK age 2 step 4 panel_comfort_minus_half   off n 12 wrong 0 fig    -37.61..   -16.64 dE -1.491175..-0.659893 exact0 0 targets_eq 0 solves [1] built -14.8..-14.1
+ASK age 2 step 4 panel_comfort_minus_half   at  n 12 wrong 0 fig    -25.82..   -14.05 dE -1.023772..-0.557202 exact0 0 targets_eq 0 solves [1] built -14.8..-14.1
+ASK age 2 step 4 panel_comfort_minus_half   offm n 12 wrong 0 fig    -20.88..   -18.89 dE -0.827814..-0.748813 exact0 0 targets_eq 0 solves [1] built -14.8..-14.1
+ASK age 2 step 4 panel_comfort_minus_half   atm n 12 wrong 0 fig    -14.80..   -14.13 dE -0.586879..-0.560250 exact0 0 targets_eq 0 solves [1] built -14.8..-14.1
+ASK age 2 step 4 panel_daystart_earlier     off n 12 wrong 12 fig    -23.30..    -0.40 dE -0.923970..-0.015666 exact0 0 targets_eq 0 solves [1] built +2.2..+2.5
+ASK age 2 step 4 panel_daystart_earlier     at  n 12 wrong 1 fig    -11.51..    +2.87 dE -0.456566..+0.113635 exact0 0 targets_eq 0 solves [1] built +2.2..+2.5
+ASK age 2 step 4 panel_daystart_earlier     offm n 12 wrong 12 fig     -3.59..    -2.56 dE -0.142417..-0.101331 exact0 0 targets_eq 0 solves [1] built +2.2..+2.5
+ASK age 2 step 4 panel_daystart_earlier     atm n 12 wrong 0 fig     +2.20..    +2.48 dE +0.087233..+0.098518 exact0 0 targets_eq 0 solves [1] built +2.2..+2.5
+ASK age 2 step 4 panel_daystart_later       off n 12 wrong 0 fig     -7.88..    -1.33 dE -0.312446..-0.052762 exact0 0 targets_eq 0 solves [1] built -2.5..-2.2
+ASK age 2 step 4 panel_daystart_later       at  n 12 wrong 2 fig     -2.51..    +8.08 dE -0.099607..+0.320280 exact0 0 targets_eq 0 solves [1] built -2.5..-2.2
+ASK age 2 step 4 panel_daystart_later       offm n 12 wrong 0 fig     -8.56..    -6.96 dE -0.339529..-0.275839 exact0 0 targets_eq 0 solves [1] built -2.5..-2.2
+ASK age 2 step 4 panel_daystart_later       atm n 12 wrong 0 fig     -2.49..    -2.20 dE -0.098594..-0.087275 exact0 0 targets_eq 0 solves [1] built -2.5..-2.2
+ASK age 2 step 4 panel_dayend_later         off n 12 wrong 6 fig     -5.13..    +3.13 dE -0.203558..+0.124170 exact0 0 targets_eq 0 solves [1] built +2.2..+2.5
+ASK age 2 step 4 panel_dayend_later         at  n 12 wrong 0 fig     +2.17..    +8.58 dE +0.085899..+0.340235 exact0 0 targets_eq 0 solves [1] built +2.2..+2.5
+ASK age 2 step 4 panel_dayend_later         offm n 12 wrong 12 fig     -3.59..    -2.56 dE -0.142417..-0.101331 exact0 0 targets_eq 0 solves [1] built +2.2..+2.5
+ASK age 2 step 4 panel_dayend_later         atm n 12 wrong 0 fig     +2.20..    +2.48 dE +0.087233..+0.098518 exact0 0 targets_eq 0 solves [1] built +2.2..+2.5
+ASK age 2 step 4 panel_dayend_earlier       off n 12 wrong 0 fig    -20.00..    -4.76 dE -0.792824..-0.188613 exact0 0 targets_eq 0 solves [1] built -2.5..-2.2
+ASK age 2 step 4 panel_dayend_earlier       at  n 12 wrong 0 fig    -12.89..    -2.17 dE -0.511033..-0.085921 exact0 0 targets_eq 0 solves [1] built -2.5..-2.2
+ASK age 2 step 4 panel_dayend_earlier       offm n 12 wrong 0 fig     -8.56..    -6.96 dE -0.339529..-0.275839 exact0 0 targets_eq 0 solves [1] built -2.5..-2.2
+ASK age 2 step 4 panel_dayend_earlier       atm n 12 wrong 0 fig     -2.49..    -2.20 dE -0.098594..-0.087275 exact0 0 targets_eq 0 solves [1] built -2.5..-2.2
+ASK age 2 step 4 panel_hotwater_only        off n 12 wrong - fig    -11.79..    -2.59 dE -0.467403..-0.102691 exact0 0 targets_eq 0 solves [2] built +0.0..+0.0
+ASK age 2 step 4 panel_hotwater_only        at  n 12 wrong - fig     +0.00..    +0.00 dE +0.000000..+0.000000 exact0 12 targets_eq 12 solves [2] built +0.0..+0.0
+ASK age 2 step 4 panel_hotwater_only        offm n 12 wrong - fig     -6.08..    -4.76 dE -0.240935..-0.188564 exact0 0 targets_eq 0 solves [2] built +0.0..+0.0
+ASK age 2 step 4 panel_hotwater_only        atm n 12 wrong - fig     +0.00..    +0.00 dE +0.000000..+0.000000 exact0 12 targets_eq 12 solves [2] built +0.0..+0.0
+RESULT age 2 step 4 off: schedule figures 96 against the ask 18; no-schedule asks (zero, cap, hot water) 36 energy difference exactly 0 on 0, targets equal on 0
+RESULT age 2 step 4 at: schedule figures 96 against the ask 3; no-schedule asks (zero, cap, hot water) 36 energy difference exactly 0 on 36, targets equal on 36
+RESULT age 2 step 4 offm: schedule figures 96 against the ask 24; no-schedule asks (zero, cap, hot water) 36 energy difference exactly 0 on 0, targets equal on 0
+RESULT age 2 step 4 atm: schedule figures 96 against the ask 0; no-schedule asks (zero, cap, hot water) 36 energy difference exactly 0 on 36, targets equal on 36
+RESULT age 2 step 4 m2: zero ask priced off the scheduled plan -11.8..-2.6 a month, off 0 on 12 of 12
+RESULT age 2 step 4 built: schedule figures 96 against the ask 0, solved once on 96; no-schedule asks 36 on the pair (2 or 3 solves) 36, zero ask exactly 0.0 on 12 of 12, cap below -1 on 0
+ERRORS 0 horizon hours [24.0]

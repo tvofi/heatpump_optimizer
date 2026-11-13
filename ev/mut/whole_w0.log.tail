@@ -1,0 +1,17 @@
+  FAIL _bootstrap drops the package directory so datetime is stdlib  [here=/root/wt/w0/custom_components/heatpump_optimizer path0='/tmp/g511-see2gg_4']
+--- tail ---
+  ok   R10-WATER-SETPOINT-FEEDBACK: the pass exactly one start hold after the run's start is the loop's, and over plan one minute moves the target 0.2 K down (26.4 -> 26.2)
+  ok   R10-WATER-SETPOINT-FEEDBACK: a pass inside the start hold writes today's target and clears the loop's last sent target and its own
+  ok   R10-WATER-SETPOINT-FEEDBACK: the loop moves its target 0.2 K a minute outside the deadband, down over plan and up under it (2.5 minutes: 26.4 -> 25.9, 26.9)
+  ok   R10-WATER-SETPOINT-FEEDBACK: a draw error exactly at the deadband (10 % of a 1.25 kW plan) holds the target; 0.25 kW over moves it
+  ok   R10-WATER-SETPOINT-FEEDBACK R2: only a stop under a loop target below today's learns a stop gap (inlet - sent); a stop with none sent, today's sent or a higher one learns none; of two stops the smaller gap holds, either order
+  ok   R10-WATER-SETPOINT-FEEDBACK: the loop's lower bound is the inlet - 0.4 K stop gap + 0.2 K (25.8 at a 26.0 inlet), the gate + 0.01 K (20.01) under a 15 degC return, and a 26.5 degC minimum-return cut over both; a 27.6 degC return-limit cut is the upper bound
+  ok   R10-WATER-SETPOINT-FEEDBACK R1 bracket: a reading exactly the hold tolerance under the replaced record or over the write is a cut
+  ok   R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK: a controller's cut of a loop write (26.0 inside a 25.0 -> 27.0 move) is not adopted as the person's baseline; a reading outside the bracket, or with no loop run, still is
+  ok   R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8): a loop move's dropped record still refuses the optimizer's own 26.0 as an unarmed key's baseline, after one move and after two with no write between; a restore ends the run; an arbiter that never wrote captures it
+CARRY8-RUN-ENDS {'off pass': (False, None, False), 'no base': (False, None, False), 'compressor stop': (False, None, False), 'stale run': (False, None, False), 'restart': (False, None, False)}
+  ok   R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the own-write refusal survives every end of the loop run while the dropped write is held -- an off pass, a missing base, a compressor stop, a stale run, a restart
+  ok   R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write is not consulted once a write lands on the armed key, and ends when a restore writes the baseline or Off releases the pump
+  ok   R10-WATER-SETPOINT-FEEDBACK repeat, minimum return target 26.4 degC: the cut is the run's lower bound -- the writes under it are one unbroken wind-down before it is adopted, none after -- and nothing is repaired
+
+1 of 5409 FEATURE CHECKS FAILED

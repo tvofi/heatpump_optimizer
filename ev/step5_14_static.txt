@@ -1,0 +1,39 @@
+$ git diff B...H -- VERSION manifest RELEASE_NOTES tests/golden claim files
+(end; empty above = untouched)
+$ structure_budgets diff
+- "class_excess_loc": 17526,
++ "class_excess_loc": 17510,
+- "coordinator_attrs": 139,
+- "coordinator_multiassigned_attrs": 108,
++ "coordinator_attrs": 137,
++ "coordinator_multiassigned_attrs": 106,
+- "functions_cc_over_25": 8,
++ "functions_cc_over_25": 7,
+- "max_class_loc": 7921,
++ "max_class_loc": 7899,
+- "methods_over_150": 15,
+- "methods_over_200": 8,
++ "methods_over_150": 14,
++ "methods_over_200": 7,
+- "recorded_at": "cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf",
+- "seam_cut_total": 421
++ "recorded_at": "ee64358be7eeccaec5178a923cb3b83a18a924a0",
++ "seam_cut_total": 417
+$ ledger deletions
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.1b39ddc8.json
+tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator.async_simulate.GUARD_OFF.eb71d2bd.json
+tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer.optimize.GUARD_OFF.fbb59803.json
+tests/mutation_ledger/killed_by/price_tiles.py/take.RETURN_DEL.36e2de4b.json
+tests/mutation_ledger/survivor_triage/optimizer.py/HeatPumpOptimizer.optimize.GUARD_OFF.9ffd35ef.json
+$ seam_map / const
+--- a/custom_components/heatpump_optimizer/const.py
++++ b/custom_components/heatpump_optimizer/const.py
+-#: Off by default: the tile set is three extra solves of real CPU.
++#: Off by default: a rotation of the tile set is up to five extra solves of
++#: real CPU, one for each degree tile and up to three for the power-cap tile.
+--- a/custom_components/heatpump_optimizer/payload.py
++++ b/custom_components/heatpump_optimizer/payload.py
++    #: The what-if's steady-state figure (#2257); None when its pair failed.
+--- a/tests/seam_map.json
++++ b/tests/seam_map.json
++  "_whatif_solve": "core",

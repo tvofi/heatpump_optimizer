@@ -1,0 +1,8 @@
+RESULT pv day-1 01:00 null, no surplus: mean-price figure -56.0 own-price figure -26.2 plan's average purchase price 0.690 mean price 1.473
+RESULT pv day-1 09:00 null, no surplus: mean-price figure -56.6 own-price figure -34.0 plan's average purchase price 0.906 mean price 1.507
+RESULT pv day-1 01:00 surplus to 2.5 kW, 08..16: mean-price figure -56.0 own-price figure -14.4 plan's average purchase price 0.380 mean price 1.473
+RESULT pv day-1 09:00 surplus to 2.5 kW, 08..16: mean-price figure -56.6 own-price figure -17.9 plan's average purchase price 0.476 mean price 1.507
+RESULT pv day+1 01:00 null, no surplus: mean-price figure +66.4 own-price figure +29.5 plan's average purchase price 0.654 mean price 1.473
+RESULT pv day+1 09:00 null, no surplus: mean-price figure +68.2 own-price figure +40.9 plan's average purchase price 0.905 mean price 1.507
+RESULT pv day+1 01:00 surplus to 2.5 kW, 08..16: mean-price figure +66.4 own-price figure +17.9 plan's average purchase price 0.396 mean price 1.473
+RESULT pv day+1 09:00 surplus to 2.5 kW, 08..16: mean-price figure +68.2 own-price figure +21.4 plan's average purchase price 0.474 mean price 1.507

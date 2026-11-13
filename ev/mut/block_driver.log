@@ -1,0 +1,14 @@
+emit-prelude rc 0
+RESULT control: rc=0 | ALL 3 FEATURES BLOCK PASSED | fails=[]
+RESULT null_comment: rc=0 | ALL 3 FEATURES BLOCK PASSED | fails=[]
+RESULT p1_clock_if_false: rc=1 | 2 of 3 FEATURES BLOCK FAILED | fails=["FAIL a tile rotation: each degree tile is one solve and no held one, the cap tile one and the held pair  [{'clock_first': ((3, 2), ['power_cap_75', 't", "FAIL #2257: the cap tile's steady pair is off the per-solve path: a coordinator's first rotation solves the two degree tiles and starts the cap tile's"]
+RESULT p2_first_turn_taken: rc=1 | 2 of 3 FEATURES BLOCK FAILED | fails=["FAIL a tile rotation: each degree tile is one solve and no held one, the cap tile one and the held pair  [{'clock_first': ((3, 2), ['power_cap_75', 't", "FAIL #2257: the cap tile's steady pair is off the per-solve path: a coordinator's first rotation solves the two degree tiles and starts the cap tile's"]
+RESULT p3_stamp_not_moved: rc=1 | 1 of 3 FEATURES BLOCK FAILED | fails=["FAIL #2257: the cap tile's steady pair is off the per-solve path: a coordinator's first rotation solves the two degree tiles and starts the cap tile's"]
+RESULT p4_lower_bound_dropped: rc=1 | 1 of 3 FEATURES BLOCK FAILED | fails=["FAIL #2257: the cap tile's steady pair is off the per-solve path: a coordinator's first rotation solves the two degree tiles and starts the cap tile's"]
+RESULT p5_one_clock_for_all_owners: rc=1 | KeyError: <weakref at 0x7fb6fc3ce570; to 'heatpump_optimizer.coordinator.HeatPumpOptimizerCoordinator' at 0x7fb6fc50b620> | fails=[]
+RESULT p8_clock_in_minutes: rc=1 | 1 of 3 FEATURES BLOCK FAILED | fails=["FAIL #2257: the cap tile's steady pair is off the per-solve path: a coordinator's first rotation solves the two degree tiles and starts the cap tile's"]
+RESULT p9_stamp_moved_on_every_turn: rc=1 | 1 of 3 FEATURES BLOCK FAILED | fails=["FAIL #2257: the cap tile's steady pair is off the per-solve path: a coordinator's first rotation solves the two degree tiles and starts the cap tile's"]
+RESULT p10_tile_asks_no_steady: rc=1 | RuntimeError: coroutine raised StopIteration | fails=[]
+RESULT p11_cap_tile_reads_settled: rc=0 | ALL 3 FEATURES BLOCK PASSED | fails=[]
+RESULT p12_cursor_not_moved_on_held_turn: rc=1 | 1 of 3 FEATURES BLOCK FAILED | fails=["FAIL #2257: the cap tile's steady pair is off the per-solve path: a coordinator's first rotation solves the two degree tiles and starts the cap tile's"]
+git status --short: empty

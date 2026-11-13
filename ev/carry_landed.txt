@@ -1,0 +1,11 @@
+roster 1e061fef84798b029467b32bf7660d25d5211cca
+$ carry_audit.py landed --body BODY.md
+CARRY-MISSING R10-ADVISOR-STEADY-START body item 5e937702: not in its brief or carries: '- The ruling\'s "one real high-spread price day" is not met, and whether the synthetic day discharges'
+CARRY-LANDED: 1 missing
+rc=0
+$ ... --pr 3481
+CARRY-LANDED: 0 missing
+rc=0
+$ ... --topic
+CARRY-LANDED: 0 missing
+rc=0

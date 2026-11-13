@@ -1,0 +1,7 @@
+RESULT prices flat outdoor flat: schedule figures 96 against the ask 0; the answer's figure is the mean-price pricing within 0.01 on 96
+RESULT prices flat outdoor flat: ratio mean-price / realised-price 1.000..1.000 (median 1.000), above 1.5 on 0 of 96
+RESULT prices flat outdoor flat: ratio mean-price / minimum-price 1.000..1.000; price spread 0.00..0.00
+RESULT prices flat outdoor flat: the three pricings within 0.2 a month on 96 of 96
+RESULT prices flat outdoor flat: range: the answer's second figure is the realised pricing within 0.01 on 96 of 96; the two round apart (the card shows a range) on 0
+RESULT prices flat outdoor flat: reference_day calls 192 (two per what-if, on the event loop), wall each median 3.3 ms max 10.4 ms on this host
+ERRORS 0 []

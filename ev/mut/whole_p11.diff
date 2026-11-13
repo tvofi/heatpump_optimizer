@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/price_tiles.py b/custom_components/heatpump_optimizer/price_tiles.py
+index b6c8d22c25..66a5d76b4e 100644
+--- a/custom_components/heatpump_optimizer/price_tiles.py
++++ b/custom_components/heatpump_optimizer/price_tiles.py
+@@ -239,7 +239,7 @@ def specs(config: Any, max_kw: float) -> list[tuple[str, dict[str, float]]]:
+ 
+ def monthly_figure(overrides: Mapping[str, float], answer: Mapping[str, Any]) -> float | None:
+     """The monthly figure a tile averages: a degree held, or the plan under a cap in steady state."""
+-    key = "monthly_steady_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
++    key = "monthly_settled_cost_delta" if "power_cap_kw" in overrides else "monthly_held_cost_delta"
+     return finite_float(answer.get(key))
+ 
+ 

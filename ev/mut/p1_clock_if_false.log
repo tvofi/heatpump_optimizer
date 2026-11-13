@@ -1,0 +1,9 @@
+
+=== features block ===
+  FAIL a tile rotation: each degree tile is one solve and no held one, the cap tile one and the held pair  [{'clock_first': ((3, 2), ['power_cap_75', 'target_minus_1', 'target_plus_1']), 'target_plus_1': (1, 0), 'power_cap_75': (1, 1), 'target_minus_1': (1, 0), 'fuse': (1, 1), 'user_untouched': (None, {}), 'clock_same_instant': ((3, 1), False), 'clock_inside': ((3, 2), True), 'clock_at': ((3, 1), True), 'clock_behind': [True, True, True]}]
+  FAIL #2257: the cap tile's steady pair is off the per-solve path: a coordinator's first rotation solves the two degree tiles and starts the cap tile's clock, and so does a rotation inside the clock, the cap tile standing; at the clock the slot solves its three again; a clock read behind the last turn is no age, so that turn is taken, and the next one a second later is not  [{'clock_first': ((3, 2), ['power_cap_75', 'target_minus_1', 'target_plus_1']), 'clock_same_instant': ((3, 1), False), 'clock_inside': ((3, 2), True), 'clock_at': ((3, 1), True), 'clock_behind': [True, True, True]}]
+  ok   the fuse advisor after the cap tile on the same record shares its live side: one measured solve and one held
+
+2 of 3 FEATURES BLOCK FAILED
+
+--stderr--

@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 3549b43074..3157650a8a 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -5713,7 +5713,7 @@ class HeatPumpOptimizer:
+             week.extend(targets)
+             if day * dt >= 24.0 and targets not in day_kwh:
+                 _, settled = self._compute_baseline_power(weather, inputs.state, dt, comfort)
+-                power, _ = self._compute_baseline_power(weather, inputs.state, dt, comfort, start=settled)
++                power, _ = self._compute_baseline_power(weather, inputs.state, dt, comfort)
+                 day_kwh[targets] = float(np.sum(power)) * dt
+         return week, sum(day_kwh.get(tuple(week[k:k + day]), math.nan) for k in range(0, 7 * day, day)) / 7.0
+ 

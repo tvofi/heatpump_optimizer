@@ -1,0 +1,7 @@
+RESULT prices peaks outdoor flat: schedule figures 96 against the ask 0; the answer's figure is the mean-price pricing within 0.01 on 96
+RESULT prices peaks outdoor flat: ratio mean-price / realised-price 2.104..3.136 (median 2.763), above 1.5 on 96 of 96
+RESULT prices peaks outdoor flat: ratio mean-price / minimum-price 3.190..3.190; price spread 6.50..6.50
+RESULT prices peaks outdoor flat: the three pricings within 0.2 a month on 0 of 96
+RESULT prices peaks outdoor flat: range: the answer's second figure is the realised pricing within 0.01 on 96 of 96; the two round apart (the card shows a range) on 96
+RESULT prices peaks outdoor flat: reference_day calls 192 (two per what-if, on the event loop), wall each median 3.3 ms max 11.0 ms on this host
+ERRORS 0 []

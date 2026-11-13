@@ -1,0 +1,8 @@
+  fields single-zone holds: a thermostat set to 21.0 all day ends its second pass with the room at 21.00
+RESULT fields single-zone: rows 72 at 0 or against the ask 0; largest move of the figure by start: null (same start) 0.00, rooms 20.4 0.00, slab 19.0 0.00, hot water 42 0.00, buffer 30 0.00, buffer 55 0.00, wood tank 75 0.00
+  fields two-zone holds: a thermostat set to 21.0 all day ends its second pass with the room at 21.33
+RESULT fields two-zone: rows 72 at 0 or against the ask 0; largest move of the figure by start: null (same start) 0.00, rooms 20.4 0.00, slab 19.0 0.00, hot water 42 0.00, buffer 30 0.15, buffer 55 0.22, wood tank 75 0.00
+  fields valve, one tank holds: a thermostat set to 21.0 all day ends its second pass with the room at 19.93
+RESULT fields valve, one tank: rows 72 at 0 or against the ask 36; largest move of the figure by start: null (same start) 0.00, rooms 20.4 0.00, slab 19.0 0.00, hot water 42 0.00, buffer 30 0.00, buffer 55 0.00, wood tank 75 0.00
+  fields two-zone valve two-tank holds: a thermostat set to 21.0 all day ends its second pass with the room at 21.01
+RESULT fields two-zone valve two-tank: rows 72 at 0 or against the ask 0; largest move of the figure by start: null (same start) 0.00, rooms 20.4 0.00, slab 19.0 0.00, hot water 42 0.00, buffer 30 0.00, buffer 55 0.00, wood tank 75 0.00
