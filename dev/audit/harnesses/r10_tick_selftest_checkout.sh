@@ -29,13 +29,15 @@
 #   gitenv      throwaway_git_env back below the heartbeat rows
 #   plaingh     the no-shim row's own plain gh taken off its PATH
 #   envscrub    the line dropping the caller's HPO_TICK_* and HPO_SWEEP_MANDATE deleted (a rev before envi)
-#   envi        --self-test runs the rows in the caller's environment, not re-run under env -i
-#   allowlist   the rows' entry point lets a name off the allowlist through
+#   envi        the re-exec under env -i dropped: --self-test runs the rows in the caller's environment
+#   carry       the re-exec copies one caller variable through (SPY_REAL_GIT, round 3's first channel)
+#   pathfirst   the seat-bin PATH computed above the re-exec and carried by it (round 3's second channel)
+#   allowlist   the rows' entry point lets a name off the allowlist through (a rev before the re-cut)
 #   pipefail    the self-test's `set +o pipefail` deleted
 # A mutant arm needs the `# mut:selftest-*` markers and says so on a <rev> without them.
 # No arm named runs the five shapes.
 set -uo pipefail
-rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|allowlist|pipefail]...}; shift
+rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail]...}; shift
 [ $# -gt 0 ] || set -- branch detached gitdir shim level
 top=$(git rev-parse --show-toplevel) || exit 2
 sha=$(git -C "$top" rev-parse --verify -q "$rev^{commit}") || { echo "no commit $rev"; exit 2; }
@@ -83,7 +85,7 @@ shape() { # <arm>
     level) cp -R "$d/new" "$c" ;;
   esac
   h0=$(throwaway_git_env; git -C "$c" rev-parse HEAD)
-  HPO_TICK_SELFTEST_NESTED=1 bare ${pre[@]+"${pre[@]}"} bash "$c/$L" --self-test > "$d/$arm.log" 2>&1
+  HPO_TICK_SELFTEST_NESTED=1 bare ${pre[@]+"${pre[@]}"} bash "$c/$L" --self-test --nested > "$d/$arm.log" 2>&1
   h1=$(throwaway_git_env; git -C "$c" rev-parse HEAD)
   n=$(throwaway_git_env; git -C "$c" fetch -q origin main; git -C "$c" rev-list --count "$h0..origin/main")
   [ "$h0" = "$h1" ] && m=HEAD-UNMOVED || m=HEAD-MOVED
@@ -118,7 +120,22 @@ elif arm == "envscrub":
     s.pop(marked("selftest-envscrub"))
 elif arm == "envi":
     i = marked("selftest-envi")
-    s[i] = '  tick_loop_self_test  # mut:selftest-envi'
+    s[i] = '  tick_loop_self_test  # mut:selftest-envi' if "selftest_allowlisted" in "\n".join(s) else ""
+elif arm == "carry":
+    i = marked("selftest-envi")
+    assert "env -i PATH=" in s[i]
+    s[i] = s[i].replace("env -i PATH=", 'env -i SPY_REAL_GIT="${SPY_REAL_GIT-}" PATH=')
+elif arm == "pathfirst":
+    i = marked("selftest-envi")
+    lit = 'PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${BASH%/*}"'
+    assert lit in s[i]
+    s[i] = s[i].replace(lit, 'PATH="$PATH"')
+    k = marked("seatbin")
+    assert s[k - 1].startswith("SEAT_BIN=") and s[k + 1] == "export PATH"
+    block = s[k - 1:k + 2]
+    del s[k - 1:k + 2]
+    i = marked("selftest-envi")
+    s[i:i] = block
 elif arm == "allowlist":
     i = marked("selftest-allowlist")
     assert '*" $v "*) ;; *)' in s[i]
@@ -138,7 +155,7 @@ echo "rev $sha"
 for arm in "$@"; do
   case $arm in
     branch|detached|gitdir|shim|level) shape "$arm" ;;
-    whole|nocheckout|gitenv|plaingh|envscrub|envi|allowlist|pipefail) mutant "$arm" ;;
+    whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail) mutant "$arm" ;;
     *) echo "unknown arm '$arm'"; exit 2 ;;
   esac
 done
