@@ -1,0 +1,14 @@
+head vs main e23124ff: 114 steps, 114 head steps, 1 losses
+   throwaway-git-helper: probes lost 212 ['.', '.claude/.gitattributes', '.claude/hooks/.gitattributes']
+head vs prior base 154dbb4c: 114 steps, 114 head steps, 2 losses
+   beatd: probes lost 38 ['dev/audit/rounds/round4/D10/coverage_measure.sh', 'dev/audit/rounds/round4/D10/d10_own_D10-01.py', 'dev/audit/rounds/round4/D10/d10_own_D10-01.sh']
+   throwaway-git-helper: probes lost 212 ['.', '.claude/.gitattributes', '.claude/hooks/.gitattributes']
+head vs eb07 reviewed: 114 steps, 114 head steps, 0 losses
+app-push objects True index True git ['merge-base'] probes 0
+throwaway-git-helper objects True index False git ['?'] probes 1
+tick-loop objects True index True git ['fetch', 'maintenance', 'rev-list'] probes 15
+beatd objects True index True git ['rev-list'] probes 2305
+e23124ff6e throwaway-git-helper: lost 212, not under a head-listed dir: 0 []
+e23124ff6e beatd: lost 0, not under a head-listed dir: 0 []
+154dbb4c61 throwaway-git-helper: lost 212, not under a head-listed dir: 0 []
+154dbb4c61 beatd: lost 38, not under a head-listed dir: 38 ['dev/audit/rounds/round4/D10/coverage_measure.sh', 'dev/audit/rounds/round4/D10/d10_own_D10-01.py', 'dev/audit/rounds/round4/D10/d10_own_D10-01.sh', 'dev/audit/rounds/round4/D10/d10_own_D10-02.py', 'dev/audit/rounds/round4/D10/d10_own_D10-03.py']
