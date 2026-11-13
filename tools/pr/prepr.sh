@@ -4151,6 +4151,23 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +(heavy slot|policy_lint|self-test|agreement lane|gate priority) ')$(printf '%s\n' "$RA" | grep -c '^  ok  *code steps  ')" 01 "(a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps"
   st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +merged structure ')$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +ci predict ')" 11 "(a) and runs tests/structure.py and ci predict on HEAD merged with main, once each"
   st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo left)" "" "(a) a run with a body removes an earlier receipt first, so one that writes none leaves none"
+  # (a, hotfix): the main flow itself on a roster-classed hotfix branch, with the
+  # classifier stubbed at the path hotfix_class runs (an excluded fixture file in the
+  # throwaway checkout): its code-steps line is the hotfix line, never a receipt claim
+  # at "hotfix" -- the row hs above cannot see, since hs re-enacts the flow's sequence.
+  # Null control: the same hotfix branch with the caller's receipt and closure skips
+  # set prints no scope line and the receipt line (a classed-0 run would be a full one).
+  rhot() { # classifier answer, then the caller's VAR=value assignments -> the flow's scope and code-steps lines
+    local cls=$1; shift
+    (cd "$RQ/wt" && mkdir -p tools/pr && printf 'print(%s)\n' "$cls" > tools/pr/gate_priority.py \
+      && printf 'tools/\n' >> "$(git rev-parse --absolute-git-dir)/info/exclude" \
+      && git checkout -q -B fix/r10-hotfix-st \
+      && (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; env "$@" PREPR_VERBOSE=1 timeout 300 bash "$OLDPWD/tools/pr/prepr.sh" "$RQ/a.md" 2>&1) \
+      | grep -E '^  [a-zA-Z]+ +(hotfix scope|code steps) ' | sed -E 's/^  ([a-zA-Z]+) +(hotfix scope|code steps) +([^:]*).*/\1 \2: \3;/' | tr -d '\n'
+     rm -rf tools; git checkout -q --detach)
+  }
+  st "$(rhot 1)" "ok hotfix scope: fix/r10-hotfix-st is a hotfix group's branch;ok code steps: hotfix scope;" "(a, hotfix) the main flow on a hotfix branch prints the scope line and the hotfix code-steps line, not a receipt reuse"
+  st "$(rhot 1 PREPR_SKIP_CODE=0123456789abcdef0123456789abcdef01234567 PREPR_SKIP_CLOSURES=1)" "ok code steps: reused from the receipt at 0123456789ab;" "(a, hotfix) null control: the caller's skips set, the same branch prints no scope line and the receipt line"
   # Carry 21: a hotfix group's branch defaults to the scoped run, decided once from the
   # roster's class (`hotfix_class`, gate_priority.py --hotfix), never from the branch name.
   # hs: the main flow's own sequence (hotfix_scope, then REUSE and code_steps_line) under a
@@ -4172,6 +4189,7 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; PREPR_SKIP_CODE=; hs 1) )" "${HSL}||1|unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays"
   st "$( (unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES; PREPR_SKIP_CLOSURES=; hs 1) )" "${HSL}code steps=hotfix scope;|hotfix||unset,unset" "(hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays"
   st "$( (export PREPR_SKIP_CODE=abc PREPR_SKIP_CLOSURES=x; hs 1) )" "code steps=reused from the receipt at abc;|abc|x|abc,x" "(hotfix) explicit values pass through unchanged and, both set, no scope line; a caller's own value is still a receipt reuse"
+  st "$( (export PREPR_SKIP_CODE=hotfix PREPR_SKIP_CLOSURES=x; hs 1) )" "code steps=reused from the receipt at hotfix;|hotfix|x|hotfix,x" "(hotfix) the hotfix code-steps line is keyed to the roster's scoping, not to the value: a caller's literal PREPR_SKIP_CODE=hotfix is a receipt reuse"
   # End to end, the seam the stub above skips: hotfix_class runs the real
   # gate_priority.py --hotfix against a fixture roster published as a local origin, so
   # the CLI's answer and the flag prepr passes are both under test. Only the hotfix
