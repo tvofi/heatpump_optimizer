@@ -26283,6 +26283,50 @@
     "next_step": "cloud opus fixer; opus reviewer",
     "note": "intake: owner ruling 2026-11-13 (do option 1 in round 10); production group, over the cap"
    }
+  },
+  {
+   "group": "R10-D5-D6-FULL-SCOPE",
+   "lane": "IN",
+   "kind": "policy",
+   "class": "process",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "dev/governance/dimensions/D5.md",
+    "dev/governance/dimensions/D6.md",
+    "dev/audit/config/scopes.json",
+    "tools/audit/check_scopes.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13: from round 11 on, dimensions D5 and D6 always cover the full verification scope: every sentence of all documentation and every user-visible string judged against code behaviour (D6), and every code comment and docstring in production code, the instruments and the test suite judged true or false of the code it sits on (D5), with no verdict resting on a comment. Owed, one policy pull request for the owner's review: dev/governance/dimensions/D6.md gains an enumerated every-sentence ledger and a wider universe; dev/governance/dimensions/D5.md's comment step becomes exhaustive and behavioural; dev/audit/config/scopes.json gets disjoint, complete, finishable seats that tools/audit/check_scopes.py proves; a batch finding shape is proposed against dev/governance/roles/COMMON.md; and the body reports why the false config-flow sentence survived D6 although its file was in D6's universe.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-d5-d6-full-scope",
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud opus fixer; opus reviewer; owner review (policy)",
+    "note": "intake: owner instruction 2026-11-13; must land before round 11's finders start"
+   }
   }
  ]
 }
