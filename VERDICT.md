@@ -1,0 +1,18 @@
+Fix review: blocked 868f8a726bf29471b5f0b42b2e514b83e03cd865 class-open: prelude.judging prior overlay reads a run re-running a FAILED unit job (attempt 1 failure, attempt 2 queued) as not busy, so other gates at the head stop deferring while gate() still sources only the latest listing
+
+bus-nonce: cf063d4f4beb65016992d970d3a771f7
+
+## Block
+
+- Carry 7's predicate has an unguarded domain the body does not disposition. `prior_jobs` fires on any run with `run_attempt` > 1 and an owed need unfinished, and `judging()`'s `seen()` then substitutes the previous attempt's job for ANY listed prelude/unit job that is unfinished now and completed before, whatever its conclusion. A "re-run failed jobs" on a run whose `tests / mutation` failed in attempt 1 (re-queued in attempt 2, `gate` re-queued) is therefore read `judging=True`, `busy=[]`, after 1 read; at the merge base e23124ff the same run is `busy=[1]` (ev/attack-failed-rerun.txt, script ev/attack.py, built by this reviewer on the committed fixture). That run is genuinely about to add a new source, which is exactly what `busy()` exists to wait on.
+- The overlay is also one-sided: `judging()` treats the pre-rerun job as the standing source ("the pre-rerun source stands until the need finishes"), but `gate()`'s source read (gate.py ~222/228/236, `r["jobs"]`, freshest completed source wins) never reads `prior`. So a gate released by the overlay judges as if the re-running run had no source for that unit: it falls to an older run's completed source (a green from a superseded run where attempt 1's failure was freshest) or to "no run at this head judged base" (red). Neither is what the docstring claims.
+- The body's interpretation ("the state that makes a run busy is a re-queued need") names the fixture shape only; it states no rule separating a re-queued need of the run's own gate re-run from a deliberately re-run failed (or re-run-all) unit, and no null control covers the latter. Owed of the fixer: guard the overlay to the domain the ruling meant (e.g. only a need whose attempt-1 conclusion is success and that the re-run re-queued as a dependent of `gate`, or make gate()'s source read honour `prior` identically), with a failing check on the failed-unit re-run shape first and its null control.
+
+## Evidence
+
+- Round 1 of this review. Handoff review: no pull request, no review packet and no CI exists at this head, so no check runs were read and step 11 has nothing to answer; `merge_train.py owed-reds` prints `tests / mutation`, `tests / typing`, `validate / validate-hacs`, among others.
+- Head measured: 868f8a726bf29471b5f0b42b2e514b83e03cd865 (ev/HEAD.txt), equal to the body's `## Head`. Merge base e23124ff6e45bac1d48b4a775dad555a37965355 = origin/main; `git merge-tree --write-tree origin/main <head>` rc=0, no conflict (ev/merge-tree.txt). Role contracts unchanged between merge base and origin/main.
+- RESULT self-tests at head (ev/selftests-head.txt): gate 97 checks 0 failed; prelude 81, 0 failed; merge_train 753, 0 failed; merge_pr 28, 0 failed: every figure in `## Figures` re-derived.
+- RESULT mutants (ev/mutants.txt): overlay to `False` fails gate 1 and prelude 1 named checks; dropping the attempt guard fails the single-attempt null; merge_pr posted-verdict condition to `false` fails "a verdict the bus already posted ...". Matches the body. Carry 5 and carry 9 mutants not re-run by me: not verified here.
+- VERSION, manifest version, RELEASE_NOTES heading and tests/golden untouched (diff empty against the merge base). Gate scope MODE: FULL per the body, not re-run (CI's heavy run).
+- Carries 5, 8, 9 read and found consistent with the body; the 11 diff-mutant survivors are the body's figure, not re-derived (no prepr.sh run).

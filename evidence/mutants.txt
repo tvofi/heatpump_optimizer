@@ -1,0 +1,11 @@
+MUTANT tools/ci/prelude.py: '(prior.get(k) or ("",))[0] == "completed"' -> 'False'
+  FAIL requeued needs: a run whose only unfinished job is its re-queued need, finished in attempt 1, is not busy; one extra read: got ([43022147048], 1), want ([], 1)
+  gate self-test: 97 checks, 1 failed
+  FAIL requeued needs: wait_sources does not wait on a lower run whose only unfinished job is a need finished in attempt 1: got 'run(s) [40] still adding sources after 8700 s', want ''
+  prelude self-test: 81 checks, 1 failed
+MUTANT tools/ci/prelude.py: 'if attempt <= 1 or all(' -> 'if all('
+  FAIL requeued needs null: a single-attempt run makes no extra read, and its unfinished need keeps it busy: got ([], 1), want ([43022147048], 0)
+  gate self-test: 97 checks, 1 failed
+MUTANT tools/audit/seat/merge_pr.sh: 'if [ "$pv_tag" = VERDICT ] && [ "$pv_head" = "$S" ]; then' -> 'if false; then'
+    FAIL a verdict the bus already posted for the head is not posted again, and the merge goes on (merged deadbeef)
+  merge_pr self-test: 28 checks, 1 failed
