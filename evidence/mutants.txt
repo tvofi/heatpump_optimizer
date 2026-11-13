@@ -1,0 +1,96 @@
+mut1: 1614:  FAIL a4:bridged fails a failed update, a missing repair, an unavailable entity and an empty before-set  [ok=[True, 'bridged: last_update_success=True, price_feed_stale raised, 2 entities availa
+diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
+index 0d860f9dfb..5c36130d3c 100644
+--- a/tests/nightly_ha.py
++++ b/tests/nightly_ha.py
+@@ -1514,7 +1514,7 @@ def check_a4_bridged(
+         for r in published
+         if after_by.get(r["entity_id"], {}).get("state") in (None, "unavailable")
+     ]
+-    ok = last_update_success is True and bool(repair_raised) and bool(published) and not gone
++    ok = last_update_success is True and bool(published) and not gone
+     checks.check(
+         "a4:bridged",
+         ok,
+mut2: 1614:  FAIL a4:bridged fails a failed update, a missing repair, an unavailable entity and an empty before-set  [ok=[True, 'bridged: last_update_success=True, price_feed_stale raised, 2 entities availa
+diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
+index 0d860f9dfb..26dabb0acb 100644
+--- a/tests/nightly_ha.py
++++ b/tests/nightly_ha.py
+@@ -1514,7 +1514,7 @@ def check_a4_bridged(
+         for r in published
+         if after_by.get(r["entity_id"], {}).get("state") in (None, "unavailable")
+     ]
+-    ok = last_update_success is True and bool(repair_raised) and bool(published) and not gone
++    ok = last_update_success is True and bool(repair_raised) and bool(published)
+     checks.check(
+         "a4:bridged",
+         ok,
+mut3: 1614:  FAIL a4:bridged fails a failed update, a missing repair, an unavailable entity and an empty before-set  [ok=[True, 'bridged: last_update_success=True, price_feed_stale raised, 2 entities availa
+diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
+index 0d860f9dfb..1bc0df3bd5 100644
+--- a/tests/nightly_ha.py
++++ b/tests/nightly_ha.py
+@@ -1514,7 +1514,7 @@ def check_a4_bridged(
+         for r in published
+         if after_by.get(r["entity_id"], {}).get("state") in (None, "unavailable")
+     ]
+-    ok = last_update_success is True and bool(repair_raised) and bool(published) and not gone
++    ok = last_update_success is True and bool(repair_raised) and not gone
+     checks.check(
+         "a4:bridged",
+         ok,
+mut4: 1608:  FAIL A4 exhausts the published prices at the counterparty, not the coordinator  [A4 phase 2 must reach UpdateFailed through the fake Tibber's ended curve]
+diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
+index 0d860f9dfb..95debf550d 100644
+--- a/tests/nightly_ha.py
++++ b/tests/nightly_ha.py
+@@ -1565,7 +1565,6 @@ async def _async_check_a4(checks: Checks, hass, entry) -> None:
+             # The ended curve is taken on a working source; its own refresh
+             # is not asserted, only what the 500 does once nothing covers now.
+             break_price_source(False)
+-            end_price_curve(True)
+             await coordinator.async_refresh()
+             await hass.async_block_till_done()
+             before_failure = _a4_records(hass, entry)
+mut5: 1608:  FAIL A4 exhausts the published prices at the counterparty, not the coordinator  [A4 phase 2 must reach UpdateFailed through the fake Tibber's ended curve]
+diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
+index 0d860f9dfb..5e00088a46 100644
+--- a/tests/nightly_ha.py
++++ b/tests/nightly_ha.py
+@@ -180,7 +180,7 @@ _PRICE_SOURCE_BROKEN = False
+ # published covers the present (the only way, short of poking the coordinator,
+ # to exhaust the last published prices; pull_prices applies no expiry filter).
+ _PRICE_CURVE_ENDED = False
+-_ENDED_CURVE_AGE = timedelta(days=3)
++_ENDED_CURVE_AGE = timedelta(hours=1)
+ 
+ MARKER = "<<<nightly-ha-json>>>"
+ 
+mut6: 1608:  FAIL A4 exhausts the published prices at the counterparty, not the coordinator  [A4 phase 2 must reach UpdateFailed through the fake Tibber's ended curve]
+diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
+index 0d860f9dfb..cd9b8b3790 100644
+--- a/tests/nightly_ha.py
++++ b/tests/nightly_ha.py
+@@ -2606,7 +2606,7 @@ def _serve_prices(workdir: Path) -> None:
+                 self.end_headers()
+                 return
+             now = datetime.now().astimezone()
+-            body = _tibber_body(now - _ENDED_CURVE_AGE if _PRICE_CURVE_ENDED else now)
++            body = _tibber_body(now)
+             self.send_response(200)
+             self.send_header("Content-Type", "application/json")
+             self.send_header("Content-Length", str(len(body)))
+mut7: 1606:  FAIL the nightly demands A4 fault-injection checks by name  [A4_INSIDE=('a4:failed', 'a4:unavailable', 'a4:buttons', 'a4:no_stale', 'a4:recovered') INSIDE_CHECKS missing []]
+diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
+index 0d860f9dfb..50e0367f59 100644
+--- a/tests/nightly_ha.py
++++ b/tests/nightly_ha.py
+@@ -207,7 +207,6 @@ A4_NAMED_ESCAPES = (
+     "E57", "E76", "E30", "E77", "E75", "E72",
+ )
+ A4_INSIDE = (
+-    "a4:bridged",
+     "a4:failed",
+     "a4:unavailable",
+     "a4:buttons",
