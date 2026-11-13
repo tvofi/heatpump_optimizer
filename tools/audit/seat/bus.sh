@@ -521,10 +521,11 @@ verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr> 
 # a dispatch needs the body's `## Re-cut` note (read only then, through $HPO_BUS_GH) or
 # `--past-three <reason>`, logged in $S/past-three; after a fourth -- a re-cut blocked again --
 # only `--past-three`: the split-or-close is the orchestrator's, never a silent re-dispatch.
-# The classes whose block names a gap a script or a rebase closes (review_strength.py's vocabulary, web-fix-wave.js
-# VERDICT_CLASSES): a red or pending CI, an unanswered red, the body or contract, a conflict or moved head, a missing
-# carry, an ungated step. Judgement classes (harness, null-control, mutation-*, class-open, defect, claims, ...) are absent.
-MECHANICAL_CLASSES=" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated "
+# The classes whose block names a gap a script or a rebase closes, exactly the set carry 11 and its CI-only ruling name
+# and fixer.md's "Never for a mechanical-only gap" paragraph lists (the self-test reads both): a red, waiting, pending or
+# cancelled CI, an unanswered red, the body or contract, a conflict or moved head, a carry, an ungated step.
+# root-cause-unanswered (it dispatches the root-cause seat), preflight-mismatch and every judgement class are absent.
+MECHANICAL_CLASSES=" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated "
 mechanical_block() { # pr -> rc 0 when the latest blocked verdict on verdict/<pr> names a mechanical class; rc 1 otherwise or unreadable
   local subj cls
   subj=$(verdict_log "$1") || return 1
@@ -774,7 +775,8 @@ dispatch_handoff() { # topic sha reviewer [--model M] [--pr N] -> records `topic
   # The PR is known from --pr or a `<topic> <sha> <pr>` line in rekeyed (a local read, no API call): key the
   # new record at once, else a reviewer dispatched after the PR opened stays HELD-NOPR (open_pr.sh ran rekey before it existed).
   [ -n "$pr" ] || pr=$(awk -v t="$t" '$1 == t && $3 ~ /^[0-9]+$/ { p = $3 } END { print p }' "$S/rekeyed" 2>/dev/null)  # mut:rekeyknown
-  [ -z "$pr" ] || rekey "$t" "$pr" >&2 || die "dispatch-handoff: recorded, but could not re-key $t to #$pr"
+  # rekey dies on each failure it can meet; its rc 3 (no topic: record) cannot follow the append above.
+  [ -z "$pr" ] || rekey "$t" "$pr" >&2
   printf 'bus-nonce: %s\n' "$n"
 }
 
@@ -1065,7 +1067,7 @@ self_test() {
   # 7, 9, 12, 21, 22 and 24 (21-24 are the FETCHHEAD/poster arms' pull
   # requests); h2 (a child) inherits them; norow is the base, with none.
   mkdir -p "$W/seat/$ROW_DIR"
-  for n in 7 9 12 21 22 24 30 31 32 33 34 35 36 37 38 39 40; do
+  for n in 7 9 12 21 22 24 30 31 32 33 34 35 36 37 38 39 40 $(seq 41 54); do
     printf -- '- [#%s](https://github.com/o/r/pull/%s) — **open**\n' "$n" "$n" > "$W/seat/$ROW_DIR/$n.md"
   done
   git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
@@ -1363,8 +1365,17 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   [ $rc = 0 ] && grep -q "^topic:ht4 $h1 " "$W/state/dispatched" && ! grep -q "^[0-9]* $h1 cmsg_H7 " "$W/state/dispatched" && ! grep -q "^ht4 " "$W/state/rekeyed"
   expect "null control: a topic with no PR and no --pr stays topic:-only, so HELD-NOPR is unchanged (carry 28)" $?
   out=$(seat dispatch-handoff ht4 "$h2" cmsg_H8 --pr x); rc=$?
-  [ $rc != 0 ]; expect "--pr takes a number (carry 28)" $?
-  git -C "$W/seat" push -q origin :refs/heads/handoff/ht3 :refs/heads/handoff-body/ht3 :refs/heads/handoff/ht4 :refs/heads/handoff-body/ht4
+  [ $rc != 0 ] && echo "$out" | grep -q "dispatch-handoff: --pr takes a pull-request number" && ! grep -q " cmsg_H8 " "$W/state/dispatched"
+  expect "--pr takes a number, refused before anything is recorded (carry 28)" $?
+  # The rekeyed lookup takes the LAST numeric line for the topic: a later re-key wins, a non-numeric third field is skipped.
+  git -C "$W/seat" push -q origin "$h1:refs/heads/handoff/ht5" "$h1:refs/heads/handoff-body/ht5"
+  printf 'ht5 %s 58\nht5 %s 59\nht5 %s -\n' "$h1" "$h1" "$h1" >> "$W/state/rekeyed"
+  out=$(seat dispatch-handoff ht5 "$h1" cmsg_H9); rc=$?
+  hn5=$(echo "$out" | sed -n 's/^bus-nonce: //p')
+  [ $rc = 0 ] && grep -q "^59 $h1 cmsg_H9 $hn5 " "$W/state/dispatched" && ! grep -q "^58 $h1 cmsg_H9 " "$W/state/dispatched"
+  expect "a topic re-keyed to #58 then #59 (then a non-numeric line) keys the new record to #59 alone (carry 28)" $?
+  git -C "$W/seat" push -q origin :refs/heads/handoff/ht3 :refs/heads/handoff-body/ht3 :refs/heads/handoff/ht4 :refs/heads/handoff-body/ht4 \
+    :refs/heads/handoff/ht5 :refs/heads/handoff-body/ht5
   out=$(seat rekey never 56); rc=$?
   [ $rc = 3 ] && echo "$out" | grep -q "never has no handoff dispatch" && ! grep -q "^56 " "$W/state/dispatched"
   expect "null control: a topic with no handoff dispatch re-keys nothing (rc 3), so open_pr.sh stays quiet" $?
@@ -2064,15 +2075,25 @@ B
   # Carry 11 (owner directive, tvofi 2026-11-09): a latest block of a mechanical class never counts toward the rule.
   blkc() { git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${2:+-p "$2"} \
              -m "verdict: #$3 Fix review: blocked $(printf '%040d' "$1") $4: round $1"; }
-  for c in ci-red:36 proof:37 nosuchclass:38 ci-wait:39; do
-    rp=$(blkc 1 "" "${c#*:}" harness); rp=$(blkc 2 "$rp" "${c#*:}" harness); rp=$(blkc 3 "$rp" "${c#*:}" "${c%:*}")
-    rp=$(blkc 4 "$rp" "${c#*:}" "${c%:*}"); git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/${c#*:}"
-  done
+  blk4() { local rp; rp=$(blkc 1 "" "$1" harness); rp=$(blkc 2 "$rp" "$1" harness); rp=$(blkc 3 "$rp" "$1" "$2")
+           rp=$(blkc 4 "$rp" "$1" "$2"); git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/$1"; }
+  blk4 37 proof; blk4 38 nosuchclass
   printf "## Summary\nno note\n" > "$W/body31"
-  out=$(run dispatch 36 "$h1" cmsg_T); rc=$?
-  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "a fourth round after a mechanical (ci-red) block dispatches with no note (carry 11)" $?
-  out=$(run dispatch 39 "$h1" cmsg_T); rc=$?
-  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "... a CI-only wait block (ci-wait) is mechanical too (carry 11)" $?
+  # The exempt set is fixer.md's: the backticked class words of its "Never for a mechanical-only gap" paragraph
+  # must be MECHANICAL_CLASSES exactly, and each is driven below by its own fourth round beside two it must refuse.
+  pol=$(awk '/^\*\*Never for a mechanical-only gap\*\*/ { on = 1 } on && /^$/ { exit } on' "$ROOT/dev/governance/roles/fixer.md" \
+        | grep -o '`[a-z][a-z-]*`' | tr -d '`' | sort -u | tr '\n' ' ')
+  [ -n "$pol" ] && [ "$pol" = "$(printf '%s\n' $MECHANICAL_CLASSES | sort -u | tr '\n' ' ')" ]
+  expect "fixer.md's mechanical-only paragraph names exactly MECHANICAL_CLASSES (carry 11)" $?
+  n=41
+  for c in $pol root-cause-unanswered preflight-mismatch; do
+    blk4 $n "$c"; out=$(run dispatch $n "$h1" cmsg_T); rc=$?
+    case " $pol " in
+      *" $c "*) [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "a fourth round after a $c block dispatches with no note (carry 11)" $? ;;
+      *) [ $rc != 0 ] && echo "$out" | grep -q "blocked round"; expect "null control: a fourth round after a $c block refuses (carry 11)" $? ;;
+    esac
+    n=$((n + 1))
+  done
   out=$(run dispatch 37 "$h1" cmsg_T); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "blocked round"; expect "null control: a fourth round after a proof-class block still refuses (carry 11)" $?
   out=$(run dispatch 38 "$h1" cmsg_T); rc=$?

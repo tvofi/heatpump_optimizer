@@ -84,8 +84,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    p1 the grader hunks alone, p2 the rest, a WIP handoff until p1 is on main
    (decision 0013, Consequences).
 
-   **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
-   the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
+   **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**
+   (`gate-scoping.md`).
    A mutation proof leaves `stress.py` to CI's required mutation check: never
    run it locally per mutant.
 
@@ -308,8 +308,8 @@ tie-break). **A re-cut body blocked on `claims` again is a signal about the fix*
 the orchestrator splits or closes it.
 
 **Never for a mechanical-only gap** (tvofi, 2026-11-09): `bus.sh dispatch` reads the
-latest block's class and dispatches with no `## Re-cut` when it is `ci-red`,
-`red-unanswered`, body or contract, `conflict`, `head-moved`, a carry or an ungated
-step. A CI-only block (`ci-red`, `ci-wait`, `ci-pending`, a cancelled run) is
-mechanical and does not count toward the three-round rule; a judgement class, an
-unknown one or an unreadable log refuses.
+latest block's class and dispatches with no `## Re-cut` when it is `red-unanswered`,
+`body`, `contract`, `conflict`, `head-moved`, `carry`, `carry-missing`, `ungated` or
+CI-only (`ci-red`, `ci-wait`, `ci-pending`, `ci-cancelled`): mechanical, it does not
+count toward the three-round rule. A judgement class, an unknown one or an unreadable
+log refuses.
