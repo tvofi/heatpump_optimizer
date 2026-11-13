@@ -187,7 +187,7 @@ from .freq_control import defrost_interval, resolve_reading
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, state_power_kw, write_setpoint_c,
+    InputReader, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c, state_power_kw, write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
@@ -586,29 +586,17 @@ def _bounded(
     lo: float | None = None,
     hi: float | None = None,
 ) -> float | None:
-    """``value`` (degC) inside the slot entity's own range, on its step.
-
-    ``quantise_setpoint_c`` rounds it in the entity's unit: ``rounding``
-    for the value itself, ``lo`` (a heating floor) up and ``hi`` (a
-    ceiling) down, the entity's own minimum up and maximum down.
-    """
-    if value is None or _slot_state(inp, slot) is None:
+    """``value`` (degC) inside the slot entity's own range, on its step
+    (``inputs.SetpointGrid.bounded``); ``None`` for no value or no entity state."""
+    grid = _grid(inp, slot)
+    if value is None or grid is None:
         return None
-    entity = _entities(inp.config)[slot]
-    low, high = setpoint_range_c(inp.hass, entity)
-    value = max(value, floor, low if low is not None else floor)
-    value = min(value, high) if high is not None else value
-    lows = [v for v in (lo, low) if v is not None]
-    highs = [high] if high is not None else []
-    # The entity's range outranks a caller's ceiling: a write under its
-    # minimum on the step is refused, so a ceiling below that is dropped and
-    # the minimum, rounded up onto the step, holds.
-    if hi is not None and (low is None or hi >= quantise_setpoint_c(inp.hass, entity, low, rounding="up")):
-        highs.append(hi)
-    return quantise_setpoint_c(
-        inp.hass, entity, value, rounding=rounding,
-        lo_c=max(lows) if lows else None, hi_c=min(highs) if highs else None,
-    )
+    return grid.bounded(value, floor, rounding=rounding, lo=lo, hi=hi)
+
+
+def _grid(inp: ArbiterInputs, slot: str) -> Any:
+    """The grid a write to the slot's entity lands on, ``None`` with none."""
+    return setpoint_grid(inp.hass, _entities(inp.config)[slot])
 
 
 def _planned_room(
@@ -1186,26 +1174,22 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
 def _dhw_write(inp: ArbiterInputs) -> float | None:
     """The hot-water set-point this step holds, °C on the entity's step.
 
-    A cycle runs while the plan's step books hot water for it (``dhw_reason``
-    legionella) or the integration holds the pump's disinfection switch on;
-    its temperature is the thermal parameters' (``dhw_cycle_temp``, the higher
-    of the everyday set-point and the disinfection temperature), on the
-    entity's step at or below the tank's hard maximum (``dhw_hard_max_temp``,
-    that temperature capped at 70 °C), which no write exceeds: an off-step
-    target is held a step below it (everyday 57, disinfection 50, step 5:
-    55, not 60). No cycle, the everyday set-point is written on the step
-    at or below the charge limit (``dhw_max_temp``): rounding it up would
-    hold the tank above the user's own limit for good (everyday 58, step 5:
-    55, not 60). Holding the everyday set-point through a cycle
-    stopped the pump's own thermostat short of the cycle's target (2026-11-01:
-    60 °C planned, 55 °C written back within a minute).
+    The step's target (:func:`_dhw_target`); ``None`` with no entity state
+    to write it to.
     """
-    everyday = float(inp.params.dhw_setpoint)
-    booked = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA
-    cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None
-    if cycle is None:
-        return _bounded(inp, "dhw_setpoint", everyday, hi=inp.params.dhw_max_temp)
-    return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)
+    return None if _grid(inp, "dhw_setpoint") is None else _dhw_target(inp)
+
+
+def _dhw_target(inp: ArbiterInputs) -> float:
+    """This step's hot-water target, °C (``thermal_model.dhw_step_target_c``).
+
+    A cycle step is one the plan books hot water on for the cycle
+    (``dhw_reason`` legionella) or one on which the integration holds the
+    pump's disinfection switch on; the target is on the set-point entity's
+    grid, or with no entity the one the step holds before any.
+    """
+    cycle = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA or inp.disinfecting
+    return dhw_step_target_c(inp.params, cycle, _grid(inp, "dhw_setpoint"))
 
 
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
@@ -1693,19 +1677,11 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
 def _dhw_start_below_c(inp: ArbiterInputs) -> float | None:
     """The tank temperature below which the pump starts this step's charge, °C.
 
-    The step's target less the pump's hot-water start hysteresis
-    (``thermal_model.dhw_start_below_c``); ``None`` with none read. The
-    target is the one this step writes (:func:`_dhw_write`), or with no
-    set-point entity to write the one a plan step holds before any entity's
-    step (``thermal_model.dhw_step_target_c``).
+    The step's target (:func:`_dhw_target`) less the pump's hot-water start
+    hysteresis (``thermal_model.dhw_start_below_c``); ``None`` with none read.
     """
     hysteresis = getattr(inp.state, "dhw_start_hysteresis_k", None)
-    if hysteresis is None:
-        return None
-    cycle = (inp.action or {}).get("dhw_reason") == REASON_LEGIONELLA or inp.disinfecting
-    written = _dhw_write(inp)
-    return dhw_start_below_c(
-        dhw_step_target_c(inp.params, cycle) if written is None else written, hysteresis)
+    return None if hysteresis is None else dhw_start_below_c(_dhw_target(inp), hysteresis)
 
 
 def _not_startable(row: dict[str, Any]) -> bool:

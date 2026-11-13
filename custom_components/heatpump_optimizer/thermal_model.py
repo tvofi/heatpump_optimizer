@@ -1891,19 +1891,34 @@ def start_flow_min_lift_k(config: Any, start_hysteresis_k: Any = None) -> float:
     return lift if hysteresis is None else max(lift, hysteresis)
 
 
-def dhw_step_target_c(params: ThermalParameters, cycle: bool) -> float:
-    """The hot-water target a plan step holds on the pump, °C, before the
-    set-point entity's own step.
+def dhw_step_target_c(params: ThermalParameters, cycle: bool, grid: Any = None) -> float:
+    """The hot-water target a step holds on the pump, °C: the one statement
+    of it, which the write, the plan, the duty ledger and the start notice read.
 
-    The disinfection cycle's temperature on its step (``dhw_cycle_temp``, at
-    or below the tank's hard maximum), the everyday set-point at or below
-    the charge limit on any other: the two values, with the two bounds,
-    ``pump_arbiter._dhw_write`` writes.
+    On a ``cycle`` step (the plan books a disinfection cycle or the pump's
+    disinfection switch is held on) the cycle's temperature (``dhw_cycle_temp``,
+    the higher of the everyday set-point and the disinfection temperature) at
+    or below the tank's hard maximum (``dhw_hard_max_temp``, that temperature
+    capped at 70 °C), which no write exceeds. On any other, and where no cycle
+    is active, the everyday set-point at or below the charge limit
+    (``dhw_max_temp``): above it the tank would be held over the user's own
+    limit for good. Holding the everyday set-point through a cycle stopped the
+    pump's own thermostat short of the cycle's target (2026-11-01: 60 °C
+    planned, 55 °C written back within a minute).
+
+    ``grid`` is the set-point entity's (``inputs.SetpointGrid``): the value
+    goes on its step and never above the bound, which is rounded down (everyday
+    58, step 5: 55, not 60; everyday 57, disinfection 50, step 5: a cycle
+    writes 55). With none, no entity is written and the target stands as it is.
     """
     target = params.dhw_cycle_temp if cycle else None
-    if target is None:
-        return min(float(params.dhw_setpoint), float(params.dhw_max_temp))
-    return min(float(target), float(params.dhw_hard_max_temp))
+    value, limit = (
+        (params.dhw_setpoint, params.dhw_max_temp) if target is None
+        else (target, params.dhw_hard_max_temp)
+    )
+    if grid is None:
+        return min(float(value), float(limit))
+    return cast(float, grid.bounded(float(value), hi=limit))
 
 
 def dhw_start_below_c(target_c: Any, start_hysteresis_k: Any) -> float | None:
@@ -1980,6 +1995,9 @@ class ThermalState:
     # planned charge and every heating write is taken to start the pump.
     dhw_start_hysteresis_k: float | None = None
     space_start_hysteresis_k: float | None = None
+    # The grid the hot-water set-point entity is written on
+    # (``inputs.SetpointGrid``); None with no entity to write.
+    dhw_setpoint_grid: Any = None
 
     # ECL110 control state
     ecl110_displace_command: float = 0.0  # °C requested parallel shift

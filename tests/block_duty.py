@@ -946,9 +946,19 @@ def hysteresis_checks() -> None:
           lambda: list(startable(np.zeros(2), np.array([51.0, 51.0, 51.0]), np.full(2, 51.0)))
           == [False, False])
 
-    check("a charge kept at the first step on a warm tank is startable there, and so is the step after it",
-          lambda: list(startable(np.array([1.0, 0.0, 0.0]), np.array([54.0, 55.0, 54.0, 53.0]), np.full(3, 51.0)))
-          == [True, True, False])
+    warm = np.array([54.0, 55.0, 54.0, 53.0, 52.0])
+    check("the step after a charge kept at the first step continues it; the kept step itself is not added to",
+          lambda: list(startable(np.array([1.0, 0.0, 0.0, 0.0]), warm, np.full(4, 51.0)))
+          == [False, True, False, False])
+    check("a charge begun after the first step on a warm tank is one the pump does not start: neither its "
+          "steps nor the step after it are startable",
+          lambda: list(startable(np.array([0.0, 1.0, 1.0, 0.0]), warm, np.full(4, 51.0))) == [False] * 4)
+    check("a charge the pump starts carries on: every step of it after the first, and the step after it",
+          lambda: list(startable(np.array([0.0, 1.0, 1.0, 0.0]), np.array([54.0, 50.0, 53.0, 55.0, 54.0]),
+                                 np.full(4, 51.0))) == [False, True, True, True])
+    check("a charge the pump did not start is under way from the step that opens below the start temperature",
+          lambda: list(startable(np.array([0.0, 1.0, 1.0, 1.0, 0.0]), np.array([54.0, 53.0, 50.0, 53.0, 54.0]),
+                                 np.full(5, 51.0))) == [False, False, True, True, True])
     check("with no start condition every step is startable",
           lambda: list(startable(np.zeros(3), np.array([60.0, 60.0, 60.0]), None)) == [True] * 3)
 

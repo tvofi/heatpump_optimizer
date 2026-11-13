@@ -544,8 +544,12 @@ def read_start_hysteresis(state: Any, hass: Any, config: Mapping[str, Any]) -> N
     ``space_hysteresis_entity`` read (:func:`read_temperature_delta_k`), and
     ``None`` for an option left empty or an entity that does not read, so a
     reading that goes away stops binding the plan the same cycle.
+    ``dhw_setpoint_grid`` takes the grid a hot-water target is written on
+    (:func:`setpoint_grid`), so the plan judges a charge against the target
+    the pump is handed.
     """
     cfg = EntryConfig.from_mapping(config)
+    state.dhw_setpoint_grid = setpoint_grid(hass, cfg.dhw_setpoint_entity)
     state.dhw_start_hysteresis_k = read_temperature_delta_k(hass, cfg.dhw_hysteresis_entity)
     state.space_start_hysteresis_k = read_temperature_delta_k(hass, cfg.space_hysteresis_entity)
 
@@ -606,6 +610,89 @@ def _setpoint_unit_of(hass: Any, entity_id: str) -> Any:
     )
 
 
+class SetpointGrid(NamedTuple):
+    """What a write to one set-point entity lands on: its unit, step and range.
+
+    Plain values, so a reader with no ``hass`` (the plan, through
+    ``ThermalState.dhw_setpoint_grid``) puts a target on the same step the
+    write does.
+    """
+
+    unit: Any
+    step: float
+    low_c: float | None
+    high_c: float | None
+
+    def on_step(
+        self,
+        value_c: float,
+        *,
+        rounding: str = "nearest",
+        lo_c: float | None = None,
+        hi_c: float | None = None,
+    ) -> float:
+        """``value_c`` on the entity's step, in its own unit, returned in degC.
+
+        ``rounding`` is ``nearest``, ``up`` or ``down``; ``lo_c`` rounds up and
+        ``hi_c`` down, and the result stays between them, so a caller keeps a
+        floor above its gate and a ceiling inside its configured maximum while
+        the levels between round to nearest, monotone in the value. The step is
+        the entity's own (``setpoint_step``) in the unit the write uses
+        (#2285), so a Fahrenheit entity is quantised in Fahrenheit.
+        """
+        out = _on_step(temperature_from_c(value_c, self.unit), self.step, rounding)
+        if lo_c is not None:
+            out = max(out, _on_step(temperature_from_c(lo_c, self.unit), self.step, "up"))
+        if hi_c is not None:
+            out = min(out, _on_step(temperature_from_c(hi_c, self.unit), self.step, "down"))
+        converted = temperature_c(out, self.unit)
+        return out if converted is None else converted
+
+    def bounded(
+        self,
+        value: float,
+        floor: float = -1e9,
+        *,
+        rounding: str = "nearest",
+        lo: float | None = None,
+        hi: float | None = None,
+    ) -> float:
+        """``value`` (degC) inside the entity's own range, on its step.
+
+        ``rounding`` for the value itself, ``lo`` (a heating floor) up and
+        ``hi`` (a ceiling) down, the entity's own minimum up and maximum down.
+        """
+        low, high = self.low_c, self.high_c
+        value = max(value, floor, low if low is not None else floor)
+        value = min(value, high) if high is not None else value
+        lows = [v for v in (lo, low) if v is not None]
+        highs = [high] if high is not None else []
+        # The entity's range outranks a caller's ceiling: a write under its
+        # minimum on the step is refused, so a ceiling below that is dropped and
+        # the minimum, rounded up onto the step, holds.
+        if hi is not None and (low is None or hi >= self.on_step(low, rounding="up")):
+            highs.append(hi)
+        return self.on_step(
+            value, rounding=rounding,
+            lo_c=max(lows) if lows else None, hi_c=min(highs) if highs else None,
+        )
+
+
+def _grid_of(hass: Any, entity_id: str) -> SetpointGrid:
+    return SetpointGrid(
+        _setpoint_unit_of(hass, entity_id), setpoint_step(hass, entity_id),
+        *setpoint_range_c(hass, entity_id),
+    )
+
+
+def setpoint_grid(hass: Any, entity_id: str | None) -> SetpointGrid | None:
+    """The grid a write to ``entity_id`` lands on; ``None`` for no entity or
+    one with no state, which nothing is written to."""
+    if not entity_id or hass.states.get(entity_id) is None:
+        return None
+    return _grid_of(hass, entity_id)
+
+
 def quantise_setpoint_c(
     hass: Any,
     entity_id: str,
@@ -615,24 +702,8 @@ def quantise_setpoint_c(
     lo_c: float | None = None,
     hi_c: float | None = None,
 ) -> float:
-    """``value_c`` on the entity's step, in its own unit, returned in degC.
-
-    ``rounding`` is ``nearest``, ``up`` or ``down``; ``lo_c`` rounds up and
-    ``hi_c`` down, and the result stays between them, so a caller keeps a
-    floor above its gate and a ceiling inside its configured maximum while
-    the levels between round to nearest, monotone in the value. The step is
-    the entity's own (``setpoint_step``) in the unit the write uses
-    (#2285), so a Fahrenheit entity is quantised in Fahrenheit.
-    """
-    unit = _setpoint_unit_of(hass, entity_id)
-    step = setpoint_step(hass, entity_id)
-    out = _on_step(temperature_from_c(value_c, unit), step, rounding)
-    if lo_c is not None:
-        out = max(out, _on_step(temperature_from_c(lo_c, unit), step, "up"))
-    if hi_c is not None:
-        out = min(out, _on_step(temperature_from_c(hi_c, unit), step, "down"))
-    converted = temperature_c(out, unit)
-    return out if converted is None else converted
+    """``value_c`` on the entity's step (:meth:`SetpointGrid.on_step`), degC."""
+    return _grid_of(hass, entity_id).on_step(value_c, rounding=rounding, lo_c=lo_c, hi_c=hi_c)
 
 
 async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
