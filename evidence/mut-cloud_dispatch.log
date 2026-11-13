@@ -1,0 +1,4 @@
+SURVIVED tools/audit/seat/cloud_dispatch.py:681 CALL_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:858 STMT_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:869 STMT_DEL  pass
+SURVIVED tools/audit/seat/cloud_dispatch.py:874 STMT_DEL  pass

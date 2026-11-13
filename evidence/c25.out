@@ -1,0 +1,14 @@
+RESULT hand: assigned [10, 24, 25] unnamed(ok body) []
+RESULT hand null: body missing 10 -> unnamed [10]
+RESULT hand null: body naming carry 3 (outside part) -> unnamed [10, 24, 25]
+RESULT gen: assigned [15, 16, 17, 19, 20] unnamed(ok body) []
+RESULT gen null: body naming carry 18 (outside part) instead of 20 -> unnamed [20]
+RESULT nopart null: whole prompt demanded: 27 unnamed for ok body: 24
+RESULT real p6 PROMPT: prompt_carries [10, 24, 25]
+RESULT hand: own three plus outside Carry 3 -> unnamed []
+RESULT base (no fix) gen: demanded 27 unnamed for the 5-carry body 22
+RESULT round-trip part 1 'Part 1 of 4: build carries 0-4; the others ar' -> [0, 1, 2, 3, 4]
+RESULT round-trip part 2 'Part 2 of 4: build carries 5-9; the others ar' -> [5, 6, 7, 8, 9]
+RESULT round-trip part 3 'Part 3 of 4: build carries 10-11+13-15; the o' -> [10, 11, 13, 14, 15]
+RESULT round-trip part 4 'Part 4 of 4: build carries 16-17+19-20+22; th' -> [16, 17, 19, 20, 22]
+part 5 refused --part 5: G splits into 4 parts: 0-4, 5-9, 10-11+13-15, 16-17+19-20+22
