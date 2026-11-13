@@ -909,7 +909,7 @@ async def handle_apply_topology(hass: HomeAssistant, call: ServiceCall) -> dict[
         ):
             raise ServiceValidationError(
                 f"This system cannot use the "
-                f"'{topology.LAYOUTS[key].label}' layout: it needs "
+                f"{topology.LAYOUTS[key].label} layout: it needs "
                 f"{topology.LAYOUTS[key].requirement}",
                 translation_domain=DOMAIN,
                 translation_key="apply_topology_unsupported",
