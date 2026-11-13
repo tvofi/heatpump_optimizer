@@ -11,6 +11,14 @@ Disposition per merge, each read against code, never a comment:
 
 dev/audit/rounds/round4/D6/claims.json and claims.md are that harness's own output re-run at the head (`tests/harness_headers.py` refuses committed output that its run changes): C108 counts one more relative link, the new how-it-works.md link to `configuration.md#pump-duty-control`, with broken=[].
 
+The brief's other carries, each already on main by pull request 3513 (merge 83e4e83d77, its step commits ancestors of origin/main by `git merge-base --is-ancestor 3246aa389f origin/main`), re-run here only where this diff reaches them:
+
+- Carry 0: dismissed in the brief, superseded by Carry 1.
+- Carry 1, Carry 2, Carry 3: the keyed delta and the stateless arm landed in 83e4e83d77; at this head `python3 tests/doc_claims.py` passes both arms (Figures).
+- Carry 4 (away mode and the mold floor), Carry 6 (the operating-mode row), Carry 7 (coffee.svg), Carry 9 (the Health section), Carry 14 and Carry 16 (the stratified combi probe): landed in 83e4e83d77; this diff touches none of those sentences.
+- Carry 5, Carry 11, Carry 12, Carry 13, Carry 15: `python3 tests/doc_claims.py --markers --user` reads `0 user-doc marker(s), 0 due` at this head (Figures).
+- Carry 8: dismissed in the brief (the owner's check on v7.1.12). Carry 10: dismissed in the brief, a duplicate of Carry 11.
+
 Pages re-read: README.md, docs/setup.md, docs/configuration.md, docs/how-it-works.md, docs/automations.md, docs/dashboard-card.md, docs/ecl110.md.
 
 ## Head
