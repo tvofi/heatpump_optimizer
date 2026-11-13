@@ -1,0 +1,16 @@
+M1-early-return 1 merge_train self-test: 662 checks, 4 failed
+M2-oid-guard-off 1 merge_train self-test: 662 checks, 1 failed
+M3-no-pageinfo-update 1 merge_train self-test: 662 checks, 3 failed
+M4-cursor-not-sent 1 merge_train self-test: 662 checks, 1 failed
+M5-drop-page1-nodes 1 merge_train self-test: 662 checks, 1 failed
+M5b-drop-page2-nodes 1 merge_train self-test: 662 checks, 4 failed
+M6-except-returns-merged 0 merge_train self-test: 662 checks, 0 failed
+M7-oserror-green 1 merge_train self-test: 662 checks, 1 failed
+M8-no-after-arg 1 merge_train self-test: 662 checks, 1 failed
+M9-no-endcursor 1 merge_train self-test: 662 checks, 1 failed
+M10-cap-returns-payload 0 merge_train self-test: 662 checks, 0 failed
+M12-not-more-only 0 merge_train self-test: 662 checks, 0 failed
+M13-not-cursor-only 1 IndexError: tuple index out of range
+M14-cap-zero-pages 1 merge_train self-test: 662 checks, 4 failed
+M15-raise-on-code-dropped 0 merge_train self-test: 662 checks, 0 failed
+M16-get-endcursor-none 1 merge_train self-test: 662 checks, 4 failed

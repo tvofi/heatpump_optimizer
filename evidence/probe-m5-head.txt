@@ -1,3 +1,0 @@
-page1 red required gate, page2 green gate rerun: ('red', '1 of 2 required gate run(s) concluded FAILURE')
-page1 non-gate required ctx, page2 green gate: ('red', 'GitHub also requires other-req')
-control: both on one walk, gate red on page2: ('red', '1 of 2 required gate run(s) concluded FAILURE')
