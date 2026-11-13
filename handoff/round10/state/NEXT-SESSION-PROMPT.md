@@ -27,7 +27,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CARRY-AUDIT-P5 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SUITE-ENV-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-SAV-VALUATION-RESIDUE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SAV-VALUATION-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CLOSEOUT-PREP (stage carries-open, branch `fix/r10-closeout-prep`): `git fetch origin fix/r10-closeout-prep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ECL110-MQTT-OFF-NEUTRAL (stage carries-open): no branch pushed yet, so nothing to fetch
