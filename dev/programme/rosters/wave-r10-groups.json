@@ -26474,6 +26474,50 @@
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
     "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN): owner decision cards 2026-11-13: process convergence audit, before round 11 finders"
    }
+  },
+  {
+   "group": "R11-PRE-TOKEN-LEDGER",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "process",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
+   "files": [
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/beat_jobs.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner ruling 2026-11-13 on decision card P4 (yes, local and cloud): every dispatch writes group, role and model in a header, and a daily job sums token usage per header for local seats and per session for cloud seats into a ledger beside the dispatch ledger. Establish first, by measurement, whether cloud usage is readable per session; if it is not, record that and deliver the local half. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 1 and section 6 row a4. Must merge before round 11 finders start.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r11-pre-token-ledger",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
+    "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move; overlap admitted (R11-PRE-TOOLCHAIN-PIN, R11-PRE-ROUND-METRICS): owner decision cards 2026-11-13: process convergence audit, before round 11 finders"
+   }
   }
  ]
 }
