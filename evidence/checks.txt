@@ -1,0 +1,47 @@
+## self-test
+   coverage arm exclude a covered path: refused=True; null control custom_components/heatpump_optimizer/optimizer.py covered=True
+   harness-citation arms: True, null True
+   default verdict: live True, no D10 refused True, uncited refused True
+   default invocation: live rc=0, blueprints dropped rc=1
+   evaluation arms: 15/15 held; --round 1 rc=1
+SELF-TEST passed (every perturbed scope refused)
+rc=0
+## --round 11
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+FAIL start evaluation round=11: 2 gap(s)
+   dev/audit/rounds/round10/OBJECTIVE.json is not in the tree: round 10's close wrote no record to evaluate
+   dev/audit/rounds/round11/EVALUATION.json is not in the tree: the start evaluation has not run
+rc=1
+## no round
+rc=0
+## terms
+13
+## objects
+dev/governance/dimensions/D*.md 16
+dev/governance/roles/*.md 19
+dev/governance/rules/*.md 10
+tools/audit/seat/instruments/*.md 105
+.github/workflows/*.yml 18
+352 dev/governance/decisions/0017-objective-function.md
+## budgets
+corpus:        ~69092 tokens, cap 68618 +band 500 = 69118
+role fixer     ~6279 tokens, cap 5852 +band 500 = 6352
+role record    ~7427 tokens, cap 7405 +band 500 = 7905
+role policy    ~10013 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+## rules_sync
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+## brief_lint
+
+PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean
+## version
+(empty = untouched)
+## roles diff vs main
+0
+## owed-reds
+tests / mutation
+tests / typing
+validate / validate-hacs
+CLAIMS-IDENTICAL to merge base e23124ff6e

@@ -1,0 +1,16 @@
+BASE 0
+RESULT M1 missing evaluation returns no gap: rc=1 KILLED arms=['evaluation: a missing evaluation is refused', '--round exits 1 with no evaluation in the tree'] 
+RESULT M2 missing previous record never tested: rc=1 KILLED arms=['evaluation: a missing previous record is refused', '--round exits 1 with no evaluation in the tree'] 
+RESULT M3 card decision never tested: rc=1 KILLED arms=['evaluation: an undecided card is refused'] 
+RESULT M4 accepted card merge never tested: rc=1 KILLED arms=['evaluation: an accepted card not merged is refused'] 
+RESULT M5 evaluator==reviewer allowed: rc=1 KILLED arms=['evaluation: one seat as evaluator and reviewer is refused'] 
+RESULT M6 gaps do not reach exit code: rc=1 KILLED arms=['--round exits 1 with no evaluation in the tree'] 
+RESULT R7 orchestrator allowed (reviewer's): rc=1 KILLED arms=['evaluation: the orchestrator as evaluator is refused'] 
+RESULT R8 evidence never tested (reviewer's): rc=1 KILLED arms=['evaluation: a verdict with no evidence is refused'] 
+RESULT R9 card reference never tested (reviewer's): rc=1 KILLED arms=['evaluation: a change with no card is refused'] 
+RESULT R10 term rows never tested (reviewer's): rc=1 KILLED arms=[]    default invocation: live rc=0, blueprints dropped rc=1
+RESULT R11 round identity never tested (reviewer's): rc=1 KILLED arms=[] SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {"drop D10's universe": True, 'strip tests/ and blueprints/ globs': True, 'exclude a
+RESULT R12 verdict never tested (reviewer's): rc=0 SURVIVED arms=[] SELF-TEST passed (every perturbed scope refused)
+RESULT R13 enumerator never tested (reviewer's): rc=1 KILLED arms=['evaluation: a value with no enumerator is refused'] 
+RESULT R14 no_read reason never tested (reviewer's): rc=1 KILLED arms=['evaluation: a NO-READ with no reason is refused'] 
+BASE-AFTER 0

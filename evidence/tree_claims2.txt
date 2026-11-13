@@ -1,0 +1,112 @@
+## governance_cost
+tools/audit/round4/D11/governance_cost.py
+.github/workflows/governance.yml
+dev/archive/handoff/r9-f2-solver-4/ev/gate_head.log
+dev/archive/handoff/r9-f2-solver-4/ev/gate_round1_head.log
+dev/audit/rca/R9-I4.md
+dev/audit/rounds/round10/D13/s3/REPORT.md
+## pre-studies in tree
+dev/audit/rounds/round10/D10/s1/coverage_modules.py
+dev/audit/rounds/round10/D11/s1/pre_edit_multiedit.py
+dev/audit/rounds/round10/D11/s3/pre_edit_multiedit.py
+dev/audit/rounds/round10/D14/s3/staleness_on_change.prefix.out
+dev/audit/rounds/round10/D14/sweep-P8/prefix.out
+dev/audit/rounds/round10/D3/s1/prescreen/results.txt
+dev/audit/rounds/round10/D3/s3/prescreen.py
+dev/audit/rounds/round10/D7/arch-s3/payload_census_coverage.py
+dev/audit/rounds/round10/catchup/study/learner_v2.py
+dev/audit/rounds/round10/catchup/study/ratio_v2.py
+dev/audit/rounds/round10/CATCHUP-JUDGE.json
+dev/audit/rounds/round10/CATCHUP-JUDGE.md
+dev/audit/rounds/round10/CATCHUP-VERIFY.json
+dev/audit/rounds/round10/CATCHUP-VERIFY.md
+dev/audit/rounds/round10/ISSUES.json
+dev/audit/rounds/round10/JUDGE-INPUT.json
+dev/audit/rounds/round10/JUDGE.json
+dev/audit/rounds/round10/JUDGE.md
+dev/audit/rounds/round10/LEADS.json
+dev/audit/rounds/round10/LEADS.md
+dev/audit/rounds/round10/NORMALISE.md
+dev/audit/rounds/round10/QUIET.md
+dev/audit/rounds/round10/QUIET.tsv
+dev/audit/rounds/round10/ROSTER-ISSUES.json
+dev/audit/rounds/round10/catchup/arch-a/v2_census_blind.py
+dev/audit/rounds/round10/catchup/arch-a/v2_duty_floor_reach.py
+dev/audit/rounds/round10/catchup/arch-a/v2_event_root_blind.py
+dev/audit/rounds/round10/catchup/arch-a/v2_family_game.py
+dev/audit/rounds/round10/catchup/arch-a/v2_params_interleave.py
+dev/audit/rounds/round10/catchup/arch-a/v2_payload_census.py
+dev/audit/README.md:108:  pre-study, section K9 (out of the tree).
+## guides vs object families
+guide N audit-find.js
+guide N policy_lint.mjs
+guide N brief_lint.mjs
+guide Y prepr.sh
+guide Y app_push.sh
+guide N stamp.py
+guide N session-start.sh
+guide N closure.py
+guide N structure.py
+guide N mutation_table.py
+guide N budget_raise_gate.py
+guide N carry_audit.py
+## actuator-write in tree
+dev/governance/decisions/0017-objective-function.md
+dev/governance/roles/fixer.md
+dev/programme/rosters/wave-r10-groups.json
+## 0016 window/closeout
+5:scope all (#201 comment 6329234399), and merges before round 10's closeout
+18:number on closeout, so the programme closeout release will be v10.0.0"*.
+20:1. **The closeout stamp of audit round N is N.0.0**, whatever the current
+21:   major: round 10's programme closeout is v10.0.0.
+22:2. **Between closeouts a stamp is `--bump minor` or `--bump patch`**, as
+## 0015 target
+21:regressed unseen. Its section 4 defines a target that cannot be met by gaming;
+35:3. **The programme-level architecture target**: a round's end-to-end
+42:   reconciles it with "a review trigger, never a target a seat is rewarded for
+## D9 budget, D10 tier
+10:contiguous GIL-holding interval (two 2 ms yields sit between L-BFGS starts);
+13:payload size versus the recorder exclusion set; and whether the stress budget
+14:should become a real gate — CI sets no `STRESS_*` variable, the ms budget is
+15:retired, and `rss_peak_mb`/`traced_peak_mb` record [every] scenario."*
+3:Owner's brief: *"Adherence to home assistant integration platinum quality
+14:lookup — recording the command and the result. Rules, by tier:
+16:- Bronze: action-setup, appropriate-polling, brands, common-modules,
+22:- Silver: action-exceptions, config-entry-unloading,
+## carry_receivable
+dev/governance/rules/finding-propagation.md:68:  not `carry_receivable` is none: the seam's live owner is, else the producer (tvofi 2026-11-10).
+tools/audit/carry_audit.py:477:        """A group that can still take a carry (`roster_lib.carry_receivable`)."""
+tools/audit/carry_audit.py:478:        return roster_lib.carry_receivable(group)
+tools/audit/carry_audit.py:1324:    # carry_receivable is refused like the group token (verdict/3417), unless a carry file or an
+tools/audit/seat/r10_roster_ops_mutants.py:191:    "K10": ("        if not roster_lib.carry_receivable(dest):\n",
+## first_pass enumerator
+#!/usr/bin/env python3
+"""A round's flow, from git alone: throughput, records, yield, absorbs, re-reviews, merge hours.
+
+    python3 tools/audit/seat/flow_metrics.py --self-test
+    python3 tools/audit/seat/flow_metrics.py [--fetch] --window FROM..UNTIL \\
+        --roster REF:PATH --prefix R10- [--tree origin/main] [--record-prefix record/]
+
+R10-FLOW-TOOLKIT-MEASURE: the Lean flow study's section-0 enumerators, with
+no round constant in code -- the roster, the group-id prefix and the window
+are arguments. Every read is over git (review_strength.py's bus reader, and
+`--fetch` is its fetch), so no API call and no rate limit. A window is
+[from, until), times in UTC; `hours` is (until - from) in hours.
+
+THE RULES.
+  groups added / closed per hour. The roster at REF:PATH as of `from`
+    (its last first-parent commit at or before it; none, or no file there,
+    is an empty roster),
+    then each first-parent commit of REF in the window touching PATH, each
+    compared with the one before: a group id with the prefix appearing is
+    ADDED, one whose resume.stage enters roster_lib's DONE_STAGES is CLOSED
+    (a group re-opened and re-closed counts twice). Each count / hours.
+  records' share of merges. The first-parent merges of `--tree` committed in
+    the window whose subject is a pull-request merge (review_strength's
+    MERGE_RE); a RECORD is one whose branch starts with `--record-prefix`.
+  first-pass yield. Of the window's non-record merged PRs with a bus verdict
+    before their merge, the share whose first verdict is `merge`; the PRs
+    with none are printed beside it, never folded in.
+  main absorbs per fix branch. For each non-record merged PR, the merge
+    commits in merge^1..merge^2 (the branch's own commits) with a parent on
+    `--tree`'s first-parent line; mean and max over those PRs.
