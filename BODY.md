@@ -1,56 +1,52 @@
-# r10-legacy-control-survey: RESULT
+# r10-legacy-control-survey RESULT
 
-Survey at origin/main `c7f2fe4270a9f106c640fb1258123034f9046c21` (the dispatch head 4aa98689 is an ancestor; the list is unchanged in kind). Read-only: no tracked file changed; a temporary untracked probe copy of `brief_lint.mjs` (one added export line) and a scratch worktree were used and removed.
+Trees: assigned head 4aa98689469d61e57189549c9770f2688d87d4cf; fresh origin/main c7f2fe4270a9f106c640fb1258123034f9046c21. `git diff 4aa9868 c7f2fe4 -- tools/policy dev/programme/carries dev/archive/carries` is empty, and the data file md5 is identical, so the survey holds at both. Read-only: no tracked file changed, no PR.
 
 ## 1. The list
+Lives in `tools/policy/legacy_control_files.json` (key `files`), read by `readLegacyControlFiles()` in `brief_lint.mjs` (cap literal `LEGACY_CONTROL_CAP` = 14, line 965).
+Count by rule: `python3 -c "import json;print(len(json.load(open('tools/policy/legacy_control_files.json'))['files']))"` prints **13** (cap 14).
+Members: carry-1067, 1336, 1395, 1398, 1454, 1459, 1463, 1644, 1645, 1659, 1660, 201, 752 (1644 etc. under dev/archive/carries; 1645 and 201 under dev/programme/carries).
 
-- Lives in `tools/policy/legacy_control_files.json` (`files`), read by `readLegacyControlFiles()` in `tools/policy/brief_lint.mjs`; cap `LEGACY_CONTROL_CAP = 14` is a literal in the grader.
-- Count by rule: `python3 -c "import json;print(len(json.load(open('tools/policy/legacy_control_files.json'))['files']))"` prints **13** (cap 14; carry-1412 already delisted by #3552 data PR d65839f2e2).
-- Members: carry-1067, 1336, 1395, 1398, 1454, 1459, 1463, 1644, 1645, 1659, 1660, 201, 752 (`.json`), under `dev/archive/carries` except 1645 and 201 (`dev/programme/carries`).
-- Method: each member linted with `lintCarryFile(f, {roster: new Map(), legacy: new Set()})`, control errors listed by kind; every `path:line` in every control re-run through the linter's own `clauseWindow` -> `anchorCandidatesFor` -> `checkPathLine` (anchor candidates = quoted phrases (>=4 chars), keywords `return/raise/...`, snake_case/SCREAM symbols from the +-220-char clause around the cite; ANY candidate found in the cited line +-1 (single line) or the exact range, or in its enclosing scope, makes the cite pass). Neighbours counted +-40 lines of the cited range, plus total occurrences and nearest distance.
+## 2. Method
+Each member linted with `lintCarryFile(f,{roster:new Map(),legacy:new Set()})`, control errors listed by kind. For every `path:line` in a control the linter's anchor candidates are rebuilt exactly as `checkPathLine` does: clause window of 220 chars around the cite; candidates are quoted phrases, keyword anchors (return, raise, ...) and snake/SCREAM symbols; the cite passes if ANY candidate is in the cited line +-1 (range: as given) or in its enclosing def chain. Neighbours = other lines holding a candidate within +-40 of the cited range. Script: scratchpad survey.mjs (not committed).
 
-## 2. Table (one row per member)
+Strict rule from the brief: AT RISK = the control's only error is a stale citation AND another anchor line lies within +-40, or it lints clean while listed. Supplement I add after the null control (section 4): also report nearest-other-line distance and file-wide count.
 
-Control-error kinds with legacy off. "Sole error" = the only control error is a stale `path:line`.
+## 3. Table
+Only 3 of 13 members have any `path:line` in a control; the other 10 have none, so they cannot go vacuous by drift. No member lints clean today.
 
-| file | control | anchor (linter-extracted) | cited line state at main | other lines with anchor within +-40 | AT RISK | why |
+| file | control | anchor(s) | cited line state | neighbours with anchor (+-40) / file total | AT RISK | why |
 |---|---|---|---|---|---|---|
-| carry-1067 | 0, 1 | none (no `path:line`) | no citation | n/a | no | errors: no-path (c0), unresolvable path `lift_consistency.py` (c1); no path:line to drift |
-| carry-1336 | 0 | none | no citation | n/a | no | no-path error only |
-| carry-1395 | 0 | none | no citation | n/a | no | no-path error only |
-| carry-1398 | 0 | none | no citation | n/a | no | unresolved symbol `no_dhw_gate_counts` + no-path |
-| carry-1454 | 0 | none | no citation | n/a | no | no-path error only |
-| carry-1459 | 0 | none | no citation | n/a | no | no-path error only |
-| carry-1463 | 0 | none | no citation | n/a | no | unresolvable path `polish_cost.py` |
-| carry-1644 | 2 | `owner_missing` (snake_case symbol, the only candidate) | `coordinator.py:10010` (file has 11463 lines): STALE, anchor absent from the file | 0 (0 occurrences in the whole file and in the tracked tree outside this carry) | no | it IS a sole-stale-citation file (the one at-risk shape), but the anchor is a prototype-lint counter name that is not in coordinator.py at all, so no drift can bring it into the +-1 window short of someone adding that identifier there. Latent, not at risk |
-| carry-1645 | 0 | `_mutated_span` (symbol) at `tests/doc_claims.py:612` | STALE: anchor at 616 and 622 (4 and 10 lines away) | 2 (nearest 4) | no (shielded) | the citation is fragile (a 3-5 line shift of tests/doc_claims.py makes it clean), but control 1 still has a no-path error, so the file cannot lint clean and `assertLegacyControl` cannot go VACUOUS while that stands. Watch: if control 1 is ever repaired alone, this becomes at-risk. The other two cites pass today: `doc_claims.py:605-619` (matched `check_simulate_plan_fields` by enclosing scope, defined at 570) and `doc_claims.py:487` (matched `check_initial_setup_menu` by scope; also `## Initial setup` 3 times, 1 near, at 490) |
-| carry-1659 | 0 | none | no citation | n/a | no | no-path error only |
-| carry-1660 | 0, 1 | none | no citation | n/a | no | unresolvable path `repro_loaders.py` x2 |
-| carry-201 | 2 | `policy_lint` (symbol) at `CLAUDE.md:20` | STALE, anchor absent from CLAUDE.md (214 lines) | 0 | no | plus nine no-path errors (controls 4, 9-15, 23): cannot lint clean |
-| carry-752 | 0 | none | no citation | n/a | no | no-path error only |
+| carry-1067 | 0, 1 | - | no path:line; errors: no-path (c0), unresolved `lift_consistency.py` (c1) | n/a | no | no citation |
+| carry-1336 | 0 | - | no path:line; no-path | n/a | no | no citation |
+| carry-1395 | 0 | - | no path:line; no-path | n/a | no | no citation |
+| carry-1398 | 0 | - | no path:line; unresolved symbol `no_dhw_gate_counts` + no-path | n/a | no | no citation |
+| carry-1454 | 0 | - | no path:line; no-path | n/a | no | no citation |
+| carry-1459 | 0 | - | no path:line; no-path | n/a | no | no citation |
+| carry-1463 | 0 | - | no path:line; unresolved `polish_cost.py` | n/a | no | no citation |
+| carry-1644 | 2 | `owner_missing` (snake identifier) | `coordinator.py:10010` stale; symbol absent from the whole file (11465 lines) | 0 / 0 | no | only error is the stale cite (member would lint clean if it were fixed), but the anchor occurs nowhere, so no unrelated line can drift in. Residual: a future `owner_missing` landing at 10009-10011 |
+| carry-1645 | 0 | `_mutated_span` (private identifier, 2 occurrences) | `tests/doc_claims.py:612` stale; anchor at 616 and 622 | 2 / 2 (nearest 4 lines away) | **yes (control-level)** | this control errors only on a stale cite and the anchor is 4 lines off: a 3-line drift of doc_claims.py makes it lint clean. Same control's other cites pass: `:605-619` matches via enclosing def `check_simulate_plan_fields`, `:487` via `check_initial_setup_menu`. Member-level the file stays red today because carry 1 has an independent no-path error, so the VACUOUS refusal does not trip yet; it trips the day carry 1 is repaired or if carry 0 is the last remaining error |
+| carry-1645 | 1 | - | no path:line; no-path | n/a | no | no citation |
+| carry-1659 | 0,1 | - | no path:line; no-path | n/a | no | no citation |
+| carry-1660 | 0,1 | - | no path:line; unresolved `repro_loaders.py` x2 | n/a | no | no citation |
+| carry-201 | 2 | `policy_lint` | `CLAUDE.md:20` stale; anchor absent from CLAUDE.md (215 lines) | 0 / 0 | no | stale-only control but no occurrence of the anchor; member pinned red by 9 other no-path controls |
+| carry-201 | 4,9-15,23 | - | no path:line; no-path | n/a | no | no citation |
+| carry-752 | 0 | - | no path:line; no-path | n/a | no | no citation |
 
-Listed-but-clean members: **none** (every one has at least one control error). AT RISK members under the brief's rule (sole stale citation AND >=1 anchor line within +-40, or listed and clean): **none**.
+No bare `:N` forms in any member control were found by the class-2b pattern.
 
-Only three members carry a `path:line` in a control at all (1644, 1645, 201); the other ten fail on missing/unresolvable paths, which line drift cannot change.
+## 4. Null control
+Pre-repair carry-1412: `git show d65839f2e2^:dev/archive/carries/carry-1412.json` (d65839f2e2 is the re-anchor commit; the list before it also held carry-1412). Linted with the exemption off at 4aa9868 its only control error is `path:line optimizer.py:4671: 'p_max' not found near ...:4671; found at line 32 instead`; anchor `p_max` (a bare identifier, 81 occurrences in a 6138-line file). Cited text `p_dhw_run = max(0.1, min(p_max * 0.8, p_max))` no longer exists in the file.
 
-## 3. Null control, with an honest failure of the +-40 rule
+| row | shape | strict +-40 | supplement (nearest <=100 or >=10 file-wide hits on a bare identifier) | call |
+|---|---|---|---|---|
+| carry-1412 pre-repair | stale-only, anchor `p_max` | 0 neighbours at today's tree (nearest p_max lines 4626 and 4766, 45 and 95 away) -> strict rule alone says NOT at risk | yes: common identifier, 81 hits, nearest 45 away | **AT RISK** (via supplement only) |
+| synthetic member control: `optimizer.py:4607 "where the tank clamp refused heat" ...` (phrase is unique, on line 4612 only; same text at :4612 passes) | stale-only, unique quoted phrase | 0 other lines hold the phrase | no: only one occurrence, which is the real site; the cite can turn clean only when it points at that site, a true repair | **NOT at risk** |
 
-Pre-repair carry-1412: the control re-anchored by 87eb346e08 (PR 3525; parent caacd43b4e, data delist d65839f2e2 = 3552). Before repair, its only control error was `optimizer.py:4671` with anchor candidate `p_max` (from `` `p_dhw_run = max(0.1, min(p_max * 0.8, p_max))` ``). Reconstructed at caacd43b4e and again with the identical text at origin/main (`optimizer.py` is unchanged between them):
+Finding to read honestly: the strict +-40 rule FAILS the first null at today's tree. The incident is real, and I reproduced it from history: `git show <c>:custom_components/heatpump_optimizer/optimizer.py` has p_max on line 4670/4671 at commits 3ed99bc468 (Nov 5), 2580a8b638 and 0714908e3b (Nov 4), so the pre-repair control lints clean at those bases and trips LEGACY-LISTED-CLEAN, while at 4aa9868 and its parent it is 45 lines off. A hot file moves tens of lines between merges, so +-40 is too tight; recommend the supplement (nearest-line distance up to about 100, or a bare identifier with many file-wide hits). Applied to the members, the supplement changes no call: 1644 and 201 have zero occurrences, 1645 already trips the strict rule.
 
-| shape | sole stale error | anchor | occurrences in file | nearest occurrence | within +-40 | classifier call |
-|---|---|---|---|---|---|---|
-| carry-1412 pre-repair (`optimizer.py:4671`, `p_max`) | yes (`'p_max' not found near ...:4671; found at line 32 instead`) | `p_max`, a short common identifier | 81 | 45 lines (4626) | 0 | **+-40 rule: NOT at risk (miss by 5 lines).** Widened rule (below): AT RISK |
-| synthetic: same cite with the unique quoted phrase `"future_solar_6_12h / max(typical_heat_loss"` (the phrase the repair used) | yes | the phrase; 1 occurrence | 1 | 1015 lines | 0 | NOT at risk under both rules |
+## 5. Repair for each AT RISK member (described, not applied; shape of #3552)
+carry-1645 control 0 only: replace the line numbers of the `tests/doc_claims.py:612` citation with a phrase anchor, i.e. name `tests/doc_claims.py` and the symbol `_mutated_span` (or the function holding it) without a line number, as 3552 did for carry-1412 (`dhw_planner.py`, no number). Data-only: one string in `dev/programme/carries/carry-1645.json`. Do NOT delist: carry 1 still has the no-path error, so removing the file from `tools/policy/legacy_control_files.json` would turn `tests / briefs` red until carry 1 also names a path. Delist only in a second step once carry 1 names an existing harness path. Optional hardening for carry-1644 and carry-201: same re-anchor (drop `:10010`, `:20`), also data-only, though neither is at risk.
 
-The brief's +-40 rule therefore does not call the known-bad shape at risk: the 1412 incident needed only a ~44-line shift of `optimizer.py` (any open PR adding that much above line 4671), and with 81 `p_max` lines in an 11k-line file, one lands in the +-1 window after a shift of a few dozen lines. A fixed +-40 radius is the wrong instrument; the discriminator that separates the two rows is anchor commonness. **Widened rule used for the verdicts above:** AT RISK when the control's only errors are stale `path:line` AND (the anchor has >=1 occurrence within +-40 OR >= 10 occurrences in the file), or when listed and clean. Re-applying that rule to the 13 members changes no verdict: 1644 (0 occurrences) and 201 (0, and shielded) are not at risk; 1645 is shielded by its second error and its anchor has only 2 occurrences. So the answer is robust to the radius, and the null control is called correctly only by the widened rule; the +-40 rule as specified is recorded as failing its own null control.
-
-## 4. Repairs for AT RISK members
-
-None are at risk, so no 3552-shaped repair is owed. For the two latent cases, described, not applied:
-
-- carry-1644 control 2 (the only member one repair from lint-clean, and so the one that would then be refused by `staleLegacyMembers` as listed-but-clean): re-anchor by phrase: replace `the one stray being coordinator.py:10010` with `the one stray being coordinator.py, found by the phrase "on/off convention"` (a phrase the carry's own remeasure line already greps for), and delist `carry-1644.json` from `tools/policy/legacy_control_files.json` in the same data-only PR (cap 14 unchanged; set becomes 12). Do both in one PR or the base-vs-head lint reddens (`LEGACY-CONTROL VACUOUS: listed carry lints clean`).
-- carry-1645 control 0: replace `tests/doc_claims.py:612` by the phrase-anchored form (`tests/doc_claims.py, the `_mutated_span` assignment`) only together with a repair of control 1's missing path, then delist; repairing control 0 alone changes nothing the lint can see and repairing control 1 alone leaves a drifting cite.
-
-## 5. brief_lint summary
-
-`node tools/policy/brief_lint.mjs` at origin/main c7f2fe4270 (73 s wall): the legacy lines read `LEGACY-CONTROL ok: ... the legacy set is within its cap and each member still needs the exemption` and `LEGACY-LISTED-CLEAN ok: a listed carry that lints clean is refused, one that needs the exemption is not, and the vacuous check is told apart`. Overall summary line: `TOTAL: 0 error(s) across 45 file(s)` (`CARRY: 44 carry file(s)`); no VACUOUS line; the only non-zero sections are the intentional negative fixtures under tools/policy/fixtures/ (carry-990002/3/4 etc.); the only non-fixture warnings are one each in carry-1922 and carry-2075.
+## 6. Linter run
+`node tools/policy/brief_lint.mjs` at 4aa9868, exit 0: `TOTAL: 0 error(s) across 45 file(s)` (line 144; line 142 `CARRY: 44 carry file(s)`); last section lines `LEGACY-CONTROL ok: ... the legacy set is within its cap and each member still needs the exemption` and `LEGACY-LISTED-CLEAN ok: ...`. The fixture sections print deliberate errors (e.g. `8 error(s)`), not tree findings.
