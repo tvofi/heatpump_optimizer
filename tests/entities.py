@@ -11113,7 +11113,7 @@ R.check(
 _pub_fails = FakeCoordinator(DATA)
 
 
-async def _raise_publish(reason=None):
+async def _raise_publish(reason=None, heat_pump_on=None):
     raise OSError("mqtt unreachable")
 
 
