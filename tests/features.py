@@ -87131,6 +87131,83 @@ R.check(
     == [i for i in (2, 5) if _dsp_r16_ship[i] >= 1.5],
     f"{_dsp_r16_avail}, shipped {_dsp_r16_ship}",
 )
+# The same item on a both step: heating shipped under p_min beside hot water is
+# no leg the arbiter serves, so the stop belongs to the heating step after it.
+_dsp_r16_both = (np.array([0.0, 1.0, 2.5, 0.0]), np.array([0.0, 2.0, 0.0, 0.0]))
+_dsp_r16_both_avail = _dsp_om._stop_availability(_dsp_mod_opt, *_dsp_r16_both, 5.5)
+_dsp_r16_both_ship = _dsp_om._realize_joint(True, *_dsp_r16_both, 1.5, 5.5)[0]
+_dsp_r16_both_dc = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR, _DSP_OFF), *_dsp_r16_both, 5.5)
+R.check(
+    "on a modulating clamped install heating shipped under p_min beside hot "
+    "water takes no charge: the stop is charged to the heating step after the "
+    "both step, and no charged step ships heating under the floor",
+    _dsp_r16_both_ship.tolist() == [0.0, 1.0, 2.5, 0.0]
+    and _dsp_r16_both_avail is not None
+    and np.flatnonzero(_dsp_r16_both_avail < 1.0).tolist() == [2]
+    and bool(np.all(_dsp_r16_both_ship[_dsp_r16_both_avail < 1.0] >= 1.5)),
+    f"{_dsp_r16_both_avail}, shipped {_dsp_r16_both_ship}",
+)
+R.check(
+    "null control: with no duty floor (a duty-cycle install) the same arrays "
+    "charge the both step itself, so the floor is what moved the charge",
+    _dsp_r16_both_dc is not None
+    and np.flatnonzero(_dsp_r16_both_dc < 1.0).tolist() == [1],
+    f"{_dsp_r16_both_dc}",
+)
+# The start profile is clipped into [0, p_max] before it is read, never raised:
+# a step the start leaves idle after a block holds no heating leg to charge.
+_dsp_idle_after = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, -0.4, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]), 5.5
+)
+_dsp_run_after = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]), 5.5
+)
+R.check(
+    "a start that is idle, or below zero, in the step after a block charges "
+    "nothing; the same block followed by heating charges that step",
+    _dsp_idle_after is None
+    and _dsp_run_after is not None and np.flatnonzero(_dsp_run_after < 1.0).tolist() == [2],
+    f"{_dsp_idle_after}, {_dsp_run_after}",
+)
+R.check(
+    "the bound is what hot water leaves and never under zero: 0.5 kW beside "
+    "5.5 of 6, nothing beside 7, with no vector and with one",
+    _dsp_dl.space_headroom(6.0, np.array([5.5, 7.0]), None, None).tolist() == [0.5, 0.0]
+    and _dsp_dl.space_headroom(6.0, np.array([5.5, 7.0]), np.array([1.0, 0.5]), None).tolist()
+    == [0.5, 0.0],
+)
+R.check(
+    "a pump under 1 kW weighs its switch like any other: p x draw / p_max at "
+    "a maximum draw of 0.5 kW",
+    _dsp_dl.switch_weight(np.array([0.0, 0.4]), np.array([0.4, 0.0]), (1.0, 0.0), 0.5) == 0.8,
+)
+
+
+def _dsp_obj_a(*_a, **_k):
+    return 0.0
+
+
+def _dsp_obj_b(*_a, **_k):
+    return np.zeros(1)
+
+
+_dsp_plain_solve = _dsp_om._with_stop_availability(
+    _dsp_opt(None, None), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]),
+    5.5, _dsp_obj_a, _dsp_obj_b,
+)
+_dsp_vector_solve = _dsp_om._with_stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]),
+    5.5, _dsp_obj_a, _dsp_obj_b,
+)
+R.check(
+    "with no vector a space solve gets the two objectives it handed in, the "
+    "same objects, and today's bound; with one it gets them bound to the vector",
+    _dsp_plain_solve[1] is _dsp_obj_a and _dsp_plain_solve[2] is _dsp_obj_b
+    and _dsp_plain_solve[0].tolist() == [5.5, 3.5, 5.5, 5.5]
+    and _dsp_vector_solve[1] is not _dsp_obj_a
+    and np.flatnonzero(_dsp_vector_solve[1].keywords["avail"] < 1.0).tolist() == [2]
+    and _dsp_vector_solve[2].keywords["avail"] is _dsp_vector_solve[1].keywords["avail"],
+)
 
 
 def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, **install):
@@ -87593,6 +87670,72 @@ R.check(
     _dsp_g_on_ban[0] is _dsp_g_incumbent and _dsp_g_on_ban[3] == 0
     and _dsp_g_on_ban[1] is _dsp_leg_req,
 )
+# The pin rule is the planner's own (``_apply_dhw_pins``): a pin of 0.5 forces on.
+_dsp_g_pins = _dsp_leg_h.dhw_pins
+_dsp_g_half = np.full(96, np.nan)
+_dsp_g_half[_dsp_g_ban & (np.asarray(_dsp_leg_plan.schedule, float) > 0)] = 0.5
+_dsp_om._dhw_build = lambda *a, **k: (_dsp_leg_plan, _dsp_leg_req)
+try:
+    object.__setattr__(_dsp_leg_h, "dhw_pins", _dsp_g_half)
+    _dsp_g_half_on = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+finally:
+    object.__setattr__(_dsp_leg_h, "dhw_pins", _dsp_g_pins)
+    _dsp_om._dhw_build = _dsp_g_real_build
+R.check(
+    "the same candidate with each of those steps pinned at 0.5, which the "
+    "planner's pin rule forces on, is solved and adopted on its lower score",
+    int(np.sum(_dsp_g_half == 0.5)) > 0
+    and _dsp_g_half_on[3] == 1 and _dsp_g_half_on[0][2] == "candidate"
+    and _dsp_g_half_on[0][1] is _dsp_leg_plan.schedule,
+    f"{_dsp_g_half_on[3]} solve(s), {int(np.sum(_dsp_g_half == 0.5))} pinned step(s)",
+)
+_dsp_g_trickle = np.asarray(_dsp_leg_plan.schedule, float).copy()
+_dsp_g_trickle[_dsp_g_ban] = np.where(_dsp_g_trickle[_dsp_g_ban] > 0, 0.8, 0.0)
+_dsp_om._dhw_build = lambda *a, **k: (
+    _DspNS(schedule=_dsp_g_trickle, draw_rates=_dsp_leg_plan.draw_rates), _dsp_leg_req
+)
+try:
+    _dsp_g_low_on_ban = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+finally:
+    _dsp_om._dhw_build = _dsp_g_real_build
+R.check(
+    "any hot water on a banned step refuses the candidate, 0.8 kW as much as "
+    "a full block",
+    bool(np.any(_dsp_g_trickle[_dsp_g_ban] == 0.8))
+    and _dsp_g_low_on_ban[0] is _dsp_g_incumbent and _dsp_g_low_on_ban[3] == 0,
+    f"{_dsp_g_low_on_ban[3]} solve(s)",
+)
+_dsp_g_tie = _dsp_g_run(-1e-9, shortfall=lambda *a: (None, np.zeros(96), None))
+R.check(
+    "a candidate lower by exactly the 1e-9 margin, and so by no more than "
+    "it, is a tie: refused after its solve, as _co_optimize refuses its own",
+    _dsp_g_tie[0] is _dsp_g_incumbent and _dsp_g_tie[3] == 1
+    and _dsp_g_tie[1] is _dsp_leg_req and _dsp_g_tie[2] is _dsp_g_avail,
+    f"{_dsp_g_tie[3]} solve(s)",
+)
+_dsp_g_walks = []
+
+
+def _dsp_g_walk(temps, schedule, *rest):
+    """A tank walk short at step 5 until that step is excused."""
+    _dsp_g_walks.append(temps)
+    return "walked", np.zeros(96), (None if rest[-1] else 5)
+
+
+_dsp_g_run(-1e9, shortfall=_dsp_g_walk)
+R.check(
+    "the incumbent's tank is walked once: the read past its excused step is "
+    "handed the first walk's temperatures",
+    _dsp_g_walks[:2] == [None, "walked"],
+    f"{_dsp_g_walks}",
+)
+R.check(
+    "a configuration that never heard of the learner holds a zero pair in "
+    "both fields, and an optimizer that has solved nothing holds no vector",
+    _DspCfg().duty_switch_stop_probability == (0.0, 0.0)
+    and _DspCfg().duty_switch_off_seconds == (0.0, 0.0)
+    and _dsp_opt(None, None)._space_avail is None,
+)
 _dsp_g_opt.config.duty_switch_stop_probability = (0.0, 0.0)
 _dsp_g_unpriced = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
 _dsp_g_opt.config.duty_switch_stop_probability = _DSP_PAIR
@@ -87826,6 +87969,109 @@ R.check(
     len(_dsp_co_calls) == 1 and _dsp_co_out[2] == "first"
     and _dsp_co.opt._space_avail is _dsp_co_kept,
     f"{len(_dsp_co_calls)} candidate solve(s), status {_dsp_co_out[2]}",
+)
+# _co_optimize's headroom is the charged bound: on a duty-cycle install heating
+# solved hard against avail x p_max - dhw wanted more than it could have, so
+# the step is pinned and hot water is re-planned against a full compressor.
+_dsp_hr_dhw = np.zeros(96)
+_dsp_hr_dhw[40] = 2.0
+_dsp_hr_avail = np.ones(96)
+_dsp_hr_avail[40] = 1.0 - _dsp_dl.lost_share(_DSP_PAIR, _DSP_OFF)
+_dsp_hr_at_bound = np.zeros(96)
+_dsp_hr_at_bound[40] = _dsp_hr_avail[40] * 5.5 - 2.0
+_dsp_hr_at_bound[41] = 2.0
+_dsp_hr_at_plain = _dsp_hr_at_bound.copy()
+_dsp_hr_at_plain[40] = 5.5 - 2.0
+
+
+def _dsp_hr_demand(space, avail, **install):
+    """The space demand ``_co_optimize`` hands its replan, ``None`` when it builds none."""
+    opt = _dsp_opt(_DSP_PAIR, _DSP_OFF, **install)
+    opt._space_avail = avail
+    seen = []
+
+    def build(h, **kw):
+        seen.append(np.asarray(kw["space_demand"], float))
+        return _DspNS(schedule=_dsp_hr_dhw.copy()), None
+
+    opt._co_optimize(
+        _dsp_co.builds[0][2], space_power=space, dhw_power=_dsp_hr_dhw,
+        status="first", best_score=0.0, solve_space=_dsp_g_raises, p_max=5.5,
+        planner=_DspNS(
+            _dhw_coil_wood_forecast=lambda *a: None, _build_dhw_requirements=build
+        ),
+    )
+    return seen[0] if seen else None
+
+
+_dsp_hr_pinned = _dsp_hr_demand(_dsp_hr_at_bound, _dsp_hr_avail)
+R.check(
+    "the co-optimisation reads the charged bound: on a duty-cycle install "
+    "heating at avail x p_max - dhw in a charged step is pinned, and the "
+    "replan is built against a full compressor there and nowhere else",
+    _dsp_hr_at_bound[40] < 5.5 - 2.0 - 1e-3
+    and _dsp_hr_pinned is not None
+    and np.flatnonzero(_dsp_hr_pinned == 5.5).tolist() == [40]
+    and _dsp_hr_pinned[41] == 2.0,
+    f"{None if _dsp_hr_pinned is None else np.flatnonzero(_dsp_hr_pinned == 5.5).tolist()}",
+)
+R.check(
+    "null controls: the same heating with no vector, or with the vector on a "
+    "clamped install whose bound carries no lost time, is under its bound and "
+    "builds no replan; at the uncharged bound each of the two builds one",
+    _dsp_hr_demand(_dsp_hr_at_bound, None) is None
+    and _dsp_hr_demand(_dsp_hr_at_bound, _dsp_hr_avail, clamp=True) is None
+    and _dsp_hr_demand(_dsp_hr_at_plain, None) is not None
+    and _dsp_hr_demand(_dsp_hr_at_plain, _dsp_hr_avail, clamp=True) is not None,
+)
+
+# The candidate pass is not for a combi store, whose hot-water plan is a
+# feasibility repair scored with no buffer flux: nothing is built or solved.
+import heatpump_optimizer.mixing_valve as _dsp_mv  # noqa: E402
+
+
+def _dsp_combi_pass(combi):
+    """What the candidate pass asks of its planner on a store-buffer install."""
+    params = _DspTP(
+        buffer_tank_volume=504.0, mixing_valve_mode=_dsp_mv.MODE_SMART_WRITE,
+        dhw_enabled=True, dhw_tank_volume=200.0, dhw_combi_tank_enabled=combi,
+    )
+    params.min_electrical_power, params.max_electrical_power = 1.5, 5.5
+    cfg = _DspCfg(cycling_cost=0.3)
+    cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = _DSP_PAIR, _DSP_OFF
+    opt = _DspOpt(_DspTM(params), cfg)
+    opt._dhw_requirement, opt._space_avail = _dsp_leg_req, _dsp_g_avail
+    asked = []
+
+    def build(h, **kw):
+        asked.append(kw.get("placement_ban"))
+        raise RuntimeError("the fixture's build")
+
+    out = _dsp_om._avoid_priced_switches(
+        opt, _dsp_leg_h,
+        _DspNS(_dhw_coil_wood_forecast=lambda *a: asked.append(None), _build_dhw_requirements=build),
+        _dsp_g_raises, lambda *a: 0.0, 5.5, _dsp_g_incumbent,
+    )
+    return opt.model.params.dhw_store.combi, out, asked, opt
+
+
+_dsp_combi_on, _dsp_combi_off = _dsp_combi_pass(True), _dsp_combi_pass(False)
+R.check(
+    "on a combi store the candidate pass asks its planner nothing and returns "
+    "the incumbent, its requirement and its availability in place, on an "
+    "incumbent holding a priced switch",
+    _dsp_combi_on[0] is True and _dsp_combi_on[1] is _dsp_g_incumbent
+    and _dsp_combi_on[2] == []
+    and _dsp_combi_on[3]._dhw_requirement is _dsp_leg_req
+    and _dsp_combi_on[3]._space_avail is _dsp_g_avail,
+    f"combi {_dsp_combi_on[0]}, {len(_dsp_combi_on[2])} planner call(s)",
+)
+R.check(
+    "null control: the same install with the store's hot water in its own "
+    "tank reaches the banned build",
+    _dsp_combi_off[0] is False and _dsp_combi_off[1] is _dsp_g_incumbent
+    and len(_dsp_combi_off[2]) == 2 and _dsp_combi_off[2][1] is not None,
+    f"combi {_dsp_combi_off[0]}, {len(_dsp_combi_off[2])} planner call(s)",
 )
 
 

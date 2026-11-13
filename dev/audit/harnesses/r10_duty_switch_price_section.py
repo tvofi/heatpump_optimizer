@@ -95,13 +95,14 @@ MUTANTS: list[tuple[str, str, str, str]] = [
      "~to_space & (step_minutes - dhw_min > SPLIT_MIN_MINUTES)"),
     ("leaf: the leg classification ignores the duty floor", PKG + "duty_legs.py",
      "_runs(space, floor), _runs(dhw, floor)", "_runs(space, None), _runs(dhw, None)"),
-    # The leaf's own zero-pair return is a shortcut, not a rule: dropping its
-    # zero-pair clause (`if p_max <= 0:`) was run and turns no check red,
-    # because zero probabilities already weigh zero. The rule is the two below.
-    ("leaf: the zero-pair early return fires when either direction is unpriced", PKG + "duty_legs.py",
-     "if (p_ds <= 0 and p_sd <= 0) or p_max <= 0:", "if (p_ds <= 0 or p_sd <= 0) or p_max <= 0:"),
+    # The leaf has no zero-pair return: zero probabilities weigh zero on the
+    # full path, and the optimizer never calls it without a priced direction.
     ("leaf: a pump with no maximum draw is not returned early", PKG + "duty_legs.py",
-     "if (p_ds <= 0 and p_sd <= 0) or p_max <= 0:", "if p_ds <= 0 and p_sd <= 0:"),
+     "    if p_max <= 0:\n        return np.zeros(space.shape[0])", "    if p_max < 0:\n        return np.zeros(space.shape[0])"),
+    ("leaf: a negative learned value is kept", PKG + "duty_legs.py",
+     "max(v, 0.0) if math.isfinite(v) and v <= upper", "v if math.isfinite(v) and v <= upper"),
+    ("leaf: a learned value on its upper bound reads as zero", PKG + "duty_legs.py",
+     "max(v, 0.0) if math.isfinite(v) and v <= upper", "max(v, 0.0) if math.isfinite(v) and v < upper"),
     ("leaf: the early return is one entry per step, not per row", PKG + "duty_legs.py",
      "return np.zeros(space.shape[0])", "return np.zeros(space.shape[1])"),
     ("optimizer: no priced direction still returns a pair", PKG + "optimizer.py",
@@ -138,6 +139,17 @@ MUTANTS: list[tuple[str, str, str, str]] = [
      "return stop_probability[0] * off_seconds[0] / (step_minutes * 60.0)"),
     ("leaf: the lost share ignores the stop probability", PKG + "duty_legs.py",
      "min(1.0, stop_probability[0] * off_seconds[0] /", "min(1.0, off_seconds[0] /"),
+    # The fix reviewer's three survivors at ee89d50b2b (R5, R9, R11), its texts.
+    ("optimizer: the co-optimisation headroom ignores the availability vector", PKG + "optimizer.py",
+     "p_max, dhw_power, self._space_avail, _duty_floor(self))", "p_max, dhw_power, None, _duty_floor(self))"),
+    ("optimizer: the availability vector is classified with no duty floor", PKG + "optimizer.py",
+     "return duty_legs.availability(space, tank, lost, _duty_floor(opt))",
+     "return duty_legs.availability(space, tank, lost, None)"),
+    ("optimizer: the candidate pass runs on a combi store", PKG + "optimizer.py",
+     "or not opt.config.cycling_cost > 0 or opt.model.params.dhw_store.combi:",
+     "or not opt.config.cycling_cost > 0:"),
+    ("optimizer: the co-optimisation headroom is handed no duty floor", PKG + "optimizer.py",
+     "p_max, dhw_power, self._space_avail, _duty_floor(self))", "p_max, dhw_power, self._space_avail, None)"),
     ("arbiter: the share serves the legs in reverse order", PKG + "pump_arbiter.py",
      "return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]",
      "return legs[-1][0] if (now - result.timestamps[i]) < first_ends else legs[0][0]"),
