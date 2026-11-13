@@ -46438,8 +46438,12 @@ R.check(
 )
 # R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
 # interval, so behind a valve the first step must not be the stores' transient.
-# At one outdoor the steady demand is flat, so a sound step 0 IS the horizon mean;
+# At one outdoor the steady demand is flat, so a sound step 0 is the horizon mean;
 # spread across starts is no acceptance (all-zero first steps have spread 0).
+# The reference is booked as simulated from its held state (R10-SAV-VALUATION-
+# RESIDUE carry 15), so the bound is 1e-3, not exact: two zones held at one
+# temperature drift apart over the day by 1.6e-4 of the mean here (carry 9's
+# open seam), where a transient reads 0 or an overshoot of whole units.
 def _sb_first_steps(two_zone, wood_probe, valve="manual"):
     import numpy as _np
     from profiles import house as _h
@@ -46475,7 +46479,7 @@ for _sb_name, _sb_args in (
     _sb_ratios = {k: float(v[0] / v.mean()) if v.mean() > 0 else 0.0 for k, v in _sb_arms.items()}
     R.check(
         f"behind a valve with {_sb_name}, the thermostat's first step is its horizon mean, not 0 or an overshoot",
-        all(abs(r - 1.0) < 1e-9 for r in _sb_ratios.values()),
+        all(abs(r - 1.0) < 1e-3 for r in _sb_ratios.values()),
         repr(_sb_ratios),
     )
     R.check(
