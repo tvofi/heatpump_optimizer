@@ -847,10 +847,12 @@ writes, at every 15-minute plan step:
   + DHW* with the other duty's set-point lowered to its gate. A boost or a
   disinfection cycle keeps *Heating + DHW* for the whole step.
 - **A switch that stops the compressor is priced.** Some pumps stop the
-  compressor when the mode changes between hot water and heating. Of the
-  switches the optimizer writes while the compressor runs and the new duty
-  has demand, a stop within 3 minutes counts against that direction; a
-  switch a person's own mode change explains is not counted. Once a direction has
+  compressor when the mode changes between hot water and heating. The
+  optimizer counts only some of the switches it writes, among the conditions
+  the compressor running, the new duty asking for heat and the plan keeping
+  that duty; a stop within 3 minutes of a counted switch counts against its
+  direction, and a switch a person's own mode change explains is not
+  counted. Once a direction has
   stopped the compressor on at least half of a weighted 5 or more switches,
   seen on at least two calendar days (a switch weighs half after 14 days), the plan charges that switch a share of
   the **Cost of one compressor start** and tries to place hot water where no
