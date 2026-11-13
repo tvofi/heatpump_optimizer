@@ -85800,7 +85800,8 @@ def _svh_cap(two_zone, valved, hp):
     model = _SVR_MODEL(p)
     opt = _SVR_OPT(model, _SVR_CFG(horizon_hours=1, time_step_minutes=15, target_temp=21.0))
     w = _SVH_WS(outdoor_temps=np.array([-25.0]), wind_speeds=np.zeros(1),
-                precipitation=np.zeros(1), solar_radiation=np.zeros(1))
+                precipitation=np.zeros(1), solar_radiation=np.zeros(1),
+                humidity=np.array([85.0]))
     start = _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=-25.0,
                        upper_floor_temperature=20.5, lower_floor_temperature=20.5,
                        buffer_tank_temperature=30.0)

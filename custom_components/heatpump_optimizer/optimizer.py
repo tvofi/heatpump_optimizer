@@ -682,7 +682,7 @@ def _held_unreachable(
     made = _thermostat_demand(
         model, held, held.room_temperature, *weather0, 0.25, p.slab_heat_transfer_floored)
     cop = _reference_cop(model, held, outdoor, humidity)
-    return bool(power_for_heat_per_cop_kw(p, max(0.0, made) / cop) > p.max_electrical_power)
+    return bool(power_for_heat_per_cop_kw(p, made / cop) > p.max_electrical_power)
 
 
 def _thermostat_demand_single(
