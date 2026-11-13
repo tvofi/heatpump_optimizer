@@ -842,7 +842,7 @@ carry_fold_arm() { # one pass over handoff-wip/<topic> refs whose BLOCKED.md nam
     # equal the record's; the record keeps its first epoch, so the retry bound runs from the first failure.
     fo= fe= fb= fh= fl=; [ -n "$bsha" ] && [ -n "$htip" ] && [ -f "$memo" ] \
       && read -r _ _ _ fo fe fb fh fl < <(awk -v t="$topic" -v w="$sha" -v h="$htip" '$1 == t && $2 == w && ($4 == "fold-failed" || $4 == "push-failed") && $7 == h { print; exit }' "$memo")
-    if [ -n "$fo" ] && fold_memo_stands "$fo" "$fe" "$now" && [ "${#fb}" = 40 ] \
+    if [ -n "$fo" ] && fold_memo_stands "$fo" "$fe" "$now" \
       && git fetch -q origin "refs/heads/handoff-wip/$topic-body" 2>/dev/null && blob=$(git rev-parse "$bsha:BODY.md" 2>/dev/null) && [ "$blob" = "$fb" ]; then  # mut:foldblob
       echo "cloud_relay: OWED carry-fold $topic unchanged since $(date -u -d "@$fe" +%FT%TZ): ${fl#*"$sha "}"
       fold_judge "$memo.$$" "$state/cloud-level-fold.$$" "$topic" "$sha" "$bsha" "$fo" "$fe" "$fb" "$fh" "$fl"; continue
@@ -2002,6 +2002,20 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   awk -v e=$(( $(date +%s) - 3601 )) '$1 == "cf-k" { $5 = e } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
   carry_fold_arm >/dev/null 2>&1
   chk "a record an hour old no longer stands over a new kept commit" 0 test "$(grep -c '^cf-k ' "$t/bpk")" = 4
+  # A failed carry_fold.py (fold-failed) stands over a re-kept body alike, and the standing record keeps its first epoch.
+  printf '#!/bin/bash\necho "$@" >> %s/fk\necho "fold refused"; exit 1\n' "$t" > "$t/foldfail"; chmod +x "$t/foldfail"
+  fsave=${HPO_RELAY_FOLD:-}; export HPO_RELAY_FOLD=$t/foldfail; : > "$t/fk"
+  cfref handoff/cf-f code.txt "code F"; cfref handoff-wip/cf-f BLOCKED.md "body_push: REFUSED CARRY-LANDED"
+  cfref handoff-wip/cf-f-body BODY.md "the body F"; carry_fold_arm >/dev/null 2>&1
+  e0=$(( $(date +%s) - 1800 ))
+  awk -v e=$e0 '$1 == "cf-f" { $5 = e } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
+  GIT_AUTHOR_DATE="2005-01-01T00:00:00Z" GIT_COMMITTER_DATE="2005-01-01T00:00:00Z" cfref handoff-wip/cf-f-body BODY.md "the body F"
+  cfo=$(carry_fold_arm 2>&1)
+  chk "a failed carry_fold.py (fold-failed) stands over a re-kept body with the same blob and handoff tip" 0 test "$(grep -c 'topic cf-f ' "$t/fk")" = 1
+  chk "... its tick line says OWED, unchanged" 0 grep -q "OWED carry-fold cf-f unchanged since" <<< "$cfo"
+  chk "... and the standing record keeps its first epoch, so the retry bound runs from the first failure" 0 \
+    awk -v e=$e0 '$1 == "cf-f" && $5 == e { f = 1 } END { exit !f }' "$t/state/cloud-fold-judged"
+  if [ -n "$fsave" ]; then export HPO_RELAY_FOLD=$fsave; else unset HPO_RELAY_FOLD; fi
   cfref handoff-wip/cf-l BLOCKED.md "the fixer is stuck, again"; carry_fold_arm >/dev/null 2>&1
   awk '$1 == "cf-l" { $6 = ""; $7 = ""; gsub(/  +/, " ") } 1' "$t/state/cloud-fold-judged" > "$t/memo" && mv "$t/memo" "$t/state/cloud-fold-judged"
   : > "$t/fetches"; cfo=$(git() { [ "$1" != fetch ] || echo "$*" >> "$t/fetches"; command git "$@"; }; carry_fold_arm 2>&1)
