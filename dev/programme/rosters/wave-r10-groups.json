@@ -25496,7 +25496,7 @@
     "last_step": null,
     "next_step": "fixer (size S, no design step): failing test first, then label, description, notice",
     "note": "not on the binding chain; rolls to round 11 at the freeze if unmerged; triage P-OUTSIDE-3529-B",
-    "pr": null
+    "pr": 3536
    }
   },
   {
@@ -25540,7 +25540,7 @@
     "last_step": null,
     "next_step": "cloud fixer (sonnet), Linux re-record",
     "note": "intake: red required check on main, 2026-11-13T01:22Z; overlap admitted (R10-NUDGE-RETIRE): main red: instrument-self-tests drift check, 20 refusals at f47250150a33; touches only the measured table",
-    "pr": null
+    "pr": 3535
    }
   },
   {
