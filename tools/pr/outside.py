@@ -530,7 +530,7 @@ def approve(repo: str, pr: int, head: str, mandate: "int | None", ref: str, role
 # --- self-test ------------------------------------------------------------------
 
 def self_test() -> int:
-    global carries, show, changed, now_utc
+    global carries, show, changed, now_utc, git
     g = load_gate()
     fails = n = 0
 
@@ -574,6 +574,10 @@ def self_test() -> int:
     world = {"routes": {}, "me": OWN, "log": [], "mangle": False, "paths": [], "files": {}, "carry": set()}
     real_run = subprocess.run
 
+    class Pages(list):
+        """A route held as pages: `--paginate --slurp` reads every page, a
+        plain call the first alone, as gh answers."""
+
     class Done:
         def __init__(self, rc, out="", err=""):
             self.returncode, self.stdout, self.stderr = rc, out, err
@@ -596,10 +600,16 @@ def self_test() -> int:
                 ep = a; i += 1
         key = ep.split("?")[0]
         if post:
+            world["inp"] = inp
+            if world["postfail"]:
+                return Done(1, "", "gh: Unprocessable Entity (HTTP 422)")
             d = json.load(open(inp))
             r = {"id": 9900 + len(world["log"]), "user": world["me"], "state": "APPROVED", "commit_id": d["commit_id"],
                  "body": d["body"] + ("mangled" if world["mangle"] else ""), "submitted_at": iso(0)}
-            world["routes"].setdefault(key, []).append(r)
+            held = world["routes"].setdefault(key, [])
+            (held[-1] if isinstance(held, Pages) else held).append(r)
+            if world["after_post"]:
+                world["after_post"]()
             return Done(0, json.dumps(r))
         if key == "user":
             return Done(0, json.dumps(world["me"]))
@@ -610,7 +620,13 @@ def self_test() -> int:
             return Done(1, "", "gh: Server Error (HTTP 500)")
         if val == "RAW":
             return Done(0, "<html>not json</html>")
+        if isinstance(val, Pages):
+            return Done(0, json.dumps(list(val) if slurp else val[0]))
         return Done(0, json.dumps([val] if slurp else val))
+
+    def fake_git(*a):
+        world["git"].append(a)
+        return world["fetched"] + "\n" if a[0] == "rev-parse" else ""
 
     ALLOW = {"contributors": [{"login": "bankaifan", "id": 555001, "since": "2026-11-12", "decision": "0017"}]}
     OWNERS = "/.github/workflows/ @tvofi\n/dev/governance/ @tvofi\n/docs/ownedir/ @tvofi\n/docs/owned.md @tvofi\n/dev/x/unowned.md\n"
@@ -620,6 +636,7 @@ def self_test() -> int:
 
     def reset(reviews=(), mand="live", paths=("custom_components/heatpump_optimizer/x.py",), **pullkw):
         world.update(routes={}, me=OWN, log=[], mangle=False, paths=list(paths), carry=set(),
+                     inp=None, postfail=False, after_post=None, git=[], fetched=H,
                      files={ALLOWLIST: json.dumps(ALLOW), CODEOWNERS: OWNERS})
         ro = world["routes"]
         ro[f"repos/{R}/pulls/{PR}"] = pull(**pullkw)
@@ -629,7 +646,8 @@ def self_test() -> int:
         return ro
 
     subprocess.run = fake_run
-    real = carries, show, changed
+    real = carries, show, changed, git
+    git = fake_git
     carries = lambda a, b, ref: (a, b) in world["carry"]  # noqa: E731
     show = fake_show
     changed = lambda ref, head: ("e" * 40, list(world["paths"]))  # noqa: E731
@@ -891,9 +909,66 @@ def self_test() -> int:
         reset(paths=OP, reviews=[rv("no", state="CHANGES_REQUESTED")]); st(ap()[:2], (1, 0), "approve REFUSE, nothing posted: the owner's own CHANGES_REQUESTED stands")
         ro = reset(paths=OP); ro[f"repos/{R}/commits/{H}/pulls"] = [pull(number=8)]
         st(ap()[:2], (1, 0), "approve REFUSE, nothing posted: another pull request at the head")
+
+        # --- each arm by its own evidence: a later guard refuses the same input,
+        # so the exit code alone pins none of these (the diff's mutants) ----------
+        FETCH = [("fetch", "-q", "--no-tags", "origin", f"+refs/pull/{PR}/head:refs/hpo-outside/{PR}")]
+        fetched = lambda: [a for a in world["git"] if a[0] == "fetch"]  # noqa: E731
+        RV = f"repos/{R}/pulls/{PR}/reviews"
+        st(allowlisted(None, ALLOW), None, "allowlisted(): no user object matches no entry")
+        reset(); world["files"][ALLOWLIST] = "{not json"; rc, out = chk()
+        st((rc, "is not JSON" in out), (1, True), "REFUSE: an allowlist that is not JSON, named as that")
+        reset(); world["files"][ALLOWLIST] = json.dumps({"contributors": "bankaifan"}); rc, out = chk()
+        st((rc, "holds no contributors list" in out), (1, True), "REFUSE: an allowlist whose contributors is no list (never read as an empty one)")
+        st(o([rv(line()), rv(line(), state="CHANGES_REQUESTED")]), 1,
+           "class O REFUSE: a later CHANGES_REQUESTED voids the approval even when its own body carries the outside-read line")
+        st(o([rv(line()), rv(line(), state="DISMISSED")]), 1, "class O REFUSE: and so does a later DISMISSED review carrying the line")
+        reset(); rc, lines = check(R, PR, "origin/main", gate=g, fetch=False, early=True, pull=pull(number=8))
+        st((rc, "is not #7" in lines[0]), (1, True), "REFUSE: a pull request read under another number, on a diff that is otherwise admitted")
+        reset(sha="abc"); rc, out = chk()
+        st((rc, "no 40-hex head" in out), (1, True), "REFUSE: a head that is no 40-hex commit")
+        reset(head_repo=R); chk()
+        st([c for c in world["log"] if "/commits/" in c], [], "a refused shape stops there: no other-pull-requests read on a head not admitted")
+        ro = reset(); ro[f"repos/{R}/commits/{H}/pulls"] = Pages([[pull()], [pull(number=8)]]); rc, out = chk()
+        st((rc, "also the head of #8" in out), (1, True), "REFUSE: a second pull request at the head on the commit's SECOND page")
+        ro = reset(); ro[f"repos/{R}/pulls"] = Pages([[], [pull(number=9, state="closed")]]); rc, out = chk()
+        st((rc, "also the head of #9" in out), (1, True), "REFUSE: a closed pull request of the head branch on the SECOND page")
+        reset(paths=(MANIFEST,)); st(chk()[0], 0, "(null control) a manifest path with no manifest at either end changes no version")
+        world["files"].update({("e" * 40, MANIFEST): "{not json", (H, MANIFEST): "{not json"})
+        st(chk()[0], 1, "REFUSE: a manifest that parses at neither end is not read as an unchanged version")
+        reset(reviews=[rv(line())], paths=OP)
+        st(check(R, PR, "origin/main", fetch=False)[0], 0, "check(): handed no gate, it loads this tree's")
+        reset(); rc, lines = check(R, PR, "origin/main", gate=g)
+        st((rc, fetched()), (0, FETCH), "check(): by default the pull request's head is fetched from origin, by a refspec holding only the number")
+        reset(); world["fetched"] = Z; rc, lines = check(R, PR, "origin/main", gate=g)
+        st((rc, "it moved" in lines[0]), (1, True), "REFUSE: the fetched refs/pull head is not the head the API named")
+        reset(reviews=[rv(line())], paths=OP + ("README.md", "docs/setup.md")); rc, out = chk()
+        st((rc, out.startswith("CLASS O: "), "2 class-F and 1 class-O path(s)" in out), (0, True, True),
+           "admitted with class O: the CLASS O line leads and the closing line counts each class")
+        reset(paths=OP); rc, posts, out = ap(mand_id=None)
+        st((rc, posts, "never defaulted" in out), (1, 0, True), "approve REFUSE: no --mandate, refused as that and before any read")
+        reset(paths=OP); rc, lines = approve(R, PR, H, MID, "origin/main", "the class-O read seat")
+        st((rc, fetched()), (0, FETCH), "approve(): handed no gate it loads this tree's, and by default fetches the head")
+        reset(paths=OP); rc, lines = approve(R, PR, H, MID, "origin/main", f"a seat under mandate comment {MID + 5}", gate=g, fetch=False)
+        st((rc, sum(1 for c in world["log"] if "-X POST" in c), "does not read back as declared" in lines[0]), (1, 0, True),
+           "approve REFUSE, nothing posted: a role whose words make the body cite a second mandate")
+        reset(paths=OP); rc, posts, out = ap()
+        st((rc, bool(world["inp"]) and os.path.exists(world["inp"])), (0, False), "approve leaves no body file behind")
+        reset(paths=OP); world["postfail"] = True; rc, posts, out = ap()
+        st((rc, "the review was refused" in out), (1, True), "approve REFUSE: the reviews API refused the post, named as that")
+        ro = reset(paths=OP); ro[RV] = Pages([[rv("a note", state="COMMENTED", user=BK)], []])
+        st(ap()[0], 0, "approve reads its own review back from the LAST page of the review list")
+        ro = reset(paths=OP); ro[RV] = Pages([[], [rv("no", state="CHANGES_REQUESTED")]])
+        st(ap()[:2], (1, 0), "approve REFUSE, nothing posted: the owner's own CHANGES_REQUESTED on the SECOND page")
+        reset(paths=OP); world["after_post"] = lambda: world["routes"].pop(f"repos/{R}/issues/comments/{MID}")
+        rc, posts, out = ap()
+        st((rc, posts, "does not admit it" in out), (1, 1, True),
+           "approve REFUSE: the mandate gone between the post and the read-back, so the landed review is not reported as approved")
+        ro = reset(paths=OP); ro[f"repos/{R}/pulls/{PR}"] = "ERR"; rc, posts, out = ap()
+        st((rc, posts, "an unread fact refuses" in out), (1, 0, True), "approve REFUSE: the pull request unreadable")
     finally:
         subprocess.run = real_run
-        carries, show, changed = real
+        carries, show, changed, git = real
         now_utc = real_now
 
     # --- the live plumbing, over a throwaway repository (every case above fakes it) --
@@ -932,6 +1007,8 @@ def self_test() -> int:
                 fn(Path(tmp)); st("read", "refused", f"REFUSE: {what}")
             except (Refuse, ValueError):
                 st("refused", "refused", f"REFUSE: {what}")
+        Path(tmp, "tests/closure.py").write_text("OTHER = ('a',)\n")
+        st(refuses(lambda: gate_files(Path(tmp)), "no literal GATE_FILES"), True, "REFUSE: a closure.py that assigns no GATE_FILES at all")
     finally:
         os.chdir(cwd)
         shutil.rmtree(tmp, ignore_errors=True)
