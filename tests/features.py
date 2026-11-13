@@ -19312,7 +19312,7 @@ R.check(
 _published = []
 async def _rec_ecl(**kw):
     _published.append(kw)
-async def _rec_plan(reason="optimizer"):
+async def _rec_plan(reason="optimizer", heat_pump_on=None):
     _published.append({"reason": reason})
 _c.async_publish_ecl110_command = _rec_ecl
 _c.async_publish_current_action = _rec_plan
@@ -28163,7 +28163,7 @@ R.check(
 _g_pub: list[str] = []
 
 
-async def _g_rec(reason="optimizer"):
+async def _g_rec(reason="optimizer", heat_pump_on=None):
     _g_pub.append(reason)
 
 
@@ -42601,6 +42601,147 @@ R.check(
     _unloaded and _ghc_writes(_gl) == [-3, 0]
     and _ghc_restore.diagnostics(_gl.entry)["restores"] == 1,
     "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
+)
+
+# The off rule reaches the MQTT arm (owner ruling under mandate 6715477401,
+# 2026-11-11): no actuator arm leaves the pump displaced. What stands on each
+# ECL110 topic -- its last publish, retained or not -- is displace 0 after
+# MODE_OFF and after unload, through the same restore hook as the entity arm.
+import json as _gm_json  # noqa: E402
+
+
+def _gm_standing(coord):
+    """Each topic's last displace and retain flag; the entity arm's last write."""
+    stand = {}
+    for dom, svc, d in coord.hass.services.calls:
+        if dom == "mqtt":
+            body = d["payload"] if d["topic"] == "ecl/set" else _gm_json.loads(d["payload"])["command"]["displace"]
+            stand[d["topic"]] = (int(body), d["retain"])
+        elif svc == "set_value":
+            stand["entity"] = d["value"]
+    return stand
+
+
+_gm = {}
+for _gm_retain in (False, True):
+    for _gm_path in ("mode_off", "unload"):
+        _gmc = _ghc_coord(entry_id=f"ghc_mqtt_{_gm_retain}_{_gm_path}", ecl110_displace_set_topic="ecl/set",
+                          ecl110_command_topic="ecl/cmd", ecl110_mqtt_retain=_gm_retain)
+        _ghc_pub(_gmc, -3.0)
+        if _gm_path == "mode_off":
+            _asyncio.run(_gmc.async_set_mode(_ghc_off, refresh=False))
+        else:
+            _gmc.entry.runtime_data = _gmc
+            _asyncio.run(_ghc_unload(_gmc.hass, _gmc.entry))
+        _gm[_gm_retain, _gm_path] = _gm_standing(_gmc)
+R.check(
+    "MODE_OFF and unload leave displace 0 standing on both ECL110 topics, retain on and off",
+    all(s == {"ecl/set": (0, r), "ecl/cmd": (0, r), "entity": 0} for (r, _), s in _gm.items()),
+    repr(_gm),
+)
+_gm_neutral = [_gm_json.loads(d["payload"]) for dom, _, d in _gmc.hass.services.calls
+               if dom == "mqtt" and d["topic"] == "ecl/cmd"][-1]
+R.check(
+    "the legacy neutral body releases supply: heat_pump_on true, displace 0, reason off_restore",
+    _gm_neutral["command"] == {"type": "ecl110_control", "heat_pump_on": True, "displace": 0}
+    and _gm_neutral["reason"] == "off_restore",
+    repr(_gm_neutral),
+)
+_gmt = _ghc_coord(entity=None, entry_id="ghc_mqtt_none")
+R.check(
+    "publish_ecl110_topics with no topic configured publishes nothing and reports success",
+    _asyncio.run(_ghc.publish_ecl110_topics(_gmt.hass, None, None, 1, False, 0, {})) is True
+    and _ghc_mqtt(_gmt) == [],
+    repr(_ghc_mqtt(_gmt)),
+)
+_gmn = _ghc_coord(entity=None, entry_id="ghc_mqtt_never", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmn.async_set_mode(_ghc_off, refresh=False))
+_gmx = _ghc_coord(entity=None, entry_id="ghc_mqtt_once", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmx, 2.0)
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "an MQTT arm never published is not restored; one published is restored once, not per off",
+    _ghc_mqtt(_gmn) == [] and _ghc_mqtt(_gmx) == [("ecl/set", "2"), ("ecl/set", "0")]
+    and _ghc_restore.diagnostics(_gmx.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "%r %r %r" % (_ghc_mqtt(_gmn), _ghc_mqtt(_gmx), _ghc_restore.diagnostics(_gmx.entry)),
+)
+
+# A topic refusing the neutral is a failed restore: latched, still armed, so the
+# next off or unload tries again; either topic's refusal counts.
+_gm_fail = {}
+for _gm_bad in ("ecl/set", "ecl/cmd"):
+    _gmf = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_refused_{_gm_bad}", ecl110_displace_set_topic="ecl/set",
+                      ecl110_command_topic="ecl/cmd")
+    _ghc_pub(_gmf, 2.0)
+    _gmf_call = _gmf.hass.services.async_call
+
+    async def _gmf_refuse(domain, service, data, *a, _bad=_gm_bad, _call=_gmf_call, **k):
+        if domain == "mqtt" and data.get("topic") == _bad:
+            raise RuntimeError("broker gone")
+        return await _call(domain, service, data, *a, **k)
+
+    _gmf.hass.services.async_call = _gmf_refuse
+    _asyncio.run(_gmf.async_set_mode(_ghc_off, refresh=False))
+    _gm_fail[_gm_bad] = _ghc_restore.diagnostics(_gmf.entry)
+R.check(
+    "a topic refusing the neutral leaves the MQTT arm armed and counts no restore",
+    all(d["armed"] == [_ghc.MQTT_CONSUMER] and d["restores"] == 0 for d in _gm_fail.values()),
+    repr(_gm_fail),
+)
+
+# Topics cleared after the arm: the entity is no longer the optimizer's to write,
+# so the restore disarms it unwritten and counts nothing (off_restore's rule for
+# a consumer no longer configured).
+_gmc_armed = _ghc_coord(entity=None, entry_id="ghc_mqtt_cleared", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmc_armed, 2.0)
+_gmc_bare = _ghc_coord(entity=None, entry_id="ghc_mqtt_bare")
+_asyncio.run(_ghc_restore.async_restore(_gmc_armed.hass, _gmc_armed.entry, _gmc_bare.effective_config, "unload"))
+R.check(
+    "an MQTT arm whose topics were cleared is disarmed unwritten, no restore counted",
+    _ghc_mqtt(_gmc_armed) == [("ecl/set", "2")]
+    and _ghc_restore.diagnostics(_gmc_armed.entry) == {"armed": [], "restores": 0, "last_restore": None},
+    "%r %r" % (_ghc_mqtt(_gmc_armed), _ghc_restore.diagnostics(_gmc_armed.entry)),
+)
+
+# Carry 30ec8edf (2): the legacy payload's heat_pump_on is the cycle's own
+# switch write. A cycle landing a step late is ``cycle_supply`` answering the
+# landing step's command against the action's; the null control is the same
+# cycle inside its step, where the two agree.
+from heatpump_optimizer import pump_arbiter as _gm_arb  # noqa: E402
+from heatpump_optimizer.const import MODE_COMFORT as _gm_comfort  # noqa: E402
+
+
+def _gm_cycle(late):
+    """(the switch writes, the legacy payload's heat_pump_on) of one _apply_action."""
+    coord = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_cycle_{late}", ecl110_command_topic="ecl/cmd")
+    coord._mode = _gm_comfort
+    coord._current_action = {"mode": "comfort", "heat_pump_on": False, "displace_value": 2.0}
+    switch = []
+
+    async def _record(on):
+        switch.append(on)
+
+    coord._write_supply = _record
+    real = _gm_arb.cycle_supply
+    if late:
+        _gm_arb.cycle_supply = lambda _inp, _boosts, on, now=None: not on
+    try:
+        _asyncio.run(coord._apply_action())
+    finally:
+        _gm_arb.cycle_supply = real
+    return switch, [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(coord)]
+
+
+_gm_inside, _gm_late = _gm_cycle(False), _gm_cycle(True)
+_gmd = _ghc_coord(entity=None, entry_id="ghc_mqtt_default_on", ecl110_command_topic="ecl/cmd")
+_gmd._mode, _gmd._current_action = _gm_comfort, {"mode": "comfort", "displace_value": 1.0}
+_asyncio.run(_gmd.async_publish_current_action())
+_gm_default = [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(_gmd)]
+R.check(
+    "the legacy payload's heat_pump_on is the switch's write, inside its step and a step late; no write and no key: off",
+    _gm_inside == ([False], [False]) and _gm_late == ([True], [True]) and _gm_default == [False],
+    "inside=%r late=%r default=%r" % (_gm_inside, _gm_late, _gm_default),
 )
 
 # A crash: the write was armed and persisted, the process died unrestored. The
@@ -81130,6 +81271,501 @@ R.check(
 )
 
 
+# #1935 follow-up (R10-OUTSIDE-LEARNER-ROBUSTNESS-P2): every space boost owes
+# the full settling tail from its own end, whatever time it ran (no scaled
+# tail kept every press arm of dev/audit/harnesses/boost_press_tail_walk.py
+# inside the whole window's walk); the time it ran is summed and persisted.
+def _bt_state(ran, *, cancel=True):
+    st = boost_mod.BoostState()
+    st.set(boost_mod.CHANNEL_SPACE, True, NOW)
+    if cancel:
+        st.set(boost_mod.CHANNEL_SPACE, False, NOW + ran)
+    else:
+        st.expire(NOW + ran)
+    return st
+
+
+_bt_click, _bt_full = _bt_state(timedelta(seconds=38)), _bt_state(timedelta(hours=3), cancel=False)
+_bt_nested = _bt_state(timedelta(hours=2), cancel=False)
+_bt_nested.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=3))
+_bt_nested.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=3, seconds=38))
+R.check(
+    "a 38 s boost cancelled owes the full tail from its end and sums its 38 s; a window "
+    "run to its end settles 12 h from that end (null control); a click inside a long "
+    "tail adds to it, so the full tail runs again from the click's end",
+    _bt_click.space_settle_until == NOW + timedelta(seconds=38) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_click.space_boosted == timedelta(seconds=38)
+    and _bt_full.space_settle_until == NOW + timedelta(hours=boost_mod.BOOST_HOURS) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_nested.space_settle_until == NOW + timedelta(hours=3, seconds=38) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_click.space_settle_until} {_bt_full.space_settle_until} {_bt_nested.space_settle_until}",
+)
+_bt_restored = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_restored, {
+    "space_settle": {"until": (NOW + timedelta(hours=9)).isoformat()},
+    "space": {"until": (NOW + timedelta(hours=1)).isoformat(), "since": (NOW - timedelta(hours=1)).isoformat()},
+}, NOW)
+_bt_down = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_down, {"space": {"until": (NOW - timedelta(hours=1)).isoformat(),
+                                               "since": (NOW - timedelta(hours=3)).isoformat()}}, NOW)
+_bt_spent = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_spent, {"space_settle": {"until": (NOW - timedelta(minutes=1)).isoformat()}}, NOW)
+R.check(
+    "a restart restores a running settling tail and the live overlay's start, an "
+    "overlay that ended while Home Assistant was down owes its tail; a spent tail "
+    "is not restored (null control)",
+    _bt_restored.space_settle_until == NOW + timedelta(hours=9)
+    and _bt_restored.space_since == NOW - timedelta(hours=1)
+    and _bt_down.space_settle_until == NOW - timedelta(hours=1) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_down.space_since is None  # a start is held only while its overlay is live
+    and _bt_spent.space_settle_until is None,
+    f"{_bt_restored} {_bt_down} {_bt_spent}",
+)
+_bt_store = _he_store._tries().get("boost", {})
+_bt_hdom = _bt_store.get("space_settle", {}).get("boosted_h", {}).get("")
+R.check(
+    "the boost store declares the settling tail's lead past the overlay's two hours, and a "
+    "boosted sum of any length from zero, or unknown; a negative one is out of its domain",
+    getattr(_bt_store.get("space_settle", {}).get("until", {}).get(""), "ahead_h", None)
+    == _fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS
+    and [_he_store.in_domain(_bt_hdom, v) for v in (0.0, 0.5, None, -0.1)] == [True, True, True, False],
+    f"{_bt_store.get('space_settle')}",
+)
+
+
+# R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (a): boosts add up. Three 20-minute presses
+# back to back, each cancelled, added the heat of one hour-long boost: the sum
+# records one hour and the tail runs from the last end, so they owe no less
+# than one boost of their summed length; a mode boost and an overlay back to
+# back add up the same way. Null control: one 20-minute press alone sums 20.
+def _bt_series(spans, gap=timedelta(minutes=1)):
+    st, at = boost_mod.BoostState(), NOW
+    for surface, ran in spans:
+        if surface == "mode":
+            st.note_mode(True, at)
+            st.note_mode(False, at + ran)
+        else:
+            st.set(boost_mod.CHANNEL_SPACE, True, at)
+            st.set(boost_mod.CHANNEL_SPACE, False, at + ran)
+        at = at + ran + gap
+    return st, at - gap
+
+
+_bt_20 = timedelta(minutes=20)
+_bt_three, _bt_three_end = _bt_series([("space", _bt_20)] * 3)
+_bt_mixed, _bt_mixed_end = _bt_series([("mode", timedelta(minutes=30)), ("space", timedelta(minutes=30))])
+_bt_one, _bt_one_end = _bt_series([("space", _bt_20)])
+R.check(
+    "short boosts back to back owe no less than one boost of their summed length, "
+    "over both surfaces; one short boost alone sums only itself (null control)",
+    _bt_three.space_settle_until == _bt_three_end + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_three.space_boosted == 3 * _bt_20
+    and _bt_mixed.space_settle_until == _bt_mixed_end + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mixed.space_boosted == timedelta(hours=1)
+    and _bt_one.space_settle_until == _bt_one_end + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_one.space_boosted == _bt_20,
+    f"{_bt_three} {_bt_mixed} {_bt_one}",
+)
+
+
+# (a) The sum clears only once a tail ran out with no boost live: a short press
+# after the series' tail is spent sums only itself (null control for a sum
+# that never clears); a press inside the tail adds to it.
+_bt_after, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_spent_at = _bt_after.space_settle_until
+_bt_after.expire(_bt_spent_at + timedelta(minutes=1))
+_bt_after.set(boost_mod.CHANNEL_SPACE, True, _bt_spent_at + timedelta(minutes=1))
+_bt_after.set(boost_mod.CHANNEL_SPACE, False, _bt_spent_at + timedelta(minutes=21))
+_bt_inside, _bt_inside_end = _bt_series([("space", _bt_20)] * 3)
+_bt_inside.set(boost_mod.CHANNEL_SPACE, True, _bt_inside_end + timedelta(hours=1))
+_bt_inside.set(boost_mod.CHANNEL_SPACE, False, _bt_inside_end + timedelta(hours=1, minutes=20))
+R.check(
+    "the boosted sum clears once its tail ran out with nothing live, and not before",
+    _bt_after.space_settle_until == _bt_spent_at + timedelta(minutes=21) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_after.space_boosted == _bt_20
+    and _bt_inside.space_boosted == 4 * _bt_20
+    and _bt_inside.space_settle_until
+    == _bt_inside_end + timedelta(hours=1, minutes=20) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_after} {_bt_inside}",
+)
+
+# (d) The mode's start is not persisted: a mode restored as boost has no start,
+# so leaving it makes the sum unknown (fail closed) and owes the full tail.
+# Null control: a mode entered in this run and left after 30 minutes sums 30.
+_bt_mode_restored = boost_mod.BoostState()
+_bt_mode_restored.note_mode(False, NOW)
+_bt_mode_seen = boost_mod.BoostState()
+_bt_mode_seen.note_mode(True, NOW - timedelta(minutes=30))
+_bt_mode_seen.note_mode(False, NOW)
+R.check(
+    "a boost mode restored with no start leaves an unknown sum when left; one seen to "
+    "start sums its own length; both owe the full tail",
+    _bt_mode_restored.space_settle_until == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mode_restored.space_boosted is None
+    and _bt_mode_seen.space_settle_until == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_mode_seen.space_boosted == timedelta(minutes=30),
+    f"{_bt_mode_restored} {_bt_mode_seen}",
+)
+
+# The boosted sum survives a restart with its tail; an unreadable sum reads
+# as unknown. Null control: a store main wrote (no tail, no start) restores the
+# live overlay with an unseen start.
+_bt_rs = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_rs, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                    "boosted_h": 1.0}}, NOW)
+_bt_rs.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_rs.set(boost_mod.CHANNEL_SPACE, False, NOW + _bt_20)
+_bt_rbad = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_rbad, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                      "boosted_h": "x"}}, NOW)
+_bt_main = boost_mod.BoostState(until={boost_mod.CHANNEL_SPACE: NOW + timedelta(hours=1)})
+boost_mod._restore_settle(_bt_main, {"space": {"until": (NOW + timedelta(hours=1)).isoformat()}}, NOW)
+R.check(
+    "a restart keeps the boosted sum with the tail; an unreadable sum is unknown; "
+    "a store main wrote restores with no start and no tail",
+    _bt_rs.space_boosted == timedelta(hours=1) + _bt_20
+    and _bt_rs.space_settle_until == NOW + _bt_20 + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_rbad.space_boosted is None
+    and _bt_main.space_since is None and _bt_main.space_settle_until is None,
+    f"{_bt_rs} {_bt_rbad} {_bt_main}",
+)
+
+# Null control: an install that never boosted, or only blocked, persists the
+# payload main persists; one with a tail adds only the tail record and the start.
+_bt_never = boost_mod.BoostState(blocked={boost_mod.CHANNEL_DHW: NOW + timedelta(hours=1)})
+_bt_live = boost_mod.BoostState()
+_bt_live.set(boost_mod.CHANNEL_SPACE, True, NOW)
+R.check(
+    "a boost store from an install that never boosted is main's payload, field for field",
+    boost_mod._store_payload(boost_mod.BoostState()) == {}
+    and boost_mod._store_payload(_bt_never) == {"block_dhw": {"until": (NOW + timedelta(hours=1)).isoformat()}}
+    and boost_mod._store_payload(_bt_live) == {"space": {"until": (NOW + timedelta(hours=2)).isoformat(),
+                                                   "since": NOW.isoformat()}}
+    and set(boost_mod._store_payload(_bt_click)) == {"space_settle"},
+    f"{boost_mod._store_payload(_bt_never)} {boost_mod._store_payload(_bt_live)} {boost_mod._store_payload(_bt_click)}",
+)
+
+# (f) A tail further ahead than its declared look-ahead (a clock stepped back)
+# is bounded by the store to that look-ahead, not trusted; one inside it loads
+# unchanged. Null control: the same stamp under the overlay's own field is held
+# to the store's two-hour lead.
+_bt_bound = NOW + boost_mod._MAX_LEAD
+_bt_far = (NOW + timedelta(hours=30)).isoformat()
+_bt_near = (NOW + timedelta(hours=11)).isoformat()
+_bt_loaded = _he_store._bound_instants(
+    {"space_settle": {"until": _bt_far}, "space": {"until": _bt_far}},
+    _bt_bound, "boost", None, [], (), _he_store._tries()["boost"])
+_bt_kept = _he_store._bound_instants(
+    {"space_settle": {"until": _bt_near}}, _bt_bound, "boost", None, [], (), _he_store._tries()["boost"])
+R.check(
+    "a persisted tail past its declared look-ahead is bounded to it; one inside loads unchanged",
+    _bt_loaded["space_settle"]["until"]
+    == (_bt_bound + timedelta(hours=_fb_const.BOOST_SPACE_SETTLE_TAIL_HOURS)).isoformat()
+    and _bt_loaded["space"]["until"] == _bt_bound.isoformat()
+    and _bt_kept["space_settle"]["until"] == _bt_near,
+    f"{_bt_loaded} {_bt_kept}",
+)
+
+# (f) Both directions of the boost store, through ``restore`` itself at
+# ``BOOST_STORE_VERSION`` unchanged: this build's payload (tail, boosted sum,
+# start) read by main's loader -- ``restore`` without ``_restore_settle``, the
+# only line this part added to it -- keeps main's overlay and block, and a
+# payload main wrote restores here with the overlay and no tail. Null control:
+# the same payload through this build's own loader also restores the tail.
+import asyncio as _bt_asyncio  # noqa: E402
+
+
+class _BtCoord:
+    pass
+
+
+class _BtStore:
+    def __init__(self, payload):
+        self.payload = payload
+
+    async def async_load(self):
+        return self.payload
+
+
+def _bt_load(payload, *, main_loader):
+    coord, saved = _BtCoord(), (boost_mod._store, boost_mod._restore_settle)
+    boost_mod._store = lambda _coord: _BtStore(payload)
+    if main_loader:
+        boost_mod._restore_settle = lambda *_a: None
+    try:
+        _bt_asyncio.run(boost_mod.restore(coord))
+    finally:
+        boost_mod._store, boost_mod._restore_settle = saved
+    return boost_mod.held_for(coord)
+
+
+_bt_now = dt_util.now()
+_bt_ours = boost_mod.BoostState()
+_bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(hours=3))
+_bt_ours.set(boost_mod.CHANNEL_SPACE, False, _bt_now - timedelta(hours=2))
+_bt_ours.set(boost_mod.CHANNEL_SPACE, True, _bt_now - timedelta(minutes=5))
+_bt_ours.blocked[boost_mod.CHANNEL_DHW] = _bt_now + timedelta(hours=1)
+_bt_ours_payload = boost_mod._store_payload(_bt_ours)
+_bt_down_main = _bt_load(_bt_ours_payload, main_loader=True)
+_bt_up = _bt_load({"space": {"until": (_bt_now + timedelta(hours=1)).isoformat()}}, main_loader=False)
+_bt_same = _bt_load(_bt_ours_payload, main_loader=False)
+R.check(
+    "a boost store this build wrote loads in main's loader with main's overlay and block; "
+    "one main wrote loads here with no tail; this build's loader keeps the tail (null control)",
+    set(_bt_ours_payload) == {"space", "block_dhw", "space_settle"}
+    and _bt_down_main.until == _bt_ours.until and _bt_down_main.blocked == _bt_ours.blocked
+    and _bt_down_main.space_settle_until is None
+    and set(_bt_up.until) == {boost_mod.CHANNEL_SPACE} and _bt_up.space_settle_until is None
+    and _bt_up.space_since is None
+    and _bt_same.space_settle_until == _bt_ours.space_settle_until
+    and _bt_same.space_since == _bt_ours.space_since
+    and _bt_same.space_boosted == timedelta(hours=1),
+    f"{_bt_ours_payload} {_bt_down_main} {_bt_up} {_bt_same}",
+)
+
+# (e) ``heat_loss_refit`` waits ``SPACE_SETTLE_TAIL`` after the last
+# boost-tagged pair (a pair carries no boost length), and every boost length,
+# cancelled or expired, owes exactly that tail from its end: the refit never
+# reads evidence the interval learners refused. Null control: a mutant tail
+# shorter for a short boost turns it red (the body's mutation table).
+_bt_window_min = int(60 * boost_mod.BOOST_HOURS)
+_bt_sweep = [
+    _bt_state(timedelta(minutes=m), cancel=m < _bt_window_min).space_settle_until
+    - (NOW + timedelta(minutes=min(m, _bt_window_min)))
+    for m in range(1, 2 * _bt_window_min, 7)
+]
+R.check(
+    "every boost length, cancelled inside the window or expired past it, owes the full "
+    "tail the refit waits",
+    set(_bt_sweep) == {boost_mod.SPACE_SETTLE_TAIL} and len(_bt_sweep) == len(range(1, 2 * _bt_window_min, 7)),
+    f"{sorted(set(_bt_sweep))}",
+)
+
+# Null control: the order of the freeze reasons in ``_learning_frozen`` is main's.
+import ast as _bt_ast  # noqa: E402
+import inspect as _bt_inspect  # noqa: E402
+import textwrap as _bt_tw  # noqa: E402
+_bt_returns = [
+    _bt_ast.unparse(n.value) for n in sorted(_bt_ast.walk(_bt_ast.parse(_bt_tw.dedent(_bt_inspect.getsource(
+        _he_cm.HeatPumpOptimizerCoordinator._learning_frozen)))), key=lambda n: getattr(n, "lineno", 0))
+    if isinstance(n, _bt_ast.Return)
+]
+R.check(
+    "the freeze reasons keep main's order, the boost's after ventilation and before the tail freeze",
+    _bt_returns == ["'external_heat_source'", "signals.freeze_reason", "'defrosting'",
+                    "f'{reading.problem}:{key}'", "'ventilation'", "boost.FREEZE_REASON",
+                    "_tail_freeze(self)"],
+    f"{_bt_returns}",
+)
+
+# Fix review (blocked 594238bf), X1: a press in the tail's last two hours keeps
+# the overlay live past the tail's end, and the sum is not cleared while it is
+# live, so that press adds to it. Null control: ``_bt_after`` above, the same
+# press after the tail ran out, sums only itself.
+_bt_x1, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_x1_tail = _bt_x1.space_settle_until
+_bt_x1.set(boost_mod.CHANNEL_SPACE, True, _bt_x1_tail - timedelta(hours=1))
+_bt_x1.expire(_bt_x1_tail + timedelta(minutes=30))
+_bt_x1_mid = (_bt_x1.space_settle_until, _bt_x1.space_boosted)
+_bt_x1.set(boost_mod.CHANNEL_SPACE, False, _bt_x1_tail + timedelta(minutes=50))
+# X2: the same over the mode surface, a mode held past an earlier overlay's tail.
+_bt_x2 = boost_mod.BoostState()
+_bt_x2.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_x2.set(boost_mod.CHANNEL_SPACE, False, NOW + _bt_20)
+_bt_x2.note_mode(True, NOW + timedelta(minutes=21))
+_bt_x2.expire(NOW + timedelta(hours=13))
+_bt_x2.note_mode(False, NOW + timedelta(hours=14))
+R.check(
+    "the boosted sum is not cleared while an overlay or the mode is live past an earlier "
+    "boost's tail, so the live boost adds to it, over both surfaces",
+    _bt_x1_mid == (_bt_x1_tail, 3 * _bt_20)
+    and _bt_x1.space_boosted == 3 * _bt_20 + timedelta(minutes=110)
+    and _bt_x1.space_settle_until == _bt_x1_tail + timedelta(minutes=50) + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_x2.space_boosted == _bt_20 + timedelta(hours=14) - timedelta(minutes=21)
+    and _bt_x2.space_settle_until == NOW + timedelta(hours=14) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_x1_mid} {_bt_x1} {_bt_x2}",
+)
+
+# X3: a press that finds the overlay live extends it and keeps its start, so the
+# sum counts the whole boost. X13: entering the mode clears a spent sum, as a
+# press does. Null control: a single press sums its own length (``_bt_one``).
+_bt_x3 = boost_mod.BoostState()
+_bt_x3.set(boost_mod.CHANNEL_SPACE, True, NOW)
+_bt_x3.set(boost_mod.CHANNEL_SPACE, True, NOW + timedelta(hours=1))
+_bt_x3.set(boost_mod.CHANNEL_SPACE, False, NOW + timedelta(hours=2))
+_bt_x13, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_x13_spent = _bt_x13.space_settle_until
+_bt_x13.note_mode(True, _bt_x13_spent + timedelta(hours=1))
+_bt_x13.note_mode(False, _bt_x13_spent + timedelta(hours=1, minutes=30))
+R.check(
+    "an extended overlay sums from its first press; the mode entered after a spent tail "
+    "sums only itself",
+    _bt_x3.space_boosted == timedelta(hours=2) and _bt_x3.space_since == NOW
+    and _bt_x13.space_boosted == timedelta(minutes=30),
+    f"{_bt_x3} {_bt_x13}",
+)
+
+# X7: ``settle`` never shortens a running tail (an end stamped before a clock
+# step back); a later end lengthens it, even by half a second (null control).
+_bt_x7 = boost_mod.BoostState(space_settle_until=NOW + boost_mod.SPACE_SETTLE_TAIL)
+_bt_x7.settle(NOW - timedelta(hours=1), NOW - timedelta(hours=2))
+_bt_x7_kept = _bt_x7.space_settle_until
+_bt_x7.settle(NOW + timedelta(milliseconds=500), NOW)
+R.check(
+    "a settle ending before the running tail's end leaves it; one ending later moves it",
+    _bt_x7_kept == NOW + boost_mod.SPACE_SETTLE_TAIL
+    and _bt_x7.space_settle_until == NOW + timedelta(milliseconds=500) + boost_mod.SPACE_SETTLE_TAIL,
+    f"{_bt_x7_kept} {_bt_x7}",
+)
+
+# X11: the store does not hold ``boosted_h`` to its domain on load, so the
+# restore does: a negative, NaN or infinite sum is unknown; zero and a sum under
+# one hour restore as stored (null controls).
+def _bt_hours(raw):
+    st = boost_mod.BoostState()
+    boost_mod._restore_settle(st, {"space_settle": {"until": (NOW + timedelta(hours=7)).isoformat(),
+                                                    "boosted_h": raw}}, NOW)
+    return st.space_boosted
+
+
+R.check(
+    "a restored boosted sum outside [0, inf) is unknown; 0 and 0.5 h restore as stored",
+    [_bt_hours(h) for h in (-1.0, float("nan"), float("inf"), True, 0.0, 0.5)]
+    == [None, None, None, None, timedelta(0), timedelta(minutes=30)],
+    f"{[_bt_hours(h) for h in (-1.0, float('nan'), float('inf'), True, 0.0, 0.5)]}",
+)
+
+# X4 and X5: the two saves of a tail. Leaving the boost mode saves the tail it
+# starts (``note_mode_change``); a cycle whose expiry starts a tail saves it
+# (``apply``). Null controls: entering the mode, a change between two other
+# modes and a cycle that changes nothing schedule no save.
+_bt_saved = []
+_bt_sched = boost_mod._schedule_persist
+boost_mod._schedule_persist = _bt_saved.append
+try:
+    _bt_mc = _BtCoord()
+    boost_mod.note_mode_change(_bt_mc, _fb_const.MODE_AUTO, boost_mod.MODE_BOOST, NOW)
+    _bt_enter = list(_bt_saved)
+    boost_mod.note_mode_change(_bt_mc, _fb_const.MODE_AUTO, _fb_const.MODE_ECONOMY, NOW)
+    _bt_other = list(_bt_saved)
+    boost_mod.note_mode_change(_bt_mc, boost_mod.MODE_BOOST, _fb_const.MODE_AUTO, NOW + timedelta(hours=1))
+    _bt_left = list(_bt_saved)
+    _bt_left_payload = boost_mod._store_payload(boost_mod.held_for(_bt_mc))
+    _bt_saved.clear()
+    _bt_ac = _BlockFloorCoord(None)
+    _bt_ac_now = dt_util.now()
+    boost_mod.held_for(_bt_ac).set(boost_mod.CHANNEL_SPACE, True, _bt_ac_now - timedelta(hours=3))
+    boost_mod.apply(_bt_ac, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
+    _bt_cycle = list(_bt_saved)
+    _bt_cycle_payload = boost_mod._store_payload(boost_mod.held_for(_bt_ac))
+    boost_mod.apply(_bt_ac, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
+    _bt_quiet = _bt_saved[len(_bt_cycle):]
+finally:
+    boost_mod._schedule_persist = _bt_sched
+R.check(
+    "leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save "
+    "carrying the tail and its sum; entering the mode, another mode change and a quiet "
+    "cycle schedule none",
+    _bt_enter == [] and _bt_other == [] and _bt_left == [_bt_mc]
+    and _bt_left_payload.get("space_settle", {}).get("boosted_h") == 1.0
+    and _bt_cycle == [_bt_ac] and _bt_quiet == []
+    and _bt_cycle_payload.get("space_settle", {}).get("boosted_h") == 2.0,
+    f"{_bt_enter} {_bt_other} {_bt_left} {_bt_left_payload} {_bt_cycle} {_bt_quiet} {_bt_cycle_payload}",
+)
+
+# The fixer's own pass over every added line: the tail runs out at its own
+# instant, not a second either side (a press at the instant sums only itself, a
+# press half a second before adds to the series); a spent tail is cleared by the
+# expiry itself, so a quiet install stores main's payload again; a press that
+# finds the tail spent clears the sum without an expiry first; leaving the mode
+# frees the sum to clear.
+_bt_at, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_at.set(boost_mod.CHANNEL_SPACE, True, _bt_at.space_settle_until)
+_bt_before, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_before.set(boost_mod.CHANNEL_SPACE, True, _bt_before.space_settle_until - timedelta(milliseconds=500))
+_bt_before.set(boost_mod.CHANNEL_SPACE, False, _bt_before.space_settle_until + timedelta(minutes=10))
+_bt_quiet_st, _ = _bt_series([("space", _bt_20)])
+_bt_quiet_st.expire(_bt_quiet_st.space_settle_until + timedelta(minutes=1))
+_bt_noexp, _ = _bt_series([("space", _bt_20)] * 3)
+_bt_noexp_at = _bt_noexp.space_settle_until + timedelta(minutes=1)
+_bt_noexp.set(boost_mod.CHANNEL_SPACE, True, _bt_noexp_at)
+_bt_noexp.set(boost_mod.CHANNEL_SPACE, False, _bt_noexp_at + _bt_20)
+_bt_modeleft, _bt_modeleft_end = _bt_series([("mode", timedelta(minutes=30))])
+_bt_modeleft.expire(_bt_modeleft.space_settle_until + timedelta(minutes=1))
+R.check(
+    "the tail runs out at its own instant; a spent tail clears on expiry and a quiet install "
+    "stores main's payload; a press after a spent tail sums only itself; a left mode lets "
+    "its sum clear",
+    _bt_at.space_boosted == timedelta(0)
+    and _bt_before.space_boosted == 3 * _bt_20 + timedelta(minutes=10, milliseconds=500)
+    and (_bt_quiet_st.space_settle_until, _bt_quiet_st.space_boosted) == (None, timedelta(0))
+    and boost_mod._store_payload(_bt_quiet_st) == {}
+    and _bt_noexp.space_boosted == _bt_20
+    and (_bt_modeleft.mode_since, _bt_modeleft.space_settle_until) == (None, None),
+    f"{_bt_at} {_bt_before} {_bt_quiet_st} {_bt_noexp} {_bt_modeleft}",
+)
+
+# Restore at the boundaries: a tail ending at the restart's instant is spent,
+# and an overlay that ended more than a tail before the restart owes nothing.
+# Null control: ``_bt_down`` above, ended an hour before, owes its tail.
+_bt_r_now = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_r_now, {"space_settle": {"until": NOW.isoformat(), "boosted_h": 1.0}}, NOW)
+_bt_r_old = boost_mod.BoostState()
+boost_mod._restore_settle(_bt_r_old, {"space": {"until": (NOW - timedelta(hours=13)).isoformat(),
+                                                "since": (NOW - timedelta(hours=14)).isoformat()}}, NOW)
+R.check(
+    "a restored tail ending now is spent; an overlay ended over a tail before the restart owes none",
+    (_bt_r_now.space_settle_until, _bt_r_now.space_boosted) == (None, timedelta(0))
+    and (_bt_r_old.space_settle_until, _bt_r_old.space_boosted) == (None, timedelta(0)),
+    f"{_bt_r_now} {_bt_r_old}",
+)
+
+# ``persist`` saves ``_store_payload`` through the boost store's own key and
+# version. Null control: the payload saved is the one a quiet state builds.
+_bt_saves = []
+
+
+class _BtSaveStore:
+    def __init__(self, real):
+        self.real = real
+
+    async def async_save(self, data):
+        _bt_saves.append((self.real._key, self.real._version, data))
+
+
+_bt_pc = _BtCoord()
+_bt_pc.hass, _bt_pc.entry = FakeHass(), type("_BtEntry", (), {"entry_id": "bt"})()
+boost_mod.held_for(_bt_pc).settle(NOW, NOW - _bt_20)
+_bt_real_store = boost_mod._store
+boost_mod._store = lambda c: _BtSaveStore(_bt_real_store(c))
+try:
+    _bt_asyncio.run(boost_mod.persist(_bt_pc))
+finally:
+    boost_mod._store = _bt_real_store
+R.check(
+    "persist saves the store payload under the boost store's key and version",
+    _bt_saves == [(f"{boost_mod.DOMAIN}_bt_boost", boost_mod.BOOST_STORE_VERSION,
+                   boost_mod._store_payload(boost_mod.held_for(_bt_pc)))]
+    and "space_settle" in _bt_saves[0][2],
+    f"{_bt_saves}",
+)
+
+# The coordinator's mode change reaches ``note_mode_change``: leaving the boost
+# mode through ``async_set_mode`` starts the tail and sums the mode's time.
+# Null control: entering it starts no tail.
+_bt_cc = _sr_coord()
+_bt_asyncio.run(_bt_cc.async_set_mode(boost_mod.MODE_BOOST, refresh=False))
+_bt_cc_in = (boost_mod.held_for(_bt_cc).mode_since is not None, boost_mod.held_for(_bt_cc).space_settle_until)
+_bt_asyncio.run(_bt_cc.async_set_mode(_fb_const.MODE_AUTO, refresh=False))
+_bt_cc_held = boost_mod.held_for(_bt_cc)
+R.check(
+    "async_set_mode into the boost mode marks its start, and out of it starts the tail",
+    _bt_cc_in == (True, None)
+    and _bt_cc_held.mode_since is None and _bt_cc_held.space_settle_until is not None
+    and _bt_cc_held.space_boosted is not None,
+    f"{_bt_cc_in} {_bt_cc_held}",
+)
+
+
 # A hot-water charge inside a counter span (the dwell saw it): the cycle has no
 # space interval, yet the span stays clean where the counter is declared to see
 # the hot water, because the charge's own steps are subtracted at the close.
@@ -82043,6 +82679,193 @@ R.check(
     _sa_mid["07:15"] == ["turn_on"],
     f"{_sa_mid}",
 )
+# #3420 part E (Bankaifan): a switch-on writes the step's mode first. A pass
+# writes nothing while the switch reads off, so the mode followed the
+# switch-on by up to a tick and a Luxtronik started in the last duty. The
+# cycle and the step tick both switch through ``write_supply``. Each null
+# control is the same run with ``_lead_mode`` replaced by a no-op (today's
+# order): where the lead owes nothing, the service calls and their order are
+# identical; where it owes the mode, the no-op run has no mode before the switch.
+from heatpump_optimizer import duty_switch as _mb_ds
+from dataclasses import replace as _mb_replace
+
+
+async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via="cycle",
+                  select="Heating", fail=False, cut=False, optimizer="auto", space=False,
+                  disinfect=False):
+    """Ordered (domain, service) calls of one switch write, through the real coordinator.
+
+    The plan is "-d": idle at 05:45, hot water only at 06:00 (``space``:
+    heating only, which a cut-off holds and hot water is exempt from). ``via`` cycle
+    runs ``_apply_action`` at 06:00; tick runs the cycle at 05:45 (OFF) and
+    the step tick at 06:00; direct calls ``write_supply(..., True)`` alone at
+    06:00 with the optimizer in ``optimizer`` (``released``: auto, the
+    entry unloaded). ``cut``: an early cut-off at
+    05:58 holds the switch-on (MIN_OFF). Also returns the contexts the
+    learner was told of, and the options the select was sent. ``disinfect``:
+    the pass reads a held disinfection.
+    """
+    ticks, told = [], []
+    armed, noted, owed = _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    _mb_ds.note_mode_write = lambda rec, when, old, new, ctx: (told.append((rec, ctx)), noted(rec, when, old, new, ctx))
+    if not lead:
+        async def _none(_coord, _on):
+            return None
+        _sa_pa._lead_mode = _none
+    hass = FakeHass({
+        "switch.hp": FakeState(switch, last_updated=_SA_T0),
+        "select.pump_mode": FakeState(select, attributes={"options": list(_PA_TUYA)}),
+    })
+    if fail:
+        async def _refuse(call):
+            raise RuntimeError("select refused")
+        hass.services.async_register("select", "select_option", _refuse)
+    data = {**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": duty}
+    if mode_entity:
+        data["heat_pump_mode_entity"] = "select.pump_mode"
+    coord = Coord(hass, FakeEntry(data=data, entry_id=f"mb{next(_PA_IDS)}"))  # a fresh store each run
+    coord._mode = "auto"
+    if disinfect:
+        _mb_inputs = coord.arbiter_inputs
+        coord.arbiter_inputs = lambda: _mb_replace(_mb_inputs(), disinfecting=True)
+    t0 = _SA_T0 - timedelta(minutes=15)
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[t0, _SA_T0], power_schedule=[0.0, 1.5 if space else 0.0],
+        dhw_power_schedule=[0.0, 0.0 if space else 2.0],
+        optimal_setpoints=[21.0, 21.0],
+    )
+    try:
+        if via == "tick":
+            _sa_dt.freeze(t0)
+            coord._last_optimization = t0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+            await coord._apply_action()
+            hass.states.set("switch.hp", FakeState(switch, last_updated=t0))
+        hass.services.calls.clear()
+        _sa_dt.freeze(_SA_T0)
+        if cut:
+            _sa_ec.state_for(coord).cut_at = _SA_T0 - timedelta(minutes=2)
+        if via == "direct":
+            coord._mode = "auto" if optimizer == "released" else optimizer
+            coord._entry_released = optimizer == "released"
+            await _sa_pa.write_supply(coord, "switch.hp", True)
+        elif via == "tick":
+            for tick in list(ticks):
+                await tick(_SA_T0)
+        else:
+            coord._last_optimization = _SA_T0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
+            await coord._apply_action()
+        calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        return calls, told, [data["option"] for d, _s, data in hass.services.calls if d == "select"], \
+            _sa_pa.state_for(coord).loaded
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
+
+
+_mb_on = {via: _asyncio.run(_mb_run(via=via)) for via in ("cycle", "tick")}
+_mb_off = {via: _asyncio.run(_mb_run(lead=False, via=via)) for via in ("cycle", "tick")}
+R.check(
+    "a cycle that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["cycle"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['cycle'][0]}",
+)
+R.check(
+    "a step tick that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["tick"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['tick'][0]}",
+)
+R.check(
+    "null control: without the lead the same cycle and tick switch on with no mode before it",
+    all(_mb_off[via][0] == [("switch", "turn_on")] for via in ("cycle", "tick")),
+    f"{ {via: _mb_off[via][0] for via in _mb_off} }",
+)
+_mb_ctx = [ctx for _rec, ctx in _mb_on["cycle"][1]]
+R.check(
+    "the mode written ahead of a switch-on is reported with the supply off, opening no learner episode",
+    len(_mb_ctx) == 1 and _mb_ctx[0].void_cause() == "supply_off"
+    and _mb_on["cycle"][1][0][0].learner.episode is None,
+    f"{_mb_ctx}",
+)
+R.check(
+    "null control: the same context with the supply on is not voided by the supply",
+    bool(_mb_ctx) and _mb_replace(_mb_ctx[0], supply_on=True).void_cause() != "supply_off",
+    f"{_mb_ctx}",
+)
+_mb_fail = _asyncio.run(_mb_run(fail=True))
+R.check(
+    "a mode write that fails ahead of a switch-on holds nothing: the switch follows in the same write",
+    _mb_fail[0] == [("select", "select_option"), ("switch", "turn_on")] and _mb_fail[1] == [],
+    f"{_mb_fail}",
+)
+# The lead sits behind the cycle's gate (``_write_supply``): a switch-on the
+# gate holds back writes no mode either, so a held supply-on never leaves a
+# mode written ahead of a switch that does not follow.
+_mb_cut = _asyncio.run(_mb_run(cut=True, space=True))[0]
+_mb_uncut = _asyncio.run(_mb_run(space=True))[0]
+R.check(
+    "a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut == [("switch", "turn_off")],
+    f"{_mb_cut}",
+)
+R.check(
+    "null control: the same heating step with no cut on record writes the mode, then the switch",
+    _mb_uncut == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_uncut}",
+)
+_mb_direct = {
+    (sw, opt): _asyncio.run(_mb_run(via="direct", switch=sw, optimizer=opt))[0]
+    for sw, opt in (("off", "auto"), ("on", "auto"), ("off", "off"), ("off", "released"))
+}
+R.check(
+    "write_supply with the switch already on, the optimizer off or the entry released writes the switch alone",
+    all(_mb_direct[k] == [("switch", "turn_on")] for k in (("on", "auto"), ("off", "off"), ("off", "released"))),
+    f"{_mb_direct}",
+)
+R.check(
+    "null control: write_supply with the switch off and the optimizer on writes the mode first",
+    _mb_direct[("off", "auto")] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_direct}",
+)
+# The lead loads the persisted record before its write, as a pass does, so
+# the pass's own load cannot overwrite the record of the mode just written.
+_mb_loaded = {duty: _asyncio.run(_mb_run(via="direct", duty=duty))[3] for duty in ("control", "observe")}
+R.check(
+    "a lead write loads the persisted record before it writes",
+    _mb_loaded["control"] is True,
+    f"{_mb_loaded}",
+)
+R.check(
+    "null control: write_supply on duty mode observe loads nothing",
+    _mb_loaded["observe"] is False,
+    f"{_mb_loaded}",
+)
+_mb_dis = {dis: _asyncio.run(_mb_run(via="direct", space=True, disinfect=dis))[2] for dis in (True, False)}
+R.check(
+    "the mode written ahead of a switch-on for a heating step under a held disinfection is Heating + DHW",
+    _mb_dis[True] == ["Heating + DHW"],
+    f"{_mb_dis}",
+)
+R.check(
+    "null control: the same heating step with no disinfection leads with Heating",
+    _mb_dis[False] == ["Heating"],
+    f"{_mb_dis}",
+)
+_mb_nulls = {
+    "no mode entity": {"mode_entity": False},
+    "duty mode observe": {"duty": "observe"},
+    "supply already on": {"switch": "on", "select": "Heating"},
+}
+for _mb_name, _mb_kw in _mb_nulls.items():
+    _mb_with = {via: _asyncio.run(_mb_run(via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    _mb_without = {via: _asyncio.run(_mb_run(lead=False, via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    R.check(
+        f"null control, {_mb_name}: the service calls and their order are today's",
+        _mb_with == _mb_without and any(("switch", "turn_on") in c for c in _mb_with.values()),
+        f"with {_mb_with}; without {_mb_without}",
+    )
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
 _sa_record = {"written": {
@@ -82579,21 +83402,56 @@ R.check(
     and (_ds_days.span_days, _ds_days.first_day) == (4, _ds_day.date()),
     f"{_ds_halved} {_ds_stamped}",
 )
+_ds_third = _ds_mod.DutySwitchLearner(
+    {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}).published(_ds_day)
 R.check(
-    "k and n publish to two places and the median to one; a direction holding only a void publishes a span of no day",
-    (_ds_fine_pub["duty_switch_dhw_space_k"], _ds_fine_pub["duty_switch_dhw_space_n"],
+    "p publishes to two places, n as whole episodes (down, never up) and the median to one place; a direction "
+    "holding only a void publishes a span of no day",
+    (_ds_fine_pub["duty_switch_dhw_space_p"], _ds_fine_pub["duty_switch_dhw_space_n"],
      _ds_fine_pub["duty_switch_dhw_space_median_off_s"], _ds_fine_pub["duty_switch_space_dhw_span_days"])
-    == (1.0, 3.0, 100.2, 0)
-    and _ds_mod.DutySwitchLearner(
-        {**_ds_fine.directions, "dhw_space": _DS_D(k=1 / 3, kept_w=1 / 3, kept=1)}
-    ).published(_ds_day)["duty_switch_dhw_space_k"] == 0.33,
-    f"{_ds_fine_pub}",
+    == (0.33, 3.0, 100.2, 0)
+    and (_ds_third["duty_switch_dhw_space_p"], _ds_third["duty_switch_dhw_space_n"]) == (0.5, 0.0)
+    and "duty_switch_dhw_space_k" not in _ds_fine_pub,
+    f"{_ds_fine_pub} {_ds_third}",
 )
 R.check(
-    "the published k and n are aged to the reading's time, the tallies are not",
-    [(pub["duty_switch_dhw_space_k"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
-     for pub in _ds_old_pub] == [(3.0, 7.0, 3), (1.5, 3.5, 3)],
+    "the published n is aged to the reading's time, p and the tallies are not",
+    [(pub["duty_switch_dhw_space_p"], pub["duty_switch_dhw_space_n"], pub["duty_switch_dhw_space_stopped"])
+     for pub in _ds_old_pub] == [(0.43, 7.0, 3), (0.43, 3.0, 3)],
     f"{_ds_old_pub}",
+)
+# Carry c7d068a1 (reviewer's probe attr_churn): age alone moved the attributes. A day of quarter-hour reads of
+# six stops an hour apart, from six hours on: nothing moves; null control, the decayed weight to two places
+# that the attributes published before moves within the same reads, so the reads do span a decay.
+_ds_churn = _ds_mod.DutySwitchLearner()
+for _ds_i in range(6):
+    _ds_churn.directions["dhw_space"].book(_ds_day + timedelta(hours=_ds_i), True, 60.0)
+_ds_reads = [_ds_day + timedelta(hours=6, minutes=15 * _ds_i) for _ds_i in range(96)]
+_ds_churn_pubs = [_ds_churn.published(t) for t in _ds_reads]
+_ds_churn_raw = [round(_ds_churn.directions["dhw_space"].weights(t)[1], 2) for t in _ds_reads]
+_ds_churn_month = {_ds_churn.published(_ds_day + timedelta(hours=6 + 6 * _ds_i))["duty_switch_dhw_space_n"]
+                   for _ds_i in range(4 * 60)}
+R.check(
+    "age alone moves no published attribute within a day, and moves n only a whole episode at a time; null "
+    "control, the decayed weight read to two places moves within the same day's reads",
+    sum(a != b for a, b in zip(_ds_churn_pubs, _ds_churn_pubs[1:])) == 0
+    and sum(a != b for a, b in zip(_ds_churn_raw, _ds_churn_raw[1:])) > 0
+    and _ds_churn_month == {5.0, 4.0, 3.0, 2.0, 1.0, 0.0},
+    f"{_ds_churn_pubs[0]} {sorted(_ds_churn_month)}",
+)
+# Carry ef5d3875 (reviewer's probe fifth_episode): N_ON is a decayed weight, not a count of episodes. Five
+# stops ten hours apart weigh under N_ON and leave the direction off; the sixth switches it on. Control: the
+# check above, where a stop taking an undecayed n from 4 to 5 switches it on.
+_ds_spread = _DS_D()
+_ds_spread_on = []
+for _ds_i in range(6):
+    _ds_spread.book(_ds_day + timedelta(hours=10 * _ds_i), True, 60.0)
+    _ds_spread_on.append(_ds_spread.usable)
+R.check(
+    "N_ON is a weight: five stops ten hours apart, spanning two days, stay off at a weight under five; a sixth "
+    "switches the direction on",
+    _ds_spread_on == [False] * 5 + [True] and _ds_mod.N_ON == 5.0,
+    f"{_ds_spread_on} {_ds_spread}",
 )
 
 # Restart: the dict round trip, the strict load, the cap.
@@ -83258,10 +84116,10 @@ _ds_attrs0 = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_st
 _ds_mod._RECORDS[_ds_pub] = _ds_mod._Record(None, None, learner=_ds_tab)
 _ds_attrs = _ds_sensor.CompressorStartsSensor(_ds_pub, _DsFakeEntry()).extra_state_attributes
 _DS_KEYS = {f"duty_switch_{d}_{k}" for d in _ds_mod.DIRECTIONS
-            for k in ("k", "n", "stopped", "kept", "void", "censored", "span_days")}
+            for k in ("p", "n", "stopped", "kept", "void", "censored", "span_days")}
 R.check(
     "the starts sensor's attributes are the counter's alone until a direction has an observation; then, per "
-    "direction, only k, n, stopped, kept, void, censored, span days and (once one exists) the median off "
+    "direction, only p, n, stopped, kept, void, censored, span days and (once one exists) the median off "
     "seconds, all numeric",
     set(_ds_attrs0) == {"lifetime", "month"}
     and set(_ds_attrs) == {"lifetime", "month"} | _DS_KEYS | {"duty_switch_dhw_space_median_off_s"}
