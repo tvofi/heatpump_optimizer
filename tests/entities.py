@@ -1236,7 +1236,7 @@ def _arch_entry(module: str) -> str:
     if _arch_map is None:
         return ""
     m = _re.search(
-        rf"{_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
+        rf"(?<!\w){_re.escape(module)}\.py[^\n]*?#[ \t]*([^\n]*)\n"
         rf"((?:│[^\n]*#[ \t]*[^\n]*\n)*)",
         _arch_map.group(1),
     )
@@ -31642,7 +31642,7 @@ _RD_EVENTS = ({"github.event_name": "workflow_dispatch"},
 
 
 # A dispatch is never a push: the units it owes are gate.py's `no-pr` and `pr`
-# classes, so the push-only jobs (coverage, ci-ratchet) are not among them.
+# classes, so the push-only jobs (coverage, coverage-ratchet) are not among them.
 _RD_UNITS = sorted(set(_cig_required["pr"]) | set(_cig_required["no-pr"]))
 
 

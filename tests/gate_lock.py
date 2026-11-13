@@ -1625,9 +1625,9 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
             time.sleep(0.15)
             g.release(who, lock_dir=d)
 
-        # Pin both waiters' priority: one inherited from the caller's
-        # environment (prepr.sh exports it) would decide the order instead.
-        with _Env("0"):
+        # The normal waiter enters with no priority set, whatever the caller exports:
+        # prepr.sh exports HPO_GATE_PRIORITY=2 on a hotfix branch, which made both urgent.
+        with _Env(None):
             normal = threading.Thread(target=one, args=("normal",), daemon=True)
             normal.start()
             normal_queued = bool(ticket_text(d, "normal"))
@@ -1738,9 +1738,9 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
             time.sleep(0.1)
             g.release_slot(who, lock_dir=d, slots=1)
 
-        # Pin both waiters' priority: one inherited from the caller's
-        # environment (prepr.sh exports it) would decide the order instead.
-        with _Env("0"):
+        # The normal waiter enters with no priority set, whatever the caller exports:
+        # prepr.sh exports HPO_GATE_PRIORITY=2 on a hotfix branch, which made both urgent.
+        with _Env(None):
             normal = threading.Thread(target=one, args=("normal",), daemon=True)
             normal.start()
             normal_queued = bool(ticket_text(pool, "normal"))

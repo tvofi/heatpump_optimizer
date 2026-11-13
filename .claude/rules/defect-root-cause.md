@@ -126,15 +126,13 @@ or the recorded refusal, and that path.
 
 ## Enforcement
 
-The second trigger is the one with an observable moment. The moment is **a
-check that went red on a commit in the branch**; the checker is the **fix
-reviewer**, before returning `merge`.
+The second trigger has an observable moment: **a check that went red on a commit in the
+branch**; the checker is the **fix reviewer**, before returning `merge`.
 
 The fixer whose branch turned a check red names that check in the PR body, and
 answers the trigger's question there: the cheaper detector and its standing
-cost, or the recorded finding that none exists. Both answers are legitimate —
-the worked examples above are one of each — so the cost of a check that does not
-qualify is one line, which is what keeps the obligation from being argued away.
+cost, or the recorded finding that none exists. Both answers are legitimate: the
+worked examples above are one of each.
 
 The reviewer reads the PR's checks, not the body's account; an unanswered red is
 the note `root-cause-unanswered: <check>`, resolved at merge (card C5); a head
@@ -144,8 +142,10 @@ still red takes no merge verdict (card C8).
 `merge_train.py owed-reds` prints, which `policy_lint.mjs --pr-body` reads; an unreadable
 set keeps the pre-ruling rule, exempting `nightly-status` unless the diff touches its
 `REPORTER_INPUTS`. A red outside the set, an alert apart, blocks nothing; `nightly-status`
-grades `main`, and its red is the orchestrator's there: fix the nightly lane and dispatch
-Nightly (`web-fragments.md`). A cause outside this repository is named with its owner.
+grades `main`, where the orchestrator fixes its lane and dispatches Nightly
+(`web-fragments.md`). A cause outside this repository is named with its owner.
+An `instrument-self-tests` step red at the head and not at the merge base is the pull
+request's finding, a block (`fix-review.md` step 11); one inherited from `main` stays unowed.
 
 The first trigger — the defect reached a released version — has no moment
 cheaper than the issue itself, so it is carried by the **Root cause** section

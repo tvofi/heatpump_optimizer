@@ -5,7 +5,7 @@ the PR's head SHA. You check that the numbers are real, not that the code looks 
 **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
 Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. Evidence names differ beyond case. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+`, then your brief's `bus-nonce: <nonce>`.
-**Block only on code, tests and harness** (card C5): paperwork (a stale body, a carry route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+**Block only on code, tests and harness** (C5): paperwork (a stale body, a carry route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
 Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
@@ -51,19 +51,18 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger). Read the PR's own checks (`get_check_runs`, or
     the commit's `check-runs` API), not the body's account, and never a
-    listing that shows one run per check. For each required check that went red
-    (`defect-root-cause.md`'s Enforcement),
+    listing that shows one run per check. For each required check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
     or the finding that none exists. Both pass; silence is a `Note:` line, never
-    a block (C5), naming root-cause-detectable where a cheaper detector could
-    have shown the red before the handoff (name it), `root-cause-unrecorded`
-    where that check is the cheapest, `root-cause-unanswered` if you cannot
-    tell. The wave routes an old `blocked <sha> root-cause-detectable: <check>`.
+    a block (C5): root-cause-detectable where a cheaper detector could have shown
+    the red before the handoff (name it), `root-cause-unrecorded` where that check
+    is the cheapest, `root-cause-unanswered` if you cannot tell. The wave routes
+    an old `blocked <sha> root-cause-detectable: <check>`.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
-    **A red `nightly-status` is not required** here.
-    **A red outside `merge_train.py owed-reds`' set is not this pull request's**
-    and blocks nothing (`defect-root-cause.md`).
+    **A red outside `merge_train.py owed-reds`' set (`nightly-status`) is not this pull request's**
+    and blocks nothing, except an `instrument-self-tests` step red at the head and
+    not the merge base (`classify --pr`'s INTRODUCED): its finding, a block.
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head
@@ -77,22 +76,21 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     mutation table. Cheap checks (seconds: a lint, one
     test, claims) and your targeted mutants stay yours.
 
-12. **Re-read the head before you post.** Check the SHA your verdict names
-    is still the head when you post it; if it moved, say
-    which of your numbers survive and which you re-took.
+12. **Re-read the head before you post.** Check the SHA your verdict names is
+    still the head as you post it; if it moved, say which of your numbers
+    survive and which you re-took.
 
     **A `merge` verdict attaches to the head its first line names and carries
-    to any later head whose own diff is unchanged** (card C4;
-    #1667): `tools/audit/seat/review_carry.py <verdicted> <new>`
-    prints `CARRY` (`app_approve.sh --carry`: main merges git resolved itself,
-    claim files unioned),
+    to any later head whose own diff is unchanged** (C4; #1667):
+    `tools/audit/seat/review_carry.py <verdicted> <new>` prints `CARRY`
+    (`app_approve.sh --carry`: git-resolved main merges, unioned claim files),
     and `bus.sh dispatch` refuses a second reviewer. A red never carries.
     Else a later round is **its delta** (tvofi 2026-11-09): `git diff <reviewed-head>
     <head>` (a main merge: its resolution), each prior finding resolved, the live
-    required checks. Only a production (`custom_components/`) delta putting
-    reviewed code's functionality at a non-obvious risk CI would not detect
-    widens it, to exactly that code; the verdict names path and risk. Instrument,
-    test, policy and body deltas never widen it.
+    required checks. Only a production (`custom_components/`) delta putting reviewed
+    functionality at a non-obvious risk CI would not detect widens it, to exactly
+    that code; the verdict names path and risk. Instrument, test, policy and body
+    deltas never widen it.
     A head whose own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
