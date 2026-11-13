@@ -84,4 +84,11 @@ scope_mutant "the shrink guard judges a missing table" '    if not base or not h
     out = []' '    if False:
         return []
     out = []'
+scope_mutant "prune goes on over an unreadable table" '        if table is None:
+            print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
+            return 1
+        entries, unknown' '        if False:
+            print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
+            return 1
+        entries, unknown'
 echo "SELFTEST-SCOPE MUTANTS: every mutant refused"

@@ -1758,6 +1758,10 @@ def _self_test(wrapper: Path, workflow: Path) -> int:
         ck("prune: an unknown drop or step is refused (rc 1), naming it, the table byte-identical",
            rc_unk == 1 and rc_nostep == 1 and "files:nope" in err.getvalue()
            and "no step zz" in err.getvalue() and (gr / TABLE).read_bytes() == before)
+        with tempfile.TemporaryDirectory() as empty, contextlib.redirect_stderr(io.StringIO()) as nerr:
+            rc_nt = main(["prune", "--step", "a", "--drop", "files:f2"], Path(empty))
+        ck("prune: a root with no readable table is refused (rc 1), naming it, and writes none",
+           rc_nt == 1 and "UNREADABLE" in nerr.getvalue() and not (Path(empty) / TABLE).exists())
         rc_pr = main(["prune", "--step", "a", "--drop", "files:f2", "--drop", "objects:"], gr)
         after = load_table(gr / TABLE)
         ck("prune: a held drop writes the table, less exactly that read",
