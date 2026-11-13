@@ -1653,6 +1653,7 @@
    "dev/programme/carries/carry-1645.json",
    "dev/programme/carries/carry-201.json",
    "dev/programme/rosters/critical-path.json",
+   "dev/programme/rosters/wave-r10-groups.json",
    "dev/programme/rosters/wave-r9-groups.json",
    "docs/architecture.md",
    "docs/automations.md",
@@ -5158,7 +5159,7 @@
    "seconds": 17.9
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
