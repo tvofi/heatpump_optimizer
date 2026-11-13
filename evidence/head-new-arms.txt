@@ -1,0 +1,8 @@
+  ok   host_refusal: a run that gets no tree of its own (mktemp fails) measures nothing, so the head's; mutant ret:sigpriv calls it the host's
+  ok   host_refusal: a head holding the self-test only at tools/audit/prepr.sh, not tools/pr/prepr.sh, is measured there, and is the host's; mutant mut:sigold (its line deleted) finds no self-test, so the head's
+  ok   host_refusal: trees removed under both runs fail alike, and are not measured, so the head's; mutant ret:sigwhole calls it the host's
+  ok   host_refusal: a main run whose tree was removed under it keeps no answer for main; mutant ret:sigwhole keeps the disturbed run's
+  ok   host_refusal: a self-test ended by a signal on both trees is not measured, so the head's; mutant ret:sigkilled calls it the host's
+  ok   host_refusal: two host refusals measured at once, each in a tree of its own, are both the host's, and no tree outlives its run
+  ok     mutant shared (one tree for every measurement): the host refusal whose tree the other run replaced is called the head's (#3508's defect)
+  ok   host_refusal: with no answer kept for main, a head's own break and a host refusal measured at once are the head's and the host's, and the answer kept for main is the unraced one

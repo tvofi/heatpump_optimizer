@@ -1,27 +1,37 @@
-== null
- 2 files changed, 12 insertions(+), 29 deletions(-)
--    printf '%s: ROWLESS: #%s is left open at %s and its row is owed: the refusal is the host'"'"'s (prepr'"'"'s self-test, the one step refused, fails the same way on this host on a pristine origin/m
-+    printf '%s: ROWLESS: #%s is left open at %s and its row is owed: the refusal is the host'"'"'s (only prepr'"'"'s self-test step refused, and this branch'"'"'s own diff leaves prepr.sh alone); upd
--# A refused row push is the host's, not the head's, only by measurement (pr_host_refusal, pr_args.sh):
--# closing the PR for it closed #3508, whose self-test failed on the orchestrator host at origin/main
--# as well. The refusal is this run's own: a p2 log an earlier run of the topic left is not read.
-+# A refusal that is the host's, not the head's: every REFUSE row of the p2 log is prepr's `self-test`
-== m1
- 1 file changed, 1 insertion(+), 1 deletion(-)
--  [ "$sh" = "$sm" ]  # mut:hostsame
-+  [ "${sh%%$'\n'*}" = "${sm%%$'\n'*}" ]  # mut:hostsame
-== m2
- 1 file changed, 1 insertion(+), 1 deletion(-)
--  printf 'rc=%s\n' "$rc"; grep -E '^  FAIL ' <<<"$out" | sort -u || :
-+  printf 'rc=%s\n' "$rc"; grep -E '^  NOPE ' <<<"$out" | sort -u || :
-== m3
- 1 file changed, 1 insertion(+), 1 deletion(-)
--  [ -n "$sm" ] || { sm=$(pr_step_sig "$1" "$4" "$c") && { rm -f "$c"/*.sig; printf '%s\n' "$sm" > "$c/$4.tmp"; } && mv -f "$c/$4.tmp" "$c/$4.sig"; } || return 1  # ret:hostmain
-+  [ -n "$sm" ] || { sm=$(pr_step_sig "$1" "$4" "$c") && { printf '%s\n' "$sm" > "$c/$4.tmp"; } && mv -f "$c/$4.tmp" "$c/$4.sig"; } || return 1  # ret:hostmain
-== m6
- 1 file changed, 1 deletion(-)
--  OP_REFUSED=1
-== m8
- 1 file changed, 1 insertion(+), 1 deletion(-)
--  st=tools/pr/prepr.sh; [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh
-+  st=tools/pr/prepr.sh
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 51d9fee02d..1fc2c66102 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -215,7 +215,6 @@ pr_step_sig() { # <checkout> <sha> <scratch dir> -> the self-test's exit status
+   at=$(git -C "$w" rev-parse -q --verify HEAD 2>/dev/null) || at=gone
+   git -C "$1" worktree remove --force "$w" >/dev/null 2>&1 || :; rm -rf "$w" || :
+   [ "$rc" != unrun ] || return 1  # ret:signone
+-  [ "$at" = "$(git -C "$1" rev-parse -q --verify "$2^{commit}" 2>/dev/null)" ] || return 1  # ret:sigwhole
+   [ "$rc" -le 128 ] || return 1  # ret:sigkilled
+   printf 'rc=%s\n' "$rc"; grep -E '^  FAIL ' <<<"$out" | sort -u || :
+ }
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 51d9fee02d..83f858e044 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -216,7 +216,6 @@ pr_step_sig() { # <checkout> <sha> <scratch dir> -> the self-test's exit status
+   git -C "$1" worktree remove --force "$w" >/dev/null 2>&1 || :; rm -rf "$w" || :
+   [ "$rc" != unrun ] || return 1  # ret:signone
+   [ "$at" = "$(git -C "$1" rev-parse -q --verify "$2^{commit}" 2>/dev/null)" ] || return 1  # ret:sigwhole
+-  [ "$rc" -le 128 ] || return 1  # ret:sigkilled
+   printf 'rc=%s\n' "$rc"; grep -E '^  FAIL ' <<<"$out" | sort -u || :
+ }
+ pr_host_refusal() { # <checkout> <refusal log> <refused head> <origin/main sha> <cache dir>: 0 = the host's, 1 = the head's
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index 51d9fee02d..15503a6e6c 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -208,7 +208,7 @@ pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's chec
+ pr_step_sig() { # <checkout> <sha> <scratch dir> -> the self-test's exit status and FAIL rows at <sha>; rc 1 = not measured
+   local w st rc=0 out="" at
+   w=$(mktemp -d "$3/tree.XXXXXX" 2>/dev/null) || return 1  # ret:sigpriv
+-  git -C "$1" worktree add -q --detach "$w" "$2" >/dev/null 2>&1 || { rm -rf "$w"; false; } || return 1  # ret:sigtree
++  git -C "$1" worktree add -q --detach "$w" "$2" >/dev/null 2>&1 || false || return 1  # ret:sigtree
+   st=tools/pr/prepr.sh
+   [ ! -f "$w/tools/audit/prepr.sh" ] || st=tools/audit/prepr.sh  # the copy tools/pr/prepr.sh itself runs when a tree holds one  # mut:sigold
+   if [ -f "$w/$st" ]; then out=$(cd "$w" && PYTHONPATH=tests/hastub bash "$st" --self-test 2>&1) || rc=$?; else rc=unrun; fi
