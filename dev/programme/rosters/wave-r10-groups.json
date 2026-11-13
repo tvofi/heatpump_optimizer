@@ -23767,7 +23767,7 @@
    "findings": [],
    "carry": [
     "From r10-outside-learner-robustness, body item 0aadbc91: Part 2 of outside pull request 3435, the boost settle tail scaled on the time the boost ran and persisted across a restart (boost.py, store.py, const.py and the mode change in coordinator.py), is not in this diff. It is its own roster group by feature triage ruling P613, cut from the author's commit f47199b6 with the authorship kept. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (items 0aadbc91)",
-    "Carry 1: Part 2 of outside pull request 3435, the boost settle tail scaled on the time the boost ran and persisted across a restart (boost.py, store.py, const.py and the mode change in coordinator.py), is not in this diff. It is its own roster group by feature triage ruling P613, cut from the author's commit f47199b6 with the authorship kept. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P2"
+    "Carry 1: Part 2 of outside pull request 3435, the boost settle tail scaled on the time the boost ran and persisted across a restart (boost.py, store.py, const.py and the mode change in coordinator.py), is not in this diff. It is its own roster group by feature triage ruling P613, cut from the author's commit f47199b6 with the authorship kept. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 [dismissed: duplicate of carry 0 (item 0aadbc91 restated)]"
    ],
    "resume": {
     "stage": "in-progress",
