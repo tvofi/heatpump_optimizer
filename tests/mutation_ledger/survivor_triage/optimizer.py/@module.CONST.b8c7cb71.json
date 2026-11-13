@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:<module> CONST b8c7cb71",
-  "old": "_VALVE_HELD_BISECTIONS = 40",
-  "reason": "Equivalent to every reader's resolution, and measured (CONST, 40 -> 80). `_VALVE_HELD_BISECTIONS` is the bisection count `_thermostat_held_state` uses to find the zone temperature a valve curve holds. At 40 the bracket is 2**-40 of the outdoor-to-target span, under 4e-11 K for a 40 K span; 80 only narrows it further. Measured against the group's block (`features_block.py` from `# --- R10-SAV-VALUATION-RESIDUE: stored heat` to `# --- R10-WATER-SETPOINT-FEEDBACK`): `ALL 5 FEATURES BLOCK PASSED` with the constant at 80 (the mutant) and at 41, while 0 FAILs the held-state check. No reader of the held state (the booked reference and the start's stored-heat settlement) resolves a change that size.",
-  "verdict": "equivalent"
-}

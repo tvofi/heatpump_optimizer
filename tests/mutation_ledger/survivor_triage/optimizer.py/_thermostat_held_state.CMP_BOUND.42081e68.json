@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_thermostat_held_state CMP_BOUND 42081e68",
-  "old": "    if short(held) > 0.0:",
-  "reason": "Equivalent on every reachable input, and measured (CMP_BOUND, `>` -> `>=`). The two arms differ only where the curve's top draw equals the steady need at the target to the last bit. There the mutant bisects and lands within 2**-40 of the span below the target, not on it: the same equilibrium to under 4e-11 K. The group's block (both valved cases, at -10 and -15 C, and the null control's holding curve) reads `ALL 5 FEATURES BLOCK PASSED` under the mutant.",
-  "verdict": "equivalent"
-}
