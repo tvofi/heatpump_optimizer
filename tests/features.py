@@ -19312,7 +19312,7 @@ R.check(
 _published = []
 async def _rec_ecl(**kw):
     _published.append(kw)
-async def _rec_plan(reason="optimizer"):
+async def _rec_plan(reason="optimizer", heat_pump_on=None):
     _published.append({"reason": reason})
 _c.async_publish_ecl110_command = _rec_ecl
 _c.async_publish_current_action = _rec_plan
@@ -28163,7 +28163,7 @@ R.check(
 _g_pub: list[str] = []
 
 
-async def _g_rec(reason="optimizer"):
+async def _g_rec(reason="optimizer", heat_pump_on=None):
     _g_pub.append(reason)
 
 
@@ -42601,6 +42601,147 @@ R.check(
     _unloaded and _ghc_writes(_gl) == [-3, 0]
     and _ghc_restore.diagnostics(_gl.entry)["restores"] == 1,
     "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
+)
+
+# The off rule reaches the MQTT arm (owner ruling under mandate 6715477401,
+# 2026-11-11): no actuator arm leaves the pump displaced. What stands on each
+# ECL110 topic -- its last publish, retained or not -- is displace 0 after
+# MODE_OFF and after unload, through the same restore hook as the entity arm.
+import json as _gm_json  # noqa: E402
+
+
+def _gm_standing(coord):
+    """Each topic's last displace and retain flag; the entity arm's last write."""
+    stand = {}
+    for dom, svc, d in coord.hass.services.calls:
+        if dom == "mqtt":
+            body = d["payload"] if d["topic"] == "ecl/set" else _gm_json.loads(d["payload"])["command"]["displace"]
+            stand[d["topic"]] = (int(body), d["retain"])
+        elif svc == "set_value":
+            stand["entity"] = d["value"]
+    return stand
+
+
+_gm = {}
+for _gm_retain in (False, True):
+    for _gm_path in ("mode_off", "unload"):
+        _gmc = _ghc_coord(entry_id=f"ghc_mqtt_{_gm_retain}_{_gm_path}", ecl110_displace_set_topic="ecl/set",
+                          ecl110_command_topic="ecl/cmd", ecl110_mqtt_retain=_gm_retain)
+        _ghc_pub(_gmc, -3.0)
+        if _gm_path == "mode_off":
+            _asyncio.run(_gmc.async_set_mode(_ghc_off, refresh=False))
+        else:
+            _gmc.entry.runtime_data = _gmc
+            _asyncio.run(_ghc_unload(_gmc.hass, _gmc.entry))
+        _gm[_gm_retain, _gm_path] = _gm_standing(_gmc)
+R.check(
+    "MODE_OFF and unload leave displace 0 standing on both ECL110 topics, retain on and off",
+    all(s == {"ecl/set": (0, r), "ecl/cmd": (0, r), "entity": 0} for (r, _), s in _gm.items()),
+    repr(_gm),
+)
+_gm_neutral = [_gm_json.loads(d["payload"]) for dom, _, d in _gmc.hass.services.calls
+               if dom == "mqtt" and d["topic"] == "ecl/cmd"][-1]
+R.check(
+    "the legacy neutral body releases supply: heat_pump_on true, displace 0, reason off_restore",
+    _gm_neutral["command"] == {"type": "ecl110_control", "heat_pump_on": True, "displace": 0}
+    and _gm_neutral["reason"] == "off_restore",
+    repr(_gm_neutral),
+)
+_gmt = _ghc_coord(entity=None, entry_id="ghc_mqtt_none")
+R.check(
+    "publish_ecl110_topics with no topic configured publishes nothing and reports success",
+    _asyncio.run(_ghc.publish_ecl110_topics(_gmt.hass, None, None, 1, False, 0, {})) is True
+    and _ghc_mqtt(_gmt) == [],
+    repr(_ghc_mqtt(_gmt)),
+)
+_gmn = _ghc_coord(entity=None, entry_id="ghc_mqtt_never", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmn.async_set_mode(_ghc_off, refresh=False))
+_gmx = _ghc_coord(entity=None, entry_id="ghc_mqtt_once", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmx, 2.0)
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gmx.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "an MQTT arm never published is not restored; one published is restored once, not per off",
+    _ghc_mqtt(_gmn) == [] and _ghc_mqtt(_gmx) == [("ecl/set", "2"), ("ecl/set", "0")]
+    and _ghc_restore.diagnostics(_gmx.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "%r %r %r" % (_ghc_mqtt(_gmn), _ghc_mqtt(_gmx), _ghc_restore.diagnostics(_gmx.entry)),
+)
+
+# A topic refusing the neutral is a failed restore: latched, still armed, so the
+# next off or unload tries again; either topic's refusal counts.
+_gm_fail = {}
+for _gm_bad in ("ecl/set", "ecl/cmd"):
+    _gmf = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_refused_{_gm_bad}", ecl110_displace_set_topic="ecl/set",
+                      ecl110_command_topic="ecl/cmd")
+    _ghc_pub(_gmf, 2.0)
+    _gmf_call = _gmf.hass.services.async_call
+
+    async def _gmf_refuse(domain, service, data, *a, _bad=_gm_bad, _call=_gmf_call, **k):
+        if domain == "mqtt" and data.get("topic") == _bad:
+            raise RuntimeError("broker gone")
+        return await _call(domain, service, data, *a, **k)
+
+    _gmf.hass.services.async_call = _gmf_refuse
+    _asyncio.run(_gmf.async_set_mode(_ghc_off, refresh=False))
+    _gm_fail[_gm_bad] = _ghc_restore.diagnostics(_gmf.entry)
+R.check(
+    "a topic refusing the neutral leaves the MQTT arm armed and counts no restore",
+    all(d["armed"] == [_ghc.MQTT_CONSUMER] and d["restores"] == 0 for d in _gm_fail.values()),
+    repr(_gm_fail),
+)
+
+# Topics cleared after the arm: the entity is no longer the optimizer's to write,
+# so the restore disarms it unwritten and counts nothing (off_restore's rule for
+# a consumer no longer configured).
+_gmc_armed = _ghc_coord(entity=None, entry_id="ghc_mqtt_cleared", ecl110_displace_set_topic="ecl/set")
+_ghc_pub(_gmc_armed, 2.0)
+_gmc_bare = _ghc_coord(entity=None, entry_id="ghc_mqtt_bare")
+_asyncio.run(_ghc_restore.async_restore(_gmc_armed.hass, _gmc_armed.entry, _gmc_bare.effective_config, "unload"))
+R.check(
+    "an MQTT arm whose topics were cleared is disarmed unwritten, no restore counted",
+    _ghc_mqtt(_gmc_armed) == [("ecl/set", "2")]
+    and _ghc_restore.diagnostics(_gmc_armed.entry) == {"armed": [], "restores": 0, "last_restore": None},
+    "%r %r" % (_ghc_mqtt(_gmc_armed), _ghc_restore.diagnostics(_gmc_armed.entry)),
+)
+
+# Carry 30ec8edf (2): the legacy payload's heat_pump_on is the cycle's own
+# switch write. A cycle landing a step late is ``cycle_supply`` answering the
+# landing step's command against the action's; the null control is the same
+# cycle inside its step, where the two agree.
+from heatpump_optimizer import pump_arbiter as _gm_arb  # noqa: E402
+from heatpump_optimizer.const import MODE_COMFORT as _gm_comfort  # noqa: E402
+
+
+def _gm_cycle(late):
+    """(the switch writes, the legacy payload's heat_pump_on) of one _apply_action."""
+    coord = _ghc_coord(entity=None, entry_id=f"ghc_mqtt_cycle_{late}", ecl110_command_topic="ecl/cmd")
+    coord._mode = _gm_comfort
+    coord._current_action = {"mode": "comfort", "heat_pump_on": False, "displace_value": 2.0}
+    switch = []
+
+    async def _record(on):
+        switch.append(on)
+
+    coord._write_supply = _record
+    real = _gm_arb.cycle_supply
+    if late:
+        _gm_arb.cycle_supply = lambda _inp, _boosts, on, now=None: not on
+    try:
+        _asyncio.run(coord._apply_action())
+    finally:
+        _gm_arb.cycle_supply = real
+    return switch, [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(coord)]
+
+
+_gm_inside, _gm_late = _gm_cycle(False), _gm_cycle(True)
+_gmd = _ghc_coord(entity=None, entry_id="ghc_mqtt_default_on", ecl110_command_topic="ecl/cmd")
+_gmd._mode, _gmd._current_action = _gm_comfort, {"mode": "comfort", "displace_value": 1.0}
+_asyncio.run(_gmd.async_publish_current_action())
+_gm_default = [_gm_json.loads(p)["command"]["heat_pump_on"] for _, p in _ghc_mqtt(_gmd)]
+R.check(
+    "the legacy payload's heat_pump_on is the switch's write, inside its step and a step late; no write and no key: off",
+    _gm_inside == ([False], [False]) and _gm_late == ([True], [True]) and _gm_default == [False],
+    "inside=%r late=%r default=%r" % (_gm_inside, _gm_late, _gm_default),
 )
 
 # A crash: the write was armed and persisted, the process died unrestored. The
@@ -82043,6 +82184,193 @@ R.check(
     _sa_mid["07:15"] == ["turn_on"],
     f"{_sa_mid}",
 )
+# #3420 part E (Bankaifan): a switch-on writes the step's mode first. A pass
+# writes nothing while the switch reads off, so the mode followed the
+# switch-on by up to a tick and a Luxtronik started in the last duty. The
+# cycle and the step tick both switch through ``write_supply``. Each null
+# control is the same run with ``_lead_mode`` replaced by a no-op (today's
+# order): where the lead owes nothing, the service calls and their order are
+# identical; where it owes the mode, the no-op run has no mode before the switch.
+from heatpump_optimizer import duty_switch as _mb_ds
+from dataclasses import replace as _mb_replace
+
+
+async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via="cycle",
+                  select="Heating", fail=False, cut=False, optimizer="auto", space=False,
+                  disinfect=False):
+    """Ordered (domain, service) calls of one switch write, through the real coordinator.
+
+    The plan is "-d": idle at 05:45, hot water only at 06:00 (``space``:
+    heating only, which a cut-off holds and hot water is exempt from). ``via`` cycle
+    runs ``_apply_action`` at 06:00; tick runs the cycle at 05:45 (OFF) and
+    the step tick at 06:00; direct calls ``write_supply(..., True)`` alone at
+    06:00 with the optimizer in ``optimizer`` (``released``: auto, the
+    entry unloaded). ``cut``: an early cut-off at
+    05:58 holds the switch-on (MIN_OFF). Also returns the contexts the
+    learner was told of, and the options the select was sent. ``disinfect``:
+    the pass reads a held disinfection.
+    """
+    ticks, told = [], []
+    armed, noted, owed = _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    _mb_ds.note_mode_write = lambda rec, when, old, new, ctx: (told.append((rec, ctx)), noted(rec, when, old, new, ctx))
+    if not lead:
+        async def _none(_coord, _on):
+            return None
+        _sa_pa._lead_mode = _none
+    hass = FakeHass({
+        "switch.hp": FakeState(switch, last_updated=_SA_T0),
+        "select.pump_mode": FakeState(select, attributes={"options": list(_PA_TUYA)}),
+    })
+    if fail:
+        async def _refuse(call):
+            raise RuntimeError("select refused")
+        hass.services.async_register("select", "select_option", _refuse)
+    data = {**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": duty}
+    if mode_entity:
+        data["heat_pump_mode_entity"] = "select.pump_mode"
+    coord = Coord(hass, FakeEntry(data=data, entry_id=f"mb{next(_PA_IDS)}"))  # a fresh store each run
+    coord._mode = "auto"
+    if disinfect:
+        _mb_inputs = coord.arbiter_inputs
+        coord.arbiter_inputs = lambda: _mb_replace(_mb_inputs(), disinfecting=True)
+    t0 = _SA_T0 - timedelta(minutes=15)
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[t0, _SA_T0], power_schedule=[0.0, 1.5 if space else 0.0],
+        dhw_power_schedule=[0.0, 0.0 if space else 2.0],
+        optimal_setpoints=[21.0, 21.0],
+    )
+    try:
+        if via == "tick":
+            _sa_dt.freeze(t0)
+            coord._last_optimization = t0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": False, "power": 0.0})
+            await coord._apply_action()
+            hass.states.set("switch.hp", FakeState(switch, last_updated=t0))
+        hass.services.calls.clear()
+        _sa_dt.freeze(_SA_T0)
+        if cut:
+            _sa_ec.state_for(coord).cut_at = _SA_T0 - timedelta(minutes=2)
+        if via == "direct":
+            coord._mode = "auto" if optimizer == "released" else optimizer
+            coord._entry_released = optimizer == "released"
+            await _sa_pa.write_supply(coord, "switch.hp", True)
+        elif via == "tick":
+            for tick in list(ticks):
+                await tick(_SA_T0)
+        else:
+            coord._last_optimization = _SA_T0
+            _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
+            await coord._apply_action()
+        calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        return calls, told, [data["option"] for d, _s, data in hass.services.calls if d == "select"], \
+            _sa_pa.state_for(coord).loaded
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
+
+
+_mb_on = {via: _asyncio.run(_mb_run(via=via)) for via in ("cycle", "tick")}
+_mb_off = {via: _asyncio.run(_mb_run(lead=False, via=via)) for via in ("cycle", "tick")}
+R.check(
+    "a cycle that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["cycle"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['cycle'][0]}",
+)
+R.check(
+    "a step tick that switches the supply on writes the step's mode first, then the switch",
+    _mb_on["tick"][0] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_on['tick'][0]}",
+)
+R.check(
+    "null control: without the lead the same cycle and tick switch on with no mode before it",
+    all(_mb_off[via][0] == [("switch", "turn_on")] for via in ("cycle", "tick")),
+    f"{ {via: _mb_off[via][0] for via in _mb_off} }",
+)
+_mb_ctx = [ctx for _rec, ctx in _mb_on["cycle"][1]]
+R.check(
+    "the mode written ahead of a switch-on is reported with the supply off, opening no learner episode",
+    len(_mb_ctx) == 1 and _mb_ctx[0].void_cause() == "supply_off"
+    and _mb_on["cycle"][1][0][0].learner.episode is None,
+    f"{_mb_ctx}",
+)
+R.check(
+    "null control: the same context with the supply on is not voided by the supply",
+    bool(_mb_ctx) and _mb_replace(_mb_ctx[0], supply_on=True).void_cause() != "supply_off",
+    f"{_mb_ctx}",
+)
+_mb_fail = _asyncio.run(_mb_run(fail=True))
+R.check(
+    "a mode write that fails ahead of a switch-on holds nothing: the switch follows in the same write",
+    _mb_fail[0] == [("select", "select_option"), ("switch", "turn_on")] and _mb_fail[1] == [],
+    f"{_mb_fail}",
+)
+# The lead sits behind the cycle's gate (``_write_supply``): a switch-on the
+# gate holds back writes no mode either, so a held supply-on never leaves a
+# mode written ahead of a switch that does not follow.
+_mb_cut = _asyncio.run(_mb_run(cut=True, space=True))[0]
+_mb_uncut = _asyncio.run(_mb_run(space=True))[0]
+R.check(
+    "a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut == [("switch", "turn_off")],
+    f"{_mb_cut}",
+)
+R.check(
+    "null control: the same heating step with no cut on record writes the mode, then the switch",
+    _mb_uncut == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_uncut}",
+)
+_mb_direct = {
+    (sw, opt): _asyncio.run(_mb_run(via="direct", switch=sw, optimizer=opt))[0]
+    for sw, opt in (("off", "auto"), ("on", "auto"), ("off", "off"), ("off", "released"))
+}
+R.check(
+    "write_supply with the switch already on, the optimizer off or the entry released writes the switch alone",
+    all(_mb_direct[k] == [("switch", "turn_on")] for k in (("on", "auto"), ("off", "off"), ("off", "released"))),
+    f"{_mb_direct}",
+)
+R.check(
+    "null control: write_supply with the switch off and the optimizer on writes the mode first",
+    _mb_direct[("off", "auto")] == [("select", "select_option"), ("switch", "turn_on")],
+    f"{_mb_direct}",
+)
+# The lead loads the persisted record before its write, as a pass does, so
+# the pass's own load cannot overwrite the record of the mode just written.
+_mb_loaded = {duty: _asyncio.run(_mb_run(via="direct", duty=duty))[3] for duty in ("control", "observe")}
+R.check(
+    "a lead write loads the persisted record before it writes",
+    _mb_loaded["control"] is True,
+    f"{_mb_loaded}",
+)
+R.check(
+    "null control: write_supply on duty mode observe loads nothing",
+    _mb_loaded["observe"] is False,
+    f"{_mb_loaded}",
+)
+_mb_dis = {dis: _asyncio.run(_mb_run(via="direct", space=True, disinfect=dis))[2] for dis in (True, False)}
+R.check(
+    "the mode written ahead of a switch-on for a heating step under a held disinfection is Heating + DHW",
+    _mb_dis[True] == ["Heating + DHW"],
+    f"{_mb_dis}",
+)
+R.check(
+    "null control: the same heating step with no disinfection leads with Heating",
+    _mb_dis[False] == ["Heating"],
+    f"{_mb_dis}",
+)
+_mb_nulls = {
+    "no mode entity": {"mode_entity": False},
+    "duty mode observe": {"duty": "observe"},
+    "supply already on": {"switch": "on", "select": "Heating"},
+}
+for _mb_name, _mb_kw in _mb_nulls.items():
+    _mb_with = {via: _asyncio.run(_mb_run(via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    _mb_without = {via: _asyncio.run(_mb_run(lead=False, via=via, **_mb_kw))[0] for via in ("cycle", "tick")}
+    R.check(
+        f"null control, {_mb_name}: the service calls and their order are today's",
+        _mb_with == _mb_without and any(("switch", "turn_on") in c for c in _mb_with.values()),
+        f"with {_mb_with}; without {_mb_without}",
+    )
 # The pump_duty record's held slots are declared, every one the arbiter can
 # write: the silent switch (D15 L5) and the GCHV night registers (#1913).
 _sa_record = {"written": {
