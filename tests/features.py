@@ -81653,7 +81653,10 @@ R.check(
 
 # X7: ``settle`` never shortens a running tail (an end stamped before a clock
 # step back); a later end lengthens it, even by half a second (null control).
-_bt_x7 = boost_mod.BoostState(space_settle_until=NOW + boost_mod.SPACE_SETTLE_TAIL)
+# The sum starts at a full window, so both settles owe the full tail and the
+# half second is the only difference between the two ends (P3's scaled tail).
+_bt_x7 = boost_mod.BoostState(space_settle_until=NOW + boost_mod.SPACE_SETTLE_TAIL,
+                              space_boosted=timedelta(hours=2))
 _bt_x7.settle(NOW - timedelta(hours=1), NOW - timedelta(hours=2))
 _bt_x7_kept = _bt_x7.space_settle_until
 _bt_x7.settle(NOW + timedelta(milliseconds=500), NOW)
