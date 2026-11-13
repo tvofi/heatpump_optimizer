@@ -24607,7 +24607,7 @@
    "rca": [],
    "after": [],
    "carry": [
-    "From 3487 (r10-hotfix-main-ist-prepr-scope), body item b4cbb682: The root-cause countermeasure (run `selftest_scope.py check` in prepr/ci_predict when a gated step's script changes) is unbuilt and tools/pr/prepr.sh is not touched here. Carry: R10-HOTFIX-PREPR-WC-PAD (items b4cbb682)",
+    "From 3487 (r10-hotfix-main-ist-prepr-scope), body item b4cbb682: The root-cause countermeasure (run `selftest_scope.py check` in prepr/ci_predict when a gated step's script changes) is unbuilt and tools/pr/prepr.sh is not touched here. Carry: R10-HOTFIX-PREPR-WC-PAD (items b4cbb682) [moved: R11-INTAKE-R10-RESIDUE]",
     "The root-cause countermeasure (run `selftest_scope.py check` in prepr/ci_predict when a gated step's script changes) is unbuilt and tools/pr/prepr.sh is not touched here. Carry: R10-HOTFIX-PREPR-WC-PAD",
     "`selftest_scope.py record` measures the recording seat's per-clone git config, so a seat whose hook already installed the merge drivers drops reads a fresh checkout makes, and any gated step that runs the session-start self-test can be narrowed the same way; `record` should run in a scratch clone with no `merge.*.driver` config or refuse while they are set, and a union path would also have made this repair mechanical. Every roster group that owned tools/ci/selftest_scope.py is done (R10-HOTFIX-SELFTEST-SCOPE-UNION, -HANG, R10-HOTFIX-PREPR-READSET), so this goes to the one live hotfix on the prepr self-test path. Carry: R10-HOTFIX-PREPR-WC-PAD"
    ],
