@@ -187,7 +187,8 @@ from .freq_control import defrost_interval, resolve_reading
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c, state_power_kw, write_setpoint_c,
+    InputReader, SetpointGrid, quantise_setpoint_c, read_setpoint, setpoint_grid, setpoint_range_c, state_power_kw,
+    write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
@@ -594,7 +595,7 @@ def _bounded(
     return grid.bounded(value, floor, rounding=rounding, lo=lo, hi=hi)
 
 
-def _grid(inp: ArbiterInputs, slot: str) -> Any:
+def _grid(inp: ArbiterInputs, slot: str) -> SetpointGrid | None:
     """The grid a write to the slot's entity lands on, ``None`` with none."""
     return setpoint_grid(inp.hass, _entities(inp.config)[slot])
 
