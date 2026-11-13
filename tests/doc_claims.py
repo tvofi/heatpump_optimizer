@@ -812,6 +812,121 @@ def check_heat_pump_action_states() -> None:
     )
 
 
+# The direction each prose name stands for, keyed by duty_switch.DIRECTIONS.
+_DUTY_DIRECTION_PROSE = {"dhw_space": "hot water to heating", "space_dhw": "heating to hot water"}
+# Pre-fix sentences (6295f868a4), the null controls of check_duty_switch_claims.
+_LOST_HEAT_BAD = {
+    "configuration.md": (
+        "Once a direction has stopped the compressor on at least half of a weighted 5 or more "
+        "switches, seen on at least two calendar days (a switch weighs half after 14 days), the "
+        "plan charges that switch a share of the **Cost of one compressor start**, expects the "
+        "median measured off time as heat not delivered in the step that follows, and tries to "
+        "place hot water where no such switch follows it."
+    ),
+    "how-it-works.md": (
+        "With **Pump duty control** at Control the optimizer learns, per direction, how often a "
+        "switch it wrote stopped the compressor and for how long; once that is established, the "
+        "plan charges the switch `min(a, b) / p_max` cycles at the cycling cost times that "
+        "probability, and counts the off time as heat not delivered."
+    ),
+}
+_ENDS_SOON_BAD = (
+    "a run the plan would end within 10 minutes is not started unless the tank needs heat now "
+    "(below its minimum, or a disinfection hold)"
+)
+
+
+def _sentences_with(text: str, phrase: str) -> list[str]:
+    """The sentences of unwrapped prose that contain ``phrase``."""
+    flat = re.sub(r"\s+", " ", text)
+    return [s for s in re.split(r"(?<=[.;])\s+(?=[A-Z*(]|for |a )", flat) if phrase in s]
+
+
+def _lost_heat_direction() -> str | None:
+    """The one direction ``duty_legs.lost_share`` charges off time for, from the code."""
+    from heatpump_optimizer import duty_legs, duty_switch
+
+    charged = [
+        name for i, name in enumerate(duty_switch.DIRECTIONS)
+        if duty_legs.lost_share(tuple(0.5 * (j == i) for j in range(2)),
+                                tuple(300.0 * (j == i) for j in range(2))) > 0
+    ]
+    return charged[0] if len(charged) == 1 else None
+
+
+def _lost_heat_names(text: str, direction: str) -> bool:
+    """Every lost-heat sentence names ``direction`` and not the other one."""
+    other = next(v for k, v in _DUTY_DIRECTION_PROSE.items() if k != direction)
+    hits = _sentences_with(text, "heat not delivered")
+    return bool(hits) and all(
+        _DUTY_DIRECTION_PROSE[direction] in s and other not in s for s in hits
+    )
+
+
+def _ends_soon_held(duty: str) -> bool:
+    """``supply_hold._ends_soon`` for a cold tank, a run ending in 5 minutes, on a ``duty`` step."""
+    from datetime import datetime, timezone
+    from heatpump_optimizer import supply_hold
+
+    saved = supply_hold.step_supply, supply_hold.step_duty, supply_hold.tank_reason
+    supply_hold.step_supply = lambda *_: False
+    supply_hold.step_duty = lambda *_: duty
+    supply_hold.tank_reason = lambda *_: "tank_cold"
+    try:
+        inp = type("Inp", (), {"plan": None})()
+        return supply_hold._ends_soon(inp, None, datetime(2026, 1, 1, 0, 10, tzinfo=timezone.utc))
+    finally:
+        supply_hold.step_supply, supply_hold.step_duty, supply_hold.tank_reason = saved
+
+
+def _ends_soon_names_duty(row: str) -> bool:
+    """The on/off row's not-started exception names the step heating the tank."""
+    hits = [s for s in _sentences_with(row, "is not started unless")]
+    return bool(hits) and all("step heats the tank" in s for s in hits)
+
+
+def check_duty_switch_claims() -> None:
+    R.section("Duty-switch and supply-hold sentences match the code that decides them")
+    direction = _lost_heat_direction()
+    R.check(
+        "duty_legs.lost_share charges off time for exactly one direction (anchor)",
+        direction in _DUTY_DIRECTION_PROSE,
+        repr(direction),
+    )
+    for page in ("configuration.md", "how-it-works.md"):
+        R.check(
+            f"docs/{page}: every 'heat not delivered' sentence names the direction "
+            f"lost_share charges ({_DUTY_DIRECTION_PROSE.get(direction)}) and not the other",
+            direction is not None and _lost_heat_names(DOCS[page], direction),
+            repr(_sentences_with(DOCS[page], "heat not delivered")),
+        )
+        R.check(
+            f"docs/{page}: the lost-heat check fires on the pre-fix sentence (null control)",
+            direction is not None and not _lost_heat_names(_LOST_HEAT_BAD[page], direction),
+            _LOST_HEAT_BAD[page],
+        )
+    space_held, dhw_held = _ends_soon_held("space"), _ends_soon_held("dhw")
+    R.check(
+        "supply_hold._ends_soon holds a cold-tank start on a space step and passes it on a "
+        "hot-water step (anchor: the exemption needs a step that heats the tank)",
+        space_held and not dhw_held,
+        f"space={space_held} dhw={dhw_held}",
+    )
+    row = next((line for line in DOCS["configuration.md"].splitlines()
+                if line.startswith("| Heat pump on/off switch |")), "")
+    R.check(
+        "docs/configuration.md on/off switch row: the not-started exception names the step "
+        "heating the tank",
+        _ends_soon_names_duty(row),
+        repr(_sentences_with(row, "is not started unless")),
+    )
+    R.check(
+        "the on/off exception check fires on the pre-fix sentence (null control)",
+        not _ends_soon_names_duty(_ENDS_SOON_BAD),
+        _ENDS_SOON_BAD,
+    )
+
+
 def check_disabled_by_default_without_hot_water() -> None:
     R.section(
         "Disabled-by-default census covers a no-hot-water install too "
@@ -4727,6 +4842,7 @@ def main() -> int:
     check_simulate_plan_fields()
     check_two_zone_field_labels_and_placement()
     check_heat_pump_action_states()
+    check_duty_switch_claims()
     check_disabled_by_default_without_hot_water()
     check_multistart_starting_points()
     check_prose_tree_counts()
