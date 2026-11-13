@@ -60,7 +60,7 @@
 -- docs build arm fires on a planted tree (R9-WEB-3 null controls)
   ok   the docs pages' theme toggle turns a dark <picture> source off on a light site theme
   ok   ... and on for a dark site theme on a light OS
-  FAIL null control: with no saved theme the source keeps its prefers-color-scheme query  [{'light': 'not all', 'dark': 'all', None: 'not all'}]
+  ok   null control: with no saved theme the source keeps its prefers-color-scheme query
   ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
   ok   a dead anchor makes the build red
   ok   a build that dies without a FAIL line is red, naming its exit
@@ -80,7 +80,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/tmp/claude-0/-home-user-heatpump-optimizer/184fcfc0-52b2-5bd4-b44e-648a6b36dcce/scratchpad/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/tmp/tmp.RhUCICn2Ms/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
@@ -384,8 +384,9 @@
 
 -- every user-facing surface has its home in the user docs, default included (R10-USER-DOCS-FINAL)
   ok   every surface class enumerates from the tree (anchor)
-  ok   every surface has its home, or a reasoned exemption that still names one
-       (517 surface(s), 516 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
+  FAIL every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)  [{'compressor_modulation': ('auto', 'bogus'), 'two_zone_mode': ('auto', 'bogus')}]
+  FAIL every surface has its home, or a reasoned exemption that still names one  [option 'compressor_modulation' (Compressor runs below min power): no home on docs/configuration.md: Default cell 'Automatic'; option 'two_zone_mode' (Two-zone model): no home on docs/configuration.md: Default cell 'Automatic']
+       (517 surface(s), 514 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
   ok   red fixture: a service planted in services.yaml with no home is the one finding
   ok   red fixture: a Default cell that disagrees with the shipped default (away_dhw_min_temperature) is a finding
   ok   red fixture: an exemption naming a surface no longer enumerated is a finding
@@ -443,4 +444,4 @@
   ok   red fixture: a history-sense "used to" is a finding
   ok   red fixture: an exemption that matches no fragment is a finding
 
-1 of 347 checks FAILED
+2 of 348 checks FAILED
