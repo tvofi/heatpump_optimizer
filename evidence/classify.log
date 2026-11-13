@@ -1,4 +1,2 @@
-rc=3 12:03:12
-rc=3 12:04:29
-rc=3 12:05:47
-rc=3 12:07:04
+13:47:55 rc=2 REFUSE selftests: the base's governance / instrument-self-tests job 131921846003 is in_progress, which reads no step: an introduced red cannot be ruled out (fail closed)
+DONE
