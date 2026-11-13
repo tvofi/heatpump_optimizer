@@ -986,7 +986,7 @@ def cases(bj) -> dict[str, bool]:
     take = next(i for i, a in enumerate(f.calls) if "slot-take" in a)
     drop = next((i for i, a in enumerate(f.calls) if "slot-release" in a), -1)
     add = next(i for i, a in enumerate(f.calls) if "worktree" in a and "add" in a)
-    first_run = next(i for i, a in enumerate(f.calls) if a[-2:] == ["tools/pr/prepr.sh", "--self-test"])
+    first_run = next(i for i, a in enumerate(f.calls) if a[-2] == "tools/pr/prepr.sh" and a[-1].startswith("--self"))
     res["darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes"] = \
         take < add < first_run < drop and "--detach" in f.calls[add] and "worktree" in f.calls[-2] and "remove" in f.calls[-2] \
         and "slot-release" in f.calls[-1] and not any(m in a for a in git for m in MOVES)
