@@ -48,7 +48,9 @@ duty is served as idle and a lease expiry cannot hand it back. The
 arbitration never writes the power switch; :func:`switch_supply` below is
 that switch's one writer, shared by the cycle's plan write, the step tick
 (:func:`supply_tick`) and the early cut-off (``early_cutoff.py``), so the
-domain routing has one owner.
+domain routing has one owner. The first two reach it through
+:func:`write_supply`, which writes the step's mode ahead of a switch-on
+(#3420), so the pump never starts in the last duty.
 
 **Two transports, one logic.** The Tuya fork offers DHW-only and Heating,
 so the mode is the gate there. The GCHV/Rotenso Modbus package's mode
@@ -1218,31 +1220,40 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
         # the silent switch included.
         return PumpCommand(None, None, None)
     silent = _silent_target(coord, inp, now)
-    both = pump_mode.MODE_HEAT_DHW if _option_for(mode_state, pump_mode.MODE_HEAT_DHW) else None
-    if duty == "space" and inp.disinfecting:
-        duty = "both"
+    duty = _disinfecting(inp, duty)
+    mode = _mode_for(inp, duty)
     space = _space_target(inp, result, now, duty)
     if _flow_unit(inp.config):
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
-    if duty == "idle":
-        # No mode write. The mode last written served the duty that just
-        # finished, whose thermostat the plan has just satisfied, so it is
-        # the one least likely to start anything; Heating + DHW would arm
-        # both thermostats the plan kept off, and the other single duty
-        # arms the one it did not just satisfy. The DHW-only lease keeps
-        # counting across idle (``_leased``).
-        return PumpCommand(None, dhw, space, silent)
-    if duty == "space":
-        if _option_for(mode_state, pump_mode.MODE_HEAT):
-            return PumpCommand(pump_mode.MODE_HEAT, dhw, space, silent)
-        return PumpCommand(both, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
-    if duty != "dhw":
-        return PumpCommand(both, dhw, space, silent)
-    if _option_for(mode_state, pump_mode.MODE_DHW):
-        return PumpCommand(pump_mode.MODE_DHW, dhw, space, silent)
-    if _flow_unit(inp.config):
-        return PumpCommand(both, dhw, space, silent)
-    return PumpCommand(both, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
+    if duty == "space" and mode != pump_mode.MODE_HEAT:
+        return PumpCommand(mode, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
+    if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):
+        return PumpCommand(mode, dhw, None if space is None else _bounded(inp, "space_setpoint", 5.0, rounding="down"), silent)
+    return PumpCommand(mode, dhw, space, silent)
+
+
+def _disinfecting(inp: ArbiterInputs, duty: str | None) -> str | None:
+    """A space-only step under a held disinfection is Heating + DHW (module table)."""
+    return "both" if duty == "space" and inp.disinfecting else duty
+
+
+def _mode_for(inp: ArbiterInputs, duty: str | None) -> str | None:
+    """The mode row of the module table for ``duty``, as the pass's select offers it.
+
+    Idle writes no mode. The mode last written served the duty that just
+    finished, whose thermostat the plan has just satisfied, so it is the one
+    least likely to start anything; Heating + DHW would arm both thermostats
+    the plan kept off, and the other single duty arms the one it did not just
+    satisfy. The DHW-only lease keeps counting across idle (``_leased``).
+    A single duty the select does not offer is Heating + DHW, where offered.
+    """
+    mode_state, duty = _slot_state(inp, "mode"), _disinfecting(inp, duty)
+    if duty == "idle" or pump_mode.capability(getattr(mode_state, "state", None)).cooling:
+        return None
+    single = {"space": pump_mode.MODE_HEAT, "dhw": pump_mode.MODE_DHW}.get(duty or "")
+    if single is not None and _option_for(mode_state, single):
+        return single
+    return pump_mode.MODE_HEAT_DHW if _option_for(mode_state, pump_mode.MODE_HEAT_DHW) else None
 
 
 def dhw_gated(coord: Any, reading: float | None) -> bool:
@@ -1778,21 +1789,47 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
             return
     if boost.release_blocked(coord, inp, now):
         await boost.persist(coord)
-    duty = _leased(
-        inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
-    )
+    duty = _step_duty(coord, held, inp, now)
     _observe(held, inp, duty, now)
     await duty_switch.note_pass(duty_switch.record_for(coord), now, _switch_context(boost.held_for(coord), held, inp, now))
     if mode != DUTY_CONTROL or _pump_off(inp, held):
         return
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
-    await _command(
-        coord, inp,
-        desired(coord, inp, _without_block(coord, _share(coord, inp, duty, now), now), now),
-        now,
-    )
+    await _command(coord, inp, desired(coord, inp, _served(coord, inp, duty, now), now), now)
     await _write_night_schedule(coord, inp, now)
+
+
+def _step_duty(coord: Any, held: ArbiterState, inp: ArbiterInputs, now: datetime) -> str | None:
+    """The step's duty after the block and the hot-water lease (which it advances)."""
+    return _leased(inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now)
+
+
+def _served(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
+    """The duty this pass serves: a both step's share, its block dropped again."""
+    return _without_block(coord, _share(coord, inp, duty, now), now)
+
+
+async def _lead_mode(coord: Any, on: bool) -> None:
+    """On a switch-on, write the step's mode while the switch still reads off (#3420, part E).
+
+    A pass writes nothing while the switch reads off (:func:`_pump_off`), so
+    the mode used to follow a switch-on by up to a tick and the pump started
+    in the last duty, to be switched while starting. Only the mode: the
+    set-points the pump reports while off are its own, and the pass after
+    the switch-on compares and writes them as before. A failed write is
+    logged by :func:`_write` and holds nothing: the switch follows at once.
+    """
+    now, held = dt_util.now(), state_for(coord)
+    if not on or duty_mode(coord.arbiter_inputs().config) != DUTY_CONTROL:
+        return
+    async with held.lock:
+        await _load(coord)
+        inp = coord.arbiter_inputs()
+        if inp.entry_released or inp.mode == MODE_OFF or not _pump_off(inp, held):
+            return
+        duty = _step_duty(coord, held, inp, now)
+        await _write(coord, inp, "mode", _mode_for(inp, _served(coord, inp, duty, now)), now)
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
@@ -1840,6 +1877,17 @@ async def switch_supply(hass: Any, entity_id: str, on: bool) -> None:
         )
     except Exception as err:  # noqa: BLE001 -- the next cycle writes again
         _LOGGER.error("Error toggling heat pump switch %s: %s", entity_id, err)
+
+
+async def write_supply(coord: Any, entity_id: str, on: bool) -> None:
+    """The cycle's and the step tick's switch write: the step's mode first.
+
+    A switch-on (``on`` with the switch reading off) writes the mode the
+    step owes ahead of it (:func:`_lead_mode`); every other write is
+    :func:`switch_supply` alone, as before.
+    """
+    await _lead_mode(coord, on)
+    await switch_supply(coord.hass, entity_id, on)
 
 
 def supply_write(on: bool, signals: Any) -> bool | None:

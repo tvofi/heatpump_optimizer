@@ -456,8 +456,8 @@ def owed_reds(train) -> "tuple[int, str]":
     return 0, "\n".join(judged(gating_names(req)))
 
 
-ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
-            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
+ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!,$after:String){repository(owner:$o,name:$n){pullRequest(number:$pr){"
+            "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100,after:$after){pageInfo{hasNextPage endCursor} "
             "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
             "... on StatusContext{context state isRequired(pullRequestNumber:$pr)}}}}}}}}}}")
 PLATFORM_PASS = ("SUCCESS", "NEUTRAL", "SKIPPED")
@@ -491,6 +491,39 @@ def platform_gate(payload, head: str) -> "tuple[str, str]":
     if bad:
         return "red", f"{len(bad)} of {len(gates)} required gate run(s) concluded {', '.join(map(str, bad))}"
     return "green", f"{len(gates)} required gate run(s) pass"
+
+
+def rollup_walk(fetch, head: str, max_pages: int = gh_read.MAX_PAGES):
+    """Every page of the rollup's contexts as ONE ROLLUP_Q-shaped payload
+    (R10-HOTFIX-TRAIN-CONTEXT-PAGES): a required context past the first 100 was
+    never seen, and platform_gate read such a head `unread`, a green approved
+    head refused. `fetch(cursor)` is one read (None for the first page) and
+    returns the parsed answer or raises ValueError/OSError; the walk follows
+    `endCursor` and stops on the first page whose answer carries no rollup or
+    is at another head, returning that payload for platform_gate to call
+    unread. A walk past <max_pages> returns the merge with hasNextPage still
+    true: refused as unread, never truncated. One read per page, so a head of
+    one page makes the one read it always did."""
+    merged, cursor = None, None
+    for _ in range(max_pages):
+        payload = fetch(cursor)
+        try:
+            commit = payload["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]
+            ctx = commit["statusCheckRollup"]["contexts"]
+            more, cursor = ctx["pageInfo"]["hasNextPage"], ctx["pageInfo"].get("endCursor")
+        except (KeyError, IndexError, TypeError):
+            return payload
+        if commit.get("oid") != head:
+            return payload
+        if merged is None:
+            merged = payload
+        else:
+            have = merged["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"]["contexts"]
+            have["nodes"] = list(have["nodes"]) + list(ctx["nodes"])
+            have["pageInfo"] = ctx["pageInfo"]
+        if not more or not cursor:
+            return merged
+    return merged
 
 
 def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
@@ -2222,10 +2255,17 @@ class Train:
         required-check evaluation must say the same, or the entry stops. A
         rollup that cannot be read is no agreement."""
         owner, name = self.repo.split("/")
-        code, o = self.run(["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
-                            "-f", f"o={owner}", "-f", f"n={name}"])
+        def fetch(cursor):
+            argv = ["gh", "api", "graphql", "-f", f"query={ROLLUP_Q}", "-F", f"pr={pr}",
+                    "-f", f"o={owner}", "-f", f"n={name}"] + (["-f", f"after={cursor}"] if cursor else [])
+            code, o = self.run(argv)
+            if code:
+                raise OSError(o.strip()[-160:])
+            return json.loads(o)
         try:
-            state, why = platform_gate(json.loads(o), h) if code == 0 else ("unread", o.strip()[-160:])
+            state, why = platform_gate(rollup_walk(fetch, h), h)
+        except OSError as e:
+            state, why = "unread", str(e)
         except ValueError:
             state, why = "unread", "the rollup answer is not JSON"
         self.log(f"#{pr} {h[:8]} platform gate={state}: {why}")
@@ -4596,6 +4636,11 @@ def _self_test() -> int:
                 return (0, st) if st else (1, "gh: Not Found (HTTP 404)")
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
+                if "rollup_pages" in world:  # a paged listing: the answer follows the `after=` cursor asked
+                    cur = next((x[6:] for x in argv if x.startswith("after=")), None)
+                    world.setdefault("rollup_cursors", []).append(cur)
+                    world.setdefault("rollup_queries", []).append(next((x[6:] for x in argv if x.startswith("query=")), ""))
+                    return world["rollup_pages"](cur)
                 return world.get("rollup", (1, "HTTP 502"))
             if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
                 world["ci_list_reads"] = world.get("ci_list_reads", 0) + 1
@@ -7606,6 +7651,49 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           platform_gate(rollup(ok_g, oid="f" * 40), H0)[0] == "unread"
           and platform_gate(rollup(ok_g, more=True), H0)[0] == "unread"
           and platform_gate({"data": None}, H0)[0] == "unread")
+    # R10-HOTFIX-TRAIN-CONTEXT-PAGES: a required context on page 2 is judged, never skipped.
+    def pager(*pages, oid=H0, oid_late=None):
+        """A faked listing: page k answers pages[k]; reads records the cursors asked."""
+        reads = []
+
+        def fetch(cursor):
+            reads.append(cursor)
+            k = 0 if cursor is None else int(cursor)
+            pl = rollup(oid=oid_late if k and oid_late else oid, more=k + 1 < len(pages), extra=pages[k])
+            pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+                "contexts"]["pageInfo"]["endCursor"] = str(k + 1)
+            return pl
+        return fetch, reads
+    filler = [dict(nonreq, name=f"x{i}") for i in range(3)]
+    gate_p1 = {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": "SUCCESS", "isRequired": True}
+    late = lambda c: {"__typename": "CheckRun", "name": GATE, "status": "COMPLETED", "conclusion": c, "isRequired": True}
+    f_red, r_red = pager(filler, [late("FAILURE")])
+    f_grn, r_grn = pager(filler, [late("SUCCESS")])
+    f_one, r_one = pager([gate_p1] + filler)
+    f_old, r_old = pager([gate_p1], [late("SUCCESS")], oid="f" * 40)
+    f_inf, _ = pager(*([[gate_p1]] * (gh_read.MAX_PAGES + 2)))
+    f_mid, r_mid = pager([gate_p1], [late("FAILURE")], oid_late="f" * 40)
+    got_red = platform_gate(rollup_walk(f_red, H0), H0)[0]
+    got_grn = platform_gate(rollup_walk(f_grn, H0), H0)[0]
+    check("A5 platform: a required context on page 2 that is red reads RED, green reads GREEN "
+          "(null: the one-page head makes the same single read, [None]; a walk past the page cap "
+          "and a later page at another head are unread)",
+          (got_red, got_grn) == ("red", "green") and r_red == r_grn == [None, "1"]
+          and platform_gate(rollup_walk(f_one, H0), H0)[0] == "green" and r_one == [None]
+          and platform_gate(rollup_walk(f_inf, H0), H0)[0] == "unread"
+          and platform_gate(rollup_walk(f_old, H0), H0)[0] == "unread")
+    check("A5 platform: a later page whose oid differs from the first page's is unread, never merged in "
+          "(null: the same listing at one oid reads red from its page 2)",
+          platform_gate(rollup_walk(f_mid, H0), H0)[0] == "unread" and r_mid == [None, "1"]
+          and platform_gate(rollup_walk(pager([gate_p1], [late("FAILURE")])[0], H0), H0)[0] == "red")
+    f_p1red, _ = pager([late("FAILURE")], [late("SUCCESS")])
+    f_p1oth, _ = pager([dict(nonreq, isRequired=True)], [late("SUCCESS")])
+    f_p2red, _ = pager([gate_p1], [dict(nonreq, isRequired=True)])
+    check("A5 platform: the merge keeps page 1's nodes: a red required gate, or another required context, on page 1 "
+          "reads RED though page 2's rerun is green (null: a red other-required context on page 2 reads red too)",
+          platform_gate(rollup_walk(f_p1red, H0), H0)[0] == "red"
+          and platform_gate(rollup_walk(f_p1oth, H0), H0)[0] == "red"
+          and platform_gate(rollup_walk(f_p2red, H0), H0)[0] == "red")
     gate_req = {"required": f"{GATE}\n"}
     for what, w, merges in (
             ("train green, GitHub green: it merges", dict(gate_req, runs=[gt()], rollup=(0, json.dumps(rollup(ok_g)))), True),
@@ -7619,6 +7707,25 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
+    def train_pages(cursor):  # page 2 (cursor "1") carries a red required gate; page 1 alone is green
+        k = 0 if cursor is None else int(cursor)
+        pl = rollup(ok_g if k == 0 else ("COMPLETED", "FAILURE"), more=k == 0)
+        pl["data"]["repository"]["pullRequest"]["commits"]["nodes"][0]["commit"]["statusCheckRollup"][
+            "contexts"]["pageInfo"]["endCursor"] = "1"
+        return 0, json.dumps(pl)
+    w = dict(gate_req, runs=[gt()], rollup_pages=train_pages)
+    rc, lines, calls = go(w)
+    check("A5 serial: the train passes each page's endCursor on the next read, so a red required gate on "
+          "page 2 stops the merge (null: a one-page rollup is read once, with no cursor, and merges)",
+          not merged(calls) and w["rollup_cursors"][:2] == [None, "1"] and "red" in " ".join(lines))
+    w = dict(gate_req, runs=[gt()], rollup_pages=lambda c: (0, json.dumps(rollup(ok_g))))
+    rc, lines, calls = go(w)
+    check("A5 serial: the query the train sends asks for the page cursor and takes the `after` argument "
+          "(a real GitHub would otherwise serve page 1 forever, or refuse the unused variable)",
+          bool(w["rollup_queries"]) and all("endCursor" in q and "contexts(first:100,after:$after)" in q
+                                            for q in w["rollup_queries"]))
+    check("A5 serial null: a one-page rollup is read once, with no cursor, and merges",
+          merged(calls) and w["rollup_cursors"] == [None])
     _defer_wait_self_test(check, go, merged, cr, gt, gate_req, json.dumps(rollup(ok_g, ok_g)))
     rc, lines, calls = go({})  # go()'s default: the ruleset ["fast"], green runs
     check("A5 null: an old-layout ruleset (no gate) makes no platform read", rc == 0 and merged(calls)
