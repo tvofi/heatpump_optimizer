@@ -1293,6 +1293,53 @@ STUB
   ck "  mutant mut:opcollect (its line deleted): open_pr.sh never asks for the collection" $?
   racerun oprowonly; [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
   ck "  mutant mut:oprowonly (its line deleted): the row push runs the full prepr" $?
+  # R10-HOTFIX-OPENER-REFUSALS: two openers on one topic (a seat's hand run, open_driver.py's) share the
+  # topic-keyed state dir and its body.md, but the lock was keyed on the branch, and a second run renamed
+  # itself fix/<topic>-pr whenever the first's worktree add had made a local fix/<topic>: it took another lock,
+  # rewrote body.md from handoff-body without the head note, and refused later, while the first run's prepr
+  # read the overwritten body. dualrun starts open_pr.sh r twice, neither with BR_FIXED, the second while the
+  # first is in its second push; the main merge has moved the head, so the first's body.md carries a head note.
+  # Expected: the second is BUSY (75) and body.md is byte-identical. lonerun is the null control: one run
+  # beside a stale local fix/r and no registered worktree still takes the -pr name.
+  dualcopy() { # <mutant|->: the arm's scripts, with the mutant's line deleted
+    local g
+    for g in open_pr.sh update_pr.sh delivery_row.sh pr_args.sh pr_cap.py; do
+      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+    done
+  }
+  dualreset() { # <state dir> <stub dir>: no state, branch or worktree of the topic r survives, main one commit ahead
+    rm -rf "$1" "$2" "$t/s$i"; mkdir -p "$1" "$2"
+    git -C "$m" worktree prune; git -C "$m" branch -qD fix/r fix/r-pr 2>/dev/null; git -C "$o" branch -qD fix/r fix/r-pr 2>/dev/null
+    printf 'y\n' > "$o/yy" && git -C "$o" add yy && git -C "$o" -c user.name=t -c user.email=t@t commit -q -m "main moved"
+  }
+  dualend() { # <state dir>
+    reap; git -C "$m" worktree remove --force "$1/pr/r/wt" 2>/dev/null; git -C "$m" worktree prune; git -C "$o" reset -q --hard "$base"; true
+  }
+  dualrun() { # <mutant|->: rc of the second opener in $t/rc2, body.md before and after it in $t/bd1 and $t/bd2
+    local sd=$t/dual-state sdir=$t/dual-stub k=0 op
+    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); dualcopy "$1"
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout1" 2>&1 & op=$!
+    while [ ! -e "$sdir/p2started" ] && [ $k -lt 400 ]; do sleep 0.05; k=$((k + 1)); done
+    cksum < "$sd/pr/r/body.md" > "$t/bd1"
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout2" 2>&1; echo $? > "$t/rc2"
+    cksum < "$sd/pr/r/body.md" > "$t/bd2"
+    touch "$sdir/release"; wait "$op"; echo $? > "$t/rc1"
+    dualend "$sd"
+  }
+  lonerun() { # the null control: a stale local fix/r, no registered worktree, one run
+    local sd=$t/lone-state sdir=$t/lone-stub
+    dualreset "$sd" "$sdir"; sd=$(cd "$sd" && pwd -P); dualcopy -; touch "$sdir/release"
+    git -C "$m" branch -f fix/r "$base"
+    env -u BR -u BR_FIXED HPO_STATE_DIR=$sd STUB_DIR=$sdir bash "$m/tools/audit/seat/open_pr.sh" r "$codeR" T G > "$t/dout3" 2>&1; echo $? > "$t/rc3"
+    git -C "$o" cat-file -e fix/r-pr:dev/programme/delivery/5.md 2>/dev/null && echo 1 > "$t/lrow" || echo 0 > "$t/lrow"
+    dualend "$sd"
+  }
+  dualrun -; [ "$(cat "$t/rc2")" = 75 ] && grep -qF "BUSY" "$t/dout2" && [ "$(cat "$t/bd1")" = "$(cat "$t/bd2")" ] && [ "$(cat "$t/rc1")" = 0 ] && grep -q '^PR=5 ' "$t/dout1"
+  ck "open_pr: a second opener on a topic whose opener worktree is registered is BUSY (75), body.md byte-identical, the first opens" $?
+  dualrun opreg; [ "$(cat "$t/rc2")" != 75 ] && [ "$(cat "$t/bd1")" != "$(cat "$t/bd2")" ]
+  ck "  mutant mut:opreg (its line deleted): the second opener takes the -pr lock, is not BUSY, and rewrites body.md (the defect)" $?
+  lonerun; [ "$(cat "$t/rc3")" = 0 ] && [ "$(cat "$t/lrow")" = 1 ]
+  ck "  null control: a lone opener beside a stale local fix/r and no registered worktree still takes fix/r-pr" $?
   # R10-HOTFIX-OPENPR-FIGURE-REFRESH: a figure block names the head it was rendered at, so the body
   # open_pr.sh pushes needs it re-rendered at each head it pushes (p1 when the main merge moved the
   # head, p2 always: the row commit moves it). The stub pusher is lint's figure-block head check; the
@@ -1309,6 +1356,9 @@ if [ -n "$h" ]; then
   [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr RUNS: the body changed"
 else
   [ "$flag" != --row-only ] || echo "app_push: ROW-ONLY: prepr SKIPPED: only the row"
+fi
+if [ "$n" = 1 ] && [ "$(git -C "$wt" rev-list --parents -n1 HEAD | wc -w)" -ge 3 ]; then  # the main merge moved the head: the ## Head section names it
+  sed -n '/^## Head/,/^## Figures/p' "$body" | grep -q "$(git -C "$wt" rev-parse HEAD)" || { echo "app_push: REFUSE: ## Head does not name HEAD"; exit 1; }
 fi
 git -C "$wt" push -q -f origin "$br" || exit 1  # -f: a re-run's merge commit is not the first run's; the real pusher's refusal of that is outside this arm
 [ "$n" != 1 ] || echo "app_push: PUSHED to $br; pull request #5 is open"
@@ -1345,6 +1395,8 @@ STUB
   ck "open_pr: a body with a figure block opens (both pushes land, the row is present), the main merge having moved the head" $?
   figrun opfig2 block; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ] && grep -qF "figure-block scope-line names another head" "$t/fo" "$t/fp2" 2>/dev/null
   ck "  mutant mut:opfig2 (its line deleted): the row push is refused, naming another head, and the PR is closed" $?
+  figrun headnote block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "## Head does not name HEAD" "$t/fo"
+  ck "  mutant mut:headnote (its line deleted): the head note is missing, so the code push is refused for a ## Head that does not name HEAD" $?
   figrun opfig1 block; [ "$(cat "$t/frc")" != 0 ] && ! grep -q 'pull request #5' "$t/fo" && grep -qF "figure-block scope-line names another head" "$t/fo"
   ck "  mutant mut:opfig1 (its line deleted): the code push is refused at the merged head, with nothing pushed" $?
   figrun - none; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ] && grep -qF "ROW-ONLY: prepr SKIPPED" "$t/fp2"

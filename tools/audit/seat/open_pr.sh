@@ -41,7 +41,13 @@ export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)
 T=$1; C=$2; TITLE=$3; G=$4; shift 4; ISS="$*"
 D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
-git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ] && BR=$BR-pr  # a seat often holds a local branch of the default name
+# A topic's opener worktree $WT is shared by every opener of the topic (a seat's hand run, open_driver.py's), so the
+# branch it holds names the lock of the run holding it. A second opener adopts that branch and meets the first's lock
+# (BUSY) before it writes the shared body.md, not a -pr lock of its own. A detached worktree holds no branch: a
+# finished run's leftover, which takes the -pr name below as a lone run does.
+OP_REG=$(git -C "$M" worktree list --porcelain | awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}')  # mut:opreg
+if [ -n "${OP_REG:-}" ] && [ -z "${BR_FIXED:-}" ]; then BR=$OP_REG
+elif git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ]; then BR=$BR-pr; fi  # a seat often holds a local branch of the default name
 mkdir -p "$D"; cd "$M"
 # The branch's lock, update_pr.sh's own, held to the end: cloud_relay's update_pr.sh detached this worktree
 # between the two pushes below and left the PR without its row (#2547, #2548); it now answers BUSY.
@@ -145,7 +151,7 @@ MERGE_OK=; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.git
 PYTHONPATH="$PRT" python3 - $D/body.md $(git rev-parse HEAD) $C $(git rev-parse --short origin/main) <<'E0'
 import sys; from head_note import prefix
 p,H,C,M=sys.argv[1:5]; s=open(p).read()
-if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C))
+if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C))  # mut:headnote
 open(p,'w').write(s)
 E0
 # A disposed `## Unpinned sites` key the merge only shifted is re-keyed in place (P70, P125): prepr's
