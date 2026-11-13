@@ -2,6 +2,8 @@ Carry 21 repair: pin the hotfix-scope classifier seam that the first review at a
 
 ## Review scope
 
+The generated scope-line block is left out of this body: update_pr.sh verifies it against its own merge head, which no body can name in advance (R10-HOTFIX-UPDATEPR-FIGURE-REFRESH); the scope line is the gate's own MODE line at the head.
+
 `git diff a81d7f15293fc2101f42e48ade37ef7022c35517 becbe652ab6b321a680e5b45b61bfd897f2e0669` -- the two instrument files, plus the `tests/closures.json` re-record of `tests/harness_headers.py` prepr asked for (its rc field 1 to 0; membership unchanged). The hotfix-scope decision is unchanged; the one deliberate behaviour change is the P9 fix (the two skip defaults are no longer `export`ed, since every reader is in prepr's own shell and no child depends on inheriting a roster-chosen skip):
 
 - `tools/pr/gate_priority.py`: new self-test arms that drive `main(["--hotfix", ...])` and read its stdout, and one that makes `roster_lib.show_roster` raise so `_rank`'s `except` arm is exercised and shown fail-closed. No change to `_rank`, `is_hotfix`, `derived_priority` or the CLI.
@@ -9,7 +11,7 @@ Carry 21 repair: pin the hotfix-scope classifier seam that the first review at a
 
 ## Head
 
-`becbe652ab6b321a680e5b45b61bfd897f2e0669`
+`16c571f7783b3f9f0c53e0778f8c805fc07d65f4`
 
 ## Mutation proof
 
@@ -34,10 +36,24 @@ Driver run against 0b407606 (the closures re-record after it changes no driven f
 
 The carry's null control is the non-hotfix branch: the `(hotfix) null control: a non-hotfix branch prints nothing and sets neither skip` arm passes, and the full prepr is unchanged for it. End to end, the `(hotfix) null control: the same fixture's lease priority is 2 and 1` arm shows the fixture's gate priorities are 2 (hotfix) and 1 (outside), so `hotfix_class`'s 1 / 0 is the class, not the priority. For the fail-closed fix, the null is the unbroken read, restored: `(True, 2, '1')` for the hotfix branch after `show_roster` is restored.
 
+## Repair round 2
+
+Round 1's head becbe652 failed `prepr.sh --self-test` (549 passed, 1 failed) under `update_pr.sh`, which exports `PREPR_SKIP_CLOSURES=1`: row "(hotfix) an explicit empty PREPR_SKIP_CLOSURES wins" got `...|hotfix||unset,,` and wanted `...unset,unset`, because assigning an empty value to a name the caller exported leaves it exported, so the `bash -c` child saw it. Fix, at the owner of the dependence: `--self-test` now runs `unset PREPR_SKIP_CODE PREPR_SKIP_CLOSURES` once at entry (chosen over per-row unsets alone because the pre-existing receipt/merged_steps rows also failed under an exported `PREPR_SKIP_CODE=1` -- 5 more failures -- so one scrub covers the class), and the two empty-assignment rows also unset both names first so they hold on their own.
+
+Reproduction (command `env <VAR=1> bash tools/pr/prepr.sh --self-test`, at becbe652): no export 550/0; `PREPR_SKIP_CLOSURES=1` 549/1 (that row); `PREPR_SKIP_CODE=1` 544/6 (the empty-PREPR_SKIP_CODE row plus 5 pre-existing receipt/merged_steps/body_push rows). At this head: `PREPR_SKIP_CLOSURES=1`, `PREPR_SKIP_CODE=1`, and both, each 550/0.
+
+Mutation: `mutant_run.py --diff HEAD~1...HEAD --cmd 'bash tools/pr/prepr.sh --self-test'` draws no mutant (the diff has no added Python line; rc 0, empty report). The becbe652 runs above are the removal proof: deleting the scrub and the row unsets turns the two exported-caller runs red, 549/1 and 544/6.
+
+An extra probe, `HPO_GATE_PRIORITY=2` exported, gives 549/1 on "this repository's own wired hooks pass" (`.claude/hooks/pre-edit.sh`, 21 passed, 1 failed). Not in the brief's set, not measured at becbe652 or the merge base, cause not investigated.
+
+## Carry status
+
+This part builds carry 21 only. Each other dispatched carry keeps the disposition its own text carries in the brief and is not built here: carry 0 (dismissed: moved to round 11), carry 1 (dismissed: moved to round 11), carry 2 (dismissed: moved to round 11), carry 3 (dismissed: moved to round 11), carry 4 (implemented at 6e100ef6980216a81eaa0438bdc215d62b19271f), carry 5 (moved: R11-INTAKE-R10-RESIDUE), carry 6 (dismissed in pull request 3479), carry 7 (dismissed: moved to round 11), carry 8 (dismissed: superseded by carries 14 to 17), carry 9 (dismissed: superseded by carries 14 to 17), carry 10 (dismissed: superseded by carries 14 to 17), carry 11 (dismissed: superseded by carries 14 to 17), carry 12 (dismissed: duplicate of carry 20), carry 13 (dismissed: moved to round 11), carry 14 (moved: R11-INTAKE-R10-RESIDUE), carry 15 (moved: R11-INTAKE-R10-RESIDUE), carry 16 (moved: R11-INTAKE-R10-RESIDUE), carry 17 (moved: R11-INTAKE-R10-RESIDUE), carry 18 (dismissed: moved to round 11), carry 19 (dismissed: roster instruction done), carry 20 (moved: R11-INTAKE-R10-RESIDUE), carry 22 (moved: R10-CARRY-AUDIT-P5), carry 23 (moved: R10-CARRY-AUDIT-P5), carry 24 (moved: R10-PROCESS-SLIM), carry 25 (moved: R11-INTAKE-R10-RESIDUE).
+
 ## Figures
 
 - `python3 tools/pr/gate_priority.py --self-test`: 21 checks, 0 failed at this head (17 at a81d7f15: +4 arms -- the `--hotfix` CLI, the raising read, the restore null, the fetched default).
-- `bash tools/pr/prepr.sh --self-test`: 550 passed, 0 failed at this head (548 at a81d7f15, 542 at the merge base 7eadd75f).
+- `bash tools/pr/prepr.sh --self-test`: 550 passed, 0 failed at this head, and the same tally with PREPR_SKIP_CLOSURES=1, PREPR_SKIP_CODE=1, and both exported (548 at a81d7f15, 542 at the merge base 7eadd75f).
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED; no budget file touched.
 - `python3 tools/audit/seat/bare_array.py --check`: clean.
 - `python3 tools/pr/ci_predict.py`: no closures, fast, governance or instrument red predicted.
@@ -45,7 +61,7 @@ The carry's null control is the non-hotfix branch: the `(hotfix) null control: a
 
 ## Red checks
 
-none
+`instrument-self-tests` step prepr.sh `--self-test` went red at becbe652 under update_pr.sh's environment (above). Root-cause answer (defect-root-cause.md second trigger): process state (c), the self-test ran and was obeyed but assumed an unexported caller. The cheaper detector is the same self-test run once with `PREPR_SKIP_CLOSURES=1` exported, in the fixer's pre-handoff checks; standing cost about 9 minutes of one background run per handoff that touches prepr.sh, against one red PR update cycle. The scrub makes the exported run equal the unexported one, so the extra run only guards a future row that bypasses the scrub.
 
 ## Forward-carry
 
