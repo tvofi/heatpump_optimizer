@@ -296,7 +296,7 @@ const STRINGS = {
     // The drift alarm's restart points (R9-DIAG-2S, #1936).
     "advisor.refit_title": "Restart the heat-loss model at {to} (now {from})",
     "advisor.refit_detail":
-      "Refitted from {days} settled days ({pairs} intervals) since the last boost or restore; about ±7-10 % uncertain. Nothing changes until you accept.",
+      "Refitted from {days} settled days ({pairs} intervals) since the last boost or restore; about ±{band} % uncertain. Nothing changes until you accept.",
     "advisor.refit_wait_title": "Heat-loss refit pending",
     "advisor.refit_wait_detail":
       "Predictions are drifting. A refit needs {need} settled days of evidence; {days} so far.",
@@ -1176,7 +1176,7 @@ const STRINGS = {
     "advisor.apply_failed": "Kunde inte verkställa: {error}",
     "advisor.refit_title": "Starta om värmeförlustmodellen på {to} (nu {from})",
     "advisor.refit_detail":
-      "Omanpassad från {days} lugna dagar ({pairs} intervall) sedan senaste boost eller återställning; osäkerhet ungefär ±7-10 %. Ingenting ändras förrän du godtar.",
+      "Omanpassad från {days} lugna dagar ({pairs} intervall) sedan senaste boost eller återställning; osäkerhet ungefär ±{band} %. Ingenting ändras förrän du godtar.",
     "advisor.refit_wait_title": "Omanpassning av värmeförlusten väntar",
     "advisor.refit_wait_detail":
       "Prognoserna driver. En omanpassning kräver {need} lugna dagar med underlag; {days} hittills.",
@@ -1997,7 +1997,7 @@ const STRINGS = {
     "advisor.applied_setpoint": "Warmwasser-Sollwert auf {to} °C gesetzt.",
     "advisor.apply_failed": "Anwenden nicht möglich: {error}",
     "advisor.refit_title": "Wärmeverlustmodell bei {to} neu starten (jetzt {from})",
-    "advisor.refit_detail": "Neu angepasst aus {days} abgeschlossenen Tagen ({pairs} Intervalle) seit dem letzten Boost oder der letzten Wiederherstellung; etwa ±7–10 % Unsicherheit. Es ändert sich nichts, bis du zustimmst.",
+    "advisor.refit_detail": "Neu angepasst aus {days} abgeschlossenen Tagen ({pairs} Intervalle) seit dem letzten Boost oder der letzten Wiederherstellung; etwa ±{band} % Unsicherheit. Es ändert sich nichts, bis du zustimmst.",
     "advisor.refit_wait_title": "Neuanpassung des Wärmeverlusts ausstehend",
     "advisor.refit_wait_detail": "Die Vorhersagen driften. Eine Neuanpassung benötigt Belege aus {need} abgeschlossenen Tagen; bisher {days}.",
     "advisor.restore_title": "Modell von {when} wiederherstellen",
@@ -10094,7 +10094,8 @@ function restartRows(plan) {
     rows.push(row("adopt_refit",
       L("advisor.refit_title", { to: Number(refit.scale).toFixed(2),
         from: readNumber(attrs.current_scale) === null ? "—" : readNumber(attrs.current_scale).toFixed(2) }),
-      L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs })));
+      L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs,
+        band: finiteNum(refit.band_percent) ? String(Number(refit.band_percent)) : "—" })));
   } else if (refit) {
     rows.push(row("", L("advisor.refit_wait_title"),
       L("advisor.refit_wait_detail", { need: refit.required_days, days: Number(refit.settled_days).toFixed(1) })));
