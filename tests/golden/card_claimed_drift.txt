@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.13
+# claims-for: 7.1.14
 #
-# v7.1.13: Duty-switch restart learning, hot-water write range and charge limit. The stamp empties the list; the
+# v7.1.14: duty-switch restart learning B, mode before supply on, ECL110 off-neutral, user docs. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
