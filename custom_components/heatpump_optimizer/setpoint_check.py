@@ -18,6 +18,7 @@ from .inputs import (
     quantise_setpoint_c,
     read_setpoint,
     setpoint_and_unit,
+    setpoint_grid,
     temperature_from_c,
 )
 from .quiet_windows import silent_unenforceable
@@ -103,20 +104,22 @@ def _dhw_start(hass: Any, config: dict[str, Any], params: Any) -> None:
 
     A pump with a start hysteresis (``dhw_hysteresis_entity``) starts a charge
     only below its target less that (``thermal_model.dhw_start_below_c``, on
-    the everyday target), and the plan places no charge it will not start. A
-    minimum above that start temperature is therefore one the tank must fall
+    the everyday target as written, ``thermal_model.dhw_step_target_c`` on the
+    set-point entity's grid), and the plan places no charge it will not start.
+    A minimum above that start temperature is therefore one the tank must fall
     through before any charge can begin: the plan shows the tank under it,
-    and this says why. Cleared with no hysteresis read.
+    and this says why. Cleared with no hysteresis read, and with hot water
+    disabled (``dhw_enabled``): no charge is planned then and no minimum held.
     """
-    hysteresis = read_temperature_delta_k(
-        hass, EntryConfig.from_mapping(config).dhw_hysteresis_entity)
-    target = dhw_step_target_c(params, False)
+    cfg = EntryConfig.from_mapping(config)
+    hysteresis = read_temperature_delta_k(hass, cfg.dhw_hysteresis_entity)
+    target = dhw_step_target_c(params, False, setpoint_grid(hass, cfg.dhw_setpoint_entity))
     start = dhw_start_below_c(target, hysteresis)
     floor = float(params.dhw_min_temp)
     set_issue(
         hass,
         ISSUE_DHW_START,
-        start is not None and floor > start,
+        bool(params.dhw_enabled) and start is not None and floor > start,
         placeholders={
             "floor": f"{floor:.1f}",
             "start": "" if start is None else f"{start:.1f}",

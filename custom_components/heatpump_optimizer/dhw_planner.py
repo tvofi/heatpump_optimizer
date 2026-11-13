@@ -208,21 +208,25 @@ STARTABLE_ROUNDS = 8
 
 
 def dhw_start_temps(
-    params: ThermalParameters, hysteresis_k: Any, n_steps: int, cycle_step: int | None
+    params: ThermalParameters, state: ThermalState, n_steps: int, cycle_step: int | None
 ) -> np.ndarray | None:
     """Per step, the tank temperature below which the pump starts a charge, °C.
 
-    The target the arbiter holds on that step (``dhw_step_target_c``: the
-    cycle's on ``cycle_step``, the everyday one elsewhere) less the pump's
-    start hysteresis, so a disinfection charge is judged against its own
-    target. ``None`` where no start condition is known (``dhw_start_below_c``).
+    The target the arbiter writes on that step (``dhw_step_target_c`` on the
+    set-point entity's grid, ``state.dhw_setpoint_grid``: the cycle's on
+    ``cycle_step``, the everyday one elsewhere) less the pump's start
+    hysteresis (``state.dhw_start_hysteresis_k``), so a disinfection charge
+    is judged against its own target and a stepped entity's against the step
+    it lands on. ``None`` where no start condition is known
+    (``dhw_start_below_c``).
     """
-    everyday = dhw_start_below_c(dhw_step_target_c(params, False), hysteresis_k)
+    hysteresis_k, grid = state.dhw_start_hysteresis_k, state.dhw_setpoint_grid
+    everyday = dhw_start_below_c(dhw_step_target_c(params, False, grid), hysteresis_k)
     if everyday is None:
         return None
     start = np.full(n_steps, everyday)
     if cycle_step is not None and 0 <= cycle_step < n_steps:
-        start[cycle_step] = dhw_start_below_c(dhw_step_target_c(params, True), hysteresis_k)
+        start[cycle_step] = dhw_start_below_c(dhw_step_target_c(params, True, grid), hysteresis_k)
     return start
 
 
@@ -232,15 +236,22 @@ def startable_steps(
     """The steps where charging is something the pump does.
 
     A step that opens on a tank below its start temperature (``temps[i]``,
-    the simulated level at its start), one already charging, and the one
-    after a charging step: a charge under way runs on to its target. Every
-    step where no start condition is known (``start_below`` ``None``).
+    the simulated level at its start), and the step after one of a charge
+    under way, which runs on to its target. A charge is under way from the
+    step it opens below its start temperature, or from the first step, where
+    it is kept as one that may be (:func:`drop_unstartable`); a charge the
+    pump would not start carries nothing on, so the repair buys neither
+    inside it nor behind it. Every step where no start condition is known
+    (``start_below`` ``None``).
     """
     on = np.asarray(plan, dtype=float) > 0.0
     if start_below is None:
         return np.ones(on.size, dtype=bool)
-    ok: np.ndarray = (np.asarray(temps, dtype=float)[: on.size] < start_below[: on.size]) | on
-    ok[1:] |= on[:-1]
+    ok: np.ndarray = np.asarray(temps, dtype=float)[: on.size] < start_below[: on.size]
+    under_way = bool(on[:1].any())
+    for i in range(1, on.size):
+        ok[i] |= under_way
+        under_way = bool(on[i] and ok[i])
     return ok
 
 
@@ -1276,8 +1287,7 @@ class DhwPlanner:
         # window (stress: winter_mild). Top up at the cheapest usable step
         # before each breach until the simulated trajectory honours the
         # requirement, then re-apply the rating, which always wins.
-        start_below = dhw_start_temps(
-            params, initial_state.dhw_start_hysteresis_k, n_steps, legionella_step)
+        start_below = dhw_start_temps(params, initial_state, n_steps, legionella_step)
         tank = (ctx, initial_state.dhw_temperature, draw_rates)
         schedule = place_startable(schedule, start_below, partial(self._ctx_temps, *tank), partial(
             self._repair_dhw_floor,

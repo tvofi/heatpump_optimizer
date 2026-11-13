@@ -787,6 +787,20 @@ def _hyst_snap(hysteresis=None, *, action=None, space=None, disinfecting=False, 
     ))
 
 
+def _start_state(hysteresis, attrs=None):
+    """A ``ThermalState`` with the pump's hot-water hysteresis and, with ``attrs``, the grid of a
+    set-point number carrying them, read as the coordinator's input read reads it."""
+    from heatpump_optimizer import inputs as inputs_mod
+    from heatpump_optimizer.thermal_model import ThermalState
+
+    state = ThermalState()
+    hass = FakeHass({"sensor.h": FakeState("" if hysteresis is None else str(hysteresis), unit="K"),
+                     "number.dhw": FakeState("55", attributes=attrs or {})})
+    inputs_mod.read_start_hysteresis(state, hass, {
+        "dhw_hysteresis_entity": "sensor.h", "dhw_setpoint_entity": "number.dhw" if attrs else None})
+    return state
+
+
 def hysteresis_checks() -> None:
     """The pump's own start hysteresis: read, planned, written and logged."""
     import ast
@@ -852,15 +866,16 @@ def hysteresis_checks() -> None:
     check("null control: with no cycle active a cycle step holds the everyday set-point",
           lambda: tm.dhw_step_target_c(nocyc, True) == 55.0)
     check("each step's start temperature is its own target less the hysteresis, the cycle step the cycle's",
-          lambda: list(planner.dhw_start_temps(cyc, 4.0, 6, 3)) == [51, 51, 51, 56, 51, 51]
-          and list(planner.dhw_start_temps(cyc, 4.0, 6, None)) == [51.0] * 6)
+          lambda: list(planner.dhw_start_temps(cyc, _start_state(4.0), 6, 3)) == [51, 51, 51, 56, 51, 51]
+          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 6, None)) == [51.0] * 6)
     check("a cycle on the first step is judged against its own target; one past the horizon moves no step",
-          lambda: list(planner.dhw_start_temps(cyc, 4.0, 3, 0)) == [56, 51, 51]
-          and list(planner.dhw_start_temps(cyc, 4.0, 3, 3)) == [51, 51, 51]
-          and list(planner.dhw_start_temps(cyc, 4.0, 3, 2)) == [51, 51, 56])
+          lambda: list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 0)) == [56, 51, 51]
+          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 3)) == [51, 51, 51]
+          and list(planner.dhw_start_temps(cyc, _start_state(4.0), 3, 2)) == [51, 51, 56])
     check("with no or zero hysteresis no step has a start temperature",
-          lambda: planner.dhw_start_temps(cyc, None, 6, 3) is None
-          and planner.dhw_start_temps(cyc, 0.0, 6, 3) is None)
+          lambda: planner.dhw_start_temps(cyc, _start_state(None), 6, 3) is None
+          and planner.dhw_start_temps(cyc, _start_state(0.0), 6, 3) is None
+          and planner.dhw_start_temps(cyc, _start_state(0.0, _step(5)), 6, 3) is None)
 
     # 5. One owner of the target: what the arbiter writes.
     check("the arbiter writes dhw_step_target_c: the everyday set-point with no cycle booked",
@@ -869,15 +884,89 @@ def hysteresis_checks() -> None:
           lambda: arb._dhw_write(_hyst_snap(4.0, action={"dhw_reason": "legionella"}))
           == tm.dhw_step_target_c(cyc, True) == 60.0)
 
+    # 5b. One owner, read by the write: the two values, the two bounds and the entity's step.
+    hot = ThermalParameters(dhw_setpoint=72.0, dhw_legionella_temp=60.0, dhw_legionella_enabled=False)
+    hot_cycle = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=72.0, dhw_legionella_enabled=True)
+    check("the everyday step target never exceeds the charge limit (dhw_max_temp, 70 over a 72 set-point)",
+          lambda: hot.dhw_max_temp == 70.0 and tm.dhw_step_target_c(hot, False) == 70.0)
+    check("the cycle's step target never exceeds the tank's hard maximum (70 over a 72 disinfection temperature)",
+          lambda: hot_cycle.dhw_hard_max_temp == 70.0 and hot_cycle.dhw_cycle_temp == 72.0
+          and tm.dhw_step_target_c(hot_cycle, True) == 70.0)
+
+    def owner_gaps():
+        # Every write the arbiter makes against the owner handed the same entity's grid.
+        gaps = []
+        for step in (0.1, 0.5, 1, 5):
+            for configured in (55.0, 57.0, 58.0, 60.4, 72.0):
+                for disinfection in (50.0, 60.0, 60.3, 72.0):
+                    for cycle in (True, False):
+                        for booking in _BOOKINGS:
+                            snap = _dhw_snap(configured=configured, disinfection=disinfection, cycle=cycle,
+                                             attrs=_step(step), **booking)
+                            grid = inputs_mod.setpoint_grid(snap.hass, "number.dhw")
+                            on_cycle = bool(booking.get("disinfecting")) or bool(booking.get("action"))
+                            if arb._dhw_write(snap) != tm.dhw_step_target_c(snap.params, on_cycle, grid):
+                                gaps.append((step, configured, disinfection, cycle, booking))
+        return gaps
+
+    check("the arbiter's hot-water write is dhw_step_target_c on the entity's grid, over every step size, "
+          "set-point, disinfection temperature and booking", lambda: owner_gaps() == [])
+    write_names = {n.attr for n in ast.walk(next(
+        f for f in ast.parse(pathlib.Path("custom_components/heatpump_optimizer/pump_arbiter.py").read_text(
+            encoding="utf-8")).body if getattr(f, "name", "") == "_dhw_write")) if isinstance(n, ast.Attribute)}
+    check("_dhw_write states no value and no bound of its own: it names none of the four parameters",
+          lambda: not write_names & {"dhw_setpoint", "dhw_max_temp", "dhw_hard_max_temp", "dhw_cycle_temp"})
+    check("a set-point entity with no state has no grid, and the target is then the one before any step",
+          lambda: inputs_mod.setpoint_grid(FakeHass({}), "number.dhw") is None
+          and inputs_mod.setpoint_grid(FakeHass({}), None) is None
+          and tm.dhw_step_target_c(ThermalParameters(dhw_setpoint=58.0), False, None) == 58.0)
+
+    grid_of = inputs_mod.SetpointGrid
+    check("a grid holds a write at its caller's floor, which is no part of the entity's range, and at the "
+          "entity's minimum where that is higher",
+          lambda: grid_of("°C", 1.0, None, None).bounded(20.0, 25.0) == 25.0
+          and grid_of("°C", 1.0, 30.0, 65.0).bounded(20.0, 25.0) == 30.0
+          and grid_of("°C", 1.0, 30.0, 65.0).bounded(20.0, 35.0) == 35.0
+          and grid_of("°C", 1.0, None, None).bounded(20.0) == 20.0)
+
+    # 5c. The planner judges against what is written: a stepped entity.
+    stepped = ThermalParameters(dhw_setpoint=58.0, dhw_legionella_temp=62.0, dhw_legionella_enabled=True)
+    five = _dhw_snap(configured=58.0, disinfection=62.0, attrs=_step(5))
+    five_cycle = _dhw_snap(configured=58.0, disinfection=62.0, attrs=_step(5), disinfecting=True)
+    check("precondition: an everyday 58 on a 5 degC step is written 55, its cycle of 62 written 60",
+          lambda: arb._dhw_write(five) == 55.0 and arb._dhw_write(five_cycle) == 60.0)
+    check("on a stepped entity each step's start temperature is the written target less the hysteresis",
+          lambda: list(planner.dhw_start_temps(stepped, _start_state(4.0, _step(5)), 4, 2))
+          == [arb._dhw_write(five) - 4.0] * 2 + [arb._dhw_write(five_cycle) - 4.0, arb._dhw_write(five) - 4.0]
+          == [51.0, 51.0, 56.0, 51.0])
+    check("null control: with no set-point entity the same parameters start below 58 and 62 less the hysteresis",
+          lambda: list(planner.dhw_start_temps(stepped, _start_state(4.0), 4, 2)) == [54.0, 54.0, 58.0, 54.0])
+    check("the ledger's start temperature on the stepped entity is the planner's",
+          lambda: arb._dhw_start_below_c(replace(five, state=_start_state(4.0, _step(5)))) == 51.0
+          and arb._dhw_start_below_c(replace(five_cycle, state=_start_state(4.0, _step(5)))) == 56.0)
+
     # 6. Which steps the pump starts.
     startable = planner.startable_steps
-    check("a step opens on a tank below its start temperature, or follows or is a charge",
+    check("a step is startable where it opens on a tank below its start temperature or follows a charge under way",
           lambda: list(startable(np.array([0, 0, 1, 0, 0.]), np.array([54, 52, 50, 53, 50.9, 50.]),
                                  np.full(5, 51.0))) == [False, False, True, True, True])
     check("a tank exactly at the start temperature, not charging, does not start",
           lambda: list(startable(np.zeros(2), np.array([51.0, 51.0, 51.0]), np.full(2, 51.0)))
           == [False, False])
 
+    warm = np.array([54.0, 55.0, 54.0, 53.0, 52.0])
+    check("the step after a charge kept at the first step continues it; the kept step itself is not added to",
+          lambda: list(startable(np.array([1.0, 0.0, 0.0, 0.0]), warm, np.full(4, 51.0)))
+          == [False, True, False, False])
+    check("a charge begun after the first step on a warm tank is one the pump does not start: neither its "
+          "steps nor the step after it are startable",
+          lambda: list(startable(np.array([0.0, 1.0, 1.0, 0.0]), warm, np.full(4, 51.0))) == [False] * 4)
+    check("a charge the pump starts carries on: every step of it after the first, and the step after it",
+          lambda: list(startable(np.array([0.0, 1.0, 1.0, 0.0]), np.array([54.0, 50.0, 53.0, 55.0, 54.0]),
+                                 np.full(4, 51.0))) == [False, True, True, True])
+    check("a charge the pump did not start is under way from the step that opens below the start temperature",
+          lambda: list(startable(np.array([0.0, 1.0, 1.0, 1.0, 0.0]), np.array([54.0, 53.0, 50.0, 53.0, 54.0]),
+                                 np.full(5, 51.0))) == [False, False, True, True, True])
     check("with no start condition every step is startable",
           lambda: list(startable(np.zeros(3), np.array([60.0, 60.0, 60.0]), None)) == [True] * 3)
 
@@ -988,6 +1077,17 @@ def hysteresis_checks() -> None:
           "under its minimum with a 4 K hysteresis than with none",
           lambda: under_floor(4.0) <= under_floor(None) + 0.5)
 
+    def stepped_late(attrs):
+        # Everyday 58 on the entity's grid (5 degC: written 55, start below 51 with 4 K).
+        sched, temps = _solve_winter_mild(4.0, setpoint_c=58.0, attrs=attrs)
+        on = sched > 0.0
+        return sum(1 for i in range(1, on.size) if on[i] and not on[i - 1] and temps[i] >= 51.0)
+
+    check("precondition: judged against the unstepped 58, the plan begins a charge at or above the 51 degC "
+          "a 5 degC entity's pump starts below", lambda: stepped_late(None) > 0)
+    check("handed the 5 degC entity's grid, no planned charge after step 0 begins at or above 51 degC",
+          lambda: stepped_late(_step(5)) == 0)
+
     pinned_plan, pinned_temps = _solve_winter_mild(None, dhw_pins=np.ones(96))
     check("a day with hot water pinned on at every step is still held to the tank's charge limit of 55 degC",
           lambda: float(pinned_temps.max()) <= 55.0 + 0.05 and int((pinned_plan > 0.0).sum()) < 96)
@@ -1094,11 +1194,15 @@ def hysteresis_checks() -> None:
           lambda: not bad_calls)
 
     # 13. The hot water minimum above the start temperature.
-    def raised(floor, entity="sensor.h", cycle=False, through=None):
-        hass = FakeHass({"sensor.h": FakeState("4", unit="K")})
-        params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=60.0,
+    def raised(floor, entity="sensor.h", cycle=False, through=None, enabled=True, setpoint=55.0, attrs=None,
+               hysteresis="4"):
+        hass = FakeHass({"sensor.h": FakeState(hysteresis, unit="K"),
+                         "number.dhw": FakeState("55", attributes=attrs or {})})
+        params = ThermalParameters(dhw_setpoint=setpoint, dhw_legionella_temp=60.0, dhw_enabled=enabled,
                                    dhw_legionella_enabled=cycle, dhw_min_temp=floor)
         config = {"dhw_hysteresis_entity": entity} if entity else {}
+        if attrs:
+            config["dhw_setpoint_entity"] = "number.dhw"
         if through is None:
             setpoint_check._dhw_start(hass, config, params)
         else:
@@ -1120,10 +1224,20 @@ def hysteresis_checks() -> None:
     check("with no hysteresis entity configured a minimum of 52 raises nothing",
           lambda: raised(52.0, entity=None) == [])
 
+    check("with hot water disabled no minimum raises it, whatever the hysteresis reads",
+          lambda: raised(52.0, enabled=False) == [] and raised(45.0, enabled=False, hysteresis="20") == []
+          and len(raised(45.0, hysteresis="20")) == 1)
+    check("the notice judges the written target: an everyday 58 on a 5 degC step starts below 51, not 54",
+          lambda: len(raised(52.0, setpoint=58.0, attrs=_step(5))) == 1
+          and raised(52.0, setpoint=58.0, attrs=_step(5))[0][2]["translation_placeholders"]
+          == {"floor": "52.0", "start": "51.0", "target": "55.0", "hysteresis": "4.0"}
+          and raised(52.0, setpoint=58.0) == [])
+
     # 14. The coordinator reads both into the state.
     def read_state(config):
         from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
         h = FakeHass({"sensor.dh": FakeState("4", unit="K"), "sensor.sh": FakeState("2", unit="K"),
+                      "number.dhw": FakeState("55", attributes=_step(5)),
                       "sensor.indoor": FakeState("21.4"), "sensor.outdoor": FakeState("-3.0")})
         coord = HeatPumpOptimizerCoordinator(h, FakeEntry(data={
             "indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor", **config}))
@@ -1136,9 +1250,14 @@ def hysteresis_checks() -> None:
           lambda: both.dhw_start_hysteresis_k == 4.0 and both.space_start_hysteresis_k == 2.0)
     check("null control: with neither entity configured both state fields are None",
           lambda: none.dhw_start_hysteresis_k is None and none.space_start_hysteresis_k is None)
+    gridded = read_state({"dhw_setpoint_entity": "number.dhw"})
+    check("the coordinator's input read puts the hot-water set-point entity's grid into the state",
+          lambda: gridded.dhw_setpoint_grid == inputs_mod.setpoint_grid(
+              FakeHass({"number.dhw": FakeState("55", attributes=_step(5))}), "number.dhw")
+          and gridded.dhw_setpoint_grid.step == 5.0 and none.dhw_setpoint_grid is None)
 
 
-def _solve_winter_mild(hysteresis, dhw_pins=None):
+def _solve_winter_mild(hysteresis, dhw_pins=None, setpoint_c=None, attrs=None):
     """The 24 h solve of ``dev/audit/harnesses/r10_dhw_start_hysteresis.py`` (winter_typical, winter_mild, 53 degC)."""
     import numpy as np
     from profiles import house, prices, solve_inputs, weather
@@ -1149,6 +1268,8 @@ def _solve_winter_mild(hysteresis, dhw_pins=None):
     cfg = house()
     params = ThermalParameters.from_config(cfg)
     params.dhw_enabled = True
+    if setpoint_c is not None:
+        params.dhw_setpoint = setpoint_c
     opt = HeatPumpOptimizer(ThermalModel(params), OptimizationConfig(
         horizon_hours=24, time_step_minutes=15, target_temp=cfg["target_temperature"],
         min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"]))
@@ -1158,6 +1279,8 @@ def _solve_winter_mild(hysteresis, dhw_pins=None):
         dhw_temperature=53.0, dhw_hours_since_legionella=20.0, upper_floor_temperature=21.0,
         lower_floor_temperature=21.0, buffer_tank_temperature=40.0)
     state.dhw_start_hysteresis_k = hysteresis
+    if attrs:
+        state.dhw_setpoint_grid = _start_state(hysteresis, attrs).dhw_setpoint_grid
     result = opt.optimize(inputs=solve_inputs(
         initial_state=state, prices=np.asarray(prices("winter_typical", begin), dtype=float),
         outdoor_temps=outdoor, wind_speeds=wind, precipitation=rain, solar_radiation=sun,

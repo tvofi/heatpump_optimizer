@@ -7,15 +7,24 @@ summer_warm; starting tank 45, 50 and 53 degC; everyday set-point 55; 24 h at
 against a start temperature of the set-point less each of 2, 4 and 6 K.
 
     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_dhw_start_hysteresis.py [TREE] [--hysteresis K]
+        [--setpoint C] [--step S]
 
 TREE is a checkout root (default: this one; a ``git archive`` export of the
 merge base reads the gap). ``--hysteresis K`` hands the planner the pump's
 start hysteresis (``ThermalState.dhw_start_hysteresis_k``); a tree without the
 field prints ``hysteresis=unsupported`` and plans as it always did.
+``--setpoint C`` is the everyday set-point (default 55). ``--step S`` is the
+step of the set-point entity the target is written to: the written target is
+then the set-point rounded down onto it (the charge limit is the set-point),
+every count below is against that written target less K, and the planner is
+handed the entity's grid (``ThermalState.dhw_setpoint_grid``); a tree without
+that field prints ``step=<S> unsupported`` and judges against the set-point
+as it stands, which is the gap a stepped entity opens (58 on a 5 degC step:
+written 55, judged against 58).
 
 RESULT lines, each a sum over the 18 solves:
   runs_not_at_step0                      planned runs beginning after step 0
-  runs_at_or_above_minus_{2,4,6}k        of those, begun on a tank at or above 55 - K
+  runs_at_or_above_minus_{2,4,6}k        of those, begun on a tank at or above the written target - K
   kwh_planned / kwh_at_or_above_minus_4k planned hot-water kWh, and the share in those runs
   write_to_start_max_c                   the highest set-point that would start one of the
                                          minus-4 K runs with a 4 K hysteresis (tank + 4);
@@ -31,6 +40,7 @@ plan_sha1 the merge base prints; a hysteresis of 4 prints
 runs_at_or_above_minus_4k=0 only on a tree whose planner reads it.
 """
 import hashlib
+import math
 import os
 import sys
 from datetime import datetime
@@ -43,6 +53,12 @@ if "--hysteresis" in ARGS:
     at = ARGS.index("--hysteresis")
     HYSTERESIS = float(ARGS[at + 1])
     del ARGS[at : at + 2]
+OPTS = {"--setpoint": 55.0, "--step": None}
+for flag in OPTS:
+    if flag in ARGS:
+        at = ARGS.index(flag)
+        OPTS[flag] = float(ARGS[at + 1])
+        del ARGS[at : at + 2]
 TREE = os.path.abspath(ARGS[0] if ARGS else os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 sys.path[:0] = [os.path.join(TREE, "tests"), os.path.join(TREE, "custom_components")]
 
@@ -70,14 +86,19 @@ if hasattr(dhw_planner, "place_startable"):
         return out
 
     dhw_planner.place_startable = _counted
-SETPOINT_C, FLOOR_C, DT_H = 55.0, 45.0, 0.25
+STEP_C = OPTS["--step"]
+SETPOINT_C, FLOOR_C, DT_H = OPTS["--setpoint"], 45.0, 0.25
+#: The target the pump is handed: the set-point, rounded down onto the entity's step.
+WRITTEN_C = SETPOINT_C if STEP_C is None else math.floor(SETPOINT_C / STEP_C + 1e-9) * STEP_C
 SUPPORTED = hasattr(ThermalState(), "dhw_start_hysteresis_k")
+STEP_SUPPORTED = hasattr(ThermalState(), "dhw_setpoint_grid")
 
 
 def solve(price_p: str, weather_p: str, tank_c: float):
     cfg = house()
     params = ThermalParameters.from_config(cfg)
     params.dhw_enabled = True
+    params.dhw_setpoint = SETPOINT_C
     opt = HeatPumpOptimizer(ThermalModel(params), OptimizationConfig(
         horizon_hours=24, time_step_minutes=15, target_temp=cfg["target_temperature"],
         min_temp=cfg["min_temperature"], max_temp=cfg["max_temperature"]))
@@ -88,6 +109,10 @@ def solve(price_p: str, weather_p: str, tank_c: float):
         lower_floor_temperature=21.0, buffer_tank_temperature=40.0)
     if SUPPORTED and HYSTERESIS is not None:
         state.dhw_start_hysteresis_k = HYSTERESIS
+    if STEP_SUPPORTED and STEP_C is not None:
+        from heatpump_optimizer.inputs import SetpointGrid
+
+        state.dhw_setpoint_grid = SetpointGrid("°C", STEP_C, None, None)
     price = np.asarray(prices(price_p, START), dtype=float)
     result = opt.optimize(inputs=solve_inputs(
         initial_state=state, prices=price, outdoor_temps=outdoor, wind_speeds=wind,
@@ -116,12 +141,15 @@ def main() -> int:
                     end = i + int(np.argmin(np.append(on[i:], False)))
                     total["runs"] += 1
                     for k in (2, 4, 6):
-                        total[k] += int(temps[i] >= SETPOINT_C - k)
-                    if temps[i] >= SETPOINT_C - 4:
+                        total[k] += int(temps[i] >= WRITTEN_C - k)
+                    if temps[i] >= WRITTEN_C - 4:
                         kwh_4k += float(plan[i:end].sum()) * DT_H
                         write_max = max(write_max, float(temps[i]) + 4.0)
     shown = "unset" if HYSTERESIS is None else f"{HYSTERESIS:g}" if SUPPORTED else "unsupported"
     print(f"RESULT hysteresis={shown}")
+    if STEP_C is not None or SETPOINT_C != 55.0:
+        step = "none" if STEP_C is None else f"{STEP_C:g}" + ("" if STEP_SUPPORTED else " unsupported")
+        print(f"RESULT setpoint={SETPOINT_C:g} step={step} written={WRITTEN_C:g} degC")
     print(f"RESULT runs_not_at_step0={total['runs']} count")
     for k in (2, 4, 6):
         print(f"RESULT runs_at_or_above_minus_{k}k={total[k]} count")
