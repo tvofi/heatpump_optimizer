@@ -1,0 +1,14 @@
+== plant: instrument .js under .claude/workflows (D5 comment carrier)
+ok D5 mode=cells seats=9 universe=535 [s1:8f/0loc/0u, s2:8f/0loc/8u, s3:45f/36647loc/2808u, s4:47f/52403loc/3234u, s5:68f/0loc/3156u, s6:251f/0loc/3510u, s7:3f/0loc/3808u, s8:44f/0loc/3515u, s9:69f/0loc/3725u]
+ok coverage tracked=10927 in_universe=1573 excluded=9354 unclassified=0
+rc=0
+.claude/workflows/zz-planted.js#bf28f919dc	1	comment	// planted instrument comment: this workflow retries three times.
+== null control: developer .md outside D6
+ref=1600cf4899f49ac7d2dede4ca37cfee578cdfeba seats=58
+ok D5 mode=cells seats=9 universe=535 [s1:8f/0loc/0u, s2:8f/0loc/8u, s3:45f/36647loc/2808u, s4:47f/52403loc/3234u, s5:68f/0loc/3156u, s6:251f/0loc/3510u, s7:3f/0loc/3808u, s8:44f/0loc/3515u, s9:69f/0loc/3725u]
+FAIL D6 mode=files seats=7 universe=344 [s1:13f/0loc/3737u, s2:105f/0loc/3988u, s3:92f/72643loc/3245u, s4:2f/16407loc/3832u, s5:130f/0loc/2747u, s6:1f/0loc/2230u, s7:1f/0loc/2628u]
+   classified in neither universe nor static: dev/zz-planted.md
+FAIL coverage tracked=10927 in_universe=1572 excluded=9354 unclassified=1
+   in no universe and not excluded: dev/zz-planted.md
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+rc=0
