@@ -64,7 +64,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
 from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title, prior_jobs,  # noqa: E402,F401
-                     run_jobs, title, workset)
+                     run_jobs, standing, title, workset)
 
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet")}      # B3
 # The push-only job that is graded on its own and never fails the gate: a red
@@ -207,6 +207,9 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         if r is me and any((r["jobs"].get(f"{unit} / {n}") or ("",))[0] != "completed" for n in names):
             return "~", r["id"]
         return max(((r.get("starts") or {}).get(f"{unit} / {n}") or "" for n in names), default=""), r["id"]
+    # One standing view per run for busy() and the source read alike (GATE-BUSY-REQUEUED-NEEDS):
+    # a gate the overlay released judges the re-running run's need where busy() read it.
+    others = [{**r, **dict(zip(("jobs", "starts"), standing(r)))} for r in others]
     for unit, names in required.items():
         src = None
         for r in sorted(others + [me], key=lambda r: fresh(r, names), reverse=True):
@@ -271,10 +274,11 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
         if r["id"] != ctx["run_id"]:
             st: dict = {}
             row = {"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
+                   "attempt": r.get("run_attempt"), "run_started_at": r.get("run_started_at"),
                    "starts": st, "jobs": {} if r["status"] == "action_required"
                    else run_jobs(get, repo, r["id"], st)}
             if r["status"] not in ("completed", "action_required"):     # only an unfinished run is busy()'s to judge
-                row["prior"] = prior_jobs(get, repo, row, r.get("run_attempt"))
+                row["prior"] = prior_jobs(get, repo, row)
             api["runs_at_head"].append(row)
     return api
 
@@ -1028,6 +1032,63 @@ def self_test() -> int:
           got[:2], ([], 0))
     got = requeue_busy(prior=[j for j in rq["attempts"]["1"] if j["name"] != "pr-contract / pr-contract"])
     check("requeued needs null: a need the previous attempt never listed stays busy", got[:2], ([rq_id], 1))
+    # Repair round (review blocked at 868f8a72): the overlay's domain is the run's OWN gate re-run, and
+    # gate()'s source read takes the same standing view as busy(). A need is read from the previous
+    # attempt only when (R1) the run is past attempt 1, (R2) the latest attempt did not re-run the
+    # prelude (a re-run-all did: its prelude started at or after run_started_at), (R3) the need is
+    # owed and listed unfinished, and (R4) its previous attempt concluded success or skipped; a
+    # failed, cancelled or timed-out need is what "re-run failed jobs" re-queues, a new source.
+    MUT, PRC = "tests / mutation", "pr-contract / pr-contract"
+    a1 = {j["name"]: j for j in rq["attempts"]["1"]}
+    queued = {"status": "queued", "conclusion": None, "started_at": None}
+
+    def shape(was=None, now=None):
+        return ([dict(j, **(was or {}).get(j["name"], {})) for j in rq["attempts"]["1"]],
+                [dict(j, **(now or {}).get(j["name"], {})) for j in rq["attempts"]["2"]])
+    p1, l2 = shape({MUT: {"conclusion": "failure"}, "gate": {"conclusion": "failure"}},
+                   {MUT: queued, "gate": queued, PRC: a1[PRC]})
+    check("requeued needs, re-run failed jobs: a unit that failed in attempt 1 and is queued again keeps the run "
+          "busy (the reviewer's attack shape)", requeue_busy(prior=p1, listing=l2)[:2], ([rq_id], 1))
+    p1, l2 = shape({MUT: {"conclusion": "cancelled"}}, {MUT: queued})
+    check("requeued needs, re-run failed jobs: a unit cancelled in attempt 1 and queued again keeps the run busy",
+          requeue_busy(prior=p1, listing=l2)[:2], ([rq_id], 1))
+    p1, l2 = shape({MUT: {"conclusion": "failure"}}, {MUT: queued})
+    check("requeued needs, re-run failed jobs beside the re-queued need: the failed unit still holds the run busy",
+          requeue_busy(prior=p1, listing=[dict(j, **queued) if j["name"] == PRC else j for j in l2])[:2], ([rq_id], 1))
+    rerun_all = [dict(j, started_at="2026-11-11T14:09:00Z") if j["status"] == "completed" else j
+                 for j in rq["attempts"]["2"]]
+    check("requeued needs, re-run all: the prelude re-ran in this attempt, so a queued need is a new source: busy, "
+          "no extra read", requeue_busy(listing=rerun_all)[:2], ([rq_id], 0))
+    check("requeued needs, re-run all: a prelude still queued in this attempt: busy, no extra read",
+          requeue_busy(listing=[dict(j, **queued) if j["name"] == "prelude" else j for j in rerun_all])[:2],
+          ([rq_id], 0))
+    p1, _ = shape({PRC: {"conclusion": "skipped"}})
+    check("requeued needs: a need the previous attempt skipped (C3, the gate re-run's documented re-queue) is not "
+          "busy", requeue_busy(prior=p1)[:2], ([], 1))
+    no_start = {**rq["run"]}
+    no_start.pop("run_started_at")
+    rq_saved, rq["run"] = rq["run"], no_start
+    check("requeued needs null: a run listing no run_started_at keeps today's reading: busy, no extra read",
+          requeue_busy()[:2], ([rq_id], 0))
+    rq["run"] = rq_saved
+    # One-sided (verdict point 2): a gate released by the overlay judges the re-running run's unit from
+    # the same standing source busy() read, never from an older run behind it.
+    get, _ = requeue_world()
+    api = read_api(rq_ctx, claim, True, get)
+    stale = {k: v for k, v in api["runs_at_head"][0]["jobs"].items()}
+    api["runs_at_head"].append({"id": 5, "title": title("code", "7", "main"), "status": "completed",
+                                "jobs": {**{k: ("completed", "success") for k in stale}, PRC: ("completed", "failure")},
+                                "starts": {PRC: "2026-11-11T12:00:00Z"}})
+    check("requeued needs, one source read: the released gate takes the re-running run's standing pr-contract "
+          "(attempt 1 success, started after the older red) as busy() did", gate(rq_ctx, api), (True, []))
+    p1, _ = shape({PRC: {"conclusion": "skipped"}})
+    get, _ = requeue_world(prior=p1)
+    api = read_api(rq_ctx, claim, True, get)
+    api["runs_at_head"].append({"id": 5, "title": title("code", "7", "main"), "status": "completed",
+                                "jobs": {**{k: ("completed", "success") for k in stale}, PRC: ("completed", "failure")},
+                                "starts": {PRC: "2026-11-11T12:00:00Z"}})
+    check("requeued needs, one source read: a need skipped before the re-run is no source there either, so the "
+          "older red stands", gate(rq_ctx, api), (False, ["pr-contract / pr-contract: failure (run 5)"]))
     print(f"gate self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
