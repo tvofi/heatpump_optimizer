@@ -827,6 +827,16 @@ replacement cost and a rated start count and every start books its share of the
 eventual swap — and an opt-in switch lets that realised wear price floor the
 cycling cost the optimizer plans with.
 
+A switch between hot water and heating at a steady draw is invisible to the
+cycling term, which prices swings in the total draw. On a pump that stops
+the compressor at such a switch, it is a stop and a start. With **Pump duty
+control** at Control the optimizer learns, per direction, how often a switch
+it wrote stopped the compressor and for how long; once that is established
+([Pump duty control](configuration.md#pump-duty-control)), the plan charges
+the switch `min(a, b) / p_max` cycles at the cycling cost (`a` and `b` the
+draws on either side, `p_max` the pump's maximum) times that probability,
+and counts the off time as heat not delivered.
+
 ---
 
 ## Wood furnaces and other external heat

@@ -85,7 +85,7 @@ Every picker on this second screen is optional; skip any you do not have. Withou
 |---|---|---|
 | Indoor temperature sensor | none | The real room temperature. Without it the optimizer trusts its own model, which drifts over time — this is the sensor worth finding first. |
 | Outdoor temperature sensor | none | A local thermometer beats the forecast for the current hour. |
-| Heat pump on/off switch | none | A `switch` the optimizer may turn off during expensive hours. Without it — and without the ECL110 or frequency-control paths — the plan is published on sensors for your own automations to act on ([worked examples](automations.md)). |
+| Heat pump on/off switch | none | A `switch` the optimizer may turn off during expensive hours. In *auto* and *economy* mode it is never switched off less than 10 minutes after it came on, nor on less than 10 minutes after it went off, and a run the plan would end within 10 minutes is not started unless the tank needs heat now (below its minimum, or a disinfection hold); a held switch is retried every minute and changes once its 10 minutes have passed. The age is the switch's own, whoever switched it; after a Home Assistant restart it counts from the restart. A boost, the other modes and the measurement experiment are not held. Without it — and without the ECL110 or frequency-control paths — the plan is published on sensors for your own automations to act on ([worked examples](automations.md)). |
 | Solar radiation sensor | none | Irradiance in W/m². Lets the plan skip heating before a sunny afternoon. |
 | Solar irradiance source | Weather entity | `Weather entity` reads irradiance from your weather integration, which often does not publish any. `Open-Meteo` fetches a free forecast for the location below; no account needed. |
 | Solar irradiance location | your Home Assistant home location | The coordinate Open-Meteo is asked about. Only used when the source is Open-Meteo. |
@@ -846,6 +846,21 @@ writes, at every 15-minute plan step:
   the whole step. On a pump with no single-duty mode, each part is *Heating
   + DHW* with the other duty's set-point lowered to its gate. A boost or a
   disinfection cycle keeps *Heating + DHW* for the whole step.
+- **A switch that stops the compressor is priced.** Some pumps stop the
+  compressor when the mode changes between hot water and heating. The
+  optimizer watches each switch it writes while the compressor runs: a stop
+  within 3 minutes counts against that direction. Once a direction has
+  stopped the compressor on at least half of a weighted 5 or more switches,
+  seen on at least two calendar days (a switch weighs half after 14 days), the plan charges that switch a share of
+  the **Cost of one compressor start**, expects the median measured off time
+  as heat not delivered in the step that follows, and tries to place hot
+  water where no such switch follows it. With the start cost at 0 only the
+  lost heat is planned for. The counts per direction are attributes of the
+  **Compressor Starts** sensor (`duty_switch_dhw_space_p`, `_n`, `_stopped`,
+  `_kept`, `_median_off_s` and so on; `dhw_space` is hot water to heating).
+- **The mode goes first when the pump is switched on.** When the on/off switch
+  turns the pump on, the step's operating mode is written just before it, so
+  the pump does not start on the duty its old mode named.
 - **Rails.** A hot-water-only stretch lasts at most 90 minutes (30 below
   -10 °C outdoors), idle steps after it included, then *Heating + DHW*
   returns — unless the room is already at or above the step's planned room
