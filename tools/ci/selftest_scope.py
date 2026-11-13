@@ -46,9 +46,13 @@ THE DRIFT CHECK, `check`, runs on every push to main over the traces that
 run took: it fails naming every step whose committed entry misses a file,
 probe, directory or flag the run measured, and every gated step with no
 entry. Over-approximation (an entry naming a file no longer read) is safe
-and is reported, not refused. `--write` saves the run's own measurement,
-which main uploads as the `selftest-closures` artifact: commit that file, or
-re-record with `record` (Linux, strace).
+and is reported, not refused. `--write` saves the table to commit, which
+main uploads as the `selftest-closures` artifact: the committed table unioned
+with this run's measurement, per step (lists unioned, flags OR'd, run_sha the
+run's; `union_entries`), because one run measures one environment and a read
+only another measured (a seat's Linux `record`: objects, index) is not stale
+for this run missing it. Commit that file, or re-record with `record` (Linux,
+strace) and union the same way.
 THE SETTLED INDEX, `settle`, runs untraced before any step is (CI's strace
 step; `record` itself): a fresh checkout leaves racily clean index entries,
 whose content the first index-refreshing git command re-reads, so without it
@@ -623,8 +627,12 @@ def drift(table: dict | None, measured: dict[str, dict], steps: list[Step]) -> t
         probes = set(e.get("probes", ()))
         misses = {
             "files": [f for f in m["files"] if not covers(have, f)],
+            # A probe under a directory the run listed is answered by that
+            # directory: excused here, refused once as a `dirs` miss when the
+            # table lacks it. So a measurement `write_table` compacted (the
+            # artifact) and the live one refuse the same lines.
             "probes": [p for p in m["probes"] if not covers(probes, p)
-                       and not any(a in dirs for a in _ancestors(p))],
+                       and not any(a in dirs or a in set(m["dirs"]) for a in _ancestors(p))],
             "dirs": sorted(set(m["dirs"]) - dirs)}
         refuse += [_under_scoped(sid, k, sorted(v)) for k, v in misses.items() if v]
         gone = {"files": [f for f in have if f not in set(m["files"]) and not (
@@ -784,13 +792,29 @@ def write_table(out: Path, entries: dict[str, dict], root: Path = ROOT) -> None:
                                "steps": dict(sorted(entries.items()))}, indent=1) + "\n")
 
 
+def union_entries(table: dict | None, measured: dict[str, dict]) -> dict[str, dict]:
+    """Each measured step's entry unioned with the committed one: files,
+    probes, dirs and git markers unioned, index and objects OR'd, run_sha the measurement's.
+    A step the run did not measure keeps no entry (the measurement names every
+    gated step, else drift refuses UNMEASURED)."""
+    old = (table or {}).get("steps", {})
+    out = {}
+    for sid, m in measured.items():
+        e = old.get(sid, {})
+        out[sid] = {**m, "run_sha": m["run_sha"],
+                    **{k: sorted(set(e.get(k, ())) | set(m.get(k, ()))) for k in ("files", "probes", "dirs", "git")},
+                    **{k: bool(e.get(k) or m.get(k)) for k in ("index", "objects")}}
+    return out
+
+
 def check_cli(trace_dir: Path, write: Path | None = None, root: Path = ROOT) -> int:
     steps = workflow_steps(root)
     gaps = wiring_gaps(steps)
     measured, broken = fold(trace_dir, steps, root)
+    table = load_table(root / TABLE)
     if write is not None:
-        write_table(write, measured, root)  # this run's measurement, to commit as the table
-    refuse, notes = drift(load_table(root / TABLE), measured, steps)
+        write_table(write, union_entries(table, measured), root)  # the table to commit
+    refuse, notes = drift(table, measured, steps)
     refuse = broken + refuse
     for line in gaps + refuse:
         print(f"  {line}")
@@ -1095,6 +1119,35 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("drift: a step this run did not trace is refused",
            drift(full_table, {k: v for k, v in measured.items() if k != "slow"}, st2)[0]
            == ["UNMEASURED step slow: this run left no trace of it"])
+        # The artifact `check --write` uploads is a compacted measurement: a
+        # probe under a directory the run listed is dropped. Drift over it and
+        # over the live measurement must refuse the same lines (the 33 against
+        # 34 gap of #3557's review).
+        dm = json.loads(json.dumps(measured))
+        dm["a"]["dirs"] += ["docs"]
+        dm["a"]["probes"] += ["docs/new.md"]
+        compacted = json.loads(json.dumps(dm))
+        compacted["a"]["probes"] = compact_probes(set(dm["a"]["probes"]), set(dm["a"]["dirs"]), set())
+        ck("drift: a probe under a directory the run listed is refused once, as the dirs miss, "
+           "live and compacted alike (null control: the compaction dropped it)",
+           "docs/new.md" not in compacted["a"]["probes"]
+           and drift(full_table, dm, st2)[0] == drift(full_table, compacted, st2)[0]
+           == ["UNDER-SCOPED step a: dirs misses ['docs']"])
+        # `check --write`'s table is the union: a planted committed read this
+        # run did not measure survives, and the run's own reads are added.
+        planted = json.loads(json.dumps(full_table))
+        planted["steps"]["b"].update(objects=True, files=["tools/x/only-elsewhere.py"],
+                                     probes=["tools/x/p.json"], git=["merge-base"])
+        planted["steps"]["gone"] = entry(st2[4], files=["x"])
+        planted["steps"]["a"]["run_sha"] = "old"
+        un = union_entries(planted, measured)
+        ck("union_entries keeps a committed read and flag the run did not measure, adds the run's, "
+           "takes the run's run_sha and drops an entry no step measured",
+           sorted(un) == ["a", "b", "slow"] and un["b"]["objects"] is True
+           and un["b"]["files"] == ["tools/x/only-elsewhere.py"] and un["b"]["git"] == ["merge-base"]
+           and un["b"]["probes"] == ["tools/x/p.json"] and un["a"]["index"] is True
+           and un["a"]["files"] == measured["a"]["files"] and un["a"]["run_sha"] == measured["a"]["run_sha"]
+           and drift({"steps": un}, measured, st2)[0] == [])
 
     # The edges a seat's run reaches but the cases above do not.
     ck("a duplicated step id is named", "DUPLICATE id a" in wiring_gaps(
@@ -1328,6 +1381,20 @@ def self_test(wrapper: Path = ROOT / WRAPPER, workflow: Path = ROOT / WORKFLOW) 
         ck("check: a table naming every read passes, and --write saves the measurement",
            rc_ok == 0 and "2 gated step(s), 0 refusal(s)" in out.getvalue()
            and (load_table(root / "m.json") or {}).get("steps", {}).get("a", {}).get("files") == ["tools/x/a.py"])
+        # --write writes the committed table unioned with the run: a planted
+        # committed read and flag this run did not measure survive the write.
+        was_table = (root / TABLE).read_text()
+        pt = json.loads(was_table)
+        pt["steps"]["slow"].update(objects=True, probes=["tools/x/planted.json"])
+        (root / TABLE).write_text(json.dumps(pt))
+        with contextlib.redirect_stdout(io.StringIO()):
+            main(["check", "--traces", str(tdir), "--write", str(root / "u.json")], root)
+        (root / TABLE).write_text(was_table)
+        us = (load_table(root / "u.json") or {}).get("steps", {})
+        ck("check --write: a planted committed read and flag the run did not measure survive the write",
+           us.get("slow", {}).get("objects") is True
+           and us.get("slow", {}).get("probes") == ["tools/x/planted.json"]
+           and us.get("a", {}).get("files") == ["tools/x/a.py"])
         (tdir / "step-slow.trace").write_text(whole(
             f'5 openat(AT_FDCWD<{root}>, "docs/d.md", O_RDONLY) = 3<{root}/docs/d.md>'))
         out = io.StringIO()
