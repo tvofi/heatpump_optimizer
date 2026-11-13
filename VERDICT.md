@@ -1,15 +1,16 @@
-Fix review: merge 16c628e4ad0232a74f7f8732cdb59fe5b711d24e
+Fix review: merge ef3e4e145460dd3a3b95adb69d26c4a866b21945
 
-bus-nonce: e2a363efe8881d2c984f66ed00437ef6
-
-Round: resume of the review at this same head (prior verdict probe/rev-3377-6e7334c5@39ce7dfb blocked solely on ci-red). Head unchanged.
+bus-nonce: 52c65c48bf446147a84170e221518aa3
+pending-ci: gate / tests (classify prints WAIT: pending, gate red: none)
 
 ## Evidence
 
-- CI: `merge_train.py classify 16c628e4ad0232a74f7f8732cdb59fe5b711d24e --pr 3377` exits 0: `GREEN ... pending: none red: none` (ev/classify.txt). The prior block was a premature "still being judged" gate deferral at 00:29Z; the later gate run succeeded and the required context now reads green.
-- Reused from the prior verdict (CI-independent, head unchanged): merge of main (cb41886655) leaves s6-batch130/131 equal to origin/main (ev/batch130-131-vs-main-difflines.txt); d1f929f3da changes only paths in s6-batch219/234, no ruling text (ev/delta-d1f929f3.diff); 3781e7741d appends one carry to R10-DUTY-SWITCH-PLANNER-PRICE, roster JSON loads (ev/delta-3781e774.diff).
-- brief_lint on the roster: 2 pre-existing errors (supply_hold.py absent; carry_fold_arm at 812 not 808), identical at the earlier reviewed head 3bdc73b33650, so not in this delta (ev/brief_lint-roster-head.txt). CI briefs and wave-script are success.
-- Merge with main: `git merge-tree --write-tree origin/main 16c628e4ad0232a74f7f8732cdb59fe5b711d24e` exit 0, no conflict.
-- tests/entities.py was run with env -u BASH_ENV and failed before checking anything: ModuleNotFoundError homeassistant at tests/harness.py:29 (this seat lacks the module). Not re-derived; CI's closures, fast, closure-scope and policy-docs checks at this head are success and stand in for it.
-- Production code (custom_components/) is not in the delta; no mutation or both-ends measurement applies to a record PR.
-- RESULT cloud-setup --check: OK. RESULT classify: GREEN (rc 0).
+- Head reviewed: ef3e4e145460dd3a3b95adb69d26c4a866b21945 (ev/HEAD.txt). Delta 16c628e4..ef3e4e145460dd3a3b95adb69d26c4a866b21945 touches one file, dev/programme/rosters/wave-r10-groups.json (ev/delta-files.txt). Three-dot diff against origin/main merge base: every path is under dev/programme/rosters/, triage/ or delivery/; non-record paths = 0 (ev/non-record-paths.txt).
+- `node tools/policy/brief_lint.mjs` at head: exit 0, all control lines ok.
+- Roster JSON parses at head; groups 504 at head vs 342 on origin/main; groups on main missing at head: 0. Carries/top-level keys on main missing at head: none.
+- R11-INTAKE-R10-RESIDUE, R10-SELFTEST-SCOPE-UNION-GUARD, R10-HOTFIX-SELFTEST-SCOPE-RERECORD: present at head, absent on origin/main.
+- `git merge-tree --write-tree origin/main HEAD`: clean, tree d1744547127d41b38a71bc2eb89ea18732902770.
+- tests/entities.py: could not run here (ModuleNotFoundError: homeassistant in tests/harness.py under venv-ci python, with BASH_ENV unset); not verified by this seat. The diff touches record paths only.
+- tests / nightly-status answer in the body: states the check grades main's last nightly dispatch (run 43204237855), names the cause as outside the branch and the owner, and says no cheaper detector exists. Judged on its text: adequate. Not re-verified against the run.
+- CI: merge_train classify polled twice (about 90 s apart): WAIT pending, gate red: none. Not settled; no red seen.
+- The body's figures (22 files, 951 commits, 342 to 437 groups) were measured at 7696a3ba and are not re-measured at this head. The head now holds 504 groups, which includes groups main has since gained. I did not re-derive them.
