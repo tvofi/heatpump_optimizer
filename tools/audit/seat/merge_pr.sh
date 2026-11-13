@@ -14,7 +14,8 @@
 set -uo pipefail
 R=tvofi/heatpump_optimizer
 # The self-test grades this script's own tree; a merge runs from the main checkout.
-if [ "${1:-}" = --self-test ]; then cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
+if [ "${1:-}" = --self-test ]; then [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded merge_pr bash "$0" --self-test; }  # pr_args.sh's self-test bound
+  cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
 else cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." || exit 1; fi
 SELF=$PWD/tools/audit/seat/merge_pr.sh
 
@@ -202,10 +203,11 @@ echo "$*" >> "$FAKE_LOG2"
 case "$*" in
   *headRefOid*) echo "$FAKE_SHA" ;;
   *isDraft*) echo false ;;
-  *mergeStateStatus*) echo CLEAN ;;
+  *mergeStateStatus*) if [ -f "$FAKE_BLOCKED" ]; then rm -f "$FAKE_BLOCKED"; echo BLOCKED; else echo CLEAN; fi ;;
   *mergeCommit*) echo deadbeef ;;
   *title*) echo "a title" ;;
   *length*) echo 0 ;;
+  *group_by*) echo "${FAKE_RED:-}" ;;
   *check-runs*) echo "" ;;
   "pr merge "*) [ "$FAKE_MERGE_FAIL" = 1 ] && exit 1; exit 0 ;;
   *) echo "fake gh: unexpected $*" >&2; exit 1 ;;
@@ -217,7 +219,7 @@ G
     if [ -n "${2:-}" ]; then printf '# Fix review: merge %s\n' "$2" > "$T/ev/VERDICT.md"
     else printf '# verdict\n' > "$T/ev/VERDICT.md"; fi
     HPO_STATE_DIR=$T/state2 PATH="$T/bin2:$PATH" FAKE_LOG2=$T/gh2.log FAKE_SHA=$msha \
-      FAKE_MERGE_FAIL=$1 FAKE_PM_RC=${FAKE_PM_RC:-0} bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
+      FAKE_BLOCKED=$T/blocked FAKE_MERGE_FAIL=$1 FAKE_PM_RC=${FAKE_PM_RC:-0} bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
       > "$T/flow.out" 2>&1
     echo $? > "$T/flow.rc"
   }
@@ -248,6 +250,31 @@ G
     && [ "$(grep -n '^merged ' "$T/flow.out" | cut -d: -f1)" -lt "$(grep -n '^OWED' "$T/flow.out" | cut -d: -f1)" ]
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   an owed post-merge step prints OWED after the merge line and fails the script"
   else fail=$((fail + 1)); echo "  FAIL an owed post-merge step prints OWED after the merge line and fails the script"; fi
+  # P436: a required red the train's classify reads WAIT is waited out, not "RED"; the gate
+  # that is still red (RED rc 1) refuses; no red at all never asks classify. The stub answers
+  # WAIT (rc 3) twice, then the rc in FAKE_CLS_END.
+  printf '#!/bin/bash\nn=$(cat "$T_CLS" 2>/dev/null || echo 0); echo $((n+1)) > "$T_CLS"\n[ "$n" -lt 2 ] && { echo "WAIT x"; exit 3; }\n[ "$FAKE_CLS_END" = 3 ] && { echo "WAIT x"; exit 3; }\n[ "$FAKE_CLS_END" = 0 ] && { echo "GREEN x"; exit 0; }\necho "RED x"; exit 1\n' > "$T/cls.sh"
+  clsflow() { # <end rc: 0 green|1 red> <red name or empty>
+    rm -f "$T/cls.n"; [ -n "$2" ] && : > "$T/blocked"
+    T_CLS=$T/cls.n FAKE_CLS_END=$1 FAKE_RED=$2 HPO_MERGE_CLASSIFY="bash $T/cls.sh" flow 0
+  }
+  clsflow 0 gate
+  [ "$(cat "$T/flow.rc")" = 0 ] && [ "$(cat "$T/cls.n")" = 3 ] && grep -q '^pr merge 42' "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a gate red that classify reads WAIT, then GREEN, is waited out and merges"
+  else fail=$((fail + 1)); echo "  FAIL a gate red that classify reads WAIT, then GREEN, is waited out and merges ($(tail -1 "$T/flow.out"))"; fi
+  clsflow 1 gate
+  [ "$(cat "$T/flow.rc")" != 0 ] && grep -q '^RED: gate' "$T/flow.out" && ! grep -q '^pr merge' "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: a gate red classify reads RED refuses RED and does not merge"
+  else fail=$((fail + 1)); echo "  FAIL null control: a gate red classify reads RED refuses RED and does not merge"; fi
+  HPO_MERGE_CLASSIFY_POLLS=4 clsflow 3 gate
+  [ "$(cat "$T/flow.rc")" = 3 ] && [ "$(cat "$T/cls.n")" = 4 ] && grep -q '^WAIT-EXHAUSTED' "$T/flow.out" \
+    && ! grep -q '^RED' "$T/flow.out" && ! grep -q '^pr merge' "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a classify that still reads WAIT after the last poll exits 3 WAIT-EXHAUSTED, never RED, and does not merge"
+  else fail=$((fail + 1)); echo "  FAIL a classify that still reads WAIT after the last poll exits 3 WAIT-EXHAUSTED, never RED, and does not merge ($(tail -1 "$T/flow.out"))"; fi
+  clsflow 1 ""
+  [ "$(cat "$T/flow.rc")" = 0 ] && [ ! -f "$T/cls.n" ]
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: no red at the head never asks classify"
+  else fail=$((fail + 1)); echo "  FAIL null control: no red at the head never asks classify"; fi
   rm -rf "$T"
   echo "merge_pr self-test: $((pass + fail)) checks, $fail failed"
   [ "$fail" = 0 ]
@@ -288,7 +315,18 @@ if [ -n "$red" ]; then
   mss=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus)
   case "$mss" in
     UNSTABLE|CLEAN|HAS_HOOKS) echo "OPTIONAL-RED, proceeding (mergeState=$mss): $red" ;;
-    *) echo "RED: $red"; exit 1 ;;
+    *) # A deferral red is provisional (P436): merge_train.py classify, the one reader of
+       # whether a required red is red, answers WAIT while a run it names is unfinished.
+       for i in $(seq 1 ${HPO_MERGE_CLASSIFY_POLLS:-20}); do
+         cls=$(${HPO_MERGE_CLASSIFY:-python3 -I tools/audit/seat/merge_train.py} classify "$S" --repo $R --pr $PR 2>&1); crc=$?
+         [ "$crc" = 3 ] || break
+         echo "WAIT: $cls"; sleep 60
+       done
+       # classify still WAIT after the last poll: the red is provisional, not final. A distinct
+       # line and exit 3 (the train's WAIT), never RED, so a caller retries rather than reads a refusal.
+       [ "$crc" = 3 ] && { echo "WAIT-EXHAUSTED: classify still reads WAIT after ${HPO_MERGE_CLASSIFY_POLLS:-20} polls; the red is a deferral not yet decided: $red"; exit 3; }
+       [ "$crc" = 0 ] || { echo "RED: $red"; exit 1; }
+       echo "DEFERRAL RED CLEARED (classify GREEN): $red" ;;
   esac
 fi
 sleep 10

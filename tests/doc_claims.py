@@ -2737,6 +2737,41 @@ def check_site_request_controls() -> None:
             not [k for k, _ in subpage_findings(sub.replace("</head>", "".join(own) + "</head>", 1))])
 
 
+_THEME_STUB = """
+const saved = process.argv[1] === "none" ? null : process.argv[1];
+const src = {media: "(prefers-color-scheme: dark)", dataset: {}};
+const btn = {setAttribute() {}, addEventListener() {}};
+globalThis.document = {documentElement: {dataset: {}}, getElementById: () => btn,
+  querySelector: () => null, querySelectorAll: (q) => (q.includes("source") ? [src] : [])};
+globalThis.localStorage = {getItem: () => saved, setItem() {}};
+globalThis.matchMedia = () => ({matches: false});
+"""
+
+
+def theme_picture_media(html: str, saved: str | None) -> str | None:
+    """The `media` a built page's theme script leaves on a dark `<picture>` source, with `saved` in localStorage
+    (`hpo-theme`) and a light OS: the script run in node over a stub DOM. None when the page has no theme script."""
+    m = re.search(r"<script>(\(\(\)=>\{const r=document\.documentElement.*?)</script>", html, re.S)
+    if not m:
+        return None
+    js = _THEME_STUB + m.group(1) + "\nprocess.stdout.write(src.media);"
+    r = subprocess.run(["node", "-e", js, saved or "none"], capture_output=True, text=True)
+    return r.stdout if r.returncode == 0 else f"node rc {r.returncode}: {r.stderr.strip()[:120]}"
+
+
+def check_theme_pictures(built: dict) -> None:
+    """A diagram's <picture> picks its dark render by <source media="(prefers-color-scheme: dark)">, the OS
+    preference; the site's own theme toggle must pick the same render, or a light picture sits on a dark page
+    (R10-USER-DOCS-VERIFY, carry from #3014). Null control: with no saved theme the OS query stands."""
+    html = next(iter(built.get("html", {}).values()), "")
+    got = {s: theme_picture_media(html, s) for s in ("light", "dark", None)}
+    R.check("the docs pages' theme toggle turns a dark <picture> source off on a light site theme",
+            got["light"] == "not all", repr(got))
+    R.check("... and on for a dark site theme on a light OS", got["dark"] == "all", repr(got))
+    R.check("null control: with no saved theme the source keeps its prefers-color-scheme query",
+            got[None] == "(prefers-color-scheme: dark)", repr(got))
+
+
 def check_docs_build_controls() -> None:
     """Null controls for docs_build itself: a planted tree turns the arm's core red, and a missing build or tree is red."""
     R.section("docs build arm fires on a planted tree (R9-WEB-3 null controls)")
@@ -2755,6 +2790,7 @@ def check_docs_build_controls() -> None:
         return d
 
     base = docs_build(c := corpus())
+    check_theme_pictures(base)
     R.check("a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)",
             base["rc"] == 0 and not base["fails"] and set(base["pages"]) == {"README.md", "docs/a.md"},
             f"rc {base['rc']}, {base['fails']}, {sorted(base['pages'])}")
@@ -4230,7 +4266,9 @@ def surface_sources(services: dict | None = None) -> list[dict]:
         add("option_page", page.step, titles.get(page.step, page.label))
     opt_steps = _EN_STRINGS["options"]["step"]
     for f in config_flow._OPTION_FIELDS:
-        d = f.default
+        # A `_Suggested` default renders its stored value, else its literal fallback: the fallback is the default a
+        # fresh entry shows, so its Default cell is compared like any literal's (carry from r10-min-power-floor).
+        d = f.default.fallback if isinstance(f.default, config_flow._Suggested) else f.default
         value = d if isinstance(d, (bool, int, float, str)) and not isinstance(d, config_flow._Rule) else _COMPUTED
         add("option", f.key or f"{f.step}[{f.group}]", fields(opt_steps.get(f.step, {})).get(f.key, ""), value,
             titles.get(f.step, f.step))
@@ -4437,6 +4475,16 @@ def check_surface_coverage() -> None:
     classes = collections.Counter(r["class"] for r in rows)
     R.check("every surface class enumerates from the tree (anchor)", set(classes) == set(_HOMES),
             ", ".join(f"{c}={classes.get(c, 0)}" for c in _HOMES))
+    from heatpump_optimizer import config_flow
+
+    # A `_Suggested` default's fallback is the default a fresh entry shows; read as <computed>, its Default cell
+    # would be compared against nothing (fix review of r10-user-docs-verify, block 2).
+    suggested = {f.key: f.default.fallback for f in config_flow._OPTION_FIELDS
+                 if isinstance(f.default, config_flow._Suggested)}
+    by_id = {r["id"]: r["value"] for r in rows if r["class"] == "option"}
+    R.check("every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)",
+            bool(suggested) and all(by_id.get(k) == v and v != _COMPUTED for k, v in suggested.items()),
+            repr({k: (v, by_id.get(k)) for k, v in suggested.items()}))
     bad = surface_findings(rows)
     R.check("every surface has its home, or a reasoned exemption that still names one",
             not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
@@ -4637,7 +4685,9 @@ def check_stateless() -> None:
                   "The term silently evaluated to zero for many installs.",
                   "Before this was shared, the simulation charged the buffer.",
                   "Some labels read SEK, which is the historical default.",
-                  "The fit degrades to the historical two-column form."):
+                  "The fit degrades to the historical two-column form.",
+                  # R10-UX-HEALTH part 3's phrase, refused in strings.json by tests/entities.py; here on the docs.
+                  "| Heat pump operating mode | none | Read only, exactly as before. |"):
         got = stateless_findings({"probe.md": f"# T\n\n{plant}\n"}, ())
         R.check(f"red fixture: {plant!r} is exactly one finding", len(got) == 1, repr(got))
     R.check("null control: the widened terms' current-behaviour neighbours (\"back to now rather than\", \"the older "

@@ -920,8 +920,8 @@ that cannot save them anything should not be able to cost them anything.
 ## Away and holiday mode
 
 A week away is the largest single saving a heating system can offer: a deep
-setback plus hot water suppressed entirely, except for a legionella cycle timed
-to complete before you return.
+setback plus hot water held only at its away minimum (20 °C unless you change
+it), except for a legionella cycle timed to complete before you return.
 
 What makes this more than a manual setpoint is the **return time**. Knowing when
 the house must be comfortable again lets the recovery heat be bought in the
@@ -938,6 +938,26 @@ Recovery starts deliberately early: the ramp begins a full estimated recovery
 duration plus an hour's margin before the stated return, and the estimate is
 rounded up and capped at 24 hours. A wrong return time is a comfort failure you
 will notice; arriving to a house half a degree warm costs a little.
+
+A change of the away indicator, the away switch or the holiday calendar
+replans at once, not at the next optimization interval.
+
+**Away and the mold guard.** With *Keep cold surfaces below mold humidity* on,
+the room is never planned below the mold-safe temperature, and that floor
+outranks the away setback by design: protecting the coldest surface comes
+before saving. The mold-safe temperature rises with indoor humidity and falls
+with outdoor temperature. The floor the plan holds is that temperature capped
+at your comfort target: the guard never heats past the target, because drying
+a house further is a dehumidifier's job. In a humid house in cold weather the
+floor can therefore sit at or near the target itself. On one recorded install,
+at 52–53 % indoor humidity and 1 to 5 °C outdoors, the mold-safe temperature
+worked out at 19.2 to 20.9 °C; with a 19.5 °C comfort target the floor in force
+was 19.2 to 19.5 °C, and the plan heats to it while you are away. The setback
+to *Temperature while away* then saves little or no space-heating energy for as
+long as the guard holds the floor above it. Hot water still drops to its away
+minimum. The setback saves again once the house is dry enough, or mild
+enough, that the mold-safe temperature falls below the away temperature; the
+**Mold Floor Breach** sensor's `floor_c` attribute shows the floor in force.
 
 ---
 
@@ -1040,10 +1060,12 @@ modelled COP; without that, it is the power the plan commanded. Gaining better
 evidence (adding a power meter, or a heat meter's first measured interval)
 discards the evidence gathered on the weaker one.
 
-**An estimated power reading.** The integration cannot tell a revenue meter
-from a power figure the heat pump computes for itself: both are read as the
-measured draw. If yours is an estimate and it reads high, the house looks
-leakier by about the same factor, and the plan buys heat it does not need.
+**An estimated power reading.** The heat-loss learner reads a power figure the
+heat pump computes for itself exactly as it reads a revenue meter: both are the
+measured draw. The *meter or estimate* setting on the metering page decides only
+whether a COP counts as measured, not what the learners train on. If yours is
+an estimate and it reads high, the house looks leakier by about the same
+factor, and the plan buys heat it does not need.
 Prefer a real meter, and reset the learners after changing the slot.
 
 **Starting again.** The **Learning Reset Heat Loss** button and the
@@ -1053,16 +1075,37 @@ and learning starts again from there. Changing the indoor or the lower floor
 temperature sensor resets the learner fitted on it the same way, because
 evidence fitted against one sensor says nothing about another.
 
-<!-- [target: R10-COP-GATE, R10-COP-PARTLOAD] -->
 ### COP, and the tracking-error gate
 
 With a power meter, COP becomes observable instead of derived from a nameplate
 figure and a temperature curve. The learned `cop_scale` multiplies the nameplate
 curve, bounded to [0.5, 1.6] so a mis-scaled power entity cannot destroy the
-model. A sample only counts if the pump is genuinely running (below a third of
-nameplate the reading is mostly auxiliaries), and samples are skipped while the
-immersion element is drawing, because a resistive kW is a different appliance on
-the same meter.
+model. A sample only counts if the pump is genuinely running: the draw and the
+plan's ask must both reach 80 % of the configured minimum power (with no minimum
+configured, 30 % of the maximum), and never less than 0.2 kW, because below that
+the reading is mostly auxiliaries. Samples are skipped while the immersion
+element is drawing, because a resistive kW is a different appliance on the same
+meter.
+
+**Measured COP, and the model's COP.** A COP is *measured* only where both sides
+are meters: a heat energy meter or a thermal power meter for the heat, and a
+power or energy meter for the electricity, neither of them the pump's own
+estimate (the *meter or estimate* settings on the metering page), and, for an
+interval that heated hot water, a heat reading declared to see the hot-water
+circuit. Only a measured COP is recorded and graded. Every other install still
+trains `cop_scale`, from the vendor's estimate or from the commanded-versus-
+measured power ratio below, but its efficiency is the model's own, and the
+Health page says so: *COP cannot be measured on this install*, with what it
+lacks.
+
+**Efficiency at part load.** *Heat pump COP loss at max power* (default 0, off)
+lowers the COP linearly from the minimum to the maximum power, to one minus the
+setting at max power, because larger heat flows need larger temperature
+differences across the heat exchangers. The plan then prices each step at its own
+draw, so a kWh of heat bought at high power costs more than one bought near
+the minimum. A value
+at or above *band / (band + max power)*, band being max minus min power, would
+make more power buy less heat; the setting is then ignored and treated as 0.
 
 Samples are also skipped where the shortfall belongs to the **defrost derate**,
 which learns from the same signal: folding both would correct one shortfall
@@ -1104,8 +1147,8 @@ Two caveats are worth stating plainly:
   compared and the more careful of them stands. A single quiet interval cannot
   undo a season of evidence, in either direction.
 
-**The subtlest gate matters most.** Delivered heat is not measured, so a
-commanded-versus-measured gap is ambiguous: a modest one is efficiency signal, a
+**The subtlest gate matters most.** Without a heat reading, delivered heat is
+not measured, so a commanded-versus-measured gap is ambiguous: a modest one is efficiency signal, a
 large one means the pump is not running the plan at all — compressor limits,
 cycling, ramp lag — and delivered thermal output is unknown. Folding those
 intervals wrote pure tracking error into `cop_scale`, and from there into every
@@ -1127,7 +1170,6 @@ by itself makes 1.0 the only fixed point and drags a perfectly-confirmed model
 back toward "trust the nameplate". The same vetted sample feeds the compressor
 health watch and the capacity envelope, so both inherit every filter for free.
 
-<!-- [target: R10-CEILING-PROBE] -->
 ### Active system identification
 
 Optional, and the fastest way to a good model. On a mild, cheap night the
@@ -1140,6 +1182,29 @@ switch on *Allow a one-off measurement experiment* under Advanced settings →
 Self-learning and diagnostics, and then trigger it with the **Run System
 Identification** button — until the option is on, that button does nothing but
 log that identification is disabled.
+
+**The ceiling probe.** Once the house has converged, or while the fit waits
+for its 30-day gap, the same button arms a second experiment where the install
+can run it: **Pump duty control** set to Control, the space set-point written
+as a flow or return temperature, a power meter on the heat pump, and the plan
+not writing compressor power itself (a compressor frequency entity with its
+control set to Control skips the probe, since the plan already sets the draw
+directly). On the same
+kind of night (between 23:00 and 05:00, outdoor between −5 and 10 °C, a price
+among the cheapest 30 % of the horizon) it asks for full power, which writes the
+*Heating flow ceiling*, for the longest step of at most two hours that keeps the room inside
+the comfort bound, and records the metered draw. It needs room for at least two
+metering intervals, or it aborts. Twelve recorded intervals make a learned
+maximum, their median. Where that median is more than 15 % below the configured
+**Heat pump max power**, the plan is solved with the learned figure, because
+the pump cannot draw what the setting says; it never raises the configured
+maximum. A learned maximum lapses 45 days after its newest sample, and two
+ordinary intervals at the top set-point that draw more than 15 % above it
+clear it, so it is measured again. A probe runs
+at most every 7 days until a maximum is learned and every 30 days after. The
+**Learning Model Status** sensor publishes the maximum in use and where it came
+from (`pump_max_power`, `pump_max_power_source`, `pump_max_power_reason`), and
+the last experiment's kind, phase and result in `system_identification_outcome`.
 
 The fit regresses the room's rate of change on `(T_room − T_out)`, applied power
 and a **constant**, over both the step and relaxation phases: relaxation carries

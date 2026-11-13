@@ -1195,15 +1195,22 @@ class Tick:
         """True unless merge_train's own classify reads this head as other than RED
         (a deferral red beside a busy run is WAIT there; carry 9, P455). Fail
         closed to the tick's gate-conclusion reading: an unread classify is RED."""
+        return self._classify_reading(head, runs, req)[0] == "red"
+
+    def _classify_reading(self, head: str, runs: list, req: list) -> tuple:
+        """merge_train's `classify_at` at <head> (the deferral-aware reading: a
+        gate red beside a busy run or a settling sweep is WAIT), the only read of
+        a required conclusion in this module (P436's barrier). An unread classify
+        falls to the raw `classify`: a red stays red."""
         def run(argv, cwd=None, stdin=None):
             if argv[:1] == ["gh"]:
                 return self.gh(argv[1:])
             return self.git(argv[1:]) if argv[:1] == ["git"] else (1, "the tick runs gh and git only")
         try:
             t = mt.Train(self.repo, Path("."), None, "", (), 0, run=run, log=lambda _m: None)
-            return t.classify_at(head, runs, req)[0] == "red"
+            return t.classify_at(head, runs, req)
         except (mt.Stop, OSError, ValueError):
-            return True
+            return mt.classify(self.latest(runs or []), req, mt.FINAL)
 
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
@@ -1247,17 +1254,16 @@ class Tick:
                 pend[(n, nm)] = (lat[nm].get("started_at"), head)
         if red and required is not None:
             req = getattr(self, "_req_pr", None) or required
-            req_red = mt.classify(self.latest(runs or []), req)[2]
+            req_red = self._classify_reading(head, runs or [], req)[2]
             owed = self._approval_owed(n, head, runs or [], req) if req_red else None
             if owed:
                 self.line(S, f"#{n}: RAISE APPROVAL OWED at {head[:8]}: review it, then approve "
                              "under the owner or the mandate (0013) -- not its fixer (K15 (d)): "
                              f"{owed}", flag=True)
             elif req_red and run and set(req_red) <= GATE_CONTEXTS:
-                gt = _module("gate_tick", "tools/ci/gate.py")
                 self.line(S, f"#{n}: gate race at {head[:8]}: {', '.join(req_red)} red while "
-                             f"{', '.join(run)} still run -- rerun the failed jobs once siblings settle "
-                             f"(the gate defers up to {getattr(gt, 'GATE_WAIT_MAX_S', '?')}s, GATE_WAIT_MAX_S)",
+                             f"{', '.join(run)} still run -- a deferral red the gate sweep "
+                             "(gate-sweep.yml) re-runs once they settle: no hand re-run",
                           flag=True)
             elif req_red:
                 self.line(S, f"#{n}: NOT REVIEWABLE at {head[:8]}: required "
@@ -1751,7 +1757,7 @@ class Tick:
                 if absent:
                     self.line(S, f"main {tip[:12]}: required contexts ABSENT: "
                                  f"{', '.join(absent)}", flag=True)
-                req_bad = mt.classify(latest, req)[2]
+                req_bad = self._classify_reading(tip, runs or [], req)[2]
             else:
                 req_bad = red
             if req_bad:
@@ -4117,7 +4123,7 @@ def self_test() -> int:
                 ("NOT REVIEWABLE " + ("absent" if want else "present"), bool(nr) != want)])
             total, failed = total + a, failed + f
         # Carry 8 (P82): an early-gate race (gate red while a sibling still runs) is a gate-race
-        # line naming GATE_WAIT_MAX_S; null: the same red with nothing running stays NOT REVIEWABLE.
+        # line naming the sweep; null: the same red with nothing running stays NOT REVIEWABLE.
         for label, sib, want in (("gate red beside a running sibling", True, True),
                                  ("null: gate red, nothing running", False, False)):
             runs = [run_obj("gate", conclusion="failure")] + (
@@ -4129,10 +4135,28 @@ def self_test() -> int:
             gr = [x for x in txt if x.startswith("#76: gate race at")]
             nr = [x for x in txt if x.startswith("#76: NOT REVIEWABLE")]
             a_, f_ = check(f"P82 {label}", [
-                ("gate race line " + ("names GATE_WAIT_MAX_S" if want else "absent"),
-                 (len(gr) == 1 and "GATE_WAIT_MAX_S" in gr[0]) if want else not gr),
+                ("gate race line " + ("names the sweep, not a hand re-run" if want else "absent"),
+                 (len(gr) == 1 and "gate-sweep.yml" in gr[0] and "GATE_WAIT_MAX_S" not in gr[0]) if want else not gr),
                 ("NOT REVIEWABLE " + ("absent" if want else "present"), bool(nr) != want)])
             total, failed = total + a_, failed + f_
+        # P436 barrier: the required-red line reads the deferral-aware classify_at, so a gate red
+        # that merge_train reads WAIT (a busy run at the head) raises no NOT REVIEWABLE or race line.
+        _was_ca = mt.Train.classify_at
+        try:
+            for label, got, want_quiet in (("WAIT", ("wait", ["gate"], []), True),
+                                           ("null: RED", ("red", [], ["gate"]), False)):
+                mt.Train.classify_at = lambda self, h, runs, req, got=got: got
+                t = tick(prs=[pr_obj(77, H1)], required_names=("gate",),
+                         runs_at={H1: [run_obj("gate", conclusion="failure")]},
+                         bodies={77: "## Red checks\n\ngate: x\n"})
+                t.one_pr("PRS", pr_obj(77, H1), None, t.required("PRS"))
+                txt = [x["text"] for x in t.findings if x["text"].startswith("#77:")]
+                quiet = not any("NOT REVIEWABLE" in x or "gate race" in x for x in txt)
+                a_, f_ = check(f"P436 one_pr reads classify_at: {label}", [
+                    ("required red " + ("not raised" if want_quiet else "raised"), quiet == want_quiet)])
+                total, failed = total + a_, failed + f_
+        finally:
+            mt.Train.classify_at = _was_ca
         # Carry 8: a reviewer's `merge_train.py --self-test` is not a second train; a null
         # started_at cannot bound a run, so stuck() reads True (split_absent then reads ABSENT).
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),

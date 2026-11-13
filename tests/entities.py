@@ -3904,7 +3904,8 @@ def _p2_registry(sources):
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
              owners=["inputs.py::state_stamp"], dispositions={
-                 "early_cutoff.py::_cycle_guard":
+                 # The supply gate's and the early cut-off's one clock.
+                 "supply_hold.py::switch_age":
                      "the pump's run length is the age of the switch's VALUE "
                      "(last_changed); state_stamp answers when the entity was "
                      "last heard from, which a re-reported 'on' resets",
@@ -11113,7 +11114,7 @@ R.check(
 _pub_fails = FakeCoordinator(DATA)
 
 
-async def _raise_publish(reason=None):
+async def _raise_publish(reason=None, heat_pump_on=None):
     raise OSError("mqtt unreachable")
 
 
@@ -17772,6 +17773,7 @@ R.check(
     set(_nightly.A4_INSIDE) <= set(_nightly.INSIDE_CHECKS)
     and set(_nightly.A4_INSIDE)
     == {
+        "a4:bridged",
         "a4:failed",
         "a4:unavailable",
         "a4:buttons",
@@ -17794,6 +17796,49 @@ R.check(
     and "send_response(500)" in _a4_serve_src
     and "send_response(401)" not in _a4_serve_src,
     "A4 must go through the Tibber counterparty (E57), not the FakeCoordinator poke",
+)
+# The price source is exhausted at the counterparty (a 200 with an ended curve,
+# which pull_prices accepts), never by writing the coordinator's prices.
+_a4_end_src = _inspect.getsource(_nightly.end_price_curve)
+R.check(
+    "A4 exhausts the published prices at the counterparty, not the coordinator",
+    "end_price_curve(True)" in _a4_walk_src
+    and "end_price_curve(False)" in _a4_walk_src
+    and "_prices" not in _a4_walk_src
+    and "_PRICE_CURVE_ENDED" in _a4_end_src
+    and "_PRICE_CURVE_ENDED" in _a4_serve_src
+    and "_ENDED_CURVE_AGE" in _a4_serve_src
+    and _nightly._ENDED_CURVE_AGE >= _nightly.timedelta(days=1),
+    "A4 phase 2 must reach UpdateFailed through the fake Tibber's ended curve",
+)
+_a4_bridge_before = [
+    {"entity_id": "sensor.a", "state": "1"},
+    {"entity_id": "button.b", "state": "unknown"},
+]
+_a4_bridge_up = [dict(r) for r in _a4_bridge_before]
+_a4_bridge_down = [
+    {"entity_id": "sensor.a", "state": "unavailable"},
+    {"entity_id": "button.b", "state": "unavailable"},
+]
+_a4_br_ok = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_ok, True, True, _a4_bridge_before, _a4_bridge_up)
+_a4_br_failed = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_failed, False, True, _a4_bridge_before, _a4_bridge_up)
+_a4_br_norepair = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_norepair, True, False, _a4_bridge_before, _a4_bridge_up)
+_a4_br_down = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_down, True, True, _a4_bridge_before, _a4_bridge_down)
+_a4_br_empty = _nightly.Checks()
+_nightly.check_a4_bridged(_a4_br_empty, True, True, (), _a4_bridge_up)
+R.check(
+    "a4:bridged fails a failed update, a missing repair, an unavailable entity and an empty before-set",
+    all(
+        "a4:bridged" in c.failures()
+        for c in (_a4_br_failed, _a4_br_norepair, _a4_br_down, _a4_br_empty)
+    )
+    and "a4:bridged" not in _a4_br_ok.failures(),
+    f"ok={_a4_br_ok.results.get('a4:bridged')} failed={_a4_br_failed.results.get('a4:bridged')} "
+    f"norepair={_a4_br_norepair.results.get('a4:bridged')} down={_a4_br_down.results.get('a4:bridged')}",
 )
 _a4_failed_ok = _nightly.Checks()
 _nightly.check_a4_failed(_a4_failed_ok, False)
@@ -17885,7 +17930,7 @@ R.check(
     "and passing A4 checks still keep their detail",
     all(
         v[1]
-        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok)
+        for c in (_a4_failed_ok, _a4_un_ok, _a4_btn_ok, _a4_ns_ok, _a4_rc_ok, _a4_br_ok)
         for n, v in c.results.items()
         if n.startswith("a4:")
     ),
