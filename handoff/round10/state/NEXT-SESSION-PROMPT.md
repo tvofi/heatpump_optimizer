@@ -17,7 +17,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-USER-DOCS-VERIFY (stage in-progress, branch `handoff/r10-user-docs-verify`): `git fetch origin handoff/r10-user-docs-verify && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CI-PRIORITY-PAUSE (stage in-progress, branch `handoff/r10-ci-priority-pause`): `git fetch origin handoff/r10-ci-priority-pause && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-ROUND-PLAYBOOK-FINAL (stage in-progress, branch `handoff/r10-round-playbook-final`): `git fetch origin handoff/r10-round-playbook-final && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ROUND-PLAYBOOK-FINAL (stage carries-open, branch `handoff/r10-round-playbook-final`): `git fetch origin handoff/r10-round-playbook-final && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SEAT-SCRIPT-OUTPUT (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -39,7 +39,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-OUTSIDE-DHW-START-HYSTERESIS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DUTY-SWITCH-RESTART-LEARNING-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DUTY-SWITCH-PLANNER-PRICE (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-MODE-BEFORE-SUPPLY-ON (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-MODE-BEFORE-SUPPLY-ON (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-STALE-STEP (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (stage in-progress): no branch pushed yet, so nothing to fetch
