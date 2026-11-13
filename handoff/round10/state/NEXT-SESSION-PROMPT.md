@@ -45,6 +45,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SELFTEST-SCOPE-RERECORD (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SELFTEST-SCOPE-UNION-GUARD (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-CARRY-1412-CONTROL (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-UPDATEPR-FIGURE-REFRESH (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-OPENER-REFUSALS (stage in-progress): no branch pushed yet, so nothing to fetch
 
