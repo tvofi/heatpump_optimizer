@@ -1,0 +1,31 @@
+diff --git a/tests/card_browser.mjs b/tests/card_browser.mjs
+index 8a5dd213fc..2f6e4486b1 100644
+--- a/tests/card_browser.mjs
++++ b/tests/card_browser.mjs
+@@ -528,7 +528,6 @@ async function themeMismatch({ browser, check, plan }) {
+   }
+ }
+ 
+-<<<<<<< eda078bac41473246ff7d87a5736de58d64ad97a
+ /** R10-CARD-COLLAPSE: the headline's two folds and the dialog-only legend,
+  * in a real browser, light and dark. Collapsed by default with no body, no
+  * chip and no dashed-line note on the card; Enter and Space on a focused
+@@ -628,7 +627,9 @@ async function cardCollapse({ browser, check, plan, out }) {
+     } finally {
+       await ctx.close();
+     }
+-=======
++  }
++}
++
+ /** R10-HOTFIX-CARD-HEALTH-TEXT, carry 0: HA's default theme in auto mode,
+  * switched live with the Health dialog open, in both directions. The page
+  * models HA's themes mixin in its order: on the OS colour-scheme change it
+@@ -713,7 +714,6 @@ async function themeLiveSwitch({ browser, check, plan }) {
+       `${before.seen} runs, darkMode ${before.darkMode}; under 4.5: ${before.low.slice(0, 4).join(", ")}`);
+   } finally {
+     await ctx.close();
+->>>>>>> 4145f2852642fd0b5ccb8b7af60d41e896a5eea3
+   }
+ }
+ 

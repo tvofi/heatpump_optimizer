@@ -1,4 +1,4 @@
- heatpump-optimizer-card  v7.1.12 
+ heatpump-optimizer-card  v7.1.13 
 defined elements: heatpump-optimizer-card, heatpump-optimizer-card-editor
 customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card","description":"Plots heat-pump price, power and temperature plans on one shared time axis with per-series toggles.","preview":true}]
   ok    every card language is key-for-key with en and keeps en's placeholders
@@ -1188,7 +1188,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    and a card with no recorded history draws none
   ok    the live-edge chunk is fetched again once the clock has moved a plan step
   ok    the card element defines at most 26 members of its own (26)
-  ok    the card markup gate's claim file is stamped for v7.1.12
+  ok    the card markup gate's claim file is stamped for v7.1.13
   ok    a docs-only three-dot moves nothing a claim excuses
   ok    the card source moves something a claim excuses
   ok    justifiesCardClaim names the card and nothing beside it
