@@ -1,0 +1,5 @@
+## M1 lock as #3483 carried it
+  FAIL the typing job's hashed lock installs the recorded pins  [homeassistant-stubs==2026.10.0 in the lock, ==2026.9.3 in the budget. Regenerate requirements-typing.txt with the command in its header]
+  ok   homeassistant-stubs is pinned at 2026.9.3
+ALL 9 typing-ruler checks PASSED
+1 of 12 typing-ruler source checks FAILED
