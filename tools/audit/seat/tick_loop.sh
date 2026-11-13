@@ -65,6 +65,10 @@
 # ends a non-interactive bash.
 case ${1:-} in --self-test) exec /usr/bin/env -i PATH="/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${BASH%/*}" "$BASH" "$0" --self-test-rows "${@:2}" ;; esac  # mut:selftest-envi
 case ${1:-} in --self-test) refused=; refused=${refused:?--self-test refused: the env -i re-exec did not replace this process (a caller function named exec?); no row ran} ;; esac  # mut:selftest-failclosed
+# pr_args.sh's self-test bound, taken inside the cleaned environment: the rows re-exec once through
+# pr_bounded (a session of their own, PR_SELFTEST_SECONDS's default deadline, reaped on exit) before
+# their scratch HOME is made; PR_BOUND, which pr_bounded sets, guards the second entry.
+case ${1:-} in --self-test-rows) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded tick_loop "$BASH" "$0" "$@"; } ;; esac  # mut:selftest-bound
 set -uo pipefail
 case ${1:-} in --self-test-rows)  # the rows' HOME and TMPDIR: fresh, the caller's never
   SELFTEST_TMP=$(mktemp -d) || exit 1; export HOME=$SELFTEST_TMP/home TMPDIR=$SELFTEST_TMP/tmp
@@ -218,6 +222,12 @@ tick_loop_self_test() ( # [--nested]: the rows; --nested (a row's own run) skips
   out=$(head -c 2097152 /dev/zero | tr '\0' x)
   printf 'MATCH\n%s\n' "$out" | grep -q '^MATCH$'
   ck "a row's verdict is its reader's: a grep -q that leaves at its match, its writer killed mid-write, still reads the match" $?
+  # The rows run under pr_args.sh's bound: PR_BOUND set and a session of their own (pr_bounded's setsid).
+  # A nested run is exempt: offline_spy.py's entry is --self-test-rows with the outer PR_BOUND inherited.
+  if [ -z "$nested" ] && [ -r "/proc/$$/stat" ]; then
+    [ "${PR_BOUND:-}" = 1 ] && [ "$(sed 's/.*) //' "/proc/$$/stat" | cut -d ' ' -f 4)" = "$$" ]
+    ck "the rows run under pr_args.sh's self-test bound: PR_BOUND set, a session of their own" $?
+  elif [ -z "$nested" ]; then echo "  skip the bound row: no /proc on this host to read a session id"; fi
   printf '#!/bin/bash\n{ env; echo "argv: $0 $*"; } >> "%s/envdump"; echo "relay $*" >> "%s/order"; exit "${RELAY_RC:-0}"\n' "$t" "$t" > "$t/relay.sh"
   printf '#!/bin/bash\n{ env; echo "argv: $0 $*"; } >> "%s/envdump"; echo "tick $*" >> "%s/order"; echo BOARD; exit "${TICK_RC:-0}"\n' "$t" "$t" > "$t/tick.sh"
   chmod +x "$t/tick.sh"

@@ -36,6 +36,7 @@
 #   pipefail    the self-test's `set +o pipefail` deleted
 #   failopen    the refusal after the re-exec replaced by a run of the rows: a --self-test whose re-exec a
 #               caller's function named exec skipped runs every row in the caller's environment (round 4)
+#   bound       pr_args.sh's self-test bound (main's 38aee2235a) deleted from the rows' entry
 # Channel arm -- <rev>'s whole self-test from a scratch copy, once per channel a caller has into the
 # process before line 1 and at the re-exec, every run beside a scratch bare repository named as
 # HPO_HEARTBEAT_REMOTE and TICK_RC=1 (either acts if a row runs in the caller's environment); each prints
@@ -53,7 +54,7 @@
 # A mutant arm needs the `# mut:selftest-*` markers and says so on a <rev> without them.
 # No arm named runs the five shapes.
 set -uo pipefail
-rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen|channels]...}; shift
+rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen|bound|channels]...}; shift
 [ $# -gt 0 ] || set -- branch detached gitdir shim level
 top=$(git rev-parse --show-toplevel) || exit 2
 sha=$(git -C "$top" rev-parse --verify -q "$rev^{commit}") || { echo "no commit $rev"; exit 2; }
@@ -162,6 +163,10 @@ elif arm == "failopen":
     i = marked("selftest-failclosed")
     assert s[i].startswith("case ${1:-} in --self-test) refused=")
     s[i] = 'case ${1:-} in --self-test) set -- --self-test-rows "${@:2}" ;; esac  # mut:selftest-failclosed'
+elif arm == "bound":
+    i = marked("selftest-bound")
+    assert "pr_bounded tick_loop" in s[i]
+    del s[i]
 else:
     assert arm == "whole"
 open(p, "w").write("\n".join(s))
@@ -210,7 +215,7 @@ echo "rev $sha"
 for arm in "$@"; do
   case $arm in
     branch|detached|gitdir|shim|level) shape "$arm" ;;
-    whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen) mutant "$arm" ;;
+    whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen|bound) mutant "$arm" ;;
     channels) channels ;;
     *) echo "unknown arm '$arm'"; exit 2 ;;
   esac
