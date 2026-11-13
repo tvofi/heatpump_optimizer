@@ -1,0 +1,267 @@
+ok   api(): one document comes back parsed
+ok   api(): a paginated answer whose page is no list refuses
+ok   api(): a 404 refuses, naming gh's exit
+ok   api(): a server error refuses, naming gh's exit
+ok   api(): an answer that is not JSON refuses
+ok   _run(): a command's stdout is captured
+ok   admitted: an allowlisted login+id on a cross-repository head touching class F
+ok   (null control) the allowlist entry removed: the same pull request is not an outside one
+ok   not outside: the login under another numeric id
+ok   not outside: the login and id on a Bot record
+ok   not outside: the id under another login
+ok   not outside: an allowlist id recorded as a string matches nothing
+ok   REFUSE: the allowlist unreadable at the ref
+ok   REFUSE: a same-repository head
+ok   REFUSE: a head repository that is gone
+ok   cross: a fork's head is cross-repository (rc 0)
+ok   cross: a head of ours is not (rc 3)
+ok   cross: a head repository that is gone is not ours
+ok   cross: an unreadable pull request refuses, never read as ours
+ok   REFUSE: a base other than main
+ok   REFUSE: main of another repository as the base
+ok   REFUSE: a closed pull request
+ok   REFUSE: a second open pull request at the head
+ok   REFUSE: a CLOSED pull request at the head (its runs left check runs on the commit)
+ok   (null control) another pull request of the same branch at another commit refuses nothing
+ok   REFUSE: the other-pull-requests read failed
+ok   REFUSE: the pull request unreadable
+ok   REFUSE: an empty diff is not a thing a pull request has
+ok   admitted: the verdict comment is the author's allowlist entry's, on this pull request
+ok   REFUSE: the comment is on another pull request
+ok   REFUSE: the comment's author is not the allowlist entry
+ok   REFUSE: the comment does not exist
+ok   REFUSE: the head branch name 'a";$(id)'
+ok   REFUSE: the head branch name 'a b'
+ok   REFUSE: the head branch name 'a$b'
+ok   REFUSE: the head branch name 'a`b'
+ok   REFUSE: the head branch name '-a'
+ok   REFUSE: the head branch name 'xxxxxxxxxxxxxxxxxxxx'...
+ok   REFUSE: the head branch name 'main'
+ok   REFUSE: the head branch name 'a\n'
+ok   REFUSE: the head branch name 'fix/ok\n'
+ok   REFUSE: the head branch name ''
+ok   REFUSE: the head branch name 'a;b'
+ok   REFUSE: the head branch name 'a(b)'
+ok   REFUSE: the head branch name 'a~1'
+ok   REFUSE: the head branch name 'a*'
+ok   admitted: the head branch name 'fix/issue-12_a.b'
+ok   admitted: the head branch name 'xxxxxxxxxxxxxxxxxxxx'
+ok   admitted: the head branch name 'A'
+ok   admitted: the head branch name '0/9'
+ok   REFUSE: no head ref in the API's answer
+ok   class R: .github/workflows/tests.yml
+ok   class R: .github/CODEOWNERS
+ok   class R: tools/pr/outside.py
+ok   class R: .claude/settings.json
+ok   class R: .cursor/rules/x.mdc
+ok   class R: CLAUDE.md
+ok   class R: AGENTS.md
+ok   class R: dev/governance/roles/fixer.md
+ok   class R: dev/governance/config/outside_contributors.json
+ok   class R: dev/governance/decisions/0017-x.md
+ok   class R: dev/audit/README.md
+ok   class R: tests/README.md
+ok   class R: tests/structure_budgets.json
+ok   class R: dev/governance/config/policy_budgets.json
+ok   class R: x/new_budgets.json
+ok   class R: tests/closures.json
+ok   class R: tests/golden/claimed_drift.txt
+ok   class R: tests/golden/a/b.json
+ok   class R: tests/mutation_ledger/killed_by/a.json
+ok   class R: tests/run.sh
+ok   class R: tests/closure.py
+ok   class R: VERSION
+ok   class R: RELEASE_NOTES.md
+ok   class R: .gitattributes
+ok   class R: LICENSE
+ok   class R: newroot.txt
+ok   class R: dev/programme/delivery/8.md
+ok   class R: dev/programme/HANDOVER.md
+ok   class R: scripts/new.sh
+ok   class R: dev/x/unowned.md
+ok   class R: custom_componentsx/a.py
+ok   class F: custom_components/heatpump_optimizer/coordinator.py
+ok   class F: blueprints/a.yaml
+ok   class F: README.md
+ok   class F: docs/setup.md
+ok   class F: docs/img/card/plan-dark.png
+ok   class F: docs/img/brand/coffee.svg
+ok   class F: dev/programme/delivery/7.md
+ok   class O: docs/index.html
+ok   class O: docs/site/docs.css
+ok   class O: docs/site/readme.md
+ok   class O: docs/img/readme/render.mjs
+ok   class O: docs/img/model/make_model_figures.py
+ok   class O: docs/img/card/pages.json
+ok   class O: docs/owned.md
+ok   class O: docs/ownedir/0001.md
+ok   class O: tests/entities.py
+ok   class O: tests/structure.py
+ok   class O: tests/new_test.py
+ok   class O: tests/hastub/homeassistant/core.py
+ok   the policy patterns and GATE_FILES were read, not empty
+ok   the tracked tree was listed (the next four checks read it)
+ok   every closure.GATE_FILES entry classifies R
+ok   every tracked *_budgets.json classifies R
+ok   no tracked R path lies under an F rule, so the order changes no answer
+ok   every tracked script, data file and page under docs/ classifies O
+ok   REFUSE: a CODEOWNERS holding no rules
+ok   REFUSE: a diff with class-R paths names each
+ok   REFUSE: CODEOWNERS unreadable at the ref
+ok   REFUSE: a manifest version edit
+ok   (null control) a manifest edit that leaves the version key alone is class F
+ok   REFUSE: a manifest that no longer parses
+ok   class O REFUSE: no review at all
+ok   pr-contract's early signal: a class-O read still owed is PENDING, not a refusal
+ok   the offline early form: PENDING for class O, and not one gh call
+ok   the offline early form refuses a head branch name a shell expands, with no gh call
+ok   the offline early form refuses a class-R path
+ok   the offline early form: an author on no entry is not outside
+ok   the offline early form refuses a file that is another pull request's
+ok   REFUSE: the offline form without --early: it is never the gate
+ok   class O admitted: the owner's APPROVED review at H carrying the line
+ok   class O REFUSE: the same review under another numeric id
+ok   class O REFUSE: the same review under the contributor's account
+ok   class O admitted: read at L, and L carries to H
+ok   class O REFUSE: read at L, and L does not carry to H
+ok   class O admitted: commit_id re-anchored to H, the line names a carried L
+ok   class O REFUSE: a commit_id that is neither L nor H
+ok   class O admitted: commit_id on an intermediate X with L->X and X->H carried (item 25)
+ok   class O REFUSE: an intermediate X that does not carry to H
+ok   class O REFUSE: an intermediate X that L does not carry to
+ok   class O REFUSE: a review with no commit_id
+ok   class O REFUSE: an empty body (ci_probe.py's approval)
+ok   class O REFUSE: an approval with no outside-read line
+ok   class O REFUSE: the words inside a sentence, not on a line of their own
+ok   class O REFUSE: a 39-hex commit on the line
+ok   class O REFUSE: two outside-read lines
+ok   class O REFUSE: the line in a COMMENTED review
+ok   class O REFUSE: a later CHANGES_REQUESTED by the owner voids the approval
+ok   class O REFUSE: a later DISMISSED review under the owner's account voids it
+ok   (null control) the approval AFTER his change request stands: latest, not any
+ok   (null control) a later COMMENTED review is not decisive and voids nothing
+ok   (null control) the contributor's own change request voids nothing
+ok   class O REFUSE (fail closed, item 28): the owner's own words trip AGENT_DECLARED, so the form is neither
+ok   class O REFUSE: the review list unreadable
+ok   class O REFUSE: a review list that is no list of pages
+ok   merge_pr.sh's owner_body was called and produced a body
+ok   class O REFUSE: merge_pr.sh owner mode's body (declared, mandated, no line)
+ok   class O REFUSE: _agent_approval_body under a bare mandate id
+ok   class O REFUSE: _agent_approval_body under 'mandate comment <id>'
+ok   class O REFUSE: _post_carry's body over owner_body's
+ok   no program under tools/ or .github/ but this one writes the outside-read line
+ok   the approve body: MANDATE_CITE reads exactly the id given
+ok   the approve body declares an agent
+ok   the approve body names the head on the outside-read line
+ok   class O admitted: the approve body at H under a mandate of scope all in force now
+ok   (null control) the same body with the mandate comment gone (404)
+ok   class O REFUSE: a mandate of scope code-owned
+ok   class O REFUSE: a mandate of scope budget-raise
+ok   class O REFUSE: a mandate expired now, though in force when the review was submitted
+ok   ... judged now, never at the review's submission (in force then)
+ok   class O REFUSE: a mandate not yet in force
+ok   class O REFUSE: an edited mandate comment
+ok   class O REFUSE: the mandate comment written by another account
+ok   class O REFUSE: by an account named as the owner's under another id
+ok   class O REFUSE: the mandate comment on another issue
+ok   class O REFUSE: on record issue 201 of another repository
+ok   class O REFUSE: a comment whose first line is not the grammar
+ok   class O REFUSE: a mandate read that fails
+ok   class O REFUSE: the mandate revoked by the owner on #201
+ok   class O REFUSE: the mandate revoked by the owner on #3394
+ok   (null control) a revocation by another account revokes nothing
+ok   class O REFUSE: the record thread unreadable, so a revocation could not be ruled out
+ok   class O REFUSE: two mandates cited
+ok   class O REFUSE: a declared body citing no mandate
+ok   class O REFUSE: a mandate cited by URL in a body that declares no agent
+ok   class O REFUSE: the same body, line and citation under the contributor's id
+ok   class O REFUSE: a mandated approval after the owner's own CHANGES_REQUESTED
+ok   (null control) his own later approval lifts his change request
+ok   class O REFUSE: the grammar in the pull-request body, a pull-request comment and a file of the head, with no record comment
+ok   class O REFUSE: the owner's grammar in a comment on the pull request itself, not a record issue
+ok   approve: one review posted on an outside head with a class-O path, under a mandate in force
+ok   ... through the reviews API with commit_id the head read, the body read back
+ok   ... and the contract then admits the head
+ok   ... never through `gh pr review`
+ok   approve REFUSE: a read-back that differs from what was posted
+ok   approve REFUSE, nothing posted: a same-repository head
+ok   approve REFUSE, nothing posted: a head that moved
+ok   approve REFUSE, nothing posted: an author on no allowlist entry
+ok   approve REFUSE, nothing posted: a head branch name a shell expands
+ok   approve REFUSE, nothing posted: no --mandate
+ok   approve REFUSE, nothing posted: a diff with a class-R path
+ok   approve REFUSE, nothing posted: a diff with no class-O path
+ok   approve REFUSE, nothing posted: a mandate not in force for this scope
+ok   approve REFUSE, nothing posted: a mandate that does not exist
+ok   approve REFUSE, nothing posted: a gh account that is not the owner's
+ok   approve REFUSE, nothing posted: the owner's own CHANGES_REQUESTED stands
+ok   approve REFUSE, nothing posted: another pull request at the head
+ok   allowlisted(): no user object matches no entry
+ok   REFUSE: an allowlist that is not JSON, named as that
+ok   REFUSE: an allowlist whose contributors is no list (never read as an empty one)
+ok   class O REFUSE: a later CHANGES_REQUESTED voids the approval even when its own body carries the outside-read line
+ok   class O REFUSE: and so does a later DISMISSED review carrying the line
+ok   REFUSE: a pull request read under another number, on a diff that is otherwise admitted
+ok   REFUSE: a head that is no 40-hex commit
+ok   a refused shape stops there: no other-pull-requests read on a head not admitted
+ok   REFUSE: a second pull request at the head on the commit's SECOND page
+ok   REFUSE: a closed pull request of the head branch on the SECOND page
+ok   (null control) a manifest path with no manifest at either end changes no version
+ok   REFUSE: a manifest that parses at neither end is not read as an unchanged version
+ok   check(): handed no gate, it loads this tree's
+ok   check(): by default the pull request's head is fetched from origin, by a refspec holding only the number
+ok   REFUSE: the fetched refs/pull head is not the head the API named
+ok   admitted with class O: the CLASS O line leads and the closing line counts each class
+ok   approve REFUSE: no --mandate, refused as that and before any read
+ok   approve(): handed no gate it loads this tree's, and by default fetches the head
+ok   approve REFUSE, nothing posted: a role whose words make the body cite a second mandate
+ok   approve leaves no body file behind
+ok   approve REFUSE: the reviews API refused the post, named as that
+ok   approve reads its own review back from the LAST page of the review list
+ok   approve REFUSE, nothing posted: the owner's own CHANGES_REQUESTED on the SECOND page
+ok   approve REFUSE: the mandate gone between the post and the read-back, so the landed review is not reported as approved
+ok   approve REFUSE: the pull request unreadable
+ok   cli cross: a fork's head prints its line and exits 0
+ok   cli cross: a head of ours exits 3
+ok   cli classify: one line per path, the delivery row free for the --pr named, exit 0
+ok   cli classify REFUSE: CODEOWNERS unreadable exits 1
+ok   cli classify reads origin/main when no --ref is given
+ok   cli classify: --ref names the ref the rules are read at
+ok   cli check: admitted at origin/main by default, and --no-fetch fetches nothing
+ok   cli check: --ref names the ref the contract is read at
+ok   cli check: without --no-fetch the head is fetched
+ok   cli check: --comment hands the verdict comment to the contract
+ok   cli check: --early turns an owed class-O read from a refusal into PENDING
+ok   cli check: --pull-json judges the file and makes no gh call
+ok   cli check REFUSE: --pull-json pull.json.absent exits 1, never falling back to the API
+ok   cli check REFUSE: --pull-json bad.json exits 1, never falling back to the API
+ok   cli approve REFUSE: a --head that is no 40-hex commit, before any read
+ok   cli approve: posts the default role's body at --head under --mandate, fetching the head
+ok   cli approve: --role is the role written, and --no-fetch fetches nothing
+ok   cli approve REFUSE: no --mandate is no mandate
+ok   cli approve: --ref names the ref, origin/main by default
+ok   cli: no subcommand exits 2: a required argument is never defaulted
+ok   cli: check --pr 7 exits 2: a required argument is never defaulted
+ok   cli: check --repo tvofi/heatpump_optimizer exits 2: a required argument is never defaulted
+ok   cli: classify README.md exits 2: a required argument is never defaulted
+ok   cli: cross --pr 7 exits 2: a required argument is never defaulted
+ok   cli: cross --repo tvofi/heatpump_optimizer exits 2: a required argument is never defaulted
+ok   cli: approve --pr 7 --head aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa exits 2: a required argument is never defaulted
+ok   cli: approve --repo tvofi/heatpump_optimizer --head aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa exits 2: a required argument is never defaulted
+ok   cli: approve --repo tvofi/heatpump_optimizer --pr 7 exits 2: a required argument is never defaulted
+ok   git(): a command's stdout comes back
+ok   git(): a failing command raises, never an empty answer
+ok   show(): a path at a ref comes back
+ok   show(): a path the ref does not hold is None, never empty text
+ok   changed(): the merge base and the three-dot path list
+ok   carries(): app_approve.sh --carry says yes for a head onto itself
+ok   carries(): and no for a commit that is no ancestor of the head
+ok   now_utc(): the instant a mandate is judged at is the clock's, with a zone
+ok   REFUSE: policy_lint.mjs with empty policy arrays
+ok   REFUSE: a closure.py whose GATE_FILES is no literal
+ok   REFUSE: a closure.py that assigns no GATE_FILES at all
+ok   the workflow scan finds a contributor-named value inside a run: block and on a run: line, and not under env:
+ok   the workflows were listed
+ok   no workflow expands a contributor-named value (head ref, title, body) inside a run: block
+ok   tests.yml's laneskip step carries the same-repository conjunct: a fork head restores no lane proof and always runs
+outside self-test: 266 checks, 0 failed

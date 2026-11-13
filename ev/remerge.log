@@ -1,0 +1,153 @@
+## remerge-diff c3ab13d804964be813bef278b0fbcda564a2d34e
+LEDGER-MERGE: resolved tests/closures.json
+c3ab13d804964be813bef278b0fbcda564a2d34e a98d895577770cd84ad8baa3114d6fbfb895a455 ad95665ea3162167a93b92879c618db5c3a18c93
+
+diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
+remerge CONFLICT (content): Merge conflict in tools/pr/ci_predict.py
+index 7e1a76b451..d0c6b0cf8f 100644
+--- a/tools/pr/ci_predict.py
++++ b/tools/pr/ci_predict.py
+@@ -661,27 +661,12 @@ def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
+     return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
+ 
+ 
+-<<<<<<< a98d895577 (Merge remote-tracking branch 'origin/main' into fix/r10-outside-contributor-cycle)
+-ROSTER_REF = re.compile(r"refs/remotes/origin/handoff/audit-r\d+-roster")
+-
+-
+-def round_roster_refs(root: Path) -> "list[tuple[str, str]]":
+-    """(ref, sha) of each round roster branch this checkout has fetched. CI's
+-    pr-contract fetches `handoff/audit-r*-roster` before its carry check
+-    (pr-contract.yml), and a clone inherits no remote-tracking ref: without
+-    these, a `Carry:` to a group that lives only on the round's branch is
+-    predicted red where CI routes it (carry_audit.load_dests skips an absent
+-    round ref in silence)."""
+-    out = git(root, "for-each-ref", "--format=%(objectname) %(refname)", "refs/remotes/origin/handoff/") or ""
+-    return [(name, sha) for sha, _, name in (ln.partition(" ") for ln in out.splitlines()) if ROSTER_REF.fullmatch(name)]
+-=======
+ def fetch_round_rosters(run) -> None:
+     """CI's pr-contract fetches the round rosters' remote-tracking refs; a
+     --shared clone's own origin/handoff/* are root's local branches, so take
+     root's refs/remotes/origin ones. A glob matching nothing is harmless."""
+     run("git", "fetch", "-q", "--no-tags", "origin",
+         "+refs/remotes/origin/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster")
+->>>>>>> ad95665ea3 (Merge pull request #3520 from tvofi/fix/r10-hotfix-tick-selftest-checkout-pr)
+ 
+ 
+ def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = None) -> tuple[str, subprocess.CompletedProcess | None]:
+@@ -706,12 +691,7 @@ def ci_tree_run(root: Path, tip: str, job: str, steps, workflow: str | None = No
+             return subprocess.run(a, cwd=r, env=env, input=input, capture_output=True, text=True)
+ 
+         run("git", "update-ref", "refs/remotes/origin/main", tip)
+-<<<<<<< a98d895577 (Merge remote-tracking branch 'origin/main' into fix/r10-outside-contributor-cycle)
+-        for name, sha in round_roster_refs(root):  # the refs CI's own fetch gives the job
+-            run("git", "update-ref", name, sha)
+-=======
+         fetch_round_rosters(run)  # mut:roundrefs
+->>>>>>> ad95665ea3 (Merge pull request #3520 from tvofi/fix/r10-hotfix-tick-selftest-checkout-pr)
+         run("git", "checkout", "-q", "--detach", tip)
+         if run("git", "merge", "-q", "--no-ff", "-m", f"Merge {head} into {tip}", head).returncode:
+             return "unmerged", None
+@@ -1402,44 +1382,6 @@ def null_control_self_test(root: Path) -> int:
+     return bad
+ 
+ 
+-def roster_ref_self_test() -> int:
+-    """ci_tree_run's tree holds the round roster refs the checkout fetched, as
+-    CI's pr-contract does, and no other handoff ref."""
+-    import tempfile
+-    from throwaway_git import throwaway_git_init
+-    bad = 0
+-    with tempfile.TemporaryDirectory() as td:
+-        env = throwaway_git_init(td, "-q", "-b", "main")
+-
+-        def g(*a: str) -> str:
+-            return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=td, env=env,
+-                                  capture_output=True, text=True).stdout.strip()
+-
+-        Path(td, "w.yml").write_text(
+-            "jobs:\n  j:\n    steps:\n      - name: Restore the check source from the base commit\n        run: |\n"
+-            "          git diff --name-only -z \"$(git hash-object -t tree /dev/null)\" \"$PINNED\" -- \\\n"
+-            "            'w.yml' > \"$RUNNER_TEMP/pinned.list\"\n")
+-        g("add", "-A"); g("commit", "-q", "-m", "base"); tip = g("rev-parse", "HEAD")
+-        g("commit", "-q", "--allow-empty", "-m", "head")
+-        g("update-ref", "refs/remotes/origin/handoff/audit-r9-roster", tip)
+-        g("update-ref", "refs/remotes/origin/handoff/some-topic", tip)
+-
+-        def seen(ref: str):
+-            return lambda r, run, tmp: run("git", "rev-parse", "--verify", "-q", ref + "^{commit}")
+-
+-        cases = [("the predictor's tree holds the round roster ref this checkout fetched (CI fetches it before the carry check)",
+-                  "refs/remotes/origin/handoff/audit-r9-roster", 0),
+-                 ("and no other handoff ref (null control)", "refs/remotes/origin/handoff/some-topic", 1),
+-                 ("nor a roster ref the checkout never fetched (null control)", "refs/remotes/origin/handoff/audit-r8-roster", 1)]
+-        for label, ref, want in cases:
+-            state, out = ci_tree_run(Path(td), tip, "j", [seen(ref)], workflow="w.yml")
+-            got = None if out is None else (1 if out.returncode else 0)
+-            ok = state == "ran" and got == want
+-            print(f"  {'ok  ' if ok else 'FAIL'} {label}{'' if ok else f' -- {state}, rc {got}'}")
+-            bad += not ok
+-    return bad
+-
+-
+ def self_test() -> int:
+     """The carry arm over a plant and a null, through carry_audit's own audit."""
+     import tempfile
+@@ -1467,11 +1409,7 @@ def self_test() -> int:
+     bad += mutant_self_test(root)
+     bad += null_control_self_test(root)
+     bad += graders_self_test(root)
+-<<<<<<< a98d895577 (Merge remote-tracking branch 'origin/main' into fix/r10-outside-contributor-cycle)
+-    bad += roster_ref_self_test()
+-=======
+     bad += roundref_self_test(root)
+->>>>>>> ad95665ea3 (Merge pull request #3520 from tvofi/fix/r10-hotfix-tick-selftest-checkout-pr)
+     gate = root / "tools" / "ci" / "gate.py"
+     if gate.exists():
+         sys.path.insert(0, str(root / "tools" / "ci"))
+## remerge-diff f8de8a15ba63835f18c7fc4a137b1259b979af71
+f8de8a15ba63835f18c7fc4a137b1259b979af71 a98d895577770cd84ad8baa3114d6fbfb895a455 e8c6bb06a256d47287bf51d1a1f6b5728d275593
+## remerge-diff 6a0a3a4d96c757c5d576fbce394c324452339b15
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (233 entries)
+  closures.tests/harness_headers.py: merged as a set (412 entries)
+  re-run the gate that owns this file before pushing
+6a0a3a4d96c757c5d576fbce394c324452339b15 f8de8a15ba63835f18c7fc4a137b1259b979af71 e23124ff6e45bac1d48b4a775dad555a37965355
+## stat a3d3e60 e8c6bb0
+a3d3e60f9f3788435ccf97fb7b123290de1f259e outside.py self-test: pin the arms the diff's mutants survived
+
+ tools/pr/outside.py | 85 ++++++++++++++++++++++++++++++++++++++++++++++++++---
+ 1 file changed, 81 insertions(+), 4 deletions(-)
+e8c6bb06a256d47287bf51d1a1f6b5728d275593 outside.py self-test: drive main(), the command line, under the same fakes
+
+ tools/pr/outside.py | 63 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 63 insertions(+)
+## branch-own diff vs main (three-dot) stat
+ .github/CODEOWNERS                                 |    7 +
+ .github/workflows/governance.yml                   |   12 +
+ .github/workflows/pr-contract.yml                  |   13 +
+ .github/workflows/tests.yml                        |   16 +-
+ dev/audit/config/scopes.json                       |    4 +-
+ dev/governance/config/outside_contributors.json    |    4 +
+ dev/governance/config/policy_budgets.json          |    2 +-
+ ...side-contributors-are-adopted-on-our-machine.md |  140 +++
+ dev/governance/roles/fix-review.md                 |    2 +
+ dev/programme/delivery/3514.md                     |    1 +
+ docs/CONTRIBUTING.md                               |   73 ++
+ tests/closure.py                                   |    5 +
+ tests/closures.json                                |    2 +
+ tests/layout.json                                  |    2 +-
+ tools/audit/seat/INSTRUMENTS.md                    |    1 +
+ tools/audit/seat/bus.sh                            |  209 ++++
+ tools/audit/seat/instruments/app_approve.sh.md     |    6 +
+ tools/audit/seat/instruments/bus.sh.md             |   10 +
+ tools/audit/seat/instruments/outside.py.md         |   30 +
+ tools/audit/seat/ledger.py                         |    6 +
+ tools/audit/seat/merge_train.py                    |   11 +
+ tools/audit/seat/review_carry.py                   |   17 +-
+ tools/ci/selftest_closures.json                    |  288 +++--
+ tools/policy/policy_lint.mjs                       |   85 +-
+ tools/pr/app_approve.sh                            |  141 ++-
+ tools/pr/app_comment.sh                            |   10 +-
+ tools/pr/outside.py                                | 1158 ++++++++++++++++++++
+ 27 files changed, 2152 insertions(+), 103 deletions(-)

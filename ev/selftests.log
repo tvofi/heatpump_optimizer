@@ -1,0 +1,24 @@
+Fri Nov 13 20:59:45 UTC 2026
+## at code head e8c6bb0 (the body's stated measuring commit)
+UNCHANGED
+control rc=1
+tests/closures.json
+tools/pr/outside.py
+--- a/tests/closures.json
++++ b/tests/closures.json
++   "docs/CONTRIBUTING.md",
++   "docs/CONTRIBUTING.md",
+-   "rc": 1,
++   "rc": 0,
+## merge_train.py: main-side only between e8c6bb0 and head?
+ 1 file changed, 346 insertions(+), 48 deletions(-)
+ 1 file changed, 346 insertions(+), 48 deletions(-)
+@@ -9990,0 +9991,3 @@ def _add_self_test(check) -> None:
+@@ -10001,0 +10005,2 @@ def _add_self_test(check) -> None:
+@@ -10037,0 +10043,6 @@ def _add_self_test(check) -> None:
+## outside self-test at head
+rc=0 5s
+outside self-test: 266 checks, 0 failed
+governance grep rc=0
+0
+HEAD after 6a0a3a4d96c757c5d576fbce394c324452339b15

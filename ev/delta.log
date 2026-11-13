@@ -1,0 +1,20 @@
+Fri Nov 13 20:56:33 UTC 2026
+## origin/main
+e23124ff6e45bac1d48b4a775dad555a37965355
+e23124ff6e45bac1d48b4a775dad555a37965355	refs/heads/main
+6a0a3a4d96c757c5d576fbce394c324452339b15	refs/pull/3514/head
+## log first-parent P..H
+6a0a3a4d96c757c5d576fbce394c324452339b15 f8de8a15ba e23124ff6e Merge remote-tracking branch 'origin/main' into fix/r10-outside-contributor-cycle
+f8de8a15ba63835f18c7fc4a137b1259b979af71 a98d895577 e8c6bb06a2 Merge commit 'e8c6bb06a256d47287bf51d1a1f6b5728d275593' into fix/r10-outside-contributor-cycle
+## all commits P..H not on main
+6a0a3a4d96c757c5d576fbce394c324452339b15 f8de8a15ba e23124ff6e Merge remote-tracking branch 'origin/main' into fix/r10-outside-contributor-cycle
+f8de8a15ba63835f18c7fc4a137b1259b979af71 a98d895577 e8c6bb06a2 Merge commit 'e8c6bb06a256d47287bf51d1a1f6b5728d275593' into fix/r10-outside-contributor-cycle
+e8c6bb06a256d47287bf51d1a1f6b5728d275593 a3d3e60f9f outside.py self-test: drive main(), the command line, under the same fakes
+a3d3e60f9f3788435ccf97fb7b123290de1f259e c3ab13d804 outside.py self-test: pin the arms the diff's mutants survived
+c3ab13d804964be813bef278b0fbcda564a2d34e a98d895577 ad95665ea3 Merge remote-tracking branch 'origin/main' into fix/r10-outside-contributor-cycle
+## merge-base
+e23124ff6e45bac1d48b4a775dad555a37965355
+## merge-tree
+a10e42909ad305366b37c9e922f7b0396b9523e0
+rc=0
+## roles drift
