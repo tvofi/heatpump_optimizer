@@ -43,7 +43,11 @@ Over p2's tree, at `handoff-wip/r10-dimensions-full-coverage` (6f760d9fff), wher
 
 ## Red checks
 
-none
+Read from the Actions jobs of every red main push run in this head's ancestry (CI code runs 43440835978 at ad95665ea3 #3520, 43448248435 at 154dbb4c61 #3555, 43473184186 at 90c6bc3b07 #3511, 43477646097 at 3fd9fab077 #3546, 43477771571 at e23124ff6e #3559, and the cancelled run 43477593296 at d7cd2722c5 #3558); this branch has no CI run of its own at 64d7082b.
+
+- governance / instrument-self-tests: inherited. It is the only job that failed in those runs, at the step "Refuse a self-test read set the committed table misses", on each of the main commits above, none of them this branch's. Repaired on main by #3557 (R10-HOTFIX-SELFTEST-SCOPE-TABLE, merge 50373173d4), which this head predates; this branch touches neither the self-test nor its table.
+- tests / closures, tests / fast (3.14), tests / mutation: not red on any ancestry commit. Each job is `success` in the runs above, so there is nothing to answer as introduced or inherited; the lint names them because the head has no run of its own.
+- tests / mutation-autofix, tests / nightly-ha (2025.2.0), tests / nightly-ha (stable), tests / nightly-status: not red on any ancestry commit. These jobs are `skipped` on the push runs above, and the Nightly workflow on those commits concluded `success`. A skipped job is not a red.
 
 ## Forward-carry
 
