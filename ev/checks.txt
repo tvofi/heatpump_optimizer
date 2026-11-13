@@ -1,0 +1,32 @@
+## merge-tree
+b797a2d8a304f6b4f19ac1b6c5061192660eeac5
+rc=0
+origin/main=e23124ff6e45bac1d48b4a775dad555a37965355
+## version files touched?
+(empty=untouched)
+## claim files
+(empty=untouched)
+## null control
+-- e23124ff6e45bac1d48b4a775dad555a37965355
+-- 6295f868a4314316f5e12c72fa2d16ead4895d35
+6295f868a4314316f5e12c72fa2d16ead4895d35:README.md:1
+6295f868a4314316f5e12c72fa2d16ead4895d35:docs/configuration.md:3
+## doc_claims
+  ok   red fixture: a history-sense "used to" is a finding
+  ok   red fixture: an exemption that matches no fragment is a finding
+
+ALL 348 checks PASSED
+rc=0
+=== doc claims vs code facts (#1413) ===
+0 user-doc marker(s), 0 due
+## D6 claims rerun
+rc=0
+"result": "92 links, broken=[], of which removed-by-the-export=[]"
+## scope
+  MODE: SCOPED -- 6 script(s) run, 27 scoped out.
+## owed-reds
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
