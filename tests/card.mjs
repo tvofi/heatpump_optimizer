@@ -13873,7 +13873,10 @@ check("without an indoor reading the corner now label is absent",
   for (const lang of langs) {
     const c = new Card();
     c.setConfig({ type: "custom:heatpump-optimizer-card" });
-    c.hass = { states: inboxStates(), language: lang, callService: async () => {} };
+    // Price tiles off, so the degree row is offered too: the note's control.
+    const st = inboxStates();
+    st[`${ADVISOR_PFX}_optimization_score`].attributes.price_tiles = {};
+    c.hass = { states: st, language: lang, callService: async () => {} };
     c._onCardClick({});
     c.dialog.page = "advisor";
     c._render();
@@ -13881,7 +13884,7 @@ check("without an indoor reading the corner now label is absent",
     const note = fn("esc")(tbl[lang]["advisor.optin_sensor_off"]);
     for (const id of ["degree", ...optInIds]) {
       const row = rowsHtml.find((r) => r.includes(fn("esc")(tbl[lang][`advisor.optin_${id}`])));
-      if (row === undefined) { if (id !== "degree") optBad.push(`${lang} ${id}: no row`); continue; }
+      if (row === undefined) { optBad.push(`${lang} ${id}: no row`); continue; }
       if (row.includes(note) !== optInIds.includes(id)) optBad.push(`${lang} ${id}: note ${row.includes(note)}`);
     }
   }
