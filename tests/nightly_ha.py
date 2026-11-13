@@ -170,6 +170,11 @@ LOG_NAME = "home-assistant.log"
 TIBBER_HOST = "api.tibber.com"
 # HTTP 500, not 401: 401 starts reauth (D10-08) and is a different path from E57.
 _PRICE_SOURCE_BROKEN = False
+# A 200 whose curve ended before now: the counterparty answers, but nothing it
+# published covers the present (the only way, short of poking the coordinator,
+# to exhaust the last published prices; pull_prices applies no expiry filter).
+_PRICE_CURVE_ENDED = False
+_ENDED_CURVE_AGE = timedelta(days=3)
 
 MARKER = "<<<nightly-ha-json>>>"
 
@@ -196,6 +201,7 @@ A4_NAMED_ESCAPES = (
     "E57", "E76", "E30", "E77", "E75", "E72",
 )
 A4_INSIDE = (
+    "a4:bridged",
     "a4:failed",
     "a4:unavailable",
     "a4:buttons",
@@ -1350,6 +1356,12 @@ def break_price_source(broken: bool) -> None:
     """Fault-inject the Tibber counterparty. URL, session and TLS stay real."""
     global _PRICE_SOURCE_BROKEN
     _PRICE_SOURCE_BROKEN = bool(broken)
+
+
+def end_price_curve(ended: bool) -> None:
+    """Make the Tibber counterparty answer 200 with a curve that ended before now."""
+    global _PRICE_CURVE_ENDED
+    _PRICE_CURVE_ENDED = bool(ended)
 
 
 def _a4_records(hass, entry) -> list[dict]:
@@ -2515,7 +2527,8 @@ def _serve_prices(workdir: Path) -> None:
                 self.send_header("Content-Length", "0")
                 self.end_headers()
                 return
-            body = _tibber_body(datetime.now().astimezone())
+            now = datetime.now().astimezone()
+            body = _tibber_body(now - _ENDED_CURVE_AGE if _PRICE_CURVE_ENDED else now)
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(body)))
