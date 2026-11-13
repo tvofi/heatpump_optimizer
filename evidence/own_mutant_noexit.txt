@@ -1,0 +1,8 @@
+tick_loop self-test: refused: pr_args.sh's bound did not take (pr_args.sh missing or pr_bounded failed); no row ran
+  FAIL the rows run under pr_args.sh's self-test bound: PR_BOUND set, a session of their own
+  ok   a refused sweep is reported with its rc and the pass still completes
+  ok   null control: a refused push is printed with its reason and the pass still completes
+  ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+  FAIL the self-test's rows pass under offline_spy.py: no network call, no remote git call, their git calls seen
+tick_loop self-test: 42 checks, 2 failed
+rc(nopr_args, exit deleted)=1
