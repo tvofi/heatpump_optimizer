@@ -1,0 +1,4 @@
+NOTE stale tree: 9b811fdcefc6e0ff80c4bc78013d23d7f087be45 lacks origin/main 7eadd75f3c420404aabc83d4b05f9691f3e49136; roster read at origin/main
+NOTE body item 4b707b3c: dismissed:equivalent mutant on the fixture origin; the ref-vs-sha choice is a server-allowance property that no local fixture can observe, and the round-1 deletion mutant is now killed
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
