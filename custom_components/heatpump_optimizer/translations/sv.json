@@ -444,7 +444,7 @@
       "message": "Optimeringen kördes inte för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
     },
     "factory_reset_not_applied": {
-      "message": "Fabriksåterställningen av {entry_id} utfördes inte: Home Assistant vägrade avlasta posten; inget ändrades"
+      "message": "Fabriksåterställningen av {entry_id} utfördes inte: Home Assistant vägrade avlasta posten; inställningar och inlärt tillstånd är oförändrade, och bara den ångra-ögonblicksbild som återställningen tar först sparades"
     },
     "run_optimization_solve_failed": {
       "message": "Optimeringen kördes inte för {entry_ids}: lösaren misslyckades; felet finns i integrationens logg"
@@ -1836,11 +1836,11 @@
     },
     "dhw_legionella_unverified": {
       "title": "Desinfektionscykeln kan inte verifieras",
-      "description": "Legionellacykeln beordrades, men ingen temperatursensor för varmvattentanken är konfigurerad, så inget bekräftar att tanken någonsin nådde {target} °C — eller att pumpen alls följde begäran. Nedräkningen nollställs som om cykeln hade körts, eftersom att låta bli inte heller desinficerar något; det som inte påstås är att den lyckades. Peka sensorn \"Varmvattentankens temperatur\" mot en riktig givare så verifieras cykeln därefter, och meddelandet försvinner så snart en cykel observeras vid temperaturen."
+      "description": "Legionellacykeln beordrades, men ingen temperatursensor för varmvattentanken är konfigurerad, så inget bekräftar att tanken någonsin nådde {target} °C — eller att pumpen alls följde begäran. Nedräkningen nollställs som om cykeln hade körts, eftersom att låta bli inte heller desinficerar något; det som inte påstås är att den lyckades. Peka \"Givare för varmvattenberedarens temperatur\" mot en riktig givare så verifieras cykeln därefter, och meddelandet försvinner så snart en cykel observeras vid temperaturen."
     },
     "dhw_legionella_above_setpoint": {
       "title": "Desinfektionen går över din laddningsgräns för varmvatten",
-      "description": "Legionellacykeln är inställd på {legionella_temp} °C, vilket ligger över de {setpoint} °C du angett som högsta tanktemperatur att ladda till. Det är tillåtet och inget är fel: var {interval_days} dygn tas tanken upp till {legionella_temp} °C för cykeln, och övrig tid laddas den aldrig över {setpoint} °C. Meddelandet finns här så att den enda varma dagen i veckan inte kommer som en överraskning. Ändra det genom att höja laddningsgränsen, sänka desinfektionstemperaturen eller stänga av cykeln."
+      "description": "Legionellacykeln är inställd på {legionella_temp} °C, vilket ligger över de {setpoint} °C du angett som högsta tanktemperatur att ladda till. Det är tillåtet och inget är fel: var {interval_days} dygn tas tanken upp till {legionella_temp} °C för cykeln, och övrig tid laddas den aldrig över {setpoint} °C. Meddelandet finns här så att den enda varma dagen i varje cykel inte kommer som en överraskning. Ändra det genom att höja laddningsgränsen, sänka desinfektionstemperaturen eller stänga av cykeln."
     },
     "price_currency_mismatch": {
       "title": "Prisflödet och Home Assistant anger olika valutor",
@@ -1852,11 +1852,11 @@
     },
     "grid_fee_magnitude": {
       "title": "En konfigurerad nätavgift ser 100× för stor ut",
-      "description": "Nätavgiftslagret innehåller en avgift på {rate} {currency}/kWh (från källan {source}). Överföringsavgifter ligger på några tiondels {currency} per kWh, så ett så stort värde är nästan alltid öre inskrivet där hela {currency} avsågs — 25 i stället för 0,25. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
+      "description": "Nätavgiftslagret innehåller en avgift på {rate} {currency}/kWh (från källan {source}). Överföringsavgifter ligger på några tiondels {currency} per kWh, så ett så stort värde är nästan alltid öre inskrivet där hela {currency} avsågs — 25 i stället för 0,25. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet på alternativsidan \"Överföringsavgifter och avtal\" (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
     },
     "grid_fee_sign": {
       "title": "En konfigurerad nätavgift är negativ",
-      "description": "Nätavgiftslagret innehåller en avgift på {rate} {currency}/kWh (från källan {source}). En överföringsavgift är en kostnad, så en negativ är nästan alltid ett teckenfel — och planen prissätter varje timme den gäller som subventionerad, och gynnar just de timmar nätbolaget tar betalt för. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet under alternativen för nätavgifter (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
+      "description": "Nätavgiftslagret innehåller en avgift på {rate} {currency}/kWh (från källan {source}). En överföringsavgift är en kostnad, så en negativ är nästan alltid ett teckenfel — och planen prissätter varje timme den gäller som subventionerad, och gynnar just de timmar nätbolaget tar betalt för. Ingenting ändras eller begränsas: planen fortsätter att prissätta med exakt det värde som konfigurerats. Rätta värdet på alternativsidan \"Överföringsavgifter och avtal\" (eller åtgärda avgiftssensorn) så försvinner meddelandet vid nästa planeringscykel."
     },
     "lower_floor_modelled": {
       "title": "Temperaturen på nedre plan är modellerad, inte uppmätt",
@@ -1896,7 +1896,7 @@
     },
     "quiet_silent_not_enforced": {
       "title": "Tysta fönster genomförs inte",
-      "description": "Tysta fönster är konfigurerade, men kapacitetsbegränsningsplatsen ({entity}) är inte en brytare som integrationen kan hålla, så planen begränsas inte för dem och värmepumpen ombeds aldrig köra tyst. Tilldela värmepumpens egna natt-/tystlägesbrytare som kapacitetsbegränsad entitet, eller ta bort de tysta raderna."
+      "description": "Tysta fönster är konfigurerade, men ingen styrning som integrationen kan hålla täcker alla tysta rader: kapacitetsbegränsningsplatsen ({entity}) är inte en brytare, och värmepumpens eget nattschema, där ett sådant finns, kan inte ta raderna som de är. Planen begränsas inte för en rad som ingen styrning kan hålla, och värmepumpen ombeds inte köra tyst under den. Tilldela värmepumpens egna natt-/tystlägesbrytare som kapacitetsbegränsad entitet, eller ta bort de tysta raderna."
     }
   },
   "entity": {
@@ -1915,7 +1915,7 @@
     },
     "sensor": {
       "buffer_tank_temperature_model": {
-        "name": "Ackumulatortankens temperatur (modell)"
+        "name": "Ackumulatortankens temperatur"
       },
       "compressor_frequency_advisor": {
         "name": "Kompressorfrekvensrådgivare"
@@ -1990,7 +1990,7 @@
           "idle": "Viloläge",
           "normal": "Normal effekt",
           "off": "Av",
-          "pre_heat": "Förvärmning",
+          "pre_heat": "Hög effekt",
           "system_identification": "Systemidentifiering",
           "unknown": "Okänt"
         }
@@ -2053,9 +2053,9 @@
         "state": {
           "cheap_price": "Billigaste timmarna",
           "comfort_floor": "Håller minimitemperaturen",
-          "dhw_preheat": "Laddar tanken medan elen är billig",
+          "dhw_preheat": "Laddar tanken före varmvattenfönstren",
           "dhw_ready": "Gör tanken redo",
-          "dhw_window": "Varmvatten behövs nu",
+          "dhw_window": "Värmer varmvatten inom ett varmvattenfönster",
           "idle": "Viloläge",
           "idle_coasting": "Över golvet, i medgång",
           "idle_dearer": "Dyrare än de timmar som används",
@@ -2235,7 +2235,7 @@
   "services": {
     "run_optimization": {
       "name": "Kör optimering",
-      "description": "Starta kostnadsoptimeringen för värmepumpen manuellt. Integrationen hämtar de senaste elpriserna och väderprognosen och beräknar sedan det billigaste körschemat för de kommande 24 timmarna med prediktiv MPC, med hänsyn till sol, vind och regn samt samordning med varmvattnet. Anropet svarar med ett fel när optimeringen inte kan köras — till exempel när färre än fyra prissteg finns tillgängliga, eller när lösningen misslyckades — i stället för att svara som om en ny plan hade beräknats."
+      "description": "Starta kostnadsoptimeringen för värmepumpen manuellt. Integrationen beräknar om det billigaste körschemat för de kommande 24 timmarna utifrån de elpriser och den väderprognos som redan är inlästa (nya hämtas inte) med prediktiv MPC, med hänsyn till sol, vind och regn samt samordning med varmvattnet. Anropet svarar med ett fel när optimeringen inte kan köras — till exempel när färre än fyra prissteg finns tillgängliga, eller när lösningen misslyckades — i stället för att svara som om en ny plan hade beräknats."
     },
     "set_away": {
       "name": "Ställ in bortaläge",
@@ -2279,7 +2279,7 @@
         },
         "slab_heat_transfer": {
           "name": "Värmeövergångstal för värmebäraren",
-          "description": "Värmeövergångstal mellan den lagringen och rummet, i kW/°C. Radiatorer ligger betydligt högre än en platta."
+          "description": "Värmeövergångstal mellan den lagringen och rummet, i kW/°C. Byggnadsförinställningarna ger en radiatorkrets en femtedel av en golvplattas värde per uppvärmd m²."
         },
         "heat_pump_cop_nominal": {
           "name": "Värmepumpens nominella COP",
@@ -2363,7 +2363,7 @@
         },
         "rain_heat_loss_multiplier": {
           "name": "Regnfaktor för värmeförlust",
-          "description": "Multiplikator för värmeförlusten när det regnar. 1,15 betyder 15 % större värmeförlust under regn (effekten av ett blött klimatskal)."
+          "description": "Multiplikator för värmeförlusten när det regnar. 1,15 betyder 15 % större värmeförlust vid regn på 2 mm/h eller mer (effekten av ett blött klimatskal); lättare regn skalar ned den i proportion, och vid 0,1 mm/h eller mindre tillämpas den inte alls."
         },
         "ecl110_pid_time_constant_hours": {
           "name": "ECL110 PI/PID-tidskonstant",
@@ -2379,7 +2379,7 @@
         },
         "quiet_silent_windows": {
           "name": "Tysta fönster",
-          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Där en styrning kan hålla dem (en brytare som kapacitetsbegränsad entitet, eller värmepumpens eget nattschema) begränsar planen elektrisk effekt inom dem till pumpens uppmätta tystlägestak, annars till den tysta effektfaktorn av märkeffekten; ett reparationsmeddelande visas när ingen styrning kan hålla dem. En tom sträng tar bort de tysta raderna."
         },
         "quiet_off_windows": {
           "name": "Av-fönster",
@@ -2387,7 +2387,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Tyst effektfaktor",
-          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0 (ett lägre värde höjs till 0,6); ett uppmätt tystlägestak, där pumpen har ett, används i stället. 1,0 begränsar inget."
         }
       }
     },
@@ -2437,7 +2437,7 @@
         },
         "dhw_windows": {
           "name": "Tider med varmvattenbehov",
-          "description": "Tider att prova, till exempel \"06:00-08:30, 17:00-22:00\". En tom sträng simulerar att inga tider med varmvattenbehov finns alls."
+          "description": "Tider att prova, till exempel \"06:00-08:30, 17:00-22:00\". En tom sträng simulerar att inga tider är angivna: planen använder då tider som lärts in från varmvattenanvändningen, eller hela dygnet när varmvattenschemat är avstängt."
         },
         "wood_slots": {
           "name": "Vedeldningstider",
@@ -2461,7 +2461,7 @@
         },
         "quiet_silent_windows": {
           "name": "Tysta fönster",
-          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Där en styrning kan hålla dem (en brytare som kapacitetsbegränsad entitet, eller värmepumpens eget nattschema) begränsar planen elektrisk effekt inom dem till pumpens uppmätta tystlägestak, annars till den tysta effektfaktorn av märkeffekten; ett reparationsmeddelande visas när ingen styrning kan hålla dem. En tom sträng tar bort de tysta raderna."
         },
         "quiet_off_windows": {
           "name": "Av-fönster",
@@ -2469,7 +2469,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Tyst effektfaktor",
-          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0 (ett lägre värde höjs till 0,6); ett uppmätt tystlägestak, där pumpen har ett, används i stället. 1,0 är det oinställda värdet: att skicka det ändrar inget, så en redan sparad andel gäller fortfarande."
         }
       }
     },
@@ -2513,11 +2513,11 @@
         },
         "dhw": {
           "name": "Varmvattentank",
-          "description": "När fältet anges, lägg till eller ta bort varmvattentanken från systembilden. True sätter en standardvolym om ingen redan är sparad. Utelämna för att lämna tanken som den är."
+          "description": "När fältet anges, slå på eller av varmvatten för systemet: tanken planeras, modelleras och ritas i systembilden bara när det är på. True sätter en standardvolym om ingen redan är sparad. Utelämna för att lämna tanken som den är."
         },
         "wood": {
           "name": "Vedtank",
-          "description": "När fältet anges, lägg till eller ta bort ved-/externvärmetanken från systembilden. Utelämna för att lämna tanken som den är."
+          "description": "När fältet anges, slå på eller av ved-/externvärmetanken för systemet: vedråd och detektering av extern värme körs, och tanken ritas i systembilden, bara när den är på. Utelämna för att lämna tanken som den är."
         }
       }
     },
@@ -2535,7 +2535,7 @@
         },
         "dhw_windows": {
           "name": "Tider med varmvattenbehov",
-          "description": "Tider då varmvatten måste finnas tillgängligt, till exempel \"06:00-08:30, 17:00-22:00\". En tom sträng tar bort alla tider med varmvattenbehov och lämnar beredaren på sin lägstanivå i vila."
+          "description": "Tider då varmvatten måste finnas tillgängligt, till exempel \"06:00-08:30, 17:00-22:00\". En tom sträng tar bort de angivna tiderna: planen använder då tider som lärts in från varmvattenanvändningen, eller hela dygnet när varmvattenschemat är avstängt."
         },
         "comfort_temp_day": {
           "name": "Komforttemperatur dagtid",
@@ -2551,7 +2551,7 @@
         },
         "quiet_silent_windows": {
           "name": "Tysta fönster",
-          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Där en styrning kan hålla dem (en brytare som kapacitetsbegränsad entitet, eller värmepumpens eget nattschema) begränsar planen elektrisk effekt inom dem till pumpens uppmätta tystlägestak, annars till den tysta effektfaktorn av märkeffekten; ett reparationsmeddelande visas när ingen styrning kan hålla dem. En tom sträng tar bort de tysta raderna."
         },
         "quiet_off_windows": {
           "name": "Av-fönster",
@@ -2559,7 +2559,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Tyst effektfaktor",
-          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0 (ett lägre värde höjs till 0,6); ett uppmätt tystlägestak, där pumpen har ett, används i stället. 1,0 är det oinställda värdet: att skicka det ändrar inget, så en redan sparad andel gäller fortfarande."
         },
         "dhw_setpoint": {
           "name": "Varmvattenbörvärde",
