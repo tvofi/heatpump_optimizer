@@ -1,0 +1,271 @@
+cmd: bash tools/pr/prepr.sh --self-test
+diff: tools/pr/prepr.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc: 2
+g the signal and pushing nothing (P256)
+  ok   and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)
+  ok   and refuses a body whose carry its group does not hold, naming it and pushing nothing (CARRY 11)
+  ok   and pushes, saying so, when the roster cannot be read (rc 3 is never a refusal)
+  ok   and refuses a body pushed from a checkout that is not the head at handoff/<topic>
+  ok   6d stays quiet on a new selectable script: the derive plans its recording by construction (C1)
+  ok   6d predicts ADDED UNPINNED for a guard the diff adds with no pin
+  ok   and an unpinned site warns, never refuses: mutation-autofix may pin it after the push
+  ok   6d predicts STALE PIN for a pinned line the diff edits, and refuses on it (rc=1)
+  ok   a stale pin refuses, unlike an unpinned site: mutation-autofix never drops a pin
+  ok   a stale pin main already carries warns and names main, never refuses an unrelated branch (null control)
+  ok   6d charges no branch with an unrecorded script main already carries (null control)
+  ok   and so the unrelated branch passes 6d
+  ok   6d predicts pr-contract's carry refusal for a destination the roster lacks, and refuses (rc=1)
+  ok   6d stays quiet on a body with no finding to carry (null control)
+  ok   6d charges no branch that only edits the derive script with a script main already left unrecorded (C1: a lane edit can drop nothing)
+  ok   6d writes the three planted site keys for step 7d
+  ok   and a line holding two comparison mutants is one key carrying its multiplicity
+  ok   7d refuses a body with no ## Unpinned sites when sites are owed
+  ok   7d refuses a section that omits a listed site
+  ok   and names the omitted site
+  ok   7d passes a section naming every listed site (null control)
+  ok   7d reads the keys under ## Unpinned sites only, not anywhere in the body
+  ok   7d refuses a section whose heading is not exactly ## Unpinned sites
+  ok   and its refusal names the heading it found and the one it expects
+  ok   7d passes keys written in backticks (null control)
+  ok   7d matches a key whole, never inside a longer key
+  ok   and passes the same key named whole (null control)
+  ok   7d owes nothing when the diff adds no site
+  ok   fill_red writes nothing when step 6d listed no site (null control)
+  ok   and leaves the body byte-identical
+  ok   and a body not naming the mutation red stays refused (null control)
+  ok   fill_red writes the mutation line when step 6d listed sites
+  ok   and policy_lint's red arm then passes the body
+  ok   and the line replaces the section's `none`
+  ok   a body already naming mutation is left alone
+  ok   byte-identical
+  ok   a section with an answer keeps it and gains the line below it
+  ok   --fill-red at the pmut head predicts its sites and writes the line
+  ok   body_push runs --fill-red on the body before the --body-check lint
+  ok   --fill-red asks the predictor one arm, the only one whose sites it writes
+  ok   and ci_predict names that arm, so --only cannot select none
+  ok   6d asks the predictor to record each changed file's own self-test (SELF-TEST READS)
+  ok   and predict_line turns its fifth argument into --record-self-tests on the predictor's command line
+  ok   privacy_line refuses a host path in an added line
+  ok   and names the file and line
+  ok   the same line made home-relative passes (null control)
+  ok   the pin reader finds codeowners_gap.py in a pinned job that grades main
+  ok   this script and these workflows pass the verdict (null control)
+  ok   a pin that never grades main is not counted, and is not a problem (null control)
+  ok   a callee pin falling back to the dispatched PR's base is the PR-only class, not counted and not a problem
+  ok   and led by the restore source ci.yml's prelude resolves, it is still that class (R10-HOTFIX-RESTORE-BASE-SKEW)
+  ok   and led by any other input, it stays unclassified (null control)
+  ok   and a bare `inputs.base` fallback, a branch name no checkout resolves, stays unclassified (null control)
+  ok   a reader that finds no pinned grader at all is refused
+  ok   a pinned grader with its local run deleted is named
+  ok   a pinned grader whose local run is commented out is named
+  ok   a pinned grader called only above rc=0 is named
+  ok   governance.yml perturbed (unquoted), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (braced), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (no-pinned-line), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (env-indirect), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (x-flag), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (x-flag), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (bare-python), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (bare-python), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (uv-run), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (uv-run), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (continuation), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (continuation), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (indent4), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (indent4), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (renamed), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (queue-base), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (queue-base), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (restore-input), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (restore-input), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (restore-prelude), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (restore-prelude), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (restore-gate), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (restore-gate), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (restore-step), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (restore-step), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (foreign-source), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (foreign-source), with step 3e's run present, is still refused
+  ok   a problem names the file its job is in, not the file read next
+  ok   a pin named outside every job is refused
+  ok   a change to a pinned .mjs touches a pin
+  ok   a change under a pinned directory touches a pin
+  ok   a change to no pinned path touches none (null control)
+  ok   a diff touching one role contract runs step 4's wave-script (P75)
+  ok   and one touching a dimension brief
+  ok   a diff touching only README.md still skips it (null control)
+  ok   6g skips a diff touching nothing the generator reads
+  ok   6g runs on a diff naming only strings.json (not skipped, rc 0)
+  ok   and a diff touching only tests/features.py, outside the read set, still skips (null control)
+  ok   6g passes a docs diff whose register the generator rewrites byte-identical (null control)
+  ok   6g refuses a README link added without re-recording (#2609)
+  ok   and names the stale files and the moved header RESULT
+  ok   6g refuses when the generator fails, never passes it
+  ok   6g's header parsers import without voluptuous or homeassistant (the governance job's python3)
+  ok   6g's copy pathspec names only paths HEAD holds (a rename refuses the copy, never grades short)
+  ok   6g copies a link target the enumeration does not name, so an unlisted link passes (#2853)
+  ok   and a target the repository lacks is not copied, so the register is refused (null control)
+  ok   6g spawns the same few interpreters for 40 link targets as for 4 (3/3): no per-target interpreter
+  ok   preflight refuses an unintended closing keyword
+  ok   preflight accepts an intended one (null control)
+  ok   step 7 refuses Closes on a roster never-issue though the caller forwards it (#2838's Closes #2428)
+  ok   and names the forwarded number it ignored
+  ok   and passes Closes on an issue a group fixes (null control)
+  ok   and on an unrostered issue, as pr-contract treats it (null control)
+  ok   INTENDED_JQ is pr-contract's own derivation, byte for byte
+  ok   transport: a code head over a base that carries a transport file passes (null control)
+  ok   transport: a code commit above a body transport commit is refused
+  ok   transport: a body added and deleted again is still refused
+  ok   transport: a resume note hidden behind a tree-identical merge is refused
+  ok   transport: deleting a transport file main carries passes (null control)
+  ok   transport: merging a main that carries a transport file passes (null control)
+  ok   transport: a body written in a merge's own resolution is refused
+  ok   transport: an unreadable range is refused, never passed
+  ok   a change to prepr.sh owes the self-test
+  ok   a change to a program a step runs owes the self-test
+  ok   a change to a fixture owes the self-test
+  ok   a change to none of them owes nothing (null control)
+  ok   the derived inputs name tools/pr/preflight.sh
+  ok   the derived inputs name tools/policy/figure_lint.mjs
+  ok   the derived inputs name tests/env_drift.py
+  ok   the derived inputs name tools/policy/counts.mjs
+  ok   the derived inputs name tools/policy/render_md.mjs
+  ok   stamp_paths names a manifest version line followed by 2 MB of diff
+  ok   stamp_paths names a notes heading followed by 2 MB of diff
+  ok   and names nothing in 2 MB with no version line or heading (null control)
+  ok   a mktemp file or directory inside the self-test lands under its root
+  ok   and the root is gone after a normal exit
+  ok   and after the run is killed with TERM
+  ok   a temp dir under the floor refuses with rc 3
+  ok   and says ENVIRONMENT, not a test failure
+  ok   a temp dir with room passes the floor (null control)
+  ok   an unmeasurable temp dir runs anyway, never refuses
+  ok   no early-exit grep reads a pipe under pipefail in the drained scripts
+  ok   and a planted early-exit grep site is found (null control)
+  ok   the hooks step prints the failing hook's row, not only the count
+  ok   the main flow takes a heavy slot
+  ok   and frees it on the way out, a mid-run refusal included
+  ok   and both EXIT traps -- release on the success arm, unleased-marker clear on the failure arm -- preserve the run's own exit status
+  ok   and exports its label, so a nested heavy step joins this slot
+  ok   and joins a slot it was already inside instead of taking a second
+  ok   a run that cannot take a slot counts itself in slot-status
+  ok   and clears the count on the way out
+  ok   the main flow calls take_slot at the mutants, field coverage, self-test, closures and diff-mutants steps (and defines it once; 3f5 is light and stays unleased)
+  ok   and the first call sits after the light policy_lint step: a run that skips every heavy step never takes one
+  ok   the mutants drive runs inside the slot (take_slot precedes its heavy_run)
+  ok   the self-test runs inside the slot
+  ok   a plan where the mutants skip and field coverage runs takes the slot before 3f3's recorder (skip mutants take run tools/policy/field_coverage.mjs )
+  ok   and a plan skipping both takes no slot (null control)
+  ok   closures_owes_slot: a scoped diff with scripts, on a machine that records, owes the slot
+  ok   and a skip diff owes none
+  ok   and a full diff owes none (CI re-records every closure)
+  ok   and a machine that leaves recording to CI owes none
+  ok   and a scoped diff whose affected.scripts is empty owes none (null control)
+  ok   take_slot called twice takes exactly one slot (idempotent)
+  ok   a failing slot-take is attempted once across two take_slot calls (no re-queue on the WARN path)
+  ok   and the unleased marker is written once
+  ok   a take_slot inside an inherited slot takes none (null control: a nested heavy step joins)
+  ok   the main flow derives the branch's gate priority
+  ok   and exports it for the slot-take and every nested leased step
+  ok   and derives it before the heavy slot is taken
+  ok   gate_priority.py's derived-default self-test passes
+  ok   the self-test checks the floor, then takes its temp root, before any fixture
+  ok   a KILL to the prepr during a heavy step leaves no step or step lane running behind it
+  ok   a TERM to the prepr alone during a heavy step ends it, the step and the step's lane at once
+  ok   a TERM to the prepr's process group during a heavy step ends all three
+  ok   the same step in the foreground outlives a KILL to the prepr (null control: the orphan)
+  ok   and a TERM to the prepr waits behind it (null control: the deferred trap)
+  ok   no step from 3 to 3h runs a program in the foreground
+  ok   and 3h's self-test, the heaviest, runs through heavy_run
+  ok   and 6b's recorder runs through the same helper
+  ok   a carry to a group the stale round-branch mirror lacks is refused there (the fetch's null control)
+  ok   the same carry passes once carry_line fetches the round branch
+  ok   and the ok line names the count and the ref it read
+  ok   a carry to a group only the worktree's roster holds passes the offline read (the defect's null control)
+  ok   and carry_line refuses it: the round branch, where fix-review step 10 looks, lacks the group
+  ok   and the refusal is carry_audit's own BAD-DEST line, naming the group
+  ok   an unrouted ## Forward-carry item is refused
+  ok   and the refusal is carry_audit's own UNROUTED line
+  ok   a round branch that cannot be fetched refuses, never reads the stale mirror
+  ok   and the refusal says why
+  ok   the body step runs carry_line on the body and refuses on its rc
+  ok   step 7's preflight derives the intended list and refuses on its rc
+  ok   the main flow runs the red-check arm before the heavy slot is taken (P351)
+  ok   and reads the check runs once: step 7c reuses the early answer
+  ok   --body-check --pr-branch runs the same arm and refuses on its rc
+  ok   body_push passes --pr-branch when origin holds fix/<topic>
+  ok   step 1a2 exits nonzero when the arm concluded a red (rc 1) -- before the heavy slot
+  ok   and prints the ancestry reds step line
+  ok   and does not fall through to the heavy steps
+  ok   step 1a2 does not refuse when the arm returns rc 0 (null control)
+  ok   step 1a2 does not refuse when the arm returns rc 3 (null control)
+  ok   step 1a3 exits nonzero on a head_arm refusal, naming it, before any heavy step
+  ok   and does not fall through to the heavy steps
+  ok   step 1a3 lets a body naming this head run every step as today (null control)
+  ok   --body-check --pr-branch refuses (line and flag) when the arm concluded a red
+  ok   --body-check --pr-branch passes when the arm returns rc 0 (null control)
+  ok   and --body-check runs the same preflight and refuses on its rc
+  ok   the red-check-arm rows leave git status --porcelain unchanged
+  ok   and a row that writes into the tracked fixture dir changes it (null control)
+  ok   --body-check runs step 7a's figure lint and refuses on its rc (carry 8)
+  ok   --body-check runs figure_block_check and refuses on its rc (card 7)
+  ok   figure_block_check calls figure_block.py verify
+  ok   --body-check runs privacy_line and refuses on its rc (P78)
+  ok   --body-check applies body_privacy_line and folds its rc (P317)
+  ok   a body naming the host home directory is refused by body_privacy_line
+  ok   and the line reads REFUSE ref_privacy (body)
+  ok   a body naming only repository-relative paths and ~/ text passes (null control)
+  ok   step 3f7 runs privacy_line and refuses on its rc
+  ok   step 4 keys its wave-script run on WAVE_INPUTS
+  ok   step 6g runs claims_reg_line and refuses on its rc
+  ok   the clone's mirror lacks the pushed head (the gate's null control: 7b's read)
+  ok   reds_head_sha finds a pushed head the mirror lacked
+  ok   and returns the origin's sha for it
+  ok   a head the origin does not carry is a skip
+  ok   and the red-check arm (reds_arm, run by step 1a2) gates on it, not on 7b's UPSHA
+  ok   the summary run keeps the refusal's rc
+  ok   summary stdout carries no passing step's per-test chatter
+  ok   and carries the REFUSE line with its reason (null control: the refusal stays visible)
+  ok   and the refusal's failing lines
+  ok   the last line is the result with rc, naming a unique log under TMPDIR
+  ok   and that log holds the full output
+  ok   PREPR_VERBOSE=1 prints the full output on stdout
+  ok   the main flow starts the summary after step 1 and ends on its result line
+  ok   merged_steps: tests/structure.py passes on HEAD merged with a clean main (the (d) arm's null control)
+  ok   (d) a clean merge whose tests/structure.py fails is refused, though HEAD alone passes
+  ok   a full run's merged_steps leaves ci predict to step 6d
+  ok   (e) under PREPR_SKIP_CODE a ci predict red on the merged main is refused
+  ok   and passes once main is green again (the (e) arm's null control)
+  ok   a head that does not merge cleanly with main is refused, never measured on HEAD alone
+  ok   receipt: a passing run with a body writes <HEAD sha> <tree sha> in the git dir
+  ok   receipt: PREPR_SKIP_CLOSURES alone still writes one
+  ok   receipt: a refused run writes none
+  ok   receipt: a run with no body writes none
+  ok   receipt: a PREPR_SKIP_CODE run (app_push --reuse) writes none
+  ok   receipt: any other PREPR_SKIP_* writes none
+  ok   receipt: a dirty tree writes none
+  ok   receipt: HEAD moved past the run's start (a commit landing mid-run) is refused and writes none
+  ok   receipt: a run whose start HEAD was not read writes none
+  ok   receipt: --body-check writes none
+  ok   body_push: the receipt at the code head becomes the Prepr: trailer
+  ok   body_push: a receipt at another sha gives none
+  ok   body_push: a receipt whose tree is not the head's gives none
+  ok   body_push: a receipt whose tree is the head's but whose sha is not gives none
+  ok   (a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps
+  ok   (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each
+  ok   (a) a run with a body removes an earlier receipt first, so one that writes none leaves none
+  ok   (hotfix) a roster-classed hotfix branch prints the scope line and the hotfix code-steps line (never a receipt claim), and defaults both skips on in this shell only
+  ok   (hotfix) null control: a non-hotfix branch prints nothing and sets neither skip
+  ok   (hotfix) an explicit empty PREPR_SKIP_CODE (a full code run) wins; the closures default stays
+  FAIL (hotfix) an explicit empty PREPR_SKIP_CLOSURES wins; the code default stays (got hotfix scope=fix/any is a hotfix group's branch;code steps=hotfix scope;|hotfix|1|unset,unset, wanted hotfix scope=fix/any is a hotfix group's branch;code steps=hotfix scope;|hotfix||unset,unset)
+  ok   (hotfix) explicit values pass through unchanged and, both set, no scope line; a caller's own value is still a receipt reuse
+  ok   (hotfix) end to end: hotfix_class answers 1 for the roster's hotfix group only, through gate_priority.py --hotfix
+  ok   (hotfix) null control: the same fixture's lease priority is 2 and 1, so the 1 / 0 above is the class, not the priority
+  ok   (hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE
+
+549 passed, 1 failed
+[1]-  Done                    "$@" >> "$log" 2>&1
+[1]-  Done                    "$@" >> "$log" 2>&1
+[1]-  Done                    "$@" >> "$log" 2>&1
+tools/pr/prepr.sh: eval: line 4016: syntax error: unexpected end of file

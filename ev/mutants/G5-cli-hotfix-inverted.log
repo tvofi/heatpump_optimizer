@@ -1,0 +1,8 @@
+cmd: python3 tools/pr/gate_priority.py --self-test
+diff: tools/pr/gate_priority.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc: 1
+gate_priority self-test: 21 checks, 3 failed
+FAIL --hotfix prints 1 for the hotfix group's branch, 0 for an outside, a critical and an unmapped one (got: [(0, '0\n'), (0, '1\n'), (0, '1\n'), (0, '1\n')])
+FAIL a roster read that raises fails closed: not a hotfix, priority 0, --hotfix prints 0 (got: (False, 0, (0, '1\n')))
+FAIL null control: the same read, restored, is (True, 2, '1') (got: (True, 2, (0, '0\n')))
