@@ -1,5 +1,0 @@
-fold_ledger: 0 violation(s)
-STRUCTURE RATCHET PASSED
-    from homeassistant.config_entries import ConfigEntryState
-ModuleNotFoundError: No module named 'homeassistant'
-version-files-diff-done

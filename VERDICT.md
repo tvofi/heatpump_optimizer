@@ -1,33 +1,38 @@
-Fix review: blocked 552638f8dc3a1c7f270448163d44df992c62dac2 mutation-vacuous: prune CLI writes nothing; prune CLI accepts unknown drops; probe kept by listed directory
+Fix review: blocked ef7e3373e763942a38982c679541c5aa750b3935 introduced-red: instrument-self-tests selftest_scope self-test fails under GITHUB_BASE_REF (static, ids and select over a fresh table)
 
-bus-nonce: 4f9a4fbb57099d2aa1830863101492cd
+bus-nonce: a13a694bcd2efeba65e0dbb9b8fb5b92
 
-Round: first review (round 1), head 552638f8dc3a1c7f270448163d44df992c62dac2, measured at that head in a detached worktree.
+Round: 2, a delta review over the reviewed head 552638f8dc3a1c7f270448163d44df992c62dac2. The delta is `git diff 552638f8dc ef7e3373e7`: tools/ci/selftest_scope.py and tools/ci/selftest_scope_mutants.sh. I measured at ef7e3373e7 in a detached worktree, and the PR head ref is still ef7e3373e7.
 
 ## Block
 
-Three non-equivalent mutants of lines this diff adds survive `python3 -I tools/ci/selftest_scope.py --self-test` (136 checks, 0 failed), and the PR's named `tools/ci/selftest_scope_mutants.sh` doesn't carry them (ev/own_mutants.txt, driver ev/run.sh):
+This head introduces a red step in `governance / instrument-self-tests` (job 131898295736, run on refs/pull/3551/merge = 6d60943f67, a merge of this head). It is red at the head and not at the merge base, so it is INTRODUCED and blocks under fix-review.md step 11:
 
-- `main` prune branch, `write_table(root / TABLE, entries, root)` deleted: `prune` exits 0 and writes nothing. SURVIVED.
-- `main` prune branch, `if unknown:` replaced by `if False:`: `prune` silently writes the table even though a drop named nothing in the entry. SURVIVED.
-- `shrink_drops` probe rule, `or any(a in dirs for a in _ancestors(x))` deleted: the docstring's "or lists its directory" exemption is untested. SURVIVED. This mutant fails closed (more refusals), but nothing pins the claim.
+- `FAIL static, ids and select over a fresh table`, then `selftest_scope self-test: 141 checks, 1 failed`. The mutants step that follows it prints `BASELINE RED: the unmutated self-test fails` (ev/ci_selftest_scope_tail.txt).
+- Cause: the delta makes `table_base` return an `UNRESOLVED base origin/main` problem when a named base doesn't resolve. CI is a pull_request event, so `GITHUB_BASE_REF=main` is set. The self-test's fresh-table fixture is a scratch repository with no `origin/main`. It calls `main(["static"], <fixture>)` with the ambient environment, so it now gets one extra problem line. The new `static_at` helper only sets and removes `SELFTEST_BASE`. Nothing clears `GITHUB_BASE_REF` for the older fixture.
+- Reproduced locally at this head: `GITHUB_BASE_REF=main python3 -I tools/ci/selftest_scope.py --self-test` gives the same FAIL, 141 checks, 1 failed, rc 1 (ev/selftest_with_GITHUB_BASE_REF.txt). Without the variable it gives 141 checks, 0 failed (ev/selftest.txt), which is the figure the body quotes. That figure is true only off CI.
+- Null controls under the same `GITHUB_BASE_REF=main`: the reviewed head 552638f8dc gives 136 checks, 0 failed (ev/selftest_prev_with_GITHUB_BASE_REF.txt). The merge base 3b9749dac5 gives 117 checks, 0 failed (ev/selftest_base_with_GITHUB_BASE_REF.txt). The red is the delta's.
+- To clear it: make the self-test hermetic. Run every fixture `static`/`main` call with `GITHUB_BASE_REF` and `SELFTEST_BASE` removed from `os.environ`, or point them at a resolvable base. Add a check that the self-test passes with `GITHUB_BASE_REF` set to a ref the fixture lacks. That pins this regression, so it can't come back off CI. The production change itself (an unresolvable named base is a problem, not a pass) is what round 1 asked for, and its CI behaviour on the live tree is fine: the job checks out with fetch-depth 0.
 
-The self-test exercises `prune_entries` but never the `prune` CLI. The body's forward-carry to R10-NUDGE-RETIRE (on handoff/audit-r10-roster 83f016606c) tells that group to remove reads with exactly `python3 -I tools/ci/selftest_scope.py prune --step ID --drop files:PATH`. That is the one sanctioned way a read leaves the table, and its CLI path is the unpinned part. To clear the block: add a self-test check that drives `main(["prune", ...])` on a fixture table (it writes the table, refuses an unknown drop with rc 1, and leaves the file unchanged), plus a fixture for a probe kept by a listed ancestor directory. Then add scope_mutant lines for the three mutants above.
+## Findings
 
-Fix in the same round as well: `table_base` returns None when a named base (SELFTEST_BASE or origin/GITHUB_BASE_REF) can't be resolved, and `shrink_gaps(root, None)` then returns [], so `static` passes with the guard unevaluated (fail open). In CI today, governance.yml's instrument-self-tests job checks out with fetch-depth 0, so origin/main resolves there. A shallow or base-less run would skip the guard silently, though. An unresolvable named base should be a problem line, not a pass.
+none. Every round-1 item is resolved at this head (see Evidence), and the only open item is the block above.
 
 ## Evidence
 
-- ev/HEAD.txt: 552638f8dc3a1c7f270448163d44df992c62dac2. PR body `## Head` names this head and the code head 82f3cf9759 (step 7 ok).
-- RESULT selftest_scope --self-test at head: 136 checks, 0 failed. `static` with SELFTEST_BASE=origin/main: 114 gated step(s), 0 problem(s). This matches the body.
-- RESULT tools/ci/selftest_scope_mutants.sh at head: 20 mutants, "SELFTEST-SCOPE MUTANTS: every mutant refused", including the PR's 4 new mutants (ev/selftest_scope_mutants_tail.txt).
-- RESULT own mutants at head: 17 run. 14 killed, 3 survived (above). A 4th survivor, removing `if TABLE not in {p for _, p in rows}: return []`, is equivalent: an untouched table compares equal to itself. Its only effect is the cost of one `git show`. Not a finding.
-- RESULT null control, re-derived with my own driver (ev/null.py; ev/nullcontrol.txt), using the head's `shrink_gaps` over the 16 first-parent merges touching the table in ba6fd7e8b^..3b9749dac5 (count 16, matching the body). It refuses #3409 (3), #3419 (5) and #3506 (8), and passes the other 13, #3535 and #3507 among them. With the deletion exemption mutated out, #3507 is refused (2) and the other three are unchanged. Every figure the body gives reproduces.
-- fold_ledger check: 0 violation(s). tests/structure.py: STRUCTURE RATCHET PASSED (ev/cheap_checks.txt).
-- tests/entities.py (env -u BASH_ENV) did not run in this seat: ModuleNotFoundError homeassistant. Unverified here.
-- VERSION, manifest and RELEASE_NOTES.md are untouched in the three-dot diff (step 5 ok). No claim file is touched, and the diff contains no golden fixture.
-- `git merge-tree --write-tree origin/main 552638f8dc3a1c7f270448163d44df992c62dac2`: rc 0, merges cleanly (ev/mergetree.txt).
-- Forward-carry (step 10): present on handoff/audit-r10-roster 83f016606c, group R10-NUDGE-RETIRE, with its precondition "Re-measure each affected step's entry at its own merge base". The packet's carry_audit reports 1 routed, 0 unrouted.
-- CI at the head: classify printed WAIT ("pending: gate red: none") at every poll until this verdict (ev/classify.log). The gate wasn't red at any poll, and no red check was owed an answer. The block above doesn't depend on CI.
-- Finder's harness: none named in the packet. The fix's own self-test and mutants are the fixer's instruments. The null-control driver here is mine, built for this review and disclosed as such (ev/null.py).
-- Step 14: the table diff in tools/ci/selftest_closures.json re-collapses listed files into D/** entries (covered under the guard's `covers` rule). It adds HEAD, objects=true and git diff to the selftest-scope step, which matches the new git reads in `static`. No budget moved.
+- ev/HEAD.txt: ef7e3373e763942a38982c679541c5aa750b3935. The PR body `## Head` names this head and the code head 6a1966196c (step 7 ok). `git ls-remote origin refs/pull/3551/head` printed ef7e3373e7 at verdict time.
+- Round-1 item 1 (prune CLI writes nothing): resolved. My driver (ev/run2.py, mine, built for this review) prints `KILLED prune-cli-no-write :: 141 checks, 1 failed`.
+- Round-1 item 2 (prune CLI accepts unknown drops): resolved. `KILLED prune-cli-ignores-unknown :: 141 checks, 1 failed`.
+- Round-1 item 3 (probe kept by listed directory): resolved. `KILLED probe-dir-ancestor-removed :: 141 checks, 1 failed`.
+- Round-1 item 4 (fail-open on an unresolvable named base): resolved in production code. Mutants `unresolved-is-no-problem`, `unresolved-falls-through-to-first-parent`, `static-ignores-unresolved` and `merge-base-only-first-cand` are all KILLED. Its test fixture is the cause of the block above.
+- RESULT own mutants at head (ev/own_mutants.txt): 24 run, 23 killed, 1 survived. The survivor is `table-untouched-skip-removed`, which round 1 judged equivalent: the untouched table compares equal to itself, so it only costs one `git show`. Not a finding. The 24 are the 3 round-1 survivors, the equivalent one, 9 reconstructed round-1 killed mutants (all still KILLED), and 11 new delta mutants over table_base/static/prune (all KILLED).
+- RESULT `sh tools/ci/selftest_scope_mutants.sh` at head, locally without GITHUB_BASE_REF: 25 `== ` lines, 25 `self-test rc 1`, `SELFTEST-SCOPE MUTANTS: every mutant refused` (ev/selftest_scope_mutants.txt). This matches the body's 25. In CI the same step is BASELINE RED, because of the block.
+- RESULT `SELFTEST_BASE=origin/main python3 -I tools/ci/selftest_scope.py static` at head: `114 gated step(s), 0 problem(s)`, rc 0 (ev/static.txt). This matches the body.
+- The body says "No check of this branch's history was red at a read this seat made". That isn't true at this head, where instrument-self-tests is red (above).
+- CI: `merge_train.py classify ef7e3373e7 --pr 3551` printed rc 2, `REFUSE selftests: the base's governance / instrument-self-tests job 131921846003 is in_progress ... (fail closed)`, at 13:47 and again at verdict time (ev/classify.log, ev/classify_final.txt). So classify was unreadable. I established the introduced red directly instead: CI log at the head, plus local base and previous-head controls (above).
+- `merge_train.py owed-reds` (ev/owed_reds.txt) doesn't list `governance / instrument-self-tests`, so no `## Red checks` answer is owed. The block rests on step 11's INTRODUCED exception, not on owed-reds.
+- `git merge-tree --write-tree origin/main ef7e3373e7`: rc 0, merges cleanly (ev/mergetree.txt).
+- Step 12 scope: the delta is instrument and test only (tools/ci/), with no custom_components/ change, so the review isn't widened.
+- Step 5 and step 14: the delta touches no VERSION, manifest, notes, claim file, budget or closure table.
+- Full CI job log: ev/ci_instrument_selftests_head.log.gz. Relevant tail: ev/ci_selftest_scope_tail.txt.
+- Earlier return on this ref: c367d9f40e (13:32 UTC, same nonce) holds `Fix review: merge ef7e3373e7` with `pending-ci: governance / instrument-self-tests`. That check had already concluded `failure` at 13:13 UTC (job 131898295736). This verdict supersedes it. I stacked it as a fast-forward child of c367d9f40e, not a force-push, so the earlier return stays readable in the ref's history.
