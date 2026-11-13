@@ -1,0 +1,10 @@
+review_carry: 7ee0461a3 -> f43d1a539  main=origin/main
+  branch-only commits: 6
+  why: d3e955485a25d93a24f3610cea9b44b5918e7b00 is not the automatic merge of its parents
+  84d439afe  Merge remote-tracking branch 'origin/main' into fix/r10-seat-script-output
+  580cef9e7  record: the delivery row for #3490
+  040b7d95d  Merge commit '7ee0461a30e2c58d7e5f78c1fdaa13232325f88b' into fix/r10-seat-script-output
+  d3e955485  Merge origin/main into fix/r10-seat-script-output
+  6d6432bc9  Merge commit 'd3e955485a25d93a24f3610cea9b44b5918e7b00' into fix/r10-seat-script-output
+  f43d1a539  Merge remote-tracking branch 'origin/main' into fix/r10-seat-script-output
+review_carry: FRESH-REVIEW

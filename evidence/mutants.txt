@@ -1,0 +1,5 @@
+M-wire-pass: merge_train self-test: 700 checks, 1 failed
+M-pred-False: merge_train self-test: 700 checks, 13 failed
+M-pred-True: merge_train self-test: 700 checks, 29 failed
+M-stop-True: merge_train self-test: 700 checks, 2 failed
+R6-search: merge_train self-test: 700 checks, 0 failed

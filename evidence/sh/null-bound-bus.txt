@@ -1,2 +1,0 @@
-bus: BOUND: the self-test passed 1 s, so its whole session is ended
-rc=124

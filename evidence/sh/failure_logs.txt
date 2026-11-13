@@ -1,9 +1,0 @@
-  ok   partial read reports itself (exit 1, one log unread)
-  ok   red-then-green grouped to the newest: job 900 read, 901 never fetched
-  ok   non-Actions check prints NO-JOB
-  ok   unreadable log prints NO-LOG
-  ok   error lines from the real log land in the report
-  ok   count is over readable logs beside the unread one
-  ok   report names the head it read at
-passed=7 failed=0
-rc=0 secs=1

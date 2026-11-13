@@ -1,0 +1,2 @@
+0a1
+> +- [#3490](https://github.com/tvofi/heatpump_optimizer/pull/3490) — **open**, R10-SEAT-SCRIPT-OUTPUT: r10 seat script output (R10-SEAT-SCRIPT-OUTPUT)
