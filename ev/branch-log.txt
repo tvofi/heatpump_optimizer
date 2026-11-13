@@ -1,0 +1,11 @@
+f8d8a642a31a250b8ae297366c26f7858d51ef05 3e9ef7e66b61780f7f53cb2053bc201ff525aa73 tvofi 70032254+tvofi@users.noreply.github.com Merge commit 'd710600251b5e4be6d8a754c6ef4d97f61329877' into fix/r10-outside-valve-target-label-2
+d710600251b5e4be6d8a754c6ef4d97f61329877 3e9ef7e66b61780f7f53cb2053bc201ff525aa73 hpo-fixer 70032254+tvofi@users.noreply.github.com Valve-target notice: pass the coordinator's context by plain attribute, so the call is delegation and coord_footprint stays flat
+3d1e538d90c240a2cc5009eea0582d3fcc95ca44 47db5137576b52f88182fac00aef15f9db04ad1f github-actions[bot] 41898282+github-actions[bot]@users.noreply.github.com ci: pin killed mutants
+cb19a23063b3539f813828eb5d171f5bbb7c737a b384fc6b9f697255b13f0b63f288de761312d934 tvofi 70032254+tvofi@users.noreply.github.com record: the delivery row for #3536
+b1682f29ac2ffe3ab8a97cb53ab83b7a849365bd 87707655518e21d03908b5dccca1136c9fa7b9df tvofi 70032254+tvofi@users.noreply.github.com Merge remote-tracking branch 'origin/main' into fix/r10-outside-valve-target-label-2
+3d3716aa344ae55374eb3a911872d9e6a17202a5 da2b991171cf6630a2f957f3640b3b50214807e7 hpo-fixer 70032254+tvofi@users.noreply.github.com Home the valve-target repair on the README and read the params through the context
+2aff83199b733b23d234de2dffb04df966c6aae5 3db9bdae758e0442777b68fd0483d8cd74996445 hpo-fixer 70032254+tvofi@users.noreply.github.com Keep the valve-target notice out of the coordinator class
+8f8fa64ecf0ffbfbf6a09bf9f6396e7dd5b1ec4b fe9069754be05268c2c1a0ea6e73c6358c0804e5 hpo-fixer 70032254+tvofi@users.noreply.github.com Name the mixing-valve target as a room temperature and notice one above the comfort ceiling
+ba25baa7d5e08071e0c44f32238610e89eafa4fc 6cf7effa66e7ca94d76b31e7da7bc610ffbd5e59 Bankaifan 476059+Bankaifan@users.noreply.github.com docs: measure effectiveness on a fully charged tank
+dc5ef2d5557b8919a5c2f7750a7eaec5358731a1 378e2a3f2b2ed0748eaf9da64b3beccf7f5e04ea Bankaifan 476059+Bankaifan@users.noreply.github.com docs: measure the effectiveness against the sensor the optimizer reads
+091b77739083320583882e70ca0893effa00da25 f3558a7b38366c6f98df11d72af617e78e74652e Bankaifan 476059+Bankaifan@users.noreply.github.com docs: explain how to measure the combi exchanger effectiveness
