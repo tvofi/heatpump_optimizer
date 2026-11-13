@@ -1,11 +1,9 @@
-Question: body_push.sh exited 4 (REFUSED CARRY-LANDED): 13 Forward-carry items to R11-INTAKE-R10-RESIDUE must land on the roster this seat may not write; relay, please fold the carries and re-run body_push.sh r10-config-flow-text-verify (body kept at handoff-wip/r10-config-flow-text-verify-body).
-
-Code head: handoff/r10-config-flow-text-verify at 8c9dc2697a74ebb036f4dddb8557edd57664d8bd; prepr.sh rc=0 at that head.
+Question: body_push.sh exited 4 (CARRY-LANDED); the relay must fold the carries and re-run it. Code head 59bb0506a003221fe2af38f30ab20fac46d1b73d is pushed to handoff/r10-config-flow-text-verify; body kept at handoff-wip/r10-config-flow-text-verify-body.
 
 ```
 fill-red: the diff adds no unpinned mutation site; nothing written
 ref_privacy (body) ok: no host identity in the body
-review-packet handoff: R10-CONFIG-FLOW-TEXT-VERIFY at 8c9dc2697a74, 0 live, 0 dispatched carries, 0 refused
+review-packet handoff: R10-CONFIG-FLOW-TEXT-VERIFY at 59bb0506a003, 0 live, 0 dispatched carries, 0 refused
 CARRY-MISSING R11-INTAKE-R10-RESIDUE body item 2de47db2: not in its brief or carries: '- docs/configuration.md:530, docs/how-it-works.md:924 and the away.py module docstring say the anti-'
 CARRY-MISSING R11-INTAKE-R10-RESIDUE body item 9ae2be30: not in its brief or carries: '- docs/configuration.md:1063 and docs/how-it-works.md:648 say the VVC loop pump runs only during the'
 CARRY-MISSING R11-INTAKE-R10-RESIDUE body item 55051373: not in its brief or carries: '- docs/configuration.md:1049 and docs/how-it-works.md:620 describe free disinfection as an opt-in cr'
@@ -22,5 +20,5 @@ CARRY-MISSING R11-INTAKE-R10-RESIDUE body item bb5336e8: not in its brief or car
 CARRY-LANDED: 13 missing
 body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body
 body_push: REFUSED CARRY-LANDED
-body_push: refused body kept at handoff-wip/r10-config-flow-text-verify-body 9093d1067df312af912a65e98579663668f8e307
+body_push: refused body kept at handoff-wip/r10-config-flow-text-verify-body 0e4ac9f298cc078a229402ee9b6b652af72106ac
 ```
