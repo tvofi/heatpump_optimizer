@@ -12,7 +12,7 @@
           "weather_entity": "Weather forecast"
         },
         "data_description": {
-          "name": "Shown in front of every sensor this integration creates.",
+          "name": "The title of this entry under Devices & services. Entity names use the fixed device name, Heat Pump Optimizer.",
           "price_source": "Tibber uses your API token. Entity reads a Home Assistant price sensor such as Nord Pool.",
           "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed. Not required when the price source is an entity.",
           "price_entity": "Required when the price source is an entity. Typical attributes are raw_today and raw_tomorrow.",
@@ -1106,7 +1106,7 @@
           "pv_export_price_entity": "Use this instead if your compensation follows the spot price.",
           "pv_enabled": "Lets the plan run the heat pump on your own surplus instead of selling it for less than bought power costs.",
           "pv_peak_kw": "The array's rated peak output. Used to scale the production forecast.",
-          "pv_production_entity": "Optional. A live production sensor lets the forecast correct itself against what the roof actually delivers.",
+          "pv_production_entity": "Optional. A live production sensor replaces the forecast's current step with what the roof delivers now, capped at the installed capacity; later steps stay modelled.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1379,7 +1379,7 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor, the fuse guard and the headroom sensor dormant — there is no safe default to guess, and a wrong one would cap a bigger house.",
+          "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor and the fuse guard dormant, and leaves the headroom sensor following the capacity-tariff peak alone, unavailable without a capacity tariff — there is no safe default to guess, and a wrong one would cap a bigger house.",
           "main_fuse_phases": "Nearly every Swedish house is 3-phase.",
           "fuse_guard_enabled": "Caps the heat pump's planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so on its sensors instead of silently going cold.",
           "peak_guard_enabled": "Watches the power meter live and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter; a cold tank or a breached comfort floor always wins over the guard.",
@@ -1430,7 +1430,7 @@
               "snow_roof_factor_enabled": "Assume less sun after heavy snowfall"
             },
             "data_description": {
-              "open_window_relax_enabled": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the heating target by 1 °C while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
+              "open_window_relax_enabled": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the coldest indoor temperature the plan accepts by 1 °C, never below 15 °C, while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
               "outage_recovery_enabled": "After an outage everything restarts at once — cold house, cold tank, the whole neighbourhood — which is exactly when a new monthly capacity peak gets set. With this on, a long gap in updates opens a two-hour recovery window where the capacity charge is taken seriously from the first kW and hot water queues 45 minutes behind space heating, unless the tank is genuinely low.",
               "precip_type_enabled": "Rain soaks the building envelope and increases heat loss; snow does not. Without this, a snowy forecast is treated as rain and the plan buys heat for a wet wall that stays dry. Needs the Open-Meteo connection for the snow data.",
               "snow_roof_factor_enabled": "For two days after heavy snowfall, the modelled solar gain is halved — snow on roof glazing and low winter panes blocks the sun the plan was counting on. Deliberately crude: a factor and a holding period, not a melt model."
