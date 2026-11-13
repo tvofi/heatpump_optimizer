@@ -202,11 +202,13 @@ def self_test() -> int:
     # CARRY 3: a beat this tool runs is never also handed to an agent by the
     # contract owning the post-merge bookkeeping, or it runs twice. The beats are
     # read from `steps()` itself, so a step added there is checked here unedited.
+    beats = {f"{rb.__name__}.py", "gh_comment.py"} | {
+        Path(argv[2]).name + ("" if argv[3].startswith("-") else " " + argv[3])
+        for _, argv, _ in steps(1, "o/r", Path("."), full, "R10-X")}
+    check("the beats are read from steps(): a subcommand is kept, an option is not",
+          {"state_docs.py", "merge_train.py classify"} <= beats, sorted(beats))
+
     def handed(text: str) -> "list[str]":
-        beats = {f"{rb.__name__}.py", "gh_comment.py"}
-        for _, argv, _ in steps(1, "o/r", Path("."), full, "R10-X"):
-            sub = argv[3] if len(argv) > 3 and not argv[3].startswith("-") else ""
-            beats.add(f"{Path(argv[2]).name} {sub}".strip())
         return sorted(b for b in beats if b in text)
     orch = (ROOT / "dev/governance/roles/orchestrator.md").read_text()
     sec = orch.split("\n## 11.")[1].split("\n## ")[0] if "\n## 11." in orch else ""
