@@ -62,25 +62,25 @@ Terminated
   ok     mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead
   ok   a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped
   ok     mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed
-tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 434: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 453: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 443: printf: write error: Broken pipe
   ok   the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
-tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 434: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 453: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 443: printf: write error: Broken pipe
   ok     the census on the scratch copy passes as it does on the tree
-tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 434: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 453: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 443: printf: write error: Broken pipe
   ok     a new script that runs app_push.sh is refused as undispositioned
-tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 434: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 453: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 443: printf: write error: Broken pipe
   ok     a runner without pr_exit_trap is refused
-tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 434: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 453: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 443: printf: write error: Broken pipe
   ok     a runner whose push runs in the foreground is refused (its `2>&1` backgrounds nothing)
-tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 434: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 453: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 443: printf: write error: Broken pipe
   ok     a runner under the branch lock whose push holds no push lock is refused
-tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 453: printf: write error: Broken pipe
   ok     null control: the same runner without its branch lock needs no push lock
   ok   update_pr: two arguments refuse, naming the count
   ok     mutant mut:arity (its line deleted) fails that arm
@@ -172,7 +172,7 @@ tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
   ok     mutant mut:roworigin (its line deleted): the PR whose row is on origin is closed as rowless (the defect)
   ok     mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)
   ok   host_refusal: a self-test failing the same way on the refused head and on a pristine origin/main tree is the host's
-  FAIL host_refusal: null control: a head breaking any one path prepr's own selftest_inputs returns (0 of 60, prepr.sh and policy_lint.mjs among them) is the head's, under the same host fault
+  ok   host_refusal: null control: a head breaking any one path prepr's own selftest_inputs returns (60 of 60, prepr.sh and policy_lint.mjs among them) is the head's, under the same host fault
   ok   host_refusal: origin/main was measured once across all of those refusals (its answer is kept per main sha), each head once
   ok     mutant mut:hostsame (its line deleted): the head's own break is called the host's
   ok   host_refusal: a main that moved is measured again, once, and the answer for the old sha is dropped
@@ -186,18 +186,26 @@ tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
   ok   host_refusal: a self-test row beside another step's REFUSE row is the head's, though the self-test fails alike on main
   ok     mutant mut:hostother (its line deleted): the other step's refusal is called the host's
   ok   host_refusal: an environment fault (exit 3, no FAIL row) on both trees is the host's
-  ok   host_refusal: a head whose tree holds no self-test is not measured, so the head's; mutant ret:hosthead calls it the host's
-  ok   host_refusal: a main whose tree holds no self-test is not measured, so the head's; mutant ret:hostmain calls it the host's
+  ok   host_refusal: a head whose tree holds no self-test is not measured, so the head's, and main is not run for it; mutant ret:hosthead calls it the host's
+  ok   host_refusal: a main whose tree holds no self-test is not measured, so the head's, and no answer is kept for it; mutant ret:hostmain calls it the host's
   ok   host_refusal: no self-test on either tree is no agreement; mutant ret:signone reads two unrun steps as one failure
-  ok   host_refusal: no tree at either sha is no agreement; mutant ret:sigtree reads two missing trees as one failure
+  ok   host_refusal: no tree at either sha is no agreement, and the directory made for one is removed; mutant ret:sigtree reads two missing trees as one failure
   ok   host_refusal: a cache directory that cannot be made measures nothing, so the head's; mutant ret:hostdir calls it the host's
+  ok   host_refusal: a run that gets no tree of its own (mktemp fails) measures nothing, so the head's; mutant ret:sigpriv calls it the host's
+  ok   host_refusal: a head holding the self-test only at tools/audit/prepr.sh, not tools/pr/prepr.sh, is measured there, and is the host's; mutant mut:sigold (its line deleted) finds no self-test, so the head's
+  ok   host_refusal: trees removed under both runs fail alike, and are not measured, so the head's; mutant ret:sigwhole calls it the host's
+  ok   host_refusal: a main run whose tree was removed under it keeps no answer for main; mutant ret:sigwhole keeps the disturbed run's
+  FAIL host_refusal: a self-test ended by a signal on both trees is not measured, so the head's; mutant ret:sigkilled calls it the host's
+  ok   host_refusal: two host refusals measured at once, each in a tree of its own, are both the host's, and no tree outlives its run
+  ok     mutant shared (one tree for every measurement): the host refusal whose tree the other run replaced is called the head's (#3508's defect)
+  ok   host_refusal: with no answer kept for main, a head's own break and a host refusal measured at once are the head's and the host's, and the answer kept for main is the unraced one
   ok   open_pr: a self-test refusal no tree can re-run (origin/main holds no self-test) still closes the PR
   ok   open_pr: a row push refused only by prepr's self-test, which fails the same way on a pristine origin/main tree, leaves the PR open, naming the owed row (one ROWLESS line, non-zero exit)
   ok     null control: the same refusal with no host fault to reproduce it still closes the PR
   ok     null control: a body-contract REFUSE row still closes the PR, under the host fault
   ok     null control: a self-test row beside another REFUSE row still closes the PR, under the host fault
   ok     mutant mut:hostother (its line deleted): a mixed log leaves the PR open
-  FAIL   null control: a self-test refusal the head's own commit causes still closes the PR, under the host fault
+  ok     null control: a self-test refusal the head's own commit causes still closes the PR, under the host fault
   ok     mutant mut:hostsame (its line deleted): the head's own self-test red leaves the PR open
   ok   open_pr: a stop before this run's own row push closes the PR, whatever self-test row an earlier run's log holds
   ok     mutant mut:hoststale (its line deleted): the earlier run's log is measured and the PR is left open
@@ -213,7 +221,7 @@ tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
   ok     mutant mut:rowonly (its line deleted): code sha '-' asks for --reuse, not --row-only
   ok   null control: a code sha the head lacks is merged and never asks for --row-only; it asks for --reuse, whose verdict or the full prepr judges its push
   ok     mutant mut:updreuse (its line deleted): a code sha the head lacks asks no reuse verdict, so its push runs the full prepr
-  ok   null control: update_pr with code sha 'a5d0c28' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '5fcf542' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
   ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
@@ -247,5 +255,5 @@ tools/audit/seat/pr_args.sh: line 444: printf: write error: Broken pipe
   ok   open_pr: a failed re-key is named, never fatal (the pull request is already open)
   ok     mutant mut:rekey (its line deleted) re-keys nothing
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 235 checks, 2 failed
+pr_args self-test: 243 checks, 1 failed
 rc=1

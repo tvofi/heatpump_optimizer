@@ -1,0 +1,2 @@
+707de42600e2431aed00ef0f6d3bb185c096ad7f	refs/heads/fix/r10-hotfix-openpr-host-refusal
+29c904c23278a56900a6087e5b823df1009cdd13	refs/heads/handoff/r10-hotfix-openpr-host-refusal
