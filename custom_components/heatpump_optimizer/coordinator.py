@@ -6531,10 +6531,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
         await self._accuracy_store.async_wait_for_read()
-        if self._mode == MODE_BOOST and mode != MODE_BOOST:
-            # #1935: the mode surface's settling tail — same plant-state
-            # divergence the channel overlay's leaves behind.
-            boost.note_mode_boost_ended(self)
+        boost.note_mode_change(self, self._mode, mode)  # #1935: the mode's settling tail
         await off_restore.async_mode_change(self.hass, self.entry, _ctx_of(self)._config, self._mode, mode)
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
