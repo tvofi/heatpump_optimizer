@@ -554,4 +554,4 @@ tools/pr/prepr.sh: eval: line 4016: syntax error: unexpected end of file
   ok   (hotfix) the main flow decides the scope once, before REUSE is read from PREPR_SKIP_CODE
 
 550 passed, 0 failed
-rc=0
+rc 0
