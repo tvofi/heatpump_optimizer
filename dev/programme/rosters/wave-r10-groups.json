@@ -20600,10 +20600,11 @@
    "architect_note": "",
    "brief": "Quiet output by default for the seat PR scripts (owner card, 2026-10-24) and the pr_bounded self-test bound in the 12 seat self-tests that lack it. Output calls only in merge_train.py; chained after R10-TRAIN-RESIDUE, which edits its logic. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
     "note": "overlap admitted (R10-TRAIN-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-TRAIN-RESIDUE, ordered by after-edges where files overlap",
-    "pr": 3490
+    "pr": 3490,
+    "commit": "5288db5dadbffbaf83cb4ed258a669d46c3224fe"
    }
   },
   {
@@ -25602,13 +25603,13 @@
     "tests/entities.py not runnable on the reviewer's seat (missing homeassistant): an environment fault, no finding on the head. Carry: R10-SELFTEST-SCOPE-UNION-GUARD"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
     "commit": null,
     "last_step": null,
     "next_step": "dispatch cloud fixer (sonnet, Linux) after R10-HOTFIX-SELFTEST-SCOPE-RERECORD merges",
     "note": "triage ACCEPT round 10 (audit-class barrier, part C); cutoff 2026-11-14T18:00Z else round 11; overlap admitted (R10-NUDGE-RETIRE): triage ruling 2026-11-13: audit-class barrier C; shares tools/ci/selftest_closures.json with R10-HOTFIX-SELFTEST-SCOPE-RERECORD, ordered after it",
-    "pr": null
+    "pr": 3551
    }
   },
   {
