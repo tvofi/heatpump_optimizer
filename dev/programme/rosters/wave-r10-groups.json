@@ -26008,6 +26008,47 @@
     "next_step": "local fixer (opus), macOS bash 3.2 host",
     "note": "intake: orchestrator measurement 2026-11-13T15:17Z; TICK-STALE on every tick pass since PR 3520, relay and sweep arms skipped"
    }
+  },
+  {
+   "group": "R10-HOTFIX-SELFTEST-SCOPE-TABLE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/ci/selftest_closures.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX, main is red (orchestrator, 2026-11-13T15:55Z): at main 154dbb4c the governance instrument-self-tests job failed on its step refusing a self-test read set the committed table misses, and on no other step. The fixer's diff of the run's own uploaded measurement against tools/ci/selftest_closures.json shows about 35 entries with reads the table lacks, spread over several merged pull requests, so it is accumulated drift and no single merge's. The table records only on Linux under strace (the header of tools/ci/selftest_scope.py), so the fix commits the push run's uploaded measurement as the table, nothing hand-edited, and proves the self-test, static and selection checks that run off Linux. The body answers why each merging pull request's own scoped run stayed green while the push run reddened, and names the cheaper detector or records that none exists.",
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r10-hotfix-selftest-scope-table",
+    "commit": null,
+    "last_step": null,
+    "next_step": "local fixer (sonnet) running; handoff then opus reviewer",
+    "note": "intake: red required-family check on main at 154dbb4c, CI run 43448248435 job 131963716179"
+   }
   }
  ]
 }
