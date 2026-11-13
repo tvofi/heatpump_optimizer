@@ -782,12 +782,29 @@ def _slider_rows():
                 yield step, float(everyday), float(disinfection)
 
 
-def _step_notice(everyday, disinfection, step, *, hold=False, cycle=True,
+#: ``dev/audit/harnesses/r10_disinfection_setpoint.py``'s ``--grid``
+#: temperatures, its cycle rows: disinfection above everyday, at most 70.
+_GRID_TEMPS = (50.0, 55.0, 57.0, 58.0, 60.0, 60.2, 60.3, 60.4, 60.7, 62.0, 69.6, 70.0, 72.0)
+
+
+def _grid_rows():
+    for step in _SLIDER_STEPS:
+        for everyday in _GRID_TEMPS[:-1]:
+            for disinfection in _GRID_TEMPS:
+                if everyday < disinfection <= 70.0:
+                    yield step, everyday, disinfection
+
+
+def _on_step(value, step):
+    return abs(value / step - round(value / step)) < 1e-9
+
+
+def _step_notice(everyday, disinfection, step, *, hold=False, cycle=True, dhw=True,
                  entity="number.dhw", duty="control", attrs=None):
     """The off-step notice's placeholders after one observe pass, or None."""
     params = ThermalParameters(
         dhw_setpoint=everyday, dhw_legionella_temp=disinfection,
-        dhw_legionella_enabled=cycle, dhw_enabled=True,
+        dhw_legionella_enabled=cycle, dhw_enabled=dhw,
     )
     states = {} if entity is None else {
         entity: FakeState("50", attributes=attrs or {"min": 30, "max": 80, "step": step}),
@@ -805,15 +822,40 @@ def _step_notice(everyday, disinfection, step, *, hold=False, cycle=True,
     return raised[-1][2].get("translation_placeholders") if raised else None
 
 
-def _slider_count(*, hold=False, on_step=None, steps=_SLIDER_STEPS):
-    n = 0
-    for step, everyday, disinfection in _slider_rows():
-        if step not in steps:
+def _slider_count(*, hold=False, on_step=None, steps=_SLIDER_STEPS, rows=_slider_rows):
+    """(rows driven, notices raised) over ``rows`` filtered by step and on-step."""
+    driven = raised = 0
+    for step, everyday, disinfection in rows():
+        if step not in steps or on_step not in (None, _on_step(disinfection, step)):
             continue
-        if on_step is not None and on_step != (abs(disinfection / step - round(disinfection / step)) < 1e-9):
-            continue
-        n += _step_notice(everyday, disinfection, step, hold=hold) is not None
-    return n
+        driven += 1
+        raised += _step_notice(everyday, disinfection, step, hold=hold) is not None
+    return driven, raised
+
+
+def _standing(hass):
+    """The issue ids standing on the stub registry (``hass.issues``)."""
+    return {i[1] for i in getattr(hass, "issues", [])}
+
+
+def _unreachable_yields_to_the_step_notice() -> bool:
+    """While the off-step notice stands, a short cycle raises no hardware advice, and raising it clears that."""
+    params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=62.0,
+                               dhw_legionella_enabled=True, dhw_enabled=True)
+    hass = FakeHass({"number.dhw": FakeState("50", attributes={"min": 30, "max": 80, "step": 5})})
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params,
+        {"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"}, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    unreachable = "dhw_legionella_unreachable"
+    guard.raise_unreachable_issue(58.0, 62.0)
+    raised_before = unreachable in _standing(hass)
+    asyncio.run(guard.async_observe(None, None))
+    cleared = unreachable not in _standing(hass)
+    guard.raise_unreachable_issue(58.0, 62.0)
+    return raised_before and cleared and unreachable not in _standing(hass) and _STEP_ISSUE in _standing(hass)
 
 
 def _off_step_notice_pins() -> dict[str, bool]:
@@ -833,16 +875,27 @@ def _off_step_notice_pins() -> dict[str, bool]:
     out["55/62 on step 5 is named: 62 configured, 60 written, 60 and 65 on the step"] = case == {
         "legionella_temp": "62", "written": "60", "step": "5", "below": "60", "above": "65",
     }
-    out["the slider grid raises 201 under the instant rule"] = _slider_count() == 201
-    out["the slider grid raises 436 under the hold rule"] = _slider_count(hold=True) == 436
-    out["the instant rule's 201 are all at step 5"] = _slider_count(steps=(5,)) == 201
+    out["the slider grid raises 201 of 1750 under the instant rule"] = _slider_count() == (1750, 201)
+    out["the slider grid raises 436 of 1750 under the hold rule"] = _slider_count(hold=True) == (1750, 436)
+    out["the instant rule's 201 are all at step 5"] = _slider_count(steps=(5,))[1] == 201
     out["null: the 1314 on-step slider rows raise none, either rule"] = (
-        _slider_count(on_step=True) == 0 and _slider_count(on_step=True, hold=True) == 0
+        _slider_count(on_step=True) == (1314, 0) == _slider_count(on_step=True, hold=True)
     )
     out["null: steps 0.1 and 0.5 raise none, either rule"] = (
-        _slider_count(steps=(0.1, 0.5)) == 0 and _slider_count(steps=(0.1, 0.5), hold=True) == 0
+        _slider_count(steps=(0.1, 0.5))[1] == 0 == _slider_count(steps=(0.1, 0.5), hold=True)[1]
+    )
+    grid = dict(rows=_grid_rows)
+    out["the harness grid raises 34 / 71 of 330 (instant / hold)"] = (
+        _slider_count(**grid) == (330, 34) and _slider_count(hold=True, **grid) == (330, 71)
+    )
+    out["null: the 169 on-step harness grid rows raise none, either rule"] = (
+        _slider_count(on_step=True, **grid) == (169, 0) == _slider_count(on_step=True, hold=True, **grid)
+    )
+    out["the off-step notice shows, not the unreachable notice's hardware advice"] = (
+        _unreachable_yields_to_the_step_notice()
     )
     out["null: the cycle disabled raises none"] = _step_notice(55.0, 62.0, 5, cycle=False) is None
+    out["null: hot water disabled raises none"] = _step_notice(55.0, 62.0, 5, dhw=False) is None
     out["null: no set-point entity raises none"] = _step_notice(55.0, 62.0, 5, entity=None) is None
     out["null: an arbiter that writes nothing (observe) raises none"] = (
         _step_notice(55.0, 62.0, 5, duty="observe") is None

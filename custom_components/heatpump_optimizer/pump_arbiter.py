@@ -187,7 +187,7 @@ from .freq_control import defrost_interval, resolve_reading
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .const import finite_float
 from .inputs import (
-    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, state_power_kw, write_setpoint_c,
+    InputReader, quantise_setpoint_c, read_setpoint, setpoint_range_c, setpoint_step, state_power_kw, write_setpoint_c,
 )
 from .log_latch import log_held
 from .payload import REASON_LEGIONELLA, CurrentAction
@@ -592,10 +592,25 @@ def _bounded(
     for the value itself, ``lo`` (a heating floor) up and ``hi`` (a
     ceiling) down, the entity's own minimum up and maximum down.
     """
-    if value is None or _slot_state(inp, slot) is None:
+    return _bounded_on(inp.hass, inp.config, slot, value, floor, rounding=rounding, lo=lo, hi=hi)
+
+
+def _bounded_on(
+    hass: Any,
+    config: Any,
+    slot: str,
+    value: float | None,
+    floor: float = -1e9,
+    *,
+    rounding: str = "nearest",
+    lo: float | None = None,
+    hi: float | None = None,
+) -> float | None:
+    """:func:`_bounded` on an install's ``hass`` and configuration, no pass snapshot."""
+    entity = _entities(config)[slot]
+    if value is None or not entity or hass.states.get(entity) is None:
         return None
-    entity = _entities(inp.config)[slot]
-    low, high = setpoint_range_c(inp.hass, entity)
+    low, high = setpoint_range_c(hass, entity)
     value = max(value, floor, low if low is not None else floor)
     value = min(value, high) if high is not None else value
     lows = [v for v in (lo, low) if v is not None]
@@ -603,10 +618,10 @@ def _bounded(
     # The entity's range outranks a caller's ceiling: a write under its
     # minimum on the step is refused, so a ceiling below that is dropped and
     # the minimum, rounded up onto the step, holds.
-    if hi is not None and (low is None or hi >= quantise_setpoint_c(inp.hass, entity, low, rounding="up")):
+    if hi is not None and (low is None or hi >= quantise_setpoint_c(hass, entity, low, rounding="up")):
         highs.append(hi)
     return quantise_setpoint_c(
-        inp.hass, entity, value, rounding=rounding,
+        hass, entity, value, rounding=rounding,
         lo_c=max(lows) if lows else None, hi_c=min(highs) if highs else None,
     )
 
@@ -1203,7 +1218,46 @@ def _dhw_write(inp: ArbiterInputs) -> float | None:
     cycle = inp.params.dhw_cycle_temp if booked or inp.disinfecting else None
     if cycle is None:
         return _bounded(inp, "dhw_setpoint", everyday, hi=inp.params.dhw_max_temp)
-    return _bounded(inp, "dhw_setpoint", float(cycle), hi=inp.params.dhw_hard_max_temp)
+    return _cycle_c(inp.hass, inp.config, inp.params)
+
+
+def _cycle_c(hass: Any, config: Any, params: Any) -> float | None:
+    """A cycle's hot-water write for ``params``, °C: :func:`_dhw_write`'s cycle arm; ``None`` with no cycle."""
+    cycle = params.dhw_cycle_temp
+    return None if cycle is None else _bounded_on(
+        hass, config, "dhw_setpoint", float(cycle), hi=params.dhw_hard_max_temp,
+    )
+
+
+@dataclass(frozen=True)
+class CycleWrite:
+    """A disinfection cycle's hot-water write and the entity's step around it.
+
+    ``written_c`` is the arbiter's own write; ``below_c`` and ``above_c`` are
+    the disinfection temperature on the step rounded down and up, inside the
+    entity's range, in °C; ``step`` is the entity's own, in its unit.
+    """
+
+    written_c: float
+    below_c: float
+    above_c: float
+    step: float
+
+
+def cycle_write(hass: Any, config: Any, params: Any) -> CycleWrite | None:
+    """The hot-water write a disinfection cycle holds under ``params``.
+
+    ``None`` where the arbiter writes no hot-water set-point: not in control
+    (``pump_duty_mode``), or no hot-water set-point entity with a state.
+    """
+    written = _cycle_c(hass, config, params) if duty_mode(config) == DUTY_CONTROL else None
+    if written is None:
+        return None
+    target = float(params.dhw_legionella_temp)
+    below = _bounded_on(hass, config, "dhw_setpoint", target, rounding="down")
+    above = _bounded_on(hass, config, "dhw_setpoint", target, rounding="up")
+    step = setpoint_step(hass, _entities(config)["dhw_setpoint"])
+    return CycleWrite(written, float(below), float(above), step)
 
 
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
