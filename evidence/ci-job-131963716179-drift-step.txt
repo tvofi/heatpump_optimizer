@@ -1,0 +1,5 @@
+(CI run 43448248435, job 131963716179, main 154dbb4c, step "Refuse a self-test read set the committed table misses"; read via get_job_logs)
+34 UNDER-SCOPED lines, summary: selftest_scope check: 114 gated step(s), 34 refusal(s)
+The one line absent from drift() over the uploaded artifact:
+  UNDER-SCOPED step throwaway-git-helper: probes misses ['tests/mutation_ledger/killed_by/supply_hold.py/.gitattributes']
+No "it read the index/objects" refusal appears in CI's 34 (tick-loop included).
