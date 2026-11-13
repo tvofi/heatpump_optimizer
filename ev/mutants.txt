@@ -1,0 +1,11 @@
+cwd_repo rc=1
+no_remember rc=1
+keep_state_dir rc=1
+wired_filter_dropped rc=1
+no_final_remove rc=1
+no_detach rc=1
+no_prepr rc=1
+remember_on_wt_fail rc=1
+no_take rc=1
+slot_rc_ignored rc=1
+DONE

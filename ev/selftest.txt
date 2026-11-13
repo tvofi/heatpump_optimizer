@@ -1,0 +1,229 @@
+  ok   tick-digest null: a board with nothing owed writes no job, no digest, no stamp
+  ok   tick-digest: one OWED line gives exactly that line, and a stamp
+  ok   tick-digest: a timestamp-only change writes nothing but the pass mark
+  ok   tick-digest: an age-only change is no new line
+  ok   tick-digest: a transient RED gives nothing; on a second board it appears
+  ok   tick-digest: a transient NOT REVIEWABLE gives nothing; on a second board it appears
+  ok   null: a RED that cleared on the next board never appears
+  ok   tick-digest: an absent board is UNREADABLE, never clean
+  ok   tick-digest: a board without its provenance line is UNREADABLE, never clean
+  ok   tick-digest: the same board returning after an outage clears the UNREADABLE line
+  ok   the fixture board's digest is exactly its recorded actionable set
+  ok   every family literal is one the board's printers print
+  ok   owed-check null: rc 0 writes nothing
+  ok   owed-check: an UNACTIONED exit lands in new.txt
+  ok   owed-check: rc 2 is UNREADABLE
+  ok   owed-check: the instrument is handed the board and the ledger
+  ok   a row whose overlay key is empty says so, and runs nothing
+  ok   a row whose overlay key is missing says so, and runs nothing
+  ok   roster-drain null: no queue writes nothing
+  ok   roster-drain: a queue line drains once, is marked, and is not re-run
+  ok   roster-drain: an identical second line is its own line
+  ok   roster-drain: a REFUSE line arrives in the digest and is never retried
+  ok   roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases
+  ok   roster-drain: a released hold hands roster_queue the held op, not the hold line
+  ok   roster-drain: a malformed hold line is refused once and marked, never re-printed
+  ok   roster-drain: an unterminated last line waits for its newline and runs once, whole
+  ok   roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs
+  ok   roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once
+  ok   roster-drain null: a pass that completes applies each op exactly once
+  ok   roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes
+  ok   roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s
+  ok   roster-drain: a no-op-attempted report is retried on the next pass
+  ok   plan-beat null: both succeed, nothing written
+  ok   plan-beat: state_docs rc 1 is PLAN UNAVAILABLE
+  ok   plan-beat: a replan failure is PLAN UNAVAILABLE and publishes nothing
+  ok   plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE
+  ok   plan-beat: state_docs is handed the mirror and the plan
+  ok   plan-beat: replan is handed the plan, slots and seats
+  ok   plan-beat null: no plan_coordinator_cap leaves replan its own default
+  ok   plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap
+  ok   plan-beat: a state push that landed dispatches the Pages deploy on main, once
+  ok   plan-beat null: an already-current state ref dispatches nothing
+  ok   plan-beat: a refused Pages dispatch reaches the digest
+  ok   outside-intake null: nothing owed writes nothing
+  ok   outside-intake: the instrument is handed the repo, the overlay's since and a cursor under state/
+  ok   outside-intake: each OUTSIDE line reaches the digest, nothing else
+  ok   outside-intake: rc 2 is UNREADABLE, never clean
+  ok   plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)
+  ok   bottleneck null: no breach writes nothing
+  ok   bottleneck: the checker is handed the checkout, train_log, the plan's slot cap and a memory under state/
+  ok   bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else
+  ok   bottleneck: a failed check is UNREADABLE, never clean
+  ok   bottleneck: an overlay without train_log is UNREADABLE and runs nothing
+  ok   scorecard null: a clean report leaves the digest empty and writes scorecard.txt
+  ok   scorecard: the instrument is handed report, its dir under state/, the train_log and the checkout
+  ok   scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)
+  ok   scorecard: a failed instrument is UNREADABLE, never written
+  ok   scorecard: an overlay without train_log is UNREADABLE and runs nothing
+  ok   roster-drain: an op neither reported nor marked is UNRUN and stays pending
+  ok   roster-drain: a refusal by a worktree on no origin ref is CASCADE, stays pending, then runs
+  ok   roster-drain null: a lint refusal marked #refused is no CASCADE and no UNRUN, and is not retried
+  ok   plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line
+  ok   plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once
+  ok   plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory
+  ok   plan-beat null: no mirrored page is no PLAN MOVED and no byte
+  ok   gantt: a GANTT-SLIP line reaches the digest, and nothing else sweep_gantt prints
+  ok   gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger
+  ok   gantt: a failed sweep_gantt is UNREADABLE, never its partial lines
+  ok   gantt null: no slip writes no digest
+  ok   gantt: a failed gh pr list is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)
+  ok   gantt: a failed roster git show is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)
+  ok   gantt: a failed fetch is UNREADABLE, never the stale refs/gantt/ roster (null: rc 0 runs it)
+  ok   gantt: a handoff-wip tip is fetched and reaches sweep_gantt beside the handoff tip
+  ok   gantt: the fire ledger is copied whole for sweep_gantt (null: no fire_ledger copies nothing)
+  ok   census: every overlay key beat_jobs.py reads is declared in sweep_template.md's Placeholders
+  ok   census null: the template without its gantt_roster row is reported missing exactly gantt_roster
+  ok   census null: an overlay read by a computed key is unresolved, never skipped
+  ok   verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on
+  ok   verdict-audit: a failed run is UNREADABLE, never its partial lines
+  ok   verdict-audit null: nothing unheld writes no byte
+  ok   pulse null: nothing stopped writes no digest, but the pulse file
+  ok   pulse: a STOPPED line reaches the digest
+  ok   pulse: an rc outside 0-2 is UNREADABLE, whatever it printed
+  ok   pulse: launch_ledger is a --launch-ledger argument
+  ok   pulse: each seat_alives entry is a --seat-alive argument
+  ok   cancel-sweep null: a clean sweep writes nothing
+  ok   cancel-sweep: a failure reaches the digest
+  ok   cancel-sweep: a truncated listing reaches the digest
+  ok   cancel-sweep: a non-zero exit is a line, never silence, and gets --repo
+  ok   disk null: above the floor runs no collection
+  ok   disk: a collection that frees enough writes nothing
+  ok   disk: still under the floor after collection is a line
+  ok   opener: an open-refused line lands in jobs/opener, a STUCK line in events.txt too
+  ok   opener: a STUCK line re-printed is not a second event
+  ok   opener: a NEEDS-TITLE line lands in jobs/opener, and is no event
+  ok   opener: a STARVED line lands in jobs/opener, and is no event
+  ok   opener null: a pass that only starts writes nothing
+  ok   opener: a non-zero exit is a line, never silence
+  ok   opener: open_driver is handed the board
+  ok   head-watch: a head move writes one line to events.txt and events.tsv stays absent
+  ok   head-watch: a head returning to an old sha is still a move (A->B->A->B is three events)
+  ok   head-watch: a closed pull request leaves heads.tsv
+  ok   head-watch: an unreadable API is UNREADABLE
+  ok   audit-dispatch: a would-trip arm gives one DISPATCH line keyed arm and cut; ok and insufficient give none
+  ok   audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte
+  ok   audit-dispatch: a second arm dispatches; the still-tripped arm at a slid cut gives none
+  ok   audit-dispatch null: a trip that clears and trips again dispatches again
+  ok   audit-dispatch null: only ok and insufficient arm lines write no job, no digest, no memory
+  ok   audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  ok   audit-dispatch null: a still-failing run stays UNREADABLE
+  ok   audit-dispatch: a good run after a failed one clears UNREADABLE
+  ok   audit-dispatch: recovering on the same trip clears UNREADABLE and keeps the DISPATCH line
+  ok   audit-dispatch: output whose only GUARDRAIL line is the unclassified one is UNREADABLE
+  ok   fold: a gone line is gone.txt and no new stamp
+  ok   fold: a fold that added nothing empties new.txt, and leaves the stamp
+  ok   fold: a fold that dropped nothing empties gone.txt
+  ok   fold: a duplicated line is one more line, new.txt and a new stamp
+  ok   fold: the digest is in row order
+  ok   no row runs a git command that moves HEAD or the tree
+  ok   darwin-selftest null: a non-Darwin host runs nothing and writes nothing
+  ok   darwin-selftest null: a clean tip prints nothing, and every self-test ran
+  ok   darwin-selftest: an unchanged tip is skipped
+  ok   darwin-selftest: a new tip runs again
+  ok   darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
+  ok   darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
+  ok   darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout
+  ok   darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR
+  ok   darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried
+  ok   darwin-selftest: a slot-take that fails is UNREADABLE and runs nothing
+  ok   darwin-selftest: an unreadable origin/main is UNREADABLE and runs nothing
+  ok   darwin-selftest: first_fail names the first FAIL line, else the last line, else the code
+  ok   darwin-selftest: the wired filter drops a self-test no workflow runs (null: both are seat self-tests)
+  ok   darwin-selftest: the wired set is the real tree's seat self-tests, mutant_run.py among them
+  ok   mutant family_drops_owed killed by: tick-digest: one OWED line gives exactly that line, and a stamp
+  ok   mutant no_age_norm killed by: tick-digest: an age-only change is no new line
+  ok   mutant transient_counts_at_once killed by: tick-digest: a transient RED gives nothing; on a second board it appears
+  ok   mutant same_board_two_passes killed by: tick-digest: a transient RED gives nothing; on a second board it appears
+  ok   mutant unflagged_lines_read killed by: the fixture board's digest is exactly its recorded actionable set
+  ok   mutant owed_rc1_dropped killed by: owed-check: an UNACTIONED exit lands in new.txt
+  ok   mutant roster_no_mark killed by: roster-drain: a queue line drains once, is marked, and is not re-run
+  ok   mutant roster_saved_at_pass_end killed by: roster-drain: a pass killed mid-queue keeps its applied ops; the next applies each once
+  ok   mutant roster_pass_unbounded killed by: roster-drain: a pass past ROSTER_PASS_BUDGET_S starts no op; the next pass resumes
+  ok   mutant roster_budget_over_timeout killed by: roster-drain: ROSTER_PASS_BUDGET_S is at most half the row's timeout_s
+  ok   mutant roster_hold_ignored killed by: roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases
+  ok   mutant plan_cap_unread killed by: plan-beat: the overlay's plan_coordinator_cap is handed to replan as --coordinator-cap
+  ok   mutant plan_rc1_silent killed by: plan-beat: state_docs rc 1 is PLAN UNAVAILABLE
+  ok   mutant moved_early_return killed by: plan-beat: a moved page whose push landed is PLAN MOVED and still dispatches Pages, once
+  ok   mutant moved_on_rc1 killed by: plan-beat: rc 1 with a re-rendered page is PLAN UNAVAILABLE alone, no PLAN MOVED, no page memory
+  ok   mutant pages_never_dispatched killed by: plan-beat: a state push that landed dispatches the Pages deploy on main, once
+  ok   mutant pages_always_dispatched killed by: plan-beat null: an already-current state ref dispatches nothing
+  ok   mutant pages_refusal_silent killed by: plan-beat: a refused Pages dispatch reaches the digest
+  ok   mutant bottleneck_memory_dropped killed by: bottleneck: the checker is handed the checkout, train_log, the plan's slot cap and a memory under state/
+  ok   mutant bottleneck_rc_clean killed by: bottleneck: a failed check is UNREADABLE, never clean
+  ok   mutant bottleneck_unreadable_dropped killed by: bottleneck: each BOTTLENECK and BOTTLENECK-UNREADABLE line reaches the digest, nothing else
+  ok   mutant scorecard_rc_clean killed by: scorecard: a failed instrument is UNREADABLE, never written
+  ok   mutant scorecard_sweep_dropped killed by: scorecard: an overlay's sweep_record is handed on (null: none leaves the flag out)
+  ok   mutant scorecard_write_dropped killed by: scorecard null: a clean report leaves the digest empty and writes scorecard.txt
+  ok   mutant plan_train_dropped killed by: plan-beat: state_docs is handed the overlay's train_log (null: none leaves the flag out)
+  ok   mutant outside_lines_dropped killed by: outside-intake: each OUTSIDE line reaches the digest, nothing else
+  ok   mutant outside_rc2_clean killed by: outside-intake: rc 2 is UNREADABLE, never clean
+  ok   mutant pulse_stopped_dropped killed by: pulse: a STOPPED line reaches the digest
+  ok   mutant cancel_failure_dropped killed by: cancel-sweep: a failure reaches the digest
+  ok   mutant disk_no_recheck killed by: disk: a collection that frees enough writes nothing
+  ok   mutant opener_no_event killed by: opener: an open-refused line lands in jobs/opener, a STUCK line in events.txt too
+  ok   mutant head_no_compare killed by: head-watch: a head move writes one line to events.txt and events.tsv stays absent
+  ok   mutant fold_stamp_always killed by: fold: a gone line is gone.txt and no new stamp
+  ok   mutant null_pass_writes killed by: tick-digest null: a board with nothing owed writes no job, no digest, no stamp
+  ok   mutant tick_provenance_any_text killed by: tick-digest: a board without its provenance line is UNREADABLE, never clean
+  ok   mutant owed_tick_wrong killed by: owed-check: the instrument is handed the board and the ledger
+  ok   mutant roster_partial_runs killed by: roster-drain: an unterminated last line waits for its newline and runs once, whole
+  ok   mutant roster_shrank_not_sticky killed by: roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs
+  ok   mutant roster_shrink_ignored killed by: roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs
+  ok   mutant roster_noop_marked killed by: roster-drain: a no-op-attempted report is retried on the next pass
+  ok   mutant plan_rc2_unavailable killed by: plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE
+  ok   mutant plan_replan_args_dropped killed by: plan-beat: replan is handed the plan, slots and seats
+  ok   mutant pulse_unreadable_ignored killed by: pulse: an rc outside 0-2 is UNREADABLE, whatever it printed
+  ok   mutant pulse_alive_dropped killed by: pulse: each seat_alives entry is a --seat-alive argument
+  ok   mutant cancel_rc_ignored killed by: cancel-sweep: a non-zero exit is a line, never silence, and gets --repo
+  ok   mutant opener_rc_ignored killed by: opener: a non-zero exit is a line, never silence
+  ok   mutant opener_board_dropped killed by: opener: open_driver is handed the board
+  ok   mutant head_dedupe_whole_file killed by: head-watch: a head returning to an old sha is still a move (A->B->A->B is three events)
+  ok   mutant tick_unreadable_sticks killed by: tick-digest: the same board returning after an outage clears the UNREADABLE line
+  ok   mutant event_dedupe_dropped killed by: opener: a STUCK line re-printed is not a second event
+  ok   mutant transient_not_reviewable_dropped killed by: tick-digest: a transient NOT REVIEWABLE gives nothing; on a second board it appears
+  ok   mutant roster_hold_op_unstripped killed by: roster-drain: a released hold hands roster_queue the held op, not the hold line
+  ok   mutant roster_malformed_hold_retried killed by: roster-drain: a malformed hold line is refused once and marked, never re-printed
+  ok   mutant plan_mirror_dropped killed by: plan-beat: state_docs is handed the mirror and the plan
+  ok   mutant pulse_ledger_dropped killed by: pulse: launch_ledger is a --launch-ledger argument
+  ok   mutant cancel_truncated_dropped killed by: cancel-sweep: a truncated listing reaches the digest
+  ok   mutant opener_needs_title_dropped killed by: opener: a NEEDS-TITLE line lands in jobs/opener, and is no event
+  ok   mutant opener_starved_dropped killed by: opener: a STARVED line lands in jobs/opener, and is no event
+  ok   mutant head_closed_kept killed by: head-watch: a closed pull request leaves heads.tsv
+  ok   mutant audit_trip_any_arm killed by: audit-dispatch: a would-trip arm gives one DISPATCH line keyed arm and cut; ok and insufficient give none
+  ok   mutant audit_no_memory killed by: audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte
+  ok   mutant audit_key_by_span killed by: audit-dispatch: a second arm dispatches; the still-tripped arm at a slid cut gives none
+  ok   mutant audit_trip_never_clears killed by: audit-dispatch null: a trip that clears and trips again dispatches again
+  ok   mutant audit_no_clearing_write killed by: audit-dispatch: a good run after a failed one clears UNREADABLE
+  ok   mutant audit_unclassified_kept killed by: audit-dispatch: output whose only GUARDRAIL line is the unclassified one is UNREADABLE
+  ok   mutant audit_rc_ignored killed by: audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  ok   mutant roster_unrun_marked killed by: roster-drain: an op neither reported nor marked is UNRUN and stays pending
+  ok   mutant roster_mark_dropped killed by: roster-drain: an op neither reported nor marked is UNRUN and stays pending
+  ok   mutant roster_cascade_marked killed by: roster-drain: a refusal by a worktree on no origin ref is CASCADE, stays pending, then runs
+  ok   mutant plan_moved_dropped killed by: plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line
+  ok   mutant plan_moved_every_pass killed by: plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line
+  ok   mutant gantt_filter_dropped killed by: gantt: a GANTT-SLIP line reaches the digest, and nothing else sweep_gantt prints
+  ok   mutant gantt_rc_ignored killed by: gantt: a failed sweep_gantt is UNREADABLE, never its partial lines
+  ok   mutant gantt_rows_unmapped killed by: gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger
+  ok   mutant verdict_filter_dropped killed by: verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on
+  ok   mutant verdict_rc_ignored killed by: verdict-audit: a failed run is UNREADABLE, never its partial lines
+  ok   mutant gantt_gh_rc_ignored killed by: gantt: a failed gh pr list is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)
+  ok   mutant gantt_show_rc_ignored killed by: gantt: a failed roster git show is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)
+  ok   mutant gantt_fetch_rc_ignored killed by: gantt: a failed fetch is UNREADABLE, never the stale refs/gantt/ roster (null: rc 0 runs it)
+  ok   mutant gantt_wip_refspec_dropped killed by: gantt: a handoff-wip tip is fetched and reaches sweep_gantt beside the handoff tip
+  ok   mutant gantt_ledger_not_copied killed by: gantt: the fire ledger is copied whole for sweep_gantt (null: no fire_ledger copies nothing)
+  ok   mutant fold_counter_to_set killed by: fold: a duplicated line is one more line, new.txt and a new stamp
+  ok   mutant need_accepts_empty killed by: a row whose overlay key is empty says so, and runs nothing
+  ok   mutant fold_new_kept_stale killed by: fold: a fold that added nothing empties new.txt, and leaves the stamp
+  ok   mutant darwin_gate_dropped killed by: darwin-selftest null: a non-Darwin host runs nothing and writes nothing
+  ok   mutant darwin_first_fail_is_last_line killed by: darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
+  ok   mutant darwin_tip_not_skipped killed by: darwin-selftest: an unchanged tip is skipped
+  ok   mutant darwin_red_dropped killed by: darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
+  ok   mutant darwin_cwd_repo killed by: darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout
+  ok   mutant darwin_keep_state_dir killed by: darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR
+  ok   mutant darwin_wired_filter_dropped killed by: darwin-selftest: the wired filter drops a self-test no workflow runs (null: both are seat self-tests)
+  ok   mutant darwin_remember_on_wt_fail killed by: darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried
+  ok   mutant darwin_slot_take_ignored killed by: darwin-selftest: a slot-take that fails is UNREADABLE and runs nothing
+  ok   mutant darwin_lease_not_released killed by: darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
+beat_jobs self-test: 227 checks, 0 failed
+rc=0 wall=36s

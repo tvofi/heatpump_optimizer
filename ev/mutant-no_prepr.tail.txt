@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.L1wgJMd9lZ/wt/tools/audit/seat/beat_jobs.py", line 751, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/tmp.L1wgJMd9lZ/wt/tools/audit/seat/beat_jobs.py", line 736, in main
+    return beat_jobs_selftest.run(Path(__file__), mutants="--no-mutants" not in argv)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.L1wgJMd9lZ/wt/tools/audit/seat/beat_jobs_selftest.py", line 1250, in run
+    res = cases(bj)
+  File "/tmp/tmp.L1wgJMd9lZ/wt/tools/audit/seat/beat_jobs_selftest.py", line 991, in cases
+    first_run = next(i for i, a in enumerate(f.calls) if a[-2] == "tools/pr/prepr.sh" and a[-1].startswith("--self"))
+StopIteration

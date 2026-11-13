@@ -1,0 +1,15 @@
+  ok   darwin-selftest null: a non-Darwin host runs nothing and writes nothing
+  ok   darwin-selftest null: a clean tip prints nothing, and every self-test ran
+  ok   darwin-selftest: an unchanged tip is skipped
+  ok   darwin-selftest: a new tip runs again
+  ok   darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
+  ok   darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
+  ok   darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout
+  ok   darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR
+  FAIL darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried
+  ok   darwin-selftest: a slot-take that fails is UNREADABLE and runs nothing
+  ok   darwin-selftest: an unreadable origin/main is UNREADABLE and runs nothing
+  ok   darwin-selftest: first_fail names the first FAIL line, else the last line, else the code
+  ok   darwin-selftest: the wired filter drops a self-test no workflow runs (null: both are seat self-tests)
+  ok   darwin-selftest: the wired set is the real tree's seat self-tests, mutant_run.py among them
+beat_jobs self-test: 133 checks, 1 failed
