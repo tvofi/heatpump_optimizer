@@ -26501,7 +26501,9 @@
    "findings": [],
    "architect_note": "",
    "brief": "Owner ruling 2026-11-13 on decision card P4 (yes, local and cloud): every dispatch writes group, role and model in a header, and a daily job sums token usage per header for local seats and per session for cloud seats into a ledger beside the dispatch ledger. Establish first, by measurement, whether cloud usage is readable per session; if it is not, record that and deliver the local half. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7 on the ref handoff-wip/r10-process-convergence-audit, section 1 and section 6 row a4. Must merge before round 11 finders start.",
-   "carry": [],
+   "carry": [
+    "From r11-pre-objective-function, body item fc61d366: The same, for the token ledger: fields kept apart, a seat keyed by group, role and dimension. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R11-PRE-TOKEN-LEDGER (items fc61d366)"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "fix/r11-pre-token-ledger",
