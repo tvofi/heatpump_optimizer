@@ -1,0 +1,7 @@
+Excerpts read via get_job_logs at head 676d726d27c4a5400d86c331bba87190bd34534c (2026-11-13):
+governance / policy-docs job 131785774647: ERROR [budgets] tools/audit/briefs/fixer.md: about 5229 tokens across its lines exceeds its cap of 5216 tokens (files_tokens). TOTAL: 1 error(s) across 51 policy file(s)
+governance / env-matrix job 131785775213: FAIL pr / policy_lint rc=0 ... same fixer.md 5229 > 5216 ERROR; 9 declared outcome(s) held, 7 did not, across 6 environment shape(s)
+tests / fast (3.14) job 131786078626: "1 TEST SCRIPT(S) FAILED"; lanes run: env_drift --claims-only, closure.py selftest, entities.py (489s), doc_claims.py, layout.py, harness_headers.py (ALL 115 PASSED). Locally at head: closure selftest rc0, doc_claims rc0, layout rc0, env_drift --claims-only rc0 => the failing script is tests/entities.py by elimination; entities.py cannot run in this container (ModuleNotFoundError: paho / homeassistant), so its failure text is not read.
+governance / instrument-self-tests job 131785774796: red in selftest_scope (wrapper/record arms: "the ungated steps [...] run untraced", "SELFTEST-SCOPE MUTANTS: every mutant refused"); selftest_scope is not in this diff; the base's job 131782096598 was in_progress, so INTRODUCED cannot be decided (classify rc 2).
+gate id 131786377265: failure (aggregate).
+Local policy_lint (node tools/policy/policy_lint.mjs): base 0723540391 TOTAL 0 errors; authored head f71c5e6933 TOTAL 0 errors; head 676d726d27 TOTAL 1 error (fixer.md files_tokens 5229 > 5216).

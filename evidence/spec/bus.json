@@ -1,0 +1,140 @@
+[
+ {
+  "name": "B-drop-ci-red",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-ci-wait",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-ci-pending",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-ci-cancelled",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-red-unanswered",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-root-cause-unanswered",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-body",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered contract preflight-mismatch conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-contract",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body preflight-mismatch conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-preflight-mismatch",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract conflict head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-conflict",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch head-moved carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-head-moved",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict carry-missing carry ungated \""
+ },
+ {
+  "name": "B-drop-carry-missing",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry ungated \""
+ },
+ {
+  "name": "B-drop-carry",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing ungated \""
+ },
+ {
+  "name": "B-drop-ungated",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry \""
+ },
+ {
+  "name": "B-add-harness",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated \"",
+  "new": "MECHANICAL_CLASSES=\" ci-red ci-wait ci-pending ci-cancelled red-unanswered root-cause-unanswered body contract preflight-mismatch conflict head-moved carry-missing carry ungated harness \""
+ },
+ {
+  "name": "B-exempt-off",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "mechanical_block \"$1\" && return 0  # mut:mechclass",
+  "new": "false && return 0  # mut:mechclass"
+ },
+ {
+  "name": "B-rekeyed-lookup-off",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "[ -n \"$pr\" ] || pr=$(awk",
+  "new": "[ -n \"$pr\" ] || pr=$(true || awk"
+ },
+ {
+  "name": "B-rekeyed-numeric-guard",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "$1 == t && $3 ~ /^[0-9]+$/ { p = $3 }",
+  "new": "$1 == t { p = $3 }"
+ },
+ {
+  "name": "B-rekeyed-first-not-last",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "$1 == t && $3 ~ /^[0-9]+$/ { p = $3 }",
+  "new": "$1 == t && $3 ~ /^[0-9]+$/ && p == \"\" { p = $3 }"
+ },
+ {
+  "name": "B-rekey-call-off",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "[ -z \"$pr\" ] || rekey \"$t\" \"$pr\" >&2 ||",
+  "new": "[ -z \"$pr\" ] || true >&2 ||"
+ },
+ {
+  "name": "B-rekey-fail-ignored",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "rekey \"$t\" \"$pr\" >&2 || die \"dispatch-handoff: recorded, but could not re-key",
+  "new": "rekey \"$t\" \"$pr\" >&2 || true \"dispatch-handoff: recorded, but could not re-key"
+ },
+ {
+  "name": "B-pr-numeric-off",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "--pr) numeric \"${2:-}\" || die",
+  "new": "--pr) true \"${2:-}\" || die"
+ },
+ {
+  "name": "B-pr-ignored",
+  "file": "tools/audit/seat/bus.sh",
+  "old": "--pr) numeric \"${2:-}\" || die \"dispatch-handoff: --pr takes a pull-request number\"; pr=$2;",
+  "new": "--pr) numeric \"${2:-}\" || die \"dispatch-handoff: --pr takes a pull-request number\";"
+ }
+]
