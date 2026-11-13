@@ -4,106 +4,127 @@
    {
     "conclusion": "success",
     "name": "prelude",
+    "started_at": "2026-11-11T12:39:05Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "arch-score / arch-score",
+    "started_at": "2026-11-11T12:39:07Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "budget-raise-gate / budget-raise-gate",
+    "started_at": "2026-11-11T12:39:14Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "codeql / Analyze (actions)",
+    "started_at": "2026-11-11T12:39:21Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "codeql / Analyze (javascript-typescript)",
+    "started_at": "2026-11-11T12:39:28Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "codeql / Analyze (python)",
+    "started_at": "2026-11-11T12:39:35Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "governance / policy-docs",
+    "started_at": "2026-11-11T12:40:42Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "governance / wave-script",
+    "started_at": "2026-11-11T12:40:49Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "governance / env-matrix",
+    "started_at": "2026-11-11T12:40:56Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "hassfest / hassfest",
+    "started_at": "2026-11-11T12:40:03Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "pr-contract / pr-contract",
+    "started_at": "2026-11-11T12:40:10Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / fast (3.14)",
+    "started_at": "2026-11-11T12:40:17Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / arch-instrument",
+    "started_at": "2026-11-11T12:41:24Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / browser",
+    "started_at": "2026-11-11T12:41:31Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / briefs",
+    "started_at": "2026-11-11T12:41:38Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / typing",
+    "started_at": "2026-11-11T12:41:45Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / mutation",
+    "started_at": "2026-11-11T12:41:52Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / closures",
+    "started_at": "2026-11-11T12:41:59Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / closure-scope",
+    "started_at": "2026-11-11T12:42:06Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "validate / validate-hacs",
+    "started_at": "2026-11-11T12:42:13Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "gate",
+    "started_at": "2026-11-11T12:42:20Z",
     "status": "completed"
    }
   ],
@@ -111,119 +132,141 @@
    {
     "conclusion": "success",
     "name": "prelude",
+    "started_at": "2026-11-11T12:39:05Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "arch-score / arch-score",
+    "started_at": "2026-11-11T12:39:07Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "budget-raise-gate / budget-raise-gate",
+    "started_at": "2026-11-11T12:39:14Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "codeql / Analyze (actions)",
+    "started_at": "2026-11-11T12:39:21Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "codeql / Analyze (javascript-typescript)",
+    "started_at": "2026-11-11T12:39:28Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "codeql / Analyze (python)",
+    "started_at": "2026-11-11T12:39:35Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "governance / policy-docs",
+    "started_at": "2026-11-11T12:40:42Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "governance / wave-script",
+    "started_at": "2026-11-11T12:40:49Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "governance / env-matrix",
+    "started_at": "2026-11-11T12:40:56Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "hassfest / hassfest",
+    "started_at": "2026-11-11T12:40:03Z",
     "status": "completed"
    },
    {
     "conclusion": null,
     "name": "pr-contract / pr-contract",
+    "started_at": null,
     "status": "queued"
    },
    {
     "conclusion": "success",
     "name": "tests / fast (3.14)",
+    "started_at": "2026-11-11T12:40:17Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / arch-instrument",
+    "started_at": "2026-11-11T12:41:24Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / browser",
+    "started_at": "2026-11-11T12:41:31Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / briefs",
+    "started_at": "2026-11-11T12:41:38Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / typing",
+    "started_at": "2026-11-11T12:41:45Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / mutation",
+    "started_at": "2026-11-11T12:41:52Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / closures",
+    "started_at": "2026-11-11T12:41:59Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "tests / closure-scope",
+    "started_at": "2026-11-11T12:42:06Z",
     "status": "completed"
    },
    {
     "conclusion": "success",
     "name": "validate / validate-hacs",
+    "started_at": "2026-11-11T12:42:13Z",
     "status": "completed"
    },
    {
     "conclusion": null,
     "name": "gate",
+    "started_at": null,
     "status": "in_progress"
    }
   ]
  },
  "base": "main",
  "head": "H",
- "note": "Constructed (not recorded) two-attempt run in the shape of run 43022147048: attempt 1 every need concluded; attempt 2, the gate re-run, has its re-queued need `pr-contract / pr-contract` listed queued (GATE-BUSY-REQUEUED-NEEDS).",
+ "note": "Constructed (not recorded) two-attempt run in the shape of run 43022147048: attempt 1 every need concluded; attempt 2, the gate re-run, has its re-queued need `pr-contract / pr-contract` listed queued (GATE-BUSY-REQUEUED-NEEDS). Timestamps follow run 43022147048's latest listing (read 2026-11-13): attempt 2 started 14:08:41Z (run_started_at); the carried prelude started 12:39:05Z; the re-queued need started 14:12:53Z. Every job of that listing reports run_attempt 2, carried or re-run, so a job's run_attempt does not tell them apart; its started_at against run_started_at does.",
  "pr": "7",
  "repo": "o/r",
  "run": {
   "display_title": "CI code pr=7 base=main sha=M",
   "id": 43022147048,
   "run_attempt": 2,
+  "run_started_at": "2026-11-11T14:08:41Z",
   "status": "in_progress"
  }
 }
