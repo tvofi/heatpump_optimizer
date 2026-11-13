@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import math
 from collections.abc import Callable, Coroutine, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -30,6 +31,7 @@ from homeassistant.util import dt as dt_util
 from . import away as away_mode
 from .drift import utc_elapsed_seconds, utc_shift
 from .const import (
+    BOOST_SPACE_SETTLE_TAIL_HOURS,
     DOMAIN,
     ECONOMY_ABSOLUTE_FLOOR,
     MODE_BOOST,
@@ -58,15 +60,18 @@ RELEASE_STALE = "the plan is stale"
 #: Installed by the pump arbiter. boost does not import that module.
 _cold_lease: Any = None
 #: #1935: how long after a space overlay ends the interval learners stay
-#: frozen. The replay integrates from a plant state propagated open-loop
-#: from the PLAN's trajectory, so the slab heat the overlay added -- real in
-#: the house, absent from the model's -- keeps every replay residual
-#: warm-side until the slab coupling re-equilibrates. The slab's own time
-#: constant at the default parameters is C/H = 5.0/0.8 = 6.25 h, and the
-#: gate arm measured the pre-study's 2 h guess insufficient on its own
-#: (-34 % on the scale across two boost days, with the window freeze
-#: already holding); two time constants clear ~86 % of the divergence.
-SPACE_SETTLE_TAIL = timedelta(hours=12)
+#: frozen, whatever time it ran. The replay integrates from a plant state
+#: propagated open-loop from the PLAN's trajectory, so the slab heat the
+#: overlay added -- real in the house, absent from the model's -- keeps every
+#: replay residual warm-side until the slab coupling re-equilibrates. The
+#: slab's own time constant at the default parameters is C/H = 5.0/0.8 =
+#: 6.25 h, and the gate arm measured the pre-study's 2 h guess insufficient
+#: on its own (-34 % on the scale across two boost days, with the window
+#: freeze already holding); two time constants clear ~86 % of the divergence.
+#: Not scaled to a shorter boost's length: no scaled tail tried kept every
+#: press arm of dev/audit/harnesses/boost_press_tail_walk.py inside the whole
+#: window's walk under this tail.
+SPACE_SETTLE_TAIL = timedelta(hours=BOOST_SPACE_SETTLE_TAIL_HOURS)
 #: The freeze reason ``_learning_frozen`` reports while the space overlay
 #: (channel or global mode) is live or settling (#1935).
 FREEZE_REASON = "boost_space"
@@ -107,10 +112,52 @@ class BoostState:
     blocked: dict[str, datetime] = field(default_factory=dict)
     #: #1935: when the space overlay's settling tail ends -- set when the
     #: overlay ends (expiry or cancel) and when the global boost mode is
-    #: left. In-memory only: a restart mid-tail also loses
-    #: ``_last_house_sample``, so the first replay after it is skipped
-    #: anyway and no tail is owed.
+    #: left, ``SPACE_SETTLE_TAIL`` from that end. Persisted: the replay
+    #: baseline is gone after a restart, but the slab heat is not, so every
+    #: replay after the first one would fold it.
     space_settle_until: datetime | None = None
+    #: When the space overlay, and the global boost mode, went live; ``None``
+    #: unseen (a mode restored as boost), which makes ``space_boosted`` unknown.
+    space_since: datetime | None = None
+    mode_since: datetime | None = None
+
+    #: The boosted time, over both surfaces, that ended since the learners
+    #: were last free of a boost: boosts add up, so the heat a tail must clear
+    #: is that of the sum, not of the last boost alone. Recorded and persisted
+    #: with the tail; no tail is priced on it yet. ``None`` once a start nobody
+    #: saw is in it. Cleared only by ``_clear_spent``.
+    space_boosted: timedelta | None = timedelta(0)
+
+    def settle(self, end: datetime, since: datetime | None) -> None:
+        """Start the tail a space boost live from ``since`` until ``end`` owes.
+
+        Adds the time it ran to ``space_boosted``. Never shortens a tail
+        already running (a clock stepped back leaves the later end).
+        """
+        if since is None or self.space_boosted is None:
+            self.space_boosted = None
+        else:
+            self.space_boosted += timedelta(seconds=utc_elapsed_seconds(end, since))
+        until = utc_shift(end, SPACE_SETTLE_TAIL)
+        held = self.space_settle_until
+        if held is None or utc_elapsed_seconds(until, held) > 0:
+            self.space_settle_until = until
+
+    def _clear_spent(self, now: datetime) -> None:
+        """Free the learners of past boosts once their tail ran out with no overlay live."""
+        tail = self.space_settle_until
+        if (tail is not None and utc_elapsed_seconds(tail, now) <= 0
+                and CHANNEL_SPACE not in self.until and self.mode_since is None):
+            self.space_settle_until, self.space_boosted = None, timedelta(0)
+
+    def note_mode(self, live: bool, now: datetime) -> None:
+        """The global boost mode was entered (``live``) or left: leaving starts its tail."""
+        if live:
+            self._clear_spent(now)
+            self.mode_since = now
+        else:
+            self.settle(now, self.mode_since)
+            self.mode_since = None
 
     def active(self, channel: str, now: datetime) -> bool:
         end = self.until.get(channel)
@@ -136,7 +183,7 @@ class BoostState:
                 # Anchored to the window's own end, not to when this
                 # expiry was observed: re-equilibration starts when the
                 # heat stopped (#1935).
-                self.space_settle_until = utc_shift(end, SPACE_SETTLE_TAIL)
+                self.settle(end, self.space_since)
         elif utc_elapsed_seconds(end, now) > lead.total_seconds():
             # The clock stepped back since the window was set: the two-hour
             # maximum is a duration, not an instant (D1-s3-05), so it is
@@ -151,7 +198,7 @@ class BoostState:
                     # Anchored to the window's own end, not to when this
                     # expiry was observed: re-equilibration starts when the
                     # heat stopped (#1935).
-                    self.space_settle_until = utc_shift(end, SPACE_SETTLE_TAIL)
+                    self.settle(end, self.space_since)
             elif utc_elapsed_seconds(end, now) > _MAX_LEAD.total_seconds():
                 # The clock stepped back since the boost was set: the two-hour
                 # maximum is a duration, not an instant (D1-s3-05), so it is
@@ -161,11 +208,12 @@ class BoostState:
             self._expire_one(
                 self.blocked, channel, end, now, _BLOCK_LEAD, settle=False
             )
+        self._clear_spent(now)
 
     def _note_space_boost_ended(self, now: datetime) -> None:
         # A cancel leaves the same diverged plant state an expiry does
-        # (#1935), so it owes the same settling tail.
-        self.space_settle_until = utc_shift(now, SPACE_SETTLE_TAIL)
+        # (#1935), so it owes the same settling tail, for the time it ran.
+        self.settle(now, self.space_since)
 
     def _set_blocked(self, channel: str, active: bool, now: datetime) -> None:
         if active:
@@ -189,6 +237,9 @@ class BoostState:
         if active:
             # A boost press clears a block on the same channel.
             self.blocked.pop(channel, None)
+            if channel == CHANNEL_SPACE and not self.active(channel, now):
+                self._clear_spent(now)
+                self.space_since = now
             self.until[channel] = utc_shift(now, _MAX_LEAD)
         else:
             was_live = self.active(channel, now)
@@ -305,16 +356,17 @@ def interval_boosted(pending: Mapping[str, Any], coord: Any) -> bool:
     return utc_elapsed_seconds(utc_shift(end, -_MAX_LEAD), now) < 0
 
 
-def note_mode_boost_ended(coord: Any, now: datetime | None = None) -> None:
-    """#1935: the global boost mode was left; its settling tail begins.
+def note_mode_change(coord: Any, old: str | None, new: str, now: datetime | None = None) -> None:
+    """#1935: the global boost mode entered or left; leaving starts its tail.
 
     The mode surface diverges the replayed plant state exactly as the
     channel overlay does -- same actuation, same mechanism -- so it owes
-    the same tail.
+    the same tail, for the time the mode ran.
     """
-    held_for(coord).space_settle_until = utc_shift(
-        now or dt_util.now(), SPACE_SETTLE_TAIL
-    )
+    if (old == MODE_BOOST) != (new == MODE_BOOST):
+        held_for(coord).note_mode(new == MODE_BOOST, now or dt_util.now())
+        if old == MODE_BOOST:
+            _schedule_persist(coord)
 
 
 def overlay(
@@ -390,6 +442,7 @@ def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
     """
     now = dt_util.now()
     held = held_for(coord)
+    tail = held.space_settle_until
     held.expire(now)
     if not has_hot_water(coord):
         # No tank to heat: a DHW boost or block set or restored anyway is
@@ -408,7 +461,7 @@ def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
         ecl_max=specs.ecl_max,
     )
     coord.adopt_action(action)
-    if released:
+    if released or held.space_settle_until != tail:
         _schedule_persist(coord)
 
 
@@ -417,7 +470,7 @@ def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
         coord.hass,
         BOOST_STORE_VERSION,
         f"{DOMAIN}_{coord.entry.entry_id}_boost",
-        lead=_MAX_LEAD,
+        lead=_MAX_LEAD,  # the settling tail's own field declares its longer lead
         naive_zone=dt_util.DEFAULT_TIME_ZONE,  # _parse_until's zone
     )
 
@@ -426,19 +479,34 @@ def _parse_until(raw: Any) -> datetime | None:
     return stored_instant(raw, dt_util.DEFAULT_TIME_ZONE)
 
 
+def _store_payload(held: BoostState) -> dict[str, Any]:
+    """What ``persist`` stores: an install that never boosted stores what it always did."""
+    payload: dict[str, Any] = {
+        channel: {"until": end.isoformat()}
+        for channel, end in held.until.items()
+    }
+    # Absent when no block is set, so a boost-only store is unchanged.
+    payload.update({
+        f"block_{channel}": {"until": end.isoformat()}
+        for channel, end in held.blocked.items()
+    })
+    # #1935: the settling tail, the boosted time it was priced on, and the
+    # live space overlay's start, so a restart neither drops the tail nor
+    # prices a boost from its restart.
+    if held.space_settle_until is not None:
+        boosted = held.space_boosted
+        payload["space_settle"] = {
+            "until": held.space_settle_until.isoformat(),
+            "boosted_h": None if boosted is None else boosted.total_seconds() / 3600.0,
+        }
+    if held.space_since is not None and CHANNEL_SPACE in held.until:
+        payload[CHANNEL_SPACE]["since"] = held.space_since.isoformat()
+    return payload
+
+
 async def persist(coord: _BoostCoord) -> None:
     try:
-        held = held_for(coord)
-        payload = {
-            channel: {"until": end.isoformat()}
-            for channel, end in held.until.items()
-        }
-        # Absent when no block is set, so a boost-only store is unchanged.
-        payload.update({
-            f"block_{channel}": {"until": end.isoformat()}
-            for channel, end in held.blocked.items()
-        })
-        await _store(coord).async_save(payload)
+        await _store(coord).async_save(_store_payload(held_for(coord)))
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not persist boost state: %s", err)
 
@@ -470,6 +538,29 @@ async def restore(coord: Any) -> None:
                 and dt_util.as_utc(parsed_block) > dt_util.as_utc(now)
             ):
                 held.blocked[channel] = parsed_block
+    _restore_settle(held, raw, now)
+
+
+def _restore_settle(held: BoostState, raw: Mapping[str, Any], now: datetime) -> None:
+    """The persisted settling tail, while it runs, and the live overlay's start."""
+    tail = raw.get("space_settle")
+    tail = tail if isinstance(tail, Mapping) else {}
+    until = _parse_until(tail.get("until"))
+    if until is not None and dt_util.as_utc(until) > dt_util.as_utc(now):
+        held.space_settle_until = until
+        # Unreadable boosted time reads as a start nobody saw: unknown.
+        hours = tail.get("boosted_h")
+        held.space_boosted = (timedelta(hours=hours) if isinstance(hours, (int, float))
+                              and not isinstance(hours, bool) and 0.0 <= hours < math.inf else None)
+    space = raw.get(CHANNEL_SPACE)
+    since = _parse_until(space.get("since")) if isinstance(space, Mapping) else None
+    if since is not None and CHANNEL_SPACE in held.until:
+        held.space_since = since
+    end = _parse_until(space.get("until")) if isinstance(space, Mapping) else None
+    if end is not None and CHANNEL_SPACE not in held.until:
+        # The overlay ended while Home Assistant was down: it owes its tail.
+        held.settle(end, since)
+        held._clear_spent(now)
 
 
 async def restore_session(
