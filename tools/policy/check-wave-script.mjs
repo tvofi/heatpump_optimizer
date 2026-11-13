@@ -962,8 +962,9 @@ await block('the scoped round driver', async () => {
   // nor a multiple of three, `on6` is a multiple of six.
   const free = Array.from({ length: 60 }, (_, i) => i + 10).filter((r) => !every.includes(r))
   const off = free.find((r) => r % 2 !== 0 && r % 3 !== 0), on6 = free.find((r) => r % 6 === 0)
-  t(`...and the cadence is otherwise read from the round number (D11 and D5 off at ${off}, both on at ${on6}, D0 on at ${off})`,
-    !!off && !!on6 && !D.activeIn(off, 'D11') && D.activeIn(on6, 'D11') && D.activeIn(on6, 'D5') && !D.activeIn(off, 'D5') && D.activeIn(off, 'D0'), 'the cadence is not derived from the round')
+  // D5 and D6 run every round (tvofi 2026-11-13), so D11 alone is the cadence's off arm.
+  t(`...and the cadence is otherwise read from the round number (D11 off at ${off}, on at ${on6}; D0, D5 and D6 on at ${off})`,
+    !!off && !!on6 && !D.activeIn(off, 'D11') && D.activeIn(on6, 'D11') && ['D0', 'D5', 'D6'].every((d) => D.activeIn(off, d)), 'the cadence is not derived from the round')
   const ids = L.dims.flatMap((d) => D.seatsFromScopes(scopes, d).map((s) => s.id))
   const fileSeats = Object.entries(scopes).filter(([k]) => !k.startsWith('_')).flatMap(([d, x]) => Object.keys(x.seats).map((k) => `${d}-${k}`))
   t('one seat per scopes.json seat, id <dim>-s<n>, nothing added or dropped', J(ids) === J(fileSeats), `${ids.length} vs ${fileSeats.length}`)

@@ -87,7 +87,9 @@ const BUNDLE_DIMS = new Set(['D15'])
 // three. A round in EVERY_DIM_ROUNDS runs all of them: round 9 widens coverage
 // on the owner's ask (the round-9 plan, section 2 default 1), round 10 by the
 // owner's override of 2026-10-14, and the cadence is otherwise left alone.
-const CADENCE = { D0: 1, D1: 1, D2: 1, D3: 1, D4: 1, D7: 1, D8: 1, D9: 1, D10: 1, D12: 1, D14: 1, D15: 1, D5: 2, D6: 2, D11: 3, D13: 3 }
+// D5 and D6 run every round from round 11 (tvofi 2026-11-13: "2 and 3 in
+// round 11", their scope "always" the full one).
+const CADENCE = { D0: 1, D1: 1, D2: 1, D3: 1, D4: 1, D7: 1, D8: 1, D9: 1, D10: 1, D12: 1, D14: 1, D15: 1, D5: 1, D6: 1, D11: 3, D13: 3 }
 const EVERY_DIM_ROUNDS = new Set([9, 10])
 const activeIn = (r, dim) => !!CADENCE[dim] && (EVERY_DIM_ROUNDS.has(r) || r % CADENCE[dim] === 0)
 // The seats of a dimension, from dev/audit/config/scopes.json and nothing else: one
