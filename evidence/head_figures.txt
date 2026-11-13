@@ -1,0 +1,9 @@
+  ok   the CI ratchet refuses a non-finite, mistyped or unknown budget row
+# strings: 1074 flow strings
+# de: 1074 flow strings
+# en: 1074 flow strings
+# sv: 1074 flow strings
+# 370 distinct English flow texts of 40+ characters
+{'true': 286, 'false': 27, 'stale': 12, 'unverifiable': 4, 'no-claim': 40}
+
+[exited with code 0]
