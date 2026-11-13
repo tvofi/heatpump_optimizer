@@ -795,7 +795,7 @@ def _grid_rows():
                     yield step, everyday, disinfection
 
 
-def _on_step(value, step):
+def _disinfection_on_step(value, step):
     return abs(value / step - round(value / step)) < 1e-9
 
 
@@ -826,7 +826,7 @@ def _slider_count(*, hold=False, on_step=None, steps=_SLIDER_STEPS, rows=_slider
     """(rows driven, notices raised) over ``rows`` filtered by step and on-step."""
     driven = raised = 0
     for step, everyday, disinfection in rows():
-        if step not in steps or on_step not in (None, _on_step(disinfection, step)):
+        if step not in steps or on_step not in (None, _disinfection_on_step(disinfection, step)):
             continue
         driven += 1
         raised += _step_notice(everyday, disinfection, step, hold=hold) is not None
@@ -856,6 +856,47 @@ def _unreachable_yields_to_the_step_notice() -> bool:
     cleared = unreachable not in _standing(hass)
     guard.raise_unreachable_issue(58.0, 62.0)
     return raised_before and cleared and unreachable not in _standing(hass) and _STEP_ISSUE in _standing(hass)
+
+
+def _credit_edges() -> dict[str, bool]:
+    """The two credit rules at their edges, through ``async_track``: target less 1.0 credits at once, less 0.5 starts a hold."""
+    out: dict[str, bool] = {}
+    for free, margin, attr in ((False, 1.0, "last_cycle"), (True, 0.5, "hold_last")):
+        seen = []
+        for reading in (60.0 - margin, 60.0 - margin - 0.01):
+            params = ThermalParameters(dhw_legionella_temp=60.0, dhw_legionella_enabled=True, dhw_enabled=True)
+            guard = LegionellaGuard(
+                FakeHass(), "guard-pins-edge", lambda p=params: p, {"dhw_free_disinfection_enabled": free},
+                action=lambda: {}, disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+                dhw_blocked=lambda: False,
+            )
+            asyncio.run(guard.async_track(reading))
+            seen.append(getattr(guard, attr) is not None)
+        out[f"{'hold' if free else 'instant'} credit counts target less {margin} and not 0.01 under"] = seen == [True, False]
+    return out
+
+
+def _off_step_notice_is_deduplicated() -> bool:
+    """An unchanged off-step signature does not re-raise the notice (as ``check_ceiling``'s)."""
+    params = ThermalParameters(dhw_setpoint=55.0, dhw_legionella_temp=62.0,
+                               dhw_legionella_enabled=True, dhw_enabled=True)
+    hass = FakeHass({"number.dhw": FakeState("50", attributes={"min": 30, "max": 80, "step": 5})})
+    guard = LegionellaGuard(
+        hass, "guard-pins-step", lambda: params,
+        {"pump_duty_mode": "control", "dhw_setpoint_entity": "number.dhw"}, action=lambda: {},
+        disinfect=DisinfectionSwitch({}, lambda *a, **k: None, lambda e: None),
+        dhw_blocked=lambda: False,
+    )
+    calls: list[int] = []
+    ir = legionella_mod.ir
+    original = ir.async_create_issue
+    ir.async_create_issue = lambda *a, **k: calls.append(1)
+    try:
+        guard.off_step.check(params, guard._config)
+        guard.off_step.check(params, guard._config)
+    finally:
+        ir.async_create_issue = original
+    return len(calls) == 1
 
 
 def _off_step_notice_pins() -> dict[str, bool]:
@@ -894,6 +935,8 @@ def _off_step_notice_pins() -> dict[str, bool]:
     out["the off-step notice shows, not the unreachable notice's hardware advice"] = (
         _unreachable_yields_to_the_step_notice()
     )
+    out["an unchanged off-step signature does not re-raise the notice"] = _off_step_notice_is_deduplicated()
+    out.update(_credit_edges())
     out["null: the cycle disabled raises none"] = _step_notice(55.0, 62.0, 5, cycle=False) is None
     out["null: hot water disabled raises none"] = _step_notice(55.0, 62.0, 5, dhw=False) is None
     out["null: no set-point entity raises none"] = _step_notice(55.0, 62.0, 5, entity=None) is None

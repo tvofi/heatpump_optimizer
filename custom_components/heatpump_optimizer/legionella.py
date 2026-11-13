@@ -99,13 +99,15 @@ class OffStepNotice:
         if signature == self.signature:
             return
         self.signature = signature
-        if signature is not None:
-            clear_issue(self.hass, "dhw_legionella_unreachable")
-        target, written, step, below, above = signature or (0.0,) * 5
+        if signature is None:
+            clear_issue(self.hass, "dhw_legionella_off_step")
+            return
+        clear_issue(self.hass, "dhw_legionella_unreachable")
+        target, written, step, below, above = signature
         set_issue(
             self.hass,
             "dhw_legionella_off_step",
-            signature is not None,
+            True,
             placeholders={
                 "legionella_temp": f"{target:g}",
                 "written": f"{written:g}",
@@ -445,7 +447,7 @@ class LegionellaGuard:
 
         self.attempt = now
         self.attempt_peak = float(peak)
-        if peak >= target - CREDIT_INSTANT_MARGIN_K:
+        if peak >= target - 1.0:
             # It got to temperature but the completion was never credited —
             # under the free-disinfection flag that means the hold was not
             # observed for long enough. The retry is spaced by ``hours_since``,
