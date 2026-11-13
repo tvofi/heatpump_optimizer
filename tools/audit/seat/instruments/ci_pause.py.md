@@ -9,7 +9,9 @@
   head and main have nothing queued, on every train exit and at every train
   start; a moved head drops the record. Called from `merge_train.py`'s
   `wait_ci` (`pause_poll`), `unwind` and the train starts (`pause_resume`).
-  Off by default: `priority_cancel` false logs `PAUSE-HELD` and cancels nothing
-  (carry 6). Log lines: `PAUSE #<n> at <head8>: runs <ids> for <head8>`,
+  Not switched by `priority_cancel`, which governs only the sweep's cancels of
+  queued runs. `hold(<sha>)` names a queued priority run while the pull request
+  at `<sha>` is not a priority tier (main's tip never is): the train waits on it
+  before each re-run it starts (`HOLD`, carry 6 (ii)). Log lines: `PAUSE #<n> at <head8>: runs <ids> for <head8>`,
   `RESUME #<n> at <head8>: runs <ids> (<why>)`. When: only through the train.
   Refusal: an unreadable roster, setting or comments pause nothing.

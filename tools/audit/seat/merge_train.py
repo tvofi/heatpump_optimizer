@@ -1020,6 +1020,11 @@ def infra_due(attempt: int, failed: list[dict], logs: dict) -> "tuple[float, lis
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
+# Carry 6 (ii): a re-run the train starts for a non-priority pull request waits
+# while a priority run is queued, re-asked each POLL_SECONDS; past six polls
+# (30 min, the order of the priority wait carry 4 measured) it runs anyway,
+# logged, so a priority queue that never drains cannot stall the train.
+HOLD_POLLS = 6
 # The heartbeat (tvofi, 2026-10-13): the batch train sat silent 2+ hours inside
 # --overlap's up-front recarry phase (each recarry logs only on completion, and
 # app_push's prepr takes 5-15 min per entry) and inside wait_ci's poll cycle,
@@ -3482,6 +3487,27 @@ class Train:
             except Exception as e:  # noqa: BLE001
                 self.log(f"PAUSE error: {str(e)[:120]}")
 
+    def hold_reruns(self, h: str, what: str) -> None:
+        """Carry 6 (ii): before a re-run at <h>, wait while `CiPause.hold` names a queued priority
+        run (logged HOLD once, HOLD-END when it clears), at most HOLD_POLLS polls (HOLD-EXPIRED).
+        No pause module, or a hold that raises, waits for nothing."""
+        cp = self.ci_pause()
+        for k in range(HOLD_POLLS if cp is not None else 0):
+            try:
+                why = cp.hold(h)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"HOLD error: {str(e)[:120]}")
+                return
+            if not why:
+                if k:
+                    self.log(f"HOLD-END {what} at {h[:8]} after {k} poll(s)")
+                return
+            if not k:
+                self.log(f"HOLD {what} at {h[:8]}: {why}")
+            self.sleep(POLL_SECONDS)
+        if cp is not None:
+            self.log(f"HOLD-EXPIRED {what} at {h[:8]} after {HOLD_POLLS} poll(s): re-running")
+
     def pause_resume(self, why: str) -> None:
         cp = self.ci_pause()
         if cp is not None:
@@ -4180,6 +4206,8 @@ class Train:
             if code or not stale(c, st.strip()):
                 continue
             if m.group(1) not in reran.values():
+                if not reran:
+                    self.hold_reruns(h, "stale re-run")
                 code, o = self.run(["gh", "api", "-X", "POST", f"repos/{self.repo}/actions/runs/{m.group(1)}/rerun"])
                 self.log(f"STALE {name} at {h[:8]}: check-run {c.get('id')} {c.get('status')} over completed "
                          f"run {m.group(1)}; re-run once (rc={code}{': ' + o.strip()[-120:] if code else ''})")
@@ -8191,6 +8219,40 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     check("K15 (b): two stale check-runs over one workflow run re-run that run once, not once per check-run",
           rc == 0 and merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1
           and sum(ln.startswith("STALE ") for ln in lines) == 1)
+    asked: list = []
+
+    class _Hold:  # carry 6 (ii): a priority run queued for two polls, then none
+        def hold(self, h):
+            asked.append(h)
+            return "priority #10 run 901 is queued" if len(asked) <= 2 else None
+    _cp_attr = Train.ci_pause
+    Train.ci_pause = lambda self: _Hold()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    held_at = [i for i, ln in enumerate(lines) if ln.startswith("HOLD stale re-run at ")]
+    check("carry 6 (ii): the stale re-run of a non-priority head waits while a priority run is queued "
+          "(HOLD, then HOLD-END after 2 polls), then re-runs once and merges",
+          rc == 0 and merged(calls) and len(held_at) == 1 and "priority #10 run 901" in lines[held_at[0]]
+          and any(ln.startswith("HOLD-END stale re-run") and "after 2 poll(s)" in ln for ln in lines)
+          and len(asked) == 3 and sum(c[-1].endswith("/rerun") for c in calls) == 1)
+    asked.clear()
+    Train.ci_pause = lambda self: type("_Never", (), {"hold": lambda s, h: asked.append(h)})()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    check("carry 6 (ii) null: no priority run queued, the stale re-run is asked once and never waits",
+          rc == 0 and merged(calls) and len(asked) == 1 and not any(ln.startswith("HOLD") for ln in lines))
+    Train.ci_pause = lambda self: type("_Always", (), {"hold": lambda s, h: "priority #10 run 901 is queued"})()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    check("carry 6 (ii): a priority queue that never drains holds HOLD_POLLS polls, then re-runs (HOLD-EXPIRED)",
+          rc == 0 and merged(calls) and any(ln.startswith("HOLD-EXPIRED stale re-run") for ln in lines)
+          and sum(c[-1].endswith("/rerun") for c in calls) == 1)
     rc, lines, calls = go(stale_world("in_progress", False))
     check("K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)",
           rc == 0 and not any(c[-1].endswith("/rerun") for c in calls))
