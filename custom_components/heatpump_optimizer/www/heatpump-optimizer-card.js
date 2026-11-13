@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.14";
+const CARD_VERSION = "7.1.15";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -907,6 +907,11 @@ const STRINGS = {
     // The percent is a template because the spacing is orthographic:
     // English sets "(8%)", Swedish "(8 %)".
     "headline.savings_pct": "({pct}%)",
+    // R10-CARD-COLLAPSE: the headline's two folds. The why-now fold reuses
+    // its own "whynow.title"; the narrative fold's rows total in one line.
+    "fold.narrative_title": "Plan by reason",
+    "fold.narrative_total": "{kwh} kWh · {cost} in total",
+    "fold.hint": "Click to show or hide the details.",
     "whynow.title": "Why now",
     "whynow.metric":
       "The reasons weighing on this hour's plan. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason pushes hardest; the plan weighs the whole day's hours together, so the heat pump can still do the opposite this hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
@@ -1759,6 +1764,9 @@ const STRINGS = {
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
+    "fold.narrative_title": "Planen per skäl",
+    "fold.narrative_total": "{kwh} kWh · {cost} totalt",
+    "fold.hint": "Klicka för att visa eller dölja detaljerna.",
     "whynow.title": "Varför nu",
     "whynow.metric":
       "Skälen som väger på den här timmens plan. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet driver hårdast; planen väger hela dygnets timmar mot varandra, så värmepumpen kan ändå göra tvärtom den här timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
@@ -2426,6 +2434,9 @@ const STRINGS = {
     "score.label_machine": "Wärmepumpe",
     "score.label_operation": "Betrieb",
     "headline.savings_pct": "({pct} %)",
+    "fold.narrative_title": "Plan nach Grund",
+    "fold.narrative_total": "{kwh} kWh · {cost} insgesamt",
+    "fold.hint": "Klicken, um die Details ein- oder auszublenden.",
     "whynow.title": "Warum jetzt",
     "whynow.metric":
       "Die Gründe, die den Plan dieser Stunde bestimmen. Jede Zeile ist ein Grund: Der Pfeil zeigt, ob er die Wärmepumpe zum Laufen oder zum Pausieren drängt, und der Prozentwert ist sein Anteil am gesamten Einfluss in dieser Stunde. Ein hoher Anteil bedeutet, dass dieser Grund am stärksten drängt; der Plan wägt alle Stunden des Tages gegeneinander ab, daher kann die Wärmepumpe in dieser Stunde trotzdem das Gegenteil tun. Keine Daten bedeutet, dass der Optimierer für diese Stunde noch keinen Plan hat, zum Beispiel vor der ersten Berechnung oder solange die Preisprognose fehlt.",
@@ -5310,6 +5321,39 @@ function cardStyleBlock(darkMode) {
         display: grid; gap: var(--hpo-space-2, 8px) var(--hpo-space-5, 24px);
         grid-template-columns: repeat(auto-fit,
           minmax(max(min(100%, 348px), calc(50% - 13px)), 1fr));
+      }
+      /* R10-CARD-COLLAPSE: a fold is a full-width header button (title
+         left, its one-line summary right) over a body drawn only
+         while open. Transparent on the card's own surface, so it reads as a
+         row of the headline, not a second tile. */
+      .hl-fold { display: flex; flex-direction: column; min-width: 0; }
+      /* A rule under the last fold closes the headline off from the chart. */
+      .hl-fold:last-child { border-bottom: 1px solid var(--hpo-divider, #e0e0e0); }
+      .hl-fold-head {
+        display: flex; align-items: center; gap: var(--hpo-space-2, 8px);
+        width: 100%; min-height: 32px; margin: 0; box-sizing: border-box;
+        padding: 4px var(--hpo-space-3, 12px) 4px 4px;
+        background: none; border: 0; border-top: 1px solid var(--hpo-divider, #e0e0e0);
+        color: var(--hpo-text, #212121); font: inherit;
+        font-size: var(--hpo-text-sm, 13px); text-align: left; cursor: pointer;
+      }
+      .hl-fold-head:focus-visible {
+        outline: 2px solid var(--hpo-primary, #03a9f4); outline-offset: -2px;
+        border-radius: 4px;
+      }
+      .hl-fold-chev {
+        flex: none; width: 6px; height: 6px; margin: 0 4px;
+        border-right: 2px solid var(--hpo-text-2, #727272);
+        border-bottom: 2px solid var(--hpo-text-2, #727272);
+        transform: rotate(-45deg); transition: transform 0.15s;
+      }
+      .hl-fold.unfolded .hl-fold-chev { transform: rotate(45deg); }
+      .hl-fold-title { flex: none; font-weight: 600; }
+      /* Wraps rather than ellipsises: a clipped summary would hide the very
+         line the folded section is reduced to (the P9 grid's clip rule). */
+      .hl-fold-sum {
+        flex: 1; min-width: 0; text-align: right; overflow-wrap: anywhere;
+        color: var(--hpo-text-2, #727272); font-variant-numeric: tabular-nums;
       }
       .nl {
         display: grid; grid-template-columns: minmax(0, 1fr) auto;
@@ -8517,6 +8561,12 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   // closer than this to its neighbour is refused; the halving is there so an
   // interval that divides exactly cannot be refused for a rounding error.
   const minLabelGap = (size * 0.6) / 2;
+  // Beside a CLAMPED label the bar is half the gap the centred labels
+  // actually get at this step (R10-CARD-COLLAPSE polish): the clamp spends up
+  // to half a label of that gap, and a neighbour kept at the bare minimum read
+  // as one run ("06:00 AM08:00 AM") beside the even pitch of the rest.
+  const pitchGap = every * unitsPerHour - (labelWidth - size * 0.6);
+  const clampedGap = Math.max(minLabelGap, pitchGap / 2);
 
   const out = [];
   const labels = [];
@@ -8575,7 +8625,8 @@ function timeAxis(scaleX, plotT, plotB, windowStart, windowEnd, font, plotL, plo
   const kept = [];
   for (const lab of labels) {
     let drop = false;
-    while (kept.length && lab.left - kept[kept.length - 1].right < minLabelGap) {
+    while (kept.length && lab.left - kept[kept.length - 1].right <
+      (lab.clamped || kept[kept.length - 1].clamped ? clampedGap : minLabelGap)) {
       if (!lab.clamped) {
         drop = true;
         break;
@@ -9759,28 +9810,53 @@ function breakdownRow({ key, label, valueText, muted = false, barPct = null, sub
  * direction mark and signed share of the push; one line when every driver
  * is neutral, the no-data line when the attribute is absent. Derives
  * nothing: the weights and directions are the solver's. */
-function whyNowHtml(plan) {
+function whyNowParts(plan) {
   const why = plan.attrRaw("why_now", null);
   const drivers = knownCodes(why && why.drivers, "whynow.driver_");
   const mark = { run: "↑", idle: "↓" };
+  const weightOf = (d) => Math.round(Number(d.weight) || 0);
+  const valueOf = (d) => `${mark[d.direction] || "·"} ${L("whynow.weight", {
+    sign: weightOf(d) > 0 ? "+" : weightOf(d) < 0 ? "−" : "", w: Math.abs(weightOf(d)) })}`;
+  // The folded line: the driver pushing hardest, else what the rows would say.
+  const lead = drivers.filter((d) => mark[d.direction])
+    .reduce((a, d) => (!a || Math.abs(weightOf(d)) > Math.abs(weightOf(a)) ? d : a), null);
+  const summary = !drivers.length ? L("whynow.no_data")
+    : lead ? `${L(`whynow.driver_${lead.code}`)} ${valueOf(lead)}` : L("whynow.all_neutral");
   const rows = !drivers.length
     ? `<div class="sb-text">${esc(L("whynow.no_data"))}</div>`
     : drivers.every((d) => d.direction === "neutral")
       ? `<div class="sb-text">${esc(L("whynow.all_neutral"))}</div>`
       : drivers.map((d) => {
-        const w = Math.round(Number(d.weight) || 0);
         const label = L(`whynow.driver_${d.code}`);
-        const valueText = `${mark[d.direction] || "·"} ${L("whynow.weight", { sign: w > 0 ? "+" : w < 0 ? "−" : "", w: Math.abs(w) })}`;
+        const valueText = valueOf(d);
         const dir = L(`whynow.dir_${mark[d.direction] ? d.direction : "neutral"}`);
         return breakdownRow({
           key: d.code, label, valueText, muted: d.direction === "neutral",
-          barPct: Math.abs(w), sub: [["sb-text", dir]],
+          barPct: Math.abs(weightOf(d)), sub: [["sb-text", dir]],
           title: `${label}: ${dir}, ${valueText}\n${L(`whynow.explain_${d.code}`)}\n${L("whynow.metric")}`,
         });
       }).join("");
-  return `<div class="score-breakdown why-now" data-block="why-now" title="${esc(L("whynow.metric"))}">` +
-    `<div class="sb-head"><span class="sb-name">${esc(L("whynow.title"))}</span></div>${rows}</div>`;
+  return {
+    summary,
+    body: `<div class="score-breakdown why-now" data-block="why-now" title="${esc(L("whynow.metric"))}">${rows}</div>`,
+  };
 }
+
+/** One headline fold (R10-CARD-COLLAPSE): a header button that names the
+* section and carries its one-line summary whether unfolded or not, and the
+ * body only while unfolded -- genuinely unrendered when folded, as the dialog's hidden
+ * pages are. No id/aria-controls: the headline renders twice in one shadow
+ * root (card and Plan page), and the body follows its button directly. */
+function foldHtml(key, title, summary, unfolded, body, hover) {
+  return `<div class="hl-fold${unfolded ? " unfolded" : ""}" data-fold-block="${key}">` +
+    `<button type="button" class="hl-fold-head" data-fold="${key}" aria-expanded="${unfolded ? "true" : "false"}" ` +
+    `title="${esc(hover ? `${hover}\n${L("fold.hint")}` : L("fold.hint"))}">` +
+    `<span class="hl-fold-chev" aria-hidden="true"></span>` +
+    `<span class="hl-fold-title">${esc(title)}</span>` +
+    `<span class="hl-fold-sum">${esc(summary)}</span></button>` +
+    (unfolded ? body : "") + `</div>`;
+}
+
 
 /** One sub-score's hover: its grade or reason, its drivers or what it
  * waits on, and its metric in plain words -- the headline's line for it. */
@@ -9811,13 +9887,23 @@ function savingsUnit(plan, statKey) {
  * whole list when `items` is absent or does not pair one to one with
  * `lines` (the integration skips an item it has no sentence for, so a length
  * mismatch means the pairing is unknown) -- every line still shows (R9-UX-1).
+ *
+ * The summary is the folded section's one line (R10-CARD-COLLAPSE): the
+ * rows' kWh and cost total when every line pairs with a numeric item, else
+ * the first published line.
  */
-function narrativeRows(plan, narrative, lines) {
+function narrativeParts(plan, narrative, lines) {
   const items = narrative && narrative.attributes && narrative.attributes.items;
   const paired = Array.isArray(items) && items.length === lines.length;
   const unit = savingsUnit(plan, "_plan_predicted_savings");
   const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v).toFixed(d) : null);
-  return lines
+  const totals = paired && items.every((it) => it && num(it.kwh, 1) !== null && num(it.sek, 2) !== null)
+    ? items.reduce((t, it) => ({ kwh: t.kwh + Number(it.kwh), sek: t.sek + Number(it.sek) }), { kwh: 0, sek: 0 })
+    : null;
+  const summary = totals
+    ? L("fold.narrative_total", { kwh: totals.kwh.toFixed(1), cost: `${totals.sek.toFixed(2)} ${unit}` })
+    : lines[0] || "";
+  const rows = lines
     .map((line, i) => {
       const it = paired && items[i] ? items[i] : {};
       const key = REASON_LABELS[it.reason];
@@ -9835,6 +9921,7 @@ function narrativeRows(plan, narrative, lines) {
         `<span class="nl-num">${num2}</span></li>`;
     })
     .join("");
+  return { rows, summary };
 }
 
 /** The compact stats row under the header, or nothing at all.
@@ -9844,7 +9931,7 @@ function narrativeRows(plan, narrative, lines) {
  * between optimizer runs, and old integrations publish none of them. A row
  * with nothing to say renders no chrome rather than an empty strip.
  */
-function headlineHtml(plan, cfg, scoreOpen) {
+function headlineHtml(plan, cfg, shown = {}) {
   if (!cfg.show_stats) return "";
   const items = [];
 
@@ -9906,7 +9993,8 @@ function headlineHtml(plan, cfg, scoreOpen) {
   const lines = Array.isArray(published)
     ? published.filter((l) => typeof l === "string" && l)
     : [];
-  const rows = narrativeRows(plan, narrative, lines);
+  const { rows, summary } = narrativeParts(plan, narrative, lines);
+  const why = whyNowParts(plan);
 
   if (!items.length && !lines.length) return "";
   const stats = items
@@ -9927,9 +10015,10 @@ function headlineHtml(plan, cfg, scoreOpen) {
     .join("");
   return `<div class="headline">
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
-      ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
-      ${rows ? `<ul class="hl-narrative">${rows}</ul>` : ""}
-      ${whyNowHtml(plan)}
+      ${shown.score && score !== null ? scoreBreakdownHtml(plan) : ""}
+      ${rows ? foldHtml("narrative", L("fold.narrative_title"), summary,
+        !!shown.narrative, `<ul class="hl-narrative">${rows}</ul>`) : ""}
+      ${foldHtml("whynow", L("whynow.title"), why.summary, !!shown.whynow, why.body, L("whynow.metric"))}
     </div>`;
 }
 
@@ -15103,6 +15192,9 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // Whether the score breakdown panel is open (#2). Instance state, not
     // DOM state, so it survives the shadow-root rebuild every refresh does.
     this._scoreOpen = false;
+    // Which headline folds are open (R10-CARD-COLLAPSE): closed by default,
+    // instance state for the same reason as `_scoreOpen`.
+    this._folds = { narrative: false, whynow: false };
     // Away tick the user just made, until hass confirms the switch entity.
     // Undefined means follow the entity. Without this the picker waits on
     // a plan-sensor hass update that may be half an hour away.
@@ -15446,7 +15538,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     this.dialog.pickDefaultPage(anyData);
     const savingsTile =
       this.dialog.expanded && this.dialog.activePage() === "savings";
-    const legend = savingsTile ? "" : this.legend.html(this._series, "card-");
+    // The series chips and their dashed-line notes are the expanded view's
+    // alone (R10-CARD-COLLAPSE, owner 2026-11-09): the folded card shows the
+    // chart as the saved toggles leave it, and the dialog's Plan page is
+    // where they change.
 
     // The setup page is drawn from configuration alone: `sensor.py` publishes
     // `setup_topology` with no plan at all, saying so in as many words --
@@ -15488,7 +15583,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // dialog's plan page, which otherwise showed the chart without them.
     const stats =
       tilesHtml(this.plan, this._config, indoorState(this), Date.now()) +
-      headlineHtml(this.plan, this._config, this._scoreOpen);
+      headlineHtml(this.plan, this._config, { score: this._scoreOpen, ...this._folds });
 
     // The dialog is a sibling of ha-card, not a child, so a click inside it
     // never bubbles into the card's own open-on-click handler. Rendered
@@ -15543,7 +15638,6 @@ class HeatpumpOptimizerCard extends HTMLElement {
           }
         </div>
         ${stats}
-        ${legend}
         ${body}
       </ha-card>
       ${dialog}
@@ -15578,6 +15672,21 @@ class HeatpumpOptimizerCard extends HTMLElement {
         this._render();
       });
     }
+
+    // The headline folds (R10-CARD-COLLAPSE): native buttons, so Enter and
+    // Space arrive as this click. stopPropagation for the same reason as the
+    // score's; focus goes back to the rebuilt copy of the header pressed.
+    const heads = [...this.shadowRoot.querySelectorAll("[data-fold]")];
+    heads.forEach((foldHead, i) => {
+      foldHead.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        const key = foldHead.getAttribute("data-fold");
+        this._folds = { ...this._folds, [key]: !this._folds[key] };
+        this._render();
+        const again = [...this.shadowRoot.querySelectorAll("[data-fold]")][i];
+        if (again && typeof again.focus === "function") again.focus();
+      });
+    });
 
     const card = this.shadowRoot.querySelector("ha-card");
     if (card && expandable) card.addEventListener("click", this._onCardClick);
