@@ -1,0 +1,11 @@
+tools/audit/seat/ci_priority.py: ci_priority self-test: 12 checks, 0 failed
+tools/audit/seat/ci_pause.py: ci_pause self-test: 14 checks, 0 failed
+tools/pr/cancel_superseded.py: cancel_superseded self-test: 58 checks, 0 failed
+tools/audit/seat/roster_lib.py: roster_lib self-test: 92 checks, 0 failed
+tools/audit/seat/roster_edit.py: roster_edit self-test: 311 checks, 0 failed
+tools/audit/seat/beat_jobs.py: beat_jobs self-test: 203 checks, 0 failed
+tools/audit/seat/orchestrator_tick.py: orchestrator_tick self-test: 319 checks, 0 failed
+merge_train: merge_train self-test: 743 checks, 0 failed
+tools/pr/prepr.sh:303:# executes in `fast`, rerun on a copy of the tree when the diff touches the
+
+[exited with code 0]
