@@ -53,12 +53,13 @@ Figures re-run on the merged head: ci_pause 14, ci_priority 12, merge_train 670,
 ## Forward-carry
 
 - Carry 0 (item ce279d5a), the tier module, its config and the train's pause/resume, is built in this pull request (`ci_priority.py`, `ci_priority.json`, `ci_pause.py`). Carry: dismissed: built in this pull request (commits 882a6385c2, 98650d10f3)
-- Backfill of `source`/`hotfix`/`savings_source` on the live roster groups (carry 3 item 4: R10-UX-HEALTH, R10-ROUND-PLAYBOOK, the `Owner-reported` briefs) is a roster write this seat may not make; `append-group` refusing a group without `source` takes effect for new groups only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL
-- Enabling `priority_cancel` needs the after measure above. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL
-- `roster_lib.is_hotfix` still treats `kind == "bug"` as a hotfix beside `hotfix: true` and the name rule (the existing dispatch-rank checks pin it); carry 3 defines it as the flag or the name only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R10-ROUND-PLAYBOOK-FINAL
+- Backfill of `source`/`hotfix`/`savings_source` on the live roster groups (carry 3 item 4: R10-UX-HEALTH, R10-ROUND-PLAYBOOK, the `Owner-reported` briefs) is a roster write this seat may not make; `append-group` refusing a group without `source` takes effect for new groups only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
+- Enabling `priority_cancel` needs the after measure above. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
+- `roster_lib.is_hotfix` still treats `kind == "bug"` as a hotfix beside `hotfix: true` and the name rule (the existing dispatch-rank checks pin it); carry 3 defines it as the flag or the name only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
 - Carry 9 (item 7bd3e57f), name the process sending `@tvofi` cancels at live heads, then land P267's bounded pause or refuse at that seat's cancel path: the pause is built here (`ci_pause.py`, Carry 1) but the sender naming and the landing check against R10-TRAIN-MERGE-LOOP-2 were not established in this part; re-home it with the round-11 residue. Carry: R11-INTAKE-R10-RESIDUE
 - Carry 10 (item dfa8b375), three live checks on a test fork (update-branch identity, app_approve end to end, class-O commit_id): this seat has no `gh`, no App key and no fork pull request, so it cannot run them. Carry: R11-INTAKE-R10-RESIDUE
 - Carry 11 (item 6e06de7f), three residuals in the gate-conclusion readers of `merge_train.py` and `orchestrator_tick.py` (a read bypassing `classify`, an empty `Busy` built from made-up runs, refusal only at run time): new code outside this part's brief. Carry: R11-INTAKE-R10-RESIDUE
+- Carry 12: not built in this pull request; appended after this part's dispatch and left for the group's next part. Carry: R10-CI-PRIORITY-PAUSE
 
 ## Friction
 
