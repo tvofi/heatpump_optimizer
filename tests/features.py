@@ -27664,6 +27664,45 @@ R.check(
     f"(solve, hub): config False -> {_dd_off!r}, default -> {_dd_default!r}",
 )
 
+# R10-DUTY-SWITCH-PLANNER-PRICE: and the duty-switch learner's read for the
+# planner, by the same copy.
+from heatpump_optimizer import duty_switch as _dsp_push_ds  # noqa: E402
+
+
+def _dsp_pushed(learner):
+    hass = FakeHass()
+    _seed_prices(hass)
+    entry = FakeEntry(data={**_LC_DATA}, entry_id="dsp_push")
+    _asyncio.run(_ha_setup_entry(_integ, hass, entry))
+    coord = entry.runtime_data
+    coord._prices = list(_svc_crash_coord._prices)
+    never = coord._solve_hubs(4, banded=True)[0]
+    _dsp_push_ds.record_for(coord).learner = learner
+    return never, coord._solve_hubs(4, banded=True)[0], coord._opt_config
+
+
+_dsp_push_d = _dsp_push_ds.Direction
+_dsp_push_day = datetime(2026, 11, 10, tzinfo=UTC).date()
+_dsp_push_l = _dsp_push_ds.DutySwitchLearner({
+    "dhw_space": _dsp_push_d(k=3.0, kept_w=1.0, first_day=_dsp_push_day, last_day=_dsp_push_day,
+                             usable=True, off_s=[400.0, 501.0, 620.0, 700.0]),
+    "space_dhw": _dsp_push_d(k=2.0, kept_w=2.0, first_day=_dsp_push_day, last_day=_dsp_push_day, usable=True),
+})
+_dsp_cfg_never, _dsp_cfg_read, _dsp_cfg_hub = _dsp_pushed(_dsp_push_l)
+R.check(
+    "the coordinator passes the learner's read to the solve's configuration "
+    "copy: zeros on a pump never arbitrated, both pairs once latched, and the "
+    "configured hub keeps its zeros",
+    (_dsp_cfg_never.duty_switch_stop_probability, _dsp_cfg_never.duty_switch_off_seconds)
+    == ((0.0, 0.0), (0.0, 0.0))
+    and (_dsp_cfg_read.duty_switch_stop_probability, _dsp_cfg_read.duty_switch_off_seconds)
+    == ((0.75, 0.5), (560.5, 0.0))
+    and _dsp_cfg_hub.duty_switch_stop_probability == (0.0, 0.0)
+    and _dsp_cfg_hub.duty_switch_off_seconds == (0.0, 0.0),
+    f"never {_dsp_cfg_never.duty_switch_stop_probability}, read "
+    f"{_dsp_cfg_read.duty_switch_stop_probability} {_dsp_cfg_read.duty_switch_off_seconds}",
+)
+
 _svc_sim_hass = FakeHass()
 _seed_prices(_svc_sim_hass)  # #924
 _svc_sim_entry = FakeEntry(data=_LC_DATA, entry_id="sim_pump")
@@ -83363,7 +83402,7 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
     hass = FakeHass({
-        "switch.hp": FakeState("off", last_updated=_SA_T0),
+        "switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1)),
         "sensor.hp_power": FakeState("0.0", unit="kW", last_updated=_SA_T0),
     })
     coord = Coord(hass, FakeEntry(data={
@@ -83394,8 +83433,11 @@ async def _sa_install(phase, room_cut_at=None, tail=True):
             for domain, service, _data in hass.services.calls:
                 if domain == "switch":
                     writes.append((m, service))
-                    hass.states.set("switch.hp", FakeState(
-                        "on" if service == "turn_on" else "off", last_updated=now))
+                    # A write that leaves the state keeps last_changed, as
+                    # StateMachine.async_set does (the supply gate reads it).
+                    new = "on" if service == "turn_on" else "off"
+                    if hass.states.get("switch.hp").state != new:
+                        hass.states.set("switch.hp", FakeState(new, last_updated=now))
             hass.services.calls.clear()
             on = hass.states.get("switch.hp").state == "on"
             hass.states.set("sensor.hp_power", FakeState("1.5" if on else "0.0", unit="kW", last_updated=now))
@@ -83456,7 +83498,7 @@ async def _sa_guarded(guard=None):
     ticks, dropped = [], []
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: dropped.append(fn)))[1]
-    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0)})
+    hass = FakeHass({"switch.hp": FakeState("off", last_updated=_SA_T0 - timedelta(hours=1))})
     switch = {} if guard == "no_switch" else {"heat_pump_switch_entity": "switch.hp"}
     coord = Coord(hass, FakeEntry(data={**_LC_DATA, **switch, "pump_duty_mode": "observe"}))
     coord._mode = "auto"
@@ -83662,7 +83704,7 @@ from dataclasses import replace as _mb_replace
 
 async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via="cycle",
                   select="Heating", fail=False, cut=False, optimizer="auto", space=False,
-                  disinfect=False):
+                  disinfect=False, since=-60, after=0):
     """Ordered (domain, service) calls of one switch write, through the real coordinator.
 
     The plan is "-d": idle at 05:45, hot water only at 06:00 (``space``:
@@ -83673,7 +83715,11 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
     entry unloaded). ``cut``: an early cut-off at
     05:58 holds the switch-on (MIN_OFF). Also returns the contexts the
     learner was told of, and the options the select was sent. ``disinfect``:
-    the pass reads a held disinfection.
+    the pass reads a held disinfection. ``since``: minutes from 06:00 at which
+    the switch took its state (an hour back by default, so no minimum run or
+    pause holds the write; -2 holds a switch-on until 06:08). ``after``: the
+    step ticks then fire each minute to 06:00 + ``after``, and a fifth value
+    maps each such minute to its ordered calls.
     """
     ticks, told = [], []
     armed, noted, owed = _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode
@@ -83684,7 +83730,7 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
             return None
         _sa_pa._lead_mode = _none
     hass = FakeHass({
-        "switch.hp": FakeState(switch, last_updated=_SA_T0),
+        "switch.hp": FakeState(switch, last_updated=_SA_T0 + timedelta(minutes=since)),
         "select.pump_mode": FakeState(select, attributes={"options": list(_PA_TUYA)}),
     })
     if fail:
@@ -83728,8 +83774,15 @@ async def _mb_run(lead=True, duty="control", mode_entity=True, switch="off", via
             _sa_boost.adopt_plan(coord, {"heat_pump_on": True, "power": 2.0})
             await coord._apply_action()
         calls = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
-        return calls, told, [data["option"] for d, _s, data in hass.services.calls if d == "select"], \
-            _sa_pa.state_for(coord).loaded
+        options = [data["option"] for d, _s, data in hass.services.calls if d == "select"]
+        later = {}
+        for minute in range(1, after + 1):
+            hass.services.calls.clear()
+            _sa_dt.freeze(_SA_T0 + timedelta(minutes=minute))
+            for tick in list(ticks):
+                await tick(_SA_T0 + timedelta(minutes=minute))
+            later[minute] = [(d, s) for d, s, _d in hass.services.calls if d in ("select", "switch")]
+        return (calls, told, options, _sa_pa.state_for(coord).loaded) + ((later,) if after else ())
     finally:
         _sa_dt.freeze(None)
         _sa_pa.async_track_time_interval, _mb_ds.note_mode_write, _sa_pa._lead_mode = armed, noted, owed
@@ -83784,6 +83837,28 @@ R.check(
     "null control: the same heating step with no cut on record writes the mode, then the switch",
     _mb_uncut == [("select", "select_option"), ("switch", "turn_on")],
     f"{_mb_uncut}",
+)
+# The same rows with the minimum pause engaged (``supply_hold.hold_supply``,
+# the switch off since 05:58): the hold sits ahead of ``write_supply`` in
+# ``_write_supply``, so a held switch-on writes no mode, and the step tick's
+# retry runs through the same gate, so the switch-on that lands at 06:08
+# writes the mode immediately before the switch, on that tick and no other.
+_mb_cut_held = _asyncio.run(_mb_run(cut=True, space=True, since=-2))[0]
+_mb_held = _asyncio.run(_mb_run(space=True, since=-2, after=12))
+R.check(
+    "with the minimum pause engaged too, a cycle switch-on an early cut-off holds writes no mode ahead of the switch it holds back",
+    _mb_cut_held == [("switch", "turn_off")],
+    f"{_mb_cut_held}",
+)
+R.check(
+    "a cycle switch-on the minimum pause holds back writes no mode and no switch",
+    _mb_held[0] == [],
+    f"{_mb_held[0]}",
+)
+R.check(
+    "a switch-on held on one tick and landing on a later one writes the mode immediately before the switch on that later tick",
+    {m: c for m, c in _mb_held[4].items() if c} == {8: [("select", "select_option"), ("switch", "turn_on")]},
+    f"{_mb_held[4]}",
 )
 _mb_direct = {
     (sw, opt): _asyncio.run(_mb_run(via="direct", switch=sw, optimizer=opt))[0]
@@ -83976,6 +84051,472 @@ for _ms_name, _ms_kw, _ms_want in (
     )
 
 
+R.section("supply switch: minimum run and pause, restart")
+# A re-solve, a cycle or a step tick inside a step must neither stop the
+# compressor minutes after it started nor start it minutes after it stopped
+# (``supply_hold.hold_supply``): the gate holds the write back and the step
+# tick writes it once MIN_RUN / MIN_PAUSE has passed. Both are measured on the
+# switch's own ``last_changed``, whoever moved it. The real coordinator writes;
+# each tick fires every minute.
+import importlib
+import logging
+
+_sh = importlib.import_module(_sa_pa.__package__ + ".supply_hold")
+_sh_coord_mod = importlib.import_module(_sa_pa.__package__ + ".coordinator")
+
+_sh_off = lambda _held, _inputs, _boosts, value, now=None: value  # main: no gate
+
+
+async def _ms_run(duties, switch, events, until=20, off_at=None, entity="switch.hp",
+                  plan=True, sysid=False, gate=True, every=False):
+    """Switch writes by minute from 06:00 for a plan of ``duties`` (``s`` on).
+
+    ``switch`` is the switch's state and since-minute at 06:00 (negative is
+    before); ``events`` maps a minute to the action the cycle adopts there;
+    at ``off_at`` the optimizer is switched off. ``plan=False`` runs with no
+    plan, ``sysid`` under system identification, ``gate=False`` with main's
+    write (no gate); ``every`` returns every service call, not only the
+    switch's, and the learners' freeze reason at the end.
+    """
+    ticks = []
+    armed, real = _sa_pa.async_track_time_interval, _sh_coord_mod.supply_hold.hold_supply
+    _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
+    if not gate:
+        _sh_coord_mod.supply_hold.hold_supply = _sh_off
+    domain = entity.split(".", 1)[0] if entity else None
+    hass = FakeHass({} if not entity else {entity: FakeState(switch[0], last_updated=_SA_T0 + timedelta(minutes=switch[1]))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": entity, "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._optimization_result = SimpleNamespace(
+        timestamps=[_SA_T0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c == "s" else 0.0 for c in duties],
+        dhw_power_schedule=[0.0] * len(duties), optimal_setpoints=[21.0] * len(duties)) if plan else None
+    writes, frozen = [], None
+    try:
+        for m in range(until + 1):
+            now = _SA_T0 + timedelta(minutes=m)
+            _sa_dt.freeze(now)
+            coord._last_optimization = now
+            coord._mode = "off" if off_at is not None and m >= off_at else coord._mode
+            if m in events:
+                _sa_boost.adopt_plan(coord, {"heat_pump_on": events[m], "power": 1.5 * events[m]})
+                if sysid:
+                    coord._current_action = {**coord._current_action, "mode": "system_identification"}
+                if plan:
+                    coord._optimization_result.power_schedule[m // 15] = 1.5 * events[m]
+                await coord._apply_action()
+            for tick in ([] if m in events else list(ticks)):
+                await tick(now)
+            for d, service, data in hass.services.calls:
+                if every:
+                    writes.append((m, d, service, dict(data)))
+                if d == domain and data.get("entity_id") == entity:
+                    writes.append((m, service)) if not every else None
+                    on = service == "turn_on"
+                    new = ("heat" if on else "off") if domain == "climate" else ("on" if on else "off")
+                    if hass.states.get(entity).state != new:  # async_set keeps last_changed
+                        hass.states.set(entity, FakeState(new, last_updated=now))
+            hass.services.calls.clear()
+        frozen = _sh_coord_mod._tail_freeze(coord)
+    finally:
+        _sa_dt.freeze(None)
+        _sa_pa.async_track_time_interval = armed
+        _sh_coord_mod.supply_hold.hold_supply = real
+    return (writes, frozen) if every else writes
+
+
+# The cycle at 06:00 switches on; a re-solve at 06:03 turns the step off.
+_ms_short = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
+_ms_long = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14))
+R.check(
+    "a re-solve three minutes into a run does not switch the supply off; the step tick does at MIN_RUN",
+    _ms_short == [(0, "turn_on"), (10, "turn_off")],
+    f"{_ms_short}",
+)
+_ms_off = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, off_at=5))
+R.check(
+    "a write held back is not retried once the optimizer is switched off",
+    _ms_off == [(0, "turn_on")],
+    f"{_ms_off}",
+)
+R.check(
+    "null control: the same re-solve twelve minutes into the run switches it off at once",
+    _ms_long == [(0, "turn_on"), (12, "turn_off")],
+    f"{_ms_long}",
+)
+# A re-solve at 06:12 switches the run off; one at 06:15 turns the next step on.
+_ms_pause = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 15: True}, until=25))
+_ms_rest = _asyncio.run(_ms_run("s-", ("off", -60), {0: True, 12: False, 23: True}, until=25))
+R.check(
+    "a re-solve three minutes into a pause does not switch the supply on; the step tick does at MIN_PAUSE",
+    _ms_pause == [(0, "turn_on"), (12, "turn_off"), (22, "turn_on")],
+    f"{_ms_pause}",
+)
+R.check(
+    "null control: the same re-solve eleven minutes into the pause switches it on at once",
+    _ms_rest == [(0, "turn_on"), (12, "turn_off"), (23, "turn_on")],
+    f"{_ms_rest}",
+)
+# One clock: a run or a pause the gate did not write (a boost, a fixed mode,
+# the user, the cut-off) is measured on the switch's own stamp like one it
+# wrote. The switch reads on, or off, since 05:57.
+_ms_user_run = _asyncio.run(_ms_run("--", ("on", -3), {0: False}, until=12))
+_ms_user_pause = _asyncio.run(_ms_run("ss", ("off", -3), {0: True}, until=12))
+R.check(
+    "a run someone else started three minutes ago is held on until MIN_RUN of the switch's own stamp",
+    _ms_user_run == [(7, "turn_off")],
+    f"{_ms_user_run}",
+)
+R.check(
+    "a pause someone else started three minutes ago is held off until MIN_PAUSE of the switch's own stamp",
+    _ms_user_pause == [(7, "turn_on")],
+    f"{_ms_user_pause}",
+)
+# A restart of Home Assistant stamps the switch at the restart (the
+# ``StateMachine.async_set`` contract in tests/ha_contract.py): the pump reads
+# as a run started then and is held on for MIN_RUN. A reload of the
+# integration keeps the stamp: an hour-old run is switched off at once.
+_ms_boot = _asyncio.run(_ms_run("--", ("on", 0), {0: False}, until=12))
+_ms_reload = _asyncio.run(_ms_run("--", ("on", -60), {0: False}, until=12))
+R.check(
+    "after a Home Assistant restart a supply found on is held for MIN_RUN of its restart stamp, then switched off",
+    _ms_boot == [(10, "turn_off")],
+    f"{_ms_boot}",
+)
+R.check(
+    "null control: after a reload an hour-old run is switched off at once",
+    _ms_reload == [(0, "turn_off")],
+    f"{_ms_reload}",
+)
+# A held write the plan gives no command for (no plan) is retried with the
+# action's own value at the minimum, not dropped until the next cycle.
+_ms_noplan = _asyncio.run(_ms_run("--", ("on", -3), {0: False}, until=12, plan=False))
+R.check(
+    "with no plan, an OFF held three minutes into a run lands at MIN_RUN",
+    _ms_noplan == [(7, "turn_off")],
+    f"{_ms_noplan}",
+)
+# System identification passes the gate: a step-response edge is not delayed.
+_ms_sysid = _asyncio.run(_ms_run("ss", ("on", -3), {0: False}, until=12, sysid=True))
+R.check(
+    "system identification: an OFF three minutes into a run is written at once",
+    _ms_sysid == [(0, "turn_off")],
+    f"{_ms_sysid}",
+)
+# A climate target reads heat / off; its run is held like a switch's.
+_ms_clim = _asyncio.run(_ms_run("--", ("heat", -3), {0: False}, until=12, entity="climate.hp"))
+_ms_clim_old = _asyncio.run(_ms_run("--", ("heat", -60), {0: False}, until=12, entity="climate.hp"))
+R.check(
+    "a climate target reading heat three minutes is held on until MIN_RUN",
+    _ms_clim == [(7, "turn_off")],
+    f"{_ms_clim}",
+)
+R.check(
+    "null control: a climate target heating an hour is switched off at once",
+    _ms_clim_old == [(0, "turn_off")],
+    f"{_ms_clim_old}",
+)
+# The learners: an interval with a held write ran other than the plan, so
+# ``_learning_frozen`` names it (``supply_hold.FREEZE_HELD``); the null
+# control is the same run with no write held.
+_ms_fz_held = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14, every=True))[1]
+_ms_fz_free = _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 12: False}, until=14, every=True))[1]
+R.check(
+    "an interval in which the gate held a write freezes the learners with the supply_held reason",
+    _ms_fz_held == _sh.FREEZE_HELD,
+    f"{_ms_fz_held!r}",
+)
+R.check(
+    "null control: the same interval with no write held does not",
+    _ms_fz_free != _sh.FREEZE_HELD,
+    f"{_ms_fz_free!r}",
+)
+# Null control, owed: with every write on a step boundary and no restart, the
+# service calls and their order are identical to main's (the gate off); an
+# install with no supply switch is untouched by the gate.
+for _ms_name, _ms_args, _ms_kw in (
+    ("writes on step boundaries", ("s-s-", ("off", -60), {0: True, 15: False, 30: True, 45: False}), {"until": 59}),
+    ("a plan the step tick moves", ("s-ss", ("off", -60), {0: True}), {"until": 59}),
+    ("no supply switch", ("s-s-", ("off", -60), {0: True, 3: False, 15: False, 31: True}), {"until": 40, "entity": None}),
+):
+    _ms_a = _asyncio.run(_ms_run(*_ms_args, every=True, **_ms_kw))[0]
+    _ms_b = _asyncio.run(_ms_run(*_ms_args, every=True, gate=False, **_ms_kw))[0]
+    R.check(
+        f"null control: {_ms_name}, the gate issues main's service calls in main's order",
+        _ms_a == _ms_b and (_ms_kw.get("entity", 1) is None or _ms_a),
+        f"{_ms_a} != {_ms_b}",
+    )
+
+
+# Rule three: an ON that starts a run the plan ends within MIN_RUN is skipped,
+# except on a hot-water step whose tank is below its minimum or under a
+# disinfection hold (``supply_hold.tank_reason``, the early cut-off's own).
+def _sh_inputs(minute, *, dhw=False, cold=False, disinfecting=False, state="off", nodhw=False):
+    hass = FakeHass({"switch.hp": FakeState(state, last_updated=_SA_T0 - timedelta(hours=1))})
+    plan = SimpleNamespace(
+        timestamps=[_SA_T0, _SA_T0 + timedelta(minutes=15)],
+        power_schedule=[0.0 if dhw else 1.5, 0.0], dhw_power_schedule=[1.5 if dhw else 0.0, 0.0])
+    return lambda: _sa_pa.ArbiterInputs(
+        hass=hass, config={"heat_pump_switch_entity": "switch.hp"}, mode="auto", plan=plan,
+        plan_stale=False, entry_released=False,
+        state=SimpleNamespace(dhw_temperature=40.0 if cold == "edge" else 35.0 if cold else 50.0),
+        thermal=None, params=SimpleNamespace(dhw_min_temp=40.0) if nodhw else SimpleNamespace(dhw_enabled=True, dhw_min_temp=40.0),
+        action={"heat_pump_on": True}, measured_power_kw=None, disinfecting=disinfecting)
+
+
+_sh_none = SimpleNamespace(active=lambda _c, _n: False)
+
+
+def _sh_start(minute, **kw):
+    held = _sa_pa.ArbiterState()
+    got = _sh.hold_supply(held, _sh_inputs(minute, **kw), _sh_none, True, _SA_T0 + timedelta(minutes=minute))
+    return got, held.supply_held
+
+
+for _ms_name, _ms_min, _ms_kw, _ms_want in (
+    ("a space step, ON at minute 7 before an OFF step", 7, {}, (None, True)),
+    ("null control: the same ON at minute 5, MIN_RUN before the boundary", 5, {}, (True, False)),
+    ("a hot-water step with the tank warm", 7, {"dhw": True}, (None, True)),
+    ("a hot-water step with the tank below its minimum", 7, {"dhw": True, "cold": True}, (True, False)),
+    ("a hot-water step under a disinfection hold", 7, {"dhw": True, "disinfecting": True}, (True, False)),
+    ("a space step with the tank below its minimum", 7, {"cold": True}, (None, True)),
+    ("null control: the switch already on", 7, {"state": "on"}, (True, False)),
+    ("an unreadable switch", 7, {"state": "unavailable"}, (True, False)),
+    ("a hot-water step with the tank exactly at its minimum (not below)", 7, {"dhw": True, "cold": "edge"}, (None, True)),
+    ("a cold tank on params with no dhw_enabled field is not exempt", 7, {"dhw": True, "cold": True, "nodhw": True}, (None, True)),
+):
+    _ms_got = _sh_start(_ms_min, **_ms_kw)
+    R.check(f"rule three: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# A write of None (cooling, both channels blocked) is passed and marks nothing
+# held, even on a run three minutes old.
+_sh_nheld = _sa_pa.ArbiterState()
+_sh_nin = _sh_inputs(7, state="on")
+_sh_nin().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+_sh_ngot = (_sh.hold_supply(_sh_nheld, _sh_nin, _sh_none, None, _SA_T0 + timedelta(minutes=7)), _sh_nheld.supply_held, _sh_nheld.held_until)
+R.check("a write of None passes and marks nothing held", _sh_ngot == (None, False, None), f"{_sh_ngot}")
+
+
+# A held write whose command is gone (the optimizer switched off) is dropped
+# by the step tick, flag and all; the null control keeps it in a plan mode.
+async def _sh_tick(mode):
+    held = _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    inp = _sa_pa.ArbiterInputs(**{**vars(inp), "mode": mode, "plan": None, "action": {"heat_pump_on": False}})
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return wrote, held.supply_held
+
+
+for _ms_name, _ms_mode, _ms_want in (
+    ("the optimizer switched off: no write, the hold dropped", "off", ([], False)),
+    ("null control: a plan mode with no plan retries the action's OFF", "auto", ([False], True)),
+):
+    _ms_got = _asyncio.run(_sh_tick(_ms_mode))
+    R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# An unreadable switch passes an OFF the gate would hold on a readable one;
+# a stamp ahead of the clock is an unknown age and holds nothing (#775).
+def _sh_stop(state, minutes_ago):
+    held = _sa_pa.ArbiterState()
+    inputs = _sh_inputs(7, state=state)
+    inputs().hass.states.set("switch.hp", FakeState(state, last_updated=_SA_T0 + timedelta(minutes=7 - minutes_ago)))
+    got = _sh.hold_supply(held, inputs, _sh_none, False, _SA_T0 + timedelta(minutes=7))
+    return got, held.supply_held
+
+
+for _ms_name, _ms_args, _ms_want in (
+    ("an OFF to a switch reading unavailable passes", ("unavailable", 3), (False, False)),
+    ("an OFF to a switch reading unknown passes", ("unknown", 3), (False, False)),
+    ("an OFF to a switch stamped ahead of the clock passes", ("on", -3), (False, False)),
+    ("null control: an OFF to a switch on three minutes is held", ("on", 3), (None, True)),
+    ("an OFF to a switch stamped this instant is held (age 0, not unknown)", ("on", 0), (None, True)),
+):
+    _ms_got = _sh_stop(*_ms_args)
+    R.check(f"stop: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# The learners' freeze spans two plan intervals from the last held write,
+# fixed at the hold from its config; a config with no interval reads the default
+# interval, and nothing held reads nothing.
+def _sh_fz_hold(config):
+    held, inputs = _sa_pa.ArbiterState(), _sh_inputs(7, state="on")
+    inputs().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+    inp = _sa_pa.ArbiterInputs(**{**vars(inputs()), "config": config})
+    _sh.hold_supply(held, lambda: inp, _sh_none, False, _SA_T0 + timedelta(minutes=7))
+    return held
+
+
+_sh_fz = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp", "optimization_interval": 30})
+_sh_fz_dflt = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp"})
+_SH_FZ_AT = _SA_T0 + timedelta(minutes=7)
+for _ms_name, _ms_got, _ms_want in (
+    ("nothing held reads nothing", _sh.freeze_reason(_sa_pa.ArbiterState(), _SA_T0), None),
+    ("a write held 59 minutes ago on a 30-minute interval is frozen", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=59)), _sh.FREEZE_HELD),
+    ("null control: 60 minutes ago is not", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=60)), None),
+    ("a config with no interval reads the default", _sh_fz_dflt.held_until - _SH_FZ_AT, 2 * timedelta(minutes=_sa_pa.EntryConfig.from_mapping({}).optimization_interval)),
+):
+    R.check(f"freeze_reason: {_ms_name}", _ms_got == _ms_want, f"{_ms_got!r}")
+
+
+# A held write is not logged as the blocked-mode skip it is not.
+class _ShLog(logging.Handler):
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.seen = []
+
+    def emit(self, record):
+        self.seen.append(record.getMessage())
+
+
+_sh_log, _sh_level = _ShLog(), _sh_coord_mod._LOGGER.level
+_sh_coord_mod._LOGGER.addHandler(_sh_log)
+_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+try:
+    _asyncio.run(_ms_run("ss", ("off", -60), {0: True, 3: False}, until=14))
+finally:
+    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
+    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+_sh_skips = [m for m in _sh_log.seen if m.startswith("Not switching")]
+R.check(
+    "a held OFF is not logged as the cooling or blocked-mode skip",
+    _sh_skips == [],
+    f"{_sh_skips}",
+)
+
+
+
+async def _sh_blocked_write():
+    hass = FakeHass({"switch.hp": FakeState("on", last_updated=_SA_T0 - timedelta(hours=1))})
+    coord = Coord(hass, FakeEntry(data={**_LC_DATA, "heat_pump_switch_entity": "switch.hp", "pump_duty_mode": "observe"}))
+    coord._mode = "auto"
+    coord._pump_signals = SimpleNamespace(**{**vars(coord._pump_signals), "space_blocked": True, "dhw_blocked": True})
+    _sa_dt.freeze(_SA_T0)
+    try:
+        await coord._write_supply(False)
+    finally:
+        _sa_dt.freeze(None)
+    return [c for c in hass.services.calls if c[0] == "switch"]
+
+
+_sh_log.seen.clear()
+_sh_coord_mod._LOGGER.addHandler(_sh_log)
+_sh_coord_mod._LOGGER.setLevel(logging.DEBUG)
+try:
+    _sh_bcalls = _asyncio.run(_sh_blocked_write())
+finally:
+    _sh_coord_mod._LOGGER.removeHandler(_sh_log)
+    _sh_coord_mod._LOGGER.setLevel(_sh_level)
+_sh_bskips = [m for m in _sh_log.seen if m.startswith("Not switching")]
+R.check(
+    "null control: an OFF both blocked channels skip writes nothing and is logged as the skip",
+    _sh_bcalls == [] and len(_sh_bskips) == 1,
+    f"{_sh_bcalls} {_sh_bskips}",
+)
+
+
+# Which writes the gate holds, one input changed at a time against a held
+# write: the plan modes and the boosts (``supply_hold._passes``), rule
+# three's window one tick inside it and its hot-water exemption on a "both"
+# step (``_ends_soon``), and the step tick's retry where the cycle would
+# write nothing (``supply_tick``, ``_action_supply``).
+def _sh_at(minute, value, since_min, state, mode="auto", boosts=None):
+    held = _sa_pa.ArbiterState()
+    base = _sh_inputs(minute, state=state)()
+    base.hass.states.set("switch.hp", FakeState(state, last_updated=_SA_T0 + timedelta(minutes=since_min)))
+    inp = _sa_pa.ArbiterInputs(**{**vars(base), "mode": mode})
+    got = _sh.hold_supply(held, lambda: inp, boosts or _sh_none, value, _SA_T0 + timedelta(minutes=minute))
+    return got, held.supply_held
+
+
+def _sh_both(cold):
+    held = _sa_pa.ArbiterState()
+    inp = _sh_inputs(7, dhw=True, cold=cold)()
+    inp.plan.power_schedule[0] = 1.5
+    got = _sh.hold_supply(held, lambda: inp, _sh_none, True, _SA_T0 + timedelta(minutes=7))
+    return got, held.supply_held, _sa_pa.step_duty(inp.plan, _SA_T0 + timedelta(minutes=7))
+
+
+_sh_boost_mod = importlib.import_module(_sa_pa.__package__ + ".boost")
+_sh_boost = lambda ch: SimpleNamespace(active=lambda c, _n: c == ch)  # noqa: E731
+for _ms_name, _ms_got, _ms_want in (
+    ("economy is a plan mode: an OFF three minutes into a run is held", _sh_at(12, False, 9, "on", mode="economy"), (None, True)),
+    ("a fixed mode (comfort) passes an OFF three minutes into a run", _sh_at(12, False, 9, "on", mode="comfort"), (False, False)),
+    ("a live space boost passes an ON three minutes into a pause", _sh_at(2, True, -1, "off", boosts=_sh_boost(_sh_boost_mod.CHANNEL_SPACE)), (True, False)),
+    ("a live DHW boost passes an ON three minutes into a pause", _sh_at(2, True, -1, "off", boosts=_sh_boost(_sh_boost_mod.CHANNEL_DHW)), (True, False)),
+    ("null control: no boost holds that ON", _sh_at(2, True, -1, "off"), (None, True)),
+    ("rule three: an ON at minute 6, one tick inside MIN_RUN of an OFF step, is skipped", _sh_start(6), (None, True)),
+    ("rule three: a both step with the tank below its minimum is exempt", _sh_both(True), (True, False, "both")),
+    ("rule three: null control: a both step with the tank warm is skipped", _sh_both(False), (None, True, "both")),
+):
+    R.check(f"which writes are held: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+async def _sh_tick_over(**over):
+    held = _sa_pa.ArbiterState(supply=(_SA_T0, False), supply_held=True)
+    inp = _sh_inputs(3, state="on")()
+    inp = _sa_pa.ArbiterInputs(**{**vars(inp), "plan": None, "action": {"heat_pump_on": False}, **over})
+    wrote = []
+
+    async def _write(on):
+        wrote.append(on)
+
+    await _sa_pa.supply_tick(held, _sa_pa.SupplyWiring(lambda: inp, _sh_none, _write), _SA_T0 + timedelta(minutes=3))
+    return wrote, held.supply_held
+
+
+for _ms_name, _ms_over, _ms_want in (
+    ("the entry released: no write, the hold dropped", {"entry_released": True}, ([], False)),
+    ("a stale plan: no write, the hold dropped", {"plan_stale": True}, ([], False)),
+    ("economy with no plan retries the action's OFF", {"mode": "economy"}, ([False], True)),
+):
+    _ms_got = _asyncio.run(_sh_tick_over(**_ms_over))
+    R.check(f"step tick, held write: {_ms_name}", _ms_got == _ms_want, f"{_ms_got}")
+
+
+# An install with no power switch: the gate reads no switch. Upstream's
+# ``StateMachine.get`` lowers a missed entity id, so ``get(None)`` raises
+# (tests/ha_contract.py, "StateMachine.get(None) raises"); FakeStates returns
+# None, so this install's states read as upstream's do.
+class _ShUpstreamStates:
+    def __init__(self, states):
+        self._states = dict(states)
+
+    def get(self, entity_id):
+        return self._states.get(entity_id) or self._states.get(entity_id.lower())
+
+    def set(self, entity_id, state):
+        self._states[entity_id] = state
+
+
+async def _sh_no_switch():
+    hass = FakeHass({})
+    hass.states = _ShUpstreamStates({})
+    coord = Coord(hass, FakeEntry(data=dict(_LC_DATA)))
+    coord._mode = "auto"
+    _sa_dt.freeze(_SA_T0 + timedelta(minutes=3))
+    try:
+        await coord._write_supply(True)
+        await coord._write_supply(False)
+    finally:
+        _sa_dt.freeze(None)
+    return [c for c in hass.services.calls if c[0] == "switch"], _sa_pa.state_for(coord).supply_held
+
+
+try:
+    _sh_ns = _asyncio.run(_sh_no_switch())
+except Exception as _sh_err:  # noqa: BLE001 -- the check reports what raised
+    _sh_ns = repr(_sh_err)
+R.check("an install with no power switch: the gate writes and holds nothing, and raises nothing",
+        _sh_ns == ([], False), f"{_sh_ns}")
+
+
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
 from heatpump_optimizer import wear as _ds_wear  # noqa: E402
 from heatpump_optimizer import pump_mode as _ds_pm  # noqa: E402
@@ -83986,7 +84527,8 @@ from harness import FakeCoordinator as _DsFakeCoord, FakeEntry as _DsFakeEntry  
 R.section("duty-switch restart learning, part A (design duty-switch-restart-learning)")
 # A hot water -> heating mode write while the compressor runs stops it on some
 # pumps (Bankaifan, pull request 3420). Part A observes, estimates, persists
-# and publishes; nothing reads the estimate. The learner is driven directly
+# and publishes; the planner's read of it is R10-DUTY-SWITCH-PLANNER-PRICE's
+# section. The learner is driven directly
 # with the install's own table, then through ``pump_arbiter.apply`` and the
 # listener ``duty_switch`` arms.
 _DS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
@@ -85054,8 +85596,11 @@ R.check(
     and all(calls != [] for calls, _split in _ds_flat_runs[0]),
     f"{[split for _c, split in _ds_flat_runs[0]]} {[split for _c, split in _ds_flat_runs[1]]}",
 )
-# Both controls hold by construction: only the arbiter (which reports) and the
-# sensor (which publishes) name the module, and neither reads the estimate.
+# Both controls hold by construction: the arbiter (which reports) and the
+# sensor (which publishes) never read the estimate. Its one reader is the
+# coordinator, which hands the planner's read to a solve's configuration
+# (R10-DUTY-SWITCH-PLANNER-PRICE): the estimate reaches a write only through
+# the plan, and both controls hold the plan fixed.
 _ds_pkg = _DsPath("custom_components/heatpump_optimizer")
 _ds_readers = sorted(
     p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
@@ -85064,19 +85609,23 @@ _ds_readers = sorted(
 _ds_uses = sorted({
     n.attr for name in ("pump_arbiter.py", "sensor.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
     if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch"})
+_ds_plan_uses = sorted(
+    n.attr for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "coordinator.py").read_text()))
+    if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch")
 _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
            if isinstance(n, _ds_ast.ImportFrom) and n.level == 1} | {
     a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
     if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
 R.check(
-    "only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and "
-    "never a read of the estimate; the module imports neither of them; the pure half of wear stays pure",
-    _ds_readers == ["pump_arbiter.py", "sensor.py"]
+    "the arbiter and the sensor name duty_switch through its report, attach and publish calls and never a "
+    "read of the estimate; the coordinator names it once, for the planner's read; the module imports none "
+    "of the three; the pure half of wear stays pure",
+    _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"] and _ds_plan_uses == ["planner_fields"]
     and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
                      "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
-    f"{_ds_readers} {_ds_uses} {_ds_own}",
+    f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own}",
 )
 # Published on the compressor-starts sensor, beside the counter, off the payload.
 from heatpump_optimizer import sensor as _ds_sensor  # noqa: E402
@@ -87563,6 +88112,154 @@ R.check(
 )
 
 
+# --- R10-SAV-VALUATION-RESIDUE: the reference held where its valve curve can hold it ---
+from profiles import house as _svh_house  # noqa: E402
+from heatpump_optimizer.optimizer import _thermostat_held_state as _svh_held  # noqa: E402
+from heatpump_optimizer.thermal_model import WeatherSeries as _SVH_WS  # noqa: E402
+
+_SVH_VALVE = {"mixing_valve_mode": "manual", "mixing_valve_target": 21.0,
+              "buffer_tank_volume": 750.0, "buffer_max_temperature": 56.0,
+              "heat_pump_max_power": 4.0}
+
+
+def _svh_case(two_zone, outdoor, **over):
+    """The held state, the stored-heat change of its first reference step, the step's room."""
+    p = _SVR_PARAMS.from_config(_svh_house(two_zone=two_zone, dhw=False, **{**_SVH_VALVE, **over}))
+    model = _SVR_MODEL(p)
+    opt = _SVR_OPT(model, _SVR_CFG(horizon_hours=1, time_step_minutes=15, target_temp=21.0))
+    w = _SVH_WS(outdoor_temps=np.array([outdoor]), wind_speeds=np.zeros(1),
+                precipitation=np.zeros(1), solar_radiation=np.zeros(1))
+    start = _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=outdoor,
+                       upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+                       buffer_tank_temperature=30.0)
+    held = _svh_held(model, start, w, 21.0)
+    # A one-step horizon books the simulated step itself (nothing to apportion).
+    power = float(opt._compute_baseline_power(w, start, 0.25)[0][0])
+    nxt = model.simulate_step(held, power, outdoor, 0.0, 0.0, 0.0, 0.25)
+    return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), nxt
+
+
+# -10 and -15 C sag far; at 14 C the two-zone house falls just short of the
+# target (a shortfall under 1 kW) and at 16 C holds it on a need under 1 kW.
+_svh_rows = {(tz, t): _svh_case(tz, t) for tz in (True, False) for t in (-10.0, -15.0, 14.0, 16.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: behind a valve whose curve cannot hold the "
+    "setpoint, the thermostat reference starts where that curve holds the "
+    "house -- its first booked step draws no stored heat (the held 21 C "
+    "drew it every step, booked as unpaid reference heat); both zonings, "
+    "from a deep shortfall to a mild day the curve holds",
+    all(abs(ds) < 0.02 for h, ds, _ in _svh_rows.values())
+    and all(_svh_rows[(tz, t)][0].room_temperature < 21.0 - 0.1
+            for tz in (True, False) for t in (-10.0, -15.0)),
+    {k: (round(h.room_temperature, 3), round(ds, 4)) for k, (h, ds, _) in _svh_rows.items()},
+)
+# Null control: a curve that holds the setpoint keeps the held state at target.
+_svh_ok = {tz: _svh_case(tz, -10.0, mixing_valve_target=40.0) for tz in (True, False)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: null control -- a valve curve able to hold "
+    "the setpoint leaves the held state's zones at the target",
+    all(h.room_temperature == 21.0 and h.upper_floor_temperature == 21.0
+        and h.lower_floor_temperature == 21.0 for h, _, _ in _svh_ok.values()),
+    {tz: round(h.room_temperature, 4) for tz, (h, _, _) in _svh_ok.items()},
+)
+
+# The pump's capacity is the held state's other bound, valved or not: at -25 C
+# a 4 kW pump cannot hold 21 C (the held 21 C drew ~1.07 kWh_th of stored
+# heat per booked step), a 9 kW one can.
+_SVH_CAP = {"buffer_tank_volume": 750.0, "buffer_max_temperature": 56.0}
+
+
+def _svh_cap(two_zone, valved, hp):
+    cfg = {**_SVH_CAP, "heat_pump_max_power": hp}
+    if valved:
+        cfg.update(mixing_valve_mode="manual", mixing_valve_target=40.0)
+    p = _SVR_PARAMS.from_config(_svh_house(two_zone=two_zone, dhw=False, **cfg))
+    model = _SVR_MODEL(p)
+    opt = _SVR_OPT(model, _SVR_CFG(horizon_hours=1, time_step_minutes=15, target_temp=21.0))
+    w = _SVH_WS(outdoor_temps=np.array([-25.0]), wind_speeds=np.zeros(1),
+                precipitation=np.zeros(1), solar_radiation=np.zeros(1),
+                humidity=np.array([85.0]))
+    start = _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=-25.0,
+                       upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+                       buffer_tank_temperature=30.0)
+    held = _svh_held(model, start, w, 21.0)
+    power = float(opt._compute_baseline_power(w, start, 0.25)[0][0])
+    nxt = model.simulate_step(held, power, -25.0, 0.0, 0.0, 0.0, 0.25)
+    return held, opt._stored_thermal_energy(nxt) - opt._stored_thermal_energy(held), power
+
+
+_svh_caps = {(tz, v, hp): _svh_cap(tz, v, hp)
+             for tz in (True, False) for v in (True, False) for hp in (4.0, 9.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: a pump too small to hold the setpoint starts "
+    "the reference where its capacity holds the house, valved or not -- the "
+    "first booked step runs at max power and draws no stored heat",
+    all(abs(ds) < 0.02 for h, ds, _ in _svh_caps.values())
+    and all(_svh_caps[(tz, v, 4.0)][0].room_temperature < 21.0 - 0.1
+            for tz in (True, False) for v in (True, False)),
+    {k: (round(h.room_temperature, 3), round(ds, 4), round(pw, 3))
+     for k, (h, ds, pw) in _svh_caps.items()},
+)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: null control -- a pump able to hold the "
+    "setpoint leaves the held state's zones at the target, valved or not",
+    all(_svh_caps[(tz, v, 9.0)][0].room_temperature == 21.0
+        for tz in (True, False) for v in (True, False)),
+    {k: round(h.room_temperature, 4) for k, (h, _, _) in _svh_caps.items() if k[2] == 9.0},
+)
+
+# A warm day under a pump too small for the tank's standing loss: unreachable
+# needs no zone heat there, so the held zones stay at the target, never above.
+_svh_warm_p = _SVR_PARAMS.from_config(_svh_house(
+    two_zone=True, dhw=False, buffer_tank_volume=2000.0, heat_pump_max_power=0.01))
+_svh_warm = _svh_held(
+    _SVR_MODEL(_svh_warm_p),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=25.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=80.0),
+    _SVH_WS(outdoor_temps=np.array([25.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: outdoors above the target, a pump unable to "
+    "cover the tank's standing loss leaves the held zones at the target, not "
+    "at the outdoor temperature",
+    _svh_warm.room_temperature == 21.0,
+    round(_svh_warm.room_temperature, 4),
+)
+
+# The reference has no wood: a modelled wood tank is emptied in the held state.
+_svh_wood_p = _SVR_PARAMS.from_config(_svh_house(
+    two_zone=True, dhw=False, wood_tank_top_entity="sensor.w", **_SVH_VALVE))
+_svh_wood = _svh_held(
+    _SVR_MODEL(_svh_wood_p),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=-10.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=30.0, wood_tank_temperature=80.0),
+    _SVH_WS(outdoor_temps=np.array([-10.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: a modelled wood tank holds no heat in the "
+    "thermostat reference's held state, whatever was measured in it",
+    _svh_wood_p.two_tank_modelled and _svh_wood.wood_tank_temperature == 0.0,
+    (_svh_wood_p.two_tank_modelled, _svh_wood.wood_tank_temperature),
+)
+
+# At zero demand (a warm day, two zones: each zone's need floors at exactly
+# 0.0) the valve-held tank keeps its measured temperature.
+_svh_idle = _svh_held(
+    _SVR_MODEL(_SVR_PARAMS.from_config(_svh_house(two_zone=True, dhw=False, **_SVH_VALVE))),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=25.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=30.0),
+    _SVH_WS(outdoor_temps=np.array([25.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: behind a valve at zero demand the held tank "
+    "keeps its measured temperature and the zones the target",
+    _svh_idle.buffer_tank_temperature == 30.0 and _svh_idle.room_temperature == 21.0,
+    (_svh_idle.buffer_tank_temperature, _svh_idle.room_temperature),
+)
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on
@@ -88649,5 +89346,1460 @@ R.check(
     and not _vt_issues(23.0) and not _vt_issues(23.5, max_temperature=24.0),
     "a plausible target raised a notice",
 )
+
+R.section(
+    "R10-DUTY-SWITCH-PLANNER-PRICE: the planner prices a duty switch that stops "
+    "the compressor (pull request 3420, Bankaifan)"
+)
+
+from types import SimpleNamespace as _DspNS  # noqa: E402
+
+import heatpump_optimizer.optimizer as _dsp_om  # noqa: E402
+from heatpump_optimizer import duty_legs as _dsp_dl, pump_arbiter as _dsp_pa  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _DSP_AUTO  # noqa: E402
+from heatpump_optimizer.dhw_planner import DhwPlanner as _DspPlanner  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _DspOpt,
+    OptimizationConfig as _DspCfg,
+    count_compressor_starts as _dsp_starts,
+    cycling_penalty as _dsp_cyc,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _DspTM,
+    ThermalParameters as _DspTP,
+    ThermalState as _DspTS,
+)
+
+_DSP_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+_DSP_STEPS = np.arange(96)
+_DSP_PRICES = 1.3 + 0.9 * np.sin(2 * np.pi * (_DSP_STEPS - 30) / 96.0)
+#: Bankaifan's table: every hot water to heating switch stopped the compressor,
+#: none the other way, median off time 501 s (8.2 and 8.5 minutes).
+_DSP_PAIR, _DSP_OFF = (1.0, 0.0), (501.0, 0.0)
+
+
+def _dsp_w(space, dhw, pair, floor=None, p_max=6.0):
+    return _dsp_dl.switch_weight(
+        np.asarray(space, float), np.asarray(dhw, float), pair, p_max, floor
+    )
+
+
+# 1. The finding. Equal draw on both sides of the switch: the cycling term
+# sees no swing; the switch weight is p x draw / p_max.
+R.check(
+    "a hot-water step into a heating step at equal draw costs the cycling term "
+    "nothing and weighs p x draw / p_max as a switch",
+    _dsp_cyc(np.array([3.0, 3.0]), 2.0, 6.0) == 0.0
+    and _dsp_w([0, 3], [3, 0], (0.8, 0.0)) == 0.8 * 3.0 / 6.0,
+    f"{_dsp_cyc(np.array([3.0, 3.0]), 2.0, 6.0)}, {_dsp_w([0, 3], [3, 0], (0.8, 0.0))}",
+)
+R.check(
+    "the stop adds the smaller of the two levels across a boundary",
+    _dsp_w([0, 2], [3, 0], (0.8, 0.0)) == 0.8 * 2.0 / 6.0
+    and _dsp_w([0, 3], [2, 0], (0.8, 0.0)) == 0.8 * 2.0 / 6.0,
+)
+R.check(
+    "an idle step between the two duties is no switch",
+    _dsp_w([0, 0, 3], [3, 0, 0], (0.8, 0.6)) == 0.0,
+)
+R.check(
+    "the reverse order is the other direction: unpriced with a zero there, "
+    "priced by its own probability",
+    _dsp_w([3, 0], [0, 3], (0.8, 0.0)) == 0.0
+    and _dsp_w([3, 0], [0, 3], (0.8, 0.6)) == 0.6 * 3.0 / 6.0,
+)
+R.check(
+    "a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run "
+    "at the step's combined level",
+    _dsp_w([2], [2], (0.8, 0.0)) == 0.8 * 4.0 / 6.0,
+    f"{_dsp_w([2], [2], (0.8, 0.0))}",
+)
+R.check(
+    "a both step followed by heating is one switch, not two: its last leg is "
+    "already heating",
+    _dsp_w([2, 3], [2, 0], (0.8, 0.0)) == 0.8 * 4.0 / 6.0,
+)
+R.check(
+    "null control: a zero pair weighs every one of those plans zero",
+    all(
+        _dsp_w(s, d, (0.0, 0.0)) == 0.0
+        for s, d in (([0, 3], [3, 0]), ([2], [2]), ([3, 0], [0, 3]))
+    ),
+)
+
+
+def _dsp_opt(pair=(0.0, 0.0), off=(0.0, 0.0), *, clamp=False, p_min=1.5, p_max=5.5, cyc=0.3):
+    params = _DspTP()
+    params.mixing_valve_mode = "none"
+    params.buffer_tank_volume = 750.0
+    params.min_electrical_power, params.max_electrical_power = p_min, p_max
+    params.dhw_enabled = True
+    cfg = _DspCfg(clamp_planned_levels=clamp, cycling_cost=cyc)
+    if pair is not None:
+        cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = pair, off
+    return _DspOpt(_DspTM(params), cfg)
+
+
+_dsp_term_opt = _dsp_opt((0.8, 0.0), cyc=2.0, p_max=6.0)
+_dsp_term = _dsp_om._switch_cost_fn(_dsp_term_opt)
+_dsp_term_pair = (np.array([0.0, 3.0]), np.array([3.0, 0.0]))
+R.check(
+    "the objective's term is cycling_cost x that weight, a float for one plan "
+    "and one entry per row for a batch",
+    _dsp_term(*_dsp_term_pair) == 2.0 * (0.8 * 3.0 / 6.0)
+    and _dsp_term(np.stack([_dsp_term_pair[0]] * 2), _dsp_term_pair[1]).tolist()
+    == [2.0 * (0.8 * 3.0 / 6.0)] * 2,
+    f"{_dsp_term(*_dsp_term_pair)}",
+)
+R.check(
+    "and it is no operand at all with a zero pair, a zero cycling cost or no "
+    "hot-water plan",
+    _dsp_om._switch_cost_fn(_dsp_opt((0.0, 0.0), cyc=2.0))(*_dsp_term_pair) is None
+    and _dsp_om._switch_cost_fn(_dsp_opt((0.8, 0.0), cyc=0.0))(*_dsp_term_pair) is None
+    and _dsp_term(_dsp_term_pair[0], None) is None
+    and _dsp_om._with_switch_cost(1.25, None) == 1.25,
+)
+R.check(
+    "a non-finite, negative, over-one or misshapen learned pair reads as zero",
+    [
+        _dsp_dl.priced_pair(v, 1.0)
+        for v in ((float("nan"), 0.5), (-0.1, 1.5), (0.4,), None, ("x", 0.2), (1.0, 0.0))
+    ]
+    == [(0.0, 0.5), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 0.0), (1.0, 0.0)]
+    and _dsp_dl.priced_pair((float("inf"), 30.0)) == (0.0, 30.0),
+)
+
+# 2. Leg-rule agreement: drive step_duty, then _share, and compare what the
+# arbiter serves with the legs the leaf reads from the same two draws.
+_DSP_NAMES = {_dsp_dl.IDLE: "idle", _dsp_dl.SPACE: "space", _dsp_dl.DHW: "dhw"}
+
+
+class _DspCoord:
+    """A coordinator with no boost held: ``_share`` reads nothing else of it."""
+
+
+_dsp_coord = _DspCoord()
+
+
+def _dsp_served(space, dhw, minute, floor):
+    plan = _DspNS(
+        timestamps=[_DSP_T0], power_schedule=[space], dhw_power_schedule=[dhw],
+        optimal_setpoints=[21.0], duty_floor_kw=floor,
+    )
+    now = _DSP_T0 + timedelta(minutes=minute)
+    inp = _DspNS(mode=_DSP_AUTO, disinfecting=False, plan=plan)
+    return _dsp_pa._share(_dsp_coord, inp, _dsp_pa.step_duty(plan, now), now)
+
+
+def _dsp_leg_mismatches(cells, floor):
+    """Cells where the arbiter's serving is not the leaf's legs, and the two-leg count."""
+    bad, two_leg = [], 0
+    for space, dhw in cells:
+        first, last, two = (v[0] for v in _dsp_dl.leg_ends([space], [dhw], floor))
+        served = [_dsp_served(space, dhw, m, floor) for m in (0.0, 4.9, 5.1, 7.4, 9.9, 10.1, 14.9)]
+        two_leg += int(two)
+        ends = (_DSP_NAMES[int(first)], _DSP_NAMES[int(last)])
+        if (
+            (served[0], served[-1]) != ends
+            or not set(served) <= set(ends)
+            or (len(set(served)) == 2) != bool(two)
+        ):
+            bad.append((space, dhw, floor, served, ends, bool(two)))
+    return bad, two_leg
+
+
+_DSP_LEVELS = (0.0, 0.05, 0.1, 0.11, 0.5, 1.0, 1.49, 1.5, 2.0, 3.0, 4.0, 5.5)
+_DSP_CELLS = [(s, d) for s in _DSP_LEVELS for d in _DSP_LEVELS]
+_dsp_grid = {floor: _dsp_leg_mismatches(_DSP_CELLS, floor) for floor in (None, 1.5)}
+R.check(
+    "the leaf's legs are what step_duty and _share serve over the probe grid, "
+    "floor unset and set: idle, one duty, both collapse edges and two legs",
+    not _dsp_grid[None][0] and not _dsp_grid[1.5][0],
+    f"{_dsp_grid[None][0][:3]} {_dsp_grid[1.5][0][:3]}",
+)
+R.check(
+    "and the grid holds what it claims: two-leg cells under both floors, fewer "
+    "with the floor set, and both exact collapse edges (shares of 5 and 10 minutes)",
+    _dsp_grid[None][1] > _dsp_grid[1.5][1] > 0
+    and (2.0, 1.0) in _DSP_CELLS and (1.0, 2.0) in _DSP_CELLS
+    and [bool(_dsp_dl.leg_ends([s], [d])[2][0]) for s, d in ((2.0, 1.0), (1.0, 2.0), (2.0, 0.5), (0.5, 2.0))]
+    == [True, True, False, False],
+    f"{_dsp_grid[None][1]}, {_dsp_grid[1.5][1]}",
+)
+
+
+def _dsp_realised_cells(p_min, p_max):
+    out = []
+    for space, dhw in _DSP_CELLS:
+        s, d = _dsp_om._realize_joint(True, np.array([space]), np.array([dhw]), p_min, p_max)
+        out.append((float(s[0]), float(d[0])))
+    return out
+
+
+_dsp_mod_cells = _dsp_realised_cells(1.5, 5.5)
+_dsp_fix_cells = _dsp_realised_cells(5.5, 5.5)
+_dsp_mod_grid = _dsp_leg_mismatches(_dsp_mod_cells, 1.5)
+_dsp_fix_grid = _dsp_leg_mismatches(_dsp_fix_cells, 5.5)
+R.check(
+    "the same agreement on the levels a clamped install ships: a modulating "
+    "pump keeps two-leg steps, each circuit at or above p_min",
+    not _dsp_mod_grid[0] and _dsp_mod_grid[1] > 0,
+    f"{_dsp_mod_grid[0][:3]}, two-leg {_dsp_mod_grid[1]}",
+)
+R.check(
+    "and on a fixed-speed pump the leaf never returns two legs, while the row "
+    "still holds heating-only and hot-water-only steps",
+    not _dsp_fix_grid[0] and _dsp_fix_grid[1] == 0
+    and {(5.5, 0.0), (0.0, 5.5)} <= set(_dsp_fix_cells),
+    f"{_dsp_fix_grid[0][:3]}, two-leg {_dsp_fix_grid[1]}",
+)
+
+# 3. Scalar against batch, bit for bit per row, the way the cycling term is pinned.
+_dsp_rng = np.random.default_rng(3420)
+_dsp_rows = _dsp_rng.uniform(0.0, 5.5, size=(64, 96))
+_dsp_rows[_dsp_rng.uniform(size=_dsp_rows.shape) < 0.35] = 0.0
+_dsp_tank = np.zeros(96)
+_dsp_tank[[5, 6, 20, 40, 41, 42, 70, 95]] = (4.4, 4.4, 2.0, 1.2, 4.4, 0.6, 3.0, 4.4)
+_dsp_batch_w = {
+    floor: _dsp_dl.switch_weights_batch(_dsp_rows, _dsp_tank, (0.7, 0.4), 5.5, floor)
+    for floor in (None, 1.5)
+}
+_dsp_row_bad = [
+    (floor, b)
+    for floor in (None, 1.5)
+    for b in range(_dsp_rows.shape[0])
+    if _dsp_batch_w[floor][b] != _dsp_dl.switch_weight(_dsp_rows[b], _dsp_tank, (0.7, 0.4), 5.5, floor)
+]
+R.check(
+    "switch_weights_batch is switch_weight on every row, bit for bit, floor "
+    "unset and set",
+    not _dsp_row_bad and len(set(_dsp_batch_w[None].tolist())) > 32,
+    f"divergent rows: {_dsp_row_bad[:5]}",
+)
+_dsp_no_pmax = _dsp_dl.switch_weights_batch(_dsp_rows, _dsp_tank, (0.7, 0.4), 0.0)
+R.check(
+    "a pump with no maximum draw weighs every row zero, one finite entry per "
+    "row and not per step, on the rows the priced pair weighs above",
+    _dsp_no_pmax.shape == (_dsp_rows.shape[0],)
+    and _dsp_rows.shape[0] != _dsp_rows.shape[1]
+    and not _dsp_no_pmax.any()
+    and bool(_dsp_batch_w[None].any()),
+    f"shape {_dsp_no_pmax.shape}",
+)
+
+# Availability: one step charged per block end, on the profile the solve starts from.
+_dsp_blk = np.array([0.0, 3.0, 3.0, 0.0, 0.0, 0.0])
+
+
+def _dsp_charged(start, lost=0.5, floor=None, tank=_dsp_blk):
+    avail = _dsp_dl.availability(np.asarray(start, float), tank, lost, floor)
+    return None if avail is None else (np.flatnonzero(avail < 1.0).tolist(), sorted(set(avail.tolist())))
+
+
+R.check(
+    "a block end charges one step, the one holding the heating leg that "
+    "follows it: the step after the block when heating starts there, not the "
+    "block's last",
+    _dsp_charged([1, 0, 0, 2, 2, 0]) == ([3], [0.5, 1.0]),
+    f"{_dsp_charged([1, 0, 0, 2, 2, 0])}",
+)
+R.check(
+    "the block's own last step when it is a two-leg step, and then not the "
+    "step after",
+    _dsp_charged([0, 0, 2, 2, 0, 0]) == ([2], [0.5, 1.0]),
+    f"{_dsp_charged([0, 0, 2, 2, 0, 0])}",
+)
+R.check(
+    "no vector at all with a zero lost share, with an idle step after the "
+    "block, or with no hot water: the caller makes today's calls",
+    _dsp_charged([1, 0, 0, 2, 2, 0], lost=0.0) is None
+    and _dsp_charged([1, 0, 0, 0, 2, 0]) is None
+    and _dsp_charged([1, 1, 1, 1, 1, 1], tank=np.zeros(6)) is None,
+)
+R.check(
+    "the lost share is p x off seconds over the step, capped at the whole "
+    "step, and only hot water to heating carries one",
+    _dsp_dl.lost_share((1.0, 0.0), (501.0, 0.0)) == 501.0 / 900.0
+    and _dsp_dl.lost_share((0.5, 1.0), (501.0, 900.0)) == 0.5 * 501.0 / 900.0
+    and _dsp_dl.lost_share((1.0, 0.0), (5000.0, 0.0)) == 1.0
+    and _dsp_dl.lost_share((0.0, 1.0), (0.0, 501.0)) == 0.0,
+)
+R.check(
+    "a duty-cycle install carries the lost time on the bound, a clamped one on "
+    "the delivered draw, and neither moves anything with no vector",
+    _dsp_dl.space_headroom(6.0, _dsp_blk, np.array([1, 1, 1, 0.5, 1, 1.0]), None).tolist()
+    == [6.0, 3.0, 3.0, 3.0, 6.0, 6.0]
+    and _dsp_dl.space_headroom(6.0, _dsp_blk, np.array([1, 1, 1, 0.5, 1, 1.0]), 6.0).tolist()
+    == _dsp_dl.space_headroom(6.0, _dsp_blk, None, None).tolist()
+    == [6.0, 3.0, 3.0, 6.0, 6.0, 6.0]
+    and _dsp_dl.delivered_space(
+        np.array([0, 0, 0, 6.0, 6.0, 0]), _dsp_blk, np.array([1, 1, 1, 0.5, 1, 1.0]), 6.0
+    ).tolist() == [0.0, 0.0, 0.0, 3.0, 6.0, 0.0],
+)
+_dsp_same = np.array([0, 0, 0, 6.0, 6.0, 0])
+R.check(
+    "on a duty-cycle install the delivered draw is the shipped array itself",
+    _dsp_dl.delivered_space(_dsp_same, _dsp_blk, np.array([1, 1, 1, 0.5, 1, 1.0]), None)
+    is _dsp_same,
+)
+R.check(
+    "in a charged two-leg step the stop takes its share of the combined level "
+    "from the heating draw, and never below zero",
+    _dsp_dl.delivered_space(
+        np.array([2.0, 0.5]), np.array([2.0, 4.0]), np.array([0.75, 0.5]), 1.5
+    ).tolist() == [1.0, 0.0],
+)
+# Item r16: on a modulating clamped install the charged step is chosen on the
+# levels the start profile ships, so it never holds a heating level under p_min.
+_dsp_mod_opt = _dsp_opt(_DSP_PAIR, _DSP_OFF, clamp=True)
+_dsp_r16_tank = np.zeros(8)
+_dsp_r16_tank[[1, 4]] = 4.4
+_dsp_r16_start = np.array([0.0, 0.0, 1.0, 0.0, 0.0, 3.0, 3.0, 0.0])
+_dsp_r16_avail = _dsp_om._stop_availability(_dsp_mod_opt, _dsp_r16_start, _dsp_r16_tank, 5.5)
+_dsp_r16_ship = _dsp_om._realize_joint(True, _dsp_r16_start, _dsp_r16_tank, 1.5, 5.5)[0]
+R.check(
+    "on a modulating clamped install no charged step ships heating under the "
+    "floor: a start under p_min after a block is charged only once it ships at "
+    "p_min or above",
+    _dsp_r16_avail is not None
+    and bool(np.all(_dsp_r16_ship[_dsp_r16_avail < 1.0] >= 1.5))
+    and np.flatnonzero(_dsp_r16_avail < 1.0).tolist()
+    == [i for i in (2, 5) if _dsp_r16_ship[i] >= 1.5],
+    f"{_dsp_r16_avail}, shipped {_dsp_r16_ship}",
+)
+# The same item on a both step: heating shipped under p_min beside hot water is
+# no leg the arbiter serves, so the stop belongs to the heating step after it.
+_dsp_r16_both = (np.array([0.0, 1.0, 2.5, 0.0]), np.array([0.0, 2.0, 0.0, 0.0]))
+_dsp_r16_both_avail = _dsp_om._stop_availability(_dsp_mod_opt, *_dsp_r16_both, 5.5)
+_dsp_r16_both_ship = _dsp_om._realize_joint(True, *_dsp_r16_both, 1.5, 5.5)[0]
+_dsp_r16_both_dc = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR, _DSP_OFF), *_dsp_r16_both, 5.5)
+R.check(
+    "on a modulating clamped install heating shipped under p_min beside hot "
+    "water takes no charge: the stop is charged to the heating step after the "
+    "both step, and no charged step ships heating under the floor",
+    _dsp_r16_both_ship.tolist() == [0.0, 1.0, 2.5, 0.0]
+    and _dsp_r16_both_avail is not None
+    and np.flatnonzero(_dsp_r16_both_avail < 1.0).tolist() == [2]
+    and bool(np.all(_dsp_r16_both_ship[_dsp_r16_both_avail < 1.0] >= 1.5)),
+    f"{_dsp_r16_both_avail}, shipped {_dsp_r16_both_ship}",
+)
+R.check(
+    "null control: with no duty floor (a duty-cycle install) the same arrays "
+    "charge the both step itself, so the floor is what moved the charge",
+    _dsp_r16_both_dc is not None
+    and np.flatnonzero(_dsp_r16_both_dc < 1.0).tolist() == [1],
+    f"{_dsp_r16_both_dc}",
+)
+# The start profile is capped at what hot water leaves and never raised: a step
+# the start leaves idle after a block holds no heating leg to charge.
+_dsp_idle_after = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, -0.4, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]), 5.5
+)
+_dsp_run_after = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]), 5.5
+)
+R.check(
+    "a start that is idle, or below zero, in the step after a block charges "
+    "nothing; the same block followed by heating charges that step",
+    _dsp_idle_after is None
+    and _dsp_run_after is not None and np.flatnonzero(_dsp_run_after < 1.0).tolist() == [2],
+    f"{_dsp_idle_after}, {_dsp_run_after}",
+)
+# The cap is the reading's own: a start that asks for heating beside hot water
+# at p_max ships none there, so that step holds no heating leg and the idle step
+# after it charges nothing. Beside a block that leaves room the same start is a
+# two-leg step, and charged.
+_dsp_full_blk = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 5.5, 0.0, 0.0]), 5.5
+)
+_dsp_part_blk = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 2.5, 0.0, 0.0]), 5.5
+)
+R.check(
+    "heating asked beside hot water at p_max is no heating leg: nothing is "
+    "charged; beside a block that leaves room the same start is charged there",
+    _dsp_full_blk is None
+    and _dsp_part_blk is not None and np.flatnonzero(_dsp_part_blk < 1.0).tolist() == [1],
+    f"{_dsp_full_blk}, {_dsp_part_blk}",
+)
+# The reading takes the start as it comes: the cap, the running threshold and
+# the clamped projection already read a value under zero as idle and one over
+# p_max as the cap, so clipping the start into [0, p_max] first moves no step
+# of it, on either install kind. The grid holds starts outside the band, and
+# blocks that charge a step, or the comparison would be of nothing.
+import itertools as _dsp_it  # noqa: E402
+
+_DSP_BAND_STARTS = [np.array(s) for s in _dsp_it.product((-0.4, 0.0, 1.0, 3.0, 9.0), repeat=4)]
+_DSP_BAND_TANKS = [np.array(t) for t in ((0.0, 2.5, 0.0, 0.0), (4.4, 0.0, 5.5, 0.0), (0.0, 0.0, 2.0, 2.0))]
+
+
+def _dsp_band_read(clamp, start, tank):
+    avail = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR, _DSP_OFF, clamp=clamp), start, tank, 5.5)
+    return None if avail is None else avail.tolist()
+
+
+_dsp_band_rows = [
+    (_dsp_band_read(clamp, start, tank), _dsp_band_read(clamp, np.clip(start, 0.0, 5.5), tank), start)
+    for clamp in (False, True) for tank in _DSP_BAND_TANKS for start in _DSP_BAND_STARTS
+]
+_dsp_band_moved = [(raw, clipped, start.tolist()) for raw, clipped, start in _dsp_band_rows if raw != clipped]
+R.check(
+    "a start outside [0, p_max] reads as the same start clipped into it, on a "
+    "duty-cycle and on a clamped install; the grid holds starts outside the "
+    "band and readings that charge a step",
+    not _dsp_band_moved
+    and any(raw is not None for raw, _, _ in _dsp_band_rows)
+    and any(raw is None for raw, _, _ in _dsp_band_rows)
+    and sum(bool(np.any((start < 0.0) | (start > 5.5))) for _, _, start in _dsp_band_rows) > len(_dsp_band_rows) // 2,
+    f"{len(_dsp_band_moved)} of {len(_dsp_band_rows)} moved, first {_dsp_band_moved[:1]}",
+)
+R.check(
+    "the bound is what hot water leaves and never under zero: 0.5 kW beside "
+    "5.5 of 6, nothing beside 7, with no vector and with one",
+    _dsp_dl.space_headroom(6.0, np.array([5.5, 7.0]), None, None).tolist() == [0.5, 0.0]
+    and _dsp_dl.space_headroom(6.0, np.array([5.5, 7.0]), np.array([1.0, 0.5]), None).tolist()
+    == [0.5, 0.0],
+)
+R.check(
+    "a pump under 1 kW weighs its switch like any other: p x draw / p_max at "
+    "a maximum draw of 0.5 kW",
+    _dsp_dl.switch_weight(np.array([0.0, 0.4]), np.array([0.4, 0.0]), (1.0, 0.0), 0.5) == 0.8,
+)
+
+
+def _dsp_obj_a(*_a, **_k):
+    return 0.0
+
+
+def _dsp_obj_b(*_a, **_k):
+    return np.zeros(1)
+
+
+_dsp_plain_solve = _dsp_om._with_stop_availability(
+    _dsp_opt(None, None), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]),
+    5.5, _dsp_obj_a, _dsp_obj_b,
+)
+_dsp_vector_solve = _dsp_om._with_stop_availability(
+    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 0.0, 2.0, 2.0]), np.array([0.0, 2.0, 0.0, 0.0]),
+    5.5, _dsp_obj_a, _dsp_obj_b,
+)
+R.check(
+    "with no vector a space solve gets the two objectives it handed in, the "
+    "same objects, and today's bound; with one it gets them bound to the vector",
+    _dsp_plain_solve[1] is _dsp_obj_a and _dsp_plain_solve[2] is _dsp_obj_b
+    and _dsp_plain_solve[0].tolist() == [5.5, 3.5, 5.5, 5.5]
+    and _dsp_vector_solve[1] is not _dsp_obj_a
+    and np.flatnonzero(_dsp_vector_solve[1].keywords["avail"] < 1.0).tolist() == [2]
+    and _dsp_vector_solve[2].keywords["avail"] is _dsp_vector_solve[1].keywords["avail"],
+)
+
+
+def _dsp_solve(pair=(0.0, 0.0), off=(0.0, 0.0), *, pins=None, legionella_h=20.0, **install):
+    """One full ``optimize``; the planner builds, the published simulation's
+    inputs and the objective closures are recorded beside the result."""
+    opt = _dsp_opt(pair, off, **install)
+    seen = _DspNS(
+        builds=[], sims=[], objectives=[], solves=[], solved=[], min_runs=[],
+        energy=[None], vectors=[0], opt=opt,
+    )
+    real_build = _DspPlanner._build_dhw_requirements
+    real_sim, real_objectives = opt.model.simulate_trajectory_with_dhw, opt._solve_objectives
+    real_solve, real_min_run = opt._solve_space, _DspPlanner._apply_dhw_min_run
+
+    real_energy, real_vector = opt._energy_cost_fn, _dsp_om._stop_availability
+
+    def solve_space(*args):
+        seen.solves.append(args)
+        seen.solved.append(real_solve(*args))
+        return seen.solved[-1]
+
+    def energy_cost_fn(*args):
+        cost_of = real_energy(*args)
+
+        def recorded(power):
+            seen.energy[0] = np.array(power, float)
+            return cost_of(power)
+        return recorded
+
+    def vector(*args):
+        seen.vectors[0] += 1
+        return real_vector(*args)
+
+    def min_run(self, **kwargs):
+        out = real_min_run(self, **kwargs)
+        seen.min_runs.append((np.array(kwargs["plan"], float), np.array(out, float)))
+        return out
+
+    def build(self, h, **kwargs):
+        out = real_build(self, h, **kwargs)
+        seen.builds.append((kwargs, out, h, self))
+        return out
+
+    def sim(**kwargs):
+        seen.sims.append(kwargs)
+        return real_sim(**kwargs)
+
+    def objectives(h):
+        out = real_objectives(h)
+        seen.objectives.append(out)
+        return out
+
+    opt.model.simulate_trajectory_with_dhw, opt._solve_objectives = sim, objectives
+    opt._solve_space, opt._energy_cost_fn = solve_space, energy_cost_fn
+    _dsp_om._stop_availability = vector
+    _DspPlanner._build_dhw_requirements = build
+    _DspPlanner._apply_dhw_min_run = min_run
+    outdoor = 2.0 + 3.0 * np.sin(2 * np.pi * (_DSP_STEPS - 50) / 96.0)
+    try:
+        seen.result = opt.optimize(inputs=solve_inputs(
+            initial_state=_DspTS(
+                room_temperature=20.5, upper_floor_temperature=20.5,
+                lower_floor_temperature=20.5, slab_temperature=21.0,
+                outdoor_temperature=float(outdoor[0]),
+                buffer_tank_temperature=30.0, dhw_temperature=45.0,
+                dhw_hours_since_legionella=legionella_h,
+            ),
+            prices=_DSP_PRICES, outdoor_temps=outdoor,
+            start_time=datetime(2026, 1, 10, tzinfo=UTC), dhw_pins=pins,
+        ))
+    finally:
+        _DspPlanner._build_dhw_requirements = real_build
+        _DspPlanner._apply_dhw_min_run = real_min_run
+        _dsp_om._stop_availability = real_vector
+    seen.space = np.asarray(seen.result.power_schedule, float)
+    seen.dhw = np.asarray(seen.result.dhw_power_schedule, float)
+    seen.bans = [k["placement_ban"] for k, *_ in seen.builds if "placement_ban" in k]
+    return seen
+
+
+def _dsp_same_plan(a, b):
+    return (
+        np.array_equal(a.space, b.space) and np.array_equal(a.dhw, b.dhw)
+        and a.result.room_temp_trajectory == b.result.room_temp_trajectory
+        and a.result.objective_value == b.result.objective_value
+        and a.result.predicted_cost == b.result.predicted_cost
+        and a.result.status == b.result.status
+    )
+
+
+_DSP_INSTALLS = {
+    "duty-cycle": dict(clamp=False),
+    "modulating clamped": dict(clamp=True),
+    "fixed-speed": dict(clamp=True, p_min=5.5),
+}
+_dsp_base = {name: _dsp_solve(None, **kw) for name, kw in _DSP_INSTALLS.items()}
+_dsp_priced = {name: _dsp_solve(_DSP_PAIR, _DSP_OFF, **kw) for name, kw in _DSP_INSTALLS.items()}
+
+# 4. Null controls, each a full optimize whose arrays are compared equal with
+# the plan a config that never heard of the fields returns.
+_DSP_NULLS = {
+    "an empty learner (zero pair, no off time)": ((0.0, 0.0), (0.0, 0.0)),
+    "a learner under its on-threshold (zero pair, an off time stored)": ((0.0, 0.0), (501.0, 0.0)),
+    "a learned pair that is not a probability": ((float("nan"), 1.7), (501.0, 501.0)),
+}
+_dsp_null_bad = []
+for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
+    for _dsp_label, (_dsp_p, _dsp_o) in _DSP_NULLS.items():
+        _dsp_null = _dsp_solve(_dsp_p, _dsp_o, **_dsp_kw)
+        if (
+            not _dsp_same_plan(_dsp_null, _dsp_base[_dsp_name])
+            or _dsp_null.bans or _dsp_null.opt._space_avail is not None
+            or len(_dsp_null.builds) != len(_dsp_base[_dsp_name].builds)
+        ):
+            _dsp_null_bad.append((_dsp_name, _dsp_label))
+R.check(
+    "null controls: an empty learner, one under its threshold and a pair that "
+    "is no probability each leave the plan identical on all three install "
+    "classes, with no availability vector, no banned build and the planner "
+    "called as often",
+    not _dsp_null_bad,
+    f"{_dsp_null_bad}",
+)
+_dsp_free = _dsp_solve(_DSP_PAIR, (0.0, 0.0), cyc=0.0)
+R.check(
+    "null control: a stopping switch with no measured off time on an install "
+    "that prices no cycle moves nothing either",
+    _dsp_same_plan(_dsp_free, _dsp_solve(None, cyc=0.0)) and not _dsp_free.bans,
+)
+R.check(
+    "and the nulls have something to detect: with the contributor's pair the "
+    "plan moves on every install class",
+    all(not _dsp_same_plan(_dsp_priced[n], _dsp_base[n]) for n in _DSP_INSTALLS),
+    f"{[n for n in _DSP_INSTALLS if _dsp_same_plan(_dsp_priced[n], _dsp_base[n])]}",
+)
+
+
+# 5. Acceptance, on the contributor's table.
+def _dsp_plan_weight(seen, name):
+    kw = {"clamp": False, "p_min": 1.5, **_DSP_INSTALLS[name]}
+    return _dsp_dl.switch_weight(
+        seen.space, seen.dhw, _DSP_PAIR, 5.5, kw["p_min"] if kw["clamp"] else None
+    )
+
+
+def _dsp_old_under_new(name):
+    """The unpriced plan's score under the priced solve's own objective."""
+    old, new = _dsp_base[name], _dsp_priced[name]
+    avail = _dsp_om._stop_availability(new.opt, old.space, old.dhw, 5.5)
+    return float(new.objectives[-1][1](old.space, old.dhw, None, avail))
+
+
+_dsp_accept = {
+    name: (
+        _dsp_plan_weight(_dsp_base[name], name), _dsp_plan_weight(_dsp_priced[name], name),
+        _dsp_old_under_new(name), float(_dsp_priced[name].result.objective_value),
+    )
+    for name in ("duty-cycle", "modulating clamped")
+}
+R.check(
+    "acceptance: priced on the contributor's table the plan carries a lower "
+    "summed switch weight, on a duty-cycle and on a modulating clamped install",
+    all(new_w < old_w and old_w > 0 for old_w, new_w, _, _ in _dsp_accept.values()),
+    f"{_dsp_accept}",
+)
+R.check(
+    "at no higher cost under the plan's own objective: the new plan scores no "
+    "higher than the old plan does under the priced objective",
+    all(new_s <= old_s + 1e-9 for _, _, old_s, new_s in _dsp_accept.values()),
+    f"{_dsp_accept}",
+)
+R.check(
+    "the published objective of a priced plan is its closure's value on the "
+    "arrays that ship, with the vector the solve scored with",
+    all(
+        float(s.objectives[-1][1](s.space, s.dhw, None, s.opt._space_avail))
+        == float(s.result.objective_value)
+        for s in _dsp_priced.values()
+    ),
+)
+_dsp_dc = _dsp_priced["duty-cycle"]
+_dsp_dc_avail = _dsp_dc.opt._space_avail
+R.check(
+    "on the duty-cycle install the solved heating in every charged step is at "
+    "most avail x p_max - dhw, and a charged step exists",
+    _dsp_dc_avail is not None and bool(np.any(_dsp_dc_avail < 1.0))
+    and bool(np.all(
+        _dsp_dc.space <= np.maximum(0.0, _dsp_dc_avail * 5.5 - _dsp_dc.dhw) + 1e-9
+    )),
+    f"{None if _dsp_dc_avail is None else np.flatnonzero(_dsp_dc_avail < 1.0).tolist()}",
+)
+R.check(
+    "and there the simulation is fed the shipped schedule itself: the bound "
+    "carried the lost time",
+    np.array_equal(_dsp_dc.sims[-1]["space_power_schedule"], _dsp_dc.space),
+)
+
+# 9. A fixed-speed install: the level cannot carry the lost time.
+_dsp_fx, _dsp_fx0 = _dsp_priced["fixed-speed"], _dsp_base["fixed-speed"]
+_dsp_fx_avail = _dsp_fx.opt._space_avail
+_dsp_fx_charged = [] if _dsp_fx_avail is None else np.flatnonzero(_dsp_fx_avail < 1.0).tolist()
+_dsp_fx_total = _dsp_fx.space + _dsp_fx.dhw
+#: The charged steps the solve kept its heating leg on. Where it moved the leg
+#: off one, that block end's lost time is uncharged (its pair is still
+#: priced): the design's stated residual, at most one step's share per block end.
+_dsp_fx_live = [i for i in _dsp_fx_charged if _dsp_fx.space[i] > 0]
+R.check(
+    "fixed-speed: every shipped total is 0 or p_max and the plan's duty floor "
+    "is p_min, with a hot-water block followed by a charged heating step",
+    bool(np.all((_dsp_fx_total == 0.0) | (_dsp_fx_total == 5.5)))
+    and _dsp_fx.result.duty_floor_kw == 5.5
+    and bool(_dsp_fx_live)
+    and all(_dsp_fx.dhw[i - 1] == 5.5 and _dsp_fx.space[i] == 5.5 for i in _dsp_fx_live),
+    f"charged {_dsp_fx_charged}, live {_dsp_fx_live}",
+)
+R.check(
+    "fixed-speed: step_duty inside a charged step returns space, and the leaf "
+    "weighs the block end into it p x 1 from the result's own schedules and floor",
+    all(
+        _dsp_pa.step_duty(_dsp_fx.result, _dsp_fx.result.timestamps[i] + timedelta(minutes=7))
+        == "space"
+        and _dsp_dl.switch_weight(
+            _dsp_fx.space[i - 1 : i + 1], _dsp_fx.dhw[i - 1 : i + 1], _DSP_PAIR, 5.5,
+            _dsp_fx.result.duty_floor_kw,
+        ) == 1.0
+        for i in _dsp_fx_live
+    ),
+)
+_dsp_fx_sim = _dsp_fx.sims[-1]
+_dsp_fx_fed = np.asarray(_dsp_fx_sim["space_power_schedule"], float)
+_dsp_fx_expect = _dsp_fx.space.copy()
+_dsp_fx_expect[_dsp_fx_live] = (1.0 - 501.0 / 900.0) * 5.5
+_dsp_fx_at_level = _dsp_fx.opt.model.simulate_trajectory_with_dhw(
+    **{**_dsp_fx_sim, "space_power_schedule": _dsp_fx.space, "end_state": []}
+)
+_dsp_fx_at_avail = _dsp_fx.opt.model.simulate_trajectory_with_dhw(
+    **{**_dsp_fx_sim, "space_power_schedule": _dsp_fx_expect, "end_state": []}
+)
+R.check(
+    "fixed-speed: the published room trajectory is the simulation at "
+    "avail x p_max in the charged steps that hold heating and at the shipped "
+    "level everywhere else, and differs from the one at p_max",
+    np.array_equal(_dsp_fx_fed, _dsp_fx_expect)
+    and list(_dsp_fx_at_avail[0]) == list(_dsp_fx.result.room_temp_trajectory)
+    and list(_dsp_fx_at_level[0]) != list(_dsp_fx.result.room_temp_trajectory),
+    f"fed {_dsp_fx_fed[_dsp_fx_charged]}, live {_dsp_fx_live}",
+)
+R.check(
+    "fixed-speed: the published start count is count_compressor_starts on the "
+    "shipped total, unchanged by the pairs on the same arrays",
+    _dsp_fx.result.compressor_starts == _dsp_starts(_dsp_fx_total)
+    and _dsp_base["fixed-speed"].result.compressor_starts
+    == _dsp_starts(_dsp_fx0.space + _dsp_fx0.dhw),
+    f"{_dsp_fx.result.compressor_starts}",
+)
+R.check(
+    "fixed-speed null control: with a zero pair the simulation is fed the "
+    "shipped schedule and no vector exists",
+    np.array_equal(_dsp_fx0.sims[-1]["space_power_schedule"], _dsp_fx0.space)
+    and _dsp_fx0.opt._space_avail is None,
+)
+
+# 6. The banned candidate: its channel, its ban, its guard.
+R.check(
+    "a priced plan with a priced switch tries exactly one more hot-water plan, "
+    "the first build's own arguments plus the ban, and no unpriced solve "
+    "builds one",
+    all(
+        len(s.bans) == 1
+        and sorted(s.builds[-1][0]) == sorted([*s.builds[0][0], "placement_ban"])
+        and np.array_equal(
+            s.bans[0],
+            _dsp_dl.switch_ban(
+                _dsp_om._realize_joint(
+                    s.opt.config.clamp_planned_levels, s.solves[-1][1], s.solves[0][0],
+                    s.opt.model.params.min_electrical_power, 5.5,
+                )[0],
+                _DSP_PAIR, _dsp_om._duty_floor(s.opt),
+            ),
+        )
+        for s in _dsp_priced.values()
+    )
+    and not any(s.bans for s in _dsp_base.values()),
+    f"{[(n, len(s.bans), len(s.builds), len(s.solves)) for n, s in _dsp_priced.items()]}",
+)
+R.check(
+    "the ban is the steps heating runs in or runs in next, for hot water to "
+    "heating, and mirrors onto the previous step for the other direction",
+    _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None).tolist()
+    == [False, True, True, False, False]
+    and _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (0.0, 1.0), None).tolist()
+    == [False, False, True, True, False]
+    and not _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), 3.0).any(),
+)
+_dsp_ban_writes = [
+    (name, np.flatnonzero(out[0].schedule[kwargs["placement_ban"]] > 0).tolist())
+    for name, s in _dsp_priced.items()
+    for kwargs, out, *_ in s.builds
+    if "placement_ban" in kwargs
+]
+_dsp_min_run_moves = [
+    int(np.sum(before != after))
+    for s in _dsp_priced.values()
+    for (kwargs, *_), (before, after) in zip(s.builds, s.min_runs)
+    if "placement_ban" in kwargs
+]
+R.check(
+    "the ban holds: the candidate's schedule is zero on every banned step, on "
+    "builds whose min-run stage rewrote the plan",
+    all(not steps for _, steps in _dsp_ban_writes)
+    and len(_dsp_min_run_moves) == 3 and all(n > 0 for n in _dsp_min_run_moves),
+    f"{_dsp_ban_writes}, min-run rewrote {_dsp_min_run_moves} steps",
+)
+
+# The channel: a due disinfection, no Off window, a manual force-on pin.
+_dsp_pin = np.full(96, np.nan)
+_dsp_pin[12] = 1.0
+_dsp_leg = _dsp_solve(None, legionella_h=200.0, pins=_dsp_pin)
+_dsp_leg_kw, (_dsp_leg_plan, _dsp_leg_req), _dsp_leg_h, _dsp_leg_planner = _dsp_leg.builds[0]
+_dsp_leg_ban = np.zeros(96, dtype=bool)
+_dsp_leg_ban[:16] = True
+_dsp_by_ban = _dsp_leg_planner._build_dhw_requirements(
+    _dsp_leg_h, **_dsp_leg_kw, placement_ban=_dsp_leg_ban
+)
+_dsp_by_off = _dsp_leg_planner._build_dhw_requirements(
+    _dsp_leg_h, **{**_dsp_leg_kw, "off_steps": _dsp_leg_ban}
+)
+_dsp_by_none = _dsp_leg_planner._build_dhw_requirements(
+    _dsp_leg_h, **_dsp_leg_kw, placement_ban=None
+)
+R.check(
+    "the ban's channel: with a disinfection due inside it and no Off window, a "
+    "banned build returns the same legionella_step and the same requirement, "
+    "and a manual force-on pin inside the ban survives",
+    _dsp_leg_plan.legionella_due and _dsp_leg_plan.legionella_step is not None
+    and bool(_dsp_leg_ban[_dsp_leg_plan.legionella_step])
+    and _dsp_by_ban[0].legionella_step == _dsp_leg_plan.legionella_step
+    and np.array_equal(_dsp_by_ban[1], _dsp_leg_req)
+    and _dsp_by_ban[0].schedule[12] > 0
+    and not np.any(np.delete(_dsp_by_ban[0].schedule[:16], 12) > 0),
+    f"step {_dsp_by_ban[0].legionella_step} vs {_dsp_leg_plan.legionella_step}, "
+    f"banned {np.flatnonzero(_dsp_by_ban[0].schedule[:16] > 0).tolist()}",
+)
+R.check(
+    "and the check tells the two doors apart: the same mask through off_steps "
+    "moves the disinfection step and zeroes the pinned step",
+    _dsp_by_off[0].legionella_step != _dsp_leg_plan.legionella_step
+    and _dsp_by_off[0].schedule[12] == 0,
+    f"step {_dsp_by_off[0].legionella_step}",
+)
+R.check(
+    "null control: a build with no ban is the build the solve made",
+    np.array_equal(_dsp_by_none[0].schedule, _dsp_leg_plan.schedule)
+    and np.array_equal(_dsp_by_none[1], _dsp_leg_req)
+    and _dsp_by_none[0].legionella_step == _dsp_leg_plan.legionella_step,
+)
+
+# The guard, on that disinfection fixture: heating right after the run-up
+# makes a priced switch, the ban then forbids the run-up steps, and the banned
+# candidate cannot hold the requirement the planner returns beside it.
+_dsp_g_opt = _dsp_opt(_DSP_PAIR, _DSP_OFF)
+_dsp_g_step = int(_dsp_leg_plan.legionella_step)
+_dsp_g_space = np.zeros(96)
+_dsp_g_space[_dsp_g_step + 1 : _dsp_g_step + 3] = 3.0
+_dsp_g_dhw = np.asarray(_dsp_leg_plan.schedule, float)
+_dsp_g_incumbent = (_dsp_g_space, _dsp_g_dhw, "optimal")
+_dsp_g_avail = np.ones(96)
+_dsp_g_calls = []
+
+
+def _dsp_g_solve(score):
+    def solve_space(dhw_plan, warm_start):
+        _dsp_g_calls.append(np.array(dhw_plan, float))
+        _dsp_g_opt._space_avail = None
+        return np.asarray(warm_start, float) * 0.5, "candidate", score
+    return solve_space
+
+
+def _dsp_g_run(score, shortfall=None, requirement=True):
+    """One candidate pass; returns what it returned and what it left behind."""
+    _dsp_g_opt._dhw_requirement = _dsp_leg_req if requirement else None
+    _dsp_g_opt._space_avail = _dsp_g_avail
+    del _dsp_g_calls[:]
+    planner = _dsp_leg_planner
+    if shortfall is not None:
+        planner = _DspNS(
+            _build_dhw_requirements=_dsp_leg_planner._build_dhw_requirements,
+            _dhw_coil_wood_forecast=_dsp_leg_planner._dhw_coil_wood_forecast,
+            _dhw_shortfall=shortfall,
+        )
+    out = _dsp_om._avoid_priced_switches(
+        _dsp_g_opt, _dsp_leg_h, planner, _dsp_g_solve(score),
+        lambda *a: 0.0, 5.5, _dsp_g_incumbent,
+    )
+    return out, _dsp_g_opt._dhw_requirement, _dsp_g_opt._space_avail, len(_dsp_g_calls)
+
+
+_dsp_g_ban = _dsp_dl.switch_ban(_dsp_g_space, _DSP_PAIR, None)
+_dsp_g_short = _dsp_g_run(-1e9)
+R.check(
+    "the guard's fixture is the one it names: the incumbent holds a priced "
+    "switch after the disinfection run-up and the ban forbids the run-up step",
+    _dsp_dl.switch_weight(_dsp_g_space, _dsp_g_dhw, _DSP_PAIR, 5.5) > 0
+    and bool(_dsp_g_ban[_dsp_g_step]) and _dsp_g_dhw[_dsp_g_step] > 0,
+)
+R.check(
+    "a banned candidate that scores lower but falls short of its returned "
+    "requirement where the incumbent holds its own is refused before any "
+    "solve, and the incumbent's requirement and availability stay in place",
+    _dsp_g_short[0] is _dsp_g_incumbent and _dsp_g_short[1] is _dsp_leg_req
+    and _dsp_g_short[2] is _dsp_g_avail and _dsp_g_short[3] == 0,
+    f"{_dsp_g_short[3]} solves, incumbent kept {_dsp_g_short[0] is _dsp_g_incumbent}",
+)
+_dsp_g_held = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+R.check(
+    "control: the same candidate with the shortfall reading zero is adopted on "
+    "its lower score, with the requirement returned beside it",
+    _dsp_g_held[0] is not _dsp_g_incumbent and _dsp_g_held[0][2] == "candidate"
+    and _dsp_g_held[1] is not _dsp_leg_req and _dsp_g_held[3] == 1
+    and not np.any(_dsp_g_held[0][1][_dsp_g_ban & ~(np.nan_to_num(_dsp_pin) >= 0.5)] > 0),
+    f"{_dsp_g_held[3]} solves",
+)
+_dsp_g_dear = _dsp_g_run(1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+R.check(
+    "a candidate that does not score lower is refused after its solve, and the "
+    "incumbent's requirement and availability are put back",
+    _dsp_g_dear[0] is _dsp_g_incumbent and _dsp_g_dear[1] is _dsp_leg_req
+    and _dsp_g_dear[2] is _dsp_g_avail and _dsp_g_dear[3] == 1,
+)
+_dsp_g_bare = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None), requirement=False)
+R.check(
+    "an incumbent with no requirement to hold a candidate to gets no candidate: "
+    "the pass the control adopts from returns the incumbent without a solve",
+    _dsp_g_bare[0] is _dsp_g_incumbent and _dsp_g_bare[1] is None
+    and _dsp_g_bare[2] is _dsp_g_avail and _dsp_g_bare[3] == 0,
+    f"{_dsp_g_bare[3]} solves, incumbent kept {_dsp_g_bare[0] is _dsp_g_incumbent}",
+)
+
+
+def _dsp_g_raises(*_a):
+    raise RuntimeError("the planner's tank walk failed")
+
+
+_dsp_g_broke = _dsp_g_run(-1e9, shortfall=_dsp_g_raises)
+R.check(
+    "a candidate pass that raises is skipped: the incumbent, its requirement "
+    "and its availability stand, and nothing is solved",
+    _dsp_g_broke[0] is _dsp_g_incumbent and _dsp_g_broke[1] is _dsp_leg_req
+    and _dsp_g_broke[2] is _dsp_g_avail and _dsp_g_broke[3] == 0,
+)
+_dsp_g_real_build = _dsp_om._dhw_build
+_dsp_om._dhw_build = lambda *a, **k: (_dsp_leg_plan, _dsp_leg_req)
+try:
+    _dsp_g_on_ban = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+finally:
+    _dsp_om._dhw_build = _dsp_g_real_build
+R.check(
+    "a candidate with hot water on a banned step no pin forces on is refused "
+    "before any solve",
+    _dsp_g_on_ban[0] is _dsp_g_incumbent and _dsp_g_on_ban[3] == 0
+    and _dsp_g_on_ban[1] is _dsp_leg_req,
+)
+# The pin rule is the planner's own (``_apply_dhw_pins``): a pin of 0.5 forces on.
+_dsp_g_pins = _dsp_leg_h.dhw_pins
+_dsp_g_half = np.full(96, np.nan)
+_dsp_g_half[_dsp_g_ban & (np.asarray(_dsp_leg_plan.schedule, float) > 0)] = 0.5
+_dsp_om._dhw_build = lambda *a, **k: (_dsp_leg_plan, _dsp_leg_req)
+try:
+    object.__setattr__(_dsp_leg_h, "dhw_pins", _dsp_g_half)
+    _dsp_g_half_on = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+finally:
+    object.__setattr__(_dsp_leg_h, "dhw_pins", _dsp_g_pins)
+    _dsp_om._dhw_build = _dsp_g_real_build
+R.check(
+    "the same candidate with each of those steps pinned at 0.5, which the "
+    "planner's pin rule forces on, is solved and adopted on its lower score",
+    int(np.sum(_dsp_g_half == 0.5)) > 0
+    and _dsp_g_half_on[3] == 1 and _dsp_g_half_on[0][2] == "candidate"
+    and _dsp_g_half_on[0][1] is _dsp_leg_plan.schedule,
+    f"{_dsp_g_half_on[3]} solve(s), {int(np.sum(_dsp_g_half == 0.5))} pinned step(s)",
+)
+_dsp_g_trickle = np.asarray(_dsp_leg_plan.schedule, float).copy()
+_dsp_g_trickle[_dsp_g_ban] = np.where(_dsp_g_trickle[_dsp_g_ban] > 0, 0.8, 0.0)
+_dsp_om._dhw_build = lambda *a, **k: (
+    _DspNS(schedule=_dsp_g_trickle, draw_rates=_dsp_leg_plan.draw_rates), _dsp_leg_req
+)
+try:
+    _dsp_g_low_on_ban = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+finally:
+    _dsp_om._dhw_build = _dsp_g_real_build
+R.check(
+    "any hot water on a banned step refuses the candidate, 0.8 kW as much as "
+    "a full block",
+    bool(np.any(_dsp_g_trickle[_dsp_g_ban] == 0.8))
+    and _dsp_g_low_on_ban[0] is _dsp_g_incumbent and _dsp_g_low_on_ban[3] == 0,
+    f"{_dsp_g_low_on_ban[3]} solve(s)",
+)
+_dsp_g_tie = _dsp_g_run(-1e-9, shortfall=lambda *a: (None, np.zeros(96), None))
+R.check(
+    "a candidate lower by exactly the 1e-9 margin, and so by no more than "
+    "it, is a tie: refused after its solve, as _co_optimize refuses its own",
+    _dsp_g_tie[0] is _dsp_g_incumbent and _dsp_g_tie[3] == 1
+    and _dsp_g_tie[1] is _dsp_leg_req and _dsp_g_tie[2] is _dsp_g_avail,
+    f"{_dsp_g_tie[3]} solve(s)",
+)
+_dsp_g_walks = []
+
+
+def _dsp_g_walk(temps, schedule, *rest):
+    """A tank walk short at step 5 until that step is excused."""
+    _dsp_g_walks.append(temps)
+    return "walked", np.zeros(96), (None if rest[-1] else 5)
+
+
+_dsp_g_run(-1e9, shortfall=_dsp_g_walk)
+R.check(
+    "the incumbent's tank is walked once: the read past its excused step is "
+    "handed the first walk's temperatures",
+    _dsp_g_walks[:2] == [None, "walked"],
+    f"{_dsp_g_walks}",
+)
+R.check(
+    "a configuration that never heard of the learner holds a zero pair in "
+    "both fields, and an optimizer that has solved nothing holds no vector",
+    _DspCfg().duty_switch_stop_probability == (0.0, 0.0)
+    and _DspCfg().duty_switch_off_seconds == (0.0, 0.0)
+    and _dsp_opt(None, None)._space_avail is None,
+)
+_dsp_g_opt.config.duty_switch_stop_probability = (0.0, 0.0)
+_dsp_g_unpriced = _dsp_g_run(-1e9, shortfall=lambda *a: (None, np.zeros(96), None))
+_dsp_g_opt.config.duty_switch_stop_probability = _DSP_PAIR
+R.check(
+    "null control: with a zero pair the pass returns the incumbent without a "
+    "build or a solve",
+    _dsp_g_unpriced[0] is _dsp_g_incumbent and _dsp_g_unpriced[3] == 0,
+)
+
+# 8. The term's edges. Hot water under a third of p_max puts both collapse
+# edges of a both step inside the bounds; warm starts sit two finite-difference
+# steps either side of each, and one at the running threshold.
+_dsp_e = _dsp_solve(_DSP_PAIR, (0.0, 0.0))
+_dsp_e0 = _dsp_solve((0.0, 0.0), (501.0, 0.0))
+_dsp_e_tank = np.zeros(96)
+_dsp_e_tank[[40, 41]] = 1.5
+_DSP_EPS = 2.0 * _dsp_om._LBFGSB_FD_EPS
+
+
+def _dsp_e_start(step, level):
+    start = np.full(96, 2.0)
+    start[step] = level
+    return start
+
+
+_DSP_E_STARTS = {
+    "under the lower collapse edge": _dsp_e_start(40, 0.75 - _DSP_EPS),
+    "over the lower collapse edge": _dsp_e_start(40, 0.75 + _DSP_EPS),
+    "under the upper collapse edge": _dsp_e_start(41, 3.0 - _DSP_EPS),
+    "over the upper collapse edge": _dsp_e_start(41, 3.0 + _DSP_EPS),
+    "at the running threshold": _dsp_e_start(42, 0.1 + _DSP_EPS),
+}
+
+
+def _dsp_e_solve(seen, start):
+    args = seen.solves[0]
+    power, status, score = seen.opt._solve_space(_dsp_e_tank, start, *args[2:])
+    return power, status, score, float(args[8](start, _dsp_e_tank))
+
+
+_dsp_e_runs = {
+    label: (_dsp_e_solve(_dsp_e, start), _dsp_e_solve(_dsp_e0, start), _dsp_e_solve(_dsp_base["duty-cycle"], start))
+    for label, start in _DSP_E_STARTS.items()
+}
+R.check(
+    "the edge fixture is the one it names: 1.5 kW of hot water under a third "
+    "of p_max, and the starts straddle a change in the legs",
+    1.5 < 5.5 / 3.0
+    and [bool(_dsp_dl.leg_ends(s, _dsp_e_tank)[2][i]) for s, i in (
+        (_DSP_E_STARTS["under the lower collapse edge"], 40),
+        (_DSP_E_STARTS["over the lower collapse edge"], 40),
+        (_DSP_E_STARTS["under the upper collapse edge"], 41),
+        (_DSP_E_STARTS["over the upper collapse edge"], 41),
+    )] == [False, True, True, False],
+)
+R.check(
+    "from each edge start the priced solve returns a score no higher than its "
+    "start's, with a solver status no worse than the same start solved unpriced",
+    all(
+        priced[2] <= priced[3] + 1e-9 and (priced[1] == null[1] or priced[1] == "optimal")
+        for priced, null, _ in _dsp_e_runs.values()
+    ),
+    f"{[(k, round(p[3] - p[2], 4), p[1], n[1]) for k, (p, n, _) in _dsp_e_runs.items()]}",
+)
+R.check(
+    "null control: with a zero pair the same starts return the arrays of a "
+    "config that never heard of the fields",
+    all(
+        np.array_equal(null[0], plain[0]) and null[1:] == plain[1:]
+        for _, null, plain in _dsp_e_runs.values()
+    ),
+)
+
+# Item r14: a relaxed start of a clamped install scores unrounded levels; the
+# delivered draw gives it the clamped reading on that unrounded level.
+_dsp_rx_opt = _dsp_opt(_DSP_PAIR, _DSP_OFF, clamp=True)
+_dsp_rx_args = (np.array([0.7, 3.0]), np.array([0.0, 0.0]), np.array([0.5, 0.5]))
+_dsp_rx_rounded = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args)
+_dsp_rx_opt._levels_relaxed = True
+try:
+    _dsp_rx_relaxed = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args)
+finally:
+    _dsp_rx_opt._levels_relaxed = False
+R.check(
+    "a relaxed start carrying a vector is charged on its unrounded level, the "
+    "rounded objective on the level that ships",
+    _dsp_rx_relaxed[0].tolist() == [0.7, 3.0] and _dsp_rx_relaxed[2].tolist() == [0.35, 1.5]
+    and _dsp_rx_rounded[0].tolist() != [0.7, 3.0]
+    and _dsp_rx_rounded[2].tolist() == (_dsp_rx_rounded[0] * 0.5).tolist(),
+    f"{_dsp_rx_relaxed[2]}, {_dsp_rx_rounded[0]}, {_dsp_rx_rounded[2]}",
+)
+_dsp_rx_plain = _dsp_om._shipped_and_received(_dsp_rx_opt, *_dsp_rx_args[:2], None)
+R.check(
+    "and with no vector the received draw is the shipped array itself",
+    _dsp_rx_plain[2] is _dsp_rx_plain[0],
+)
+
+# What reads the shipped level and what reads the delivered draw, on a
+# modulating clamped install that prices no cycle (so nothing steers the plan
+# off its charged steps) and on the fixed-speed plan above.
+R.check(
+    "the plan's duty floor reaches the switch weight: heating under the floor "
+    "after a block is no leg and no switch",
+    _dsp_w([0, 1.0], [3, 0], (0.8, 0.0)) == 0.8 * 1.0 / 6.0
+    and _dsp_w([0, 1.0], [3, 0], (0.8, 0.0), floor=1.5) == 0.0,
+)
+R.check(
+    "at the exact minute the hot-water share ends the arbiter serves heating "
+    "(a strict <, as before the rule moved)",
+    [_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)] == ["dhw", "space", "space"],
+    f"{[_dsp_served(3.0, 2.0, m, None) for m in (5.99, 6.0, 6.01)]}",
+)
+_dsp_mc = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, cyc=0.0)
+_dsp_mc_avail = _dsp_mc.opt._space_avail
+_dsp_mc_fed = np.asarray(_dsp_mc.sims[-1]["space_power_schedule"], float)
+_dsp_mc_live = (
+    [] if _dsp_mc_avail is None
+    else [i for i in np.flatnonzero(_dsp_mc_avail < 1.0).tolist() if _dsp_mc.space[i] > 0]
+)
+_dsp_mc_obj, _dsp_mc_batch, _dsp_mc_energy = (_dsp_mc.objectives[-1][i] for i in (1, 2, 3))
+_dsp_mc_rebuilt = (
+    None if _dsp_mc_avail is None
+    else _dsp_om._stop_availability(_dsp_mc.opt, _dsp_mc.space, _dsp_mc.dhw, 5.5)
+)
+R.check(
+    "modulating clamped: the simulation is fed the delivered draw of the "
+    "vector the adopted solve scored with, which is not the vector the final "
+    "plan would rebuild",
+    bool(_dsp_mc_live)
+    and np.array_equal(
+        _dsp_mc_fed, _dsp_dl.delivered_space(_dsp_mc.space, _dsp_mc.dhw, _dsp_mc_avail, 1.5)
+    )
+    and not np.array_equal(_dsp_mc_fed, _dsp_mc.space)
+    and (_dsp_mc_rebuilt is None or not np.array_equal(
+        _dsp_mc_fed, _dsp_dl.delivered_space(_dsp_mc.space, _dsp_mc.dhw, _dsp_mc_rebuilt, 1.5)
+    )),
+    f"live {_dsp_mc_live}",
+)
+R.check(
+    "the vector is built once per space solve and never at publication, on "
+    "every priced solve above",
+    all(s.vectors[0] == len(s.solves) for s in [*_dsp_priced.values(), _dsp_mc]),
+    f"{[(s.vectors[0], len(s.solves)) for s in [*_dsp_priced.values(), _dsp_mc]]}",
+)
+R.check(
+    "modulating clamped (item r15): the achieved objective is the closure on "
+    "the shipped arrays with that vector, not on the delivered draw, which "
+    "would charge the lost time twice",
+    bool(_dsp_mc_live)
+    and float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw, None, _dsp_mc_avail))
+    == float(_dsp_mc.result.objective_value)
+    != float(_dsp_mc_obj(_dsp_mc_fed, _dsp_mc.dhw, None, _dsp_mc_avail))
+    and float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw)) != float(_dsp_mc.result.objective_value),
+)
+R.check(
+    "modulating clamped: the predicted cost is the energy of the delivered "
+    "draw, not of the shipped level",
+    bool(_dsp_mc_live)
+    and float(_dsp_mc.result.predicted_cost) == float(_dsp_mc_energy(_dsp_mc_fed + _dsp_mc.dhw))
+    != float(_dsp_mc_energy(_dsp_mc.space + _dsp_mc.dhw)),
+)
+_dsp_mc_scalar = float(_dsp_mc_obj(_dsp_mc.space, _dsp_mc.dhw, None, _dsp_mc_avail))
+_dsp_mc_scalar_energy = _dsp_mc.energy[0]
+_dsp_mc_rows = float(
+    _dsp_mc_batch(np.stack([_dsp_mc.space, _dsp_mc.space]), _dsp_mc.dhw, None, _dsp_mc_avail)[1]
+)
+_dsp_mc_batch_energy = _dsp_mc.energy[0]
+R.check(
+    "the scalar and the batch objective both price the energy of the "
+    "delivered draw plus hot water, and agree bit for bit with a vector",
+    np.array_equal(_dsp_mc_scalar_energy, _dsp_mc_fed + _dsp_mc.dhw)
+    and np.array_equal(_dsp_mc_batch_energy[1], _dsp_mc_fed + _dsp_mc.dhw)
+    and _dsp_mc_rows == _dsp_mc_scalar,
+    f"{_dsp_mc_rows} vs {_dsp_mc_scalar}",
+)
+# The switch term reads the shipped level: on the fixed-speed plan the
+# delivered draw of a charged step is under the floor and would be no leg.
+_dsp_fx_free = _dsp_solve(_DSP_PAIR, _DSP_OFF, clamp=True, p_min=5.5, cyc=0.0)
+_dsp_fx_obj, _dsp_fx_batch = _dsp_fx.objectives[-1][1], _dsp_fx.objectives[-1][2]
+_dsp_fx_score = float(_dsp_fx_obj(_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail))
+_dsp_fx_level_terms = _dsp_fx.opt.config.price_weight * (
+    _dsp_cyc(_dsp_fx_total, 0.3, 5.5)
+    + 0.3 * _dsp_dl.switch_weight(_dsp_fx.space, _dsp_fx.dhw, _DSP_PAIR, 5.5, 5.5)
+)
+_dsp_fx_unpriced = float(
+    _dsp_fx_free.objectives[-1][1](_dsp_fx.space, _dsp_fx.dhw, None, _dsp_fx_avail)
+)
+R.check(
+    "fixed-speed: what pricing a cycle adds to a plan's score is the cycling "
+    "term plus cycling_cost x the switch weight of the shipped levels",
+    _dsp_dl.switch_weight(_dsp_fx.space, _dsp_fx.dhw, _DSP_PAIR, 5.5, 5.5) > 0
+    and abs(_dsp_fx_score - _dsp_fx_unpriced - _dsp_fx_level_terms) < 1e-9,
+    f"{_dsp_fx_score - _dsp_fx_unpriced} vs {_dsp_fx_level_terms}",
+)
+R.check(
+    "fixed-speed: the batch objective is the scalar one bit for bit with a "
+    "priced pair and a vector",
+    float(
+        _dsp_fx_batch(np.stack([_dsp_fx.space, _dsp_fx.space]), _dsp_fx.dhw, None, _dsp_fx_avail)[1]
+    ) == _dsp_fx_score,
+)
+_dsp_quiet = _dsp_solve(_DSP_PAIR, _DSP_OFF, legionella_h=200.0)
+R.check(
+    "a priced install whose plan holds no priced switch builds no candidate",
+    _dsp_dl.switch_weight(_dsp_quiet.space, _dsp_quiet.dhw, _DSP_PAIR, 5.5) == 0.0
+    and not _dsp_quiet.bans and len(_dsp_quiet.builds) == 1,
+    f"{len(_dsp_quiet.bans)} banned build(s) of {len(_dsp_quiet.builds)}",
+)
+# _co_optimize's own candidate: refused, it leaves the incumbent's vector.
+_dsp_co = _dsp_base["fixed-speed"]
+_dsp_co_calls = []
+
+
+def _dsp_co_solve(dhw_plan, warm_start):
+    _dsp_co_calls.append(1)
+    _dsp_co.opt._space_avail = None
+    return np.asarray(warm_start, float), "candidate", 0.0
+
+
+_dsp_co_kept = _dsp_co.opt._space_avail = np.ones(96)
+_dsp_co_out = _dsp_co.opt._co_optimize(
+    _dsp_co.builds[0][2],
+    space_power=_dsp_co.solved[0][0],
+    dhw_power=np.asarray(_dsp_co.builds[0][1][0].schedule, float),
+    status="first", best_score=-1e9, solve_space=_dsp_co_solve, p_max=5.5,
+    planner=_dsp_co.builds[0][3],
+)
+R.check(
+    "a refused co-optimisation candidate leaves the vector its incumbent was "
+    "scored with",
+    len(_dsp_co_calls) == 1 and _dsp_co_out[2] == "first"
+    and _dsp_co.opt._space_avail is _dsp_co_kept,
+    f"{len(_dsp_co_calls)} candidate solve(s), status {_dsp_co_out[2]}",
+)
+# _co_optimize's headroom is the charged bound: on a duty-cycle install heating
+# solved hard against avail x p_max - dhw wanted more than it could have, so
+# the step is pinned and hot water is re-planned against a full compressor.
+_dsp_hr_dhw = np.zeros(96)
+_dsp_hr_dhw[40] = 2.0
+_dsp_hr_avail = np.ones(96)
+_dsp_hr_avail[40] = 1.0 - _dsp_dl.lost_share(_DSP_PAIR, _DSP_OFF)
+_dsp_hr_at_bound = np.zeros(96)
+_dsp_hr_at_bound[40] = _dsp_hr_avail[40] * 5.5 - 2.0
+_dsp_hr_at_bound[41] = 2.0
+_dsp_hr_at_plain = _dsp_hr_at_bound.copy()
+_dsp_hr_at_plain[40] = 5.5 - 2.0
+
+
+def _dsp_hr_demand(space, avail, **install):
+    """The space demand ``_co_optimize`` hands its replan, ``None`` when it builds none."""
+    opt = _dsp_opt(_DSP_PAIR, _DSP_OFF, **install)
+    opt._space_avail = avail
+    seen = []
+
+    def build(h, **kw):
+        seen.append(np.asarray(kw["space_demand"], float))
+        return _DspNS(schedule=_dsp_hr_dhw.copy()), None
+
+    opt._co_optimize(
+        _dsp_co.builds[0][2], space_power=space, dhw_power=_dsp_hr_dhw,
+        status="first", best_score=0.0, solve_space=_dsp_g_raises, p_max=5.5,
+        planner=_DspNS(
+            _dhw_coil_wood_forecast=lambda *a: None, _build_dhw_requirements=build
+        ),
+    )
+    return seen[0] if seen else None
+
+
+_dsp_hr_pinned = _dsp_hr_demand(_dsp_hr_at_bound, _dsp_hr_avail)
+R.check(
+    "the co-optimisation reads the charged bound: on a duty-cycle install "
+    "heating at avail x p_max - dhw in a charged step is pinned, and the "
+    "replan is built against a full compressor there and nowhere else",
+    _dsp_hr_at_bound[40] < 5.5 - 2.0 - 1e-3
+    and _dsp_hr_pinned is not None
+    and np.flatnonzero(_dsp_hr_pinned == 5.5).tolist() == [40]
+    and _dsp_hr_pinned[41] == 2.0,
+    f"{None if _dsp_hr_pinned is None else np.flatnonzero(_dsp_hr_pinned == 5.5).tolist()}",
+)
+R.check(
+    "null controls: the same heating with no vector, or with the vector on a "
+    "clamped install whose bound carries no lost time, is under its bound and "
+    "builds no replan; at the uncharged bound each of the two builds one",
+    _dsp_hr_demand(_dsp_hr_at_bound, None) is None
+    and _dsp_hr_demand(_dsp_hr_at_bound, _dsp_hr_avail, clamp=True) is None
+    and _dsp_hr_demand(_dsp_hr_at_plain, None) is not None
+    and _dsp_hr_demand(_dsp_hr_at_plain, _dsp_hr_avail, clamp=True) is not None,
+)
+
+# The candidate pass is not for a combi store, whose hot-water plan is a
+# feasibility repair scored with no buffer flux: nothing is built or solved.
+import heatpump_optimizer.mixing_valve as _dsp_mv  # noqa: E402
+
+
+def _dsp_combi_pass(combi):
+    """What the candidate pass asks of its planner on a store-buffer install."""
+    params = _DspTP(
+        buffer_tank_volume=504.0, mixing_valve_mode=_dsp_mv.MODE_SMART_WRITE,
+        dhw_enabled=True, dhw_tank_volume=200.0, dhw_combi_tank_enabled=combi,
+    )
+    params.min_electrical_power, params.max_electrical_power = 1.5, 5.5
+    cfg = _DspCfg(cycling_cost=0.3)
+    cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = _DSP_PAIR, _DSP_OFF
+    opt = _DspOpt(_DspTM(params), cfg)
+    opt._dhw_requirement, opt._space_avail = _dsp_leg_req, _dsp_g_avail
+    asked = []
+
+    def build(h, **kw):
+        asked.append(kw.get("placement_ban"))
+        raise RuntimeError("the fixture's build")
+
+    out = _dsp_om._avoid_priced_switches(
+        opt, _dsp_leg_h,
+        _DspNS(_dhw_coil_wood_forecast=lambda *a: asked.append(None), _build_dhw_requirements=build),
+        _dsp_g_raises, lambda *a: 0.0, 5.5, _dsp_g_incumbent,
+    )
+    return opt.model.params.dhw_store.combi, out, asked, opt
+
+
+_dsp_combi_on, _dsp_combi_off = _dsp_combi_pass(True), _dsp_combi_pass(False)
+R.check(
+    "on a combi store the candidate pass asks its planner nothing and returns "
+    "the incumbent, its requirement and its availability in place, on an "
+    "incumbent holding a priced switch",
+    _dsp_combi_on[0] is True and _dsp_combi_on[1] is _dsp_g_incumbent
+    and _dsp_combi_on[2] == []
+    and _dsp_combi_on[3]._dhw_requirement is _dsp_leg_req
+    and _dsp_combi_on[3]._space_avail is _dsp_g_avail,
+    f"combi {_dsp_combi_on[0]}, {len(_dsp_combi_on[2])} planner call(s)",
+)
+R.check(
+    "null control: the same install with the store's hot water in its own "
+    "tank reaches the banned build",
+    _dsp_combi_off[0] is False and _dsp_combi_off[1] is _dsp_g_incumbent
+    and len(_dsp_combi_off[2]) == 2 and _dsp_combi_off[2][1] is not None,
+    f"combi {_dsp_combi_off[0]}, {len(_dsp_combi_off[2])} planner call(s)",
+)
+
+
+# 7. The learner's side: the bound on the decayed count, and the read the
+# planner prices by. Everything below needs the predecessor's module.
+import json  # noqa: E402
+
+from heatpump_optimizer import duty_switch as _dsp_ds, pump_mode as _dsp_pm  # noqa: E402
+
+_DSP_DAY = datetime(2026, 11, 10, tzinfo=UTC)
+
+
+def _dsp_stop(learner, at, off_s):
+    """One hot water to heating switch at ``at`` that stops the compressor 19 s
+    later, void-checked on the next pass, restarting after ``off_s``."""
+    ctx = _dsp_ds.SwitchContext(
+        mode_written_at=at, last_write_at=at, inlet_c=44.2, water_setpoint_c=32.0,
+        target_demand=True, plan_stays=True)
+    learner.mode_write(at, _dsp_pm.MODE_DHW, _dsp_pm.MODE_HEAT, True, ctx)
+    learner.edge(at + timedelta(seconds=19), False)
+    learner.note_pass(at + timedelta(seconds=60), ctx, False)
+    learner.edge(at + timedelta(seconds=19 + off_s), True)
+
+
+def _dsp_dir(k, kept_w, usable=True, off_s=()):
+    return _dsp_ds.Direction(k=k, kept_w=kept_w, decayed_at=_DSP_DAY, first_day=_DSP_DAY.date(),
+                 last_day=_DSP_DAY.date() + timedelta(days=1), usable=usable, off_s=list(off_s))
+
+
+def _dsp_kept(count, days=0):
+    """A direction latched at the cap on stops alone, then ``count`` kept
+    episodes at one instant, then aged ``days``; and the largest n it held."""
+    d = _dsp_dir(_dsp_ds.N_CAP, 0.0)
+    held = d.n
+    for _ in range(count):
+        d.book(_DSP_DAY, False, None)
+        held = max(held, d.n)
+    d.decay(_DSP_DAY + timedelta(days=days))
+    return d, held
+
+
+_dsp_fill = _dsp_ds.Direction()
+_dsp_fill_n = []
+for _dsp_i in range(40):
+    _dsp_fill.book(_DSP_DAY + timedelta(hours=_dsp_i), _dsp_i % 3 != 0, 501.0)
+    _dsp_fill_n.append(_dsp_fill.n)
+R.check(
+    "the decayed count is held at the cap, twice the on-threshold: forty "
+    "bookings an hour apart end on it and none leaves it above (to 1e-9, the "
+    "rounding of two scaled addends)",
+    _dsp_ds.N_CAP == 10.0 == 2 * _dsp_ds.N_ON
+    and max(_dsp_fill_n) <= _dsp_ds.N_CAP + 1e-9 and abs(_dsp_fill_n[-1] - _dsp_ds.N_CAP) < 0.05
+    and _dsp_fill_n[8] < _dsp_ds.N_CAP - 0.5,
+    f"largest n {max(_dsp_fill_n)!r}, last {_dsp_fill_n[-1]!r}, after nine {_dsp_fill_n[8]!r}",
+)
+_dsp_mix = _dsp_dir(6.0, 4.0)
+_dsp_mix.book(_DSP_DAY, True, None)
+R.check(
+    "the cap scales both counts alike: a stop booked on six of ten leaves "
+    "p at seven of eleven",
+    abs(_dsp_mix.p - 7.0 / 11.0) < 1e-12 and abs(_dsp_mix.n - _dsp_ds.N_CAP) < 1e-9,
+    f"p={_dsp_mix.p!r} n={_dsp_mix.n!r}",
+)
+_dsp_k12, _dsp_k12_held = _dsp_kept(12)
+_dsp_k13, _dsp_k13_held = _dsp_kept(13)
+R.check(
+    "from p = 1 at the cap the latch holds after twelve kept episodes and "
+    "drops at the thirteenth, each multiplying p by 10/11",
+    _dsp_k12.usable and not _dsp_k13.usable
+    and abs(_dsp_k12.p - (10.0 / 11.0) ** 12) < 1e-9 and abs(_dsp_k13.p - (10.0 / 11.0) ** 13) < 1e-9
+    and max(_dsp_k12_held, _dsp_k13_held) <= _dsp_ds.N_CAP + 1e-9,
+    f"p after 12 {_dsp_k12.p!r} usable={_dsp_k12.usable}; after 13 {_dsp_k13.p!r} usable={_dsp_k13.usable}",
+)
+R.check(
+    "with no episodes a capped direction is latched at 28 days and not the day after",
+    _dsp_kept(0, 28)[0].usable and not _dsp_kept(0, 29)[0].usable,
+    f"n at 28 days {_dsp_kept(0, 28)[0].n!r}, at 29 {_dsp_kept(0, 29)[0].n!r}",
+)
+_dsp_rt = _dsp_ds.DutySwitchLearner({"dhw_space": _dsp_k12, "space_dhw": _dsp_fill})
+_dsp_rt_back = _dsp_ds.DutySwitchLearner.from_record(json.loads(json.dumps(_dsp_rt.stored_record())))
+R.check(
+    "a capped record round-trips through its stored form",
+    _dsp_rt_back.directions == _dsp_rt.directions and _dsp_rt_back.directions["dhw_space"].usable,
+    f"{_dsp_rt_back.directions}",
+)
+
+# The read: both pairs in the leaf's order, zeros unless the stored latch is on.
+_dsp_table = _dsp_ds.DutySwitchLearner()
+for _dsp_i in range(6):
+    _dsp_stop(_dsp_table, _DSP_DAY + timedelta(hours=7 * _dsp_i), 501)
+R.check(
+    "six stopping switches over two days, each off 501 s, latch the direction "
+    "and the planner reads the acceptance fixture's pairs from the learner",
+    _dsp_table.directions["dhw_space"].usable
+    and _dsp_table.planner_pairs() == (_DSP_PAIR, _DSP_OFF),
+    f"{_dsp_table.planner_pairs()} against {(_DSP_PAIR, _DSP_OFF)}",
+)
+_DSP_LEARNERS = {
+    "an empty learner": _dsp_ds.DutySwitchLearner(),
+    "a learner under its on-threshold, off times stored": _dsp_ds.DutySwitchLearner(
+        {"dhw_space": _dsp_dir(4.0, 0.0, usable=False, off_s=[501.0, 492.0]), "space_dhw": _dsp_ds.Direction()}),
+    "an install whose every switch was kept": _dsp_ds.DutySwitchLearner(
+        {"dhw_space": _dsp_dir(0.0, 10.0, usable=False), "space_dhw": _dsp_dir(0.0, 10.0, usable=False)}),
+}
+R.check(
+    "the read returns zeros while a direction is unlatched, its off times with it",
+    all(l.planner_pairs() == ((0.0, 0.0), (0.0, 0.0)) for l in _DSP_LEARNERS.values()),
+    f"{ {n: l.planner_pairs() for n, l in _DSP_LEARNERS.items()} }",
+)
+_dsp_two = _dsp_ds.DutySwitchLearner({
+    "dhw_space": _dsp_dir(3.0, 1.0, off_s=[400.0, 501.0, 620.0, 700.0]),
+    "space_dhw": _dsp_dir(2.0, 2.0),
+})
+R.check(
+    "a latched direction reads its own p and median off time in its own slot, "
+    "hot water to heating first, and no off time while every stop's was censored",
+    _dsp_two.planner_pairs() == ((0.75, 0.5), (560.5, 0.0)),
+    f"{_dsp_two.planner_pairs()}",
+)
+
+# 4, the learner arm: each null state's read, handed to a full optimize.
+_dsp_arm_bad = []
+for _dsp_name, _dsp_kw in _DSP_INSTALLS.items():
+    for _dsp_label, _dsp_l in _DSP_LEARNERS.items():
+        _dsp_null = _dsp_solve(*_dsp_l.planner_pairs(), **_dsp_kw)
+        if (
+            not _dsp_same_plan(_dsp_null, _dsp_base[_dsp_name])
+            or _dsp_null.bans or _dsp_null.opt._space_avail is not None
+            or len(_dsp_null.builds) != len(_dsp_base[_dsp_name].builds)
+        ):
+            _dsp_arm_bad.append((_dsp_name, _dsp_label))
+R.check(
+    "null controls from learner state: an empty learner, one under its "
+    "on-threshold and an install whose every switch was kept each read a plan "
+    "identical to today's on all three install classes",
+    not _dsp_arm_bad,
+    f"{_dsp_arm_bad}",
+)
+R.check(
+    "and that arm has something to detect: the latched learner's read returns "
+    "the priced plan on every install class",
+    all(_dsp_same_plan(_dsp_solve(*_dsp_table.planner_pairs(), **kw), _dsp_priced[n])
+        for n, kw in _DSP_INSTALLS.items()),
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
