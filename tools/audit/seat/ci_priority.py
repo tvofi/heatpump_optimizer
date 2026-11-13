@@ -2,6 +2,12 @@
 """The CI-priority tier rule: one function says which tier a pull request is in.
 
     python3 tools/audit/seat/ci_priority.py --self-test
+    python3 tools/audit/seat/ci_priority.py queue-wait --since <iso> --until <iso> [--ref <ref>]
+
+`queue-wait` is carry 4's measure: for each workflow run created in the window,
+the minutes from the run's creation to its first job's start, split by the tier
+of the pull request its head branch maps to through the roster at <ref>. A run
+none of whose jobs started is counted unstarted, never as 0 minutes.
 
 Owner rulings (tvofi 2026-10-28, P267/P268; 2026-11-11, P652): the account's
 runner limit is shared by one order, main push > critical path or hotfix or
@@ -188,13 +194,112 @@ def _self_test() -> int:
     check("a dropped never_cancel floor member is refused", refused({"never_cancel": ["main-push"]}, "never_cancel"))
     check("a dropped never_pause floor member is refused", refused({"never_pause": ["main-push", "cp-hotfix"]}, "never_pause"))
     check("a reordered order that demotes main-push is refused", refused({"order": ["cp-hotfix", "main-push", "tier1", "instrument"]}, "order"))
+    qroster = {"groups": [{"group": "CPG", "resume": {"branch": "fix/cp"}, "class": "instrument"},
+                          {"group": "LOW", "resume": {"branch": "fix/low"}, "class": "instrument"}]}
+    qruns = [{"id": 1, "head_branch": "fix/cp", "created_at": "2026-11-11T20:00:00Z"},
+             {"id": 2, "head_branch": "fix/low", "created_at": "2026-11-11T20:00:00Z"},
+             {"id": 3, "head_branch": "main", "created_at": "2026-11-11T20:00:00Z"},
+             {"id": 4, "head_branch": "fix/low", "created_at": "2026-11-11T20:00:00Z"}]
+    qjobs = {1: [{"started_at": "2026-11-11T20:31:00Z"}, {"started_at": "2026-11-11T20:45:00Z"}],
+             2: [{"started_at": "2026-11-11T20:05:00Z"}], 4: [{"started_at": None}]}
+    qw = queue_wait(qruns, lambda i: qjobs.get(i, []), qroster, {rl.norm_group("CPG")}, S)
+    check("queue-wait: a critical-path run's first job waits 31 min (earliest job, not the last); main is counted, "
+          "not measured; a run with no started job is unstarted, never 0",
+          (qw["priority"], qw["other"], qw["main"], qw["unstarted"]) == ([31.0], [5.0], 1, 1))
+    check("queue-wait null: with no critical path the same runs measure no priority wait",
+          queue_wait(qruns, lambda i: qjobs.get(i, []), qroster, set(), S)["priority"] == [])
     print(f"ci_priority self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
+
+
+def _epoch(stamp) -> "float | None":
+    import datetime
+    try:
+        return datetime.datetime.fromisoformat(str(stamp).replace("Z", "+00:00")).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def first_job_wait(run: dict, jobs: list) -> "float | None":
+    """Minutes from <run>'s creation to its earliest job start; None when no job started."""
+    t0 = _epoch(run.get("created_at"))
+    starts = [s for s in (_epoch(j.get("started_at")) for j in jobs) if s is not None]
+    return None if t0 is None or not starts else max(0.0, (min(starts) - t0) / 60)
+
+
+def queue_wait(runs: list, jobs_of, roster: dict, crit, setting: dict) -> dict:
+    """Carry 4's measure over <runs> (workflow-run objects): {"priority": [min], "other": [min],
+    "unstarted": n, "main": n, "runs": n}. A run on main is counted, not measured: it is the
+    main-push tier the sweep never touches. `jobs_of(run id)` -> list of job objects."""
+    out = {"priority": [], "other": [], "unstarted": 0, "main": 0, "runs": len(runs)}
+    for r in runs:
+        if r.get("head_branch") == "main":
+            out["main"] += 1
+            continue
+        g = rl.group_for_branch(roster, r.get("head_branch") or "")
+        w = first_job_wait(r, jobs_of(int(r["id"])))
+        if w is None:
+            out["unstarted"] += 1
+            continue
+        out["priority" if is_priority(tier(g, crit, roster, setting), setting) else "other"].append(w)
+    return out
+
+
+def _summary(xs: list) -> str:
+    if not xs:
+        return "n=0"
+    s = sorted(xs)
+    return (f"n={len(s)} median={s[len(s) // 2]:.1f} p90={s[min(len(s) - 1, int(len(s) * 0.9))]:.1f} "
+            f"max={s[-1]:.1f} min")
+
+
+def queue_wait_cli(argv: list[str]) -> int:
+    import argparse
+    import subprocess
+    ap = argparse.ArgumentParser(prog="ci_priority.py queue-wait")
+    ap.add_argument("--since", required=True)
+    ap.add_argument("--until", required=True)
+    ap.add_argument("--ref", default=None, help="roster ref (default: roster_lib's default)")
+    ap.add_argument("--repo", default="tvofi/heatpump_optimizer")
+    a = ap.parse_args(argv)
+
+    def api(path: str):
+        import time
+        for k in range(3):  # a 502 mid-listing is GitHub's, not the window's: two retries, then refuse
+            r = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+            if not r.returncode:
+                return json.loads(r.stdout)
+            time.sleep(5 * (k + 1))
+        raise SystemExit(f"queue-wait: gh api {path} failed: {r.stderr.strip()[-160:]}")
+    root = str(ROOT)
+    roster = rl.show_roster(root, a.ref or rl.default_roster_ref(rl.git_in(root))[0])
+    crit = {rl.norm_group(str(c)) for c in rl.critical_path(roster)}
+    import datetime
+    runs, t0, t1 = {}, _epoch(a.since), _epoch(a.until)
+    while t0 is not None and t1 is not None and t0 < t1:  # hour slices: a filtered listing stops at 1000 runs
+        s0, s1 = (datetime.datetime.fromtimestamp(x, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                  for x in (t0, min(t0 + 3600, t1)))
+        for page in range(1, 11):
+            got = api(f"repos/{a.repo}/actions/runs?created={s0}..{s1}&per_page=100&page={page}").get("workflow_runs") or []
+            runs.update({int(r["id"]): r for r in got if _epoch(r.get("created_at")) is not None
+                         and _epoch(a.since) <= _epoch(r["created_at"]) < t1})
+            if len(got) < 100:
+                break
+        t0 += 3600
+    runs = list(runs.values())
+    out = queue_wait(runs, lambda rid: api(f"repos/{a.repo}/actions/runs/{rid}/jobs?per_page=100").get("jobs") or [],
+                     roster, crit, load_setting())
+    print(f"QUEUE-WAIT {a.since}..{a.until} roster@{a.ref or 'default'}: runs {out['runs']} "
+          f"(main {out['main']}, unstarted {out['unstarted']}); priority PR first job: {_summary(out['priority'])}; "
+          f"other PR first job: {_summary(out['other'])}")
+    return 0
 
 
 def main(argv: list[str]) -> int:
     if argv[1:] == ["--self-test"]:
         return _self_test()
+    if argv[1:2] == ["queue-wait"]:
+        return queue_wait_cli(argv[2:])
     print(__doc__)
     return 2
 
