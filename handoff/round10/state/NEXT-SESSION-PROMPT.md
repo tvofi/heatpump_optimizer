@@ -20,7 +20,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ROUND-PLAYBOOK-FINAL (stage carries-open, branch `handoff/r10-round-playbook-final`): `git fetch origin handoff/r10-round-playbook-final && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FIXER-MD-SPELLING-CORPUS (stage carries-open, branch `handoff/r10-fixer-md-spelling-corpus`): `git fetch origin handoff/r10-fixer-md-spelling-corpus && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PREPR-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-SEAT-SCRIPT-OUTPUT (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-SEAT-SCRIPT-OUTPUT (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-GATE-DEFER-BARRIER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REVIEW-DISPATCH-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-GH-READ-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -46,6 +46,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-VALVE-TARGET-LABEL (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SELFTEST-SCOPE-RERECORD (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-SELFTEST-SCOPE-UNION-GUARD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-UPDATEPR-FIGURE-REFRESH (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-OPENER-REFUSALS (stage in-progress): no branch pushed yet, so nothing to fetch
 
