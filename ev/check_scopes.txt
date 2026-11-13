@@ -1,0 +1,39 @@
+== 86218052ba5490fe27a21e340250e4b5945fdc80
+ok D0 mode=cells seats=3 universe=3 [s1:3f/22501loc, s2:3f/22501loc, s3:3f/22501loc]
+ok D1 mode=cells seats=3 universe=89 [s1:89f/71927loc, s2:89f/71927loc, s3:89f/71927loc]
+ok D2 mode=cells seats=3 universe=89 [s1:89f/71927loc, s2:89f/71927loc, s3:89f/71927loc]
+ok D3 mode=cells seats=3 universe=160 [s1:12f/31065loc, s2:18f/15707loc, s3:130f/41562loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20831loc, s2:15f/20831loc, s3:15f/20831loc]
+ok D5 mode=cells seats=3 universe=98 [s1:8f/0loc, s2:8f/0loc, s3:98f/88334loc]
+ok D6 mode=files seats=3 universe=86 [s1:5f/0loc, s2:7f/0loc, s3:74f/0loc]
+ok D7 mode=cells seats=3 universe=89 [s1:89f/71927loc, s2:89f/71927loc, s3:89f/71927loc]
+rc=0
+   default verdict: live True, no D10 refused True, uncited refused True
+   default invocation: live rc=0, blueprints dropped rc=1
+SELF-TEST passed (every perturbed scope refused)
+== 3038b9deaf915a4b3defedd52307f5c57e574a50
+ok D0 mode=cells seats=3 universe=3 [s1:3f/22500loc, s2:3f/22500loc, s3:3f/22500loc]
+ok D1 mode=cells seats=3 universe=90 [s1:90f/72097loc, s2:90f/72097loc, s3:90f/72097loc]
+ok D2 mode=cells seats=3 universe=90 [s1:90f/72097loc, s2:90f/72097loc, s3:90f/72097loc]
+ok D3 mode=cells seats=3 universe=161 [s1:12f/31064loc, s2:18f/15707loc, s3:131f/41733loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20831loc, s2:15f/20831loc, s3:15f/20831loc]
+ok D5 mode=cells seats=3 universe=99 [s1:8f/0loc, s2:8f/0loc, s3:99f/88504loc]
+ok D6 mode=files seats=3 universe=86 [s1:5f/0loc, s2:7f/0loc, s3:74f/0loc]
+ok D7 mode=cells seats=3 universe=90 [s1:90f/72097loc, s2:90f/72097loc, s3:90f/72097loc]
+rc=0
+   default verdict: live True, no D10 refused True, uncited refused True
+   default invocation: live rc=0, blueprints dropped rc=1
+SELF-TEST passed (every perturbed scope refused)
+== 9b811fdcefc6e0ff80c4bc78013d23d7f087be45
+ref=9b811fdcefc6e0ff80c4bc78013d23d7f087be45 seats=48
+ok D0 mode=cells seats=3 universe=3 [s1:3f/22504loc, s2:3f/22504loc, s3:3f/22504loc]
+ok D1 mode=cells seats=3 universe=89 [s1:89f/71728loc, s2:89f/71728loc, s3:89f/71728loc]
+ok D2 mode=cells seats=3 universe=89 [s1:89f/71728loc, s2:89f/71728loc, s3:89f/71728loc]
+ok D3 mode=cells seats=3 universe=160 [s1:12f/31068loc, s2:18f/15699loc, s3:130f/41259loc]
+ok D4 mode=cells seats=3 universe=15 [s1:15f/20722loc, s2:15f/20722loc, s3:15f/20722loc]
+ok D5 mode=cells seats=3 universe=98 [s1:8f/0loc, s2:8f/0loc, s3:98f/88026loc]
+ok D6 mode=files seats=3 universe=86 [s1:5f/0loc, s2:7f/0loc, s3:74f/0loc]
+rc=0
+   default verdict: live True, no D10 refused True, uncited refused True
+   default invocation: live rc=0, blueprints dropped rc=1
+SELF-TEST passed (every perturbed scope refused)
