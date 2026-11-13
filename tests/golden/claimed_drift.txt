@@ -67,6 +67,15 @@
 # v7.1.15: Supply minimum run and pause, valve target label, boost settling, card folds. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+config_flow # R10-OUTSIDE-DHW-START-HYSTERESIS: the entities_pump page gains the two start-hysteresis pickers (space_hysteresis_entity, dhw_hysteresis_entity), so the plain render, the seeded render and the seed each gain those two keys; every leaf that moves is "present on one side only" and ADDED at this head. Float-free and compared exactly, so re-recorded in the committed file (golden.py --record --only config_flow). No plan reads the options unset: the other 55 fixtures are byte-identical to the merge base (env_drift.py --all, one environment), which is the null.
+valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
+valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
+valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
+valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
+valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
+wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
+wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
+wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -778,11 +787,3 @@
 # baseline_cost is a judged key a may-drift entry cannot excuse, so the six
 # with one are suspended above for this release (the wood_coil precedent).
 # Direction per fixture, branch vs base:
-valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
-valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
-valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
-valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
-valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
-wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
-wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
-wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
