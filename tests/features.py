@@ -85849,6 +85849,39 @@ R.check(
     round(_svh_warm.room_temperature, 4),
 )
 
+# The reference has no wood: a modelled wood tank is emptied in the held state.
+_svh_wood_p = _SVR_PARAMS.from_config(_svh_house(
+    two_zone=True, dhw=False, wood_tank_top_entity="sensor.w", **_SVH_VALVE))
+_svh_wood = _svh_held(
+    _SVR_MODEL(_svh_wood_p),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=-10.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=30.0, wood_tank_temperature=80.0),
+    _SVH_WS(outdoor_temps=np.array([-10.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: a modelled wood tank holds no heat in the "
+    "thermostat reference's held state, whatever was measured in it",
+    _svh_wood_p.two_tank_modelled and _svh_wood.wood_tank_temperature == 0.0,
+    (_svh_wood_p.two_tank_modelled, _svh_wood.wood_tank_temperature),
+)
+
+# At zero demand (a warm day, two zones: each zone's need floors at exactly
+# 0.0) the valve-held tank keeps its measured temperature.
+_svh_idle = _svh_held(
+    _SVR_MODEL(_SVR_PARAMS.from_config(_svh_house(two_zone=True, dhw=False, **_SVH_VALVE))),
+    _SVR_STATE(room_temperature=20.5, slab_temperature=22.0, outdoor_temperature=25.0,
+               upper_floor_temperature=20.5, lower_floor_temperature=20.5,
+               buffer_tank_temperature=30.0),
+    _SVH_WS(outdoor_temps=np.array([25.0]), wind_speeds=np.zeros(1),
+            precipitation=np.zeros(1), solar_radiation=np.zeros(1)), 21.0)
+R.check(
+    "R10-SAV-VALUATION-RESIDUE: behind a valve at zero demand the held tank "
+    "keeps its measured temperature and the zones the target",
+    _svh_idle.buffer_tank_temperature == 30.0 and _svh_idle.room_temperature == 21.0,
+    (_svh_idle.buffer_tank_temperature, _svh_idle.room_temperature),
+)
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on

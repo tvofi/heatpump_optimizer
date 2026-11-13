@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:<module> CONST 4bcd4baf",
+  "old": "_HELD_BISECTIONS = 40",
+  "reason": "Equivalent to every reader's resolution, and measured (CONST, 40 -> 80). `_HELD_BISECTIONS` is the bisection count `_thermostat_held_state` uses to find the highest zone temperature the reference step can hold under both of `_held_unreachable`'s bounds. At 40 the bracket is 2**-40 of the outdoor-to-target span, under 4e-11 K for a 46 K span; 80 only narrows it further. Measured against the group's block (`features_block.py` from `# --- R10-SAV-VALUATION-RESIDUE: stored heat` to `# --- R10-WATER-SETPOINT-FEEDBACK`): `ALL 9 FEATURES BLOCK PASSED` under the mutant. No reader of the held state (the booked reference and the start's stored-heat settlement) resolves a change that size.",
+  "verdict": "equivalent"
+}

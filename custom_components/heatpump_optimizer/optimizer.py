@@ -651,7 +651,7 @@ def _thermostat_held_state(
             mid = 0.5 * (lo + hi)
             lo, hi = (lo, mid) if unreachable(held_at(mid)) else (mid, hi)
         held = held_at(lo)
-    if valved and p.two_tank_modelled:
+    if p.two_tank_modelled:
         # The reference has no wood: below every zone the valve takes nothing
         # from this side (``wood_share`` 0), so the step is the plain valve's.
         held.wood_tank_temperature = _NO_WOOD_TANK_C
