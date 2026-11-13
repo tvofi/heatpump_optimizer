@@ -1,0 +1,229 @@
+{
+ "attempts": {
+  "1": [
+   {
+    "conclusion": "success",
+    "name": "prelude",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "arch-score / arch-score",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "budget-raise-gate / budget-raise-gate",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "codeql / Analyze (actions)",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "codeql / Analyze (javascript-typescript)",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "codeql / Analyze (python)",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "governance / policy-docs",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "governance / wave-script",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "governance / env-matrix",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "hassfest / hassfest",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "pr-contract / pr-contract",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / fast (3.14)",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / arch-instrument",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / browser",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / briefs",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / typing",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / mutation",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / closures",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / closure-scope",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "validate / validate-hacs",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "gate",
+    "status": "completed"
+   }
+  ],
+  "2": [
+   {
+    "conclusion": "success",
+    "name": "prelude",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "arch-score / arch-score",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "budget-raise-gate / budget-raise-gate",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "codeql / Analyze (actions)",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "codeql / Analyze (javascript-typescript)",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "codeql / Analyze (python)",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "governance / policy-docs",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "governance / wave-script",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "governance / env-matrix",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "hassfest / hassfest",
+    "status": "completed"
+   },
+   {
+    "conclusion": null,
+    "name": "pr-contract / pr-contract",
+    "status": "queued"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / fast (3.14)",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / arch-instrument",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / browser",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / briefs",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / typing",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / mutation",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / closures",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "tests / closure-scope",
+    "status": "completed"
+   },
+   {
+    "conclusion": "success",
+    "name": "validate / validate-hacs",
+    "status": "completed"
+   },
+   {
+    "conclusion": null,
+    "name": "gate",
+    "status": "in_progress"
+   }
+  ]
+ },
+ "base": "main",
+ "head": "H",
+ "note": "Constructed (not recorded) two-attempt run in the shape of run 43022147048: attempt 1 every need concluded; attempt 2, the gate re-run, has its re-queued need `pr-contract / pr-contract` listed queued (GATE-BUSY-REQUEUED-NEEDS).",
+ "pr": "7",
+ "repo": "o/r",
+ "run": {
+  "display_title": "CI code pr=7 base=main sha=M",
+  "id": 43022147048,
+  "run_attempt": 2,
+  "status": "in_progress"
+ }
+}

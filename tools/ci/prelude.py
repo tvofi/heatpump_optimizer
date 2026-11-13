@@ -204,6 +204,38 @@ def run_jobs(get, repo: str, run_id, starts=None) -> dict:
     return {j["name"]: (j["status"], j["conclusion"]) for j in rows}
 
 
+def owed_needs(run: dict) -> list[str]:
+    """The unit job names a run's own title owes (judging's workset rule), `tests /
+    closure-scope` aside when the title names no PR; [] for an unreadable title."""
+    t = parse_title(run.get("title") or "")
+    if t is None:
+        return []
+    return [f"{u} / {n}" for u in sorted(workset(t[0], t[1]) & set(UNITS)) for n in UNITS[u]
+            if not (u == "tests" and n == "closure-scope" and not t[1])]
+
+
+def prior_jobs(get, repo: str, run: dict, attempt, log=lambda m: print(m, file=sys.stderr)) -> dict:
+    """The previous attempt's jobs of a run, name -> (status, conclusion), read ONLY when
+    the run's attempt is above 1 and an owed need is missing or unfinished in its latest
+    listing: a re-run re-queues the skipped needs of its own gate (run 43022147048
+    attempt 2: `pr-contract / pr-contract` queued 14:08:44Z, ran 14:12:53Z), and judging()
+    then reads the run busy to every other gate at the head. One GET per such run per
+    poll; `{}` (today's reading) when the read fails, logged with its reason. A skipped
+    need is no trigger: it is a completed job and judging() already reads it finished."""
+    attempt = int(attempt or 1)
+    jobs = run.get("jobs") or {}
+    if attempt <= 1 or all((jobs.get(k) or ("",))[0] == "completed" for k in owed_needs(run)):
+        return {}
+    path = f"repos/{repo}/actions/runs/{run['id']}/attempts/{attempt - 1}/jobs"
+    st, _, doc = get(path, {"per_page": 100})
+    rows = doc.get("jobs") if st == 200 and isinstance(doc, dict) else None
+    if rows is None or doc.get("total_count", len(rows)) > len(rows):
+        log(f"prior attempt of run {run['id']} unread ({path}: HTTP {st}"
+            f"{'' if rows is None else ', more than one page'}): judged from the latest listing")
+        return {}
+    return {j["name"]: (j["status"], j["conclusion"]) for j in rows}
+
+
 def judging(run: dict) -> bool:
     """A run that can add no source is not waited on (rev2 N2, rev3 R3-2): its
     `gate` is listed, no listed prelude or unit job is unfinished, and every name
@@ -212,9 +244,20 @@ def judging(run: dict) -> bool:
     under the unit's bare name: a unit the run never expanded, as a deferring edit
     run's skipped `pr-contract` (C3), adds no source. Read as owed, it made every
     such run busy to every other gate and prelude at its head (#3263, run
-    42338396358 beside code run 42338396871)."""
+    42338396358 beside code run 42338396871).
+    A need the run's re-run re-queued is read from `run["prior"]` (prior_jobs: the
+    previous attempt, where it concluded) instead of its unfinished latest listing
+    (GATE-BUSY-REQUEUED-NEEDS): the pre-rerun source stands until the need finishes.
+    A need unfinished in both attempts, or absent from `prior`, keeps the run busy."""
     jobs = run.get("jobs") or {}
-    if "gate" not in jobs or not all(st[0] == "completed" for k, st in jobs.items()
+    prior = run.get("prior") or {}
+
+    def seen(k):
+        st = jobs.get(k)
+        if (st is None or st[0] != "completed") and (prior.get(k) or ("",))[0] == "completed":
+            return prior[k]
+        return st
+    if "gate" not in jobs or not all(seen(k)[0] == "completed" for k in jobs
                                      if k == "prelude" or k.split(" / ")[0] in UNITS):
         return False
     t = parse_title(run.get("title") or "")
@@ -223,10 +266,10 @@ def judging(run: dict) -> bool:
     for u in workset(t[0], t[1]) & set(UNITS):
         if jobs.get(u, ("",))[0] == "completed":
             continue                        # the caller, never expanded: this run runs no such unit
-        for n in UNITS[u]:
-            if u == "tests" and n == "closure-scope" and not t[1]:
+        for k in owed_needs(run):
+            if k.split(" / ")[0] != u:
                 continue
-            st = jobs.get(f"{u} / {n}")
+            st = seen(k)
             if st is None or st[0] != "completed":
                 return False
     return True
@@ -252,6 +295,7 @@ def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
             if r["status"] in UNFINISHED and waits_on(ctx["run_id"], run):
                 try:
                     run["jobs"] = run_jobs(get, ctx["repo"], r["id"])
+                    run["prior"] = prior_jobs(get, ctx["repo"], run, r.get("run_attempt"))
                 except ghapi.ApiError as e:
                     return str(e)
                 if not judging(run):
@@ -489,6 +533,16 @@ def self_test() -> int:
     get, _ = timeline([run(1, "code", "queued")])
     w = wait_sources(rctx, get, lambda s: None, lambda: next(clock))
     check("the wait is bounded", w.startswith("run(s) [1] still adding sources"), True)
+    # GATE-BUSY-REQUEUED-NEEDS through the wait: a re-run's re-queued need, finished in attempt 1, is no wait.
+    rqfx = json.loads((HERE / "fixtures" / "gate_requeued_needs_runs.json").read_text())
+
+    def rq_get(path, params=None):
+        if path.endswith("ci.yml/runs"):
+            return 200, {}, {"workflow_runs": [{**rqfx["run"], "id": 40, "status": "in_progress"}]}
+        att = "1" if "/attempts/1/" in path else "2"
+        return 200, {}, {"jobs": rqfx["attempts"][att]}
+    check("requeued needs: wait_sources does not wait on a lower run whose only unfinished job is a need finished "
+          "in attempt 1", wait_sources(rctx, rq_get, lambda s: None, iter(range(0, 10 ** 6, 3000)).__next__), "")
     # C3 (option A): an edit run beside a code run that has not started its
     # pr-contract exits at once with the body units less pr-contract; beside one
     # whose pr-contract has started, or a finished one, it waits as before.

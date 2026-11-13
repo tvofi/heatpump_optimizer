@@ -63,7 +63,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
-from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
+from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title, prior_jobs,  # noqa: E402,F401
                      run_jobs, title, workset)
 
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet")}      # B3
@@ -270,9 +270,12 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     for r in runs:
         if r["id"] != ctx["run_id"]:
             st: dict = {}
-            api["runs_at_head"].append({"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
-                                        "starts": st, "jobs": {} if r["status"] == "action_required"
-                                        else run_jobs(get, repo, r["id"], st)})
+            row = {"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
+                   "starts": st, "jobs": {} if r["status"] == "action_required"
+                   else run_jobs(get, repo, r["id"], st)}
+            if r["status"] not in ("completed", "action_required"):     # only an unfinished run is busy()'s to judge
+                row["prior"] = prior_jobs(get, repo, row, r.get("run_attempt"))
+            api["runs_at_head"].append(row)
     return api
 
 
@@ -972,6 +975,59 @@ def self_test() -> int:
     check("refresh re-runs a completed green gate, never one at the cap, never its own run",
           (rc, posted), (0, [f"repos/{repo}/actions/jobs/9/rerun"]))
     check("refresh at a fork head is a notice", refresh(ctx, fake(lp=fork), None)[0], 0)
+    # GATE-BUSY-REQUEUED-NEEDS: a gate re-run re-queues its skipped needs; the run is then busy() to
+    # every other gate until they finish. The constructed two-attempt fixture (attempt 1 every need
+    # concluded, attempt 2 `pr-contract / pr-contract` queued) is read through read_api().
+    rq = json.loads((HERE / "fixtures" / "gate_requeued_needs_runs.json").read_text())
+    rq_id = rq["run"]["id"]
+    me_id = rq_id + 1                       # the higher id: a started gate beside it is not excused by busy()'s tie-break
+    rq_ctx = {**ctx, "run_id": me_id}
+
+    def requeue_world(attempt=2, prior=None, status=200, listing=None):
+        reads = []
+
+        def get(path, params=None):
+            if path.endswith("/pulls/7"):
+                return 200, {}, pull
+            if path.endswith("ci.yml/runs"):
+                return 200, {}, {"workflow_runs": [{"id": me_id, "display_title": "x", "status": "in_progress", "run_attempt": 1},
+                                                   {**rq["run"], "run_attempt": attempt}]}
+            if path.endswith(f"/runs/{me_id}/jobs"):
+                return 200, {}, {"jobs": green}
+            if path.endswith(f"/runs/{rq_id}/jobs"):
+                return 200, {}, {"jobs": listing or rq["attempts"]["2"]}
+            if "/attempts/" in path:
+                reads.append(path)
+                return status, {}, {"jobs": prior or rq["attempts"]["1"]}
+            raise AssertionError(path)
+        return get, reads
+
+    def requeue_busy(**kw):
+        import contextlib
+        import io
+        get, reads = requeue_world(**kw)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            api = read_api(rq_ctx, claim, True, get)
+        return busy(rq_ctx, api["runs_at_head"]), len(reads), err.getvalue()
+    got = requeue_busy()
+    check("requeued needs: a run whose only unfinished job is its re-queued need, finished in attempt 1, is not "
+          "busy; one extra read", got[:2], ([], 1))
+    got = requeue_busy(attempt=1)
+    check("requeued needs null: a single-attempt run makes no extra read, and its unfinished need keeps it busy",
+          got[:2], ([rq_id], 0))
+    pend = [dict(j, status="queued", conclusion=None) if j["name"] == "pr-contract / pr-contract" else j
+            for j in rq["attempts"]["1"]]
+    got = requeue_busy(prior=pend)
+    check("requeued needs null: a need unfinished in the previous attempt too is still busy()", got[:2], ([rq_id], 1))
+    got = requeue_busy(status=404)
+    check("requeued needs: an unreadable previous attempt keeps today's reading and logs why",
+          (got[0], got[1], "unread" in got[2] and "HTTP 404" in got[2]), ([rq_id], 1, True))
+    got = requeue_busy(listing=rq["attempts"]["1"])
+    check("requeued needs null: an attempt-2 run with every need finished makes no extra read",
+          got[:2], ([], 0))
+    got = requeue_busy(prior=[j for j in rq["attempts"]["1"] if j["name"] != "pr-contract / pr-contract"])
+    check("requeued needs null: a need the previous attempt never listed stays busy", got[:2], ([rq_id], 1))
     print(f"gate self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
