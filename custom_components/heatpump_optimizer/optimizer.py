@@ -220,7 +220,7 @@ def _stop_availability(
     )
     space, tank = _realize_joint(
         opt.config.clamp_planned_levels,
-        np.minimum(np.clip(start, 0.0, p_max), np.maximum(0.0, p_max - dhw_plan)),
+        np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),
         dhw_plan, opt.model.params.min_electrical_power, p_max,
     )
     return duty_legs.availability(space, tank, lost, _duty_floor(opt))
