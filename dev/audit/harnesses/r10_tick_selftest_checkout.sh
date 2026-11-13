@@ -36,10 +36,24 @@
 #   pipefail    the self-test's `set +o pipefail` deleted
 #   failopen    the refusal after the re-exec replaced by a run of the rows: a --self-test whose re-exec a
 #               caller's function named exec skipped runs every row in the caller's environment (round 4)
+# Channel arm -- <rev>'s whole self-test from a scratch copy, once per channel a caller has into the
+# process before line 1 and at the re-exec, every run beside a scratch bare repository named as
+# HPO_HEARTBEAT_REMOTE and TICK_RC=1 (either acts if a row runs in the caller's environment); each prints
+#   channels <channel>: <the run's last line> rc=<n> fn-calls=<n> victim-refs=<n>
+#   fn-all      an exported function for every bash builtin but exec and every command the script runs,
+#               each touching a file when called (a bare redirection, so it looks up no command itself)
+#   bashenv-all the same functions defined by a BASH_ENV file
+#   fn-exec     an exported exec that skips the /usr/bin/env call (the round-4 attack)
+#   posix       fn-exec under POSIXLY_CORRECT, and under SHELLOPTS=posix: exec is a special builtin there
+#   noexec      SHELLOPTS=noexec: bash runs no line of any script
+#   opts        SHELLOPTS=errexit:nounset:xtrace and BASHOPTS=execfail:extglob
+#   env         ENV naming a file that touches one when sourced
+#   path        PATH led by a directory whose bash, env, git and python3 touch a file
+#   ifs         IFS=/ in the caller
 # A mutant arm needs the `# mut:selftest-*` markers and says so on a <rev> without them.
 # No arm named runs the five shapes.
 set -uo pipefail
-rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen]...}; shift
+rev=${1:?usage: r10_tick_selftest_checkout.sh <rev> [branch|detached|gitdir|shim|level|whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen|channels]...}; shift
 [ $# -gt 0 ] || set -- branch detached gitdir shim level
 top=$(git rev-parse --show-toplevel) || exit 2
 sha=$(git -C "$top" rev-parse --verify -q "$rev^{commit}") || { echo "no commit $rev"; exit 2; }
@@ -157,11 +171,38 @@ PY
   echo "$arm: $(tail -n 1 "$d/$arm.log") rc=$rc"; rows "$d/$arm.log"
 }
 
+channels() { # every channel in parallel, one line each
+  local c b=$BASH x=$d/ch o
+  mkdir -p "$x"
+  local -a names=() fenv=()
+  while read -r o; do [ "$o" = exec ] || names+=("$o"); done < <(compgen -b)
+  names+=(git mktemp python3 sed grep env bash head tr cat chmod mkdir cp rm mv date sleep timeout kill tail wc cut sort dirname pwd)
+  run1() { # <channel> [env args...]: one whole self-test under that caller
+    local c=$1 v=$x/victim-$1.git rc; shift
+    mkdir -p "$x/calls-$c"; git init -q --bare "$v"
+    (cd "$x" && env HPO_HEARTBEAT_REMOTE="$v" TICK_RC=1 "$@" "$d/src/$L" --self-test) > "$x/$c.log" 2>&1; rc=$?
+    echo "channels $c: $(tail -n 1 "$x/$c.log") rc=$rc fn-calls=$(ls "$x/calls-$c" | grep -c .) victim-refs=$(git -C "$v" for-each-ref | grep -c .)" > "$x/$c.line"; }
+  fdefs() { # <channel>: the function corpus, as a BASH_ENV file's text
+    local i=0 n; for n in "${names[@]}"; do i=$((i + 1)); printf '%q() { >> %q; }\n' "$n" "$x/calls-$1/fn-$i-${n//[^a-z0-9]/_}"; done; }
+  while IFS= read -r c; do fenv+=("BASH_FUNC_${c%%()*}%%=()${c#*()}"); done < <(fdefs fn-all)
+  printf 'exec() { if [ "${1:-}" = /usr/bin/env ]; then >> %q; return 0; fi; builtin exec "$@"; }\n' "$x/calls-shellopts-posix/exec" > "$x/execfn-posix"
+  fdefs bashenv-all > "$x/bashenv-all"; echo ">> $x/calls-env/sourced" > "$x/envfile"
+  mkdir -p "$x/pbin"; for o in bash env git python3; do printf '#!/bin/sh\n>> %q\nexit 1\n' "$x/calls-path/$o" > "$x/pbin/$o"; chmod +x "$x/pbin/$o"; done
+  run1 fn-all "${fenv[@]}" "$b" & run1 bashenv-all BASH_ENV="$x/bashenv-all" "$b" &
+  run1 fn-exec "BASH_FUNC_exec%%=() { if [ \"\${1:-}\" = /usr/bin/env ]; then >> $x/calls-fn-exec/exec; return 0; fi; builtin exec \"\$@\"; }" "$b" &
+  run1 posix POSIXLY_CORRECT=1 "BASH_FUNC_exec%%=() { if [ \"\${1:-}\" = /usr/bin/env ]; then >> $x/calls-posix/exec; return 0; fi; builtin exec \"\$@\"; }" "$b" &
+  run1 shellopts-posix SHELLOPTS=posix BASH_ENV="$x/execfn-posix" "$b" &
+  run1 noexec SHELLOPTS=noexec "$b" & run1 opts SHELLOPTS=errexit:nounset:xtrace BASHOPTS=execfail:extglob "$b" &
+  run1 env ENV="$x/envfile" "$b" & run1 path PATH="$x/pbin:$PATH" "$b" & run1 ifs IFS=/ "$b" &
+  wait; cat "$x"/*.line
+}
+
 echo "rev $sha"
 for arm in "$@"; do
   case $arm in
     branch|detached|gitdir|shim|level) shape "$arm" ;;
     whole|nocheckout|gitenv|plaingh|envscrub|envi|carry|pathfirst|allowlist|pipefail|failopen) mutant "$arm" ;;
+    channels) channels ;;
     *) echo "unknown arm '$arm'"; exit 2 ;;
   esac
 done
