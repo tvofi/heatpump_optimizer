@@ -1,4 +1,5 @@
+RESULT m16 KILLED rc=1 failed=2
   FAIL pass --confirm runs the arms probe, confirm, handoff, carry_fold, stuck, noreturn in that order (rc=1, want 0)
   FAIL null control: without --confirm the same order holds with confirm_arm absent (rc=1, want 0)
+  ok   ... with no body_push
 cloud_relay self-test: 424 checks, 2 failed
-done

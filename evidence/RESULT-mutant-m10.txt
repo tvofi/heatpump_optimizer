@@ -1,0 +1,8 @@
+RESULT m10 KILLED rc=1 failed=5
+  FAIL a relayed review whose confirm failed is owed on the level, with confirm's last stderr line (rc=1, want 0)
+  FAIL the next pass confirms it and logs POSTED (rc=1, want 0)
+  FAIL and its level line is gone (rc=0, want 1)
+  FAIL null control: with the open-PR listing failed, the same shape on #68 stays owed (rc=1, want 0)
+  FAIL pass --confirm runs the arms probe, confirm, handoff, carry_fold, stuck, noreturn in that order (rc=1, want 0)
+  ok   ... with no body_push
+cloud_relay self-test: 424 checks, 5 failed

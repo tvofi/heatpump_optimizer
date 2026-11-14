@@ -1,0 +1,6 @@
+RESULT m1 KILLED rc=1 failed=3
+  FAIL a verdict returned before the pass is POSTED before handoff_arm starts (rc=1, want 0)
+  FAIL pass --confirm runs the arms probe, confirm, handoff, carry_fold, stuck, noreturn in that order (rc=1, want 0)
+  FAIL null control: without --confirm the same order holds with confirm_arm absent (rc=1, want 0)
+  ok   ... with no body_push
+cloud_relay self-test: 424 checks, 3 failed
