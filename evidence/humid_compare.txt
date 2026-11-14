@@ -1,0 +1,8 @@
+== head
+held 16.515 pw 1.000 ds +0.0000 cop90 2.887 cop 2.887
+held 16.976 pw 1.000 ds +0.1169 cop90 2.595 cop 3.062
+held 16.939 pw 1.000 ds +0.2574 cop90 2.208 cop 3.238
+== P7
+held 16.515 pw 1.000 ds +0.0000 cop90 2.887 cop 2.887
+held 19.436 pw 1.000 ds +0.0000 cop90 2.595 cop 3.062
+held 21.000 pw 1.000 ds +0.0645 cop90 2.208 cop 3.238

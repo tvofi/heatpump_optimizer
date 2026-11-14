@@ -1,0 +1,2 @@
+RESULT reference power at 2 C, humidity None: 1.0875 kW
+RESULT reference power at 2 C, humidity 90: 1.2834 kW
