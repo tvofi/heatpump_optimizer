@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 82beb28d9..9a47e5050 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -1590,7 +1590,7 @@ def cycle_supply(inp: ArbiterInputs, boosts: Any, on: bool, now: datetime | None
+     stands wherever :func:`step_supply` does not speak.
+     """
+     step = step_supply(inp, boosts, now or dt_util.now())
+-    return on if step is None else step
++    return bool(step)
+ 
+ 
+ @dataclass(frozen=True)
