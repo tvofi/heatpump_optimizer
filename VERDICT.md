@@ -1,55 +1,71 @@
-Fix review: merge 4e47ee583efdf8f066dfc5739a7db1131c2d2137
+Fix review: blocked 9d3da28204b0683981252bff8651c19b8f89f3f7 evidence-cut: two sole-copy cuts against the merge base remain, the owner's instrument-window release of the machinery freeze and where round2/HARNESSES.md is final
 
-bus-nonce: 270530cdcf84e052c18067ef45c278d4
+bus-nonce: 4268073153fe45f3af7d56e00e2d1174
+
+## Block
+
+This is round 2 of the review of #3510. It is a delta round over the head `11a6c579bb8e354b4f76209b1b4c472ddfee5c19` that round 1 blocked as evidence-cut. I measured head `9d3da28204b0683981252bff8651c19b8f89f3f7` against merge base `8c10361eb1fea539dc5acb8f7442eac2810faa47`.
+
+All five items round 1 named are restored, and each matches the merge base in number and constraint (`ev/sole-copy-grep.txt`, `ev/delta-policy.diff`):
+- `load1` is 1.86 (best of ten: 1.55).
+- `thread_factor` is 1.27–1.30 over four re-takes.
+- `c398fc84`.
+- `web-phase0.js` and `triage-quiet-judges.json` are at `d5d8c4a`, with the "read them before re-deriving" constraint.
+- "says which they could not separate".
+- "twenty had no disposition".
+
+Each of the six new payments survives where the body says it does. I checked each one in the tree:
+- `tests/closure.py:586` `"tools/pr/preflight.sh"` in `INERT_EXCEPT`.
+- `CLAUDE.md:48` for `stamp.py`.
+- `R10-RCA-FRICTION-RESIDUE.md` §1 for `rounds.py`.
+- `tests/README.md:430-431` and `tests/closure.py:427` for `../setup-qa/`.
+- README:31-33 and :295 for the workflows and the register.
+- README:74 for the orchestrator's 500 k rotation.
+
+The full merge-base diff of `dev/audit/README.md` still cuts two items whose only copy was the deleted text. Round 1 did not list either, and the body's statement "No measurement or downstream constraint is cut" does not hold for them:
+
+- **A decision on downstream seats: how the freeze is released.** The base README:81 Production share (tvofi, 2026-11-01) says "the rest waits for an instrument window the owner opens". The head replaces it with "is frozen", which keeps the freeze but drops the release mechanism: only the owner opens an instrument window. `git grep -i "instrument window\|window the owner\|owner opens"` at the head finds nothing outside JSON. Carry 29 asks for the freeze to be written in and does not ask for the window to be removed.
+- **A constraint the head now states wrongly: where round 2's harness list is read.** The base README said "Which of those harnesses still run is `round2/HARNESSES.md` at `d5d8c4a`, final at that commit only". The head says "Round 2's harnesses are at `757e164` (`round2/HARNESSES.md` says which run)". At `757e164`, `tools/audit/round2/HARNESSES.md` does not exist (`git show` prints `fatal: path ... does not exist in '757e164'`). It exists only at `d5d8c4a`. A reader who follows the parenthetical lands on a missing file, and the "final at that commit only" constraint has no other copy (only `plan-2026-09-open-issues.md:1257` and a `policy_lint.mjs` comment name the file).
+
+To repair, keep both sentences: put back "the rest waits for an instrument window the owner opens" (or name where it survives), and tie `round2/HARNESSES.md` to `d5d8c4a`. If this costs tokens, pay with prose that has a surviving copy, as the six payments above do. README is at 6050/6059, so 9 tokens of headroom remain. If no such payment exists, ask the owner for the raise before pushing (CLAUDE.md rule 2).
 
 ## Evidence
 
-- Round: third review of this group (blocked at 11a6c579bb8e354b4f76209b1b4c472ddfee5c19 and at 9d3da28204b0683981252bff8651c19b8f89f3f7, class evidence-cut both times). This is a delta round under fix-review.md step 12. The delta is `git diff 11a6c579bb8e354b4f76209b1b4c472ddfee5c19 4e47ee583efdf8f066dfc5739a7db1131c2d2137`: policy prose, `dev/programme/plan-2026-09-open-issues.md`, and main's `ci: record nightly kills` files brought in by merge b0fa74f68b. It has no `custom_components/` change, so the scope does not widen. Measured head: 4e47ee583efdf8f066dfc5739a7db1131c2d2137 (`ev/HEAD.txt`). The body's `## Head` names the same SHA.
-- No pull request exists yet, so there is no review packet and no CI run to read. The red-check step has nothing to answer, and the body's `## Red checks: none` is consistent with that. `merge_train.py owed-reds` prints the owed set (`ev/owed-reds.txt`, tail shown).
-- Check 1, sole-copy cuts, by enumeration over the whole diff 8c10361eb1fea539dc5acb8f7442eac2810faa47..head (merge base unchanged):
-  - The fixer's enumerator, re-run from the body's script, prints `SOLE-COPY: 77 of 3478` at the head and `75 of 912` at 9d3da282, as the body says (`ev/theirs.txt`).
-  - My own enumerator is built differently (`ev/cutenum.py`). It splits every `-` line of `git diff -U0` at sentence and clause punctuation and checks each fragment of 3 or more words against each tracked file at the head separately. It finds `141 gone of 230 removed fragments` (`ev/mine.txt`). Every one of those 141 maps into one of the fixer's 77 units (`ev/xmap.py`: `unmapped 0`). No removed fragment escapes the body's list.
-  - The body's dispositions cover all 77 numbers.
-  - I read each unit against its head text in the word diffs of `CLAUDE.md`, the five contracts and `dev/audit/README.md`.
-  - Every claimed other copy exists at the head:
-    - four-issues sentence: plan file, line 2096
-    - "absorbs thirty-one numbers while naming eight": plan file
-    - "using the instrument it accuses": plan file
-    - "bar is a stall": `dev/audit/rounds/round4/quiet-window.md`
-    - "not inside an iteration": `dev/governance/dimensions/D9.md`
-    - the direct-run half of the stress.py rule: `.claude/skills/steward/SKILL.md`
-    - why second-thread CPU misses the ratio (process_time, not thread_time): `dev/audit/rounds/round4/D9/verify-0-1.md`
-    - `digest/jobs`: `tools/audit/seat/instruments/beat_jobs.py.md`
-    - Proposals: `tools/audit/seat/sweep_template.md`
-    - `rounds.py --stats`: `dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md`
-    - `../setup-qa/`: `tests/README.md:431` and `tests/closure.py:427`
-    - "holdouts named": `.claude/workflows/audit-plan.js`
-  - The restored items are present in README.head: the instrument window; "not a tree value"; K9 context; v6.3.18 and first-parent; `HARNESSES.md` at `d5d8c4a`, "final at that commit only" (wrapped at README lines 296-297).
-  - The rewordings I read keep every fact, or drop only a restatement whose rule survives in the same file. The corrected count is real: `optimizer.py` has three `sleep(0.002)` calls, at lines 1256, 1360 and 5275.
-  - Result: none of the 77 units is cut without a disposition. The evidence-cut class is closed at this head.
-- Check 2, owner correction of 2026-11-12 on `nudge.md`:
-  - Run over every file this PR edits at the head, `git grep -n -i nudge` returns two hits:
-    - `CLAUDE.md:113`: "Cursor turn `nudge.md`"
-    - `tools/audit/seat/roster_edit.py:1423`: a comment
-  - The contracts `fixer.md`, `orchestrator.md`, `architect-planner.md`, `plan-review.md` and `proposal-triage.md` no longer cite it.
-  - No text presents `nudge.md` as binding every orchestrator session. The `CLAUDE.md` row scopes it to Cursor.
-  - The departure from carry 44's "delete the turn clause" is forced by the tree, which I reproduced. Deleting the clause at the head makes `node tools/policy/policy_lint.mjs` print `ERROR [index] CLAUDE.md: does not name tools/audit/briefs/nudge.md` and `TOTAL: 1 error(s)`. The head prints `TOTAL: 0 error(s) across 51 policy file(s)`.
-  - R10-NUDGE-RETIRE's roster brief (handoff/audit-r10-roster d15fb174b6f5) already owns any citation in `CLAUDE.md`, `orchestrator.md` or `fixer.md` that remains at its merge base. It also lists `tools/audit/seat/roster_edit.py` among its files.
-- Mutation proof, re-run at the head. With `LOG` removed from `VERDICT_LINE_RE`, `roster_edit self-test: 281 checks, 1 failed`, and the failing check is `FAIL triage gate: a LOG ruling is refused as LOG, never routed (got: )`. Restored: `281 checks, 0 failed` (`ev/mutation.txt`).
-- Figures re-taken at the head (`ev/checks.txt`):
-  - `policy_lint.mjs --budgets` rows match the body. README 315/321, 6056/6059; `CLAUDE.md` 214/221, 3605/3605; `fixer.md` 315/315, 5210/5216; `orchestrator.md` 293/295, 4231/4251; `architect-planner.md` 84/85, 1261/1261; `plan-review.md` 24/24, 304/304; `proposal-triage.md` 36/36, 488/489; `D13.md` 79/79, 1149/1149; `D11.md` 99/103, 1494/1499. No cap is raised.
-  - `brief_lint.mjs` rc 0. The only errors it prints are its fixtures', and it prints `PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean`.
-  - `RULES-SYNC ok`; `STRUCTURE RATCHET PASSED`.
-  - `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`
-  - `tests/doc_claims.py`: `ALL 343 checks PASSED`.
-  - `env -u BASH_ENV PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2709 ENTITY CHECKS PASSED`, rc=0 (`ev/entities.log`).
-- Not re-taken: the body's cap null control with the two payment cuts put back (6111/6059). The byte counts are re-derivable but I did not re-derive them. Neither changes this verdict.
-- Merge with main: `git merge-tree --write-tree origin/main 4e47ee58` exits 0 with origin/main at a18e2e9d00b1 (`ev/mergetree.txt`). `VERSION`, the manifest and `RELEASE_NOTES.md` are untouched.
-- Policy: `CLAUDE.md`, `dev/audit/README.md` and five contracts change, so this merges only on tvofi's approving review at its head. The body's two Approval questions (10% vs 20%; the carry 31 raise) are the owner's. This verdict does not stand in for that review.
+- Head and base: `ev/HEAD.txt`. `dev/governance/roles/` is unchanged between the merge base and origin/main: 0 diff lines (`ev/roles-current.txt`), so the contract is current. The body's head line names `9d3da28204b0683981252bff8651c19b8f89f3f7`, the head reviewed. The body was read from `handoff-body/r10-round-playbook-final` at `610f2ba65804135850d37b3484a5de649ffa6e2f`.
+- Scope, by fix-review.md step 12:
+  - The delta 11a6c579..9d3da282 is the two policy hunks (README, `orchestrator.md`) plus the merge of origin/main.
+  - The merge adds only mutation-ledger JSON under the inherited main history. No `custom_components/` line is in this PR's diff, so the scope does not widen.
+  - The round-1 finding was re-checked against the whole merge-base diff, as the dispatch asked.
+- `git merge-tree --write-tree origin/main 9d3da282…`: rc 0, clean (`ev/merge-tree.txt`).
+- `node tools/policy/policy_lint.mjs --budgets` at the head: rc 0 (`ev/budgets-head.txt`). Columns are lines/cap and ~tokens/cap; every row equals the body's Figures:
 
-## Findings
-
-- Follow-up: `CLAUDE.md:113` keeps "Cursor turn `nudge.md`" because `policy_lint`'s index rule refuses an unnamed policy file. "Cursor" is looser than the file's own scope, "the Cursor orchestrators on grok and qwen". `nudge.md`'s line 3, "This file is the turn that contract names", is now false, because `orchestrator.md` no longer names it. Both go when the file is retired. Carry: R10-NUDGE-RETIRE
-- Follow-up: the comment at `tools/audit/seat/roster_edit.py:1423` ("nudge.md and sweep_template.md run them by hand") is a file this PR edits and still names `nudge.md`. It is not a contract, and carry 44's three items do not list it. The file is in R10-NUDGE-RETIRE's files. Carry: R10-NUDGE-RETIRE
-- Residual: `dev/governance/dimensions/D9.md` lines 60-62 still say "The two existing `sleep(0.002)` yields", but `optimizer.py` has three at the head. Carry: dismissed: pre-existing at the merge base and outside this diff; it is the owner's dimension brief, and the README this PR edits now says to grep the calls, never count them
-- Residual: several body dispositions are labelled loosely. Units 36, 41, 45 and 46 are called "restored" but are reworded (their content is present at the head), and the 65-67 line says "61" where it means 65. No fact is lost. Carry: dismissed: body wording only, and every unit's content is verified present above
+  | file | lines/cap | ~tokens/cap |
+  |---|---|---|
+  | `tools/audit/README.md` key | 315/321 | 6050/6059 |
+  | `CLAUDE.md` | 214/221 | 3604/3605 |
+  | `fixer.md` | 315/315 | 5215/5216 |
+  | `orchestrator.md` | 295/295 | 4246/4251 |
+  | `architect-planner.md` | 84/85 | 1261/1261 |
+  | `plan-review.md` | 24/24 | 304/304 |
+  | `proposal-triage.md` | 36/36 | 488/489 |
+  | `D13.md` | 79/79 | 1149/1149 |
+  | `D11.md` | 99/103 | 1494/1499 |
+- No cap is raised. The diff touches no `*budgets.json` and nothing under `dev/governance/config/` (`ev/budget-files.txt`), so there is no Raise justification to report. Carry 31 is left unlanded, and the body puts it to the owner as a raise question.
+- Not re-derived: the body's cap null control (README 322/321, 6163/6059 and `orchestrator.md` 295/295, 4261/4251 with the six payment hunks reversed). It is an uncommitted tree state.
+- Mutation proof, re-run (`ev/selftest-head.txt`, `ev/selftest-mutant.txt`):
+  - At the head: `roster_edit self-test: 281 checks, 0 failed`.
+  - With `LOG` removed from `VERDICT_LINE_RE` (line 208): `281 checks, 1 failed` and `FAIL triage gate: a LOG ruling is refused as LOG, never routed (got: )`.
+  - Restored afterwards, with a clean worktree.
+- `brief_lint.mjs`: rc 0, and `PLAYBOOK ok: the renamed fixture is refused for its 7 moved instruments and the null fixture lints clean`. The error counts come from its deliberate fixtures (`ev/brief_lint.txt`).
+- `rules_sync.mjs --check`: `RULES-SYNC ok` (`ev/rules_sync.txt`).
+- VERSION, the manifest and `RELEASE_NOTES.md` are untouched (`ev/version.txt`).
+- Carries 41 and 42 were read on roster `handoff/audit-r10-roster` at `d10e9b2a1c1930a18386b9ca9e33524742e376c6`.
+  - The README answers carry 41 by pointer ("as written there").
+  - Carry 42's re-read is owed only after this group merges. The body assigns it to the final pass, so nothing is owed at this head.
+- Other merge-base cuts I checked and judged duplicated or spent:
+  - The process_time/thread_time mechanism survives at `dev/audit/rounds/round4/D9/h2_cycle.py:55` and `d9common.py:130`.
+  - "do not wait for 1.5" survives as "`load1` is quoted, not gated".
+  - The `j5_gil.py`/FakeHass reason points to the first trap.
+  - The out-of-tree "Lean flow pre-study, section K9" pointer is partly kept at `.github/workflows/ci.yml:42`.
+- CI: there is no review packet, and no CI to wait on before the PR opens. The handoff head `9d3da282` has no PR run yet; PR #3510 still points at `11a6c579`. `merge_train.py owed-reds` (rc 0) prints `tests / fast (3.14)`, `tests / mutation`, `tests / typing` and `validate / validate-hacs` (`ev/owed-reds.txt`). No owed red is read at this head, so the body's `## Red checks: none` is not contradicted.
+- Finder's harness: none is named, and none is owed for a playbook prose group. The executable change's harness is the self-test above.
