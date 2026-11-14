@@ -1,0 +1,9 @@
+null: unmutated --no-mutants
+rc=0
+no_per_run_remember rc=1 KILLED ['FAIL darwin-selftest: a pass killed partway keeps the runs it finished']
+red_carried_to_next_cycle rc=1 KILLED ['FAIL darwin-selftest: a new cycle starts with an empty red list after a cycle that had REDs']
+done_carried_to_next_cycle rc=1 KILLED ['FAIL darwin-selftest: a new tip runs again', 'FAIL darwin-selftest: a new cycle starts with an empty red list after a cycle that had REDs']
+no_stale_wt_remove rc=0 SURVIVED []
+budget_gt rc=0 SURVIVED []
+complete_default_false rc=1 KILLED []
+no_final_remember rc=1 KILLED ['FAIL darwin-selftest: a new tip runs again', 'FAIL darwin-selftest: a completed cycle starts the next one at the newest tip']
