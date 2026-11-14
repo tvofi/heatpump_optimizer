@@ -6060,40 +6060,7 @@ class HeatPumpOptimizer:
                 humidity=hum_i,
             )
 
-        if mixing_valve.is_throttling(p.mixing_valve_mode):
-            baseline_power = self._apportion_by_steady_demand(baseline_power, weather, targets)
         return baseline_power, state
-
-    def _apportion_by_steady_demand(
-        self, simulated: np.ndarray, weather: WeatherSeries, targets: list[float]
-    ) -> np.ndarray:
-        """The simulated horizon's energy, spread by the steady demand per step.
-
-        Behind a valve the first steps are the stores' transient, not the
-        thermostat's power: a tank above the curve zeroes them, one below it
-        overshoots. The settlement books step 0 of a plan re-made every
-        interval, so it would book only the transient. The simulation decides
-        how much the horizon draws; the demand decides when, never past the
-        pump: a step held at it gives its excess to the rest by the same demand.
-        """
-        assert weather.wind_speeds is not None and weather.precipitation is not None
-        assert weather.solar_radiation is not None
-        steady = np.array([
-            max(0.0, _floor_demand_at_target(
-                self.model, targets[i], float(weather.outdoor_temps[i]),
-                float(weather.wind_speeds[i]), float(weather.precipitation[i]),
-                float(weather.solar_radiation[i]),
-            ))
-            for i in range(len(simulated))
-        ])
-        energy, cap = float(np.sum(simulated)), float(self.model.params.max_electrical_power)
-        held = np.zeros(len(steady), dtype=bool)
-        while (total := float(np.sum(steady[~held]))) > 0.0:
-            spread = np.where(held, cap, steady * ((energy - cap * int(np.sum(held))) / total))
-            if not (over := ~held & (spread > cap)).any():
-                return spread
-            held |= over
-        return simulated
 
     def _settle_horizon(
         self,
