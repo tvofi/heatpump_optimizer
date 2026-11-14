@@ -6033,6 +6033,63 @@ R.check(
     "just TotalCostSensor",
 )
 
+# R10-SAV-VALUATION-RESIDUE Carry 10: on a combi store the pump's hot-water
+# mode also buys the space heat drawn from the store (the flux exchange), so
+# the three hot-water figures and the climate attribute carrying the first
+# say which split they show, through ``entity.dhw_split_attributes`` reading
+# the model's own ``combi_tank_active``. Static documentation, unrecorded like
+# ``split_method``. The null: the same store with combi off states nothing,
+# and a space figure on the combi store states nothing either.
+from heatpump_optimizer.thermal_model import ThermalParameters as _c10_TP  # noqa: E402
+
+
+def _c10_attrs(combi: bool) -> dict[str, object]:
+    params = _c10_TP(
+        dhw_combi_tank_enabled=combi, buffer_tank_volume=504.0,
+        mixing_valve_mode="smart_write", dhw_enabled=True,
+        dhw_tank_volume=200.0, combi_potable_volume_l=40.0,
+    )
+    coord = FakeCoordinator(DATA, _thermal_params=params,
+                            _month_totals={"dhw": (41.5, 62.25), "space": (120.0, 180.0)})
+    return {
+        "precondition": params.combi_tank_active,
+        **{
+            # Home Assistant's Entity answers None where a class defines no
+            # attributes; tests/hastub's has no such default, hence getattr.
+            cls.__name__: getattr(cls(coord, ENTRY), "extra_state_attributes", None)
+            for cls in (sensor.DHWHeatingCostSensor, sensor.DHWEnergySensor,
+                        sensor.DHWCostSensor, sensor.SpaceEnergySensor,
+                        _climate_platform.HeatPumpOptimizerClimate)
+        },
+    }
+
+
+_c10_on, _c10_off = _c10_attrs(True), _c10_attrs(False)
+_c10_dhw = ("DHWHeatingCostSensor", "DHWEnergySensor", "DHWCostSensor",
+            "HeatPumpOptimizerClimate")
+R.check(
+    "on a combi store each hot-water figure says it is the pump's hot-water "
+    "mode, space heat drawn from the store included (Carry 10)",
+    _c10_on["precondition"]
+    and all((_c10_on[n] or {}).get("dhw_split") == _entity_base.COMBI_DHW_SPLIT for n in _c10_dhw)
+    and "space heat drawn from the store" in _entity_base.COMBI_DHW_SPLIT
+    and "dhw_split" not in _c10_on["SpaceEnergySensor"],
+    repr({n: (_c10_on[n] or {}).get("dhw_split") for n in _c10_dhw}),
+)
+R.check(
+    "and off a combi store none states it (Carry 10 null)",
+    not _c10_off["precondition"]
+    and _c10_off["DHWHeatingCostSensor"] is None
+    and not any("dhw_split" in (_c10_off[n] or {}) for n in _c10_dhw),
+    repr({n: _c10_off[n] for n in ("DHWHeatingCostSensor",)}),
+)
+R.check(
+    "the split statement is shown but never recorded (Carry 10, #1462's rule)",
+    all("dhw_split" in getattr(cls, "_unrecorded_attributes", frozenset())
+        for cls in (sensor.DHWHeatingCostSensor, sensor.DHWEnergySensor,
+                    sensor.DHWCostSensor, _climate_platform.HeatPumpOptimizerClimate)),
+)
+
 # --- R9-UX-7 (#1795): model status and the next-interval prediction ---------
 #
 # The learning view the coordinator already publishes had no reader but the

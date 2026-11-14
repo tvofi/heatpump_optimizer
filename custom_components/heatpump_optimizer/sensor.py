@@ -50,6 +50,7 @@ from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
 from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
 from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
+from .entity import dhw_split_attributes
 from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
@@ -1263,12 +1264,19 @@ class DHWHeatingCostSensor(_PayloadNumberMixin, _DHWEntityMixin, HeatPumpOptimiz
 
     _payload_path = ("dhw_heating_cost",)
     _payload_digits = 2
+    # Static documentation, as ``split_method`` is on the accumulators.
+    _unrecorded_attributes = frozenset({"dhw_split"})
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(
             coordinator, entry, "dhw_heating_cost", "dhw_heating_cost"
         )
         self._attr_native_unit_of_measurement = coordinator.currency
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Which split the figure shows, on a combi store only."""
+        return dhw_split_attributes(self.coordinator) or None
 
 
 # ---------------------------------------------------------------------------
@@ -1790,7 +1798,7 @@ class _AccumulatingSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
     # accumulator, but the recorder writes them once per accumulating sensor
     # per cycle for nothing — so every accumulator declares them unrecorded
     # and exactly one (TotalCostSensor) keeps them in the recorder (#1462).
-    _unrecorded_attributes = frozenset({"period", "split_method"})
+    _unrecorded_attributes = frozenset({"period", "split_method", "dhw_split"})
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -1818,6 +1826,8 @@ class _AccumulatingSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
         since = (self._data()).get("energy_totals_counting_since")
         if since:
             attrs["counting_since"] = since
+        if self._ledger_line == "dhw":
+            attrs.update(dhw_split_attributes(self.coordinator))
         if self._ledger_line:
             month = self.coordinator.month_channel_totals(self._ledger_line)
             if month is not None:

@@ -33,6 +33,7 @@ from .const import (
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw, publish_then_refresh
 from .entity import effective_outdoor, payload_number, zone_setpoint_attributes
+from .entity import dhw_split_attributes
 from .entry_config import EntryConfig
 
 _LOGGER = logging.getLogger(__name__)
@@ -82,6 +83,9 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
     _attr_name = None
     _attr_translation_key = "heat_pump_optimizer"
     _platform_domain = "climate"
+    # The combi split's static documentation, as ``split_method`` is on the
+    # lifetime sensors: shown, never recorded.
+    _unrecorded_attributes = frozenset({"dhw_split"})
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.OFF, HVACMode.HEAT, HVACMode.AUTO]
     _attr_supported_features = (
@@ -274,6 +278,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             attrs["dhw_heating_cost"] = self.coordinator.data.get(
                 "dhw_heating_cost", 0.0
             )
+            attrs.update(dhw_split_attributes(self.coordinator))
 
             # Predictive optimization insights
             predictive = self.coordinator.data.get("predictive_info", {})
