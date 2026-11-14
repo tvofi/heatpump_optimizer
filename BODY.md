@@ -22,7 +22,7 @@ Carry 12: the same three gate-conclusion residuals as Carry 11 (same text, item 
 
 ## Head
 
-56923ce8dd8d92aabcd894c6e23c5310d7b1144a, five commits on the reviewed head ff8b073827a8938d679ced28644cd28401f16dbc. Merge base 154dbb4c61652135381ce66646d23f7109d1c142. `git merge-tree --write-tree origin/main HEAD` at origin/main e23124ff6e45 reports no conflict, so main is not merged (fixer step 6).
+d061e934fd0b0ff806c6274f3e001f17edf49d36, the repair commit and the wip marker merge on 56923ce8dd8d92aabcd894c6e23c5310d7b1144a (five commits on the reviewed head ff8b073827a8938d679ced28644cd28401f16dbc). Merge base 154dbb4c61652135381ce66646d23f7109d1c142. `git merge-tree --write-tree origin/main HEAD` at origin/main e23124ff6e45 reports no conflict, so main is not merged (fixer step 6).
 
 ## Mutation proof
 
@@ -79,7 +79,15 @@ Driver: the reviewer's `evidence/mut.py` from review/3560, extended with M10-M15
 
 ## Red checks
 
-`none`. No check has concluded red at ff8b0738 (the reviewer's `classify` log) and none is predicted red at this head.
+`instrument-self-tests`, red at 070118088ac3 and green at the merge base; the branch's own, three steps, repaired:
+
+- `tools/audit/seat/sweep_render.py` self-test: the overlay declared `train_state` and no sweep step used it. Step (4e) now renders `cancel_superseded.py sweep --repo R --priority {{train_state}}`, `train_state` is an optional flag (`--train-state`), and a new check pins value-renders and empty-leaves-out. Passes locally: `sweep_render self-test: 39 checks, 0 failed`.
+- `selftest_scope.py --self-test` (one of 120 checks, "the live job parses and its gating is consistent"): the `ci-priority` step read no `steps.scope.outputs.<id>`, which `selftest_scope.py static` refuses as UNGATED. The step is gated and its closure recorded with `selftest_scope.py record --step ci-priority`. Passes locally: `117 checks, 0 failed`; `static: 115 gated step(s), 0 problem(s)`.
+- `selftest_scope_mutants.sh --self-test` (`LINE RED: the unmutated self-test fails`): its baseline was the previous failure; no change of its own.
+
+Cheaper detector: `ci_predict` ran none of these (a data-file read is not seen), so the standing detector is `selftest_scope.py static`, not in `prepr.sh`; recorded as not built, the owner-held lane. `prepr.sh` at this head: PRE-PR rc=0.
+
+`tests / fast (3.14)` (job 132301554220, run 43547167986 at 070118088ac3): red with `1 TEST SCRIPT(S) FAILED`; it was green at the previous reviewed head ff8b0738 (that run's only red was `instrument-self-tests`). The failing script's own output is the part of the log this seat cannot read (the log read back begins at doc_claims.py, 348 checks passed; the lines before it, which hold closure.py selftest, features.py and entities.py, were cut), and neither script runs here (`paho` is absent from the ha venv). So the failing script is unnamed and unreproduced, and this repair does not claim to cure it. What this head changes in what those scripts read: `tools/ci/selftest_closures.json` gained the recorded `ci-priority` entry and `governance.yml` gated that step, either of which a closure or entity check over the tree could have refused before. Cheaper detector: none shown; the reviewer's re-run of `tests / fast (3.14)` at this head is the measurement. `tests / nightly-status` is red on the nightly lane and is not this branch's; `code-scanning` reads 403 here.
 
 ## Forward-carry
 
