@@ -137,6 +137,8 @@
   ok   darwin-selftest: a completed cycle starts the next one at the newest tip
   ok   darwin-selftest: DARWIN_PASS_BUDGET_S is at most half the row's timeout_s
   ok   darwin-selftest: a .py self-test runs as CI's plain python3, never -I (which drops the script dir)
+  ok   darwin-selftest: a new cycle starts with an empty red list after a cycle that had REDs
+  ok   darwin-selftest: a pass killed partway keeps the runs it finished
   ok   mutant family_drops_owed killed by: tick-digest: one OWED line gives exactly that line, and a stamp
   ok   mutant no_age_norm killed by: tick-digest: an age-only change is no new line
   ok   mutant transient_counts_at_once killed by: tick-digest: a transient RED gives nothing; on a second board it appears
@@ -235,10 +237,12 @@
   ok   mutant darwin_done_rerun killed by: darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip
   ok   mutant darwin_red_each_pass killed by: darwin-selftest: a cycle's RED lines are written once, when it completes
   ok   mutant darwin_py_isolated killed by: darwin-selftest: a .py self-test runs as CI's plain python3, never -I (which drops the script dir)
+  ok   mutant red_carried_to_next_cycle killed by: darwin-selftest: a new cycle starts with an empty red list after a cycle that had REDs
+  ok   mutant no_per_run_remember killed by: darwin-selftest: a pass killed partway keeps the runs it finished
   ok   mutant darwin_lease_not_released killed by: darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
-beat_jobs self-test: 238 checks, 0 failed
+beat_jobs self-test: 242 checks, 0 failed
 
-real	0m45.656s
-user	0m19.099s
-sys	0m20.843s
+real	0m31.430s
+user	0m15.119s
+sys	0m11.487s
 rc=0
