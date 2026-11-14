@@ -27451,6 +27451,47 @@
     "next_step": "cloud opus fixer, scoped prepr, opus review",
     "note": "owner order 2026-11-14: fix it, delay nothing"
    }
+  },
+  {
+   "group": "R10-HOTFIX-MAIN-SELFTEST-SCOPE",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "ci",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/ci/selftest_closures.json"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX for a red main, 2026-11-14: the instrument-self-tests job on main has failed since merge f7e7a0244a at the step that refuses a self-test read set the committed table misses. The scope check counted 11 refusals, under-scoped, accumulated over five merges (pull requests 3573, 3544, 3584, 3567 and 3565); the last green main was merge 0f37833e21. The drift step traces only on a push to main, so no pull request run can show the drift or its repair. Fix: re-record tools/ci/selftest_closures.json by the union of main's traced push measurements, through the instrument's own writer in tools/ci/selftest_scope.py, never by hand and never by weakening the check. Proof owed: an offline replay of the drift check with a traced push run's artifact as the measurement prints the 11 refusals against main's table and none against the branch's. State in the body what a pull request run does and does not prove. The beat-job-rows step reads almost the whole tree since pull request 3565; record that read set as measured and name it as a finding with its carry. Pull request 3551 edits the same table: whichever lands second re-unions. Root-cause analysis: the root-cause seat's report of 2026-11-14, process state (c).",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-hotfix-main-selftest-scope",
+    "commit": null,
+    "last_step": "local opus fixer handed off 2b889381",
+    "next_step": "open the pull request, opus review, land first among hotfixes",
+    "note": "main red since f7e7a0244a; hotfix priority"
+   }
   }
  ]
 }
