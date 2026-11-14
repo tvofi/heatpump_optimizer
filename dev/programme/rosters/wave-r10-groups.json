@@ -22310,7 +22310,7 @@
     "branch": null,
     "commit": "005eed2573da9e946fa4838de147401d0ff36cc1",
     "last_step": null,
-    "next_step": "fixer handoff of part A (design approved at abc575172c, cloud fixer dispatched, work on handoff-wip/r10-duty-switch-restart-learning): no restart on the rewritten head of outside pull request 3420; then fix review; parts B to E are their own groups after this one",
+    "next_step": "part A merged as PR 3461 (005eed25); parts follow as their own groups: planner price merged as PR 3526 (c67c1933) with its carries in open PR 3569; part B in open PR 3532 (conflicting with main); part D R10-START-COUNTER-EDGES in design review; nothing left to do in this group",
     "note": "s14 orchestrator 2026-11-11 under mandate 6715477401: outside design pull request 3420 by Bankaifan accepted into round 10 (owner rulings 2026-11-06 outside intake, 2026-11-07 design first, no deferral out of the round); overlap admitted (R10-SAV-VALUATION-RESIDUE, R10-ADVISOR-STEADY-START): s14 orchestrator 2026-11-11 under mandate 6715477401: outside design PR 3420 accepted, design review first | set-files files ['custom_components/heatpump_optimizer/coordinator.py', 'tests/features.py'] -> ['custom_components/heatpump_optimizer/pump_arbiter.py', 'custom_components/heatpump_optimizer/wear.py', 'custom_components/heatpump_optimizer/sensor.py', 'custom_components/heatpump_optimizer/store.py', 'tests/features.py', 'tests/finite_boundary.py', 'tests/guard_pins.py', 'tests/closures.json', 'tests/entities.py', 'tests/deployment_shape.py', 'docs/architecture.md']; hot_files [] -> ['pump_arbiter.py', 'wear.py', 'sensor.py', 'store.py', 'features.py', 'finite_boundary.py', 'closures.json', 'architecture.md']",
     "pr": 3461
    },
