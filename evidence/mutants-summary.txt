@@ -1,5 +1,0 @@
-wood: rc=1 |   FAIL simulate_plan's wood price selector minimum is a price the what-if computes with  [min 0];
-floor: rc=1 |   FAIL each of the 27 numbers quoted in user text equals the constant the code decides it with  [services.set_thermal_parameters.fields.silent_mode_power_fraction.description: says 'raised to 0.6' (0.;  FAIL null control: the disinfection repair reworded to 'six hours' is one finding, and a constant moved off its stated value is another;
-retry: rc=1 |   FAIL each of the 27 numbers quoted in user text equals the constant the code decides it with  [issues.pump_write_ignored.description: says 'every five minutes' (5) but pump_arbiter.RETRY_MINUTES is ;  FAIL null control: the disinfection repair reworded to 'six hours' is one finding, and a constant moved off its stated value is another;
-lost: rc=1 |   FAIL each of the 27 numbers quoted in user text equals the constant the code decides it with  [issues.dhw_disinfection_switch_lost.description: says 'half an hour' (30) but const.DHW_DISINFECTION_LO;
-narr: rc=0 | 

@@ -1,0 +1,3 @@
+entity.sensor.heat_pump_action.state.off: every cited line is ['comment']
+entity.sensor.plan_narrative.state.cheap_price: every cited line is ['blank']
+rc=1

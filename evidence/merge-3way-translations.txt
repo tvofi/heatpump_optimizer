@@ -1,0 +1,15 @@
+== d0fc820fa4 parents 3220e73f1472f16ae67f0dd83e434ebfa6c51972 50373173d486faf394b24637c177ab38b691b394 mb 90c6bc3b0756475e28d4ace8d8e31c4788474933
+strings.json issues 0 main-changed 6
+translations/en.json issues 0 main-changed 6
+translations/de.json issues 0 main-changed 6
+translations/sv.json issues 0 main-changed 6
+== 2f5f5e40a5 parents ea298df445835b20bb2f7d3e85dd1036f26b8ab1 e23124ff6e45bac1d48b4a775dad555a37965355 mb 90c6bc3b0756475e28d4ace8d8e31c4788474933
+strings.json issues 0 main-changed 0
+translations/en.json issues 0 main-changed 0
+translations/de.json issues 0 main-changed 0
+translations/sv.json issues 0 main-changed 0
+== a1e0a4d2fb parents 381d7d2b7b85f2ab87920c2b6f5772b11f3d057e 88859d27748b67fe311ee60afa811b0703e35154 mb e23124ff6e45bac1d48b4a775dad555a37965355
+strings.json issues 0 main-changed 29
+translations/en.json issues 0 main-changed 29
+translations/de.json issues 0 main-changed 29
+translations/sv.json issues 0 main-changed 29
