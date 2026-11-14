@@ -26332,12 +26332,13 @@
     "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register is NO-READ, and this group's full-scope step owes the enumeration of claims the register does not hold. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-D5-D6-FULL-SCOPE (items 479c4962)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-d5-d6-full-scope",
     "commit": null,
     "last_step": null,
     "next_step": "cloud opus fixer; opus reviewer; owner review (policy)",
-    "note": "intake: owner instruction 2026-11-13; must land before round 11's finders start"
+    "note": "intake: owner instruction 2026-11-13; must land before round 11's finders start",
+    "pr": 3571
    }
   },
   {
@@ -26618,12 +26619,13 @@
     "Owner ruling 2026-11-13 (tvofi, verbatim, on the supported install population and the comfort bounds: \"For 5, this is yours to set using your best judgement\"): the round-10 orchestrator sets these two under that ruling, and the decision record states each value with its basis, where the owner can change it at his review. Supported install population: every install the integration s own configuration flow can complete at the head (each pump control kind, each tank and valve layout, each price source, each unit system it accepts), enumerated from the code and the fixtures and never from documentation; an install shape the flow accepts and no fixture covers is a measured gap in the generality term, not out of scope. Comfort bounds: the bounds the product already enforces for the person (their configured comfort range, the hot-water minimum, the mold and legionella guards, the entity s own limits); savings are measured only among plans that hold every one of them, and a plan that buys savings by leaving a bound is a defect of the operation term, never a saving. Neither is a tunable the evaluated round may loosen."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r11-pre-objective-function",
     "commit": null,
     "last_step": null,
     "next_step": "cloud fable fixer fired 2026-11-13; fable reviewer; owner review (policy)",
-    "note": "intake: owner instruction 2026-11-13; post-stamp edge so round 10 closure does not move; drafting starts now; overlap admitted (R10-D5-D6-FULL-SCOPE, R11-PRE-TOOLCHAIN-PIN, R11-PRE-RULINGS-FILE): owner instruction 2026-11-13: define the objective function and add its round-start evaluation to the audit process"
+    "note": "intake: owner instruction 2026-11-13; post-stamp edge so round 10 closure does not move; drafting starts now; overlap admitted (R10-D5-D6-FULL-SCOPE, R11-PRE-TOOLCHAIN-PIN, R11-PRE-RULINGS-FILE): owner instruction 2026-11-13: define the objective function and add its round-start evaluation to the audit process",
+    "pr": 3575
    }
   },
   {
@@ -26671,9 +26673,9 @@
     "From r10-dimensions-full-coverage, body item e28c721f: The switch is a way out in a direction this body does not test: on p2's tree, dropping `\"enumerator\"` from the coverage rows' `required` in `dev/audit/config/finding.schema.json` and in the driver's inlined copy together prints the `skip` line, 227 passed, 0 failed, rc 0; the schema edit alone is caught, and a driver that drops the functions is caught. \"so the skip cannot become a way out\" above holds for those two and not for the dual edit. No tree-read switch closes it; the control is that p2, graded by this copy, makes the block unconditional in its own copy of the grader (`DENOM` asserted true, the `skip` arm deleted, the dual mutant re-run killed). A precondition for p2's handoff, not for this merge. Carry: R10-DIMENSIONS-FULL-COVERAGE (items e28c721f)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "carries-open",
     "branch": "fix/r10-dimensions-full-coverage",
-    "commit": null,
+    "commit": "8af37bdf444d46715272a8bc2fdda02e1d8376e3",
     "last_step": null,
     "next_step": "cloud fixer; reviewer; owner review (policy)",
     "note": "intake: owner instruction 2026-11-13; must merge before round 11 finders start; builds on R10-D5-D6-FULL-SCOPE for scopes.json; overlap admitted (R10-D5-D6-FULL-SCOPE, R11-PRE-RULINGS-FILE, R11-PRE-OBJECTIVE-FUNCTION): owner instruction 2026-11-13: all dimension-audit changes incl. two new dimensions before round 11 (re-queue: first brief cited a path not in the tree)"
@@ -27057,12 +27059,13 @@
     "From r10-user-text-verify-card, body item 3bbcabdc: `translations/de.json`'s `grid` options page is titled \"Netz-Spitzentarif\", but its menu entry is \"Lastspitzentarif des Netzes\". The card now names the menu entry, the label a user clicks. One page should have one de name. Re-measure: compare `options.step.init.menu_options.grid` with `options.step.grid.title` in de.json. Carry: R11-INTAKE-R10-RESIDUE (items 3bbcabdc)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-docs-strings-residue",
     "commit": null,
     "last_step": null,
     "next_step": "fixer (M), now",
-    "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE on the owner question 2026-11-13; overlap admitted (R10-DISINFECTION-STEP-NOTICE, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY, R10-HOTFIX-BOOST-FLOW-CEILING, R10-USER-TEXT-VERIFY-STRINGS): owner question 2026-11-13: startable product work moved from the round-11 intake group"
+    "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE on the owner question 2026-11-13; overlap admitted (R10-DISINFECTION-STEP-NOTICE, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY, R10-HOTFIX-BOOST-FLOW-CEILING, R10-USER-TEXT-VERIFY-STRINGS): owner question 2026-11-13: startable product work moved from the round-11 intake group",
+    "pr": 3576
    }
   },
   {
@@ -27191,12 +27194,13 @@
    "brief": "Non-gating check (tvofi, 2026-11-14: queue the small non-gating group). Does the power-feedback loop in custom_components/heatpump_optimizer/pump_arbiter.py settle to the planned draw when a pump start hysteresis forces a large floor lift (custom_components/heatpump_optimizer/thermal_model.py, start_flow_min_lift_k)? Order: repair dev/audit/harnesses/r10_water_setpoint_feedback.py so it runs at main; measure settling per lift, feedback on and off, with a null control; confront with a recorded real trace; change pump_arbiter.py only if the over-draw is established beyond the synthetic controller, else record the measured refusal. A plan-side price of the lift is out of scope (owner: no).",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "r10-feedback-settle-large-lift",
     "commit": null,
     "last_step": null,
     "next_step": "local sonnet fixer; handoff then opus reviewer",
-    "note": "intake: orchestrator proposal 2026-11-14, owner ruled queue it; not on the critical path; overlap admitted (R10-DISINFECTION-STEP-NOTICE): orchestrator 2026-11-14: owner ruled queue the small non-gating group (power-feedback settling after a large floor lift)"
+    "note": "intake: orchestrator proposal 2026-11-14, owner ruled queue it; not on the critical path; overlap admitted (R10-DISINFECTION-STEP-NOTICE): orchestrator 2026-11-14: owner ruled queue the small non-gating group (power-feedback settling after a large floor lift)",
+    "pr": 3577
    }
   },
   {
@@ -27232,12 +27236,13 @@
    "brief": "HOTFIX, critical path (orchestrator, 2026-11-14): one check in tests/features.py fails on every Saturday and Sunday, on main and on every pull request, so the fast tests are red for the whole weekend. The check is the one named \"a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked\". Its sequence helper starts from the real clock, so on a weekend the sample day is booked as a weekend day while the assertion expects a weekday. Owed: pin the helper's start to a fixed weekday (test only, production unchanged); demonstrate the block failing with the clock on a Saturday and on a Sunday and passing on each weekday after the fix; sweep the whole script for every other check whose result depends on the real day of the week, date or hour, list each with its disposition and pin those in the same seam; a mutation proof that the day-type assertion still fails when the production booking is wrong.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-hotfix-features-weekend-clock",
     "commit": null,
     "last_step": null,
     "next_step": "local sonnet fixer running; handoff then opus reviewer; front of the train",
-    "note": "intake: red required check on every head since 2026-11-14T00:00Z (Saturday); diagnosis in s14/seat/diag-3551; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): orchestrator 2026-11-14: tests / fast red on every head each weekend, a features check reads the real clock (intake rule: red required check on main)"
+    "note": "intake: red required check on every head since 2026-11-14T00:00Z (Saturday); diagnosis in s14/seat/diag-3551; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): orchestrator 2026-11-14: tests / fast red on every head each weekend, a features check reads the real clock (intake rule: red required check on main)",
+    "pr": 3578
    }
   }
  ]
