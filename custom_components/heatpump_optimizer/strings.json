@@ -12,7 +12,7 @@
           "weather_entity": "Weather forecast"
         },
         "data_description": {
-          "name": "Shown in front of every sensor this integration creates.",
+          "name": "The title of this entry under Devices & services. Entity names use the fixed device name, Heat Pump Optimizer.",
           "price_source": "Tibber uses your API token. Entity reads a Home Assistant price sensor such as Nord Pool.",
           "tibber_token": "Used to read your hourly electricity prices. Create one at developer.tibber.com. Leave as-is unless it has changed. Not required when the price source is an entity.",
           "price_entity": "Required when the price source is an entity. Typical attributes are raw_today and raw_tomorrow.",
@@ -592,8 +592,8 @@
             "data_description": {
               "indoor_temp_entity": "Optional. The actual room temperature. Without it the optimizer trusts its own model, which drifts over time.",
               "outdoor_temp_entity": "Optional. A local outdoor thermometer is more accurate than the forecast for the current hour.",
-              "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point.",
-              "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: this integration never recommends a space set-point.",
+              "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. With Pump duty control at Control the optimizer writes it on every plan step, as Pump duty control describes, and turning Optimizer active off writes back the value it read before its first write. With Pump duty control at Off or Observe it is only read, to notice when it cannot be read.",
+              "space_setpoint_unit": "Indoor temperature is correct for a room or thermostat set-point. Flow temperature is for a controller whose set-point is a water temperature it holds its supply at. Return temperature is for a controller that takes the set-point as its return-water target (assumed for a Luxtronik through its Smart Home Interface); it is written like a flow set-point, with the rated hold, the weather curve and the 25 °C gate moved 5 K down to return terms. A version before this option reads Return temperature as Indoor temperature: switch it back to Flow temperature before downgrading. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C and badly underheat the house. The unit is a declaration: the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one.",
               "flow_min_lift_k": "With Pump duty control at Control, the water set-point written at the plan's lowest power is the measured inlet water plus this: heat-pump return, buffer tank, floor return or valve outlet, and for a Return temperature entity the first three only. 5 K suits a controller that holds its supply at the set-point. A controller that takes the number as its return-water target is assumed to run its compressor harder the further the target sits above the return, so it likely wants less; 1–2 K is a starting point to check against the compressor's measured frequency and power, not a measured value.",
               "flow_heat_c": "The water set-point written at full planned power, and the highest one written while the plan is in charge. 55 °C suits a supply target. For a Return temperature entity choose it above the highest return you see in normal heating plus the lift, and no higher than the controller accepts; on a low-temperature floor heating 35–40 °C may be a starting point to check against measurements. Below 30 °C is not offered: the gate that means off is 25 °C for a flow target and 20 °C for a return target.",
               "space_setpoint_power_feedback": "On by default. Acts only with Pump duty control at Control, a Flow or Return temperature unit and a heat-pump power sensor; otherwise nothing changes. After a 5-minute start hold, the water set-point is nudged down while the measured draw is above the planned level and up while it is below, and held while it is within 10 %, instead of following the rising inlet water. Off writes the inlet plus the lift. Requirements on the controller: its heating hysteresis at most the lift (Luxtronik: 0.5 K), or a stopped compressor is not started; its minimum return target below the heating-season return; its integration polling it at least every 10 minutes, and restoring its heating mode after a controller restart, since a Luxtronik Smart Home Interface drops every set value after 600 s without access; and no second tool writing the same registers (a Luxtronik then silently discards writes).",
@@ -1106,7 +1106,7 @@
           "pv_export_price_entity": "Use this instead if your compensation follows the spot price.",
           "pv_enabled": "Lets the plan run the heat pump on your own surplus instead of selling it for less than bought power costs.",
           "pv_peak_kw": "The array's rated peak output. Used to scale the production forecast.",
-          "pv_production_entity": "Optional. A live production sensor lets the forecast correct itself against what the roof actually delivers.",
+          "pv_production_entity": "Optional. A live production sensor replaces the forecast's current step with what the roof delivers now, capped at the installed capacity; later steps stay modelled.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1123,7 +1123,7 @@
         "data_description": {
           "away_presence_entity": "A person, device tracker, calendar, or occupancy sensor. The Plan-page toggle wins until it is turned off. A person being 'not home' still means away when the toggle is off.",
           "holiday_calendar_entity": "When this calendar is on, holiday comfort and holiday hot-water windows replace the weekday/weekend pair for that day. Away setback still wins if away is active.",
-          "away_dhw_min_temperature": "The anti-legionella cycle still runs, and is timed to finish before you get back.",
+          "away_dhw_min_temperature": "The anti-legionella cycle still runs on its usual interval; it is not timed to your return.",
           "away_temperature": "The hold temperature while away. Low enough to save, high enough to protect the house and its plumbing.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
@@ -1348,7 +1348,7 @@
               "dhw_disinfection_mode": "Observe reads the switch and never writes it. Control turns it on when an anti-legionella cycle starts and off when that cycle ends, but never turns it on while the pump's mode makes no hot water. It only turns off a switch it turned on itself: a switch that was already on when the cycle began is left alone. One limit: if you turn the switch on by hand while a cycle the optimizer started is running, it is turned off when that cycle ends, because the two cannot be told apart. Control needs the switch above.",
               "dhw_disinfection_switch_entity": "A switch or helper that starts the heat pump's own anti-legionella program. In observe mode its state is only read and shown on the hot water sensor's attributes; in control mode the integration turns it on when a disinfection cycle starts and off when that cycle ends.",
               "dhw_elastic_legionella_enabled": "Allow the anti-legionella cycle to run a day or two early when electricity is unusually cheap, instead of always waiting for its deadline. The deadline is still always honoured.",
-              "dhw_free_disinfection_enabled": "If a wood boiler, solar coil or immersion heater already gets the tank to the anti-legionella temperature and holds it there, count that as a completed cycle instead of running another one.",
+              "dhw_free_disinfection_enabled": "A wood boiler, solar coil or immersion heater that gets the tank to the anti-legionella temperature is counted as a completed cycle either way. Off, it counts at once; on, only after the tank has held that temperature for 20 minutes, so a short peak credits nothing.",
               "dhw_legionella_min_interval_days": "Never run anti-legionella cycles closer together than this, even on very cheap days.",
               "dhw_quantile_targets_enabled": "Learn how much hot water each time frame actually uses on a heavy day, and make the tank ready for that instead of for the average day. Needs a tank temperature sensor, configured hot water time frames, and a couple of weeks of evidence."
             }
@@ -1364,7 +1364,7 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "vvc_pump_entity": "A switch controlling the hot water circulation (VVC) loop pump. When set, the pump only runs during your hot water time frames, plus the lead time below.",
+          "vvc_pump_entity": "A switch controlling the hot water circulation (VVC) loop pump. When set, the pump only runs during your hot water time frames, plus the lead time below. With hot water off or no time frames, it is left on.",
           "vvc_lead_minutes": "How long before a hot water time frame the circulation pump starts, so the loop is already hot when the time frame opens.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
@@ -1383,7 +1383,7 @@
           "after_save": "After saving"
         },
         "data_description": {
-          "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor, the fuse guard and the headroom sensor dormant — there is no safe default to guess, and a wrong one would cap a bigger house.",
+          "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor and the fuse guard dormant, and leaves the headroom sensor following the capacity-tariff peak alone, unavailable without a capacity tariff — there is no safe default to guess, and a wrong one would cap a bigger house.",
           "main_fuse_phases": "Nearly every Swedish house is 3-phase.",
           "fuse_guard_enabled": "Caps the heat pump's planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so on its sensors instead of silently going cold.",
           "peak_guard_enabled": "Watches the power meter live and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter; a cold tank or a breached comfort floor always wins over the guard.",
@@ -1434,7 +1434,7 @@
               "snow_roof_factor_enabled": "Assume less sun after heavy snowfall"
             },
             "data_description": {
-              "open_window_relax_enabled": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the heating target by 1 °C while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
+              "open_window_relax_enabled": "The open-window detector always pauses learning — that part is free and always on. This additionally lowers the coldest indoor temperature the plan accepts by 1 °C, never below 15 °C, while a window appears to be open, so the heat pump stops paying to heat the garden. Off by default because it moves real heat: a wrongly flagged window means a slightly cooler house.",
               "outage_recovery_enabled": "After an outage everything restarts at once — cold house, cold tank, the whole neighbourhood — which is exactly when a new monthly capacity peak gets set. With this on, a long gap in updates opens a two-hour recovery window where the capacity charge is taken seriously from the first kW and hot water queues 45 minutes behind space heating, unless the tank is genuinely low.",
               "precip_type_enabled": "Rain soaks the building envelope and increases heat loss; snow does not. Without this, a snowy forecast is treated as rain and the plan buys heat for a wet wall that stays dry. Needs the Open-Meteo connection for the snow data.",
               "snow_roof_factor_enabled": "For two days after heavy snowfall, the modelled solar gain is halved — snow on roof glazing and low winter panes blocks the sun the plan was counting on. Deliberately crude: a factor and a holding period, not a melt model."
