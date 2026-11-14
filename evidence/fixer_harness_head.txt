@@ -7,12 +7,21 @@ killed   arrow with no row: red fixture: one arrow reversed is a finding
 killed   row with no arrow: red fixture: a row with no arrow is a finding
 killed   quoted text in the cited file: red fixture: a cited line the code no longer holds is a finding
 killed   cited file tracked: died rc=1: TypeError: argument of type 'NoneType' is not a container or iterable
-killed   cited file is the actor's: red fixture: an arrow reversed together with its row is a finding; red fixture: a row citing a file its node names only below the first line is a finding
-killed   one script per node: red fixture: a node grouping two scripts is a finding
+killed   cited file is the actor's: red fixture: an arrow reversed together with its row is a finding; red fixture: a row citing a file its node names only below the first line is a finding; red fixture: a row citing a file whose name is only a part of its node's script name is a finding
+killed   one script per node: red fixture: a node grouping two scripts is a finding; red fixture: a script node that names no script is a finding
+killed   a script node names a script (reviewer's N1): red fixture: a script node that names no script is a finding
+killed   a script node names no second script: red fixture: a node grouping two scripts is a finding
+killed   the cited file is the node's first word, not a part of it (reviewer's N4): red fixture: a row citing a file whose name is only a part of its node's script name is a finding
+killed   a store is no entry (reviewer's P3): a store no arrow reaches is not an entry: the clean fixture with one yields no finding (null control)
 killed   the entry is a seat: red fixture: a single entry that is a script, not a seat is a finding
 killed   one entry: red fixture: a single entry that is a script, not a seat is a finding; red fixture: an actor nothing starts, a second entry is a finding
 killed   one arrow per line: died rc=1: AttributeError: 'NoneType' object has no attribute 'group'
 killed   node names unique: red fixture: two nodes of one name is a finding
+shown    the due-marker call on the pages (reviewer's P7): alone 0 FAIL line(s); planted defect, call kept: no wiring marker names only done groups: each is resolved into a statement of the tree (#2395); planted defect, call dropped: -
+shown    the machinery call on the page (reviewer's P8): alone 0 FAIL line(s); planted defect, call kept: every arrow is cited, every citation holds in the tree, and the figure has one entry; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows); planted defect, call dropped: reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
 RESULT baseline_fails=0
-RESULT mutants=14
-RESULT killed=14
+RESULT mutants=18
+RESULT killed=18
+RESULT live_calls=2
+RESULT live_calls_shown=2
+rc=0

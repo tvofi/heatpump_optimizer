@@ -1,10 +1,10 @@
 baseline: 0 FAIL line(s) []
 killed   P1 no-section guard: red fixture: no section is a finding
 killed   P2 no-figure/no-rows guard: red fixture: a table whose rows cite nothing is a finding
-SURVIVED P3 entry excludes stores: -
+killed   P3 entry excludes stores: a store no arrow reaches is not an entry: the clean fixture with one yields no finding (null control)
 killed   P4 entry must be a seat: red fixture: a single entry that is a script, not a seat is a finding
 killed   P5 arrow regex loses dashed: red fixture: a dashed arrow is a finding
-killed   P6 script-only actor-file rule widened off: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; the clean fixture yields no finding (null control) ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+killed   P6 script-only actor-file rule widened off: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; the clean fixture yields no finding (null control) ;; a store no arrow reaches is not an entry: the clean fixture with one yields no finding (null control)
 SURVIVED P7 due check call dropped: -
 SURVIVED P8 live machinery check dropped: -
 killed   P9 marker regex matches nothing (relaxed anchors): the clean fixture yields no finding and no note (null control) ;; red fixture: a marker naming no roster group is a finding ;; state tolerance: a marker naming a done group, and an absent retired-by path, yield only notes
@@ -21,5 +21,5 @@ killed   D8 a second mermaid block in the section with a reversed arrow: every n
 killed   S1 the cited line removed from tick_loop.sh: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
 killed   S2 the cited line removed from beat_jobs.py: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
 RESULT rev_mutants=21
-RESULT rev_survivors=3
+RESULT rev_survivors=2
 rc=0

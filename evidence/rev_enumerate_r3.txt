@@ -1,0 +1,9 @@
+N18-BLIND open_pr.sh -> bus.sh: lines [154]; figure draws a runs arrow: False
+N18-BLIND postmerge.py -> state_docs.py: lines [48]; figure draws a runs arrow: True
+N18-BLIND postmerge.py -> merge_train.py: lines [49]; figure draws a runs arrow: False
+N18-BLIND postmerge.py -> roster_sync.py: lines [47]; figure draws a runs arrow: True
+RESULT n18_blind_pairs=4
+open_pr.sh:55: python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" started || true
+open_pr.sh:56: pr_exit_trap 'python3 -I "$SEAT/ledger.py" attempt "refs/heads/handoff/$T" "$PR_HT" "${PR_ATTEMPT:-unopened}" || :'
+open_pr.sh:154: bash "$SEAT/bus.sh" rekey "$T" "$N" >&2 || [ $? = 3 ] || echo "$PR_NAME: bus.sh rekey $T $N failed; a reviewer dispatched at the handoff cannot post u
+RESULT figure_arrows_from_opr=['    opr -->|"writes"| pr']

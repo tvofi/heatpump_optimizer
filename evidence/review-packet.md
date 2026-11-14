@@ -1,58 +1,58 @@
 # Review packet #3430
-head: ba0ed526cc3b0a4b62a4e05b165710237e3bd123
+head: a4eac74f1b795b565cf2843b91c5c079796368b2
 base: 63bcdcaad827ad3d98f914bc2e5b6110f9bb9444
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=130351356528 success
-arch-score / arch-score id=130350361776 success
-arm id=130349601274 skipped
-budget-raise-gate / budget-raise-gate id=130350361856 success
-cancel-superseded id=130349619689 success
-codeql id=130350069286 skipped
-codeql / Analyze (actions) id=130350361975 success
-codeql / Analyze (javascript-typescript) id=130350361972 success
-codeql / Analyze (python) id=130350361916 success
-gate id=130351017244 failure
-governance id=130350069828 skipped
-governance / delivery-status id=130350361872 success
-governance / delivery-status-publish id=130350363570 skipped
-governance / env-matrix id=130350361925 in_progress
-governance / instrument-self-tests id=130350361927 in_progress
-governance / policy-docs id=130350361919 in_progress
-governance / record id=130350363228 skipped
-governance / wave-script id=130350362071 success
-hassfest id=130350069475 skipped
-hassfest / hassfest id=130350361831 success
-kernel-points id=130350363202 skipped
-pr-contract id=130351018680 skipped
-prelude id=130349619649 success
-refresh id=130349619416 success
-sweep-self id=130351422653 skipped
-tests id=130350069335 skipped
-tests / arch-instrument id=130351790163 in_progress
-tests / briefs id=130350361921 success
-tests / browser id=130351790236 queued
-tests / closure-scope id=130350361971 success
-tests / closures id=130351790246 queued
-tests / coverage id=130351790187 queued
-tests / fast (3.14) id=130351790298 queued
-tests / mutation id=130350361934 success
-tests / mutation-autofix id=130351533910 skipped
-tests / mutation-pins id=130351533883 skipped
-tests / nightly-ha id=130351792158 skipped
-tests / nightly-status id=130350361913 failure
-tests / replay id=130351791286 skipped
-tests / typing id=130351790202 queued
-validate id=130350068868 skipped
-validate / validate-hacs id=130350361819 success
+CodeQL id=130404396729 success
+arch-score / arch-score id=130404318980 success
+arm id=130403065736 skipped
+budget-raise-gate / budget-raise-gate id=130404318735 success
+cancel-superseded id=130403086487 success
+codeql id=130404320878 skipped
+codeql / Analyze (actions) id=130403846436 success
+codeql / Analyze (javascript-typescript) id=130403846355 success
+codeql / Analyze (python) id=130403846417 success
+gate id=130405684492 failure
+governance id=130404320897 skipped
+governance / delivery-status id=130403846523 success
+governance / delivery-status-publish id=130403848510 skipped
+governance / env-matrix id=130403846459 in_progress
+governance / instrument-self-tests id=130403846452 in_progress
+governance / policy-docs id=130403846527 success
+governance / record id=130403847833 skipped
+governance / wave-script id=130403846561 success
+hassfest id=130404321786 skipped
+hassfest / hassfest id=130403846779 success
+kernel-points id=130404320551 skipped
+pr-contract id=130405686482 skipped
+prelude id=130403086416 success
+refresh id=130403086239 success
+sweep-self id=130405951560 skipped
+tests id=130404321046 skipped
+tests / arch-instrument id=130404809700 in_progress
+tests / briefs id=130403846519 success
+tests / browser id=130404809578 in_progress
+tests / closure-scope id=130403846648 success
+tests / closures id=130404809709 in_progress
+tests / coverage id=130404809679 in_progress
+tests / fast (3.14) id=130404809574 in_progress
+tests / mutation id=130403846480 success
+tests / mutation-autofix id=130404601303 skipped
+tests / mutation-pins id=130404600733 skipped
+tests / nightly-ha id=130404812791 skipped
+tests / nightly-status id=130403846551 failure
+tests / replay id=130404812160 skipped
+tests / typing id=130404809570 in_progress
+validate id=130404321340 skipped
+validate / validate-hacs id=130403846449 success
 
 ## Refusals
-red-unanswered: concluded red check `gate` is not named in ## Red checks
+none
 
 ## Advisories
-required-wait: required context `gate` reads concluded failure at ba0ed526cc3b0a4b62a4e05b165710237e3bd123 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
+required-wait: required context `gate` reads concluded failure at a4eac74f1b795b565cf2843b91c5c079796368b2 in the digest, but merge_train.py classify --pr reads WAIT (pending: gate red: none): classify decides, as bus.sh's dispatch does, and a pending check never refuses
 
 ## carry_audit at the head
 NOTE body item 6bc4f4e1: R10-ARCH-DOCS-DELTA: R10-ARCH-DOCS-DELTA resolved on origin/handoff/audit-r10-roster
@@ -61,7 +61,21 @@ NOTE body item a44d0012: R10-USER-DOCS-VERIFY
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         PYTHONPATH=tests/hastub python3 tests/doc_claims.py
+unverified - a run or import that only reads, which the page names as left out: the relay to `merge_train.py classify` (269); `bus.sh` to `merge_train.py classify` (610) and to `cloud_relay.sh held` (479); the tick's import of `merge_train.py` for its classifier (249) and its `bus.sh` listing (336); `plan_page.py`'s import of `replan.py` (76) for `check_plan` and `stale_reason` (750, 751);
+             no segment of this names a program this check knows
+  unverified - text a script prints or writes into a prompt, no run: `cloud_dispatch.py` to `merge_train.py` (253); `bus.sh` to `roster_edit.py` (242); the tick to `state_docs.py` (2075); `roster_edit.py` to `roster_queue.py` (1417); `plan_page.py` to `replan.py` (4, 12, 692); `state_docs.py` to `replan.py` (39);
+             no segment of this names a program this check knows
+  unverified - inside the script's self-test (`cloud_dispatch.py` from 1075 and its `_group_checks`, `bus.sh` from 1011, `plan_page.py` from 770, the tick from 2720, `state_docs.py`'s `plan_page_arms`): `cloud_dispatch.py` 928, 1146; `bus.sh` 2096; the tick 4052, 4073, 4304, 4305; `state_docs.py` 672, 688, 689; `plan_page.py` 889 and every later line;
+             no segment of this names a program this check knows
+  unverified - not a reference: `plan_page.py` 208 and 231 are a variable named `open_pr`;
+             no segment of this names a program this check knows
+  unverified - the roster-sync step no caller enters: `state_docs.py` 93, 376 (N8, and the page's "No beat job runs `tools/audit/seat/roster_sync.py`").
+             no segment of this names a program this check knows
+  unverified - Outside N18, the one ledger write on a refusal path, named on the page: `cloud_dispatch.py` 585.
+             no segment of this names a program this check knows
+  unverified - The enumerator's limit: it matches a script by name, so a run through a variable holding another script's path is not seen. `open_driver.py` and `carry_fold.py` are among its targets for that reason.
+             no segment of this names a program this check knows
+  ok         PYTHONPATH=tests/hastub python3 tests/doc_claims.py
              `tests/doc_claims.py` is in the tree at this head
   ok         python3 tests/doc_claims.py --markers
              `tests/doc_claims.py` is in the tree at this head
@@ -69,14 +83,30 @@ ok         PYTHONPATH=tests/hastub python3 tests/doc_claims.py
              `dev/audit/harnesses/r10_mermaid_parse.mjs` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         ./tests/derive_closures.sh --single tests/doc_claims.py
-             `tests/derive_closures.sh` is in the tree at this head
-  ok         tools/pr/ci_predict.py --base origin/main
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
+  ok         tests/closure.py changes the gate itself
+             `tests/closure.py` is in the tree at this head
+  ok         tests/doc_claims.py
+             `tests/doc_claims.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  ok         tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         python3 tools/pr/ci_predict.py --base origin/main --apply-inert
              `tools/pr/ci_predict.py` is in the tree at this head
-  ok         ./tests/derive_closures.sh --single tests/entities.py
-             `tests/derive_closures.sh` is in the tree at this head
+  ok         tools/audit/seat/roster_sync.py
+             `tools/audit/seat/roster_sync.py` is in the tree at this head
   unverified git diff $(git merge-base origin/main HEAD)...HEAD -- dev/README.md docs/architecture.md
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         python3 dev/audit/harnesses/r10_arch_docs_enumerate.py
+             `dev/audit/harnesses/r10_arch_docs_enumerate.py` is in the tree at this head
+  ok         tools/audit/seat/beat_jobs.py
+             `tools/audit/seat/beat_jobs.py` is in the tree at this head
+  ok         python3 dev/audit/harnesses/r10_arch_docs_evidence.py <this body>
+             `dev/audit/harnesses/r10_arch_docs_evidence.py` is in the tree at this head
   ok         tools/ci/gate.py --sweep
              `tools/ci/gate.py` is in the tree at this head
   unverified bash "$HERE/bus.sh" push-verdict
@@ -99,8 +129,12 @@ ok         PYTHONPATH=tests/hastub python3 tests/doc_claims.py
              the path `$_push` is a template or an expansion, not a literal
   ok         python3 -I tools/audit/seat/postmerge.py
              `tools/audit/seat/postmerge.py` is in the tree at this head
+  ok         tools/ci/sweep.py
+             `tools/ci/sweep.py` is in the tree at this head
+  unverified python3 -I "$HERE/carry_fold.py"
+             the path `$HERE/carry_fold.py` is a template or an expansion, not a literal
 
-FIGURES: 12 resolved, 7 not verified, 0 refused
+FIGURES: 21 resolved, 15 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -111,14 +145,14 @@ not run
 ## Mutation-ledger diff
 none
 
-## Review scope: full (first round: no --reviewed-head)
+## Review scope: full (no verdict on verdict/<pr> names the reviewed head ba0ed526cc3b0a4b62a4e05b165710237e3bd123, so there is no finding to confirm resolved)
 
 ## Three-dot diff
 diff --git a/dev/README.md b/dev/README.md
-index 9b72712250..06d1443510 100644
+index 9b72712250..6c2e662eae 100644
 --- a/dev/README.md
 +++ b/dev/README.md
-@@ -10,14 +10,14 @@ document and the obligation each carries; the named file is the policy, not
+@@ -10,14 +10,15 @@ document and the obligation each carries; the named file is the policy, not
  this summary. Where this README and a policy file disagree, the policy file
  wins.
  
@@ -137,11 +171,12 @@ index 9b72712250..06d1443510 100644
 +`[target: <group>]` for an element that exists once the group merges,
 +`[retired-by: <group>]` for one the group removes, and `; owner step` where
 +the change lands only on the owner's own action. `tests/doc_claims.py` refuses
-+a marker naming no roster group, and one whose groups are all done.
++a marker naming no roster group, and a marker outside an HTML comment whose
++groups are all done.
  
  ## Reading the figures
  
-@@ -30,7 +30,6 @@ theme:
+@@ -30,7 +31,6 @@ theme:
  | rectangle `[ ]` | a script, or a job run detached by `tools/audit/seat/daemonize.py` |
  | rhombus `{ }` | a decision made by a person or an agent |
  | cylinder `[( )]` | a git ref or a store |
@@ -149,7 +184,7 @@ index 9b72712250..06d1443510 100644
  
  ## The `dev/` layout
  
-@@ -155,60 +154,77 @@ train → merge → record → stamp. The order is the orchestrator's contract,
+@@ -155,60 +155,83 @@ train → merge → record → stamp. The order is the orchestrator's contract,
  
  ## The CI shape
  
@@ -194,7 +229,7 @@ index 9b72712250..06d1443510 100644
 +    prc --> gate["gate"]
 +    pre --> gate
 +    gate --> rs[("ruleset main-protect-checks<br/>requires only gate")]
-+    cut{"owner PUTs the whole ruleset,<br/>reads it back, rolls back<br/>if the read-back differs"} -->|"PUT"| rs
++    cut{"owner runs ruleset_cutover.py:<br/>PUT, then read back,<br/>or --rollback"} -->|"PUT"| rs
  ```
  
 -The cut-over is the owner's: the ruleset object is written whole, read back
@@ -209,8 +244,10 @@ index 9b72712250..06d1443510 100644
 +`refresh` need no other job, and `sweep-self` needs `gate`.
  
 -### The workflows on `main` today
-+The ruleset is the owner's: `tools/ci/ruleset_cutover.py` writes the object
-+whole, reads it back and diffs it, and `--rollback` restores the saved copy.
++The ruleset is the owner's. `tools/ci/ruleset_cutover.py` is the instrument
++that cut its required contexts over to `gate`: it saves a rollback copy, PUTs
++the ruleset's six writable keys, refuses with the difference where either half
++of the read-back fails, and `--rollback` PUTs the saved copy back.
 +`dev/governance/roles/nudge.md` section 4 is the rule for reading it: the live
 +ruleset every turn, never a remembered list.
  
@@ -245,7 +282,11 @@ index 9b72712250..06d1443510 100644
 +  the body contract, the architecture score, the raise gate and the kernel
 +  benchmark
 +- `.github/workflows/gate-sweep.yml`: starts when a CI run completes and
-+  re-judges the older `gate` runs at that head (`tools/ci/gate.py --sweep`)
++  runs `tools/ci/gate.py --sweep`, which is `tools/ci/sweep.py`. Once that
++  run's `gate` is green at the pull request's live head, the sweep re-runs
++  the red `gate` job of every other CI run at that head. Where no green
++  `gate` covers the newest event, it re-runs each red `gate` that judged
++  before another run's jobs had finished
 +- `.github/workflows/marketplace.yml`: on a schedule or a manual dispatch,
 +  calls the two Home Assistant validators
 +- `.github/workflows/nightly.yml`, `.github/workflows/merge-main.yml`: start
@@ -266,7 +307,7 @@ index 9b72712250..06d1443510 100644
  
  ### The order a change is refused in
  
-@@ -225,9 +241,8 @@ flowchart TD
+@@ -225,9 +248,8 @@ flowchart TD
  ```
  
  Read it as the order a change must survive, not as separate jobs. The required
@@ -278,7 +319,7 @@ index 9b72712250..06d1443510 100644
  and a `DIRTY` pull request does not go red, it cannot run
  (`dev/governance/rules/claim-files.md`).
  
-@@ -235,78 +250,228 @@ and a `DIRTY` pull request does not go red, it cannot run
+@@ -235,78 +257,251 @@ and a `DIRTY` pull request does not go red, it cannot run
  
  ### Its components
  
@@ -286,7 +327,8 @@ index 9b72712250..06d1443510 100644
 +from the seat's push to the merge on `main`. An arrow runs from the actor to
 +its target and its label is the verb, `runs` or `writes`; no arrow means "is
 +read by". A script node names one script, the one whose code the arrow's row
-+cites.
++cites, and the arrows are the runs and writes of a normal pass, not every
++one in the code.
 +
  ```mermaid
 -flowchart LR
@@ -382,12 +424,14 @@ index 9b72712250..06d1443510 100644
 +    tloop -->|"runs"| train
 +    tloop -->|"runs"| hb
 +    relay -->|"runs"| busx
++    relay -->|"runs"| redit
 +    relay -->|"writes"| pr
 +    relay -->|"writes"| ledger
 +    busx -->|"writes"| drec
 +    busx -->|"writes"| bus
 +    busx -->|"writes"| pr
 +    busx -->|"writes"| ledger
++    busx -->|"runs"| train
 +    jobs -->|"runs"| plan
 +    jobs -->|"runs"| docs
 +    jobs -->|"runs"| rq
@@ -421,8 +465,8 @@ index 9b72712250..06d1443510 100644
 +Every arrow is one row here, with the line of code or contract that performs
 +it. `tests/doc_claims.py` refuses an arrow with no row, a row with no arrow, a
 +row whose quoted text is not in the file it cites, an arrow that starts at a
-+store, a script node that names two scripts, and a script's row that cites any
-+file but that script.
++store, a script node that names no script or two, and a script's row that
++cites any file but that script.
 +
 +| actor | verb | target | performed at |
 +|---|---|---|---|
@@ -443,12 +487,14 @@ index 9b72712250..06d1443510 100644
 +| tick_loop.sh | runs | merge_train.py | `tools/audit/seat/tick_loop.sh`: `python3 "$HERE/merge_train.py" sweep` |
 +| tick_loop.sh | runs | heartbeat.sh --once | `tools/audit/seat/tick_loop.sh`: `heartbeat.sh}" --once` |
 +| cloud_relay.sh pass | runs | bus.sh | `tools/audit/seat/cloud_relay.sh`: `bash "$HERE/bus.sh" push-verdict` |
++| cloud_relay.sh pass | runs | roster_edit.py | `tools/audit/seat/cloud_relay.sh`: `python3 -I "$HERE/carry_fold.py"` |
 +| cloud_relay.sh pass | writes | pull request | `tools/audit/seat/cloud_relay.sh`: `upd=(bash "$why/update_pr.sh")` |
 +| cloud_relay.sh pass | writes | obligations ledger | `tools/audit/seat/cloud_relay.sh`: `ledger_open verdict-unposted` |
 +| bus.sh | writes | dispatch record | `tools/audit/seat/bus.sh`: `>> "$S/dispatched"` |
 +| bus.sh | writes | bus refs | `tools/audit/seat/bus.sh`: `append_commit review` |
 +| bus.sh | writes | pull request | `tools/audit/seat/bus.sh`: `"$POSTER" "$REPO" "$pr" "$body"` |
 +| bus.sh | writes | obligations ledger | `tools/audit/seat/bus.sh`: `close reviewer-fire "$pr" "$h"` |
++| bus.sh | runs | merge_train.py | `tools/audit/seat/bus.sh`: `merge_train.py"} add "$1" "$sha"` |
 +| beat_jobs.py | runs | replan.py | `tools/audit/seat/beat_jobs.py`: `"tools/plan/replan.py", "--out"` |
 +| beat_jobs.py | runs | state_docs.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/state_docs.py", "--push"` |
 +| beat_jobs.py | runs | roster_queue.py | `tools/audit/seat/beat_jobs.py`: `"tools/audit/seat/roster_queue.py", "run"` |
@@ -483,7 +529,20 @@ index 9b72712250..06d1443510 100644
 +  `tools/audit/seat/open_pr.sh`. Each of those two rows cites the line that
 +  starts the launcher.
 +- `tools/audit/seat/roster_sync.py` imports `tools/audit/seat/roster_edit.py`
-+  and calls it; the other `runs` arrows start a process.
++  and calls it. The relay's carry-fold arm starts
++  `tools/audit/seat/carry_fold.py`, which imports
++  `tools/audit/seat/roster_edit.py` and calls it with `--push`; that helper
++  is not a node either. Each other `runs` arrow from a script starts its
++  target as a process.
++- `tools/audit/seat/bus.sh` runs `tools/audit/seat/merge_train.py add` when it
++  posts a merge verdict and a train state directory is set.
++- A run that only reads is left out with the other reads, for example:
++  `tools/audit/seat/cloud_relay.sh` and `tools/audit/seat/bus.sh` each run
++  `tools/audit/seat/merge_train.py classify`, and `tools/audit/seat/bus.sh`
++  runs `tools/audit/seat/cloud_relay.sh held`.
++- A write on a refusal path is left out:
++  `tools/audit/seat/cloud_dispatch.py` reopens `reviewer-fire` in the ledger
++  when the dispatch ref could not be published.
 +- The figure draws what one normal pass does. A second caller of a drawn
 +  script that is no node is left out: `tools/audit/seat/merge_pr.sh` also runs
 +  `tools/audit/seat/postmerge.py`.
@@ -516,7 +575,8 @@ index 9b72712250..06d1443510 100644
 +  drawn here: `roster-drain`, `plan-beat` and `opener`. No beat job runs the
 +  relay, the tick, the train or the heartbeat.
 +- **A seat is started by the orchestrator.** `tools/audit/seat/cloud_dispatch.py`
-+  publishes the dispatch ref and prints the payload; it starts nothing itself.
++  publishes the dispatch ref, records the dispatch through
++  `tools/audit/seat/bus.sh` and prints the payload; it fires no seat.
  - **The bus refs** are the seats' only channel to the orchestrator: a fixer
 -  pushes `handoff/<topic>` and `handoff-body/<topic>`; a cloud reviewer pushes
 -  `probe/rev-<pr>-<nonce>`, which `tools/audit/seat/cloud_relay.sh` grades and
@@ -544,20 +604,24 @@ index 9b72712250..06d1443510 100644
 +  - no script opens `train-stop`; the train's sweep reads it and adds nothing to the train while one is open
 +- **The merge train**, `tools/audit/seat/merge_train.py`, merges verdicted
 +  pull requests one at a time, each with `--match-head-commit` at the head
-+  its verdict carries to. A critical-path pull request boards before the
-+  record sweep. While a run is live it holds the `train-hold` ref, and the
-+  record beat in `.github/workflows/nightly.yml` skips while that ref is fresh.
++  its verdict carries to. A critical-path pull request skips the sweep of
++  record pull requests before it; the sweep runs after its merge. While a
++  run is live it creates and refreshes the `train-hold` ref and deletes it
++  on release, and the record beat in `.github/workflows/nightly.yml` skips
++  while that ref's commit is under an hour old.
 +  After each merge it runs `tools/audit/seat/postmerge.py`, which opens
 +  `postmerge-owed` for a step that failed.
 +- **The relay's hold list** is a file under the state directory, one pull
-+  request number per line. Only the orchestrator writes it.
++  request number per line. No script writes it; the relay's header says
++  only the orchestrator does.
  - **The roster branch**, `handoff/audit-r10-roster`, is written through
 -  `tools/audit/seat/roster_edit.py`; `tools/audit/seat/roster_sync.py`, run by
 -  the state-documents beat, derives each group's stage from its branch's pull
 -  request.
 -- **One plan model** feeds the plan page and the plan table, extended by the flow toolkit's projection [target: R10-PLAN-ARTIFACT, R10-FLOW-TOOLKIT-MODEL]
 -- **The flow toolkit**'s measuring instruments land under `tools/audit/seat/` for any round [target: R10-FLOW-TOOLKIT-MEASURE]
-+  `tools/audit/seat/roster_edit.py`. `tools/audit/seat/roster_queue.py`,
++  `tools/audit/seat/roster_edit.py`, which the queue, the stage sync and
++  the relay's carry fold each call. `tools/audit/seat/roster_queue.py`,
 +  the `roster-drain` job, drains queued edits into it, and
 +  `tools/audit/seat/roster_sync.py`, run by `tools/audit/seat/postmerge.py`
 +  after a merge, derives a group's stage from its pull request's state. No
@@ -566,7 +630,7 @@ index 9b72712250..06d1443510 100644
 +  then `tools/audit/seat/state_docs.py`, which renders the state documents,
 +  runs `tools/audit/seat/plan_page.py` for the plan page and pushes both in
 +  one commit.
-+- **Four flow instruments** measure a round: `tools/audit/seat/flow_metrics.py`
++- **Flow instruments** measure a round, four of them here: `tools/audit/seat/flow_metrics.py`
 +  from git alone, `tools/audit/seat/review_strength.py` from the verdict
 +  bus, `tools/audit/seat/ci_critpath.py` one workflow run's critical path,
 +  and `tools/audit/seat/gantt_drift.py` the plan's gantt against the real
@@ -574,7 +638,7 @@ index 9b72712250..06d1443510 100644
  
  ### One handoff's path
  
-@@ -317,6 +482,7 @@ sequenceDiagram
+@@ -317,6 +512,7 @@ sequenceDiagram
      participant DR as design reviewer
      participant F as fixer
      participant B as bus refs
@@ -582,7 +646,7 @@ index 9b72712250..06d1443510 100644
      participant RL as relay
      participant RV as fix reviewer
      participant T as merge train
-@@ -328,8 +494,8 @@ sequenceDiagram
+@@ -328,8 +524,8 @@ sequenceDiagram
      O->>B: read the approval back
      O->>F: dispatch the fixer
      F->>B: push handoff/topic and handoff-body/topic
@@ -593,7 +657,7 @@ index 9b72712250..06d1443510 100644
      Note over RL,M: handoff-no-pr closes, reviewer-fire opens
      O->>RV: dispatch at the reviewable head SHA
      Note over O,RV: reviewer-fire closes
-@@ -338,15 +504,17 @@ sequenceDiagram
+@@ -338,15 +534,17 @@ sequenceDiagram
      RL->>M: post the verdict, then confirm
      Note over RL,M: probe-ref closes, verdict-unposted opens and closes on read-back
      O->>M: read the verdict back
@@ -614,7 +678,7 @@ index 9b72712250..06d1443510 100644
  - **The reviewable head is a SHA.** A head that moved under a review is a
    blocked verdict, never a re-read: "moved" means the head SHA, not the body
    bytes. `dev/governance/roles/fix-review.md` is the rule.
-@@ -361,7 +529,7 @@ sequenceDiagram
+@@ -361,7 +559,7 @@ sequenceDiagram
  | whether a design is sound | the design reviewer | the orchestrator reads the verdict back before dispatching the fixer |
  | what a fix is and what it proves | the fixer | `tools/pr/prepr.sh` and the scoped gate refuse what is missing |
  | whether a fix merges | the fix reviewer, at one head SHA | `tools/audit/seat/bus.sh` posts it; the relay grades a cloud verdict |
@@ -623,12 +687,192 @@ index 9b72712250..06d1443510 100644
  | a policy change or a budget raise | the owner, by approving review | `budget-raise-gate` and the code-owner rule refuse the merge without it |
  | the ruleset | the owner | read back and diffed after the change |
  | the version | nobody: it is derived | `tools/release/stamp.py`, after the merge |
+diff --git a/dev/audit/harnesses/r10_arch_docs_enumerate.py b/dev/audit/harnesses/r10_arch_docs_enumerate.py
+new file mode 100644
+index 0000000000..4a2a49f260
+--- /dev/null
++++ b/dev/audit/harnesses/r10_arch_docs_enumerate.py
+@@ -0,0 +1,104 @@
++#!/usr/bin/env python3
++"""R10-ARCH-DOCS (#2395): the enumerating commands behind the complete-set sentences of the two wiring pages.
++
++    python3 dev/audit/harnesses/r10_arch_docs_enumerate.py
++
++THE RULE. A sentence of docs/architecture.md or dev/README.md that says all, each, every, no, only, or gives a
++count, is a claim about a whole set, and reading one member cannot support it. Each `## N<k>` block below is the
++command that lists the set such a sentence is about, over the whole tree: the modules that name the state machine,
++the jobs and triggers of every workflow file, the beat's jobs, the writers of the hold list, the ledger's kinds,
++the importers and call sites a "one owner" bullet names, and every executable reference from one script the
++machinery figure draws to another. It prints what the tree holds and judges nothing: the pull-request body sets
++each block beside its sentence, and a block that is empty where the sentence needs a member, or holds a member the
++sentence denies, is the finding. Where a block is a zero it carries a control that is not zero.
++
++Prints the blocks in order. Exit is bash's: 0 unless a command of the script could not run.
++"""
++from __future__ import annotations
++
++import subprocess
++import sys
++
++
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(__file__)
++SCRIPT = r'''
++P=custom_components/heatpump_optimizer; S=tools/audit/seat; W=.github/workflows
++echo "## N1 modules that name the state machine in code (not a comment line)"
++git grep -nE 'hass\.states\b|\bstates\.(get|keys)\(' -- "$P/*.py" | grep -vE '^[^:]+:[0-9]+:\s*#' | cut -d: -f1 | sort | uniq -c
++echo "## N2 ci.yml: events, jobs with needs and uses, prelude outputs"
++python3 - <<'PY'
++import yaml
++d = yaml.safe_load(open('.github/workflows/ci.yml'))
++print('events:', sorted(d[True]))
++for k, v in d['jobs'].items():
++    print(' ', k, '| needs', v.get('needs'), '| uses', v.get('uses'), '| workset-gated', 'workset' in str(v.get('if')))
++print('prelude outputs:', list(d['jobs']['prelude']['outputs']))
++PY
++echo "## N3 every workflow file: its triggers"
++python3 - <<'PY'
++import glob, yaml
++for f in sorted(glob.glob('.github/workflows/*.yml')):
++    on = yaml.safe_load(open(f))[True]
++    on = on if isinstance(on, dict) else {k: None for k in ([on] if isinstance(on, str) else on)}
++    print(' ', f.split('/')[-1], {k: {a: b for a, b in (v if isinstance(v, dict) else {}).items() if a in ('branches', 'tags', 'paths', 'workflows')} for k, v in on.items()})
++PY
++echo "## N4 units ci.yml calls that lack workflow_call, or carry a pull-request trigger (expect none)"
++for u in $(grep -oE 'uses: \./\.github/workflows/[a-z-]+\.yml' $W/ci.yml | sed 's|uses: \./||'); do grep -qE '^  workflow_call:' $u || echo "NO workflow_call $u"; grep -HnE '^  pull_request(_target|_review)?:' $u; done; echo "units called: $(grep -cE 'uses: \./\.github/workflows/' $W/ci.yml)"
++echo "## N5 files with a pull-request trigger"; grep -lE '^  (pull_request|pull_request_target|pull_request_review):' $W/*.yml
++echo "## N6 workflow files not named on dev/README.md (expect none)"; for f in $W/*.yml; do grep -qF "$f" dev/README.md || echo "NOT ON PAGE $f"; done
++echo "## N7 beat jobs: the set of script each job's argv runs, and the job names"
++python3 - <<'PY'
++import json
++d = json.load(open('tools/audit/seat/beatd.jobs.json')); jobs = d['jobs'] if isinstance(d, dict) else d
++print(' ', sorted({j['argv'][2] for j in jobs}), [j['argv'][3] for j in jobs])
++PY
++echo "## N8 beat table and beat_jobs.py: lines naming the relay, the tick, the train, the heartbeat, roster_sync (control: replan.py)"
++for pat in 'cloud_relay|orchestrator_tick|merge_train|heartbeat\.sh' 'roster_sync' 'replan\.py'; do for f in $S/beatd.jobs.json $S/beat_jobs.py; do echo "  $pat in $f: $(grep -cE "$pat" $f)"; done; done
++grep -nE 'cloud_relay|orchestrator_tick|merge_train|heartbeat\.sh' $S/beat_jobs.py | cut -c1-140
++echo "## N9 writes of the hold list under tools/ and .github/ (a redirect into the file)"
++git grep -nE 'cloud-handoff-hold' -- tools .github | grep -E '> *"?\$[A-Za-z/{}"]*cloud-handoff-hold|> "\$\(hold_file\)"' | cut -c1-150
++git grep -nE '>>? *"?\$\(hold_file\)|>>? *"?\$hf\b' -- tools .github | cut -c1-150
++echo "## N10 ledger KINDS by class"
++python3 - <<'PY'
++import re
++src = open('tools/audit/seat/ledger.py').read()
++blk = src[src.index('KINDS = {'):]; blk = blk[:blk.index('}')]
++pairs = re.findall(r'"([a-z-]+)": "(derived|event)"', blk)
++print('  events:', [k for k, c in pairs if c == 'event']); print('  derived:', len([1 for k, c in pairs if c == 'derived']), 'kinds')
++PY
++echo "## N11 production opens of train-stop (control: postmerge-owed)"
++for k in train-stop postmerge-owed; do echo "  $k: $(git grep -nE "\"open\", \"$k\"|ledger_open $k|ledger open $k" -- tools .github | grep -vcE 'self.test|fixture')"; done
++echo "## N12 assignments of the thermal parameters"; git grep -nE '_thermal_params = |_thermal_model\.params = ' -- $P | cut -c1-150
++echo "## N13 learner modules: homeassistant, store and coordinator imports at module level"
++for m in accuracy comfort_learning curve_learning defrost dhw_draws dhw_learning drift snapshots sysid; do echo "  $m: ha=$(grep -cE '^(from|import) +homeassistant' $P/$m.py) store=$(grep -cE '^from +\.store' $P/$m.py) coordinator=$(grep -cE '^from +\.coordinator|^from +\. +import .*\bcoordinator\b' $P/$m.py)"; done
++echo "## N14 heat_energy.py homeassistant imports (control: accuracy.py), and its importers"
++echo "  heat_energy=$(grep -cE 'homeassistant' $P/heat_energy.py | tr -d '\n') lines naming homeassistant, import lines $(grep -cE '^(from|import) +homeassistant' $P/heat_energy.py); accuracy import lines $(grep -cE '^(from|import) +homeassistant' $P/accuracy.py)"; git grep -nE '^(from|import) .*\bheat_energy\b' -- $P
++echo "## N15 calls of model_restart_advice and house_loss_converged"; git grep -nE '(model_restart_advice|house_loss_converged)\(' -- $P | grep -v ':def ' | cut -c1-130
++echo "## N16 config_flow.py: every form shown, and whether its schema is the registry's"
++grep -nE 'async_show_form\(' $P/config_flow.py | while IFS=: read n rest; do echo "  $n $(sed -n "$((n)),$((n+6))p" $P/config_flow.py | grep -oE 'data_schema=[A-Za-z_.]+\(?' | head -1)"; done; grep -nE '^class .*Flow' $P/config_flow.py | cut -c1-120
++echo "## N17 dependency-graph.yml path filters"; python3 -c "import yaml;print(' ',yaml.safe_load(open('.github/workflows/dependency-graph.yml'))[True]['push']['paths'])"
++echo "## N18 executable references from one drawn script to another (a path, an import or a module call; comment lines dropped)"
++A="cloud_dispatch.py tick_loop.sh cloud_relay.sh bus.sh orchestrator_tick.py beat_jobs.py state_docs.py plan_page.py roster_queue.py roster_edit.py open_pr.sh merge_train.py postmerge.py roster_sync.py heartbeat.sh"
++for a in $A; do for b in $A replan.py open_driver.py carry_fold.py; do [ "$a" = "$b" ] && continue; s=${b%.*}
++  n=$(grep -nE "(^\s*import +$s\b|^\s*from +$s +import|/ *\"$s\.(py|sh)\"|HERE/$s\.(py|sh)|seat/$s\.(py|sh)|plan/$s\.py|tool\(\"$s\"\)|\b$s\.[a-z_]+\()" $S/$a | grep -vE '^[0-9]+:\s*#' | cut -d: -f1 | tr '\n' ' ')
++  [ -n "$n" ] && echo "  $a -> $b: lines $n"; done; done
++echo "## N19 the figure's arrows and the table's rows"
++echo "  arrows $(grep -cE '^    \w+ -->\|"(runs|writes)"\| \w+$' dev/README.md) rows $(grep -cE '^\| [^|]+ \| (runs|writes) \| ' dev/README.md)"
++'''
++
++
++if __name__ == "__main__":
++    sys.exit(subprocess.run(["bash", "-s"], input=SCRIPT, text=True, cwd=ROOT).returncode)
+diff --git a/dev/audit/harnesses/r10_arch_docs_evidence.py b/dev/audit/harnesses/r10_arch_docs_evidence.py
+new file mode 100644
+index 0000000000..a4088ff52a
+--- /dev/null
++++ b/dev/audit/harnesses/r10_arch_docs_evidence.py
+@@ -0,0 +1,64 @@
++#!/usr/bin/env python3
++"""R10-ARCH-DOCS (#2395): every evidence row of a pull-request body holds the text it quotes at the line it cites.
++
++    python3 dev/audit/harnesses/r10_arch_docs_evidence.py BODY.md
++
++THE RULE. An evidence row is a body line of the form `  - ` + backticked `path:line` + a space + the backticked
++text. The row holds when that text is a substring of that line of that file in this checkout. A row whose text is
++elsewhere in the file is still a miss, printed with the lines that do hold it: a moved citation is corrected in the
++body, never matched loosely here. The check says nothing about whether the quoted line supports the sentence it is
++filed under; that is the reader's judgement, and this only keeps the citation from drifting off its line.
++
++Prints one `MISS` line per row that does not hold, then `RESULT rows=`, `RESULT hold=` and `RESULT miss=`. Exit 1 on
++a miss or on a body with no row, 2 on a usage error.
++"""
++from __future__ import annotations
++
++import re
++import sys
++from pathlib import Path
++
++
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(__file__)
++ROW = re.compile(r"^  - `([^`:\n]+):(\d+)` (?:`` ?(.+?) ?``|`([^`\n]+)`)$", re.M)
++
++
++def misses(body: str, root: Path) -> tuple[int, list[str]]:
++    rows = ROW.findall(body)
++    out = []
++    for path, line, wide, plain in rows:
++        text, f = wide or plain, root / path
++        lines = f.read_text().splitlines() if f.is_file() else []
++        if int(line) > len(lines) or text not in lines[int(line) - 1]:
++            near = [i + 1 for i, got in enumerate(lines) if text in got][:4]
++            out.append(f"MISS {path}:{line} {text!r} (the text is at {near or 'no line'})")
++    return len(rows), out
++
++
++def main(argv: list[str]) -> int:
++    if len(argv) != 2:
++        print(__doc__.split("\n\n")[1].strip(), file=sys.stderr)
++        return 2
++    n, out = misses(Path(argv[1]).read_text(), ROOT)
++    print("\n".join(out), end="\n" if out else "")
++    print(f"RESULT rows={n}")
++    print(f"RESULT hold={n - len(out)}")
++    print(f"RESULT miss={len(out)}")
++    return 1 if out or not n else 0
++
++
++if __name__ == "__main__":
++    sys.exit(main(sys.argv))
 diff --git a/dev/audit/harnesses/r10_arch_docs_mutants.py b/dev/audit/harnesses/r10_arch_docs_mutants.py
 new file mode 100644
-index 0000000000..49fde46166
+index 0000000000..bdcc37be52
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_arch_docs_mutants.py
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,128 @@
 +#!/usr/bin/env python3
 +"""R10-ARCH-DOCS (#2395): each predicate line of the machinery-edge and due-marker checks, mutated, against doc_claims.
 +
@@ -640,8 +884,13 @@ index 0000000000..49fde46166
 +seen. The mutated source is executed in a child with `__file__` set to the real path; nothing is written to the tree.
 +A mutant is killed when the child prints a FAIL line or dies. The baseline, unmutated, must print none.
 +
-+Prints one line per mutant with the checks that failed, then `RESULT baseline_fails=`, `RESULT mutants=` and
-+`RESULT killed=`. Exit 1 unless the baseline is clean and every mutant is killed.
++LIVE below is the two calls those checks make on the pages themselves. Dropping one cannot fail on a clean page, so
++each is shown three ways instead: alone it reads as the baseline; with a defect planted in the text the check reads
++the kept call fails by name; with the plant and the dropped call that name is gone.
++
++Prints one line per mutant with the checks that failed, one per live call, then `RESULT baseline_fails=`,
++`RESULT mutants=`, `RESULT killed=`, `RESULT live_calls=` and `RESULT live_calls_shown=`. Exit 1 unless the
++baseline is clean, every mutant is killed and every live call is shown.
 +"""
 +from __future__ import annotations
 +
@@ -677,10 +926,36 @@ index 0000000000..49fde46166
 +    ("cited file tracked", 'if src is None:\n            out.append(f"{a} -{v}-> {b}: cites', 'if False:\n            out.append(f"{a} -{v}-> {b}: cites'),
 +    ("cited file is the actor's", '!= a.split()[0]:', '!= a.split()[0] and False:'),
 +    ("one script per node", 'if k == "script" and len(_FILE.findall(n)) != 1]', 'if False]'),
++    ("a script node names a script (reviewer's N1)", "len(_FILE.findall(n)) != 1]", "len(_FILE.findall(n)) > 1]"),
++    ("a script node names no second script", "len(_FILE.findall(n)) != 1]", "len(_FILE.findall(n)) < 1]"),
++    ("the cited file is the node's first word, not a part of it (reviewer's N4)", "!= a.split()[0]:", "not in a:"),
++    ("a store is no entry (reviewer's P3)", 'if nodes[i][1] != "store" and all(b != n', "if all(b != n"),
 +    ("the entry is a seat", ' or kind[entries[0]][0] != "seat":', ' or False:'),
 +    ("one entry", 'if len(entries) != 1 or kind[entries[0]][0] != "seat":', "if False:"),
 +    ("one arrow per line", "if not m or m.group(1) not in nodes or m.group(3) not in nodes:", "if False:"),
 +    ("node names unique", "if list(name.values()).count(n) > 1})]", "if False})]"),
++)
++# The two live calls (reviewer's P7, P8). A mutant that drops the call a check makes on the page itself cannot be
++# told from the baseline while the page is clean: both read no finding. So each is run three ways. Alone, it must
++# read exactly as the baseline does. With a defect planted in what the check reads (in the child's source, never in
++# the tree), the unmutated check must fail by name. With the plant and the mutant together that name must be gone:
++# the dropped call is the one that fires.
++LIVE = (
++    ("the due-marker call on the pages (reviewer's P7)",
++     "    due = due_marker_findings(rows)\n", "    due = []\n",
++     "    docs = marker_docs()\n    stages = roster_stages()\n    rows = marker_census(docs, stages or {})\n",
++     "    docs = marker_docs()\n    stages = roster_stages()\n"
++     "    docs = {**docs, MACHINERY_DOC: docs[MACHINERY_DOC] + '\\n- planted [target: '"
++     " + sorted(g for g, st in (stages or {}).items() if st == 'done')[0] + ']\\n'}\n"
++     "    rows = marker_census(docs, stages or {})\n",
++     "no wiring marker names only done groups: each is resolved into a statement of the tree (#2395)"),
++    ("the machinery call on the page (reviewer's P8)",
++     "    errs = machinery_edge_findings(text, _read_tracked(tree))\n", "    errs = []\n",
++     "    text = (ROOT / MACHINERY_DOC).read_text()\n",
++     "    text = (ROOT / MACHINERY_DOC).read_text()\n    _planted = '    tloop -->|\"runs\"| relay\\n'\n"
++     "    assert text.count(_planted) == 1\n"
++     "    text = text.replace(_planted, '    relay -->|\"runs\"| tloop\\n')\n",
++     "every arrow is cited, every citation holds in the tree, and the figure has one entry"),
 +)
 +RUNNER = ("import sys; sys.argv = [sys.argv[1]]; sys.path.insert(0, sys.argv[0].rsplit('/', 1)[0]); "
 +          "exec(compile(sys.stdin.read(), sys.argv[0], 'exec'), {'__name__': '__main__', '__file__': sys.argv[0]})")
@@ -704,10 +979,24 @@ index 0000000000..49fde46166
 +        got = fails(src.replace(old, new))
 +        killed += bool(got)
 +        print(f"{'killed  ' if got else 'SURVIVED'} {what}: {'; '.join(got) or '-'}")
++    shown = 0
++    for what, old, new, plant_old, plant_new, name in LIVE:
++        if src.count(old) != 1 or src.count(plant_old) != 1:
++            print(f"ERROR {what}: anchors in the file {src.count(old)} and {src.count(plant_old)} time(s), not once each")
++            return 2
++        alone = fails(src.replace(old, new))
++        planted = fails(src.replace(plant_old, plant_new))
++        both = fails(src.replace(plant_old, plant_new).replace(old, new))
++        ok = alone == base and name in planted and name not in both
++        shown += ok
++        print(f"{'shown   ' if ok else 'NOT SHOWN'} {what}: alone {len(alone)} FAIL line(s); planted defect, call kept: "
++              f"{'; '.join(planted) or '-'}; planted defect, call dropped: {'; '.join(both) or '-'}")
 +    print(f"RESULT baseline_fails={len(base)}")
 +    print(f"RESULT mutants={len(MUTANTS)}")
 +    print(f"RESULT killed={killed}")
-+    return 0 if not base and killed == len(MUTANTS) else 1
++    print(f"RESULT live_calls={len(LIVE)}")
++    print(f"RESULT live_calls_shown={shown}")
++    return 0 if not base and killed == len(MUTANTS) and shown == len(LIVE) else 1
 +
 +
 +if __name__ == "__main__":
@@ -720,25 +1009,24 @@ index 0000000000..4c4e296d36
 @@ -0,0 +1 @@
 +- [#3430](https://github.com/tvofi/heatpump_optimizer/pull/3430) — **open**, R10-ARCH-DOCS: r10 arch docs (R10-ARCH-DOCS)
 diff --git a/docs/architecture.md b/docs/architecture.md
-index 9dbe1b1a34..4ada9a3803 100644
+index 9dbe1b1a34..e9e47e2815 100644
 --- a/docs/architecture.md
 +++ b/docs/architecture.md
-@@ -87,7 +87,13 @@ Read the diagram as four regions.
+@@ -87,7 +87,12 @@ Read the diagram as four regions.
    and the dashboard card. Each is reached through a Home Assistant entity or
    service, never imported.
  - **The Home Assistant boundary** is where side effects live.
 -  `inputs.InputReader` performs every entity read;
 +  `inputs.InputReader` reads and normalises the sensor inputs it is asked
-+  for, and it is not the only reader of entity state: `coordinator.py` reads
-+  the price, weather and PV production entities itself, `pump_arbiter`,
-+  `pump_signals` and `early_cutoff.py` read the pump's own entities (the
-+  slots it is commanded through, its mode, its switch and its defrost flag),
-+  `away.py` reads the holiday calendar, and `services.py` and
-+  `config_flow.py` look up an entity the user names;
++  for. It is not the only reader of entity state; four examples, not the
++  list: `coordinator.py` reads the price, weather and PV production entities
++  itself, `pump_arbiter` reads the entity behind a slot before it writes it
++  and the pump's power switch, `away.py` reads the holiday calendar, and
++  `services.py` refuses to assign an entity that has no state;
    `coordinator.HeatPumpOptimizerCoordinator` is the orchestration seam that
    calls the core and then writes; `pump_arbiter` writes the pump's mode and
    set-points and owns the power switch; `store.QuarantiningStore` is the
-@@ -99,7 +105,9 @@ Read the diagram as four regions.
+@@ -99,7 +104,9 @@ Read the diagram as four regions.
  - **The learners** consume the coordinator's evidence and return corrections.
    Most are pure; three still import `homeassistant` at module level —
    `accuracy` and `defrost` for the clock, `dhw_learning` for the clock and the
@@ -749,7 +1037,7 @@ index 9dbe1b1a34..4ada9a3803 100644
  
  ## The module map
  
-@@ -229,8 +237,9 @@ custom_components/heatpump_optimizer/
+@@ -229,8 +236,9 @@ custom_components/heatpump_optimizer/
  │                         #   Mold Floor Breach, Open Window Detected,
  │                         #   Wood Cheaper Than Heat Pump
  ├── button.py             # Optimize now, run identification, reset comfort
@@ -761,7 +1049,7 @@ index 9dbe1b1a34..4ada9a3803 100644
  ├── climate.py            # Virtual climate entity: modes, presets, DHW status
  ├── switch.py             # Away, Block DHW, Block Space Heating,
  │                         #   Boost Space Heating, DHW Boost, Optimizer Active
-@@ -368,23 +377,19 @@ These instruments keep this page honest:
+@@ -368,23 +376,19 @@ These instruments keep this page honest:
    example — reads NULL. It is a review trigger, never a target a seat is
    rewarded for moving, and it is a required check on a pull request.
  
@@ -788,11 +1076,11 @@ index 9dbe1b1a34..4ada9a3803 100644
 +
 +- **The thermal parameters have one writer.** `_publish_params` in `coordinator.py` builds a new parameter set, which re-runs the divisor floor, and rebinds the coordinator context and the live model to it. A solve or a learner in the middle of an await keeps the set it read. The coordinator context is a frozen dataclass, replaced whole.
 +- **A long computation works on a snapshot of the live state.** In `coordinator.py` a solve takes its own deep copy of the configuration, the parameters and the thermal state, and the away recovery job and the diagnosis each take a copy of the thermal state.
-+- **One owner per duplicated shape.** `inputs.py` owns the power conversion: `normalize_power_kw` converts by the entity's declared unit and refuses an unknown one, and `state_power_kw` refuses a reading that is not finite before or after conversion. `const.py` owns the finite-float conversion, `finite_float`. Two functions own what the end of the day reads as: `quiet_windows.wall_clock` folds it to 00:00, and `dhw_schedule.format_clock` keeps a window label's 24:00.
-+- **One payload read on the entity base.** `entity.py` owns the finite scrub, the payload-number rule and the zone set-point attributes. One mixin in `sensor.py` reads a number at a named path of the payload.
++- **One owner per duplicated shape.** `inputs.py` owns the power conversion: `normalize_power_kw` converts by the entity's declared unit and refuses an unknown one, and `state_power_kw` refuses a reading that is not finite before or after conversion. `finite_float` in `const.py` gives a value as a finite float, or a default. Two functions own what the end of the day reads as: `quiet_windows.wall_clock` folds it to 00:00, and `dhw_schedule.format_clock` keeps a window label's 24:00.
++- **One payload read on the entity base.** `entity.py` owns the finite scrub, the payload-number rule and the zone set-point attributes. A mixin in `sensor.py` reads the number at one path of the payload.
 +- **A delivered-heat counter.** `heat_energy.py` owns the span a delivered-heat kWh counter measured, the time the pump spent in each duty, and the one rule that splits an interval between space heating and hot water: the observed shares, else the plan's split. It imports nothing from Home Assistant; the coordinator reads the entities and calls in.
 +- **An honest COP state.** `accuracy.cop_observability` owns the state: no electric meter, then an electric meter with no measured heat, which reads "not measurable", then estimated inputs or a heat meter.
-+- **One rule for scores.** `compose_scores` in `coordinator.py` puts the grades on one scale; no evidence is no grade with one reason code, never zero. The restart advice is taken once per cycle for the advisor sensor and the envelope grade, and `house_loss_converged` is the one convergence rule the envelope grade and the Health tab's "learned" both read.
++- **One rule for scores.** `compose_scores` in `coordinator.py` puts the grades on one scale; no evidence is no grade with one reason code, never zero. The insight payload takes the restart advice once and hands the same advice to the scores, and `house_loss_converged` is the convergence rule that both the envelope grade and the learning view's "learned" flag read.
 +- **Learner progress in the payload.** `learner_progress.py` gives each thermal learner's phase, its progress and what it waits for.
 +- **One options page template.** `config_flow.py` builds the options pages that edit stored fields from one field registry. The setup overview, the factory reset, quick setup and the pre-fill preview build their own forms.
  
@@ -822,7 +1110,7 @@ index 97e609de19..ca825b630f 100644
      "blueprints/automation/charge_ev_from_grid_headroom.yaml",
      "blueprints/automation/economy_mode_on_price_peak.yaml",
 diff --git a/tests/closures.json b/tests/closures.json
-index 388f371942..040aec5776 100644
+index 388f371942..c3ca94622d 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
 @@ -1251,6 +1251,8 @@
@@ -885,15 +1173,18 @@ index 388f371942..040aec5776 100644
     "tools/audit/seat/roster_sync.py",
     "tools/audit/seat/state_docs.py",
     "tools/audit/seat/tmp_paths.py",
-@@ -4064,6 +4085,7 @@
+@@ -4063,7 +4084,10 @@
+    "dev/audit/harnesses/r10_advisor_degree.py",
     "dev/audit/harnesses/r10_advisor_residue.py",
     "dev/audit/harnesses/r10_anchor_vacuous.py",
++   "dev/audit/harnesses/r10_arch_docs_enumerate.py",
++   "dev/audit/harnesses/r10_arch_docs_evidence.py",
     "dev/audit/harnesses/r10_arch_docs_first_mutants.py",
 +   "dev/audit/harnesses/r10_arch_docs_mutants.py",
     "dev/audit/harnesses/r10_archscore_any_spellings.py",
     "dev/audit/harnesses/r10_away_presence_listener.py",
     "dev/audit/harnesses/r10_band_census.py",
-@@ -5062,7 +5084,7 @@
+@@ -5062,7 +5086,7 @@
     "seconds": 55.0
    },
    "tests/entities.py": {
@@ -903,7 +1194,7 @@ index 388f371942..040aec5776 100644
    },
    "tests/env_drift.py": {
 diff --git a/tests/doc_claims.py b/tests/doc_claims.py
-index 2f0d65cf76..f69e739941 100644
+index 2f0d65cf76..213a9f6f29 100644
 --- a/tests/doc_claims.py
 +++ b/tests/doc_claims.py
 @@ -3018,9 +3018,10 @@ def check_image_dimensions() -> None:
@@ -1038,7 +1329,7 @@ index 2f0d65cf76..f69e739941 100644
      readme = "# T\n\n- `a.py` lands [target: R10-A]\n\n| Row | Cell <!-- [target: R10-B] --> |\n"
      tagged = marker_census({"README.md": readme}, {"R10-A": "not-started", "R10-B": "done"})
      R.check("null control: a README with one wiring and one wrapped marker gives one row of each scope",
-@@ -3671,10 +3755,81 @@ def check_marker_census() -> None:
+@@ -3671,10 +3755,90 @@ def check_marker_census() -> None:
      R.check("null control: a marker naming a not-started group is listed and not due; a quoted one is not a marker",
              [(r["line"], r["due"]) for r in null] == [(3, False)], repr(null))
      R.check("red fixture: a marker naming a done group is due", [r["due"] for r in red] == [True], repr(red))
@@ -1074,6 +1365,11 @@ index 2f0d65cf76..f69e739941 100644
 +            "| relay.sh pass | writes | bus refs | `t/relay.sh`: `push_verdict` |\n\n### Next\n\n| a | b | c | `x`: `y` |\n")
 +    clean = machinery_edge_findings(base, files.get)
 +    R.check("the clean fixture yields no finding (null control)", not clean, repr(clean))
++    # design choice: an entry is an actor. Reads are not drawn, so a store that no drawn arrow writes is no entry.
++    idle = machinery_edge_findings(base.replace('    bus[("bus refs")]\n', '    bus[("bus refs")]\n    held[("hold list")]\n'),
++                                   files.get)
++    R.check("a store no arrow reaches is not an entry: the clean fixture with one yields no finding (null control)",
++            'held[("hold list")]' not in base and not idle, repr(idle))
 +    row = '| loop.sh | runs | relay.sh pass | `t/loop.sh`: `bash "$relay" pass` |'
 +    plants = (
 +        ("one arrow reversed", ('loop -->|"runs"| relay', 'relay -->|"runs"| loop'), "no row cites"),
@@ -1085,6 +1381,10 @@ index 2f0d65cf76..f69e739941 100644
 +         ('relay["relay.sh pass<br/>two arms"]', 'relay["relay.sh pass<br/>loop.sh"]',
 +          "`t/relay.sh`: `push_verdict`", '`t/loop.sh`: `mv "$tmp" "$out"`'), "not the script the actor's node names"),
 +        ("a node grouping two scripts", ('loop["loop.sh"]', 'loop["loop.sh, relay.sh"]'), "names one script"),
++        ("a script node that names no script", ('loop["loop.sh"]', 'loop["the loop"]'), "this names 0"),
++        ("a row citing a file whose name is only a part of its node's script name",
++         ('relay["relay.sh pass<br/>two arms"]', 'relay["cloud_relay.sh pass<br/>two arms"]',
++          "| relay.sh pass |", "| cloud_relay.sh pass |"), "not the script the actor's node names"),
 +        ("a single entry that is a script, not a seat",
 +         ('orch(["orchestrator<br/>a person"])', 'orch["orchestrator<br/>a person"]'), "one entry"),
 +        ("a store drawn as the actor (is read by)", ('loop -->|"writes"| board', 'board -->|"writes"| loop'), "starts at a store"),
@@ -1120,7 +1420,7 @@ index 2f0d65cf76..f69e739941 100644
  def print_marker_census(argv: list[str]) -> int:
      """`--markers [--roster FILE]`: every wiring marker, its groups' stages, and what each due one still leaves
      unresolved; exit 1 while any is due. `--markers --user`: only the comment-wrapped user-doc markers, ending
-@@ -4475,6 +4630,7 @@ def main() -> int:
+@@ -4475,6 +4639,7 @@ def main() -> int:
      check_doc_wiring()
      check_named_elements()
      check_marker_census()

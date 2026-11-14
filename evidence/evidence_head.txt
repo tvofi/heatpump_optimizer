@@ -1,0 +1,4 @@
+RESULT rows=296
+RESULT hold=296
+RESULT miss=0
+rc=0
