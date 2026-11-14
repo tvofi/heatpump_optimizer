@@ -74602,9 +74602,9 @@ R.check(
 # MeasuredCop.judge_ratio holds a departure only while the evidence is
 # pending. 5.0 kW asked: 6.0 drawn is a 20 % departure, 5.5 is inside the
 # 15 % tolerance; both clear 14 kW's nameplate third (4.2 kW).
-def _df_judge(window, drawn=6.0, ewma=1.2):
+def _df_judge(window, drawn=6.0, ewma=1.2, asked=5.0):
     cop = _cf_MC()
-    return cop.judge_ratio(ewma, _cf_row(5.0, drawn), _cf_both, window), len(cop.held)
+    return cop.judge_ratio(ewma, _cf_row(asked, drawn), _cf_both, window), len(cop.held)
 
 
 _df_pend1 = _cf_drm.DrawRange()
@@ -74619,6 +74619,33 @@ R.check(
     and _df_judge(None, drawn=4.0, ewma=0.8) == (_cf_NOEV, 0),
     f"{_df_judge(_df_pend1)} / {_df_judge(_cf_window(_cf_lit48))} / {_df_judge(None)} / "
     f"{_df_judge(None, drawn=4.0, ewma=0.8)}",
+)
+# Evidence that the draw follows the ask folds a departure on any nameplate:
+# 2.0 kW asked and 2.6 drawn (30 % off, both under 14 kW's 4.2 kW third) is
+# the interval base refused for want of evidence. The 5.0 kW departure above
+# clears the third, so base's rule folds it too and cannot tell the arms apart.
+def _df_small(window):
+    """Through the cycle: that interval on a 14 kW coordinator, judged on ``window``."""
+    coord = _cf_coord()
+    coord._current_action = {"power": 2.0, "dhw_power": 0.0}
+    coord._measured_power = 2.6
+    coord._current_state.outdoor_temperature = 8.0
+    coord._measured_cop.ratio_ewma = 1.3  # a persistent ratio, past the tracking gate
+    coord._learn_measured_cop(window)
+    return coord._cop_samples, _cf_last(coord, "refusal")
+
+
+R.check(
+    "once the meter shows the draw follows the ask, a departure under the "
+    "nameplate third teaches: 2.0 kW drawing 2.6 on 14 kW folds and is not "
+    "held, where the same interval with no window is refused for want of "
+    "evidence (control)",
+    _df_judge(_cf_window(_cf_lit48), drawn=2.6, ewma=1.3, asked=2.0) == (None, 0)
+    and _df_judge(None, drawn=2.6, ewma=1.3, asked=2.0) == (_cf_NOEV, 0)
+    and _df_small(_cf_window(_cf_lit48)) == (1, None) and _df_small(None) == (0, _cf_NOEV),
+    f"judge {_df_judge(_cf_window(_cf_lit48), drawn=2.6, ewma=1.3, asked=2.0)} / "
+    f"{_df_judge(None, drawn=2.6, ewma=1.3, asked=2.0)}; cycle "
+    f"{_df_small(_cf_window(_cf_lit48))} / {_df_small(None)}",
 )
 R.check(
     "an interval inside the ask tolerance, or one the tracking gate refuses, "
@@ -74752,6 +74779,39 @@ R.check(
     and _cf_last(_df_rp, "refusal") == "duty_floor" and len(_df_rp._measured_cop.held) == 0,
     f"held {_df_rp_held}; after release {_df_rp._cop_samples} sample(s), scale {_df_rp._cop_scale!r}, "
     f"refusal {_cf_last(_df_rp, 'refusal')}",
+)
+# The other half of what a held interval carries: the curve its own cycle was
+# judged against. With the operating mode observed, a plan split evenly
+# between space and hot water is a blend no single curve prices, and a blended
+# interval never trains the scale. Each way round, the held interval's own
+# cycle decides, not the cycle that releases it. (Without a heat reading the
+# folded scale is the ask over the draw whatever the modelled COP, so a
+# refused curve is the one difference a reference can make to a replay.)
+def _df_split_cycle(coord, space_kw, dhw_kw, drawn, window):
+    coord._pump_signals = dataclasses.replace(coord._pump_signals, mode_observed=True)
+    coord._current_action = {"power": space_kw, "dhw_power": dhw_kw}
+    coord._measured_power = drawn
+    coord._current_state.outdoor_temperature = 8.0
+    coord._learn_measured_cop(window)
+    return coord._cop_samples, len(coord._measured_cop.held), _cf_last(coord, "refusal")
+
+
+def _df_hold_then_release(held_split, release_split, release_drawn):
+    coord = _cf_coord()
+    coord._measured_cop.ratio_ewma = 1.25
+    held = _df_split_cycle(coord, *held_split, 2.5, _cf_drm.DrawRange())
+    return held, _df_split_cycle(coord, *release_split, release_drawn, _cf_window(_cf_lit48))
+
+
+_df_ref_space = _df_hold_then_release((2.0, 0.0), (1.0, 1.0), 2.0)
+_df_ref_blend = _df_hold_then_release((1.0, 1.0), (0.3, 0.0), 0.3)
+R.check(
+    "a released interval is judged against the curve of the cycle it was read "
+    "on: one read on a space cycle folds when a blended cycle releases it, and "
+    "one read on a blended cycle trains nothing when a space cycle releases it",
+    _df_ref_space == ((0, 1, _cf_NOEV), (1, 0, "blended_duty"))
+    and _df_ref_blend == ((0, 1, _cf_NOEV), (0, 0, "duty_floor")),
+    f"space then blend {_df_ref_space} / blend then space {_df_ref_blend}",
 )
 # A release sits behind the learner's freeze gate and its missing-reading
 # guard: a cycle the learners are frozen on, or one with no power reading,
@@ -81863,9 +81923,11 @@ R.check(
 # known-COP plant exactly, and with heat equal to the model's COP times the
 # electricity (the null) the scale holds. ``power``: the install maps a power
 # entity, or only the two counters (#2854 round 4).
-def _he_cop_span(heat_per_elec, elec_kw=2.0, energy=True, cycles=3, power=True):
+def _he_cop_span(heat_per_elec, elec_kw=2.0, energy=True, cycles=3, power=True, draw=None, **cfg):
     c = _t2_coord(**({"heat_pump_power_entity": "sensor.hp_power"} if power else {}),
-                  **({"heat_pump_energy_entity": "sensor.e"} if energy else {}), **{_HE_KEY: "sensor.he"})
+                  **({"heat_pump_energy_entity": "sensor.e"} if energy else {}), **{_HE_KEY: "sensor.he"}, **cfg)
+    if draw is not None:
+        c._accuracy.draw = draw  # the running-draw window as the store restored it
     c._current_state.outdoor_temperature = 8.0
     c._current_action = {"power": elec_kw}
     c._measured_power = elec_kw if power else None
@@ -81955,6 +82017,23 @@ R.check(
     and _he_nop._cop_samples == 1,
     f"low samples {_he_nop_low._cop_samples} refusal {_he_nop_low._measured_cop.refusal} "
     f"refusals {_he_nop_low_ref}",
+)
+# R10-COP-LEARNER-DRAW-FLOOR: that floor is the one the cycle's fold reads,
+# ``draw_range.power_floor_kw`` on the install's own running-draw window. An
+# install that metered its pump running at 1.8 kW under an overstated 3.0 kW
+# minimum, and then dropped its power entity, keeps the window in the store:
+# its 2.0 kW span folds. With an empty window the configured 2.4 kW refuses it.
+_HE_MIN3 = {"heat_pump_max_power": 14.0, "heat_pump_min_power": 3.0}
+_he_nop_warm, _he_nop_warm_ref, _ = _he_cop_span(3.7, power=False, draw=_df_led(0.6), **_HE_MIN3)
+_he_nop_cold, _he_nop_cold_ref, _ = _he_cop_span(3.7, power=False, **_HE_MIN3)
+R.check(
+    "the span close judges the duty floor capped by the stored running-draw "
+    "window: on a 3.0 kW minimum a 2.0 kW span folds once the window has "
+    "metered the pump running at 1.8 kW, and is refused with an empty window",
+    _he_nop_warm._cop_samples == 1 and _he_nop_warm_ref[-1] is None
+    and _he_nop_cold._cop_samples == 0 and _he_nop_cold_ref[-1] == _HE_FLOOR,
+    f"warm samples {_he_nop_warm._cop_samples} {_he_nop_warm_ref}; "
+    f"empty samples {_he_nop_cold._cop_samples} {_he_nop_cold_ref}",
 )
 
 # Point B: one gated cycle refuses that learner's span, and only that one's.
