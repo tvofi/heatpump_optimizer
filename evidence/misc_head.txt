@@ -1,0 +1,20 @@
+# at ba0ed526cc3b0a4b62a4e05b165710237e3bd123
+== three-dot names
+dev/README.md
+dev/audit/harnesses/r10_arch_docs_mutants.py
+dev/programme/delivery/3430.md
+docs/architecture.md
+tests/closure.py
+tests/closures.json
+tests/doc_claims.py
+== structure
+STRUCTURE RATCHET PASSED
+== markers
+0 of 0 marker(s) due
+rc=0
+== closures delta entities rc
+ 2 files changed, 6 insertions(+)
+== roster branch
+400a014603b46a442308bfff2253ed3ef1e38605	refs/heads/handoff/audit-r10-roster
+== pull head
+ba0ed526cc3b0a4b62a4e05b165710237e3bd123	refs/pull/3430/head

@@ -1,0 +1,25 @@
+baseline: 0 FAIL line(s) []
+killed   P1 no-section guard: red fixture: no section is a finding
+killed   P2 no-figure/no-rows guard: red fixture: a table whose rows cite nothing is a finding
+SURVIVED P3 entry excludes stores: -
+killed   P4 entry must be a seat: red fixture: a single entry that is a script, not a seat is a finding
+killed   P5 arrow regex loses dashed: red fixture: a dashed arrow is a finding
+killed   P6 script-only actor-file rule widened off: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; the clean fixture yields no finding (null control) ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+SURVIVED P7 due check call dropped: -
+SURVIVED P8 live machinery check dropped: -
+killed   P9 marker regex matches nothing (relaxed anchors): the clean fixture yields no finding and no note (null control) ;; red fixture: a marker naming no roster group is a finding ;; state tolerance: a marker naming a done group, and an absent retired-by path, yield only notes
+killed   P10 wiring scope test only: no wiring marker names only done groups: each is resolved into a statement of the tree (#2395) ;; a due user-doc marker is left to its own resolver (null control)
+killed   P11 due test only: red fixture: a due wiring marker is refused, and a not-yet-due one is not (null control)
+killed   D1 a quoted citation altered: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+killed   D2 a table row removed: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+killed   D3 an arrow added with no row: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+killed   D4 a due marker planted on dev/README.md: no wiring marker names only done groups: each is resolved into a statement of the tree (#2395)
+killed   D5 a due marker planted on docs/architecture.md: no wiring marker names only done groups: each is resolved into a statement of the tree (#2395)
+killed   D6 arrow reversed with its row, re-cited to a real line of the other script: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+killed   D7 a dashed arrow on the page: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+killed   D8 a second mermaid block in the section with a reversed arrow: every named element resolves in the artifact that defines it, or a marker covers it
+killed   S1 the cited line removed from tick_loop.sh: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+killed   S2 the cited line removed from beat_jobs.py: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
+RESULT rev_mutants=21
+RESULT rev_survivors=3
+rc=0
