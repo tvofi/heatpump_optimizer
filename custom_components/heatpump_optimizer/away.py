@@ -1,8 +1,8 @@
 """Away / holiday mode with deadline-driven recovery.
 
 A week away is the single largest saving a heating system can offer: a deep
-setback plus hot water suppressed entirely, except for a legionella cycle timed
-to complete before return.
+setback plus hot water held only at its away minimum; the legionella cycle
+keeps its usual interval.
 
 What makes this more than an ``input_number`` is the **return time**. Knowing
 when the house must be comfortable again lets the optimizer buy the recovery
@@ -73,11 +73,6 @@ class AwayConfig:
     #: Setback targets while away.
     away_temperature: float = 16.0
     away_dhw_min_temperature: float = 20.0
-    #: Whether to keep the anti-legionella cycle running while away. Kept on by
-    #: default: a tank sitting lukewarm for a week is exactly the condition the
-    #: cycle exists for, and it is much cheaper to run it in a chosen cheap
-    #: hour than to arrive home to an overdue one.
-    legionella_before_return: bool = True
 
 
 @dataclass
