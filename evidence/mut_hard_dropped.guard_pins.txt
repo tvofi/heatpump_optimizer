@@ -1,0 +1,92 @@
+
+=== Guard pins (#805 non-coordinator) ===
+  ok   an idle interval teaches the tank cooling rate
+  ok   a wood-coil install captions the hot-water tank
+  ok   a tz-aware wood slot against naive stamps still places energy
+  ok   a tenfold hour does not remain tenfold in the learned shape
+  ok   a legionella run-up stops once the ordinary floor already covers it
+  ok   a starting guess below a pinned bound is lifted to the bound
+  ok   an unchanged ceiling signature does not re-raise the notice
+  ok   a draw is folded, and skipped while external heat drives the tank
+  ok   the disinfection write-failed notice is raised once and cleared once
+  ok   #1913 GCHV prefix
+  ok   #1913 GCHV ids
+  ok   #1913 GCHV ready
+  ok   #1913 GCHV fits
+  ok   #1913 GCHV next
+  ok   #1913 GCHV one_window
+  ok   #1913 GCHV two_windows
+  ok   #1913 GCHV writes
+  ok   #1913 GCHV off_d1
+  ok   #1913 GCHV optimizer_off
+  ok   #1913 GCHV unset
+  ok   #1913 GCHV daytime
+  ok   #1913 GCHV hold
+  ok   #1913 GCHV observed_none
+  ok   #1913 GCHV writable
+  ok   #1913 GCHV unenforceable
+  ok   #1913 GCHV domain
+  ok   #1913 GCHV suffix
+  ok   #1913 GCHV mode_slot
+  ok   #1913 GCHV differs_none
+  ok   #1913 GCHV differs_frac
+  ok   #1913 GCHV observed_int
+  ok   #1913 GCHV write_ints
+  ok   #1913 GCHV zero_window
+  ok   #1913 GCHV garbage_write
+  ok   #1913 GCHV observed_frac
+  ok   #1913 GCHV listeners
+  ok   #1913 GCHV switch_compose
+  ok   #1913 GCHV unread_compose
+  ok   #1913 GCHV off_only_dropped
+  ok   #1913 GCHV at_noon_end
+  ok   #1913 GCHV at_wrap_end
+  ok   #1913 GCHV inside_wrap_two
+  ok   #1913 GCHV weekday_sat
+  ok   #1913 GCHV yesterday_day
+  ok   #1913 GCHV same_day_finish
+  ok   #1913 GCHV empty_merge
+  ok   #1913 GCHV garbage_spec
+  ok   R9-SW-2 mode writes its option
+  ok   R9-SW-2 silent writes turn_on and turn_off
+  ok   R9-SW-2 a set-point writes set_value
+  ok   R10-ARCH-SHAPES an accuracy sample's zero planned draw is kept (bound lo inclusive)
+  ok   R10-ARCH-SHAPES an unreadable tank volume has no surface, not a raise
+  ok   R10-ARCH-SHAPES a stored aperture sum at its floor is kept, below it defaulted
+  ok   R10-ARCH-SHAPES three contiguous days render as a range, two as a list
+  ok   R10-ARCH-SHAPES a window ending at midnight keeps 24:00, a later hour folds
+  ok   R10-ARCH-SHAPES a channel drawing exactly the active line is not heating
+  ok   R10-ARCH-SHAPES a measured ceiling of zero is no measurement
+  ok   R10-ARCH-SHAPES a measured ceiling exactly at the nameplate is admitted
+  ok   R10-ARCH-SHAPES the DHW minimum ceiling is the setpoint less the margin
+  ok   R10-ARCH-SHAPES a pump hour costing exactly wood's price is not cheaper wood
+  ok   R10-ARCH-SHAPES a COP series shorter than the horizon reads as no COP, not a raise
+  ok   R10-DISINFECTION-STEP-NOTICE 55/62 on step 5 is named: 62 configured, 60 written, 60 and 65 on the step
+  ok   R10-DISINFECTION-STEP-NOTICE the slider grid raises 201 of 1750 under the instant rule
+  ok   R10-DISINFECTION-STEP-NOTICE the slider grid raises 436 of 1750 under the hold rule
+  ok   R10-DISINFECTION-STEP-NOTICE the instant rule's 201 are all at step 5
+  ok   R10-DISINFECTION-STEP-NOTICE null: the 1314 on-step slider rows raise none, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE null: steps 0.1 and 0.5 raise none, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE the harness grid raises 34 / 71 of 330 (instant / hold)
+  ok   R10-DISINFECTION-STEP-NOTICE null: the 169 on-step harness grid rows raise none, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE the off-step notice shows, not the unreachable notice's hardware advice
+  ok   R10-DISINFECTION-STEP-NOTICE an unchanged off-step signature does not re-raise the notice
+  ok   R10-DISINFECTION-STEP-NOTICE the notice clears once the disinfection temperature is on the step
+  ok   R10-DISINFECTION-STEP-NOTICE instant credit counts target less 1.0 and not 0.01 under
+  ok   R10-DISINFECTION-STEP-NOTICE hold credit counts target less 0.5 and not 0.01 under
+  ok   R10-DISINFECTION-STEP-NOTICE null: the cycle disabled raises none
+  ok   R10-DISINFECTION-STEP-NOTICE null: hot water disabled raises none
+  ok   R10-DISINFECTION-STEP-NOTICE null: no set-point entity raises none
+  ok   R10-DISINFECTION-STEP-NOTICE null: an arbiter that writes nothing (observe) raises none
+  ok   R10-DISINFECTION-STEP-NOTICE null: the stock 55/60 raises none on any step
+  ok   R10-DISINFECTION-STEP-NOTICE 63 on step 5 is named below 60 and above 65, the step down and up, not the nearest
+  ok   R10-DISINFECTION-STEP-NOTICE a range-capped write (max 60 under 65, step 1) raises no off-step notice, either rule
+  ok   R10-DISINFECTION-STEP-NOTICE a range-capped write leaves the unreachable notice's hardware advice standing
+  FAIL R10-DISINFECTION-STEP-NOTICE a hard-cap shortfall (75 over the 70 C hard maximum, step 5) raises no off-step notice, either rule
+  FAIL R10-DISINFECTION-STEP-NOTICE a hard-cap shortfall (75 over the 70 C hard maximum, step 1) raises no off-step notice, either rule
+  FAIL R10-DISINFECTION-STEP-NOTICE a hard-cap shortfall leaves the unreachable notice's hardware advice standing
+  ok   R10-DISINFECTION-STEP-NOTICE 68 on step 5 is named: the step above, 70, is the hard maximum and writable
+  ok   R10-DISINFECTION-STEP-NOTICE null: the same 65 on a max-80 step-5 entity off the step (62) still raises
+  FAIL R10-DISINFECTION-STEP-NOTICE entity-range census: 353 of 2856 rows raise, each with below < target <= above <= max
+
+4 of 88 GUARD PIN CHECKS FAILED

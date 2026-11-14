@@ -1,0 +1,10 @@
+MUTANT range_dropped guard_pins rc=1 4 FAIL-lines; census rows differing=17613
+MUTANT hard_literal70 guard_pins rc=0 0 FAIL-lines; census rows differing=0
+MUTANT hard_lt guard_pins rc=1 13 FAIL-lines; census rows differing=2883
+MUTANT range_le guard_pins rc=1 4 FAIL-lines; census rows differing=17613
+MUTANT hard_dropped guard_pins rc=1 5 FAIL-lines; census rows differing=2403
+MUTANT above_minus_margin guard_pins rc=0 0 FAIL-lines; census rows differing=0
+MUTANT hard_at_target guard_pins rc=1 13 FAIL-lines; census rows differing=2883
+MUTANT verdict_suggested guard_pins rc=1 13 FAIL-lines; census rows differing=2883
+MUTANT old_plus_hard guard_pins rc=0 0 FAIL-lines; census rows differing=0
+MUTANT verdict_suggested_range guard_pins rc=1 13 FAIL-lines; census rows differing=2883

@@ -1,0 +1,3 @@
+NOTE review 0 item 8e96a077: dismissed:evidence, not a finding; the dispatch gate that enforces the re-cut ran on the orchestrator's side.
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+rc=0
