@@ -29,7 +29,7 @@ import json
 import os
 import sys
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
@@ -224,7 +224,23 @@ def gate_checks() -> list[tuple[str, bool, str]]:
                     if r[2] and r[2].get("raw_today"))
     stub._DISK.clear()
     stub._DISK.update(before)
+    import dbg_bundle_gen
+    traced = trace_document({"replay": replay, "trace": dbg_bundle_gen.trace_blocks(replay)})
+    refusals = []
+    for bad in ({}, {"replay": replay, "trace": []}):
+        try:
+            trace_document(bad)
+        except SystemExit as err:
+            refusals.append(str(err).split(":")[0])
     return [
+        ("debug replay: a trace document spans the trace's minutes and names the entities it "
+         "rebuilt; no replay half or no trace minute is refused",
+         traced["window"] == {"start": datetime.fromisoformat(replay["window"]["start"]).astimezone(
+             timezone.utc).isoformat(), "end": datetime.fromisoformat(replay["window"]["end"]).astimezone(
+             timezone.utc).isoformat()}
+         and replay["entry"]["data"]["indoor_temp_entity"] in traced["downsampled"]["entities"]
+         and refusals == ["REFUSED", "REFUSED"],
+         f"{traced['window']} {traced['downsampled']} {refusals}"),
         ("debug replay: store keys remap onto FakeEntry's test_entry",
          dest_acc in written and dest_en in written and "not_a_store" not in written,
          f"written={written}"),
