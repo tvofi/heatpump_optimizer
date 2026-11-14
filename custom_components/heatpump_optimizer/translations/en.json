@@ -1838,6 +1838,10 @@
       "title": "Hot water is not reaching the disinfection temperature",
       "description": "The anti-legionella cycle ran, but the tank only reached {reached} °C against the {target} °C it was asked for, so the water is not being disinfected. Heat pumps often cannot get a tank that hot on their own; the usual answer is an immersion heater that takes the last few degrees, or lowering the disinfection temperature to something this system can actually hold. Until then the cycle is retried about a day later rather than on every plan. This notice clears itself as soon as a cycle reaches temperature."
     },
+    "dhw_legionella_off_step": {
+      "title": "The disinfection temperature is between the hot water set-point's steps",
+      "description": "The anti-legionella cycle is set to {legionella_temp} °C, but the hot water set-point only takes steps of {step}, and the cycle never writes above the temperature you chose, so it writes {written} °C. That is too far below {legionella_temp} °C for the cycle to count as a disinfection: it still runs, nothing is credited, and it is retried about a day later. Nothing is wrong with the heat pump or the tank, and no immersion heater is needed. Set the disinfection temperature to a value on the set-point's step: {above} °C to keep disinfecting at least as hot as you chose, or {below} °C if that is hot enough for you. This notice clears itself once the setting is on the step."
+    },
     "dhw_legionella_unverified": {
       "title": "The disinfection cycle cannot be verified",
       "description": "The anti-legionella cycle was commanded, but no hot water tank temperature sensor is configured, so nothing confirms the tank ever reached {target} °C — or that the pump acted on the request at all. The countdown is reset as if the cycle had run, because refusing to reset it would not disinfect anything either; what is not claimed is that it worked. Point the \"Hot water tank temperature\" sensor at a real probe and the cycle is verified from then on, and this notice clears as soon as one is observed at temperature."

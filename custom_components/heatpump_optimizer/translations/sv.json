@@ -1838,6 +1838,10 @@
       "title": "Varmvattnet når inte desinfektionstemperaturen",
       "description": "Legionellacykeln kördes, men tanken nådde bara {reached} °C mot de {target} °C som begärdes, så vattnet desinficeras inte. Värmepumpar klarar ofta inte att värma en tank så högt på egen hand; det vanliga svaret är en elpatron som tar de sista graderna, eller att sänka desinfektionstemperaturen till något systemet faktiskt klarar. Till dess försöker cykeln igen ungefär ett dygn senare i stället för i varje plan. Meddelandet försvinner av sig självt så snart en cykel når temperaturen."
     },
+    "dhw_legionella_off_step": {
+      "title": "Desinfektionstemperaturen ligger mellan varmvattenbörvärdets steg",
+      "description": "Legionellacykeln är inställd på {legionella_temp} °C, men varmvattenbörvärdet tar bara steg om {step}, och cykeln skriver aldrig över den temperatur du valt, så den skriver {written} °C. Det ligger för långt under {legionella_temp} °C för att cykeln ska räknas som en desinfektion: den körs ändå, inget tillgodoräknas, och den försöks igen ungefär ett dygn senare. Inget är fel på värmepumpen eller tanken, och ingen elpatron behövs. Ställ desinfektionstemperaturen på ett värde i börvärdets steg: {above} °C för att desinficera minst så varmt som du valt, eller {below} °C om det är varmt nog för dig. Meddelandet försvinner av sig självt när inställningen ligger på ett steg."
+    },
     "dhw_legionella_unverified": {
       "title": "Desinfektionscykeln kan inte verifieras",
       "description": "Legionellacykeln beordrades, men ingen temperatursensor för varmvattentanken är konfigurerad, så inget bekräftar att tanken någonsin nådde {target} °C — eller att pumpen alls följde begäran. Nedräkningen nollställs som om cykeln hade körts, eftersom att låta bli inte heller desinficerar något; det som inte påstås är att den lyckades. Peka sensorn \"Varmvattentankens temperatur\" mot en riktig givare så verifieras cykeln därefter, och meddelandet försvinner så snart en cykel observeras vid temperaturen."

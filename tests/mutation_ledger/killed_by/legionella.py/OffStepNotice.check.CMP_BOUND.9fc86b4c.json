@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:OffStepNotice.check CMP_BOUND 9fc86b4c",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if write is not None and write.written_c < target - margin and write.written_c < write.above_c <= (",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if write is not None and write.written_c <= target - margin and write.written_c < write.above_c <= (`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=4."
+}

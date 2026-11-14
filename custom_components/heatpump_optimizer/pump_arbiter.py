@@ -1197,6 +1197,39 @@ def _dhw_target(inp: ArbiterInputs) -> float:
     return dhw_step_target_c(inp.params, cycle, _grid(inp, "dhw_setpoint"))
 
 
+@dataclass(frozen=True)
+class CycleWrite:
+    """A disinfection cycle's hot-water write and the entity's step around it.
+
+    ``written_c`` is the arbiter's own write; ``below_c`` and ``above_c`` are
+    the disinfection temperature on the step rounded down and up, inside the
+    entity's range, in °C; ``step`` is the entity's own, in its unit.
+    """
+
+    written_c: float
+    below_c: float
+    above_c: float
+    step: float
+
+
+def cycle_write(hass: Any, config: Any, params: Any) -> CycleWrite | None:
+    """The hot-water write a disinfection cycle holds under ``params``.
+
+    ``None`` where the arbiter writes no hot-water set-point: not in control
+    (``pump_duty_mode``), no hot-water set-point entity with a state, or no
+    cycle temperature (``dhw_cycle_temp``). ``written_c`` is
+    ``thermal_model.dhw_step_target_c`` on a cycle step, the write's own.
+    """
+    grid = setpoint_grid(hass, _entities(config)["dhw_setpoint"]) if duty_mode(config) == DUTY_CONTROL else None
+    if grid is None or params.dhw_cycle_temp is None:
+        return None
+    target = float(params.dhw_legionella_temp)
+    return CycleWrite(
+        dhw_step_target_c(params, True, grid),
+        grid.bounded(target, rounding="down"), grid.bounded(target, rounding="up"), grid.step,
+    )
+
+
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = inp.plan
