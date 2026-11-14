@@ -1,0 +1,21 @@
+booked 1.59 kWh
+hyst 0.5K  lift 0.5 K  loop on   drew 2.29 kWh  last30 0.526 kW  settle min 103  within one step False  starts 1  repeat identical True
+hyst 0.5K  lift 0.5 K  loop off  drew 5.76 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst 0.5K  lift 2.0 K  loop on   drew 2.92 kWh  last30 0.544 kW  settle min 149  within one step False  starts 1  repeat identical True
+hyst 0.5K  lift 2.0 K  loop off  drew 6.43 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst 0.5K  lift 4.0 K  loop on   drew 4.75 kWh  last30 1.159 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst 0.5K  lift 4.0 K  loop off  drew 6.52 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst 0.5K  lift 6.0 K  loop on   drew 5.31 kWh  last30 1.361 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst 0.5K  lift 6.0 K  loop off  drew 6.55 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst =lift lift 0.5 K  loop on   drew 2.29 kWh  last30 0.526 kW  settle min 103  within one step False  starts 1  repeat identical True
+hyst =lift lift 0.5 K  loop off  drew 5.76 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst =lift lift 2.0 K  loop on   drew 2.92 kWh  last30 0.544 kW  settle min 149  within one step False  starts 1  repeat identical True
+hyst =lift lift 2.0 K  loop off  drew 6.43 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst =lift lift 4.0 K  loop on   drew 4.75 kWh  last30 1.159 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst =lift lift 4.0 K  loop off  drew 6.52 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst =lift lift 6.0 K  loop on   drew 5.31 kWh  last30 1.361 kW  settle min None  within one step False  starts 1  repeat identical True
+hyst =lift lift 6.0 K  loop off  drew 6.55 kWh  last30 2.222 kW  settle min None  within one step False  starts 1  repeat identical True
+
+real	0m4.974s
+user	0m3.329s
+sys	0m0.145s
