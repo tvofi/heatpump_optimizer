@@ -1,24 +1,47 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-ci-priority-pause, at head e23124ff6e45bac1d48b4a775dad555a37965355. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-ci-priority-pause, at head c987209cc7a891e0e4066d4ad8dc5cf55357c5ae. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead. Read your policy once, verbatim: `python3 -I tools/policy/role_pack.py render fixer --out $HOME/role-pack.md`, then that file in place of your role contract and INSTRUMENTS.md; on REFUSE read those files as before.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch e23124ff6e45bac1d48b4a775dad555a37965355 for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch c987209cc7a891e0e4066d4ad8dc5cf55357c5ae for the base you were given.
 Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r10-ci-priority-pause before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r10-ci-priority-pause, whose move updates the pull request. Hand off at your first clean `tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved since that run needs no re-merge and no second run, because the train re-proves the head on the current main. Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, first push `BLOCKED.md` with a `Question:` line to refs/heads/handoff-wip/r10-ci-priority-pause, even with no code. Then push the code to refs/heads/handoff/r10-ci-priority-pause, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-ci-priority-pause <body.md>`, which pushes refs/heads/handoff-body/r10-ci-priority-pause; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r10-ci-priority-pause`. When body_push.sh exits 4 (its output ends `body_push: REFUSED CARRY-LANDED`), the carry lands on the roster you may not write: push a BLOCKED.md holding that output to refs/heads/handoff-wip/r10-ci-priority-pause and stop; the relay folds the carries and re-runs body_push.sh. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+A red is owed a `## Red checks` answer, and may block, only when its name is in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any other red is neither answered nor a block.
 Never write to any branch except your return refs and refs/heads/handoff-wip/r10-ci-priority-pause and refs/heads/handoff-wip/r10-ci-priority-pause-body. Never work around a hook or a refusal; report it in your result instead.
-Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires; at most 5 inline search operations per prompt; never set FRUGAL_ALLOW_INLINE.
+Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-# Repair round: PR 3560 (R10-CI-PRIORITY-PAUSE) - blocked mutation-vacuous
+# Repair brief: PR 3560 (R10-CI-PRIORITY-PAUSE), instrument-self-tests red at 070118088ac3
 
-Verdict: review/3560, first line `Fix review: blocked ff8b073827a8938d679ced28644cd28401f16dbc mutation-vacuous: cancel_superseded.priority_pass has_merge_verdict guard survives`. Read VERDICT.md and ev/mutants.txt in full first (fetch origin review/3560). Start from the PR head: `git fetch origin fix/r10-ci-priority-pause` (or the branch gh names for PR 3560) and check out ff8b073827a8938d679ced28644cd28401f16dbc; push to the group s handoff ref, fast-forward.
+resume=handoff/r10-ci-priority-pause@56923ce8dd8d92aabcd894c6e23c5310d7b1144a
 
-Owed, all of it in this round (fix-review step 1: one block lists every survivor; the findings below end Carry: R10-CI-PRIORITY-PAUSE, this group, so they are yours):
-1. The survivor: in tools/pr/cancel_superseded.py priority_pass, replacing `if has_merge_verdict(api, a.repo, pr) is not False:` with `if False:` leaves the self-test green. Add the check that pins the live verdict lookup (carry 6 names it: dropping the verdict check cancels the verdicted run). Run the reviewer s M1-M9 again and report each.
-2. Carry 6 (ii) is not built: the hold on starting a rerun or dispatch of a non-priority pull request s CI while a priority run is queued. Wire it into the rerun sites your own enumeration returns (the reviewer names merge_train Train.unstale and infra_rerun); each site with a self-test arm and a mutant.
-3. Carry 4 s before figure: minutes a priority pull request s first job waits queued, re-measured at the merge base, with its enumerator; state how the after figure will be taken once the switch is on.
-4. The pause. The reviewer found that the same priority_cancel switch also disables the train s owner-directed pause (tvofi 2026-10-28) and recorded extending carry 6 to it as pending owner confirmation. Orchestrator ruling under the mandate (comment id in the roster group s owner_gate where present): do NOT extend it. Decouple the pause from priority_cancel so the pause behaves as on main; carry 6 governs only cancels of queued runs. Show it with a self-test arm (switch off, pause still fires) and its mutant.
-5. Body: figures re-taken at the head the body names (the reviewer measured 311, 319 and 743 checks where the body says 310, 317, 670); Red checks, Friction and Forward-carry current; say plainly what a critical-path, outside or hotfix pull request s queued wait changes by at merge.
-prepr.sh clean, then handoff and body_push.sh; if body_push refuses CARRY-LANDED write the line to BLOCKED.md on handoff-wip and stop.
+The dispatch of a reviewer was refused with this line, verbatim:
 
-Null controls expected: with the verdict lookup mutated the self-test fails; with the hold removed at each rerun site its arm fails; with the pause re-coupled to the switch its arm fails.
+bus: REPAIR-OWED: dispatch: #3560's head 070118088ac3c8950c5cd6756638d1fa936878c2 is not reviewable: instrument-self-tests went red here and not at its merge base (INTRODUCED: Render the sweep template, and the policy re-read predicate; Show the self-test scope (tools/ci/selftest_scope.py) refusing its own fixtures; Show the self-test scope refusing each mutant of its trace rules) -- back to its fixer for a repair; do not retry
+
+The three INTRODUCED steps, by name:
+1. `Render the sweep template, and the policy re-read predicate`
+2. `Show the self-test scope (tools/ci/selftest_scope.py) refusing its own fixtures`
+3. `Show the self-test scope refusing each mutant of its trace rules`
+
+Failing lines from the job log (governance / instrument-self-tests, job 132301295988):
+
+Step 1, `tools/audit/seat/sweep_render.py` self-test:
+- `FAIL the tracked template renders from a complete overlay, every placeholder filled (null control)`
+- `unused: `train_state` declared and never used by the sweep`
+- Traceback: sweep_render.py line 245 in self_test, `flags = re.findall(r"--seat-alive (\S+)", render(tracked, five))`, then line 172 in render, `raise Refused("unused: ... declared and never used by the sweep")`
+  (the overlay declares `train_state` but the tracked sweep template no longer uses it)
+
+Step 2:
+- `test_scope self-test: 120 checks, 1 failed`
+
+Step 3 (`sh tools/ci/selftest_scope_mutants.sh --self-test`):
+- `LINE RED: the unmutated self-test fails`
+  (a consequence of step 2: the unmutated baseline is red)
+
+Step 2 and 3 failing line ids are in the job log; reproduce them locally with the commands in the workflow steps named above to see the one failing check.
+
+## What to do
+
+These instrument-self-tests steps are red at 070118088ac3 and green at the merge base, so the cause is in this branch's diff: make them pass in-seam without weakening what they check, show each step's command passing locally, and answer them in the body's Red checks.
+
+Run prepr with PREPR_SKIP_CODE unset as usual. Main carries the weekend-clock fix at c987209c: merge origin/main in if your base predates it.
 
 Carry 0: Re-homed from R10-TRAIN-OVERLAP-GRADE carries 16-17 (P267/P268; audit at main 89ccf7326 found neither the tier module nor its config file in the tree, and no live group building them). This group now owns building the CI-priority tier module and its config file (tier order and knobs only; the group-to-class mapping is read from the roster through the roster library, R10-ORCH-ROSTER-SCHEMA owning those fields), plus the merge train's pause/resume of the lowest-priority PR's CI when a head job has queued 5 minutes or more (a paused-record file, at most once per 5 minutes, resume on exit and at start), with the controls written in TRAIN-OVERLAP-GRADE carries 16-17. Consumers R10-FLOW-WIP, R10-FLOW-TOOLKIT-MODEL and R10-ORCH-LEDGER stay after-edged on it. Carry: R10-FLY-CANCEL-SWEEP
 
