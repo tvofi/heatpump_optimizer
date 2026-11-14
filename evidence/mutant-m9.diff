@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index bbc270045..fa89aa7bb 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -587,7 +587,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+   level_set handoff-hold-malformed "$state/cloud-level-hold.$$"
+   # R10-RELAY-ARM-ORDER: the listing is pass()'s, taken once ahead of every arm; a lone call lists here
+   if [ -f "$state/cloud-prs-open.$$" ]; then cp -f "$state/cloud-prs-open.$$" "$state/cloud-prs.$$"
+-  else open_prs > "$state/cloud-prs.$$" \
++  else : > "$state/cloud-prs.$$" \
+     || { echo "cloud_relay: could not list open PRs; will retry" >&2; rm -f "$state/cloud-prs.$$"; return 0; }; fi
+   git ls-remote origin 'refs/heads/handoff/*' 'refs/heads/handoff-body/*' > "$state/cloud-hrefs.$$" \
+     || { echo "cloud_relay: could not list handoff refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$"; return 0; }

@@ -1,0 +1,4 @@
+RESULT m6 KILLED rc=1 failed=1
+  FAIL null control: with the open-PR listing failed, the same shape on #68 stays owed (rc=1, want 0)
+  ok   ... with no body_push
+cloud_relay self-test: 424 checks, 1 failed

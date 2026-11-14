@@ -1,4 +1,0 @@
-868c868
-<     probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; handoff_arm; carry_fold_arm; rm -f "$pst/cloud-prs-open.$$"
----
->     probe_arm; handoff_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; carry_fold_arm; rm -f "$pst/cloud-prs-open.$$"
