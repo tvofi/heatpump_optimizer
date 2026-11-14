@@ -1,0 +1,60 @@
+BASELINE [(0, False), (0, False)]
+KILLED   count-condition: 2 fail, 0 fail
+         FAIL the stored lifetime and month counts continue across the change: a compressor running through the restart
+         FAIL an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; the last known
+KILLED   none-guard: 1 fail, 0 fail
+         FAIL an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; the last known
+KILLED   queue-replay: 2 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   queue-on-unrestored: 2 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   finally-restore: 11 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   released-guard: 1 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   stop-edge-save: 1 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   element-instant-term: 2 fail, 0 fail
+         FAIL the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and
+         FAIL a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading th
+KILLED   element-latch-term: 1 fail, 0 fail
+         FAIL the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and
+KILLED   element-both-sources: 1 fail, 0 fail
+         FAIL the element rule is the meter source's only: a frequency install under a latched element counts its start
+KILLED   element-reader-guard: 2 fail, 0 fail
+         FAIL the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and
+         FAIL a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading th
+KILLED   timer-arm: 3 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   timer-delay-zero: 1 fail, 0 fail
+         FAIL a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over
+KILLED   timer-cancel-on-detach: 1 fail, 0 fail
+         FAIL the release drops the listener, the timer of a change still pending and the subscribers, and a second rel
+KILLED   per-refresh-reread: 2 fail, 0 fail
+         FAIL the immersion element on a meter-only install: cutting in over the level with the compressor off (S1) and
+         FAIL a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading th
+KILLED   attach-in-init: 4 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   detach-on-release: 1 fail, 0 fail
+         FAIL the release drops the listener, the timer of a change still pending and the subscribers, and a second rel
+KILLED   detach-clears-subscribers: 1 fail, 0 fail
+         FAIL the release drops the listener, the timer of a change still pending and the subscribers, and a second rel
+KILLED   running-now-pending: 1 fail, 1 fail
+         FAIL in duty mode off a frequency held at 40 Hz with no later event is confirmed by the timer at the debounce,
+         FAIL a set-point write reports nothing to the learner and a mode write does; a pending change of the running c
+KILLED   ds-subscribe: 0 fail, 14 fail
+         FAIL through the arbiter: a dhw->space mode write while running that stops the compressor inside the window bo
+         FAIL a defrost flag on the pump opens nothing; an unavailable frequency voids the open episode  [(0, 0, 0, 0, 
+KILLED   ds-unsubscribe: 0 fail, 2 fail
+         FAIL detaching with an episode open drops it uncounted and stops hearing the edges; the running class is the r
+         FAIL the running signal's listener triggers no arbiter pass; duty mode off unsubscribes the learner and leaves
+KILLED   ds-pass-confirm: 0 fail, 20 fail
+         FAIL through the arbiter: a dhw->space mode write while running that stops the compressor inside the window bo
+         FAIL null control: the same write with the compressor running on books a kept episode  [(0, 0, 0, 0, [])]
+RESULT survived=0
+EXIT 0

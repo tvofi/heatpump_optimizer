@@ -1,0 +1,9 @@
+head reviewed: 5831759301bb8ecabf97feeca3238c2d5ebaef5b
+previous reviewed head: 43227286fc18822b7955e54aa5323cc61feab39e
+origin/main: d7004eaa775dd7b42aa392df0eb53aeec198b2b0
+git merge-tree --write-tree origin/main 5831759301bb8ecabf97feeca3238c2d5ebaef5b:
+3ca82872fc88bdd2bf10a56f94a84846b34b4438
+rc=0
+ls-remote handoff-body:
+d5e5b3fa6e0d2f7e27b7dd48ef859a76a9480e49	refs/heads/handoff-body/r10-start-counter-edges
+merge-tree exit code (measured separately): 0

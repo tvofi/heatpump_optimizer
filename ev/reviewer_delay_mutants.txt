@@ -1,0 +1,9 @@
+== unmutated at 5831759301
+  ok   a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over it counts one; no timer outlives either
+ALL 16 FEATURES BLOCK PASSED
+== mutant:     delay = 0.0
+  FAIL a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over it counts one; no timer outlives either  [{5: (1, 0), 29.0: (1, 0), 31.0: (1, 0)}]
+1 of 16 FEATURES BLOCK FAILED
+== mutant:     delay = 1.0
+  FAIL a meter blip shorter than the debounce counts no start (5 s and one second under it), and one second over it counts one; no timer outlives either  [{5: (1, 0), 29.0: (1, 0), 31.0: (1, 0)}]
+1 of 16 FEATURES BLOCK FAILED
