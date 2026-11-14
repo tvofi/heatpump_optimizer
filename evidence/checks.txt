@@ -1,0 +1,16 @@
+selftest_scope static: 114 gated step(s), 0 problem(s)
+selftest_scope self-test: 120 checks, 0 failed
+STRUCTURE RATCHET PASSED
+  MODE: FULL -- every test script runs, nothing is scoped out.
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+tests / coverage-ratchet
+tests / fast (3.14)
+tests / mutation
+tests / typing
+validate / validate-hacs
+brief_lint.mjs
+figure_lint.mjs
+policy_lint.mjs
+policy_lint_envmatrix.mjs
+policy_lint_mutants.mjs
