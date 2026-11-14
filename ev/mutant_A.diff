@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 3e468131b4..22e5c2580b 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -34293,7 +34293,7 @@ def _sp_remeasures(node):
+     """Every `remeasure` string in a carry's JSON."""
+     if isinstance(node, dict):
+         for k, v in node.items():
+-            if k == "remeasure" and isinstance(v, str):
++            if k == "remeasure_MUTANT" and isinstance(v, str):
+                 yield v
+             else:
+                 yield from _sp_remeasures(v)
