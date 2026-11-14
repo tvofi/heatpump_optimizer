@@ -1,0 +1,21 @@
+* f14a2fbcf5 30314c72c5 tvofi record: the delivery row for #3582
+* 30314c72c5 f919d224ca c987209cc7 tvofi Merge origin/main (c987209cc7, v7.1.16) into handoff/r10-arch-docs-delta
+* f919d224ca b6f3ab15b7 hpo-fixer dev/README: volatile state goes on #3394, as writing-for-agents.md rules
+*   b6f3ab15b7 d712c2ba4a 22e9330193 hpo-fixer Merge commit '22e9330193f147e8b02b0171890b9c338ef6b0e3' into r10-arch-docs-delta
+|\  
+| * 22e9330193 f78e814f0e tvofi record: the delivery row for #3574
+| * f78e814f0e b48274c195 50373173d4 tvofi Merge remote-tracking branch 'origin/main' into fix/r10-sav-valuation-residue-pr
+| * b48274c195 ee3c5bbcc7 hpo-fixer Delete the GUARD_OFF ledger pin on the removed valve branch of _compute_baseline_power
+| * ee3c5bbcc7 222032c398 hpo-fixer Suspend the six may-drift entries in stamp.py's restore form, so the stamp restores them when it empties the claims
+| * 222032c398 14e9b16a43 hpo-fixer Claim three more valved fixtures golden.py moves; suspend valve_storage's #1207 may-drift entry for this release
+| * 14e9b16a43 21d6df7ced hpo-fixer Bound the valved first-step-is-mean pin at 1e-3: the reference is booked as simulated
+| * 21d6df7ced 68a15be848 hpo-fixer Claim the five valved fixtures' baseline_cost drift; suspend their may-drift entries for this release
+
+f919d224caa9ecc39fad4f11434a8d0df7bbfacc dev/README: volatile state goes on #3394, as writing-for-agents.md rules
+
+ dev/README.md | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+f14a2fbcf5bb1d0f1e7debb586a840d829e2a83a record: the delivery row for #3582
+
+ dev/programme/delivery/3582.md | 1 +
+ 1 file changed, 1 insertion(+)
