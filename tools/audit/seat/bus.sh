@@ -2448,7 +2448,7 @@ G
   chmod +x "$A/bin/gh" "$A/bin/lint" "$A/bin/carryaudit"
   adopt_run() { (cd "$A/seat" && AD=$A PATH="$A/bin:$PATH" HPO_BUS_GH="$A/bin/gh" HPO_BUS_GITHUB="$A/gh" HPO_BUS_STATE=$A/state \
                  HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r HPO_BUS_BODYLINT="$A/bin/lint" HPO_BUS_CARRYAUDIT="$A/bin/carryaudit" \
-                 HOME=$W HPO_IDENTITY_DIR=${BUS_ID:-$W/noid} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
+                 HPO_BUS_CLASSIFY="bash $W/classifier" HOME=$W HPO_IDENTITY_DIR=${BUS_ID:-$W/noid} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
   atip() { git -C "$A/origin.git" rev-parse -q --verify refs/heads/review/7 2>/dev/null || echo none; }
   aset "$AH" "Fix review: merge $AH"
   out=$(adopt_run adopt 7 31); rc=$?
