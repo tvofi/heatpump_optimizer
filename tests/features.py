@@ -8355,7 +8355,6 @@ class _CopGate:
         )
         self._cop_scale = 1.0
         self._cop_samples = 0
-        self._cop_ratio_ewma = None
         self._measured_cop = _CopRecord()
         self._immersion_active = False
         # #1067: the supply/return learner the reference curve consults.
@@ -33819,7 +33818,7 @@ def _fl_model1_gate(outdoor, supply_phys, mapped):
     gate.as_measured = True
     gate._measured_power = measured
     # A persistent ratio, not a blip: the tracking gate judges against it.
-    gate._cop_ratio_ewma = measured / commanded
+    gate._measured_cop.ratio_ewma = measured / commanded
     if mapped:
         gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
     gate._learn_measured_cop()
@@ -34236,7 +34235,7 @@ def _g3_credit(supply_phys):
     c_plan = gate._thermal_model.compute_cop(-3.0)
     ct = max(bare.compute_cop(-3.0) * bare.flow_lift_factor(-3.0, supply_phys), 1.0)
     gate._measured_power = 3.0 * c_plan / ct
-    gate._cop_ratio_ewma = gate._measured_power / 3.0
+    gate._measured_cop.ratio_ewma = gate._measured_power / 3.0
     gate._flow_bias.observe_temps(supply_phys, supply_phys - 5.0)
     reference = gate._cop_reference_curve()[0]  # before the fold moves the scale
     gate._learn_measured_cop()
@@ -73976,26 +73975,33 @@ R.check(
     f"samples per draw {_cf_run} (the 4.2 kW floor gave 0 each)",
 )
 # A draw departing from its ask by more than 15 % before the meter has shown
-# whether the draw follows the ask folds only where base would have: both
-# clear the nameplate third. On 14 kW (4.2 kW) a 2.0 kW ask drawn at 2.6 kW
-# waits for evidence; on 4 kW (1.2 kW) base folded it and so does the head.
-def _cf_depart(p_max):
+# whether the draw follows the ask is HELD while that evidence is pending (a
+# window still filling), whatever the nameplate: a 2.0 kW ask drawn at 2.6 kW
+# waits on 14 kW (third 4.2 kW) and on 4 kW (third 1.2 kW), where base folded
+# it at once. Where the evidence is unobtainable (no window) base's rule
+# stands: refused under the nameplate third on 14 kW, folded on 4 kW.
+def _cf_depart(p_max, window=True):
     coord = _cf_coord(p_max=p_max)
     coord._current_action = {"power": 2.0, "dhw_power": 0.0}
     coord._measured_power = 2.6
     coord._current_state.outdoor_temperature = 8.0
-    coord._cop_ratio_ewma = 1.3  # a persistent ratio, past the tracking gate
-    coord._learn_measured_cop(coord._accuracy.draw)
+    coord._measured_cop.ratio_ewma = 1.3  # a persistent ratio, past the tracking gate
+    coord._learn_measured_cop(coord._accuracy.draw if window else None)
     return coord
 
 
 _cf_wait, _cf_base = _cf_depart(14.0), _cf_depart(4.0)
+_cf_wait0, _cf_base0 = _cf_depart(14.0, window=False), _cf_depart(4.0, window=False)
 R.check(
-    "with no draw evidence a departure folds only past the nameplate third: "
-    "it waits for evidence on 14 kW and folds on 4 kW, as base",
-    _cf_wait._cop_samples == 0 and _cf_last(_cf_wait, "refusal") == "awaiting_draw_evidence"
-    and _cf_base._cop_samples == 1,
-    f"{_cf_wait._cop_samples} ({_cf_last(_cf_wait, 'refusal')}) / {_cf_base._cop_samples}",
+    "while draw evidence is pending a departure is held on any nameplate, and "
+    "reads as awaiting it; with no window base's rule stands (14 kW refuses, "
+    "4 kW folds) and nothing is held",
+    [(c._cop_samples, _cf_last(c, "refusal"), len(c._measured_cop.held)) for c in (_cf_wait, _cf_base)]
+    == [(0, "awaiting_draw_evidence", 1)] * 2
+    and (_cf_wait0._cop_samples, _cf_last(_cf_wait0, "refusal"), len(_cf_wait0._measured_cop.held))
+    == (0, "awaiting_draw_evidence", 0)
+    and (_cf_base0._cop_samples, _cf_last(_cf_base0, "refusal"), len(_cf_base0._measured_cop.held)) == (1, None, 0),
+    f"{[(c._cop_samples, _cf_last(c, 'refusal'), len(c._measured_cop.held)) for c in (_cf_wait, _cf_base, _cf_wait0, _cf_base0)]}",
 )
 # Idle (controller and crankcase heater) and standby (circulation pump at or
 # under thermal_model.on_threshold_kw, half the modulation floor) are what
@@ -74319,6 +74325,17 @@ from heatpump_optimizer.accuracy import (  # noqa: E402
     COP_REFUSED_TRACKING as _cf_TRACK, MeasuredCop as _cf_MC,
 )
 
+from heatpump_optimizer.accuracy import CopInterval as _cf_CI  # noqa: E402
+from datetime import datetime as _cf_dt, timedelta as _cf_td, timezone as _cf_tz  # noqa: E402
+
+_CF_T0 = _cf_dt(2026, 1, 10, 12, 0, tzinfo=_cf_tz.utc)
+
+
+def _cf_row(asked, drawn, scale=1.0, at=_CF_T0):
+    """One interval as the ratio gates read it (space curve, modelled COP 3.0)."""
+    return _cf_CI(asked, drawn, (3.0, False, None), scale, at)
+
+
 _cf_both = ThermalParameters(max_electrical_power=14.0, min_electrical_power=1.0)
 _cf_bar = _cf_both.flow_lift_power_floor_kw  # 0.8, exactly
 R.check(
@@ -74339,24 +74356,24 @@ R.check(
 R.check(
     "the tracking gate divides by the clamped walking ratio: a zero ewma is a "
     "refusal, not a crash",
-    _cf_MC.judge_ratio(0.5, 0.0, 5.0, _cf_both, None) == _cf_TRACK,
-    f"{_cf_MC.judge_ratio(0.5, 0.0, 5.0, _cf_both, None)}",
+    _cf_MC().judge_ratio(0.0, _cf_row(5.0, 2.5), _cf_both, None) == _cf_TRACK,
+    f"{_cf_MC().judge_ratio(0.0, _cf_row(5.0, 2.5), _cf_both, None)}",
 )
 # 1.5 / 5.0 is the double 0.3 exactly, so this ratio sits on the gate, not off it.
 R.check(
     "the tracking gate is exclusive: a ratio exactly at it is on the walking "
     "ratio (6.5 against 5.0 is 0.3 of it)",
-    _cf_MC.judge_ratio(6.5, 5.0, 5.0, _cf_both, None) is None,
-    f"{_cf_MC.judge_ratio(6.5, 5.0, 5.0, _cf_both, None)}",
+    _cf_MC().judge_ratio(5.0, _cf_row(5.0, 32.5), _cf_both, None) is None,
+    f"{_cf_MC().judge_ratio(5.0, _cf_row(5.0, 32.5), _cf_both, None)}",
 )
 R.check(
     "without draw evidence the nameplate bar is on both the ask and the drawn "
     "figure: a 5.0 kW ask metering 4.0 kW waits for evidence, one metering 4.5 "
     "kW folds (0.3 x 14 is 4.2 exactly)",
-    _cf_MC.judge_ratio(0.8, 1.0, 5.0, _cf_both, None) == _cf_NOEV
-    and _cf_MC.judge_ratio(0.9, 1.0, 5.0, _cf_both, None) is None,
-    f"{_cf_MC.judge_ratio(0.8, 1.0, 5.0, _cf_both, None)} / "
-    f"{_cf_MC.judge_ratio(0.9, 1.0, 5.0, _cf_both, None)}",
+    _cf_MC().judge_ratio(1.0, _cf_row(5.0, 4.0), _cf_both, None) == _cf_NOEV
+    and _cf_MC().judge_ratio(1.0, _cf_row(5.0, 4.5), _cf_both, None) is None,
+    f"{_cf_MC().judge_ratio(1.0, _cf_row(5.0, 4.0), _cf_both, None)} / "
+    f"{_cf_MC().judge_ratio(1.0, _cf_row(5.0, 4.5), _cf_both, None)}",
 )
 R.check(
     "the store's 0.1 bar is exclusive and a non-finite tank temperature drops "
@@ -74418,6 +74435,408 @@ R.check(
 
 
 # ---------------------------------------------------------------------------
+R.section("R10-COP-LEARNER-DRAW-FLOOR: the floor capped by the run-asked draw, and hold-then-replay")
+
+# Carry 84e73ec4. A modulation floor configured above what the pump draws
+# while running (3.0 kW on a pump that runs at 1.8) put the duty floor (2.4 kW)
+# above every draw. The floor the COP fold, the flow-lift fold and the
+# diagnostics read is now draw_range.power_floor_kw: the configured figure
+# capped by the low end of the draws metered under a RUN ask (an ask at or
+# above the configured minimum), never under on_threshold_kw. Every expected
+# figure below is the design note's, a literal, not the rule re-run.
+_df_p3 = ThermalParameters(max_electrical_power=14.0, min_electrical_power=3.0)
+_df_bar3 = _df_p3.flow_lift_power_floor_kw  # the configured floor: 0.8 x 3.0, the double 2.4000000000000004
+_df_asks = _cf_pairs((3.0, 3.5, 4.0, 4.5, 5.0), (0,), 60)
+
+
+def _df_win(pairs, cfg=(3.0, 14.0)):
+    """A window of (asked, drawn) pairs under the configured (min, max)."""
+    return _cf_win_cfg(pairs, cfg)
+
+
+def _df_led(factor, n=60):
+    return _df_win([(a, factor * a) for a, _ in _df_asks[:n]])
+
+
+_df_floor = _cf_drm.power_floor_kw
+R.check(
+    "a pump metered running at 0.6 x its ask on an overstated 3.0 kW minimum "
+    "has its floor capped at that draw's low end, 1.8 kW (configured 2.4)",
+    abs(_df_floor(_df_led(0.6), _df_p3) - 1.8) < 1e-9 and abs(_df_bar3 - 2.4) < 1e-12,
+    f"{_df_floor(_df_led(0.6), _df_p3)!r}",
+)
+R.check(
+    "(a) the cap never raises the floor: draws equal to, or 1.5 x, the ask "
+    "leave the configured 2.4 kW, bit for bit",
+    _df_floor(_df_led(1.0), _df_p3) == _df_bar3 and _df_floor(_df_led(1.5), _df_p3) == _df_bar3,
+    f"{_df_floor(_df_led(1.0), _df_p3)!r} / {_df_floor(_df_led(1.5), _df_p3)!r}",
+)
+R.check(
+    "(b) the floor never goes under on_threshold_kw: a low end of 0.9 kW "
+    "reads 1.5 kW, half the 3.0 kW minimum",
+    _df_floor(_df_led(0.3), _df_p3) == 1.5,
+    f"{_df_floor(_df_led(0.3), _df_p3)!r}",
+)
+R.check(
+    "(c) no window, an empty one, and one of 47 run-asked pairs leave the "
+    "configured floor bit for bit; the 48th caps it",
+    _df_floor(None, _df_p3) == _df_bar3 and _df_floor(_cf_drm.DrawRange(), _df_p3) == _df_bar3
+    and _df_floor(_df_led(0.6, 47), _df_p3) == _df_bar3
+    and abs(_df_floor(_df_led(0.6, 48), _df_p3) - 1.8) < 1e-9,
+    f"47: {_df_floor(_df_led(0.6, 47), _df_p3)!r}, 48: {_df_floor(_df_led(0.6, 48), _df_p3)!r}",
+)
+# 48 run-asked pairs drawing 2.0 kW (8 of them asked exactly the minimum),
+# beside 100 intervals asked 2.9 kW -- under the minimum, a duty-cycle average
+# -- that metered 0.6 kW. Counted, the 0.6 kW draws would be the low end and
+# the floor would fall to the 1.5 kW threshold.
+_df_mixed = _df_win([(3.0, 2.0)] * 8 + [(4.0, 2.0)] * 40 + [(2.9, 0.6)] * 100)
+_df_sub = _df_win([(2.9, 0.6)] * 60)
+R.check(
+    "(d) a draw under an ask below the configured minimum never moves the "
+    "floor: alone it leaves 2.4 kW, beside 48 run-asked draws of 2.0 kW the "
+    "floor is 2.0, and an ask exactly at the minimum is a run ask",
+    _df_floor(_df_sub, _df_p3) == _df_bar3 and _df_floor(_df_mixed, _df_p3) == 2.0,
+    f"{_df_floor(_df_sub, _df_p3)!r} / {_df_floor(_df_mixed, _df_p3)!r}",
+)
+_df_p2 = ThermalParameters(max_electrical_power=14.0, min_electrical_power=2.0)
+_df_pmax = ThermalParameters(max_electrical_power=10.0, min_electrical_power=3.0)
+_df_moved = _df_led(0.6)
+_df_moved.observe(2.0, 2.0, 2.0, 14.0)
+R.check(
+    "(e) a window keyed to another configured range caps nothing: a changed "
+    "minimum or maximum reads its own configured floor at once, and the next "
+    "sample drops the old window",
+    _df_floor(_df_led(0.6), _df_p2) == 1.6 and _df_floor(_df_led(0.6), _df_pmax) == _df_bar3
+    and len(_df_moved.samples) == 1 and _df_floor(_df_moved, _df_p2) == 1.6,
+    f"{_df_floor(_df_led(0.6), _df_p2)!r} / {_df_floor(_df_led(0.6), _df_pmax)!r} / {len(_df_moved.samples)}",
+)
+_df_p0 = ThermalParameters(max_electrical_power=14.0, min_electrical_power=0.0)
+_df_w0 = _df_win([(a, 0.5) for a, _ in _cf_pairs((1.0, 1.5, 2.0), (0,), 60)], (0.0, 14.0))
+R.check(
+    "(f) with no modulation floor configured the nameplate third stands "
+    "uncapped, whatever the window metered (60 pairs drawing 0.5 kW)",
+    _df_floor(_df_w0, _df_p0) == _df_p0.nameplate_power_floor_kw
+    and abs(_df_p0.nameplate_power_floor_kw - 4.2) < 1e-12 and len(_df_w0._run_asked()) == 60,
+    f"{_df_floor(_df_w0, _df_p0)!r} over {len(_df_w0._run_asked())} run-asked pairs",
+)
+R.check(
+    "judge_floor reads the capped floor on the window it is handed: 2.0 kW "
+    "is refused without the window and folds with it, 1.7 kW is under the cap",
+    _cf_MC.judge_floor(2.0, 2.0, _df_p3) == _cf_DUTY
+    and _cf_MC.judge_floor(2.0, 2.0, _df_p3, _df_led(0.6)) is None
+    and _cf_MC.judge_floor(2.0, 1.7, _df_p3, _df_led(0.6)) == _cf_DUTY,
+)
+# One window object, three readers: the cycle's COP fold, the flow-lift fold
+# and the diagnostics, on a real coordinator with the overstated minimum.
+def _df_coord3(warm):
+    coord = _cf_coord(p_min=3.0)
+    if warm:
+        coord._accuracy.draw = _df_led(0.6)
+    coord._current_action = {"power": 2.0, "dhw_power": 0.0}
+    coord._measured_power = 2.0
+    coord._current_state.outdoor_temperature = 8.0
+    coord._learn_measured_cop(coord._accuracy.draw)
+    coord._flow_bias.observe_temps(35.0, 30.0)
+    _fold_flow_lift(coord, _T6)
+    view = _cf_diag._coordinator_snapshot(coord)["cop_learner"]
+    return coord._cop_samples, coord._flow_bias.samples, view["power_floor_kw"], view["last_refusal"]
+
+
+R.check(
+    "a 2.0 kW interval on a 3.0 kW minimum folds its COP and its flow lift "
+    "once the window has metered the pump running at 1.8 kW, and the "
+    "diagnostics name that floor; with an empty window all three read 2.4 kW",
+    _df_coord3(True) == (1, 1, 1.8, None) and _df_coord3(False) == (0, 0, 2.4, "duty_floor"),
+    f"warm {_df_coord3(True)} / empty {_df_coord3(False)}",
+)
+# The span close judges the floor only with no power entity, and with no
+# power entity nothing is metered per cycle: the window it is handed is empty.
+_df_nopower = _cf_coord(p_min=3.0)
+_df_nopower._current_action = {"power": 4.0, "dhw_power": 0.0}
+_df_nopower._measured_power = None
+for _ in range(60):
+    _cf_drm.fold(_df_nopower._accuracy.draw, _df_nopower._measured_power, _df_nopower._commanded_split(),
+                 _df_nopower._thermal_params, frozen=False, distorted=False, defrost=False)
+R.check(
+    "with no power reading the running-draw window stays empty, so the span "
+    "close's floor is the configured one",
+    len(_df_nopower._accuracy.draw.samples) == 0
+    and _df_floor(_df_nopower._accuracy.draw, _df_nopower._thermal_params) == _df_bar3,
+    f"{len(_df_nopower._accuracy.draw.samples)} samples",
+)
+
+# Carry 35931f4b. draw_range.ask_evidence: the evidence, or whether to wait
+# for it. Counts are the literals the rule claims (48 pairs, a 336 window).
+_df_ev = _cf_drm.ask_evidence
+_df_selfset = _df_win([(a, 2.2) for a, _ in _df_asks[:48]])
+_df_flat = _df_win([(4.0, 2.4)] * 48)
+_df_full_sub = _df_win([(2.9, 2.0)] * 336)
+_df_tenth = _df_win([(3.2 if i % 10 == 0 else 2.9, 2.0) for i in range(336)])
+R.check(
+    "ask_evidence: follows and does-not-follow on 48 run-asked pairs whose "
+    "asks span; pending on an empty window and on 47 pairs",
+    (_df_ev(_df_led(0.6, 48)), _df_ev(_df_selfset), _df_ev(_cf_drm.DrawRange()), _df_ev(_df_led(0.6, 47)))
+    == ("follows", "does_not_follow", "pending", "pending"),
+    f"{(_df_ev(_df_led(0.6, 48)), _df_ev(_df_selfset), _df_ev(_cf_drm.DrawRange()), _df_ev(_df_led(0.6, 47)))}",
+)
+R.check(
+    "ask_evidence is unobtainable with no window, on asks that never moved, "
+    "and on a full window (336) holding 0 or 34 run-asked pairs; one sample "
+    "short of full it is still pending",
+    (_df_ev(None), _df_ev(_df_flat), _df_ev(_df_full_sub), _df_ev(_df_tenth),
+     _df_ev(_df_win([(2.9, 2.0)] * 335)))
+    == ("unobtainable",) * 4 + ("pending",)
+    and len(_df_full_sub._run_asked()) == 0 and len(_df_tenth._run_asked()) == 34,
+    f"{(_df_ev(None), _df_ev(_df_flat), _df_ev(_df_full_sub), _df_ev(_df_tenth))} "
+    f"{len(_df_tenth._run_asked())} pairs",
+)
+R.check(
+    "follows_ask is that state as a tri-state: None for both waiting states",
+    [_cf_drm.follows_ask(w) for w in (_df_led(0.6, 48), _df_selfset, _df_flat, _df_full_sub, _cf_drm.DrawRange(), None)]
+    == [True, False, None, None, None, None],
+)
+
+# MeasuredCop.judge_ratio holds a departure only while the evidence is
+# pending. 5.0 kW asked: 6.0 drawn is a 20 % departure, 5.5 is inside the
+# 15 % tolerance; both clear 14 kW's nameplate third (4.2 kW).
+def _df_judge(window, drawn=6.0, ewma=1.2):
+    cop = _cf_MC()
+    return cop.judge_ratio(ewma, _cf_row(5.0, drawn), _cf_both, window), len(cop.held)
+
+
+_df_pend1 = _cf_drm.DrawRange()
+R.check(
+    "a departure is held, and reads as awaiting evidence, only while the "
+    "evidence is pending: it folds on follows, is off-ask on does-not-follow, "
+    "and takes base's rule with nothing held where it is unobtainable",
+    _df_judge(_df_pend1) == (_cf_NOEV, 1)
+    and _df_judge(_cf_window(_cf_lit48)) == (None, 0)
+    and _df_judge(_cf_window([(a, 2.2) for a, _ in _cf_lit48])) == ("draw_off_ask", 0)
+    and _df_judge(None) == (None, 0) and _df_judge(_cf_window([(2.0, 2.6)] * 48)) == (None, 0)
+    and _df_judge(None, drawn=4.0, ewma=0.8) == (_cf_NOEV, 0),
+    f"{_df_judge(_df_pend1)} / {_df_judge(_cf_window(_cf_lit48))} / {_df_judge(None)} / "
+    f"{_df_judge(None, drawn=4.0, ewma=0.8)}",
+)
+R.check(
+    "an interval inside the ask tolerance, or one the tracking gate refuses, "
+    "is never held",
+    _df_judge(_df_pend1, drawn=5.5) == (None, 0) and _df_judge(_df_pend1, ewma=0.5) == (_cf_TRACK, 0),
+    f"{_df_judge(_df_pend1, drawn=5.5)} / {_df_judge(_df_pend1, ewma=0.5)}",
+)
+R.check(
+    "walk_ratio hands back the value before the interval (1.0 the first "
+    "time) and walks a tenth of the way",
+    (lambda c: (c.walk_ratio(2.0), c.ratio_ewma, c.walk_ratio(2.0)))(_cf_MC()) == (1.0, 1.1, 1.1),
+)
+
+# MeasuredCop.release, the one way out of the hold. Two rows on 14 kW: one
+# base folds (5.0 asked, 6.0 drawn), one it refuses (2.0 asked, 2.6 drawn,
+# under the 4.2 kW third).
+_DF_BIG, _DF_SMALL = (5.0, 6.0), (2.0, 2.6)
+
+
+def _df_held(*pairs_at):
+    cop = _cf_MC()
+    cop.held.extend(_cf_row(a, d, at=at) for (a, d), at in pairs_at)
+    return cop
+
+
+def _df_release(window, now, *pairs_at):
+    cop = _df_held(*pairs_at)
+    out = cop.release(window, _cf_both, now)
+    return [(r.asked_kw, r.drawn_kw) for r in out], len(cop.held)
+
+
+_df_two = ((_DF_SMALL, _CF_T0), (_DF_BIG, _CF_T0))
+_df_hour = _CF_T0 + _cf_td(hours=1)
+R.check(
+    "release: evidence empties the hold -- every row, oldest first, where the "
+    "draw follows the ask; none where it does not",
+    _df_release(_cf_window(_cf_lit48), _df_hour, *_df_two) == ([_DF_SMALL, _DF_BIG], 0)
+    and _df_release(_cf_window([(a, 2.2) for a, _ in _cf_lit48]), _df_hour, *_df_two) == ([], 0),
+    f"{_df_release(_cf_window(_cf_lit48), _df_hour, *_df_two)} / "
+    f"{_df_release(_cf_window([(a, 2.2) for a, _ in _cf_lit48]), _df_hour, *_df_two)}",
+)
+R.check(
+    "release: where the evidence is unobtainable the hold empties by base's "
+    "rule -- the row clearing the nameplate third folds, the other is dropped",
+    _df_release(None, _df_hour, *_df_two) == ([_DF_BIG], 0)
+    and _df_release(_cf_window([(2.0, 2.6)] * 48), _df_hour, *_df_two) == ([_DF_BIG], 0),
+    f"{_df_release(None, _df_hour, *_df_two)}",
+)
+_df_week = _CF_T0 + _cf_td(days=7)
+R.check(
+    "release: while the evidence is pending a row waits a week and no longer "
+    "-- at 7 days exactly both wait, a second later both leave by base's rule",
+    _df_release(_cf_drm.DrawRange(), _df_week, *_df_two) == ([], 2)
+    and _df_release(_cf_drm.DrawRange(), _df_week + _cf_td(seconds=1), *_df_two) == ([_DF_BIG], 0),
+    f"{_df_release(_cf_drm.DrawRange(), _df_week, *_df_two)} / "
+    f"{_df_release(_cf_drm.DrawRange(), _df_week + _cf_td(seconds=1), *_df_two)}",
+)
+R.check(
+    "release: a row stamped ahead of the clock has no knowable age and does "
+    "not wait on it -- it leaves by base's rule; one a second old waits",
+    _df_release(_cf_drm.DrawRange(), _CF_T0 - _cf_td(seconds=1), (_DF_BIG, _CF_T0), (_DF_SMALL, _CF_T0))
+    == ([_DF_BIG], 0)
+    and _df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(seconds=1), (_DF_BIG, _CF_T0)) == ([], 1),
+)
+# A hot-water season adds no running sample, so the window never grows: only
+# the mixed ages decide, row by row, and the younger keeps waiting.
+_df_ages = ((_DF_BIG, _CF_T0), (_DF_BIG, _CF_T0 + _cf_td(days=3)))
+R.check(
+    "release: with a window that does not grow, each row leaves on its own "
+    "week -- at day 8 the older folds and the 3-day-younger waits",
+    _df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(days=8), *_df_ages) == ([_DF_BIG], 1),
+    f"{_df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(days=8), *_df_ages)}",
+)
+# 337 pending rows: the hold keeps 336 (draw_range.WINDOW), and the oldest
+# leaves by base's rule -- folded if base folded it, dropped if not.
+_df_over_big = _df_release(_cf_drm.DrawRange(), _df_hour, (_DF_BIG, _CF_T0), *[(_DF_SMALL, _CF_T0)] * 336)
+_df_over_small = _df_release(_cf_drm.DrawRange(), _df_hour, (_DF_SMALL, _CF_T0), *[(_DF_BIG, _CF_T0)] * 336)
+R.check(
+    "release: the hold is bounded at 336 rows; the row pushed out is judged "
+    "by base's rule, not lost and not folded unjudged (336 rows push none out)",
+    _df_over_big == ([_DF_BIG], 336) and _df_over_small == ([], 336)
+    and _df_release(_cf_drm.DrawRange(), _df_hour, *[(_DF_BIG, _CF_T0)] * 336) == ([], 336),
+    f"{_df_over_big[0]}, {_df_over_big[1]} / {_df_over_small}",
+)
+
+# Through the cycle. A held interval folds against the scale it was read at:
+# asked 2.0 kW at scale 1.0 and drawing 2.5 says the scale is 0.8. Released
+# after the live scale has reached 0.8, it must leave the scale where it is;
+# read against the live scale it would say 0.64 and pull the scale down.
+def _df_cycle(coord, asked, drawn, window):
+    coord._current_action = {"power": asked, "dhw_power": 0.0}
+    coord._measured_power = drawn
+    coord._current_state.outdoor_temperature = 8.0
+    coord._learn_measured_cop(window)
+
+
+_df_rp = _cf_coord()
+_df_rp._measured_cop.ratio_ewma = 1.25
+_df_cycle(_df_rp, 2.0, 2.5, _cf_drm.DrawRange())
+_df_rp_held = (len(_df_rp._measured_cop.held), _df_rp._measured_cop.held[0].cop_scale, _df_rp._cop_samples)
+_df_rp._apply_cop_scale(0.8)
+_df_cycle(_df_rp, 0.3, 0.3, _cf_window(_cf_lit48))  # this interval is under the duty floor
+R.check(
+    "a released interval folds against the scale it was read at, and the "
+    "interval that released it keeps its own refusal",
+    _df_rp_held == (1, 1.0, 0) and _df_rp._cop_samples == 1 and abs(_df_rp._cop_scale - 0.8) < 1e-12
+    and _cf_last(_df_rp, "refusal") == "duty_floor" and len(_df_rp._measured_cop.held) == 0,
+    f"held {_df_rp_held}; after release {_df_rp._cop_samples} sample(s), scale {_df_rp._cop_scale!r}, "
+    f"refusal {_cf_last(_df_rp, 'refusal')}",
+)
+_df_view = _cf_coord()
+_df_view._measured_cop.ratio_ewma = 1.25
+_df_cycle(_df_view, 2.0, 2.5, _df_view._accuracy.draw)
+R.check(
+    "the diagnostics count the held intervals beside the evidence they wait on",
+    (lambda v: (v["held_intervals"], v["draw_follows_ask"], v["last_refusal"]))(
+        _cf_diag._coordinator_snapshot(_df_view)["cop_learner"]) == (1, None, "awaiting_draw_evidence")
+    and _cf_diag._coordinator_snapshot(_cf_coord())["cop_learner"]["held_intervals"] == 0,
+    f"{_cf_diag._coordinator_snapshot(_df_view)['cop_learner']}",
+)
+
+
+def _df_feed(pairs, p_max=14.0, p_min=1.0, true=None, warm=()):
+    """The cycle's order on a real coordinator; returns it and the largest fold count seen."""
+    coord = _cf_coord(p_max=p_max, p_min=p_min)
+    for asked, drawn in warm:
+        coord._accuracy.draw.observe(drawn, asked, p_min, p_max)
+    for asked, drawn in pairs:
+        if true:
+            drawn = asked * coord._cop_scale / true
+        coord._current_action = {"power": asked, "dhw_power": 0.0}
+        coord._measured_power = drawn
+        coord._current_state.outdoor_temperature = 8.0
+        _cf_drm.fold(coord._accuracy.draw, drawn, coord._commanded_split(), coord._thermal_params,
+                     frozen=False, distorted=False, defrost=False)
+        coord._learn_measured_cop(coord._accuracy.draw)
+    return coord
+
+
+# The carry's install: 4 kW nameplate, asks 1.0-2.0 kW, the pump drawing
+# 1.9-2.55 kW whatever it is asked; the model's COP is right, so the right
+# scale is 1.0. Base folded each departure clearing the 1.2 kW third until the
+# evidence arrived (29 folds, scale 0.789). Held instead, they are dropped
+# when the window says the draw does not follow.
+_df_self = _df_feed(_cf_pairs((1.0, 1.25, 1.5, 1.75, 2.0), (1.9, 2.2, 2.55)), p_max=4.0)
+R.check(
+    "a pump that sets its own power folds no departure while the evidence is "
+    "pending: on 4 kW the scale stays within 0.02 of 1.0 (base: 0.789) and "
+    "the hold is empty once the evidence has dropped it",
+    abs(_df_self._cop_scale - 1.0) < 0.02 and _df_self._cop_samples < 10
+    and len(_df_self._measured_cop.held) == 0 and _cf_drm.follows_ask(_df_self._accuracy.draw) is False,
+    f"{_df_self._cop_samples}/96, scale {_df_self._cop_scale:.3f}, held {len(_df_self._measured_cop.held)}",
+)
+# A heat-led pump whose true COP scale is 0.7: every interval is a departure
+# until the scale has learned it. Base refused the first 47 (under the 4.2 kW
+# third, no evidence) and lost them; held, they fold when the evidence comes.
+_df_true = _df_feed(_cf_pairs((1.9, 2.2, 2.55), (0,), 288), true=0.7)
+R.check(
+    "a pump whose draw follows its ask loses no held interval: more than 280 "
+    "of 288 fold (base: 241), none twice, and the scale reaches 0.7",
+    280 < _df_true._cop_samples <= 288 and abs(_df_true._cop_scale - 0.7) < 0.02
+    and len(_df_true._measured_cop.held) == 0,
+    f"{_df_true._cop_samples}/288, scale {_df_true._cop_scale:.3f}",
+)
+# Evidence that never arrives: 2.6 kW asked under a 3.0 kW minimum, 3.2 drawn,
+# on a 4 kW nameplate (third 1.2 kW: base folds every one). Behind a full
+# window of such asks the evidence is unobtainable and each folds at its own
+# tick; behind one 48 samples short of full each is held until the window
+# fills, and then folds. 96 intervals, 96 folds, either way.
+_df_never = [(2.6, 3.2)] * 96
+_df_h_full = _df_feed(_df_never, p_max=4.0, p_min=3.0, warm=_df_never[:1] * 336)
+_df_h_fill = _df_feed(_df_never, p_max=4.0, p_min=3.0, warm=_df_never[:1] * 288)
+_df_h_part = _df_feed(_df_never[:40], p_max=4.0, p_min=3.0, warm=_df_never[:1] * 288)
+R.check(
+    "(h) with a window that never reaches evidence every interval base folds "
+    "is folded: 96 of 96 behind a full window and behind one that fills at "
+    "the 48th; 40 intervals into the filling one, all 40 are still held",
+    (_df_h_full._cop_samples, len(_df_h_full._measured_cop.held)) == (96, 0)
+    and (_df_h_fill._cop_samples, len(_df_h_fill._measured_cop.held)) == (96, 0)
+    and (_df_h_part._cop_samples, len(_df_h_part._measured_cop.held)) == (0, 40),
+    f"full {_df_h_full._cop_samples}/96; filling {_df_h_fill._cop_samples}/96; "
+    f"part {_df_h_part._cop_samples} folded, {len(_df_h_part._measured_cop.held)} held",
+)
+
+
+# The save cadence: a release folds several intervals in one cycle, so the
+# count can step over a multiple of ten; the store is written on the crossing.
+def _df_saves(before, held):
+    coord = _cf_coord()
+    coord._cop_samples = before
+    coord._measured_cop.held.extend(_cf_row(2.0, 2.0) for _ in range(held))
+    coord._accuracy.draw = _cf_window(_cf_lit48)
+    coord._current_action = {"power": 0.3, "dhw_power": 0.0}  # the interval itself is under the floor
+    coord._measured_power = 0.3
+    coord._current_state.outdoor_temperature = 8.0
+    saves = []
+
+    async def _none(*_a, **_k):
+        return None
+
+    async def _save():
+        saves.append(coord._cop_samples)
+
+    coord._close_fabric_interval = lambda: None
+    coord._async_learn_lower_floor_loss = _none
+    coord._async_learn_house_heat_loss = _none
+    coord._async_save_thermal_learning = _save
+    _aio.run(coord._async_learn_interval(coord._current_state, slab_unsensed=False))
+    return saves
+
+
+R.check(
+    "a release that steps the fold count over a multiple of ten saves the "
+    "learning (7 + 5 -> 12); one landing on it saves (9 + 1); one that "
+    "crosses none does not (10 + 3, 3 + 0)",
+    (_df_saves(7, 5), _df_saves(9, 1), _df_saves(10, 3), _df_saves(3, 0)) == ([12], [10], [], []),
+    f"{(_df_saves(7, 5), _df_saves(9, 1), _df_saves(10, 3), _df_saves(3, 0))}",
+)
+
+
+# ---------------------------------------------------------------------------
 R.section("R10-COP-GATE (#2262): COP observability, the latch's time, and the draw pairing")
 
 # Without a heat reading the ratio of draw to ask is a COP only while the draw
@@ -74431,7 +74850,7 @@ from heatpump_optimizer import accuracy as _cg_acc  # noqa: E402
 def _cg_fold_near_ask(window_pairs, n=12):
     coord = _cf_coord()
     coord._accuracy.draw = _cf_window(window_pairs)
-    coord._cop_ratio_ewma = 1.0
+    coord._measured_cop.ratio_ewma = 1.0
     for _ in range(n):
         coord._current_action = {"power": 2.1, "dhw_power": 0.0}
         coord._measured_power = 2.2  # 4.8 % over the ask: inside the tolerance

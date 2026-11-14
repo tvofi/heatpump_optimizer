@@ -38,7 +38,7 @@ from .const import (
     finite_float,
 )
 from .thermal_model import is_sunlit_interval
-from .draw_range import DrawRange, follows_ask
+from .draw_range import ASK_FOLLOWS, ASK_IGNORED, ASK_PENDING, WINDOW, DrawRange, ask_evidence, follows_ask, power_floor_kw
 from .drift import stored_instant, utc_shift
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
 from .payload import Accuracy
@@ -818,6 +818,11 @@ COP_REFUSED_NO_HEAT = "no_heat_reading"
 #: ask, before the interval is judged on ``draw_range.follows_ask``'s evidence
 #: (``MeasuredCop.judge_ratio``).
 COP_ASK_TOLERANCE = 0.15
+#: How long such a departure waits in ``MeasuredCop.held`` for that evidence
+#: before it is judged without it: the span of ``draw_range.WINDOW``, a week of
+#: the default cycle. A window that has not filled in that time is not filling
+#: (a hot-water-only season adds no running sample), so the wait ends.
+COP_HOLD_HORIZON_S = 7 * 86400.0
 
 #: Whether this install can measure its COP at all (#2262,
 #: R10-HOTFIX-COP-UNMEASURED; ``cop_observability``): only a heat reading over
@@ -845,6 +850,30 @@ def cop_observability(*, electric: bool, measured_heat: bool, estimated: bool) -
     return COP_ESTIMATED if estimated else COP_HEAT_METERED
 
 
+@dataclass(frozen=True)
+class CopInterval:
+    """One interval as the COP fold's tail reads it, and what it was read against.
+
+    What ``MeasuredCop.judge_ratio`` judges, and what it holds when the
+    judgement must wait: the plan's ask and the metered draw, the reference
+    ``coordinator._cop_reference_curve`` returned, the COP scale the ask was
+    priced at, and when. A held interval folds later against ``cop_scale``,
+    never the scale of the day it is released: its draw was a reading of the
+    plan that scale priced.
+    """
+
+    asked_kw: float
+    drawn_kw: float
+    reference: tuple[float | None, bool, float | None]
+    cop_scale: float
+    at: datetime
+
+    @property
+    def ratio(self) -> float:
+        """Metered over asked."""
+        return float(self.drawn_kw) / max(self.asked_kw, 1e-6)
+
+
 @dataclass
 class MeasuredCop:
     """The COP learner's last word: the COP it measured, or why it refused.
@@ -865,6 +894,10 @@ class MeasuredCop:
     (:func:`diagnostics_view`): the observed-COP sensor is unavailable exactly
     while it is the explanation, and Home Assistant hides an unavailable
     entity's attributes.
+
+    ``held`` is the departures from the ask waiting for the evidence that
+    judges them: :meth:`judge_ratio` appends, :meth:`release` is the only way
+    out. Neither it nor ``ratio_ewma`` is persisted: a restart drops both.
     """
 
     cop: float | None = None
@@ -876,48 +909,104 @@ class MeasuredCop:
     #: heat-pump grade's no-grade evidence (``coordinator.machine_evidence``).
     frozen_refusals: int = 0
 
+    #: The walking metered/asked ratio (:meth:`walk_ratio`); ``None`` before
+    #: the first interval, which is judged against 1.0.
+    ratio_ewma: float | None = None
+    #: Departures awaiting ``draw_range.ask_evidence``, oldest first.
+    held: Deque[CopInterval] = field(default_factory=deque)
+
     @staticmethod
-    def judge_floor(asked_kw: float, drawn_kw: float, params: Any) -> str | None:
+    def judge_floor(asked_kw: float, drawn_kw: float, params: Any, draw: DrawRange | None = None) -> str | None:
         """``COP_REFUSED_DUTY_FLOOR`` when the ask or the draw is under the duty
-        floor (``flow_lift_power_floor_kw``), else None."""
-        if min(asked_kw, drawn_kw) < params.flow_lift_power_floor_kw:
+        floor (``draw_range.power_floor_kw`` on the window ``draw``), else None."""
+        if min(asked_kw, drawn_kw) < power_floor_kw(draw, params):
             return COP_REFUSED_DUTY_FLOOR
         return None
 
-    @staticmethod
-    def judge_ratio(
-        ratio: float, ewma: float, asked_kw: float, params: Any, draw: DrawRange | None
-    ) -> str | None:
-        """The ratio gates' refusal for this interval's metered/asked ``ratio``, or None.
+    def walk_ratio(self, ratio: float) -> float:
+        """Walk the metered/asked EWMA by one interval; the value BEFORE it.
 
-        ``ewma`` is the walking ratio BEFORE this interval, so an interval
-        cannot vouch for itself. ``COP_REFUSED_TRACKING``: a one-off blip off
-        the walking ratio (v4.0.5). Evidence that the draw does not follow
-        the ask (``draw_range.follows_ask`` False) refuses every interval,
-        within the tolerance or not (``COP_REFUSED_OFF_ASK``: a pump that sets
-        its own power, whose ratio would fold as a COP shift, #2262). A
-        departure beyond ``COP_ASK_TOLERANCE`` then folds on evidence that the
-        draw follows the ask (an efficiency shift); with no evidence yet it folds only where base would have
-        -- the ask and the draw both clear the nameplate third -- and is
-        otherwise ``COP_REFUSED_NO_EVIDENCE``. So no install folds a departure
-        base refused before the evidence says the draw follows its ask; one
-        whose asks never span ``FOLLOW_ASK_SPAN`` keeps base's reach for them.
+        Seeded at 1.0, the model's own expectation. :meth:`judge_ratio` gates
+        an interval against the returned value, so a first-sample blip cannot
+        vouch for itself; it walks on every sample, accepted or not, so a
+        persistent efficiency shift can still teach.
         """
+        before = 1.0 if self.ratio_ewma is None else self.ratio_ewma
+        self.ratio_ewma = 0.9 * before + 0.1 * ratio
+        return before
+
+    @staticmethod
+    def _base_folds(row: CopInterval, params: Any) -> bool:
+        """The pre-evidence rule for a departure: the ask and the draw both
+        clear the nameplate third (``nameplate_power_floor_kw``)."""
+        return bool(min(row.asked_kw, row.ratio * row.asked_kw) >= params.nameplate_power_floor_kw)
+
+    def judge_ratio(
+        self, ewma: float, row: CopInterval, params: Any, draw: DrawRange | None
+    ) -> str | None:
+        """The ratio gates' refusal for the interval ``row``, or None.
+
+        ``ewma`` is the walking ratio BEFORE this interval (:meth:`walk_ratio`).
+        ``COP_REFUSED_TRACKING``: a one-off blip off the walking ratio
+        (v4.0.5). Evidence that the draw does not follow the ask
+        (``draw_range.ask_evidence``) refuses every interval, within the
+        tolerance or not (``COP_REFUSED_OFF_ASK``: a pump that sets its own
+        power, whose ratio would fold as a COP shift, #2262). A departure
+        beyond ``COP_ASK_TOLERANCE`` is then judged on that evidence: it folds
+        where the draw follows the ask (an efficiency shift). While the
+        evidence is pending it is HELD, not folded -- ``row`` joins ``held``,
+        the interval reads ``COP_REFUSED_NO_EVIDENCE``, and :meth:`release`
+        folds or drops it once the evidence says which, so a pump that sets
+        its own power folds no departure while the window fills. Where the
+        evidence is unobtainable nothing would ever release it, so it folds
+        only where base would have -- :meth:`_base_folds` -- and is otherwise
+        ``COP_REFUSED_NO_EVIDENCE``: an install whose asks never span
+        ``FOLLOW_ASK_SPAN`` keeps base's reach for them.
+        """
+        ratio = row.ratio
         if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
             return COP_REFUSED_TRACKING
-        follows = follows_ask(draw)
-        if follows is False:
+        state = ask_evidence(draw)
+        if state == ASK_IGNORED:
             # #2262: a draw the evidence shows does not follow its ask is no
             # efficiency reading at ANY ratio; one within the tolerance only
             # happened to land near the ask.
             return COP_REFUSED_OFF_ASK
-        if abs(ratio - 1.0) <= COP_ASK_TOLERANCE:
+        if abs(ratio - 1.0) <= COP_ASK_TOLERANCE or state == ASK_FOLLOWS:
             return None
-        if follows is None:
-            if min(asked_kw, ratio * asked_kw) >= params.nameplate_power_floor_kw:
-                return None
+        if state == ASK_PENDING:
+            self.held.append(row)
             return COP_REFUSED_NO_EVIDENCE
-        return None
+        return None if self._base_folds(row, params) else COP_REFUSED_NO_EVIDENCE
+
+    def release(self, draw: DrawRange | None, params: Any, now: datetime) -> list[CopInterval]:
+        """The held intervals to fold now, oldest first; the one place one is judged.
+
+        Called once a cycle, after the interval's own judgement. On evidence
+        the hold empties: every row folds where the draw follows the ask, none
+        where it does not. Where the evidence is unobtainable it empties by
+        base's rule (:meth:`_base_folds`). While the evidence is pending a row
+        waits, and leaves by base's rule in two cases only: it has waited past
+        ``COP_HOLD_HORIZON_S`` (or its age is unknowable, stamped ahead of
+        ``now``), or the hold is over ``draw_range.WINDOW`` rows and it is the
+        oldest. So every held row leaves, and none that base folded is lost
+        for want of evidence that never came.
+        """
+        state, rows = ask_evidence(draw), list(self.held)
+        self.held.clear()
+        if state == ASK_FOLLOWS:
+            return rows
+        if state == ASK_IGNORED:
+            return []
+        if state == ASK_PENDING:
+            over, due = len(rows) - WINDOW, []
+            for i, row in enumerate(rows):
+                if i >= over and 0.0 <= utc_elapsed_seconds(now, row.at) <= COP_HOLD_HORIZON_S:
+                    self.held.append(row)
+                else:
+                    due.append(row)
+            rows = due
+        return [r for r in rows if self._base_folds(r, params)]
 
     def record(self, cop: float, curve_dhw: bool, dhw_temp: float | None, at: datetime) -> None:
         """One folded interval's COP, its curve and when it folded, together."""
@@ -971,15 +1060,21 @@ def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -
     """The COP learner's diagnostics: its last refusal and the floor it judged by.
 
     ``params`` is the live ``ThermalParameters``, ``draw`` the running-draw
-    window. ``power_floor_kw`` is ``flow_lift_power_floor_kw``, the floor the
-    COP and flow-lift folds read -- not the optimizer's ``duty_floor_kw``, a
-    different quantity; ``draw_follows_ask`` is the evidence a departure from
-    the ask is judged on (None: none yet).
+    window. ``power_floor_kw`` is ``draw_range.power_floor_kw`` on that window,
+    the floor the COP and flow-lift folds read (the configured
+    ``flow_lift_power_floor_kw``, capped by the metered running draw) -- not
+    the optimizer's ``duty_floor_kw``, a different quantity;
+    ``draw_follows_ask`` is the evidence a departure from the ask is judged on
+    (None: none yet), and ``held_intervals`` counts the departures waiting for
+    it (``MeasuredCop.held``): with ``last_refusal`` at
+    ``COP_REFUSED_NO_EVIDENCE``, a count above zero says the interval is held
+    for replay rather than refused.
     """
     return {
         "last_refusal": record.refusal,
         "measured_cop": record.cop,
         "measured_at": None if record.at is None else record.at.isoformat(),
-        "power_floor_kw": round(float(params.flow_lift_power_floor_kw), 3),
+        "power_floor_kw": round(power_floor_kw(draw, params), 3),
         "draw_follows_ask": follows_ask(draw),
+        "held_intervals": len(record.held),
     }

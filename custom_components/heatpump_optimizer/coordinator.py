@@ -246,6 +246,7 @@ from .accuracy import (
     COP_REFUSED_SPAN_OPEN,
     COP_REFUSED_UNALIGNED,
     LEAD_BUCKETS,
+    CopInterval,
     MeasuredCop,
     cop_observability,
     pairs_interval,
@@ -958,7 +959,7 @@ def _fold_flow_lift(coord: Any, now: datetime) -> None:
         return
     params = ctx._thermal_params
     commanded = coord._commanded_power()
-    if commanded < params.flow_lift_power_floor_kw:
+    if commanded < draw_range.power_floor_kw(coord._accuracy.draw, params):
         return
     if coord._learning_frozen(CONF_OUTDOOR_TEMP_ENTITY) is not None:
         return
@@ -1179,7 +1180,7 @@ async def _async_learn_heat_span(coord: Any, clean: dict[str, bool]) -> None:
         await coord._async_learn_house_heat_loss(close.interval, close.space_kw)
     if close.cop:
         # With no power entity there is no per-cycle draw, so the span judges the floor.
-        coord._measured_cop.refusal = close.refusal or (None if coord._measured_power is not None else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params)) or coord._fold_cop_evidence(close.asked_kw, close.elec_kw, close.heat_kw, coord._cop_reference_curve(close.reference))
+        coord._measured_cop.refusal = close.refusal or (None if coord._measured_power is not None else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params, coord._accuracy.draw)) or coord._fold_cop_evidence(close.asked_kw, close.elec_kw, close.heat_kw, coord._cop_reference_curve(close.reference))
 
 
 def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
@@ -3872,9 +3873,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # modelled thermal output. Only moves when a power entity exists.
         self._cop_scale: float = getattr(self, "_ctx", self)._config.cop_scale
         self._cop_samples: int = 0
-        #: Walking measured/commanded ratio; the COP fold judges outliers
-        #: against it so a persistent efficiency shift can still teach.
-        self._cop_ratio_ewma: float | None = None
         self._measured_cop = MeasuredCop()
         self._apply_cop_scale(self._cop_scale)
 
@@ -5314,8 +5312,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return self._thermal_model.compute_cop_dhw(outdoor, tank), True, tank
         return None, False, None
     def _learn_measured_cop(self, draw: draw_range.DrawRange | None = None) -> None:
-        """Fold this interval into the COP learner (``draw``: the running-draw evidence)."""
-        self._measured_cop.refusal = self._fold_measured_cop(draw)
+        """Fold this interval into the COP learner (``draw``: the running-draw evidence), then
+        each held one ``MeasuredCop.release`` lets out, at the scale it was read at."""
+        self._measured_cop.refusal = self._fold_measured_cop(draw)  # the interval's own code stands
+        for row in self._measured_cop.release(draw, getattr(self, "_ctx", self)._thermal_params, dt_util.now()):
+            self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
     def _fold_measured_cop(self, draw: draw_range.DrawRange | None) -> str | None:
         """Compare measured electrical input with modelled thermal output.
 
@@ -5340,7 +5341,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         commanded = self._commanded_power()
         params = ctx._thermal_params
-        if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params)):
+        if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw)):
             return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
@@ -5364,26 +5365,24 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # v4.0.5: without a heat reading this ratio trains the scale only while the pump
         # plausibly runs the plan: outliers are judged against a walking ratio EWMA (a fixed gate
         # deadlocks past it), a draw off the ask on draw_range's evidence; heat skips both.
-        ratio = float(cast(float, self._measured_power)) / max(commanded, 1e-6)  # the two guards leave a power here
-        # Seeded at 1.0, the model's own expectation, and gated against the
-        # value BEFORE this sample updates it, so a first-sample blip cannot
-        # vouch for itself; it walks on every sample, accepted or not.
-        ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
-        self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
-        if heat_kw is None and (refusal := MeasuredCop.judge_ratio(ratio, ewma, commanded, params, draw)):
+        # The two guards leave a power here. The row is what a held interval replays.
+        row = CopInterval(commanded, cast(float, self._measured_power), self._cop_reference_curve(), self._cop_scale, dt_util.now())
+        ewma = self._measured_cop.walk_ratio(row.ratio)
+        if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw)):
             _LOGGER.debug(
                 "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
                 "against the running ratio %.2f -- not an efficiency reading",
                 refusal, commanded, self._measured_power, ewma,
             )
             return refusal
-        return self._fold_cop_evidence(commanded, cast(float, self._measured_power), heat_kw, self._cop_reference_curve())
+        return self._fold_cop_evidence(commanded, row.drawn_kw, heat_kw, row.reference)
 
     def _fold_cop_evidence(
         self, commanded: float, electrical_kw: float, heat_kw: float | None,
-        reference: tuple[float | None, bool, float | None],
+        reference: tuple[float | None, bool, float | None], read_scale: float | None = None,
     ) -> str | None:
-        """The COP fold's tail on one interval's evidence: a cycle's, or a counter span's."""
+        """The COP fold's tail on one interval's evidence: a cycle's, a counter
+        span's, or a held one's read at ``read_scale`` (None: the live scale)."""
         modelled_cop, cop_curve_dhw, cop_dhw_temp = reference
         if modelled_cop is None:
             # A genuinely blended interval: one ratio cannot be attributed to
@@ -5400,7 +5399,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # observed correction; the correction alone makes 1.0 the only fixed
         # point. ``cop_evidence`` owns both inferences.
         observed_cop, target_scale = cop_evidence(
-            modelled_cop, commanded, electrical_kw, heat_kw, self._cop_scale
+            modelled_cop, commanded, electrical_kw, heat_kw, self._cop_scale if read_scale is None else read_scale
         )
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
             return COP_REFUSED_OBSERVED
@@ -5892,7 +5891,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._learn_measured_cop(self._accuracy.draw)
         clean["cop"] = self._measured_cop.refusal == COP_REFUSED_SPAN_OPEN
         await _async_learn_heat_span(self, clean)
-        if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
+        if self._cop_samples // 10 != cop_samples_before // 10:  # a release can fold several
             await self._async_save_thermal_learning()
         return await _propagated_slab(self, prior, prior_at) if slab_unsensed else None
 

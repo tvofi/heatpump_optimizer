@@ -40,6 +40,21 @@ Rows, each "folded/intervals scale":
     store form at tick 150, as a restart does.
   * ``liveness`` -- a 4 kW nameplate whose old floor (1.2 kW) already
     admitted 2.2 kW: a zero at the base is the floor, not a dead learner.
+  * ``<row>_warm_<fill>`` (R10-COP-LEARNER-DRAW-FLOOR) -- the row behind a
+    running-draw window ``draw_range.fold`` filled first. ``run_led``: 60
+    intervals asked 3.0-5.0 kW drawing 0.6 x the ask (an overstated 3.0 kW
+    minimum: the pump runs at 1.8 kW); ``run_low``: the same drawing 0.3 x
+    (low end 0.9 kW, under ``on_threshold_kw``); ``own``: 60 of the row's own
+    interval. The capped floor moves ``min3_running`` under ``run_led`` and
+    ``run_low`` and nothing under ``own``, whose asks sit below the minimum.
+  * ``held_full`` / ``held_filling`` -- 96 intervals asked 2.6 kW drawing 3.2
+    on a 3.0 kW minimum and 4 kW nameplate, behind a full window of such asks,
+    and behind one that fills at interval 48: no evidence ever arrives, so the
+    folded count must equal the base's (a held interval is not a lost one).
+  * ``true_0.6_max_cycle_move`` -- the largest change of the COP scale in one
+    cycle of the ``true_0.6`` run: a release folds many held intervals at once.
+
+The folded column is ``_cop_samples`` at the end of the run, replays included.
 """
 from __future__ import annotations
 
@@ -89,14 +104,19 @@ def coord(p_max: float = 14.0, p_min: float = 1.0) -> HeatPumpOptimizerCoordinat
     return c
 
 
-def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None) -> str:
+def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None, warm=(), moves=None) -> str:
     """Feed (asked, drawn) intervals as the cycle does: the running-draw fold
     (#2065's ``draw_range.fold``) and then the COP learner reading its
     evidence. ``true`` replaces drawn by a heat-led pump's; ``reload_at``
     round-trips the draw evidence through its store form at that tick (a
-    restart)."""
+    restart). ``warm``: (asked, drawn) intervals folded into the running-draw
+    window before the counted ones. ``moves``: a list that receives each
+    cycle's change of the COP scale."""
     rnd = random.Random(1)
     c = coord(p_max, p_min)
+    for asked, drawn in warm:
+        draw_range.fold(c._accuracy.draw, drawn, (asked, 0.0), c._thermal_params,
+                        frozen=False, distorted=False, defrost=False)
     learn = getattr(c._learn_measured_cop, "__code__", None)
     takes_draw = learn is not None and learn.co_argcount > 1
     for tick, (asked, drawn) in enumerate(pairs):
@@ -110,10 +130,13 @@ def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None) -> s
                 c._accuracy.draw = draw = type(draw).from_dict(draw.as_dict())
             draw_range.fold(draw, c._measured_power, c._commanded_split(), c._thermal_params,
                             frozen=False, distorted=False, defrost=False)
+        before = c._cop_scale
         if takes_draw:
             c._learn_measured_cop(draw)
         else:
             c._learn_measured_cop()
+        if moves is not None:
+            moves.append(abs(c._cop_scale - before))
     return f"{c._cop_samples}/{len(pairs)} {c._cop_scale:.3f}"
 
 
@@ -168,6 +191,27 @@ def main() -> None:
     # Evidence across a restart: the draw window is store state (#2065), so a
     # reload at tick 150 of a true-0.7 run must keep folding.
     print(f"RESULT true_0.7_reload150={run(matched * 3, true=0.7, noise=0.05, reload_at=150).replace(' ', '_scale=')}")
+    # R10-COP-LEARNER-DRAW-FLOOR: the floor capped by the run-asked draw.
+    led = [(a, 0.6 * a) for a in cyc((3.0, 3.5, 4.0, 4.5, 5.0), 60)]
+    low = [(a, 0.3 * a) for a in cyc((3.0, 3.5, 4.0, 4.5, 5.0), 60)]
+    for fill in ("run_led", "run_low", "own"):
+        got = []
+        for kw in CLASSES["running"]:
+            warm = {"run_led": led, "run_low": low, "own": [(kw, kw)] * 60}[fill]
+            got.append(int(run([(kw, kw)] * 3, p_min=3.0, warm=warm).split("/")[0]))
+        print(f"RESULT min3_running_warm_{fill}_folded={sum(got)}/15 per_draw={got}")
+    got = [int(run([(kw, kw)] * 3, warm=[(kw, kw)] * 60).split("/")[0]) for kw in CLASSES["duty_cycled"]]
+    print(f"RESULT min1_duty_cycled_warm_own_folded={sum(got)}/6")
+    for duty in (0.5, 0.7):
+        kw = 3.0 * duty + 0.05 * (1.0 - duty)
+        print(f"RESULT fixed3_duty{int(duty * 100)}_warm_own={run([(kw, kw)] * 5, p_max=3.0, p_min=3.0, warm=[(kw, kw)] * 60).replace(' ', '_scale=')}")
+    # Hold-then-replay where the evidence never arrives: nothing base folded is lost.
+    depart = [(2.6, 3.2)] * 96
+    for name, n in (("full", draw_range.WINDOW), ("filling", draw_range.WINDOW - 48)):
+        print(f"RESULT held_{name}={run(depart, p_max=4.0, p_min=3.0, warm=[(2.6, 3.2)] * n).replace(' ', '_scale=')}")
+    moves: list[float] = []
+    run(matched * 3, true=0.6, noise=0.05, moves=moves)
+    print(f"RESULT true_0.6_max_cycle_move={max(moves):.3f}")
 
 
 if __name__ == "__main__":
