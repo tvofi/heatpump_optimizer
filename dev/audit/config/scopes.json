@@ -309,7 +309,7 @@
   "mode": "cells",
   "universe": [
    "README.md",
-   "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/*.py",
    "custom_components/heatpump_optimizer/www/*.js"
   ],
@@ -376,7 +376,7 @@
    "docs/index.html",
    "docs/site/*.css",
    "tools/site/build_docs.mjs",
-   "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "docs/{CONTRIBUTING,architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
    "custom_components/heatpump_optimizer/translations/*.json",
    "hacs.json",
