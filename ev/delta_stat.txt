@@ -1,0 +1,4 @@
+ tests/golden/claimed_drift.txt                     |   5 +-
+ tools/policy/check-wave-script.mjs                 | 115 +++++++++++++++++++--
+ 12 files changed, 144 insertions(+), 20 deletions(-)
+ 12 files changed, 144 insertions(+), 20 deletions(-)
