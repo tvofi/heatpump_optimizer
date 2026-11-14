@@ -1851,7 +1851,7 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
     start = result.timestamps[i]
     return duty_switch.both_step_duty(
         duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
-        step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
+        PLAN_STEP_MINUTES, step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
 
 
 def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
