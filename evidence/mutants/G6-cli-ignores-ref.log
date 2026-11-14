@@ -1,0 +1,6 @@
+cmd: python3 tools/pr/gate_priority.py --self-test
+diff: tools/pr/gate_priority.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+rc: 1
+gate_priority self-test: 22 checks, 1 failed
+FAIL --hotfix reads the roster at --ref, not the local roster ref (got: ((0, '1\n'), True))

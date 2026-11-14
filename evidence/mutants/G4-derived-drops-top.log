@@ -1,0 +1,11 @@
+cmd: python3 tools/pr/gate_priority.py --self-test
+diff: tools/pr/gate_priority.py | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+rc: 1
+gate_priority self-test: 22 checks, 6 failed
+FAIL a listed group gets priority with no env and no marker (got: 0)
+FAIL a hotfix outranks an outside group, which shares the critical path's band (owner rulings 2026-11-07, 2026-11-08) (got: [0, 2, 0])
+FAIL an outside group needs no critical-path set; a malformed set drops only the critical 1 (got: )
+FAIL null control: with no outside group and no hotfix, the derived priority is the base's 1 / 0 (got: [0, 0, 0])
+FAIL the branch's last segment answers for the group without resume.branch (got: 0)
+FAIL with neither override the derived default still answers (got: )
