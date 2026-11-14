@@ -1,67 +1,95 @@
-R10-CI-PRIORITY-PAUSE, carries 0-6. Builds the CI-priority tier module and config (`tools/audit/seat/ci_priority.py`, `dev/audit/config/ci_priority.json`), the merge train's pause/resume (`tools/audit/seat/ci_pause.py`, hooked into `merge_train.py`), the owed-line ordering and paused-CI bucket in `orchestrator_tick.py`, the priority hold/cancel/re-run and the zombie memory in `tools/pr/cancel_superseded.py` and the beat's cancel-sweep row, and the roster fields (`roster_lib` readers, `roster_edit.py set-field`, `append-group` requires `source`). The orchestrator's ruling governs: the roster brief's shape (pause/resume in the train), not the withdrawn cancel-sweep home; Carry 6 overrides any cancel rule.
+R10-CI-PRIORITY-PAUSE, carries 0-6, round 2: the repair of the fix review blocked `mutation-vacuous` at ff8b073827a8 (`cancel_superseded.priority_pass has_merge_verdict guard survives`). The group builds the CI-priority tier module and config (`tools/audit/seat/ci_priority.py`, `dev/audit/config/ci_priority.json`), the merge train's pause/resume (`tools/audit/seat/ci_pause.py`, hooked into `merge_train.py`), the owed-line ordering and paused-CI bucket in `orchestrator_tick.py`, the priority hold/cancel/re-run and the zombie memory in `tools/pr/cancel_superseded.py` and the beat's cancel-sweep row, and the roster fields (`roster_lib` readers, `roster_edit.py set-field`, `append-group` requires `source`).
 
-Carry 6 decision, stated up front: the setting `priority_cancel` is **false**. The one measurement in hand (the 2026-11-11 local cancel shim: 21 cancels, no priority run drained, 10 verdicted PRs reddened, 6 cancelled runs never completed) says cancelling does not shorten a priority PR's wait, so the sweep and the train **hold** (cancel nothing, print one summary/`PAUSE-HELD` line) until a before/after measure justifies turning it on. The cancel, re-run and pause paths are built and tested but dormant.
-
-`after` groups: R10-TICK-LEVELS and R10-OUTSIDE-FIRST are merged on main (`git log origin/main` shows `fix/r10-tick-levels-p2` and `fix/r10-outside-first` merges); `roster_lib.is_outside` and the tick's `owed_levels` from them are relied on.
+This round adds:
+1. **The verdict lookup is pinned.** `priority_pass` is split past its roster read into `priority_act`. A self-test stub answers the comments read: `Fix review: merge` on #12 and #13, and unreadable comments on the second pass. With `priority_cancel` on, it asserts that only #11's queued run is cancelled, and that unreadable comments cancel nothing.
+2. **Carry 6 (ii), the hold, is built.** `CiPause.hold(sha)` returns the queued priority run (a `never_cancel` tier) while the pull request at `sha` is not priority. Main's tip is no pull request and reads as `main-push`, so it is never held, and an unreadable listing holds nothing. `Train.hold_reruns` asks it before the stale re-run (`Train.unstale`, which `merge_pr.sh unstale_head` also runs). It waits `POLL_SECONDS` a poll, logs `HOLD` once and `HOLD-END` when the run clears, and after `HOLD_POLLS` (6 polls, 30 min) it re-runs anyway with `HOLD-EXPIRED`, so a priority queue that never drains cannot stall the train.
+3. **The pause is decoupled from `priority_cancel`** (orchestrator ruling on this review: carry 6 is not extended to the pause). `CiPause.poll` no longer reads the switch, so the P267 pause fires as the owner directed on 2026-10-28. `PAUSE-HELD` is gone. `priority_cancel` now switches only the sweep's cancels of queued runs.
+4. **Carry 4's measure is built.** `ci_priority.py queue-wait` reports the minutes from a run's creation to its first job's start, split by the roster tier of its head branch. The before figure is below.
 
 Carry 0: the tier module, its config and the train's pause/resume are built (`ci_priority.py`, `ci_priority.json`, `ci_pause.py`). Carry: dismissed: built in this pull request (commits 882a6385c2, 98650d10f3)
-Carry 1: CARRY A and B built as amended: `paused.json` beside the train state, PAUSE/RESUME lines, one victim per pass, at most one pause per 5 minutes, resume on exit and at start, `tier()` the one class rule, group-keyed setting refused.
+Carry 1: CARRY A and B built as amended: `paused.json` beside the train state, PAUSE/RESUME lines, one victim per pass, at most one pause per 5 minutes, resume on exit and at start, `tier()` the one class rule, group-keyed setting refused. The pause is no longer behind `priority_cancel`.
 Carry 2: owed lines ordered by `ci_priority.rank`; a `paused.json` record older than 60 minutes with no train running is the owed line `paused CI never resumed`.
 Carry 3: `roster_lib` readers, `roster_edit.py set-field` and the `source` requirement of `append-group` built; the backfill of live groups is the roster relay's (Forward-carry).
-Carry 4: built into the sweep (`sweep --priority`) as the hold/cancel/re-run rule, dormant behind `priority_cancel` by Carry 6.
+Carry 4: built into the sweep as the hold/cancel/re-run rule. Its queued-run cancel stays behind `priority_cancel` (false) by Carry 6. The before figure is measured; the after figure is owed once the switch is on (Figures).
 Carry 5: built (zombie memory in `cancel_superseded.py`, beat filter).
-Carry 7: not this part's; MAIN-CANCEL-BOUNDED stays in round 10 as another part's carry.
-Carry 8: moved to round 11, not built here.
-Carry 6: built; it overrides Carry 4 and the pause's cancel: verdicted, spooled and queued PRs and the train's current one are never touched, and cancelling is off.
+Carry 6: built: (i) verdicted, spooled and queued PRs and the train's current one are never cancelled, now pinned at the live lookup; (ii) the train's stale re-run of a non-priority head holds while a priority run is queued; (iii) the main-branch queue share is reported in Figures.
+Carry 7: moved to R11-INTAKE-R10-RESIDUE by the roster; not built here.
+Carry 8: moved to R10-ROUND-PLAYBOOK-FINAL by the roster; not built here.
+Carry 9: moved to R11-INTAKE-R10-RESIDUE by the roster; not built here.
+Carry 10: dismissed by the roster as a duplicate of R10-OUTSIDE-CONTRIBUTOR-CYCLE carry 2; not built here.
+Carry 11: moved to R11-INTAKE-R10-RESIDUE by the roster; not built here.
+Carry 12: the same three gate-conclusion residuals as Carry 11 (same text, item 6e06de7f), which the roster moved to R11-INTAKE-R10-RESIDUE; not built here (Forward-carry).
 
 ## Head
 
-fbdfd5ddf25f8bd98e2a2dfc17b08bc5969ebad1 (code: handoff head ec3c6b8b29f1a5207c3315c6ee7d6b1f07f99335 with origin/main e4ca2d940efd1e87912d80cb3ebddf8240ba0729 merged in), first built at 232af53a9fb1c583d324d4288a11697685f9763e. The earlier head's only change after the build was tests/closure.py INERT_EXCEPT gaining `tools/audit/seat/ci_priority.py` and `tools/audit/seat/ci_pause.py` and tests/closures.json gaining their entries under tests/entities.py.
-
-Merge resolution: the one content conflict was `tools/audit/seat/roster_edit.py`, the `op` choices of `build_parser`: this branch added `set-field`, main added `set-price`. Resolved as the union (`"set-source", "set-field", "set-price"`); the merged file reads back both ops' functions (`op_set_field` with its dispatch and `--field` checks, `op_set_price` with `--price-cite`), both self-test blocks, and `STRUCTURAL_OPS` as on this branch (main's does not lane-guard `set-price`). `tests/closures.json` merged through the ledger merge driver with no conflict.
+56923ce8dd8d92aabcd894c6e23c5310d7b1144a, five commits on the reviewed head ff8b073827a8938d679ced28644cd28401f16dbc. Merge base 154dbb4c61652135381ce66646d23f7109d1c142. `git merge-tree --write-tree origin/main HEAD` at origin/main e23124ff6e45 reports no conflict, so main is not merged (fixer step 6).
 
 ## Mutation proof
 
-Each mutant applied to production text, `--self-test` run, text restored (driver: scratchpad `mut.py`; the production lines are the predicates, not tails):
-- `zombies[rid] = now` -> `pass` (carry 5, drop the record): fails "zombie: the 409 run is POSTed on the first pass, never on the second" and "zombie: the second pass counts it in the summary line".
-- `if prio:` -> `if True:` in `priority_plan` (drop the priority check): the null control "priority null: no priority run queued selects nothing" crashes the self-test (rc 1, IndexError) — killed, though by a crash rather than a FAIL line.
-- ` or pr in protected` -> ` or False` (drop the verdict/train check): fails "priority: a queued priority run cancels ... not ... verdicted ones", "priority carry 6: a queued run of a verdicted/spooled/train PR is never selected" and the cancel/re-run check.
-- `ci_priority.may_pause(...)` guard -> `if False:` in `ci_pause.pick` (drop the CP guard): fails "the critical-path tail is never paused".
-- `p["n"] in held or` removed (drop the train-head/train-held guard): fails "carry 6: a verdicted PR ... train-held one" and "the train head is never a victim".
-
-Merge re-check: with `"set-field",` removed from the choices the roster_edit self-test fails ("set-field class is accepted", "set-field source with a word outside SOURCES is refused"); with `"set-price"` broken it fails ("set-price stores the citation stripped ..."); restored, `roster_edit.py --self-test` prints 310 checks, 0 failed.
+Driver: the reviewer's `evidence/mut.py` from review/3560, extended with M10-M15. Each mutant is applied to the production text, the owning `--self-test` is run, and the text is restored. Run at fc156a4c9c00 (the fourth and fifth commits add self-test checks only, no production line; ci_pause 19 -> 25 checks, beat_jobs 203 -> 204):
+- M1 `zombies[rid] = now` -> `pass`: killed, 2 FAIL (zombie re-POST, summary line).
+- M2 ` or pr in protected` -> ` or False`: killed, 5 FAIL.
+- M3 `if prio:` -> `if True:`: killed by a crash (IndexError, rc 1), as before.
+- M4 the `allow_cancel` hold removed: killed, 2 FAIL ("with priority_cancel off ... cancels nothing (hold)", "with priority_cancel off the sweep cancels nothing").
+- M5 the pause CP guard (`may_pause`) -> `if False:`: killed ("the critical-path tail is never paused").
+- M6 the pause dormancy switch: anchor absent; this round removes the switch from the pause (M10 is its inverse).
+- M7 the pause verdict guard -> `if False:`: killed.
+- M8 `or rl.is_outside(g)` removed from `tier`: killed.
+- **M9, the round-1 survivor**, `if has_merge_verdict(api, a.repo, pr) is not False:` -> `if False:` in the sweep: **killed**, 2 FAIL ("the live verdict lookup protects #12 and #13 ... only #11's queued run is cancelled": got 501, 502, 503 cancelled; "comments that cannot be read protect too").
+- M10 the pause re-coupled to the switch (`if not setting["priority_cancel"]: return` before the pick): killed ("the pause is not the sweep's switch: with priority_cancel off a head job queued 6 min still pauses #13").
+- M11 the hold dropped from `Train.unstale`: killed, merge_train 3 FAIL (the HOLD/HOLD-END arm, the null arm, the HOLD-EXPIRED arm).
+- M12 `is_priority` dropped from the hold's queued-run test: killed ("a non-priority head waits ... naming it", "hold null: only non-priority runs queued holds nothing").
+- M13 main's tip read as `instrument` instead of `main-push`: killed ("main's tip ... never waits").
+- M14 the priority-head exemption dropped: killed ("a priority head (#10, critical path) never waits").
+- M15 the `HOLD_POLLS` bound replaced by a stop: killed ("a priority queue that never drains holds HOLD_POLLS polls, then re-runs (HOLD-EXPIRED)").
 
 ## Null control
 
-The unmodified tree (origin/main) has no tier rule, no pause, no zombie memory: a 409 run is POSTed on every pass. Pinned nulls: no queued head job pauses nothing and a job queued under `pause_queued_min` pauses nothing (`ci_pause`); no priority run queued selects no victim (`priority_plan`); a non-409 failure (`None` answer) is POSTed again on the second pass ("zombie null"); a roster with no new fields loads unchanged and the default setting reproduces the old owed order (the existing "hotfix first, outside and critical path by number, then the rest" tick checks pass unchanged); with `priority_cancel` false a queued priority run cancels nothing.
+- Verdict lookup: with no `Fix review: merge` comment on #11, its queued run is cancelled. With M9 applied, the verdicted #12 and #13 runs are cancelled too. The self-test therefore separates the guard from its absence.
+- Hold: "hold null: only non-priority runs queued holds nothing"; "carry 6 (ii) null: no priority run queued, the stale re-run is asked once and never waits" (no HOLD line). With the hold removed (M11), the HOLD arm fails.
+- Pause: "null: no queued job pauses nothing" and "a head job queued under the bound pauses nothing" stand. With the pause re-coupled (M10), its switch-off arm fails.
+- Queue-wait: "queue-wait null: with no critical path the same runs measure no priority wait". The same live window's non-priority runs are the comparator in Figures.
 
 ## Figures
 
-- Self-tests at the head: `python3 tools/audit/seat/ci_priority.py --self-test`, `python3 tools/audit/seat/ci_pause.py --self-test`, `python3 tools/pr/cancel_superseded.py --self-test`, `PYTHONPATH=tests/hastub python3 tools/audit/seat/merge_train.py --self-test`, `python3 tools/audit/seat/orchestrator_tick.py --self-test`, `python3 tools/audit/seat/beat_jobs.py --self-test`, `python3 tools/audit/seat/roster_lib.py --self-test`, `python3 tools/audit/seat/roster_edit.py --self-test`: each prints `0 failed`.
-- Queue share (Carry 6 iii), instrument: `gh api 'repos/tvofi/heatpump_optimizer/actions/runs?status=queued&per_page=100'` grouped by `head_branch == main` and `event`, at 2026-11-11T23:26Z (a sliding window, so the rule not a number to carry): main-branch `workflow_run` runs are the largest single group of the queue, 18 of the 43 queued, and the other 25 are `pull_request`, `pull_request_target`, `pull_request_review` or `workflow_dispatch` runs; main runs are exempt from the rule, so they bound what cancelling non-priority PR runs can free.
-- Queue wait, before (Carry 4): same listing, median age of a queued run `created_at` to now was 33 min and the oldest 50899 min (a ghost run); `gh api '...actions/runs?status=in_progress&per_page=1' --jq .total_count` gave 11 running. This is the queue-wide wait, not a priority PR's first job; no after figure can be taken before merge. The body does not claim a gain. Re-measure with the two commands after merge, and turn `priority_cancel` on only if a priority PR's first-job wait drops.
-- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` selects `tests/entities.py` (mode SCOPED).
-- Structure: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` (the new code lives in new modules, not in `coordinator.py`; `merge_train.py` gained one call per hook and four small methods).
-- Enumeration for the class "something that re-runs or dispatches CI for a PR head", by grep of `rerun|dispatches` over `tools/`: `merge_train.Train.unstale` (train/`merge_pr.sh` PRs only: protected by carry 6 (i)), `Train.infra_rerun` (main), `tools/ci/sweep.py` and `gate.py` (run inside Actions, no queue view), `ci_probe.py` (manual). None is held by this PR; the hold in carry 6 (ii) is the sweep's own re-run, which fires only when no priority run is queued.
+- Self-tests at 56923ce8dd8d, run as `PYTHONPATH=tests/hastub python3 <file> --self-test` with the summary line read: ci_priority 14, ci_pause 25, cancel_superseded 61, roster_lib 92, roster_edit 311, beat_jobs 204, orchestrator_tick 319 and merge_train 746 checks, each 0 failed. `beat_jobs_selftest.py` rc 0.
+- Carry 4 before figure, the minutes a priority pull request's first job waits queued: `python3 tools/audit/seat/ci_priority.py queue-wait --since 2026-11-12T15:00:40Z --until 2026-11-13T15:00:40Z --ref 154dbb4c61652135381ce66646d23f7109d1c142`. The window is the 24 h ending at the merge base's commit time; the tiers come from the roster at the merge base; run 2026-11-13T19:45Z. Result: 1876 runs, 1180 of them on main, 0 unstarted. Priority PR first job: n=276, median 0.1, p90 12.8, max 34.0 min. Other PR first job: n=420, median 0.1, p90 11.3, max 27.4 min. The non-priority runs are the comparator: in this window priority runs waited no less than the others.
+- How the after figure is taken: the same command over a 24 h window after `priority_cancel` is switched on, with the roster ref of that day. Keep the switch only if the priority p90 and max drop below this before figure and below that window's non-priority comparator.
+- Carry 6 (iii), the main-branch share: 1180 of the 1876 runs created in the window above are on main (same command). In a live listing, `gh api 'repos/tvofi/heatpump_optimizer/actions/runs?status=queued&per_page=100'` grouped by `head_branch == main`, 2 of the 11 queued runs were on main at 2026-11-13T19:37Z. That is a sliding window, so read the rule, not the number. Main runs are exempt from every cancel and hold, so they bound what cancelling non-priority runs can free.
+- **What a critical-path, outside or hotfix PR's queued wait changes by at merge:** no cancel happens, because `priority_cancel` stays false. The one live change is that the train no longer starts a stale re-run of a non-priority head while a priority run is queued, for at most 30 minutes. That keeps at most one re-run per merge attempt out of the queue ahead of the priority run. The size of the effect on the priority wait is not measured. The before figure above shows a median of 0.1 min, so in this window the wait is a tail effect (p90 12.8 min). The P267 pause changes the train head's wait, not a priority PR's.
+- Enumeration of the class "a seat or workflow starting a re-run or dispatch of a pull request's CI". Command: `git grep -nE '(/rerun|rerun-failed-jobs|/dispatches|gh workflow run|"workflow", *"run")' -- tools/ .github/ ':!*.md'`, with self-test lines removed. Every site and its disposition:
+  - `merge_train.Train.unstale` (`POST .../rerun`; also `merge_pr.sh unstale_head`): **held in this diff** (M11).
+  - `merge_train.Train.infra_rerun`: re-runs main's tip (`main_green`), the `main-push` tier, so it is never a non-priority PR's CI. The hold reads a sha with no open pull request as `main-push` and never holds it; that is pinned by "main's tip ... never waits" (M13).
+  - `merge_train.Train.launch` (`gh workflow run` on a proof branch): the train's own batch head, the structural `train-head` guard; not held.
+  - `ci_pause.CiPause.resume_all` (`rerun-failed-jobs`): the P267 pause, which the orchestrator ruled outside carry 6; not held.
+  - `cancel_superseded.priority_step` re-run: already fires only when no priority run is queued ("the cancel is recorded, then re-run once no priority run is queued").
+  - `tools/ci/gate.py` job re-run, and `tests.yml`/`merge-main.yml` `gh workflow run ci.yml` after a bot commit: these run inside Actions with no roster read. Holding them is a workflow change outside this part (Forward-carry).
+  - `beat_jobs.py` `pages.yml` (main) and `ci_probe.py` (probe branches, by hand): no pull request; not held.
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: FULL` (tests/closure.py is in the diff), so CI runs the full gate.
+- Structure: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
 
-Figures re-run on the merged head: ci_pause 14, ci_priority 12, merge_train 670, orchestrator_tick 317, roster_lib 92, roster_edit 310, cancel_superseded 58 checks, each 0 failed; beat_jobs_selftest rc 0. `tools/pr/prepr.sh` at the merged head: `PRE-PR: fbdfd5ddf25f... rc=0`, merged structure ratchet passed, CI predict no red; closures skipped (CI re-records). `carry_audit.py landed` on this body: 0 missing.
+## Unpinned sites
+
+`prepr.sh` diff mutants (MUTANT_CMD: `sh -c` running the ci_pause, beat_jobs, cancel_superseded and beat_jobs_selftest self-tests) found 18 survivors at fc156a4c9c00. The fourth commit kills 14 of them with checks (a re-run at ca250c18fcf0 left 8: the four below, `_api`'s except-return, and three in the new beat_jobs_selftest arm, two of which the fifth commit kills; the re-run at 56923ce8dd8d leaves the six listed here): the `--train-state` forwarding in `beat_jobs.cancel_sweep`; and in `ci_pause`, the minutes divisor of `queued_minutes`, the inclusive `pause_queued_min` and `pause_gap_min` bounds of `poll`, `_note`'s once-per-key, `_api`'s failure, unparsable and empty answers, and `write`'s empty list and new state dir. The other four, at three sites, and `_api`'s except-return are equivalent, so no check can kill them:
+- `ci_pause.py` module head, `sys.path.insert(0, str(HERE))` deleted, or at index 1 (two mutants): run as a script, Python puts the script's directory first; imported, `merge_train.py` and `cancel_superseded.py` have already inserted the seat directory. The imports resolve the same either way.
+- `ci_pause._epoch`, `return None` in the `except` deleted: the function then falls off its end and returns None anyway.
+- `beat_jobs_selftest.py`, the `--train-state` arm's `res[...] = (...)` statement deleted: that deletes the check itself, so it cannot fail; the statements it reads are pinned by the two kills above.
+- `CiPause._api`, `return None` in the `except ValueError` deleted: the function falls off its end and returns None anyway.
+- `CiPause.__init__`, `self.last = 0.0` -> `1.0`: `last` is compared as `now - self.last < pause_gap_min * 60` with an epoch-seconds wall clock, and 1 s against 0 s changes no comparison.
 
 ## Red checks
 
-`none` owed in `merge_train.py owed-reds`' set. The merge-repair: origin/main (#3471) conflicted in `merge_train.py`'s self-test; both sides' blocks are kept (the pause feed check and the one-job pulse checks), and the merged file reads back both `_ci_pause` and `one_job_pulse` in production. `dev/audit/config/ci_priority.json` was never in the built commit (the `config/` ignore rule); it is now tracked (`git add -f`) with the values the design docs and the self-tests fix, and `merge_train.py`, `ci_pause.py` and `ci_priority.py` self-tests print `0 failed`. prepr's last run still predicts reds outside the owed set, in CI-autofix's class: `tests / fast` UNCLASSIFIED and `tests / closures` UNDER-SCOPED for that file and `ci_priority.py` (read by `orchestrator_tick.py`'s self-test through `tests/entities.py`). The file is on `INERT_EXCEPT`; the closure recording cannot finish here (no homeassistant, `tests/entities.py` a3 checks fail), so closures-autofix records it in CI.
+`none`. No check has concluded red at ff8b0738 (the reviewer's `classify` log) and none is predicted red at this head.
 
 ## Forward-carry
 
-- Carry 0 (item ce279d5a), the tier module, its config and the train's pause/resume, is built in this pull request (`ci_priority.py`, `ci_priority.json`, `ci_pause.py`). Carry: dismissed: built in this pull request (commits 882a6385c2, 98650d10f3)
-- Backfill of `source`/`hotfix`/`savings_source` on the live roster groups (carry 3 item 4: R10-UX-HEALTH, R10-ROUND-PLAYBOOK, the `Owner-reported` briefs) is a roster write this seat may not make; `append-group` refusing a group without `source` takes effect for new groups only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
-- Enabling `priority_cancel` needs the after measure above. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
-- `roster_lib.is_hotfix` still treats `kind == "bug"` as a hotfix beside `hotfix: true` and the name rule (the existing dispatch-rank checks pin it); carry 3 defines it as the flag or the name only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
-- Carry 9 (item 7bd3e57f), name the process sending `@tvofi` cancels at live heads, then land P267's bounded pause or refuse at that seat's cancel path: the pause is built here (`ci_pause.py`, Carry 1) but the sender naming and the landing check against R10-TRAIN-MERGE-LOOP-2 were not established in this part; re-home it with the round-11 residue. Carry: R11-INTAKE-R10-RESIDUE
-- Carry 10 (item dfa8b375), three live checks on a test fork (update-branch identity, app_approve end to end, class-O commit_id): this seat has no `gh`, no App key and no fork pull request, so it cannot run them. Carry: R11-INTAKE-R10-RESIDUE
-- Carry 11 (item 6e06de7f), three residuals in the gate-conclusion readers of `merge_train.py` and `orchestrator_tick.py` (a read bypassing `classify`, an empty `Busy` built from made-up runs, refusal only at run time): new code outside this part's brief. Carry: R11-INTAKE-R10-RESIDUE
-- Carry 12: not built in this pull request; appended after this part's dispatch and left for the group's next part. Carry: R10-CI-PRIORITY-PAUSE
+- Backfill of `source`/`hotfix`/`savings_source` on the live roster groups (carry 3 item 4) is a roster write this seat may not make. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
+- Enabling `priority_cancel` needs the after figure, taken by `ci_priority.py queue-wait` as stated in Figures. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
+- `roster_lib.is_hotfix` still treats `kind == "bug"` as a hotfix beside `hotfix: true` and the name rule; carry 3 defines it as the flag or the name only. (into the round-11 opening list held by R10-ROUND-PLAYBOOK-FINAL) Carry: R11-INTAKE-R10-RESIDUE
+- Carry 6 (ii)'s hold at the workflow-side re-runs and dispatches (`tools/ci/gate.py`'s gate-job re-run, `tests.yml`/`merge-main.yml` `gh workflow run ci.yml` after a bot commit). They run in Actions without the roster, so whether carry 6 reaches them needs a ruling before a build. Carry: R11-INTAKE-R10-RESIDUE
+- Carry 12 (item 6e06de7f), the gate-conclusion residuals: the same item as Carry 11, which the roster moved. Carry: R11-INTAKE-R10-RESIDUE
 
 ## Friction
 
-- policy-reread: unclear: carry 3 names `source` in {user, audit, programme} while R10-OUTSIDE-FIRST already uses `source: outside`; `SOURCES` now holds all four. Carry: dismissed: resolved in this diff
-- prepr: cost: the closures step re-records `tests/entities.py` under strace for roughly half an hour on every run. Carry: dismissed: known cost of the closure recording
+- review: cost: round 1's mutants covered the pure `priority_plan` filter but not the live lookup that fills it, and a reviewer's mutant found the gap. The repair pins the lookup at `priority_act`. Carry: dismissed: resolved in this diff
+- measure: cost: a filtered runs listing stops at 1000 results and the 24 h window held 1876, so `queue-wait` reads it in hour slices; one HTTP 502 mid-run aborted the first measurement, so the reader retries twice. Carry: dismissed: resolved in this diff
