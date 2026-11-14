@@ -1,3 +1,4 @@
+MERGE-CLAIM: resolved tests/golden/card_claimed_drift.txt
 LEDGER-MERGE: resolved tests/closures.json
-0781238ac22ff7ba815f2b3013c977012470286d
+3119446e613ca25d7765b7b5e6d4e1384f2ce5aa
 rc=0

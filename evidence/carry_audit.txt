@@ -1,6 +1,0 @@
-NOTE stale tree: e36e5327dde86105d66b21fd9ffd3e75eeeecdca lacks origin/main 48af0864a43052a43e9125fa31c2822bac99165d; roster read at origin/main
-NOTE body item f04dd0df: dismissed:the brief's end-of-run delete clears it
-NOTE body item 9bfb09c1: dismissed:no live owner, raised here for orchestrator triage
-NOTE review 0 item e99e918d: dismissed:evidence, not a finding
-CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
-rc=0
