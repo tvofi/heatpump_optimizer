@@ -87346,6 +87346,32 @@ R.check(
     {t: _c9_zones(h) for t, h in _c9_off.items()},
 )
 
+# Where the plant's ceiling is not the bound the held state keeps the level
+# floors part 1 bisects: a 1 kW pump cannot make the curve's top draw at
+# -15 C, and under 300 W/m2 of sun a 3 C curve's top sits below the warmed
+# upper floor, so its radiators draw nothing (an affine solve would cool it).
+def _c9_fallback(outdoor, solar, **over):
+    model = _SVR_MODEL(_SVR_PARAMS.from_config(_c9_install(**over)))
+    return _svh_held(
+        model,
+        _SVR_STATE(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=outdoor,
+                   upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                   buffer_tank_temperature=40.0, wood_tank_temperature=20.0),
+        _SVH_WS(outdoor_temps=np.array([outdoor]), wind_speeds=np.full(1, 3.0),
+                precipitation=np.zeros(1), solar_radiation=np.array([solar])), 21.0)
+
+
+_c9_fb = {"pump 1 kW": _c9_fallback(-15.0, 0.0, heat_pump_max_power=1.0),
+          "curve 3 C, sun": _c9_fallback(-5.0, 300.0, mixing_valve_target=3.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE Carry 9: a pump too small for the curve's top "
+    "draw, or a curve top below a sunlit floor, holds the floors level below "
+    "the target, never at the valve's ceiling",
+    all(h.upper_floor_temperature == h.lower_floor_temperature == h.room_temperature < 21.0 - 0.1
+        for h in _c9_fb.values()),
+    {k: _c9_zones(h) for k, h in _c9_fb.items()},
+)
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on

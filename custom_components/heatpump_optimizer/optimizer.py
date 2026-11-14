@@ -112,6 +112,7 @@ from .thermal_model import (
     valve_charge_demand,
     valve_hold_temperature,
     valve_top_draw,
+    valve_top_equilibrium,
     weather_or_calm,
     power_for_heat_per_cop_kw,
     added_power_for_heat_per_cop_kw,
@@ -855,17 +856,60 @@ def _thermostat_held_state(
 
     held = held_at(target)
     if unreachable(held):
-        # Unreachable needs heat, so the outdoor is below the target: the span is ordered.
-        lo, hi = min(outdoor, target), target
-        for _ in range(_HELD_BISECTIONS):
-            mid = 0.5 * (lo + hi)
-            lo, hi = (lo, mid) if unreachable(held_at(mid)) else (mid, hi)
-        held = held_at(lo)
+        held = _held_at_valve_top(model, held, weather0, humidity) or _held_bisected(
+            held_at, unreachable, min(outdoor, target), target)
     if p.two_tank_modelled:
         # The reference has no wood: below every zone the valve takes nothing
         # from this side (``wood_share`` 0), so the step is the plain valve's.
         held.wood_tank_temperature = _NO_WOOD_TANK_C
     return held
+
+
+def _held_bisected(
+    held_at: Callable[[float], ThermalState], unreachable: Callable[[ThermalState], bool],
+    lo: float, hi: float,
+) -> ThermalState:
+    """The zones level at the highest temperature in ``[lo, hi]`` the step can
+    hold: unreachable needs heat, so the outdoor ``lo`` is below the target ``hi``."""
+    for _ in range(_HELD_BISECTIONS):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (lo, mid) if unreachable(held_at(mid)) else (mid, hi)
+    return held_at(lo)
+
+
+def _held_at_valve_top(
+    model: ThermalModel, held: ThermalState,
+    weather0: tuple[float, float, float, float], humidity: float | None,
+) -> ThermalState | None:
+    """A two-zone house behind a valve whose curve cannot hold the target:
+    the plant's own ceiling (``valve_top_equilibrium``), floors apart, its
+    tank where it delivers that draw -- or ``None`` where the pump cannot
+    make it, or on any other house, which the level-zone bisection holds
+    (Carry 9: the floors held level sat below this ceiling, and the
+    reference's day warmed to it)."""
+    p = model.params
+    outdoor, wind, rain, solar = weather0
+    if not (p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode)):
+        return None
+    top = valve_top_equilibrium(model, held, outdoor, wind, rain, solar)
+    if top is None:
+        return None
+    draw = valve_top_draw(model, top, outdoor, wind, rain)
+    top.buffer_tank_temperature = valve_hold_temperature(model, top, draw, outdoor, wind, rain)
+    made = valve_charge_demand(model, top, draw, outdoor, wind, rain, 1.0)
+    return None if _pump_unreachable(model, top, made, outdoor, humidity) else top
+
+
+def _pump_unreachable(
+    model: ThermalModel, held: ThermalState, made_kw: float, outdoor: float,
+    humidity: float | None,
+) -> bool:
+    """Whether making ``made_kw`` of heat at the step's own COP
+    (``_reference_cop``, defrost and part-load included) needs a draw past
+    ``max_electrical_power``, where the step clips."""
+    cop = _reference_cop(model, held, outdoor, humidity)
+    p = model.params
+    return bool(power_for_heat_per_cop_kw(p, made_kw / cop) > p.max_electrical_power)
 
 
 def _held_unreachable(
@@ -891,8 +935,7 @@ def _held_unreachable(
         return True
     made = _thermostat_demand(
         model, held, held.room_temperature, *weather0, 0.25, p.slab_heat_transfer_floored)
-    cop = _reference_cop(model, held, outdoor, humidity)
-    return bool(power_for_heat_per_cop_kw(p, made / cop) > p.max_electrical_power)
+    return _pump_unreachable(model, held, made, outdoor, humidity)
 
 
 def _thermostat_demand_single(

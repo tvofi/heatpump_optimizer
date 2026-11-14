@@ -2371,6 +2371,46 @@ def valve_top_draw(
     return _circuit_draw(circuits, model.params.buffer_max_temp)
 
 
+
+def valve_top_equilibrium(
+    model: "ThermalModel", state: ThermalState, outdoor_temp: float,
+    wind_speed: float, precipitation: float, solar_radiation: float,
+) -> ThermalState | None:
+    """The two-zone house where the plant settles with every circuit behind
+    the valve drawing at the curve's top (``valve_top_draw``): the floors
+    apart, radiators above, slab-fed floor below -- the warmest steady state
+    the valve lets through. ``None`` where a circuit's top sits at or below
+    the zone it heats, which draws nothing there.
+
+    With each zone below its circuit's top the plant's rates
+    (``_two_zone_rates``) are affine in the three zone temperatures, so one
+    linear solve of them is the equilibrium, exact.
+    """
+    p = model.params
+    (ua_rad, top_rad, _), (ua_floor, top_floor, _) = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    t_rad, t_floor = min(top_rad, p.buffer_max_temp), min(top_floor, p.buffer_max_temp)
+    u_upper, u_lower = model._zone_loss(wind_speed, precipitation)
+
+    def rates(x: np.ndarray) -> np.ndarray:
+        return np.array(model._two_zone_rates(
+            x[0], x[1], x[2], outdoor_temp, ua_rad * (t_rad - x[0]),
+            ua_floor * (t_floor - x[2]), u_upper, u_lower, solar_radiation, None))
+
+    at_zero = rates(np.zeros(3))
+    upper, lower, slab = np.linalg.solve(
+        np.column_stack([rates(e) - at_zero for e in np.eye(3)]), -at_zero)
+    if upper >= t_rad or slab >= t_floor:
+        return None
+    return replace(
+        state,
+        room_temperature=float(upper * p.upper_floor_area_ratio
+                               + lower * (1.0 - p.upper_floor_area_ratio)),
+        upper_floor_temperature=float(upper), lower_floor_temperature=float(lower),
+        slab_temperature=float(slab),
+    )
+
+
 def valve_charge_demand(
     model: "ThermalModel", state: ThermalState, need_kw: float,
     outdoor_temp: float, wind_speed: float, precipitation: float,
