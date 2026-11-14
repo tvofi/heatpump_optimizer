@@ -1,0 +1,7 @@
+ref23 budget 2.3796 pre n 18 post n 0 max pre x0.8593 = 3.0912 over n over at 0.8593: 11
+ref28 budget 2.0215 pre n 2 post n 0 max pre x0.8593 = 2.3089 over n over at 0.8593: 1
+ref31 budget 2.0841 pre n 33 post n 0 max pre x0.8593 = 2.6375 over n over at 0.8593: 27
+ref38 budget 2.192 pre n 2 post n 0 max pre x0.8593 = 2.1258 under n over at 0.8593: 0
+ref40 budget 2.5112 pre n 2 post n 1 max pre x0.8593 = 2.4756 under n over at 0.8593: 0
+ref47 budget 2.1188 pre n 48 post n 1 max pre x0.8593 = 2.1278 over n over at 0.8593: 2
+ref53 budget 1.316 pre n 11 post n 0 max pre x0.8593 = 1.2826 under n over at 0.8593: 0

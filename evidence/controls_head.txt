@@ -1,0 +1,22 @@
+PASS control:cycle_cost:cpu :: bad=['cpu_ratio 4.2 over its budget 2.97'] good=[]
+PASS control:cycle_cost:memory :: bad=['peak_kib 8 over its budget 5.657'] good=[]
+PASS control:cycle_cost:loose_budget :: bad=['cpu_ratio 2.1: budget 6.3 cannot see a 2x cycle; re-record 2.97', 'peak_kib 4: budget 12 cannot see a 2x cycle; re-record 5.657'] good=[]
+PASS control:cycle_cost:unrecorded :: bad=['no recorded budget: record cpu_ratio=2.97', 'no recorded budget: record peak_kib=5.657'] good=[]
+PASS control:cycle_cost:loop_thread :: bad=['loop_cpu_ratio 1.419 over its budget 1.004'] good=[]
+PASS control:cycle_cost:loop_normaliser :: ratio 0.7097: solve x3 moved=False, loop_ref x2 moved=True
+PASS control:cycle_cost:cpu_normaliser :: cpu_ratio 2.1: solve x3 moved=True
+PASS control:cycle_cost:class_rule :: bad=["COST_CLASS_BUDGETS['synthetic-dhw-only.json'] {'ref23': {'cpu_ratio': 3.63}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cpu_ratio': 2.192}, 'ref40': {'cpu_ratio': 2.5112}, 'ref47': {'cpu_ratio': 2.1188}, 'ref53': {'cpu_ratio': 1.316}} is not the rule's {'ref23':
+PASS control:cycle_cost:draws :: 118 jobs, 575 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 3, 'ref38': 2}; offenders []; nulls named [['job 127046649273 synthetic-dhw-only.json (ruler 52.12, class ref53): clean cpu_ratio 1.43 over its budget 1.316'], ['job 12
+PASS control:cycle_cost:level_shift :: classes examined ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']; offenders []; planted shift names 6 of 6 other classes: ['class ref28 rests wholly on draws before the shift class ref22 shows at 2026-11-11T00:48:46Z+ (cpu_ratio under its floor 1.877)']
+PASS control:cycle_cost:band_edges :: {'ref23': (19.36, 25.63), 'ref28': (25.63, 29.17), 'ref31': (29.17, 35.81), 'ref38': (35.81, 38.92), 'ref40': (38.92, 42.96), 'ref47': (42.96, 51.12), 'ref53': (51.12, 57.34)}
+PASS control:cycle_cost:runner_class_fallback :: fallback {'peak_kib': 2686.0, 'loop_cpu_ratio': 0.1527, 'cpu_ratio': 2.5112}; lines ["graded on the job's rulers: ref_ms 9.68 (class None), loop_ref_ms 165.7", "WARNING runner class unknown: synthetic-dhw-only.json ref_ms 9.68 lies in no band of COST_RUNNER_CLASSES; graded on the FALLBACK budget {'p
+PASS control:cycle_cost:lane_prints_notice :: failures held 0, over the ref53 border 1, unbanded 0; unbanded notice printed True
+PASS control:cycle_cost:arms_skipped_never_everywhere :: bad=['every committed fixture skips the doubled-cost arms'] good=[]
+PASS control:cycle_cost:arms_skipped_committed_only :: bad=['gone.json: skipped but not a committed fixture'] good=[]
+PASS control:cycle_cost:short_doubling :: bad=['injected 0.93 x the clean span, a doubling is >= 1'] good=[]
+PASS control:cycle_cost:unmetered_doubling :: bad=['injected nan x the clean span, a doubling is >= 1'] good=[]
+PASS control:cycle_cost:coverage :: bad=['coordinator.py: no function ran in the traced cycle'] good=[]
+derived class budgets {'ref23': {'cpu_ratio': 2.3796}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cpu_ratio': 2.192}, 'ref40': {'cpu_ratio': 2.5112}, 'ref47': {'cpu_ratio': 2.1188}, 'ref53': {'cpu_ratio': 1.316}}
+derived == COST_CLASS_BUDGETS[syn]: True
+bands derived == COST_RUNNER_CLASSES: True
+RESULT failing controls 0

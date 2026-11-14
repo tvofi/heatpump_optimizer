@@ -1,0 +1,40 @@
+== unmutated
+  ignored  replay_cuts commit
+RESULT read=5 ignored=1 declared_none=0 blind=0 dead=0 refused=0 runs=6 seconds=0.3
+FIELD COVERAGE ok
+== M1 COST_CUTS emptied
+FAIL control:cycle_cost:class_rule :: bad=["COST_CLASS_BUDGETS['synthetic-dhw-only.json'] {'ref23': {'cpu_ratio': 3.63}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cp
+FAIL control:cycle_cost:draws :: 118 jobs, 575 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 3, 'ref38': 2}; offenders ['
+FAIL control:cycle_cost:level_shift :: classes examined ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']; offenders ['class ref23 rests wholly on draws before the shift class ref40 sho
+RESULT read=0 ignored=0 declared_none=0 blind=0 dead=0 refused=1 runs=0 seconds=0.1
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+== M2 projection line dropped
+FAIL control:cycle_cost:class_rule :: bad=["COST_CLASS_BUDGETS['synthetic-dhw-only.json'] {'ref23': {'cpu_ratio': 3.63}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cp
+FAIL control:cycle_cost:draws :: 118 jobs, 575 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 3, 'ref38': 2}; offenders ['
+PASS control:cycle_cost:level_shift :: classes examined ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']; offenders []; planted shift names 6 of 6 other classes: ['class ref28 rests wh
+RESULT read=0 ignored=0 declared_none=0 blind=0 dead=0 refused=1 runs=0 seconds=0.2
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+== M3 factor 0.6339->0.70
+FAIL control:cycle_cost:class_rule :: bad=["COST_CLASS_BUDGETS['synthetic-dhw-only.json'] {'ref23': {'cpu_ratio': 3.63}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cp
+FAIL control:cycle_cost:draws :: 118 jobs, 575 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 3, 'ref38': 2}; offenders ['
+PASS control:cycle_cost:level_shift :: classes examined ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']; offenders []; planted shift names 6 of 6 other classes: ['class ref28 rests wh
+RESULT read=0 ignored=0 declared_none=0 blind=0 dead=0 refused=1 runs=0 seconds=0.2
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+== M4 cut never explains a shift
+PASS control:cycle_cost:class_rule :: bad=["COST_CLASS_BUDGETS['synthetic-dhw-only.json'] {'ref23': {'cpu_ratio': 3.63}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cp
+PASS control:cycle_cost:draws :: 118 jobs, 575 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 3, 'ref38': 2}; offenders []
+FAIL control:cycle_cost:level_shift :: classes examined ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']; offenders ['class ref23 rests wholly on draws before the shift class ref40 sho
+RESULT read=0 ignored=0 declared_none=0 blind=0 dead=0 refused=1 runs=0 seconds=0.2
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+== M5 evidence not required
+PASS control:cycle_cost:class_rule :: bad=["COST_CLASS_BUDGETS['synthetic-dhw-only.json'] {'ref23': {'cpu_ratio': 3.63}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cp
+PASS control:cycle_cost:draws :: 118 jobs, 575 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 3, 'ref38': 2}; offenders []
+PASS control:cycle_cost:level_shift :: classes examined ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']; offenders []; planted shift names 6 of 6 other classes: ['class ref28 rests wh
+RESULT read=4 ignored=1 declared_none=0 blind=1 dead=0 refused=0 runs=6 seconds=0.3
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+== M6 from boundary <= (last<from dropped)
+PASS control:cycle_cost:class_rule :: bad=["COST_CLASS_BUDGETS['synthetic-dhw-only.json'] {'ref23': {'cpu_ratio': 3.63}, 'ref28': {'cpu_ratio': 2.0215}, 'ref31': {'cpu_ratio': 2.0841}, 'ref38': {'cp
+PASS control:cycle_cost:draws :: 118 jobs, 575 runs; synthetic-dhw-only.json jobs by class {'ref53': 11, 'ref31': 33, 'ref28': 2, 'ref23': 18, 'ref47': 49, 'ref40': 3, 'ref38': 2}; offenders []
+PASS control:cycle_cost:level_shift :: classes examined ['ref23', 'ref28', 'ref31', 'ref38', 'ref40', 'ref47', 'ref53']; offenders []; planted shift names 6 of 6 other classes: ['class ref28 rests wh
+RESULT read=5 ignored=1 declared_none=0 blind=0 dead=0 refused=0 runs=6 seconds=0.4
+FIELD COVERAGE ok
