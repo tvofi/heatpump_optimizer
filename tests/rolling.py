@@ -487,7 +487,7 @@ R.check(
     # The freeze reason names a harness that stopped driving the learner
     # (#2508's not_configured freeze read as "0 samples" alone).
     f"{int(samples[-1])} samples over three days, freeze "
-    f"{getattr(learned['learner'], '_learner_freeze_reason', None)!r}",
+    f"{getattr(getattr(learned['learner'], '_learner_freezes', None), 'last', None)!r}",
 )
 R.check(
     "the learned correction moves towards the real error",
