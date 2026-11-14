@@ -269,18 +269,26 @@ def _self_test() -> int:
               not is_hotfix("handoff/r10-other", repo=str(repo), ref=live, fetch=False)
               and not is_hotfix("handoff/r10-hot", repo=str(repo), fetch=True))
 
-        def cli(branch: str) -> tuple[int, str]:
+        def cli(branch: str, at: str | None = None) -> tuple[int, str]:
             """``main(["--hotfix", ...])`` and its stdout: the line prepr's hotfix_class reads."""
             buf = io.StringIO()
             with contextlib.redirect_stdout(buf):
                 rc = main(["--hotfix", "--branch", branch, "--repo", str(repo),
-                           "--ref", live, "--no-fetch"])
+                           "--ref", at or live, "--no-fetch"])
             return rc, buf.getvalue()
 
         hot_out_crit_none = ("handoff/r10-hot", "handoff/r10-out", "handoff/r10-crit", "fix/none")
         check("--hotfix prints 1 for the hotfix group's branch, 0 for an outside, a critical and an unmapped one",
               [cli(b) for b in hot_out_crit_none] == [(0, "1\n"), (0, "0\n"), (0, "0\n"), (0, "0\n")],
               [cli(b) for b in hot_out_crit_none])
+        # --ref is the roster the CLI reads: plain_sha holds no hotfix group, while the
+        # local roster ref (what ref=None with --no-fetch reads) holds R10-HOT as one, so
+        # a CLI that dropped --ref would print 1 here. Control: the local ref answers 1.
+        check("--hotfix reads the roster at --ref, not the local roster ref",
+              cli("handoff/r10-hot", at=plain_sha) == (0, "0\n")
+              and is_hotfix("handoff/r10-hot", repo=str(repo), ref=None, fetch=False),
+              (cli("handoff/r10-hot", at=plain_sha),
+               is_hotfix("handoff/r10-hot", repo=str(repo), ref=None, fetch=False)))
 
         # The except arm: a roster read that raises (not a failed fetch, which returns
         # before the read) must fail closed -- not a hotfix, so a full prepr; priority 0.
