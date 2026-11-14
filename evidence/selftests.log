@@ -1,24 +1,12 @@
-Fri Nov 13 20:59:45 UTC 2026
-## at code head e8c6bb0 (the body's stated measuring commit)
-UNCHANGED
-control rc=1
-tests/closures.json
-tools/pr/outside.py
---- a/tests/closures.json
-+++ b/tests/closures.json
-+   "docs/CONTRIBUTING.md",
-+   "docs/CONTRIBUTING.md",
--   "rc": 1,
-+   "rc": 0,
-## merge_train.py: main-side only between e8c6bb0 and head?
- 1 file changed, 346 insertions(+), 48 deletions(-)
- 1 file changed, 346 insertions(+), 48 deletions(-)
-@@ -9990,0 +9991,3 @@ def _add_self_test(check) -> None:
-@@ -10001,0 +10005,2 @@ def _add_self_test(check) -> None:
-@@ -10037,0 +10043,6 @@ def _add_self_test(check) -> None:
-## outside self-test at head
-rc=0 5s
+99c3c1625923adaae044b8f1940344196a9b30af
+ok   tests.yml's laneskip step carries the same-repository conjunct: a fork head restores no lane proof and always runs
 outside self-test: 266 checks, 0 failed
-governance grep rc=0
+rc=0
+STRUCTURE RATCHET PASSED
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+rc=0
 0
-HEAD after 6a0a3a4d96c757c5d576fbce394c324452339b15
+versions/custom_components check done
+tests / mutation
+tests / typing
+validate / validate-hacs

@@ -1,0 +1,26 @@
+prev 20 head 20
+SAME /steps/app-verdict-poster/probes ('list', ('"packed-refs"',), ())
+SAME /steps/field-coverage/files ('list', ('"tools/pr/outside.py"',), ())
+SAME /steps/obligations-ledger/probes ('list', ('"tools/pr"',), ())
+SAME /steps/open-pr/files ('list', ('"tools/pr/outside.py"',), ())
+SAME /steps/outside-contract/dirs ('val', 'null', '[".github/workflows", "tests", "tools/audit/seat"]')
+SAME /steps/outside-contract/files ('val', 'null', '[".github/**", "tests/closure.py", "tests/layout.py", "tests/throwaway_git.py", "tools/audit/archscore/**", "tools/audit/carry_audit.
+SAME /steps/outside-contract/git ('val', 'null', '[]')
+SAME /steps/outside-contract/index ('val', 'null', 'true')
+SAME /steps/outside-contract/objects ('val', 'null', 'false')
+SAME /steps/outside-contract/probes ('val', 'null', '[".", "tests", "tools", "tools/audit", "tools/audit/seat", "tools/policy", "tools/pr"]')
+SAME /steps/outside-contract/run_sha ('val', 'null', '"025732c1856bbffa8a8875fef362950428daf1f6f935e1d4b723b42eb5e21c29"')
+SAME /steps/policy-lint-mutants/files ('list', ('"dev/governance/config/outside_contributors.json"',), ())
+SAME /steps/pr-args/files ('list', ('"tools/pr/outside.py"',), ())
+SAME /steps/review-carry/probes ('list', ('"packed-refs"',), ())
+SAME /steps/self-tests-outside-seat/files ('list', ('"dev/governance/config/outside_contributors.json"',), ())
+SAME /steps/selftest-wiring/files ('list', ('"tools/pr/outside.py"',), ())
+SAME /steps/update-pr/files ('list', ('"tools/pr/outside.py"',), ())
+SAME /steps/verdict-bus/dirs ('list', ('"tools"', '"tools/audit"', '"tools/audit/archscore"', '"tools/audit/archscore/calibration"', '"tools/audit/archscore/metrics"', '"tools/aud
+DIFFER /steps/verdict-bus/files 
+  prev ('list', ('".github/CODEOWNERS"', '"tests/closure.py"', '"tests/layout.py"', '"tools/**"'), ('"tools/audit/carry_audit.py"', '"tools/audit/seat/a1_dispatch_arms.sh"', '"tools/audit/seat/autofix_statuses.sh"', '"tools/audit/seat/body_patch.sh"', '"tools/audit/seat/body_push.sh"', '"tools/audit/seat/bus.sh"', '"tools/audit/seat/ci-watch.sh"', '"tools/audit/seat/ci_predict_replay.sh"', '"tools/audit/ 
+  head ('list', ('".github/CODEOWNERS"', '"tests/closure.py"', '"tests/layout.py"', '"tools/**"'), ('"tools/audit/carry_audit.py"', '"tools/audit/seat/a1_dispatch_arms.sh"', '"tools/audit/seat/autofix_statuses.sh"', '"tools/audit/seat/body_patch.sh"', '"tools/audit/seat/body_push.sh"', '"tools/audit/seat/bus.sh"', '"tools/audit/seat/ci-watch.sh"', '"tools/audit/seat/ci_predict_replay.sh"', '"tools/audit/
+SAME /steps/verdict-bus/probes ('list', (), ('"tools/audit"', '"tools/audit/seat"', '"tools/package.json"', '"tools/policy"', '"tools/policy/fixtures"', '"tools/policy/package.json"
+50373173d4 44 False
+e4b68c37d9 1 True
+99c3c16259 1 True
