@@ -10751,6 +10751,84 @@ R.check("null control: the disinfection repair reworded to 'six hours' is one fi
         and len(_ut_number_findings([(*_UT_NUMBER_CLAIMS[0][:3], 360.0, "planted")], _UT_STRINGS)) == 1)
 
 
+# Every raise that hands Home Assistant a translation key also passes an English message, which the exception's str()
+# returns to logs, script and automation traces and API callers. This round judged the catalogue's message, so the
+# fallback may state nothing that message does not: its literal fragments, in order, spell exactly the catalogue's
+# English message, each of the fallback's own placeholders standing for any text (the catalogue's placeholder, or a
+# word it spells out, as "three" for REFIT_SETTLED_DAYS, which the numbers row above pins). A key or message passed
+# through a parameter of the raising function is read at every call of it, as a pair. A computed message (`str(err)`,
+# `comfort_band.describe(...)`, a caller's `reason`) has no literal of its own to judge; it is counted, not matched.
+def _ut_fallback_findings(sources: dict, catalogue: dict) -> tuple[int, int, list[str]]:
+    matched, computed, out = 0, 0, []
+    for name, text in sorted(sources.items()):
+        tree = ast.parse(text)
+        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
+        for fn in [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+            params = [a.arg for a in fn.args.args]
+
+            def passed(node, call):
+                """The node a parameter-named ``node`` is bound to at ``call``, else ``node`` itself."""
+                if not (isinstance(node, ast.Name) and node.id in params):
+                    return node
+                at = params.index(node.id)
+                return next((k.value for k in call.keywords if k.arg == node.id),
+                            call.args[at] if at < len(call.args) else None)
+
+            for node in ast.walk(fn):
+                if not (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)):
+                    continue
+                kw = {k.arg: k.value for k in node.exc.keywords}
+                if "translation_key" not in kw:
+                    continue
+                key, msg = kw["translation_key"], node.exc.args[0] if node.exc.args else None
+                through = any(isinstance(n, ast.Name) and n.id in params for n in (key, msg))
+                sites = [c for c in calls if c.func.id == fn.name] if through else [None]
+                if not sites:
+                    out.append(f"{name}:{node.lineno}: {fn.name} passes its key or message through, and nothing calls it")
+                for call in sites:
+                    k, m = (n if call is None else passed(n, call) for n in (key, msg))
+                    where = f"{name}:{node.lineno if call is None else call.lineno}"
+                    if not (isinstance(k, ast.Constant) and isinstance(k.value, str)):
+                        out.append(f"{where}: the translation key {ast.unparse(k) if k else None} is not a literal")
+                        continue
+                    want = (catalogue.get(k.value) or {}).get("message")
+                    if want is None:
+                        out.append(f"{where}: no catalogue message for {k.value}")
+                        continue
+                    if isinstance(m, ast.Constant) and isinstance(m.value, str):
+                        parts = [m.value]
+                    elif isinstance(m, ast.JoinedStr):
+                        parts = [v.value if isinstance(v, ast.Constant) else None for v in m.values]
+                    else:
+                        computed += 1
+                        continue
+                    if _re.fullmatch("".join(".+?" if p is None else _re.escape(p) for p in parts), want, _re.S):
+                        matched += 1
+                    else:
+                        out.append(f"{where}: the fallback {ast.unparse(m)[:90]!r} is not {k.value}'s message {want!r}")
+    return matched, computed, out
+
+
+_UT_PY = {p.name: p.read_text() for p in sorted(ROOT.glob("*.py"))}
+_ut_matched, _ut_computed, _ut_bad = _ut_fallback_findings(_UT_PY, _UT_STRINGS["exceptions"])
+R.check("every raise that passes a translation key falls back to English its catalogue message states (anchor: at "
+        "least 30 literal fallbacks matched)", _ut_matched >= 30 and not _ut_bad,
+        f"{_ut_matched} matched, {_ut_computed} computed; " + "; ".join(_ut_bad[:4]))
+_ut_planted = dict(_UT_PY)
+_ut_planted["services.py"] = _UT_PY["services.py"].replace(
+    "settings and learned state are \"\n                \"unchanged, and only the undo snapshot the reset takes first was saved",
+    "nothing was changed")
+_ut_planted["debugger.py"] = _UT_PY["debugger.py"].replace('translation_key="debug_collect_inactive"',
+                                                           'translation_key="planted_unknown_key"')
+_ut_planted["coordinator.py"] = _UT_PY["coordinator.py"].replace(
+    '_raise_update_failed("update_failed", f"Error updating data: {err}"',
+    '_raise_update_failed("update_failed", f"Planted: nothing was changed: {err}"', 1)
+R.check("null control: the factory reset's merge-base fallback ('nothing was changed'), a key the catalogue lacks and "
+        "a planted message passed through _raise_update_failed are three findings",
+        len(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[2]) == 3,
+        repr(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[2]))
+
+
 R.check("simulate_plan is documented", "simulate_plan" in services)
 R.check(
     "its fields are documented for the UI",
@@ -15940,6 +16018,30 @@ R.check(
     _svc_fr_args == [(_svc_coord, "learners")]
     and _svc_fr == {"reset": _svc_entry.entry_id, "scope": "learners"},
     str(_svc_fr),
+)
+
+
+async def _svc_fr_refused(coord, scope):
+    return False  # Home Assistant refused the unload: the undo snapshot is saved, nothing else
+
+
+# The refused arm's English message is what the exception's str() hands logs, traces and API callers (R10-USER-TEXT-
+# VERIFY-STRINGS): it is the judged catalogue message, entry id filled, never the merge base's "nothing was changed".
+_svc_module.async_factory_reset = _svc_fr_refused
+try:
+    _svc_call(const.SERVICE_FACTORY_RESET, {"entry_id": _svc_entry.entry_id, "scope": "learners"})
+    _svc_fr_err = None
+except Exception as err:  # noqa: BLE001 -- the class is read below
+    _svc_fr_err = err
+finally:
+    _svc_module.async_factory_reset = _svc_fr_real
+_svc_fr_want = json.loads((ROOT / "strings.json").read_text())["exceptions"]["factory_reset_not_applied"]["message"]
+R.check(
+    "a refused factory_reset raises factory_reset_not_applied, whose English message is the catalogue's, entry id filled",
+    type(_svc_fr_err).__name__ == "HomeAssistantError"
+    and getattr(_svc_fr_err, "translation_key", None) == "factory_reset_not_applied"
+    and str(_svc_fr_err) == _svc_fr_want.format(entry_id=_svc_entry.entry_id),
+    repr(_svc_fr_err),
 )
 R.check(
     "reset_heat_loss_learners reaches the coordinator and reports what it reset",

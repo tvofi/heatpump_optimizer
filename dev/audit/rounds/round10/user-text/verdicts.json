@@ -96,7 +96,7 @@
   "verdict": "true",
   "claim": "Shows the current electricity price",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:616"
+   "custom_components/heatpump_optimizer/sensor.py:616"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -142,8 +142,8 @@
   "verdict": "true",
   "claim": "Lifetime accumulator, never reset",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1812",
-   "/home/user/wt/custom_components/heatpump_optimizer/coordinator.py:8419"
+   "custom_components/heatpump_optimizer/sensor.py:1812",
+   "custom_components/heatpump_optimizer/coordinator.py:8419"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -156,8 +156,8 @@
   "verdict": "true",
   "claim": "Lifetime accumulator, never reset",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1812",
-   "/home/user/wt/custom_components/heatpump_optimizer/coordinator.py:8419"
+   "custom_components/heatpump_optimizer/sensor.py:1812",
+   "custom_components/heatpump_optimizer/coordinator.py:8419"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -170,8 +170,8 @@
   "verdict": "true",
   "claim": "Lifetime accumulator, never reset",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1812",
-   "/home/user/wt/custom_components/heatpump_optimizer/coordinator.py:8419"
+   "custom_components/heatpump_optimizer/sensor.py:1812",
+   "custom_components/heatpump_optimizer/coordinator.py:8419"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -184,8 +184,8 @@
   "verdict": "true",
   "claim": "Covers the next 24 h planning horizon",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1269",
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2389"
+   "custom_components/heatpump_optimizer/sensor.py:1269",
+   "custom_components/heatpump_optimizer/optimizer.py:2389"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -198,8 +198,8 @@
   "verdict": "true",
   "claim": "Covers the next 24 h planning horizon",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1649",
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2389"
+   "custom_components/heatpump_optimizer/sensor.py:1649",
+   "custom_components/heatpump_optimizer/optimizer.py:2389"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -311,7 +311,7 @@
   "verdict": "true",
   "claim": "Planned power >=90% of max (or boost mode)",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:6324"
+   "custom_components/heatpump_optimizer/optimizer.py:6324"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -324,7 +324,7 @@
   "verdict": "true",
   "claim": "Comfort mode fixed action",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/coordinator.py:4102"
+   "custom_components/heatpump_optimizer/coordinator.py:4102"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -337,7 +337,7 @@
   "verdict": "true",
   "claim": "Planned power <40% of max",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:6318"
+   "custom_components/heatpump_optimizer/optimizer.py:6318"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -350,7 +350,7 @@
   "verdict": "true",
   "claim": "Only DHW draws, pump on",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:6314"
+   "custom_components/heatpump_optimizer/optimizer.py:6314"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -363,7 +363,7 @@
   "verdict": "true",
   "claim": "No plan / pre-horizon do-nothing action",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:6254"
+   "custom_components/heatpump_optimizer/optimizer.py:6254"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -376,7 +376,7 @@
   "verdict": "true",
   "claim": "Planned power 40-70% of max",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:6320"
+   "custom_components/heatpump_optimizer/optimizer.py:6320"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -389,10 +389,11 @@
   "verdict": "true",
   "claim": "Plan books no heat / off mode",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:6312"
+   "custom_components/heatpump_optimizer/optimizer.py:6306",
+   "custom_components/heatpump_optimizer/optimizer.py:6314-6315"
   ],
   "truth": "",
-  "judged_by": "judge seat",
+  "judged_by": "judge seat; evidence re-anchored to code by the fixer",
   "fixed": false
  },
  {
@@ -415,7 +416,7 @@
   "verdict": "true",
   "claim": "System-identification experiment running",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/coordinator.py:11119"
+   "custom_components/heatpump_optimizer/coordinator.py:11119"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -428,7 +429,7 @@
   "verdict": "true",
   "claim": "No-data fallback",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:873"
+   "custom_components/heatpump_optimizer/sensor.py:873"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -507,7 +508,7 @@
   "verdict": "true",
   "claim": "Measured electrical draw from a meter entity",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1657"
+   "custom_components/heatpump_optimizer/sensor.py:1657"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -685,10 +686,11 @@
   "verdict": "true",
   "claim": "Dominant spend is steps priced in cheapest 35%",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2043"
+   "custom_components/heatpump_optimizer/optimizer.py:2012",
+   "custom_components/heatpump_optimizer/optimizer.py:2035-2036"
   ],
   "truth": "",
-  "judged_by": "judge seat",
+  "judged_by": "judge seat; evidence re-anchored to code by the fixer",
   "fixed": false
  },
  {
@@ -698,7 +700,7 @@
   "verdict": "true",
   "claim": "Steps at/within 0.15 C of minimum temperature",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2033"
+   "custom_components/heatpump_optimizer/optimizer.py:2033"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -711,8 +713,8 @@
   "verdict": "false",
   "claim": "Dominant spend is DHW charging while electricity is cheap",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2092",
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2086"
+   "custom_components/heatpump_optimizer/optimizer.py:2092",
+   "custom_components/heatpump_optimizer/optimizer.py:2086"
   ],
   "truth": "Fall-through for any DHW run outside demand window, not ready, not legionella; price is never consulted",
   "judged_by": "judge seat",
@@ -725,7 +727,7 @@
   "verdict": "true",
   "claim": "DHW run flagged ready-for-demand",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2086"
+   "custom_components/heatpump_optimizer/optimizer.py:2086"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -738,7 +740,7 @@
   "verdict": "false",
   "claim": "Hot water needed now",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2089"
+   "custom_components/heatpump_optimizer/optimizer.py:2089"
   ],
   "truth": "Tags any horizon step inside a DHW demand window, not only the current step; state is the dominant reason across the whole plan",
   "judged_by": "judge seat",
@@ -751,7 +753,7 @@
   "verdict": "true",
   "claim": "Plan idle, no specific cause",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1941"
+   "custom_components/heatpump_optimizer/optimizer.py:1941"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -764,7 +766,7 @@
   "verdict": "true",
   "claim": "Idle with temperature above floor+0.15",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1950"
+   "custom_components/heatpump_optimizer/optimizer.py:1950"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -777,7 +779,7 @@
   "verdict": "true",
   "claim": "Idle at price above every price the channel ran at",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1956"
+   "custom_components/heatpump_optimizer/optimizer.py:1956"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -790,7 +792,7 @@
   "verdict": "true",
   "claim": "Idle where cap leaves no room",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1966"
+   "custom_components/heatpump_optimizer/optimizer.py:1966"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -803,7 +805,7 @@
   "verdict": "true",
   "claim": "Idle where other channel draws",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1967"
+   "custom_components/heatpump_optimizer/optimizer.py:1967"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -816,7 +818,7 @@
   "verdict": "true",
   "claim": "Idle waiting for coming solar surplus",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1965"
+   "custom_components/heatpump_optimizer/optimizer.py:1965"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -829,7 +831,7 @@
   "verdict": "true",
   "claim": "Anti-legionella step",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2083"
+   "custom_components/heatpump_optimizer/optimizer.py:2083"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -842,7 +844,7 @@
   "verdict": "true",
   "claim": "Step pinned by user's manual plan",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2188"
+   "custom_components/heatpump_optimizer/optimizer.py:2188"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -855,7 +857,7 @@
   "verdict": "true",
   "claim": "Heat-loss factor >1.1 (colder weather)",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2046"
+   "custom_components/heatpump_optimizer/optimizer.py:2046"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -868,7 +870,7 @@
   "verdict": "true",
   "claim": "Step relabelled blocked by pump operating mode",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2147"
+   "custom_components/heatpump_optimizer/optimizer.py:2147"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -881,7 +883,7 @@
   "verdict": "true",
   "claim": "Ordinary step holding house at target",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2051"
+   "custom_components/heatpump_optimizer/optimizer.py:2051"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -894,7 +896,7 @@
   "verdict": "true",
   "claim": "Step with solar surplus >0",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2035"
+   "custom_components/heatpump_optimizer/optimizer.py:2035"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -907,10 +909,10 @@
   "verdict": "true",
   "claim": "Last ~8% of horizon steps",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2038"
+   "custom_components/heatpump_optimizer/optimizer.py:2029-2030"
   ],
   "truth": "",
-  "judged_by": "judge seat",
+  "judged_by": "judge seat; evidence re-anchored to code by the fixer",
   "fixed": false
  },
  {
@@ -920,7 +922,7 @@
   "verdict": "true",
   "claim": "No plan reason covers the draw",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/narrative.py:63"
+   "custom_components/heatpump_optimizer/narrative.py:63"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1010,7 +1012,7 @@
   "verdict": "true",
   "claim": "Slab temperature is an estimate (integrated, not measured)",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:826"
+   "custom_components/heatpump_optimizer/sensor.py:826"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1056,8 +1058,8 @@
   "verdict": "true",
   "claim": "Lifetime accumulator, never reset",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1812",
-   "/home/user/wt/custom_components/heatpump_optimizer/coordinator.py:8419"
+   "custom_components/heatpump_optimizer/sensor.py:1812",
+   "custom_components/heatpump_optimizer/coordinator.py:8419"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1070,8 +1072,8 @@
   "verdict": "true",
   "claim": "Lifetime accumulator, never reset",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1812",
-   "/home/user/wt/custom_components/heatpump_optimizer/coordinator.py:8419"
+   "custom_components/heatpump_optimizer/sensor.py:1812",
+   "custom_components/heatpump_optimizer/coordinator.py:8419"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1084,8 +1086,8 @@
   "verdict": "true",
   "claim": "Covers the next 24 h planning horizon",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1629",
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2389"
+   "custom_components/heatpump_optimizer/sensor.py:1629",
+   "custom_components/heatpump_optimizer/optimizer.py:2389"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1120,8 +1122,8 @@
   "verdict": "true",
   "claim": "Lifetime accumulator, never reset",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1812",
-   "/home/user/wt/custom_components/heatpump_optimizer/coordinator.py:8419"
+   "custom_components/heatpump_optimizer/sensor.py:1812",
+   "custom_components/heatpump_optimizer/coordinator.py:8419"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1189,7 +1191,7 @@
   "verdict": "true",
   "claim": "Heat-loss learner has no evidence yet",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:2042"
+   "custom_components/heatpump_optimizer/sensor.py:2042"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1202,7 +1204,7 @@
   "verdict": "true",
   "claim": "Heat-loss learner has learned",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:2042"
+   "custom_components/heatpump_optimizer/sensor.py:2042"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1215,7 +1217,7 @@
   "verdict": "true",
   "claim": "COP health alarm raised",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:2041"
+   "custom_components/heatpump_optimizer/sensor.py:2041"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1228,8 +1230,8 @@
   "verdict": "true",
   "claim": "Source of the maximum the plan booked",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:637",
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:2094"
+   "custom_components/heatpump_optimizer/draw_range.py:637",
+   "custom_components/heatpump_optimizer/sensor.py:2094"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1242,10 +1244,10 @@
   "verdict": "true",
   "claim": "Configured maximum used",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:655"
+   "custom_components/heatpump_optimizer/draw_range.py:656-665"
   ],
   "truth": "",
-  "judged_by": "judge seat",
+  "judged_by": "judge seat; evidence re-anchored to code by the fixer",
   "fixed": false
  },
  {
@@ -1255,7 +1257,7 @@
   "verdict": "true",
   "claim": "Maximum measured by ceiling probe",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:666"
+   "custom_components/heatpump_optimizer/draw_range.py:666"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1268,7 +1270,7 @@
   "verdict": "true",
   "claim": "Reason code for the maximum chosen",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:2095"
+   "custom_components/heatpump_optimizer/sensor.py:2095"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1281,7 +1283,7 @@
   "verdict": "true",
   "claim": "Plan writes power itself so meter echoes it",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:659"
+   "custom_components/heatpump_optimizer/draw_range.py:659"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1294,8 +1296,8 @@
   "verdict": "true",
   "claim": "Ceiling probe has fewer than 12 samples",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:663",
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:98"
+   "custom_components/heatpump_optimizer/draw_range.py:663",
+   "custom_components/heatpump_optimizer/draw_range.py:98"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1308,8 +1310,8 @@
   "verdict": "true",
   "claim": "Ceiling probe measurement older than 45 days",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:663",
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:172"
+   "custom_components/heatpump_optimizer/draw_range.py:663",
+   "custom_components/heatpump_optimizer/draw_range.py:172"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1322,8 +1324,8 @@
   "verdict": "true",
   "claim": "Measured max within 15% of configured",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:664",
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:64"
+   "custom_components/heatpump_optimizer/draw_range.py:664",
+   "custom_components/heatpump_optimizer/draw_range.py:64"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1336,8 +1338,8 @@
   "verdict": "true",
   "claim": "Measured max clearly below configured (>15%)",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:666",
-   "/home/user/wt/custom_components/heatpump_optimizer/draw_range.py:64"
+   "custom_components/heatpump_optimizer/draw_range.py:666",
+   "custom_components/heatpump_optimizer/draw_range.py:64"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1350,7 +1352,7 @@
   "verdict": "true",
   "claim": "Predicted next-interval room temperature",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/sensor.py:1979"
+   "custom_components/heatpump_optimizer/sensor.py:1979"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1385,7 +1387,7 @@
   "verdict": "true",
   "claim": "On when inputs stale or problematic",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/binary_sensor.py:100"
+   "custom_components/heatpump_optimizer/binary_sensor.py:100"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1398,7 +1400,7 @@
   "verdict": "true",
   "claim": "On when ventilation/open window detected",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/binary_sensor.py:140"
+   "custom_components/heatpump_optimizer/binary_sensor.py:140"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1411,7 +1413,7 @@
   "verdict": "true",
   "claim": "On when room is below mold-safe floor by margin",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/binary_sensor.py:228"
+   "custom_components/heatpump_optimizer/binary_sensor.py:228"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -1424,7 +1426,7 @@
   "verdict": "true",
   "claim": "On when wood fuel ready and cheaper than pump",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/binary_sensor.py:327"
+   "custom_components/heatpump_optimizer/binary_sensor.py:327"
   ],
   "truth": "",
   "judged_by": "judge seat",
@@ -11324,7 +11326,7 @@
    "custom_components/heatpump_optimizer/coordinator.py:1497-1500",
    "custom_components/heatpump_optimizer/strings.json:446"
   ],
-  "truth": "When the unload is refused the settings and learned stores are untouched, but the undo-point snapshot is already taken and saved (async_factory_reset docstring: \"False, only the undo point, if refused\"), so a snapshot was written. (the text is exceptions.factory_reset_not_applied, corrected there)",
+  "truth": "When the unload is refused the settings and learned stores are untouched, but the undo-point snapshot is already taken and saved (async_factory_reset docstring: \"False, only the undo point, if refused\"), so a snapshot was written. (the text is exceptions.factory_reset_not_applied, corrected there, and the raise's English fallback at services.py:1195-1197 corrected to the same sentence)",
   "judged_by": "judge seat",
   "fixed": true
  },
@@ -11341,7 +11343,7 @@
    "custom_components/heatpump_optimizer/coordinator.py:1497-1500",
    "custom_components/heatpump_optimizer/strings.json:446"
   ],
-  "truth": "When the unload is refused the settings and learned stores are untouched, but the undo-point snapshot is already taken and saved (async_factory_reset docstring: \"False, only the undo point, if refused\"), so a snapshot was written. (the text is exceptions.factory_reset_not_applied, corrected there)",
+  "truth": "When the unload is refused the settings and learned stores are untouched, but the undo-point snapshot is already taken and saved (async_factory_reset docstring: \"False, only the undo point, if refused\"), so a snapshot was written. (the text is exceptions.factory_reset_not_applied, corrected there, and the raise's English fallback at services.py:1195-1197 corrected to the same sentence)",
   "judged_by": "judge seat",
   "fixed": true
  },
@@ -11565,7 +11567,7 @@
   "verdict": "true",
   "claim": "Dominant spend is steps priced in cheapest 35%",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2043",
+   "custom_components/heatpump_optimizer/optimizer.py:2043",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11579,7 +11581,7 @@
   "verdict": "true",
   "claim": "Steps at/within 0.15 C of minimum temperature",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2033",
+   "custom_components/heatpump_optimizer/optimizer.py:2033",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11593,7 +11595,7 @@
   "verdict": "true",
   "claim": "Heat-loss factor >1.1 (colder weather)",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2046",
+   "custom_components/heatpump_optimizer/optimizer.py:2046",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11607,7 +11609,7 @@
   "verdict": "true",
   "claim": "Ordinary step holding house at target",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2051",
+   "custom_components/heatpump_optimizer/optimizer.py:2051",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11621,7 +11623,7 @@
   "verdict": "true",
   "claim": "Last ~8% of horizon steps",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2038",
+   "custom_components/heatpump_optimizer/optimizer.py:2038",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11635,7 +11637,7 @@
   "verdict": "true",
   "claim": "Step with solar surplus >0",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2035",
+   "custom_components/heatpump_optimizer/optimizer.py:2035",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11649,7 +11651,7 @@
   "verdict": "false",
   "claim": "Hot water needed now",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2089",
+   "custom_components/heatpump_optimizer/optimizer.py:2089",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "Tags any horizon step inside a DHW demand window, not only the current step; state is the dominant reason across the whole plan",
@@ -11663,7 +11665,7 @@
   "verdict": "true",
   "claim": "DHW run flagged ready-for-demand",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2086",
+   "custom_components/heatpump_optimizer/optimizer.py:2086",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11677,8 +11679,8 @@
   "verdict": "false",
   "claim": "Dominant spend is DHW charging while electricity is cheap",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2092",
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2086",
+   "custom_components/heatpump_optimizer/optimizer.py:2092",
+   "custom_components/heatpump_optimizer/optimizer.py:2086",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "Fall-through for any DHW run outside demand window, not ready, not legionella; price is never consulted",
@@ -11692,7 +11694,7 @@
   "verdict": "true",
   "claim": "Anti-legionella step",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2083",
+   "custom_components/heatpump_optimizer/optimizer.py:2083",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11706,7 +11708,7 @@
   "verdict": "true",
   "claim": "Step pinned by user's manual plan",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2188",
+   "custom_components/heatpump_optimizer/optimizer.py:2188",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11720,7 +11722,7 @@
   "verdict": "true",
   "claim": "Plan idle, no specific cause",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1941",
+   "custom_components/heatpump_optimizer/optimizer.py:1941",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11734,7 +11736,7 @@
   "verdict": "true",
   "claim": "Idle where other channel draws",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1967",
+   "custom_components/heatpump_optimizer/optimizer.py:1967",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11748,7 +11750,7 @@
   "verdict": "true",
   "claim": "Idle where cap leaves no room",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1966",
+   "custom_components/heatpump_optimizer/optimizer.py:1966",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11762,7 +11764,7 @@
   "verdict": "true",
   "claim": "Idle waiting for coming solar surplus",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1965",
+   "custom_components/heatpump_optimizer/optimizer.py:1965",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11776,7 +11778,7 @@
   "verdict": "true",
   "claim": "Idle at price above every price the channel ran at",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1956",
+   "custom_components/heatpump_optimizer/optimizer.py:1956",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11790,7 +11792,7 @@
   "verdict": "true",
   "claim": "Idle with temperature above floor+0.15",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1950",
+   "custom_components/heatpump_optimizer/optimizer.py:1950",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11804,7 +11806,7 @@
   "verdict": "true",
   "claim": "Step relabelled blocked by pump operating mode",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2147",
+   "custom_components/heatpump_optimizer/optimizer.py:2147",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11818,7 +11820,7 @@
   "verdict": "true",
   "claim": "No plan reason covers the draw",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/narrative.py:63",
+   "custom_components/heatpump_optimizer/narrative.py:63",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11832,7 +11834,7 @@
   "verdict": "true",
   "claim": "Dominant spend is steps priced in cheapest 35%",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2043",
+   "custom_components/heatpump_optimizer/optimizer.py:2043",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11846,7 +11848,7 @@
   "verdict": "true",
   "claim": "Steps at/within 0.15 C of minimum temperature",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2033",
+   "custom_components/heatpump_optimizer/optimizer.py:2033",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11860,7 +11862,7 @@
   "verdict": "true",
   "claim": "Heat-loss factor >1.1 (colder weather)",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2046",
+   "custom_components/heatpump_optimizer/optimizer.py:2046",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11874,7 +11876,7 @@
   "verdict": "true",
   "claim": "Ordinary step holding house at target",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2051",
+   "custom_components/heatpump_optimizer/optimizer.py:2051",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11888,7 +11890,7 @@
   "verdict": "true",
   "claim": "Last ~8% of horizon steps",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2038",
+   "custom_components/heatpump_optimizer/optimizer.py:2038",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11902,7 +11904,7 @@
   "verdict": "true",
   "claim": "Step with solar surplus >0",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2035",
+   "custom_components/heatpump_optimizer/optimizer.py:2035",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11916,7 +11918,7 @@
   "verdict": "false",
   "claim": "Hot water needed now",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2089",
+   "custom_components/heatpump_optimizer/optimizer.py:2089",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "Tags any horizon step inside a DHW demand window, not only the current step; state is the dominant reason across the whole plan",
@@ -11930,7 +11932,7 @@
   "verdict": "true",
   "claim": "DHW run flagged ready-for-demand",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2086",
+   "custom_components/heatpump_optimizer/optimizer.py:2086",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11944,8 +11946,8 @@
   "verdict": "false",
   "claim": "Dominant spend is DHW charging while electricity is cheap",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2092",
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2086",
+   "custom_components/heatpump_optimizer/optimizer.py:2092",
+   "custom_components/heatpump_optimizer/optimizer.py:2086",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "Fall-through for any DHW run outside demand window, not ready, not legionella; price is never consulted",
@@ -11959,7 +11961,7 @@
   "verdict": "true",
   "claim": "Anti-legionella step",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2083",
+   "custom_components/heatpump_optimizer/optimizer.py:2083",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11973,7 +11975,7 @@
   "verdict": "true",
   "claim": "Step pinned by user's manual plan",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2188",
+   "custom_components/heatpump_optimizer/optimizer.py:2188",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -11987,7 +11989,7 @@
   "verdict": "true",
   "claim": "Plan idle, no specific cause",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1941",
+   "custom_components/heatpump_optimizer/optimizer.py:1941",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12001,7 +12003,7 @@
   "verdict": "true",
   "claim": "Idle where other channel draws",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1967",
+   "custom_components/heatpump_optimizer/optimizer.py:1967",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12015,7 +12017,7 @@
   "verdict": "true",
   "claim": "Idle where cap leaves no room",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1966",
+   "custom_components/heatpump_optimizer/optimizer.py:1966",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12029,7 +12031,7 @@
   "verdict": "true",
   "claim": "Idle waiting for coming solar surplus",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1965",
+   "custom_components/heatpump_optimizer/optimizer.py:1965",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12043,7 +12045,7 @@
   "verdict": "true",
   "claim": "Idle at price above every price the channel ran at",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1956",
+   "custom_components/heatpump_optimizer/optimizer.py:1956",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12057,7 +12059,7 @@
   "verdict": "true",
   "claim": "Idle with temperature above floor+0.15",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1950",
+   "custom_components/heatpump_optimizer/optimizer.py:1950",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12071,7 +12073,7 @@
   "verdict": "true",
   "claim": "Step relabelled blocked by pump operating mode",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2147",
+   "custom_components/heatpump_optimizer/optimizer.py:2147",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12085,7 +12087,7 @@
   "verdict": "true",
   "claim": "No plan reason covers the draw",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/narrative.py:63",
+   "custom_components/heatpump_optimizer/narrative.py:63",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12099,7 +12101,7 @@
   "verdict": "true",
   "claim": "Dominant spend is steps priced in cheapest 35%",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2043",
+   "custom_components/heatpump_optimizer/optimizer.py:2043",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12113,7 +12115,7 @@
   "verdict": "true",
   "claim": "Steps at/within 0.15 C of minimum temperature",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2033",
+   "custom_components/heatpump_optimizer/optimizer.py:2033",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12127,7 +12129,7 @@
   "verdict": "true",
   "claim": "Heat-loss factor >1.1 (colder weather)",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2046",
+   "custom_components/heatpump_optimizer/optimizer.py:2046",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12141,7 +12143,7 @@
   "verdict": "true",
   "claim": "Ordinary step holding house at target",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2051",
+   "custom_components/heatpump_optimizer/optimizer.py:2051",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12155,7 +12157,7 @@
   "verdict": "true",
   "claim": "Last ~8% of horizon steps",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2038",
+   "custom_components/heatpump_optimizer/optimizer.py:2038",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12169,7 +12171,7 @@
   "verdict": "true",
   "claim": "Step with solar surplus >0",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2035",
+   "custom_components/heatpump_optimizer/optimizer.py:2035",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12183,7 +12185,7 @@
   "verdict": "false",
   "claim": "Hot water needed now",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2089",
+   "custom_components/heatpump_optimizer/optimizer.py:2089",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "Tags any horizon step inside a DHW demand window, not only the current step; state is the dominant reason across the whole plan",
@@ -12197,7 +12199,7 @@
   "verdict": "true",
   "claim": "DHW run flagged ready-for-demand",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2086",
+   "custom_components/heatpump_optimizer/optimizer.py:2086",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12211,8 +12213,8 @@
   "verdict": "false",
   "claim": "Dominant spend is DHW charging while electricity is cheap",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2092",
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2086",
+   "custom_components/heatpump_optimizer/optimizer.py:2092",
+   "custom_components/heatpump_optimizer/optimizer.py:2086",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "Fall-through for any DHW run outside demand window, not ready, not legionella; price is never consulted",
@@ -12226,7 +12228,7 @@
   "verdict": "true",
   "claim": "Anti-legionella step",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2083",
+   "custom_components/heatpump_optimizer/optimizer.py:2083",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12240,7 +12242,7 @@
   "verdict": "true",
   "claim": "Step pinned by user's manual plan",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2188",
+   "custom_components/heatpump_optimizer/optimizer.py:2188",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12254,7 +12256,7 @@
   "verdict": "true",
   "claim": "Plan idle, no specific cause",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1941",
+   "custom_components/heatpump_optimizer/optimizer.py:1941",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12268,7 +12270,7 @@
   "verdict": "true",
   "claim": "Idle where other channel draws",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1967",
+   "custom_components/heatpump_optimizer/optimizer.py:1967",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12282,7 +12284,7 @@
   "verdict": "true",
   "claim": "Idle where cap leaves no room",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1966",
+   "custom_components/heatpump_optimizer/optimizer.py:1966",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12296,7 +12298,7 @@
   "verdict": "true",
   "claim": "Idle waiting for coming solar surplus",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1965",
+   "custom_components/heatpump_optimizer/optimizer.py:1965",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12310,7 +12312,7 @@
   "verdict": "true",
   "claim": "Idle at price above every price the channel ran at",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1956",
+   "custom_components/heatpump_optimizer/optimizer.py:1956",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12324,7 +12326,7 @@
   "verdict": "true",
   "claim": "Idle with temperature above floor+0.15",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:1950",
+   "custom_components/heatpump_optimizer/optimizer.py:1950",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12338,7 +12340,7 @@
   "verdict": "true",
   "claim": "Step relabelled blocked by pump operating mode",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/optimizer.py:2147",
+   "custom_components/heatpump_optimizer/optimizer.py:2147",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
@@ -12352,7 +12354,7 @@
   "verdict": "true",
   "claim": "No plan reason covers the draw",
   "evidence": [
-   "/home/user/wt/custom_components/heatpump_optimizer/narrative.py:63",
+   "custom_components/heatpump_optimizer/narrative.py:63",
    "custom_components/heatpump_optimizer/narrative.py:206"
   ],
   "truth": "",
