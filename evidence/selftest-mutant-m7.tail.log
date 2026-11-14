@@ -1,0 +1,40 @@
+  ok   and handoff_arm still ran once per pass
+  ok   the pass leaves no listing file behind
+  ok   one pass under --confirm lists the open PRs once (handoff_arm and confirm_arm reuse the listing)
+  ok   null control: a lone handoff_arm lists for itself, once
+  ok   a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)
+  ok   a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does
+  ok   with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order
+  ok   a TERM to the relay's whole process group reaches the update only through the relay's reap, which TERMs it alone first
+  ok   a KILL to the relay's whole process group leaves the in-flight update to finish under its own lock
+  ok   a held branch lock aged 901 s by its recorded start is STUCK, naming branch, run pid and age
+  ok   and it is push-stuck on the level, where the tick reads it
+  ok   a held lock aged 899 s is not reported
+  ok   a released lock aged 5000 s is not reported, whatever its text
+  ok   once every lock is released nothing is reported, and the level holds no push-stuck line
+  ok   a fixer dispatched 3 h ago with no return ref is SEAT ENDED NO RETURN (P-E)
+  ok   and owed seat-no-return on the level
+  ok   a seat whose handoff-wip moved after its dispatch is not reported (null control: it returned)
+  ok   a seat whose pull request's head moved after its dispatch is not reported
+  ok   a dispatch younger than the bound is not reported
+  ok   a dispatch past the window is not reported (its refs may be gone with a merged branch)
+  ok   a return ref older than the dispatch (an earlier round's) does not count as a return
+  ok   a seat that returned only on handoff/<topic>-p1 after its dispatch is not reported (topic family)
+  ok   a bare -<N> topic is no family member: handoff/r10-roster-ops-2 moving still fires r10-roster-ops
+  ok   a sibling topic is no family member by prefix: handoff/r10-deeplink-census moving still fires r10-deeplink
+  ok   null control: a family that moved nothing since the dispatch still fires
+  ok   deleting the dispatch ref takes its line off the level (the disposal)
+  ok   a pass runs the no-return arm
+  ok   a CARRY-LANDED-only block is folded by carry_fold.py on the kept body
+  ok   ... and body_push.sh re-runs on the same body
+  ok   ... and the arm says FOLDED
+  ok   a folded body is not folded twice (same topic and body sha)
+  ok   null control: CARRY-LANDED plus another refusal folds nothing
+  ok   ... runs no body_push.sh
+  ok   ... and prints its tick line naming both kinds
+  ok   ... which is on the level
+  ok   a block with no refusal line folds nothing and prints its line
+  ok   ... and ran no fold
+  ok   a fold that fails (rc 1) re-runs no body_push.sh and stays owed
+  ok   ... with no body_push
+cloud_relay self-test: 422 checks, 0 failed

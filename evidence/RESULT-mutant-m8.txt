@@ -1,4 +1,2 @@
-RESULT m8 KILLED rc=1 failed=1
-  FAIL pass --confirm runs the arms probe, confirm, handoff, carry_fold, stuck, noreturn in that order (rc=1, want 0)
-  ok   ... with no body_push
-cloud_relay self-test: 424 checks, 1 failed
+MUTANT m8: SURVIVED rc=0
+cloud_relay self-test: 422 checks, 0 failed

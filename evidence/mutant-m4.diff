@@ -1,5 +1,5 @@
 diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
-index bbc270045..8bda54ab5 100644
+index c30bbc57a..8b9fd76c5 100644
 --- a/tools/audit/seat/cloud_relay.sh
 +++ b/tools/audit/seat/cloud_relay.sh
 @@ -430,7 +430,7 @@ confirm_arm() { # one pass over review/* tips the relay delivered: confirm each

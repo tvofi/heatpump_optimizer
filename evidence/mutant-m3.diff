@@ -1,5 +1,5 @@
 diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
-index bbc270045..d18bac983 100644
+index c30bbc57a..e7548c7a0 100644
 --- a/tools/audit/seat/cloud_relay.sh
 +++ b/tools/audit/seat/cloud_relay.sh
 @@ -586,7 +586,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
