@@ -27289,7 +27289,8 @@
     "commit": null,
     "last_step": "handed off: handoff/r10-rca-features-weekend-clock e9974b7b",
     "next_step": "open the record pull request, sonnet review, merge with the next record batch",
-    "note": "queued 2026-11-14: the opener printed NEEDS-TITLE for the handoff because no group carried it"
+    "note": "queued 2026-11-14: the opener printed NEEDS-TITLE for the handoff because no group carried it",
+    "pr": 3583
    }
   }
  ]
