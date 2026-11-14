@@ -87,6 +87,12 @@ ROWS (the job table's `interval_s` in brackets):
                      `S/open-driver/`); its `OWED ... open-refused`,
                      `NEEDS-TITLE`, `STARVED` and `STUCK` lines, STUCK also
                      to events.txt.
+  loop-cwd [900]     the long-lived loops outside the job table, named by the overlay's
+                     `loop_cwd_patterns` (`pgrep -f` patterns): per pid `lsof -a -p <pid> -d cwd
+                     -Fin`, then `stat` of the named path. A differing inode or a path that
+                     does not resolve gives `DEAD <name> pid=<p> cwd gone`; an `lsof` that
+                     returns nothing gives `UNREADABLE`, never DEAD. Inodes, never only the
+                     path: `lsof` keeps the old path and a recreated checkout resolves.
   head-watch [120]   open pull-request heads from the API against heads.tsv.
   audit-dispatch [1800] review_strength.py `--fetch --guardrail`; each arm line
                      that reads `would-trip` gives one `DISPATCH: planted-defect-audit
@@ -133,7 +139,8 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
-        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch", "outside-intake", "bottleneck", "scorecard")
+        "cancel-sweep", "disk", "opener", "loop-cwd", "head-watch", "audit-dispatch", "outside-intake", "bottleneck",
+        "scorecard")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: roster-drain starts no op past this many seconds into a pass; the rest wait for the next pass. At
 #: most half the row's timeout_s in beatd.jobs.json (the self-test pins it), so an op started just
@@ -555,6 +562,29 @@ def opener(ctx: Ctx) -> None:
     write_job(ctx, "opener", lines)
 
 
+def loop_cwd(ctx: Ctx) -> None:
+    got = ctx.need("loop-cwd", "loop_cwd_patterns")
+    if got is None:
+        return
+    pats = ctx.overlay["loop_cwd_patterns"]
+    lines = []
+    for name in (pats if isinstance(pats, list) else [pats]):
+        _, out, _ = ctx.run(["pgrep", "-f", str(name)], ctx.repo, ctx.env)
+        for pid in (p for p in out.split() if p.isdigit() and int(p) != os.getpid()):
+            _, lo, _ = ctx.run(["lsof", "-a", "-p", pid, "-d", "cwd", "-Fin"], ctx.repo, ctx.env)
+            fields = {ln[0]: ln[1:] for ln in lo.splitlines() if ln[:1] in ("i", "n")}
+            if not (fields.get("i", "").isdigit() and fields.get("n")):
+                lines.append(f"loop-cwd: UNREADABLE {name} pid={pid} lsof returned no cwd")
+                continue
+            try:
+                now = os.stat(fields["n"].removesuffix(" (deleted)")).st_ino  # lsof marks a removed cwd; the path may still resolve
+            except OSError:
+                now = None
+            if now != int(fields["i"]):
+                lines.append(f"DEAD {name} pid={pid} cwd gone")
+    write_job(ctx, "loop-cwd", lines)
+
+
 def head_watch(ctx: Ctx) -> None:
     got = ctx.need("head-watch", "repo")
     if got is None:
@@ -649,7 +679,7 @@ def scorecard(ctx: Ctx) -> None:
 
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
-       "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
+       "opener": opener, "loop-cwd": loop_cwd, "head-watch": head_watch, "audit-dispatch": audit_dispatch,
        "outside-intake": outside_intake, "bottleneck": bottleneck, "scorecard": scorecard}
 
 

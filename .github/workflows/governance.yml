@@ -1040,6 +1040,14 @@ jobs:
           python3 -I tools/audit/seat/open_driver.py --self-test | tee "$RUNNER_TEMP/open-driver-self-test.txt"
           grep -Eq '^open_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-driver-self-test.txt"
 
+      - name: Show the seat generation token and session lock refusing their own fixtures
+        id: seat-gen
+        if: ${{ !cancelled() && steps.scope.outputs.seat-gen == 'true' }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/seat_gen.py --self-test | tee "$RUNNER_TEMP/seat-gen-self-test.txt"
+          grep -Eq '^seat_gen self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-gen-self-test.txt"
+
       - name: Show the proof watcher refusing its own fixtures
         id: proof-watcher
         if: ${{ !cancelled() && steps.scope.outputs.proof-watcher == 'true' }}
@@ -1734,6 +1742,8 @@ jobs:
             'tools/audit/seat/ref_privacy.py' \
             'tools/audit/seat/record_row.py' \
             'tools/audit/seat/roster_lib.py' \
+            'tools/audit/seat/seat_gen.py' \
+            'tools/audit/seat/seat_gen_selftest.py' \
             'tools/audit/seat/tmp_paths.py' \
             'tools/policy/*.mjs' \
             'tools/policy/*.py' \

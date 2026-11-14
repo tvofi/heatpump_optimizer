@@ -15,6 +15,10 @@ import collections
 import importlib.util
 import json
 import os
+import shutil
+import subprocess
+import sys
+import time
 import tempfile
 from pathlib import Path
 
@@ -773,6 +777,47 @@ def cases(bj) -> dict[str, bool]:
     res["cancel-sweep: a non-zero exit is a line, never silence, and gets --repo"] = (
         digest(c) == "cancel-sweep: rc=1: boom\n" and arg(a, "--repo") == "o/r")
 
+    # loop-cwd: a real child process per arm; lsof and pgrep are the real edges
+    def loop_arm(act):
+        import shutil as _sh
+        import signal as _sg
+        import uuid as _uu
+        tag = "loopcwd-" + _uu.uuid4().hex
+        wd = root / ("lc-" + tag)
+        wd.mkdir()
+        kid = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)", tag], cwd=wd)
+        try:
+            for _ in range(100):  # the child's argv is visible once it has exec'd
+                if subprocess.run(["pgrep", "-f", tag], capture_output=True).stdout.split():
+                    break
+                time.sleep(0.05)
+            act(wd)
+            c, _ = fresh(overlay={"loop_cwd_patterns": [tag]})
+            c = bj.Ctx(c.state, root, run=bj.sh)
+            bj.loop_cwd(c)
+            return digest(c), tag, kid.pid
+        finally:
+            kid.send_signal(_sg.SIGKILL)
+            kid.wait()
+            _sh.rmtree(wd, ignore_errors=True)
+
+    d, tag, pid = loop_arm(lambda wd: None)
+    res["loop-cwd null: a loop whose directory is live writes nothing"] = d == ""
+    d, tag, pid = loop_arm(lambda wd: shutil.rmtree(wd))
+    res["loop-cwd: a removed directory writes DEAD"] = d == f"DEAD {tag} pid={pid} cwd gone\n"
+    d, tag, pid = loop_arm(lambda wd: (shutil.rmtree(wd), wd.mkdir()))
+    res["loop-cwd: a directory recreated at the same path writes DEAD"] = d == f"DEAD {tag} pid={pid} cwd gone\n"
+    c, f = fresh(overlay={"repo": "o/r"})
+    bj.loop_cwd(c)
+    res["loop-cwd: a lacking overlay key prints UNREADABLE"] = digest(c) == "loop-cwd: UNREADABLE overlay lacks loop_cwd_patterns\n"
+    c, f = fresh(overlay={"loop_cwd_patterns": ["x"]}, answers={"pgrep": (0, "4242\n", ""), "lsof": (0, "", "")})
+    bj.loop_cwd(c)
+    res["loop-cwd: an lsof that returns nothing is UNREADABLE, never DEAD"] = (
+        digest(c) == "loop-cwd: UNREADABLE x pid=4242 lsof returned no cwd\n")
+    c, f = fresh(overlay={"loop_cwd_patterns": ["x"]}, answers={"pgrep": (1, "", "")})
+    bj.loop_cwd(c)
+    res["loop-cwd null: a process absent from pgrep is no line"] = not files(c)
+
     # disk
     c, f = fresh(free=lambda: 50.0)
     bj.disk(c)
@@ -1130,6 +1175,11 @@ MUTANTS = {
                                   "gantt: a handoff-wip tip is fetched and reaches sweep_gantt beside the handoff tip"),
     "gantt_ledger_not_copied": ('read(Path(str(ledger))) if ledger else ""', '""',
                                 "gantt: the fire ledger is copied whole for sweep_gantt (null: no fire_ledger copies nothing)"),
+    "loop_path_only": ('            if now != int(fields["i"]):', '            if now is None:',
+                       "loop-cwd: a directory recreated at the same path writes DEAD"),
+    "loop_lsof_empty_dead": ('                lines.append(f"loop-cwd: UNREADABLE {name} pid={pid} lsof returned no cwd")\n                continue',
+                             '                lines.append(f"DEAD {name} pid={pid} cwd gone")\n                continue',
+                             "loop-cwd: an lsof that returns nothing is UNREADABLE, never DEAD"),
     "fold_counter_to_set": ("    was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())",
                             "    was, now = collections.Counter(set(old.splitlines())), collections.Counter(set(text.splitlines()))",
                             "fold: a duplicated line is one more line, new.txt and a new stamp"),

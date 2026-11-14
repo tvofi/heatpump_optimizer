@@ -589,6 +589,11 @@ INERT_EXCEPT = (
     # CI's closures-autofix refused: INERT and read. Same route as the files below:
     # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
     "tools/audit/seat/orchestrator_tick.py",
+    # R10-SEAT-IDENTITY-P5: tests/entities.py reads the seat generator and its
+    # self-test (both added by this group). Same route as orchestrator_tick.py:
+    # tools/audit/seat/ stays INERT, these two join the recorded closure.
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/seat_gen_selftest.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",

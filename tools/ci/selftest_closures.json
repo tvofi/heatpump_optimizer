@@ -4896,6 +4896,25 @@
    "objects": false,
    "git": []
   },
+  "seat-gen": {
+   "run_sha": "bdcf3a8fb40688838be502bc2e91f3d6250b8420289aa407f59c96000492e77d",
+   "files": [
+    "tools/audit/seat/seat_gen.py",
+    "tools/audit/seat/seat_gen_selftest.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "open-pr": {
    "run_sha": "2e72b01d52ab1335bcc6a6db4394748eb22981395369e23d9d38c81e856bc2a4",
    "files": [

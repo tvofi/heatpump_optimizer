@@ -1699,6 +1699,12 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
     Carry 15: a record pull request outside a `--stamp` add is HELD-FOR-STAMP,
     rc 0, nothing added. Carry 14: a started train's first batch is every
     ready pull request (`Train.ready_batch`; <ready>, the sweep's queue)."""
+    if os.environ.get("HPO_SEAT_GEN"):  # a superseded seat's lingering job adds nothing
+        import seat_gen
+        gen_rc, gen_msg = seat_gen.check_env()
+        if gen_rc:
+            t.log(f"ADD REFUSED #{item.get('pr')} {gen_msg}")
+            return 1
     pr = item.get("pr")
     stamp_why = t.held_for_stamp(int(pr)) if str(pr).isdigit() else None
     if stamp_why:
@@ -10123,6 +10129,24 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
         rc = train_add(live, {"pr": 14, "verdict": H, "verdict_comment": "42"}, ["train.sh"])
         check("P112 null: a plain add appends last",
               rc == 0 and [e["pr"] for e in spool_read(st)[0]] == [13, 11, 12, 14])
+        gd = Path(tempfile.mkdtemp(dir=st.parent))
+        (gd / "roster.gen").write_text("2 1\n")
+        st_g = spool3()
+        (st_g / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
+        spooled0 = lines_of(st_g)
+        os.environ.update(HPO_STATE_DIR=str(gd), HPO_SEAT_GEN="roster=1")
+        try:
+            gsaid: list[str] = []
+            live_g = Train("o/r", st_g, None, "", (), 1, run=stub({"pr": 17}), log=gsaid.append)
+            rc = train_add(live_g, {"pr": 17, "verdict": H, "verdict_comment": "42"}, ["train.sh"])
+            check("seat_gen: an add under a superseded HPO_SEAT_GEN is refused rc 1 and spools nothing",
+                  rc == 1 and lines_of(st_g) == spooled0 and "SUPERSEDED roster gen=1 held=2" in gsaid[-1])
+            os.environ["HPO_SEAT_GEN"] = "roster=2"
+            rc = train_add(live_g, {"pr": 17, "verdict": H, "verdict_comment": "42"}, ["train.sh"])
+            check("seat_gen null: an add under the current generation spools as before",
+                  rc == 0 and len(lines_of(st_g)) == len(spooled0) + 1)
+        finally:
+            del os.environ["HPO_SEAT_GEN"], os.environ["HPO_STATE_DIR"]
         said: list[str] = []
         live = Train("o/r", st, None, "", (), 1, run=stub({"pr": 15}), log=said.append)
         rc = train_add(live, {"pr": 15, "verdict": H, "verdict_comment": "42"}, ["train.sh"], front=True)

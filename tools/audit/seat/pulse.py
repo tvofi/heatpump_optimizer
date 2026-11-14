@@ -291,6 +291,12 @@ def judge_alive(a: dict | None, ledger: dict | None, now: float, seat: str) -> t
         newest = newest_launch(ledger, seat)
         if fresh[0] != newest:
             return "STOPPED", f"FOREIGN {seat}: {fresh[0]} (newest launch {newest or 'none'})"
+        gen_t = a.get("gen_t")
+        launched = max((t for t, n, r in ledger["launches"] if n == newest), default=None)
+        if gen_t is not None and launched is not None and launched < gen_t:
+            # seat_gen.py bump ran after this launch and no replacement is launched yet:
+            # the fresh beat is the superseded seat's own pass, which DUPLICATE (two fresh ids) cannot see.
+            return "STOPPED", f"SUPERSEDED {seat}: {fresh[0]} still beats; launched {(gen_t - launched) / 60:.0f} min before the gen bump"
     return "ok", f"seat {seat}: beat {age / 60:.0f} min ago by {fresh[0]}"
 
 
@@ -466,7 +472,12 @@ def read_alive(spec: str) -> tuple[str, dict | None]:
                 ids[e.name] = int(e.stat().st_mtime)
             except OSError:
                 pass
-    return seat, {"role_t": role_t, "ids": ids, "cadence_min": float(mins) if mins else None}
+    out = {"role_t": role_t, "ids": ids, "cadence_min": float(mins) if mins else None}
+    sd = os.environ.get("HPO_STATE_DIR")
+    if sd:  # the generation token seat_gen.py bump wrote: `<n> <epoch>`
+        try: out["gen_t"] = int((Path(sd) / f"{seat}.gen").read_text().split()[1])
+        except (OSError, ValueError, IndexError): pass
+    return seat, out
 
 
 def read_ledger(path: str) -> dict:
@@ -761,6 +772,11 @@ def self_test() -> int:
     check("a role with every launch stopped has no newest: its fresh id is FOREIGN (newest launch none)",
           one(alive(1, {"new": 1}), {"launches": L["launches"], "stops": ["old", "new"]})[1]
           == "FOREIGN merge: new (newest launch none)")
+    gl = lambda gt, ids=None: one({"seat_alives": {"merge": {**alive(1, ids or {"new": 1})["seat_alives"]["merge"], "gen_t": gt}}}, L)
+    check("a gen bump after the newest launch, with that launch still beating, is SUPERSEDED (DUPLICATE sees one id)",
+          gl(now - 1 * H) == ("STOPPED", "SUPERSEDED merge: new still beats; launched 120 min before the gen bump"))
+    check("null control: a gen bump before the newest launch is ok", gl(now - 4 * H)[0] == "ok")
+    check("null control: no gen token is ok", one(alive(1, {"new": 1}), L)[0] == "ok")
     check("an unreadable launch ledger is UNREADABLE", one(alive(1, {"new": 1}), {"launches": None, "stops": []})[0] == "UNREADABLE")
     with tempfile.TemporaryDirectory() as td:
         t = Path(td)
@@ -784,6 +800,12 @@ def self_test() -> int:
                                "--repo", "x/y", "--checkout", td], capture_output=True, text=True)
         check("the CLI accepts --seat-alive and --launch-ledger and prints a seat-alive-merge arm",
               "PULSE seat-alive-merge" in live.stdout)
+        (t / "merge.gen").write_text(f"2 {int(time.time())}\n")  # seat_gen.py bump's `<n> <epoch>`, after every launch
+        gen = subprocess.run([sys.executable, "-I", __file__, "--seat-alive", f"merge={af}", "--launch-ledger", str(lf),
+                              "--repo", "x/y", "--checkout", td], capture_output=True, text=True,
+                             env={**os.environ, "HPO_STATE_DIR": td})
+        check("the CLI reads $HPO_STATE_DIR/<seat>.gen: a bump after the newest launch prints SUPERSEDED",
+              "SUPERSEDED merge: new still beats" in gen.stdout and "SUPERSEDED" not in live.stdout)
         badseat = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(t / "none"), "--seat-alive", f"janitor={af}"],
                                  capture_output=True, text=True)
         check("--seat-alive refuses a seat no contract defines", badseat.returncode == 2 and "janitor" in badseat.stderr)
