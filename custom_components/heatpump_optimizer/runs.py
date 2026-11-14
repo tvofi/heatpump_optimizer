@@ -30,7 +30,7 @@ from typing import Any
 
 import numpy as np
 
-from .batchmath import row_sums
+from .batchmath import AFTER, BEFORE, row_sums
 from .thermal_model import MIN_RUNNING_DRAW_KW
 
 #: The shortest run and pause: the supply gate lets no write end a younger
@@ -81,7 +81,7 @@ def start_count_batch(total: np.ndarray, floor: float, running: bool = False) ->
     rows = np.asarray(total, dtype=float)
     through = np.empty_like(rows)
     through[:, 0] = 1.0 if running else 0.0
-    through[:, 1:] = running_share(rows, floor)[:, :-1]
+    through[AFTER] = running_share(rows, floor)[BEFORE]
     needs = np.clip(rows / MIN_RUNNING_DRAW_KW, 0.0, 1.0)
     count: np.ndarray = row_sums(needs * (1.0 - through))
     return count
@@ -133,7 +133,7 @@ def commit(
     want = np.full(n, np.nan) if forced is None else np.array(forced, dtype=float)[:n]
     want = np.where(np.isnan(want) & (cap < f - _SLACK), 0.0, want)
     level = np.minimum(np.maximum(q, f), cap)
-    price = np.asarray(prices, dtype=float)[:n]
+    price = np.broadcast_to(np.asarray(prices, dtype=float), (n,))
     quantum = f * dt / QUANTA_PER_STEP
     half = QUANTA_PER_STEP * int(band)
     fine = OUT_OF_BAND * max(float(np.max(np.abs(price))), 1e-6)

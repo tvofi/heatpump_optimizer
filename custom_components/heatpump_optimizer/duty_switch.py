@@ -452,6 +452,8 @@ class _Record:
     #: The both step whose legs were decided, and the legs, latched so
     #: neither the tick nor a re-solve inside the step flips them.
     order: tuple[datetime, duty_legs.Legs] | None = None
+    #: Whether the compressor ran as the last scheduled solve started (:func:`running_now`).
+    solved_running: bool = False
 
     def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
         """Hand a confirmed edge, if any, to the learner."""
@@ -562,34 +564,22 @@ def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float
     return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
 
 
-#: The running reading each pump's last scheduled solve started from.
-_SOLVED_RUNNING: WeakKeyDictionary[Any, bool] = WeakKeyDictionary()
-
-
-def running_now(coord: Any, action: Any) -> bool:
+def running_now(rec: _Record, action: Any) -> bool:
     """Whether the compressor runs as a scheduled solve starts, for the plan's start count.
 
     The tracker's settled class where a running signal is attached and has
     settled; otherwise the executing step's planned draw (``action``, the
     coordinator's current one) by the plan's own running rule. Never the
-    start counter, which follows one sample per interval. The reading is
-    kept for :func:`solved_running`.
+    start counter, which follows one sample per interval. The record keeps
+    the reading (``solved_running``) for a solve compared against that plan:
+    a what-if's start count stands beside the live plan's on the card, and
+    read afresh, a compressor that started in between would move it by one.
     """
-    rec = _RECORDS.get(coord)
-    running = rec.tracker.settled if rec is not None and rec.unsub is not None else None
+    running = rec.tracker.settled if rec.unsub is not None else None
     if running is None:
         running = planned_draw_runs(float(action.get("power", 0.0)), float(action.get("dhw_power", 0.0)))
-    _SOLVED_RUNNING[coord] = running
+    rec.solved_running = running
     return running
-
-
-def solved_running(coord: Any) -> bool:
-    """The reading the live plan was solved with, for a solve compared against it.
-
-    A what-if's start count stands beside the live plan's on the card: read
-    afresh, a compressor that started in between would move it by one.
-    """
-    return _SOLVED_RUNNING.get(coord, False)
 
 
 def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:

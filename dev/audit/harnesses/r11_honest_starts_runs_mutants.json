@@ -182,13 +182,13 @@
  {
   "name": "COORD_ARGUMENT",
   "file": "custom_components/heatpump_optimizer/coordinator.py",
-  "old": "            compressor_running=duty_switch.running_now(self, self._current_action),\n",
+  "old": "            compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),\n",
   "new": ""
  },
  {
   "name": "WHATIF_ARGUMENT",
   "file": "custom_components/heatpump_optimizer/coordinator.py",
-  "old": "            compressor_running=duty_switch.solved_running(self),\n",
+  "old": "            compressor_running=duty_switch.record_for(self).solved_running,\n",
   "new": ""
  },
  {
@@ -206,13 +206,13 @@
  {
   "name": "SETTLED_CLASS",
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "    running = rec.tracker.settled if rec is not None and rec.unsub is not None else None\n",
+  "old": "    running = rec.tracker.settled if rec.unsub is not None else None\n",
   "new": "    running = None\n"
  },
  {
   "name": "LATCH_READING",
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "    _SOLVED_RUNNING[coord] = running\n",
+  "old": "    rec.solved_running = running\n",
   "new": "    pass\n"
  },
  {

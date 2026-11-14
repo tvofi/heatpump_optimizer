@@ -74656,8 +74656,8 @@ R.check(
 # Which pair a solve descends on: the relaxed one where it plans runs (a start
 # has a price, or the install cannot duty-cycle), else the objects handed in.
 # A recorder stands in for the objective and reports the keyword it was given.
-def _sp_seen(*_args, relaxed=False):
-    return relaxed
+def _sp_seen(*_args, descent=None):
+    return descent
 
 
 _sp_pairs = {
@@ -74671,9 +74671,12 @@ R.check(
     "cannot duty-cycle, each alone and both; with neither it descends on the objects "
     "it was handed",
     [(k, pair[0](None), pair[1](None)) for k, pair in sorted(_sp_pairs.items())]
-    == [((0.0, False), False, False), ((0.0, True), True, True),
-        ((0.25, False), True, True), ((0.25, True), True, True)]
-    and _sp_pairs[(0.0, False)] == (_sp_seen, _sp_seen),
+    == [((0.0, False), None, None), ((0.0, True), "relaxed", "relaxed"),
+        ((0.25, False), "relaxed", "relaxed"), ((0.25, True), "relaxed", "relaxed")]
+    and _sp_pairs[(0.0, False)] == (_sp_seen, _sp_seen)
+    and _sp_opt_mod._descent_pair(
+        _SpOpt(_SpTM(_SpTP()), _SpCfg(cycling_cost=0.25)), _sp_seen, _sp_seen, _sp_opt_mod._UNPRICED,
+    )[0](None) == "unpriced",
     f"{({k: (pair[0](None), pair[1](None)) for k, pair in _sp_pairs.items()})}",
 )
 
@@ -86091,10 +86094,10 @@ R.check(
     "read, beside the running class a solve starts from; the module imports none of them; the pure half of wear "
     "stays pure",
     _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
-    and _ds_plan_uses == ["planner_fields", "record_for", "running_now", "solved_running"]
+    and sorted(set(_ds_plan_uses)) == ["planner_fields", "record_for", "running_now"]
     and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
                      "note_mode_write", "note_pass", "planner_fields", "record_for", "running_now",
-                     "solved_running", "starts_attributes"]
+                     "starts_attributes"]
     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
     f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own}",
@@ -92311,32 +92314,26 @@ R.check(
     f"{_hsr_box_of}",
 )
 
-# The coordinator's reading: the duty-switch tracker's settled class where a
-# running signal is attached, else the executing step's planned draw.
-
-
-class _HsrCoord:
-    """Hashable and weak-referenceable, as the record table needs."""
-
-
-_hsr_coord = _HsrCoord()
+# The running reading: the duty-switch tracker's settled class where a running
+# signal is attached, else the executing step's planned draw; the record keeps it.
+_hsr_rec = _hsr_ds._Record(None, None)
 _HSR_IDLE, _HSR_HEATS = {"power": 0.0, "dhw_power": 0.0}, {"power": 3.0}
-_hsr_reads = [_hsr_ds.running_now(_hsr_coord, action) for action in (
+_hsr_reads = [_hsr_ds.running_now(_hsr_rec, action) for action in (
     {}, _HSR_IDLE, {"power": _HSR_RUNS_AT}, {"power": 0.11}, _HSR_HEATS, {"power": 0.0, "dhw_power": 2.0})]
-_hsr_ds._RECORDS[_hsr_coord] = _hsr_rec = _HsrNS(unsub=None, tracker=_HsrNS(settled=True))
-_hsr_reads.append(_hsr_ds.running_now(_hsr_coord, _HSR_IDLE))  # no signal attached: the step
+_hsr_rec.tracker.settled = True
+_hsr_reads.append(_hsr_ds.running_now(_hsr_rec, _HSR_IDLE))  # no signal attached: the step
 _hsr_rec.unsub = lambda: None
-_hsr_reads += [_hsr_ds.running_now(_hsr_coord, _HSR_IDLE)]     # settled running beats an idle step
+_hsr_reads += [_hsr_ds.running_now(_hsr_rec, _HSR_IDLE), _hsr_rec.solved_running]  # settled running beats an idle step
 _hsr_rec.tracker.settled = False
-_hsr_reads += [_hsr_ds.running_now(_hsr_coord, _HSR_HEATS)]    # settled stopped beats a planned draw
+_hsr_reads += [_hsr_ds.running_now(_hsr_rec, _HSR_HEATS), _hsr_rec.solved_running]  # settled stopped beats a planned draw
 _hsr_rec.tracker.settled = None
-_hsr_reads += [_hsr_ds.running_now(_hsr_coord, _HSR_HEATS), _hsr_ds.running_now(_hsr_coord, _HSR_IDLE)]
-del _hsr_ds._RECORDS[_hsr_coord]
+_hsr_reads += [_hsr_ds.running_now(_hsr_rec, _HSR_HEATS), _hsr_ds.running_now(_hsr_rec, _HSR_IDLE)]
 R.check(
     "the running reading is the tracker's settled class where a signal is attached "
     "and has settled, else the executing step's planned draw of either circuit by "
-    "the plan's running rule",
-    _hsr_reads == [False, False, False, True, True, True, False, True, False, True, False],
+    "the plan's running rule, and the pump's record keeps the last one",
+    _hsr_reads == [False, False, False, True, True, True, False, True, True, False, False, True, False]
+    and _hsr_ds._Record(None, None).solved_running is False,
     f"{_hsr_reads}",
 )
 
@@ -92446,11 +92443,11 @@ def _hsr_record_reading(action):
     _hsr_live._current_action = action
     now = _hsr_pss(datetime(2026, 1, 10, 12, 0, tzinfo=UTC))
     read = _hsr_live._solve_record(now, _hsr_live._forecast_arrays(now)).inputs.compressor_running
-    return read, _hsr_ds.solved_running(_hsr_live)
+    return read, _hsr_ds.record_for(_hsr_live).solved_running
 
 
 _hsr_wired = [
-    _hsr_ds.solved_running(_hsr_live),
+    _hsr_ds.record_for(_hsr_live).solved_running,
     _hsr_record_reading({"power": 3.0, "dhw_power": 0.0}),
     _hsr_record_reading({"power": 0.0, "dhw_power": 2.0}),
     _hsr_record_reading({}),
@@ -92467,9 +92464,38 @@ import inspect as _hsr_inspect  # noqa: E402
 R.check(
     "the what-if solve takes the reading the live plan was solved with, not a "
     "fresh one: the two start counts the card compares share r[-1]",
-    "compressor_running=duty_switch.solved_running(self)" in _hsr_inspect.getsource(Coord._whatif_solve)
-    and "compressor_running=duty_switch.running_now(self, self._current_action)"
+    "compressor_running=duty_switch.record_for(self).solved_running" in _hsr_inspect.getsource(Coord._whatif_solve)
+    and "compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action)"
     in _hsr_inspect.getsource(Coord._solve_record),
+)
+
+# What the commit program is told is fixed: a forced-on pin and a step hot
+# water runs in are on, a step with no room at all is off, the rest are free.
+_hsr_forced_seen = []
+_hsr_real_candidates = _hsr_runs.candidates
+
+
+def _hsr_spy(*args, **kwargs):
+    _hsr_forced_seen.append(np.array(kwargs["forced"], float))
+    return _hsr_real_candidates(*args, **kwargs)
+
+
+_hsr_tank = np.zeros(12)
+_hsr_tank[9] = 2.0
+_hsr_runs.candidates = _hsr_spy
+try:
+    _hsr_om._run_plans(
+        _hsr_opt(0.25, False, 1.1), _hsr_h, _hsr_asked, _hsr_tank, _hsr_lo, _hsr_hi, _hsr_cycled)
+finally:
+    _hsr_runs.candidates = _hsr_real_candidates
+_hsr_forced_want = np.full(12, np.nan)
+_hsr_forced_want[[3, 9]], _hsr_forced_want[5] = 1.0, 0.0
+R.check(
+    "the commit program is handed a forced-on pin and a hot-water step as on, "
+    "a step with no room as off, and every other step free",
+    len(_hsr_forced_seen) == 1
+    and np.array_equal(_hsr_forced_seen[0], _hsr_forced_want, equal_nan=True),
+    f"{_hsr_forced_seen}",
 )
 
 

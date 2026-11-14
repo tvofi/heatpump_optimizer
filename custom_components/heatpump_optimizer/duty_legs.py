@@ -25,7 +25,7 @@ from typing import Any
 
 import numpy as np
 
-from .batchmath import row_sums
+from .batchmath import AFTER as _AFTER, BEFORE as _BEFORE, row_sums
 from .plan_step import PLAN_STEP_MINUTES
 from .thermal_model import MIN_RUNNING_DRAW_KW
 
@@ -147,11 +147,6 @@ def priced_pair(values: Any, upper: float = math.inf) -> tuple[float, float]:
         return 0.0, 0.0
     a, b = (max(v, 0.0) if math.isfinite(v) and v <= upper else 0.0 for v in pair)
     return a, b
-
-
-#: A boundary pairs each step but the last with the step after it; the legs
-#: that meet there and the levels they run at are read through the same pair.
-_BEFORE, _AFTER = np.s_[:, :-1], np.s_[:, 1:]
 
 
 def switch_weights_batch(

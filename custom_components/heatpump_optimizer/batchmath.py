@@ -16,6 +16,10 @@ from __future__ import annotations
 
 import numpy as np
 
+#: The two sides of every boundary between consecutive steps of a ``[B, n]``
+#: batch: each step but the last, and the step after it.
+BEFORE, AFTER = np.s_[:, :-1], np.s_[:, 1:]
+
 #: numpy's unrolled pairwise block: under this width a fresh 1-D sum is
 #: eight interleaved partials combined in a fixed tree, above it halving.
 #: The value is numpy's own (``PW_BLOCKSIZE`` in ``loops_utils.h``); the

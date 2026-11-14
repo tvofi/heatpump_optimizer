@@ -6296,7 +6296,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return SolveRecord(config, params, SolveInputs(
             state=state,
             start_time=solve_now,
-            compressor_running=duty_switch.running_now(self, self._current_action),
+            compressor_running=duty_switch.running_now(duty_switch.record_for(self), self._current_action),
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
@@ -11323,7 +11323,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             state=replace(state),
             start_time=solve_at,
             held_start=held_start,
-            compressor_running=duty_switch.solved_running(self),
+            compressor_running=duty_switch.record_for(self).solved_running,
             forecast=ForecastSeries(
                 prices=horizon.prices,
                 outdoor_temps=horizon.outdoor_temps,
