@@ -1,3 +1,0 @@
-  ok   stale verdict: an unreadable verdict/<pr> history (log or fetch) is refused, never read as no blocked verdict
-merge_train self-test: 614 checks, 0 failed
-orchestrator_tick self-test: 315 checks, 0 failed
