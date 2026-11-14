@@ -4648,6 +4648,7 @@
    "dev/audit/rounds/round10/study-reseed/live_store.py",
    "dev/audit/rounds/round10/study-reseed/reparam_sites.py",
    "dev/audit/rounds/round10/study-reseed/reseed_rolling.py",
+   "dev/audit/rounds/round10/user-text/enumerate.py",
    "dev/audit/rounds/round3/D10/coverage_rule.sh",
    "dev/audit/rounds/round3/D10/strict_typing_rule.sh",
    "dev/audit/rounds/round3/D4/card_states_geometry.mjs",
