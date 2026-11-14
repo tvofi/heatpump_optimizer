@@ -126,10 +126,8 @@
   ok   a check killing every mutant of the added lines passes (null control)
   ok   a check needing a git checkout measures nothing in the archive copy, and is refused
   ok   the same check under MUTANT_IN_PLACE=1 runs in the checkout and passes
-  ok   the padding wc stub pads its count, so the next comparison is measured under it (null control)
-  ok   the non-padding wc stub does not pad its count (null control)
+  FAIL the padding wc stub pads its count, so the next comparison is measured under it (null control) (got               1, wanted        1)
   ok   and the in-place run leaves the work tree clean, under a wc that pads its count
-  ok   and the in-place run leaves the work tree clean, under a wc that does not pad
   ok   a command killing nothing reports its survivors, report only
   ok   and names every listed mutant of lib.py, none of tests/check.py
   ok   MUTANT_CMD unset skips
@@ -490,7 +488,7 @@
   ok   step 1a2 does not refuse when the arm returns rc 3 (null control)
   ok   step 1a3 exits nonzero on a head_arm refusal, naming it, before any heavy step
   ok   and does not fall through to the heavy steps
-tools/pr/prepr.sh: eval: line 3975: syntax error: unexpected end of file
+tools/pr/prepr.sh: eval: line 3968: syntax error: unexpected end of file
   ok   step 1a3 lets a body naming this head run every step as today (null control)
   ok   --body-check --pr-branch refuses (line and flag) when the arm concluded a red
   ok   --body-check --pr-branch passes when the arm returns rc 0 (null control)
@@ -543,5 +541,5 @@ tools/pr/prepr.sh: eval: line 3975: syntax error: unexpected end of file
   ok   (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each
   ok   (a) a run with a body removes an earlier receipt first, so one that writes none leaves none
 
-540 passed, 0 failed
-rc=0
+537 passed, 1 failed
+rc=2
