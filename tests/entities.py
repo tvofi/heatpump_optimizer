@@ -6065,14 +6065,17 @@ def _c10_attrs(combi: bool) -> dict[str, object]:
 
 
 _c10_on, _c10_off = _c10_attrs(True), _c10_attrs(False)
+# getattr, so a tree without the sentence reads red here rather than raising.
+_c10_split = getattr(_entity_base, "COMBI_DHW_SPLIT", None)
 _c10_dhw = ("DHWHeatingCostSensor", "DHWEnergySensor", "DHWCostSensor",
             "HeatPumpOptimizerClimate")
 R.check(
     "on a combi store each hot-water figure says it is the pump's hot-water "
     "mode, space heat drawn from the store included (Carry 10)",
     _c10_on["precondition"]
-    and all((_c10_on[n] or {}).get("dhw_split") == _entity_base.COMBI_DHW_SPLIT for n in _c10_dhw)
-    and "space heat drawn from the store" in _entity_base.COMBI_DHW_SPLIT
+    and isinstance(_c10_split, str)
+    and all((_c10_on[n] or {}).get("dhw_split") == _c10_split for n in _c10_dhw)
+    and "space heat drawn from the store" in _c10_split
     and "dhw_split" not in _c10_on["SpaceEnergySensor"],
     repr({n: (_c10_on[n] or {}).get("dhw_split") for n in _c10_dhw}),
 )
