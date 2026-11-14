@@ -270,18 +270,24 @@ def delivered_space(
 
 
 def switch_ban(
-    space_kw: np.ndarray, stop_probability: tuple[float, float], floor: float | None
+    space_kw: np.ndarray,
+    stop_probability: tuple[float, float],
+    floor: float | None,
+    rule: LegRule = DEFAULT_RULE,
 ) -> np.ndarray:
     """The steps hot water may not be placed on to avoid a priced switch.
 
     For hot water to heating: where heating runs in that step or the next, so
-    a block can only end into a planned stop or into more hot water. For
-    heating to hot water it mirrors onto the previous step.
+    a block can only end into a planned stop or into more hot water; where
+    ``rule`` serves space first, a both step ends on its hot-water leg, so
+    only heating in the next step bans it. For heating to hot water it
+    mirrors onto the previous step.
     """
     on = _runs(np.asarray(space_kw, dtype=float), floor)
     ban = np.zeros(on.shape, dtype=bool)
     if stop_probability[0] > 0:
-        ban |= on
+        if rule[0] == "dhw":
+            ban |= on
         ban[:-1] |= on[1:]
     if stop_probability[1] > 0:
         ban |= on

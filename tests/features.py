@@ -82558,7 +82558,6 @@ R.section("supply switch at step boundaries (#2492, R10-SAV-ACTUATION)")
 from homeassistant.util import dt as _sa_dt
 from heatpump_optimizer import boost as _sa_boost
 from heatpump_optimizer import pump_arbiter as _sa_pa
-from heatpump_optimizer import duty_legs as _ds_legs  # noqa: E402
 from heatpump_optimizer import store as _sa_store
 
 _SA_T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
@@ -83702,6 +83701,7 @@ R.check("an install with no power switch: the gate writes and holds nothing, and
 
 
 from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
+from heatpump_optimizer import duty_legs as _ds_legs  # noqa: E402
 from heatpump_optimizer import wear as _ds_wear  # noqa: E402
 from heatpump_optimizer import pump_mode as _ds_pm  # noqa: E402
 import json  # noqa: E402
@@ -88883,10 +88883,13 @@ _DSP_NAMES = {_dsp_dl.IDLE: "idle", _dsp_dl.SPACE: "space", _dsp_dl.DHW: "dhw"}
 
 
 class _DspCoord:
-    """A coordinator with no boost held: ``_share`` reads nothing else of it."""
+    """A coordinator with no boost held and a duty-switch record not yet
+    loaded, so ``_share`` serves the default leg rule; it reads nothing else."""
 
 
 _dsp_coord = _DspCoord()
+from heatpump_optimizer import duty_switch as _dsp_ds  # noqa: E402
+_dsp_ds._RECORDS[_dsp_coord] = _dsp_ds._Record(None, None)
 
 
 def _dsp_served(space, dhw, minute, floor):
@@ -89081,6 +89084,14 @@ _dsp_r16_both = (np.array([0.0, 1.0, 2.5, 0.0]), np.array([0.0, 2.0, 0.0, 0.0]))
 _dsp_r16_both_avail = _dsp_om._stop_availability(_dsp_mod_opt, *_dsp_r16_both, 5.5)
 _dsp_r16_both_ship = _dsp_om._realize_joint(True, *_dsp_r16_both, 1.5, 5.5)[0]
 _dsp_r16_both_dc = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR, _DSP_OFF), *_dsp_r16_both, 5.5)
+# A pair priced both ways keeps hot water first (duty_legs.leg_rule); with no
+# heating after the both step no whole-step merge applies, so a duty-cycle
+# install's both step keeps two legs.
+_DSP_PAIR_BOTH = (1.0, 1.0)
+_dsp_r16_lone = (np.array([0.0, 1.0, 0.0, 0.0]), np.array([0.0, 2.0, 0.0, 0.0]))
+_dsp_r16_lone_dc = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), *_dsp_r16_lone, 5.5)
+_dsp_r16_lone_cl = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF, clamp=True), *_dsp_r16_lone, 5.5)
 R.check(
     "on a modulating clamped install heating shipped under p_min beside hot "
     "water takes no charge: the stop is charged to the heating step after the "
@@ -89092,11 +89103,18 @@ R.check(
     f"{_dsp_r16_both_avail}, shipped {_dsp_r16_both_ship}",
 )
 R.check(
-    "null control: with no duty floor (a duty-cycle install) the same arrays "
-    "charge the both step itself, so the floor is what moved the charge",
-    _dsp_r16_both_dc is not None
-    and np.flatnonzero(_dsp_r16_both_dc < 1.0).tolist() == [1],
-    f"{_dsp_r16_both_dc}",
+    "null control: with no duty floor (a duty-cycle install) and hot water first "
+    "(a pair priced both ways), a both step with no heating after it is charged "
+    "itself, and on the clamped install nothing is, so the floor is what moved "
+    "the charge; under the hot-water-to-heating pair alone the arbiter's leg "
+    "rule serves space first, and the duty-cycle arrays above charge the "
+    "heating step after the both step, as the clamped ones do",
+    _dsp_r16_lone_dc is not None
+    and np.flatnonzero(_dsp_r16_lone_dc < 1.0).tolist() == [1]
+    and _dsp_r16_lone_cl is None
+    and _dsp_r16_both_dc is not None
+    and np.flatnonzero(_dsp_r16_both_dc < 1.0).tolist() == [2],
+    f"{_dsp_r16_lone_dc} {_dsp_r16_lone_cl} {_dsp_r16_both_dc}",
 )
 # The start profile is capped at what hot water leaves and never raised: a step
 # the start leaves idle after a block holds no heating leg to charge.
@@ -89118,17 +89136,23 @@ R.check(
 # after it charges nothing. Beside a block that leaves room the same start is a
 # two-leg step, and charged.
 _dsp_full_blk = _dsp_om._stop_availability(
-    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 5.5, 0.0, 0.0]), 5.5
+    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 5.5, 0.0, 0.0]), 5.5
 )
 _dsp_part_blk = _dsp_om._stop_availability(
+    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 2.5, 0.0, 0.0]), 5.5
+)
+_dsp_part_blk_sf = _dsp_om._stop_availability(
     _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 2.5, 0.0, 0.0]), 5.5
 )
 R.check(
     "heating asked beside hot water at p_max is no heating leg: nothing is "
-    "charged; beside a block that leaves room the same start is charged there",
+    "charged; beside a block that leaves room the same start is charged there "
+    "(hot water first); served space first, its hot-water leg ends into an "
+    "idle step and nothing is charged",
     _dsp_full_blk is None
-    and _dsp_part_blk is not None and np.flatnonzero(_dsp_part_blk < 1.0).tolist() == [1],
-    f"{_dsp_full_blk}, {_dsp_part_blk}",
+    and _dsp_part_blk is not None and np.flatnonzero(_dsp_part_blk < 1.0).tolist() == [1]
+    and _dsp_part_blk_sf is None,
+    f"{_dsp_full_blk}, {_dsp_part_blk}, {_dsp_part_blk_sf}",
 )
 # The reading takes the start as it comes: the cap, the running threshold and
 # the clamped projection already read a value under zero as idle and one over
@@ -89477,13 +89501,32 @@ R.check(
                     s.opt.config.clamp_planned_levels, s.solves[-1][1], s.solves[0][0],
                     s.opt.model.params.min_electrical_power, 5.5,
                 )[0],
-                _DSP_PAIR, _dsp_om._duty_floor(s.opt),
+                _DSP_PAIR, _dsp_om._duty_floor(s.opt), _dsp_om._leg_rule(s.opt),
             ),
         )
         for s in _dsp_priced.values()
     )
     and not any(s.bans for s in _dsp_base.values()),
     f"{[(n, len(s.bans), len(s.builds), len(s.solves)) for n, s in _dsp_priced.items()]}",
+)
+_DSP_SF = _dsp_dl.leg_rule((1.0, 0.0), (501.0, 0.0))
+_dsp_sf_ban = _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None, _DSP_SF).tolist()
+_dsp_sf_w = (_dsp_dl.switch_weight(np.array([1.0]), np.array([1.0]), (1.0, 0.0), 6.0),
+             _dsp_dl.switch_weight(np.array([1.0]), np.array([1.0]), (1.0, 0.0), 6.0, None, _DSP_SF))
+_dsp_sf_avail = (_dsp_dl.availability(np.array([1.0, 0.0]), np.array([1.0, 0.0]), 0.5),
+                 _dsp_dl.availability(np.array([1.0, 0.0]), np.array([1.0, 0.0]), 0.5, None, _DSP_SF))
+R.check(
+    "one leg rule in the leaf: a hot-water-to-heating pair alone serves space first "
+    "(leg_rule), so its ban is only the step before heating, a two-leg step's inside "
+    "switch is heating to hot water and weighs nothing, and the step is not charged; "
+    "control, the default rule bans the heating step too, weighs and charges it",
+    _DSP_SF == ("space", None)
+    and _dsp_sf_ban == [False, True, False, False, False]
+    and _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None).tolist()
+    == [False, True, True, False, False]
+    and _dsp_sf_w == (2.0 / 6.0, 0.0)
+    and _dsp_sf_avail[0] is not None and _dsp_sf_avail[0].tolist() == [0.5, 1.0] and _dsp_sf_avail[1] is None,
+    f"{_DSP_SF} {_dsp_sf_ban} {_dsp_sf_w} {_dsp_sf_avail}",
 )
 R.check(
     "the ban is the steps heating runs in or runs in next, for hot water to "

@@ -545,19 +545,19 @@ def starts_attributes(coord: Any) -> dict[str, float]:
 
 
 def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float, dhw_kw: float,
-                   next_duty: str | None) -> str:
+                   step_min: float, next_duty: str | None) -> str:
     """The duty the both step starting at ``start`` serves at ``now``: its
     first leg for that leg's minutes, then its last, the legs being
     ``duty_legs.both_step_legs`` under :meth:`DutySwitchLearner.split`, decided
-    once per step. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
+    once per step, of a step ``step_min`` long. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
     as before the learner existed, and latches nothing."""
     if rec.loaded:
         if rec.order is None or rec.order[0] != start:
-            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, rule=rec.learner.split(),
+            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, step_min, rec.learner.split(),
                                                          next_duty=next_duty))
         legs = rec.order[1]
     else:
-        legs = duty_legs.both_step_legs(space_kw, dhw_kw)
+        legs = duty_legs.both_step_legs(space_kw, dhw_kw, step_min)
     return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
 
 
