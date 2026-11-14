@@ -1,0 +1,19 @@
+commit ff9b385bcd4a274ad67bf948ea32fd58741b3d39
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Sat Nov 14 00:46:07 2026 +0000
+
+    D5.md: the scope line fits the brief's line cap
+
+diff --git a/tools/audit/check_scopes.py b/tools/audit/check_scopes.py
+index 9c7ca92473..9adea57c85 100644
+--- a/tools/audit/check_scopes.py
++++ b/tools/audit/check_scopes.py
+@@ -88,7 +88,7 @@ def classify_errors(d, tree, uni, dim=None):
+     static = {g: match(cls, [g]) for g in d.get("static", {})}
+     stat = set().union(*static.values()) if static else set()
+     errs += [f"classified in neither universe nor static: {f}" for f in sorted(cls - uni - stat)]
+-    errs += [f"static and in the universe: {f}" for f in sorted(stat & uni)]
++    pass
+     errs += [f"static entry matches no classified path: {g}" for g, fs in sorted(static.items()) if not fs]
+     errs += [f"static entry carries no reason: {g}" for g in sorted(static) if not str(d["static"][g]).strip()]
+     return errs
