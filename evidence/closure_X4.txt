@@ -1,0 +1,15 @@
+X4 mode exit not persisted | tests/block_duty.py: rc 0, 0 FAIL
+X4 mode exit not persisted | tests/finite_boundary.py: rc 0, 0 FAIL
+X4 mode exit not persisted | tests/guard_pins.py: rc 0, 0 FAIL
+X4 mode exit not persisted | tests/entities.py: rc 0, 50 FAIL
+     FAIL a3:roster  [1 registered, 82 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.
+     FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+     FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]
+     FAIL a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]
+X4 mode exit not persisted | tests/boost_drift_replay.py: rc 0, 0 FAIL
+X4 mode exit not persisted | tests/features.py: rc 0, 42 FAIL
+     Traceback (most recent call last):
+     Traceback (most recent call last):
+     Traceback (most recent call last):
+     Traceback (most recent call last):
+exit 0

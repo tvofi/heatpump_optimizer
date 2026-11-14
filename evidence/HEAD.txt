@@ -1,13 +1,8 @@
-head reviewed: 4ab8ea4dde67be62baee17c5b9d0feadc92e3041
-origin/main: 43e95474559ca8e2188830f8775c1ddf52df964a
-merge-base: 19baca76181cb019d9b1cfd93ee6bc0a08e20047
+594238bfda916f814ca54bb5e84725602b7005dd
+merge-base 2b4515dc52821ad721225090d329c224dbddafae
+origin/main c67ab5f0e05123c835708177c1987a11dd4ff18b
 LEDGER-MERGE: resolved tests/closures.json
-  inert_reads.tests/harness_headers.py: merged as a set (1009 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1008 entries)
   re-run the gate that owns this file before pushing
-e7628eca811e516b785f488c2fd4d7b9f518b4e2
-merge-tree rc=0
-untouched (VERSION, manifest, notes, golden) diff stat:
-(end)
-prod delta over 594238bf:
- custom_components/heatpump_optimizer/store.py | 3 ++-
- 1 file changed, 2 insertions(+), 1 deletion(-)
+8b4c93f701f9ddfc5d6ab7ee0b9b90bcd5780abb
+merge-tree rc 0

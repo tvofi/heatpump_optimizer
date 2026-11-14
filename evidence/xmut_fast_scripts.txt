@@ -1,0 +1,31 @@
+BASE tests/block_duty.py: rc 0
+BASE tests/guard_pins.py: rc 0
+BASE tests/finite_boundary.py: rc 0
+X1 clear_spent ignores a live overlay | tests/block_duty.py: rc 0, 0 FAIL
+X1 clear_spent ignores a live overlay | tests/guard_pins.py: rc 0, 0 FAIL
+X1 clear_spent ignores a live overlay | tests/finite_boundary.py: rc 0, 0 FAIL
+X2 clear_spent ignores a live mode | tests/block_duty.py: rc 0, 0 FAIL
+X2 clear_spent ignores a live mode | tests/guard_pins.py: rc 0, 0 FAIL
+X2 clear_spent ignores a live mode | tests/finite_boundary.py: rc 0, 0 FAIL
+X3 re-press resets the start | tests/block_duty.py: rc 0, 0 FAIL
+X3 re-press resets the start | tests/guard_pins.py: rc 0, 0 FAIL
+X3 re-press resets the start | tests/finite_boundary.py: rc 0, 0 FAIL
+X4 mode exit not persisted | tests/block_duty.py: rc 0, 0 FAIL
+X4 mode exit not persisted | tests/guard_pins.py: rc 0, 0 FAIL
+X4 mode exit not persisted | tests/finite_boundary.py: rc 0, 0 FAIL
+X5 apply persists only on release | tests/block_duty.py: rc 0, 0 FAIL
+X5 apply persists only on release | tests/guard_pins.py: rc 0, 0 FAIL
+X5 apply persists only on release | tests/finite_boundary.py: rc 0, 0 FAIL
+X7 settle may shorten a running tail | tests/block_duty.py: rc 0, 0 FAIL
+X7 settle may shorten a running tail | tests/guard_pins.py: rc 0, 0 FAIL
+X7 settle may shorten a running tail | tests/finite_boundary.py: rc 0, 0 FAIL
+X10 coordinator mode hook removed | tests/block_duty.py: rc 0, 0 FAIL
+X10 coordinator mode hook removed | tests/guard_pins.py: rc 0, 0 FAIL
+X10 coordinator mode hook removed | tests/finite_boundary.py: rc 0, 0 FAIL
+X11 negative boosted_h accepted | tests/block_duty.py: rc 0, 0 FAIL
+X11 negative boosted_h accepted | tests/guard_pins.py: rc 0, 0 FAIL
+X11 negative boosted_h accepted | tests/finite_boundary.py: rc 0, 0 FAIL
+X13 mode entry does not clear spent | tests/block_duty.py: rc 0, 0 FAIL
+X13 mode entry does not clear spent | tests/guard_pins.py: rc 0, 0 FAIL
+X13 mode entry does not clear spent | tests/finite_boundary.py: rc 0, 0 FAIL
+exit 0

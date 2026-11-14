@@ -245,4 +245,4 @@ RESULT thread_factor=1.0 ratio
   ok   seam_cut_total 421 <= 421
 
 STRUCTURE RATCHET PASSED
-rc=0
+structure head exit 0
