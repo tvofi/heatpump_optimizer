@@ -1,0 +1,17 @@
+classify rc=3 11:49Z
+classify rc=3 11:50Z
+classify rc=3 11:51Z
+WAIT 112f0d777b8f8c921a75982d36305e94ffd2f7f4 pending: gate red: none
+classify rc=3 11:53Z
+WAIT 112f0d777b8f8c921a75982d36305e94ffd2f7f4 pending: gate red: none
+classify rc=3 11:54Z
+WAIT 112f0d777b8f8c921a75982d36305e94ffd2f7f4 pending: gate red: none
+classify rc=3 11:55Z
+WAIT 112f0d777b8f8c921a75982d36305e94ffd2f7f4 pending: gate red: none
+classify rc=3 11:56Z
+WAIT 112f0d777b8f8c921a75982d36305e94ffd2f7f4 pending: gate red: none
+classify rc=3 11:57Z
+WAIT 112f0d777b8f8c921a75982d36305e94ffd2f7f4 pending: gate red: none
+classify rc=3 11:58Z
+WAIT 112f0d777b8f8c921a75982d36305e94ffd2f7f4 pending: gate red: none
+classify rc=3 11:59Z

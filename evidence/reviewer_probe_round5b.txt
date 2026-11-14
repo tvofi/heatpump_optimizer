@@ -1,8 +1,0 @@
-### head 42659b9711f2940aa54145b7b6e1b47e65717376
-stop at 60 s, defrost from the pass at 105 s: {'stopped': 1, 'kept': 0, 'void': 0, 'censored': 1, 'off_s': [], 'k': 0.999716386245848, 'n': 0.999716386245848}
-control: stop at 60 s, restart at 300 s     : {'stopped': 1, 'kept': 0, 'void': 0, 'censored': 0, 'off_s': [240.0], 'k': 0.9998366974073617, 'n': 0.9998366974073617}
-rc=0
-### mutant r5v_pass_judges_before_confirm (git archive copy)
-stop at 60 s, defrost from the pass at 105 s: {'stopped': 0, 'kept': 0, 'void': 1, 'censored': 0, 'off_s': [], 'k': 0.0, 'n': 0.0}
-control: stop at 60 s, restart at 300 s     : {'stopped': 1, 'kept': 0, 'void': 0, 'censored': 0, 'off_s': [240.0], 'k': 0.9998452916157737, 'n': 0.9998452916157737}
-rc=0
