@@ -1,3 +1,0 @@
-ok   _gh (null): a failed read raises, never returns
-FAIL run --prs-cache: sizes_provenance ends naming the replay, no read made
-size_durations self-test: 1 failed

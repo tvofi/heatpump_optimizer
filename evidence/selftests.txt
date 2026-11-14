@@ -1,4 +1,0 @@
-size_durations self-test: 0 failed
-python3: can't open file '/tmp/claude-0/wt3428/tools/plan/plan_page.py': [Errno 2] No such file or directory
-self-test: 0 failed
-plan_page self-test: 93 checks, 0 failed

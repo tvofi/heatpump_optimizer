@@ -1,1 +1,3 @@
-846f2dc07b4503522909bf953b91e502f168f2af
+reviewed head (handoff tip refs/heads/handoff/r10-plan-page-residue): baaf0064355bdf4838021df66683584e3d8608c7
+last blocked head (PR #3428 head, round 4): 0740542f38ffb23e273bf91fd128aa2469d9a120
+origin/main at review: ceb3070ccb49fe6dfc9d403458e8a3cc03c5595e
