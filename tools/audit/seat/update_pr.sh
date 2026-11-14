@@ -131,6 +131,10 @@ if MM: pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s
 else: pre="`%s` "%H + " and then ".join(x for x in (N, R) if x) + ".\n\n"  # main merged cleanly: not merged (R4)
 s=prefix(s,pre); open(p,'w').write(s)
 E
+# The head moved (the BODY-ONLY path above exits otherwise), so a generated figure block naming the
+# old head is re-rendered at $H, as open_pr.sh's op_figures does; a failed refresh refuses, nothing pushed.
+FIG=0; grep -q '^<!-- figure-block: ' "$B" || FIG=-; [ "$FIG" = - ] || python3 -I "$PRT/figure_block.py" refresh "$B" --base origin/main --head HEAD > $WT.fig.log 2>&1 || FIG=$?  # mut:updfigures
+[ "$FIG" = 0 ] || [ "$FIG" = - ] || pr_refuse "the figure-block refresh at $H failed (exit $FIG), nothing pushed: $(tail -n 20 $WT.fig.log)"
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 RO=""; [ "$(git rev-parse "$H^@")" != "$LIVE" ] || RO=--row-only  # mut:rowonly
 [ -n "$RO" ] || RO=--reuse  # mut:updreuse
