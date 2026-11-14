@@ -74625,6 +74625,12 @@ R.check(
     f"{_df_judge(_df_pend1, drawn=5.5)} / {_df_judge(_df_pend1, ewma=0.5)}",
 )
 R.check(
+    "an interval's ratio divides by the ask clamped at 1e-6: a zero ask is a "
+    "huge ratio for the tracking gate to refuse, not a ZeroDivisionError",
+    _cf_row(0.0, 0.5).ratio == 500000.0 and _cf_row(2.0, 2.5).ratio == 1.25
+    and _cf_MC().judge_ratio(1.0, _cf_row(0.0, 0.5), _cf_both, None) == _cf_TRACK,
+)
+R.check(
     "walk_ratio hands back the value before the interval (1.0 the first "
     "time) and walks a tenth of the way",
     (lambda c: (c.walk_ratio(2.0), c.ratio_ewma, c.walk_ratio(2.0)))(_cf_MC()) == (1.0, 1.1, 1.1),
