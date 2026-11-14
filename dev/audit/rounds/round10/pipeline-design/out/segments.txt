@@ -1,0 +1,8 @@
+FIRST merge verdict -> merged: n=215 mean=7.60 p50=3.90 p90=19.77 sum=1634 h
+first verdict -> FIRST merge verdict: n=215 mean=4.38 p50=1.47 p90=12.87 sum=941 h | repair rounds before it: 188
+verdicts after a first merge verdict: {'merge': 56, 'blocked': 22} in 40 PRs
+repair round wall: n 266 mean 5.92 p10 1.43 p50 4.37
+  blocked -> the repair commit (second parent of the pushed head): n=194 mean=3.93 p50=2.24 p90=10.21 sum=763 h
+  repair commit -> pushed on the PR: n=194 mean=1.15 p50=0.65 p90=2.63 sum=223 h
+  rounds opened by a mechanical class: 69 of 266 hours 313
+remerges of main after the final verdict: {"the train's recarry (head named in a train log)": (141, 75), 'a remerge outside the train logs read': (71, 55)} (commits, PRs); train logs read: True

@@ -1,0 +1,7 @@
+merges of main into the 215 merged branches: 826
+   494 in 200 PRs  remerge_main.sh / open_pr.sh (tvofi, 'Merge remote-tracking branch'):  {'before PR open': 192, 'open..first verdict': 5, 'repair rounds': 119, 'after final verdict': 178}
+   278 in 105 PRs  fixer seat (hpo-fixer), on the handoff branch:  {'before PR open': 87, 'open..first verdict': 41, 'repair rounds': 149, 'after final verdict': 1}
+    41 in  21 PRs  merge-main bot:  {'open..first verdict': 6, 'repair rounds': 25, 'after final verdict': 10}
+     9 in   5 PRs  other 'main' merge by seat:  {'before PR open': 3, 'open..first verdict': 1, 'repair rounds': 5}
+     3 in   3 PRs  other 'main' merge by tvofi:  {'before PR open': 1, 'repair rounds': 2}
+     1 in   1 PRs  'merge main' by seat:  {'open..first verdict': 1}

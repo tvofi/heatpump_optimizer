@@ -1,0 +1,48 @@
+== state-dir train.log batches 23 from 2026-10-29 02:58:20+00:00 to 2026-11-14 09:49:15+00:00
+   queue size hist [(1, 10), (2, 6), (3, 1), (5, 1), (6, 2), (7, 1), (8, 1), (16, 1)] mean 3.17
+   entries 73 skips 11 skip share 0.151
+   skip reasons [("(3561, 'ci: red at the head: gate')", 2), ("(2916, 'recarry: the main merge pushed nothing: Auto-merging tools/audit/seat')", 1), ('(2935, "recarry: main does not merge without a resolution; that is a fixer\'s,")', 1), ("(2896, 'ci: red at the head: gate')", 1), ('(2939, "recarry: main does not merge without a resolution; that is a fixer\'s,")', 1), ("(3556, 'ci: red at the head: gate')", 1), ("(3531, 'merge: not merged after 8 attempts; the last refusal: GraphQL: Pull')", 1), ('(3556, "ci: the train reads gate green at <sha>, GitHub\'s required-check")', 1), ("(3491, 'ci: red at the head: TIMEOUT')", 1), ("(3570, 'ci: red at the head: TIMEOUT')", 1)]
+   lines containing 'MERGED': 19
+   lines containing ' serial: ': 21
+   lines containing 'proof': 6
+   lines containing 'merge attempt': 31
+   lines containing 'refused': 34
+   lines containing 'MAIN-MOVED': 2
+   lines containing 'recarry START': 7
+   lines containing 'no recarry': 12
+   lines containing 'PARK ': 12
+   lines containing 'TIMEOUT': 4
+   lines containing 'HELD': 8
+   lines containing 'STALE ': 0
+   lines containing 'INFRA-': 0
+   lines containing 'REJOIN': 3
+   lines containing 'CURED': 0
+   lines containing 'NOT RUN': 1
+   lines containing 'UNDRAFT': 6
+   serial routing reasons [('grader', 10), ('budget', 9), ('claim', 5), ('workflow', 2), ('bot-head', 2), ('conflict onto 51cd6667', 1)]
+   proof lines sample: ['#2914 main 9071062b tree == proof 26bd2dbe', '#2936 main 486e65cb tree == proof 9d49994a', '#2935 main 9df0fe67 tree == proof aed1d527', '#2896 main c814c2ee tree == proof 53e7f851', '#3578 main c987209c tree == proof df1ac15c', 'proof batch/20261114-094915-1 at f5e8cefd: pushed, 1 workflows dispatched']
+   merge-refused sample: ['app_push: REFUSE: the pull request did not read back at 34bbd16acd6e385f2ed32d006d6bf335d6b40909 and the read was refused (the read answered state=closed) -- re', '#2919 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been me', '#2919 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been me', '#2914 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been me']
+== default-state train.log batches 401 from 2026-10-16 18:39:19+00:00 to 2026-11-14 00:37:35+00:00
+   queue size hist [(0, 2), (1, 249), (2, 34), (3, 28), (4, 22), (5, 16), (6, 12), (7, 12), (8, 8), (9, 2), (10, 7), (11, 2), (12, 1), (13, 1), (14, 1), (15, 1), (17, 1), (18, 1), (21, 1)] mean 2.52
+   entries 1009 skips 358 skip share 0.355
+   skip reasons [("(3268, 'ci: red at the head: gate')", 10), ('(3398, "recarry: main does not merge without a resolution; that is a fixer\'s,")', 10), ("(3267, 'ci: red at the head: gate')", 7), ('(3297, "recarry: main does not merge without a resolution; that is a fixer\'s,")', 7), ("(2917, 'carry: CARRY: no <sha> -> <sha>: <sha> resolves tests/golden/claime')", 6), ("(3249, 'ci: red at the head: gate')", 6), ("(3341, 'ci: red at the head: gate')", 6), ("(3492, 'merge: BRANCH-POLICY')", 6), ("(3241, 'ci: red at the head: gate')", 5), ("(3234, 'ci: red at the head: gate')", 5), ("(3269, 'ci: red at the head: gate')", 5), ("(3329, 'ci: red at the head: gate')", 5)]
+   lines containing 'MERGED': 468
+   lines containing ' serial: ': 529
+   lines containing 'proof': 877
+   lines containing 'merge attempt': 264
+   lines containing 'refused': 461
+   lines containing 'MAIN-MOVED': 71
+   lines containing 'recarry START': 408
+   lines containing 'no recarry': 94
+   lines containing 'PARK ': 150
+   lines containing 'TIMEOUT': 16
+   lines containing 'HELD': 108
+   lines containing 'STALE ': 1
+   lines containing 'INFRA-': 0
+   lines containing 'REJOIN': 30
+   lines containing 'CURED': 17
+   lines containing 'NOT RUN': 28
+   lines containing 'UNDRAFT': 36
+   serial routing reasons [('grader', 427), ('workflow', 122), ('budget', 111), ('claim', 85), ('bot-head', 20), ('conflict onto 2f6d699e', 2), ('conflict onto 94d8b47f', 1), ('conflict onto 6beb73d4', 1), ('conflict onto e6ea2468', 1), ('conflict onto c808ff02', 1)]
+   proof lines sample: ['#2881 main 2b45d098 tree == proof 399365b4', 'proof batch/20261027-170129-b4-1 at f70dea08: pushed, 1 workflows dispatched', 'beat: waiting proof batch/20261027-170129-b4-1 (poll 2, t+243s, required: 1, concluded: 0/1)', 'beat: waiting proof batch/20261027-170129-b4-1 (poll 3, t+486s, required: 1, concluded: 0/1)', 'beat: waiting proof batch/20261027-170129-b4-1 (poll 4, t+729s, required: 1, concluded: 0/1)', 'beat: waiting proof batch/20261027-170129-b4-1 (poll 5, t+972s, required: 1, concluded: 0/1)']
+   merge-refused sample: ["SKIP #2336 approve: #2336 app_approve.sh refused: app_approve: REFUSE: no 'Fix review:' verdict on #2336 from the approver App (hpo-approver[bot], id 330097732)", 'SKIP #2347 approve: #2347 app_approve.sh refused: app_approve: REFUSE: the verdict (https://github.com/tvofi/heatpump_optimizer/pull/2347#issuecomment-623849703', '#2881 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been me', 'ADD REFUSED #2885 verdict: no confirmed verdict on the bus (verdict/2885)']

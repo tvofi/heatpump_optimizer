@@ -1,0 +1,11 @@
+known waits for green at the reviewed head (h): n=141 mean= 1.30 p50= 0.24 p90= 2.57 sum=   184 h p75 1.22
+entries 215; a green run at the reviewed head is recorded for 141; the others take the median wait of those (1.22 h)
+red-streak starts among these merges: real 6, transient (one red, green at the next merge) 14
+today, first merge verdict -> on main (null control, equals the measured segment): n=215 mean= 7.60 p50= 3.90 p90=19.77 sum=  1634 h
+floor, first merge verdict -> approved and green at the reviewed head:             n=215 mean= 2.84 p50= 1.22 p90= 4.15 sum=   611 h
+entries in a serial class today: 140 of 215
+C2 W=60: verdict -> landed (slot frees, successors start): n=215 mean= 2.84 p50= 1.22 p90= 4.15 sum=   611 h
+          verdict -> on main:                             n=215 mean= 4.63 p50= 2.54 p90= 8.16 sum=   996 h
+          main lags a landing by:                         n=209 mean= 1.70 p50= 1.56 p90= 2.45 sum=   355 h max 5.53 h
+          proofs 134 incl. 11 bisection proofs for 215 changes; largest proved range 12; failed-job re-runs 14; culprits 6, known after mean 2.63 h, max 4.18 h
+C1 W=60: verdict -> on main:                             n=215 mean= 4.01 p50= 1.75 p90= 8.17 sum=   862 h | batch proofs 97, push runs on main 215

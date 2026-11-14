@@ -1,0 +1,3 @@
+baseline_(round_10_as_measured)                                wall   714.05 h  (  +0.0 %)  {'closure': '2026-11-19T11:03:00Z', 'batches': 414, 'ci_minutes': 51525.0}
+null:_unread_term_edited                                       wall   714.05 h  (  +0.0 %)  {'closure': '2026-11-19T11:03:00Z', 'batches': 414, 'ci_minutes': 51525.0}
+C2_on_R10_at_the_p75_floor:_first_-4.8_h                       wall   604.43 h  ( -15.4 %)  {'closure': '2026-11-14T21:26:00Z', 'batches': 369, 'ci_minutes': 46462.5}

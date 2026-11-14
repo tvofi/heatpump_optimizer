@@ -1,0 +1,27 @@
+first-parent commits 291 gate on the push run: {'SUCCESS': 215, 'FAILURE': 44, 'CANCELLED': 32}
+gate SUCCESS while the run concluded otherwise: 165 of 215
+gate-red streak starts: 24 over 259 judged merges (0.093); red merges 44 (0.170)
+   11-07 03:45 355d9965a7 Merge pull request #3246 from tvofi/fix/r10-gate-busy-defer | reds 1 span h 0.0
+   11-07 05:48 a2ac74260a Merge pull request #3232 from tvofi/fix/r10-ext-3226 | reds 1 span h 0.0
+   11-07 21:55 8a1358e844 Merge pull request #3267 from tvofi/fix/r10-sweep-template-sync | reds 1 span h 0.0
+   11-07 23:32 70c15830b9 Merge pull request #3269 from tvofi/fix/r10-hotfix-nightly-pin-throughput | reds 2 span h 0.1
+   11-08 06:21 afc1586a44 Merge pull request #3300 from tvofi/fix/r10-input-reappear | reds 1 span h 0.0
+   11-08 08:17 2a3c05644d v7.1.6: stamp Round 10 fixes since v7.1.5 | reds 1 span h 0.0
+   11-08 10:19 28596c5699 Merge pull request #3312 from tvofi/fix/r10-body-contract-p3-bootstrap | reds 1 span h 0.0
+   11-08 15:35 8a4974d152 Merge pull request #3335 from tvofi/fix/r10-rca-stamp-flush-cost | reds 1 span h 0.0
+   11-08 19:25 17e621f08c Merge pull request #3318 from tvofi/fix/r10-body-contract-p4 | reds 3 span h 0.9
+   11-08 21:03 daf8b349fd Merge pull request #3346 from tvofi/fix/r10-why-now-widget-p2 | reds 2 span h 1.0
+   11-08 22:47 20e83746fe Merge pull request #3343 from tvofi/fix/r10-hotfix-prepr-selftest-darwin | reds 1 span h 0.0
+   11-09 00:07 19865e5a86 Merge pull request #3310 from tvofi/fix/r10-fly-triage-bar | reds 2 span h 1.0
+   11-09 03:18 3fdaa9da9a Merge pull request #3347 from tvofi/fix/r10-sav-comfort-p4 | reds 1 span h 0.0
+   11-09 09:09 f123901fb3 Merge pull request #3339 from tvofi/fix/r10-hotfix-author-email | reds 3 span h 1.4
+   11-09 13:11 e02c7015b5 Merge pull request #3371 from tvofi/fix/r10-cop-gate-e | reds 1 span h 0.0
+   11-09 15:03 b944521a2f Merge pull request #3372 from tvofi/fix/r10-water-setpoint-lift | reds 1 span h 0.0
+   11-09 15:15 7bdc8aa2ec Merge pull request #3373 from tvofi/record/autofix | reds 6 span h 1.2
+   11-09 20:52 d9af08062a Merge pull request #3329 from tvofi/fix/r10-rca-sweep-settle-loop-pr | reds 1 span h 0.0
+   11-10 00:48 96346fdec3 Merge pull request #3393 from tvofi/record/autofix | reds 2 span h 0.2
+   11-11 08:37 cbd23f1c8b Merge pull request #3398 from tvofi/fix/r10-combi-tank-b | reds 7 span h 7.5
+   11-12 09:54 14c0012eb4 Merge pull request #3444 from tvofi/fix/r10-outside-dhw-charge-settle | reds 1 span h 0.0
+   11-13 10:24 3b9749dac5 Merge pull request #3528 from tvofi/fix/r10-suite-env-residue-p2 | reds 1 span h 0.0
+   11-13 13:42 cfa8683946 Merge pull request #3549 from tvofi/fix/r10-hotfix-opener-refusals | reds 1 span h 0.0
+   11-14 00:58 fdb526895c v7.1.16: stamp Pump start condition input, duty-switch pricing, savings refere | reds 2 span h 1.0

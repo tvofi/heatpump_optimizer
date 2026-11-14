@@ -1,0 +1,26 @@
+known waits for green at the reviewed head (h): n=141 mean= 1.30 p50= 0.24 p90= 2.57 sum=   184 h p75 1.22
+entries 215; a green run at the reviewed head is recorded for 141; the others take the median wait of those (0.24 h)
+red-streak starts among these merges: real 6, transient (one red, green at the next merge) 14
+today, first merge verdict -> on main (null control, equals the measured segment): n=215 mean= 7.60 p50= 3.90 p90=19.77 sum=  1634 h
+floor, first merge verdict -> approved and green at the reviewed head:             n=215 mean= 2.50 p50= 0.24 p90= 4.15 sum=   538 h
+entries in a serial class today: 140 of 215
+C2 W=45: verdict -> landed (slot frees, successors start): n=215 mean= 2.50 p50= 0.24 p90= 4.15 sum=   538 h
+          verdict -> on main:                             n=215 mean= 3.71 p50= 1.53 p90= 6.95 sum=   797 h
+          main lags a landing by:                         n=209 mean= 1.12 p50= 1.10 p90= 1.62 sum=   233 h max 2.19 h
+          proofs 149 incl. 2 bisection proofs for 215 changes; largest proved range 7; failed-job re-runs 14; culprits 6, known after mean 1.28 h, max 1.68 h
+C1 W=45: verdict -> on main:                             n=215 mean= 3.45 p50= 1.02 p90= 7.95 sum=   743 h | batch proofs 102, push runs on main 215
+C2 W=60: verdict -> landed (slot frees, successors start): n=215 mean= 2.50 p50= 0.24 p90= 4.15 sum=   538 h
+          verdict -> on main:                             n=215 mean= 4.26 p50= 2.02 p90= 8.16 sum=   917 h
+          main lags a landing by:                         n=209 mean= 1.67 p50= 1.52 p90= 2.43 sum=   349 h max 5.53 h
+          proofs 134 incl. 8 bisection proofs for 215 changes; largest proved range 12; failed-job re-runs 14; culprits 6, known after mean 2.38 h, max 4.18 h
+C1 W=60: verdict -> on main:                             n=215 mean= 3.67 p50= 1.44 p90= 8.17 sum=   790 h | batch proofs 99, push runs on main 215
+C2 W=75: verdict -> landed (slot frees, successors start): n=215 mean= 2.50 p50= 0.24 p90= 4.15 sum=   538 h
+          verdict -> on main:                             n=215 mean= 4.89 p50= 2.58 p90= 9.16 sum=  1051 h
+          main lags a landing by:                         n=209 mean= 2.29 p50= 2.07 p90= 3.08 sum=   479 h max 7.78 h
+          proofs 121 incl. 11 bisection proofs for 215 changes; largest proved range 14; failed-job re-runs 13; culprits 6, known after mean 3.49 h, max 6.05 h
+C1 W=75: verdict -> on main:                             n=215 mean= 3.88 p50= 1.70 p90= 8.53 sum=   834 h | batch proofs 92, push runs on main 215
+C2 W=105: verdict -> landed (slot frees, successors start): n=215 mean= 2.50 p50= 0.24 p90= 4.15 sum=   538 h
+          verdict -> on main:                             n=215 mean= 6.85 p50= 3.69 p90=14.42 sum=  1474 h
+          main lags a landing by:                         n=209 mean= 4.24 p50= 3.05 p90=10.14 sum=   886 h max 17.53 h
+          proofs 101 incl. 25 bisection proofs for 215 changes; largest proved range 21; failed-job re-runs 12; culprits 6, known after mean 6.83 h, max 10.68 h
+C1 W=105: verdict -> on main:                             n=215 mean= 4.33 p50= 2.39 p90= 8.72 sum=   931 h | batch proofs 84, push runs on main 215

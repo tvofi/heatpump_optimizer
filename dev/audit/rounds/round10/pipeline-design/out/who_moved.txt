@@ -1,0 +1,6 @@
+PRs whose head moved after the final merge verdict: 130 of 215
+   212 commits in 122 PRs  main-merge, subject 'Merge origin/main...' by tvofi   e.g. ["#3490 b7c973409 Merge remote-tracking branch 'origin/main' into fix/r10-seat", "#3490 0e64c66e3 Merge remote-tracking branch 'origin/main' into fix/r10-seat"]
+    35 commits in  35 PRs  delivery-row commit   e.g. ['#3528 6720df684 record: the delivery row for #3528', '#3505 d310af195 record: the delivery row for #3505']
+    18 commits in  16 PRs  handoff/other merge by tvofi   e.g. ["#3505 3a6a0016d Merge commit '4ab8ea4dde67be62baee17c5b9d0feadc92e3041' into", "#3513 01aaa956e Merge commit '3246aa389f8e7c0c548a50f1a82055d9ede23b7e' into"]
+    11 commits in   9 PRs  main-merge by the merge-main bot (ci: merge main)   e.g. ['#3430 fa1370415 ci: merge main', '#3444 c03b4afda ci: merge main']
+     6 commits in   5 PRs  bot commit (ci: ...)   e.g. ['#3505 d518b5b96 ci: pin killed mutants', '#3505 dfa7dfa40 ci: pin killed mutants']

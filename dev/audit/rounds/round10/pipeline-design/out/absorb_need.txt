@@ -1,0 +1,11 @@
+  fixer seat                     before open          clean   67  conflict  20
+  fixer seat                     open..final verdict  clean  127  conflict  63
+  fixer seat                     after final verdict  clean    1  conflict   0
+  merge-main bot                 open..final verdict  clean   31  conflict   0
+  merge-main bot                 after final verdict  clean   10  conflict   0
+  other                          before open          clean    3  conflict   1
+  other                          open..final verdict  clean    7  conflict   2
+  remerge_main/open_pr (tvofi)   before open          clean  191  conflict   1
+  remerge_main/open_pr (tvofi)   open..final verdict  clean  124  conflict   0
+  remerge_main/open_pr (tvofi)   after final verdict  clean  178  conflict   0
+files in conflict (count of merges): [('tests/golden/claimed_drift.txt', 17), ('tests/deployment_shape.py', 8), ('dev/audit/rounds/round4/D6/claims.md', 8), ('tests/features.py', 7), ('tools/audit/seat/merge_train.py', 7), ('dev/audit/rounds/round4/D6/claims.json', 6), ('custom_components/heatpump_optimizer/translations/de.json', 6), ('.claude/workflows/audit-find.js', 5), ('dev/audit/config/finding.schema.json', 5), ('tools/audit/seat/cloud_dispatch.py', 5), ('dev/audit/rounds/round3/D5/option_doc_coverage.py', 5), ('tools/plan/replan.py', 5), ('dev/audit/rounds/round4/D6/claims.py', 4), ('tests/golden/card_claimed_drift.txt', 4)]

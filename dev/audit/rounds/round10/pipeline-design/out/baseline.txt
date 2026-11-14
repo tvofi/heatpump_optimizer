@@ -1,0 +1,92 @@
+window 2026-11-07T00:00:00Z .. 2026-11-14T00:00:00Z: 215 non-record PR merges; kinds {'hotfix': 56, 'group': 146, 'flyin': 13}
+== ALL (n=215)
+  handoff -> PR open                           n=213 p50=   0.64 p75=   1.47 p90=   9.50 mean=   2.94 sum=   626.0 h
+  PR open -> first verdict returned            n=215 p50=   1.12 p75=   2.51 p90=   6.88 mean=   2.48 sum=   532.5 h
+  first verdict -> final merge verdict         n=215 p50=   2.94 p75=   9.45 p90=  22.70 mean=   7.33 sum=  1575.8 h
+    .. same, PRs with >=1 blocked only         n=128 p50=   8.21 p75=  17.41 p90=  28.19 mean=  12.31 sum=  1575.8 h
+  final verdict returned -> posted             n=214 p50=   0.00 p75=   0.00 p90=   0.00 mean=   0.00 sum=     0.7 h
+  final merge verdict -> merged                n=215 p50=   2.88 p75=   6.79 p90=  11.58 mean=   4.65 sum=   999.0 h
+  PR open -> merged                            n=215 p50=  11.76 p75=  20.11 p90=  30.19 mean=  14.45 sum=  3107.3 h
+  handoff -> merged                            n=215 p50=  15.12 p75=  22.39 p90=  32.73 mean=  17.36 sum=  3733.3 h
+  first branch commit -> merged                n=215 p50=  17.20 p75=  26.02 p90=  38.96 mean=  19.68 sum=  4230.2 h
+  PR open -> first green ci.yml run            n=214 p50=   2.52 p75=   7.48 p90=  16.06 mean=   5.52 sum=  1181.7 h
+  review rounds: mean 2.24; first-pass 102/215; no verdict 0; rounds hist [(1, 87), (2, 58), (3, 38), (4, 14), (5, 7), (6, 7), (7, 2), (8, 1), (9, 1)]
+  ci.yml runs per PR (open..merge)             n=215 p50=  11.00 p75=  16.00 p90=  22.00 mean=  12.43 sum=  2672.0 runs
+    .. runs at an already-run head             n=215 p50=  17.00 p75=  25.00 p90=  43.00 mean=  25.47 sum=  5477.0 runs
+    .. distinct heads run                      n=215 p50=   4.00 p75=   5.00 p90=   8.00 mean=   4.38 sum=   942.0 heads
+  main absorbs on branch                       n=215 p50=   4.00 p75=   7.00 p90=  12.00 mean=   5.44 sum=  1170.0 merges
+  ci.yml run wall per PR                       n=215 p50=   1.89 p75=   4.33 p90=   9.19 mean=   4.12 sum=   886.3 h
+  events {'pull_request': 2139, 'pull_request_review': 383, 'workflow_dispatch': 150} conclusions {'success': 1243, 'cancelled': 575, 'failure': 844, 'startup_failure': 4, None: 6}
+== size S (n=116)
+  handoff -> PR open                           n=114 p50=   0.58 p75=   1.24 p90=   4.66 mean=   1.88 sum=   214.7 h
+  PR open -> first verdict returned            n=116 p50=   0.95 p75=   1.94 p90=   5.40 mean=   2.12 sum=   245.8 h
+  first verdict -> final merge verdict         n=116 p50=   0.57 p75=   6.45 p90=  14.70 mean=   4.73 sum=   548.6 h
+    .. same, PRs with >=1 blocked only         n= 58 p50=   6.50 p75=  10.86 p90=  23.61 mean=   9.46 sum=   548.6 h
+  final verdict returned -> posted             n=116 p50=   0.00 p75=   0.00 p90=   0.00 mean=   0.00 sum=     0.3 h
+  final merge verdict -> merged                n=116 p50=   2.73 p75=   6.09 p90=   9.93 mean=   4.00 sum=   464.3 h
+  PR open -> merged                            n=116 p50=   8.40 p75=  16.63 p90=  21.43 mean=  10.85 sum=  1258.7 h
+  handoff -> merged                            n=116 p50=  10.86 p75=  18.17 p90=  26.65 mean=  12.70 sum=  1473.4 h
+  first branch commit -> merged                n=116 p50=  12.38 p75=  20.22 p90=  31.08 mean=  14.73 sum=  1708.9 h
+  PR open -> first green ci.yml run            n=115 p50=   1.69 p75=   4.36 p90=  10.44 mean=   3.87 sum=   445.3 h
+  review rounds: mean 1.93; first-pass 63/116; no verdict 0; rounds hist [(1, 58), (2, 30), (3, 16), (4, 7), (5, 2), (6, 2), (8, 1)]
+  ci.yml runs per PR (open..merge)             n=116 p50=  10.00 p75=  13.00 p90=  17.00 mean=  10.96 sum=  1271.0 runs
+    .. runs at an already-run head             n=116 p50=  15.00 p75=  20.25 p90=  38.00 mean=  21.95 sum=  2546.0 runs
+    .. distinct heads run                      n=116 p50=   3.00 p75=   5.00 p90=   6.00 mean=   3.80 sum=   441.0 heads
+  main absorbs on branch                       n=116 p50=   3.00 p75=   5.00 p90=   8.00 mean=   3.62 sum=   420.0 merges
+  ci.yml run wall per PR                       n=116 p50=   1.73 p75=   3.57 p90=   5.45 mean=   3.82 sum=   443.7 h
+  events {'pull_request': 1022, 'pull_request_review': 194, 'workflow_dispatch': 55} conclusions {'success': 598, 'cancelled': 303, 'failure': 368, 'startup_failure': 2}
+== size M (n=64)
+  handoff -> PR open                           n= 64 p50=   0.83 p75=   5.05 p90=  11.77 mean=   4.41 sum=   282.1 h
+  PR open -> first verdict returned            n= 64 p50=   1.22 p75=   4.03 p90=   7.41 mean=   3.06 sum=   195.5 h
+  first verdict -> final merge verdict         n= 64 p50=   4.26 p75=  16.55 p90=  28.14 mean=  10.61 sum=   679.2 h
+    .. same, PRs with >=1 blocked only         n= 45 p50=  10.17 p75=  20.10 p90=  30.54 mean=  15.09 sum=   679.2 h
+  final verdict returned -> posted             n= 64 p50=   0.00 p75=   0.00 p90=   0.00 mean=   0.01 sum=     0.3 h
+  final merge verdict -> merged                n= 64 p50=   3.71 p75=   8.65 p90=  13.74 mean=   5.62 sum=   359.9 h
+  PR open -> merged                            n= 64 p50=  16.18 p75=  26.39 p90=  36.81 mean=  19.29 sum=  1234.7 h
+  handoff -> merged                            n= 64 p50=  18.26 p75=  30.28 p90=  46.00 mean=  23.70 sum=  1516.8 h
+  first branch commit -> merged                n= 64 p50=  20.89 p75=  34.40 p90=  50.03 mean=  26.60 sum=  1702.1 h
+  PR open -> first green ci.yml run            n= 64 p50=   3.86 p75=   8.63 p90=  16.31 mean=   5.95 sum=   380.7 h
+  review rounds: mean 2.64; first-pass 26/64; no verdict 0; rounds hist [(1, 19), (2, 19), (3, 12), (4, 5), (5, 3), (6, 3), (7, 2), (9, 1)]
+  ci.yml runs per PR (open..merge)             n= 64 p50=  13.00 p75=  20.25 p90=  23.00 mean=  14.17 sum=   907.0 runs
+    .. runs at an already-run head             n= 64 p50=  19.00 p75=  29.25 p90=  40.80 mean=  25.14 sum=  1609.0 runs
+    .. distinct heads run                      n= 64 p50=   4.00 p75=   7.00 p90=   9.00 mean=   5.09 sum=   326.0 heads
+  main absorbs on branch                       n= 64 p50=   5.00 p75=  10.25 p90=  15.00 mean=   7.30 sum=   467.0 merges
+  ci.yml run wall per PR                       n= 64 p50=   2.23 p75=   5.76 p90=  10.18 mean=   4.00 sum=   255.8 h
+  events {'pull_request_review': 129, 'pull_request': 731, 'workflow_dispatch': 47} conclusions {'success': 430, 'failure': 307, 'cancelled': 165, 'startup_failure': 1, None: 4}
+== size L/XL (n=20)
+  handoff -> PR open                           n= 20 p50=   0.71 p75=   1.44 p90=  13.46 mean=   4.57 sum=    91.4 h
+  PR open -> first verdict returned            n= 20 p50=   1.46 p75=   2.94 p90=   8.52 mean=   2.97 sum=    59.4 h
+  first verdict -> final merge verdict         n= 20 p50=  10.62 p75=  20.08 p90=  25.68 mean=  13.77 sum=   275.4 h
+    .. same, PRs with >=1 blocked only         n= 18 p50=  13.64 p75=  20.72 p90=  26.25 mean=  15.30 sum=   275.4 h
+  final verdict returned -> posted             n= 20 p50=   0.00 p75=   0.00 p90=   0.00 mean=   0.00 sum=     0.0 h
+  final merge verdict -> merged                n= 20 p50=   2.83 p75=   6.44 p90=  12.06 mean=   5.21 sum=   104.1 h
+  PR open -> merged                            n= 20 p50=  21.96 p75=  26.99 p90=  34.80 mean=  21.95 sum=   438.9 h
+  handoff -> merged                            n= 20 p50=  22.78 p75=  27.41 p90=  37.04 mean=  26.52 sum=   530.4 h
+  first branch commit -> merged                n= 20 p50=  26.34 p75=  35.45 p90=  41.47 mean=  28.58 sum=   571.5 h
+  PR open -> first green ci.yml run            n= 20 p50=  10.80 p75=  17.77 p90=  22.71 mean=  11.49 sum=   229.8 h
+  review rounds: mean 2.80; first-pass 4/20; no verdict 0; rounds hist [(1, 2), (2, 6), (3, 9), (4, 1), (5, 1), (6, 1)]
+  ci.yml runs per PR (open..merge)             n= 20 p50=  17.00 p75=  22.75 p90=  28.60 mean=  18.65 sum=   373.0 runs
+    .. runs at an already-run head             n= 20 p50=  31.50 p75=  61.00 p90= 148.00 mean=  55.40 sum=  1108.0 runs
+    .. distinct heads run                      n= 20 p50=   6.50 p75=   9.00 p90=  10.10 mean=   6.65 sum=   133.0 heads
+  main absorbs on branch                       n= 20 p50=   9.00 p75=  10.50 p90=  22.20 mean=   9.65 sum=   193.0 merges
+  ci.yml run wall per PR                       n= 20 p50=   5.72 p75=  10.18 p90=  15.95 mean=   7.91 sum=   158.2 h
+  events {'pull_request': 289, 'workflow_dispatch': 45, 'pull_request_review': 39} conclusions {'failure': 151, 'cancelled': 79, 'success': 140, 'startup_failure': 1, None: 2}
+== product (gkind!=instrument) (n=46)
+  handoff -> PR open                           n= 46 p50=   0.66 p75=   1.93 p90=   7.34 mean=   3.66 sum=   168.4 h
+  PR open -> first verdict returned            n= 46 p50=   1.46 p75=   5.47 p90=   8.54 mean=   3.52 sum=   162.0 h
+  first verdict -> final merge verdict         n= 46 p50=   4.08 p75=  18.77 p90=  28.48 mean=  10.95 sum=   503.7 h
+    .. same, PRs with >=1 blocked only         n= 28 p50=  17.22 p75=  23.37 p90=  36.55 mean=  17.99 sum=   503.7 h
+  final verdict returned -> posted             n= 45 p50=   0.00 p75=   0.00 p90=   0.00 mean=   0.00 sum=     0.1 h
+  final merge verdict -> merged                n= 46 p50=   4.05 p75=   6.89 p90=  12.67 mean=   5.12 sum=   235.5 h
+  PR open -> merged                            n= 46 p50=  17.59 p75=  26.33 p90=  37.41 mean=  19.59 sum=   901.2 h
+  handoff -> merged                            n= 46 p50=  19.35 p75=  28.51 p90=  49.46 mean=  23.25 sum=  1069.7 h
+  first branch commit -> merged                n= 46 p50=  23.96 p75=  32.94 p90=  49.18 mean=  26.11 sum=  1201.0 h
+  PR open -> first green ci.yml run            n= 46 p50=   8.60 p75=  17.32 p90=  21.96 mean=  10.82 sum=   497.8 h
+  review rounds: mean 2.48; first-pass 23/46; no verdict 0; rounds hist [(1, 18), (2, 9), (3, 10), (4, 2), (5, 2), (6, 5)]
+  ci.yml runs per PR (open..merge)             n= 46 p50=  13.00 p75=  21.00 p90=  26.00 mean=  15.35 sum=   706.0 runs
+    .. runs at an already-run head             n= 46 p50=  19.50 p75=  31.00 p90=  71.50 mean=  34.67 sum=  1595.0 runs
+    .. distinct heads run                      n= 46 p50=   5.00 p75=   8.75 p90=  10.00 mean=   5.67 sum=   261.0 heads
+  main absorbs on branch                       n= 46 p50=   5.50 p75=  11.50 p90=  22.50 mean=   8.39 sum=   386.0 merges
+  ci.yml run wall per PR                       n= 46 p50=   4.61 p75=   9.54 p90=  13.79 mean=   6.11 sum=   280.9 h
+  events {'pull_request': 554, 'workflow_dispatch': 74, 'pull_request_review': 78} conclusions {'failure': 312, 'cancelled': 143, 'success': 251}
+blocked classes [('mutation-vacuous', 44), ('ci-red', 36), ('class-open', 35), ('root-cause-unanswered', 9), ('carry-missing', 6), ('architecture-unsound', 5), ('merge-conflict', 5), ('mutation-survivors', 4), ('harness', 3), ('mutation-survivor', 3), ('root-cause-detectable', 3), ('policy-unapproved', 3), ('main-conflict', 2), ('introduced-red', 2), ('census-misclassified', 2), ('regression', 2), ('regression-unmeasured', 2), ('defect', 2), ('claim-refuted', 2), ('ci-cancelled', 2), ('red-checks', 2), ('under-scoped', 1), ('pin-missing', 1), ('claim-false', 1), ('dropped-entries', 1)]

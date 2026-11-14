@@ -1,0 +1,15 @@
+baseline_(round_10_as_measured)                                wall   714.05 h  (  +0.0 %)  {'closure': '2026-
+null:_unread_term_edited                                       wall   714.05 h  (  +0.0 %)  {'closure': '2026-
+C1_on_R10:_first_-3.4_h                                        wall   636.72 h  ( -10.8 %)  {'closure': '2026-
+C1_on_R10,_low:_first_-3.0_h                                   wall   645.93 h  (  -9.5 %)  {'closure': '2026-
+C2_on_R10:_first_-5.1_h                                        wall   599.60 h  ( -16.0 %)  {'closure': '2026-
+C2_on_R10,_rounds_form:_rfac_.71,_first_-2.2                   wall   572.68 h  ( -19.8 %)  {'closure': '2026-
+B11_assumed_R11-PRE:_rfac_.77_round_4.0_first_-1.0             wall   551.40 h  ( -22.8 %)  {'closure': '2026-
+B11_+_C1                                                       wall   473.08 h  ( -33.7 %)  {'closure': '2026-
+B11_+_C2                                                       wall   435.20 h  ( -39.1 %)  {'closure': '2026-
+B11_+_C4_only:_round_2.5                                       wall   485.92 h  ( -31.9 %)  {'closure': '2026-
+B11_+_C2_+_C4                                                  wall   373.87 h  ( -47.6 %)  {'closure': '2026-
+C4_on_R10_alone:_round_4.15                                    wall   630.03 h  ( -11.8 %)  {'closure': '2026-
+slots_26_on_R10_(informational)                                wall   703.72 h  (  -1.4 %)  {'closure': '2026-
+
+[exited with code 0]
