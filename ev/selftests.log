@@ -1,0 +1,12 @@
+99c3c1625923adaae044b8f1940344196a9b30af
+ok   tests.yml's laneskip step carries the same-repository conjunct: a fork head restores no lane proof and always runs
+outside self-test: 266 checks, 0 failed
+rc=0
+STRUCTURE RATCHET PASSED
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+rc=0
+0
+versions/custom_components check done
+tests / mutation
+tests / typing
+validate / validate-hacs

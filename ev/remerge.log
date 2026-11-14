@@ -1,0 +1,11 @@
+== remerge c9c7965697a628472c0ca83741851bd04e9923ba
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (233 entries)
+  closures.tests/harness_headers.py: merged as a set (412 entries)
+  re-run the gate that owns this file before pushing
+c9c7965697a628472c0ca83741851bd04e9923ba
+== remerge 99c3c1625923adaae044b8f1940344196a9b30af
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/harness_headers.py: merged as a set (413 entries)
+  re-run the gate that owns this file before pushing
+99c3c1625923adaae044b8f1940344196a9b30af

@@ -1,0 +1,10 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M1-approved: outside self-test: 266 checks, 2 failed
+FAIL class O REFUSE: a later CHANGES_REQUESTED voids the approval even when its own body carries the outside-read line (got 0, want 1)
+FAIL class O REFUSE: and so does a later DISMISSED review carrying the line (got 0, want 1)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M2-sha40: outside self-test: 266 checks, 1 failed
+FAIL REFUSE: a head that is no 40-hex commit (got (0, False), want (1, True))
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M3-mainref: outside self-test: 266 checks, 1 failed
+FAIL REFUSE: the head branch name 'main' (got (0, False), want (1, True))
