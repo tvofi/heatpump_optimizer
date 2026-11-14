@@ -213,7 +213,29 @@ def gate_checks() -> list[tuple[str, bool, str]]:
     one = extend_fixture(1)
     two = extend_fixture(2)
     entity = next(iter(one["states"]))
+    from datetime import datetime, timezone
+    from heatpump_optimizer import debugger
+    blocks = trace_blocks(one)
+    decoded = debug_ingest.decode_trace(blocks)
+    columns = debugger.trace_columns({**one["entry"]["data"], **one["entry"].get("options", {})})
+    window = [datetime.fromisoformat(one["window"][k]).astimezone(timezone.utc)
+              for k in ("start", "end")]
+
+    def held(eid: str, minute) -> str:  # the oracle: the newest row not after the minute
+        rows = [r for r in one["states"].get(eid, []) if datetime.fromisoformat(r[0]) <= minute]
+        return debugger.trace_cell(eid, rows[-1][1] if rows else None)
+
+    probes = [0, 600, len(decoded["minutes"]) - 1]
+    wrong = [(key, i) for key, eid in columns.items() for i in probes
+             if (decoded["cols"][key][i] or debugger.TRACE_GAP) != held(eid, decoded["minutes"][i])]
     return [
+        ("debug generator: the trace arm samples every minute of the window, in UTC-day blocks",
+         decoded["minutes"][0] == window[0] and decoded["minutes"][-1] == window[1] - debugger.TRACE_EVERY
+         and decoded["missing"] == 0 and len(blocks) == 2
+         and debugger.trace_summary(blocks)["minutes"] == 1440,
+         f"{decoded['minutes'][0]} {decoded['minutes'][-1]} {len(blocks)}"),
+        ("debug generator: each traced minute holds the cell of the state in force then",
+         not wrong and len(columns) > 3, str(wrong[:5])),
         ("debug generator: schema id is hpo-debug/2",
          SCHEMA == "hpo-debug/2", SCHEMA),
         ("debug generator: extend_fixture(1) keeps the committed window",
