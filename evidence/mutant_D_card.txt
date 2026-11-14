@@ -1,7 +1,0 @@
-  FAIL  a cheaper answer is reported as a monthly saving
-  FAIL  #2257: a schedule estimate's money is the range between its two pricings and says what it is: at the day's average weather and price, without the optimizer's load shifting
-  FAIL  #2257: two pricings that round to one amount, or no second pricing, show one number, still as the estimate
-  FAIL  #2257: a dearer schedule estimate orders its range small to large
-  FAIL  #2257: an answer priced by the two held plans has no second pricing and reads as steady state, one number
-  FAIL  #2257: an answer without the steady figure shows no money at all, never the plan's own spend
-6 CARD CHECK(S) FAILED
