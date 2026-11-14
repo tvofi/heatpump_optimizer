@@ -1,0 +1,4 @@
+  ok   watch --once under a live watcher's lock refuses and names its pid (P102)
+  ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
+bus self-test: 202 checks, 0 failed
+rc=0
