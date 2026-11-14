@@ -10,10 +10,20 @@ through ``tools/audit/seat/features_block.py``. Run from the repository root:
     python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py
 
 It prints mutant_run's lines, ``SURVIVED NULL`` then ``KILLED <name>`` per
-mutant at the fix head, once for M01-M20 on the arbiter block and once for the
-seam mutants (M21 to M38; M33 retired) on the water-setpoint feedback block, and exits with
+mutant at the fix head, once for M01-M20 and M35 on the arbiter block and once for the
+seam mutants (M21 to M38; M33 and M36 retired) on the water-setpoint feedback block, and exits with
 mutant_run's status. A mutant whose ``old`` text no longer occurs exactly once
 is refused before anything runs.
+
+R10-HOTFIX-FLOW-SETPOINT-STUCK re-anchored M02, M03, M11, M13, M23, M35 and
+M37 on the lines it rewrote: the own-write check no longer holds the write but
+substitutes the baseline (M03 drops that check), and Off keeps the own space
+write until a restore replaces it (M35, renamed, forgets it, and moves to the
+arbiter block, whose stuck-install Off-and-On check kills it). M36 (Off's guard
+reads the dropped write) is retired: that guard no longer reads it, by design.
+The seam block now ends at the replay's `_fb_floor = _fb_sim(clamp=(26.4`: the
+bare `_fb_floor = _fb_sim(` marker matched an earlier simulation #3469 added,
+so the block stopped before every Carry 8 check and no seam mutant could die.
 """
 from __future__ import annotations
 
@@ -37,14 +47,14 @@ MUTANTS = json.loads(r"""
  {
   "name": "M02_no_arm",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    return slot == \"space_setpoint\" and not await _arm_space(inp, entry, held, entity)",
+  "old": "    return slot == \"space_setpoint\" and not await _arm_space(inp, entry, held, entity, now)",
   "new": "    return False"
  },
  {
   "name": "M03_no_own_refusal",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "f\"space_baseline_own:{entity}\", own,",
-  "new": "f\"space_baseline_own:{entity}\", False,"
+  "old": "    if own:\n        baseline = _space_target(inp, inp.plan, now, None, boosted=False)\n",
+  "new": "    if False:\n        baseline = _space_target(inp, inp.plan, now, None, boosted=False)\n"
  },
  {
   "name": "M04_before_ignored",
@@ -91,8 +101,8 @@ MUTANTS = json.loads(r"""
  {
   "name": "M11_off_no_persist",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "if held.written or held.retry or held.dropped or held.space_before is not None:",
-  "new": "if held.written or held.retry or held.dropped:"
+  "old": "if held.written or held.retry or held.space_before is not None:",
+  "new": "if held.written or held.retry:"
  },
  {
   "name": "M12_no_grace",
@@ -103,8 +113,8 @@ MUTANTS = json.loads(r"""
  {
   "name": "M13_forget_keeps_before",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None",
-  "new": "held.written, held.misses, held.retry, held.dropped = {}, {}, {}, {}"
+  "old": "held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None",
+  "new": "held.written, held.misses, held.retry = {}, {}, {}"
  },
  {
   "name": "M14_factory_none",
@@ -147,21 +157,28 @@ MUTANTS = json.loads(r"""
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
   "old": "    if not entity:\n        return None\n    return off_restore.Restorer(",
   "new": "    return off_restore.Restorer("
+ },
+ {
+  "name": "M35_forget_drops_own_write",
+  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "    held.dropped = {} if own is None else {\"space_setpoint\": own}\n",
+  "new": "    held.dropped = {}\n"
  }
 ]
 """)
 #: The seam with R10-WATER-SETPOINT-FEEDBACK (the merge of #3405): the off
 #: restore's edit adoption reads the space slot before ``hold``, so a loop
 #: write's controller cut is ``_clamp_cut``'s, never a person's baseline; and
-#: the record a loop move drops (``_note_sent``) still refuses the optimizer's
-#: own write as the restore's baseline (roster Carry 8). Their checks sit in
+#: the record a loop move drops (``_note_sent``) still keeps the optimizer's
+#: own write from the restore's baseline (roster Carry 8). Their checks sit in
 #: the feedback block, which needs the arbiter block's imports.
 SEAM_BLOCK = (
     'env PYTHONPATH=tests/hastub python3 tools/audit/seat/features_block.py '
     '--prelude "from harness import FakeEntry as _pa_entry" '
     '--prelude "from types import SimpleNamespace as _PaNS" '
     '--prelude "from heatpump_optimizer.const import MODE_AUTO as _PA_AUTO, MODE_OFF as _PA_OFF" '
-    '"# --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380" "_fb_floor = _fb_sim("'
+    '--prelude "from heatpump_optimizer import off_restore as _pa_or" '
+    '"# --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380" "_fb_floor = _fb_sim(clamp=(26.4"'
 )
 SEAM_MUTANTS = json.loads(r"""
 [
@@ -180,8 +197,8 @@ SEAM_MUTANTS = json.loads(r"""
  {
   "name": "M23_arm_ignores_dropped_record",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    last = record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
-  "new": "    last = record[0] if record is not None else None\n"
+  "old": "    return record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
+  "new": "    return record[0] if record is not None else None\n"
  },
  {
   "name": "M24_prev_not_kept",
@@ -244,22 +261,10 @@ SEAM_MUTANTS = json.loads(r"""
   "new": "(held.written, held.misses, held.retry)"
  },
  {
-  "name": "M35_forget_keeps_dropped",
-  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None",
-  "new": "held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None"
- },
- {
-  "name": "M36_off_ignores_dropped",
-  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "if held.written or held.retry or held.dropped or held.space_before is not None:",
-  "new": "if held.written or held.retry or held.space_before is not None:"
- },
- {
   "name": "M37_arm_reads_run",
   "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
-  "old": "    last = record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
-  "new": "    last = record[0] if record is not None else None if held.feedback is None else held.feedback.prev_c\n"
+  "old": "    return record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
+  "new": "    return record[0] if record is not None else None if held.feedback is None else held.feedback.prev_c\n"
  },
  {
   "name": "M38_load_unfiltered",
