@@ -89769,6 +89769,22 @@ R.check(
     _dsp_kept(0, 28)[0].usable and not _dsp_kept(0, 29)[0].usable,
     f"n at 28 days {_dsp_kept(0, 28)[0].n!r}, at 29 {_dsp_kept(0, 29)[0].n!r}",
 )
+_dsp_over = _dsp_dir(4.0 * _dsp_ds.N_CAP, 0.0)
+_dsp_over.decay(_DSP_DAY)
+_dsp_over_n0 = _dsp_over.n
+_dsp_over.decay(_DSP_DAY + timedelta(days=29))
+_dsp_over_ctl = _dsp_dir(_dsp_ds.N_CAP, 0.0)
+_dsp_over_ctl.decay(_DSP_DAY + timedelta(days=28))
+R.check(
+    "the cap is held on decay as well as at booking: a record stored at four "
+    "times the cap is held to it by the first pass, p unchanged, and is off a "
+    "day past the 28 a capped direction stays latched (control: that capped "
+    "direction is still latched at 28 days)",
+    abs(_dsp_over_n0 - _dsp_ds.N_CAP) < 1e-9 and _dsp_over.p == 1.0
+    and not _dsp_over.usable and _dsp_over_ctl.usable,
+    f"n after the first pass {_dsp_over_n0!r}, after 29 days {_dsp_over.n!r} "
+    f"usable={_dsp_over.usable}; control usable={_dsp_over_ctl.usable}",
+)
 _dsp_rt = _dsp_ds.DutySwitchLearner({"dhw_space": _dsp_k12, "space_dhw": _dsp_fill})
 _dsp_rt_back = _dsp_ds.DutySwitchLearner.from_record(json.loads(json.dumps(_dsp_rt.stored_record())))
 R.check(
