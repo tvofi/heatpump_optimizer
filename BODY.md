@@ -1,4 +1,4 @@
-R10-SAV-VALUATION-RESIDUE, part 2 (the pending carries: 4, 9, 10, 14, 15). Behind a valve, `_compute_baseline_power` booked the simulated reference and then re-spread the horizon's energy by steady demand (`_apportion_by_steady_demand`). The method's premise was that "the first steps are the stores' transient". Since part 1, the held state's census (`dev/audit/harnesses/r10_sav_held_capacity_census.py`) reads a first-step store change of 0 on every case, so step 0 from the held state is the thermostat's holding power. The re-spread became the residual's own source: it booked step 0 above the held equilibrium, +11.11 kWh_th over the valve arm (Carry 15). This diff removes the call and the method, and books the reference as simulated.
+R10-SAV-VALUATION-RESIDUE, part 2 (the pending carries: 4, 9, 10, 14, 15). Behind a valve, `_compute_baseline_power` booked the simulated reference and then re-spread the horizon's energy by steady demand (`_apportion_by_steady_demand`). The method's premise was that "the first steps are the stores' transient". Since part 1, the held state's census (`dev/audit/harnesses/r10_sav_held_capacity_census.py`) reads a first-step store change of 0 on every case, so step 0 from the held state is the thermostat's holding power. The re-spread became the residual's own source: it booked step 0 above the held equilibrium, +11.11 kWh_th over the valve arm (Carry 15). This diff removes the call and the method, and books the reference as simulated. That changes the booked reference for every valved install, so `ledger.REFERENCE_BASIS` moves 1 to 2: basis 1 is the spread reference v7.1.15 released, and a month it stamped 1 and finishes on this code would otherwise state one saving over two references (`Fix review: blocked 22e9330 reference-basis-unbumped`).
 
 Alternatives and why each lost:
 - (a) Keep the spread and anchor step 0 to the simulated step. That keeps a second power schedule the settlement does not need: the census shows the simulated schedule already starts at equilibrium. It also keeps 26 lines and their pins for no booked effect.
@@ -18,18 +18,25 @@ The brief's carries:
 
 ## Head
 
-The head is `b48274c195c101902a1383a76d7043262264cd2d`: seven commits on origin/main `e23124ff6e45bac1d48b4a775dad555a37965355`.
+The head is `fc372c809423c6534741950a898606b18524b5fc`: nine commits on origin/main `e23124ff6e45bac1d48b4a775dad555a37965355`. The reviewed `22e9330` is `b48274c` plus a merge of main and the delivery row; this repair continues from `b48274c` fast-forward only, and `git merge-tree --write-tree origin/main HEAD` reports no conflict.
+- The next commit bumps `REFERENCE_BASIS` to 2 with its comment, and rewrites the `R10-HOTFIX-SAV-ESTIMATE` reference-basis check that read a persisted stamp 1 as current: a month stamped 1 now states no saving after it books on, and the first booking's stamp is pinned at the literal 2.0; the last deletes the killed-by pin on the retired line.
 - ee1d3d0d removes the method, adds the failing check and deletes the method's pins and ledger rows.
 - The next commit re-records `class_excess_loc` (17514 to 17481, the removed method).
 - 21d6df7c, 222032c3 and ee3c5bbc claim the golden drift (`## Figures`). The later two add the three fixtures that `golden.py`, but not `env_drift.py`, reads, and recast the suspensions in the form the stamp restores.
-- The last commit deletes the `_compute_baseline_power` `GUARD_OFF` ledger pin, whose site was the removed valve branch (`ci_predict` `STALE PIN`).
-- 14e9b16a restates the `R10-HOTFIX-SAV-ESTIMATE` first-step pin. It required exact equality with the horizon mean, `< 1e-9`, which was the removed spread's own output. It is now bounded at `< 1e-3`. Two-zone valved houses read 0.99984: two zones held at one temperature drift apart over the day, which is Carry 9's open seam, not a step-0 transient. This loosening is disclosed with its control in `## Null control`. Measured 2026-11-13 (UTC). VERSION, the manifest and RELEASE_NOTES are untouched.
+- b48274c1 deletes the `_compute_baseline_power` `GUARD_OFF` ledger pin, whose site was the removed valve branch (`ci_predict` `STALE PIN`).
+- 14e9b16a restates the `R10-HOTFIX-SAV-ESTIMATE` first-step pin. It required exact equality with the horizon mean, `< 1e-9`, which was the removed spread's own output. It is now bounded at `< 1e-3`. Two-zone valved houses read 0.99984: two zones held at one temperature drift apart over the day, which is Carry 9's open seam, not a step-0 transient. This loosening is disclosed with its control in `## Null control`. Measured 2026-11-13 (UTC); the repair round re-took the mutation proofs and the gate on 2026-11-14 (UTC). VERSION, the manifest and RELEASE_NOTES are untouched.
 
 ## Mutation proof
 
 The fix deletes lines, so the mutant restores them: `optimizer.py` at the merge base, with this head's `tests/features.py`. Command: `PYTHONPATH=tests/hastub:tests:custom_components python3 tools/audit/seat/features_block.py --prelude "exec(open('<prelude>').read())" "from profiles import house as _hb_house" "# The start's settlement, at its limits"`. The prelude comes from `features_block.py --emit-prelude` over the same markers.
-- Mutant (base production code): `FAIL behind a valve, the booked reference's first step holds its held state  [power 1.4408104309112266; room 19.399999999999636 -> 19.399999999999636, slab 23.599999999999568 -> 23.599999999999586, tank 25.99999999999953 -> 26.16979405144286]`, `1 of 15 FEATURES BLOCK FAILED`.
+- Mutant (base production code): `FAIL behind a valve, the booked reference's first step holds its held state  [power 1.4408104309112266; room 19.399999999999636 -> 19.399999999999636, slab 23.599999999999568 -> 23.599999999999586, tank 25.99999999999953 -> 26.16979405144286]`, `1 of 11 FEATURES BLOCK FAILED`.
 - Head: `ALL 11 FEATURES BLOCK PASSED`.
+- Disclosed self-correction: the previous round printed `1 of 15` here; re-run with the command above at this head it reads `1 of 11`, the reviewer's count.
+
+The reference basis. Command: `PYTHONPATH=tests/hastub:tests:custom_components python3 tools/audit/seat/features_block.py --prelude "exec(open('<prelude>').read())" "# R10-HOTFIX-SAV-ESTIMATE: a month's reference basis" "# A v1 month holding lines but no savings yet"`, prelude from `--emit-prelude` over the same markers.
+- Mutant `REFERENCE_BASIS = 1` (the reviewed head's value): `FAIL a month stamped 1, the spread reference, states no saving after the change`, its row `'savings_sek': 0.0, 'old_basis': False`, `1 of 5 FEATURES BLOCK FAILED`.
+- Mutant `REFERENCE_BASIS = 3` (the CONST operator's draw): `FAIL a month's first savings booking stamps the reference in force, once`, stamp `{'sum': 3.0, 'count': 1}`, `1 of 5 FEATURES BLOCK FAILED`.
+- Head: `ALL 5 FEATURES BLOCK PASSED`.
 
 ## Null control
 
@@ -40,7 +47,7 @@ The fix deletes lines, so the mutant restores them: `optimizer.py` at the merge 
 
 ## Figures
 
-<!-- figure-block: scope-line mb=e23124ff6e45bac1d48b4a775dad555a37965355 head=b48274c195c101902a1383a76d7043262264cd2d -->
+<!-- figure-block: scope-line mb=e23124ff6e45bac1d48b4a775dad555a37965355 head=fc372c809423c6534741950a898606b18524b5fc -->
 ~~~text
 MODE: SCOPED -- 27 script(s) run, 6 scoped out.
 ~~~
@@ -66,15 +73,15 @@ MODE: SCOPED -- 27 script(s) run, 6 scoped out.
   - All eight are claimed in `tests/golden/claimed_drift.txt` with their direction. `golden.py` reports `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE` after the claim.
   - Six of the eight carry a may-drift entry, and `baseline_cost` is a judged key such an entry cannot excuse. Those six entries are suspended in `stamp.py`'s two-line restore form (`SUSPEND_HEAD_RE`). `stamp.rewrite_claims` run on this file for the next patch version leaves no claims and restores every entry. This is `tests/entities.py`'s "each suspended entry restored with the claims deleted" check.
 - Structure: `python3 tests/structure.py --record` moved `class_excess_loc` 17514 to 17481 and nothing else.
-@@GATE@@
+- Scoped gate, `GATE_SCOPE=auto PYTHONPATH=tests/hastub GOLDEN_MODE=drift GOLDEN_REF=e23124ff6e45bac1d48b4a775dad555a37965355 bash tests/run.sh` at fc372c809423c6534741950a898606b18524b5fc, 2026-11-14 (UTC), a Saturday: `MODE: SCOPED -- 27 script(s) run, 6 scoped out`; `1 TEST SCRIPT(S) FAILED`, and that script is `tests/features.py` at `1 of 5568 FEATURE CHECKS FAILED`. The one red check is `a charge-start dip that recovers is learned as neither a draw nor usage, ...`, whose row `on a Saturday` and `[weekday, weekend] day counts` fields are the weekend-clock defect R10-HOTFIX-FEATURES-WEEKEND-CLOCK owns; this diff's `tests/features.py` hunks are the reference-basis and `_hb_` blocks only (`git diff e23124ff...HEAD -- tests/features.py`). Every other script in the run printed its pass line: `ALL 2711 ENTITY CHECKS PASSED`, `STRUCTURE RATCHET PASSED`, `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE`, `ALL 116 STRESS CHECKS PASSED`.
 
 ## Red checks
 
-none
+`tools/pr/prepr.sh` was run with `PREPR_SKIP_CLOSURES=1`: its closures step fails on `tests/features.py`'s weekend check until R10-HOTFIX-FEATURES-WEEKEND-CLOCK merges (the dispatch's instruction), and the same check is the scoped gate's one red (`## Figures`). `mutation` (`tests / mutation`), predicted red by `tools/pr/ci_predict.py` at this head: `ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:76 CONST: REFERENCE_BASIS = 2`. The bump edits a line the ledger pinned, so the old pin went stale (deleted here) and the new line is unpinned until `mutation-autofix` pins it after the pull request opens (`ci-autofix.md`); its mutant is killed in `## Mutation proof`. Cheaper detector: `ci_predict.py`, prepr's step 6d, already ran locally in seconds at this head and caught both the stale pin and the unpinned site before any CI run; no further countermeasure, the cheapest detector is the one that fired.
 
 ## Unpinned sites
 
-none: the diff adds no production line, so there are no diff mutants to draw.
+- custom_components/heatpump_optimizer/ledger.py:76 CONST, `REFERENCE_BASIS = 2` (`ci_predict` `ADDED UNPINNED`): killed by `tests/features.py`'s reference-basis block (`## Mutation proof`, the `= 3` draw); pinned by `mutation-autofix`. Its old pin on `REFERENCE_BASIS = 1` (`STALE PIN`) is deleted by hand in this diff.
 
 ## Forward-carry
 
