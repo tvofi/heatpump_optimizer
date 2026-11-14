@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 45f71299a..9f0bb09ff 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -2709,7 +2709,7 @@ def _terminal_row_cost(
+                     buffer_deficit += term
+                 else:
+                     deficit += term
+-            if refill is not None:
++            if False:
+                 return refill_price * refill(
+                     deficit / max(cop_end, 1e-6)
+                     + buffer_deficit / max(cop_buffer, 1e-6)

@@ -1,1 +1,0 @@
-[{"name":"row_cost_split_refill_GUARD_OFF","file":"custom_components/heatpump_optimizer/optimizer.py","old":"            if refill is not None:\n                return refill_price * refill(","new":"            if False:\n                return refill_price * refill("}]
