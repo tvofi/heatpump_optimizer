@@ -662,17 +662,30 @@ def gate_rerunning(ci_runs, check_runs) -> list:
                   if r.get("status") not in ("completed", "action_required") and r.get("check_suite_id") in done))
 
 
+def green_gate_end(check_runs) -> "str | None":
+    """The newest `completed_at` among the green GATE suites, as the ISO string
+    GitHub wrote, or None when none is green or a stamp is unreadable."""
+    ends = [c.get("completed_at") for c in gate_suites(check_runs or ()) if run_state(c) == "green"]
+    try:
+        return max(ends, key=lambda t: datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp())
+    except (ValueError, AttributeError):
+        return None
+
+
 def sweep_settling(check_runs, now: float) -> bool:
     """Whether the newest green GATE suite completed at most SWEEP_SETTLE_SECONDS
     before <now> (epoch seconds), so gate-sweep's re-run of a red beside it may
     not have started. A stamp ahead of <now>, or none readable, is unknowable:
     no settle, the red stands."""
-    ends = [c.get("completed_at") for c in gate_suites(check_runs or ()) if run_state(c) == "green"]
-    try:
-        last = max(datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp() for t in ends)
-    except (ValueError, AttributeError):
+    end = green_gate_end(check_runs)
+    if end is None:
         return False
-    return 0 <= now - last <= SWEEP_SETTLE_SECONDS
+    return 0 <= now - datetime.datetime.fromisoformat(end.replace("Z", "+00:00")).timestamp() <= SWEEP_SETTLE_SECONDS
+
+
+#: The one marker a Busy carries when the wait is on a gate-sweep.yml run that is
+#: queued or in progress (`Train._sweep_busy`), as against a ci.yml run id.
+SWEEP_QUEUED = "sweep-run"
 
 
 #: Polls a red GATE beside a green GATE suite is still waited on once no run is
@@ -1020,6 +1033,11 @@ def infra_due(attempt: int, failed: list[dict], logs: dict) -> "tuple[float, lis
 # One check-runs read per head every five minutes (tvofi, 2026-10-07: every
 # seat shares one API quota, and it ran out); 24 reads wait two hours.
 POLL_SECONDS = 300
+# Carry 6 (ii): a re-run the train starts for a non-priority pull request waits
+# while a priority run is queued, re-asked each POLL_SECONDS; past six polls
+# (30 min, the order of the priority wait carry 4 measured) it runs anyway,
+# logged, so a priority queue that never drains cannot stall the train.
+HOLD_POLLS = 6
 # The heartbeat (tvofi, 2026-10-13): the batch train sat silent 2+ hours inside
 # --overlap's up-front recarry phase (each recarry logs only on completion, and
 # app_push's prepr takes 5-15 min per entry) and inside wait_ci's poll cycle,
@@ -2289,6 +2307,24 @@ class Train:
             return Busy()
         return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
 
+    def _sweep_busy(self, h: str, check_runs) -> "Busy | None":
+        """`Busy([SWEEP_QUEUED])` while a gate-sweep.yml run created at or after
+        the newest green GATE suite's `completed_at` is queued or in progress
+        (GATE-SWEEP-QUEUE-WAIT: the sweep's job can sit behind the runner cap
+        for ten minutes, past the settle). One listing read at <h>; no green
+        suite, an unreadable listing or only completed runs read None (never an
+        empty Busy, which only the gate readers mint), and the red stands after
+        the settle poll."""
+        end = green_gate_end(check_runs)
+        if end is None:
+            return None
+        code, sweeps, _ = self.pages(
+            f"repos/{self.repo}/actions/workflows/gate-sweep.yml/runs?created=%3E%3D{end}", "workflow_runs")
+        if code or not sweeps:
+            return None
+        return Busy([SWEEP_QUEUED]) if any(
+            (r.get("status") or "") not in ("completed", "action_required", "") for r in sweeps) else None
+
     def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
         """`classify` over <h>'s check runs with a red GATE re-read against
         `_gate_busy` (a run busy, or re-running its gate), else against
@@ -2299,7 +2335,8 @@ class Train:
         state = classify(last, required, FINAL)
         if GATE not in state[2]:
             return state
-        busy = self._gate_busy(h, runs) or (Busy(["sweep"]) if sweep_settling(runs, self.wall()) else None)
+        busy = (self._sweep_busy(h, runs) or self._gate_busy(h, runs)
+                or (Busy(["sweep"]) if sweep_settling(runs, self.wall()) else None))
         return classify(last, required, busy) if busy else state
 
     def wait_ci(self, h: str, only: "list[str] | None" = None,
@@ -2336,18 +2373,22 @@ class Train:
             k += 1
             deferring = []
             runs = self._check_runs(h)
+            self.pause_poll(runs, h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
                 state = classify(last, only, FINAL)
                 if GATE in state[2]:
-                    busy = self._gate_busy(h, runs)
+                    busy = self._sweep_busy(h, runs) or self._gate_busy(h, runs)
                     if not busy and settle < SWEEP_SETTLE_POLLS and any(
                             run_state(c) == "green" for c in gate_suites(runs)):
                         settle += 1
                         busy = Busy(["sweep"])
                     if busy != held:
                         held = busy
-                        if busy == ["sweep"]:
+                        if busy == [SWEEP_QUEUED]:
+                            self.log(f"gate red at {h[:8]}: a gate-sweep.yml run created after the green gate is "
+                                     "queued or in progress: waiting for its re-run")
+                        elif busy == ["sweep"]:
                             self.log(f"gate red at {h[:8]} beside a green gate suite, no ci.yml run busy: "
                                      f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
                         elif busy:
@@ -2375,12 +2416,16 @@ class Train:
                 red = sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
                 # Every unit concluded, so gate.py's `busy` names no run; the
                 # sweep's re-run of a deferred red takes the train's settle.
-                if not (GATE in red and settle < SWEEP_SETTLE_POLLS
-                        and any(run_state(c) == "green" for c in gate_suites(runs))):
+                if GATE in red and self._sweep_busy(h, runs):
+                    self.log(f"gate red at {h[:8]}, every run concluded: a gate-sweep.yml run is queued or in "
+                             "progress: waiting for its re-run")
+                elif not (GATE in red and settle < SWEEP_SETTLE_POLLS
+                          and any(run_state(c) == "green" for c in gate_suites(runs))):
                     return red
-                settle += 1
-                self.log(f"gate red at {h[:8]} beside a green gate suite, every run concluded: "
-                         f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
+                else:
+                    settle += 1
+                    self.log(f"gate red at {h[:8]} beside a green gate suite, every run concluded: "
+                             f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
             now = self.clock()
             # A poll slower than the beat prints ONE beat, whose elapsed names
             # the true wait; a boundary-exact tick never prints twice.
@@ -2766,7 +2811,9 @@ class Train:
             if carried is None:
                 raise Stop("approve", f"code-owned and {why}")
             return carried
-        self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), self.mandate, "approve")
+        # A bare id reads "under <id>", which budget_raise_gate.MANDATE_CITE does not take as a citation.
+        under = f"mandate comment {self.mandate}" if re.fullmatch(r"\d{6,}", self.mandate) else self.mandate
+        self._post_agent_approval(pr, h, item, "code-owned", owned.group(1).split(), under, "approve")
         return "mandate"
 
     def _agent_approval_body(self, h: str, item: dict, what: str, paths: "list[str]", under: str) -> str:
@@ -3447,6 +3494,68 @@ class Train:
         with stop_ignored():
             self.release_worktrees()
             self.hold_release()
+            self.pause_resume("train exit")
+
+    # --- the CI pause (ci_pause.py: pause the lowest-priority PR's CI while the head's job queues) ---
+    def ci_pause(self):
+        """The train's one CiPause, built on first use; None when the module cannot load."""
+        if getattr(self, "_ci_pause", None) is None:
+            try:
+                if str(Path(__file__).resolve().parent) not in sys.path:
+                    sys.path.insert(0, str(Path(__file__).resolve().parent))
+                import ci_pause
+                self._ci_pause = ci_pause.CiPause(self)
+            except Exception as e:  # noqa: BLE001 - the pause is an optimisation, never a gate
+                self.log(f"PAUSE unavailable: {str(e)[:120]}")
+                self._ci_pause = False
+        return self._ci_pause or None
+
+    def protected_prs(self) -> "set[int]":
+        """Pull requests the pause may never touch: in the train's batches, in its spool, or seen with a verdict."""
+        out: set = set()
+        for batch in (getattr(self, "_queue", None) or {}).get("batches") or []:
+            out |= {int(e["pr"]) for e in batch if isinstance(e, dict) and str(e.get("pr", "")).isdigit()}
+        out |= {int(e["pr"]) for e in spool_read(self.state)[0]}
+        out |= {int(k) for k, v in (getattr(self, "_seen", None) or {}).items()
+                if str(k).isdigit() and isinstance(v, dict) and v.get("verdict")}
+        return out
+
+    def pause_poll(self, runs, h: str) -> None:
+        cp = self.ci_pause()
+        if cp is not None:
+            try:
+                cp.poll(runs, h)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"PAUSE error: {str(e)[:120]}")
+
+    def hold_reruns(self, h: str, what: str) -> None:
+        """Carry 6 (ii): before a re-run at <h>, wait while `CiPause.hold` names a queued priority
+        run (logged HOLD once, HOLD-END when it clears), at most HOLD_POLLS polls (HOLD-EXPIRED).
+        No pause module, or a hold that raises, waits for nothing."""
+        cp = self.ci_pause()
+        for k in range(HOLD_POLLS if cp is not None else 0):
+            try:
+                why = cp.hold(h)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"HOLD error: {str(e)[:120]}")
+                return
+            if not why:
+                if k:
+                    self.log(f"HOLD-END {what} at {h[:8]} after {k} poll(s)")
+                return
+            if not k:
+                self.log(f"HOLD {what} at {h[:8]}: {why}")
+            self.sleep(POLL_SECONDS)
+        if cp is not None:
+            self.log(f"HOLD-EXPIRED {what} at {h[:8]} after {HOLD_POLLS} poll(s): re-running")
+
+    def pause_resume(self, why: str) -> None:
+        cp = self.ci_pause()
+        if cp is not None:
+            try:
+                cp.resume_all(why)
+            except Exception as e:  # noqa: BLE001
+                self.log(f"RESUME error: {str(e)[:120]}")
 
     def train(self, queue: list[dict]) -> int:
         try:
@@ -3458,6 +3567,7 @@ class Train:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
                  f"({' '.join('#%d' % int(i['pr']) for i in queue) or 'empty'})")
         self.state.mkdir(parents=True, exist_ok=True)
+        self.pause_resume("train start")
         self.hold_armed = True
         self.hold_refresh()  # before anything can merge: the record beat waits
         for item in self.preflight(queue):
@@ -4137,6 +4247,8 @@ class Train:
             if code or not stale(c, st.strip()):
                 continue
             if m.group(1) not in reran.values():
+                if not reran:
+                    self.hold_reruns(h, "stale re-run")
                 code, o = self.run(["gh", "api", "-X", "POST", f"repos/{self.repo}/actions/runs/{m.group(1)}/rerun"])
                 self.log(f"STALE {name} at {h[:8]}: check-run {c.get('id')} {c.get('status')} over completed "
                          f"run {m.group(1)}; re-run once (rc={code}{': ' + o.strip()[-120:] if code else ''})")
@@ -4266,6 +4378,7 @@ class Train:
             return 1
         self.skipped = []
         total = 0
+        self.pause_resume("train start")  # a pause a dead train left (ci_pause.py)
         self._queue = {"batches": batches, "next": 0, "closed": False}
         try:
             while True:
@@ -4436,11 +4549,9 @@ class Train:
             return f"{s.step}: {s.why}"
         return None
 
-    def add_verdict(self, pr: int, v: str, item: dict) -> "str | None":
-        """`admit_add`'s `verdict` rule, the queue builder's own read: the newest
-        posted verdict on <pr> is verdict/<pr>'s tip and `merge` at <v>
-        (`posted_verdict`). An add naming no comment gets that verdict's id,
-        which the mandate approval quotes; one naming another is refused."""
+    def bus_posted(self, pr: int) -> "tuple[str, str] | str":
+        """`posted_verdict` at verdict/<pr>'s tip on the bus: the add check's read,
+        which `posted-verdict` gives merge_pr.sh."""
         sys.modules.setdefault("merge_train", sys.modules[__name__])  # proof_watch imports the train
         import proof_watch
         allow = proof_watch.verdict_allowlist(ROOT / "tools/pr/app_approve.sh")
@@ -4450,7 +4561,14 @@ class Train:
         if code:
             return f"the verdict bus could not be read: {o.strip()[-160:]}"
         tip = next((ln.split()[0] for ln in o.splitlines() if ln.split() and is_sha(ln.split()[0])), None)
-        got = self.posted_verdict(pr, tip, allow)
+        return self.posted_verdict(pr, tip, allow)
+
+    def add_verdict(self, pr: int, v: str, item: dict) -> "str | None":
+        """`admit_add`'s `verdict` rule, the queue builder's own read: the newest
+        posted verdict on <pr> is verdict/<pr>'s tip and `merge` at <v>
+        (`posted_verdict`). An add naming no comment gets that verdict's id,
+        which the mandate approval quotes; one naming another is refused."""
+        got = self.bus_posted(pr)
         if isinstance(got, str):
             return got
         if got[0] != v:
@@ -5016,6 +5134,49 @@ def _self_test() -> int:
           and beats[0] == f"beat: waiting CI at {H0[:8]} (poll 2, t+240s, required: 1, concluded: 0/1)"
           and beats[1] == f"beat: waiting CI at {H0[:8]} (poll 4, t+480s, required: 1, concluded: 0/1)"
           and beats[2] == f"beat: waiting CI at {H0[:8]} (poll 6, t+960s, required: 1, concluded: 0/1)")
+    # R10-CI-PRIORITY-PAUSE: wait_ci feeds each poll's check-runs to the pause; unwind resumes.
+    import ci_pause as _cp
+    import datetime as _dt
+    pnow = 1_800_000_000.0
+    qrun = [{"name": "tests", "status": "queued", "conclusion": None, "id": 1,
+             "started_at": _dt.datetime.fromtimestamp(pnow - 600, _dt.timezone.utc).isoformat().replace("+00:00", "Z")}]
+    pposts: list[str] = []
+
+    def pause_run(argv, cwd=None, stdin=None):
+        c = " ".join(argv)
+        if "-X POST" in c:
+            pposts.append(c.split("repos/o/r/")[1])
+            return 0, ""
+        if "check-runs" in c:
+            return 0, "\n".join(json.dumps(x) for x in qrun)
+        if "/pulls?state=open" in c:
+            return 0, json.dumps({"n": 5, "sha": "b" * 40, "ref": "fix/low", "fork": False})
+        if "/comments" in c:
+            return 0, json.dumps([[{"body": "hi"}]])
+        if "/actions/runs?head_sha=" in c:
+            return 0, "77"
+        if "/pulls/5" in c:
+            return 0, json.dumps({"head": {"sha": "b" * 40}})
+        return 0, ""
+    with tempfile.TemporaryDirectory() as d:
+        t = Train("o/r", Path(d), None, "", (), 1, run=pause_run, sleep=lambda s: None, log=lambda s: None,
+                  polls=1, wall=lambda: pnow)
+        t._ci_pause = _cp.CiPause(t, {**__import__("ci_priority").load_setting(), "priority_cancel": True},
+                                  ({"groups": [{"group": "LOW", "resume": {"branch": "fix/low"}, "class": "instrument"}]}, set()))
+        t.wait_ci(H0)
+        cancelled = list(pposts)
+        pposts.clear()
+        t.unwind()
+        resumed = list(pposts)
+        t_off = Train("o/r", Path(d), None, "", (), 1, run=pause_run, sleep=lambda s: None, log=lambda s: None,
+                      polls=1, wall=lambda: pnow)
+        pposts.clear()
+        t_off._ci_pause = False
+        t_off.wait_ci(H0)
+    check("wait_ci feeds its poll to the pause: a head job queued 10 min cancels the victim's run; "
+          "unwind re-runs its failed jobs; with the pause unavailable nothing is cancelled",
+          cancelled == ["actions/runs/77/cancel"] and resumed == ["actions/runs/77/rerun-failed-jobs"] and pposts == [])
+    hang[0]["status"], hang[0]["conclusion"] = "completed", "success"
     # one-job pulse (R10-TICK-RESIDUE-P2 carry 0): the baseline is the same listing's completed same-name runs
     def jr(name, st, a, b=None):
         iso = lambda sec: datetime.datetime.fromtimestamp(sec, datetime.timezone.utc).isoformat()
@@ -5498,6 +5659,16 @@ def _self_test() -> int:
     b = w["approve_body"]
     check("the mandate body names the label, role, paths, verdict comment and head",
           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
+    for mand, cited, name in (("5951564627", {5951564627}, "a bare numeric --mandate id"),
+                              ("https://github.com/o/r/issues/201#issuecomment-5951564627", {5951564627},
+                               "null control: a --mandate given as an issuecomment URL")):
+        w2 = {"approve": owned}
+        go(w2, mandate=mand)
+        b2 = w2["approve_body"]
+        check(f"the code-owned approval body for {name} is read by MANDATE_CITE as that comment id"
+              + (" and is worded `mandate comment <id>`" if mand.isdigit() else ", the label unchanged"),
+              {int(a or c) for a, c in _mandate_gate().MANDATE_CITE.findall(b2)} == cited
+              and (f"under mandate comment {mand}," in b2 if mand.isdigit() else f"under {mand}," in b2))
     rc, lines, calls = go({"approve": owned, "budgets": RAISE_FIXTURE,
                            "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
                           mandate="m")
@@ -7787,6 +7958,7 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
           red == [GATE] and reads == 1 and not logged)
 
     _settle_gap_self_test(check, cli, wr)
+    _sweep_queue_self_test(check)
 
 
 def _settle_gap_self_test(check, cli, wr) -> None:
@@ -7867,6 +8039,68 @@ def _settle_gap_self_test(check, cli, wr) -> None:
                          "ci_runs": [dict(r, status="completed") for r in race["ci_runs"]]}, wall=lambda: ts("21:20:40"))
     check("#3293 null: once the code run ends in a content FAIL, no run in progress and no settle -- RED (exit 1)",
           rc == 1 and line.startswith("RED "))
+
+
+def _sweep_queue_self_test(check) -> None:
+    """GATE-SWEEP-QUEUE-WAIT (#3446 at 4cc5d8b962): gate-sweep's run was created
+    3 s after the green gate and its job started ten minutes later, past the
+    one-poll settle. A red GATE beside a green suite is a wait while a
+    gate-sweep.yml run created at or after that green is queued or in progress."""
+    H = "a" * 40
+    END = "2026-11-12T08:31:14Z"
+
+    def g(cid, suite, conclusion, done):
+        return {"name": GATE, "id": cid, "status": "completed", "conclusion": conclusion, "started_at": done,
+                "completed_at": done, "check_suite": {"id": suite}}
+    red, green = g(1, 11, "failure", "2026-11-12T08:30:50Z"), g(2, 12, "success", END)
+    swept = g(3, 11, "success", "2026-11-12T08:42:30Z")
+
+    def sw(status):
+        return [{"id": 42987689816, "status": status, "created_at": "2026-11-12T08:31:17Z"}]
+
+    def drive(frames, polls=6, only=True):
+        """frames: per poll (check runs, sweep listing); the last repeats."""
+        logged, urls, n = [], [], [0]
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if "gate-sweep.yml/runs" in a:
+                urls.append(a)
+                return 0, "\n".join(json.dumps(r) for r in frames[min(n[0], len(frames)) - 1][1])
+            if "ci.yml/runs" in a:
+                return 0, ""
+            if "check-runs" in a:
+                n[0] += 1
+                return 0, "\n".join(json.dumps(c) for c in frames[min(n[0], len(frames)) - 1][0])
+            return 9, "unstubbed: " + a
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append, polls=polls,
+                  wall=lambda: datetime.datetime.fromisoformat(END.replace("Z", "+00:00")).timestamp() + 3600)
+        return (t.wait_ci(H, only=[GATE]) if only else t.wait_ci(H)), logged, urls, t
+    base = [red, green]
+    r, lg, urls, _ = drive([(base, sw("queued"))] * 3 + [(base, sw("in_progress")), ([red, green, swept], sw("completed"))])
+    check("sweep queue: a sweep created after the green gate, queued then in progress for four polls, is waited on "
+          "past the one-poll settle and its green is read", r == [] and any("queued or in progress" in x for x in lg))
+    check("sweep queue: the listing read is bounded below by the green gate's completed_at",
+          urls and all(f"created=%3E%3D{END}" in u for u in urls))
+    r, lg, _, _ = drive([(base, sw("completed"))])
+    check("sweep queue null: a completed sweep with the red unchanged is RED after the settle poll",
+          r == [GATE] and not any("queued or in progress" in x for x in lg))
+    r, lg, _, _ = drive([(base, [])])
+    check("sweep queue null: no sweep run at all is RED after the settle poll", r == [GATE])
+    r, _, _, _ = drive([(base, sw("queued"))], polls=3)
+    check("sweep queue bound: a sweep that stays queued ends in TIMEOUT within polls", r == ["TIMEOUT"])
+    r, _, _, _ = drive([([red], sw("queued"))])
+    check("sweep queue null: with no green gate suite beside the red, a queued sweep is not waited on (no listing read)",
+          r == [GATE])
+    r, lg, _, _ = drive([(base, sw("queued"))] * 2 + [([red, green, swept], sw("completed"))], only=False)
+    check("sweep queue wait-ci: every run concluded, a queued sweep is waited on too", r == [])
+    r, lg, _, t = drive([(base, sw("queued"))])
+    last = latest_runs(base)
+    check("sweep queue classify_at: a queued sweep reads WAIT, a completed one RED (the one-read readers)",
+          t.classify_at(H, base, [GATE])[0] == "wait")
+    r, lg, _, t = drive([(base, sw("completed"))])
+    check("sweep queue classify_at null: a completed sweep, past the settle, reads RED",
+          t.classify_at(H, base, [GATE])[0] == "red")
 
 
 def _state_self_test(check, go, merged, throwaway_git_init) -> None:
@@ -8104,6 +8338,40 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     check("K15 (b): two stale check-runs over one workflow run re-run that run once, not once per check-run",
           rc == 0 and merged(calls) and sum(c[-1].endswith("/rerun") for c in calls) == 1
           and sum(ln.startswith("STALE ") for ln in lines) == 1)
+    asked: list = []
+
+    class _Hold:  # carry 6 (ii): a priority run queued for two polls, then none
+        def hold(self, h):
+            asked.append(h)
+            return "priority #10 run 901 is queued" if len(asked) <= 2 else None
+    _cp_attr = Train.ci_pause
+    Train.ci_pause = lambda self: _Hold()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    held_at = [i for i, ln in enumerate(lines) if ln.startswith("HOLD stale re-run at ")]
+    check("carry 6 (ii): the stale re-run of a non-priority head waits while a priority run is queued "
+          "(HOLD, then HOLD-END after 2 polls), then re-runs once and merges",
+          rc == 0 and merged(calls) and len(held_at) == 1 and "priority #10 run 901" in lines[held_at[0]]
+          and any(ln.startswith("HOLD-END stale re-run") and "after 2 poll(s)" in ln for ln in lines)
+          and len(asked) == 3 and sum(c[-1].endswith("/rerun") for c in calls) == 1)
+    asked.clear()
+    Train.ci_pause = lambda self: type("_Never", (), {"hold": lambda s, h: asked.append(h)})()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    check("carry 6 (ii) null: no priority run queued, the stale re-run is asked once and never waits",
+          rc == 0 and merged(calls) and len(asked) == 1 and not any(ln.startswith("HOLD") for ln in lines))
+    Train.ci_pause = lambda self: type("_Always", (), {"hold": lambda s, h: "priority #10 run 901 is queued"})()
+    try:
+        rc, lines, calls = go(stale_world("completed", True))
+    finally:
+        Train.ci_pause = _cp_attr
+    check("carry 6 (ii): a priority queue that never drains holds HOLD_POLLS polls, then re-runs (HOLD-EXPIRED)",
+          rc == 0 and merged(calls) and any(ln.startswith("HOLD-EXPIRED stale re-run") for ln in lines)
+          and sum(c[-1].endswith("/rerun") for c in calls) == 1)
     rc, lines, calls = go(stale_world("in_progress", False))
     check("K15 (b): a check-run whose run is still in progress is pending: no re-run (null control)",
           rc == 0 and not any(c[-1].endswith("/rerun") for c in calls))
@@ -9988,6 +10256,9 @@ def _add_self_test(check) -> None:
         def git(*a):
             return subprocess.run(["git", *a], cwd=gd, env=genv, capture_output=True, text=True,
                                   check=True).stdout.strip()
+        # app_approve.sh --carry lists origin's branch heads (decision 0017): the
+        # fixture is its own origin, so a head on a branch here is a head of ours.
+        git("remote", "add", "origin", ".")
         (gd / "m.txt").write_text("0\n")
         git("add", "-A"); git("commit", "-qm", "base"); git("checkout", "-qb", "pr")
         (gd / "a.py").write_text("x\n")
@@ -9999,6 +10270,8 @@ def _add_self_test(check) -> None:
         ch = git("rev-parse", "HEAD")
         (gd / "a.py").write_text("y\n"); git("commit", "-qam", "fix: an unreviewed delta")
         cn = git("rev-parse", "HEAD")
+        git("branch", "carried", ch)
+        cf = git("commit-tree", "-p", ch, "-m", "ci: re-record closures", ch + "^{tree}")
         held: list = []
 
         def carried(pr, head):
@@ -10034,6 +10307,12 @@ def _add_self_test(check) -> None:
               rc == 1 and lines[-1].startswith(f"ADD REFUSED #11 carry: the verdict {cv[:12]} does not carry to "
                                                f"head {cn[:12]}: CARRY: no")
               and f"own commits {cn[:9]} change its content" in lines[-1]
+              and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
+        rc, lines = carried(12, cf)
+        check("a head on no branch of origin (a fork's) carrying an empty ci: commit past its verdict is refused "
+              "by the `carry` rule as not ours, nothing spooled",
+              rc == 1 and lines[-1].startswith("ADD REFUSED #12 carry:")
+              and f"{cf} is a commit after the" in lines[-1]  # the not-ours arm's words, cut by the train's line bound
               and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
 
         st = Path(tempfile.mkdtemp(dir=tmp.name))
@@ -10543,6 +10822,10 @@ def _parser() -> argparse.ArgumentParser:
     i.add_argument("--base", help="the base commit (default: git merge-base origin/main <sha>)")
     # The required set a `## Red checks` obligation is judged against
     # (policy_lint.mjs --pr-body): the one owner, read live.
+    pv = sub.add_parser("posted-verdict", parents=[common],
+                        help="`VERDICT <head> <comment id>` (rc 0) when the newest posted verdict on <pr> is "
+                             "verdict/<pr>'s tip and merge (the add check's read); else why not, rc 1")
+    pv.add_argument("pr", type=int)
     sub.add_parser("owed-reds", parents=[common],
                    help="the check names whose red a pull-request body owes an answer, one per line: "
                         "judged(gating_names(required(pr_head=True))); an unreadable ruleset is rc 2")
@@ -10600,6 +10883,13 @@ def main(argv: list[str]) -> int:
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
+    if a.cmd == "posted-verdict":
+        try:
+            got = Train(a.repo, Path("."), None, "", (), a.min_runs).bus_posted(a.pr)
+        except Stop as s:
+            got = f"{s.step}: {s.why}"
+        print(got if isinstance(got, str) else f"VERDICT {got[0]} {got[1]}")
+        return 1 if isinstance(got, str) else 0
     if a.cmd == "owed-reds":
         rc, out = owed_reds(Train(a.repo, Path("."), None, "", (), a.min_runs))
         print(out)

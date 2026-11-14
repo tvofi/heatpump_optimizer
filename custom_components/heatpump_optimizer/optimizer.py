@@ -112,6 +112,7 @@ from .thermal_model import (
     valve_charge_demand,
     valve_hold_temperature,
     valve_top_draw,
+    valve_top_equilibrium,
     weather_or_calm,
     power_for_heat_per_cop_kw,
     added_power_for_heat_per_cop_kw,
@@ -204,6 +205,14 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
     return stops if max(stops) > 0 else None
 
 
+def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
+    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
+    return duty_legs.leg_rule(
+        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
+        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
+    )
+
+
 def _stop_availability(
     opt: HeatPumpOptimizer, start: np.ndarray, dhw_plan: np.ndarray, p_max: float
 ) -> np.ndarray | None:
@@ -224,7 +233,7 @@ def _stop_availability(
         np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),
         dhw_plan, opt.model.params.min_electrical_power, p_max,
     )
-    return duty_legs.availability(space, tank, lost, _duty_floor(opt))
+    return duty_legs.availability(space, tank, lost, _duty_floor(opt), _leg_rule(opt))
 
 
 def _with_stop_availability(
@@ -284,14 +293,14 @@ def _switch_cost_fn(
     ``None`` when no direction is priced or there is no hot-water plan, and
     :func:`_with_switch_cost` then adds no operand at all.
     """
-    stops, floor = _priced_stops(opt), _duty_floor(opt)
+    stops, floor, rule = _priced_stops(opt), _duty_floor(opt), _leg_rule(opt)
     p_max, cost = opt.model.params.max_electrical_power, opt.config.cycling_cost
 
     def switch_cost(space: np.ndarray, dhw: np.ndarray | None) -> Any:
         if stops is None or dhw is None or not cost > 0:
             return None
         term = cost * duty_legs.switch_weights_batch(
-            np.atleast_2d(space), dhw, stops, p_max, floor)
+            np.atleast_2d(space), dhw, stops, p_max, floor, rule)
         return term if np.ndim(space) == 2 else float(term[0])
 
     return switch_cost
@@ -359,10 +368,10 @@ def _avoid_priced_switches(
         opt.model.params.min_electrical_power, p_max,
     )
     kept_avail, kept_requirement = opt._space_avail, opt._dhw_requirement
-    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:
+    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:
         return incumbent
     try:
-        ban = duty_legs.switch_ban(shipped, stops, floor)
+        ban = duty_legs.switch_ban(shipped, stops, floor, _leg_rule(opt))
         plan, requirement = _dhw_build(
             planner, h, p_max,
             wood_temps=planner._dhw_coil_wood_forecast(h), placement_ban=ban,
@@ -855,17 +864,62 @@ def _thermostat_held_state(
 
     held = held_at(target)
     if unreachable(held):
-        # Unreachable needs heat, so the outdoor is below the target: the span is ordered.
-        lo, hi = min(outdoor, target), target
-        for _ in range(_HELD_BISECTIONS):
-            mid = 0.5 * (lo + hi)
-            lo, hi = (lo, mid) if unreachable(held_at(mid)) else (mid, hi)
-        held = held_at(lo)
+        held = _held_at_valve_top(model, held, need(held), weather0, humidity) or _held_bisected(
+            held_at, unreachable, min(outdoor, target), target)
     if p.two_tank_modelled:
         # The reference has no wood: below every zone the valve takes nothing
         # from this side (``wood_share`` 0), so the step is the plain valve's.
         held.wood_tank_temperature = _NO_WOOD_TANK_C
     return held
+
+
+def _held_bisected(
+    held_at: Callable[[float], ThermalState], unreachable: Callable[[ThermalState], bool],
+    lo: float, hi: float,
+) -> ThermalState:
+    """The zones level at the highest temperature in ``[lo, hi]`` the step can
+    hold: unreachable needs heat, so the outdoor ``lo`` is below the target ``hi``."""
+    for _ in range(_HELD_BISECTIONS):
+        mid = 0.5 * (lo + hi)
+        lo, hi = (lo, mid) if unreachable(held_at(mid)) else (mid, hi)
+    return held_at(lo)
+
+
+def _held_at_valve_top(
+    model: ThermalModel, held: ThermalState, need_kw: float,
+    weather0: tuple[float, float, float, float], humidity: float | None,
+) -> ThermalState | None:
+    """A two-zone house behind a valve whose curve cannot deliver ``need_kw``,
+    the held zones' steady need at the target:
+    the plant's own ceiling (``valve_top_equilibrium``), floors apart, its
+    tank ``held``'s, already at the curve's top -- or ``None`` where the pump cannot
+    make it, or on any other house, which the level-zone bisection holds
+    (Carry 9: the floors held level sat below this ceiling, and the
+    reference's day warmed to it)."""
+    p = model.params
+    outdoor, wind, rain, solar = weather0
+    if not (p.two_zone_enabled and mixing_valve.is_throttling(p.mixing_valve_mode)
+            and need_kw > valve_top_draw(model, held, outdoor, wind, rain)):
+        return None
+    top = valve_top_equilibrium(model, held, outdoor, wind, rain, solar)
+    if top is None:
+        return None
+    # A steady draw: the tank at its goal, charged over no finite step.
+    made = valve_charge_demand(
+        model, top, valve_top_draw(model, top, outdoor, wind, rain), outdoor, wind, rain, math.inf)
+    return None if _pump_unreachable(model, top, made, outdoor, humidity) else top
+
+
+def _pump_unreachable(
+    model: ThermalModel, held: ThermalState, made_kw: float, outdoor: float,
+    humidity: float | None,
+) -> bool:
+    """Whether making ``made_kw`` of heat at the step's own COP
+    (``_reference_cop``, defrost and part-load included) needs a draw past
+    ``max_electrical_power``, where the step clips."""
+    cop = _reference_cop(model, held, outdoor, humidity)
+    p = model.params
+    return bool(power_for_heat_per_cop_kw(p, made_kw / cop) > p.max_electrical_power)
 
 
 def _held_unreachable(
@@ -891,8 +945,7 @@ def _held_unreachable(
         return True
     made = _thermostat_demand(
         model, held, held.room_temperature, *weather0, 0.25, p.slab_heat_transfer_floored)
-    cop = _reference_cop(model, held, outdoor, humidity)
-    return bool(power_for_heat_per_cop_kw(p, made / cop) > p.max_electrical_power)
+    return _pump_unreachable(model, held, made, outdoor, humidity)
 
 
 def _thermostat_demand_single(
@@ -5977,40 +6030,7 @@ class HeatPumpOptimizer:
                 humidity=hum_i,
             )
 
-        if mixing_valve.is_throttling(p.mixing_valve_mode):
-            baseline_power = self._apportion_by_steady_demand(baseline_power, weather, targets)
         return baseline_power, state
-
-    def _apportion_by_steady_demand(
-        self, simulated: np.ndarray, weather: WeatherSeries, targets: list[float]
-    ) -> np.ndarray:
-        """The simulated horizon's energy, spread by the steady demand per step.
-
-        Behind a valve the first steps are the stores' transient, not the
-        thermostat's power: a tank above the curve zeroes them, one below it
-        overshoots. The settlement books step 0 of a plan re-made every
-        interval, so it would book only the transient. The simulation decides
-        how much the horizon draws; the demand decides when, never past the
-        pump: a step held at it gives its excess to the rest by the same demand.
-        """
-        assert weather.wind_speeds is not None and weather.precipitation is not None
-        assert weather.solar_radiation is not None
-        steady = np.array([
-            max(0.0, _floor_demand_at_target(
-                self.model, targets[i], float(weather.outdoor_temps[i]),
-                float(weather.wind_speeds[i]), float(weather.precipitation[i]),
-                float(weather.solar_radiation[i]),
-            ))
-            for i in range(len(simulated))
-        ])
-        energy, cap = float(np.sum(simulated)), float(self.model.params.max_electrical_power)
-        held = np.zeros(len(steady), dtype=bool)
-        while (total := float(np.sum(steady[~held]))) > 0.0:
-            spread = np.where(held, cap, steady * ((energy - cap * int(np.sum(held))) / total))
-            if not (over := ~held & (spread > cap)).any():
-                return spread
-            held |= over
-        return simulated
 
     def _settle_horizon(
         self,

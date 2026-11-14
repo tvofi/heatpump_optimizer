@@ -10,6 +10,15 @@ Null control: --self-test duplicates one seat's block and empties another's, dro
 universe, strips the tests/ and blueprints/ globs, and excludes a covered path; it exits 0 only
 when the checker refuses each perturbed file by the path it names. It also runs the default
 invocation as a subprocess, on the live scopes (rc 0) and without D4's and D6's blueprints globs (rc 1).
+Ledger dimensions (D5, D6): a dimension's `ledger` {step, max_units} caps each seat's text units
+(tools/audit/text_ledger.py, the dimension's own rule) over the files its blocks hold for that step,
+so a seat's cell is finishable; a seat over the cap is refused by name. Its `classify` globs and
+`static` map {glob: reason} draw the line between documentation the dimension measures and static
+records it leaves: every tracked path a `classify` glob matches is in the universe or one `static`
+glob, never both, and every `static` entry matches some such path and carries a reason.
+A ledger dimension must draw that line: D6's classifies documents, D5's every file whose suffix
+text_ledger.D5_SUFFIXES reads comments from, so a comment-bearing file outside D5's universe and
+static map is refused by name, as an unmeasured document is for D6.
 Harness citations: a harness under dev/audit/harnesses/ whose header names a dimension brief
 (`D<k>.md`) implements that brief's rule, so the brief must cite the harness's path; each one
 that does not is refused by name.
@@ -17,7 +26,7 @@ that does not is refused by name.
 steps, axis values, file. `rest` is resolved here, so a finder is handed files, not a rule.
 .claude/workflows/audit-find.js runs the check, coverage included, in its Prepare step and refuses the
 round on rc != 0.
---round <N> adds the start evaluation (dev/governance/decisions/0017-objective-function.md): round
+--round <N> adds the start evaluation (dev/governance/decisions/0018-objective-function.md): round
 N starts only when round N-1's OBJECTIVE.json and round N's EVALUATION.json are in the tree at
 --ref, every term is read or NO-READ with its reason, every object file has a verdict with
 evidence from an evaluator who is not its reviewer, and every card carries the owner's decision,
@@ -37,11 +46,15 @@ and `UNREADABLE <axis>: <why>` when a source is missing or an axis yields no lev
 the identifiers a module uses outside its imports, less each one its calls mark required and never
 optional: a key no install can leave out, or one no step presents, is no two-level axis.
 """
-import argparse, ast, contextlib, copy, io, itertools, json, math, re, subprocess, sys, tempfile
+import argparse, ast, contextlib, copy, importlib.util, io, itertools, json, math, re, subprocess, sys, tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "seat"))
 import roster_lib
+
+_spec = importlib.util.spec_from_file_location("text_ledger", Path(__file__).with_name("text_ledger.py"))
+text_ledger = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(text_ledger)
 
 def expand_braces(p):
     m = re.search(r"\{([^{}]*)\}", p)
@@ -79,7 +92,31 @@ def resolver(d, tree):
         return rest_for(b["steps"]) if b["files"] == "rest" else (match(uni, b["files"]) if d["universe"] else uni)
     return uni, files_of
 
-def check(scopes, tree, loc):
+def ledger_units(dim, d, files_of, units):
+    """{seat: units} over the files each seat's blocks hold for the ledger step."""
+    step = d["ledger"]["step"]
+    return {seat: sum(units(dim, f) for f in set().union(*[files_of(b) for b in blocks if step in b["steps"]] or [set()]))
+            for seat, blocks in d["seats"].items()}
+
+
+def classify_errors(d, tree, uni, dim=None):
+    """The measured line: classified paths in neither or both, static entries naming nothing or unreasoned.
+    A ledger dimension must draw one, and D5's must classify every suffix text_ledger reads comments from."""
+    if "classify" not in d:
+        return ["a ledger dimension draws no classify line"] if "ledger" in d else []
+    errs = [f"classify misses a D5 comment carrier: *{s}" for s in text_ledger.D5_SUFFIXES
+            if dim == "D5" and not match({f"probe/carrier{s}"}, d["classify"])]
+    cls = match(tree, d["classify"])
+    static = {g: match(cls, [g]) for g in d.get("static", {})}
+    stat = set().union(*static.values()) if static else set()
+    errs += [f"classified in neither universe nor static: {f}" for f in sorted(cls - uni - stat)]
+    errs += [f"static and in the universe: {f}" for f in sorted(stat & uni)]
+    errs += [f"static entry matches no classified path: {g}" for g, fs in sorted(static.items()) if not fs]
+    errs += [f"static entry carries no reason: {g}" for g in sorted(static) if not str(d["static"][g]).strip()]
+    return errs
+
+
+def check(scopes, tree, loc, units=lambda dim, f: 0):
     ok = True
     for dim, d in scopes.items():
         if dim.startswith("_"):
@@ -110,10 +147,19 @@ def check(scopes, tree, loc):
             dup = {k: v for k, v in owners.items() if len(v) > 1 and k[0] != "step"}
         missing = want - set(owners)
         extra = set(owners) - want
-        status = "ok" if not (dup or missing or extra) else "FAIL"
+        over, cls_errs, per_seat = [], classify_errors(d, tree, uni, dim), {}
+        if "ledger" in d:
+            per_seat = ledger_units(dim, d, files_of, units)
+            over = [s for s, n in per_seat.items() if n > d["ledger"]["max_units"]]
+        status = "ok" if not (dup or missing or extra or over or cls_errs) else "FAIL"
         ok &= status == "ok"
-        sizes = ", ".join(f"{s}:{len(fs)}f/{sum(loc.get(f,0) for f in fs)}loc" for s, fs in seat_files.items())
+        sizes = ", ".join(f"{s}:{len(fs)}f/{sum(loc.get(f,0) for f in fs)}loc" + (f"/{per_seat[s]}u" if s in per_seat else "")
+                          for s, fs in seat_files.items())
         print(f"{status} {dim} mode={d['mode']} seats={len(d['seats'])} universe={len(uni)} [{sizes}]")
+        for s in over:
+            print(f"   over ledger.max_units {d['ledger']['max_units']}: {s} holds {per_seat[s]} units")
+        for e in cls_errs[:10]:
+            print(f"   {e}")
         for k in sorted(missing, key=str)[:10]:
             print(f"   unowned {k}")
         for k, v in sorted(dup.items(), key=str)[:10]:
@@ -174,12 +220,12 @@ def read_harnesses(repo, ref, tree):
     return harnesses, briefs
 
 
-def verdict(scopes, tree, loc, harnesses, briefs, quiet=False):
+def verdict(scopes, tree, loc, harnesses, briefs, quiet=False, units=lambda dim, f: 0):
     """The default run's answer: every dimension disjoint and complete, the
     tree covered, and every brief-named harness cited by its brief."""
     out = io.StringIO()
     with contextlib.redirect_stdout(out if quiet else sys.stdout):
-        ok = check(scopes, tree, loc)
+        ok = check(scopes, tree, loc, units)
         cov_ok, _ = coverage(scopes, tree)
         bad = uncited_harnesses(harnesses, briefs)
         print(f"{'ok' if not bad else 'FAIL'} harness citations: {len(bad)} harness(es) implementing a brief's rule the brief does not cite")
@@ -213,8 +259,10 @@ def is_read(v):
 
 
 def is_no_read(text):
-    """The text says NO-READ, in any case, separator or position."""
-    return "noread" in norm(text)
+    """The text says NO-READ as words of its own, in any case, separator or
+    position: `no` then `read`, with only non-letters between them and no
+    letter or digit touching either end, so `no reader` and `piano read` are not one."""
+    return bool(re.search(r"(?<![^\W_])no[\W_]*read(?![^\W_])", str(text).casefold()))
 
 
 def full(v):
@@ -522,6 +570,7 @@ def evaluation_self_test(tree, show):
                  for sep in ("-", "_", " ", "", "\u2011", " - ", "\n") for pre, post in (("", ""), ("", ": no ledger"), ("unscored (", ": none)"), ("'", "'"), ("  ", ""))]
     return {
         "a complete record passes": bool(objs) and run() == [],
+        "round N reads round N-1's objective record and its own evaluation": records(8) == (YARDSTICK + "round7/OBJECTIVE.json", YARDSTICK + "round8/EVALUATION.json"),
         "every object class has a file": all(match(tree, [g]) and match(tree, [g]) <= set(objs) for v in spec["objects"].values() for g in ([v] if isinstance(v, str) else v)),
         "a missing evaluation is refused": only(run(drop=[path]), path + " is not in the tree"),
         "a missing previous record is refused": only(run(drop=[prev]), prev + " is not in the tree"),
@@ -554,6 +603,7 @@ def evaluation_self_test(tree, show):
                                                                for v in (float("nan"), float("inf"), True, "1", {}, {"a": "x"}, {"a": 1, "b": None})),
         "B5 an enumerator naming no tracked file is refused": only(term(t0, enumerator="by hand"), t0 + " enumerator names no script"),
         "B5 a tracked document is no enumerator": "CLAUDE.md" in tree and only(term(t0, enumerator="CLAUDE.md by hand"), t0 + " enumerator names no script"),
+        "B5 an untracked script is no enumerator": "no/such_script.py" not in tree and only(term(t0, enumerator="python3 no/such_script.py"), t0 + " enumerator names no script"),
         "B5 an enumerator that is an interpreter and no file is refused": only(term(t0, enumerator="python3 -I"), t0 + " enumerator names no script"),
         "B5 a dict of numbers is a value": run(tm=edit(lambda c: c[t0].update(value={"a": 1}), terms)) == [],
         "B6 a NO-READ naming nothing that would read it is refused": only(run(tm=edit(lambda c: c[t9].pop("would_read"), terms)), t9 + " NO-READ carries no would_read") and only(run(tm=edit(lambda c: c[t9].pop("builder"), terms)), t9 + " NO-READ carries no builder"),
@@ -564,6 +614,8 @@ def evaluation_self_test(tree, show):
             [g.partition(" builder G1 is no group the roster")[0].rsplit(" ", 1)[-1] for g in run(drop=[f for f in tree | {roster} if f.startswith(roster_lib.ROSTERS_DIR + "/")])] == [t8, "n"],
         "B7 a removal on a NO-READ is refused in every spelling":
             len(spellings) == 140 and all(only(last(verdict="remove", evidence=e, card="C2"), "rests on a NO-READ") for e in spellings),
+        "B7 a removal whose evidence has the letters inside other words passes":
+            all(last(verdict="remove", evidence=e, card="C2") == [] for e in ("no reader of this file exists in the tree", "casino readings", "the piano read 0", "piano reads 0")),
         "B7 a removal on a measured zero passes": last(verdict="remove", evidence="yield 0 in rounds 6 and 7", card="C2") == [],
         "B8 an unset threshold with no card is refused": only(run(card("C2", threshold="band")), "threshold floor is unset"),
         "B8 an unset owner criterion with no card is refused": only(run(card("C2", criterion="D7")), "owner criterion D4 is unset"),
@@ -622,6 +674,24 @@ def population_self_test():
     }
 
 
+def blob_units(repo, ref):
+    """units(dim, path): text_ledger's unit count of the file at ref, read once per file at ref."""
+    texts, cache = {}, {}
+    def text(f):
+        if f not in texts:
+            r = subprocess.run(["git", "-C", repo, "show", f"{ref}:{f}"], capture_output=True)
+            try:
+                texts[f] = r.stdout.decode("utf-8")
+            except UnicodeDecodeError:
+                texts[f] = ""
+        return texts[f]
+    def units(dim, f):
+        if (dim, f) not in cache:
+            cache[dim, f] = len(text_ledger.units_of(f, text(f), dim))
+        return cache[dim, f]
+    return units
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", required=True)
@@ -658,6 +728,7 @@ def main():
             except Exception:
                 pass
     scopes = json.load(open(a.scopes))
+    units = blob_units(a.repo, a.ref)
     if a.seat:
         dim, _, seat = a.seat.partition("-")
         d = scopes.get(dim)
@@ -728,11 +799,66 @@ def main():
             (HARNESS_DIR + "planted.py", BRIEF_DIR + "D15.md")]
         cov["null control: the brief citing it passes"] = uncited_harnesses(planted, {"D15": "run dev/audit/harnesses/planted.py"}) == []
         print(f"   harness-citation arms: {cov['a harness the brief does not cite is refused']}, null {cov['null control: the brief citing it passes']}")
+        # Ledger dimensions: the per-seat unit cap and the documentation line,
+        # each refused by what it must name, against text_ledger's real units.
+        def _q(bad, tr=None, un=None):
+            o = io.StringIO()
+            with contextlib.redirect_stdout(o):
+                r = check({k: v for k, v in bad.items() if k in ("D5", "D6")}, tree if tr is None else tr, loc, un or units)
+            return r, o.getvalue()
+        live_l, _ = _q(scopes)
+        capped = copy.deepcopy(scopes); capped["D6"]["ledger"]["max_units"] = 1
+        r_cap, o_cap = _q(capped)
+        unstatic = copy.deepcopy(scopes); unstatic["D6"]["static"].pop("dev/archive/**")
+        r_un, o_un = _q(unstatic)
+        both = copy.deepcopy(scopes); both["D6"]["static"]["README.md"] = "perturbation: static and measured"
+        r_both, o_both = _q(both)
+        deadst = copy.deepcopy(scopes); deadst["D6"]["static"]["no/such/**.md"] = "perturbation: names nothing"
+        r_dead, _ = _q(deadst)
+        bare_st = copy.deepcopy(scopes); bare_st["D6"]["static"]["dev/archive/**"] = " "
+        r_bare, _ = _q(bare_st)
+        cov.update({
+            "null control: the live D5 and D6 pass the cap and the line": live_l,
+            "a seat over ledger.max_units is refused by name": not r_cap and "over ledger.max_units 1: s1 holds" in o_cap,
+            "a classified path in neither universe nor static is refused": not r_un and "classified in neither universe nor static: dev/archive/README.md" in o_un,
+            "a static path in the universe is refused": not r_both and "static and in the universe: README.md" in o_both,
+            "a static entry naming nothing is refused": not r_dead,
+            "a static entry with no reason is refused": not r_bare,
+        })
+        print(f"   ledger arms: live {live_l}, cap refused {not r_cap}, line refused {not r_un}/{not r_both}/{not r_dead}/{not r_bare}")
+        # D5's comment line (fix review 3571, class-open): the verdict's plant, a committed
+        # .claude/workflows/zz-planted.js holding one comment, is now a unit of a D5 seat; the same
+        # plant in .claude/ (another dimension covers it, D5 does not) is refused by name; and the D6 null control,
+        # dev/zz-planted.md, is still refused by D6's own line.
+        PIN, POUT, PMD = ".claude/workflows/zz-planted.js", ".claude/zz-planted.js", "dev/zz-planted.md"
+        planted_units = lambda dim, f: 1 if f in (PIN, POUT) and dim == "D5" else units(dim, f)
+        def d5_total(tr):
+            _, fo = resolver(scopes["D5"], tr)
+            return sum(ledger_units("D5", scopes["D5"], fo, planted_units).values())
+        r_in, _ = _q(scopes, tree | {PIN}, planted_units)
+        r_out, o_out = _q(scopes, tree | {POUT}, planted_units)
+        r_md, o_md = _q(scopes, tree | {PMD})
+        nocls = copy.deepcopy(scopes); nocls["D5"].pop("classify", None)
+        r_nocls, o_nocls = _q(nocls)
+        narrow = copy.deepcopy(scopes); narrow["D5"]["classify"] = ["**.py"]
+        r_narrow, o_narrow = _q(narrow)
+        unrounds = copy.deepcopy(scopes); unrounds["D5"].get("static", {}).pop("dev/audit/{rounds,rca,waves}/**", None)
+        r_unr, o_unr = _q(unrounds)
+        cov.update({
+            "the verdict's plant in .claude/workflows/ is a D5 unit": r_in and d5_total(tree | {PIN}) == d5_total(tree) + 1,
+            "a comment carrier in neither D5 universe nor static is refused": not r_out and f"classified in neither universe nor static: {POUT}" in o_out,
+            "null control: a document in neither D6 universe nor static is still refused": not r_md and f"classified in neither universe nor static: {PMD}" in o_md,
+            "a ledger dimension with no classify line is refused": not r_nocls and "draws no classify line" in o_nocls,
+            "a D5 classify missing a comment carrier is refused": not r_narrow and "classify misses a D5 comment carrier: *.sh" in o_narrow,
+            "D5 without the round-evidence static is refused": not r_unr and "classified in neither universe nor static: dev/audit/r" in o_unr,
+        })
+        print(f"   D5 comment-line arms: plant measured {r_in}, outside refused {not r_out}, D6 null refused {not r_md}, "
+              f"no line refused {not r_nocls}, narrow refused {not r_narrow}, unstatic refused {not r_unr}")
         # The default run's verdict, driven as a function: the live scopes pass
         # it, and dropping D10's universe or leaving a brief-named harness
         # uncited fails it. That pins verdict(), not the exit code main() returns.
         hs, bs = read_harnesses(a.repo, a.ref, tree)
-        live = verdict(scopes, tree, loc, hs, bs, quiet=True)
+        live = verdict(scopes, tree, loc, hs, bs, quiet=True, units=units)
         no_d10_refused = not verdict(no_d10, tree, loc, hs, bs, quiet=True)
         uncited_refused = not verdict(scopes, tree, loc, {**hs, **planted}, {**bs, "D15": "no citation"}, quiet=True)
         cov.update({"the default verdict passes the live scopes": live,
@@ -766,7 +892,7 @@ def main():
         # The two records --round reads are tracked files of the round that
         # writes them: with one of each in the tree the live scopes still cover
         # it, and an exclusion table without their directory names both. So a
-        # round that follows 0017 section 6 is not refused by coverage.
+        # round that follows 0018 section 6 is not refused by coverage.
         recs = set(records(11))
         bare_y = copy.deepcopy(scopes)
         bare_y["_coverage_excluded"] = {next(q for q in expand_braces(g) if not q.startswith(YARDSTICK)) if any(q.startswith(YARDSTICK) for q in expand_braces(g)) else g: r
@@ -787,7 +913,7 @@ def main():
         print("SELF-TEST", "passed (every perturbed scope refused)" if good else
               f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]}; coverage arms {cov})")
         sys.exit(0 if good else 1)
-    ok = verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree))
+    ok = verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree), units=units)
     if a.round is not None:
         gaps = evaluation_gaps(a.round, tree, show, merged, anc, changed)
         print(f"{'ok' if not gaps else 'FAIL'} start evaluation round={a.round}: {len(gaps)} gap(s)")

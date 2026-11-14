@@ -15,6 +15,8 @@ drift ETAs against the true settle day on synthetic plants and found both
   how much of the value is measurement rather than prior -- never a time;
 * ``waiting``: nothing was counted over the rate window and the weather
   blocks the learner's own sample gate right now (``waiting_for``);
+* ``frozen``: a space boost, or the slab heat it left behind, holds the
+  learner; ``frozen_until`` is when that ends, ``None`` while unknown;
 * ``off``: disabled, or not measurable on this install.
 
 A read-only view: the coordinator passes the learners' counts, their own
@@ -22,6 +24,7 @@ gate predicates and the weekly snapshot ring, and this module computes.
 """
 from __future__ import annotations
 
+import logging
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -30,6 +33,8 @@ from typing import Any
 
 from .drift import stored_instant, utc_elapsed_seconds
 from .payload import LearnerProgress
+
+_LOGGER = logging.getLogger(__name__)
 
 #: A snapshot younger than this gives no rate: a day is the shortest window
 #: that spans one night and one noon, the dark and sunlit gates' cycle.
@@ -117,8 +122,80 @@ def gate_count(gate: Callable[[int], bool], samples: int, horizon: int = 10_000)
     return next((n for n in range(samples, samples + horizon) if gate(n)), None)
 
 
-def learner_progress(learner: LearnerInputs) -> LearnerProgress:
-    """The phase, progress, wait and (counting only) ETA of one learner."""
+#: The freeze the learners obey: ``(reason, end)`` -- ``_learning_frozen``'s
+#: answer and when it ends, ``None`` where the reason has no known end.
+Freeze = tuple[str, datetime | None]
+
+
+def pauses(reason: str | None) -> bool:
+    """Whether a ``_learning_frozen`` reason shows the learner as ``frozen``.
+
+    The census of every reason ``_learning_frozen`` and ``_tail_freeze`` can
+    return. Shown, the reason in ``waiting_for``: the boost (``boost_space``,
+    with an end where one is known), an open window (``ventilation``) and an
+    unusable reading (``<problem>:<entity key>``, but not ``not_configured:``) -- each holds the learner
+    until something changes, and a count that stands still hides it. Kept as
+    the count: the early cut-off (one interval, gone next cycle), the
+    unmetered-power freeze and an unread room (a property of the install that
+    never ends, so a pause would promise a resume), and the plant states the
+    heat pump itself signals (external heat, defrost, fault), which come and
+    go within cycles. Which learner a reason holds is not this census's: each
+    card learner reads only the record of the learner it folds in
+    (:data:`HELD_BY`).
+    """
+    if reason is None:
+        return False
+    if reason in ("boost_space", "ventilation"):
+        return True
+    problem, _, key = reason.partition(":")
+    return bool(key) and problem != "not_configured"
+
+
+#: Each card learner and the learner whose freeze holds it. The solar aperture
+#: (``_fold_solar_aperture``) and the internal gains (``_fold_internal_gains``)
+#: fold inside the house learner's cycle, behind its freeze gate, so the house
+#: learner's freeze is theirs; no other learner's record reaches a card learner.
+HELD_BY: Mapping[str, str] = {"house": "house", "lower": "lower", "solar": "house", "gains": "house"}
+
+
+class FreezeRecord(dict[str, str]):
+    """The freeze each learner recorded this cycle, by learner, in recording order.
+
+    One learner's unusable probe is its own: a shared slot handed the last
+    learner's reason to every learner on the card (a lower-floor probe paused
+    the house learner, which never freezes on it).
+    """
+
+    def note_freeze(self, learner: str, reason: str) -> None:
+        """``learner`` froze on ``reason``; it becomes the last one recorded."""
+        self.pop(learner, None)
+        self[learner] = reason
+
+    @property
+    def last(self) -> str | None:
+        """The reason recorded last this cycle (the published ``learner_freeze_reason``)."""
+        return next(reversed(self.values()), None)
+
+
+def log_skip(clean: bool, what: str, why: str, *args: object) -> bool:
+    """At DEBUG: why ``what`` took no sample this cycle; returns ``clean`` unchanged.
+
+    The learners refuse far more often than they fold, and a count that
+    stands still says nothing about which gate held it. ``why`` is a
+    ``%``-format and ``args`` its values, left to the logger so that nothing
+    is formatted with DEBUG off.
+    """
+    _LOGGER.debug("No %s sample this cycle: " + why + "%s", what, *args, "" if clean else " (the open counter span is spoiled)")
+    return clean
+
+
+def learner_progress(learner: LearnerInputs, frozen: Freeze | None = None) -> LearnerProgress:
+    """The phase, progress, wait and (counting only) ETA of one learner.
+
+    ``frozen``: the answer the learners obey, ``None`` when nothing holds
+    them. Ranked above the weather wait, below off: a frozen learner takes
+    nothing whatever the weather does.
+    """
     if not learner.enabled:
         return _status("off", None, None, None, learner.samples, None)
     n = learner.samples
@@ -134,6 +211,9 @@ def learner_progress(learner: LearnerInputs) -> LearnerProgress:
     else:
         phase = "settling"
         progress = learner.walked(n) if learner.walked is not None else None
+    if frozen is not None and pauses(frozen[0]):
+        until = frozen[1].isoformat() if frozen[1] is not None else None
+        return _status("frozen", progress, frozen[0], None, n, needed, until)
     if learner.blocked_by is not None and rate is None:
         return _status("waiting", progress, learner.blocked_by, None, n, needed)
     return _status(phase, progress, None, eta, n, needed)
@@ -146,8 +226,9 @@ def _status(
     eta_days: float | None,
     samples: int,
     samples_needed: int | None,
+    frozen_until: str | None = None,
 ) -> LearnerProgress:
-    return {
+    status: LearnerProgress = {
         "phase": phase,
         "progress": round(progress, 3) if progress is not None else None,
         "waiting_for": waiting_for,
@@ -155,3 +236,6 @@ def _status(
         "samples": int(samples),
         "samples_needed": samples_needed,
     }
+    if phase == "frozen":
+        status["frozen_until"] = frozen_until
+    return status

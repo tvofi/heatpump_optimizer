@@ -71,8 +71,9 @@ SAVINGS_PLAN_LINE = "savings_plan"
 REFERENCE_BASIS_META = "reference_basis"
 
 #: The reference in force: a heat-pump thermostat with no wood tank and no fire,
-#: its horizon spread by steady demand. Bump when the booked reference changes.
-REFERENCE_BASIS = 1
+#: booked as simulated. Bump when the booked reference changes: 1 spread a
+#: valved horizon by steady demand (released in v7.1.15), so its months are old.
+REFERENCE_BASIS = 2
 
 #: What ``migrate_ledger_v1`` stamps: every month a v1 store booked savings in predates it.
 OLD_REFERENCE_BASIS = 0
