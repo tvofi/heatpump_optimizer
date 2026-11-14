@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 110
+records every read, so this lane's recorded closure is the package: all 111
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (109 until R10-DUTY-SWITCH-PLANNER-PRICE's ``duty_legs.py``, 108 until the supply-hold PR's
+alike (110 until R10-START-COUNTER-EDGES's ``running_signal.py``, 109 until R10-DUTY-SWITCH-PLANNER-PRICE's ``duty_legs.py``, 108 until the supply-hold PR's
 ``supply_hold.py``, 107 until
 R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's

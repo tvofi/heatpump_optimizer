@@ -259,6 +259,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
@@ -532,6 +533,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
@@ -634,6 +636,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
@@ -751,6 +754,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
@@ -878,6 +882,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
@@ -1006,6 +1011,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
@@ -1142,6 +1148,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
@@ -1277,6 +1284,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
@@ -1603,6 +1611,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
@@ -2125,6 +2134,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
@@ -2318,6 +2328,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
@@ -2473,6 +2484,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
@@ -2621,6 +2633,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
@@ -2800,6 +2813,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
@@ -2979,6 +2993,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/services.yaml",
@@ -3368,6 +3383,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
@@ -3535,6 +3551,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
@@ -3639,6 +3656,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/slot_drivers.py",
@@ -3799,6 +3817,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
@@ -3895,6 +3914,7 @@
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/replay_doc.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
@@ -4017,6 +4037,7 @@
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/running_signal.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
@@ -5233,7 +5254,7 @@
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 1040.5
+   "seconds": 473.9
   },
   "tests/finite_boundary.py": {
    "rc": 0,
@@ -5249,7 +5270,7 @@
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 1.1
+   "seconds": 5.8
   },
   "tests/ha_contract.py": {
    "rc": 0,
@@ -5257,7 +5278,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 274.5
+   "seconds": 126.6
   },
   "tests/layout.py": {
    "rc": 0,
@@ -5293,11 +5314,11 @@
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 51.2
+   "seconds": 17.9
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 0.3
+   "seconds": 20.8
   },
   "tests/validate.py": {
    "rc": 0,
