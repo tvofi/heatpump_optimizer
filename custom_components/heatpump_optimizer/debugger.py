@@ -292,17 +292,19 @@ def trace_cell(entity_id: str, state: str | None) -> str:
         pass
     if state in _TRACE_WORDS:
         return state
-    return _trace_text(state) if entity_id.split(".", 1)[0] in TRACE_TEXT_DOMAINS else TRACE_GAP
+    return _trace_text(state) if entity_id.partition(".")[0] in TRACE_TEXT_DOMAINS else TRACE_GAP
 
 
-def arbiter_cells(coordinator: Any) -> dict[str, str]:
-    """The arbiter's newest pass record as cells, where this release publishes one.
-
-    The record is the arbiter's (``pump_arbiter.pass_record``, part A's); a
-    release without it gives no column and the manifest says so.
-    """
+def pass_record(coordinator: Any) -> Any:
+    """The arbiter's newest pass record, where this release publishes one: part A's
+    ``pump_arbiter.pass_record``; ``None`` from a release without it."""
     reader = getattr(pump_arbiter, "pass_record", None)
-    record = reader(coordinator) if callable(reader) else None
+    return reader(coordinator) if callable(reader) else None
+
+
+def arbiter_cells(record: Any) -> dict[str, str]:
+    """A pass record (a mapping or a dataclass instance) as prefixed cells; none for
+    anything else, and the manifest then says the arbiter column is absent."""
     if dataclasses.is_dataclass(record) and not isinstance(record, type):
         record = dataclasses.asdict(record)
     if not isinstance(record, Mapping):
@@ -311,8 +313,7 @@ def arbiter_cells(coordinator: Any) -> dict[str, str]:
 
 
 def _arbiter_cell(value: Any) -> str:
-    if isinstance(value, bool):
-        return "1" if value else "0"
+    """A number (a flag reads 1 or 0) as ``_trace_number``, text as ``_trace_text``."""
     if isinstance(value, (int, float)):
         return _trace_number(float(value))
     return _trace_text(value) if isinstance(value, str) else TRACE_GAP
@@ -336,8 +337,7 @@ def trace_add(block: dict[str, Any], minute: datetime, cells: Mapping[str, str])
     at = block["at"]
     if at is not None and minute <= at:
         return True
-    skipped = 0 if at is None else int((minute - at) / TRACE_EVERY) - 1
-    block["gap"].append("0" if at is None else str(skipped) if skipped else "")
+    block["gap"].append("0" if at is None else str(int((minute - at) / TRACE_EVERY) - 1 or ""))
     cols, last = block["cols"], block["last"]
     for key in cols.keys() | cells.keys():
         if key not in cols:
@@ -370,14 +370,14 @@ def _block_last(block: dict[str, Any]) -> datetime | None:
 def trace_summary(blocks: list[dict[str, Any]]) -> dict[str, Any]:
     """The manifest's account of the trace: its first minute, the minutes it holds,
     the minutes between its first and last that it does not, and its columns."""
-    spans = [(stored_instant(b["start"]), _block_last(b)) for b in blocks]
-    spans = [(first, last) for first, last in spans if first is not None and last is not None]
-    minutes = sum(b["n"] for b in blocks)
+    read = [(stored_instant(b["start"]), _block_last(b), b["n"]) for b in blocks]
+    spans = [(first, last, n) for first, last, n in read if first is not None and last is not None]
+    minutes = sum(n for _f, _l, n in spans)
     keys = sorted({key for b in blocks for key in b["cols"]})
     if not spans:
         return {"first_minute": None, "minutes": 0, "missing_minutes": 0, "columns": [],
                 "arbiter": "absent: no minute was traced"}
-    first, last = min(f for f, _l in spans), max(l for _f, l in spans)
+    first, last = min(f for f, _l, _n in spans), max(l for _f, l, _n in spans)
     arbiter = any(key.startswith(ARBITER_PREFIX) for key in keys)
     return {
         "first_minute": first.isoformat(), "minutes": minutes,
@@ -676,10 +676,16 @@ def _attempts(bundle: dict[str, Any], docs: list[dict[str, Any]]):
     for doc, ran, cut in windows:
         for base, notes in variants:
             yield _placed(base, doc, ran, [*notes, *cut])
-    base, notes = variants[-1]
-    doc, ran, cut = windows[-1]
+    yield from _trace_cuts(variants[-1], windows[-1], bool(docs))
+
+
+def _trace_cuts(variant: tuple[dict[str, Any], list[str]], window: tuple[Any, Any, list[str]],
+                replayed: bool):
+    """The deepest cut so far, then without its replay half, each with the trace's
+    oldest blocks dropped one by one."""
+    (base, notes), (doc, ran, cut) = variant, window
     stages = [_placed(base, doc, ran, [*notes, *cut])]
-    if docs:
+    if replayed:
         stages.append(_placed({**base, "replay": None}, None, _OVER_CAP,
                               [*notes, f"replay: {_OVER_CAP}"]))
     for index, placed in enumerate(stages):
@@ -705,11 +711,8 @@ def fit_download(bundle: dict[str, Any], build: Callable[[datetime], dict[str, A
     """
     docs = [] if build is None else [build(since) for since in dict.fromkeys(
         max(start, end - span) for span in REPLAY_SPANS)]
-    attempt = bundle
-    for attempt in _attempts(bundle, docs):
-        if _fits(attempt):
-            return attempt
-    return attempt
+    attempts = list(_attempts(bundle, docs))
+    return next((attempt for attempt in attempts if _fits(attempt)), attempts[-1])
 
 
 class DebugCollector:
@@ -779,8 +782,14 @@ class DebugCollector:
         self.lifecycle = [*self.lifecycle, {k: v for k, v in row.items() if v is not None}
                           ][-LIFECYCLE_ROWS:]
 
-    def sample(self, coordinator: Any, now: datetime) -> None:
-        """One minute of the trace: each mapped input's cell and the pass record's."""
+    def begin(self, entry: Any, version: str | None) -> None:
+        """At setup: the release, the columns the entry maps, and the load row."""
+        self.version = version
+        self.columns = trace_columns({**entry.data, **entry.options})
+        self.mark("load", dt_util.utcnow())
+
+    def sample(self, now: datetime, extra: Mapping[str, str]) -> None:
+        """One minute of the trace: each mapped input's cell, and ``extra``'s."""
         if self._closed or self.final or self.started_at is None:
             return
         if now - self.started_at >= COLLECT_SPAN:
@@ -789,7 +798,7 @@ class DebugCollector:
         states = self._hass.states
         cells = {key: trace_cell(eid, getattr(states.get(eid), "state", None))
                  for key, eid in self.columns.items()}
-        cells.update(arbiter_cells(coordinator))
+        cells.update(extra)
         if self._block is None or not trace_add(self._block, minute, cells):
             if self._block is not None:
                 self.trace.append(trace_encode(self._block))
@@ -988,15 +997,13 @@ async def async_setup_debugger(hass: HomeAssistant, entry: Any, coordinator: Any
         ),
     )
     await collector.async_load()
-    collector.version = coordinator.integration_version
-    collector.columns = trace_columns({**entry.data, **entry.options})
-    collector.mark("load", dt_util.utcnow())
+    collector.begin(entry, coordinator.integration_version)
     _COLLECTORS[coordinator] = collector
     entry.async_on_unload(coordinator.async_add_listener(lambda: collector.observe(coordinator)))
 
     @callback
     def _minute(now: datetime) -> None:
-        collector.sample(coordinator, now)
+        collector.sample(now, arbiter_cells(pass_record(coordinator)))
 
     entry.async_on_unload(async_track_time_interval(hass, _minute, TRACE_EVERY))
 

@@ -113,14 +113,11 @@ def decode_trace(blocks: list) -> dict:
     broken: list[str] = []
     for index, block in enumerate(blocks):
         n, gaps = block.get("n"), str(block.get("gap", "")).split(",")
-        if not isinstance(n, int) or len(gaps) != n:
+        if not isinstance(n, int) or len(gaps) != n or not all(c.isdigit() for c in gaps if c):
             broken.append(f"block {index}: gap")
             continue
         at = datetime.fromisoformat(block["start"])
         offset = len(minutes)
-        if any(cell and not cell.isdigit() for cell in gaps):
-            broken.append(f"block {index}: gap")
-            continue
         for i, cell in enumerate(gaps):
             at += timedelta(minutes=(1 + int(cell or 0)) if i else 0)
             minutes.append(at)
@@ -159,13 +156,13 @@ def trace_stage(bundle: dict, results: Results) -> dict | None:
     print(f"RESULT trace_columns={len(keys)} unit=count")
     print(f"RESULT trace_redacted_cells={sum(decoded['redacted'].values())} unit=count")
     results.check("trace-present", bool(decoded["minutes"]), f"{len(keys)} columns")
-    results.check("trace-decodes", not decoded["broken"], "; ".join(decoded["broken"][:3]))
+    results.check("trace-decodes", not decoded["broken"], "; ".join(decoded["broken"]))
     results.check("trace-manifest", summary.get("minutes") == len(decoded["minutes"])
                   and summary.get("missing_minutes") == decoded["missing"],
                   f"manifest={summary.get('minutes')}/{summary.get('missing_minutes')} "
                   f"decoded={len(decoded['minutes'])}/{decoded['missing']}")
     results.check("trace-keys", not any("." in key for key in keys),
-                  ",".join(k for k in keys if "." in k)[:200])
+                  ",".join(k for k in keys if "." in k))
     if summary.get("arbiter") == "present":
         results.check("trace-arbiter", any(k.startswith("arbiter/") for k in keys))
     else:
@@ -374,6 +371,11 @@ def gate_checks() -> list[tuple[str, bool, str]]:
     hidden = copy.deepcopy(bundle)
     hidden["trace"][0]["cols"]["heat_pump_mode_entity"] = f"heat,{REDACTED},"
     decoded = decode_trace(hidden["trace"])
+    good = bundle["trace"][0]
+    gaps = [decode_trace([{**good, "gap": gap}])["broken"] for gap in ("0,", "0,x,1")]
+    dotted = copy.deepcopy(bundle)
+    dotted["trace"][0]["cols"]["sensor.indoor"] = "1,,"
+    keyed = _quiet_ingest(dotted)
     return [
         ("debug ingest: schema, stores, accuracy, bias, planted leak",
          not clean.fails, ",".join(clean.fails)),
@@ -405,6 +407,10 @@ def gate_checks() -> list[tuple[str, bool, str]]:
          and decoded["redacted"] == {"heat_pump_mode_entity": 1}
          and decoded["cols"]["indoor_temp_entity"] == ["21.5", "21.5", "21.75"]
          and decoded["missing"] == 1, str(decoded["cols"])),
+        ("debug ingest: a gap column of the wrong count or holding a non-number breaks its block",
+         gaps == [["block 0: gap"], ["block 0: gap"]], str(gaps)),
+        ("debug ingest: a trace key spelled like an entity id fails trace-keys",
+         "trace-keys" in keyed.fails and "trace-keys" not in clean.fails, ",".join(keyed.fails)),
     ]
 
 

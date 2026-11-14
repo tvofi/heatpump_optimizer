@@ -139,7 +139,7 @@ def writes(enabled: bool, columns: int = COLUMNS, change: float = 0.3) -> list[i
                                   "indoor_temperature": 21.0, "learners_frozen": False,
                                   "input_health": "ok"}
                     collector.observe(coord)
-                collector.sample(coord, at)
+                collector.sample(at, {})
             while saves:
                 before = dict(storage._DISK)
                 await saves.pop(0)

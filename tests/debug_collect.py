@@ -2206,6 +2206,8 @@ R.check(
 )
 # -- part F (R10-DRAW-MAP-EVIDENCE): the minute trace, lifecycle rows, schema 2 --
 sys.path.insert(0, "tools/replay")
+import dataclasses  # noqa: E402
+
 import debug_ingest  # noqa: E402
 
 _cols = debugger.trace_columns({
@@ -2269,11 +2271,17 @@ R.check(
     str(_summary),
 )
 _had = getattr(debugger.pump_arbiter, "pass_record", None)
-_none = debugger.arbiter_cells(_coord())
+_none = debugger.arbiter_cells(debugger.pass_record(_coord()))
 debugger.pump_arbiter.pass_record = lambda coord: {
-    "origin": "sweep", "written_c": 41.234, "defrost": True, "t": T0, "note": "Storgatan 12"}
+    "origin": "sweep", "written_c": 41.234, "defrost": True, "held": False, "t": T0,
+    "note": "Storgatan 12"}
 try:
-    _arb = debugger.arbiter_cells(_coord())
+    _arb = debugger.arbiter_cells(debugger.pass_record(_coord()))
+    _PassRecord = dataclasses.make_dataclass("_PassRecord", [("origin", str), ("kw", float)])
+    debugger.pump_arbiter.pass_record = lambda coord: _PassRecord("gate", 1.005)
+    _arb_dc = debugger.arbiter_cells(debugger.pass_record(_coord()))
+    debugger.pump_arbiter.pass_record = lambda coord: _PassRecord
+    _arb_cls = debugger.arbiter_cells(debugger.pass_record(_coord()))
     _arb_summary = debugger.trace_summary([{"start": T0.isoformat(), "n": 1, "gap": "0",
                                             "cols": _arb}])
 finally:
@@ -2282,12 +2290,15 @@ finally:
     else:
         debugger.pump_arbiter.pass_record = _had
 R.check(
-    "the arbiter's pass record becomes prefixed columns where the arbiter publishes one, "
-    "through the same cell rules; none where it does not, and the manifest says which",
+    "the arbiter's pass record, a mapping or a dataclass instance, becomes prefixed columns "
+    "where the arbiter publishes one, through the same cell rules; none where it does not "
+    "(nor for a dataclass type), and the manifest says which",
     _none == {} and _arb == {"arbiter/origin": "sweep", "arbiter/written_c": "41.23",
-                             "arbiter/defrost": "1", "arbiter/t": "~", "arbiter/note": "~"}
-    and _arb_summary["arbiter"] == "present",
-    f"{_none} {_arb}",
+                             "arbiter/defrost": "1", "arbiter/held": "0", "arbiter/t": "~",
+                             "arbiter/note": "~"}
+    and _arb_summary["arbiter"] == "present"
+    and _arb_dc == {"arbiter/origin": "gate", "arbiter/kw": "1"} and _arb_cls == {},
+    f"{_none} {_arb} {_arb_dc} {_arb_cls}",
 )
 
 
@@ -2394,7 +2405,8 @@ async def _bad_blocks():
     key = f"{DOMAIN}_dbg_debug"
     good = {"start": T0.isoformat(), "n": 1, "gap": "0", "cols": {"a": "1"}}
     storage._DISK[key] = json.dumps({"started_at": T0.isoformat(), "rows": [], "snapshots": [],
-                                      "trace": [good, {**good, "n": "x"}, {**good, "start": "no"},
+                                      "trace": [good, {**good, "n": "x"}, {**good, "n": 0},
+                                                {**good, "start": "no"},
                                                 {**good, "cols": {"a": 1}}, "x"]})
     storage._VERSIONS[key] = 1
     collector, _ = _collector()
@@ -2409,9 +2421,53 @@ R.check(
 for _n in range(debugger.LIFECYCLE_ROWS + 3):
     _tr["again"].mark("load", T0 + timedelta(minutes=_n))
 R.check(
-    "a reload storm keeps only the newest lifecycle rows",
-    len(_tr["again"].lifecycle) == debugger.LIFECYCLE_ROWS
+    "a reload storm keeps only the newest lifecycle rows, 500 of them",
+    debugger.LIFECYCLE_ROWS == 500 and len(_tr["again"].lifecycle) == debugger.LIFECYCLE_ROWS
     and _tr["again"].lifecycle[-1]["t"] == (T0 + timedelta(minutes=debugger.LIFECYCLE_ROWS + 2)).isoformat(),
+)
+
+
+# The block's and the collector's edges, each at the input that separates its branch.
+_late = debugger.trace_open(T0)
+for _m, _cells_m in enumerate(({"a": "1"}, {"a": "1"}, {"a": "1"}, {"a": "2", "d": "7"})):
+    debugger.trace_add(_late, T0 + timedelta(minutes=_m), _cells_m)
+_bad_start = {"start": "never", "n": 2, "gap": "0,", "cols": {"a": "1,"}}
+R.check(
+    "a column new after three samples opens with one gap then two unchanged cells; a "
+    "block with an unreadable start counts toward nothing, its minutes included; an "
+    "empty trace holds 0 minutes",
+    debugger.trace_encode(_late)["cols"]["d"] == "~,,,7"
+    and debugger.trace_summary([_bad_start])["first_minute"] is None
+    and debugger.trace_summary([_bad_start, debugger.trace_encode(_late)])["missing_minutes"] == 0
+    and debugger.trace_summary([])["minutes"] == 0,
+    str(debugger.trace_encode(_late)),
+)
+
+
+def _edges():
+    collector, _spawned = _collector()
+    collector.started_at = T0
+    collector.sample(T0 + timedelta(hours=23, minutes=59), {"arbiter/origin": "plan"})
+    collector.sample(T0 + timedelta(days=1), {"arbiter/origin": "plan"})
+    rolled = [b["start"] for b in collector.trace_blocks()]
+    stored = list(collector.trace)
+    collector.sample(T0 + debugger.COLLECT_SPAN, {"arbiter/origin": "plan"})
+    collector.sample(T0 + debugger.COLLECT_SPAN + timedelta(minutes=1), {"arbiter/origin": "plan"})
+    after = sum(b["n"] for b in collector.trace_blocks())
+    cols = collector.trace_blocks()[0]["cols"]
+    collector.restart()
+    return rolled, stored, after, cols, collector.trace_blocks(), collector.lifecycle
+
+
+_rolled, _stored_b, _after, _cols_e, _restarted, _life_r = _edges()
+R.check(
+    "a collector with no mapped column still samples its extra cells; the next UTC day "
+    "stores the closed block and opens another; at and past seven days nothing more is "
+    "sampled; a restart clears the trace and the lifecycle rows",
+    _rolled == [(T0 + timedelta(hours=23, minutes=59)).isoformat(), (T0 + timedelta(days=1)).isoformat()]
+    and len(_stored_b) == 1 and _after == 2 and _cols_e == {"arbiter/origin": "plan"}
+    and _restarted == [] and _life_r == [],
+    f"{_rolled} {_stored_b} {_after} {_cols_e}",
 )
 
 
@@ -2469,12 +2525,63 @@ R.check(
     and _cuts["over"][2] == 0,
     "\n".join(f"{k}: {v}" for k, v in _cuts.items()),
 )
+_one = _fit(_full - 15200 - 1, days=7)
+for _gone_cap in range(_full - 16000, _full - 46000, -200):
+    _one = _fit(_gone_cap, days=7)
+    if any(d.startswith("trace") for d in _one["manifest"]["dropped"]):
+        break
+_three = _fit(_size(days=0, snaps=3, build=None) - 1, build=None, days=0, snaps=3)
+_two = _fit(_size(days=1, snaps=2, build=None) - 1, build=None, days=1, snaps=2)
+R.check(
+    "thinning keeps the first and the newest snapshot, three snapshots are thinned and "
+    "two never are, and the first trace cut drops one block",
+    [x["t"] for x in _fit(_full - 1, days=7)["payload_snapshots"]] == ["0", "6"]
+    and [x["t"] for x in _three["payload_snapshots"]] == ["0", "2"]
+    and len(_two["payload_snapshots"]) == 2
+    and not any(d.startswith("payload") for d in _two["manifest"]["dropped"])
+    and _two["manifest"]["dropped"] == ["trace: the oldest 1 of 1 blocks"]
+    and _one["manifest"]["dropped"][-1] == "trace: the oldest 1 of 7 blocks",
+    f"{_three['manifest']} {_two['manifest']} {_one['manifest']['dropped']}",
+)
 _nobuild = _fit(_size(days=2, build=None) - 1, build=None, days=2)
 R.check(
     "with no replay half the snapshots and then the trace are still cut to the cap",
     _nobuild["manifest"]["dropped"] == ["payload_snapshots: kept the first and the newest of 7"]
     and _nobuild["replay"] is None,
     str(_nobuild["manifest"]),
+)
+
+
+def _boom_doc(*_a, **_k):
+    raise RuntimeError("history broke")
+
+
+_saved_doc = debugger.replay_document
+debugger.replay_document = _boom_doc
+try:
+    _broke = asyncio.run(_replay_download(raw=True))
+finally:
+    debugger.replay_document = _saved_doc
+
+
+async def _no_entry():
+    hass, entry, coord, collector = _replay_install()
+    try:
+        return await collector.async_bundle(coord)
+    finally:
+        debugger._COLLECTORS.pop(coord, None)
+
+
+_bare = asyncio.run(_no_entry())
+R.check(
+    "a replay half that fails to build leaves the manifest saying the recorder could not "
+    "be read and the bundle fitted without it; with no entry the bundle is not fitted "
+    "and has no replay half",
+    _broke["replay"] is None
+    and _broke["manifest"]["replay"] == "the recorder could not be read: RuntimeError('history broke')"
+    and _bare["replay"] is None and _bare["manifest"]["replay"] is None
+    and _bare["manifest"]["dropped"] == [],
+    f"{_broke['manifest'].get('replay')} {_bare['manifest'].get('replay')}",
 )
 
 
@@ -2490,7 +2597,7 @@ async def _trace_download(value_pass=True):
         hass.states.set("select.mode", types.SimpleNamespace(state=mode))
         hass.states.set("sensor.indoor", types.SimpleNamespace(state=indoor))
         hass.states.set("switch.backup", types.SimpleNamespace(state="on"))
-        collector.sample(coord, T0 + timedelta(minutes=minute))
+        collector.sample(T0 + timedelta(minutes=minute), {})
     dt_util.freeze(T0 + timedelta(days=1))
     saved = _value_pass(value_pass)
     try:
