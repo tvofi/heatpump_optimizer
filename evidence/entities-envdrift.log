@@ -1,0 +1,10 @@
+=== RERUN no timeout
+
+ALL 2713 ENTITY CHECKS PASSED
+  may-drift wood_coil: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+  may-drift wood_two_tank_smart_write: did not move here (machine-sensitive; the DHW plan can reach it, per local optimum)
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against 513a07dfdc0daf09a054826974dbb64bfea9de27
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+UNTOUCHED-version-claims (git diff --quiet 513a07dfdc...HEAD -- VERSION manifest.json RELEASE_NOTES.md tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt)

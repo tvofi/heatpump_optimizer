@@ -1,0 +1,11 @@
+RESULT M1 rc=1 1 of 380 checks FAILED :: FAIL solve_bands lowers min_temp by OPEN_WINDOW_RELAX_C and leaves target_temp  [{'target_temp': 20.0, 'min_temp': 20.0}]
+RESULT M2 rc=1 1 of 380 checks FAILED :: FAIL solve_bands never takes min_temp below ECONOMY_ABSOLUTE_FLOOR  [{'target_temp': 21.0, 'min_temp': 14.0}]
+RESULT M3 rc=1 1 of 380 checks FAILED :: FAIL EntryConfig.fuse_kw answers None at main fuse 0, and a capacity at 16 A (control)  [(0.0, 11.04)]
+RESULT M4 rc=1 1 of 380 checks FAILED :: FAIL the coordinator replaces production[0] alone, capped at peak_kw (anchor)
+RESULT M5 rc=1 4 of 380 checks FAILED :: FAIL the coordinator's DeviceInfo names the device by a literal (anchor) | FAIL setup.md says entities use the fixed device name '<none>' | FAIL configuration.md says entities use the fixed device name '<none>' | FAIL the name option text says entities use the fixed device name '<none>'
+RESULT M6 rc=1 1 of 380 checks FAILED :: FAIL observe_spot_and_settle_savings prices the settlement at spot + fee_per_kwh (anchor)
+Traceback (most recent call last):
+  File "/tmp/claude-0/-home-user-heatpump-optimizer/ad8cbfdb-b965-5378-8926-c3fe3cb874b0/scratchpad/mut.py", line 12, in <module>
+    p=pathlib.Path(f); t=p.read_text(); assert t.count(a)==1,(n,t.count(a)); p.write_text(t.replace(a,b))
+                                               ^^^^^^^^^^^^^
+AssertionError: ('M7', 0)
