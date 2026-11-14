@@ -25608,7 +25608,8 @@
     "tests/entities.py not runnable on the reviewer's seat (missing homeassistant): an environment fault, no finding on the head. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
     "From r10-hotfix-main-selftest-scope, body item 97a6b084: Open PR #3551 (R10-SELFTEST-SCOPE-UNION-GUARD) also edits `tools/ci/selftest_closures.json`. Whichever lands second re-unions with `union_entries` over the other's table. #3551's shrink guard should treat a `compact_probes` fold, a probe dropped because a listed ancestor directory answers it, as no drop: this re-record contains two such folds. Carry: R10-SELFTEST-SCOPE-UNION-GUARD (items 97a6b084)",
     "Open PR #3551 (R10-SELFTEST-SCOPE-UNION-GUARD) also edits `tools/ci/selftest_closures.json`. Whichever lands second re-unions with `union_entries` over the other's table. #3551's shrink guard should treat a `compact_probes` fold, a probe dropped because a listed ancestor directory answers it, as no drop: this re-record contains two such folds. Carry: R10-SELFTEST-SCOPE-UNION-GUARD",
-    "From r10-hotfix-main-selftest-scope-2, body item b3f0912f: A shrink guard on the committed table, and `record` unioning per step instead of replacing, so a re-record cannot drop reads; both land in `tools/ci/selftest_scope.py`. Carry: R10-SELFTEST-SCOPE-UNION-GUARD (items b3f0912f)"
+    "From r10-hotfix-main-selftest-scope-2, body item b3f0912f: A shrink guard on the committed table, and `record` unioning per step instead of replacing, so a re-record cannot drop reads; both land in `tools/ci/selftest_scope.py`. Carry: R10-SELFTEST-SCOPE-UNION-GUARD (items b3f0912f)",
+    "A shrink guard on the committed table, and `record` unioning per step instead of replacing, so a re-record cannot drop reads; both land in `tools/ci/selftest_scope.py`. Carry: R10-SELFTEST-SCOPE-UNION-GUARD"
    ],
    "resume": {
     "stage": "in-progress",
@@ -27658,7 +27659,7 @@
     "stage": "in-progress",
     "branch": "handoff/r10-draw-map-evidence",
     "commit": null,
-    "pr": null,
+    "pr": 3597,
     "last_step": "group added on owner order 2026-11-14; part 1 fixer and part 2 designer dispatched locally",
     "next_step": "part 1 handoff then review; part 2 design review; PR opens when CI has room; unbuilt at the stamp goes to round 11",
     "note": "non-gating by owner order: never delays closure; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): owner order 2026-11-14 after the issue 3106 linearity measurement: build the supported correction and the collection and experiment improvements, never gating closure; same seam as R10-COP-LEARNER-DRAW-FLOOR, ordered after it"
@@ -27698,9 +27699,9 @@
    "brief": "HOTFIX, 2026-11-14: main is red again since the merge of pull request 3532 (run 43632211631, governance / instrument-self-tests, the step that refuses a self-test read set the committed table misses: 13 UNDER-SCOPED lines in tools/ci/selftest_closures.json, among them tools/audit/seat/ci_pause.py and tools/audit/seat/ci_priority.py from pull request 3560). Same drift and same repair as R10-HOTFIX-MAIN-SELFTEST-SCOPE (pull request 3589): take the selftest-closures artifact of the newest finished main push run, which is the committed table unioned with that run's measurement, confirm it only adds paths, and commit it as the table. It gates the v10.0.0 stamp. The structural barrier stays with R10-SELFTEST-SCOPE-UNION-GUARD and R11-SELFTEST-SCOPE-MAIN-UNION-RERECORD.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-main-selftest-scope-2",
-    "commit": null,
+    "commit": "033e4cf7dc57ef9415a36d58a7ad90652a139857",
     "pr": 3595,
     "last_step": "dispatched 2026-11-14",
     "next_step": "handoff, open PR, review, land before the stamp",
