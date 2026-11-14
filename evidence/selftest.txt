@@ -123,9 +123,20 @@
   ok   darwin-selftest: a new tip runs again
   ok   darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
   ok   darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
+  ok   darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout
+  ok   darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR
+  ok   darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried
+  ok   darwin-selftest: a slot-take that fails is UNREADABLE and runs nothing
   ok   darwin-selftest: an unreadable origin/main is UNREADABLE and runs nothing
   ok   darwin-selftest: first_fail names the first FAIL line, else the last line, else the code
+  ok   darwin-selftest: the wired filter drops a self-test no workflow runs (null: both are seat self-tests)
   ok   darwin-selftest: the wired set is the real tree's seat self-tests, mutant_run.py among them
+  ok   darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip
+  ok   darwin-selftest: a cycle's RED lines are written once, when it completes
+  ok   darwin-selftest: each pass takes and releases its own slot
+  ok   darwin-selftest: a completed cycle starts the next one at the newest tip
+  ok   darwin-selftest: DARWIN_PASS_BUDGET_S is at most half the row's timeout_s
+  ok   darwin-selftest: a .py self-test runs as CI's plain python3, never -I (which drops the script dir)
   ok   mutant family_drops_owed killed by: tick-digest: one OWED line gives exactly that line, and a stamp
   ok   mutant no_age_norm killed by: tick-digest: an age-only change is no new line
   ok   mutant transient_counts_at_once killed by: tick-digest: a transient RED gives nothing; on a second board it appears
@@ -214,9 +225,20 @@
   ok   mutant darwin_first_fail_is_last_line killed by: darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
   ok   mutant darwin_tip_not_skipped killed by: darwin-selftest: an unchanged tip is skipped
   ok   mutant darwin_red_dropped killed by: darwin-selftest: a red self-test is one RED line naming it and its first FAIL line
+  ok   mutant darwin_cwd_repo killed by: darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout
+  ok   mutant darwin_keep_state_dir killed by: darwin-selftest: the self-tests' env never carries this digest's HPO_STATE_DIR
+  ok   mutant darwin_wired_filter_dropped killed by: darwin-selftest: the wired filter drops a self-test no workflow runs (null: both are seat self-tests)
+  ok   mutant darwin_remember_on_wt_fail killed by: darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried
+  ok   mutant darwin_slot_take_ignored killed by: darwin-selftest: a slot-take that fails is UNREADABLE and runs nothing
+  ok   mutant darwin_budget_ignored killed by: darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip
+  ok   mutant darwin_cycle_follows_main killed by: darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip
+  ok   mutant darwin_done_rerun killed by: darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip
+  ok   mutant darwin_red_each_pass killed by: darwin-selftest: a cycle's RED lines are written once, when it completes
+  ok   mutant darwin_py_isolated killed by: darwin-selftest: a .py self-test runs as CI's plain python3, never -I (which drops the script dir)
   ok   mutant darwin_lease_not_released killed by: darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes
-beat_jobs self-test: 217 checks, 0 failed
+beat_jobs self-test: 238 checks, 0 failed
 
-real	0m50.310s
-user	0m16.224s
-sys	0m28.539s
+real	0m45.656s
+user	0m19.099s
+sys	0m20.843s
+rc=0
