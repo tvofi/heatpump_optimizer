@@ -1,6 +1,0 @@
-Extractor subagent report (frugal:extractor), over the PR body at head 2e1e33a70a4c09db239d8814e3a645a90d9a2cfd:
-1. Mutation proof: 156 lines match ^KILLED , 156 distinct names; only SURVIVED NULL in that block.
-2. Mutant spec fence: 156 entries, 156 distinct names.
-3. Spec names not KILLED: none. KILLED names not in spec: none.
-4. r8f_reader_alias_deleted: file custom_components/heatpump_optimizer/duty_switch.py, old "Reader = Callable[[], tuple[float | None, float | None, float | None, bool]]", new "pass".
-UNCERTAINTIES (subagent's): distinctness read by eye, not by a script.

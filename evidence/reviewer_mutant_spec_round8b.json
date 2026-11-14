@@ -1,3 +1,0 @@
-[
- {"name": "r8f_reader_alias_deleted", "file": "custom_components/heatpump_optimizer/duty_switch.py", "old": "Reader = Callable[[], tuple[float | None, float | None, float | None, bool]]", "new": "pass"}
-]
