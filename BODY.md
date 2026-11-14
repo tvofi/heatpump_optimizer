@@ -4,6 +4,14 @@ Defines the function the owner asked for on 2026-11-13 as decision 0017, adds th
 
 What it does not do: build an enumerator of a term. Of the thirteen terms only `first_pass` has a working one; `generality` now has its denominator (`check_scopes.py --population`) and no numerator. Decision 0017 section 4 claims convergence for no round yet, lists seven assumptions no sensor reads, and says the function moving the right way does not show fewer objective bugs.
 
+## Repair round 2: the red `instrument-self-tests` step
+
+`governance / instrument-self-tests`, step `python3 -I tools/pr/dependabot_merge.py --self-test`, was red at the pull request's head 03c26201c7 and green at its merge base: this group's commit 8eb5c160b1 owned the two round records by glob lines in `.github/CODEOWNERS`, and that reader refuses any pattern that is not an anchored path (its own arm "a glob refuses").
+
+Fix: the objective record and the start evaluation move from a round's evidence directory to `dev/audit/yardstick/round<N>/`, owned by one anchored directory line. `check_scopes.py --round` reads them there (three path strings, the self-test's fixture included), 0017 section 6 names the directory; `dev/audit/README.md` does not, because its token cap is compared exactly and has no headroom for the layout line (it read 20 over). The reader and its refusal are not touched.
+
+Alternatives, and why each lost: (a) teach the Dependabot reader a `*` segment: it weakens the check the step exercises, whose refusal is what keeps an auto-merge decision from resting on a pattern it mis-reads; (b) one exact line per round: a round whose line nobody added is unowned and nothing refuses it, and it enumerates cases where a directory closes the class; (c) own all of `dev/audit/rounds/`: every finder report and harness would then need the owner's review, a policy change nobody asked for; (d) drop the two lines: 0017 section 5 says the two records are code-owned.
+
 ## Repair round: the blocked verdict answered by number
 
 Verdict: `verdict.md` on `probe/revt-r11-pre-objective-function-3a4f648d` (4ec1b989cc), `Fix review: blocked f7efa4be88 sufficiency`. Each answer is in the decision record, `dev/audit/config/objective.json` or `dev/governance/roles/evaluator.md`, never only here.
@@ -112,7 +120,7 @@ Each is a recommended value, its basis and the alternatives. Decisions 1 to 3 ar
 10. **`remove` needs zero measured yield in two consecutive rounds.** Alternatives: one; three.
 11. **0017 is an uncapped file**, as decisions 0001 to 0016 are. Alternative: a capped rule file, at a corpus raise of about its size.
 12. **The held-out instruments** (planted defects, the overlap trial) are assigned to R11-PRE-ROUND-METRICS by this round. Alternative: a group of their own.
-13. **CODEOWNERS gains four lines**: the config, `check_scopes.py`, and the two record files under `dev/audit/rounds/`.
+13. **CODEOWNERS gains four lines**: the config, `check_scopes.py`, and the record directory `dev/audit/yardstick/` (repair round 2: one anchored line where two glob lines stood, so the count of added lines is three).
 14. **The supported install population** is set (Carry 4), and its cells are levels and pairs. Alternative at review: a narrower named list; or triples, at a larger denominator.
 15. **The comfort bounds** are set (Carry 4). Alternative: a fixed band the owner states.
 16. **Acceptance criteria**: `owner_criteria` D4, D5, D9 and D10 are null; each is a card at round 11's evaluation. D7's is decision 0015.
@@ -121,9 +129,10 @@ Each is a recommended value, its basis and the alternatives. Decisions 1 to 3 ar
 
 ## Head
 
-018b520580cfd80b828687418f13672a4c03051d (measured 2026-11-13 23:37 UTC; origin/main at 50373173d4, which this head contains: it is the merge of the pull request's branch a5bbc5ec81, itself main merged in plus the delivery row, into this round's commits; every figure below was re-taken on the merge)
+15691dbd564be514864996c5e451f62673956043 (measured 2026-11-14 02:54 UTC; origin/main at 8af37bdf44; `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged in. It is 018b520580 plus this round's three commits, 189571e093, cf105c95b1 and 15691dbd56. This round's figures are marked "round 2" in `## Figures`; the others were taken at 018b520580 and this round's diff reaches them only through the three path strings in `check_scopes.py`, re-run below.)
 
 ## Mutation proof
+- Repair round 2: the perturbation is the two glob lines restored, which is the tree at 018b520580. There `python3 -I tools/pr/dependabot_merge.py --self-test` exits 1 with `ValueError: CODEOWNERS pattern '/dev/audit/rounds/*/EVALUATION.json' is not an anchored path; this reader refuses it`; at this head it prints `dependabot_merge self-test: 0 failure(s)` and exits 0.
 
 One mutant per arm of this round, each a unique-string change to a production predicate of `tools/audit/check_scopes.py`, the self-test run, the file restored and its sha256 checked. Driver: `$EXPORT/mutants.py` sha1 c21ce80cdef33a8551a57156f62f0bb96f311bc9 (scratch; a one-off). Unmutated: exit 0 before and after.
 
@@ -178,6 +187,10 @@ One mutant per arm of this round, each a unique-string change to a production pr
 
 ## Figures
 
+- Round 2, the red step's command at this head, exit 0, last line `dependabot_merge self-test: 0 failure(s)`: `python3 -I tools/pr/dependabot_merge.py --self-test`
+- Round 2, ownership of the moved records read by the same reader's `owned()` over the tree's `.github/CODEOWNERS`, given three paths (round 10's objective record and round 11's start evaluation at their new paths under dev/audit/yardstick/, and as the null control round 6's tracked harness codeowners_gap.py under dev/audit/rounds/): it returns the first two and not the control, so the directory line owns the records and no round evidence.
+- Round 2, the class's seams. Rule: every pattern of `.github/CODEOWNERS` the reader refuses, which the self-test's arm "the tree's CODEOWNERS parses" enumerates by raising on the first. At 018b520580 it raised on the first of the two glob lines; at this head it raises on none. Both seams closed in this diff; no other glob line exists (`git grep -n '[*?[]' -- .github/CODEOWNERS` prints comment lines only).
+- Round 2, `check_scopes.py` after the path move: self-test 38 evaluation arms and 11 population arms held, exit 0; `--round 11` refuses with 2 gaps, each naming a path under `dev/audit/yardstick/`.
 - The finder's harness at both ends. The reviewer's probe script (probe.py under ev/ on the probe ref; probes P0 to P8) reads `evaluation_gaps` with four callbacks and a string glob per class, so it does not load at this head; its port to the six-callback signature, with the same perturbations and a control that passes, is `$EXPORT/probe2.py` sha1 14996f7454856a70840d475067c546b94cfb993f. At f7efa4be88 the reviewer recorded all nine accepted (probes.txt beside it); at this head `python3 -I probe2.py` prints the control accepted, P0 to P8 and R12 each refused, and `unexpected: 0`.
 - Self-test at this head, 38 evaluation arms and 11 population arms held, exit 0: `python3 tools/audit/check_scopes.py --repo . --self-test`
 - The population at this head: 31 axes of which 2 NO-READ (tank volume, house size); `LEVELS: 199`, `PAIRS: 19480`; the optional entities are 50 binary axes (48, 195 and 18696 before main was merged in: two entity keys main added moved the population with no edit to the objective file): `python3 tools/audit/check_scopes.py --repo . --population`
@@ -185,7 +198,7 @@ One mutant per arm of this round, each a unique-string change to a production pr
 - Objects the evaluation must give a verdict, 193 at this head (168 at the first handoff): the ported probe's last line, which applies `match` to every glob of `objective.json` `objects`
 - Terms, 13: `python3 -c "import json;print(len(json.load(open('dev/audit/config/objective.json'))['terms']))"`
 - Decision 0017's length, 491 lines: `wc -l dev/governance/decisions/0017-objective-function.md`
-- Policy caps, 0 errors; the corpus aggregate reads 69092 against a ceiling of 69118, unchanged by this round, and `evaluator.md` 27 lines and 361 tokens at its recorded caps: `node tools/policy/policy_lint.mjs --budgets`
+- Policy caps, 0 errors; the corpus aggregate reads 69092 against a ceiling of 69118, unchanged by either repair round, and `evaluator.md` 27 lines and 361 tokens at its recorded caps: `node tools/policy/policy_lint.mjs --budgets`
 - `node tools/policy/policy_lint.mjs` 0 errors; `node tools/policy/brief_lint.mjs` exit 0; `node tools/policy/rules_sync.mjs --check` ok
 - Architecture score, dS +0.0000 NULL: `python3 tools/audit/archscore/score.py --diff origin/main`
 - Structure ratchet passed: `python3 tests/structure.py`
@@ -205,6 +218,8 @@ Pending: the owner's approving review. Every changed policy path is code-owned.
 
 ## Red checks
 
+- `governance / instrument-self-tests`, step "Show the Dependabot merge decision refusing its own fixtures": red at 03c26201c7, introduced by this group (the glob lines of 8eb5c160b1), fixed at this head as `## Repair round 2` states. Cheaper detector: the step's own command, under a second locally. No local path ran it: `python3 tools/pr/ci_predict.py --base 50373173d4 --only self-test-reads --record-self-tests` at 018b520580 prints `no closures, fast, governance or instrument red predicted` with its own caveat "a data-file read is not seen unless a changed file's own self-test makes it", though `tools/ci/selftest_closures.json` lists `.github/CODEOWNERS` among that self-test's files. Process state (c): prepr's prediction ran and could not see a self-test that reads a changed data file. The detector that would have caught it is the predictor keyed on `selftest_closures.json`'s `files`; its standing cost is the selected self-tests' seconds per prepr run. It is not built here: the predictor is outside this group's seam, and the class is `R10-SELFTEST-RED-INTRODUCED` in `dev/audit/config/bugclasses.json`, whose owner decides the barrier.
+- `tests / closures` locally: this round's `tools/pr/prepr.sh` ran with `PREPR_SKIP_CLOSURES=1`, by the repair brief: its closures step fails on `tests/features.py`'s weekend check until #3578 (R10-HOTFIX-FEATURES-WEEKEND-CLOCK) merges, on any head run on a Saturday or Sunday. That red is no commit of this group's.
 - `budget-raise-gate / budget-raise-gate`: red at the pull request's head a5bbc5ec81 (#3575), by design until the owner's approving review. The gate reads the two new `evaluator.md` entries in `policy_budgets.json` as one raise, though no existing cap moves. Cheaper detector: `tools/pr/prepr.sh` predicts it before the handoff, at no standing cost; nothing cheaper can clear it, because what it waits for is an approval. No owner confirmation was obtained before the push: pending owner confirmation, and the gate holds the merge until it is given.
 - `tests / closures`, `tests / fast (3.14)`, `tests / mutation`: red on no commit of this group. The pull request's branch carries main merged in (82fdfd6d99), and with it the commits of #3531 and #3557, where these runs failed: `tests / closures` at cb8e4bb5, `tests / fast (3.14)` at 6ac5807a, a06dc2fe, feb0f3f4, a35771fa and main's merge 50373173d4, `tests / mutation` at 10d8f043, 7bd0caac, abf3b4f9, 6ac5807a, a06dc2fe, feb0f3f4, a35771fa and cb8e4bb5. This group's seven commits before this round (a50010a19e to f7efa4be88) carry no failed run. Rule: for each commit of `git rev-list e23124ff6e..origin/fix/r11-pre-objective-function`, the check runs whose conclusion is `failure`, read from the commit's check-runs listing. Cheaper detector: none exists for this diff, which did not cause them; each is answered in the pull request that turned it red.
 
