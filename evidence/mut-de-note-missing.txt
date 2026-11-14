@@ -1,0 +1,4 @@
+  FAIL  every card language is key-for-key with en and keeps en's placeholders
+  FAIL  and a planted missing key, dropped or unlisted extra placeholder, or extra key in any language fails it (null controls)
+  FAIL  user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language
+3 CARD CHECK(S) FAILED

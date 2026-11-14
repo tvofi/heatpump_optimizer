@@ -1,2 +1,2 @@
-table 644 (unreached 0)
+table 645 (unreached 0)
 literal 4

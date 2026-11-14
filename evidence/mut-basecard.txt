@@ -458,7 +458,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    dismissing removes the row and it stays gone on a fresh card
   ok    null control: with the dismissal cleared the row is back
   ok    the recommendation speaks Swedish
-  ok    a drift alarm offers the refit with its band, and the restore point
+  FAIL  a drift alarm offers the refit with its band, and the restore point
   ok    the restart rows carry no money, so they follow every priced row
   ok    rendering the recommendation calls no service
   ok    Adopt refit restores through restore_learned_snapshot with source refit
@@ -467,7 +467,7 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
   ok    with no drift alarm the restart advisor draws no row
   ok    an unavailable restart advisor says so and offers no restart
   ok    a refused adopt says why
-  ok    the restart rows speak Swedish
+  FAIL  the restart rows speak Swedish
   ok    the setup page offers an Edit layout toggle
   ok    the editor draws a port on every box edge
   ok    pipe ornament is suppressed while the layout is being edited
@@ -1435,6 +1435,11 @@ customCards: [{"type":"heatpump-optimizer-card","name":"Heat Pump Optimizer Card
         gate 0.3, modelled floor 0.1; wrong in: en,sv,de
   FAIL  user text: the invalid-window error names no channel, in every card language
         en: The hot water window “{window}” is not a valid time. | sv: Varmvattenfönstret ”{window}” är inte en giltig tid. | de: Das Warmwasser-Zeitfenster „{window}“ ist keine gültige Zeit.
+  ok    user text: Save and Simulate both refuse an invalid quiet window with the channel-neutral error
+  FAIL  user text: the refit row states the band_percent the refit publishes, in every card language
+        REFIT_BAND_PERCENT 10; wrong: en band 10, en band 13, sv band 10, sv band 13, de band 10, de band 13
+  FAIL  user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language
+        en wood: note false; en fuse: note false; en frequency: note false; sv wood: note false; sv fuse: note false; sv frequency: note false; de wood: note false; de fuse: note false; de frequency: note false
 
-7 CARD CHECK(S) FAILED
+11 CARD CHECK(S) FAILED
 rc=1

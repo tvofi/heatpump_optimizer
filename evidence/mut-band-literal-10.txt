@@ -1,0 +1,2 @@
+  FAIL  user text: the refit row states the band_percent the refit publishes, in every card language
+1 CARD CHECK(S) FAILED
