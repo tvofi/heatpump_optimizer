@@ -1,0 +1,16 @@
+ 14 files changed, 850 insertions(+), 65 deletions(-)
+ .claude/workflows/audit-find.js                 |   4 +
+ .github/workflows/governance.yml                |   1 +
+ dev/audit/config/scopes.json                    | 231 ++++++++++++-
+ dev/governance/dimensions/D5.md                 |  26 +-
+ dev/governance/dimensions/D6.md                 |  45 ++-
+ dev/programme/delivery/3571.md                  |   1 +
+ tests/layout.json                               |   2 +-
+ tools/audit/check_scopes.py                     | 136 +++++++-
+ tools/audit/seat/INSTRUMENTS.md                 |   1 +
+ tools/audit/seat/instruments/check_scopes.py.md |   5 +-
+ tools/audit/seat/instruments/text_ledger.py.md  |  10 +
+ tools/audit/text_ledger.py                      | 438 ++++++++++++++++++++++++
+ tools/ci/selftest_closures.json                 |   2 +-
+ tools/policy/check-wave-script.mjs              |  13 +-
+ 14 files changed, 850 insertions(+), 65 deletions(-)
