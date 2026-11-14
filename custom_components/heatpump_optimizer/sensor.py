@@ -1276,7 +1276,7 @@ class DHWHeatingCostSensor(_PayloadNumberMixin, _DHWEntityMixin, HeatPumpOptimiz
     @property
     def extra_state_attributes(self) -> dict[str, Any] | None:
         """Which split the figure shows, on a combi store only."""
-        return dhw_split_attributes(self.coordinator) or None
+        return dhw_split_attributes(getattr(self.coordinator, "thermal_params", None)) or None
 
 
 # ---------------------------------------------------------------------------
@@ -1827,7 +1827,7 @@ class _AccumulatingSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
         if since:
             attrs["counting_since"] = since
         if self._ledger_line == "dhw":
-            attrs.update(dhw_split_attributes(self.coordinator))
+            attrs.update(dhw_split_attributes(getattr(self.coordinator, "thermal_params", None)))
         if self._ledger_line:
             month = self.coordinator.month_channel_totals(self._ledger_line)
             if month is not None:
