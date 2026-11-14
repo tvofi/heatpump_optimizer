@@ -1,0 +1,8 @@
+MUTANT [R4: failed/cancelled stand]: gate FAIL lines=3 prelude FAIL lines=1
+MUTANT [R4 dropped]: gate FAIL lines=3 prelude FAIL lines=1
+MUTANT [R2 timestamp dropped]: gate FAIL lines=1 prelude FAIL lines=0
+MUTANT [R2 prelude-green dropped]: gate FAIL lines=0 prelude FAIL lines=0
+MUTANT [R1 dropped]: gate FAIL lines=1 prelude FAIL lines=0
+MUTANT [gate source read ignores standing]: gate FAIL lines=1 prelude FAIL lines=0
+MUTANT [overlay keeps latest start]: gate FAIL lines=1 prelude FAIL lines=0
+MUTANT [judging ignores standing]: gate FAIL lines=4 prelude FAIL lines=1
