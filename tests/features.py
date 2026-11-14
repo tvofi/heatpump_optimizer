@@ -91436,6 +91436,14 @@ R.check(
         **_mr_doc, "map_rows": dict(_mr_doc["map_rows"], bogus="1")}}}) == ["accuracy/draw/map_rows/bogus"] * 2,
     f"{_mr_store.off_domain('hpo_accuracy', {'accuracy': {'draw': _mr_doc}})}",
 )
+_mr_one_row = _mr_dr.DrawRange()
+_mr_one_row.map.rows.append((_MR_MIN0, 2) + (None,) * 13 + ("hold", "space"))
+R.check(
+    "a single row with unread cells stores empty column strings, which the "
+    "domain admits",
+    _mr_one_row.as_dict()["map_rows"]["written_c"] == ""
+    and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _mr_one_row.as_dict()}}) == [],
+)
 
 
 # The window is untouched: the same intervals folded with and without map
@@ -91547,7 +91555,23 @@ R.check(
     and len(_mr_off["coord"].draw.map.closed) > 0,
     f"on {_mr_on_o} off {_mr_off_o} closed {len(_mr_off['coord'].draw.map.closed)}",
 )
+_mr_boost_in = _mr_dc_replace(_mr_in, mode=_mr_pa.MODE_BOOST)
+_mr_indoor = _FbCoord()
+_mr_indoor._config = EntryConfig.from_mapping({**_mr_indoor._config.raw, "space_setpoint_unit": "indoor"})
+R.check(
+    "the boost fact (_boosted): the global boost mode on a water set-point is "
+    "live, outside it with no boost set it is not, and an indoor set-point is "
+    "never boosted",
+    _mr_pa._boosted(_FbCoord(), _mr_boost_in, _mr_now) is True
+    and _mr_pa._boosted(_FbCoord(), _mr_in, _mr_now) is False
+    and _mr_pa._boosted(_mr_indoor, _mr_dc_replace(_mr_indoor.arbiter_inputs(), mode=_mr_pa.MODE_BOOST), _mr_now)
+    is False,
+)
 _mr_fresh = _FbCoord()
+R.check(
+    "a fresh arbiter state holds no pass record",
+    _mr_pa.ArbiterState().last_pass is None,
+)
 R.check(
     "no pass record where no flow set-point is held (nothing written yet)",
     _mr_pa._pass_record(_mr_pa.state_for(_mr_fresh), _mr_fresh.arbiter_inputs(), "space", False,
