@@ -85,6 +85,14 @@ Not re-derived by the round-1 review, re-stated rather than re-measured this rou
 
 ## Head
 
+`b392956a14ea5f0f59a07e3805b15eeb8b7082ec` merges the authored code head `254f0ed03e62af64f05eb5bbe56e4857207ac15d`.
+
+Conflict repair, 2026-11-14 15:54 UTC: `d27b79d5b118249c483233b0bc5d21d34ec4870c` merges origin/main `9fdba3b8547f9762438dc19b98b310a63d34dcb1` into b392956a14 (`git merge-tree --write-tree origin/main b392956a14` reported two content conflicts). Main's tip now holds two of the three stacked heads, merged (3562 at 6251038ff3, 3556 at f0acd13822); 3532 is the one still stacked. What the merge resolved:
+
+- `custom_components/heatpump_optimizer/duty_switch.py`, one hunk, the module docstring's `N_CAP` sentence. This side (3532's stacked wording) read "held at N_CAP by scaling both counts alike, at a booking and on decay"; main's (#3569, R10-DUTY-SWITCH-PLANNER-PRICE carries) reads "at a booking and on each decay, so a record stored over it is held to it by the first pass". Main's kept: it says the same and one true fact more, and the code at the merge does both (`Direction.book`: `scale = min(1.0, N_CAP / self.n)`; `Direction.decay`: `factor = min(self.weights(when)[1], N_CAP) / n`). No code line was in conflict; every other hunk merged clean, and the merged file is byte-identical to 3532's current head 3ab3d5b5ab (`git diff pr/3532 -- custom_components/heatpump_optimizer/duty_switch.py` is empty), so the stack and its own pull request agree.
+- `tests/doc_claims.py`, `main()`'s call list: union. This pull request's `check_late_delta_claims` and main's `check_flow_text_claims` (#3564) and `check_docs_strings_residue` (#3576) each stay, each defined once (`grep -c` of the three `def` lines: 3). No check was weakened.
+- Texts corrected because main moved: none. Each user-facing merge on main since the base (#3556, #3562, #3581, #3567, #3564, #3561, #3563, #3569, #3574, #3576; #3570, #3585, #3583, #3565, #3584, #3586 and the v7.1.17 stamp touch no user page or string; the stamp moves only the manifest and card version) is a row of the table above; where it merged at a later head than the one read (3562, 3556, 3561, 3564, 3581), `git log --no-merges <merged head> ^<read head> ^<main before its merge> -- custom_components docs README.md blueprints` lists no own commit for 3562, 3556, 3564 and 3581, and for 3561 only 3580's two text commits (d0963ece7f, 3047b48a3e), 3580's own hunks, left to it in the table. `tests/doc_claims.py` at the merge: ALL 406 checks PASSED, rc 0. At the handoff origin/main had moved to 5cd7b87413; `git merge-tree --write-tree origin/main d27b79d5b1` reports no conflict, and it was not merged again (orchestrator's instruction).
+
 254f0ed03e62af64f05eb5bbe56e4857207ac15d, on origin/main a77d71fb755f231934e5e59ce1c38c51f86b6439 (main's tip at 2026-11-14 10:22 UTC; `git merge-tree --write-tree origin/main HEAD` reports no conflict). Stacked heads, one merge commit each: 3532 fd5fe52fa788805433e1f1fe36b1824e0943838e, 3562 ced9b233580709f530d5dc402dc12344697fef87, 3556 fe11888ad6b48248728b74bc7a882e4039f4f90e. This pull request merges only after those three.
 
 ## Mutation proof
@@ -125,6 +133,14 @@ For the two corrected sentences the control is the detector above: green at the 
 
 ## Figures
 
+Conflict repair at d27b79d5b1 (origin/main 9fdba3b854, 2026-11-14 UTC), seat interpreter venv-ci (Python 3.14.7), `PYTHONPATH=tests/hastub` where run alone:
+
+- `python3 tests/doc_claims.py`: ALL 406 checks PASSED, rc 0.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. `node tools/policy/policy_lint.mjs`: TOTAL: 0 error(s) across 51 policy file(s).
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`: `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, rc 1, 4 scripts red; every other script green, including doc_claims.py, harness_headers.py, structure.py, guard_pins.py, debug_collect.py and block_duty.py.
+  - tests/optimality.py (`one|summer_negative|shoulder: a recorded claim still has a gap ... gap 0.0000%`) and tests/stress.py (`interned-table fill perturbation ... 3.28 MiB vs clean 3.28 MiB`, `shoulder: cheaper than holding the setpoint [4.67 vs 3.96]`): both red the same way at origin/main 9fdba3b854 in a detached worktree on this Mac (optimality 1 of 84 failed, the same line; stress 3 of 116 failed, these two plus a memory-budget line). Solver floats and memory on macOS, not this merge.
+  - tests/entities.py (1 of 2724: the runner self-test `a measured script's late-writing descendant is waited for, not recorded as nodata`, red again when run alone) and tests/card.mjs (`JavaScript heap out of memory`): not re-proven locally. The comparison at origin/main was stopped on the orchestrator's instruction; neither check reads a doc page or `tests/doc_claims.py`, and CI on Linux is the authority for both.
+
 - `python3 tests/doc_claims.py` at 254f0ed03e: ALL 368 checks PASSED, rc 0 (first pass: 356; the 12 added are `check_late_delta_claims`).
 - `python3 tests/doc_claims.py --markers --user`: `0 user-doc marker(s), 0 due`.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
@@ -134,9 +150,9 @@ For the two corrected sentences the control is the detector above: green at the 
   - tests/harness_headers.py: rc 0, ALL 115 HARNESS HEADER CHECKS PASSED
   - tests/md_tables.mjs: rc 0, doc_misrendered_lines=0
 - The branch-wide scope (`--diff $(git merge-base origin/main HEAD)`) also selects the code suite, reached only through the three stacked product heads' own code, which their own pull requests' CI proves; this pass's diff is docs and `tests/doc_claims.py` only and cannot reach it, so it was not re-run here.
-<!-- figure-block: scope-line mb=0f37833e2194739b431656a70c652b0679c8fa58 head=254f0ed03e62af64f05eb5bbe56e4857207ac15d -->
+<!-- figure-block: scope-line mb=9fdba3b8547f9762438dc19b98b310a63d34dcb1 head=d27b79d5b118249c483233b0bc5d21d34ec4870c -->
 ~~~text
-MODE: SCOPED -- 30 script(s) run, 3 scoped out.
+MODE: FULL -- every test script runs, nothing is scoped out.
 ~~~
 <!-- /figure-block -->
 
@@ -155,3 +171,4 @@ none: every lead this pass found is corrected here, in this group's own pages. C
 ## Friction
 
 none. Carry: dismissed: no friction recorded
+
