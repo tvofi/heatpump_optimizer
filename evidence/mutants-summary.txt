@@ -1,0 +1,18 @@
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M1-nondigit rc=1 VACUOUS=0 TypeError=1
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M2-outside-set rc=1 VACUOUS=1 TypeError=0
+CONTROL VACUOUS: carry control:
+  a legacy carry file (carry-999998.json) is refused (the narrowing): names no path to the harness or command that re-establishes it; a bare figure or section name is not an enumerator
+
+ 1 file changed, 1 deletion(-)
+M3-drop-legacy-check rc=0 VACUOUS=0 TypeError=0
+ 1 file changed, 1 deletion(-)
+M4-drop-empty-guard rc=0 VACUOUS=0 TypeError=0
+ 1 file changed, 1 insertion(+), 17 deletions(-)
+M5-empty-set rc=1 VACUOUS=1 TypeError=0
+CONTROL VACUOUS: carry control:
+  the legacy set is empty, so the narrowing is unexercised
+
+
+[exited with code 0]
