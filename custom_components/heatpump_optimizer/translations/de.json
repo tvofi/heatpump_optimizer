@@ -934,7 +934,7 @@
             "data_description": {
               "confidence_margins_enabled": "Ein Plan, der zwölf Stunden im Voraus 19,0 °C zusagt, beruht auf einer Zwölf-Stunden-Prognose, und der Optimierer weiß aus seiner eigenen Historie, wie falsch diese werden. Ist dies aktiviert, steigt die Komfortuntergrenze um genau diesen erwarteten Fehler – begrenzt auf 0,8 °C und auf null schrumpfend, wenn die Genauigkeit steigt –, sodass tiefes, preisgetriebenes Auskühlen nur dort stattfindet, wo sich das Modell das Vertrauen verdient hat.",
               "price_risk_lambda": "Jenseits des veröffentlichten Horizonts werden Preise aus deinem gelernten Tagesverlauf geschätzt. Dies fügt diesen Schätzungen einen Aufschlag hinzu, proportional dazu, wie falsch sie tendenziell lagen, damit der Plan eine geschätzte günstige Nacht nicht mehr als sicher behandelt. 0 vertraut den Schätzungen unverändert.",
-              "price_tiles_enabled": "Nach jeder planmäßigen Optimierung wird eine Was-wäre-wenn-Kachel bepreist – der Komfortplan ein Grad niedriger, ein Grad höher und die Leistung auf 75 % begrenzt, im Wechsel, jeweils über 30 Tage gemittelt. Standardmäßig aus, weil jede Kachel eine komplette zusätzliche Berechnung mit echter CPU-Last ist."
+              "price_tiles_enabled": "Nach jeder planmäßigen Optimierung wird eine Was-wäre-wenn-Kachel bepreist – der Komfortplan ein Grad niedriger, ein Grad höher und die Leistung auf 75 % begrenzt, im Wechsel, jeweils über 30 Tage gemittelt. Standardmäßig aus, weil jede Kachel zusätzliche Berechnungen mit echter CPU-Last kostet: eine für eine Grad-Kachel, bis zu drei für die Leistungsgrenzen-Kachel."
             }
           }
         }

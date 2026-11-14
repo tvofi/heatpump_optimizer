@@ -868,6 +868,20 @@ def _thermostat_held_state(
     return held
 
 
+def _held_reference(
+    model: ThermalModel, state: ThermalState, weather: WeatherSeries,
+    comfort_targets: np.ndarray | None, default_target: float,
+) -> ThermalState:
+    """``state`` as a thermostat holding the solve's own schedule would have it, wood side as measured.
+
+    The one reference both the settlement's start gap and a held-start solve
+    (``SolveInputs.held_start``, #2257) use, so that solve's gap is zero.
+    """
+    return _sharing_wood_side(_thermostat_held_state(
+        model, state, weather, _baseline_target(comfort_targets, 0, default_target),
+    ), state)
+
+
 def _held_unreachable(
     model: ThermalModel, held: ThermalState, need_kw: float,
     weather0: tuple[float, float, float, float], humidity: float | None,
@@ -2734,6 +2748,66 @@ class SolveInputs:
     forecast: ForecastSeries
     start_time: datetime | None = None
     limits: SolveLimits = field(default_factory=SolveLimits)
+    #: #2257: plan from the house as a thermostat holding this solve's own
+    #: schedule would have it (``_held_reference``), not as measured, so the
+    #: cost carries no one-off coast or heat-up. The what-if's steady pair.
+    held_start: bool = False
+
+
+def _horizon_weather(series: ForecastSeries, n_steps: int) -> WeatherSeries:
+    """A forecast's weather as one solve reads it, ``n_steps`` long: calm, dry
+    and dark where a series is missing, the rest cut to the horizon."""
+    wind_speeds, precipitation, solar_radiation = weather_or_calm(
+        n_steps, series.wind_speeds, series.precipitation, series.solar_radiation
+    )
+    # Forecast humidity (#21), normalised to horizon length; short series pad
+    # with NaN, which the model reads as "unknown, use the ambient value" —
+    # never as 0 % humidity. An all-NaN series is the same as none at all,
+    # and dropping it keeps the objective's inner loop free of per-step
+    # lookups that can only fall back.
+    humidity = series.humidity
+    if humidity is not None:
+        hum = np.asarray(humidity, dtype=float)
+        if hum.size < n_steps:
+            hum = np.concatenate([hum, np.full(n_steps - hum.size, np.nan)])
+        humidity = hum[:n_steps]
+        if not np.any(np.isfinite(humidity)):
+            humidity = None
+    # Free-heat forecast, normalised to horizon length like the arrays above.
+    # All-zero is the same as none at all, and is treated so.
+    external_heat_kw = series.external_heat_kw
+    if external_heat_kw is not None:
+        external_heat_kw = _padded_nonneg(external_heat_kw, n_steps)
+        if not np.any(external_heat_kw > 0.0):
+            external_heat_kw = None
+    return WeatherSeries(
+        outdoor_temps=series.outdoor_temps[:n_steps], wind_speeds=wind_speeds[:n_steps],
+        precipitation=precipitation[:n_steps], solar_radiation=solar_radiation[:n_steps],
+        humidity=humidity, external_heat_kw=external_heat_kw,
+    )
+
+
+def _step_clock(start_time: datetime, n_steps: int, dt: float) -> tuple[list[datetime], np.ndarray]:
+    """Each step's start and its hour of day, which the comfort schedule keys off."""
+    step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
+    return step_datetimes, np.array([d.hour + d.minute / 60.0 for d in step_datetimes])
+
+
+def _day_mean_weather(weather: WeatherSeries, n_steps: int) -> WeatherSeries:
+    """``weather`` over its first ``n_steps`` with each series at its mean there:
+    a day with no hour's weather in it. An unknown humidity stays unknown."""
+    def flat(values: Any) -> Any:
+        if values is None:
+            return None
+        head = np.asarray(values, dtype=float)[:n_steps]
+        known = head[np.isfinite(head)]
+        return np.full(n_steps, float(np.mean(known)) if known.size else np.nan)
+
+    return WeatherSeries(
+        outdoor_temps=flat(weather.outdoor_temps), wind_speeds=flat(weather.wind_speeds),
+        precipitation=flat(weather.precipitation), solar_radiation=flat(weather.solar_radiation),
+        humidity=flat(weather.humidity), external_heat_kw=flat(weather.external_heat_kw),
+    )
 
 
 def _house_ua_kw_per_c(params: ThermalParameters, scale: float = 1.0) -> float:
@@ -4025,9 +4099,12 @@ class HeatPumpOptimizer:
         n_steps = min(len(prices), len(outdoor_temps), self.config.n_steps)
         dt = self.config.dt_hours
 
-        wind_speeds, precipitation, solar_radiation = weather_or_calm(
-            n_steps, wind_speeds, precipitation, solar_radiation
-        )
+        weather = _horizon_weather(series, n_steps)
+        outdoor_temps, wind_speeds, precipitation, solar_radiation, humidity, external_heat_kw = (
+            weather.outdoor_temps, weather.wind_speeds, weather.precipitation,
+            weather.solar_radiation, weather.humidity, weather.external_heat_kw)
+        # ``_horizon_weather`` fills these three: a horizon's, never None.
+        assert wind_speeds is not None and precipitation is not None and solar_radiation is not None
         if price_known is None:
             price_known = np.ones(n_steps, dtype=bool)
         if pv_surplus is None:
@@ -4036,12 +4113,7 @@ class HeatPumpOptimizer:
         if start_time is None:
             start_time = datetime.now()
 
-        # Truncate arrays to n_steps
         prices = prices[:n_steps]
-        outdoor_temps = outdoor_temps[:n_steps]
-        wind_speeds = wind_speeds[:n_steps]
-        precipitation = precipitation[:n_steps]
-        solar_radiation = solar_radiation[:n_steps]
         prices = self._stash_price_horizon(
             initial_state, n_steps, price_known, price_sigma, prices, pv_surplus
         )
@@ -4049,28 +4121,6 @@ class HeatPumpOptimizer:
         planner = DhwPlanner(
             self.model, self.config, self._pv_surplus, self._price_known
         )
-
-        # Forecast humidity (#21), normalised to horizon length; short
-        # series pad with NaN, which the model reads as "unknown, use the
-        # ambient value" — never as 0 % humidity. An all-NaN series is the
-        # same as none at all, and dropping it keeps the objective's inner
-        # loop free of per-step lookups that can only fall back.
-        if humidity is not None:
-            hum = np.asarray(humidity, dtype=float)
-            if hum.size < n_steps:
-                hum = np.concatenate(
-                    [hum, np.full(n_steps - hum.size, np.nan)]
-                )
-            humidity = hum[:n_steps]
-            if not np.any(np.isfinite(humidity)):
-                humidity = None
-
-        # Free-heat forecast, normalised to horizon length like the arrays
-        # above. All-zero is the same as none at all, and is treated so.
-        if external_heat_kw is not None:
-            external_heat_kw = _padded_nonneg(external_heat_kw, n_steps)
-            if not np.any(external_heat_kw > 0.0):
-                external_heat_kw = None
 
         # --- Analyze forecast trajectory for predictive signals ---
         forecast_analysis = self._analyze_forecast_trajectory(
@@ -4092,10 +4142,7 @@ class HeatPumpOptimizer:
         # Hour of day at each step. Computed once: the comfort target, both
         # temperature bounds and the DHW draw pattern all key off it, and it
         # was previously rebuilt from scratch for each of the four.
-        step_datetimes = utc_step_starts(start_time, n_steps, timedelta(hours=dt))
-        step_hours = np.array([
-            d.hour + d.minute / 60.0 for d in step_datetimes
-        ])
+        step_datetimes, step_hours = _step_clock(start_time, n_steps, dt)
         # Weekday per step, for weekly DHW windows (#3) and the per-weekday
         # overrides (#1260); the helper returns None unless either is
         # configured, so the flat no-override install pays nothing.
@@ -4113,6 +4160,9 @@ class HeatPumpOptimizer:
             )
         )
         away_drops = slot_drivers.away_floor_drops(self.config, step_hours, step_datetimes, limits.away_floor_drop_c)
+        if inputs.held_start:
+            initial_state = _held_reference(self.model, initial_state, weather, comfort_targets, self.config.target_temp)
+            self._stash_buffer_seed(initial_state)
 
         # Per-step solar gain, and the wind/rain multiplier on heat loss. Both
         # use the *forecast* at each future step rather than current
@@ -4318,15 +4368,7 @@ class HeatPumpOptimizer:
 
         if power_caps is not None and throttling:
             result = self._repair_throttled_buffer_caps(
-                WeatherSeries(
-                    outdoor_temps=outdoor_temps,
-                    wind_speeds=wind_speeds,
-                    precipitation=precipitation,
-                    solar_radiation=solar_radiation,
-                    humidity=humidity,
-                    external_heat_kw=external_heat_kw,
-                ),
-                initial_state, result, power_caps, dt,
+                weather, initial_state, result, power_caps, dt,
                 prices, step_hours, valve_targets, _solve,
             )
 
@@ -4378,6 +4420,15 @@ class HeatPumpOptimizer:
             return None
         return (np.clip(np.asarray(prev, dtype=float), 0.0, self.model.params.max_electrical_power),)
 
+    def _stash_buffer_seed(self, initial_state: ThermalState) -> None:
+        """The buffer temperature the settlement ceiling is floored at: the solve's own start."""
+        self._initial_buffer_temp = (
+            float(initial_state.buffer_tank_temperature)
+            if self.model.params.buffer_is_store
+            and initial_state.buffer_tank_temperature is not None
+            else None
+        )
+
     def _stash_price_horizon(
         self,
         initial_state: ThermalState,
@@ -4400,12 +4451,7 @@ class HeatPumpOptimizer:
             )
 
         self._price_known = price_known
-        self._initial_buffer_temp = (
-            float(initial_state.buffer_tank_temperature)
-            if self.model.params.buffer_is_store
-            and initial_state.buffer_tank_temperature is not None
-            else None
-        )
+        self._stash_buffer_seed(initial_state)
         self._pv_surplus = pv_surplus
 
         # Risk-adjusted pricing on the unpublished horizon (#34). The prior
@@ -5901,12 +5947,45 @@ class HeatPumpOptimizer:
                 electrical += gap / cop_store - gap / cop
         return float(_bought_back(p, electrical, len(prices), self.config.dt_hours) * refill_price)
 
+    def reference_day(self, inputs: SolveInputs) -> tuple[list[float], float]:
+        """The thermostat's setpoints over the week ``inputs``' horizon opens and
+        the electricity it draws holding them on that week's average day, kWh;
+        no solve (#2257).
+
+        The what-if's figure for a schedule change is this energy differenced
+        between two schedules, so it carries nothing but the schedule
+        (``whatif``'s THE REFERENCE DAY): each distinct day of the seven is
+        looped twice and the second pass, started where the first ended, is the
+        one counted; every weather series is its mean over the horizon's first
+        day. Weather and setpoints are ``optimize``'s own (``_horizon_weather``,
+        ``_step_clock``, ``_build_comfort_bounds``).
+
+        A horizon under a day prices no day: the energy is nan.
+        """
+        series, dt = inputs.forecast, self.config.dt_hours
+        n_steps = min(len(series.prices), len(series.outdoor_temps), self.config.n_steps)
+        day = min(n_steps, int(round(24.0 / dt)))
+        weather = _day_mean_weather(_horizon_weather(series, n_steps), day)
+        week: list[float] = []
+        day_kwh: dict[tuple[float, ...], float] = {}
+        for offset in range(7):
+            when, hours = _step_clock((inputs.start_time or datetime.now()) + timedelta(days=offset), day, dt)
+            comfort = self._build_comfort_bounds(hours, day, None, None, when)[0]
+            targets = tuple(_baseline_targets(comfort, day, self.config.target_temp))
+            week.extend(targets)
+            if day * dt >= 24.0 and targets not in day_kwh:
+                _, settled = self._compute_baseline_power(weather, inputs.state, dt, comfort)
+                power, _ = self._compute_baseline_power(weather, inputs.state, dt, comfort, start=settled)
+                day_kwh[targets] = float(np.sum(power)) * dt
+        return week, sum(day_kwh.get(tuple(week[k:k + day]), math.nan) for k in range(0, 7 * day, day)) / 7.0
+
     def _compute_baseline_power(
         self,
         weather: WeatherSeries,
         initial_state: ThermalState,
         dt: float,
         comfort_targets: np.ndarray | None = None,
+        start: ThermalState | None = None,
     ) -> tuple[np.ndarray, ThermalState]:
         """Simulate a conventional thermostat following the comfort schedule.
 
@@ -5936,6 +6015,9 @@ class HeatPumpOptimizer:
         wood's heat counts in the saving, and firewood's cost is not counted;
         the card says so where wood is configured.
 
+        ``start`` replaces that held state: ``reference_day``'s second pass
+        starts where its first ended. No solve passes it.
+
         Returns the power schedule and the final state, whose stored heat the
         caller settles at the horizon's end.
         """
@@ -5954,7 +6036,8 @@ class HeatPumpOptimizer:
         targets = _baseline_targets(comfort_targets, n_steps, self.config.target_temp)
         hums = [None] * n_steps if humidity is None else np.asarray(humidity, float).tolist()
         k_slab = p.slab_heat_transfer_floored
-        state = _thermostat_held_state(self.model, initial_state, weather, targets[0])
+        state = start if start is not None else _thermostat_held_state(
+            self.model, initial_state, weather, targets[0])
 
         for i in range(n_steps):
             target = targets[i]
@@ -6028,10 +6111,7 @@ class HeatPumpOptimizer:
         heat the thermostat buys plus the end's credit (``end_cost`` below 0),
         never more -- a summer house's passive warmth displaced nothing.
         """
-        held = _sharing_wood_side(_thermostat_held_state(
-            self.model, initial_state, weather,
-            _baseline_target(comfort_targets, 0, self.config.target_temp),
-        ), initial_state)
+        held = _held_reference(self.model, initial_state, weather, comfort_targets, self.config.target_temp)
         capped = self._deferred_energy_cost(
             held, initial_state, prices, outdoor_temps, caps=caps, humidity=humidity,
         )

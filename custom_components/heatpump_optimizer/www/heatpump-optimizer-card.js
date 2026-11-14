@@ -616,11 +616,18 @@ const STRINGS = {
       "Saved. The optimizer is reloading and will plan against the new " +
       "schedule.",
     "whatif.simulating": "Working out what that would cost…",
-    "whatif.same_cost": "<b>About the same cost</b> as the current plan.",
+    "whatif.same_cost":
+      "<b>About the same cost</b> as the current plan, {basis}.",
     "whatif.cheaper_per_month":
-      '<b class="cheaper">{amount} less per month</b> than the current plan.',
+      '<b class="cheaper">{amount} less per month</b> than the current plan, ' +
+      "{basis}.",
     "whatif.dearer_per_month":
-      '<b class="dearer">{amount} more per month</b> than the current plan.',
+      '<b class="dearer">{amount} more per month</b> than the current plan, ' +
+      "{basis}.",
+    "whatif.basis_plans": "in steady state",
+    "whatif.basis_schedule":
+      "an estimate at the day's average weather and price that leaves out " +
+      "the optimizer's load shifting",
     "whatif.min_room_temp": "Coldest the house gets: {t} °C",
     "whatif.min_dhw_temp": "Lowest tank temperature: {t} °C",
     "whatif.compressor_starts_one": "{n} compressor start",
@@ -1491,13 +1498,17 @@ const STRINGS = {
       "nya schemat.",
     "whatif.simulating": "Räknar ut vad det skulle kosta…",
     "whatif.same_cost":
-      "<b>Ungefär samma kostnad</b> som den nuvarande planen.",
+      "<b>Ungefär samma kostnad</b> som den nuvarande planen, {basis}.",
     "whatif.cheaper_per_month":
       '<b class="cheaper">{amount} mindre per månad</b> än den nuvarande ' +
-      "planen.",
+      "planen, {basis}.",
     "whatif.dearer_per_month":
       '<b class="dearer">{amount} mer per månad</b> än den nuvarande ' +
-      "planen.",
+      "planen, {basis}.",
+    "whatif.basis_plans": "i fortvarighetstillstånd",
+    "whatif.basis_schedule":
+      "en uppskattning vid dygnets medelväder och medelpris som inte " +
+      "räknar med optimerarens lastförflyttning",
     "whatif.min_room_temp": "Som kallast blir huset {t} °C",
     "whatif.min_dhw_temp": "Lägsta tanktemperatur: {t} °C",
     "whatif.compressor_starts_one": "{n} kompressorstart",
@@ -2258,9 +2269,11 @@ const STRINGS = {
     "whatif.saving": "Wird gespeichert …",
     "whatif.saved_result": "Gespeichert. Der Optimierer lädt neu und plant nach dem neuen Zeitplan.",
     "whatif.simulating": "Kosten werden berechnet …",
-    "whatif.same_cost": "<b>Etwa gleiche Kosten</b> wie der aktuelle Plan.",
-    "whatif.cheaper_per_month": "<b class=\"cheaper\">{amount} weniger pro Monat</b> als der aktuelle Plan.",
-    "whatif.dearer_per_month": "<b class=\"dearer\">{amount} mehr pro Monat</b> als der aktuelle Plan.",
+    "whatif.same_cost": "<b>Etwa gleiche Kosten</b> wie der aktuelle Plan, {basis}.",
+    "whatif.cheaper_per_month": "<b class=\"cheaper\">{amount} weniger pro Monat</b> als der aktuelle Plan, {basis}.",
+    "whatif.dearer_per_month": "<b class=\"dearer\">{amount} mehr pro Monat</b> als der aktuelle Plan, {basis}.",
+    "whatif.basis_plans": "im eingeschwungenen Zustand",
+    "whatif.basis_schedule": "eine Schätzung bei Durchschnittswetter und Durchschnittspreis des Tages, ohne die Lastverschiebung des Optimierers",
     "whatif.min_room_temp": "Kältester Wert im Haus: {t} °C",
     "whatif.min_dhw_temp": "Niedrigste Speichertemperatur: {t} °C",
     "whatif.compressor_starts_one": "{n} Verdichterstart",
@@ -13436,23 +13449,37 @@ class WhatIfPanel {
    *
    * Reporting only the saving would invite the obvious mistake: a plan is
    * always cheaper if it is allowed to be colder, or to let the tank run down.
+   *
+   * The money is the steady-state monthly estimate and nothing else (#2257):
+   * an answer without that figure shows the comfort consequence and no money,
+   * never the plan's own spend, which carries a one-off coast or heat-up.
+   *
+   * A schedule change carries the figure twice, at the day's average price
+   * and at the plan's own average purchase price: where the two round apart
+   * the money is the range between them, never one of them alone.
    */
   summary(result) {
-    const delta = Number(result.monthly_cost_delta);
+    // The answer's figures are numbers or absent; Number(null) would be a 0.
+    const num = (v) => (typeof v === "number" ? v : NaN);
+    const delta = num(result.monthly_steady_cost_delta);
+    const shifted = num(result.monthly_steady_cost_delta_shifted);
     const parts = [];
+    let money = "";
 
-    if (!Number.isFinite(delta)) {
-      return L("errors.no_answer");
-    }
-    if (Math.abs(delta) < 0.5) {
-      parts.push(L("whatif.same_cost"));
-    } else {
-      const cheaper = delta < 0;
-      parts.push(
-        L(cheaper ? "whatif.cheaper_per_month" : "whatif.dearer_per_month", {
-          amount: Math.abs(delta).toFixed(0),
-        })
+    if (Number.isFinite(delta)) {
+      const basis = L(
+        "monthly_steady_cost_delta_shifted" in result ? "whatif.basis_schedule" : "whatif.basis_plans"
       );
+      const ends = [delta, Number.isFinite(shifted) ? shifted : delta]
+        .map((v) => Math.abs(v).toFixed(0))
+        .sort((a, b) => a - b);
+      money =
+        Math.abs(delta) < 0.5
+          ? L("whatif.same_cost", { basis })
+          : L(delta < 0 ? "whatif.cheaper_per_month" : "whatif.dearer_per_month", {
+              amount: ends[0] === ends[1] ? ends[0] : `${ends[0]}–${ends[1]}`,
+              basis,
+            });
     }
 
     // A minimum's change against the baseline, shown from 0.1 °C.
@@ -13492,9 +13519,12 @@ class WhatIfPanel {
       parts.push(L("whatif.rate_limited"));
     }
 
+    if (!money && !parts.length) {
+      return L("errors.no_answer");
+    }
     return (
-      `<div>${parts[0]}</div>` +
-      `<div class="wi-detail">${parts.slice(1).join(" · ")}</div>`
+      (money ? `<div>${money}</div>` : "") +
+      `<div class="wi-detail">${parts.join(" · ")}</div>`
     );
   }
 }
