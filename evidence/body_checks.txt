@@ -1,0 +1,19 @@
+32c768ae03ddbed07c5f4975f458930a1054e35e	refs/pull/3532/head
+2c4889ddbcc13c84bc352cf334452a2657d6aee5	refs/pull/3568/head
+fatal: couldn't find remote ref 3ab3d5b5ab
+3532 head=32c768ae03ddbed07c5f4975f458930a1054e35e
+duty_switch diff d27 vs 3532 head lines: 0
+duty_switch diff 2c48 vs 3532 head lines: 0
+def count: 3
+custom_components diff 2c48 vs 3532 head (stat):
+ custom_components/heatpump_optimizer/sensor.py     | 12 ++++-
+ .../heatpump_optimizer/thermal_model.py            | 41 +++++++++++++++
+ 5 files changed, 132 insertions(+), 9 deletions(-)
+fd5fe52fa7 is ancestor of 3532 head 32c768ae03ddbed07c5f4975f458930a1054e35e
+ custom_components/heatpump_optimizer/climate.py    |  5 ++
+ custom_components/heatpump_optimizer/entity.py     | 22 ++++++++
+ custom_components/heatpump_optimizer/optimizer.py  | 61 +++++++++++++++++++---
+ custom_components/heatpump_optimizer/sensor.py     | 12 ++++-
+ .../heatpump_optimizer/thermal_model.py            | 41 +++++++++++++++
+ 5 files changed, 132 insertions(+), 9 deletions(-)
+3532 head behind main

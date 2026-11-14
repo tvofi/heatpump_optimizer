@@ -1,0 +1,43 @@
+ README.md                                          |   2 +-
+ .../heatpump_optimizer/coordinator.py              |   5 +-
+ custom_components/heatpump_optimizer/duty_legs.py  | 101 ++++--
+ .../heatpump_optimizer/duty_switch.py              |  59 +++-
+ custom_components/heatpump_optimizer/optimizer.py  |  18 +-
+ .../heatpump_optimizer/pump_arbiter.py             |  24 +-
+ .../harnesses/r10_duty_switch_price_section.py     |  16 +-
+ dev/audit/rounds/round4/D6/claims.json             |   4 +-
+ dev/audit/rounds/round4/D6/claims.md               |   2 +-
+ dev/programme/delivery/3532.md                     |   1 +
+ dev/programme/delivery/3568.md                     |   1 +
+ docs/configuration.md                              |  72 ++--
+ docs/dashboard-card.md                             |  19 +-
+ .../design.md                                      |   8 +
+ docs/how-it-works.md                               |  16 +-
+ docs/setup.md                                      |   9 +-
+ tests/doc_claims.py                                | 204 +++++++++++
+ tests/features.py                                  | 371 ++++++++++++++++++---
+ .../both_step_legs.CMP_BOUND.8c5f2676.json         |   6 +
+ .../both_step_legs.GUARD_OFF.8c5f2676.json         |   6 +
+ ...son => both_step_legs.RETURN_DEL.a22518ce.json} |   4 +-
+ .../duty_legs.py/leg_ends.CMP_BOUND.3ab3f318.json  |   6 +
+ .../duty_legs.py/leg_ends.GUARD_OFF.fe24fd6b.json  |   6 +
+ ...afd0.json => leg_ends.RETURN_DEL.4932ea42.json} |   4 +-
+ .../duty_legs.py/leg_rule.BOOLOP.ac335b68.json     |   6 +
+ .../duty_legs.py/leg_rule.CMP_BOUND.726b5c41.json  |   6 +
+ .../duty_legs.py/leg_rule.CMP_BOUND.ac335b68.json  |   6 +
+ .../duty_legs.py/leg_rule.RETURN_DEL.726b5c41.json |   6 +
+ .../switch_ban.GUARD_OFF.f22b5492.json             |   6 +
+ .../Direction.book.CLAMP_DROP.12d1bbb1.json        |   6 +
+ ...utySwitchLearner.split.RETURN_DEL.e5fbd410.json |   6 +
+ .../both_step_duty.CMP_BOUND.5bea58be.json         |   6 +
+ .../both_step_duty.GUARD_OFF.560bc44e.json         |   6 +
+ ...json => both_step_duty.GUARD_OFF.fa002675.json} |   6 +-
+ .../both_step_duty.RETURN_DEL.5bea58be.json        |   6 +
+ ..._avoid_priced_switches.CMP_BOUND.c672264a.json} |   6 +-
+ .../_avoid_priced_switches.GUARD_OFF.95d10ca9.json |   6 -
+ .../_avoid_priced_switches.GUARD_OFF.c672264a.json |   6 +
+ ...=> _stop_availability.RETURN_DEL.e8ac8817.json} |   8 +-
+ .../pump_arbiter.py/_share.CMP_BOUND.3eede229.json |   6 -
+ .../_share.RETURN_DEL.3eede229.json                |   6 -
+ .../Direction.book.CMP_BOUND.3e106b06.json         |   6 -
+ 42 files changed, 901 insertions(+), 173 deletions(-)
