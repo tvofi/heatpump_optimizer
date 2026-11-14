@@ -1,0 +1,5 @@
+RESULT tests/golden/coord_all_features.json data.cop_refusal=None sensor.cop_refusal=None
+RESULT tests/golden/coord_dhw.json data.cop_refusal=None sensor.cop_refusal=None
+RESULT tests/golden/coord_grid_fee.json data.cop_refusal=None sensor.cop_refusal=None
+RESULT tests/golden/coord_minimal.json data.cop_refusal=None sensor.cop_refusal=None
+RESULT tests/golden/coord_two_zone.json data.cop_refusal=None sensor.cop_refusal=None

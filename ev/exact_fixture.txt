@@ -1,0 +1,2 @@
+RESULT exact_fixture low=np.float64(1.0) high=np.float64(1.5625) slope=0.5 level_moves=1.25 slope==0.5:True level==1.25:True
+RESULT old_fixture slope=0.5 level_moves=1.4142135623730951

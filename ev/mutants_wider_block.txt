@@ -1,0 +1,8 @@
+== null (246-check block)
+ALL 247 FEATURES BLOCK PASSED
+== DISAGREE_FACTOR = 1.3 (module constant)
+59:DISAGREE_FACTOR = 1.3
+ALL 247 FEATURES BLOCK PASSED
+== full_range instead of 10/90 percentiles in level_moves
+510:    level_moves = float(pairs[:, 1].max() / pairs[:, 1].min()) ** abs(1.0 - slope)
+ALL 247 FEATURES BLOCK PASSED

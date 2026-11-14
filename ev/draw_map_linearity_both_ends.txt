@@ -1,0 +1,36 @@
+=== draw_map_linearity.py (head copy) on base production
+RESULT map_minutes=1136
+RESULT map_bias_kw=+1.254
+RESULT map_rms_kw=1.466
+RESULT map_resid_floor_end_kw=+1.585
+RESULT map_resid_ceiling_kw=-0.786
+RESULT minutes_mid_band=226
+RESULT fit_gain_kw_per_k=0.0472 fit_r2=0.483 fit_null_p95=0.043
+RESULT steps_n=15 step_gain_kw_per_k=0.057 step_null_p97_5=0.032 step_planted_0.27_recovered=0.270
+RESULT store_rows=116 store_heating_rows=90
+RESULT store_gain_kw_per_k=0.1543 store_r2=0.392 store_null_p95=0.045 store_null_p=0.0010
+RESULT curvature_c0.00_wins=8/50
+RESULT curvature_c0.35_wins=22/50
+RESULT curvature_c1.00_wins=49/50
+RESULT ask_pairs=116 ask_slope=0.620 ask_level_sum=1.873 ask_level_moves=1.488
+RESULT ask_evidence=follows
+RESULT ask_null_proportional=follows
+RESULT store_rows_at_ceiling=1
+=== draw_map_linearity.py (head copy) on head production
+RESULT map_minutes=1136
+RESULT map_bias_kw=+1.254
+RESULT map_rms_kw=1.466
+RESULT map_resid_floor_end_kw=+1.585
+RESULT map_resid_ceiling_kw=-0.786
+RESULT minutes_mid_band=226
+RESULT fit_gain_kw_per_k=0.0472 fit_r2=0.483 fit_null_p95=0.043
+RESULT steps_n=15 step_gain_kw_per_k=0.057 step_null_p97_5=0.032 step_planted_0.27_recovered=0.270
+RESULT store_rows=116 store_heating_rows=90
+RESULT store_gain_kw_per_k=0.1543 store_r2=0.392 store_null_p95=0.045 store_null_p=0.0010
+RESULT curvature_c0.00_wins=8/50
+RESULT curvature_c0.35_wins=22/50
+RESULT curvature_c1.00_wins=49/50
+RESULT ask_pairs=116 ask_slope=0.620 ask_level_sum=1.873 ask_level_moves=1.488
+RESULT ask_evidence=does_not_follow
+RESULT ask_null_proportional=follows
+RESULT store_rows_at_ceiling=1

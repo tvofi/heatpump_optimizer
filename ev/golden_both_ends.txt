@@ -1,0 +1,11 @@
+== base
+  captured 56 scenarios from branch
+  captured 56 scenarios from baseline
+  values (reported, never failed): 55 fixture(s), 34414 leaf/leaves differ from the committed files in value alone.
+rc=0
+== head
+  captured 56 scenarios from branch
+  captured 56 scenarios from baseline
+  values (reported, never failed): 55 fixture(s), 34414 leaf/leaves differ from the committed files in value alone.
+rc=0
+diff of the two full logs: identical (exit 0)

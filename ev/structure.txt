@@ -1,0 +1,4 @@
+
+STRUCTURE RATCHET PASSED
+
+FIXTURE ok: 93 error(s) hold 276 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/

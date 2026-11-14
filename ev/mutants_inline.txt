@@ -1,0 +1,44 @@
+== base production draw_range.py under head tests
+  FAIL the measured shape (slope 0.70, drawn 2.1 x the ask at the low end of the span and 1.4 x at the top) does not follow its ask; one 1.70 x shift and a draw within tolerance of its ask follow, a self-set draw still does not  [('follows', 'follows', 'follows', 'does_not_follow')]
+  FAIL a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level  [('does_not_follow', 'follows')]
+2 of 19 FEATURES BLOCK FAILED
+== null
+ALL 19 FEATURES BLOCK PASSED
+== level_exclusive
+  FAIL a draw whose log-log slope is exactly 0.5, and whose level moves by exactly 1.25 across the span, follows the ask (both bounds inclusive)  [False]
+1 of 19 FEATURES BLOCK FAILED
+== slope_exclusive
+  FAIL a draw whose log-log slope is exactly 0.5, and whose level moves by exactly 1.25 across the span, follows the ask (both bounds inclusive)  [False]
+1 of 19 FEATURES BLOCK FAILED
+== level_dropped
+  FAIL the measured shape (slope 0.70, drawn 2.1 x the ask at the low end of the span and 1.4 x at the top) does not follow its ask; one 1.70 x shift and a draw within tolerance of its ask follow, a self-set draw still does not  [('follows', 'follows', 'follows', 'does_not_follow')]
+  FAIL a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level  [('does_not_follow', 'follows')]
+2 of 19 FEATURES BLOCK FAILED
+== slope_dropped
+  FAIL a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level  [('follows', 'does_not_follow')]
+1 of 19 FEATURES BLOCK FAILED
+== and_to_or
+  FAIL the measured shape (slope 0.70, drawn 2.1 x the ask at the low end of the span and 1.4 x at the top) does not follow its ask; one 1.70 x shift and a draw within tolerance of its ask follow, a self-set draw still does not  [('follows', 'follows', 'follows', 'does_not_follow')]
+  FAIL a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level  [('follows', 'follows')]
+2 of 19 FEATURES BLOCK FAILED
+== level_factor_1.3
+ALL 19 FEATURES BLOCK PASSED
+== level_factor_1.6
+  FAIL the measured shape (slope 0.70, drawn 2.1 x the ask at the low end of the span and 1.4 x at the top) does not follow its ask; one 1.70 x shift and a draw within tolerance of its ask follow, a self-set draw still does not  [('follows', 'follows', 'follows', 'does_not_follow')]
+  FAIL a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level  [('does_not_follow', 'follows')]
+2 of 19 FEATURES BLOCK FAILED
+== level_factor_1.2
+  FAIL a draw whose log-log slope is exactly 0.5, and whose level moves by exactly 1.25 across the span, follows the ask (both bounds inclusive)  [False]
+1 of 19 FEATURES BLOCK FAILED
+== one_sided_slope_le1
+  FAIL a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level  [('does_not_follow', 'follows')]
+1 of 19 FEATURES BLOCK FAILED
+== abs_dropped
+  FAIL a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level  [('does_not_follow', 'follows')]
+1 of 19 FEATURES BLOCK FAILED
+== full_range
+ALL 19 FEATURES BLOCK PASSED
+== sqrt_exponent
+  FAIL the measured shape (slope 0.70, drawn 2.1 x the ask at the low end of the span and 1.4 x at the top) does not follow its ask; one 1.70 x shift and a draw within tolerance of its ask follow, a self-set draw still does not  [('follows', 'follows', 'follows', 'does_not_follow')]
+  FAIL a flat draw over asks spanning 1.2 fails on the slope, a square-law draw over asks spanning 1.5 fails on the level  [('does_not_follow', 'follows')]
+2 of 19 FEATURES BLOCK FAILED
