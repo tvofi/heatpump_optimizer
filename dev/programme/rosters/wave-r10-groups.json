@@ -27067,7 +27067,7 @@
     "last_step": null,
     "next_step": "fixer (M), now",
     "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE on the owner question 2026-11-13; overlap admitted (R10-DISINFECTION-STEP-NOTICE, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY, R10-HOTFIX-BOOST-FLOW-CEILING, R10-USER-TEXT-VERIFY-STRINGS): owner question 2026-11-13: startable product work moved from the round-11 intake group",
-    "pr": 3576
+    "pr": 3580
    }
   },
   {
@@ -27154,12 +27154,13 @@
    "brief": "HOTFIX, main is red (orchestrator, 2026-11-14): the entity-checks step of the fast tests failed once on the check named \"the location is redacted whole, from data and from options, not coarsened\" in tests/entities.py. Its rounded-coordinate search runs over the whole diagnostics output, which carries clock readings, so a timestamp can contain a rounded coordinate by chance. Owed: search the payload with the clock-bearing fields removed or the clock pinned, never the raw output; on failure print which string matched and where; a pinned-clock demonstration plus a null control that a real coarsened coordinate still fails; production code unchanged unless the coordinates are proven to leak.",
    "carry": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "fix/r10-hotfix-entities-redaction-flake",
     "commit": null,
     "last_step": null,
     "next_step": "local sonnet fixer running; handoff then opus reviewer",
-    "note": "intake: red required-family check on main at 50373173d486, tests / fast (3.14)"
+    "note": "intake: red required-family check on main at 50373173d486, tests / fast (3.14)",
+    "pr": 3579
    }
   },
   {
@@ -27238,9 +27239,9 @@
    "brief": "HOTFIX, critical path (orchestrator, 2026-11-14): one check in tests/features.py fails on every Saturday and Sunday, on main and on every pull request, so the fast tests are red for the whole weekend. The check is the one named \"a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked\". Its sequence helper starts from the real clock, so on a weekend the sample day is booked as a weekend day while the assertion expects a weekday. Owed: pin the helper's start to a fixed weekday (test only, production unchanged); demonstrate the block failing with the clock on a Saturday and on a Sunday and passing on each weekday after the fix; sweep the whole script for every other check whose result depends on the real day of the week, date or hour, list each with its disposition and pin those in the same seam; a mutation proof that the day-type assertion still fails when the production booking is wrong.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-hotfix-features-weekend-clock",
-    "commit": null,
+    "commit": "c987209cc7a891e0e4066d4ad8dc5cf55357c5ae",
     "last_step": null,
     "next_step": "local sonnet fixer running; handoff then opus reviewer; front of the train",
     "note": "intake: red required check on every head since 2026-11-14T00:00Z (Saturday); diagnosis in s14/seat/diag-3551; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): orchestrator 2026-11-14: tests / fast red on every head each weekend, a features check reads the real clock (intake rule: red required check on main)",
