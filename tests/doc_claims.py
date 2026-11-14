@@ -4664,6 +4664,164 @@ def check_power_feedback_claims() -> None:
             all(fact in (pa._clamp_cut.__doc__ or "") for fact in (comment_id, "10104", "10103")))
 
 
+# ---------------------------------------------------------------------------
+# R10-DOCS-STRINGS-RESIDUE carries 5 to 13: reader sentences and option texts
+# that described behaviour the code does not have. Each arm takes its fact
+# from the producing code, refuses the old wording in the reader corpus and in
+# all four string files, and requires the corrected sentence to state the fact.
+# ---------------------------------------------------------------------------
+_STRING_FILES = {
+    name: json.loads((PKG / rel).read_text())
+    for name, rel in (("strings.json", "strings.json"), ("en.json", "translations/en.json"),
+                      ("de.json", "translations/de.json"), ("sv.json", "translations/sv.json"))
+}
+
+#: (carry, the old wording in any language) -- the sentences these carries corrected.
+_RESIDUE_REFUSED = (
+    ("Carry 5", r"lowers the (?:heating )?target by|Heizziel um|värmemålet med"),
+    ("Carry 6", r"headroom sensor dormant|Reserve inaktiv|utrymmessensorn vilande"),
+    ("Carry 7", r"correct itself against|Prognose sich anhand|rätta sig efter"),
+    ("Carry 8", r"in front of every (?:entity|sensor)|vorangestellt|Visas framför"),
+    ("Carry 9", r"compares spot cost only"),
+    ("Carry 10", r"measured delivery"),
+    ("Carry 11", r"first settled month"),
+)
+
+
+def _string_leaves(tree: object):
+    if isinstance(tree, dict):
+        for value in tree.values():
+            yield from _string_leaves(value)
+    elif isinstance(tree, str):
+        yield tree
+
+
+def residue_hits(corpus: dict[str, str], string_files: dict[str, dict]) -> dict[str, list[str]]:
+    """Every refused wording still present, by carry: the document or string file it is in."""
+    texts = {**{k: " ".join(v.split()) for k, v in corpus.items()},
+             **{k: "\n".join(_string_leaves(v)) for k, v in string_files.items()}}
+    return {carry: hits for carry, pattern in _RESIDUE_REFUSED
+            if (hits := [name for name, text in texts.items() if re.search(pattern, text)])}
+
+
+def menu_title_mismatches(strings: dict) -> tuple[int, list[str]]:
+    """Every options-menu entry whose target step has a title: (pairs compared, the pairs whose names differ).
+
+    Design choice: the options flow only. Its menu entries name the page they open; the config flow's are
+    actions ("Continue setup", "Describe my building (recommended)") and legitimately differ from the title."""
+    pairs, bad = 0, []
+    for flow in ("options",):
+        steps = strings.get(flow, {}).get("step", {})
+        for body in steps.values():
+            for key, label in (body.get("menu_options") or {}).items():
+                title = steps.get(key, {}).get("title")
+                if title is None:
+                    continue
+                pairs += 1
+                if title != label:
+                    bad.append(f"{flow}.step.{key}: menu {label!r}, title {title!r}")
+    return pairs, bad
+
+
+def check_docs_strings_residue() -> None:
+    R.section("reader text against the code that produces it (R10-DOCS-STRINGS-RESIDUE carries 5 to 13)")
+    import inspect
+    import types
+    from heatpump_optimizer import away, const, coordinator, entry_config, ledger, topology
+
+    flat = {k: " ".join(v.split()) for k, v in DOCS.items()}
+    cfg, en = flat.get("configuration.md", ""), _STRING_FILES["en.json"]
+    opts = en["options"]["step"]
+    hits = residue_hits(CORPUS, _STRING_FILES)
+    R.check("no reader doc or string file keeps a corrected sentence's old wording", not hits, repr(hits))
+
+    # Carry 5: the open-window relax widens the floor and leaves the target.
+    relax, floor = const.OPEN_WINDOW_RELAX_C, const.ECONOMY_ABSOLUTE_FLOOR
+    fields = dict.fromkeys(away._OPT_FIELDS, None) | {"target_temp": 21.0, "min_temp": 20.0}
+    thermal = types.SimpleNamespace(**dict.fromkeys(away._DHW_FIELDS, 45.0))
+    banded, _ = away.solve_bands(types.SimpleNamespace(**fields), thermal, None, (relax,))
+    R.check("solve_bands lowers min_temp by OPEN_WINDOW_RELAX_C and leaves target_temp",
+            banded["min_temp"] == 20.0 - relax and banded["target_temp"] == 21.0, repr(banded))
+    low, _ = away.solve_bands(types.SimpleNamespace(**(fields | {"min_temp": floor})), thermal, None, (relax,))
+    R.check("solve_bands never takes min_temp below ECONOMY_ABSOLUTE_FLOOR", low["min_temp"] == floor, repr(low))
+    phrase = f"by {relax:g} °C, never below {floor:g} °C"
+    R.check(f"configuration.md's open-window row says the coldest accepted temperature drops {phrase}",
+            f"lowers the coldest temperature the plan accepts {phrase}" in cfg)
+    R.check(f"the open-window option text says {phrase}",
+            phrase in opts["learning_features"]["sections"]["weather"]["data_description"]["open_window_relax_enabled"])
+
+    # Carry 6: fuse 0 is no fuse, so the headroom follows the capacity-tariff peak alone.
+    def fuse(amps: int) -> float | None:
+        cfg_ = types.SimpleNamespace(main_fuse_amperes=amps, main_fuse_phases=3)
+        cfg_.fuse_kw_at = lambda a: entry_config.EntryConfig.fuse_kw_at(cfg_, a)
+        return entry_config.EntryConfig.fuse_kw(cfg_)
+
+    R.check("EntryConfig.fuse_kw answers None at main fuse 0, and a capacity at 16 A (control)",
+            fuse(0) is None and fuse(16) is not None, repr((fuse(0), fuse(16))))
+    R.check("configuration.md's main-fuse row says the headroom sensor follows the capacity-tariff peak",
+            "the headroom sensor then follows the capacity-tariff peak alone" in cfg)
+    R.check("the main-fuse option text says the headroom sensor follows the capacity-tariff peak",
+            "headroom sensor following the capacity-tariff peak alone"
+            in opts["grid_connection"]["data_description"]["main_fuse_amperes"])
+
+    # Carry 7: the measured production replaces step 0 only.
+    pv = re.search(r"production\[0\] = min\(self\._pv_production, config\.peak_kw\)",
+                   inspect.getsource(coordinator))
+    R.check("the coordinator replaces production[0] alone, capped at peak_kw (anchor)", pv is not None)
+    for where, text in (("configuration.md", cfg),
+                        ("the PV sensor option text", opts["solar_pv"]["data_description"]["pv_production_entity"])):
+        R.check(f"{where} says only the current step is replaced, capped at the installed capacity",
+                "current step" in text and "capped at the installed capacity" in text)
+
+    # Carry 8: every entity is named from the device, whose name is a literal.
+    device = re.search(r'DeviceInfo\(\s*identifiers=.*?name="([^"]+)"', inspect.getsource(coordinator), re.S)
+    R.check("the coordinator's DeviceInfo names the device by a literal (anchor)", device is not None)
+    name = device.group(1) if device else "<none>"
+    for where, text in (("setup.md", flat.get("setup.md", "")), ("configuration.md", cfg),
+                        ("the name option text", en["config"]["step"]["user"]["data_description"]["name"])):
+        R.check(f"{where} says entities use the fixed device name {name!r}",
+                f"fixed device name, {name}" in text)
+
+    # Carry 9: both sides of the saving are priced at spot plus the per-kWh fee.
+    R.check("observe_spot_and_settle_savings prices the settlement at spot + fee_per_kwh (anchor)",
+            "spot=spot + fee_per_kwh" in inspect.getsource(ledger.MonthlyLedger.observe_spot_and_settle_savings))
+    card = flat.get("dashboard-card.md", "")
+    R.check("dashboard-card.md says both sides are priced at spot plus the per-kWh grid fee",
+            "both priced at spot plus the per-kWh grid fee" in card)
+
+    # Carry 10: the replay's power is the measured mean, else a fraction of the maximum.
+    half = {0.5: "half"}.get(topology._ADVISOR_DUTY_FRACTION)
+    R.check("_ADVISOR_DUTY_FRACTION is a fraction the page can name", half is not None,
+            repr(topology._ADVISOR_DUTY_FRACTION))
+    R.check("dashboard-card.md names the measured mean power, else the configured maximum's fraction",
+            f"mean electrical power your heat pump has measured where there is history, {half} its configured maximum"
+            in card)
+
+    # Carry 11: the Health picture's alt text names the booked-saving wait.
+    R.check("dashboard-card.md's Health picture waits for the first month with a booked saving",
+            "savings waiting for the first month with a booked saving" in card)
+
+    # Carry 13: one options page, one name per language.
+    for fname, strings in _STRING_FILES.items():
+        pairs, bad = menu_title_mismatches(strings)
+        R.check(f"{fname}: every options-menu entry names its page by the page's title ({pairs} pairs)",
+                pairs > 0 and not bad, "; ".join(bad))
+
+    # Null controls: each old wording, put back, fires; a renamed page title fires.
+    for carry, old in (
+        ("Carry 5", "this additionally lowers the target by 1 °C"), ("Carry 6", "the headroom sensor dormant"),
+        ("Carry 7", "Lets the forecast correct itself against what the roof"),
+        ("Carry 8", "Shown in front of every entity"), ("Carry 9", "the savings figure compares spot cost only"),
+        ("Carry 10", "your install's measured delivery"), ("Carry 11", "waiting for the first settled month"),
+    ):
+        R.check(f"{carry}: the old wording, put back, is refused (null control)",
+                carry in residue_hits({"setup.md": old}, {}))
+    renamed = json.loads(json.dumps(_STRING_FILES["de.json"]))
+    renamed["options"]["step"]["grid"]["title"] = "Netz-Spitzentarif"
+    R.check("a de grid page titled apart from its menu entry is refused (null control)",
+            bool(menu_title_mismatches(renamed)[1]))
+
+
 def check_stateless() -> None:
     R.section("the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)")
     pages = _user_pages()
@@ -4713,6 +4871,167 @@ def check_stateless() -> None:
 
 
 
+
+# R10-CONFIG-FLOW-TEXT-VERIFY: the flow help text that quotes a number the
+# code owns, and the flow help text on a slot the pump arbiter writes. Each pin
+# reads the shipped English (strings.json, which en.json copies leaf for leaf)
+# and the production symbol, so a constant moved without its sentence, or a
+# sentence promising "never writes" on a written slot, goes red here instead of
+# reaching a user. The record of every flow string's verdict, and which claims
+# stay prose-only, is dev/audit/rounds/round10/D6/flow-claims.md.
+_FLOW_DD = "options.step.entities_pump.data_description.pump_duty_mode"
+
+
+def flow_number_pins() -> list[tuple[str, str, float]]:
+    """``(dotted key, regex with one number group, the production value)``."""
+    import math
+
+    from heatpump_optimizer import const, curve_learning, duty_legs, flow_lift, thermal_model
+    from heatpump_optimizer import pump_arbiter as pa
+
+    pins = [
+        (_FLOW_DD, r"capped at (\d+) minutes", pa.LEASE_MINUTES),
+        (_FLOW_DD, r"\((\d+) below -?\d+ °C outdoors\)", pa.COLD_LEASE_MINUTES),
+        (_FLOW_DD, r"\(\d+ below (-?\d+) °C outdoors\)", pa.COLD_RAIL_C),
+        (_FLOW_DD, r"sent again every (\d+) minutes", pa.RETRY_MINUTES),
+        (_FLOW_DD, r"a share under (\d+) minutes", duty_legs.SPLIT_MIN_MINUTES),
+        (_FLOW_DD, r"the heating flow \((\d+) °C", pa.FLOW_HEAT_C),
+        (_FLOW_DD, r"\((\d+) °C when none is configured\)", pa.FLOW_HOLD_C),
+        (_FLOW_DD, r"(\d+) °C on steps that do not", pa.FLOW_GATE_C),
+        (_FLOW_DD, r"the hot water one to (\d+) °C", pa.DHW_GATE_C),
+        (_FLOW_DD, r"toward (\d+) °C \(or the Minimum lift", thermal_model.FLOW_MIN_LIFT_K),
+        # The realised worst case, not MAX_DOWN_PER_WEEK: STEP_K every
+        # DAYS_PER_STEP days lands three steps in one 7-day window (D6-s2-03).
+        ("options.step.learning_features.sections.model.data_description.curve_learning_enabled",
+         r"at most (six tenths) of a degree per week",
+         curve_learning.STEP_K * math.ceil(7 / curve_learning.DAYS_PER_STEP)),
+        ("options.step.tuning.sections.risk.data_description.confidence_margins_enabled",
+         r"capped at (\d+(?:\.\d+)?) °C", const.CONFIDENCE_MARGIN_CAP_C),
+        ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+         r"at most (\d+) K below", flow_lift.FLOW_BIAS_CLAMP_K),
+        ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+         r"at most to a (\d+) °C supply", flow_lift.FLOW_SUPPLY_MAX_C),
+        ("options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled",
+         r"held that temperature for (\d+) minutes", const.DHW_LEGIONELLA_HOLD_MINUTES),
+        ("config.step.temperature.data_description.min_temperature",
+         r"lowers it by a further (\d+(?:\.\d+)?) K", const.ECONOMY_MIN_TEMP_WIDENING),
+        ("config.step.temperature.data_description.min_temperature",
+         r"a detected open window by (\d+) K", const.OPEN_WINDOW_RELAX_C),
+        ("config.step.temperature.data_description.min_temperature",
+         r"never below (\d+) °C", const.ECONOMY_ABSOLUTE_FLOOR),
+        ("options.step.learning_features.sections.weather.data_description.open_window_relax_enabled",
+         r"accepts by (\d+) °C, never below", const.OPEN_WINDOW_RELAX_C),
+    ]
+    return pins
+
+
+def flow_number_findings(texts: dict, pins: list) -> list[str]:
+    """Each pin whose sentence is absent, or quotes a number its symbol does not hold."""
+    words = {"six tenths": 0.6}
+    bad = []
+    for key, pattern, value in pins:
+        node = texts
+        for part in key.split("."):
+            node = node.get(part, {}) if isinstance(node, dict) else {}
+        match = re.search(pattern, node) if isinstance(node, str) else None
+        if match is None:
+            bad.append(f"{key}: no sentence matches {pattern!r}")
+            continue
+        quoted = words.get(match.group(1)) or float(match.group(1))
+        if abs(quoted - float(value)) > 1e-9:
+            bad.append(f"{key}: quotes {match.group(1)}, the code holds {value}")
+    return bad
+
+
+#: Words that promise a slot is left alone. A sentence carrying one is true of
+#: an arbiter slot only where it names the mode that writes it.
+_NEVER_WRITES = re.compile(r"never (?:writes|recommends)|used only to notice|\bread only\b", re.I)
+
+
+def arbiter_slot_keys() -> dict[str, str]:
+    """``{slot: config key}`` for every slot ``pump_arbiter`` writes, derived by
+    feeding each ``CONF_*_ENTITY`` key a value naming itself and reading back
+    which one each slot took -- no hand list to fall behind a new slot."""
+    from heatpump_optimizer import const
+    from heatpump_optimizer import pump_arbiter as pa
+
+    keys = {v for k, v in vars(const).items() if k.startswith("CONF_") and k.endswith("_ENTITY")}
+    probe = {key: f"switch.{key}" for key in keys}
+    return {
+        slot: entity.split(".", 1)[1]
+        for slot, entity in pa._entities(probe).items()
+        if entity
+    }
+
+
+#: The one sentence another group owns: R10-HOTFIX-FLOW-SETPOINT-STUCK corrects
+#: it and its translations (the owner's brief for this group: leave it to that
+#: fix). Keyed on the exact false sentence, so the pass expires the moment that
+#: text changes and the key is then judged like every other; nothing to delete
+#: for either merge order. A design choice, not a tolerance: it silences
+#: nothing but that sentence while it is still the shipped one.
+_OWNED_ELSEWHERE = {
+    "options.step.entities.sections.indoor.data_description.space_setpoint_entity":
+        "The optimizer never writes a recommended space set-point.",
+}
+
+
+def flow_write_findings(texts: dict, slot_keys: dict, owned: dict | None = None) -> list[str]:
+    """Flow strings on (or named after) a written slot that say it is never written,
+    less a sentence ``owned`` names another group's while it is still shipped."""
+    owned = _OWNED_ELSEWHERE if owned is None else owned
+    stems = {key.removesuffix("_entity") for key in slot_keys.values()}
+    bad = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, (*path, k))
+        elif isinstance(node, str) and path[-2:-1] == ("data_description",):
+            if any(path[-1].startswith(stem) for stem in stems) and _NEVER_WRITES.search(node) \
+                    and "Control" not in node:
+                dotted = ".".join(path)
+                if owned.get(dotted, "\0") not in node:
+                    bad.append(dotted)
+
+    for top in ("config", "options"):
+        walk(texts.get(top, {}), (top,))
+    return bad
+
+
+def check_flow_text_claims() -> None:
+    R.section("flow help text vs the code it describes (R10-CONFIG-FLOW-TEXT-VERIFY)")
+    texts = json.loads((PKG / "strings.json").read_text())
+    pins = flow_number_pins()
+    bad = flow_number_findings(texts, pins)
+    R.check(f"every quoted figure in the flow help ({len(pins)} pins) is its constant's value",
+            not bad, "; ".join(bad[:4]))
+    planted = json.loads(json.dumps(texts))
+    planted["options"]["step"]["entities_pump"]["data_description"]["pump_duty_mode"] = (
+        texts["options"]["step"]["entities_pump"]["data_description"]["pump_duty_mode"]
+        .replace("capped at 90 minutes", "capped at 60 minutes"))
+    R.check("null: a pump-duty text quoting 60 minutes for the 90-minute lease is found",
+            any(b.startswith(_FLOW_DD) and "quotes 60" in b for b in flow_number_findings(planted, pins)))
+    slots = arbiter_slot_keys()
+    R.check("the arbiter's written slots are derived (anchor: mode, both set-points)",
+            {"mode", "dhw_setpoint", "space_setpoint"} <= set(slots), repr(slots))
+    bad = flow_write_findings(texts, slots)
+    R.check("no flow help says a slot the arbiter writes is never written, unless it names Control",
+            not bad, "; ".join(bad))
+    indoor = planted["options"]["step"]["entities"]["sections"]["indoor"]["data_description"]
+    indoor["space_setpoint_unit"] = "The unit is a declaration: this integration never recommends a space set-point."
+    # Planted, not read from the tree: R10-HOTFIX-FLOW-SETPOINT-STUCK has replaced
+    # the shipped sentence, so only a plant still proves the exemption is all that
+    # hides it.
+    owned_key = "options.step.entities.sections.indoor.data_description.space_setpoint_entity"
+    indoor["space_setpoint_entity"] = _OWNED_ELSEWHERE[owned_key]
+    R.check("null: the other group's sentence is found once it is not exempted",
+            owned_key in flow_write_findings(planted, slots, owned={}))
+    R.check("null: the pre-fix space set-point unit sentence is found",
+            "options.step.entities.sections.indoor.data_description.space_setpoint_unit"
+            in flow_write_findings(planted, slots))
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -4756,6 +5075,8 @@ def main() -> int:
     check_readme_marketplace()
     check_surface_coverage()
     check_power_feedback_claims()
+    check_flow_text_claims()
+    check_docs_strings_residue()
     check_stateless()
     return R.close("checks")
 
