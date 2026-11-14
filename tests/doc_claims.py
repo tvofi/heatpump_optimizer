@@ -4728,7 +4728,7 @@ def flow_number_pins() -> list[tuple[str, str, float]]:
     """``(dotted key, regex with one number group, the production value)``."""
     import math
 
-    from heatpump_optimizer import const, curve_learning, flow_lift, thermal_model
+    from heatpump_optimizer import const, curve_learning, duty_legs, flow_lift, thermal_model
     from heatpump_optimizer import pump_arbiter as pa
 
     pins = [
@@ -4736,7 +4736,7 @@ def flow_number_pins() -> list[tuple[str, str, float]]:
         (_FLOW_DD, r"\((\d+) below -?\d+ °C outdoors\)", pa.COLD_LEASE_MINUTES),
         (_FLOW_DD, r"\(\d+ below (-?\d+) °C outdoors\)", pa.COLD_RAIL_C),
         (_FLOW_DD, r"sent again every (\d+) minutes", pa.RETRY_MINUTES),
-        (_FLOW_DD, r"a share under (\d+) minutes", pa.SPLIT_MIN_MINUTES),
+        (_FLOW_DD, r"a share under (\d+) minutes", duty_legs.SPLIT_MIN_MINUTES),
         (_FLOW_DD, r"the heating flow \((\d+) °C", pa.FLOW_HEAT_C),
         (_FLOW_DD, r"\((\d+) °C when none is configured\)", pa.FLOW_HOLD_C),
         (_FLOW_DD, r"(\d+) °C on steps that do not", pa.FLOW_GATE_C),
