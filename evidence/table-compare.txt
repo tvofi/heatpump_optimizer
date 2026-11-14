@@ -1,0 +1,17 @@
+base = merge-base e901e9ef29 table; head = 667fb55efe table
+top-level keys/values other than steps equal: True step ids equal: True
+RESULT distinct paths added: 36; list entries added: 49; removed: 0; changed scalars: 0; steps gaining a path: 12
+RESULT duplicate entries introduced: 13
+  dup ('open-pr', 'probes', 'tools/audit/round4/**', 2)
+  dup ('policy-lint-mutants', 'probes', '.cursor/**', 2)
+  dup ('policy-lint-mutants', 'probes', 'dev/archive/carries/**', 2)
+  dup ('policy-lint-mutants', 'probes', 'dev/audit/rounds/round5-fix/**', 2)
+  dup ('policy-lint-mutants', 'probes', 'dev/audit/rounds/round5/D3/**', 2)
+  dup ('policy-lint-mutants', 'probes', 'dev/audit/rounds/round5/D7/**', 2)
+  dup ('policy-lint-mutants', 'probes', 'dev/audit/rounds/round5/D8/**', 2)
+  dup ('policy-lint-mutants', 'probes', 'dev/audit/rounds/round7-fix/**', 2)
+  dup ('policy-lint-mutants', 'probes', 'dev/audit/rounds/round8-fix/**', 2)
+  dup ('pr-args', 'probes', 'tools/audit/round4/**', 2)
+  dup ('push-names-the-host', 'probes', 'tools/audit/round4/**', 2)
+  dup ('temp-or-machine-path', 'probes', 'tools/audit/round4/**', 2)
+  dup ('update-pr', 'probes', 'tools/audit/round4/**', 2)

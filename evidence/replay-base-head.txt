@@ -1,0 +1,1 @@
+RESULT replay root=base table=head: 116 gated, 0 refusal(s), 0 note(s)
