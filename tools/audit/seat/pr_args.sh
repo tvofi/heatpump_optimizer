@@ -445,7 +445,7 @@ pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any 
     found=$(git -C "$root" grep -lE "$PR_PUSHER_RULE" -- 'tools/*.sh' 'tools/*.py' 'tools/*.mjs' 'tools/*.js')
   fi
   for f in $found; do
-    kind=$(printf '%s\n' "$PR_PUSHERS" | awk -v f="$f" '$1 == f { print $2; exit }')
+    kind=$(awk -v f="$f" '$1 == f { print $2; exit }' <<<"$PR_PUSHERS")
     if [ -n "$rev" ]; then txt=$(git -C "$root" show "$rev:$f"); else txt=$(cat "$root/$f"); fi
     txt=$(printf '%s\n' "$txt" | grep -vE '^[[:space:]]*#')  # a comment runs nothing
     case $kind in
@@ -1445,6 +1445,13 @@ STUB
   ck "open_pr: a re-run after an open closed at its row push clears the left-over branch and worktree and opens" $?
   figrun opfig2 block; figrun opclear block keep; [ "$(cat "$t/frc")" != 0 ] && [ "$(cat "$t/frow")" = 0 ]
   ck "  mutant mut:opclear (its line deleted): the re-run fails at git worktree add -b on the left-over branch (the defect)" $?
+  # The same re-run on a host with many worktrees: `worktree list --porcelain | grep -q` under pr_trap's
+  # pipefail read the left-over checkout, listed early, as absent once the list outgrew the pipe (SIGPIPE,
+  # 141), so it was never removed. The wrapper appends 300 KB of entries after git's own list.
+  mkdir -p "$t/wtpad"; ( k=0; while [ "$k" -lt 3000 ]; do printf 'worktree /nonexistent/pad-%d\nHEAD %040d\ndetached\n\n' "$k" "$k"; k=$((k + 1)); done ) > "$t/wtpad/list"
+  printf '#!/bin/bash\n"%s" "$@" || exit\ncase " $* " in *" worktree list --porcelain "*) exec cat "%s" ;; esac\n' "$(command -v git)" "$t/wtpad/list" > "$t/wtpad/git"; chmod +x "$t/wtpad/git"
+  figrun opfig2 block; PATH="$t/wtpad:$PATH" figrun - block keep; [ "$(cat "$t/frc")" = 0 ] && [ "$(cat "$t/frow")" = 1 ]
+  ck "open_pr: the same re-run with 3000 more worktrees listed after the left-over one still clears it and opens" $?
   # R10-HOTFIX-UPDATEPR-FIGURE-REFRESH: update_pr.sh re-renders the body's figure blocks at the head it
   # pushes (moved-head path, before app_push) or patches (body-only path, before body_patch.sh), as
   # open_pr.sh's op_figures does. fix/g starts at $base; handoff/f's pusher stub is lint's figure-block
