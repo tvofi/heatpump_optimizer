@@ -27336,6 +27336,45 @@
     "note": "owner order 2026-11-14: hotfix merged asap, workarounds allowed; closure 15/11 is the top priority",
     "pr": 3584
    }
+  },
+  {
+   "group": "R11-PRE-PARALLEL-PIPELINE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "ci",
+   "severity": "high",
+   "size": "XL",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "high",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Owner instruction 2026-11-14, his words: \"Have a fable seat with web access and sendmessage capability study and design a high throughput pipeline, using a branch parallel with main. Study publicly available designs and standards. The design should be planned and built (if it will save significand wall clock time in a programme) before the fixers in round 11 start.\" Design first (decision 0014): a study of the published merge-queue, merge-train, gating and batch-integration designs and of the delivery standards that measure them; a measured baseline of where this programme's wall clock goes between a fixer's handoff and its merge on main in round 10; then a pipeline design in which reviewed work is integrated continuously on a branch that runs parallel with main and main advances only to states that integration has proved, with its failure handling, its interaction with the scoped gate, the structural ratchets, the claim files, the stamp, the identity rules and the review freeze stated. The design carries a cost test in wall-clock hours per programme against the measured baseline with its null control, and the build is dispatched only if that test shows a significant saving and the design review approves; a design that does not pay records that result and builds nothing. Constraints the owner has already ruled: no proposal that widens CI capacity by billing, runners, plan or a second account; main's protection and the required gate are not loosened; policy changes go to the owner's review. The design and any prototype live on refs beside main and touch nothing on main; nothing of this group starts a CI run before the round-10 closure stamp without the orchestrator's word, and it never takes a seat, a reviewer or CI priority from round-10 production work. If built, the build parts land after the round-10 closure stamp and before the round-11 fixers start. Fable seats for the designer, the design review and the build (owner ruling 2026-11-11 for L and XL work).",
+   "carry": [],
+   "resume": {
+    "stage": "design",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "local Fable designer with web access now: study, baseline, design note at design/R11-PRE-PARALLEL-PIPELINE; Fable design review; build only on approve and a passing cost test, after the round-10 closure stamp",
+    "note": "owner instruction 2026-11-14; round-11 pre-finder group; never holds round-10 closure"
+   }
   }
  ]
 }
