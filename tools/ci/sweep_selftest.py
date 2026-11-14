@@ -632,6 +632,11 @@ def run_checks():
     w.sweep()
     ok("#3584 C (the reviewer's): a newer run whose gate was running at the red's start, a governance job after it "
        "unfinished, is never read by busy(): dispatch", w.posts == [dispatch3544])
+    w.runs[R2_3544 + 1]["gate"]["started_at"] = "2026-11-14T08:02:00Z"
+    w.posts = []
+    w.sweep()
+    ok("#3584 C: a newer run's gate started in the red's own second is started to busy() (the lower id decides): "
+       "dispatch", w.posts == [dispatch3544])
     old3544 = 43531447639
     for why, unit, want in (("a skipped job GitHub re-stamped after the red's start", ("governance / record", "skipped",
                              "2026-11-14T08:05:00Z"), [rerun_of(old3544), dispatch3544]),
