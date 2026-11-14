@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
+index a77c35c260..7a01257b11 100755
+--- a/tools/audit/seat/open_pr.sh
++++ b/tools/audit/seat/open_pr.sh
+@@ -123,7 +123,7 @@ op_clear_leftover() { # a closed-after-p2 open leaves its branch and detached ch
+   git -C "$M" worktree prune
+   git -C "$M" fetch -q origin "refs/heads/$BR:refs/remotes/origin/$BR" 2>/dev/null || :
+   # A here-string, not a pipe: under pr_trap's pipefail a grep -q leaving at an early match SIGPIPEs a long list (141)
+-  if grep -qxF "worktree $WT" <<<"$(git -C "$M" worktree list --porcelain)"; then  # a stray unregistered directory still stops at worktree add
++  if git -C "$M" worktree list --porcelain | grep -qxF "worktree $WT"; then  # a stray unregistered directory still stops at worktree add
+     [ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ] && git -C "$WT" merge-base --is-ancestor HEAD "origin/$BR" 2>/dev/null \
+       || pr_refuse "a left-over checkout $WT holds work origin/$BR lacks; keep or remove it, then re-run"
+     git -C "$M" worktree remove --force "$WT"

@@ -1,0 +1,8 @@
+WT=/x/wt: survived OP_REG=[]
+WT=/x/main: survived OP_REG=[main]
+WT=/x/none: survived OP_REG=[]
+mawk exit PIPESTATUS=0 0
+head -1 PIPESTATUS=141 0
+/usr/bin/mawk
+/usr/bin/mawk
+mawk 1.3.4 20240123

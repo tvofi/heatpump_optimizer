@@ -1,0 +1,12 @@
+widened rule at head:
+232
+at 6858b4abc1:
+236
+at 7d186ed4a5:
+232
+
+early-exit readers in pr_trap scripts (open_pr, update_pr, delivery_row, pr_args < self-test line 489):
+open_pr.sh:170:N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
+update_pr.sh:69:git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && pr_busy "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"  # mut:elsewhere
+pr_args.sh:459:             | sed -E 's/[0-9]*[<>]&[0-9-]*//g; s/&>//g; s/&&//g' | grep -qv '&'; then  # `2>&1` and `&&` background nothing
+pr_args.sh:462:             && grep -E 'bash "\$(_push|prepr)"' <<<"$txt" | grep -qv 'pr_push_hold'; then
