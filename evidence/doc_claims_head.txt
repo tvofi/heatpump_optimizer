@@ -80,7 +80,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/home/user/heatpump_optimizer/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/tmp/claude-0/wt3568/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
@@ -396,7 +396,7 @@
   ok   every surface class enumerates from the tree (anchor)
   ok   every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)
   ok   every surface has its home, or a reasoned exemption that still names one
-       (521 surface(s), 520 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
+       (522 surface(s), 521 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
   ok   red fixture: a service planted in services.yaml with no home is the one finding
   ok   red fixture: a Default cell that disagrees with the shipped default (away_dhw_min_temperature) is a finding
   ok   red fixture: an exemption naming a surface no longer enumerated is a finding
@@ -439,6 +439,48 @@
   ok   docs/setup.md wood tank bottom sensor: one-probe readings as the code decides
   ok   docs/setup.md and docs/configuration.md no longer say both wood probes are needed
 
+-- flow help text vs the code it describes (R10-CONFIG-FLOW-TEXT-VERIFY)
+  ok   every quoted figure in the flow help (19 pins) is its constant's value
+  ok   null: a pump-duty text quoting 60 minutes for the 90-minute lease is found
+  ok   the arbiter's written slots are derived (anchor: mode, both set-points)
+  ok   no flow help says a slot the arbiter writes is never written, unless it names Control
+  ok   null: the other group's sentence is found once it is not exempted
+  ok   null: the pre-fix space set-point unit sentence is found
+
+-- reader text against the code that produces it (R10-DOCS-STRINGS-RESIDUE carries 5 to 13)
+  ok   no reader doc or string file keeps a corrected sentence's old wording
+  ok   solve_bands lowers min_temp by OPEN_WINDOW_RELAX_C and leaves target_temp
+  ok   solve_bands never takes min_temp below ECONOMY_ABSOLUTE_FLOOR
+  ok   configuration.md's open-window row says the coldest accepted temperature drops by 1 °C, never below 15 °C
+  ok   the open-window option text says by 1 °C, never below 15 °C
+  ok   EntryConfig.fuse_kw answers None at main fuse 0, and a capacity at 16 A (control)
+  ok   configuration.md's main-fuse row says the headroom sensor follows the capacity-tariff peak
+  ok   the main-fuse option text says the headroom sensor follows the capacity-tariff peak
+  ok   the coordinator replaces production[0] alone, capped at peak_kw (anchor)
+  ok   configuration.md says only the current step is replaced, capped at the installed capacity
+  ok   the PV sensor option text says only the current step is replaced, capped at the installed capacity
+  ok   the coordinator's DeviceInfo names the device by a literal (anchor)
+  ok   setup.md says entities use the fixed device name 'Heat Pump Optimizer'
+  ok   configuration.md says entities use the fixed device name 'Heat Pump Optimizer'
+  ok   the name option text says entities use the fixed device name 'Heat Pump Optimizer'
+  ok   observe_spot_and_settle_savings prices the settlement at spot + fee_per_kwh (anchor)
+  ok   dashboard-card.md says both sides are priced at spot plus the per-kWh grid fee
+  ok   _ADVISOR_DUTY_FRACTION is a fraction the page can name
+  ok   dashboard-card.md names the measured mean power, else the configured maximum's fraction
+  ok   dashboard-card.md's Health picture waits for the first month with a booked saving
+  ok   strings.json: every options-menu entry names its page by the page's title (25 pairs)
+  ok   en.json: every options-menu entry names its page by the page's title (25 pairs)
+  ok   de.json: every options-menu entry names its page by the page's title (25 pairs)
+  ok   sv.json: every options-menu entry names its page by the page's title (25 pairs)
+  ok   Carry 5: the old wording, put back, is refused (null control)
+  ok   Carry 6: the old wording, put back, is refused (null control)
+  ok   Carry 7: the old wording, put back, is refused (null control)
+  ok   Carry 8: the old wording, put back, is refused (null control)
+  ok   Carry 9: the old wording, put back, is refused (null control)
+  ok   Carry 10: the old wording, put back, is refused (null control)
+  ok   Carry 11: the old wording, put back, is refused (null control)
+  ok   a de grid page titled apart from its menu entry is refused (null control)
+
 -- the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)
   ok   the seven user pages are there (anchor)
   ok   no user page carries a history phrase outside a reasoned exemption
@@ -467,5 +509,10 @@
   ok   null control: "previous day", a purpose-sense "is used to", "Refused together", a code span and a link anchor are not findings
   ok   red fixture: a history-sense "used to" is a finding
   ok   red fixture: an exemption that matches no fragment is a finding
+  ok   the code's combi split sentence carries the claim the docs repeat (anchor)
+  ok   README's three hot-water rows say which split they show on a combi tank (Carry 10)
+  ok   and a space figure's row does not (Carry 10 null)
+  ok   configuration.md's combi option names the three figures and their dhw_split (Carry 10)
 
-ALL 368 checks PASSED
+ALL 410 checks PASSED
+rc=0

@@ -1,0 +1,63 @@
+merge-tree 5cd7b874 b392956a rc=1
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1020 entries)
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1019 entries)
+  re-run the gate that owns this file before pushing
+13053c723a29709106123d40d2f711a6853d638b
+100644 2beb1c35b730b3b7651dfa204503af032e17d655 1	custom_components/heatpump_optimizer/duty_switch.py
+100644 e6cc14862cd14d4d4958768bd14b6a4ffc5aff93 2	custom_components/heatpump_optimizer/duty_switch.py
+100644 7198cf0e4fb29670b0015397fbfbb30f2ef98df1 3	custom_components/heatpump_optimizer/duty_switch.py
+100644 8641c2116256e1b5196a9748fdb79a56ce4fc424 1	tests/doc_claims.py
+100644 3bcafbd0aaadc72b501505b4072bb55f29889852 2	tests/doc_claims.py
+100644 9218b6772ebd9001520842fd1e828e4914962b21 3	tests/doc_claims.py
+
+Auto-merging README.md
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/duty_switch.py
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/duty_switch.py
+Auto-merging custom_components/heatpump_optimizer/optimizer.py
+Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
+== diff synth-tree vs head 2c4889dd tree
+fatal: invalid object name 'LEDGER-MERGE'.
+== diff synth-tree 13053c723a vs head 2c4889dd (conflict-marked synth)
+ custom_components/heatpump_optimizer/duty_switch.py | 5 -----
+ tests/doc_claims.py                                 | 5 +----
+ 2 files changed, 1 insertion(+), 9 deletions(-)
+diff --git a/custom_components/heatpump_optimizer/duty_switch.py b/custom_components/heatpump_optimizer/duty_switch.py
+index f52c85cfe5..68904c9beb 100644
+--- a/custom_components/heatpump_optimizer/duty_switch.py
++++ b/custom_components/heatpump_optimizer/duty_switch.py
+@@ -38,13 +38,8 @@ weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with
+ the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
+ forgotten with it. Every threshold
+ here is a named constant from one day on one install, not a measurement.
+-<<<<<<< 5cd7b874
+ ``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking and
+ on each decay, so a record stored over it is held to it by the first pass,
+-=======
+-``n`` is held at :data:`N_CAP` by scaling both counts alike, at a booking and
+-on decay, so
+->>>>>>> b392956a
+ evidence from before a firmware change is outvoted in a bounded number of
+ episodes and an install that stops switching unlatches in a bounded time.
+ """
+diff --git a/tests/doc_claims.py b/tests/doc_claims.py
+index ca4ccd9903..9b94ebbad1 100644
+--- a/tests/doc_claims.py
++++ b/tests/doc_claims.py
+@@ -5321,12 +5321,9 @@ def main() -> int:
+     check_readme_marketplace()
+     check_surface_coverage()
+     check_power_feedback_claims()
+-<<<<<<< 5cd7b874
++    check_late_delta_claims()
+     check_flow_text_claims()
+     check_docs_strings_residue()
+-=======
+-    check_late_delta_claims()
+->>>>>>> b392956a
+     check_stateless()
+     check_combi_dhw_split()
+     return R.close("checks")
