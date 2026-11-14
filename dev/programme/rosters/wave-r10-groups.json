@@ -21206,7 +21206,7 @@
    "architect_note": "",
    "brief": "Where the suites run: the nightly heartbeat respawn (#3320 left it open), cloud-setup's venv-ha lacking scipy and paho, harnesses that measure the cwd tree instead of the root they were given, and the dispatch form a CI-cost hotfix must use to show its effect. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "pr": 3431,
     "commit": "3b9749dac55a85c200005352c661198c982e5799"
