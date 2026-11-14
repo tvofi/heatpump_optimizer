@@ -74445,6 +74445,8 @@ R.section("R10-COP-LEARNER-DRAW-FLOOR: the floor capped by the run-asked draw, a
 # capped by the low end of the draws metered under a RUN ask (an ask at or
 # above the configured minimum), never under on_threshold_kw. Every expected
 # figure below is the design note's, a literal, not the rule re-run.
+from heatpump_optimizer import accuracy as _df_acc  # noqa: E402
+
 _df_p3 = ThermalParameters(max_electrical_power=14.0, min_electrical_power=3.0)
 _df_bar3 = _df_p3.flow_lift_power_floor_kw  # the configured floor: 0.8 x 3.0, the double 2.4000000000000004
 _df_asks = _cf_pairs((3.0, 3.5, 4.0, 4.5, 5.0), (0,), 60)
@@ -74696,6 +74698,17 @@ R.check(
     _df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(days=8), *_df_ages) == ([_DF_BIG], 1),
     f"{_df_release(_cf_drm.DrawRange(), _CF_T0 + _cf_td(days=8), *_df_ages)}",
 )
+# Base's rule is inclusive at the nameplate third: an ask exactly on it,
+# drawing twice that, folds; a nanowatt under it is refused. (The ratio is the
+# double 2.0, so the smaller of ask and draw is the ask itself.)
+_df_third = _cf_both.nameplate_power_floor_kw
+R.check(
+    "base's rule folds a departure whose ask sits exactly on the nameplate "
+    "third and refuses one just under it",
+    _df_release(None, _df_hour, ((_df_third, 2.0 * _df_third), _CF_T0)) == ([(_df_third, 2.0 * _df_third)], 0)
+    and _df_release(None, _df_hour, ((_df_third - 1e-9, 2.0 * _df_third), _CF_T0)) == ([], 0),
+    f"third {_df_third!r}",
+)
 # 337 pending rows: the hold keeps 336 (draw_range.WINDOW), and the oldest
 # leaves by base's rule -- folded if base folded it, dropped if not.
 _df_over_big = _df_release(_cf_drm.DrawRange(), _df_hour, (_DF_BIG, _CF_T0), *[(_DF_SMALL, _CF_T0)] * 336)
@@ -74785,6 +74798,12 @@ R.check(
 _df_view = _cf_coord()
 _df_view._measured_cop.ratio_ewma = 1.25
 _df_cycle(_df_view, 2.0, 2.5, _df_view._accuracy.draw)
+R.check(
+    "the diagnostics publish the floor to the watt: a 1.2345 kW minimum's "
+    "0.9876 kW floor reads 0.988",
+    _df_acc.diagnostics_view(_cf_MC(), ThermalParameters(max_electrical_power=14.0, min_electrical_power=1.2345), None)
+    ["power_floor_kw"] == 0.988,
+)
 R.check(
     "the diagnostics count the held intervals beside the evidence they wait on",
     (lambda v: (v["held_intervals"], v["draw_follows_ask"], v["last_refusal"]))(
