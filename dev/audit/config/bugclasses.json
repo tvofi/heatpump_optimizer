@@ -4974,6 +4974,24 @@
       "doc": [
         "dev/audit/rca/R10-RCA-PUSHER-CENSUS-ESCAPE.md"
       ]
+    },
+    "R10-RCA-FEATURES-WEEKEND-CLOCK": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "tests/features.py's _chg_seq starts its default arm from the real clock while the check asserts that arm teaches the weekday day type (b6696bd6e6, #3444), so tests / fast is red on main and every head each Saturday and Sunday from 2026-11-14T00:00Z",
+      "trigger": "2 (red check: tests / fast (3.14) on #3551, job 132252007494)",
+      "date": "2026-11-14",
+      "status": "proposed",
+      "parts_missing": [
+        "the nightly Asia/Kolkata step under faketime on the other day type, with a weekday guard (carry to R11-INTAKE-R10-RESIDUE)"
+      ],
+      "process_state": "(c) R10-SUITE-HOST-DETERMINISM's nightly step runs features.py under a non-UTC zone every night, but its unit varies the zone and never the calendar day; the harness's date axis needs faketime and runs in no lane",
+      "countermeasure": "(ii') run the existing nightly Kolkata step under faketime on the other day type from the real day (about 10-20 s a night, estimate) with a weekday guard; a stub-only clock shift refused, measured (14 collateral failures, same on Wed and Sun); probe at fdb526895c: block red Sat/Sun, green Wed, green on all probed days with the default arm pinned; full features.py Sun vs Wed differs only by this check; lint (i), frozen clock (iii) and per-PR double run (iv) refused by the cost test",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-FEATURES-WEEKEND-CLOCK.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-FEATURES-WEEKEND-CLOCK.md"
+      ]
     }
   },
   "N-registry-leak": {
