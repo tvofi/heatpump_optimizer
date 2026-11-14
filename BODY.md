@@ -8,11 +8,17 @@ Closes: none (no issue; triage P744).
 
 ## Head
 
-2fb2c7f0eb7b550a1aa278d390e75088164ead2b
+5c7b8a82c53d2259296dd43da81212f85e69eaed
+
+## Re-cut
+
+Round 4 follows the round-3 verdict `blocked a55158085ed8cd6517113af8b77af07492a6634e mutation-vacuous: red_carried_to_next_cycle, no_per_run_remember survive`. Relative to the reviewed head this repair changes only `tools/audit/seat/beat_jobs_selftest.py`: two cases and two MUTANTS rows, production code unchanged. It also merges origin/main c987209c, which carries the weekend-clock fix.
+- `darwin-selftest: a new cycle starts with an empty red list after a cycle that had REDs`: cycle 1 on tip A ends with one RED, cycle 2 on tip B runs green, and the digest must be empty.
+- `darwin-selftest: a pass killed partway keeps the runs it finished`: the second self-test run raises, and the remembered state must hold `done == [prepr.sh]`, `complete` false and the cycle's tip.
 
 ## Mutation proof
 
-Fifteen mutants in `beat_jobs_selftest.py` MUTANTS. Each one is killed by the case named in its entry, and the self-test prints `ok mutant <name> killed by: <case>` for each. The command is `python3 -I tools/audit/seat/beat_jobs.py --self-test` at the Head, and its final line is `beat_jobs self-test: 238 checks, 0 failed`.
+Seventeen mutants in `beat_jobs_selftest.py` MUTANTS. Each one is killed by the case named in its entry, and the self-test prints `ok mutant <name> killed by: <case>` for each. The command is `python3 -I tools/audit/seat/beat_jobs.py --self-test` at the Head, and its final line is `beat_jobs self-test: 242 checks, 0 failed`.
 - The ten from earlier rounds: `darwin_gate_dropped`, `darwin_first_fail_is_last_line`, `darwin_tip_not_skipped`, `darwin_red_dropped`, `darwin_cwd_repo`, `darwin_keep_state_dir`, `darwin_wired_filter_dropped`, `darwin_remember_on_wt_fail`, `darwin_slot_take_ignored` and `darwin_lease_not_released`. The sites of `darwin_tip_not_skipped` and `darwin_red_dropped` were re-anchored to the restructured lines. They mutate the same predicates.
 - New this round:
   - `darwin_budget_ignored` drops the pass-budget check. Killed by "a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip".
@@ -20,6 +26,7 @@ Fifteen mutants in `beat_jobs_selftest.py` MUTANTS. Each one is killed by the ca
   - `darwin_done_rerun` makes an already-run self-test run again. Killed by the same case.
   - `darwin_red_each_pass` writes the RED lines at every pass. Killed by "a cycle's RED lines are written once, when it completes".
   - `darwin_py_isolated` puts `-I` back. Killed by "a .py self-test runs as CI's plain python3, never -I (which drops the script dir)".
+- Round 4 adds `red_carried_to_next_cycle` (the new cycle's `red` seeded from the old one's, killed by the empty-red-list case) and `no_per_run_remember` (the per-run `ctx.remember` line deleted, killed by the killed-partway case). The self-test prints `ok mutant red_carried_to_next_cycle killed by: ...` and `ok mutant no_per_run_remember killed by: ...`. Both new cases pass on the unmutated code (242 checks, 0 failed).
 - Failing test first: with the new cases added and the Head's production code still at 8a05961b, `python3 -I tools/audit/seat/beat_jobs.py --self-test --no-mutants` gave rc=1 and `139 checks, 5 failed`. The five failures were the pass-budget, written-once, per-pass-slot, budget-at-most-half-timeout_s and plain-python3 cases.
 
 ## Null control
