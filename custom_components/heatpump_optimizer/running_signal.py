@@ -114,11 +114,17 @@ def attach(coord: Any, entity: str | None, reader: Reader) -> None:
 
 
 def detach(coord: Any) -> None:
-    """Stop listening and cancel the timer; idempotent. The settled class is kept."""
+    """Stop listening, cancel the timer and drop the subscribers; idempotent.
+
+    The subscribers and the reader close over the coordinator, and this
+    table's value would otherwise keep its own weak key alive: a released
+    coordinator is collected only once they are gone. The settled class is kept.
+    """
     sig = _SIGNALS.get(coord)
     if sig is None:
         return
     unsub, timer, sig.unsub, sig.timer, sig.reader = sig.unsub, sig.timer, None, None, None
+    sig.subscribers.clear()
     if unsub is not None:
         unsub()
     if timer is not None:
