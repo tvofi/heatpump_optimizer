@@ -1,0 +1,9 @@
+[
+{"name": "pulse_gen_read_off", "file": "tools/audit/seat/pulse.py", "old": "    if sd:  # the generation token", "new": "    if False:  # the generation token"},
+{"name": "ps_start_zero", "file": "tools/audit/seat/seat_gen.py", "old": "    r = subprocess.run([\"ps\", \"-p\", str(pid), \"-o\", \"etimes=\"], capture_output=True, text=True)\n", "new": "    return 0\n"},
+{"name": "loopcwd_path_only", "file": "tools/audit/seat/beat_jobs.py", "old": "            if now != int(fields[\"i\"]):", "new": "            if now is None:"},
+{"name": "resolution_drop_loopcwd_row", "file": "tools/audit/seat/beat_jobs.py", "old": "\"opener\", \"loop-cwd\", \"head-watch\"", "new": "\"opener\", \"head-watch\""},
+{"name": "resolution_drop_darwin_row", "file": "tools/audit/seat/beat_jobs.py", "old": "        \"scorecard\", \"darwin-selftest\")", "new": "        \"scorecard\")"},
+{"name": "resolution_drop_loopcwd_run", "file": "tools/audit/seat/beat_jobs.py", "old": "\"loop-cwd\": loop_cwd, ", "new": ""},
+{"name": "resolution_drop_darwin_run", "file": "tools/audit/seat/beat_jobs.py", "old": ",\n       \"darwin-selftest\": darwin_selftest}", "new": "}"}
+]
