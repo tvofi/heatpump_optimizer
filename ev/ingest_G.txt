@@ -1,0 +1,8 @@
+RESULT trace_minutes=2880 unit=count
+RESULT trace_missing_minutes=0 unit=count
+RESULT trace_columns=7 unit=count
+RESULT trace_redacted_cells=0 unit=count
+  unfinished: trace-arbiter -- absent: this release's arbiter publishes no pass record
+RESULT stages_ok=16/16 unit=count
+RESULT unfinished=1 unit=count
+RESULT smoke_verdict=pass unit=verdict

@@ -1,0 +1,5 @@
+MUTANT planted_leak_value_pass_identity: rc=1 KILLED
+      FAIL Download diagnostics carries none of the values its redaction removes -- the token, the entry name, the exact coordinate -- in any section, under any key  [.config.ecl110_state_topic; .config_setup.ecl110_state_to
+      FAIL the value pass redacts a private value inside text, as a key, and as a number, in a tuple too, and leaves a flag and any other number alone
+      FAIL a removed leaf of any other type is searched for and redacted by its text, as a number is, and a None, shorter than any value searched for, is left alone  [{'2026-01-12 00:07:00+00:00'}]
+      FAIL planted in the trace's inputs, the entry's name, a full-precision coordinate, a person id and a token appear nowhere in the download's trace, no entity id is a trace key, the name's cell decodes as a flagged gap, 

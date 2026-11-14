@@ -1,0 +1,4 @@
+redactor: ['_without_private_ids']
+collect-time: {'presence[0]': 'sensor.b', 'presence[1]': 'sensor.c', 'indoor_temp_entity': 'sensor.indoor'}
+download-config: {'presence': ['**REDACTED**', 'sensor.b', 'sensor.c'], 'indoor_temp_entity': 'sensor.indoor'}
+seat mapping: {'presence[1]': 'sensor.b', 'presence[2]': 'sensor.c', 'indoor_temp_entity': 'sensor.indoor'}

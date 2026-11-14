@@ -1,0 +1,6 @@
+=== Stress and economics ===
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+No published prices cover the planning horizon; skipping
+RESULT offenders_replay_half=2 offenders_trace=2 equal=True unit=count
+RESULT offenders_perturbed=0 moved=True unit=count

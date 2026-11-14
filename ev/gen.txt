@@ -1,0 +1,5 @@
+RESULT mean_row_bytes=512 unit=byte
+RESULT thread_factor=1.0 unit=ratio
+RESULT out_dir=/tmp/claude-0/G unit=path
+bundle.json
+bundle.json.gz

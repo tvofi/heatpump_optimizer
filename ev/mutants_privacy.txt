@@ -1,0 +1,42 @@
+MUTANT text_ok_off: rc=1 KILLED
+      FAIL a trace cell: a number at two decimals (a full-precision coordinate leaves as the replay half's), text only from an on/off or selector entity and only as the export passes it, a gap for no state, a non-finite numb
+      FAIL the arbiter's pass record, a mapping or a dataclass instance, becomes prefixed columns where the arbiter publishes one, through the same cell rules; none where it does not (nor for a dataclass type), and the manif
+      FAIL planted in the trace's inputs, the entry's name, a full-precision coordinate, a person id and a token appear nowhere in the download's trace, no entity id is a trace key, the name's cell decodes as a flagged gap, 
+    3 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT private_id_off: rc=1 KILLED
+      FAIL a trace cell: a number at two decimals (a full-precision coordinate leaves as the replay half's), text only from an on/off or selector entity and only as the export passes it, a gap for no state, a non-finite numb
+      FAIL planted in the trace's inputs, the entry's name, a full-precision coordinate, a person id and a token appear nowhere in the download's trace, no entity id is a trace key, the name's cell decodes as a flagged gap, 
+    2 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT columns_public_off: rc=1 KILLED
+      FAIL the trace's columns are the config keys holding an entity id, a list's indexed and a mapping's by its sub-key; a person and a calendar are never a column, and no key is spelled like an entity id  [{'indoor_temp_en
+MUTANT round_off: rc=1 KILLED
+      FAIL a trace cell: a number at two decimals (a full-precision coordinate leaves as the replay half's), text only from an on/off or selector entity and only as the export passes it, a gap for no state, a non-finite numb
+      FAIL the arbiter's pass record, a mapping or a dataclass instance, becomes prefixed columns where the arbiter publishes one, through the same cell rules; none where it does not (nor for a dataclass type), and the manif
+      FAIL planted in the trace's inputs, the entry's name, a full-precision coordinate, a person id and a token appear nowhere in the download's trace, no entity id is a trace key, the name's cell decodes as a flagged gap, 
+    3 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT domain_off: rc=1 KILLED
+      FAIL a trace cell: a number at two decimals (a full-precision coordinate leaves as the replay half's), text only from an on/off or selector entity and only as the export passes it, a gap for no state, a non-finite numb
+    1 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT arbiter_text_off: rc=1 KILLED
+      FAIL the arbiter's pass record, a mapping or a dataclass instance, becomes prefixed columns where the arbiter publishes one, through the same cell rules; none where it does not (nor for a dataclass type), and the manif
+    1 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT lifecycle_cap_off: rc=1 KILLED
+      FAIL a reload storm keeps only the newest lifecycle rows, 500 of them
+    1 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT mark_guard_off: rc=1 KILLED
+      FAIL lifecycle rows: the collection's start, the unload's close and the next load, each with the release that ran it  [[{'t': '2026-11-14T22:35:14.993530+00:00', 'event': 'load', 'version': '9.9.9'}, {'t': '2026-01-12T
+    1 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT store_trace_cols_domain_off: rc=1 KILLED
+      FAIL a reload keeps the stored trace block and opens the next one beside it  [[{'start': '2026-01-12T00:09:00+00:00', 'n': 1, 'gap': '0', 'cols': {'heat_pump_mode_entity': 'heat', 'indoor_temp_entity': '21.5'}}]]
+      FAIL a cycle row carries the learner freeze, its reason and the input verdict, inside the debug store's declared domain  [{'t': '2026-01-12T00:00:00+00:00', 'mode': 'auto', 'solve_failures': 0, 'prices_rows': 0, 'learn
+      FAIL a stored trace block outside its domain is dropped alone; the rest loads
+    3 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT trace_day_split_off: rc=1 KILLED
+      FAIL a trace block: an unchanged cell is empty, a minute already written is skipped, a skipped minute is counted in the gap column, a column new to the block opens with a gap, one gone from it reads a gap, and the next
+      FAIL the manifest's trace summary counts the minutes held and the minutes between the first and the last that are not, and says the arbiter column is absent  [{'first_minute': '2026-01-12T23:55:00+00:00', 'minutes': 8,
+      FAIL a collector with no mapped column still samples its extra cells; the next UTC day stores the closed block and opens another; at and past seven days nothing more is sampled; a restart clears the trace and the lifec
+    3 of 184 DEBUG COLLECT CHECKS FAILED
+MUTANT trace_dedupe_off: rc=1 KILLED
+      FAIL a trace block: an unchanged cell is empty, a minute already written is skipped, a skipped minute is counted in the gap column, a column new to the block opens with a gap, one gone from it reads a gap, and the next
+      FAIL the minute timer samples nothing before the collection starts, then each mapped input once a minute, and the unload's flush stores the open block  [[{'start': '2026-01-12T00:00:00+00:00', 'n': 3, 'gap': '0,,', 'co
+    2 of 184 DEBUG COLLECT CHECKS FAILED

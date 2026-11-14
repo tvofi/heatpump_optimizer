@@ -1,0 +1,2 @@
+RESULT option_on store_bytes_written_per_day=[1255345, 3839878, 6412657, 8996103, 11584325, 14161196, 16750016] unit=byte
+RESULT option_off store_bytes_written_per_day=[0, 0, 0, 0, 0, 0, 0] unit=byte
