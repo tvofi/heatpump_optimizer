@@ -31,9 +31,9 @@
     ".",
     "tools/audit/seat"
    ],
-   "git": [],
    "index": false,
-   "objects": false
+   "objects": false,
+   "git": []
   },
   "app-push": {
    "run_sha": "26cc360dafe7a744810e0897ce086c705735b348b8f5bc4834ff9f42326ae45b",
@@ -4761,13 +4761,13 @@
     "tools/ci",
     "tools/release"
    ],
+   "index": false,
+   "objects": true,
    "git": [
     "diff",
     "ls-tree",
     "show"
-   ],
-   "index": false,
-   "objects": true
+   ]
   },
   "moved-path-reader": {
    "run_sha": "5375b0fa5ad187f70df1285f4fc746f92b11055f02ad8c6d4361a43ec0781392",
@@ -5094,7 +5094,6 @@
    ],
    "probes": [
     "-",
-    "-c",
     ".",
     "config",
     "dev/programme/delivery/5.md",
@@ -5296,6 +5295,8 @@
     "tools/audit/seat/roster_sync.py",
     "tools/audit/seat/row_position.py",
     "tools/audit/seat/run_twins.py",
+    "tools/audit/seat/scorecard.py",
+    "tools/audit/seat/scorecard_selftest.py",
     "tools/audit/seat/seat_venv.sh",
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/shims/**",
@@ -5843,6 +5844,7 @@
     "dev/audit/rounds/round10/protection-census/.gitattributes",
     "dev/audit/rounds/round10/study-ident/.gitattributes",
     "dev/audit/rounds/round10/study-reseed/.gitattributes",
+    "dev/audit/rounds/round10/user-text/.gitattributes",
     "dev/audit/rounds/round3/.gitattributes",
     "dev/audit/rounds/round3/D0/.gitattributes",
     "dev/audit/rounds/round3/D0/reports/.gitattributes",
@@ -6453,7 +6455,6 @@
    ],
    "probes": [
     "-",
-    "-c",
     ".",
     "config",
     "dev/programme/delivery/5.md",
@@ -6502,6 +6503,7 @@
     "tools/audit/seat/merge_pr.sh",
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/pr_args.sh",
+    "tools/audit/seat/proof_watch.py",
     "tools/policy/budget_raise_gate.py",
     "tools/pr/outside.py"
    ],
@@ -9138,7 +9140,6 @@
    ],
    "probes": [
     "-",
-    "-c",
     ".",
     "config",
     "dev/programme/delivery/5.md",
@@ -9187,6 +9188,7 @@
     "dev/governance/config/corpus_excluded.json",
     "dev/governance/config/policy_budgets.json",
     "dev/governance/roles/fix-review.md",
+    "dev/governance/roles/fixer.md",
     "dev/programme/carries/**",
     "dev/programme/rosters/wave-r10-groups.json",
     "tests/card_drift.mjs",
