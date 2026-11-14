@@ -1,0 +1,107 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 6ab86e1b5..38890b672 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -334,6 +334,12 @@ class ArbiterState:
+ 
+     #: slot -> (value written, when); the ownership record, persisted.
+     written: dict[str, tuple[Any, datetime]] = field(default_factory=dict)
++    #: slot -> the last write a loop move dropped from ``written`` to resend
++    #: (:func:`_note_sent`), read while that record is missing, until a
++    #: restore or release ends it; persisted with it. A loop run's reset
++    #: keeps it. A write lands only once the off restore is armed, which
++    #: :func:`_arm_space` no longer refuses, so no write needs to end it.
++    dropped: dict[str, Any] = field(default_factory=dict)
+     #: slot -> differing readings in a row; slot -> when a value the pump
+     #: did not hold is sent again.
+     misses: dict[str, int] = field(default_factory=dict)
+@@ -996,14 +1002,16 @@ def _note_sent(held: ArbiterState, rec: FeedbackRun, out: float | None, base: fl
+     from the loop's: enough past the inlet to stop a running compressor
+     (:data:`FEEDBACK_DOWN_K`), or to stall the wind-down. So a target that
+     moves at all drops the record, and an equal one is still not sent. The
+-    dropped record is ``prev_c`` until a write replaces it: it is still the
++    dropped record is the run's ``prev_c``, the bracket :func:`_cut_of`
++    reads, and ``held.dropped`` until a restore ends it: it is still the
+     arbiter's last write, which the off restore's own-write refusal reads
+-    (:func:`_arm_space`).
++    (:func:`_arm_space`) after the run that dropped it has ended.
+     """
+     recorded = held.written.get("space_setpoint")
+     if out is None or (recorded is not None and recorded[0] == out):
+         return
+-    rec.prev_c = rec.prev_c if recorded is None else recorded[0]
++    if recorded is not None:
++        rec.prev_c = held.dropped["space_setpoint"] = recorded[0]
+     rec.sent_c = out if out != base else None
+     held.written.pop("space_setpoint", None)
+ 
+@@ -1367,7 +1375,7 @@ def _not_held(coord: Any, held: ArbiterState, slot: str, detail: str, now: datet
+ 
+ 
+ def _forget(held: ArbiterState) -> None:
+-    held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None
++    held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None
+ 
+ 
+ def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
+@@ -1450,9 +1458,9 @@ async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity:
+     armed = await off_restore.async_armed_entry(inp.hass, entry, CONSUMER)
+     reading = read_setpoint(inp.hass, entity)
+     record = held.written.get("space_setpoint")
+-    # A loop move dropped the record to be sent (_note_sent); prev_c keeps it.
+-    run = held.feedback
+-    last = record[0] if record is not None else None if run is None else run.prev_c
++    # A loop move dropped the record to be sent (_note_sent); held.dropped
++    # keeps it across the run's end, which the loop resets on any stop.
++    last = record[0] if record is not None else held.dropped.get("space_setpoint")
+     own = (armed is None or armed["entity_id"] != entity) and last is not None \
+         and reading is not None and not _differs("space_setpoint", reading, last)
+     if log_held(inp.hass, f"space_baseline_own:{entity}", own,
+@@ -1575,7 +1583,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
+         # person's the moment the optimizer lets go of it. The space
+         # set-point's baseline is restored by off_restore (tvofi, 2026-11-07,
+         # "Arbiter too"), before this pass; its record is dropped here.
+-        if held.written or held.retry or held.space_before is not None:
++        if held.written or held.retry or held.dropped or held.space_before is not None:
+             # A pending retry dies with control, and so does its warning.
+             _forget(held)
+             issues.clear_issue(coord.hass, ISSUE_IGNORED)
+@@ -1820,6 +1828,7 @@ async def _persist(coord: Any) -> None:
+     held = state_for(coord)
+     payload = {
+         "written": {k: [v, at.isoformat()] for k, (v, at) in held.written.items()},
++        "dropped": dict(held.dropped),
+     }
+     try:
+         await _store(coord).async_save(payload)
+@@ -1846,6 +1855,8 @@ async def _load(coord: Any) -> None:
+             continue
+         if at is not None and _writable(slot, value):
+             held.written[slot] = (value, at)
++    dropped = raw.get("dropped")
++    held.dropped = {k: v for k, v in dropped.items() if _writable(k, v)} if isinstance(dropped, dict) else {}
+ 
+ 
+ def _writable(slot: str, value: Any) -> bool:
+@@ -1888,7 +1899,7 @@ def _space_restored(entry: Any, _entity_id: str, _value: float) -> None:
+     coord = getattr(entry, "runtime_data", None)
+     held = None if coord is None else _STATES.get(coord)
+     if held is not None:
+-        for record in (held.written, held.misses, held.retry):
++        for record in (held.written, held.misses, held.retry, held.dropped):
+             record.pop("space_setpoint", None)
+         held.feedback = None  # its prev_c is that record too (_note_sent)
+ 
+diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/heatpump_optimizer/store.py
+index 346216694..30d73c5cf 100644
+--- a/custom_components/heatpump_optimizer/store.py
++++ b/custom_components/heatpump_optimizer/store.py
+@@ -483,6 +483,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
+         # The silent switch (#1911) and the GCHV night-mode registers (#1913)
+         # are held slots on the same record (``pump_arbiter._writable``).
+         "written/silent/0": _FLAG,
++        # A loop move's dropped space write (``pump_arbiter._note_sent``).
++        "dropped/space_setpoint": _R,
+         **{f"written/night_{e}_hour/0": Domain("int", 0, 23) for e in ("start", "end")},
+         **{f"written/night_{e}_minute/0": Domain("int", 0, 59) for e in ("start", "end")},
+         **{f"written/{k}/1": _AT for k in (

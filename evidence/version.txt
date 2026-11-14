@@ -1,4 +1,0 @@
-VERSION identical to origin/main
-custom_components/heatpump_optimizer/manifest.json identical to origin/main
-RELEASE_NOTES.md identical to origin/main
-claim files byte-identical to merge base

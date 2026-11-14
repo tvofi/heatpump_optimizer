@@ -1,9 +1,0 @@
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1013 GUARD_OFF: if recorded is not None:
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1038 GUARD_OFF: if rec is None or rec.sent_c is None or rec.prev_c is None o
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1041 CMP_BOUND*2: return bool(low - SETPOINT_TOLERANCE <= observed <= high + S
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1041 RETURN_DEL: return bool(low - SETPOINT_TOLERANCE <= observed <= high + S
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1063 GUARD_OFF: if rec is None or rec.prev_c is None or not _cut_of(rec, val
-PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:1586 GUARD_OFF: if held.written or held.retry or held.dropped or held.space_
-CI PREDICT: 6 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
-CI PREDICT: no closures, fast, governance or instrument red predicted against a7887485deb7 (a data-file read is not seen)
-rc=0
