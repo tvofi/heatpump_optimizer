@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_dhw_target RETURN_DEL 85cd72f1",
+  "killed_by": "tests/block_duty.py",
+  "old": "    return dhw_step_target_c(inp.params, cycle, _grid(inp, \"dhw_setpoint\"))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=27."
+}

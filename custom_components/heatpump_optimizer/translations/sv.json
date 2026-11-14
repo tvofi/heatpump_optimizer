@@ -1259,6 +1259,8 @@
         "data": {
           "heat_pump_mode_entity": "Värmepumpens driftläge",
           "pump_duty_mode": "Styrning av pumpens uppgift",
+          "space_hysteresis_entity": "Starthysteres uppvärmning (valfritt)",
+          "dhw_hysteresis_entity": "Starthysteres varmvatten (valfritt)",
           "heat_pump_defrost_entity": "Avfrostning",
           "heat_pump_online_entity": "Pumpen är uppkopplad",
           "heat_pump_fault_entity": "Felindikering",
@@ -1272,6 +1274,8 @@
         "data_description": {
           "heat_pump_mode_entity": "Valfritt. Pumpens eget lägesval - kyla, värme, varmvatten eller en kombination av två. Läses bara av, om inte Styrning av pumpens uppgift står på Styrning. En pump som står i kylläge eller enbart varmvatten kan inte värma huset, och en som står i enbart värmeläge kan inte göra varmvatten. Utan det här kan planen alltså lova värme som pumpen just då inte kan leverera. Lämnas fältet tomt antar optimeringen att pumpen klarar allt.",
           "pump_duty_mode": "Av (standard) skriver aldrig till pumpen. Observera skriver inget och för en logg över det senaste dygnet, i diagnostiken, över vilken uppgift varje planerat steg bad om och vad pumpen gjorde (från effektentiteten, driftläget och tanktemperaturen). Styr skriver driftläget ovan (bara varmvatten på steg med bara varmvatten, bara värme på steg med bara rumsvärme, Värme + varmvatten när båda planeras eller en desinfektion pågår, oförändrat på vilande steg), varmvattnets börvärdesentitet (varmvattnets börvärde från varmvattensidan) och rumsvärmens börvärdesentitet (för ett framledningsbörvärde 55 °C eller entitetens maximum på steg som värmer huset, dess minimum på steg som inte gör det, och 35 °C eller värmekurvan när planen inte styr; för ett innebörvärde den planerade rumstemperaturen). Där driftläget saknar ett läge för bara en uppgift, som i GCHV Modbus-paketet, sänks den andra uppgiftens börvärde till sitt minimum i stället. En sträcka med bara varmvatten begränsas till 90 minuter (30 under -10 °C ute), om inte rummet redan har sin planerade temperatur. Medan Optimerare aktiv är på skrivs varje ändring av entiteterna som optimeraren inte gjorde tillbaka direkt; stäng av Optimerare aktiv för att ändra pumpen för hand. Ett värde som pumpen inte behåller ger en varning och skickas igen var femte minut.",
+          "space_hysteresis_entity": "Valfritt. En sensor eller ett tal med pumpens egen starthysteres för uppvärmning som temperaturskillnad i K (°C läses likadant, °F räknas om; 0 till 20 K): dess styrning börjar värma först när målet ligger så mycket över vattnet. För ett framlednings- eller returbörvärde blir lyftet över det uppmätta vattnet på den lägsta planerade nivån då aldrig mindre, så ett planerat värmesteg är ett som pumpen startar. En styrning som bara publicerar själva startgränsen (en Luxtroniks Demand border, ingång 10107) behöver en mallsensor av returmålet minus den gränsen. Lämnas fältet tomt eller oläsbart gäller det konfigurerade lyftet.",
+          "dhw_hysteresis_entity": "Valfritt. En sensor eller ett tal med pumpens egen starthysteres för varmvatten som temperaturskillnad i K (°C läses likadant, °F räknas om; 0 till 20 K): pumpen startar en laddning först när tanken ligger under varmvattenbörvärdet minus detta. Planen lägger då ingen laddning på en varmare tank (en laddning som planerats för det aktuella steget behålls, eftersom den kan redan pågå; en desinfektionsladdning bedöms mot desinfektionstemperaturen), och pumploggen märker ett vilande varmvattensteg på en sådan tank not-startable i stället för idle-instead. Ett varmvattenminimum över den starttemperaturen kan pumpen inte hålla och ger en varning. Lämnas fältet tomt, oläsbart eller 0 antas varje planerad laddning starta.",
           "heat_pump_defrost_entity": "Valfritt. På medan pumpen vänder cykeln för att smälta bort frost från utomhusbatteriet. Elen som köps under en avfrostning går till batteriet i stället för in i huset. Tänk på att många pumpar bara avfrågas med några minuters mellanrum, så korta avfrostningar missas helt: det här är ett stickprov på avfrostning, inte ett tidtagarur.",
           "heat_pump_online_entity": "Valfritt, men varmt rekommenderat för en molnansluten pump. På medan pumpen faktiskt går att nå. En molnintegration kan fortsätta publicera sina senast kända värden medan pumpen själv har tappat nätverket, vilket får alla andra givare att se alldeles färska ut. Det här är den enda signal som avslöjar det. Vid lokal anslutning (LAN) blir givarna otillgängliga av sig själva och fältet tillför då lite.",
           "heat_pump_fault_entity": "Valfritt. På medan pumpen larmar om ett fel. Bara om det finns ett fel används, aldrig själva felkoden.",
@@ -1901,6 +1905,10 @@
     "quiet_silent_not_enforced": {
       "title": "Tysta fönster genomförs inte",
       "description": "Tysta fönster är konfigurerade, men kapacitetsbegränsningsplatsen ({entity}) är inte en brytare som integrationen kan hålla, så planen begränsas inte för dem och värmepumpen ombeds aldrig köra tyst. Tilldela värmepumpens egna natt-/tystlägesbrytare som kapacitetsbegränsad entitet, eller ta bort de tysta raderna."
+    },
+    "dhw_minimum_above_start": {
+      "title": "Värmepumpen kan inte hålla varmvattenminimum",
+      "description": "Varmvattenminimum är {floor} °C, men med en starthysteres på {hysteresis} K startar värmepumpen en laddning först när tanken ligger under {start} °C (dess mål på {target} °C minus hysteresen). Planen lägger ingen laddning som pumpen inte skulle starta, så den visar tanken falla under minimum före varje laddning. Sänk varmvattenminimum till {start} °C eller lägre, höj varmvattenbörvärdet eller minska hysteresen på värmepumpen."
     }
   },
   "entity": {
