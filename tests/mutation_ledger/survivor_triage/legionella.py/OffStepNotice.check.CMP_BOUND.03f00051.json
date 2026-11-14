@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:OffStepNotice.check CMP_BOUND 03f00051",
+  "old": "        if write is not None and write.written_c < target - margin and write.above_c >= target:",
+  "reason": "Equivalent (CMP_BOUND, `write.above_c >= target` -> `>`; the line's other bound, `written_c < target - margin` -> `<=`, is killed by tests/guard_pins.py). The arms differ only where `above_c == target`: the disinfection temperature is then on the entity's step and inside its range. `written_c` is `dhw_step_target_c(params, True, grid)`: the cycle temperature (`dhw_cycle_temp`, the higher of the everyday set-point and the disinfection temperature, so at least the target) on the step, bounded with `hi` at `dhw_hard_max_temp` (that temperature capped at 70 C) and inside the entity's range. With `dhw_legionella_temp` at most 70 (config_flow's 55-70 slider), the hard maximum is at least the target and the target is a writable step, so `written_c >= target` and the first clause, `written_c < target - margin`, is already false. The mutant therefore selects no input the predicate can raise on. tests/guard_pins.py's entity-range census (min 30/60, max 55-80, step 0.5/1/5, disinfection 55-70, both credit rules, 1632 rows) passes under the mutant as on the head.",
+  "verdict": "equivalent"
+}
