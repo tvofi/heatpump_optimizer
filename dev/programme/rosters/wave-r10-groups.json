@@ -27250,6 +27250,47 @@
     "note": "intake: red required check on every head since 2026-11-14T00:00Z (Saturday); diagnosis in s14/seat/diag-3551; overlap admitted (R10-START-COUNTER-EDGES, R11-PRE-SHARED-FILES, R10-COP-LEARNER-DRAW-FLOOR): orchestrator 2026-11-14: tests / fast red on every head each weekend, a features check reads the real clock (intake rule: red required check on main)",
     "pr": 3578
    }
+  },
+  {
+   "group": "R10-RCA-FEATURES-WEEKEND-CLOCK",
+   "lane": "IN",
+   "kind": "record",
+   "class": "rca",
+   "severity": "normal",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [
+    "R10-HOTFIX-FEATURES-WEEKEND-CLOCK"
+   ],
+   "files": [],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "low",
+   "fixerModel": "opus",
+   "reviewerModel": "sonnet",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "sonnet",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "Root-cause record (orchestrator, 2026-11-14) for the weekend red that R10-HOTFIX-FEATURES-WEEKEND-CLOCK fixed: the cause, the process state, the cost test and the countermeasure or its recorded refusal, as the root-cause contract owes. The analysis is done and handed off; this group carries its record pull request.",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/r10-rca-features-weekend-clock",
+    "commit": null,
+    "last_step": "handed off: handoff/r10-rca-features-weekend-clock e9974b7b",
+    "next_step": "open the record pull request, sonnet review, merge with the next record batch",
+    "note": "queued 2026-11-14: the opener printed NEEDS-TITLE for the handoff because no group carried it"
+   }
   }
  ]
 }
