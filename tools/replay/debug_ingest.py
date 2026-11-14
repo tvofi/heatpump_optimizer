@@ -141,13 +141,13 @@ def decode_trace(blocks: list) -> dict:
             "missing": span - len(minutes)}
 
 
-def trace_stage(bundle: dict, results: Results) -> dict | None:
+def trace_stage(bundle: dict, results: Results) -> None:
     """Stage 5: the trace and the lifecycle rows; unfinished on a version 1 bundle."""
     print("stage 5: the minute trace and the lifecycle rows")
     if bundle.get("schema") != "hpo-debug/2":
         for name in TRACE_CHECKS:
             results.unfinish(name, f"{bundle.get('schema')!r} carries no trace")
-        return None
+        return
     summary = (bundle.get("manifest") or {}).get("trace") or {}
     decoded = decode_trace(bundle.get("trace") or [])
     keys = list(decoded["cols"])
@@ -171,7 +171,6 @@ def trace_stage(bundle: dict, results: Results) -> dict | None:
     results.check("lifecycle-rows", isinstance(rows, list) and all(
         isinstance(r, dict) and {"t", "event"} <= r.keys() for r in rows),
         f"{len(rows) if isinstance(rows, list) else rows!r} rows")
-    return decoded
 
 
 def ingest(bundle: dict, *, corrupt: str = "") -> Results:
@@ -351,6 +350,7 @@ def _via_file(doc: dict, reader=None) -> dict:
 def gate_checks() -> list[tuple[str, bool, str]]:
     """Cheap ingest arms for ``tests/entities.py``; no coordinator tick."""
     import io
+    import tempfile
     from contextlib import redirect_stdout
     bundle = _mini_bundle()
     buf = io.StringIO()
@@ -376,6 +376,34 @@ def gate_checks() -> list[tuple[str, bool, str]]:
     dotted = copy.deepcopy(bundle)
     dotted["trace"][0]["cols"]["sensor.indoor"] = "1,,"
     keyed = _quiet_ingest(dotted)
+
+    def variant(**change) -> Results:
+        changed = copy.deepcopy(bundle)
+        for key, value in change.items():
+            *path, last = key.split("__")
+            node = changed
+            for part in path:
+                node = node[part]
+            node[last] = value
+        return _quiet_ingest(changed)
+
+    arms = {
+        "schema": variant(schema="hpo-debug/9").fails,
+        "empty": variant(trace=[]).fails,
+        "manifest": variant(manifest__trace={**bundle["manifest"]["trace"], "minutes": 4}).fails,
+        "claimed": variant(manifest__trace={**bundle["manifest"]["trace"], "arbiter": "present"}).fails,
+        "lifecycle": variant(lifecycle=[{"t": "2026-01-15T12:00:00+00:00"}]).fails,
+    }
+    present = copy.deepcopy(bundle)
+    present["manifest"]["trace"]["arbiter"] = "present"
+    present["trace"][0]["cols"]["arbiter/origin"] = "plan,,"
+    arbiter = _quiet_ingest(present)
+    lead = decode_trace([{**good, "cols": {"a": "5,,", "b": ",,7"}}])["cols"]["b"]
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "bundle.json"
+        path.write_text(json.dumps(bundle))
+        with redirect_stdout(io.StringIO()):
+            rc = main(["--bundle", str(path)])
     return [
         ("debug ingest: schema, stores, accuracy, bias, planted leak",
          not clean.fails, ",".join(clean.fails)),
@@ -411,6 +439,19 @@ def gate_checks() -> list[tuple[str, bool, str]]:
          gaps == [["block 0: gap"], ["block 0: gap"]], str(gaps)),
         ("debug ingest: a trace key spelled like an entity id fails trace-keys",
          "trace-keys" in keyed.fails and "trace-keys" not in clean.fails, ",".join(keyed.fails)),
+        ("debug ingest: an unknown schema, an empty trace, a manifest whose minutes disagree, "
+         "a claimed arbiter column that is missing and a lifecycle row without its event "
+         "each fail their own check",
+         arms == {"schema": ["schema"], "empty": ["trace-present", "trace-manifest"],
+                  "manifest": ["trace-manifest"], "claimed": ["trace-arbiter"],
+                  "lifecycle": ["lifecycle-rows"]}, str(arms)),
+        ("debug ingest: a present arbiter column passes trace-arbiter; an absent one leaves it "
+         "unfinished",
+         "trace-arbiter" in arbiter.passed and "trace-arbiter" in clean.unfinished,
+         f"{arbiter.passed} {clean.unfinished}"),
+        ("debug ingest: a column opening on an empty cell decodes a gap until its first value",
+         lead == [None, None, "7"], str(lead)),
+        ("debug ingest: the CLI ingests a clean bundle and exits 0", rc == 0, str(rc)),
     ]
 
 
