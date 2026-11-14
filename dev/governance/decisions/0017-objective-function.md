@@ -443,13 +443,13 @@ value of `thresholds` and `owner_criteria`, and every NO-READ no roster group
 builds yields a card.
 
 - **Reads**: the closing round's `OBJECTIVE.json` in its directory under
-  `dev/audit/rounds/`, which the orchestrator writes at closure: per term a
+  `dev/audit/yardstick/`, which the orchestrator writes at closure: per term a
   numeric `value` with the `enumerator`, a command on a tracked file, that
   printed it; or `no_read` with the reason, `would_read` (the record or
   harness that would read it) and `builder` (the roster group that builds
   it, or `card:` and a card's id). Recording a read is not grading it; the
   evaluator re-runs each.
-- **Writes**: `EVALUATION.json` in the opening round's directory: `round`,
+- **Writes**: `EVALUATION.json` in the opening round's directory there: `round`,
   `reads`, `evaluator`, `reviewer`, `review` (the reviewer's `verdict` and
   the `sha` it was given at), `objects` (file to `verdict`, `evidence`, and
   `card` unless `keep`) and `cards` (id to the proposal; the `object` or
