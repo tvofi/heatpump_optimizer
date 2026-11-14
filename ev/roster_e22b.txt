@@ -1,0 +1,3 @@
+tip 05188a4777645d87f076c2350dc3120c5ab4c1ee
+git grep -c -E 'window_work_minutes|timing-inferred|QUEUE_EPS' -- dev/programme/rosters/wave-r10-groups.json:
+0 matches (exit 1)
