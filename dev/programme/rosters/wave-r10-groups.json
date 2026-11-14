@@ -27293,6 +27293,47 @@
     "note": "queued 2026-11-14: the opener printed NEEDS-TITLE for the handoff because no group carried it",
     "pr": 3583
    }
+  },
+  {
+   "group": "R10-HOTFIX-SWEEP-DEFERRAL-DISPATCH",
+   "lane": "IN",
+   "kind": "hotfix",
+   "class": "ci",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "files": [
+    "tools/ci/sweep.py"
+   ],
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "effort": "medium",
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "rca": null,
+    "record": "sonnet",
+    "reviewer": "opus",
+    "runner": "haiku"
+   },
+   "findings": [],
+   "architect_note": "",
+   "brief": "HOTFIX ordered by the owner on 2026-11-14 for merge as soon as possible. Defect: an edit or review event at an unchanged pull-request head makes the refresh job re-run that head's green gate checks, which fail at once as deferrals while the new run is busy; the sweep in tools/ci/sweep.py then judges such a deferral red as a real verdict and, for a pull request whose stored base is older than main's last change under tools/ci, dispatches a whole new code run instead of re-running the gate in place. Each such run costs a merge-train entry or a body edit a full cycle after the head was already green. Fix, in the sweep's judging and its fresh-run decision only: a deferral red (the gate's still-being-judged failure) is no verdict and never causes a dispatch; a dispatched run at the head whose first gate attempt concluded success still counts as the head's fresh judge after a refresh re-run turned its latest attempt red. A real red on a stale-pinned head keeps its dispatch. Failing test first in the sweep's own self-test with the recorded shape of the defect (a green dispatch, a review event, deferral reds, a stale pin) and its null control (a real red on a stale pin still dispatches), then mutation proof on the new predicate. Do not change tools/ci/gate.py's refresh in this group; whether refresh should re-run a covered green gate is recorded as a finding for the round-11 intake. Root-cause analysis: the gate-defer seat's report, 2026-11-14, process state (c).",
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "fix/r10-hotfix-sweep-deferral-dispatch",
+    "commit": null,
+    "last_step": null,
+    "next_step": "local opus fixer, scoped prepr, opus review, front of the train",
+    "note": "owner order 2026-11-14: hotfix merged asap, workarounds allowed; closure 15/11 is the top priority"
+   }
   }
  ]
 }
