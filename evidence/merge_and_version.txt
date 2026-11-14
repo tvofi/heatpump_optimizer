@@ -1,24 +1,33 @@
-## merge-tree origin/main=a77d71fb755f231934e5e59ce1c38c51f86b6439
-923575739ed90fcbf54962e0496dc9096e5d8e7e
-rc=0
-
-## VERSION/manifest/notes three-dot vs 0f37833e2194739b431656a70c652b0679c8fa58
- RELEASE_NOTES.md | 2 ++
- 1 file changed, 2 insertions(+)
-diff --git a/RELEASE_NOTES.md b/RELEASE_NOTES.md
-index 3bb0dfe9d3..2536024d45 100644
---- a/RELEASE_NOTES.md
-+++ b/RELEASE_NOTES.md
-@@ -127,6 +127,8 @@ Built from outside pull request #3439 by Bankaifan, with thanks. With Pump duty
- 
- Turning the optimizer off, and every unload, now writes the space set-point that Pump duty control had changed back to the person's own baseline. The baseline is saved before the first write, a value the person sets between writes becomes the new baseline, and the restored value is kept within the entity's range and step. This replaces the earlier behaviour where off wrote nothing for that set-point. `docs/configuration.md` describes it under Pump duty control.
- 
-+Upgrade note, added 2026-11-13: after an upgrade from v7.1.11 or earlier, the space set-point is not written until it has been set once at the pump or in Home Assistant. Under Pump duty control this can leave the pump at its last idle set-point (25 °C on a flow set-point), boost included. Until the release that follows v7.1.15, set the set-point entity once by hand to release it; from that release the optimizer releases it on its own.
-+
- ### #3469 Optional controller limits bound the water set-point (R10-WATER-SETPOINT-FEEDBACK, part 3)
- 
- Two new optional entity options on the options page that carries the space set-point unit, shown for a water unit, name the controller's own lower and upper limit sensors for the written set-point. An upper limit that leaves no room above the off value for a heating write is ignored, so a placeholder or misplaced sensor can no longer make the loop write the off value or lower. The options have labels in every translation and in the card.
-49afbe9d01 Merge remote-tracking branch 'origin/main' into fix/r10-duty-switch-restart-learning-pr-b-p2
-693313ff4b R10-HOTFIX-FLOW-SETPOINT-STUCK: pin Off after the released write; v7.1.12 upgrade note
-## claim files delta 74ae5f90..head
-(empty = unchanged)
+origin/main=d2e7805b7cf91cc8231729ef29383b3ae67a27ae
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (577 entries)
+  re-run the gate that owns this file before pushing
+430d4f0e87a8f09514f693f055a2d259c0312218
+merge-tree rc=0
+merge-base=ee9e23372c9e41b46a4503e92d8c2cd0a4367d29
+three-dot VERSION/manifest/RELEASE_NOTES:
+claim files three-dot:
+review_carry 957818d6ea3d2dee9a71e2c01f450b673dfc327b -> e9ddfb0874f4eec7992728539dca85f398cd5084:
+  cbdfe210c  Merge commit 'f6f271cebd603c22cd5f103dda9850599cf19300' into fix/r10-arch-docs-delta
+  e9ddfb087  Merge remote-tracking branch 'origin/main' into fix/r10-arch-docs-delta
+review_carry: FRESH-REVIEW
+f6f271ce remerge-diff (the one hand resolution):
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (234 entries)
+  closures.tests/harness_headers.py: merged as a set (414 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1027 entries)
+  re-run the gate that owns this file before pushing
+ custom_components/heatpump_optimizer/optimizer.py | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+cbdfe210 remerge-diff lines: 0
+e9ddfb08 remerge-diff lines: 0
+3-way merge-file of optimizer.py (prev, base, 5cd7b874) vs head: only conflict markers differ:
+876d875
+< <<<<<<< /tmp/opt_prev.py
+889c888,889
+< =======
+---
+> 
+> 
+937d936
+< >>>>>>> /tmp/opt_m.py
