@@ -1,0 +1,12 @@
+RESULT exchange_rounds=3
+RESULT exchange_worst_shortfall_c=-1.455
+RESULT exchange_dhw_kwh=22.135
+RESULT exchange_published_dhw_heating_cost=46.357
+RESULT exchange_tap_draw_kwh_th=7.830
+RESULT exchange_solve_s=3.13
+RESULT null_rounds=0
+RESULT null_worst_shortfall_c=28.767
+RESULT null_dhw_kwh=5.327
+RESULT null_published_dhw_heating_cost=7.304
+RESULT null_tap_draw_kwh_th=7.830
+RESULT null_solve_s=2.71

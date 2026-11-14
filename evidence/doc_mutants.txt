@@ -1,0 +1,5 @@
+SURVIVED null | 0 fails | 
+KILLED readme_cost_row_loses | 1 fails | FAIL README's three hot-water rows say which split they show on a combi tank (Carry 10)  [
+KILLED readme_space_row_gains | 1 fails | FAIL and a space figure's row does not (Carry 10 null)  [| Lifetime Space Heating Energy |
+KILLED config_combi_loses | 1 fails | FAIL configuration.md's combi option names the three figures and their dhw_split (Carry 10
+KILLED code_sentence | 1 fails | FAIL the code's combi split sentence carries the claim the docs repeat (anchor)  [what the
