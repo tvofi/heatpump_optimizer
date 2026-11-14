@@ -12,6 +12,8 @@ This branch is stacked on the R10-HOTFIX-FLOW-SETPOINT-STUCK handoff head 90eb45
 
 No other production change: the payment removes `_space_boosted` and the `water` local and reads the same fact inline in `desired()`. The pump-duty arbiter block prints `ALL 61 FEATURES BLOCK PASSED` at this head.
 
+**Conflict round (origin/main `cc0fb254` merged into `ece83280`, after #3561 and #3564).** Git conflicted in `strings.json` and `translations/de.json`, `en.json` and `sv.json` only, one hunk each, all on the `space_setpoint_unit` help text of the options entities step; `tests/closures.json` merged through its ledger driver and every other file merged automatically. Each hunk was resolved as a union, key by key against the merge base `ec964501`: a key only one side changed keeps that side's value, and a key both sides changed keeps main's. In `strings.json`, `en.json` and `de.json` only main changed `space_setpoint_unit` (#3564's appended sentence on what Control writes), so main's text stands. In `sv.json` both sides changed it: this branch's "entitet" wording and #3564's appended sentence. Main's value already contains that wording, so main's text stands and nothing of this branch's is lost. Enumerated by flattening each file's three versions to leaf keys: the merged key set equals the union of both sides in all four files, every merged value equals one side's, and de, en and sv keep the same key set as `strings.json`. This branch's `flow_heat_c` and `space_setpoint_entity` texts are unchanged.
+
 ## Design
 
 **What a boost writes.** `_boost_ceiling_c(inp)` decides the target: the set-point entity's own maximum, capped by a heating ceiling (`flow_heat_c`) set to anything but its 55 °C default and by the controller's upper-limit sensor (`space_setpoint_high_limit_entity`, read through the `_setpoint_limits_c` the feedback loop already uses) where it reads. The maximum and the cap are both in the entity's own terms, so a return target is not moved: no offset is applied twice. The boost keeps following the planned level, as before, when the maximum does not read, sits at or below the gate, or sits above `FLOW_HEAT_C_MAX`. That constant is 70 °C, the options flow's own upper bound for `flow_heat_c`. It was a literal at config_flow.py and is now named in const.py and used there too. An entity reading 80 or 100 (a generic number helper) is no heating-flow set-point to drive to its top.
@@ -63,6 +65,16 @@ Root cause per dev/governance/rules/defect-root-cause.md: the defect reached a r
 - **Process state.** Nothing asked that a change to the level mapping re-run the duty rows (boost, experiment, comfort) on a partial level. Accepting the idle-only test was not a recorded decision: the test was right when written and went stale when the mapping changed under it. No separate countermeasure is proposed; the orchestrator decides whether a root-cause seat runs beside this fix.
 
 ## Head
+
+`2486dc6da9cd53e8cfdf0aa12220698600d6a419` merges origin/main `cc0fb254` into `ece83280`, with the four string files (`strings.json`, `translations/de.json`, `en.json`, `sv.json`) resolved by hand as a union: one hunk each, on `space_setpoint_unit`, where main's text is kept (in `sv.json` it already carries this branch's wording). No other file was resolved by hand.
+
+`ece8328001608ff93f5138392f6e6c15420c8929` merges the authored code head `ac31599707556415beaaaab8b6f7acfd2b04a7cf`.
+
+`ac31599707556415beaaaab8b6f7acfd2b04a7cf` is stacked on the train heads `ec9645014c773759edfbf632829c7cbef272ba33` (#3580) and `8317d9e1b282fce0dfa342465470921a3e4b4e8f` (#3576) and lands after them; the conflicts were resolved by union in `strings.json` and `translations/de.json`, `en.json` and `sv.json` (this PR's `space_setpoint_entity` beside their `space_setpoint_unit`), and the reviewed head is `ced9b233580709f530d5dc402dc12344697fef87`.
+
+`ced9b233580709f530d5dc402dc12344697fef87` merges main `c987209` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`04f8ab9fba6b6708aeabee35507b129a61aca4ae` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
 
 72db7df7a0b41b1a238a01e7cb59eebaa5009437
 
@@ -120,3 +132,6 @@ Each check that was red on a commit of this branch (pull request #3562, head 9e0
 ## Friction
 
 none
+
+
+
