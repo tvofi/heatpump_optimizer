@@ -1,0 +1,180 @@
+"""R11-OUTSIDE-HONEST-STARTS-RUNS: what the committed runs ship, measured on one tree.
+
+    PYTHONPATH=tests/hastub:custom_components:tests \\
+        python3 dev/audit/harnesses/r11_honest_starts_runs.py fixtures|descents|grid
+
+Synthetic throughout; no private data. The finding is outside pull request
+3529 (Bankaifan), which has no finder harness; this one reproduces the pull
+request body's figures.
+
+``fixtures``: the two golden plan scenarios that set a cycling cost
+(``cycling_cost``, ``everything_on``), captured by ``tests/golden.py`` on the
+tree this runs in. Printed per scenario: the space plan's steps between the
+plan's running rule (0.1 kW) and the 1.0 kW floor, the same for the combined
+draw (hot-water levels are the planner's), off-to-on edges of the combined
+draw, energy, ``predicted_cost`` and the lowest room temperature. Runs on a
+tree before the pull request too: it reads the published arrays only.
+
+``descents``: a solve that prices a duty switch descends twice, with the
+switch operand and as a solve that prices no stop would
+(``optimizer._relaxed_plans``). Three installs (duty-cycle, modulating
+clamped, fixed-speed) x four days, the contributor's pair (a certain stop
+from hot water to heating, 501 s off), cycling cost 0.3. Per cell and arm
+(both descents, the operand's alone, the unpriced one alone): the published
+objective and the shipped plan's switch weight at the combined draw. Null
+control: with an empty pair the arms have one descent each and print one
+plan; the harness exits 1 otherwise. On a tree without ``_relaxed_plans`` it
+prints that there is nothing to compare and exits 0.
+
+``grid``: a buffered single-zone house, space only, at cycling cost 0 / 0.25
+and clamped or not: steps under the floor, edges, energy and solve seconds
+(``time.process_time``) per cell. The unpriced duty-cycle cell is the null:
+it must never enter the candidate stage where the tree has one.
+"""
+from __future__ import annotations
+
+import sys
+import time
+from datetime import datetime, timezone
+
+import numpy as np
+
+import heatpump_optimizer.optimizer as om
+from heatpump_optimizer import duty_legs
+from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
+from profiles import solve_inputs
+
+STEPS = np.arange(96)
+T0 = datetime(2026, 1, 10, tzinfo=timezone.utc)
+RUNS_AT = 0.1
+PAIR, OFF = (1.0, 0.0), (501.0, 0.0)
+INSTALLS = (("duty-cycle", False, 1.5), ("modulating clamped", True, 1.5), ("fixed-speed", True, 5.5))
+DAYS = ((30, 2.0), (60, 2.0), (30, -4.0), (0, 6.0))
+
+
+def edges(total) -> int:
+    on = np.asarray(total, float) > RUNS_AT
+    return int(np.sum(on & ~np.r_[False, on[:-1]]))
+
+
+def under(plan, floor: float) -> int:
+    plan = np.asarray(plan, float)
+    return int(np.sum((plan > RUNS_AT) & (plan < floor - 1e-9)))
+
+
+def fixtures() -> int:
+    import golden
+
+    for name in ("cycling_cost", "everything_on"):
+        got = golden.capture(name, golden.SCENARIOS[name])
+        space = np.asarray(got["power_schedule"], float)
+        dhw = np.asarray(got.get("dhw_power_schedule") or np.zeros_like(space), float)
+        rooms = np.asarray(got["room_temp_trajectory"], float)
+        print(f"{name}: space steps under 1.0 kW {under(space, 1.0)}, combined {under(space + dhw, 1.0)},"
+              f" edges {edges(space + dhw)}, published starts {got['compressor_starts']},"
+              f" energy_kwh {float(np.sum(space + dhw)) * 0.25:.2f},"
+              f" predicted_cost {got['predicted_cost']:.2f}, lowest_room {float(rooms.min()):.2f}")
+    return 0
+
+
+def _switch_solve(clamp: bool, p_min: float, pair, arm: str, phase: int, out_mean: float):
+    params = ThermalParameters()
+    params.mixing_valve_mode, params.buffer_tank_volume = "none", 750.0
+    params.min_electrical_power, params.max_electrical_power = p_min, 5.5
+    params.dhw_enabled = True
+    cfg = om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=0.3)
+    cfg.duty_switch_stop_probability, cfg.duty_switch_off_seconds = pair, OFF
+    opt = om.HeatPumpOptimizer(ThermalModel(params), cfg)
+    kept, counts = om._relaxed_plans, []
+
+    def plans(*args):
+        res, relaxed = kept(*args)
+        counts.append(len(relaxed))
+        return res, {"operand": relaxed[:1], "unpriced": relaxed[-1:]}.get(arm, relaxed)
+
+    om._relaxed_plans = plans
+    outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (STEPS - 50) / 96.0)
+    try:
+        result = opt.optimize(inputs=solve_inputs(
+            initial_state=ThermalState(
+                room_temperature=20.5, upper_floor_temperature=20.5,
+                lower_floor_temperature=20.5, slab_temperature=21.0,
+                outdoor_temperature=float(outdoor[0]), buffer_tank_temperature=30.0,
+                dhw_temperature=45.0, dhw_hours_since_legionella=20.0,
+            ),
+            prices=1.3 + 0.9 * np.sin(2 * np.pi * (STEPS - phase) / 96.0),
+            outdoor_temps=outdoor, start_time=T0,
+        ))
+    finally:
+        om._relaxed_plans = kept
+    space = np.asarray(result.power_schedule, float)
+    dhw = np.asarray(result.dhw_power_schedule, float)
+    weight = duty_legs.switch_weight(space, dhw, PAIR, 5.5, p_min if clamp else None, om._leg_rule(opt))
+    return float(result.objective_value), float(weight), set(counts), space, dhw
+
+
+def descents() -> int:
+    if not hasattr(om, "_relaxed_plans"):
+        print("this tree has one descent per space solve: nothing to compare")
+        return 0
+    null_bad = 0
+    for name, clamp, p_min in INSTALLS:
+        for phase, out_mean in DAYS:
+            row = {arm: _switch_solve(clamp, p_min, PAIR, arm, phase, out_mean)
+                   for arm in ("both", "operand", "unpriced")}
+            print(f"{name} price phase {phase} outdoor {out_mean}: " + ", ".join(
+                f"{arm} objective {got[0]:.4f} switch_weight {got[1]:.4f}" for arm, got in row.items()))
+        nulls = [_switch_solve(clamp, p_min, (0.0, 0.0), arm, 30, 2.0) for arm in ("both", "operand", "unpriced")]
+        same = all(np.array_equal(nulls[0][3], n[3]) and np.array_equal(nulls[0][4], n[4]) for n in nulls)
+        descended = set().union(*(n[2] for n in nulls))
+        print(f"{name} null (empty pair): one plan across the arms {same}, descents per space solve {sorted(descended)}")
+        null_bad += (not same) or descended != {1}
+    print(f"null cells that moved or descended twice {null_bad}")
+    return 1 if null_bad else 0
+
+
+def grid() -> int:
+    prices = 1.3 + 0.9 * np.sin(2 * np.pi * (STEPS - 30) / 96.0)
+    staged, bad = [], 0
+    kept = getattr(om, "_run_plans", None)
+    if kept is not None:
+        om._run_plans = lambda *args: (staged.append(1), kept(*args))[1]
+    try:
+        for cost, clamp, p_min, loss, out_mean in (
+            (0.0, False, 1.1, 0.4, 8.0), (0.25, False, 1.1, 0.4, 8.0), (0.25, False, 0.53, 0.4, 8.0),
+            (0.0, True, 1.1, 0.4, 8.0), (0.25, True, 1.1, 0.4, 8.0), (0.25, False, 1.1, 1.0, 2.0),
+        ):
+            params = ThermalParameters()
+            params.mixing_valve_mode, params.buffer_tank_volume = "none", 750.0
+            params.min_electrical_power, params.max_electrical_power = p_min, 5.5
+            params.dhw_enabled, params.house_heat_loss_scale = False, loss
+            opt = om.HeatPumpOptimizer(
+                ThermalModel(params), om.OptimizationConfig(clamp_planned_levels=clamp, cycling_cost=cost))
+            outdoor = out_mean + 3.0 * np.sin(2 * np.pi * (STEPS - 50) / 96.0)
+            staged.clear()
+            t = time.process_time()
+            result = opt.optimize(inputs=solve_inputs(
+                initial_state=ThermalState(
+                    room_temperature=20.5, upper_floor_temperature=20.5,
+                    lower_floor_temperature=20.5, slab_temperature=21.0,
+                    outdoor_temperature=float(outdoor[0]), buffer_tank_temperature=30.0,
+                    dhw_temperature=50.0,
+                ),
+                prices=prices, outdoor_temps=outdoor, start_time=T0,
+            ))
+            seconds = time.process_time() - t
+            plan = np.asarray(result.power_schedule, float)
+            print(f"cost {cost} clamp {clamp} p_min {p_min} loss {loss}: steps under the floor"
+                  f" {under(plan, max(p_min, RUNS_AT))}, edges {edges(plan)},"
+                  f" energy_kwh {float(plan.sum()) * 0.25:.2f}, objective {float(result.objective_value):.4f},"
+                  f" stage entered {bool(staged)}, solve_s {seconds:.2f}")
+            bad += bool(staged) and not (cost > 0 or clamp)
+    finally:
+        if kept is not None:
+            om._run_plans = kept
+    print(f"null (unpriced duty-cycle) cells that entered the stage {bad}")
+    return 1 if bad else 0
+
+
+if __name__ == "__main__":
+    sys.exit({"fixtures": fixtures, "descents": descents, "grid": grid}[sys.argv[1]]())

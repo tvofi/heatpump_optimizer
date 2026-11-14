@@ -91814,6 +91814,23 @@ R.check(
 )
 
 
+# The plan a space solve adopts publishes with the vector of the scope the
+# stage scored it in, not the last one built: the stage is stood in for by one
+# that hands back a marked vector.
+_dsp_marked = np.full(96, 0.5)
+_dsp_real_commit = _dsp_om._commit_runs
+_dsp_om._commit_runs = lambda _opt, _h, scope, relaxed, *_rest: (relaxed[0], (*scope[:3], _dsp_marked))
+try:
+    _dsp_e.opt._solve_space(*_dsp_e.solves[0])
+finally:
+    _dsp_om._commit_runs = _dsp_real_commit
+R.check(
+    "the plan a space solve adopts publishes with the vector of the scope it "
+    "was scored in",
+    _dsp_e.opt._space_avail is _dsp_marked,
+)
+
+
 # ===========================================================================
 # R11-OUTSIDE-HONEST-STARTS-RUNS (pull request 3529, Bankaifan): a start is
 # priced as one start, and an engaged solve ships runs the pump can run.
@@ -92496,6 +92513,32 @@ R.check(
     len(_hsr_forced_seen) == 1
     and np.array_equal(_hsr_forced_seen[0], _hsr_forced_want, equal_nan=True),
     f"{_hsr_forced_seen}",
+)
+
+# A candidate is held to the bound of its own scope. A stand-in rescope hands
+# every candidate a 2.0 kW ceiling and an objective that wants 3.0 kW: the
+# plan that ships stays under the ceiling, where the relaxed plan's own 3.0 kW
+# would have scored lowest unheld.
+_hsr_own_relaxed = np.where(np.arange(12) < 6, 3.0, 0.0)
+_hsr_own_obj = _hsr_toward(_hsr_own_relaxed)
+_hsr_own_calls = []
+
+
+def _hsr_own_scope(plan):
+    _hsr_own_calls.append(np.array(plan, float))
+    return [(0.0, 2.0)] * 12, *_hsr_own_obj, None
+
+
+_hsr_own, _hsr_own_shipped_scope = _hsr_om._commit_runs(
+    _hsr_sel_opt, _hsr_h, (_hsr_box, *_hsr_own_obj, None), [_hsr_own_relaxed], None, 30, _hsr_own_scope)
+R.check(
+    "each candidate is scored in the scope of a solve started from it and held "
+    "to that scope's bound, and the plan ships with the scope it was scored in",
+    len(_hsr_own_calls) >= 1 and float(_hsr_own.max()) <= 2.0 + 1e-9
+    and np.allclose(_hsr_own[:6], 2.0, atol=1e-3)
+    and _hsr_own_shipped_scope[0] == [(0.0, 2.0)] * 12
+    and float(_hsr_commit(_hsr_sel_opt, *_hsr_own_obj, _hsr_own_relaxed, 30).max()) == 3.0,
+    f"{_hsr_own.round(3).tolist()}",
 )
 
 
