@@ -1,0 +1,4 @@
+strings.json PR-owned keys 1 all equal at head ['data_description.space_setpoint_entity']
+de.json PR-owned keys 1 all equal at head ['data_description.space_setpoint_entity']
+en.json PR-owned keys 1 all equal at head ['data_description.space_setpoint_entity']
+sv.json PR-owned keys 1 all equal at head ['data_description.space_setpoint_entity']

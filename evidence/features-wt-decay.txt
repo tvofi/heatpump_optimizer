@@ -1,0 +1,5 @@
+features.py at 3ab3d5b5ab4b21d147977652f14d5cf0de280006 (wt-decay)
+  FAIL n has a ceiling: forty stops over two days hold n at N_CAP with p unchanged, so with no further episode a latched direction unlatches just past two half-lives and is re-tested; a record stored over the cap is held to it by the next pass alike; null control, a day before that it is still latched  [n 10.0 p 1.0 [True, False, True, True]]
+  FAIL the cap is held on decay as well as at booking: a record stored at four times the cap is held to it by the first pass, p unchanged, and is off a day past the 28 a capped direction stays latched (control: that capped direction is still latched at 28 days)  [n after the first pass 40.0, after 29 days 9.516951530106194 usable=True; control usable=True]
+EXIT 1
+ok lines: 5722
