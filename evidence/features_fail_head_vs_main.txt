@@ -1,0 +1,6 @@
+5500:  FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), dip at the window edge (0.0, 0, [], [0, 0], True), draw that stays down (0.6825, 1, [], [0, 1], True), the dip with no DHW charge on record (control) (0.6825, 2, [], [0, 1], True), the draw with none 
+5500:  FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), dip at the window edge (0.0, 0, [], [0, 0], True), draw that stays down (0.6825, 1, [], [0, 1], True), the dip with no DHW charge on record (control) (0.6825, 2, [], [0, 1], True), the draw with none 
+IDENTICAL FAIL LINE at head and main
+ dev/audit/rounds/round10/D6/flow_claims.py | 110 ++++++++++++++++++++
+ tests/doc_claims.py                        | 158 +++++++++++++++++++++++++++++
+ 2 files changed, 268 insertions(+)

@@ -1,0 +1,20 @@
+merge 0d29eb6293 p1 8c9dc2697a74ebb036f4dddb8557edd57664d8bd p2 e23124ff6e45bac1d48b4a775dad555a37965355 base 154dbb4c61652135381ce66646d23f7109d1c142
+custom_components/heatpump_optimizer/strings.json: keys=1501 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/en.json: keys=1501 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/sv.json: keys=1501 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/de.json: keys=1501 wrong=[] both-sides-changed=[]
+merge 5d890b3eeb p1 8c9dc2697a74ebb036f4dddb8557edd57664d8bd p2 e23124ff6e45bac1d48b4a775dad555a37965355 base 154dbb4c61652135381ce66646d23f7109d1c142
+custom_components/heatpump_optimizer/strings.json: keys=1501 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/en.json: keys=1501 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/sv.json: keys=1501 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/de.json: keys=1501 wrong=[] both-sides-changed=[]
+merge 6ebbd4e56a p1 59bb0506a003221fe2af38f30ab20fac46d1b73d p2 50373173d486faf394b24637c177ab38b691b394 base e23124ff6e45bac1d48b4a775dad555a37965355
+custom_components/heatpump_optimizer/strings.json: keys=1507 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/en.json: keys=1507 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/sv.json: keys=1507 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/de.json: keys=1507 wrong=[] both-sides-changed=[]
+merge 9a524d703f p1 67ab6ad0e78cc996d14875de78bee99da5560189 p2 6ebbd4e56aea37f2ffd583e488f74adb6e8bb67a base e23124ff6e45bac1d48b4a775dad555a37965355
+custom_components/heatpump_optimizer/strings.json: keys=1507 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/en.json: keys=1507 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/sv.json: keys=1507 wrong=[] both-sides-changed=[]
+custom_components/heatpump_optimizer/translations/de.json: keys=1507 wrong=[] both-sides-changed=[]
