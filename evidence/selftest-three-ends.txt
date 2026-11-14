@@ -1,0 +1,10 @@
+== 9fdba3b854
+ci-ratchet self-test: 67 checks, 0 failed
+rc=0
+== 990dcfaf20
+  FAIL a run cancelled at its prelude, its every tests job skipped, is not in the window (run 43602217369) -- ci-ratchet: CI push run 43602217369 has no completed `tests / *` job (fail closed)
+ci-ratchet self-test: 71 checks, 1 failed
+rc=1
+== bc85e0900a
+ci-ratchet self-test: 72 checks, 0 failed
+rc=0
