@@ -1,0 +1,21 @@
+$ flow_claims.py enumerate | tail -4
+# strings: 1078 flow strings
+# de: 1078 flow strings
+# en: 1078 flow strings
+# sv: 1078 flow strings
+$ distinct | tail -1
+# 372 distinct English flow texts of 40+ characters
+$ verdicts
+{'true': 286, 'false': 27, 'stale': 12, 'unverifiable': 4, 'no-claim': 40}
+$ numstat origin/main HEAD
+56	56	custom_components/heatpump_optimizer/strings.json
+56	56	custom_components/heatpump_optimizer/translations/de.json
+56	56	custom_components/heatpump_optimizer/translations/en.json
+55	55	custom_components/heatpump_optimizer/translations/sv.json
+$ numstat 59bb0506 HEAD
+8	0	custom_components/heatpump_optimizer/strings.json
+8	0	custom_components/heatpump_optimizer/translations/de.json
+8	0	custom_components/heatpump_optimizer/translations/en.json
+8	0	custom_components/heatpump_optimizer/translations/sv.json
+$ VERSION/manifest/notes
+end

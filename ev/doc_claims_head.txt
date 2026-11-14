@@ -1,0 +1,4 @@
+  ok   red fixture: an exemption that matches no fragment is a finding
+
+ALL 354 checks PASSED
+rc=0
