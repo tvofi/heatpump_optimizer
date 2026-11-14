@@ -1,0 +1,7 @@
+Jobs the body's ## Red checks names, read through the Actions API (get_workflow_job / get_job_logs), 2026-11-14 ~11:25Z:
+- 132318156274 tests / mutation, head_sha f14a2fbcf5, conclusion failure, workflow "CI code pr=3582". Log: "MUTATION TABLE REFUSED -- 2306 unpinned site(s) against 2309 at the ratchet base c987209cc7..., 7 of them added by this diff"; last listed ADDED UNPINNED whatif.py:149 RETURN_DEL. Matches the body.
+- 131942718609 arch-score / arch-score, head_sha e9b1651aae, conclusion failure, workflow "CI edit pr=3481". Log: "FAIL: dS +0.0221 WORSENS; unexplained: coord_footprint 2505->2513". Matches the body's figures; the run is PR 3481's (branch fix/r10-advisor-steady-start; `git branch -r --contains e9b1651aae` lists only 3481's and this PR's branches), not 3574's as the body attributes it.
+- 131889367213 tests / briefs, head_sha 0cb8073467, conclusion failure, workflow "CI code pr=3481". Log: "LEGACY-CONTROL VACUOUS: carry-1412.json: its controls lint clean without the exemption: remove it from LEGACY_CONTROL_FILES". Matches the body.
+- 131831771785 tests / fast (3.14), head_sha 0cb8073467, conclusion failure, step "Run the suite" failed. Failing test name not read from the log (tail is cleanup); not re-derived.
+- 132302973404 tests / fast (3.14), head_sha d712c2ba4a, conclusion failure, started 2026-11-14T00:31Z (a Saturday), step "Run the suite" failed. Failing test name not read; not re-derived.
+All five are on commits of the stacked heads' history, none on 5eda176a1d or 957818d6ea.

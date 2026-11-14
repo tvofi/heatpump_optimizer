@@ -1,0 +1,25 @@
+    def split(self) -> duty_legs.LegRule:
+        """The leg rule a both step is served by: ``duty_legs.leg_rule`` of
+        :meth:`planner_pairs`, the pairs the planner prices, so planner and
+        arbiter read one rule. Read only through the latches: ``n``, the
+        tallies and ``span_days`` are not read, so evidence accruing faster on
+        one set-point unit than another moves nothing here until a latch
+        moves. With no latch on this is ``duty_legs.DEFAULT_RULE``: hot water
+        first for its share."""
+        return duty_legs.leg_rule(*self.planner_pairs())
+
+def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float, dhw_kw: float,
+                   step_min: float, next_duty: str | None) -> str:
+    """The duty the both step starting at ``start`` serves at ``now``: its
+    first leg for that leg's minutes, then its last, the legs being
+    ``duty_legs.both_step_legs`` under :meth:`DutySwitchLearner.split`, decided
+    once per step, of a step ``step_min`` long. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
+    as before the learner existed, and latches nothing."""
+    if rec.loaded:
+        if rec.order is None or rec.order[0] != start:
+            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, step_min, rec.learner.split(),
+                                                         next_duty=next_duty))
+        legs = rec.order[1]
+    else:
+        legs = duty_legs.both_step_legs(space_kw, dhw_kw, step_min)
+    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]

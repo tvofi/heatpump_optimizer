@@ -1,0 +1,129 @@
+## review_carry f14a2fbcf5 -> 74ae5f90
+review_carry: f14a2fbcf -> 74ae5f90a  main=origin/main
+  branch-only commits: 1
+  why: 1 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
+  74ae5f90a  ci: pin killed mutants
+review_carry: CARRY
+
+## review_carry 74ae5f90 -> 957818d6ea3d2dee9a71e2c01f450b673dfc327b
+review_carry: 74ae5f90a -> 957818d6e  main=origin/main
+  branch-only commits: 37
+  why: ff45fd27c7678584562e1505b6f5a1d7e336bc69 is not the automatic merge of its parents
+  e1d935247  Merge remote-tracking branch 'origin/main' into fix/r10-dsrl-pr-b-p2
+  c53e4500d  duty_switch: the arbiter's split of a both step reads the learned latches; n has a ceiling; factory reset voids the store
+  a72bccef5  coordinator: the restored stores' tuple on two lines, paying the line the duty-switch store added
+  df8142a27  design: part B as built, the split reading the estimate
+  485c8f120  duty_switch: the both step's duty is decided on the pump's record; the arbiter only delegates (coord_footprint unchanged)
+  425a156f9  features: an unloaded duty-switch record splits as today and latches nothing
+  29370fdbb  duty_switch: the booking cap without an equivalent comparison; checks on the share's end and a censored direction's bound; stale ledger pins of the replaced lines removed
+  56eb07ae2  Merge remote-tracking branch 'origin/main' into fix/r10-duty-switch-restart-learning-pr-b-p2
+  6c5fc42f5  record: the delivery row for #3532
+  56b43dea8  ci: pin killed mutants
+  569375ec8  R10-HOTFIX-FLOW-SETPOINT-STUCK: an own-write reading never holds the space write
+  837410984  R10-HOTFIX-FLOW-SETPOINT-STUCK: the space set-point text says when it is written
+  693313ff4  R10-HOTFIX-FLOW-SETPOINT-STUCK: pin Off after the released write; v7.1.12 upgrade note
+  8fc6be183  R10-HOTFIX-FLOW-SETPOINT-STUCK: Off keeps the own space write until a restore replaces it
+  920fa2e03  R10-HOTFIX-FLOW-SETPOINT-STUCK: one reader of the own space write; stale pins dropped
+  90eb45f69  R10-HOTFIX-FLOW-SETPOINT-STUCK: tests/harness_headers.py reads the new harness (INERT READS)
+  c91412dfb  Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-flow-setpoint-stuck
+  a02783d44  record: the delivery row for #3561
+  5c73afd6a  R10-HOTFIX-FLOW-SETPOINT-STUCK: configuration.md states the upgrade write with no history phrase (doc_claims)
+  56e210d34  R10-HOTFIX-FLOW-SETPOINT-STUCK: re-anchor #3404's mutant harness on the lines this branch rewrote
+  bd8cc41ab  R10-HOTFIX-FLOW-SETPOINT-STUCK: pin three killed mutants (mutation_table.py --pin-killed)
+  3148bad83  R10-HOTFIX-FLOW-SETPOINT-STUCK: pin the other three killed mutants (--pin-killed, features.py)
+  790d5e66c  R10-HOTFIX-FLOW-SETPOINT-STUCK: the restart check reads the restored value; the seam block reaches the Carry 8 checks
+  2d99a7b04  R10-HOTFIX-FLOW-SETPOINT-STUCK: M35 runs on the arbiter block, whose Off-and-On check kills it
+  30b069508  Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck
+  ff45fd27c  Merge PR 3561's head 30b06950 (R10-HOTFIX-FLOW-SETPOINT-STUCK): one leg rule for planner and arbiter
+  d07194dd9  Merge remote-tracking branch 'origin/main' into recon
+  bb95b53b5  duty_switch: both_step_duty takes the step width from the arbiter; ledger pins of the replaced booking-cap guard removed
+  8bce59d55  duty_legs: the hot-water placement ban reads the leg rule; the planner-price section checked under the rule it now prices
+  2d024b4d1  harness: the planner-price mutants re-anchored on the merged lines
+  b142bcaac  mutation ledger: thirteen pins of lines the leg-rule merge replaced removed
+  673904aed  Merge commit 'b142bcaacee1781eeb99086587c644cb823bd34f' into fix/r10-duty-switch-restart-learning-pr-b-p2
+  49afbe9d0  Merge remote-tracking branch 'origin/main' into fix/r10-duty-switch-restart-learning-pr-b-p2
+  fd5fe52fa  ci: pin killed mutants
+  0ef485719  Merge pull request 3532 head (fd5fe52fa7) into r10-arch-docs-delta: duty-switch restart learning part B, stacked
+  5eda176a1  architecture.md: the duty_switch row names the arbiter's both-step order (pull request 3532)
+  957818d6e  Merge commit '5eda176a1dcad58b7a58d5839a33ecb93cdd811c' into fix/r10-arch-docs-delta
+review_carry: FRESH-REVIEW
+
+## delta commits
+957818d6ea parents=74ae5f90aa 5eda176a1d Merge commit '5eda176a1dcad58b7a58d5839a33ecb93cdd811c' into fix/r10-arch-docs-delta
+5eda176a1d parents=0ef4857190 architecture.md: the duty_switch row names the arbiter's both-step order (pull request 3532)
+0ef4857190 parents=30314c72c5 fd5fe52fa7 Merge pull request 3532 head (fd5fe52fa7) into r10-arch-docs-delta: duty-switch restart learning part B, stacked
+fd5fe52fa7 parents=49afbe9d01 ci: pin killed mutants
+49afbe9d01 parents=673904aed4 0f37833e21 Merge remote-tracking branch 'origin/main' into fix/r10-duty-switch-restart-learning-pr-b-p2
+673904aed4 parents=56b43dea84 b142bcaace Merge commit 'b142bcaacee1781eeb99086587c644cb823bd34f' into fix/r10-duty-switch-restart-learning-pr-b-p2
+0f37833e21 parents=513a07dfdc b4f8038e2e Merge pull request #3547 from tvofi/fix/r10-prepr-residue-p2
+513a07dfdc parents=c987209cc7 87d3a6f45e Merge pull request #3579 from tvofi/fix/r10-hotfix-entities-redaction-flake
+87d3a6f45e parents=3d8163c007 record: the delivery row for #3579
+b142bcaace parents=2d024b4d16 mutation ledger: thirteen pins of lines the leg-rule merge replaced removed
+2d024b4d16 parents=8bce59d55b harness: the planner-price mutants re-anchored on the merged lines
+3d8163c007 parents=f38124f19c fdb526895c Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-entities-redaction-flake
+8bce59d55b parents=bb95b53b50 duty_legs: the hot-water placement ban reads the leg rule; the planner-price section checked under the rule it now prices
+bb95b53b50 parents=d07194dd95 duty_switch: both_step_duty takes the step width from the arbiter; ledger pins of the replaced booking-cap guard removed
+b4f8038e2e parents=2a1a7de05b e9ba58d303 Merge commit 'e9ba58d303b8651777a2e9915ac81f4bd8f7f681' into fix/r10-prepr-residue-p2
+d07194dd95 parents=ff45fd27c7 50373173d4 Merge remote-tracking branch 'origin/main' into recon
+ff45fd27c7 parents=56b43dea84 30b069508f Merge PR 3561's head 30b06950 (R10-HOTFIX-FLOW-SETPOINT-STUCK): one leg rule for planner and arbiter
+f38124f19c parents=50373173d4 tests: entities redaction check searches the payload with clock fields removed
+e9ba58d303 parents=2a1a7de05b r10-prepr-residue-p2 round 4: kill P12, P13 and G6 with self-test arms
+30b069508f parents=a02783d44d 2d99a7b04b Merge commit '2d99a7b04b4fff4db0b4168c913882121b2825c6' into fix/r10-hotfix-flow-setpoint-stuck
+2d99a7b04b parents=790d5e66ce R10-HOTFIX-FLOW-SETPOINT-STUCK: M35 runs on the arbiter block, whose Off-and-On check kills it
+790d5e66ce parents=3148bad838 R10-HOTFIX-FLOW-SETPOINT-STUCK: the restart check reads the restored value; the seam block reaches the Carry 8 checks
+3148bad838 parents=bd8cc41ab7 R10-HOTFIX-FLOW-SETPOINT-STUCK: pin the other three killed mutants (--pin-killed, features.py)
+2a1a7de05b parents=b53bbf1604 7aac3e7c04 ci: merge main
+bd8cc41ab7 parents=56e210d345 R10-HOTFIX-FLOW-SETPOINT-STUCK: pin three killed mutants (mutation_table.py --pin-killed)
+56e210d345 parents=5c73afd6ab R10-HOTFIX-FLOW-SETPOINT-STUCK: re-anchor #3404's mutant harness on the lines this branch rewrote
+5c73afd6ab parents=90eb45f69f R10-HOTFIX-FLOW-SETPOINT-STUCK: configuration.md states the upgrade write with no history phrase (doc_claims)
+a02783d44d parents=c91412dfb9 record: the delivery row for #3561
+c91412dfb9 parents=90eb45f69f e23124ff6e Merge remote-tracking branch 'origin/main' into fix/r10-hotfix-flow-setpoint-stuck
+90eb45f69f parents=920fa2e031 R10-HOTFIX-FLOW-SETPOINT-STUCK: tests/harness_headers.py reads the new harness (INERT READS)
+920fa2e031 parents=8fc6be183d R10-HOTFIX-FLOW-SETPOINT-STUCK: one reader of the own space write; stale pins dropped
+8fc6be183d parents=693313ff4b R10-HOTFIX-FLOW-SETPOINT-STUCK: Off keeps the own space write until a restore replaces it
+693313ff4b parents=837410984f R10-HOTFIX-FLOW-SETPOINT-STUCK: pin Off after the released write; v7.1.12 upgrade note
+837410984f parents=569375ec8c R10-HOTFIX-FLOW-SETPOINT-STUCK: the space set-point text says when it is written
+569375ec8c parents=154dbb4c61 R10-HOTFIX-FLOW-SETPOINT-STUCK: an own-write reading never holds the space write
+b53bbf1604 parents=a81d7f1529 16c571f778 Merge commit '16c571f7783b3f9f0c53e0778f8c805fc07d65f4' into fix/r10-prepr-residue-p2
+16c571f778 parents=becbe652ab prepr self-test: scrub the caller's PREPR_SKIP_CODE/PREPR_SKIP_CLOSURES at entry, and unset before the two empty-assignment rows
+becbe652ab parents=0b407606f2 closures: re-record tests/harness_headers.py
+0b407606f2 parents=7b0681f411 gate_priority self-test: pin the fetched default and restore-after-raise
+7b0681f411 parents=a81d7f1529 prepr hotfix scope: pin the classifier seam end to end, the --hotfix CLI and its fail-closed read
+
+## own commit 5eda176a1d
+commit 5eda176a1dcad58b7a58d5839a33ecb93cdd811c
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Sat Nov 14 10:09:31 2026 +0000
+
+    architecture.md: the duty_switch row names the arbiter's both-step order (pull request 3532)
+
+diff --git a/docs/architecture.md b/docs/architecture.md
+index f9ed64f08f..7647afc35c 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -194,6 +194,8 @@ custom_components/heatpump_optimizer/
+ ├── duty_switch.py        # Learns per direction whether a duty switch stops
+ │                         #   the running compressor; a latched direction's
+ │                         #   estimate is what the solve prices that switch by
++│                         #   and what orders the legs of a both step the
++│                         #   arbiter serves
+ ├── heat_curve.py         # The heat-curve displace's outputs: the ECL110 MQTT
+ │                         #   topics and an offset number entity
+ ├── off_restore.py        # The one owner of the off and unload restore: what
+## remerge-diff 957818d6ea
+commit 957818d6ea3d2dee9a71e2c01f450b673dfc327b
+Merge: 74ae5f90aa 5eda176a1d
+Author: tvofi <70032254+tvofi@users.noreply.github.com>
+Date:   Sat Nov 14 12:12:12 2026 +0100
+
+    Merge commit '5eda176a1dcad58b7a58d5839a33ecb93cdd811c' into fix/r10-arch-docs-delta
+## remerge-diff 0ef4857190
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1022 entries)
+  re-run the gate that owns this file before pushing
+commit 0ef48571902f417efdc7b4813b393f70a423ad46
+Merge: 30314c72c5 fd5fe52fa7
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Sat Nov 14 10:09:25 2026 +0000
+
+    Merge pull request 3532 head (fd5fe52fa7) into r10-arch-docs-delta: duty-switch restart learning part B, stacked
