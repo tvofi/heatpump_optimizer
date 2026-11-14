@@ -1,0 +1,14 @@
+R0_NULL fahrenheit rc=1 ["NameError: name '_pa_entry' is not defined"]
+       File "/tmp/tmpa3cha3v0/tools/audit/seat/features_block.py", line 218, in <module>
+       File "/tmp/tmpa3cha3v0/tools/audit/seat/features_block.py", line 212, in _main
+       File "/tmp/tmpa3cha3v0/tools/audit/seat/features_block.py", line 69, in run
+       File "tests/features.py[block]", line 49, in <module>
+       File "tests/features.py[block]", line 35, in _df_write
+     NameError: name '_pa_entry' is not defined
+R4_drop_water_guard fahrenheit rc=1 ["NameError: name '_pa_entry' is not defined"]
+       File "/tmp/tmpvu6qq_go/tools/audit/seat/features_block.py", line 218, in <module>
+       File "/tmp/tmpvu6qq_go/tools/audit/seat/features_block.py", line 212, in _main
+       File "/tmp/tmpvu6qq_go/tools/audit/seat/features_block.py", line 69, in run
+       File "tests/features.py[block]", line 49, in <module>
+       File "tests/features.py[block]", line 35, in _df_write
+     NameError: name '_pa_entry' is not defined

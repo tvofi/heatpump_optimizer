@@ -1,0 +1,26 @@
+R0_NULL arbiter rc=0 ['Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the optimizer: 55.0); retrying']
+R0_NULL fahrenheit rc=1 ["NameError: name '_pa_entry' is not defined"]
+     NameError: name '_pa_entry' is not defined
+R1_boosted_False arbiter rc=1 ['Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the optimizer: 55.0); retrying']
+       FAIL the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's
+       FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a p
+       FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-
+       FAIL a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while of
+R1_boosted_False fahrenheit rc=1 ["NameError: name '_pa_entry' is not defined"]
+     NameError: name '_pa_entry' is not defined
+R2_drop_global_mode arbiter rc=1 ['Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the optimizer: 55.0); retrying']
+       FAIL the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's
+       FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a p
+       FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-
+R2_drop_global_mode fahrenheit rc=1 ["NameError: name '_pa_entry' is not defined"]
+     NameError: name '_pa_entry' is not defined
+R3_drop_space_channel arbiter rc=1 ['Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the optimizer: 55.0); retrying']
+       FAIL R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's own maximum on a step the plan books at a p
+       FAIL R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's maximum, 60; null control: with no boost a band-
+       FAIL a boost writes its own single duty where the pump offers it, Heating + DHW where it does not or the other duty is due too, and nothing while of
+       FAIL R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum (R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 
+R3_drop_space_channel fahrenheit rc=1 ["NameError: name '_pa_entry' is not defined"]
+     NameError: name '_pa_entry' is not defined
+R4_drop_water_guard arbiter rc=0 ['Pump duty: the pump does not hold a write, number.water_set: 41.0 (set by the optimizer: 55.0); retrying']
+R4_drop_water_guard fahrenheit rc=1 ["NameError: name '_pa_entry' is not defined"]
+     NameError: name '_pa_entry' is not defined
