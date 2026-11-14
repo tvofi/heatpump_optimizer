@@ -53,7 +53,13 @@ dispatched twice for one red and the branch cannot loop. That run's green `gate`
 own suite and replaces no other run's red (#3400 at 7326025c: the edit run's stale red stood until
 re-run by hand), so the sweep of the fresh run itself -- ci.yml's sweep-self, its actor being the
 token's -- re-runs each stale red once (`fresh` returns False); the re-run's completion settles,
-where V is no green judge, and is left. This sweep runs main's copy
+where V is no green judge, and is left. A dispatch whose first gate attempt was green stays that judge
+after a refresh re-ran its gate red (R10-HOTFIX-SWEEP-DEFERRAL-DISPATCH, #3544: a review event re-ran it,
+it deferred, and a second code run went out); its own red is re-run in place, never pinned. Nor does a
+DEFERRAL red dispatch where a green gate covers the newest event (`covered_deferral`): gate() reads busy()
+before any source, so a red judged while another run's source was unfinished is the deferral, no verdict,
+and is re-run in place, within ATTEMPT_CAP and `settled` like any red; with nothing green (#3261's pair)
+it still dispatches. This sweep runs main's copy
 (gate-sweep.yml), so the countermeasure reaches every PR at once; gate.py's `refresh` runs
 the pinned copy itself, which is why it lives here.
 
@@ -191,11 +197,11 @@ class Sweep:
     def fresh(self, run, gate, runs, pin):
         """Re-judge a stale-pinned red gate by one dispatched run at the head, unless one exists: True.
         False where V is that fresh judge and green: its check replaces no other run's red (#3400), so
-        the stale gate is re-run, once, the run judging after every run here concluded. A dispatch at
+        the stale gate is re-run, once, the run judging after every run here concluded; False too for a
+        covered deferral, no verdict (module doc). A dispatch at
         the head that is not completed, or concluded success, is that judge whenever it was created:
         a re-run stale gate completes after it, and keying on creation re-dispatched (#3446)."""
-        later = [r["id"] for r in runs if r.get("event") == "workflow_dispatch"
-                 and (r.get("status") in NOT_COMPLETED or r.get("conclusion") == "success")]
+        later = [r["id"] for r in runs if r.get("event") == "workflow_dispatch" and self.judged(r)]
         if self.green in later:
             self.out(f"STALE-PIN {pin}: run {self.green}, this head's fresh judge, is green and replaces no "
                      f"other run's red; run {run['id']}'s gate is re-run")
@@ -206,6 +212,10 @@ class Sweep:
         if self.dispatches:
             self.out(f"STALE-PIN {pin}: run {run['id']} left to this sweep's dispatched run")
             return True
+        if self.covered_deferral(run, gate, runs):
+            self.out(f"STALE-PIN {pin}: run {run['id']}'s red is a deferral and a green gate covers the newest "
+                     "event: no verdict to re-judge; re-run in place")
+            return False
         base, ref = self.pull["base"]["ref"], self.pull["head"]["ref"]
         st, _, _ = self.post(f"repos/{self.repo}/actions/workflows/ci.yml/dispatches",
                              {"ref": ref, "inputs": {"pr": str(self.pull_number), "base": base}})
@@ -213,6 +223,23 @@ class Sweep:
         self.out(f"STALE-PIN {pin}: run {run['id']}'s gate restores programs older than {base}'s tools/ci; "
                  f"re-judged by a fresh run dispatched on {ref} (HTTP {st})")
         return True
+
+    def judged(self, r):
+        """A dispatch at the head is its fresh judge while not completed, green, or green at its first
+        attempt (a refresh re-run red judged nothing new); an unreadable first attempt is none: dispatch."""
+        if r.get("status") in NOT_COMPLETED or r.get("conclusion") == "success":
+            return True
+        if r.get("run_attempt", 1) < 2:
+            return False
+        st, _, body = self.get(f"repos/{self.repo}/actions/runs/{r['id']}/attempts/1/jobs", {"per_page": 100})
+        return st == 200 and (latest_gate((body or {}).get("jobs") or []) or {}).get("conclusion") == "success"
+
+    def covered_deferral(self, run, gate, runs):
+        """A source of another run finished after this red gate started, or has not (it deferred: gate()
+        reads busy() first), and a green gate at the head covers the newest event (module doc)."""
+        others = {r["id"]: self.jobs_of(r["id"]) for r in runs if r["id"] != run["id"]}
+        return source_after(gate.get("started_at") or "", others) and (
+            self.green is not None or any(covers_newest(latest_gate(js), runs) for js in others.values()))
 
     def runs_at(self, head):
         runs = self.j("actions/runs", {"head_sha": head, "per_page": 100})["workflow_runs"]
