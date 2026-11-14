@@ -59,6 +59,10 @@
 /dev/governance/dimensions/               @tvofi
 /dev/governance/decisions/                @tvofi
 /dev/audit/README.md                      @tvofi
+/dev/audit/config/objective.json          @tvofi
+/dev/audit/rounds/*/EVALUATION.json       @tvofi
+/dev/audit/rounds/*/OBJECTIVE.json        @tvofi
+/tools/audit/check_scopes.py              @tvofi
 /dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi
 # The ratchet caps (`*_budgets.json`) carry no owner (decision 0013 as amended

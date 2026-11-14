@@ -285,7 +285,8 @@ before merging — so open the pull request and surface it.
 - **Do not build an automated gate that clears your own work.** A check you
   wrote, run by you, on text you wrote is three roles this programme separates,
   and `judge.md`'s void rule applies to it. Run tools, but the reviewer stays the
-  authority.
+  authority. The start evaluation is `evaluator.md`'s, decision 0017 the
+  owner's.
 - **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
   the bot commit, never open a second pull request, never hand-empty the claim
   files.

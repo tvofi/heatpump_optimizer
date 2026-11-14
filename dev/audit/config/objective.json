@@ -1,0 +1,291 @@
+{
+ "_rule": "The objective function's machine-read half: dev/governance/decisions/0017-objective-function.md defines every key here, and tools/audit/check_scopes.py reads this file (--round at the baseline, --population for the install population). terms are in decision order, layer 1 first. thresholds and owner_criteria hold the owner's values: a null value is unset, makes every comparison or result that needs it undecided, and owes a card (0017 sections 1 and 2); proposed is the orchestrator's proposal and is read by nothing. population lists the axes of the supported install population, each with the tracked source its levels are read from; an axis with kind null is NO-READ and names what would read it. objects maps an object class to the globs whose tracked files are its objects. Only the owner changes this file (CODEOWNERS).",
+ "terms": [
+  "regret",
+  "operation",
+  "generality",
+  "unowned",
+  "escapes",
+  "injected",
+  "product_green",
+  "coverage",
+  "unexamined",
+  "first_pass",
+  "lead_time",
+  "closure_slip",
+  "tokens_per_change"
+ ],
+ "layers": {
+  "regret": 1,
+  "operation": 1,
+  "generality": 1,
+  "unowned": 1,
+  "escapes": 1,
+  "injected": 1,
+  "product_green": 1,
+  "coverage": 1,
+  "unexamined": 1,
+  "first_pass": 2,
+  "lead_time": 2,
+  "closure_slip": 2,
+  "tokens_per_change": 3
+ },
+ "thresholds": {
+  "product_green_floor": {
+   "value": null,
+   "proposed": 0.9,
+   "unit": "share of concluded runs"
+  },
+  "closure_slip_ceiling": {
+   "value": null,
+   "proposed": 0.2,
+   "unit": "days per day"
+  },
+  "band_lead_time": {
+   "value": null,
+   "proposed": 0.2,
+   "unit": "relative difference"
+  },
+  "band_closure_slip": {
+   "value": null,
+   "proposed": 0.2,
+   "unit": "relative difference"
+  },
+  "band_tokens_per_change": {
+   "value": null,
+   "proposed": 0.2,
+   "unit": "relative difference"
+  }
+ },
+ "owner_criteria": {
+  "D4": null,
+  "D5": null,
+  "D7": "dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md",
+  "D9": null,
+  "D10": null
+ },
+ "seats": {
+  "evaluator_model": null,
+  "reviewer_model": null
+ },
+ "population": [
+  {
+   "axis": "layout",
+   "kind": "regex",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "pattern": "(?m)^TOPOLOGY_[A-Z0-9_]+(?:\\s*:[^=\\n]+)?\\s*=\\s*\"([^\"]+)\""
+  },
+  {
+   "axis": "pump_duty_mode",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "PUMP_DUTY_MODES"
+  },
+  {
+   "axis": "compressor_modulation",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "COMPRESSOR_MODULATIONS"
+  },
+  {
+   "axis": "heat_curve_target_kind",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "HEAT_CURVE_TARGET_KINDS"
+  },
+  {
+   "axis": "mixing_valve_mode",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/mixing_valve.py",
+   "symbol": "SELECTABLE_MODES"
+  },
+  {
+   "axis": "valve_write_target",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/mixing_valve.py",
+   "symbol": "WRITE_TARGET_KINDS"
+  },
+  {
+   "axis": "combi_tank",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "COMBI_TANK_PRESETS"
+  },
+  {
+   "axis": "two_zone_mode",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "TWO_ZONE_MODES"
+  },
+  {
+   "axis": "space_setpoint_unit",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "SPACE_SETPOINT_UNITS"
+  },
+  {
+   "axis": "wood_type",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "WOOD_TYPES"
+  },
+  {
+   "axis": "wood_packing",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "WOOD_PACKINGS"
+  },
+  {
+   "axis": "price_source",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "PRICE_SOURCES"
+  },
+  {
+   "axis": "solar_source",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "SOLAR_SOURCES"
+  },
+  {
+   "axis": "grid_fee_mode",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/grid_fee.py",
+   "symbol": "MODES"
+  },
+  {
+   "axis": "operation_mode",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "OPERATION_MODES"
+  },
+  {
+   "axis": "structure",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "symbol": "STRUCTURES"
+  },
+  {
+   "axis": "foundation",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "symbol": "FOUNDATIONS"
+  },
+  {
+   "axis": "era",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "symbol": "ERAS"
+  },
+  {
+   "axis": "emitter",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/presets.py",
+   "symbol": "EMITTERS"
+  },
+  {
+   "axis": "power_unit",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "POWER_UNIT_TO_KW"
+  },
+  {
+   "axis": "flow_unit",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "FLOW_UNIT_TO_KG_S"
+  },
+  {
+   "axis": "temperature_unit",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "TEMPERATURE_UNIT_TO_C"
+  },
+  {
+   "axis": "energy_unit",
+   "kind": "tuple",
+   "file": "custom_components/heatpump_optimizer/const.py",
+   "symbol": "ENERGY_UNIT_TO_KWH"
+  },
+  {
+   "axis": "optional_entity",
+   "kind": "regex",
+   "file": "custom_components/heatpump_optimizer/config_flow.py",
+   "pattern": "\\b(CONF_[A-Z0-9_]+_ENTITY)\\b",
+   "binary": true
+  },
+  {
+   "axis": "language",
+   "kind": "glob",
+   "glob": "custom_components/heatpump_optimizer/translations/*.json"
+  },
+  {
+   "axis": "ha_version_floor",
+   "kind": "regex",
+   "file": "hacs.json",
+   "pattern": "\"homeassistant\"\\s*:\\s*\"([^\"]+)\""
+  },
+  {
+   "axis": "ha_version_typed",
+   "kind": "regex",
+   "file": "tests/requirements-typing.txt",
+   "pattern": "(?m)^homeassistant==(\\S+)"
+  },
+  {
+   "axis": "price_shape",
+   "kind": "compare",
+   "file": "tests/profiles.py",
+   "function": "prices",
+   "argument": "profile"
+  },
+  {
+   "axis": "climate",
+   "kind": "compare",
+   "file": "tests/profiles.py",
+   "function": "weather",
+   "argument": "profile"
+  },
+  {
+   "axis": "tank_volume",
+   "kind": null,
+   "no_read": "a continuous option with no tracked levels: its flow row's minimum, default and maximum, once D12's brief declares them as the levels",
+   "builder": "R10-DIMENSIONS-FULL-COVERAGE"
+  },
+  {
+   "axis": "house_size",
+   "kind": null,
+   "no_read": "a continuous option with no tracked levels: the heated area and heat-loss rows' minimum, default and maximum, once D12's brief declares them as the levels",
+   "builder": "R10-DIMENSIONS-FULL-COVERAGE"
+  }
+ ],
+ "objects": {
+  "dimension": [
+   "dev/governance/dimensions/D*.md"
+  ],
+  "role": [
+   "dev/governance/roles/*.md"
+  ],
+  "rule": [
+   "dev/governance/rules/*.md",
+   "CLAUDE.md",
+   "AGENTS.md"
+  ],
+  "instrument": [
+   "tools/audit/seat/instruments/*.md",
+   "tools/policy/policy_lint.mjs",
+   "tools/policy/brief_lint.mjs",
+   "tools/release/stamp.py",
+   "tests/closure.py",
+   "tests/structure.py",
+   "tests/mutation_table.py",
+   "tools/policy/budget_raise_gate.py",
+   "tools/audit/carry_audit.py",
+   ".claude/hooks/*",
+   ".claude/skills/*/SKILL.md"
+  ],
+  "gate": [
+   ".github/workflows/*.yml",
+   ".claude/workflows/*.js"
+  ]
+ }
+}

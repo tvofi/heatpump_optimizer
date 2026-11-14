@@ -123,14 +123,14 @@ Under `dev/governance/roles/`.
 | `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
 | `standing-tick.md`, `standing-roster.md` | retired into beat rows |
 | `root-cause.md` | runs beside a fix and never inside it; owes a named cause, a process state, a cost test and a countermeasure or a refusal |
+| `evaluator.md` | grades every object by decision 0017 before a round's finders |
 | `judge.md` | decides; a finding whose harness does not move under its own perturbation is **void**, whatever the votes said |
 | `verifier.md` | the one verifier per dimension, carrying three lenses over findings with claim, evidence, harness, metric and perturbation; a refute sends one to the judge, never kills |
 | `COMMON.md` | **the finder's contract** — every audit dimension: what a finding is, what a non-finding is, and the report shape |
 
 **There is exactly one `COMMON.md`, and it is the finder's contract.** A running
 session may also hand its seats an out-of-tree shared block, named
-`SEAT-BLOCK.md`; that one is **not** policy but a convenience copy, renamed out
-of a shared basename because a collision a reader must resolve is a defect.
+`SEAT-BLOCK.md`; that one is **not** policy but a convenience copy.
 
 ### Dimension briefs — the audit rounds
 One per dimension, under `dev/governance/dimensions/`, in the owner's own words. Named
