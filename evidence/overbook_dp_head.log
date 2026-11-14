@@ -1,2 +1,0 @@
-{"arm": "owner_i01", "scale": 0.616, "true": 0.6, "plan/deliv": 0.854, "plan_kwh": [2.0, 1.9, 7.2, 8.3, 5.5, 5.7, 5.1, 3.2, 2.2], "deliv_kwh": [3.9, 3.7, 5.0, 6.5, 7.3, 6.9, 5.8, 4.7, 4.3], "samples": 350, "room": 20.63, "dp_learned": {"dp_cost": 10.093, "dp_kwh": 4.5, "plan_cost": 10.087, "plan_kwh": 5.27, "gap": -0.0006, "prod_cost": 10.087}, "dp_true": {"dp_cost": 9.895, "dp_kwh": 4.12, "plan_cost": 9.883, "plan_kwh": 5.27, "gap": -0.0012}}
-rc=0

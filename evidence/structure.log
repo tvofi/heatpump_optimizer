@@ -1,8 +1,8 @@
 ########## counting-rule self-check ##########
   ok   73 counting rules hold
 ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
-  custom_components/heatpump_optimizer/coordinator.py:3505-11438  7934 LOC  236 methods  HeatPumpOptimizerCoordinator
-  custom_components/heatpump_optimizer/optimizer.py:2578-5958  3381 LOC  55 methods  HeatPumpOptimizer
+  custom_components/heatpump_optimizer/coordinator.py:3478-11432  7955 LOC  236 methods  HeatPumpOptimizerCoordinator
+  custom_components/heatpump_optimizer/optimizer.py:2566-5949  3384 LOC  54 methods  HeatPumpOptimizer
   custom_components/heatpump_optimizer/dhw_planner.py:300-2181  1882 LOC  21 methods  DhwPlanner
   custom_components/heatpump_optimizer/thermal_model.py:2696-4567  1872 LOC  34 methods  ThermalModel
   custom_components/heatpump_optimizer/sysid.py:1400-2463  1064 LOC  18 methods  SystemIdentification
@@ -13,28 +13,28 @@
   custom_components/heatpump_optimizer/dhw_learning.py:69-563  495 LOC  17 methods  DhwProfileLearner
   custom_components/heatpump_optimizer/defrost.py:209-661  453 LOC  12 methods  DefrostDerate
   custom_components/heatpump_optimizer/accuracy.py:158-532  375 LOC  20 methods  AccuracyTracker
-  custom_components/heatpump_optimizer/tariff.py:165-481  317 LOC  10 methods  PeakTracker
+  custom_components/heatpump_optimizer/tariff.py:165-479  315 LOC  9 methods  PeakTracker
   custom_components/heatpump_optimizer/ledger.py:217-525  309 LOC  16 methods  MonthlyLedger
   custom_components/heatpump_optimizer/external_heat.py:183-491  309 LOC  13 methods  ExternalHeatDetector
-  class_excess_loc = 17561 (every class's span past 300, summed; the coordinator's 556 helper lines count in its span)
+  class_excess_loc = 17585 (every class's span past 300, summed; the coordinator's 558 helper lines count in its span)
 
 ########## monster methods: top 10 of 15 over 150 LOC ##########
   custom_components/heatpump_optimizer/sysid.py:1890-2262  373 LOC  identify
-  custom_components/heatpump_optimizer/optimizer.py:3551-3920  370 LOC  optimize
+  custom_components/heatpump_optimizer/optimizer.py:3533-3902  370 LOC  optimize
   custom_components/heatpump_optimizer/dhw_planner.py:933-1284  352 LOC  _build_dhw_requirements
   custom_components/heatpump_optimizer/thermal_model.py:4026-4353  328 LOC  simulate_trajectory_batch
-  custom_components/heatpump_optimizer/optimizer.py:4995-5258  264 LOC  _optimize_with_dhw
-  custom_components/heatpump_optimizer/coordinator.py:6638-6876  239 LOC  _update_current_state
-  custom_components/heatpump_optimizer/coordinator.py:11211-11438  228 LOC  async_simulate
+  custom_components/heatpump_optimizer/optimizer.py:4986-5249  264 LOC  _optimize_with_dhw
+  custom_components/heatpump_optimizer/coordinator.py:6621-6859  239 LOC  _update_current_state
+  custom_components/heatpump_optimizer/coordinator.py:11205-11432  228 LOC  async_simulate
   custom_components/heatpump_optimizer/dhw_planner.py:1306-1514  209 LOC  _plan_dhw_min_cost
-  custom_components/heatpump_optimizer/optimizer.py:4732-4928  197 LOC  _optimize_space_only
+  custom_components/heatpump_optimizer/optimizer.py:4722-4918  197 LOC  _optimize_space_only
   custom_components/heatpump_optimizer/dhw_planner.py:1585-1775  191 LOC  _repair_dhw_floor
   max_method_loc = 373 (the worst one, budgeted; a count over a threshold stops pricing growth)
 
 ########## worst 5 cyclomatic (of 26 over 15) ##########
   custom_components/heatpump_optimizer/sysid.py:1890  cc=44  identify
-  custom_components/heatpump_optimizer/optimizer.py:3551  cc=43  optimize
-  custom_components/heatpump_optimizer/coordinator.py:6638  cc=41  _update_current_state
+  custom_components/heatpump_optimizer/optimizer.py:3533  cc=43  optimize
+  custom_components/heatpump_optimizer/coordinator.py:6621  cc=41  _update_current_state
   custom_components/heatpump_optimizer/thermal_model.py:4026  cc=36  simulate_trajectory_batch
   custom_components/heatpump_optimizer/defrost.py:480  cc=31  from_dict
   max_cc = 44 (the worst one, budgeted; sum_cc is refused -- see the module docstring)
@@ -143,11 +143,11 @@
     custom_components/heatpump_optimizer/store.py  QuarantiningStore.async_load
     custom_components/heatpump_optimizer/sysid.py  SysIdResult.as_dict
   untyped by design: 13 store(s) through a computed name (setattr(x, name, v), __dict__), which no attribute's type sees
-    custom_components/heatpump_optimizer/coordinator.py:2748
-    custom_components/heatpump_optimizer/coordinator.py:2750
-    custom_components/heatpump_optimizer/coordinator.py:3613
-    custom_components/heatpump_optimizer/coordinator.py:11273
-    custom_components/heatpump_optimizer/coordinator.py:11280
+    custom_components/heatpump_optimizer/coordinator.py:2721
+    custom_components/heatpump_optimizer/coordinator.py:2723
+    custom_components/heatpump_optimizer/coordinator.py:3586
+    custom_components/heatpump_optimizer/coordinator.py:11267
+    custom_components/heatpump_optimizer/coordinator.py:11274
     custom_components/heatpump_optimizer/dhw_learning.py:195
     custom_components/heatpump_optimizer/dhw_learning.py:197
     custom_components/heatpump_optimizer/dhw_learning.py:275
@@ -172,14 +172,18 @@
          #338: _tabled_values row solar_upper_fraction, sentinel-proven alive
 
 ########## duplication: clone classes (2-statement AST windows, package-wide) ##########
-  custom_components/heatpump_optimizer/binary_sensor.py:321 available  ==  custom_components/heatpump_optimizer/climate.py:123 available  ==  custom_components/heatpump_optimizer/sensor.py:2472 available
+  custom_components/heatpump_optimizer/binary_sensor.py:321 available  ==  custom_components/heatpump_optimizer/climate.py:123 available  ==  custom_components/heatpump_optimizer/sensor.py:2462 available
   custom_components/heatpump_optimizer/drift.py:286 _note  ==  custom_components/heatpump_optimizer/power_guard.py:157 _note
   custom_components/heatpump_optimizer/inputs.py:955 read  ==  custom_components/heatpump_optimizer/inputs.py:996 read_state
   custom_components/heatpump_optimizer/ledger.py:230 _prune  ==  custom_components/heatpump_optimizer/wear.py:44 observe
-  custom_components/heatpump_optimizer/optimizer.py:4732 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:4995 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:4199 _solve_space
+  custom_components/heatpump_optimizer/optimizer.py:4924 _grid_report  ==  custom_components/heatpump_optimizer/tariff.py:843 _peak_excess
+  custom_components/heatpump_optimizer/optimizer.py:4722 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:4986 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:4184 _solve_space
   custom_components/heatpump_optimizer/price_model.py:191 observe_day  ==  custom_components/heatpump_optimizer/price_model.py:237 observe_day_quarters
   custom_components/heatpump_optimizer/pump_arbiter.py:454 _planned_room  ==  custom_components/heatpump_optimizer/pump_arbiter.py:379 _step_index
-  custom_components/heatpump_optimizer/tariff.py:778 _smooth_topk_sum_batch  ==  custom_components/heatpump_optimizer/tariff.py:1154 peak_cost_batch
+  custom_components/heatpump_optimizer/sensor.py:1922 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:2418 extra_state_attributes
+  custom_components/heatpump_optimizer/tariff.py:312 _close_window  ==  custom_components/heatpump_optimizer/tariff.py:407 from_dict
+  custom_components/heatpump_optimizer/tariff.py:760 _smooth_topk_sum_batch  ==  custom_components/heatpump_optimizer/tariff.py:1124 peak_cost_batch
+  custom_components/heatpump_optimizer/tariff.py:1058 _window_means_batch  ==  custom_components/heatpump_optimizer/tariff.py:534 metering_windows
 
 ########## coordinator private reach (outside its methods and helpers) ##########
   coordinator_private_reach = 0 (reads + 3 x writes)
@@ -203,19 +207,19 @@
   seam_cut_total = 423
 
 ########## RESULT lines ##########
-RESULT class_excess_loc=17561 count
+RESULT class_excess_loc=17585 count
 RESULT const_modules_over_50=3 count
 RESULT coordinator_attrs=141 count
 RESULT coordinator_multiassigned_attrs=108 count
 RESULT coordinator_private_reach=0 count
 RESULT dead_methods=0 count
 RESULT dead_top_level_symbols=1 count
-RESULT duplication_copies=10 count
+RESULT duplication_copies=14 count
 RESULT functions_cc_over_15=26 count
 RESULT functions_cc_over_25=8 count
 RESULT import_cycle_modules=0 count
 RESULT max_cc=44 count
-RESULT max_class_loc=7934 count
+RESULT max_class_loc=7955 count
 RESULT max_method_loc=373 count
 RESULT methods_over_150=15 count
 RESULT methods_over_200=8 count
@@ -223,20 +227,20 @@ RESULT name_kept_members=38 count
 RESULT seam_cut_total=423 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at 28482eceeb6b) ##########
-  ok   class_excess_loc 17561 <= 17561
+########## ratchet vs structure_budgets.json (recorded_at 2a9cd3476dae) ##########
+  ok   class_excess_loc 17585 <= 17585
   ok   const_modules_over_50 3 <= 3
   ok   coordinator_attrs 141 <= 141
   ok   coordinator_multiassigned_attrs 108 <= 108
   ok   coordinator_private_reach 0 <= 0
   ok   dead_methods 0 <= 0
   ok   dead_top_level_symbols 1 <= 1
-  ok   duplication_copies 10 <= 10
+  ok   duplication_copies 14 <= 14
   ok   functions_cc_over_15 26 <= 26
   ok   functions_cc_over_25 8 <= 8
   ok   import_cycle_modules 0 <= 0
   ok   max_cc 44 <= 44
-  ok   max_class_loc 7934 <= 7934
+  ok   max_class_loc 7955 <= 7955
   ok   max_method_loc 373 <= 373
   ok   methods_over_150 15 <= 15
   ok   methods_over_200 8 <= 8
@@ -244,4 +248,3 @@ RESULT thread_factor=1.0 ratio
   ok   seam_cut_total 423 <= 423
 
 STRUCTURE RATCHET PASSED
-rc=0
