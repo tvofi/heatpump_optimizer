@@ -25846,7 +25846,8 @@
     "From r10-cop-learner-draw-floor, body item 1e3849ec: Note n9: when fix 3 adds a `COP_REFUSED_*` literal, the same pull request owes its `health.cop_reason_` words in all three languages, or the registry check in `tests/card.mjs` (\"copCodes\") fails. Fix 3's predicate belongs in `MeasuredCop.judge_ratio`, which is now an instance method on a `CopInterval`. Carry: R11-INTAKE-R10-RESIDUE (items 1e3849ec)",
     "From r10-cop-learner-draw-floor, body item 40807f25: Four harnesses stop with a traceback on origin/main 9fdba3b8547f, before this diff, each run as `PYTHONPATH=tests/hastub:custom_components:tests python3 <path>`: `dev/audit/harnesses/r10_heat_meter.py` (`'Gate' object has no attribute '_config'`), `dev/audit/harnesses/r10_thermal_power_option.py` (`'Gate' object has no attribute '_fold_cop_evidence'`), `dev/audit/harnesses/r10_cop_gate.py` (`cop_observability() got an unexpected keyword argument 'follows'`) and `dev/audit/rounds/round9/D7/s2/learner_table.py` (`_async_learn_house_heat_loss() missing 1 required positional argument: 'interval'`). Their stubs predate later signatures, so they are not ported here; a seat that re-runs one ports it first. `dev/audit/rounds/round9/D7/s2/learner_gates.py` runs, and its `RESULT` lines but the machine-load ones are identical at the base and at this head (its assignment to the coordinator's old ratio attribute is inert now). Carry: R11-INTAKE-R10-RESIDUE (items 40807f25)",
     "From r10-cop-learner-draw-floor, body item cf9d2161: designer.md: unenforced: the approved note reuses `_fold_cop_evidence` for the replay and calls `release` from `_learn_measured_cop`, and neither its evidence plan nor its review ran the #1523 class check or traced that function's tail, which reads the present cycle's draw, command and outdoor bucket. The census refused the call site in the fixer's first scoped gate run, inside `tests/features.py`; the tail was found by reading `_fold_capacity_envelope`, and no check reads it. Carry: R11-INTAKE-R10-RESIDUE (items cf9d2161)",
-    "From r10-cop-learner-draw-floor, body item 837668dc: figure_block.py: cost: the `scope-line` block renders `MODE: FULL` for a branch whose merge base predates a change of `tests/closure.py` on main, because the base's copy is overlaid on the head and then reads as the branch's own diff; the same head against its merge base renders `MODE: SCOPED`. A fixer told not to merge main without a conflict hands off a body whose registered mode line contradicts its gate run. Carry: R11-INTAKE-R10-RESIDUE (items 837668dc)"
+    "From r10-cop-learner-draw-floor, body item 837668dc: figure_block.py: cost: the `scope-line` block renders `MODE: FULL` for a branch whose merge base predates a change of `tests/closure.py` on main, because the base's copy is overlaid on the head and then reads as the branch's own diff; the same head against its merge base renders `MODE: SCOPED`. A fixer told not to merge main without a conflict hands off a body whose registered mode line contradicts its gate run. Carry: R11-INTAKE-R10-RESIDUE (items 837668dc)",
+    "Recurring class, a barrier owed: `printf | grep -q` (or any pipe into an early-exit reader) breaks on a precondition, \"a producer larger than the pipe buffer feeding an early-exit reader under pipefail, or where SIGPIPE is ignored\". It is named in comments at `prepr.sh:216/1881/3664`, `app_push.sh:1088`, `cloud_relay.sh:308`, `seat_venv.sh:254` and `tick_loop.sh:213`, and now in this defect. Control: `git grep -nE '\\|[[:space:]]*grep[[:space:]]+-[a-zA-Z]*q' -- tools/pr tools/audit/seat` prints 236 lines at 6858b4abc1. The evidence is `PIPESTATUS=141 0` with the match first among 8001 lines against `0 0` with one line, and `printf: write error: Broken pipe` in CI job 132518925875, where SIGPIPE is ignored. This PR fixes 11 of those lines. The rest are listed as dismissed in the sweep above, and the 151 `bus.sh` self-test rows, the `tick_loop.sh` / `heartbeat.sh` / `seat_venv.sh` self-test rows and `pr_args.sh:457/460` still hold the shape with a narrow window. The barrier is a lint over the pattern, which an owner freeze keeps from being a new instrument group before closure. Carry: R11-INTAKE-R10-RESIDUE"
    ],
    "resume": {
     "stage": "not-started",
@@ -27179,12 +27180,13 @@
     "From r10-cop-learner-draw-floor, body item b4659e0c: fixer.md: contradiction: step 17 has the architect note followed and a departure raised, not made; step 14 forbids the allow-list entry that would have kept the note's call site. With no live seat to ask, the route was changed and the departure is raised in this body. Carry: R10-COP-LEARNER-DRAW-FLOOR (items b4659e0c)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-cop-learner-draw-floor",
     "commit": null,
     "last_step": null,
     "next_step": "designer (L) now; design review; fixer only on approve",
-    "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE; owner 2026-11-13: design can be prepared now; overlap admitted (R10-START-COUNTER-EDGES, R11-OUTSIDE-HONEST-STARTS-RUNS, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING, R11-PRE-SHARED-FILES): owner 2026-11-13: design can be prepared now"
+    "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE; owner 2026-11-13: design can be prepared now; overlap admitted (R10-START-COUNTER-EDGES, R11-OUTSIDE-HONEST-STARTS-RUNS, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING, R11-PRE-SHARED-FILES): owner 2026-11-13: design can be prepared now",
+    "pr": 3593
    }
   },
   {
@@ -27557,9 +27559,9 @@
    "brief": "HOTFIX, 2026-11-14: since the merge of pull request 3514 the carry check reads an own branch tip as a fork head, because the branch-heads test pipes every head of origin into an early-exit grep under pipefail and the pipeline fails on a match. Every verdict carry on main answers FRESH-REVIEW, and the same pipe shape makes one self-test row flaky in CI. Failing self-test row first (a head listed first among many thousand heads carries; its null control, the same heads without it, refuses), then the fix as a reader no closed pipe can kill, a sweep of the same shape under tools/pr and tools/audit/seat, and the mutation proof. The class barrier is carried, not built here.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-carry-tip-sigpipe",
-    "commit": null,
+    "commit": "9acc181ca7001ab53d59cf2f15c39042b5ed15b7",
     "pr": 3592,
     "last_step": "handoff cb803e9e pushed; body awaits its carry",
     "next_step": "open PR, review, land",
