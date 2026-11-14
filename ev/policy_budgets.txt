@@ -1,0 +1,15 @@
+1:file                                           lines cap  ~tokens  cap always
+55:always-loaded: ~3604 tokens, cap 3349 +band 500 = 3849
+56:corpus:        ~69092 tokens, cap 68618 +band 500 = 69118
+57:role fixer     ~6279 tokens, cap 5852 +band 500 = 6352
+58:role record    ~7427 tokens, cap 7405 +band 500 = 7905
+59:role policy    ~10013 tokens, cap 9958 +band 500 = 10458
+rc=0
+== d3c536efe116fb7581c9ca80572ea5039d4991d5
+file                                           lines cap  ~tokens  cap always
+always-loaded: ~3604 tokens, cap 3349 +band 500 = 3849
+corpus:        ~69092 tokens, cap 68618 +band 500 = 69118
+== ebf8e522df81ad91146684aa6eac370c2fd7b9d3
+file                                           lines cap  ~tokens  cap always
+always-loaded: ~3604 tokens, cap 3349 +band 500 = 3849
+corpus:        ~69092 tokens, cap 68618 +band 500 = 69118

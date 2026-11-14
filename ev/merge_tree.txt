@@ -1,0 +1,18 @@
+5b8f05ba4e30d248b9b4a1f4c44fd8e62148c5db
+50373173d486faf394b24637c177ab38b691b394
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (577 entries)
+  re-run the gate that owns this file before pushing
+745568ddc90556c3e26a485144d3270898c8ccbf
+100644 54ae86c9ffd9b22426438674504de0f8f84fa17c 1	tools/audit/check_scopes.py
+100644 9c7ca9247368a26663e477e88cae1e6317d269b9 2	tools/audit/check_scopes.py
+100644 897ed0400cbe77e19c6da143900384b1573feb91 3	tools/audit/check_scopes.py
+
+Auto-merging .claude/workflows/audit-find.js
+Auto-merging .github/CODEOWNERS
+Auto-merging dev/audit/config/scopes.json
+Auto-merging dev/governance/config/policy_budgets.json
+Auto-merging tests/closures.json
+Auto-merging tools/audit/check_scopes.py
+CONFLICT (content): Merge conflict in tools/audit/check_scopes.py
+rc=1

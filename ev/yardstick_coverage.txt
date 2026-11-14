@@ -1,0 +1,7 @@
+== d3c536efe116fb7581c9ca80572ea5039d4991d5 + record
+FAIL coverage tracked=10979 in_universe=1575 excluded=9403 unclassified=1
+   in no universe and not excluded: dev/audit/yardstick/round10/OBJECTIVE.json
+rc=1
+== c8ad0cc3c1f5dd83bedbd6798ef414bcadf28f8e + record
+ok coverage tracked=10979 in_universe=1575 excluded=9404 unclassified=0
+rc=0

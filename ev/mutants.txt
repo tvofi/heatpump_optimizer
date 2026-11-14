@@ -1,0 +1,27 @@
+unmutated rc 0
+killed rc=1 D1 isfinite dropped
+killed rc=1 D2 empty dict is a read
+killed rc=1 D3 dict of non-numbers is a read
+killed rc=1 D4 is_no_read back to prefix
+killed rc=1 D5 is_no_read case-sensitive
+killed rc=1 D6 enumerator any tracked file
+SURVIVED rc=0 D7 enumerator any script name
+killed rc=1 D8 every group can build
+killed rc=1 D9 term builder not checked against roster
+killed rc=1 D10 axis builder not checked against roster
+killed rc=1 D11 axis builder any card: prefix passes
+killed rc=1 D12 accepted-unset refusal dropped
+killed rc=1 D13 accepted-unset: threshold only
+killed rc=1 D14 accepted-unset: set value refused too
+killed rc=1 D15 axis no_read reason unchecked
+killed rc=1 D16 name axis keeps required
+killed rc=1 D17 name axis drops optional-too
+killed rc=1 D18 name pattern search not fullmatch
+killed rc=1 D19 required=True rows ignored
+killed rc=1 D20 Required attr ignored
+killed rc=1 D21 Optional attr ignored
+SURVIVED rc=0 D22 records: prev round is rnd
+killed rc=1 D23 no roster: any group
+killed rc=1 R12 yardstick out of the exclusion
+SKIP D24 untracked source refusal: anchor count 2
+unmutated rc 0 survivors 2 of 25

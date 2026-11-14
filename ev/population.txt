@@ -1,0 +1,6 @@
+tank_volume	NO-READ	a continuous option with no tracked levels: its flow row's minimum, default and maximum, once D12's brief declares them as the levels (builder: R11-INTAKE-R10-RESIDUE)
+house_size	NO-READ	a continuous option with no tracked levels: the heated area and heat-loss rows' minimum, default and maximum, once D12's brief declares them as the levels (builder: R11-INTAKE-R10-RESIDUE)
+LEVELS: 195
+PAIRS: 18696
+NO-READ AXES: 2
+rc=0

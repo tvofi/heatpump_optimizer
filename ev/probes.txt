@@ -1,0 +1,23 @@
+newest roster at head: dev/programme/rosters/wave-r10-groups.json | receivable groups: 19
+RESULT builder R11-INTAKE-R10-RESIDUE receivable at head: True
+RESULT builder R10-DIMENSIONS-FULL-COVERAGE receivable at head: False
+RESULT builder R11-PRE-ROUND-METRICS receivable at head: False
+RESULT builder R11-PRE-TOKEN-LEDGER receivable at head: False
+RESULT enumerates('python3 no/such_script.py', tree) = False (live code refuses an untracked script)
+RESULT enumerates('python3 tools/audit/check_scopes.py', tree) = True
+RESULT is_no_read('yield 0 in rounds 6 and 7') = False
+RESULT is_no_read('no reader of this file exists in the tree') = True
+RESULT is_no_read('casino readings') = True
+RESULT is_no_read('piano reads 0') = True
+RESULT R11-INTAKE-R10-RESIDUE @ head tree: stage=not-started receivable=True
+RESULT R11-INTAKE-R10-RESIDUE @ roster branch 7576896c: stage=not-started receivable=True
+RESULT R10-DIMENSIONS-FULL-COVERAGE @ head tree: absent
+RESULT R10-DIMENSIONS-FULL-COVERAGE @ roster branch 7576896c: stage=carries-open receivable=False
+RESULT R11-PRE-ROUND-METRICS @ head tree: absent
+RESULT R11-PRE-ROUND-METRICS @ roster branch 7576896c: stage=not-started receivable=True
+RESULT R11-PRE-TOKEN-LEDGER @ head tree: absent
+RESULT R11-PRE-TOKEN-LEDGER @ roster branch 7576896c: stage=not-started receivable=True
+RESULT R11-PRE-OBJECTIVE-FUNCTION @ head tree: absent
+RESULT R11-PRE-OBJECTIVE-FUNCTION @ roster branch 7576896c: stage=in-progress receivable=True
+0017 group names: ['R10-D5-D6-FULL-SCOPE', 'R11-INTAKE-R10-RESIDUE', 'R11-PRE-OBJECTIVE-FUNCTION', 'R11-PRE-ROUND-METRICS', 'R11-PRE-TOKEN-LEDGER']
+objective.json group names: ['R11-INTAKE-R10-RESIDUE']

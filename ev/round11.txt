@@ -1,0 +1,9 @@
+ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
+ok coverage tracked=10978 in_universe=1575 excluded=9403 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+rc=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+FAIL start evaluation round=11: 2 gap(s)
+   dev/audit/yardstick/round10/OBJECTIVE.json is not in the tree: round 10's close wrote no record to evaluate
+   dev/audit/yardstick/round11/EVALUATION.json is not in the tree: the start evaluation has not run
+rc=1
