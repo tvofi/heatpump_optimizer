@@ -88,7 +88,7 @@ def classify_errors(d, tree, uni, dim=None):
     static = {g: match(cls, [g]) for g in d.get("static", {})}
     stat = set().union(*static.values()) if static else set()
     errs += [f"classified in neither universe nor static: {f}" for f in sorted(cls - uni - stat)]
-    pass
+    errs += [f"static and in the universe: {f}" for f in sorted(stat & uni)]
     errs += [f"static entry matches no classified path: {g}" for g, fs in sorted(static.items()) if not fs]
     errs += [f"static entry carries no reason: {g}" for g in sorted(static) if not str(d["static"][g]).strip()]
     return errs
