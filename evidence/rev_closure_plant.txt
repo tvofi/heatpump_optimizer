@@ -1,7 +1,0 @@
-
-closure: tests/doc_claims.py would drop 2 file(s) the committed closure listed; keeping them.
-    tests/hastub/homeassistant/components/repairs.py
-    tools/audit/seat/instruments/bus.sh.md
-closure: updated 1 closure(s) in /root/wt-mut/tests/closures.json
-  tests/doc_claims.py         229 files
-RESULT P1_planted_unread_except derive_rc=0 planted_line_kept=1

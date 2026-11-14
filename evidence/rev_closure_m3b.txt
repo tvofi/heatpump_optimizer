@@ -1,8 +1,0 @@
-  [13:05:59] record tests/doc_claims.py 
-  [13:06:15] done   tests/doc_claims.py (exit 1)
-
-recorded into /tmp/tmp.m5e1fLS92D; tests/closures.json left untouched (--record-only)
-RESULT M3b_citation_removed record_only: record_mentions_instrument_page=0 record_files=2
-
-recorded into /tmp/tmp.uKyozE2SSR; tests/closures.json left untouched (--record-only)
-RESULT M3b_null_head record_only: record_mentions_instrument_page=1 record_files=2
