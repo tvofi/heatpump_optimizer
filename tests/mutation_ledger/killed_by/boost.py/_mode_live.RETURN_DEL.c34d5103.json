@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:_mode_live RETURN_DEL c34d5103",
+  "killed_by": "tests/features.py",
+  "old": "    return getattr(coord, \"mode\", None) == MODE_BOOST",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

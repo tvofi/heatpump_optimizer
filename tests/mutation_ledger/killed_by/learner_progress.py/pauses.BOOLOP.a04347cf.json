@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/learner_progress.py:pauses BOOLOP a04347cf",
+  "killed_by": "tests/features.py",
+  "old": "    return bool(key) and problem != \"not_configured\"",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return bool(key) or problem != \"not_configured\"`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
