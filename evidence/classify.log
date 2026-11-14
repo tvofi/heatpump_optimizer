@@ -1,4 +1,7 @@
-rc=3 08:50:09
-rc=3 08:51:26
-rc=3 08:52:43
-rc=3 08:54:00
+09:10:07 rc=3 WAIT 805bf6d00f18d70613dd5e3575fbea91c22bb2a8 pending: gate red: none
+09:11:24 rc=3 WAIT 805bf6d00f18d70613dd5e3575fbea91c22bb2a8 pending: gate red: none
+09:12:42 rc=3 WAIT 805bf6d00f18d70613dd5e3575fbea91c22bb2a8 pending: gate red: none
+09:13:59 rc=3 WAIT 805bf6d00f18d70613dd5e3575fbea91c22bb2a8 pending: gate red: none
+09:15:16 rc=3 WAIT 805bf6d00f18d70613dd5e3575fbea91c22bb2a8 pending: gate red: none
+09:16:33 rc=3 WAIT 805bf6d00f18d70613dd5e3575fbea91c22bb2a8 pending: gate red: none
+09:16:54 poll stopped by reviewer; returning with pending-ci
