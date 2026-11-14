@@ -229,7 +229,7 @@ class Sweep:
         attempt (a refresh re-run red judged nothing new); an unreadable first attempt is none: dispatch."""
         if r.get("status") in NOT_COMPLETED or r.get("conclusion") == "success":
             return True
-        if r.get("run_attempt", 1) < 2:
+        if r["run_attempt"] < 2:
             return False
         st, _, body = self.get(f"repos/{self.repo}/actions/runs/{r['id']}/attempts/1/jobs", {"per_page": 100})
         return st == 200 and (latest_gate((body or {}).get("jobs") or []) or {}).get("conclusion") == "success"

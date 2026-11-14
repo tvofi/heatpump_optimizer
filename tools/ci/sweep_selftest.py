@@ -18,14 +18,17 @@ class World:
         self.limit, self.post_limit = limit, post_limit
         self.base_files, self.bodies, self.compares = [], [], 0     # the base's changes since the PR's pin
         self.head_repo = "o/r"
+        self.attempt_reads = 0
         self.caller = None      # GITHUB_RUN_ID of the job calling the sweep: V's own id is ci.yml's sweep-self
 
     def get(self, path, params=None):
         if self.limit:
             raise sweep.RateLimited(self.limit)
         if m := re.search(r"/actions/runs/(\d+)/attempts/(\d+)/jobs", path):     # a past attempt's gate, or 404
+            self.attempt_reads += 1
             g = self.runs[int(m[1])].get("attempts", {}).get(int(m[2]))
-            return (200, {}, {"jobs": [g]}) if g else (404, {}, {})
+            jobs = [{"name": f"u{k}"} for k in range(40)] + [g]       # #3544's 41 jobs, the gate past a default page
+            return (200, {}, {"jobs": jobs[:min((params or {}).get("per_page", 30), 100)]}) if g else (404, {}, {})
         if m := re.search(r"/actions/runs/(\d+)/jobs", path):
             r = self.runs[int(m[1])]
             return 200, {}, {"jobs": ([r["gate"]] if r.get("gate") else []) + r.get("units", [])}
@@ -571,6 +574,11 @@ def run_checks():
         rc, out = w.sweep()
         ok(f"#3544 null: a real red on a stale pin beside a red dispatch {why} dispatches, once",
            w.posts.count(dispatch3544) == 1 and "dispatches=1" in out)
+    w = world3544(edit=real_red)
+    w.runs[D3544].update(run_attempt=1)
+    w.sweep()
+    ok("#3544 null: a red dispatch at its first attempt is read as is, never its attempts (one dispatch)",
+       w.posts.count(dispatch3544) == 1 and w.attempt_reads == 0)
     w = world3544(ids=(R1_3544, R2_3544), edit=lambda runs: runs[R1_3544].update(run_attempt=sweep.ATTEMPT_CAP - 1))
     rc, out = w.sweep()
     ok("#3544 bound: a deferral red at attempt 44 is left at the cap, neither re-run nor dispatched",
