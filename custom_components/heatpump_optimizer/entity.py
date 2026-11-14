@@ -380,14 +380,13 @@ COMBI_DHW_SPLIT = (
 )
 
 
-def dhw_split_attributes(coordinator: Any) -> dict[str, str]:
+def dhw_split_attributes(params: Any) -> dict[str, str]:
     """``dhw_split`` where the install's hot water is a combi store, else nothing.
 
-    The configured store via ``thermal_params``, the predicate the model runs
-    on; without it (a test double) nothing is stated rather than a guess, and
-    every other install's attributes stay as they were.
+    ``params`` is the coordinator's ``thermal_params``: the predicate the model
+    runs on. None (a test double without it) states nothing rather than a
+    guess, and every other install's attributes stay as they were.
     """
-    params = getattr(coordinator, "thermal_params", None)
     if params is not None and params.combi_tank_active:
         return {"dhw_split": COMBI_DHW_SPLIT}
     return {}

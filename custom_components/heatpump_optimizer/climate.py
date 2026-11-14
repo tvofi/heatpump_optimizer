@@ -278,7 +278,7 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
             attrs["dhw_heating_cost"] = self.coordinator.data.get(
                 "dhw_heating_cost", 0.0
             )
-            attrs.update(dhw_split_attributes(self.coordinator))
+            attrs.update(dhw_split_attributes(getattr(self.coordinator, "thermal_params", None)))
 
             # Predictive optimization insights
             predictive = self.coordinator.data.get("predictive_info", {})
