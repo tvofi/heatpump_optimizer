@@ -1,0 +1,46 @@
+2026-11-12T15:10:36.1669797Z mirrored handoff/round9/state/RESUME-CURRENT.md -> /tmp/tmp1nm001z2/sync-mirror/RESUME-CURRENT.md
+2026-11-12T15:10:36.1670394Z roster_sync: pull requests: 3 read offline from --pr-state
+2026-11-12T15:10:36.1670791Z state_docs self-test: all checks passed
+2026-11-12T15:10:36.1698984Z ##[group]Run set -o pipefail
+2026-11-12T15:10:36.1699295Z [36;1mset -o pipefail[0m
+2026-11-12T15:10:36.1699750Z [36;1mbash tools/audit/seat/tick_loop.sh --self-test | tee "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+2026-11-12T15:10:36.1700437Z [36;1mgrep -Eq '^tick_loop self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/tick-loop-self-test.txt"[0m
+2026-11-12T15:10:36.1747114Z shell: /usr/bin/bash --noprofile --norc tools/ci/selftest_step.sh {0}
+2026-11-12T15:10:36.1747506Z env:
+2026-11-12T15:10:36.1747705Z   HPO_JOB_GRADES: nothing
+2026-11-12T15:10:36.1747940Z   SELFTEST_TRACE: 
+2026-11-12T15:10:36.1748150Z ##[endgroup]
+2026-11-12T15:10:36.8259807Z   ok   the tick's child PATH starts with the seat bin dir, whose gh shim it finds; no TICK-GH line
+2026-11-12T15:10:37.3724994Z   ok   a PATH already led by the seat bin dir (a restart's exec) is not prepended twice
+2026-11-12T15:10:37.9085496Z   FAIL a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+2026-11-12T15:10:38.0575202Z   ok   --once: one pass, cloud_relay.sh pass --confirm first, then the tick with its args; one banner
+2026-11-12T15:10:38.0895064Z   ok   null control: no cloud_relay.sh in the tree (before #2419) skips the relay and still ticks
+2026-11-12T15:10:38.2304509Z   ok   a failing relay pass is reported and the tick still runs; the tick's status is reported
+2026-11-12T15:10:39.2941077Z   ok   a relay slower than the interval does not delay the board; the banner says relay=running
+2026-11-12T15:10:39.4313086Z   ok   a pass that finds the relay in flight starts none (no overlap) and still ticks
+2026-11-12T15:10:44.3143119Z   ok   the in-flight relay was left to finish after its loop exited, never killed
+2026-11-12T15:10:44.5672847Z   ok   null control: the late relay is reaped with its log next pass, and a fast relay reports ok
+2026-11-12T15:10:48.7182414Z   ok   a TERM to the loop's process group leaves the in-flight relay to write its rc
+2026-11-12T15:10:48.7261699Z   ok   a non-numeric --interval refuses
+2026-11-12T15:10:48.7581427Z   ok   each pass calls the heartbeat once, with the pass line (no --out path)
+2026-11-12T15:10:48.7872130Z   ok   a failing heartbeat is printed, never silent, and the loop still exits cleanly
+2026-11-12T15:10:48.8409436Z   ok   --sweep: one sweep after the tick, its last line after the banner, its whole output in <out>.sweep.log
+2026-11-12T15:10:48.8785962Z   ok   --sweep: the next pass inside the interval sweeps nothing (the slow backstop)
+2026-11-12T15:10:48.9267277Z   ok   null control: a pass once the interval has passed sweeps again
+2026-11-12T15:10:48.9576034Z   ok   null control: without --sweep no sweep runs (the default loop adds nothing and starts no train)
+2026-11-12T15:10:49.0034048Z   ok   a refused sweep is reported with its rc and the pass still completes
+2026-11-12T15:10:49.1405244Z   ok   a real pass moves heartbeat/orchestrator on the remote
+2026-11-12T15:10:49.2472733Z   ok   null control: a refused push is printed with its reason and the pass still completes
+2026-11-12T15:10:49.4600882Z   ok   freshness null control: behind 0 is silent (code=<sha7> behind=0 on the banner) and does not exec
+2026-11-12T15:10:49.6290759Z   ok   freshness: a commit outside the loop's code paths is not counted (the path filter)
+2026-11-12T15:10:49.9608850Z   ok   freshness: behind within the bound and no change to the loop's own files relays, restarts nothing; the heartbeat says behind=1
+2026-11-12T15:10:50.1587878Z   ok   freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+2026-11-12T15:10:50.2306296Z   ok   freshness: a dirty tree prints the banner, skips the relay and is never moved
+2026-11-12T15:10:50.3001886Z   ok   freshness: a checked-out branch is never moved (restart needs a detached head)
+2026-11-12T15:10:50.3475448Z   ok   freshness: a pass already restarted does not exec again (at most once per pass)
+2026-11-12T15:10:50.4384357Z   ok   freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+2026-11-12T15:10:50.5307359Z   ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+2026-11-12T15:10:50.5423526Z tick_loop self-test: 30 checks, 1 failed
+2026-11-12T15:10:50.5450157Z ##[error]Process completed with exit code 1.
+2026-11-12T15:10:50.5512079Z ##[group]Run set -o pipefail
+2026-11-12T15:10:50.5512412Z [36;1mset -o pipefail[0m

@@ -1,0 +1,10 @@
+head b131ad0ad8c8e8e9710681160a8b539ab88137ff
+contexts 17
+main_reds rows 28
+null control 0
+ENTRIES 18 PRS 14
+harness_headers rows 4
+ .../rounds/round10/protection-census/CENSUS.md     | 149 +++++++++++++++++++++
+ .../rounds/round10/protection-census/main_reds.py  |  11 ++
+ 2 files changed, 160 insertions(+)
+version/manifest/notes untouched vs main
