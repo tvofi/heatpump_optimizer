@@ -13,7 +13,6 @@ which seat; this file does not repeat that list. The rest of the layout:
 ```
 dev/audit/config/             finding.schema.json (a finding without evidence cannot be returned), scopes, ledgers
 dev/audit/rounds/round<N>/    a round's reports, harnesses and verdicts
-dev/audit/yardstick/round<N>/ its objective record and start evaluation, code-owned
 tools/audit/seat/             the stateless seat instruments; each carries --self-test
 ```
 
