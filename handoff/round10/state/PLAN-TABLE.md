@@ -554,7 +554,7 @@ gantt
 | R10-FLY-OPENER-STALE-ENV | C | 1 | deferred | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch201.md#P627 at 51df6039fc Instrument fix, S. |  |
 | R10-TICK-RESIDUE-P3 | IN | 1 | deferred | #3136 | sonnet/opus | - | Part 3 of R10-TICK-RESIDUE (orchestrator ruling, s14, 2026-11-11T14:20Z: split the unbuilt carries off so the group discharges). |  |
 | R10-TRAIN-REVIEW-PRESETTLE | C | 1 | deferred | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch202.md#P628 at ca76b1d0cf Instrument fix, S. |  |
-| R10-DISINFECTION-STEP-NOTICE | CORE | 1 | in-progress | - | opus/opus | - | Product ruling (2) of the fable seat's ruling on dhw_hard_max_temp, origin/handoff-body/r10-product-ruling-dhw-hard-max at d507c499 ("Ruling: (1) round-down... |  |
+| R10-DISINFECTION-STEP-NOTICE | CORE | 1 | carries-open | - | opus/opus | - | Product ruling (2) of the fable seat's ruling on dhw_hard_max_temp, origin/handoff-body/r10-product-ruling-dhw-hard-max at d507c499 ("Ruling: (1) round-down... |  |
 | R10-HOTFIX-OPENER-UNBLOCK | IN | 1 | done | - | opus/opus | - | Hotfix by owner ruling (tvofi, 2026-11-11T20:13Z, verbatim: "3) make it a hotfix"), on the orchestrator's description of the opener's stale-checkout refusals... |  |
 | R10-HOTFIX-CARD-HEALTH-TEXT | CP | 1 | done | - | opus/opus | - | Hotfix for a live defect on the released v7.1.11, reported by the owner (tvofi, 2026-11-11 about 21:27Z, verbatim: "Live bug on v7.1.11. |  |
 | R10-RCA-CARD-HEALTH-TEXT | CP | 1 | refused | - | opus/opus | - | Root-cause seat (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md) beside R10-HOTFIX-CARD-HEALTH-TEXT, never inside it. |  |
