@@ -1,5 +1,4 @@
-NOTE body item a4017bd8: R10-ROUND-PLAYBOOK-FINAL
-NOTE body item fc4049d6: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3
-NOTE body item 6ff0024e: dismissed:not measured beyond this part's own harness; no later stage's practice changes on an unshown hazard
-CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
-rc=0
+NOTE body item 4b518e5d: R10-ROUND-PLAYBOOK-FINAL
+NOTE body item e8e004db: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc 0

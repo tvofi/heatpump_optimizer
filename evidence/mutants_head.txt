@@ -1,5 +1,5 @@
 M0-null (comment edit): exit 0, 0 check(s) red
-M1-short-tail (a boost summed under 2 h owes 1.5 h): exit 1, 8 check(s) red
+M1-short-tail (a boost summed under 2 h owes 1.5 h): exit 1, 7 check(s) red
     FAIL a 38 s boost cancelled owes the full tail from its end and sums its 38 s; a window run to its end settles 12 h from that end (null control); a click inside
     FAIL short boosts back to back owe no less than one boost of their summed length, over both surfaces; one short boost alone sums only itself (null control)  [Bo
     FAIL the boosted sum clears once its tail ran out with nothing live, and not before  [BoostState(until={}, blocked={}, space_settle_until=datetime.datetime(2026
@@ -7,53 +7,16 @@ M1-short-tail (a boost summed under 2 h owes 1.5 h): exit 1, 8 check(s) red
     FAIL a restart keeps the boosted sum with the tail; an unreadable sum is unknown; a store main wrote restores with no start and no tail  [BoostState(until={}, b
     FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader keeps the 
     FAIL every boost length, cancelled inside the window or expired past it, owes the full tail the refit waits  [[datetime.timedelta(seconds=5400), datetime.timede
-    FAIL a settle ending before the running tail's end leaves it; one ending later moves it  [2026-02-02 00:00:00+00:00 BoostState(until={}, blocked={}, space_settl
-M2-sum-dropped (each boost counted alone): exit 1, 5 check(s) red
+M2-sum-dropped (each boost counted alone): exit 1, 3 check(s) red
     FAIL short boosts back to back owe no less than one boost of their summed length, over both surfaces; one short boost alone sums only itself (null control)  [Bo
     FAIL the boosted sum clears once its tail ran out with nothing live, and not before  [BoostState(until={}, blocked={}, space_settle_until=datetime.datetime(2026
     FAIL a restart keeps the boosted sum with the tail; an unreadable sum is unknown; a store main wrote restores with no start and no tail  [BoostState(until={}, b
-    FAIL the boosted sum is not cleared while an overlay or the mode is live past an earlier boost's tail, so the live boost adds to it, over both surfaces  [(datet
-    FAIL the tail runs out at its own instant; a spent tail clears on expiry and a quiet install stores main's payload; a press after a spent tail sums only itself;
-M3-persisted-tail-dropped: exit 1, 4 check(s) red
+M3-persisted-tail-dropped: exit 1, 2 check(s) red
     FAIL a boost store from an install that never boosted is main's payload, field for field  [{'block_dhw': {'until': '2026-02-01T13:00:00+00:00'}} {'space': {'unt
     FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader keeps the 
-    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, another mode change 
-    FAIL persist saves the store payload under the boost store's key and version  [[('heatpump_optimizer_bt_boost', 1, {})]]
 M4-restore-dropped: exit 1, 1 check(s) red
     FAIL a boost store this build wrote loads in main's loader with main's overlay and block; one main wrote loads here with no tail; this build's loader keeps the 
-M5-sum-never-clears: exit 1, 4 check(s) red
+M5-sum-never-clears: exit 1, 1 check(s) red
     FAIL the boosted sum clears once its tail ran out with nothing live, and not before  [BoostState(until={}, blocked={}, space_settle_until=datetime.datetime(2026
-    FAIL an extended overlay sums from its first press; the mode entered after a spent tail sums only itself  [BoostState(until={}, blocked={}, space_settle_until=d
-    FAIL the tail runs out at its own instant; a spent tail clears on expiry and a quiet install stores main's payload; a press after a spent tail sums only itself;
-    FAIL a restored tail ending now is spent; an overlay ended over a tail before the restart owes none  [BoostState(until={}, blocked={}, space_settle_until=None, 
-X1-sum-cleared-under-live-overlay: exit 1, 1 check(s) red
-    FAIL the boosted sum is not cleared while an overlay or the mode is live past an earlier boost's tail, so the live boost adds to it, over both surfaces  [(None,
-X2-sum-cleared-under-live-mode: exit 1, 1 check(s) red
-    FAIL the boosted sum is not cleared while an overlay or the mode is live past an earlier boost's tail, so the live boost adds to it, over both surfaces  [(datet
-X3-start-restamped-on-extension: exit 1, 1 check(s) red
-    FAIL an extended overlay sums from its first press; the mode entered after a spent tail sums only itself  [BoostState(until={}, blocked={}, space_settle_until=d
-X4-mode-exit-not-saved: exit 1, 1 check(s) red
-    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, another mode change 
-X5-cycle-saves-only-on-release: exit 1, 1 check(s) red
-    FAIL leaving the boost mode, and a cycle whose expiry starts a tail, each schedule a save carrying the tail and its sum; entering the mode, another mode change 
-X7-tail-shortened: exit 1, 1 check(s) red
-    FAIL a settle ending before the running tail's end leaves it; one ending later moves it  [2026-02-01 23:00:00+00:00 BoostState(until={}, blocked={}, space_settl
-X11-negative-sum-restored: exit 1, 1 check(s) red
-    FAIL a restored boosted sum outside [0, inf) is unknown; 0 and 0.5 h restore as stored  [[datetime.timedelta(days=-1, seconds=82800), None, None, None, datetime
-X13-mode-entry-keeps-spent-sum: exit 1, 1 check(s) red
-    FAIL an extended overlay sums from its first press; the mode entered after a spent tail sums only itself  [BoostState(until={}, blocked={}, space_settle_until=d
-B240-press-start-boolop: exit 1, 1 check(s) red
-    FAIL an extended overlay sums from its first press; the mode entered after a spent tail sums only itself  [BoostState(until={}, blocked={}, space_settle_until=d
-B502-payload-start-boolop: exit 1, 0 check(s) red
-    raised: KeyError: 'space'
-B549-restore-tail-boolop: exit 1, 0 check(s) red
-    raised: AttributeError: 'NoneType' object has no attribute 'tzinfo'
-B557-restore-start-boolop: exit 1, 1 check(s) red
-    FAIL a restart restores a running settling tail and the live overlay's start, an overlay that ended while Home Assistant was down owes its tail; a spent tail is
-B560-restore-ended-boolop: exit 1, 0 check(s) red
-    raised: AttributeError: 'NoneType' object has no attribute 'tzinfo'
 MUTANTS: as expected
-
-real	0m28.708s
-user	0m41.914s
-sys	0m1.982s
+exit 0
