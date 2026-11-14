@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState.freeze_end CMP_BOUND f5217c8f",
+  "old": "        if projected is None or (held is not None and utc_elapsed_seconds(held, projected) > 0):",
+  "reason": "Equivalent (CMP_BOUND, `> 0` to `>= 0`). Survival measured by `mutation_table.py --pin-killed --base origin/main` at c90588dcf4. The arms differ only when utc_elapsed_seconds(held, projected) is 0, that is, when held and projected are the same instant. One arm returns held and the other returns projected, so freeze_end returns the same end either way.",
+  "verdict": "equivalent"
+}
