@@ -426,7 +426,7 @@ gantt
 | R10-RCA-GATE-BUSY-DEFER-2 | CP | 1 | done | - | opus/opus | - | Root cause (trigger 2: turned PRs red after the R10-HOTFIX-GATE-BUSY-DEFER fix #3246 merged at 355d9965) of the edit-gate race persisting: on #3263 head 02e9... |  |
 | R10-FLY-STAMP-FLUSH-HOLD | F | 1 | done | - | sonnet/opus | - | From triage batch 131 (triage: dev/programme/triage/s6-batch131.md#P402 at cd88cf6bd00d): stamp.py record_flush waits for a record merge while refs/heads/tra... |  |
 | R10-FLY-STAMP-FLUSH-COST | F | 1 | done | - | sonnet/opus | - | From triage batch 132 (triage: dev/programme/triage/s6-batch132.md#P404 and #P403 at 6db424629), savings estimate 6 to 16 h (central 10 h; instrument tier). |  |
-| R10-ROUND-PLAYBOOK-FINAL | C | 1 | carries-open | #2716, #3106 | opus/opus | yes: owner request (tvofi, 2026-10-21); policy files, merges on mandated approval under 6319294694 | Owner ruling (tvofi, 2026-11-07, verbatim "Approve both"; coordination issue comment 6707334933): the final, size-S reconciliation pass of the round playbook... |  |
+| R10-ROUND-PLAYBOOK-FINAL | C | 1 | carries-open | #2716 | opus/opus | yes: owner request (tvofi, 2026-10-21); policy files, merges on mandated approval under 6319294694 | Owner ruling (tvofi, 2026-11-07, verbatim "Approve both"; coordination issue comment 6707334933): the final, size-S reconciliation pass of the round playbook... |  |
 | R10-HOTFIX-COP-UNMEASURED | CP | 1 | done | - | opus/opus | - | R10-HOTFIX-COP-UNMEASURED (hotfix tier: owner-reported, user-visible, 2026-11-07). |  |
 | R10-HOTFIX-TRAIN-DEFER-WAIT | CP | 1 | done | - | opus/opus | - | The merge train reads a red `gate` as final while the head's code run is still running, and skips a pull request that would have gone green. |  |
 | R10-CI-OWN-DELIVERY-ROW | IN | 1 | done | - | opus/opus | yes: code-owned: tools/ci/ (tvofi approves, or mandate 6624093439 in force) | Owner-approved CI-throughput lever 2 (tvofi, 2026-11-07, #201 comment 6707834331). |  |
@@ -603,7 +603,7 @@ gantt
 | R11-PRE-PLAN-RENDER | IN | 5 | not-started | - | sonnet/opus | - | Owner ruling 2026-11-13 on decision card R2 (yes, render on change): the plan page is rendered and committed when scope or order changes, not every 30 minute... |  |
 | R10-PLAYBOOK-ROUND-START | IN | 2 | not-started | - | sonnet/opus | - | Owner instruction 2026-11-13, his words: "Make sure the future rounds can use the audit playbook even with the addition of the objective function and the imp... |  |
 | R10-DOCS-STRINGS-RESIDUE | IN | 1 | done | - | opus/opus | - | Owner question 2026-11-13: product work deferred to round 11 that can start now. |  |
-| R10-COP-LEARNER-DRAW-FLOOR | IN | 1 | not-started | - | opus/opus | - | Owner 2026-11-13: design can be prepared now. |  |
+| R10-COP-LEARNER-DRAW-FLOOR | IN | 1 | not-started | #3106 | opus/opus | - | Owner 2026-11-13: design can be prepared now. |  |
 | R10-HOTFIX-ENTITIES-REDACTION-FLAKE | IN | 1 | done | - | sonnet/opus | - | HOTFIX, main is red (orchestrator, 2026-11-14): the entity-checks step of the fast tests failed once on the check named "the location is redacted whole, from... |  |
 | R10-FEEDBACK-SETTLE-LARGE-LIFT | IN | 1 | done | - | sonnet/opus | - | Non-gating check (tvofi, 2026-11-14: queue the small non-gating group). |  |
 | R10-HOTFIX-FEATURES-WEEKEND-CLOCK | IN | 1 | done | - | sonnet/opus | - | HOTFIX, critical path (orchestrator, 2026-11-14): one check in tests/features.py fails on every Saturday and Sunday, on main and on every pull request, so th... |  |
