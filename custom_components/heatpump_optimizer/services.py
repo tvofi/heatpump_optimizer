@@ -764,7 +764,7 @@ async def handle_simulate_plan(hass: HomeAssistant, call: ServiceCall) -> dict[s
                 coord.configured_dhw_windows(),
                 dhw_override=overrides.get(CONF_DHW_WINDOWS),
             )}
-        results[entry_id] = await coord.async_simulate(overrides)
+        results[entry_id] = await coord.async_simulate(overrides, steady=True)
     errors = {
         entry_id: answer["error"]
         for entry_id, answer in results.items()
