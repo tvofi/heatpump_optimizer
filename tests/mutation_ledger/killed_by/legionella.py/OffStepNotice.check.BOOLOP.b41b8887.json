@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/legionella.py:OffStepNotice.check BOOLOP b41b8887",
+  "killed_by": "tests/guard_pins.py",
+  "old": "        if write is not None and write.written_c < target - margin:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if write is not None or write.written_c < target - margin:`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}
