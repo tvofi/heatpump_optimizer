@@ -23163,10 +23163,10 @@
    "source": "outside",
    "findings": [],
    "carry": [
-    "FORWARD-CARRY from feature triage f4, 2026-11-11 (finding-propagation.md), source outside pull request 3456 and group R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE: that group puts a minimum run and pause gate in `_write_supply` and makes `supply_tick` retry a held write every minute. This group's list of every path that turns the supply on must then carry the retried write as its own row, covered or not affected: a supply-on that was held and lands on a later tick still owes the mode write ahead of it, and a held supply-on must not leave a mode written minutes before the switch follows. Whichever of the two groups merges second re-reads the other's paths at main and says so in its pull-request body."
+    "FORWARD-CARRY from feature triage f4, 2026-11-11 (finding-propagation.md), source outside pull request 3456 and group R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE: that group puts a minimum run and pause gate in `_write_supply` and makes `supply_tick` retry a held write every minute. This group's list of every path that turns the supply on must then carry the retried write as its own row, covered or not affected: a supply-on that was held and lands on a later tick still owes the mode write ahead of it, and a held supply-on must not leave a mode written minutes before the switch follows. Whichever of the two groups merges second re-reads the other's paths at main and says so in its pull-request body. [implemented: 17ae732a4e8b26f05bca901041a2a4d78434c6b2]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "commit": "17ae732a4e8b26f05bca901041a2a4d78434c6b2",
     "last_step": null,
