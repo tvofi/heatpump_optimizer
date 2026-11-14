@@ -1,7 +1,4 @@
-origin/main 6d16af36c26ad5a3d9610a9c8412cc54dc3c12dd
+origin/main ee64358be7eeccaec5178a923cb3b83a18a924a0
 LEDGER-MERGE: resolved tests/closures.json
-  closures.tests/entities.py: merged as a set (568 entries)
-  inert_reads.tests/harness_headers.py: merged as a set (997 entries)
-  re-run the gate that owns this file before pushing
-bdfd669a29bd3767c524493d5fcc9728dd6961aa
-rc=0
+9c89543b762ce64b819c1bd1dff885cf14fa0249
+merge_tree_rc=0
