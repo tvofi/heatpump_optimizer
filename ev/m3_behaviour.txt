@@ -1,0 +1,4 @@
+unmutated:
+RESULT shrink_gaps on a diff that MODIFIES tools/x.py and drops its read: ["SHRUNK step s: the head's entry drops 1 files the base names, e.g. tools/x.py -- a re-record unions; a read leaves by `prune`, and only a path this diff deletes may"]
+M3:
+RESULT shrink_gaps on a diff that MODIFIES tools/x.py and drops its read: []
