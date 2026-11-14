@@ -2344,8 +2344,8 @@ async def _await_optimize(
         n = _bump_worker_fallback(hass, entry_id)
         if n > WORKER_FALLBACK_CAP:
             _raise_update_failed(
-                "process_worker_unusable", f"process-solve worker unusable for {n} consecutive cycles; "
-                "keeping the last plan rather than holding the GIL (#783)", err, cycles=str(n),
+                "process_worker_unusable", f"The optimization worker failed for {n} consecutive cycles; "
+                "the last plan stays in effect", err, cycles=str(n),
             )
         return await hass.async_add_executor_job(
             optimize_in_process, optimizer, inputs

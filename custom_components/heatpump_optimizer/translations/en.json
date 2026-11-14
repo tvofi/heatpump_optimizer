@@ -444,7 +444,7 @@
       "message": "The optimization did not run for {entry_ids}: fewer than four electricity price steps were available"
     },
     "factory_reset_not_applied": {
-      "message": "The factory reset of {entry_id} was not applied: Home Assistant refused to unload the entry; nothing was changed"
+      "message": "The factory reset of {entry_id} was not applied: Home Assistant refused to unload the entry; settings and learned state are unchanged, and only the undo snapshot the reset takes first was saved"
     },
     "run_optimization_solve_failed": {
       "message": "The optimization did not run for {entry_ids}: the solve failed; the error is in the integration's log"
@@ -1840,11 +1840,11 @@
     },
     "dhw_legionella_unverified": {
       "title": "The disinfection cycle cannot be verified",
-      "description": "The anti-legionella cycle was commanded, but no hot water tank temperature sensor is configured, so nothing confirms the tank ever reached {target} °C — or that the pump acted on the request at all. The countdown is reset as if the cycle had run, because refusing to reset it would not disinfect anything either; what is not claimed is that it worked. Point the \"Hot water tank temperature\" sensor at a real probe and the cycle is verified from then on, and this notice clears as soon as one is observed at temperature."
+      "description": "The anti-legionella cycle was commanded, but no hot water tank temperature sensor is configured, so nothing confirms the tank ever reached {target} °C — or that the pump acted on the request at all. The countdown is reset as if the cycle had run, because refusing to reset it would not disinfect anything either; what is not claimed is that it worked. Point the \"Hot water tank temperature sensor\" entity at a real probe and the cycle is verified from then on, and this notice clears as soon as one is observed at temperature."
     },
     "dhw_legionella_above_setpoint": {
       "title": "Disinfection goes above your hot water charge limit",
-      "description": "The anti-legionella cycle is set to {legionella_temp} °C, which is above the {setpoint} °C you set as the highest tank temperature to charge to. That is allowed and nothing is wrong: every {interval_days} days the tank is taken up to {legionella_temp} °C for the cycle, and the rest of the time it is never charged above {setpoint} °C. This notice is here so the one hot day a week does not come as a surprise. Raise the charge limit, lower the disinfection temperature, or switch the cycle off to change it."
+      "description": "The anti-legionella cycle is set to {legionella_temp} °C, which is above the {setpoint} °C you set as the highest tank temperature to charge to. That is allowed and nothing is wrong: every {interval_days} days the tank is taken up to {legionella_temp} °C for the cycle, and the rest of the time it is never charged above {setpoint} °C. This notice is here so the one hot day in each cycle does not come as a surprise. Raise the charge limit, lower the disinfection temperature, or switch the cycle off to change it."
     },
     "price_currency_mismatch": {
       "title": "The price feed and Home Assistant name different currencies",
@@ -1856,11 +1856,11 @@
     },
     "grid_fee_magnitude": {
       "title": "A configured grid fee looks 100× too large",
-      "description": "The grid fee layer contains a rate of {rate} {currency}/kWh (from the {source} input). Transfer fees run a few tenths of a {currency} per kWh, so a value this size is almost always öre or cents entered where whole {currency} were meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."
+      "description": "The grid fee layer contains a rate of {rate} {currency}/kWh (from the {source} input). Transfer fees run a few tenths of a {currency} per kWh, so a value this size is almost always öre or cents entered where whole {currency} were meant — 25 instead of 0.25. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value on the \"Transfer fees and contract\" options page (or fix the fee sensor) and this notice clears on the next planning cycle."
     },
     "grid_fee_sign": {
       "title": "A configured grid fee is negative",
-      "description": "The grid fee layer contains a rate of {rate} {currency}/kWh (from the {source} input). A transfer fee is a charge, so a negative one is almost always a sign slip — and the plan is pricing every hour it applies to as subsidised, favouring exactly the hours the grid company charges for. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value under the DSO fee options (or fix the fee sensor) and this notice clears on the next planning cycle."
+      "description": "The grid fee layer contains a rate of {rate} {currency}/kWh (from the {source} input). A transfer fee is a charge, so a negative one is almost always a sign slip — and the plan is pricing every hour it applies to as subsidised, favouring exactly the hours the grid company charges for. Nothing is changed or capped: the plan keeps pricing with exactly the value configured. Correct the value on the \"Transfer fees and contract\" options page (or fix the fee sensor) and this notice clears on the next planning cycle."
     },
     "lower_floor_modelled": {
       "title": "The downstairs temperature is modelled, not measured",
@@ -1900,7 +1900,7 @@
     },
     "quiet_silent_not_enforced": {
       "title": "Silent windows are not enforced",
-      "description": "Silent windows are configured, but the capacity-limited slot ({entity}) is not a switch this integration can hold on, so the plan is not capped for them and the heat pump is never asked to run silently. Assign the heat pump's own night/silent-mode switch as the capacity-limited entity, or remove the silent rows."
+      "description": "Silent windows are configured, but no control this integration can hold covers every silent row: the capacity-limited slot ({entity}) is not a switch, and the heat pump's own night schedule, where there is one, cannot take these rows as they are. The plan is not capped for a row no control can hold, and the heat pump is not asked to run silently during it. Assign the heat pump's own night/silent-mode switch as the capacity-limited entity, or remove the silent rows."
     },
     "dhw_minimum_above_start": {
       "title": "The heat pump cannot hold the hot water minimum",
@@ -1923,7 +1923,7 @@
     },
     "sensor": {
       "buffer_tank_temperature_model": {
-        "name": "Buffer Tank Temperature (Model)"
+        "name": "Buffer Tank Temperature"
       },
       "compressor_frequency_advisor": {
         "name": "Compressor Frequency Advisor"
@@ -1998,7 +1998,7 @@
           "idle": "Idle",
           "normal": "Normal output",
           "off": "Off",
-          "pre_heat": "Pre-heating",
+          "pre_heat": "High output",
           "system_identification": "System identification",
           "unknown": "Unknown"
         }
@@ -2061,9 +2061,9 @@
         "state": {
           "cheap_price": "Cheapest hours",
           "comfort_floor": "Holding the minimum temperature",
-          "dhw_preheat": "Charging the tank while electricity is cheap",
+          "dhw_preheat": "Charging the tank ahead of the hot water windows",
           "dhw_ready": "Getting the tank ready",
-          "dhw_window": "Hot water needed now",
+          "dhw_window": "Heating hot water inside a hot water window",
           "idle": "Idle",
           "idle_coasting": "Above the floor, coasting",
           "idle_dearer": "Dearer than the hours used",
@@ -2243,7 +2243,7 @@
   "services": {
     "run_optimization": {
       "name": "Run Optimization",
-      "description": "Manually trigger the heat pump cost optimization. This will fetch the latest electricity prices and weather forecast, then compute the optimal heat pump schedule for the next 24 hours using predictive MPC with solar/wind/rain anticipation and DHW coordination. The call fails with an error when the optimization cannot run — for example fewer than four electricity price steps are available, or the solve failed — instead of returning as if a new plan had been computed."
+      "description": "Manually trigger the heat pump cost optimization. This recomputes the optimal heat pump schedule for the next 24 hours from the electricity prices and weather forecast already loaded (it does not fetch new ones) using predictive MPC with solar/wind/rain anticipation and DHW coordination. The call fails with an error when the optimization cannot run — for example fewer than four electricity price steps are available, or the solve failed — instead of returning as if a new plan had been computed."
     },
     "set_away": {
       "name": "Set Away",
@@ -2287,7 +2287,7 @@
         },
         "slab_heat_transfer": {
           "name": "Slab Heat Transfer Coefficient",
-          "description": "Heat transfer coefficient between that store and the room, in kW/°C. Radiators sit far higher than a slab."
+          "description": "Heat transfer coefficient between that store and the room, in kW/°C. The building presets give a radiator circuit a fifth of a floor slab's value per m² heated."
         },
         "heat_pump_cop_nominal": {
           "name": "Heat Pump Nominal COP",
@@ -2371,7 +2371,7 @@
         },
         "rain_heat_loss_multiplier": {
           "name": "Rain Heat Loss Multiplier",
-          "description": "Heat loss multiplier when raining. 1.15 means 15% more heat loss during rain (wet building envelope effect)."
+          "description": "Heat loss multiplier when raining. 1.15 means 15% more heat loss in rain of 2 mm/h or more (wet building envelope effect); lighter rain scales it down in proportion, and 0.1 mm/h or less applies none of it."
         },
         "ecl110_pid_time_constant_hours": {
           "name": "ECL110 PI/PID Time Constant",
@@ -2387,7 +2387,7 @@
         },
         "quiet_silent_windows": {
           "name": "Silent windows",
-          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". Where a control can hold them (a switch as the capacity-limited entity, or the heat pump's own night schedule), the plan caps electrical power inside them at the pump's measured silent-mode ceiling, or else at the silent power fraction of nameplate; a repair notice says when no control can hold them. An empty string removes the silent rows."
         },
         "quiet_off_windows": {
           "name": "Off windows",
@@ -2395,7 +2395,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Silent power fraction",
-          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0 (a lower value is raised to 0.6); a measured silent-mode ceiling, where the pump exposes one, takes its place. 1.0 caps nothing."
         }
       }
     },
@@ -2445,7 +2445,7 @@
         },
         "dhw_windows": {
           "name": "Hot water demand windows",
-          "description": "Time frames to test, e.g. \"06:00-08:30, 17:00-22:00\". An empty string simulates having no demand windows at all."
+          "description": "Time frames to test, e.g. \"06:00-08:30, 17:00-22:00\". An empty string simulates having no windows configured: the plan then uses windows learned from your hot water use, or the whole day when the hot water schedule is off."
         },
         "wood_slots": {
           "name": "Wood slots",
@@ -2469,7 +2469,7 @@
         },
         "quiet_silent_windows": {
           "name": "Silent windows",
-          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". Where a control can hold them (a switch as the capacity-limited entity, or the heat pump's own night schedule), the plan caps electrical power inside them at the pump's measured silent-mode ceiling, or else at the silent power fraction of nameplate; a repair notice says when no control can hold them. An empty string removes the silent rows."
         },
         "quiet_off_windows": {
           "name": "Off windows",
@@ -2477,7 +2477,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Silent power fraction",
-          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0 (a lower value is raised to 0.6); a measured silent-mode ceiling, where the pump exposes one, takes its place. 1.0 is the unset value: sending it changes nothing, so a fraction already stored stays in force."
         }
       }
     },
@@ -2521,11 +2521,11 @@
         },
         "dhw": {
           "name": "DHW tank",
-          "description": "When set, add or remove the domestic hot water tank from this system's picture. True seeds a default volume if none is stored yet. Omit to leave the tank as it is."
+          "description": "When set, switch domestic hot water on or off for this system: the tank is planned, modelled and drawn in the system picture only while it is on. True seeds a default volume if none is stored yet. Omit to leave the tank as it is."
         },
         "wood": {
           "name": "Wood tank",
-          "description": "When set, add or remove the wood / external-heat tank from this system's picture. Omit to leave the tank as it is."
+          "description": "When set, switch the wood / external-heat tank on or off for this system: wood advice and external-heat detection run, and the tank is drawn in the system picture, only while it is on. Omit to leave the tank as it is."
         }
       }
     },
@@ -2543,7 +2543,7 @@
         },
         "dhw_windows": {
           "name": "Hot water demand windows",
-          "description": "Time frames when hot water must be available, e.g. \"06:00-08:30, 17:00-22:00\". An empty string removes all demand windows, leaving the tank only at its idle minimum."
+          "description": "Time frames when hot water must be available, e.g. \"06:00-08:30, 17:00-22:00\". An empty string removes the configured windows: the plan then uses windows learned from your hot water use, or the whole day when the hot water schedule is off."
         },
         "comfort_temp_day": {
           "name": "Daytime comfort temperature",
@@ -2559,7 +2559,7 @@
         },
         "quiet_silent_windows": {
           "name": "Silent windows",
-          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". Where a control can hold them (a switch as the capacity-limited entity, or the heat pump's own night schedule), the plan caps electrical power inside them at the pump's measured silent-mode ceiling, or else at the silent power fraction of nameplate; a repair notice says when no control can hold them. An empty string removes the silent rows."
         },
         "quiet_off_windows": {
           "name": "Off windows",
@@ -2567,7 +2567,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Silent power fraction",
-          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0 (a lower value is raised to 0.6); a measured silent-mode ceiling, where the pump exposes one, takes its place. 1.0 is the unset value: sending it changes nothing, so a fraction already stored stays in force."
         },
         "dhw_setpoint": {
           "name": "Hot water setpoint",
