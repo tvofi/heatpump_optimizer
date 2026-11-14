@@ -1,6 +1,7 @@
 """Realistic Swedish weather and Nord Pool SE3 price profiles for the test suite."""
 import numpy as np
 from datetime import datetime, timedelta
+from pathlib import Path
 
 DT = 0.25
 N = 96
@@ -117,6 +118,15 @@ def house(two_zone=False, dhw=True, **over):
                     "inter_zone_heat_transfer": 0.6, "radiator_power_fraction": 0.4})
     cfg.update(over)
     return cfg
+
+
+
+def replay_install(name="owner-2026-10-30-away.json", **over):
+    """A replay fixture's own install configuration (its entry's data with its
+    options over it), the parameters a real house was solved with."""
+    import json
+    entry = json.loads((Path(__file__).resolve().parent / "replay" / name).read_text())["entry"]
+    return {**entry["data"], **entry["options"], **over}
 
 
 def solve_inputs(

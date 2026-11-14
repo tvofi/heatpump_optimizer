@@ -87295,6 +87295,57 @@ R.check(
     (_svh_idle.buffer_tank_temperature, _svh_idle.room_temperature),
 )
 
+# Carry 9: on an install's own parameters (the owner replay's entry: two
+# zones, valve ``manual`` at 21 C, a 4 kW pump) the curve cannot hold 21 C,
+# and the plant at its pump settles with the floors apart -- radiators above,
+# slab-fed floor below. The held state is that ceiling, floor by floor, so a
+# thermostat's day starts and ends there: a held state with the floors forced
+# level sat below it and the day's reference warmed to it, booking the warming.
+from profiles import replay_install as _c9_install  # noqa: E402
+
+
+def _c9_case(outdoor, **over):
+    """The held state, the plant at its pump for three days from it, the reference's day's end."""
+    model = _SVR_MODEL(_SVR_PARAMS.from_config(_c9_install(**over)))
+    opt = _SVR_OPT(model, _SVR_CFG(horizon_hours=24, time_step_minutes=15, target_temp=21.0))
+    n = 96
+    w = _SVH_WS(outdoor_temps=np.full(n, outdoor), wind_speeds=np.full(n, 3.0),
+                precipitation=np.zeros(n), solar_radiation=np.zeros(n))
+    start = _SVR_STATE(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=outdoor,
+                       upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+                       buffer_tank_temperature=40.0, wood_tank_temperature=20.0)
+    held = _svh_held(model, start, w, 21.0)
+    plant = held
+    for _ in range(3 * n):
+        plant = model.simulate_step(plant, model.params.max_electrical_power, outdoor, 3.0, 0.0, 0.0, 0.25)
+    end = opt._compute_baseline_power(w, start, 0.25, np.full(n, 21.0))[1]
+    return held, plant, end
+
+
+def _c9_zones(s):
+    return (s.room_temperature, s.upper_floor_temperature, s.lower_floor_temperature)
+
+
+_c9_rows = {t: _c9_case(t) for t in (5.0, -5.0, -15.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve "
+    "cannot hold the setpoint, the thermostat reference's held state is the "
+    "plant's own ceiling floor by floor (the pump driving it for three days "
+    "moves no floor 0.02 K), and its day ends where it started",
+    all(max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(pl))) < 0.02
+        and max(abs(a - b) for a, b in zip(_c9_zones(h), _c9_zones(e))) < 0.02
+        and h.room_temperature < 21.0 - 0.1
+        for h, pl, e in _c9_rows.values()),
+    {t: tuple(tuple(round(v, 3) for v in _c9_zones(s)) for s in row) for t, row in _c9_rows.items()},
+)
+_c9_off = {t: _c9_case(t, mixing_valve_mode="none")[0] for t in (5.0, -15.0)}
+R.check(
+    "R10-SAV-VALUATION-RESIDUE Carry 9: null control -- the same install with "
+    "the valve off holds the setpoint, both floors at 21.0",
+    all(_c9_zones(h) == (21.0, 21.0, 21.0) for h in _c9_off.values()),
+    {t: _c9_zones(h) for t, h in _c9_off.items()},
+)
+
 # --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380, adopted by design
 # note design/R10-WATER-SETPOINT-FEEDBACK at 1442f906, approved d3623f5b):
 # a water set-point under Pump duty control was inlet + lift, re-anchored on
