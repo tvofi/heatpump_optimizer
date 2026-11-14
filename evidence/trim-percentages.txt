@@ -1,0 +1,4 @@
+lift 0.5: (off-on)/off = 60.2%   (off-on)/(off-booked) [over-draw] = 83.2%
+lift 2: (off-on)/off = 54.6%   (off-on)/(off-booked) [over-draw] = 72.5%
+lift 4: (off-on)/off = 27.1%   (off-on)/(off-booked) [over-draw] = 35.9%
+lift 6: (off-on)/off = 18.9%   (off-on)/(off-booked) [over-draw] = 25.0%
