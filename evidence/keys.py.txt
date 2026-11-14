@@ -1,0 +1,30 @@
+import json, subprocess, sys
+def load(rev, p):
+    try: return json.loads(subprocess.check_output(["git","show",f"{rev}:{p}"]))
+    except subprocess.CalledProcessError: return None
+def flat(d, pre=""):
+    out={}
+    if isinstance(d, dict):
+        for k,v in d.items(): out.update(flat(v, pre+"/"+k))
+    else: out[pre]=d
+    return out
+H,PRE,BASE,ORACLE,MAIN=sys.argv[1:6]
+P="custom_components/heatpump_optimizer/"
+bad=0
+for f in ["strings.json","translations/en.json","translations/de.json","translations/sv.json"]:
+    h,pr,b,o,m=[flat(load(r,P+f)) for r in (H,PRE,BASE,ORACLE,MAIN)]
+    owned={k for k in set(pr)|set(b) if pr.get(k)!=b.get(k)}
+    keys=set(h)|set(o)|owned
+    n_own=n_or=0
+    for k in sorted(keys):
+        if k in owned:
+            n_own+=1
+            if h.get(k)!=pr.get(k):
+                # if oracle also changed it relative to main, it's a real conflict; report
+                print(f"OWNED-DIFF {f}{k}\n  head={h.get(k)!r}\n  pr  ={pr.get(k)!r}\n  orac={o.get(k)!r}\n  main={m.get(k)!r}"); bad+=1
+        else:
+            n_or+=1
+            if h.get(k)!=o.get(k):
+                print(f"ORACLE-DIFF {f}{k}\n  head={h.get(k)!r}\n  orac={o.get(k)!r}"); bad+=1
+    print(f"RESULT {f}: pr-owned={n_own} oracle-checked={n_or} total-head-keys={len(h)}")
+print("RESULT mismatches", bad)

@@ -1,2 +1,0 @@
-mutant_run: refusing: mutant M02_no_arm: old text occurs 0 times in custom_components/heatpump_optimizer/pump_arbiter.py, not exactly once
-mutant_run: refusing: mutant M23_arm_ignores_dropped_record: old text occurs 0 times in custom_components/heatpump_optimizer/pump_arbiter.py, not exactly once
