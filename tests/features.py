@@ -46357,19 +46357,25 @@ _sb_row = _sb_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
 _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
-    _sb_meta == {"sum": float(_SB_NOW), "count": 1} and _sb_row["old_basis"] is False
+    # The literal is the persisted stamp this release writes: a bump is deliberate.
+    _sb_meta == {"sum": 2.0, "count": 1} and _SB_NOW == 2 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
-# The stamp is a persisted value: a v2 store already on disk holds the literal
-# 1.0 this release writes, and that month must keep reading as current.
+# The stamp is a persisted value: a v2 store on disk holds the literal 1.0 that
+# v7.1.15 wrote under the reference spread by steady demand, which R10-SAV-
+# VALUATION-RESIDUE removed. Such a month mixes two references once it books on.
 _sb_disk = _sb_copy.deepcopy(_sb_led.as_dict())
 _sb_disk["months"]["2026-02"]["meta"][_SB_META] = {"sum": 1.0, "count": 1}
-_sb_disk_row = _SavLedger.from_dict(_sb_disk).savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+_sb_disk_led = _SavLedger.from_dict(_sb_disk)
+_sb_disk_led.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 4, 0), 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+_sb_disk_row = _sb_disk_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
 R.check(
-    "a month a v2 store holds stamped 1 reads on the current reference",
-    _sb_disk_row["old_basis"] is False and _sb_disk_row["savings_sek"] is not None,
-    repr(_sb_disk_row),
+    "a month stamped 1, the spread reference, states no saving after the change",
+    _sb_disk_row["old_basis"] is True and _sb_disk_row["savings_sek"] is None
+    and _sb_disk_row["savings_pct"] is None and _sb_disk_row["baseline_sek"] is not None
+    and _sb_disk_led.months["2026-02"]["meta"][_SB_META] == {"sum": 1.0, "count": 1},
+    repr((_sb_disk_row, _sb_disk_led.months["2026-02"]["meta"])),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
@@ -46438,8 +46444,12 @@ R.check(
 )
 # R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
 # interval, so behind a valve the first step must not be the stores' transient.
-# At one outdoor the steady demand is flat, so a sound step 0 IS the horizon mean;
+# At one outdoor the steady demand is flat, so a sound step 0 is the horizon mean;
 # spread across starts is no acceptance (all-zero first steps have spread 0).
+# The reference is booked as simulated from its held state (R10-SAV-VALUATION-
+# RESIDUE carry 15), so the bound is 1e-3, not exact: two zones held at one
+# temperature drift apart over the day by 1.6e-4 of the mean here (carry 9's
+# open seam), where a transient reads 0 or an overshoot of whole units.
 def _sb_first_steps(two_zone, wood_probe, valve="manual"):
     import numpy as _np
     from profiles import house as _h
@@ -46475,7 +46485,7 @@ for _sb_name, _sb_args in (
     _sb_ratios = {k: float(v[0] / v.mean()) if v.mean() > 0 else 0.0 for k, v in _sb_arms.items()}
     R.check(
         f"behind a valve with {_sb_name}, the thermostat's first step is its horizon mean, not 0 or an overshoot",
-        all(abs(r - 1.0) < 1e-9 for r in _sb_ratios.values()),
+        all(abs(r - 1.0) < 1e-3 for r in _sb_ratios.values()),
         repr(_sb_ratios),
     )
     R.check(
@@ -47258,9 +47268,7 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
 
 # Behind a valve, at zero demand (a warm, sunny step: the steady demand at
 # target is negative, clamped to 0). The held tank keeps its measured
-# temperature, since no temperature delivers a need of nothing; and a horizon
-# with no steady demand anywhere has no shape to spread its energy by, so the
-# simulated schedule stands as simulated.
+# temperature, since no temperature delivers a need of nothing.
 _hz_ws = _HbWSeries(
     outdoor_temps=np.full(4, 30.0), wind_speeds=np.zeros(4),
     precipitation=np.zeros(4), solar_radiation=np.full(4, 800.0),
@@ -47274,25 +47282,17 @@ _hz_held = _hb_held_state(_hz_opt.model, _HbState(
     room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=30.0,
     upper_floor_temperature=21.0, lower_floor_temperature=21.0, buffer_tank_temperature=37.5,
 ), _hz_ws, 21.0)
-_hz_sim = np.array([1.0, 2.0, 0.5, 0.0])
-try:
-    _hz_spread = _hz_opt._apportion_by_steady_demand(_hz_sim, _hz_ws, [21.0] * 4)
-except ZeroDivisionError as _hz_exc:
-    _hz_spread = _hz_exc
 R.check(
-    "behind a valve at zero demand the held tank keeps its measured temperature, "
-    "and a horizon with no steady demand keeps its simulated schedule",
-    _hz_held.buffer_tank_temperature == 37.5
-    and isinstance(_hz_spread, np.ndarray) and np.array_equal(_hz_spread, _hz_sim),
-    repr((_hz_held.buffer_tank_temperature, _hz_spread)),
+    "behind a valve at zero demand the held tank keeps its measured temperature",
+    _hz_held.buffer_tank_temperature == 37.5,
+    repr(_hz_held.buffer_tank_temperature),
 )
 
-# Behind a valve the reference spreads its energy by steady demand, and on a
-# small pump in a cold night with a sunny day the plain spread asked more than
-# the pump has (measured 1.23x on this house; R10-SAV-COMFORT carry fc24128d).
-# The spread holds such a step at the pump and gives its excess to the others
-# by the same demand, keeping the horizon's energy; the solve is seeded from
-# that reference unclamped, so every start lies inside its bounds.
+# Behind a valve, on a small pump in a cold night with a sunny day, a reference
+# spread by steady demand once asked more than the pump has (measured 1.23x on
+# this house; R10-SAV-COMFORT carry fc24128d). The thermostat's own steps are
+# capped at the pump, and the solve is seeded from that reference unclamped, so
+# every start lies inside its bounds.
 from heatpump_optimizer import optimizer as _hz_omod
 
 _hz_n = 96
@@ -47319,16 +47319,6 @@ def _hz_spy_ms(objective, starts, bounds, **kw):
 
 _hz_baselines = []
 _hz_orig_bp = _HbOpt._compute_baseline_power
-_hz_spreads = []
-_hz_orig_ap = _HbOpt._apportion_by_steady_demand
-
-
-def _hz_spy_ap(self, simulated, *a, **kw):
-    out = _hz_orig_ap(self, simulated, *a, **kw)
-    _hz_spreads.append((np.array(simulated, float), np.array(out, float)))
-    return out
-
-
 def _hz_spy_bp(self, *a, **kw):
     out = _hz_orig_bp(self, *a, **kw)
     _hz_baselines.append(float(np.max(out[0])))
@@ -47337,7 +47327,6 @@ def _hz_spy_bp(self, *a, **kw):
 
 _hz_omod._multi_start_minimize = _hz_spy_ms
 _HbOpt._compute_baseline_power = _hz_spy_bp
-_HbOpt._apportion_by_steady_demand = _hz_spy_ap
 try:
     _hz_copt.optimize(inputs=solve_inputs(
         initial_state=_HbState(
@@ -47353,7 +47342,6 @@ try:
 finally:
     _hz_omod._multi_start_minimize = _hz_orig_ms
     _HbOpt._compute_baseline_power = _hz_orig_bp
-    _HbOpt._apportion_by_steady_demand = _hz_orig_ap
 _hz_pmax = float(_hz_cpar.max_electrical_power)
 R.check(
     "behind a valve, the reference seeds the space solve only inside its bounds",
@@ -47361,74 +47349,42 @@ R.check(
     f"worst excess over a bound {max(_hz_seen, default=None)!r}",
 )
 R.check(
-    "behind a valve, the spread reference holds a step at the pump, never past it, "
-    "and keeps the simulated horizon's energy",
-    bool(_hz_spreads)
-    and all(float(np.max(o)) <= _hz_pmax + 1e-12 for _, o in _hz_spreads)
-    and all(abs(float(np.sum(o)) - float(np.sum(s))) < 1e-9 for s, o in _hz_spreads)
-    and any(int(np.sum(o >= _hz_pmax - 1e-12)) >= 2 for _, o in _hz_spreads)
-    and max(_hz_baselines, default=0.0) <= _hz_pmax + 1e-12,
-    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}; "
-    f"steps at the pump {[int(np.sum(o >= _hz_pmax - 1e-12)) for _, o in _hz_spreads]}",
+    "behind a valve, the reference reaches the pump and never passes it",
+    bool(_hz_baselines)
+    and abs(max(_hz_baselines) - _hz_pmax) <= 1e-12,
+    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}",
 )
-# Under the pump the spread keeps the demand's shape. Four steps, the last one
-# a -30 C step whose plain share of 0.8 pump-steps each would pass the pump:
-# it is held at the pump, and the other three share the rest as the same
-# multiple of their steady demand at target (read from the production helper).
-_hz_mws = _HbWSeries(
-    outdoor_temps=np.array([5.0, 0.0, -5.0, -30.0]), wind_speeds=np.zeros(4),
-    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+
+# Behind a valve the booked reference holds the state it starts from: the held
+# state's census (dev/audit/harnesses/r10_sav_held_capacity_census.py) reads a
+# first-step store change of 0, so step 0 is the thermostat's holding power,
+# not a store transient to re-spread. The day's weather varies, so a reference
+# re-spread by steady demand books step 0 off the holding power (R10-SAV-
+# VALUATION-RESIDUE carry 15: +11.11 kWh_th stored over the valve arm).
+_hv_ws = _HbWSeries(
+    outdoor_temps=np.full(_hz_n, -5.0) + np.where(_hz_day, 8.0, 0.0),
+    wind_speeds=np.zeros(_hz_n), precipitation=np.zeros(_hz_n),
+    solar_radiation=np.where(_hz_day, 400.0, 0.0),
 )
-_hz_mcap = float(_hz_par.max_electrical_power)
-_hz_msim = np.full(4, 0.8 * _hz_mcap)
-_hz_mout = _hz_opt._apportion_by_steady_demand(_hz_msim, _hz_mws, [21.0] * 4)
-_hz_mdem = np.array([_hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0)
-                     for t in _hz_mws.outdoor_temps])
-_hz_mr = _hz_mout[:3] / _hz_mdem[:3]
-# A horizon demanding little (under 1 kW summed) still has a shape: three
-# zero-demand steps and one mild one put all the energy on the mild one.
-_hz_lo = 21.0 - (_hz_par.internal_gains + 0.2) / _hz_par.heat_loss_coefficient
-_hz_lws = _HbWSeries(
-    outdoor_temps=np.array([30.0, 30.0, 30.0, _hz_lo]), wind_speeds=np.zeros(4),
-    precipitation=np.zeros(4), solar_radiation=np.zeros(4),
+_hv_start = _HbState(
+    room_temperature=19.5, slab_temperature=21.0, outdoor_temperature=-5.0,
+    upper_floor_temperature=19.5, lower_floor_temperature=19.5, buffer_tank_temperature=45.0,
 )
-_hz_ldem = [max(0.0, _hb_floor_demand(_hz_opt.model, 21.0, t, 0.0, 0.0, 0.0))
-            for t in _hz_lws.outdoor_temps]
-_hz_lout = _hz_opt._apportion_by_steady_demand(np.array([0.1, 0.2, 0.05, 0.0]), _hz_lws, [21.0] * 4)
-R.check(
-    "behind a valve, a horizon with a small steady demand spreads by it, not by the simulation",
-    0.0 < sum(_hz_ldem) < 1.0 and _hz_ldem[:3] == [0.0, 0.0, 0.0]
-    and np.allclose(_hz_lout, [0.0, 0.0, 0.0, 0.35], atol=1e-12),
-    f"demand {_hz_ldem!r} spread {_hz_lout!r}",
-)
-# A step whose share lands exactly at the pump is at it, not past it: three
-# zero-demand steps and one cold one, the horizon's energy one pump-step, keep
-# the spread (all of it on the cold step) rather than handing the horizon back
-# to the simulation, as a step held with no demand left to share would.
-_hz_eout = _hz_opt._apportion_by_steady_demand(
-    np.full(4, 0.25 * _hz_mcap), _HbWSeries(
-        outdoor_temps=np.array([30.0, 30.0, 30.0, -5.0]), wind_speeds=np.zeros(4),
-        precipitation=np.zeros(4), solar_radiation=np.zeros(4),
-    ), [21.0] * 4,
+_hv_power, _ = _hz_opt._compute_baseline_power(_hv_ws, _hv_start, 0.25, np.full(_hz_n, 21.0))
+_hv_held = _hb_held_state(_hz_opt.model, _hv_start, _hv_ws, 21.0)
+_hv_next = _hz_opt.model.simulate_step(
+    _hv_held, float(_hv_power[0]), -5.0, 0.0, 0.0, 0.0, dt_hours=0.25,
 )
 R.check(
-    "behind a valve, a step spread exactly to the pump keeps the spread",
-    _hz_eout.tolist() == [0.0, 0.0, 0.0, _hz_mcap],
-    repr(_hz_eout),
-)
-R.check(
-    "precondition: the cold step's plain share of the horizon passes the pump",
-    bool(np.all(_hz_mdem > 0.0))
-    and float(np.sum(_hz_msim)) * _hz_mdem[3] / float(np.sum(_hz_mdem)) > _hz_mcap,
-    repr(_hz_mdem),
-)
-R.check(
-    "behind a valve, a step spread past the pump is held there and the uncapped steps "
-    "share the rest by their steady demand",
-    _hz_mout[3] == _hz_mcap and float(np.max(_hz_mout[:3])) < _hz_mcap
-    and abs(float(np.sum(_hz_mout)) - float(np.sum(_hz_msim))) < 1e-9
-    and float(np.ptp(_hz_mr)) <= 1e-12 * float(np.max(_hz_mr)),
-    repr(_hz_mout),
+    "behind a valve, the booked reference's first step holds its held state",
+    0.0 < float(_hv_power[0]) < float(_hz_par.max_electrical_power)
+    and abs(_hv_next.room_temperature - _hv_held.room_temperature) < 1e-6
+    and abs(_hv_next.slab_temperature - _hv_held.slab_temperature) < 1e-6
+    and abs(_hv_next.buffer_tank_temperature - _hv_held.buffer_tank_temperature) < 1e-6,
+    f"power {float(_hv_power[0])!r}; room {_hv_held.room_temperature!r} -> "
+    f"{_hv_next.room_temperature!r}, slab {_hv_held.slab_temperature!r} -> "
+    f"{_hv_next.slab_temperature!r}, tank {_hv_held.buffer_tank_temperature!r} -> "
+    f"{_hv_next.buffer_tank_temperature!r}",
 )
 
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
@@ -63056,7 +63012,7 @@ _pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
 def _pa_bound_target(low):
     _pa_bound.hass.states.get("number.water_set").attributes = {"min": low, "max": 63}
     return _pa._space_target(
-        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space")
+        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space", boosted=False)
 
 
 _pa_bound_at = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE)
@@ -63462,17 +63418,131 @@ for _pa_gb_mode in ("boost", "comfort"):
     _pa_gb[_pa_gb_mode]._mode = _pa_gb_mode
     _pa_run(_pa_gb[_pa_gb_mode], 1)
 R.check(
-    "the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold",
+    "the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 "
+    "(R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's hold",
     ("select", "select_option", "Heating + DHW") in _pa_gb["boost"].writes()
-    and ("number", "set_value", 55.0) in _pa_gb["boost"].writes()
+    and ("number", "set_value", 63.0) in _pa_gb["boost"].writes()
     and ("number", "set_value", 35.0) in _pa_gb["comfort"].writes(),
     f"{_pa_gb['boost'].writes()} / {_pa_gb['comfort'].writes()}",
 )
+
+
+# R10-HOTFIX-BOOST-FLOW-CEILING (tvofi, 2026-11-13: a space boost wrote 41,
+# then 43, not his maximum; "set at the maximum value"): a boost replaces the
+# plan's power for the space channel (boost.overlay), so it writes the
+# set-point entity's own maximum on every step, a partial one included,
+# capped by a stored flow_heat_c and the controller's upper-limit sensor. An
+# entity whose maximum does not read, or reads above FLOW_HEAT_C_MAX, keeps
+# the planned level. The band is ready here (max_electrical_power set), which
+# the idle-plan check above never needed.
+def _pa_boost_level(duties, kw, how=None, power_meter=False, entity_max=60, option=None, limit=None, unit="flow"):
+    """The space writes of one pass on a plan booking ``kw`` on its space steps, band 0.4-2.0 kW.
+
+    ``how``: None, ``"channel"`` (Boost Space Heating) or ``"mode"`` (the global boost mode).
+    ``entity_max``: the set-point entity's ``max`` attribute, None for none.
+    """
+    coord = _PaCoord(_PA_TUYA, duties=duties)
+    attrs = {"min": 25} if entity_max is None else {"min": 25, "max": entity_max}
+    coord.hass.states.set("number.water_set", FakeState("40", attributes=attrs))
+    coord._optimization_result.power_schedule = [kw if c == "s" else 0.0 for c in duties]
+    coord._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None,
+                                  min_electrical_power=0.4, max_electrical_power=2.0)
+    extra = {"space_setpoint_unit": unit}
+    if option is not None:
+        extra["flow_heat_c"] = option
+    if limit is not None:
+        extra["space_setpoint_high_limit_entity"] = "sensor.hp_high_limit"
+        coord.hass.states.set("sensor.hp_high_limit", FakeState(str(limit), unit="°C"))
+    if power_meter:
+        extra.update({"heat_pump_power_entity": "sensor.hp_power", "space_setpoint_power_feedback": True})
+    with_config(coord, extra)
+    if how == "channel":
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    elif how == "mode":
+        coord._mode = "boost"
+    _pa_run(coord, 1)
+    return coord, [v for d, _sv, v in coord.writes() if d == "number" and v != 48.0]
+
+
+def _pa_bl(how, **kw):
+    return _pa_boost_level("ss", 1.0, how, **kw)[1]
+
+
+_pa_bl_rows = {
+    name: {how: _pa_bl(how, **kw) for how in (None, "channel", "mode")}
+    for name, kw in {
+        "max 55": {"entity_max": 55},
+        "max 60": {"entity_max": 60},
+        "max 70, the bound": {"entity_max": 70},
+        "max 60, stored 50": {"entity_max": 60, "option": 50},
+        "max 60, stored default 55": {"entity_max": 60, "option": 55},
+        "max 60, limit 52": {"entity_max": 60, "limit": 52},
+        "max 60, limit at the gate": {"entity_max": 60, "limit": 25},
+        "max 90": {"entity_max": 90},
+        "no max": {"entity_max": None},
+        "return, max 45": {"entity_max": 45, "unit": "return"},
+    }.items()
+}
+_pa_bl_idle = {how: _pa_boost_level("--", 0.0, how)[1] for how in (None, "channel", "mode")}
+_pa_bl_top = {how: _pa_boost_level("ss", 2.0, how)[1] for how in (None, "channel", "mode")}
+_pa_bl_want = {"max 55": 55, "max 60": 60, "max 70, the bound": 70, "max 60, stored 50": 50, "max 60, stored default 55": 60,
+               "max 60, limit 52": 52,
+               "max 60, limit at the gate": 60, "return, max 45": 45}
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's "
+    "own maximum on a step the plan books at a partial 1.0 kW of a 0.4-2.0 kW band (55 for 55, 60 for 60, "
+    "70 for 70, FLOW_HEAT_C_MAX itself, "
+    "45 for a return target's 45, unmoved), capped by a flow_heat_c set off its default (50, never the "
+    "default 55, which an untouched page reads as) and the controller's "
+    "upper-limit sensor (52), never by a limit at the 25 degC gate, which leaves no heating value; controls: "
+    "the same step with no boost writes its partial value, below each of them, and an entity maximum of 90 "
+    "or none leaves a boost on that partial value",
+    all(_pa_bl_rows[name]["channel"] == [want] and _pa_bl_rows[name]["mode"] == [want]
+        and len(_pa_bl_rows[name][None]) == 1 and _pa_bl_rows[name][None][0] < want
+        for name, want in _pa_bl_want.items())
+    and all(_pa_bl_rows[name]["channel"] == _pa_bl_rows[name]["mode"] == _pa_bl_rows[name][None]
+            and len(_pa_bl_rows[name][None]) == 1 and _pa_bl_rows[name][None][0] < 55
+            for name in ("max 90", "no max")),
+    f"{_pa_bl_rows=}",
+)
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's "
+    "maximum, 60; null control: with no boost a band-top step writes the heating flow, 55, and an idle "
+    "one the gate, 25",
+    _pa_bl_idle == {None: [25], "channel": [60], "mode": [60]}
+    and _pa_bl_top == {None: [55], "channel": [60], "mode": [60]},
+    f"{_pa_bl_idle=} {_pa_bl_top=}",
+)
+from heatpump_optimizer import config_flow as _pa_cf  # noqa: E402
+from heatpump_optimizer.const import FLOW_HEAT_C_MAX as _PA_FLOW_HEAT_C_MAX  # noqa: E402
+
+_pa_bl_offer = [row.widget.config for row in _pa_cf._OPTION_FIELDS if row.key == "flow_heat_c"]
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: the heating ceiling the options offer is 30 to FLOW_HEAT_C_MAX, "
+    "70 degC, the range docs/configuration.md states and the bound above which a boost does not drive "
+    "an entity's maximum; null control: a maximum of 90 is above it",
+    [(c["min"], c["max"]) for c in _pa_bl_offer] == [(30, _PA_FLOW_HEAT_C_MAX)] and _PA_FLOW_HEAT_C_MAX == 70.0
+    and 90 > _PA_FLOW_HEAT_C_MAX,
+    f"{_pa_bl_offer=}",
+)
+_pa_bl_fb, _ = _pa_boost_level("ss", 1.0, "channel", power_meter=True)
+_pa_bl_fb_on = _pa._feedback_on(_pa_bl_fb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
+                                boost_mod.held_for(_pa_bl_fb))
+_pa_bl_nb, _ = _pa_boost_level("ss", 1.0, None, power_meter=True)
+_pa_bl_nb_on = _pa._feedback_on(_pa_bl_nb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
+                                boost_mod.held_for(_pa_bl_nb))
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: the power-feedback loop stays off during a space boost; "
+    "null control: on the same partial step with no boost it is on",
+    _pa_bl_fb_on is False and _pa_bl_nb_on is True,
+    f"{_pa_bl_fb_on=} {_pa_bl_nb_on=}",
+)
 R.check(
     "a boost writes its own single duty where the pump offers it, Heating + DHW "
-    "where it does not or the other duty is due too, and nothing while off",
+    "where it does not or the other duty is due too, and nothing while off; a space boost "
+    "writes the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING)",
     ("select", "select_option", "Heating") in _pa_sb["tuya"].writes()
-    and ("number", "set_value", 55.0) in _pa_sb["tuya"].writes()
+    and ("number", "set_value", 63.0) in _pa_sb["tuya"].writes()
     and all(w[2] != "Heating + DHW" for w in _pa_sb["tuya"].writes())
     and ("select", "select_option", "Heat + DHW") in _pa_sb["modbus"].writes()
     and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwstep"].writes()
@@ -63652,14 +63722,124 @@ def _pa_upgraded(reading):
 
 _pa_up, _pa_up_first, _pa_up_sent = _pa_upgraded("30")
 _pa_up_n, _pa_up_n_first, _pa_up_n_sent = _pa_upgraded("31")
+# Re-pinned by R10-HOTFIX-FLOW-SETPOINT-STUCK: this check pinned "the write
+# waits", which on an upgrade held every space write, boosts included, until a
+# person set the controller. The own write is still never the baseline; the
+# baseline row's hold (35 degC: the curve's 34.2 under the rated hold) is.
 R.check(
     "R10-ARBITER-OFF-RESTORE: a reading equal to the arbiter's own last write is never captured as "
-    "the baseline, and the write waits; null control: a reading of the person's own is captured, "
-    "written over, and restored on off",
-    _pa_up_first == [] and _pa_up_sent == 0 and _pa_space(_pa_up) == []
+    "the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the "
+    "person's own is captured, written over, and restored on off",
+    _pa_up_first == [25.0] and _pa_up_sent == 1 and _pa_space(_pa_up) == [35.0]
     and _pa_up_n_first == [25.0] and _pa_up_n_sent == 1 and _pa_space(_pa_up_n) == [31.0],
     f"{_pa_up_first=} {_pa_up_sent=} {_pa_up.writes()=} / {_pa_up_n_first=} {_pa_up_n_sent=} "
     f"{_pa_up_n.writes()=}",
+)
+
+
+# R10-HOTFIX-FLOW-SETPOINT-STUCK (tvofi, 2026-11-13, a Rotenso on v7.1.15 held
+# at 25 degC through a boost): from any persisted arbiter state, a space step
+# or a boost under Control writes the space set-point within one pass. The
+# states: a record equal to the reading with no baseline armed, in memory and
+# loaded from the pre-#3404 store shape (an upgrade, then a restart).
+def _pa_stuck(duties, record, boost=False, stored=False):
+    """The space writes of one pass at minute 1; ``record`` the persisted last write or None."""
+    coord = _PaCoord(_PA_TUYA, duties=duties)
+    coord.device("number.water_set", "25")
+    at = _PA_T0 - timedelta(hours=1)
+    if record is not None and stored:
+        _pa_aio.run(_pa._store(coord).async_save({"written": {"space_setpoint": [record, at.isoformat()]}}))
+    elif record is not None:
+        held = _pa.state_for(coord)
+        held.loaded = True
+        held.written["space_setpoint"] = (record, at)
+    if boost:
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    _pa_run(coord, 1)
+    return _pa_space(coord)
+
+
+_pa_stuck_rows = {
+    (duties, boost, stored): _pa_stuck(duties, 25.0, boost, stored)
+    for duties, boost in (("-", True), ("s", False)) for stored in (False, True)
+}
+_pa_stuck_null = {(duties, boost): _pa_stuck(duties, None, boost) for duties, boost in (("-", True), ("s", False))}
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum "
+    "(R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 55 degC ceiling, in one pass from a persisted "
+    "own write of 25 equal to the reading with no baseline armed, in memory and loaded from the store; "
+    "null control: the same passes with no record write the same",
+    all(v == ([63.0] if key[1] else [55.0]) for key, v in _pa_stuck_rows.items())
+    and _pa_stuck_null == {("-", True): [63.0], ("s", False): [55.0]},
+    f"{_pa_stuck_rows=} {_pa_stuck_null=}",
+)
+
+
+def _pa_stuck_off(hand=None):
+    """Off after the released write from a persisted own 25: what the restore writes.
+
+    ``hand``: a value the person sets at the controller before the pass.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (25.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", "25" if hand is None else hand)
+    _pa_settled(coord, 1)
+    return _pa_turn_off(coord), _pa_space(coord)
+
+
+
+
+def _pa_stuck_cycle():
+    """A stuck install (own 25 persisted, reading 25, nothing armed) turned Off and On again.
+
+    Returns what the Off restored, the space writes after On, and what a later Off restores.
+    """
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (25.0, _PA_T0 - timedelta(hours=1))
+    coord.device("number.water_set", "25")
+    first = _pa_turn_off(coord)
+    coord._mode = _PA_AUTO
+    coord.hass.services.calls.clear()
+    _pa_settled(coord, 46)
+    coord.hass.services.calls.clear()
+    _pa_run(coord, 47)
+    on = _pa.state_for(coord).written.get("space_setpoint", (None,))[0]
+    coord.hass.services.calls.clear()
+    return first, on, _pa_turn_off(coord), _pa_space(coord)
+
+
+def _pa_dropped_over(written, dropped):
+    """The space writes of three passes from a written record over a dropped own 25, reading 25."""
+    coord = _PaCoord(_PA_TUYA, duties="ssss")
+    held = _pa.state_for(coord)
+    held.loaded = True
+    held.written["space_setpoint"] = (written, _PA_T0 - timedelta(hours=1))
+    held.dropped["space_setpoint"] = dropped
+    coord.device("number.water_set", "25")
+    for minute in (1, 2, 3):
+        _pa_settled(coord, minute)
+    return float(coord.hass.states.get("number.water_set").state)
+
+
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK (R10-RCA-SETPOINT-LATCH-DEADLOCK (b)): a stuck install turned Off "
+    "(nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline "
+    "row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity "
+    "reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too",
+    _pa_stuck_cycle() == (0, 55.0, 1, [35.0])
+    and _pa_dropped_over(55.0, 25.0) == 55.0 and _pa_dropped_over(55.0, 40.0) == 55.0,
+    f"{_pa_stuck_cycle()=} {_pa_dropped_over(55.0, 25.0)=} {_pa_dropped_over(55.0, 40.0)=}",
+)
+R.check(
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds "
+    "restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is "
+    "restored as set",
+    _pa_stuck_off() == (1, [35.0]) and _pa_stuck_off("40") == (1, [40.0]),
+    f"{_pa_stuck_off()=} {_pa_stuck_off('40')=}",
 )
 
 
@@ -63811,13 +63991,17 @@ def _pa_restored_twice(via):
     _pa_run(again, 0)
     _pa_run(again, 30)
     again.hass.services.calls.clear()
-    return _pa_turn_off(again)
+    return _pa_turn_off(again), _pa_space(again)
 
 
+# The restored value, not only the count: since R10-HOTFIX-FLOW-SETPOINT-STUCK
+# an own write left on the record no longer refuses the arm but substitutes
+# the baseline row's 35, so only the value tells a record the restore dropped
+# (and saved) from one it kept.
 R.check(
     "R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, "
-    "a restart captures it again and the next off restores it",
-    _pa_restored_twice("unload") == 1 and _pa_restored_twice("off") == 1,
+    "a restart captures it again and the next off restores it, 25, not the baseline row's 35",
+    _pa_restored_twice("unload") == (1, [25.0]) and _pa_restored_twice("off") == (1, [25.0]),
     f"{_pa_restored_twice('unload')=} {_pa_restored_twice('off')=}",
 )
 _pa_subs = _PaCoord(_PA_TUYA)
@@ -88193,7 +88377,7 @@ R.check(
 import asyncio as _fb_aio  # noqa: E402
 
 
-def _fb_own(moves, wrote=True):
+def _fb_own(moves, wrote=True, arm=True):
     coord = _FbCoord()
     held = _fb_pa.state_for(coord)
     if wrote:
@@ -88201,23 +88385,35 @@ def _fb_own(moves, wrote=True):
         held.feedback = _fb_running(3600, 0)
     for target in moves:
         _fb_pa._note_sent(held, held.feedback, target, 26.4)
-    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET, _FB_NOW)) if arm else None
     return sent, coord, held
 
 
+def _fb_baseline(coord):
+    """The space baseline the off restore holds, or None when unarmed."""
+    armed = _fb_aio.run(_pa_or.async_armed_entry(coord.hass, coord.entry, _fb_pa.CONSUMER))
+    return None if armed is None else armed["value"]
+
+
+# Re-pinned by R10-HOTFIX-FLOW-SETPOINT-STUCK: the own write is no longer
+# refused, which held the write; the baseline row's 30.0 (the rated 35 in
+# return terms, under the 32 ceiling) is captured in its place.
 _fb_own_one, _fb_own_two, _fb_own_none = _fb_own([25.8]), _fb_own([25.8, 25.6]), _fb_own([], wrote=False)
 _fb_rs_coord, _fb_rs_held = _fb_own([25.8])[1:]
 _fb_rs_coord.entry.runtime_data = _fb_rs_coord
 _fb_pa._space_restored(_fb_rs_coord.entry, _FB_SET, 26.0)
 R.check(
     "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8): a loop move's "
-    "dropped record still refuses the optimizer's own 26.0 as an unarmed key's baseline, "
-    "after one move and after two with no write between; a restore ends the run; an "
-    "arbiter that never wrote captures it",
-    _fb_own_one[0] is False and _fb_own_two[0] is False and _fb_own_two[2].feedback.prev_c == 26.0
-    and _fb_rs_held.feedback is None and _fb_own_none[0] is True,
-    f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
-    f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
+    "dropped record still keeps the optimizer's own 26.0 from an unarmed key's baseline, "
+    "after one move and after two with no write between, and the write is sent; a restore "
+    "ends the run; an arbiter that never wrote captures it",
+    _fb_own_one[0] is True and _fb_baseline(_fb_own_one[1]) == 30.0
+    and _fb_own_two[0] is True and _fb_baseline(_fb_own_two[1]) == 30.0
+    and _fb_own_two[2].feedback.prev_c == 26.0
+    and _fb_rs_held.feedback is None and _fb_own_none[0] is True and _fb_baseline(_fb_own_none[1]) == 26.0,
+    f"one {_fb_own_one[0]} {_fb_baseline(_fb_own_one[1])}, two {_fb_own_two[0]} {_fb_baseline(_fb_own_two[1])} "
+    f"(prev {_fb_own_two[2].feedback.prev_c}), restored run {_fb_rs_held.feedback}, "
+    f"never wrote {_fb_own_none[0]} {_fb_baseline(_fb_own_none[1])}",
 )
 # Round 2 of Carry 8 (#3404's verdict at 4a5abf4a): the loop run ends on
 # paths that are neither a write nor a restore -- a pass off the loop
@@ -88230,12 +88426,12 @@ R.check(
 
 
 def _fb_own_after(end):
-    sent, coord, held = _fb_own([25.8])
+    _sent, coord, held = _fb_own([25.8], arm=False)
     end(coord, held)
     held = _fb_pa.state_for(coord)  # a restart's is a fresh state
     run = held.feedback
-    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
-    return sent, None if run is None else run.prev_c, after
+    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET, _FB_NOW))
+    return _fb_baseline(coord), None if run is None else run.prev_c, after
 
 
 def _fb_end_stale(coord, held):
@@ -88265,29 +88461,32 @@ _fb_own_ends = {
 print("CARRY8-RUN-ENDS", _fb_own_ends)
 R.check(
     "R10-ARBITER-OFF-RESTORE x R10-WATER-SETPOINT-FEEDBACK (Carry 8, round 2): the "
-    "own-write refusal survives every end of the loop run while the dropped write is "
-    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart",
-    all(sent is False and prev is None and after is False for sent, prev, after in _fb_own_ends.values()),
-    f"(before, run prev_c after, after) {_fb_own_ends}",
+    "own-write fact survives every end of the loop run while the dropped write is "
+    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart: "
+    "the arm after it sends the write and captures 30.0, not the own 26.0",
+    all(after is True and prev is None and baseline == 30.0 for baseline, prev, after in _fb_own_ends.values()),
+    f"(baseline, run prev_c after, after) {_fb_own_ends}",
 )
 # Where the fact stops mattering or ends: once the person moves the
 # controller (25.0) the arm captures and the write lands, after which the
 # armed key never consults it -- the controller reading 26.0 again with the
-# record gone is not refused; a restore (_space_restored) and a release (Off
-# forgets the record, even one that is only the dropped write) end it, and
-# a stored value the arbiter could not have written is not loaded.
+# record gone is not refused; a restore (_space_restored) ends it, and a
+# stored value the arbiter could not have written is not loaded. Re-pinned by
+# R10-HOTFIX-FLOW-SETPOINT-STUCK: Off with no restore no longer ends it (the
+# entity still reads the optimizer's number, and the arm after On must not
+# take it as the person's), and a written record becomes the dropped one.
 # Control: before each, the fact is held.
-_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8])
+_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8], arm=False)
 _fb_wr_before = dict(_fb_wr_held.dropped)
 _fb_wr_coord.hass.states.set(_FB_SET, FakeState("25.0", attributes={"min": 15, "max": 45, "step": 0.1}))
 _fb_aio.run(_fb_pa._write(_fb_wr_coord, _fb_wr_coord.arbiter_inputs(), "space_setpoint", 25.8, _FB_NOW))
 _fb_wr_written = _fb_wr_held.written.pop("space_setpoint", (None,))[0]
 _fb_wr_coord.hass.states.set(_FB_SET, FakeState("26.0", attributes={"min": 15, "max": 45, "step": 0.1}))
-_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET))
+_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET, _FB_NOW))
 _fb_junk = _FbCoord()
 _fb_aio.run(_fb_pa._store(_fb_junk).async_save({"written": {}, "dropped": {"space_setpoint": "26.0 degC"}}))
 _fb_aio.run(_fb_pa._load(_fb_junk))
-_fb_off_coord, _fb_off_held = _fb_own([25.8])[1:]
+_fb_off_coord, _fb_off_held = _fb_own([25.8], arm=False)[1:]
 _fb_off_held.written.clear()
 _fb_off_before = dict(_fb_off_held.dropped)
 _fb_off_coord._mode = _PA_OFF
@@ -88295,11 +88494,11 @@ _fb_aio.run(_fb_pa._arbitrate(_fb_off_coord, _fb_off_held, _fb_off_coord.arbiter
                               _fb_pa.DUTY_CONTROL, _FB_NOW))
 R.check(
     "R10-ARBITER-OFF-RESTORE (Carry 8, round 2): the dropped own write is not consulted "
-    "once a write lands on the armed key, and ends when a restore writes the baseline or "
-    "Off releases the pump",
+    "once a write lands on the armed key, and ends when a restore writes the baseline; "
+    "Off with nothing restored keeps it",
     _fb_wr_before == {"space_setpoint": 26.0} and _fb_wr_written == 25.8 and _fb_wr_after is True
     and _fb_rs_held.dropped == {}
-    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {}
+    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {"space_setpoint": 26.0}
     and _fb_pa.state_for(_fb_junk).dropped == {},
     f"write {_fb_wr_before}, wrote {_fb_wr_written}, armed after {_fb_wr_after}, "
     f"restore {_fb_rs_held.dropped}, off {_fb_off_before} -> {_fb_off_held.dropped}, "
@@ -89768,6 +89967,22 @@ R.check(
     "with no episodes a capped direction is latched at 28 days and not the day after",
     _dsp_kept(0, 28)[0].usable and not _dsp_kept(0, 29)[0].usable,
     f"n at 28 days {_dsp_kept(0, 28)[0].n!r}, at 29 {_dsp_kept(0, 29)[0].n!r}",
+)
+_dsp_over = _dsp_dir(4.0 * _dsp_ds.N_CAP, 0.0)
+_dsp_over.decay(_DSP_DAY)
+_dsp_over_n0 = _dsp_over.n
+_dsp_over.decay(_DSP_DAY + timedelta(days=29))
+_dsp_over_ctl = _dsp_dir(_dsp_ds.N_CAP, 0.0)
+_dsp_over_ctl.decay(_DSP_DAY + timedelta(days=28))
+R.check(
+    "the cap is held on decay as well as at booking: a record stored at four "
+    "times the cap is held to it by the first pass, p unchanged, and is off a "
+    "day past the 28 a capped direction stays latched (control: that capped "
+    "direction is still latched at 28 days)",
+    abs(_dsp_over_n0 - _dsp_ds.N_CAP) < 1e-9 and _dsp_over.p == 1.0
+    and not _dsp_over.usable and _dsp_over_ctl.usable,
+    f"n after the first pass {_dsp_over_n0!r}, after 29 days {_dsp_over.n!r} "
+    f"usable={_dsp_over.usable}; control usable={_dsp_over_ctl.usable}",
 )
 _dsp_rt = _dsp_ds.DutySwitchLearner({"dhw_space": _dsp_k12, "space_dhw": _dsp_fill})
 _dsp_rt_back = _dsp_ds.DutySwitchLearner.from_record(json.loads(json.dumps(_dsp_rt.stored_record())))
