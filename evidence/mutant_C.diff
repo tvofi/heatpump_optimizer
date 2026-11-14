@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index c76ca05f28..b38350ad57 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -34533,7 +34533,7 @@ def _sp_faults(path, src=None):
+                           env={**os.environ, "PYTHONPATH": "tests/hastub"})
+     if proc.returncode:
+         faults.append(f"{path}: does not load -- {(proc.stderr.strip().splitlines() or ['?'])[-1]}")
+-    for line, lit, got in _sp_literals(Path(path).read_text() if src is None else src):
++    for line, lit, got in _sp_literals(Path(path).read_text() if src is None else src, opened=False):
+         if not Path(got.rstrip("/")).exists():
+             faults.append(f"{path}:{line} opens {lit!r}, which resolves to nothing")
+     return faults
