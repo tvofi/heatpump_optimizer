@@ -1,0 +1,48 @@
+UNMUTATED: 63/63 arms held
+KILLED   N1 is_no_read back to substring: 1 arm(s), first: ev: B7 a removal whose evidence has the letters inside other words passes
+KILLED   N2 is_no_read no leading boundary: 1 arm(s), first: ev: B7 a removal whose evidence has the letters inside other words passes
+KILLED   N3 is_no_read no trailing boundary: 1 arm(s), first: ev: B7 a removal whose evidence has the letters inside other words passes
+KILLED   N4 is_no_read never true: 1 arm(s), first: ev: B7 a removal on a NO-READ is refused in every spelling
+KILLED   N5 is_no_read no casefold: 1 arm(s), first: ev: B7 a removal on a NO-READ is refused in every spelling
+KILLED   N6 is_no_read separator only hyphen: 1 arm(s), first: ev: B7 a removal on a NO-READ is refused in every spelling
+KILLED   D7 enumerates without tok in tree: 1 arm(s), first: ev: B5 an untracked script is no enumerator
+KILLED   E2 enumerates without suffix rule: 1 arm(s), first: ev: B5 a tracked document is no enumerator
+KILLED   E3 enumerates default True: 1 arm(s), first: ev: B5 an enumerator that is an interpreter and no file is refused
+KILLED   D22 records objective of round N: 1 arm(s), first: ev: round N reads round N-1's objective record and its own evaluation
+KILLED   R2 records evaluation of round N-1: 1 arm(s), first: ev: round N reads round N-1's objective record and its own evaluation
+KILLED   G1 same seat accepted: 2 arm(s), first: ev: one seat as evaluator and reviewer is refused
+KILLED   G2 orchestrator evaluator accepted: 2 arm(s), first: ev: the orchestrator as evaluator is refused
+KILLED   G3 orchestrator reviewer accepted: 1 arm(s), first: ev: B1 a disguised orchestrator or the same seat respelled is refused
+KILLED   G4 non-approve review accepted: 1 arm(s), first: ev: B2 a review that is no approve verdict is refused
+KILLED   G5 review sha unmerged accepted: 1 arm(s), first: ev: B2 a review sha outside the ref's history is refused
+KILLED   G6 graded-other-objects accepted: 1 arm(s), first: ev: B2 a review that graded other objects or none is refused
+KILLED   G7 commit before review accepted: 1 arm(s), first: ev: B4 an accepted commit that predates the review is refused
+KILLED   G8 commit changing nothing accepted: 1 arm(s), first: ev: B4 an accepted commit that changes none of the card's file is refused
+KILLED   G9 remove on NO-READ accepted: 1 arm(s), first: ev: B7 a removal on a NO-READ is refused in every spelling
+KILLED   G10 unowned count unchecked: 1 arm(s), first: ev: B9 fewer unowned cards than the read counts is refused
+KILLED   G11 isnum admits nan/inf: 1 arm(s), first: ev: B5 a value that is no finite number is refused
+KILLED   G12 isnum admits bool: 1 arm(s), first: ev: B5 a value that is no finite number is refused
+KILLED   G13 unset threshold uncarded accepted: 1 arm(s), first: ev: B8 an unset threshold with no card is refused
+KILLED   G14 unset criterion uncarded accepted: 1 arm(s), first: ev: B8 an unset owner criterion with no card is refused
+KILLED   G15 term builder outside roster accepted: 2 arm(s), first: ev: B6 a builder the roster cannot hand a build is refused: unknown, done, carries-open, a sink
+KILLED   G16 row outside object globs accepted: 1 arm(s), first: ev: B11 a row for a file outside the object globs is refused
+SURVIVED G17 reads field unchecked
+KILLED   G18 round field unchecked: 1 arm(s), first: ev: another round's record is refused
+KILLED   G19 ruling unchecked: 1 arm(s), first: ev: B3 a decided card with no ruling is refused
+KILLED   G20 accepted unmerged accepted: 1 arm(s), first: ev: an accepted card not merged is refused
+KILLED   G21 accepted card for unset value accepted: 1 arm(s), first: ev: B8 an accepted card for a value still unset is refused
+KILLED   G22 builder card missing accepted: 1 arm(s), first: ev: B6 a builder card the evaluation lacks is refused
+KILLED   G23 open_builders: every group: 2 arm(s), first: ev: B6 a builder the roster cannot hand a build is refused: unknown, done, carries-open, a sink
+KILLED   G24 axis builder unchecked: 2 arm(s), first: ev: B6 with no roster at the ref every group builder is refused
+KILLED   G25 change with no card accepted: 1 arm(s), first: ev: a change with no card is refused
+KILLED   G26 criterion path untracked accepted: 1 arm(s), first: ev: B8 an owner criterion naming an untracked path is refused
+KILLED   G27 NO-READ no reason accepted: 1 arm(s), first: ev: a NO-READ with no reason is refused
+KILLED   P1 pairs formula: 2 arm(s), first: pop: a regex binary axis is one two-level axis per capture
+KILLED   P2 name axis keeps required-and-optional out: 1 arm(s), first: pop: a name axis drops a key required everywhere or never presented
+KILLED   P3 binary counted as one axis: 2 arm(s), first: pop: a regex binary axis is one two-level axis per capture
+KILLED   P4 empty axis accepted: 1 arm(s), first: pop: an empty glob is UNREADABLE
+RESULT mutants: 42 planned, 41 killed, 1 survived, 0 skipped
+
+real	4m10.419s
+user	4m7.427s
+sys	0m1.064s

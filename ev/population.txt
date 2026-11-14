@@ -1,0 +1,35 @@
+layout	5	no_valve,single_tank_valve,slab_shunt,two_tank_4way,valve_upper_direct_slab
+pump_duty_mode	3	control,observe,off
+compressor_modulation	3	auto,modulating,on_off
+heat_curve_target_kind	2	offset,persistent
+mixing_valve_mode	4	manual,none,smart_read,smart_write
+valve_write_target	2	flow,indoor
+combi_tank	3	external_station,internal_coil,tank_in_tank
+two_zone_mode	3	auto,off,on
+space_setpoint_unit	3	flow,indoor,return
+wood_type	3	birch,mixed,pine
+wood_packing	2	loose,packed
+price_source	2	entity,tibber
+solar_source	2	open_meteo,weather
+grid_fee_mode	3	entity,none,rules
+operation_mode	5	auto,boost,comfort,economy,off
+structure	4	concrete_slab,masonry,timber_crawlspace,timber_slab
+foundation	3	crawlspace,heated_basement,none
+era	5	1960_1980,1980_2005,low_energy,post_2005,pre_1960
+emitter	2	floor,radiators
+power_unit	4	MW,W,kW,mW
+flow_unit	8	L/h,L/min,L/s,kg/h,kg/min,kg/s,m³/h,m³/s
+temperature_unit	7	C,F,K,degC,degF,°C,°F
+energy_unit	3	MWh,Wh,kWh
+optional_entity	48 binary axes	CONF_AWAY_PRESENCE_ENTITY,CONF_BUFFER_TANK_TEMP_ENTITY,CONF_COMPRESSOR_FREQ_ENTITY,CONF_DHW_DISINFECTION_SWITCH_ENTITY,CONF_DHW_HYSTERESIS_ENTITY,CONF_DHW_INLET_ENTITY,CONF_DHW_SETPOINT_ENTITY,CONF_DHW_TEMP_ENTITY,CONF_ENERGY_ENTITY,CONF_EXTERNAL_HEAT_ENTITY,CONF_FLOOR_RETURN_TEMP_ENTITY,CONF_FLOW_METER_ENTITY,CONF_GRID_FEE_ENTITY,CONF_HEAT_CURVE_DISPLACE_ENTITY,CONF_HEAT_ENERGY_ENTITY,CONF_HEAT_PUMP_BACKUP_HEATER_ENTITY,CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,CONF_HEAT_PUMP_DEFROST_ENTITY,CONF_HEAT_PUMP_DHW_BOOSTER_ENTITY,CONF_HEAT_PUMP_FAULT_ENTITY,CONF_HEAT_PUMP_MODE_ENTITY,CONF_HEAT_PUMP_ONLINE_ENTITY,CONF_HEAT_PUMP_RETURN_TEMP_ENTITY,CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY,CONF_HEAT_PUMP_SWITCH_ENTITY,CONF_HOLIDAY_CALENDAR_ENTITY,CONF_HOUSE_POWER_ENTITY,CONF_INDOOR_HUMIDITY_ENTITY,CONF_INDOOR_TEMP_ENTITY,CONF_LOWER_FLOOR_TEMP_ENTITY,CONF_MIXING_VALVE_TARGET_ENTITY,CONF_MIXING_VALVE_WRITE_ENTITY,CONF_OUTDOOR_TEMP_ENTITY,CONF_POWER_ENTITY,CONF_PRICE_ENTITY,CONF_PV_EXPORT_PRICE_ENTITY,CONF_PV_PRODUCTION_ENTITY,CONF_SOLAR_RADIATION_ENTITY,CONF_SPACE_HYSTERESIS_ENTITY,CONF_SPACE_PUMP_ENTITY,CONF_SPACE_SETPOINT_ENTITY,CONF_SPACE_SETPOINT_HIGH_LIMIT_ENTITY,CONF_SPACE_SETPOINT_LOW_LIMIT_ENTITY,CONF_THERMAL_POWER_ENTITY,CONF_VALVE_OUTLET_TEMP_ENTITY,CONF_VVC_PUMP_ENTITY,CONF_WOOD_TANK_BOTTOM_ENTITY,CONF_WOOD_TANK_TOP_ENTITY
+language	3	de,en,sv
+ha_version_floor	1	2025.2.0
+ha_version_typed	1	2026.11.1
+price_shape	8	flat,shoulder,summer_negative,summer_typical,winter_extreme,winter_moderate,winter_narrow,winter_typical
+climate	5	shoulder,summer_cool,summer_warm,winter_cold,winter_mild
+tank_volume	NO-READ	a continuous option with no tracked levels: its flow row's minimum, default and maximum, once D12's brief declares them as the levels (builder: R11-INTAKE-R10-RESIDUE)
+house_size	NO-READ	a continuous option with no tracked levels: the heated area and heat-loss rows' minimum, default and maximum, once D12's brief declares them as the levels (builder: R11-INTAKE-R10-RESIDUE)
+LEVELS: 195
+PAIRS: 18696
+NO-READ AXES: 2
+rc=0

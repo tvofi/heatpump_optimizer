@@ -1,0 +1,13 @@
+Check runs of PR #3575 at head 7c1f9e3a7a63d8c8afd97a1468566d57f96ec212, read with the pull request's check-runs listing (76 runs) at about 23:14 UTC 2026-11-14. Run 43649665901 is the head's full workflow run.
+failure   budget-raise-gate / budget-raise-gate   jobs 132616720109, 132617717974, 132618967354, 132615675886
+failure   gate                                    jobs 132616530964, 132618803009, 132619789971
+failure   tests / nightly-status                  job 132616720091 (not in merge_train.py owed-reds)
+success   governance / policy-docs                job 132616720137
+success   governance / env-matrix                 job 132616720163
+success   governance / wave-script, governance / delivery-status
+success   arch-score / arch-score (4 runs), hassfest / hassfest, validate / validate-hacs
+success   codeql / Analyze (actions), (javascript-typescript), (python); CodeQL
+success   tests / briefs, tests / closure-scope, tests / mutation, tests / typing, tests / browser, tests / arch-instrument
+in_progress  governance / instrument-self-tests   job 132616720103
+in_progress  tests / fast (3.14) 132618767530, tests / coverage 132618767492, tests / closures 132618767489
+skipped   pr-contract (every run: 132616532090, 132618804067, 132619790692); the pull request is a draft
