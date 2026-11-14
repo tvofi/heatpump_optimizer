@@ -7994,6 +7994,7 @@
     ".",
     ".github",
     ".github/workflows",
+    "HEAD",
     "tests",
     "tools",
     "tools/ci"
@@ -8002,8 +8003,10 @@
     "tests"
    ],
    "index": true,
-   "objects": false,
-   "git": []
+   "objects": true,
+   "git": [
+    "diff"
+   ]
   },
   "selftest-scope-mutants": {
    "run_sha": "00b691b683d6ff8e9527d535aafec449ad59e72a20cd3c063182d4a30fb9af60",

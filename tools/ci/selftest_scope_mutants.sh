@@ -13,7 +13,12 @@ wrapper=tools/ci/selftest_step.sh
 workflow=.github/workflows/governance.yml
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
+# The caller's base selectors (GITHUB_BASE_REF on a pull_request event) must not
+# reach a fixture: the baseline and every mutant below run with one exported to
+# a ref the scratch fixtures lack, and the environment-control mutant must fail.
 python3 -I "$src" --self-test > /dev/null || { echo "BASELINE RED: the unmutated self-test fails"; exit 1; }
+export GITHUB_BASE_REF=main SELFTEST_BASE=nonesuch
+python3 -I "$src" --self-test > /dev/null || { echo "BASELINE RED: the unmutated self-test fails under GITHUB_BASE_REF"; exit 1; }
 apply() { # <file> <old> <new> <out>: the file with old, present once, replaced by new
   python3 -I -c 'import sys; s=open(sys.argv[1]).read(); a, b = sys.argv[2], sys.argv[3]; assert s.count(a) == 1, a; open(sys.argv[4], "w").write(s.replace(a, b))' \
     "$1" "$2" "$3" "$4"
@@ -49,9 +54,22 @@ scope_mutant "settle never rewrites the index" '["git", "update-index", "-q", "-
 scope_mutant "the settle command a no-op" 'return settle_index(root)' 'return 0'
 scope_mutant "settle_gaps reads no job" 'if any(s.id in UNGATED and SETTLE_CALL.search' 'if True or any(s.id in UNGATED and SETTLE_CALL.search'
 scope_mutant "static skips the settle check" 'problems = wiring_gaps(steps) + settle_gaps(steps)' 'problems = wiring_gaps(steps)'
+scope_mutant "record replaces the committed entry again" 'entries[sid] = union_entry(entries.get(sid), m)' 'entries[sid] = m'
+scope_mutant "the shrink guard exempts nothing deleted" 'and (k == "git" or not gone(x))' 'and (k == "git" or True)'
+scope_mutant "the shrink guard exempts every drop" 'and (k == "git" or not gone(x))' 'and (k == "git" or gone(x))'
+scope_mutant "static never runs the shrink guard" 'problems += [unresolved] if unresolved else shrink_gaps(root, base)' 'problems += [unresolved] if unresolved else []'
+scope_mutant "the shrink guard keeps no probe by its listed directory" 'covers(files, x)
+                or any(a in dirs for a in _ancestors(x)),' 'covers(files, x),'
+scope_mutant "prune writes nothing" 'write_table(root / TABLE, entries, root)
+        return 0' 'return 0'
+scope_mutant "prune accepts an unknown drop" '        if unknown:
+            print(f"selftest_scope: not in the table' '        if False:
+            print(f"selftest_scope: not in the table'
+scope_mutant "an unresolvable named base resolves to no problem" 'return None, (f"UNRESOLVED base {c}' 'return None, "" and (f"UNRESOLVED base {c}'
+scope_mutant "static drops the unresolved-base problem" 'problems += [unresolved] if unresolved else' 'problems += [] if unresolved else'
 scope_mutant "check --write writes the bare measurement" 'write_table(write, union_entries(table, measured), root)' 'write_table(write, measured, root)'
-scope_mutant "the union drops a committed list entry" 'sorted(set(e.get(k, ())) | set(m.get(k, ())))' 'sorted(set(m.get(k, ())))'
-scope_mutant "the union drops a committed flag" 'bool(e.get(k) or m.get(k))' 'bool(m.get(k))'
+scope_mutant "the union drops a committed list entry" 'sorted(set(old.get(k, ())) | set(new.get(k, ())))' 'sorted(set(new.get(k, ())))'
+scope_mutant "the union drops a committed flag" 'bool(old.get(k)) or bool(new.get(k))' 'bool(new.get(k))'
 scope_mutant "drift refuses a probe the run's own listed dir answers" 'a in dirs or a in set(m["dirs"])' 'a in dirs'
 workflow_mutant "CI never settles the index" 'python3 -I tools/ci/selftest_scope.py settle' 'true'
 workflow_mutant "CI swallows a failed settle" 'python3 -I tools/ci/selftest_scope.py settle' 'python3 -I tools/ci/selftest_scope.py settle || true'
@@ -59,4 +77,22 @@ wrapper_mutant "only launch untraced (the incident's wrapper)" 'case "$UNTRACED"
 wrapper_mutant "no strace exec'd anyway" 'if ! command -v strace > /dev/null 2>&1; then' 'if false; then'
 wrapper_mutant "exit lines suppressed (-qq)" 'exec strace -f -q -y' 'exec strace -f -qq -y'
 wrapper_mutant "drift traced again" 'UNTRACED=" scope strace launch drift unread "' 'UNTRACED=" scope strace launch unread "'
+scope_mutant "the self-test leaks the caller's base selectors" 'held = {k: os.environ.pop(k) for k in ("GITHUB_BASE_REF", "SELFTEST_BASE") if k in os.environ}' 'held = {}'
+scope_mutant "the self-test wrapper returns nothing" 'return _self_test(wrapper, workflow)' '_self_test(wrapper, workflow)'
+scope_mutant "a D/** item read as a slice off by one" 'p = item[:-3] if item.endswith("/**") else item' 'p = item[:-4] if item.endswith("/**") else item'
+scope_mutant "an undiffable base passes the shrink guard" 'if diff.returncode != 0:
+        return [f"UNREADABLE' 'if False:
+        return [f"UNREADABLE'
+scope_mutant "the shrink guard judges a missing table" '    if not base or not head:
+        return []
+    out = []' '    if False:
+        return []
+    out = []'
+scope_mutant "prune goes on over an unreadable table" '        if table is None:
+            print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
+            return 1
+        entries, unknown' '        if False:
+            print(f"selftest_scope: UNREADABLE {TABLE}", file=sys.stderr)
+            return 1
+        entries, unknown'
 echo "SELFTEST-SCOPE MUTANTS: every mutant refused"
