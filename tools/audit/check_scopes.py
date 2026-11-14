@@ -16,6 +16,9 @@ so a seat's cell is finishable; a seat over the cap is refused by name. Its `cla
 `static` map {glob: reason} draw the line between documentation the dimension measures and static
 records it leaves: every tracked path a `classify` glob matches is in the universe or one `static`
 glob, never both, and every `static` entry matches some such path and carries a reason.
+A ledger dimension must draw that line: D6's classifies documents, D5's every file whose suffix
+text_ledger.D5_SUFFIXES reads comments from, so a comment-bearing file outside D5's universe and
+static map is refused by name, as an unmeasured document is for D6.
 Harness citations: a harness under dev/audit/harnesses/ whose header names a dimension brief
 (`D<k>.md`) implements that brief's rule, so the brief must cite the harness's path; each one
 that does not is refused by name.
@@ -74,14 +77,17 @@ def ledger_units(dim, d, files_of, units):
             for seat, blocks in d["seats"].items()}
 
 
-def classify_errors(d, tree, uni):
-    """The documentation line: classified paths in neither or both, static entries naming nothing or unreasoned."""
+def classify_errors(d, tree, uni, dim=None):
+    """The measured line: classified paths in neither or both, static entries naming nothing or unreasoned.
+    A ledger dimension must draw one, and D5's must classify every suffix text_ledger reads comments from."""
     if "classify" not in d:
-        return []
+        return ["a ledger dimension draws no classify line"] if "ledger" in d else []
+    errs = [f"classify misses a D5 comment carrier: *{s}" for s in text_ledger.D5_SUFFIXES
+            if dim == "D5" and not match({f"probe/carrier{s}"}, d["classify"])]
     cls = match(tree, d["classify"])
     static = {g: match(cls, [g]) for g in d.get("static", {})}
     stat = set().union(*static.values()) if static else set()
-    errs = [f"classified in neither universe nor static: {f}" for f in sorted(cls - uni - stat)]
+    errs += [f"classified in neither universe nor static: {f}" for f in sorted(cls - uni - stat)]
     errs += [f"static and in the universe: {f}" for f in sorted(stat & uni)]
     errs += [f"static entry matches no classified path: {g}" for g, fs in sorted(static.items()) if not fs]
     errs += [f"static entry carries no reason: {g}" for g in sorted(static) if not str(d["static"][g]).strip()]
@@ -119,7 +125,7 @@ def check(scopes, tree, loc, units=lambda dim, f: 0):
             dup = {k: v for k, v in owners.items() if len(v) > 1 and k[0] != "step"}
         missing = want - set(owners)
         extra = set(owners) - want
-        over, cls_errs, per_seat = [], classify_errors(d, tree, uni), {}
+        over, cls_errs, per_seat = [], classify_errors(d, tree, uni, dim), {}
         if "ledger" in d:
             per_seat = ledger_units(dim, d, files_of, units)
             over = [s for s, n in per_seat.items() if n > d["ledger"]["max_units"]]
@@ -321,10 +327,10 @@ def main():
         print(f"   harness-citation arms: {cov['a harness the brief does not cite is refused']}, null {cov['null control: the brief citing it passes']}")
         # Ledger dimensions: the per-seat unit cap and the documentation line,
         # each refused by what it must name, against text_ledger's real units.
-        def _q(bad):
+        def _q(bad, tr=None, un=None):
             o = io.StringIO()
             with contextlib.redirect_stdout(o):
-                r = check({k: v for k, v in bad.items() if k in ("D5", "D6")}, tree, loc, units)
+                r = check({k: v for k, v in bad.items() if k in ("D5", "D6")}, tree if tr is None else tr, loc, un or units)
             return r, o.getvalue()
         live_l, _ = _q(scopes)
         capped = copy.deepcopy(scopes); capped["D6"]["ledger"]["max_units"] = 1
@@ -346,6 +352,34 @@ def main():
             "a static entry with no reason is refused": not r_bare,
         })
         print(f"   ledger arms: live {live_l}, cap refused {not r_cap}, line refused {not r_un}/{not r_both}/{not r_dead}/{not r_bare}")
+        # D5's comment line (fix review 3571, class-open): the verdict's plant, a committed
+        # .claude/workflows/zz-planted.js holding one comment, is now a unit of a D5 seat; the same
+        # plant where no universe or static reaches is refused by name; and the D6 null control,
+        # dev/zz-planted.md, is still refused by D6's own line.
+        PIN, POUT, PMD = ".claude/workflows/zz-planted.js", "dev/zz-planted.js", "dev/zz-planted.md"
+        planted_units = lambda dim, f: 1 if f in (PIN, POUT) and dim == "D5" else units(dim, f)
+        def d5_total(tr):
+            _, fo = resolver(scopes["D5"], tr)
+            return sum(ledger_units("D5", scopes["D5"], fo, planted_units).values())
+        r_in, _ = _q(scopes, tree | {PIN}, planted_units)
+        r_out, o_out = _q(scopes, tree | {POUT}, planted_units)
+        r_md, o_md = _q(scopes, tree | {PMD})
+        nocls = copy.deepcopy(scopes); nocls["D5"].pop("classify", None)
+        r_nocls, o_nocls = _q(nocls)
+        narrow = copy.deepcopy(scopes); narrow["D5"]["classify"] = ["**.py"]
+        r_narrow, o_narrow = _q(narrow)
+        unrounds = copy.deepcopy(scopes); unrounds["D5"].get("static", {}).pop("dev/audit/{rounds,rca,waves}/**", None)
+        r_unr, o_unr = _q(unrounds)
+        cov.update({
+            "the verdict's plant in .claude/workflows/ is a D5 unit": r_in and d5_total(tree | {PIN}) == d5_total(tree) + 1,
+            "a comment carrier in neither D5 universe nor static is refused": not r_out and f"classified in neither universe nor static: {POUT}" in o_out,
+            "null control: a document in neither D6 universe nor static is still refused": not r_md and f"classified in neither universe nor static: {PMD}" in o_md,
+            "a ledger dimension with no classify line is refused": not r_nocls and "draws no classify line" in o_nocls,
+            "a D5 classify missing a comment carrier is refused": not r_narrow and "classify misses a D5 comment carrier: *.sh" in o_narrow,
+            "D5 without the round-evidence static is refused": not r_unr and "classified in neither universe nor static: dev/audit/r" in o_unr,
+        })
+        print(f"   D5 comment-line arms: plant measured {r_in}, outside refused {not r_out}, D6 null refused {not r_md}, "
+              f"no line refused {not r_nocls}, narrow refused {not r_narrow}, unstatic refused {not r_unr}")
         # The default run's verdict, driven as a function: the live scopes pass
         # it, and dropping D10's universe or leaving a brief-named harness
         # uncited fails it. That pins verdict(), not the exit code main() returns.

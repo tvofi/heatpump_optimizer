@@ -37,6 +37,8 @@ BLOCK_START = re.compile(r"^\s*(#{1,6}\s|[-*+]\s|\d+[.)]\s|\||>)")
 WORDS = re.compile(r"[^\W\d_]{2,}")
 PROSE = re.compile(r"[^\W\d_]{2,}[,.:;!?]?\s+[^\W\d_]{2,}")
 CSS = re.compile(r"[\w-]+\s*:\s*[^;{}]+;")
+# The suffixes D5's rule reads comments from; check_scopes.py refuses a D5 `classify` missing one.
+D5_SUFFIXES = (".py", ".js", ".mjs", ".sh")
 
 
 def user_text(s):
@@ -196,7 +198,7 @@ def units_of(path, text, dim):
         if dim == "D5":
             if suf == ".py":
                 raw = py_units(text, "D5")
-            elif suf in (".js", ".mjs", ".sh"):
+            elif suf in D5_SUFFIXES:
                 raw = scan_c_like(text, suf == ".sh")[0]
             else:
                 raw = []

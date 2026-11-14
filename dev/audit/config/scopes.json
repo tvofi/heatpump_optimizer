@@ -313,7 +313,11 @@
    "custom_components/heatpump_optimizer/*.py",
    "custom_components/heatpump_optimizer/www/*.js",
    "tools/**.{py,sh,js,mjs}",
-   "tests/**.{py,sh,js,mjs}"
+   "tests/**.{py,sh,js,mjs}",
+   ".claude/hooks/*.sh",
+   ".claude/workflows/*.js",
+   "dev/audit/harnesses/**.{py,sh,js,mjs}",
+   "docs/img/**.{py,sh,js,mjs}"
   ],
   "steps": [
    "M1",
@@ -325,6 +329,13 @@
    "step": "M4",
    "max_units": 4500,
    "_rule": "tvofi 2026-11-13: every comment and docstring of production, the instruments and the test suite, each round D5 runs. A seat holds at most max_units of text_ledger.py's D5 units for M4, so its cell is finishable; a seat that grows past it is re-cut here, never sampled."
+  },
+  "classify": [
+   "**.{py,sh,js,mjs}"
+  ],
+  "static": {
+   "dev/audit/{rounds,rca,waves}/**": "round, root-cause and wave evidence: the scripts a round or a seat ran then, re-measured by its own harness, never re-read as current comments; the live per-group harnesses under dev/audit/harnesses/ are measured",
+   "dev/archive/**": "retired records kept for history"
   },
   "seats": {
    "s1": [
@@ -439,6 +450,21 @@
    "s9": [
     {
      "files": "rest",
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s10": [
+    {
+     "files": [
+      ".claude/hooks/*.sh",
+      ".claude/workflows/*.js",
+      "dev/audit/harnesses/**"
+     ],
      "steps": [
       "M1",
       "M2",
