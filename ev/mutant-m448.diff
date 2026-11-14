@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/pr_args.sh b/tools/audit/seat/pr_args.sh
+index fb50e2431e..a4bfa3de0d 100644
+--- a/tools/audit/seat/pr_args.sh
++++ b/tools/audit/seat/pr_args.sh
+@@ -445,7 +445,7 @@ pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any
+     found=$(git -C "$root" grep -lE "$PR_PUSHER_RULE" -- 'tools/*.sh' 'tools/*.py' 'tools/*.mjs' 'tools/*.js')
+   fi
+   for f in $found; do
+-    kind=$(awk -v f="$f" '$1 == f { print $2; exit }' <<<"$PR_PUSHERS")
++    kind=$(printf '%s\n' "$PR_PUSHERS" | awk -v f="$f" '$1 == f { print $2; exit }')
+     if [ -n "$rev" ]; then txt=$(git -C "$root" show "$rev:$f"); else txt=$(cat "$root/$f"); fi
+     txt=$(printf '%s\n' "$txt" | grep -vE '^[[:space:]]*#')  # a comment runs nothing
+     case $kind in

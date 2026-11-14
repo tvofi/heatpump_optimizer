@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
+index a77c35c260..f2c1ece731 100755
+--- a/tools/audit/seat/open_pr.sh
++++ b/tools/audit/seat/open_pr.sh
+@@ -45,7 +45,7 @@ pr_state_root; D=$PR_STATE/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_o
+ # branch it holds names the lock of the run holding it. A second opener adopts that branch and meets the first's lock
+ # (BUSY) before it writes the shared body.md, not a -pr lock of its own. A detached worktree holds no branch: a
+ # finished run's leftover, which takes the -pr name below as a lone run does.
+-OP_REG=$(awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}' <<<"$(git -C "$M" worktree list --porcelain)")  # mut:opreg
++OP_REG=$(git -C "$M" worktree list --porcelain | awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}')  # mut:opreg
+ if [ -n "${OP_REG:-}" ] && [ -z "${BR_FIXED:-}" ]; then BR=$OP_REG
+ elif git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ]; then BR=$BR-pr; fi  # a seat often holds a local branch of the default name
+ mkdir -p "$D"; cd "$M"
