@@ -1,0 +1,33 @@
+origin/main=d2e7805b7cf91cc8231729ef29383b3ae67a27ae
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (577 entries)
+  re-run the gate that owns this file before pushing
+430d4f0e87a8f09514f693f055a2d259c0312218
+merge-tree rc=0
+merge-base=ee9e23372c9e41b46a4503e92d8c2cd0a4367d29
+three-dot VERSION/manifest/RELEASE_NOTES:
+claim files three-dot:
+review_carry 957818d6ea3d2dee9a71e2c01f450b673dfc327b -> e9ddfb0874f4eec7992728539dca85f398cd5084:
+  cbdfe210c  Merge commit 'f6f271cebd603c22cd5f103dda9850599cf19300' into fix/r10-arch-docs-delta
+  e9ddfb087  Merge remote-tracking branch 'origin/main' into fix/r10-arch-docs-delta
+review_carry: FRESH-REVIEW
+f6f271ce remerge-diff (the one hand resolution):
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (234 entries)
+  closures.tests/harness_headers.py: merged as a set (414 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (1027 entries)
+  re-run the gate that owns this file before pushing
+ custom_components/heatpump_optimizer/optimizer.py | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+cbdfe210 remerge-diff lines: 0
+e9ddfb08 remerge-diff lines: 0
+3-way merge-file of optimizer.py (prev, base, 5cd7b874) vs head: only conflict markers differ:
+876d875
+< <<<<<<< /tmp/opt_prev.py
+889c888,889
+< =======
+---
+> 
+> 
+937d936
+< >>>>>>> /tmp/opt_m.py
