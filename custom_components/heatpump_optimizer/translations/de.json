@@ -12,7 +12,7 @@
           "weather_entity": "Wettervorhersage"
         },
         "data_description": {
-          "name": "Wird jedem Sensor vorangestellt, den diese Integration erstellt.",
+          "name": "Der Titel dieses Eintrags unter Geräte & Dienste. Entitätsnamen verwenden den festen Gerätenamen Heat Pump Optimizer.",
           "price_source": "Tibber verwendet dein API-Token. Entität liest einen Preissensor aus Home Assistant, z. B. Nord Pool.",
           "tibber_token": "Wird verwendet, um deine stündlichen Strompreise abzufragen. Erstelle eines unter developer.tibber.com. Unverändert lassen, solange es sich nicht geändert hat. Nicht erforderlich, wenn die Preisquelle eine Entität ist.",
           "price_entity": "Erforderlich, wenn die Preisquelle eine Entität ist. Typische Attribute sind raw_today und raw_tomorrow.",
@@ -593,7 +593,7 @@
               "indoor_temp_entity": "Optional. Die tatsächliche Raumtemperatur. Ohne sie vertraut der Optimierer seinem eigenen Modell, das mit der Zeit abdriftet.",
               "outdoor_temp_entity": "Optional. Ein lokales Außenthermometer ist für die aktuelle Stunde genauer als die Vorhersage.",
               "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
-              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Diese Integration empfiehlt nie einen Raumheizungs-Sollwert.",
+              "space_setpoint_unit": "Innentemperatur ist richtig für einen Raum- oder Thermostat-Sollwert. Vorlauftemperatur gilt für einen Regler, dessen Sollwert eine Wassertemperatur ist, auf der er seinen Vorlauf hält. Rücklauftemperatur gilt für einen Regler, der den Sollwert als Ziel für das Rücklaufwasser nimmt (angenommen für eine Luxtronik über ihre Smart-Home-Schnittstelle); er wird wie ein Vorlauf-Sollwert geschrieben, wobei der Nennhaltewert, die Wetterkurve und die 25-°C-Schwelle um 5 K nach unten in Rücklaufwerte verschoben werden. Eine Version vor dieser Option liest Rücklauftemperatur als Innentemperatur: Stelle vor einem Downgrade wieder auf Vorlauftemperatur um. Würde ein Innentemperaturziel auf eine Vorlauf-Entität zeigen, würden etwa 21 °C an ein Gerät gesendet, das 35–45 °C erwartet, und das Haus würde stark unterheizt. Die Einheit ist eine Angabe: Der Optimizer leitet sie nie aus der Entität ab, nur das Vorausfüllen aus einem Wärmepumpengerät schlägt eine vor.",
               "flow_min_lift_k": "Mit Steuerung der Pumpenfunktion auf Steuern ist der bei der niedrigsten Planleistung geschriebene Wasser-Sollwert das gemessene Eingangswasser plus dieser Wert: Wärmepumpen-Rücklauf, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass, und bei einer Entität mit Rücklauftemperatur nur die ersten drei. 5 K passt zu einem Regler, der seinen Vorlauf auf dem Sollwert hält. Von einem Regler, der die Zahl als Ziel für das Rücklaufwasser nimmt, wird angenommen, dass er seinen Verdichter umso stärker laufen lässt, je weiter das Ziel über dem Rücklauf liegt, er will also wahrscheinlich weniger; 1–2 K ist ein Ausgangspunkt, der an der gemessenen Frequenz und Leistung des Verdichters zu prüfen ist, kein gemessener Wert.",
               "flow_heat_c": "Der bei voller Planleistung geschriebene Wasser-Sollwert und der höchste, der geschrieben wird, solange der Plan die Führung hat. 55 °C passt zu einem Vorlaufziel. Wähle ihn bei einer Entität mit Rücklauftemperatur über dem höchsten Rücklauf, den du im normalen Heizbetrieb siehst, plus dem Hub, und nicht höher, als der Regler annimmt; bei einer Niedertemperatur-Fußbodenheizung können 35–40 °C ein Ausgangspunkt sein, der an Messungen zu prüfen ist. Unter 30 °C wird nicht angeboten: Die Schwelle, die aus bedeutet, liegt bei 25 °C für ein Vorlaufziel und bei 20 °C für ein Rücklaufziel.",
               "space_setpoint_power_feedback": "Standardmäßig an. Wirkt nur mit Wärmepumpen-Betriebssteuerung auf Steuern, einer Einheit Vorlauf- oder Rücklauftemperatur und einem Leistungssensor der Wärmepumpe; sonst ändert sich nichts. Nach 5 Minuten Starthaltezeit wird der Wasser-Sollwert gesenkt, solange die gemessene Aufnahme über der geplanten Leistung liegt, angehoben, solange sie darunter liegt, und innerhalb von 10 % gehalten, statt dem steigenden Eingangswasser zu folgen. Aus schreibt das Eingangswasser plus den Hub. Anforderungen an den Regler: seine Heizungshysterese höchstens der Hub (Luxtronik: 0,5 K), sonst startet ein stehender Verdichter nicht; sein minimales Rücklaufziel unter dem Rücklauf der Heizperiode; seine Integration fragt ihn mindestens alle 10 Minuten ab und stellt nach einem Reglerneustart die Heizbetriebsart wieder her, denn eine Luxtronik Smart Home Interface verwirft nach 600 s ohne Zugriff alle gesetzten Werte; und kein zweites Werkzeug schreibt dieselben Register (eine Luxtronik verwirft Schreibvorgänge dann stillschweigend).",
@@ -1012,7 +1012,7 @@
               "building_preset_enabled": "Thermische Werte aus dem Gebäudetyp ableiten"
             },
             "data_description": {
-              "building_preset_enabled": "Wenn aktiviert, werden die Werte für thermische Masse, Wärmeverlust und Heizflächen auf der Seite „Thermisches Modell (Experte)“ bei jedem Speichern dieser Seite überschrieben."
+              "building_preset_enabled": "Wenn aktiviert, werden die Werte für thermische Masse, Wärmeverlust und Heizflächen auf der Seite „Thermisches Modell (Experten)“ bei jedem Speichern dieser Seite überschrieben."
             }
           },
           "climate": {
@@ -1033,7 +1033,7 @@
         }
       },
       "thermal_model": {
-        "title": "Thermisches Modell (Experte)",
+        "title": "Thermisches Modell (Experten)",
         "description": "Die Rohwerte hinter dem thermischen Modell, die sonst nur bei der Einrichtung abgefragt werden. Ein leer gelassenes Feld behält seinen aktuellen Wert und wird nie gespeichert, ein Haus mit einer Zone bleibt also ein Haus mit einer Zone – und durch Ausfüllen der Felder für zwei Zonen schaltet eine bestehende Installation das Zwei-Zonen-Modell ein.\n\n{preset_warning}",
         "data": {
           "house_thermal_mass": "Thermische Masse des Hauses (kWh/°C)",
@@ -1061,7 +1061,7 @@
         }
       },
       "grid": {
-        "title": "Netz-Spitzentarif",
+        "title": "Lastspitzentarif des Netzes",
         "description": "Kosten, die nicht einfach der Preis pro kWh sind. Viele schwedische Netzbetreiber berechnen zusätzlich eine monatliche Leistungsgebühr auf Basis deiner höchsten Stunden – Warmwasser und Heizung in dieselbe günstige Stunde zu legen kann dann mehr kosten, als es spart.",
         "data": {
           "peak_tariff_enabled": "Meine Netzrechnung enthält eine Leistungsgebühr",
@@ -1089,7 +1089,7 @@
         }
       },
       "solar_pv": {
-        "title": "Solaranlage",
+        "title": "Solarmodule",
         "description": "Wenn du Solarstrom erzeugst, ist es besser, Warmwasser oder den Pufferspeicher mit Überschuss zu beheizen, als ihn zum Vergütungssatz einzuspeisen. Teile dem Optimierer mit, wie deine Anlage aussieht, und er bewertet jede Stunde mit den tatsächlichen Kosten des Verbrauchs.",
         "data": {
           "pv_enabled": "Ich habe eine Solaranlage",
@@ -1106,7 +1106,7 @@
           "pv_export_price_entity": "Verwende stattdessen diese, wenn deine Vergütung dem Spotpreis folgt.",
           "pv_enabled": "Lässt den Plan die Wärmepumpe mit deinem eigenen Überschuss betreiben, statt ihn für weniger zu verkaufen, als Netzstrom kostet.",
           "pv_peak_kw": "Die Nennspitzenleistung der Anlage. Dient zur Skalierung der Erzeugungsprognose.",
-          "pv_production_entity": "Optional. Ein Live-Erzeugungssensor lässt die Prognose sich anhand dessen korrigieren, was das Dach tatsächlich liefert.",
+          "pv_production_entity": "Optional. Ein Live-Erzeugungssensor ersetzt den aktuellen Schritt der Prognose durch das, was das Dach gerade liefert, begrenzt auf die installierte Leistung; spätere Schritte bleiben modelliert.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
@@ -1123,7 +1123,7 @@
         "data_description": {
           "away_presence_entity": "Eine Person, ein Gerätetracker, ein Kalender oder ein Anwesenheitssensor. Der Schalter auf der Plan-Seite hat Vorrang, bis er ausgeschaltet wird. Eine Person, die „nicht zu Hause“ ist, bedeutet bei ausgeschaltetem Schalter weiterhin Abwesenheit.",
           "holiday_calendar_entity": "Wenn dieser Kalender eingeschaltet ist, ersetzen die Feiertags-Komfort- und Feiertags-Warmwasserfenster für diesen Tag das Paar aus Werktag und Wochenende. Die Abwesenheitsabsenkung hat weiterhin Vorrang, wenn Abwesenheit aktiv ist.",
-          "away_dhw_min_temperature": "Der Anti-Legionellen-Zyklus läuft weiterhin und wird so getimt, dass er vor deiner Rückkehr abgeschlossen ist.",
+          "away_dhw_min_temperature": "Der Anti-Legionellen-Zyklus läuft weiterhin in seinem üblichen Intervall; er wird nicht auf deine Rückkehr abgestimmt.",
           "away_temperature": "Die Haltetemperatur während der Abwesenheit. Niedrig genug zum Sparen, hoch genug, um das Haus und seine Leitungen zu schützen.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
@@ -1348,7 +1348,7 @@
               "dhw_disinfection_mode": "Beobachten liest den Schalter und schreibt ihn nie. Steuern schaltet ihn ein, wenn eine Legionellenschaltung startet, und aus, wenn sie endet, schaltet ihn aber nie ein, solange der Modus der Pumpe kein Warmwasser erzeugt. Es wird nur ein Schalter ausgeschaltet, den die Integration selbst eingeschaltet hat: Ein Schalter, der bei Beginn des Zyklus schon eingeschaltet war, bleibt unberührt. Eine Einschränkung: Wenn du den Schalter von Hand einschaltest, während ein vom Optimierer gestarteter Zyklus läuft, wird er am Ende dieses Zyklus ausgeschaltet, weil sich beides nicht unterscheiden lässt. Steuern benötigt den obigen Schalter.",
               "dhw_disinfection_switch_entity": "Ein Schalter oder Helfer, der das eigene Legionellenprogramm der Wärmepumpe startet. Im Beobachtungsmodus wird sein Zustand nur gelesen und in den Attributen des Warmwasser-Sensors angezeigt; im Steuerungsmodus schaltet die Integration ihn ein, wenn ein Desinfektionszyklus startet, und aus, wenn er endet.",
               "dhw_elastic_legionella_enabled": "Erlaubt der Legionellenschaltung, ein bis zwei Tage früher zu laufen, wenn Strom ungewöhnlich günstig ist, statt immer bis zur Frist zu warten. Die Frist wird weiterhin immer eingehalten.",
-              "dhw_free_disinfection_enabled": "Wenn ein Holzkessel, eine Solarspirale oder ein Heizstab den Speicher bereits auf die Legionellentemperatur bringt und dort hält, wird das als abgeschlossener Zyklus gezählt, statt einen weiteren auszuführen.",
+              "dhw_free_disinfection_enabled": "Bringt ein Holzkessel, eine Solarspirale oder ein Heizstab den Speicher auf die Legionellentemperatur, wird das in jedem Fall als abgeschlossener Zyklus gezählt. Aus: sofort; ein: erst nachdem der Speicher diese Temperatur 20 Minuten gehalten hat, sodass eine kurze Spitze nichts anrechnet.",
               "dhw_legionella_min_interval_days": "Legionellenschaltungen laufen nie in kürzerem Abstand als diesem, auch nicht an sehr günstigen Tagen.",
               "dhw_quantile_targets_enabled": "Lernt, wie viel Warmwasser jeder Zeitraum an einem Tag mit hohem Verbrauch tatsächlich nutzt, und bereitet den Speicher darauf vor statt auf den Durchschnittstag. Benötigt einen Speichertemperatursensor, konfigurierte Warmwasser-Zeitfenster und einige Wochen an Daten."
             }
@@ -1364,7 +1364,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "vvc_pump_entity": "Ein Schalter, der die Pumpe der Warmwasser-Zirkulation (VVC) steuert. Wenn gesetzt, läuft die Pumpe nur in deinen Warmwasser-Zeitfenstern plus der unten genannten Vorlaufzeit.",
+          "vvc_pump_entity": "Ein Schalter, der die Pumpe der Warmwasser-Zirkulation (VVC) steuert. Wenn gesetzt, läuft die Pumpe nur in deinen Warmwasser-Zeitfenstern plus der unten genannten Vorlaufzeit. Ist Warmwasser aus oder gibt es keine Zeitfenster, bleibt sie an.",
           "vvc_lead_minutes": "Wie lange vor einem Warmwasser-Zeitfenster die Zirkulationspumpe startet, damit die Leitung bei Beginn des Zeitfensters schon heiß ist.",
           "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt."
         }
@@ -1383,7 +1383,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "main_fuse_amperes": "Die Hauptsicherung des Hauses in Ampere, laut Netzanschlussvertrag. 0 lässt sie unkonfiguriert, wodurch der Sicherungsberater, der Sicherungswächter und der Sensor für die Reserve inaktiv bleiben – es gibt keinen sicheren Standardwert zum Raten, und ein falscher würde ein größeres Haus begrenzen.",
+          "main_fuse_amperes": "Die Hauptsicherung des Hauses in Ampere, laut Netzanschlussvertrag. 0 lässt sie unkonfiguriert, wodurch der Sicherungsberater und der Sicherungswächter inaktiv bleiben und der Sensor für die Reserve allein der Spitze des Lastspitzentarifs folgt, ohne Lastspitzentarif nicht verfügbar – es gibt keinen sicheren Standardwert zum Raten, und ein falscher würde ein größeres Haus begrenzen.",
           "main_fuse_phases": "Fast jedes schwedische Haus hat 3 Phasen.",
           "fuse_guard_enabled": "Begrenzt die geplante Leistung der Wärmepumpe auf das, was die Sicherung nach dem restlichen Haus noch übrig lässt. Wenn eine Begrenzung die Komfortuntergrenze unerreichbar machen würde, meldet der Plan das auf seinen Sensoren, statt stillschweigend kalt zu werden.",
           "peak_guard_enabled": "Überwacht den Stromzähler live und hält, wenn für das laufende Messfenster voraussichtlich eine neue abgerechnete Spitze entsteht, elektrisches Warmwasser zurück und senkt die Heizkurve für den Rest dieses Fensters leicht ab. Benötigt einen Stromzähler; ein kalter Speicher oder eine verletzte Komfortuntergrenze haben immer Vorrang vor dem Wächter.",
@@ -1434,7 +1434,7 @@
               "snow_roof_factor_enabled": "Nach starkem Schneefall weniger Sonne annehmen"
             },
             "data_description": {
-              "open_window_relax_enabled": "Die Erkennung offener Fenster pausiert das Lernen immer – das ist kostenlos und stets aktiv. Zusätzlich senkt diese Option das Heizziel um 1 °C, solange ein Fenster offen zu sein scheint, damit die Wärmepumpe nicht dafür zahlt, den Garten zu heizen. Standardmäßig aus, weil sie echte Wärme verschiebt: Ein fälschlich erkanntes Fenster bedeutet ein etwas kühleres Haus.",
+              "open_window_relax_enabled": "Die Erkennung offener Fenster pausiert das Lernen immer – das ist kostenlos und stets aktiv. Zusätzlich senkt diese Option die niedrigste Raumtemperatur, die der Plan zulässt, um 1 °C, nie unter 15 °C, solange ein Fenster offen zu sein scheint, damit die Wärmepumpe nicht dafür zahlt, den Garten zu heizen. Standardmäßig aus, weil sie echte Wärme verschiebt: Ein fälschlich erkanntes Fenster bedeutet ein etwas kühleres Haus.",
               "outage_recovery_enabled": "Nach einem Ausfall läuft alles gleichzeitig wieder an – kaltes Haus, kalter Speicher, die ganze Nachbarschaft – und genau dann entsteht eine neue monatliche Leistungsspitze. Ist dies aktiviert, öffnet eine lange Lücke bei den Aktualisierungen ein zweistündiges Wiederanlauffenster, in dem der Leistungspreis vom ersten kW an ernst genommen wird und Warmwasser 45 Minuten hinter der Raumheizung ansteht, außer der Speicher ist wirklich knapp.",
               "precip_type_enabled": "Regen durchfeuchtet die Gebäudehülle und erhöht den Wärmeverlust; Schnee nicht. Ohne diese Option wird eine Schneeprognose wie Regen behandelt, und der Plan kauft Wärme für eine nasse Wand, die trocken bleibt. Benötigt die Open-Meteo-Verbindung für die Schneedaten.",
               "snow_roof_factor_enabled": "Für zwei Tage nach starkem Schneefall wird der modellierte solare Wärmeeintrag halbiert – Schnee auf Dachfenstern und tiefen Winterscheiben blockiert die Sonne, mit der der Plan gerechnet hat. Bewusst grob: ein Faktor und eine Haltedauer, kein Schmelzmodell."
@@ -1518,7 +1518,7 @@
         }
       },
       "modbus_prefill": {
-        "title": "Aus einem Wärmepumpen-Gerät vorbefüllen",
+        "title": "Aus einem Wärmepumpengerät vorbefüllen",
         "description": "Für eine Rotenso Windmi oder eine andere von GCHV gebaute Wärmepumpe, die über das Modbus-Paket des Projekts tuya_heat_pump ausgelesen wird. Nenne den Entitäts-Präfix des Pakets und sende ab: Das nächste Formular schlägt Werte vor, die aus den eigenen Registern der Pumpe gelesen wurden – die Warmwasser-Sollwerte und den Zeitplan, die Legionellentage, den Nachtmodus-Zeitplan, ob die Pumpe nach Wassertemperatur regelt, und die eigenen Sensoren der Pumpe für noch leere Sensorplätze. Bearbeite oder leere beliebige davon; nur was du behältst, wird gespeichert, und ein geleertes Feld bleibt, wie es war. Nichts über das Haus oder sein Heizsystem lässt sich auf diese Weise auslesen.\n\nGelesene Entitäten: {found}. Register für den Typ des Zuheizers: {backup_heater_type} – jeder Wert außer 7 bedeutet, dass die Pumpe eine eigene elektrische Heizung hat, die von den Heizer-Plätzen bei der Wärmepumpen-Telemetrie überwacht werden soll.\n\nRollen, die aus dem NAMEN einer Entität statt aus einer veröffentlichten Definition gelesen wurden – die Seite kann diese nicht prüfen, prüfe daher jede vor dem Speichern: {name_matched}. Rollen aus veröffentlichten Definitionen, nach Quelle: {matched_sources}.",
         "data": {
           "prefill_device": "Wärmepumpen-Gerät (optional)",
