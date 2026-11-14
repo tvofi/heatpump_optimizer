@@ -63094,7 +63094,7 @@ _pa_bound = _PaCoord(_PA_TUYA, duties="ssss", flow=False)
 def _pa_bound_target(low):
     _pa_bound.hass.states.get("number.water_set").attributes = {"min": low, "max": 63}
     return _pa._space_target(
-        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space")
+        _pa_bound.arbiter_inputs(), _pa_bound._optimization_result, _PA_T0, "space", boosted=False)
 
 
 _pa_bound_at = _pa_bound_target(21.0 + _pa.SETPOINT_TOLERANCE)
@@ -63500,17 +63500,131 @@ for _pa_gb_mode in ("boost", "comfort"):
     _pa_gb[_pa_gb_mode]._mode = _pa_gb_mode
     _pa_run(_pa_gb[_pa_gb_mode], 1)
 R.check(
-    "the global boost mode writes Heating + DHW and the heating flow; comfort keeps the baseline's hold",
+    "the global boost mode writes Heating + DHW and the set-point entity's maximum, 63 "
+    "(R10-HOTFIX-BOOST-FLOW-CEILING); comfort keeps the baseline's hold",
     ("select", "select_option", "Heating + DHW") in _pa_gb["boost"].writes()
-    and ("number", "set_value", 55.0) in _pa_gb["boost"].writes()
+    and ("number", "set_value", 63.0) in _pa_gb["boost"].writes()
     and ("number", "set_value", 35.0) in _pa_gb["comfort"].writes(),
     f"{_pa_gb['boost'].writes()} / {_pa_gb['comfort'].writes()}",
 )
+
+
+# R10-HOTFIX-BOOST-FLOW-CEILING (tvofi, 2026-11-13: a space boost wrote 41,
+# then 43, not his maximum; "set at the maximum value"): a boost replaces the
+# plan's power for the space channel (boost.overlay), so it writes the
+# set-point entity's own maximum on every step, a partial one included,
+# capped by a stored flow_heat_c and the controller's upper-limit sensor. An
+# entity whose maximum does not read, or reads above FLOW_HEAT_C_MAX, keeps
+# the planned level. The band is ready here (max_electrical_power set), which
+# the idle-plan check above never needed.
+def _pa_boost_level(duties, kw, how=None, power_meter=False, entity_max=60, option=None, limit=None, unit="flow"):
+    """The space writes of one pass on a plan booking ``kw`` on its space steps, band 0.4-2.0 kW.
+
+    ``how``: None, ``"channel"`` (Boost Space Heating) or ``"mode"`` (the global boost mode).
+    ``entity_max``: the set-point entity's ``max`` attribute, None for none.
+    """
+    coord = _PaCoord(_PA_TUYA, duties=duties)
+    attrs = {"min": 25} if entity_max is None else {"min": 25, "max": entity_max}
+    coord.hass.states.set("number.water_set", FakeState("40", attributes=attrs))
+    coord._optimization_result.power_schedule = [kw if c == "s" else 0.0 for c in duties]
+    coord._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None,
+                                  min_electrical_power=0.4, max_electrical_power=2.0)
+    extra = {"space_setpoint_unit": unit}
+    if option is not None:
+        extra["flow_heat_c"] = option
+    if limit is not None:
+        extra["space_setpoint_high_limit_entity"] = "sensor.hp_high_limit"
+        coord.hass.states.set("sensor.hp_high_limit", FakeState(str(limit), unit="°C"))
+    if power_meter:
+        extra.update({"heat_pump_power_entity": "sensor.hp_power", "space_setpoint_power_feedback": True})
+    with_config(coord, extra)
+    if how == "channel":
+        boost_mod.held_for(coord).set("space", True, _PA_T0)
+    elif how == "mode":
+        coord._mode = "boost"
+    _pa_run(coord, 1)
+    return coord, [v for d, _sv, v in coord.writes() if d == "number" and v != 48.0]
+
+
+def _pa_bl(how, **kw):
+    return _pa_boost_level("ss", 1.0, how, **kw)[1]
+
+
+_pa_bl_rows = {
+    name: {how: _pa_bl(how, **kw) for how in (None, "channel", "mode")}
+    for name, kw in {
+        "max 55": {"entity_max": 55},
+        "max 60": {"entity_max": 60},
+        "max 70, the bound": {"entity_max": 70},
+        "max 60, stored 50": {"entity_max": 60, "option": 50},
+        "max 60, stored default 55": {"entity_max": 60, "option": 55},
+        "max 60, limit 52": {"entity_max": 60, "limit": 52},
+        "max 60, limit at the gate": {"entity_max": 60, "limit": 25},
+        "max 90": {"entity_max": 90},
+        "no max": {"entity_max": None},
+        "return, max 45": {"entity_max": 45, "unit": "return"},
+    }.items()
+}
+_pa_bl_idle = {how: _pa_boost_level("--", 0.0, how)[1] for how in (None, "channel", "mode")}
+_pa_bl_top = {how: _pa_boost_level("ss", 2.0, how)[1] for how in (None, "channel", "mode")}
+_pa_bl_want = {"max 55": 55, "max 60": 60, "max 70, the bound": 70, "max 60, stored 50": 50, "max 60, stored default 55": 60,
+               "max 60, limit 52": 52,
+               "max 60, limit at the gate": 60, "return, max 45": 45}
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: a space boost and the global boost mode write the set-point entity's "
+    "own maximum on a step the plan books at a partial 1.0 kW of a 0.4-2.0 kW band (55 for 55, 60 for 60, "
+    "70 for 70, FLOW_HEAT_C_MAX itself, "
+    "45 for a return target's 45, unmoved), capped by a flow_heat_c set off its default (50, never the "
+    "default 55, which an untouched page reads as) and the controller's "
+    "upper-limit sensor (52), never by a limit at the 25 degC gate, which leaves no heating value; controls: "
+    "the same step with no boost writes its partial value, below each of them, and an entity maximum of 90 "
+    "or none leaves a boost on that partial value",
+    all(_pa_bl_rows[name]["channel"] == [want] and _pa_bl_rows[name]["mode"] == [want]
+        and len(_pa_bl_rows[name][None]) == 1 and _pa_bl_rows[name][None][0] < want
+        for name, want in _pa_bl_want.items())
+    and all(_pa_bl_rows[name]["channel"] == _pa_bl_rows[name]["mode"] == _pa_bl_rows[name][None]
+            and len(_pa_bl_rows[name][None]) == 1 and _pa_bl_rows[name][None][0] < 55
+            for name in ("max 90", "no max")),
+    f"{_pa_bl_rows=}",
+)
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: on an idle plan and a band-top plan a boost writes the entity's "
+    "maximum, 60; null control: with no boost a band-top step writes the heating flow, 55, and an idle "
+    "one the gate, 25",
+    _pa_bl_idle == {None: [25], "channel": [60], "mode": [60]}
+    and _pa_bl_top == {None: [55], "channel": [60], "mode": [60]},
+    f"{_pa_bl_idle=} {_pa_bl_top=}",
+)
+from heatpump_optimizer import config_flow as _pa_cf  # noqa: E402
+from heatpump_optimizer.const import FLOW_HEAT_C_MAX as _PA_FLOW_HEAT_C_MAX  # noqa: E402
+
+_pa_bl_offer = [row.widget.config for row in _pa_cf._OPTION_FIELDS if row.key == "flow_heat_c"]
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: the heating ceiling the options offer is 30 to FLOW_HEAT_C_MAX, "
+    "70 degC, the range docs/configuration.md states and the bound above which a boost does not drive "
+    "an entity's maximum; null control: a maximum of 90 is above it",
+    [(c["min"], c["max"]) for c in _pa_bl_offer] == [(30, _PA_FLOW_HEAT_C_MAX)] and _PA_FLOW_HEAT_C_MAX == 70.0
+    and 90 > _PA_FLOW_HEAT_C_MAX,
+    f"{_pa_bl_offer=}",
+)
+_pa_bl_fb, _ = _pa_boost_level("ss", 1.0, "channel", power_meter=True)
+_pa_bl_fb_on = _pa._feedback_on(_pa_bl_fb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
+                                boost_mod.held_for(_pa_bl_fb))
+_pa_bl_nb, _ = _pa_boost_level("ss", 1.0, None, power_meter=True)
+_pa_bl_nb_on = _pa._feedback_on(_pa_bl_nb.arbiter_inputs(), "space", _PA_T0 + timedelta(minutes=1),
+                                boost_mod.held_for(_pa_bl_nb))
+R.check(
+    "R10-HOTFIX-BOOST-FLOW-CEILING: the power-feedback loop stays off during a space boost; "
+    "null control: on the same partial step with no boost it is on",
+    _pa_bl_fb_on is False and _pa_bl_nb_on is True,
+    f"{_pa_bl_fb_on=} {_pa_bl_nb_on=}",
+)
 R.check(
     "a boost writes its own single duty where the pump offers it, Heating + DHW "
-    "where it does not or the other duty is due too, and nothing while off",
+    "where it does not or the other duty is due too, and nothing while off; a space boost "
+    "writes the set-point entity's maximum, 63 (R10-HOTFIX-BOOST-FLOW-CEILING)",
     ("select", "select_option", "Heating") in _pa_sb["tuya"].writes()
-    and ("number", "set_value", 55.0) in _pa_sb["tuya"].writes()
+    and ("number", "set_value", 63.0) in _pa_sb["tuya"].writes()
     and all(w[2] != "Heating + DHW" for w in _pa_sb["tuya"].writes())
     and ("select", "select_option", "Heat + DHW") in _pa_sb["modbus"].writes()
     and ("select", "select_option", "Heating + DHW") in _pa_sb["dhwstep"].writes()
@@ -63733,10 +63847,12 @@ _pa_stuck_rows = {
 }
 _pa_stuck_null = {(duties, boost): _pa_stuck(duties, None, boost) for duties, boost in (("-", True), ("s", False))}
 R.check(
-    "R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step, and a space step, write the 55 degC "
-    "ceiling in one pass from a persisted own write of 25 equal to the reading with no baseline armed, "
-    "in memory and loaded from the store; null control: the same passes with no record write 55 too",
-    all(v == [55.0] for v in _pa_stuck_rows.values()) and all(v == [55.0] for v in _pa_stuck_null.values()),
+    "R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step writes the entity's 63 maximum "
+    "(R10-HOTFIX-BOOST-FLOW-CEILING), and a space step the 55 degC ceiling, in one pass from a persisted "
+    "own write of 25 equal to the reading with no baseline armed, in memory and loaded from the store; "
+    "null control: the same passes with no record write the same",
+    all(v == ([63.0] if key[1] else [55.0]) for key, v in _pa_stuck_rows.items())
+    and _pa_stuck_null == {("-", True): [63.0], ("s", False): [55.0]},
     f"{_pa_stuck_rows=} {_pa_stuck_null=}",
 )
 
