@@ -1,18 +1,12 @@
-head 112f0d777b8f8c921a75982d36305e94ffd2f7f4
-origin/main 6e100ef6980216a81eaa0438bdc215d62b19271f
-merge-base ba544faa2dd25b75b0129879112d6409affe9662
+origin/main 046736a49f8c352160ac4f55aa7f5faa5b82cafa
+merge-base cbd23f1c8bf6185c3a6c10f6e4aaf562417e75bf
 LEDGER-MERGE: resolved tests/closures.json
-  closures.tests/doc_claims.py: merged as a set (212 entries)
-  inert_reads.tests/harness_headers.py: merged as a set (1004 entries)
+  closures.tests/entities.py: merged as a set (565 entries)
+  closures.tests/harness_headers.py: merged as a set (409 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (995 entries)
   re-run the gate that owns this file before pushing
-6debd72f1db069a4847bd502292445a4d382f4df
+aec3c8c25aedc164eb07fe66460c035057832a9c
 merge-tree rc=0
-head merge replay: parents 1b3707d0bf67416d6d70563beaa08b1022ce74f8 e169c167ea4a7f0adec363bb34f79b50b8e21377
-b82b86c89790f72f96a03ab712494f317f0b0c35
-committed tree b82b86c89790f72f96a03ab712494f317f0b0c35
-three-dot VERSION/manifest/notes/golden/budgets:
-(end)
-delta stat:
- tests/closures.json |  2 +-
- tests/features.py   | 26 ++++++++++++++++++++++----
- 2 files changed, 23 insertions(+), 5 deletions(-)
+classify: WAIT 84405a2a2c96b6a7476832b5e76edd9f7b96e4a2 pending: gate red: none
+rc=3
+roster origin/handoff/audit-r10-roster fa165de9692b5ee6d18359e43384350df7545d41

@@ -1,4 +1,0 @@
-SURVIVED NULL
-KILLED r7v_running_with_pending_runs
-KILLED r7v_stopped_no_pending_runs
-rc=0

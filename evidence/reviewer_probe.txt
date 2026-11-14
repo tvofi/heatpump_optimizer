@@ -1,0 +1,10 @@
+RESULT span_probe aged: n=1.41814e-08 usable=False span=1
+RESULT span_probe after 5 stops on ONE day a year later: n=4.9966 p=1.00 span_days=366 usable=False
+RESULT span_probe control, fresh learner, same 5 stops on one day: span_days=1 usable=False
+RESULT attr_churn: 121 distinct published dicts over 24 h of one-minute reads, no new episode (n about 20 per direction)
+RESULT attr_churn control, empty learner: published={}
+RESULT span_probe6 one year-old episode (weight 1.4e-08) then 6 stops on one day: n=5.9948 span_days=366 usable=True
+RESULT span_probe6 control, fresh learner, the same 6 stops on one day: n=5.9948 span_days=1 usable=False
+RESULT fifth_episode five stops ten hours apart over two days: n=4.7999 span_days=3 usable=False
+RESULT heated_room_unit inlet 30.0, set-point 21.0 (room units), 14 s leg: heated=True
+RESULT heated_room_unit control, set-point 32.0 (water units): heated=False

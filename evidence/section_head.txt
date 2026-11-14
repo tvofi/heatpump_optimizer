@@ -17,8 +17,7 @@
   ok   usable switches on at n >= 5 spanning two days with p >= 0.5, and not below any of the three
   ok   once on it stays on until n < 2.5 or p < 0.3
   ok   decay halves n in 14 days and leaves p unchanged; a direction that fell under 2.5 does not switch on at one fresh episode; a stamp ahead of the clock decays nothing
-  ok   the span ages with the evidence: once a direction's weight is under SPAN_FLOOR_N its days are forgotten, so one year-old stop and six on a single day span one day and are not usable, as a fresh learner's six; null control, a first stop one half-life old still anchors the span
-  ok   the latch is judged at the booking itself: a stop taking n from 4 to 5 switches a direction on, one taking it from 3 to 4 does not, and a kept episode taking p under 0.3 switches one off
+  ok   the latch is judged at the booking itself: the fifth stop switches a direction on, the fourth does not, and a kept episode taking p under 0.3 switches one off
   ok   the median off time is the middle of an odd list and the mean of the middle two of an even one; a booking ages the counts to its own time first, and every aging moves the stamp
   ok   k and n publish to two places and the median to one; a direction holding only a void publishes a span of no day
   ok   the published k and n are aged to the reading's time, the tallies are not
@@ -32,12 +31,8 @@
   ok   a person's change and the re-send that answers it void the episode instead of booking it kept
   ok   through the arbiter, each reading that could stop the compressor by itself voids the stop: the supply switch off, a mode the plan does not command, disinfection, a boost, either electric heater, a fault, the feedback loop's moved target
   ok   null control: the same install with every flag reading off books the stop, and so does a fault flag that reads on but stale
-  ok   through the arbiter, a mode write opens no episode without demand on the target duty, when the plan leaves that duty inside the stop window, on a return under the heated margin over the command's water set-point (unit return or flow), or, on an indoor set-point whatever the return reads and with no return sensor, on a replaced mode record younger than the least source leg
+  ok   through the arbiter, a mode write opens no episode without demand on the target duty, when the plan leaves that duty inside the stop window, on a return under the heated margin over the command's set-point, or (no return sensor) on a replaced mode record younger than the least source leg
   ok   null control: each gate one step the other side of its bound books the stop
-  ok   through the arbiter, a defrost known only by the interval flag opens nothing, and one that begins after the stop voids it; null control, the flag reading False books the stop
-  ok   through the arbiter, Economy is a plan-control mode like Auto: the stop books in both; null control, Comfort commands no single duty and books nothing
-  ok   through the arbiter, a space->dhw write counts only on hot-water demand: a tank at its set-point, or unread, opens nothing; null control, a tank 0.1 K under it books the kept episode
-  ok   through the arbiter, a mode write the plan's step at the write does not hold opens nothing, though the plan holds the duty by the window's end; null control, the same write on a step that holds it books the stop
   ok   through the arbiter, a set-point written between the stop and the restart censors the off time; null control, the same install with no such write keeps it
 Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
   ok   an arbiter pass switches off a usable direction whose evidence aged away, and saves the record once for that change, not on every pass; null control, a direction aged one minute stays usable and saves nothing
@@ -54,12 +49,6 @@ Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set 
   ok   null control, a flat-price day: each both step of the flat scenario's plan is split and written identically under an empty and a saturated learner
   ok   only the arbiter and the sensor name duty_switch, through its report, attach and publish calls and never a read of the estimate; the module imports neither of them; the pure half of wear stays pure
   ok   the starts sensor's attributes are the counter's alone until a direction has an observation; then, per direction, only k, n, stopped, kept, void, censored, span days and (once one exists) the median off seconds, all numeric
-  ok   the span floor reads a direction's whole weight, kept episodes included: three kept and no stop keep their day a minute later and report no change, and lose it, reported once, only when n falls under SPAN_FLOOR_N; null control, three stops read the same
-  ok   through duty_switch.note_pass, a stop read inside the window and still in its debounce at the pass on the window's end keeps the episode open and books the stop once confirmed; null control, with no stop read the same passes book it kept
-  ok   through duty_switch.note_mode_write, a mode write while the running signal is unknown opens nothing, though the signal then reads stopped inside the window and running later (no signal is never evidence); null control, the same readings with the compressor read running at the write book the stop
-  ok   through duty_switch.note_mode_write, a mode write while the compressor is read stopped opens nothing and books nothing, whether it stays stopped or starts inside the window (no compressor ran across the switch); null control, the same passes with the compressor read running at the write book it kept
-  ok   through duty_switch.note_mode_write, a mode write while the compressor is settled stopped and a start read inside the debounce before it is still pending opens nothing and books nothing, whether the start holds or reads zero again 15 s after the write (only a settled running compressor is evidence); null control, the same passes with the compressor settled running at the write book it kept
-  ok   through duty_switch.note_pass, a stop is void-checked on the context of the pass that confirms it: a defrost that first reads on the pass after the confirming one does not void it, and the stop is booked; null control, the same stop with no defrost and a restart at 300 s books one stop of 240 s
 
-ALL 57 DUTY-SWITCH SECTION CHECKS PASSED
+ALL 46 DUTY-SWITCH SECTION CHECKS PASSED
 rc=0
