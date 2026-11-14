@@ -2984,6 +2984,27 @@
    "objects": false,
    "git": []
   },
+  "ci-priority": {
+   "run_sha": "40746e39355997eb3ebee6c0a396ae4e0a27faf5313538d009d8b44c857a7408",
+   "files": [
+    "dev/audit/config/ci_priority.json",
+    "tools/audit/seat/ci_pause.py",
+    "tools/audit/seat/ci_priority.py",
+    "tools/audit/seat/roster_lib.py"
+   ],
+   "probes": [
+    ".",
+    "tools",
+    "tools/audit",
+    "tools/audit/seat"
+   ],
+   "dirs": [
+    "tools/audit/seat"
+   ],
+   "index": false,
+   "objects": false,
+   "git": []
+  },
   "ci-probe-instrument": {
    "run_sha": "80189dc4b271d2c5242734dec361f9fa8920e2beb5a67d7965c979630570ca57",
    "files": [
@@ -8231,7 +8252,7 @@
    "git": []
   },
   "self-tests-outside-seat": {
-   "run_sha": "f74f563517915a57fe460412e738e310a7b60174f1d47ff211e4ed8e856a3c3b",
+   "run_sha": "1e2fc0b8e9fbdd55f36a3f9b56f9b721100229ca4d7ed5af11986fae0b770dec",
    "files": [
     ".claude/hooks/**",
     ".claude/rules/**",
