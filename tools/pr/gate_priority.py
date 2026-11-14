@@ -3,6 +3,7 @@
 
     python3 tools/pr/gate_priority.py              # HEAD's branch, live roster
     python3 tools/pr/gate_priority.py --branch B    # an explicit branch
+    python3 tools/pr/gate_priority.py --hotfix      # prints 1 when the group is a hotfix, else 0
     python3 tools/pr/gate_priority.py --self-test   # hermetic fixtures
 
 The lease (``tests/gate_lock.py``) is generic: it orders waiters by an integer
@@ -42,6 +43,8 @@ absent or malformed file means no group is critical.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import os
 import subprocess
 import sys
@@ -99,6 +102,26 @@ def _roster_ref(repo: str) -> str | None:
     return ref
 
 
+def _rank(branch: str, *, repo: str, ref: str | None, fetch: bool) -> int | None:
+    """The roster dispatch rank of the branch's group, None on any failure."""
+    try:
+        roster_ref = ref
+        if roster_ref is None:
+            roster_ref = _roster_ref(repo) if fetch else roster_lib.reader_ref(repo, None)
+        if roster_ref is None:
+            return None
+        roster = roster_lib.show_roster(repo, roster_ref)
+        group = roster_lib.group_for_branch(roster, branch)
+        if group is None:
+            return None
+        critical = roster_lib.critical_path_groups(repo, roster_ref)
+        if critical is None:
+            critical = set()
+        return roster_lib.dispatch_rank(roster, group, critical)
+    except Exception:  # noqa: BLE001 -- a pre-pr helper must never crash a run
+        return None
+
+
 def derived_priority(branch: str, *, repo: str = ".", ref: str | None = None,
                      fetch: bool = True) -> int:
     """2 for a hotfix group, 1 for an outside group or one in the
@@ -109,25 +132,20 @@ def derived_priority(branch: str, *, repo: str = ".", ref: str | None = None,
     live roster ref (the self-test's fixture); ``fetch=False`` reads the local
     ref without refreshing it.
     """
-    try:
-        roster_ref = ref
-        if roster_ref is None:
-            roster_ref = _roster_ref(repo) if fetch else roster_lib.reader_ref(repo, None)
-        if roster_ref is None:
-            return PRIORITY_NORMAL
-        group = roster_lib.group_for_branch(
-            roster_lib.show_roster(repo, roster_ref), branch)
-        if group is None:
-            return PRIORITY_NORMAL
-        roster = roster_lib.show_roster(repo, roster_ref)
-        critical = roster_lib.critical_path_groups(repo, roster_ref)
-        if critical is None:
-            critical = set()
-        rank = roster_lib.dispatch_rank(roster, group, critical)
-        return {roster_lib.RANK_HOTFIX: HOTFIX_PRIORITY,
-                roster_lib.RANK_TOP: TOP_PRIORITY}.get(rank, PRIORITY_NORMAL)
-    except Exception:  # noqa: BLE001 -- a pre-pr helper must never crash a run
-        return PRIORITY_NORMAL
+    rank = _rank(branch, repo=repo, ref=ref, fetch=fetch)
+    return {roster_lib.RANK_HOTFIX: HOTFIX_PRIORITY,
+            roster_lib.RANK_TOP: TOP_PRIORITY}.get(rank, PRIORITY_NORMAL)
+
+
+def is_hotfix(branch: str, *, repo: str = ".", ref: str | None = None,
+              fetch: bool = True) -> bool:
+    """True only when the roster classes the branch's group a hotfix.
+
+    The derived class alone: ``$HPO_GATE_PRIORITY`` and ``.gate-priority`` order
+    the lease and say nothing about the group. Every failure is False, so an
+    unreadable roster yields the full pre-PR run, never a skipped one.
+    """
+    return _rank(branch, repo=repo, ref=ref, fetch=fetch) == roster_lib.RANK_HOTFIX
 
 
 def _declared(raw: str | None) -> int | None:
@@ -243,6 +261,60 @@ def _self_test() -> int:
               [derived(b, at=plain_sha) for b in ("handoff/r10-crit", "handoff/r10-other", "fix/none")] == [1, 0, 0],
               [derived(b, at=plain_sha) for b in ("handoff/r10-crit", "handoff/r10-other", "fix/none")])
         (rosters / "wave-r10-groups.json").write_text(json.dumps(roster))
+        check("is_hotfix: true for the hotfix group only; an outside, a critical and an unmapped branch are not",
+              [is_hotfix(b, repo=str(repo), ref=live, fetch=False) for b in
+               ("handoff/r10-hot", "handoff/r10-out", "handoff/r10-crit", "handoff/r10-other", "fix/none")]
+              == [True, False, False, False, False])
+        check("is_hotfix ignores the lease override and fails closed (False) on a failed fetch",
+              not is_hotfix("handoff/r10-other", repo=str(repo), ref=live, fetch=False)
+              and not is_hotfix("handoff/r10-hot", repo=str(repo), fetch=True))
+
+        def cli(branch: str, at: str | None = None) -> tuple[int, str]:
+            """``main(["--hotfix", ...])`` and its stdout: the line prepr's hotfix_class reads."""
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = main(["--hotfix", "--branch", branch, "--repo", str(repo),
+                           "--ref", at or live, "--no-fetch"])
+            return rc, buf.getvalue()
+
+        hot_out_crit_none = ("handoff/r10-hot", "handoff/r10-out", "handoff/r10-crit", "fix/none")
+        check("--hotfix prints 1 for the hotfix group's branch, 0 for an outside, a critical and an unmapped one",
+              [cli(b) for b in hot_out_crit_none] == [(0, "1\n"), (0, "0\n"), (0, "0\n"), (0, "0\n")],
+              [cli(b) for b in hot_out_crit_none])
+        # --ref is the roster the CLI reads: plain_sha holds no hotfix group, while the
+        # local roster ref (what ref=None with --no-fetch reads) holds R10-HOT as one, so
+        # a CLI that dropped --ref would print 1 here. Control: the local ref answers 1.
+        check("--hotfix reads the roster at --ref, not the local roster ref",
+              cli("handoff/r10-hot", at=plain_sha) == (0, "0\n")
+              and is_hotfix("handoff/r10-hot", repo=str(repo), ref=None, fetch=False),
+              (cli("handoff/r10-hot", at=plain_sha),
+               is_hotfix("handoff/r10-hot", repo=str(repo), ref=None, fetch=False)))
+
+        # The except arm: a roster read that raises (not a failed fetch, which returns
+        # before the read) must fail closed -- not a hotfix, so a full prepr; priority 0.
+        def hot_answers() -> tuple[bool, int, tuple[int, str]]:
+            return (is_hotfix("handoff/r10-hot", repo=str(repo), ref=live, fetch=False),
+                    derived("handoff/r10-hot"), cli("handoff/r10-hot"))
+
+        real_show = roster_lib.show_roster
+
+        def unreadable(*_a, **_k):
+            raise ValueError("fixture: an unreadable roster")
+
+        roster_lib.show_roster = unreadable
+        try:
+            raised = hot_answers()
+        finally:
+            roster_lib.show_roster = real_show
+        check("a roster read that raises fails closed: not a hotfix, priority 0, --hotfix prints 0",
+              raised == (False, 0, (0, "0\n")), raised)
+        check("null control: the same read, restored, is (True, 2, '1')",
+              hot_answers() == (True, 2, (0, "1\n")), hot_answers())
+        check("the default is the fetched live read: with no origin to fetch, the hotfix branch fails closed",
+              not is_hotfix("handoff/r10-hot", repo=str(repo))
+              and derived_priority("handoff/r10-hot", repo=str(repo)) == 0
+              and is_hotfix("handoff/r10-hot", repo=str(repo), fetch=False),
+              (is_hotfix("handoff/r10-hot", repo=str(repo)), derived_priority("handoff/r10-hot", repo=str(repo))))
         check("a group that resolves but is not listed stays normal (null control)",
               derived("handoff/r10-other") == 0, derived("handoff/r10-other"))
         check("a branch that maps to no group stays normal",
@@ -292,11 +364,16 @@ def main(argv: list[str] | None = None) -> int:
                         help="roster ref override, for fixtures (default: the live one)")
     parser.add_argument("--no-fetch", action="store_true",
                         help="read the local roster ref without refreshing it")
+    parser.add_argument("--hotfix", action="store_true",
+                        help="print 1 when the roster classes the branch's group a hotfix, else 0")
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args(argv)
     if args.self_test:
         return _self_test()
     branch = args.branch if args.branch is not None else _current_branch(args.repo)
+    if args.hotfix:
+        print(int(is_hotfix(branch, repo=args.repo, ref=args.ref, fetch=not args.no_fetch)))
+        return 0
     print(priority_for_branch(branch, repo=args.repo, ref=args.ref,
                               fetch=not args.no_fetch))
     return 0

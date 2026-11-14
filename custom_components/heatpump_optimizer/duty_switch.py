@@ -34,7 +34,8 @@ weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with 
 the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
 forgotten with it. Every threshold
 here is a named constant from one day on one install, not a measurement.
-``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking, so
+``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking and
+on each decay, so a record stored over it is held to it by the first pass,
 evidence from before a firmware change is outvoted in a bounded number of
 episodes and an install that stops switching unlatches in a bounded time.
 """
@@ -192,7 +193,7 @@ class Direction:
     def decay(self, when: datetime) -> bool:
         """Age the counts to ``when``; whether the latch or the span's days moved."""
         n = self.n
-        factor = self.weights(when)[1] / n if n > 0.0 else 1.0
+        factor = min(self.weights(when)[1], N_CAP) / n if n > 0.0 else 1.0
         self.k, self.kept_w = self.k * factor, self.kept_w * factor
         if self.decayed_at is None or utc_elapsed_seconds(when, self.decayed_at) > 0.0:
             self.decayed_at = when

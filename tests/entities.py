@@ -10537,6 +10537,298 @@ R.check(
     f"services.yaml has {len(services)}",
 )
 
+# ---------------------------------------------------------------------------
+# R10-USER-TEXT-VERIFY-STRINGS: the user-visible claims a test can read mechanically, each against the artifact that
+# decides it, never a comment; the prose claims are judged in dev/audit/rounds/round10/user-text/RECORD.md.
+# ---------------------------------------------------------------------------
+import voluptuous as _ut_vol
+
+from heatpump_optimizer import accuracy as _ut_accuracy
+from heatpump_optimizer import const as _ut_const
+from heatpump_optimizer import legionella as _ut_legionella
+from heatpump_optimizer import presets as _ut_presets
+from heatpump_optimizer import pump_arbiter as _ut_arbiter
+from heatpump_optimizer import services as _ut_services
+from heatpump_optimizer import snapshots as _ut_snapshots
+from heatpump_optimizer import wood_fuel as _ut_wood
+from heatpump_optimizer.optimizer import OptimizationConfig as _UtOptimizationConfig
+
+_UT_STRINGS = json.loads((ROOT / "strings.json").read_text())
+
+
+def _ut_text(key: str, catalogue: dict | None = None) -> str:
+    node = _UT_STRINGS if catalogue is None else catalogue
+    for part in key.split("."):
+        node = node[part]
+    return node
+
+
+def _ut_dict_schema(schema):
+    """The vol.Schema whose dict a registered service schema validates (set_away's is inside a vol.All)."""
+    if isinstance(schema, _ut_vol.Schema) and isinstance(schema.schema, dict):
+        return schema
+    for inner in getattr(schema, "validators", ()):
+        found = _ut_dict_schema(inner)
+        if found is not None:
+            return found
+    return None
+
+
+class _UtRegistry:
+    """A stand-in for hass.services that records what async_register_services registers, so the schemas read
+    are the ones production hands Home Assistant, not a name-matched guess."""
+
+    def __init__(self) -> None:
+        self.schemas: dict = {}
+        self.services = self
+
+    def async_register(self, domain, service, handler, schema=None, **_kw) -> None:
+        self.schemas[service] = schema
+
+
+_ut_registry = _UtRegistry()
+_ut_services.async_register_services(_ut_registry)
+_UT_SCHEMAS = {service: _ut_dict_schema(schema) for service, schema in _ut_registry.schemas.items()}
+
+
+def _ut_fields(schema) -> dict:
+    return {str(getattr(marker, "schema", marker)): validator for marker, validator in schema.schema.items()}
+
+
+def _ut_field_findings(catalog: dict) -> list[str]:
+    """services.yaml fields that no registered schema names exactly, and number-selector bounds the field's own
+    validator refuses: the form would offer a value the handler rejects."""
+    out = []
+    for service, body in catalog.items():
+        schema = _UT_SCHEMAS.get(service)
+        want = set((body or {}).get("fields") or {})
+        if schema is None or set(fields := _ut_fields(schema)) != want:
+            out.append(f"{service}: its registered schema's fields are not exactly its services.yaml fields")
+            continue
+        for field, spec in ((body or {}).get("fields") or {}).items():
+            number = ((spec or {}).get("selector") or {}).get("number") or {}
+            for bound in ("min", "max"):
+                if bound not in number:
+                    continue
+                try:
+                    _ut_vol.Schema(fields[field])(number[bound])
+                except _ut_vol.Invalid as err:
+                    out.append(f"{service}.{field}: selector {bound} {number[bound]} refused ({err})")
+    return out
+
+
+R.check("services.yaml names exactly the registered services, each with exactly its registered schema's fields, and every number "
+        "selector's min and max pass that field's validator (R10-USER-TEXT-VERIFY-STRINGS)",
+        set(services) == set(_UT_SCHEMAS) and not (_ut_bad := _ut_field_findings(services)),
+        f"{sorted(set(services) ^ set(_UT_SCHEMAS))} " + "; ".join(_ut_bad[:4]))
+_ut_planted = json.loads(json.dumps(services))
+_ut_planted["set_thermal_parameters"]["fields"]["house_thermal_mass"]["selector"]["number"]["max"] = 10**6
+_ut_planted["simulate_plan"]["fields"]["planted_field"] = {"selector": {"text": None}}
+R.check("null control: a planted out-of-range selector max and a planted field no schema names are both refused",
+        len(_ut_bad := _ut_field_findings(_ut_planted)) == 2, repr(_ut_bad))
+try:
+    _UT_SCHEMAS["set_thermal_parameters"]({"planted_probe": 1.0})
+    _ut_probe_refused = False
+except _ut_vol.Invalid as err:
+    _ut_probe_refused = "extra keys not allowed" in str(err)
+R.check("the probe a field-set read does not name: set_thermal_parameters' schema refuses an unknown key, so its "
+        "field set is the set it accepts", _ut_probe_refused)
+
+# The wood price selector's floor is a price the what-if accepts: `_wood_override_fuel` refuses a price <= 0.
+_ut_wood_ok = {_ut_const.CONF_WOOD_TYPE: "birch", _ut_const.CONF_WOOD_PACKING: "packed",
+               _ut_const.CONF_WOOD_FURNACE_EFFICIENCY: 75.0}
+_ut_wood_min = services["simulate_plan"]["fields"]["wood_price_sek_m3"]["selector"]["number"]["min"]
+R.check("simulate_plan's wood price selector minimum is a price the what-if computes with",
+        _ut_wood._wood_override_fuel({**_ut_wood_ok, _ut_const.CONF_WOOD_PRICE_SEK_M3: _ut_wood_min}, {}) is not None,
+        f"min {_ut_wood_min}")
+R.check("null control: the same call at price 0 is refused, so the check above can fail",
+        _ut_wood._wood_override_fuel({**_ut_wood_ok, _ut_const.CONF_WOOD_PRICE_SEK_M3: 0}, {}) is None)
+
+_UT_UNIT_WORDS = {"°C per hour": "°C/h"}
+_UT_UNIT_RE = _re.compile(r"\bin (kWh/°C|kW/°C|°C per hour|°C/h|L/day|°C|L|m²|days)(?![\w/])")
+
+
+def _ut_unit_findings(catalog: dict, strings: dict) -> list[str]:
+    """A field description that states its unit ("in kW/°C") disagrees with its selector's unit_of_measurement."""
+    out = []
+    for service, body in catalog.items():
+        for field, spec in ((body or {}).get("fields") or {}).items():
+            unit = (((spec or {}).get("selector") or {}).get("number") or {}).get("unit_of_measurement")
+            text = strings["services"][service]["fields"][field]["description"]
+            stated = [_UT_UNIT_WORDS.get(m, m) for m in _UT_UNIT_RE.findall(text)]
+            if unit and stated and stated[0] != unit:
+                out.append(f"{service}.{field}: text says {stated[0]}, selector {unit}")
+    return out
+
+
+_ut_units = [(s, f) for s, b in services.items() for f, spec in ((b or {}).get("fields") or {}).items()
+             if (((spec or {}).get("selector") or {}).get("number") or {}).get("unit_of_measurement")
+             and _UT_UNIT_RE.search(_UT_STRINGS["services"][s]["fields"][f]["description"])]
+R.check("every service field whose description states its unit states the selector's unit (anchor: some do)",
+        len(_ut_units) >= 5 and not (_ut_bad := _ut_unit_findings(services, _UT_STRINGS)),
+        f"{len(_ut_units)} stated; " + "; ".join(_ut_bad))
+_ut_planted = json.loads(json.dumps(_UT_STRINGS))
+_ut_planted["services"]["set_thermal_parameters"]["fields"]["house_thermal_mass"]["description"] = (
+    "Planted: in kW/°C. " + _ut_planted["services"]["set_thermal_parameters"]["fields"]["house_thermal_mass"]["description"])
+R.check("null control: a planted kW/°C in the kWh/°C thermal-mass field is one finding",
+        len(_ut_unit_findings(services, _ut_planted)) == 1, repr(_ut_unit_findings(services, _ut_planted)))
+
+#: (strings.json key, the phrase as shipped, the number it states, the value the code decides it with, that value's
+#: name). A phrase reworded away fails its row, so a rewrite re-reads the constant instead of drifting from it.
+_UT_NUMBER_CLAIMS = [
+    ("issues.dhw_disinfection_switch_lost.description", "half an hour", 30,
+     _ut_const.DHW_DISINFECTION_LOST_MINUTES, "const.DHW_DISINFECTION_LOST_MINUTES"),
+    ("issues.accuracy_drift.description", "three settled days", 3,
+     _ut_accuracy.REFIT_SETTLED_DAYS, "accuracy.REFIT_SETTLED_DAYS"),
+    ("issues.accuracy_drift_rolled_back.description", "three settled days", 3,
+     _ut_accuracy.REFIT_SETTLED_DAYS, "accuracy.REFIT_SETTLED_DAYS"),
+    ("exceptions.restore_learned_snapshot_no_refit.message", "three settled days", 3,
+     _ut_accuracy.REFIT_SETTLED_DAYS, "accuracy.REFIT_SETTLED_DAYS"),
+    ("services.restore_learned_snapshot.description", "three settled days", 3,
+     _ut_accuracy.REFIT_SETTLED_DAYS, "accuracy.REFIT_SETTLED_DAYS"),
+    ("issues.accuracy_drift.description", "±7-10 %", 10, _ut_accuracy.REFIT_BAND_PERCENT, "accuracy.REFIT_BAND_PERCENT"),
+    ("issues.accuracy_drift_rolled_back.description", "±7-10 %", 10,
+     _ut_accuracy.REFIT_BAND_PERCENT, "accuracy.REFIT_BAND_PERCENT"),
+    ("issues.accuracy_drift.description", "weekly snapshot", 7,
+     _ut_snapshots.SNAPSHOT_INTERVAL_DAYS, "snapshots.SNAPSHOT_INTERVAL_DAYS"),
+    ("services.restore_learned_snapshot.description", "weekly snapshot", 7,
+     _ut_snapshots.SNAPSHOT_INTERVAL_DAYS, "snapshots.SNAPSHOT_INTERVAL_DAYS"),
+    ("entity.sensor.dhw_heating_cost.name", "(next 24 h)", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("entity.sensor.plan_dhw_heating.name", "(next 24 h)", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("entity.sensor.plan_space_heating.name", "(next 24 h)", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("services.run_optimization.description", "next 24 hours", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("services.apply_manual_plan.fields.expires_at.description", "20 hours from now", 20,
+     _ut_const.MANUAL_PLAN_WINDOW_HOURS, "const.MANUAL_PLAN_WINDOW_HOURS"),
+    ("services.apply_manual_plan.fields.expires_at.description", "24-hour horizon", 24,
+     _UtOptimizationConfig().horizon_hours, "OptimizationConfig.horizon_hours"),
+    ("services.set_mode.fields.mode.description", "1.5 °C below", 1.5,
+     _ut_const.ECONOMY_MIN_TEMP_WIDENING, "const.ECONOMY_MIN_TEMP_WIDENING"),
+    ("services.set_mode.fields.mode.description", "never below 15 °C", 15,
+     _ut_const.ECONOMY_ABSOLUTE_FLOOR, "const.ECONOMY_ABSOLUTE_FLOOR"),
+    ("issues.pump_write_ignored.description", "every five minutes", 5,
+     _ut_arbiter.RETRY_MINUTES, "pump_arbiter.RETRY_MINUTES"),
+    ("issues.dhw_legionella_overdue.description", "about a day after", 24,
+     _ut_legionella.DHW_LEGIONELLA_RETRY_HOURS, "legionella.DHW_LEGIONELLA_RETRY_HOURS"),
+    ("issues.dhw_legionella_unreachable.description", "about a day later", 24,
+     _ut_legionella.DHW_LEGIONELLA_RETRY_HOURS, "legionella.DHW_LEGIONELLA_RETRY_HOURS"),
+    ("services.set_thermal_parameters.fields.dhw_cooling_rate.description", "at 45 °C tank temperature", 45,
+     _ut_const.DHW_COOLING_REFERENCE_TANK_TEMP, "const.DHW_COOLING_REFERENCE_TANK_TEMP"),
+    ("services.set_thermal_parameters.fields.dhw_cooling_rate.description", "and 20 °C ambient", 20,
+     _ut_const.DHW_COOLING_REFERENCE_AMBIENT_TEMP, "const.DHW_COOLING_REFERENCE_AMBIENT_TEMP"),
+    ("services.set_thermal_parameters.fields.buffer_cooling_rate.description", "at 25 °C above ambient", 25,
+     _ut_const.DHW_COOLING_REFERENCE_DELTA, "const.DHW_COOLING_REFERENCE_DELTA"),
+    *((f"services.{s}.fields.silent_mode_power_fraction.description", "raised to 0.6", 0.6,
+       _ut_const.CAPACITY_FLOOR_FRACTION, "const.CAPACITY_FLOOR_FRACTION")
+      for s in ("set_thermal_parameters", "simulate_plan", "apply_schedule")),
+    ("services.set_thermal_parameters.fields.slab_heat_transfer.description", "a fifth of a floor slab's", 0.2,
+     _ut_presets._EMITTER_RADIATOR_TRANSFER_PER_M2 / _ut_presets._EMITTER_SLAB_TRANSFER_PER_M2,
+     "presets._EMITTER_RADIATOR_TRANSFER_PER_M2 / _EMITTER_SLAB_TRANSFER_PER_M2"),
+]
+
+
+def _ut_number_findings(claims: list, strings: dict) -> list[str]:
+    out = []
+    for key, phrase, stated, decided, name in claims:
+        if phrase not in _ut_text(key, strings):
+            out.append(f"{key}: the phrase {phrase!r} is gone; re-read {name} and update this row")
+        elif abs(float(decided) - float(stated)) > 1e-9:
+            out.append(f"{key}: says {phrase!r} ({stated}) but {name} is {decided}")
+    return out
+
+
+R.check(f"each of the {len(_UT_NUMBER_CLAIMS)} numbers quoted in user text equals the constant the code decides it "
+        "with", not (_ut_bad := _ut_number_findings(_UT_NUMBER_CLAIMS, _UT_STRINGS)), "; ".join(_ut_bad[:4]))
+_ut_planted = json.loads(json.dumps(_UT_STRINGS))
+_ut_planted["issues"]["dhw_disinfection_switch_lost"]["description"] = _ut_text(
+    "issues.dhw_disinfection_switch_lost.description").replace("half an hour", "six hours")
+R.check("null control: the disinfection repair reworded to 'six hours' is one finding, and a constant moved off its "
+        "stated value is another",
+        len(_ut_number_findings(_UT_NUMBER_CLAIMS, _ut_planted)) == 1
+        and len(_ut_number_findings([(*_UT_NUMBER_CLAIMS[0][:3], 360.0, "planted")], _UT_STRINGS)) == 1)
+
+
+# Every raise that hands Home Assistant a translation key also passes an English message, which the exception's str()
+# returns to logs, script and automation traces and API callers. This round judged the catalogue's message, so the
+# fallback may state nothing that message does not: its literal fragments, in order, spell exactly the catalogue's
+# English message, each of the fallback's own placeholders standing for any text (the catalogue's placeholder, or a
+# word it spells out, as "three" for REFIT_SETTLED_DAYS, which the numbers row above pins). A key or message passed
+# through a parameter of the raising function is read at every call of it, as a pair. A computed message (`str(err)`,
+# `comfort_band.describe(...)`, a caller's `reason`) has no literal of its own to judge; it is counted, not matched.
+def _ut_fallback_findings(sources: dict, catalogue: dict) -> tuple[int, int, list[str]]:
+    matched, computed, out = 0, 0, []
+    for name, text in sorted(sources.items()):
+        tree = ast.parse(text)
+        calls = [n for n in ast.walk(tree) if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)]
+        for fn in [n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))]:
+            params = [a.arg for a in fn.args.args]
+
+            def passed(node, call):
+                """The node a parameter-named ``node`` is bound to at ``call``, else ``node`` itself."""
+                if not (isinstance(node, ast.Name) and node.id in params):
+                    return node
+                at = params.index(node.id)
+                return next((k.value for k in call.keywords if k.arg == node.id),
+                            call.args[at] if at < len(call.args) else None)
+
+            for node in ast.walk(fn):
+                if not (isinstance(node, ast.Raise) and isinstance(node.exc, ast.Call)):
+                    continue
+                kw = {k.arg: k.value for k in node.exc.keywords}
+                if "translation_key" not in kw:
+                    continue
+                key, msg = kw["translation_key"], node.exc.args[0] if node.exc.args else None
+                through = any(isinstance(n, ast.Name) and n.id in params for n in (key, msg))
+                sites = [c for c in calls if c.func.id == fn.name] if through else [None]
+                if not sites:
+                    out.append(f"{name}:{node.lineno}: {fn.name} passes its key or message through, and nothing calls it")
+                for call in sites:
+                    k, m = (n if call is None else passed(n, call) for n in (key, msg))
+                    where = f"{name}:{node.lineno if call is None else call.lineno}"
+                    if not (isinstance(k, ast.Constant) and isinstance(k.value, str)):
+                        out.append(f"{where}: the translation key {ast.unparse(k) if k else None} is not a literal")
+                        continue
+                    want = (catalogue.get(k.value) or {}).get("message")
+                    if want is None:
+                        out.append(f"{where}: no catalogue message for {k.value}")
+                        continue
+                    if isinstance(m, ast.Constant) and isinstance(m.value, str):
+                        parts = [m.value]
+                    elif isinstance(m, ast.JoinedStr):
+                        parts = [v.value if isinstance(v, ast.Constant) else None for v in m.values]
+                    else:
+                        computed += 1
+                        continue
+                    if _re.fullmatch("".join(".+?" if p is None else _re.escape(p) for p in parts), want, _re.S):
+                        matched += 1
+                    else:
+                        out.append(f"{where}: the fallback {ast.unparse(m)[:90]!r} is not {k.value}'s message {want!r}")
+    return matched, computed, out
+
+
+_UT_PY = {p.name: p.read_text() for p in sorted(ROOT.glob("*.py"))}
+_ut_matched, _ut_computed, _ut_bad = _ut_fallback_findings(_UT_PY, _UT_STRINGS["exceptions"])
+R.check("every raise that passes a translation key falls back to English its catalogue message states (anchor: at "
+        "least 30 literal fallbacks matched)", _ut_matched >= 30 and not _ut_bad,
+        f"{_ut_matched} matched, {_ut_computed} computed; " + "; ".join(_ut_bad[:4]))
+_ut_planted = dict(_UT_PY)
+_ut_planted["services.py"] = _UT_PY["services.py"].replace(
+    "settings and learned state are \"\n                \"unchanged, and only the undo snapshot the reset takes first was saved",
+    "nothing was changed")
+_ut_planted["debugger.py"] = _UT_PY["debugger.py"].replace('translation_key="debug_collect_inactive"',
+                                                           'translation_key="planted_unknown_key"')
+_ut_planted["coordinator.py"] = _UT_PY["coordinator.py"].replace(
+    '_raise_update_failed("update_failed", f"Error updating data: {err}"',
+    '_raise_update_failed("update_failed", f"Planted: nothing was changed: {err}"', 1)
+R.check("null control: the factory reset's merge-base fallback ('nothing was changed'), a key the catalogue lacks and "
+        "a planted message passed through _raise_update_failed are three findings",
+        len(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[2]) == 3,
+        repr(_ut_fallback_findings(_ut_planted, _UT_STRINGS["exceptions"])[2]))
+
+
 R.check("simulate_plan is documented", "simulate_plan" in services)
 R.check(
     "its fields are documented for the UI",
@@ -15726,6 +16018,30 @@ R.check(
     _svc_fr_args == [(_svc_coord, "learners")]
     and _svc_fr == {"reset": _svc_entry.entry_id, "scope": "learners"},
     str(_svc_fr),
+)
+
+
+async def _svc_fr_refused(coord, scope):
+    return False  # Home Assistant refused the unload: the undo snapshot is saved, nothing else
+
+
+# The refused arm's English message is what the exception's str() hands logs, traces and API callers (R10-USER-TEXT-
+# VERIFY-STRINGS): it is the judged catalogue message, entry id filled, never the merge base's "nothing was changed".
+_svc_module.async_factory_reset = _svc_fr_refused
+try:
+    _svc_call(const.SERVICE_FACTORY_RESET, {"entry_id": _svc_entry.entry_id, "scope": "learners"})
+    _svc_fr_err = None
+except Exception as err:  # noqa: BLE001 -- the class is read below
+    _svc_fr_err = err
+finally:
+    _svc_module.async_factory_reset = _svc_fr_real
+_svc_fr_want = json.loads((ROOT / "strings.json").read_text())["exceptions"]["factory_reset_not_applied"]["message"]
+R.check(
+    "a refused factory_reset raises factory_reset_not_applied, whose English message is the catalogue's, entry id filled",
+    type(_svc_fr_err).__name__ == "HomeAssistantError"
+    and getattr(_svc_fr_err, "translation_key", None) == "factory_reset_not_applied"
+    and str(_svc_fr_err) == _svc_fr_want.format(entry_id=_svc_entry.entry_id),
+    repr(_svc_fr_err),
 )
 R.check(
     "reset_heat_loss_learners reaches the coordinator and reports what it reset",

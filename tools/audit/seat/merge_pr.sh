@@ -178,13 +178,15 @@ P
   # gh's empty check-run list, so the flow crosses the K15 (b) re-run as a no-op.
   # It imports gh_read.py from its own directory (R10-FLY-GH-READ-RETRY), so the
   # module travels with it: without it every flow stopped at STALE on an ImportError.
-  cp "${SELF%/*}/merge_train.py" "${SELF%/*}/gh_read.py" "$mm/tools/audit/seat/"
+  cp "${SELF%/*}/merge_train.py" "${SELF%/*}/gh_read.py" "${SELF%/*}/proof_watch.py" "$mm/tools/audit/seat/"
   for p in app_approve.sh preflight.sh worktree_gc.sh; do
     printf '#!/bin/bash\nexit 0\n' > "$mm/tools/audit/$p"; chmod +x "$mm/tools/audit/$p"
   done
   # app_comment.sh leaves a mark when it is asked to post; postmerge.py is a stub
   # recording its argv, printing OWED and failing when FAKE_PM_RC says so.
   mkdir -p "$mm/tools/pr"
+  # the approver identity posted_verdict reads (proof_watch.verdict_allowlist)
+  printf 'VERDICT_AUTHORS="app[bot]"\nVERDICT_AUTHOR_ID=55\n' > "$mm/tools/pr/app_approve.sh"
   printf '#!/bin/bash\necho posted >> "$HPO_STATE_DIR/posted"\n' > "$mm/tools/pr/app_comment.sh"
   chmod +x "$mm/tools/pr/app_comment.sh"
   cat > "$mm/tools/audit/seat/postmerge.py" <<'PM'
@@ -201,6 +203,7 @@ PM
 #!/bin/bash
 echo "$*" >> "$FAKE_LOG2"
 case "$*" in
+  *issues/42/comments*) cat "$FAKE_COMMENTS" 2>/dev/null ;;
   *headRefOid*) echo "$FAKE_SHA" ;;
   *isDraft*) echo false ;;
   *mergeStateStatus*) if [ -f "$FAKE_BLOCKED" ]; then rm -f "$FAKE_BLOCKED"; echo BLOCKED; else echo CLEAN; fi ;;
@@ -219,7 +222,7 @@ G
     if [ -n "${2:-}" ]; then printf '# Fix review: merge %s\n' "$2" > "$T/ev/VERDICT.md"
     else printf '# verdict\n' > "$T/ev/VERDICT.md"; fi
     HPO_STATE_DIR=$T/state2 PATH="$T/bin2:$PATH" FAKE_LOG2=$T/gh2.log FAKE_SHA=$msha \
-      FAKE_BLOCKED=$T/blocked FAKE_MERGE_FAIL=$1 FAKE_PM_RC=${FAKE_PM_RC:-0} bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
+      FAKE_BLOCKED=$T/blocked FAKE_COMMENTS=$T/comments FAKE_MERGE_FAIL=$1 FAKE_PM_RC=${FAKE_PM_RC:-0} bash "$mm/tools/audit/seat/merge_pr.sh" 42 "$msha" "$T/ev" app \
       > "$T/flow.out" 2>&1
     echo $? > "$T/flow.rc"
   }
@@ -236,6 +239,25 @@ G
   [ "$(cat "$T/flow.rc")" = 0 ] && [ -f "$T/state2/posted" ] && ! grep -q CARRIED "$T/flow.out"
   if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: a verdict for the head posts as today"
   else fail=$((fail + 1)); echo "  FAIL null control: a verdict for the head posts as today"; fi
+  # MERGE-PR-NO-REPOST: the bus already posted the verdict for this head (verdict/42's tip,
+  # the newest `Fix review:` comment by the approver App): nothing is posted again.
+  git -C "$mo" branch verdict/42 main
+  vtip=$(git -C "$mo" rev-parse verdict/42)
+  vcomment() { # <tip named in the comment>
+    python3 -I -c 'import json,sys; print(json.dumps({"id": 777000111, "user": {"login": "app[bot]", "id": 55}, "created_at": "2026-11-01T00:00:00Z", "body": "Fix review: merge %s\n\nbus: verdict/42 at %s," % (sys.argv[1], sys.argv[2])}))' "$msha" "$1" > "$T/comments"
+  }
+  vcomment "$vtip"
+  flow 0 "$msha"
+  [ "$(cat "$T/flow.rc")" = 0 ] && [ ! -f "$T/state2/posted" ] && grep -qxF "ALREADY POSTED: comment 777000111" "$T/flow.out" \
+    && grep -qxF "pr merge 42 --merge --match-head-commit $msha" "$T/gh2.log"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   a verdict the bus already posted for the head is not posted again, and the merge goes on"
+  else fail=$((fail + 1)); echo "  FAIL a verdict the bus already posted for the head is not posted again, and the merge goes on ($(tail -1 "$T/flow.out"))"; fi
+  vcomment "$(printf 'f%.0s' {1..40})"
+  flow 0 "$msha"
+  [ "$(cat "$T/flow.rc")" = 0 ] && [ -f "$T/state2/posted" ] && ! grep -q 'ALREADY POSTED' "$T/flow.out"
+  if [ $? = 0 ]; then pass=$((pass + 1)); echo "  ok   null control: a posted verdict that is not verdict/42's tip posts as today"
+  else fail=$((fail + 1)); echo "  FAIL null control: a posted verdict that is not verdict/42's tip posts as today"; fi
+  rm -f "$T/comments"; git -C "$mo" branch -q -D verdict/42
   flow 0 "$(printf 'e%.0s' {1..40})"
   [ "$(cat "$T/flow.rc")" != 0 ] && grep -q "^CARRIED HEAD: #42's verdict reviewed e.*merge_train.py" "$T/flow.out" \
     && [ ! -f "$T/state2/posted" ] && ! grep -q '^pr merge' "$T/gh2.log"
@@ -297,7 +319,14 @@ gates "$PR" "$MODE" "$MID" "$READY" || exit 1
 [ "$READY_OWED" = 1 ] && { gh pr ready $PR --repo $R >/dev/null || { echo "READY REFUSED for #$PR"; exit 1; }; }
 carried_head "$PR" "$S" "$E/VERDICT.md" || exit 1
 sed '1s/^# //' "$E/VERDICT.md" > $D/v/verdict-$PR.md; grep -q "$E" $D/v/verdict-$PR.md || printf '\nEvidence: %s/\n' "$(python3 -I tools/audit/seat/ref_privacy.py path "$E")" >> $D/v/verdict-$PR.md
+# MERGE-PR-NO-REPOST: a verdict the bus already posted for this head is not posted again -- a
+# second comment, left behind by a try that then fails, is no longer verdict/<pr>'s tip text
+# and the train's add check refuses the PR. The read is that check's own (`posted-verdict`).
+read -r pv_tag pv_head pv_id <<<"$(python3 -I tools/audit/seat/merge_train.py posted-verdict $PR --repo $R 2>/dev/null)"
+if [ "$pv_tag" = VERDICT ] && [ "$pv_head" = "$S" ]; then echo "ALREADY POSTED: comment $pv_id"  # mut:repost
+else
 if test -f tools/audit/app_comment.sh; then bash tools/audit/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1; else bash tools/pr/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1; fi| tail -1; [ "${PIPESTATUS[0]}" = 0 ] || exit 1
+fi
 if [ "$MODE" = owner ]; then
   owner_body "$S" "$MID" "$MANDATE_WHY" > $D/approve-$PR.md
   gh pr review $PR --approve --body-file $D/approve-$PR.md || exit 1
