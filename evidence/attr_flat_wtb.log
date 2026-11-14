@@ -1,0 +1,12 @@
+  row: baseline 185.6 actual 166.22 saved 19.38 pct 10.441810344827585
+  floor: booked over metered 1.155 (159.94 / 138.52 kWh); below_meter_floor False; calibration_basis meter
+  row: stored_heat_sek -6.32 comfort_sek 5.5
+  calibration 1.0; uncalibrated baseline 191.92, pct 13.39
+  plan kWh 138.52 at COP 1.910; booked reference 159.94 at COP 1.811; gap +21.42; mean room 18.48 C against 21.00
+  comfort term +6.18 kWh_e (the reference's warmer house); stored term -5.07 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 148.68 kWh against plan 138.52: +6.84 %
+harness residual +6.84 %
+steps 192 | plan heat 264.54 store change -9.68 loss 274.22 | reference heat 289.70 store change +11.11 loss 278.59 | steady loss at 21 137.05 at delivered 125.84
+loss gap ref-plan +4.38 kWh_th against steady +11.21: non-steady -6.83; reference stored +11.11 kWh_th
+plant steps seen 192 of 192
+rc=0
