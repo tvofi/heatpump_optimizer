@@ -80,7 +80,7 @@
   ok   no reader doc claims the entity prefix follows the entry name
 
 -- README requirements vs manifest.json (#1537)
-/tmp/claude-0/-home-user-heatpump-optimizer/971da608-f2f5-52be-9ddf-4952b2e05798/scratchpad/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
+/root/wt/tests/doc_claims.py:130: DeprecationWarning: 'maxsplit' is passed as positional argument
   return [re.split(r"[<>=!~\[]", r, 1)[0].strip() for r in manifest["requirements"]]
   ok   manifest.json still pins requirements (anchor)
   ok   README still has a Requirements section (anchor)
@@ -386,7 +386,7 @@
   ok   every surface class enumerates from the tree (anchor)
   ok   every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)
   ok   every surface has its home, or a reasoned exemption that still names one
-       (518 surface(s), 517 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
+       (521 surface(s), 520 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
   ok   red fixture: a service planted in services.yaml with no home is the one finding
   ok   red fixture: a Default cell that disagrees with the shipped default (away_dhw_min_temperature) is a finding
   ok   red fixture: an exemption naming a surface no longer enumerated is a finding
@@ -414,6 +414,40 @@
   ok   pump_arbiter still comments FEEDBACK_DOWN_K (anchor)
   ok   the assumed minimum hysteresis behind FEEDBACK_DOWN_K cites the contributor's answers
   ok   the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs
+
+-- reader text against the code that produces it (R10-DOCS-STRINGS-RESIDUE carries 5 to 13)
+  ok   no reader doc or string file keeps a corrected sentence's old wording
+  ok   solve_bands lowers min_temp by OPEN_WINDOW_RELAX_C and leaves target_temp
+  ok   solve_bands never takes min_temp below ECONOMY_ABSOLUTE_FLOOR
+  ok   configuration.md's open-window row says the coldest accepted temperature drops by 1 °C, never below 15 °C
+  ok   the open-window option text says by 1 °C, never below 15 °C
+  ok   EntryConfig.fuse_kw answers None at main fuse 0, and a capacity at 16 A (control)
+  ok   configuration.md's main-fuse row says the headroom sensor follows the capacity-tariff peak
+  ok   the main-fuse option text says the headroom sensor follows the capacity-tariff peak
+  ok   the coordinator replaces production[0] alone, capped at peak_kw (anchor)
+  ok   configuration.md says only the current step is replaced, capped at the installed capacity
+  ok   the PV sensor option text says only the current step is replaced, capped at the installed capacity
+  ok   the coordinator's DeviceInfo names the device by a literal (anchor)
+  ok   setup.md says entities use the fixed device name 'Heat Pump Optimizer'
+  ok   configuration.md says entities use the fixed device name 'Heat Pump Optimizer'
+  ok   the name option text says entities use the fixed device name 'Heat Pump Optimizer'
+  ok   observe_spot_and_settle_savings prices the settlement at spot + fee_per_kwh (anchor)
+  ok   dashboard-card.md says both sides are priced at spot plus the per-kWh grid fee
+  ok   _ADVISOR_DUTY_FRACTION is a fraction the page can name
+  ok   dashboard-card.md names the measured mean power, else the configured maximum's fraction
+  ok   dashboard-card.md's Health picture waits for the first month with a booked saving
+  ok   strings.json: every options-menu entry names its page by the page's title (25 pairs)
+  ok   en.json: every options-menu entry names its page by the page's title (25 pairs)
+  ok   de.json: every options-menu entry names its page by the page's title (25 pairs)
+  ok   sv.json: every options-menu entry names its page by the page's title (25 pairs)
+  ok   Carry 5: the old wording, put back, is refused (null control)
+  ok   Carry 6: the old wording, put back, is refused (null control)
+  ok   Carry 7: the old wording, put back, is refused (null control)
+  ok   Carry 8: the old wording, put back, is refused (null control)
+  ok   Carry 9: the old wording, put back, is refused (null control)
+  ok   Carry 10: the old wording, put back, is refused (null control)
+  ok   Carry 11: the old wording, put back, is refused (null control)
+  ok   a de grid page titled apart from its menu entry is refused (null control)
 
 -- the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)
   ok   the seven user pages are there (anchor)
@@ -444,8 +478,5 @@
   ok   red fixture: a history-sense "used to" is a finding
   ok   red fixture: an exemption that matches no fragment is a finding
 
-ALL 348 checks PASSED
-
-real	0m10.296s
-user	0m11.366s
-sys	0m0.469s
+ALL 380 checks PASSED
+rc=0
