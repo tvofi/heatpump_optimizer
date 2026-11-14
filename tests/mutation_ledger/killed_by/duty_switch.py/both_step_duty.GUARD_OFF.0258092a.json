@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:both_step_duty GUARD_OFF 0258092a",
-  "killed_by": "tests/features.py",
-  "old": "    if whole or now - start < timedelta(minutes=first_min):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=26."
-}

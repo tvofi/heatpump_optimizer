@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:overlay GUARD_OFF 4e440eca",
+  "killed_by": "tests/features.py",
+  "old": "    if CHANNEL_SPACE in held.until:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

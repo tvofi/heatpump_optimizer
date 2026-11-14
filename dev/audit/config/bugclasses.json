@@ -5680,5 +5680,41 @@
       "barriered_any": false,
       "class_rca_on_record": false
     }
+  },
+  "N-provisional-gate-red-read-final": {
+    "kind": "instrument",
+    "mechanism": "A required check's conclusion that can be provisional (gate.py's at-once deferral red, re-judged by gate-sweep's settle) is read as final by a reader that compares it to failure without asking whether a run it names is unfinished: the train's BRANCH-POLICY park, the tick's NOT REVIEWABLE line, merge_pr.sh's RED, nudge step 15's return to the fixer.",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "merge_train.py --self-test: _gate_reader_barrier_self_test drives PLANTED_READERS (a direct call, an import alias, a rebinding, getattr, functools.partial, a *self_test* name, no busy, a literal (), an unminted empty Busy) from four modules and fails unless each read raises; and fails on merge_pr.sh reading its raw red without the classify wait",
+    "detector_idea": null,
+    "barrier": "merge_train.classify judges its own callers at run time: busy is required and must be a Busy (an empty one minted only by the BUSY_MINTERS run readers) or FINAL from a FINAL_READERS frame (repo path, co_qualname), else BlindRead -- whatever spelling reached the call; policy_refusal reads same-named gate contexts together. Not covered: a read of a gate conclusion that never calls classify, and an empty Busy minted by gate_busy over fabricated runs",
+    "status": "barriered",
+    "nearest_existing": "N-postreview-merge-red",
+    "mechanism_difference": "The writer's meaning changed (a deferral became a routine red) and the readers did not; the failure is a read-side classification, not a merge of a reviewed head.",
+    "aliases": [
+      "a provisional gate red read as final"
+    ],
+    "non_round_note": "Process defect from triage batch 136 (P436); instances: #3264 review run 42436586762 (red 02:01:18Z, sibling green 02:01:51Z), and the 2026-11-12 03:20-04:45Z heads of #3479, #3454, #3442 and #3465. Not an audit finding, not counted in total.",
+    "non_round_instances": [
+      "#3264 review run 42436586762",
+      "#3479",
+      "#3454",
+      "#3442",
+      "#3465"
+    ],
+    "rca": [
+      "R10-RCA-GATE-DEFER-READ-FINAL"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
+    }
   }
 }
