@@ -1,0 +1,20 @@
+diff --git a/.claude/hooks/pre-bash.sh b/.claude/hooks/pre-bash.sh
+index 0a08d558b1..219eae779e 100755
+--- a/.claude/hooks/pre-bash.sh
++++ b/.claude/hooks/pre-bash.sh
+@@ -318,7 +318,7 @@ EOF'                                               "a heredoc body holding pkill
+   gst refuse "git -C $gtmp/orch checkout main"  "$gtmp/other" "guard: git -C into the checkout is refused"
+   gst refuse "cd $gtmp/orch && git reset --hard" "$gtmp/other" "guard: cd then reset is refused"
+   gst refuse 'git -c x=y merge origin/main'     "$gtmp/orch"  "guard: git -c before the subcommand is read past"
+-  # the fix review's five probes (verdict/3294): bodies the shared parser reads
++  # the fix review's five probes (PR 3294's fix review): bodies the shared parser reads
+   gst refuse "bash -c 'git pull'"               "$gtmp/orch"  "guard: a bash -c body is read"
+   gst refuse 'eval git pull'                    "$gtmp/orch"  "guard: an eval body is read"
+   gst refuse "(cd $gtmp/orch && git pull)"      "$gtmp/other" "guard: a subshell's cd is followed"
+diff --git a/dev/programme/delivery/3585.md b/dev/programme/delivery/3585.md
+new file mode 100644
+index 0000000000..a93a559cf6
+--- /dev/null
++++ b/dev/programme/delivery/3585.md
+@@ -0,0 +1 @@
++- [#3585](https://github.com/tvofi/heatpump_optimizer/pull/3585) — **open**, R10-CLOSEOUT-CLEANUP: pre-bash.sh comment names no doomed ref (R10-CLOSEOUT-CLEANUP)
