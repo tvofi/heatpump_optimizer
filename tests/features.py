@@ -91418,7 +91418,15 @@ R.check(
     and [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": _mr_nan}).map.rows] == ["plan", "probe"]
     and not _mr_dr.DrawRange.from_dict({"map_rows": _mr_short}).map.rows
     and not _mr_dr.DrawRange.from_dict({"map_rows": dict(_mr_doc["map_rows"], duty=None)}).map.rows
-    and not _mr_dr.DrawRange.from_dict({"map_rows": "x"}).map.rows,
+    and not _mr_dr.DrawRange.from_dict({"map_rows": "x"}).map.rows
+    and not _mr_dr.DrawRange.from_dict({"map_rows": dict(_mr_doc["map_rows"], duty=["space"] * 3)}).map.rows,
+)
+_mr_round = _mr_dr.MapRows()
+_mr_round.rows.append((_MR_MIN0, 2, 31.6875) + (None,) * 12 + ("plan", "space"))
+R.check(
+    "a number is stored to three decimals",
+    _mr_round.as_columns()["written_c"] == "31.688",
+    f"{_mr_round.as_columns()['written_c']}",
 )
 R.check(
     "store.DOMAINS declares every column leaf, an empty one included (null: an "
@@ -91557,6 +91565,49 @@ R.check(
     and _MR_MC.judge_floor(2.0, None, _mr_p, None, True) == _MR_OFF
     and _MR_MC.judge_floor(2.0, 2.0, _mr_p, None, False) is None
     and _MR_MC.judge_floor(2.0, None, _mr_p, None) is None,
+)
+_mr_floor = _mr_dr.power_floor_kw(None, _mr_p)
+R.check(
+    "judge_floor: a plan interval drawing under the duty floor still reads "
+    "duty_floor, and one drawing exactly the floor passes",
+    _MR_MC.judge_floor(2.0, 0.5 * _mr_floor, _mr_p, None) == "duty_floor"
+    and _MR_MC.judge_floor(_mr_floor, _mr_floor, _mr_p, None) is None,
+    f"floor {_mr_floor}",
+)
+_mr_live = _cf_coord()
+R.check(
+    "the coordinator hands its own running-draw window to the arbiter on every "
+    "pass (ArbiterInputs.draw)",
+    _mr_live.arbiter_inputs().draw is _mr_live._accuracy.draw,
+)
+# The sysid override names its kind on the action (moved from part B: the
+# arbiter's origin reads it and cannot reach the coordinator's _sysid).
+_mr_si = _SysIdHost(PumpSignals())
+_mr_si._sysid.phase = _SysIdModule.PHASE_STEP
+_sysid_cycle(_mr_si, np.full(48, 0.2))
+R.check(
+    "the experiment's override action carries its kind",
+    _mr_si._current_action.get("mode") == "system_identification"
+    and _mr_si._current_action.get("kind") == _mr_si._sysid.kind == _MR_FIT,
+    f"{_mr_si._current_action}",
+)
+# The hot-water window clock moved to module level unchanged: 13:30 local is
+# 13.5, inside a 13:00-14:00 window, and 30 minutes before a 14:00 one.
+_mr_hw = _cf_coord()
+_mr_clock = _mr_cm.dt_util.now
+_mr_cm.dt_util.now = lambda: datetime(2026, 1, 12, 13, 30, tzinfo=timezone.utc)
+try:
+    _mr_hw._optimization_result = __import__("types").SimpleNamespace(predictive_info={"dhw_windows": "13:00-14:00"})
+    _mr_hw_in = (_mr_cm._dhw_current_hour(), _mr_hw._dhw_in_demand_window())
+    _mr_hw._optimization_result.predictive_info = {"dhw_windows": "14:00-15:00"}
+    _mr_hw_next = (_mr_hw._dhw_in_demand_window(), _mr_hw._dhw_next_window_in_hours())
+finally:
+    _mr_cm.dt_util.now = _mr_clock
+R.check(
+    "the hot-water windows read the local hour: 13:30 is 13.5, inside "
+    "13:00-14:00, outside 14:00-15:00 and 0.5 h before it",
+    _mr_hw_in == (13.5, True) and _mr_hw_next == (False, 0.5),
+    f"{_mr_hw_in} {_mr_hw_next}",
 )
 _MR_SYSID = {"mode": "system_identification", "kind": _MR_PROBE}
 
