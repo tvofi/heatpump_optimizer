@@ -1,0 +1,16 @@
+== ev/run2_head_0.log
+  FAIL the HASTUB_TZ subprocess suite passed  [Traceback (most recent call last):
+  FAIL #2257: the cap tile reads the settled figure, which the house's start moves less than the plan's  [(settled, plan) by (hour, room): {(3, 19.0): (None, No
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+== ev/run2_head_172800.log
+  FAIL the HASTUB_TZ subprocess suite passed  [ck (most recent call last):
+  FAIL #2257: the cap tile reads the settled figure, which the house's start moves less than the plan's  [(settled, plan) by (hour, room): {(3, 19.0): (None, No
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+== ev/run2_head_424800.log
+  FAIL the HASTUB_TZ subprocess suite passed  [ck (most recent call last):
+  FAIL #2257: the cap tile reads the settled figure, which the house's start moves less than the plan's  [(settled, plan) by (hour, room): {(3, 19.0): (None, No
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+== ev/run2_head_86400.log
+  FAIL the HASTUB_TZ subprocess suite passed  [back (most recent call last):
+  FAIL #2257: the cap tile reads the settled figure, which the house's start moves less than the plan's  [(settled, plan) by (hour, room): {(3, 19.0): (None, No
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']

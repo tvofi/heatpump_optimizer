@@ -1,0 +1,40 @@
+== head
+RESULT clock=2026-11-09T12:00 weekday=0 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-10T12:00 weekday=1 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-11T12:00 weekday=2 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-12T12:00 weekday=3 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-13T12:00 weekday=4 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-14T12:00 weekday=5 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-15T12:00 weekday=6 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2031-03-15T23:59:59 weekday=5 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2040-01-01T00:00:01 weekday=6 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2027-02-28T03:00 weekday=6 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2020-02-29T12:00 weekday=5 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2099-12-31T12:00 weekday=3 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+rc=0
+== base
+RESULT clock=2026-11-09T12:00 weekday=0 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-10T12:00 weekday=1 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-11T12:00 weekday=2 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-12T12:00 weekday=3 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-13T12:00 weekday=4 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+RESULT clock=2026-11-14T12:00 weekday=5 tz=UTC rc=1 partial_daytype=[0, 1] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=2
+      FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), dip a
+    1 of 3 REVCLOCK FAILED
+RESULT clock=2026-11-15T12:00 weekday=6 tz=UTC rc=1 partial_daytype=[0, 1] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=2
+      FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), dip a
+    1 of 3 REVCLOCK FAILED
+RESULT clock=2031-03-15T23:59:59 weekday=5 tz=UTC rc=1 partial_daytype=[0, 1] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=2
+      FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), dip a
+    1 of 3 REVCLOCK FAILED
+RESULT clock=2040-01-01T00:00:01 weekday=6 tz=UTC rc=1 partial_daytype=[0, 1] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=2
+      FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), dip a
+    1 of 3 REVCLOCK FAILED
+RESULT clock=2027-02-28T03:00 weekday=6 tz=UTC rc=1 partial_daytype=[0, 1] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=2
+      FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), dip a
+    1 of 3 REVCLOCK FAILED
+RESULT clock=2020-02-29T12:00 weekday=5 tz=UTC rc=1 partial_daytype=[0, 1] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=2
+      FAIL a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked  [(open kWh, usage points) dip (0.0, 0, [], [0, 0], True), dip a
+    1 of 3 REVCLOCK FAILED
+RESULT clock=2099-12-31T12:00 weekday=3 tz=UTC rc=0 partial_daytype=[1, 0] sat_daytype=[0, 1] dip_open=0.0 draw_open=0.6825 fails=0
+rc=1

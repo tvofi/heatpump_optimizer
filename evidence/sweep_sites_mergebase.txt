@@ -1,0 +1,122 @@
+2645:        _r9f10b_frozen_utc = _r9f10b_dt.utcnow()
+5140:    _block_clock = datetime.now(UTC)
+5964:                [(start + __import__("datetime").timedelta(hours=(i - 1) * 0.25)).weekday()
+6091:# datetime.weekday() numbers: 0=Mo .. 6=Su.
+6130:    return _wfd(_pd_weekly, day.weekday(), _pd_fallback,
+6293:                [(start + __import__("datetime").timedelta(hours=(i - 1) * 0.25)).weekday()
+15393:    coord._snapshot_ring.take(datetime.now(timezone.utc), coord._learner_snapshot_payloads(),
+15589:        _src_mock.patch.object(_src_dt, "utcnow", lambda *a, **k: _src_clock[0]), \
+18058:    off = (ct.weekdays_only and start.weekday() >= 5) or (
+18492:    # sample with ``dt_util.now()``, so the tariff's hour and day masks read
+19395:_now_t2 = dt_util.now()
+19456:    not _cb._outage_recovery_active(dt_util.now()),
+19459:_payload["last_tick"] = (dt_util.now() - timedelta(hours=3)).isoformat()
+19465:    _cc._outage_recovery_active(dt_util.now()),
+20160:        coord._ledger.observe_meta_mean(_r6_cm.dt_util.now(), _r6_spot, level)
+20346:            dt_util.now() + timedelta(minutes=15 * i) for i in range(n)
+20371:    coord._last_optimization = dt_util.now() - timedelta(
+20560:_c47._legionella.last_cycle = dt_util.now() - timedelta(days=5)
+20564:    _c47._dhw_plan_fields(dt_util.now())["dhw_legionella_price_ceiling"] is None,
+20569:_ceiling = _c47._dhw_plan_fields(dt_util.now())["dhw_legionella_price_ceiling"]
+23391:    "when": dt_util.now() - timedelta(minutes=30),
+23706:_rm_fresh = dict(_rm_coord._model_corrections(dt_util.now()),
+24045:    # Coordinator humidity uses age_of(..., dt_util.utcnow()), not the
+27131:    now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+29849:    "when": dt_util.now() - timedelta(minutes=30),
+31107:    _t0 = dt_util.now().replace(minute=0, second=0, microsecond=0) - timedelta(
+31395:    now = dt_util.now()
+31612:    dt_util.freeze(dt_util.now())
+31697:    real_now, real_utcnow = _lf_dt.now, _lf_dt.utcnow
+31702:            _lf_dt.utcnow = lambda t=t: t
+31715:        _lf_dt.now, _lf_dt.utcnow = real_now, real_utcnow
+31853:    real = (_ir_dt.now, _ir_dt.utcnow)
+31856:        _ir_dt.now = _ir_dt.utcnow = lambda: _LF_T0
+31860:            _ir_dt.now, _ir_dt.utcnow = real
+32953:_df_now = dt_util.now()
+33521:    _eh_ev._immersion_dhw_margin(dt_util.now()) == 0.0,
+35421:    Stamped from ``dt_util.now`` because that is the clock
+35515:    real_now, real_utcnow = _psd_dt.now, _psd_dt.utcnow
+35520:            _psd_dt.utcnow = lambda t=t: t
+35547:        _psd_dt.now, _psd_dt.utcnow = real_now, real_utcnow
+35708:_psd_real = _psd_dt2.now, _psd_dt2.utcnow
+35712:    _psd_dt2.utcnow = lambda: _psd_t
+35715:    _psd_dt2.now, _psd_dt2.utcnow = _psd_real
+37636:    c._legionella.last_cycle = dt_util.now() - timedelta(days=days_since)
+37741:_lg_skew._legionella.last_cycle = dt_util.now() + timedelta(hours=2)
+37743:_lg_skew._legionella.last_cycle = dt_util.now() - timedelta(hours=2)
+38516:    real_now, real_utcnow = _db_dt.now, _db_dt.utcnow
+38521:            _db_dt.utcnow = lambda t=t: t
+38540:        _db_dt.now, _db_dt.utcnow = real_now, real_utcnow
+39534:_lgx_8d._legionella.last_cycle = dt_util.now() - timedelta(days=8, hours=1)
+39574:    _lgx_memo._legionella.last_cycle = dt_util.now()
+39599:_lgx_t0 = dt_util.now().replace(microsecond=0)
+43318:    _gbo_action, _ghc_boost.BoostState(until={_ghc_boost.CHANNEL_SPACE: _ghc_dt.utcnow()}),
+43735:    """heat_curve's dt_util with utcnow fixed, so a wall-clock bound is hit exactly."""
+43740:    def utcnow(self):
+43748:_ghcp_t0 = _ghc_dt.utcnow().replace(microsecond=0)
+43833:    _ghc.writes_today({"day": _ghc_dt.as_local(_ghc_dt.utcnow()).date().isoformat()}, _ghc_dt.utcnow()) == 0,
+43842:_ghcp_state(_gwr)["written_at"] = _ghc_dt.utcnow().isoformat()
+48416:_g9_now = dt_util.now().replace(minute=0, second=0, microsecond=0)
+49328:    _t1_away_on.async_set_away(True, dt_util.now() + timedelta(hours=6))
+49343:_t1_away_target = (dt_util.now() + timedelta(hours=3)).replace(microsecond=0)
+49359:_asyncio.run(_t1_away_off.async_set_away(True, dt_util.now() + timedelta(hours=6)))
+49371:    _t1_away_past.async_set_away(True, dt_util.now() - timedelta(minutes=1))
+49381:_asyncio.run(_t1_away_keep.async_set_away(True, dt_util.now() + timedelta(hours=4)))
+49522:_RC2_RETURN = (_rc2_dt_util.now() + _rc2_td(days=2)).replace(microsecond=0)
+49632:            what.removeprefix("block-"), value, _rc2_dt_util.now(), block=True,
+49636:        boost_mod.held_for(coord).set(what, value, _rc2_dt_util.now())
+49713:            [], None, _rc2_dt_util.now() + _rc2_td(days=2)),)),
+51090:    c._last_house_sample_time = dt_util.now() - timedelta(hours=hours)
+51168:# `dt_util.now()` at construction, and `_async_learn_house_heat_loss` reads
+51169:# `dt_util.now()` again, live, when driven. Unfrozen, the two replays pick up
+51181:_t2_mass_now = dt_util.now()
+51525:    _t2_lf_ten._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+51762:_t3_view_now = dt_util.utcnow()
+52110:        # (``dt_util.now()``: the same instant in the configured zone). The
+52113:        read_at = dt_util.now()
+55928:    coord._ledger.add(dt_util.now(), "spot", kwh=kwh, sek=sek)
+57067:_g8_b_pub.until[_g8_boost.CHANNEL_SPACE] = dt_util.now() + timedelta(hours=1)
+57068:_g8_b_pub.until[_g8_boost.CHANNEL_DHW] = dt_util.now() - timedelta(hours=1)
+57133:        dt_util.now() + timedelta(hours=1))
+57145:        "dhw": {"until": (dt_util.now() + timedelta(hours=1)).isoformat()},
+57146:        "space": {"until": (dt_util.now() - timedelta(hours=1)).isoformat()},
+60640:_g5_c._legionella.boost_started = dt_util.now() - timedelta(hours=_G5_MAX_H + 0.1)
+61066:_g5_c._legionella.boost_started = dt_util.now() - timedelta(hours=_G5_MAX_H + 0.1)
+61659:        {"sensor.inlet": FakeState(str(value), unit=unit, last_updated=datetime.now(UTC))}
+61716:    {"sensor.inlet": FakeState("10", unit="°C", last_updated=datetime.now(UTC) - timedelta(days=2))}
+62334:    start = dt_util.now().replace(hour=start_hm[0], minute=start_hm[1], second=0)
+62336:        start += timedelta(days=(5 - start.weekday()) % 7)
+62461:    now = dt_util.now()
+62527:    now = dt_util.now().replace(hour=8, minute=0, second=0, microsecond=0)
+64325:_pa_wire_t0 = dt_util.now().replace(second=0, microsecond=0) - timedelta(minutes=1)
+64914:_F14B_NOW = _rc2_dt_util.now()
+71457:_r9egb1_h3_blend = _r9egb1_h3_l.pattern_for(dt_util.now().weekday() >= 5)
+71600:    _r9egb1_at_solve = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
+71614:        now = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
+71655:_r9egb1_v_now = dt_util.now()
+71680:_r9egb1_o._outage_dhw_until = dt_util.now() + timedelta(hours=2)
+71689:        return _r9egb1_o._outage_dhw_hold(dt_util.now(), *floor)
+71769:    _r9egb1_sat.weekday() == 5 and _r9egb1_wk_we != _r9egb1_wk_wd
+71782:_r9egb1_qt_got = _r9egb1_qt._dhw_plan_fields(dt_util.now())[
+71819:    _r9egb1_mon.weekday() == 0
+72099:    _r9egb1_cmod.dt_util.now() + timedelta(hours=6)).isoformat()
+72126:_lc_exp_now = _r9egb1_cmod.dt_util.now()
+73952:    now = dt_util.now()
+78987:    now = datetime.now(timezone.utc)
+79418:    now = dt_util.now()
+79460:            return boost_mod.held_for(coord).active(boost_mod.CHANNEL_SPACE, dt_util.now())
+79549:    published["last_optimization"] = dt_util.now() - timedelta(minutes=14)
+79552:            dt_util.now() + timedelta(hours=24)).isoformat(), refresh=False)
+79564:        dt_util.now() + timedelta(hours=return_in_h)).isoformat())
+79627:    now = dt_util.now()
+80164:        learner.last_sample_time = dt_util.now() - timedelta(minutes=30)
+80190:    d._pending_prediction = {"when": dt_util.now() - timedelta(minutes=30), "power": 2.0,
+80217:    _cv_cm._fold_flow_lift(f, dt_util.now())
+81543:_bt_now = dt_util.now()
+81697:    _bt_ac_now = dt_util.now()
+85620:_cpd_now_s = _cp_cmod.dt_util.now().timestamp()
+85666:        c._accuracy.draw = _cp_store([0.5 * hub_max] * n_samples, _cp_cmod.dt_util.now().timestamp() - 60.0)
+86166:    published["last_optimization"] = dt_util.now() - timedelta(minutes=10)
+86167:    published["next_optimization"] = dt_util.now() + timedelta(minutes=20)
+86169:    t0 = dt_util.now()
+86182:    _ap_first is _ap_published and _ap_first["next_optimization"] <= dt_util.now()
