@@ -1,0 +1,28 @@
+ 1:  5ab81ecabe =  1:  5ab81ecabe selftest scope: record unions over the committed entry; static refuses a table that shrinks
+ 2:  9a40153b7f =  2:  9a40153b7f selftest scope: re-record selftest-scope steps by union
+ 3:  82f3cf9759 =  3:  82f3cf9759 audit: register R10-SELFTEST-TABLE-SHRINK in the finding schema and intake class check
+ 4:  ff48af280e =  4:  ff48af280e BLOCKED: carry lands on the roster
+ 5:  552638f8dc =  5:  552638f8dc record: the delivery row for #3551
+ 6:  6a1966196c =  6:  6a1966196c selftest scope: pin the prune CLI and the probe-by-directory rule; an unresolvable named base is a problem
+ 7:  f6813b7380 =  7:  f6813b7380 selftest_scope: run the self-test under a controlled environment
+ 8:  5b2292717c =  8:  5b2292717c selftest_scope: kill the wrapper-return, D/** slice and undiffable-base survivors
+ 9:  1ef15a0564 =  9:  1ef15a0564 selftest_scope: pin shrink_drops over a missing table
+10:  ac5ca58c09 = 10:  ac5ca58c09 selftest_scope: pin the prune CLI over an unreadable table
+
+ RELEASE_NOTES.md                                   |  24 +++++
+ VERSION                                            |   2 +-
+ custom_components/heatpump_optimizer/manifest.json |   2 +-
+ .../www/heatpump-optimizer-card.js                 |   2 +-
+ dev/audit/rounds/round4/D6/claims.json             |   2 +-
+ dev/audit/rounds/round4/D6/claims.md               |   2 +-
+ dev/programme/delivery/3572.md                     |   1 +
+ dev/programme/delivery/3578.md                     |   1 +
+ dev/programme/delivery/3579.md                     |   1 +
+ tests/entities.py                                  |  75 +++++++++++++-
+ tests/features.py                                  |   4 +-
+ tests/golden/card_claimed_drift.txt                |   4 +-
+ tests/golden/claimed_drift.txt                     |   5 +-
+ tools/policy/check-wave-script.mjs                 | 115 +++++++++++++++++++--
+ 14 files changed, 215 insertions(+), 25 deletions(-)
+remerge tree 5d6bcbe630a20a4d4ee3bafa1e8f9a68ea29b957
+head tree    5d6bcbe630a20a4d4ee3bafa1e8f9a68ea29b957
