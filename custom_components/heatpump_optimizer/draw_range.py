@@ -226,7 +226,7 @@ class MapRows:
     rows: Deque[tuple[Any, ...]] = field(default_factory=lambda: deque(maxlen=MAP_ROWS))
     open: list[PassRecord] = field(default_factory=list)
     closed: Deque[tuple[Any, ...]] = field(default_factory=lambda: deque(maxlen=MAP_ROWS))
-    #: A sweep pass arrived since the last fold: that interval is a sweep's.
+    #: A sweep pass arrived since the last commit (``commit_runs`` reads and clears it).
     sweep_seen: bool = False
     #: The last sweep's record (``SweepRun``); persisted beside the rows.
     sweep: "SweepRun | None" = None
@@ -239,10 +239,12 @@ class MapRows:
 
     def take_pass(self, rec: PassRecord | None) -> None:
         """Fold one pass (``None``: no Control pass on a set-point) into the open run."""
-        if rec is not None:
-            self.sweep = _sweep_pass(self.sweep, rec)
-            self.sweep_seen = self.sweep_seen or rec.origin == ORIGIN_SWEEP
-        stopped = rec is None or rec.defrost or rec.drawn_kw is None or rec.drawn_kw <= RUNNING_FLOOR_KW
+        if rec is None:
+            self._close()
+            return
+        self.sweep = _sweep_pass(self.sweep, rec)
+        self.sweep_seen = self.sweep_seen or rec.origin == ORIGIN_SWEEP
+        stopped = rec.defrost or rec.drawn_kw is None or rec.drawn_kw <= RUNNING_FLOOR_KW
         first = self.open[0] if self.open else None
         if stopped or first is None or first.run_key() != rec.run_key() or (
                 (rec.at - first.at).total_seconds() >= SEGMENT_MAX_MIN * 60.0):
@@ -253,12 +255,16 @@ class MapRows:
             return  # one pass a minute: a listener's extra pass weighs nothing
         self.open.append(rec)
 
-    def commit_runs(self, keep: bool) -> None:
+    def commit_runs(self, keep: bool) -> bool:
         """The next fold's commit: the closed space-only runs become rows,
-        unless ``keep`` is False (the interval was frozen or distorted)."""
+        unless ``keep`` is False (the interval was frozen or distorted).
+        Returns whether a sweep pass arrived since the last commit: the
+        interval now folding is then a sweep's."""
         if keep:
             self.rows.extend(r for r in self.closed if r[-1] == "space")
         self.closed.clear()
+        sweep, self.sweep_seen = self.sweep_seen, False
+        return sweep
 
     def as_columns(self) -> dict[str, str]:
         return {name: ",".join(_cell(r[i]) for r in self.rows) for i, name in enumerate(MAP_COLUMNS)}
@@ -283,45 +289,57 @@ class SweepRun:
     #: (the next pass closes its minute); never persisted.
     open_kw: float | None = None
 
+    def take_pass(self, rec: PassRecord) -> None:
+        """Fold one pass, the sweep's or the one that ends it.
+
+        The energy is each sweep pass's meter reading held until the next
+        pass, whatever the duty, so a hot-water stand-down's draw is in it:
+        it is what the sweep cost, not what its levels drew.
+        """
+        at = rec.at.timestamp()
+        if self.open_kw is not None and at - self.last_s <= SWEEP_GAP_MIN * 60.0:
+            # A pass stamped behind the last one held its reading for no time.
+            self.kwh += self.open_kw * max(at - self.last_s, 0.0) / 3600.0
+        if rec.origin != ORIGIN_SWEEP:
+            self.open_kw = None
+            return
+        self.last_s, self.open_kw = max(at, self.last_s), rec.drawn_kw
+        level = _level_of(rec)
+        if level is not None and all(seen[0] != level[0] for seen in self.levels):
+            self.levels.append(level)
+
     def as_dict(self) -> dict[str, Any]:
         return {"start_s": self.start_s, "last_s": self.last_s, "kwh": round(self.kwh, 4),
                 "levels": [list(level) for level in self.levels]}
 
 
-def _sweep_pass(run: SweepRun | None, rec: PassRecord) -> SweepRun | None:
-    """``run`` after one pass: a sweep pass joins it, or opens a new run
-    after ``SWEEP_GAP_MIN``; any other pass ends the running one.
+def _level_of(rec: PassRecord) -> tuple[float, float, float, float] | None:
+    """A sweep pass's ``(level_kw, band_low_kw, band_high_kw, written_c)``,
+    or ``None`` where it held no level: another duty, or the map unread."""
+    if rec.duty != "space" or rec.level_kw is None or rec.band_low_kw is None or rec.band_high_kw is None:
+        return None
+    return rec.level_kw, rec.band_low_kw, rec.band_high_kw, rec.written_c
 
-    The energy is each sweep pass's meter reading held until the next pass,
-    whatever the duty, so a hot-water stand-down's draw is in it: it is what
-    the sweep cost, not what its levels drew.
-    """
-    at = rec.at.timestamp()
-    if run is not None and run.open_kw is not None and at - run.last_s <= SWEEP_GAP_MIN * 60.0:
-        # A pass stamped behind the last one held its reading for no time.
-        run.kwh += run.open_kw * max(at - run.last_s, 0.0) / 3600.0
-    if rec.origin != ORIGIN_SWEEP:
-        if run is not None:
-            run.open_kw = None
-        return run
-    if run is None or at - run.last_s > SWEEP_GAP_MIN * 60.0:
-        run = SweepRun(at, at)
-    run.last_s, run.open_kw = max(at, run.last_s), rec.drawn_kw
-    level = (rec.level_kw, rec.band_low_kw, rec.band_high_kw, rec.written_c)
-    if rec.duty == "space" and None not in level and not any(seen[0] == level[0] for seen in run.levels):
-        run.levels.append(level)  # type: ignore[arg-type]
+
+def _sweep_pass(run: SweepRun | None, rec: PassRecord) -> SweepRun | None:
+    """The sweep on record after one pass: a sweep pass joins ``run``, or
+    opens a new one after ``SWEEP_GAP_MIN``; any other pass ends the running one."""
+    if rec.origin == ORIGIN_SWEEP and (run is None or rec.at.timestamp() - run.last_s > SWEEP_GAP_MIN * 60.0):
+        run = SweepRun(rec.at.timestamp(), rec.at.timestamp())
+    if run is not None:
+        run.take_pass(rec)
     return run
 
 
 def _stored_sweep(raw: Any) -> SweepRun | None:
     """A stored record's last sweep, or ``None`` where it does not read whole."""
     try:
-        levels = [tuple(float(v) for v in level) for level in raw["levels"]]
-        run = SweepRun(float(raw["start_s"]), float(raw["last_s"]), float(raw["kwh"]), levels)  # type: ignore[arg-type]
+        levels = [(float(kw), float(low), float(high), float(c)) for kw, low, high, c in raw["levels"]]
+        run = SweepRun(float(raw["start_s"]), float(raw["last_s"]), float(raw["kwh"]), levels)
     except (TypeError, ValueError, OverflowError, KeyError):
-        return None
+        return None  # a level of any other length does not unpack
     numbers = [run.start_s, run.last_s, run.kwh, *(v for level in levels for v in level)]
-    return run if all(len(level) == 4 for level in levels) and bool(np.isfinite(numbers).all()) else None
+    return run if bool(np.isfinite(numbers).all()) else None
 
 
 def _sweep_row_at(row: tuple[Any, ...], level_kw: float) -> bool:
@@ -375,9 +393,9 @@ def _stored_map(data: Any) -> MapRows:
     out.sweep = _stored_sweep(data.get("sweep")) if isinstance(data, dict) else None
     raw = data.get("map_rows") if isinstance(data, dict) else None
     cols = [raw.get(name) if isinstance(raw, dict) else None for name in MAP_COLUMNS]
-    if not all(isinstance(c, str) for c in cols):
+    split = [c.split(",") for c in cols if isinstance(c, str)]
+    if len(split) != len(MAP_COLUMNS):
         return out
-    split = [c.split(",") for c in cols]
     if len({len(c) for c in split}) != 1:
         return out
     for cells in zip(*split):
@@ -895,12 +913,12 @@ def is_running_space(
     )
 
 
-def is_idle_reading(drawn_kw: float | None, dhw_kw: float, command: Any, *, blocked: bool) -> bool:
-    """One interval is an idle reading: the meter read while the held
-    set-point was the gate and no hot water was asked, with nothing
-    ``blocked`` on the meter (a freeze, a distortion or a defrost)."""
+def is_idle_reading(dhw_kw: float, command: Any, *, blocked: bool) -> bool:
+    """One interval's meter reading is an idle reading: the held set-point
+    was the gate and no hot water was asked, with nothing ``blocked`` on the
+    meter (a freeze, a distortion or a defrost)."""
     return (
-        drawn_kw is not None and not blocked and command is not None
+        not blocked and command is not None
         and command.written_c <= command.gate_c + GATE_TOLERANCE_K
         and not planned_draw_runs(dhw_kw, modulation_floor=0.0)
     )
@@ -940,20 +958,19 @@ def fold(
     they never reach the window.
 
     A sweep's interval -- one any of whose passes the sweep commanded
-    (``MapRows.sweep_seen``) -- is the one place decided here to feed the map
+    (``MapRows.commit_runs`` says so) -- is the one place decided here to feed the map
     rows, and the ceiling store where it ``takes_ceiling`` (its band-top
     level, the probe's command exactly), and nothing else: never the window,
     whose latch and draw-floor judgement read the plan's asks, and never an
     idle reading.
     """
     space, dhw = split
-    draw.map.commit_runs(keep=not (frozen or distorted))
-    sweep, draw.map.sweep_seen = draw.map.sweep_seen, False
-    if not sweep and is_idle_reading(drawn_kw, dhw, command, blocked=frozen or distorted or defrost):
+    sweep = draw.map.commit_runs(keep=not (frozen or distorted))
+    if drawn_kw is None:
+        return
+    if not sweep and is_idle_reading(dhw, command, blocked=frozen or distorted or defrost):
         draw.observe_idle(drawn_kw)
-    if drawn_kw is None or not is_running_space(
-        drawn_kw, space, dhw, frozen=frozen, distorted=distorted, defrost=defrost
-    ):
+    if not is_running_space(drawn_kw, space, dhw, frozen=frozen, distorted=distorted, defrost=defrost):
         return
     if experiment_s is not None and draw.takes_ceiling(drawn_kw, command):
         draw.observe_ceiling(drawn_kw, experiment_s, SOURCE_SWEEP if sweep else SOURCE_PROBE)

@@ -1230,7 +1230,7 @@ none delivered, and the most levels that keep both inside the comfort bound
 are used, at least two, taking first the levels with the fewest readings so
 far. A flat price is allowed. Before each further level the hour and the price
 are checked again, and the sweep ends early, keeping what it measured, if the
-night window has closed or the price is no longer among the cheapest 30 %.
+night window has closed or the price has risen out of the cheapest 30 %.
 Hot water pauses during the levels, up to two and a half hours, except that a
 tank below the pump's own hot-water start temperature is served first. The
 most a sweep can use is the number of levels times half an hour times **Heat

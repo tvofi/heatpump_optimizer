@@ -11092,7 +11092,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
             getattr(ctx, "_config", None),
             dt_util.now(),
-        )
+        ) or sysid.sweep_hold_reason(self._sysid, lambda: pump_arbiter.sweep_band_k(self.arbiter_inputs()))
         if why is not None:
             self._sysid.stand_down(why)
             return
@@ -11110,7 +11110,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             plan_power_kw=float(self._current_action.get("power", 0.0)),
             # The slab pair must be the configured house's own (#943).
             house=HousePlant.of_params(params),
-            sweep_band_k=pump_arbiter.sweep_band_k(self) if self._sysid.kind == sysid.KIND_SWEEP else None,
         )
         if override is None:
             return

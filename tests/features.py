@@ -91975,23 +91975,51 @@ R.check(
     and _sw_sid.cheap_night_cycles(_sw_cfg(start_hour=0, end_hour=24), _SW_T0, _SW_FLAT) == 48,
     f"{_sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, _SW_SPIKE)}",
 )
-_sw_gate = lambda at, horizon, band: _sw_sid._sweep_start_refusal(_sw_cfg(), at, horizon, band)  # noqa: E731
+_sw_gate = lambda at, horizon: _sw_sid._sweep_start_refusal(_sw_cfg(), at, horizon)  # noqa: E731
 R.check(
-    "the sweep's start gate: a band of 8 K starts and one under it reads 'the water "
-    "is too warm for a sweep'; with no band read it says so; two levels must fit the "
-    "cheap night hours left once the settle and the cycle after it are over (02:30 "
-    "starts, 03:00 does not); a dear quarter in the second level's half hour defers, "
-    "one during the settle does not",
-    _sw_gate(_SW_T0, _SW_FLAT, 8.0) is None and _sw_gate(_SW_T0, _SW_FLAT, 7.9) == _sw_sid.SWEEP_WARM_REASON
+    "the sweep's start gate: two levels must fit the cheap night hours left once the "
+    "settle and the cycle after it are over (02:30 starts, 03:00 does not); a dear "
+    "quarter in the second level's half hour defers, one during the settle or in the "
+    "third level's does not",
+    _sw_gate(_SW_T0, _SW_FLAT) is None
+    and _sw_gate(_SW_T0.replace(hour=2, minute=30), _SW_FLAT) is None
+    and _sw_gate(_SW_T0.replace(hour=3), _SW_FLAT) == "too few cheap night hours are left for a sweep"
+    and _sw_gate(_SW_T0, np.where(np.arange(96) == 8, 2.0, 0.5))
+    == "too few cheap night hours are left for a sweep"
+    and _sw_gate(_SW_T0, _SW_SPIKE) is None
+    and _sw_gate(_SW_T0, np.where(np.arange(96) == 10, 2.0, 0.5)) is None,
+)
+
+
+def _sw_at(kind, phase, band, calls=None):
+    s = _sw_sid.SystemIdentification(_sw_cfg())
+    s.kind, s.phase = kind, phase
+
+    def read():
+        if calls is not None:
+            calls.append(kind)
+        return band
+
+    return _sw_sid.sweep_hold_reason(s, read)
+
+
+_sw_band_reads = []
+R.check(
+    "the sweep's hold on the water: armed or settling, a band of 8 K passes and one "
+    "under it reads 'the water is too warm for a sweep'; with no band read it says "
+    "so; once the levels run, and for any other kind, nothing is held and the band is "
+    "not even read",
+    _sw_at("power_sweep", _sw_sid.PHASE_ARMED, 8.0) is None
+    and _sw_at("power_sweep", _sw_sid.PHASE_ARMED, 7.9) == _sw_sid.SWEEP_WARM_REASON
     == "the water is too warm for a sweep"
-    and _sw_gate(_SW_T0, _SW_FLAT, None) == "no flow set-point band is read"
-    and _sw_gate(_SW_T0.replace(hour=2, minute=30), _SW_FLAT, 20.0) is None
-    and _sw_gate(_SW_T0.replace(hour=3), _SW_FLAT, 20.0)
-    == "too few cheap night hours are left for a sweep"
-    and _sw_gate(_SW_T0, np.where(np.arange(96) == 8, 2.0, 0.5), 20.0)
-    == "too few cheap night hours are left for a sweep"
-    and _sw_gate(_SW_T0, _SW_SPIKE, 20.0) is None
-    and _sw_gate(_SW_T0, np.where(np.arange(96) == 10, 2.0, 0.5), 20.0) is None,
+    and _sw_at("power_sweep", _sw_sid.PHASE_SETTLING, 7.9) == _sw_sid.SWEEP_WARM_REASON
+    and _sw_at("power_sweep", _sw_sid.PHASE_SETTLING, 8.0) is None
+    and _sw_at("power_sweep", _sw_sid.PHASE_ARMED, None) == "no flow set-point band is read"
+    and all(_sw_at("power_sweep", phase, 1.0, _sw_band_reads) is None for phase in (
+        _sw_sid.PHASE_STEP, _sw_sid.PHASE_DONE, _sw_sid.PHASE_ABORTED, _sw_sid.PHASE_IDLE))
+    and all(_sw_at(kind, _sw_sid.PHASE_ARMED, 1.0, _sw_band_reads) is None for kind in ("fit", "ceiling_probe"))
+    and _sw_band_reads == [],
+    f"{_sw_band_reads}",
 )
 
 
@@ -92002,8 +92030,15 @@ def _sw_run(prices=_SW_FLAT, price=0.5, band=20.0, cycles=10, at=_SW_T0, house=_
     s = _sw_sid.SystemIdentification(_sw_cfg(**cfg))
     s.arm(at, learner_samples=482, probe=_mr_dr.DrawRange(), sweep=levels if sweep else None)
     call = lambda v, k: v(k) if callable(v) else v  # noqa: E731
-    out = [s.step(at + timedelta(minutes=30 * k), 21.0, 2.0, call(price, k), call(prices, k), 482, 4.0,
-                  cop=3.0, plan_power_kw=2.0, house=house, sweep_band_k=call(band, k)) for k in range(cycles)]
+    out = []
+    for k in range(cycles):
+        # The coordinator's order: the hold first, then the step.
+        why = _sw_sid.sweep_hold_reason(s, lambda: call(band, k))
+        if why is not None:
+            s.stand_down(why)
+        out.append(None if why is not None else s.step(
+            at + timedelta(minutes=30 * k), 21.0, 2.0, call(price, k), call(prices, k), 482, 4.0,
+            cop=3.0, plan_power_kw=2.0, house=house))
     return s, out
 
 
@@ -92038,12 +92073,33 @@ R.check(
     and _sw_cooled.phase == _sw_sid.PHASE_SETTLING and _sw_cooled.held is None,
     f"{_sw_warm.phase} {_sw_warm.held!r} / {_sw_cooled.phase} {_sw_cooled.held!r}",
 )
-_sw_r15, _sw_r15_out = _sw_run(band=lambda k: 20.0 if k < 2 else 7.0)
+_sw_stale = _sw_sid.SystemIdentification(_sw_cfg())
+_sw_stale.arm(_SW_T0, learner_samples=482, probe=_mr_dr.DrawRange(), sweep=_SW_LEVELS)
+_sw_stale.stand_down("an open window")
+_sw_stale.step(_SW_T0.replace(hour=12), 21.0, 2.0, 0.5, _SW_FLAT, 482, 4.0, house=_SW_HEAVY)
+_sw_stale_noon = (_sw_stale.phase, _sw_stale.held)
+_sw_stale.step(_SW_T0.replace(hour=3), 21.0, 2.0, 0.5, _SW_FLAT, 482, 4.0, house=_SW_HEAVY)
+_sw_stale_probe = _sw_sid.SystemIdentification(_sw_cfg())
+_sw_stale_probe.arm(_SW_T0, learner_samples=482, probe=_mr_dr.DrawRange())
+_sw_stale_probe.stand_down("an open window")
+_sw_stale_probe.step(_SW_T0.replace(hour=12), 21.0, 2.0, 0.5, _SW_FLAT, 482, 4.0, house=_SW_HEAVY)
 R.check(
-    "r15: the band is read again after the settle, when the levels are mapped; "
-    "collapsed there, the sweep ends with the reason and commands nothing",
+    "an armed sweep's hold is the cycle's own: a cycle nothing stood down clears an "
+    "earlier hold while the hour is wrong, and at 03:00 names the short night; a "
+    "probe's hold is untouched by this (as before)",
+    _sw_stale_noon == (_sw_sid.PHASE_ARMED, None)
+    and (_sw_stale.phase, _sw_stale.held) == (_sw_sid.PHASE_ARMED, "too few cheap night hours are left for a sweep")
+    and _sw_stale_probe.held == "an open window",
+    f"{_sw_stale_noon} {_sw_stale.held!r} {_sw_stale_probe.held!r}",
+)
+_sw_r15, _sw_r15_out = _sw_run(band=lambda k: 20.0 if k < 2 else 7.0)
+_sw_running, _sw_running_out = _sw_run(band=lambda k: 20.0 if k < 3 else 2.0)
+R.check(
+    "r15: the band is read through the settle, to the cycle that maps the levels; "
+    "collapsed there, the sweep ends with the reason and commands nothing; collapsed "
+    "only once the levels run (the water has warmed under a held floor), it runs on",
     _sw_r15.phase == _sw_sid.PHASE_ABORTED and _sw_r15.result.reason == "the water is too warm for a sweep"
-    and _sw_r15_out == [None] * 10,
+    and _sw_r15_out == [None] * 10 and _sw_running_out == _sw_full_out,
     f"{_sw_r15.phase} {_sw_r15.result.reason!r}",
 )
 _sw_late, _sw_late_out = _sw_run(at=_SW_T0.replace(hour=2) + timedelta(days=1), cycles=8)
@@ -92280,10 +92336,10 @@ R.check(
     "the band a sweep is gated on is the heating ceiling less the floor a level maps "
     "on now (55 - (30 + lift)); a warmer inlet narrows it; an install driving no flow "
     "set-point reads none",
-    _mr_pa.sweep_band_k(_sw_band_c) == 55.0 - (30.0 + _SW_LIFT)
-    and _mr_pa.sweep_band_k(_SwCoord(45.0)) == 55.0 - (45.0 + _SW_LIFT)
-    and _mr_pa.sweep_band_k(_sw_indoor) is None,
-    f"{_mr_pa.sweep_band_k(_sw_band_c)}",
+    _mr_pa.sweep_band_k(_sw_band_c.arbiter_inputs()) == 55.0 - (30.0 + _SW_LIFT)
+    and _mr_pa.sweep_band_k(_SwCoord(45.0).arbiter_inputs()) == 55.0 - (45.0 + _SW_LIFT)
+    and _mr_pa.sweep_band_k(_sw_indoor.arbiter_inputs()) is None,
+    f"{_mr_pa.sweep_band_k(_sw_band_c.arbiter_inputs())}",
 )
 
 
@@ -92371,15 +92427,16 @@ R.check(
     and _sw_fold(_sw_dhw_pass, 2.0, _SW_MID, sweep_pass=False) == (0, 0, []),
 )
 R.check(
-    "the idle rule by name: the gate held, no hot water asked, a reading, nothing "
-    "blocked on the meter; one set-point step above the gate tolerance is not idle",
-    _mr_dr.is_idle_reading(0.3, 0.0, _SW_GATE, blocked=False) is True
-    and _mr_dr.is_idle_reading(0.3, 0.0, _mr_pa.FlowCommand(25.25, 25.0, 55.0), blocked=False) is True
-    and _mr_dr.is_idle_reading(0.3, 0.0, _mr_pa.FlowCommand(25.3, 25.0, 55.0), blocked=False) is False
-    and _mr_dr.is_idle_reading(0.3, 1.0, _SW_GATE, blocked=False) is False
-    and _mr_dr.is_idle_reading(0.3, 0.0, _SW_GATE, blocked=True) is False
-    and _mr_dr.is_idle_reading(None, 0.0, _SW_GATE, blocked=False) is False
-    and _mr_dr.is_idle_reading(0.3, 0.0, None, blocked=False) is False,
+    "the idle rule by name: the gate held, no hot water asked, nothing blocked on the "
+    "meter; one set-point step above the gate tolerance is not idle; and an interval "
+    "with no reading is none",
+    _mr_dr.is_idle_reading(0.0, _SW_GATE, blocked=False) is True
+    and _mr_dr.is_idle_reading(0.0, _mr_pa.FlowCommand(25.25, 25.0, 55.0), blocked=False) is True
+    and _mr_dr.is_idle_reading(0.0, _mr_pa.FlowCommand(25.3, 25.0, 55.0), blocked=False) is False
+    and _mr_dr.is_idle_reading(1.0, _SW_GATE, blocked=False) is False
+    and _mr_dr.is_idle_reading(0.0, _SW_GATE, blocked=True) is False
+    and _mr_dr.is_idle_reading(0.0, None, blocked=False) is False
+    and _sw_fold(_mr_dr.DrawRange(), None, _SW_GATE, split=(0.0, 0.0), sweep_pass=False) == (0, 0, []),
 )
 
 
@@ -92484,8 +92541,10 @@ def _sw_night(sweep=True, levels=None, tank=None):
                         frozen=False, distorted=False, defrost=False, command=pending["cmd"],
                         experiment_s=pending["when"] if pending["sid"] else None)
             taken += [round(pump.kw(), 3)] * (len(coord.draw.ceiling) - before)
+        why = _sw_sid.sweep_hold_reason(s, lambda: _mr_pa.sweep_band_k(coord.arbiter_inputs()))
+        assert why is None, why
         override = s.step(now, 21.0, 2.0, 0.5, _SW_FLAT, 482, 4.0, cop=3.0, plan_power_kw=2.0,
-                          house=_SW_HEAVY, sweep_band_k=_mr_pa.sweep_band_k(coord)) if sweep else None
+                          house=_SW_HEAVY) if sweep else None
         coord._current_action = ({"mode": "eco", "power": 2.0} if override is None else
                                  _sw_sid.override_action({"mode": "eco"}, override, s.kind, 4.0))
         for m in range(30):
@@ -92603,19 +92662,29 @@ R.check(
 _sw_seen_band = []
 _sw_band_real = _mr_pa.sweep_band_k
 _sw_hold_real = _sw_sid.hold_reason
-_mr_pa.sweep_band_k = lambda coord: _sw_seen_band.append(coord) or 20.0
+_sw_band_now = [20.0]
+_mr_pa.sweep_band_k = lambda inp: _sw_seen_band.append(inp) or _sw_band_now[0]
 _sw_sid.hold_reason = lambda *args: None  # these stub installs configure no room sensor
 try:
+    _sw_band_now[0] = 3.0
+    _cp_sysid_cycle(_sw_c_sweep)
+    _sw_c_held = (_sw_c_sweep._sysid.phase, _sw_c_sweep._sysid.held)
+    _sw_band_now[0] = 20.0
     _cp_sysid_cycle(_sw_c_sweep)
     _sw_band_calls = len(_sw_seen_band)
     _cp_sysid_cycle(_sw_c_first)
 finally:
     _mr_pa.sweep_band_k, _sw_sid.hold_reason = _sw_band_real, _sw_hold_real
 R.check(
-    "the coordinator reads the flow set-point band for a sweep's cycle only: an armed "
-    "probe's cycle reads no entity for it",
-    _sw_band_calls == 1 and _sw_seen_band == [_sw_c_sweep],
-    f"{_sw_band_calls} {len(_sw_seen_band)}",
+    "through the coordinator's cycle: an armed sweep on warm water waits, held with "
+    "the reason, and once the band opens that hold is gone; the band is read from the "
+    "arbiter's inputs for a sweep's cycle only -- an armed probe's cycle reads no "
+    "entity for it",
+    _sw_c_held == (_sw_sid.PHASE_ARMED, "the water is too warm for a sweep")
+    and _sw_c_sweep._sysid.held is None
+    and _sw_band_calls == 2 and len(_sw_seen_band) == 2
+    and all(isinstance(i, _mr_pa.ArbiterInputs) for i in _sw_seen_band),
+    f"{_sw_c_held} {_sw_c_sweep._sysid.phase} {_sw_band_calls} {len(_sw_seen_band)}",
 )
 
 
@@ -92809,7 +92878,7 @@ R.check(
     "it; hot water asked at any level is no idle reading",
     [c[0] for c in _mr_dr.DrawRange.from_dict(
         {"ceiling": [[_mr_dr.RUNNING_FLOOR_KW, 1.0], [0.26, 2.0], [0.1, 3.0]]}).ceiling] == [0.26]
-    and _mr_dr.is_idle_reading(0.3, 0.5, _SW_GATE, blocked=False) is False,
+    and _mr_dr.is_idle_reading(0.5, _SW_GATE, blocked=False) is False,
 )
 _sw_loop = _fb_sim(minutes=30, unit="flow")
 R.check(

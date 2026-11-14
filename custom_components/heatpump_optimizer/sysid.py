@@ -30,7 +30,7 @@ import logging
 import math
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
-from typing import Any, Callable, Mapping, Sequence, cast
+from typing import Any, Callable, Sequence, cast
 
 import numpy as np
 
@@ -43,7 +43,7 @@ from .const import (
 from .draw_range import DrawRange, sweep_rows_at
 from . import quiet_windows
 from .mixing_valve import is_throttling
-from .payload import REASON_SYSTEM_IDENTIFICATION, SysIdResultView, SysIdView
+from .payload import REASON_SYSTEM_IDENTIFICATION, CurrentAction, SysIdResultView, SysIdView
 from .plan_step import PLAN_STEP_MINUTES
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
@@ -1510,21 +1510,34 @@ def cheap_night_cycles(cfg: SysIdConfig, now: datetime, price_horizon: Any, skip
     return count
 
 
-def _sweep_start_refusal(
-    cfg: SysIdConfig, now: datetime, price_horizon: Any, band_k: float | None,
+def sweep_hold_reason(
+    experiment: "SystemIdentification", band_k: Callable[[], float | None],
 ) -> str | None:
+    """Why a sweep that has not begun its levels stands down on the water, or ``None``.
+
+    ``band_k`` reads the heating ceiling less the floor set-point now
+    (``pump_arbiter.sweep_band_k``); it is called only for a sweep still
+    armed or settling. Armed, the sweep waits with this as its hold; through
+    the settle, whose end is where the levels are mapped, it ends with it
+    (design review r15: the water warms through the settle). Once the levels
+    run the floor is held and the live band says nothing.
+    """
+    if experiment.kind != KIND_SWEEP or experiment.phase not in (PHASE_ARMED, PHASE_SETTLING):
+        return None
+    band = band_k()
+    if band is None:
+        return "no flow set-point band is read"
+    return SWEEP_WARM_REASON if band < SWEEP_MIN_BAND_K else None
+
+
+def _sweep_start_refusal(cfg: SysIdConfig, now: datetime, price_horizon: Any) -> str | None:
     """Why an armed sweep whose hour and price pass still waits, or ``None``.
 
-    ``band_k`` is the ceiling less the floor set-point now
-    (``pump_arbiter.sweep_band_k``). The fewest levels must fit the cheap
-    night hours left once the settle is over; the settle itself runs on the
-    plan, and the first level is commanded a cycle after it ends (``step``).
-    The chosen count is checked again there (``_begin_bounded``).
+    The fewest levels must fit the cheap night hours left once the settle is
+    over; the settle itself runs on the plan, and the first level is
+    commanded a cycle after it ends (``step``). The chosen count is checked
+    again there (``_begin_bounded``).
     """
-    if band_k is None:
-        return "no flow set-point band is read"
-    if band_k < SWEEP_MIN_BAND_K:
-        return SWEEP_WARM_REASON
     settle = math.ceil(cfg.settle_hours / CYCLE_HOURS) + 1
     few = cheap_night_cycles(cfg, now, price_horizon, settle) < SWEEP_MIN_LEVELS
     return "too few cheap night hours are left for a sweep" if few else None
@@ -1532,29 +1545,34 @@ def _sweep_start_refusal(
 
 def _may_start(
     experiment: "SystemIdentification", now: datetime, outdoor_temp: float, price: float | None,
-    price_horizon: Any, learner_samples: int, band_k: float | None,
+    price_horizon: Any, learner_samples: int,
 ) -> tuple[bool, str]:
     """``conditions_met``, and for a sweep its own start gate, whose refusal
-    is published as the armed experiment's hold."""
+    is published as the armed experiment's hold.
+
+    A sweep's hold is re-derived on every cycle that reaches here: nothing
+    stood it down this cycle (``hold_reason``, ``sweep_hold_reason``), so a
+    hold from an earlier one no longer describes it.
+    """
     ok, reason = experiment.conditions_met(now, outdoor_temp, price, price_horizon, learner_samples)
-    if not ok or experiment.kind != KIND_SWEEP:
+    if experiment.kind != KIND_SWEEP:
         return ok, reason
-    experiment.held = _sweep_start_refusal(experiment.config, now, price_horizon, band_k)
-    return experiment.held is None, experiment.held or reason
+    experiment.held = _sweep_start_refusal(experiment.config, now, price_horizon) if ok else None
+    return ok and experiment.held is None, experiment.held or reason
 
 
 def _begin_bounded(
     experiment: "SystemIdentification", now: datetime, outdoor_temp: float, max_power_kw: float,
-    cop: float, house: HousePlant, price_horizon: Any, band_k: float | None,
+    cop: float, house: HousePlant, price_horizon: Any,
 ) -> None:
     """Start a probe's or a sweep's step, or abort where none fits.
 
     Neither sizes a power. A probe steps the configured maximum for the
     longest whole-cycle duration that fits (:func:`probe_step_hours`). A
     sweep runs the most levels the comfort bound and the cheap night hours
-    left from the next cycle, its first level's, admit (:func:`sweep_level_count`), those with the fewest map rows at
-    the arm, in run order; the band is read again here, because the water
-    warmed through the settle (design review r15).
+    left from the next cycle, its first level's, admit
+    (:func:`sweep_level_count`): those with the fewest map rows at the arm,
+    in run order.
     """
     baseline, top_heat_kw = experiment._baseline_temp, max_power_kw * cop
     if experiment.kind == KIND_PROBE:
@@ -1567,15 +1585,13 @@ def _begin_bounded(
         experiment._step_power, experiment._step_hours, experiment.probe_run = max_power_kw, hours, now
         return
     levels = experiment._sweep
-    warm = band_k is None or band_k < SWEEP_MIN_BAND_K
     most = min(len(levels), cheap_night_cycles(experiment.config, now, price_horizon, 1))
-    count = None if warm or baseline is None else sweep_level_count(
+    count = None if baseline is None else sweep_level_count(
         house, experiment._two_zone_plant, baseline, outdoor_temp, top_heat_kw, experiment.config, most,
     )
     if count is None:
         experiment.abort(
-            SWEEP_WARM_REASON if warm
-            else "no sweep fits within the comfort bound" if most >= SWEEP_MIN_LEVELS
+            "no sweep fits within the comfort bound" if most >= SWEEP_MIN_LEVELS
             else "too few cheap night hours are left for a sweep"
         )
         return
@@ -1645,8 +1661,8 @@ def probe_step_hours(
 
 
 def override_action(
-    action: Mapping[str, Any], override_kw: float, kind: str, max_power_kw: float,
-) -> dict[str, Any]:
+    action: CurrentAction, override_kw: float, kind: str, max_power_kw: float,
+) -> CurrentAction:
     """The cycle's action with the experiment's command over it.
 
     The one place the experiment's action is shaped; ``pump_arbiter`` reads
@@ -1933,7 +1949,7 @@ class SystemIdentification:
 
     def _begin_step_phase(
         self, now: datetime, outdoor_temp: float, max_power_kw: float, cop: float, house: HousePlant,
-        price_horizon: Any = None, band_k: float | None = None,
+        price_horizon: Any = None,
     ) -> None:
         """Enter PHASE_STEP with a comfort-bounded injection; abort if none fits.
 
@@ -1942,7 +1958,7 @@ class SystemIdentification:
         self.phase = PHASE_STEP
         self.phase_started = now
         if self.kind != KIND_FIT:
-            _begin_bounded(self, now, outdoor_temp, max_power_kw, max(cop, 0.1), house, price_horizon, band_k)
+            _begin_bounded(self, now, outdoor_temp, max_power_kw, max(cop, 0.1), house, price_horizon)
             return
         if (
             house.ua is not None
@@ -2017,7 +2033,6 @@ class SystemIdentification:
         cop: float = 1.0,
         plan_power_kw: float = 0.0,
         house: HousePlant = HousePlant(),
-        sweep_band_k: float | None = None,
     ) -> float | None:
         """Advance the experiment; returns a power override, or ``None``.
 
@@ -2031,8 +2046,7 @@ class SystemIdentification:
         scale already folded into its ``ua``. The sizer builds its plant from
         it, so a caller that omits the slab pair sizes on the
         ``ThermalParameters`` defaults instead of on the house it heats
-        (#943). ``sweep_band_k`` is the flow set-point band a sweep is gated
-        on (``pump_arbiter.sweep_band_k``).
+        (#943).
         """
         cfg = self.config
         if not self.active:
@@ -2040,7 +2054,7 @@ class SystemIdentification:
 
         if self.phase == PHASE_ARMED:
             ok, reason = _may_start(
-                self, now, outdoor_temp, price, price_horizon, learner_samples, sweep_band_k
+                self, now, outdoor_temp, price, price_horizon, learner_samples
             )
             if not ok:
                 if "converged" in reason:
@@ -2070,7 +2084,7 @@ class SystemIdentification:
                 self.abort("room temperature drifted beyond the allowed excursion")
                 return None
             if elapsed >= cfg.settle_hours:
-                self._begin_step_phase(now, outdoor_temp, max_power_kw, cop, house, price_horizon, sweep_band_k)
+                self._begin_step_phase(now, outdoor_temp, max_power_kw, cop, house, price_horizon)
             return None
 
         if self._over_excursion(room_temp):

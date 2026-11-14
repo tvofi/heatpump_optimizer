@@ -240,8 +240,10 @@ def _night(sweep: bool):
                     experiment_s=pending["when"] if pending["sid"] else None)
             if len(coord.draw.ceiling) > before:
                 ceiling_rows.append((round(pump.kw(), 3), pending["when"]))
+        if sweep and (why := sysid.sweep_hold_reason(s, lambda: pa.sweep_band_k(coord.arbiter_inputs()))):
+            s.stand_down(why)  # the coordinator's order: the hold first, then the step
         override = s.step(now, 21.0, 2.0, 0.5, [0.5] * 96, 482, HIGH_KW, cop=COP, plan_power_kw=2.0,
-                          house=house, sweep_band_k=pa.sweep_band_k(coord)) if sweep else None
+                          house=house) if sweep else None
         coord.action = ({"mode": "eco", "power": 2.0} if override is None else
                         {"mode": "system_identification", "kind": s.kind, "power": override})
         in_run = override is not None
