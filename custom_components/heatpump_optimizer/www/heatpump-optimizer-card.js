@@ -296,7 +296,7 @@ const STRINGS = {
     // The drift alarm's restart points (R9-DIAG-2S, #1936).
     "advisor.refit_title": "Restart the heat-loss model at {to} (now {from})",
     "advisor.refit_detail":
-      "Refitted from {days} settled days ({pairs} intervals) since the last boost or restore; about ±7-10 % uncertain. Nothing changes until you accept.",
+      "Refitted from {days} settled days ({pairs} intervals) since the last boost or restore; about ±{band} % uncertain. Nothing changes until you accept.",
     "advisor.refit_wait_title": "Heat-loss refit pending",
     "advisor.refit_wait_detail":
       "Predictions are drifting. A refit needs {need} settled days of evidence; {days} so far.",
@@ -308,6 +308,7 @@ const STRINGS = {
     "advisor.optin_wood": "Wood-stove timing",
     "advisor.optin_fuse": "Fuse size",
     "advisor.optin_frequency": "Compressor frequency",
+    "advisor.optin_sensor_off": "then turn on its sensor in the entity settings: it is off by default",
     // The options-flow step each opt-in is turned on in (ADVISOR_OPT_IN_STEP).
     "advisor.step_tuning": "Configure → Savings vs comfort",
     "advisor.step_building": "Configure → Advanced settings → Heating system and heat storage",
@@ -1176,7 +1177,7 @@ const STRINGS = {
     "advisor.apply_failed": "Kunde inte verkställa: {error}",
     "advisor.refit_title": "Starta om värmeförlustmodellen på {to} (nu {from})",
     "advisor.refit_detail":
-      "Omanpassad från {days} lugna dagar ({pairs} intervall) sedan senaste boost eller återställning; osäkerhet ungefär ±7-10 %. Ingenting ändras förrän du godtar.",
+      "Omanpassad från {days} lugna dagar ({pairs} intervall) sedan senaste boost eller återställning; osäkerhet ungefär ±{band} %. Ingenting ändras förrän du godtar.",
     "advisor.refit_wait_title": "Omanpassning av värmeförlusten väntar",
     "advisor.refit_wait_detail":
       "Prognoserna driver. En omanpassning kräver {need} lugna dagar med underlag; {days} hittills.",
@@ -1188,6 +1189,7 @@ const STRINGS = {
     "advisor.optin_wood": "Vedpannans timing",
     "advisor.optin_fuse": "Huvudsäkring",
     "advisor.optin_frequency": "Kompressorfrekvens",
+    "advisor.optin_sensor_off": "slå sedan på dess sensor i entitetsinställningarna: den är avstängd från början",
     "advisor.step_tuning": "Konfigurera → Besparing kontra komfort",
     "advisor.step_building": "Konfigurera → Avancerade inställningar → Värmesystem och värmelagring",
     "advisor.step_grid": "Konfigurera → Effekttariff, sedan Avancerade inställningar → Säkring och effekttak",
@@ -1997,7 +1999,7 @@ const STRINGS = {
     "advisor.applied_setpoint": "Warmwasser-Sollwert auf {to} °C gesetzt.",
     "advisor.apply_failed": "Anwenden nicht möglich: {error}",
     "advisor.refit_title": "Wärmeverlustmodell bei {to} neu starten (jetzt {from})",
-    "advisor.refit_detail": "Neu angepasst aus {days} abgeschlossenen Tagen ({pairs} Intervalle) seit dem letzten Boost oder der letzten Wiederherstellung; etwa ±7–10 % Unsicherheit. Es ändert sich nichts, bis du zustimmst.",
+    "advisor.refit_detail": "Neu angepasst aus {days} abgeschlossenen Tagen ({pairs} Intervalle) seit dem letzten Boost oder der letzten Wiederherstellung; etwa ±{band} % Unsicherheit. Es ändert sich nichts, bis du zustimmst.",
     "advisor.refit_wait_title": "Neuanpassung des Wärmeverlusts ausstehend",
     "advisor.refit_wait_detail": "Die Vorhersagen driften. Eine Neuanpassung benötigt Belege aus {need} abgeschlossenen Tagen; bisher {days}.",
     "advisor.restore_title": "Modell von {when} wiederherstellen",
@@ -2008,6 +2010,7 @@ const STRINGS = {
     "advisor.optin_wood": "Zeitpunkt für den Kaminofen",
     "advisor.optin_fuse": "Sicherungsgröße",
     "advisor.optin_frequency": "Verdichterfrequenz",
+    "advisor.optin_sensor_off": "dann seinen Sensor in den Entitätseinstellungen aktivieren: er ist standardmäßig deaktiviert",
     "advisor.step_tuning": "Konfigurieren → Einsparung oder Komfort",
     "advisor.step_building": "Konfigurieren → Erweiterte Einstellungen → Heizsystem und Wärmespeicher",
     "advisor.step_grid": "Konfigurieren → Lastspitzentarif des Netzes, dann Erweiterte Einstellungen → Sicherung und Spitzenwächter",
@@ -9996,8 +9999,11 @@ const ADVISOR_SUFFIXES = {
   restart: "_model_restart_advisor",
 };
 const ADVISOR_OPT_IN = ["wood", "fuse", "frequency"];
-// The options-flow step that turns each opt-in on ("degree" is shown only while
-// the score sensor publishes no price_tiles: their switch is off). Home
+// The options-flow step each opt-in needs: it turns "degree" on (shown only
+// while the score sensor publishes no price_tiles: their switch is off), and
+// is the settings page of the three ADVISOR_OPT_IN advisors, whose sensors
+// no step turns on: they stay disabled until the user enables them, and the
+// row says so (`advisor.optin_sensor_off`). Home
 // Assistant has no URL into a step, so the button opens the entry, whose
 // Configure starts the flow, and the row names the step (R10-DEEPLINK).
 const ADVISOR_OPT_IN_STEP = { degree: "tuning", wood: "building", fuse: "grid", frequency: "metering" };
@@ -10094,7 +10100,8 @@ function restartRows(plan) {
     rows.push(row("adopt_refit",
       L("advisor.refit_title", { to: Number(refit.scale).toFixed(2),
         from: readNumber(attrs.current_scale) === null ? "—" : readNumber(attrs.current_scale).toFixed(2) }),
-      L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs })));
+      L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs,
+        band: finiteNum(refit.band_percent) ? String(Number(refit.band_percent)) : "—" })));
   } else if (refit) {
     rows.push(row("", L("advisor.refit_wait_title"),
       L("advisor.refit_wait_detail", { need: refit.required_days, days: Number(refit.settled_days).toFixed(1) })));
@@ -10218,7 +10225,7 @@ function advisorInboxHtml(host) {
   const rows = advisorRows(host);
   const feedback = feedbackGaps(host.plan);
   const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="fact-inbox-row">
-      <span class="fact-text">${esc(L(`advisor.optin_${id}`))}<span class="fact-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}</span></span>
+      <span class="fact-text">${esc(L(`advisor.optin_${id}`))}<span class="fact-sub">${esc(L(`advisor.step_${ADVISOR_OPT_IN_STEP[id]}`))}${ADVISOR_OPT_IN.includes(id) ? esc(`; ${L("advisor.optin_sensor_off")}`) : ""}</span></span>
       <button type="button" class="fact-act" data-act="open_options">${esc(L("advisor.act_settings"))}</button>
     </div>`).join("");
   return `<div class="fact-head"><span class="fact-title">${esc(L("advisor.inbox_heading"))}</span></div>

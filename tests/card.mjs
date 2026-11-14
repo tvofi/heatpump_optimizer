@@ -4298,7 +4298,7 @@ const restartStates = (patch = {}) => {
   const rsPage = rs.html().slice(rs.html().indexOf('advisor-page"'));
   check("a drift alarm offers the refit with its band, and the restore point",
     /Restart the heat-loss model at 1\.14 \(now 0\.67\)/.test(rsPage)
-    && /3\.3 settled days \(180 intervals\)/.test(rsPage) && /±7-10 %/.test(rsPage)
+    && /3\.3 settled days \(180 intervals\)/.test(rsPage) && /±10 %/.test(rsPage)
     && /Nothing changes until you accept/.test(rsPage)
     && /Restore the model from 2026-03-01/.test(rsPage)
     && /data-act="adopt_refit"/.test(rsPage) && /data-act="restore_snapshot"/.test(rsPage));
@@ -4342,7 +4342,7 @@ const restartStates = (patch = {}) => {
   const rsv = mkInbox(restartStates(), "sv-SE").html();
   check("the restart rows speak Swedish",
     /Starta om värmeförlustmodellen på 1\.14 \(nu 0\.67\)/.test(rsv)
-    && /Godta omanpassning/.test(rsv) && /±7-10 %/.test(rsv) && /Återställ modellen från/.test(rsv));
+    && /Godta omanpassning/.test(rsv) && /±10 %/.test(rsv) && /Återställ modellen från/.test(rsv));
 }
 
 // --- Scenario: the layout editor (v3.16.0, issue #40) ----------------------
@@ -13804,14 +13804,93 @@ check("without an indoor reading the corner now label is absent",
   check("user text: the COP refusal reasons quote COP_TRACKING_ERROR_GATE and the modelled-COP floor, in every card language",
     Number.isFinite(gate) && modelled !== undefined && copBad.length === 0,
     `gate ${gate}, modelled floor ${modelled}; wrong in: ${copBad.join(",")}`);
-  // 3. The window-time error fires for silent/off windows too (the save and
-  // simulate handlers' `invalid` reads `quietWindows`), so no language may
-  // call the window a hot-water one.
+  // 3. The window-time error fires for silent/off windows too, so no
+  // language may call the window a hot-water one. Both handlers that refuse
+  // an invalid window -- Save (`onSaveSchedule`) and Simulate (`run`) -- are
+  // driven with a valid hot-water window and an invalid quiet one: each must
+  // print the error and call no service. A handler that checked hot-water
+  // windows only would let the quiet one through.
   const hotWord = { en: /hot water/i, sv: /varmvatten/i, de: /warmwasser/i };
-    check("user text: the invalid-window error names no channel, in every card language",
-    langs.every((l) => hotWord[l]) && langs.every((l) => !hotWord[l].test(tbl[l]["errors.invalid_window_time"]))
-    && /quietWindows \|\| \[\]\)\.find\(/.test(cardSrc),
+  check("user text: the invalid-window error names no channel, in every card language",
+    langs.every((l) => hotWord[l]) && langs.every((l) => !hotWord[l].test(tbl[l]["errors.invalid_window_time"])),
     langs.map((l) => `${l}: ${tbl[l]["errors.invalid_window_time"]}`).join(" | "));
+  const quietRefused = [];
+  for (const handler of ["onSaveSchedule", "run"]) {
+    const ed = build(slotStates, { what_if: true });
+    ed.dialog.open();
+    let served = 0;
+    ed._hass = mkHass(ed._hass.states, () => { served++; return {}; });
+    const panel = ed.whatIf;
+    panel.onSlotEdit = () => {}; // keep the draft below, not the DOM's rows
+    const draft = panel.draft();
+    draft.dhwWindows = [{ days: "daily", start: "06:00", end: "08:00" }];
+    draft.quietWindows = [{ days: "daily", start: "notatime", end: "08:00", action: "silent" }];
+    await panel[handler]({ stopPropagation: () => {} });
+    const got = ed.shadowRoot.querySelector(".wi-result").textContent;
+    const want = fn("L")("errors.invalid_window_time", { window: fn("windowRange")(draft.quietWindows[0]) });
+    if (got !== want || served !== 0) quietRefused.push(`${handler}: ${JSON.stringify(got)} vs ${JSON.stringify(want)}, ${served} service call(s)`);
+  }
+  check("user text: Save and Simulate both refuse an invalid quiet window with the channel-neutral error",
+    quietRefused.length === 0, quietRefused.join("; "));
+  // 4. The refit row's uncertainty is the band the refit publishes
+  // (`heat_loss_refit`'s `band_percent`, from accuracy.py's
+  // REFIT_BAND_PERCENT), rendered in every card language. A probe band the
+  // constant does not name proves the row reads the attribute, not a literal.
+  const band = Number((read("accuracy.py").match(/^REFIT_BAND_PERCENT\s*=\s*([0-9.]+)/m) || [])[1]);
+  const bandBad = [];
+  for (const lang of langs) {
+    for (const b of [band, 13]) {
+      const s = restartStates();
+      s[`${ADVISOR_PFX}_model_restart_advisor`].attributes.refit.band_percent = b;
+      const c = new Card();
+      c.setConfig({ type: "custom:heatpump-optimizer-card" });
+      c.hass = { states: s, language: lang, callService: async () => {} };
+      c._onCardClick({});
+      c.dialog.page = "advisor";
+      c._render();
+      const html = collect(c.shadowRoot).join("\n");
+      if (!html.includes(`±${b} %`) || !tbl[lang]["advisor.refit_detail"].includes("±{band} %")) bandBad.push(`${lang} band ${b}`);
+    }
+  }
+  check("user text: the refit row states the band_percent the refit publishes, in every card language",
+    Number.isFinite(band) && bandBad.length === 0, `REFIT_BAND_PERCENT ${band}; wrong: ${bandBad.join(", ")}`);
+  // 5. The opt-in rows: the options page turns the price of a degree on, but
+  // no page turns the wood, fuse or frequency advisor on -- each is a sensor
+  // created disabled (sensor.py's `_attr_entity_registry_enabled_default =
+  // False` in its class) -- so those rows say to enable the sensor, and the
+  // degree row does not. The classes are named here: the card's ids are not
+  // sensor keys.
+  const sensorPy = read("sensor.py");
+  const offByDefault = (cls) => {
+    const at = sensorPy.indexOf(`class ${cls}(`);
+    const next = sensorPy.indexOf("\nclass ", at + 1);
+    return at >= 0 && /_attr_entity_registry_enabled_default = False/.test(sensorPy.slice(at, next < 0 ? undefined : next));
+  };
+  const optClass = { wood: "WoodBurnAdvisorSensor", fuse: "MonthlyPeakSensor", frequency: "FrequencyAdvisorSensor" };
+  const optInIds = fn("ADVISOR_OPT_IN");
+  const optBad = [];
+  for (const id of optInIds) if (!offByDefault(optClass[id])) optBad.push(`${id}: ${optClass[id]} is not disabled by default`);
+  for (const lang of langs) {
+    const c = new Card();
+    c.setConfig({ type: "custom:heatpump-optimizer-card" });
+    // Price tiles off, so the degree row is offered too: the note's control.
+    const st = inboxStates();
+    st[`${ADVISOR_PFX}_optimization_score`].attributes.price_tiles = {};
+    c.hass = { states: st, language: lang, callService: async () => {} };
+    c._onCardClick({});
+    c.dialog.page = "advisor";
+    c._render();
+    const rowsHtml = collect(c.shadowRoot).join("\n").split('class="fact-inbox-row');
+    const note = fn("esc")(tbl[lang]["advisor.optin_sensor_off"]);
+    for (const id of ["degree", ...optInIds]) {
+      const row = rowsHtml.find((r) => r.includes(fn("esc")(tbl[lang][`advisor.optin_${id}`])));
+      if (row === undefined) { optBad.push(`${lang} ${id}: no row`); continue; }
+      if (row.includes(note) !== optInIds.includes(id)) optBad.push(`${lang} ${id}: note ${row.includes(note)}`);
+    }
+  }
+  check("user text: an opt-in advisor whose sensor is off by default says to enable it, in every card language",
+    optInIds.length === 3 && optBad.length === 0, optBad.join("; "));
+  build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // back to English
 }
 
 console.log(fails ? `\n${fails} CARD CHECK(S) FAILED` : "\nALL CARD CHECKS PASSED");
