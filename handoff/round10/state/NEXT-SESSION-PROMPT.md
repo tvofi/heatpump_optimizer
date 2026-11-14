@@ -27,12 +27,14 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SAV-VALUATION-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-CLOSEOUT-PREP (stage carries-open, branch `fix/r10-closeout-prep`): `git fetch origin fix/r10-closeout-prep && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ARCH-DOCS-DELTA (stage in-progress, branch `handoff/r10-arch-docs-delta`): `git fetch origin handoff/r10-arch-docs-delta && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ECL110-MQTT-OFF-NEUTRAL (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-DUTY-SWITCH-RESTART-LEARNING-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-DUTY-SWITCH-PLANNER-PRICE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-MODE-BEFORE-SUPPLY-ON (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-DISINFECTION-STEP-NOTICE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-MACOS-SELFTEST-LANE (stage in-progress, branch `fix/r10-hotfix-macos-selftest-lane`): `git fetch origin fix/r10-hotfix-macos-selftest-lane && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -48,10 +50,9 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R11-PRE-OBJECTIVE-FUNCTION (stage in-progress, branch `fix/r11-pre-objective-function`): `git fetch origin fix/r11-pre-objective-function && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DIMENSIONS-FULL-COVERAGE (stage carries-open, branch `fix/r10-dimensions-full-coverage`): `git fetch origin fix/r10-dimensions-full-coverage && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DOCS-STRINGS-RESIDUE (stage in-progress, branch `fix/r10-docs-strings-residue`): `git fetch origin fix/r10-docs-strings-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOTFIX-ENTITIES-REDACTION-FLAKE (stage in-progress, branch `fix/r10-hotfix-entities-redaction-flake`): `git fetch origin fix/r10-hotfix-entities-redaction-flake && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FEEDBACK-SETTLE-LARGE-LIFT (stage in-progress, branch `r10-feedback-settle-large-lift`): `git fetch origin r10-feedback-settle-large-lift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CI-PRIORITY-PAUSE, R10-CLOSEOUT-PREP, R10-CONFIG-FLOW-TEXT-VERIFY, R10-COP-LEARNER-DRAW-FLOOR, R10-D5-D6-FULL-SCOPE, R10-DISINFECTION-STEP-NOTICE, R10-DOCS-STRINGS-RESIDUE, R10-DUTY-SWITCH-PLANNER-PRICE, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FEEDBACK-SETTLE-LARGE-LIFT, R10-GATE-DEFER-BARRIER, R10-HOTFIX-ENTITIES-REDACTION-FLAKE, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-SELFTEST-SCOPE-RERECORD, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-LEARNER-ROBUSTNESS-P3, R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-DISPATCH-RESIDUE, R10-ROUND-PLAYBOOK-FINAL, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-STANDING-CONTRACTS-P2, R10-START-COUNTER-EDGES, R10-SUITE-ENV-RESIDUE, R10-USER-DOCS-VERIFY, R10-USER-TEXT-VERIFY-CARD, R10-USER-TEXT-VERIFY-STRINGS, R11-INTAKE-R10-RESIDUE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CI-PRIORITY-PAUSE, R10-CLOSEOUT-PREP, R10-CONFIG-FLOW-TEXT-VERIFY, R10-COP-LEARNER-DRAW-FLOOR, R10-D5-D6-FULL-SCOPE, R10-DISINFECTION-STEP-NOTICE, R10-DOCS-STRINGS-RESIDUE, R10-DUTY-SWITCH-PLANNER-PRICE, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-ECL110-MQTT-OFF-NEUTRAL, R10-FEEDBACK-SETTLE-LARGE-LIFT, R10-GATE-DEFER-BARRIER, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-MACOS-SELFTEST-LANE, R10-HOTFIX-SELFTEST-SCOPE-RERECORD, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-LEARNER-ROBUSTNESS-P3, R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-DISPATCH-RESIDUE, R10-ROUND-PLAYBOOK-FINAL, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-STANDING-CONTRACTS-P2, R10-START-COUNTER-EDGES, R10-SUITE-ENV-RESIDUE, R10-USER-DOCS-VERIFY, R10-USER-TEXT-VERIFY-CARD, R10-USER-TEXT-VERIFY-STRINGS, R11-INTAKE-R10-RESIDUE
 
 ## Resume steps
 
