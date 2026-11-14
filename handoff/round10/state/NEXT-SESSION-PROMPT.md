@@ -23,7 +23,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-STANDING-CONTRACTS-P2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SAV-VALUATION-RESIDUE (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-ADVISOR-STEADY-START (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-ADVISOR-STEADY-START (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-CLOSEOUT-PREP (stage carries-open, branch `fix/r10-closeout-prep`): `git fetch origin fix/r10-closeout-prep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARCH-DOCS-DELTA (stage in-progress, branch `handoff/r10-arch-docs-delta`): `git fetch origin handoff/r10-arch-docs-delta && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -36,8 +36,9 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-COP-LEARNER-DRAW-FLOOR (stage in-progress, branch `handoff/r10-cop-learner-draw-floor`): `git fetch origin handoff/r10-cop-learner-draw-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design): no branch pushed yet, so nothing to fetch
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-MAIN-SELFTEST-SCOPE-2 (stage in-progress, branch `handoff/r10-hotfix-main-selftest-scope-2`): `git fetch origin handoff/r10-hotfix-main-selftest-scope-2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CI-PRIORITY-PAUSE, R10-CLOSEOUT-PREP, R10-COP-LEARNER-DRAW-FLOOR, R10-D5-D6-FULL-SCOPE, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-DISPATCH-RESIDUE, R10-ROUND-PLAYBOOK-FINAL, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SELFTEST-SCOPE-UNION-GUARD, R10-STANDING-CONTRACTS-P2, R10-START-COUNTER-EDGES, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE, R11-PRE-PARALLEL-PIPELINE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CI-PRIORITY-PAUSE, R10-CLOSEOUT-PREP, R10-COP-LEARNER-DRAW-FLOOR, R10-D5-D6-FULL-SCOPE, R10-HOTFIX-MAIN-SELFTEST-SCOPE-2, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-DISPATCH-RESIDUE, R10-ROUND-PLAYBOOK-FINAL, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SELFTEST-SCOPE-UNION-GUARD, R10-STANDING-CONTRACTS-P2, R10-START-COUNTER-EDGES, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE, R11-PRE-PARALLEL-PIPELINE
 
 ## Resume steps
 
