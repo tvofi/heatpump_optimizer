@@ -1,0 +1,15 @@
+== 5d647dd055d7e08e1073bedbe570257c606b98b3 branch=rv-5d647dd
+  ok   the tick's child PATH starts with the seat bin dir, whose gh shim it finds; no TICK-GH line
+  FAIL a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+  ok   freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+tick_loop self-test: 30 checks, 1 failed
+HEAD after: 5d647dd055d7e08e1073bedbe570257c606b98b3
+== b131ad0ad8c8e8e9710681160a8b539ab88137ff branch=rv-b131ad0
+  ok   the tick's child PATH starts with the seat bin dir, whose gh shim it finds; no TICK-GH line
+  ok   a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+  ok   freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+tick_loop self-test: 30 checks, 0 failed
+HEAD after: b131ad0ad8c8e8e9710681160a8b539ab88137ff
+== P branch-checked-out, HPO_TICK_STALE_BOUND=30 (behind 26 <= bound)
+tick_loop self-test: 30 checks, 0 failed
+HEAD after 5d647dd055d7e08e1073bedbe570257c606b98b3

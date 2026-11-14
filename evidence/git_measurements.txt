@@ -1,0 +1,17 @@
+f498ee8b92f266f8f3d78bf1a4db61f8e46c153d
+rc=0
+origin/main=8c10361eb1fea539dc5acb8f7442eac2810faa47
+review_carry: 5d647dd05 -> b131ad0ad  main=origin/main
+  branch-only commits: 1
+  why: force-push: b131ad0ad is not a descendant of 5d647dd05
+  b131ad0ad  Merge remote-tracking branch 'origin/main' into work
+review_carry: FRESH-REVIEW
+5d647dd055d7e08e1073bedbe570257c606b98b3 behind(CODE_PATHS)=26 behind(SELF_PATHS)=0
+6e8db8d8c12e480181e730bd30e01da3c97b733f behind(CODE_PATHS)=50 behind(SELF_PATHS)=1
+b131ad0ad8c8e8e9710681160a8b539ab88137ff behind(CODE_PATHS)=0 behind(SELF_PATHS)=0
+e899dde4ab is an ancestor of 6e8db8d8
+e899dde4ab is an ancestor of 5d647dd0
+tick_loop.sh identical at 5d647dd0 and b131ad0a
+inert_reads main_reds.py at 5d647dd0: 1
+inert_reads main_reds.py at b131ad0a: 0
+version-files stat above (empty = untouched)

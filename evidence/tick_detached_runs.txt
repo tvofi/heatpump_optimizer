@@ -1,0 +1,6 @@
+== wt-h b131ad0ad8c8e8e9710681160a8b539ab88137ff
+tick_loop self-test: 30 checks, 0 failed
+== wt-mb 8c10361eb1fea539dc5acb8f7442eac2810faa47
+tick_loop self-test: 30 checks, 0 failed
+== wt-old 6e8db8d8c12e480181e730bd30e01da3c97b733f
+tick_loop self-test: 30 checks, 0 failed
