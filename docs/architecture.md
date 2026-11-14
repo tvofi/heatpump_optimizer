@@ -194,6 +194,8 @@ custom_components/heatpump_optimizer/
 ├── duty_switch.py        # Learns per direction whether a duty switch stops
 │                         #   the running compressor; a latched direction's
 │                         #   estimate is what the solve prices that switch by
+│                         #   and what orders the legs of a both step the
+│                         #   arbiter serves
 ├── heat_curve.py         # The heat-curve displace's outputs: the ECL110 MQTT
 │                         #   topics and an offset number entity
 ├── off_restore.py        # The one owner of the off and unload restore: what
