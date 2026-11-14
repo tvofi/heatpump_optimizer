@@ -1,0 +1,19 @@
+Fix review: merge b61ee0b674cbae9ce5ba81f4f9b86af280b64e5b
+
+bus-nonce: c39b5fde1e52f538cd00a3edfa0091d3
+pending-ci: gate
+
+## Evidence
+
+- Round: first (no prior reviewed head). Measured head b61ee0b674cbae9ce5ba81f4f9b86af280b64e5b in a detached worktree; base 7aac3e7c044a; the PR body's `## Head` names this SHA (step 7).
+- Role contract current: `git diff <merge-base>...origin/main -- dev/governance/roles/` printed nothing.
+- Merges with main: `git merge-tree --write-tree origin/main b61ee0b6` exit 0 (origin/main 50373173d486).
+- Mutation proof re-run (step 1), section `features_block.py 'from types import SimpleNamespace as _DspNS'`: RESULT head: `ALL 95 FEATURES BLOCK PASSED`, rc 0 (ev/head.log). RESULT mutant CLAMP_DROP (decay factor back to `self.weights(when)[1] / n`): `1 of 95 FEATURES BLOCK FAILED`, rc 1, the red being "the cap is held on decay as well as at booking..." (ev/mut_clamp_drop.log). RESULT my own mutant, cap on decay loosened to `4.0 * N_CAP`: `1 of 95 FEATURES BLOCK FAILED`, the same check (ev/mut_cap4x.log). Restored; `git status --short` clean.
+- Null control (step 3): the check's own control (a direction stored at exactly N_CAP still latched at 28 days) passes at the head and under both mutants; the other 94 checks, the planner null controls among them, pass under the mutants, so the change moves nothing below the cap. `min(x, N_CAP)` is the identity whenever the decayed weight is at or under the cap, which booking already enforces.
+- Figures re-derived: `python3 tests/structure.py` ends `STRUCTURE RATCHET PASSED` (ev/structure.txt); `git grep -n "duty_switch.planner_fields" origin/main -- custom_components` prints one line (coordinator.py:6246); `git grep -c "def split" origin/main -- .../duty_switch.py` prints nothing (rc 1) and prints 1 at 29370fdbb59a; the sibling branch's decay line at 29370fdbb59a is byte-identical to this diff's; `git diff --stat 5647cf9bb902 cc65ca009ece` lists the three `tests/mutation_ledger/` files only. The scoped-gate counts (`24 TEST SCRIPT(S) PASSED; 10 SCOPED OUT` in the body, `22 run, 11 scoped out` in its figure block) were not re-derived by me: the gate is CI's heavy run (step 11, cite it), and the `gate` check at this head is success.
+- Mutation ledger (step 14): the removed row `Direction.decay CMP_BOUND 50222946` pins the replaced line, which no longer exists; the two added rows are the new line's CLAMP_DROP and CMP_BOUND, and CLAMP_DROP's kill is the one I reproduced. The movement is earned by the change.
+- VERSION, manifest version and RELEASE_NOTES heading untouched; `git diff --stat <mb>...HEAD -- tests/golden` empty, no claim file touched (steps 4, 5). RESULT `python3 tests/env_drift.py --all` at the head: `NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main`, `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes` (ev/env_drift.txt).
+- Class (step 6): the carry's finding is one seam, the decay path left uncapped while booking was capped; the writers of k and kept_w in duty_switch.py are `decay`, `book` (both now capped) and `from_record`, whose over-cap rows the first `decay` now holds. A one-seam class.
+- Architecture (step 15): one-token production change reusing the existing constant, matching the sibling branch's line; the design-note bullet records it in the "as built" section. No breach found.
+- No finder's harness is named; the finding is a carry item (c3ad1545) whose control is the new features check, built by the fixer and disclosed as such in the body (step 9).
+- CI: `merge_train.py classify b61ee0b6 --pr 3569` printed `WAIT b61ee0b674cbae9ce5ba81f4f9b86af280b64e5b pending: gate red: none` (rc 3) on every poll from 00:11 to 00:47 UTC; returned with pending-ci per the brief. Red checks: none on this head at review; owed-reds set read (ev/owed_reds_tail.txt).
