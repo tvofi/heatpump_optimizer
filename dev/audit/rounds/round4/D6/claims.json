@@ -2,9 +2,9 @@
  {
   "id": "C1",
   "source": "README.md:Entities",
-  "claim": "All 82 entities are created on every install",
+  "claim": "All 83 entities are created on every install",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=82 measured=82",
+  "result": "documented=83 measured=83",
   "verdict": "true",
   "truth": ""
  },
@@ -29,18 +29,18 @@
  {
   "id": "C4",
   "source": "README.md:### Buttons",
-  "claim": "Buttons (6 total)",
+  "claim": "Buttons (7 total)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=6 measured=6",
+  "result": "documented=7 measured=7",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C5",
   "source": "docs/architecture.md:mermaid",
-  "claim": "82 entities / 62 sensors / 6 binary sensors / 6 buttons / 6 switches / 1 climate / 1 datetime",
+  "claim": "83 entities / 62 sensors / 6 binary sensors / 7 buttons / 6 switches / 1 climate / 1 datetime",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=(82, 62, 6, 6, 6, 1, 1) measured=(82, 62, 6, 6, 6, 1, 1)",
+  "result": "documented=(83, 62, 6, 7, 6, 1, 1) measured=(83, 62, 6, 7, 6, 1, 1)",
   "verdict": "true",
   "truth": ""
  },
@@ -112,7 +112,7 @@
   "source": "README.md:### Buttons",
   "claim": "the button table names exactly the buttons the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "documented=['Learning Finalize Debug Collection', 'Learning Reset Comfort Weight', 'Learning Reset Heat Loss', 'Learning Run System Identification', 'Optimize Now', 'Prediction Accuracy Diagnose Last Interval'] measured=['Learning Finalize Debug Collection', 'Learning Reset Comfort Weight', 'Learning Reset Heat Loss', 'Learning Run System Identification', 'Optimize Now', 'Prediction Accuracy Diagnose Last Interval']",
+  "result": "documented=['Learning Finalize Debug Collection', 'Learning Measure Power Response', 'Learning Reset Comfort Weight', 'Learning Reset Heat Loss', 'Learning Run System Identification', 'Optimize Now', 'Prediction Accuracy Diagnose Last Interval'] measured=['Learning Finalize Debug Collection', 'Learning Measure Power Response', 'Learning Reset Comfort Weight', 'Learning Reset Heat Loss', 'Learning Run System Identification', 'Optimize Now', 'Prediction Accuracy Diagnose Last Interval']",
   "verdict": "true",
   "truth": ""
  },
@@ -1030,7 +1030,7 @@
   "source": "README.md",
   "claim": "the Swedish translation actually differs from the English entity names",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "0 of 84 entity names identical in sv and en",
+  "result": "0 of 85 entity names identical in sv and en",
   "verdict": "true",
   "truth": ""
  },
