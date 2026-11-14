@@ -2,7 +2,7 @@ R10-DISINFECTION-STEP-NOTICE: product ruling (2) of origin/handoff-body/r10-prod
 
 What changed, by owner:
 - `pump_arbiter.py`: `cycle_write` exposes the cycle write for the parameters in force — `thermal_model.dhw_step_target_c` on a cycle step, on the hot-water entity's `inputs.SetpointGrid`, the one statement `_dhw_write` itself reads — with the disinfection temperature on the step down and up (`SetpointGrid.bounded`) and the entity's step (`SetpointGrid.step`); `None` outside control, with no set-point entity state, or with no cycle temperature. The quantisation has one owner (`SetpointGrid`) and the guard never restates it.
-- `legionella.py`: `OffStepNotice`, a small class beside `LegionellaGuard`, in `check_ceiling`'s signature-and-`set_issue` shape, not persistent, raises `dhw_legionella_off_step`. Active when hot water and the cycle are active, the arbiter writes a set-point entity, and that write is under target less `CREDIT_INSTANT_MARGIN_K` (1.0), or less `CREDIT_HOLD_MARGIN_K` (0.5) under `dhw_free_disinfection_enabled`. The margins are the guard's own credit literals named, values unchanged, read by `async_track`, `async_track_cycle` and the notice alike. Only a step gap: the notice also requires the step above the target to be writable (`write.above_c >= target`). Where the entity's own maximum binds (a hot-water set-point capped at 60 under a 65 disinfection temperature), no step is the remedy, so no off-step notice rises and `dhw_legionella_unreachable` keeps its immersion-heater advice, as at base.
+- `legionella.py`: `OffStepNotice`, a small class beside `LegionellaGuard`, in `check_ceiling`'s signature-and-`set_issue` shape, not persistent, raises `dhw_legionella_off_step`. Active when hot water and the cycle are active, the arbiter writes a set-point entity, and that write is under target less `CREDIT_INSTANT_MARGIN_K` (1.0), or less `CREDIT_HOLD_MARGIN_K` (0.5) under `dhw_free_disinfection_enabled`. The margins are the guard's own credit literals named, values unchanged, read by `async_track`, `async_track_cycle` and the notice alike. Only a step gap: the notice also requires the step above the target to be writable, on two counts. First, inside the entity's range: `written_c < above_c`, which for a short write is exactly `above_c >= target`, since where the entity's maximum binds both clamp to it and are equal. Second, at or under the hard maximum a cycle at that step would hold: `above_c <= replace(params, dhw_legionella_temp=above_c).dhw_hard_max_temp`, so the hard maximum is still read from its owner. The bound is the hard maximum at the step above, not `params.dhw_hard_max_temp`: that is the target itself, so it would refuse 65 for 62 on step 5. Where either cap binds, no step is the remedy, so no off-step notice rises and `dhw_legionella_unreachable` keeps its advice, as at base. Examples: a hot-water set-point capped at 60 under a 65 disinfection temperature, or a `set_thermal_parameters` disinfection temperature of 71-75 over the 70 °C cap.
 - Which notice shows: the off-step one. Raising it clears `dhw_legionella_unreachable`, and `raise_unreachable_issue` clears instead of raising while it stands, so its immersion-heater advice never shows for a rounding gap.
 - `strings.json`, `translations/en.json`, `de.json`, `sv.json`: the notice text (placeholders `legionella_temp`, `written`, `step`, `below`, `above`); `README.md`'s notice list beside "Hot water is not reaching the disinfection temperature". User-facing text for its own text review: it names the cause, says no hardware is needed, and offers the step above (at least as hot as chosen) before the step below.
 - No change to the arbiter's write, `dhw_hard_max_temp`, the thresholds or `DHW_LEGIONELLA_RETRY_HOURS`.
@@ -14,6 +14,16 @@ Carry 0 of the brief (from #3452, item 9ac8c410) is discharged here: the shortfa
 Carry 1 of the brief (the owner ruling of 2026-11-13 folding this outside-sourced group into round 10) is a scheduling ruling, not a change: this pull request is that fold, and it carries no code of its own.
 
 ## Head
+
+`23ff522a7c9225da3256a35522f6d36dd74b633b` (measured `2026-11-14T06:40Z`, origin/main `f7e7a0244a3d5f7763c4ec15d193d03ef4bb3274`): the pull request's head `d713ca529a` plus three commits, repairing the delta review's block (verdict/3581 b04a1f7a, `equivalence-refuted`). `set_thermal_parameters` (`services.py`) admits a disinfection temperature of 55-75. Above the 70 °C hard maximum the cycle writes 70, and `d713ca529a` raised the off-step notice reading below = above = the target, taking down the unreachable notice. The three commits:
+- `cc75a426a3` adds the failing pins (`tests/guard_pins.py` only).
+- `f686c58eb9` restates the gate in `legionella.py` (see the `legionella.py` item under "What changed").
+- `23ff522a7c` is the ledger: the `survivor_triage` row removed, the predicate's stale GUARD_OFF pin removed, and the new site pinned.
+
+The reviewer's delta is `git diff d713ca529a 23ff522a7c`. At this head:
+- `ALL 88 GUARD PIN CHECKS PASSED`, `ALL 153 BLOCK DUTY CHECKS PASSED`, and `class_excess_loc 17502 <= 17502`.
+- `tests/mutation_table.py --base origin/main --max 0`, on the tree merged with origin/main f7e7a0244a: `2305 unpinned site(s) of 7521 candidate sites, 2309 at the ratchet base` and `MUTATION TABLE PASSED`.
+- `ci_predict.py --base origin/main`: no red predicted and no unpinned site.
 
 `4328fc4245939ca37c7e4dfb6b503379d9ed164b` (measured `2026-11-14T05:45Z`, origin/main `f7e7a0244a3d5f7763c4ec15d193d03ef4bb3274`): the pull request's head `12a6617f07` (4312a91719 plus update_pr's merges, reviewed `merge`) plus `4328fc4245`, ledger only. CI's `tests / mutation` refused 12a6617f07 with `MUTATION TABLE REFUSED -- 2307 unpinned site(s) against 2309 at the ratchet base 513a07dfdc, 2 of them added by this diff`. mutation-autofix reported `1 added site(s) left alive: custom_components/heatpump_optimizer/legionella.py:100 CMP_BOUND`. The two added sites are the two mutants of the one anchor `legionella.py:OffStepNotice.check CMP_BOUND 03f00051`. `4328fc4245` records that anchor under `survivor_triage` as `equivalent`, with the argument in `## Unpinned sites`, and the ledger normalized by `mutation_table.py --normalize`. At this head, `python3 tests/mutation_table.py --base origin/main --max 0` on the tree merged with origin/main f7e7a0244a reports `2305 unpinned site(s) of 7523 candidate sites, 2309 at the ratchet base` and `MUTATION TABLE PASSED`. `ci_predict.py --base origin/main` reports `no closures, fast, governance or instrument red predicted` and no unpinned site.
 
@@ -60,14 +70,30 @@ The repair at `ebc79b0e86` was checked with `python3 tools/audit/seat/mutant_run
 - `hard_max_dropped`
 - `step_constant` (`grid.step` to `1.0`)
 
-Two SURVIVED, both equivalent on the configuration's domain:
-- `range_gate_cmp_strict` (`above_c >= target` to `above_c > target`). `above_c == target` means the target is on the step, so the write (`dhw_step_target_c`, the cycle temperature at least the target, bounded with `hi` at the hard maximum, itself at least the target) is not under it, and the first clause is already false.
-- `range_gate_above_minus_margin` (`above_c >= target - margin`). `above_c < target` only where the entity's maximum binds, and then `written_c` and `above_c` are both that maximum on the step: `written_c` is the cycle temperature at or above the target, clamped there, so `written_c == above_c`, and the two clauses cannot both hold.
-- Both rest on `dhw_legionella_temp` <= 70 (`config_flow.py`'s slider, 55-70), so the hard maximum is never under the target.
+Those two lines describe the predicate reviewed at `ebc79b0e86`. It is now restated; the run at `23ff522a7c` follows.
 
-Ledger operator sites of the new predicate, measured by `python3 tests/mutation_table.py --anchor "custom_components/heatpump_optimizer/legionella.py:OffStepNotice.check <KIND> 03f00051" --scripts tests/guard_pins.py` (baseline rc=0 failed=0, NULL_COMMENT null control survived):
-- `killed by tests/guard_pins.py: custom_components/heatpump_optimizer/legionella.py:100 CMP_BOUND`. The anchor covers 2 mutants and prints one line per key. `--pin-killed` at `4312a91719` separates them: `UNPINNED ...legionella.py:100 CMP_BOUND -- killed by tests/guard_pins.py, but its anchor also covers a site no run killed` and `UNPINNED ...legionella.py:100 CMP_BOUND -- lives`. The live one is `range_gate_cmp_strict` above, which is equivalent.
-- `killed by tests/guard_pins.py: custom_components/heatpump_optimizer/legionella.py:100 GUARD_OFF`
+The delta review refuted `range_gate_cmp_strict`'s equivalence. It and `range_gate_above_minus_margin` rested on `dhw_legionella_temp` <= 70, but `set_thermal_parameters` admits 75, and nothing clamps the parameter. The restated gate removes both mutants' line.
+
+Run at `23ff522a7c`: `mutant_run.py --spec mutants.json --cmd 'env PYTHONPATH=tests/hastub python3 tests/guard_pins.py'` printed `SURVIVED NULL`. KILLED:
+- `short_bound_le` (`written_c < target - margin` to `<=`)
+- `range_clause_le` (`written_c < above_c` to `<=`)
+- `hardcap_bound_lt` (`above_c <= hard maximum` to `<`; the 68 on step 5 row, above 70)
+- `range_clause_dropped`
+- `hardcap_clause_dropped`
+- `reviewed_predicate` (the gate restored as `above_c >= target`)
+- `reviewer_shape_params_hard_max` (the bound read as `params.dhw_hard_max_temp`)
+
+SURVIVED `range_clause_minus_margin` (`written_c < above_c - margin`). It is equivalent on every input, with no domain bound. Where the entity's range binds, `written_c == above_c`, so both forms are false. Otherwise `above_c >= target`, so `written_c < target - margin` already gives `written_c < above_c - margin`. It is not a ledger operator site.
+
+Ledger at `23ff522a7c` (`mutation_table.py --pin-killed --scripts tests/guard_pins.py`): `pinned   custom_components/heatpump_optimizer/legionella.py:104 CMP_BOUND -- killed by tests/guard_pins.py`, the one site the inventory generates on the restated statement.
+
+Failing test first, hard cap: `cc75a426a3` on `d713ca529a`'s production code gave `4 of 88 GUARD PIN CHECKS FAILED`:
+- `a hard-cap shortfall (75 over the 70 C hard maximum, step 5) raises no off-step notice, either rule`
+- the same at step 1
+- `a hard-cap shortfall leaves the unreachable notice's hardware advice standing`
+- `entity-range census: 353 of 2856 rows raise, ...`, with 124 rows against the oracle
+
+At `f686c58eb9` and `23ff522a7c`: `ALL 88 GUARD PIN CHECKS PASSED`.
 
 Failing test first, repair: `9d9fc02b38` (the pins) on `47dd9c3594`'s production code: `3 of 84 GUARD PIN CHECKS FAILED`, namely `a range-capped write (max 60 under 65, step 1) raises no off-step notice, either rule`, `a range-capped write leaves the unreachable notice's hardware advice standing` and `entity-range census: 683 of 1632 rows raise, ...`. At `ce4b63531c` and at `ebc79b0e86`: `ALL 84 GUARD PIN CHECKS PASSED`.
 
@@ -77,19 +103,19 @@ Failing test first: the pins landed in 028dae841d ahead of the fix. The head's `
 
 In `tests/guard_pins.py`, `_off_step_notice_pins`, every count asserted beside the rows it drove (the census asserts its own preconditions): 0 notices over the 1314 on-step slider rows and over the 169 on-step harness-grid rows, under both rules; 0 at steps 0.1 and 0.5; 0 with the cycle disabled, with hot water disabled, with no set-point entity, and with an arbiter that writes nothing (`pump_duty_mode` observe); the stock 55/60 raises none on any step under either rule. All pass at the merged head.
 
-Entity-range enumeration (fixer.md step 8; `_range_census` in `tests/guard_pins.py`), 1632 rows:
+Entity-range enumeration (fixer.md step 8; `_range_census` in `tests/guard_pins.py`), 2856 rows:
 - entity min 30 or 60
 - entity max 55, 58, 60, 62, 64, 65, 66, 68, 70 or 80 (above the min)
-- step 0.5, 1 or 5
-- disinfection 55-70
+- step 0.5, 1, 3 or 5
+- disinfection 55-75, the service's range, so 71-75 sits over the 70 °C hard maximum
 - everyday 55
 - both credit rules
 
 This covers min-capped rows (min 60 over a 55-59 target), max-capped rows (max under the target), rows capped at both ends (min 60, max 62-66), and free rows.
 
-Each row is compared with an oracle the test computes itself (`math.floor`/`math.ceil` on the step, no production import): the notice is owed exactly where `min <= floor_step(target) < target - margin` and `ceil_step(target) <= max`. Every raised row must also read `below < target <= above <= max` and `above - below == step`. So `{below}` and `{above}` can no longer be equal, and `{above}` can no longer sit under the chosen temperature.
+Each row is compared with an oracle the test computes itself (`math.floor`/`math.ceil` on the step, no production import): the notice is owed exactly where `min <= floor_step(target) < target - margin` and `ceil_step(target) <= min(max, 70)`. Every raised row must also read `below < target <= above <= max` and `above - below == step`. So `{below}` and `{above}` can no longer be equal, and `{above}` can no longer sit under the chosen temperature.
 
-Result: `154 of 1632` rows raise and 0 disagree with the oracle. At `47dd9c3594`, 683 raised and 1058 rows disagreed.
+Result: `277 of 2856` rows raise and 0 disagree with the oracle. At `d713ca529a`, 353 raised and 124 rows disagreed, all of them hard-cap or step-3 rows. The null control for the hard-cap rows is the 55-70 slider and harness grids: their counts (201 and 436 of 1750; 34 and 71 of 330) are unchanged, since the step above never passes 70 there.
 
 The range-cap pin uses the reviewer's probe: entity `{"min":30,"max":60,"step":1}`, everyday 55, disinfection 65. Under both rules no off-step notice rises, and after a short cycle `dhw_legionella_above_setpoint` and `dhw_legionella_unreachable` stand, as at base 50373173d4. Its null is a max-80, step-5 entity at 62: the off-step notice still rises and stands in place of the unreachable notice.
 
@@ -100,7 +126,7 @@ Harness, base against 5c961851a2: `dev/audit/harnesses/r10_disinfection_setpoint
 Rows: the slider grid is the config flow's integer sliders (everyday 40-65, disinfection 55-70, disinfection above everyday) on a 30-80 °C number of step 0.1, 0.5, 1, 2, 5; the harness grid is `r10_disinfection_setpoint.py`'s `GRID_TEMPS` cycle rows (disinfection above everyday, at most 70) on the same steps. A row raises when `OffStepNotice` raises after one `LegionellaGuard.async_observe` pass.
 - `201 of 1750` slider rows under the instant rule, all at step 5; `436 of 1750` under the hold rule; `0 of 1314` on-step slider rows; `34 / 71 of 330` harness-grid rows; `0 of 169` on-step harness-grid rows: `PYTHONPATH=tests/hastub python3 tests/guard_pins.py` (`ALL 79 GUARD PIN CHECKS PASSED` at the merged head)
 - `PYTHONPATH=tests/hastub python3 tests/block_duty.py`: `ALL 153 BLOCK DUTY CHECKS PASSED` at `ebc79b0e86`
-- `154 of 1632` entity-range census rows raise, 0 against the oracle; `ALL 84 GUARD PIN CHECKS PASSED` at `ebc79b0e86`
+- `277 of 2856` entity-range census rows raise, 0 against the oracle; `ALL 88 GUARD PIN CHECKS PASSED` at `23ff522a7c`
 - `class_excess_loc` 17502 <= 17502: `python3 tests/structure.py`
 - Architecture score: dS +0.0000 NULL: `python3 tools/audit/archscore/score.py --diff origin/main` at `ebc79b0e86` (origin/main c987209cc7)
 
@@ -108,21 +134,17 @@ Not measured: money (no flat-price arm); Fahrenheit entities, where `step` is in
 
 ## Unpinned sites
 
-None at `4328fc4245`: `ci_predict.py --base origin/main` lists no unpinned site the diff adds. The last one, `custom_components/heatpump_optimizer/legionella.py:100 CMP_BOUND*2` (anchor `legionella.py:OffStepNotice.check CMP_BOUND 03f00051`), now carries a recorded disposition: `tests/mutation_ledger/survivor_triage/legionella.py/OffStepNotice.check.CMP_BOUND.03f00051.json`, verdict `equivalent`. The two mutants of that anchor:
-- `written_c < target - margin` to `<=`: killed by `tests/guard_pins.py` (`mutation_table.py --pin-killed` at `4312a91719`).
-- `above_c >= target` to `>`: `lives`, and is equivalent. It differs only where `above_c == target`: the target is then on the step and inside the entity's range, so the write (`dhw_step_target_c`, the cycle temperature, at least the target, bounded with `hi` at the hard maximum, also at least the target while `dhw_legionella_temp` <= 70, `config_flow.py`'s 55-70 slider) is not under it, and the first clause is already false.
-
-The ledger disposes per anchor, so the one `survivor_triage` row covers both, and its reason names the killed one. Every other key is pinned under `killed_by` (`8551fc9f78` mutation-autofix, `4312a91719`).
+None at `23ff522a7c`: `ci_predict.py --base origin/main` lists no unpinned site the diff adds. The `survivor_triage` row that `4328fc4245` wrote for `legionella.py:OffStepNotice.check CMP_BOUND 03f00051` is removed: its equivalence was refuted on the service's 71-75 range. The restated gate's one ledger site, `legionella.py:104 CMP_BOUND`, is pinned under `killed_by` (`OffStepNotice.check.CMP_BOUND.9fc86b4c.json`). Every other site of the diff is pinned there too (`8551fc9f78` mutation-autofix, `4312a91719`).
 
 ## Red checks
 
-`tests / mutation`: the diff adds sites no ledger pin names yet (the named margins, the new notice and `cycle_write`), so the mutation lane is red until mutation-autofix pins them after the push. Mutation-autofix pinned them at `8551fc9f78`; this head re-keys the predicate's pins (`4312a91719`). The one site left, `legionella.py:100 CMP_BOUND*2`, was red at `12a6617f07`: the table needs a recorded disposition, not a body line. `4328fc4245` records it under `survivor_triage` as equivalent. The cheaper detector is prepr's ci predict, which listed it as a warning and not a red. That warning's standing cost is the gap this round paid for once. The cheaper detector is prepr.sh step 6d, which listed every site before the push; its standing cost is one static read. The merge removed the branch's own `_bounded_on` and `_cycle_c` sites (main's `SetpointGrid` owns them), so the earlier body's `pump_arbiter.py` lines at 595-621, 1221 and 1259 are gone from the list, and main's `_bounded` rows stand.
+`tests / mutation`: the diff added sites no ledger pin named yet (the named margins, the new notice and `cycle_write`), so the mutation lane was red until mutation-autofix pinned them, at `8551fc9f78`. Red again at `12a6617f07` for the predicate's CMP_BOUND site, which needs a recorded disposition, not a body line. Its `equivalent` row (`4328fc4245`) was refuted, and `23ff522a7c` pins the restated gate's site instead. The cheaper detector is prepr.sh's ci predict (step 6d), which lists every unpinned site before the push; its standing cost is one static read. The merge removed the branch's own `_bounded_on` and `_cycle_c` sites (main's `SetpointGrid` owns them), and main's `_bounded` rows stand.
 
 `tests / closures` and `tests / fast (3.14)`: prepr's closures step was skipped at this head (PREPR_SKIP_CLOSURES=1) because tests/features.py's charge-start-dip day-type check ("a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked") reads the real clock and fails on Saturdays and Sundays at origin/main (from PR 3444); the fix is PR 3578, owned by R10-HOTFIX-FEATURES-WEEKEND-CLOCK; no cheaper detector in this group; CI's closures job judges the head once the hotfix is on main. PR 3578 merged at origin/main c987209cc7, which `ebc79b0e86` contains; the closures step's result at that head is in `## Head`.
 
 ## Forward-carry
 
-none
+- `custom_components/heatpump_optimizer/services.py` (`set_thermal_parameters`, `dhw_legionella_temperature` `vol.Range(min=55, max=75)`) and `services.yaml`: the service admits a disinfection temperature of 71-75, which no cycle writes, since the 70 °C hard maximum caps it. This pull request makes that case raise the unreachable notice and not the off-step one. It does not narrow the range, because that is a user-facing behaviour change. The service's documented range and the 70 °C cap must agree, or the service text must say what 71-75 does. Carry: R11-INTAKE-R10-RESIDUE
 
 ## Friction
 
