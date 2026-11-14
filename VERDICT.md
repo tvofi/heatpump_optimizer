@@ -1,69 +1,46 @@
-Fix review: blocked d712c2ba4a834afcb5d722468676d52ce3762681 ci-red: classify RED at the head, gate red; tests / fast (3.14) red on a features.py check main's own tree fails too
+Fix review: merge 70ef3055363512123e9e6f8e5632831830d31dbb
 
-bus-nonce: b1a3df8bf73f585759b44a139c970262
+bus-nonce: 12e9aeddc3b15d25a9b99d0fee04ac13
+pending-ci: gate
 
-Round 2 of the review (a delta review over the reviewed head 7c7f06081827bbf9c52da7b2345b3a5a81048649). Measured head d712c2ba4a834afcb5d722468676d52ce3762681. At 01:12Z it was still `refs/pull/3481/head`, and the body's `## Head` names it.
-
-## Block
-
-`python3 tools/audit/seat/merge_train.py classify d712c2ba4a834afcb5d722468676d52ce3762681 --pr 3481` printed WAIT from 00:56Z. At 01:23Z it changed to `RED d712c2ba4a834afcb5d722468676d52ce3762681 pending: none red: gate`, rc 1 (ev/classify.log). A red CI never carries a merge (fix-review.md step 12), so this verdict is a block. The code review found no defect.
-
-The cause of the red, as far as this seat can read it:
-- `tests / fast (3.14)` (job 132260951585, run 43534335461) concluded failure with `1 TEST SCRIPT(S) FAILED`. That check is in the `owed-reds` set. The job log the GitHub API returns is truncated to its last ~26 kB, so the failing script's name is not visible.
-- On this container, tests/features.py at the head fails one real check: "a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked". It fails both in-tree (ev/features_intree_head.txt) and on a `git archive` copy (ev/features_ctl.txt).
-- The same check fails the same way on a `git archive` copy of origin/main 50373173d (ev/features_main.txt). It came to main at 8fa60a926d, and this diff does not touch it (`git diff origin/main...d712c2ba -- tests/features.py | grep -c "charge-start dip"` prints 0).
-- So the most likely red is main's, inherited through the merge, and not this branch's. That is not confirmed against CI's own log.
-- `tests / mutation` (job 132259821824) also concluded failure. Its readable log tail shows only the shard setup (`count=2`), so the cause is unreadable here. `tests / mutation-pins (1)` was still in progress at 01:12Z.
-
-Any one of these settles it:
-- main's check is repaired and main is merged in again;
-- the orchestrator confirms the fast red is main's and re-runs the lane;
-- the gate goes green at this head.
-
-A re-dispatch at an unchanged head needs only the live checks re-read. Every code finding below holds at d712c2ba.
-
-## Findings
-
-- main's tests/features.py check "a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked" fails at origin/main 50373173d on this container (3 of 5571 red on a `git archive` copy; the other two reds are copy artifacts, the #363 `recorded_at` and `_bootstrap` checks, which fail on every copy). It also fails in-tree at this head. Control to carry: run `PYTHONPATH=tests/hastub:tests:custom_components python3 tests/features.py` at origin/main and read that title's line. A repair is shown red before it and green after. Whether CI's fast lane at this head fails on this check is not confirmed: the API log is truncated. Carry: R11-INTAKE-R10-RESIDUE
+Round 3 of the review. It is a delta review over the reviewed head d712c2ba4a834afcb5d722468676d52ce3762681, whose verdict (verdict/3481, 1417dd0b1) blocked `ci-red` for one reason: main's tests/features.py charge-start-dip check. I measured head 70ef3055363512123e9e6f8e5632831830d31dbb, and it was still `refs/pull/3481/head` at 03:39Z.
 
 ## Evidence
 
-- Setup: `cloud-setup.sh --check` printed OK. Role pack rendered. `git diff merge-base...origin/main -- dev/governance/roles/` is empty.
-- Each prior finding:
-  - The block (own-group carries 128b800e and c33b6f10) is resolved. The four design items are measured in this PR by dev/audit/harnesses/r10_advisor_steady_seams.py. weekday-day is fixed; pair-other-asks, measured-fields and pv-price are disclosed in docs/dashboard-card.md. The body's carries now read 5 to R11-INTAKE-R10-RESIDUE and 1 dismissed, and none names this group. `carry_audit.py check --body` gives 5 routed, 0 unrouted, 0 bad.
-  - The stale `## Head` finding is resolved: the body now states that main is merged in.
-- Delta, isolated from the main merges. `git merge-tree --write-tree origin/main 7c7f0608` builds the reviewed head on today's main. Its one conflict is optimizer.py, `_held_reference` beside main's `_held_unreachable`, and the head keeps both and changes nothing else in that hunk. Diffing that tree against d712c2ba's leaves 60 files. The production part is:
-  - `reference_day`: the week loop.
-  - `price_tiles.take`: the `Rotation` dataclass and the 6-hour steady clock.
-  - the coordinator's None-spec return.
-  - `whatif.state_for` as `setdefault`.
-- The production review found no defect.
-  - `reference_day` now calls `_build_comfort_bounds` with no margins or floors. The function's `[0]` return (comfort_targets) reads neither, so this changes nothing.
-  - The only caller of `reference_day` is `whatif.schedule_days` (whatif.py:188), which compares setpoint lists element by element, so the week-length list is consistent there.
-  - The cap tile's six-hour clock and the restart cost of up to six hours with no cap refresh are disclosed in the body and docs.
-  - Nothing outside this was widened.
-- Merge with main: `git merge-tree --write-tree origin/main d712c2ba` exits 0 (ev/merge_tree.txt).
-- Step 5: `VERSION`, the manifest, `RELEASE_NOTES.md` and tests/golden/ are untouched (three-dot diff empty).
-- Step 14: `python3 tests/structure.py` printed STRUCTURE RATCHET PASSED (ev/structure.log). CI `arch-score / arch-score` and `budget-raise-gate` are success at this head.
-- Step 1, mutation proof: tests/features.py whole, on `git archive` copies of the head. The control (no edit) has 3 reds: the copy's #363 `recorded_at` check, `_bootstrap`, and main's charge-start-dip check. Each mutant's extra reds over the control:
-  - RESULT w1, the day offset dropped from `reference_day`'s step clock (seven copies of the asked day): +2, "#2257: with weekend temperatures the day energy is the week's average day ..." and "#2257: a weekend ask moves a setpoint on every weekday it is asked on ...".
-  - RESULT w2, `reference_day` pricing the first day only (`range(1)`, divided by 1): +5, including "#2257: reference_day's setpoints open with ... a week of days", "a horizon under a day prices no day" and the two weekday checks.
-  - RESULT t1, `take` not moving the stamp on a taken turn: +1, "#2257: the cap tile's steady pair is off the per-solve path ...".
-  - RESULT t2, the first cap turn taken at once (stamp set 7 h back): +2, "a tile rotation: each degree tile is one solve ..." and the #2257 off-path check.
-  - No survivor.
-- Step 2 and the body's figures, re-derived with `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_advisor_steady_seams.py weekday fields` at the head (ev/seams_head_weekday_fields.log):
-  - RESULT weekday with weekend comfort: 0 asks move with the weekday, 0 leave the schedule branch.
-  - RESULT weekday null: 0 and 0.
-  - RESULT weekday Friday sweep: 96 rows, 0 against the ask, 0 rounding to 0.00, 0 reading the pair.
-  - RESULT fields, single-zone: holds 21.00, 0 against the ask.
-  - RESULT fields, two-zone: holds 21.33, buffer moves 0.15 and 0.22.
-  - RESULT fields, valve one tank: holds 19.88, 24 of 72 at 0 or against the ask.
-  - RESULT fields, two-zone valve two-tank: holds 21.01, 0 against the ask.
-  - Every null (same start) reads 0.00.
-  - All of these match the body.
-- The body's "before" figure (8 asks move with the weekday, 12 leave the branch) came from d120504a7, where this harness does not exist, so I did not re-derive it at that commit. I re-ran it on mutant w2, the head with `reference_day` restricted to the first day (ev/seams_mutant_firstday_weekday.log): 8 and 12, and the Friday sweep with 18 rounding to 0.00 and 6 reading the pair. That matches the body's before figures.
-- Not re-run: the `pair` and `pv` arms, the bracket and carrier harnesses (unchanged since round 1's review, which re-ran them), tests/replay.py (CI `tests / replay` is success at this head) and card.mjs (CI fast lane).
-- Step 11: `merge_train.py owed-reds` prints `tests / coverage-ratchet`, `tests / fast (3.14)`, `tests / mutation`, `tests / typing`, `validate / validate-hacs`.
-  - At this head `tests / fast (3.14)` and `tests / mutation` are red. The body's Red checks section answers earlier runs of both, not these runs.
-  - I make no root-cause-* call: not all of the head's workflows had concluded when I read them (`tests / mutation-pins (1)` was in progress), and the fast red reads as main's.
-  - `tests / typing`, `validate / validate-hacs` and `tests / coverage-ratchet` are success.
+- Setup:
+  - `cloud-setup.sh --check` printed OK.
+  - The role pack was rendered.
+  - `git diff merge-base...origin/main -- dev/governance/roles/` is empty.
+  - The review packet was rendered (ev/review-packet.md). It refused only `introduced-red: unreadable` because instrument-self-tests was in progress at render time. Its `## Review scope` is delta. carry_audit at the head: 5 routed, 0 unrouted, 0 bad. figure_lint: 28 resolved, 0 not verified.
+- The delta is main's content only:
+  - 70ef30553 is one merge commit with parents d712c2ba and c987209cc, which is origin/main.
+  - `git merge-tree --write-tree d712c2ba c987209c` gives tree 1e4713c4a0a1. That equals `70ef3055^{tree}`, so the merge was automatic and carries no branch-authored change (ev/review_carry.txt).
+  - `tools/audit/seat/review_carry.py d712c2ba 70ef3055` prints `CARRY`: 0 of 1 branch-only commits are non-merge.
+  - `git diff d712c2ba 70ef3055` touches 12 files (ev/delta-files.txt, ev/delta-stat.txt), the same 12 files and line counts as `git diff merge-base(d712c2ba,c987209c) c987209c`.
+  - The production part is the v7.1.16 stamp's version strings: the manifest and the card's CARD_VERSION. VERSION, RELEASE_NOTES.md and the claim files' `claims-for` lines also came from main's stamp. None was authored by this branch. Nothing widens the review.
+- Merge with main: `git merge-tree --write-tree origin/main 70ef3055` exits 0, and origin/main is c987209cc.
+- The prior round's one finding is resolved:
+  - main's charge-start-dip check in tests/features.py was repaired on main (#3578, c987209c) and is merged in.
+  - `PYTHONPATH=tests/hastub:tests:custom_components python3 tests/features.py` on a worktree at this head printed `1 of 5618 FEATURE CHECKS FAILED` (ev/features_head_summary.txt). The charge-start-dip check passes.
+  - The one red is `_bootstrap drops the package directory so datetime is stdlib`. That is the copy/worktree path artifact the previous verdict recorded on every copy, including main's.
+  - CI's `tests / fast (3.14)` was still in progress at 03:39Z.
+- Every earlier code finding stays resolved as verdict/3481's Evidence recorded:
+  - the own-group carries, now routed to R11-INTAKE-R10-RESIDUE;
+  - the `## Head` statement;
+  - the mutation proof w1, w2, t1, t2, with no survivor;
+  - the seams-harness figures.
+  No line of custom_components/ that this branch wrote changed in the delta, so those measurements hold at this head.
+- Step 5: the three-dot diff `origin/main...70ef3055` leaves VERSION, the manifest version and the RELEASE_NOTES.md heading untouched. Their two-dot movement is main's stamp.
+- CI at the head (step 11). `merge_train.py classify 70ef3055... --pr 3481` printed `WAIT ... pending: gate red: none` from 03:08Z to 03:39Z (ev/classify.log), so this verdict carries `pending-ci: gate`.
+  - Success: arch-score, budget-raise-gate, typing, browser, briefs, closure-scope, env-matrix, policy-docs, wave-script, delivery-status, hassfest, validate-hacs and the three codeql lanes.
+  - Still running: fast (3.14), replay, closures, coverage, arch-instrument, instrument-self-tests, mutation-pins (1) and (2).
+- `tests / mutation` (job 132308321907) concluded failure, and it is in the `owed-reds` set (ev/owed-reds.txt).
+  - Its log reads `MUTATION TABLE REFUSED -- 2306 unpinned site(s) against 2309 at the ratchet base c987209cc..., 7 of them added by this diff`.
+  - The sites are coordinator.py:10703 GUARD_OFF, price_tiles.py:130 RETURN_DEL, price_tiles.py:146 GUARD_OFF, price_tiles.py:148 CMP_BOUND*2 and GUARD_OFF, and whatif.py:149 RETURN_DEL.
+  - I reproduced it on this head's worktree: `python3 tests/mutation_table.py --scope changed --base origin/main --max 10 --jobs 3`, rc 1, the same 6 lines (ev/mutation_table_head.txt).
+  - That is this branch's code, from rounds 4–6 (`Rotation`, `whatif.state_for`). The delta did not add it: the same lane was red at d712c2ba.
+  - So the body's statement that every site this diff adds is pinned, and that `ci_predict.py` lists no unpinned site, does not re-derive at this head. I did not re-derive it at the commits the body names.
+  - By ci-autofix.md, the `mutation-pins` shards are the job that repairs this. Both were in progress at 03:39Z, so a bot commit pinning the killed sites, or a red naming survivors, is still to come.
+  - No `root-cause-*` call is made: the head's workflows have not all concluded.
+  - The relay posts this verdict only once classify reads GREEN at this exact head. It refuses on a red, which includes a pins shard naming a survivor, and on a moved head, which includes a bot pin commit.
+- Not re-run, by CI citation: the gate, the mutation table's driver run, replay, the card checks.
