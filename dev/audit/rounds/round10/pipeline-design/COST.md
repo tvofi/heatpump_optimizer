@@ -1,101 +1,113 @@
-# Appendix C: candidates and cost tests (R11-PRE-PARALLEL-PIPELINE)
+# Appendix C: candidates and cost tests, revision 1 (R11-PRE-PARALLEL-PIPELINE)
 
-Baseline figures are `BASELINE.md`'s (B-ids). Two replays carry the cost test;
-each prints its own null control.
+Revision 1 replaces the first cost test. The design review (verdict
+ea028c98ec on `design-verdict/R11-PRE-PARALLEL-PIPELINE`) found the first
+replay deleted authored work, used a null that could not fail, and bisected
+at a parallelism the job cap does not allow. `REVISE-1.md` answers each point.
+The first replay's script and output stay in harness/ and out/
+(`replay_pipeline.py`, `out/replay_pipeline*.txt`) as the record of what was
+withdrawn; no figure below comes from it.
 
-- **R-pipe**: `harness/replay_pipeline.py [proof wall in minutes ...]`, over
-  the recorded 215 merges. Kept from the record: each pull request's verdicts,
-  the first green `ci.yml` run at its reviewed head, its merge time, and
-  whether main's `gate` went red at its merge. Output: `out/replay_pipeline.txt`.
-- **R-prog**: `harness/replay_programme.py`, which runs `tools/plan/replan.py`
-  over round 10's whole roster (495 groups, every one reset to not-started, 20
-  slots, coordinator cap 3, fixed start) and applies a candidate only as an
-  edit to the measured terms of `tools/plan/durations.json`. Output:
-  `out/replay_programme.txt`.
+## The two replays
+
+- **R-pipe2**: `harness/replay_v2.py [proof wall in minutes ...]`. One event
+  loop, five rule sets, over the recorded 215 merges. Inputs it keeps from the
+  record: each pull request's merge verdicts; the pull-request head each
+  verdict judged and the commits after it by kind (`collect_heads.py`,
+  `data/heads.json`); the `gate` check-run at the judged heads
+  (`data/gate_heads.json`); main's recorded reds (`data/main_gate.json`); the
+  direct pushes to main (`main_moves.py`). Output: `out/replay_v2.txt`.
+- **R-prog**: `harness/replay_programme.py`, `tools/plan/replan.py` over round
+  10's whole roster (495 groups reset to not-started, 20 slots, fixed start),
+  a candidate applied as hours taken off every size's first-round hours.
+  Output: `out/replay_programme_r1b.txt` (lower bound),
+  `out/replay_programme_r1c.txt` (upper bound).
+
+## Rules of R-pipe2
+
+- A pull request lands at its FIRST approved head only when nothing but
+  mechanical commits followed it. Fifteen took fixer-authored commits after
+  the first approval and thirteen a blocked verdict: those 28 land at their
+  LAST merge verdict's head.
+- Ready is the later of that verdict and `gate` green at that head. 167 heads
+  have the green check-run; 30 were superseded before the gate concluded and
+  are imputed as head time plus that day's mean push-to-green; 18 are red on
+  their own gate (or unmapped) and keep today's recorded clock.
+- Only a head made by a merge of main is removed by a candidate. A delivery-row
+  or bot head after approval keeps its cycle (34 such heads).
+- Merge latency, 0.45 h, is measured: gate green to main for the heads that
+  never moved (n = 58).
+- One proof at a time. A direct push to main (11 stamps, 9 ledger App pushes
+  in the window) restarts the proof in flight. A recorded red of one red then
+  green is transient and costs half a wall; the others are culprits, found by
+  prefix bisection with ONE proof at a time, or by cloud seats in one seat
+  wall (1.1 h, an estimate) where the rule set says so.
+- **Upper bound** (`OWN_RED=cycle ROW=early`): a head red on its own gate is
+  cured by one more cycle at the same head, and the delivery row is on the
+  head before review. It is the reading nearest the reviewer's own.
 
 ## Figures
 
-| id | figure | literal | enumerator |
+| id | figure | literal (lower bound; upper bound in brackets) | enumerator |
 |---|---|---|---|
-| C-null-1 | R-pipe, today's rules on the same data | 7.60 h, equal to B6 | R-pipe, line "today" |
-| C-null-2 | R-prog, unedited durations; an edit to a term the planner does not read | 714.05 h; 714.05 h | R-prog, first two lines |
-| C-floor | first merge verdict to "approved and green at the reviewed head" | mean 2.50 h, p50 0.24 h, p90 4.15 h | R-pipe, line "floor" |
-| C-floor-s | the same when the 74 heads with no recorded green take the p75 of the recorded waits | 2.84 h | `FALLBACK_Q=.75` R-pipe |
-| C1-wall | C1, first merge verdict to main, proof wall 45 / 60 / 75 / 105 min | 3.45 / 3.67 / 3.88 / 4.33 h | R-pipe, lines "C1" |
-| C1-proofs | C1, batch proofs added per window | 84 to 102 | R-pipe |
-| C2-land | C2, first merge verdict to landed | 2.50 h at every proof wall | R-pipe, lines "C2 ... landed" |
-| C2-lag | C2, main lags a landing by, mean / p90 / max, at 45 / 60 / 75 / 105 min | 1.12 / 1.62 / 2.19; 1.67 / 2.43 / 5.53; 2.29 / 3.08 / 7.78; 4.24 / 10.14 / 17.53 h | R-pipe, lines "main lags" |
-| C2-proofs | C2, proofs for the 215 changes at 45 / 60 min, bisection proofs among them | 149 (2) / 134 (8) | R-pipe |
-| C2-culprit | C2, culprit known after, mean / max, at 45 / 60 min | 1.28 / 1.68 h; 2.38 / 4.18 h | R-pipe |
-| C2-worst | C2 with all 20 reds treated as real, 60 min: lag mean / max, proofs | 2.29 / 9.53 h, 173 | `ALL_REAL=1` R-pipe |
-| P-C1 | R-prog, C1 (first-round hours less 3.0 and 3.4 h) | 645.93 and 636.72 h: -9.5 % and -10.8 % | R-prog |
-| P-C2a | R-prog, C2 taken off first-round hours (5.1 h) | 599.60 h: -16.0 % | R-prog |
-| P-C2b | R-prog, C2 taken as review turns removed (extra rounds x 0.71) plus 2.2 h | 572.68 h: -19.8 % | R-prog |
-| P-B11 | R-prog, the assumed round-11 baseline | 551.40 h | R-prog |
-| P-B11-C1 | on it, C1 | 473.08 h: -14.2 % of P-B11 | R-prog |
-| P-B11-C2 | on it, C2 | 435.20 h: -21.1 % of P-B11 | R-prog |
-| P-B11-C4 | on it, the repair round at 2.5 h | 485.92 h: -11.9 % of P-B11 | R-prog |
-| P-B11-C2C4 | on it, both | 373.87 h: -32.2 % of P-B11 | R-prog |
-| P-slots | R-prog, 26 slots, nothing else changed | 703.72 h: -1.4 % | R-prog |
+| N1 | NULL: today's rules through the loop against the measured mean; tolerance 20 % | 7.88 h against 7.60 h, +3.7 % [8.21 h, +8.0 %]; per class U 2.51 / 2.42, M 7.80 / 7.30, A 14.74 / 14.60, B 30.07 / 30.44 | R-pipe2, lines NULL and class |
+| N1b | the same with the median cycle in place of the mean | 6.49 h, -14.6 % | `CYCLE=median` R-pipe2 |
+| N2 | R-prog null: unedited; an unread term edited | 714.05 h; 714.05 h | R-prog |
+| S-a | saving a change, slot freed: day 1's first pull request alone (no clean absorb; the train still recarries) | 0.79 h [1.63] | R-pipe2, day1a |
+| S-1 | the same, day 1 complete, proof wall 45 / 60 / 75 / 105 min | 1.78 / 1.53 / 1.31 / 0.32 h [2.83 / 2.55 / 2.26 / 1.17] | R-pipe2, day1 |
+| S-1p | the same, every entry behind a proof before GitHub merges it | 1.30 / 0.70 / -0.98 / -4.15 h [2.32 / 1.67 / -0.12 / -3.24] | R-pipe2, day1+ |
+| S-i | the same, integration branch, successors at landing | 2.47 / 2.44 / 2.37 / 2.21 h [3.61 / 3.59 / 3.51 / 3.35] | R-pipe2, integ |
+| S-ig | the same, successors after a seat's green gate | 1.62 / 1.49 / 1.39 / 1.23 h [2.66 / 2.53 / 2.44 / 2.28] | R-pipe2, integ |
+| S-im | the same, successors at promotion (FULL-proof bisection) | 1.44 / 0.73 / -1.20 / -4.91 h [2.47 / 1.74 / -0.23 / -4.01] | R-pipe2, integ |
+| T-f | main trails a landing, mean and max, FULL-proof bisection | 1.16 and 2.91 / 1.93 and 7.20 / 4.02 and 19.04 / 8.01 and 34.34 h | R-pipe2, integ |
+| T-s | the same with seat search | 1.17 and 3.26 / 1.87 and 6.20 / 2.55 and 7.63 / 4.66 and 15.77 h | R-pipe2, integ seat search |
+| E | integration's edge over day 1 at landing (S-i less S-1) | 0.69 / 0.91 / 1.06 / 1.89 h [0.78 / 1.04 / 1.25 / 2.18] | derived from S-i and S-1 |
+| Pf | proofs a week, day 1 / every entry / integration, at 45 and 60 min | 104 and 99 / 140 and 120 / 140 and 121 | R-pipe2 |
+| G-a | programme wall clock, day 1's first pull request alone | -2.9 % | R-prog r1b |
+| G-1 | programme wall clock, day 1 complete, 45 / 60 / 105 min | -6.0 / -5.2 / -0.9 % | R-prog r1b |
+| G-i | programme wall clock, integration: successors at landing / after a seat gate / at promotion (60 min) | -7.7 / -5.1 / -2.7 % | R-prog r1b |
+| G-u | the upper bounds: day 1's first pull request alone; day 1 at 45 / 60 / 105 min; integration, successors at landing / after a seat gate | -5.6 %; -9.0 / -8.1 / -4.0 %; -11.5 / -8.0 % | R-prog r1c |
+| K1 | `ci.yml` run wall at heads made by a driver-free clean merge of main after PR open | 703 runs, 258 h of 1540 h, 16.7 %: the train's recarry 10.1 %, other instruments 6.6 % | `absorb_heads.py` |
+| K1n | its null: the same script with those heads relabelled ordinary | 0 h | `absorb_heads.py --null` |
+| K2 | runs cancelled when such a head arrived (burned; not counted as saved, the run would otherwise complete) | 102 runs, 111 h, 7.2 % | `absorb_heads.py` |
+| K3 | mean wall of a concluded push run; of a successful long dispatch run | 0.94 h; 0.98 h | `absorb_heads.py`, last line |
 
-## What each replay assumes
+## The cost test
 
-R-pipe.
-- A change is ready when it holds a merge verdict and a `ci.yml` run at the
-  reviewed head has concluded success. 141 of 215 have that run on record; the
-  other 74 take the median of the recorded waits (C-floor-s gives the p75).
-- A pull request blocked after its first approval keeps its real repair: its
-  clock runs from its last merge verdict. 22 such blocks are kept.
-- Red: the recorded red-streak starts (B19). One red followed by green at the
-  next merge with no fix between is treated as transient and costs half a
-  proof wall for a re-run of the failed jobs; the others are bisected over
-  prefixes, three prefix proofs in parallel a round, the culprit evicted and
-  kept on today's clock. C2-worst treats all as real.
-- One proof at a time; a proof covers every change landed when it starts.
-- C1: an entry in a serial class waits for the next batch proof; a batchable
-  entry merges when ready; claim and conflict entries (15) keep today's time.
-- The proof wall is an input, not a result. B22 gives its range. R-pipe does
-  not model the wall falling as load falls.
-
-R-prog.
-- The planner's own model: a group's hours are first-round hours plus extra
-  rounds times the hours of a round; 20 slots; the roster's `after` edges.
-- A candidate's saving is applied once per group, though a group with several
-  parts saves it per pull request: conservative.
-- The round-11 baseline is ASSUMED, not measured: the R11-PRE groups are
-  taken to cut extra rounds to 0.77 (B11's mechanical classes), a round from
-  5.65 to 4.0 h, and the first round by 1.0 h. C4's 2.5 h round is likewise an
-  assumption between B9's mean and its p10 plus review.
-
-## The cost test, per candidate
-
-| | C1 heads stop moving | C2 integration branch with promotion | C4 repair-loop requirements |
-|---|---|---|---|
-| programme wall clock, round 10 replayed | P-C1 | P-C2a to P-C2b | not replayed on round 10's baseline alone beyond a 4.15 h round: 630.03 h, -11.8 % |
-| programme wall clock, assumed round-11 baseline | P-B11-C1 | P-B11-C2 | P-B11-C4; with C2, P-B11-C2C4 |
-| hours a change, approval to slot freed | B6 less C1-wall: 3.3 to 4.2 h | B6 less C2-land: 5.1 h (4.8 h under C-floor-s) | 1.5 h a round, assumed |
-| CI runner-minutes (estimate from B23's class costs times this window's counts) | about -10 %: -19 % for runs no longer invalidated or cut by a merge of main, +9 % for C1-proofs at 197 runner-minutes each | about -33 % with the push run at a proved sha skipped; about -19 % without the skip | none |
-| review turns | fewer re-issued verdicts, not counted | -78 of 481 (B7), -16 % | none |
-| main red starts | unchanged (B19) | 0 by construction: a red proof does not move main | none |
-| right-first-time | unchanged | the 22 post-approval blocks become reds of a proof or vanish | the lever is the PRE groups' |
-| tokens | not measured: no token ledger exists yet (R11-PRE-TOKEN-LEDGER); proxy is review turns | same proxy | same |
-| new standing machinery | one refusal in three instruments | one branch, one state file, a proof scheduler, a bisector, one promotion writer, one audit job | one enumerator |
-| failure modes added | a stale-base head merges and reddens main as today | an instrument defect can move main (see the note's section 4); a rebuild changes merge shas of unproved landings; a stamp must order against a promotion | none |
-| build | 2 groups, S and S | 3 more groups, L, M and S | carries to 4 existing groups |
+| | day 1 complete | integration branch (the switch, not approved) |
+|---|---|---|
+| hours a change, slot freed | S-1 | S-i if successors start on unproved landings; S-ig behind a seat gate; S-im at promotion |
+| to main | as S-1 | later than day 1 at every proof wall of 60 min or more (S-im against S-1) |
+| programme wall clock | G-1 | G-i |
+| CI run wall | K1 less the batch proofs it adds (Pf times K3): about -10 % | K1 less about 1 % (proofs plus one push run a promotion against today's push runs): about -17 %; about -26 % if the push run at a proved sha is skipped (probe U6) |
+| main red starts (24 in the window) | unchanged for unproved lone entries; a batch entry cannot redden main once its proof is judged as a push | at least 2 remain (the two stamps); 4 if record pull requests stay on the direct path |
+| review turns | the 56 re-issued merge verdicts of B7 lose their cause | the same |
+| tokens | not measured: no ledger exists (R11-PRE-TOKEN-LEDGER) | the same |
+| build | three groups, S, M and S | three more, L, M and S, plus the probes and a decision on D1 |
 
 ## Against the bar (over 20 % on a measured baseline with a null control)
 
-- **Cleared by measurement:** CI runner-minutes under C2 with the push-run
-  skip (about -33 %, an estimate built from measured class costs and measured
-  counts, not a replay of jobs), and main red starts (24 to 0, by
-  construction). Without the skip C2's CI figure is about -19 %: under the bar.
-- **Reached only under an assumption:** programme wall clock. Replayed on
-  round 10: 16.0 % to 19.8 %, under the bar. On the assumed round-11 baseline:
-  21.1 %. With C4's requirements met: 32.2 %, an estimate.
-- **The weakest assumption** is C-floor: that a head approved and green lands
-  with no further wait. It rests on 141 recorded green times and a median for
-  the other 74. At the p75 (C-floor-s) the saving is 4.8 h a change and P-C2a
-  reads 604.43 h, -15.4 % (`out/replay_programme_floor_p75.txt`). The second weakest is the proof wall: at
-  105 min (B22's worst days) landing is unaffected and main trails by 4.2 h
-  mean, 17.5 h max (C2-lag).
-- **C1 alone does not clear it** on any measure.
+No candidate clears the bar on any of the four measures.
+
+- Programme wall clock: day 1 is G-1 (G-u at the upper bound), the
+  integration branch at best G-i's first term (G-u's -11.5 %). The first note's 16.0 to 19.8 % is withdrawn: it rested on a
+  landing figure of 2.50 h that R-pipe2 puts at 5.41 to 5.68 h from first
+  approval (4.60 to 4.86 h at the upper bound).
+- CI: day 1 about -10 % of run wall; the integration branch about -17 %, or
+  -26 % with a push-run skip that rests on an unprobed GitHub behaviour and a
+  change to `CLAUDE.md` rule 1. The first note's -33 % is withdrawn: it had no
+  enumerator and counted K2 and the gating run as saved.
+- Right-first-time and tokens: not measured.
+
+Day 1 is nonetheless not a new proposal under the bar's rule: it enforces the
+owner's ruling of 2026-11-07 and his direction of 2026-11-14 on
+`remerge_main.sh`.
+
+**The weakest inputs.** (1) The proof wall: R-pipe2 takes it as an input, and
+S-1 falls from 1.78 to 0.32 h as it goes from 45 to 105 min, because two
+thirds of entries wait for a proof under day 1. (2) The 18 heads red on their
+own gate: the lower bound keeps their whole recorded clock, the upper bound
+cures them in one cycle; the truth is per head and was not read. (3) N1 passes
+at +3.7 % with the mean cycle and at -14.6 % with the median: the loop is
+sensitive to how one more head is priced, and every saving is stated against
+the loop's own today, never against the measured 7.60 h.

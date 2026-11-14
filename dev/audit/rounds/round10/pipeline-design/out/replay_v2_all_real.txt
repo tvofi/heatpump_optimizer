@@ -1,0 +1,42 @@
+entries 215; classes {'U': 71, 'M': 116, 'A': 15, 'B': 13} (U head never moved, M mechanical moves only, A fixer commits after approval, B blocked after approval)
+ready from the gate check-run 167; imputed (gate never concluded at the head) 30; red on its own head or unmapped, kept on today's clock 18
+merge latency, gate green to main where the head never moved: n=58 mean 0.45 h p50 0.09 h; push-to-green over judged heads: mean 3.07 h, median 1.8 h; mean by day {'11-06': 2.05, '11-07': 2.81, '11-08': 2.72, '11-09': 2.39, '11-10': 4.13, '11-11': 4.7, '11-12': 3.93, '11-13': 1.75}
+direct pushes to main in the window (stamps, ledger App): 20; culprits 20, transient reds 0
+MEASURED first merge verdict -> main: mean  7.60  p50  3.90  p90 19.77
+NULL  today's rules through the loop:      mean  7.88  p50  5.12  p90 17.55   deviation from measured +3.7 % (tolerance 20 %): PASS
+        class U: n= 71 measured mean   2.42  loop   2.51
+        class M: n=116 measured mean   7.30  loop   7.80
+        class A: n= 15 measured mean  14.60  loop  14.74
+        class B: n= 13 measured mean  30.44  loop  30.07
+--- proof wall 60 min
+  day1a (no clean absorb by instruments and seats; the train still recarries serial entries): to main mean  7.25  p50  3.90  p90 16.12
+        {'train recarries': 110, 'claim recarries': 8, 'merged unproved': 190, 'main reddened by an unproved entry': 19} 
+        saving against the loop's today (7.88 h): slot freed at main  0.64 h; at main  0.64 h
+  day1 : to main mean  6.58  p50  2.89  p90 14.98
+        {'claim recarries': 8, 'merged unproved': 72, 'main reddened by an unproved entry': 6, 'largest range': 6, 'proofs': 100, 'evicted': 13, 'restarts': 11, 'bisection proofs': 7} culprit known after mean 2.38 max 7.86 h
+        saving against the loop's today (7.88 h): slot freed at main  1.30 h; at main  1.30 h
+  day1+: to main mean 11.23  p50  8.65  p90 23.57
+        {'claim recarries': 8, 'largest range': 25, 'proofs': 135, 'evicted': 19, 'restarts': 18, 'bisection proofs': 50} culprit known after mean 8.83 max 26.34 h
+        saving against the loop's today (7.88 h): slot freed at main -3.34 h; at main -3.34 h
+  integ, FULL-proof bisection: to main mean 11.10  p50  8.28  p90 23.19 | landed mean  6.21 | landed + seat gate mean  7.10 | main trails mean  5.94 max 28.16
+        {'largest range': 27, 'proofs': 136, 'evicted': 20, 'restarts': 17, 'bisection proofs': 46} culprit known after mean 8.41 max 26.34 h
+        saving against the loop's today (7.88 h): slot freed at landing  1.68 h; at main -3.21 h; at landing + seat gate  0.79 h
+  integ, seat search       : to main mean  8.08  p50  5.66  p90 16.25 | landed mean  5.83 | landed + seat gate mean  6.72 | main trails mean  2.74 max  9.93
+        {'largest range': 16, 'proofs': 116, 'evicted': 20, 'restarts': 14, 'seat runs': 76} culprit known after mean 4.33 max 7.86 h
+        saving against the loop's today (7.88 h): slot freed at landing  2.06 h; at main -0.20 h; at landing + seat gate  1.17 h
+--- proof wall 105 min
+  day1a (no clean absorb by instruments and seats; the train still recarries serial entries): to main mean  7.25  p50  3.90  p90 16.12
+        {'train recarries': 110, 'claim recarries': 8, 'merged unproved': 190, 'main reddened by an unproved entry': 19} 
+        saving against the loop's today (7.88 h): slot freed at main  0.64 h; at main  0.64 h
+  day1 : to main mean 10.07  p50  6.84  p90 25.22
+        {'claim recarries': 8, 'merged unproved': 72, 'main reddened by an unproved entry': 6, 'largest range': 16, 'proofs': 78, 'evicted': 13, 'restarts': 19, 'bisection proofs': 29} culprit known after mean 10.44 max 24.16 h
+        saving against the loop's today (7.88 h): slot freed at main -2.19 h; at main -2.19 h
+  day1+: to main mean 71.31  p50 79.75  p90 126.90
+        {'claim recarries': 8, 'largest range': 112, 'proofs': 126, 'evicted': 19, 'restarts': 20, 'bisection proofs': 100} culprit known after mean 55.74 max 129.79 h
+        saving against the loop's today (7.88 h): slot freed at main -63.43 h; at main -63.43 h
+  integ, FULL-proof bisection: to main mean 71.50  p50 81.58  p90 120.60 | landed mean 10.28 | landed + seat gate mean 11.18 | main trails mean 74.37 max 134.43
+        {'largest range': 117, 'proofs': 129, 'evicted': 20, 'restarts': 20, 'bisection proofs': 98} culprit known after mean 53.48 max 121.04 h
+        saving against the loop's today (7.88 h): slot freed at landing -2.39 h; at main -63.62 h; at landing + seat gate -3.30 h
+  integ, seat search       : to main mean 13.13  p50 10.23  p90 26.50 | landed mean  6.42 | landed + seat gate mean  7.33 | main trails mean  8.14 max 28.21
+        {'largest range': 29, 'proofs': 76, 'evicted': 20, 'restarts': 15, 'seat runs': 209} culprit known after mean 11.56 max 26.39 h
+        saving against the loop's today (7.88 h): slot freed at landing  1.46 h; at main -5.24 h; at landing + seat gate  0.55 h

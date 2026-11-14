@@ -1,0 +1,14 @@
+merges of main into the 215 merged branches: 826; clean with the checkout's drivers 739; clean driver-free (GitHub's text merge) 682
+by maker: n / clean with drivers / clean driver-free / of the driver-free clean, by phase (before open, open..approval, after approval)
+  other instrument (tvofi)    293 /  289 /  279 / [176, 30, 73]
+  fixer seat                  278 /  195 /  189 / [66, 109, 14]
+  train recarry               171 /  171 /  171 / [0, 0, 171]
+  other seat                   43 /   43 /   43 / [11, 31, 1]
+  merge-main bot               41 /   41 /    0 / [0, 0, 0]
+clean only with the drivers: 58 files: [('tests/structure_budgets.json', 27), ('dev/audit/config/bugclasses.json', 23), ('tests/closures.json', 10)]
+fixer-seat clean merges after the topic's first handoff: 136 of 189
+ci.yml run wall in the window: 1540 h over 3864 concluded runs; push runs 272 h over 291
+runs at a head made by a driver-free clean merge of main after PR open: 0 runs, 0 h (0.0 % of run wall)
+runs cancelled by such a merge arriving: 0 runs, 0 h (0.0 %)
+NULL (absorb heads relabelled as ordinary): run wall a no-clean-absorb rule removes: 0 h = 0.0 % of 1540 h (the 0 h burned in cancelled runs are not counted: those runs would complete instead)
+mean wall of a concluded push run: 0.94 h over 199; of a successful dispatch run of 15 min or more: 0.98 h over 57

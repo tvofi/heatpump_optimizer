@@ -1,0 +1,9 @@
+baseline_(round_10_as_measured)                                wall   714.05 h  (  +0.0 %)  {'closure': '2026-11-19T11:03:00Z', 'batches': 414, 'ci_minutes': 51525.0}
+null:_unread_term_edited                                       wall   714.05 h  (  +0.0 %)  {'closure': '2026-11-19T11:03:00Z', 'batches': 414, 'ci_minutes': 51525.0}
+R1_day1a_NO-ABSORB_alone:_first_-0.79_h                        wall   693.53 h  (  -2.9 %)  {'closure': '2026-11-18T14:32:00Z', 'batches': 402, 'ci_minutes': 50175.0}
+R1_day1_at_45_min:_first_-1.78_h                               wall   670.98 h  (  -6.0 %)  {'closure': '2026-11-17T15:59:00Z', 'batches': 365, 'ci_minutes': 46012.5}
+R1_day1_at_60_min:_first_-1.53_h                               wall   676.82 h  (  -5.2 %)  {'closure': '2026-11-17T21:49:00Z', 'batches': 363, 'ci_minutes': 45787.5}
+R1_day1_at_105_min:_first_-0.32_h                              wall   707.60 h  (  -0.9 %)  {'closure': '2026-11-19T04:36:00Z', 'batches': 380, 'ci_minutes': 47700.0}
+R1_integ_successors_at_landing:_first_-2.44_h                  wall   658.87 h  (  -7.7 %)  {'closure': '2026-11-17T03:52:00Z', 'batches': 381, 'ci_minutes': 47812.5}
+R1_integ_successors_after_a_seat_gate:_first_-1.49_h           wall   677.43 h  (  -5.1 %)  {'closure': '2026-11-17T22:26:00Z', 'batches': 361, 'ci_minutes': 45562.5}
+R1_integ_successors_at_promotion_60_min:_first_-0.73_h         wall   694.98 h  (  -2.7 %)  {'closure': '2026-11-18T15:59:00Z', 'batches': 386, 'ci_minutes': 48375.0}
