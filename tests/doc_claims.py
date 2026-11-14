@@ -4871,6 +4871,167 @@ def check_stateless() -> None:
 
 
 
+
+# R10-CONFIG-FLOW-TEXT-VERIFY: the flow help text that quotes a number the
+# code owns, and the flow help text on a slot the pump arbiter writes. Each pin
+# reads the shipped English (strings.json, which en.json copies leaf for leaf)
+# and the production symbol, so a constant moved without its sentence, or a
+# sentence promising "never writes" on a written slot, goes red here instead of
+# reaching a user. The record of every flow string's verdict, and which claims
+# stay prose-only, is dev/audit/rounds/round10/D6/flow-claims.md.
+_FLOW_DD = "options.step.entities_pump.data_description.pump_duty_mode"
+
+
+def flow_number_pins() -> list[tuple[str, str, float]]:
+    """``(dotted key, regex with one number group, the production value)``."""
+    import math
+
+    from heatpump_optimizer import const, curve_learning, duty_legs, flow_lift, thermal_model
+    from heatpump_optimizer import pump_arbiter as pa
+
+    pins = [
+        (_FLOW_DD, r"capped at (\d+) minutes", pa.LEASE_MINUTES),
+        (_FLOW_DD, r"\((\d+) below -?\d+ °C outdoors\)", pa.COLD_LEASE_MINUTES),
+        (_FLOW_DD, r"\(\d+ below (-?\d+) °C outdoors\)", pa.COLD_RAIL_C),
+        (_FLOW_DD, r"sent again every (\d+) minutes", pa.RETRY_MINUTES),
+        (_FLOW_DD, r"a share under (\d+) minutes", duty_legs.SPLIT_MIN_MINUTES),
+        (_FLOW_DD, r"the heating flow \((\d+) °C", pa.FLOW_HEAT_C),
+        (_FLOW_DD, r"\((\d+) °C when none is configured\)", pa.FLOW_HOLD_C),
+        (_FLOW_DD, r"(\d+) °C on steps that do not", pa.FLOW_GATE_C),
+        (_FLOW_DD, r"the hot water one to (\d+) °C", pa.DHW_GATE_C),
+        (_FLOW_DD, r"toward (\d+) °C \(or the Minimum lift", thermal_model.FLOW_MIN_LIFT_K),
+        # The realised worst case, not MAX_DOWN_PER_WEEK: STEP_K every
+        # DAYS_PER_STEP days lands three steps in one 7-day window (D6-s2-03).
+        ("options.step.learning_features.sections.model.data_description.curve_learning_enabled",
+         r"at most (six tenths) of a degree per week",
+         curve_learning.STEP_K * math.ceil(7 / curve_learning.DAYS_PER_STEP)),
+        ("options.step.tuning.sections.risk.data_description.confidence_margins_enabled",
+         r"capped at (\d+(?:\.\d+)?) °C", const.CONFIDENCE_MARGIN_CAP_C),
+        ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+         r"at most (\d+) K below", flow_lift.FLOW_BIAS_CLAMP_K),
+        ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
+         r"at most to a (\d+) °C supply", flow_lift.FLOW_SUPPLY_MAX_C),
+        ("options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled",
+         r"held that temperature for (\d+) minutes", const.DHW_LEGIONELLA_HOLD_MINUTES),
+        ("config.step.temperature.data_description.min_temperature",
+         r"lowers it by a further (\d+(?:\.\d+)?) K", const.ECONOMY_MIN_TEMP_WIDENING),
+        ("config.step.temperature.data_description.min_temperature",
+         r"a detected open window by (\d+) K", const.OPEN_WINDOW_RELAX_C),
+        ("config.step.temperature.data_description.min_temperature",
+         r"never below (\d+) °C", const.ECONOMY_ABSOLUTE_FLOOR),
+        ("options.step.learning_features.sections.weather.data_description.open_window_relax_enabled",
+         r"accepts by (\d+) °C, never below", const.OPEN_WINDOW_RELAX_C),
+    ]
+    return pins
+
+
+def flow_number_findings(texts: dict, pins: list) -> list[str]:
+    """Each pin whose sentence is absent, or quotes a number its symbol does not hold."""
+    words = {"six tenths": 0.6}
+    bad = []
+    for key, pattern, value in pins:
+        node = texts
+        for part in key.split("."):
+            node = node.get(part, {}) if isinstance(node, dict) else {}
+        match = re.search(pattern, node) if isinstance(node, str) else None
+        if match is None:
+            bad.append(f"{key}: no sentence matches {pattern!r}")
+            continue
+        quoted = words.get(match.group(1)) or float(match.group(1))
+        if abs(quoted - float(value)) > 1e-9:
+            bad.append(f"{key}: quotes {match.group(1)}, the code holds {value}")
+    return bad
+
+
+#: Words that promise a slot is left alone. A sentence carrying one is true of
+#: an arbiter slot only where it names the mode that writes it.
+_NEVER_WRITES = re.compile(r"never (?:writes|recommends)|used only to notice|\bread only\b", re.I)
+
+
+def arbiter_slot_keys() -> dict[str, str]:
+    """``{slot: config key}`` for every slot ``pump_arbiter`` writes, derived by
+    feeding each ``CONF_*_ENTITY`` key a value naming itself and reading back
+    which one each slot took -- no hand list to fall behind a new slot."""
+    from heatpump_optimizer import const
+    from heatpump_optimizer import pump_arbiter as pa
+
+    keys = {v for k, v in vars(const).items() if k.startswith("CONF_") and k.endswith("_ENTITY")}
+    probe = {key: f"switch.{key}" for key in keys}
+    return {
+        slot: entity.split(".", 1)[1]
+        for slot, entity in pa._entities(probe).items()
+        if entity
+    }
+
+
+#: The one sentence another group owns: R10-HOTFIX-FLOW-SETPOINT-STUCK corrects
+#: it and its translations (the owner's brief for this group: leave it to that
+#: fix). Keyed on the exact false sentence, so the pass expires the moment that
+#: text changes and the key is then judged like every other; nothing to delete
+#: for either merge order. A design choice, not a tolerance: it silences
+#: nothing but that sentence while it is still the shipped one.
+_OWNED_ELSEWHERE = {
+    "options.step.entities.sections.indoor.data_description.space_setpoint_entity":
+        "The optimizer never writes a recommended space set-point.",
+}
+
+
+def flow_write_findings(texts: dict, slot_keys: dict, owned: dict | None = None) -> list[str]:
+    """Flow strings on (or named after) a written slot that say it is never written,
+    less a sentence ``owned`` names another group's while it is still shipped."""
+    owned = _OWNED_ELSEWHERE if owned is None else owned
+    stems = {key.removesuffix("_entity") for key in slot_keys.values()}
+    bad = []
+
+    def walk(node, path):
+        if isinstance(node, dict):
+            for k, v in node.items():
+                walk(v, (*path, k))
+        elif isinstance(node, str) and path[-2:-1] == ("data_description",):
+            if any(path[-1].startswith(stem) for stem in stems) and _NEVER_WRITES.search(node) \
+                    and "Control" not in node:
+                dotted = ".".join(path)
+                if owned.get(dotted, "\0") not in node:
+                    bad.append(dotted)
+
+    for top in ("config", "options"):
+        walk(texts.get(top, {}), (top,))
+    return bad
+
+
+def check_flow_text_claims() -> None:
+    R.section("flow help text vs the code it describes (R10-CONFIG-FLOW-TEXT-VERIFY)")
+    texts = json.loads((PKG / "strings.json").read_text())
+    pins = flow_number_pins()
+    bad = flow_number_findings(texts, pins)
+    R.check(f"every quoted figure in the flow help ({len(pins)} pins) is its constant's value",
+            not bad, "; ".join(bad[:4]))
+    planted = json.loads(json.dumps(texts))
+    planted["options"]["step"]["entities_pump"]["data_description"]["pump_duty_mode"] = (
+        texts["options"]["step"]["entities_pump"]["data_description"]["pump_duty_mode"]
+        .replace("capped at 90 minutes", "capped at 60 minutes"))
+    R.check("null: a pump-duty text quoting 60 minutes for the 90-minute lease is found",
+            any(b.startswith(_FLOW_DD) and "quotes 60" in b for b in flow_number_findings(planted, pins)))
+    slots = arbiter_slot_keys()
+    R.check("the arbiter's written slots are derived (anchor: mode, both set-points)",
+            {"mode", "dhw_setpoint", "space_setpoint"} <= set(slots), repr(slots))
+    bad = flow_write_findings(texts, slots)
+    R.check("no flow help says a slot the arbiter writes is never written, unless it names Control",
+            not bad, "; ".join(bad))
+    indoor = planted["options"]["step"]["entities"]["sections"]["indoor"]["data_description"]
+    indoor["space_setpoint_unit"] = "The unit is a declaration: this integration never recommends a space set-point."
+    # Planted, not read from the tree: R10-HOTFIX-FLOW-SETPOINT-STUCK has replaced
+    # the shipped sentence, so only a plant still proves the exemption is all that
+    # hides it.
+    owned_key = "options.step.entities.sections.indoor.data_description.space_setpoint_entity"
+    indoor["space_setpoint_entity"] = _OWNED_ELSEWHERE[owned_key]
+    R.check("null: the other group's sentence is found once it is not exempted",
+            owned_key in flow_write_findings(planted, slots, owned={}))
+    R.check("null: the pre-fix space set-point unit sentence is found",
+            "options.step.entities.sections.indoor.data_description.space_setpoint_unit"
+            in flow_write_findings(planted, slots))
+
+
 def main() -> int:
     check_figures()
     check_product_page()
@@ -4914,6 +5075,7 @@ def main() -> int:
     check_readme_marketplace()
     check_surface_coverage()
     check_power_feedback_claims()
+    check_flow_text_claims()
     check_docs_strings_residue()
     check_stateless()
     return R.close("checks")
