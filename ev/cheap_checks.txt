@@ -1,0 +1,14 @@
+python3 tests/structure.py: STRUCTURE RATCHET PASSED, rc 0
+PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only origin/main: claims hygiene: origin/main ok, rc 0
+env_drift.py --all <merge base> with the cycling_cost claim line removed: MAY-DRIFT UNCOVERED ... cycling_cost ..., rc 1
+python3 tools/audit/archscore/score.py --diff <merge base>: Architecture score: dS +0.0000 NULL
+python3 tools/pr/ci_predict.py: 92 unpinned site(s) the diff adds; no closures, fast, governance or instrument red predicted against d7004eaa775d
+PYTHONPATH=tests/hastub python3 tests/doc_claims.py: ALL 410 checks PASSED
+node tools/policy/policy_lint.mjs --pr-body BODY.md: PR-BODY: 0 error(s)
+python3 tools/audit/carry_audit.py check --body BODY.md --pr-group R11-OUTSIDE-HONEST-STARTS-RUNS: 11 finding item(s): 11 routed, 0 unrouted, 0 bad destination(s), rc 0
+python3 -I tools/audit/seat/ref_privacy.py guard --ref refs/heads/fix/r11-outside-honest-starts-runs --commits HEAD --over origin/main: rc 0 without --adopt-email and rc 0 with it
+design note blob at 054a866c94, 62701bf993 and the head: 721abadec9ad00a38edce6b13702a2c0a9594276 (identical)
+62701bf993 author Bankaifan <476059+Bankaifan@users.noreply.github.com>, committer hpo-fixer; the 16 other commits hpo-fixer
+VERSION, manifest.json, RELEASE_NOTES.md: no line in the three-dot diff
+11 deleted ledger pins: the `old` text of each is absent from optimizer.py at the head
+python3 tools/audit/seat/merge_train.py owed-reds: tests / coverage-ratchet, tests / fast (3.14), tests / mutation, tests / typing, validate / validate-hacs (tail)

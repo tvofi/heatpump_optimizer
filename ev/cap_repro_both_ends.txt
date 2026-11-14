@@ -1,0 +1,24 @@
+== base
+RESULT cap p_min=5.5 cost=2.0 dhw=True pair=(1.0, 0.0) cap=0.6 out=10.0 win=20+8: capped steps with space over cap 0, with hot water over cap 3, max total over cap 4.90 kW, status optimal
+RESULT cap p_min=5.5 cost=2.0 dhw=True pair=(1.0, 0.0) cap=0.6 out=10.0 win=50+6: capped steps with space over cap 0, with hot water over cap 4, max total over cap 4.90 kW, status optimal
+RESULT cap p_min=5.5 cost=2.0 dhw=False pair=(0.0, 0.0) cap=0.6 out=10.0 win=20+8: capped steps with space over cap 0, with hot water over cap 0, max total over cap -0.60 kW, status optimal
+RESULT cap p_min=5.5 cost=0.25 dhw=False pair=(0.0, 0.0) cap=2.0 out=4.0 win=30+10: capped steps with space over cap 0, with hot water over cap 0, max total over cap -2.00 kW, status optimal
+RESULT cap p_min=5.5 cost=0.0 dhw=False pair=(0.0, 0.0) cap=2.0 out=4.0 win=30+10: capped steps with space over cap 0, with hot water over cap 0, max total over cap -2.00 kW, status optimal
+RESULT cap p_min=1.5 cost=0.25 dhw=False pair=(0.0, 0.0) cap=1.2 out=4.0 win=30+10: capped steps with space over cap 10, with hot water over cap 0, max total over cap 0.30 kW, status optimal
+RESULT cap p_min=1.5 cost=0.0 dhw=False pair=(0.0, 0.0) cap=1.2 out=4.0 win=30+10: capped steps with space over cap 0, with hot water over cap 0, max total over cap -1.20 kW, status optimal
+RESULT cap p_min=1.5 cost=0.0 dhw=False pair=(0.0, 0.0) cap=0.6 out=-4.0 win=40+12: capped steps with space over cap 4, with hot water over cap 0, max total over cap 0.90 kW, status optimal
+RESULT cap p_min=1.5 cost=0.25 dhw=False pair=(0.0, 0.0) cap=0.6 out=-4.0 win=40+12: capped steps with space over cap 5, with hot water over cap 0, max total over cap 0.90 kW, status optimal
+RESULT cap p_min=5.5 cost=0.25 dhw=False pair=(0.0, 0.0) cap=0.6 out=-4.0 win=40+12: capped steps with space over cap 0, with hot water over cap 0, max total over cap -0.60 kW, status optimal
+RESULT cap p_min=5.5 cost=0.0 dhw=False pair=(0.0, 0.0) cap=0.6 out=-4.0 win=40+12: capped steps with space over cap 0, with hot water over cap 0, max total over cap -0.60 kW, status optimal
+== head
+RESULT cap p_min=5.5 cost=2.0 dhw=True pair=(1.0, 0.0) cap=0.6 out=10.0 win=20+8: capped steps with space over cap 0, with hot water over cap 3, max total over cap 4.90 kW, status optimal
+RESULT cap p_min=5.5 cost=2.0 dhw=True pair=(1.0, 0.0) cap=0.6 out=10.0 win=50+6: capped steps with space over cap 0, with hot water over cap 6, max total over cap 4.90 kW, status optimal
+RESULT cap p_min=5.5 cost=2.0 dhw=False pair=(0.0, 0.0) cap=0.6 out=10.0 win=20+8: capped steps with space over cap 0, with hot water over cap 0, max total over cap -0.60 kW, status optimal
+RESULT cap p_min=5.5 cost=0.25 dhw=False pair=(0.0, 0.0) cap=2.0 out=4.0 win=30+10: capped steps with space over cap 0, with hot water over cap 0, max total over cap -2.00 kW, status optimal
+RESULT cap p_min=5.5 cost=0.0 dhw=False pair=(0.0, 0.0) cap=2.0 out=4.0 win=30+10: capped steps with space over cap 0, with hot water over cap 0, max total over cap -2.00 kW, status optimal
+RESULT cap p_min=1.5 cost=0.25 dhw=False pair=(0.0, 0.0) cap=1.2 out=4.0 win=30+10: capped steps with space over cap 0, with hot water over cap 0, max total over cap -1.20 kW, status optimal
+RESULT cap p_min=1.5 cost=0.0 dhw=False pair=(0.0, 0.0) cap=1.2 out=4.0 win=30+10: capped steps with space over cap 0, with hot water over cap 0, max total over cap -1.20 kW, status optimal
+RESULT cap p_min=1.5 cost=0.0 dhw=False pair=(0.0, 0.0) cap=0.6 out=-4.0 win=40+12: capped steps with space over cap 0, with hot water over cap 0, max total over cap -0.60 kW, status optimal
+RESULT cap p_min=1.5 cost=0.25 dhw=False pair=(0.0, 0.0) cap=0.6 out=-4.0 win=40+12: capped steps with space over cap 0, with hot water over cap 0, max total over cap -0.60 kW, status optimal
+RESULT cap p_min=5.5 cost=0.25 dhw=False pair=(0.0, 0.0) cap=0.6 out=-4.0 win=40+12: capped steps with space over cap 0, with hot water over cap 0, max total over cap -0.60 kW, status optimal
+RESULT cap p_min=5.5 cost=0.0 dhw=False pair=(0.0, 0.0) cap=0.6 out=-4.0 win=40+12: capped steps with space over cap 0, with hot water over cap 0, max total over cap -0.60 kW, status optimal

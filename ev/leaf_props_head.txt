@@ -1,0 +1,5 @@
+RESULT leaf identity on realizable (lengths 1,1): FAIL x2180 first=([0.0, 2.2618394109371796, 0.0, 5.413317399105574, 5.32745737148704, 0.0, 3.4355208499634537, 0.0, 1.722934039488071, 0.0, 0.0, 1.5213952561184665, 0.0, 4.495074014540341, 3.758514854738682, 5.127839671559062, 1.1781679449889129, 3.3786516846700976, 3.0670114729843165], [False, True, False, True, True, False, True, False, True, False, False, False, True, True, True, True, True, True, True], [1.0, 
+RESULT leaf: 3000 cases, 1 failing properties
+RESULT leaf candidates n=96 dt=0.250: 2 masks in 0.02 cpu-s
+RESULT leaf candidates n=192 dt=0.250: 3 masks in 0.04 cpu-s
+RESULT leaf candidates n=576 dt=0.083: 3 masks in 0.21 cpu-s

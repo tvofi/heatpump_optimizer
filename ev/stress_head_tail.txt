@@ -1,0 +1,8 @@
+  ok   an external heat source suppresses electric hot water
+  ok   suppression lowers total electric DHW energy, not just moves it
+
+ALL 116 STRESS CHECKS PASSED
+
+real	3m42.376s
+user	3m43.903s
+sys	0m4.468s

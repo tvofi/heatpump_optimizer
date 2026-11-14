@@ -1,0 +1,3 @@
+spread: cells 32 objective lower 32 higher 0 identical plan 0
+flat: cells 32 objective lower 32 higher 0 identical plan 0
+failures 0

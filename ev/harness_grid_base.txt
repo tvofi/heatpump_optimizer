@@ -1,0 +1,7 @@
+cost 0.0 clamp False p_min 1.1 loss 0.4: steps under the floor 11, edges 3, energy_kwh 2.80, objective 7.6183, stage entered False, solve_s 0.55
+cost 0.25 clamp False p_min 1.1 loss 0.4: steps under the floor 10, edges 2, energy_kwh 2.83, objective 7.7279, stage entered False, solve_s 0.88
+cost 0.25 clamp False p_min 0.53 loss 0.4: steps under the floor 10, edges 2, energy_kwh 2.83, objective 7.7279, stage entered False, solve_s 0.94
+cost 0.0 clamp True p_min 1.1 loss 0.4: steps under the floor 0, edges 2, energy_kwh 2.32, objective 7.8698, stage entered False, solve_s 0.43
+cost 0.25 clamp True p_min 1.1 loss 0.4: steps under the floor 0, edges 2, energy_kwh 2.20, objective 7.9620, stage entered False, solve_s 0.41
+cost 0.25 clamp False p_min 1.1 loss 1.0: steps under the floor 2, edges 2, energy_kwh 22.21, objective 18.3812, stage entered False, solve_s 0.53
+null (unpriced duty-cycle) cells that entered the stage 0
