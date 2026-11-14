@@ -1,11 +1,8 @@
-three-dot: old base 0723540391..8382e2aa vs new base e23124ff..a60a65d8, index and hunk-header lines stripped:
-IDENTICAL
-remerge-diff 440ae40331 lines: 0
-remerge-diff a60a65d873 lines: 0
-tree diff a60a65d8 vs 440ae40331 lines: 0
-main commits on cloud_relay.sh in the delta:
-440ae40331 Merge origin/main into r10-review-dispatch-residue-p5
-7d09eae1ba cloud_relay: pin the pending-red bound validation, the reviewer window, the revt return form and the failed return listing, each beside its null control
-bdf1dc827e cloud_relay: carry a pending-ci verdict across a moved head, hold a RED, honour dispose on rev-/revt- probe refs, owe a reviewer that never returned
-three-dot vs e23124ff on VERSION, custom_components, RELEASE_NOTES, golden, lines: 0
-origin/main: e23124ff6e45bac1d48b4a775dad555a37965355
+code range: git diff a60a65d87376397adc098cbf2b7b2377ccaeca02 a60a65d87376397adc098cbf2b7b2377ccaeca02
+0
+origin/main: 50373173d486faf394b24637c177ab38b691b394
+c115c1476156fb0108f8e3cb02dca4b9b93adf56
+merge-tree rc=0
+merge-base e23124ff6e45bac1d48b4a775dad555a37965355
+roles diff lines: 0
+untouched check:
