@@ -23111,7 +23111,8 @@
    "source": "outside",
    "findings": [],
    "carry": [
-    "Owner ruling 2026-11-13 (tvofi, verbatim: \"Fire it now, and if it is not merged when the stamp is ready, it goes to round 11 rather than holding closure.\"): part D is un-deferred and built in round 10 from now. It never holds the v10.0.0 stamp: if its pull request is not merged when the stamp is ready, the group and its refs go to round 11. tests/features.py is also edited by the open set-point hotfixes (pull requests 3561, 3562) and 3532: merge origin/main before the handoff if git merge-tree shows a conflict."
+    "Owner ruling 2026-11-13 (tvofi, verbatim: \"Fire it now, and if it is not merged when the stamp is ready, it goes to round 11 rather than holding closure.\"): part D is un-deferred and built in round 10 from now. It never holds the v10.0.0 stamp: if its pull request is not merged when the stamp is ready, the group and its refs go to round 11. tests/features.py is also edited by the open set-point hotfixes (pull requests 3561, 3562) and 3532: merge origin/main before the handoff if git merge-tree shows a conflict.",
+    "From r10-start-counter-edges, body item 6a12a74d: S7, measured, for the owner's decision between the residual and a refresh-held start (design note n6, review carry v5). On a meter that reports its window's average, an element cut-in with the compressor off gives one partial report between the on-threshold and the over level. That report holds for one report period, at least `EDGE_DEBOUNCE_S`, and so is confirmed as a start before over arrives. Harness rows `s7_60s` and `s7_30s`: 5 of 6 offsets count a false start on each (the sixth fills its window and is over from its first report); the sampled path counted 0. Pending owner ruling; lands in `dev/programme/rosters/wave-r10-groups.json`, this group's carry. Carry: R10-START-COUNTER-EDGES (items 6a12a74d)"
    ],
    "resume": {
     "stage": "not-started",
