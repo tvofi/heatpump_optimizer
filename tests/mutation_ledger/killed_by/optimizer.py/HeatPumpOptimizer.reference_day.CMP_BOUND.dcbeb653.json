@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.reference_day CMP_BOUND dcbeb653",
+  "killed_by": "tests/features.py",
+  "old": "            if day * dt >= 24.0 and targets not in day_kwh:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if day * dt > 24.0 and targets not in day_kwh:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

@@ -205,6 +205,7 @@
   "_weather_fetch_failed": "fetch",
   "_weather_fetch_recovered": "fetch",
   "_weather_series": "fetch",
+  "_whatif_solve": "core",
   "adopt_action": "core",
   "arbiter_inputs": "views",
   "async_apply_manual_plan": "core",
