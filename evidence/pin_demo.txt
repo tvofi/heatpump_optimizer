@@ -1,0 +1,3 @@
+RESULT asis+pin r1: tick_loop self-test: 31 checks, 0 failed rc=0 13s load=0.10
+RESULT nopf+pin r1: tick_loop self-test: 31 checks, 1 failed rc=1 13s load=0.08
+    FAIL REVIEWER PIN: an early match followed by 2 MB is read as a match

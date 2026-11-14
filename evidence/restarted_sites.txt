@@ -1,0 +1,4 @@
+110:  if [ -n "${HPO_TICK_RESTARTED:-}" ]; then why="restarted once this pass"
+120:    HPO_TICK_RESTARTED=1 exec bash "$top/tools/audit/seat/tick_loop.sh" ${ARGV[@]+"${ARGV[@]}"}  # mut:exec
+360:  out=$(HPO_TICK_RESTARTED=1 fr)
+426:  unset HPO_TICK_RESTARTED  # once per pass: the next pass may restart again

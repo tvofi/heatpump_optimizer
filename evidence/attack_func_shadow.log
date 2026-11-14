@@ -1,5 +1,0 @@
-re-exec shadowed: /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/bin /usr/bin/bash /tmp/tmp.wHyZjY816P/demo/src/tools/audit/seat/tick_loop.sh --self-test-rows
-re-exec shadowed: /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/bin /usr/bin/bash /tmp/tmp.PF7QRO8Syg/nb/tools/audit/seat/tick_loop.sh --self-test-rows --nested
-re-exec shadowed: /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/bin /usr/bin/bash /tmp/tmp.PF7QRO8Syg/nd/tools/audit/seat/tick_loop.sh --self-test-rows --nested
-re-exec shadowed: /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/bin /usr/bin/bash /tmp/tmp.PF7QRO8Syg/nh/tools/audit/seat/tick_loop.sh --self-test-rows --nested
-re-exec shadowed: /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/bin /usr/bin/bash /tmp/tmp.PF7QRO8Syg/n0/tools/audit/seat/tick_loop.sh --self-test-rows --nested

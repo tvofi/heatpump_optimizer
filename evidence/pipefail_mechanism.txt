@@ -1,0 +1,12 @@
+bash printf '%s\n' of 4 lines into a pipe, strace -e write:
+17654 write(1, "a\n", 2)                = 2
+17654 write(1, "b\n", 2)                = 2
+17654 write(1, "c\n", 2)                = 2
+17654 write(1, "d\n", 2)                = 2
+17654 +++ exited with 0 +++
+17655 write(1, "a\nb\nc\nd\n", 8)       = 8
+17655 +++ exited with 0 +++
+17653 --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=17654, si_uid=0, si_status=0, si_utime=0, si_stime=0} ---
+17653 +++ exited with 0 +++
+
+isolated pipeline, 1.3 MB after the match: pipefail on 20/20 read a match as none; pipefail off 0/20; 4-line input pipefail on 0/3000; ~70 KB 225/300; <=20 KB 0/300 (unloaded Linux)
