@@ -116,7 +116,7 @@
  {
   "name": "UNPRICED_DESCENT",
   "file": "custom_components/heatpump_optimizer/optimizer.py",
-  "old": "    if _engaged(opt) and _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n",
+  "old": "    if opt.config.cycling_cost > 0 and _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n",
   "new": "    if False:\n        free_room, free = rescope(None)\n"
  },
  {
@@ -214,5 +214,23 @@
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
   "old": "    _SOLVED_RUNNING[coord] = running\n",
   "new": "    pass\n"
+ },
+ {
+  "name": "UNPRICED_DESCENT_COST_ARM",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "    if opt.config.cycling_cost > 0 and _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n",
+  "new": "    if _priced_stops(opt) is not None:\n        free_room, free = rescope(None)\n"
+ },
+ {
+  "name": "CANDIDATE_OWN_BOUND",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "        scoped = [(np.clip(x, *_stage_box(opt, sc[0], dhw)[:2]), sc) for x, sc in zip(plans, scopes)]\n",
+  "new": "        scoped = [(x, sc) for x, sc in zip(plans, scopes)]\n"
+ },
+ {
+  "name": "ADOPTED_VECTOR",
+  "file": "custom_components/heatpump_optimizer/optimizer.py",
+  "old": "            self._space_avail = shipped[3]\n",
+  "new": "            pass\n"
  }
 ]
