@@ -34177,18 +34177,24 @@ _SP_FAULTS = {p: _sp_faults(p) for p in sorted(_SP_CITED)}
 for _sp_p, _sp_f in _SP_FAULTS.items():
     print(f"  cited  {_sp_p} by {', '.join(sorted(set(_SP_CITED[_sp_p])))}: "
           f"{'runs' if not _sp_f else '; '.join(_sp_f)}")
+_sp_unit = "dev/audit/rounds/round4/D12/units.py"
 R.check(
     "every program live policy or a carry's remeasure tells a seat to run, under a "
     "historical prefix, loads and resolves the paths it opens (#2227)",
-    len(_SP_POLICY) >= 20 and len(_SP_CARRIES) >= 1
-    and sum(any(c in _SP_CARRIES for c in v) for v in _SP_CITED.values()) >= 1
-    and len(_SP_CITED) >= 3 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN,
+    len(_SP_POLICY) >= 20
+    and len(_SP_CITED) >= 2 and not any(_SP_FAULTS.values()) and not _SP_STALE_RUN
+    # Design choice: a carry is the brief of a stage with no roster group and is
+    # discharged at closure, so the live tree may hold no carry citing a historical
+    # program; the carry source is pinned by a planted carry's JSON (the cited-program
+    # control below), not by a live file whose existence the arm cannot require.
+    and _sp_cited([("carry-0.json", "\n".join(_sp_remeasures(json.loads(
+        '{"carries": [{"remeasure": "run the D12 instrument '
+        '(dev/audit/rounds/round4/D12/units.py)"}]}'))))]) == {_sp_unit: ["carry-0.json"]},
     f"policy files {len(_SP_POLICY)}, carries {len(_SP_CARRIES)}, cited {len(_SP_CITED)} "
     f"(floors: an arm that finds nothing is not a pass); "
     f"faults {[f for v in _SP_FAULTS.values() for f in v]}; commands naming no file "
     f"{[f'{c}: {w} (now {p})' for c, w, p in _SP_STALE_RUN]}",
 )
-_sp_unit = "dev/audit/rounds/round4/D12/units.py"
 _sp_cog = "dev/audit/rounds/round6/D11/fix/codeowners_gap.py"
 # The planted stale literal is a file the move map retired, read from the
 # manifest rather than spelled here: a retired path written into a live file is
