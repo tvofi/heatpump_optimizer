@@ -1,12 +1,34 @@
-Paths where the head tree differs from git merge-tree of PR+train heads (conflicted files expected only)
-PR+3580 -> 45d8ca407bc78d4271a439d62bddcb8fd0f7b905
- custom_components/heatpump_optimizer/strings.json         | 5 -----
- custom_components/heatpump_optimizer/translations/de.json | 5 -----
- custom_components/heatpump_optimizer/translations/en.json | 5 -----
- custom_components/heatpump_optimizer/translations/sv.json | 5 -----
- 4 files changed, 20 deletions(-)
- custom_components/heatpump_optimizer/translations/sv.json | 5 -----
- 1 file changed, 5 deletions(-)
- custom_components/heatpump_optimizer/duty_switch.py | 5 -----
- 1 file changed, 5 deletions(-)
-final merge clean-tree equal: yes
+== merge-tree R x 237fad44 (5e1fac oracle)
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1019 entries)
+  re-run the gate that owns this file before pushing
+f8186ca9fcde7075f22a34eda751edb1a2f619ad
+custom_components/heatpump_optimizer/strings.json
+custom_components/heatpump_optimizer/translations/de.json
+custom_components/heatpump_optimizer/translations/en.json
+custom_components/heatpump_optimizer/translations/sv.json
+
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/optimizer.py
+Auto-merging custom_components/heatpump_optimizer/pump_arbiter.py
+Auto-merging custom_components/heatpump_optimizer/strings.json
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/strings.json
+Auto-merging custom_components/heatpump_optimizer/translations/de.json
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/translations/de.json
+Auto-merging custom_components/heatpump_optimizer/translations/en.json
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/translations/en.json
+Auto-merging custom_components/heatpump_optimizer/translations/sv.json
+CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/translations/sv.json
+rc tree=LEDGER-MERGE: resolved tests/closures.json
+diff vs 5e1fac tree:
+fatal: invalid object name 'LEDGER-MERGE'.
+== merge-tree R x 9fdba3b8 vs head tree
+ custom_components/heatpump_optimizer/strings.json         | 4 ----
+ custom_components/heatpump_optimizer/translations/de.json | 4 ----
+ custom_components/heatpump_optimizer/translations/en.json | 4 ----
+ custom_components/heatpump_optimizer/translations/sv.json | 4 ----
+ 4 files changed, 16 deletions(-)
+== merge-tree origin/main x head
+876e2d268772186228c63ab93be92948ef3886fe
+rc=0
+origin/main=5b8f05ba4e30d248b9b4a1f4c44fd8e62148c5db

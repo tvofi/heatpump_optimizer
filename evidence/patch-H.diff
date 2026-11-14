@@ -1,0 +1,1371 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index e3e47a52c6..0901305597 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1328,8 +1328,8 @@ def _zone_capacity(params: ThermalParameters) -> float:
+ 
+ def _restored_stores(coord: Any) -> tuple[Any, ...]:
+     """The stores ``_async_save_restored`` writes, each read before a restore applies."""
+-    return (coord._thermal_learning_store, coord._dhw_learner.profile_store,
+-            coord._dhw_learner.draws_store, coord._price_model_store, coord._accuracy_store)
++    return (coord._thermal_learning_store, coord._dhw_learner.profile_store, coord._dhw_learner.draws_store,
++            coord._price_model_store, coord._accuracy_store, duty_switch.record_for(coord).store)
+ 
+ 
+ async def _async_save_restored(coord: Any) -> None:
+@@ -1457,6 +1457,7 @@ _FACTORY_VOID: Final[tuple[tuple[str, tuple[str, ...] | None], ...]] = (
+     ("dhw_draws", None),
+     ("price_model", None),
+     ("accuracy", ("accuracy", "dhw_accuracy", "defrost", "comfort")),
++    ("duty_switch", None),
+ )
+ 
+ 
+diff --git a/custom_components/heatpump_optimizer/duty_legs.py b/custom_components/heatpump_optimizer/duty_legs.py
+index ecb3c6b38f..99df5c4b4e 100644
+--- a/custom_components/heatpump_optimizer/duty_legs.py
++++ b/custom_components/heatpump_optimizer/duty_legs.py
+@@ -35,22 +35,60 @@ SPLIT_MIN_MINUTES = 5.0
+ #: Leg codes of :func:`leg_ends`.
+ IDLE, SPACE, DHW = 0, 1, 2
+ 
++#: How a both step is served: the duty served first, and the minutes past
++#: :data:`SPLIT_MIN_MINUTES` the second share must reach to be served when
++#: the switch into it stops the compressor (``None``: it is never merged).
++LegRule = tuple[str, "float | None"]
++#: The legs of one step, in order, each with its minutes.
++Legs = tuple[tuple[str, float], ...]
++#: The rule with no learned stop: hot water first, never merged.
++DEFAULT_RULE: LegRule = ("dhw", None)
++
++
++def leg_rule(stop_probability: tuple[float, float], off_seconds: tuple[float, float]) -> LegRule:
++    """The leg order and whole-step rule of a both step, from the per-direction pairs.
++
++    One rule for the arbiter, which serves the legs (``duty_switch``, fed by
++    the learner's latched pairs), and the planner, which prices them (fed by
++    the same pairs through its configuration). Space goes first only where
++    hot water to heating alone stops the compressor. Where the switch into
++    the second duty stops it, a second share shorter than
++    :data:`SPLIT_MIN_MINUTES` plus that direction's off time goes to the
++    first duty when the next step serves the second, so its delivery moves
++    one step and is not dropped. With no stop priced this is
++    :data:`DEFAULT_RULE`.
++    """
++    first = "space" if stop_probability[0] > 0 and not stop_probability[1] > 0 else "dhw"
++    into = 0 if first == "dhw" else 1
++    return first, (off_seconds[into] / 60.0 if stop_probability[into] > 0 else None)
++
+ 
+ def both_step_legs(
+-    space_kw: float, dhw_kw: float, step_minutes: float = PLAN_STEP_MINUTES
+-) -> tuple[tuple[str, float], ...]:
++    space_kw: float,
++    dhw_kw: float,
++    step_minutes: float = PLAN_STEP_MINUTES,
++    rule: LegRule = DEFAULT_RULE,
++    next_duty: str | None = None,
++) -> Legs:
+     """The legs of a step both circuits run in, in order, each with its minutes.
+ 
+     Hot water's share is the step's hot-water power over its total (tvofi,
+     2026-09-27); a share under :data:`SPLIT_MIN_MINUTES` on either side
+-    collapses the step onto the other duty. Hot water goes first.
++    collapses the step onto the other duty. Otherwise ``rule``
++    (:func:`leg_rule`) orders the legs, and merges them onto the first where
++    ``next_duty``, the next step's duty, serves the second.
+     """
+     dhw_min = step_minutes * dhw_kw / (space_kw + dhw_kw)
+     if dhw_min < SPLIT_MIN_MINUTES:
+         return (("space", step_minutes),)
+     if step_minutes - dhw_min < SPLIT_MIN_MINUTES:
+         return (("dhw", step_minutes),)
+-    return (("dhw", dhw_min), ("space", step_minutes - dhw_min))
++    first, extra = rule
++    second = "space" if first == "dhw" else "dhw"
++    first_min = dhw_min if first == "dhw" else step_minutes - dhw_min
++    if extra is not None and next_duty in (second, "both") and step_minutes - first_min < SPLIT_MIN_MINUTES + extra:
++        return ((first, step_minutes),)
++    return ((first, first_min), (second, step_minutes - first_min))
+ 
+ 
+ def _runs(kw: np.ndarray, floor: float | None) -> np.ndarray:
+@@ -64,13 +102,15 @@ def leg_ends(
+     dhw_kw: Any,
+     floor: float | None = None,
+     step_minutes: float = PLAN_STEP_MINUTES,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+     """Per step: the first leg, the last leg, and whether the step has two.
+ 
+     The arbiter's rule elementwise: ``step_duty`` reads each circuit alone
+     against the plan's ``floor``, and a both step splits by
+-    :func:`both_step_legs`. ``space_kw`` may be a ``[B, n]`` batch against one
+-    ``[n]`` hot-water plan.
++    :func:`both_step_legs` under ``rule``, the next step's duty read from the
++    plan itself (none after the last). ``space_kw`` may be a ``[B, n]`` batch
++    against one ``[n]`` hot-water plan.
+     """
+     space = np.asarray(space_kw, dtype=float)
+     dhw = np.asarray(dhw_kw, dtype=float)
+@@ -79,11 +119,21 @@ def leg_ends(
+     dhw_min = step_minutes * dhw / np.where(both, space + dhw, 1.0)
+     to_space = both & (dhw_min < SPLIT_MIN_MINUTES)
+     to_dhw = both & ~to_space & (step_minutes - dhw_min < SPLIT_MIN_MINUTES)
+-    two = both & ~to_space & ~to_dhw
++    split = both & ~to_space & ~to_dhw
++    first, extra = rule
++    lead, trail = (DHW, SPACE) if first == "dhw" else (SPACE, DHW)
++    whole = np.zeros(split.shape, dtype=bool)
++    if extra is not None:
++        second_on, second_min = (s_on, step_minutes - dhw_min) if first == "dhw" else (d_on, dhw_min)
++        next_second = np.zeros(np.shape(second_on), dtype=bool)
++        next_second[..., :-1] = second_on[..., 1:]
++        whole = split & next_second & (second_min < SPLIT_MIN_MINUTES + extra)
++    two = split & ~whole
+     single = np.where(
+-        (s_on & ~d_on) | to_space, SPACE, np.where((d_on & ~s_on) | to_dhw, DHW, IDLE)
++        (s_on & ~d_on) | to_space | (whole & (lead == SPACE)), SPACE,
++        np.where((d_on & ~s_on) | to_dhw | (whole & (lead == DHW)), DHW, IDLE),
+     )
+-    return np.where(two, DHW, single), np.where(two, SPACE, single), two
++    return np.where(two, lead, single), np.where(two, trail, single), two
+ 
+ 
+ def priced_pair(values: Any, upper: float = math.inf) -> tuple[float, float]:
+@@ -109,12 +159,13 @@ def switch_weights_batch(
+     stop_probability: tuple[float, float],
+     p_max: float,
+     floor: float | None = None,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> np.ndarray:
+     """Expected compressor stops at duty switches, in cycles, per row of plans.
+ 
+     Every pair of consecutive legs of different duty with no idle step
+-    between weighs ``p * level / p_max``: inside a two-leg step both legs run
+-    at the step's combined level; across a boundary the stop adds the smaller
++    between weighs ``p * level / p_max``, in the direction ``rule`` orders the
++    legs: inside a two-leg step both legs run at the step's combined level; across a boundary the stop adds the smaller
+     of the two levels. ``row_sums`` reduces each row on its own, so a row is
+     :func:`switch_weight` of that plan bit for bit.
+     """
+@@ -122,7 +173,7 @@ def switch_weights_batch(
+     p_ds, p_sd = stop_probability
+     if p_max <= 0:
+         return np.zeros(space.shape[0])
+-    first, last, two = leg_ends(space, dhw_kw, floor)
++    first, last, two = leg_ends(space, dhw_kw, floor, rule=rule)
+     level = space + np.asarray(dhw_kw, dtype=float)
+     before, after = last[_BEFORE], first[_AFTER]
+     stops = np.where(
+@@ -131,7 +182,7 @@ def switch_weights_batch(
+         np.where((before == SPACE) & (after == DHW), p_sd, 0.0),
+     )
+     across = stops * np.minimum(level[_BEFORE], level[_AFTER])
+-    inside = np.where(two, p_ds * level, 0.0)
++    inside = np.where(two, (p_ds if rule[0] == "dhw" else p_sd) * level, 0.0)
+     return row_sums(np.concatenate([inside, across], axis=1)) / p_max
+ 
+ 
+@@ -141,10 +192,11 @@ def switch_weight(
+     stop_probability: tuple[float, float],
+     p_max: float,
+     floor: float | None = None,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> float:
+     """The one-row case of :func:`switch_weights_batch`."""
+     return float(switch_weights_batch(
+-        np.asarray(space_kw, dtype=float)[None, :], dhw_kw, stop_probability, p_max, floor
++        np.asarray(space_kw, dtype=float)[None, :], dhw_kw, stop_probability, p_max, floor, rule
+     )[0])
+ 
+ 
+@@ -166,19 +218,20 @@ def availability(
+     dhw_kw: np.ndarray,
+     lost: float,
+     floor: float | None = None,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> np.ndarray | None:
+     """Per step, the share of it the compressor can run after a priced stop.
+ 
+     One step is charged per hot-water block end: the step holding the heating
+-    leg that follows the hot-water leg in ``space_start_kw``, the profile the
++    leg that follows the hot-water leg in ``space_start_kw`` under ``rule``, the profile the
+     solve starts from, because which step that is is the solve's own variable.
+     ``None`` when nothing is charged, so the caller makes today's calls on
+     today's arrays instead of multiplying by ones.
+     """
+     if not lost > 0:
+         return None
+-    first, last, two = leg_ends(space_start_kw, dhw_kw, floor)
+-    charged = two.copy()
++    first, last, two = leg_ends(space_start_kw, dhw_kw, floor, rule=rule)
++    charged = two & (first == DHW)
+     charged[1:] |= (last[:-1] == DHW) & (first[1:] == SPACE)
+     if not charged.any():
+         return None
+@@ -217,18 +270,24 @@ def delivered_space(
+ 
+ 
+ def switch_ban(
+-    space_kw: np.ndarray, stop_probability: tuple[float, float], floor: float | None
++    space_kw: np.ndarray,
++    stop_probability: tuple[float, float],
++    floor: float | None,
++    rule: LegRule = DEFAULT_RULE,
+ ) -> np.ndarray:
+     """The steps hot water may not be placed on to avoid a priced switch.
+ 
+     For hot water to heating: where heating runs in that step or the next, so
+-    a block can only end into a planned stop or into more hot water. For
+-    heating to hot water it mirrors onto the previous step.
++    a block can only end into a planned stop or into more hot water; where
++    ``rule`` serves space first, a both step ends on its hot-water leg, so
++    only heating in the next step bans it. For heating to hot water it
++    mirrors onto the previous step.
+     """
+     on = _runs(np.asarray(space_kw, dtype=float), floor)
+     ban = np.zeros(on.shape, dtype=bool)
+     if stop_probability[0] > 0:
+-        ban |= on
++        if rule[0] == "dhw":
++            ban |= on
+         ban[:-1] |= on[1:]
+     if stop_probability[1] > 0:
+         ban |= on
+diff --git a/custom_components/heatpump_optimizer/duty_switch.py b/custom_components/heatpump_optimizer/duty_switch.py
+index e6cc14862c..68904c9beb 100644
+--- a/custom_components/heatpump_optimizer/duty_switch.py
++++ b/custom_components/heatpump_optimizer/duty_switch.py
+@@ -5,9 +5,13 @@ part A. On some pumps a mode write from hot water to heating while the
+ compressor runs stops it: the controller judges the heating request on a
+ return the hot-water leg has just heated. Whether it does, and for how long
+ the pump then stays off, is learned per install and per direction. It is
+-recorded, persisted and published on the compressor-starts sensor, and a
+-latched direction is read by the planner (:func:`planner_fields`), which
+-prices the switch through ``duty_legs``. No write reads it.
++recorded, persisted and published on the compressor-starts sensor. Its
++latches are read twice, through one leg rule: the arbiter's split of a both
++step (:func:`both_step_duty`, part B) and the planner (:func:`planner_fields`),
++which prices the switch through ``duty_legs``; both feed
++``duty_legs.leg_rule`` the same pairs (:meth:`DutySwitchLearner.split`), so
++the plan prices the legs the arbiter serves. A factory reset voids the store
++like every other learned estimate.
+ 
+ **Observe** (:class:`DutySwitchLearner`, no Home Assistant object). An
+ episode opens at a landed mode write between the two single duties while the
+@@ -44,7 +48,7 @@ from __future__ import annotations
+ import logging
+ import math
+ from dataclasses import dataclass, field
+-from datetime import date, datetime
++from datetime import date, datetime, timedelta
+ from typing import Any, Callable
+ from weakref import WeakKeyDictionary
+ 
+@@ -52,7 +56,7 @@ from homeassistant.core import callback
+ from homeassistant.helpers.event import async_track_state_change_event
+ from homeassistant.util import dt as dt_util
+ 
+-from . import pump_mode, wear
++from . import duty_legs, pump_mode, wear
+ from .const import DOMAIN
+ from .drift import stored_instant, utc_elapsed_seconds
+ from .store import QuarantiningStore
+@@ -74,10 +78,12 @@ HEATED_MARGIN_K = 2.0
+ SOURCE_LEG_MIN_S = 60.0
+ HALF_LIFE_DAYS = 14.0
+ N_ON, N_OFF = 5.0, 2.5
+-#: The most decayed episodes a direction holds, twice the on-threshold. With
+-#: every later episode kept, ``p`` falls from 1 by 10/11 per booking and is
+-#: under :data:`P_OFF` at the thirteenth; with none, ``n`` is under
+-#: :data:`N_OFF` just past two half-lives.
++#: The most decayed episodes a direction holds, twice the on-threshold, kept
++#: by scaling both counts alike (``p`` does not move): a direction the split
++#: avoids gets no episode, and from the cap ``n`` is under :data:`N_OFF` two
++#: half-lives after its last one, so the default split runs and re-tests it.
++#: With every later episode kept, ``p`` falls from 1 by 10/11 per booking and
++#: is under :data:`P_OFF` at the thirteenth.
+ N_CAP = 2.0 * N_ON
+ P_ON, P_OFF = 0.5, 0.3
+ SPAN_DAYS_ON = 2
+@@ -223,9 +229,8 @@ class Direction:
+                 self.censored += 1
+             else:
+                 self.off_s = [*self.off_s, off_s][-OFF_SAMPLES_MAX:]
+-        if self.n > N_CAP:
+-            scale = N_CAP / self.n
+-            self.k, self.kept_w = self.k * scale, self.kept_w * scale
++        scale = min(1.0, N_CAP / self.n)
++        self.k, self.kept_w = self.k * scale, self.kept_w * scale
+         self._latch()
+ 
+     def stored_row(self) -> dict[str, Any]:
+@@ -394,6 +399,16 @@ class DutySwitchLearner:
+         read = [d if d.usable else Direction() for d in map(self.directions.__getitem__, DIRECTIONS)]
+         return (read[0].p, read[1].p), (read[0].median_off_s or 0.0, read[1].median_off_s or 0.0)
+ 
++    def split(self) -> duty_legs.LegRule:
++        """The leg rule a both step is served by: ``duty_legs.leg_rule`` of
++        :meth:`planner_pairs`, the pairs the planner prices, so planner and
++        arbiter read one rule. Read only through the latches: ``n``, the
++        tallies and ``span_days`` are not read, so evidence accruing faster on
++        one set-point unit than another moves nothing here until a latch
++        moves. With no latch on this is ``duty_legs.DEFAULT_RULE``: hot water
++        first for its share."""
++        return duty_legs.leg_rule(*self.planner_pairs())
++
+     def stored_record(self) -> dict[str, Any]:
+         return {"directions": {name: d.stored_row() for name, d in self.directions.items()}}
+ 
+@@ -433,6 +448,9 @@ class _Record:
+     unsub: Callable[[], None] | None = None
+     loaded: bool = False
+     dirty: bool = False
++    #: The both step whose legs were decided, and the legs, latched so
++    #: neither the tick nor a re-solve inside the step flips them.
++    order: tuple[datetime, duty_legs.Legs] | None = None
+ 
+     def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
+         """Hand a confirmed edge, if any, to the learner."""
+@@ -526,6 +544,23 @@ def starts_attributes(coord: Any) -> dict[str, float]:
+     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
+ 
+ 
++def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float, dhw_kw: float,
++                   step_min: float, next_duty: str | None) -> str:
++    """The duty the both step starting at ``start`` serves at ``now``: its
++    first leg for that leg's minutes, then its last, the legs being
++    ``duty_legs.both_step_legs`` under :meth:`DutySwitchLearner.split`, decided
++    once per step, of a step ``step_min`` long. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
++    as before the learner existed, and latches nothing."""
++    if rec.loaded:
++        if rec.order is None or rec.order[0] != start:
++            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, step_min, rec.learner.split(),
++                                                         next_duty=next_duty))
++        legs = rec.order[1]
++    else:
++        legs = duty_legs.both_step_legs(space_kw, dhw_kw, step_min)
++    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
++
++
+ def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:
+     """The ``OptimizationConfig`` fields a solve prices a duty switch by; a pump never arbitrated reads zeros."""
+     rec = _RECORDS.get(coord)
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 7122bda293..9edfa7c036 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -204,6 +204,14 @@ def _priced_stops(opt: HeatPumpOptimizer) -> tuple[float, float] | None:
+     return stops if max(stops) > 0 else None
+ 
+ 
++def _leg_rule(opt: HeatPumpOptimizer) -> duty_legs.LegRule:
++    """The leg rule the arbiter serves a both step by, from the pairs this solve prices."""
++    return duty_legs.leg_rule(
++        duty_legs.priced_pair(opt.config.duty_switch_stop_probability, 1.0),
++        duty_legs.priced_pair(opt.config.duty_switch_off_seconds),
++    )
++
++
+ def _stop_availability(
+     opt: HeatPumpOptimizer, start: np.ndarray, dhw_plan: np.ndarray, p_max: float
+ ) -> np.ndarray | None:
+@@ -224,7 +232,7 @@ def _stop_availability(
+         np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),
+         dhw_plan, opt.model.params.min_electrical_power, p_max,
+     )
+-    return duty_legs.availability(space, tank, lost, _duty_floor(opt))
++    return duty_legs.availability(space, tank, lost, _duty_floor(opt), _leg_rule(opt))
+ 
+ 
+ def _with_stop_availability(
+@@ -284,14 +292,14 @@ def _switch_cost_fn(
+     ``None`` when no direction is priced or there is no hot-water plan, and
+     :func:`_with_switch_cost` then adds no operand at all.
+     """
+-    stops, floor = _priced_stops(opt), _duty_floor(opt)
++    stops, floor, rule = _priced_stops(opt), _duty_floor(opt), _leg_rule(opt)
+     p_max, cost = opt.model.params.max_electrical_power, opt.config.cycling_cost
+ 
+     def switch_cost(space: np.ndarray, dhw: np.ndarray | None) -> Any:
+         if stops is None or dhw is None or not cost > 0:
+             return None
+         term = cost * duty_legs.switch_weights_batch(
+-            np.atleast_2d(space), dhw, stops, p_max, floor)
++            np.atleast_2d(space), dhw, stops, p_max, floor, rule)
+         return term if np.ndim(space) == 2 else float(term[0])
+ 
+     return switch_cost
+@@ -359,10 +367,10 @@ def _avoid_priced_switches(
+         opt.model.params.min_electrical_power, p_max,
+     )
+     kept_avail, kept_requirement = opt._space_avail, opt._dhw_requirement
+-    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:
++    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:
+         return incumbent
+     try:
+-        ban = duty_legs.switch_ban(shipped, stops, floor)
++        ban = duty_legs.switch_ban(shipped, stops, floor, _leg_rule(opt))
+         plan, requirement = _dhw_build(
+             planner, h, p_max,
+             wood_temps=planner._dhw_coil_wood_forecast(h), placement_ban=ban,
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 8cea6244cf..09c32e969d 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -39,9 +39,11 @@ own tank thermostat must not spend them. A disinfection cycle the
+ integration holds on (``DisinfectionSwitch.memo``) turns a space-only step
+ into Heating + DHW, so the planned anti-legionella run can make hot water.
+ *Idle* writes no mode: see :func:`desired`. A both step is split by
+-:func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
+-then Heating, each through its own row above; a share under
+-:data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
++:func:`_share` into the legs of ``duty_legs.both_step_legs``: by default DHW
++only for the step's hot-water share of its 15 minutes, then Heating, each
++through its own row above; a share under ``duty_legs.SPLIT_MIN_MINUTES`` goes
++to the other duty (tvofi, 2026-09-27); a learned stop reorders or merges the
++legs by ``duty_legs.leg_rule``, the rule the planner prices.
+ A block drops its duty out of :func:`_planned_duty` and again out of
+ whatever :func:`_share` and the hot-water lease return, so a blocked
+ duty is served as idle and a lease expiry cannot hand it back. The
+@@ -199,7 +201,6 @@ from .log_latch import log_held
+ from .payload import REASON_LEGIONELLA, CurrentAction
+ from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
+ from .drift import utc_elapsed_seconds, utc_shift
+-from .duty_legs import both_step_legs
+ from .drift import stored_instant
+ from .store import QuarantiningStore, load_mapping
+ from .thermal_model import (
+@@ -1923,7 +1924,11 @@ async def _lead_mode(coord: Any, on: bool) -> None:
+ 
+ 
+ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
+-    """On a planned both step, hot water first for its share, then heating.
++    """On a planned both step, the first duty for its share, then the other.
++
++    Hot water goes first unless ``duty_switch`` has learned that only the
++    switch from hot water to heating stops the compressor; the order, and
++    whether the first duty keeps the whole step, is its latched decision.
+ 
+     Heating + DHW leaves the split to the pump's own two thermostats (tvofi,
+     2026-09-27). The share is the step's hot-water power over its total.
+@@ -1935,11 +1940,10 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
+         return duty
+     result = inp.plan
+     i = bisect.bisect_right(result.timestamps, now) - 1
+-    legs = both_step_legs(
+-        result.power_schedule[i], result.dhw_power_schedule[i], PLAN_STEP_MINUTES
+-    )
+-    first_ends = timedelta(minutes=legs[0][1])
+-    return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]
++    start = result.timestamps[i]
++    return duty_switch.both_step_duty(
++        duty_switch.record_for(coord), start, now, result.power_schedule[i], result.dhw_power_schedule[i],
++        PLAN_STEP_MINUTES, step_duty(result, utc_shift(start, timedelta(minutes=PLAN_STEP_MINUTES))))
+ 
+ 
+ def on_off_service(entity_id: str, on: bool) -> tuple[str, str]:
+diff --git a/dev/audit/harnesses/r10_duty_switch_price_section.py b/dev/audit/harnesses/r10_duty_switch_price_section.py
+index 6f6895aca6..36bbbd9160 100644
+--- a/dev/audit/harnesses/r10_duty_switch_price_section.py
++++ b/dev/audit/harnesses/r10_duty_switch_price_section.py
+@@ -66,7 +66,7 @@ MUTANTS: list[tuple[str, str, str, str]] = [
+     ("optimizer: a candidate pass that raises is not caught", PKG + "optimizer.py",
+      "    except Exception as err:  # noqa: BLE001 - a candidate is optional", "    except KeyError as err:  # a candidate is optional"),
+     ("learner: no count cap", PKG + "duty_switch.py",
+-     "        if self.n > N_CAP:\n", "        if False:\n"),
++     "        scale = min(1.0, N_CAP / self.n)\n", "        scale = 1.0\n"),
+     ("learner: the cap scales the stops alone", PKG + "duty_switch.py",
+      "self.k, self.kept_w = self.k * scale, self.kept_w * scale", "self.k = self.k * scale"),
+     ("learner: the cap is three times the on-threshold", PKG + "duty_switch.py",
+@@ -84,8 +84,8 @@ MUTANTS: list[tuple[str, str, str, str]] = [
+     ("leaf: the switch weight takes the larger neighbouring draw", PKG + "duty_legs.py",
+      "np.minimum(level[_BEFORE], level[_AFTER])", "np.maximum(level[_BEFORE], level[_AFTER])"),
+     ("leaf: the in-step weight draws the smaller circuit, not the combined draw", PKG + "duty_legs.py",
+-     "np.where(two, p_ds * level, 0.0)",
+-     "np.where(two, p_ds * np.minimum(space, np.asarray(dhw_kw, dtype=float)), 0.0)"),
++     "np.where(two, (p_ds if rule[0] == \"dhw\" else p_sd) * level, 0.0)",
++     "np.where(two, (p_ds if rule[0] == \"dhw\" else p_sd) * np.minimum(space, np.asarray(dhw_kw, dtype=float)), 0.0)"),
+     ("leaf: the weight is not divided by the maximum draw", PKG + "duty_legs.py",
+      "axis=1)) / p_max", "axis=1))"),
+     ("leaf: a small hot-water share no longer collapses to heating", PKG + "duty_legs.py",
+@@ -143,8 +143,8 @@ MUTANTS: list[tuple[str, str, str, str]] = [
+     ("optimizer: the co-optimisation headroom ignores the availability vector", PKG + "optimizer.py",
+      "p_max, dhw_power, self._space_avail, _duty_floor(self))", "p_max, dhw_power, None, _duty_floor(self))"),
+     ("optimizer: the availability vector is classified with no duty floor", PKG + "optimizer.py",
+-     "return duty_legs.availability(space, tank, lost, _duty_floor(opt))",
+-     "return duty_legs.availability(space, tank, lost, None)"),
++     "return duty_legs.availability(space, tank, lost, _duty_floor(opt), _leg_rule(opt))",
++     "return duty_legs.availability(space, tank, lost, None, _leg_rule(opt))"),
+     ("optimizer: the candidate pass runs on a combi store", PKG + "optimizer.py",
+      "or not opt.config.cycling_cost > 0 or opt.model.params.dhw_store.combi:",
+      "or not opt.config.cycling_cost > 0:"),
+@@ -156,9 +156,9 @@ MUTANTS: list[tuple[str, str, str, str]] = [
+      "np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),", "(start),"),
+     ("optimizer: the start is capped at zero in every step", PKG + "optimizer.py",
+      "np.minimum(start, np.maximum(0.0, p_max - dhw_plan)),", "np.minimum(start, (0.0)),"),
+-    ("arbiter: the share serves the legs in reverse order", PKG + "pump_arbiter.py",
+-     "return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]",
+-     "return legs[-1][0] if (now - result.timestamps[i]) < first_ends else legs[0][0]"),
++    ("arbiter: the share serves the legs in reverse order", PKG + "duty_switch.py",
++     "return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]",
++     "return legs[-1][0] if now - start < timedelta(minutes=legs[0][1]) else legs[0][0]"),
+ ]
+ 
+ 
+diff --git a/dev/programme/delivery/3532.md b/dev/programme/delivery/3532.md
+new file mode 100644
+index 0000000000..9a76a5e40a
+--- /dev/null
++++ b/dev/programme/delivery/3532.md
+@@ -0,0 +1 @@
++- [#3532](https://github.com/tvofi/heatpump_optimizer/pull/3532) — **open**, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B (part 2): r10 duty switch restart learning pr b p2 (R10-DUTY-SWITCH-RESTART-LEARNING-PR-B)
+diff --git a/docs/design/2026-11-10-duty-switch-restart-learning/design.md b/docs/design/2026-11-10-duty-switch-restart-learning/design.md
+index 247ef91ce2..6dff59d3a5 100644
+--- a/docs/design/2026-11-10-duty-switch-restart-learning/design.md
++++ b/docs/design/2026-11-10-duty-switch-restart-learning/design.md
+@@ -133,3 +133,11 @@ Part B's own rule (the arbiter's split order) is a later pull request of the sam
+ - **`N_ON` is a decayed weight, not a count of episodes** (part A's body item ef5d3875). Each booking ages the earlier ones first, so five stops ten hours apart weigh under five and a sixth latches; the approved note's "n >= 5" already reads that way, and the code is unchanged. Pinned by the section's check "N_ON is a weight"; control, the check where a stop taking an undecayed n from 4 to 5 switches a direction on.
+ - **The publication moves with observations, not with age** (item c7d068a1). The starts sensor publishes `p` to two places, which decay does not move, and `n` as the whole episodes still weighing, rounded down; `k` is no longer published, being `p` times `n`. Age alone now moves only `n`, one step per whole episode lost. Pinned by the section's check "age alone moves no published attribute within a day"; its null control is the decayed weight read to two places, the old resolution, which moves within the same reads.
+ - **Still owed by part B's later pull request**, which first reads the estimate: the module-level reader added with its first caller (item 1b22f416); the owner's ruling on factory reset keeping this store, before that reader merges (item 3c666f5b); a reader taking an absent key as no observation and `span_days` 0 beside non-zero tallies as "nothing recent" (item 90bc5153); evidence accruing at different rates per set-point unit (item d088605d); and the ceiling on `n` the group's ruling sets, which also bounds how often the published `n` can step.
++
++## Part B, second pull request: the arbiter's split reads the estimate
++
++- **The reader and its first caller** (item 1b22f416). `duty_switch.both_step_duty` is the module-level reader, and `_share` in `pump_arbiter.py` is its caller, handing it the pump's record, the step and the plan's next step; the arbiter holds no learned state and computes no share past the two collapses it had. The decision (the duty served first, and whether it keeps the whole step) is made by `DutySwitchLearner.split` and latched on the pump's record per step start, so neither the tick nor a re-solve inside the step flips it. A record not yet loaded splits as before and latches nothing.
++- **The rule** (the group's ruling on rule c). Space goes first only where hot water to space is the one usable direction. The first duty keeps the whole step only when the switch into the second is usable, the second share is shorter than `SPLIT_MIN_MINUTES` plus that direction's median off time, and the plan's next step serves the second duty (or both); otherwise the split is today's in the chosen order. With no usable direction the decision is hot water first, not whole: today's split, minute for minute.
++- **What the reader reads** (items 90bc5153, d088605d). Only the latches and the median off time: never `n`, the tallies, `span_days` or a published key, so `span_days` 0 beside tallies and evidence accruing faster on one set-point unit move the split only through a latch.
++- **`n` has a ceiling**, `N_CAP`, twice `N_ON`, held at each booking and on each pass's decay by scaling both counts alike (`p` does not move). With no further episode a latched direction is under `N_OFF` just past two half-lives, so the default split runs again and re-tests it; a record stored over the cap is held to it by the first pass.
++- **Factory reset voids the store** (item 3c666f5b, the orchestrator's ruling under mandate 6715477401, 2026-11-12). The store joins `_restored_stores` and `_FACTORY_VOID` as voided whole, so the undo point carries it and the undo restores it like every other learner; the entry is set up again with a new coordinator, whose record loads the voided store empty. A reversal is the `("duty_switch", None)` row and its test.
+diff --git a/tests/features.py b/tests/features.py
+index 07b66a9a41..2ae6933258 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -14482,6 +14482,7 @@ from heatpump_optimizer.coordinator import (  # noqa: E402
+     async_factory_reset as _fr_reset,
+ )
+ from heatpump_optimizer.wood_fuel import wood_furnace_on as _fr_wood  # noqa: E402
++from heatpump_optimizer import duty_switch as _fr_ds  # noqa: E402
+ 
+ R.section("A factory reset returns settings, learners or both to their defaults")
+ 
+@@ -14540,6 +14541,7 @@ def _fr_learn(c):
+     c._accuracy.lead_sigma[1.0], c._accuracy.lead_counts[1.0] = 0.3, 12
+     c._price_learner.model.shapes[0][3] = 1.2
+     c._dhw_learner.draw_stats.fold(_fr_dt.now(), "06:00-09:00", 2.5)
++    _fr_ds_learn(c)
+     _aio.run(c._async_save_thermal_learning())
+     _aio.run(c._dhw_learner.async_save_profile())
+     _aio.run(c._dhw_learner.async_save_draws())
+@@ -14547,6 +14549,24 @@ def _fr_learn(c):
+     _aio.run(c._async_save_price_model())
+ 
+ 
++def _fr_ds_learn(c):
++    """A duty-switch record latched usable, in memory and on disk, as the arbiter's pass leaves it."""
++    rec = _fr_ds.record_for(c)
++    day = _fr_dt.now().date()
++    d = rec.learner.directions["dhw_space"]
++    d.k, d.stopped, d.usable, d.off_s, d.first_day, d.last_day = 6.0, 6, True, [480.0], day, day + timedelta(days=1)
++    rec.loaded = True
++    _aio.run(rec.store.async_save(rec.learner.stored_record()))
++
++
++def _fr_ds_read(c):
++    """(dhw->space usable, its weight) of the coordinator's record once loaded, as the first pass loads it."""
++    rec = _fr_ds.record_for(c)
++    _aio.run(_fr_ds._load(rec))
++    d = rec.learner.directions["dhw_space"]
++    return d.usable, d.n
++
++
+ def _fr_disk(entry_id):
+     """Every stored document of the entry, as the stub writes it."""
+     prefix = f"{_fr_const.DOMAIN}_{entry_id}_"
+@@ -14675,7 +14695,7 @@ _FR_FACTS = {
+         "snow_accum_last", "last_heavy_snow", "freq_fallback", "updated_at",
+     },
+     "accuracy": {"peaks", "mode"},
+-    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(),
++    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(), "duty_switch": set(),
+ }
+ _fr_l_setup = _fr_l_before["at_setup"]
+ _fr_learned_keys = sorted((n, k) for n, facts in _FR_FACTS.items()
+@@ -15048,7 +15068,7 @@ _FR_STORES = {
+     "dhw_legionella": "kept: the last disinfection, a safety fact",
+     "notifier": "kept: which notices were sent",
+     "pump_duty": "kept: what was last written to the pump",
+-    "duty_switch": "kept: what duty switches did to this pump's compressor, observed facts",
++    "duty_switch": "voided: the learned stop estimate and its latch, the in-memory learner with it",
+     "debug": "kept: a diagnostics collection",
+     "off_restore": "kept: what the optimizer still owes an entity it wrote, at off or unload",
+ }
+@@ -15060,6 +15080,24 @@ for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")
+             for _fr_arg in _fr_n.args:
+                 if isinstance(_fr_arg, _fr_ast.JoinedStr):
+                     _fr_found.add(_fr_arg.values[-1].value.lstrip("_"))
++# The duty-switch record (ruling on carry item 3c666f5b, 2026-11-12): voided like every other
++# learned estimate, and the learner the entry is set up with again holds none of it.
++_fr_ds_before, _fr_ds_entry, _fr_ds_hass, _fr_ds_old = _fr_case("learners", "fr_dsw")
++_fr_ds_hass2 = FakeHass({})
++_fr_ds_entry2 = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id="fr_dsw_restart")
++_fr_ds_c2 = _aio.run(_fr_boot(_fr_ds_hass2, _fr_ds_entry2))
++_fr_learn(_fr_ds_c2)
++_fr_ds_restarted = _aio.run(_fr_boot(_fr_ds_hass2, _fr_ds_entry2))
++R.check(
++    "a learners reset leaves no stored duty-switch estimate and no latch, and the learner the entry is set up with "
++    "reads none; null control, a plain restart keeps the stored record, its weight and its latch",
++    "duty_switch" in _fr_ds_before["disk"] and _fr_ds_before["disk"]["duty_switch"]["directions"]["dhw_space"]["usable"]
++    and "duty_switch" not in _fr_ds_before["at_setup"] and "duty_switch" not in _fr_disk("fr_dsw")
++    and _fr_ds_read(_fr_ds_entry.runtime_data) == (False, 0.0)
++    and _fr_ds_read(_fr_ds_restarted) == (True, 6.0) and "duty_switch" in _fr_disk("fr_dsw_restart"),
++    f"before {sorted(_fr_ds_before['disk'])}, at setup {sorted(_fr_ds_before['at_setup'])}, "
++    f"after {_fr_ds_read(_fr_ds_entry.runtime_data)}, restarted {_fr_ds_read(_fr_ds_restarted)}",
++)
+ R.check(
+     "every store the integration persists has a factory-reset disposition",
+     _fr_found == set(_FR_STORES) and len(_fr_found) >= 15,
+@@ -83787,6 +83825,7 @@ R.check("an install with no power switch: the gate writes and holds nothing, and
+ 
+ 
+ from heatpump_optimizer import duty_switch as _ds_mod  # noqa: E402
++from heatpump_optimizer import duty_legs as _ds_legs  # noqa: E402
+ from heatpump_optimizer import wear as _ds_wear  # noqa: E402
+ from heatpump_optimizer import pump_mode as _ds_pm  # noqa: E402
+ import json  # noqa: E402
+@@ -84803,8 +84842,9 @@ R.check(
+ )
+ 
+ 
+-# Null controls (design.md, evidence 5 and 6): nothing reads the estimate, so
+-# an empty learner and one saturated at p = 1 give the same commands.
++# Null controls (design.md, evidence 5 and 6; the group's brief): below the
++# evidence threshold, and on an install where no switch stops the compressor,
++# the split and every written command are today's.
+ def _ds_saturated():
+     return _ds_saturated_at(None)
+ 
+@@ -84822,21 +84862,229 @@ def _ds_commands(learner, freq, plan=None):
+     return calls, split, rec.learner.directions["dhw_space"].usable
+ 
+ 
++def _ds_learner(**rows):
++    """A learner whose named directions hold ``(k, kept weight, usable, off seconds)``, over two days."""
++    l = _ds_mod.DutySwitchLearner()
++    for name, (k, kept_w, usable, off_s) in rows.items():
++        d = l.directions[name]
++        d.k, d.kept_w, d.usable, d.off_s = k, kept_w, usable, list(off_s)
++        d.first_day, d.last_day = _ds_day.date(), _ds_day.date() + timedelta(days=1)
++    return l
++
++
++#: Under the evidence threshold at p = 1, and an install whose every switch was kept.
++_DS_BELOW = {d: (_ds_mod.N_ON - 0.1, 0.0, False, [900.0]) for d in _ds_mod.DIRECTIONS}
++_DS_NO_STOP = {d: (0.0, _ds_mod.N_CAP, False, []) for d in _ds_mod.DIRECTIONS}
+ _ds_plain = _ds_commands(_ds_mod.DutySwitchLearner(), {})
++_ds_nulls = [_ds_commands(_ds_learner(**rows), {}) for rows in (_DS_BELOW, _DS_NO_STOP)]
+ _ds_full = _ds_commands(_ds_saturated(), {})
+ R.check(
+-    "null control, an install where no switch stops the compressor: the split order and every written "
+-    "command are identical between an empty learner and one saturated at p = 1",
+-    _ds_plain[:2] == _ds_full[:2] and _ds_plain[0] != [] and _ds_plain[1] == "d" * 8 + "s" * 7
+-    and _ds_full[2] and not _ds_plain[2],
+-    f"{_ds_plain[1]} {_ds_full[1]}",
++    "null control, an empty learner, one under the evidence threshold at p = 1 and one from an install where no "
++    "switch stops the compressor: the split order and every written command are today's, hot water first for its "
++    "share; and a latched learner does change the split (the controls are not vacuous)",
++    all(run[:2] == _ds_plain[:2] for run in _ds_nulls) and _ds_plain[0] != [] and _ds_plain[1] == "d" * 8 + "s" * 7
++    and _ds_full[1] == "d" * 15 and _ds_full[2] and not _ds_plain[2],
++    f"{_ds_plain[1]} {[run[1] for run in _ds_nulls]} {_ds_full[1]}",
+ )
+ _ds_plain_stop = _ds_commands(_ds_mod.DutySwitchLearner(), {8.25: "0", 16.5: "35"})
+-_ds_full_stop = _ds_commands(_ds_saturated(), {8.25: "0", 16.5: "35"})
++_ds_nulls_stop = [_ds_commands(_ds_learner(**rows), {8.25: "0", 16.5: "35"}) for rows in (_DS_BELOW, _DS_NO_STOP)]
++R.check(
++    "and so are they on the install whose switch does stop it, while no direction is latched",
++    all(run[:2] == _ds_plain_stop[:2] == _ds_plain[:2] for run in _ds_nulls_stop),
++    f"{_ds_plain_stop[1]} {[run[1] for run in _ds_nulls_stop]}",
++)
++
++
++# Part B (the group's ruling on rule c): the arbiter's split of a both step reads
++# the learner's latches through ``duty_switch.both_step_duty``.
++def _ds_split(learner, plan=None, minutes=range(15), between=None, c=None):
++    """The duty ``_share`` serves at each minute of ``minutes``; ``between(c, minute)`` runs before each read."""
++    if c is None:
++        c = _DsArb()
++        rec = _ds_mod.record_for(c)
++        rec.learner, rec.loaded = learner, True
++    c.plan = plan or c.plan
++    out = ""
++    for m in minutes:
++        if between is not None:
++            between(c, m)
++        out += str(_sa_pa._share(c, c.arbiter_inputs(), "both", _DS_T0 + timedelta(minutes=m)))[0]
++    return out
++
++
++_DS_TODAY, _DS_SPACE_FIRST, _DS_WHOLE = "d" * 8 + "s" * 7, "s" * 8 + "d" * 7, "d" * 15
++_DS_ON = (6.0, 0.0, True, [900.0])
++_ds_next_dhw, _ds_next_idle = _ds_plan((0, 1.0, 1.0), (900, 0.0, 1.0)), _ds_plan((0, 1.0, 1.0), (900, 0.0, 0.0))
++_ds_orders = {
++    "only hot water to space": _ds_split(_ds_learner(dhw_space=_DS_ON)),
++    "only space to hot water": _ds_split(_ds_learner(space_dhw=_DS_ON)),
++    "both": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)),
++    "none": _ds_split(_ds_mod.DutySwitchLearner()),
++}
++R.check(
++    "where only hot water to space is usable the both step serves space first for its share; with only space to "
++    "hot water, or neither, hot water goes first as today",
++    _ds_orders["only hot water to space"] == _DS_SPACE_FIRST
++    and _ds_orders["only space to hot water"] == _ds_orders["none"] == _DS_TODAY,
++    str(_ds_orders),
++)
++_ds_wholes = {
++    "next serves space": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)),
++    "next serves hot water": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_next_dhw),
++    "next idle": _ds_split(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_next_idle),
++    "off 151 s": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, [151.0]), space_dhw=_DS_ON)),
++    "off 150 s": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, [150.0]), space_dhw=_DS_ON)),
++    "censored": _ds_split(_ds_learner(dhw_space=(6.0, 0.0, True, []), space_dhw=_DS_ON)),
++}
++R.check(
++    "the first duty keeps the whole step only when the switch into the second is usable, the second share (7.5 min) "
++    "is shorter than SPLIT_MIN_MINUTES plus that direction's median off time, and the plan's next step serves the "
++    "second duty; a next step serving the first duty or idle, an off time on the bound (150 s), or no off time "
++    "split as today",
++    _ds_wholes["next serves space"] == _ds_wholes["off 151 s"] == _DS_WHOLE
++    and _ds_wholes["next serves hot water"] == _ds_wholes["next idle"] == _ds_wholes["off 150 s"]
++    == _ds_wholes["censored"] == _DS_TODAY
++    and _ds_legs.SPLIT_MIN_MINUTES + 150.0 / 60.0 == 7.5,
++    str(_ds_wholes),
++)
++
++
++def _ds_resolve(c, m):
++    """At minute 4 a re-solve moves the next step to hot water and the learner unlatches."""
++    if m == 4:
++        c.plan = _ds_next_dhw
++        _ds_mod.record_for(c).learner = _ds_mod.DutySwitchLearner()
++
++
++_ds_latch_c = _DsArb()
++_ds_latch_rec = _ds_mod.record_for(_ds_latch_c)
++_ds_latch_rec.learner, _ds_latch_rec.loaded = _ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), True
++_ds_latched_run = _ds_split(None, between=_ds_resolve, c=_ds_latch_c)
++_ds_next_start = _ds_split(None, _ds_plan((900, 1.0, 1.0), (1800, 0.0, 1.0)), range(15, 30), c=_ds_latch_c)
++R.check(
++    "the split is latched per step: a re-solve moving the next step off the second duty and an unlatched learner "
++    "inside the step leave it whole; the next both step decides afresh",
++    _ds_latched_run == _DS_WHOLE and _ds_next_start == _DS_TODAY
++    and _ds_latch_rec.order is not None and _ds_latch_rec.order[0] == _DS_T0 + timedelta(minutes=15),
++    f"{_ds_latched_run} {_ds_next_start}",
++)
++_ds_unloaded_c = _DsArb()
++_ds_unloaded_rec = _ds_mod.record_for(_ds_unloaded_c)
++_ds_unloaded_rec.learner = _ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON)
++_ds_unloaded = _ds_split(None, c=_ds_unloaded_c)
++R.check(
++    "a record whose store is not read yet splits as today and latches nothing; null control, the same learner "
++    "loaded keeps the whole step",
++    _ds_unloaded == _DS_TODAY and _ds_unloaded_rec.order is None and _ds_wholes["next serves space"] == _DS_WHOLE,
++    f"{_ds_unloaded} {_ds_unloaded_rec.order}",
++)
++_ds_censored = _ds_learner(dhw_space=(6.0, 0.0, True, []), space_dhw=_DS_ON)
++_ds_cens_rule = _ds_censored.split()
++_ds_edges = (_ds_split(_ds_mod.DutySwitchLearner(), minutes=(7.5 - 1 / 60, 7.5)), _ds_cens_rule,
++             [leg for leg, _m in _ds_legs.both_step_legs(5.01, 9.99, 15.0, _ds_cens_rule, "space")],
++             [leg for leg, _m in _ds_legs.both_step_legs(5.01, 9.99, 15.0, (_ds_cens_rule[0], _ds_cens_rule[1] + 0.02),
++                                                         "space")])
++R.check(
++    "on the bounds: hot water's share ends at its own instant, a second later than one second before it; and a "
++    "direction whose every off time was censored adds no off time to the whole-step bound (5.01 min second share "
++    "split, under a 5.02 min minimum whole)",
++    _ds_edges == ("ds", ("dhw", 0.0), ["dhw", "space"], ["dhw"]),
++    str(_ds_edges),
++)
++# One leg rule (R10-DUTY-SWITCH-PLANNER-PRICE carry c3ad1545): the planner's
++# leg_ends, under the rule the learner's pairs give, reads the legs the
++# arbiter serves, for every order and whole-step case above.
++_DS_LEG = {"d": _ds_legs.DHW, "s": _ds_legs.SPACE}
++_ds_agree_cases = {
++    "space first": (_ds_learner(dhw_space=_DS_ON), 1.0, 0.0),
++    "today": (_ds_mod.DutySwitchLearner(), 1.0, 0.0),
++    "whole, next serves space": (_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), 1.0, 0.0),
++    "split, next serves hot water": (_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), 0.0, 1.0),
++    "split, off on the bound": (_ds_learner(dhw_space=(6.0, 0.0, True, [150.0]), space_dhw=_DS_ON), 1.0, 0.0),
++}
++
++
++def _ds_agree(learner, s_next, d_next, rule=None):
++    served = _ds_split(learner, _ds_plan((0, 1.0, 1.0), (900, s_next, d_next)))
++    first, last, _two = _ds_legs.leg_ends([1.0, s_next], [1.0, d_next],
++                                          rule=learner.split() if rule is None else rule)
++    return (_DS_LEG[served[0]], _DS_LEG[served[-1]]) == (int(first[0]), int(last[0])), served
++
++
++_ds_agreed = {name: _ds_agree(*case) for name, case in _ds_agree_cases.items()}
++_ds_agree_null = _ds_agree(*_ds_agree_cases["space first"], rule=_ds_legs.DEFAULT_RULE)
+ R.check(
+-    "and so are they on the install whose switch does stop it: part A changes no write at either end of its evidence",
+-    _ds_plain_stop[:2] == _ds_full_stop[:2] == _ds_plain[:2],
+-    f"{_ds_plain_stop[1]} {_ds_full_stop[1]}",
++    "planner and arbiter read one leg rule: leg_ends under the learner's split gives the first and last leg the "
++    "arbiter serves in each order and whole-step case; control, the planner on the default rule disagrees where "
++    "space goes first",
++    all(ok for ok, _served in _ds_agreed.values()) and not _ds_agree_null[0]
++    and {name: served for name, (_ok, served) in _ds_agreed.items()} == {
++        "space first": _DS_SPACE_FIRST, "today": _DS_TODAY, "whole, next serves space": _DS_WHOLE,
++        "split, next serves hot water": _DS_TODAY, "split, off on the bound": _DS_TODAY},
++    f"{_ds_agreed} {_ds_agree_null}",
++)
++_ds_latch_off = _ds_split(_ds_mod.DutySwitchLearner(), _ds_next_dhw)
++R.check(
++    "null control of the latch: the re-solved plan and learner read from the step's start split as today",
++    _ds_latch_off == _DS_TODAY,
++    _ds_latch_off,
++)
++
++
++def _ds_delivery(learner, plan):
++    """(room, tank) kW-minutes served over a both step and the one after it, against the plan's."""
++    served = {"s": 0.0, "d": 0.0}
++    for i, duty in enumerate(_ds_split(learner, plan) + "".join(
++            str(_sa_pa.step_duty(plan, _DS_T0 + timedelta(minutes=m)))[0] for m in range(15, 30))):
++        step = i // 15
++        served[duty] += plan.power_schedule[step] + plan.dhw_power_schedule[step]
++    planned = (sum(plan.power_schedule[:2]) * 15.0, sum(plan.dhw_power_schedule[:2]) * 15.0)
++    return (served["s"], served["d"]), planned
++
++
++_ds_moved = _ds_delivery(_ds_learner(dhw_space=_DS_ON, space_dhw=_DS_ON), _ds_plan((0, 1.0, 1.0), (900, 1.5, 0.0)))
++_ds_kept = _ds_delivery(_ds_mod.DutySwitchLearner(), _ds_plan((0, 1.0, 1.0), (900, 1.5, 0.0)))
++R.check(
++    "with the whole-step rule active the room and tank delivery summed over the denied step and the next equals "
++    "the plan's, the next step serving the denied duty whole; and so does today's split",
++    sum(_ds_moved[0]) == sum(_ds_moved[1]) and _ds_moved[0][0] == 1.5 * 15.0
++    and sum(_ds_kept[0]) == sum(_ds_kept[1]),
++    f"{_ds_moved} {_ds_kept}",
++)
++_ds_span_gone = _ds_learner(dhw_space=(0.3, 0.0, False, [900.0]), space_dhw=(0.3, 0.0, False, [900.0]))
++for _ds_d in _ds_span_gone.directions.values():
++    _ds_d.first_day = _ds_d.last_day = None
++    _ds_d.stopped = 9
++_ds_rates = [_ds_split(_ds_learner(dhw_space=(n, 0.0, True, [900.0]))) for n in (_ds_mod.N_ON, _ds_mod.N_CAP)]
++R.check(
++    "the split reads the latches and nothing published: span_days 0 beside non-zero tallies splits as today, and "
++    "two latched learners whose evidence weighs 5 and 10 (a unit gating fewer switches) split alike",
++    _ds_split(_ds_span_gone) == _DS_TODAY and _ds_span_gone.published(_ds_day)["duty_switch_dhw_space_span_days"] == 0
++    and _ds_rates == [_DS_SPACE_FIRST] * 2,
++    f"{_ds_split(_ds_span_gone)} {_ds_rates}",
++)
++_ds_capped = _DS_D()
++for _ds_i in range(40):
++    _ds_capped.book(_ds_day + timedelta(days=_ds_i // 20, minutes=_ds_i), True, 600.0)
++_ds_cap_last = _ds_day + timedelta(days=1, minutes=39)
++_ds_old = _DS_D(k=40.0, decayed_at=_ds_cap_last, first_day=_ds_day.date(), last_day=_ds_cap_last.date(), usable=True)
++
++
++def _ds_held_after(d, days):
++    d = _DS_D(**{f: getattr(d, f) for f in ("k", "kept_w", "decayed_at", "first_day", "last_day", "usable")})
++    d.decay(_ds_cap_last)  # the pass after the last booking
++    d.decay(_ds_cap_last + timedelta(days=days))
++    return d.usable
++
++
++R.check(
++    "n has a ceiling: forty stops over two days hold n at N_CAP with p unchanged, so with no further episode a "
++    "latched direction unlatches just past two half-lives and is re-tested; a record stored over the cap is held "
++    "to it by the next pass alike; null control, a day before that it is still latched",
++    abs(_ds_capped.n - _ds_mod.N_CAP) < 1e-9 and _ds_capped.p == 1.0 and _ds_capped.usable
++    and not _ds_held_after(_ds_capped, 28.05) and _ds_held_after(_ds_capped, 27.0)
++    and not _ds_held_after(_ds_old, 28.05) and _ds_held_after(_ds_old, 27.0),
++    f"n {_ds_capped.n} p {_ds_capped.p} {[_ds_held_after(d, x) for d in (_ds_capped, _ds_old) for x in (27.0, 28.05)]}",
+ )
+ # Flat prices: ``tests/golden/flat_prices.json``'s scenario is solved here
+ # (its floats are not compared with the recording, which only a canonical BLAS
+@@ -84857,26 +85105,25 @@ def _ds_flat_plan(i):
+ 
+ 
+ _ds_flat_runs = [[_ds_commands(l, {}, _ds_flat_plan(i))[:2] for i in _ds_flat_both]
+-                 for l in (_ds_mod.DutySwitchLearner(), _ds_saturated())]
++                 for l in (_ds_mod.DutySwitchLearner(), _ds_learner(**_DS_BELOW), _ds_learner(**_DS_NO_STOP))]
+ R.check(
+     "null control, a flat-price day: each both step of the flat scenario's plan is split and written "
+-    "identically under an empty and a saturated learner",
+-    len(set(_ds_flat["prices"])) == 1 and _ds_flat_both != [] and _ds_flat_runs[0] == _ds_flat_runs[1]
++    "identically under an empty learner, one under the evidence threshold and one where no switch stops",
++    len(set(_ds_flat["prices"])) == 1 and _ds_flat_both != [] and _ds_flat_runs[0] == _ds_flat_runs[1] == _ds_flat_runs[2]
+     and all(calls != [] for calls, _split in _ds_flat_runs[0]),
+-    f"{[split for _c, split in _ds_flat_runs[0]]} {[split for _c, split in _ds_flat_runs[1]]}",
++    f"{[[split for _c, split in run] for run in _ds_flat_runs]}",
+ )
+-# Both controls hold by construction: the arbiter (which reports) and the
+-# sensor (which publishes) never read the estimate. Its one reader is the
+-# coordinator, which hands the planner's read to a solve's configuration
+-# (R10-DUTY-SWITCH-PLANNER-PRICE): the estimate reaches a write only through
+-# the plan, and both controls hold the plan fixed.
++# Only the arbiter (which reports and reads the split), the sensor (which
++# publishes) and the coordinator (whose factory reset voids the store, and which
++# hands the planner's read to a solve's configuration, R10-DUTY-SWITCH-PLANNER-PRICE)
++# name the module; arbiter and planner read the estimate through one leg rule.
+ _ds_pkg = _DsPath("custom_components/heatpump_optimizer")
+ _ds_readers = sorted(
+     p.name for p in _ds_pkg.glob("*.py") if p.name != "duty_switch.py" and any(
+         isinstance(n, _ds_ast.ImportFrom) and (n.module == "duty_switch" or any(a.name == "duty_switch" for a in n.names))
+         for n in _ds_ast.walk(_ds_ast.parse(p.read_text()))))
+ _ds_uses = sorted({
+-    n.attr for name in ("pump_arbiter.py", "sensor.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
++    n.attr for name in ("pump_arbiter.py", "sensor.py", "coordinator.py") for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / name).read_text()))
+     if isinstance(n, _ds_ast.Attribute) and isinstance(n.value, _ds_ast.Name) and n.value.id == "duty_switch"})
+ _ds_plan_uses = sorted(
+     n.attr for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "coordinator.py").read_text()))
+@@ -84886,12 +85133,13 @@ _ds_own = {n.module for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.
+     a.name for n in _ds_ast.walk(_ds_ast.parse((_ds_pkg / "duty_switch.py").read_text()))
+     if isinstance(n, _ds_ast.ImportFrom) and n.level == 1 and n.module is None for a in n.names}
+ R.check(
+-    "the arbiter and the sensor name duty_switch through its report, attach and publish calls and never a "
+-    "read of the estimate; the coordinator names it once, for the planner's read; the module imports none "
+-    "of the three; the pure half of wear stays pure",
+-    _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"] and _ds_plan_uses == ["planner_fields"]
+-    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "detach", "note_mode_write", "note_pass", "record_for",
+-                     "starts_attributes"]
++    "only the arbiter, the sensor and the coordinator name duty_switch, through its report, attach, publish and "
++    "store calls, and the estimate is read only by the arbiter's split and, once in the coordinator, the planner's "
++    "read; the module imports none of them; the pure half of wear stays pure",
++    _ds_readers == ["coordinator.py", "pump_arbiter.py", "sensor.py"]
++    and _ds_plan_uses == ["planner_fields", "record_for"]
++    and _ds_uses == ["Reader", "STOP_WINDOW_S", "SwitchContext", "attach", "both_step_duty", "detach",
++                     "note_mode_write", "note_pass", "planner_fields", "record_for", "starts_attributes"]
+     and not _ds_own & {"pump_arbiter", "sensor", "coordinator"}
+     and "homeassistant" not in (_ds_pkg / "wear.py").read_text(),
+     f"{_ds_readers} {_ds_uses} {_ds_plan_uses} {_ds_own}",
+@@ -89002,10 +89250,13 @@ _DSP_NAMES = {_dsp_dl.IDLE: "idle", _dsp_dl.SPACE: "space", _dsp_dl.DHW: "dhw"}
+ 
+ 
+ class _DspCoord:
+-    """A coordinator with no boost held: ``_share`` reads nothing else of it."""
++    """A coordinator with no boost held and a duty-switch record not yet
++    loaded, so ``_share`` serves the default leg rule; it reads nothing else."""
+ 
+ 
+ _dsp_coord = _DspCoord()
++from heatpump_optimizer import duty_switch as _dsp_ds  # noqa: E402
++_dsp_ds._RECORDS[_dsp_coord] = _dsp_ds._Record(None, None)
+ 
+ 
+ def _dsp_served(space, dhw, minute, floor):
+@@ -89200,6 +89451,14 @@ _dsp_r16_both = (np.array([0.0, 1.0, 2.5, 0.0]), np.array([0.0, 2.0, 0.0, 0.0]))
+ _dsp_r16_both_avail = _dsp_om._stop_availability(_dsp_mod_opt, *_dsp_r16_both, 5.5)
+ _dsp_r16_both_ship = _dsp_om._realize_joint(True, *_dsp_r16_both, 1.5, 5.5)[0]
+ _dsp_r16_both_dc = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR, _DSP_OFF), *_dsp_r16_both, 5.5)
++# A pair priced both ways keeps hot water first (duty_legs.leg_rule); with no
++# heating after the both step no whole-step merge applies, so a duty-cycle
++# install's both step keeps two legs.
++_DSP_PAIR_BOTH = (1.0, 1.0)
++_dsp_r16_lone = (np.array([0.0, 1.0, 0.0, 0.0]), np.array([0.0, 2.0, 0.0, 0.0]))
++_dsp_r16_lone_dc = _dsp_om._stop_availability(_dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), *_dsp_r16_lone, 5.5)
++_dsp_r16_lone_cl = _dsp_om._stop_availability(
++    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF, clamp=True), *_dsp_r16_lone, 5.5)
+ R.check(
+     "on a modulating clamped install heating shipped under p_min beside hot "
+     "water takes no charge: the stop is charged to the heating step after the "
+@@ -89211,11 +89470,18 @@ R.check(
+     f"{_dsp_r16_both_avail}, shipped {_dsp_r16_both_ship}",
+ )
+ R.check(
+-    "null control: with no duty floor (a duty-cycle install) the same arrays "
+-    "charge the both step itself, so the floor is what moved the charge",
+-    _dsp_r16_both_dc is not None
+-    and np.flatnonzero(_dsp_r16_both_dc < 1.0).tolist() == [1],
+-    f"{_dsp_r16_both_dc}",
++    "null control: with no duty floor (a duty-cycle install) and hot water first "
++    "(a pair priced both ways), a both step with no heating after it is charged "
++    "itself, and on the clamped install nothing is, so the floor is what moved "
++    "the charge; under the hot-water-to-heating pair alone the arbiter's leg "
++    "rule serves space first, and the duty-cycle arrays above charge the "
++    "heating step after the both step, as the clamped ones do",
++    _dsp_r16_lone_dc is not None
++    and np.flatnonzero(_dsp_r16_lone_dc < 1.0).tolist() == [1]
++    and _dsp_r16_lone_cl is None
++    and _dsp_r16_both_dc is not None
++    and np.flatnonzero(_dsp_r16_both_dc < 1.0).tolist() == [2],
++    f"{_dsp_r16_lone_dc} {_dsp_r16_lone_cl} {_dsp_r16_both_dc}",
+ )
+ # The start profile is capped at what hot water leaves and never raised: a step
+ # the start leaves idle after a block holds no heating leg to charge.
+@@ -89237,17 +89503,23 @@ R.check(
+ # after it charges nothing. Beside a block that leaves room the same start is a
+ # two-leg step, and charged.
+ _dsp_full_blk = _dsp_om._stop_availability(
+-    _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 5.5, 0.0, 0.0]), 5.5
++    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 5.5, 0.0, 0.0]), 5.5
+ )
+ _dsp_part_blk = _dsp_om._stop_availability(
++    _dsp_opt(_DSP_PAIR_BOTH, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 2.5, 0.0, 0.0]), 5.5
++)
++_dsp_part_blk_sf = _dsp_om._stop_availability(
+     _dsp_opt(_DSP_PAIR, _DSP_OFF), np.array([0.0, 3.0, 0.0, 0.0]), np.array([0.0, 2.5, 0.0, 0.0]), 5.5
+ )
+ R.check(
+     "heating asked beside hot water at p_max is no heating leg: nothing is "
+-    "charged; beside a block that leaves room the same start is charged there",
++    "charged; beside a block that leaves room the same start is charged there "
++    "(hot water first); served space first, its hot-water leg ends into an "
++    "idle step and nothing is charged",
+     _dsp_full_blk is None
+-    and _dsp_part_blk is not None and np.flatnonzero(_dsp_part_blk < 1.0).tolist() == [1],
+-    f"{_dsp_full_blk}, {_dsp_part_blk}",
++    and _dsp_part_blk is not None and np.flatnonzero(_dsp_part_blk < 1.0).tolist() == [1]
++    and _dsp_part_blk_sf is None,
++    f"{_dsp_full_blk}, {_dsp_part_blk}, {_dsp_part_blk_sf}",
+ )
+ # The reading takes the start as it comes: the cap, the running threshold and
+ # the clamped projection already read a value under zero as idle and one over
+@@ -89596,7 +89868,7 @@ R.check(
+                     s.opt.config.clamp_planned_levels, s.solves[-1][1], s.solves[0][0],
+                     s.opt.model.params.min_electrical_power, 5.5,
+                 )[0],
+-                _DSP_PAIR, _dsp_om._duty_floor(s.opt),
++                _DSP_PAIR, _dsp_om._duty_floor(s.opt), _dsp_om._leg_rule(s.opt),
+             ),
+         )
+         for s in _dsp_priced.values()
+@@ -89604,6 +89876,25 @@ R.check(
+     and not any(s.bans for s in _dsp_base.values()),
+     f"{[(n, len(s.bans), len(s.builds), len(s.solves)) for n, s in _dsp_priced.items()]}",
+ )
++_DSP_SF = _dsp_dl.leg_rule((1.0, 0.0), (501.0, 0.0))
++_dsp_sf_ban = _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None, _DSP_SF).tolist()
++_dsp_sf_w = (_dsp_dl.switch_weight(np.array([1.0]), np.array([1.0]), (1.0, 0.0), 6.0),
++             _dsp_dl.switch_weight(np.array([1.0]), np.array([1.0]), (1.0, 0.0), 6.0, None, _DSP_SF))
++_dsp_sf_avail = (_dsp_dl.availability(np.array([1.0, 0.0]), np.array([1.0, 0.0]), 0.5),
++                 _dsp_dl.availability(np.array([1.0, 0.0]), np.array([1.0, 0.0]), 0.5, None, _DSP_SF))
++R.check(
++    "one leg rule in the leaf: a hot-water-to-heating pair alone serves space first "
++    "(leg_rule), so its ban is only the step before heating, a two-leg step's inside "
++    "switch is heating to hot water and weighs nothing, and the step is not charged; "
++    "control, the default rule bans the heating step too, weighs and charges it",
++    _DSP_SF == ("space", None)
++    and _dsp_sf_ban == [False, True, False, False, False]
++    and _dsp_dl.switch_ban(np.array([0, 0, 2.0, 0, 0]), (1.0, 0.0), None).tolist()
++    == [False, True, True, False, False]
++    and _dsp_sf_w == (2.0 / 6.0, 0.0)
++    and _dsp_sf_avail[0] is not None and _dsp_sf_avail[0].tolist() == [0.5, 1.0] and _dsp_sf_avail[1] is None,
++    f"{_DSP_SF} {_dsp_sf_ban} {_dsp_sf_w} {_dsp_sf_avail}",
++)
+ R.check(
+     "the ban is the steps heating runs in or runs in next, for hot water to "
+     "heating, and mirrors onto the previous step for the other direction",
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.CMP_BOUND.8c5f2676.json b/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.CMP_BOUND.8c5f2676.json
+new file mode 100644
+index 0000000000..a486ec72f3
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.CMP_BOUND.8c5f2676.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:both_step_legs CMP_BOUND 8c5f2676",
++  "killed_by": "tests/features.py",
++  "old": "    if extra is not None and next_duty in (second, \"both\") and step_minutes - first_min < SPLIT_MIN_MINUTES + extra:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if extra is not None and next_duty in (second, \"both\") and step_minutes - first_min <= SPLIT_MIN_MINUTES + extra:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.GUARD_OFF.8c5f2676.json b/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.GUARD_OFF.8c5f2676.json
+new file mode 100644
+index 0000000000..6c867a0e65
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.GUARD_OFF.8c5f2676.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:both_step_legs GUARD_OFF 8c5f2676",
++  "killed_by": "tests/features.py",
++  "old": "    if extra is not None and next_duty in (second, \"both\") and step_minutes - first_min < SPLIT_MIN_MINUTES + extra:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.RETURN_DEL.123675c1.json b/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.RETURN_DEL.a22518ce.json
+similarity index 67%
+rename from tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.RETURN_DEL.123675c1.json
+rename to tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.RETURN_DEL.a22518ce.json
+index fa73675963..a4d13d0d1c 100644
+--- a/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.RETURN_DEL.123675c1.json
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/both_step_legs.RETURN_DEL.a22518ce.json
+@@ -1,6 +1,6 @@
+ {
+-  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:both_step_legs RETURN_DEL 123675c1",
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:both_step_legs RETURN_DEL a22518ce",
+   "killed_by": "tests/features.py",
+-  "old": "    return ((\"dhw\", dhw_min), (\"space\", step_minutes - dhw_min))",
++  "old": "    return ((first, first_min), (second, step_minutes - first_min))",
+   "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+ }
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.CMP_BOUND.3ab3f318.json b/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.CMP_BOUND.3ab3f318.json
+new file mode 100644
+index 0000000000..4ecc5f9a4c
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.CMP_BOUND.3ab3f318.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_ends CMP_BOUND 3ab3f318",
++  "killed_by": "tests/features.py",
++  "old": "        whole = split & next_second & (second_min < SPLIT_MIN_MINUTES + extra)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`whole = split & next_second & (second_min <= SPLIT_MIN_MINUTES + extra)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.GUARD_OFF.fe24fd6b.json b/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.GUARD_OFF.fe24fd6b.json
+new file mode 100644
+index 0000000000..55c4842343
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.GUARD_OFF.fe24fd6b.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_ends GUARD_OFF fe24fd6b",
++  "killed_by": "tests/features.py",
++  "old": "    if extra is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.RETURN_DEL.6b97afd0.json b/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.RETURN_DEL.4932ea42.json
+similarity index 67%
+rename from tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.RETURN_DEL.6b97afd0.json
+rename to tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.RETURN_DEL.4932ea42.json
+index cac585d618..7652f8a015 100644
+--- a/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.RETURN_DEL.6b97afd0.json
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/leg_ends.RETURN_DEL.4932ea42.json
+@@ -1,6 +1,6 @@
+ {
+-  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_ends RETURN_DEL 6b97afd0",
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_ends RETURN_DEL 4932ea42",
+   "killed_by": "tests/features.py",
+-  "old": "    return np.where(two, DHW, single), np.where(two, SPACE, single), two",
++  "old": "    return np.where(two, lead, single), np.where(two, trail, single), two",
+   "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+ }
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.BOOLOP.ac335b68.json b/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.BOOLOP.ac335b68.json
+new file mode 100644
+index 0000000000..397987d0cd
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.BOOLOP.ac335b68.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_rule BOOLOP ac335b68",
++  "killed_by": "tests/features.py",
++  "old": "    first = \"space\" if stop_probability[0] > 0 and not stop_probability[1] > 0 else \"dhw\"",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`first = \"space\" if stop_probability[0] > 0 or not stop_probability[1] > 0 else \"dhw\"`) took tests/features.py from rc=0 failed=0 to rc=1 failed=26."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.CMP_BOUND.726b5c41.json b/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.CMP_BOUND.726b5c41.json
+new file mode 100644
+index 0000000000..d8859abaa7
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.CMP_BOUND.726b5c41.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_rule CMP_BOUND 726b5c41",
++  "killed_by": "tests/features.py",
++  "old": "    return first, (off_seconds[into] / 60.0 if stop_probability[into] > 0 else None)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return first, (off_seconds[into] / 60.0 if stop_probability[into] >= 0 else None)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.CMP_BOUND.ac335b68.json b/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.CMP_BOUND.ac335b68.json
+new file mode 100644
+index 0000000000..be3c6d34a4
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.CMP_BOUND.ac335b68.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_rule CMP_BOUND ac335b68",
++  "killed_by": "tests/features.py",
++  "old": "    first = \"space\" if stop_probability[0] > 0 and not stop_probability[1] > 0 else \"dhw\"",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`first = \"space\" if stop_probability[0] >= 0 and not stop_probability[1] > 0 else \"dhw\"`) took tests/features.py from rc=0 failed=0 to rc=1 failed=21. Each of the 2 sites under this anchor was killed."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.RETURN_DEL.726b5c41.json b/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.RETURN_DEL.726b5c41.json
+new file mode 100644
+index 0000000000..1f336579bc
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/leg_rule.RETURN_DEL.726b5c41.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:leg_rule RETURN_DEL 726b5c41",
++  "killed_by": "tests/features.py",
++  "old": "    return first, (off_seconds[into] / 60.0 if stop_probability[into] > 0 else None)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_legs.py/switch_ban.GUARD_OFF.f22b5492.json b/tests/mutation_ledger/killed_by/duty_legs.py/switch_ban.GUARD_OFF.f22b5492.json
+new file mode 100644
+index 0000000000..2b6a8831b6
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_legs.py/switch_ban.GUARD_OFF.f22b5492.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_legs.py:switch_ban GUARD_OFF f22b5492",
++  "killed_by": "tests/features.py",
++  "old": "        if rule[0] == \"dhw\":",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.CLAMP_DROP.12d1bbb1.json b/tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.CLAMP_DROP.12d1bbb1.json
+new file mode 100644
+index 0000000000..df1c8e705b
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.CLAMP_DROP.12d1bbb1.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:Direction.book CLAMP_DROP 12d1bbb1",
++  "killed_by": "tests/features.py",
++  "old": "        scale = min(1.0, N_CAP / self.n)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`scale = (1.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.split.RETURN_DEL.e5fbd410.json b/tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.split.RETURN_DEL.e5fbd410.json
+new file mode 100644
+index 0000000000..ecad4e45f0
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_switch.py/DutySwitchLearner.split.RETURN_DEL.e5fbd410.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:DutySwitchLearner.split RETURN_DEL e5fbd410",
++  "killed_by": "tests/features.py",
++  "old": "        return duty_legs.leg_rule(*self.planner_pairs())",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.CMP_BOUND.5bea58be.json b/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.CMP_BOUND.5bea58be.json
+new file mode 100644
+index 0000000000..74e43e4a49
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.CMP_BOUND.5bea58be.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:both_step_duty CMP_BOUND 5bea58be",
++  "killed_by": "tests/features.py",
++  "old": "    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return legs[0][0] if now - start <= timedelta(minutes=legs[0][1]) else legs[-1][0]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.GUARD_OFF.560bc44e.json b/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.GUARD_OFF.560bc44e.json
+new file mode 100644
+index 0000000000..7daa2286d9
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.GUARD_OFF.560bc44e.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:both_step_duty GUARD_OFF 560bc44e",
++  "killed_by": "tests/features.py",
++  "old": "        if rec.order is None or rec.order[0] != start:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.GUARD_OFF.3e106b06.json b/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.GUARD_OFF.fa002675.json
+similarity index 71%
+rename from tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.GUARD_OFF.3e106b06.json
+rename to tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.GUARD_OFF.fa002675.json
+index a620063d0e..5a625d6948 100644
+--- a/tests/mutation_ledger/killed_by/duty_switch.py/Direction.book.GUARD_OFF.3e106b06.json
++++ b/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.GUARD_OFF.fa002675.json
+@@ -1,6 +1,6 @@
+ {
+-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:Direction.book GUARD_OFF 3e106b06",
++  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:both_step_duty GUARD_OFF fa002675",
+   "killed_by": "tests/features.py",
+-  "old": "        if self.n > N_CAP:",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++  "old": "    if rec.loaded:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+ }
+diff --git a/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.RETURN_DEL.5bea58be.json b/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.RETURN_DEL.5bea58be.json
+new file mode 100644
+index 0000000000..84168efae5
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/duty_switch.py/both_step_duty.RETURN_DEL.5bea58be.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:both_step_duty RETURN_DEL 5bea58be",
++  "killed_by": "tests/features.py",
++  "old": "    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
++}
+diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.CMP_BOUND.95d10ca9.json b/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.CMP_BOUND.c672264a.json
+similarity index 55%
+rename from tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.CMP_BOUND.95d10ca9.json
+rename to tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.CMP_BOUND.c672264a.json
+index 6cf8195176..e90404081f 100644
+--- a/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.CMP_BOUND.95d10ca9.json
++++ b/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.CMP_BOUND.c672264a.json
+@@ -1,6 +1,6 @@
+ {
+-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_avoid_priced_switches CMP_BOUND 95d10ca9",
++  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_avoid_priced_switches CMP_BOUND c672264a",
+   "killed_by": "tests/features.py",
+-  "old": "    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) >= 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++  "old": "    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) >= 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+ }
+diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.GUARD_OFF.95d10ca9.json b/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.GUARD_OFF.95d10ca9.json
+deleted file mode 100644
+index e5059f5c83..0000000000
+--- a/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.GUARD_OFF.95d10ca9.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_avoid_priced_switches GUARD_OFF 95d10ca9",
+-  "killed_by": "tests/structure.py",
+-  "old": "    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor) > 0:",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+-}
+diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.GUARD_OFF.c672264a.json b/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.GUARD_OFF.c672264a.json
+new file mode 100644
+index 0000000000..e63c05ae77
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/optimizer.py/_avoid_priced_switches.GUARD_OFF.c672264a.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_avoid_priced_switches GUARD_OFF c672264a",
++  "killed_by": "tests/features.py",
++  "old": "    if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/optimizer.py/_stop_availability.RETURN_DEL.9325b601.json b/tests/mutation_ledger/killed_by/optimizer.py/_stop_availability.RETURN_DEL.e8ac8817.json
+similarity index 51%
+rename from tests/mutation_ledger/killed_by/optimizer.py/_stop_availability.RETURN_DEL.9325b601.json
+rename to tests/mutation_ledger/killed_by/optimizer.py/_stop_availability.RETURN_DEL.e8ac8817.json
+index b8c8493e56..7c0dbab8dd 100644
+--- a/tests/mutation_ledger/killed_by/optimizer.py/_stop_availability.RETURN_DEL.9325b601.json
++++ b/tests/mutation_ledger/killed_by/optimizer.py/_stop_availability.RETURN_DEL.e8ac8817.json
+@@ -1,6 +1,6 @@
+ {
+-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_stop_availability RETURN_DEL 9325b601",
+-  "killed_by": "tests/structure.py",
+-  "old": "    return duty_legs.availability(space, tank, lost, _duty_floor(opt))",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
++  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_stop_availability RETURN_DEL e8ac8817",
++  "killed_by": "tests/features.py",
++  "old": "    return duty_legs.availability(space, tank, lost, _duty_floor(opt), _leg_rule(opt))",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=16."
+ }
+diff --git a/tests/mutation_ledger/killed_by/pump_arbiter.py/_share.CMP_BOUND.3eede229.json b/tests/mutation_ledger/killed_by/pump_arbiter.py/_share.CMP_BOUND.3eede229.json
+deleted file mode 100644
+index ac6a436217..0000000000
+--- a/tests/mutation_ledger/killed_by/pump_arbiter.py/_share.CMP_BOUND.3eede229.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_share CMP_BOUND 3eede229",
+-  "killed_by": "tests/features.py",
+-  "old": "    return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`return legs[0][0] if (now - result.timestamps[i]) <= first_ends else legs[-1][0]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+-}
+diff --git a/tests/mutation_ledger/killed_by/pump_arbiter.py/_share.RETURN_DEL.3eede229.json b/tests/mutation_ledger/killed_by/pump_arbiter.py/_share.RETURN_DEL.3eede229.json
+deleted file mode 100644
+index 1af67f301a..0000000000
+--- a/tests/mutation_ledger/killed_by/pump_arbiter.py/_share.RETURN_DEL.3eede229.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_share RETURN_DEL 3eede229",
+-  "killed_by": "tests/features.py",
+-  "old": "    return legs[0][0] if (now - result.timestamps[i]) < first_ends else legs[-1][0]",
+-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=11."
+-}
+diff --git a/tests/mutation_ledger/survivor_triage/duty_switch.py/Direction.book.CMP_BOUND.3e106b06.json b/tests/mutation_ledger/survivor_triage/duty_switch.py/Direction.book.CMP_BOUND.3e106b06.json
+deleted file mode 100644
+index 2f2183aa51..0000000000
+--- a/tests/mutation_ledger/survivor_triage/duty_switch.py/Direction.book.CMP_BOUND.3e106b06.json
++++ /dev/null
+@@ -1,6 +0,0 @@
+-{
+-  "anchor": "custom_components/heatpump_optimizer/duty_switch.py:Direction.book CMP_BOUND 3e106b06",
+-  "old": "        if self.n > N_CAP:",
+-  "reason": "Equivalent (CMP_BOUND, `self.n > N_CAP` -> `self.n >= N_CAP`). The two differ only at n == N_CAP exactly, where the guarded body computes scale = N_CAP / self.n = 1.0 and multiplies k and kept_w by it: IEEE multiplication by 1.0 returns its operand, so both counts, and the latch read after them, are the same floats on either branch. Measured by the R10-DUTY-SWITCH-PLANNER-PRICE fixer's diff drive (tools/audit/seat/mutant_run.py --diff over the section harness dev/audit/harnesses/r10_duty_switch_price_section.py): SURVIVED, while the same line's GUARD_OFF and the section's cap mutants (no cap, the cap scaling the stops alone, three times the on-threshold) are each killed by the cap checks.",
+-  "verdict": "equivalent"
+-}

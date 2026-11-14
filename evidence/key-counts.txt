@@ -1,0 +1,4 @@
+strings.json 1509
+translations/en.json 1509
+translations/de.json 1509
+translations/sv.json 1509
