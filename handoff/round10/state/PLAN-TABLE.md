@@ -614,7 +614,7 @@ gantt
 | R10-RCA-FEATURES-WEEKEND-CLOCK | IN | 1 | done | - | opus/sonnet | - | Root-cause record (orchestrator, 2026-11-14) for the weekend red that R10-HOTFIX-FEATURES-WEEKEND-CLOCK fixed: the cause, the process state, the cost test an... |  |
 | R10-HOTFIX-SWEEP-DEFERRAL-DISPATCH | IN | 1 | done | - | opus/opus | - | HOTFIX ordered by the owner on 2026-11-14 for merge as soon as possible. |  |
 | R11-PRE-PARALLEL-PIPELINE | IN | 1 | design | - | opus/opus | - | Owner instruction 2026-11-14, his words: "Have a fable seat with web access and sendmessage capability study and design a high throughput pipeline, using a b... |  |
-| R10-HOTFIX-CI-RATCHET-SKIPPED-RUN | IN | 1 | not-started | - | opus/opus | - | HOTFIX ordered by the owner on 2026-11-14 (verbatim: "Do a CI-ratchet fix, but don't let it delay anything"). |  |
+| R10-HOTFIX-CI-RATCHET-SKIPPED-RUN | IN | 1 | in-progress | - | opus/opus | - | HOTFIX ordered by the owner on 2026-11-14 (verbatim: "Do a CI-ratchet fix, but don't let it delay anything"). |  |
 | R10-HOTFIX-MAIN-SELFTEST-SCOPE | IN | 1 | in-progress | - | opus/opus | - | the instrument-self-tests job on main has failed since merge f7e7a0244a at the step that refuses a self-test read set the committed table misses. |  |
 
 ## ETA
