@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, Callable, NamedTuple, Protocol
 
 import numpy as np
@@ -51,6 +52,8 @@ from .thermal_model import (
     dhw_draw_scale,
     added_power_for_heat_per_cop_kw,
     delivered_heat_kw,
+    dhw_start_below_c,
+    dhw_step_target_c,
     heat_per_cop_kw,
     power_for_heat_per_cop_kw,
 )
@@ -206,6 +209,108 @@ def _drop_off_steps(mask: np.ndarray, off: np.ndarray | None) -> np.ndarray:
     # the expression is the ruler's ``no-any-return``.
     kept: np.ndarray = mask & ~off
     return kept
+
+
+#: How many times :func:`place_startable` re-buys what the start condition
+#: barred before it settles for dropping. A round re-buys under the charges
+#: the round before kept, and the measured placements settle in two or three
+#: (``dev/audit/harnesses/r10_dhw_start_hysteresis.py``, repair_rounds_max),
+#: so eight is that with room to spare and still a bound.
+STARTABLE_ROUNDS = 8
+
+
+def dhw_start_temps(
+    params: ThermalParameters, state: ThermalState, n_steps: int, cycle_step: int | None
+) -> np.ndarray | None:
+    """Per step, the tank temperature below which the pump starts a charge, °C.
+
+    The target the arbiter writes on that step (``dhw_step_target_c`` on the
+    set-point entity's grid, ``state.dhw_setpoint_grid``: the cycle's on
+    ``cycle_step``, the everyday one elsewhere) less the pump's start
+    hysteresis (``state.dhw_start_hysteresis_k``), so a disinfection charge
+    is judged against its own target and a stepped entity's against the step
+    it lands on. ``None`` where no start condition is known
+    (``dhw_start_below_c``).
+    """
+    hysteresis_k, grid = state.dhw_start_hysteresis_k, state.dhw_setpoint_grid
+    everyday = dhw_start_below_c(dhw_step_target_c(params, False, grid), hysteresis_k)
+    if everyday is None:
+        return None
+    start = np.full(n_steps, everyday)
+    if cycle_step is not None and 0 <= cycle_step < n_steps:
+        start[cycle_step] = dhw_start_below_c(dhw_step_target_c(params, True, grid), hysteresis_k)
+    return start
+
+
+def startable_steps(
+    plan: np.ndarray, temps: np.ndarray, start_below: np.ndarray | None
+) -> np.ndarray:
+    """The steps where charging is something the pump does.
+
+    A step that opens on a tank below its start temperature (``temps[i]``,
+    the simulated level at its start), and the step after one of a charge
+    under way, which runs on to its target. A charge is under way from the
+    step it opens below its start temperature, or from the first step, where
+    it is kept as one that may be (:func:`drop_unstartable`); a charge the
+    pump would not start carries nothing on, so the repair buys neither
+    inside it nor behind it. Every step where no start condition is known
+    (``start_below`` ``None``).
+    """
+    on = np.asarray(plan, dtype=float) > 0.0
+    if start_below is None:
+        return np.ones(on.size, dtype=bool)
+    ok: np.ndarray = np.asarray(temps, dtype=float)[: on.size] < start_below[: on.size]
+    under_way = bool(on[:1].any())
+    for i in range(1, on.size):
+        ok[i] |= under_way
+        under_way = bool(on[i] and ok[i])
+    return ok
+
+
+def drop_unstartable(
+    plan: np.ndarray, start_below: np.ndarray, temps_of: Callable[[np.ndarray], np.ndarray]
+) -> np.ndarray:
+    """``plan`` without the charges the pump would never start.
+
+    Each run is judged in time order on the trajectory ``temps_of`` simulates
+    for the runs kept before it: one that begins on a tank at or above its
+    step's start temperature is removed whole. A run at the first step is
+    kept, as it may be a charge already under way (Bankaifan, #3440).
+    """
+    plan = np.array(plan, dtype=float)
+    on = plan > 0.0
+    for i in np.flatnonzero(on[1:] & ~on[:-1]) + 1:
+        end = i + int(np.argmin(np.append(on[i:], False)))
+        if temps_of(plan)[i] >= start_below[i]:
+            plan[i:end] = 0.0
+    return plan
+
+
+def place_startable(
+    plan: np.ndarray,
+    start_below: np.ndarray | None,
+    temps_of: Callable[[np.ndarray], np.ndarray],
+    repair: Callable[..., np.ndarray],
+) -> np.ndarray:
+    """The floor repair of ``plan`` under the pump's start condition.
+
+    With no condition, ``repair(plan=plan)``, the call as it always was. With
+    one, the charges the pump would not start are dropped and ``repair``,
+    handed the condition so it places only on :func:`startable_steps`,
+    re-buys what the floor still needs; a top-up
+    warms the tank under every later charge, so the two repeat until the
+    plan stands, at most :data:`STARTABLE_ROUNDS` times. The plan that leaves
+    holds no charge the pump would not start, and is short of the floor only
+    where no startable step can hold it.
+    """
+    if start_below is None:
+        return repair(plan=plan)
+    for _ in range(STARTABLE_ROUNDS):
+        fixed = repair(plan=drop_unstartable(plan, start_below, temps_of), start_below=start_below)
+        if np.array_equal(fixed, plan):
+            break
+        plan = fixed
+    return drop_unstartable(plan, start_below, temps_of)
 
 
 class _DhwLegionellaPlan(NamedTuple):
@@ -1180,17 +1285,8 @@ class DhwPlanner:
         # below the pump's practical minimum is then zeroed, never re-raised:
         # the rating always wins, and a published trickle is a power level the
         # on/off hardware cannot deliver.
-        schedule = self._clamp_dhw_to_capacity(
-            plan=schedule,
-            initial_temp=initial_state.dhw_temperature,
-            outdoor_temps=outdoor_temps,
-            draw_rates=draw_rates,
-            dt=dt,
-            max_temp=max_temp,
-            humidity=humidity,
-            exo_kw=tank_exo_kw,
-        )
-        schedule = np.where(schedule < min_run_power - 1e-9, 0.0, schedule)
+        schedule = self._ctx_clamp(
+            ctx, initial_state.dhw_temperature, draw_rates, max_temp, schedule)
 
         # The floor gets the same physics check the rating just got. The LP
         # and the greedy passes plan on an affine tank; the trajectory the
@@ -1200,15 +1296,17 @@ class DhwPlanner:
         # window (stress: winter_mild). Top up at the cheapest usable step
         # before each breach until the simulated trajectory honours the
         # requirement, then re-apply the rating, which always wins.
-        schedule = self._repair_dhw_floor(
+        start_below = dhw_start_temps(params, initial_state, n_steps, legionella_step)
+        tank = (ctx, initial_state.dhw_temperature, draw_rates)
+        schedule = place_startable(schedule, start_below, partial(self._ctx_temps, *tank), partial(
+            self._repair_dhw_floor,
             ctx,
-            plan=schedule,
             initial_temp=initial_state.dhw_temperature,
             draw_rates=draw_rates,
             requirement=requirement,
             max_temp=max_temp,
             forced_off=forced_off,
-        )
+        ))
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
         # so a plan leaves this stage already bounded by the per-step
@@ -1263,19 +1361,10 @@ class DhwPlanner:
         # it. The requirement is stashed for that loop to check against.
         if dhw_pins is not None:
             schedule = self._apply_dhw_pins(schedule, dhw_pins, min_run_power)
-            schedule = self._clamp_dhw_to_capacity(
-                plan=schedule,
-                initial_temp=initial_state.dhw_temperature,
-                outdoor_temps=outdoor_temps,
-                draw_rates=draw_rates,
-                dt=dt,
-                max_temp=max_temp,
-                humidity=humidity,
-                exo_kw=tank_exo_kw,
-            )
             # Same hygiene as the automatic path: a step the rating truncated
             # below the pump's minimum cannot actually run, even a pinned one.
-            schedule = np.where(schedule < min_run_power - 1e-9, 0.0, schedule)
+            schedule = self._ctx_clamp(
+                ctx, initial_state.dhw_temperature, draw_rates, max_temp, schedule)
         if blocked:
             # The invariant, restated after every path that can add energy —
             # including the manual force-on overlay directly above, which a
@@ -1533,10 +1622,7 @@ class DhwPlanner:
 
             # Refine the COP estimate against the tank temperatures this plan
             # actually produces, so the cost ranking reflects reality.
-            temps = self._dhw_plan_temps(
-                best, initial_temp, outdoor_temps, draw_rates, dt, humidity,
-                ctx.tank_exo_kw,
-            )
+            temps = self._ctx_temps(ctx, initial_temp, draw_rates, best)
             refined = self._dhw_cop_profile(outdoor_temps, temps[:-1], humidity)
             if np.allclose(refined, cop, rtol=0.02):
                 break
@@ -1616,6 +1702,25 @@ class DhwPlanner:
             )
         )
 
+    def _ctx_temps(
+        self, ctx: _DhwPlanContext, initial_temp: float, draw_rates: np.ndarray, plan: np.ndarray
+    ) -> np.ndarray:
+        """The tank trajectory under ``plan`` on the context's own weather, step and inflow."""
+        return self._dhw_plan_temps(
+            plan, initial_temp, ctx.outdoor_temps, draw_rates, ctx.dt, ctx.humidity, ctx.tank_exo_kw)
+
+    def _ctx_clamp(
+        self, ctx: _DhwPlanContext, initial_temp: float, draw_rates: np.ndarray,
+        max_temp: np.ndarray, plan: np.ndarray,
+    ) -> np.ndarray:
+        """``plan`` held to the tank's capacity on the context's own weather, step
+        and inflow, a step the clamp leaves below a runnable block zeroed: the
+        rating always wins, and a trickle is a power the hardware cannot deliver."""
+        plan = self._clamp_dhw_to_capacity(
+            plan, initial_temp, ctx.outdoor_temps, draw_rates, ctx.dt, max_temp,
+            ctx.humidity, ctx.tank_exo_kw)
+        return np.where(plan < ctx.min_run_power - 1e-9, 0.0, plan)
+
     def _repair_dhw_floor(
         self,
         ctx: _DhwPlanContext,
@@ -1626,6 +1731,7 @@ class DhwPlanner:
         requirement: np.ndarray,
         max_temp: np.ndarray,
         forced_off: np.ndarray | None = None,
+        start_below: np.ndarray | None = None,
     ) -> np.ndarray:
         """Top up the plan until the SIMULATED trajectory meets the floor.
 
@@ -1697,6 +1803,7 @@ class DhwPlanner:
             usable = headroom > 1e-6
             if forced_off is not None:
                 usable &= ~np.asarray(forced_off[lo : b + 1], dtype=bool)
+            usable &= startable_steps(plan, temps, start_below)[lo : b + 1]
             # Degrees of room under the ceiling for heat added at each
             # candidate. The heat is stored from the candidate to the breach,
             # decaying as it leaks away, so the bound is the tightest of
@@ -1782,17 +1889,7 @@ class DhwPlanner:
                 # truncates below a runnable block is zeroed, the same rule
                 # the caller applies to its own clamp: a published trickle is
                 # a power the on/off hardware cannot deliver.
-                plan = self._clamp_dhw_to_capacity(
-                    plan=plan,
-                    initial_temp=initial_temp,
-                    outdoor_temps=outdoor_temps,
-                    draw_rates=draw_rates,
-                    dt=dt,
-                    max_temp=ceiling,
-                    humidity=humidity,
-                    exo_kw=ctx.tank_exo_kw,
-                )
-                plan = np.where(plan < min_run_power - 1e-9, 0.0, plan)
+                plan = self._ctx_clamp(ctx, initial_temp, draw_rates, ceiling, plan)
                 if np.array_equal(plan, before):
                     # The block went in and came straight back out. Repeating
                     # it is a loop, not a repair, so this breach is recorded
@@ -1800,10 +1897,7 @@ class DhwPlanner:
                     # on to the next.
                     unreachable.add(b)
                 else:
-                    temps = self._dhw_plan_temps(
-                        plan, initial_temp, outdoor_temps, draw_rates, dt, humidity,
-                        ctx.tank_exo_kw,
-                    )
+                    temps = self._ctx_temps(ctx, initial_temp, draw_rates, plan)
             else:
                 # Nothing ceiling-legal can fix this step; move on rather than
                 # abandoning every later breach with it.

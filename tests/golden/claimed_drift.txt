@@ -62,11 +62,19 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.1.15
+# claims-for: 7.1.16
 #
-# v7.1.15: Supply minimum run and pause, valve target label, boost settling, card folds. The stamp empties the list; the
+# v7.1.16: Pump start condition input, duty-switch pricing, savings reference fix. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
+valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
+valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
+valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
+valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
+wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
+wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
+wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -778,11 +786,3 @@
 # baseline_cost is a judged key a may-drift entry cannot excuse, so the six
 # with one are suspended above for this release (the wood_coil precedent).
 # Direction per fixture, branch vs base:
-valve_storage  # baseline_cost LOWER (129.949 -> 129.189)
-valve_storage_low_target  # baseline_cost HIGHER (113.037 -> 115.889)
-valve_storage_small_tank  # baseline_cost LOWER (128.370 -> 126.962)
-valve_storage_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
-valve_upper_direct_slab  # baseline_cost HIGHER (126.301 -> 129.925)
-wood_coil  # baseline_cost LOWER (144.781 -> 144.020)
-wood_two_tank  # baseline_cost LOWER (129.949 -> 129.189)
-wood_two_tank_smart_write  # baseline_cost LOWER (129.949 -> 129.189)
