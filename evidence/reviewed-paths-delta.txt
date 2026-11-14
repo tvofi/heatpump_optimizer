@@ -1,0 +1,13 @@
+ .../heatpump_optimizer/duty_switch.py              |   5 +-
+ custom_components/heatpump_optimizer/ledger.py     |   5 +-
+ custom_components/heatpump_optimizer/optimizer.py  |  33 ----
+ custom_components/heatpump_optimizer/strings.json  |  98 +++++------
+ .../heatpump_optimizer/translations/de.json        |  98 +++++------
+ .../heatpump_optimizer/translations/en.json        |  98 +++++------
+ .../heatpump_optimizer/translations/sv.json        |  96 +++++-----
+ .../www/heatpump-optimizer-card.js                 | 186 ++++++++------------
+ dev/audit/harnesses/r10_card_evidence_kinds.py     |  82 +++++++++
+ dev/audit/harnesses/r10_card_user_text.mjs         | 104 +++++++++++
+ tests/features.py                                  | 194 +++++++++------------
+ 11 files changed, 546 insertions(+), 453 deletions(-)
+PR production files byte-identical ece83280 -> 2486dc6d
