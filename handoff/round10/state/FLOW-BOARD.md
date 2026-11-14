@@ -1,17 +1,17 @@
 # Flow board
 
-Window ends 2026-11-14T04:23:49+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-14T04:53:32+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 2 / 1.0 | 31 / 24.0 |
+| roster groups closed vs takt | 1 / 1.0 | 31 / 24.0 |
 | fly-ins closed | 0 | 7 |
-| main moves: group-carrying / record / roster-edit / fly-in | 2 / 0 / 0 / 0 | 29 / 4 / 3 / 7 |
-| first-pass fix-review yield | 1/2 (0.50) | 16/37 (0.43) |
-| blocked-class mix | class-open:1, mutation-vacuous:1 | body:1, ci-red:4, class-open:4, comment-evidence:1, conflict:1, doc-claim-false:1, dropped-entries:1, evidence-comment:1, harness:1, introduced-red:4, main-conflict:1, merge-conflict:1, mutation-survivors:1, mutation-vacuous:8, red-unanswered:1, reference-basis-unbumped:1, root-cause-unrecorded:1, self-test-red:1, sufficiency:1, under-scoped:1 |
-| lead time per size (h, n/p50/max) | S n=2 p50=1.37 max=3.10 | L n=4 p50=28.75 max=55.38; M n=10 p50=19.98 max=53.48; S n=15 p50=4.68 max=18.31 |
+| main moves: group-carrying / record / roster-edit / fly-in | 2 / 0 / 0 / 0 | 30 / 4 / 3 / 7 |
+| first-pass fix-review yield | 0/0 (-) | 16/37 (0.43) |
+| blocked-class mix | mutant-committed:1, mutation-vacuous:1 | body:1, ci-red:4, class-open:4, comment-evidence:1, conflict:1, doc-claim-false:1, dropped-entries:1, evidence-comment:1, harness:1, introduced-red:4, main-conflict:1, merge-conflict:1, mutant-committed:1, mutation-survivors:1, mutation-vacuous:8, red-unanswered:1, reference-basis-unbumped:1, root-cause-unrecorded:1, self-test-red:1, sufficiency:1, under-scoped:1 |
+| lead time per size (h, n/p50/max) | M n=1 p50=20.70 max=20.70; S n=1 p50=3.10 max=3.10 | L n=4 p50=28.75 max=55.38; M n=11 p50=20.70 max=53.48; S n=15 p50=4.68 max=18.31 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
