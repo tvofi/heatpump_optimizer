@@ -37,10 +37,10 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 110
+records every read, so this lane's recorded closure is the package: all 111
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (109 until R10-DUTY-SWITCH-PLANNER-PRICE's ``duty_legs.py``, 108 until the supply-hold PR's
-``supply_hold.py``, 107 until
+alike (110 until R10-ADVISOR-STEADY-START's ``whatif.py``, 109 until R10-DUTY-SWITCH-PLANNER-PRICE's
+``duty_legs.py``, 108 until the supply-hold PR's ``supply_hold.py``, 107 until
 R10-DUTY-SWITCH-RESTART-LEARNING's ``duty_switch.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
 ``payload.py``, 87 until R9-UX-4's ``notifier.py``, 88 until R9-SW-1's
@@ -96,10 +96,12 @@ supply_hold.py, read by every closure that imports the coordinator, from 148 to 
 R10-DUTY-SWITCH-PLANNER-PRICE's duty_legs.py, read by every closure that
 imports the optimizer or the arbiter, left it at 154: measured alone on the
 148 recording it moves the same count to 154, the pairs it lifts being ones
-supply_hold.py lifts too; R10-OUTSIDE-DHW-START-HYSTERESIS's block_duty.py
-check that the coordinator's input read puts the pump's start hysteresis on
-the state builds a coordinator, which grew that script's closure from 74 to
-91 production files: nine pairs joined at the 0.80 floor and one left, the
+supply_hold.py lifts too; R10-ADVISOR-STEADY-START's whatif.py, read by every
+closure that imports the coordinator, left it at 154 too;
+R10-OUTSIDE-DHW-START-HYSTERESIS's block_duty.py check that the coordinator's
+input read puts the pump's start hysteresis on the state builds a coordinator,
+which grew that script's closure from 74 to 91 production files (75 to 92
+beside whatif.py): nine pairs joined at the 0.80 floor and one left, the
 count from 154 to 162).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
