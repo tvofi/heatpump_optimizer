@@ -1,0 +1,6 @@
+custom_components/heatpump_optimizer/strings.json leaves 1507 mismatch 0
+custom_components/heatpump_optimizer/translations/de.json leaves 1507 mismatch 0
+custom_components/heatpump_optimizer/translations/en.json leaves 1507 mismatch 0
+CONFLICT custom_components/heatpump_optimizer/translations/sv.json ('options', 'step', 'entities', 'sections', 'indoor', 'data_description', 'space_setpoint_unit') 3576
+custom_components/heatpump_optimizer/translations/sv.json leaves 1507 mismatch 0
+ORACLE-RESULT mismatches 0

@@ -1,0 +1,7 @@
+features.py at 3ab3d5b5ab4b21d147977652f14d5cf0de280006 (wt-book)
+  FAIL n has a ceiling: forty stops over two days hold n at N_CAP with p unchanged, so with no further episode a latched direction unlatches just past two half-lives and is re-tested; a record stored over the cap is held to it by the next pass alike; null control, a day before that it is still latched  [n 11.0 p 1.0 [True, False, True, False]]
+  FAIL the decayed count is held at the cap, twice the on-threshold: forty bookings an hour apart end on it and none leaves it above (to 1e-9, the rounding of two scaled addends)  [largest n 11.000000000000002, last 11.0, after nine 8.926166423693054]
+  FAIL the cap scales both counts alike: a stop booked on six of ten leaves p at seven of eleven  [p=0.6363636363636364 n=11.0]
+  FAIL from p = 1 at the cap the latch holds after twelve kept episodes and drops at the thirteenth, each multiplying p by 10/11  [p after 12 0.31863081771035673 usable=True; after 13 0.2896643797366879 usable=False]
+EXIT 1
+ok lines: 5720

@@ -1,0 +1,21 @@
+411f54ea8dd489d1392df7b6348c59150978eb80 Merge PR 3569 head 57ee459 into R10-DUTY-SWITCH-RESTART-LEARNING-PR-B part 2 (stacked)
+
+diff --git a/custom_components/heatpump_optimizer/duty_switch.py b/custom_components/heatpump_optimizer/duty_switch.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/duty_switch.py
+index 1eede4bcf1..68904c9beb 100644
+--- a/custom_components/heatpump_optimizer/duty_switch.py
++++ b/custom_components/heatpump_optimizer/duty_switch.py
+@@ -38,13 +38,8 @@ weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with
+ the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
+ forgotten with it. Every threshold
+ here is a named constant from one day on one install, not a measurement.
+-<<<<<<< fa3e6f2a5c (Merge PR 3576 head 8317d9e into R10-DUTY-SWITCH-RESTART-LEARNING-PR-B part 2 (stacked))
+-``n`` is held at :data:`N_CAP` by scaling both counts alike, at a booking and
+-on decay, so
+-=======
+ ``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking and
+ on each decay, so a record stored over it is held to it by the first pass,
+->>>>>>> 57ee4591d0 (Merge remote-tracking branch 'origin/main' into fix/r10-duty-switch-planner-price-pr)
+ evidence from before a firmware change is outvoted in a bounded number of
+ episodes and an install that stops switching unlatches in a bounded time.
+ """
