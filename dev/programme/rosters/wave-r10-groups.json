@@ -21315,7 +21315,7 @@
     "branch": null,
     "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-WATER-SETPOINT-FEEDBACK, ordered by after-edges where files overlap",
     "pr": 3511,
-    "commit": "90c6bc3b0756475e28d4ace8d8e31c4788474933"
+    "commit": "5cd7b874134350b87a72062f4d5df73404a58aff"
    }
   },
   {
