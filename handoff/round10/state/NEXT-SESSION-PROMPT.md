@@ -29,7 +29,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-CLOSEOUT-PREP (stage carries-open, branch `fix/r10-closeout-prep`): `git fetch origin fix/r10-closeout-prep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARCH-DOCS-DELTA (stage in-progress, branch `handoff/r10-arch-docs-delta`): `git fetch origin handoff/r10-arch-docs-delta && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DUTY-SWITCH-RESTART-LEARNING-PR-B (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-OUTSIDE-LEARNER-ROBUSTNESS-P3 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage design): no branch pushed yet, so nothing to fetch
