@@ -758,6 +758,7 @@ INERT_EXCEPT = (
     "tools/audit/seat/instruments/beatd.py.md",
     "tools/audit/seat/instruments/cloud_dispatch.py.md",
     "tools/audit/seat/instruments/heartbeat.sh.md",
+    "tools/audit/seat/instruments/merge_train.py.md",
     "tools/audit/seat/instruments/tick_loop.sh.md",
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/postmerge.py",
