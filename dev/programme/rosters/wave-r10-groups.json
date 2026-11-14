@@ -2663,9 +2663,7 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [
-    "R10-PROCESS-SLIM"
-   ],
+   "after": [],
    "carry": [
     "Bounds the WAIT for the gate lease, not the lease itself (P206/V126, from the 38-minute lane block behind two stress.py runs). `tests/gate_lock.py`: `take()`'s wait loop today has no deadline (`while True: ... time.sleep(WAIT_POLL_SECS)`), so a waiter behind a running measurement blocks for as long as measurements keep arriving; `LEASE_SECONDS = 1800` and `renew()`'s refusal (rc 75 while another label's ticket waits) already bound the holder and cannot preempt a live run's `flock`. Add a wait deadline defaulting to the awaited script's recorded duration when the caller names one (`tests/closures.json` records `tests/stress.py` at 936.3 s and `tests/harness_headers.py` at 241.1 s) and to `LEASE_SECONDS` otherwise, exiting with a distinct code and one line naming the wait and its bound. `tests/run.sh`'s `leased()` gains a case arm mapping that code to the existing sanctioned exit, `SKIP: <script> ... left to CI, named unrun` (`gate-scoping.md`), so the lane records a named unrun instead of a pass. Constraints: the bound must be at least the awaited script's recorded duration; the skip must never be a silent pass; it applies only to scripts `needs_lease` classifies `lease` (a `slot` waiter already shares the four-slot pool and must not skip); uncontended runs take no new branch (null control); neither `LEASE_SECONDS` nor `renew()`'s refusal changes. Two self-test arms: a waiter past the bound exits with the code and the line, one within it still runs. triage: dev/programme/triage/s6-batch38.md#P206 [implemented: 239e5e4a6]",
     "no-copies runs an interpreter that parses the tree (V148). In `tools/pr/prepr.sh`'s `copies_line` (:1034), replace the bare `python3` with the interpreter `recorder_python` (:519) prints, the resolver step 6a already uses (:716). Resolve it once per prepr run and share the result with step 6a, since one `recorder_parses` costs 5.30 s here. When `recorder_python` finds none, the step returns 1 with its remedy line, so a missing interpreter is never read as a copy or as a skip. Instance: #2894 (fixer s8, 2026-10-28), a false `no-copies` refusal under the system Python 3.11 that was clean under the seat venv's 3.14.7. Reproduced at `53c4b9cb0`: 3.11.5 prints `SyntaxError: f-string: f-string: expecting '}'`. Controls, reusing the `recorder_python` fixtures (:2383-2392): a PATH whose first `python3` cannot parse the tree, plus a parsing seat venv, means `copies_line` runs the venv and returns 0 on a clean tree; with no parsing interpreter it returns 1 and its line names `seat_venv.sh`; null control: with `HPO_RECORDER_PYTHON` set to a parsing interpreter, that one runs. Mutant: restoring the bare `python3` fails the first control. Out of scope: prepr.sh's other bare `python3` calls. triage: dev/programme/triage/s6-batch46.md#P234 [implemented: 239e5e4a6]",
@@ -12170,6 +12168,7 @@
    "severity": "medium",
    "size": "S",
    "issues": [
+    201,
     2965
    ],
    "fixes": [],
@@ -14374,13 +14373,13 @@
     "tools/audit/seat/roster_edit.py"
    ],
    "carry": [
-    "Re-homed from R10-TRAIN-OVERLAP-GRADE carries 16-17 (P267/P268; audit at main 89ccf7326 found neither the tier module nor its config file in the tree, and no live group building them). This group now owns building the CI-priority tier module and its config file (tier order and knobs only; the group-to-class mapping is read from the roster through the roster library, R10-ORCH-ROSTER-SCHEMA owning those fields), plus the merge train's pause/resume of the lowest-priority PR's CI when a head job has queued 5 minutes or more (a paused-record file, at most once per 5 minutes, resume on exit and at start), with the controls written in TRAIN-OVERLAP-GRADE carries 16-17. Consumers R10-FLOW-WIP, R10-FLOW-TOOLKIT-MODEL and R10-ORCH-LEDGER stay after-edged on it. Carry: R10-FLY-CANCEL-SWEEP",
-    "Carried whole from R10-TRAIN-OVERLAP-GRADE carries 16 and 17, which this group's re-home carry names for its controls, before they are dropped there (Orchestrator s9 ruling under mandate 6329234399, on tvofi's request (2026-10-31, from the s9 fold audit)). CARRY A: From triage P267 (V181, owner-directed by tvofi 2026-10-28T19:43:00Z: when the account's concurrent-job limit binds, pause the lowest-priority PR's CI to free runners for main and the train head; priority main push > train head (CP first) > queue order > CP PRs > others). In merge_train.py: (1) Detect: while wait_ci (line 1142) waits on the head, or on main after a landing, read those runs' jobs on the existing poll; the limit binds when a head/main job has been `queued` >= 5 min (GitHub exposes no account limit). (2) One victim per pass, the lowest ci_priority.rank() first (item 8); NEVER a never_pause class (main push, CP/hotfix, train head), queue position 2, or a run at another head (P266's sweep owns those). (3) Pause: POST actions/runs/<id>/cancel for the victim's active runs at its live head; record {pr, head, run_ids, paused_at} in paused.json beside the train's queue state; log `PAUSE #<n> at <head8>: runs <ids> for <head-or-main>`. (4) Resume when head and main have no queued job, and on every train exit (finally, Stop included): POST actions/runs/<id>/rerun-failed-jobs (keeps finished jobs) for each record whose PR head is unchanged; a moved head drops the record; log `RESUME #<n>`. (5) Every train start resumes leftover paused.json records first. (6) At most one pause per 5 min; no new polling loop. (7) Controls: head job queued 6 min + tail runs active -> tail cancelled and recorded; head clears -> rerun-failed-jobs on the tail's ids; CP tail skipped, next victim taken; main and position 2 never chosen; moved head dropped, no rerun; a stop mid-pause resumes in finally; a leftover record is resumed at start; mutant dropping the CP guard pauses the CP fixture and fails; null: no queued head job pauses nothing. (8) Priority, as P268 amends this ruling (owner's 5th amendment as clarified): the tier order and knobs stay in dev/audit/config/ci_priority.json (order, major_savings_h, tiebreak, never_pause, never_cancel) with no group-keyed data; each group's mapping (hotfix via source user, savings with its source, class) is read from the roster through roster_lib (R10-ORCH-ROSTER-SCHEMA); ci_priority.py's tier() is the one class rule. Extra controls: a source-user (hotfix) PR is never paused; null: the default setting and today's roster reproduce the owner's order. triage: dev/programme/triage/s6-batch57.md#P268 Not carried: pausing inside cancel_superseded.py; a full rerun; capping --overlap's recarry depth (a cheaper complement if PAUSE lines show the tail paused on most landings). triage: dev/programme/triage/s6-batch56.md#P267\nCARRY B: From triage P268 (V181, the owner's 4th and 5th amendments and the clarification, 2026-10-28T19:54:02Z/19:59:53Z: user-submitted bugs in production code (and requests the owner calls hotfixes) are hotfixes; an instrument saving >= 12 h ranks with production; ONLY the group<->priority mapping lives in the roster, the tier order may stay in dev/audit/config/ci_priority.json; every instrument reads the mapping from the roster), amending this group's P267 carry: dev/audit/config/ci_priority.json keeps tier definitions and order ONLY: order [\"main-push\",\"cp-hotfix\",\"tier1\",\"instrument\"], major_savings_h 12, tiebreak [\"cp-rank\",\"savings-desc\",\"train-position\",\"age\"], never_pause [\"main-push\",\"cp-hotfix\",\"train-head\"], never_cancel [\"main-push\",\"cp-hotfix\"]. REMOVED from the file: P267's savings_h map and hotfix_prefixes (the mapping comes from the roster). tools/audit/seat/ci_priority.py keeps P267's floor refusals and defines classes in ONE function tier(group, crit, roster, setting), reading the mapping only through roster_lib.is_hotfix, savings_h and group_class (R10-ORCH-ROSTER-SCHEMA): cp-hotfix = critical path or is_hotfix; tier1 = group_class production or savings_h >= major_savings_h; instrument = the rest; a PR maps to its group by branch, a group-less PR is tier1 if its three-dot diff touches custom_components/, else instrument. train-head stays a structural never_pause guard. Everything else in P267 stands. Changed controls: a source-user PR off the CP is never paused; a 14 h instrument PR ranks with a production PR and above a 3 h one; a setting file holding a group-keyed map is refused naming the key; null: rank() over the default setting and today's roster reproduces the owner's order. triage: dev/programme/triage/s6-batch57.md#P268",
-    "From triage P267 (V181) as amended by P268 (the owner's 4th and 5th amendments, 2026-10-28T19:54:02Z/19:59:53Z: one priority order; each group's mapping lives in the roster): the owed-PR lines (P265's buckets, 'critical-path PRs first') are ordered by ci_priority.rank (tools/audit/seat/ci_priority.py over dev/audit/config/ci_priority.json, each group's mapping read from the roster through roster_lib), not by a separate CP-first rule. Also: a paused.json record (R10-TRAIN-OVERLAP-GRADE's CI pause) older than 60 min with no train running is an owed bucket with reason 'paused CI never resumed'. Control: an owed source-user PR prints before an owed instrument PR; null: the default setting reproduces the owner's order. triage: dev/programme/triage/s6-batch56.md#P267 triage: dev/programme/triage/s6-batch57.md#P268",
-    "From triage P268 (V181, the owner's 4th and 5th amendments with the 5th's clarification, the owner's hotfix definition, and the 6th amendment with its correction, 2026-10-28T19:54:02Z to 20:28:56Z: an instrument saving >= 12 h ranks with production; ONLY the group<->priority mapping lives in the roster, the tier order may stay in dev/audit/config/ci_priority.json; every instrument reads the mapping from the roster). (1) Per-group fields set at intake: `source` in {\"user\",\"audit\",\"programme\"} (user = an item submitted by the owner or an end user, a report or a request; not a hotfix by itself; issue authorship cannot decide it, the orchestrator files under the owner's token). `hotfix` boolean, true ONLY under one of five rules, with `hotfix_by` = {rule, evidence} recording which applied: user-production-bug (a user-submitted bug touching production code; evidence the report); owner-called (a feature request the owner explicitly calls a hotfix; evidence the owner's words); fixing-phase-critical (a critical bug the programme finds during the fixing phase; evidence the finding or verdict naming it critical); main-red-required (a bug making main red on a REQUIRED check, as the owner corrected it; evidence the red required check-run on a main SHA, run id and context); merge-deadlock (a CI or programme-machinery bug that deadlocks all merges; evidence the stop showing no merge can land). Anything else is not a hotfix, e.g. an owner request for a document or instrument such as R10-ROUND-PLAYBOOK. `savings_source` (a citation, e.g. dev/programme/triage/<batch>.md#P<n>) required whenever the existing numeric `savings` is set; the existing `class` kept, \"production\" marks production code. (2) roster_lib readers, the ONE place any instrument gets a group's mapping: is_hotfix(g) = hotfix is True or an R10-HOTFIX- name; touches_production(g) = class production or any of its files under custom_components/; savings_h(g) = the number or None; group_class(g) = class, or with no class \"production\" if its lane is one of replan's production lanes. (3) roster_edit.py append-group REFUSES a group JSON without `source`; new op set-field <group> source|hotfix|hotfix_by|savings|savings_source|class <value>, restricted and validated: refuses a savings without savings_source; hotfix true without a hotfix_by whose rule is one of the five and whose evidence is non-empty; rule user-production-bug unless source is user and the group touches_production; rule main-red-required whose evidence names a context outside the ruleset's required checks. (4) Backfill: briefs opening 'Owner-reported', 'User-reported' or 'Owner request' get source user; those reporting a bug and touching production get hotfix true with rule user-production-bug (live: R10-UX-HEALTH, 'Owner-reported Health tab', all three files under custom_components/); R10-ROUND-PLAYBOOK (Owner request; dev/audit/README.md and CLAUDE.md) is source user and NOT a hotfix, as the owner ruled; R10-HOTFIX-BATCH-ERREXIT keeps its prefix (is_hotfix reads it), no hotfix_by set by this carry; the three programme rules are applied by the orchestrator at intake as they arise, not backfilled from brief text. Controls: append-group without source refused; set-field X savings 14 without a source refused; is_hotfix true for a hotfix-true fixture and an R10-HOTFIX- fixture, false for a source-user request touching only dev/; set-field X hotfix true with no hotfix_by or an unknown rule refused; user-production-bug refused on a source-audit group and on a user group touching no production file; each of fixing-phase-critical, main-red-required and merge-deadlock accepted with evidence and refused without; main-red-required naming a non-required context refused; group_class falls back to lane only when class is absent; null: today's roster with no new fields loads unchanged. triage: dev/programme/triage/s6-batch57.md#P268",
-    "CI-QUEUE-PRIORITY-BUILT-IN, owner ruling (tvofi 2026-11-11T20:13Z, verbatim: \"6. Do it, it is already decided and should be built in, no critical path, outside or hotfix PR should wait in CI queue.\"), reopening this group from its 2026-11-08 keep-test refusal (triage: dev/programme/triage/s6-batch214.md#P652 at 59de2b35b3), line numbers at 61afd4f2db. Build into the beat's cancel-sweep row (tools/audit/seat/beat_jobs.py cancel-sweep, :83 and :522) and tools/pr/cancel_superseded.py the rule the session's local seat has run since 2026-11-11T20:20Z: while any critical-path, hotfix or outside pull request (classes read from the roster through roster_lib, this group's tier mapping) has a workflow run queued, cancel the queued runs of non-priority pull requests and re-run them once no priority run is queued; never cancel a run of the pull request the merge train is waiting on, nor a run already in progress, nor a main-branch run. Print one line per cancel and per re-run naming the PR, the run and the priority PR that caused it. Self-test: a queued priority run plus a queued non-priority run cancels the non-priority one and re-runs it after; the train's PR is never cancelled; null control: no priority run queued cancels nothing; mutation proof: dropping the priority check makes the null control cancel. Measure in the body: minutes a priority PR's first job waits queued, before and after, with the before figure re-measured at the merge base (31 min was measured for #3455's review run at 2026-11-11T20:11Z, 77 queued and 9 running); carry no count.",
-    "CANCEL-SWEEP-ZOMBIE-MEMORY (triage: dev/programme/triage/s6-batch215.md#P654 at b7b37bfda0, part 1), line numbers at 61afd4f2db. tools/pr/cancel_superseded.py:222-228 POSTs a cancel for every planned run on every pass. Six runs (42810088662 42810088912 42817922694 42818706376 42955031956 42961218591) answer HTTP 409 \"Cannot cancel a workflow run that is not in progress\" on every 600-s beat pass (beat_jobs.py:83). That is 12 failure lines in digest/jobs/cancel-sweep and at least a third of the pass's REST calls. Repair: record a run that answers 409 while it is listed active in a state file under $HPO_STATE_DIR (id, first-seen time). Skip it on later passes without a POST or a commit read. Print it once as `cancel_superseded: zombie <id> (409, not retried)`, and count zombies in the CANCEL-SWEEP summary line. Do not count a known zombie as a failure in beat_jobs.py's cancel_sweep filter (:523-524). A run that is gone from the active listings drops out of the file. Self-test: a 409 answer is recorded and the next pass makes no POST for it. Null control: a non-409 failure (rc 1, HTTP 500) is retried on the next pass. Mutation proof: dropping the record makes the second pass POST again.",
-    "CI-PRIORITY-NO-VERDICT-CANCEL (triage: dev/programme/triage/s6-batch215.md#P654 at b7b37bfda0, part 3), line numbers at 61afd4f2db, amending carry 4 (CI-QUEUE-PRIORITY-BUILT-IN) with the local shim's measured result (s14 ci-priority FINDINGS, 2026-11-11 20:15-20:42Z). 21 cancels of queued non-priority runs drained no priority run: priority_queued held at 19-20, and GitHub completed about 2 runs per hour. The cancels and reruns also turned 10 spooled verdicted pull requests red. 37 of the queued runs were main `Gate sweep` runs, which carry 4's rule exempts. The build must: (i) never cancel a run of a pull request that holds a posted merge verdict at its head, or that is in the merge train's queue or spool, as well as the train's current PR; (ii) prefer holding to cancelling, which means starting no rerun or dispatch of a non-priority PR's CI (the train and merge_pr unstale reruns, rerun helpers) while a priority run is queued, and cancelling a queued run only where the body's before/after measure (carry 4) shows that cancelling shortens a priority PR's queued wait; (iii) report in the body which share of the queue is main-branch runs, because they decided the shim's zero. Self-test: a queued run of a verdicted spooled PR is never cancelled while a priority run is queued. Null control: a non-verdicted, non-spooled queued run is handled as carry 4 says. Mutation proof: dropping the verdict check cancels the verdicted run.",
+    "Re-homed from R10-TRAIN-OVERLAP-GRADE carries 16-17 (P267/P268; audit at main 89ccf7326 found neither the tier module nor its config file in the tree, and no live group building them). This group now owns building the CI-priority tier module and its config file (tier order and knobs only; the group-to-class mapping is read from the roster through the roster library, R10-ORCH-ROSTER-SCHEMA owning those fields), plus the merge train's pause/resume of the lowest-priority PR's CI when a head job has queued 5 minutes or more (a paused-record file, at most once per 5 minutes, resume on exit and at start), with the controls written in TRAIN-OVERLAP-GRADE carries 16-17. Consumers R10-FLOW-WIP, R10-FLOW-TOOLKIT-MODEL and R10-ORCH-LEDGER stay after-edged on it. Carry: R10-FLY-CANCEL-SWEEP [implemented: d2e7805b7cf91cc8231729ef29383b3ae67a27ae]",
+    "Carried whole from R10-TRAIN-OVERLAP-GRADE carries 16 and 17, which this group's re-home carry names for its controls, before they are dropped there (Orchestrator s9 ruling under mandate 6329234399, on tvofi's request (2026-10-31, from the s9 fold audit)). CARRY A: From triage P267 (V181, owner-directed by tvofi 2026-10-28T19:43:00Z: when the account's concurrent-job limit binds, pause the lowest-priority PR's CI to free runners for main and the train head; priority main push > train head (CP first) > queue order > CP PRs > others). In merge_train.py: (1) Detect: while wait_ci (line 1142) waits on the head, or on main after a landing, read those runs' jobs on the existing poll; the limit binds when a head/main job has been `queued` >= 5 min (GitHub exposes no account limit). (2) One victim per pass, the lowest ci_priority.rank() first (item 8); NEVER a never_pause class (main push, CP/hotfix, train head), queue position 2, or a run at another head (P266's sweep owns those). (3) Pause: POST actions/runs/<id>/cancel for the victim's active runs at its live head; record {pr, head, run_ids, paused_at} in paused.json beside the train's queue state; log `PAUSE #<n> at <head8>: runs <ids> for <head-or-main>`. (4) Resume when head and main have no queued job, and on every train exit (finally, Stop included): POST actions/runs/<id>/rerun-failed-jobs (keeps finished jobs) for each record whose PR head is unchanged; a moved head drops the record; log `RESUME #<n>`. (5) Every train start resumes leftover paused.json records first. (6) At most one pause per 5 min; no new polling loop. (7) Controls: head job queued 6 min + tail runs active -> tail cancelled and recorded; head clears -> rerun-failed-jobs on the tail's ids; CP tail skipped, next victim taken; main and position 2 never chosen; moved head dropped, no rerun; a stop mid-pause resumes in finally; a leftover record is resumed at start; mutant dropping the CP guard pauses the CP fixture and fails; null: no queued head job pauses nothing. (8) Priority, as P268 amends this ruling (owner's 5th amendment as clarified): the tier order and knobs stay in dev/audit/config/ci_priority.json (order, major_savings_h, tiebreak, never_pause, never_cancel) with no group-keyed data; each group's mapping (hotfix via source user, savings with its source, class) is read from the roster through roster_lib (R10-ORCH-ROSTER-SCHEMA); ci_priority.py's tier() is the one class rule. Extra controls: a source-user (hotfix) PR is never paused; null: the default setting and today's roster reproduce the owner's order. triage: dev/programme/triage/s6-batch57.md#P268 Not carried: pausing inside cancel_superseded.py; a full rerun; capping --overlap's recarry depth (a cheaper complement if PAUSE lines show the tail paused on most landings). triage: dev/programme/triage/s6-batch56.md#P267\nCARRY B: From triage P268 (V181, the owner's 4th and 5th amendments and the clarification, 2026-10-28T19:54:02Z/19:59:53Z: user-submitted bugs in production code (and requests the owner calls hotfixes) are hotfixes; an instrument saving >= 12 h ranks with production; ONLY the group<->priority mapping lives in the roster, the tier order may stay in dev/audit/config/ci_priority.json; every instrument reads the mapping from the roster), amending this group's P267 carry: dev/audit/config/ci_priority.json keeps tier definitions and order ONLY: order [\"main-push\",\"cp-hotfix\",\"tier1\",\"instrument\"], major_savings_h 12, tiebreak [\"cp-rank\",\"savings-desc\",\"train-position\",\"age\"], never_pause [\"main-push\",\"cp-hotfix\",\"train-head\"], never_cancel [\"main-push\",\"cp-hotfix\"]. REMOVED from the file: P267's savings_h map and hotfix_prefixes (the mapping comes from the roster). tools/audit/seat/ci_priority.py keeps P267's floor refusals and defines classes in ONE function tier(group, crit, roster, setting), reading the mapping only through roster_lib.is_hotfix, savings_h and group_class (R10-ORCH-ROSTER-SCHEMA): cp-hotfix = critical path or is_hotfix; tier1 = group_class production or savings_h >= major_savings_h; instrument = the rest; a PR maps to its group by branch, a group-less PR is tier1 if its three-dot diff touches custom_components/, else instrument. train-head stays a structural never_pause guard. Everything else in P267 stands. Changed controls: a source-user PR off the CP is never paused; a 14 h instrument PR ranks with a production PR and above a 3 h one; a setting file holding a group-keyed map is refused naming the key; null: rank() over the default setting and today's roster reproduces the owner's order. triage: dev/programme/triage/s6-batch57.md#P268 [implemented: d2e7805b7cf91cc8231729ef29383b3ae67a27ae]",
+    "From triage P267 (V181) as amended by P268 (the owner's 4th and 5th amendments, 2026-10-28T19:54:02Z/19:59:53Z: one priority order; each group's mapping lives in the roster): the owed-PR lines (P265's buckets, 'critical-path PRs first') are ordered by ci_priority.rank (tools/audit/seat/ci_priority.py over dev/audit/config/ci_priority.json, each group's mapping read from the roster through roster_lib), not by a separate CP-first rule. Also: a paused.json record (R10-TRAIN-OVERLAP-GRADE's CI pause) older than 60 min with no train running is an owed bucket with reason 'paused CI never resumed'. Control: an owed source-user PR prints before an owed instrument PR; null: the default setting reproduces the owner's order. triage: dev/programme/triage/s6-batch56.md#P267 triage: dev/programme/triage/s6-batch57.md#P268 [implemented: d2e7805b7cf91cc8231729ef29383b3ae67a27ae]",
+    "From triage P268 (V181, the owner's 4th and 5th amendments with the 5th's clarification, the owner's hotfix definition, and the 6th amendment with its correction, 2026-10-28T19:54:02Z to 20:28:56Z: an instrument saving >= 12 h ranks with production; ONLY the group<->priority mapping lives in the roster, the tier order may stay in dev/audit/config/ci_priority.json; every instrument reads the mapping from the roster). (1) Per-group fields set at intake: `source` in {\"user\",\"audit\",\"programme\"} (user = an item submitted by the owner or an end user, a report or a request; not a hotfix by itself; issue authorship cannot decide it, the orchestrator files under the owner's token). `hotfix` boolean, true ONLY under one of five rules, with `hotfix_by` = {rule, evidence} recording which applied: user-production-bug (a user-submitted bug touching production code; evidence the report); owner-called (a feature request the owner explicitly calls a hotfix; evidence the owner's words); fixing-phase-critical (a critical bug the programme finds during the fixing phase; evidence the finding or verdict naming it critical); main-red-required (a bug making main red on a REQUIRED check, as the owner corrected it; evidence the red required check-run on a main SHA, run id and context); merge-deadlock (a CI or programme-machinery bug that deadlocks all merges; evidence the stop showing no merge can land). Anything else is not a hotfix, e.g. an owner request for a document or instrument such as R10-ROUND-PLAYBOOK. `savings_source` (a citation, e.g. dev/programme/triage/<batch>.md#P<n>) required whenever the existing numeric `savings` is set; the existing `class` kept, \"production\" marks production code. (2) roster_lib readers, the ONE place any instrument gets a group's mapping: is_hotfix(g) = hotfix is True or an R10-HOTFIX- name; touches_production(g) = class production or any of its files under custom_components/; savings_h(g) = the number or None; group_class(g) = class, or with no class \"production\" if its lane is one of replan's production lanes. (3) roster_edit.py append-group REFUSES a group JSON without `source`; new op set-field <group> source|hotfix|hotfix_by|savings|savings_source|class <value>, restricted and validated: refuses a savings without savings_source; hotfix true without a hotfix_by whose rule is one of the five and whose evidence is non-empty; rule user-production-bug unless source is user and the group touches_production; rule main-red-required whose evidence names a context outside the ruleset's required checks. (4) Backfill: briefs opening 'Owner-reported', 'User-reported' or 'Owner request' get source user; those reporting a bug and touching production get hotfix true with rule user-production-bug (live: R10-UX-HEALTH, 'Owner-reported Health tab', all three files under custom_components/); R10-ROUND-PLAYBOOK (Owner request; dev/audit/README.md and CLAUDE.md) is source user and NOT a hotfix, as the owner ruled; R10-HOTFIX-BATCH-ERREXIT keeps its prefix (is_hotfix reads it), no hotfix_by set by this carry; the three programme rules are applied by the orchestrator at intake as they arise, not backfilled from brief text. Controls: append-group without source refused; set-field X savings 14 without a source refused; is_hotfix true for a hotfix-true fixture and an R10-HOTFIX- fixture, false for a source-user request touching only dev/; set-field X hotfix true with no hotfix_by or an unknown rule refused; user-production-bug refused on a source-audit group and on a user group touching no production file; each of fixing-phase-critical, main-red-required and merge-deadlock accepted with evidence and refused without; main-red-required naming a non-required context refused; group_class falls back to lane only when class is absent; null: today's roster with no new fields loads unchanged. triage: dev/programme/triage/s6-batch57.md#P268 [implemented: d2e7805b7cf91cc8231729ef29383b3ae67a27ae]",
+    "CI-QUEUE-PRIORITY-BUILT-IN, owner ruling (tvofi 2026-11-11T20:13Z, verbatim: \"6. Do it, it is already decided and should be built in, no critical path, outside or hotfix PR should wait in CI queue.\"), reopening this group from its 2026-11-08 keep-test refusal (triage: dev/programme/triage/s6-batch214.md#P652 at 59de2b35b3), line numbers at 61afd4f2db. Build into the beat's cancel-sweep row (tools/audit/seat/beat_jobs.py cancel-sweep, :83 and :522) and tools/pr/cancel_superseded.py the rule the session's local seat has run since 2026-11-11T20:20Z: while any critical-path, hotfix or outside pull request (classes read from the roster through roster_lib, this group's tier mapping) has a workflow run queued, cancel the queued runs of non-priority pull requests and re-run them once no priority run is queued; never cancel a run of the pull request the merge train is waiting on, nor a run already in progress, nor a main-branch run. Print one line per cancel and per re-run naming the PR, the run and the priority PR that caused it. Self-test: a queued priority run plus a queued non-priority run cancels the non-priority one and re-runs it after; the train's PR is never cancelled; null control: no priority run queued cancels nothing; mutation proof: dropping the priority check makes the null control cancel. Measure in the body: minutes a priority PR's first job waits queued, before and after, with the before figure re-measured at the merge base (31 min was measured for #3455's review run at 2026-11-11T20:11Z, 77 queued and 9 running); carry no count. [implemented: d2e7805b7cf91cc8231729ef29383b3ae67a27ae]",
+    "CANCEL-SWEEP-ZOMBIE-MEMORY (triage: dev/programme/triage/s6-batch215.md#P654 at b7b37bfda0, part 1), line numbers at 61afd4f2db. tools/pr/cancel_superseded.py:222-228 POSTs a cancel for every planned run on every pass. Six runs (42810088662 42810088912 42817922694 42818706376 42955031956 42961218591) answer HTTP 409 \"Cannot cancel a workflow run that is not in progress\" on every 600-s beat pass (beat_jobs.py:83). That is 12 failure lines in digest/jobs/cancel-sweep and at least a third of the pass's REST calls. Repair: record a run that answers 409 while it is listed active in a state file under $HPO_STATE_DIR (id, first-seen time). Skip it on later passes without a POST or a commit read. Print it once as `cancel_superseded: zombie <id> (409, not retried)`, and count zombies in the CANCEL-SWEEP summary line. Do not count a known zombie as a failure in beat_jobs.py's cancel_sweep filter (:523-524). A run that is gone from the active listings drops out of the file. Self-test: a 409 answer is recorded and the next pass makes no POST for it. Null control: a non-409 failure (rc 1, HTTP 500) is retried on the next pass. Mutation proof: dropping the record makes the second pass POST again. [implemented: d2e7805b7cf91cc8231729ef29383b3ae67a27ae]",
+    "CI-PRIORITY-NO-VERDICT-CANCEL (triage: dev/programme/triage/s6-batch215.md#P654 at b7b37bfda0, part 3), line numbers at 61afd4f2db, amending carry 4 (CI-QUEUE-PRIORITY-BUILT-IN) with the local shim's measured result (s14 ci-priority FINDINGS, 2026-11-11 20:15-20:42Z). 21 cancels of queued non-priority runs drained no priority run: priority_queued held at 19-20, and GitHub completed about 2 runs per hour. The cancels and reruns also turned 10 spooled verdicted pull requests red. 37 of the queued runs were main `Gate sweep` runs, which carry 4's rule exempts. The build must: (i) never cancel a run of a pull request that holds a posted merge verdict at its head, or that is in the merge train's queue or spool, as well as the train's current PR; (ii) prefer holding to cancelling, which means starting no rerun or dispatch of a non-priority PR's CI (the train and merge_pr unstale reruns, rerun helpers) while a priority run is queued, and cancelling a queued run only where the body's before/after measure (carry 4) shows that cancelling shortens a priority PR's queued wait; (iii) report in the body which share of the queue is main-branch runs, because they decided the shim's zero. Self-test: a queued run of a verdicted spooled PR is never cancelled while a priority run is queued. Null control: a non-verdicted, non-spooled queued run is handled as carry 4 says. Mutation proof: dropping the verdict check cancels the verdicted run. [implemented: d2e7805b7cf91cc8231729ef29383b3ae67a27ae]",
     "MAIN-CANCEL-BOUNDED (triage: dev/programme/triage/s6-batch218.md#P658 at bb3a0e5b92), line numbers at 61afd4f2db. Superseded main runs are cancelled by hand today (owner ruling 6, 2026-11-11, keeps the cancels): tools/pr/cancel_superseded.py refuses a main branch (:90-91, :153) and carry 4 exempts main runs. The longest row of consecutive cancelled ci.yml main push runs is 7 in the newest 100 and 6 in the newest 50 (Actions API, 2026-11-11 about 22:10Z; 142 main runs cancelled in all). After #3315 seven in a row were cancelled, and the first concluded main run was created 4 h 55 min later, against CLAUDE.md rule 1's \"main goes red within one merge\". Repair: add a `main` arm to cancel_superseded.py as the one sanctioned path for cancelling superseded main runs. It never cancels the newest main run of a workflow, and it refuses a cancel that would leave more than three consecutive main runs of that workflow without a concluded one; each refusal prints why. Self-test: a fixture whose newest main run is queued refuses to cancel it; a fixture with three cancelled in a row refuses the fourth. Null control: an older superseded main run with a concluded run inside its last three is cancelled as today. Mutation proof: dropping either guard turns its arm red. Exit measure for the body: the longest cancelled row over the last 50 main runs, read from the API, is 3 or less. [moved: R11-INTAKE-R10-RESIDUE]",
     "ROSTER-MODEL-ONE-READER (triage: dev/programme/triage/s6-batch218.md#P665 at bb3a0e5b92), low priority within this group, behind carries 4 to 6, line numbers at 61afd4f2db. At the roster ea774b53f3, R10-REPLAY-OPEN-LOG holds `\"model\": \"sonnet\"`, the one string among 478 groups (469 objects, 8 null). tools/audit/seat/review_strength.py:251 calls `.get(\"fixer\")` on it and crashes (P525). tools/audit/seat/cloud_dispatch.py:182 and :202 read a non-dict as `{}` and silently drop it. roster_edit.py has no op that writes `model`, and the orchestrator rules out a hand commit on the roster, so the datum cannot be cured. Repair: add one reader, `roster_lib.group_model(group)`. It returns the object, maps a string s to `{\"fixer\": s}`, and maps anything else to `{}`. review_strength.py and cloud_dispatch.py read the model only through it. roster_edit.py append-group refuses a group whose `model` is present and not an object, and prints why. The existing datum is never refused, because the reader tolerates it. Self-test: the string group yields fixer sonnet, and review_strength --roster runs to completion on the live shape. Null control: an object model reads as today. Mutation proof: append-group with `\"model\": \"x\"` is refused, and dropping the refusal turns that arm red. [moved: R10-ROUND-PLAYBOOK-FINAL]",
     "Moved from R10-TRAIN-RESIDUE-P2 (carry dispositions 2026-11-12): Moved from R10-TRAIN-MERGE-LOOP-2 carry 18 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom r10-rca-livehead-cancel, body item 7bd3e57f: The finding changes the orchestrator's next pass: name the process sending `@tvofi` cancels at live heads (RCA section 6), then either land P267's bounded pause or refuse at that seat's cancel path. This seat's write scope is its return refs, so it cannot write that brief. Carry: R10-TRAIN-MERGE-LOOP-2 (live merge_train.py seam; re-homed from the refused R10-CI-PRIORITY-PAUSE, which carried P267's bounded pause; the orchestrator names the sender first, `dev/audit/rca/r10-livehead-cancel.md` section 6). (items 7bd3e57f) [moved: R11-INTAKE-R10-RESIDUE]",
@@ -17153,7 +17152,8 @@
    "owner_gate": null,
    "rca": [],
    "after": [
-    "R10-CI-SLIM"
+    "R10-CI-SLIM",
+    "R10-CATALOG-PR"
    ],
    "carry": [
     "A repair handoff's body keeps `## Head` naming the previous handoff, so update_pr is handed a body whose Head is not the handoff's own code sha: seen on #3230 (fee2c572), #3212 (99a6db4a) and the #3231 rounds. Make body_push.sh or update_pr.sh rewrite `## Head` to the handoff's own code sha (or refuse at body_push time), with a test that drives both the stale and the fresh case. Evidence: the update logs ~/hpo-orch/r10s6/s12/seat-dispatch/upd-3212.out (mkupd echo: body-head 99a6db4a against handoff code c9ee4e29), upd-3230.out and upd-3231.out.",
@@ -18213,11 +18213,11 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-round-playbook-final",
     "note": "split from R10-ROUND-PLAYBOOK by owner ruling tvofi 2026-11-07, coordination issue comment 6707334933; overlap admitted (R10-ROUND-PLAYBOOK): split of R10-ROUND-PLAYBOOK by owner ruling, coordination issue comment 6707334933 | set-files files ['dev/audit/README.md', 'CLAUDE.md'] -> ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md'] | set-files files ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md'] -> ['dev/audit/README.md', 'CLAUDE.md', 'dev/governance/dimensions/D11.md', 'dev/governance/dimensions/D13.md']",
     "pr": 3510,
-    "commit": "ebe41fd85f1c388d85e3ca09abea5156d10409d0"
+    "commit": "23963d39be3a3202d91258c9ebe22bafca6cfd83"
    },
    "brief": "Owner ruling (tvofi, 2026-11-07, verbatim \"Approve both\"; coordination issue comment 6707334933): the final, size-S reconciliation pass of the round playbook that R10-ROUND-PLAYBOOK drafts. Start only once every after-group has merged. Re-derive dev/audit/README.md against the tree at this group's merge base: every instrument path, role contract, policy file and phase the draft names must resolve there, and every group that changed a seat contract, an instrument or the merge path since the draft merged is reflected, with no figure the tree can answer. Run the draft's path-resolving checker at the merge base; it must pass, and its fixture must still go red on a renamed instrument (null control: an unchanged tree stays green). Update the CLAUDE.md index row only if the README's role changed. The closure criteria stay the owner's 2026-11-07 sentence: both v10.0.0 and the catalog PR landed, no open pull requests, handoffs, carries, findings or leads, and only the coordination issue open. policy_lint --budgets must not grow beyond the README's cap; a raise goes through the budget-raise gate. Round-11 intake (triage: dev/programme/triage/s6-batch245.md#P740 at 69d8a379eb): (a) the R10-PROTECTION-CENSUS result (one row per red check per production head of round 10, classed real catch, grader skew or infrastructure) is an input to the README's round-11 list and the baseline its intake paragraph cites; (b) B1, the product-only required set (on an all-product pr-cc diff, briefs, policy-docs and wave-script become advisory, and blueprints/ joins the product predicate), is a round-11 opening item conditional on that census, unless the owner orders it into round 10. Cite only what brief_lint.mjs resolves."
   },
@@ -20463,7 +20463,7 @@
    "architect_note": "",
    "brief": "Residue of R10-PREPR-CAP and R10-FLY-CIPREDICT-RESTORING on one seam, the pre-open prediction in tools/pr/prepr.sh and tools/pr/ci_predict.py: body-check parity, the HEAD-ONLY predicting detector, the anchored .gitignore config rule, harness_headers inline scan, the nested-slot livelock, and the INERT-import mislabel. Each carry states its failing test and null control; measure first where the carry says so. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "note": "set-files files ['tools/pr/prepr.sh', 'tests/gate_lock.py', 'tools/pr/ci_predict.py', '.gitignore', 'tools/audit/seat/body_push.sh'] -> ['tools/pr/prepr.sh', 'tests/gate_lock.py', 'tools/pr/ci_predict.py', '.gitignore', 'tools/audit/seat/body_push.sh', 'tools/audit/seat/bus.sh', 'tools/audit/carry_audit.py']",
     "pr": 3479,
@@ -20840,7 +20840,7 @@
    "architect_note": "",
    "brief": "Reviewer dispatch and return residue: dispatch at the handoff ref (owner policy text), the untouched R10-DISPATCH-AT-HANDOFF carries after #3366, the reviewer no-return arm in cloud_relay.sh noreturn_arm (P437 C1) and its prompt side in cloud_dispatch.py (P437 C2), the pending-ci draft verdict (P475), and the block-class count over 10 verdicts. fix-review.md and standing-dispatch.md are policy: owner approval at merge. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "note": "overlap admitted (R10-GATE-DEFER-BARRIER): carries-open audit 2026-11-09: distinct seam from R10-GATE-DEFER-BARRIER, ordered by after-edges where files overlap | set-files files ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md'] -> ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/ledger.py'] | set-files files ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/ledger.py'] -> ['tools/audit/seat/bus.sh', 'tools/audit/seat/review_packet.py', 'tools/audit/seat/cloud_dispatch.py', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/review_carry.py', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/fix-review.md', 'tools/audit/seat/ledger.py', 'tools/audit/seat/review_strength.py', 'dev/governance/roles/fixer.md']",
     "pr": 3448,
@@ -21036,7 +21036,7 @@
    "architect_note": "",
    "brief": "Design P2 of design/r10-fly-standing-contracts (approved; P1 #3197 and P3 #3294 merged): the standing-*.md contract edits (Wait, Reads, autofix hold, Recycle, merge_pr.sh), the seat retirements whose beat rows already run (tick-digest, roster-drain), the orchestrator reading only the ledger and the plan page, standing.md naming the alive-file directory; plus P371's two-PR grader-first rule in fixer.md/designer.md/design-review.md. Policy: owner approval at merge; pay inside each file's cap. No new design: the approved one covers it. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "note": "overlap admitted (R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE): carries-open audit 2026-11-09: distinct seam from R10-FIXER-MD-SPELLING-CORPUS, R10-REVIEW-DISPATCH-RESIDUE, ordered by after-edges where files overlap | set-files files ['dev/governance/roles/standing-merge.md', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/standing-roster.md', 'dev/governance/roles/standing-tick.md', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/fixer.md', 'dev/governance/roles/designer.md', 'dev/governance/roles/design-review.md', 'tools/audit/seat/sweep_template.md', 'tools/audit/seat/pulse.py'] -> ['dev/governance/roles/standing-merge.md', 'dev/governance/roles/standing-dispatch.md', 'dev/governance/roles/standing-roster.md', 'dev/governance/roles/standing-tick.md', 'dev/governance/roles/orchestrator.md', 'dev/governance/roles/fixer.md', 'dev/governance/roles/designer.md', 'dev/governance/roles/design-review.md', 'tools/audit/seat/sweep_template.md', 'tools/audit/seat/pulse.py', 'tools/audit/seat/hooks/liveness.py', 'tools/audit/seat/hooks_setup.py', 'tools/audit/seat/beatd.py']",
     "pr": 3464,
@@ -21047,7 +21047,9 @@
    "group": "R10-SEAT-IDENTITY-P5",
    "lane": "IN",
    "kind": "instrument",
-   "issues": [],
+   "issues": [
+    3134
+   ],
    "fixes": [],
    "findings": [],
    "class": "instrument",
@@ -21079,7 +21081,8 @@
    "owner_gate": null,
    "rca": [],
    "after": [
-    "R10-TICK-RESIDUE"
+    "R10-TICK-RESIDUE",
+    "R10-CATALOG-PR"
    ],
    "carry": [
     "Moved from R10-FLY-STANDING-CONTRACTS carry 22 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nSTRANDED CARRY 43 (carry-strand audit, orchestrator s9, 2026-10-31)\n\nSource: group R10-ORCH-BEATD, index 18; triage id: dev/programme/triage/s6-batch5.md#P63; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.\nOwner-ordered: no.\n\nWhy stranded: P63 generation token: no tools/audit/seat/seat_gen.py on main; R10-FLY-SEAT-ALIVE-ID brief says \"Not in scope: P63's generation token (stranded on R10-ORCH-BEATD; the orchestrator re-routes or drops it)\".\n\nFold into: R10-FLY-SEAT-ALIVE-ID (live). Owner of the standing-seat identity and liveness seam (pulse.py, sweep_template.md).\n\nOriginal text, verbatim:\nSingle writer per standing seat (triage: dev/programme/triage/s6-batch5.md#P63, S6-V4, third instance: roster w5/w6, #2698 fixer vs update, dispatch w14/w15). A generation token, not a kill helper. tools/audit/seat/seat_gen.py: `bump <seat>` writes <orch>/<seat>.gen (monotonic integer + epoch) and prints it, run by the orchestrator when it starts a replacement; `check <seat> <gen>` exits 1 and prints SUPERSEDED when the file holds a higher number. The tracked code that applies a seat's queue lines (roster apply, dispatch fire, merge_train queue read) calls `check` with the generation its seat prompt carries before each write and stops on SUPERSEDED, so a superseded seat's lingering background job cannot write. The tick flags a seat whose .gen moved while its old pass still touches the report file. Measure first: which tracked writers exist per standing seat at main; wire only those. Controls: a lower-generation check exits 1 (null control: the current generation exits 0); a writer given a superseded generation writes nothing; one mutant on the comparison. Out of scope: killing the old task (TaskStop is an agent tool, not scriptable from a shell).\n\nCarry: R10-FLY-SEAT-ALIVE-ID",
@@ -21309,7 +21312,7 @@
    "architect_note": "",
    "brief": "Savings and valuation accuracy left by #3347 and #3291: the unattributed savings residual (-3.90 % flat, -8.02 % varying; measure and attribute first), and the part-load refill pricing (_terminal_cost, _deferred_energy_cost, _plan_dhw_min_cost secant error under a derate), with the zero-derate null control. Flat-price null control mandatory. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": null,
     "note": "overlap admitted (R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE, R10-WATER-SETPOINT-FEEDBACK): carries-open audit 2026-11-09: distinct seam from R10-ARBITER-OFF-RESTORE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-WATER-SETPOINT-FEEDBACK, ordered by after-edges where files overlap",
     "pr": 3511,
@@ -21609,12 +21612,12 @@
     "R10-WORKTREE-GC-LIVE"
    ],
    "carry": [
-    "Moved from R10-CLOSEOUT-CLEANUP carry 6 (0-based) by the s13 closeout split (orchestrator, 2026-11-10, under mandate 6715477401; cp-compress spec L6/L6b), verbatim below: Closure check, s11 replan: dev/programme/carries/ holds nine carry files at origin/main (carry-1645, 1774, 1795, 1922, 201, 2065, 2066, 2075, 2674; #3091 drops the 2674 one). Each is a constraint on a later stage, read by no live group's seat. Before the closure stamp, give each entry its destination or its answering commit, so no carry is left outside the roster. Control: `git ls-tree origin/main dev/programme/carries/` lists only files every entry of which names a live destination or a landed commit.",
+    "Moved from R10-CLOSEOUT-CLEANUP carry 6 (0-based) by the s13 closeout split (orchestrator, 2026-11-10, under mandate 6715477401; cp-compress spec L6/L6b), verbatim below: Closure check, s11 replan: dev/programme/carries/ holds nine carry files at origin/main (carry-1645, 1774, 1795, 1922, 201, 2065, 2066, 2075, 2674; #3091 drops the 2674 one). Each is a constraint on a later stage, read by no live group's seat. Before the closure stamp, give each entry its destination or its answering commit, so no carry is left outside the roster. Control: `git ls-tree origin/main dev/programme/carries/` lists only files every entry of which names a live destination or a landed commit. [moved: R11-INTAKE-R10-RESIDUE]",
     "Moved from R10-CLOSEOUT-CLEANUP carry 9 (0-based) by the s13 closeout split (orchestrator, 2026-11-10, under mandate 6715477401; cp-compress spec L6/L6b), verbatim below: Owner ruling 2026-11-09 (tvofi, \"Drop them\"): R10-ARCH-DOCS no longer waits on the round's tooling and process groups: R10-PREPR-RESIDUE, R10-TRAIN-RESIDUE, R10-SEAT-SCRIPT-OUTPUT, R10-TICK-RESIDUE, R10-GATE-DEFER-BARRIER, R10-REVIEW-DISPATCH-RESIDUE, R10-GH-READ-RESIDUE, R10-PLAN-PAGE-RESIDUE, R10-STANDING-CONTRACTS-P2, R10-SEAT-IDENTITY-P5, R10-CARRY-AUDIT-P5, R10-SUITE-ENV-RESIDUE, R10-WORKTREE-GC-LIVE. Before the closure stamp, re-read dev/README.md against every tooling merge that landed after R10-ARCH-DOCS merged (three-dot from its merge commit) and refresh the sections those merges changed, so the developer docs describe the tree at close. [moved: R10-ARCH-DOCS-DELTA]",
     "MACHINERY-CAPS-RECORD-DOWN (triage: dev/programme/triage/s6-batch218.md#P663 at bb3a0e5b92), line numbers at 61afd4f2db. `python3 tools/audit/machinery_ratchet.py --measure --head origin/main` read nonproduction_merges 498 at 61afd4f2db, against a cap of 521 with a band of 5 in dev/governance/config/machinery_budgets.json. That is more than the band below, and the file's `_comment` says to \"re-record a cap down when the measurement falls more than its band below it\". churn_per_kilo_product_lines read 12299 against 14797 with a band of 3636, within the band. At this group's merge base, re-measure both, record down every cap that sits more than its band above the measurement, and update `_recorded` with the command and the sha. Record the measured value only, never a target, because a later raise needs tvofi's review (budget-raise-gate). A cap within its band stays. Check: the same command reads within the band below each cap. Carry no count from here; re-measure. [moved: R11-INTAKE-R10-RESIDUE]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "commit": "3713d5e0e31c06067cde8ee9c70c856e0e7d9fd4",
     "branch": "fix/r10-closeout-prep",
     "last_step": null,
@@ -23087,7 +23090,8 @@
    ],
    "fixes": [],
    "after": [
-    "R10-DUTY-SWITCH-RESTART-LEARNING"
+    "R10-DUTY-SWITCH-RESTART-LEARNING",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
@@ -23196,7 +23200,8 @@
    "reviewerModel": "opus",
    "after": [
     "R10-TICK-RESIDUE",
-    "R10-GH-READ-RESIDUE"
+    "R10-GH-READ-RESIDUE",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "tools/audit/seat/orchestrator_tick.py",
@@ -23891,7 +23896,8 @@
    "reviewerModel": "opus",
    "after": [
     "R10-RELAY-ARM-ORDER",
-    "R10-REVIEW-DISPATCH-RESIDUE"
+    "R10-REVIEW-DISPATCH-RESIDUE",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "tools/audit/seat/cloud_relay.sh",
@@ -24134,7 +24140,9 @@
    },
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
    "files": [
     "tools/audit/seat/open_driver.py",
     "tools/audit/seat/open_driver_selftest.py",
@@ -24204,7 +24212,9 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
    "carry": [
     "Moved from R10-TICK-LEVELS carry 18 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom handoff/r10-rca-tick-blind, body item 2a35d4b3: NOT REVIEWABLE names deferral-only and real, and the board flags a disabled Gate sweep. Carry: R10-TICK-LEVELS (items 2a35d4b3)",
     "Moved from R10-TICK-LEVELS carry 19 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:\n\nFrom handoff/r10-rca-tick-blind, body item 42c659b5: OUTSIDE-CHAIN-IDLE walks after-edges for outside-sourced groups. Carry: R10-TICK-LEVELS (items 42c659b5)",
@@ -24272,7 +24282,8 @@
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
    "after": [
-    "R10-TRAIN-RESIDUE-P2"
+    "R10-TRAIN-RESIDUE-P2",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "tools/audit/seat/merge_train.py",
@@ -24551,7 +24562,9 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
    "carry": [
     "R10-UPDATE-PR-SEAT-WORKTREE (triage: dev/programme/triage/s6-batch228.md#P689 at ab46cc3050), line numbers at ef579d9ba6. Two more instances of this group's repair on 2026-11-12: #3479's repair handoff sat unapplied 02:54-03:26Z (32 min) behind a clean, pushed worktree with no live process holding its branch, until the orchestrator detached it by hand; the merge seat's remerge scratch worktree held another branch the same way and was caught before it bit. cloud_relay reads update_pr.sh's 75 as retry-unrecorded, so no OWED line printed in either. Precondition: the fixer takes both holders' paths from the orchestrator before building; the widened :64 loop covers each with the same three guards (clean; HEAD an ancestor of origin/$BR; no live process cwd inside, as tools/audit/worktree_gc.sh reads it). If a holder lies outside $HPO_STATE_DIR, the scope widens to it or the body states why not. A BUSY owed line after N passes (P689 part a) is not built here; it is deferred until a BUSY stall over 13 min with a live holder is measured after this group merges."
    ],
@@ -24684,7 +24697,8 @@
    "owner_gate": null,
    "rca": [],
    "after": [
-    "R10-HOTFIX-PREPR-WC-PAD"
+    "R10-HOTFIX-PREPR-WC-PAD",
+    "R10-CATALOG-PR"
    ],
    "carry": [
     "From r10-hotfix-prepr-wc-pad, body item cd713c47: This is the third macOS-only prepr self-test failure (the class barrier fires): the deferred raw-`wc` string-compare lint (P676(b)) and a host-independence rule for self-test stubs are owed; both land in dev/programme/rosters/wave-r10-groups.json, group R10-PREPR-DARWIN-SELFTEST-LANE, on the roster branch at 5b1b0f1586a2e95e84a7504e528b56bb8aa7020c. Carry: R10-PREPR-DARWIN-SELFTEST-LANE (items cd713c47)",
@@ -24712,7 +24726,9 @@
    "wave": 7,
    "issues": [],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
    "files": [
     "tools/pr/app_approve.sh",
     "tools/audit/seat/bus.sh",
@@ -25305,7 +25321,8 @@
    "fixerModel": "opus",
    "reviewerModel": "opus",
    "after": [
-    "R10-ROUND-PLAYBOOK-FINAL"
+    "R10-ROUND-PLAYBOOK-FINAL",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "dev/governance/roles/nudge.md",
@@ -25399,7 +25416,8 @@
     "R10-DUTY-SWITCH-PLANNER-PRICE",
     "R10-OUTSIDE-DHW-START-HYSTERESIS",
     "R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE",
-    "R10-ADVISOR-STEADY-START"
+    "R10-ADVISOR-STEADY-START",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "custom_components/heatpump_optimizer/optimizer.py",
@@ -25556,7 +25574,8 @@
    "issues": [],
    "fixes": [],
    "after": [
-    "R10-HOTFIX-SELFTEST-SCOPE-RERECORD"
+    "R10-HOTFIX-SELFTEST-SCOPE-RERECORD",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "tools/ci/selftest_scope.py",
@@ -25612,7 +25631,8 @@
    "issues": [],
    "fixes": [],
    "after": [
-    "R10-SELFTEST-SCOPE-UNION-GUARD"
+    "R10-SELFTEST-SCOPE-UNION-GUARD",
+    "R10-CATALOG-PR"
    ],
    "files": [
     ".github/workflows/governance.yml",
@@ -25656,12 +25676,17 @@
    "size": "S",
    "wave": 1,
    "issues": [
+    2389,
     2731,
+    2999,
+    3313,
     3314,
     3369
    ],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
    "files": [
     "tools/audit/seat/merge_train.py",
     "tools/audit/seat/orchestrator_tick.py"
@@ -26390,13 +26415,13 @@
    "architect_note": "",
    "brief": "Owner ruling 2026-11-13: from round 11 on, dimensions D5 and D6 always cover the full verification scope: every sentence of all documentation and every user-visible string judged against code behaviour (D6), and every code comment and docstring in production code, the instruments and the test suite judged true or false of the code it sits on (D5), with no verdict resting on a comment. Owed, one policy pull request for the owner's review: dev/governance/dimensions/D6.md gains an enumerated every-sentence ledger and a wider universe; dev/governance/dimensions/D5.md's comment step becomes exhaustive and behavioural; dev/audit/config/scopes.json gets disjoint, complete, finishable seats that tools/audit/check_scopes.py proves; a batch finding shape is proposed against dev/governance/roles/COMMON.md; and the body reports why the false config-flow sentence survived D6 although its file was in D6's universe.",
    "carry": [
-    "Owner instruction 2026-11-13, his words: \"Make sure the future rounds can use the audit playbook even with the addition of the objective function and the improved audit dimension. It should also make the round orchestrator pick up the carries and pre-finder carries from the previous round. Also, related to scope during a round, outside and owner filed findings and requests should always fold into the ongoing round if not explicitly deferred by the owner or outsider\". For this group: the round playbook must stay usable after your change lands, so the same pull request adds your step to the playbook (the document a round is run from; the roster group R10-ROUND-PLAYBOOK-FINAL finishes it) as a pointer to the policy file or contract you add, at the place in the round s order where it runs, and your body shows a dry read: starting from the playbook alone, a new orchestrator reaches your step and the instrument that enforces it. If the playbook group has not merged when you hand off, say so and carry the pointer to it.",
-    "From r10-d5-d6-full-scope, body item d21035c2: p2 of this split: set `CADENCE` to `D5: 1, D6: 1` in `.claude/workflows/audit-find.js` once this pull request is on main, so that D5 and D6 run in round 11 as ruling 1 orders. The grader in this pull request already passes at that value (Mutation proof). Carry: R10-D5-D6-FULL-SCOPE (items d21035c2)",
-    "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register is NO-READ, and this group's full-scope step owes the enumeration of claims the register does not hold. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-D5-D6-FULL-SCOPE (items 479c4962)",
-    "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register is NO-READ, and this group's full-scope step owes the enumeration of claims the register does not hold. Lands in `dev/programme/rosters/wave-r10-groups.json`."
+    "Owner instruction 2026-11-13, his words: \"Make sure the future rounds can use the audit playbook even with the addition of the objective function and the improved audit dimension. It should also make the round orchestrator pick up the carries and pre-finder carries from the previous round. Also, related to scope during a round, outside and owner filed findings and requests should always fold into the ongoing round if not explicitly deferred by the owner or outsider\". For this group: the round playbook must stay usable after your change lands, so the same pull request adds your step to the playbook (the document a round is run from; the roster group R10-ROUND-PLAYBOOK-FINAL finishes it) as a pointer to the policy file or contract you add, at the place in the round s order where it runs, and your body shows a dry read: starting from the playbook alone, a new orchestrator reaches your step and the instrument that enforces it. If the playbook group has not merged when you hand off, say so and carry the pointer to it. [implemented: 5b8f05ba4e30d248b9b4a1f4c44fd8e62148c5db]",
+    "From r10-d5-d6-full-scope, body item d21035c2: p2 of this split: set `CADENCE` to `D5: 1, D6: 1` in `.claude/workflows/audit-find.js` once this pull request is on main, so that D5 and D6 run in round 11 as ruling 1 orders. The grader in this pull request already passes at that value (Mutation proof). Carry: R10-D5-D6-FULL-SCOPE (items d21035c2) [moved: R11-INTAKE-R10-RESIDUE]",
+    "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register is NO-READ, and this group's full-scope step owes the enumeration of claims the register does not hold. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-D5-D6-FULL-SCOPE (items 479c4962) [moved: R11-PRE-OBJECTIVE-FUNCTION]",
+    "From r11-pre-objective-function, body item 479c4962: Decision 0017 (`dev/governance/decisions/0017-objective-function.md`) section 1's table reads D6's distance from `tests/doc_claims.py` only for the claims it registers; a claim outside its register is NO-READ, and this group's full-scope step owes the enumeration of claims the register does not hold. Lands in `dev/programme/rosters/wave-r10-groups.json`. [dismissed: duplicate of carry 2 (body item 479c4962), moved to R11-PRE-OBJECTIVE-FUNCTION]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "fix/r10-d5-d6-full-scope",
     "commit": "5b8f05ba4e30d248b9b4a1f4c44fd8e62148c5db",
     "last_step": null,
@@ -26733,13 +26758,13 @@
    "architect_note": "",
    "brief": "Owner rulings 2026-11-13: every audit dimension covers its whole scope each round with a reported denominator, two new dimensions are added (actuator write safety and liveness; feature behaviour against its documented effect), D11 and D13 run every round, and the round records what it found, fixed, injected and let escape. Owed, one policy pull request for the owner s review, landing the round 10 dimension coverage audit (commit 6ca3bfb7142be1ccb0d5275041c41d5eae3c8ddc on the ref handoff-wip/r10-dimension-coverage-audit) as its evidence: the denominator rule in dev/governance/roles/COMMON.md and the finding schema, the unreached remainder dispatched again next round, the brief edits the audit lists, the two new dimension briefs as drafts for the owner s wording, a territory check in tools/audit/check_scopes.py, and the convergence records.",
    "carry": [
-    "Owner ruling 2026-11-13, decision card P7 (yes, fold in): every hotfix group and every outside group records what caused the defect (the merged pull request, where one did) and what found it (a finder dimension, a reviewer, CI on main, the owner, an outside user), and the scorecard splits escapes by owning dimension per round. Build it once, with this group s convergence records, not as a second mechanism. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7, findings Q-E1 and Q-E2.",
-    "Owner instruction 2026-11-13, his words: \"Make sure the future rounds can use the audit playbook even with the addition of the objective function and the improved audit dimension. It should also make the round orchestrator pick up the carries and pre-finder carries from the previous round. Also, related to scope during a round, outside and owner filed findings and requests should always fold into the ongoing round if not explicitly deferred by the owner or outsider\". For this group: the round playbook must stay usable after your change lands, so the same pull request adds your step to the playbook (the document a round is run from; the roster group R10-ROUND-PLAYBOOK-FINAL finishes it) as a pointer to the policy file or contract you add, at the place in the round s order where it runs, and your body shows a dry read: starting from the playbook alone, a new orchestrator reaches your step and the instrument that enforces it. If the playbook group has not merged when you hand off, say so and carry the pointer to it.",
-    "From r11-pre-objective-function, body item 27f9ce96: The same, for found-by, cause and the per-step denominator; an off-cadence dimension reads 0. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-DIMENSIONS-FULL-COVERAGE (items 27f9ce96)",
-    "From r10-dimensions-full-coverage, body item e28c721f: The switch is a way out in a direction this body does not test: on p2's tree, dropping `\"enumerator\"` from the coverage rows' `required` in `dev/audit/config/finding.schema.json` and in the driver's inlined copy together prints the `skip` line, 227 passed, 0 failed, rc 0; the schema edit alone is caught, and a driver that drops the functions is caught. \"so the skip cannot become a way out\" above holds for those two and not for the dual edit. No tree-read switch closes it; the control is that p2, graded by this copy, makes the block unconditional in its own copy of the grader (`DENOM` asserted true, the `skip` arm deleted, the dual mutant re-run killed). A precondition for p2's handoff, not for this merge. Carry: R10-DIMENSIONS-FULL-COVERAGE (items e28c721f)"
+    "Owner ruling 2026-11-13, decision card P7 (yes, fold in): every hotfix group and every outside group records what caused the defect (the merged pull request, where one did) and what found it (a finder dimension, a reviewer, CI on main, the owner, an outside user), and the scorecard splits escapes by owning dimension per round. Build it once, with this group s convergence records, not as a second mechanism. Evidence: the process convergence audit at commit d5d7ff81878fe9bc17ee6fcc9e3803d848cbc7f7, findings Q-E1 and Q-E2. [moved: R11-INTAKE-R10-RESIDUE]",
+    "Owner instruction 2026-11-13, his words: \"Make sure the future rounds can use the audit playbook even with the addition of the objective function and the improved audit dimension. It should also make the round orchestrator pick up the carries and pre-finder carries from the previous round. Also, related to scope during a round, outside and owner filed findings and requests should always fold into the ongoing round if not explicitly deferred by the owner or outsider\". For this group: the round playbook must stay usable after your change lands, so the same pull request adds your step to the playbook (the document a round is run from; the roster group R10-ROUND-PLAYBOOK-FINAL finishes it) as a pointer to the policy file or contract you add, at the place in the round s order where it runs, and your body shows a dry read: starting from the playbook alone, a new orchestrator reaches your step and the instrument that enforces it. If the playbook group has not merged when you hand off, say so and carry the pointer to it. [moved: R11-INTAKE-R10-RESIDUE]",
+    "From r11-pre-objective-function, body item 27f9ce96: The same, for found-by, cause and the per-step denominator; an off-cadence dimension reads 0. Lands in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-DIMENSIONS-FULL-COVERAGE (items 27f9ce96) [moved: R11-INTAKE-R10-RESIDUE]",
+    "From r10-dimensions-full-coverage, body item e28c721f: The switch is a way out in a direction this body does not test: on p2's tree, dropping `\"enumerator\"` from the coverage rows' `required` in `dev/audit/config/finding.schema.json` and in the driver's inlined copy together prints the `skip` line, 227 passed, 0 failed, rc 0; the schema edit alone is caught, and a driver that drops the functions is caught. \"so the skip cannot become a way out\" above holds for those two and not for the dual edit. No tree-read switch closes it; the control is that p2, graded by this copy, makes the block unconditional in its own copy of the grader (`DENOM` asserted true, the `skip` arm deleted, the dual mutant re-run killed). A precondition for p2's handoff, not for this merge. Carry: R10-DIMENSIONS-FULL-COVERAGE (items e28c721f) [moved: R11-INTAKE-R10-RESIDUE]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "fix/r10-dimensions-full-coverage",
     "commit": "8af37bdf444d46715272a8bc2fdda02e1d8376e3",
     "last_step": null,
@@ -27035,7 +27060,8 @@
    "issues": [],
    "fixes": [],
    "after": [
-    "R10-ROUND-PLAYBOOK-FINAL"
+    "R10-ROUND-PLAYBOOK-FINAL",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "dev/audit/README.md"
@@ -27146,7 +27172,9 @@
     3106
    ],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
    "files": [
     "custom_components/heatpump_optimizer/accuracy.py",
     "custom_components/heatpump_optimizer/thermal_model.py",
@@ -27416,7 +27444,9 @@
    "wave": 1,
    "issues": [],
    "fixes": [],
-   "after": [],
+   "after": [
+    "R10-CATALOG-PR"
+   ],
    "files": [],
    "hot_files": [],
    "fixture": false,
@@ -27585,7 +27615,8 @@
    "issues": [],
    "fixes": [],
    "after": [
-    "R10-COP-LEARNER-DRAW-FLOOR"
+    "R10-COP-LEARNER-DRAW-FLOOR",
+    "R10-CATALOG-PR"
    ],
    "files": [
     "custom_components/heatpump_optimizer/draw_range.py",
