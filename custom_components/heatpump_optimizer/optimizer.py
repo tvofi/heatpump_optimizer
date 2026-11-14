@@ -370,7 +370,7 @@ def _avoid_priced_switches(
     if kept_requirement is None or not duty_legs.switch_weight(shipped, tank, stops, p_max, floor, _leg_rule(opt)) > 0:
         return incumbent
     try:
-        ban = duty_legs.switch_ban(shipped, stops, floor)
+        ban = duty_legs.switch_ban(shipped, stops, floor, _leg_rule(opt))
         plan, requirement = _dhw_build(
             planner, h, p_max,
             wood_temps=planner._dhw_coil_wood_forecast(h), placement_ban=ban,
