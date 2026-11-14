@@ -1,0 +1,4 @@
+SURVIVED NULL
+KILLED rv-privref-not-deleted
+KILLED r3-folded-skip-off
+rc=0
