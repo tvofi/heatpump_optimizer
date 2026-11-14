@@ -9,7 +9,8 @@ the true house with the boost for the share of each cycle the press held it;
 freeze with no boost heat behind it.
 
 A policy replaces ``BoostState.settle`` for the arm's run, except
-``production``, which runs the tree's own:
+``production``, which runs the tree's own (the ``slope6h`` tail since
+R10-OUTSIDE-LEARNER-ROBUSTNESS-P3, owner ruling 2026-11-12):
 
 - ``full``: the full tail from every boost's end, whatever its length;
 - ``none``: no tail;
@@ -22,7 +23,8 @@ Each arm prints ``worst`` (the largest signed excursion of a later 03:00 daily
 row from the one before the first boost day) and ``final``. Two verdicts:
 
 - ``PRODUCTION`` reads EQUAL when every production arm's summary equals its
-  ``full`` twin's. Its null control is the ``none`` policy: at least one press
+  twin's under the reference policy: ``slope6h`` when it is run, else
+  ``full``. Its null control is the ``none`` policy: at least one press
   arm under ``none`` must differ from ``full``, or the comparison is blind
   (exit 1 either way it fails).
 - ``BOUND`` per scaled press arm: ``|worst|`` no larger than
@@ -30,7 +32,13 @@ row from the one before the first boost day) and ``final``. Two verdicts:
   on; the round-11 precondition a scaled formula must meet.
 
     PYTHONPATH=tests/hastub:tests:custom_components \\
-        python3 dev/audit/harnesses/boost_press_tail_walk.py [policy ...]
+        python3 dev/audit/harnesses/boost_press_tail_walk.py [--flat] [policy ...]
+
+``--flat``: the flat-price null control. Every day's price is one constant,
+so the plan has no price reason to move heat between hours, and the arms
+differ only by the boost heat and the freeze. A tail policy's walk measured
+against ``full`` under flat prices is the walk with no price-shaped plan
+behind the freeze's sample selection.
 
 Default policies ``production full none``. Every arm replays the cycles past
 the shared prefix with a production solve each; it is a harness, not a gate
@@ -111,8 +119,22 @@ def run(policy: str) -> dict:
         boost_mod.BoostState.settle = production
 
 
+def _flat_prices() -> None:
+    days = bdr.day_arrays
+
+    def flat(day_index: int):
+        p, *rest = days(day_index)
+        return (p * 0.0 + float(p.mean()), *rest)
+    bdr.day_arrays = flat
+
+
 def main() -> int:
-    policies = sys.argv[1:] or ["production", "full", "none"]
+    argv = sys.argv[1:]
+    if "--flat" in argv:
+        argv.remove("--flat")
+        _flat_prices()
+        print("PRICES: flat")
+    policies = argv or ["production", "full", "none"]
     outs = bdr.replay({"null_no_boost": "none"})
     for policy in policies:
         outs.update(run(policy))
@@ -120,10 +142,11 @@ def main() -> int:
         w = walk(out)
         print(f"WALK {arm}: worst {w[0]:+.4f}, final {w[1]:+.4f}, daily {out['daily']}")
     status = 0
-    if "production" in policies and "full" in policies:
-        pairs = [(a, a[: -len("production")] + "full") for a in outs if a.endswith("_production")]
+    ref = "slope6h" if "slope6h" in policies else "full"
+    if "production" in policies and ref in policies:
+        pairs = [(a, a[: -len("production")] + ref) for a in outs if a.endswith("_production")]
         same = [comparable(outs[a]) == comparable(outs[b]) for a, b in pairs]
-        print(f"PRODUCTION: {'EQUAL' if all(same) else 'DIFFERS'} to full on "
+        print(f"PRODUCTION: {'EQUAL' if all(same) else 'DIFFERS'} to {ref} on "
               f"{sum(same)} of {len(pairs)} arms")
         status |= 0 if all(same) else 1
     if "none" in policies and "full" in policies:
