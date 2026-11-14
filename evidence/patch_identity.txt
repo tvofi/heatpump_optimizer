@@ -1,0 +1,13 @@
+custom_components patch identical vs base (50373173..9a524d70 == origin/main..d6a7b00b)
+ custom_components/heatpump_optimizer/strings.json  |  112 +-
+ .../heatpump_optimizer/translations/de.json        |  112 +-
+ .../heatpump_optimizer/translations/en.json        |  112 +-
+ .../heatpump_optimizer/translations/sv.json        |  110 +-
+ dev/audit/rounds/round10/D6/flow-claims.json       | 3935 ++++++++++++++++++++
+ dev/audit/rounds/round10/D6/flow-claims.md         |  375 ++
+ dev/audit/rounds/round10/D6/flow_claims.py         |  110 +
+ dev/programme/delivery/3564.md                     |    1 +
+ tests/closures.json                                |    1 +
+ tests/doc_claims.py                                |  158 +
+ 10 files changed, 4803 insertions(+), 223 deletions(-)
+claim/version files vs main: (empty above = untouched)
