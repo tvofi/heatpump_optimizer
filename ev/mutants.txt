@@ -1,0 +1,9 @@
+M1 margins swapped in check =>   FAIL R10-DISINFECTION-STEP-NOTICE the slider grid raises 201 of 1750 under the instant rule   FAIL R10-DISINFECTION-STEP-NOTICE the slider grid raises 436 of 1750 under the hold rule   FAIL R10-DISINFECTION-STEP-NOTICE the instant rule's 201 are all at step 5 
+M3 cycle predicate dropped =>   FAIL R10-DISINFECTION-STEP-NOTICE null: hot water disabled raises none 1 of 79 GUARD PIN CHECKS FAILED 
+M4 unreachable raised under off-step =>   FAIL R10-DISINFECTION-STEP-NOTICE the off-step notice shows, not the unreachable notice's hardware advice 1 of 79 GUARD PIN CHECKS FAILED 
+M5 unreachable not cleared =>   FAIL R10-DISINFECTION-STEP-NOTICE the off-step notice shows, not the unreachable notice's hardware advice 1 of 79 GUARD PIN CHECKS FAILED 
+memo off =>   FAIL R10-DISINFECTION-STEP-NOTICE an unchanged off-step signature does not re-raise the notice 1 of 79 GUARD PIN CHECKS FAILED 
+CMP_BOUND < to <= =>   FAIL R10-DISINFECTION-STEP-NOTICE the slider grid raises 201 of 1750 under the instant rule   FAIL R10-DISINFECTION-STEP-NOTICE the instant rule's 201 are all at step 5   FAIL R10-DISINFECTION-STEP-NOTICE the harness grid raises 34 / 71 of 330 (instant / hold) 
+below_c rounding=down dropped => ALL 79 GUARD PIN CHECKS PASSED 
+above_c rounding=up dropped =>   FAIL R10-DISINFECTION-STEP-NOTICE 55/62 on step 5 is named: 62 configured, 60 written, 60 and 65 on the step 1 of 79 GUARD PIN CHECKS FAILED 
+hard max dropped =>   FAIL R10-DISINFECTION-STEP-NOTICE the slider grid raises 201 of 1750 under the instant rule   FAIL R10-DISINFECTION-STEP-NOTICE the slider grid raises 436 of 1750 under the hold rule   FAIL R10-DISINFECTION-STEP-NOTICE the instant rule's 201 are all at step 5 
