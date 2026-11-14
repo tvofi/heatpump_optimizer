@@ -1,0 +1,12 @@
+Paths where the head tree differs from git merge-tree of PR+train heads (conflicted files expected only)
+PR+3580 -> 45d8ca407bc78d4271a439d62bddcb8fd0f7b905
+ custom_components/heatpump_optimizer/strings.json         | 5 -----
+ custom_components/heatpump_optimizer/translations/de.json | 5 -----
+ custom_components/heatpump_optimizer/translations/en.json | 5 -----
+ custom_components/heatpump_optimizer/translations/sv.json | 5 -----
+ 4 files changed, 20 deletions(-)
+ custom_components/heatpump_optimizer/translations/sv.json | 5 -----
+ 1 file changed, 5 deletions(-)
+ custom_components/heatpump_optimizer/duty_switch.py | 5 -----
+ 1 file changed, 5 deletions(-)
+final merge clean-tree equal: yes
