@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:settle_tail CMP_BOUND 83178048",
+  "old": "    if boosted is None or boosted >= _BOOST_WINDOW:",
+  "reason": "Equivalent (CMP_BOUND, `>=` to `>`). Survival measured by `mutation_table.py --pin-killed --base origin/main` at c90588dcf4. The arms differ only when boosted equals _BOOST_WINDOW. The mutant then falls through to the formula, max(_SETTLE_FLOOR, SPACE_SETTLE_TAIL + _SETTLE_TAU * log(boosted / _BOOST_WINDOW)). boosted / _BOOST_WINDOW is exactly 1.0 for equal timedeltas and math.log(1.0) is exactly 0.0, so the formula returns SPACE_SETTLE_TAIL, the value the guard returns. Measured: settle_tail's formula arm at a 2 h sum equals the 12 h tail, compared with ==.",
+  "verdict": "equivalent"
+}
