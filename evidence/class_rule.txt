@@ -1,0 +1,6 @@
+$ git grep -n "switch_supply(" -- custom_components
+custom_components/heatpump_optimizer/coordinator.py:7832:            await pump_arbiter.switch_supply(self.hass, switch_entity, value)
+custom_components/heatpump_optimizer/early_cutoff.py:325:    inp.hass.async_create_task(switch_supply(inp.hass, switch, False))
+custom_components/heatpump_optimizer/pump_arbiter.py:1793:async def switch_supply(hass: Any, entity_id: str, on: bool) -> None:
+$ git grep -nE "turn_on|turn_off|async_call" -- custom_components/heatpump_optimizer/duty_switch.py custom_components/heatpump_optimizer/wear.py
+(rc 1)

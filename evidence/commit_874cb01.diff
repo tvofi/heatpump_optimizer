@@ -1,0 +1,144 @@
+commit 874cb0168230ee56f8895a65782414b399ba1c16
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Thu Nov 12 15:43:47 2026 +0000
+
+    supply_hold: the learners' freeze is a reason with its span fixed at the hold
+    
+    freeze_reason replaces interval_held: hold_supply fixes the freeze deadline
+    (two plan intervals) from the config already in hand, so _tail_freeze reads
+    one reason and parses no config per learner query. Pays coord_footprint
+    2493 -> 2492 (archscore dS NULL against the merge base).
+
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 7e30e7042b..6ac351c6ae 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -3497,10 +3497,9 @@ def _tail_freeze(coord: Any) -> str | None:
+     """
+     if early_cutoff.state_for(coord).interval_cut:
+         return early_cutoff.FREEZE_CUT
+-    config = getattr(getattr(coord, "_ctx", coord), "_config", None)
+-    if supply_hold.interval_held(pump_arbiter.state_for(coord), config):
+-        return supply_hold.FREEZE_HELD
+-    return learner_unmetered(config)
++    return supply_hold.freeze_reason(pump_arbiter.state_for(coord)) or learner_unmetered(
++        getattr(getattr(coord, "_ctx", coord), "_config", None)
++    )
+ 
+ 
+ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index f7b6edcb3c..dcf2d2fe9c 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -368,8 +368,8 @@ class ArbiterState:
+     stop_gap_k: float | None = None
+     #: A supply write ``supply_hold`` held back; the step tick retries it.
+     supply_held: bool = False
+-    #: When ``supply_hold`` last held a write (UTC), for the learners' freeze.
+-    held_at: datetime | None = None
++    #: Until when (UTC) the learners freeze after ``supply_hold`` held a write.
++    held_until: datetime | None = None
+ 
+ 
+ @dataclass(frozen=True)
+diff --git a/custom_components/heatpump_optimizer/supply_hold.py b/custom_components/heatpump_optimizer/supply_hold.py
+index ceea5ebb2c..0bfa4d85ff 100644
+--- a/custom_components/heatpump_optimizer/supply_hold.py
++++ b/custom_components/heatpump_optimizer/supply_hold.py
+@@ -37,7 +37,7 @@ an unreadable switch pass unchanged. Both minimums sit below the plan's step,
+ so a write on a step boundary after a step-long run or pause is never held.
+ 
+ **The learners.** A held interval ran other than the plan commanded, so
+-:func:`interval_held` freezes it through ``_learning_frozen``
++:func:`freeze_reason` freezes it through ``_learning_frozen``
+ (:data:`FREEZE_HELD`), as ``early_cutoff`` freezes a cut one.
+ 
+ The minimums are constants, not options, for the reason ``early_cutoff``
+@@ -84,22 +84,23 @@ def hold_supply(held: ArbiterState, inputs: Any, boosts: Any, value: bool | None
+         return value
+     wait = (age < MIN_PAUSE or _ends_soon(inp, boosts, now)) if value else age < MIN_RUN
+     if wait:
+-        held.supply_held, held.held_at = True, now
++        held.supply_held, held.held_until = True, now + _freeze_span(inp.config)
+     return None if wait else value
+ 
+ 
+-def interval_held(held: ArbiterState, config: Any, now: datetime | None = None) -> bool:
+-    """Whether a learner's interval may have had a write held.
++def freeze_reason(held: ArbiterState, now: datetime | None = None) -> str | None:
++    """:data:`FREEZE_HELD` while a learner's interval may have had a write held, else ``None``."""
++    until = held.held_until
++    held_now = until is not None and dt_util.as_utc(now or dt_util.now()) < until
++    return FREEZE_HELD if held_now else None
+ 
+-    Two plan intervals back, as ``early_cutoff.CutoffState.interval_cut``
+-    counts the open cycle and the one just closed: freezing one too many is
+-    the fail-closed side.
++
++def _freeze_span(config: Any) -> timedelta:
++    """Two plan intervals, as ``early_cutoff.CutoffState.interval_cut`` counts
++    the open cycle and the one just closed: freezing one too many is the
++    fail-closed side. Fixed when the write is held, where the config is in hand.
+     """
+-    at = held.held_at
+-    if at is None:
+-        return False
+-    span = 2 * timedelta(minutes=EntryConfig.from_mapping(config or {}).optimization_interval)
+-    return dt_util.as_utc(now or dt_util.now()) - at < span
++    return 2 * timedelta(minutes=EntryConfig.from_mapping(config).optimization_interval)
+ 
+ 
+ def tank_reason(inp: ArbiterInputs) -> str | None:
+diff --git a/tests/features.py b/tests/features.py
+index 8a772f617b..55c1ec34be 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -82428,7 +82428,7 @@ for _ms_name, _ms_min, _ms_kw, _ms_want in (
+ _sh_nheld = _sa_pa.ArbiterState()
+ _sh_nin = _sh_inputs(7, state="on")
+ _sh_nin().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
+-_sh_ngot = (_sh.hold_supply(_sh_nheld, _sh_nin, _sh_none, None, _SA_T0 + timedelta(minutes=7)), _sh_nheld.supply_held, _sh_nheld.held_at)
++_sh_ngot = (_sh.hold_supply(_sh_nheld, _sh_nin, _sh_none, None, _SA_T0 + timedelta(minutes=7)), _sh_nheld.supply_held, _sh_nheld.held_until)
+ R.check("a write of None passes and marks nothing held", _sh_ngot == (None, False, None), f"{_sh_ngot}")
+ 
+ 
+@@ -82476,19 +82476,27 @@ for _ms_name, _ms_args, _ms_want in (
+     R.check(f"stop: {_ms_name} -> {_ms_want}", _ms_got == _ms_want, f"{_ms_got}")
+ 
+ 
+-# The learners' freeze spans two plan intervals from the last held write; a
+-# host with no config reads the defaults, and nothing held reads nothing.
+-_sh_fz = _sa_pa.ArbiterState()
+-_sh_fz_free = _sh.interval_held(_sh_fz, None, _SA_T0)
+-_sh_fz.held_at = _SA_T0
+-_sh_fz_cfg = {"optimization_interval": 30}
++# The learners' freeze spans two plan intervals from the last held write,
++# fixed at the hold from its config; a config with no interval reads the default
++# interval, and nothing held reads nothing.
++def _sh_fz_hold(config):
++    held, inputs = _sa_pa.ArbiterState(), _sh_inputs(7, state="on")
++    inputs().hass.states.set("switch.hp", FakeState("on", last_updated=_SA_T0 + timedelta(minutes=4)))
++    inp = _sa_pa.ArbiterInputs(**{**vars(inputs()), "config": config})
++    _sh.hold_supply(held, lambda: inp, _sh_none, False, _SA_T0 + timedelta(minutes=7))
++    return held
++
++
++_sh_fz = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp", "optimization_interval": 30})
++_sh_fz_dflt = _sh_fz_hold({"heat_pump_switch_entity": "switch.hp"})
++_SH_FZ_AT = _SA_T0 + timedelta(minutes=7)
+ for _ms_name, _ms_got, _ms_want in (
+-    ("nothing held reads not held, with no config", _sh_fz_free, False),
+-    ("a write held 59 minutes ago on a 30-minute interval is frozen", _sh.interval_held(_sh_fz, _sh_fz_cfg, _SA_T0 + timedelta(minutes=59)), True),
+-    ("null control: 60 minutes ago is not", _sh.interval_held(_sh_fz, _sh_fz_cfg, _SA_T0 + timedelta(minutes=60)), False),
+-    ("a host with no config reads the default interval", _sh.interval_held(_sh_fz, None, _SA_T0 + timedelta(minutes=1)), True),
++    ("nothing held reads nothing", _sh.freeze_reason(_sa_pa.ArbiterState(), _SA_T0), None),
++    ("a write held 59 minutes ago on a 30-minute interval is frozen", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=59)), _sh.FREEZE_HELD),
++    ("null control: 60 minutes ago is not", _sh.freeze_reason(_sh_fz, _SH_FZ_AT + timedelta(minutes=60)), None),
++    ("a config with no interval reads the default", _sh_fz_dflt.held_until - _SH_FZ_AT, 2 * timedelta(minutes=_sa_pa.EntryConfig.from_mapping({}).optimization_interval)),
+ ):
+-    R.check(f"interval_held: {_ms_name}", _ms_got is _ms_want, f"{_ms_got!r}")
++    R.check(f"freeze_reason: {_ms_name}", _ms_got == _ms_want, f"{_ms_got!r}")
+ 
+ 
+ # A held write is not logged as the blocked-mode skip it is not.

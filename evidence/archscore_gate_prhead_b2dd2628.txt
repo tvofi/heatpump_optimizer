@@ -1,0 +1,4 @@
+merge base 19baca76181c, head b2dd262882a8
+Architecture score: dS -0.0006 WORSENS (inadmissible: coord_footprint 2492->2493)
+  coord_footprint 2492 -> 2493  -0.0006
+FAIL: dS -0.0006 WORSENS; unexplained: coord_footprint 2492->2493. Add a '## Architecture score' section with one line per metric: its name and why it rises

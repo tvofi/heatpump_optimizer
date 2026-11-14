@@ -1,0 +1,16 @@
+commit 934f6d683e4f75409490a8ebf1718fcc124869de
+Merge: 4662745d2f 43e9547455
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Thu Nov 12 18:09:21 2026 +0000
+
+    Merge remote-tracking branch 'origin/main' into fix-r10
+    
+    Both sides added one module beside pump_arbiter.py (main: duty_switch.py; this
+    branch: supply_hold.py), so the module counts are summed: architecture.md
+    90 modules of which 32 import homeassistant, claims.py's three RESULT lines
+    and its regenerated table, deployment_shape.py's package of 109 files.
+    features.py keeps both added sections, this branch's first. The closure-pair
+    census in deployment_shape.py's docstring reads 154 on the merged recording
+    (Jaccard >= 0.80 over each closure's custom_components files; 148 on either
+    parent by the same rule).
+
