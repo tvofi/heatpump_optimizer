@@ -617,10 +617,10 @@ redundant cycle.
 
 Two opt-in refinements:
 
-- **Hold-verified disinfection**: any heat source already resets the timer;
-  with *Credit disinfection from any heat source* on, it does so only once the
-  tank has held the disinfection temperature for 20 minutes, so a momentary
-  blip at 60 °C credits nothing.
+- **Hold-verified disinfection**: with *Credit disinfection from any heat
+  source* on, a heat source resets the timer only once the tank has held the
+  disinfection temperature for 20 minutes, so a momentary blip at 60 °C credits
+  nothing; with it off, any observation resets it at once, as above.
 - **A price-aware cycle**: inside its interval the cycle may run a day or two
   early (no sooner than a configurable minimum, default 5 days) when a known
   price beats what a typical remaining day is expected to bottom out at. The
