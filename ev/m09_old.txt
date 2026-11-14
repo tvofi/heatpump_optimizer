@@ -1,0 +1,2 @@
+  ok   R10-ARBITER-OFF-RESTORE: after an off or an unload restored a baseline equal to the plan's value, a restart captures it again and the next off restores it, 25, not the baseline row's 35
+ALL 57 FEATURES BLOCK PASSED

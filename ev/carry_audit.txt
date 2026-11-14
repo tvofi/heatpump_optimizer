@@ -1,0 +1,4 @@
+NOTE body item 86f47084: R11-INTAKE-R10-RESIDUE
+NOTE review 0 item 5a3aefd7: dismissed:body prose only, no code or figure effect, the head SHA is correct and the merge is re-proven at the head
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
