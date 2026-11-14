@@ -66,24 +66,22 @@
      a priced plan with a priced switch tries exactly one more hot-water plan, the first build's own arguments plus the ban, and no unpriced solve builds one
      the ban holds: the candidate's schedule is zero on every banned step, on builds whose min-run stage rewrote the plan
      the plan's duty floor reaches the switch weight: heating under the floor after a block is no leg and no switch
-== leaf: a small hot-water share no longer collapses to heating: 9 red
+== leaf: a small hot-water share no longer collapses to heating: 8 red
      a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run at the step's combined level
      a both step followed by heating is one switch, not two: its last leg is already heating
      the leaf's legs are what step_duty and _share serve over the probe grid, floor unset and set: idle, one duty, both collapse edges and two legs
      and the grid holds what it claims: two-leg cells under both floors, fewer with the floor set, and both exact collapse edges (shares of 5 and 10 minutes)
      the same agreement on the levels a clamped install ships: a modulating pump keeps two-leg steps, each circuit at or above p_min
      null control: with no duty floor (a duty-cycle install) the same arrays charge the both step itself, so the floor is what moved the charge
-     heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there
      at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
      the edge fixture is the one it names: 1.5 kW of hot water under a third of p_max, and the starts straddle a change in the legs
-== leaf: a small heating share no longer collapses to hot water: 11 red
+== leaf: a small heating share no longer collapses to hot water: 10 red
      a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run at the step's combined level
      a both step followed by heating is one switch, not two: its last leg is already heating
      the leaf's legs are what step_duty and _share serve over the probe grid, floor unset and set: idle, one duty, both collapse edges and two legs
      and the grid holds what it claims: two-leg cells under both floors, fewer with the floor set, and both exact collapse edges (shares of 5 and 10 minutes)
      the same agreement on the levels a clamped install ships: a modulating pump keeps two-leg steps, each circuit at or above p_min
      the block's own last step when it is a two-leg step, and then not the step after
-     heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there
      acceptance: priced on the contributor's table the plan carries a lower summed switch weight, on a duty-cycle and on a modulating clamped install
      at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
      the edge fixture is the one it names: 1.5 kW of hot water under a third of p_max, and the starts straddle a change in the legs
@@ -98,14 +96,12 @@
      a pump with no maximum draw weighs every row zero, one finite entry per row and not per step, on the rows the priced pair weighs above
 == leaf: a negative learned value is kept: 1 red
      a non-finite, negative, over-one or misshapen learned pair reads as zero
-== leaf: a learned value on its upper bound reads as zero: 25 red
+== leaf: a learned value on its upper bound reads as zero: 23 red
      a non-finite, negative, over-one or misshapen learned pair reads as zero
      on a modulating clamped install no charged step ships heating under the floor: a start under p_min after a block is charged only once it ships at p_min or above
      on a modulating clamped install heating shipped under p_min beside hot water takes no charge: the stop is charged to the heating step after the both step, and no charged step ships heating under the floor
      null control: with no duty floor (a duty-cycle install) the same arrays charge the both step itself, so the floor is what moved the charge
      a start that is idle, or below zero, in the step after a block charges nothing; the same block followed by heating charges that step
-     heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there
-     a start outside [0, p_max] reads as the same start clipped into it, on a duty-cycle and on a clamped install; the grid holds starts outside the band and readings that charge a step
      with no vector a space solve gets the two objectives it handed in, the same objects, and today's bound; with one it gets them bound to the vector
      and the nulls have something to detect: with the contributor's pair the plan moves on every install class
      acceptance: priced on the contributor's table the plan carries a lower summed switch weight, on a duty-cycle and on a modulating clamped install
@@ -198,24 +194,6 @@
      on a combi store the candidate pass asks its planner nothing and returns the incumbent, its requirement and its availability in place, on an incumbent holding a priced switch
 == optimizer: the co-optimisation headroom is handed no duty floor: 1 red
      null controls: the same heating with no vector, or with the vector on a clamped install whose bound carries no lost time, is under its bound and builds no replan; at the uncharged bound each of the two builds one
-== optimizer: the start is read with no cap beside hot water: 3 red
-     heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there
-     a start outside [0, p_max] reads as the same start clipped into it, on a duty-cycle and on a clamped install; the grid holds starts outside the band and readings that charge a step
-     a priced install whose plan holds no priced switch builds no candidate
-== optimizer: the start is capped at zero in every step: 13 red
-     on a modulating clamped install no charged step ships heating under the floor: a start under p_min after a block is charged only once it ships at p_min or above
-     on a modulating clamped install heating shipped under p_min beside hot water takes no charge: the stop is charged to the heating step after the both step, and no charged step ships heating under the floor
-     null control: with no duty floor (a duty-cycle install) the same arrays charge the both step itself, so the floor is what moved the charge
-     a start that is idle, or below zero, in the step after a block charges nothing; the same block followed by heating charges that step
-     heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there
-     a start outside [0, p_max] reads as the same start clipped into it, on a duty-cycle and on a clamped install; the grid holds starts outside the band and readings that charge a step
-     with no vector a space solve gets the two objectives it handed in, the same objects, and today's bound; with one it gets them bound to the vector
-     on the duty-cycle install the solved heating in every charged step is at most avail x p_max - dhw, and a charged step exists
-     fixed-speed: every shipped total is 0 or p_max and the plan's duty floor is p_min, with a hot-water block followed by a charged heating step
-     fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max
-     modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild
-     modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
-     modulating clamped: the predicted cost is the energy of the delivered draw, not of the shipped level
 == arbiter: the share serves the legs in reverse order: 3 red
      the leaf's legs are what step_duty and _share serve over the probe grid, floor unset and set: idle, one duty, both collapse edges and two legs
      the same agreement on the levels a clamped install ships: a modulating pump keeps two-leg steps, each circuit at or above p_min

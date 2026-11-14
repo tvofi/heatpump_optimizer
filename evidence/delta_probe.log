@@ -1,0 +1,4 @@
+RESULT priced_pair_cases=517 mismatches=0
+RESULT zero_pair_rows=1600 nonzero_or_misshapen=0
+RESULT availability_at_zero_lost=None lost=0.0
+RESULT availability_at_negative_lost=None
