@@ -1232,7 +1232,8 @@ DEFAULT_COMPRESSOR_RATED_STARTS: Final = 100000
 CONF_WEAR_AUTOTUNE_ENABLED: Final = "wear_autotune_enabled"
 DEFAULT_WEAR_AUTOTUNE_ENABLED: Final = False
 #: #39 — refresh one what-if price tile after each scheduled solve.
-#: Off by default: the tile set is three extra solves of real CPU.
+#: Off by default: a rotation of the tile set is up to five extra solves of
+#: real CPU, one for each degree tile and up to three for the power-cap tile.
 CONF_PRICE_TILES_ENABLED: Final = "price_tiles_enabled"
 DEFAULT_PRICE_TILES_ENABLED: Final = False
 #: #55 — consecutive samples on the far side of the threshold before an

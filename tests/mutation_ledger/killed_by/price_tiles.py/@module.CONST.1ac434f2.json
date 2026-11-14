@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_tiles.py:<module> CONST 1ac434f2",
+  "killed_by": "tests/features.py",
+  "old": "STEADY_REFRESH_HOURS = 6.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`STEADY_REFRESH_HOURS = 12.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

@@ -1702,6 +1702,7 @@ def _fold_coord(hass=None, **cfg):
 
 from heatpump_optimizer import power_guard as _power_guard  # noqa: E402
 from heatpump_optimizer import pump_arbiter as _arbiter  # noqa: E402
+from heatpump_optimizer import whatif as _whatif_dst  # noqa: E402
 from heatpump_optimizer.freq_control import FREQ_MIN_SAMPLES  # noqa: E402
 from heatpump_optimizer.manual_plan import build_override  # noqa: E402
 
@@ -1828,7 +1829,7 @@ R.check(
 )
 
 _c = _fold_coord()
-_c._last_simulation = _FOLD_LAST
+_whatif_dst.state_for(_c).last_at = _FOLD_LAST
 _sim = asyncio.run(_c.async_simulate({}, limited=True))
 R.check(
     "the what-if limiter lets a call a true hour after the last one through",

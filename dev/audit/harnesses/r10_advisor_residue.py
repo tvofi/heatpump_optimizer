@@ -23,7 +23,13 @@ Arms (each prints RESULT lines, then the arm's VERDICT):
           ``deferred_energy_cost``: what the fuse advisor and the cap tile
           read after it). A month figure that moves with the house's start
           prices a one-off; a cap can cost, never save. Null control: the
-          held figure, which starts held at its own target.
+          held figure, which starts held at its own target. On a tree with
+          the steady-start estimator a fourth figure, the steady one: both
+          plans solved again from held starts (``SolveInputs.held_start``),
+          each on an optimizer that has not solved, read from
+          ``price_tiles.monthly_deltas`` as the panel, the cap tile and the
+          fuse advisor read it. It must not move with the start, a degree
+          warmer must cost and a degree cooler save, and no cap may save.
   inbox   (b) Perturbation: the instant the row is read, every hour of the
           suite's seven price days (``r10_advisor_degree.PRICE_DAYS``). The
           sensor-gap row is ``topology.rank_sensor_gaps`` fed by the sensor's
@@ -59,6 +65,7 @@ from __future__ import annotations
 
 import inspect
 import sys
+from dataclasses import fields, replace
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
@@ -67,11 +74,14 @@ import numpy as np
 sys.path.insert(0, "dev/audit/harnesses")
 import r10_advisor_degree as deg  # noqa: E402
 from profiles import DT, prices, solve_inputs, weather  # noqa: E402
-from heatpump_optimizer import price_tiles, sensor, topology  # noqa: E402
+from heatpump_optimizer import price_tiles, sensor, topology, whatif  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
 from heatpump_optimizer.ledger import SPOT_PRICE_META, MonthlyLedger  # noqa: E402
+from heatpump_optimizer.optimizer import SolveInputs  # noqa: E402
 
 N = deg.N
+#: Whether this tree has the steady-start estimator (#2257); its merge base has not.
+STEADY = "held_start" in {f.name for f in fields(SolveInputs)}
 #: Instants a what-if is asked at: midnight, the morning ramp, the afternoon.
 HOURS = (0, 7, 15)
 
@@ -80,13 +90,38 @@ def _series(flat: bool) -> tuple[np.ndarray, list[np.ndarray]]:
     return deg._series(2, flat)
 
 
-def _solve(opt, j: int, room: float, slab: float, pr, wx, caps=None):
+def _inputs(j: int, room: float, slab: float, pr, wx, caps=None):
     t = deg.START + timedelta(hours=j * DT)
     sl = slice(j, j + N)
-    return opt.optimize(inputs=solve_inputs(
+    return solve_inputs(
         initial_state=deg._state(room, slab, float(wx[0][j])), prices=pr[sl], outdoor_temps=wx[0][sl],
         wind_speeds=wx[1][sl], precipitation=wx[2][sl], solar_radiation=wx[3][sl], start_time=t,
-        power_caps_extra=None if caps is None else np.full(N, caps)))
+        power_caps_extra=None if caps is None else np.full(N, caps))
+
+
+def _solve(opt, j: int, room: float, slab: float, pr, wx, caps=None, held: bool = False):
+    inputs = _inputs(j, room, slab, pr, wx, caps)
+    # A tree before the held start (the merge base) has no such field.
+    return opt.optimize(inputs=replace(inputs, held_start=True) if held else inputs)
+
+
+def _steady(opt, model, overrides, at: tuple, cap, live, sim, live_s) -> float:
+    """The answer's steady figure, by ``async_simulate``'s own branch: a
+    schedule ask is the thermostat's day energy on both sides
+    (``whatif.schedule_days``, ``price_tiles.schedule_figure``), any other the
+    pair solved from held starts. ``at`` is (step, room, slab, prices, weather)."""
+    hours = opt.config.horizon_hours
+    asked = _inputs(*at, cap)
+    days = whatif.schedule_days((_fresh(opt, model), _inputs(*at)), (deg._shadow(opt, model, overrides), asked))
+    if days is not None:
+        return price_tiles.schedule_figure(*days, float(np.mean(asked.forecast.prices)), 0.0, hours)[whatif.STEADY_KEY]
+    sim_s = _solve(deg._shadow(opt, model, overrides), *at, cap, held=True)
+    return price_tiles.monthly_deltas(live, sim, 0.0, hours, steady=(live_s, sim_s))[whatif.STEADY_KEY]
+
+
+def _fresh(opt, model):
+    """An optimizer that has not solved, as ``async_simulate`` builds one per steady solve."""
+    return deg._shadow(opt, model, {})
 
 
 def arm_whatif() -> bool:
@@ -98,16 +133,23 @@ def arm_whatif() -> bool:
     moved_plan = moved_held = 0
     rows = 0
     caps_seen: dict[str, list[float]] = {"plan": [], "settled": [], "plan_saves": [], "settled_saves": []}
+    moved_steady = wrong_sign = 0
+    steady_cap: list[float] = []
     for label, flat in (("null", True), ("varying", False)):
         pr, wx = _series(flat)
         for hour in HOURS:
             j = int(hour / DT)
             figs: dict[str, list[tuple[float, float, float]]] = {name: [] for name, _ in asks}
+            steady: dict[str, list[float]] = {name: [] for name, _ in asks}
             for room, slab in deg.STARTS:
                 live = _solve(opt, j, room, slab, pr, wx)
+                live_s = _solve(_fresh(opt, model), j, room, slab, pr, wx, held=True) if STEADY else None
                 for name, overrides in asks:
                     shadow = deg._shadow(opt, model, overrides) if overrides else opt
                     sim = _solve(shadow, j, room, slab, pr, wx, caps.get(name))
+                    if STEADY:
+                        steady[name].append(_steady(
+                            opt, model, overrides, (j, room, slab, pr, wx), caps.get(name), live, sim, live_s))
                     figs[name].append((
                         price_tiles.per_month(sim.predicted_cost - live.predicted_cost, hours),
                         price_tiles.per_month(sim.baseline_cost - live.baseline_cost, hours),
@@ -126,11 +168,30 @@ def arm_whatif() -> bool:
                     caps_seen["settled_saves"] += [x for x in settled if x < -1.0]
                 moved_plan += sp > 1.0
                 moved_held += sh > 1e-9
+                st = steady[name]
+                tail = ""
+                if st:
+                    moved_steady += max(st) - min(st) > 1e-9
+                    if name in caps:
+                        steady_cap += st
+                    else:
+                        # The held figure's sign is the row's: where it says a
+                        # degree costs (or saves), the steady figure must too.
+                        wrong_sign += sum(1 for x, h in zip(st, held) if abs(h) > 1.0 and x * h <= 0.0)
+                    tail = (f" | steady {' '.join(f'{x:+7.1f}' for x in st)} "
+                            f"spread {max(st) - min(st):.2f}")
                 print(f"RESULT whatif {label} {hour:02d}:00 {name:15s} plan by start "
                       f"{' '.join(f'{p:+7.1f}' for p in plan)} spread {sp:6.1f} | held "
                       f"{' '.join(f'{h:+6.1f}' for h in held)} spread {sh:.2f} | settled "
-                      f"{' '.join(f'{x:+7.1f}' for x in settled)} spread {ss:6.1f}")
+                      f"{' '.join(f'{x:+7.1f}' for x in settled)} spread {ss:6.1f}{tail}")
     print(f"RESULT whatif rows {rows} plan_moves_by_start {moved_plan} held_moves_by_start {moved_held}")
+    if STEADY:
+        print(f"RESULT whatif steady rows {rows} steady_moves_by_start {moved_steady} "
+              f"degree figures against the held sign {wrong_sign}/{3 * (rows - len(caps_seen['plan']))} "
+              f"cap figures reading a saving (< -1) {sum(1 for x in steady_cap if x < -1.0)}/{len(steady_cap)} "
+              f"cap range {min(steady_cap):+.1f}..{max(steady_cap):+.1f}")
+    else:
+        print("RESULT whatif steady absent: this tree has no SolveInputs.held_start")
     n = len(caps_seen["plan"])
     print(f"RESULT whatif caps rows {n} spread_by_start mean plan {np.mean(caps_seen['plan']):.1f} "
           f"settled {np.mean(caps_seen['settled']):.1f}; figures reading a saving (< -1) plan "
@@ -138,6 +199,45 @@ def arm_whatif() -> bool:
     ok = moved_held == 0
     print(f"VERDICT whatif {'the plan figure moves with the start; the held figure does not' if ok else 'INVALID: the held control moved'}")
     return ok
+
+
+def arm_steadysign() -> bool:
+    """The steady figure's sign on the degree asks at every second start hour.
+
+    ``whatif`` reads three instants. Priced as two plans from held starts, a
+    degree turned sign at an instant ``whatif`` does not read (1 of these 48
+    rows, and 6 of 24 on the coordinator fixture): two plans that ride the
+    comfort floor differ mainly by the stored heat each starts with. The
+    figure is now the schedule estimate (``_steady``). Null control: the held
+    figure's sign, which never turns.
+    """
+    if not STEADY:
+        print("RESULT steadysign absent: this tree has no SolveInputs.held_start")
+        return True
+    opt, model = deg._optimizer()
+    hours = opt.config.horizon_hours
+    asks = price_tiles.specs(opt.config, float(model.params.max_electrical_power))[:2]
+    wrong = held_wrong = rows = 0
+    for label, flat in (("null", True), ("varying", False)):
+        pr, wx = _series(flat)
+        for hour in range(1, 24, 2):
+            j = int(hour / DT)
+            room, slab = deg.STARTS[0]
+            live = _solve(opt, j, room, slab, pr, wx)
+            live_s = _solve(_fresh(opt, model), j, room, slab, pr, wx, held=True)
+            for (name, overrides), want in zip(asks, (-1.0, 1.0)):
+                sim = _solve(deg._shadow(opt, model, overrides), j, room, slab, pr, wx)
+                figs = price_tiles.monthly_deltas(live, sim, 0.0, hours)
+                steady = _steady(opt, model, overrides, (j, room, slab, pr, wx), None, live, sim, live_s)
+                held = figs["monthly_held_cost_delta"]
+                rows += 1
+                wrong += steady * want <= 0.0
+                held_wrong += held * want <= 0.0
+                print(f"RESULT steadysign {label} {hour:02d}:00 {name:15s} held {held:+7.1f} steady {steady:+7.1f} "
+                      f"plan {figs['monthly_cost_delta']:+7.1f} settled {figs['monthly_settled_cost_delta']:+7.1f}")
+    print(f"RESULT steadysign rows {rows} steady_wrong_sign {wrong} held_wrong_sign {held_wrong}")
+    print(f"VERDICT steadysign {'a degree cooler saves and a degree warmer costs at every hour read' if not wrong else 'the steady figure turns sign at some start hours'}")
+    return held_wrong == 0
 
 
 class _Draws:
@@ -278,6 +378,7 @@ def arm_mixing() -> bool:
 
 if __name__ == "__main__":
     arms = sys.argv[1:] or ["whatif", "inbox", "asym", "mixing"]
-    results = [{"whatif": arm_whatif, "inbox": arm_inbox, "asym": arm_asym, "mixing": arm_mixing}[a]()
+    results = [{"whatif": arm_whatif, "inbox": arm_inbox, "asym": arm_asym, "mixing": arm_mixing,
+                "steadysign": arm_steadysign}[a]()
                for a in arms]
     sys.exit(0 if all(results) else 1)

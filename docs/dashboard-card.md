@@ -496,6 +496,52 @@ The enlarged view also carries an editor for the heating day, the hot water
 windows and two temperatures. It is shown by default and hidden with
 `what_if: false`, which hides the slot lanes too.
 
+The money line a simulation answers with is a **steady-state monthly
+estimate**, worked out in one of two ways by what the change moves.
+
+A change to a comfort temperature or to the heating day's hours is priced as
+**an estimate at the day's average weather and average price**: the
+electricity a thermostat holding the new schedule would use over the average
+day of the coming week (weekend temperatures count for their two days in
+seven, whichever day you ask on), less what one holding the current schedule
+would, at the average of the day's prices. It **leaves out the optimiser's load shifting**: the optimiser buys
+that energy in cheaper hours than the average, so the line shows a range
+whenever the two differ, from the same energy priced at the simulated plan's
+own average purchase price to the average-price figure. On a day of sharp
+price peaks the two ends can be a factor of two to three apart. Where the
+lowest allowed temperature stops the plan following a cooler schedule, the
+saving is smaller than either end. Solar surplus is not in the average price:
+on a house with panels the lower end of the range, priced at what the
+simulated plan pays, is the closer one. Where the heating cannot reach the
+comfort temperature at all (the pump at its maximum, or a mixing valve that
+holds the rooms below it), a thermostat draws the same under either schedule
+and the estimate reads at or near zero, on either side of it. A hot water, quiet-hours or wood change
+sent together with a comfort change adds nothing to this figure: it prices
+the heating energy alone.
+
+Any other change (hot water alone, the comfort weight, the lowest allowed
+temperature) is priced as the difference of two plans: the current plan and
+the simulated one are each solved again from a house started as if its own
+schedule had been held all along, and the difference in what each spends,
+with the heat each leaves unstored bought back, is scaled to a month.
+
+Either way the figure does not move with where the rooms and the floor
+happen to be when you ask, and it leaves out the one-off coast (a cooler
+schedule) or heat-up (a warmer one) a change starts with. It is not unmoved
+by a tank no schedule holds. The two-plan figure for a hot water change moves
+with how warm the tank is when you ask and with the hour you ask at, because
+both plans start from the tank as measured and a day's plan ends at a
+different point of the tank's cycle: a few degrees on the hot water setpoint
+can read as a saving at one hour and a cost at another, so read it as an
+indication for the coming day. On a two-zone house the schedule estimate
+keeps a few tenths a month of the buffer tank's temperature. The Advisor's price tile for a degree
+prices the same thermostat at each hour's own price, so the two differ by
+how the day's prices fall on its heating hours. On an install with a wood
+tank the two-plan figure is unmoved by where the rooms and the slab start
+but not by the wood tank's charge, which no schedule holds: both plans start
+from the tank as measured. A simulation whose steady estimate could not be worked out shows
+the comfort consequence and no money.
+
 The temperatures live in a section of their own: the **comfort temperature** the
 house is held at during the heating day, and the **minimum hot water**
 temperature the tank may fall to inside a demand window. They are grouped because
@@ -660,8 +706,9 @@ own advisor sensors, not from the card.*
   pair that fails is shown without money, as not settled yet; a degree cooler
   that saves nothing (no heating) is no row. **Try in what-if** opens the Plan tab's what-if panel with the
   comfort slider on the cooler target and runs the simulation; that panel
-  prices the plan from the house as it is now, so its figure includes the
-  one-off coast or heat-up a change starts with. The tiles exist only while
+  prices the change as an estimate at the day's average weather and average
+  price, which leaves out the optimiser's load shifting and the one-off coast
+  or heat-up a change starts with. The tiles exist only while
   the integration's price-tiles option is on; with it off the row is offered
   under **More advice, once turned on** instead.
 - **The valve target.** The mixing valve's recommended target, which carries no

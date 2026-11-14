@@ -495,7 +495,7 @@ warmth.
 | Compressor replacement cost | 0 | 0–100 000, 100 steps | What a compressor swap costs including labour, in your price currency. Divided by the rated starts below it prices each realised start. 0 keeps the start counter pure observation. |
 | Compressor rated starts | 100 000 | 1 000–1 000 000 | What the manufacturer rates the compressor for. |
 | Let realised wear tune the cycling cost | off | on/off | Makes the wear price a floor under the cycling cost above. The only insight feature that changes plans. |
-| Refresh price tiles after each solve | off | on/off | Prices one what-if tile after each scheduled optimization — the comfort schedule one degree lower, one higher, power capped at 75 %, in rotation, each averaged over 30 days. Off by default because each tile is a full extra solve. |
+| Refresh price tiles after each solve | off | on/off | Prices one what-if tile after each scheduled optimization — the comfort schedule one degree lower, one higher, power capped at 75 %, in rotation, each averaged over 30 days. Off by default because each tile costs extra solves: one for a degree tile, up to three for the power-cap tile. |
 
 ### Grid peak tariff
 
@@ -876,9 +876,12 @@ writes, at every 15-minute plan step:
   over it until you turn it off (outside the entity's own minimum and
   maximum, the nearest value it takes); a value set while it is off is read again
   when it next writes. A reading equal to the optimizer's own last write is
-  never taken as yours: after an upgrade from a version without this, the
-  set-point is not written until it reads anything else, so set it on the
-  pump once. The mode and the hot-water set-point are not restored.
+  never taken as yours: after an upgrade from a version without this, the value
+  restored is the one the optimizer holds when the plan is not in charge (35 °C
+  or the weather curve for a water set-point, the planned room temperature for
+  an indoor one), and the optimizer writes the set-point from its first pass.
+  Set it on the pump once while the optimizer is on to have your own
+  value restored instead. The mode and the hot-water set-point are not restored.
 - **A write the pump does not hold is retried.** If the value written back
   still does not hold, a warning repair notice is raised and the value is sent
   again every 5 minutes; the notice clears on the first write that holds, or

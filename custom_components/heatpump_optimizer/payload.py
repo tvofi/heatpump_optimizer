@@ -390,6 +390,7 @@ class FuseAdvisor(TypedDict, total=False):
     feasible: bool
     comfort_shortfall_c: float
     worst_margin_kw: float
+    #: The what-if's steady-state figure (#2257); None when its pair failed.
     cost_delta_sek_month: float | None
     error: str
 

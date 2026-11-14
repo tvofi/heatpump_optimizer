@@ -81,7 +81,7 @@ round adds its own directory rather than rewriting an earlier one.
 | audit contract | `dev/audit/README.md` | the harness contract, the evidence layout, and the instruments a judge still re-runs |
 | suite manual | `tests/README.md` | what each gate script pins, how the scoped gate selects, and why a test that re-implements a production formula pins nothing |
 | architecture | `docs/architecture.md` | the integration's own shape: the Home Assistant boundary, the pure core and the learners |
-| living handover | `dev/programme/HANDOVER.md` | durable state and corrections to the record; volatile state goes on issue #201 |
+| living handover | `dev/programme/HANDOVER.md` | durable state and corrections to the record; volatile state goes on issue #3394 |
 | prose caps | `dev/governance/config/policy_budgets.json` | one-sided caps on the policy corpus |
 
 `node tools/policy/rules_sync.mjs --check` refuses drift between the canonical
