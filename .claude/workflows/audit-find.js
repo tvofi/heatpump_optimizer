@@ -111,6 +111,7 @@ const seatsFromScopes = (table, dim) => {
 // sits alone (dev/audit/README.md, "Resource rules on the audit box"): D4-s1
 // drives the card and D4-s3 renders it for the visual and accessibility pass.
 // The leads seat runs after the fan-out, on the box named by LEADS_BOX.
+// B11-B13 hold the D5 and D6 ledger seats past the third (scopes.json `ledger`).
 const BOXES = {
   B1: { heavy: ['D0-s1', 'D3-s1', 'D9-s1'], light: ['D5-s1', 'D6-s1', 'D10-s1'] },
   B2: { heavy: ['D0-s2', 'D3-s2', 'D9-s2'], light: ['D5-s2', 'D6-s2', 'D10-s2'] },
@@ -122,6 +123,9 @@ const BOXES = {
   B8: { heavy: ['D15-s2', 'D15-s3'], light: ['D13-s1', 'D13-s2', 'D13-s3', 'D15-s1'] },
   B9: { heavy: [], light: ['D4-s1'] },
   B10: { heavy: [], light: ['D4-s3'] },
+  B11: { heavy: [], light: ['D5-s4', 'D5-s5', 'D5-s6'] },
+  B12: { heavy: [], light: ['D5-s7', 'D5-s8', 'D5-s9', 'D5-s10'] },
+  B13: { heavy: [], light: ['D6-s4', 'D6-s5', 'D6-s6', 'D6-s7'] },
 }
 const CHROMIUM = new Set(['D4-s1', 'D4-s3'])
 const LEADS_BOX = 'B8'

@@ -1,5 +1,5 @@
 {
- "_rule": "Finder scopes: three seats per dimension from round 10 (tvofi 2026-10-14), each a theme of its dimension's brief. A seat is a list of blocks {files, steps, axis?}; files are globs over `git ls-tree -r --name-only <baseline>` (`*` stops at `/`, `**` crosses it) or the word \"rest\" (every universe file no seat of the dimension names explicitly for those steps). mode \"cells\": every (file, step, axis value) in universe x steps x axis is owned by exactly one seat. mode \"files\": every universe file by exactly one seat, every step by at least one. check_scopes.py enforces both and prints each seat's LOC; re-run it at the baseline, never carry its numbers.",
+ "_rule": "Finder scopes: three seats per dimension from round 10 (tvofi 2026-10-14), each a theme of its dimension's brief; D5 and D6 as many as their `ledger.max_units` needs, so each seat's text units are finishable (tvofi 2026-11-13). A seat is a list of blocks {files, steps, axis?}; files are globs over `git ls-tree -r --name-only <baseline>` (`*` stops at `/`, `**` crosses it) or the word \"rest\" (every universe file no seat of the dimension names explicitly for those steps). mode \"cells\": every (file, step, axis value) in universe x steps x axis is owned by exactly one seat. mode \"files\": every universe file by exactly one seat, every step by at least one. check_scopes.py enforces both and prints each seat's LOC; re-run it at the baseline, never carry its numbers.",
  "_pkg": "custom_components/heatpump_optimizer",
  "_coverage_excluded": {
   "_rule": "Tracked paths no dimension measures, each with its reason; check_scopes.py refuses a path in no universe and not here, an entry here that also names a covered path, and an entry that names nothing.",
@@ -311,7 +311,13 @@
    "README.md",
    "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/*.py",
-   "custom_components/heatpump_optimizer/www/*.js"
+   "custom_components/heatpump_optimizer/www/*.js",
+   "tools/**.{py,sh,js,mjs}",
+   "tests/**.{py,sh,js,mjs}",
+   ".claude/hooks/*.sh",
+   ".claude/workflows/*.js",
+   "dev/audit/harnesses/**.{py,sh,js,mjs}",
+   "docs/img/**.{py,sh,js,mjs}"
   ],
   "steps": [
    "M1",
@@ -319,6 +325,18 @@
    "M3",
    "M4"
   ],
+  "ledger": {
+   "step": "M4",
+   "max_units": 4500,
+   "_rule": "tvofi 2026-11-13: every comment and docstring of production, the instruments and the test suite, each round D5 runs. A seat holds at most max_units of text_ledger.py's D5 units for M4, so its cell is finishable; a seat that grows past it is re-cut here, never sampled."
+  },
+  "classify": [
+   "**.{py,sh,js,mjs}"
+  ],
+  "static": {
+   "dev/audit/{rounds,rca,waves}/**": "round, root-cause and wave evidence: the scripts a round or a seat ran then, re-measured by its own harness, never re-read as current comments; the live per-group harnesses under dev/audit/harnesses/ are measured",
+   "dev/archive/**": "retired records kept for history"
+  },
   "seats": {
    "s1": [
     {
@@ -339,14 +357,28 @@
      ],
      "steps": [
       "M2",
-      "M3"
+      "M3",
+      "M4"
      ]
     }
    ],
    "s3": [
     {
      "files": [
-      "custom_components/heatpump_optimizer/*.py",
+      "custom_components/heatpump_optimizer/{_,a,b,c,d,e,f,g,h,i}*.py"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s4": [
+    {
+     "files": [
+      "custom_components/heatpump_optimizer/{j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z}*.py",
       "custom_components/heatpump_optimizer/www/*.js"
      ],
      "steps": [
@@ -355,13 +387,88 @@
       "M3",
       "M4"
      ]
-    },
+    }
+   ],
+   "s5": [
     {
      "files": [
-      "README.md",
-      "docs/**"
+      "tools/audit/seat/{a,b,c,d,e,f,g,h,i,j,k,l,m,n,o}*",
+      "tools/audit/seat/hooks/**",
+      "tools/pr/**"
      ],
      "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s6": [
+    {
+     "files": [
+      "tools/audit/seat/{p,q,r,s,t,u,v,w,x,y,z}*",
+      "tools/audit/*",
+      "tools/audit/{archscore,round4}/**",
+      "tools/{ci,coverage,devices,merge,plan,release,replay,site}/**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s7": [
+    {
+     "files": [
+      "tests/f*"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s8": [
+    {
+     "files": [
+      "tests/{a,b,c,d,g}*",
+      "tools/policy/**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s9": [
+    {
+     "files": "rest",
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s10": [
+    {
+     "files": [
+      ".claude/hooks/*.sh",
+      ".claude/workflows/*.js",
+      "dev/audit/harnesses/**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
       "M4"
      ]
     }
@@ -373,30 +480,67 @@
   "universe": [
    "README.md",
    "DISCLAIMER.md",
+   "RELEASE_NOTES.md",
    "docs/index.html",
    "docs/site/*.css",
    "tools/site/build_docs.mjs",
    "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
    "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
-   "custom_components/heatpump_optimizer/translations/*.json",
    "hacs.json",
    "blueprints/**",
-   "docs/img/**"
+   "docs/img/**",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js",
+   "CLAUDE.md",
+   "AGENTS.md",
+   "SECURITY.md",
+   "dev/README.md",
+   "dev/governance/{dimensions,roles,rules}/*.md",
+   "dev/programme/HANDOVER.md",
+   "dev/programme/plan-*.md",
+   "dev/audit/README.md",
+   "tests/README.md",
+   "tools/{audit,pr}/**.md",
+   ".claude/skills/**.md",
+   ".claude/workflows/*.md",
+   ".github/PULL_REQUEST_TEMPLATE.md"
   ],
   "steps": [
    "M1",
    "M2",
    "M3"
   ],
+  "ledger": {
+   "step": "M1",
+   "max_units": 4500,
+   "_rule": "tvofi 2026-11-13: every sentence of the user documentation, the release notes, every user-visible string, the documents describing the instruments and the living developer documentation, each round D6 runs. A seat holds at most max_units of text_ledger.py's D6 units, so its cell is finishable; a seat that grows past it is re-cut here, never sampled."
+  },
+  "classify": [
+   "**.md",
+   "**.mdc",
+   "**.html"
+  ],
+  "static": {
+   "dev/audit/{rounds,rca}/**": "round evidence and root-cause records: what a round or a seat found then, re-measured by its own harness, never re-verified as current text",
+   "dev/archive/**": "retired records kept for history",
+   "dev/programme/{delivery,register,round9,round10,triage}/**": "delivery rows, the register, round notes and triage records: records of decisions already made",
+   "dev/governance/decisions/**": "decision records, history of what was decided and why; the role contracts and rules they changed are measured",
+   "docs/design/**": "dated design records of shipped features; the user docs that describe them now are measured",
+   "{.claude,.cursor}/rules/**": "generated from dev/governance/rules/ by tools/policy/rules_sync.mjs, whose --check refuses drift; the source is measured",
+   "tools/policy/fixtures/**": "the policy linters' test fixtures, wrong on purpose"
+  },
   "seats": {
    "s1": [
     {
      "files": [
       "README.md",
       "DISCLAIMER.md",
+      "RELEASE_NOTES.md",
       "docs/index.html",
       "docs/site/*.css",
-      "tools/site/build_docs.mjs"
+      "tools/site/build_docs.mjs",
+      "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md"
      ],
      "steps": [
       "M1",
@@ -408,7 +552,11 @@
    "s2": [
     {
      "files": [
-      "docs/*.md"
+      "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
+      "hacs.json",
+      "blueprints/**",
+      "docs/img/**",
+      "dev/governance/{dimensions,roles}/*.md"
      ],
      "steps": [
       "M1",
@@ -418,6 +566,67 @@
     }
    ],
    "s3": [
+    {
+     "files": [
+      "custom_components/heatpump_optimizer/translations/en.json",
+      "custom_components/heatpump_optimizer/*.py"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s4": [
+    {
+     "files": [
+      "custom_components/heatpump_optimizer/www/*.js",
+      "custom_components/heatpump_optimizer/translations/sv.json"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s5": [
+    {
+     "files": [
+      "CLAUDE.md",
+      "AGENTS.md",
+      "SECURITY.md",
+      "dev/README.md",
+      "dev/governance/rules/*.md",
+      "dev/programme/HANDOVER.md",
+      "dev/audit/README.md",
+      "tests/README.md",
+      "tools/{audit,pr}/**.md",
+      ".claude/skills/**.md",
+      ".claude/workflows/*.md",
+      ".github/PULL_REQUEST_TEMPLATE.md"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s6": [
+    {
+     "files": [
+      "custom_components/heatpump_optimizer/translations/de.json"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s7": [
     {
      "files": "rest",
      "steps": [

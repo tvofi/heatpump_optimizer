@@ -7821,7 +7821,7 @@
    "git": []
   },
   "self-tests-outside-seat": {
-   "run_sha": "f74f563517915a57fe460412e738e310a7b60174f1d47ff211e4ed8e856a3c3b",
+   "run_sha": "1e2fc0b8e9fbdd55f36a3f9b56f9b721100229ca4d7ed5af11986fae0b770dec",
    "files": [
     ".claude/hooks/**",
     ".claude/rules/**",
