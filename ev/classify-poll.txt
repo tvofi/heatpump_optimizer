@@ -1,0 +1,25 @@
+10:36:05 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:37:21 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:38:38 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:39:55 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:41:11 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:42:28 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:43:44 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:45:01 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:46:18 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:47:34 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:48:51 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:50:07 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:51:24 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:52:41 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:53:58 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:55:14 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:56:31 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:57:48 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+10:59:04 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+11:00:21 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+11:01:38 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+11:02:54 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+11:04:11 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+11:05:27 rc=3 WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
+WAIT ece8328001608ff93f5138392f6e6c15420c8929 pending: gate red: none
