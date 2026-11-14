@@ -1,0 +1,12 @@
+NE-MAIN custom_components/heatpump_optimizer/strings.json
+NE-MAIN custom_components/heatpump_optimizer/translations/de.json
+NE-MAIN custom_components/heatpump_optimizer/translations/en.json
+NE-MAIN custom_components/heatpump_optimizer/translations/sv.json
+NE-MAIN tests/features.py
+NE-MAIN tests/mutation_ledger/killed_by/duty_switch.py/Direction.decay.CMP_BOUND.50222946.json
+NE-MAIN tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._apportion_by_steady_demand.CMP_BOUND.a0bdc820.json
+NE-MAIN tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._apportion_by_steady_demand.CMP_BOUND.bcdccc59.json
+NE-MAIN tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._apportion_by_steady_demand.GUARD_OFF.a0bdc820.json
+NE-MAIN tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._apportion_by_steady_demand.RETURN_DEL.cb4dc380.json
+NE-MAIN tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.efb0739b.json
+NE-MAIN tests/mutation_ledger/survivor_triage/optimizer.py/HeatPumpOptimizer._apportion_by_steady_demand.BOOLOP.c2a57544.json

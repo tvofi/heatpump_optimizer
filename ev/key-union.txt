@@ -1,0 +1,13 @@
+strings.json head==union-removed: True len 1507 missing [] extra []
+  value mismatches vs clean 3-way: []
+translations/de.json head==union-removed: True len 1507 missing [] extra []
+  value mismatches vs clean 3-way: []
+translations/en.json head==union-removed: True len 1507 missing [] extra []
+  value mismatches vs clean 3-way: []
+translations/sv.json head==union-removed: True len 1507 missing [] extra []
+  both-changed options.step.entities.sections.indoor.data_description.space_setpoint_unit head==main True head==branch False main.startswith(branch) True branch==base False
+  value mismatches vs clean 3-way: []
+de keyset == strings.json: True
+en keyset == strings.json: True
+sv keyset == strings.json: True
+flow_heat_c/space_setpoint_entity lines identical (strings.json)

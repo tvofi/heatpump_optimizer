@@ -1,0 +1,574 @@
+1,2d0
+< +Upgrade note, added 2026-11-13: after an upgrade from v7.1.11 or earlier, the space set-point is not written until it has been set once at the pump or in Home Assistant. Under Pump duty control this can leave the pump at its last idle set-point (25 °C on a flow set-point), boost included. Until the release that follows v7.1.15, set the set-point entity once by hand to release it; from that release the optimizer releases it on its own.
+< +
+11,26d8
+< -async def async_arm(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, key: str) -> bool:
+< +async def async_arm(
+< +    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, key: str,
+< +    *, baseline_c: float | None = None,
+< +) -> bool:
+< -    persists it with its entity; a later arm, in this run or after a restart,
+< -    keeps it. An unreadable baseline refuses the write: what it would restore
+< +    persists it with its entity: ``baseline_c`` where the consumer knows the
+< +    reading is no baseline (its own last write), else the reading. A later
+< +    arm, in this run or after a restart, keeps it. An unreadable baseline refuses the write: what it would restore
+< -        baseline = restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None
+< +        baseline = baseline_c if baseline_c is not None else (
+< +            restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None)
+< -last write is never captured (:func:`_arm_space`). What a person sets while
+< +last write is never captured: the baseline row's own target is, and the write
+< +is sent (:func:`_arm_space`). What a person sets while
+103,104d84
+< -    arbiter's last write, which the off restore's own-write refusal reads
+< +    arbiter's last write, which the off restore's own-write check reads
+110,152c90
+< -    held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None
+< +    """Let go of the pump: every record goes but the arbiter's own last space write.
+< +
+< +    That value stays on ``held.dropped`` until a restore replaces it on the
+< +    entity (:func:`_space_restored`): with no baseline armed, Off writes
+< +    nothing there, so the entity still reads the optimizer's number, and the
+< +    arm after On must not capture it as the person's (:func:`_arm_space`).
+< +    """
+< +    own = _own_space_write(held)
+< +    held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None
+< +    held.dropped = {} if own is None else {"space_setpoint": own}
+< +
+< +
+< +def _own_space_write(held: ArbiterState) -> Any:
+< +    """The arbiter's own last space write, or ``None``: its record, else the
+< +    one a loop move dropped to be sent (:func:`_note_sent`), which
+< +    ``held.dropped`` keeps across the run's end and an Off (:func:`_forget`)."""
+< +    record = held.written.get("space_setpoint")
+< +    return record[0] if record is not None else held.dropped.get("space_setpoint")
+< -    return slot == "space_setpoint" and not await _arm_space(inp, entry, held, entity)
+< +    return slot == "space_setpoint" and not await _arm_space(inp, entry, held, entity, now)
+< -async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity: str) -> bool:
+< +async def _arm_space(inp: ArbiterInputs, entry: Any, held: ArbiterState, entity: str, now: datetime) -> bool:
+< -    optimizer's, not the person's, so the write is held, latched, until the
+< -    controller reads anything else.
+< +    optimizer's, not the person's. The baseline captured in its place is the
+< +    baseline row's own space target (:func:`_space_target` with no duty), the
+< +    value the arbiter holds when the plan is not in charge, and the write is
+< +    sent. It used to be held until the controller read anything else, which
+< +    on an upgrade held every space write, a boost's included, with the pump
+< +    left on the optimizer's last gate (R10-HOTFIX-FLOW-SETPOINT-STUCK).
+< -    record = held.written.get("space_setpoint")
+< -    # A loop move dropped the record to be sent (_note_sent); held.dropped
+< -    # keeps it across the run's end, which the loop resets on any stop.
+< -    last = record[0] if record is not None else held.dropped.get("space_setpoint")
+< +    last = _own_space_write(held)
+< -    if log_held(inp.hass, f"space_baseline_own:{entity}", own,
+< -                "Pump duty: %s reads %s, the optimizer's own last write, which is no "
+< -                "baseline to restore on off; not writing it until it is set at the controller",
+< -                entity, reading):
+< -        return False
+< +    baseline = None
+< +    if own:
+---
+> -        baseline = _space_target(inp, inp.plan, now, None)
+154,161d91
+< +        _LOGGER.info("Pump duty: %s reads %s, the optimizer's own last write; turning the "
+< +                     "optimizer off restores %s instead", entity, reading, baseline)
+< -    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER)
+< +    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER, baseline_c=baseline)
+< -        if held.written or held.retry or held.dropped or held.space_before is not None:
+< +        if held.written or held.retry or held.space_before is not None:
+< -              "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point.",
+< +              "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. With Pump duty control at Control the optimizer writes it on every plan step, as Pump duty control describes, and turning Optimizer active off writes back the value it read before its first write. With Pump duty control at Off or Observe it is only read, to notice when it cannot be read.",
+164,165d93
+< -              "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Dient nur dazu zu bemerken, wenn die Entität nicht gelesen werden kann. Der Optimierer schreibt nie einen empfohlenen Raumheizungs-Sollwert.",
+< +              "space_setpoint_entity": "Optional. Eine Zahl, ein Helfer oder eine Climate-Entität, die der Sollwert der Raumheizung der Pumpe ist. Steht die Steuerung der Pumpenfunktion auf Steuern, schreibt der Optimierer sie in jedem Planschritt, wie die Steuerung der Pumpenfunktion beschreibt, und das Ausschalten von Optimierer aktiv schreibt den Wert zurück, den die Entität vor dem ersten Schreiben zeigte. Bei Aus oder Beobachten wird sie nur gelesen, um zu bemerken, wenn sie nicht gelesen werden kann.",
+168,169d95
+< -              "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. Used only to notice when the entity cannot be read. The optimizer never writes a recommended space set-point.",
+< +              "space_setpoint_entity": "Optional. A number, helper or climate entity that is the pump's space-heating set-point. With Pump duty control at Control the optimizer writes it on every plan step, as Pump duty control describes, and turning Optimizer active off writes back the value it read before its first write. With Pump duty control at Off or Observe it is only read, to notice when it cannot be read.",
+172,179d97
+< -          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+< +          "space_setpoint_unit": "Vad den börvärdesentiteten förväntar sig",
+< -              "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+< +              "space_setpoint_unit": "Vad den börvärdesentiteten förväntar sig",
+< -              "space_setpoint_entity": "Valfritt. En number-, helper- eller climate-enhet som är pumpens börvärde för rumsuppvärmning. Används bara för att märka när enheten inte går att läsa. Optimeringen skriver aldrig ett rekommenderat rumsuppvärmningsbörvärde.",
+< -              "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur som den håller framledningen på. Returtemperatur är för en styrenhet som tar börvärdet som mål för returvattnet (antaget för en Luxtronik via dess Smart Home Interface); den skrivs som ett framledningsbörvärde, med det nominella hållvärdet, värmekurvan och grinden på 25 °C flyttade 5 K ned till returnivå. En version från före det här valet läser Returtemperatur som Inomhustemperatur: byt tillbaka till Framledningstemperatur innan du nedgraderar. Att peka ett inomhusmål mot en framledningsenhet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: optimeraren härleder den aldrig från enheten, och bara förifyllningen från en värmepumpsenhet föreslår en.",
+< +              "space_setpoint_entity": "Valfritt. En number-, helper- eller climate-enhet som är pumpens börvärde för rumsuppvärmning. Med Styrning av pumpens uppgift satt till Styrning skriver optimeraren det vid varje plansteg, som Styrning av pumpens uppgift beskriver, och när Optimeraren aktiv stängs av skrivs värdet tillbaka som enheten visade före den första skrivningen. Med Av eller Observera läses det bara, för att märka när det inte går att läsa.",
+< +              "space_setpoint_unit": "Inomhustemperatur är rätt för ett rums- eller termostatbörvärde. Framledningstemperatur är för en styrenhet vars börvärde är en vattentemperatur som den håller framledningen på. Returtemperatur är för en styrenhet som tar börvärdet som mål för returvattnet (antaget för en Luxtronik via dess Smart Home Interface); den skrivs som ett framledningsbörvärde, med det nominella hållvärdet, värmekurvan och grinden på 25 °C flyttade 5 K ned till returnivå. En version från före det här valet läser Returtemperatur som Inomhustemperatur: byt tillbaka till Framledningstemperatur innan du nedgraderar. Att peka ett inomhusmål mot en framledningsentitet skulle kommendera ungefär 21 °C till något som förväntar sig 35–45 °C och undervärma huset kraftigt. Enheten är en deklaration: optimeraren härleder den aldrig från entiteten, och bara förifyllningen från en värmepumpsenhet föreslår en.",
+182,201c100,101
+< -          "space_setpoint_unit": "Vad den börvärdesenheten förväntar sig",
+< +          "space_setpoint_unit": "Vad den börvärdesentiteten förväntar sig",
+< -mutant at the fix head, once for M01-M20 on the arbiter block and once for the
+< -seam mutants (M21 to M38; M33 retired) on the water-setpoint feedback block, and exits with
+< +mutant at the fix head, once for M01-M20 and M35 on the arbiter block and once for the
+< +seam mutants (M21 to M38; M33 and M36 retired) on the water-setpoint feedback block, and exits with
+< +
+< +R10-HOTFIX-FLOW-SETPOINT-STUCK re-anchored M02, M03, M11, M13, M23, M35 and
+< +M37 on the lines it rewrote: the own-write check no longer holds the write but
+< +substitutes the baseline (M03 drops that check), and Off keeps the own space
+< +write until a restore replaces it (M35, renamed, forgets it, and moves to the
+< +arbiter block, whose stuck-install Off-and-On check kills it). M36 (Off's guard
+< +reads the dropped write) is retired: that guard no longer reads it, by design.
+< +The seam block now ends at the replay's `_fb_floor = _fb_sim(clamp=(26.4`: the
+< +bare `_fb_floor = _fb_sim(` marker matched an earlier simulation #3469 added,
+< +so the block stopped before every Carry 8 check and no seam mutant could die.
+< -  "old": "    return slot == \"space_setpoint\" and not await _arm_space(inp, entry, held, entity)",
+< +  "old": "    return slot == \"space_setpoint\" and not await _arm_space(inp, entry, held, entity, now)",
+< -  "old": "f\"space_baseline_own:{entity}\", own,",
+< -  "new": "f\"space_baseline_own:{entity}\", False,"
+---
+> -  "old": "    if own:\n        baseline = _space_target(inp, inp.plan, now, None)\n",
+> -  "new": "    if False:\n        baseline = _space_target(inp, inp.plan, now, None)\n"
+204,406d103
+< -  "old": "if held.written or held.retry or held.dropped or held.space_before is not None:",
+< -  "new": "if held.written or held.retry or held.dropped:"
+< +  "old": "if held.written or held.retry or held.space_before is not None:",
+< +  "new": "if held.written or held.retry:"
+< -  "old": "held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None",
+< -  "new": "held.written, held.misses, held.retry, held.dropped = {}, {}, {}, {}"
+< +  "old": "held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None",
+< +  "new": "held.written, held.misses, held.retry = {}, {}, {}"
+< + },
+< + {
+< +  "name": "M35_forget_drops_own_write",
+< +  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+< +  "old": "    held.dropped = {} if own is None else {\"space_setpoint\": own}\n",
+< +  "new": "    held.dropped = {}\n"
+< -#: the record a loop move drops (``_note_sent``) still refuses the optimizer's
+< -#: own write as the restore's baseline (roster Carry 8). Their checks sit in
+< +#: the record a loop move drops (``_note_sent``) still keeps the optimizer's
+< +#: own write from the restore's baseline (roster Carry 8). Their checks sit in
+< -    '"# --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380" "_fb_floor = _fb_sim("'
+< +    '--prelude "from heatpump_optimizer import off_restore as _pa_or" '
+< +    '"# --- R10-WATER-SETPOINT-FEEDBACK (outside report #3380" "_fb_floor = _fb_sim(clamp=(26.4"'
+< -  "old": "    last = record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
+< -  "new": "    last = record[0] if record is not None else None\n"
+< +  "old": "    return record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
+< +  "new": "    return record[0] if record is not None else None\n"
+< - {
+< -  "name": "M35_forget_keeps_dropped",
+< -  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+< -  "old": "held.written, held.misses, held.retry, held.dropped, held.space_before = {}, {}, {}, {}, None",
+< -  "new": "held.written, held.misses, held.retry, held.space_before = {}, {}, {}, None"
+< - },
+< - {
+< -  "name": "M36_off_ignores_dropped",
+< -  "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+< -  "old": "if held.written or held.retry or held.dropped or held.space_before is not None:",
+< -  "new": "if held.written or held.retry or held.space_before is not None:"
+< - },
+< -  "old": "    last = record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
+< -  "new": "    last = record[0] if record is not None else None if held.feedback is None else held.feedback.prev_c\n"
+< +  "old": "    return record[0] if record is not None else held.dropped.get(\"space_setpoint\")\n",
+< +  "new": "    return record[0] if record is not None else None if held.feedback is None else held.feedback.prev_c\n"
+< +"""R10-RCA-SETPOINT-LATCH-DEADLOCK detector: from every persisted arbiter state,
+< +the demanded space write reaches the entity with no person acting.
+< +
+< +    python3 -I dev/audit/harnesses/r10_rca_setpoint_latch.py --check <checkout> [--passes N]
+< +
+< +The pump-duty arbiter (``pump_arbiter.apply``) runs on a flow set-point
+< +install, with Control on and a plan that heats the house on every step. The
+< +stub device takes every write. A reference install with no persisted state
+< +gives the demanded target. Then each persisted starting state is driven for
+< +N one-minute passes (default 10): the space record (none, the idle gate
+< +``FLOW_GATE_C``, or the heating flow), the record a loop move dropped (none,
+< +or the gate; only where the tree has ``ArbiterState.dropped``), the entity's
+< +reading (the gate, 40, or the heating flow), and whether the off restore is
+< +already armed on the entity (only where the tree has ``pump_arbiter.CONSUMER``).
+< +Every state must end with the entity reading the demanded target.
+< +
+< +Exit codes: 0 every state converges; 1 a state never gets the demanded
+< +write (the defect); 2 the reference install was never written, so the
+< +harness can see no write (the skip control); 3 the modules were loaded from
+< +outside the named checkout (provenance refusal).
+< +"""
+< +from __future__ import annotations
+< +
+< +import argparse
+< +import asyncio
+< +import itertools
+< +import os
+< +import sys
+< +from datetime import datetime, timedelta, timezone
+< +from types import SimpleNamespace as NS
+< +
+< +UTC = timezone.utc
+< +T0 = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+< +TUYA = ("Heating", "DHW (Hot Water)", "Heating + DHW", "Cooling", "Cooling + DHW")
+< +SPACE = "number.water_set"
+< +
+< +
+< +def main() -> int:
+< +    ap = argparse.ArgumentParser()
+< +    ap.add_argument("--check", required=True, help="checkout root to measure")
+< +    ap.add_argument("--passes", type=int, default=10)
+< +    args = ap.parse_args()
+< +    root = os.path.realpath(args.check)
+< +    # Older trees read package data relative to the cwd: measure from the root.
+< +    os.chdir(root)
+< +    for sub in ("custom_components", "tests", "tests/hastub"):
+< +        sys.path.insert(0, os.path.join(root, sub))
+< +
+< +    import harness  # noqa: PLC0415
+< +    from heatpump_optimizer import pump_arbiter as pa  # noqa: PLC0415
+< +    from heatpump_optimizer.const import MODE_AUTO  # noqa: PLC0415
+< +    from heatpump_optimizer.entry_config import EntryConfig  # noqa: PLC0415
+< +
+< +    for mod in (harness, pa):
+< +        if not os.path.realpath(mod.__file__).startswith(root + os.sep):
+< +            print(f"REFUSED {mod.__name__} loaded from {mod.__file__}, not {root}")
+< +            return 3
+< +
+< +    def plan(n):
+< +        return NS(
+< +            timestamps=[T0 + timedelta(minutes=15 * i) for i in range(n)],
+< +            power_schedule=[1.5] * n,
+< +            dhw_power_schedule=[0.0] * n,
+< +            optimal_setpoints=[21.0] * n,
+< +        )
+< +
+< +    class Coord:
+< +        def __init__(self, reading: str, entry_id: str) -> None:
+< +            self.hass = harness.FakeHass({
+< +                "select.pump_mode": harness.FakeState("Heating", attributes={"options": list(TUYA)}),
+< +                "number.dhw_set": harness.FakeState("48", attributes={"min": 40, "max": 63}),
+< +                SPACE: harness.FakeState(reading, attributes={"min": 25, "max": 63}),
+< +            })
+< +            self._config = EntryConfig.from_mapping({
+< +                "pump_duty_mode": "control",
+< +                "heat_pump_mode_entity": "select.pump_mode",
+< +                "dhw_setpoint_entity": "number.dhw_set",
+< +                "space_setpoint_entity": SPACE,
+< +                "space_setpoint_unit": "flow",
+< +            })
+< +            self._mode = MODE_AUTO
+< +            self.stale = False
+< +            self._current_action = {"mode": "eco"}
+< +            self._optimization_result = plan(400)
+< +            self._thermal_model = NS(params=NS(min_electrical_power=0.4), curve_flow_temp=lambda _o: 34.2)
+< +            self._thermal_params = NS(dhw_setpoint=48.0, dhw_max_temp=48.0, dhw_cycle_temp=None)
+< +            self._current_state = NS(outdoor_temperature=0.0)
+< +            self.entry = harness.FakeEntry(entry_id=entry_id)
+< +
+< +        def _plan_is_stale(self) -> bool:
+< +            return self.stale
+< +
+< +        @property
+< +        def effective_config(self):
+< +            return self._config
+< +
+< +        @property
+< +        def thermal_params(self):
+< +            return self._thermal_params
+< +
+< +        def arbiter_inputs(self):
+< +            return pa.ArbiterInputs(
+< +                hass=self.hass, config=self._config, mode=self._mode,
+< +                plan=self._optimization_result, plan_stale=self.stale, entry_released=False,
+< +                state=self._current_state, thermal=self._thermal_model, params=self._thermal_params,
+< +                action=self._current_action, measured_power_kw=None, disinfecting=False,
+< +            )
+< +
+< +        async def async_set_mode(self, mode) -> None:
+< +            self._mode = mode
+< +
+< +    def converge(coord: Coord) -> float:
+< +        for i in range(args.passes):
+< +            asyncio.run(pa.apply(coord, T0 + timedelta(minutes=i)))
+< +            for _d, _s, data in coord.hass.services.calls:  # the device takes each write
+< +                value = data.get("option", data.get("value"))
+< +                coord.hass.states.get(data["entity_id"]).state = str(value)
+< +            coord.hass.services.calls.clear()
+< +        return float(coord.hass.states.get(SPACE).state)
+< +
+< +    ids = itertools.count()
+< +    ref_reading = "40"
+< +    target = converge(Coord(ref_reading, f"latch{next(ids)}"))
+< +    if target == float(ref_reading):
+< +        print(f"SKIP the reference install was never written (reads {target}): nothing to measure")
+< +        return 2
+< +
+< +    gate, heat = float(pa.FLOW_GATE_C), target
+< +    has_dropped = "dropped" in getattr(pa.ArbiterState, "__dataclass_fields__", {})
+< +    has_restore = hasattr(pa, "CONSUMER")
+< +    if has_restore:
+< +        from heatpump_optimizer import off_restore  # noqa: PLC0415
+< +    states = list(itertools.product(
+< +        (None, gate, heat),
+< +        (None, gate) if has_dropped else (None,),
+< +        (gate, 40.0, heat),
+< +        (False, True) if has_restore else (False,),
+< +    ))
+< +    failed = 0
+< +    for written, dropped, reading, armed in states:
+< +        coord = Coord(f"{reading:g}", f"latch{next(ids)}")
+< +        held = pa.state_for(coord)
+< +        held.loaded = True
+< +        if armed:
+< +            coord.entry.runtime_data = coord
+< +            asyncio.run(off_restore.async_arm(coord.hass, coord.entry, coord._config, pa.CONSUMER))
+< +        if written is not None:
+< +            held.written["space_setpoint"] = (written, T0 - timedelta(hours=1))
+< +        if dropped is not None:
+< +            held.dropped["space_setpoint"] = dropped
+< +        final = converge(coord)
+< +        if final != target:
+< +            failed += 1
+< +            print(f"FAIL written={written} dropped={dropped} reading={reading:g} armed={armed}: "
+< +                  f"reads {final:g} after {args.passes} passes, demanded {target:g}")
+< +    print(f"SUMMARY root={root} demanded={target:g} states={len(states)} failed={failed} "
+< +          f"passes={args.passes} dropped_axis={has_dropped} armed_axis={has_restore}")
+< +    return 1 if failed else 0
+< +
+< +
+< +if __name__ == "__main__":
+< +    sys.exit(main())
+408d104
+< +- [#3576](https://github.com/tvofi/heatpump_optimizer/pull/3576) — **open**, Correct the away, disinfection, circulation and set-point-unit text to what the code does (R10-DOCS-STRINGS-RESIDUE)
+423,440d118
+< -  never taken as yours: after an upgrade from a version without this, the
+< -  set-point is not written until it reads anything else, so set it on the
+< -  pump once. The mode and the hot-water set-point are not restored.
+< +  never taken as yours: after an upgrade from a version without this, the value
+< +  restored is the one the optimizer holds when the plan is not in charge (35 °C
+< +  or the weather curve for a water set-point, the planned room temperature for
+< +  an indoor one), and the optimizer writes the set-point from its first pass.
+< +  Set it on the pump once while the optimizer is on to have your own
+< +  value restored instead. The mode and the hot-water set-point are not restored.
+< -- **Hold-verified disinfection**: any heat source already resets the timer;
+< -  with *Credit disinfection from any heat source* on, it does so only once the
+< -  tank has held the disinfection temperature for 20 minutes, so a momentary
+< -  blip at 60 °C credits nothing.
+< +- **Hold-verified disinfection**: with *Credit disinfection from any heat
+< +  source* on, a heat source resets the timer only once the tank has held the
+< +  disinfection temperature for 20 minutes, so a momentary blip at 60 °C credits
+< +  nothing; with it off, any observation resets it at once, as above.
+< +   "dev/audit/harnesses/r10_rca_setpoint_latch.py",
+565,602c243,246
+< +# Re-pinned by R10-HOTFIX-FLOW-SETPOINT-STUCK: this check pinned "the write
+< +# waits", which on an upgrade held every space write, boosts included, until a
+< +# person set the controller. The own write is still never the baseline; the
+< +# baseline row's hold (35 degC: the curve's 34.2 under the rated hold) is.
+< -    "the baseline, and the write waits; null control: a reading of the person's own is captured, "
+< -    "written over, and restored on off",
+< -    _pa_up_first == [] and _pa_up_sent == 0 and _pa_space(_pa_up) == []
+< +    "the baseline: the baseline row's 35 is, and the write is sent; null control: a reading of the "
+< +    "person's own is captured, written over, and restored on off",
+< +    _pa_up_first == [25.0] and _pa_up_sent == 1 and _pa_space(_pa_up) == [35.0]
+< +# R10-HOTFIX-FLOW-SETPOINT-STUCK (tvofi, 2026-11-13, a Rotenso on v7.1.15 held
+< +# at 25 degC through a boost): from any persisted arbiter state, a space step
+< +# or a boost under Control writes the space set-point within one pass. The
+< +# states: a record equal to the reading with no baseline armed, in memory and
+< +# loaded from the pre-#3404 store shape (an upgrade, then a restart).
+< +def _pa_stuck(duties, record, boost=False, stored=False):
+< +    """The space writes of one pass at minute 1; ``record`` the persisted last write or None."""
+< +    coord = _PaCoord(_PA_TUYA, duties=duties)
+< +    coord.device("number.water_set", "25")
+< +    at = _PA_T0 - timedelta(hours=1)
+< +    if record is not None and stored:
+< +        _pa_aio.run(_pa._store(coord).async_save({"written": {"space_setpoint": [record, at.isoformat()]}}))
+< +    elif record is not None:
+< +        held = _pa.state_for(coord)
+< +        held.loaded = True
+< +        held.written["space_setpoint"] = (record, at)
+< +    if boost:
+< +        boost_mod.held_for(coord).set("space", True, _PA_T0)
+< +    _pa_run(coord, 1)
+< +    return _pa_space(coord)
+< +
+< +
+< +_pa_stuck_rows = {
+< +    (duties, boost, stored): _pa_stuck(duties, 25.0, boost, stored)
+< +    for duties, boost in (("-", True), ("s", False)) for stored in (False, True)
+< +}
+< +_pa_stuck_null = {(duties, boost): _pa_stuck(duties, None, boost) for duties, boost in (("-", True), ("s", False))}
+< +R.check(
+---
+> -    "R10-HOTFIX-FLOW-SETPOINT-STUCK: a boost over an idle step, and a space step, write the 55 degC "
+> -    "ceiling in one pass from a persisted own write of 25 equal to the reading with no baseline armed, "
+> -    "in memory and loaded from the store; null control: the same passes with no record write 55 too",
+> -    all(v == [55.0] for v in _pa_stuck_rows.values()) and all(v == [55.0] for v in _pa_stuck_null.values()),
+609,773d252
+< +    f"{_pa_stuck_rows=} {_pa_stuck_null=}",
+< +)
+< +
+< +
+< +def _pa_stuck_off(hand=None):
+< +    """Off after the released write from a persisted own 25: what the restore writes.
+< +
+< +    ``hand``: a value the person sets at the controller before the pass.
+< +    """
+< +    coord = _PaCoord(_PA_TUYA, duties="ssss")
+< +    held = _pa.state_for(coord)
+< +    held.loaded = True
+< +    held.written["space_setpoint"] = (25.0, _PA_T0 - timedelta(hours=1))
+< +    coord.device("number.water_set", "25" if hand is None else hand)
+< +    _pa_settled(coord, 1)
+< +    return _pa_turn_off(coord), _pa_space(coord)
+< +
+< +
+< +
+< +
+< +def _pa_stuck_cycle():
+< +    """A stuck install (own 25 persisted, reading 25, nothing armed) turned Off and On again.
+< +
+< +    Returns what the Off restored, the space writes after On, and what a later Off restores.
+< +    """
+< +    coord = _PaCoord(_PA_TUYA, duties="ssss")
+< +    held = _pa.state_for(coord)
+< +    held.loaded = True
+< +    held.written["space_setpoint"] = (25.0, _PA_T0 - timedelta(hours=1))
+< +    coord.device("number.water_set", "25")
+< +    first = _pa_turn_off(coord)
+< +    coord._mode = _PA_AUTO
+< +    coord.hass.services.calls.clear()
+< +    _pa_settled(coord, 46)
+< +    coord.hass.services.calls.clear()
+< +    _pa_run(coord, 47)
+< +    on = _pa.state_for(coord).written.get("space_setpoint", (None,))[0]
+< +    coord.hass.services.calls.clear()
+< +    return first, on, _pa_turn_off(coord), _pa_space(coord)
+< +
+< +
+< +def _pa_dropped_over(written, dropped):
+< +    """The space writes of three passes from a written record over a dropped own 25, reading 25."""
+< +    coord = _PaCoord(_PA_TUYA, duties="ssss")
+< +    held = _pa.state_for(coord)
+< +    held.loaded = True
+< +    held.written["space_setpoint"] = (written, _PA_T0 - timedelta(hours=1))
+< +    held.dropped["space_setpoint"] = dropped
+< +    coord.device("number.water_set", "25")
+< +    for minute in (1, 2, 3):
+< +        _pa_settled(coord, minute)
+< +    return float(coord.hass.states.get("number.water_set").state)
+< +
+< +
+< +R.check(
+< +    "R10-HOTFIX-FLOW-SETPOINT-STUCK (R10-RCA-SETPOINT-LATCH-DEADLOCK (b)): a stuck install turned Off "
+< +    "(nothing armed, nothing restored) and On writes 55 at once, and a later Off restores the baseline "
+< +    "row's 35, never the 25 the optimizer left; (c): a written 55 over a dropped own 25 with the entity "
+< +    "reading 25 reaches 55; null control: a dropped 40 that is not the reading reaches 55 too",
+< +    _pa_stuck_cycle() == (0, 55.0, 1, [35.0])
+< +    and _pa_dropped_over(55.0, 25.0) == 55.0 and _pa_dropped_over(55.0, 40.0) == 55.0,
+< +    f"{_pa_stuck_cycle()=} {_pa_dropped_over(55.0, 25.0)=} {_pa_dropped_over(55.0, 40.0)=}",
+< +)
+< +R.check(
+< +    "R10-HOTFIX-FLOW-SETPOINT-STUCK: Optimizer off after the write a persisted own 25 no longer holds "
+< +    "restores the baseline row's 35, never the 25 gate; null control: a value set by hand, 40, is "
+< +    "restored as set",
+< +    _pa_stuck_off() == (1, [35.0]) and _pa_stuck_off("40") == (1, [40.0]),
+< +    f"{_pa_stuck_off()=} {_pa_stuck_off('40')=}",
+< +)
+< +
+< +
+< -    return _pa_turn_off(again)
+< +    return _pa_turn_off(again), _pa_space(again)
+< +# The restored value, not only the count: since R10-HOTFIX-FLOW-SETPOINT-STUCK
+< +# an own write left on the record no longer refuses the arm but substitutes
+< +# the baseline row's 35, so only the value tells a record the restore dropped
+< +# (and saved) from one it kept.
+< -    "a restart captures it again and the next off restores it",
+< -    _pa_restored_twice("unload") == 1 and _pa_restored_twice("off") == 1,
+< +    "a restart captures it again and the next off restores it, 25, not the baseline row's 35",
+< +    _pa_restored_twice("unload") == (1, [25.0]) and _pa_restored_twice("off") == (1, [25.0]),
+< -def _fb_own(moves, wrote=True):
+< +def _fb_own(moves, wrote=True, arm=True):
+< -    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+< +    sent = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET, _FB_NOW)) if arm else None
+< +def _fb_baseline(coord):
+< +    """The space baseline the off restore holds, or None when unarmed."""
+< +    armed = _fb_aio.run(_pa_or.async_armed_entry(coord.hass, coord.entry, _fb_pa.CONSUMER))
+< +    return None if armed is None else armed["value"]
+< +
+< +
+< +# Re-pinned by R10-HOTFIX-FLOW-SETPOINT-STUCK: the own write is no longer
+< +# refused, which held the write; the baseline row's 30.0 (the rated 35 in
+< +# return terms, under the 32 ceiling) is captured in its place.
+< -    "dropped record still refuses the optimizer's own 26.0 as an unarmed key's baseline, "
+< -    "after one move and after two with no write between; a restore ends the run; an "
+< -    "arbiter that never wrote captures it",
+< -    _fb_own_one[0] is False and _fb_own_two[0] is False and _fb_own_two[2].feedback.prev_c == 26.0
+< -    and _fb_rs_held.feedback is None and _fb_own_none[0] is True,
+< -    f"one {_fb_own_one[0]}, two {_fb_own_two[0]} (prev {_fb_own_two[2].feedback.prev_c}), "
+< -    f"restored run {_fb_rs_held.feedback}, never wrote {_fb_own_none[0]}",
+< +    "dropped record still keeps the optimizer's own 26.0 from an unarmed key's baseline, "
+< +    "after one move and after two with no write between, and the write is sent; a restore "
+< +    "ends the run; an arbiter that never wrote captures it",
+< +    _fb_own_one[0] is True and _fb_baseline(_fb_own_one[1]) == 30.0
+< +    and _fb_own_two[0] is True and _fb_baseline(_fb_own_two[1]) == 30.0
+< +    and _fb_own_two[2].feedback.prev_c == 26.0
+< +    and _fb_rs_held.feedback is None and _fb_own_none[0] is True and _fb_baseline(_fb_own_none[1]) == 26.0,
+< +    f"one {_fb_own_one[0]} {_fb_baseline(_fb_own_one[1])}, two {_fb_own_two[0]} {_fb_baseline(_fb_own_two[1])} "
+< +    f"(prev {_fb_own_two[2].feedback.prev_c}), restored run {_fb_rs_held.feedback}, "
+< +    f"never wrote {_fb_own_none[0]} {_fb_baseline(_fb_own_none[1])}",
+< -    sent, coord, held = _fb_own([25.8])
+< +    _sent, coord, held = _fb_own([25.8], arm=False)
+< -    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET))
+< -    return sent, None if run is None else run.prev_c, after
+< +    after = _fb_aio.run(_fb_pa._arm_space(coord.arbiter_inputs(), coord.entry, held, _FB_SET, _FB_NOW))
+< +    return _fb_baseline(coord), None if run is None else run.prev_c, after
+< -    "own-write refusal survives every end of the loop run while the dropped write is "
+< -    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart",
+< -    all(sent is False and prev is None and after is False for sent, prev, after in _fb_own_ends.values()),
+< -    f"(before, run prev_c after, after) {_fb_own_ends}",
+< +    "own-write fact survives every end of the loop run while the dropped write is "
+< +    "held -- an off pass, a missing base, a compressor stop, a stale run, a restart: "
+< +    "the arm after it sends the write and captures 30.0, not the own 26.0",
+< +    all(after is True and prev is None and baseline == 30.0 for baseline, prev, after in _fb_own_ends.values()),
+< +    f"(baseline, run prev_c after, after) {_fb_own_ends}",
+< -# record gone is not refused; a restore (_space_restored) and a release (Off
+< -# forgets the record, even one that is only the dropped write) end it, and
+< -# a stored value the arbiter could not have written is not loaded.
+< +# record gone is not refused; a restore (_space_restored) ends it, and a
+< +# stored value the arbiter could not have written is not loaded. Re-pinned by
+< +# R10-HOTFIX-FLOW-SETPOINT-STUCK: Off with no restore no longer ends it (the
+< +# entity still reads the optimizer's number, and the arm after On must not
+< +# take it as the person's), and a written record becomes the dropped one.
+< -_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8])
+< +_fb_wr_sent, _fb_wr_coord, _fb_wr_held = _fb_own([25.8], arm=False)
+< -_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET))
+< +_fb_wr_after = _fb_aio.run(_fb_pa._arm_space(_fb_wr_coord.arbiter_inputs(), _fb_wr_coord.entry, _fb_wr_held, _FB_SET, _FB_NOW))
+< -_fb_off_coord, _fb_off_held = _fb_own([25.8])[1:]
+< +_fb_off_coord, _fb_off_held = _fb_own([25.8], arm=False)[1:]
+< -    "once a write lands on the armed key, and ends when a restore writes the baseline or "
+< -    "Off releases the pump",
+< +    "once a write lands on the armed key, and ends when a restore writes the baseline; "
+< +    "Off with nothing restored keeps it",
+< -    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {}
+< +    and _fb_off_before == {"space_setpoint": 26.0} and _fb_off_held.dropped == {"space_setpoint": 26.0}
+< -  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF 59013da4",
+< +  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF 87a4cba9",
+< -  "old": "        if held.written or held.retry or held.dropped or held.space_before is not None:",
+< -  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+< +  "old": "        if held.written or held.retry or held.space_before is not None:",
+< +  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+< +{
+< +  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arm_space GUARD_OFF bc2b348d",
+< +  "killed_by": "tests/features.py",
+< +  "old": "    if own:",
+< +  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+< +}
+< -  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arm_space RETURN_DEL cbe69d47",
+< +  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arm_space RETURN_DEL ee5d5b70",
+< -  "old": "    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER)",
+< -  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=17."
+< +  "old": "    return await off_restore.async_arm(inp.hass, entry, inp.config, CONSUMER, baseline_c=baseline)",
+< +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=20."
+810,823d288
+< -  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_held_back BOOLOP 605f504a",
+< +  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_held_back BOOLOP dd8cf122",
+< -  "old": "    return slot == \"space_setpoint\" and not await _arm_space(inp, entry, held, entity)",
+< -  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return slot == \"space_setpoint\" or not await _arm_space(inp, entry, held, entity)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=3."
+< +  "old": "    return slot == \"space_setpoint\" and not await _arm_space(inp, entry, held, entity, now)",
+< +  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`return slot == \"space_setpoint\" or not await _arm_space(inp, entry, held, entity, now)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=3."
+< -  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_held_back RETURN_DEL 605f504a",
+< -  "killed_by": "tests/structure.py",
+< -  "old": "    return slot == \"space_setpoint\" and not await _arm_space(inp, entry, held, entity)",
+< -  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+< +  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_held_back RETURN_DEL dd8cf122",
+< +  "killed_by": "tests/features.py",
+< +  "old": "    return slot == \"space_setpoint\" and not await _arm_space(inp, entry, held, entity, now)",
+< +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=14."
+841,846d305
+< +}
+< +{
+< +  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_own_space_write RETURN_DEL 98fa5cc9",
+< +  "killed_by": "tests/features.py",
+< +  "old": "    return record[0] if record is not None else held.dropped.get(\"space_setpoint\")",
+< +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
