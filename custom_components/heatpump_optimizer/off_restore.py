@@ -153,12 +153,16 @@ async def _save(held: _Held) -> None:
         _LOGGER.debug("Could not save the off-restore store: %s", err)
 
 
-async def async_arm(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, key: str) -> bool:
+async def async_arm(
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, key: str,
+    *, baseline_c: float | None = None,
+) -> bool:
     """Before a write by consumer ``key``: arm its restore; False refuses the write.
 
     The first arm captures the baseline of a consumer with no ``neutral`` and
-    persists it with its entity; a later arm, in this run or after a restart,
-    keeps it. An unreadable baseline refuses the write: what it would restore
+    persists it with its entity: ``baseline_c`` where the consumer knows the
+    reading is no baseline (its own last write), else the reading. A later
+    arm, in this run or after a restart, keeps it. An unreadable baseline refuses the write: what it would restore
     is unknown. A baseline entry for another entity, or under a neutral
     restorer, is restored first (rule R), and a failure refuses the write; a
     neutral entry under a baseline restorer is dropped unwritten, so a neutral
@@ -181,7 +185,8 @@ async def async_arm(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, co
             return False  # latched, still armed: nothing to save
     baseline = None
     if restorer.neutral is None:
-        baseline = restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None
+        baseline = baseline_c if baseline_c is not None else (
+            restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None)
         if log_held(entry, f"off_restore_baseline_{key}", baseline is None,
                     "No baseline readable from %s: not written, nothing to restore it to",
                     restorer.entity_id):
