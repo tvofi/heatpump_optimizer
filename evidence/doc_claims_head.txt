@@ -396,7 +396,7 @@
   ok   every surface class enumerates from the tree (anchor)
   ok   every _Suggested option enumerates its fallback as its default, never <computed> (anchor: one exists)
   ok   every surface has its home, or a reasoned exemption that still names one
-       (518 surface(s), 517 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
+       (521 surface(s), 520 homed, 1 exempt: python3 tests/doc_claims.py --surfaces lists them)
   ok   red fixture: a service planted in services.yaml with no home is the one finding
   ok   red fixture: a Default cell that disagrees with the shipped default (away_dhw_min_temperature) is a finding
   ok   red fixture: an exemption naming a surface no longer enumerated is a finding
@@ -424,6 +424,20 @@
   ok   pump_arbiter still comments FEEDBACK_DOWN_K (anchor)
   ok   the assumed minimum hysteresis behind FEEDBACK_DOWN_K cites the contributor's answers
   ok   the inferred clamp bounds (_clamp_cut) cite the contributor's answers and name both inputs
+
+-- Late user-docs delta: corrected sentences match the code that decides them
+  ok   docs/configuration.md cycle: the sentence states what the code decides
+  ok   the cycle check refuses the pre-fix sentence (null control)
+  ok   docs/configuration.md wood: the sentence states what the code decides
+  ok   the wood check refuses the pre-fix sentence (null control)
+  ok   docs/configuration.md bias: the sentence states what the code decides
+  ok   the bias check refuses the pre-fix sentence (null control)
+  ok   docs/configuration.md split: the sentence states what the code decides
+  ok   the split check refuses the pre-fix sentence (null control)
+  ok   docs/configuration.md fee: the sentence states what the code decides
+  ok   the fee check refuses the pre-fix sentence (null control)
+  ok   docs/setup.md wood tank bottom sensor: one-probe readings as the code decides
+  ok   docs/setup.md and docs/configuration.md no longer say both wood probes are needed
 
 -- the user pages describe the integration as it is, with no change history (R10-USER-DOCS-FINAL)
   ok   the seven user pages are there (anchor)
@@ -454,4 +468,4 @@
   ok   red fixture: a history-sense "used to" is a finding
   ok   red fixture: an exemption that matches no fragment is a finding
 
-ALL 356 checks PASSED
+ALL 368 checks PASSED

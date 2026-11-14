@@ -1,0 +1,2 @@
+  MODE: SCOPED -- 30 script(s) run, 3 scoped out.
+  MODE: SCOPED -- 4 script(s) run, 29 scoped out.
