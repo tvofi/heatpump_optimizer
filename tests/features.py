@@ -74632,6 +74632,19 @@ R.check(
     and len(_dm_shape._run_asked()) == 90,
     f"{_dm_states}",
 )
+# Each half of the judgement on a window only it refuses: asks spanning 1.2
+# (under DISAGREE_FACTOR) drawn 2.2 kW flat move the level by 1.2 alone, so
+# only the slope refuses them; a draw growing as the square of asks spanning
+# 1.5 has slope 2, so only the level refuses it (its level moves by 1.5 the
+# other way round).
+_dm_halves = (_df_ev(_cf_win_cfg([(1.0, 2.2), (1.2, 2.2)] * 24, (1.0, 14.0))),
+              _df_ev(_cf_win_cfg([(1.0, 1.0), (1.5, 2.25)] * 24, (1.0, 14.0))))
+R.check(
+    "a flat draw over asks spanning 1.2 fails on the slope, a square-law draw "
+    "over asks spanning 1.5 fails on the level",
+    _dm_halves == ("does_not_follow", "does_not_follow"),
+    f"{_dm_halves}",
+)
 
 # MeasuredCop.judge_ratio holds a departure only while the evidence is
 # pending. 5.0 kW asked: 6.0 drawn is a 20 % departure, 5.5 is inside the
