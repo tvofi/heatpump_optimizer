@@ -7063,6 +7063,68 @@ R.check(
     f"NaN and nowhere else",
 )
 
+# A fixed variable costs no simulated row (design note n6): its step is zero,
+# so its row would be x0 again and the division never reads the value. The
+# batch is the free variables' rows, behind x0 itself when the caller asks the
+# batch for f(x0) too; counted on the production symbol, at a bound set that
+# is mostly fixed, the shape a committed mask and a full DHW block produce.
+_gate_rows_seen: list[int] = []
+
+
+_gate_wide_x0 = np.array([1.0, 2.0, 0.0, 4.0, 0.5, 6.0])
+_gate_wide_bounds = [
+    (0.0, 6.0), (2.0, 2.0), (0.0, 0.0), (4.0, 4.0), (0.0, 6.0), (6.0, 6.0),
+]
+
+
+def _gate_wide_batch(mat, *_a):
+    m = np.atleast_2d(np.asarray(mat, dtype=float))
+    _gate_rows_seen.append(m.shape[0])
+    return np.sum((m - np.array([3.0, 1.0, 5.0, 2.0, 0.0, 1.0])) ** 2, axis=1)
+
+
+_gate_wide_f0 = float(_gate_wide_batch(_gate_wide_x0[None, :])[0])
+_gate_rows_seen.clear()
+_gate_wide_grad = _grad_optmod._batch_fd_gradient(
+    _gate_wide_batch, (), _gate_wide_x0, _gate_wide_f0, 1e-4, _gate_wide_bounds,
+)
+_gate_wide_fused = _grad_optmod._batch_fd_gradient(
+    _gate_wide_batch, (), _gate_wide_x0, None, 1e-4, _gate_wide_bounds,
+)
+R.check(
+    "the batched jac simulates one row per free variable, none for a fixed one",
+    _gate_rows_seen == [2, 3],
+    f"batch heights {_gate_rows_seen} for 2 free of 6 variables: [2, 3] is "
+    f"the free rows alone, then the same behind x0; [6, 7] simulates the "
+    f"four fixed variables' copies of x0 as well",
+)
+R.check(
+    "that jac is the full batch's: scipy's estimate where free, 0.0 where fixed",
+    np.array_equal(_gate_wide_grad, _gate_wide_fused)
+    and np.array_equal(
+        _gate_wide_grad[[0, 4]],
+        np.array([
+            (float(_gate_wide_batch(
+                (_gate_wide_x0 + 1e-4 * np.eye(6)[i])[None, :])[0])
+             - _gate_wide_f0)
+            / ((_gate_wide_x0[i] + 1e-4) - _gate_wide_x0[i])
+            for i in (0, 4)
+        ]),
+    )
+    and not np.any(_gate_wide_grad[[1, 2, 3, 5]]),
+    f"gradient {_gate_wide_grad}, fused {_gate_wide_fused}",
+)
+_gate_rows_seen.clear()
+_gate_all_fixed = _grad_optmod._batch_fd_gradient(
+    _gate_wide_batch, (), _gate_wide_x0, _gate_wide_f0, 1e-4,
+    [(float(v), float(v)) for v in _gate_wide_x0],
+)
+R.check(
+    "with every variable fixed and f(x0) supplied, no batch is simulated",
+    _gate_rows_seen == [] and np.array_equal(_gate_all_fixed, np.zeros(6)),
+    f"batch heights {_gate_rows_seen}, gradient {_gate_all_fixed}",
+)
+
 from scipy.optimize._numdiff import approx_derivative as _gate_approx
 
 R.check(

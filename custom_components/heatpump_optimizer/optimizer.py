@@ -1509,9 +1509,10 @@ def _batch_fd_gradient(
     batched objective's rows are byte-identical to the scalar one --
     which is the batched simulation's contract (issue #97).
 
-    The 97 perturbed schedules are evaluated by ONE call to
-    ``batch_objective``: the simulation, which is nearly the whole cost,
-    runs vectorized across the batch instead of 97 times sequentially.
+    The perturbed schedules, 97 where every one of 96 steps is free, are
+    evaluated by ONE call to ``batch_objective``: the simulation, which is
+    nearly the whole cost, runs vectorized across the batch instead of once
+    per schedule.
 
     A FIXED variable (``lb == ub``) is the one place this deliberately
     departs from scipy (D9-01): there the one-sided rule leaves a zero step
@@ -1530,10 +1531,20 @@ def _batch_fd_gradient(
     differences against that row, so a caller that needs ``f(x0)`` as well
     reads it from the same batch instead of the scalar objective
     (``_fused_value_and_gradient``, R9 D9-s1-02).
+
+    The batch holds one row per FREE variable. A fixed variable's step is
+    zero, so its row would be ``x0`` again: a whole simulated horizon whose
+    value the division then never reads. A committed mask, a full DHW block
+    and a manual plan fix most of the horizon, so those rows were most of
+    such a gradient's cost. The free rows are the same rows as before, and
+    each row's value does not depend on which other rows share its batch
+    (the batched simulation's contract, #97), so no entry moves.
     """
     h, free = _fd_steps(x0, eps, bounds)
     lead = 1 if f0 is None else 0
-    f = batch_objective(_fd_rows(x0, h, lead), *args)
+    if lead == 0 and not free.any():
+        return np.zeros(x0.size, dtype=float)
+    f = batch_objective(_fd_rows(x0, h, lead, free), *args)
     if f0 is None:
         f0 = float(f[0])
     return _fd_divide(f[lead:], f0, x0, h, free)
@@ -1573,25 +1584,26 @@ def _fd_steps(
     return h, free
 
 
-def _fd_rows(x0: np.ndarray, h: np.ndarray, lead: int) -> np.ndarray:
-    """``lead`` copies of ``x0``, then ``x0`` with each variable stepped by ``h``."""
-    n = x0.size
-    rows = np.tile(x0, (lead + n, 1))
-    rows[lead + np.arange(n), np.arange(n)] = x0 + h
+def _fd_rows(
+    x0: np.ndarray, h: np.ndarray, lead: int, free: np.ndarray,
+) -> np.ndarray:
+    """``lead`` copies of ``x0``, then one row per free variable, stepped by ``h``."""
+    stepped = np.flatnonzero(free)
+    rows = np.tile(x0, (lead + stepped.size, 1))
+    rows[lead + np.arange(stepped.size), stepped] = (x0 + h)[stepped]
     return rows
 
 
 def _fd_divide(
     f: np.ndarray, f0: float, x0: np.ndarray, h: np.ndarray, free: np.ndarray,
 ) -> np.ndarray:
-    """The divided differences of the stepped rows' values against ``f0``."""
+    """The free rows' divided differences against ``f0``; 0.0 at a fixed variable."""
     dx = (x0 + h) - x0
-    # ``where=free`` leaves the fixed entries at the 0.0 they start as and
-    # never performs their division, so no 0/0 is computed and no invalid-
-    # value warning is raised. On an all-free bound set this is elementwise
-    # the same IEEE division as before, bit for bit.
+    # ``f`` holds the free variables' rows only (``_fd_rows``), so a fixed
+    # entry keeps the 0.0 it starts as and its 0/0 is never computed. A free
+    # entry is elementwise the IEEE division it always was, bit for bit.
     grad = np.zeros(x0.size, dtype=float)
-    np.divide(f - f0, dx, out=grad, where=free)
+    grad[free] = (f - f0) / dx[free]
     return grad
 
 
