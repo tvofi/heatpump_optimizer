@@ -1073,6 +1073,28 @@ def cases(bj) -> dict[str, bool]:
     res["darwin-selftest: a .py self-test runs as CI's plain python3, never -I (which drops the script dir)"] = \
         py == [["python3", "tools/audit/seat/mutant_run.py", "--self" + "-test"]]
 
+    # a completed cycle's REDs are written with that cycle and never ride into the next one
+    c, f = darwin(extra={"mutant_run.py": (1, "FAIL carried red\n", "")})
+    bj.darwin_selftest(c)
+    first = digest(c)
+    f.answers["mutant_run.py"] = (0, "", "")
+    f.answers["git"] = git_tip(tipb)
+    bj.darwin_selftest(c)
+    res["darwin-selftest: a new cycle starts with an empty red list after a cycle that had REDs"] = \
+        first.strip() == "darwin-selftest: RED tools/audit/seat/mutant_run.py FAIL carried red" and digest(c) == "" \
+        and f.ran("mutant_run.py") == 2
+    # a pass killed partway keeps the runs it finished
+    def killed(argv):
+        raise KeyboardInterrupt("pass killed")
+    c, f = darwin(extra={"mutant_run.py": killed})
+    try:
+        bj.darwin_selftest(c)
+    except KeyboardInterrupt:
+        pass
+    sf = c.digest / "state" / "darwin-selftest.json"
+    kept = json.loads(sf.read_text()) if sf.exists() else {}
+    res["darwin-selftest: a pass killed partway keeps the runs it finished"] = \
+        kept.get("done") == ["tools/pr/prepr.sh"] and kept.get("complete") is False and kept.get("tip") == tipa
     return res
 
 
@@ -1291,6 +1313,11 @@ MUTANTS = {
     "darwin_py_isolated": ('["python3" if p.endswith(".py") else "bash", f"tools/{p}"',
                            '["python3" if p.endswith(".py") else "bash", *(["-I"] if p.endswith(".py") else []), f"tools/{p}"',
                            "darwin-selftest: a .py self-test runs as CI's plain python3, never -I (which drops the script dir)"),
+    "red_carried_to_next_cycle": ('mem = {"tip": tip, "done": [], "red": [], "complete": False}',
+                                  'mem = {"tip": tip, "done": [], "red": mem.get("red", []), "complete": False}',
+                                  "darwin-selftest: a new cycle starts with an empty red list after a cycle that had REDs"),
+    "no_per_run_remember": ('            ctx.remember("darwin-selftest.json", mem)  # after every run: a killed pass keeps what it ran\n', "",
+                            "darwin-selftest: a pass killed partway keeps the runs it finished"),
     "darwin_lease_not_released": ('        ctx.run([*gate, "slot-release"', '        (lambda *a: None)([*gate, "slot-release"',
                                   "darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes"),
 }
