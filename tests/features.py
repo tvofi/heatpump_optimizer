@@ -19229,8 +19229,11 @@ def _t2_coord(states=None, **extra):
 
 
 def _listeners(coord):
+    # The guard's own registrations: the running signal (R10-START-COUNTER-EDGES)
+    # listens on the heat pump's meter from construction, before this setup runs.
+    before = list(getattr(coord.hass, "state_listeners", []))
     _asyncio.run(coord._async_setup_peak_guard())
-    return getattr(coord.hass, "state_listeners", [])
+    return [entry for entry in getattr(coord.hass, "state_listeners", []) if entry not in before]
 
 _c = _t2_coord(
     peak_guard_enabled=True,
@@ -90249,10 +90252,18 @@ R.check(
     _sce_raise.counter.queued is None and _sce_raise.counter.lifetime == 1,
     f"{_sce_raise_err!r} {_sce_raise.counter.lifetime} {_sce_raise.counter.queued}",
 )
+_sce_cut = _SceRig({"sensor.kw": FakeState("0.0", unit="kW")}, heat_pump_power_entity="sensor.kw")
+_sce_cut.at(_SCE_T0 + timedelta(minutes=1))
+_sce_cut.set("sensor.kw", "2.0", _SCE_T0 + timedelta(minutes=2), unit="kW")
+_sce_cut_armed = len(getattr(_sce_cut.c.hass, "timers", []))
+_sce_cut.c._release_registrations()
 R.check(
-    "the release drops the listener and the pending timer, and a second release is harmless",
-    not _sce_gone.c.hass.state_listeners and not getattr(_sce_gone.c.hass, "timers", [])
-    and _sce_gone.c._release_registrations() is None,
+    "the release drops the listener, the timer of a change still pending and the subscribers, and a "
+    "second release is harmless; null control, the change was pending with its timer armed",
+    _sce_cut_armed == 1 and not _sce_cut.c.hass.state_listeners and not _sce_cut.c.hass.timers
+    and not _sce_rs.signal_for(_sce_cut.c).subscribers
+    and _sce_cut.c._release_registrations() is None,
+    f"{_sce_cut_armed} {_sce_cut.c.hass.timers}",
 )
 
 # A stored payload of the shape the sampled path wrote continues: the

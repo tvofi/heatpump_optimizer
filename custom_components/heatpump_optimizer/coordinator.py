@@ -3572,9 +3572,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if on_unload is not None:
             on_unload(self._release_registrations)
         # Part D: the running signal is heard from construction to release, in
-        # every duty mode; its edges feed the start counter, queued until the
-        # ledger restore (``wear.StartCounter.restore``).
-        running_signal.subscribe(running_signal.signal_for(self), lambda edge: self._book_starts(self._start_counter.fold(*edge)))
+        # every duty mode, by the start counter ``_init_grid`` subscribed.
         running_signal.attach(self, *running_signal.source(hass, config, lambda: self._ctx._thermal_params, lambda kw: (
             self._immersion_active or immersion_over(kw, self._ctx._thermal_params, self._commanded_power()))))
 
@@ -3916,6 +3914,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # store so counts and the wear SEK they book can never load from
         # different generations of state.
         self._start_counter = StartCounter()
+        # Part D: it folds the running signal's edges, queued until the ledger
+        # restore (``wear.StartCounter.restore``); ``__init__`` attaches the signal.
+        running_signal.subscribe(running_signal.signal_for(self), lambda edge: self._book_starts(
+            self._start_counter.fold(*edge)))
         # #40: receipts frozen at month rollover. Frozen rather than
         # recomputed on read, so a receipt never changes after the month it
         # describes has closed.
