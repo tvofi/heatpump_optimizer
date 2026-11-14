@@ -1,0 +1,2 @@
+  FAIL carry 9 one_pr: WAIT clears the red: _red[77] is []
+orchestrator_tick self-test: 308 checks, 1 failed
