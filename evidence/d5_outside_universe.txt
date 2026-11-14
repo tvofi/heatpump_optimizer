@@ -1,3 +1,0 @@
-.claude/workflows/*.js files=9 D5units=90
-.claude/hooks/*.sh files=5 D5units=61
-dev/audit/harnesses/** files=296 D5units=1548
