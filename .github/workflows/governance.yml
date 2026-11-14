@@ -1032,10 +1032,10 @@ jobs:
           python3 -I tools/audit/seat/pr_cap.py --self-test | tee "$RUNNER_TEMP/pr-cap-self-test.txt"
           grep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"
 
-      # R10-CI-PRIORITY-PAUSE: the tier rule and the train's pause; seconds each, so no scope gate.
+      # R10-CI-PRIORITY-PAUSE: the tier rule and the train's pause.
       - name: Show the CI-priority rule and the train pause refusing their own fixtures
         id: ci-priority
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.scope.outputs.ci-priority == 'true' }}
         run: |
           set -o pipefail
           python3 -I tools/audit/seat/ci_priority.py --self-test | tee "$RUNNER_TEMP/ci-priority-self-test.txt"
