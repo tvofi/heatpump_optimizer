@@ -27104,7 +27104,7 @@
    "resume": {
     "stage": "done",
     "branch": "fix/r10-docs-strings-residue",
-    "commit": "d051cb3edfb944649a1b13d898568123824fa26b",
+    "commit": "237fad44532d1927cf65612d395cc5833c60ce99",
     "last_step": null,
     "next_step": "fixer (M), now",
     "note": "intake: carries moved from R11-INTAKE-R10-RESIDUE on the owner question 2026-11-13; overlap admitted (R10-DISINFECTION-STEP-NOTICE, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-CONFIG-FLOW-TEXT-VERIFY, R10-HOTFIX-BOOST-FLOW-CEILING, R10-USER-TEXT-VERIFY-STRINGS): owner question 2026-11-13: startable product work moved from the round-11 intake group",
