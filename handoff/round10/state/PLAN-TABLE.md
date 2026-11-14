@@ -520,7 +520,7 @@ gantt
 | R10-OUTSIDE-DHW-START-HYSTERESIS | CORE | 1 | done | #3440 | opus/opus | - | Outside pull request 3440 by Bankaifan (fork head cbbd14e006 at acceptance; re-read it with git ls-remote origin refs/pull/3440/head), accepted into round 10... |  |
 | R10-OUTSIDE-CLIMATE-NATIVE-TEMP | CORE | 1 | done | #3443 | opus/opus | - | Outside pull request 3443 by Bankaifan (fork head 01188a68b0 at acceptance; re-read it with git ls-remote origin refs/pull/3443/head), accepted into round 10... |  |
 | R10-HOTFIX-SELFTEST-SCOPE-UNION | IN | 1 | done | - | opus/opus | - | Hotfix, main red. |  |
-| R10-DUTY-SWITCH-RESTART-LEARNING-PR-B | CORE | 1 | in-progress | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
+| R10-DUTY-SWITCH-RESTART-LEARNING-PR-B | CORE | 1 | carries-open | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
 | R10-DUTY-SWITCH-PLANNER-PRICE | CORE | 1 | done | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
 | R10-START-COUNTER-EDGES | CORE | 1 | not-started | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
 | R10-MODE-BEFORE-SUPPLY-ON | CORE | 1 | done | #3420 | sonnet/sonnet | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
@@ -587,7 +587,7 @@ gantt
 | R10-HOTFIX-BOOST-FLOW-CEILING | IN | 1 | done | - | opus/opus | - | HOTFIX, production defect reported by the owner from his install on VERSION 7.1.15 (2026-11-13): with a space boost on, the flow set-point entity was written... |  |
 | R10-USER-TEXT-VERIFY-STRINGS | IN | 1 | done | - | opus/opus | - | Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. |  |
 | R10-USER-TEXT-VERIFY-CARD | IN | 1 | done | - | opus/opus | - | Owner ruling 2026-11-13: verify all user-facing production text against code behaviour, this round. |  |
-| R10-D5-D6-FULL-SCOPE | IN | 1 | in-progress | - | opus/opus | - | Owner ruling 2026-11-13: from round 11 on, dimensions D5 and D6 always cover the full verification scope: every sentence of all documentation and every user-... |  |
+| R10-D5-D6-FULL-SCOPE | IN | 1 | carries-open | - | opus/opus | - | Owner ruling 2026-11-13: from round 11 on, dimensions D5 and D6 always cover the full verification scope: every sentence of all documentation and every user-... |  |
 | R11-PRE-TOOLCHAIN-PIN | IN | 5 | not-started | - | fable/fable | - | Owner ruling 2026-11-13 on decision card P1 (yes): seats and the beat run their tools from a promoted stable ref instead of the tip of main, main reports pro... |  |
 | R11-PRE-MACHINERY-LIMITER | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P2 (declining cap, one in one out, severity route narrowed): the machinery ratchet becomes a target that declines ov... |  |
 | R11-PRE-ROUND-METRICS | IN | 5 | not-started | - | opus/opus | - | Owner ruling 2026-11-13 on decision card P3 and P8 (yes): the scorecard gets a producer for its inputs and a row in the running job list, with lead-time perc... |  |
