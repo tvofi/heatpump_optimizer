@@ -1,0 +1,21 @@
+## select
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+## doc_claims
+ALL 343 checks PASSED
+## ci_predict
+CI PREDICT: no closures, fast, governance or instrument red predicted against 8c10361eb1fe (a data-file read is not seen)
+## body-check
+pr-body ok: PR-BODY: 0 error(s) in /tmp/tmp.DtCQqRaCHl/ev/BODY.md -- no budget leaf raised over 8c10361eb1...81ea9ea290
+carry ok: CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 32c83846f4
+preflight ok
+figures ok: FIGURES: 19 resolved, 2 not verified, 0 refused
+figure blocks ok: figure_block verify: 0 block(s), 0 refused
+ref_privacy ok: ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 180 line(s) added since 8c10361eb1fe judged, 0 refused
+ref_privacy (body) ok: no host identity in the body
+## entities
+
+ALL 2709 ENTITY CHECKS PASSED
+CHK-DONE

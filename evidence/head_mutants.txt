@@ -1,0 +1,19 @@
+rev 81ea9ea2908ea83a012e3e42d694df56bb097c8c
+nocheckout: tick_loop self-test: 34 checks, 3 failed rc=1
+      nested FAIL: a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+    FAIL the self-test run from a branch checkout behind origin/main passes and does not move its HEAD
+    FAIL the self-test run from a detached checkout behind origin/main passes and does not move its HEAD
+    FAIL the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD
+gitenv: tick_loop self-test: 34 checks, 1 failed rc=1
+      nested FAIL: --once: one pass, cloud_relay.sh pass --confirm first, then the tick with its args; one banner
+      nested FAIL: each pass calls the heartbeat once, with the pass line (no --out path)
+    FAIL the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD
+plaingh: tick_loop self-test: 34 checks, 4 failed rc=1
+      nested FAIL: a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+    FAIL the self-test run from a branch checkout behind origin/main passes and does not move its HEAD
+      nested FAIL: a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+    FAIL the self-test run from a detached checkout behind origin/main passes and does not move its HEAD
+      nested FAIL: a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+    FAIL the self-test run with GIT_DIR naming a detached checkout behind origin/main passes and does not move its HEAD
+      nested FAIL: a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+    FAIL null control: a branch checkout at origin/main (behind 0) passes and stays put

@@ -1,0 +1,3 @@
+NOTE stale tree: 81ea9ea2908ea83a012e3e42d694df56bb097c8c lacks origin/main 43e95474559ca8e2188830f8775c1ddf52df964a; roster read at origin/main
+NOTE body item 8501c9ba: dismissed:load artefact, numbers above
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)

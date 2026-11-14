@@ -1,0 +1,1 @@
+RESULT nopf whole1: tick_loop self-test: 34 checks, 0 failed rc=0 64s load=1.65

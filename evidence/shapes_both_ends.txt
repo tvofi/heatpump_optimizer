@@ -1,0 +1,19 @@
+rev 8c10361eb1fea539dc5acb8f7442eac2810faa47
+branch behind=1: tick_loop self-test: 30 checks, 1 failed HEAD-UNMOVED
+    FAIL a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+detached behind=1: tick_loop self-test: 30 checks, 0 failed HEAD-MOVED
+gitdir behind=1: tick_loop self-test: 30 checks, 2 failed HEAD-MOVED
+    FAIL --once: one pass, cloud_relay.sh pass --confirm first, then the tick with its args; one banner
+    FAIL each pass calls the heartbeat once, with the pass line (no --out path)
+shim behind=0: tick_loop self-test: 30 checks, 1 failed HEAD-UNMOVED
+    FAIL a seat bin dir with no gh shim: one TICK-GH flag line naming the gh found, beside the banner
+level behind=0: tick_loop self-test: 30 checks, 0 failed HEAD-UNMOVED
+rev 81ea9ea2908ea83a012e3e42d694df56bb097c8c
+branch behind=1: tick_loop self-test: 30 checks, 0 failed HEAD-UNMOVED
+detached behind=1: tick_loop self-test: 30 checks, 0 failed HEAD-UNMOVED
+gitdir behind=1: tick_loop self-test: 30 checks, 0 failed HEAD-UNMOVED
+shim behind=0: tick_loop self-test: 30 checks, 0 failed HEAD-UNMOVED
+level behind=0: tick_loop self-test: 30 checks, 0 failed HEAD-UNMOVED
+rev 8c10361eb1fea539dc5acb8f7442eac2810faa47
+whole: tick_loop self-test: 30 checks, 0 failed rc=0
+nocheckout: NOT RUN, the mutation did not apply (no '# mut:selftest-*' marker at this rev?)
