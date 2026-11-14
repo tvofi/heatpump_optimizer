@@ -444,7 +444,7 @@
       "message": "Die Optimierung wurde für {entry_ids} nicht ausgeführt: Es waren weniger als vier Strompreisintervalle verfügbar"
     },
     "factory_reset_not_applied": {
-      "message": "Das Zurücksetzen auf Werkseinstellungen von {entry_id} wurde nicht durchgeführt: Home Assistant hat das Entladen des Eintrags verweigert; es wurde nichts geändert"
+      "message": "Das Zurücksetzen auf Werkseinstellungen von {entry_id} wurde nicht durchgeführt: Home Assistant hat das Entladen des Eintrags verweigert; Einstellungen und Gelerntes sind unverändert, gespeichert wurde nur der Rückgängig-Schnappschuss, den das Zurücksetzen zuerst anlegt"
     },
     "run_optimization_solve_failed": {
       "message": "Die Optimierung wurde für {entry_ids} nicht ausgeführt: Die Berechnung ist fehlgeschlagen; der Fehler steht im Protokoll der Integration"
@@ -1840,11 +1840,11 @@
     },
     "dhw_legionella_unverified": {
       "title": "Der Desinfektionszyklus kann nicht überprüft werden",
-      "description": "Der Legionellenzyklus wurde angefordert, aber es ist kein Temperatursensor für den Warmwasserspeicher konfiguriert, sodass nichts bestätigt, dass der Speicher je {target} °C erreicht hat – oder dass die Pumpe die Anforderung überhaupt umgesetzt hat. Der Countdown wird zurückgesetzt, als sei der Zyklus gelaufen, denn ihn nicht zurückzusetzen würde ebenfalls nichts desinfizieren; behauptet wird nicht, dass es funktioniert hat. Weise dem Sensor \"Hot water tank temperature\" eine echte Messsonde zu, dann wird der Zyklus ab dann überprüft, und dieser Hinweis verschwindet, sobald einer bei Solltemperatur beobachtet wird."
+      "description": "Der Legionellenzyklus wurde angefordert, aber es ist kein Temperatursensor für den Warmwasserspeicher konfiguriert, sodass nichts bestätigt, dass der Speicher je {target} °C erreicht hat – oder dass die Pumpe die Anforderung überhaupt umgesetzt hat. Der Countdown wird zurückgesetzt, als sei der Zyklus gelaufen, denn ihn nicht zurückzusetzen würde ebenfalls nichts desinfizieren; behauptet wird nicht, dass es funktioniert hat. Weise dem Feld \"Temperatursensor Warmwasserspeicher\" eine echte Messsonde zu, dann wird der Zyklus ab dann überprüft, und dieser Hinweis verschwindet, sobald einer bei Solltemperatur beobachtet wird."
     },
     "dhw_legionella_above_setpoint": {
       "title": "Die Desinfektion überschreitet deine Ladegrenze für Warmwasser",
-      "description": "Der Legionellenzyklus ist auf {legionella_temp} °C eingestellt, was über den {setpoint} °C liegt, die du als höchste Ladetemperatur des Speichers festgelegt hast. Das ist zulässig und kein Fehler: Alle {interval_days} Tage wird der Speicher für den Zyklus auf {legionella_temp} °C gebracht, die übrige Zeit wird er nie über {setpoint} °C geladen. Dieser Hinweis soll verhindern, dass der eine heiße Tag pro Woche überrascht. Zum Ändern erhöhst du die Ladegrenze, senkst die Desinfektionstemperatur oder schaltest den Zyklus ab."
+      "description": "Der Legionellenzyklus ist auf {legionella_temp} °C eingestellt, was über den {setpoint} °C liegt, die du als höchste Ladetemperatur des Speichers festgelegt hast. Das ist zulässig und kein Fehler: Alle {interval_days} Tage wird der Speicher für den Zyklus auf {legionella_temp} °C gebracht, die übrige Zeit wird er nie über {setpoint} °C geladen. Dieser Hinweis soll verhindern, dass der eine heiße Tag in jedem Zyklus überrascht. Zum Ändern erhöhst du die Ladegrenze, senkst die Desinfektionstemperatur oder schaltest den Zyklus ab."
     },
     "price_currency_mismatch": {
       "title": "Preisquelle und Home Assistant nennen unterschiedliche Währungen",
@@ -1856,11 +1856,11 @@
     },
     "grid_fee_magnitude": {
       "title": "Ein konfiguriertes Netzentgelt wirkt 100-mal zu hoch",
-      "description": "Die Netzentgelt-Ebene enthält einen Satz von {rate} {currency}/kWh (aus der Eingabe {source}). Übertragungsentgelte betragen einige Zehntel {currency} pro kWh, ein Wert dieser Größe sind daher fast immer öre oder cent, wo ganze {currency} gemeint waren – 25 statt 0,25. Es wird nichts geändert oder begrenzt: Der Plan rechnet weiter genau mit dem konfigurierten Wert. Korrigiere den Wert in den Optionen für das Netzentgelt (oder repariere den Entgeltsensor), dann verschwindet dieser Hinweis im nächsten Planungszyklus."
+      "description": "Die Netzentgelt-Ebene enthält einen Satz von {rate} {currency}/kWh (aus der Eingabe {source}). Übertragungsentgelte betragen einige Zehntel {currency} pro kWh, ein Wert dieser Größe sind daher fast immer öre oder cent, wo ganze {currency} gemeint waren – 25 statt 0,25. Es wird nichts geändert oder begrenzt: Der Plan rechnet weiter genau mit dem konfigurierten Wert. Korrigiere den Wert auf der Optionsseite \"Netzentgelte und Vertrag\" (oder repariere den Entgeltsensor), dann verschwindet dieser Hinweis im nächsten Planungszyklus."
     },
     "grid_fee_sign": {
       "title": "Ein konfiguriertes Netzentgelt ist negativ",
-      "description": "Die Netzentgelt-Ebene enthält einen Satz von {rate} {currency}/kWh (aus der Eingabe {source}). Ein Übertragungsentgelt ist eine Gebühr, ein negativer Wert daher fast immer ein Vorzeichenfehler – und der Plan bepreist jede betroffene Stunde als subventioniert und bevorzugt genau die Stunden, für die der Netzbetreiber Gebühren verlangt. Es wird nichts geändert oder begrenzt: Der Plan rechnet weiter genau mit dem konfigurierten Wert. Korrigiere den Wert in den Optionen für das Netzentgelt (oder repariere den Entgeltsensor), dann verschwindet dieser Hinweis im nächsten Planungszyklus."
+      "description": "Die Netzentgelt-Ebene enthält einen Satz von {rate} {currency}/kWh (aus der Eingabe {source}). Ein Übertragungsentgelt ist eine Gebühr, ein negativer Wert daher fast immer ein Vorzeichenfehler – und der Plan bepreist jede betroffene Stunde als subventioniert und bevorzugt genau die Stunden, für die der Netzbetreiber Gebühren verlangt. Es wird nichts geändert oder begrenzt: Der Plan rechnet weiter genau mit dem konfigurierten Wert. Korrigiere den Wert auf der Optionsseite \"Netzentgelte und Vertrag\" (oder repariere den Entgeltsensor), dann verschwindet dieser Hinweis im nächsten Planungszyklus."
     },
     "lower_floor_modelled": {
       "title": "Die Temperatur im Untergeschoss wird modelliert, nicht gemessen",
@@ -1900,7 +1900,7 @@
     },
     "quiet_silent_not_enforced": {
       "title": "Ruhezeiten werden nicht durchgesetzt",
-      "description": "Ruhezeiten sind konfiguriert, aber der Slot für die leistungsbegrenzte Entität ({entity}) ist kein Schalter, den diese Integration halten kann, daher wird der Plan dafür nicht begrenzt und die Wärmepumpe wird nie zum leisen Betrieb aufgefordert. Weise den eigenen Nacht-/Flüstermodus-Schalter der Wärmepumpe als leistungsbegrenzte Entität zu oder entferne die Leise-Zeilen."
+      "description": "Ruhezeiten sind konfiguriert, aber keine Steuerung, die diese Integration halten kann, deckt alle Leise-Zeilen ab: Der Slot für die leistungsbegrenzte Entität ({entity}) ist kein Schalter, und der eigene Nachtplan der Wärmepumpe, sofern vorhanden, kann diese Zeilen so nicht übernehmen. Für eine Zeile, die keine Steuerung halten kann, wird der Plan nicht begrenzt und die Wärmepumpe nicht zum leisen Betrieb aufgefordert. Weise den eigenen Nacht-/Flüstermodus-Schalter der Wärmepumpe als leistungsbegrenzte Entität zu oder entferne die Leise-Zeilen."
     },
     "dhw_minimum_above_start": {
       "title": "Die Wärmepumpe kann das Warmwasser-Minimum nicht halten",
@@ -1923,7 +1923,7 @@
     },
     "sensor": {
       "buffer_tank_temperature_model": {
-        "name": "Pufferspeichertemperatur (Modell)"
+        "name": "Pufferspeichertemperatur"
       },
       "compressor_frequency_advisor": {
         "name": "Verdichterfrequenz-Ratgeber"
@@ -1998,7 +1998,7 @@
           "idle": "Leerlauf",
           "normal": "Normale Leistung",
           "off": "Aus",
-          "pre_heat": "Vorheizen",
+          "pre_heat": "Hohe Leistung",
           "system_identification": "Systemidentifikation",
           "unknown": "Unbekannt"
         }
@@ -2061,9 +2061,9 @@
         "state": {
           "cheap_price": "Günstigste Stunden",
           "comfort_floor": "Mindesttemperatur wird gehalten",
-          "dhw_preheat": "Speicher wird bei günstigem Strom geladen",
+          "dhw_preheat": "Speicher wird vor den Warmwasserzeiträumen geladen",
           "dhw_ready": "Speicher wird bereitgemacht",
-          "dhw_window": "Warmwasser jetzt benötigt",
+          "dhw_window": "Warmwasserbereitung in einem Warmwasserzeitraum",
           "idle": "Leerlauf",
           "idle_coasting": "Über der Untergrenze, Auslauf",
           "idle_dearer": "Teurer als die genutzten Stunden",
@@ -2243,7 +2243,7 @@
   "services": {
     "run_optimization": {
       "name": "Optimierung ausführen",
-      "description": "Startet die Kostenoptimierung der Wärmepumpe manuell. Dabei werden die aktuellen Strompreise und die Wettervorhersage abgerufen und anschließend der optimale Wärmepumpen-Zeitplan für die nächsten 24 Stunden berechnet, mit prädiktivem MPC unter Berücksichtigung von Sonne, Wind und Regen sowie Abstimmung mit der Warmwasserbereitung. Kann die Optimierung nicht laufen, schlägt der Aufruf mit einem Fehler fehl, zum Beispiel wenn weniger als vier Strompreisschritte vorliegen oder die Lösung fehlgeschlagen ist, statt so zurückzukehren, als wäre ein neuer Plan berechnet worden."
+      "description": "Startet die Kostenoptimierung der Wärmepumpe manuell. Dabei wird der optimale Wärmepumpen-Zeitplan für die nächsten 24 Stunden aus den bereits geladenen Strompreisen und der Wettervorhersage neu berechnet (neue werden nicht abgerufen), mit prädiktivem MPC unter Berücksichtigung von Sonne, Wind und Regen sowie Abstimmung mit der Warmwasserbereitung. Kann die Optimierung nicht laufen, schlägt der Aufruf mit einem Fehler fehl, zum Beispiel wenn weniger als vier Strompreisschritte vorliegen oder die Lösung fehlgeschlagen ist, statt so zurückzukehren, als wäre ein neuer Plan berechnet worden."
     },
     "set_away": {
       "name": "Abwesenheit setzen",
@@ -2287,7 +2287,7 @@
         },
         "slab_heat_transfer": {
           "name": "Wärmeübergangskoeffizient des Estrichs",
-          "description": "Wärmeübergangskoeffizient zwischen diesem Speicher und dem Raum in kW/°C. Heizkörper liegen weit höher als ein Estrich."
+          "description": "Wärmeübergangskoeffizient zwischen diesem Speicher und dem Raum in kW/°C. Die Gebäudevorlagen geben einem Heizkörperkreis ein Fünftel des Werts eines Estrichs je beheiztem m²."
         },
         "heat_pump_cop_nominal": {
           "name": "Nenn-Leistungszahl der Wärmepumpe",
@@ -2371,7 +2371,7 @@
         },
         "rain_heat_loss_multiplier": {
           "name": "Wärmeverlust-Multiplikator bei Regen",
-          "description": "Multiplikator des Wärmeverlusts bei Regen. 1,15 bedeutet 15 % mehr Wärmeverlust bei Regen (Effekt der nassen Gebäudehülle)."
+          "description": "Multiplikator des Wärmeverlusts bei Regen. 1,15 bedeutet 15 % mehr Wärmeverlust bei Regen ab 2 mm/h (Effekt der nassen Gebäudehülle); schwächerer Regen verringert ihn anteilig, bei 0,1 mm/h oder weniger wirkt er gar nicht."
         },
         "ecl110_pid_time_constant_hours": {
           "name": "ECL110 PI/PID-Zeitkonstante",
@@ -2387,7 +2387,7 @@
         },
         "quiet_silent_windows": {
           "name": "Ruhezeiten",
-          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist. Ein leerer String entfernt die Leisezeilen."
+          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Wo eine Steuerung sie halten kann (ein Schalter als leistungsbegrenzte Entität oder der eigene Nachtplan der Wärmepumpe), begrenzt der Plan die elektrische Leistung darin auf die gemessene Flüstermodus-Obergrenze der Pumpe, sonst auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist; ein Reparaturhinweis meldet, wenn keine Steuerung sie halten kann. Ein leerer String entfernt die Leisezeilen."
         },
         "quiet_off_windows": {
           "name": "Auszeiten",
@@ -2395,7 +2395,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Leistungsanteil im Flüstermodus",
-          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0. 1,0 zeigt die Zeilen an, begrenzt aber nichts."
+          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 begrenzt nichts."
         }
       }
     },
@@ -2445,7 +2445,7 @@
         },
         "dhw_windows": {
           "name": "Warmwasser-Bedarfszeiträume",
-          "description": "Zu testende Zeiträume, z. B. \"06:00-08:30, 17:00-22:00\". Ein leerer String simuliert, dass es überhaupt keine Bedarfszeiträume gibt."
+          "description": "Zu testende Zeiträume, z. B. \"06:00-08:30, 17:00-22:00\". Ein leerer String simuliert, dass keine Zeiträume eingetragen sind: Der Plan nutzt dann aus dem Warmwasserverbrauch gelernte Zeiträume, oder den ganzen Tag, wenn der Warmwasserzeitplan aus ist."
         },
         "wood_slots": {
           "name": "Holzslots",
@@ -2469,7 +2469,7 @@
         },
         "quiet_silent_windows": {
           "name": "Ruhezeiten",
-          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist. Ein leerer String entfernt die Leisezeilen."
+          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Wo eine Steuerung sie halten kann (ein Schalter als leistungsbegrenzte Entität oder der eigene Nachtplan der Wärmepumpe), begrenzt der Plan die elektrische Leistung darin auf die gemessene Flüstermodus-Obergrenze der Pumpe, sonst auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist; ein Reparaturhinweis meldet, wenn keine Steuerung sie halten kann. Ein leerer String entfernt die Leisezeilen."
         },
         "quiet_off_windows": {
           "name": "Auszeiten",
@@ -2477,7 +2477,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Leistungsanteil im Flüstermodus",
-          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0. 1,0 zeigt die Zeilen an, begrenzt aber nichts."
+          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 ist der ungesetzte Wert: Ihn zu senden ändert nichts, ein bereits gespeicherter Anteil bleibt also wirksam."
         }
       }
     },
@@ -2521,11 +2521,11 @@
         },
         "dhw": {
           "name": "Warmwasserspeicher",
-          "description": "Wenn gesetzt, wird der Warmwasserspeicher zum Bild dieser Anlage hinzugefügt oder daraus entfernt. True legt ein Standardvolumen an, falls noch keines gespeichert ist. Weglassen, um den Speicher unverändert zu lassen."
+          "description": "Wenn gesetzt, wird Warmwasser für diese Anlage ein- oder ausgeschaltet: Der Speicher wird nur im eingeschalteten Zustand geplant, modelliert und im Anlagenbild gezeigt. True legt ein Standardvolumen an, falls noch keines gespeichert ist. Weglassen, um den Speicher unverändert zu lassen."
         },
         "wood": {
           "name": "Holzspeicher",
-          "description": "Wenn gesetzt, wird der Holz-/Fremdwärmespeicher zum Bild dieser Anlage hinzugefügt oder daraus entfernt. Weglassen, um den Speicher unverändert zu lassen."
+          "description": "Wenn gesetzt, wird der Holz-/Fremdwärmespeicher für diese Anlage ein- oder ausgeschaltet: Holzempfehlungen und Fremdwärmeerkennung laufen, und der Speicher wird im Anlagenbild gezeigt, nur im eingeschalteten Zustand. Weglassen, um den Speicher unverändert zu lassen."
         }
       }
     },
@@ -2543,7 +2543,7 @@
         },
         "dhw_windows": {
           "name": "Warmwasser-Bedarfszeiträume",
-          "description": "Zeiträume, in denen Warmwasser verfügbar sein muss, z. B. \"06:00-08:30, 17:00-22:00\". Ein leerer String entfernt alle Bedarfszeiträume, sodass der Speicher nur noch auf seinem Leerlaufminimum bleibt."
+          "description": "Zeiträume, in denen Warmwasser verfügbar sein muss, z. B. \"06:00-08:30, 17:00-22:00\". Ein leerer String entfernt die eingetragenen Zeiträume: Der Plan nutzt dann aus dem Warmwasserverbrauch gelernte Zeiträume, oder den ganzen Tag, wenn der Warmwasserzeitplan aus ist."
         },
         "comfort_temp_day": {
           "name": "Komforttemperatur tagsüber",
@@ -2559,7 +2559,7 @@
         },
         "quiet_silent_windows": {
           "name": "Ruhezeiten",
-          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Der Plan begrenzt die elektrische Leistung darin auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist. Ein leerer String entfernt die Leisezeilen."
+          "description": "Zeiträume, in denen die Wärmepumpe leise läuft, im gleichen Format wie die Warmwasserzeiträume, z. B. \"22:00-06:00\". Wo eine Steuerung sie halten kann (ein Schalter als leistungsbegrenzte Entität oder der eigene Nachtplan der Wärmepumpe), begrenzt der Plan die elektrische Leistung darin auf die gemessene Flüstermodus-Obergrenze der Pumpe, sonst auf den Anteil der Nennleistung, der als Leistungsanteil im Flüstermodus festgelegt ist; ein Reparaturhinweis meldet, wenn keine Steuerung sie halten kann. Ein leerer String entfernt die Leisezeilen."
         },
         "quiet_off_windows": {
           "name": "Auszeiten",
@@ -2567,7 +2567,7 @@
         },
         "silent_mode_power_fraction": {
           "name": "Leistungsanteil im Flüstermodus",
-          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0. 1,0 zeigt die Zeilen an, begrenzt aber nichts."
+          "description": "Der Anteil der elektrischen Nennleistung, den die Wärmepumpe innerhalb eines Ruhezeitraums beibehält, 0,6 bis 1,0 (ein kleinerer Wert wird auf 0,6 angehoben); eine gemessene Flüstermodus-Obergrenze, sofern die Pumpe eine liefert, tritt an ihre Stelle. 1,0 ist der ungesetzte Wert: Ihn zu senden ändert nichts, ein bereits gespeicherter Anteil bleibt also wirksam."
         },
         "dhw_setpoint": {
           "name": "Warmwasser-Sollwert",

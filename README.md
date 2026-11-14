@@ -609,7 +609,7 @@ every sensor is created on every install regardless of which group it is in.
 | Lower Floor Temperature | °C | The slab zone | Disabled by default unless the lower-floor probe is configured at setup; unavailable without it |
 | Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | Disabled by default unless the floor-return probe is configured at setup; unavailable without it |
 | Slab Temperature (Estimated) | °C | Modelled slab temperature | Disabled by default unless the floor-return probe is configured at setup; unavailable until it feeds the model |
-| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | Disabled by default unless the buffer-tank probe is configured at setup; unavailable without it |
+| Buffer Tank Temperature | °C | Measured buffer tank temperature | Disabled by default unless the buffer-tank probe is configured at setup; unavailable without it |
 | DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | Disabled by default unless the tank thermometer is configured at setup; unavailable without it |
 
 #### Energy, power and efficiency
@@ -659,7 +659,7 @@ every sensor is created on every install regardless of which group it is in.
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
 | Model Restart Advisor | — | A refitted house heat-loss scale, and the last known-good snapshot, while predictions are drifting | Diagnostic; the Advisor tab offers both; nothing is applied until you accept one; the refit's own uncertainty is about ±7-10 % |
 
-Disabled by default: Buffer Tank Temperature (Model), Compressor Frequency
+Disabled by default: Buffer Tank Temperature, Compressor Frequency
 Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,
 Cost Power Headroom, DHW Heavy Day Demand, DHW Mixed Water, DHW Temperature,
 ECL110 Displace, ECL110 Effective Displace, Floor Heating Return Temperature,
