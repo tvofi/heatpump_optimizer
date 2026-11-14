@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_own_space_write RETURN_DEL 98fa5cc9",
+  "killed_by": "tests/features.py",
+  "old": "    return record[0] if record is not None else held.dropped.get(\"space_setpoint\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}
