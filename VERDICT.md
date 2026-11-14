@@ -1,11 +1,20 @@
-Fix review: merge 3fa750ea3861bf623ea3ff58e8e514321c511b52
+Fix review: merge b392956a14ea5f0f59a07e3805b15eeb8b7082ec
 
-bus-nonce: 85b5d71c88c04113f0ddeabdc8d1a33a
+bus-nonce: 40f5cd3df85ea45fca0eb45c5eb82b4f
 pending-ci: gate
 
 ## Summary
 
-Round 2, delta review over reviewed head 6295f868a4314316f5e12c72fa2d16ead4895d35. Measured at head 3fa750ea3861bf623ea3ff58e8e514321c511b52 (a merge of the authored head b4617aa636 with the delivery-row commit 7312f605ee; `git diff b4617aa636 3fa750ea38` touches only dev/programme/delivery/3568.md). The delta is docs plus a test (tests/doc_claims.py `check_duty_switch_claims`) plus a delivery record. It changes no production code, so the review does not widen (fix-review.md step 12). All three block items from round 1 are resolved.
+Round 3. This is a delta review over the reviewed head 3fa750ea3861bf623ea3ff58e8e514321c511b52, measured at head b392956a14ea5f0f59a07e3805b15eeb8b7082ec. `review_carry.py` prints FRESH-REVIEW, so the scope is the delta (fix-review.md step 12).
+
+The delta has three parts:
+- Main merges.
+- Three stacked product heads: 3532 fd5fe52fa7, 3562 ced9b23358 and 3556 fe11888ad6. The owner ruled on 2026-11-14 that they may be stacked, and the body states this pull request merges only after them.
+- This pass's own two commits, f5fd6426ab and 254f0ed03e. They touch docs/configuration.md, docs/setup.md, docs/how-it-works.md, docs/dashboard-card.md and tests/doc_claims.py (`check_late_delta_claims`).
+
+The authored delta changes no production line, so the review does not widen. The stacked heads' production code comes in only through their own pull requests' merges, and their own reviews and CI judge it, not this one.
+
+The previous verdict (round 2, at 3fa750ea38) had no findings, so nothing is outstanding from it.
 
 ## Findings
 
@@ -13,28 +22,43 @@ none
 
 ## Evidence
 
-- Block 1 (lost heat in one direction only): resolved. docs/configuration.md now says "For a switch from hot water to heating it also expects the median measured off time as heat not delivered ...; a switch the other way is priced but costs no heat". docs/how-it-works.md now says "for a switch from hot water to heating it also counts the off time as heat not delivered". Both match `duty_legs.lost_share` (custom_components/heatpump_optimizer/duty_legs.py:161), which reads index 0 = `dhw_space`.
-- Block 2 (the cold-tank exemption needs a step that heats the tank): resolved. The on/off row reads "unless the step heats the tank and the tank needs heat now". This matches supply_hold.py:156 `not (step_duty(inp.plan, now) in ("dhw", "both") and tank_reason(inp))`.
-- Block 3 (null control): resolved. The `git grep -c -E` command with `min\(a, b\) / p_max` added prints nothing at e23124ff6e. At 3fa750ea38 it prints README.md:1, docs/configuration.md:3 and docs/how-it-works.md:1, as the body says. The pattern occurs 0 times in main's how-it-works.md, so the how-it-works count comes from the added paragraph. ev/checks.txt.
-- New sentences in the delta, checked against executable code:
-  - "counts only some of the switches ... the compressor running, the new duty asking for heat and the plan keeping that duty": duty_switch.py:299-300 (`running`, `ctx.target_demand`, `ctx.plan_stays`, plus `_heated` and `void_cause`; "among" marks the list as a subset). target_demand and plan_stays are set at pump_arbiter.py:1549-1550.
-  - "a switch a person's own mode change explains is not counted": `explained = ... ctx.mode_written_at != ep.at` voids the episode (duty_switch.py:341-344).
-  - "(not on a combi store)": optimizer.py:354 returns the incumbent on `opt.model.params.dhw_store.combi`.
-- Mutation proof (each change restored afterwards; ev/checks.txt):
-  - M1, both pages reverted to 6295f868a4: 3 of 356 checks FAILED (both lost-heat checks and the on/off row).
-  - M2, `lost_share` reading index 1: 2 of 356 FAILED, naming "heating to hot water", so the direction is read from the code.
-  - M3, `_ends_soon` returning `not tank_reason(inp)`: 1 of 356 FAILED, [space=False dhw=False].
-  - Restored: ALL 356 checks PASSED, rc 0 (ev/doc_claims_head.txt). The in-check null controls (the pre-fix sentences verbatim) pass.
+- Head measured: b392956a14ea5f0f59a07e3805b15eeb8b7082ec (ev/HEAD.txt). It is the same head as the body's `## Head`.
+- Merge resolutions are clean. `git show --remerge-diff` of c8d2d289c9, 1fa71adc14, 69afda819f and b392956a14 shows no hand edit. The only output is the ledger driver's `LEDGER-MERGE: resolved tests/closures.json` (ev/remerge.txt).
+- doc_claims at the head: ALL 368 checks PASSED, rc 0 (ev/doc_claims_head.txt). That is 356 plus 12, as the body says. The five `check_late_delta_claims` null controls each print ok.
+- Mutation proof, re-run by me (ev/mutants.txt). Each mutant fails its named check, and every file was restored afterwards: ALL 368 PASSED, `git status --short custom_components` empty.
+  - M1 `wood_mean_temperature` `top - 3.0`: rc 1, wood rows FAIL in both docs/configuration.md and docs/setup.md.
+  - M2 `dhw_step_target_c` with `rounding='up'`: rc 1, cycle FAIL (driven 65.0).
+  - M3 `FLOW_BIAS_CLAMP_K = 10.0`: rc 1, bias FAIL.
+  - M4 `FLOW_SUPPLY_MAX_C = 80.0` (my own addition): rc 1, bias FAIL.
+  - M5 `leg_rule` `first = "dhw"`: rc 1, split FAIL.
+  - M6 `GridFeeSchedule.from_config` `if True:`: rc 1, fee FAIL.
+  - M7 `wood_mean_temperature` returning `bottom` when the top is None (my own addition): rc 1, wood FAIL on both pages.
+- The changed sentences were read against executable code at the head by a subagent seat I dispatched and spot-checked by me. These are TRUE:
+  - quick setup's device page, where an empty pick skips (config_flow.py `async_step_device_prefill`)
+  - comfort temperatures (optimizer.py `get_comfort_temp`, `comfort_targets`)
+  - the solar sensor's current reading (coordinator.py)
+  - the upper-floor emitter on two-zone only, and the heavy floor in house mass (presets.py)
+  - `resolve_with_fallback` name matching
+  - the energy meter's two readers
+  - `apply_catalog` sets the rules mode and switches the peak tariff on
+  - disinfection above the charge limit (`dhw_hard_max_temp`)
+  - the flow-bias bounds 15 K and 75 °C (flow_lift.py `observe`)
+  - the wood one-probe readings
+  - the fixed fee is ignored under None
+  - the planned start count is not published
+  - the both-step leg order and the 5-minute plus median-off merge (duty_legs.py `SPLIT_MIN_MINUTES`, `both_step_legs`)
+  - the learner phases and the 12 h settle tail after a full 2 h boost (const.py `BOOST_SPACE_SETTLE_TAIL_HOURS`, boost.py `settle_tail`)
+- Wording observation, not a defect. The space-heating set-point row says a boost writes "the entity's own maximum (see below)", while `pump_arbiter._boost_ceiling_c` returns `min(caps)` of that maximum, a non-default `flow_heat_c` and the controller's upper limit, and returns None outside the gate and 70 °C. The row points "see below" to the flow-ceiling row, which states that cap. I read it as a summary with a pointer, not a false claim. Carry: dismissed: evidence, not a finding
+- The old-basis sentence in docs/dashboard-card.md matches `MonthlyLedger.savings_months` (`old_basis = meta_mean(REFERENCE_BASIS_META) != REFERENCE_BASIS`). It is conditional ("when an update changes how the baseline is booked"), so it holds at this head's `REFERENCE_BASIS = 1` and at 3574's `2`.
 - Re-derived figures:
-  - doc_claims: 356 checks (round 1 had 348; 8 added).
-  - `--markers --user`: 0 user-doc marker(s), 0 due.
-  - STRUCTURE RATCHET PASSED.
-  - `closure.py select`: MODE: SCOPED -- 6 script(s) run, 27 scoped out.
-- Not re-derived: the local per-script results for entities, harness_headers, plan_view, md_tables and card_drift. I cite CI for these, not my own runs.
-- Merge with main: `git merge-tree --write-tree origin/main 3fa750ea38` gives rc=0, tree a9a4c44e2e. origin/main is 50373173d4, so the head is behind main but merges cleanly.
+  - `closure.py select --diff <merge-base>`: `MODE: SCOPED -- 30 script(s) run, 3 scoped out.`
+  - `--diff 69afda819f`: `MODE: SCOPED -- 4 script(s) run, 29 scoped out.` The body names four scripts (ev/scope.txt).
+  - `doc_claims.py --markers --user`: `0 user-doc marker(s), 0 due`.
+  - STRUCTURE RATCHET PASSED (ev/structure.txt).
+- Not re-derived: the body's local entities (2713), harness_headers (115) and md_tables results. I cite CI for these.
+- VERSION, manifest.json and both claim files are untouched against origin/main (three-dot diff empty). No golden fixture moves.
+- Merge with main: `git merge-tree --write-tree origin/main b392956a14` rc 0, with origin/main at 1791869fdb.
 - Role contract is current: `git diff mb...origin/main -- dev/governance/roles/` is empty.
-- VERSION, manifest.json and RELEASE_NOTES.md are untouched. The claim files are untouched. No golden fixture is in the diff.
-- Body `## Head` is 3fa750ea38 (it merges b4617aa636), the same head I measured.
-- Body `## Red checks` still reads "no pull request exists". That is stale wording from before the PR was opened. CI state at this head is below.
-- CI: `merge_train.py classify 3fa750ea38 --pr 3568` printed `WAIT 3fa750ea3861bf623ea3ff58e8e514321c511b52 pending: gate red: none` on every run from 00:05 to 00:30 UTC (ev/classify_poll.txt), so I am returning with `pending-ci: gate`. The digest's `gate` failure (job 132240621821, 23:40) was superseded by gate job 132254567225, success at 00:15. pr-contract / pr-contract succeeded at 00:15. A newer workflow run (43532992520, started 00:16) was still in progress when I stopped. No required check reads red now, so no `## Red checks` answer is owed.
-- Round: 2 of the fix-review sequence for this group.
+- Red checks: `merge_train.py owed-reds` prints `tests / mutation`, `tests / typing`, `validate / validate-hacs`. The body's `## Red checks` answers the stacked heads' historical reds as theirs. The CI state at this head is in the classify lines below.
+- Ordering: the three stacked heads are not on origin/main (`git merge-base --is-ancestor` fails for fd5fe52fa7, ced9b23358 and fe11888ad6). The body's `## Head` says this pull request merges only after them, and the train must honour that.
+- CI: `merge_train.py classify b392956a14 --pr 3568` printed `WAIT b392956a14ea5f0f59a07e3805b15eeb8b7082ec pending: gate red: none` on every run from 11:54 to 12:24 UTC, 30 runs (ev/classify_poll.txt). No required check reads red, so this verdict returns with `pending-ci: gate`. The PR head was still b392956a14 at 12:24 (`git ls-remote origin refs/pull/3568/head`).
