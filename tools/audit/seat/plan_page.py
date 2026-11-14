@@ -296,6 +296,8 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
             "crit": g in crit,
             "hot": g in gating_crit and g not in done and roster_lib.is_hotfix(entry),
             "part": bool(part) and g not in done,
+            # An owner-stated price is the owner's word, not a measurement: the row says so.
+            "owner_priced": bool(pg.get("owner_priced")),
             "wave": None if g in done else pg["wave"],
             "start": None if g in done else pg["start"],
             "finish": None if g in done else pg["finish"]})
@@ -669,7 +671,8 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         f'<td class="mono">{e(r["pr"])}</td>'
         f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
         f'<td class="blk">{e(", ".join(map(short, r["blk"]))) or "—"}</td>'
-        f'<td class="mono" title="{e(r["why"])}">{r["finish"] or "—"}</td>'
+        f'<td class="mono" title="{e(r["why"])}">{r["finish"] or "—"}'
+        f'{" <span class=owner-priced>owner-stated price, not measured</span>" if r["owner_priced"] else ""}</td>'
         f'<td class="mono">{r["wave"] or "—"}</td></tr>' for r in rows)
     stamps = "".join(
         f'<tr><td class="mono">{e(s["version"])}</td><td class="mono">{_when(s["at"])}</td>'
@@ -1008,6 +1011,27 @@ def _self_test() -> int:
 
             page = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
                           plan, snap)
+            # An owner-stated price is drawn as the owner's word, on its own row.
+            pr_roster = json.loads(json.dumps(roster))
+            for g_ in pr_roster["groups"]:
+                if g_["group"] == "R9-READY":
+                    g_.update(owner_price_minutes=240, owner_price_cite="tvofi: Price it at 4h")
+            pr_r, pr_ref, pr_blob = json.loads(json.dumps(r_)), ref_, blob_
+            for g_ in pr_r["groups"]:
+                if g_["group"] == "R9-READY":
+                    g_.update(owner_price_minutes=240, owner_price_cite="tvofi: Price it at 4h")
+            pr_plan = replan.build_plan(pr_r, durations, dict(replan.DEFAULT_CAPS), start,
+                                        "v1.0.0", pr_ref, pr_blob,
+                                        round_n=roster_lib.roster_round(str(rpath)))
+            pr_page = render(pr_roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                             pr_plan, snap)
+            check("a priced row says its price is owner-stated, not measured",
+                  pr_page.count("owner-stated price, not measured") == 1
+                  and pr_plan["groups"]["R9-READY"]["duration_minutes"] == 240,
+                  pr_plan["groups"]["R9-READY"].get("duration_basis"))
+            check("an unpriced plan draws no such tag (null control)",
+                  "owner-stated price, not measured" not in page
+                  and not any("owner_priced" in g_ for g_ in plan["groups"].values()))
             check("a closed issue's chip is struck",
                   '<span class="chip closer closed" title="eleven">#11</span>' in page)
             check("an open issue's chip is not",

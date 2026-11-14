@@ -11,3 +11,9 @@
   on the line or on a comment-only line directly above it; a line ending in
   `# mut:<name>` takes the reason above, and a reason placed after that marker
   is refused on any line, because it unanchors the self-test's mutant.
+  Second rule: a `case` pattern without its leading `(` inside a `$( ... )`,
+  `<( ... )` or `>( ... )` substitution, quoted or not, is refused: bash 3.2
+  ends the substitution at the pattern's `)`, so `bash -n` fails (PR 3520 put
+  one in `tick_loop.sh`, whose freshness check then refused every tick pass),
+  or, quoted, the run dies. The way out is the `(`, as in `(func) ...;;`; no
+  marker excuses one, since 3.2 never parses it.

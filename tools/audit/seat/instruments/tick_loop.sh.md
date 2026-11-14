@@ -19,6 +19,24 @@
   `--once` makes one pass, `--interval` defaults to 300 s. Refusal: a
   non-numeric `--interval` or an unknown option; a failing relay pass or tick
   is reported and the loop goes on. `--self-test` drives it over stubs.
+  The self-test reads and moves no checkout but scratch clones of its own:
+  `--self-test`'s first statement re-runs it under `env -i` carrying no
+  caller variable (`PATH` a literal of system directories and the running
+  bash's, `HOME` and `TMPDIR` fresh), and the rows run only from the
+  `--self-test-rows` entry that re-exec names. The barrier fails closed: a
+  `--self-test` the re-exec did not replace (a caller's function named
+  `exec`, exported or defined by a `BASH_ENV` file, shadows the builtin)
+  refuses with rc 1 and runs no row, by an expansion error that looks up no
+  command a function could shadow; rows pin both shadows and the null
+  control. So no caller variable, nor a value computed from one, reaches a
+  row, unless a caller's own code runs the rows entry itself (a
+  `BASH_ENV` file is code run inside this process, out of any script
+  line's reach); its poison row exports every name the
+  script and its helpers read (derived by grep, never listed) to a sentinel
+  and finds none in a nested run's environment, arguments or output. It
+  points `HPO_TICK_CODE_DIR` at scratch, and it runs itself whole from a
+  branch and a detached clone behind origin/main to pin that, so it is safe
+  from any checkout, whatever origin/main does.
   Each pass then calls `heartbeat.sh --once` (the andon, below), bounded at
   60 s; `HPO_TICK_HEARTBEAT` replaces it.
   Before the relay, the freshness check (P14): `git fetch -q origin main`

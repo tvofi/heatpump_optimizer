@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/heat_curve.py:_mqtt_restorer RETURN_DEL ad20c972",
+  "killed_by": "tests/features.py",
+  "old": "    return off_restore.Restorer(set_topic or command_topic, write_neutral, neutral=0.0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

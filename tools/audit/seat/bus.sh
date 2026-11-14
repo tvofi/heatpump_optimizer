@@ -229,18 +229,27 @@ signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is th
 
 carry_landed() { # pr -> rc 1 when a body carry is not in its group (lines and roster ops on stderr); else 0
   # An unread body or roster is said and the dispatch goes on: the gate cannot judge it.
-  local b out rc
+  local b out rc raw ref topic=()
   b=$(mktemp) || return 0
-  if ! ${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '.body // ""' > "$b" 2>/dev/null; then
+  # one call reads the head ref (its topic is the pull request's own group: the own-carry status
+  # exemption needs it) and the body; a reader that returns the body alone yields no topic
+  # `&& echo x` keeps gh's own status (`; echo x` would replace it) and the body's trailing newlines
+  if ! raw=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq '"HEADREF:" + .head.ref + "\n" + (.body // "")' 2>/dev/null && echo x); then
     echo "BUS carry-landing UNREAD #$1: the body could not be read; the dispatch goes on" >&2; rm -f "$b"; return 0
   fi
+  raw=${raw%x}
+  if [[ $raw == HEADREF:* ]]; then
+    ref=${raw%%$'\n'*}; ref=${ref#HEADREF:}; raw=${raw#*$'\n'}
+    [ -n "$ref" ] && topic=(--topic "$(python3 -I "$ROOT/tools/audit/seat/topic_grammar.py" pr-topic "$ref")")  # mut:landtopic
+  fi
+  printf '%s' "$raw" > "$b"
   out=$(python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
-    landed --body "$b" --pr "#$1" 2>&1); rc=$?
+    landed --body "$b" --pr "#$1" ${topic[@]+"${topic[@]}"} 2>&1); rc=$?
   case $rc in
     0) ;;
     1) printf '%s\n' "$out" >&2
        python3 -I "$ROOT/tools/audit/carry_audit.py" --git-dir "$(git rev-parse --show-toplevel)" --roster-ref origin/main \
-         land-ops --body "$b" --pr "#$1" 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
+         land-ops --body "$b" --pr "#$1" ${topic[@]+"${topic[@]}"} 2>/dev/null | sed 's,^,  roster op: python3 tools/audit/seat/roster_edit.py ,' >&2 ;;
     *) printf 'BUS carry-landing UNREAD #%s: %s; the dispatch goes on\n' "$1" "$(tail -n 1 <<< "$out")" >&2 ;;
   esac
   rm -f "$b"; [ "$rc" != 1 ]  # mut:landed
@@ -622,10 +631,25 @@ verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr> 
 # a dispatch needs the body's `## Re-cut` note (read only then, through $HPO_BUS_GH) or
 # `--past-three <reason>`, logged in $S/past-three; after a fourth -- a re-cut blocked again --
 # only `--past-three`: the split-or-close is the orchestrator's, never a silent re-dispatch.
+# The classes whose block names a gap a script or a rebase closes, exactly the set carry 11 and its CI-only ruling name
+# and fixer.md's "Never for a mechanical-only gap" paragraph lists (the self-test reads both): a red, waiting, pending or
+# cancelled CI, an unanswered red, the body or contract, a conflict or moved head, a carry, an ungated step.
+# root-cause-unanswered (it dispatches the root-cause seat), preflight-mismatch and every judgement class are absent.
+MECHANICAL_CLASSES=" ci-red ci-wait ci-pending ci-cancelled red-unanswered body contract conflict head-moved carry-missing carry ungated "
+mechanical_block() { # pr -> rc 0 when the latest blocked verdict on verdict/<pr> names a mechanical class; rc 1 otherwise or unreadable
+  local subj cls
+  subj=$(verdict_log "$1") || return 1
+  cls=$(printf '%s\n' "$subj" | sed -n "s/^verdict: #$1 Fix review: blocked [0-9a-f]\{7,40\} \([^ :]*\):.*\$/\1/p" | head -n 1)
+  [ -n "$cls" ] && case $MECHANICAL_CLASSES in *" $cls "*) return 0;; esac
+  return 1
+}
 three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
   local k body
   k=$(blocked_rounds "$1") || { printf 'cannot read verdict/%s to count its review rounds' "$1"; return 1; }
   [ "$k" -ge 3 ] && [ -z "$2" ] || return 0
+  # A latest block of a mechanical class (tvofi, 2026-11-09: "the split should never apply when the gap is
+  # mechanical only") is no round to re-cut over; a judgement class, an unknown one or an unreadable log refuses as before.
+  mechanical_block "$1" && return 0  # mut:mechclass
   [ "$k" -lt 4 ] || { printf '#%s has %s blocked rounds: its re-cut was blocked again, so split or close it (the orchestrator), or pass --past-three <reason>' "$1" "$k"; return 1; }
   body=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq .body) \
     || { printf 'cannot read #%s'"'"'s body to find its ## Re-cut note' "$1"; return 1; }
@@ -834,11 +858,12 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
 # for handoff-head..PR-head (the merge of main and the row commit), else it reports
 # HELD-STALE and the PR is re-dispatched at its head. Nothing here reads CI, a row or a packet:
 # none exists before the PR does.
-dispatch_handoff() { # topic sha reviewer [--model M] -> records `topic:<topic> <sha> ...`, prints the nonce
-  local t=${1:-} h=${2:-} r=${3:-} m=- n tip
+dispatch_handoff() { # topic sha reviewer [--model M] [--pr N] -> records `topic:<topic> <sha> ...`, prints the nonce
+  local t=${1:-} h=${2:-} r=${3:-} m=- n tip pr=
   shift 3 2>/dev/null || shift $#
   while [ $# -gt 0 ]; do
     case $1 in
+      --pr) numeric "${2:-}" || die "dispatch-handoff: --pr takes a pull-request number"; pr=$2; shift 2 ;;
       --model) [[ ${2:-} =~ ^[A-Za-z0-9._-]+$ ]] || die "dispatch-handoff: --model takes one token"; m=$2; shift 2 ;;
       *) die "dispatch-handoff: unknown argument '$1'" ;;
     esac
@@ -857,6 +882,11 @@ dispatch_handoff() { # topic sha reviewer [--model M] -> records `topic:<topic> 
   [[ $n =~ ^[0-9a-f]{32}$ ]] || die "dispatch-handoff: could not mint a nonce"
   mkdir -p "$S" && printf 'topic:%s %s %s %s %s %s\n' "$t" "$h" "$r" "$n" "$(date -u +%FT%TZ)" "$m" >> "$S/dispatched" \
     || die "dispatch-handoff: cannot record in $S"
+  # The PR is known from --pr or a `<topic> <sha> <pr>` line in rekeyed (a local read, no API call): key the
+  # new record at once, else a reviewer dispatched after the PR opened stays HELD-NOPR (open_pr.sh ran rekey before it existed).
+  [ -n "$pr" ] || pr=$(awk -v t="$t" '$1 == t && $3 ~ /^[0-9]+$/ { p = $3 } END { print p }' "$S/rekeyed" 2>/dev/null)  # mut:rekeyknown
+  # rekey dies on each failure it can meet; its rc 3 (no topic: record) cannot follow the append above.
+  [ -z "$pr" ] || rekey "$t" "$pr" >&2
   printf 'bus-nonce: %s\n' "$n"
 }
 
@@ -1147,7 +1177,7 @@ self_test() {
   # 7, 9, 12, 21, 22 and 24 (21-24 are the FETCHHEAD/poster arms' pull
   # requests); h2 (a child) inherits them; norow is the base, with none.
   mkdir -p "$W/seat/$ROW_DIR"
-  for n in 7 9 12 21 22 24 30 31 32 33 34 35; do
+  for n in 7 9 12 21 22 24 30 31 32 33 34 35 36 37 38 39 40 $(seq 41 54); do
     printf -- '- [#%s](https://github.com/o/r/pull/%s) — **open**\n' "$n" "$n" > "$W/seat/$ROW_DIR/$n.md"
   done
   git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
@@ -1208,7 +1238,7 @@ P
   # the state dir it had, which its shim resolves under the real home.
   RH=$HOME
   run() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r \
-           HPO_BUS_LEDGER=$W/ledger/cloud-relay.log HPO_BUS_GH="bash $W/ghstub" HPO_BUS_PACKER="bash $W/packer" \
+           HPO_BUS_LEDGER=$W/ledger/cloud-relay.log HPO_BUS_GH="${BUS_GH:-bash $W/ghstub}" HPO_BUS_PACKER="bash $W/packer" \
            HPO_BUS_CLASSIFY="bash $W/classifier" HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
            HPO_IDENTITY_DIR=${BUS_ID:-$W/ap} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
   seat() { BUS_ID=$W/noid run "$@"; }
@@ -1429,6 +1459,33 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   out=$(seat push-verdict 55 "$W/hmerge.md" "$W/ev1"); rc=$?
   [ $rc = 0 ]; expect "after the re-key the handoff-dispatched verdict proposes on #55 at the handoff head" $?
   git -C "$W/seat" push -q origin :refs/heads/review/55
+  # Carry 28: dispatch-handoff re-keys the new record itself whenever the PR is known (a rekeyed line, or --pr N).
+  git -C "$W/seat" push -q origin "$h2:refs/heads/handoff/ht1"
+  out=$(seat dispatch-handoff ht1 "$h2" cmsg_H5); rc=$?
+  hn2=$(echo "$out" | sed -n 's/^bus-nonce: //p')
+  [ $rc = 0 ] && grep -q "^55 $h2 cmsg_H5 $hn2 " "$W/state/dispatched" && grep -qx "ht1 $h2 55" "$W/state/rekeyed"
+  expect "a second dispatch-handoff for a topic already re-keyed to #55 adds a 55 record and a rekeyed line (carry 28)" $?
+  git -C "$W/seat" push -q origin "$h1:refs/heads/handoff/ht3" "$h1:refs/heads/handoff-body/ht3"
+  out=$(seat dispatch-handoff ht3 "$h1" cmsg_H6 --pr 57); rc=$?
+  hn3=$(echo "$out" | sed -n 's/^bus-nonce: //p')
+  [ $rc = 0 ] && grep -q "^57 $h1 cmsg_H6 $hn3 " "$W/state/dispatched" && grep -qx "ht3 $h1 57" "$W/state/rekeyed"
+  expect "--pr 57 keys a fresh topic at dispatch (carry 28)" $?
+  git -C "$W/seat" push -q origin "$h1:refs/heads/handoff/ht4" "$h1:refs/heads/handoff-body/ht4"
+  out=$(seat dispatch-handoff ht4 "$h1" cmsg_H7); rc=$?
+  [ $rc = 0 ] && grep -q "^topic:ht4 $h1 " "$W/state/dispatched" && ! grep -q "^[0-9]* $h1 cmsg_H7 " "$W/state/dispatched" && ! grep -q "^ht4 " "$W/state/rekeyed"
+  expect "null control: a topic with no PR and no --pr stays topic:-only, so HELD-NOPR is unchanged (carry 28)" $?
+  out=$(seat dispatch-handoff ht4 "$h2" cmsg_H8 --pr x); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "dispatch-handoff: --pr takes a pull-request number" && ! grep -q " cmsg_H8 " "$W/state/dispatched"
+  expect "--pr takes a number, refused before anything is recorded (carry 28)" $?
+  # The rekeyed lookup takes the LAST numeric line for the topic: a later re-key wins, a non-numeric third field is skipped.
+  git -C "$W/seat" push -q origin "$h1:refs/heads/handoff/ht5" "$h1:refs/heads/handoff-body/ht5"
+  printf 'ht5 %s 58\nht5 %s 59\nht5 %s -\n' "$h1" "$h1" "$h1" >> "$W/state/rekeyed"
+  out=$(seat dispatch-handoff ht5 "$h1" cmsg_H9); rc=$?
+  hn5=$(echo "$out" | sed -n 's/^bus-nonce: //p')
+  [ $rc = 0 ] && grep -q "^59 $h1 cmsg_H9 $hn5 " "$W/state/dispatched" && ! grep -q "^58 $h1 cmsg_H9 " "$W/state/dispatched"
+  expect "a topic re-keyed to #58 then #59 (then a non-numeric line) keys the new record to #59 alone (carry 28)" $?
+  git -C "$W/seat" push -q origin :refs/heads/handoff/ht3 :refs/heads/handoff-body/ht3 :refs/heads/handoff/ht4 :refs/heads/handoff-body/ht4 \
+    :refs/heads/handoff/ht5 :refs/heads/handoff-body/ht5
   out=$(seat rekey never 56); rc=$?
   [ $rc = 3 ] && echo "$out" | grep -q "never has no handoff dispatch" && ! grep -q "^56 " "$W/state/dispatched"
   expect "null control: a topic with no handoff dispatch re-keys nothing (rc 3), so open_pr.sh stays quiet" $?
@@ -2125,6 +2182,36 @@ B
   printf "## Summary\nno note\n" > "$W/body31"
   out=$(run dispatch 35 "$h1" cmsg_T); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut"; expect "null control: three distinct blocked heads are three rounds and refuse without a note" $?
+  # Carry 11 (owner directive, tvofi 2026-11-09): a latest block of a mechanical class never counts toward the rule.
+  blkc() { git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${2:+-p "$2"} \
+             -m "verdict: #$3 Fix review: blocked $(printf '%040d' "$1") $4: round $1"; }
+  blk4() { local rp; rp=$(blkc 1 "" "$1" harness); rp=$(blkc 2 "$rp" "$1" harness); rp=$(blkc 3 "$rp" "$1" "$2")
+           rp=$(blkc 4 "$rp" "$1" "$2"); git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/$1"; }
+  blk4 37 proof; blk4 38 nosuchclass
+  printf "## Summary\nno note\n" > "$W/body31"
+  # The exempt set is fixer.md's: the backticked class words of its "Never for a mechanical-only gap" paragraph
+  # must be MECHANICAL_CLASSES exactly, and each is driven below by its own fourth round beside two it must refuse.
+  pol=$(awk '/^\*\*Never for a mechanical-only gap\*\*/ { on = 1 } on && /^$/ { exit } on' "$ROOT/dev/governance/roles/fixer.md" \
+        | grep -o '`[a-z][a-z-]*`' | tr -d '`' | sort -u | tr '\n' ' ')
+  [ -n "$pol" ] && [ "$pol" = "$(printf '%s\n' $MECHANICAL_CLASSES | sort -u | tr '\n' ' ')" ]
+  expect "fixer.md's mechanical-only paragraph names exactly MECHANICAL_CLASSES (carry 11)" $?
+  n=41
+  for c in $pol root-cause-unanswered preflight-mismatch; do
+    blk4 $n "$c"; out=$(run dispatch $n "$h1" cmsg_T); rc=$?
+    case " $pol " in
+      *" $c "*) [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '; expect "a fourth round after a $c block dispatches with no note (carry 11)" $? ;;
+      *) [ $rc != 0 ] && echo "$out" | grep -q "blocked round"; expect "null control: a fourth round after a $c block refuses (carry 11)" $? ;;
+    esac
+    n=$((n + 1))
+  done
+  out=$(run dispatch 37 "$h1" cmsg_T); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "blocked round"; expect "null control: a fourth round after a proof-class block still refuses (carry 11)" $?
+  out=$(run dispatch 38 "$h1" cmsg_T); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "blocked round"; expect "null control: an unknown class refuses as before (carry 11)" $?
+  rp=$(blkc 1 "" 40 ci-red); rp=$(blkc 2 "$rp" 40 ci-red); rp=$(blkc 3 "$rp" 40 ci-red); rp=$(blkc 4 "$rp" 40 harness)
+  git -C "$W/seat" push -q origin "$rp:refs/heads/verdict/40"
+  out=$(run dispatch 40 "$h1" cmsg_T); rc=$?
+  [ $rc != 0 ]; expect "only the LATEST block's class is read: mechanical rounds then a harness block refuses (carry 11)" $?
 
   # THE REVIEW PACKET: dispatch names the packet rendered at its head and passes the
   # finder's harness through; a REFUSED head records nothing; a seat that cannot render
@@ -2223,6 +2310,28 @@ B
   out=$(run dispatch 7 "$h1" cmsg_L2); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
   expect "and dispatches once the group's carries name the pull request (P310, the null control)" $?
+  # R10-CARRY-AUDIT-P5 carry 4 / P605: a part-N body's `Carry N: not built here. Carry: <own group>` line
+  # is a status when the pull request's head ref resolves to that group; the topic reaches carry_audit.
+  printf '#!/bin/bash\nprintf "HEADREF:%%s\\n" "$HEADREF"; cat "%s/body31"\n' "$W" > "$W/ghstub2"
+  printf '## Forward-carry\n\n- Carry 0: not built in this part. Carry: R10-LIVE\n' > "$W/body31"
+  lroster '["From #99: the store seam."]'
+  out=$(HEADREF=fix/r10-live BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L3 2>&1); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+  expect "a body's own-group status line passes when the head ref is the group's branch (CARRY-LANDED-OWN-TOPIC)" $?
+  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L4 2>&1); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q '^CARRY-MISSING R10-LIVE'
+  expect "null control: the same line under another group's head ref is still refused" $?
+  out=$(BUS_GH=false run dispatch 7 "$h1" cmsg_L5 2>&1); rc=$?
+  echo "$out" | grep -q 'BUS carry-landing UNREAD #7: the body could not be read'
+  expect "an unreadable body is still reported by carry_landed, and the dispatch goes on (CARRY-LANDED-UNREAD)" $?
+  # the `&& echo x` sentinel keeps a body's last character: `R10-LIVEx` names no group, so the gate has
+  # nothing to land and the dispatch goes on; with the sentinel gone `${raw%x}` cuts it to `R10-LIVE`,
+  # which holds no carry (lroster '[]'), and the dispatch is refused CARRY-MISSING
+  printf '## Forward-carry\n\n- The census misses the store seam. Carry: R10-LIVEx\n' > "$W/body31"
+  lroster '[]'
+  out=$(HEADREF=fix/unrelated-x BUS_GH="bash $W/ghstub2" run dispatch 7 "$h1" cmsg_L6 2>&1); rc=$?
+  [ $rc = 0 ] && ! echo "$out" | grep -q 'CARRY-MISSING' && echo "$out" | grep -q '^bus-nonce: '
+  expect "a body ending in a literal x is read whole, not cut by the sentinel strip (CARRY-LANDED-SENTINEL)" $?
   printf '## Summary\nround four, repaired\n' > "$W/body31"
   git -C "$W/seat" push -q -f origin "$m0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
   # P102: a second watcher over the same state directory refuses, naming the holder; a dead
@@ -2385,6 +2494,6 @@ case ${1:-} in
   adopt-from-main) shift; adopt_from_main "$@" ;;
   post) shift; numeric "${1:-}" || die "post: give a pull-request number"; mkdir -p "$S"; post_verdict "$1" ;;
   orphans) shift; orphans "$@" ;;
-  --self-test) self_test ;;
+  --self-test) [ -n "${PR_BOUND:-}" ] || { . "$(dirname -- "$0")/pr_args.sh"; pr_bounded bus bash "$0" --self-test; }; self_test ;;
   *) sed -n '2,8p' "$0" >&2; exit 2 ;;
 esac

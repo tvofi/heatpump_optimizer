@@ -40,8 +40,14 @@ pr_code_sha_shape "$2"
 export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)
 T=$1; C=$2; TITLE=$3; G=$4; shift 4; ISS="$*"
-D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
-git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ] && BR=$BR-pr  # a seat often holds a local branch of the default name
+pr_state_root; D=$PR_STATE/pr/$T; WT=$D/wt; BR=${BR:-fix/$T}; R=tvofi/heatpump_optimizer
+# A topic's opener worktree $WT is shared by every opener of the topic (a seat's hand run, open_driver.py's), so the
+# branch it holds names the lock of the run holding it. A second opener adopts that branch and meets the first's lock
+# (BUSY) before it writes the shared body.md, not a -pr lock of its own. A detached worktree holds no branch: a
+# finished run's leftover, which takes the -pr name below as a lone run does.
+OP_REG=$(git -C "$M" worktree list --porcelain | awk -v w="worktree $WT" '$0==w{f=1;next} f&&/^branch /{sub("refs/heads/","",$2);print $2;exit} f&&$0==""{exit}')  # mut:opreg
+if [ -n "${OP_REG:-}" ] && [ -z "${BR_FIXED:-}" ]; then BR=$OP_REG
+elif git -C "$M" show-ref -q --verify refs/heads/$BR && [ -z "${BR_FIXED:-}" ]; then BR=$BR-pr; fi  # a seat often holds a local branch of the default name
 mkdir -p "$D"; cd "$M"
 # The branch's lock, update_pr.sh's own, held to the end: cloud_relay's update_pr.sh detached this worktree
 # between the two pushes below and left the PR without its row (#2547, #2548); it now answers BUSY.
@@ -72,6 +78,11 @@ op_close_unrowed() {
   fi
   git -C "$WT" reset -q --hard "$PR_PUSHED" || :  # mut:rowreset
   why=${OP_WHY:-${PR_STOPPED_AT:-no step reported a stop: a stop signal, or exit status $rc}}
+  if op_host_refusal; then
+    PR_ATTEMPT=opened,PR=$N
+    printf '%s: ROWLESS: #%s is left open at %s and its row is owed: the refusal is the host'"'"'s (prepr'"'"'s self-test, the one step refused, fails the same way on this host on a pristine origin/main tree); update_pr.sh %s - <body> adds the row (delivery_row.sh ensure_row)\n' "$PR_NAME" "$N" "$PR_PUSHED" "$BR" >&2
+    return 0
+  fi
   gh pr close "$N" -R $R >/dev/null && closed=1 || :  # mut:rowclose
   if [ "$closed" != 1 ]; then
     printf '%s: ROWLESS: #%s is open at %s without its row, and closing it failed; update_pr.sh %s - <body> adds it (delivery_row.sh ensure_row)\n' "$PR_NAME" "$N" "$PR_PUSHED" "$BR" >&2
@@ -83,6 +94,13 @@ op_close_unrowed() {
   python3 "$PRT/gh_comment.py" post --repo $R --issue "$N" --body-file $D/close.md >&2 \
     || echo "$PR_NAME: #$N is closed, but its comment saying why was not read back" >&2
   printf '%s: CLOSED: #%s at %s, before its row was pushed; re-run open_pr.sh once the body answers it\n' "$PR_NAME" "$N" "$PR_PUSHED" >&2
+}
+# A refused row push is the host's, not the head's, only by measurement (pr_host_refusal, pr_args.sh):
+# closing the PR for it closed #3508, whose self-test failed on the orchestrator host at origin/main
+# as well. The refusal is this run's own: a p2 log an earlier run of the topic left is not read.
+op_host_refusal() {
+  [ -n "${OP_REFUSED:-}" ] || return 1  # mut:hoststale
+  pr_host_refusal "$WT" $D/p2.log "${H:-}" "$(git -C "$WT" rev-parse -q --verify 'origin/main^{commit}' 2>/dev/null || :)" "$(dirname -- "$D")/selftest-main"
 }
 op_row_landed() { # <rc> <origin tip|unread>: the row push failed, and origin holds the row commit $H or was not read
   PR_ATTEMPT=opened,PR=$N
@@ -133,7 +151,7 @@ MERGE_OK=; git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.git
 PYTHONPATH="$PRT" python3 - $D/body.md $(git rev-parse HEAD) $C $(git rev-parse --short origin/main) <<'E0'
 import sys; from head_note import prefix
 p,H,C,M=sys.argv[1:5]; s=open(p).read()
-if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C))
+if H!=C: s=prefix(s,"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C))  # mut:headnote
 open(p,'w').write(s)
 E0
 # A disposed `## Unpinned sites` key the merge only shifted is re-keyed in place (P70, P125): prepr's
@@ -165,6 +183,7 @@ RO=--row-only  # mut:oprowonly
 rc=0; wait $! || rc=$?
 if [ "$rc" != 0 ]; then
   # The exit below closes #N unless origin took the row (op_close_unrowed); this names the refusal.
+  OP_REFUSED=1
   OP_WHY="the row push was refused:
 $({ grep -E 'REFUSE' $D/p2.log || tail -n 20 $D/p2.log; } 2>/dev/null || :)"
   pr_push_failed $D/p2.log

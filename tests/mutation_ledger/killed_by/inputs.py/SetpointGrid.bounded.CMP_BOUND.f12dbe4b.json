@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/inputs.py:SetpointGrid.bounded CMP_BOUND f12dbe4b",
+  "killed_by": "tests/block_duty.py",
+  "old": "        if hi is not None and (low is None or hi >= self.on_step(low, rounding=\"up\")):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if hi is not None and (low is None or hi > self.on_step(low, rounding=\"up\")):`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}
