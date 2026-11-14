@@ -87326,7 +87326,10 @@ def _c9_zones(s):
     return (s.room_temperature, s.upper_floor_temperature, s.lower_floor_temperature)
 
 
-_c9_rows = {t: _c9_case(t) for t in (5.0, -5.0, -15.0)}
+# The last row caps the tank at 25 C, under the curve's top at -15 C: there
+# the cap, not the curve, is the most each circuit sees.
+_c9_rows = {**{t: _c9_case(t) for t in (5.0, -5.0, -15.0)},
+            "-15, cap 25": _c9_case(-15.0, buffer_max_temperature=25.0)}
 R.check(
     "R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve "
     "cannot hold the setpoint, the thermostat reference's held state is the "
