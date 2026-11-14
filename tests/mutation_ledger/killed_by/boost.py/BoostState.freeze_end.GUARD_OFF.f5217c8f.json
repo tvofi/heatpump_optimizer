@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:BoostState.freeze_end GUARD_OFF f5217c8f",
+  "killed_by": "tests/features.py",
+  "old": "        if projected is None or (held is not None and utc_elapsed_seconds(held, projected) > 0):",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
