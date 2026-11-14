@@ -779,7 +779,7 @@ def cases(bj) -> dict[str, bool]:
     bj.cancel_sweep(c2)
     res["cancel-sweep: the overlay's train_state is passed as --train-state with --priority; none without it"] = (
         arg(f.calls[0], "--train-state") == "/st/train" and "--priority" in f.calls[0]
-        and "--train-state" not in f2.calls[0])
+        and len(f2.calls) == 1 and "--train-state" not in f2.calls[0] and not files(c) and not files(c2))
 
     # disk
     c, f = fresh(free=lambda: 50.0)
