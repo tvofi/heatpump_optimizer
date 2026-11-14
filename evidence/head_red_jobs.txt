@@ -1,0 +1,11 @@
+132265908720 tests / fast (3.14) | failure | Run the suite
+132265908769 tests / closures | failure | Fail if tests/closures.json under-approximates
+132277585694 tests / closures-autofix | failure | Report whether the repair happened
+132278850688 pr-contract / pr-contract | failure | Check the body against the contract
+132279153782 gate | failure | Judge this head
+132279759403 governance / instrument-self-tests | completed/failure | Show the supervised beat refusing its own fixtures
+132279759482 codeql / Analyze (python) | in_progress/null | 
+132280051669 tests / fast (3.14) | in_progress/null | 
+132280051671 tests / arch-instrument | in_progress/null | 
+132280051675 tests / coverage | in_progress/null | 
+132280051696 tests / closures | in_progress/null | 

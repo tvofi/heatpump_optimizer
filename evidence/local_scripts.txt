@@ -1,0 +1,22 @@
+== python3 tests/doc_claims.py rc=0
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  ok   every one of the six is disabled by default on a no-hot-water install (the property D6-s1-03 measured; a translation-key rename would fail the anchor above instead of silently passing here)
+  ok   the corpus count fires on a stale count (null control)
+ALL 348 checks PASSED
+== python3 tests/closure.py selftest rc=0
+  ok   a partial merge refreshes a stale _comment
+  ok   a stale-closure refusal names --single, not a bare full derive
+  ok   a refused merge surfaces merge()'s reason, not just skip-merge-failed
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check fails on a phantom in the committed inert_reads (R9-RO-10)
+ALL 118 closure shrink pins PASSED
+== python3 tests/block_duty.py rc=1
+ModuleNotFoundError: No module named 'homeassistant'
+ModuleNotFoundError: No module named 'homeassistant'
+== python3 tests/guard_pins.py rc=1
+ModuleNotFoundError: No module named 'homeassistant'
+ModuleNotFoundError: No module named 'homeassistant'
+== python3 tests/deployment_shape.py rc=0
+ALL DEPLOYMENT SHAPE CHECKS PASSED
