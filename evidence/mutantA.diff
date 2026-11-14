@@ -1,0 +1,15 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 5a35bfbafb..5bd888a926 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -882,9 +882,7 @@ def _held_reference(
+     The one reference both the settlement's start gap and a held-start solve
+     (``SolveInputs.held_start``, #2257) use, so that solve's gap is zero.
+     """
+-    return _sharing_wood_side(_thermostat_held_state(
+-        model, state, weather, _baseline_target(comfort_targets, 0, default_target),
+-    ), state)
++    return state
+ 
+ 
+ def _held_bisected(

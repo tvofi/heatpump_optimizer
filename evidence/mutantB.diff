@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 5a35bfbafb..6551cfe5b2 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -933,7 +933,7 @@ def _pump_unreachable(
+     ``max_electrical_power``, where the step clips."""
+     cop = _reference_cop(model, held, outdoor, humidity)
+     p = model.params
+-    return bool(power_for_heat_per_cop_kw(p, made_kw / cop) > p.max_electrical_power)
++    return False
+ 
+ 
+ def _held_unreachable(
