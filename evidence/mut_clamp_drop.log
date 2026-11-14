@@ -1,0 +1,99 @@
+
+=== features block ===
+  ok   a hot-water step into a heating step at equal draw costs the cycling term nothing and weighs p x draw / p_max as a switch
+  ok   the stop adds the smaller of the two levels across a boundary
+  ok   an idle step between the two duties is no switch
+  ok   the reverse order is the other direction: unpriced with a zero there, priced by its own probability
+  ok   a two-leg both step alone weighs p x (space + dhw) / p_max: both legs run at the step's combined level
+  ok   a both step followed by heating is one switch, not two: its last leg is already heating
+  ok   null control: a zero pair weighs every one of those plans zero
+  ok   the objective's term is cycling_cost x that weight, a float for one plan and one entry per row for a batch
+  ok   and it is no operand at all with a zero pair, a zero cycling cost or no hot-water plan
+  ok   a non-finite, negative, over-one or misshapen learned pair reads as zero
+  ok   the leaf's legs are what step_duty and _share serve over the probe grid, floor unset and set: idle, one duty, both collapse edges and two legs
+  ok   and the grid holds what it claims: two-leg cells under both floors, fewer with the floor set, and both exact collapse edges (shares of 5 and 10 minutes)
+  ok   the same agreement on the levels a clamped install ships: a modulating pump keeps two-leg steps, each circuit at or above p_min
+  ok   and on a fixed-speed pump the leaf never returns two legs, while the row still holds heating-only and hot-water-only steps
+  ok   switch_weights_batch is switch_weight on every row, bit for bit, floor unset and set
+  ok   a pump with no maximum draw weighs every row zero, one finite entry per row and not per step, on the rows the priced pair weighs above
+  ok   a block end charges one step, the one holding the heating leg that follows it: the step after the block when heating starts there, not the block's last
+  ok   the block's own last step when it is a two-leg step, and then not the step after
+  ok   no vector at all with a zero lost share, with an idle step after the block, or with no hot water: the caller makes today's calls
+  ok   the lost share is p x off seconds over the step, capped at the whole step, and only hot water to heating carries one
+  ok   a duty-cycle install carries the lost time on the bound, a clamped one on the delivered draw, and neither moves anything with no vector
+  ok   on a duty-cycle install the delivered draw is the shipped array itself
+  ok   in a charged two-leg step the stop takes its share of the combined level from the heating draw, and never below zero
+  ok   on a modulating clamped install no charged step ships heating under the floor: a start under p_min after a block is charged only once it ships at p_min or above
+  ok   on a modulating clamped install heating shipped under p_min beside hot water takes no charge: the stop is charged to the heating step after the both step, and no charged step ships heating under the floor
+  ok   null control: with no duty floor (a duty-cycle install) the same arrays charge the both step itself, so the floor is what moved the charge
+  ok   a start that is idle, or below zero, in the step after a block charges nothing; the same block followed by heating charges that step
+  ok   heating asked beside hot water at p_max is no heating leg: nothing is charged; beside a block that leaves room the same start is charged there
+  ok   a start outside [0, p_max] reads as the same start clipped into it, on a duty-cycle and on a clamped install; the grid holds starts outside the band and readings that charge a step
+  ok   the bound is what hot water leaves and never under zero: 0.5 kW beside 5.5 of 6, nothing beside 7, with no vector and with one
+  ok   a pump under 1 kW weighs its switch like any other: p x draw / p_max at a maximum draw of 0.5 kW
+  ok   with no vector a space solve gets the two objectives it handed in, the same objects, and today's bound; with one it gets them bound to the vector
+  ok   null controls: an empty learner, one under its threshold and a pair that is no probability each leave the plan identical on all three install classes, with no availability vector, no banned build and the planner called as often
+  ok   null control: a stopping switch with no measured off time on an install that prices no cycle moves nothing either
+  ok   and the nulls have something to detect: with the contributor's pair the plan moves on every install class
+  ok   acceptance: priced on the contributor's table the plan carries a lower summed switch weight, on a duty-cycle and on a modulating clamped install
+  ok   at no higher cost under the plan's own objective: the new plan scores no higher than the old plan does under the priced objective
+  ok   the published objective of a priced plan is its closure's value on the arrays that ship, with the vector the solve scored with
+  ok   on the duty-cycle install the solved heating in every charged step is at most avail x p_max - dhw, and a charged step exists
+  ok   and there the simulation is fed the shipped schedule itself: the bound carried the lost time
+  ok   fixed-speed: every shipped total is 0 or p_max and the plan's duty floor is p_min, with a hot-water block followed by a charged heating step
+  ok   fixed-speed: step_duty inside a charged step returns space, and the leaf weighs the block end into it p x 1 from the result's own schedules and floor
+  ok   fixed-speed: the published room trajectory is the simulation at avail x p_max in the charged steps that hold heating and at the shipped level everywhere else, and differs from the one at p_max
+  ok   fixed-speed: the published start count is count_compressor_starts on the shipped total, unchanged by the pairs on the same arrays
+  ok   fixed-speed null control: with a zero pair the simulation is fed the shipped schedule and no vector exists
+  ok   a priced plan with a priced switch tries exactly one more hot-water plan, the first build's own arguments plus the ban, and no unpriced solve builds one
+  ok   the ban is the steps heating runs in or runs in next, for hot water to heating, and mirrors onto the previous step for the other direction
+  ok   the ban holds: the candidate's schedule is zero on every banned step, on builds whose min-run stage rewrote the plan
+  ok   the ban's channel: with a disinfection due inside it and no Off window, a banned build returns the same legionella_step and the same requirement, and a manual force-on pin inside the ban survives
+  ok   and the check tells the two doors apart: the same mask through off_steps moves the disinfection step and zeroes the pinned step
+  ok   null control: a build with no ban is the build the solve made
+  ok   the guard's fixture is the one it names: the incumbent holds a priced switch after the disinfection run-up and the ban forbids the run-up step
+  ok   a banned candidate that scores lower but falls short of its returned requirement where the incumbent holds its own is refused before any solve, and the incumbent's requirement and availability stay in place
+  ok   control: the same candidate with the shortfall reading zero is adopted on its lower score, with the requirement returned beside it
+  ok   a candidate that does not score lower is refused after its solve, and the incumbent's requirement and availability are put back
+  ok   an incumbent with no requirement to hold a candidate to gets no candidate: the pass the control adopts from returns the incumbent without a solve
+  ok   a candidate pass that raises is skipped: the incumbent, its requirement and its availability stand, and nothing is solved
+  ok   a candidate with hot water on a banned step no pin forces on is refused before any solve
+  ok   the same candidate with each of those steps pinned at 0.5, which the planner's pin rule forces on, is solved and adopted on its lower score
+  ok   any hot water on a banned step refuses the candidate, 0.8 kW as much as a full block
+  ok   a candidate lower by exactly the 1e-9 margin, and so by no more than it, is a tie: refused after its solve, as _co_optimize refuses its own
+  ok   the incumbent's tank is walked once: the read past its excused step is handed the first walk's temperatures
+  ok   a configuration that never heard of the learner holds a zero pair in both fields, and an optimizer that has solved nothing holds no vector
+  ok   null control: with a zero pair the pass returns the incumbent without a build or a solve
+  ok   the edge fixture is the one it names: 1.5 kW of hot water under a third of p_max, and the starts straddle a change in the legs
+  ok   from each edge start the priced solve returns a score no higher than its start's, with a solver status no worse than the same start solved unpriced
+  ok   null control: with a zero pair the same starts return the arrays of a config that never heard of the fields
+  ok   a relaxed start carrying a vector is charged on its unrounded level, the rounded objective on the level that ships
+  ok   and with no vector the received draw is the shipped array itself
+  ok   the plan's duty floor reaches the switch weight: heating under the floor after a block is no leg and no switch
+  ok   at the exact minute the hot-water share ends the arbiter serves heating (a strict <, as before the rule moved)
+  ok   modulating clamped: the simulation is fed the delivered draw of the vector the adopted solve scored with, which is not the vector the final plan would rebuild
+  ok   the vector is built once per space solve and never at publication, on every priced solve above
+  ok   modulating clamped (item r15): the achieved objective is the closure on the shipped arrays with that vector, not on the delivered draw, which would charge the lost time twice
+  ok   modulating clamped: the predicted cost is the energy of the delivered draw, not of the shipped level
+  ok   the scalar and the batch objective both price the energy of the delivered draw plus hot water, and agree bit for bit with a vector
+  ok   fixed-speed: what pricing a cycle adds to a plan's score is the cycling term plus cycling_cost x the switch weight of the shipped levels
+  ok   fixed-speed: the batch objective is the scalar one bit for bit with a priced pair and a vector
+  ok   a priced install whose plan holds no priced switch builds no candidate
+  ok   a refused co-optimisation candidate leaves the vector its incumbent was scored with
+  ok   the co-optimisation reads the charged bound: on a duty-cycle install heating at avail x p_max - dhw in a charged step is pinned, and the replan is built against a full compressor there and nowhere else
+  ok   null controls: the same heating with no vector, or with the vector on a clamped install whose bound carries no lost time, is under its bound and builds no replan; at the uncharged bound each of the two builds one
+  ok   on a combi store the candidate pass asks its planner nothing and returns the incumbent, its requirement and its availability in place, on an incumbent holding a priced switch
+  ok   null control: the same install with the store's hot water in its own tank reaches the banned build
+  ok   the decayed count is held at the cap, twice the on-threshold: forty bookings an hour apart end on it and none leaves it above (to 1e-9, the rounding of two scaled addends)
+  ok   the cap scales both counts alike: a stop booked on six of ten leaves p at seven of eleven
+  ok   from p = 1 at the cap the latch holds after twelve kept episodes and drops at the thirteenth, each multiplying p by 10/11
+  ok   with no episodes a capped direction is latched at 28 days and not the day after
+  FAIL the cap is held on decay as well as at booking: a record stored at four times the cap is held to it by the first pass, p unchanged, and is off a day past the 28 a capped direction stays latched (control: that capped direction is still latched at 28 days)  [n after the first pass 40.0, after 29 days 9.516951530106194 usable=True; control usable=True]
+  ok   a capped record round-trips through its stored form
+  ok   six stopping switches over two days, each off 501 s, latch the direction and the planner reads the acceptance fixture's pairs from the learner
+  ok   the read returns zeros while a direction is unlatched, its off times with it
+  ok   a latched direction reads its own p and median off time in its own slot, hot water to heating first, and no off time while every stop's was censored
+  ok   null controls from learner state: an empty learner, one under its on-threshold and an install whose every switch was kept each read a plan identical to today's on all three install classes
+  ok   and that arm has something to detect: the latched learner's read returns the priced plan on every install class
+
+1 of 95 FEATURES BLOCK FAILED
