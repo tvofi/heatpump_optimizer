@@ -90234,6 +90234,17 @@ R.check(
 )
 
 
+_sce_free = _sce_meter_trace(_SCE_PHASES)
+R.check(
+    "a counted start books money, never energy, and only at a nonzero price: the priced install's wear "
+    "line carries 0 kWh, and the default install (no replacement cost) counts its starts with no wear line",
+    (_sce_stored.c._ledger.line("2026-02", "wear") or {}).get("kwh") == 0.0
+    and _sce_free.counter.lifetime == _SCE_ON_PHASES
+    and "wear" not in _sce_free.c._ledger.months.get("2026-02", {}).get("lines", {}),
+    f"{_sce_stored.c._ledger.line('2026-02', 'wear')} {_sce_free.c._ledger.months.get('2026-02', {}).get('lines')}",
+)
+
+
 class _SceRaises:
     async def async_load(self):
         raise RuntimeError("store")
