@@ -62332,7 +62332,9 @@ def _chg_seq(temps, charged=True, start_hm=(8, 0), heated_at=(1,), saturday=Fals
     learner.async_save_draws = _save_draws
     module = _sys.modules[type(learner).__module__]
     real_dt = module.dt_util
-    start = dt_util.now().replace(hour=start_hm[0], minute=start_hm[1], second=0)
+    # Monday 2026-11-09, never today: the weekday booking must not depend on the day the suite runs.
+    start = dt_util.now().replace(
+        year=2026, month=11, day=9, hour=start_hm[0], minute=start_hm[1], second=0)
     if saturday:
         start += timedelta(days=(5 - start.weekday()) % 7)
     clock = [start]
