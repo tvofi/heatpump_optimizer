@@ -256,7 +256,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import duty_switch, early_cutoff, pump_arbiter, pump_signals
+from . import duty_switch, early_cutoff, pump_arbiter, pump_signals, supply_hold
 from . import issues, setpoint_check
 from . import quiet_windows
 from . import price_tiles
@@ -3494,10 +3494,11 @@ def _tail_freeze(coord: Any) -> str | None:
     ran the commanded power; its reason comes first, in this one function,
     because the slab observer ignores only the unmetered reason and must
     see the cut (live-fix design note A2).
+    A held supply write ran other than the plan too (``supply_hold``).
     """
     if early_cutoff.state_for(coord).interval_cut:
         return early_cutoff.FREEZE_CUT
-    return learner_unmetered(
+    return supply_hold.freeze_reason(pump_arbiter.state_for(coord)) or learner_unmetered(
         getattr(getattr(coord, "_ctx", coord), "_config", None)
     )
 
@@ -6220,13 +6221,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         share no mutable state with the event loop (#240).
         """
         ctx = getattr(self, "_ctx", self)
+        now = dt_util.now()
         tariff = self._capacity_tariff()
         threshold = self._peak_tracker.threshold_kw(tariff)
         # Post-outage recovery (#22): every neighbour restarts at once, so
         # the fresh-month "no reference yet" free pass is exactly wrong now.
         # Force the peak term active by pricing from zero when the threshold
         # would otherwise be infinite.
-        if self._outage_recovery_active(dt_util.now()) and not np.isfinite(threshold):
+        if self._outage_recovery_active(now) and not np.isfinite(threshold):
             threshold = 0.0
         config_bands: dict[str, float] = {}
         dhw_bands: dict[str, float] = {}
@@ -6241,17 +6243,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             price_risk_lambda=ctx._config.price_risk_lambda,
             baseline_load_kw=self._baseline_house_load(n_steps),
             cycling_cost=self._effective_cycling_cost(),
+            **duty_switch.planner_fields(self),
             # The optimizer prices surplus consumption at this; an
             # entity-supplied compensation can change between runs.
             pv_export_price=self._pv_export_price(),
             comfort_weight=self._comfort_weight(),
             holiday_dates=away_mode.holiday_dates(
-                self.hass, ctx._config.holiday_calendar_entity,
-                dt_util.now(),
+                self.hass, ctx._config.holiday_calendar_entity, now,
             ),
             **config_bands,
         )
-        now = dt_util.now()
         params = replace(
             copy.deepcopy(ctx._thermal_params),
             **dhw_bands,
@@ -6532,10 +6533,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
         await self._accuracy_store.async_wait_for_read()
-        if self._mode == MODE_BOOST and mode != MODE_BOOST:
-            # #1935: the mode surface's settling tail — same plant-state
-            # divergence the channel overlay's leaves behind.
-            boost.note_mode_boost_ended(self)
+        boost.note_mode_change(self, self._mode, mode)  # #1935: the mode's settling tail
         await off_restore.async_mode_change(self.hass, self.entry, _ctx_of(self)._config, self._mode, mode)
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
@@ -7669,17 +7667,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         whatever it was given, so a single tap on its top notch stored a target
         one degree above the ceiling, and nothing said a word.
 
-        Reported rather than migrated. These are the user's own numbers and
-        only they know which one is wrong -- silently rewriting a comfort
-        target to make an inequality hold is exactly the kind of help nobody
-        asked for. The plan keeps running meanwhile: the bounds are priced
-        rather than fenced, so a contradictory band is a plan in permanent
-        violation, not a crash.
+        Reported rather than migrated: only the user knows which number is
+        wrong, and silently rewriting a comfort target to make an inequality
+        hold is help nobody asked for. The plan keeps running: the bounds are
+        priced, not fenced. The valve-target notice rides here too.
         """
-        found = comfort_band.violations({}, getattr(self, "_ctx", self)._config)
+        ctx = getattr(self, "_ctx", self)
+        found = comfort_band.violations({}, ctx._config)
         problem = comfort_band.describe(found) if found else None
         self._config_notices.report(self.hass, "comfort_band_contradiction", problem,
                                     {"problem": problem} if problem else None)
+        mixing_valve.audit_target(self._config_notices, self.hass, ctx._thermal_params)
 
     def _current_grid_fee(self, when: datetime) -> float:
         return self._grid_fee_schedule().current_fee(
@@ -7717,13 +7715,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             mode_off=self._mode == MODE_OFF,
         )
 
-    async def async_publish_current_action(self, reason: str = "optimizer") -> None:
-        """Publish MQTT command for the currently selected optimizer action."""
+    async def async_publish_current_action(self, reason: str = "optimizer", heat_pump_on: bool | None = None) -> None:
+        """Publish the current action's MQTT command; ``heat_pump_on``, given, is the cycle's switch write."""
         if not (action := self._current_action) or self._mode == MODE_OFF:  # off writes nothing
             return
         await self.async_publish_ecl110_command(
             displace_value=float(action.get("displace_value", 0.0)),
-            heat_pump_on=bool(action.get("heat_pump_on", False)),
+            heat_pump_on=bool(action.get("heat_pump_on", False)) if heat_pump_on is None else heat_pump_on,
             reason=reason,
         )
 
@@ -7820,19 +7818,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Between cycles the step tick writes each step's change (#2492).
         pump_arbiter.note_supply(pump_arbiter.state_for(self), pump_arbiter.SupplyWiring(self.arbiter_inputs, boost.held_for(self), self._write_supply), on)
         # The ECL110 displace command
-        await self.async_publish_current_action(reason="scheduled_update")
+        await self.async_publish_current_action(reason="scheduled_update", heat_pump_on=on)
 
     async def _write_supply(self, on: bool) -> None:
-        """Write the supply switch: the cycle's and the step tick's one gate.
-
-        A cut-off holds the pump off for MIN_OFF across an early refresh.
-        """
-        value = pump_arbiter.supply_write(
-            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals)
+        """The cycle's and the step tick's one supply gate: cut-off, mode, minimums."""
+        held = pump_arbiter.state_for(self)
+        value = supply_hold.hold_supply(held, self.arbiter_inputs, boost.held_for(self), pump_arbiter.supply_write(
+            early_cutoff.allow_on(early_cutoff.state_for(self), on), self._pump_signals))
         switch_entity = getattr(self, "_ctx", self)._config.heat_pump_switch_entity
         if switch_entity and value is not None:
-            await pump_arbiter.switch_supply(self.hass, switch_entity, value)
-        elif switch_entity:
+            await pump_arbiter.write_supply(self, switch_entity, value)
+        elif switch_entity and not held.supply_held:
             _LOGGER.debug(
                 "Not switching %s off: mode %s is cooling or blocks both "
                 "channels, so an empty plan is this integration's doing "

@@ -5,10 +5,13 @@ part A. On some pumps a mode write from hot water to heating while the
 compressor runs stops it: the controller judges the heating request on a
 return the hot-water leg has just heated. Whether it does, and for how long
 the pump then stays off, is learned per install and per direction. It is
-recorded, persisted and published on the compressor-starts sensor, and the
-arbiter's split of a both step reads its latches through
-:func:`both_step_duty` (part B); nothing else reads the estimate. A factory
-reset voids the store like every other learned estimate.
+recorded, persisted and published on the compressor-starts sensor. Its
+latches are read twice, through one leg rule: the arbiter's split of a both
+step (:func:`both_step_duty`, part B) and the planner (:func:`planner_fields`),
+which prices the switch through ``duty_legs``; both feed
+``duty_legs.leg_rule`` the same pairs (:meth:`DutySwitchLearner.split`), so
+the plan prices the legs the arbiter serves. A factory reset voids the store
+like every other learned estimate.
 
 **Observe** (:class:`DutySwitchLearner`, no Home Assistant object). An
 episode opens at a landed mode write between the two single duties while the
@@ -33,8 +36,12 @@ at a decayed weight of :data:`N_ON`, not a count (five stops ten hours apart
 weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with ``p`` at
 :data:`P_ON`, and off under :data:`N_OFF` or :data:`P_OFF`. The span is of
 the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
-forgotten with it. ``n`` is held at :data:`N_CAP`. Every threshold
+forgotten with it. Every threshold
 here is a named constant from one day on one install, not a measurement.
+``n`` is held at :data:`N_CAP` by scaling both counts alike, at a booking and
+on decay, so
+evidence from before a firmware change is outvoted in a bounded number of
+episodes and an install that stops switching unlatches in a bounded time.
 """
 from __future__ import annotations
 
@@ -49,7 +56,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from . import pump_mode, wear
+from . import duty_legs, pump_mode, wear
 from .const import DOMAIN
 from .drift import stored_instant, utc_elapsed_seconds
 from .store import QuarantiningStore
@@ -75,6 +82,8 @@ N_ON, N_OFF = 5.0, 2.5
 #: by scaling both counts alike (``p`` does not move): a direction the split
 #: avoids gets no episode, and from the cap ``n`` is under :data:`N_OFF` two
 #: half-lives after its last one, so the default split runs and re-tests it.
+#: With every later episode kept, ``p`` falls from 1 by 10/11 per booking and
+#: is under :data:`P_OFF` at the thirteenth.
 N_CAP = 2.0 * N_ON
 P_ON, P_OFF = 0.5, 0.3
 SPAN_DAYS_ON = 2
@@ -382,28 +391,23 @@ class DutySwitchLearner:
             out.update({f"duty_switch_{name}_{key}": value for key, value in row.items() if value is not None})
         return out
 
-    def split(self, dhw_min: float, step_min: float, min_share_min: float,
-              next_duty: str | None) -> tuple[str, bool]:
-        """``(duty served first, whether it takes the whole step)`` of a step
-        both duties share, ``dhw_min`` of its ``step_min`` being hot water's.
+    def planner_pairs(self) -> tuple[tuple[float, float], tuple[float, float]]:
+        """Per direction, in :data:`DIRECTIONS`' order: the stop probability
+        and the median off seconds the planner prices a switch by. Zeros
+        unless the direction's latch is on, and no off time while every
+        stop's was censored."""
+        read = [d if d.usable else Direction() for d in map(self.directions.__getitem__, DIRECTIONS)]
+        return (read[0].p, read[1].p), (read[0].median_off_s or 0.0, read[1].median_off_s or 0.0)
 
-        Read only through the latches: ``n``, the tallies and ``span_days``
-        are not read, so evidence accruing faster on one set-point unit than
-        another moves nothing here until a latch moves. Space goes first only
-        where hot water to space alone is usable; the first duty keeps the
-        whole step only when the switch into the second is usable, the second
-        share is shorter than ``min_share_min`` plus that direction's median
-        off time, and ``next_duty`` (the plan's following step) serves the
-        second, so its delivery moves one step and is not dropped. With no
-        latch on this is ``("dhw", False)``: hot water first for its share.
-        """
-        usable = {name for name, d in self.directions.items() if d.usable}
-        first, second = ("space", "dhw") if usable == {"dhw_space"} else ("dhw", "space")
-        into = self.directions[f"{first}_{second}"]
-        if not into.usable or next_duty not in (second, "both"):
-            return first, False
-        second_min = dhw_min if second == "dhw" else step_min - dhw_min
-        return first, second_min < min_share_min + (into.median_off_s or 0.0) / 60.0
+    def split(self) -> duty_legs.LegRule:
+        """The leg rule a both step is served by: ``duty_legs.leg_rule`` of
+        :meth:`planner_pairs`, the pairs the planner prices, so planner and
+        arbiter read one rule. Read only through the latches: ``n``, the
+        tallies and ``span_days`` are not read, so evidence accruing faster on
+        one set-point unit than another moves nothing here until a latch
+        moves. With no latch on this is ``duty_legs.DEFAULT_RULE``: hot water
+        first for its share."""
+        return duty_legs.leg_rule(*self.planner_pairs())
 
     def stored_record(self) -> dict[str, Any]:
         return {"directions": {name: d.stored_row() for name, d in self.directions.items()}}
@@ -444,9 +448,9 @@ class _Record:
     unsub: Callable[[], None] | None = None
     loaded: bool = False
     dirty: bool = False
-    #: The both step whose split was decided, and the decision, latched so
-    #: neither the tick nor a re-solve inside the step flips it.
-    order: tuple[datetime, tuple[str, bool]] | None = None
+    #: The both step whose legs were decided, and the legs, latched so
+    #: neither the tick nor a re-solve inside the step flips them.
+    order: tuple[datetime, duty_legs.Legs] | None = None
 
     def feed(self, edge: tuple[datetime, bool | None] | None) -> None:
         """Hand a confirmed edge, if any, to the learner."""
@@ -540,19 +544,25 @@ def starts_attributes(coord: Any) -> dict[str, float]:
     return (rec.learner if rec is not None else DutySwitchLearner()).published(dt_util.now())
 
 
-def both_step_duty(rec: _Record, start: datetime, now: datetime, dhw_min: float, step_min: float,
-                   min_share_min: float, next_duty: str | None) -> str:
-    """The duty the both step starting at ``start`` serves at ``now``: the first
-    for its share, then the other, or the first for the whole step, as
-    :meth:`DutySwitchLearner.split` decided once per step. A record not yet
-    loaded splits as before the learner existed, hot water first, and latches
-    nothing."""
-    first, whole = "dhw", False
+def both_step_duty(rec: _Record, start: datetime, now: datetime, space_kw: float, dhw_kw: float,
+                   next_duty: str | None) -> str:
+    """The duty the both step starting at ``start`` serves at ``now``: its
+    first leg for that leg's minutes, then its last, the legs being
+    ``duty_legs.both_step_legs`` under :meth:`DutySwitchLearner.split`, decided
+    once per step. A record not yet loaded splits by ``duty_legs.DEFAULT_RULE``,
+    as before the learner existed, and latches nothing."""
     if rec.loaded:
         if rec.order is None or rec.order[0] != start:
-            rec.order = (start, rec.learner.split(dhw_min, step_min, min_share_min, next_duty))
-        first, whole = rec.order[1]
-    first_min = dhw_min if first == "dhw" else step_min - dhw_min
-    if whole or now - start < timedelta(minutes=first_min):
-        return first
-    return "space" if first == "dhw" else "dhw"
+            rec.order = (start, duty_legs.both_step_legs(space_kw, dhw_kw, rule=rec.learner.split(),
+                                                         next_duty=next_duty))
+        legs = rec.order[1]
+    else:
+        legs = duty_legs.both_step_legs(space_kw, dhw_kw)
+    return legs[0][0] if now - start < timedelta(minutes=legs[0][1]) else legs[-1][0]
+
+
+def planner_fields(coord: Any) -> dict[str, tuple[float, float]]:
+    """The ``OptimizationConfig`` fields a solve prices a duty switch by; a pump never arbitrated reads zeros."""
+    rec = _RECORDS.get(coord)
+    stops, off_s = (rec.learner if rec is not None else DutySwitchLearner()).planner_pairs()
+    return {"duty_switch_stop_probability": stops, "duty_switch_off_seconds": off_s}
