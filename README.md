@@ -591,11 +591,11 @@ every sensor is created on every install regardless of which group it is in.
 | Plan Savings Percentage | % | The same saving as a percentage | |
 | Cost Predicted | CUR | Cost of the optimized 24 h plan | |
 | Cost Baseline | CUR | Cost of the baseline over the same 24 h | |
-| DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | |
+| DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | On a combi tank, the `dhw_split` attribute says this is what the heat pump spends in hot-water mode, which includes space heat drawn from the tank |
 | Plan Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes; `saving_includes_wood` is `true` where wood is configured, because the saving then includes wood's heat and not firewood's cost | Unavailable until at least one month row exists |
 | Cost Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
 | Lifetime Space Heating Cost | CUR | Accumulating cost | |
-| DHW Cost (lifetime) | CUR | Accumulating cost | |
+| DHW Cost (lifetime) | CUR | Accumulating cost | On a combi tank, the `dhw_split` attribute says this is what the heat pump spends in hot-water mode, which includes space heat drawn from the tank |
 | Lifetime Total Heating Cost | CUR | Accumulating cost | |
 
 #### The temperatures the optimizer works in
@@ -609,7 +609,7 @@ every sensor is created on every install regardless of which group it is in.
 | Lower Floor Temperature | °C | The slab zone | Disabled by default unless the lower-floor probe is configured at setup; unavailable without it |
 | Floor Heating Return Temperature | °C | The return-water reading the slab estimate uses | Disabled by default unless the floor-return probe is configured at setup; unavailable without it |
 | Slab Temperature (Estimated) | °C | Modelled slab temperature | Disabled by default unless the floor-return probe is configured at setup; unavailable until it feeds the model |
-| Buffer Tank Temperature (Model) | °C | Modelled buffer tank temperature | Disabled by default unless the buffer-tank probe is configured at setup; unavailable without it |
+| Buffer Tank Temperature | °C | Measured buffer tank temperature | Disabled by default unless the buffer-tank probe is configured at setup; unavailable without it |
 | DHW Temperature | °C | Tank temperature, with the demand-window state and the learned cooling rate in attributes | Disabled by default unless the tank thermometer is configured at setup; unavailable without it |
 
 #### Energy, power and efficiency
@@ -621,7 +621,7 @@ every sensor is created on every install regardless of which group it is in.
 | Learning Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
 | Measured Power | kW | Real electrical draw, with the commanded power alongside | Disabled by default; unavailable until a power or energy entity is configured |
 | Lifetime Space Heating Energy | kWh | Accumulating, for the Energy dashboard | |
-| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
+| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | On a combi tank, the `dhw_split` attribute says this is what the heat pump spends in hot-water mode, which includes space heat drawn from the tank |
 | Lifetime Total Energy | kWh | Accumulating, for the Energy dashboard | |
 | Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Disabled by default; unavailable unless the capacity tariff is enabled |
 | Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Disabled by default; unavailable until a main fuse or capacity tariff bounds the house |
@@ -659,7 +659,7 @@ every sensor is created on every install regardless of which group it is in.
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
 | Model Restart Advisor | — | A refitted house heat-loss scale, and the last known-good snapshot, while predictions are drifting | Diagnostic; the Advisor tab offers both; nothing is applied until you accept one; the refit's own uncertainty is about ±7-10 % |
 
-Disabled by default: Buffer Tank Temperature (Model), Compressor Frequency
+Disabled by default: Buffer Tank Temperature, Compressor Frequency
 Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,
 Cost Power Headroom, DHW Heavy Day Demand, DHW Mixed Water, DHW Temperature,
 ECL110 Displace, ECL110 Effective Displace, Floor Heating Return Temperature,
@@ -1064,6 +1064,7 @@ Each clears itself once the cause is gone.
 - **Hot water disinfection is overdue: the heat pump's mode blocks it** — the pump reports a mode that makes no hot water, so the cycle cannot be scheduled. Change the pump's mode.
 - **Hot water has not been disinfected for N days** — no cycle has been confirmed at temperature within the interval. An immersion heater for the last few degrees, or a disinfection temperature the system can hold, is the usual answer.
 - **Hot water is not reaching the disinfection temperature** — the cycle ran and the tank fell short. Same remedies as above; the cycle is retried about a day later.
+- **The disinfection temperature is between the hot water set-point's steps** — the set-point entity only takes coarse steps, and the cycle never writes above the disinfection temperature you chose, so it writes the step below, too low to count. Raised before the cycle runs, in place of the notice above: no hardware is needed. Set the disinfection temperature to one of the two on-step values the notice names.
 - **The disinfection cycle cannot be verified** — no tank temperature sensor confirms the cycle. Assign the *Hot water tank temperature sensor* to a real probe.
 - **Disinfection goes above your hot water charge limit** — the disinfection temperature is above the charge limit. That is allowed; the notice says so, so the one hot day per interval is no surprise.
 - **The price feed and Home Assistant name different currencies** — costs are published in the feed's currency. Set Home Assistant's currency to match, or choose a price sensor in it.

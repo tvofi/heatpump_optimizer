@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_learn_house_heat_loss RETURN_DEL aa7c4f68",
+  "killed_by": "tests/features.py",
+  "old": "            return log_skip(clean, \"house heat loss\", \"frozen (%s)\", frozen)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=17."
+}

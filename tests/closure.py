@@ -589,6 +589,14 @@ INERT_EXCEPT = (
     # CI's closures-autofix refused: INERT and read. Same route as the files below:
     # the tools/audit/seat/ files stay INERT, this one moves to the recorded closure.
     "tools/audit/seat/orchestrator_tick.py",
+    # R10-CI-PRIORITY-PAUSE: that self-test reads the tier setting (owed-line ranks);
+    # dev/audit/ is INERT by prefix, so the file moves to the recorded closure.
+    "dev/audit/config/ci_priority.json",
+    # ... and that file's own readers: tests/entities.py loads the two new
+    # R10-CI-PRIORITY-PAUSE modules (ci_priority.py, ci_pause.py) and runs
+    # their self-tests, so the tools/audit/seat/ INERT prefix must not hide them.
+    "tools/audit/seat/ci_priority.py",
+    "tools/audit/seat/ci_pause.py",
     # ... and that self-test reads these three (pr_cap.py, budget_raise_gate.py,
     # app_approve.sh), which ci_predict's self-test-reads arm names UNDER-SCOPED.
     "tools/audit/seat/pr_cap.py",
@@ -680,6 +688,11 @@ INERT_EXCEPT = (
     "docs/ecl110.md",
     "docs/how-it-works.md",
     "docs/setup.md",
+    # R10-OUTSIDE-CONTRIBUTOR-CYCLE: the contributor guide is a reader doc
+    # like the four above, and CI's closures job recorded tests/doc_claims.py
+    # and tests/harness_headers.py opening it. Same route: out of the INERT
+    # prefix, into those two scripts' recorded closures.
+    "docs/CONTRIBUTING.md",
     "docs/img/model/dhw-demand-windows.svg",
     "docs/img/model/dhw-store-decay.svg",
     "docs/img/model/marginal-cop.svg",

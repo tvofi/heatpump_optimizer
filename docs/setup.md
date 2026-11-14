@@ -88,7 +88,7 @@ answers of the whole flow.*
 
 | Setting | What it asks |
 |---|---|
-| Name for this integration | Shown in front of every entity the integration creates. |
+| Name for this integration | The title of this entry under Devices & services. Entity names use the fixed device name, Heat Pump Optimizer. |
 | Electricity price source | `Tibber` uses your API token; `Price entity (Nord Pool or similar)` reads a Home Assistant price sensor. |
 | Tibber API token | Required only when the source is Tibber. Checked against Tibber before the flow continues — a network failure is reported as a connection problem, not as a bad token. |
 | Price sensor (Nord Pool or similar) | Required only when the source is an entity. |
