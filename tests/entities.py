@@ -26129,15 +26129,80 @@ R.check(
         if repr(_c) in _blob
     ),
 )
+def _diag_payload_at(when):
+    """The diagnostics payload with the clock pinned to ``when``."""
+    dt_util.freeze(when)
+    try:
+        _hass = FakeHass()
+        _entry = FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
+        _entry.runtime_data = integration.HeatPumpOptimizerCoordinator(
+            _hass, FakeEntry(data=dict(_DIAG_DATA), options=dict(_DIAG_OPTIONS))
+        )
+        return asyncio.run(_diag_mod.async_get_config_entry_diagnostics(_hass, _entry))
+    finally:
+        dt_util.freeze(None)
+
+
+def _clockless(a, b):
+    """``a`` with every value differing from ``b`` replaced by None, at any depth.
+
+    ``a`` and ``b`` are one payload taken at two pinned clocks, so what differs
+    is what the clock wrote (``exported_at``, the draw-range timestamp, any
+    later one) and no field is named here. A rounded coordinate such as "18.1"
+    is searched only in what is left, because a clock reading holds one by
+    chance (the check failed 1 of 2711 on main at 50373173).
+    """
+    if isinstance(a, dict) and isinstance(b, dict):
+        return {k: _clockless(v, b.get(k)) for k, v in a.items()}
+    if isinstance(a, list) and isinstance(b, list) and len(a) == len(b):
+        return [_clockless(x, y) for x, y in zip(a, b)]
+    return a if a == b else None
+
+
+_CLOCK_A = datetime(2026, 1, 5, 3, 4, 5, tzinfo=UTC)
+_CLOCK_B = datetime(2026, 7, 9, 10, 11, 12, tzinfo=UTC)
+_ROUNDED = tuple(
+    str(round(_c, 1)) for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
+)
+
+
+def _rounded_hits(first, second):
+    """Each rounded coordinate found in the clock-free payload, with its context."""
+    blob = _json.dumps(_clockless(first, second), default=str)
+    return [
+        f"{r!r} in ...{blob[max(0, i - 40) : i + 20]}..."
+        for r in _ROUNDED
+        for i in [blob.find(r)]
+        if i >= 0
+    ]
+
+
+_diag_a = _diag_payload_at(_CLOCK_A)
+_diag_b = _diag_payload_at(_CLOCK_B)
 R.check(
     "the location is redacted whole, from data and from options, not coarsened",
     _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
     and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION) == _HA_REDACTED
-    and not any(
-        str(round(_c, 1)) in _blob
-        for _c in (_DIAG_LAT, _DIAG_LON, _DIAG_OPT_LAT, _DIAG_OPT_LON)
-    ),
-    repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)),
+    and not _rounded_hits(_diag_a, _diag_b),
+    repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION))
+    + " / rounded matches: "
+    + "; ".join(_rounded_hits(_diag_a, _diag_b)),
+)
+# The flake, deterministically: a clock reading that holds a rounded coordinate
+# fails the whole-blob search and passes the clock-free one.
+_diag_p = _diag_payload_at(datetime(2026, 1, 5, 3, 4, 18, 100000, tzinfo=UTC))
+R.check(
+    "the rounded-coordinate search ignores a clock reading that contains one",
+    any(r in _json.dumps(_diag_p, default=str) for r in _ROUNDED)
+    and not _rounded_hits(_diag_p, _diag_a),
+    "poisoned clock: whole-blob hit expected, clock-free hit not",
+)
+# Null control: a genuinely coarsened coordinate still fails the new search.
+_coarse = {**_diag_a, "config": {**_diag_a["config"], "coarse_probe": _ROUNDED[0]}}
+_coarse_b = {**_diag_b, "config": {**_diag_b["config"], "coarse_probe": _ROUNDED[0]}}
+R.check(
+    "a genuinely coarsened coordinate in the payload still fails the clock-free search",
+    bool(_rounded_hits(_coarse, _coarse_b)),
 )
 R.check(
     "a coordinate nested below the top level, inside a list, is redacted",
