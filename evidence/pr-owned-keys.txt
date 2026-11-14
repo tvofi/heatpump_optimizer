@@ -1,0 +1,8 @@
+strings.json /options/step/entities/sections/indoor/data_description/flow_heat_c | oracle changed vs main: False | in base: True
+strings.json /options/step/entities/sections/indoor/data_description/space_setpoint_entity | oracle changed vs main: False | in base: True
+translations/en.json /options/step/entities/sections/indoor/data_description/flow_heat_c | oracle changed vs main: False | in base: True
+translations/en.json /options/step/entities/sections/indoor/data_description/space_setpoint_entity | oracle changed vs main: False | in base: True
+translations/de.json /options/step/entities/sections/indoor/data_description/flow_heat_c | oracle changed vs main: False | in base: True
+translations/de.json /options/step/entities/sections/indoor/data_description/space_setpoint_entity | oracle changed vs main: False | in base: True
+translations/sv.json /options/step/entities/sections/indoor/data_description/flow_heat_c | oracle changed vs main: False | in base: True
+translations/sv.json /options/step/entities/sections/indoor/data_description/space_setpoint_entity | oracle changed vs main: False | in base: True

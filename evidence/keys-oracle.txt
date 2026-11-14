@@ -1,0 +1,5 @@
+RESULT strings.json: pr-owned=2 oracle-checked=1505 total-head-keys=1507
+RESULT translations/en.json: pr-owned=2 oracle-checked=1505 total-head-keys=1507
+RESULT translations/de.json: pr-owned=2 oracle-checked=1505 total-head-keys=1507
+RESULT translations/sv.json: pr-owned=2 oracle-checked=1505 total-head-keys=1507
+RESULT mismatches 0
