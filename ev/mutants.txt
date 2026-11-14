@@ -1,0 +1,14 @@
+M3 custom_components/heatpump_optimizer/flow_lift.py FLOW_BIAS_CLAMP_K -> 10.0
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  ok   the placement checks fire on the baseline (wrong) claim (null control)
+  FAIL docs/configuration.md bias: the sentence states what the code decides  [{'cycle_write': 60.0, 'top_alone_drop': 5.0, 'bottom_alone': None, 'bias_below': 10.0, 'supply_max': 75.0, 'first_leg': 'space', 'default_first': 'dhw', 'fixed_fee_no_mode': 0.0} "| Price the supply temperature lift (no mixing valve) | off | on/off | For a plant with **no** mixing valve, where the pump feeds the emitters directly. When on, every plan and cost accounts for the pump working harder to make hotter water: the supply temperature is the model's own weather curve plu"]
+rc=1
+61:    first = "space" if stop_probability[0] > 0 and not stop_probability[1] > 0 else "dhw"
+M5 custom_components/heatpump_optimizer/duty_legs.py leg_rule first = "dhw"
+    first = "dhw"
+  FAIL docs/configuration.md split: the sentence states what the code decides  [{'cycle_write': 60.0, 'top_alone_drop': 
+rc=1
+restored
+0

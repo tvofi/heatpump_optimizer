@@ -1,0 +1,49 @@
+== tree 8fc95511 vs d27b79d5
+== remerge-diff d27b79d5
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1020 entries)
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (1017 entries)
+  re-run the gate that owns this file before pushing
+d27b79d5b118249c483233b0bc5d21d34ec4870c Merge origin/main 9fdba3b854 into r10-user-docs-verify
+
+diff --git a/custom_components/heatpump_optimizer/duty_switch.py b/custom_components/heatpump_optimizer/duty_switch.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/duty_switch.py
+index 1bd36a23dc..68904c9beb 100644
+--- a/custom_components/heatpump_optimizer/duty_switch.py
++++ b/custom_components/heatpump_optimizer/duty_switch.py
+@@ -38,13 +38,8 @@ weigh under five, and a sixth latches), spanning :data:`SPAN_DAYS_ON` days with
+ the evidence that still weighs: under :data:`SPAN_FLOOR_N` the days are
+ forgotten with it. Every threshold
+ here is a named constant from one day on one install, not a measurement.
+-<<<<<<< b392956a14 (Merge commit '254f0ed03e62af64f05eb5bbe56e4857207ac15d' into fix/r10-user-docs-verify-pr)
+-``n`` is held at :data:`N_CAP` by scaling both counts alike, at a booking and
+-on decay, so
+-=======
+ ``n`` is held at :data:`N_CAP` by scaling both counts alike at a booking and
+ on each decay, so a record stored over it is held to it by the first pass,
+->>>>>>> 9fdba3b854 (Merge pull request #3556 from tvofi/fix/r10-outside-learner-robustness-p3)
+ evidence from before a firmware change is outvoted in a bounded number of
+ episodes and an install that stops switching unlatches in a bounded time.
+ """
+diff --git a/tests/doc_claims.py b/tests/doc_claims.py
+remerge CONFLICT (content): Merge conflict in tests/doc_claims.py
+index a10ede79af..686d3bd59b 100644
+--- a/tests/doc_claims.py
++++ b/tests/doc_claims.py
+@@ -5278,12 +5278,9 @@ def main() -> int:
+     check_readme_marketplace()
+     check_surface_coverage()
+     check_power_feedback_claims()
+-<<<<<<< b392956a14 (Merge commit '254f0ed03e62af64f05eb5bbe56e4857207ac15d' into fix/r10-user-docs-verify-pr)
+     check_late_delta_claims()
+-=======
+     check_flow_text_claims()
+     check_docs_strings_residue()
+->>>>>>> 9fdba3b854 (Merge pull request #3556 from tvofi/fix/r10-outside-learner-robustness-p3)
+     check_stateless()
+     return R.close("checks")
+ 
+== remerge-diff 2c4889dd
+2c4889ddbcc13c84bc352cf334452a2657d6aee5 Merge remote-tracking branch 'origin/main' into fix/r10-user-docs-verify-pr
