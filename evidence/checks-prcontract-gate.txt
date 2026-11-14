@@ -1,0 +1,9 @@
+gate	132558683183	completed	success	2026-11-14T19:20:06Z
+gate	132558668193	completed	success	2026-11-14T19:20:03Z
+pr-contract	132558654521	completed	skipped	2026-11-14T19:18:59Z
+gate	132558653103	completed	success	2026-11-14T19:19:54Z
+gate	132558639491	completed	success	2026-11-14T19:19:46Z
+pr-contract	132558611855	completed	skipped	2026-11-14T19:18:49Z
+gate	132558610896	completed	success	2026-11-14T19:19:43Z
+gate	132558291389	completed	success	2026-11-14T19:18:28Z
+{"message":"Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead.","documentation_url":"https://docs.anthropic.com/en/docs/claude-code/github-actions"}

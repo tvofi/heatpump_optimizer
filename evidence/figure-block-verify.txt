@@ -1,2 +1,2 @@
-  ERROR   [figure-block] line 3: block `scope-line` is not what the registered instrument printed at 32c768ae03dd; a figure block is rendered, never typed -- run `figure_block.py refresh <body>`
-figure_block verify: 1 block(s), 1 refused
+figure_block verify: 1 block(s), 0 refused
+rc=0
