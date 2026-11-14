@@ -114,6 +114,9 @@ ROWS (the job table's `interval_s` in brackets):
                      self-tests on Linux only, so a Darwin-only read (mutant_run.py
                      listing /proc) was found only when an opener failed. It
                      detects after the merge; it does not prevent.
+                     A failed slot-take or worktree add is `darwin-selftest: UNREADABLE
+                     <step> rc=N: ...`, runs nothing and leaves the tip unremembered, so
+                     the next pass retries it.
   bottleneck [1800]  bottleneck_check.py `--checkout <repo> --train-log
                      <train_log> --wip-cap <plan_slots> --memory
                      state/bottleneck.json`: its `BOTTLENECK:` and
@@ -696,7 +699,10 @@ def darwin_selftest(ctx: Ctx) -> None:
     env = {k: v for k, v in ctx.env.items() if k != "HPO_STATE_DIR"}  # a self-test never reaches this digest
     env["HPO_SLOT_LABEL"] = DARWIN_LEASE_LABEL
     lines: list[str] = []
-    ctx.run([*gate, "slot-take", "--label", DARWIN_LEASE_LABEL, "--owner-pid", str(os.getpid())], ctx.repo, env)
+    rc, _, err = ctx.run([*gate, "slot-take", "--label", DARWIN_LEASE_LABEL, "--owner-pid", str(os.getpid())], ctx.repo, env)
+    if rc != 0:  # no lease, no heavy work; the tip stays unremembered, so the next pass retries
+        return write_job(ctx, "darwin-selftest",
+                         [f"darwin-selftest: UNREADABLE slot-take rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
     try:
         ctx.run(["git", "-C", str(ctx.repo), "worktree", "remove", "--force", str(wt)], ctx.repo, env)  # a killed pass's
         rc, _, err = ctx.run(["git", "-C", str(ctx.repo), "worktree", "add", "--detach", str(wt), tip], ctx.repo, env)
