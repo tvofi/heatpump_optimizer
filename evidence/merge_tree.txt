@@ -1,3 +1,5 @@
-merge-base 2a083d235e8a7549ac54acc8ecc8cf24f6eb8112
-82dc272b879d637552ca3f567148ccf32e024854
-merge-tree rc=0 origin/main=5288db5dadbffbaf83cb4ed258a669d46c3224fe
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (572 entries)
+  re-run the gate that owns this file before pushing
+c695cf612ba4be6f369ec6f22d0b8bfbc6239207
+mt=0

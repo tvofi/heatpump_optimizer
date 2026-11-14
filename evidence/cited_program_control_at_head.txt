@@ -1,0 +1,25 @@
+                                                "fixtures")]) == [("c.json", old, new)]
+            and _sp_moved_spellings([("c.json", f"python3 {new}")]) == [])
+_sp_cog_held = [x for x in _sp_literals(Path(_sp_cog).read_text(), opened=False)
+                if not Path(x[2].rstrip("/")).exists()]
+R.check(
+    "the cited-program arm: a cited harness that runs passes, a planted opened stale "
+    "path and a planted unloadable citation are refused, a stale path a program only "
+    "holds is not (null controls, perturbation)",
+    _sp_unit in _SP_CITED and not _sp_faults(_sp_unit)
+    and _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = open({_sp_old!r})\n")
+    and _sp_faults(_sp_unit, _sp_unit_src + f"\n_P = {_sp_old!r}\n_X = os.path.join('.', _P)\n")
+    and not _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = open(locate({_sp_old!r}))\n")
+    and not _sp_faults(_sp_unit, _sp_unit_src + f"\n_X = ({_sp_old!r},)\n")
+    and _sp_cog in _SP_CITED and len(_sp_cog_held) > 0 and not _sp_faults(_sp_cog)
+    and _sp_faults("dev/audit/rounds/round4/D11/no_such_harness.py")
+    and _sp_cited([("x.md", "run `dev/audit/rounds/round4/D11/dora_keys.py` and "
+                            "`tests/golden/config_flow.json`")])
+    == {"dev/audit/rounds/round4/D11/dora_keys.py": ["x.md"]}
+    and _sp_cited([("c.json", "run the D12 instrument (dev/audit/rounds/round4/D12/units.py)")])
+    == {_sp_unit: ["c.json"]}
+    and _sp_check_stale(_sp_unit),
+    f"units.py faults {_sp_faults(_sp_unit)}; codeowners_gap holds "
+    f"{len(_sp_cog_held)} stale literal(s), opens-faults {_sp_faults(_sp_cog)}",
+)
+# F1 (#2312): the open shapes the fix reviews planted, and the binding family

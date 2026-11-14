@@ -1,0 +1,2 @@
+  ok   every program live policy or a carry's remeasure tells a seat to run, under a historical prefix, loads and resolves the paths it opens (#2227)
+  FAIL the cited-program arm: a cited harness that runs passes, a planted opened stale path and a planted unloadable citation are refused, a stale path a program only holds is not (null controls, perturbation)  [units.py faults []; codeowners_gap holds 4 stale literal(s), opens-faults []]
