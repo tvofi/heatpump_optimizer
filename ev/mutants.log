@@ -1,0 +1,7 @@
+SURVIVED NULL
+KILLED basis_reverted_to_2
+KILLED basis_bumped_to_4
+KILLED old_basis_only_below_2
+KILLED old_basis_off
+KILLED old_basis_lt
+KILLED stamp_writes_old

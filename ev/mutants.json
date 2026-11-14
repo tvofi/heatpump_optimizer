@@ -1,0 +1,8 @@
+[
+ {"name":"basis_reverted_to_2","file":"custom_components/heatpump_optimizer/ledger.py","old":"REFERENCE_BASIS = 3\n","new":"REFERENCE_BASIS = 2\n"},
+ {"name":"basis_bumped_to_4","file":"custom_components/heatpump_optimizer/ledger.py","old":"REFERENCE_BASIS = 3\n","new":"REFERENCE_BASIS = 4\n"},
+ {"name":"old_basis_only_below_2","file":"custom_components/heatpump_optimizer/ledger.py","old":"old_basis = self.meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS","new":"old_basis = self.meta_mean(key, REFERENCE_BASIS_META) < REFERENCE_BASIS - 1"},
+ {"name":"old_basis_off","file":"custom_components/heatpump_optimizer/ledger.py","old":"old_basis = self.meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS","new":"old_basis = False"},
+ {"name":"old_basis_lt","file":"custom_components/heatpump_optimizer/ledger.py","old":"old_basis = self.meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS","new":"old_basis = self.meta_mean(key, REFERENCE_BASIS_META) < REFERENCE_BASIS"},
+ {"name":"stamp_writes_old","file":"custom_components/heatpump_optimizer/ledger.py","old":"{\"sum\": float(REFERENCE_BASIS), \"count\": 1})","new":"{\"sum\": float(OLD_REFERENCE_BASIS), \"count\": 1})"}
+]
