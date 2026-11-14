@@ -46357,19 +46357,25 @@ _sb_row = _sb_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
 _sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
 R.check(
     "a month's first savings booking stamps the reference in force, once",
-    _sb_meta == {"sum": float(_SB_NOW), "count": 1} and _sb_row["old_basis"] is False
+    # The literal is the persisted stamp this release writes: a bump is deliberate.
+    _sb_meta == {"sum": 2.0, "count": 1} and _SB_NOW == 2 and _sb_row["old_basis"] is False
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
-# The stamp is a persisted value: a v2 store already on disk holds the literal
-# 1.0 this release writes, and that month must keep reading as current.
+# The stamp is a persisted value: a v2 store on disk holds the literal 1.0 that
+# v7.1.15 wrote under the reference spread by steady demand, which R10-SAV-
+# VALUATION-RESIDUE removed. Such a month mixes two references once it books on.
 _sb_disk = _sb_copy.deepcopy(_sb_led.as_dict())
 _sb_disk["months"]["2026-02"]["meta"][_SB_META] = {"sum": 1.0, "count": 1}
-_sb_disk_row = _SavLedger.from_dict(_sb_disk).savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+_sb_disk_led = _SavLedger.from_dict(_sb_disk)
+_sb_disk_led.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 4, 0), 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+_sb_disk_row = _sb_disk_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
 R.check(
-    "a month a v2 store holds stamped 1 reads on the current reference",
-    _sb_disk_row["old_basis"] is False and _sb_disk_row["savings_sek"] is not None,
-    repr(_sb_disk_row),
+    "a month stamped 1, the spread reference, states no saving after the change",
+    _sb_disk_row["old_basis"] is True and _sb_disk_row["savings_sek"] is None
+    and _sb_disk_row["savings_pct"] is None and _sb_disk_row["baseline_sek"] is not None
+    and _sb_disk_led.months["2026-02"]["meta"][_SB_META] == {"sum": 1.0, "count": 1},
+    repr((_sb_disk_row, _sb_disk_led.months["2026-02"]["meta"])),
 )
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
