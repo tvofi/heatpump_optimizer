@@ -2,7 +2,7 @@ R10-PLAYBOOK-ROUND-START: adds one section, "Round start", to `dev/audit/README.
 
 ## Head
 
-6a42af4a95685d8e72b1559bdd08c78647000ef8
+76aca12e6f9c5089c76434c5f8ec4af91a676909 (repair of verdict/3600 at bf719e68 on 6a42af4a; fast-forward; the delivery-row commit e3df1f1c is re-carried by the train)
 
 ## Approval
 
@@ -19,7 +19,7 @@ Pointer targets, each by command at this head:
 
 ## Null control
 
-- Enumerator 2 (groups at no done/absorbed/refused stage), run in a scratch tree: a roster of one `done` and one `refused` group prints nothing; replacing one with a `deferred` group prints `R11-PRE-X deferred`.
+- Enumerator 2 (groups outside `roster_lib.FINISHED_STAGES` plus `refused`), the README's line run verbatim in scratch trees (`enum_control.sh`): `done` + `refused` prints nothing; `rca-done` + `refused` prints nothing (the literal it replaces printed `A rca-done`, the review's control); `deferred` + `absorbed` prints `A deferred`; all rc 0. At this head's roster it lists 46 groups, the review's count.
 - Enumerator 1 (`carry_audit.roster_report`, called on a minimal roster): a `done` group with no carry returns `[]`; a `deferred` group holding a carry returns one `STRANDED R10-A (deferred) carry[0]` line.
 - Neither enumerator itself refuses a round start: the one-liner exits 0, and `carry_audit.py roster` exits 1 only on stranded carries. The section says to read both to none; no instrument refuses a baseline over an undispositioned line yet (see Forward-carry).
 
@@ -41,6 +41,23 @@ none.
 
 - brief-citations: unclear: a group id cited in the playbook (R11-PRE-OBJECTIVE-FUNCTION) is resolved by nothing, so a rename of the group strands the pointer unseen. Carry: R11-INTAKE-R10-RESIDUE
 
+## Review answer (verdict/3600, bf719e68, evidence-cut)
+
+Restored in `dev/audit/README.md`, the three sole-copy constraints the previous payment cut. The role contracts they bind sit at their token caps (`designer.md` 877/878, `root-cause.md` 998/998, `architect-planner.md` 1261/1261, `plan-review.md` 304/304), so each stays in the playbook:
+1. The instrument-defect paragraph: a verifier who cannot make the accused check fire "has not refuted it, and says which they could not separate". `git grep -F "says which they could not separate" HEAD -- dev/governance dev/audit/README.md .claude CLAUDE.md AGENTS.md tools/audit`: one hit, `dev/audit/README.md:283`; at e3df1f1c, none.
+2. The context-rotation bullet: about 150 k tokens for mechanical and relay seats, about 300 k for designers, pre-studies, root-cause and plan seats, about 500 k for the orchestrator; fixers, reviewers and standing seats point at `fixer.md:10`, `fix-review.md:8` and `standing.md:39`, which state theirs. The same grep for "150 k tokens for mechanical and relay seats" and "for designers, pre-studies, root-cause and plan seats": one hit each, `dev/audit/README.md:70` and `:71`; at e3df1f1c, none.
+3. The moved-paths paragraph: "A seat re-running a retired one repairs it first." The same grep: one hit, `dev/audit/README.md:274`; at e3df1f1c, none.
+
+Finding (enumerator 2 hard-codes its closed set): built here, since the one-liner is this group's own seam. It now reads `roster_lib.FINISHED_STAGES` plus `refused`; controls under Null control. The refusing instrument stays where the review carried it (the third Forward-carry item).
+
 ## Budgets
 
-`node tools/policy/policy_lint.mjs --budgets` before: the file at its line and token caps with 6 lines and 9 tokens of headroom. After: 314 lines and 6057 tokens against caps of 321 and 6059; corpus inside cap plus band; `node tools/policy/policy_lint.mjs` 0 errors. No cap touched. Paid by cutting from the same file: the deferred-groups reopen bullet (superseded by the pickup), the context-rotation sizes (now a pointer to `fixer.md` and `standing.md`), a session-load figure, the `j5_gil.py` trailing paragraph, a stale-figure parenthesis and a sentence duplicating `fixer.md` step 2 in Lessons, and tightening of the Rounds 1-3, merge-queue, moved-paths, instrument-defect and protection-census paragraphs, plus compressing this section to one line per step.
+`node tools/policy/policy_lint.mjs --budgets`, the one touched file (labelled `tools/audit/README.md` in the table; `dev/audit/README.md`, 312 lines by `wc -l`):
+- merge base 23cc7b8e: 315 lines / 6050 tokens against caps 321 / 6059.
+- before this repair (6a42af4a): 314 / 6057; corpus ~68955 against 68618 + 500.
+- this head: 312 / 6049; corpus ~68947 against 68618 + 500 = 69118; always-loaded, role record and role policy unchanged (3605, 7428, 10014). No cap, band or `*_budgets.json` touched; `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 51 policy file(s)`.
+
+Payments, each with its surviving copy at this head:
+- Cut the `tests/plan_view.py` trap ("per-checkout plan payload under `/tmp` ... `card.mjs` alone falls back to an unhashed legacy path ... Set `HPO_PLANDATA` per harness"). Second copies: `tests/README.md:390-394` (`HPO_PLANDATA` defaults to a per-checkout `/tmp` path; "`card.mjs` alone falls back to an unhashed default under `/tmp` with a warning ...; every other Node harness requires it") and `dev/audit/README.md:193` ("It sets a private `HPO_PLANDATA` under that root before any Node harness").
+- Cut the `tests/env_drift.py` trap ("runs `git worktree add` in the repository it is run from and refuses a ref that resolves to `HEAD`"). Second copy: `tests/README.md:298-313` (the working tree against "a worktree of a reference commit", "the refusal of a ref that resolves to `HEAD`", and that refusal's two consequences for a hand run).
+- The previous payment's cuts the review accepted stay cut, each with the second copy it named: the 0.00-0.06 h replay figure, the spelling-corpus sentence (`fixer.md` step 2), the `j5_gil.py` FakeHass sentence (README Traps), the s14 load figure, and the deferred-groups bullet (replaced by pickup step 1; declared policy below the owner's review).
