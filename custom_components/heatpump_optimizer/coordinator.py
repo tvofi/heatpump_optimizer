@@ -5312,11 +5312,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return self._thermal_model.compute_cop_dhw(outdoor, tank), True, tank
         return None, False, None
     def _learn_measured_cop(self, draw: draw_range.DrawRange | None = None) -> None:
-        """Fold this interval into the COP learner (``draw``: the running-draw evidence), then
-        each held one ``MeasuredCop.release`` lets out, at the scale it was read at."""
-        self._measured_cop.refusal = self._fold_measured_cop(draw)  # the interval's own code stands
-        for row in self._measured_cop.release(draw, getattr(self, "_ctx", self)._thermal_params, dt_util.now()):
-            self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
+        """Fold this interval into the COP learner (``draw``: the running-draw evidence)."""
+        self._measured_cop.refusal = self._fold_measured_cop(draw)
     def _fold_measured_cop(self, draw: draw_range.DrawRange | None) -> str | None:
         """Compare measured electrical input with modelled thermal output.
 
@@ -5341,6 +5338,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         commanded = self._commanded_power()
         params = ctx._thermal_params
+        # Past the freeze gate (a frozen cycle moves no scale): the held intervals ``MeasuredCop.release`` lets out.
+        for row in self._measured_cop.release(draw, params, dt_util.now()):
+            self._fold_cop_evidence(row.asked_kw, row.drawn_kw, None, row.reference, row.cop_scale)
         if self._measured_power is not None and (refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params, draw)):
             return refusal
 
@@ -5365,7 +5365,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # v4.0.5: without a heat reading this ratio trains the scale only while the pump
         # plausibly runs the plan: outliers are judged against a walking ratio EWMA (a fixed gate
         # deadlocks past it), a draw off the ask on draw_range's evidence; heat skips both.
-        # The two guards leave a power here. The row is what a held interval replays.
         row = CopInterval(commanded, cast(float, self._measured_power), self._cop_reference_curve(), self._cop_scale, dt_util.now())
         ewma = self._measured_cop.walk_ratio(row.ratio)
         if heat_kw is None and (refusal := self._measured_cop.judge_ratio(ewma, row, params, draw)):
@@ -5381,8 +5380,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self, commanded: float, electrical_kw: float, heat_kw: float | None,
         reference: tuple[float | None, bool, float | None], read_scale: float | None = None,
     ) -> str | None:
-        """The COP fold's tail on one interval's evidence: a cycle's, a counter
-        span's, or a held one's read at ``read_scale`` (None: the live scale)."""
+        """The COP fold's tail on one interval's evidence: a cycle's, a counter span's, or a held one's read at ``read_scale``."""
         modelled_cop, cop_curve_dhw, cop_dhw_temp = reference
         if modelled_cop is None:
             # A genuinely blended interval: one ratio cannot be attributed to
@@ -5421,6 +5419,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "against a modelled %.2f; scale now %.3f (%d samples)",
             commanded, electrical_kw, observed_cop, modelled_cop, self._cop_scale, self._cop_samples,
         )
+        if read_scale is not None:
+            return None  # a held interval trains the scale alone: the tail below reads THIS cycle's draw, ask and outdoor
         # #12: a measured sample, vetted on this path for frost, immersion, freezes and
         # low duty, feeds the health watch; an inference or estimate trains the scale alone.
         if measured:

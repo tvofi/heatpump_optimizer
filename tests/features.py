@@ -66328,7 +66328,8 @@ _P5_DISPOSED = {
     # #2261: the COP fold's tail. _fold_measured_cop consults the freeze, and
     # a heat counter's span folds only when that consult passed on every cycle
     # of the span (_async_learn_heat_span); the two below it are fed only here.
-    "_fold_cop_evidence": "the COP fold's tail; both callers gate it on the freeze",
+    "_fold_cop_evidence": "the COP fold's tail; both callers gate it on the freeze, "
+    "_fold_measured_cop's release of held intervals included",
     "_fold_capacity_envelope": "fed only from _fold_cop_evidence's gated tail",
     "_observe_cop_health": "fed only from _fold_cop_evidence's gated tail",
     "_init_frequency": "construction",
@@ -74702,9 +74703,10 @@ R.check(
 )
 
 # Through the cycle. A held interval folds against the scale it was read at:
-# asked 2.0 kW at scale 1.0 and drawing 2.5 says the scale is 0.8. Released
-# after the live scale has reached 0.8, it must leave the scale where it is;
-# read against the live scale it would say 0.64 and pull the scale down.
+# asked 2.0 kW at scale 0.9 and drawing 2.5 says the scale is 0.72. Released
+# after the live scale has reached 0.72, it must leave the scale where it is;
+# read against the live scale it would say 0.576 and pull the scale down, and
+# read against 1.0 it would say 0.8 and push it up.
 def _df_cycle(coord, asked, drawn, window):
     coord._current_action = {"power": asked, "dhw_power": 0.0}
     coord._measured_power = drawn
@@ -74712,19 +74714,67 @@ def _df_cycle(coord, asked, drawn, window):
     coord._learn_measured_cop(window)
 
 
-_df_rp = _cf_coord()
-_df_rp._measured_cop.ratio_ewma = 1.25
-_df_cycle(_df_rp, 2.0, 2.5, _cf_drm.DrawRange())
+def _df_hold_one():
+    coord = _cf_coord()
+    coord._apply_cop_scale(0.9)
+    coord._measured_cop.ratio_ewma = 1.25
+    _df_cycle(coord, 2.0, 2.5, _cf_drm.DrawRange())
+    return coord
+
+
+_df_rp = _df_hold_one()
 _df_rp_held = (len(_df_rp._measured_cop.held), _df_rp._measured_cop.held[0].cop_scale, _df_rp._cop_samples)
-_df_rp._apply_cop_scale(0.8)
+_df_rp._apply_cop_scale(0.72)
 _df_cycle(_df_rp, 0.3, 0.3, _cf_window(_cf_lit48))  # this interval is under the duty floor
 R.check(
     "a released interval folds against the scale it was read at, and the "
     "interval that released it keeps its own refusal",
-    _df_rp_held == (1, 1.0, 0) and _df_rp._cop_samples == 1 and abs(_df_rp._cop_scale - 0.8) < 1e-12
+    _df_rp_held == (1, 0.9, 0) and _df_rp._cop_samples == 1 and abs(_df_rp._cop_scale - 0.72) < 1e-9
     and _cf_last(_df_rp, "refusal") == "duty_floor" and len(_df_rp._measured_cop.held) == 0,
     f"held {_df_rp_held}; after release {_df_rp._cop_samples} sample(s), scale {_df_rp._cop_scale!r}, "
     f"refusal {_cf_last(_df_rp, 'refusal')}",
+)
+# A release sits behind the learner's freeze gate and its missing-reading
+# guard: a cycle the learners are frozen on, or one with no power reading,
+# moves no scale and lets nothing out, whatever the evidence says; the next
+# live cycle releases.
+_df_frz = _df_hold_one()
+_df_frz_live = _df_frz._learning_frozen
+_df_frz._learning_frozen = lambda *entities, **_kw: "stale_inputs"
+_df_cycle(_df_frz, 2.0, 2.0, _cf_window(_cf_lit48))
+_df_frz_then = (_df_frz._cop_samples, len(_df_frz._measured_cop.held), _cf_last(_df_frz, "refusal"))
+_df_frz._learning_frozen = _df_frz_live
+_df_frz._current_action = {"power": 2.0, "dhw_power": 0.0}
+_df_frz._measured_power = None
+_df_frz._learn_measured_cop(_cf_window(_cf_lit48))
+_df_frz_nopower = (_df_frz._cop_samples, len(_df_frz._measured_cop.held), _cf_last(_df_frz, "refusal"))
+_df_cycle(_df_frz, 0.3, 0.3, _cf_window(_cf_lit48))
+R.check(
+    "a frozen cycle and one with no power reading release nothing and fold "
+    "nothing; the next live cycle releases the held interval",
+    _df_frz_then == (0, 1, "learners_frozen") and _df_frz_nopower == (0, 1, "no_measured_power")
+    and (_df_frz._cop_samples, len(_df_frz._measured_cop.held)) == (1, 0),
+    f"frozen {_df_frz_then}; no power {_df_frz_nopower}; live "
+    f"{(_df_frz._cop_samples, len(_df_frz._measured_cop.held))}",
+)
+# A replayed interval trains the scale alone. The fold's tail reads THIS
+# cycle's draw, command and outdoor bucket for the capacity envelope, none of
+# which is the held interval's: a near-nameplate live fold feeds the envelope
+# (control), the same evidence replayed feeds nothing.
+def _df_envelope(read_scale):
+    c = _t2_coord(capacity_curve_enabled=True, heat_pump_power_entity="sensor.hp_power")
+    c._current_state.outdoor_temperature = 8.0
+    c._current_action = {"power": 4.9}
+    c._measured_power = 4.6
+    code = c._fold_cop_evidence(4.9, 4.6, None, (3.0, False, None), *([] if read_scale is None else [read_scale]))
+    return code, c._cop_samples, bool(c._capacity_envelope)
+
+
+R.check(
+    "a replayed interval folds the scale and not the capacity envelope; the "
+    "same evidence folded live feeds the envelope (control)",
+    _df_envelope(1.0) == (None, 1, False) and _df_envelope(None) == (None, 1, True),
+    f"replay {_df_envelope(1.0)} / live {_df_envelope(None)}",
 )
 _df_view = _cf_coord()
 _df_view._measured_cop.ratio_ewma = 1.25
