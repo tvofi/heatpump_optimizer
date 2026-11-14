@@ -909,7 +909,7 @@ async def handle_apply_topology(hass: HomeAssistant, call: ServiceCall) -> dict[
         ):
             raise ServiceValidationError(
                 f"This system cannot use the "
-                f"'{topology.LAYOUTS[key].label}' layout: it needs "
+                f"{topology.LAYOUTS[key].label} layout: it needs "
                 f"{topology.LAYOUTS[key].requirement}",
                 translation_domain=DOMAIN,
                 translation_key="apply_topology_unsupported",
@@ -1194,7 +1194,8 @@ async def handle_factory_reset(hass: HomeAssistant, call: ServiceCall) -> dict[s
         if not await async_factory_reset(coord, data["scope"]):
             raise HomeAssistantError(
                 f"The factory reset of {data['entry_id']} was not applied: Home "
-                "Assistant refused to unload the entry; nothing was changed",
+                "Assistant refused to unload the entry; settings and learned state are "
+                "unchanged, and only the undo snapshot the reset takes first was saved",
                 translation_domain=DOMAIN,
                 translation_key="factory_reset_not_applied",
                 translation_placeholders={"entry_id": data["entry_id"]},

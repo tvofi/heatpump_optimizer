@@ -1,3 +1,39 @@
+## v7.1.17
+
+**Patch stamp: 18 merges since v7.1.16 (`git log --first-parent --merges --format=%h v7.1.16..HEAD | wc -l`): a Pump duty control install whose space set-point stayed stuck after an upgrade now releases on its own, a disinfection cycle that the hot water set-point's step would leave uncounted is now named before it runs, the savings reference changes basis, and the settings pages, the card and the docs now describe what the integration does; the rest is tooling.**
+
+### No action needed
+
+No step is asked of you. None of the merged changes touches the config-entry schema, the options or the entity ids (`config_flow.py`, `const.py` and `entry_config.py` are unchanged since v7.1.16; the settings changes are help text only). If you set your space set-point entity by hand to release it after #3404, that is no longer needed, and a value you set stays respected.
+
+### #3561 A stuck space set-point releases on its own (R10-HOTFIX-FLOW-SETPOINT-STUCK)
+
+With Pump duty control at Control and a space set-point entity, an install upgraded from v7.1.11 or earlier could leave that entity at its idle value (25 °C on a flow set-point) on every step, a space-heating boost included, because the optimizer held back the write until the entity read something else. The optimizer now always writes the step's value. What "Optimizer active off" restores in that case is the pump's own heating value (35 °C or the weather curve for a water unit, the planned room temperature for an indoor one) rather than the idle value, and a value you set by hand is still taken as your baseline. The v7.1.12 notes carry the matching upgrade note; its phrase "the release that follows v7.1.15" means this release, v7.1.17.
+
+### #3581 A disinfection cycle the set-point step would leave uncounted is named before it runs (R10-DISINFECTION-STEP-NOTICE)
+
+When the hot water set-point entity only takes coarse steps and the disinfection temperature you chose falls between two of them, the cycle writes the step below, too low to count, so it ran, was credited nothing and was retried a day later. A repair notice (`dhw_legionella_off_step`, in en, sv and de) now says so before the cycle runs and names the two temperatures on the step to pick from; it is raised in place of the "needs hardware" notice, clears itself once the setting is on a step, and changes nothing about what is written. README lists it. Completes outside pull request 3439 by Bankaifan, with thanks.
+
+### #3574 The savings reference is booked as simulated (R10-SAV-VALUATION-RESIDUE, part 2)
+
+Behind a mixing valve, the savings reference was re-spread by steady demand, which booked the first step above the held state's own equilibrium and so overstated what the reference used. The reference is now booked as simulated. The reference changes, so a month that v7.1.15 or v7.1.16 stamped with the old reference states its two columns and no saving after you upgrade, rather than one saving over two references; months from here on use the new one.
+
+### #3569 A stored duty-switch record over its cap is held to it (R10-DUTY-SWITCH-PLANNER-PRICE, part C)
+
+The restart-learning record for hot-water and heating switches is now held to its cap on each decay too, so a record written before the cap existed no longer prices a switch for extra half-lives. Finishes the work of #3526 and outside pull request 3420 by Bankaifan, with thanks.
+
+### #3564, #3563, #3576, #3567 Settings pages, card, plan texts and docs now say what the code does
+
+The config and options flow texts (#3564, R10-CONFIG-FLOW-TEXT-VERIFY), the dashboard card's texts (#3563, R10-USER-TEXT-VERIFY-CARD) and the away, disinfection, circulation and set-point-unit texts (#3576, R10-DOCS-STRINGS-RESIDUE) were each read against the code that decides them, and the false or stale sentences were corrected in English, Swedish and German. Examples: the away text no longer says the anti-legionella cycle is timed to finish before you get back (it keeps its usual interval); the set-point entity help says that under Control it is written every plan step; the target-temperature help names the daytime and night-time comfort temperatures the plan aims for; the card's health, advisor, plan and score texts match what is shown. #3567 (R10-USER-TEXT-VERIFY-STRINGS) does the same for everything else the integration shows: repair notices, service descriptions, entity names and the plan narrative. For example, the plan reasons now read "Charging the tank ahead of the hot water windows" and "Heating hot water inside a hot water window", the room-heating mode label "Pre-heating" reads "High output", the Buffer Tank Temperature (Model) sensor is named Buffer Tank Temperature (a display name only; entity ids are unchanged), the optimize service says it does not fetch new prices, and a refused factory reset says only the undo snapshot was saved. Text only; no setting, default or behaviour changes in these four. One what-if service field, the wood price per m3, now has a minimum of 1 in its selector.
+
+### Developer tooling, CI and audit machinery only
+
+#3585 (closeout cleanup, a hook comment), #3570 (closeout prep part 3, the brief linter), #3584 (sweep reads a deferral red as a verdict), #3573 (gate defer barrier part 2), #3547 (prepr residue part 2), #3544 (review dispatch residue part 5), #3579 (entities redaction check clock flake), #3578 (features check weekend clock), #3572 (wave-script grader).
+
+### Record only
+
+#3586 (delivery rows, autofix).
+
 ## v7.1.16
 
 **Patch stamp: 13 merges since v7.1.15 (`git log --first-parent --merges --format=%h v7.1.15..HEAD | wc -l`): the hot-water and heating plans can take the pump's own start condition, the planner prices a hot-water to heating switch that stops the compressor, and the savings reference no longer books heat the pump could not deliver; the rest is tooling.**

@@ -382,7 +382,7 @@ simulate_plan:
     wood_price_sek_m3:
       selector:
         number:
-          min: 0
+          min: 1
           max: 10000
           step: 1
           unit_of_measurement: SEK/m³
