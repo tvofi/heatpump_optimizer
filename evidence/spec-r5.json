@@ -1,7 +1,0 @@
-[{"name": "note-replayed", "file": "tools/plan/size_durations.py", "old": "input_note(via, since, len(prs), replayed)", "new": "input_note(via, since, len(prs), False)"},
- {"name": "note-replayed-true", "file": "tools/plan/size_durations.py", "old": "input_note(via, since, len(prs), replayed)", "new": "input_note(via, since, len(prs), True)"},
- {"name": "run-cache-none", "file": "tools/plan/size_durations.py", "old": "read_prs(reads, via, repo_owner, since, cache)", "new": "read_prs(reads, via, repo_owner, since, None)"},
- {"name": "read-noreplay", "file": "tools/plan/size_durations.py", "old": "    if cache and Path(cache).is_file():\n", "new": "    if False:\n"},
- {"name": "read-replay-false", "file": "tools/plan/size_durations.py", "old": "encoding=\"utf-8\")), True\n", "new": "encoding=\"utf-8\")), False\n"},
- {"name": "note-replay-text", "file": "tools/plan/size_durations.py", "old": "\", replayed from a --prs-cache file.\" if replayed", "new": "\".\" if replayed"},
- {"name": "note-cond-inv", "file": "tools/plan/size_durations.py", "old": "if replayed else \".\"))", "new": "if not replayed else \".\"))"}]

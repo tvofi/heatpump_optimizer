@@ -1,6 +1,0 @@
-SURVIVED NULL
-KILLED arm-roster-write
-KILLED arm-cache-write
-KILLED arm-flag-false
-SURVIVED arm-check-del
-SURVIVED arm-stub-noraise
