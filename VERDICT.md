@@ -1,17 +1,28 @@
-Fix review: merge 68646456c774b1d0e58e6c79f6fd0a38281d334c
+Fix review: blocked b3b51d4258a1fa4861cd74341925f307773c0f45 carry-missing: not carried to R10-ECL110-MQTT-OFF-NEUTRAL
 
-bus-nonce: c9cdd61a64ba8c50f284d4cb7a65bffe
+bus-nonce: a0842a5370f4315db6432bb987b5aae9
 
-Round 2 delta re-check of the carry-missing class only. No pull request yet, so no review packet and no CI. Code head unchanged (68646456c774b1d0e58e6c79f6fd0a38281d334c); the earlier code review, mutation proof and controls stand.
+Round 1 (handoff review, no pull request yet). Measured at the handoff tip b3b51d4258a1fa4861cd74341925f307773c0f45, detached worktree, base ee64358be7ee.
+
+## Block
+
+The body defers two sibling sites, `async_publish_current_action`'s displace value and set-point for the earlier step, and the published payload's `heat_pump_on`, which can now disagree with the switch for the landing step. Under `## Forward-carry` it sends both with `Carry: R10-ECL110-MQTT-OFF-NEUTRAL`. That group's roster entry on `handoff/audit-r10-roster` at 2a5534a7253b0213a3f4b4d14bf752ab80af0012 has `carry: []`. Its `brief` covers only making the MQTT displace neutral on MODE_OFF and unload (owner ruling, ghc-d02) and says nothing about a late-landing cycle, `cycle_supply` or pull request 3457 (ev/roster-carry-target.txt). Under finding-propagation.md the carry must be in that stage's brief before the pull request merges, and the body must name the file and the roster branch SHA. Neither is true, so fix-review.md step 10 gives `carry-missing`. That group is also a different seam (off/unload neutrality, not the action re-cut for the landing step). The re-cut owes a destination that owns the publish seam (a live group's brief, or `dev/programme/carries/carry-<N>.json`), written with its control: a cycle landing one step late, comparing the published `heat_pump_on` and displace against the switch write, with the null control of the same cycle inside its own step. finding-propagation.md also requires the finding to be measured first: the body only asserts "can disagree", with no measurement.
 
 ## Findings
 
-- The two earlier findings (vacuous stale-plan null control wording; no committed finder's harness) were dismissed in round 1 and are unchanged. Carry: dismissed: settled in the first round, no production behaviour at stake
+- The `stale plan` null control is vacuous, and the body's `## Unpinned sites` misstates it. `_apply_action` returns at its stale-plan gate (coordinator.py, the `_plan_is_stale()` branch) before `cycle_supply` is reached, so both arms of that control compare empty call lists. Measured: mutant m3 (`return bool(step)`, which drops the action fallback) turns the fixed-mode and system-identification checks red, but `null control: stale plan` stays ok (ev/features-m3.txt), so that item does not move under its own perturbation. The body's line "stale plan keep the action's command" is pinned by no value check, and the `step_supply` stale branch cannot be reached from this call site. No behaviour is at risk. The re-cut should restate the line. Carry: dismissed: a body wording fix owed by the re-cut this block returns, no production behaviour at stake
+- The finding has no committed finder's harness. Triage f4 verified the defect by reading. The closest thing to a finder's harness is the contributor's two checks (commit 10b00a027, Bankaifan), and those were the ones I re-ran. The other checks and controls are the fixer's own, disclosed as such. Carry: dismissed: an outside-intake defect verified by reading; the contributor's checks serve as the harness and move under the mutation
 
 ## Evidence
 
-- RESULT carry: `carry_audit.py landed` against origin/handoff/audit-r10-roster (a6e03cd72a, contains 84184ae668) prints "CARRY-LANDED: 0 missing" (ev/carry-landed.txt).
-- RESULT self-contained: the roster carry (ev/roster-carry-entry.txt) names pull request 3457, `cycle_supply`, both sites (`async_publish_current_action` displace/set-point; the legacy payload's `heat_pump_on`) and the control (cycle landing one step late vs switch write; null: same cycle inside its step). The old "sites above" wording is gone; the body (8293b160) names both sites inline and cites roster commit 84184ae668.
-- RESULT body delta: only the three carry lines changed versus the prior body; all other claims unchanged.
-- RESULT merge: git merge-tree --write-tree origin/main 68646456c774b1d0e58e6c79f6fd0a38281d334c rc=0, no conflict (ev/merge-tree.txt).
-- Reds: no CI before the PR opens; not re-run.
+- No review packet, no pull request and no CI exist before the pull request opens. No checks were read and none were waited on. `merge_train.py owed-reds` lists tests / coverage-ratchet, tests / fast (3.14), tests / mutation, tests / typing, validate / validate-hacs (ev/owed-reds.txt). The body answers `tests / fast` as main's inherited combi census, and that census is the only red at the head here.
+- RESULT head: `PYTHONPATH=tests/hastub:tests python3 tests/features.py` gives `1 of 5250 FEATURE CHECKS FAILED`, the single FAIL being `combi_type_branch census` (inherited from main), rc=1. This matches the body's figure (ev/features-wt.txt).
+- RESULT mutation proof (the fixer's mutant m1, `cycle_supply` returns `on`): exactly the two landing-step checks go red: `a cycle whose ON action was cut in the last step writes the OFF of the step it lands in` [['turn_on']] and `a cycle whose OFF action was cut ... writes the ON ...` [turn_off] (ev/features-m1.txt, ev/mutant-m1.diff). Confirmed.
+- RESULT baseline (m2: main's production line restored in `_apply_action`, keeping the head's tests): the same two checks are red and every null control is ok. The defect is present at main and fixed at the head (ev/features-m2.txt).
+- RESULT mutant m3 (`return bool(step)`): the fixed comfort null control, `a fixed mode` / `system identification: a write landing in the later step keeps its own command`, and two older pump-switch checks go red. The fallback branch is pinned by value for fixed mode and system identification, but not for a stale plan (see Findings) (ev/features-m3.txt).
+- In-step identity, by reading: the action's `heat_pump_on` is `plan_step_runs(result, idx)` (coordinator.py:3181), which is the same function `step_supply` returns. The system-identification override marks `mode: system_identification` (coordinator.py:11124), so `step_supply` returns None. `boost.overlay` sets ON (boost.py:345,352) and `step_supply` returns True under a live boost. Fixed modes return None. No `heat_pump_on` write exists in pump_arbiter.py or the fuse advisor. So inside its own step the new call returns the action's value in every mode, and this agrees with the measured null controls.
+- Merge: `git merge-tree --write-tree origin/main <head>` gives rc=0 with no conflict (ev/merge-tree.txt). The head is 0 commits behind main at review.
+- Claims and versions: the diff touches only coordinator.py, pump_arbiter.py and tests/features.py (ev/diff-files.txt). No golden or claim file moved. VERSION, the manifest and RELEASE_NOTES are untouched. No budget file changed.
+- `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- Not re-derived: the cut-to-write time and the boundary-crossing share. The body declares them not measured (allowed by the brief), and I did not measure them either.
+- Body head SHA equals the handoff tip measured, b3b51d4258a1fa4861cd74341925f307773c0f45.
