@@ -1,0 +1,14 @@
+reviewed head: 00a470f7b770dae74f13a2ad1a2f66440f6821b2
+[X=1]
+== M1 merge-base replaced by the ref: rc 0; selftest_scope self-test: 148 checks, 0 failed
+[GITHUB_BASE_REF=main]
+== M1 merge-base replaced by the ref: rc 0; selftest_scope self-test: 148 checks, 0 failed
+[X=1]
+== M3 deletion exemption widened to every path the diff touches: rc 0; selftest_scope self-test: 148 checks, 0 failed
+[GITHUB_BASE_REF=main]
+== M3 deletion exemption widened to every path the diff touches: rc 0; selftest_scope self-test: 148 checks, 0 failed
+[X=1]
+== M9 self-test env not held (control, must die): rc 0; selftest_scope self-test: 148 checks, 0 failed
+[GITHUB_BASE_REF=main]
+== M9 self-test env not held (control, must die): rc 1; selftest_scope self-test: 148 checks, 1 failed
+  FAIL static, ids and select over a fresh table

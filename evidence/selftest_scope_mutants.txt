@@ -96,30 +96,26 @@
 == the union drops a committed list entry: self-test rc 1
      FAIL union_entries keeps a committed read and flag the run did not measure, adds the run's, takes the run's run_sha and drops an entry no step measured
      FAIL check --write: a planted committed read and flag the run did not measure survive the write
-     FAIL static, ids and select over a fresh table
      FAIL union_record: recording one step over an entry holding reads the trace lacks keeps them
      FAIL shrink_drops: an additive head drops nothing (null control)
      FAIL shrink_gaps: a committed additive table change passes (null control)
-   selftest_scope self-test: 148 checks, 6 failed
+   selftest_scope self-test: 148 checks, 5 failed
 == the union drops a committed flag: self-test rc 1
      FAIL union_entries keeps a committed read and flag the run did not measure, adds the run's, takes the run's run_sha and drops an entry no step measured
      FAIL check --write: a planted committed read and flag the run did not measure survive the write
-     FAIL static, ids and select over a fresh table
      FAIL union_record: recording one step over an entry holding reads the trace lacks keeps them
      FAIL shrink_drops: an additive head drops nothing (null control)
      FAIL shrink_gaps: a committed additive table change passes (null control)
-   selftest_scope self-test: 148 checks, 6 failed
+   selftest_scope self-test: 148 checks, 5 failed
 == drift refuses a probe the run's own listed dir answers: self-test rc 1
      FAIL drift: a probe under a directory the run listed is refused once, as the dirs miss, live and compacted alike (null control: the compaction dropped it)
    selftest_scope self-test: 148 checks, 1 failed
 == CI never settles the index: self-test rc 1
-     FAIL union_entries keeps a committed read and flag the run did not measure, adds the run's, takes the run's run_sha and drops an entry no step measured
      FAIL the live job settles the index in an untraced step before its first traced one
-   selftest_scope self-test: 148 checks, 2 failed
+   selftest_scope self-test: 148 checks, 1 failed
 == CI swallows a failed settle: self-test rc 1
-     FAIL drift: a probe under a directory the run listed is refused once, as the dirs miss, live and compacted alike (null control: the compaction dropped it)
      FAIL the live job settles the index in an untraced step before its first traced one
-   selftest_scope self-test: 148 checks, 2 failed
+   selftest_scope self-test: 148 checks, 1 failed
 == only launch untraced (the incident's wrapper): self-test rc 1
      FAIL wrapper: the ungated steps ['scope', 'strace', 'launch', 'drift', 'unread'] run untraced
    selftest_scope self-test: 148 checks, 1 failed
