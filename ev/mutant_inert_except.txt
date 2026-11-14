@@ -1,0 +1,4 @@
+  tools/audit/seat/instruments/merge_train.py.md
+  remove them from INERT in tests/closure.py, or except them,
+  then re-run this merge -- check refuses this pair on CI.
+rc=1

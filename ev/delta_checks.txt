@@ -1,0 +1,10 @@
+== diff mb..head beatd/throwaway_git (rc)
+rc=0
+beatd self-test: 157 checks, 0 failed
+beatd self-test: 157 checks, 0 failed
+beatd self-test: 157 checks, 0 failed
+== derive --single doc_claims at head
+    tests/hastub/homeassistant/components/repairs.py
+closure: updated 1 closure(s) in /tmp/tmp.9ATuYNSG6C/wt/tests/closures.json
+  tests/doc_claims.py         232 files
+rc=0

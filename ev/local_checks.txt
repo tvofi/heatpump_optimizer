@@ -1,0 +1,9 @@
+  ok   the live job parses (122 steps) and its gating is consistent
+  ok   the live job settles the index in an untraced step before its first traced one
+selftest_scope self-test: 117 checks, 0 failed
+
+ALL 118 closure shrink pins PASSED
+usage: closure.py check [-h] --in-dir IN_DIR [--partial]
+closure.py check: error: the following arguments are required: --in-dir
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
