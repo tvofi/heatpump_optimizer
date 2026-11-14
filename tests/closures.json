@@ -1383,6 +1383,7 @@
    "tools/audit/seat/instruments/beatd.py.md",
    "tools/audit/seat/instruments/cloud_dispatch.py.md",
    "tools/audit/seat/instruments/heartbeat.sh.md",
+   "tools/audit/seat/instruments/merge_train.py.md",
    "tools/audit/seat/instruments/tick_loop.sh.md",
    "tools/audit/seat/ledger.py",
    "tools/audit/seat/merge_train.py",
@@ -4040,8 +4041,7 @@
  },
  "inert_reads": {
   "tests/doc_claims.py": [
-   "docs/site/docs.css",
-   "tools/audit/seat/instruments/merge_train.py.md"
+   "docs/site/docs.css"
   ],
   "tests/entities.py": [
    "LICENSE",
