@@ -23818,9 +23818,9 @@
     "Part 3's frozen-until end is the overlay's end plus the full `SPACE_SETTLE_TAIL` for every length, and while a tail runs it is `BoostState.space_settle_until`. P3 projects through `BoostState` (the live overlay's end, then `space_settle_until`) and does not recompute a tail. Carry: R10-OUTSIDE-LEARNER-ROBUSTNESS-P3"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "commit": null,
+    "commit": "9fdba3b8547f9762438dc19b98b310a63d34dcb1",
     "last_step": null,
     "next_step": "fixer after R10-OUTSIDE-LEARNER-ROBUSTNESS and R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 merge (size M, no design step): this part's hunks of the contributor's commit with authorship kept, changes (a) to (g); the last part, so the orchestrator closes outside pull request 3435 with thanks after it",
     "note": "feature triage f5 (ruling P613) for the orchestrator under mandate 6715477401, 2026-11-11: part 3 of outside pull request 3435 by Bankaifan, split from R10-OUTSIDE-LEARNER-ROBUSTNESS; need verified on main by reading; after part 1 (the span close its DEBUG line reads) and after R10-OUTSIDE-LEARNER-ROBUSTNESS-P2 (the end of the freeze is the overlay's end plus the tail that part prices); overlap admitted with R10-CARD-COLLAPSE on the card script and tests/card.mjs, distinct seam (one arm of the learner row and two strings per language); overlap admitted (R10-ECL110-MQTT-OFF-NEUTRAL, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-DUTY-SWITCH-PLANNER-PRICE, R10-START-COUNTER-EDGES, R10-MODE-BEFORE-SUPPLY-ON, R10-HOTFIX-COMBI-CENSUS-MAIN-RED, R10-OUTSIDE-SUPPLY-STALE-STEP, R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2): feature triage f5 ruling P613 2026-11-11: part 3 of outside pull request 3435 by Bankaifan, size M; refusal reasons at DEBUG and the frozen learner phase on the card; after R10-OUTSIDE-LEARNER-ROBUSTNESS and R10-OUTSIDE-LEARNER-ROBUSTNESS-P2; shares files with both as their split part and the card script with R10-CARD-COLLAPSE, distinct seams",
