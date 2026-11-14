@@ -1,0 +1,110 @@
+[
+ {
+  "name": "foldref-fetch-head",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "git worktree add -q --detach \"$wt\" \"refs/hpo-relay/fold/$topic\"",
+  "new": "git worktree add -q --detach \"$wt\" FETCH_HEAD"
+ },
+ {
+  "name": "foldtip-assert-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ \"$head\" != \"$htip\" ]; then  # mut:foldtip",
+  "new": "false; then  # mut:foldtip"
+ },
+ {
+  "name": "foldmemo-drops-line",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "\"$mo\" \"$me\" \"$ml\"; continue  # mut:foldmemo",
+  "new": "\"$mo\" \"$me\" \"\"; continue  # mut:foldmemo"
+ },
+ {
+  "name": "foldmemo-no-skip",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "if [ -n \"$mo\" ] && fold_memo_stands",
+  "new": "if false && fold_memo_stands"
+ },
+ {
+  "name": "foldttl-never-retry",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "-lt 3600 ];;",
+  "new": "-lt 99999999 ];;"
+ },
+ {
+  "name": "foldttl-always-retry",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "-lt 3600 ];;",
+  "new": "-lt 0 ];;"
+ },
+ {
+  "name": "foldtip-wide-lsremote",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "'refs/heads/handoff-wip/*' 'refs/heads/handoff/*' >",
+  "new": "'refs/heads/handoff-wip/*' >"
+ },
+ {
+  "name": "rv-memo-key-ignores-body",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "$1 == t && $2 == w && $3 == b {",
+  "new": "$1 == t && $2 == w {"
+ },
+ {
+  "name": "rv-blocked-never-stands",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "blocked:*|folded:*) return 0;;",
+  "new": "folded:*) return 0;;"
+ },
+ {
+  "name": "rv-memo-not-saved",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "mv -f \"$memo.$$\" \"$memo\";",
+  "new": "rm -f \"$memo.$$\";"
+ },
+ {
+  "name": "rv-stub-outside-wt",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "(cd \"$wt\" && \"$HPO_RELAY_BODYPUSH\" \"$topic\" \"$body\")",
+  "new": "(\"$HPO_RELAY_BODYPUSH\" \"$topic\" \"$body\")"
+ },
+ {
+  "name": "rv-real-bodypush-outside-wt",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "(cd \"$wt\" && bash \"$HERE/body_push.sh\"",
+  "new": "(bash \"$HERE/body_push.sh\""
+ },
+ {
+  "name": "rv-privref-not-deleted",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "git update-ref -d \"refs/hpo-relay/fold/$topic\" 2>/dev/null",
+  "new": "true"
+ },
+ {
+  "name": "rv-nohandoff-not-on-level",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "if [ $rc = 0 ]; then echo \"$topic $bsha\" >> \"$state/cloud-folded\"",
+  "new": "if [ $rc = 0 ] || [ -z \"$htip\" ]; then echo \"$topic $bsha\" >> \"$state/cloud-folded\""
+ },
+ {
+  "name": "r3-folded-skip-off",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ -f \"$state/cloud-folded\" ] && grep -qxF \"$topic $bsha\" \"$state/cloud-folded\" && continue",
+  "new": "[ -f \"$state/cloud-folded\" ] && grep -qxF \"$topic $bsha\" \"$state/cloud-folded\" && true"
+ },
+ {
+  "name": "rv3-folded-skip-topic-only",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "[ -f \"$state/cloud-folded\" ] && grep -qxF \"$topic $bsha\" \"$state/cloud-folded\" && continue",
+  "new": "[ -f \"$state/cloud-folded\" ] && grep -q \"^$topic \" \"$state/cloud-folded\" && continue"
+ },
+ {
+  "name": "rv3-folded-not-recorded",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "echo \"$topic $bsha\" >> \"$state/cloud-folded\";",
+  "new": "true;"
+ },
+ {
+  "name": "rv3-wt-not-removed",
+  "file": "tools/audit/seat/cloud_relay.sh",
+  "old": "git worktree remove --force \"$wt\" 2>/dev/null; git update-ref",
+  "new": "true; git update-ref"
+ }
+]

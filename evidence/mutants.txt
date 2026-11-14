@@ -1,6 +1,20 @@
-head 8e4957cf0ffb4c892f7aed9d092687cb6b232346, cmd: python3 -I tools/audit/seat/cloud_dispatch.py --self-test (in a detached worktree, each mutant restored with git checkout)
-null (unmutated tree)                         rc=0 cloud_dispatch self-test: 169 checks, 0 failed   SURVIVED
-m-nodedup  list(dict.fromkeys([...])) -> list(([...]))   rc=1 169 checks, 1 failed (FAIL a handoff-wip push is invisible ...)  KILLED
-m-nofilter WIP_NS startswith filter -> if True          rc=1 169 checks, 1 failed (same check)  KILLED
-m-relay-wide cloud_relay.sh 'refs/heads/handoff/*' -> 'refs/heads/handoff*' (first site)  rc=1 169 checks, 1 failed (same check)  KILLED
-globs read at head: cloud_relay.sh ['refs/heads/handoff/*','refs/heads/handoff-body/*','refs/heads/handoff-wip/*','refs/heads/handoff/*'], bus.sh ['refs/heads/handoff/*','refs/heads/handoff-body/*'] -> distinct after WIP filter: 2
+SURVIVED NULL
+KILLED foldref-fetch-head
+KILLED foldtip-assert-off
+KILLED foldmemo-drops-line
+KILLED foldmemo-no-skip
+KILLED foldttl-never-retry
+KILLED foldttl-always-retry
+KILLED foldtip-wide-lsremote
+KILLED rv-memo-key-ignores-body
+KILLED rv-blocked-never-stands
+KILLED rv-memo-not-saved
+KILLED rv-stub-outside-wt
+KILLED rv-real-bodypush-outside-wt
+KILLED rv-privref-not-deleted
+KILLED rv-nohandoff-not-on-level
+KILLED r3-folded-skip-off
+SURVIVED rv3-folded-skip-topic-only
+KILLED rv3-folded-not-recorded
+SURVIVED rv3-wt-not-removed
+rc=0

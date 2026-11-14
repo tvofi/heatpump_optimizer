@@ -84,7 +84,7 @@
   ok   and is not tried a fourth time
   ok   the refusal is owed in the level file, once, with its reason
   ok   a refusal of the ref itself (rc 2) is refused at once, with its reason
-ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the tick reads /tmp/cloud_relay_st.orD21G/state
+ledger: dispose wrote to /tmp/cloud_relay_st.zsMqg3, not the default home; the tick reads /tmp/cloud_relay_st.zsMqg3/state
   ok   a disposed refusal is not owed
   ok   with the real bus.sh push-verdict the relay passes
   ok   and confirms the remote tip as carrying its verdict tree
@@ -336,8 +336,8 @@ ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the t
   ok   null control: a handoff committed after its topic's merge stays owed
   ok   a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)
   ok   a handoff-body ref with no open PR is OWED
-ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the tick reads /tmp/cloud_relay_st.orD21G/state
-ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the tick reads /tmp/cloud_relay_st.orD21G/state
+ledger: dispose wrote to /tmp/cloud_relay_st.zsMqg3, not the default home; the tick reads /tmp/cloud_relay_st.zsMqg3/state
+ledger: dispose wrote to /tmp/cloud_relay_st.zsMqg3, not the default home; the tick reads /tmp/cloud_relay_st.zsMqg3/state
   ok   disposed no-PR refs are not owed
   ok   a disposed no-PR ref that moved is OWED again
   ok   a failed PR listing leaves the level as it was (unknown is not 'nothing owed')
@@ -373,7 +373,7 @@ ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the t
   ok   and owes nothing
   ok   an undispatched review is owed once in the level after two passes (null control)
   ok   and confirm never runs on it
-ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the tick reads /tmp/cloud_relay_st.orD21G/state
+ledger: dispose wrote to /tmp/cloud_relay_st.zsMqg3, not the default home; the tick reads /tmp/cloud_relay_st.zsMqg3/state
   ok   a disposed review is not owed
   ok   a review/<pr> tip the relay did not push is left to the orchestrator (null control)
   ok   and owes nothing
@@ -383,14 +383,6 @@ ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the t
   ok   a relayed review on a closed PR is skipped by the confirm arm with one line, confirmed no further (P332)
   ok   and owes no confirm-owed
   ok   null control: with the open-PR listing failed, the same shape on #68 stays owed
-  ok   a verdict returned before the pass is POSTED before handoff_arm starts
-  ok   null control: with no new probe ref the second pass posts nothing more
-  ok   and handoff_arm still ran once per pass
-  ok   the pass leaves no listing file behind
-  ok   pass --confirm runs the arms probe, confirm, handoff, carry_fold, stuck, noreturn in that order
-  ok   null control: without --confirm the same order holds with confirm_arm absent
-  ok   one pass under --confirm lists the open PRs once (handoff_arm and confirm_arm reuse the listing)
-  ok   null control: a lone handoff_arm lists for itself, once
   ok   a relay TERMed mid-update leaves none of the update's tree alive (R10-PUSHER-REAP)
   ok   a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does
   ok   with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order
@@ -414,11 +406,11 @@ ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the t
   ok   null control: a family that moved nothing since the dispatch still fires
   ok   deleting the dispatch ref takes its line off the level (the disposal)
   ok   a pass runs the no-return arm
-  ok   null control (carry 14): a sequential fold pushes the body from a worktree at handoff/cf-a's tip
+  FAIL null control (carry 14): a sequential fold pushes the body from a worktree at handoff/cf-a's tip (rc=1, want 0)
   ok   a CARRY-LANDED-only block is folded by carry_fold.py on the kept body
   ok   ... and body_push.sh re-runs on the same body
   ok   ... and the arm says FOLDED
-  ok   null control: the push ran while the private fold ref refs/hpo-relay/fold/cf-a stood
+  FAIL null control: the push ran while the private fold ref refs/hpo-relay/fold/cf-a stood (rc=1, want 0)
   ok   ... which the pass deleted after the push (carry 14)
   ok   a folded (topic, body) whose wip ref moved is not folded again
   ok   a folded body is not folded twice (same topic and body sha)
@@ -430,28 +422,30 @@ ledger: dispose wrote to /tmp/cloud_relay_st.orD21G, not the default home; the t
   ok   ... and ran no fold
   ok   a fold that fails (rc 1) re-runs no body_push.sh and stays owed
   ok   ... with no body_push
-  ok   a fold with a concurrent fetch of main before its worktree add still pushes from handoff/cf-e's tip (carry 14)
+  FAIL a fold with a concurrent fetch of main before its worktree add still pushes from handoff/cf-e's tip (carry 14) (rc=1, want 0)
   ok   ... and never from main's tip
-  ok   a fold worktree that lands off the handoff tip is OWED with both heads (carry 14)
-  ok   ... runs no body_push.sh
-  ok   ... and is on the level
-  ok   an unchanged nothing-folded ref is not fetched again (carry 22)
+  FAIL a fold worktree that lands off the handoff tip is OWED with both heads (carry 14) (rc=1, want 0)
+  FAIL ... runs no body_push.sh (rc=0, want 1)
+  FAIL ... and is on the level (rc=1, want 0)
+  FAIL an unchanged nothing-folded ref is not fetched again (carry 22) (rc=0, want 1)
   ok   ... and its OWED level line still stands
-  ok   ... as does a failed fold's, inside its retry bound
-  ok   ... and a mislanded worktree's
+  FAIL ... as does a failed fold's, inside its retry bound (rc=1, want 0)
+  FAIL ... and a mislanded worktree's (rc=1, want 0)
   ok   ... and no judged topic is folded again
   ok   null control: a moved wip ref is judged again
   ok   ... as is a moved body ref
   ok   a body push that fails after the fold is OWED
-  ok   ... and not retried before its memo entry is an hour old
+  FAIL ... and not retried before its memo entry is an hour old (rc=0, want 1)
   ok   ... while its OWED line stands
+awk: cannot open "/tmp/cloud_relay_st.zsMqg3/state/cloud-fold-judged" (No such file or directory)
   ok   ... and retried once it is
   ok   the production body_push.sh line runs the script on the kept body (carry 14)
   ok   ... inside the worktree at handoff/cf-i's tip, not the relay's own checkout
   ok   ... and never at main's tip
-  ok   a CARRY-LANDED topic with no handoff/<topic> is OWED
-  ok   ... on the level
-  ok   ... with no cloud-folded entry
-  ok   ... no FOLDED announcement
-  ok   ... and no body_push.sh run
-cloud_relay self-test: 452 checks, 0 failed
+  FAIL a CARRY-LANDED topic with no handoff/<topic> is OWED (rc=1, want 0)
+  FAIL ... on the level (rc=1, want 0)
+  FAIL ... with no cloud-folded entry (rc=0, want 1)
+  FAIL ... no FOLDED announcement (rc=0, want 1)
+  FAIL ... and no body_push.sh run (rc=0, want 1)
+cloud_relay self-test: 444 checks, 15 failed
+rc=1
