@@ -92699,6 +92699,10 @@ R.check(
     "the cheap-cycle count stops at a day: an all-day window with no horizon is 48",
     _sw_sid.cheap_night_cycles(_sw_cfg(start_hour=0, end_hour=24), _SW_T0, None) == 48,
 )
+R.check(
+    "an experiment never armed holds no sweep levels, so a step driven on it reads none",
+    _sw_sid.SystemIdentification()._sweep == (),
+)
 _sw_p_wee, _ = _sw_run(prices=np.linspace(0.5, 2.0, 96), sweep=False, house=_CP_WEE, cycles=4)
 _sw_edge8, _sw_edge8_out = _sw_run(band=8.0)
 _sw_two_wee, _ = _sw_run(house=_CP_WEE, at=_SW_T0.replace(hour=2, minute=30) + timedelta(days=1), cycles=4)
