@@ -557,8 +557,27 @@ def run_checks():
     ok("#3544 without D: R1's deferral red under a stale pin, R2 green and newest-covering, is re-run in place, "
        "never dispatched", w.posts == [rerun_of(R1_3544)] and "dispatches=0" in out and "deferral" in out)
 
-    def real_red(runs):      # R1's gate judged after every source at the head had finished: a verdict, no deferral
+    def overlapped(runs):    # R2's last source finished while R1's gate ran: it may have read R2 busy, so a deferral
+        runs[R2_3544]["units"][-1]["completed_at"] = "2026-11-14T07:55:00Z"
+    w = world3544(ids=(R1_3544, R2_3544), edit=overlapped)
+    w.sweep()
+    ok("#3544: a source finishing while the red gate ran (after its start) makes it a deferral: re-run in place",
+       w.posts == [rerun_of(R1_3544)])
+
+    def old_red(runs):       # a third, older review run whose red gate is beside R2's green one, not covering
+        r0 = dict(runs[R1_3544], id=R1_3544 - 1, created_at="2026-11-14T07:30:00Z")
+        r0["gate"] = dict(r0["gate"], id=r0["id"] * 10, started_at="2026-11-14T07:35:00Z", completed_at="2026-11-14T07:36:00Z")
+        r0["units"] = []
+        runs[r0["id"]] = r0
+    w = world3544(ids=(R1_3544, R2_3544), edit=old_red)
+    w.sweep()
+    ok("#3544: one green newest-covering gate covers the head whatever other reds sit beside it: both deferrals "
+       "re-run in place, nothing dispatched", w.posts == [rerun_of(R1_3544 - 1), rerun_of(R1_3544)])
+
+    def real_red(runs):      # R1's gate judged after every OTHER run's source had finished: a verdict, no deferral
         runs[R1_3544]["gate"].update(started_at="2026-11-14T08:02:00Z", completed_at="2026-11-14T08:02:30Z")
+        runs[R1_3544]["units"].append({"name": "late own job", "conclusion": "success",
+                                       "completed_at": "2026-11-14T08:02:10Z"})   # its own run's: busy() never reads it
     w = world3544(ids=(R1_3544, R2_3544), edit=real_red)
     rc, out = w.sweep()
     ok("#3544 null: a real red on a stale pin, no dispatch at the head, still takes one dispatch",
