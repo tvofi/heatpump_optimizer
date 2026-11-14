@@ -653,7 +653,7 @@ three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
   [ "$k" -lt 4 ] || { printf '#%s has %s blocked rounds: its re-cut was blocked again, so split or close it (the orchestrator), or pass --past-three <reason>' "$1" "$k"; return 1; }
   body=$(${HPO_BUS_GH:-gh} api "repos/$REPO/pulls/$1" --jq .body) \
     || { printf 'cannot read #%s'"'"'s body to find its ## Re-cut note' "$1"; return 1; }
-  printf '%s\n' "$body" | grep -q '^## Re-cut[[:space:]]*$' && return 0
+  grep -q '^## Re-cut[[:space:]]*$' <<<"$body" && return 0  # a here-string: a pipe into grep -q SIGPIPEs a long body's writer
   printf '#%s has %s blocked round(s): a fourth needs the body replaced under a ## Re-cut note (fixer.md), or --past-three <reason>' "$1" "$k"
   return 1
 }
