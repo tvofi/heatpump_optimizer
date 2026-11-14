@@ -1,15 +1,54 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-sav-valuation-residue, at head e23124ff6e45bac1d48b4a775dad555a37965355. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-sav-valuation-residue, at head fdb526895c31c430b31325718f8af768807ffbfb. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead. Read your policy once, verbatim: `python3 -I tools/policy/role_pack.py render fixer --out $HOME/role-pack.md`, then that file in place of your role contract and INSTRUMENTS.md; on REFUSE read those files as before.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch e23124ff6e45bac1d48b4a775dad555a37965355 for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch fdb526895c31c430b31325718f8af768807ffbfb for the base you were given.
 Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r10-sav-valuation-residue before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r10-sav-valuation-residue, whose move updates the pull request. Hand off at your first clean `tools/pr/prepr.sh` head (the body check included), fixing what it refuses; a main that has moved since that run needs no re-merge and no second run, because the train re-proves the head on the current main. Merge origin/main and rerun prepr.sh only when `git merge-tree --write-tree origin/main HEAD` reports a conflict. If you must stop on a question, first push `BLOCKED.md` with a `Question:` line to refs/heads/handoff-wip/r10-sav-valuation-residue, even with no code. Then push the code to refs/heads/handoff/r10-sav-valuation-residue, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-sav-valuation-residue <body.md>`, which pushes refs/heads/handoff-body/r10-sav-valuation-residue; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r10-sav-valuation-residue`. When body_push.sh exits 4 (its output ends `body_push: REFUSED CARRY-LANDED`), the carry lands on the roster you may not write: push a BLOCKED.md holding that output to refs/heads/handoff-wip/r10-sav-valuation-residue and stop; the relay folds the carries and re-runs body_push.sh. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
 A red is owed a `## Red checks` answer, and may block, only when its name is in the set `python3 tools/audit/seat/merge_train.py owed-reds` prints (defect-root-cause.md); any other red is neither answered nor a block.
 Never write to any branch except your return refs and refs/heads/handoff-wip/r10-sav-valuation-residue and refs/heads/handoff-wip/r10-sav-valuation-residue-body. Never work around a hook or a refusal; report it in your result instead.
 Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires: when it refuses inline work, dispatch a haiku or sonnet Agent subagent to do it rather than bypassing the guard; never set FRUGAL_ALLOW_INLINE and never edit .claude/settings.json.
 
 Brief (snapshotted when this payload was rendered):
-Savings and valuation accuracy left by #3347 and #3291: the unattributed savings residual (-3.90 % flat, -8.02 % varying; measure and attribute first), and the part-load refill pricing (_terminal_cost, _deferred_energy_cost, _plan_dhw_min_cost secant error under a derate), with the zero-derate null control. Flat-price null control mandatory. Created by the carries-open audit (orchestrator s13, 2026-11-09) from the carries listed in its carry entries; each carry entry names its source group and index.
+# Repair brief: R10-SAV-VALUATION-RESIDUE, PR 3574 (fix/r10-sav-valuation-residue-pr, head 22e9330193f147e8b02b0171890b9c338ef6b0e3)
 
-After: none
+The fix reviewer returned `Fix review: blocked 22e9330193f147e8b02b0171890b9c338ef6b0e3 reference-basis-unbumped` (verdict/3574). Its Block and Findings sections follow verbatim.
+
+## Block
+
+Round 1 (first round), measured at head `22e9330193f147e8b02b0171890b9c338ef6b0e3`, merge base `50373173d486faf394b24637c177ab38b691b394`.
+
+`custom_components/heatpump_optimizer/ledger.py:73-75` at this head:
+
+    #: The reference in force: a heat-pump thermostat with no wood tank and no fire,
+    #: its horizon spread by steady demand. Bump when the booked reference changes.
+    REFERENCE_BASIS = 1
+
+- Basis 1 is the spread reference. `REFERENCE_BASIS = 1` and the spread (`_apportion_by_steady_demand`) were introduced in the same commit, a9f8cb2b50 (R10-HOTFIX-SAV-ESTIMATE). Both are in the released v7.1.15: its `ledger.py` holds the same three lines, and its `optimizer.py` names `_apportion_by_steady_demand` twice (`ev/reference_basis.txt`).
+- This diff removes the spread, so the booked reference changes for every valved install. The PR's own golden drift measures the move in `baseline_cost`: eight valved fixtures, in both directions. Examples: `valve_storage_low_target` 113.037 -> 115.889 and `valve_storage_small_tank` 128.370 -> 126.962.
+- The diff does not touch `ledger.py`. `git diff 50373173...HEAD -- custom_components/heatpump_optimizer/ledger.py` is empty, so `REFERENCE_BASIS` stays 1 and its comment now describes code that no longer exists.
+- Consequence, read from the code at this head and not run as a probe:
+  - `add_savings_settlement` stamps the basis only on a month's first booking (`ledger.py:369-370`, `setdefault`).
+  - The monthly row withholds savings only when `meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS` (`ledger.py:513-516`).
+  - So a month that a v7.1.15 install began under the spread reference, and finishes after upgrading to this code, keeps stamp 1 and still equals `REFERENCE_BASIS`.
+  - It therefore states one savings figure summed over two different references. The basis mechanism exists to refuse exactly that mix (`ledger.py:67-70`: "a month's totals cannot be rebooked").
+- `ledger.py` is in this group's roster `files` (`dev/programme/rosters/wave-r10-groups.json`, group R10-SAV-VALUATION-RESIDUE). The bump is in scope for this PR.
+- What clears this block:
+  - Bump `REFERENCE_BASIS` (and its comment) in this PR.
+  - Pin the bump with a check that fails at this head. For example, a month stamped with the prior basis states no saving after the change.
+  - Or record in the body an owner's ruling that this reference change does not warrant a new basis.
+- Note for whoever traces this: R10-SAV-COMFORT p4 (b3114866c8) changed the spread (it capped it) without bumping the basis either. I did not establish whether that change was released between two tags, so I make no claim about it.
+
+## Findings
+
+none
+
+## Instruction
+
+Answer every finding in-seam and architecturally soundly. The reference basis is bumped where its definition changed: bump `ledger.REFERENCE_BASIS` and its comment in this PR, pin the bump with a check that fails at the reviewed head (a month stamped with the prior basis states no saving after the change), and prove that check with a mutant (revert the bump, the check turns red). Do not cover the block by recording a ruling in the body unless the owner has given one. Re-derive any figure you cite at your own merge base; the reviewer could not re-derive the body's mutant count `1 of 15` (it measured 11 checks), so state the count you measure, and render the `@@GATE@@` placeholder in `## Figures`.
+
+resume=handoff/r10-sav-valuation-residue@b48274c195c101902a1383a76d7043262264cd2d
+
+prepr's closures step fails on tests/features.py's weekend check until R10-HOTFIX-FEATURES-WEEKEND-CLOCK merges; run prepr with PREPR_SKIP_CLOSURES=1 and say so in the body's Red checks
+
+Part 1 of 3: build carries 0-4; the others are later parts dispatched at this part's handoff; answer none of them
 
 Carry 0: Moved from R10-SAV-COMFORT carry 8 (0-based) by the carries-open audit (orchestrator s13, 2026-11-09); its own pull request merged and nothing dispatched this carry. Text verbatim:
 
@@ -48,5 +87,3 @@ Carry 13: **The hot-water LP's secant** (`_plan_dhw_min_cost`, flat 0.335995 / s
 Carry 14: **Residual and attribution**: `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_residual_attribution.py flat` and `winter_typical` (sha1 4b214a9bc277...), run at 056abe4d. `plant steps seen 192 of 192` at both arms. - At the base e59e21fe (the fix reviewer's re-take): residual -3.90 % (flat), -8.02 % (varying); reference stored -34.85 kWh_th. - At 69078d59 (the fix reviewer's re-take): residual +4.78 % / +1.20 %; reference stored -0.30; non-steady -0.30 / -0.93. - At 056abe4d: residual +6.84 % / +3.38 %; reference stored +11.11; non-steady -6.83 / -7.46. Carry: R10-SAV-VALUATION-RESIDUE
 
 Carry 15: The apportion seam: `_apportion_by_steady_demand` books step 0 of a valved reference above its held equilibrium (+11.11 kWh_th over the valve arm at this head, +12.90 masked at 69078d59), measured with its control in `## Figures`. Removing the call from `_compute_baseline_power` measures +0.00 and residual +4.03 %. The mechanism is pinned by another group's checks in `tests/features.py` (the `_hz_` block that calls `_apportion_by_steady_demand`), so whether to remove it here, in part 2 or 3, or under its own group is a ruling for the orchestrator. Re-measure with `r10_sav_residual_attribution.py flat` at that stage's merge base; the precondition for removing it is the census reading 0 at that base, so that step 0 from the held state is no longer a transient. Carry: R10-SAV-VALUATION-RESIDUE
-
-Valid `Carry:` targets (live consumers of R10-SAV-VALUATION-RESIDUE: groups after it or sharing its files): R10-ARCH-DOCS-DELTA, R10-ECL110-MQTT-OFF-NEUTRAL, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-DUTY-SWITCH-PLANNER-PRICE, R10-MODE-BEFORE-SUPPLY-ON, R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE, R10-OUTSIDE-LEARNER-ROBUSTNESS-P2, R10-OUTSIDE-LEARNER-ROBUSTNESS-P3, R10-HOTFIX-FLOW-SETPOINT-STUCK, R10-HOTFIX-BOOST-FLOW-CEILING
