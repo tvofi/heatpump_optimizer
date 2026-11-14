@@ -1,0 +1,2 @@
+== under P7
+RESULT humid (learned derate 0.6 @2C/90%, humidity 90): draws<-0.02 0 of 48
