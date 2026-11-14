@@ -354,9 +354,9 @@ def main():
         print(f"   ledger arms: live {live_l}, cap refused {not r_cap}, line refused {not r_un}/{not r_both}/{not r_dead}/{not r_bare}")
         # D5's comment line (fix review 3571, class-open): the verdict's plant, a committed
         # .claude/workflows/zz-planted.js holding one comment, is now a unit of a D5 seat; the same
-        # plant where no universe or static reaches is refused by name; and the D6 null control,
+        # plant in .claude/ (another dimension covers it, D5 does not) is refused by name; and the D6 null control,
         # dev/zz-planted.md, is still refused by D6's own line.
-        PIN, POUT, PMD = ".claude/workflows/zz-planted.js", "dev/zz-planted.js", "dev/zz-planted.md"
+        PIN, POUT, PMD = ".claude/workflows/zz-planted.js", ".claude/zz-planted.js", "dev/zz-planted.md"
         planted_units = lambda dim, f: 1 if f in (PIN, POUT) and dim == "D5" else units(dim, f)
         def d5_total(tr):
             _, fo = resolver(scopes["D5"], tr)
