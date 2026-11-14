@@ -1005,7 +1005,7 @@ def _off_step_notice_pins() -> dict[str, bool]:
 
 #: (rows, notices) of `_range_census`: min 30 or 60, max 55-80, steps 0.5/1/3/5,
 #: disinfection 55-75 (the service's range), everyday 55, both credit rules.
-_RANGE_CENSUS = (1632, 154)
+_RANGE_CENSUS = (2856, 277)
 
 
 def _shortfall_standing(attrs, disinfection) -> set:
