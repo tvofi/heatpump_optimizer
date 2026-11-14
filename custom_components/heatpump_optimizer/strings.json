@@ -1180,7 +1180,7 @@
           "staleness_watchdog_enabled": "A dead battery leaves a perfectly normal-looking value in place forever. Left alone, the model learns from that flatline and the damage survives a restart. With this on, an old value is treated as missing and learning pauses instead.",
           "staleness_max_age_scale": "Raise this if you have sensors that deliberately report rarely and are being flagged unnecessarily.",
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
-          "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts.",
+          "system_identification_enabled": "Lets the optimizer run deliberate heating experiments on a mild, cheap night, and only after you press one of their buttons: a heating step that measures your house directly instead of waiting weeks to infer it, a probe that runs the heat pump at its top to measure its real maximum, and a sweep that holds the heat pump at up to five levels across its power range. The house step is kept too small to notice. The probe and the sweep drive the heat pump to the ends of its range for up to two and a half hours and pause hot water meanwhile. Each stops if the room temperature drifts.",
           "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Until then this fills the rest of the horizon from your learned daily price shape, and the plan marks which hours are estimated. Switched off, the rest of the horizon repeats the last price, which hides every cheap hour ahead.",
           "debug_collect_enabled": "Records one small row per optimization cycle and one full snapshot a day for seven days, then stops by itself. Ending it runs a few self-tests that only read (15 minutes at most; nothing is switched). Download diagnostics on this entry then carries the week and the test results, for a bug report. Turning this off deletes what was collected.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
@@ -2204,6 +2204,9 @@
       },
       "learning_finalize_debug": {
         "name": "Learning Finalize Debug Collection"
+      },
+      "learning_measure_power_response": {
+        "name": "Learning Measure Power Response"
       },
       "learning_reset_comfort_weight": {
         "name": "Learning Reset Comfort Weight"

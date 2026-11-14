@@ -1,11 +1,12 @@
 """Button entities for Heat Pump Cost Optimizer.
 
-Six momentary actions with no lasting state, which is exactly what a
+Seven momentary actions with no lasting state, which is exactly what a
 ``ButtonEntity`` is for. A switch would have to bounce itself back off, and
 until it did, the UI would imply a state that does not exist:
 
 * "Optimize Now" — run an optimization without waiting for the next interval,
 * "Learning Run System Identification" — arm the commissioning step test,
+* "Learning Measure Power Response" — arm the power-response sweep,
 * "Learning Reset Comfort Weight" — undo the revealed-preference comfort
   tuning,
 * "Learning Reset Heat Loss" — return the learned heat-loss scale and
@@ -13,7 +14,7 @@ until it did, the UI would imply a state that does not exist:
 * "Prediction Accuracy Diagnose Last Interval" — attribute the last
   interval's temperature residual,
 
-and a sixth, "Finalize Debug Collection", which ends the week's collection
+and a seventh, "Finalize Debug Collection", which ends the week's collection
 now and is unavailable unless that option is on.
 
 The runs take real time — an optimization fetches prices and weather and then
@@ -56,6 +57,7 @@ async def async_setup_entry(
     buttons: list[_OptimizerButtonBase] = [
         ForceOptimizationButton(coordinator, entry),
         SystemIdentificationButton(coordinator, entry),
+        PowerResponseSweepButton(coordinator, entry),
         ResetComfortWeightButton(coordinator, entry),
         ResetHeatLossButton(coordinator, entry),
         DiagnoseIntervalButton(coordinator, entry),
@@ -154,6 +156,25 @@ class SystemIdentificationButton(_OptimizerButtonBase):
 
     async def async_press(self) -> None:
         off_the_action(self, self.coordinator.async_arm_system_identification())
+
+
+class PowerResponseSweepButton(SystemIdentificationButton):
+    """Arm the power-response sweep (R10-DRAW-MAP-EVIDENCE part B).
+
+    The one press that arms a sweep: the system-identification button never
+    picks it. It shares that button's gate and busy state, since one
+    experiment runs at a time, and runs on the same kind of night.
+    """
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        _OptimizerButtonBase.__init__(
+            self, coordinator, entry, "power_response_sweep", "learning_measure_power_response"
+        )
+
+    async def async_press(self) -> None:
+        off_the_action(self, self.coordinator.async_arm_system_identification(sweep=True))
 
 
 class ResetComfortWeightButton(_OptimizerButtonBase):

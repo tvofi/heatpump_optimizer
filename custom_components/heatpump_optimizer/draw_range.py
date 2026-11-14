@@ -132,6 +132,16 @@ MAP_COLUMNS = (
 )
 #: The two text columns; every other cell is a number or empty (unread).
 _MAP_TEXT = ("origin", "duty")
+#: The origin of a pass the power-response sweep commanded
+#: (``pump_arbiter.pass_origin`` decides it; ``fold`` routes on it), and the
+#: two sources of a ceiling-store sample: the ceiling probe, or a sweep's
+#: band-top level.
+ORIGIN_SWEEP = "sweep"
+SOURCE_PROBE = "probe"
+SOURCE_SWEEP = ORIGIN_SWEEP
+#: Sweep passes further apart than this are two sweeps, minutes: a sweep's
+#: passes are a minute apart, and its hot-water stand-down keeps the origin.
+SWEEP_GAP_MIN = SEGMENT_MAX_MIN
 
 
 @dataclass(frozen=True)
@@ -216,6 +226,10 @@ class MapRows:
     rows: Deque[tuple[Any, ...]] = field(default_factory=lambda: deque(maxlen=MAP_ROWS))
     open: list[PassRecord] = field(default_factory=list)
     closed: Deque[tuple[Any, ...]] = field(default_factory=lambda: deque(maxlen=MAP_ROWS))
+    #: A sweep pass arrived since the last fold: that interval is a sweep's.
+    sweep_seen: bool = False
+    #: The last sweep's record (``SweepRun``); persisted beside the rows.
+    sweep: "SweepRun | None" = None
 
     def _close(self) -> None:
         row = _segment_row(self.open) if self.open else None
@@ -225,6 +239,9 @@ class MapRows:
 
     def take_pass(self, rec: PassRecord | None) -> None:
         """Fold one pass (``None``: no Control pass on a set-point) into the open run."""
+        if rec is not None:
+            self.sweep = _sweep_pass(self.sweep, rec)
+            self.sweep_seen = self.sweep_seen or rec.origin == ORIGIN_SWEEP
         stopped = rec is None or rec.defrost or rec.drawn_kw is None or rec.drawn_kw <= RUNNING_FLOOR_KW
         first = self.open[0] if self.open else None
         if stopped or first is None or first.run_key() != rec.run_key() or (
@@ -247,6 +264,102 @@ class MapRows:
         return {name: ",".join(_cell(r[i]) for r in self.rows) for i, name in enumerate(MAP_COLUMNS)}
 
 
+@dataclass
+class SweepRun:
+    """One power-response sweep as its passes showed it: when it started,
+    the last pass, the energy metered between its passes, and each level it
+    commanded as ``(level_kw, band_low_kw, band_high_kw, written_c)``.
+
+    The levels are kept apart from the rows because a level whose compressor
+    never ran steadily leaves no row, and the yield must show it as a level
+    with no steady minutes (``sweep_yield``).
+    """
+
+    start_s: float
+    last_s: float
+    kwh: float = 0.0
+    levels: list[tuple[float, float, float, float]] = field(default_factory=list)
+    #: The last sweep pass's meter reading while the sweep is still running
+    #: (the next pass closes its minute); never persisted.
+    open_kw: float | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"start_s": self.start_s, "last_s": self.last_s, "kwh": round(self.kwh, 4),
+                "levels": [list(level) for level in self.levels]}
+
+
+def _sweep_pass(run: SweepRun | None, rec: PassRecord) -> SweepRun | None:
+    """``run`` after one pass: a sweep pass joins it, or opens a new run
+    after ``SWEEP_GAP_MIN``; any other pass ends the running one.
+
+    The energy is each sweep pass's meter reading held until the next pass,
+    whatever the duty, so a hot-water stand-down's draw is in it: it is what
+    the sweep cost, not what its levels drew.
+    """
+    at = rec.at.timestamp()
+    if run is not None and run.open_kw is not None and 0.0 < at - run.last_s <= SWEEP_GAP_MIN * 60.0:
+        run.kwh += run.open_kw * (at - run.last_s) / 3600.0
+    if rec.origin != ORIGIN_SWEEP:
+        if run is not None:
+            run.open_kw = None
+        return run
+    if run is None or at - run.last_s > SWEEP_GAP_MIN * 60.0:
+        run = SweepRun(at, at)
+    run.last_s, run.open_kw = max(at, run.last_s), rec.drawn_kw
+    level = (rec.level_kw, rec.band_low_kw, rec.band_high_kw, rec.written_c)
+    if rec.duty == "space" and None not in level and not any(seen[0] == level[0] for seen in run.levels):
+        run.levels.append(level)  # type: ignore[arg-type]
+    return run
+
+
+def _stored_sweep(raw: Any) -> SweepRun | None:
+    """A stored record's last sweep, or ``None`` where it does not read whole."""
+    try:
+        levels = [tuple(float(v) for v in level) for level in raw["levels"]]
+        run = SweepRun(float(raw["start_s"]), float(raw["last_s"]), float(raw["kwh"]), levels)  # type: ignore[arg-type]
+    except (TypeError, ValueError, OverflowError, KeyError):
+        return None
+    numbers = [run.start_s, run.last_s, run.kwh, *(v for level in levels for v in level)]
+    return run if all(len(level) == 4 for level in levels) and bool(np.isfinite(numbers).all()) else None
+
+
+def sweep_rows_at(draw: "DrawRange | None", level_kw: float) -> int:
+    """How many sweep rows ``draw`` holds for one level, kW (a stored cell's precision)."""
+    rows = () if draw is None else draw.map.rows
+    return sum(1 for r in rows if r[15] == ORIGIN_SWEEP and r[6] is not None and abs(r[6] - level_kw) < 1e-3)
+
+
+def sweep_yield(draw: "DrawRange") -> dict[str, Any] | None:
+    """The last sweep's yield, or ``None`` with none on record.
+
+    Per commanded level, in run order: its fraction of the band, the
+    set-point held for it, and over its rows since the sweep started the
+    steady minutes with their drawn and inlet means (minute-weighted). A
+    level that kept no steady run reads zero minutes and no means: a
+    collapsed sweep shows as such levels, never as points. ``metered_kwh``
+    is the meter over the whole sweep (``_sweep_pass``).
+    """
+    run = draw.map.sweep
+    if run is None:
+        return None
+    levels = []
+    for level_kw, low_kw, high_kw, written_c in run.levels:
+        rows = [r for r in draw.map.rows if r[15] == ORIGIN_SWEEP and r[0] >= run.start_s // 60
+                and r[6] is not None and abs(r[6] - level_kw) < 1e-3]
+        minutes = sum(r[1] for r in rows)
+
+        def mean(col: int) -> float | None:
+            cells = [(r[col], r[1]) for r in rows if r[col] is not None]
+            return round(sum(v * n for v, n in cells) / sum(n for _, n in cells), 3) if cells else None
+
+        levels.append({
+            "fraction": round((level_kw - low_kw) / (high_kw - low_kw), 3) if high_kw > low_kw else None,
+            "level_kw": round(level_kw, 3), "held_c": written_c, "steady_minutes": minutes,
+            "drawn_mean_kw": mean(13), "inlet_mean_c": mean(10),
+        })
+    return {"started_s": run.start_s, "metered_kwh": round(run.kwh, 3), "levels": levels}
+
+
 def _stored_map(data: Any) -> MapRows:
     """A stored record's map rows; a record without them reads empty.
 
@@ -254,6 +367,7 @@ def _stored_map(data: Any) -> MapRows:
     with an unreadable number is dropped alone.
     """
     out = MapRows()
+    out.sweep = _stored_sweep(data.get("sweep")) if isinstance(data, dict) else None
     raw = data.get("map_rows") if isinstance(data, dict) else None
     cols = [raw.get(name) if isinstance(raw, dict) else None for name in MAP_COLUMNS]
     if not all(isinstance(c, str) for c in cols):
@@ -318,12 +432,13 @@ class DrawRange:
     commands_known: bool = True
     #: Metered draw while the held set-point was the gate, oldest first.
     idle: Deque[float] = field(default_factory=lambda: deque(maxlen=IDLE_WINDOW))
-    #: ``(drawn_kw, epoch_s)`` per ceiling-store sample, oldest first: one
-    #: interval the experiment commanded at the ceiling. The timestamps are
-    #: the run delimiter and the probe's persisted clock. Not keyed to
+    #: ``(drawn_kw, epoch_s, source)`` per ceiling-store sample, oldest first:
+    #: one interval an experiment commanded at the ceiling, by the ceiling
+    #: probe or a sweep's band-top level (``SOURCE_*``). The timestamps are
+    #: the run delimiter and, the probe's alone, its persisted clock. Not keyed to
     #: ``config``: the store meters the pump at the ceiling set-point, which
     #: the configured power range does not set, so a reconfiguration keeps it.
-    ceiling: Deque[tuple[float, float]] = field(
+    ceiling: Deque[tuple[float, float, str]] = field(
         default_factory=lambda: deque(maxlen=CEILING_WINDOW)
     )
     #: Overdraws of the learned top since the store's newest sample.
@@ -344,6 +459,12 @@ class DrawRange:
         """The newest ceiling-store sample's epoch seconds, or ``None``."""
         return self.ceiling[-1][1] if self.ceiling else None
 
+    def probe_since(self) -> float | None:
+        """The newest PROBE sample's epoch seconds, or ``None``: the ceiling
+        probe's clock (``sysid.armable``), which a sweep's sample never moves.
+        The learned top's lapse and the solve band read ``ceiling_since``."""
+        return max((t for _, t, source in self.ceiling if source == SOURCE_PROBE), default=None)
+
     def learned_max_kw(self, now_s: float) -> float | None:
         """The ceiling store's median draw, kW: the learned top, raw.
 
@@ -362,7 +483,7 @@ class DrawRange:
         return self._ceiling_median()
 
     def _ceiling_median(self) -> float:
-        return float(np.median([d for d, _ in self.ceiling]))
+        return float(np.median([d for d, *_ in self.ceiling]))
 
     def takes_ceiling(self, drawn_kw: float, command: Any) -> bool:
         """An experiment's interval is store evidence: the ceiling written
@@ -374,9 +495,9 @@ class DrawRange:
             and drawn_kw > self.above_idle_kw()
         )
 
-    def observe_ceiling(self, drawn_kw: float, when_s: float) -> None:
+    def observe_ceiling(self, drawn_kw: float, when_s: float, source: str = SOURCE_PROBE) -> None:
         """Fold one ceiling-commanded experiment interval into the store."""
-        self.ceiling.append((float(drawn_kw), float(when_s)))
+        self.ceiling.append((float(drawn_kw), float(when_s), source))
         self.overdraws = 0
 
     def _overdrawn(self, drawn_kw: float, command: tuple[float, float] | None) -> None:
@@ -527,10 +648,12 @@ class DrawRange:
             # Absent, not null, on a store-only record: nothing keyed it yet.
             **({} if self.config is None else {"config": list(self.config)}),
             "idle": [round(v, 3) for v in self.idle],
-            "ceiling": [[round(d, 3), t] for d, t in self.ceiling],
+            # A probe's row keeps its two cells: a store with no sweep is unchanged.
+            "ceiling": [[round(d, 3), t] + ([] if source == SOURCE_PROBE else [source]) for d, t, source in self.ceiling],
             "overdraws": self.overdraws,
             # Absent with no rows: a store that never kept one is unchanged.
             **({"map_rows": self.map.as_columns()} if self.map.rows else {}),
+            **({} if self.map.sweep is None else {"sweep": self.map.sweep.as_dict()}),
         }
 
     @classmethod
@@ -625,8 +748,9 @@ def _stored_idle(raw: Any) -> list[float]:
     ]
 
 
-def _stored_ceiling(data: Any) -> list[tuple[float, float]]:
-    """The readable ceiling-store rows of a stored record; a bad one is dropped."""
+def _stored_ceiling(data: Any) -> list[tuple[float, float, str]]:
+    """The readable ceiling-store rows of a stored record; a bad one is dropped.
+    A row of two cells, as stored before the source was, is the probe's."""
     raw = data.get("ceiling") if isinstance(data, dict) else None
     rows = []
     for entry in raw if isinstance(raw, list) else ():
@@ -634,8 +758,9 @@ def _stored_ceiling(data: Any) -> list[tuple[float, float]]:
             drawn, when = float(entry[0]), float(entry[1])
         except (TypeError, ValueError, OverflowError, IndexError, KeyError):
             continue
-        if np.isfinite(drawn) and np.isfinite(when) and drawn > RUNNING_FLOOR_KW:
-            rows.append((drawn, when))
+        source = entry[2] if len(entry) > 2 else SOURCE_PROBE
+        if np.isfinite(drawn) and np.isfinite(when) and drawn > RUNNING_FLOOR_KW and source in (SOURCE_PROBE, SOURCE_SWEEP):
+            rows.append((drawn, when, source))
     return rows
 
 
@@ -796,9 +921,22 @@ def fold(
     First, whatever this interval: the map runs closed since the last fold
     become rows (``MapRows.commit_runs``) unless ``frozen`` or ``distorted``;
     they never reach the window.
+
+    A sweep's interval -- one any of whose passes the sweep commanded
+    (``MapRows.sweep_seen``) -- is the one place decided here to feed the map
+    rows, and the ceiling store where it ``takes_ceiling`` (its band-top
+    level, the probe's command exactly), and nothing else: never the window,
+    whose latch and draw-floor judgement read the plan's asks, and never an
+    idle reading.
     """
     space, dhw = split
     draw.map.commit_runs(keep=not (frozen or distorted))
+    sweep, draw.map.sweep_seen = draw.map.sweep_seen, False
+    if sweep:
+        if experiment_s is not None and drawn_kw is not None and draw.takes_ceiling(drawn_kw, command) and is_running_space(
+                drawn_kw, space, dhw, frozen=frozen, distorted=distorted, defrost=defrost):
+            draw.observe_ceiling(drawn_kw, experiment_s, SOURCE_SWEEP)
+        return
     if drawn_kw is not None and not (frozen or distorted or defrost) and command is not None and command.written_c <= command.gate_c + GATE_TOLERANCE_K and not planned_draw_runs(dhw, modulation_floor=0.0):
         draw.observe_idle(drawn_kw)
     if drawn_kw is None or not is_running_space(
@@ -853,6 +991,7 @@ def diagnostics_view(
     view["effective_min_kw"] = None if effective is None else round(effective[0], 3)
     view["effective_max_kw"] = None if effective is None else round(effective[1], 3)
     view["learned_max_kw"] = None if learned is None else round(learned, 3)
+    view["last_sweep"] = sweep_yield(draw)
     return view
 
 

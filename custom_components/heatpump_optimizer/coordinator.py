@@ -11068,12 +11068,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def system_identification_active(self) -> bool:
         return self._sysid.active
 
-    async def async_arm_system_identification(self) -> None:
-        """Arm a step-response experiment for the next suitable moment."""
+    async def async_arm_system_identification(self, sweep: bool = False) -> None:
+        """Arm an experiment for the next suitable moment (``sweep``: the sweep button's)."""
         ctx = getattr(self, "_ctx", self)
         sysid.arm_from_config(
             self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
-            self._house_heat_loss_samples, self._accuracy.draw,
+            self._house_heat_loss_samples, self._accuracy.draw, sweep,
         )
         await self.async_request_refresh()
 
@@ -11111,6 +11111,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             plan_power_kw=float(self._current_action.get("power", 0.0)),
             # The slab pair must be the configured house's own (#943).
             house=HousePlant.of_params(params),
+            sweep_band_k=pump_arbiter.sweep_band_k(self),
         )
         if override is None:
             return

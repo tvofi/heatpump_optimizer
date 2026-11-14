@@ -1180,7 +1180,7 @@
           "staleness_watchdog_enabled": "Ett dött batteri lämnar ett helt normalt utseende värde kvar för alltid. Utan åtgärd lär sig modellen av den platta kurvan, och skadan överlever en omstart. Med detta på behandlas ett gammalt värde som saknat och inlärningen pausas i stället.",
           "staleness_max_age_scale": "Höj om du har sensorer som avsiktligt rapporterar sällan och flaggas i onödan.",
           "comfort_learning_enabled": "Varje gång du justerar temperaturen säger du att planen gick för långt åt ett håll. Detta justerar långsamt komfortinställningen utifrån det. Det inlärda värdet visas på en egen sensor och det finns en knapp för att nollställa.",
-          "system_identification_enabled": "Låter optimeraren göra ett litet avsiktligt värmesteg en mild och billig natt för att mäta huset direkt, i stället för att vänta veckor på att härleda det. Steget hålls så litet att det inte märks och avbryts om temperaturen driver.",
+          "system_identification_enabled": "Låter optimeraren köra avsiktliga värmeförsök en mild och billig natt, och bara efter att du tryckt på en av deras knappar: ett värmesteg som mäter huset direkt i stället för att vänta veckor på att härleda det, ett test som kör värmepumpen på topp för att mäta dess verkliga maxeffekt, och ett svep som håller värmepumpen på upp till fem nivåer över dess effektområde. Hussteget hålls så litet att det inte märks. Topptestet och svepet kör värmepumpen till ändarna av dess effektområde i upp till två och en halv timme och pausar varmvattnet under tiden. Alla avbryts om rumstemperaturen driver.",
           "price_prior_enabled": "Morgondagens priser kommer runt kl. 13. Fram till dess fylls resten av horisonten från din inlärda prisprofil över dygnet, och planen märker ut vilka timmar som är uppskattade. Avstängt upprepar resten av horisonten senaste priset, vilket döljer alla billiga timmar framåt.",
           "debug_collect_enabled": "Sparar en liten rad per optimeringscykel och en fullständig ögonblicksbild per dygn i sju dygn och slutar sedan av sig själv. När insamlingen avslutas körs några självtester som bara läser (högst 15 minuter; inget styrs). Hämta diagnostik för den här posten innehåller då veckan och testresultaten, för en felrapport. Stänger du av detta raderas det insamlade.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
@@ -2204,6 +2204,9 @@
       },
       "learning_finalize_debug": {
         "name": "Inlärning avsluta felsökningsinsamling"
+      },
+      "learning_measure_power_response": {
+        "name": "Inlärning mät värmepumpens effektsvar"
       },
       "learning_reset_comfort_weight": {
         "name": "Inlärning återställ komfortvikt"

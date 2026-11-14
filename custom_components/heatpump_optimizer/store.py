@@ -320,6 +320,11 @@ _ACCURACY: dict[str, Domain | str] = {
     # its interval's start in epoch seconds, and the overdraws since.
     "draw/ceiling/#/0": _RUNNING_KW,
     "draw/ceiling/#/1": _R,
+    # R10-DRAW-MAP-EVIDENCE part B: a sweep's band-top sample names itself in
+    # a third cell (a probe's row keeps two), and the last sweep's record.
+    "draw/ceiling/#/2": _TEXT,
+    "draw/sweep/start_s": _R, "draw/sweep/last_s": _R, "draw/sweep/kwh": _Z,
+    "draw/sweep/levels/#/#": _R,
     "draw/overdraws": _COUNT,
     # R10-DRAW-MAP-EVIDENCE: the steady-run map rows, one comma-separated
     # string per column, empty where one row's only cell is unread; a record

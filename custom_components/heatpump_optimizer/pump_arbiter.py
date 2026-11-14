@@ -203,7 +203,7 @@ from .plan_step import PLAN_STEP_HOURS, PLAN_STEP_MINUTES, plan_step_start
 from .drift import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
-from .sysid import KIND_PROBE
+from .sysid import KIND_PROBE, KIND_SWEEP
 from .thermal_model import (
     configured_flow_heat_c,
     dhw_start_below_c,
@@ -311,7 +311,8 @@ FEEDBACK_GATE_CLEAR_K = 0.01
 #: it is decided), the origin column of ``draw_range``'s map rows: the plan's
 #: level mapped open-loop; the feedback loop's start-hold (today's target)
 #: and its moved target; a boost's ceiling; the gate of a step that does not
-#: heat; the baseline's hold; the experiment's fit or ceiling probe.
+#: heat; the baseline's hold; the experiment's fit, ceiling probe or
+#: power-response sweep.
 ORIGIN_PLAN = "plan"
 ORIGIN_FEEDBACK_START = "feedback_start"
 ORIGIN_FEEDBACK = "feedback"
@@ -320,6 +321,8 @@ ORIGIN_GATE = "gate"
 ORIGIN_HOLD = "hold"
 ORIGIN_FIT = "fit"
 ORIGIN_PROBE = "probe"
+ORIGIN_SWEEP = draw_range.ORIGIN_SWEEP
+_EXPERIMENT_ORIGINS = {KIND_PROBE: ORIGIN_PROBE, KIND_SWEEP: ORIGIN_SWEEP}
 
 
 @dataclass(frozen=True)
@@ -399,6 +402,9 @@ class ArbiterState:
     held_until: datetime | None = None
     #: The last Control pass on a flow set-point (:func:`_pass_record`); never persisted.
     last_pass: draw_range.PassRecord | None = None
+    #: The floor set-point a sweep's levels are mapped on, read at its first
+    #: pass (:func:`_hold_sweep`); ``None`` outside a sweep. Never persisted.
+    sweep_floor_c: float | None = None
 
 
 @dataclass(frozen=True)
@@ -638,7 +644,8 @@ def _planned_room(
 
 
 def _space_target(
-    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None, *, boosted: bool
+    inp: ArbiterInputs, result: Any, now: datetime, duty: str | None, *, boosted: bool,
+    sweep_floor_c: float | None = None,
 ) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`.
 
@@ -647,7 +654,7 @@ def _space_target(
     entity = _entities(inp.config)["space_setpoint"]
     if _flow_unit(inp.config):
         log_held(inp.hass, f"space_target_flow_declared:{entity}", False)
-        return _flow_target(inp, duty, now, boosted=boosted)
+        return _flow_target(inp, duty, now, boosted=boosted, sweep_floor_c=sweep_floor_c)
     room = _planned_room(result, now)
     low = setpoint_range_c(inp.hass, entity)[0]
     # An "indoor" entity that cannot hold the room target is a flow
@@ -937,6 +944,7 @@ def _boost_ceiling_c(inp: ArbiterInputs) -> float | None:
 
 def _flow_target(
     inp: ArbiterInputs, duty: str | None, now: datetime, *, boosted: bool = False,
+    sweep_floor_c: float | None = None,
 ) -> float | None:
     """A flow set-point per duty: heat, gate, or the fallback's hold.
 
@@ -952,7 +960,9 @@ def _flow_target(
     lower level. Under a boost (``boosted``) with a ceiling to write
     (:func:`_boost_ceiling_c`), the level is the band top and the ceiling
     that one, so a boost writes it on every step: at the band top the level
-    formula gives the ceiling exactly.
+    formula gives the ceiling exactly. Through a power-response sweep the
+    floor is the one its first pass read (``sweep_floor_c``,
+    :func:`_hold_sweep`), not the inlet's now.
     With no inlet reading the floor is the rated :data:`FLOW_HOLD_C`, in
     return terms on a return target (:func:`_as_target`), as is the
     fallback's hold below. A
@@ -963,7 +973,7 @@ def _flow_target(
     where that is higher.
     """
     if duty in ("space", "both"):
-        m = _map_inputs(inp, now, boosted)
+        m = _map_inputs(inp, now, boosted, sweep_floor_c)
         return _bounded(
             inp,
             "space_setpoint",
@@ -999,13 +1009,14 @@ class MapInputs(NamedTuple):
     boost: bool
 
 
-def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool) -> MapInputs:
+def _map_inputs(inp: ArbiterInputs, now: datetime, boosted: bool, sweep_floor_c: float | None = None) -> MapInputs:
     """The level, band, heat ceiling and floor a heating step maps, read once
-    for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`)."""
+    for the write (:func:`_flow_target`) and the pass record (:func:`_pass_record`).
+    ``sweep_floor_c``: the floor a sweep holds, in place of the inlet's now."""
     p_min, p_max = _band_kw(inp)
     boost_c = _boost_ceiling_c(inp) if boosted else None
     heat_c = _heat_ceiling_c(inp.config) if boost_c is None else boost_c
-    floor_c = _or_hold(modulation_floor_flow_c(
+    floor_c = sweep_floor_c if sweep_floor_c is not None else _or_hold(modulation_floor_flow_c(
         _flow_inlet_c(inp), _gate_c(inp),
         start_flow_min_lift_k(inp.config, getattr(inp.state, "space_start_hysteresis_k", None)),
     ), inp.config)
@@ -1338,7 +1349,8 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
-    space = _space_target(inp, result, now, duty, boosted=_boosted(coord, inp, now))
+    space = _space_target(
+        inp, result, now, duty, boosted=_boosted(coord, inp, now), sweep_floor_c=state_for(coord).sweep_floor_c)
     if _flow_unit(inp.config):
         space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
@@ -1363,11 +1375,11 @@ def pass_origin(inp: ArbiterInputs, duty: str | None, boost_on: bool, run: Feedb
 
     ``duty`` is the duty served, ``boost_on`` whether a boost's ceiling was
     mapped (:attr:`MapInputs.boost`), ``run`` the feedback loop's run after
-    this pass's :func:`_feedback`. The experiment's action names its kind.
+    this pass's :func:`_feedback`. The experiment's action names its kind
+    (:func:`_experiment_kind`), whatever duty the pass served.
     """
-    action = inp.action or {}
-    if action.get("mode") == "system_identification":
-        return ORIGIN_PROBE if action.get("kind") == KIND_PROBE else ORIGIN_FIT
+    if (kind := _experiment_kind(inp)) is not None:
+        return _EXPERIMENT_ORIGINS.get(kind, ORIGIN_FIT)
     if duty not in ("space", "both"):
         return ORIGIN_HOLD if duty is None else ORIGIN_GATE
     if boost_on:
@@ -1376,6 +1388,41 @@ def pass_origin(inp: ArbiterInputs, duty: str | None, boost_on: bool, run: Feedb
         return ORIGIN_PLAN
     held_start = utc_elapsed_seconds(now, run.start) < FEEDBACK_START_HOLD.total_seconds()
     return ORIGIN_FEEDBACK_START if held_start else ORIGIN_FEEDBACK
+
+
+def _experiment_kind(inp: ArbiterInputs) -> str | None:
+    """The kind the experiment's action names (``sysid.KIND_*``; an action
+    naming none is the fit's), or ``None`` when the action is not the experiment's."""
+    action = inp.action or {}
+    if action.get("mode") != "system_identification":
+        return None
+    return str(action.get("kind") or "")
+
+
+def _hold_sweep(held: ArbiterState, inp: ArbiterInputs, now: datetime) -> None:
+    """Through a power-response sweep, hold the floor its levels map on.
+
+    Read once, at the sweep's first pass, so every level maps to one
+    set-point however the water warms under it: mapped on the inlet of each
+    pass a level wrote a set-point a minute, and later levels collapsed onto
+    the ceiling (``dev/audit/harnesses/draw_map_sweep.py``, ``yield``). Any
+    pass whose action is not a sweep's forgets it, so a finished, aborted or
+    stood-down sweep leaves no set-point in force.
+    """
+    if _experiment_kind(inp) != KIND_SWEEP:
+        held.sweep_floor_c = None
+    elif held.sweep_floor_c is None:
+        held.sweep_floor_c = _map_inputs(inp, now, False).floor_c
+
+
+def sweep_band_k(coord: Any) -> float | None:
+    """The heating ceiling less the floor set-point a level maps on now, K;
+    ``None`` where no flow set-point is driven. What ``sysid`` gates a sweep on."""
+    inp = coord.arbiter_inputs()
+    if not flow_setpoint_driven(inp.config):
+        return None
+    m = _map_inputs(inp, dt_util.now(), False)
+    return m.heat_c - m.floor_c
 
 
 def _note_pass(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boosted: bool, now: datetime) -> None:
@@ -1390,7 +1437,7 @@ def _pass_record(held: ArbiterState, inp: ArbiterInputs, duty: str | None, boost
     command = _flow_command(inp, held)
     if command is None:
         return None
-    m = _map_inputs(inp, now, boosted)
+    m = _map_inputs(inp, now, boosted, held.sweep_floor_c)
     return draw_range.PassRecord(
         now, command.written_c, command.gate_c, command.ceiling_c, m.floor_c,
         m.level_kw, finite_float(m.low_kw), finite_float(m.high_kw), m.heat_c,
@@ -1456,7 +1503,11 @@ def _planned_duty(coord: Any, inp: ArbiterInputs, now: datetime) -> str | None:
     if experiment is not None:
         # The experiment's own step, by the rule that books its
         # ``heat_pump_on``: heating while it injects, the gate while it does
-        # not. Space only -- a hot-water charge would share the meter.
+        # not. Space only -- a hot-water charge would share the meter. A
+        # sweep runs for hours, so it alone stands down for a pass on which
+        # the pump's own tank thermostat would start a charge.
+        if _sweep_tank_cold(inp):
+            return "dhw"
         return "space" if planned_draw_runs(experiment) else "idle"
     held = boost.held_for(coord)
     result = None if inp.plan_stale else inp.plan
@@ -1468,6 +1519,13 @@ def _planned_duty(coord: Any, inp: ArbiterInputs, now: datetime) -> str | None:
     space = space or duty in ("space", "both")
     dhw = dhw or duty in ("dhw", "both")
     return "both" if space and dhw else "space" if space else "dhw"
+
+
+def _sweep_tank_cold(inp: ArbiterInputs) -> bool:
+    """A sweep's pass with the tank below the pump's hot-water start
+    temperature (:func:`_dhw_start_below_c`; never with none read)."""
+    tank, below = finite_float(getattr(inp.state, "dhw_temperature", None)), _dhw_start_below_c(inp)
+    return _experiment_kind(inp) == KIND_SWEEP and tank is not None and below is not None and tank < below
 
 
 def _without_block(coord: Any, duty: str | None, now: datetime) -> str | None:
@@ -1976,6 +2034,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
     await _adopt(inp, coord.entry, held, now)
     hold(coord, now)
     served = _served(coord, inp, duty, now)
+    _hold_sweep(held, inp, now)
     await _command(coord, inp, desired(coord, inp, served, now), now)
     boosted = _boosted(coord, inp, now)
     _note_pass(held, inp, served, boosted, now)

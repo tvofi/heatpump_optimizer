@@ -1180,7 +1180,7 @@
           "staleness_watchdog_enabled": "Eine leere Batterie lässt einen völlig normal aussehenden Wert für immer stehen. Ohne Gegenmaßnahme lernt das Modell aus dieser Flatline, und der Schaden übersteht einen Neustart. Ist dies aktiviert, wird ein alter Wert als fehlend behandelt und das Lernen pausiert stattdessen.",
           "staleness_max_age_scale": "Erhöhe dies, wenn du Sensoren hast, die absichtlich selten melden und unnötigerweise markiert werden.",
           "comfort_learning_enabled": "Jedes Mal, wenn du die Temperatur übersteuerst, sagst du damit, dass der Plan in eine Richtung zu weit ging. Daraus wird die Komforteinstellung langsam angepasst. Der gelernte Wert wird in einem eigenen Sensor angezeigt, und es gibt eine Schaltfläche zum Zurücksetzen.",
-          "system_identification_enabled": "Lässt den Optimierer in einer milden, günstigen Nacht einen kleinen, gezielten Heizschritt ausführen, um dein Haus direkt zu vermessen, statt wochenlang zu warten und es abzuleiten. Die Änderung bleibt so klein, dass man sie nicht bemerkt, und sie wird abgebrochen, wenn die Temperatur abdriftet.",
+          "system_identification_enabled": "Lässt den Optimierer in einer milden, günstigen Nacht gezielte Heizexperimente ausführen, und nur nachdem du eine ihrer Schaltflächen gedrückt hast: einen Heizschritt, der dein Haus direkt vermisst, statt es über Wochen abzuleiten, einen Test, der die Wärmepumpe mit voller Leistung betreibt, um ihr tatsächliches Maximum zu messen, und einen Durchlauf, der die Wärmepumpe auf bis zu fünf Stufen über ihren Leistungsbereich hält. Der Hausschritt bleibt so klein, dass man ihn nicht bemerkt. Der Maximaltest und der Durchlauf fahren die Wärmepumpe bis zu zweieinhalb Stunden an die Enden ihres Leistungsbereichs und pausieren währenddessen das Warmwasser. Jedes Experiment wird abgebrochen, wenn die Raumtemperatur abdriftet.",
           "price_prior_enabled": "Die Preise für morgen treffen gegen 13:00 Uhr ein. Bis dahin füllt dies den Rest des Horizonts aus deinem gelernten Tagespreisprofil auf, und der Plan kennzeichnet, welche Stunden geschätzt sind. Ist es ausgeschaltet, wiederholt der Rest des Horizonts den letzten Preis, was jede günstige Stunde im Voraus verdeckt.",
           "debug_collect_enabled": "Zeichnet pro Optimierungszyklus eine kleine Zeile und einmal täglich einen vollständigen Schnappschuss auf, sieben Tage lang, und endet dann von selbst. Beim Beenden laufen einige rein lesende Selbsttests (höchstens 15 Minuten; es wird nichts geschaltet). Der Download der Diagnosedaten dieses Eintrags enthält danach die Woche und die Testergebnisse, für einen Fehlerbericht. Beim Ausschalten werden die gesammelten Daten gelöscht.",
           "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
@@ -2204,6 +2204,9 @@
       },
       "learning_finalize_debug": {
         "name": "Lernen Debug-Erfassung abschließen"
+      },
+      "learning_measure_power_response": {
+        "name": "Lernen Leistungsantwort der Wärmepumpe messen"
       },
       "learning_reset_comfort_weight": {
         "name": "Lernen Komfortgewicht zurücksetzen"

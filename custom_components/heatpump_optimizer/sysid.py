@@ -29,8 +29,8 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass, replace
-from datetime import datetime
-from typing import Any, Callable, cast
+from datetime import datetime, timedelta
+from typing import Any, Callable, Sequence, cast
 
 import numpy as np
 
@@ -40,10 +40,11 @@ from .const import (
     DEFAULT_SLAB_HEAT_TRANSFER,
     DEFAULT_SLAB_THERMAL_MASS,
 )
-from .draw_range import DrawRange
+from .draw_range import DrawRange, sweep_rows_at
 from . import quiet_windows
 from .mixing_valve import is_throttling
 from .payload import SysIdResultView, SysIdView
+from .plan_step import PLAN_STEP_MINUTES
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
     ThermalModel,
@@ -51,6 +52,7 @@ from .thermal_model import (
     ThermalState,
     ceiling_probe_install,
     learner_room_unread,
+    planned_draw_runs,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,6 +106,26 @@ PROBE_DAYS_UNLEARNED = 7.0
 PROBE_DAYS_LEARNED = 30.0
 #: A probe step shorter than this many cycles meters too few intervals.
 PROBE_MIN_CYCLES = 2
+#: The power-response sweep (R10-DRAW-MAP-EVIDENCE part B): armed only by its
+#: own button, it commands up to five levels of the band for one cycle each.
+#: The arbiter holds one set-point per level with the power feedback off, so
+#: ``draw_range``'s map rows meter the pump's response to a held set-point.
+#: It fits and adopts nothing.
+KIND_SWEEP = "power_sweep"
+#: The levels as fractions of the band, in run order. Low first: the arbiter
+#: maps every level on the inlet the sweep starts on and the water warms as
+#: it runs, so a low level held late would sit under its own inlet.
+SWEEP_FRACTIONS = (0.0, 0.5, 0.25, 1.0, 0.75)
+#: A sweep of fewer levels fixes neither the map's level nor its gain.
+SWEEP_MIN_LEVELS = 2
+#: The ceiling less the floor set-point a sweep needs, K: on a narrower band
+#: the levels' set-points round onto each other.
+SWEEP_MIN_BAND_K = 8.0
+SWEEP_WARM_REASON = "the water is too warm for a sweep"
+#: How an armed kind is named in the published result.
+KIND_LABELS = {KIND_FIT: "fit", KIND_PROBE: "ceiling probe", KIND_SWEEP: "power-response sweep"}
+#: One cycle, the length of a sweep level, hours.
+CYCLE_HOURS = DEFAULT_OPTIMIZATION_INTERVAL / 60.0
 
 
 def _predict_step_excursion(
@@ -1302,6 +1324,25 @@ def night_gains_prior_kw(plant: ThermalParameters, config: SysIdConfig) -> float
     ]))
 
 
+def _probe_waits(probe: DrawRange, probe_run: datetime | None, now_s: float) -> str | None:
+    """Why the ceiling probe's clock refuses a run now, or ``None``.
+
+    The clock is the store's newest PROBE sample, which persists, or the
+    probe step's start this process saw (``probe_run``), whichever is newer.
+    A sweep's sample at the band top is ceiling evidence but no probe run:
+    it never postpones one.
+    """
+    wait = PROBE_DAYS_LEARNED if probe.learned_max_kw(now_s) is not None else PROBE_DAYS_UNLEARNED
+    since = max(
+        (t for t in (probe.probe_since(), probe_run and probe_run.timestamp()) if t),
+        default=None,
+    )
+    if since is None or (now_s - since) / 86400.0 >= wait:
+        return None
+    days = (now_s - since) / 86400.0
+    return f"the ceiling probe ran {days:.1f} days ago, waiting for the {wait:.0f} day minimum"
+
+
 def armable(
     cfg: SysIdConfig,
     now: datetime,
@@ -1309,33 +1350,251 @@ def armable(
     learner_samples: int,
     probe: DrawRange | None,
     probe_run: datetime | None,
+    sweep: Sequence[tuple[int, float]] | None = None,
 ) -> tuple[str | None, str]:
-    """The kind one arm runs now, or ``None`` and why none can (#2808).
+    """The kind one arm runs now and why, or ``None`` and why none can (#2808).
 
-    The fit while the house learner is unconverged and its own clock allows;
-    otherwise the ceiling probe, where the install can run one (``probe`` is
-    its draw store) and the probe's clock allows. The probe's clock is the
-    store's newest sample, which persists, or the probe step's start this
-    process saw (``probe_run``), whichever is newer.
+    The one place a press becomes a kind. ``probe`` is the install's draw
+    store where it can run the ceiling probe or a sweep, else ``None``.
+
+    The sweep's button passes ``sweep``, its candidate levels as (map rows
+    held, kW) in run order; no other press arms a sweep. Its reason is the
+    run's upper cost bound: every level at the band top.
+
+    Otherwise the ceiling probe first where the pump's top is unlearned and
+    the probe's clock allows (R10-DRAW-MAP-EVIDENCE [CE] 2, owner ruling
+    2026-11-14): the learned top sets every plan's booked level, the fit only
+    refines the house, and an unconverged house used to keep the probe from
+    ever running. Then the fit while the house learner is unconverged and its
+    own clock allows; then the probe on its clock (``_probe_waits``). An
+    install that cannot probe arms as it always did.
     """
+    if sweep is not None:
+        if probe is None:
+            return None, "no metered flow set-point to sweep"
+        if len(sweep) < SWEEP_MIN_LEVELS:
+            return None, "the configured power band is too narrow to sweep"
+        top_kw = max(kw for _rows, kw in sweep)
+        return KIND_SWEEP, (
+            f"up to {len(sweep) * CYCLE_HOURS * top_kw:.1f} kWh ({len(sweep)} levels of "
+            f"{CYCLE_HOURS * 60:.0f} minutes at the {top_kw:.1f} kW band top); the metered "
+            "energy follows in the draw diagnostics"
+        )
+    now_s = now.timestamp()
+    waits = None if probe is None else _probe_waits(probe, probe_run, now_s)
+    if probe is not None and waits is None and probe.learned_max_kw(now_s) is None:
+        return KIND_PROBE, "the pump's top is not learned yet"
     if learner_samples < cfg.converged_samples:
         days = None if last_run is None else utc_elapsed_seconds(now, last_run) / 86400.0
         if days is None or days >= cfg.min_days_between_runs:
-            return KIND_FIT, ""
+            return KIND_FIT, waits or ""
         why = f"ran {days:.1f} days ago; waiting for the {cfg.min_days_between_runs:.0f} day minimum"
     else:
         why = "house already converged"
     if probe is None:
         return None, f"{why}, and no metered flow set-point to probe the ceiling on"
-    wait = PROBE_DAYS_LEARNED if probe.learned_max_kw(now.timestamp()) is not None else PROBE_DAYS_UNLEARNED
-    since = max(
-        (t for t in (probe.ceiling_since(), probe_run and probe_run.timestamp()) if t),
-        default=None,
-    )
-    if since is not None and (now.timestamp() - since) / 86400.0 < wait:
-        days = (now.timestamp() - since) / 86400.0
-        return None, f"{why}; the ceiling probe ran {days:.1f} days ago, waiting for the {wait:.0f} day minimum"
+    if waits is not None:
+        return None, f"{why}; {waits}"
     return KIND_PROBE, ""
+
+
+def sweep_levels_kw(low_kw: float, high_kw: float) -> tuple[float, ...]:
+    """The sweep's distinct levels on the band, kW, in run order.
+
+    A level the plan's own rule books as not running
+    (``planned_draw_runs``: the bottom of a band with no configured minimum)
+    is no level to hold, and a fixed-speed band has one level, not five.
+    """
+    levels = [low_kw + f * (high_kw - low_kw) for f in SWEEP_FRACTIONS]
+    return tuple(kw for i, kw in enumerate(levels) if planned_draw_runs(kw) and kw not in levels[:i])
+
+
+def sweep_level_count(
+    house: HousePlant,
+    two_zone: ThermalParameters | None,
+    baseline: float,
+    outdoor: float,
+    top_heat_kw: float,
+    cfg: SysIdConfig,
+    most: int,
+) -> int | None:
+    """The most sweep levels, ``most`` down to ``SWEEP_MIN_LEVELS``, tonight's
+    comfort bound admits; ``None`` where not even the fewest fit.
+
+    The room is predicted along k levels of one cycle and the relax, twice.
+    Every level delivering ``top_heat_kw``, the band top's heat: a held
+    set-point commands a draw the pump's own controller sets, up to its top.
+    And every level delivering none: a held set-point the inlet reaches stops
+    the compressor (design review r12; on the 60 building presets the
+    commanded level as the lower bound admitted levels this one refuses,
+    ``dev/audit/harnesses/draw_map_sweep.py``). The bound is the probe's.
+    """
+    bound = cfg.max_excursion_c - (0.0 if two_zone is None else TWO_ZONE_SIZING_HEADROOM_C)
+    model = None if two_zone is None else ThermalModel(two_zone)
+    for k in range(most, SWEEP_MIN_LEVELS - 1, -1):
+        if all(
+            _predict_step_excursion_plant(
+                house, baseline, outdoor, q_kw, k * CYCLE_HOURS, cfg.relax_hours, model=model,
+            )[0] <= bound
+            for q_kw in (top_heat_kw, 0.0)
+        ):
+            return k
+    return None
+
+
+def _in_night(cfg: SysIdConfig, hour: int) -> bool:
+    if cfg.start_hour <= cfg.end_hour:
+        return cfg.start_hour <= hour < cfg.end_hour
+    # The window wraps midnight, which is the normal case.
+    return hour >= cfg.start_hour or hour < cfg.end_hour
+
+
+def _cheap_cutoff(cfg: SysIdConfig, price_horizon: Any) -> float | None:
+    """The price an experiment hour may cost at most; ``None`` with no horizon."""
+    if price_horizon is None or not len(price_horizon):
+        return None
+    return float(np.percentile(price_horizon, cfg.max_price_percentile))
+
+
+def _hour_price_refusal(
+    cfg: SysIdConfig, now: datetime, price: float, price_horizon: Any, needs_spread: bool,
+) -> str | None:
+    """Why this hour or its price refuses an experiment, or ``None``.
+
+    ``needs_spread``: the probe's rule, a flat horizon has no cheap hour.
+    """
+    if not _in_night(cfg, now.hour):
+        return "outside the night window"
+    cutoff = _cheap_cutoff(cfg, price_horizon)
+    if needs_spread and (cutoff is None or np.ptp(price_horizon) <= 0.0):
+        return "a flat price has no cheap hour to probe in"
+    if cutoff is not None and price > cutoff:
+        return "electricity is not cheap enough"
+    return None
+
+
+def cheap_night_cycles(cfg: SysIdConfig, now: datetime, price_horizon: Any) -> int:
+    """Whole cycles from ``now`` that start inside the night window with every
+    horizon price in them at or under the cheap cutoff; a day at most.
+
+    ``price_horizon`` is per plan step from ``now``. With none, no price
+    refuses (as ``conditions_met``); a cycle past its end is not known cheap.
+    """
+    cutoff = _cheap_cutoff(cfg, price_horizon)
+    steps = max(1, round(CYCLE_HOURS * 60.0 / PLAN_STEP_MINUTES))
+    count = 0
+    while count < 24.0 / CYCLE_HOURS and _in_night(cfg, (now + timedelta(hours=count * CYCLE_HOURS)).hour):
+        span = () if cutoff is None else price_horizon[count * steps:(count + 1) * steps]
+        if cutoff is not None and (not len(span) or float(np.max(span)) > cutoff):
+            break
+        count += 1
+    return count
+
+
+def _sweep_start_refusal(
+    cfg: SysIdConfig, now: datetime, price_horizon: Any, band_k: float | None,
+) -> str | None:
+    """Why an armed sweep whose hour and price pass still waits, or ``None``.
+
+    ``band_k`` is the ceiling less the floor set-point now
+    (``pump_arbiter.sweep_band_k``). The cheap night hours left must hold
+    the settle and the fewest levels; the chosen count is checked again
+    after the settle (``_begin_bounded``).
+    """
+    if band_k is None:
+        return "no flow set-point band is read"
+    if band_k < SWEEP_MIN_BAND_K:
+        return SWEEP_WARM_REASON
+    need = math.ceil(cfg.settle_hours / CYCLE_HOURS - 1e-9) + SWEEP_MIN_LEVELS
+    if cheap_night_cycles(cfg, now, price_horizon) < need:
+        return "too few cheap night hours are left for a sweep"
+    return None
+
+
+def _may_start(
+    experiment: "SystemIdentification", now: datetime, outdoor_temp: float, price: float | None,
+    price_horizon: Any, learner_samples: int, band_k: float | None,
+) -> tuple[bool, str]:
+    """``conditions_met``, and for a sweep its own start gate, whose refusal
+    is published as the armed experiment's hold."""
+    ok, reason = experiment.conditions_met(now, outdoor_temp, price, price_horizon, learner_samples)
+    if not ok or experiment.kind != KIND_SWEEP:
+        return ok, reason
+    experiment.held = _sweep_start_refusal(experiment.config, now, price_horizon, band_k)
+    return experiment.held is None, experiment.held or reason
+
+
+def _begin_bounded(
+    experiment: "SystemIdentification", now: datetime, outdoor_temp: float, max_power_kw: float,
+    cop: float, house: HousePlant, price_horizon: Any, band_k: float | None,
+) -> None:
+    """Start a probe's or a sweep's step, or abort where none fits.
+
+    Neither sizes a power. A probe steps the configured maximum for the
+    longest whole-cycle duration that fits (:func:`probe_step_hours`). A
+    sweep runs the most levels the comfort bound and the cheap night hours
+    left admit (:func:`sweep_level_count`), those with the fewest map rows at
+    the arm, in run order; the band is read again here, because the water
+    warmed through the settle (design review r15).
+    """
+    baseline, top_heat_kw = experiment._baseline_temp, max_power_kw * max(cop, 0.1)
+    if experiment.kind == KIND_PROBE:
+        hours = None if baseline is None else probe_step_hours(
+            house, experiment._two_zone_plant, baseline, outdoor_temp, top_heat_kw, experiment.config,
+        )
+        if hours is None:
+            experiment.abort("no probe step of two cycles fits within the comfort bound")
+            return
+        experiment._step_power, experiment._step_hours, experiment.probe_run = max_power_kw, hours, now
+        return
+    levels = experiment._sweep
+    if band_k is None or band_k < SWEEP_MIN_BAND_K:
+        experiment.abort(SWEEP_WARM_REASON)
+        return
+    most = min(len(levels), cheap_night_cycles(experiment.config, now, price_horizon))
+    count = None if baseline is None else sweep_level_count(
+        house, experiment._two_zone_plant, baseline, outdoor_temp, top_heat_kw, experiment.config, most,
+    )
+    if count is None:
+        experiment.abort(
+            "no sweep fits within the comfort bound" if most >= SWEEP_MIN_LEVELS
+            else "too few cheap night hours are left for a sweep"
+        )
+        return
+    keep = sorted(sorted(range(len(levels)), key=lambda i: levels[i][0])[:count])
+    experiment._sweep = tuple(levels[i] for i in keep)
+    experiment._step_power, experiment._step_hours = experiment._sweep[0][1], count * CYCLE_HOURS
+
+
+def _sweep_level(
+    experiment: "SystemIdentification", now: datetime, elapsed: float, price: float | None,
+    price_horizon: Any,
+) -> bool:
+    """Set the sweep's level for the interval starting now; False where the
+    sweep ended instead.
+
+    At a level boundary the hour and the current price are read again: a
+    sweep that would run on into a dear hour or past the night window ends
+    with the levels it held, whose rows are kept.
+    """
+    levels = experiment._sweep
+    index = min(max(round(elapsed / CYCLE_HOURS) - 1, 0), len(levels) - 1)
+    if index and (price is None or _hour_price_refusal(experiment.config, now, price, price_horizon, False)):
+        experiment._sweep = levels[:index]
+        experiment._finish(now)
+        return False
+    experiment._step_power = levels[index][1]
+    return True
+
+
+def _run_reason(experiment: "SystemIdentification") -> str:
+    """What a finished probe or sweep publishes: neither fits anything."""
+    if experiment.kind == KIND_PROBE:
+        return f"ceiling probe ran {experiment._step_hours:.1f} h at {experiment._step_power:.2f} kW"
+    return (
+        f"power-response sweep held {len(experiment._sweep)} of "
+        f"{round(experiment._step_hours / CYCLE_HOURS)} levels; per-level yield in the draw diagnostics"
+    )
 
 
 def probe_step_hours(
@@ -1356,15 +1615,14 @@ def probe_step_hours(
     no noise to absorb. The peak includes the relax phase's overshoot; the
     relax's final cooling is the plan's, which resumes after a probe.
     """
-    cycle = DEFAULT_OPTIMIZATION_INTERVAL / 60.0
     bound = cfg.max_excursion_c - (0.0 if two_zone is None else TWO_ZONE_SIZING_HEADROOM_C)
     model = None if two_zone is None else ThermalModel(two_zone)
-    for n in range(int(cfg.step_hours / cycle + 1e-9), PROBE_MIN_CYCLES - 1, -1):
+    for n in range(int(cfg.step_hours / CYCLE_HOURS + 1e-9), PROBE_MIN_CYCLES - 1, -1):
         peak, _ = _predict_step_excursion_plant(
-            house, baseline, outdoor, q_kw, n * cycle, cfg.relax_hours, model=model,
+            house, baseline, outdoor, q_kw, n * CYCLE_HOURS, cfg.relax_hours, model=model,
         )
         if peak <= bound:
-            return n * cycle
+            return n * CYCLE_HOURS
     return None
 
 
@@ -1413,6 +1671,9 @@ class SystemIdentification:
         #: step's last start; the last arm press; a freeze's hold (#2808).
         self.kind: str = KIND_FIT
         self._step_hours: float = self.config.step_hours
+        #: A sweep's levels as (map rows held at the arm, kW) in run order:
+        #: the candidates until the step begins, then the levels it runs.
+        self._sweep: tuple[tuple[int, float], ...] = ()
         self.probe_run: datetime | None = None
         self.last_attempt: datetime | None = None
         self.held: str | None = None
@@ -1440,12 +1701,15 @@ class SystemIdentification:
     def arm(
         self, now: datetime, plant: ThermalParameters | None = None,
         learner_samples: int = 0, probe: DrawRange | None = None,
+        sweep: Sequence[tuple[int, float]] | None = None,
     ) -> bool:
         """Arm an experiment, to start when conditions allow.
 
-        :func:`armable` picks the kind; a refusal is published in ``result``.
+        :func:`armable` picks the kind; a refusal is published in ``result``,
+        and so is the kind armed where there is a reason to give.
         ``probe`` is the install's draw store where it can run the ceiling
-        probe (``thermal_model.ceiling_probe_install``), else ``None``.
+        probe (``thermal_model.ceiling_probe_install``), else ``None``;
+        ``sweep`` the sweep button's candidate levels.
 
         ``plant`` is the house the experiment would run on, when the caller
         knows it. #942's identifiability gate then refuses to arm on a plant
@@ -1461,17 +1725,19 @@ class SystemIdentification:
         if self.active:
             return False
         self.last_attempt, self.held = now, None
-        kind, why = armable(self.config, now, self.last_run, learner_samples, probe, self.probe_run)
+        kind, why = armable(self.config, now, self.last_run, learner_samples, probe, self.probe_run, sweep)
         if kind is None:
             _LOGGER.info("System identification not armed: %s", why)
             self.result = SysIdResult(completed=False, reason=why)
             return False
-        self.kind, self._step_hours = kind, self.config.step_hours
+        self.kind, self._step_hours, self._sweep = kind, self.config.step_hours, tuple(sweep or ())
+        if why:
+            self.result = SysIdResult(completed=False, reason=f"armed the {KIND_LABELS[kind]}: {why}")
         self._slab_pair = None
         self._slab_prior = None
         self._slab_fit_used = False
         self._two_zone_plant = None
-        if plant is not None and kind == KIND_PROBE:
+        if plant is not None and kind != KIND_FIT:
             self._two_zone_plant = replace(plant) if plant.two_zone_enabled else None
         elif plant is not None:
             identifiable, why = slab_mode_identifiability(plant, self.config)
@@ -1541,24 +1807,8 @@ class SystemIdentification:
         if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp):
             return False, "outdoor temperature outside the safe band"
 
-        hour = now.hour
-        if cfg.start_hour <= cfg.end_hour:
-            in_window = cfg.start_hour <= hour < cfg.end_hour
-        else:
-            # The window wraps midnight, which is the normal case.
-            in_window = hour >= cfg.start_hour or hour < cfg.end_hour
-        if not in_window:
-            return False, "outside the night window"
-
-        if self.kind == KIND_PROBE and (
-            price_horizon is None or not len(price_horizon) or np.ptp(price_horizon) <= 0.0
-        ):
-            return False, "a flat price has no cheap hour to probe in"
-        if price_horizon is not None and len(price_horizon):
-            cutoff = float(np.percentile(price_horizon, cfg.max_price_percentile))
-            if price > cutoff:
-                return False, "electricity is not cheap enough"
-        return True, "ready"
+        why = _hour_price_refusal(cfg, now, price, price_horizon, self.kind == KIND_PROBE)
+        return why is None, why or "ready"
 
     # -- execution ----------------------------------------------------------
 
@@ -1642,23 +1892,16 @@ class SystemIdentification:
 
     def _begin_step_phase(
         self, now: datetime, outdoor_temp: float, max_power_kw: float, cop: float, house: HousePlant,
+        price_horizon: Any = None, band_k: float | None = None,
     ) -> None:
         """Enter PHASE_STEP with a comfort-bounded injection; abort if none fits.
 
-        A probe steps the configured maximum for the longest whole-cycle
-        duration that fits (:func:`probe_step_hours`); the fit sizes its power.
+        The fit sizes its power; a probe and a sweep are :func:`_begin_bounded`'s.
         """
         self.phase = PHASE_STEP
         self.phase_started = now
-        if self.kind == KIND_PROBE:
-            hours = None if self._baseline_temp is None else probe_step_hours(
-                house, self._two_zone_plant, self._baseline_temp, outdoor_temp,
-                max_power_kw * max(cop, 0.1), self.config,
-            )
-            if hours is None:
-                self.abort("no probe step of two cycles fits within the comfort bound")
-                return
-            self._step_power, self._step_hours, self.probe_run = max_power_kw, hours, now
+        if self.kind != KIND_FIT:
+            _begin_bounded(self, now, outdoor_temp, max_power_kw, cop, house, price_horizon, band_k)
             return
         if (
             house.ua is not None
@@ -1733,6 +1976,7 @@ class SystemIdentification:
         cop: float = 1.0,
         plan_power_kw: float = 0.0,
         house: HousePlant = HousePlant(),
+        sweep_band_k: float | None = None,
     ) -> float | None:
         """Advance the experiment; returns a power override, or ``None``.
 
@@ -1746,15 +1990,16 @@ class SystemIdentification:
         scale already folded into its ``ua``. The sizer builds its plant from
         it, so a caller that omits the slab pair sizes on the
         ``ThermalParameters`` defaults instead of on the house it heats
-        (#943).
+        (#943). ``sweep_band_k`` is the flow set-point band a sweep is gated
+        on (``pump_arbiter.sweep_band_k``).
         """
         cfg = self.config
         if not self.active:
             return None
 
         if self.phase == PHASE_ARMED:
-            ok, reason = self.conditions_met(
-                now, outdoor_temp, price, price_horizon, learner_samples
+            ok, reason = _may_start(
+                self, now, outdoor_temp, price, price_horizon, learner_samples, sweep_band_k
             )
             if not ok:
                 if "converged" in reason:
@@ -1784,7 +2029,7 @@ class SystemIdentification:
                 self.abort("room temperature drifted beyond the allowed excursion")
                 return None
             if elapsed >= cfg.settle_hours:
-                self._begin_step_phase(now, outdoor_temp, max_power_kw, cop, house)
+                self._begin_step_phase(now, outdoor_temp, max_power_kw, cop, house, price_horizon, sweep_band_k)
             return None
 
         if self._over_excursion(room_temp):
@@ -1792,6 +2037,8 @@ class SystemIdentification:
             return None
 
         if self.phase == PHASE_STEP:
+            if self.kind == KIND_SWEEP and not _sweep_level(self, now, elapsed, price, price_horizon):
+                return None
             self.samples[-1].power_kw = self._step_power * thermal_cop
             if elapsed >= self._step_hours:
                 self._end_step(now)
@@ -1805,19 +2052,17 @@ class SystemIdentification:
         return None
 
     def _end_step(self, now: datetime) -> None:
-        """A fit relaxes; a probe ends, and the plan resumes after this interval."""
-        if self.kind == KIND_PROBE:
+        """A fit relaxes; a probe or a sweep ends, and the plan resumes after this interval."""
+        if self.kind != KIND_FIT:
             self._finish(now)
         else:
             self.phase, self.phase_started = PHASE_RELAX, now
 
     def _finish(self, now: datetime) -> None:
         self.phase = PHASE_DONE
-        if self.kind == KIND_PROBE:
-            # Nothing is fitted: the meter's draws went to the ceiling store.
-            self.result = SysIdResult(completed=False, reason=(
-                f"ceiling probe ran {self._step_hours:.1f} h at {self._step_power:.2f} kW"
-            ))
+        if self.kind != KIND_FIT:
+            # Nothing is fitted: the meter's draws went to the draw store.
+            self.result = SysIdResult(completed=False, reason=_run_reason(self))
             return
         self.last_run = now
         # #942's wave: an experiment the arm-time gate admitted on a declared
@@ -2465,16 +2710,23 @@ class SystemIdentification:
 
 def arm_from_config(
     ident: SystemIdentification, now: datetime, config: Any, plant: ThermalParameters,
-    learner_samples: int, draw: DrawRange,
+    learner_samples: int, draw: DrawRange, sweep: bool = False,
 ) -> bool:
     """Arm ``ident`` from the entry's configuration (the coordinator's one call).
 
     The switch is the configuration's; the draw store is the probe's only
     where the install can run it (``thermal_model.ceiling_probe_install``).
+    ``sweep``: the press was the sweep button's. Its candidate levels are
+    the hub's band, which the arbiter maps an experiment's step on, each
+    beside the sweep rows the store already holds for it.
     """
     ident.config.enabled = config.system_identification_enabled
     probe = draw if ceiling_probe_install(config) else None
-    armed = ident.arm(now, plant=plant, learner_samples=learner_samples, probe=probe)
+    levels = None if not sweep else tuple(
+        (sweep_rows_at(draw, kw), kw)
+        for kw in sweep_levels_kw(plant.min_electrical_power, plant.max_electrical_power)
+    )
+    armed = ident.arm(now, plant=plant, learner_samples=learner_samples, probe=probe, sweep=levels)
     if armed:
         _LOGGER.info(
             "System identification armed (%s); it will start at the next mild, cheap night hour",
