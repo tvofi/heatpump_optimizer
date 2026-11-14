@@ -28,7 +28,7 @@ flowchart TB
         states["Entity states<br/>temperatures, power, tank probes,<br/>presence, humidity"]
 
         subgraph glue["Integration glue — imports homeassistant"]
-            entities["Entity layer<br/>82 entities<br/>62 sensors, 6 binary sensors,<br/>6 buttons, 6 switches,<br/>1 climate, 1 datetime"]
+            entities["Entity layer<br/>83 entities<br/>62 sensors, 6 binary sensors,<br/>7 buttons, 6 switches,<br/>1 climate, 1 datetime"]
             ui["config_flow · services · frontend<br/>repairs · diagnostics · notifier"]
             reader["inputs.py — InputReader<br/>freshness and unit guards"]
             coord["coordinator.py<br/>HeatPumpOptimizerCoordinator<br/>the orchestration seam"]

@@ -1185,9 +1185,9 @@ Self-learning and diagnostics, and then trigger it with the **Run System
 Identification** button — until the option is on, that button does nothing but
 log that identification is disabled.
 
-**The ceiling probe.** Once the house has converged, or while the fit waits
-for its 30-day gap, the same button arms a second experiment where the install
-can run it: **Pump duty control** set to Control, the space set-point written
+**The ceiling probe.** While the pump's maximum is not learned yet, and after
+that once the house has converged or while the fit waits for its 30-day gap,
+the same button arms a second experiment where the install can run it: **Pump duty control** set to Control, the space set-point written
 as a flow or return temperature, a power meter on the heat pump, and the plan
 not writing compressor power itself (a compressor frequency entity with its
 control set to Control skips the probe, since the plan already sets the draw
@@ -1207,6 +1207,40 @@ at most every 7 days until a maximum is learned and every 30 days after. The
 **Learning Model Status** sensor publishes the maximum in use and where it came
 from (`pump_max_power`, `pump_max_power_source`, `pump_max_power_reason`), and
 the last experiment's kind, phase and result in `system_identification_outcome`.
+When a press arms something, that result says which experiment and why: the
+probe comes first while the maximum is unlearned, because the maximum sets the
+power every plan books and the fit only refines the house.
+
+**The power-response sweep.** A third experiment, armed only by its own button,
+**Learning Measure Power Response**, on an install that can run the probe. It
+measures how much the pump draws at a held water set-point, which the plan
+today takes from a straight line between the *Heating flow ceiling* and the
+inlet temperature plus the minimum lift. On the same kind of night it settles
+for an hour, then commands up to five levels across the configured power
+range, half an hour each, lowest first. The set-points for all levels are
+worked out once, from the inlet temperature when the first level starts, and
+each is then held unchanged with the power feedback off, so the draw read
+beside it is the pump's own answer to that set-point. It needs at least 8 K
+between the ceiling and the floor set-point, and waits with "the water is too
+warm for a sweep" until it has them.
+
+How many levels run is decided before the first one: the room is predicted
+twice, once with every level delivering the pump's full heat and once with
+none delivered, and the most levels that keep both inside the comfort bound
+are used, at least two, taking first the levels with the fewest readings so
+far. A flat price is allowed. Before each further level the hour and the price
+are checked again, and the sweep ends early, keeping what it measured, if the
+night window has closed or the price is no longer among the cheapest 30 %.
+Hot water pauses during the levels, up to two and a half hours, except that a
+tank below the pump's own hot-water start temperature is served first. The
+most a sweep can use is the number of levels times half an hour times **Heat
+pump max power** (10 kWh for five levels at 4 kW); the button's result states
+that figure when it arms, and the energy actually metered is in Download
+diagnostics afterwards, with the minutes each level ran steadily, its held
+set-point and its mean draw. The level held at the top set-point also counts
+towards the learned maximum above. A sweep changes no setting and no learned
+value besides that: its intervals are left out of the efficiency learning, as
+the probe's and the fit's are, and out of the running power range.
 
 The fit regresses the room's rate of change on `(T_room − T_out)`, applied power
 and a **constant**, over both the step and relaxation phases: relaxation carries

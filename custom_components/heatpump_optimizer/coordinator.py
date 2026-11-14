@@ -82,7 +82,6 @@ from .payload import (
     Pv,
     REASON_BOOST,
     REASON_COMFORT_MODE,
-    REASON_SYSTEM_IDENTIFICATION,
     REASON_UNTAGGED,
     Scores,
     SolarForecastStep,
@@ -11111,28 +11110,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             plan_power_kw=float(self._current_action.get("power", 0.0)),
             # The slab pair must be the configured house's own (#943).
             house=HousePlant.of_params(params),
-            sweep_band_k=pump_arbiter.sweep_band_k(self),
+            sweep_band_k=pump_arbiter.sweep_band_k(self) if self._sysid.kind == sysid.KIND_SWEEP else None,
         )
         if override is None:
             return
         # The override rides the plan base (#1752), so a later cycle that
         # keeps the plan still actuates the experiment's own command.
-        boost.adopt_plan(self, {
-            **self._current_action,
-            "power": float(override),
-            "power_normalized": float(
-                override / max(ctx._thermal_params.max_electrical_power, 0.1)
-            ),
-            "heat_pump_on": planned_draw_runs(float(override)),
-            "mode": "system_identification",
-            "kind": self._sysid.kind,
-            # T6: the experiment's draw is not the plan's -- booking it under
-            # the overridden plan's reason would say "cheapest hours" or
-            # whatever the plan claimed for this step; the experiment is the
-            # cause and names itself (#2256).
-            "space_reason": REASON_SYSTEM_IDENTIFICATION,
-            "dhw_reason": REASON_SYSTEM_IDENTIFICATION,
-        })
+        boost.adopt_plan(self, sysid.override_action(
+            self._current_action, override, self._sysid.kind, ctx._thermal_params.max_electrical_power))
     def _adopt_system_identification(self) -> None:
         """Seed the passive learners from a completed experiment.
 

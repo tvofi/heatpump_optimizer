@@ -1349,10 +1349,14 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     silent = _silent_target(coord, inp, now)
     duty = _disinfecting(inp, duty)
     mode = _mode_for(inp, duty)
+    # A water set-point's state only: an indoor one maps no level, and a
+    # caller may hand no coordinator for it.
+    held = state_for(coord) if _flow_unit(inp.config) else None
     space = _space_target(
-        inp, result, now, duty, boosted=_boosted(coord, inp, now), sweep_floor_c=state_for(coord).sweep_floor_c)
-    if _flow_unit(inp.config):
-        space = _feedback(state_for(coord), inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
+        inp, result, now, duty, boosted=_boosted(coord, inp, now),
+        sweep_floor_c=None if held is None else held.sweep_floor_c)
+    if held is not None:
+        space = _feedback(held, inp, now, space, _feedback_on(inp, duty, now, boost.held_for(coord)))
     if duty == "space" and mode != pump_mode.MODE_HEAT:
         return PumpCommand(mode, _bounded(inp, "dhw_setpoint", DHW_GATE_C, rounding="down"), space, silent)
     if duty == "dhw" and mode != pump_mode.MODE_DHW and not _flow_unit(inp.config):

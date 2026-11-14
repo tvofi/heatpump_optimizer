@@ -889,6 +889,17 @@ def is_running_space(
     )
 
 
+def is_idle_reading(drawn_kw: float | None, dhw_kw: float, command: Any, *, blocked: bool) -> bool:
+    """One interval is an idle reading: the meter read while the held
+    set-point was the gate and no hot water was asked, with nothing
+    ``blocked`` on the meter (a freeze, a distortion or a defrost)."""
+    return (
+        drawn_kw is not None and not blocked and command is not None
+        and command.written_c <= command.gate_c + GATE_TOLERANCE_K
+        and not planned_draw_runs(dhw_kw, modulation_floor=0.0)
+    )
+
+
 def fold(
     draw: DrawRange,
     drawn_kw: float | None,
@@ -932,20 +943,15 @@ def fold(
     space, dhw = split
     draw.map.commit_runs(keep=not (frozen or distorted))
     sweep, draw.map.sweep_seen = draw.map.sweep_seen, False
-    if sweep:
-        if experiment_s is not None and drawn_kw is not None and draw.takes_ceiling(drawn_kw, command) and is_running_space(
-                drawn_kw, space, dhw, frozen=frozen, distorted=distorted, defrost=defrost):
-            draw.observe_ceiling(drawn_kw, experiment_s, SOURCE_SWEEP)
-        return
-    if drawn_kw is not None and not (frozen or distorted or defrost) and command is not None and command.written_c <= command.gate_c + GATE_TOLERANCE_K and not planned_draw_runs(dhw, modulation_floor=0.0):
+    if not sweep and is_idle_reading(drawn_kw, dhw, command, blocked=frozen or distorted or defrost):
         draw.observe_idle(drawn_kw)
     if drawn_kw is None or not is_running_space(
         drawn_kw, space, dhw, frozen=frozen, distorted=distorted, defrost=defrost
     ):
         return
     if experiment_s is not None and draw.takes_ceiling(drawn_kw, command):
-        draw.observe_ceiling(drawn_kw, experiment_s)
-    else:
+        draw.observe_ceiling(drawn_kw, experiment_s, SOURCE_SWEEP if sweep else SOURCE_PROBE)
+    elif not sweep:
         draw.observe(
             drawn_kw, space, params.min_electrical_power, params.max_electrical_power,
             None if command is None else (command.written_c, command.ceiling_c),

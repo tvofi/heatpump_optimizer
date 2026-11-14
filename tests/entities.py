@@ -7411,10 +7411,11 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {display_name("button", b): b for b in buttons}
-R.check("six buttons are added", len(buttons) == 6, str(len(buttons)))
+R.check("seven buttons are added", len(buttons) == 7, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Learning Run System Identification",
+    "Learning Measure Power Response",
     "Learning Reset Comfort Weight",
     "Learning Finalize Debug Collection",
     "Prediction Accuracy Diagnose Last Interval",
@@ -13522,6 +13523,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
     "button": {
         "learning_finalize_debug": "Learning ",
         "learning_run_system_identification": "Learning ",
+        "learning_measure_power_response": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
         "learning_reset_heat_loss": "Learning ",
     },
@@ -13851,6 +13853,7 @@ for _display, _new_id, _uid in (
 for _display, _new_id, _uid in (
     ("Learning Reset Comfort Weight", "button.heat_pump_optimizer_learning_reset_comfort_weight", "reset_comfort_weight"),
     ("Learning Run System Identification", "button.heat_pump_optimizer_learning_run_system_identification", "system_identification"),
+    ("Learning Measure Power Response", "button.heat_pump_optimizer_learning_measure_power_response", "power_response_sweep"),
 ):
     _moved = btn_by_name.get(_display)
     R.check(
@@ -26856,7 +26859,9 @@ R.check(
 # these four, lands here as an option the list does not cover.
 _ACTION_PRODUCERS = {
     "optimizer.py": {"get_current_action", "_idle_action"},
-    "coordinator.py": {"_fixed_mode_action", "_run_system_identification"},
+    "coordinator.py": {"_fixed_mode_action"},
+    # The experiment's action is shaped where the experiment lives.
+    "sysid.py": {"override_action"},
 }
 _emitted_modes = set()
 for _fname, _names in _ACTION_PRODUCERS.items():

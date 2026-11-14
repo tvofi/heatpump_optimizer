@@ -516,7 +516,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 82 entities appear and the first plan is solved within one
+- **Immediately.** All 83 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -690,12 +690,13 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | Mold Floor Breach | The measured room sits below the mold-safe floor the plan promises | Diagnostic; on when the measured room is below the mold floor by the configured margin (default 0.5 °C), typically because space heating is blocked. `floor_c`, `shortfall_c` and `space_blocked` in attributes |
 | Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Attributes: `sek_per_kwh` (wood's price per kWh), `cheaper_hour_count`, `cheaper_windows` (today's runs of planned heat-pump steps whose heat costs more than wood's, each a `start` and `end` in local time) and `lighting_start` / `lighting_end` (when to light the furnace: from the wood page's lead time before the first window, never before the plan's current step, to that window's start). On a day with no cheaper window, `cheaper_windows` is empty and both lighting times are empty |
 
-### Buttons (6 total)
+### Buttons (7 total)
 
 | Button | What it does |
 |---|---|
 | Optimize Now | Force an optimization run. Unavailable while one is in flight |
 | Learning Run System Identification | Arm the commissioning step test for the next mild, cheap night. Inert until *Allow a one-off measurement experiment* is enabled on Advanced settings → Self-learning and diagnostics, which is off by default |
+| Learning Measure Power Response | Arm the power-response sweep for the next mild, cheap night: after an hour's settle the heat pump is held at up to five levels across its power range, half an hour each, and the metered draw at each held set-point is recorded. Hot water pauses meanwhile unless the tank falls below the pump's own start temperature. Needs Pump duty control set to Control, a flow or return set-point and a power meter, and the same option as the step test. It changes no setting; the result is in Download diagnostics |
 | Learning Reset Comfort Weight | Undo the revealed-preference tuning |
 | Learning Reset Heat Loss | Return the learned house heat loss scale and lower floor loss ratio to 1.0, so the plan uses the heat loss values in the settings; learning starts again from there. The other learners are left alone |
 | Learning Finalize Debug Collection | End the week of debug data now, so Download diagnostics carries it final. Unavailable unless *Collect a week of debug data* is on and the collection has not already stopped |

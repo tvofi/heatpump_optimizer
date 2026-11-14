@@ -49547,6 +49547,7 @@ _RC2_ROWS += [
     (_rc2_button.ForceOptimizationButton, "async_press", (), ("mode", "auto"), None),
     (_rc2_button.DiagnoseIntervalButton, "async_press", (), ("mode", "auto"), None),
     (_rc2_button.SystemIdentificationButton, "async_press", (), ("mode", "auto"), None),
+    (_rc2_button.PowerResponseSweepButton, "async_press", (), ("mode", "auto"), None),
     # The final flag lives in the debug store, not on the coordinator.
     (_rc2_button.DebugFinalizeButton, "async_press", (), ("mode", "auto"), None),
 ]
@@ -91718,6 +91719,909 @@ R.check(
     "reading draw_off_ask; the same span with none folds one",
     _mr_span_exp[0] == 0 and _mr_span_exp[1][1] == _MR_OFF and _mr_span_plan[0] == 1,
     f"{_mr_span_exp} / {_mr_span_plan}",
+)
+
+
+# --- R10-DRAW-MAP-EVIDENCE part B (design/R10-DRAW-MAP-EVIDENCE at 9aa450f5,
+# approved at design-verdict f10dd418, its notes r12 and r14 to r18, and the
+# owner's rulings of 2026-11-14): the power-response sweep, armed only by its
+# own button, holds up to five levels of the band at one set-point each; its
+# intervals feed the map rows and, at the band top, the ceiling store, and
+# nothing else; and the button arms the ceiling probe before the fit where
+# the pump's top is unlearned. Synthetic fixtures throughout.
+R.section("R10-DRAW-MAP-EVIDENCE part B: the power-response sweep and the ceiling evidence")
+from heatpump_optimizer import button as _sw_button  # noqa: E402
+from heatpump_optimizer import sysid as _sw_sid  # noqa: E402
+from heatpump_optimizer.thermal_model import FLOW_MIN_LIFT_K as _SW_LIFT  # noqa: E402
+from heatpump_optimizer.thermal_model import flow_setpoint_for_level as _sw_map  # noqa: E402
+
+_SW_T0 = datetime(2026, 1, 12, 23, 0, tzinfo=UTC)
+_SW_S0 = _SW_T0.timestamp()
+_SW_LEVELS = tuple((0, kw) for kw in _sw_sid.sweep_levels_kw(1.0, 4.0))
+_SW_HEAVY = HousePlant(ua=0.15, capacity=20.0, gains=0.3, slab_mass=10.0, slab_transfer=1.0)
+_SW_FLAT = np.full(96, 0.5)
+
+
+def _sw_cfg(**kw):
+    return _sw_sid.SysIdConfig(enabled=True, **kw)
+
+
+def _sw_store(n, days_ago, source=_mr_dr.SOURCE_PROBE, kw=3.0):
+    d = _mr_dr.DrawRange()
+    for i in range(n):
+        d.observe_ceiling(kw, _SW_S0 - days_ago * 86400.0 - (n - 1 - i) * 1800.0, source)
+    return d
+
+
+# The levels and the arm (sysid.armable, the one place a press becomes a kind).
+R.check(
+    "the sweep's levels are the band's five fractions in run order, low first; a "
+    "band with no minimum drops the level the plan books as off; a fixed-speed "
+    "band is one level",
+    _sw_sid.SWEEP_FRACTIONS == (0.0, 0.5, 0.25, 1.0, 0.75)
+    and _sw_sid.sweep_levels_kw(1.0, 4.0) == (1.0, 2.5, 1.75, 4.0, 3.25)
+    and _sw_sid.sweep_levels_kw(0.0, 4.0) == (2.0, 1.0, 4.0, 3.0)
+    and _sw_sid.sweep_levels_kw(3.0, 3.0) == (3.0,),
+    f"{_sw_sid.sweep_levels_kw(1.0, 4.0)} {_sw_sid.sweep_levels_kw(0.0, 4.0)}",
+)
+_sw_unasked = {
+    _sw_sid.armable(_sw_cfg(), _SW_T0, last, samples, probe, None)[0]
+    for last in (None, _SW_T0 - timedelta(days=3))
+    for samples in (150, 482)
+    for probe in (None, _mr_dr.DrawRange(), _sw_store(12, 31), _sw_store(4, 3))
+}
+_sw_asked = _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _mr_dr.DrawRange(), None, _SW_LEVELS)
+R.check(
+    "no press but the sweep button's arms a sweep: over 16 arms without its levels "
+    "the kind is the fit, the probe or none; with them it is the sweep, on a house "
+    "converged or not, and its reason is the upper cost bound, every level at the "
+    "band top (5 x 0.5 h x 4.0 kW)",
+    _sw_unasked == {"fit", "ceiling_probe", None}
+    and _sw_asked[0] == _sw_sid.KIND_SWEEP == "power_sweep"
+    and _sw_asked[1].startswith("up to 10.0 kWh (5 levels of 30 minutes at the 4.0 kW band top)")
+    and _sw_sid.armable(_sw_cfg(), _SW_T0, None, 482, _sw_store(12, 1), _SW_T0, _SW_LEVELS)[0] == "power_sweep"
+    and _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _mr_dr.DrawRange(), None,
+                        ((0, 1.0), (0, 4.0), (0, 2.5)))[1].startswith("up to 6.0 kWh (3 levels"),
+    f"{_sw_unasked} {_sw_asked}",
+)
+R.check(
+    "a sweep is refused, with the reason, where the install has no metered flow "
+    "set-point, and where the band holds fewer than two levels (one refuses, two arm)",
+    _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, None, None, _SW_LEVELS)
+    == (None, "no metered flow set-point to sweep")
+    and _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _mr_dr.DrawRange(), None, _SW_LEVELS[:1])
+    == (None, "the configured power band is too narrow to sweep")
+    and _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _mr_dr.DrawRange(), None, _SW_LEVELS[:2])[0] == "power_sweep",
+)
+# [CE] 2 (owner ruling S3): the probe before the fit where the top is unlearned.
+_sw_ce = {
+    "unlearned": _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _mr_dr.DrawRange(), None),
+    "no probe": _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, None, None),
+    "learned": _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _sw_store(12, 31), None),
+    "learned, waits": _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _sw_store(12, 1), None),
+    "unlearned, waits": _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _sw_store(4, 3), None),
+    "unlearned, due": _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _sw_store(4, 7), None),
+    "converged, waits": _sw_sid.armable(_sw_cfg(), _SW_T0, None, 482, _sw_store(4, 3), None),
+    "attempt": _sw_sid.armable(_sw_cfg(), _SW_T0, None, 150, _mr_dr.DrawRange(), _SW_T0 - timedelta(days=3)),
+}
+R.check(
+    "[CE] 2: an unconverged house whose pump's top is unlearned arms the probe first, "
+    "with the reason; only unlearned, capable and clock-allowed moves -- with no "
+    "probe install (null), a learned top, or the probe's clock waiting, the fit arms "
+    "as before, naming the probe's wait where there is one",
+    _sw_ce["unlearned"] == ("ceiling_probe", "the pump's top is not learned yet")
+    and _sw_ce["unlearned, due"] == ("ceiling_probe", "the pump's top is not learned yet")
+    and _sw_ce["no probe"] == ("fit", "") and _sw_ce["learned"] == ("fit", "")
+    and _sw_ce["learned, waits"] == ("fit", "the ceiling probe ran 1.0 days ago, waiting for the 30 day minimum")
+    and _sw_ce["unlearned, waits"] == ("fit", "the ceiling probe ran 3.0 days ago, waiting for the 7 day minimum")
+    and _sw_ce["attempt"] == ("fit", "the ceiling probe ran 3.0 days ago, waiting for the 7 day minimum")
+    and _sw_ce["converged, waits"] == (
+        None, "house already converged; the ceiling probe ran 3.0 days ago, waiting for the 7 day minimum"),
+    f"{_sw_ce}",
+)
+# r14: the probe's clock reads probe rows only; the lapse and the solve band read every row.
+_sw_mixed = _sw_store(11, 50)
+_sw_mixed.observe_ceiling(3.0, _SW_S0 - 86400.0, _mr_dr.SOURCE_SWEEP)
+_sw_only = _sw_store(12, 1, _mr_dr.SOURCE_SWEEP)
+_sw_over = _sw_store(6, 2)
+for _sw_i in range(6):
+    _sw_over.observe_ceiling(3.0, _SW_S0 - 3600.0, _mr_dr.SOURCE_SWEEP)
+_sw_over_n = len(_sw_over.ceiling)
+for _sw_i in range(_mr_dr.CEILING_OVERDRAWS):
+    _sw_over.observe(4.0, 4.0, 1.0, 5.0, (55.0, 55.0))
+R.check(
+    "r14: twelve sweep-only samples learn a top and leave the probe's clock unset, so "
+    "a sweep sample never postpones a probe (four sweep samples a day old still arm "
+    "it, four probe samples a day old do not); the lapse runs from the newest sample "
+    "of either source; and an overdraw clears both sources alike",
+    _sw_only.learned_max_kw(_SW_S0) == 3.0 and _sw_only.probe_since() is None
+    and _sw_only.ceiling_since() == _SW_S0 - 86400.0
+    and _sw_sid.armable(_sw_cfg(), _SW_T0, None, 482, _sw_store(4, 1, _mr_dr.SOURCE_SWEEP), None)[0] == "ceiling_probe"
+    and _sw_sid.armable(_sw_cfg(), _SW_T0, None, 482, _sw_store(4, 1), None)[0] is None
+    and _sw_mixed.learned_max_kw(_SW_S0) == 3.0 and _sw_store(11, 50).learned_max_kw(_SW_S0) is None
+    and _sw_mixed.probe_since() == _SW_S0 - 50 * 86400.0
+    and _sw_mixed.ceiling_since() == _SW_S0 - 86400.0
+    and _sw_over_n == 12 and len(_sw_over.ceiling) == 0,
+    f"{_sw_only.probe_since()} {_sw_mixed.probe_since()} {len(_sw_over.ceiling)}",
+)
+_sw_src_doc = _sw_mixed.as_dict()
+_sw_src_back = _mr_dr.DrawRange.from_dict(_sw_src_doc)
+R.check(
+    "the ceiling row's source: a sweep's is a third cell, a probe's row keeps its two "
+    "(a store with no sweep is unchanged); a two-cell row reads the probe's, an "
+    "unknown source is dropped alone, and store.DOMAINS declares the cell",
+    _sw_src_doc["ceiling"][0] == [3.0, _SW_S0 - 50 * 86400.0 - 18000.0]
+    and _sw_src_doc["ceiling"][-1] == [3.0, _SW_S0 - 86400.0, "sweep"]
+    and [c[2] for c in _sw_src_back.ceiling] == ["probe"] * 11 + ["sweep"]
+    and list(_sw_src_back.ceiling) == list(_sw_mixed.ceiling)
+    and [c[2] for c in _mr_dr.DrawRange.from_dict(
+        {"ceiling": [[3.0, 1.0], [3.0, 2.0, "x"], [3.0, 3.0, "sweep"]]}).ceiling] == ["probe", "sweep"]
+    and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _sw_src_doc}}) == []
+    and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": {
+        **_sw_src_doc, "ceiling": [[3.0, 1.0, 7]]}}}) == ["accuracy/draw/ceiling/0/2"],
+    f"{_sw_src_doc['ceiling'][-2:]}",
+)
+
+
+def _sw_arm(samples=150, probe=True, sweep=None, **cfg):
+    s = _sw_sid.SystemIdentification(_sw_cfg(**cfg))
+    before = s.result
+    probe = _mr_dr.DrawRange() if probe is True else probe or None
+    return s, s.arm(_SW_T0, learner_samples=samples, probe=probe, sweep=sweep), before
+
+
+_sw_a_probe, _sw_a_fit, _sw_a_none, _sw_a_sweep = (
+    _sw_arm(), _sw_arm(probe=_sw_store(4, 3)), _sw_arm(probe=False), _sw_arm(sweep=_SW_LEVELS))
+R.check(
+    "what the button says: the armed result names the kind and why (the probe first, "
+    "the fit beside the probe's wait, the sweep with its cost bound); an install that "
+    "cannot probe arms the fit and its result is the object it was (null)",
+    all(a[1] for a in (_sw_a_probe, _sw_a_fit, _sw_a_none, _sw_a_sweep))
+    and _sw_a_probe[0].result.reason == "armed the ceiling probe: the pump's top is not learned yet"
+    and _sw_a_fit[0].result.reason
+    == "armed the fit: the ceiling probe ran 3.0 days ago, waiting for the 7 day minimum"
+    and (_sw_a_none[0].kind, _sw_a_none[0].result) == ("fit", _sw_a_none[2])
+    and _sw_a_none[0].result is _sw_a_none[2]
+    and _sw_a_sweep[0].result.reason.startswith("armed the power-response sweep: up to 10.0 kWh")
+    and _sw_a_sweep[0].result.completed is False and _sw_a_sweep[0].kind == "power_sweep"
+    and _sw_a_sweep[0]._sweep == _SW_LEVELS and _sw_a_probe[0]._sweep == (),
+    f"{_sw_a_probe[0].result.reason!r} {_sw_a_fit[0].result.reason!r} {_sw_a_sweep[0].result.reason!r}",
+)
+_sw_two = ThermalParameters(two_zone_enabled=True)
+R.check(
+    "a sweep arms on the probe's branch: no slab identifiability gate, no slab pair, "
+    "and a two-zone plant kept for the comfort prediction",
+    (lambda s: s.arm(_SW_T0, plant=_sw_two, learner_samples=150, probe=_mr_dr.DrawRange(), sweep=_SW_LEVELS)
+     and s._slab_pair is None and s._two_zone_plant is not None)(_sw_sid.SystemIdentification(_sw_cfg())),
+)
+
+# The comfort pre-check (r12): every level at the band top, and every level at none.
+_sw_cc = lambda house, outdoor, top, most=5: _sw_sid.sweep_level_count(  # noqa: E731
+    house, None, 21.0, outdoor, top, _sw_cfg(), most)
+_sw_one = lambda house, outdoor, q, k: _sw_sid._predict_step_excursion_plant(  # noqa: E731
+    house, 21.0, outdoor, q, k * 0.5, 2.0)[0]
+R.check(
+    "the sweep's comfort bound, both sides: on the leaky house at -5 degC five levels "
+    "at the band top fit 0.8 K but five with no heat do not, so four run (r12's zero "
+    "lower bound); on the tight house five with no heat fit but five at the top do "
+    "not, so three run; the heavy house runs five",
+    _sw_cc(_CP_LEAKY, -5.0, 12.0) == 4 and _sw_one(_CP_LEAKY, -5.0, 12.0, 5) <= 0.8 < _sw_one(_CP_LEAKY, -5.0, 0.0, 5)
+    and _sw_cc(_CP_TIGHT, -5.0, 12.0) == 3 and _sw_one(_CP_TIGHT, -5.0, 0.0, 5) <= 0.8 < _sw_one(_CP_TIGHT, -5.0, 12.0, 5)
+    and _sw_cc(_SW_HEAVY, 2.0, 12.0) == 5,
+    f"{_sw_cc(_CP_LEAKY, -5.0, 12.0)} {_sw_cc(_CP_TIGHT, -5.0, 12.0)}",
+)
+R.check(
+    "the count never exceeds the levels on offer, and under two it is None: the wee "
+    "house fits none, and no house fits a sweep of one",
+    _sw_cc(_SW_HEAVY, 2.0, 12.0, 3) == 3 and _sw_cc(_SW_HEAVY, 2.0, 12.0, 2) == 2
+    and _sw_cc(_SW_HEAVY, 2.0, 12.0, 1) is None and _sw_cc(_CP_WEE, 2.0, 15.0) is None,
+)
+R.check(
+    "a two-zone plant is predicted on its own model under the two-zone headroom",
+    _sw_sid._whole_bound(_sw_cfg(), None) == (0.8, None)
+    and _sw_sid._whole_bound(_sw_cfg(), _sw_two)[0] == 0.8 - _sw_sid.TWO_ZONE_SIZING_HEADROOM_C
+    and _sw_sid._whole_bound(_sw_cfg(), _sw_two)[1].params is _sw_two,
+)
+
+# The hour, the price and the start gate.
+_SW_SPIKE = np.where(np.arange(96) == 5, 2.0, 0.5)
+R.check(
+    "the cheap night cycles from now: twelve from 23:00 on a flat horizon or with "
+    "none, three from 03:30; a dear quarter in the third half hour leaves two, and "
+    "counted from the fourth it leaves the nine after it; a horizon that ends leaves "
+    "the cycles it covers whole",
+    _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, _SW_FLAT) == 12
+    and _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, None) == 12
+    and _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0.replace(hour=3, minute=30), _SW_FLAT) == 3
+    and _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0.replace(hour=12), _SW_FLAT) == 0
+    and _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, _SW_SPIKE) == 2
+    and _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, _SW_SPIKE, 3) == 9
+    and _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, _SW_FLAT, 11) == 1
+    and _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, _SW_FLAT, 12) == 0
+    and _sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, np.full(5, 0.5)) == 2
+    and _sw_sid.cheap_night_cycles(_sw_cfg(start_hour=0, end_hour=24), _SW_T0, _SW_FLAT) == 48,
+    f"{_sw_sid.cheap_night_cycles(_sw_cfg(), _SW_T0, _SW_SPIKE)}",
+)
+_sw_gate = lambda at, horizon, band: _sw_sid._sweep_start_refusal(_sw_cfg(), at, horizon, band)  # noqa: E731
+R.check(
+    "the sweep's start gate: a band of 8 K starts and one under it reads 'the water "
+    "is too warm for a sweep'; with no band read it says so; two levels must fit the "
+    "cheap night hours left once the settle and the cycle after it are over (02:30 "
+    "starts, 03:00 does not); a dear quarter in the second level's half hour defers, "
+    "one during the settle does not",
+    _sw_gate(_SW_T0, _SW_FLAT, 8.0) is None and _sw_gate(_SW_T0, _SW_FLAT, 7.9) == _sw_sid.SWEEP_WARM_REASON
+    == "the water is too warm for a sweep"
+    and _sw_gate(_SW_T0, _SW_FLAT, None) == "no flow set-point band is read"
+    and _sw_gate(_SW_T0.replace(hour=2, minute=30), _SW_FLAT, 20.0) is None
+    and _sw_gate(_SW_T0.replace(hour=3), _SW_FLAT, 20.0)
+    == "too few cheap night hours are left for a sweep"
+    and _sw_gate(_SW_T0, np.where(np.arange(96) == 8, 2.0, 0.5), 20.0)
+    == "too few cheap night hours are left for a sweep"
+    and _sw_gate(_SW_T0, _SW_SPIKE, 20.0) is None
+    and _sw_gate(_SW_T0, np.where(np.arange(96) == 10, 2.0, 0.5), 20.0) is None,
+)
+
+
+def _sw_run(prices=_SW_FLAT, price=0.5, band=20.0, cycles=10, at=_SW_T0, house=_SW_HEAVY, levels=_SW_LEVELS,
+            sweep=True, **cfg):
+    """An armed sweep (or, ``sweep`` False, a probe) stepped ``cycles`` times;
+    ``prices``, ``price`` and ``band`` may be callables of the cycle index."""
+    s = _sw_sid.SystemIdentification(_sw_cfg(**cfg))
+    s.arm(at, learner_samples=482, probe=_mr_dr.DrawRange(), sweep=levels if sweep else None)
+    call = lambda v, k: v(k) if callable(v) else v  # noqa: E731
+    out = [s.step(at + timedelta(minutes=30 * k), 21.0, 2.0, call(price, k), call(prices, k), 482, 4.0,
+                  cop=3.0, plan_power_kw=2.0, house=house, sweep_band_k=call(band, k)) for k in range(cycles)]
+    return s, out
+
+
+_sw_full, _sw_full_out = _sw_run()
+R.check(
+    "a sweep night on a flat price (owner ruling S1): it settles an hour on the plan, "
+    "commands its five levels for one cycle each in run order, then hands back to the "
+    "plan; it fits and adopts nothing, never sets the fit's last run or the probe's "
+    "clock, and its outcome counts the levels held",
+    _sw_full_out == [None, None, None, 1.0, 2.5, 1.75, 4.0, 3.25, None, None]
+    and _sw_full.phase == _sw_sid.PHASE_DONE and _sw_full.result.completed is False
+    and _sw_full.result.reason
+    == "power-response sweep held 5 of 5 levels; per-level yield in the draw diagnostics"
+    and _sw_full.last_run is None and _sw_full.probe_run is None and _sw_full.held is None
+    and _sw_full.as_dict()["kind"] == "power_sweep",
+    f"{_sw_full_out} {_sw_full.result.reason!r}",
+)
+_sw_probe_flat, _sw_probe_flat_out = _sw_run(sweep=False)
+R.check(
+    "null: the same flat night arms a probe that never starts (only the probe "
+    "refuses a flat price)",
+    _sw_probe_flat.kind == "ceiling_probe" and _sw_probe_flat.phase == _sw_sid.PHASE_ARMED
+    and _sw_probe_flat_out == [None] * 10,
+)
+_sw_warm, _sw_warm_out = _sw_run(band=6.0, cycles=3)
+_sw_cooled, _sw_cooled_out = _sw_run(band=lambda k: 6.0 if k < 2 else 20.0, cycles=4)
+R.check(
+    "an armed sweep on water too warm stays armed and publishes the reason as its "
+    "hold; once the band opens it starts and the hold clears",
+    _sw_warm.phase == _sw_sid.PHASE_ARMED and _sw_warm.held == "the water is too warm for a sweep"
+    and _sw_warm_out == [None] * 3 and _sw_warm.as_dict()["held"] == _sw_warm.held
+    and _sw_cooled.phase == _sw_sid.PHASE_SETTLING and _sw_cooled.held is None,
+    f"{_sw_warm.phase} {_sw_warm.held!r} / {_sw_cooled.phase} {_sw_cooled.held!r}",
+)
+_sw_r15, _sw_r15_out = _sw_run(band=lambda k: 20.0 if k < 2 else 7.0)
+R.check(
+    "r15: the band is read again after the settle, when the levels are mapped; "
+    "collapsed there, the sweep ends with the reason and commands nothing",
+    _sw_r15.phase == _sw_sid.PHASE_ABORTED and _sw_r15.result.reason == "the water is too warm for a sweep"
+    and _sw_r15_out == [None] * 10,
+    f"{_sw_r15.phase} {_sw_r15.result.reason!r}",
+)
+_sw_late, _sw_late_out = _sw_run(at=_SW_T0.replace(hour=2) + timedelta(days=1), cycles=8)
+_sw_edge, _sw_edge_out = _sw_run(at=_SW_T0.replace(hour=2, minute=30) + timedelta(days=1), cycles=6)
+R.check(
+    "r15: the levels are cut to the cheap night cycles left after the settle: armed at "
+    "02:00 three levels run (03:30 to 05:00), those first in run order since none "
+    "holds a row; armed at 02:30 two do",
+    _sw_late_out == [None, None, None, 1.0, 2.5, 1.75, None, None]
+    and _sw_late.result.reason.startswith("power-response sweep held 3 of 3 levels")
+    and _sw_edge_out == [None, None, None, 1.0, 2.5, None],
+    f"{_sw_late_out} {_sw_edge_out}",
+)
+_sw_short, _ = _sw_run(prices=lambda k: _SW_FLAT if k < 2 else np.where(np.arange(96) == 4, 2.0, 0.5), cycles=4)
+_sw_cold, _ = _sw_run(house=_CP_WEE, cycles=4)
+R.check(
+    "after the settle a sweep with under two cheap cycles left, or one no two levels "
+    "of which fit the comfort bound, aborts with its own reason",
+    _sw_short.phase == _sw_sid.PHASE_ABORTED
+    and _sw_short.result.reason == "too few cheap night hours are left for a sweep"
+    and _sw_cold.phase == _sw_sid.PHASE_ABORTED
+    and _sw_cold.result.reason == "no sweep fits within the comfort bound",
+    f"{_sw_short.result.reason!r} {_sw_cold.result.reason!r}",
+)
+_sw_dear, _sw_dear_out = _sw_run(price=lambda k: 0.5 if k < 5 else 1.5,
+                                 prices=lambda k: _SW_FLAT if k < 5 else np.linspace(0.5, 2.0, 96))
+_sw_unpriced, _sw_unpriced_out = _sw_run(price=lambda k: 0.5 if k < 6 else None)
+_sw_noon, _ = _sw_run(cycles=5)
+_sw_noon_kept = _sw_sid._sweep_level(_sw_noon, _SW_T0.replace(hour=12), 1.5, 0.5, _SW_FLAT)
+R.check(
+    "at a level boundary the hour and the price are read again: a price past the "
+    "cutoff before the third level ends the sweep with two held, a price gone unread "
+    "before the fourth with three, and an hour outside the night window ends it too; "
+    "nothing is aborted and the levels held are counted",
+    _sw_dear_out == [None, None, None, 1.0, 2.5, None, None, None, None, None]
+    and _sw_dear.phase == _sw_sid.PHASE_DONE
+    and _sw_dear.result.reason.startswith("power-response sweep held 2 of 5 levels")
+    and _sw_unpriced_out == [None, None, None, 1.0, 2.5, 1.75, None, None, None, None]
+    and _sw_unpriced.phase == _sw_sid.PHASE_DONE
+    and _sw_unpriced.result.reason.startswith("power-response sweep held 3 of 5 levels")
+    and _sw_noon_kept is False and _sw_noon.phase == _sw_sid.PHASE_DONE
+    and _sw_noon.result.reason.startswith("power-response sweep held 2 of 5 levels"),
+    f"{_sw_dear_out} {_sw_dear.result.reason!r} / {_sw_unpriced_out} / {_sw_noon.result.reason!r}",
+)
+_sw_first_dear, _sw_first_dear_out = _sw_run(price=lambda k: 0.5 if k < 3 else 1.5,
+                                             prices=lambda k: _SW_FLAT if k < 3 else np.linspace(0.5, 2.0, 96),
+                                             cycles=5)
+R.check(
+    "the first level runs on the start's own judgement: a price that turned dear by "
+    "its command still holds it, and the second boundary ends the sweep with one",
+    _sw_first_dear_out == [None, None, None, 1.0, None]
+    and _sw_first_dear.result.reason.startswith("power-response sweep held 1 of 5 levels"),
+    f"{_sw_first_dear_out}",
+)
+_sw_rows = tuple((rows, kw) for rows, kw in zip((2, 0, 1, 3, 0), _sw_sid.sweep_levels_kw(1.0, 4.0)))
+_sw_pick, _sw_pick_out = _sw_run(levels=_sw_rows, at=_SW_T0.replace(hour=2) + timedelta(days=1), cycles=8)
+R.check(
+    "successive presses complete the set: of three levels the night admits, the three "
+    "holding the fewest rows at the arm run (2.5, 1.75 and 3.25 kW; the bottom and "
+    "the top, with 2 and 3 rows, wait), still in run order",
+    _sw_pick_out == [None, None, None, 2.5, 1.75, 3.25, None, None]
+    and _sw_pick._sweep == ((0, 2.5), (1, 1.75), (0, 3.25)),
+    f"{_sw_pick_out} {_sw_pick._sweep}",
+)
+_sw_p_run, _ = _sw_run(prices=np.linspace(0.5, 2.0, 96), sweep=False)
+R.check(
+    "a probe's outcome is worded as before, and its step power is not the sweep's to set",
+    _sw_p_run.result.reason == "ceiling probe ran 2.0 h at 4.00 kW" and _sw_p_run.probe_run is not None,
+    f"{_sw_p_run.result.reason!r}",
+)
+_sw_act = _sw_sid.override_action(
+    {"power": 2.0, "dhw_power": 1.0, "mode": "eco", "space_reason": "cheap", "dhw_reason": "cheap"},
+    3.25, "power_sweep", 4.0)
+R.check(
+    "the experiment's action has one owner: the plan's action with the command, its "
+    "normalised power, the supply it books, the experiment's mode, its kind, and the "
+    "experiment as both channels' reason; a zero command books the supply off and a "
+    "zero band top does not divide by zero",
+    _sw_act == {"power": 3.25, "dhw_power": 1.0, "mode": "system_identification", "kind": "power_sweep",
+                "power_normalized": 0.8125, "heat_pump_on": True,
+                "space_reason": "system_identification", "dhw_reason": "system_identification"}
+    and _sw_sid.override_action({}, 0.0, "fit", 4.0)["heat_pump_on"] is False
+    and _sw_sid.override_action({}, 0.05, "fit", 0.0)["power_normalized"] == 0.5,
+    f"{_sw_act}",
+)
+
+# The arbiter: the origin, the held floor, the hot-water bound.
+_sw_in = _FbCoord().arbiter_inputs()
+_sw_action = lambda kind, kw=2.0: {"mode": "system_identification", "power": kw, "kind": kind}  # noqa: E731
+R.check(
+    "pass_origin maps the sweep kind to the sweep origin, whatever duty the pass "
+    "served; draw_range's routing reads the same word",
+    _mr_pa.pass_origin(_mr_dc_replace(_sw_in, action=_sw_action("power_sweep")), "space", False, None, _mr_now)
+    == _mr_pa.pass_origin(_mr_dc_replace(_sw_in, action=_sw_action("power_sweep")), "dhw", False, None, _mr_now)
+    == _mr_pa.ORIGIN_SWEEP == _mr_dr.ORIGIN_SWEEP == "sweep"
+    and _mr_pa._experiment_kind(_mr_dc_replace(_sw_in, action=_sw_action("power_sweep"))) == "power_sweep"
+    and _mr_pa._experiment_kind(_mr_dc_replace(_sw_in, action={"mode": "system_identification"})) == ""
+    and _mr_pa._experiment_kind(_mr_dc_replace(_sw_in, action={"mode": "eco", "kind": "power_sweep"})) is None
+    and _mr_pa._experiment_kind(_mr_dc_replace(_sw_in, action=None)) is None,
+)
+
+
+class _SwCoord:
+    """The arbiter's coordinator surface on a flow set-point install with a
+    return sensor, a meter and a tank: band 1.0-4.0 kW, ceiling 55 degC."""
+
+    SET, INLET = "number.sw_set", "sensor.sw_return"
+
+    def __init__(self, inlet=30.0, step=0.5):
+        self.hass = FakeHass({
+            self.SET: FakeState("35", attributes={"min": 25, "max": 63, "step": step}),
+            self.INLET: FakeState(f"{inlet:.2f}", unit="°C"),
+            "select.sw_mode": FakeState("Heating", attributes={"options": list(_CP_OPTS)}),
+            "number.sw_dhw": FakeState("48", attributes={"min": 40, "max": 63}),
+        })
+        self._config = EntryConfig.from_mapping({
+            "pump_duty_mode": "control", "space_setpoint_entity": self.SET, "space_setpoint_unit": "flow",
+            "heat_pump_return_temp_entity": self.INLET, "heat_pump_power_entity": "sensor.sw_power",
+            "heat_pump_mode_entity": "select.sw_mode", "dhw_setpoint_entity": "number.sw_dhw",
+        })
+        self._current_action = {"mode": "eco", "power": 2.0}
+        self._thermal_params = _PaNS(dhw_setpoint=48.0, dhw_max_temp=48.0, min_electrical_power=1.0,
+                                     max_electrical_power=4.0)
+        self._optimization_result = _PaNS(
+            timestamps=[_SW_T0 + timedelta(minutes=15 * i) for i in range(48)], power_schedule=[2.0] * 48,
+            dhw_power_schedule=[0.0] * 48, optimal_setpoints=[21.0] * 48)
+        self.state = _PaNS(outdoor_temperature=2.0, room_temperature=21.0, dhw_temperature=None,
+                           dhw_start_hysteresis_k=None)
+        self.entry = _pa_entry(entry_id=f"sw{next(_FB_IDS)}")
+        self.draw, self.power = _mr_dr.DrawRange(), None
+
+    def _plan_is_stale(self):
+        return False
+
+    def arbiter_inputs(self):
+        return _mr_pa.ArbiterInputs(
+            hass=self.hass, config=self._config, mode=_PA_AUTO, plan=self._optimization_result,
+            plan_stale=False, entry_released=False, state=self.state,
+            thermal=_PaNS(params=self._thermal_params, curve_flow_temp=lambda _o: 34.2),
+            params=self._thermal_params, action=self._current_action, measured_power_kw=self.power,
+            disinfecting=False, draw=self.draw)
+
+
+class _SwPump:
+    """A synthetic pump behind ``_SwCoord``: it runs while the register sits
+    above the inlet, drawing 0.4 kW + 0.25 kW per K of lift up to a 3.2 kW
+    top under the configured 4.0; the inlet rises ``drift`` K a minute."""
+
+    def __init__(self, coord, inlet=30.0, drift=0.02):
+        self.coord, self.inlet, self.drift = coord, inlet, drift
+        self.held = _mr_pa.state_for(coord)
+        self.held.loaded = True
+        self.register, self.seen, self.starts, self.running = 35.0, 0, 0, False
+        self.readings = []
+
+    def kw(self):
+        lift = self.register - self.inlet
+        return min(0.4 + 0.25 * lift, 3.2) if lift > 0.0 else 0.05
+
+    def minute(self, now):
+        c = self.coord
+        c.power = round(self.kw(), 3)
+        self.readings.append((now, c.power))
+        c.hass.states.get(c.INLET).state = f"{self.inlet:.2f}"
+        _mr_aio.run(_mr_pa._arbitrate(c, self.held, c.arbiter_inputs(), "control", now))
+        sent = [float(d["value"]) for _dom, _s, d in c.hass.services.calls[self.seen:]
+                if (d or {}).get("entity_id") == c.SET]
+        self.seen = len(c.hass.services.calls)
+        if sent:
+            self.register = sent[-1]
+            c.hass.states.get(c.SET).state = f"{self.register}"
+        runs = self.register > self.inlet
+        self.starts += runs and not self.running
+        self.running = runs
+        self.inlet += self.drift
+        return self.register
+
+
+def _sw_hold(kind, drift=0.05, minutes=30):
+    """Five levels of ``minutes`` each under an experiment action naming
+    ``kind``: the set-points written per level, and the floor held."""
+    coord = _SwCoord(32.0, step=1.0)
+    pump = _SwPump(coord, 32.0, drift)
+    written, floors = [], []
+    for i, kw in enumerate(_sw_sid.sweep_levels_kw(1.0, 4.0)):
+        coord._current_action = {"mode": "system_identification", "power": kw, **kind}
+        written.append(sorted({pump.minute(_SW_T0 + timedelta(minutes=minutes * i + m)) for m in range(minutes)}))
+        floors.append(pump.held.sweep_floor_c)
+    return written, floors, coord, pump
+
+
+_sw_held, _sw_held_floors, _sw_held_c, _sw_held_p = _sw_hold({"kind": "power_sweep"})
+_sw_remap, _sw_remap_floors, _, _ = _sw_hold({"kind": "fit"})
+_sw_floor0 = _sw_held_floors[0]
+R.check(
+    "through the production _arbitrate, the inlet rising 0.05 K a minute: a sweep "
+    "writes one set-point per level, each the map of its level on the floor its "
+    "first pass read (the inlet then plus the lift), five distinct; the same levels "
+    "under the fit's kind (null) re-map on the inlet of each pass and write several",
+    all(len(w) == 1 for w in _sw_held) and len({w[0] for w in _sw_held}) == 5
+    and _sw_held_floors == [_sw_floor0] * 5 and _sw_floor0 == 32.0 + _SW_LIFT
+    and [w[0] for w in _sw_held] == [
+        float(round(_sw_map(kw, 1.0, 4.0, 55.0, _sw_floor0))) for kw in _sw_sid.sweep_levels_kw(1.0, 4.0)]
+    and max(len(w) for w in _sw_remap) > 1 and _sw_remap_floors == [None] * 5,
+    f"held {_sw_held} floor {_sw_held_floors} remap {_sw_remap}",
+)
+_sw_held_c._current_action = {"mode": "eco", "power": 2.0}
+_sw_after = _sw_held_p.minute(_SW_T0 + timedelta(minutes=151))
+_sw_after_floor = _sw_held_p.held.sweep_floor_c
+_sw_live_floor = _sw_held_p.held.last_pass.floor_c
+R.check(
+    "r16: the first pass whose action is not a sweep's forgets the held floor, and "
+    "the plan's level maps on the inlet of that pass (r1: a reload starts from a "
+    "fresh state, which holds none)",
+    _sw_after_floor is None and _mr_pa.ArbiterState().sweep_floor_c is None
+    and abs(_sw_live_floor - (_sw_held_p.inlet - 0.05 + _SW_LIFT)) < 1e-6
+    and _sw_live_floor > _sw_floor0 + 5.0,
+    f"{_sw_after_floor} live {_sw_live_floor} held {_sw_floor0}",
+)
+_sw_idle_c = _SwCoord()
+_sw_idle_c._current_action = _sw_action("power_sweep", 0.0)
+_sw_idle_p = _SwPump(_sw_idle_c)
+_sw_idle_p.held.sweep_floor_c = 40.0
+_sw_idle_c._current_action = _sw_action("ceiling_probe", 4.0)
+_sw_idle_p.minute(_SW_T0)
+R.check(
+    "r16: a probe's pass forgets a sweep's floor too (any kind but the sweep's)",
+    _sw_idle_p.held.sweep_floor_c is None,
+)
+_sw_band_c = _SwCoord(30.0)
+_sw_indoor = _SwCoord(30.0)
+_sw_indoor._config = EntryConfig.from_mapping({**_sw_indoor._config.raw, "space_setpoint_unit": "indoor"})
+R.check(
+    "the band a sweep is gated on is the heating ceiling less the floor a level maps "
+    "on now (55 - (30 + lift)); a warmer inlet narrows it; an install driving no flow "
+    "set-point reads none",
+    _mr_pa.sweep_band_k(_sw_band_c) == 55.0 - (30.0 + _SW_LIFT)
+    and _mr_pa.sweep_band_k(_SwCoord(45.0)) == 55.0 - (45.0 + _SW_LIFT)
+    and _mr_pa.sweep_band_k(_sw_indoor) is None,
+    f"{_mr_pa.sweep_band_k(_sw_band_c)}",
+)
+
+
+def _sw_duty(kind, tank, hysteresis, kw=2.0):
+    c = _SwCoord()
+    c._current_action = _sw_action(kind, kw)
+    c.state = _PaNS(outdoor_temperature=2.0, room_temperature=21.0, dhw_temperature=tank,
+                    dhw_start_hysteresis_k=hysteresis)
+    return _mr_pa._planned_duty(c, c.arbiter_inputs(), _SW_T0)
+
+
+R.check(
+    "the sweep's hot-water bound: with the tank below the pump's own start "
+    "temperature (48 - 5 = 43 degC) the pass serves hot water; at it, above it, with "
+    "no tank reading or no hysteresis read it stays space; a probe and a fit keep "
+    "today's suspension on the same cold tank",
+    _sw_duty("power_sweep", 42.9, 5.0) == "dhw" and _sw_duty("power_sweep", 43.0, 5.0) == "space"
+    and _sw_duty("power_sweep", 47.0, 5.0) == "space" and _sw_duty("power_sweep", None, 5.0) == "space"
+    and _sw_duty("power_sweep", 30.0, None) == "space" and _sw_duty("power_sweep", 30.0, 5.0, kw=0.0) == "dhw"
+    and _sw_duty("ceiling_probe", 30.0, 5.0) == "space" and _sw_duty("fit", 30.0, 5.0) == "space",
+)
+_sw_fb = _FbCoord(unit="flow", feedback=True, plan_kw=1.0)
+_sw_fb_in = _sw_fb.arbiter_inputs()
+R.check(
+    "the power feedback is off in a sweep's hold: a plan step at the level is the "
+    "loop's, the same level under the sweep's action is not",
+    _mr_pa._feedback_on(_sw_fb_in, "space", _FB_T0, _cp_boost.BoostState()) is True
+    and _mr_pa._feedback_on(_mr_dc_replace(_sw_fb_in, action=_sw_action("power_sweep", 1.0)), "space",
+                            _FB_T0, _cp_boost.BoostState()) is False,
+)
+
+# draw_range: the routing invariant, the yield, the store.
+_SW_CEIL, _SW_MID, _SW_GATE = (_mr_pa.FlowCommand(w, 25.0, 55.0) for w in (55.0, 40.0, 25.0))
+
+
+def _sw_fold(draw, drawn, command, experiment=True, *, sweep_pass=True, split=(2.0, 0.0), **flags):
+    if sweep_pass:
+        _mr_dr.note_pass(draw, _mr_pass(0, origin="sweep"))
+    kw = {"frozen": False, "distorted": False, "defrost": False, **flags}
+    _mr_dr.fold(draw, drawn, split, _MrParams(), command=command,
+                experiment_s=_SW_S0 if experiment else None, **kw)
+    return len(draw.samples), len(draw.idle), [c[2] for c in draw.ceiling]
+
+
+R.check(
+    "the routing invariant (draw_range.fold, the one place): a sweep's interval below "
+    "the band top reaches no window, no idle reading and no ceiling row; at the band "
+    "top it is a ceiling row marked sweep and still no window sample; held at the "
+    "gate it is no idle reading",
+    _sw_fold(_mr_dr.DrawRange(), 2.0, _SW_MID) == (0, 0, [])
+    and _sw_fold(_mr_dr.DrawRange(), 3.2, _SW_CEIL) == (0, 0, ["sweep"])
+    and _sw_fold(_mr_dr.DrawRange(), 0.3, _SW_GATE, split=(0.0, 0.0)) == (0, 0, []),
+)
+R.check(
+    "null: the same three intervals with no sweep pass in them route as before -- "
+    "the window, a ceiling row marked probe, an idle reading",
+    _sw_fold(_mr_dr.DrawRange(), 2.0, _SW_MID, sweep_pass=False) == (1, 0, [])
+    and _sw_fold(_mr_dr.DrawRange(), 3.2, _SW_CEIL, sweep_pass=False) == (0, 0, ["probe"])
+    and _sw_fold(_mr_dr.DrawRange(), 0.3, _SW_GATE, split=(0.0, 0.0), sweep_pass=False) == (0, 1, []),
+)
+R.check(
+    "a sweep's band-top interval is ceiling evidence only by the probe's own rule: "
+    "not frozen, distorted or defrosting, running above standby, an experiment's "
+    "interval, with no hot water asked",
+    _sw_fold(_mr_dr.DrawRange(), 3.2, _SW_CEIL, frozen=True) == (0, 0, [])
+    and _sw_fold(_mr_dr.DrawRange(), 3.2, _SW_CEIL, distorted=True) == (0, 0, [])
+    and _sw_fold(_mr_dr.DrawRange(), 3.2, _SW_CEIL, defrost=True) == (0, 0, [])
+    and _sw_fold(_mr_dr.DrawRange(), 0.2, _SW_CEIL) == (0, 0, [])
+    and _sw_fold(_mr_dr.DrawRange(), None, _SW_CEIL) == (0, 0, [])
+    and _sw_fold(_mr_dr.DrawRange(), 3.2, _SW_CEIL, experiment=False) == (0, 0, [])
+    and _sw_fold(_mr_dr.DrawRange(), 3.2, _SW_CEIL, split=(2.0, 1.0)) == (0, 0, []),
+)
+_sw_seq = _mr_dr.DrawRange()
+_sw_seq_first = _sw_fold(_sw_seq, 2.0, _SW_MID)
+_sw_seq_flag = _sw_seq.map.sweep_seen
+_sw_seq_next = _sw_fold(_sw_seq, 2.0, _SW_MID, experiment=False, sweep_pass=False)
+_sw_dhw_pass = _mr_dr.DrawRange()
+_mr_dr.note_pass(_sw_dhw_pass, _mr_pass(0, origin="sweep", duty="dhw"))
+R.check(
+    "the flag is the interval's: the fold reads and clears it, so the first plan "
+    "interval after a sweep reaches the window again; a hot-water stand-down pass "
+    "marks its interval a sweep's too",
+    _sw_seq_first == (0, 0, []) and _sw_seq_flag is False and _sw_seq_next == (1, 0, [])
+    and _sw_dhw_pass.map.sweep_seen is True
+    and _sw_fold(_sw_dhw_pass, 2.0, _SW_MID, sweep_pass=False) == (0, 0, []),
+)
+R.check(
+    "the idle rule by name: the gate held, no hot water asked, a reading, nothing "
+    "blocked on the meter; one set-point step above the gate tolerance is not idle",
+    _mr_dr.is_idle_reading(0.3, 0.0, _SW_GATE, blocked=False) is True
+    and _mr_dr.is_idle_reading(0.3, 0.0, _mr_pa.FlowCommand(25.25, 25.0, 55.0), blocked=False) is True
+    and _mr_dr.is_idle_reading(0.3, 0.0, _mr_pa.FlowCommand(25.3, 25.0, 55.0), blocked=False) is False
+    and _mr_dr.is_idle_reading(0.3, 1.0, _SW_GATE, blocked=False) is False
+    and _mr_dr.is_idle_reading(0.3, 0.0, _SW_GATE, blocked=True) is False
+    and _mr_dr.is_idle_reading(None, 0.0, _SW_GATE, blocked=False) is False
+    and _mr_dr.is_idle_reading(0.3, 0.0, None, blocked=False) is False,
+)
+
+
+def _sw_level_pass(minute, level, written, drawn=2.0, duty="space", origin="sweep"):
+    return _mr_dc_replace(_mr_pass(minute, written=written, drawn=drawn, level=level, duty=duty, origin=origin),
+                          band_low_kw=1.0, band_high_kw=4.0)
+
+
+_sw_y = _mr_dr.DrawRange()
+for _sw_m in range(30):
+    _mr_dr.note_pass(_sw_y, _sw_level_pass(_sw_m, 1.0, 37.0, drawn=1.5 if _sw_m < 20 else 1.8))
+for _sw_m in range(30, 60):  # a level whose compressor never ran: a level, and no row
+    _mr_dr.note_pass(_sw_y, _sw_level_pass(_sw_m, 2.5, 46.0, drawn=0.1))
+for _sw_m in range(60, 70):  # the hot-water stand-down: its draw is the sweep's cost, no level
+    _mr_dr.note_pass(_sw_y, _sw_level_pass(_sw_m, 4.0, 25.0, drawn=3.0, duty="dhw"))
+for _sw_m in range(70, 90):
+    _mr_dr.note_pass(_sw_y, _sw_level_pass(_sw_m, 4.0, 55.0, drawn=3.2))
+_mr_dr.note_pass(_sw_y, _mr_pass(90, origin="plan"))
+_mr_dr.note_pass(_sw_y, _mr_pass(91, origin="plan", drawn=9.0))
+_mr_dr.fold(_sw_y, 2.0, (2.0, 0.0), _MrParams(), frozen=False, distorted=False, defrost=False, command=_SW_MID)
+_sw_yield = _mr_dr.sweep_yield(_sw_y)
+_sw_kwh = (20 * 1.5 + 10 * 1.8 + 30 * 0.1 + 10 * 3.0 + 20 * 3.2) / 60.0
+R.check(
+    "the yield report: per commanded level its fraction of the band, the set-point "
+    "held, and its rows' steady minutes with the minute-weighted drawn and inlet "
+    "means; a level whose compressor never ran is a level with zero steady minutes "
+    "and no means, never a point; a hot-water stand-down is no level",
+    [(lv["fraction"], lv["level_kw"], lv["held_c"], lv["steady_minutes"]) for lv in _sw_yield["levels"]]
+    == [(0.0, 1.0, 37.0, 27), (0.5, 2.5, 46.0, 0), (1.0, 4.0, 55.0, 17)]
+    and _sw_yield["levels"][0]["drawn_mean_kw"] == round((17 * 1.5 + 10 * 1.8) / 27, 3)
+    and _sw_yield["levels"][0]["inlet_mean_c"] == 30.0
+    and (_sw_yield["levels"][1]["drawn_mean_kw"], _sw_yield["levels"][1]["inlet_mean_c"]) == (None, None)
+    and _sw_yield["levels"][2]["drawn_mean_kw"] == 3.2,
+    f"{_sw_yield}",
+)
+R.check(
+    "the sweep's metered energy is each sweep pass's reading held to the next pass, "
+    "the stand-down's draw included, closed by the first pass after it and no "
+    "further (null: the 9.0 kW plan minute after it adds nothing)",
+    abs(_sw_yield["metered_kwh"] - round(_sw_kwh, 3)) < 1e-9 and _sw_yield["started_s"] == _MR_T0.timestamp()
+    and _sw_y.map.sweep.open_kw is None,
+    f"{_sw_yield['metered_kwh']} vs {_sw_kwh}",
+)
+_sw_y_doc = _sw_y.as_dict()
+_sw_y_back = _mr_dr.DrawRange.from_dict(_sw_y_doc)
+R.check(
+    "the last sweep is stored beside the rows and read back to the same yield; "
+    "store.DOMAINS declares its leaves; a record with none keeps no key; one that "
+    "does not read whole reads none",
+    _mr_dr.sweep_yield(_sw_y_back) == _sw_yield
+    and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _sw_y_doc}}) == []
+    and "sweep" not in _mr_plain.as_dict() and _mr_dr.sweep_yield(_mr_plain) is None
+    and all(_mr_dr.DrawRange.from_dict({"sweep": bad}).map.sweep is None for bad in (
+        None, "x", {}, {**_sw_y_doc["sweep"], "kwh": "x"}, {**_sw_y_doc["sweep"], "kwh": float("nan")},
+        {**_sw_y_doc["sweep"], "levels": [[1.0, 1.0, 4.0]]}, {**_sw_y_doc["sweep"], "levels": 3})),
+    f"{_sw_y_doc['sweep']}",
+)
+_sw_again = _mr_dr.DrawRange.from_dict(_sw_y_doc)
+_mr_dr.note_pass(_sw_again, _sw_level_pass(89 + _mr_dr.SWEEP_GAP_MIN, 1.75, 41.0))
+_sw_same = _sw_again.map.sweep.start_s
+_mr_dr.note_pass(_sw_again, _sw_level_pass(90 + 2 * _mr_dr.SWEEP_GAP_MIN, 3.25, 50.0))
+R.check(
+    "sweep passes within SWEEP_GAP_MIN of the last are the same sweep; past it a new "
+    "one opens, its levels and energy its own",
+    _sw_same == _MR_T0.timestamp() and _sw_again.map.sweep.start_s > _sw_same
+    and [lv[0] for lv in _sw_again.map.sweep.levels] == [3.25] and _sw_again.map.sweep.kwh == 0.0,
+    f"{_sw_again.map.sweep}",
+)
+R.check(
+    "the rows a level already holds (sysid's choice of levels reads it): sweep rows "
+    "at that level only, to a stored cell's precision; none without a store",
+    _mr_dr.sweep_rows_at(_sw_y, 1.0) == 1 and _mr_dr.sweep_rows_at(_sw_y, 1.0004) == 1
+    and _mr_dr.sweep_rows_at(_sw_y, 1.002) == 0 and _mr_dr.sweep_rows_at(_sw_y, 2.5) == 0
+    and _mr_dr.sweep_rows_at(_sw_y, 2.0) == 0 and _mr_dr.sweep_rows_at(None, 1.0) == 0,
+)
+R.check(
+    "the draw diagnostics publish the last sweep (none: null)",
+    _mr_dr.diagnostics_view(_sw_y, _MrParams(), _CPD_CAP, _SW_S0)["last_sweep"] == _sw_yield
+    and _mr_dr.diagnostics_view(_mr_dr.DrawRange(), _MrParams(), _CPD_CAP, _SW_S0)["last_sweep"] is None,
+)
+
+
+# One sweep night through the production experiment, arbiter and fold, on the
+# synthetic pump: the coordinator's pairing (an interval's own mode, split and
+# command, folded a cycle later).
+def _sw_night(sweep=True, levels=None, tank=None):
+    coord = _SwCoord(30.0)
+    if tank is not None:
+        coord.state = _PaNS(outdoor_temperature=2.0, room_temperature=21.0, dhw_temperature=tank,
+                            dhw_start_hysteresis_k=5.0)
+    pump = _SwPump(coord)
+    s = _sw_sid.SystemIdentification(_sw_cfg())
+    if sweep:
+        assert s.arm(_SW_T0, learner_samples=482, probe=coord.draw, sweep=levels or tuple(
+            (_mr_dr.sweep_rows_at(coord.draw, kw), kw) for kw in _sw_sid.sweep_levels_kw(1.0, 4.0)))
+    pending, taken, run_minutes = None, [], []
+    for k in range(10):
+        now = _SW_T0 + timedelta(minutes=30 * k)
+        if pending is not None:
+            before = len(coord.draw.ceiling)
+            _mr_dr.fold(coord.draw, round(pump.kw(), 3), (pending["kw"], 0.0), coord._thermal_params,
+                        frozen=False, distorted=False, defrost=False, command=pending["cmd"],
+                        experiment_s=pending["when"] if pending["sid"] else None)
+            taken += [round(pump.kw(), 3)] * (len(coord.draw.ceiling) - before)
+        override = s.step(now, 21.0, 2.0, 0.5, _SW_FLAT, 482, 4.0, cop=3.0, plan_power_kw=2.0,
+                          house=_SW_HEAVY, sweep_band_k=_mr_pa.sweep_band_k(coord)) if sweep else None
+        coord._current_action = ({"mode": "eco", "power": 2.0} if override is None else
+                                 _sw_sid.override_action({"mode": "eco"}, override, s.kind, 4.0))
+        for m in range(30):
+            pump.minute(now + timedelta(minutes=m))
+            run_minutes += [pump.readings[-1][1]] if override is not None else []
+        pending = {"sid": override is not None, "kw": 2.0 if override is None else override,
+                   "when": now.timestamp(), "cmd": _mr_pa._flow_command(coord.arbiter_inputs(), pump.held)}
+    return _PaNS(coord=coord, pump=pump, sysid=s, taken=taken, run_kwh=sum(run_minutes) / 60.0)
+
+
+_sw_n, _sw_n_plan = _sw_night(), _sw_night(sweep=False)
+_sw_n_y = _mr_dr.sweep_yield(_sw_n.coord.draw)
+_sw_n_rows = [r for r in _sw_n.coord.draw.map.rows if r[15] == "sweep"]
+R.check(
+    "the synthetic sweep night: five levels held at five distinct set-points mapped "
+    "on the floor the first step pass read, each one segment of 27 steady minutes "
+    "(the rule's 30 less the settle), their draws rising with the set-point up to "
+    "the pump's 3.2 kW top, every row marked sweep and space",
+    [lv["fraction"] for lv in _sw_n_y["levels"]] == [0.0, 0.5, 0.25, 1.0, 0.75]
+    and len({lv["held_c"] for lv in _sw_n_y["levels"]}) == 5
+    and [lv["steady_minutes"] for lv in _sw_n_y["levels"]] == [27] * 5
+    and len(_sw_n_rows) == 5 and all(r[16] == "space" for r in _sw_n_rows)
+    and len({r[5] for r in _sw_n_rows}) == 1
+    and _sw_n_y["levels"][0]["drawn_mean_kw"] < _sw_n_y["levels"][2]["drawn_mean_kw"]
+    < _sw_n_y["levels"][3]["drawn_mean_kw"] == 3.2,
+    f"{_sw_n_y}",
+)
+R.check(
+    "the cost: the published metered energy equals the meter's own minute readings "
+    "summed over the run, and sits under the published bound (5 x 0.5 h x 4.0 kW)",
+    abs(_sw_n_y["metered_kwh"] - round(_sw_n.run_kwh, 3)) < 1e-9 and _sw_n_y["metered_kwh"] < 10.0
+    and _sw_n.sysid.result.reason.startswith("power-response sweep held 5 of 5 levels"),
+    f"{_sw_n_y['metered_kwh']} vs {_sw_n.run_kwh}",
+)
+R.check(
+    "where the night's draws went: the band-top level is the one ceiling row, marked "
+    "sweep, and the probe's clock is unmoved; no sweep interval reached the window "
+    "(4 plan intervals folded, against 9 on the same night with no sweep) or an idle "
+    "reading",
+    [c[2] for c in _sw_n.coord.draw.ceiling] == ["sweep"] and _sw_n.coord.draw.probe_since() is None
+    and len(_sw_n.coord.draw.samples) == 4 and len(_sw_n_plan.coord.draw.samples) == 9
+    and not _sw_n.coord.draw.idle and not _sw_n_plan.coord.draw.ceiling,
+    f"{list(_sw_n.coord.draw.ceiling)} window {len(_sw_n.coord.draw.samples)}",
+)
+_sw_no_top = _sw_night(levels=tuple((0, kw) for kw in (1.0, 2.5, 1.75, 3.25)))
+R.check(
+    "null: the same night without its band-top level leaves the ceiling store empty",
+    not _sw_no_top.coord.draw.ceiling and len(_mr_dr.sweep_yield(_sw_no_top.coord.draw)["levels"]) == 4,
+)
+_sw_top_row = [r for r in _sw_n_rows if r[6] == 4.0][0]
+R.check(
+    "r17: the store takes the meter's reading at the close of the band-top interval, "
+    "the probe's pairing; on this run it equals that segment's steady drawn mean",
+    _sw_n.taken == [3.2] and abs(_sw_top_row[13] - _sw_n.taken[0]) < 1e-9
+    and _sw_n.coord.draw.ceiling[0][0] == 3.2,
+    f"{_sw_n.taken} row {_sw_top_row[13]}",
+)
+R.check(
+    "r2: the sweep night starts the compressor no more often than the same night "
+    "under the plan at one level; and the floor it held is forgotten by the night's end",
+    _sw_n.pump.starts <= _sw_n_plan.pump.starts == 1 and _sw_n.pump.held.sweep_floor_c is None,
+    f"{_sw_n.pump.starts} vs {_sw_n_plan.pump.starts}",
+)
+_sw_readers = lambda n: (  # noqa: E731
+    _mr_dr.ask_evidence(n.coord.draw), n.coord.draw.engaged, list(n.coord.draw.idle),
+    _mr_dr.power_floor_kw(n.coord.draw, _MrParams()))
+_sw_plan_only = _mr_dr.DrawRange()
+for _sw_s, _sw_c in zip(_sw_n.coord.draw.samples, _sw_n.coord.draw.commands):
+    _sw_plan_only.observe(_sw_s[0], _sw_s[1], 1.0, 4.0, _sw_c)
+R.check(
+    "null: the window after the sweep night holds only its plan intervals -- "
+    "samples, commands, the latch and the ask evidence are those of a window fed "
+    "those four intervals and nothing else",
+    list(_sw_plan_only.samples) == list(_sw_n.coord.draw.samples)
+    and list(_sw_plan_only.commands) == list(_sw_n.coord.draw.commands)
+    and _sw_plan_only.engaged == _sw_n.coord.draw.engaged
+    and _mr_dr.ask_evidence(_sw_plan_only) == _mr_dr.ask_evidence(_sw_n.coord.draw)
+    and all(a == 2.0 for _d, a in _sw_n.coord.draw.samples),
+)
+_sw_tank = _sw_night(tank=30.0)
+_sw_tank_y = _mr_dr.sweep_yield(_sw_tank.coord.draw)
+R.check(
+    "a sweep night on a tank below its start temperature serves hot water on every "
+    "pass: no level is held and no row kept, the passes are still the sweep's (the "
+    "window gets none of them), and the energy is metered",
+    _sw_tank_y["levels"] == [] and not [r for r in _sw_tank.coord.draw.map.rows if r[15] == "sweep"]
+    and len(_sw_tank.coord.draw.samples) == 4 and not _sw_tank.coord.draw.ceiling
+    and _sw_tank_y["metered_kwh"] > 0.0,
+    f"{_sw_tank_y}",
+)
+
+# The coordinator and the buttons.
+_sw_c_sweep = _cp_coord(samples=150, **_CP_PROBE_CFG)
+_sw_c_sweep._sysid.phase = _sw_sid.PHASE_IDLE
+_cp_aio.run(_sw_c_sweep.async_arm_system_identification(sweep=True))
+_sw_c_none = _cp_coord(samples=150)
+_sw_c_none._sysid.phase = _sw_sid.PHASE_IDLE
+_cp_aio.run(_sw_c_none.async_arm_system_identification(sweep=True))
+_sw_c_first = _cp_coord(samples=150, **_CP_PROBE_CFG)
+_sw_c_p = _sw_c_sweep._ctx._thermal_params if hasattr(_sw_c_sweep, "_ctx") else _sw_c_sweep._thermal_params
+R.check(
+    "the coordinator's route: the sweep press arms the sweep on a flow-metered "
+    "install, its levels the hub's band beside the rows held, and is refused with the "
+    "reason on one that cannot run it; the system-identification press on an "
+    "unconverged, unlearned install arms the probe first and says so",
+    _sw_c_sweep._sysid.kind == "power_sweep" and _sw_c_sweep._sysid.active
+    and [kw for _n, kw in _sw_c_sweep._sysid._sweep]
+    == list(_sw_sid.sweep_levels_kw(_sw_c_p.min_electrical_power, _sw_c_p.max_electrical_power))
+    and all(n == 0 for n, _kw in _sw_c_sweep._sysid._sweep)
+    and not _sw_c_none._sysid.active and _sw_c_none._sysid.result.reason == "no metered flow set-point to sweep"
+    and _sw_c_first._sysid.kind == "ceiling_probe"
+    and _sw_c_first._sysid.result.reason == "armed the ceiling probe: the pump's top is not learned yet",
+    f"{_sw_c_sweep._sysid.kind} {_sw_c_sweep._sysid._sweep} {_sw_c_none._sysid.result.reason!r}",
+)
+_sw_seen_band = []
+_sw_band_real = _mr_pa.sweep_band_k
+_sw_hold_real = _sw_sid.hold_reason
+_mr_pa.sweep_band_k = lambda coord: _sw_seen_band.append(coord) or 20.0
+_sw_sid.hold_reason = lambda *args: None  # these stub installs configure no room sensor
+try:
+    _cp_sysid_cycle(_sw_c_sweep)
+    _sw_band_calls = len(_sw_seen_band)
+    _cp_sysid_cycle(_sw_c_first)
+finally:
+    _mr_pa.sweep_band_k, _sw_sid.hold_reason = _sw_band_real, _sw_hold_real
+R.check(
+    "the coordinator reads the flow set-point band for a sweep's cycle only: an armed "
+    "probe's cycle reads no entity for it",
+    _sw_band_calls == 1 and _sw_seen_band == [_sw_c_sweep],
+    f"{_sw_band_calls} {len(_sw_seen_band)}",
+)
+
+
+class _SwPress:
+    """The coordinator half a button press reaches."""
+
+    system_identification_active = False
+    last_update_success = True
+
+    def __init__(self):
+        self.armed = []
+
+    async def async_arm_system_identification(self, sweep=False):
+        self.armed.append(sweep)
+
+
+class _SwEntry:
+    """The entry a press hands its work to; run here, after the press returned."""
+
+    def __init__(self):
+        self.work = []
+
+    def async_create_background_task(self, hass, work, name=None):
+        self.work.append(work)
+
+
+_sw_press, _sw_entry = _SwPress(), _SwEntry()
+for _sw_cls in (_sw_button.SystemIdentificationButton, _sw_button.PowerResponseSweepButton):
+    _sw_b = object.__new__(_sw_cls)
+    _sw_b.coordinator, _sw_b.hass, _sw_b._entry = _sw_press, None, _sw_entry
+    _cp_aio.run(_sw_cls.async_press(_sw_b))
+    _cp_aio.run(_sw_entry.work.pop())
+R.check(
+    "the two buttons: the system-identification press asks for no sweep, the "
+    "power-response press asks for one, and the sweep button is the "
+    "system-identification button's kind (its gate and its busy state)",
+    _sw_press.armed == [False, True]
+    and issubclass(_sw_button.PowerResponseSweepButton, _sw_button.SystemIdentificationButton),
+    f"{_sw_press.armed}",
 )
 
 

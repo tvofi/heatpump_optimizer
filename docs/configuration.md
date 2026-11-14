@@ -304,7 +304,7 @@ Saving this page moves to the review screen.
 
 Every route ends here: a read-only picture of what you described, the zones,
 the tanks and every sensor slot with what is assigned to it. Confirming it is
-what creates the entry. All 82 entities appear at once and the first plan is
+what creates the entry. All 83 entities appear at once and the first plan is
 solved within one optimization interval.
 
 ### Reauthenticate Tibber
@@ -1115,7 +1115,7 @@ opt-in learners are on **Advanced learning features**.
 | Ignore sensors that stop updating | on | on/off | A dead battery leaves a normal-looking value in place forever. With this on, an old value is treated as missing and learning pauses instead of learning the flatline. |
 | Allow this much extra age | 1.0 | 0.5–10.0, 0.5 steps | Raise it if sensors that deliberately report rarely are being flagged. |
 | Learn my comfort preference from overrides | off | on/off | Every temperature override says the plan went too far one way. This adjusts the comfort weight from that, shows the result on its own sensor, and has a reset button. |
-| Allow a one-off measurement experiment | off | on/off | Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly instead of inferring it over weeks. Kept too small to notice, and stopped if the temperature drifts. |
+| Allow a one-off measurement experiment | off | on/off | Lets the optimizer run deliberate heating experiments on a mild, cheap night, and only after you press one of their buttons: a heating step that measures your house directly instead of inferring it over weeks, a probe that runs the heat pump at its top to measure its real maximum, and a sweep that holds it at up to five levels across its power range. The house step is kept too small to notice. The probe and the sweep drive the heat pump to the ends of its range for up to two and a half hours and pause hot water meanwhile. Each stops if the room temperature drifts. |
 | Collect a week of debug data | off | on/off | Records one small row per optimization cycle and one full snapshot a day for seven days, then stops by itself. Download diagnostics then carries the week for a bug report. The `debug_collect` service and the Learning Finalize Debug Collection button drive the same collection. |
 | Estimate prices past the published horizon | on | on/off | Tomorrow's prices arrive around 13:00. Until then this uses your learned daily price shape instead of a flat repeat, and the plan marks which hours are estimated. |
 
