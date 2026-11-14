@@ -1,0 +1,11 @@
+KILLED   supply_hold.py: rule3 window one tick shorter |   FAIL probe rule three: ON at minute 6 -> (None, True)  [(True, False)]
+KILLED   supply_hold.py: rule3 exemption: both dropped |   FAIL probe rule three: a both step, tank cold, exempt  [(None, True, 'both')]
+KILLED   supply_hold.py: passes: economy treated as non-plan |   FAIL probe: economy holds an OFF 3 min into a run  [(False, False)]
+KILLED   supply_hold.py: passes: mode never passes |   FAIL probe: a non-plan mode passes an OFF 3 min into a run  [(None, True)]
+KILLED   supply_hold.py: passes: space boost dropped |   FAIL probe: a live space boost passes an ON 3 min into a pause  [(None, True)]
+KILLED   supply_hold.py: passes: dhw boost dropped |   FAIL probe: a live DHW boost passes an ON 3 min into a pause  [(None, True)]
+KILLED   pump_arbiter.py: retry ignores released |   FAIL probe step tick: entry released: no write, hold dropped  [([False], True)]
+KILLED   pump_arbiter.py: action retry ignores stale plan |   FAIL probe step tick: stale plan: no write, hold dropped  [([False], True)]
+KILLED   pump_arbiter.py: action retry: economy dropped |   FAIL probe step tick: economy, no plan: retries the action's OFF  [([], False)]
+SURVIVED pump_arbiter.py: supply_switch: no entity guard |   ok   probe step tick: economy, no plan: retries the action's OFF / ALL 96 FEATURES BLOCK PASSED
+9 killed, 1 survived
