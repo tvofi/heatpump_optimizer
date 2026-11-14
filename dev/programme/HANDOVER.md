@@ -1158,7 +1158,7 @@ orchestrator files it.
   the sweep log, the roster queue, the merge-train state, every seat directory
   and the closure runbook) starts with neither. Passing `--orch-root
   $HPO_STATE_DIR` is equally destructive. The workaround is a path that does not
-  exist (`--orch-root /Users/timmalmstrom/hpo-orch/NO-SCRATCH-CLEAR-r10`), which
+  exist (`--orch-root ~/hpo-orch/NO-SCRATCH-CLEAR-r10`), which
   `step_local` skips because it checks `c.orch.is_dir()`. **The scratch under
   `~/hpo-orch` was not cleared; the owner decides** (clearing it is irreversible
   and outside the closure runbook's own prune). Next round's closeout re-meets
