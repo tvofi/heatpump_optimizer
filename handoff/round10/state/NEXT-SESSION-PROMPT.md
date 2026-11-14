@@ -33,11 +33,11 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-D5-D6-FULL-SCOPE (stage carries-open, branch `fix/r10-d5-d6-full-scope`): `git fetch origin fix/r10-d5-d6-full-scope && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-OBJECTIVE-FUNCTION (stage in-progress, branch `fix/r11-pre-objective-function`): `git fetch origin fix/r11-pre-objective-function && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DIMENSIONS-FULL-COVERAGE (stage carries-open, branch `fix/r10-dimensions-full-coverage`): `git fetch origin fix/r10-dimensions-full-coverage && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-COP-LEARNER-DRAW-FLOOR (stage in-progress, branch `handoff/r10-cop-learner-draw-floor`): `git fetch origin handoff/r10-cop-learner-draw-floor && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-CARRY-TIP-SIGPIPE (stage in-progress, branch `handoff/r10-hotfix-carry-tip-sigpipe`): `git fetch origin handoff/r10-hotfix-carry-tip-sigpipe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DRAW-MAP-EVIDENCE (stage in-progress, branch `handoff/r10-draw-map-evidence`): `git fetch origin handoff/r10-draw-map-evidence && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CI-PRIORITY-PAUSE, R10-CLOSEOUT-PREP, R10-COP-LEARNER-DRAW-FLOOR, R10-D5-D6-FULL-SCOPE, R10-HOTFIX-CARRY-TIP-SIGPIPE, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-DISPATCH-RESIDUE, R10-ROUND-PLAYBOOK-FINAL, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SELFTEST-SCOPE-UNION-GUARD, R10-STANDING-CONTRACTS-P2, R10-START-COUNTER-EDGES, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE, R11-PRE-PARALLEL-PIPELINE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CI-PRIORITY-PAUSE, R10-CLOSEOUT-PREP, R10-COP-LEARNER-DRAW-FLOOR, R10-D5-D6-FULL-SCOPE, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-DISPATCH-RESIDUE, R10-ROUND-PLAYBOOK-FINAL, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SELFTEST-SCOPE-UNION-GUARD, R10-STANDING-CONTRACTS-P2, R10-START-COUNTER-EDGES, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE, R11-PRE-PARALLEL-PIPELINE
 
 ## Resume steps
 
