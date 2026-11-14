@@ -575,8 +575,9 @@ capacity charge at the month's billed peak, the kWh a resistive heater drew
 beyond what the compressor can (the pump's own tank booster or backup heater
 while its flag is on, or an immersion heater you have declared), and
 compressor wear in starts. The total adds those lines and nothing else; a
-note under it says which lines it covers and that the savings figure
-compares spot cost only. Wear reads "not priced" until you set a
+note under it says which lines it covers and what the savings figure
+compares: the plan and the thermostat baseline are both priced at spot
+plus the per-kWh grid fee. Wear reads "not priced" until you set a
 compressor replacement cost. Beside it, **Where the money went** splits the
 spot line by the plan's reason for each kWh, largest first; the bars add up
 to the spot line. Every receipt the integration keeps (24 months) is on the
@@ -697,8 +698,8 @@ configured, the way it did before:
 - **Each ranked row carries its spread and an *estimated* badge.** The spread
   is in degrees the model's predictions can move — one unit, comparable
   between sensors. The line under the heading names what drove the replay:
-  your install's measured delivery where there is history, configured
-  defaults otherwise.
+  the mean electrical power your heat pump has measured where there is
+  history, half its configured maximum otherwise.
 - **A sensor the estimate cannot price is listed below the ranked rows, with
   its reason** — the outdoor probe whose job the weather entity already does,
   the floor-return probe that feeds a state estimate rather than a learned
@@ -724,7 +725,7 @@ on the Health page names which. The pill appears once that sensor has a state.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/health-dark.png">
-  <img alt="The Health tab: a Plan column solved 12 minutes ago with the next solve, its 96 steps and the solve time, and a Still learning column with savings waiting for the first settled month; an Inputs row with a stale outdoor temperature sensor (its age and its limit) and fresh indoor and hot-water sensors; a What the model has learned block whose rows each carry a value, their evidence in words and a bar: house heat loss 142 W/K, not observable without a power meter, solar gain at a window scale of 1.15 and still learning, hot-water tank cooling at 0.9 °C per hour, heat pump efficiency normal at a COP scale of 0.97, and a 24-bar internal-gains strip peaking around 18:00; a Something looks wrong? row with a Download diagnostics button, a Debug collection row with a Start button, and the six-item first-plan checklist, three ticked, with Assign on the power meter and Show on the insight sensors" src="img/card/health-light.png">
+  <img alt="The Health tab: a Plan column solved 12 minutes ago with the next solve, its 96 steps and the solve time, and a Still learning column with savings waiting for the first month with a booked saving; an Inputs row with a stale outdoor temperature sensor (its age and its limit) and fresh indoor and hot-water sensors; a What the model has learned block whose rows each carry a value, their evidence in words and a bar: house heat loss 142 W/K, not observable without a power meter, solar gain at a window scale of 1.15 and still learning, hot-water tank cooling at 0.9 °C per hour, heat pump efficiency normal at a COP scale of 0.97, and a 24-bar internal-gains strip peaking around 18:00; a Something looks wrong? row with a Download diagnostics button, a Debug collection row with a Start button, and the six-item first-plan checklist, three ticked, with Assign on the power meter and Show on the insight sensors" src="img/card/health-light.png">
 </picture>
 
 *Everything here is read from the integration's sensors; the card computes no
@@ -735,8 +736,8 @@ figure of its own.* The page shows, top to bottom:
   solve took (the Optimization Status sensor's `solve_time_ms`). Its pill reads
   **Stale** once the plan is past the limit the header's own status pill uses.
   **Still learning** lists the sensors that are enabled by default and wait
-  for evidence, each with its reason in words: savings (the first settled
-  month), heat pump COP (a power meter, then some running time), prediction
+  for evidence, each with its reason in words: savings (the first month with a
+  booked saving), heat pump COP (a power meter, then some running time), prediction
   accuracy (the first scored interval) and the optimization score (the first
   scored day). Home Assistant hides an unavailable entity's attributes, so the
   card cannot read the sensor's own `waiting_for` code and the reason is keyed
