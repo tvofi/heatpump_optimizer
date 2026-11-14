@@ -74412,12 +74412,13 @@ R.check(
     _cf_drm.follows_ask(_cf_window(_cf_span)) is True,
     f"{_cf_drm.follows_ask(_cf_window(_cf_span))}",
 )
-# 24 asks at 1.0 drawn at 1.0, 24 at 2.0 drawn at sqrt(2): the log-log slope is
-# the double 0.5 exactly, which is FOLLOW_SLOPE_MIN.
-_cf_half = [(1.0, 1.0)] * 24 + [(2.0, 2 ** 0.5)] * 24
+# 24 asks at 1.0 drawn at 1.0, 24 at 1.5625 drawn at 1.25: the log-log slope
+# is the double 0.5 exactly, which is FOLLOW_SLOPE_MIN, and the level moves by
+# 1.5625 ** 0.5 across the span, the double 1.25 exactly, DISAGREE_FACTOR.
+_cf_half = [(1.0, 1.0)] * 24 + [(1.5625, 1.25)] * 24
 R.check(
-    "a draw whose log-log slope is exactly 0.5 follows the ask (the slope bound "
-    "is `>=`, not `>`)",
+    "a draw whose log-log slope is exactly 0.5, and whose level moves by "
+    "exactly 1.25 across the span, follows the ask (both bounds inclusive)",
     _cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0))) is True,
     f"{_cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0)))}",
 )
