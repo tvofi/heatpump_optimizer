@@ -42,6 +42,14 @@ LIMIT_KEYS = ("space_setpoint_low_limit_entity", "space_setpoint_high_limit_enti
 LIMITS = ("sensor.fb_low_limit", "sensor.fb_high_limit")
 
 
+class _Entry:
+    """Config-entry stand-in; a plain class, because ``off_restore._RECORDS``
+    is a WeakKeyDictionary and a ``SimpleNamespace`` cannot be weak-referenced."""
+
+    def __init__(self, entry_id):
+        self.entry_id = entry_id
+
+
 class Coord:
     """The published surface the arbiter reads, with the meter and defrost
     flag the simulation sets each pass."""
@@ -80,7 +88,7 @@ class Coord:
         self._thermal_params = NS(
             dhw_setpoint=48.0, min_electrical_power=0.53, max_electrical_power=2.2)
         self._current_state = NS(outdoor_temperature=4.0, room_temperature=21.0)
-        self.entry = NS(entry_id=f"fb{next(IDS)}")
+        self.entry = _Entry(f"fb{next(IDS)}")
         self.power = None
         self.defrosting = False
 
