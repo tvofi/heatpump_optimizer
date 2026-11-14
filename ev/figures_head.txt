@@ -1,0 +1,3 @@
+seats=10 universe=853
+s10:3
+text_ledger self-test: 17 checks, 0 failed

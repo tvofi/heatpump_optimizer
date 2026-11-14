@@ -1,0 +1,37 @@
+== null
+rc=0
+  FAIL (probe, expected) threw: deliberate
+227 passed, 0 failed
+== D5-off-round
+rc=1
+  FAIL ...and the cadence is otherwise read from the round number (off at 11: D6, D11, D13; every dimension on at 12 as its cadence says) the cadence is not derived from the round
+  FAIL (probe, expected) threw: deliberate
+226 passed, 1 failed
+== D11-off-cadence
+rc=1
+  FAIL ...and the cadence is otherwise read from the round number (off at 11: D5, D6, D13; every dimension on at 12 as its cadence says) the cadence is not derived from the round
+  FAIL (probe, expected) threw: deliberate
+226 passed, 1 failed
+== D13-off-cadence
+rc=1
+  FAIL ...and the cadence is otherwise read from the round number (off at 11: D5, D6, D11; every dimension on at 12 as its cadence says) the cadence is not derived from the round
+  FAIL (probe, expected) threw: deliberate
+226 passed, 1 failed
+== D11-dropped-from-CADENCE
+rc=1
+  FAIL round 9, and every round in EVERY_DIM_ROUNDS, runs every dimension (round 9: its plan, section 2 default 1) [[9,["D11"]],[10,["D11"]]]
+  FAIL round 9 dispatches exactly the scopes.json seats, one agent each ["D0-s1","D3-s1","D9-s1","D5-s1","D6-s1","D10-s1","D0-s2","D3-s2","D9-s2","D5-s2","D6-s2","D10-s2","D0-s3","D3-s3","D9-s3","D5-s3","D6-s3","D10-s3","D2-s1","D12-s1","D1-s1","D1-s2","D1-s3","D8-s1","D2-s2","D12-s2","D7-s2","D7-s1","D7-s3","D8-s2","D2-s3","D12-s3","D8-s3","D4-s2","D14-s1","D14-s2","D14-s3","D15-s2","D15-s3","D13-s1","D13-s2","D13-s3","D15-s1","D4-s1","D4-s3","D5-s4","D5-s5","D5-s6","D5-s7","D5-s8","D5-s9","D5-s10","D6-s4","D6-s5","D6-s6","D6-s7"]
+  FAIL box B7 runs exactly its seats, collects, and does not run intake ["prepare","D14-s1","D14-s2","D14-s3","collect-B7"]
+  FAIL ...and Prepare makes a worktree for each of that box's isolated seats only (D14-s1, D14-s2, D14-s3, D11-s2, D11-s3; not D0-s1) Prepare the round 9 audit baseline from the repository at /r (do not modify that checkout) for box B7 (this container).
+== D13-dropped-from-CADENCE
+rc=1
+  FAIL round 9, and every round in EVERY_DIM_ROUNDS, runs every dimension (round 9: its plan, section 2 default 1) [[9,["D13"]],[10,["D13"]]]
+  FAIL round 9 dispatches exactly the scopes.json seats, one agent each ["D0-s1","D3-s1","D9-s1","D5-s1","D6-s1","D10-s1","D0-s2","D3-s2","D9-s2","D5-s2","D6-s2","D10-s2","D0-s3","D3-s3","D9-s3","D5-s3","D6-s3","D10-s3","D2-s1","D12-s1","D1-s1","D1-s2","D1-s3","D8-s1","D2-s2","D12-s2","D7-s2","D7-s1","D7-s3","D8-s2","D2-s3","D12-s3","D8-s3","D4-s2","D11-s1","D14-s1","D14-s2","D14-s3","D11-s2","D11-s3","D15-s2","D15-s3","D15-s1","D4-s1","D4-s3","D5-s4","D5-s5","D5-s6","D5-s7","D5-s8","D5-s9","D5-s10","D6-s4","D6-s5","D6-s6","D6-s7"]
+  FAIL and the round's ledger entry names every active dimension, one step list per seat ["D0","D1","D2","D3","D4","D5","D6","D7","D8","D9","D10","D11","D12","D14","D15"]
+  FAIL (probe, expected) threw: deliberate
+== D11-never-runs
+rc=1
+  FAIL round 9, and every round in EVERY_DIM_ROUNDS, runs every dimension (round 9: its plan, section 2 default 1) [[9,["D11"]],[10,["D11"]]]
+  FAIL ...and the cadence is otherwise read from the round number (off at 11: D5, D6, D11, D13; every dimension on at 12 as its cadence says) the cadence is not derived from the round
+  FAIL round 9 dispatches exactly the scopes.json seats, one agent each ["D0-s1","D3-s1","D9-s1","D5-s1","D6-s1","D10-s1","D0-s2","D3-s2","D9-s2","D5-s2","D6-s2","D10-s2","D0-s3","D3-s3","D9-s3","D5-s3","D6-s3","D10-s3","D2-s1","D12-s1","D1-s1","D1-s2","D1-s3","D8-s1","D2-s2","D12-s2","D7-s2","D7-s1","D7-s3","D8-s2","D2-s3","D12-s3","D8-s3","D4-s2","D14-s1","D14-s2","D14-s3","D15-s2","D15-s3","D13-s1","D13-s2","D13-s3","D15-s1","D4-s1","D4-s3","D5-s4","D5-s5","D5-s6","D5-s7","D5-s8","D5-s9","D5-s10","D6-s4","D6-s5","D6-s6","D6-s7"]
+  FAIL box B7 runs exactly its seats, collects, and does not run intake ["prepare","D14-s1","D14-s2","D14-s3","collect-B7"]
