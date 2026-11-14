@@ -1,0 +1,30 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 1b2a2a2ae6..211eda4f40 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -865,7 +865,6 @@ def _thermostat_held_state(
+     return held
+ 
+ 
+-<<<<<<< 3324b6d910
+ def _held_reference(
+     model: ThermalModel, state: ThermalState, weather: WeatherSeries,
+     comfort_targets: np.ndarray | None, default_target: float,
+@@ -878,7 +877,8 @@ def _held_reference(
+     return _sharing_wood_side(_thermostat_held_state(
+         model, state, weather, _baseline_target(comfort_targets, 0, default_target),
+     ), state)
+-=======
++
++
+ def _held_bisected(
+     held_at: Callable[[float], ThermalState], unreachable: Callable[[ThermalState], bool],
+     lo: float, hi: float,
+@@ -926,7 +926,6 @@ def _pump_unreachable(
+     cop = _reference_cop(model, held, outdoor, humidity)
+     p = model.params
+     return bool(power_for_heat_per_cop_kw(p, made_kw / cop) > p.max_electrical_power)
+->>>>>>> 6858b4abc1
+ 
+ 
+ def _held_unreachable(
