@@ -509,7 +509,7 @@ gantt
 | R10-HOTFIX-SELFTEST-SCOPE-UNION | IN | 1 | done | - | opus/opus | - | Hotfix, main red. |  |
 | R10-DUTY-SWITCH-RESTART-LEARNING-PR-B | CORE | 1 | done | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
 | R10-DUTY-SWITCH-PLANNER-PRICE | CORE | 1 | done | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
-| R10-START-COUNTER-EDGES | CORE | 4 | not-started | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
+| R10-START-COUNTER-EDGES | CORE | 4 | in-progress | #3420 | opus/opus | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
 | R10-MODE-BEFORE-SUPPLY-ON | CORE | 1 | done | #3420 | sonnet/sonnet | - | Outside pull request 3420 by Bankaifan (fork head 2599cc38ed when this was written; re-read it with git ls-remote origin refs/pull/3420/head). |  |
 | R10-GH-READ-RESIDUE-P3 | IN | 4 | deferred | - | sonnet/opus | - | triage: dev/programme/triage/s6-batch177.md#P596 at c7cab7230c Not-started sibling of R10-GH-READ-RESIDUE (carries-open, part p2 in flight), opened under the... |  |
 | R10-PRODUCT-PAGE-REDESIGN | UI | 1 | done | - | fable/opus | - | Owner decision (tvofi, 2026-11-11): "I decide leave the card as is, and fold in the design update of the web page in the next group that touches the page, or... |  |

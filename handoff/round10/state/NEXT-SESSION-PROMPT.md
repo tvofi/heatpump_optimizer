@@ -17,6 +17,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-USER-DOCS-VERIFY (stage carries-open, branch `handoff/r10-user-docs-verify`): `git fetch origin handoff/r10-user-docs-verify && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SEAT-IDENTITY-P5 (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-START-COUNTER-EDGES (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OUTSIDE-CONTRIBUTOR-CYCLE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage design): no branch pushed yet, so nothing to fetch
