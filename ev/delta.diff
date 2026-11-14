@@ -1,0 +1,82 @@
+diff --git a/custom_components/heatpump_optimizer/draw_range.py b/custom_components/heatpump_optimizer/draw_range.py
+index b963108eae..8ead25bef1 100644
+--- a/custom_components/heatpump_optimizer/draw_range.py
++++ b/custom_components/heatpump_optimizer/draw_range.py
+@@ -250,15 +250,16 @@ class MapRows:
+ def _stored_map(data: Any) -> MapRows:
+     """A stored record's map rows; a record without them reads empty.
+ 
+-    Columns of unequal length cannot be aligned and are all dropped; a row
+-    with an unreadable number is dropped alone.
++    Every column is split, an empty string being one unread cell (the record
++    is written only with rows). Columns of unequal length cannot be aligned
++    and are all dropped; a row with an unreadable number is dropped alone.
+     """
+     out = MapRows()
+     raw = data.get("map_rows") if isinstance(data, dict) else None
+     cols = [raw.get(name) if isinstance(raw, dict) else None for name in MAP_COLUMNS]
+     if not all(isinstance(c, str) for c in cols):
+         return out
+-    split = [c.split(",") if c else [] for c in cols]
++    split = [c.split(",") for c in cols]
+     if len({len(c) for c in split}) != 1:
+         return out
+     for cells in zip(*split):
+@@ -271,10 +272,11 @@ def _stored_map(data: Any) -> MapRows:
+ 
+ def _map_cell(name: str, cell: str) -> Any:
+     """One stored cell: text kept, empty unread, else a finite number (the
+-    first two columns whole minutes); anything else raises ``ValueError``."""
++    first two columns whole minutes, never unread); anything else raises
++    ``ValueError``."""
+     if name in _MAP_TEXT:
+         return cell
+-    if cell == "":
++    if cell == "" and name not in MAP_COLUMNS[:2]:
+         return None
+     value = int(cell) if name in MAP_COLUMNS[:2] else float(cell)
+     if not np.isfinite(value):
+diff --git a/tests/features.py b/tests/features.py
+index 7f8a3f822f..1c74f933a2 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -91444,6 +91444,39 @@ R.check(
+     _mr_one_row.as_dict()["map_rows"]["written_c"] == ""
+     and _mr_store.off_domain("hpo_accuracy", {"accuracy": {"draw": _mr_one_row.as_dict()}}) == [],
+ )
++_mr_a = [_mr_pass(m, inlet=None) for m in range(6)]
++_mr_b = [_mr_pass(m, written=40.0, inlet=inl) for m, inl in ((6, None), (7, None), (8, 31.0), (9, 31.0), (10, 31.0))]
++_mr_no_inlet = [_mr_rows(_mr_a), _mr_rows(_mr_a + [_mr_dc_replace(p, inlet_c=None) for p in _mr_b]), _mr_rows(_mr_a + _mr_b)]
++
++
++def _mr_reload(rows):
++    held = _mr_dr.DrawRange()
++    held.map.rows.extend(rows)
++    return list(_mr_dr.DrawRange.from_dict(held.as_dict()).map.rows)
++
++
++R.check(
++    "an unread cell is a stored value: a single row with unread cells, a column "
++    "unread in every row (no inlet sensor) and one row unread among read ones "
++    "each read back as the same rows",
++    _mr_reload(_mr_one_row.map.rows) == list(_mr_one_row.map.rows)
++    and [len(r) for r in _mr_no_inlet] == [1, 2, 2]
++    and [r[-1][10] is None for r in _mr_no_inlet] == [True, True, False]
++    and all(r[0][10] is None for r in _mr_no_inlet)
++    and all(_mr_reload(r) == r for r in _mr_no_inlet),
++    f"{[_mr_reload(r) for r in _mr_no_inlet]} / {_mr_reload(_mr_one_row.map.rows)}",
++)
++R.check(
++    "an unread start or steady minute is a bad cell and drops its row alone; a "
++    "record of empty columns holds no row",
++    [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": dict(
++        _mr_doc["map_rows"], start_min="," + _mr_doc["map_rows"]["start_min"].split(",", 1)[1])}).map.rows]
++    == ["plan", "probe"]
++    and [r[15] for r in _mr_dr.DrawRange.from_dict({"map_rows": dict(
++        _mr_doc["map_rows"], steady_min="," + _mr_doc["map_rows"]["steady_min"].split(",", 1)[1])}).map.rows]
++    == ["plan", "probe"]
++    and not _mr_dr.DrawRange.from_dict({"map_rows": dict.fromkeys(_mr_dr.MAP_COLUMNS, "")}).map.rows,
++)
+ 
+ 
+ # The window is untouched: the same intervals folded with and without map
