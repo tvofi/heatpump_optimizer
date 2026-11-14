@@ -47,6 +47,8 @@ KILLED floor_inclusive
 KILLED no_signal_is_none
 KILLED source_never_mixed
 KILLED report_line_in_write
+rc=0
+SURVIVED NULL
 KILLED pass_call
 KILLED attach
 KILLED detach
@@ -95,6 +97,8 @@ KILLED r2_weights_no_clamp
 KILLED r2_running_ignores_pending
 KILLED r2_attach_not_idempotent
 KILLED r2_attach_no_first_read
+rc=0
+SURVIVED NULL
 KILLED r2_detach_keeps_tracker
 KILLED r2_pass_after_gate
 KILLED r2_ctx_defrost_entity
@@ -120,4 +124,27 @@ KILLED r3_span_floor_value
 KILLED r3_span_change_unreported
 KILLED r3_span_last_day_kept
 KILLED r3_span_reported_always
+KILLED r3v_aged_on_predecay_n
+KILLED r3v_span_floor_on_k
+KILLED r3v_unit_gate_return_only
+KILLED r3v_unit_gate_flow_only
+KILLED r3v_wrapper_pending_false
+KILLED r3v_wrapper_pending_true
+KILLED r3v_wrapper_dirty_dropped
+KILLED r3v_heated_margin_strict
+KILLED r3v_heated_falls_to_leg
+KILLED r3v_pass_expiry_ignores_pending
+KILLED r3v_ageout_keeps_reporting
+KILLED r4v_last_write_min
+KILLED r4v_first_day_overwritten
+KILLED r4v_plan_stays_no_both
+KILLED r4v_checked_every_pass
+KILLED r4v_supply_ignores_switch
+KILLED r4v_tracker_settled_any
+KILLED r5v_span_floor_on_kept_w
+KILLED r5v_tracker_settled_not_none
+KILLED r5v_tracker_settled_dropped
+KILLED r5v_wrapper_pending_inverted
+KILLED r5v_pass_judges_before_confirm
+KILLED r5v_write_pending_ignored_when_stopped
 rc=0

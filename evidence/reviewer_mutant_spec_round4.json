@@ -1,0 +1,19 @@
+[
+ {"name": "r4v_last_write_min", "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "last_write_at=max((at for _value, at in held.written.values()), default=None),",
+  "new": "last_write_at=min((at for _value, at in held.written.values()), default=None),"},
+ {"name": "r4v_first_day_overwritten", "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "self.first_day, self.last_day = self.first_day or day, max(self.last_day or day, day)",
+  "new": "self.first_day, self.last_day = day, max(self.last_day or day, day)"},
+ {"name": "r4v_plan_stays_no_both", "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "plan_stays=all(step_duty(inp.plan, at) in (target, \"both\")",
+  "new": "plan_stays=all(step_duty(inp.plan, at) in (target,)"},
+ {"name": "r4v_checked_every_pass", "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "        if not ep.checked:\n            ep.checked = True\n            if explained:",
+  "new": "        if True:\n            ep.checked = True\n            if explained:"},
+ {"name": "r4v_supply_ignores_switch", "file": "custom_components/heatpump_optimizer/pump_arbiter.py",
+  "old": "supply_on=not _pump_off(inp, held),", "new": "supply_on=True,"},
+ {"name": "r4v_tracker_settled_any", "file": "custom_components/heatpump_optimizer/duty_switch.py",
+  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
+  "new": "running = rec.tracker.settled is not False and rec.tracker.pending is None"}
+]
