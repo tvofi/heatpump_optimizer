@@ -1,0 +1,6 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:94 BOOLOP: held_now = until is not None and dt_util.as_utc(now or dt_ut
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:94 CMP_BOUND: held_now = until is not None and dt_util.as_utc(now or dt_ut
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:95 RETURN_DEL: return FREEZE_HELD if held_now else None
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/supply_hold.py:103 RETURN_DEL: return 2 * timedelta(minutes=EntryConfig.from_mapping(config
+CI PREDICT: 4 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against 43e95474559c (a data-file read is not seen)

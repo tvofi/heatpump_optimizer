@@ -1,0 +1,3 @@
+merge base 43e95474559c, head a936a11d461c
+Architecture score: dS +0.0000 NULL
+PASS: dS +0.0000 NULL, no gate metric rose

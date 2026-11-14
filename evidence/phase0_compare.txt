@@ -1,0 +1,2 @@
+PHASE0-IDENTICAL (12 rows)
+gate-on vs gate-off pairs at phase 0 compared

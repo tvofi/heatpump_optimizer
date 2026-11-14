@@ -1,56 +1,60 @@
-Fix review: blocked 5dea8264f2c8712c15725884d00b99eea5b48d24 mutation-vacuous: 10 survivors of tests/features.py in full: supply_hold._passes mode, economy, space boost, dhw boost; _ends_soon both exemption and one-tick window; supply_tick released and stale-plan retry guards; _action_supply economy; supply_switch entity guard
+Fix review: blocked a936a11d461cdf08ef8b9e098c3da27cecf9e249 head-moved: measured a936a11d461cdf08ef8b9e098c3da27cecf9e249, head is 3d56953499ef23b0d51f2eee7d0cc782d05b572a
 
-bus-nonce: 992b692642b107569b827cf06f38045d
+bus-nonce: 0993e0f249830e04e92b3345e42c0654
 
 ## Block
 
-Round 1 of review, at handoff (no pull request yet). The body's mutation proof says it mutated "every predicate the fix adds or moves". It did not. I mutated the added predicates one at a time (`ev/mutants_head.txt`, driver `mut.py`). Ten mutants on added or moved production lines pass the group's mutation command, which is the two `features_block.py` blocks. They also pass the whole `tests/features.py`, which reported `ALL 5336 FEATURE CHECKS PASSED` under each mutant (`ev/full_mut_<i>.txt`). Here is every survivor:
+The dispatch names a936a11d461cdf08ef8b9e098c3da27cecf9e249. But the handoff ref `handoff/r10-outside-supply-min-run-pause` and the body (BODY.md at handoff-body c1832f9c) both name 3d56953499ef23b0d51f2eee7d0cc782d05b572a, under `## Head`: "The reviewer's delta is `git diff 701a18e26661 3d56953499ef`". That commit existed before this dispatch: it was committed at 18:50Z and the dispatch at 20:05Z (`ev/refs_at_review.txt`). Step 7 requires the body's head to be the head measured, or to carry to it. `tools/audit/seat/review_carry.py a936a11d461cdf08ef8b9e098c3da27cecf9e249 3d56953499ef23b0d51f2eee7d0cc782d05b572a` prints FRESH-REVIEW, because the branch's own commit 3d5695349 changes the content (`ev/review_carry_a936_to_3d569.txt`). So a `merge` on a936a11d461cdf08ef8b9e098c3da27cecf9e249 would attach to a head nobody will push.
 
-```
-SURVIVED supply_hold.py: _passes: 'inp.mode not in (MODE_AUTO, MODE_ECONOMY)' -> 'False'              (a fixed/non-plan mode is held like a plan)
-SURVIVED supply_hold.py: _passes: 'inp.mode not in (MODE_AUTO, MODE_ECONOMY)' -> 'inp.mode != MODE_AUTO' (economy passes unheld)
-SURVIVED supply_hold.py: _passes: 'boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNEL_DHW, now)' -> 'boosts.active(CHANNEL_DHW, now)'   (a live space boost is held up to MIN_PAUSE)
-SURVIVED supply_hold.py: _passes: same -> 'boosts.active(CHANNEL_SPACE, now)'                          (a live DHW boost is held up to MIN_PAUSE)
-SURVIVED supply_hold.py: _ends_soon: 'in ("dhw", "both") and tank_reason' -> '== "dhw" and tank_reason' (a "both" step with a cold tank loses rule three's exemption)
-SURVIVED supply_hold.py: _ends_soon: 'nxt - now >= MIN_RUN' -> 'nxt - now >= MIN_RUN - timedelta(minutes=1)' (rule three's window one tick short: minute 6 is not pinned)
-SURVIVED pump_arbiter.py: supply_tick: 'if on is None and held.supply_held and not inp.entry_released:' -> drop 'and not inp.entry_released' (a released entry retries the action's write)
-SURVIVED pump_arbiter.py: _action_supply: drop 'or inp.plan_stale'                                     (a stale plan retries the action's write)
-SURVIVED pump_arbiter.py: _action_supply: 'inp.mode not in (MODE_AUTO, MODE_ECONOMY)' -> 'inp.mode != MODE_AUTO' (economy drops a held write)
-SURVIVED pump_arbiter.py: supply_switch: 'return inp.hass.states.get(entity) if entity else None' -> 'return inp.hass.states.get(entity)'
-```
+This is the block's only cause. The delta a936a11d461cdf08ef8b9e098c3da27cecf9e249..3d56953499ef23b0d51f2eee7d0cc782d05b572a is four new `killed_by` ledger pins under `supply_hold.py/`: `_freeze_span` RETURN_DEL cc6f4da1, `freeze_reason` BOOLOP a6b354ce, CMP_BOUND a6b354ce and RETURN_DEL a2686a80 (`ev/delta_a936_to_3d569.txt`). It touches no production code, and by step 12 a test or instrument delta never widens a round. Every figure under `## Evidence` carries to 3d56953499ef23b0d51f2eee7d0cc782d05b572a unchanged. One thing is owed: a re-dispatch at 3d56953499ef23b0d51f2eee7d0cc782d05b572a. That round's only delta is the four pins. Its only check is that the sites are real and killed. I already ran that check here: `ci_predict.py` lists exactly these 4 ADDED UNPINNED sites at a936a11d461cdf08ef8b9e098c3da27cecf9e249 and 0 at 3d56953499ef23b0d51f2eee7d0cc782d05b572a, and my mutants 0, 4, 5 and 6 kill the corresponding mutations. `_freeze_span` returning None crashes at `now + None`, as mutant 0's TypeError shows.
 
-None of the first nine is equivalent. My probe block `probe_block.py` holds twenty checks, all `ok` at the head (`ALL 96 FEATURES BLOCK PASSED`, `ev/probe_head.txt`), and it kills each of the nine (`ev/mutants_probe.txt`). Each one changes control behaviour. Without the boost clauses, a boost the user asks for three minutes into a pause is held for up to MIN_PAUSE. Without the mode clause, a fixed mode is held like a plan. Without the released or stale guard, the step tick switches the pump after unload or on a stale plan.
+## Round
 
-The tenth is equivalent only under the stub: `FakeHass.states.get(None)` returns `None`. In real Home Assistant, `StateMachine.get(None)` raises, because it calls `.lower()` on the id. `hold_supply` now reaches `supply_switch` on every non-None write, including installs with no `heat_pump_switch_entity`, so this guard is load-bearing there. Pin it with a no-switch install through `_write_supply`, or say why it cannot be pinned.
-
-Remedy: add killing checks for all ten, as `probe_block.py` does for nine. Then re-run the group's mutation command and `prepr.sh` step 6d'.
+This is the third round of r10-outside-supply-min-run-pause. Round 1 at 5dea8264f2 returned mutation-vacuous, and round 2 at 701a18e266 returned merge. No re-cut is owed below the fourth round. Scope is the delta 701a18e2..a936a11d461cdf08ef8b9e098c3da27cecf9e249. `review_carry.py 701a18e2 a936a11d461cdf08ef8b9e098c3da27cecf9e249` prints FRESH-REVIEW (`ev/review_carry_701a_to_a936.txt`).
 
 ## Findings
 
 ## Evidence
 
-- Head reviewed: 5dea8264f2c8712c15725884d00b99eea5b48d24 (`ev/HEAD.txt`). The body's `## Head` names the same SHA. Its merge base is 26072317b5, and `git merge-tree --write-tree origin/main <head>` against origin/main fc2a7edcf2 exits 0. The ledger driver resolved `tests/structure_budgets.json` and `tests/closures.json`, so there is no conflict (`ev/cheap_checks.txt`).
-- Roles: `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- CI: there is no pull request, no review packet and no CI run, so no check was red or read. `merge_train.py owed-reds` prints coverage-ratchet, fast (3.14), mutation, typing and validate-hacs. Whether the body's `## Red checks` entry for `mutation` is owed is decided once a PR's checks exist.
-- Mutation proof, re-run: 47 single mutants against the group's command (`mut_cmd.sh`: the supply-switch blocks through the ceiling-probe marker, plus the early cut-off block). 37 were killed and the 10 above survived (`ev/mutants_head.txt`). Every survivor was re-run against the whole `tests/features.py` (`ev/full_mut_*.txt`) and survived there too. The head's whole `tests/features.py` passes: `ALL 5336 FEATURE CHECKS PASSED` in 7m23s.
-- Boundaries, one tick either side, from my probes at the head, all `ok`:
-  - MIN_RUN: an OFF to a run 9 min old is held; at 10 and 11 min it passes.
-  - MIN_PAUSE: an ON to a pause 9 min old is held; at 10 and 11 min it passes.
-  - Rule three: an ON at minute 4 or 5 passes; at minute 6 or 14 it is skipped.
-  - The early cut-off's MIN_ON `<` to `<=` mutant is killed, and MIN_OFF doubled is killed.
-  - Changing MIN_RUN or MIN_PAUSE to 9 or 11 is killed.
-- Closed loop: I re-ran `SUPPLY_HOLD=1 early_cutoff_closed_loop.py NULL HOT LIGHT`. At phase 7 (`ev/cl_phase7.txt`), at `CYCLE_PHASE_MIN=0` (`ev/cl_phase0.txt`), and with rule three forced off (`ev/cl_norule3.txt`, my own `no_rule3.py`, since the body's is out of tree), all 36 rows equal the body's tables after whitespace normalisation. The harness sha1 is 39a4867b2afda697d041add836d69a9fd3e37401, as quoted.
-- Flat-price null control: every quantified figure has a flat twin in the tables, and at phase 0 gate on equals gate off on all six pairs. Under the flat profile at phase 7 the gate costs comfort:
-  - HOT flat: pump 1.6 to 0.0 kWh/day, room minimum 20.18 to 19.68.
-  - NULL flat: room minimum 19.69 to 19.68.
-  - LIGHT flat: room minimum 18.97 to 18.90.
-  
-  On HOT flat, with rule three forced off, the pump runs 1.0 kWh and the room minimum is 19.99. The body states this and puts rule three to the owner, so it is not a review block. NULL and HOT winter rows are identical with and without rule three, as claimed.
-- Harness extension: the merge-base harness and the head harness, both run on the head's code with NULL in default mode, give byte-identical output (`ev/harness_identity.txt`: IDENTICAL).
-- Class: the body's rule, `git grep -n 'switch_supply(' -- custom_components`, returns the two call sites and the definition, matching the body's table. The other `turn_on`/`turn_off` writers (space pump `_async_set_pump`, the silent slot, disinfection) target other entities, so the class is closed.
-- VERSION, manifest, release notes, golden fixtures and both claim files are untouched against the merge base. `structure.py`: STRUCTURE RATCHET PASSED.
-- Not re-derived: `entities.py` 2709, the scoped-gate count and mode line, the closure set diff, and `ha_contract.py` under venv-ha. These are cheap checks a re-cut must re-take anyway, and none bears on the block.
-- Instruments: `early_cutoff_closed_loop.py`'s `SUPPLY_HOLD` mode is the fixer's extension of the finder's harness and is committed in this diff. The reviewer's drivers are `mut.py`, `mut_cmd.sh`, `probe_block.py`, `probe_cmd.sh`, `full_mut.py` and `no_rule3.py`, copied into `ev/`.
+- Head measured: a936a11d461cdf08ef8b9e098c3da27cecf9e249 (`ev/HEAD.txt`). Merge base: 43e95474559ca8e2188830f8775c1ddf52df964a. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current.
+- The delta is not only a merge. Besides the two merges of origin/main (62a0d672f and 934f6d683), it holds:
+  - 874cb0168 (production): `supply_hold.freeze_reason` replaces `interval_held`, and `ArbiterState.held_at` becomes `held_until`.
+  - 808f50df7: `class_excess_loc` 17526 -> 17525, downward.
+  - b2dd26288: mutation-autofix's pins.
+  - a936a11d461cdf08ef8b9e098c3da27cecf9e249: five pins dropped whose sites 874cb0168 removed.
+  I reviewed 874cb0168 as in-scope production code (`ev/commit_874cb01.diff`).
+- 874cb0168 keeps behaviour. The old test `now - held_at < 2*interval` and the new `now < held_at + 2*interval` are the same predicate, and `hold_supply`'s `now` is already UTC. The span is now taken from `inp.config` when the write is held, not from the coordinator's `_config` when queried. An options change reloads the entry and rebuilds `ArbiterState`, so the two cannot diverge. Dropping `config or {}` is safe: `hold_supply` reaches `_freeze_span` only after `_held_for` -> `supply_switch`, and that path already calls `EntryConfig.from_mapping(inp.config)` (pump_arbiter.py:1934). `_tail_freeze` keeps the cut reason first: mutant 11 drops it and is killed by "the cut reason outranks the unmetered tail freeze".
+- Merge resolution: `git show --cc` of both merges, restricted to custom_components/, shows no hunk differing from both parents (`ev/merge_*_cc_custom_components.txt`). The production files merged textually, so no hand resolution touched production code.
+- Each side's behaviour, re-run at a936a11d461cdf08ef8b9e098c3da27cecf9e249:
+  - This branch's two blocks (`ev/mutant_cmd.sh`, preludes from `features_block.py --emit-prelude` at the head): `ALL 88 FEATURES BLOCK PASSED | ALL 60 FEATURES BLOCK PASSED` (`ev/baseline_blocks.txt`).
+  - main's duty_switch block, from its import to the ceiling-probe marker: `ALL 59` at a936a11d461cdf08ef8b9e098c3da27cecf9e249 and `ALL 59` at main 43e95474, with the 59 ok lines identical (`ev/duty_switch_block_*.txt`, DUTY-BLOCK-IDENTICAL).
+  - The whole `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 5416 FEATURE CHECKS PASSED`, rc 0 (`ev/features_full_head.log`).
+- Mutation, my own: 15 of 15 killed by the group's command, and the worktree was clean afterwards (`ev/reviewer_mutants.txt`, driver `ev/mut.py`). They cover every predicate and assignment 874cb0168 adds:
+  - `held_until` never set, a zero span, three intervals, one interval
+  - `<`->`<=` and `<`->`>`
+  - never frozen, and frozen forever once held
+  - the freeze stamped on every non-None write
+  - the coordinator dropping the held reason
+  They also cover merged-state guards: the held flag never reset, the cut reason dropped, MIN_RUN `<`->`<=`, the gate removed, and a released entry retrying.
+- Failing-first and the finder's harness. `early_cutoff_closed_loop.py` (sha1 39a4867b2afda697d041add836d69a9fd3e37401, `ev/harness_sha1.txt`) was re-run at a936a11d461cdf08ef8b9e098c3da27cecf9e249 with SUPPLY_HOLD=1:
+  - Phase 7, NULL HOT LIGHT: all 12 rows equal the body's table after whitespace normalisation (`ev/phase7_compare.txt`, PHASE7-IDENTICAL; `ev/cl7*.txt`).
+  - Phase 0 null control (CYCLE_PHASE_MIN=0): all 12 rows equal the body's table (PHASE0-IDENTICAL), and gate on equals gate off on all 6 pairs (`ev/phase0_compare.txt`, `ev/cl0.txt`).
+  - Rule three's share was not re-run. It is the body's scratch-driver table from 5dea8264f2, and 874cb0168 does not touch `_ends_soon`.
+- arch-score:
+  - At the PR's current head b2dd2628 (`get_check_runs`), `arch-score / arch-score` is red. Re-run locally, the base's `gate.py --base 19baca76 --head b2dd2628` prints `dS -0.0006 WORSENS (inadmissible: coord_footprint 2492->2493)`, rc 1 (`ev/archscore_gate_prhead_b2dd2628.txt`).
+  - At a936a11d461cdf08ef8b9e098c3da27cecf9e249 against 43e95474, it prints `Architecture score: dS +0.0000 NULL` and `PASS: ... no gate metric rose`, rc 0 (`ev/archscore_gate.txt`).
+  - The movement is earned (step 14). A control commit that reverts only 874cb0168's coordinator.py hunk on a936a11d461cdf08ef8b9e098c3da27cecf9e249 reads `coord_footprint 2506->2507` and WORSENS (`ev/archscore_control_revert874.txt`). The pay is the config parse moving out of `_tail_freeze` into `supply_hold`, with semantics unchanged as above.
+- Structure: `tests/structure.py` prints STRUCTURE RATCHET PASSED, with `class_excess_loc 17525 <= 17525` (`ev/structure.txt`). The budget diff against main moves `class_excess_loc` 17526->17525 and `max_class_loc` 7921->7919, both down. No raise (`ev/budget_diff_vs_main.txt`).
+- Other checks:
+  - ha_contract: stub rc 0 and venv-ha `--contracts-only` rc 0, 0 FAIL lines each. "StateMachine.get(None) raises" and "a restart's first write stamps last_changed anew" read ok against real HA (`ev/ha_contract_*.txt`).
+  - deployment_shape: ALL PASSED.
+  - The merged counts hold at a936a11d461cdf08ef8b9e098c3da27cecf9e249: 90 modules, 32 importing homeassistant at column 0, 109 package files (`ev/counts.txt`).
+  - I did not re-derive the closure-pair census of 154.
+- Class: the body's rule `git grep -n 'switch_supply('` returns coordinator.py:7832, early_cutoff.py:325 and the definition, the same as round 2. main's duty_switch.py and wear.py hold no `turn_on`, `turn_off` or `async_call` (`ev/class_rule.txt`). The class is closed.
+- Merge: `git merge-tree --write-tree origin/main a936a11d461cdf08ef8b9e098c3da27cecf9e249` has rc 0 against origin/main 4145f2852642 (`ev/merge_tree.txt`). 3d56953499ef23b0d51f2eee7d0cc782d05b572a also merges cleanly (rc 0).
+- VERSION, manifest, RELEASE_NOTES, golden fixtures and both claim files: the three-dot diff is empty (`ev/version_untouched.txt`).
+- CI: no review packet and no CI run exist at a936a11d461cdf08ef8b9e098c3da27cecf9e249 or 3d56953499ef23b0d51f2eee7d0cc782d05b572a. PR #3512 still points at b2dd2628. Its reds there are arch-score, governance/instrument-self-tests, pr-contract and gate. None of them is in `merge_train.py owed-reds`, which prints coverage-ratchet, fast (3.14), mutation, typing and validate-hacs (`ev/owed_reds.txt`). `tests / mutation` is green at b2dd2628. Whether instrument-self-tests is INTRODUCED (`classify --pr`) is for the run at the pushed head. The available log tail is post-job cleanup only, so I could not read which step failed.
+- Not re-run: the scoped gate (`MODE: SCOPED -- 24 script(s) run`), entities.py 2709, and the 17-mutant and 10-mutant blocks from round 2, whose lines 874cb0168 does not touch. My mutant 14 re-confirms one of the round-2 guards.
 
 ## Friction
 
