@@ -34,7 +34,6 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-NUDGE-RETIRE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R11-OUTSIDE-HONEST-STARTS-RUNS (stage design): no branch pushed yet, so nothing to fetch
 - R10-SELFTEST-SCOPE-UNION-GUARD (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-BOOST-FLOW-CEILING (stage in-progress, branch `fix/r10-hotfix-boost-flow-ceiling`): `git fetch origin fix/r10-hotfix-boost-flow-ceiling && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-D5-D6-FULL-SCOPE (stage in-progress, branch `fix/r10-d5-d6-full-scope`): `git fetch origin fix/r10-d5-d6-full-scope && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-OBJECTIVE-FUNCTION (stage in-progress, branch `fix/r11-pre-objective-function`): `git fetch origin fix/r11-pre-objective-function && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DIMENSIONS-FULL-COVERAGE (stage carries-open, branch `fix/r10-dimensions-full-coverage`): `git fetch origin fix/r10-dimensions-full-coverage && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -42,7 +41,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FEEDBACK-SETTLE-LARGE-LIFT (stage in-progress, branch `r10-feedback-settle-large-lift`): `git fetch origin r10-feedback-settle-large-lift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R11-PRE-PARALLEL-PIPELINE (stage design): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CI-PRIORITY-PAUSE, R10-CLOSEOUT-PREP, R10-COP-LEARNER-DRAW-FLOOR, R10-D5-D6-FULL-SCOPE, R10-DOCS-STRINGS-RESIDUE, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-FEEDBACK-SETTLE-LARGE-LIFT, R10-GATE-DEFER-BARRIER, R10-HOTFIX-BOOST-FLOW-CEILING, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-LEARNER-ROBUSTNESS-P3, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-DISPATCH-RESIDUE, R10-ROUND-PLAYBOOK-FINAL, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SELFTEST-SCOPE-UNION-GUARD, R10-STANDING-CONTRACTS-P2, R10-START-COUNTER-EDGES, R10-SUITE-ENV-RESIDUE, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE, R11-PRE-PARALLEL-PIPELINE
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-STEADY-START, R10-CI-PRIORITY-PAUSE, R10-CLOSEOUT-PREP, R10-COP-LEARNER-DRAW-FLOOR, R10-D5-D6-FULL-SCOPE, R10-DOCS-STRINGS-RESIDUE, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B, R10-FEEDBACK-SETTLE-LARGE-LIFT, R10-GATE-DEFER-BARRIER, R10-OUTSIDE-CONTRIBUTOR-CYCLE, R10-OUTSIDE-LEARNER-ROBUSTNESS-P3, R10-PREPR-RESIDUE, R10-PROCESS-SLIM, R10-REVIEW-DISPATCH-RESIDUE, R10-ROUND-PLAYBOOK-FINAL, R10-SAV-VALUATION-RESIDUE, R10-SEAT-IDENTITY-P5, R10-SELFTEST-SCOPE-UNION-GUARD, R10-STANDING-CONTRACTS-P2, R10-START-COUNTER-EDGES, R10-SUITE-ENV-RESIDUE, R10-USER-DOCS-VERIFY, R11-INTAKE-R10-RESIDUE, R11-PRE-PARALLEL-PIPELINE
 
 ## Resume steps
 
