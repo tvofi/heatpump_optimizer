@@ -26442,7 +26442,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch after the round 10 closure stamp; before round 11 finders",
-    "note": "intake: owner decision cards 2026-11-13 (process convergence audit); post-stamp so round 10 closure does not move"
+    "note": "owner ruling 2026-11-14 about 11:45Z, his words: \"limiter first, write that in\": this group lands before the other R11-PRE instrument groups (ROUND-METRICS, TOKEN-LEDGER, RELAY-REBUILD, ACK-COMPLETION, STANDING-SCRIPTS, PLAN-RENDER), so each is built under one-in-one-out. Orchestrator recommendation, not the owner words: one recorded exemption in the limiter itself for the purely additive items he ordered on 2026-11-13."
    }
   },
   {
