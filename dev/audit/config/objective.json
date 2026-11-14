@@ -55,6 +55,10 @@
    "value": null,
    "proposed": 0.2,
    "unit": "relative difference"
+  },
+  "band_model_gap": {
+   "value": null,
+   "unit": "share of C_real, per cell"
   }
  },
  "owner_criteria": {
@@ -209,9 +213,9 @@
   },
   {
    "axis": "optional_entity",
-   "kind": "regex",
+   "kind": "name",
    "file": "custom_components/heatpump_optimizer/config_flow.py",
-   "pattern": "\\b(CONF_[A-Z0-9_]+_ENTITY)\\b",
+   "pattern": "CONF_[A-Z0-9_]+_ENTITY",
    "binary": true
   },
   {
@@ -249,13 +253,13 @@
    "axis": "tank_volume",
    "kind": null,
    "no_read": "a continuous option with no tracked levels: its flow row's minimum, default and maximum, once D12's brief declares them as the levels",
-   "builder": "R10-DIMENSIONS-FULL-COVERAGE"
+   "builder": "R11-INTAKE-R10-RESIDUE"
   },
   {
    "axis": "house_size",
    "kind": null,
    "no_read": "a continuous option with no tracked levels: the heated area and heat-loss rows' minimum, default and maximum, once D12's brief declares them as the levels",
-   "builder": "R10-DIMENSIONS-FULL-COVERAGE"
+   "builder": "R11-INTAKE-R10-RESIDUE"
   }
  ],
  "objects": {

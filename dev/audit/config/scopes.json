@@ -3,7 +3,7 @@
  "_pkg": "custom_components/heatpump_optimizer",
  "_coverage_excluded": {
   "_rule": "Tracked paths no dimension measures, each with its reason; check_scopes.py refuses a path in no universe and not here, an entry here that also names a covered path, and an entry that names nothing.",
-  "dev/audit/rounds/**": "evidence records of past rounds (reports, verdicts, the harnesses findings ran): a finding re-measures one by its own harness, and a seat audits the mechanism, not the records it left (D11.md)",
+  "dev/audit/{rounds,yardstick}/**": "evidence records of past rounds (reports, verdicts, the harnesses findings ran) and each round's objective record and start evaluation, which check_scopes.py --round reads: a finding re-measures one by its own harness, and a seat audits the mechanism, not the records it left (D11.md)",
   "dev/archive/**": "retired records and carries kept for history; no seat acts on them",
   "dev/programme/{delivery,register,round9,round10,triage}/**": "delivery rows, the register, round notes and triage records: records of decisions the mechanism already made",
   "docs/design/**": "dated design records of shipped features; the user docs D5 and D6 measure are what describes them now",
