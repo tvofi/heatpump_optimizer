@@ -1,3 +1,36 @@
+R10-USER-DOCS-VERIFY, carry 17, second pass: the user docs re-read against round 10's last product heads, on a stacked base (the owner's ruling of 2026-11-14), and corrected where a sentence is stale. Every verdict below rests on executable code at the named head, never a comment, a docstring or a pull request body (owner rule of 2026-11-13). The first pass (the merges up to e23124ff6e) follows under "First pass", unchanged.
+
+Pages re-read: README.md, docs/setup.md, docs/configuration.md, docs/how-it-works.md, docs/automations.md, docs/dashboard-card.md, docs/ecl110.md, re-measured at this branch's merge base with origin/main, 0f37833e21 (`git merge-base origin/main HEAD`).
+
+Outside this pass: r10-sav-valuation-residue-p3 (the combi hot-water tile, which may edit docs/dashboard-card.md itself) and r10-sav-valuation-residue-p4 (the thermostat reference behind a throttling valve). A short second pass covers them.
+
+Two instruments ran over every head, besides reading each diff (`git diff $(git merge-base origin/main <head>)...<head> -- custom_components/ docs/ README.md`):
+- card phrases: every `*...*`, `"..."` and `“...”` phrase of docs/dashboard-card.md and README.md that occurs in the card's JavaScript at origin/main, re-looked-up in each card-touching head (3481, 3556, 3563, 3574, 3576, 3580): none is gone at any head.
+- config-flow phrases: every bold, italic or quoted phrase and table first cell of the seven pages that occurs in strings.json at origin/main, re-looked-up in each strings-touching head (3481, 3532, 3561, 3562, 3564, 3567, 3576, 3580, 3581): gone only "The learned offset is capped at 15 °C" (3564) and "Buffer Tank Temperature (Model)" (3567). Both rows below.
+
+| PR (head read) | what it changes for a user | pages, sentence changed: old → new, and the code that decides |
+|---|---|---|
+| 3532 fd5fe52fa7 (stacked) | the arbiter splits a both step by the duty-switch learner's latches: space first where only hot water to heating stops the compressor, and a short second share merged onto the first duty | docs/configuration.md Pump duty control, both-step bullet: "hot water first, for the step's hot-water power ... then heating for the rest" → hot water first unless the switch from hot water to heating has been learned to stop the compressor and the other has not, then heating first; a second share under 5 minutes plus the median off time stays with the first duty when the next step serves the second. Decided by `duty_legs.leg_rule` (`first = "space" if stop_probability[0] > 0 and not stop_probability[1] > 0`), `duty_legs.both_step_legs` (the `extra` merge on `next_duty in (second, "both")`), served by `pump_arbiter._share` through `duty_switch.both_step_duty`. The duty table's Both row likewise. Its own restore-paragraph hunk is left to it. |
+| 3562 ced9b23358 (stacked) | a space boost or Boost mode writes the set-point entity's own maximum (up to 70 °C) | docs/configuration.md "Space-heating set-point entity" row: "Written only with Pump duty control at Control, and then with the plan's own number (see below)" → adds "or during a space boost or Boost mode on a flow or return set-point the entity's own maximum". Decided by `pump_arbiter._boost_ceiling_c`. Its own flow-ceiling row and boost bullet hunks are left to it. |
+| 3556 fe11888ad6 (stacked) | a learner held by a boost, an open window or an unusable input shows *paused*, with the boost's end; the boost's settle tail scales with the boosted time | docs/dashboard-card.md, What the model has learned: Solar gain "with "Learning: 6 of about 30 samples"" (shown only when no phase is published, which `learner_progress_view` always publishes) → "with where its learning stands"; added the phase sentence (waiting, counting with days, settling, paused: after a space boost until a named time, 12 hours after a full two-hour boost, less after a shorter one; while Boost mode is selected; on an open window or unusable input until usable). Decided by `learner_progress.pauses`, `learner_progress.learner_progress`, `boost.learning_freeze`, `boost.settle_tail`, `BoostState.freeze_end` and the card's `learnerPhase`. |
+| 3561 ebc8483673 | the restored baseline after an upgrade is the hold value, and the set-point is written from the first pass | its own docs/configuration.md hunk covers it (also carried by 3532); nothing else stale: the config-flow phrase lookup reads none gone. |
+| 3574 97478d9785 | the savings baseline behind a valve is booked as simulated; `REFERENCE_BASIS` 1 → 2, so every month booked before the update states no saving | docs/dashboard-card.md savings table: added that a month booked wholly or in part against an earlier baseline keeps its two columns, states no saving and is badged *old basis*. True at main too (`old_basis = self.meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS` in `MonthlyLedger.savings_months`; badge `savings.old_basis`), so no stack. docs/automations.md's `saving_old_basis` stays true. |
+| 3564 d6a7b00bba | strings only: config-flow descriptions corrected to the code | Corrected where a page repeats the old fact and the code agrees with the new string: docs/configuration.md flow-lift row "**The learned offset is capped at 15 °C**" → lowers the supply at most 15 K below the curve, raises it at most to a 75 °C supply, a reading above 75 °C not learned (`FlowCurveBias.observe`: `np.clip(blended, -FLOW_BIAS_CLAMP_K, max(FLOW_SUPPLY_MAX_C - curve_supply, 0.0))`, `measured_supply > FLOW_SUPPLY_MAX_C` returns); wood tank rows in docs/configuration.md (both sections) and docs/setup.md "Both are needed ... one alone is read conservatively" → the top alone reads 5 °C colder, the bottom alone gives no estimate (`external_heat.wood_mean_temperature`); Fixed transfer fee row "on top of any rules" → ignored while the fee mode is None (`GridFeeSchedule.from_config`, `if mode != MODE_NONE`); docs/how-it-works.md "the planned start count is published" → not published on any entity (no entity platform reads the plan's `compressor_starts`; configuration.md already said so). Read against code too, each a page repeating a fact the strings corrected: docs/setup.md quick setup "then the heat pump's entities are read automatically" → a page to pick the device and check its settings, empty to skip (`ConfigFlow.async_step_quick_setup` returns `async_step_device_prefill`, whose empty pick returns `async_step_finish_setup`); "Target indoor temperature" rows "The optimizer aims here" → the thermostat's temperature, the plan aiming at the comfort temperatures (`comfort_targets` from `get_comfort_temp`, the pull `room_t - comfort_targets`); setup.md "The gap between the target and the minimum" → the comfort temperatures (`comfort_band = np.maximum(comfort_targets - temp_min_bounds, 1.0)`); solar radiation sensor row "Lets the plan skip heating before a sunny afternoon" → the current reading the learners read, the forecast supplying the horizon (`reader.read(CONF_SOLAR_RADIATION_ENTITY)` sets `state.solar_radiation` only); "Upper floor heating" row "This sets how far ahead heat can usefully be shifted" → used only on a two-zone derivation (`presets.py` reads `upper_emitter` only under `preset.two_zone`; `heating_response_hours` is popped by `config_flow` and `quick_setup.derive`); house thermal mass row → the heavy floor is in the house mass on a one-zone radiator house (`if not preset.two_zone and preset.lower_emitter != EMITTER_FLOOR: house_mass += slow_mass`); pre-fill device row "A device the integration has no table for is refused" → name matching fills what no table maps (`device_prefill.resolve_with_fallback`); energy meter row "more accurate than adding up power readings" → its two readers (`observe_counters`' `elec_kwh`, the Measured Power sensor's `energy_meter`); Swedish DSO tariff row → also sets the fee mode to rules and switches the peak tariff on (`grid_fee.apply_catalog`); "Highest tank temperature to charge to" rows: a disinfection cycle goes above it (`dhw_hard_max_temp` from `dhw_cycle_temp = max(setpoint, disinfection)`). The "After saving" row is true (`config_flow` pops `CONF_AFTER_SAVE` and saves on either choice). |
+| 3481 9a543f44d6 | the what-if money line is a steady-state estimate; price-tile solves per tile | its own hunks in docs/configuration.md, docs/dashboard-card.md and docs/how-it-works.md; the other what-if sentences (configuration.md `simulate_plan`, dashboard-card.md "Each answer is a real optimization solve", "Simulate these slots prices the draft against the plan currently in force") stay true: `handle_simulate_plan` still calls `coord.async_simulate(overrides, steady=True)`, a solve. Nothing stale. |
+| 3569 57ee4591d0 | `Direction.decay` holds `n` at `N_CAP` | no page states the cap; nothing stale. |
+| 3581 2c121b9e14 | a repair notice when the disinfection temperature falls between the hot-water set-point's steps | its own README row. It showed docs/configuration.md's disinfection bullet stale at main already: "on the entity's step rounded up" → "at or below that temperature, never above 70 °C or the entity's maximum: on a 5 °C step a 62 °C cycle writes 60 °C" (`thermal_model.dhw_step_target_c`: `grid.bounded(value, hi=params.dhw_hard_max_temp)`, `dhw_hard_max_temp = min(70.0, cycle temperature)`; driven: 60.0, where rounding up gives 65.0). True without 3581's code, so no stack. |
+| 3563 16bed63da7 | card text and the Health pictures | card-phrase lookup: none gone; the Health alt text is 3580's hunk. Nothing stale. |
+| 3567 ffd4304c00 | strings and README text | its own README hunks (the Buffer Tank Temperature rename). Left to it. |
+| 3576 8317d9e1b2 | away hot water, free disinfection, circulation pump text | its own docs hunks. Left to it. |
+| 3580 ec9645014c | config, card and setup text | its own docs hunks (entry name, away legionella, circulation pump, solar production, open window, main fuse, savings note, Health alt). Left to it. |
+| #3531 7aac3e7c04 (merged on main after the first pass's base) | the pump's start hysteresis options and notice | its own docs/configuration.md and README hunks; nothing else stale. |
+
+The stacked heads bring their own code and one RELEASE_NOTES.md body paragraph (3561's upgrade note, via 3532); no heading, VERSION or manifest line moves (`git diff origin/main HEAD -- VERSION custom_components/heatpump_optimizer/manifest.json` is empty).
+
+`tests/doc_claims.py` `check_late_delta_claims` pins the five corrections whose fact is a single symbol's answer, by driving it: `dhw_step_target_c` on a 5 °C `SetpointGrid`, `wood_mean_temperature` with one probe, `FLOW_BIAS_CLAMP_K` and `FLOW_SUPPLY_MAX_C`, `duty_legs.leg_rule` with only hot water to heating stopping, and `GridFeeSchedule.from_config` with no fee mode; each sentence must state the driven value, and each check is run against its pre-fix sentence as null control.
+
+## First pass
+
 R10-USER-DOCS-VERIFY, the late user-docs delta (carry 17). Pull request 3513 merged at 83e4e83d77 from base f44e761c19 (`git merge-base 83e4e83d77^1 83e4e83d77^2`); its own step commits are all on main (`git merge-base --is-ancestor 3246aa389f origin/main`), so what main lacks is only what the product merges after that base changed. Enumerated by `for c in $(git rev-list --first-parent f44e761c19..origin/main); do git diff --name-only $c^1 $c -- custom_components blueprints docs README.md; done`: #3524, #3530, #3534, #3441, #3505, #3536, #3512, #3526, #3511 (#3461 is before the base).
 
 Disposition per merge, each read against code, never a comment:
@@ -52,9 +85,21 @@ Not re-derived by the round-1 review, re-stated rather than re-measured this rou
 
 ## Head
 
-b4617aa63635c2269f1d12d1df242839dd11fce7, on origin/main e23124ff6e45bac1d48b4a775dad555a37965355 (merge base; main had not moved at 2026-11-13 21:01 UTC).
+254f0ed03e62af64f05eb5bbe56e4857207ac15d, on origin/main a77d71fb755f231934e5e59ce1c38c51f86b6439 (main's tip at 2026-11-14 10:22 UTC; `git merge-tree --write-tree origin/main HEAD` reports no conflict). Stacked heads, one merge commit each: 3532 fd5fe52fa788805433e1f1fe36b1824e0943838e, 3562 ced9b233580709f530d5dc402dc12344697fef87, 3556 fe11888ad6b48248728b74bc7a882e4039f4f90e. This pull request merges only after those three.
 
 ## Mutation proof
+
+No production line changed. Second pass: `tests/doc_claims.py` run with each deciding symbol mutated in place, then restored (FAIL lines only):
+
+- `external_heat.wood_mean_temperature` returning `top - 3.0`: rc=1, `FAIL docs/configuration.md wood: the sentence states what the code decides`, `FAIL docs/setup.md wood tank bottom sensor: one-probe readings as the code decides`.
+- `dhw_step_target_c` calling `grid.bounded(float(value), rounding='up')`: rc=1, `FAIL docs/configuration.md cycle: the sentence states what the code decides` (driven write 65.0).
+- `FLOW_BIAS_CLAMP_K = 10.0`: rc=1, `FAIL docs/configuration.md bias: ...`.
+- `duty_legs.leg_rule` with `first = "dhw"`: rc=1, `FAIL docs/configuration.md split: ...`.
+- `GridFeeSchedule.from_config` reading the fixed fee with mode None (`if True:`): rc=1, `FAIL docs/configuration.md fee: ...`.
+- all restored: rc=0, ALL 368 checks PASSED; `git status --short custom_components` empty.
+
+First pass, at b4617aa636:
+
 
 No production line changed. The new detector `tests/doc_claims.py` `check_duty_switch_claims` was run with each pre-fix sentence put back and with each code fact mutated, then restored (output kept to its FAIL lines):
 
@@ -65,38 +110,47 @@ No production line changed. The new detector `tests/doc_claims.py` `check_duty_s
 - mutant `supply_hold._ends_soon` returning `not tank_reason(inp)`: rc=1, `FAIL supply_hold._ends_soon holds a cold-tank start on a space step and passes it on a hot-water step ... [space=False dhw=False]`.
 - all restored: rc=0, ALL 356 checks PASSED.
 
+
 ## Null control
+
+Second pass: each of the five `check_late_delta_claims` checks is run in the same pass against its own pre-fix sentence verbatim (`_LATE_DELTA_BAD`) and refuses it (five `ok ... refuses the pre-fix sentence (null control)` lines). The card-phrase and config-flow-phrase lookups each matched a non-empty set at origin/main (the lookup's own null control: an empty match set would read "none gone" for every head); the drop each reports is the set difference against origin/main.
+
+First pass:
+
 
 `git grep -c -E "less than 10 minutes after it came on|A switch that stops the compressor is priced|The mode goes first when the pump is switched on|duty_switch_\*|min\(a, b\) / p_max" <ref> -- README.md docs/configuration.md docs/how-it-works.md`: at e23124ff6e it prints nothing; at b4617aa636 it prints `README.md:1`, `docs/configuration.md:3`, `docs/how-it-works.md:1`. With the added how-it-works paragraph cut out of the head's page, the same pattern counts 0 there.
 
 For the two corrected sentences the control is the detector above: green at the head, red with either pre-fix sentence put back.
 
+
 ## Figures
 
-- `python3 tests/doc_claims.py` at b4617aa636: ALL 356 checks PASSED, rc 0 (round 1: 348; the 8 added are `check_duty_switch_claims`).
+- `python3 tests/doc_claims.py` at 254f0ed03e: ALL 368 checks PASSED, rc 0 (first pass: 356; the 12 added are `check_late_delta_claims`).
 - `python3 tests/doc_claims.py --markers --user`: `0 user-doc marker(s), 0 due`.
-- `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` at the head: rc 0, claims.json and claims.md unchanged by the run.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`; each of `scope.run`'s scripts run locally with `PYTHONPATH=tests/hastub`:
-  - tests/doc_claims.py: rc 0, ALL 356 checks PASSED
-  - tests/entities.py: rc 0, ALL 2711 ENTITY CHECKS PASSED
+- Gate scope of this pass's own two commits, `python3 tests/closure.py select --diff 69afda819f --workdir "$D"` (69afda819f, the last stacked merge) at 254f0ed03e: `MODE: SCOPED`, scope.run naming tests/doc_claims.py, tests/entities.py, tests/harness_headers.py, tests/md_tables.mjs; each run locally with `PYTHONPATH=tests/hastub`:
+  - tests/doc_claims.py: rc 0, ALL 368 checks PASSED
+  - tests/entities.py: rc 0, ALL 2713 ENTITY CHECKS PASSED
   - tests/harness_headers.py: rc 0, ALL 115 HARNESS HEADER CHECKS PASSED
-  - tests/plan_view.py: rc 0, plan reason codes, price provenance and slot energy OK
   - tests/md_tables.mjs: rc 0, doc_misrendered_lines=0
-  - tests/card_drift.mjs: rc 0, identical in all 45 states
-<!-- figure-block: scope-line mb=e23124ff6e45bac1d48b4a775dad555a37965355 head=b4617aa63635c2269f1d12d1df242839dd11fce7 -->
+- The branch-wide scope (`--diff $(git merge-base origin/main HEAD)`) also selects the code suite, reached only through the three stacked product heads' own code, which their own pull requests' CI proves; this pass's diff is docs and `tests/doc_claims.py` only and cannot reach it, so it was not re-run here.
+<!-- figure-block: scope-line mb=0f37833e2194739b431656a70c652b0679c8fa58 head=254f0ed03e62af64f05eb5bbe56e4857207ac15d -->
 ~~~text
-MODE: SCOPED -- 6 script(s) run, 27 scoped out.
+MODE: SCOPED -- 30 script(s) run, 3 scoped out.
 ~~~
 <!-- /figure-block -->
 
 ## Red checks
 
-none: no pull request exists, so no check has run on this branch. Carry: dismissed: no red check to answer
+- `arch-score / arch-score`: red on 9e02464877, a commit of pull request 3562's branch, which this branch carries only through the stacked merge of 3562's head; not this pass's change and not in the owed set `merge_train.py owed-reds` prints. Its answer is 3562's, in that pull request. Cheaper detector for this branch: none owed, the commit is not this group's. Carry: dismissed: owned by pull request 3562
+- `tests / fast (3.14)`: red on 04f8ab9fba and 9e02464877 (3562's branch), 30b069508f and a02783d44d (3532's branch), 0165e02aad (3556's branch); every one reaches this branch only through a stacked head, none is a commit of this pull request's own (`git merge-base --is-ancestor <sha> pr/<n>`). Answered by those pull requests at their own heads, whose own checks the train reads. Carry: dismissed: owned by pull requests 3532, 3556 and 3562
+- `tests / mutation`: red on 49afbe9d01, a02783d44d, 6c5fc42f5e and 56eb07ae2a (3532's branch) and 9e02464877 (3562's branch), likewise only through the stacked heads. Carry: dismissed: owned by pull requests 3532 and 3562
+
+This pull request's own commits (6295f868a4, 7312f605ee, 3fa750ea38 and this pass's) carry none of the three; the enumerator is the `red-history` record `policy_lint.mjs --pr-body` prints over `git rev-list $(git merge-base origin/main HEAD)..HEAD`, each red sha mapped to its branch by `git merge-base --is-ancestor`.
 
 ## Forward-carry
 
-none: both defects were in this group's own sentences and are corrected here. Carry: dismissed: nothing changes a later stage
+none: every lead this pass found is corrected here, in this group's own pages. Carry: dismissed: nothing changes a later stage
 
 ## Friction
 
