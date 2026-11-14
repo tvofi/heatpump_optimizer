@@ -92541,5 +92541,32 @@ R.check(
     f"{_hsr_own.round(3).tolist()}",
 )
 
+# The start term's closure: nothing at zero cost and on a descent (no operand
+# is added), cycling_cost x the count otherwise, a float or one entry per row.
+_hsr_term = _hsr_om._start_cost_fn(_hsr_opt(0.25, False, 1.1), False)
+R.check(
+    "the start term is no operand at zero cost or on a descent, and "
+    "cycling_cost x the start count otherwise, scalar and batch",
+    _hsr_om._start_cost_fn(_hsr_opt(0.0, False, 1.1), False)(_hsr_trickle, None) is None
+    and _hsr_term(_hsr_trickle, _hsr_om._RELAXED) is None
+    and _hsr_term(_hsr_trickle, _hsr_om._UNPRICED) is None
+    and _hsr_term(_hsr_trickle, None) == 0.25 * _hsr_count(_hsr_trickle, 1.1)
+    and _hsr_term(np.stack([_hsr_trickle, _hsr_real]), None).tolist()
+    == [0.25 * _hsr_count(_hsr_trickle, 1.1), 0.25 * _hsr_count(_hsr_real, 1.1)]
+    and _hsr_om._start_cost_fn(_hsr_opt(0.25, False, 1.1), True)(_hsr_real, None)
+    == 0.25 * _hsr_count(_hsr_real, 1.1, True),
+)
+# The humidity guard the two SolveInputs sites share.
+from heatpump_optimizer.coordinator import _humidity_with_data as _hsr_humidity  # noqa: E402
+
+_hsr_rh = np.array([np.nan, 55.0, np.nan])
+R.check(
+    "a solve is handed its humidity series only when it carries data: the very "
+    "array with one finite value, None when empty or all unknown",
+    _hsr_humidity(_hsr_rh) is _hsr_rh
+    and _hsr_humidity(np.array([], dtype=float)) is None
+    and _hsr_humidity(np.full(4, np.nan)) is None,
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
