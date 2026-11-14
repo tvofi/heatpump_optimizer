@@ -1,0 +1,37 @@
+IDENTICAL branch-delta tools/audit/seat/cloud_dispatch.py
+IDENTICAL main-delta tools/audit/seat/cloud_dispatch.py
+IDENTICAL branch-delta tests/entities.py
+IDENTICAL main-delta tests/entities.py
+IDENTICAL branch-delta tools/audit/seat/instruments/cloud_dispatch.py.md
+IDENTICAL main-delta tools/audit/seat/instruments/cloud_dispatch.py.md
+-- PR patch vs main, old head against new head, every file:
+IDENTICAL CLAUDE.md
+IDENTICAL dev/governance/config/corpus_excluded.json
+IDENTICAL dev/governance/config/policy_budgets.json
+IDENTICAL dev/governance/decisions/0015-the-architects-plan-seam-grouping-and-standing-seats.md
+IDENTICAL dev/governance/roles/design-review.md
+IDENTICAL dev/governance/roles/designer.md
+IDENTICAL dev/governance/roles/fixer.md
+IDENTICAL dev/governance/roles/orchestrator.md
+IDENTICAL dev/governance/roles/proposal-triage.md
+IDENTICAL dev/governance/roles/standing-dispatch.md
+IDENTICAL dev/governance/roles/standing-merge.md
+IDENTICAL dev/governance/roles/standing-roster.md
+IDENTICAL dev/governance/roles/standing-tick.md
+IDENTICAL dev/governance/roles/standing.md
+IDENTICAL dev/programme/delivery/3464.md
+IDENTICAL tests/closures.json
+IDENTICAL tests/entities.py
+IDENTICAL tools/audit/seat/INSTRUMENTS.md
+IDENTICAL tools/audit/seat/cloud_dispatch.py
+IDENTICAL tools/audit/seat/instruments/cloud_dispatch.py.md
+IDENTICAL tools/audit/seat/instruments/roster_queue.py.md
+IDENTICAL tools/audit/seat/ledger.py
+IDENTICAL tools/audit/seat/pulse.py
+IDENTICAL tools/audit/seat/sweep_render.py
+IDENTICAL tools/audit/seat/sweep_template.md
+-- files in new PR diff not in old:
+-- M tree == D tree:
+SAME-TREE
+-- auto-merge of 20c79e83a with 61afd4f2 equals H tree:
+SAME-TREE

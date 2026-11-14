@@ -1,9 +1,28 @@
-## baseline
-cloud_dispatch self-test: 169 checks, 0 failed
-## M1: drop verdict= from args (designer verdict pin)
-  FAIL a designer's text pins the revise verdict's own commit and first line
-cloud_dispatch self-test: 169 checks, 1 failed
-## M2: drop pline from brief (main's part line)
-  FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9
-  FAIL --part 1 keeps the group's own topic and names carries 0-4
-cloud_dispatch self-test: 169 checks, 2 failed
+RESULT MUTANT NULL-pulse SURVIVED at f0f6b47f2c8f rc=0: pulse self-test: 60 checks, 0 failed
+RESULT MUTANT P1 KILLED at f0f6b47f2c8f rc=1: FAIL every standing seat pulse judges is a tracked contract, and every contract a seat || FAIL --seat-queue refuses the retired seat tick, a beat row now
+RESULT MUTANT P2 KILLED at f0f6b47f2c8f rc=1: FAIL every standing seat pulse judges is a tracked contract, and every contract a seat || FAIL --seat-queue refuses the retired seat roster, a beat row now
+RESULT MUTANT P3-rev KILLED at f0f6b47f2c8f rc=1: FAIL every standing seat pulse judges is a tracked contract, and every contract a seat
+RESULT MUTANT P4-rev KILLED at f0f6b47f2c8f rc=1: FAIL --seat-queue refuses the retired seat tick, a beat row now || FAIL --seat-queue refuses the retired seat roster, a beat row now
+RESULT MUTANT NULL-sweep-asis SURVIVED at f0f6b47f2c8f rc=0: sweep_render self-test: 35 checks, 0 failed
+RESULT MUTANT NULL-sweep-mainfix KILLED at f0f6b47f2c8f rc=1: FAIL the tracked template renders from a complete overlay, every placeholder filled (null control)
+RESULT MUTANT S1-mainfix KILLED at f0f6b47f2c8f rc=1: FAIL the tracked template renders from a complete overlay, every placeholder filled (null control)
+RESULT MUTANT NULL-cloud SURVIVED at f0f6b47f2c8f rc=0: cloud_dispatch self-test: 169 checks, 0 failed
+RESULT MUTANT C1 KILLED at f0f6b47f2c8f rc=1: FAIL a designer's text names no design-verdict ref while none exists (null control) || FAIL a designer's text pins the revise verdict's own commit and first line
+RESULT MUTANT C2 KILLED at f0f6b47f2c8f rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
+RESULT MUTANT C3 KILLED at f0f6b47f2c8f rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
+RESULT MUTANT C4-rev SURVIVED at f0f6b47f2c8f rc=0: cloud_dispatch self-test: 169 checks, 0 failed
+RESULT MUTANT C5-rev KILLED at f0f6b47f2c8f rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
+RESULT MUTANT NULL-entities SURVIVED at f0f6b47f2c8f rc=0: ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
+RESULT MUTANT E1 KILLED at f0f6b47f2c8f rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:## Recycle']]
+RESULT MUTANT E2 KILLED at f0f6b47f2c8f rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:mutation-autofix', 'b:closures-autofix', 'b:claims-autofix']]
+RESULT MUTANT E3 KILLED at f0f6b47f2c8f rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['b:claims-autofix']]
+RESULT MUTANT E4 KILLED at f0f6b47f2c8f rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['c:fixer.md:BOOTSTRAP', 'c:fixer.md:0013']]
+RESULT MUTANT E5 KILLED at f0f6b47f2c8f rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['a:proposal-triage.md']]
+RESULT MUTANT E6 KILLED at f0f6b47f2c8f rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['a:standing-merge.md']]
+RESULT MUTANT E7-rev KILLED at f0f6b47f2c8f rc=1: FAIL the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013  [missing: ['a:standing-tick.md']]
+RESULT MUTANT E8-rev SURVIVED at f0f6b47f2c8f rc=0: ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
+RESULT MUTANT E9-rev SURVIVED at f0f6b47f2c8f rc=0: ok   the standing seats' shared terms are written once in standing.md, cited by each standing contract, and fixer.md carries the BOOTSTRAP remedy and decision 0013
+RESULT MUTANT D1-rev-merge-drops-verdict KILLED at f0f6b47f2c8f rc=1: FAIL a designer's text pins the revise verdict's own commit and first line
+RESULT MUTANT D2-rev-merge-drops-partline KILLED at f0f6b47f2c8f rc=1: FAIL --part 2 renders the topic <topic>-p2 and one generated line naming carries 5-9 || FAIL --part 1 keeps the group's own topic and names carries 0-4
+driver rc=0
+RESULT MUTANT S1-asis KILLED at f0f6b47f2c8f rc=1: FAIL the tick seat is retired: no tick_alive, tick_brief or tick_stale_min placeholder, declared or rendered

@@ -1,0 +1,18 @@
+file                                           lines cap  ~tokens  cap always
+tools/audit/briefs/orchestrator.md               294  295     4246  4251 
+dev/governance/roles/architect-planner.md         85   85     1261  1261 
+dev/governance/roles/designer.md                  60   60      877   878 
+dev/governance/roles/design-review.md             52   53      778   778 
+dev/governance/roles/standing.md                  50   50      553   553 
+dev/governance/roles/standing-merge.md            37   37      506   507 
+dev/governance/roles/proposal-triage.md           36   36      489   489 
+dev/governance/roles/standing-dispatch.md         33   39      483   509 
+dev/governance/roles/plan-review.md               24   24      304   304 
+dev/governance/roles/standing-roster.md            7    7       92    92 
+dev/governance/roles/standing-tick.md              6    6       83    83 
+always-loaded: ~3600 tokens, cap 3349 +band 500 = 3849
+corpus:        ~68699 tokens, cap 68618 +band 500 = 69118
+role fixer     ~6260 tokens, cap 5852 +band 500 = 6352
+role record    ~7423 tokens, cap 7405 +band 500 = 7905
+role policy    ~9994 tokens, cap 9958 +band 500 = 10458
+rc=0
