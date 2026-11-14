@@ -1,32 +1,44 @@
-Fix review: blocked a07c37b273744ade8cc2c48d07d4a79c58365196 class-open: OffStepNotice's predicate reads an entity range cap as a step gap: max 60 under a 65 disinfection temperature raises the off-step notice and suppresses the unreachable notice's correct hardware advice
+Fix review: blocked d713ca529a8803eae031184d7f34f49ea5085fa3 equivalence-refuted: the survivor_triage row's `above_c >= target` to `>` mutant is not equivalent; set_thermal_parameters admits a 71-75 disinfection temperature, where the head raises an off-step notice reading "below 75, above 75" for a 70 C hard-cap shortfall and the mutant raises none
 
-bus-nonce: 591f84c2ebf5735b319c586e140c7663
+bus-nonce: 71da675d8fa743db8b13fbf27b145482
 
 ## Block
 
-`OffStepNotice.check` raises when `cycle_write(...).written_c < target - margin`. That predicate does not test what the notice says it tests, the step. `written_c` is `dhw_step_target_c`, and `SetpointGrid.bounded` also clamps it to the entity's own maximum (`high_c`). `below_c` and `above_c` are clamped the same way. So on a hot-water set-point entity whose `max` is under the disinfection temperature, the notice fires on any step, including 1 and 0.5. This setup is common: many pumps cap the hot-water set-point at 55-60 °C and leave the last degrees to an immersion heater. The notice then tells the user the temperature is "between the hot water set-point's steps", that "no immersion heater is needed", and to pick 60 °C "to keep disinfecting at least as hot as you chose" (above = below = 60, under the chosen 65). It also clears `dhw_legionella_unreachable` and keeps it down. That notice's immersion-heater advice is the correct remedy here.
+Scope: delta `git diff 12a6617f07eee3a0b909de458020fac4df611858 d713ca529a8803eae031184d7f34f49ea5085fa3`, one file: `tests/mutation_ledger/survivor_triage/legionella.py/OffStepNotice.check.CMP_BOUND.03f00051.json`, verdict `equivalent`. The dispatch names the prior verdict `Fix review: merge 12a6617f07` (on probe/rev-3581-ce1f9506). The packet's scope line reads `full` only because verdict/3581 does not carry that verdict yet. The merge d713ca52 merges 4328fc4245 into its own parent 12a6617f07, so main contributes nothing.
 
-Measured with `tests/guard_pins.py`'s own `_step_notice` and stub hass (ev/probe.py, ev/probe2.py, output in ev/probe_entity_max.txt):
-- head: entity `{"min":30,"max":60,"step":1}`, everyday 55, disinfection 65, both credit rules: notice raised, `written 60, step 1, below 60, above 60`. The same happens at step 5 and at step 0.5 (everyday 50).
-- head, after one observe pass and then `raise_unreachable_issue(60, 65)`: standing = `dhw_legionella_above_setpoint`, `dhw_legionella_off_step`. The unreachable notice is suppressed.
-- base 50373173d4, same probe: standing = `dhw_legionella_above_setpoint`, `dhw_legionella_unreachable`.
-- control: the same config with entity `max` 80, step 1: no notice under either rule. The trigger is the range cap alone.
+The row's argument assumes `dhw_legionella_temp <= 70`, taken from config_flow's 55-70 slider. That bound is not the domain. `services.py:502-503` (`set_thermal_parameters`) accepts `dhw_legionella_temperature` in `vol.Range(min=55, max=75)`. `coordinator._THERMAL_PARAM_CONVERSIONS` passes it to `ThermalParameters.dhw_legionella_temp` as a `float` and clamps nothing.
 
-This is a regression from base on a realistic configuration. The slider and harness grids never reach it, because every row uses a 30-80 °C entity. The body names no enumeration over the entity's range (fixer.md step 8). The notice's domain should be the step gap only. One way to do that: raise only when the on-step value above the target is itself writable (`above_c >= target`, or the `hi` clamp did not bind). That would leave a range-capped write to the unreachable notice. Pin it with an entity-max row and its null.
+For any target T in (70, 75]:
+- `dhw_hard_max_temp` = min(70, cycle) = 70 < T, so `written_c` = 70.
+- On an entity whose range reaches T and whose step holds T, `above_c == T`.
+- So `written_c < T - margin` holds, and `above_c >= T` holds while `above_c > T` does not. The arms differ on reachable input.
 
-## Findings
+Probe: `ev/probe_75.py`, using guard_pins' own `_step_notice` driver; entity min 30, max 80, steps 1, 5 and 0.5.
+- Head (`ev/probe_75_head.txt`) raises `dhw_legionella_off_step` on, for example, everyday 55, disinfection 75, step 5: `{'legionella_temp': '75', 'written': '70', 'step': '5', 'below': '75', 'above': '75'}`.
+- Mutant (`ev/probe_75_mutant.txt`) raises nothing there. The two differ on 10 of 18 rows (`ev/probe_75_diff.txt`).
+- `tests/guard_pins.py` under the mutant: `ALL 84 GUARD PIN CHECKS PASSED`, rc=0 (`ev/guard_pins_mutant.txt`). Nothing pins the gap.
 
-- Surviving mutant, already disclosed in the body: in `pump_arbiter.cycle_write`, dropping `rounding="down"` from `below_c` (nearest) leaves `ALL 79 GUARD PIN CHECKS PASSED` (ev/mutants.txt). The `{below}` placeholder for a target nearer the upper step, such as 63 on step 5 (would read 65 rather than 60), has no pin. Pin it with a row whose nearest step is above the target, alongside the range-cap repair. Carry: R10-DISINFECTION-STEP-NOTICE
+The head's behaviour on these rows is also the PR's own defect class. The `OffStepNotice` docstring says "where ... no step is the remedy ... the unreachable notice's advice stands". Here the shortfall is the 70 C hard cap, not a rounding gap. Yet the head raises the off-step notice, which clears `dhw_legionella_unreachable` and tells the user to pick 75 from two on-step choices that are both 75, the temperature they already chose. This is the 70 C counterpart of the range-cap block at a07c37b273 (verdict/3581, 65d48606).
+
+A sound repair would do one of these, then pin a row with a target above 70 so the gate kills this mutant:
+- make the gate also require that the step above is at or below the hard maximum, e.g. `above_c <= params.dhw_hard_max_temp`; or
+- bring the service range into line with the 70 C hard maximum (`services.py` max 75 to 70), as a separately justified change.
+
+The PR body's `## Unpinned sites` and `## Mutation proof` repeat the same `<= 70` premise. They need re-wording with the repair, along with the `range_gate_above_minus_margin` survivor's equivalence argument, which rests on the same bound.
 
 ## Evidence
 
-- Round: first, full review, of the handoff before its pull request. There is no review packet, no PR and no CI to read. `merge_train.py owed-reds` prints the required set (ev/owed_reds.txt), but no check has run on this head, so no red is owed an answer. The body's `tests / closures` note about the weekend clock (PR 3578) is not this branch's red and is not judged here.
-- Head: a07c37b273744ade8cc2c48d07d4a79c58365196, measured in a detached worktree (ev/HEAD.txt). It matches the body's `## Head`.
-- `git diff $(merge-base)...origin/main -- dev/governance/roles/`: empty. The contract is current.
-- `git merge-tree --write-tree origin/main a07c37b273`: rc 0, tree 0713a5ffba. It merges cleanly with origin/main 8af37bdf44.
-- RESULT `PYTHONPATH=tests/hastub python3 tests/guard_pins.py` at head: ALL 79 GUARD PIN CHECKS PASSED (ev/guard_pins_head.txt). This re-derives the body's 201/436 of 1750, 34/71 of 330, the 1314 and 169 on-step nulls and the other nulls, since each count is asserted by a passing check.
-- RESULT `python3 tests/structure.py`: class_excess_loc 17502 <= 17502, STRUCTURE RATCHET PASSED (ev/structure.txt).
-- Mutants (ev/mutants.txt), one at a time, each restored. Killed: margins swapped in `check`; cycle predicate set to True; unreachable raised under off-step; unreachable not cleared; memo set to `if False`; `<` changed to `<=`; `above_c` rounding dropped; hard maximum dropped. Survived: `below_c` rounding dropped (see Findings).
-- Merge resolution read: `cycle_write` is re-expressed on main's `setpoint_grid`, `dhw_step_target_c` and `SetpointGrid.bounded`. Main's `_bounded`, `_grid`, `_dhw_write` and `_dhw_target` are untouched in the three-dot diff.
-- VERSION, manifest, RELEASE_NOTES.md and tests/golden: untouched (ev/version_untouched.txt is empty).
-- Not re-derived: the 1509-key translation parity; `Architecture score: dS +0.0000`; the base-vs-5c961851a2 harness `cmp`; the failing-test-first `8 of 79` at base. The block does not depend on any of them.
+- RESULT: the mutant is distinguishable on service-reachable input. Head and mutant differ on 10 of 18 probe rows, and guard_pins passes 84 of 84 under both (head: `ev/guard_pins_head.txt`).
+- `git merge-tree --write-tree origin/main d713ca52`: rc=0, no conflict (`ev/merge_tree.txt`).
+- `merge_train.py classify d713ca52 --pr 3581`: `WAIT d713ca529a8803eae031184d7f34f49ea5085fa3 pending: gate red: none` (`ev/classify.txt`). CI was not waited out because the block does not depend on it.
+- The red `tests / mutation` at 12a6617f07 is in the owed-reds set (`ev/owed_reds.txt`), and the body's `## Red checks` answers it: it names the check and a cheaper detector (prepr ci_predict / step 6d) with its standing cost. That paragraph contains two "The cheaper detector is ..." sentences, which is redundant but not contradictory. The answer is only as sound as the equivalence claim it relies on, which is refuted above.
+- Body `## Head`: 4328fc4245 is ledger only; `git diff --stat 12a6617f d713ca52` lists exactly the one row.
+- Ingress and cap: `ev/service_range.txt` (services.py 500-504) and `ev/hard_max.txt` (thermal_model.py 885-894).
+
+## Findings
+
+none
+
+## Friction
+
+- The review packet rendered `Review scope: full` because the prior merge verdict at 12a6617f07 exists only on probe/rev-3581-ce1f9506 and not on verdict/3581. I followed the dispatch's delta scope.

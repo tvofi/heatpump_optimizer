@@ -1,4 +1,1 @@
-  ok   R10-DISINFECTION-STEP-NOTICE null: an arbiter that writes nothing (observe) raises none
-  ok   R10-DISINFECTION-STEP-NOTICE null: the stock 55/60 raises none on any step
-
-ALL 79 GUARD PIN CHECKS PASSED
+ALL 84 GUARD PIN CHECKS PASSED
