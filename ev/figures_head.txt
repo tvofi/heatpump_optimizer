@@ -1,0 +1,4 @@
+STRUCTURE RATCHET PASSED
+RESULT replay reruns=1 max_attempt=2 sim_minutes=1 alarm=no
+RESULT replay wait_s=0 first=FAIL swept=yes final=PASS
+SWEEP-ARM rc 0

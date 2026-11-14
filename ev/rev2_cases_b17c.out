@@ -1,0 +1,8 @@
+RESULT G held (action_required) run at the head: got=dispatch want=dispatch posts=['repos/o/r/actions/workflows/ci.yml/dispatches']
+    why want: busy() skips r['status']=='action_required' (gate.py busy), and read_api lists it with jobs={}
+    direct: busy() on the held run as read_api lists it -> []
+Traceback (most recent call last):
+  File "/tmp/tmp.ZMGEVgCNsm/ev/rev2_cases.py", line 38, in <module>
+    busy({"run_id": R1}, [sweep.listed_at({"id": OLD - 1}, [], "2026-11-14T08:02:00Z")]))
+                          ^^^^^^^^^^^^^^^
+AttributeError: module 'sweep' has no attribute 'listed_at'

@@ -1,0 +1,6 @@
+MUTANT created_at filter dropped: sweep self-test: 108 checks, 5 failed
+MUTANT skipped clause dropped: sweep self-test: 108 checks, 1 failed
+MUTANT started tie strict: sweep self-test: 108 checks, 1 failed
+MUTANT completed tie strict: sweep self-test: 108 checks, 1 failed
+MUTANT busy leg forced True: sweep self-test: 108 checks, 16 failed
+MUTANT jobless run completed: sweep self-test: 108 checks, 1 failed
