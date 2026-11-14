@@ -1,0 +1,43 @@
+== M1-wood-top-3 rc=1
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL docs/configuration.md wood: the sentence states what the code decides  [{'cycle_write': 60.0, 'top_alone_drop': 3.0, 'bottom_alone': None, 'bias_below': 15.0, 'supply_max': 75.0, 'first_leg': 'space', 'default_first': 'dhw', 'fixed_fee_no_mode': 0.0} '| Wood tank bottom sensor | none | a sensor | With the top sensor the two are averaged for the remaining-energy estimate; the top alone is read as 5 °C colder than it shows, and the bottom alone gives no estimate. |']
+  FAIL docs/setup.md wood tank bottom sensor: one-probe readings as the code decides  [['With both, the two are averaged for the remaining-energy estimate; the top alone is read as 5 °C colder than it shows, and the bottom alone gives no estimate. ### The building questionnaire The six questions below the toggles are the same ones the full wizard asks, and a house answered here derives the identical physics as one answered there: what the house is built from, roughly when it was built, the foundation, the heated floor area (everything is scaled by this, so it is the number worth getting closest to right), and what each floor is heated by.']]
+== M2-cycle-roundup rc=1
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL docs/configuration.md cycle: the sentence states what the code decides  [{'cycle_write': 65.0, 'top_alone_drop': 5.0, 'bottom_alone': None, 'bias_below': 15.0, 'supply_max': 75.0, 'first_leg': 'space', 'default_first': 'dhw', 'fixed_fee_no_mode': 0.0} "Once it is on, a reset that is still there is written back like any other difference. - **A disinfection cycle writes its own temperature.** While the plan's step runs the anti-legionella cycle, or the integration holds the pump's disinfection switch on, the hot water set-point written is the disinf"]
+1 of 368 checks FAILED
+== M3-clamp10 rc=1
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL docs/configuration.md bias: the sentence states what the code decides  [{'cycle_write': 60.0, 'top_alone_drop': 5.0, 'bottom_alone': None, 'bias_below': 10.0, 'supply_max': 75.0, 'first_leg': 'space', 'default_first': 'dhw', 'fixed_fee_no_mode': 0.0} "| Price the supply temperature lift (no mixing valve) | off | on/off | For a plant with **no** mixing valve, where the pump feeds the emitters directly. When on, every plan and cost accounts for the pump working harder to make hotter water: the supply temperature is the model's own weather curve plu"]
+1 of 368 checks FAILED
+== M4-supplymax80 rc=1
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL docs/configuration.md bias: the sentence states what the code decides  [{'cycle_write': 60.0, 'top_alone_drop': 5.0, 'bottom_alone': None, 'bias_below': 15.0, 'supply_max': 80.0, 'first_leg': 'space', 'default_first': 'dhw', 'fixed_fee_no_mode': 0.0} "| Price the supply temperature lift (no mixing valve) | off | on/off | For a plant with **no** mixing valve, where the pump feeds the emitters directly. When on, every plan and cost accounts for the pump working harder to make hotter water: the supply temperature is the model's own weather curve plu"]
+1 of 368 checks FAILED
+== M5-legrule-dhw rc=1
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL docs/configuration.md split: the sentence states what the code decides  [{'cycle_write': 60.0, 'top_alone_drop': 5.0, 'bottom_alone': None, 'bias_below': 15.0, 'supply_max': 75.0, 'first_leg': 'dhw', 'default_first': 'dhw', 'fixed_fee_no_mode': 0.0} "- **A step the plan gives both duties is split**, so the optimizer rather\n  than the pump's two thermostats decides which runs: hot water for the\n  step's hot-water power over its total power, times 15 minutes, and heating\n  for the rest. A share under 5 minutes goes to the other duty for the whole\n"]
+1 of 368 checks FAILED
+== M6-fee-always rc=1
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL docs/configuration.md fee: the sentence states what the code decides  [{'cycle_write': 60.0, 'top_alone_drop': 5.0, 'bottom_alone': None, 'bias_below': 15.0, 'supply_max': 75.0, 'first_leg': 'space', 'default_first': 'dhw', 'fixed_fee_no_mode': 0.3} '| Fixed transfer fee | 0.0 per kWh | 0–5, 0.01 steps | A flat fee added in every hour, on top of the rules or the live sensor. Ignored while the grid transfer fee is None. |']
+1 of 368 checks FAILED
+== M7-wood-bottom-alone rc=1
+  ok   the build exits 0 with no FAIL line
+  ok   a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)
+  ok   a build that dies without a FAIL line is red, naming its exit
+  FAIL docs/configuration.md wood: the sentence states what the code decides  [{'cycle_write': 60.0, 'top_alone_drop': 5.0, 'bottom_alone': 40.0, 'bias_below': 15.0, 'supply_max': 75.0, 'first_leg': 'space', 'default_first': 'dhw', 'fixed_fee_no_mode': 0.0} '| Wood tank bottom sensor | none | a sensor | With the top sensor the two are averaged for the remaining-energy estimate; the top alone is read as 5 °C colder than it shows, and the bottom alone gives no estimate. |']
+  FAIL docs/setup.md wood tank bottom sensor: one-probe readings as the code decides  [['With both, the two are averaged for the remaining-energy estimate; the top alone is read as 5 °C colder than it shows, and the bottom alone gives no estimate. ### The building questionnaire The six questions below the toggles are the same ones the full wizard asks, and a house answered here derives the identical physics as one answered there: what the house is built from, roughly when it was built, the foundation, the heated floor area (everything is scaled by this, so it is the number worth getting closest to right), and what each floor is heated by.']]
+ALL 368 checks PASSED
