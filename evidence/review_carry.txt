@@ -1,7 +1,0 @@
-review_carry: dd5faa50c -> f0f6b47f2  main=origin/main
-  branch-only commits: 3
-  why: d9ab65e9c97bed710fd1534366051b4b7ed9836b is not the automatic merge of its parents
-  d9ab65e9c  Merge origin/main: cloud_dispatch.py keeps the designer's verdict pin and main's part line
-  20c79e83a  Merge commit 'd9ab65e9c97bed710fd1534366051b4b7ed9836b' into fix/r10-standing-contracts-p2
-  f0f6b47f2  Merge remote-tracking branch 'origin/main' into fix/r10-standing-contracts-p2
-review_carry: FRESH-REVIEW
