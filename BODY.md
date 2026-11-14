@@ -1,45 +1,31 @@
 Closes the class behind R10-RCA-SELFTEST-SCOPE-DRIFT (part C; part A, main re-recording mechanically, is ruled to round 11). A re-record of `tools/ci/selftest_closures.json` taken at a stale base dropped reads main measures (#3409, #3419, #3506). `record` now unions over the committed entry, and `static` refuses a table diff that drops a read the base names unless the diff deletes the path.
 
+## Re-cut
+
+Fourth-round body replaced. Round history is dropped; every figure below is re-taken at the head named. Blocks answered: `root-cause-unrecorded` (`tests / fast (3.14)` red, answered under Red checks) and a content conflict in `dev/audit/config/bugclasses.json` with main, resolved by merge as a union (both `R10-RCA-SELFTEST-SCOPE-DRIFT` and `R10-RCA-FEATURES-WEEKEND-CLOCK` entries kept; the file parses as JSON and `git diff origin/main -- dev/audit/config/bugclasses.json` adds only this branch's entry).
+
 ## Head
 
-Measured at `6a1966196c0e605653bccce7ccfdbfdffd9fda37` (code; parent `552638f8dc3a1c7f270448163d44df992c62dac2`), `origin/main` 5288db5dad at 2026-11-13T12:28:26Z. `git merge-tree --write-tree origin/main HEAD`: rc 0, no conflict, so no main merge.
-
-## Review scope
-
-Round 2 repairs the round-1 block (`af9e2248ef`, mutation-vacuous) and nothing else: `git diff 552638f8dc3a1c7f270448163d44df992c62dac2 6a1966196c0e605653bccce7ccfdbfdffd9fda37` (two files, `tools/ci/selftest_scope.py` and `tools/ci/selftest_scope_mutants.sh`).
-
-- Survivors (a) and (b): the self-test now drives `main(["prune", ...])` on a fixture table in the throwaway repo. A held drop writes the table less exactly that read (`files:f2`, `objects:`; `index`, `dirs` and step `b` unchanged). A call with one held and one unknown drop, and a call on an unknown step, both return rc 1 and name the drop, and the file stays byte-identical. The mixed call is deliberate: with `if False:`, the held drop gets written whatever format the file was in.
-- Survivor (c): `shrink_drops` gets a fixture where a base probe `t/q` is kept by a head that lists the directory `t`. Its null is the same head listing `u`, which is refused once.
-- Fail-open: `table_base` now returns `(revision, problem)`. A named base (`SELFTEST_BASE`, or `origin/$GITHUB_BASE_REF`) that does not resolve returns the problem `UNRESOLVED base <name>: ...`, and `static` prints it as a problem line (rc 1) instead of running `shrink_gaps(root, None)`, which passes. With no base named, the first-parent fallback is unchanged. Alternative considered and not taken: raising from `table_base`. That would put an exception path into `static`'s problem-list idiom for one case. A tuple keeps every refusal as a printed line.
+Measured at `b3fd674e4d533e81aa1ef45d4ce0fec87078ad15` (merge of `origin/main` `9fdba3b8547f9762438dc19b98b310a63d34dcb1` into the PR head `df1512502349af541505b73a81a86beb4dd6f930`), 2026-11-14T15:46Z. `git merge-tree --write-tree origin/main HEAD` was run on the PR head before the merge and reported the one conflict above; the merge is the only change on the head.
 
 ## Mutation proof
 
-`sh tools/ci/selftest_scope_mutants.sh` at the head: 25 mutants (rule: the `== ` lines it prints), each `self-test rc 1`, ending `SELFTEST-SCOPE MUTANTS: every mutant refused`, rc 0. The baseline (unmutated) self-test it runs first passes. Added this round, with the check each one fails:
-
-- "the shrink guard keeps no probe by its listed directory" (`or any(a in dirs for a in _ancestors(x))` deleted): FAIL `shrink_drops: a probe whose directory the head lists is kept, ...`
-- "prune writes nothing" (`write_table(root / TABLE, entries, root)` deleted): FAIL `prune: a held drop writes the table, less exactly that read`
-- "prune accepts an unknown drop" (`if unknown:` -> `if False:`): FAIL `prune: an unknown drop or step is refused (rc 1), naming it, the table byte-identical`
-- "an unresolvable named base resolves to no problem" (the problem string becomes `""`): FAIL `table_base: a named base that does not resolve is a problem, not a base` and `static: a base that does not resolve adds one problem line ...`
-- "static drops the unresolved-base problem" (`[unresolved] if unresolved` -> `[] if unresolved`): FAIL on the same `static` check.
-
-"static never runs the shrink guard" is re-anchored to the new `static` line and is still refused. A self-correction, disclosed: my first spelling of the unresolved-base mutant (`"" or (...)`) was vacuous, because it still evaluated to the problem string, and the script printed `NOT REFUSED`. It now reads `"" and (...)` and is refused.
-
-The reviewer's own driver (`evidence/run.sh` of af9e2248ef, sha1 a2c6dee7c6e5f340d7aa72c862910185249aaa44), run at this head with the three survivors' mutations: `KILLED prune-cli-no-write`, `KILLED prune-cli-ignores-unknown` and `KILLED probe-dir-ancestor-removed`, each `141 checks, 1 failed`. Null for that driver (an identity substitution) prints `SURVIVED null-unmutated :: 141 checks, 0 failed`.
+`sh tools/ci/selftest_scope_mutants.sh` at this head: ends `SELFTEST-SCOPE MUTANTS: every mutant refused`, no `NOT REFUSED` or `MUTANT NOT APPLIED` line. It exports `GITHUB_BASE_REF=main SELFTEST_BASE=nonesuch` for the baseline and every mutant. Key mutants: "record replaces the committed entry again", the shrink-guard mutants, "the self-test leaks the caller's base selectors" (FAIL `static, ids and select over a fresh table`), "an undiffable base passes the shrink guard", "prune goes on over an unreadable table" (TypeError).
 
 ## Null control
 
-- Shrink guard over history: the reviewer's driver `evidence/null.py` of af9e2248ef (sha1 0c95c32d4cfb257105e1d2b3258754cf617a13b9) with this head's `selftest_scope.py`, over the merges `git log --first-parent --merges --format=%H ba6fd7e8b^..3b9749dac5 -- tools/ci/selftest_closures.json` lists (16 listed, 16 printed). It refuses exactly #3409 (3 lines), #3419 (5) and #3506 (8) and passes the other 13, #3507 and #3535 among them. That matches round 1, because `shrink_gaps` is unchanged by this round. The exemption null (deletion exemption mutated out, so #3507 is refused with 2 lines) is the round-1 figure. The exemption code is untouched in this diff, and mutant "the shrink guard exempts nothing deleted" still kills it.
-- The unresolved base, on this checkout: `SELFTEST_BASE=origin/main python3 -I tools/ci/selftest_scope.py static` prints `114 gated step(s), 0 problem(s)`, rc 0. With `SELFTEST_BASE=refs/heads/no-such-base` it prints `UNRESOLVED base refs/heads/no-such-base: ...` and `1 problem(s)`, rc 1. With neither variable set (first-parent fallback) it prints `0 problem(s)`, rc 0.
+- Unresolved base: `SELFTEST_BASE=origin/main python3 -I tools/ci/selftest_scope.py static` prints `0 problem(s)`, rc 0; with `SELFTEST_BASE=refs/heads/no-such-base` it prints `UNRESOLVED base refs/heads/no-such-base` and `1 problem(s)`.
+- Self-test both environments: `python3 -I tools/ci/selftest_scope.py --self-test` unset and with `GITHUB_BASE_REF=main` exported, each `0 failed`.
 
 ## Figures
 
-- `python3 -I tools/ci/selftest_scope.py --self-test`: 141 checks, 0 failed (rule: its closing line).
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, no budget touched.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: FULL` (reason: `tools/ci/selftest_closures.json` changes the gate itself, inherited from round 1's table diff). That is left to CI, not reproduced here.
+- `python3 -I tools/ci/selftest_scope.py --self-test`: `148 checks, 0 failed` at this head.
+- `GITHUB_BASE_REF=main python3 -I tools/ci/selftest_scope.py static`: `114 gated step(s), 0 problem(s)`.
+- `tools/pr/prepr.sh` run once at this head, result in the handoff message.
 
 ## Red checks
 
-none. Round 1's review classified the PR head as WAIT with "gate red: none" at every poll (`af9e2248ef` `evidence/classify.log`). No check of this branch's history was red at a read this seat made. This round made no per-commit API read, because the API quota is tight.
+`tests / fast (3.14)` was red on #3551's head (job 132252007494). Cause: `tests/features.py` `_chg_seq` starts its default arm from the real clock, so the block is red on every Saturday and Sunday from 2026-11-14T00:00Z, on main and on every head; this diff does not touch `tests/features.py`. Fixed on main by #3578 (`R10-HOTFIX-FEATURES-WEEKEND-CLOCK`), merged into this head. The cheaper-detector answer is recorded with its cost test in `dev/audit/rca/R10-RCA-FEATURES-WEEKEND-CLOCK.md` (state (c): the nightly Kolkata step varies the zone, never the calendar day; countermeasure a nightly faketime step on the other day type, estimate 10-20 s a night; lint, frozen clock and per-PR double run refused by the cost test). Earlier: `governance / instrument-self-tests` red at `ef7e3373e7` (job 131898295736), outside the owed set; cause `GITHUB_BASE_REF=main` against a fixture with no `origin/main`; the mutants script now exports it.
 
 ## Forward-carry
 
