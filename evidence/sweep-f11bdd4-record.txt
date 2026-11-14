@@ -1,0 +1,30 @@
+rows 360 flagged 29
+SOME	health.learn_savings_why	sensor.py:~525=blank; ledger.py:~486=docstring
+SOME	health.model_share	coordinator.py:5906=docstring
+SOME	plan.space_blocked	custom_components/heatpump_optimizer/pump_signals.py:341=blank
+ONLY	health.p_implausible	/home/user/wt-card/custom_components/heatpump_optimizer/inputs.py:1011=comment
+SOME	health.cop_measured	accuracy.py:861=docstring
+SOME	health.cop_reason_unaligned_meters	heat_energy.py:554-556=docstring
+SOME	health.debug_off	diagnostics.py:408=comment
+SOME	advisor.empty	custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:10931=comment
+SOME	advisor.optin_heading	custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:10028-10032=comment
+SOME	advisor.value_month	custom_components/heatpump_optimizer/price_tiles.py:97=docstring
+SOME	advisor.refit_detail	custom_components/heatpump_optimizer/coordinator.py:1363=docstring
+SOME	advisor.refit_wait_detail	custom_components/heatpump_optimizer/accuracy.py:704=docstring
+SOME	savings.wood_note	custom_components/heatpump_optimizer/ledger.py:479-481=docstring
+SOME	receipt.saved	ledger.py:62=comment
+SOME	reasons.pump_mode	/home/user/wt-card/custom_components/heatpump_optimizer/pump_signals.py:341=blank
+ONLY	reasons.pump_mode_space	custom_components/heatpump_optimizer/pump_signals.py:341=blank
+SOME	slots.pinned_result	manual_plan.py:20-22=docstring
+SOME	whatif.schedule_hint	custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:13351=comment
+SOME	whatif.idle_status	custom_components/heatpump_optimizer/services.py:1001=blank
+SOME	whatif.confirm_hint	services.py:1001=blank
+SOME	setup.dhw_coil_preheats	custom_components/heatpump_optimizer/thermal_model.py:2843=docstring
+SOME	errors.day_start_equals_end	comfort_band.py:198=comment
+SOME	score.driver_typical_operation	driving_grade.py:28=comment
+SOME	score.evidence_empty	coordinator.py:3345=docstring
+SOME	whynow.all_neutral	custom_components/heatpump_optimizer/slot_drivers.py:131=blank
+ONLY	whynow.dir_neutral	custom_components/heatpump_optimizer/slot_drivers.py:131-132=blank
+SOME	whynow.explain_forecast	slot_drivers.py:32=comment
+SOME	status.stale_title	coordinator.py:800=docstring
+ONLY	slots.lane_aria	custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:12485-12471=blank

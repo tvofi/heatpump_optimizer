@@ -1,30 +1,41 @@
-Fix review: blocked f11bdd4d483c0509ad108b0e00112aaae8f1368d comment-evidence: advisor.refit_detail is verdicted true on a code comment; the ±7-10 % lower bound exists only in accuracy.py:646-650's comment
+Fix review: merge 2ef5531223d56cc35d40fbbcb8f8d61ede644c57
 
-bus-nonce: c1e04704ece088aa66287f43b445823c
-
-## Block
-
-- Reviewer addition (1) of this group's brief: "a row whose evidence is a comment is a block". `dev/audit/rounds/round10/user-text-card.md:176` verdicts `advisor.refit_detail` true. The text says, in en, sv and de, "about ±7-10 % uncertain". The row's evidence for that clause is "accuracy.py:651 REFIT_BAND_PERCENT=10 (comment states 7-10 %)". In code, at base 90c6bc3b0, `REFIT_BAND_PERCENT = 10` (accuracy.py:651) is published as `"band_percent": REFIT_BAND_PERCENT` (accuracy.py:776). The 7 appears only in the `#:` comment at accuracy.py:646-650, a pre-study figure. The card renders this key at card.js:10097 with `{days}` and `{pairs}` only, so it never reads `attrs.refit.band_percent`. The row's other quoted evidence, `_refit_start` "after the last boost-tagged pair plus settle, and after the last restore", is the docstring at accuracy.py:657-658. The code body at :659-663 does implement that behaviour, but the row quotes the docstring, not the code. The coordinator.py:1363 "Recommend-only" citation is also a docstring (restart_advice, :1358-1365). The row must be re-judged against code. Either the band clause is verdicted unverifiable or corrected to the published `band_percent`, or the card renders `band_percent` and a test pins it (brief addition 3). The other docstring-citing rows I sampled also cite a deciding code line: `score.part_overall` (:50, coordinator.py:3381/3392) and `health.cop_reason_unaligned_meters` (:140, heat_energy.py:567, the `unaligned if got.elec_kw is None` expression in close_span). This is the only row I found whose claim rests on a comment alone. The sample covered every row that names a comment or docstring (`grep -niE 'docstring|comment'`, 6 hits, 3 of them rows). Rows that quote a docstring without saying so were not swept.
-- Surviving mutant on a pinned claim (brief addition 3). The body says the invalid-window pin checks that "the card's check reads `quietWindows`". The body's own corrected-list item says "the save and simulate checks also read `quietWindows`". The check is `/quietWindows \|\| \[\]\)\.find\(/.test(cardSrc)` (tests/card.mjs, last block), which one match satisfies. Mutant `drop-quiet-find-first` swaps `(draft.quietWindows || []).find(` for `(draft.dhwWindows || []).find(` at card.js:13217 (the first of two sites, :13217 and :13336). The suite stays at rc 0, `ALL CARD CHECKS PASSED`. With that mutant, the channel-neutral error text is false for one of the two handlers, and nothing fails. The fix is to require both sites, or to pin the behaviour by driving each handler with an invalid quiet window.
+bus-nonce: 9d90ce63f65294ddf6e0c0a1cbd8dab1
+pending-ci: WAIT 2ef5531223d56cc35d40fbbcb8f8d61ede644c57 pending: gate red: none
 
 ## Findings
 
-- `tests/card.mjs`: the `check("user text: the invalid-window error ...` call in the new block is indented four spaces where its siblings use two. This is cosmetic only. Carry: dismissed: whitespace, no behaviour; the re-cut touches this block anyway
+- `advisor.optin_sensor_off` is a key this pull request adds, and it has no row of its own in `dev/audit/rounds/round10/user-text-card.md`. Its claim is judged only inside the sweep row for `advisor.optin_heading` (record :417). I verified that claim on code. `WoodBurnAdvisorSensor` (sensor.py:3011), `MonthlyPeakSensor`, which carries `fuse_advisor` (:2130), and `FrequencyAdvisorSensor` (:2809) each set `_attr_entity_registry_enabled_default = False`. No code under custom_components/ writes `disabled_by` or calls `async_update_entity`. Check (5) pins the claim. So the text is true, and the gap is the record's bookkeeping only. Carry: dismissed: claim verified on code and pinned by card.mjs check (5); a record row adds no control
 
 ## Evidence
 
-- Round 1 of review, a handoff review: no pull request exists yet, so there is no review packet and no CI to read. This verdict reads no check runs and answers no red. `merge_train.py owed-reds` prints the required set, but no run exists at this head.
-- Head measured: f11bdd4d483c0509ad108b0e00112aaae8f1368d, which is the tip of handoff/r10-user-text-verify-card and the head the body's `## Head` names. Merge base: 90c6bc3b0756475e28d4ace8d8e31c4788474933. origin/main is e23124ff6e45bac1d48b4a775dad555a37965355.
-- `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current.
-- `git merge-tree --write-tree origin/main f11bdd4d4` gives rc 0 and tree cda4d02d02dc4a8257fb41b6913ec3c431f2b13b, so there is no conflict (ev/merge-tree.txt).
-- RESULT card.mjs at head: rc 0, `ALL CARD CHECKS PASSED`, after `tests/plan_view.py` wrote its payload (ev/card-head.txt).
-- RESULT mutation proof, re-run: the base card with the head's tests gives rc 1, with exactly the 7 FAILs the body lists (ev/mut-basecard.txt). This reproduces the body.
-- RESULT targeted mutants, 9 run and 8 killed (ev/targeted-mutants.txt):
-  - Killed: `COP_TRACKING_ERROR_GATE` 0.3→0.25, sv gate 30 %→40 %, the modelled floor `<= 0.1`→`<= 0.2`, "Varmvatten" re-added to the sv window error, both `quietWindows` finds removed, the old de "Wärmespeicherung", a truncated sv grid page, and a de.json grid menu label.
-  - Survived: `drop-quiet-find-first` (see Block).
-- RESULT enumerator, own run: the head prints `table 644 (unreached 0)`, `literal 4`; the base prints `table 648 (unreached 3)`, `literal 4`. These match the body's Figures (ev/enum-head.txt, ev/enum-base.txt). The planted null control was not re-run.
-- Not re-derived: the verdict counts true 331 / false 22 / stale 1 / unverifiable 6 / n/a 292. They come from the fixer's nine reader tables, which are not in the tree. Only the summary table and the per-row record are, so I could not re-derive the `cut -f4` count.
-- Not re-derived: the browser PNG cmp results and the 11-script gate table. This is a cheap-checks-only review, and card.mjs plus card_drift were the closures I re-ran.
-- RESULT VERSION, manifest and RELEASE_NOTES.md: absent from the three-dot diff. `tests/golden/claimed_drift.txt` is untouched.
-- Forward-carry destination `R11-INTAKE-R10-RESIDUE` exists in `dev/programme/rosters/wave-r10-groups.json` on origin/main. I did not check whether its brief already holds the five carries. The body states no roster SHA for them, and this block returns the branch anyway.
-- RESULT `GOLDEN_MODE=drift node tests/card_drift.mjs` at the head: rc 0, `card_drift: 21 state(s) moved and claimed, 24 identical` (ev/card_drift-head.txt). Every moved state is claimed, which matches the body's 21.
+- Round 2, a delta review over the reviewed head f11bdd4d483c0509ad108b0e00112aaae8f1368d. Head measured: 2ef5531223d56cc35d40fbbcb8f8d61ede644c57. The PR's live head when read matched it, and so does the body's `## Head`. Merge base: e23124ff6e45bac1d48b4a775dad555a37965355. The role drift check, `git diff $(merge-base)...origin/main -- dev/governance/roles/`, is empty.
+- The delta has three parts:
+  - The fixer's commits 3e6d23ffe6..741f378bfd: card.js, card.mjs, the record, the new harness `r10_card_evidence_kinds.py`, one closures.json INERT entry, and a delivery row.
+  - Two merges, 04f36e2e54 (origin/main in) and 2ef5531223. Each committed tree equals `git merge-tree --write-tree` of its parents: cda4d02d and 801fb086 (ev/merge-resolutions.txt). So there are no hand resolutions, and the main-side files (tools/audit/seat/*, tools/ci/selftest_closures.json, delivery rows) are main's own.
+- Merge with current main: `git merge-tree --write-tree origin/main 2ef5531223` gives rc 0. origin/main was 50373173d. The closures.json ledger driver printed `LEDGER-MERGE: resolved` (ev/merge-tree.txt).
+- Widening (step 12): the production delta is card.js only. It is a `{band}` placeholder fed from `refit.band_percent`, a new `advisor.optin_sensor_off` string, and a suffix on the opt-in rows. I widened to exactly the data path the card now reads. `heat_loss_refit` always publishes `"band_percent": REFIT_BAND_PERCENT` (accuracy.py:776). The sensor's `extra_state_attributes` is the advice dict as published (sensor.py `_advice`), so `attrs.refit.band_percent` reaches `restartRows`. A missing or non-finite value renders "—". No other already-reviewed code is touched.
+- Prior block 1, comment evidence (resolved):
+  - `advisor.refit_detail` now renders `±{band} %` from the published `band_percent` in en, sv and de.
+  - The record moves the row to the Corrected table as false. Its evidence is code: accuracy.py:651, :776, coordinator.py:3278, accuracy.py:659-663 and services.py:1220-1227.
+  - Own run of the builder's sweep `python3 -I dev/audit/harnesses/r10_card_evidence_kinds.py <record>` gives `rows 360 flagged 0` at the head. As its null control, the same run on the record at f11bdd4d4 gives `rows 360 flagged 29`, including `advisor.refit_detail` (ev/sweep-head.txt, ev/sweep-f11bdd4-record.txt). Both reproduce the body.
+  - This harness is the fixer's instrument, not a finder's, and it is in the tree.
+- Prior block 2, surviving mutant (resolved): the source regex is replaced by driving `onSaveSchedule` and `run` with a valid hot-water window and an invalid quiet one. The targeted mutants below kill both single-site mutants.
+- RESULT card.mjs at head: rc 0, `ALL CARD CHECKS PASSED` (ev/card-head.txt). It ran after `PYTHONPATH=tests/hastub python3 tests/plan_view.py`, the CI invocation.
+- RESULT `GOLDEN_MODE=drift node tests/card_drift.mjs` at head: rc 0, `card_drift: 21 state(s) moved and claimed, 24 identical`. Every moved state is claimed (ev/card_drift-head.txt).
+- RESULT mutation proof, re-run: the merge-base card (90c6bc3b0) under the head's card.mjs, in a detached worktree, gives rc 1 and `11 CARD CHECK(S) FAILED`. They are exactly the 11 the body lists (ev/mut-basecard.txt).
+- RESULT targeted mutants, own driver (ev/mut_driver.py): 8 run, 8 killed, 0 survived (ev/targeted-mutants.txt, per-mutant FAIL lines in ev/mut-*.txt):
+  - `drop-quiet-find-first`: card.js:13224 reads `dhwWindows`.
+  - `drop-quiet-find-second`: card.js:13343 reads `dhwWindows`.
+  - `band-literal-10`: `band: "10"`.
+  - `band-dropped`: the `band` key renamed, so the placeholder goes unfilled.
+  - `note-none`: no opt-in row carries the note.
+  - `note-all`: the degree row carries it too.
+  - `sv-band-literal`: the sv text back to `±7-10 %`.
+  - `de-note-missing`: the de `advisor.optin_sensor_off` deleted.
+- RESULT enumerator at the head: `table 645 (unreached 0)`, `literal 4` (ev/enum-head.txt). This matches the body's Figures.
+- RESULT verdict counts, re-derived from the record's per-row tables: Corrected 24 rows (false 23 + stale 1), True 330, Unverifiable 6, for 360 in all. This matches the summary table and the body. n/a 292 is still not re-derived: it comes from the reader tables, which are not in the tree. That residue is unchanged from round 1.
+- Not re-run: the body's `REFIT_BAND_PERCENT = 12` features.py control, the 11-script gate table and the browser cmp. These are CI's heavy runs, cited, not re-derived.
+- VERSION, the manifest version and the RELEASE_NOTES.md heading are absent from both the delta and the three-dot diff. `tests/golden/claimed_drift.txt` is untouched.
+- Forward-carry: the five carries name `R11-INTAKE-R10-RESIDUE`. The packet's `carry_audit at the head` reports 5 routed, 0 unrouted and 0 bad destinations.
+- CI: `merge_train.py owed-reds` prints `tests / coverage-ratchet`, `tests / fast (3.14)`, `tests / mutation`, `tests / typing` and `validate / validate-hacs`. `classify 2ef5531223 --pr 3563` was polled about every 72 s, from 00:36:25Z to 01:05:16Z. It exited 3 (WAIT) every time, last `WAIT 2ef5531223d56cc35d40fbbcb8f8d61ede644c57 pending: gate red: none`, and it printed no context names after `pending:` (ev/classify.log). The review is complete, so this is returned with `pending-ci:` per the brief. No red was reported at any poll, so no red is owed an answer at return. The branch ref still reads 2ef5531223d56cc35d40fbbcb8f8d61ede644c57 at 01:05Z (`git ls-remote`).

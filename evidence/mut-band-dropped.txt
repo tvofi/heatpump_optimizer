@@ -1,0 +1,4 @@
+  FAIL  a drift alarm offers the refit with its band, and the restore point
+  FAIL  the restart rows speak Swedish
+  FAIL  user text: the refit row states the band_percent the refit publishes, in every card language
+3 CARD CHECK(S) FAILED
