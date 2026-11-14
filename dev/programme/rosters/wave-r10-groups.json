@@ -23067,7 +23067,7 @@
    "resume": {
     "stage": "done",
     "branch": null,
-    "commit": "c67c1933be3dde470d6330f3457c3453a08a261b",
+    "commit": "cbc42e0924404b16cdee3b2dfc5bf51ab3630c6d",
     "last_step": null,
     "next_step": "designer (size L): architect note at design/R10-DUTY-SWITCH-PLANNER-PRICE; design review; fixer only on Design review: approve and after R10-DUTY-SWITCH-RESTART-LEARNING merges",
     "note": "feature triage f2 for the orchestrator under mandate 6715477401, 2026-11-11: part C of outside pull request 3420 by Bankaifan, placed this round (owner rulings 2026-11-06 outside intake, no deferral out of the round); overlap admitted (R10-OUTSIDE-LEARNER-ROBUSTNESS, R10-OUTSIDE-PRICE-OUTAGE-LAST-VALID, R10-ECL110-MQTT-OFF-NEUTRAL, R10-DUTY-SWITCH-RESTART-LEARNING-PR-B): feature triage f2 2026-11-11 under mandate 6715477401: part C of outside PR 3420, placed this round",
