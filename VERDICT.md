@@ -1,41 +1,54 @@
-Fix review: blocked ea298df445835b20bb2f7d3e85dd1036f26b8ab1 evidence-comment: four claim rows rest on a comment or blank line at the merge base, and services.py:1196-1197 still ships the false "nothing was changed" its rows mark fixed
+Fix review: merge 9c658de26cc2f3bb5cd8c55a65ec5bbf64d11dc0
 
-bus-nonce: 30ca6840e83f6657a3ca7e460c888da0
+bus-nonce: 296ffcc2f9bb6689a9e96d22141ef853
+pending-ci: gate, tests / fast (3.14), pr-contract / pr-contract
+## Scope
 
-## Block
+This is a delta review: round 2 over the reviewed head `ea298df445835b20bb2f7d3e85dd1036f26b8ab1` (blocked `evidence-comment`). The PR's own commits since then are `7ad404eeb2`, `60f2a069e1`, `4eace767c3`, `d718d4e086`, `88859d2774`, `381d7d2b7b` and `6104263618`, plus three merges of origin/main (`2f5f5e40a5`, `d0fc820fa4`, `9c658de26c`). The production delta is three English fallback literals: `services.py` factory_reset_not_applied and apply_topology_unsupported, and `coordinator.py` process_worker_unusable. Each is only the first positional message of a raise, whose `str()` reaches logs, traces and API callers. Nothing reads them for control flow, so no already-reviewed code is put at a non-obvious risk, and the review was not widened.
 
-Round 1 of this group's review. Measured head `ea298df445835b20bb2f7d3e85dd1036f26b8ab1`, which is the body's `## Head` (handoff review: the handoff tip). Merge base `90c6bc3b0756475e28d4ace8d8e31c4788474933`.
+## Prior findings
 
-1. **evidence-comment** (the owner ruling of 2026-11-13 in the brief: a row whose evidence is a code comment or docstring is a block). RECORD.md says each row's evidence is `file:line` at the merge base. I resolved every `.py` citation in `verdicts.json` at the merge base (`ev/evidence-line-kinds.txt`, `ev/comment-cites-at-merge-base.txt`). Four judged rows cite only a comment or a blank line:
-   - `entity.sensor.heat_pump_action.state.off`, true: `optimizer.py:6312` is `# a step where only DHW books a draw is hot_water.`
-   - `entity.sensor.plan_narrative.state.terminal_value`, true: `optimizer.py:2038` is `# Nothing more specific applies: ...`. That comment is about `REASON_SCHEDULED`, not the terminal value.
-   - `entity.sensor.plan_narrative.state.cheap_price`, true: `optimizer.py:2043` is a blank line.
-   - `entity.sensor.learning_model_status.state_attributes.pump_max_power_source.state.configured`, true: `draw_range.py:655` is a blank line.
-
-   These four citations, and 132 citations in all, are absolute paths into an out-of-tree checkout (`/home/user/wt/...`), not repository paths. They resolve at the merge base: the `false` rows' `/home/user/wt/optimizer.py:2089` is `if i < len(in_window) and in_window[i]:` there. The re-cut owes a code citation for each of the four rows and repository-relative paths for all 132.
-2. **class-open: `custom_components/heatpump_optimizer/services.py:1196-1197`.** The `HomeAssistantError` raised for `factory_reset_not_applied` still passes the literal English message `"... refused to unload the entry; nothing was changed"`. The body's rule is `enumerate.py`'s `PY_RE`, and it reads lines, so it returned only lines 1199 (`translation_key=`) and 1200 (`translation_placeholders=`). Both rows are `verdict: false, fixed: true`, with the truth "the text is exceptions.factory_reset_not_applied, corrected there". strings.json was corrected, but this literal was not. HA's `HomeAssistantError.__str__` returns an explicit message, so logs, script and automation traces and API callers still read the false sentence. The two rows' `fixed: true` is therefore wrong, and the body's `[]` for false-and-unfixed rows rests on it. Of the raises that pass `translation_key` (scout AST scan, ~31 at the head), only `services.py:565` has a plain-literal first argument. The others are f-strings or expressions, which the rule never reads. Their English fallbacks are unjudged, and neither the diff nor the body dispositions them. The re-cut owes this literal corrected, and a rule that reads a raise's message argument, or a disposition of those fallbacks.
-   - Separate from this block and owned by R10-CONFIG-FLOW-TEXT-VERIFY: `options.abort.factory_reset_not_applied` (strings.json:1612, en.json) carries the same false "nothing was changed" through `config_flow.py:3509`.
-
-## Findings
-
-- Mechanically checkable corrected claims not pinned (brief addition 3): the rain thresholds the corrected `rain_heat_loss_multiplier` text quotes ("2 mm/h", "0.1 mm/h") could be pinned behaviourally through `effective_heat_loss_coefficient` at 0.1 and 2 mm/h. The run_optimization "four price steps" could be pinned by calling the handler with three prices. The body files both as prose-only because their literals are inline, but a behavioural pin needs no named constant. Carry: R11-INTAKE-R10-RESIDUE
-- Reverting `narrative.py` to the merge base survives `tests/entities.py` (`ev/mutants-summary.txt`, `narr`). The body discloses this as prose-only. The corrected `dhw_window`/`dhw_preheat` sentences have no pin. Carry: R11-INTAKE-R10-RESIDUE
+1. **evidence-comment (4 rows on a comment or blank line, 132 out-of-tree paths): resolved.**
+   - At the head, `verdicts.json` holds no `/home/user` path (count 0).
+   - Each of the four rows now cites code at `90c6bc3b`, the commit RECORD.md now names as the one its evidence is read at. I read the lines there:
+     - `optimizer.py:6306` is `heat_pump_on = plan_step_runs(result, i)`.
+     - `6314-6315` is `if not heat_pump_on: mode = "off"`.
+     - `2029-2030` is the `0.08 * n_steps` terminal branch.
+     - `2012` is the 35th-percentile `cheap_cut`.
+     - `2035-2036` is `prices[i] <= cheap_cut` -> `REASON_CHEAP_PRICE`.
+     - `draw_range.py:656-665` is the `configured(...)` returns.
+   - Each line decides its row's `true` verdict.
+   - The new class rule `enumerate.py --evidence verdicts.json 90c6bc3b` prints `evidence: every row cites a code line at a repository path`, rc 0 (`ev/evidence-rule-head.txt`).
+   - On the ea298df record it refuses all 132 citations, rc 1 (`ev/evidence-rule-control-ea298df.txt`).
+   - My own perturbation re-pointed two head rows at `optimizer.py:6312` (comment) and `2043` (blank). It printed `every cited line is ['comment']` / `['blank']`, rc 1 (`ev/evidence-rule-planted-comment-blank.txt`).
+2. **class-open services.py:1196-1197 "nothing was changed": resolved.**
+   - The fallback now equals the catalogue sentence.
+   - The catalogue sentence is the same in strings.json and en.json, with matching de and sv.
+   - A new AST rule in `tests/entities.py` (`_ut_fallback_findings`) reads every raise that passes `translation_key`. It also reads them through the parameters of `_raise_update_failed` and its siblings. It finds two more drifted fallbacks (process_worker_unusable, apply_topology_unsupported), and both are corrected.
+   - Mutant `factory-reset-fallback-back`: KILLED by two checks, `every raise that passes a translation key falls back ...` (`services.py:1195`) and `a refused factory_reset raises factory_reset_not_applied ...` (`ev/mutant-factory-reset-fallback.txt`, 2 of 2723 failed).
+   - Mutant `worker-unusable-fallback-back`: KILLED by the class rule at `coordinator.py:2343` (`ev/mutant-worker-unusable-fallback.txt`).
+   - The rule's null control (three planted findings) is in the file and passes at the head.
+   - The separate config-flow `options.abort.factory_reset_not_applied` stays with R10-CONFIG-FLOW-TEXT-VERIFY, as round 1 noted.
+3. **Round 1's two findings** (behavioural pins for the rain thresholds and the four price steps; the unpinned narrative.py revert) are carried in the body's `## Forward-carry` to R11-INTAKE-R10-RESIDUE. carry_audit at the head reports 6 routed, 0 unrouted.
 
 ## Evidence
 
-- RESULT head: `PYTHONPATH=tests/hastub python3 tests/entities.py` at the head prints `ALL 2720 ENTITY CHECKS PASSED`, rc 0 (`ev/entities-head.txt.gz`).
-- RESULT mutants (`ev/mutants.diff`, `ev/mutants-summary.txt`, full logs `ev/mutant-*.txt.gz`). Each ran in its own worktree at the head. Planted `a3:*` controls are excluded because they print FAIL on every run. The five mutants:
-  - services.yaml wood price min 1 -> 0: KILLED by `simulate_plan's wood price selector minimum ... [min 0]`.
-  - `CAPACITY_FLOOR_FRACTION` 0.6 -> 0.5: KILLED by the 27-numbers row.
-  - `pump_arbiter.RETRY_MINUTES` 5.0 -> 10.0: KILLED by the 27-numbers row.
-  - `DHW_DISINFECTION_LOST_MINUTES` 30 -> 45: KILLED by the 27-numbers row.
-  - narrative.py back to the merge base: SURVIVED, as the body discloses.
-  The body's own four mutants were not re-run beyond these overlaps.
-- Verdict counts re-derived with the body's rule at the head: strings.json 227/23/0/1/176, services.yaml 219/1/0/10/48, python 138/2/0/2/25, templates 51/6/0/0/0. These equal RECORD.md's table. Total 929 rows. The false-and-not-fixed listing prints `[]`, but see block item 2 for why that is not the truth for the two python rows.
-- Docstring sample: only the two python factory-reset rows quote a docstring in `truth` (`ev/comment-evidence-rows.txt`). Their evidence also cites code, `coordinator.py:1497-1500` (snapshot take and `_async_save_snapshots`) and `1478-1479` (unload refusal), which I read and which decides the claim, so they do not rest on the docstring. The four rows in block item 1 do.
-- `dhw_window`/`dhw_preheat` truth verified against code at the merge base: `optimizer.py:2083-2092` classifies by `in_window[i]` and falls through to `REASON_DHW_PREHEAT` with no price or clock read.
-- `git merge-tree --write-tree origin/main ea298df` exits 0 with one tree, so the head merges cleanly (`ev/merge-tree.txt`). origin/main is at `e23124ff6e45bac1d48b4a775dad555a37965355`.
-- `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract is current. VERSION, manifest and RELEASE_NOTES.md are untouched by the diff.
-- No pull request exists yet, so there is no review packet and no CI run to read. No red check is owed an answer: none exists at this head, and the owed-reds set is `merge_train.py owed-reds`.
-- Forward-carry destination `R11-INTAKE-R10-RESIDUE` exists on origin/main's `dev/programme/rosters/wave-r10-groups.json`.
-- Not re-derived: the scoped gate, `structure.py`, the archscore `dS +0.0000`, `mutant_run.py --diff` and the null-control judge-seat run. CI's heavy runs are cited by policy, and none exist before the PR opens. The judge-seat null control is a seat's reading that I cannot re-run.
+- RESULT head: `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2723 ENTITY CHECKS PASSED`, rc 0 (`ev/entities-head.txt`). That equals the body's null count. The only FAIL lines are the planted `a3`-`a13`/`hb` controls.
+- Hand-resolved merges of strings.json, en, de and sv: I ran a per-key three-way over the flattened JSON for each of the three merges in range (`ev/m3.py`, `ev/merge-3way-translations.txt`).
+  - `d0fc820fa4` (main changed 6 keys per file), `a1e0a4d2fb` (29) and `2f5f5e40a5` (0): every leaf main changed is main's at the merge result, every leaf the branch changed is the branch's, and no key was changed by both sides. That is 0 issues in each file.
+  - The body's union resolution of `quiet_silent_not_enforced` with main's new `dhw_minimum_above_start` holds.
+- Catalogue at the head: strings.json and en.json `factory_reset_not_applied`, `process_worker_unusable` and `apply_topology_unsupported` equal the code fallbacks, and de and sv carry the same content.
+- `git merge-tree --write-tree origin/main 9c658de2` exits 0 with one tree at origin/main `c987209cc7a8` (`ev/merge-tree.txt`).
+- Body figures re-derived:
+  - The 2723 count.
+  - The evidence-rule output at `90c6bc3b`.
+  - The control's 132 refusals.
+  - Both fallback mutants' FAIL lines (text matches the body).
+- Not re-derived: the `topology-quotes-back` mutant (the body discloses its whole-script run was cut; its rule alone reports the finding), archscore `dS +0.0000`, `structure.py` and the scoped gate. CI runs those.
+- Policy: VERSION, the manifest and the RELEASE_NOTES heading are untouched in `git diff $(merge-base)...HEAD`.
+- A style note, no finding: sv `apply_topology_unsupported` keeps `"{layout}"` quoted where en and de dropped the quotes. That is wording only and makes no false claim.
+- CI at this head: `merge_train.py classify 9c658de2 --pr 3567` read WAIT from 03:11:56Z, then `RED 9c658de26cc2f3bb5cd8c55a65ec5bbf64d11dc0 pending: none red: gate` at 03:15:46Z (`ev/classify-log.txt`). The red required contexts are `tests / fast (3.14)`, `pr-contract / pr-contract` and `gate`. `tests / nightly-status` is also red but is not in the owed-reds set.
+  - `tests / fast (3.14)` (job 132300573517) ended with `1 TEST SCRIPT(S) FAILED`. I ran `PYTHONPATH=tests/hastub python3 tests/features.py` at the head: `1 of 5571 FEATURE CHECKS FAILED`, rc 1. Its only FAIL is "a charge-start dip that recovers is learned as neither a draw nor usage, and a draw that does not recover keeps what main booked" (`ev/features-head.txt`). That is the weekend-clock check the dispatch names. This head's CI ran before hotfix `c987209c` reached main (02:41Z), so the failure is not this PR's. `tests/entities.py`, the other script this diff reaches, passes at the head (above).
+  - `pr-contract / pr-contract` (job 132310539432) has one refusal: `check tests / fast (3.14) is red and ## Red checks does not name it`. It follows from the fast red and clears once fast is green on a re-run over current main. Its carry-audit, figures (12 resolved, 0 refused), version-edit and figure_block steps are clean.
+  - `gate` aggregates the two above.
+  - Because the only failure is the inherited check, this verdict is `merge` with the `pending-ci:` line, as the dispatch directs. The relay posts it once CI is green at this head, and refuses it over a red or if the head moves.
