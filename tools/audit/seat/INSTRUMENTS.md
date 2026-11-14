@@ -25,6 +25,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`depgraph.py` (tools/pr/)](instruments/depgraph.py.md) — compares GitHub's dependency graph with the tree's pins
 - [`figure_block.py` (tools/pr/)](instruments/figure_block.py.md) — renders/refreshes/verifies registered figure blocks in a PR body
 - [`head_note.py` (tools/pr/)](instruments/head_note.py.md) — prefixes a note under a body's `## Head` heading, found as `checkPrBody`'s `sections()` reads it (outside a fence, `##`, whitespace, `Head`)
+- [`outside.py` (tools/pr/)](instruments/outside.py.md) — the outside-contributor contract (decision 0017): admission, the three path classes, the class-O check and its one mandated approval writer
 - [`role_pack.py` (tools/policy/)](instruments/role_pack.py.md) — renders one seat's policy pack: its role contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim, in one file
 - [`approve_held_runs.sh`](instruments/approve_held_runs.sh.md) — approves the workflow runs GitHub holds `action_required` on a branch
 - [`check_scopes.py`](instruments/check_scopes.py.md) — proves the finder scopes are disjoint and complete within each dimension
@@ -110,7 +111,7 @@ standing-seat liveness step keep the seats alive.
 - [`tick_loop.sh`](instruments/tick_loop.sh.md) — the tick's driver loop (tvofi approved, 2026-10-18)
 - [`heartbeat.sh`](instruments/heartbeat.sh.md) — the andon
 - [`beatd.py`](instruments/beatd.py.md) — the one supervised beat (R10-ORCH-BEATD arm (a))
-- [`beat_jobs.py`](instruments/beat_jobs.py.md) — the rows of `beatd.jobs.json`: each beat job's predicate, writing only actionable lines to one digest the orchestrator's one wake reads
+- [`beat_jobs.py`](instruments/beat_jobs.py.md) — the rows of `beatd.jobs.json`: each beat job's predicate, writing only actionable lines to one digest the orchestrator's one wake reads; its `darwin-selftest` row is the macOS self-test leg
 - [`beatd_shims/git`](instruments/beatd_shims_git.md) — the beat jobs' `git`, reached only through the `PATH` `beatd.py` builds
 - [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
 - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
