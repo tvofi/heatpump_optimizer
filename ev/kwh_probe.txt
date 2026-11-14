@@ -1,0 +1,8 @@
+RESULT base +5 C held 20.527 sum(power) 51.1918 sum*0.25 12.7979
+RESULT base +0 C held 20.278 sum(power) 79.6240 sum*0.25 19.9060
+RESULT base -5 C held 20.029 sum(power) 118.2105 sum*0.25 29.5526
+RESULT base -15 C held 19.532 sum(power) 259.6946 sum*0.25 64.9236
+RESULT head +5 C held 20.719 sum(power) 51.7653 sum*0.25 12.9413
+RESULT head +0 C held 20.534 sum(power) 80.5065 sum*0.25 20.1266
+RESULT head -5 C held 20.350 sum(power) 119.5124 sum*0.25 29.8781
+RESULT head -15 C held 19.980 sum(power) 262.5339 sum*0.25 65.6335

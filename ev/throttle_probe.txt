@@ -1,0 +1,1 @@
+RESULT drop-throttling on valve-none installs (4 outdoor x 2 sun x 4 pumps = 32 rows): held state bit-identical

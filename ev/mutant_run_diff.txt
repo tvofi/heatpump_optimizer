@@ -1,0 +1,3 @@
+SURVIVED custom_components/heatpump_optimizer/optimizer.py:894 CMP_BOUND  and need_kw >= valve_top_draw(model, held, outdoor, wind, rain)):
+SURVIVED custom_components/heatpump_optimizer/optimizer.py:914 CMP_BOUND  return bool(power_for_heat_per_cop_kw(p, made_kw / cop) >= p.max_electrical_power)
+SURVIVED custom_components/heatpump_optimizer/thermal_model.py:2404 CMP_BOUND  if upper > t_rad or slab >= t_floor:

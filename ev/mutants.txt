@@ -1,0 +1,23 @@
+RESULT NULL rc=0 ALL 13 FEATURES BLOCK PASSED
+RESULT drop-valve-top-call KILLED rc=1 1 of 13 FEATURES BLOCK FAILED
+     FAIL R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve cannot hold the setpoint, the thermost
+RESULT ignore-pump-bound KILLED rc=1 1 of 13 FEATURES BLOCK FAILED
+     FAIL R10-SAV-VALUATION-RESIDUE Carry 9: a pump too small for the curve's top draw, or a curve top below a sunl
+RESULT drop-need-gt-topdraw KILLED rc=1 1 of 13 FEATURES BLOCK FAILED
+     FAIL R10-SAV-VALUATION-RESIDUE: a pump too small to hold the setpoint starts the reference where its capacity 
+RESULT drop-throttling SURVIVED rc=0 ALL 13 FEATURES BLOCK PASSED
+RESULT drop-two-zone KILLED rc=1 ValueError: not enough values to unpack (expected 2, got 1)
+RESULT guard-off-eq KILLED rc=1 1 of 13 FEATURES BLOCK FAILED
+     FAIL R10-SAV-VALUATION-RESIDUE Carry 9: a pump too small for the curve's top draw, or a curve top below a sunl
+RESULT guard-upper-only SURVIVED rc=0 ALL 13 FEATURES BLOCK PASSED
+RESULT guard-slab-only SURVIVED rc=0 ALL 13 FEATURES BLOCK PASSED
+RESULT clamp-drop-rad KILLED rc=1 1 of 13 FEATURES BLOCK FAILED
+     FAIL R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve cannot hold the setpoint, the thermost
+RESULT clamp-drop-floor KILLED rc=1 1 of 13 FEATURES BLOCK FAILED
+     FAIL R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve cannot hold the setpoint, the thermost
+RESULT room-mean-upper-only KILLED rc=1 1 of 13 FEATURES BLOCK FAILED
+     FAIL R10-SAV-VALUATION-RESIDUE Carry 9: on an install whose valve curve cannot hold the setpoint, the thermost
+RESULT made-dt-zero SURVIVED rc=0 ALL 13 FEATURES BLOCK PASSED
+RESULT top-none-guard-off KILLED rc=1 AttributeError: 'NoneType' object has no attribute 'upper_floor_temperature'
+RESULT x0-origin-zero SURVIVED rc=0 ALL 13 FEATURES BLOCK PASSED
+RESULT NULL-after rc=0 ALL 13 FEATURES BLOCK PASSED
