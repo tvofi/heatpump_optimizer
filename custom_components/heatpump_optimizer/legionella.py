@@ -15,6 +15,7 @@ table the pull request publishes; the residual diff per method is the proof.
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from datetime import datetime
 from typing import Any, Callable
 
@@ -77,9 +78,12 @@ class OffStepNotice:
     names it with the two on-step temperatures the user can pick, in place of
     ``dhw_legionella_unreachable``, whose hardware advice does not apply to a
     rounding gap: raising this takes that one down, and the guard raises it
-    not while this stands. Only a gap: where the step above the target is out
-    of the entity's range (``above_c`` under it, its maximum binding), no step
-    is the remedy and the unreachable notice's advice stands. Not persistent:
+    not while this stands. Only a gap: the step above must be writable, inside
+    the entity's range (else its maximum binds and ``above_c`` is the write
+    itself) and at or under the hard maximum a cycle at that step would hold
+    (``dhw_hard_max_temp``; else, as for a service-set 75 over the 70 °C cap,
+    the cap is the shortfall). Otherwise no step is the remedy and the
+    unreachable notice's advice stands. Not persistent:
     derived from configuration, and re-raised on the next cycle while it
     stands.
     """
@@ -97,7 +101,9 @@ class OffStepNotice:
         free = EntryConfig.from_mapping(config).dhw_free_disinfection_enabled
         margin = CREDIT_HOLD_MARGIN_K if free else CREDIT_INSTANT_MARGIN_K
         signature = None
-        if write is not None and write.written_c < target - margin and write.above_c >= target:
+        if write is not None and write.written_c < target - margin and write.written_c < write.above_c <= (
+            replace(params, dhw_legionella_temp=write.above_c).dhw_hard_max_temp
+        ):
             signature = (target, write.written_c, write.step, write.below_c, write.above_c)
         if signature == self.signature:
             return

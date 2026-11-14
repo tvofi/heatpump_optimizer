@@ -978,6 +978,19 @@ def _off_step_notice_pins() -> dict[str, bool]:
     out["a range-capped write leaves the unreachable notice's hardware advice standing"] = (
         _shortfall_standing(capped, 65.0) == {"dhw_legionella_above_setpoint", "dhw_legionella_unreachable"}
     )
+    for step in (5, 1):
+        out[f"a hard-cap shortfall (75 over the 70 C hard maximum, step {step}) raises no off-step notice, either rule"] = all(
+            _step_notice(55.0, 75.0, step, hold=h) is None for h in (False, True)
+        )
+    out["a hard-cap shortfall leaves the unreachable notice's hardware advice standing"] = (
+        _shortfall_standing({"min": 30, "max": 80, "step": 5}, 75.0)
+        == {"dhw_legionella_above_setpoint", "dhw_legionella_unreachable"}
+    )
+    out["68 on step 5 is named: the step above, 70, is the hard maximum and writable"] = (
+        _step_notice(55.0, 68.0, 5) == {
+            "legionella_temp": "68", "written": "65", "step": "5", "below": "65", "above": "70",
+        }
+    )
     out["null: the same 65 on a max-80 step-5 entity off the step (62) still raises"] = (
         _step_notice(55.0, 62.0, 5, attrs={"min": 30, "max": 80, "step": 5}) is not None
         and _shortfall_standing({"min": 30, "max": 80, "step": 5}, 62.0)
@@ -990,9 +1003,9 @@ def _off_step_notice_pins() -> dict[str, bool]:
     return out
 
 
-#: (rows, notices) of `_range_census`: min 30 or 60, max 55-80, steps 0.5/1/5,
-#: disinfection 55-70, everyday 55, both credit rules.
-_RANGE_CENSUS = (1632, 154)
+#: (rows, notices) of `_range_census`: min 30 or 60, max 55-80, steps 0.5/1/3/5,
+#: disinfection 55-75 (the service's range), everyday 55, both credit rules.
+_RANGE_CENSUS = (2856, 277)
 
 
 def _shortfall_standing(attrs, disinfection) -> set:
@@ -1015,8 +1028,9 @@ def _range_census():
     """Every entity range against every disinfection target: (rows, raised, bad rows).
 
     The notice is owed exactly where the step below the target is short of
-    credit and the step above it is writable (inside min and max): a range
-    cap is the unreachable notice's. A raised notice must name a writable
+    credit and the step above it is writable (inside min and max, and at or
+    under the 70 C hard maximum a cycle never exceeds): a range cap or the
+    hard cap is the unreachable notice's. A raised notice must name a writable
     step above the target and one below it (below < target <= above <= max,
     above - below == step).
     """
@@ -1026,14 +1040,14 @@ def _range_census():
         for hi in (55, 58, 60, 62, 64, 65, 66, 68, 70, 80):
             if hi <= lo:
                 continue
-            for step in (0.5, 1, 5):
-                for d in range(55, 71):
+            for step in (0.5, 1, 3, 5):
+                for d in range(55, 76):
                     for hold in (False, True):
                         rows += 1
                         got = _step_notice(55.0, float(d), step, hold=hold,
                                            attrs={"min": lo, "max": hi, "step": step})
                         down, up = math.floor(d / step) * step, math.ceil(d / step) * step
-                        owed = lo <= down < d - (0.5 if hold else 1.0) and up <= hi
+                        owed = lo <= down < d - (0.5 if hold else 1.0) and up <= min(hi, 70)
                         if (got is not None) != owed:
                             bad.append((lo, hi, step, d, hold, got))
                         if got is None:
