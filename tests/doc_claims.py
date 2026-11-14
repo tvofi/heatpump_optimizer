@@ -4912,7 +4912,7 @@ def flow_number_pins() -> list[tuple[str, str, float]]:
         ("options.step.building.sections.valve.data_description.flow_curve_cop_enabled",
          r"at most to a (\d+) °C supply", flow_lift.FLOW_SUPPLY_MAX_C),
         ("options.step.hot_water_tank.sections.disinfection.data_description.dhw_free_disinfection_enabled",
-         r"hold it for (\d+) minutes", const.DHW_LEGIONELLA_HOLD_MINUTES),
+         r"held that temperature for (\d+) minutes", const.DHW_LEGIONELLA_HOLD_MINUTES),
         ("config.step.temperature.data_description.min_temperature",
          r"lowers it by a further (\d+(?:\.\d+)?) K", const.ECONOMY_MIN_TEMP_WIDENING),
         ("config.step.temperature.data_description.min_temperature",
@@ -4920,7 +4920,7 @@ def flow_number_pins() -> list[tuple[str, str, float]]:
         ("config.step.temperature.data_description.min_temperature",
          r"never below (\d+) °C", const.ECONOMY_ABSOLUTE_FLOOR),
         ("options.step.learning_features.sections.weather.data_description.open_window_relax_enabled",
-         r"by (\d+) °C \(never below", const.OPEN_WINDOW_RELAX_C),
+         r"accepts by (\d+) °C, never below", const.OPEN_WINDOW_RELAX_C),
     ]
     return pins
 
@@ -5020,9 +5020,13 @@ def check_flow_text_claims() -> None:
             not bad, "; ".join(bad))
     indoor = planted["options"]["step"]["entities"]["sections"]["indoor"]["data_description"]
     indoor["space_setpoint_unit"] = "The unit is a declaration: this integration never recommends a space set-point."
+    # Planted, not read from the tree: R10-HOTFIX-FLOW-SETPOINT-STUCK has replaced
+    # the shipped sentence, so only a plant still proves the exemption is all that
+    # hides it.
+    owned_key = "options.step.entities.sections.indoor.data_description.space_setpoint_entity"
+    indoor["space_setpoint_entity"] = _OWNED_ELSEWHERE[owned_key]
     R.check("null: the other group's sentence is found once it is not exempted",
-            "options.step.entities.sections.indoor.data_description.space_setpoint_entity"
-            in flow_write_findings(texts, slots, owned={}))
+            owned_key in flow_write_findings(planted, slots, owned={}))
     R.check("null: the pre-fix space set-point unit sentence is found",
             "options.step.entities.sections.indoor.data_description.space_setpoint_unit"
             in flow_write_findings(planted, slots))
