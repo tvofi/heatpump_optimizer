@@ -62,6 +62,20 @@ Alternatives, lost (design section 2 and 3, re-measured here where a harness exi
 
 ## Head
 
+`f46642080b4665ce187b7b9f257f43f0c858b651` merges main `6858b4a` (#3514, #3587, #3577) into the previous head 3324b6d91 (its first parent, so the push is a fast-forward), by hand on one file. `git merge origin/main` conflicted in custom_components/heatpump_optimizer/optimizer.py; tests/closures.json and tests/features.py merged without conflict (the closures by the ledger merge driver). Every other file is either parent's.
+
+Resolution, one hunk, the one conflict: both sides added top-level functions at the same point after `_thermostat_held_state`. This branch added `_held_reference` (14 lines), main (#3587) added `_held_bisected`, `_held_at_valve_top` and `_pump_unreachable` (49 lines). The union keeps all four verbatim, the branch's first: against the conflicted file the resolution deletes the three marker lines and adds the two blank lines that separate the two blocks, and changes no line of either side. Main's other optimizer.py hunks (the `valve_top_equilibrium` import, the unreachable branch of `_thermostat_held_state` now calling `_held_at_valve_top` or `_held_bisected`, and `_held_unreachable`) merged without conflict. They do not interact with this branch's lines: `_held_reference` calls `_thermostat_held_state(model, state, weather, target)`, whose signature main left unchanged, so the held-start reference now takes main's valve-top ceiling where a two-zone house cannot reach its target. That is main's behaviour, which the union inherits on purpose.
+
+Proof by the merged file, per orchestrator.md section 6: both parents and the merge base of optimizer.py were reconstructed with `git show`, and an AST pass compared each function and class: every definition that the branch (13) or main (5) changed from the base is in the merged file byte-for-byte. Every line either side added is present in the merged file at least as often as on that side. `python3 -c "import ast; ast.parse(...)"` parses the merged file.
+
+Re-run at this head: `python3 tests/features.py` (`ALL 5638 FEATURE CHECKS PASSED`, inside `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`, which printed `MODE: SCOPED -- 31 script(s) run, 2 scoped out`), `python3 tests/env_drift.py --claims-only 6858b4a` and `tests/closure.py selftest` in the same run, `python3 tests/structure.py` (`STRUCTURE RATCHET PASSED`, no row re-recorded), `python3 tools/pr/ci_predict.py` (`no closures, fast, governance or instrument red predicted`). Not re-proven locally, on the orchestrator's ruling: the rest of the scoped gate (stopped inside tests/entities.py, because on this Mac entities, stress, optimality and card.mjs are red or run out of memory at origin/main too, so they prove nothing here), tests/golden.py (this Mac's solver floats are not the canonical build's, so a local golden result decides nothing; a combined drift the claims do not cover comes back as a claim-file fix), and main's three pinned mutants in the resolved hunk (`mutation_table.py --anchor` for `_held_bisected` RETURN_DEL 59dcea99 and `_held_at_valve_top` RETURN_DEL 908d78bd and GUARD_OFF 3960d33b, stopped unfinished after 35 minutes on a box at load 45; their pins are main's and the lines are byte-identical to main's). CI on Linux is the authority for all of these. The branch's own mutation proof was not re-run: the resolution touches no line of the branch's own.
+
+`3324b6d910a7e9ff761e96bdbe2d5d6afd88780a` merges main `9fdba3b` into the previous head: an automatic merge by the orchestrator, no resolution (GitHub reported a conflict after #3556 and #3562 merged that the tree's merge drivers resolve). The reviewed code is unchanged.
+
+`5543479d3ce8f9bfae90dcb61272c026d4577205` merges main `fafd6a9` into the previous head: an automatic merge by the orchestrator, no resolution. The reviewed code is unchanged.
+
+`9a543f44d69656f8bc6cb2aa123602c37a556125` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
 9fe5ad9fbc77cd778d9967759d4a273ec1b7080a
 
 Round 8: the reviewed head 80ef4ed1b4317b78ee8b79abf54eea5fb1d0622e plus one merge of origin/main 50373173d486faf394b24637c177ab38b691b394 (origin/main at 2026-11-13T23:26Z, `date -u` at this round's start), which is the new merge base; 80ef4ed1b is its first parent, so the push is a fast-forward. The delta is the merge's resolution of tests/deployment_shape.py, described file by file at the top (round 8). Re-run at this head: tests/deployment_shape.py, tests/entities.py and `python3 tests/structure.py` whole, and `tools/pr/prepr.sh` hotfix-scoped (`PREPR_SKIP_CODE=1 PREPR_SKIP_CLOSURES=1`; tests/closures.json merged without conflict). Not re-run at this head: the rest of the scoped gate and every figure below that names an earlier commit. Round 7's record follows, at its own head:
@@ -227,3 +241,5 @@ Round 5's lines are the head's. Every other line below was taken at 10aa3d9d0 or
 ## Friction
 
 none
+
+
