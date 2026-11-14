@@ -1,0 +1,22 @@
+M1 drop _cut_at_prelude term: KILLED ['ci-ratchet self-test: 72 checks, 1 failed']
+    FAIL a run cancelled at its prelude, its every tests job skipped, is not in the window (run 43602217369) -- ci-ratchet: CI push run 43602217
+M2 prelude conjunct -> True: KILLED ['ci-ratchet self-test: 72 checks, 1 failed']
+    FAIL null: a CI push run with no completed tests job whose prelude succeeded still refuses -- no refusal
+M3 drop bool(tests): KILLED ['ci-ratchet self-test: 72 checks, 1 failed']
+    FAIL null: a CI push run with no completed tests job whose prelude was cancelled and whose listing holds no tests job still refuses -- no re
+M4 drop all-skipped: KILLED ['ci-ratchet self-test: 72 checks, 2 failed']
+    FAIL null: a CI push run with no completed tests job whose prelude was cancelled but a tests job never completed still refuses -- no refusal
+    FAIL null: a CI push run with no completed tests job whose prelude was cancelled but its tests caller failed still refuses -- no refusal
+M5 TESTS_CALLER match disabled: KILLED ['ci-ratchet self-test: 72 checks, 1 failed']
+    FAIL a run cancelled at its prelude, its every tests job skipped, is not in the window (run 43602217369) -- ci-ratchet: CI push run 43602217
+M6 kind CI -> Tests: KILLED ['ci-ratchet self-test: 72 checks, 1 failed']
+    FAIL a run cancelled at its prelude, its every tests job skipped, is not in the window (run 43602217369) -- ci-ratchet: CI push run 43602217
+R1 prelude name check dropped (any cancelled job): KILLED ['ci-ratchet self-test: 72 checks, 1 failed']
+    FAIL null: a CI push run with no completed tests job whose prelude succeeded still refuses -- no refusal
+R2 all-skipped -> any-skipped: KILLED ['ci-ratchet self-test: 72 checks, 1 failed']
+    FAIL null: a CI push run with no completed tests job whose prelude was cancelled but a tests job never completed still refuses -- no refusal
+R3 tests/* prefix match disabled: KILLED ['ci-ratchet self-test: 72 checks, 1 failed']
+    FAIL null: a CI push run with no completed tests job whose prelude was cancelled but a tests job never completed still refuses -- no refusal
+R4 kind guard dropped: SURVIVED ['ci-ratchet self-test: 72 checks, 0 failed']
+R5 skipped -> in (skipped, cancelled): SURVIVED ['ci-ratchet self-test: 72 checks, 0 failed']
+RESULT mutants killed 9 of 11
