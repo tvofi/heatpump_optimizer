@@ -25827,7 +25827,8 @@
     "Reverting `narrative.py` to the merge base survives `tests/entities.py`: the corrected `dhw_window`/`dhw_preheat` template sentences have no pin. Carry: R11-INTAKE-R10-RESIDUE",
     "apply_manual_plan's services.yaml examples are 2024 datetimes: sent verbatim, `expires_at` is refused as not in the future and the slots overlap nothing; any absolute example ages the same way. Carry: R11-INTAKE-R10-RESIDUE",
     "`custom_components/heatpump_optimizer/services.py` (`set_thermal_parameters`, `dhw_legionella_temperature` `vol.Range(min=55, max=75)`) and `services.yaml`: the service admits a disinfection temperature of 71-75, which no cycle writes, since the 70 \u00b0C hard maximum caps it. This pull request makes that case raise the unreachable notice and not the off-step one. It does not narrow the range, because that is a user-facing behaviour change. The service's documented range and the 70 \u00b0C cap must agree, or the service text must say what 71-75 does. Carry: R11-INTAKE-R10-RESIDUE",
-    "From r10-sav-valuation-residue-p3, body item 5a1ba9c2: The one-channel recount (route (b) in the predecessor's BLOCKED question). On a combi store the three figures would count only hot water: the settled split in the coordinator's planned split and heat_energy's attribution, and the forecast in dhw_planner.py's `_baseline_dhw_economics`. It is legitimate only if the separate-tank install and the combi `null` row (zero exchange rounds) stay bitwise, and if the savings figure, which reads total power and not the split, does not move. The measurement is the census above. Re-measure with `r10_combi_tank.py exchange` at your merge base. Once the recount lands, `dhw_split`'s sentence is false and goes with it: `entity.COMBI_DHW_SPLIT` and the docs pinned by tests/doc_claims.py's `check_combi_dhw_split`. Carry: R11-INTAKE-R10-RESIDUE (items 5a1ba9c2)"
+    "From r10-sav-valuation-residue-p3, body item 5a1ba9c2: The one-channel recount (route (b) in the predecessor's BLOCKED question). On a combi store the three figures would count only hot water: the settled split in the coordinator's planned split and heat_energy's attribution, and the forecast in dhw_planner.py's `_baseline_dhw_economics`. It is legitimate only if the separate-tank install and the combi `null` row (zero exchange rounds) stay bitwise, and if the savings figure, which reads total power and not the split, does not move. The measurement is the census above. Re-measure with `r10_combi_tank.py exchange` at your merge base. Once the recount lands, `dhw_split`'s sentence is false and goes with it: `entity.COMBI_DHW_SPLIT` and the docs pinned by tests/doc_claims.py's `check_combi_dhw_split`. Carry: R11-INTAKE-R10-RESIDUE (items 5a1ba9c2)",
+    "The nightly Asia/Kolkata step runs under `faketime` on the other day type from the real day, with a weekday guard. The demonstration is in section 5 item 4 of `dev/audit/rca/R10-RCA-FEATURES-WEEKEND-CLOCK.md`. A stub-only clock shift is refused, measured: 14 collateral failures. Carry: R11-INTAKE-R10-RESIDUE"
    ],
    "resume": {
     "stage": "not-started",
@@ -27317,9 +27318,9 @@
    "brief": "Root-cause record (orchestrator, 2026-11-14) for the weekend red that R10-HOTFIX-FEATURES-WEEKEND-CLOCK fixed: the cause, the process state, the cost test and the countermeasure or its recorded refusal, as the root-cause contract owes. The analysis is done and handed off; this group carries its record pull request.",
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "fix/r10-rca-features-weekend-clock",
-    "commit": null,
+    "commit": "009643687b47bc51bda9b3fd98a99f0ece5307cc",
     "last_step": "handed off: handoff/r10-rca-features-weekend-clock e9974b7b",
     "next_step": "open the record pull request, sonnet review, merge with the next record batch",
     "note": "queued 2026-11-14: the opener printed NEEDS-TITLE for the handoff because no group carried it",
