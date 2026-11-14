@@ -1,0 +1,12 @@
+head 3fa750ea3861bf623ea3ff58e8e514321c511b52 reviewed-head 6295f868a4314316f5e12c72fa2d16ead4895d35
+merge-tree origin/main(50373173d4) HEAD: rc=0 tree a9a4c44e2e
+role contract diff mb...origin/main: empty
+null control at e23124ff6e:
+null control at 3fa750ea38:
+3fa750ea38:README.md:1
+3fa750ea38:docs/configuration.md:3
+3fa750ea38:docs/how-it-works.md:1
+  MODE: SCOPED -- 6 script(s) run, 27 scoped out.
+STRUCTURE RATCHET PASSED
+0 user-doc marker(s), 0 due
+mutants (each restored): M1 docs reverted to 6295f868a4 -> 3 of 356 FAILED; M2 lost_share index 1 -> 2 of 356 FAILED (both pages, 'heating to hot water'); M3 _ends_soon returns not tank_reason -> 1 of 356 FAILED [space=False dhw=False]; restored -> ALL 356 PASSED
