@@ -1,0 +1,7 @@
+ALT ('C', {'min': 5, 'max': 75, 'step': 0.1}, 71.0, 60, 0.5, CycleWrite(written_c=70.0, below_c=71.0, above_c=71.0, step=0.1))
+ALT ('C', {'min': 5, 'max': 75, 'step': 0.1}, 71.0, 62, 0.5, CycleWrite(written_c=70.0, below_c=71.0, above_c=71.0, step=0.1))
+ALT ('C', {'min': 5, 'max': 75, 'step': 0.1}, 71.0, 65, 0.5, CycleWrite(written_c=70.0, below_c=71.0, above_c=71.0, step=0.1))
+ALT ('C', {'min': 5, 'max': 75, 'step': 0.1}, 71.0, 68, 0.5, CycleWrite(written_c=70.0, below_c=71.0, above_c=71.0, step=0.1))
+ALT ('C', {'min': 5, 'max': 75, 'step': 0.1}, 71.0, 70, 0.5, CycleWrite(written_c=70.0, below_c=71.0, above_c=71.0, step=0.1))
+ALT ('C', {'min': 5, 'max': 75, 'step': 0.1}, 72.0, 40, 0.5, CycleWrite(written_c=70.0, below_c=72.0, above_c=72.0, step=0.1))
+RESULT out-of-slider(71-80) rows=83952 head_raised=15759 rows_with_above_eq_target=11538 head_vs_gt_mutant_differ=10539 head_vs_alternative_differ=10539

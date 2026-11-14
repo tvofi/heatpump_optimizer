@@ -1,0 +1,1 @@
+RESULT rows=650628 head_raised=60340 rows_with_above_eq_target=130986 head_vs_gt_mutant_differ=0 head_vs_alternative_differ=0

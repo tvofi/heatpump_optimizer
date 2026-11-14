@@ -1,0 +1,1 @@
+entity max 60, step 1, disinfection 65: standing = ['dhw_legionella_above_setpoint', 'dhw_legionella_unreachable']

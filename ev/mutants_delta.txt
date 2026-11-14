@@ -1,0 +1,76 @@
+== below_c rounding dropped
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 5e6940c1af..827b28ad5f 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -1226,7 +1226,7 @@ def cycle_write(hass: Any, config: Any, params: Any) -> CycleWrite | None:
+     target = float(params.dhw_legionella_temp)
+     return CycleWrite(
+         dhw_step_target_c(params, True, grid),
+-        grid.bounded(target, rounding="down"), grid.bounded(target, rounding="up"), grid.step,
++        grid.bounded(target), grid.bounded(target, rounding="up"), grid.step,
+     )
+ 
+ 
+  FAIL R10-DISINFECTION-STEP-NOTICE 63 on step 5 is named below 60 and above 65, the step down and up, not the nearest
+  FAIL R10-DISINFECTION-STEP-NOTICE entity-range census: 154 of 1632 rows raise, each with below < target <= above <= max
+2 of 84 GUARD PIN CHECKS FAILED
+== range gate deleted
+diff --git a/custom_components/heatpump_optimizer/legionella.py b/custom_components/heatpump_optimizer/legionella.py
+index 160ccf7816..8aecb92209 100644
+--- a/custom_components/heatpump_optimizer/legionella.py
++++ b/custom_components/heatpump_optimizer/legionella.py
+@@ -97,7 +97,7 @@ class OffStepNotice:
+         free = EntryConfig.from_mapping(config).dhw_free_disinfection_enabled
+         margin = CREDIT_HOLD_MARGIN_K if free else CREDIT_INSTANT_MARGIN_K
+         signature = None
+-        if write is not None and write.written_c < target - margin and write.above_c >= target:
++        if write is not None and write.written_c < target - margin:
+             signature = (target, write.written_c, write.step, write.below_c, write.above_c)
+         if signature == self.signature:
+             return
+  FAIL R10-DISINFECTION-STEP-NOTICE a range-capped write (max 60 under 65, step 1) raises no off-step notice, either rule
+  FAIL R10-DISINFECTION-STEP-NOTICE a range-capped write leaves the unreachable notice's hardware advice standing
+  FAIL R10-DISINFECTION-STEP-NOTICE entity-range census: 683 of 1632 rows raise, each with below < target <= above <= max
+3 of 84 GUARD PIN CHECKS FAILED
+== >= to >
+diff --git a/custom_components/heatpump_optimizer/legionella.py b/custom_components/heatpump_optimizer/legionella.py
+index 160ccf7816..d726259e2c 100644
+--- a/custom_components/heatpump_optimizer/legionella.py
++++ b/custom_components/heatpump_optimizer/legionella.py
+@@ -97,7 +97,7 @@ class OffStepNotice:
+         free = EntryConfig.from_mapping(config).dhw_free_disinfection_enabled
+         margin = CREDIT_HOLD_MARGIN_K if free else CREDIT_INSTANT_MARGIN_K
+         signature = None
+-        if write is not None and write.written_c < target - margin and write.above_c >= target:
++        if write is not None and write.written_c < target - margin and write.above_c > target:
+             signature = (target, write.written_c, write.step, write.below_c, write.above_c)
+         if signature == self.signature:
+             return
+ALL 84 GUARD PIN CHECKS PASSED
+== gate on below_c
+diff --git a/custom_components/heatpump_optimizer/legionella.py b/custom_components/heatpump_optimizer/legionella.py
+index 160ccf7816..dcba98eadd 100644
+--- a/custom_components/heatpump_optimizer/legionella.py
++++ b/custom_components/heatpump_optimizer/legionella.py
+@@ -97,7 +97,7 @@ class OffStepNotice:
+         free = EntryConfig.from_mapping(config).dhw_free_disinfection_enabled
+         margin = CREDIT_HOLD_MARGIN_K if free else CREDIT_INSTANT_MARGIN_K
+         signature = None
+-        if write is not None and write.written_c < target - margin and write.above_c >= target:
++        if write is not None and write.written_c < target - margin and write.below_c >= target:
+             signature = (target, write.written_c, write.step, write.below_c, write.above_c)
+         if signature == self.signature:
+             return
+  FAIL R10-DISINFECTION-STEP-NOTICE 55/62 on step 5 is named: 62 configured, 60 written, 60 and 65 on the step
+  FAIL R10-DISINFECTION-STEP-NOTICE the slider grid raises 201 of 1750 under the instant rule
+  FAIL R10-DISINFECTION-STEP-NOTICE the slider grid raises 436 of 1750 under the hold rule
+  FAIL R10-DISINFECTION-STEP-NOTICE the instant rule's 201 are all at step 5
+  FAIL R10-DISINFECTION-STEP-NOTICE the harness grid raises 34 / 71 of 330 (instant / hold)
+  FAIL R10-DISINFECTION-STEP-NOTICE the off-step notice shows, not the unreachable notice's hardware advice
+  FAIL R10-DISINFECTION-STEP-NOTICE an unchanged off-step signature does not re-raise the notice
+  FAIL R10-DISINFECTION-STEP-NOTICE the notice clears once the disinfection temperature is on the step
+  FAIL R10-DISINFECTION-STEP-NOTICE 63 on step 5 is named below 60 and above 65, the step down and up, not the nearest
+  FAIL R10-DISINFECTION-STEP-NOTICE null: the same 65 on a max-80 step-5 entity off the step (62) still raises
+  FAIL R10-DISINFECTION-STEP-NOTICE entity-range census: 0 of 1632 rows raise, each with below < target <= above <= max
+11 of 84 GUARD PIN CHECKS FAILED
