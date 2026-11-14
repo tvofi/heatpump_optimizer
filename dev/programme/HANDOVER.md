@@ -147,6 +147,21 @@ TODO-AT-CLOSURE: whether it is still red at the v10.0.0 tip (`gh run view <ci.ym
 
 ### The start gate and the order the pre-finder work must land in
 
+**Sequence.** (a) The pre-finder groups merge first, R11-PRE-MACHINERY-LIMITER
+before the other instrument groups (item 5): every R11-PRE group
+except the pipeline's later stages, plus R10-D5-D6-FULL-SCOPE and
+R10-DIMENSIONS-FULL-COVERAGE. (b) Only then is the round-11 baseline cut and
+the finders started, because finders work from a pinned baseline and the
+dimension, scope, objective-function and instrument changes must be inside it.
+(c) The pipeline's day 1 must be merged before round 11's fixers start, so it
+may run while the finders, verifiers and the planner work and does not hold the
+finders. (d) The pipeline's shadow day runs beside the fix wave as a
+measurement and gates nothing. (a) and (b) are the owner's 2026-11-13 ruling
+quoted below; (c) and (d) are the orchestrator's reading of the owner's
+2026-11-14 instruction (verbatim: "The design should be planned and built (if
+it will save significand wall clock time in a programme) before the fixers in
+round 11 start.") and of the 2026-11-14 ruling "Day 1 plus shadow" in item 1.
+
 tvofi, 2026-11-13 ~18:06Z (verbatim): "Do all the necessary changes, including
 yes on both my decisions, before round 11." The same evening, on six of the
 process-audit items: "They should be fixed in the beginning of round 11 before
@@ -167,10 +182,33 @@ orchestrator plans against, not as a schedule (round scope is that
 orchestrator's):
 
 1. **Decisions that change how the others merge go first.**
-   R11-PRE-PARALLEL-PIPELINE (design stage, XL): if its design is approved and
-   its cost test passes it changes how every later group reaches `main`, so its
-   design verdict precedes the dispatch of the instrument groups. Its build
-   window is three days at most (owner, below).
+   R11-PRE-PARALLEL-PIPELINE (design stage, XL), state at 2026-11-14T11:35Z:
+   `design/R11-PRE-PARALLEL-PIPELINE` at `80fbf6319fdb950b8d5054ee8939fb5dea1b5aae`;
+   appendix `design-wip/r11-pre-parallel-pipeline` at
+   `aeacef5b1844d983843d9cd67d863da4baa04be4`. Design review round 1 (Fable):
+   `Design review: revise 80fbf6319fdb950b8d5054ee8939fb5dea1b5aae evidence-missing`,
+   `design-verdict/R11-PRE-PARALLEL-PIPELINE` at
+   `ea028c98ecd2cf039ce9304cf4037a42236f909a`, eleven points; the designer is
+   revising. The reviewer's own enumerators reproduced the counts (215 merges,
+   826 merges of main into a head, 7.60 h first approval to main) and found 682
+   of the 826 answer no conflict under GitHub's driver-free merge; it judged
+   day 1 worth building, the integration branch not supported by the note's
+   evidence, and the switch five to six days after the stamp. Owner rulings,
+   2026-11-14, verbatim: "remerge_main.sh definitely needs to be scoped down
+   aggressively. Speculative gating could be done by running the scripts in
+   cloud seats."; "If cloud seats for speculative gating is feasible, they
+   should run haiku"; and, asked whether to build day 1 plus the shadow day as
+   a measurement beside round 11 or day 1 only: "Day 1 plus shadow". What
+   follows: day 1 (main is merged into a head only on a real conflict:
+   `open_pr.sh`, `handoff_push.sh`, `remerge_main.sh`, the train's serial
+   recarry; a proof input to `ci.yml` judged as a push) is built before the
+   fixers start; the shadow day measures beside the fix wave; the switch to an
+   integration branch is NOT approved and is the owner's decision after the
+   shadow result; how main would move (the reviewer's third arm: fast-forward
+   with the required-status rule still binding the promoting credential) stays
+   open until then; six GitHub behaviours are unprobed and no probe runs before
+   the v10.0.0 stamp.
+   TODO-AT-CLOSURE: the revised design's sha and its round-2 verdict, from `git ls-remote origin 'refs/heads/design/R11-PRE-PARALLEL-PIPELINE' 'refs/heads/design-verdict/R11-PRE-PARALLEL-PIPELINE'`.
 2. **The scope chain, strictly serial** because all three edit
    `tools/audit/check_scopes.py`: R10-D5-D6-FULL-SCOPE (pull request #3571
    when written), then R10-DIMENSIONS-FULL-COVERAGE (its pending carries; it
@@ -185,12 +223,19 @@ orchestrator's):
    R11-PRE-ROUND-METRICS, R11-PRE-TOKEN-LEDGER and R11-PRE-PLAN-RENDER, and
    **`tools/audit/seat/cloud_dispatch.py`** by R11-PRE-TOKEN-LEDGER and
    R11-PRE-STANDING-SCRIPTS: serial inside each set.
-5. **R11-PRE-MACHINERY-LIMITER sets "a new gate enters only when one leaves".**
-   Whether it lands before or after the instrument groups (ROUND-METRICS,
-   TOKEN-LEDGER, RELAY-REBUILD, ACK-COMPLETION, STANDING-SCRIPTS, PLAN-RENDER),
-   which add instruments, is the orchestrator's ruling to take and record: land
-   first and each pays one-in-one-out, land after and the owner's 2026-11-13
-   "fixed in the beginning of round 11" items run unmetered.
+5. **R11-PRE-MACHINERY-LIMITER lands first among the instrument groups.**
+   Owner, 2026-11-14 ~11:45Z, on the orchestrator's recommendation to land it
+   first (verbatim): "limiter first, write that in". It lands before
+   R11-PRE-ROUND-METRICS, R11-PRE-TOKEN-LEDGER, R11-PRE-RELAY-REBUILD,
+   R11-PRE-ACK-COMPLETION, R11-PRE-STANDING-SCRIPTS and R11-PRE-PLAN-RENDER, so
+   each of those is built under one-in-one-out and names what it retires;
+   landed after, the largest intake of new machinery goes in unmetered and sets
+   the limiter's baseline. The limiter sets "a new gate enters only when one
+   leaves". The orchestrator's recommendation, not the owner's words: purely
+   additive groups the owner ordered on 2026-11-13 are covered by one recorded
+   exemption written into the limiter itself, if its rule allows an exemption
+   as the machinery ratchet's does; the round-11 orchestrator checks the
+   group's brief for that.
 6. **R11-PRE-SHARED-FILES** (design first) generates `tests/closures.json`,
    `tests/structure_budgets.json` and the instruments index after merge instead
    of editing them in pull requests, which removes the coupling every other
@@ -224,7 +269,7 @@ group's brief.
 | R11-PRE-ACK-COMPLETION | P14 | an acknowledgement names the event that closes it and is renewed at most twice; a gantt accept expires; a proposal candidate has an id; includes PC-1113-02 | |
 | R11-PRE-STANDING-SCRIPTS | R1 | merge, rendering and watching as beat scripts, one exception seat | policy, owner review |
 | R11-PRE-PLAN-RENDER | R2 | plan page rendered on change; closure history as data; round-10-only view and a future-rounds tab with its own preliminary gantt (owner, 2026-11-13 ~19:59Z and ~20:00Z, below) | |
-| R11-PRE-PARALLEL-PIPELINE | owner order 2026-11-14 | an integration branch parallel to `main`; design stage | Fable, XL |
+| R11-PRE-PARALLEL-PIPELINE | owner order 2026-11-14 | day 1: heads stop moving, built before the fixers; shadow day beside the fix wave; switch not approved | Fable; design revise round 1 |
 
 **The objective function** (owner's words, 2026-11-13): "have a fable seat define
 that function and add it in the audit process, so that everything can be
@@ -302,7 +347,7 @@ holds the refs and not the judgement:
 | R10-NUDGE-RETIRE | #3566 | `nudge.md` binds Cursor and ZCode sessions only; retire it as written |
 | R10-SELFTEST-SCOPE-UNION-GUARD, R11-SELFTEST-SCOPE-MAIN-UNION-RERECORD | #3551 | the guard (C) is round 10's, the bot re-record (A) is round 11's and edits the code-owned `.github/workflows/governance.yml`; the analysis lands as `dev/audit/rca` with a `bugclasses.json` entry |
 | R10-HOTFIX-MACOS-SELFTEST-LANE | #3565 | local Darwin lane (owner, 2026-11-12 ~13:43Z: "You know you can run seats locally if needed right?"); no paid runner |
-| R10-START-COUNTER-EDGES | none | design round 2 fired 2026-11-14 after a `revise architecture-unsound` verdict (design ref `design/R10-START-COUNTER-EDGES`); owner, 2026-11-13 ~20:18Z, verbatim: "Fire it now, and if it is not merged when the stamp is ready, it goes to round 11 rather than holding closure" |
+| R10-START-COUNTER-EDGES | none | round-2 design approved 2026-11-14 (`Design review: approve 18655c84b679af92a83bdccbd4c1a2e88faec8ec`, design-verdict at `9900aa0068`; carries v0 to v5 in that verdict); the reviewer measured one size-L pull request of about 15 files reaching 30 of 33 closures, and the orchestrator ruled it goes to round 11 with the approved design under the owner's 2026-11-13 condition; no fixer was dispatched (design ref `design/R10-START-COUNTER-EDGES`); owner, 2026-11-13 ~20:18Z, verbatim: "Fire it now, and if it is not merged when the stamp is ready, it goes to round 11 rather than holding closure" |
 | R11-OUTSIDE-HONEST-STARTS-RUNS | none (contributor's #3529) | design review of round 1 returned `revise` (2026-11-13 ~20:20Z) and a designer round 2 followed; fixer only on `Design review: approve`, after the stamp and after R10-DUTY-SWITCH-PLANNER-PRICE, R10-OUTSIDE-DHW-START-HYSTERESIS, R10-OUTSIDE-SUPPLY-MIN-RUN-PAUSE and R10-ADVISOR-STEADY-START |
 | R10-COP-LEARNER-DRAW-FLOOR | none | L, design first (design ref `design/R10-COP-LEARNER-DRAW-FLOOR`); carries 84e73ec4, 35931f4b and the duty-gate-to-ceiling gain measurement; owner, 2026-11-13 ~20:25Z: "Yes, design can be prepared now." |
 | R10-FEEDBACK-SETTLE-LARGE-LIFT | #3577 | production, the water set-point feedback loop's large-lift settle; re-routed at the stamp unless it merged first (orchestrator ruling, 2026-11-14) |
