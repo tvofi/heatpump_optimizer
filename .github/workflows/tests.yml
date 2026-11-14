@@ -1793,18 +1793,30 @@ jobs:
       # dispatch leave these outputs unset and every lane runs.
       - name: Identify the diff and base the heavy lanes would judge
         id: laneskip
+        # A FORK HEAD ALWAYS RUNS (decision 0017). A lane proof is unauthenticated
+        # JSON restored from the cache, and a cache saved in a pull request's
+        # scope is restored by that pull request's later runs: a fork head could
+        # save a proof keyed for its next head's diff and skip that head green.
+        # So the skip arm is for a head of this repository; tools/pr/outside.py's
+        # self-test pins the conjunct.
         if: >-
-          github.event_name == 'pull_request'
+          (github.event_name == 'pull_request'
+           && github.event.pull_request.head.repo.full_name == github.repository)
           || (github.event_name == 'workflow_dispatch'
               && inputs.recheck == 'true'
               && inputs.no-skip != 'true')
+        env:
+          # A fork names its own branch, and git admits quotes, `$` and
+          # parentheses in one: it reaches the shell as a value, never as text
+          # (outside.py's self-test refuses the inline form in any run: block).
+          HEAD_REF: ${{ github.head_ref || github.ref_name }}
         run: |
           git fetch --no-tags origin main
           MB=$(git merge-base origin/main HEAD) || {
             echo "no merge base against origin/main; lanes run"
             exit 0
           }
-          BRANCH="${{ github.head_ref || github.ref_name }}"
+          BRANCH="$HEAD_REF"
           # GITHUB_SHA, not HEAD: the run's pinned commit -- refs/pull/N/merge
           # on a pull request, the branch head on a dispatch -- so a branch
           # that moves under this run cannot key a proof off a diff the lanes

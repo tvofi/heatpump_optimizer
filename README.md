@@ -591,11 +591,11 @@ every sensor is created on every install regardless of which group it is in.
 | Plan Savings Percentage | % | The same saving as a percentage | |
 | Cost Predicted | CUR | Cost of the optimized 24 h plan | |
 | Cost Baseline | CUR | Cost of the baseline over the same 24 h | |
-| DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | |
+| DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | On a combi tank, the `dhw_split` attribute says this is what the heat pump spends in hot-water mode, which includes space heat drawn from the tank |
 | Plan Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes; `saving_includes_wood` is `true` where wood is configured, because the saving then includes wood's heat and not firewood's cost | Unavailable until at least one month row exists |
 | Cost Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
 | Lifetime Space Heating Cost | CUR | Accumulating cost | |
-| DHW Cost (lifetime) | CUR | Accumulating cost | |
+| DHW Cost (lifetime) | CUR | Accumulating cost | On a combi tank, the `dhw_split` attribute says this is what the heat pump spends in hot-water mode, which includes space heat drawn from the tank |
 | Lifetime Total Heating Cost | CUR | Accumulating cost | |
 
 #### The temperatures the optimizer works in
@@ -621,7 +621,7 @@ every sensor is created on every install regardless of which group it is in.
 | Learning Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
 | Measured Power | kW | Real electrical draw, with the commanded power alongside | Disabled by default; unavailable until a power or energy entity is configured |
 | Lifetime Space Heating Energy | kWh | Accumulating, for the Energy dashboard | |
-| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
+| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | On a combi tank, the `dhw_split` attribute says this is what the heat pump spends in hot-water mode, which includes space heat drawn from the tank |
 | Lifetime Total Energy | kWh | Accumulating, for the Energy dashboard | |
 | Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Disabled by default; unavailable unless the capacity tariff is enabled |
 | Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Disabled by default; unavailable until a main fuse or capacity tariff bounds the house |
