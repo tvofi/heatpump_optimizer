@@ -1,0 +1,32 @@
+BASELINE [(0, False), (0, False)]
+KILLED   price-gate-ge: 1 fail, 0 fail
+         FAIL a counted start books money, never energy, and only at a nonzero price: the priced install's wear line ca
+KILLED   price-gate-true: 1 fail, 0 fail
+         FAIL a counted start books money, never energy, and only at a nonzero price: the priced install's wear line ca
+KILLED   zero-kwh: 1 fail, 0 fail
+         FAIL a counted start books money, never energy, and only at a nonzero price: the priced install's wear line ca
+KILLED   wear-line-deleted: 2 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-02':
+KILLED   wear-line-at-now: 1 fail, 0 fail
+         FAIL a start straddling a month boundary is counted and billed in the month of its first reading  [{'2026-02':
+KILLED   restore-ignores-stored-running: 1 fail, 0 fail
+         FAIL the stored lifetime and month counts continue across the change: a compressor running through the restart
+KILLED   none-overwrites-running: 1 fail, 0 fail
+         FAIL an unavailable, unknown, empty or non-numeric frequency counts nothing and reads no class; the last known
+KILLED   month-key-now: 4 fail, 0 fail
+         FAIL the control trace (every phase at least two refresh periods long) counts one start per on phase; one stop
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+KILLED   restore-order-before-ledger: 2 fail, 0 fail
+         FAIL an edge confirmed before the ledger load lands survives the restore: on a stored payload it adds to the s
+         FAIL a load that raises still restores the counter and replays the queue  [None 0 None]
+KILLED   attach-idempotence-off: 0 fail, 1 fail
+         FAIL the listener is armed once however often it is attached, and the record heard once however often the arbi
+SURVIVED timer-delay-zero: 0 fail, 0 fail
+KILLED   immersion-commanded-term: 1 fail, 0 fail
+         FAIL a refresh re-reads the signal against an unchanged meter: the command it brings makes the same reading th
+KILLED   reader-freq-reads-meter: 2 fail, 0 fail
+         FAIL with both a frequency sensor and a meter, the frequency is the source: the meter's rise counts nothing, t
+         FAIL the element rule is the meter source's only: a frequency install under a latched element counts its start
+RESULT survived=1
+EXIT 0

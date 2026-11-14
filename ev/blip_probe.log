@@ -1,0 +1,14 @@
+# head 43227286fc18822b7955e54aa5323cc61feab39e, unmutated
+RESULT blip_5s=0
+RESULT blip_10s=0
+RESULT blip_20s=0
+RESULT blip_29s=0
+RESULT blip_31s=1
+RESULT blip_45s=1
+# head with running_signal.py:178 delay = 0.0
+RESULT blip_5s=1
+RESULT blip_10s=1
+RESULT blip_20s=1
+RESULT blip_29s=1
+RESULT blip_31s=1
+RESULT blip_45s=1
