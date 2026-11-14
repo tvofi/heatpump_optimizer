@@ -1,0 +1,6 @@
+head under review: ed82d6a78f2fb7897cf8264f92ae0bc205d1cca4
+merge base: fdb526895c31c430b31325718f8af768807ffbfb
+origin/main: fdb526895c31c430b31325718f8af768807ffbfb
+remote head of handoff (ls-remote):
+ed82d6a78f2fb7897cf8264f92ae0bc205d1cca4	refs/heads/handoff-wip/r10-hotfix-features-weekend-clock
+ed82d6a78f2fb7897cf8264f92ae0bc205d1cca4	refs/heads/handoff/r10-hotfix-features-weekend-clock
