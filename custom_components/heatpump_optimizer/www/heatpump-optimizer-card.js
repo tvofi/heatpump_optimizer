@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.15";
+const CARD_VERSION = "7.1.16";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -126,6 +126,8 @@ const STRINGS = {
     "health.input_heat_pump_fault_entity": "Fault alarm",
     "health.input_heat_pump_heat_energy_entity": "Heat pump heat energy meter",
     "health.input_heat_pump_mode_entity": "Heat pump operating mode",
+    "health.input_space_hysteresis_entity": "Heating start hysteresis",
+    "health.input_dhw_hysteresis_entity": "Hot water start hysteresis",
     "health.input_heat_pump_online_entity": "Pump online",
     "health.input_heat_pump_power_entity": "Heat pump power meter",
     "health.input_heat_pump_return_temp_entity": "Return water temperature",
@@ -1011,6 +1013,8 @@ const STRINGS = {
     "health.input_heat_pump_fault_entity": "Felindikering",
     "health.input_heat_pump_heat_energy_entity": "Värmemängdsmätare för värmepumpen",
     "health.input_heat_pump_mode_entity": "Värmepumpens driftläge",
+    "health.input_space_hysteresis_entity": "Starthysteres uppvärmning",
+    "health.input_dhw_hysteresis_entity": "Starthysteres varmvatten",
     "health.input_heat_pump_online_entity": "Pumpen är uppkopplad",
     "health.input_heat_pump_power_entity": "Effektmätare för värmepumpen",
     "health.input_heat_pump_return_temp_entity": "Returtemperatur",
@@ -1847,6 +1851,8 @@ const STRINGS = {
     "health.input_heat_pump_fault_entity": "Störungsmeldung",
     "health.input_heat_pump_heat_energy_entity": "Wärmemengenzähler der Wärmepumpe",
     "health.input_heat_pump_mode_entity": "Betriebsart der Wärmepumpe",
+    "health.input_space_hysteresis_entity": "Starthysterese Heizen",
+    "health.input_dhw_hysteresis_entity": "Starthysterese Warmwasser",
     "health.input_heat_pump_online_entity": "Pumpe online",
     "health.input_heat_pump_power_entity": "Leistungsmesser der Wärmepumpe",
     "health.input_heat_pump_return_temp_entity": "Rücklauftemperatur",

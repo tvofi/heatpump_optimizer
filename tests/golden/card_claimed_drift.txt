@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.15
+# claims-for: 7.1.16
 #
-# v7.1.15: Supply minimum run and pause, valve target label, boost settling, card folds. The stamp empties the list; the
+# v7.1.16: Pump start condition input, duty-switch pricing, savings reference fix. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
