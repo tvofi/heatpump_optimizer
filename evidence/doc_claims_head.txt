@@ -1,2 +1,6 @@
-
-ALL 321 checks PASSED
+# at a4eac74f1b795b565cf2843b91c5c079796368b2, cwd /root/wt
+ALL 324 checks PASSED
+0 of 0 marker(s) due
+markers_rc=0
+4 user-doc marker(s), 3 due
+STRUCTURE RATCHET PASSED

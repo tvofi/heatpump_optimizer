@@ -1,0 +1,171 @@
+## N1 modules that name the state machine in code (not a comment line)
+      1 custom_components/heatpump_optimizer/away.py
+      5 custom_components/heatpump_optimizer/config_flow.py
+     14 custom_components/heatpump_optimizer/coordinator.py
+      2 custom_components/heatpump_optimizer/debugger.py
+      2 custom_components/heatpump_optimizer/early_cutoff.py
+     10 custom_components/heatpump_optimizer/inputs.py
+      1 custom_components/heatpump_optimizer/modbus_prefill.py
+      7 custom_components/heatpump_optimizer/pump_arbiter.py
+      1 custom_components/heatpump_optimizer/pump_signals.py
+      1 custom_components/heatpump_optimizer/services.py
+      1 custom_components/heatpump_optimizer/setpoint_check.py
+## N2 ci.yml: events, jobs with needs and uses, prelude outputs
+events: ['merge_group', 'pull_request', 'pull_request_review', 'push', 'workflow_dispatch']
+  prelude | needs None | uses None | workset-gated False
+  cancel-superseded | needs None | uses None | workset-gated False
+  tests | needs prelude | uses ./.github/workflows/tests.yml | workset-gated True
+  codeql | needs prelude | uses ./.github/workflows/codeql.yml | workset-gated True
+  governance | needs prelude | uses ./.github/workflows/governance.yml | workset-gated True
+  hassfest | needs prelude | uses ./.github/workflows/hassfest.yml | workset-gated True
+  validate | needs prelude | uses ./.github/workflows/validate.yml | workset-gated True
+  kernel-points | needs prelude | uses ./.github/workflows/kernel-points.yml | workset-gated True
+  arch-score | needs prelude | uses ./.github/workflows/arch-score.yml | workset-gated True
+  budget-raise-gate | needs prelude | uses ./.github/workflows/budget-raise-gate.yml | workset-gated True
+  pr-contract | needs ['prelude', 'tests', 'codeql', 'governance', 'hassfest', 'validate', 'kernel-points', 'arch-score', 'budget-raise-gate'] | uses ./.github/workflows/pr-contract.yml | workset-gated True
+  refresh | needs None | uses None | workset-gated False
+  gate | needs ['prelude', 'pr-contract'] | uses None | workset-gated False
+  sweep-self | needs gate | uses None | workset-gated False
+prelude outputs: ['kind', 'pr', 'base', 'head', 'gate_scope', 'legs', 'workset', 'machinery', 'selftests', 'machinery_rowblind']
+## N3 every workflow file: its triggers
+  arch-score.yml {'workflow_call': {}}
+  budget-raise-gate.yml {'workflow_call': {}}
+  ci.yml {'pull_request': {}, 'pull_request_review': {}, 'push': {'branches': ['main']}, 'merge_group': {}, 'workflow_dispatch': {}}
+  codeql.yml {'workflow_call': {}}
+  dependabot-automerge.yml {'pull_request_target': {}}
+  dependency-graph.yml {'push': {'branches': ['main'], 'paths': ['tests/requirements-*.txt', 'tools/pr/depgraph.py', '.github/workflows/dependency-graph.yml']}, 'workflow_dispatch': {}, 'schedule': {}}
+  gate-sweep.yml {'workflow_run': {'workflows': ['CI']}}
+  governance.yml {'workflow_call': {}, 'schedule': {}}
+  hassfest.yml {'workflow_call': {}}
+  kernel-points.yml {'workflow_call': {}, 'workflow_dispatch': {}}
+  marketplace.yml {'schedule': {}, 'workflow_dispatch': {}}
+  merge-main.yml {'push': {'branches': ['main']}, 'workflow_dispatch': {}}
+  nightly.yml {'push': {'branches': ['main']}, 'workflow_dispatch': {}, 'schedule': {}}
+  pages.yml {'push': {'tags': ['v*']}, 'workflow_dispatch': {}}
+  pr-contract.yml {'workflow_call': {}}
+  release.yml {'push': {'tags': ['v*']}, 'workflow_dispatch': {}}
+  tests.yml {'workflow_call': {}}
+  validate.yml {'workflow_call': {}}
+## N4 units ci.yml calls that lack workflow_call, or carry a pull-request trigger (expect none)
+units called: 9
+## N5 files with a pull-request trigger
+.github/workflows/ci.yml
+.github/workflows/dependabot-automerge.yml
+## N6 workflow files not named on dev/README.md (expect none)
+## N7 beat jobs: the set of script each job's argv runs, and the job names
+  ['tools/audit/seat/beat_jobs.py'] ['tick-digest', 'owed-check', 'roster-drain', 'plan-beat', 'gantt', 'verdict-audit', 'pulse', 'cancel-sweep', 'disk', 'opener', 'head-watch', 'audit-dispatch', 'outside-intake', 'bottleneck']
+## N8 beat table and beat_jobs.py: lines naming the relay, the tick, the train, the heartbeat, roster_sync (control: replan.py)
+  cloud_relay|orchestrator_tick|merge_train|heartbeat\.sh in tools/audit/seat/beatd.jobs.json: 0
+  cloud_relay|orchestrator_tick|merge_train|heartbeat\.sh in tools/audit/seat/beat_jobs.py: 1
+  roster_sync in tools/audit/seat/beatd.jobs.json: 0
+  roster_sync in tools/audit/seat/beat_jobs.py: 0
+  replan\.py in tools/audit/seat/beatd.jobs.json: 0
+  replan\.py in tools/audit/seat/beat_jobs.py: 2
+139:#: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
+## N9 writes of the hold list under tools/ and .github/ (a redirect into the file)
+tools/audit/seat/bus.sh:1362:  printf '# hold\n7\n' > "$W/hold/cloud-handoff-hold"
+tools/audit/seat/bus.sh:1367:  : > "$W/train-argv"; : > "$W/hold/cloud-handoff-hold"
+tools/audit/seat/bus.sh:1370:  : > "$W/train-argv"; printf 'seven\n' > "$W/hold/cloud-handoff-hold"
+tools/audit/seat/cloud_relay.sh:1252:  printf '41\n' > "$hf"; ho=$(handoff_arm 2>&1)
+tools/audit/seat/cloud_relay.sh:1256:  printf '99\n41\n' > "$hf"; ho=$(handoff_arm 2>&1)
+tools/audit/seat/cloud_relay.sh:1268:  printf '99\n' > "$hf"; ho=$(handoff_arm 2>&1)
+tools/audit/seat/cloud_relay.sh:1271:  printf '141\n' > "$hf"; rm -f "$t/hupdated"; ho=$(handoff_arm 2>&1)
+tools/audit/seat/cloud_relay.sh:1274:  : > "$hf"; rm -f "$t/hupdated"; handoff_arm >/dev/null 2>&1
+tools/audit/seat/cloud_relay.sh:1276:  printf '# held: roster freeze\n\n99\n' > "$hf"; rm -f "$t/hupdated"; handoff_arm >/dev/null 2>&1
+tools/audit/seat/cloud_relay.sh:1280:  printf '41\n' > "$hf"
+tools/audit/seat/cloud_relay.sh:1289:    printf '%s\n' "$hb" > "$hf"; rm -f "$t/hupdated"; : > "$LOG"; ho=$(handoff_arm 2>&1)
+tools/audit/seat/cloud_relay.sh:1302:  printf '99\n41' > "$hf"; ho=$(handoff_arm 2>&1)
+tools/audit/seat/cloud_relay.sh:1306:  printf '41' > "$hf"
+tools/audit/seat/cloud_relay.sh:1308:  printf '99\n41\n' > "$hf"; ho=$(handoff_arm 2>&1)
+tools/audit/seat/cloud_relay.sh:1380:  printf '41\n' > "$rf"; printf '41\n' > "$hf"; frz
+tools/audit/seat/cloud_relay.sh:1599:  printf '51\n' > "$hf"; hbc 1700000310 >/dev/null; ho=$(HPO_RELAY_PRS=$hprs handoff_arm 2>&1)
+tools/audit/seat/cloud_relay.sh:1605:  printf '51\n99\n' > "$hf"; HPO_RELAY_PRS=$hprs handoff_arm >/dev/null 2>&1
+## N10 ledger KINDS by class
+  events: ['reviewer-fire', 'verdict-unposted', 'approve-held-runs', 'dispatch', 'train-stop', 'postmerge-owed']
+  derived: 25 kinds
+## N11 production opens of train-stop (control: postmerge-owed)
+  train-stop: 0
+  postmerge-owed: 1
+## N12 assignments of the thermal parameters
+custom_components/heatpump_optimizer/coordinator.py:2755:    coord._thermal_params = params  # the ``_hub`` facade rebinds the context
+custom_components/heatpump_optimizer/coordinator.py:2756:    coord._thermal_model.params = params
+custom_components/heatpump_optimizer/coordinator.py:3469:    _thermal_params = _hub("_thermal_params")
+## N13 learner modules: homeassistant, store and coordinator imports at module level
+  accuracy: ha=1 store=0 coordinator=0
+  comfort_learning: ha=0 store=0 coordinator=0
+  curve_learning: ha=0 store=0 coordinator=0
+  defrost: ha=1 store=0 coordinator=0
+  dhw_draws: ha=0 store=0 coordinator=0
+  dhw_learning: ha=2 store=1 coordinator=0
+  drift: ha=0 store=0 coordinator=0
+  snapshots: ha=0 store=1 coordinator=0
+  sysid: ha=0 store=0 coordinator=0
+## N14 heat_energy.py homeassistant imports (control: accuracy.py), and its importers
+  heat_energy=0 lines naming homeassistant, import lines 0; accuracy import lines 1
+custom_components/heatpump_optimizer/coordinator.py:228:from . import heat_energy
+## N15 calls of model_restart_advice and house_loss_converged
+custom_components/heatpump_optimizer/coordinator.py:1416:    refit = model_restart_advice(coord)["refit"]
+custom_components/heatpump_optimizer/coordinator.py:3265:    if not house_loss_converged(samples):
+custom_components/heatpump_optimizer/coordinator.py:7940:            "house_heat_loss_learned": house_loss_converged(
+custom_components/heatpump_optimizer/coordinator.py:10711:        advice = model_restart_advice(self)
+## N16 config_flow.py: every form shown, and whether its schema is the registry's
+  31 
+  849 
+  886 
+  2510 data_schema=vol.Schema(
+  2603 data_schema=schema
+  2648 data_schema=schema
+  2666 data_schema=schema
+  2869 data_schema=_quick_setup_schema(
+  2885 data_schema=vol.Schema(
+  2946 data_schema=vol.Schema(
+  2968 data_schema=vol.Schema(
+  2985 data_schema=vol.Schema(
+  3032 data_schema=vol.Schema(
+  3101 data_schema=vol.Schema(
+  3143 data_schema=vol.Schema(
+  3216 data_schema=vol.Schema(
+  3366 data_schema=_page_schema(
+  3382 data_schema=_page_schema(
+  3457 data_schema=_FACTORY_RESET_SCHEMA
+  3547 data_schema=_options_schema(
+  3806 data_schema=_page_schema(
+  3945 data_schema=schema
+2527:class HeatPumpOptimizerConfigFlow(
+3225:class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.OptionsFlow):
+## N17 dependency-graph.yml path filters
+  ['tests/requirements-*.txt', 'tools/pr/depgraph.py', '.github/workflows/dependency-graph.yml']
+## N18 executable references from one drawn script to another (a path, an import or a module call; comment lines dropped)
+  cloud_dispatch.py -> cloud_relay.sh: lines 928 
+  cloud_dispatch.py -> bus.sh: lines 322 334 604 930 996 1240 
+  cloud_dispatch.py -> merge_train.py: lines 253 1146 
+  tick_loop.sh -> cloud_relay.sh: lines 83 155 
+  tick_loop.sh -> orchestrator_tick.py: lines 169 
+  tick_loop.sh -> merge_train.py: lines 149 
+  tick_loop.sh -> heartbeat.sh: lines 175 271 272 277 
+  cloud_relay.sh -> bus.sh: lines 199 200 703 
+  cloud_relay.sh -> merge_train.py: lines 269 
+  cloud_relay.sh -> carry_fold.py: lines 830 
+  bus.sh -> cloud_relay.sh: lines 479 
+  bus.sh -> roster_edit.py: lines 242 2096 
+  bus.sh -> merge_train.py: lines 482 610 
+  orchestrator_tick.py -> bus.sh: lines 336 4073 
+  orchestrator_tick.py -> state_docs.py: lines 2075 
+  orchestrator_tick.py -> roster_edit.py: lines 4304 4305 
+  orchestrator_tick.py -> merge_train.py: lines 249 4052 
+  beat_jobs.py -> state_docs.py: lines 424 
+  beat_jobs.py -> roster_queue.py: lines 387 
+  beat_jobs.py -> replan.py: lines 418 
+  beat_jobs.py -> open_driver.py: lines 542 
+  state_docs.py -> plan_page.py: lines 495 
+  state_docs.py -> roster_sync.py: lines 93 376 
+  state_docs.py -> replan.py: lines 39 672 688 689 
+  plan_page.py -> open_pr.sh: lines 208 231 
+  plan_page.py -> replan.py: lines 4 12 76 692 750 751 889 890 993 1154 1155 1178 1364 
+  roster_queue.py -> roster_edit.py: lines 83 843 844 851 
+  roster_edit.py -> roster_queue.py: lines 1417 
+  merge_train.py -> postmerge.py: lines 360 2769 
+  roster_sync.py -> roster_edit.py: lines 92 559 566 619 713 959 
+## N19 the figure's arrows and the table's rows
+  arrows 42 rows 42
+rc=0

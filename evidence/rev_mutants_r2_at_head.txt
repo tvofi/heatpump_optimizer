@@ -1,8 +1,8 @@
 null (baseline): 0 FAIL line(s) []
-SURVIVED N1 one-script rule accepts a script node naming no file: -
-killed   N2 one-script rule dropped: red fixture: a node grouping two scripts is a finding
-killed   N3 actor-file rule back to any basename in the label (round-1 shape): red fixture: a row citing a file its node names only below the first line is a finding
-SURVIVED N4 actor-file rule: substring of the first line: -
+killed   N1 one-script rule accepts a script node naming no file: red fixture: a script node that names no script is a finding
+killed   N2 one-script rule dropped: red fixture: a node grouping two scripts is a finding ;; red fixture: a script node that names no script is a finding
+killed   N3 actor-file rule back to any basename in the label (round-1 shape): red fixture: a row citing a file its node names only below the first line is a finding ;; red fixture: a row citing a file whose name is only a part of its node's script name is a finding
+killed   N4 actor-file rule: substring of the first line: red fixture: a row citing a file whose name is only a part of its node's script name is a finding
 killed   N5 entry kind: anything but a store: red fixture: a single entry that is a script, not a seat is a finding
 killed   N6 page: round-1 block reinstated (state_docs.py writes roster branch, cited to roster_sync.py): every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
 killed   N7 page: a live node regrouped to two scripts, rows renamed with it: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
@@ -10,5 +10,5 @@ killed   N8 source: the cited line removed from postmerge.py: every arrow is cit
 killed   N9 source: the cited line removed from roster_edit.py: every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
 killed   N10 page: seats node made a script shape (entry stays, a seat row then owes the one-script rule): every arrow is cited, every citation holds in the tree, and the figure has one entry ;; reversing any one arrow of the page's figure is a finding (anchor: the figure has arrows)
 RESULT rev2_mutants=10
-RESULT rev2_survivors=2
+RESULT rev2_survivors=0
 rc=0

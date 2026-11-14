@@ -1,20 +1,15 @@
-# at ba0ed526cc3b0a4b62a4e05b165710237e3bd123
-== three-dot names
+# three-dot names, base 63bcdcaad827ad3d98f914bc2e5b6110f9bb9444
 dev/README.md
+dev/audit/harnesses/r10_arch_docs_enumerate.py
+dev/audit/harnesses/r10_arch_docs_evidence.py
 dev/audit/harnesses/r10_arch_docs_mutants.py
 dev/programme/delivery/3430.md
 docs/architecture.md
 tests/closure.py
 tests/closures.json
 tests/doc_claims.py
-== structure
-STRUCTURE RATCHET PASSED
-== markers
-0 of 0 marker(s) due
-rc=0
-== closures delta entities rc
- 2 files changed, 6 insertions(+)
-== roster branch
-400a014603b46a442308bfff2253ed3ef1e38605	refs/heads/handoff/audit-r10-roster
-== pull head
-ba0ed526cc3b0a4b62a4e05b165710237e3bd123	refs/pull/3430/head
+# version/claim/golden paths in it:
+(end)
+# roster branch dbff400dec769be28ee94b5fe8d3dbdf4865c8f2
+a4eac74f1b795b565cf2843b91c5c079796368b2	refs/pull/3430/head
+a4eac74f1b795b565cf2843b91c5c079796368b2	refs/pull/3430/head
