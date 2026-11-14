@@ -1,0 +1,10 @@
+### head 42659b9711f2940aa54145b7b6e1b47e65717376
+stopped at the write, stays stopped : {'settled_at_write': False, 'opened': False, 'stopped': 0, 'kept': 0, 'void': 0, 'k': 0.0, 'n': 0.0, 'published': {}}
+stopped at the write, starts at 60 s: {'settled_at_write': False, 'opened': False, 'stopped': 0, 'kept': 0, 'void': 0, 'k': 0.0, 'n': 0.0, 'published': {}}
+control: running at the write, kept : {'settled_at_write': True, 'opened': True, 'stopped': 0, 'kept': 1, 'void': 0, 'k': 0.0, 'n': 1.0, 'published': {'duty_switch_dhw_space_k': 0.0, 'duty_switch_dhw_space_n': 1.0, 'duty_switch_dhw_space_stopped': 0, 'duty_switch_dhw_space_kept': 1, 'duty_switch_dhw_space_void': 0, 'duty_switch_dhw_space_censored': 0, 'duty_switch_dhw_space_span_days': 1}}
+rc=0
+### mutant r5v_tracker_settled_not_none (git archive copy)
+stopped at the write, stays stopped : {'settled_at_write': False, 'opened': True, 'stopped': 0, 'kept': 1, 'void': 0, 'k': 0.0, 'n': 1.0, 'published': {'duty_switch_dhw_space_k': 0.0, 'duty_switch_dhw_space_n': 1.0, 'duty_switch_dhw_space_stopped': 0, 'duty_switch_dhw_space_kept': 1, 'duty_switch_dhw_space_void': 0, 'duty_switch_dhw_space_censored': 0, 'duty_switch_dhw_space_span_days': 1}}
+stopped at the write, starts at 60 s: {'settled_at_write': False, 'opened': True, 'stopped': 0, 'kept': 1, 'void': 0, 'k': 0.0, 'n': 1.0, 'published': {'duty_switch_dhw_space_k': 0.0, 'duty_switch_dhw_space_n': 1.0, 'duty_switch_dhw_space_stopped': 0, 'duty_switch_dhw_space_kept': 1, 'duty_switch_dhw_space_void': 0, 'duty_switch_dhw_space_censored': 0, 'duty_switch_dhw_space_span_days': 1}}
+control: running at the write, kept : {'settled_at_write': True, 'opened': True, 'stopped': 0, 'kept': 1, 'void': 0, 'k': 0.0, 'n': 1.0, 'published': {'duty_switch_dhw_space_k': 0.0, 'duty_switch_dhw_space_n': 1.0, 'duty_switch_dhw_space_stopped': 0, 'duty_switch_dhw_space_kept': 1, 'duty_switch_dhw_space_void': 0, 'duty_switch_dhw_space_censored': 0, 'duty_switch_dhw_space_span_days': 1}}
+rc=0

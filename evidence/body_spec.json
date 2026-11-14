@@ -826,41 +826,5 @@
   "file": "custom_components/heatpump_optimizer/duty_switch.py",
   "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
   "new": "running = rec.tracker.settled is not False and rec.tracker.pending is None"
- },
- {
-  "name": "r5v_span_floor_on_kept_w",
-  "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "aged_out = self.first_day is not None and self.n < SPAN_FLOOR_N",
-  "new": "aged_out = self.first_day is not None and self.kept_w < SPAN_FLOOR_N"
- },
- {
-  "name": "r5v_tracker_settled_not_none",
-  "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
-  "new": "running = rec.tracker.settled is not None and rec.tracker.pending is None"
- },
- {
-  "name": "r5v_tracker_settled_dropped",
-  "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
-  "new": "running = rec.tracker.pending is None"
- },
- {
-  "name": "r5v_wrapper_pending_inverted",
-  "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty",
-  "new": "rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is None) or rec.dirty"
- },
- {
-  "name": "r5v_pass_judges_before_confirm",
-  "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "    rec.feed(rec.tracker.confirm(when))\n    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty\n",
-  "new": "    rec.dirty = rec.learner.note_pass(when, ctx, rec.tracker.pending is not None) or rec.dirty\n    rec.feed(rec.tracker.confirm(when))\n"
- },
- {
-  "name": "r5v_write_pending_ignored_when_stopped",
-  "file": "custom_components/heatpump_optimizer/duty_switch.py",
-  "old": "running = rec.tracker.settled is True and rec.tracker.pending is None",
-  "new": "running = rec.tracker.settled is True and rec.tracker.pending is None or rec.tracker.settled is False"
  }
 ]

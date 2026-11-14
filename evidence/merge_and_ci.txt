@@ -1,48 +1,37 @@
+head 42659b9711f2940aa54145b7b6e1b47e65717376
+origin/main 26072317b5556a2baa1ff562d8fbbc9588e2ba5c
 LEDGER-MERGE: resolved tests/closures.json
-  closures.tests/doc_claims.py: merged as a set (212 entries)
-  inert_reads.tests/harness_headers.py: merged as a set (1002 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (999 entries)
   re-run the gate that owns this file before pushing
-6f11a681436fa047dcd07a4c40448647b024d7c8
+6ab207361cc1b714ff447500c85ef7692d2d6981
 merge-tree rc=0
-2026-11-12T09:49:51Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T09:53:12Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T09:54:00Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T09:56:58Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T09:59:05Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T10:00:48Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T10:02:43Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T10:04:34Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T10:06:29Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T10:08:19Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T10:10:15Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-2026-11-12T10:12:05Z
-WAIT 1b3707d0bf67416d6d70563beaa08b1022ce74f8 pending: gate red: none
-rc=3
-re-check against origin/main fc2a7edcf2be8847037d9e8dc5bde460977befa8
-  closures.tests/doc_claims.py: merged as a set (212 entries)
-  inert_reads.tests/harness_headers.py: merged as a set (1003 entries)
-  re-run the gate that owns this file before pushing
-16800e710af2420c57b371c607f3dbe808d47099
-merge-tree rc=0
+ls-remote:
+42659b9711f2940aa54145b7b6e1b47e65717376	refs/heads/fix/r10-duty-switch-restart-learning
+42659b9711f2940aa54145b7b6e1b47e65717376	refs/pull/3461/head
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none
+classify rc=3
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none
+classify rc=3 at 07:42Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none
+classify rc=3 at 07:43Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:49Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:50Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:51Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:53Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:54Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:55Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:56Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:57Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 07:59Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:00Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:01Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:02Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:04Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:05Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:06Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:07Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:08Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:10Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:11Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:12Z
+WAIT 42659b9711f2940aa54145b7b6e1b47e65717376 pending: gate red: none | rc=3 at 08:13Z
