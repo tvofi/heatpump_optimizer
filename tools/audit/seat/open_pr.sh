@@ -122,7 +122,8 @@ $(tail -n 20 $D/fig-$1.log)"; echo "$PR_NAME: $OP_WHY" >&2; return 1
 op_clear_leftover() { # a closed-after-p2 open leaves its branch and detached checkout; both go when origin holds all of them
   git -C "$M" worktree prune
   git -C "$M" fetch -q origin "refs/heads/$BR:refs/remotes/origin/$BR" 2>/dev/null || :
-  if git -C "$M" worktree list --porcelain | grep -qxF "worktree $WT"; then  # a stray unregistered directory still stops at worktree add
+  # A here-string, not a pipe: under pr_trap's pipefail a grep -q leaving at an early match SIGPIPEs a long list (141)
+  if grep -qxF "worktree $WT" <<<"$(git -C "$M" worktree list --porcelain)"; then  # a stray unregistered directory still stops at worktree add
     [ -z "$(git -C "$WT" status --porcelain 2>/dev/null)" ] && git -C "$WT" merge-base --is-ancestor HEAD "origin/$BR" 2>/dev/null \
       || pr_refuse "a left-over checkout $WT holds work origin/$BR lacks; keep or remove it, then re-run"
     git -C "$M" worktree remove --force "$WT"
