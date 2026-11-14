@@ -1032,6 +1032,46 @@ def cases(bj) -> dict[str, bool]:
         and sorted(__import__("sys").modules["selftest_wiring"].self_testing(wt_tree)) == ["audit/seat/unwired.py", "audit/seat/wired.py"]
     res["darwin-selftest: the wired set is the real tree's seat self-tests, mutant_run.py among them"] = \
         "audit/seat/mutant_run.py" in got and all(p.startswith("audit/seat/") for p in got)
+    # The Mac measured one whole run at 80 min (prepr.sh alone 1104 s), past the row's timeout_s: a pass
+    # spends at most DARWIN_PASS_BUDGET_S, remembers what ran, and the next pass finishes the same tip.
+    clock = {"t": 0.0}
+
+    def slow(argv):
+        clock["t"] += 600.0
+        return (1, "FAIL slow red\n", "") if "red.py" in argv[-2] else (0, "", "")
+    three = ("tools/audit/seat/red.py", "tools/audit/seat/a.py", "tools/audit/seat/c.sh")
+    c, f = darwin(extra={"prepr.sh": slow, "a.py": slow, "red.py": slow, "c.sh": slow}, stubs=three)
+    c.clock = lambda: clock["t"]
+    bj.darwin_selftest(c)
+    pass1 = [a[-2] for a in f.calls if a[-1] == "--self" + "-test"]
+    digest1 = digest(c)
+    f.answers["git"] = git_tip(tipb)  # main moves mid-cycle: the cycle still finishes its own tip
+    while c.digest.joinpath("state", "darwin-selftest.json").exists() and \
+            not json.loads((c.digest / "state" / "darwin-selftest.json").read_text()).get("complete", True) \
+            and len(f.calls) < 200:
+        bj.darwin_selftest(c)
+    runs = [a[-2] for a in f.calls if a[-1] == "--self" + "-test"]
+    adds = [a[-1] for a in f.calls if "worktree" in a and "add" in a]
+    budget = getattr(bj, "DARWIN_PASS_BUDGET_S", 0)
+    res["darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip"] = \
+        0 < budget and len(pass1) == -(-budget // 600) < 4 and sorted(runs) == sorted(["tools/pr/prepr.sh", *three]) \
+        and len(adds) > 1 and set(adds) == {tipa}
+    res["darwin-selftest: a cycle's RED lines are written once, when it completes"] = \
+        digest1 == "" and digest(c).splitlines() == ["darwin-selftest: RED tools/audit/seat/red.py FAIL slow red"]
+    takes = sum("slot-take" in a for a in f.calls)
+    res["darwin-selftest: each pass takes and releases its own slot"] = \
+        takes == len(adds) == sum("slot-release" in a for a in f.calls) > 1
+    bj.darwin_selftest(c)
+    res["darwin-selftest: a completed cycle starts the next one at the newest tip"] = \
+        [a[-1] for a in f.calls if "worktree" in a and "add" in a][-1] == tipb
+    row = [j for j in json.loads((HERE / "beatd.jobs.json").read_text())["jobs"] if j["name"] == "darwin-selftest"]
+    res["darwin-selftest: DARWIN_PASS_BUDGET_S is at most half the row's timeout_s"] = \
+        len(row) == 1 and 0 < 2 * budget <= row[0]["timeout_s"]
+    c, f = darwin()
+    bj.darwin_selftest(c)
+    py = [a for a in f.calls if a[-2:] == ["tools/audit/seat/mutant_run.py", "--self" + "-test"]]
+    res["darwin-selftest: a .py self-test runs as CI's plain python3, never -I (which drops the script dir)"] = \
+        py == [["python3", "tools/audit/seat/mutant_run.py", "--self" + "-test"]]
 
     return res
 
@@ -1225,9 +1265,9 @@ MUTANTS = {
     "darwin_first_fail_is_last_line": ('next((ln for ln in lines if "FAIL" in ln), lines[-1] if lines else f"rc={rc} with no output")',
                                        '(lines[-1] if lines else f"rc={rc} with no output")',
                                        "darwin-selftest: a red self-test is one RED line naming it and its first FAIL line"),
-    "darwin_tip_not_skipped": ('.get("tip") == tip:\n        return', '.get("tip") == "":\n        return',
+    "darwin_tip_not_skipped": ('.get("tip") == tip:\n            return', '.get("tip") == "":\n            return',
                                "darwin-selftest: an unchanged tip is skipped"),
-    "darwin_red_dropped": ('            if rc != 0:\n                lines.append', '            if False:\n                lines.append',
+    "darwin_red_dropped": ('            if rc != 0:\n                mem["red"].append', '            if False:\n                mem["red"].append',
                            "darwin-selftest: a red self-test is one RED line naming it and its first FAIL line"),
     "darwin_cwd_repo": ("            rc, out, err = ctx.run(argv, wt, env)", "            rc, out, err = ctx.run(argv, ctx.repo, env)",
                         "darwin-selftest: every self-test runs in the worktree, never the orchestrator's own checkout"),
@@ -1240,6 +1280,17 @@ MUTANTS = {
                                    "darwin-selftest: a failed worktree add is UNREADABLE, releases the slot, and the tip is retried"),
     "darwin_slot_take_ignored": ("    if rc != 0:  # no lease", "    if False:  # no lease",
                                  "darwin-selftest: a slot-take that fails is UNREADABLE and runs nothing"),
+    "darwin_budget_ignored": ("            if ctx.clock() - start >= DARWIN_PASS_BUDGET_S:", "            if False:",
+                              "darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip"),
+    "darwin_cycle_follows_main": ('    if mem.get("complete", True):  # no cycle', '    if True:  # no cycle',
+                                  "darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip"),
+    "darwin_done_rerun": ('            if name in mem["done"]:\n                continue', '            if False:\n                continue',
+                          "darwin-selftest: a pass starts no self-test past DARWIN_PASS_BUDGET_S; the next pass resumes the same tip"),
+    "darwin_red_each_pass": ('    if mem["complete"]:\n        write_job', '    if True:\n        write_job',
+                             "darwin-selftest: a cycle's RED lines are written once, when it completes"),
+    "darwin_py_isolated": ('["python3" if p.endswith(".py") else "bash", f"tools/{p}"',
+                           '["python3" if p.endswith(".py") else "bash", *(["-I"] if p.endswith(".py") else []), f"tools/{p}"',
+                           "darwin-selftest: a .py self-test runs as CI's plain python3, never -I (which drops the script dir)"),
     "darwin_lease_not_released": ('        ctx.run([*gate, "slot-release"', '        (lambda *a: None)([*gate, "slot-release"',
                                   "darwin-selftest: the heavy slot is held around a detached worktree the row makes and removes"),
 }
