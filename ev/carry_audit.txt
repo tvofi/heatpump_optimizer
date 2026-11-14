@@ -1,0 +1,5 @@
+NOTE body item 9951e382: R11-INTAKE-R10-RESIDUE
+NOTE body item 148646a7: dismissed:settled at this head by #3580/#3576's space_setpoint_unit text, which this resolution keeps
+NOTE body item 6f113b47: dismissed:the brief and review_carry.py set the scope; the packet line had no effect on this verdict
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+rc=0

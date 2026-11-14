@@ -1,0 +1,5 @@
+train tree (merge-tree --write-tree ec9645014c 8317d9e1b2, rc 0): 497c7a009598badb7ac38663e13cb50d95146d83
+diff train-tree..head vs diff c987209cc7..ebc84836 (3561's own patch), ignoring index/hunk-header lines:
+4
+differing lines, all of them unchanged-context lines of space_setpoint_unit (train value at head, 3561-era value in its own patch); +/- lines identical:
+ADDED/REMOVED LINES IDENTICAL

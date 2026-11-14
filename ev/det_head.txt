@@ -1,0 +1,2 @@
+SUMMARY root=/root/wt demanded=55 states=36 failed=0 passes=10 dropped_axis=True armed_axis=True
+rc=0

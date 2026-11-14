@@ -1,0 +1,36 @@
+Fix review: merge 6f4771598c10d6996fb35b48b19a559292aaf8a9
+
+bus-nonce: 630851ff8c338eecaee88082bccc80ff
+pending-ci: gate
+
+## Summary
+
+Round 3 of R10-HOTFIX-FLOW-SETPOINT-STUCK, a delta review of a hand-resolved merge at head 6f4771598c10d6996fb35b48b19a559292aaf8a9 over the reviewed head ebc8483673e3581e3c06786f689ffc95ed8e366a. The packet's `## Review scope` line reads `full`, because no verdict on verdict/3561 names ebc84836. But `review_carry.py 30b069508f ebc84836` prints CARRY (one main-merge commit), so the round-2 merge verdict at 30b069508f carries to ebc84836, and this round is the delta, as the brief states. `review_carry.py ebc84836 6f477159` prints FRESH-REVIEW: 3928195c78 is not the automatic merge of its parents.
+
+The delta is three merge commits. 8998833abe merges PR 3580's head ec9645014c, 3928195c78 merges PR 3576's head 8317d9e1b2, and 6f4771598c is update_pr.sh's two-parent merge, whose tree 92f4e94b0c equals 3928195c78's tree and has an empty remerge-diff. The only hand resolution is one hunk per file in strings.json and translations/de, en and sv (and sv again in 3928195c78). It keeps 3561's `space_setpoint_entity` and the train heads' `space_setpoint_unit`. That is a correct union: each side changed only its own key. No production code beyond these four JSON files is in the delta, so nothing widens the scope.
+
+## Evidence
+
+- RESULT remerge-diff: `git show --remerge-diff` on 8998833abe shows one conflict hunk in each of the four files. On 3928195c78 it shows one hunk in sv.json. Each is resolved to ebc84836's `space_setpoint_entity` line and the train side's `space_setpoint_unit` line. 6f4771598c has an empty remerge-diff, and its tree equals 3928195c78's (ev/remerge_diff.txt).
+- RESULT train-equality, my own instrument (ev/key_union.py, built by this reviewer, not the merger's): `git merge-tree --write-tree ec9645014c 8317d9e1b2` exits 0, tree 497c7a0095. In each of the four JSON files, every flattened key 3561 does not own equals that train tree, which is 1506 keys per file. The one key 3561 owns (`options/.../indoor/data_description/space_setpoint_entity`, owned meaning changed c987209cc7..ebc84836) equals ebc84836. Output: `RESULT key-union: PASS` (ev/key_union.txt).
+- RESULT whole-tree: `git diff <train tree> 6f477159` has the same 19-file stat as 3561's own patch `git diff c987209cc7 ebc84836`. Every added and removed line is identical. The only differing lines are 4 unchanged-context `space_setpoint_unit` lines, which carry the train's value at the head (ev/patch_equal.txt). So the head is the train tree plus exactly 3561's reviewed patch.
+- RESULT the planted wrong resolution goes undetected by CI: replacing the head's `space_setpoint_entity` with the train side's text ("Used only to notice ... never writes ...") in all four files leaves `tests/doc_claims.py` (380 PASSED), `tests/ha_contract.py` and `tests/config_flow_steps.py` (586 PASSED) green (ev/plant_wrong_resolution.txt). CI would not catch a wrong pick here, so the key-level check above is what verifies the resolution. See Findings.
+- RESULT #3404's guarantees at the head: the pump-duty arbiter block prints `ALL 57 FEATURES BLOCK PASSED` (ev/block_arbiter.txt). `tests/guard_pins.py` prints `ALL 61 GUARD PIN CHECKS PASSED` with PYTHONPATH=tests/hastub (ev/guard_pins.txt); my first run without the hastub path failed on import and was discarded. `python3 dev/audit/harnesses/r10_arbiter_off_restore_mutants.py` exits rc 0 with 36 KILLED and only the 2 `SURVIVED NULL` lines, which covers both the arbiter block and the seam block (ev/mutants_head.txt).
+- RESULT detector: `python3 -I dev/audit/harnesses/r10_rca_setpoint_latch.py --check <head worktree>` run from /tmp gives rc 0, `SUMMARY ... demanded=55 states=36 failed=0 passes=10` (ev/det_head.txt).
+- RESULT doc_claims at the head: `ALL 380 checks PASSED` (ev/doc_claims.txt). That is up from 348 at round 2, because the train heads add checks.
+- Merge with main: `git merge-tree --write-tree origin/main 6f477159` against origin/main a77d71fb75 gives rc 0, tree ef6dbd776c, with no conflict and no MERGE-CLAIM line (ev/merge_main.txt).
+- VERSION, the manifest and tests/golden/ are untouched in the three-dot diff and in the delta.
+- The merger's evidence (s14/seat/handmerge-3561/, check_keys.py and check_train_equal.py) is a path on the orchestrator's machine and was not reachable from this seat. I re-derived everything above with my own instruments.
+- Body figures: the `## Head` section names this head and the union resolution, both correct. The detector figure (rc 0, failed=0 of 36 at the head) re-derives. The origin/main side (failed=4) is round-2 evidence and was not re-taken. The other body figures were verified in earlier rounds and are untouched by this delta.
+- Red checks: `merge_train.py owed-reds` lists `tests / coverage-ratchet`, `tests / fast (3.14)`, `tests / mutation`, `tests / typing` and `validate / validate-hacs`. The packet digest's reds `gate` (an aggregate, which classify reads as pending) and `tests / nightly-status` are outside that set, so they block nothing here.
+- CI at this head: `merge_train.py classify 6f4771598c --pr 3561` printed `WAIT 6f4771598c10d6996fb35b48b19a559292aaf8a9 pending: gate red: none` (rc 3) on every run from 10:41 to 11:12 UTC (ev/classify_log.txt). At 11:12 the check runs show `tests / mutation` still in progress. The aggregate `gate` shows the failure from its 10:14 run, which classify reads as pending. Every owed-reds context is green: `tests / coverage-ratchet`, `tests / fast (3.14)`, `tests / typing` and `validate / validate-hacs` succeeded, and `tests / mutation` is in progress. `tests / closures`, `tests / coverage` and `tests / browser` also succeeded. The review is complete, so the verdict carries `pending-ci:` for the relay to settle.
+- carry_audit self-check: see ev/carry_audit.txt.
+
+## Findings
+
+- Follow-up: no test pins the corrected `space_setpoint_entity` sentence, which is the owner-quoted fix this PR makes to the options page. A later merge or rebase that takes the other side's "never writes" text, as this hand-merge could have done, passes doc_claims, ha_contract and config_flow_steps (ev/plant_wrong_resolution.txt). A doc_claims row tying that sentence to the arbiter's Control write would detect it. Carry: R11-INTAKE-R10-RESIDUE
+- Follow-up: the body's `## Forward-carry` item says `space_setpoint_unit` ends "this integration never recommends a space set-point". At this head that sentence is gone: the train heads' text ("the optimizer never infers it from the entity, and only the heat-pump pre-fill suggests one") replaced it in all four files. The R11-INTAKE-R10-RESIDUE carry for it is therefore settled once #3580/#3576 land. Carry: dismissed: settled at this head by #3580/#3576's space_setpoint_unit text, which this resolution keeps
+
+## Friction
+
+- The review packet rendered `## Review scope: full`. It reads only verdicts naming the reviewed head exactly, and does not follow `review_carry.py`'s CARRY from the round-2 verdict at 30b069508f. I scoped this round by the brief and review_carry, not by the packet. Carry: dismissed: the brief and review_carry.py set the scope; the packet line had no effect on this verdict
